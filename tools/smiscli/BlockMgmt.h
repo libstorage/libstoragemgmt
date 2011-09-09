@@ -31,7 +31,7 @@ PEGASUS_USING_STD;
 class BlockMgmt
 {
 public:
-    
+
     /**
      * Class constructor.
      * Once this completes we have a connection to the SMI-S agent/proxy.
@@ -41,14 +41,14 @@ public:
      * @param   userName    User name when using authentication.
      * @param   password    Plain text password.
      */
-    BlockMgmt(  String host, Uint16 port, String smisNameSpace, String userName, 
+    BlockMgmt(  String host, Uint16 port, String smisNameSpace, String userName,
                 String password );
-    
+
     /**
      * Class destructor which closes the connection to the SMI-S agent/proxy
      */
     ~BlockMgmt();
-    
+
     /**
      * Creates a logical unit.
      * @param   storagePoolName     Name of storage pool to allocate lun from.
@@ -57,7 +57,7 @@ public:
      * @throws  Exception
      */
     void createLun( String storagePoolName, String name, Uint64 size);
-    
+
     /**
      * Creates a snapshot of a lun (point in time copy)
      * @param   sourceLun   Name of lun to snapshot.
@@ -65,16 +65,16 @@ public:
      * @param   destName    Name of new snapshot.
      * @throws  Exception
      */
-    void createSnapShot(    String sourceLun, String destStoragePool, 
+    void createSnapShot(    String sourceLun, String destStoragePool,
                             String destName);
-    
+
     /**
      * Deletes a logical unit.
      * @param   name    Name of lun to delete.
      * @throws Exception
      */
     void deleteLun( String name );
-    
+
     /**
      * Resizes an existing Lun.
      * @param   name    Name of lun to resize
@@ -82,46 +82,47 @@ public:
      * @throws Exception
      */
     void resizeLun( String name, Uint64 size);
-    
+
     /**
      * Returns an array of Strings which are the names of the storage pools.
      * @return  An Array<String>
      * @throws  Exception
      */
     Array<String> getStoragePools();
-    
+
     /**
      * Returns an array of Strings which are the names of the logical units
      * @return  An Array<String>
      * @throws  Exception
      */
     Array<String> getLuns();
-    
+
 private:
-    enum ElementType { UNKNOWN = 0, RESERVED = 1, STORAGE_VOLUME = 2, 
-                       STORAGE_EXTENT = 3, STORAGE_POOL = 4, LOGICAL_DISK = 5 };
-    
+    enum ElementType { UNKNOWN = 0, RESERVED = 1, STORAGE_VOLUME = 2,
+                       STORAGE_EXTENT = 3, STORAGE_POOL = 4, LOGICAL_DISK = 5
+                     };
+
     enum SyncType { MIRROR = 6, SNAPSHOT = 7, CLONE = 8 };
-    
+
     enum Mode { SYNC = 2, ASYNC = 3 };
-    
+
     enum MethodInvoke { INVOKE_OK = 0, INVOKE_ASYNC = 4096 };
-    
-    enum OperationalStatus { OK = 2, ERROR = 6, STOPPED = 10, COMPLETE = 17 };  
-    
+
+    enum OperationalStatus { OK = 2, ERROR = 6, STOPPED = 10, COMPLETE = 17 };
+
     CIMClient   c;
     CIMNamespaceName    ns;
-    
+
     Array<CIMInstance>  storagePools();
     Array<String> instancePropertyNames( String className, String prop );
-    
+
     CIMInstance getClassInstance(String className);
-    CIMInstance getClassInstance(String className, String propertyName, 
+    CIMInstance getClassInstance(String className, String propertyName,
                                  String propertyValue );
-    
-    void evalInvoke(Array<CIMParamValue> &out, CIMValue value, 
+
+    void evalInvoke(Array<CIMParamValue> &out, CIMValue value,
                     String jobKey = "Job");
-    
+
     void processJob(CIMValue &job);
 };
 

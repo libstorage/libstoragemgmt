@@ -27,8 +27,7 @@
 
 void dump_strings( Array<String> strings)
 {
-    for(Uint32 i = 0; i < strings.size(); ++i )
-    {
+    for(Uint32 i = 0; i < strings.size(); ++i ) {
         std::cout << strings[i] << std::endl;
     }
 }
@@ -36,11 +35,11 @@ void dump_strings( Array<String> strings)
 void usage(String name)
 {
     std::cout << name << " is a simple utility to learn smi-s block service "
-                        "functionality with openpegasus\n\n" << std::endl;
+              "functionality with openpegasus\n\n" << std::endl;
     std::cout << "Syntax: " << name << " host port namespace [create <storage pool> <name> <size>| delete <name> \n"
-            "| resize <name> <size> | list [luns|pools]] \n"
-            "| map <lun name> <initiator> \n" 
-            "| snapshot <source lun> <dest pool> <dest name> ]" << std::endl;
+              "| resize <name> <size> | list [luns|pools]] \n"
+              "| map <lun name> <initiator> \n"
+              "| snapshot <source lun> <dest pool> <dest name> ]" << std::endl;
     std::cout << "Note: Expects no authentication, if required export DEMO_SMIS_USER and DEMO_SMIS_PASS" << std::endl;
     std::cout << "Built on " << __DATE__  << " @ " << __TIME__ << std::endl;
     std::cout << "\n\nExample:\n" << std::endl;
@@ -48,8 +47,7 @@ void usage(String name)
     exit(EXIT_FAILURE);
 }
 
-struct args
-{
+struct args {
     String host;
     Uint16 port;
     String ns;
@@ -64,21 +62,20 @@ void process_args( int argc, char *argv[] , struct args *cmdline_args)
     if( argc < 5 ) {
         usage(argv[0]);
     }
-    
+
     cmdline_args->host = argv[1];
     cmdline_args->port = (Uint16)atol(argv[2]);
     cmdline_args->ns = argv[3];
     cmdline_args->operation = argv[4];
     cmdline_args->operation.toLower();
-    
-    for(int i = 5; i < argc; ++i)
-    {
+
+    for(int i = 5; i < argc; ++i) {
         cmdline_args->opArgs.append(argv[i]);
     }
-    
+
     if( getenv("DEMO_SMIS_USER") ) {
         cmdline_args->username = getenv("DEMO_SMIS_USER");
-        
+
         if( getenv("DEMO_SMIS_PASS") ) {
             cmdline_args->password = getenv("DEMO_SMIS_PASS");
         } else {
@@ -91,41 +88,39 @@ void process_args( int argc, char *argv[] , struct args *cmdline_args)
 int main(int argc, char *argv[])
 {
     struct args arguments;
-    
+
     try {
         process_args(argc, argv, &arguments);
         BlockMgmt bm(arguments.host, arguments.port, arguments.ns, arguments.username, arguments.password);
-        
+
         if( arguments.operation == "create" ) {
-            if( arguments.opArgs.size() != 3 )
-            {
+            if( arguments.opArgs.size() != 3 ) {
                 std::cout << "create expects <storage pool> <name> <size>" << std::endl;
                 return EXIT_FAILURE;
             }
-            
+
             bm.createLun(arguments.opArgs[0], arguments.opArgs[1], atoll(arguments.opArgs[2].getCString()));
-            
-        } else if ( arguments.operation == "snapshot" ) { 
+
+        } else if ( arguments.operation == "snapshot" ) {
             if( arguments.opArgs.size() != 3 ) {
                 std::cout << "snapshot expects <source lun> <dest. storage pool> <dest. name>" << std::endl;
                 return EXIT_FAILURE;
             }
-            
+
             bm.createSnapShot(arguments.opArgs[0], arguments.opArgs[1], arguments.opArgs[2]);
-        }
-        else if( arguments.operation == "delete" ) {
+        } else if( arguments.operation == "delete" ) {
             if( arguments.opArgs.size() != 1 ) {
                 std::cout << "delete expects <name>" << std::endl;
                 return EXIT_FAILURE;
             }
-            
+
             bm.deleteLun(arguments.opArgs[0]);
         } else if( arguments.operation == "resize" ) {
             if( arguments.opArgs.size() != 2 ) {
                 std::cout << "resize expects <name> <size>" << std::endl;
                 return EXIT_FAILURE;
             }
-            
+
             bm.resizeLun(arguments.opArgs[0], atoll(arguments.opArgs[1].getCString()));
 
         } else if( arguments.operation == "list" ) {
@@ -133,17 +128,17 @@ int main(int argc, char *argv[])
                 std::cout << "list expects one of the following [luns|pools|initiators]" << std::endl;
                 return EXIT_FAILURE;
             }
-            
+
             arguments.opArgs[0].toLower();
-            
+
             if( arguments.opArgs[0] == "luns" ) {
                 dump_strings( bm.getLuns());
             } else if( arguments.opArgs[0] == "pools" ) {
                 dump_strings( bm.getStoragePools());
             }
-            
+
         } else if ( arguments.operation == "map" ) {
-            
+
             std::cout << "NOT IMPLEMENTED!" << std::endl;
         } else {
             std::cout << "Unsupported operation " << arguments.operation << std::endl;
