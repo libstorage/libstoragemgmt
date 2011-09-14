@@ -33,6 +33,39 @@ Array<String> BlockMgmt::getStoragePools()
     return instancePropertyNames("CIM_StoragePool", "ElementName");
 }
 
+Array<String> BlockMgmt::getInitiators()
+{
+    //Note: If you want the storage array IQN go after CIM_SCSIProtocolEndpoint.Name
+    return instancePropertyNames("CIM_StorageHardwareID", "StorageID");
+}
+
+void BlockMgmt::mapLun(String initiatorID, String lunName)
+{
+    Array<CIMParamValue> in;
+    Array<CIMParamValue> out;
+    Array<String>lunNames;
+    Array<String>initPortIDs;
+    Array<String>deviceNumbers;
+    Array<Uint16>deviceAccess;
+
+    CIMInstance lun = getClassInstance("CIM_StorageVolume", "ElementName",
+                                       lunName);
+
+    lunNames.append(getClassValue(lun, "Name"));
+    initPortIDs.append(initiatorID);
+    deviceAccess.append(READ_WRITE);   //Hard coded to Read Write
+
+    CIMInstance ccs = getClassInstance("CIM_ControllerConfigurationService");
+
+    in.append(CIMParamValue("LUNames", lunNames));
+    in.append(CIMParamValue("InitiatorPortIDs", initPortIDs));
+    in.append(CIMParamValue("DeviceAccesses", deviceAccess));
+
+    evalInvoke(out, c.invokeMethod(ns, ccs.getPath(),
+                                   CIMName("ExposePaths"),
+                                   in, out));
+}
+
 void BlockMgmt::createLun( String storagePoolName, String name, Uint64 size)
 {
     Array<CIMParamValue> in;
@@ -201,6 +234,11 @@ Array<String> BlockMgmt::instancePropertyNames( String className, String prop )
         names.append(instances[i].getProperty(propIndex).getValue().toString());
     }
     return names;
+}
+
+String BlockMgmt::getClassValue(CIMInstance &instance, String propName)
+{
+    return instance.getProperty(instance.findProperty(propName)).getValue().toString();
 }
 
 CIMInstance BlockMgmt::getClassInstance(String className)

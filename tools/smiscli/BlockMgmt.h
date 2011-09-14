@@ -97,10 +97,29 @@ public:
      */
     Array<String> getLuns();
 
+    /**
+     * Returns an array of Strings which are the ID(s) of the initiators
+     * @return An Array<String> of initiator IDs
+     * @throws Exception
+     */
+    Array<String> getInitiators();
+
+    /**
+     * Grants read/write access for a lun to the specified initiator.
+     * @param   initiatorID     The initiator ID
+     * @param   lunName         The lun name
+     * @throws Exception
+     */
+    void mapLun(String initiatorID, String lunName);
+
 private:
     enum ElementType { UNKNOWN = 0, RESERVED = 1, STORAGE_VOLUME = 2,
                        STORAGE_EXTENT = 3, STORAGE_POOL = 4, LOGICAL_DISK = 5
                      };
+
+    enum DeviceAccess { READ_WRITE = 2, READ_ONLY = 3,
+                        NO_ACCESS = 4
+                      };
 
     enum SyncType { MIRROR = 6, SNAPSHOT = 7, CLONE = 8 };
 
@@ -116,6 +135,7 @@ private:
     Array<CIMInstance>  storagePools();
     Array<String> instancePropertyNames( String className, String prop );
 
+    String getClassValue(CIMInstance &instance, String propName);
     CIMInstance getClassInstance(String className);
     CIMInstance getClassInstance(String className, String propertyName,
                                  String propertyValue );

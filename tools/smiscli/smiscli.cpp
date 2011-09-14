@@ -37,8 +37,8 @@ void usage(String name)
     std::cout << name << " is a simple utility to learn smi-s block service "
               "functionality with openpegasus\n\n" << std::endl;
     std::cout << "Syntax: " << name << " host port namespace [create <storage pool> <name> <size>| delete <name> \n"
-              "| resize <name> <size> | list [luns|pools]] \n"
-              "| map <lun name> <initiator> \n"
+              "| resize <name> <size> | list [luns|pools|initiators]] \n"
+              "| mapcreate <initiator> <lun>\n"
               "| snapshot <source lun> <dest pool> <dest name> ]" << std::endl;
     std::cout << "Note: Expects no authentication, if required export DEMO_SMIS_USER and DEMO_SMIS_PASS" << std::endl;
     std::cout << "Built on " << __DATE__  << " @ " << __TIME__ << std::endl;
@@ -135,13 +135,22 @@ int main(int argc, char *argv[])
                 dump_strings( bm.getLuns());
             } else if( arguments.opArgs[0] == "pools" ) {
                 dump_strings( bm.getStoragePools());
+            } else if( arguments.opArgs[0] == "initiators") {
+                dump_strings( bm.getInitiators());
+            } else {
+                std::cout << "Unsupported list type= " << arguments.opArgs[0] << std::endl;
             }
 
-        } else if ( arguments.operation == "map" ) {
+        } else if ( arguments.operation == "mapcreate" ) {
+            if( arguments.opArgs.size() != 2 ) {
+                std::cout << "mapcreate expects <initiator> <lun>" << std::endl;
+                return EXIT_FAILURE;
+            }
 
-            std::cout << "NOT IMPLEMENTED!" << std::endl;
+            bm.mapLun(arguments.opArgs[0], arguments.opArgs[1]);
+
         } else {
-            std::cout << "Unsupported operation " << arguments.operation << std::endl;
+            std::cout << "Unsupported operation: " << arguments.operation << std::endl;
         }
 
     } catch (Exception &e) {
