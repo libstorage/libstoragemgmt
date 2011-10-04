@@ -139,7 +139,7 @@ int loadDriver(struct lsmConnect *c, xmlURIPtr uri, char *password,
 				/*Note: we should probably pass in the error pointer so that
 				 * The plug-in itself and return additional error information.
 				 */
-				rc = (*reg_plug)((lsmConnectPtr)c, uri, password, timeout);
+				rc = (*reg_plug)((lsmConnectPtr)c, uri, password, timeout, e);
 			} else {
 				rc = LSM_ERR_PLUGIN_DLSYM;
 			}
@@ -167,9 +167,9 @@ int loadDriver(struct lsmConnect *c, xmlURIPtr uri, char *password,
 
 
 lsmErrorPtr lsmErrorCreate( lsmErrorNumber code, lsmErrorDomain domain,
-							lsmErrorLevel level, char* msg, char *exception,
-                            char *debug, void *debug_data,
-                            uint32_t debug_data_size)
+							lsmErrorLevel level, const char* msg,
+							const char *exception, const char *debug,
+							const void *debug_data, uint32_t debug_data_size)
 {
 	struct lsmError *err = malloc(sizeof(struct lsmError));
 
@@ -243,7 +243,7 @@ int lsmErrorFree(lsmErrorPtr e)
 }
 
 
-int lsmLogError( lsmConnectPtr conn, lsmErrorPtr error) {
+int lsmErrorLog( lsmConnectPtr conn, lsmErrorPtr error) {
 	if( !LSM_IS_CONNECT(conn) ) {
 		return LSM_ERR_INVALID_CONN;
 	}

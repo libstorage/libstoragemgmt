@@ -123,8 +123,8 @@ int lsmPoolList(lsmConnectPtr conn, lsmPoolPtr **poolArray,
 
 	struct lsmConnect *c = (struct lsmConnect*)conn;
 
-	if( c->plugin.sanOps && c->plugin.sanOps->volumes_get) {
-		return (*(c->plugin.sanOps->volumes_get))(conn, poolArray, count);
+	if( c->plugin.sanOps && c->plugin.sanOps->pool_get) {
+		return (*(c->plugin.sanOps->pool_get))(conn, poolArray, count);
 	}
 
 	return LSM_ERR_NO_SUPPORT;

@@ -47,14 +47,17 @@ void usage(String name)
     exit(EXIT_FAILURE);
 }
 
+/**
+ * Arguments for the program
+ */
 struct args {
-    String host;
-    Uint16 port;
-    String ns;
-    String username;
-    String password;
-    String operation;
-    Array<String> opArgs;
+    String host;	/**< Host to connect to */
+    Uint16 port;	/**< port */
+    String ns;		/**< namespace */
+    String username;	/**< Username */
+    String password;	/**< Password */
+    String operation;	/**< Operation */
+    Array<String> opArgs;	/**< Optional arguments */
 };
 
 void process_args( int argc, char *argv[] , struct args *cmdline_args)
@@ -159,3 +162,4 @@ int main(int argc, char *argv[])
     }
     return 0;
 }
+

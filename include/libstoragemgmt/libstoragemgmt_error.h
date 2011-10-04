@@ -62,6 +62,7 @@ typedef enum {
     LSM_ERR_PLUGIN_DLSYM = 12,          /**< Required symbols in plugin missing */
     LSM_ERR_PLUGIN_ERROR = 13,          /**< Non-descript plugin error */
     LSM_ERR_INVALID_ERR = 14,           /**< Invalid error structure */
+    LSM_ERR_PLUGIN_REGISTRATION = 15,   /**< Error during plug-in registration */
     LSM_ERR_AUTH_FAILED = 45,           /**< Authorization failed */
 } lsmErrorNumber;
 
@@ -70,7 +71,7 @@ typedef lsmError *lsmErrorPtr;
 
 /**
  * Gets the last error structure
- * Note: see @lsmFreeError to release memory
+ * Note: @see lsmErrorFree to release memory
  * @return lsmErrorPtr, Null if no error exists!
  */
 lsmErrorPtr lsmErrorGetLast(void);
@@ -78,6 +79,7 @@ lsmErrorPtr lsmErrorGetLast(void);
 /**
  * Frees the error record!
  * @param err   The error to free!
+ * @return LSM_ERR_OK on success, else error reason.
  */
 int lsmErrorFree(lsmErrorPtr err);
 

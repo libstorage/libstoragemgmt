@@ -29,23 +29,39 @@
 extern "C" {
 #endif
 
+/**
+ * Infotmation about storage volumes.
+ */
 struct lsmVolume {
 
 };
 
+/**
+ * Information about storage pools.
+ */
 struct lsmPool {
-    char *id;
-    char *name;
-    uint64_t    totalSpace;
-    uint64_t    freeSpace;
+    char *id;                   /**< System wide unique identifier */
+    char *name;                 /**< Human recognizeable name */
+    uint64_t    totalSpace;     /**< Total size */
+    uint64_t    freeSpace;      /**< Free space available */
 };
 
+/**
+ * Information about an inititator.
+ */
 struct lsmInitiator {
+
 };
 
+/**
+ * Capabilities of the plugin and storage array.
+ */
 struct lsmStorageCapabilities {
 };
 
+/**
+ * Information pertaining to a storage group.
+ */
 struct lsmAccessGroup {
 };
 
@@ -58,28 +74,35 @@ struct lsmAccessGroup {
  * Function pointer decl. for the functions that the plug-in must export.
  */
 typedef int (*lsmRegister)(lsmConnectPtr c, xmlURIPtr uri, char *password,
-                uint32_t timeout);
+                uint32_t timeout, lsmErrorPtr *e);
 typedef int (*lsmUnregister)( lsmConnectPtr c );
 
+/**
+ * Information pertaining to the plug-in specifics.
+ */
 struct lsmPlugin {
-    char    *desc;
-    char    *version;
-    void    *privateData;
-    struct lsmMgmtOps    *mgmtOps;
-    struct lsmSanOps    *sanOps;
-    struct lsmNasOps    *nasOps;
-    struct lsmFsOps     *fsOps;
+    char    *desc;                      /**< Description */
+    char    *version;                   /**< Version */
+    void    *privateData;               /**< Private data for plug-in */
+    struct lsmMgmtOps    *mgmtOps;      /**< Callback for management ops */
+    struct lsmSanOps    *sanOps;        /**< Callbacks for SAN ops */
+    struct lsmNasOps    *nasOps;        /**< Callbacks for NAS ops */
+    struct lsmFsOps     *fsOps;         /**< Callbacks for fs ops */
 };
 
 
+/**
+ * Information pertaining to the connection.  This is the main structure and
+ * opaque data type for the library.
+ */
 struct lsmConnect {
-    uint32_t    magic;
-    uint32_t    flags;
-    xmlURIPtr   uri;
-    void        *handle;
-    lsmError    *error;
-    lsmUnregister       unregister;
-    struct lsmPlugin   plugin;
+    uint32_t    magic;          /**< Magic, used for structure validation */
+    uint32_t    flags;          /**< Flags for the connection */
+    xmlURIPtr   uri;            /**< URI */
+    void        *handle;        /**< dlopen handle to plug-in */
+    lsmError    *error;         /**< Error information */
+    lsmUnregister       unregister;     /**< Callback to unregister */
+    struct lsmPlugin   plugin;          /**< Plug-in information */
 };
 
 
@@ -87,12 +110,15 @@ struct lsmConnect {
 #define LSM_IS_ERROR(obj)     ((obj) && \
                                 (((struct lsmError*)obj))->magic==LSM_ERROR_MAGIC)
 
+/**
+ * Used to house error information.
+ */
 struct lsmError {
-    uint32_t    magic;
-    lsmErrorNumber code;
-    lsmErrorDomain domain;
-    lsmErrorLevel level;
-    uint32_t    reserved;
+    uint32_t    magic;          /**< Magic, used for struct validation */
+    lsmErrorNumber code;        /**< Error code */
+    lsmErrorDomain domain;      /**< Where the error occured */
+    lsmErrorLevel level;        /**< Severity of the error */
+    uint32_t    reserved;       /**< Reserved */
     char *message;              /**< Human readable error message */
     char *exception;            /**< Exception message if present */
     char *debug;                /**< Debug message */
@@ -114,10 +140,11 @@ LSM_DLL_LOCAL void freeConnection(struct lsmConnect *c);
 
 /**
  * Loads the requester driver specified in the uri.
- * @param c
- * @param uri
- * @param password
- * @param timeout
+ * @param c             Connection
+ * @param uri           URI
+ * @param password      Password
+ * @param timeout       Initial timeout
+ * @param e             Error data
  * @return LSM_ERR_OK on success, else error code.
  */
 LSM_DLL_LOCAL int loadDriver(struct lsmConnect *c, xmlURIPtr uri, char *password,

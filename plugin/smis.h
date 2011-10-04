@@ -27,6 +27,9 @@
 PEGASUS_USING_PEGASUS;
 PEGASUS_USING_STD;
 
+/**
+ * Class for Smis block operations.
+ */
 class LSM_DLL_LOCAL Smis
 {
 public:

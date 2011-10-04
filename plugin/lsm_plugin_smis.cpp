@@ -19,10 +19,14 @@
 #include <libstoragemgmt/libstoragemgmt_plugin.h>
 
 #include "smis.h"
+#include "util/misc.h"
 
 #ifdef	__cplusplus
 extern "C" {
 #endif
+
+static char name[] = "Default smi-s plug-in";
+static char version [] = "0.01";
 
 static int tmoSet(lsmConnectPtr c, uint32_t timeout )
 {
@@ -76,26 +80,31 @@ static struct lsmSanOps sanOps = {
 };
 
 int lsmPluginRegister( lsmConnectPtr c, xmlURIPtr uri, char *password,
-                        uint32_t timeout )
+                        uint32_t timeout, lsmErrorPtr *e )
 {
     int rc = LSM_ERR_OK;
     Smis *s = NULL;
+    std::string ns;
 
-    char name[] = "Default smi-s plug-in";
-    char version [] = "0.01";
+    /** pull the name space! */
+    if( !uri->query_raw ) {
+        return LSM_ERR_URI_PARSE;
+    } else {
+        ns = LSM::getValue(uri->query_raw, "namespace");
 
-    /*
-     Change hard coded name space
-     */
+        if( ns.length() == 0 ) {
+            return LSM_ERR_URI_PARSE;
+        }
+    }
 
     try {
-        s = new Smis(uri->server, uri->port, "root/ontap", uri->user, password,
+        s = new Smis(uri->server, uri->port, ns.c_str(), uri->user, password,
                         timeout);
 
         rc = lsmRegisterPlugin( c, name, version, s, &mgmOps, &sanOps, NULL, NULL);
-    } catch (Exception &e) {
-        std::cerr << "Error:" << e.getMessage() << std::endl;
-        rc = LSM_ERR_INVALID_CONN;
+    } catch (Exception &ex) {
+        *e = LSM_ERROR_CREATE_PLUGIN_EXCEPTION(LSM_ERR_PLUGIN_REGISTRATION, "Registration error", "FUBR");
+        rc = LSM_ERR_PLUGIN_REGISTRATION;
     }
 
     return rc;

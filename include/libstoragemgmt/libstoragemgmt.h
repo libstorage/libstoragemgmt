@@ -184,9 +184,9 @@ int lsmVolumeOffline(lsmConnectPtr conn, lsmVolumePtr volume);
 
 /**
  * Retrieves a list of access groups.
- * @param [in]conn              Valid connection @see lsmConnectUserPass
- * @param [out]groups           Array of access groups
- * @param [out]groupCount       Size of array
+ * @param[in] conn              Valid connection @see lsmConnectUserPass
+ * @param[out] groups           Array of access groups
+ * @param[out] groupCount       Size of array
  * @return 0 on success, else error reason.
  */
 int lsmAccessGroupList( lsmConnectPtr conn, lsmAccessGroupPtr *groups[],

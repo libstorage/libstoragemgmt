@@ -29,14 +29,16 @@ extern "C" {
 
 /**
  * Used by framework to call into plug-in for registration.
- * @param[in] c             Connection
- * @param[in] uri           uri
- * @param[in] password      Password
- * @param[in] timeout       Timeout in ms
+ * @param[in] c         Connection
+ * @param[in] uri       uri
+ * @param[in] password  Password
+ * @param[in] timeout   Timeout in ms (initial).
+ * @param[out] e        Error data, should only be non-null if return code !=
+ *                      LSM_ERR_OK.
  * @return LSM_ERR_OK, else error reason.
  */
 int lsmPluginRegister(  lsmConnectPtr c, xmlURIPtr uri, char *password,
-                        uint32_t timeout);
+                        uint32_t timeout, lsmErrorPtr *e);
 
 /**
  * Used by framework to unregister a plug-in.
