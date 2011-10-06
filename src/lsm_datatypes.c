@@ -32,7 +32,7 @@
 /*NOTE: Need to change this! */
 #define LSM_DEFAULT_PLUGIN_DIR "./plugin"
 
-int lsmRegisterPlugin( lsmConnectPtr conn, char *desc, char *version,
+int lsmRegisterPlugin( lsmConnectPtr c, char *desc, char *version,
                         void *private_data,  struct lsmMgmtOps *mgmOps,
 						struct lsmSanOps *sanOp, struct lsmFsOps *fsOp,
 						struct lsmNasOps *nasOp )
@@ -41,7 +41,6 @@ int lsmRegisterPlugin( lsmConnectPtr conn, char *desc, char *version,
 		return LSM_ERR_INVALID_ARGUMENT;
 	}
 
-	struct lsmConnect *c = (struct lsmConnect *)conn;
 	c->plugin.desc = strdup(desc);
 	c->plugin.version = strdup(version);
 	c->plugin.privateData = private_data;
@@ -59,20 +58,20 @@ void *lsmGetPrivateData( lsmConnectPtr conn )
 	if( !LSM_IS_CONNECT(conn)) {
 		return NULL;
 	}
-	return ((struct lsmConnect *)conn)->plugin.privateData;
+	return conn->plugin.privateData;
 }
 
-struct lsmConnect *getConnection()
+lsmConnectPtr getConnection()
 {
-	struct lsmConnect *c = malloc(sizeof(struct lsmConnect));
+	lsmConnectPtr c = malloc(sizeof(lsmConnect));
 	if( c ) {
-		memset(c, 0, sizeof(struct lsmConnect));
+		memset(c, 0, sizeof(lsmConnect));
 		c->magic = LSM_CONNECT_MAGIC;
 	}
 	return c;
 }
 
-void freeConnection(struct lsmConnect *c)
+void freeConnection(lsmConnectPtr c)
 {
 	if(c) {
 
@@ -109,7 +108,7 @@ void freeConnection(struct lsmConnect *c)
 	}
 }
 
-int loadDriver(struct lsmConnect *c, xmlURIPtr uri, char *password,
+int loadDriver(lsmConnectPtr c, xmlURIPtr uri, char *password,
 				uint32_t timeout, lsmErrorPtr *e)
 {
 	int rc = LSM_ERR_OK;
@@ -171,10 +170,10 @@ lsmErrorPtr lsmErrorCreate( lsmErrorNumber code, lsmErrorDomain domain,
 							const char *exception, const char *debug,
 							const void *debug_data, uint32_t debug_data_size)
 {
-	struct lsmError *err = malloc(sizeof(struct lsmError));
+	lsmErrorPtr err = malloc(sizeof(lsmError));
 
 	if(err) {
-		memset(err, 0, sizeof(struct lsmError));
+		memset(err, 0, sizeof(lsmError));
 		err->magic = LSM_ERROR_MAGIC;
 		err->code = code;
 		err->domain = domain;
@@ -213,46 +212,42 @@ int lsmErrorFree(lsmErrorPtr e)
 		return LSM_ERR_INVALID_ERR;
 	}
 
-	struct lsmError *t = (struct lsmError *)e;
-
-	if( t->debug_data ) {
-		free(t->debug_data);
-		t->debug_data = NULL;
-		t->debug_data_size = 0;
+	if( e->debug_data ) {
+		free(e->debug_data);
+		e->debug_data = NULL;
+		e->debug_data_size = 0;
 	}
 
-	if( t->debug ) {
-		free(t->debug);
-		t->debug = NULL;
+	if( e->debug ) {
+		free(e->debug);
+		e->debug = NULL;
 	}
 
-	if( t->exception ) {
-		free(t->exception);
-		t->exception = NULL;
+	if( e->exception ) {
+		free(e->exception);
+		e->exception = NULL;
 	}
 
-	if( t->message ) {
-		free(t->message);
-		t->message = NULL;
+	if( e->message ) {
+		free(e->message);
+		e->message = NULL;
 	}
 
-	t->magic = 0;
-	free(t);
+	e->magic = 0;
+	free(e);
 
 	return LSM_ERR_OK;
 }
 
 
-int lsmErrorLog( lsmConnectPtr conn, lsmErrorPtr error) {
-	if( !LSM_IS_CONNECT(conn) ) {
+int lsmErrorLog( lsmConnectPtr c, lsmErrorPtr error) {
+	if( !LSM_IS_CONNECT(c) ) {
 		return LSM_ERR_INVALID_CONN;
 	}
 
 	if( !LSM_IS_ERROR(error)) {
 		return LSM_ERR_INVALID_ERR;
 	}
-
-	struct lsmConnect *c = (struct lsmConnect *)conn;
 
 	if( c->error ) {
 		lsmErrorFree(c->error);
@@ -266,7 +261,7 @@ int lsmErrorLog( lsmConnectPtr conn, lsmErrorPtr error) {
 
 #define LSM_RETURN_ERR_VAL(e, x, error)	\
 		if( LSM_IS_ERROR(e) ) {		\
-			return (((struct lsmError*)e))->x;			\
+			return e->x;			\
 		}							\
 		return error;				\
 
@@ -298,11 +293,9 @@ char* lsmErrorGetDebug(lsmErrorPtr e)
 void* lsmErrorGetDebugData(lsmErrorPtr e, uint32_t *size)
 {
 	if( LSM_IS_ERROR(e) && size != NULL ) {
-		struct lsmError *ep = (struct lsmError*) e;
-
-		if( ep->debug_data ) {
-			*size = ep->debug_data_size;
-			return ep->debug_data;
+		if( e->debug_data ) {
+			*size = e->debug_data_size;
+			return e->debug_data;
 		} else {
 			*size = 0;
 		}
@@ -312,19 +305,19 @@ void* lsmErrorGetDebugData(lsmErrorPtr e, uint32_t *size)
 
 lsmPoolPtr *lsmPoolRecordAllocArray( uint32_t size )
 {
-    struct lsmPool **rc = NULL;
+    lsmPoolPtr *rc = NULL;
 
     if( size > 0) {
-        size_t s = sizeof(struct lsmPool *) * size;
-        rc = (struct lsmPool **)malloc(s);
+        size_t s = sizeof(lsmPoolPtr) * size;
+        rc = (lsmPoolPtr *)malloc(s);
     }
-    return (lsmPoolPtr*)rc;
+    return rc;
 }
 
 lsmPoolPtr lsmPoolRecordAlloc(const char *id, const char *name, uint64_t totalSpace,
                                 uint64_t freeSpace)
 {
-    struct lsmPool *rc = malloc( sizeof(struct lsmPool));
+    lsmPoolPtr rc = malloc( sizeof(lsmPool));
     if( rc ) {
         rc->id = strdup(id);
         rc->name = strdup(name);
@@ -337,15 +330,14 @@ lsmPoolPtr lsmPoolRecordAlloc(const char *id, const char *name, uint64_t totalSp
 void lsmPoolRecordFree(lsmPoolPtr p)
 {
     if( p ) {
-        struct lsmPool *t = (struct lsmPool*)p;
-        if( t->name ) {
-            free(t->name);
-            t->name = NULL;
+        if( p->name ) {
+            free(p->name);
+            p->name = NULL;
         }
 
-        if( t->id ) {
-            free(t->id);
-            t->id = NULL;
+        if( p->id ) {
+            free(p->id);
+            p->id = NULL;
         }
         free(p);
     }
@@ -364,19 +356,171 @@ void lsmPoolRecordFreeArray( lsmPoolPtr pa[], uint32_t size )
 
 char *lsmPoolNameGet( lsmPoolPtr p)
 {
-	return ((struct lsmPool*)p)->name;
+	return p->name;
 }
 
 char *lsmPoolIdGet( lsmPoolPtr p)
 {
-	return ((struct lsmPool*)p)->id;
+	return p->id;
 }
 
 uint64_t lsmPoolTotalSpaceGet( lsmPoolPtr p)
 {
-	return ((struct lsmPool*)p)->totalSpace;
+	return p->totalSpace;
 }
 uint64_t lsmPoolFreeSpaceGet( lsmPoolPtr p)
 {
-	return ((struct lsmPool*)p)->freeSpace;
+	return p->freeSpace;
+}
+
+lsmInitiatorPtr *lsmInitiatorRecordAllocArray( uint32_t size )
+{
+	struct lsmInitiator **rc = NULL;
+
+    if( size > 0) {
+        size_t s = sizeof(struct lsmInitiator *) * size;
+        rc = (struct lsmInitiator **)malloc(s);
+		memset(rc, 0, s);
+    }
+    return (lsmInitiatorPtr*)rc;
+}
+
+lsmInitiatorPtr lsmInitiatorRecordAlloc( lsmInitiatorTypes idType, const char* id)
+{
+	lsmInitiatorPtr rc = malloc( sizeof(lsmInitiator));
+    if( rc ) {
+		rc->idType = idType;
+		rc->id = strdup(id);
+    }
+    return rc;
+}
+
+void lsmInitiatorRecordFree(lsmInitiatorPtr i)
+{
+	if( i ) {
+        if( i->id ) {
+            free(i->id);
+            i->id = NULL;
+        }
+        free(i);
+    }
+}
+
+void lsmInitiatorRecordFreeArray( lsmInitiatorPtr init[], uint32_t size)
+{
+	 if( init && size ) {
+		int i = 0;
+		for(i = 0; i < size; ++i ) {
+			lsmInitiatorRecordFree(init[i]);
+        }
+		free(init);
+    }
+}
+
+lsmInitiatorTypes lsmInitiatorTypeGet(lsmInitiatorPtr i)
+{
+	return i->idType;
+}
+
+char *lsmInitiatorIdGet(lsmInitiatorPtr i)
+{
+	return i->id;
+}
+
+lsmVolumePtr *lsmVolumeRecordAllocArray( uint32_t size)
+{
+	lsmVolumePtr *rc = NULL;
+
+    if( size > 0) {
+        size_t s = sizeof(lsmVolume) * size;
+        rc = (lsmVolumePtr *)malloc(s);
+		memset(rc, 0, s);
+    }
+    return rc;
+}
+lsmVolumePtr lsmVolumeRecordAlloc( const char *id, const char *name,
+                                        const char *vpd83, uint64_t blockSize,
+                                        uint64_t numberOfBlocks,
+                                        uint32_t status)
+{
+	lsmVolumePtr rc = malloc( sizeof(lsmVolume));
+    if( rc ) {
+		rc->id = strdup(id);
+		rc->name = strdup(name);
+		rc->vpd83 = strdup(vpd83);
+		rc->blockSize = blockSize;
+		rc->numberOfBlocks = numberOfBlocks;
+		rc->status = status;
+    }
+    return rc;
+}
+
+void lsmVolumeRecordFree(lsmVolumePtr v)
+{
+	if( v ) {
+
+        if( v->id ) {
+            free(v->id);
+            v->id = NULL;
+        }
+
+		if( v->name ) {
+			free(v->name);
+			v->name = NULL;
+		}
+
+		if( v->vpd83 ) {
+			free(v->vpd83);
+			v->vpd83 = NULL;
+		}
+        free(v);
+    }
+}
+
+void lsmVolumeRecordFreeArray( lsmVolumePtr vol[], uint32_t size)
+{
+	if( vol && size ) {
+		int i = 0;
+		for(i = 0; i < size; ++i ) {
+			lsmVolumeRecordFree(vol[i]);
+        }
+		free(vol);
+    }
+}
+
+#define VOL_GET(x, member) \
+	x->member;
+
+const char* lsmVolumeIdGet(lsmVolumePtr v)
+{
+	return VOL_GET(v, id);
+}
+
+
+const char* lsmVolumeNameGet(lsmVolumePtr v)
+{
+	return VOL_GET(v, name);
+}
+
+
+const char* lsmVolumeVpd83Get(lsmVolumePtr v)
+{
+	return VOL_GET(v, vpd83);
+}
+
+
+uint32_t lsmVolumeBlockSizeGet(lsmVolumePtr v)
+{
+	return VOL_GET(v, blockSize);
+}
+
+
+uint64_t lsmVolumeNumberOfBlocks(lsmVolumePtr v)
+{
+	return VOL_GET(v, numberOfBlocks);
+}
+
+uint32_t lsmVolumeOpStatusGet(lsmVolumePtr v)
+{
+	return VOL_GET(v, status);
 }

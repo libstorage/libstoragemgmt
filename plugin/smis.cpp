@@ -17,6 +17,11 @@
 
 #include "smis.h"
 
+template <class Type> void getPropValue(CIMInstance i, String key, Type &value)
+{
+    i.getProperty(i.findProperty(CIMName(key))).getValue().get(value);
+}
+
 Smis::Smis(String host, Uint16 port, String smisNameSpace,
                      String userName, String password, int timeout):ns(smisNameSpace)
 {
@@ -41,7 +46,7 @@ Uint32 Smis::getTmo()
 
 lsmPoolPtr * Smis::getStoragePools(Uint32 *count)
 {
-    lsmPoolPtr *rc;
+    lsmPoolPtr *rc = NULL;
 
     *count = 0;
 
@@ -53,42 +58,117 @@ lsmPoolPtr * Smis::getStoragePools(Uint32 *count)
         rc = lsmPoolRecordAllocArray(instances.size());
 
         for(Uint32 i = 0; i < instances.size(); ++i) {
-            Uint32 idIndex = instances[i].findProperty(CIMName("PoolID"));
-            Uint32 nameIndex = instances[i].findProperty(CIMName("ElementName"));
-            Uint32 spaceIndex = instances[i].findProperty(CIMName("TotalManagedSpace"));
-            Uint32 freeIndex = instances[i].findProperty(CIMName("RemainingManagedSpace"));
             String idValue;
             String nameValue;
             Uint64 spaceValue = 0;
             Uint64 freeValue = 0;
 
-            instances[i].getProperty(idIndex).getValue().get(idValue);
-            instances[i].getProperty(nameIndex).getValue().get(nameValue);
-            instances[i].getProperty(spaceIndex).getValue().get(spaceValue);
-            instances[i].getProperty(freeIndex).getValue().get(freeValue);
+            getPropValue(instances[i], "PoolID", idValue);
+            getPropValue(instances[i], "ElementName", nameValue);
+            getPropValue(instances[i], "TotalManagedSpace", spaceValue);
+            getPropValue(instances[i], "RemainingManagedSpace", freeValue);
 
             rc[i] = lsmPoolRecordAlloc( idValue.getCString(),
                                         nameValue.getCString(),
                                         spaceValue,
                                         freeValue);
-
         }
     }
 
     return rc;
 }
 
-/*
-Array<String> Smis::getStoragePools()
-{
-    return instancePropertyNames("CIM_StoragePool", "ElementName");
-}
- */
-
-Array<String> Smis::getInitiators()
+lsmInitiatorPtr *Smis::getInitiators(Uint32 *count)
 {
     //Note: If you want the storage array IQN go after CIM_SCSIProtocolEndpoint.Name
-    return instancePropertyNames("CIM_StorageHardwareID", "StorageID");
+    //return instancePropertyNames("CIM_StorageHardwareID", "StorageID");
+
+    lsmInitiatorPtr *rc = NULL;
+
+    *count = 0;
+
+    Array<CIMInstance> instances = c.enumerateInstances(ns, CIMName("CIM_StorageHardwareID"));
+
+    if( instances.size() > 0 ) {
+
+        *count = instances.size();
+        rc = lsmInitiatorRecordAllocArray(instances.size());
+
+        for(Uint32 i = 0; i < instances.size(); ++i) {
+            String storageId;
+            Uint16 idType;
+            lsmInitiatorTypes t;
+
+            getPropValue(instances[i], "StorageID", storageId);
+            getPropValue(instances[i], "IDType", idType);
+
+            if( 2 == idType ) {
+                t = LSM_INITIATOR_WWN;
+            } else {
+                t = LSM_INITIATOR_ISCSI;
+            }
+
+            rc[i] = lsmInitiatorRecordAlloc( t, storageId.getCString());
+        }
+    }
+
+    return rc;
+}
+
+lsmVolumePtr *Smis::getVolumes(Uint32 *count)
+{
+    //return instancePropertyNames("CIM_StorageVolume", "ElementName");
+
+    lsmVolumePtr *rc = NULL;
+
+    *count = 0;
+
+    Array<CIMInstance> instances = c.enumerateInstances(ns, CIMName("CIM_StorageVolume"));
+
+    if( instances.size() > 0 ) {
+
+        *count = instances.size();
+        rc = lsmVolumeRecordAllocArray(instances.size());
+
+        for(Uint32 i = 0; i < instances.size(); ++i) {
+            String id;
+            String name;
+            Array<String> vpd;
+            Uint64 blockSize;
+            Uint64 numberOfBlocks;
+            Array<Uint16> status;
+            Uint32  opStatus;
+
+            getPropValue(instances[i], "DeviceID", id);
+            getPropValue(instances[i], "ElementName", name);
+            getPropValue(instances[i], "OtherIdentifyingInfo", vpd);
+            getPropValue(instances[i], "BlockSize", blockSize);
+            getPropValue(instances[i], "NumberOfBlocks", numberOfBlocks);
+            getPropValue(instances[i], "OperationalStatus", status);
+
+
+            opStatus = LSM_VOLUME_OP_STATUS_UNKNOWN;
+            for( Uint32 j = 0; j < status.size(); ++j ) {
+               switch(status[j]) {
+                    case(2):        opStatus |= LSM_VOLUME_OP_STATUS_OK;
+                                    break;
+                    case(3):        opStatus |= LSM_VOLUME_OP_STATUS_DEGRADED;
+                                    break;
+                    case(6):        opStatus |= LSM_VOLUME_OP_STATUS_ERROR;
+                                    break;
+                    case(8):        opStatus |= LSM_VOLUME_OP_STATUS_STARTING;
+                                    break;
+                    case(15):       opStatus |= LSM_VOLUME_OP_STATUS_DORMANT;
+                                    break;
+                }
+            }
+
+            rc[i] = lsmVolumeRecordAlloc(id.getCString(), name.getCString(),
+                                                vpd[0].getCString(), blockSize,
+                                                numberOfBlocks, opStatus);
+        }
+    }
+    return rc;
 }
 
 void Smis::mapLun(String initiatorID, String lunName)
@@ -97,7 +177,6 @@ void Smis::mapLun(String initiatorID, String lunName)
     Array<CIMParamValue> out;
     Array<String>lunNames;
     Array<String>initPortIDs;
-    Array<String>deviceNumbers;
     Array<Uint16>deviceAccess;
 
     CIMInstance lun = getClassInstance("CIM_StorageVolume", "ElementName",
@@ -265,10 +344,7 @@ void Smis::processJob(CIMValue &job)
     }
 }
 
-Array<String> Smis::getLuns()
-{
-    return instancePropertyNames("CIM_StorageVolume", "ElementName");
-}
+
 
 Array<CIMInstance>  Smis::storagePools()
 {

@@ -100,24 +100,26 @@ public:
 
     /**
      * Returns an array of lsmPoolPtr
-     * @return An array of lsmPoolPtr's
+     * @param   count   Number of pools
+     * @return  An array of lsmPoolPtr's
      * @throws  Exception on error
      */
     lsmPoolPtr *getStoragePools(Uint32 *count);
 
     /**
-     * Returns an array of Strings which are the names of the logical units
-     * @return  An Array<String>
-     * @throws  Exception
+     * Returns an array of lsmVolumePtr
+     * @param   count   Number of pools
+     * @return  An array of lsmVolumePtrs
+     * @throws  Exception on error
      */
-    Array<String> getLuns();
+    lsmVolumePtr *getVolumes(Uint32 *count);
 
     /**
-     * Returns an array of Strings which are the ID(s) of the initiators
-     * @return An Array<String> of initiator IDs
-     * @throws Exception
+     * Returns an array of
+     * @return An array of lsmPoolPtr's
+     * @throws Exception on error
      */
-    Array<String> getInitiators();
+    lsmInitiatorPtr *getInitiators(Uint32 *count);
 
     /**
      * Grants read/write access for a lun to the specified initiator.

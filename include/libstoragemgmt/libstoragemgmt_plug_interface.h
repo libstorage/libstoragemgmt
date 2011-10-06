@@ -50,11 +50,19 @@ struct lsmMgmtOps {
 typedef int (*lsmPlugGetPools)( lsmConnectPtr c, lsmPoolPtr **poolArray,
                                         uint32_t *count);
 
+typedef int (*lsmPlugGetInits)( lsmConnectPtr c, lsmInitiatorPtr **initArray,
+                                        uint32_t *count);
+
+typedef int (*lsmPlugGetVolumes)( lsmConnectPtr c, lsmVolumePtr **volArray,
+                                        uint32_t *count);
+
 /**
  * Block oriented functions
  */
 struct lsmSanOps {
-    lsmPlugGetPools pool_get;              /**< Callback for retieveing volumes */
+    lsmPlugGetPools pool_get;           /**< Callback for retrieving volumes */
+    lsmPlugGetInits init_get;           /**< Callback for retrieving initiators */
+    lsmPlugGetVolumes volumes_get;
 };
 
 /**
@@ -133,6 +141,16 @@ lsmPoolPtr *lsmPoolRecordAllocArray( uint32_t size );
 lsmPoolPtr lsmPoolRecordAlloc(const char *id, const char *name,
                                 uint64_t totalSpace,
                                 uint64_t freeSpace);
+
+
+lsmInitiatorPtr *lsmInitiatorRecordAllocArray( uint32_t size );
+lsmInitiatorPtr lsmInitiatorRecordAlloc( lsmInitiatorTypes idType, const char* id);
+
+lsmVolumePtr *lsmVolumeRecordAllocArray( uint32_t size);
+lsmVolumePtr lsmVolumeRecordAlloc( const char *id, const char *name,
+                                        const char *vpd83, uint64_t blockSize,
+                                        uint64_t numberOfBlocks,
+                                        uint32_t status);
 
 #ifdef	__cplusplus
 }

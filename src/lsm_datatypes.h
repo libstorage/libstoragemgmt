@@ -30,16 +30,21 @@ extern "C" {
 #endif
 
 /**
- * Infotmation about storage volumes.
+ * Information about storage volumes.
  */
-struct lsmVolume {
-
+struct _lsmVolume {
+    char *id;                           /**< System wide unique identifier */
+    char *name;                         /**< Human recognizeable name */
+    char *vpd83;                        /**< SCSI page 83 unique ID */
+    uint64_t    blockSize;              /**< Block size */
+    uint64_t    numberOfBlocks;         /**< Number of blocks */
+    uint32_t    status;                 /**< Status */
 };
 
 /**
  * Information about storage pools.
  */
-struct lsmPool {
+struct _lsmPool {
     char *id;                   /**< System wide unique identifier */
     char *name;                 /**< Human recognizeable name */
     uint64_t    totalSpace;     /**< Total size */
@@ -47,28 +52,29 @@ struct lsmPool {
 };
 
 /**
- * Information about an inititator.
+ * Information about an initiator.
  */
-struct lsmInitiator {
-
+struct _lsmInitiator {
+    lsmInitiatorTypes   idType; /**< Type of id */
+    char *id;                   /**< Identifier */
 };
 
 /**
- * Capabilities of the plugin and storage array.
+ * Capabilities of the plug-in and storage array.
  */
-struct lsmStorageCapabilities {
+struct _lsmStorageCapabilities {
 };
 
 /**
  * Information pertaining to a storage group.
  */
-struct lsmAccessGroup {
+struct _lsmAccessGroup {
 };
 
 
 #define LSM_CONNECT_MAGIC       0xFEEDB0B0
 #define LSM_IS_CONNECT(obj)     ((obj) && \
-                                (((struct lsmConnect*)obj))->magic==LSM_CONNECT_MAGIC)
+                                ((obj)->magic==LSM_CONNECT_MAGIC))
 
 /**
  * Function pointer decl. for the functions that the plug-in must export.
@@ -95,7 +101,7 @@ struct lsmPlugin {
  * Information pertaining to the connection.  This is the main structure and
  * opaque data type for the library.
  */
-struct lsmConnect {
+struct _lsmConnect {
     uint32_t    magic;          /**< Magic, used for structure validation */
     uint32_t    flags;          /**< Flags for the connection */
     xmlURIPtr   uri;            /**< URI */
@@ -108,12 +114,12 @@ struct lsmConnect {
 
 #define LSM_ERROR_MAGIC       0xDEADB0B0
 #define LSM_IS_ERROR(obj)     ((obj) && \
-                                (((struct lsmError*)obj))->magic==LSM_ERROR_MAGIC)
+                                (obj)->magic==LSM_ERROR_MAGIC)
 
 /**
  * Used to house error information.
  */
-struct lsmError {
+struct _lsmError {
     uint32_t    magic;          /**< Magic, used for struct validation */
     lsmErrorNumber code;        /**< Error code */
     lsmErrorDomain domain;      /**< Where the error occured */
@@ -130,13 +136,13 @@ struct lsmError {
  * Returns a pointer to a newly created connection structure.
  * @return NULL on memory exhaustion, else new connection.
  */
-LSM_DLL_LOCAL struct lsmConnect *getConnection();
+LSM_DLL_LOCAL lsmConnectPtr getConnection();
 
 /**
  * De-allocates the connection.
  * @param c     Connection to free.
  */
-LSM_DLL_LOCAL void freeConnection(struct lsmConnect *c);
+LSM_DLL_LOCAL void freeConnection(lsmConnectPtr c);
 
 /**
  * Loads the requester driver specified in the uri.
@@ -147,7 +153,7 @@ LSM_DLL_LOCAL void freeConnection(struct lsmConnect *c);
  * @param e             Error data
  * @return LSM_ERR_OK on success, else error code.
  */
-LSM_DLL_LOCAL int loadDriver(struct lsmConnect *c, xmlURIPtr uri, char *password,
+LSM_DLL_LOCAL int loadDriver(lsmConnectPtr c, xmlURIPtr uri, char *password,
                                 uint32_t timeout, lsmErrorPtr *e);
 
 /**
@@ -155,6 +161,13 @@ LSM_DLL_LOCAL int loadDriver(struct lsmConnect *c, xmlURIPtr uri, char *password
  * @param p Valid pool
  */
 LSM_DLL_LOCAL void lsmPoolRecordFree(lsmPoolPtr p);
+
+/**
+ * Frees the memory fro an individual volume
+ * @param v     Volume pointer to free.
+ */
+LSM_DLL_LOCAL void lsmVolumeRecordFree(lsmVolumePtr v);
+
 
 #ifdef	__cplusplus
 }

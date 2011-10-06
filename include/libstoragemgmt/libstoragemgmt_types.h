@@ -27,40 +27,47 @@ extern "C" {
 /**
  * Opaque data type for a connection.
  */
-typedef struct lsmConnect *lsmConnectPtr;
+typedef struct _lsmConnect lsmConnect;
+typedef lsmConnect *lsmConnectPtr;
 
 /**
  * Opaque data type for a block based storage unit
  */
-typedef struct lsmVolume *lsmVolumePtr;
+typedef struct _lsmVolume lsmVolume;
+typedef lsmVolume *lsmVolumePtr;
 
 /**
  * Opaque data type for a storage pool which is used as a base for Volumes etc.
  * to be created from.
  */
-typedef struct lsmPool *lsmPoolPtr;
+typedef struct _lsmPool lsmPool;
+typedef lsmPool *lsmPoolPtr;
 
 /**
  * Opaque data type for an initiator.
  */
-typedef struct lsmInitiator *lsmInitiatorPtr;
+typedef struct _lsmInitiator lsmInitiator;
+typedef lsmInitiator *lsmInitiatorPtr;
 
 /**
  * Opaque data type for storage capabilities.
  */
-typedef struct lsmStorageCapabilities *lsmStorageCapabilitiesPtr;
+typedef struct _lsmStorageCapabilities lsmStorageCapabilities;
+typedef lsmStorageCapabilities *lsmStorageCapabilitiesPtr;
 
 /**
  * Access group
  */
-typedef struct lsmAccessGroup *lsmAccessGroupPtr;
+typedef struct _lsmAccessGroup lsmAccessGroup;
+typedef lsmAccessGroup *lsmAccessGroupPtr;
 
 /**
  * @page enum-notes Enumeration design notes
  * The enum values have been created so that if a user inadvertently uses the
- * wrong enum type for a given function we will be able to detect it in the
- * library and return an invalid input type.  The strategy is to make each enum
- * unique for the entire library.
+ * wrong enum type (casting) for a given function we will be able to detect it
+ * in the library and return an invalid input type.  The strategy is to make
+ * each enum unique for the entire library.  Perhaps this is more trouble than
+ * it is worth :-).
  */
 
 /**
@@ -76,8 +83,9 @@ typedef enum {
  * Different types of provisioning.
  */
 typedef enum {
-    LSM_PROVISION_THIN = 0x0010,
-    LSM_PROVISION_FULL = 0x0020
+    LSM_PROVISION_THIN = 0x0010,        /**< Thin provisioning */
+    LSM_PROVISION_FULL = 0x0020,        /**< Thick provisioning */
+    LSM_PROVISION_DEFAULT = 0x0030,     /**< Default provisioning */
 } lsmProvisionType;
 
 /**
@@ -97,7 +105,24 @@ typedef enum {
     LSM_VOLUME_STATUS_OFFLINE = 0x2000, /**< Volume is offline, no access */
 } lsmVolumeStatusType;
 
+/**
+ * Different states for a volume to be in.
+ * Bit field, can be in multiple states at the same time.
+ */
+#define LSM_VOLUME_OP_STATUS_UNKNOWN    0x0     /**< Unknown status */
+#define LSM_VOLUME_OP_STATUS_OK         0x1     /**< Volume is functioning properly */
+#define LSM_VOLUME_OP_STATUS_DEGRADED   0x2     /**< Volume is functioning but not optimal */
+#define LSM_VOLUME_OP_STATUS_ERROR      0x4     /**< Volume is non-functional */
+#define LSM_VOLUME_OP_STATUS_STARTING   0x8     /**< Volume in the process of becomming ready */
+#define LSM_VOLUME_OP_STATUS_DORMANT    0x10    /**< Volume is inactive or quiesced */
 
+/**
+ * Different types of initiator IDs
+ */
+typedef enum {
+    LSM_INITIATOR_WWN = 0x00010000,
+    LSM_INITIATOR_ISCSI = 0x0020000,
+} lsmInitiatorTypes;
 
 #ifdef	__cplusplus
 }

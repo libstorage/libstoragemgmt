@@ -26,13 +26,21 @@
 #include <stdio.h>
 #include <libxml/uri.h>
 
+/**
+ * Common code to validate and initialize the connection.
+ */
+#define CONN_SETUP(c)	do {			\
+	if(!LSM_IS_CONNECT(c)) {			\
+		return LSM_ERR_INVALID_CONN;	\
+	}									\
+	lsmErrorFree(c->error);				\
+	} while (0)
 
 int lsmConnectPassword(char *uri, char *password,
                         lsmConnectPtr *conn, uint32_t timeout, lsmErrorPtr *e)
 {
 	int rc = LSM_ERR_OK;
-
-	struct lsmConnect *c = NULL;
+	lsmConnectPtr c = NULL;
 
 	*e = NULL;
 
@@ -62,82 +70,72 @@ int lsmConnectPassword(char *uri, char *password,
 	return rc;
 }
 
-int lsmConnectClose(lsmConnectPtr conn)
+int lsmConnectClose(lsmConnectPtr c)
 {
-	int rc = LSM_ERR_NO_SUPPORT;
-
-	if( !LSM_IS_CONNECT(conn)) {
-		return LSM_ERR_INVALID_CONN;
-	}
-
-	struct lsmConnect *c = (struct lsmConnect *)conn;
+	CONN_SETUP(c);
 
 	if( c->unregister ) {
-		rc = (*c->unregister)(conn);
+		return (*c->unregister)(c);
 	}
-
-	return rc;
+	return LSM_ERR_NO_SUPPORT;
 }
 
-int lsmConnectSetTimeout(lsmConnectPtr conn, uint32_t timeout)
+int lsmConnectSetTimeout(lsmConnectPtr c, uint32_t timeout)
 {
-	if(!LSM_IS_CONNECT(conn)) {
-		return LSM_ERR_INVALID_CONN;
-	}
-
-	struct lsmConnect *c = (struct lsmConnect*)conn;
+	CONN_SETUP(c);
 
 	if( c->plugin.mgmtOps && c->plugin.mgmtOps->tmo_set) {
-		return (*(c->plugin.mgmtOps->tmo_set))(conn, timeout);
+		return (*(c->plugin.mgmtOps->tmo_set))(c, timeout);
 	}
-
 	return LSM_ERR_NO_SUPPORT;
 }
 
-int lsmConnectGetTimeout(lsmConnectPtr conn, uint32_t *timeout)
+int lsmConnectGetTimeout(lsmConnectPtr c, uint32_t *timeout)
 {
-	if(!LSM_IS_CONNECT(conn)) {
-		return LSM_ERR_INVALID_CONN;
-	}
-
-	struct lsmConnect *c = (struct lsmConnect*)conn;
+	CONN_SETUP(c);
 
 	if( c->plugin.mgmtOps && c->plugin.mgmtOps->tmo_get) {
-		return (*(c->plugin.mgmtOps->tmo_get))(conn, timeout);
+		return (*(c->plugin.mgmtOps->tmo_get))(c, timeout);
 	}
-
 	return LSM_ERR_NO_SUPPORT;
 }
 
-int lsmCapabilities(lsmConnectPtr conn, lsmStorageCapabilitiesPtr *cap)
+int lsmCapabilities(lsmConnectPtr c, lsmStorageCapabilitiesPtr *cap)
 {
 	return LSM_ERR_NO_SUPPORT;
 }
 
-int lsmPoolList(lsmConnectPtr conn, lsmPoolPtr **poolArray,
+int lsmPoolList(lsmConnectPtr c, lsmPoolPtr **poolArray,
                         uint32_t *count)
 {
-	if(!LSM_IS_CONNECT(conn)) {
-		return LSM_ERR_INVALID_CONN;
-	}
-
-	struct lsmConnect *c = (struct lsmConnect*)conn;
+	CONN_SETUP(c);
 
 	if( c->plugin.sanOps && c->plugin.sanOps->pool_get) {
-		return (*(c->plugin.sanOps->pool_get))(conn, poolArray, count);
+		return (*(c->plugin.sanOps->pool_get))(c, poolArray, count);
+	}
+	return LSM_ERR_NO_SUPPORT;
+}
+
+int lsmInitiatorList(lsmConnectPtr c, lsmInitiatorPtr **initiators,
+                                uint32_t *count)
+{
+	CONN_SETUP(c);
+
+	if( c->plugin.sanOps && c->plugin.sanOps->init_get) {
+		return (*(c->plugin.sanOps->init_get))(c, initiators, count);
 	}
 
 	return LSM_ERR_NO_SUPPORT;
 }
 
-int lsmInitiatorList(lsmConnectPtr conn, lsmInitiatorPtr **initiators,
-                                uint32_t *count)
+int lsmVolumeList(lsmConnectPtr c, lsmVolumePtr **volumes, uint32_t *count)
 {
-	return LSM_ERR_NO_SUPPORT;
-}
+	CONN_SETUP(c);
 
-int lsmVolumeList(lsmConnectPtr conn, lsmVolumePtr **volumes, uint32_t *count)
-{
+	if( c->plugin.sanOps && c->plugin.sanOps->volumes_get) {
+		return (*(c->plugin.sanOps->volumes_get))(c, volumes, count);
+	}
+
 	return LSM_ERR_NO_SUPPORT;
 }
 

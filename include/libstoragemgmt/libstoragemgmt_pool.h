@@ -35,6 +35,7 @@ void lsmPoolRecordFreeArray( lsmPoolPtr pa[], uint32_t size );
 
 /**
  * Retrieves the name from the pool.
+ * Note: Returned value is only valid as long as p is valid!.
  * @param p     Pool
  * @return      The name of the pool.
  */
@@ -42,6 +43,7 @@ char *lsmPoolNameGet( lsmPoolPtr p );
 
 /**
  * Retrieves the system wide unique identifier for the pool.
+ * Note: Returned value is only valid as long as p is valid!.
  * @param p     Pool
  * @return      The System wide unique identifier.
  */

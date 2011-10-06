@@ -47,7 +47,6 @@ lsmInitiatorTypes lsmInitiatorTypeGet(lsmInitiatorPtr i);
  */
 char *lsmInitiatorIdGet(lsmInitiatorPtr i);
 
-
 #ifdef	__cplusplus
 }
 #endif

@@ -28,6 +28,18 @@ extern "C" {
 static char name[] = "Default smi-s plug-in";
 static char version [] = "0.01";
 
+static lsmErrorNumber logException(lsmConnectPtr c, lsmErrorNumber error,
+                                const char *message, Exception &e)
+{
+    lsmErrorPtr err = lsmErrorCreate(error, LSM_ERR_DOMAIN_PLUG_IN, LSM_ERR_LEVEL_ERROR,
+                                        message, e.getMessage().getCString(),
+                                        NULL, NULL, 0);
+    if( err && c ) {
+        lsmErrorLog(c, err);
+    }
+    return error;
+}
+
 static int tmoSet(lsmConnectPtr c, uint32_t timeout )
 {
     int rc = LSM_ERR_OK;
@@ -45,7 +57,7 @@ static int tmoGet(lsmConnectPtr c, uint32_t *timeout)
     try {
         *timeout = ((Smis *)lsmGetPrivateData(c))->getTmo();
     } catch ( Exception &e) {
-        rc = LSM_ERR_PLUGIN_ERROR;
+        return logException(c, LSM_ERR_PLUGIN_ERROR, "Error while getting time-out", e);
     }
     return rc;
 }
@@ -61,7 +73,7 @@ static struct lsmMgmtOps mgmOps = {
 	cap,
 };
 
-static int volumes(lsmConnectPtr c, lsmPoolPtr **poolArray,
+static int pools(lsmConnectPtr c, lsmPoolPtr **poolArray,
                         uint32_t *count)
 {
     Smis *s = (Smis *)lsmGetPrivateData(c);
@@ -69,13 +81,41 @@ static int volumes(lsmConnectPtr c, lsmPoolPtr **poolArray,
     try {
         *poolArray = s->getStoragePools(count);
     } catch (Exception &e) {
-        //TODO Create error with additional information.
+        return logException(c, LSM_ERR_PLUGIN_ERROR, "Error while getting pools", e);
+    }
+    return LSM_ERR_OK;
+}
+
+
+
+static int initiators(lsmConnectPtr c, lsmInitiatorPtr **initArray,
+                        uint32_t *count)
+{
+    Smis *s = (Smis *)lsmGetPrivateData(c);
+    try {
+        *initArray = s->getInitiators(count);
+    } catch (Exception &ex) {
         return LSM_ERR_PLUGIN_ERROR;
     }
     return LSM_ERR_OK;
 }
 
+static int volumes(lsmConnectPtr c, lsmVolumePtr **volArray,
+                        uint32_t *count)
+{
+    Smis *s = (Smis *)lsmGetPrivateData(c);
+
+    try {
+        *volArray = s->getVolumes(count);
+    } catch (Exception &e) {
+        return logException(c, LSM_ERR_PLUGIN_ERROR, "Error while getting volumes", e);
+    }
+    return LSM_ERR_OK;
+}
+
 static struct lsmSanOps sanOps = {
+    pools,
+    initiators,
     volumes,
 };
 
@@ -103,7 +143,14 @@ int lsmPluginRegister( lsmConnectPtr c, xmlURIPtr uri, char *password,
 
         rc = lsmRegisterPlugin( c, name, version, s, &mgmOps, &sanOps, NULL, NULL);
     } catch (Exception &ex) {
-        *e = LSM_ERROR_CREATE_PLUGIN_EXCEPTION(LSM_ERR_PLUGIN_REGISTRATION, "Registration error", "FUBR");
+        /**
+         * We may need to parse the exception text to return a better return
+         * code of what actually went wrong here.
+         */
+
+        *e = LSM_ERROR_CREATE_PLUGIN_EXCEPTION(LSM_ERR_PLUGIN_REGISTRATION,
+                                                "Registration error",
+                                                ex.getMessage().getCString());
         rc = LSM_ERR_PLUGIN_REGISTRATION;
     }
 
