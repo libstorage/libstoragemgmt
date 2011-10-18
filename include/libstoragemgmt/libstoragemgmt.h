@@ -53,7 +53,7 @@ int lsmConnectClose(lsmConnectPtr conn);
  * Sets the time-out for this connection.
  * @param[in] conn          Valid connection @see lsmConnectUserPass
  * @param[in] timeout       Time-out (in ms)
- * @return LSM_ERR_OK on success, else -1 on error
+ * @return LSM_ERR_OK on success, else error reason
  */
 int lsmConnectSetTimeout(lsmConnectPtr conn, uint32_t timeout);
 
@@ -61,7 +61,7 @@ int lsmConnectSetTimeout(lsmConnectPtr conn, uint32_t timeout);
  * Gets the time-out for this connection.
  * @param[in]   conn            Valid connection @see lsmConnectUserPass
  * @param[out]  timeout         Time-out (in ms)
- * @return LSM_ERR_OK on success, else -1 on error
+ * @return LSM_ERR_OK on success, else error reason
  */
 int lsmConnectGetTimeout(lsmConnectPtr conn, uint32_t *timeout);
 
@@ -80,8 +80,8 @@ int lsmJobStatusGet( lsmConnectPtr conn, uint32_t jobNumber,
 
 /**
  * Frees the resources used by a job.
- * @param conn
- * @param jobNumber
+ * @param[in] conn
+ * @param[in] jobNumber
  * @return LSM_ERROR_OK, else error reason.
  */
 int lsmJobFree(lsmConnectPtr conn, uint32_t jobNumber);
@@ -93,7 +93,7 @@ int lsmJobFree(lsmConnectPtr conn, uint32_t jobNumber);
  * Query the capabilities of the storage array.
  * @param[in]   conn    Valid connection @see lsmConnectUserPass
  * @param[out]  cap     The storage array capabilities
- * @return LSM_ERR_OK on success else -1
+ * @return LSM_ERR_OK on success else error reason
  */
 int lsmCapabilities(lsmConnectPtr conn, lsmStorageCapabilitiesPtr *cap);
 
@@ -102,7 +102,7 @@ int lsmCapabilities(lsmConnectPtr conn, lsmStorageCapabilitiesPtr *cap);
  * @param[in]   conn            Valid connection @see lsmConnectUserPass
  * @param[out]  poolArray       Array of storage pools
  * @param[out]  count           Number of storage pools
- * @return LSM_ERR_OK on success else -1
+ * @return LSM_ERR_OK on success else error reason
  */
 int lsmPoolList(lsmConnectPtr conn, lsmPoolPtr *poolArray[],
                         uint32_t *count);
@@ -112,7 +112,7 @@ int lsmPoolList(lsmConnectPtr conn, lsmPoolPtr *poolArray[],
  * @param[in]   conn            Valid connection @see lsmConnectUserPass
  * @param[out] initiators       Array of initiators
  * @param[out] count            Number of initiators
- * @return  LSM_ERR_OK on success else -1
+ * @return  LSM_ERR_OK on success else error reason
  */
 int lsmInitiatorList(lsmConnectPtr conn, lsmInitiatorPtr *initiators[],
                                 uint32_t *count);
@@ -126,7 +126,7 @@ int lsmInitiatorList(lsmConnectPtr conn, lsmInitiatorPtr *initiators[],
  * @param[in]   conn    Valid connection @see lsmConnectUserPass
  * @param[out]   volumes    An array of lsmVolume_t
  * @param[out]   count   Number of elements in the lsmVolume_t array
- * @return LSM_ERR_OK on success else -1
+ * @return LSM_ERR_OK on success else error reason
  */
 int lsmVolumeList(lsmConnectPtr conn, lsmVolumePtr *volumes[], uint32_t *count);
 
@@ -194,16 +194,16 @@ int lsmVolumeStatus(lsmConnectPtr conn, lsmVolumePtr volume,
 
 /**
  * Set a Volume to online
- * @param conn                  Valid connection @see lsmConnectUserPass
- * @param volume                Volume that is to be placed online
+ * @param[in] conn                  Valid connection @see lsmConnectUserPass
+ * @param[in] volume                Volume that is to be placed online
  * @return LSM_ERR_OK on success, else error code
  */
 int lsmVolumeOnline(lsmConnectPtr conn, lsmVolumePtr volume);
 
 /**
  * Set a Volume to offline
- * @param conn                  Valid connection @see lsmConnectUserPass
- * @param volume                Volume that is to be placed online
+ * @param[in] conn                  Valid connection @see lsmConnectUserPass
+ * @param[in] volume                Volume that is to be placed online
  * @return LSM_ERR_OK on success, else error code
  */
 int lsmVolumeOffline(lsmConnectPtr conn, lsmVolumePtr volume);
@@ -224,11 +224,11 @@ int lsmInitiatorCreate(lsmConnectPtr conn, char *name, char *id,
 /**
  * Access control for allowing an initiator to use a volume.
  * Note: An access group will be created automatically with one initiator in it.
- * @param conn                  Valid connection @see lsmConnectUserPass
- * @param initiator             Initiator to grant access to volume
- * @param volume                Volume to allow access to
- * @param access                Type of access
- * @param job                   Indicates job number
+ * @param[in] conn                  Valid connection @see lsmConnectUserPass
+ * @param[in] initiator             Initiator to grant access to volume
+ * @param[in] volume                Volume to allow access to
+ * @param[in] access                Type of access
+ * @param[out] job                   Indicates job number
  * @return LSM_ERR_OK on success, LSM_JOB_STARTED if async. , else error code
  */
 int lsmAccessGrant( lsmConnectPtr conn, lsmInitiatorPtr initiator,
@@ -237,9 +237,9 @@ int lsmAccessGrant( lsmConnectPtr conn, lsmInitiatorPtr initiator,
 
 /**
  * Removes a volume from being accessed by an initiator.
- * @param conn          Valid connection
- * @param initiator     Valid initiator
- * @param volume        Valid volume
+ * @param[in] conn          Valid connection
+ * @param[in] initiator     Valid initiator
+ * @param[in] volume        Valid volume
  * @return LSM_ERR_OK, LSM_ERR_NO_MAPPING else error reason.
  */
 int lsmAccessRemove( lsmConnectPtr conn, lsmInitiatorPtr initiator,
@@ -265,18 +265,18 @@ int lsmAccessGroupCreate( lsmConnectPtr conn, char *name);
 
 /**
  * Deletes an access group.
- * @param conn                  Valid connection @see lsmConnectUserPass
- * @param group                 Group to delete
+ * @param[in] conn                  Valid connection @see lsmConnectUserPass
+ * @param[in] group                 Group to delete
  * @return LSM_ERR_OK on success, else error reason.
  */
 int lsmAccessGroupDel( lsmConnectPtr conn, lsmAccessGroupPtr group);
 
 /**
  * Adds an initiator to the access group
- * @param conn                  Valid connection @see lsmConnectUserPass
- * @param group                 Group to modify
- * @param initiator             Initiator to add to group
- * @param access                Desired access to storage
+ * @param[in] conn                  Valid connection @see lsmConnectUserPass
+ * @param[in] group                 Group to modify
+ * @param[in] initiator             Initiator to add to group
+ * @param[in] access                Desired access to storage
  * @return LSM_ERR_OK on success, else error reason.
  */
 int lsmAccessGroupAddInitiator( lsmConnectPtr conn, lsmAccessGroupPtr group,
@@ -284,10 +284,10 @@ int lsmAccessGroupAddInitiator( lsmConnectPtr conn, lsmAccessGroupPtr group,
 
 /**
  * Removes an initiator from an access group.
- * @param conn                  Valid connection @see lsmConnectUserPass
- * @param group                 Group to modify
- * @param initiator             Initiator to delete from group
- * @return LSM_ERR_OK on success, else error reason.
+ * @param[in] conn                  Valid connection @see lsmConnectUserPass
+ * @param[in] group                 Group to modify
+ * @param[in] initiator             Initiator to delete from group
+ * @return[in] LSM_ERR_OK on success, else error reason.
  */
 int lsmAccessGroupDelInitiator( lsmConnectPtr conn, lsmAccessGroupPtr group,
                                 lsmInitiatorPtr initiator);
