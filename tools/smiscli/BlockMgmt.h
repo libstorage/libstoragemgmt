@@ -1,18 +1,21 @@
+/* ex: set tabstop=4 expandtab: */
 /*
- * Copyright 2011, Red Hat, Inc.
+ * Copyright (C) 2011 Red Hat, Inc.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
+ * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ * Author: tasleson
  */
 
 #ifndef __BLOCKMGMT_H__
@@ -59,6 +62,22 @@ public:
     void createLun( String storagePoolName, String name, Uint64 size);
 
     /**
+     * Creates an initiator to reference and use.
+     * @param   name                User defined name
+     * @param   id                  Initiator id
+     * @param   type                Type of id [WWN|IQN]
+     * @throws Exception
+     */    
+    void createInit( String name, String id, String type);
+
+    /**
+     * Deletes an initiator.
+     * @param   id  Initiator ID
+     * @throws Exception
+     */
+    void deleteInit( String id );
+
+    /**
      * Creates a snapshot of a lun (point in time copy)
      * @param   sourceLun   Name of lun to snapshot.
      * @param   destStoragePool Storage pool to create snapshot from.
@@ -97,6 +116,7 @@ public:
      */
     Array<String> getLuns();
 
+
     /**
      * Returns an array of Strings which are the ID(s) of the initiators
      * @return An Array<String> of initiator IDs
@@ -111,6 +131,14 @@ public:
      * @throws Exception
      */
     void mapLun(String initiatorID, String lunName);
+
+    /**
+     * Removes acces for a lun to the specified initiator
+     * @param   initiatorID     The initiator ID
+     * @param   lunName         The lun name
+     * @throws  Exception
+     */
+    void unmapLun(String initiatorID, String lunName);
 
 private:
     enum ElementType { UNKNOWN = 0, RESERVED = 1, STORAGE_VOLUME = 2,
@@ -140,10 +168,16 @@ private:
     CIMInstance getClassInstance(String className, String propertyName,
                                  String propertyValue );
 
-    void evalInvoke(Array<CIMParamValue> &out, CIMValue value,
+    Uint32 evalInvoke(Array<CIMParamValue> &out, CIMValue value,
                     String jobKey = "Job");
 
     void processJob(CIMValue &job);
+
+    void printDebug(const CIMValue &v);
+
+    void printVol(const CIMValue &job);
+
+    CIMInstance getSPC( String initiator, String lun, bool &found );
 };
 
 #endif

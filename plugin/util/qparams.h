@@ -26,6 +26,22 @@
 #ifndef _QPARAMS_H_
 # define _QPARAMS_H_
 
+#if defined _WIN32 || defined __CYGWIN__
+    #define QPARAM_DLL_IMPORT __declspec(dllimport)
+    #define QPARAM_DLL_EXPORT __declspec(dllexport)
+    #define QPARAM_DLL_LOCAL
+#else
+    #if __GNUC__ >= 4
+        #define QPARAM_DLL_IMPORT __attribute__ ((visibility ("default")))
+        #define QPARAM_DLL_EXPORT __attribute__ ((visibility ("default")))
+        #define QPARAM_DLL_LOCAL  __attribute__ ((visibility ("hidden")))
+    #else
+        #define QPARAM_DLL_IMPORT
+        #define QPARAM_DLL_EXPORT
+        #define QPARAM_DLL_LOCAL
+    #endif
+#endif
+
 /**
  *  * ATTRIBUTE_SENTINEL:
  *   *
@@ -44,34 +60,34 @@
  *  Single web service query parameter 'name=value'.
  */
 struct qparam {
-  char *name;			/**< Name (unescaped). */
-  char *value;			/**< Value (unescaped). */
-  int ignore;			/**< Ignore this field in qparam_get_query */
+  char *name;           /**< Name (unescaped). */
+  char *value;          /**< Value (unescaped). */
+  int ignore;           /**< Ignore this field in qparam_get_query */
 };
 
 /**
  *  Set of parameters.
  */
 struct qparam_set {
-  int n;			/**< number of parameters used */
-  int alloc;			/**< allocated space */
-  struct qparam *p;		/**< array of parameters */
+  int n;            /**< number of parameters used */
+  int alloc;            /**< allocated space */
+  struct qparam *p;     /**< array of parameters */
 };
 
 /* New parameter set. */
-extern struct qparam_set *new_qparam_set (int init_alloc, ...)
+QPARAM_DLL_LOCAL struct qparam_set *new_qparam_set (int init_alloc, ...)
     ATTRIBUTE_SENTINEL;
 
 /* Appending parameters. */
-extern int append_qparams (struct qparam_set *ps, ...)
+QPARAM_DLL_LOCAL int append_qparams (struct qparam_set *ps, ...)
     ATTRIBUTE_SENTINEL;
-extern int append_qparam (struct qparam_set *ps,
+QPARAM_DLL_LOCAL int append_qparam (struct qparam_set *ps,
                           const char *name, const char *value);
 
 
 /* Parse a query string into a parameter set. */
-extern struct qparam_set *qparam_query_parse (const char *query);
+QPARAM_DLL_LOCAL struct qparam_set *qparam_query_parse (const char *query);
 
-extern void free_qparam_set (struct qparam_set *ps);
+QPARAM_DLL_LOCAL void free_qparam_set (struct qparam_set *ps);
 
 #endif /* _QPARAMS_H_ */

@@ -3,7 +3,7 @@
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * version 2.1 of the License, or any later version.
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -12,27 +12,33 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  *
  * Author: tasleson
  */
 
 #ifndef LSM_DATATYPES_H
-#define	LSM_DATATYPES_H
+#define LSM_DATATYPES_H
 
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 #include <libstoragemgmt/libstoragemgmt_common.h>
 #include <stdint.h>
 #include <libxml/uri.h>
 
-#ifdef	__cplusplus
+#ifdef  __cplusplus
 extern "C" {
 #endif
+
+
+#define LSM_VOL_MAGIC       0xFEEDEFFE
+#define LSM_IS_VOL(obj)     ((obj) && \
+                                ((obj)->magic==LSM_VOL_MAGIC))
 
 /**
  * Information about storage volumes.
  */
 struct _lsmVolume {
+    uint32_t    magic;
     char *id;                           /**< System wide unique identifier */
     char *name;                         /**< Human recognizeable name */
     char *vpd83;                        /**< SCSI page 83 unique ID */
@@ -41,21 +47,31 @@ struct _lsmVolume {
     uint32_t    status;                 /**< Status */
 };
 
+#define LSM_POOL_MAGIC       0xFEEDF337
+#define LSM_IS_POOL(obj)     ((obj) && \
+                                ((obj)->magic==LSM_POOL_MAGIC))
+
 /**
  * Information about storage pools.
  */
 struct _lsmPool {
+    uint32_t    magic;          /**< Used for verfication */
     char *id;                   /**< System wide unique identifier */
     char *name;                 /**< Human recognizeable name */
     uint64_t    totalSpace;     /**< Total size */
     uint64_t    freeSpace;      /**< Free space available */
 };
 
+
+#define LSM_INIT_MAGIC       0xFEED1337
+#define LSM_IS_INIT(obj)     ((obj) && \
+                                ((obj)->magic==LSM_INIT_MAGIC))
 /**
  * Information about an initiator.
  */
 struct _lsmInitiator {
-    lsmInitiatorTypes   idType; /**< Type of id */
+    uint32_t magic;             /**< Used for verification */
+    lsmInitiatorType   idType; /**< Type of id */
     char *id;                   /**< Identifier */
 };
 
@@ -108,7 +124,7 @@ struct _lsmConnect {
     void        *handle;        /**< dlopen handle to plug-in */
     lsmError    *error;         /**< Error information */
     lsmUnregister       unregister;     /**< Callback to unregister */
-    struct lsmPlugin   plugin;          /**< Plug-in information */
+    struct lsmPlugin    plugin;         /**< Plug-in information */
 };
 
 
@@ -129,7 +145,7 @@ struct _lsmError {
     char *exception;            /**< Exception message if present */
     char *debug;                /**< Debug message */
     void *debug_data;           /**< Debug data */
-    uint32_t debug_data_size;     /**< Size of the data */
+    uint32_t debug_data_size;   /**< Size of the data */
 };
 
 /**
@@ -162,16 +178,12 @@ LSM_DLL_LOCAL int loadDriver(lsmConnectPtr c, xmlURIPtr uri, char *password,
  */
 LSM_DLL_LOCAL void lsmPoolRecordFree(lsmPoolPtr p);
 
-/**
- * Frees the memory fro an individual volume
- * @param v     Volume pointer to free.
- */
-LSM_DLL_LOCAL void lsmVolumeRecordFree(lsmVolumePtr v);
 
 
-#ifdef	__cplusplus
+
+#ifdef  __cplusplus
 }
 #endif
 
-#endif	/* LSM_DATATYPES_H */
+#endif  /* LSM_DATATYPES_H */
 

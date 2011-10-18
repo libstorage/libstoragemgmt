@@ -3,7 +3,7 @@
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * version 2.1 of the License, or any later version.
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -12,20 +12,20 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  *
  * Author: tasleson
  */
 
 #ifndef LIBSTORAGEMGMT_PLUG_INTERFACE_H
-#define	LIBSTORAGEMGMT_PLUG_INTERFACE_H
+#define LIBSTORAGEMGMT_PLUG_INTERFACE_H
 
 #include <stdint.h>
 #include <libstoragemgmt/libstoragemgmt_types.h>
 #include <libstoragemgmt/libstoragemgmt_error.h>
 
 
-#ifdef	__cplusplus
+#ifdef  __cplusplus
 extern "C" {
 #endif
 
@@ -34,9 +34,11 @@ typedef int (*lsmPlugSetTmo)( lsmConnectPtr c, uint32_t timeout );
 typedef int (*lsmPlugGetTmo)( lsmConnectPtr c, uint32_t *timeout );
 typedef int (*lsmPlugCapabilities)(lsmConnectPtr conn,
                                         lsmStorageCapabilitiesPtr *cap);
-
-typedef int (*lsmPlugPoolList)(lsmConnectPtr conn, lsmPoolPtr *poolArray,
-                        uint32_t *count);
+typedef int (*lsmPlugJobStatusVol)(lsmConnectPtr conn, uint32_t jobNumber,
+                                        lsmJobStatus *status,
+                                        uint8_t *percentComplete,
+                                        lsmVolumePtr *vol);
+typedef int (*lsmPlugJobFree)(lsmConnectPtr c, uint32_t jobNumber);
 
 /**
  * Callback functions for management operations.
@@ -45,8 +47,12 @@ struct lsmMgmtOps {
     lsmPlugSetTmo    tmo_set;                   /**< tmo set callback */
     lsmPlugGetTmo    tmo_get;                   /**< tmo get callback */
     lsmPlugCapabilities     capablities;        /**< capabilities callback */
+    lsmPlugJobStatusVol job_status;             /**< status of job */
+    lsmPlugJobFree      job_free;               /**< Free a job */
 };
 
+typedef int (*lsmPlugPoolList)(lsmConnectPtr conn, lsmPoolPtr *poolArray,
+                        uint32_t *count);
 typedef int (*lsmPlugGetPools)( lsmConnectPtr c, lsmPoolPtr **poolArray,
                                         uint32_t *count);
 
@@ -56,13 +62,43 @@ typedef int (*lsmPlugGetInits)( lsmConnectPtr c, lsmInitiatorPtr **initArray,
 typedef int (*lsmPlugGetVolumes)( lsmConnectPtr c, lsmVolumePtr **volArray,
                                         uint32_t *count);
 
+typedef int (*lsmPlugCreateVolume)(lsmConnectPtr c, lsmPoolPtr pool, char *volumeName,
+                        uint64_t size, lsmProvisionType provisioning,
+                        lsmVolumePtr *newVolume, uint32_t *job);
+
+typedef int (*lsmPlugReplicateVolume)(lsmConnectPtr c, lsmPoolPtr pool,
+                        lsmReplicationType repType, lsmVolumePtr volumeSrc,
+                        char *name, lsmVolumePtr *newReplicant, uint32_t *job);
+typedef int (*lsmPlugResizeVolume)(lsmConnectPtr c, lsmVolumePtr volume,
+                                uint64_t newSize, lsmVolumePtr *resizedVolume,
+                                uint32_t *job);
+
+typedef int (*lsmPlugDeleteVolume)(lsmConnectPtr c, lsmVolumePtr volume,
+                                    uint32_t *job);
+
+typedef int (*lsmPlugCreateInit)(lsmConnectPtr c, char *name, char *id,
+                                    lsmInitiatorType type, lsmInitiatorPtr *init);
+
+typedef int (*lsmPlugAccessGrant)(lsmConnectPtr c, lsmInitiatorPtr i, lsmVolumePtr v,
+                        lsmAccessType access, uint32_t *job);
+
+typedef int (*lsmPlugAccessRemove)(lsmConnectPtr c, lsmInitiatorPtr i, lsmVolumePtr v);
+
 /**
  * Block oriented functions
  */
 struct lsmSanOps {
     lsmPlugGetPools pool_get;           /**< Callback for retrieving volumes */
     lsmPlugGetInits init_get;           /**< Callback for retrieving initiators */
-    lsmPlugGetVolumes volumes_get;
+    lsmPlugGetVolumes vol_get;          /**< Callback for retrieving volumes */
+    lsmPlugCreateVolume vol_create;     /**< Callback for creating a lun */
+    lsmPlugReplicateVolume vol_replicate; /**< Callback for replicating lun */
+    lsmPlugResizeVolume vol_resize;     /**< Callback for resizing a volume */
+    lsmPlugDeleteVolume vol_delete;     /**< Callback for deleting a volume */
+    lsmPlugCreateInit init_create;      /**< Callback for creating initiator */
+    lsmPlugAccessGrant access_grant;    /**< Callback for granting access */
+    lsmPlugAccessRemove access_remove;  /**< Callback for removing access */
+
 };
 
 /**
@@ -142,19 +178,46 @@ lsmPoolPtr lsmPoolRecordAlloc(const char *id, const char *name,
                                 uint64_t totalSpace,
                                 uint64_t freeSpace);
 
-
+/**
+ * Allocate the storage needed for and array of Initiator records.
+ * @param size      Number of elements.
+ * @return Allocated memory or NULL on error.
+ */
 lsmInitiatorPtr *lsmInitiatorRecordAllocArray( uint32_t size );
-lsmInitiatorPtr lsmInitiatorRecordAlloc( lsmInitiatorTypes idType, const char* id);
 
+/**
+ * Allocate the storage needed for one initiator record.
+ * @param idType    Type of initiator.
+ * @param id        ID of initiator.
+ * @return Allocated memory or NULL on error.
+ */
+lsmInitiatorPtr lsmInitiatorRecordAlloc( lsmInitiatorType idType, const char* id);
+
+/**
+ * Allocate the storage needed for and array of Volume records.
+ * @param size      Number of elements.
+ * @return Allocated memory or NULL on error.
+ */
 lsmVolumePtr *lsmVolumeRecordAllocArray( uint32_t size);
+
+/**
+ * Allocated the storage needed for one volume record.
+ * @param id                    ID
+ * @param name                  Name
+ * @param vpd83                 SCSI vpd 83 id
+ * @param blockSize             Volume block size.
+ * @param numberOfBlocks        Volume number of blocks.
+ * @param status                Volume status
+ * @return Allocated memory or NULL on error.
+ */
 lsmVolumePtr lsmVolumeRecordAlloc( const char *id, const char *name,
                                         const char *vpd83, uint64_t blockSize,
                                         uint64_t numberOfBlocks,
                                         uint32_t status);
 
-#ifdef	__cplusplus
+#ifdef  __cplusplus
 }
 #endif
 
-#endif	/* LIBSTORAGEMGMT_PLUG_INTERFACE_H */
+#endif  /* LIBSTORAGEMGMT_PLUG_INTERFACE_H */
 

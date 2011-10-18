@@ -3,7 +3,7 @@
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * version 2.1 of the License, or any later version.
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -12,17 +12,17 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  *
  * Author: tasleson
  */
 
 #ifndef LIBSTORAGEMGMTERROR_H
-#define	LIBSTORAGEMGMTERROR_H
+#define LIBSTORAGEMGMTERROR_H
 
 #include <stdlib.h>
 
-#ifdef	__cplusplus
+#ifdef  __cplusplus
 extern "C" {
 #endif
 
@@ -63,6 +63,13 @@ typedef enum {
     LSM_ERR_PLUGIN_ERROR = 13,          /**< Non-descript plugin error */
     LSM_ERR_INVALID_ERR = 14,           /**< Invalid error structure */
     LSM_ERR_PLUGIN_REGISTRATION = 15,   /**< Error during plug-in registration */
+    LSM_ERR_INVALID_POOL = 16,          /**< Invalid pool pointer */
+    LSM_ERR_INVALID_JOB_NUM = 17,       /**< Invalid job number */
+    LSM_ERR_UNSUPPORTED_PROVISIONING = 18,      /**< Unsupported provisioning */
+    LSM_ERR_INVALID_VOL = 19,           /**< Invalid job pointer */
+    LSM_ERR_VOLUME_SAME_SIZE = 20,      /**< Trying to resize to same size */
+    LSM_ERR_INVALID_INIT = 21,          /**< Invalid initiator structure */
+    LSM_ERR_NO_MAPPING = 22,            /**< There is no access for initiator and volume */
     LSM_ERR_AUTH_FAILED = 45,           /**< Authorization failed */
 } lsmErrorNumber;
 
@@ -72,9 +79,10 @@ typedef lsmError *lsmErrorPtr;
 /**
  * Gets the last error structure
  * Note: @see lsmErrorFree to release memory
+ * @param c      Connection pointer.
  * @return lsmErrorPtr, Null if no error exists!
  */
-lsmErrorPtr lsmErrorGetLast(void);
+lsmErrorPtr lsmErrorGetLast(lsmConnectPtr c);
 
 /**
  * Frees the error record!
@@ -145,9 +153,9 @@ char* lsmErrorGetDebug(lsmErrorPtr e);
  */
 void* lsmErrorGetDebugData(lsmErrorPtr e, uint32_t *size);
 
-#ifdef	__cplusplus
+#ifdef  __cplusplus
 }
 #endif
 
-#endif	/* LIBSTORAGEMGMTERROR_H */
+#endif  /* LIBSTORAGEMGMTERROR_H */
 

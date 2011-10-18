@@ -3,7 +3,7 @@
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * version 2.1 of the License, or any later version.
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -12,15 +12,15 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  *
  * Author: tasleson
  */
 
 #ifndef LIBSTORAGEMGMT_TYPES_H
-#define	LIBSTORAGEMGMT_TYPES_H
+#define LIBSTORAGEMGMT_TYPES_H
 
-#ifdef	__cplusplus
+#ifdef  __cplusplus
 extern "C" {
 #endif
 
@@ -62,47 +62,38 @@ typedef struct _lsmAccessGroup lsmAccessGroup;
 typedef lsmAccessGroup *lsmAccessGroupPtr;
 
 /**
- * @page enum-notes Enumeration design notes
- * The enum values have been created so that if a user inadvertently uses the
- * wrong enum type (casting) for a given function we will be able to detect it
- * in the library and return an invalid input type.  The strategy is to make
- * each enum unique for the entire library.  Perhaps this is more trouble than
- * it is worth :-).
- */
-
-/**
  * Different types of replications that can be created
  */
 typedef enum {
-    LSM_VOLUME_REPLICATE_SNAPSHOT = 0x0001,
-    LSM_VOLUME_REPLICATE_CLONE    = 0x0002,
-    LSM_VOLUME_REPLICATE_MIRROR   = 0x0003
+    LSM_VOLUME_REPLICATE_SNAPSHOT = 1,
+    LSM_VOLUME_REPLICATE_CLONE    = 2,
+    LSM_VOLUME_REPLICATE_MIRROR   = 3,
 } lsmReplicationType;
 
 /**
  * Different types of provisioning.
  */
 typedef enum {
-    LSM_PROVISION_THIN = 0x0010,        /**< Thin provisioning */
-    LSM_PROVISION_FULL = 0x0020,        /**< Thick provisioning */
-    LSM_PROVISION_DEFAULT = 0x0030,     /**< Default provisioning */
+    LSM_PROVISION_THIN = 1,        /**< Thin provisioning */
+    LSM_PROVISION_FULL = 2,        /**< Thick provisioning */
+    LSM_PROVISION_DEFAULT = 3,     /**< Default provisioning */
 } lsmProvisionType;
 
 /**
  * Different types of Volume access
  */
 typedef enum {
-    LSM_VOLUME_ACCESS_READ_ONLY = 0x0100,
-    LSM_VOLUME_ACCESS_READ_WRITE = 0x0200,
-    LSM_VOLUME_ACCESS_NONE = 0x0300
+    LSM_VOLUME_ACCESS_READ_ONLY = 1,
+    LSM_VOLUME_ACCESS_READ_WRITE = 2,
+    LSM_VOLUME_ACCESS_NONE = 3,
 } lsmAccessType;
 
 /**
  * Different states that a volume can be in
  */
 typedef enum {
-    LSM_VOLUME_STATUS_ONLINE = 0x1000,  /**< Volume is ready to be used */
-    LSM_VOLUME_STATUS_OFFLINE = 0x2000, /**< Volume is offline, no access */
+    LSM_VOLUME_STATUS_ONLINE = 1,  /**< Volume is ready to be used */
+    LSM_VOLUME_STATUS_OFFLINE = 2, /**< Volume is offline, no access */
 } lsmVolumeStatusType;
 
 /**
@@ -120,13 +111,32 @@ typedef enum {
  * Different types of initiator IDs
  */
 typedef enum {
-    LSM_INITIATOR_WWN = 0x00010000,
-    LSM_INITIATOR_ISCSI = 0x0020000,
-} lsmInitiatorTypes;
+    LSM_INITIATOR_OTHER = 1,
+    LSM_INITIATOR_PORT_WWN = 2,
+    LSM_INITIATOR_NODE_WWN = 3,
+    LSM_INITIATOR_HOSTNAME = 4,
+    LSM_INITIATOR_ISCSI = 5,
+} lsmInitiatorType;
 
-#ifdef	__cplusplus
+/**
+ * Different types of jobs.
+ */
+typedef enum {
+    LSM_JOB_VOL_CREATE  = 1,
+    LSM_JOB_VOL_RESIZE = 2,
+    LSM_JOB_VOL_REPLICATE = 3,
+} lsmJobType;
+
+typedef enum {
+    LSM_JOB_INPROGRESS = 1,
+    LSM_JOB_COMPLETE = 2,
+    LSM_JOB_STOPPED = 3,
+    LSM_JOB_ERROR = 4
+} lsmJobStatus;
+
+#ifdef  __cplusplus
 }
 #endif
 
-#endif	/* LIBSTORAGEMGMT_TYPES_H */
+#endif  /* LIBSTORAGEMGMT_TYPES_H */
 

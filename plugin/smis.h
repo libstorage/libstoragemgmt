@@ -1,18 +1,20 @@
 /*
- * Copyright 2011, Red Hat, Inc.
+ * Copyright (C) 2011 Red Hat, Inc.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or any later version.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
+ * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+ *
+ * Author: tasleson
  */
 
 #ifndef __SMIS_H__
@@ -23,6 +25,9 @@
 #include <libstoragemgmt/libstoragemgmt_common.h>
 #include <libstoragemgmt/libstoragemgmt_types.h>
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
+#include "./util/misc.h"
+
+#include <map>
 
 PEGASUS_USING_PEGASUS;
 PEGASUS_USING_STD;
@@ -66,37 +71,82 @@ public:
 
     /**
      * Creates a logical unit.
-     * @param   storagePoolName     Name of storage pool to allocate lun from.
-     * @param   name                Name to be given to new lun.
-     * @param   size                Size of the new Lun
-     * @throws  Exception
+     * @param pool              Pool to create lun from.
+     * @param volumeName        Name of new lun
+     * @param size              Size of new lun
+     * @param provisioning      What type of provisioning requested.
+     * @param newVolume         New volume information (NULL if job valid)
+     * @param job               Job number if async. operation.
+     * @return  LSM_ERR_OK, LSM_ERR_JOB_STARTED or other lsmErrorNumber.
      */
-    void createLun( String storagePoolName, String name, Uint64 size);
+    int createLun( lsmPoolPtr pool, char *volumeName,
+                        Uint64 size, lsmProvisionType provisioning,
+                        lsmVolumePtr *newVolume, Uint32 *job);
 
     /**
-     * Creates a snapshot of a lun (point in time copy)
-     * @param   sourceLun   Name of lun to snapshot.
-     * @param   destStoragePool Storage pool to create snapshot from.
-     * @param   destName    Name of new snapshot.
-     * @throws  Exception
+     * Creates an initiator record.
+     * @param name      Name of the initiator.
+     * @param id        Id of the initiator.
+     * @param type      Type
+     * @param[out] init Newly created initiator structure.
+     * @return LSM_ERR_OK, else error reason.
      */
-    void createSnapShot(    String sourceLun, String destStoragePool,
-                            String destName);
+    int createInit( char *name, char *id,
+                            lsmInitiatorType type, lsmInitiatorPtr *init);
 
     /**
-     * Deletes a logical unit.
-     * @param   name    Name of lun to delete.
-     * @throws Exception
+     * Grants access to a volume to an initiator.
+     * @param init      Initiator
+     * @param vol       Volume
+     * @param access    Type of access
+     * @param job       Async. job id.
+     * @return LSM_ERR_OK, LSM_ERR_JOB_STARTED else error reason
      */
-    void deleteLun( String name );
+    int grantAccess( lsmInitiatorPtr init, lsmVolumePtr vol,
+                        lsmAccessType access, Uint32 *job);
 
     /**
-     * Resizes an existing Lun.
-     * @param   name    Name of lun to resize
-     * @param   size    New size
-     * @throws Exception
+     * Removes access to a volume from an initiator.
+     * @param init      Initiator
+     * @param vol       Volume
+     * @return LSM_ERR_OK, LSM_ERR_NO_MAPPING else error reason.
      */
-    void resizeLun( String name, Uint64 size);
+    int removeAccess( lsmInitiatorPtr init, lsmVolumePtr vol );
+
+    /**
+     * Replicates a volume
+     * @param p                 Pool to create lun from
+     * @param repType           Replication type
+     * @param volumeSrc         Volume source
+     * @param name              Volume Name
+     * @param newReplicant      Name of new replicated volume
+     * @param job               Job number if async. operation.
+     * @return LSM_ERR_OK, LSM_ERR_JOB_STARTED or other lsmErrorNumber.
+     */
+    int replicateLun( lsmPoolPtr p, lsmReplicationType repType,
+                        lsmVolumePtr volumeSrc, char *name,
+                        lsmVolumePtr *newReplicant, Uint32 *job);
+
+
+    /**
+     * Deletes a volume.
+     * @param v         Volume to delete.
+     * @param job       Async. job id.
+     * @return LSM_ERR_OK, LSM_ERR_JOB_STARTED else error reason.
+     */
+    int deleteVolume( lsmVolumePtr v, uint32_t *job);
+
+    /**
+     * Re-sizes a volume.
+     * @param[in] volume            Volume to resize.
+     * @param[in] newSize           New size for the volume
+     * @param[out] resizedVolume    Pointer to the newly resized volume
+     * @param[out] job
+     * @return LSM_ERR_OK, LSM_ERR_JOB_STARTED else error reason.
+     */
+    int resizeVolume(lsmVolumePtr volume,
+                                uint64_t newSize, lsmVolumePtr *resizedVolume,
+                                uint32_t *job);
 
     /**
      * Returns an array of lsmPoolPtr
@@ -129,7 +179,32 @@ public:
      */
     void mapLun(String initiatorID, String lunName);
 
+    /**
+     * Retrieve the status for a previous submitted job.
+     * @param[in]  jobNumber           Job number
+     * @param[out]  status              Job status
+     * @param[out]  percentComplete     Percent complete
+     * @param[out]  vol                 Volume pointer if job is related to one.
+     * @return LSM_ERR_OK else error reason.
+     */
+    int jobStatusVol(Uint32 jobNumber, lsmJobStatus *status,
+                        Uint8 *percentComplete, lsmVolumePtr *vol);
+
+    /**
+     * Frees the resources for a job.
+     * @param[in] jobNumber     Job number to free.
+     * @return LSM_ERR_OK else error reason.
+     */
+    int jobFree(Uint32 jobNumber);
+
 private:
+
+    class Job
+    {
+    public:
+        CIMValue cimJob;
+    };
+
     enum ElementType { UNKNOWN = 0, RESERVED = 1, STORAGE_VOLUME = 2,
                        STORAGE_EXTENT = 3, STORAGE_POOL = 4, LOGICAL_DISK = 5
                      };
@@ -148,6 +223,9 @@ private:
 
     CIMClient   c;
     CIMNamespaceName    ns;
+    LSM::JobControl<Job> jobs;
+
+    int jobStatus(uint32_t jobNumber);
 
     Array<CIMInstance>  storagePools();
     Array<String> instancePropertyNames( String className, String prop );
@@ -157,10 +235,21 @@ private:
     CIMInstance getClassInstance(String className, String propertyName,
                                  String propertyValue );
 
-    void evalInvoke(Array<CIMParamValue> &out, CIMValue value,
-                    String jobKey = "Job");
+    int processInvoke( Array<CIMParamValue> &out, CIMValue value,
+                        Uint32 *jobid = NULL, lsmVolumePtr *v = NULL );
 
-    void processJob(CIMValue &job);
+    CIMValue getParamValue(Array<CIMParamValue> o, String key);
+    String getParamValueDebug( Array<CIMParamValue> o );
+
+
+    lsmVolumePtr getVolume(const CIMInstance &i);
+    bool getVolume(CIMInstance &vol, const CIMValue &job);
+    bool getVolumeInstance(String name, CIMInstance &i);
+    CIMInstance getVolume(lsmVolumePtr v);
+
+
+    CIMInstance getPool(lsmPoolPtr p);
+    CIMInstance getSpc( lsmInitiatorPtr initiator, lsmVolumePtr v, bool &found );
 };
 
 #endif

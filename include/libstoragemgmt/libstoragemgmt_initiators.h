@@ -3,7 +3,7 @@
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
+ * version 2.1 of the License, or any later version.
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -12,18 +12,23 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  *
  * Author: tasleson
- *
  */
 
 #ifndef LIBSTORAGEMGMT_INITIATORS_H
-#define	LIBSTORAGEMGMT_INITIATORS_H
+#define LIBSTORAGEMGMT_INITIATORS_H
 
-#ifdef	__cplusplus
+#ifdef  __cplusplus
 extern "C" {
 #endif
+
+/**
+ * Frees the memory for one initiator record.
+ * @param i     Initiator record.
+ */
+void lsmInitiatorRecordFree(lsmInitiatorPtr i);
 
 /**
  * Frees the memory for each of the initiators records and then the array itself.
@@ -37,7 +42,7 @@ void lsmInitiatorRecordFreeArray( lsmInitiatorPtr init[], uint32_t size);
  * @param i     lsmInitiator to inquire
  * @return      Initiator Id type, -1 if i is invalid.
  */
-lsmInitiatorTypes lsmInitiatorTypeGet(lsmInitiatorPtr i);
+lsmInitiatorType lsmInitiatorTypeGet(lsmInitiatorPtr i);
 
 /**
  * Returns the initiator id (WWN, IQN etc.)
@@ -47,9 +52,9 @@ lsmInitiatorTypes lsmInitiatorTypeGet(lsmInitiatorPtr i);
  */
 char *lsmInitiatorIdGet(lsmInitiatorPtr i);
 
-#ifdef	__cplusplus
+#ifdef  __cplusplus
 }
 #endif
 
-#endif	/* LIBSTORAGEMGMT_INITIATORS_H */
+#endif  /* LIBSTORAGEMGMT_INITIATORS_H */
 

@@ -1,21 +1,30 @@
+/* ex: set tabstop=4 expandtab: */
 /*
- * Copyright 2011, Red Hat, Inc.
+ * Copyright (C) 2011 Red Hat, Inc.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
+ * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ * Author: tasleson
  */
 
 #include "BlockMgmt.h"
+
+template <class Type> void getPropValue(CIMInstance i, String key, Type &value)
+{
+    i.getProperty(i.findProperty(CIMName(key))).getValue().get(value);
+}
+
 
 BlockMgmt::BlockMgmt(String host, Uint16 port, String smisNameSpace,
                      String userName, String password ):ns(smisNameSpace)
@@ -37,6 +46,32 @@ Array<String> BlockMgmt::getInitiators()
 {
     //Note: If you want the storage array IQN go after CIM_SCSIProtocolEndpoint.Name
     return instancePropertyNames("CIM_StorageHardwareID", "StorageID");
+}
+
+CIMInstance BlockMgmt::getSPC( String initiator, String lun, bool &found )
+{
+    CIMInstance rc;    
+
+    CIMInstance init = getClassInstance("CIM_StorageHardwareID", "StorageID", initiator);
+
+    Array<CIMObject> auth_priviledge = c.associators(ns, init.getPath(), "CIM_AuthorizedSubject");
+    
+    for( Uint32 i = 0; i < auth_priviledge.size(); ++i ) {
+        Array<CIMObject> spc = c.associators(ns, auth_priviledge[0].getPath(), "CIM_AuthorizedTarget");
+        Array<CIMObject> logicalDevice = c.associators(ns, spc[0].getPath(), "CIM_ProtocolControllerForUnit");
+    
+        CIMInstance volume = c.getInstance(ns, logicalDevice[0].getPath().toString());
+
+        String name;
+        getPropValue(volume, "ElementName", name);
+
+        if( name == lun ) {
+            found = true;
+            return (CIMInstance)spc[0];
+        }
+    }
+    found = false;
+    return rc;
 }
 
 void BlockMgmt::mapLun(String initiatorID, String lunName)
@@ -66,6 +101,49 @@ void BlockMgmt::mapLun(String initiatorID, String lunName)
                                    in, out));
 }
 
+void BlockMgmt::unmapLun(String initiatorID, String lunName)
+{
+    bool found = false;
+
+    //Need to find the SPC for the passed in initiator and volume (lun).
+    CIMInstance spc = getSPC(initiatorID, lunName, found);
+
+    if( found )  {
+        Array<CIMParamValue> in;
+        Array<CIMParamValue> out;
+        
+        //Let delete the SPC
+        CIMInstance ccs = getClassInstance("CIM_ControllerConfigurationService");
+        in.append(CIMParamValue("ProtocolController", spc.getPath()));
+        in.append(CIMParamValue("DeleteChildrenProtocolControllers", true));
+        in.append(CIMParamValue("DeleteUnits", true));
+        
+        evalInvoke(out, c.invokeMethod(ns, ccs.getPath(),
+                                   CIMName("DeleteProtocolController"),
+                                   in, out));
+    } else {
+        throw Exception("No mapping found");
+    }
+}
+
+void BlockMgmt::printDebug( const CIMValue &v ) 
+{
+    String id;
+    String name;
+    Uint64 blockSize;
+    Uint64 numberOfBlocks;
+
+    CIMInstance i = c.getInstance(ns, v.toString());
+
+    getPropValue(i, "DeviceID", id);
+    getPropValue(i, "ElementName", name);
+    getPropValue(i, "BlockSize", blockSize);
+    getPropValue(i, "NumberOfBlocks", numberOfBlocks);
+
+    std::cout << "ID = " << id << " name = " << name << " blocksize = " << 
+        blockSize << " # of blocks = " << numberOfBlocks << std::endl; 
+}
+
 void BlockMgmt::createLun( String storagePoolName, String name, Uint64 size)
 {
     Array<CIMParamValue> in;
@@ -75,14 +153,57 @@ void BlockMgmt::createLun( String storagePoolName, String name, Uint64 size)
     CIMInstance storagePool = getClassInstance("CIM_StoragePool", "ElementName",
                               storagePoolName);
 
+    std::cout << "pool = " << storagePool.getPath().toString() << std::endl;
+
     in.append(CIMParamValue("ElementName", CIMValue(name)));
     in.append(CIMParamValue("ElementType", (Uint16)STORAGE_VOLUME));
     in.append(CIMParamValue("InPool", storagePool.getPath()));
     in.append(CIMParamValue("Size", CIMValue(size)));
 
-    evalInvoke(out, c.invokeMethod(ns, scs.getPath(),
+    Uint32 result = evalInvoke(out, c.invokeMethod(ns, scs.getPath(),
                                    CIMName("CreateOrModifyElementFromStoragePool"),
                                    in, out));
+    
+    if( result == 0 ) {
+        for (Uint8 i = 0; i < out.size(); i++) {
+            if( out[i].getParameterName() == "TheElement" ) {
+                printDebug(out[i].getValue());
+            }
+        }
+    }
+}
+
+void BlockMgmt::createInit( String name, String id, String type)
+{
+    Array<CIMParamValue> in;
+    Array<CIMParamValue> out;
+
+    CIMInstance hardware = getClassInstance("CIM_StorageHardwareIDManagementService");
+    in.append(CIMParamValue("ElementName", String(name)));
+    in.append(CIMParamValue("StorageID", (CIMValue(id))));
+
+    if( type == "WWN" ) {
+        in.append(CIMParamValue("IDType", (Uint16)2));  
+    } else {
+        in.append(CIMParamValue("IDType", (Uint16)5));  
+    }
+
+    evalInvoke(out, c.invokeMethod(ns, hardware.getPath(),
+                                   CIMName("CreateStorageHardwareID"), in, out));
+}
+
+void BlockMgmt::deleteInit( String id ) 
+{
+    Array<CIMParamValue> in;
+    Array<CIMParamValue> out;
+
+    CIMInstance init = getClassInstance("CIM_StorageHardwareID", "StorageID", id);
+
+    CIMInstance hardware = getClassInstance("CIM_StorageHardwareIDManagementService");
+    in.append(CIMParamValue("HardwareID", init.getPath() ));
+
+    evalInvoke(out, c.invokeMethod(ns, hardware.getPath(),
+                                   CIMName("DeleteStorageHardwareID"), in, out));
 }
 
 void BlockMgmt::createSnapShot( String sourceLun, String destStoragePool,
@@ -136,7 +257,7 @@ void BlockMgmt::deleteLun( String name )
                                    CIMName("ReturnToStoragePool"), in, out));
 }
 
-void BlockMgmt::evalInvoke(Array<CIMParamValue> &out, CIMValue value,
+Uint32 BlockMgmt::evalInvoke(Array<CIMParamValue> &out, CIMValue value,
                            String jobKey)
 {
     Uint32 result = 0;
@@ -147,7 +268,7 @@ void BlockMgmt::evalInvoke(Array<CIMParamValue> &out, CIMValue value,
         String params;
 
         for (Uint8 i = 0; i < out.size(); i++) {
-            params = params + " ParamName:value(" + out[i].getParameterName() + ":" +
+            params = params + " (key:value)(" + out[i].getParameterName() + ":" +
                      out[i].getValue().toString() + ")";
 
             if( result == INVOKE_ASYNC ) {
@@ -158,11 +279,26 @@ void BlockMgmt::evalInvoke(Array<CIMParamValue> &out, CIMValue value,
         }
 
         if( result == INVOKE_ASYNC ) {
+            std::cout << "Params = " << params;
             processJob(job);
         } else {
             throw Exception(value.toString().append(params));
         }
     }
+
+    return result;
+}
+
+void BlockMgmt::printVol(const CIMValue &job)
+{
+    CIMInstance j = c.getInstance(ns, job.toString());
+    
+    /*Array<CIMObject> as = c.associators(ns, j.getPath(), NULL, NULL, "", false, false, NULL);
+
+    for( Uint32 i = 0; i < as.size(); ++i ) {
+    
+    } */           
+
 }
 
 void BlockMgmt::processJob(CIMValue &job)
@@ -194,6 +330,10 @@ void BlockMgmt::processJob(CIMValue &job)
 
                 if( values[1] == COMPLETE) {
                     std::cout << "Job complete!" << std::endl;
+
+                    /* Get the newly created lun */
+
+
                 } else if ( values[1] == STOPPED) {
                     std::cout << "Job stopped!" << std::endl;
                 } else if( values[1] == ERROR ) {

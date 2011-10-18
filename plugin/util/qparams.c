@@ -42,18 +42,18 @@ new_qparam_set (int init_alloc, ...)
     if (init_alloc <= 0) init_alloc = 1;
 
 
-	ps = (struct qparam_set *)calloc( 1, sizeof(*(ps)));
-	if( !ps ) {
-		return NULL;
-	}
+    ps = (struct qparam_set *)calloc( 1, sizeof(*(ps)));
+    if( !ps ) {
+        return NULL;
+    }
 
     ps->n = 0;
     ps->alloc = init_alloc;
 
-	ps->p = (struct qparam *) calloc( ps->alloc, sizeof(*(ps->p)));
+    ps->p = (struct qparam *) calloc( ps->alloc, sizeof(*(ps->p)));
 
     if (!ps->p) {
-		free(ps);
+        free(ps);
         return NULL;
     }
 
@@ -101,12 +101,12 @@ grow_qparam_set (struct qparam_set *ps)
 {
     if (ps->n >= ps->alloc) {
 
-		void *tmp = realloc( ps->p, ps->alloc * 2);
-		if( !tmp ) {
-			return -1;
-		}
-		ps->p = (struct qparam *)tmp;
-		ps->alloc *= 2;
+        void *tmp = realloc( ps->p, ps->alloc * 2);
+        if( !tmp ) {
+            return -1;
+        }
+        ps->p = (struct qparam *)tmp;
+        ps->alloc *= 2;
     }
 
     return 0;
@@ -125,13 +125,13 @@ append_qparam (struct qparam_set *ps,
 
     pvalue = strdup (value);
     if (!pvalue) {
-		free(pname);
+        free(pname);
         return -1;
     }
 
     if (grow_qparam_set (ps) == -1) {
-		free(pname);
-		free(pvalue);
+        free(pname);
+        free(pvalue);
         return -1;
     }
 
@@ -153,7 +153,7 @@ free_qparam_set (struct qparam_set *ps)
         free(ps->p[i].value);
     }
     free(ps->p);
-	ps->p = NULL;
+    ps->p = NULL;
     free(ps);
 }
 
