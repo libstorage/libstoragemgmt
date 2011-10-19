@@ -104,7 +104,7 @@ int lsmCapabilities(lsmConnectPtr conn, lsmStorageCapabilitiesPtr *cap);
  * @param[out]  count           Number of storage pools
  * @return LSM_ERR_OK on success else error reason
  */
-int lsmPoolList(lsmConnectPtr conn, lsmPoolPtr *poolArray[],
+int lsmPoolList(lsmConnectPtr conn, lsmPoolPtr **poolArray,
                         uint32_t *count);
 
 /**
@@ -114,7 +114,7 @@ int lsmPoolList(lsmConnectPtr conn, lsmPoolPtr *poolArray[],
  * @param[out] count            Number of initiators
  * @return  LSM_ERR_OK on success else error reason
  */
-int lsmInitiatorList(lsmConnectPtr conn, lsmInitiatorPtr *initiators[],
+int lsmInitiatorList(lsmConnectPtr conn, lsmInitiatorPtr **initiators,
                                 uint32_t *count);
 
 /**
@@ -128,7 +128,7 @@ int lsmInitiatorList(lsmConnectPtr conn, lsmInitiatorPtr *initiators[],
  * @param[out]   count   Number of elements in the lsmVolume_t array
  * @return LSM_ERR_OK on success else error reason
  */
-int lsmVolumeList(lsmConnectPtr conn, lsmVolumePtr *volumes[], uint32_t *count);
+int lsmVolumeList(lsmConnectPtr conn, lsmVolumePtr **volumes, uint32_t *count);
 
 /**
  * Creates a new volume (aka. LUN).
@@ -252,7 +252,7 @@ int lsmAccessRemove( lsmConnectPtr conn, lsmInitiatorPtr initiator,
  * @param[out] groupCount       Size of array
  * @return LSM_ERR_OK on success, else error reason.
  */
-int lsmAccessGroupList( lsmConnectPtr conn, lsmAccessGroupPtr *groups[],
+int lsmAccessGroupList( lsmConnectPtr conn, lsmAccessGroupPtr **groups,
                         uint32_t *groupCount);
 
 /**
