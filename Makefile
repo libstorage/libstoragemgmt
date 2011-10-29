@@ -1,4 +1,4 @@
-all:	libstoragemgmt.so lib_plugin_smis.so
+all:	libstoragemgmt.so lib_plugin_smis.so lsmcli
 
 libstoragemgmt.so:
 	(cd src; $(MAKE))
@@ -6,9 +6,13 @@ libstoragemgmt.so:
 lib_plugin_smis.so:
 	(cd plugin; $(MAKE))
 
+lsmcli:
+	(cd tools/lsmcli; $(MAKE))
+
 clean:
 	(cd src; $(MAKE) clean)
 	(cd plugin; $(MAKE) clean)
+	(cd tools/lsmcli; $(MAKE) clean)
 	rm -rf doc/srcdoc
 
 #Source code documentation

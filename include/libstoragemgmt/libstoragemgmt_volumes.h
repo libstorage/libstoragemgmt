@@ -31,6 +31,13 @@ extern "C" {
 void lsmVolumeRecordFree(lsmVolumePtr v);
 
 /**
+ * Copies a volume record structure.
+ * @param vol   Volume record to be copied.
+ * @return NULL on error, else record copy.
+ */
+lsmVolumePtr lsmVolumeRecordCopy(lsmVolumePtr vol);
+
+/**
  * Frees the memory for each of the volume records and then the array itself.
  * @param init  Array to free.
  * @param size  Size of array.

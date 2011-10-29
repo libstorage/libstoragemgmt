@@ -95,7 +95,7 @@ struct _lsmAccessGroup {
 /**
  * Function pointer decl. for the functions that the plug-in must export.
  */
-typedef int (*lsmRegister)(lsmConnectPtr c, xmlURIPtr uri, char *password,
+typedef int (*lsmRegister)(lsmConnectPtr c, xmlURIPtr uri, const char *password,
                 uint32_t timeout, lsmErrorPtr *e);
 typedef int (*lsmUnregister)( lsmConnectPtr c );
 
@@ -169,14 +169,9 @@ LSM_DLL_LOCAL void freeConnection(lsmConnectPtr c);
  * @param e             Error data
  * @return LSM_ERR_OK on success, else error code.
  */
-LSM_DLL_LOCAL int loadDriver(lsmConnectPtr c, xmlURIPtr uri, char *password,
-                                uint32_t timeout, lsmErrorPtr *e);
-
-/**
- * Frees the memory for an individual pool
- * @param p Valid pool
- */
-LSM_DLL_LOCAL void lsmPoolRecordFree(lsmPoolPtr p);
+LSM_DLL_LOCAL int loadDriver(lsmConnectPtr c, xmlURIPtr uri,
+                                const char *password, uint32_t timeout,
+                                lsmErrorPtr *e);
 
 
 

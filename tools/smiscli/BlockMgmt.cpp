@@ -58,16 +58,22 @@ CIMInstance BlockMgmt::getSPC( String initiator, String lun, bool &found )
     
     for( Uint32 i = 0; i < auth_priviledge.size(); ++i ) {
         Array<CIMObject> spc = c.associators(ns, auth_priviledge[0].getPath(), "CIM_AuthorizedTarget");
-        Array<CIMObject> logicalDevice = c.associators(ns, spc[0].getPath(), "CIM_ProtocolControllerForUnit");
-    
-        CIMInstance volume = c.getInstance(ns, logicalDevice[0].getPath().toString());
+        
+        //Make sure that we have associations for authorized targets and controllers.
+        if( spc.size() > 0 ) {
+            Array<CIMObject> logicalDevice = c.associators(ns, spc[0].getPath(), "CIM_ProtocolControllerForUnit");
 
-        String name;
-        getPropValue(volume, "ElementName", name);
+            if( logicalDevice.size() > 0 ) {
+                CIMInstance volume = c.getInstance(ns, logicalDevice[0].getPath().toString());
 
-        if( name == lun ) {
-            found = true;
-            return (CIMInstance)spc[0];
+                String name;
+                getPropValue(volume, "ElementName", name);
+
+                if( name == lun ) {
+                    found = true;
+                    return (CIMInstance)spc[0];
+                }
+            }
         }
     }
     found = false;

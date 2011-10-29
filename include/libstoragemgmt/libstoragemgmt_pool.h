@@ -34,6 +34,19 @@ extern "C" {
 void lsmPoolRecordFreeArray( lsmPoolPtr pa[], uint32_t size );
 
 /**
+ * Frees the memory for an individual pool
+ * @param p Valid pool
+ */
+void lsmPoolRecordFree(lsmPoolPtr p);
+
+/**
+ * Copies a lsmPoolRecordCopy
+ * @param toBeCopied    Record to be copied
+ * @return NULL on memory exhaustion, else copy.
+ */
+lsmPoolPtr lsmPoolRecordCopy( lsmPoolPtr toBeCopied);
+
+/**
  * Retrieves the name from the pool.
  * Note: Returned value is only valid as long as p is valid!.
  * @param p     Pool

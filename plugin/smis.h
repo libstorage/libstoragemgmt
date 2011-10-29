@@ -79,7 +79,7 @@ public:
      * @param job               Job number if async. operation.
      * @return  LSM_ERR_OK, LSM_ERR_JOB_STARTED or other lsmErrorNumber.
      */
-    int createLun( lsmPoolPtr pool, char *volumeName,
+    int createLun( lsmPoolPtr pool, const char *volumeName,
                         Uint64 size, lsmProvisionType provisioning,
                         lsmVolumePtr *newVolume, Uint32 *job);
 
@@ -91,7 +91,7 @@ public:
      * @param[out] init Newly created initiator structure.
      * @return LSM_ERR_OK, else error reason.
      */
-    int createInit( char *name, char *id,
+    int createInit( const char *name, const char *id,
                             lsmInitiatorType type, lsmInitiatorPtr *init);
 
     /**
@@ -124,7 +124,7 @@ public:
      * @return LSM_ERR_OK, LSM_ERR_JOB_STARTED or other lsmErrorNumber.
      */
     int replicateLun( lsmPoolPtr p, lsmReplicationType repType,
-                        lsmVolumePtr volumeSrc, char *name,
+                        lsmVolumePtr volumeSrc, const char *name,
                         lsmVolumePtr *newReplicant, Uint32 *job);
 
 

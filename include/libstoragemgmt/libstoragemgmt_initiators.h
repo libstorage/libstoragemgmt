@@ -31,6 +31,13 @@ extern "C" {
 void lsmInitiatorRecordFree(lsmInitiatorPtr i);
 
 /**
+ * Returns a copy of an initiator record.
+ * @param i     Initiator record to be copied.
+ * @return Copy of initiator or NULL on error.
+ */
+lsmInitiatorPtr lsmInitiatorRecordCopy(lsmInitiatorPtr i);
+
+/**
  * Frees the memory for each of the initiators records and then the array itself.
  * @param init  Array to free.
  * @param size  Size of array.

@@ -149,7 +149,7 @@ lsmVolumePtr *Smis::getVolumes(Uint32 *count)
     return rc;
 }
 
-int Smis::createLun(lsmPoolPtr pool, char *volumeName,
+int Smis::createLun(lsmPoolPtr pool, const char *volumeName,
     Uint64 size, lsmProvisionType provisioning,
     lsmVolumePtr *newVolume, Uint32 *job)
 {
@@ -178,7 +178,7 @@ int Smis::createLun(lsmPoolPtr pool, char *volumeName,
         in, out), job, newVolume);
 }
 
-int Smis::createInit(char *name, char *id, lsmInitiatorType type,
+int Smis::createInit(const char *name, const char *id, lsmInitiatorType type,
                         lsmInitiatorPtr *init)
 {
     Array<CIMParamValue> in;
@@ -257,7 +257,7 @@ int Smis::removeAccess(lsmInitiatorPtr i, lsmVolumePtr v)
 }
 
 int Smis::replicateLun(lsmPoolPtr p, lsmReplicationType repType,
-    lsmVolumePtr volumeSrc, char *name,
+    lsmVolumePtr volumeSrc, const char *name,
     lsmVolumePtr *newReplicant, Uint32 *job)
 {
 
@@ -594,18 +594,23 @@ CIMInstance Smis::getSpc(lsmInitiatorPtr initiator, lsmVolumePtr v, bool &found)
     for (Uint32 i = 0; i < auth_priviledge.size(); ++i) {
         Array<CIMObject> spc = c.associators(ns, auth_priviledge[0].getPath(),
             "CIM_AuthorizedTarget");
-        Array<CIMObject> logicalDevice = c.associators(ns, spc[0].getPath(),
+
+        if( spc.size() > 0 ) {
+            Array<CIMObject> logicalDevice = c.associators(ns, spc[0].getPath(),
             "CIM_ProtocolControllerForUnit");
 
-        CIMInstance volume = c.getInstance(ns,
-            logicalDevice[0].getPath().toString());
+             if( logicalDevice.size() > 0 ) {
+                CIMInstance volume = c.getInstance(ns,
+                logicalDevice[0].getPath().toString());
 
-        String volId;
-        getPropValue(volume, "DeviceID", volId);
+                String volId;
+                getPropValue(volume, "DeviceID", volId);
 
-        if (volId == vol) {
-            found = true;
-            return(CIMInstance) spc[0];
+                if (volId == vol) {
+                    found = true;
+                    return(CIMInstance) spc[0];
+                }
+            }
         }
     }
     found = false;

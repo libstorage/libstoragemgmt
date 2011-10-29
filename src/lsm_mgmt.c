@@ -36,7 +36,7 @@
     lsmErrorFree(c->error);             \
     } while (0)
 
-int lsmConnectPassword(char *uri, char *password,
+int lsmConnectPassword(const char *uri, const char *password,
                         lsmConnectPtr *conn, uint32_t timeout, lsmErrorPtr *e)
 {
     int rc = LSM_ERR_OK;
@@ -162,7 +162,7 @@ int lsmVolumeList(lsmConnectPtr c, lsmVolumePtr **volumes, uint32_t *count)
     return LSM_ERR_NO_SUPPORT;
 }
 
-int lsmVolumeCreate(lsmConnectPtr c, lsmPoolPtr pool, char *volumeName,
+int lsmVolumeCreate(lsmConnectPtr c, lsmPoolPtr pool, const char *volumeName,
                         uint64_t size, lsmProvisionType provisioning,
                         lsmVolumePtr *newVolume, uint32_t *job)
 {
@@ -213,7 +213,7 @@ int lsmVolumeResize(lsmConnectPtr c, lsmVolumePtr volume,
 
 int lsmVolumeReplicate(lsmConnectPtr c, lsmPoolPtr pool,
                         lsmReplicationType repType, lsmVolumePtr volumeSrc,
-                        char *name, lsmVolumePtr *newReplicant, uint32_t *job)
+                        const char *name, lsmVolumePtr *newReplicant, uint32_t *job)
 {
     CONN_SETUP(c);
 
@@ -262,7 +262,7 @@ int lsmVolumeStatus(lsmConnectPtr conn, lsmVolumePtr volume,
     return LSM_ERR_NO_SUPPORT;
 }
 
-int lsmInitiatorCreate(lsmConnectPtr c, char *name, char *id,
+int lsmInitiatorCreate(lsmConnectPtr c, const char *name, const char *id,
                             lsmInitiatorType type, lsmInitiatorPtr *init)
 {
     CONN_SETUP(c);
@@ -302,7 +302,7 @@ int lsmAccessGrant( lsmConnectPtr c, lsmInitiatorPtr i, lsmVolumePtr v,
     return LSM_ERR_NO_SUPPORT;
 }
 
-int lsmAccessRemove( lsmConnectPtr c, lsmInitiatorPtr i, lsmVolumePtr v)
+int lsmAccessRevoke( lsmConnectPtr c, lsmInitiatorPtr i, lsmVolumePtr v)
 {
     CONN_SETUP(c);
 
@@ -337,7 +337,7 @@ int lsmAccessGroupList( lsmConnectPtr conn, lsmAccessGroupPtr **groups,
     return LSM_ERR_NO_SUPPORT;
 }
 
-int lsmAccessGroupCreate( lsmConnectPtr conn, char *name)
+int lsmAccessGroupCreate( lsmConnectPtr conn, const char *name)
 {
     return LSM_ERR_NO_SUPPORT;
 }

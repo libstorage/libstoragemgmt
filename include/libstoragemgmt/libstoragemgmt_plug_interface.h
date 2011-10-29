@@ -62,13 +62,15 @@ typedef int (*lsmPlugGetInits)( lsmConnectPtr c, lsmInitiatorPtr **initArray,
 typedef int (*lsmPlugGetVolumes)( lsmConnectPtr c, lsmVolumePtr **volArray,
                                         uint32_t *count);
 
-typedef int (*lsmPlugCreateVolume)(lsmConnectPtr c, lsmPoolPtr pool, char *volumeName,
-                        uint64_t size, lsmProvisionType provisioning,
-                        lsmVolumePtr *newVolume, uint32_t *job);
+typedef int (*lsmPlugCreateVolume)(lsmConnectPtr c, lsmPoolPtr pool,
+                        const char *volumeName, uint64_t size,
+                        lsmProvisionType provisioning, lsmVolumePtr *newVolume,
+                        uint32_t *job);
 
 typedef int (*lsmPlugReplicateVolume)(lsmConnectPtr c, lsmPoolPtr pool,
                         lsmReplicationType repType, lsmVolumePtr volumeSrc,
-                        char *name, lsmVolumePtr *newReplicant, uint32_t *job);
+                        const char *name, lsmVolumePtr *newReplicant,
+                        uint32_t *job);
 typedef int (*lsmPlugResizeVolume)(lsmConnectPtr c, lsmVolumePtr volume,
                                 uint64_t newSize, lsmVolumePtr *resizedVolume,
                                 uint32_t *job);
@@ -76,8 +78,9 @@ typedef int (*lsmPlugResizeVolume)(lsmConnectPtr c, lsmVolumePtr volume,
 typedef int (*lsmPlugDeleteVolume)(lsmConnectPtr c, lsmVolumePtr volume,
                                     uint32_t *job);
 
-typedef int (*lsmPlugCreateInit)(lsmConnectPtr c, char *name, char *id,
-                                    lsmInitiatorType type, lsmInitiatorPtr *init);
+typedef int (*lsmPlugCreateInit)(lsmConnectPtr c, const char *name,
+                                    const char *id, lsmInitiatorType type,
+                                    lsmInitiatorPtr *init);
 
 typedef int (*lsmPlugAccessGrant)(lsmConnectPtr c, lsmInitiatorPtr i, lsmVolumePtr v,
                         lsmAccessType access, uint32_t *job);
@@ -115,7 +118,7 @@ struct lsmNasOps {
 
 };
 
-int lsmRegisterPlugin( lsmConnectPtr conn, char *desc, char *version,
+int lsmRegisterPlugin( lsmConnectPtr conn, const char *desc, const char *version,
                         void * private_data, struct lsmMgmtOps *mgmOps,
                         struct lsmSanOps *sanOp, struct lsmFsOps *fsOp,
                         struct lsmNasOps *nasOp );

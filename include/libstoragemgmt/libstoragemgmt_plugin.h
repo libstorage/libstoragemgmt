@@ -37,7 +37,7 @@ extern "C" {
  *                      LSM_ERR_OK.
  * @return LSM_ERR_OK, else error reason.
  */
-int lsmPluginRegister(  lsmConnectPtr c, xmlURIPtr uri, char *password,
+int lsmPluginRegister(  lsmConnectPtr c, xmlURIPtr uri, const char *password,
                         uint32_t timeout, lsmErrorPtr *e);
 
 /**

@@ -65,6 +65,7 @@ typedef lsmAccessGroup *lsmAccessGroupPtr;
  * Different types of replications that can be created
  */
 typedef enum {
+    LSM_VOLUME_REPLICATE_UNKNOWN = -1,
     LSM_VOLUME_REPLICATE_SNAPSHOT = 1,
     LSM_VOLUME_REPLICATE_CLONE    = 2,
     LSM_VOLUME_REPLICATE_MIRROR   = 3,
@@ -74,6 +75,7 @@ typedef enum {
  * Different types of provisioning.
  */
 typedef enum {
+    LSM_PROVISION_UNKNOWN = -1,
     LSM_PROVISION_THIN = 1,        /**< Thin provisioning */
     LSM_PROVISION_FULL = 2,        /**< Thick provisioning */
     LSM_PROVISION_DEFAULT = 3,     /**< Default provisioning */

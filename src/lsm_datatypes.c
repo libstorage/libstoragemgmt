@@ -32,7 +32,7 @@
 /*NOTE: Need to change this! */
 #define LSM_DEFAULT_PLUGIN_DIR "./plugin"
 
-int lsmRegisterPlugin(lsmConnectPtr c, char *desc, char *version,
+int lsmRegisterPlugin(lsmConnectPtr c, const char *desc, const char *version,
                         void *private_data, struct lsmMgmtOps *mgmOps,
                         struct lsmSanOps *sanOp, struct lsmFsOps *fsOp,
                         struct lsmNasOps *nasOp)
@@ -108,7 +108,7 @@ void freeConnection(lsmConnectPtr c)
     }
 }
 
-int loadDriver(lsmConnectPtr c, xmlURIPtr uri, char *password,
+int loadDriver(lsmConnectPtr c, xmlURIPtr uri, const char *password,
     uint32_t timeout, lsmErrorPtr *e)
 {
     int rc = LSM_ERR_OK;
@@ -328,6 +328,16 @@ lsmPoolPtr lsmPoolRecordAlloc(const char *id, const char *name, uint64_t totalSp
     return rc;
 }
 
+lsmPoolPtr lsmPoolRecordCopy( lsmPoolPtr toBeCopied)
+{
+    if( LSM_IS_POOL(toBeCopied) ) {
+        return lsmPoolRecordAlloc(toBeCopied->id, toBeCopied->name,
+                                    toBeCopied->totalSpace,
+                                    toBeCopied->freeSpace);
+    }
+    return NULL;
+}
+
 void lsmPoolRecordFree(lsmPoolPtr p)
 {
     if (LSM_IS_POOL(p)) {
@@ -410,6 +420,15 @@ lsmInitiatorPtr lsmInitiatorRecordAlloc(lsmInitiatorType idType, const char* id)
     return rc;
 }
 
+lsmInitiatorPtr lsmInitiatorRecordCopy(lsmInitiatorPtr i)
+{
+    lsmInitiatorPtr rc = NULL;
+    if( LSM_IS_INIT(i)) {
+        rc = lsmInitiatorRecordAlloc(i->idType, i->id);
+    }
+    return rc;
+}
+
 void lsmInitiatorRecordFree(lsmInitiatorPtr i)
 {
     if (i) {
@@ -468,6 +487,17 @@ lsmVolumePtr lsmVolumeRecordAlloc(const char *id, const char *name,
         rc->blockSize = blockSize;
         rc->numberOfBlocks = numberOfBlocks;
         rc->status = status;
+    }
+    return rc;
+}
+
+lsmVolumePtr lsmVolumeRecordCopy(lsmVolumePtr vol)
+{
+    lsmVolumePtr rc = NULL;
+    if( LSM_IS_VOL(vol) ) {
+        rc = lsmVolumeRecordAlloc( vol->id, vol->name, vol->vpd83,
+                                    vol->blockSize, vol->numberOfBlocks,
+                                    vol->status);
     }
     return rc;
 }

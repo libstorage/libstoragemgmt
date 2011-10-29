@@ -36,11 +36,11 @@ extern "C" {
  * @param[in] uri       Uniform Resource Identifier (see URI documentation)
  * @param[in] password  Password for the storage array (optional, can be NULL)
  * @param[out] conn     The connection to use for all the other library calls
- * @param[in] timeout   Time-out in seconds, (initial value).
+ * @param[in] timeout   Time-out in milli-seconds, (initial value).
  * @param[out] e        Error data if connection failed.
  * @return LSM_ERR_OK on success, else error code @see lsmErrorNumber
  */
-int lsmConnectPassword(char* uri, char *password,
+int lsmConnectPassword(const char* uri, const char *password,
                         lsmConnectPtr *conn, uint32_t timeout, lsmErrorPtr *e);
 /**
  * Closes a connection to a storage provider.
@@ -141,7 +141,7 @@ int lsmVolumeList(lsmConnectPtr conn, lsmVolumePtr **volumes, uint32_t *count);
  * @param[out]  job             Indicates job number
  * @return LSM_ERR_OK on success, LSM_JOB_STARTED if async. , else error code
  */
-int lsmVolumeCreate(lsmConnectPtr conn, lsmPoolPtr pool, char *volumeName,
+int lsmVolumeCreate(lsmConnectPtr conn, lsmPoolPtr pool, const char *volumeName,
                         uint64_t size, lsmProvisionType provisioning,
                         lsmVolumePtr *newVolume, uint32_t *job);
 
@@ -171,7 +171,8 @@ int lsmVolumeResize(lsmConnectPtr conn, lsmVolumePtr volume,
  */
 int lsmVolumeReplicate(lsmConnectPtr conn, lsmPoolPtr pool,
                         lsmReplicationType repType, lsmVolumePtr volumeSrc,
-                        char *name, lsmVolumePtr *newReplicant, uint32_t *job);
+                        const char *name, lsmVolumePtr *newReplicant,
+                        uint32_t *job);
 
 /**
  * Deletes a logical unit and data is lost!
@@ -219,7 +220,7 @@ int lsmVolumeOffline(lsmConnectPtr conn, lsmVolumePtr volume);
  * @param[out] init     Newly created initiator.
  * @return LSM_ERR_OK on success, else error reason.
  */
-int lsmInitiatorCreate(lsmConnectPtr conn, char *name, char *id,
+int lsmInitiatorCreate(lsmConnectPtr conn, const char *name, const char *id,
                             lsmInitiatorType type, lsmInitiatorPtr *init);
 /**
  * Access control for allowing an initiator to use a volume.
@@ -236,13 +237,13 @@ int lsmAccessGrant( lsmConnectPtr conn, lsmInitiatorPtr initiator,
                         uint32_t *job);
 
 /**
- * Removes a volume from being accessed by an initiator.
+ * Revokes privileges an initiator has to a volume
  * @param[in] conn          Valid connection
  * @param[in] initiator     Valid initiator
  * @param[in] volume        Valid volume
  * @return LSM_ERR_OK, LSM_ERR_NO_MAPPING else error reason.
  */
-int lsmAccessRemove( lsmConnectPtr conn, lsmInitiatorPtr initiator,
+int lsmAccessRevoke( lsmConnectPtr conn, lsmInitiatorPtr initiator,
                         lsmVolumePtr volume);
 
 /**
@@ -261,7 +262,7 @@ int lsmAccessGroupList( lsmConnectPtr conn, lsmAccessGroupPtr **groups,
  * @param[in] name              Name of new access group
  * @return LSM_ERR_OK on success, else error reason.
  */
-int lsmAccessGroupCreate( lsmConnectPtr conn, char *name);
+int lsmAccessGroupCreate( lsmConnectPtr conn, const char *name);
 
 /**
  * Deletes an access group.

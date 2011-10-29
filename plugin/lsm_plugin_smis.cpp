@@ -33,9 +33,10 @@ static char version [] = "0.01";
 static lsmErrorNumber logException(lsmConnectPtr c, lsmErrorNumber error,
                                 const char *message, Exception &e)
 {
-    lsmErrorPtr err = lsmErrorCreate(error, LSM_ERR_DOMAIN_PLUG_IN, LSM_ERR_LEVEL_ERROR,
-                                        message, e.getMessage().getCString(),
-                                        NULL, NULL, 0);
+    lsmErrorPtr err = lsmErrorCreate(error, LSM_ERR_DOMAIN_PLUG_IN,
+                                        LSM_ERR_LEVEL_ERROR, message,
+                                        e.getMessage().getCString(), NULL,
+                                        NULL, 0);
     if( err && c ) {
         lsmErrorLog(c, err);
     }
@@ -143,7 +144,7 @@ static int volumes(lsmConnectPtr c, lsmVolumePtr **volArray,
     return LSM_ERR_OK;
 }
 
-static int createVolume( lsmConnectPtr c, lsmPoolPtr pool, char *volumeName,
+static int createVolume( lsmConnectPtr c, lsmPoolPtr pool, const char *volumeName,
                         uint64_t size, lsmProvisionType provisioning,
                         lsmVolumePtr *newVolume, uint32_t *job)
 {
@@ -157,7 +158,7 @@ static int createVolume( lsmConnectPtr c, lsmPoolPtr pool, char *volumeName,
     return LSM_ERR_OK;
 }
 
-static int createInit( lsmConnectPtr c, char *name, char *id,
+static int createInit( lsmConnectPtr c, const char *name, const char *id,
                             lsmInitiatorType type, lsmInitiatorPtr *init)
 {
     Smis *s = (Smis *)lsmGetPrivateData(c);
@@ -197,7 +198,7 @@ static int accessRemove( lsmConnectPtr c, lsmInitiatorPtr i, lsmVolumePtr v)
 
 static int replicateVolume( lsmConnectPtr c, lsmPoolPtr pool,
                         lsmReplicationType repType, lsmVolumePtr volumeSrc,
-                        char *name, lsmVolumePtr *newReplicant, uint32_t *job)
+                        const char *name, lsmVolumePtr *newReplicant, uint32_t *job)
 {
     Smis *s = (Smis *)lsmGetPrivateData(c);
 
@@ -248,7 +249,7 @@ static struct lsmSanOps sanOps = {
     accessRemove,
 };
 
-int lsmPluginRegister( lsmConnectPtr c, xmlURIPtr uri, char *password,
+int lsmPluginRegister( lsmConnectPtr c, xmlURIPtr uri, const char *password,
                         uint32_t timeout, lsmErrorPtr *e )
 {
     int rc = LSM_ERR_OK;
