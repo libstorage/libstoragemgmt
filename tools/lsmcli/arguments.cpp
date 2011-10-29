@@ -123,11 +123,11 @@ Options include:\n\
                                 (e.g., MiB, GiB, TiB)\n\
   -t, --terse=SEP               print output in terse form with \"SEP\" as a \n\
                                 record separator\n\
-  -l TYPE                       List records of type [VOLUMES|INITIATORS|POOLS]\n\
 "), stdout);
         fputs(_("\
 Commands include:\n\
-      --create-initiator=NAME   requires:\n\
+  -l                            List records of type [VOLUMES|INITIATORS|POOLS]\n\
+      --create-initiator=NAME   Create an initiator record requires:\n\
                                 --id <initiator id>\n\
                                 --type [WWPN|WWNN|ISCSI|HOSTNAME]\n\
 "), stdout);
