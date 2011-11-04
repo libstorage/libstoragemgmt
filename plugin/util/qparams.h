@@ -26,6 +26,10 @@
 #ifndef _QPARAMS_H_
 # define _QPARAMS_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if defined _WIN32 || defined __CYGWIN__
     #define QPARAM_DLL_IMPORT __declspec(dllimport)
     #define QPARAM_DLL_EXPORT __declspec(dllexport)
@@ -90,4 +94,10 @@ QPARAM_DLL_LOCAL struct qparam_set *qparam_query_parse (const char *query);
 
 QPARAM_DLL_LOCAL void free_qparam_set (struct qparam_set *ps);
 
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* _QPARAMS_H_ */
+
+
