@@ -360,18 +360,42 @@ int Smis::jobFree(Uint32 jobNumber)
 {
     if (jobs.present(jobNumber)) {
         jobs.remove(jobNumber);
+        return LSM_ERR_OK;
     }
     return LSM_ERR_INVALID_JOB_NUM;
+}
+
+bool Smis::jobCompletedOk(String jobId)
+{
+    Array<Uint16> values;
+    bool rc = false;
+
+    CIMObject status = c.getInstance(ns, jobId);
+
+    status.getProperty(status.findProperty("OperationalStatus")).
+                        getValue().get(values);
+
+    if( values.size() > 1 && (values[0] == OK || values[1] == OK) &&
+      ( values[0] == COMPLETE || values[0] == COMPLETE)) {
+        rc = true;
+    } else {
+        //Note: We need to gather debug information about this
+        //and build and error record.
+    }
+    return rc;
 }
 
 int Smis::jobStatusVol(Uint32 jobNumber, lsmJobStatus *status,
     Uint8 *percentComplete, lsmVolumePtr *vol)
 {
     Job j;
-    Array<Uint16> values;
     Uint16 pc = 0;
+    Uint16 jobState = 0;
+    int rc = LSM_ERR_OK;
+    Boolean autodelete = false;
 
     if (jobs.present(jobNumber)) {
+
         if (vol) {
             *vol = NULL;
         }
@@ -380,54 +404,58 @@ int Smis::jobStatusVol(Uint32 jobNumber, lsmJobStatus *status,
 
         CIMObject cimStatus = c.getInstance(ns, j.cimJob.toString());
 
-        cimStatus.getProperty(cimStatus.findProperty("OperationalStatus")).getValue().get(values);
+        cimStatus.getProperty(cimStatus.findProperty("JobState")).
+                                getValue().get(jobState);
 
-        if (values[0] == OK) {
-            //Array of values may have 1 or 2 values according to mof
-            if (values.size() == 2) {
-                Boolean autodelete = false;
-                cimStatus.getProperty(cimStatus.findProperty("DeleteOnCompletion")).getValue().get(autodelete);
+        switch( jobState ) {
+            case(JS_NEW):
+            case(JS_STARTING):
+            case(JS_RUNNING):
+                *status = LSM_JOB_INPROGRESS;
 
-                if (!autodelete) {
-                    //We are done, delete job instance.
-                    //Need to verify if this is really correct.
-                    try {
-                        c.deleteInstance(ns, cimStatus.getPath());
-                    } catch (Exception &e) {
-                    }
-                }
+                //Grab percentage.
+                cimStatus.getProperty(cimStatus.findProperty("PercentComplete")).
+                                            getValue().get(pc);
+                *percentComplete = (pc > 100) ? 100 : pc;
+                break;
+            case(JS_COMPLETED):
+                *status = LSM_JOB_COMPLETE;
+                *percentComplete = 100;
 
-                if (values[1] == COMPLETE) {
-                    //NOTE: Go fetch the new volume information for this!
-
-                    *status = LSM_JOB_COMPLETE;
-
-                    if (vol) {
+                //Check the operational status.
+                if( !jobCompletedOk(j.cimJob.toString())) {
+                    rc = LSM_JOB_ERROR;
+                } else {
+                    if( vol) {
                         CIMInstance vi;
-                        if (getVolume(vi, j.cimJob)) {
+                        if( getVolume(vi, j.cimJob)) {
                             *vol = getVolume(vi);
                         }
                     }
-                } else if (values[1] == STOPPED) {
-                    *status = LSM_JOB_STOPPED;
-                } else if (values[1] == ERROR) {
-                    *status = LSM_JOB_ERROR;
                 }
 
-                *percentComplete = 100;
-                return LSM_ERR_OK;
-            }
+                cimStatus.getProperty(cimStatus.findProperty("DeleteOnCompletion")).
+                                        getValue().get(autodelete);
 
-            //Job is in progress.
-            *status = LSM_JOB_INPROGRESS;
-            cimStatus.getProperty(cimStatus.findProperty("PercentComplete")).getValue().get(pc);
-            *percentComplete = (pc > 100) ? 100 : pc;
-
-        } else {
-            throw Exception("Job " + j.cimJob.toString() + " encountered an error!");
+                if (!autodelete) {
+                    //We are done, delete job instance.
+                    try {
+                        c.deleteInstance(ns, j.cimJob.toString());
+                    } catch (Exception &e) {
+                    }
+                }
+                break;
+            default:
+                //Note: We need to gather debug information about this
+                //and build and error record.
+                *status = LSM_JOB_ERROR;
+                break;
         }
+    } else {
+        rc = LSM_ERR_INVALID_JOB_NUM;
     }
-    return LSM_ERR_INVALID_JOB_NUM;
+
+    return rc;
 }
 
 Array<CIMInstance> Smis::storagePools()

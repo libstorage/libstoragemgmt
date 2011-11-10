@@ -50,15 +50,15 @@ Array<String> BlockMgmt::getInitiators()
 
 CIMInstance BlockMgmt::getSPC( String initiator, String lun, bool &found )
 {
-    CIMInstance rc;    
+    CIMInstance rc;
 
     CIMInstance init = getClassInstance("CIM_StorageHardwareID", "StorageID", initiator);
 
     Array<CIMObject> auth_priviledge = c.associators(ns, init.getPath(), "CIM_AuthorizedSubject");
-    
+
     for( Uint32 i = 0; i < auth_priviledge.size(); ++i ) {
         Array<CIMObject> spc = c.associators(ns, auth_priviledge[0].getPath(), "CIM_AuthorizedTarget");
-        
+
         //Make sure that we have associations for authorized targets and controllers.
         if( spc.size() > 0 ) {
             Array<CIMObject> logicalDevice = c.associators(ns, spc[0].getPath(), "CIM_ProtocolControllerForUnit");
@@ -117,13 +117,13 @@ void BlockMgmt::unmapLun(String initiatorID, String lunName)
     if( found )  {
         Array<CIMParamValue> in;
         Array<CIMParamValue> out;
-        
+
         //Let delete the SPC
         CIMInstance ccs = getClassInstance("CIM_ControllerConfigurationService");
         in.append(CIMParamValue("ProtocolController", spc.getPath()));
         in.append(CIMParamValue("DeleteChildrenProtocolControllers", true));
         in.append(CIMParamValue("DeleteUnits", true));
-        
+
         evalInvoke(out, c.invokeMethod(ns, ccs.getPath(),
                                    CIMName("DeleteProtocolController"),
                                    in, out));
@@ -132,7 +132,7 @@ void BlockMgmt::unmapLun(String initiatorID, String lunName)
     }
 }
 
-void BlockMgmt::printDebug( const CIMValue &v ) 
+void BlockMgmt::printDebug( const CIMValue &v )
 {
     String id;
     String name;
@@ -146,8 +146,8 @@ void BlockMgmt::printDebug( const CIMValue &v )
     getPropValue(i, "BlockSize", blockSize);
     getPropValue(i, "NumberOfBlocks", numberOfBlocks);
 
-    std::cout << "ID = " << id << " name = " << name << " blocksize = " << 
-        blockSize << " # of blocks = " << numberOfBlocks << std::endl; 
+    std::cout << "ID = " << id << " name = " << name << " blocksize = " <<
+        blockSize << " # of blocks = " << numberOfBlocks << std::endl;
 }
 
 void BlockMgmt::createLun( String storagePoolName, String name, Uint64 size)
@@ -169,7 +169,7 @@ void BlockMgmt::createLun( String storagePoolName, String name, Uint64 size)
     Uint32 result = evalInvoke(out, c.invokeMethod(ns, scs.getPath(),
                                    CIMName("CreateOrModifyElementFromStoragePool"),
                                    in, out));
-    
+
     if( result == 0 ) {
         for (Uint8 i = 0; i < out.size(); i++) {
             if( out[i].getParameterName() == "TheElement" ) {
@@ -189,16 +189,16 @@ void BlockMgmt::createInit( String name, String id, String type)
     in.append(CIMParamValue("StorageID", (CIMValue(id))));
 
     if( type == "WWN" ) {
-        in.append(CIMParamValue("IDType", (Uint16)2));  
+        in.append(CIMParamValue("IDType", (Uint16)2));
     } else {
-        in.append(CIMParamValue("IDType", (Uint16)5));  
+        in.append(CIMParamValue("IDType", (Uint16)5));
     }
 
     evalInvoke(out, c.invokeMethod(ns, hardware.getPath(),
                                    CIMName("CreateStorageHardwareID"), in, out));
 }
 
-void BlockMgmt::deleteInit( String id ) 
+void BlockMgmt::deleteInit( String id )
 {
     Array<CIMParamValue> in;
     Array<CIMParamValue> out;
@@ -298,28 +298,145 @@ Uint32 BlockMgmt::evalInvoke(Array<CIMParamValue> &out, CIMValue value,
 void BlockMgmt::printVol(const CIMValue &job)
 {
     CIMInstance j = c.getInstance(ns, job.toString());
-    
+
     /*Array<CIMObject> as = c.associators(ns, j.getPath(), NULL, NULL, "", false, false, NULL);
 
     for( Uint32 i = 0; i < as.size(); ++i ) {
-    
-    } */           
 
+    } */
+
+}
+
+void BlockMgmt::jobStatus(String id)
+{
+    Array<Uint16> values;
+    CIMObject status = c.getInstance(ns, id);
+
+    status.getProperty(status.findProperty("OperationalStatus")).getValue().get(values);
+
+    if( values.size() ) {
+        std::cout << "Operational status: ";
+
+        for( Uint32 i = 0; i < values.size() ; ++i ) {
+            std::cout << values[i] << " ";
+        }
+        std::cout << std::endl;
+    } else {
+        std::cout << "Operational status is empty!" << std::endl;
+    }
+
+    std::cout   << "Percent complete= "
+                        << status.getProperty(status.findProperty("PercentComplete")).getValue().toString()
+                        << std::endl;
+
+    std::cout   << "Job state= "
+                        << status.getProperty(status.findProperty("JobState")).getValue().toString()
+                        << std::endl;
+}
+
+bool BlockMgmt::jobCompletedOk(String jobId)
+{
+    Array<Uint16> values;
+    bool rc = false;
+
+    CIMObject status = c.getInstance(ns, jobId);
+
+    status.getProperty(status.findProperty("OperationalStatus")).
+                        getValue().get(values);
+
+    if( values.size() > 0 ) {
+        if( values.size() == 1 ) {
+            //Based on the documentations on page 257 this should only
+            //occur when the job was stopped.
+            std::cout << "Error: Operational status = " << values[0] << std::endl;
+        } else if( values.size() > 1 ) {
+            if( (values[0] == OK || values[1] == OK) &&
+                (values[0] == COMPLETE || values[0] == COMPLETE)) {
+                rc = true;
+                std::cout << "Success: Operational status = " << values[0] << ", "
+                                << values[1] << std::endl;
+            } else {
+                std::cout << "Error: Operational status = " << values[0] << ", "
+                                << values[1] << std::endl;
+            }
+        }
+    } else {
+        std::cout << "No operational status available!" << std::endl;
+    }
+    return rc;
 }
 
 void BlockMgmt::processJob(CIMValue &job)
 {
-    std::cout << "job started= " << job.toString() << std::endl;
+    std::cout << std::endl << "job started= " << job.toString() << std::endl;
 
     while( true ) {
-        Array<Uint16> values;
+        Uint16 jobState;
+        Boolean autodelete = false;
 
         CIMObject status = c.getInstance(ns, job.toString());
+        status.getProperty(status.findProperty("JobState")).
+                            getValue().get(jobState);
 
+        switch( jobState ) {
+            case(JS_NEW):
+            case(JS_STARTING):
+                break;
+            case(JS_RUNNING):
+                //Dump percentage
+                 std::cout  << "Percent complete= "
+                            << status.getProperty(
+                                    status.findProperty("PercentComplete")).
+                                    getValue().toString()
+                            << std::endl;
+                break;
+            case(JS_COMPLETED):
+                //Check operational status.
+                std::cout << "Job is complete!" << std::endl;
+
+                jobCompletedOk(job.toString());
+
+                status.getProperty(status.findProperty("DeleteOnCompletion")).
+                                getValue().get(autodelete);
+
+                if( !autodelete ) {
+                    //We are done, delete job instance.
+                    try {
+                        c.deleteInstance(ns, job.toString());
+                        std::cout << "Deleted job!" << std::endl;
+                    } catch (Exception &e) {
+                        std::cout   << "Warning: error when deleting job! "
+                                    << e.getMessage() << std::endl;
+                    }
+                }
+                return;
+            default:
+                std::cout << "Unexpected job state " << jobState << std::endl;
+                return;
+                break;
+        }
+
+        sleep(1);
+    }
+
+    /*
         status.getProperty(status.findProperty("OperationalStatus")).getValue().get(values);
+        if( values.size() > 0 ) {
+            if( values.size() == 1 ) {
+                //Based on the documentations on page 257 this should only
+                //occur when the job was stopped.
 
-        if( values[0] == OK ) {
-            //Array fo values may have 1 or 2 values according to mof
+
+            } else if( values.size() > 1 ) {
+                if( (values[0] == OK || values[1] == OK) &&
+                    (values[0] == COMPLETE || values[0] == COMPLETE)) {
+
+                }
+            }
+        }
+
+        if( values[0] == OK || values[1] == OK ) {
+            //Array of values may have 1 or 2 values according to mof
             if( values.size() == 2 ) {
                 Boolean autodelete = false;
                 status.getProperty(status.findProperty("DeleteOnCompletion")).getValue().get(autodelete);
@@ -327,7 +444,7 @@ void BlockMgmt::processJob(CIMValue &job)
                 if( !autodelete ) {
                     //We are done, delete job instance.
                     try {
-                        c.deleteInstance(ns, status.getPath());
+                        c.deleteInstance(ns, job.toString());
                     } catch (Exception &e) {
                         std::cout   << "Warning: error when deleting job! "
                                     << e.getMessage() << std::endl;
@@ -337,7 +454,7 @@ void BlockMgmt::processJob(CIMValue &job)
                 if( values[1] == COMPLETE) {
                     std::cout << "Job complete!" << std::endl;
 
-                    /* Get the newly created lun */
+
 
 
                 } else if ( values[1] == STOPPED) {
@@ -357,6 +474,8 @@ void BlockMgmt::processJob(CIMValue &job)
             throw Exception("Job " + job.toString() + " encountered an error!");
         }
     }
+
+    */
 }
 
 Array<String> BlockMgmt::getLuns()

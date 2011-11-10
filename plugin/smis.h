@@ -221,6 +221,10 @@ private:
 
     enum OperationalStatus { OK = 2, ERROR = 6, STOPPED = 10, COMPLETE = 17 };
 
+    enum JobState { JS_NEW = 2, JS_STARTING = 3, JS_RUNNING = 4,
+                    JS_SUSPENDED = 5, JS_SHUTTING_DOWN = 6, JS_COMPLETED = 7,
+                    JS_TERMINATED = 8, JS_KILLED = 9, JS_EXCEPTION = 10 };
+
     CIMClient   c;
     CIMNamespaceName    ns;
     LSM::JobControl<Job> jobs;
@@ -247,6 +251,7 @@ private:
     bool getVolumeInstance(String name, CIMInstance &i);
     CIMInstance getVolume(lsmVolumePtr v);
 
+    bool jobCompletedOk(String jobId);
 
     CIMInstance getPool(lsmPoolPtr p);
     CIMInstance getSpc( lsmInitiatorPtr initiator, lsmVolumePtr v, bool &found );

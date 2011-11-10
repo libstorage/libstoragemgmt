@@ -67,7 +67,7 @@ public:
      * @param   id                  Initiator id
      * @param   type                Type of id [WWN|IQN]
      * @throws Exception
-     */    
+     */
     void createInit( String name, String id, String type);
 
     /**
@@ -140,6 +140,9 @@ public:
      */
     void unmapLun(String initiatorID, String lunName);
 
+
+    void jobStatus(String id);
+
 private:
     enum ElementType { UNKNOWN = 0, RESERVED = 1, STORAGE_VOLUME = 2,
                        STORAGE_EXTENT = 3, STORAGE_POOL = 4, LOGICAL_DISK = 5
@@ -156,6 +159,10 @@ private:
     enum MethodInvoke { INVOKE_OK = 0, INVOKE_ASYNC = 4096 };
 
     enum OperationalStatus { OK = 2, ERROR = 6, STOPPED = 10, COMPLETE = 17 };
+
+    enum JobState { JS_NEW = 2, JS_STARTING = 3, JS_RUNNING = 4,
+                    JS_SUSPENDED = 5, JS_SHUTTING_DOWN = 6, JS_COMPLETED = 7,
+                    JS_TERMINATED = 8, JS_KILLED = 9, JS_EXCEPTION = 10 };
 
     CIMClient   c;
     CIMNamespaceName    ns;
@@ -178,6 +185,8 @@ private:
     void printVol(const CIMValue &job);
 
     CIMInstance getSPC( String initiator, String lun, bool &found );
+
+    bool jobCompletedOk(String jobId);
 };
 
 #endif

@@ -39,13 +39,14 @@ void usage(String name)
 {
     std::cout << name << " is a simple utility to learn smi-s block service "
               "functionality with openpegasus\n\n" << std::endl;
-    std::cout << "Syntax: " << name << " host port namespace [ createvol <storage pool> <name> <size>\n" 
+    std::cout << "Syntax: " << name << " host port namespace [ createvol <storage pool> <name> <size>\n"
               "| createinit <name> <id> [WWN|ISCSI]]\n"
               "| deleteinit <id>\n"
               "| deletevol <Volume name> \n"
               "| resize <name> <size> | list [volumes|pools|initiators]] \n"
               "| mapcreate <initiator> <volumes>\n"
               "| mapdelete <initiator> <volumes>\n"
+              "| jobstatus <job>\n"
               "| snapshot <source volumes> <dest pool> <dest name> ]" << std::endl;
     std::cout << "Note: Expects no authentication, if required export DEMO_SMIS_USER and DEMO_SMIS_PASS" << std::endl;
     std::cout << "Built on " << __DATE__  << " @ " << __TIME__ << std::endl;
@@ -111,7 +112,7 @@ int main(int argc, char *argv[])
 
             bm.createLun(arguments.opArgs[0], arguments.opArgs[1], atoll(arguments.opArgs[2].getCString()));
 
-        } 
+        }
         else if ( arguments.operation == "createinit" ) {
              if( arguments.opArgs.size() != 3 ) {
                 std::cout << "createinit expects <Name> <ID> [WWN|IQN]" << std::endl;
@@ -122,7 +123,7 @@ int main(int argc, char *argv[])
                 bm.createInit(arguments.opArgs[0], arguments.opArgs[1], arguments.opArgs[2]);
             } else {
                 std::cout << "[WWN|IQN] expected not " << arguments.opArgs[2] << std::endl;
-                return EXIT_FAILURE;            
+                return EXIT_FAILURE;
             }
         }
         else if ( arguments.operation == "deleteinit" ) {
@@ -188,7 +189,13 @@ int main(int argc, char *argv[])
             }
 
             bm.unmapLun(arguments.opArgs[0], arguments.opArgs[1]);
+        }  else if ( arguments.operation == "jobstatus" ) {
+            if( arguments.opArgs.size() != 1 ) {
+                std::cout << "jobstatus expects job id" << std::endl;
+                return EXIT_FAILURE;
+            }
 
+            bm.jobStatus(arguments.opArgs[0]);
         }else {
             std::cout << "Unsupported operation: " << arguments.operation << std::endl;
         }
