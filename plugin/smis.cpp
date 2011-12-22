@@ -380,7 +380,7 @@ bool Smis::jobCompletedOk(String jobId)
         rc = true;
     } else {
         //Note: We need to gather debug information about this
-        //and build and error record.
+        //and build an error record.
     }
     return rc;
 }
@@ -447,7 +447,7 @@ int Smis::jobStatusVol(Uint32 jobNumber, lsmJobStatus *status,
                 break;
             default:
                 //Note: We need to gather debug information about this
-                //and build and error record.
+                //and build an error record.
                 *status = LSM_JOB_ERROR;
                 break;
         }

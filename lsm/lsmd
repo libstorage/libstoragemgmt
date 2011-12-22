@@ -1,0 +1,216 @@
+#!/usr/bin/env python
+
+# Copyright (C) 2011 Red Hat, Inc.
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+#
+# Author: tasleson
+
+# Note:
+# Daemon for the libStorageMgmt library.
+
+import os
+import socket
+import stat
+import sys
+import traceback
+from lsm.external.daemon import Daemon
+from lsm.common import Error, Info
+import getopt
+import select
+import lsm.common
+
+
+#TODO Change these to sane defaults
+PID_FILE = '/tmp/lsm/lsmd.pid'
+SOCKET_DIR = lsm.common.UDS_PATH
+PLUGIN_DIR = None
+daemon = None
+
+class LsmDaemon(Daemon):
+    def setup_socket(self, file):
+        """
+        Setup a Unix domain socket for this file
+        """
+        try:
+            os.unlink(file)
+        except:
+            pass
+
+        #TODO Look into changing the SELinux permissions.
+        server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        server.bind(file)
+        server.listen(1)
+        return server
+
+
+    def process_plugins(self, plugindir, socketdir):
+        """
+        process the plug-in directory and return a list of entries ready to be used
+
+        """
+        server_sockets = {}
+
+        Info("Scanning plug-in directory " + plugindir)
+
+        try:
+            files = os.listdir(plugindir)
+
+            for e in files:
+                if e[-10:] == '.lsmplugin':
+                    name = e[:-10]
+                    fqn = plugindir + os.sep + e
+                    print 'FQN=', fqn
+
+                    server_sockets[fqn] = self.setup_socket(
+                        socketdir + os.sep + name)
+                    Info("Plugin " + fqn + " added.")
+
+        except Exception:
+            Error(str(traceback.format_exc()))
+
+        return server_sockets
+
+    def clean_sockets(self, dir):
+        """
+        Remove all the socket files in given directory.
+        """
+        if len(dir):
+            for f in os.listdir(dir):
+                p = os.path.join(dir, f)
+                mode = os.stat(p).st_mode
+
+                if stat.S_ISSOCK(mode):
+                    try:
+                        os.unlink(f)
+                    except:
+                        pass
+
+    def exec_plugin(self, client, executable):
+        """
+        Exec the plug-in
+        """
+
+        pid = os.fork()
+
+        if pid:
+            #Parent
+            client.close()
+        else:
+            #Client
+            #Close the server sockets
+            for e in self.servers:
+                e.close()
+
+            socket_fd = client.fileno()
+            os.execl(executable, os.path.basename(executable), str(socket_fd))
+            Error("Unable to execute plug-in = " + executable)
+
+    def serve(self):
+        """
+        Main daemon worker part.
+        """
+
+        try:
+            self.clean_sockets(PLUGIN_DIR)
+
+            s = self.process_plugins(PLUGIN_DIR, SOCKET_DIR)
+            self.servers = s.values()
+
+            if len(self.servers):
+
+                while True:
+                    input_rdy = select.select(self.servers, [], [])[0]
+
+                    for c in input_rdy:
+                        for k, v in s.iteritems():
+                            if c == v:
+                                client = v.accept()[0]
+                                Info("Client connected for plugin" + k)
+                                self.exec_plugin(client, k)
+            else:
+                Error("No plug-ins found in directory: " + PLUGIN_DIR)
+
+        except Exception:
+            Error(str(traceback.format_exc()))
+
+    def cleanup(self):
+        for e in self.servers:
+            e.close()
+
+        self.clean_sockets(PLUGIN_DIR)
+
+
+    def run(self):
+        self.serve()
+
+
+def usage():
+    print 'libStorageMgmt plug-in daemon.'
+    print "lsmd --pidfile <file> --plugindir <directory> --socketdir <dir>"
+    print "    --pidfile   = The process id file for the daemon"
+    print "    --plugindir = The directory where the plugins are located"
+    print "    --socketdir = The directory where the Unix domain sockets will be created"
+    print "    --operation = [start|stop|restart]"
+    print "    -v          = Verbose logging"
+    sys.exit(2)
+
+if __name__ == "__main__":
+    op = "start"
+
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "hv", ["help", "pidfile=",
+                                                        "plugindir=",
+                                                        "socketdir=",
+                                                        "operation="])
+    except getopt.GetoptError, err:
+        # print help information and exit:
+        print str(err) # will print something like "option -a not recognized"
+        usage()
+        sys.exit(2)
+
+    for o, a in opts:
+        if o in ("-h", "--help"):
+            usage()
+        elif o in ("--pidfile"):
+            PID_FILE = a
+        elif o in ("--plugindir"):
+            PLUGIN_DIR = a
+        elif o in ("--socketdir"):
+            SOCKET_DIR = a
+        elif o in "-v":
+            lsm.common.LOG_VERBOSE = True
+        elif o in ("--operation"):
+            op = a
+
+    if PLUGIN_DIR == None:
+        print sys.stderr.write("--plugindir is a required argument")
+        usage()
+        sys.exit(2)
+
+    daemon = LsmDaemon(PID_FILE)
+
+    if 'start' == op:
+        daemon.start()
+    elif 'stop' == op:
+        Info("User requesting a stop")
+        daemon.stop()
+    elif 'restart' == op:
+        Info("User requesting a restart")
+        daemon.restart()
+    else:
+        print "Invalid operation", op
+        sys.exit(2)
+
+    sys.exit(0)

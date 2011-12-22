@@ -70,6 +70,8 @@ typedef enum {
     LSM_ERR_VOLUME_SAME_SIZE = 20,      /**< Trying to resize to same size */
     LSM_ERR_INVALID_INIT = 21,          /**< Invalid initiator structure */
     LSM_ERR_NO_MAPPING = 22,            /**< There is no access for initiator and volume */
+    LSM_ERR_INSUFFICIENT_SPACE = 23,    /**< Insufficient space */
+    LSM_ERROR_IS_MAPPED = 24,           /**< Mapping already exists */
     LSM_ERR_AUTH_FAILED = 45,           /**< Authorization failed */
 } lsmErrorNumber;
 
