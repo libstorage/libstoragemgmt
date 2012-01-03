@@ -89,7 +89,7 @@ class Client(object):
 
         Return None on success, else LsmError exception
         """
-        return self.tp.rpc(sys._getframe().f_code.co_name, del_self(locals()))
+        return self.tp.rpc('set_time_out', del_self(locals()))
 
     def get_time_out(self):
         """
@@ -97,7 +97,7 @@ class Client(object):
 
         Return time-out in ms, else raise LsmError
         """
-        return self.tp.rpc(sys._getframe().f_code.co_name, del_self(locals()))
+        return self.tp.rpc('get_time_out', del_self(locals()))
 
     def job_status(self, job_number):
         """
@@ -106,7 +106,7 @@ class Client(object):
         Returns a tuple ( status (enumeration), percent_complete, volume).
         else LsmError exception.
         """
-        return self.tp.rpc(sys._getframe().f_code.co_name, del_self(locals()))
+        return self.tp.rpc('job_status', del_self(locals()))
 
     def job_free(self, job_number):
         """
@@ -114,7 +114,7 @@ class Client(object):
 
         Returns None on success, else raises an LsmError
         """
-        return self.tp.rpc(sys._getframe().f_code.co_name, del_self(locals()))
+        return self.tp.rpc('job_free', del_self(locals()))
 
     def capabilities(self):
         raise NotImplemented()
@@ -123,19 +123,19 @@ class Client(object):
         """
         Returns an array of pool objects
         """
-        return self.tp.rpc(sys._getframe().f_code.co_name, del_self(locals()))
+        return self.tp.rpc('pools', del_self(locals()))
 
     def initiators(self):
         """
         Return an array of initiator objects
         """
-        return self.tp.rpc(sys._getframe().f_code.co_name, del_self(locals()))
+        return self.tp.rpc('initiators', del_self(locals()))
 
     def volumes(self):
         """
         Returns an array of volume objects
         """
-        return self.tp.rpc(sys._getframe().f_code.co_name, del_self(locals()))
+        return self.tp.rpc('volumes', del_self(locals()))
 
     def volume_create(self, pool, volume_name, size_bytes, provisioning):
         """
@@ -145,7 +145,7 @@ class Client(object):
         Note: Tuple return values are mutually exclusive, when one
         is None the other must be valid.
         """
-        return self.tp.rpc(sys._getframe().f_code.co_name, del_self(locals()))
+        return self.tp.rpc('volume_create', del_self(locals()))
 
     def volume_resize(self, volume, new_size_bytes):
         """
@@ -155,7 +155,7 @@ class Client(object):
         Note: Tuple return values are mutually exclusive, when one
         is None the other must be valid.
         """
-        return self.tp.rpc(sys._getframe().f_code.co_name, del_self(locals()))
+        return self.tp.rpc('volume_resize', del_self(locals()))
 
     def volume_replicate(self, pool, rep_type, volume_src, name):
         """
@@ -165,7 +165,7 @@ class Client(object):
         Note: Tuple return values are mutually exclusive, when one
         is None the other must be valid.
         """
-        return self.tp.rpc(sys._getframe().f_code.co_name, del_self(locals()))
+        return self.tp.rpc('volume_replicate', del_self(locals()))
 
     def volume_delete(self, volume):
         """
@@ -173,7 +173,7 @@ class Client(object):
 
         Returns None on success, else raises an LsmError
         """
-        return self.tp.rpc(sys._getframe().f_code.co_name, del_self(locals()))
+        return self.tp.rpc('volume_delete', del_self(locals()))
 
     def volume_online(self, volume):
         """
@@ -181,7 +181,7 @@ class Client(object):
 
         returns None on success, else raises LsmError on errors.
         """
-        return self.tp.rpc(sys._getframe().f_code.co_name, del_self(locals()))
+        return self.tp.rpc('volume_online', del_self(locals()))
 
     def volume_offline(self, volume):
         """
@@ -189,7 +189,7 @@ class Client(object):
 
         returns None on success, else raises LsmError on errors.
         """
-        return self.tp.rpc(sys._getframe().f_code.co_name, del_self(locals()))
+        return self.tp.rpc('volume_offline', del_self(locals()))
 
     def initiator_create(self, name, id, id_type):
         """
@@ -197,7 +197,7 @@ class Client(object):
 
         Returns an initiator object, else raises an LsmError
         """
-        return self.tp.rpc(sys._getframe().f_code.co_name, del_self(locals()))
+        return self.tp.rpc('initiator_create', del_self(locals()))
 
     def access_grant(self, initiator, volume, access):
         """
@@ -206,7 +206,7 @@ class Client(object):
         Returns None on success else job id if in progress.
         Raises LsmError on errors.
         """
-        return self.tp.rpc(sys._getframe().f_code.co_name, del_self(locals()))
+        return self.tp.rpc('access_grant', del_self(locals()))
 
     def access_revoke(self, initiator, volume):
         """
@@ -214,7 +214,7 @@ class Client(object):
 
         Returns none on success, else raises a LsmError on error.
         """
-        return self.tp.rpc(sys._getframe().f_code.co_name, del_self(locals()))
+        return self.tp.rpc('access_revoke', del_self(locals()))
 
     def access_group_list(self):
         raise NotImplemented()

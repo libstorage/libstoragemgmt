@@ -30,40 +30,6 @@ import json
 from json.decoder import WHITESPACE
 from common import get_class
 
-class IData(object):
-    """
-    Base class functionality of serializable
-    classes.
-    """
-    __metaclass__ = ABCMeta
-
-    def toDict(self):
-        """
-        Represent the class as a dictionary
-        """
-        rc = {'class': self.__class__.__name__}
-        rc.update(self.__dict__)
-        return rc
-
-    @staticmethod
-    def factory(d):
-        """
-        Factory for creating the appropriate class given a dictionary.
-        This only works for objects that inherit from IData
-        """
-        if 'class' in d:
-            class_name = d['class']
-            del d['class']
-
-            if __name__ == '__main__':
-                c = get_class(class_name)
-            else:
-                c = get_class(__name__ + '.' + class_name)
-
-            i = c(**d)
-            return i
-
-
 class DataEncoder(json.JSONEncoder):
     """
     Custom json encoder for objects derived form ILsmData
@@ -129,6 +95,41 @@ class DataDecoder(json.JSONDecoder):
         return decoded
 
 
+class IData(object):
+    """
+    Base class functionality of serializable
+    classes.
+    """
+    __metaclass__ = ABCMeta
+
+    def toDict(self):
+        """
+        Represent the class as a dictionary
+        """
+        rc = {'class': self.__class__.__name__}
+        rc.update(self.__dict__)
+        return rc
+
+    @staticmethod
+    def factory(d):
+        """
+        Factory for creating the appropriate class given a dictionary.
+        This only works for objects that inherit from IData
+        """
+        if 'class' in d:
+            class_name = d['class']
+            del d['class']
+            c = get_class(__name__ + '.' + class_name)
+            i = c(**d)
+            return i
+
+    def __str__(self):
+        """
+        Used for human string representation.
+        """
+        return str(self.toDict())
+
+
 class Initiator(IData):
     """
     Represents an initiator.
@@ -139,12 +140,6 @@ class Initiator(IData):
     def __init__(self, id, type):
         self.id = id
         self.type = type
-
-    def __str__(self):
-        """
-        Used for human string representation.
-        """
-        return str(self.toDict())
 
 
 class Volume(IData):
@@ -182,12 +177,6 @@ class Volume(IData):
         """
         return self.block_size * self.num_of_blocks
 
-    def __str__(self):
-        """
-        Used for human string representation.
-        """
-        return str(self.toDict())
-
 
 class Pool(IData):
     """
@@ -199,9 +188,3 @@ class Pool(IData):
         self.name = name
         self.total_space = total_space
         self.free_space = free_space
-
-    def __str__(self):
-        """
-        Used for human string representation.
-        """
-        return str(self.toDict())

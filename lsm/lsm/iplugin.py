@@ -28,7 +28,7 @@
 from abc import ABCMeta, abstractmethod
 
 # ** Important** See Client class documentation.
-class IPlugin:
+class IPlugin(object):
     """
     Plug-in interface that all plug-ins must implement for basic
     operation.
