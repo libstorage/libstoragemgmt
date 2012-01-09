@@ -117,6 +117,19 @@ class LsmDaemon(Daemon):
             os.execl(executable, os.path.basename(executable), str(socket_fd))
             Error("Unable to execute plug-in = " + executable)
 
+    def child_cleanup(self):
+        """
+        Check to see if any children have exited and get their exit value.
+        """
+
+        try:
+            (d_pid, d_exit) = os.waitpid(-1, os.WNOHANG)
+            while( d_pid > 0 ):
+                Info("Plug-in process " + str(d_pid) + " exited with " + str(d_exit))
+                (d_pid, d_exit) = os.waitpid(-1, os.WNOHANG)
+        except OSError:
+            pass
+
     def serve(self):
         """
         Main daemon worker part.
@@ -131,14 +144,17 @@ class LsmDaemon(Daemon):
             if len(self.servers):
 
                 while True:
-                    input_rdy = select.select(self.servers, [], [])[0]
+                    input_rdy = select.select(self.servers, [], [], 15)[0]
 
-                    for c in input_rdy:
-                        for k, v in s.iteritems():
-                            if c == v:
-                                client = v.accept()[0]
-                                Info("Client connected for plugin" + k)
-                                self.exec_plugin(client, k)
+                    if len(input_rdy):
+                        for c in input_rdy:
+                            for k, v in s.iteritems():
+                                if c == v:
+                                    client = v.accept()[0]
+                                    Info("Client connected for plugin" + k)
+                                    self.exec_plugin(client, k)
+
+                    self.child_cleanup()
             else:
                 Error("No plug-ins found in directory: " + PLUGIN_DIR)
 
