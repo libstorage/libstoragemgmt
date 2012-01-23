@@ -12,4 +12,4 @@ tester.o:	tester.c
 	$(CC) $(INCLUDE) $(CFLAGS) -c tester.c
 
 clean:
-	rm -f *.o testcase
+	rm -f *.o tester
