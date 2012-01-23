@@ -21,10 +21,12 @@
 #include <libstoragemgmt/libstoragemgmt_error.h>
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 #include <libstoragemgmt/libstoragemgmt_types.h>
-#include "lsm_datatypes.h"
-
 #include <stdio.h>
+#include <string.h>
 #include <libxml/uri.h>
+
+#include "lsm_datatypes.h"
+#include "lsm_convert.hpp"
 
 /**
  * Common code to validate and initialize the connection.
@@ -42,17 +44,18 @@ int lsmConnectPassword(const char *uri, const char *password,
     int rc = LSM_ERR_OK;
     lsmConnectPtr c = NULL;
 
-    *e = NULL;
-
     /* Password is optional */
-    if(  uri == NULL || conn == NULL ) {
+    if(  uri == NULL || conn == NULL || e == NULL ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
+
+    *e = NULL;
 
     c = getConnection();
     if(c) {
         c->uri = xmlParseURI(uri);
         if( c->uri && c->uri->scheme ) {
+            c->raw_uri = strdup(uri);
             rc = loadDriver(c, c->uri, password, timeout, e);
             if( rc == LSM_ERR_OK ) {
                 *conn = (lsmConnectPtr)c;
@@ -70,34 +73,77 @@ int lsmConnectPassword(const char *uri, const char *password,
     return rc;
 }
 
+static lsmErrorNumber logException(lsmConnectPtr c, lsmErrorNumber error,
+                                const char *message, const char *exception_msg)
+{
+    lsmErrorPtr err = lsmErrorCreate(error, LSM_ERR_DOMAIN_FRAME_WORK,
+                                        LSM_ERR_LEVEL_ERROR, message,
+                                        exception_msg, NULL,
+                                        NULL, 0);
+    if( err && c ) {
+        lsmErrorLog(c, err);
+    }
+    return error;
+}
+
+static int rpc(lsmConnectPtr c, const char *method, const Value &parameters,
+                Value &response) throw ()
+{
+    try {
+        response = c->tp->rpc(method,parameters);
+    } catch ( const ValueException &ve ) {
+        return logException(c, LSM_ERROR_SERIALIZATION, "Serialization error",
+                            ve.what());
+    } catch ( const LsmException &le ) {
+        return logException(c, (lsmErrorNumber)le.error_code, le.what(),
+                            NULL);
+    } catch (...) {
+        return logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected exception",
+                            "Unknown exception");
+    }
+    return LSM_ERR_OK;
+}
+
+
 int lsmConnectClose(lsmConnectPtr c)
 {
     CONN_SETUP(c);
+    std::map<std::string, Value> p;
+    Value parameters(p);
+    Value response;
 
-    if( c->unregister ) {
-        return (*c->unregister)(c);
-    }
-    return LSM_ERR_NO_SUPPORT;
+    //No response data needed on shutdown.
+    int rc = rpc(c, "shutdown", parameters, response);
+
+    //Free the connection.
+    freeConnection(c);
+    return rc;
 }
 
 int lsmConnectSetTimeout(lsmConnectPtr c, uint32_t timeout)
 {
     CONN_SETUP(c);
+    std::map<std::string, Value> p;
+    p["ms"] = Value(timeout);
+    Value parameters(p);
+    Value response;
 
-    if( c->plugin.mgmtOps && c->plugin.mgmtOps->tmo_set) {
-        return (*(c->plugin.mgmtOps->tmo_set))(c, timeout);
-    }
-    return LSM_ERR_NO_SUPPORT;
+    //No response data needed on set time out.
+    return rpc(c, "set_time_out", parameters, response);
 }
 
 int lsmConnectGetTimeout(lsmConnectPtr c, uint32_t *timeout)
 {
     CONN_SETUP(c);
+    std::map<std::string, Value> p;
+    Value parameters(p);
+    Value response;
 
-    if( c->plugin.mgmtOps && c->plugin.mgmtOps->tmo_get) {
-        return (*(c->plugin.mgmtOps->tmo_get))(c, timeout);
+    int rc = rpc(c, "get_time_out", parameters, response);
+    if( rc == LSM_ERR_OK ) {
+        *timeout = response.asUint32_t();
     }
-    return LSM_ERR_NO_SUPPORT;
+    return rc;
 }
 
 int lsmJobStatusGet( lsmConnectPtr c, uint32_t jobNumber,
@@ -106,21 +152,35 @@ int lsmJobStatusGet( lsmConnectPtr c, uint32_t jobNumber,
 {
     CONN_SETUP(c);
 
-    if( c->plugin.mgmtOps && c->plugin.mgmtOps->job_status ) {
-        return (*(c->plugin.mgmtOps->job_status))(c, jobNumber, status,
-                                                    percentComplete, vol);
+    std::map<std::string, Value> p;
+    p["job_number"] = Value(jobNumber);
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "job_status", parameters, response);
+    if( LSM_ERR_OK == rc ) {
+        //We get back an array [status, percent, volume]
+        std::vector<Value> job = response.asArray();
+        *status = (lsmJobStatus)job[0].asInt32_t();
+        *percentComplete = (uint8_t)job[1].asUint32_t();
+
+        if( Value::object_t ==  job[2].valueType() ) {
+            *vol = valueToVolume(job[2]);
+        } else {
+            *vol = NULL;
+        }
     }
-    return LSM_ERR_NO_SUPPORT;
+    return rc;
 }
 
 int lsmJobFree(lsmConnectPtr c, uint32_t jobNumber)
 {
     CONN_SETUP(c);
-
-    if( c->plugin.mgmtOps && c->plugin.mgmtOps->job_free ) {
-        return (*(c->plugin.mgmtOps->job_free))(c, jobNumber);
-    }
-    return LSM_ERR_NO_SUPPORT;
+    std::map<std::string, Value> p;
+    p["job_number"] = Value(jobNumber);
+    Value parameters(p);
+    Value response;
+    return rpc(c, "job_free", parameters, response);
 }
 
 int lsmCapabilities(lsmConnectPtr c, lsmStorageCapabilitiesPtr *cap)
@@ -132,34 +192,74 @@ int lsmPoolList(lsmConnectPtr c, lsmPoolPtr **poolArray,
                         uint32_t *count)
 {
     CONN_SETUP(c);
+    std::map<std::string, Value> p;
+    Value parameters(p);
+    Value response;
 
-    if( c->plugin.sanOps && c->plugin.sanOps->pool_get) {
-        return (*(c->plugin.sanOps->pool_get))(c, poolArray, count);
+    int rc = rpc(c, "pools", parameters, response);
+    if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+        std::vector<Value> pools = response.asArray();
+
+        *count = pools.size();
+
+        if( pools.size() ) {
+            *poolArray = lsmPoolRecordAllocArray(pools.size());
+
+            for( size_t i = 0; i < pools.size(); ++i ) {
+                (*poolArray)[i] = valueToPool(pools[i]);
+            }
+        }
     }
-    return LSM_ERR_NO_SUPPORT;
+    return rc;
 }
 
 int lsmInitiatorList(lsmConnectPtr c, lsmInitiatorPtr **initiators,
                                 uint32_t *count)
 {
     CONN_SETUP(c);
+    std::map<std::string, Value> p;
+    Value parameters(p);
+    Value response;
 
-    if( c->plugin.sanOps && c->plugin.sanOps->init_get) {
-        return (*(c->plugin.sanOps->init_get))(c, initiators, count);
+    int rc = rpc(c, "initiators", parameters, response);
+    if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+        std::vector<Value> inits = response.asArray();
+
+        *count = inits.size();
+
+        if( inits.size() ) {
+            *initiators = lsmInitiatorRecordAllocArray(inits.size());
+
+            for( size_t i = 0; i < inits.size(); ++i ) {
+                (*initiators)[i] = valueToInitiator(inits[i]);
+            }
+        }
     }
-
-    return LSM_ERR_NO_SUPPORT;
+    return rc;
 }
 
 int lsmVolumeList(lsmConnectPtr c, lsmVolumePtr **volumes, uint32_t *count)
 {
     CONN_SETUP(c);
+    std::map<std::string, Value> p;
+    Value parameters(p);
+    Value response;
 
-    if( c->plugin.sanOps && c->plugin.sanOps->vol_get) {
-        return (*(c->plugin.sanOps->vol_get))(c, volumes, count);
+    int rc = rpc(c, "volumes", parameters, response);
+    if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+        std::vector<Value> vol = response.asArray();
+
+        *count = vol.size();
+
+        if( vol.size() ) {
+            *volumes = lsmVolumeRecordAllocArray(vol.size());
+
+            for( size_t i = 0; i < vol.size(); ++i ) {
+                (*volumes)[i] = valueToVolume(vol[i]);
+            }
+        }
     }
-
-    return LSM_ERR_NO_SUPPORT;
+    return rc;
 }
 
 int lsmVolumeCreate(lsmConnectPtr c, lsmPoolPtr pool, const char *volumeName,
@@ -176,12 +276,34 @@ int lsmVolumeCreate(lsmConnectPtr c, lsmPoolPtr pool, const char *volumeName,
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
-    if( c->plugin.sanOps && c->plugin.sanOps->vol_create) {
-        return (*(c->plugin.sanOps->vol_create))(c, pool, volumeName, size,
-                        provisioning, newVolume, job);
-    }
+    std::map<std::string, Value> p;
+    p["pool"] = poolToValue(pool);
+    p["volume_name"] = Value(volumeName);
+    p["size_bytes"] = Value(size);
+    p["provisioning"] = Value((int32_t)provisioning);
 
-    return LSM_ERR_NO_SUPPORT;
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "volume_create", parameters, response);
+    if( LSM_ERR_OK == rc ) {
+        *job = 0;
+
+        //We get an array back. first value is job, second is volume
+        if( Value::array_t == response.valueType() ) {
+            std::vector<Value> r = response.asArray();
+            if( Value::numeric_t == r[0].valueType()) {
+                *job = r[0].asInt32_t();
+                rc = LSM_ERR_JOB_STARTED;
+            }
+            if( Value::object_t == r[1].valueType() ) {
+                *newVolume = valueToVolume(r[1]);
+            } else {
+                *newVolume = NULL;
+            }
+        }
+    }
+    return rc;
 }
 
 int lsmVolumeResize(lsmConnectPtr c, lsmVolumePtr volume,
@@ -203,12 +325,32 @@ int lsmVolumeResize(lsmConnectPtr c, lsmVolumePtr volume,
         return LSM_ERR_VOLUME_SAME_SIZE;
     }
 
-    if( c->plugin.sanOps && c->plugin.sanOps->vol_resize) {
-        return (*(c->plugin.sanOps->vol_resize))(c, volume, newSize,
-                                                    resizedVolume, job);
-    }
+    std::map<std::string, Value> p;
+    p["volume"] = volumeToValue(volume);
+    p["new_size_bytes"] = Value(newSize);
 
-    return LSM_ERR_NO_SUPPORT;
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "volume_resize", parameters, response);
+    if( LSM_ERR_OK == rc ) {
+        *job = 0;
+
+        //We get an array back. first value is job, second is volume
+        if( Value::array_t == response.valueType() ) {
+            std::vector<Value> r = response.asArray();
+            if( Value::numeric_t == r[0].valueType()) {
+                *job = r[0].asInt32_t();
+                rc = LSM_ERR_JOB_STARTED;
+            }
+            if( Value::object_t == r[1].valueType() ) {
+                *resizedVolume = valueToVolume(r[1]);
+            } else {
+                *resizedVolume = NULL;
+            }
+        }
+    }
+    return rc;
 }
 
 int lsmVolumeReplicate(lsmConnectPtr c, lsmPoolPtr pool,
@@ -229,12 +371,35 @@ int lsmVolumeReplicate(lsmConnectPtr c, lsmPoolPtr pool,
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
-    if( c->plugin.sanOps && c->plugin.sanOps->vol_replicate) {
-        return (*(c->plugin.sanOps->vol_replicate))(c, pool, repType,
-                                        volumeSrc, name, newReplicant, job);
-    }
+    std::map<std::string, Value> p;
+    p["pool"] = poolToValue(pool);
+    p["rep_type"] = Value((int32_t)repType);
+    p["volume_src"] = volumeToValue(volumeSrc);
+    p["name"] = Value(name);
 
-    return LSM_ERR_NO_SUPPORT;
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "volume_replicate", parameters, response);
+    if( LSM_ERR_OK == rc ) {
+        *job = 0;
+
+        //We get an array back. first value is job, second is volume
+        if( Value::array_t == response.valueType() ) {
+            std::vector<Value> r = response.asArray();
+            if( Value::numeric_t == r[0].valueType()) {
+                *job = r[0].asInt32_t();
+                rc = LSM_ERR_JOB_STARTED;
+            }
+            if( Value::object_t == r[1].valueType() ) {
+                *newReplicant = valueToVolume(r[1]);
+            } else {
+                *newReplicant = NULL;
+            }
+        }
+    }
+    return rc;
+
 }
 
 int lsmVolumeDelete(lsmConnectPtr c, lsmVolumePtr volume, uint32_t *job)
@@ -249,11 +414,24 @@ int lsmVolumeDelete(lsmConnectPtr c, lsmVolumePtr volume, uint32_t *job)
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
-    if( c->plugin.sanOps && c->plugin.sanOps->vol_delete) {
-        return (*(c->plugin.sanOps->vol_delete))(c, volume, job);
-    }
+    std::map<std::string, Value> p;
+    p["volume"] = volumeToValue(volume);
 
-    return LSM_ERR_NO_SUPPORT;
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "volume_delete", parameters, response);
+    if( LSM_ERR_OK == rc ) {
+        *job = 0;
+
+        //We get a value back, either null or job id.
+        if( Value::numeric_t == response.valueType() ) {
+            *job = response.asInt32_t();
+            rc = LSM_ERR_JOB_STARTED;
+        }
+    }
+    return rc;
+
 }
 
 int lsmVolumeStatus(lsmConnectPtr conn, lsmVolumePtr volume,
@@ -267,15 +445,26 @@ int lsmInitiatorCreate(lsmConnectPtr c, const char *name, const char *id,
 {
     CONN_SETUP(c);
 
-    if( !name ) {
+    if( !name || !id || !init ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
-    if( c->plugin.sanOps && c->plugin.sanOps->init_create) {
-        return (*(c->plugin.sanOps->init_create))(c, name, id, type, init);
-    }
+    std::map<std::string, Value> p;
+    p["name"] = Value(name);
+    p["id"] = Value(id);
+    p["id_type"] = Value((int32_t)type);
 
-    return LSM_ERR_NO_SUPPORT;
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "initiator_create", parameters, response);
+    if( LSM_ERR_OK == rc ) {
+        //We get a value back, either null or job id.
+        if( Value::object_t == response.valueType() ) {
+            *init = valueToInitiator(response);
+        }
+    }
+    return rc;
 }
 
 int lsmAccessGrant( lsmConnectPtr c, lsmInitiatorPtr i, lsmVolumePtr v,
@@ -295,11 +484,25 @@ int lsmAccessGrant( lsmConnectPtr c, lsmInitiatorPtr i, lsmVolumePtr v,
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
-    if( c->plugin.sanOps && c->plugin.sanOps->access_grant) {
-        return (*(c->plugin.sanOps->access_grant))(c, i, v, access, job);
-    }
+    std::map<std::string, Value> p;
+    p["initiator"] = initiatorToValue(i);
+    p["volume"] = volumeToValue(v);
+    p["access"] = Value((int32_t)access);
 
-    return LSM_ERR_NO_SUPPORT;
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "access_grant", parameters, response);
+    if( LSM_ERR_OK == rc ) {
+        *job = 0;
+
+        //We get a value back, either null or job id.
+        if( Value::numeric_t == response.valueType() ) {
+            *job = response.asInt32_t();
+            rc = LSM_ERR_JOB_STARTED;
+        }
+    }
+    return rc;
 }
 
 int lsmAccessRevoke( lsmConnectPtr c, lsmInitiatorPtr i, lsmVolumePtr v)
@@ -314,11 +517,14 @@ int lsmAccessRevoke( lsmConnectPtr c, lsmInitiatorPtr i, lsmVolumePtr v)
         return LSM_ERR_INVALID_VOL;
     }
 
-    if( c->plugin.sanOps && c->plugin.sanOps->access_remove) {
-        return (*(c->plugin.sanOps->access_remove))(c, i, v);
-    }
+    std::map<std::string, Value> p;
+    p["initiator"] = initiatorToValue(i);
+    p["volume"] = volumeToValue(v);
 
-    return LSM_ERR_NO_SUPPORT;
+    Value parameters(p);
+    Value response;
+
+    return rpc(c, "access_revoke", parameters, response);
 }
 
 int lsmVolumeOnline(lsmConnectPtr conn, lsmVolumePtr volume)

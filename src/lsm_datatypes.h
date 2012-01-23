@@ -24,6 +24,8 @@
 #include <libstoragemgmt/libstoragemgmt_common.h>
 #include <stdint.h>
 #include <libxml/uri.h>
+#include "lsm_ipc.hpp"
+
 
 #ifdef  __cplusplus
 extern "C" {
@@ -121,10 +123,11 @@ struct _lsmConnect {
     uint32_t    magic;          /**< Magic, used for structure validation */
     uint32_t    flags;          /**< Flags for the connection */
     xmlURIPtr   uri;            /**< URI */
-    void        *handle;        /**< dlopen handle to plug-in */
+    char        *raw_uri;       /**< Raw URI string */
     lsmError    *error;         /**< Error information */
-    lsmUnregister       unregister;     /**< Callback to unregister */
-    struct lsmPlugin    plugin;         /**< Plug-in information */
+    //lsmUnregister       unregister;     /**< Callback to unregister */
+    //struct lsmPlugin    plugin;         /**< Plug-in information */
+    Ipc *tp;                            /**< IPC transport */
 };
 
 
@@ -172,9 +175,6 @@ LSM_DLL_LOCAL void freeConnection(lsmConnectPtr c);
 LSM_DLL_LOCAL int loadDriver(lsmConnectPtr c, xmlURIPtr uri,
                                 const char *password, uint32_t timeout,
                                 lsmErrorPtr *e);
-
-
-
 
 #ifdef  __cplusplus
 }

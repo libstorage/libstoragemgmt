@@ -72,6 +72,8 @@ typedef enum {
     LSM_ERR_NO_MAPPING = 22,            /**< There is no access for initiator and volume */
     LSM_ERR_INSUFFICIENT_SPACE = 23,    /**< Insufficient space */
     LSM_ERROR_IS_MAPPED = 24,           /**< Mapping already exists */
+    LSM_ERROR_COMMUNICATION = 25,       /**< Error comunicating with plug-in */
+    LSM_ERROR_SERIALIZATION = 26,       /**< Transport serialization error */
     LSM_ERR_AUTH_FAILED = 45,           /**< Authorization failed */
 } lsmErrorNumber;
 

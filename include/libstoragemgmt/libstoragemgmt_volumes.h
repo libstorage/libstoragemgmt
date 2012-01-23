@@ -93,5 +93,5 @@ uint32_t lsmVolumeOpStatusGet(lsmVolumePtr v);
 }
 #endif
 
-#endif  /* LIBSTORAGEMGMT_INITIATORS_H */
+#endif  /* LIBSTORAGEMGMT_VOLUMES_H */
 

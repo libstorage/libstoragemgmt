@@ -171,9 +171,9 @@ class Client(object):
         """
         Deletes a volume.
 
-        Returns None on success, else raises an LsmError
+        Returns None on success, else job id
         """
-        return self.tp.rpc('volume_delete', del_self(locals()))
+        return self.tp.rpc(' ', del_self(locals()))
 
     def volume_online(self, volume):
         """
@@ -352,6 +352,8 @@ class TestClient(unittest.TestCase):
                                     '47E348D52647842ABB7897B36CA23A91',
                                     Initiator.TYPE_ISCSI)
 
+        init = self.c.initiators()
+        self.assertTrue(len(init) == 1)
 
         self.c.access_grant(i, vol, Volume.ACCESS_READ_WRITE)
         self.c.access_revoke(i,vol)

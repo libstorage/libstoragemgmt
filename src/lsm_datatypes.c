@@ -17,7 +17,10 @@
  * Author: tasleson
  */
 
+#ifndef  __cplusplus
 #define _GNU_SOURCE
+#endif
+
 #include <stdio.h>
 
 #include "lsm_datatypes.h"
@@ -29,41 +32,17 @@
 #include <unistd.h>
 #include <dlfcn.h>
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 /*NOTE: Need to change this! */
-#define LSM_DEFAULT_PLUGIN_DIR "./plugin"
+#define LSM_DEFAULT_PLUGIN_DIR "/tmp/lsm/ipc"
 
-int lsmRegisterPlugin(lsmConnectPtr c, const char *desc, const char *version,
-                        void *private_data, struct lsmMgmtOps *mgmOps,
-                        struct lsmSanOps *sanOp, struct lsmFsOps *fsOp,
-                        struct lsmNasOps *nasOp)
-{
-    if (NULL == desc || NULL == version) {
-        return LSM_ERR_INVALID_ARGUMENT;
-    }
-
-    c->plugin.desc = strdup(desc);
-    c->plugin.version = strdup(version);
-    c->plugin.privateData = private_data;
-
-    c->plugin.mgmtOps = mgmOps;
-    c->plugin.sanOps = sanOp;
-    c->plugin.fsOps = fsOp;
-    c->plugin.nasOps = nasOp;
-
-    return LSM_ERR_OK;
-}
-
-void *lsmGetPrivateData(lsmConnectPtr conn)
-{
-    if (!LSM_IS_CONNECT(conn)) {
-        return NULL;
-    }
-    return conn->plugin.privateData;
-}
 
 lsmConnectPtr getConnection()
 {
-    lsmConnectPtr c = malloc(sizeof(lsmConnect));
+    lsmConnectPtr c = (lsmConnectPtr)malloc(sizeof(lsmConnect));
     if (c) {
         memset(c, 0, sizeof(lsmConnect));
         c->magic = LSM_CONNECT_MAGIC;
@@ -75,16 +54,6 @@ void freeConnection(lsmConnectPtr c)
 {
     if (c) {
 
-        if (c->plugin.version) {
-            free(c->plugin.version);
-            c->plugin.version = NULL;
-        }
-
-        if (c->plugin.desc) {
-            free(c->plugin.desc);
-            c->plugin.desc = NULL;
-        }
-
         c->magic = 0;
         c->flags = 0;
 
@@ -93,26 +62,70 @@ void freeConnection(lsmConnectPtr c)
             c->uri = NULL;
         }
 
-        if (c->handle) {
-            /* What do we want to do with an error here? */
-            dlclose(c->handle);
-            c->handle = NULL;
-        }
-
         if (c->error) {
             lsmErrorFree(c->error);
             c->error = NULL;
+        }
+
+        if( c->tp ) {
+            delete(c->tp);
+            c->tp = NULL;
+        }
+
+        if( c->raw_uri ) {
+            free(c->raw_uri);
+            c->raw_uri = NULL;
         }
 
         free(c);
     }
 }
 
+static int establishConnection( lsmConnectPtr c, const char * password,
+                                uint32_t timeout, lsmErrorPtr *e)
+{
+    int rc = LSM_ERR_OK;
+    std::map<std::string, Value> params;
+
+    try {
+        params["uri"] = Value(c->raw_uri);
+
+        if( password ) {
+            params["password"] = Value(password);
+        } else {
+            params["password"] = Value();
+        }
+        params["timeout"] = Value(timeout);
+        Value p(params);
+
+        c->tp->rpc("startup", p);
+    } catch (const ValueException &ve) {
+        *e = lsmErrorCreate(LSM_ERROR_SERIALIZATION,
+                                LSM_ERR_DOMAIN_FRAME_WORK,
+                                LSM_ERR_LEVEL_ERROR, "Error in serialization",
+                                ve.what(), NULL, NULL, 0 );
+        rc = LSM_ERROR_SERIALIZATION;
+    } catch (const LsmException &le) {
+        *e = lsmErrorCreate(LSM_ERROR_COMMUNICATION,
+                                LSM_ERR_DOMAIN_FRAME_WORK,
+                                LSM_ERR_LEVEL_ERROR, "Error in communication",
+                                le.what(), NULL, NULL, 0 );
+        rc = LSM_ERROR_COMMUNICATION;
+    } catch (...) {
+        *e = lsmErrorCreate(LSM_ERR_INTERNAL_ERROR,
+                                LSM_ERR_DOMAIN_FRAME_WORK,
+                                LSM_ERR_LEVEL_ERROR, "Undefined exception",
+                                NULL, NULL, NULL, 0 );
+        rc = LSM_ERR_INTERNAL_ERROR;
+    }
+    return rc;
+}
+
+
 int loadDriver(lsmConnectPtr c, xmlURIPtr uri, const char *password,
     uint32_t timeout, lsmErrorPtr *e)
 {
     int rc = LSM_ERR_OK;
-    lsmRegister reg_plug;
 
     const char *plugin_dir = getenv("LSM_PLUGIN_DIR");
     char *plugin_file = NULL;
@@ -121,31 +134,23 @@ int loadDriver(lsmConnectPtr c, xmlURIPtr uri, const char *password,
         plugin_dir = LSM_DEFAULT_PLUGIN_DIR;
     }
 
-    if (asprintf(&plugin_file, "%s/lsm_plugin_%s.so",
-        plugin_dir, uri->scheme) == -1) {
+    if (asprintf(&plugin_file, "%s/%s", plugin_dir, uri->scheme) == -1) {
         return LSM_ERR_NO_MEMORY;
     }
 
     if (access(plugin_file, R_OK) == 0) {
+        int ec;
+        int sd = Transport::getSocket(std::string(plugin_file), ec);
 
-        c->handle = dlopen(plugin_file, RTLD_NOW | RTLD_LOCAL);
-        if (c->handle) {
-
-            reg_plug = dlsym(c->handle, "lsmPluginRegister");
-            c->unregister = dlsym(c->handle, "lsmPluginUnregister");
-
-            if (reg_plug != NULL && c->unregister != NULL) {
-                /*Note: we should probably pass in the error pointer so that
-                 * The plug-in itself and return additional error information.
-                 */
-                rc = (*reg_plug)((lsmConnectPtr) c, uri, password, timeout, e);
-            } else {
-                rc = LSM_ERR_PLUGIN_DLSYM;
+        if( sd >= 0 ) {
+            c->tp = new Ipc(sd);
+            if( establishConnection(c, password, timeout, e)) {
+                rc = LSM_ERR_PLUGIN_DLOPEN;
             }
         } else {
-            *e = lsmErrorCreate(LSM_ERR_PLUGIN_DLOPEN,
+             *e = lsmErrorCreate(LSM_ERR_PLUGIN_DLOPEN,
                                 LSM_ERR_DOMAIN_FRAME_WORK,
-                                LSM_ERR_LEVEL_ERROR, "Error on dlopen",
+                                LSM_ERR_LEVEL_ERROR, "Unable to connect to plugin",
                                 NULL, dlerror(), NULL, 0 );
 
             rc = LSM_ERR_PLUGIN_DLOPEN;
@@ -163,7 +168,7 @@ lsmErrorPtr lsmErrorCreate(lsmErrorNumber code, lsmErrorDomain domain,
     const char *exception, const char *debug,
     const void *debug_data, uint32_t debug_data_size)
 {
-    lsmErrorPtr err = malloc(sizeof(lsmError));
+    lsmErrorPtr err = (lsmErrorPtr)malloc(sizeof(lsmError));
 
     if (err) {
         memset(err, 0, sizeof(lsmError));
@@ -188,7 +193,7 @@ lsmErrorPtr lsmErrorCreate(lsmErrorNumber code, lsmErrorDomain domain,
          * allocate the storage for the debug data.
          */
         if (debug_data && (debug_data_size > 0)) {
-            err->debug = malloc(debug_data_size);
+            err->debug = (char *)malloc(debug_data_size);
 
             if (debug) {
                 err->debug_data_size = debug_data_size;
@@ -252,41 +257,41 @@ int lsmErrorLog(lsmConnectPtr c, lsmErrorPtr error)
 }
 
 
-#define LSM_RETURN_ERR_VAL(e, x, error) \
+#define LSM_RETURN_ERR_VAL(type_t, e, x, error) \
         if( LSM_IS_ERROR(e) ) {     \
             return e->x;            \
         }                           \
-        return error;               \
+        return (type_t)error;               \
 
 
 lsmErrorNumber lsmErrorGetNumber(lsmErrorPtr e)
 {
-    LSM_RETURN_ERR_VAL(e, code, -1);
+    LSM_RETURN_ERR_VAL(lsmErrorNumber, e, code, -1);
 }
 
 lsmErrorDomain lsmErrorGetDomain(lsmErrorPtr e)
 {
-    LSM_RETURN_ERR_VAL(e, domain, -1);
+    LSM_RETURN_ERR_VAL(lsmErrorDomain, e, domain, -1);
 }
 
 lsmErrorLevel lsmErrorGetLevel(lsmErrorPtr e)
 {
-    LSM_RETURN_ERR_VAL(e, level, -1);
+    LSM_RETURN_ERR_VAL(lsmErrorLevel, e, level, -1);
 }
 
-char* lsmErrorGetMessage(lsmErrorPtr e)
+char* lsmErrorGetMessage( lsmErrorPtr e)
 {
-    LSM_RETURN_ERR_VAL(e, message, NULL);
+    LSM_RETURN_ERR_VAL(char*, e, message, NULL);
 }
 
 char* lsmErrorGetException(lsmErrorPtr e)
 {
-    LSM_RETURN_ERR_VAL(e, exception, NULL);
+    LSM_RETURN_ERR_VAL(char*, e, exception, NULL);
 }
 
 char* lsmErrorGetDebug(lsmErrorPtr e)
 {
-    LSM_RETURN_ERR_VAL(e, debug, NULL);
+    LSM_RETURN_ERR_VAL(char*, e, debug, NULL);
 }
 
 void* lsmErrorGetDebugData(lsmErrorPtr e, uint32_t *size)
@@ -316,7 +321,7 @@ lsmPoolPtr *lsmPoolRecordAllocArray(uint32_t size)
 lsmPoolPtr lsmPoolRecordAlloc(const char *id, const char *name, uint64_t totalSpace,
     uint64_t freeSpace)
 {
-    lsmPoolPtr rc = malloc(sizeof(lsmPool));
+    lsmPoolPtr rc = (lsmPoolPtr)malloc(sizeof(lsmPool));
     if (rc) {
         memset(rc, 0, sizeof(lsmPool));
         rc->magic = LSM_POOL_MAGIC;
@@ -357,7 +362,7 @@ void lsmPoolRecordFree(lsmPoolPtr p)
 void lsmPoolRecordFreeArray(lsmPoolPtr pa[], uint32_t size)
 {
     if (pa && size) {
-        int i = 0;
+        uint32_t i = 0;
         for (i = 0; i < size; ++i) {
             lsmPoolRecordFree(pa[i]);
         }
@@ -399,11 +404,11 @@ uint64_t lsmPoolFreeSpaceGet(lsmPoolPtr p)
 
 lsmInitiatorPtr *lsmInitiatorRecordAllocArray(uint32_t size)
 {
-    struct lsmInitiator **rc = NULL;
+    lsmInitiator **rc = NULL;
 
     if (size > 0) {
-        size_t s = sizeof(struct lsmInitiator *) * size;
-        rc = (struct lsmInitiator **) malloc(s);
+        size_t s = sizeof(lsmInitiator *) * size;
+        rc = (lsmInitiator **) malloc(s);
         memset(rc, 0, s);
     }
     return(lsmInitiatorPtr*) rc;
@@ -411,7 +416,7 @@ lsmInitiatorPtr *lsmInitiatorRecordAllocArray(uint32_t size)
 
 lsmInitiatorPtr lsmInitiatorRecordAlloc(lsmInitiatorType idType, const char* id)
 {
-    lsmInitiatorPtr rc = malloc(sizeof(lsmInitiator));
+    lsmInitiatorPtr rc = (lsmInitiatorPtr)malloc(sizeof(lsmInitiator));
     if (rc) {
         rc->magic = LSM_INIT_MAGIC;
         rc->idType = idType;
@@ -443,7 +448,7 @@ void lsmInitiatorRecordFree(lsmInitiatorPtr i)
 void lsmInitiatorRecordFreeArray(lsmInitiatorPtr init[], uint32_t size)
 {
     if (init && size) {
-        int i = 0;
+        uint32_t i = 0;
         for (i = 0; i < size; ++i) {
             lsmInitiatorRecordFree(init[i]);
         }
@@ -478,7 +483,7 @@ lsmVolumePtr lsmVolumeRecordAlloc(const char *id, const char *name,
     uint64_t numberOfBlocks,
     uint32_t status)
 {
-    lsmVolumePtr rc = malloc(sizeof(lsmVolume));
+    lsmVolumePtr rc = (lsmVolumePtr)malloc(sizeof(lsmVolume));
     if (rc) {
         rc->magic = LSM_VOL_MAGIC;
         rc->id = strdup(id);
@@ -527,7 +532,7 @@ void lsmVolumeRecordFree(lsmVolumePtr v)
 void lsmVolumeRecordFreeArray(lsmVolumePtr vol[], uint32_t size)
 {
     if (vol && size) {
-        int i = 0;
+        uint32_t i = 0;
         for (i = 0; i < size; ++i) {
             lsmVolumeRecordFree(vol[i]);
         }
@@ -577,3 +582,7 @@ lsmErrorPtr lsmErrorGetLast(lsmConnectPtr c)
     }
     return NULL;
 }
+
+#ifdef  __cplusplus
+}
+#endif

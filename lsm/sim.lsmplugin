@@ -177,6 +177,8 @@ class StorageSimulator(IPlugin):
             p = self.__v[volume.id]['pool']
             p.free_space += v.size_bytes
             del self.__v[volume.id]
+            #We only return null or job id.
+            return self.__create_job(None)[0]
         else:
             raise LsmError(ErrorNumber.INVALID_VOL, 'Volume not found')
         return None
@@ -256,9 +258,13 @@ class StorageSimulator(IPlugin):
 
     def access_revoke(self, initiator, volume):
         if initiator.id in self.__i:
-            del self.__i[initiator.id]
+            access = self.__i[initiator.id]['access']
+            if volume.id in access:
+                del access[volume.id]
+            else:
+                raise LsmError(ErrorNumber.NO_MAPPING, 'No volume access to revoke')
         else:
-            raise LsmError(ErrorNumber.NO_MAPPING, 'No access to revoke')
+            raise LsmError(ErrorNumber.NO_MAPPING, 'Initiator not found')
         return None
 
 if __name__ == '__main__':
