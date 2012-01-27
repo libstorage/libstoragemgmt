@@ -57,7 +57,7 @@ CIMInstance BlockMgmt::getSPC( String initiator, String lun, bool &found )
     Array<CIMObject> auth_priviledge = c.associators(ns, init.getPath(), "CIM_AuthorizedSubject");
 
     for( Uint32 i = 0; i < auth_priviledge.size(); ++i ) {
-        Array<CIMObject> spc = c.associators(ns, auth_priviledge[0].getPath(), "CIM_AuthorizedTarget");
+        Array<CIMObject> spc = c.associators(ns, auth_priviledge[i].getPath(), "CIM_AuthorizedTarget");
 
         //Make sure that we have associations for authorized targets and controllers.
         if( spc.size() > 0 ) {
@@ -351,7 +351,7 @@ bool BlockMgmt::jobCompletedOk(String jobId)
             std::cout << "Error: Operational status = " << values[0] << std::endl;
         } else if( values.size() > 1 ) {
             if( (values[0] == OK || values[1] == OK) &&
-                (values[0] == COMPLETE || values[0] == COMPLETE)) {
+                (values[0] == COMPLETE || values[1] == COMPLETE)) {
                 rc = true;
                 std::cout << "Success: Operational status = " << values[0] << ", "
                                 << values[1] << std::endl;

@@ -375,8 +375,9 @@ bool Smis::jobCompletedOk(String jobId)
     status.getProperty(status.findProperty("OperationalStatus")).
                         getValue().get(values);
 
-    if( values.size() > 1 && (values[0] == OK || values[1] == OK) &&
-      ( values[0] == COMPLETE || values[0] == COMPLETE)) {
+    if( values.size() > 1 &&
+        (values[0] == OK || values[1] == OK) &&
+        (values[0] == COMPLETE || values[1] == COMPLETE)) {
         rc = true;
     } else {
         //Note: We need to gather debug information about this
@@ -620,7 +621,7 @@ CIMInstance Smis::getSpc(lsmInitiatorPtr initiator, lsmVolumePtr v, bool &found)
         "CIM_AuthorizedSubject");
 
     for (Uint32 i = 0; i < auth_priviledge.size(); ++i) {
-        Array<CIMObject> spc = c.associators(ns, auth_priviledge[0].getPath(),
+        Array<CIMObject> spc = c.associators(ns, auth_priviledge[i].getPath(),
             "CIM_AuthorizedTarget");
 
         if( spc.size() > 0 ) {

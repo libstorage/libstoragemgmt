@@ -52,6 +52,7 @@ int waitForJob(int cmd_rc, lsmConnectPtr c, uint32_t job,
     if( LSM_ERR_OK != rc ) {
         if ( LSM_ERR_JOB_STARTED == rc ) {
             //We have a job to wait for.
+            printf("Wait for it...\n");
             lsmJobStatus status;
             uint8_t percent = 0;
 
@@ -60,12 +61,17 @@ int waitForJob(int cmd_rc, lsmConnectPtr c, uint32_t job,
                 rc = lsmJobStatusGet(c, job, &status, &percent, vol);
             } while ( (LSM_JOB_INPROGRESS == status) && (LSM_ERR_OK == rc) );
 
-            if( (LSM_ERR_OK == rc) && (LSM_JOB_COMPLETE == status) && vol ) {
+            if( (LSM_ERR_OK == rc) && (LSM_JOB_COMPLETE == status) && *vol ) {
                 printVolume(a, *vol);
+            } else {
+                printf("RC = %d, job = %d, status %d, percent %d\n", rc, job, status, percent);
             }
 
             //Clean up the job
             int jf = lsmJobFree(c, job);
+            if( LSM_ERR_OK != jf ) {
+                printf("lsmJobFree rc= %d\n", jf);
+            }
             assert(LSM_ERR_OK == jf);
 
         } else {

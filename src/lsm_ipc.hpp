@@ -107,6 +107,12 @@ template <class Type> std::string to_string(Type v) {
     return out.str();
 }
 
+class EOFException : public std::runtime_error {
+public:
+    EOFException(std::string m);
+};
+
+
 /**
  * User defined class for Value errors during serialize / de-serialize.
  */
@@ -229,13 +235,33 @@ public:
      * Returns the enumerated type represented by object
      * @return enumerated type
      */
-    value_type valueType();
+    value_type valueType() const;
+
+    /**
+     * Overloaded operator for map access
+     * @param key
+     * @return Value
+     */
+    Value& operator[](const std::string &key);
+
+    /**
+     * Overloaded operator for vector(array) access
+     * @param i
+     * @return Value
+     */
+    Value& operator[](uint32_t i);
 
     /**
      * Returns true if value has a key in key/value pair
      * @return true if key exists, else false.
      */
     bool hasKey(const std::string &k);
+
+    /**
+     * Checks to see if a Value contains a valid request
+     * @return True if it is a request, else false
+     */
+    bool isValidRequest(void);
 
     /**
      * Given a key returns the value.
@@ -294,7 +320,7 @@ public:
     std::string asString();
 
     /**
-     * <key><value> represented by object.
+     * key/value represented by object.
      * @return map of key and values else ValueException on error
      */
     std::map<std::string, Value> asObject();
@@ -341,11 +367,15 @@ public:
     Ipc(std::string socket_path);
     ~Ipc();
 
-    void sendRequest(const std::string request, const Value &params, int32_t id = 100);
+    void sendRequest(const std::string request, const Value &params,
+                        int32_t id = 100);
     Value readRequest(void);
 
     void sendResponse(const Value &response, uint32_t id = 100);
     Value readResponse();
+
+    void sendError(int error_code, std::string msg, std::string debug,
+                    uint32_t id = 100);
 
     Value rpc(const std::string &request, const Value &params, int32_t id = 100);
 

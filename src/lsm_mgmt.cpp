@@ -73,6 +73,25 @@ int lsmConnectPassword(const char *uri, const char *password,
     return rc;
 }
 
+static int lsmErrorLog(lsmConnectPtr c, lsmErrorPtr error)
+{
+    if (!LSM_IS_CONNECT(c)) {
+        return LSM_ERR_INVALID_CONN;
+    }
+
+    if (!LSM_IS_ERROR(error)) {
+        return LSM_ERR_INVALID_ERR;
+    }
+
+    if (c->error) {
+        lsmErrorFree(c->error);
+        c->error = NULL;
+    }
+
+    c->error = error;
+    return LSM_ERR_OK;
+}
+
 static lsmErrorNumber logException(lsmConnectPtr c, lsmErrorNumber error,
                                 const char *message, const char *exception_msg)
 {

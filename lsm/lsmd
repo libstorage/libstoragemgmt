@@ -125,7 +125,8 @@ class LsmDaemon(Daemon):
         try:
             (d_pid, d_exit) = os.waitpid(-1, os.WNOHANG)
             while( d_pid > 0 ):
-                Info("Plug-in process " + str(d_pid) + " exited with " + str(d_exit))
+                Info("Plug-in process " + str(d_pid) + " exited with " +
+                        str(os.WEXITSTATUS(d_exit)) + " waitpid value= " + str(d_exit))
                 (d_pid, d_exit) = os.waitpid(-1, os.WNOHANG)
         except OSError:
             pass

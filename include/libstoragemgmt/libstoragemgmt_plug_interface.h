@@ -23,22 +23,34 @@
 #include <stdint.h>
 #include <libstoragemgmt/libstoragemgmt_types.h>
 #include <libstoragemgmt/libstoragemgmt_error.h>
+#include <libxml/uri.h>
 
 
 #ifdef  __cplusplus
 extern "C" {
 #endif
 
+/**
+ * Opaque data type for plug-ins
+ */
+typedef struct _lsmPlugin lsmPlugin;
+typedef lsmPlugin *lsmPluginPtr;
 
-typedef int (*lsmPlugSetTmo)( lsmConnectPtr c, uint32_t timeout );
-typedef int (*lsmPlugGetTmo)( lsmConnectPtr c, uint32_t *timeout );
-typedef int (*lsmPlugCapabilities)(lsmConnectPtr conn,
+typedef int (*lsmPluginRegister)(  lsmPluginPtr c, xmlURIPtr uri, const char *password,
+                        uint32_t timeout );
+
+typedef int (*lsmPluginUnregister)( lsmPluginPtr c );
+
+
+typedef int (*lsmPlugSetTmo)( lsmPluginPtr c, uint32_t timeout );
+typedef int (*lsmPlugGetTmo)( lsmPluginPtr c, uint32_t *timeout );
+typedef int (*lsmPlugCapabilities)(lsmPluginPtr conn,
                                         lsmStorageCapabilitiesPtr *cap);
-typedef int (*lsmPlugJobStatusVol)(lsmConnectPtr conn, uint32_t jobNumber,
+typedef int (*lsmPlugJobStatusVol)(lsmPluginPtr conn, uint32_t jobNumber,
                                         lsmJobStatus *status,
                                         uint8_t *percentComplete,
                                         lsmVolumePtr *vol);
-typedef int (*lsmPlugJobFree)(lsmConnectPtr c, uint32_t jobNumber);
+typedef int (*lsmPlugJobFree)(lsmPluginPtr c, uint32_t jobNumber);
 
 /**
  * Callback functions for management operations.
@@ -51,41 +63,41 @@ struct lsmMgmtOps {
     lsmPlugJobFree      job_free;               /**< Free a job */
 };
 
-typedef int (*lsmPlugPoolList)(lsmConnectPtr conn, lsmPoolPtr *poolArray,
+typedef int (*lsmPlugPoolList)(lsmPluginPtr conn, lsmPoolPtr *poolArray,
                         uint32_t *count);
-typedef int (*lsmPlugGetPools)( lsmConnectPtr c, lsmPoolPtr **poolArray,
+typedef int (*lsmPlugGetPools)( lsmPluginPtr c, lsmPoolPtr **poolArray,
                                         uint32_t *count);
 
-typedef int (*lsmPlugGetInits)( lsmConnectPtr c, lsmInitiatorPtr **initArray,
+typedef int (*lsmPlugGetInits)( lsmPluginPtr c, lsmInitiatorPtr **initArray,
                                         uint32_t *count);
 
-typedef int (*lsmPlugGetVolumes)( lsmConnectPtr c, lsmVolumePtr **volArray,
+typedef int (*lsmPlugGetVolumes)( lsmPluginPtr c, lsmVolumePtr **volArray,
                                         uint32_t *count);
 
-typedef int (*lsmPlugCreateVolume)(lsmConnectPtr c, lsmPoolPtr pool,
+typedef int (*lsmPlugCreateVolume)(lsmPluginPtr c, lsmPoolPtr pool,
                         const char *volumeName, uint64_t size,
                         lsmProvisionType provisioning, lsmVolumePtr *newVolume,
                         uint32_t *job);
 
-typedef int (*lsmPlugReplicateVolume)(lsmConnectPtr c, lsmPoolPtr pool,
+typedef int (*lsmPlugReplicateVolume)(lsmPluginPtr c, lsmPoolPtr pool,
                         lsmReplicationType repType, lsmVolumePtr volumeSrc,
                         const char *name, lsmVolumePtr *newReplicant,
                         uint32_t *job);
-typedef int (*lsmPlugResizeVolume)(lsmConnectPtr c, lsmVolumePtr volume,
+typedef int (*lsmPlugResizeVolume)(lsmPluginPtr c, lsmVolumePtr volume,
                                 uint64_t newSize, lsmVolumePtr *resizedVolume,
                                 uint32_t *job);
 
-typedef int (*lsmPlugDeleteVolume)(lsmConnectPtr c, lsmVolumePtr volume,
+typedef int (*lsmPlugDeleteVolume)(lsmPluginPtr c, lsmVolumePtr volume,
                                     uint32_t *job);
 
-typedef int (*lsmPlugCreateInit)(lsmConnectPtr c, const char *name,
+typedef int (*lsmPlugCreateInit)(lsmPluginPtr c, const char *name,
                                     const char *id, lsmInitiatorType type,
                                     lsmInitiatorPtr *init);
 
-typedef int (*lsmPlugAccessGrant)(lsmConnectPtr c, lsmInitiatorPtr i, lsmVolumePtr v,
+typedef int (*lsmPlugAccessGrant)(lsmPluginPtr c, lsmInitiatorPtr i, lsmVolumePtr v,
                         lsmAccessType access, uint32_t *job);
 
-typedef int (*lsmPlugAccessRemove)(lsmConnectPtr c, lsmInitiatorPtr i, lsmVolumePtr v);
+typedef int (*lsmPlugAccessRemove)(lsmPluginPtr c, lsmInitiatorPtr i, lsmVolumePtr v);
 
 /**
  * Block oriented functions
@@ -118,19 +130,37 @@ struct lsmNasOps {
 
 };
 
-int lsmRegisterPlugin( lsmConnectPtr conn, const char *desc, const char *version,
+/**
+ * Initializes the plug-in.
+ * @param argc  Command line argument count
+ * @param argv  Command line arguments
+ * @param reg   Registration function
+ * @param unreg Un-Registration function
+ * @return exit code for plug-in
+ */
+int lsmPluginInit( int argc, char *argv[], lsmPluginRegister reg,
+                                lsmPluginUnregister unreg);
+
+
+int lsmRegisterPlugin( lsmPluginPtr plug, const char *desc, const char *version,
                         void * private_data, struct lsmMgmtOps *mgmOps,
                         struct lsmSanOps *sanOp, struct lsmFsOps *fsOp,
                         struct lsmNasOps *nasOp );
-void *lsmGetPrivateData( lsmConnectPtr conn );
 
 /**
- * Associate an error with the connection.
- * @param conn          Connection
+ * Used to retrieve private data for plug-in operation.
+ * @param plug  Opaque plug-in pointer.
+ */
+void *lsmGetPrivateData( lsmPluginPtr plug );
+
+
+/**
+ * Return an error with the plug-in
+ * @param plug          Opaque plug-in
  * @param error         Error to associate.
  * @return              LSM_ERR_OK, else error reason.
  */
-int lsmErrorLog( lsmConnectPtr conn, lsmErrorPtr error);
+int lsmPluginErrorLog( lsmPluginPtr plug, lsmErrorPtr error);
 
 /**
  * Creates an error record.

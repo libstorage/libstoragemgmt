@@ -49,6 +49,7 @@ class Client(object):
         """
         Instruct the plug-in to get ready
         """
+        
         self.tp.send_req('startup',
                 {'uri': uri, 'password': plain_text_password,
                  'timeout': timeout_ms})
@@ -173,7 +174,7 @@ class Client(object):
 
         Returns None on success, else job id
         """
-        return self.tp.rpc(' ', del_self(locals()))
+        return self.tp.rpc('volume_delete', del_self(locals()))
 
     def volume_online(self, volume):
         """

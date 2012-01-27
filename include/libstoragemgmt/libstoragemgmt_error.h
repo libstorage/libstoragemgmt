@@ -74,7 +74,12 @@ typedef enum {
     LSM_ERROR_IS_MAPPED = 24,           /**< Mapping already exists */
     LSM_ERROR_COMMUNICATION = 25,       /**< Error comunicating with plug-in */
     LSM_ERROR_SERIALIZATION = 26,       /**< Transport serialization error */
+    LSM_INVALID_PLUGIN = 27,            /**< Invalid plugin structure */
+    LSM_ERR_MISSING_HOST = 28,          /**< Missing or invalid hostname */
+    LSM_ERR_MISSING_PORT = 29,          /**< Missing port */
+    LSM_ERR_MISSING_NS = 30,            /**< Missing namespace */
     LSM_ERR_AUTH_FAILED = 45,           /**< Authorization failed */
+
 } lsmErrorNumber;
 
 typedef struct _lsmError lsmError;

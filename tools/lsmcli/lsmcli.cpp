@@ -24,6 +24,16 @@
 #include "lsmcli_func.h"
 #include <libstoragemgmt/libstoragemgmt.h>
 
+void debug_plugin(void)
+{
+    char *debug = getenv("LSM_DEBUG_PLUGIN");
+    if( debug ) {
+        printf("Attach debugger to plug-in, press any key when ready...");
+        ::getchar();
+    }
+}
+
+
 int main(int argc, char *argv[])
 {
     lsmConnectPtr c = NULL;
@@ -37,6 +47,7 @@ int main(int argc, char *argv[])
                                     a.password.value.c_str(), &c, 30000, &e);
 
     if( LSM_ERR_OK == lib_rc ) {
+        debug_plugin();
         switch( a.c ) {
             case (LSM::LIST) : {
                 main_rc = list(a,c);

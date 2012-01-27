@@ -31,10 +31,11 @@
 extern "C" {
 #endif
 
+#define MAGIC_CHECK(obj, m)     ((obj) && \
+                                     ((obj)->magic==(m) ))
 
 #define LSM_VOL_MAGIC       0xFEEDEFFE
-#define LSM_IS_VOL(obj)     ((obj) && \
-                                ((obj)->magic==LSM_VOL_MAGIC))
+#define LSM_IS_VOL(obj)     MAGIC_CHECK(obj, LSM_VOL_MAGIC)
 
 /**
  * Information about storage volumes.
@@ -50,8 +51,7 @@ struct _lsmVolume {
 };
 
 #define LSM_POOL_MAGIC       0xFEEDF337
-#define LSM_IS_POOL(obj)     ((obj) && \
-                                ((obj)->magic==LSM_POOL_MAGIC))
+#define LSM_IS_POOL(obj)     MAGIC_CHECK(obj, LSM_POOL_MAGIC)
 
 /**
  * Information about storage pools.
@@ -66,8 +66,7 @@ struct _lsmPool {
 
 
 #define LSM_INIT_MAGIC       0xFEED1337
-#define LSM_IS_INIT(obj)     ((obj) && \
-                                ((obj)->magic==LSM_INIT_MAGIC))
+#define LSM_IS_INIT(obj)     MAGIC_CHECK(obj, LSM_INIT_MAGIC)
 /**
  * Information about an initiator.
  */
@@ -91,23 +90,24 @@ struct _lsmAccessGroup {
 
 
 #define LSM_CONNECT_MAGIC       0xFEEDB0B0
-#define LSM_IS_CONNECT(obj)     ((obj) && \
-                                ((obj)->magic==LSM_CONNECT_MAGIC))
+#define LSM_IS_CONNECT(obj)     MAGIC_CHECK(obj, LSM_CONNECT_MAGIC)
 
-/**
- * Function pointer decl. for the functions that the plug-in must export.
- */
-typedef int (*lsmRegister)(lsmConnectPtr c, xmlURIPtr uri, const char *password,
-                uint32_t timeout, lsmErrorPtr *e);
-typedef int (*lsmUnregister)( lsmConnectPtr c );
+
+#define LSM_PLUGIN_MAGIC    0xD15EA5E
+#define LSM_IS_PLUGIN(obj)  MAGIC_CHECK(obj, LSM_PLUGIN_MAGIC)
 
 /**
  * Information pertaining to the plug-in specifics.
  */
-struct lsmPlugin {
+struct _lsmPlugin {
+    uint32_t    magic;                  /**< Magic, used for structure validation */
+    Ipc         *tp;                    /**< IPC transport */
     char    *desc;                      /**< Description */
     char    *version;                   /**< Version */
     void    *privateData;               /**< Private data for plug-in */
+    lsmError    *error;                 /**< Error information */
+    lsmPluginRegister   reg;            /**< Plug-in registration */
+    lsmPluginUnregister unreg;          /**< Plug-in unregistration */
     struct lsmMgmtOps    *mgmtOps;      /**< Callback for management ops */
     struct lsmSanOps    *sanOps;        /**< Callbacks for SAN ops */
     struct lsmNasOps    *nasOps;        /**< Callbacks for NAS ops */
@@ -125,15 +125,12 @@ struct _lsmConnect {
     xmlURIPtr   uri;            /**< URI */
     char        *raw_uri;       /**< Raw URI string */
     lsmError    *error;         /**< Error information */
-    //lsmUnregister       unregister;     /**< Callback to unregister */
-    //struct lsmPlugin    plugin;         /**< Plug-in information */
-    Ipc *tp;                            /**< IPC transport */
+    Ipc *tp;                    /**< IPC transport */
 };
 
 
 #define LSM_ERROR_MAGIC       0xDEADB0B0
-#define LSM_IS_ERROR(obj)     ((obj) && \
-                                (obj)->magic==LSM_ERROR_MAGIC)
+#define LSM_IS_ERROR(obj)     MAGIC_CHECK(obj, LSM_ERROR_MAGIC)
 
 /**
  * Used to house error information.

@@ -237,26 +237,6 @@ int lsmErrorFree(lsmErrorPtr e)
     return LSM_ERR_OK;
 }
 
-int lsmErrorLog(lsmConnectPtr c, lsmErrorPtr error)
-{
-    if (!LSM_IS_CONNECT(c)) {
-        return LSM_ERR_INVALID_CONN;
-    }
-
-    if (!LSM_IS_ERROR(error)) {
-        return LSM_ERR_INVALID_ERR;
-    }
-
-    if (c->error) {
-        lsmErrorFree(c->error);
-        c->error = NULL;
-    }
-
-    c->error = error;
-    return LSM_ERR_OK;
-}
-
-
 #define LSM_RETURN_ERR_VAL(type_t, e, x, error) \
         if( LSM_IS_ERROR(e) ) {     \
             return e->x;            \

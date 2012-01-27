@@ -18,10 +18,10 @@
  */
 
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
-#include <libstoragemgmt/libstoragemgmt_plugin.h>
 
 #include "smis.h"
 #include "util/misc.h"
+#include <syslog.h>
 
 #ifdef  __cplusplus
 extern "C" {
@@ -30,20 +30,22 @@ extern "C" {
 static char name[] = "Default smi-s plug-in";
 static char version [] = "0.01";
 
-static lsmErrorNumber logException(lsmConnectPtr c, lsmErrorNumber error,
+static lsmErrorNumber logException(lsmPluginPtr p, lsmErrorNumber error,
                                 const char *message, Exception &e)
 {
+    const char* exception_msg = e.getMessage().getCString();
+
     lsmErrorPtr err = lsmErrorCreate(error, LSM_ERR_DOMAIN_PLUG_IN,
                                         LSM_ERR_LEVEL_ERROR, message,
-                                        e.getMessage().getCString(), NULL,
+                                        exception_msg, NULL,
                                         NULL, 0);
-    if( err && c ) {
-        lsmErrorLog(c, err);
+    if( err && p ) {
+        lsmPluginErrorLog(p, err);
     }
     return error;
 }
 
-static int tmoSet(lsmConnectPtr c, uint32_t timeout )
+static int tmoSet(lsmPluginPtr c, uint32_t timeout )
 {
     int rc = LSM_ERR_OK;
     try {
@@ -54,7 +56,7 @@ static int tmoSet(lsmConnectPtr c, uint32_t timeout )
     return rc;
 }
 
-static int tmoGet(lsmConnectPtr c, uint32_t *timeout)
+static int tmoGet(lsmPluginPtr c, uint32_t *timeout)
 {
     int rc = LSM_ERR_OK;
     try {
@@ -65,12 +67,12 @@ static int tmoGet(lsmConnectPtr c, uint32_t *timeout)
     return rc;
 }
 
-static int cap(lsmConnectPtr c, lsmStorageCapabilitiesPtr *cap)
+static int cap(lsmPluginPtr c, lsmStorageCapabilitiesPtr *cap)
 {
     return LSM_ERR_NO_SUPPORT;
 }
 
-static int jobStatus(lsmConnectPtr c, uint32_t jobNumber,
+static int jobStatus(lsmPluginPtr c, uint32_t jobNumber,
                         lsmJobStatus *status, uint8_t *percentComplete,
                         lsmVolumePtr *vol)
 {
@@ -84,7 +86,7 @@ static int jobStatus(lsmConnectPtr c, uint32_t jobNumber,
     return LSM_ERR_OK;
 }
 
-static int jobFree(lsmConnectPtr c, uint32_t jobNumber)
+static int jobFree(lsmPluginPtr c, uint32_t jobNumber)
 {
     Smis *s = (Smis *)lsmGetPrivateData(c);
 
@@ -104,7 +106,7 @@ static struct lsmMgmtOps mgmOps = {
         jobFree,
 };
 
-static int pools(lsmConnectPtr c, lsmPoolPtr **poolArray,
+static int pools(lsmPluginPtr c, lsmPoolPtr **poolArray,
                         uint32_t *count)
 {
     Smis *s = (Smis *)lsmGetPrivateData(c);
@@ -119,7 +121,7 @@ static int pools(lsmConnectPtr c, lsmPoolPtr **poolArray,
 
 
 
-static int initiators(lsmConnectPtr c, lsmInitiatorPtr **initArray,
+static int initiators(lsmPluginPtr c, lsmInitiatorPtr **initArray,
                         uint32_t *count)
 {
     Smis *s = (Smis *)lsmGetPrivateData(c);
@@ -131,7 +133,7 @@ static int initiators(lsmConnectPtr c, lsmInitiatorPtr **initArray,
     return LSM_ERR_OK;
 }
 
-static int volumes(lsmConnectPtr c, lsmVolumePtr **volArray,
+static int volumes(lsmPluginPtr c, lsmVolumePtr **volArray,
                         uint32_t *count)
 {
     Smis *s = (Smis *)lsmGetPrivateData(c);
@@ -144,7 +146,7 @@ static int volumes(lsmConnectPtr c, lsmVolumePtr **volArray,
     return LSM_ERR_OK;
 }
 
-static int createVolume( lsmConnectPtr c, lsmPoolPtr pool, const char *volumeName,
+static int createVolume( lsmPluginPtr c, lsmPoolPtr pool, const char *volumeName,
                         uint64_t size, lsmProvisionType provisioning,
                         lsmVolumePtr *newVolume, uint32_t *job)
 {
@@ -158,7 +160,7 @@ static int createVolume( lsmConnectPtr c, lsmPoolPtr pool, const char *volumeNam
     return LSM_ERR_OK;
 }
 
-static int createInit( lsmConnectPtr c, const char *name, const char *id,
+static int createInit( lsmPluginPtr c, const char *name, const char *id,
                             lsmInitiatorType type, lsmInitiatorPtr *init)
 {
     Smis *s = (Smis *)lsmGetPrivateData(c);
@@ -171,7 +173,7 @@ static int createInit( lsmConnectPtr c, const char *name, const char *id,
     return LSM_ERR_OK;
 }
 
-static int accessGrant( lsmConnectPtr c, lsmInitiatorPtr i, lsmVolumePtr v,
+static int accessGrant( lsmPluginPtr c, lsmInitiatorPtr i, lsmVolumePtr v,
                         lsmAccessType access, uint32_t *job)
 {
     Smis *s = (Smis *)lsmGetPrivateData(c);
@@ -184,7 +186,7 @@ static int accessGrant( lsmConnectPtr c, lsmInitiatorPtr i, lsmVolumePtr v,
     return LSM_ERR_OK;
 }
 
-static int accessRemove( lsmConnectPtr c, lsmInitiatorPtr i, lsmVolumePtr v)
+static int accessRemove( lsmPluginPtr c, lsmInitiatorPtr i, lsmVolumePtr v)
 {
     Smis *s = (Smis *)lsmGetPrivateData(c);
 
@@ -196,7 +198,7 @@ static int accessRemove( lsmConnectPtr c, lsmInitiatorPtr i, lsmVolumePtr v)
     return LSM_ERR_OK;
 }
 
-static int replicateVolume( lsmConnectPtr c, lsmPoolPtr pool,
+static int replicateVolume( lsmPluginPtr c, lsmPoolPtr pool,
                         lsmReplicationType repType, lsmVolumePtr volumeSrc,
                         const char *name, lsmVolumePtr *newReplicant, uint32_t *job)
 {
@@ -210,7 +212,7 @@ static int replicateVolume( lsmConnectPtr c, lsmPoolPtr pool,
     return LSM_ERR_OK;
 }
 
-static int resizeVolume(lsmConnectPtr c, lsmVolumePtr volume,
+static int resizeVolume(lsmPluginPtr c, lsmVolumePtr volume,
                                 uint64_t newSize, lsmVolumePtr *resizedVolume,
                                 uint32_t *job)
 {
@@ -224,7 +226,7 @@ static int resizeVolume(lsmConnectPtr c, lsmVolumePtr volume,
     return LSM_ERR_OK;
 }
 
-static int deleteVolume( lsmConnectPtr c, lsmVolumePtr volume, uint32_t *job)
+static int deleteVolume( lsmPluginPtr c, lsmVolumePtr volume, uint32_t *job)
 {
     Smis *s = (Smis *)lsmGetPrivateData(c);
 
@@ -249,19 +251,38 @@ static struct lsmSanOps sanOps = {
     accessRemove,
 };
 
-int lsmPluginRegister( lsmConnectPtr c, xmlURIPtr uri, const char *password,
-                        uint32_t timeout, lsmErrorPtr *e )
+int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
+                        uint32_t timeout )
 {
     int rc = LSM_ERR_OK;
     Smis *s = NULL;
     std::string ns;
-    String pass;
+    std::string pass;
+    std::string user;
+
+    if(uri->server == NULL) {
+        return LSM_ERR_MISSING_HOST;
+    }
+
+    if(uri->user == NULL) {
+        user = std::string();
+    } else {
+        user = std::string(uri->user);
+    }
+
+    if( uri->port == 0 ) {
+        return LSM_ERR_MISSING_PORT;
+    }
+
+
+    //Smis::Smis(String host, Uint16 port, String smisNameSpace,
+    //String userName, String password, int timeout) : ns(smisNameSpace)
 
     /*Open pegasus does not like NULL for the password */
     if( password ) {
-        pass = String(password);
+        pass = std::string(password);
     } else {
-        pass = String("");
+        pass =  std::string("");
     }
 
     /** pull the name space! */
@@ -276,8 +297,8 @@ int lsmPluginRegister( lsmConnectPtr c, xmlURIPtr uri, const char *password,
     }
 
     try {
-        s = new Smis(uri->server, uri->port, ns.c_str(), uri->user, pass,
-                        timeout);
+        s = new Smis(uri->server, uri->port, ns.c_str(), user.c_str(),
+                        pass.c_str(), timeout);
 
         rc = lsmRegisterPlugin( c, name, version, s, &mgmOps, &sanOps, NULL, NULL);
     } catch (Exception &ex) {
@@ -285,21 +306,23 @@ int lsmPluginRegister( lsmConnectPtr c, xmlURIPtr uri, const char *password,
          * We may need to parse the exception text to return a better return
          * code of what actually went wrong here.
          */
-
-        *e = LSM_ERROR_CREATE_PLUGIN_EXCEPTION(LSM_ERR_PLUGIN_REGISTRATION,
-                                                "Registration error",
-                                                ex.getMessage().getCString());
+        logException(c, LSM_ERR_PLUGIN_REGISTRATION, "Registration error", ex);
         rc = LSM_ERR_PLUGIN_REGISTRATION;
     }
 
     return rc;
 }
 
-int lsmPluginUnregister( lsmConnectPtr c )
+int unload( lsmPluginPtr c )
 {
     Smis *s = (Smis *)lsmGetPrivateData(c);
     delete(s);
     return LSM_ERR_OK;
+}
+
+int main(int argc, char *argv[] )
+{
+    return lsmPluginInit(argc, argv, load, unload);
 }
 
 #ifdef  __cplusplus

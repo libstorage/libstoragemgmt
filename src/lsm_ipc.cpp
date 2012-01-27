@@ -101,7 +101,7 @@ static std::string readString(int fd, size_t count, int &error_code)
     if ((amount_read == count) && (error_code == 0))
         return rc;
     else
-        return std::string("");
+        throw EOFException("");
 }
 
 std::string Transport::recvMsg(int &error_code)
@@ -160,6 +160,10 @@ int Transport::close()
         s = -1;
     }
     return rc;
+}
+
+EOFException::EOFException(std::string m) : std::runtime_error(m)
+{
 }
 
 ValueException::ValueException(std::string m) : std::runtime_error(m)
@@ -253,9 +257,25 @@ std::string Value::serialize(void)
     return json;
 }
 
-Value::value_type Value::valueType()
+Value::value_type Value::valueType() const
 {
     return t;
+}
+
+Value& Value::operator[](const std::string &key)
+{
+    if( t == object_t ) {
+        return obj[key];
+    }
+    throw ValueException("Value not object");
+}
+
+Value& Value::operator[](uint32_t i)
+{
+    if( t == array_t ) {
+        return array[i];
+    }
+    throw ValueException("Value not array");
 }
 
 bool Value::hasKey(const std::string &k)
@@ -267,6 +287,12 @@ bool Value::hasKey(const std::string &k)
         }
     }
     return false;
+}
+
+bool  Value::isValidRequest()
+{
+    return (t == Value::object_t && hasKey("method") &&
+            hasKey("id") && hasKey("params"));
 }
 
 Value  Value::getValue( const char* key )
@@ -724,6 +750,32 @@ void Ipc::sendRequest(const std::string request, const Value &params, int32_t id
         throw LsmException((int)LSM_ERROR_COMMUNICATION, em);
     }
 }
+
+void Ipc::sendError(int error_code, std::string msg, std::string debug,
+                    uint32_t id)
+{
+    int ec = 0;
+    int rc = 0;
+    std::map<std::string, Value> v;
+    std::map<std::string, Value> error_data;
+
+    error_data["code"] = Value(error_code);
+    error_data["message"] = Value(msg);
+    error_data["data"] = Value(debug);
+
+    v["error"] = Value(error_data);
+    v["id"] = Value(id);
+
+    Value e(v);
+    rc = t.sendMsg(Payload::serialize(e), ec);
+
+    if( rc != 0 ) {
+        std::string em = std::string("Error sending error message: errno ")
+                            + ::to_string(ec);
+        throw LsmException((int)LSM_ERROR_COMMUNICATION, em);
+    }
+}
+
 Value Ipc::readRequest(void)
 {
     int ec;
