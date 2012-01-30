@@ -20,6 +20,7 @@
 #ifndef LSM_IPC_H
 #define LSM_IPC_H
 
+#include <libstoragemgmt/libstoragemgmt_common.h>
 #include <yajl/yajl_parse.h>
 #include <yajl/yajl_gen.h>
 #include <stdint.h>
@@ -36,7 +37,7 @@
  * Notes:   Not thread safe. i.e. you cannot share the same object with two or
  * more threads.
  */
-class Transport {
+class LSM_DLL_LOCAL Transport {
 public:
 
     /**
@@ -101,13 +102,13 @@ private:
  * @param v Template type T
  * @return string representation
  */
-template <class Type> std::string to_string(Type v) {
+template <class Type> static std::string to_string(Type v) {
     std::stringstream out;
     out << v;
     return out.str();
 }
 
-class EOFException : public std::runtime_error {
+class LSM_DLL_LOCAL EOFException : public std::runtime_error {
 public:
     EOFException(std::string m);
 };
@@ -116,7 +117,7 @@ public:
 /**
  * User defined class for Value errors during serialize / de-serialize.
  */
-class ValueException : public std::runtime_error {
+class LSM_DLL_LOCAL ValueException : public std::runtime_error {
 public:
     /**
      * Constructor
@@ -125,7 +126,7 @@ public:
     ValueException(std::string m);
 };
 
-class LsmException : public std::runtime_error {
+class LSM_DLL_LOCAL LsmException : public std::runtime_error {
 public:
     LsmException(int code, std::string &msg);
 
@@ -143,7 +144,7 @@ public:
 /**
  * Represents a value in the serialization.
  */
-class Value {
+class LSM_DLL_LOCAL Value {
 public:
 
     /**
@@ -343,7 +344,7 @@ private:
 /**
  * Serialize, de-serialize methods.
  */
-class Payload {
+class LSM_DLL_LOCAL Payload {
 public:
     /**
      * Given a Value returns json representation.
@@ -360,7 +361,7 @@ public:
     static Value deserialize(const std::string &json);
 };
 
-class Ipc {
+class LSM_DLL_LOCAL Ipc {
 public:
     Ipc();
     Ipc(int fd);

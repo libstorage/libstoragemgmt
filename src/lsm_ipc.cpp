@@ -478,7 +478,7 @@ void Value::marshal(yajl_gen g)
     }
 }
 
-class ParseElement {
+class LSM_DLL_LOCAL ParseElement {
 public:
 
     enum parse_type {
@@ -506,14 +506,14 @@ public:
     }
 };
 
-int handle_value(void * ctx, ParseElement::parse_type type)
+static int handle_value(void * ctx, ParseElement::parse_type type)
 {
     std::list<ParseElement> *l = (std::list<ParseElement> *)ctx;
     l->push_back(ParseElement(type));
     return 1;
 }
 
-int handle_value(void * ctx, ParseElement::parse_type type,
+static int handle_value(void * ctx, ParseElement::parse_type type,
     const char* s, size_t len)
 {
     std::list<ParseElement> *l = (std::list<ParseElement> *)ctx;
@@ -583,16 +583,16 @@ static yajl_callbacks callbacks = {
     handle_end_array
 };
 
-ParseElement get_next(std::list<ParseElement> &l)
+static ParseElement get_next(std::list<ParseElement> &l)
 {
     ParseElement rc = l.front();
     l.pop_front();
     return rc;
 }
 
-Value ParseElements(std::list<ParseElement> &l);
+static Value ParseElements(std::list<ParseElement> &l);
 
-Value HandleArray(std::list<ParseElement> &l)
+static Value HandleArray(std::list<ParseElement> &l)
 {
     std::vector<Value> values;
 
@@ -614,7 +614,7 @@ Value HandleArray(std::list<ParseElement> &l)
     return Value(values);
 }
 
-Value HandleObject(std::list<ParseElement> &l)
+static Value HandleObject(std::list<ParseElement> &l)
 {
     std::map<std::string, Value> values;
     ParseElement cur;
@@ -633,7 +633,7 @@ Value HandleObject(std::list<ParseElement> &l)
     return Value(values);
 }
 
-Value ParseElements(std::list<ParseElement> &l)
+static Value ParseElements(std::list<ParseElement> &l)
 {
     if (!l.empty()) {
         ParseElement cur = get_next(l);

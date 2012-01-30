@@ -31,13 +31,10 @@
 #include <boost/assign.hpp>
 #include <syslog.h>
 
-
-
 using namespace boost::assign;
 
-
 //Forward decl.
-int lsmPluginRun(lsmPluginPtr plug);
+static int lsmPluginRun(lsmPluginPtr plug);
 
 /**
  * Safe string wrapper
@@ -147,7 +144,7 @@ static void sendError(lsmPluginPtr p, int error_code)
  * @param[out] num  The numeric value contained in string
  * @return true if sn is an integer, else false
  */
-bool get_num( char *sn, int &num)
+static bool get_num( char *sn, int &num)
 {
     errno = 0;
 
@@ -163,7 +160,7 @@ bool get_num( char *sn, int &num)
  * @param p Plug-in
  * @return true on success, else false
  */
-bool startup(lsmPluginPtr p)
+static bool startup(lsmPluginPtr p)
 {
     bool rc = false;
     xmlURIPtr uri = NULL;
@@ -249,12 +246,12 @@ int lsmPluginInit( int argc, char *argv[], lsmPluginRegister reg,
 
 typedef int (*handler)(lsmPluginPtr p, Value &params, Value &response);
 
-int handle_shutdown(lsmPluginPtr p, Value &params, Value &response)
+static int handle_shutdown(lsmPluginPtr p, Value &params, Value &response)
 {
     return LSM_ERR_OK;
 }
 
-int handle_set_time_out( lsmPluginPtr p, Value &params, Value &response)
+static int handle_set_time_out( lsmPluginPtr p, Value &params, Value &response)
 {
     if( p->mgmtOps->tmo_set ) {
         return p->mgmtOps->tmo_set(p, params["ms"].asUint32_t() );
@@ -262,7 +259,7 @@ int handle_set_time_out( lsmPluginPtr p, Value &params, Value &response)
     return LSM_ERR_NO_SUPPORT;
 }
 
-int handle_get_time_out( lsmPluginPtr p, Value &params, Value &response)
+static int handle_get_time_out( lsmPluginPtr p, Value &params, Value &response)
 {
     uint32_t tmo = 0;
 
@@ -276,7 +273,7 @@ int handle_get_time_out( lsmPluginPtr p, Value &params, Value &response)
     return LSM_ERR_NO_SUPPORT;
 }
 
-int handle_job_status( lsmPluginPtr p, Value &params, Value &response)
+static int handle_job_status( lsmPluginPtr p, Value &params, Value &response)
 {
     uint32_t job_num;
     lsmJobStatus status;
@@ -307,7 +304,7 @@ int handle_job_status( lsmPluginPtr p, Value &params, Value &response)
     return LSM_ERR_NO_SUPPORT;
 }
 
-int handle_job_free(lsmPluginPtr p, Value &params, Value &response)
+static int handle_job_free(lsmPluginPtr p, Value &params, Value &response)
 {
     if( p->mgmtOps->job_free ) {
         uint32_t job_num = params["job_number"].asUint32_t();
@@ -316,7 +313,7 @@ int handle_job_free(lsmPluginPtr p, Value &params, Value &response)
     return LSM_ERR_NO_SUPPORT;
 }
 
-int handle_pools(lsmPluginPtr p, Value &params, Value &response)
+static int handle_pools(lsmPluginPtr p, Value &params, Value &response)
 {
     if( p->sanOps->pool_get ) {
         lsmPoolPtr *pools = NULL;
@@ -338,7 +335,7 @@ int handle_pools(lsmPluginPtr p, Value &params, Value &response)
     return LSM_ERR_NO_SUPPORT;
 }
 
-int handle_initiators(lsmPluginPtr p, Value &params, Value &response)
+static int handle_initiators(lsmPluginPtr p, Value &params, Value &response)
 {
     if( p->sanOps->init_get ) {
         lsmInitiatorPtr *inits = NULL;
@@ -360,7 +357,7 @@ int handle_initiators(lsmPluginPtr p, Value &params, Value &response)
     return LSM_ERR_NO_SUPPORT;
 }
 
-int handle_volumes(lsmPluginPtr p, Value &params, Value &response)
+static int handle_volumes(lsmPluginPtr p, Value &params, Value &response)
 {
     if( p->sanOps->vol_get ) {
         lsmVolumePtr *vols = NULL;
@@ -383,7 +380,7 @@ int handle_volumes(lsmPluginPtr p, Value &params, Value &response)
     return LSM_ERR_NO_SUPPORT;
 }
 
-Value job_handle(int rc, lsmVolumePtr vol, uint32_t job)
+static Value job_handle(int rc, lsmVolumePtr vol, uint32_t job)
 {
     Value result;
     std::vector<Value> r;
@@ -400,7 +397,7 @@ Value job_handle(int rc, lsmVolumePtr vol, uint32_t job)
     return result;
 }
 
-int handle_volume_create(lsmPluginPtr p, Value &params, Value &response)
+static int handle_volume_create(lsmPluginPtr p, Value &params, Value &response)
 {
     if( p->sanOps->vol_create ) {
         lsmPoolPtr pool = valueToPool(params["pool"]);
@@ -421,7 +418,7 @@ int handle_volume_create(lsmPluginPtr p, Value &params, Value &response)
     return LSM_ERR_NO_SUPPORT;
 }
 
-int handle_volume_resize(lsmPluginPtr p, Value &params, Value &response)
+static int handle_volume_resize(lsmPluginPtr p, Value &params, Value &response)
 {
     if( p->sanOps->vol_resize ) {
         lsmVolumePtr vol = valueToVolume(params["volume"]);
@@ -439,7 +436,7 @@ int handle_volume_resize(lsmPluginPtr p, Value &params, Value &response)
     return LSM_ERR_NO_SUPPORT;
 }
 
-int handle_volume_replicate(lsmPluginPtr p, Value &params, Value &response)
+static int handle_volume_replicate(lsmPluginPtr p, Value &params, Value &response)
 {
     if( p->sanOps->vol_replicate ) {
         lsmPoolPtr pool = valueToPool(params["pool"]);
@@ -460,7 +457,7 @@ int handle_volume_replicate(lsmPluginPtr p, Value &params, Value &response)
     return LSM_ERR_NO_SUPPORT;
 }
 
-int handle_volume_delete(lsmPluginPtr p, Value &params, Value &response)
+static int handle_volume_delete(lsmPluginPtr p, Value &params, Value &response)
 {
     if( p->sanOps->vol_delete ) {
         lsmVolumePtr vol = valueToVolume(params["volume"]);
@@ -478,7 +475,7 @@ int handle_volume_delete(lsmPluginPtr p, Value &params, Value &response)
     return LSM_ERR_NO_SUPPORT;
 }
 
-int handle_initiator_create(lsmPluginPtr p, Value &params, Value &response)
+static int handle_initiator_create(lsmPluginPtr p, Value &params, Value &response)
 {
     if( p->sanOps->init_create ) {
         const char *name = params["name"].asString().c_str();
@@ -497,7 +494,7 @@ int handle_initiator_create(lsmPluginPtr p, Value &params, Value &response)
     return LSM_ERR_NO_SUPPORT;
 }
 
-int handle_access_grant(lsmPluginPtr p, Value &params, Value &response)
+static int handle_access_grant(lsmPluginPtr p, Value &params, Value &response)
 {
     if( p->sanOps->access_grant ) {
         lsmInitiatorPtr i = valueToInitiator(params["initiator"]);
@@ -518,7 +515,7 @@ int handle_access_grant(lsmPluginPtr p, Value &params, Value &response)
     return LSM_ERR_NO_SUPPORT;
 }
 
-int handle_access_revoke(lsmPluginPtr p, Value &params, Value &response)
+static int handle_access_revoke(lsmPluginPtr p, Value &params, Value &response)
 {
     if( p->sanOps->access_remove ) {
         lsmInitiatorPtr i = valueToInitiator(params["initiator"]);
@@ -532,16 +529,6 @@ int handle_access_revoke(lsmPluginPtr p, Value &params, Value &response)
     }
     return LSM_ERR_NO_SUPPORT;
 }
-
-/*
-int handle_N(lsmPluginPtr p, Value &params, Value &response)
-{
-    if( p->sanOps->N ) {
-
-    }
-    return LSM_ERR_NO_SUPPORT;
-}
-*/
 
 /**
  * map of function pointers
@@ -563,7 +550,7 @@ static std::map<std::string,handler> dispatch = map_list_of
     ("access_grant", handle_access_grant)
     ("access_revoke", handle_access_revoke);
 
-int process_request(lsmPluginPtr p, const std::string &method, Value &request,
+static int process_request(lsmPluginPtr p, const std::string &method, Value &request,
                     Value &response)
 {
     int rc = LSM_ERR_INTERNAL_ERROR;
@@ -579,7 +566,7 @@ int process_request(lsmPluginPtr p, const std::string &method, Value &request,
     return rc;
 }
 
-int lsmPluginRun(lsmPluginPtr p)
+static int lsmPluginRun(lsmPluginPtr p)
 {
     int rc = 0;
     while(true) {

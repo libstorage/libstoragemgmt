@@ -40,7 +40,7 @@ extern "C" {
 /**
  * Information about storage volumes.
  */
-struct _lsmVolume {
+struct LSM_DLL_LOCAL _lsmVolume {
     uint32_t    magic;
     char *id;                           /**< System wide unique identifier */
     char *name;                         /**< Human recognizeable name */
@@ -56,7 +56,7 @@ struct _lsmVolume {
 /**
  * Information about storage pools.
  */
-struct _lsmPool {
+struct LSM_DLL_LOCAL _lsmPool {
     uint32_t    magic;          /**< Used for verfication */
     char *id;                   /**< System wide unique identifier */
     char *name;                 /**< Human recognizeable name */
@@ -70,7 +70,7 @@ struct _lsmPool {
 /**
  * Information about an initiator.
  */
-struct _lsmInitiator {
+struct LSM_DLL_LOCAL _lsmInitiator {
     uint32_t magic;             /**< Used for verification */
     lsmInitiatorType   idType; /**< Type of id */
     char *id;                   /**< Identifier */
@@ -99,7 +99,7 @@ struct _lsmAccessGroup {
 /**
  * Information pertaining to the plug-in specifics.
  */
-struct _lsmPlugin {
+struct LSM_DLL_LOCAL _lsmPlugin {
     uint32_t    magic;                  /**< Magic, used for structure validation */
     Ipc         *tp;                    /**< IPC transport */
     char    *desc;                      /**< Description */
@@ -119,7 +119,7 @@ struct _lsmPlugin {
  * Information pertaining to the connection.  This is the main structure and
  * opaque data type for the library.
  */
-struct _lsmConnect {
+struct LSM_DLL_LOCAL _lsmConnect {
     uint32_t    magic;          /**< Magic, used for structure validation */
     uint32_t    flags;          /**< Flags for the connection */
     xmlURIPtr   uri;            /**< URI */
@@ -135,7 +135,7 @@ struct _lsmConnect {
 /**
  * Used to house error information.
  */
-struct _lsmError {
+struct LSM_DLL_LOCAL _lsmError {
     uint32_t    magic;          /**< Magic, used for struct validation */
     lsmErrorNumber code;        /**< Error code */
     lsmErrorDomain domain;      /**< Where the error occured */
