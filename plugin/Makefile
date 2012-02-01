@@ -1,4 +1,3 @@
-CC = g++
 INCLUDES = -I../include -I/usr/include/libxml2
 CFLAGS = -g -Wall 
 LIBS = -lxml2 -ldl -lpegcommon -lpegclient -lstoragemgmt
@@ -14,16 +13,16 @@ else
 endif
 
 smis.lsmplugin:	lsm_plugin_smis.cpp smis.o qparams.o misc.o  $(LIBINC)
-	$(CC) $(DEFS) $(INCLUDES) $(CFLAGS) $(LIBDIR) $(LIBS) lsm_plugin_smis.cpp smis.o qparams.o misc.o -o smis.lsmplugin
+	$(CXX) $(DEFS) $(INCLUDES) $(CFLAGS) $(LIBDIR) $(LIBS) lsm_plugin_smis.cpp smis.o qparams.o misc.o -o smis.lsmplugin
 
 smis.o:	smis.cpp smis.h $(LIBINC)
-	$(CC) $(DEFS) $(INCLUDES) $(CFLAGS) -c smis.cpp
+	$(CXX) $(DEFS) $(INCLUDES) $(CFLAGS) -c smis.cpp
 
 qparams.o: util/qparams.c util/qparams.h
-	$(CC) $(INCLUDES) $(CFLAGS) -c util/qparams.c
+	$(CXX) $(INCLUDES) $(CFLAGS) -c util/qparams.c
 
 misc.o:	util/misc.cpp util/misc.h util/qparams.h
-	$(CC) $(INCLUDES) $(CFLAGS) -c util/misc.cpp
+	$(CXX) $(INCLUDES) $(CFLAGS) -c util/misc.cpp
 
 clean:
 	rm -f *.o smis.lsmplugin
