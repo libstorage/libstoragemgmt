@@ -23,10 +23,14 @@
 
 #include <stdio.h>
 
-#include "lsm_datatypes.h"
+#include "lsm_datatypes.hpp"
+#include <libstoragemgmt/libstoragemgmt_volumes.h>
+#include <libstoragemgmt/libstoragemgmt_pool.h>
+#include <libstoragemgmt/libstoragemgmt_initiators.h>
 #include <libstoragemgmt/libstoragemgmt_types.h>
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 #include <libstoragemgmt/libstoragemgmt_error.h>
+
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -127,7 +131,7 @@ int loadDriver(lsmConnectPtr c, xmlURIPtr uri, const char *password,
 {
     int rc = LSM_ERR_OK;
 
-    const char *plugin_dir = getenv("LSM_PLUGIN_DIR");
+    const char *plugin_dir = getenv("LSM_UDS_PATH"); //Make this match for all supported languages
     char *plugin_file = NULL;
 
     if (plugin_dir == NULL) {
@@ -538,7 +542,7 @@ const char* lsmVolumeVpd83Get(lsmVolumePtr v)
     return VOL_GET(v, vpd83);
 }
 
-uint32_t lsmVolumeBlockSizeGet(lsmVolumePtr v)
+uint64_t lsmVolumeBlockSizeGet(lsmVolumePtr v)
 {
     return VOL_GET(v, blockSize);
 }

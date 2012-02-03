@@ -18,7 +18,7 @@
  */
 
 #include "lsm_plugin_ipc.hpp"
-#include "lsm_datatypes.h"
+#include "lsm_datatypes.hpp"
 #include "lsm_ipc.hpp"
 #include "lsm_convert.hpp"
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>

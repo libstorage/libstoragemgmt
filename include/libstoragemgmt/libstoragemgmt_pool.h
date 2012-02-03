@@ -20,7 +20,8 @@
 #ifndef LIBSTORAGEMGMT_POOL_H
 #define LIBSTORAGEMGMT_POOL_H
 
-#include <libstoragemgmt/libstoragemgmt_types.h>
+#include "libstoragemgmt_common.h"
+#include "libstoragemgmt_types.h"
 
 #ifdef  __cplusplus
 extern "C" {
@@ -31,20 +32,20 @@ extern "C" {
  * @param pa    Pool array to free.
  * @param size  Size of the pool array.
  */
-void lsmPoolRecordFreeArray( lsmPoolPtr pa[], uint32_t size );
+void LSM_DLL_EXPORT lsmPoolRecordFreeArray( lsmPoolPtr pa[], uint32_t size );
 
 /**
  * Frees the memory for an individual pool
  * @param p Valid pool
  */
-void lsmPoolRecordFree(lsmPoolPtr p);
+void LSM_DLL_EXPORT lsmPoolRecordFree(lsmPoolPtr p);
 
 /**
  * Copies a lsmPoolRecordCopy
  * @param toBeCopied    Record to be copied
  * @return NULL on memory exhaustion, else copy.
  */
-lsmPoolPtr lsmPoolRecordCopy( lsmPoolPtr toBeCopied);
+lsmPoolPtr LSM_DLL_EXPORT lsmPoolRecordCopy( lsmPoolPtr toBeCopied);
 
 /**
  * Retrieves the name from the pool.
@@ -52,7 +53,7 @@ lsmPoolPtr lsmPoolRecordCopy( lsmPoolPtr toBeCopied);
  * @param p     Pool
  * @return      The name of the pool.
  */
-char *lsmPoolNameGet( lsmPoolPtr p );
+char LSM_DLL_EXPORT *lsmPoolNameGet( lsmPoolPtr p );
 
 /**
  * Retrieves the system wide unique identifier for the pool.
@@ -60,21 +61,21 @@ char *lsmPoolNameGet( lsmPoolPtr p );
  * @param p     Pool
  * @return      The System wide unique identifier.
  */
-char *lsmPoolIdGet( lsmPoolPtr p );
+char LSM_DLL_EXPORT *lsmPoolIdGet( lsmPoolPtr p );
 
 /**
  * Retrieves the total space for the pool.
  * @param p     Pool
  * @return      Total space of the pool.
  */
-uint64_t lsmPoolTotalSpaceGet( lsmPoolPtr p );
+uint64_t LSM_DLL_EXPORT lsmPoolTotalSpaceGet( lsmPoolPtr p );
 
 /**
  * Retrieves the remaining free space in the pool.
  * @param p     Pool
  * @return      The amount of free space.
  */
-uint64_t lsmPoolFreeSpaceGet( lsmPoolPtr p );
+uint64_t LSM_DLL_EXPORT lsmPoolFreeSpaceGet( lsmPoolPtr p );
 
 #ifdef  __cplusplus
 }

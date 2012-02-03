@@ -21,10 +21,10 @@
 #define LIBSTORAGEMGMT_PLUG_INTERFACE_H
 
 #include <stdint.h>
-#include <libstoragemgmt/libstoragemgmt_types.h>
-#include <libstoragemgmt/libstoragemgmt_error.h>
 #include <libxml/uri.h>
-
+#include "libstoragemgmt_common.h"
+#include "libstoragemgmt_types.h"
+#include "libstoragemgmt_error.h"
 
 #ifdef  __cplusplus
 extern "C" {
@@ -138,11 +138,12 @@ struct lsmNasOps {
  * @param unreg Un-Registration function
  * @return exit code for plug-in
  */
-int lsmPluginInit( int argc, char *argv[], lsmPluginRegister reg,
+int LSM_DLL_EXPORT lsmPluginInit( int argc, char *argv[], lsmPluginRegister reg,
                                 lsmPluginUnregister unreg);
 
 
-int lsmRegisterPlugin( lsmPluginPtr plug, const char *desc, const char *version,
+int LSM_DLL_EXPORT lsmRegisterPlugin( lsmPluginPtr plug, const char *desc,
+                        const char *version,
                         void * private_data, struct lsmMgmtOps *mgmOps,
                         struct lsmSanOps *sanOp, struct lsmFsOps *fsOp,
                         struct lsmNasOps *nasOp );
@@ -151,7 +152,7 @@ int lsmRegisterPlugin( lsmPluginPtr plug, const char *desc, const char *version,
  * Used to retrieve private data for plug-in operation.
  * @param plug  Opaque plug-in pointer.
  */
-void *lsmGetPrivateData( lsmPluginPtr plug );
+void LSM_DLL_EXPORT *lsmGetPrivateData( lsmPluginPtr plug );
 
 
 /**
@@ -160,7 +161,7 @@ void *lsmGetPrivateData( lsmPluginPtr plug );
  * @param error         Error to associate.
  * @return              LSM_ERR_OK, else error reason.
  */
-int lsmPluginErrorLog( lsmPluginPtr plug, lsmErrorPtr error);
+int LSM_DLL_EXPORT lsmPluginErrorLog( lsmPluginPtr plug, lsmErrorPtr error);
 
 /**
  * Creates an error record.
@@ -174,7 +175,8 @@ int lsmPluginErrorLog( lsmPluginPtr plug, lsmErrorPtr error);
  * @param debug_data_size
  * @return Null on error, else valid error error record.
  */
-lsmErrorPtr     lsmErrorCreate( lsmErrorNumber code, lsmErrorDomain domain,
+lsmErrorPtr LSM_DLL_EXPORT lsmErrorCreate( lsmErrorNumber code,
+                                lsmErrorDomain domain,
                                 lsmErrorLevel level, const char* msg,
                                 const char *exception, const char *debug,
                                 const void *debug_data, uint32_t debug_data_size);
@@ -197,7 +199,7 @@ lsmErrorPtr     lsmErrorCreate( lsmErrorNumber code, lsmErrorDomain domain,
  * @param size  Number of elements
  * @return Valid pointer or NULL on error.
  */
-lsmPoolPtr *lsmPoolRecordAllocArray( uint32_t size );
+lsmPoolPtr LSM_DLL_EXPORT *lsmPoolRecordAllocArray( uint32_t size );
 
 /**
  * Helper function to allocate a pool record.
@@ -207,7 +209,7 @@ lsmPoolPtr *lsmPoolRecordAllocArray( uint32_t size );
  * @param freeSpace     Space available
  * @return LSM_ERR_OK on success, else error reason.
  */
-lsmPoolPtr lsmPoolRecordAlloc(const char *id, const char *name,
+lsmPoolPtr LSM_DLL_EXPORT lsmPoolRecordAlloc(const char *id, const char *name,
                                 uint64_t totalSpace,
                                 uint64_t freeSpace);
 
@@ -216,7 +218,7 @@ lsmPoolPtr lsmPoolRecordAlloc(const char *id, const char *name,
  * @param size      Number of elements.
  * @return Allocated memory or NULL on error.
  */
-lsmInitiatorPtr *lsmInitiatorRecordAllocArray( uint32_t size );
+lsmInitiatorPtr LSM_DLL_EXPORT *lsmInitiatorRecordAllocArray( uint32_t size );
 
 /**
  * Allocate the storage needed for one initiator record.
@@ -224,14 +226,15 @@ lsmInitiatorPtr *lsmInitiatorRecordAllocArray( uint32_t size );
  * @param id        ID of initiator.
  * @return Allocated memory or NULL on error.
  */
-lsmInitiatorPtr lsmInitiatorRecordAlloc( lsmInitiatorType idType, const char* id);
+lsmInitiatorPtr LSM_DLL_EXPORT lsmInitiatorRecordAlloc( lsmInitiatorType idType,
+                                                        const char* id);
 
 /**
  * Allocate the storage needed for and array of Volume records.
  * @param size      Number of elements.
  * @return Allocated memory or NULL on error.
  */
-lsmVolumePtr *lsmVolumeRecordAllocArray( uint32_t size);
+lsmVolumePtr LSM_DLL_EXPORT *lsmVolumeRecordAllocArray( uint32_t size);
 
 /**
  * Allocated the storage needed for one volume record.
@@ -243,8 +246,9 @@ lsmVolumePtr *lsmVolumeRecordAllocArray( uint32_t size);
  * @param status                Volume status
  * @return Allocated memory or NULL on error.
  */
-lsmVolumePtr lsmVolumeRecordAlloc( const char *id, const char *name,
-                                        const char *vpd83, uint64_t blockSize,
+lsmVolumePtr LSM_DLL_EXPORT lsmVolumeRecordAlloc( const char *id,
+                                        const char *name, const char *vpd83,
+                                        uint64_t blockSize,
                                         uint64_t numberOfBlocks,
                                         uint32_t status);
 

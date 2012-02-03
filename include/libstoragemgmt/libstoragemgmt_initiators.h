@@ -20,6 +20,7 @@
 #ifndef LIBSTORAGEMGMT_INITIATORS_H
 #define LIBSTORAGEMGMT_INITIATORS_H
 
+#include "libstoragemgmt_common.h"
 #ifdef  __cplusplus
 extern "C" {
 #endif
@@ -28,28 +29,28 @@ extern "C" {
  * Frees the memory for one initiator record.
  * @param i     Initiator record.
  */
-void lsmInitiatorRecordFree(lsmInitiatorPtr i);
+void LSM_DLL_EXPORT lsmInitiatorRecordFree(lsmInitiatorPtr i);
 
 /**
  * Returns a copy of an initiator record.
  * @param i     Initiator record to be copied.
  * @return Copy of initiator or NULL on error.
  */
-lsmInitiatorPtr lsmInitiatorRecordCopy(lsmInitiatorPtr i);
+lsmInitiatorPtr LSM_DLL_EXPORT lsmInitiatorRecordCopy(lsmInitiatorPtr i);
 
 /**
  * Frees the memory for each of the initiators records and then the array itself.
  * @param init  Array to free.
  * @param size  Size of array.
  */
-void lsmInitiatorRecordFreeArray( lsmInitiatorPtr init[], uint32_t size);
+void LSM_DLL_EXPORT lsmInitiatorRecordFreeArray( lsmInitiatorPtr init[], uint32_t size);
 
 /**
  * Returns the type of identifer returned in @see lsmInitiatorIdGet
  * @param i     lsmInitiator to inquire
  * @return      Initiator Id type, -1 if i is invalid.
  */
-lsmInitiatorType lsmInitiatorTypeGet(lsmInitiatorPtr i);
+lsmInitiatorType LSM_DLL_EXPORT lsmInitiatorTypeGet(lsmInitiatorPtr i);
 
 /**
  * Returns the initiator id (WWN, IQN etc.)
@@ -57,7 +58,7 @@ lsmInitiatorType lsmInitiatorTypeGet(lsmInitiatorPtr i);
  * @param i     lsmInitiator to inquire
  * @return      Initiator id
  */
-char *lsmInitiatorIdGet(lsmInitiatorPtr i);
+char LSM_DLL_EXPORT *lsmInitiatorIdGet(lsmInitiatorPtr i);
 
 #ifdef  __cplusplus
 }

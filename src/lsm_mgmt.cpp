@@ -25,7 +25,7 @@
 #include <string.h>
 #include <libxml/uri.h>
 
-#include "lsm_datatypes.h"
+#include "lsm_datatypes.hpp"
 #include "lsm_convert.hpp"
 
 /**

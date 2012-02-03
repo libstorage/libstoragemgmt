@@ -21,6 +21,7 @@
 #define LIBSTORAGEMGMTERROR_H
 
 #include <stdlib.h>
+#include "libstoragemgmt_common.h"
 
 #ifdef  __cplusplus
 extern "C" {
@@ -91,35 +92,35 @@ typedef lsmError *lsmErrorPtr;
  * @param c      Connection pointer.
  * @return lsmErrorPtr, Null if no error exists!
  */
-lsmErrorPtr lsmErrorGetLast(lsmConnectPtr c);
+lsmErrorPtr LSM_DLL_EXPORT lsmErrorGetLast(lsmConnectPtr c);
 
 /**
  * Frees the error record!
  * @param err   The error to free!
  * @return LSM_ERR_OK on success, else error reason.
  */
-int lsmErrorFree(lsmErrorPtr err);
+int LSM_DLL_EXPORT lsmErrorFree(lsmErrorPtr err);
 
 /**
  * Retrieves the error number from the error.
  * @param e     The lsmErrorPtr
  * @return -1 if e is not a valid error pointer, else error number.
  */
-lsmErrorNumber lsmErrorGetNumber(lsmErrorPtr e);
+lsmErrorNumber LSM_DLL_EXPORT lsmErrorGetNumber(lsmErrorPtr e);
 
 /**
  * Retrieves the domain from the error.
  * @param e     The lsmErrorPtr
  * @return -1 if e is not a valid error pointer, else error domain value.
  */
-lsmErrorDomain lsmErrorGetDomain(lsmErrorPtr e);
+lsmErrorDomain LSM_DLL_EXPORT lsmErrorGetDomain(lsmErrorPtr e);
 
 /**
  * Retrieves the error level from the error.
  * @param e     The lsmErrorPtr
  * @return -1 if e is not a valid error pointer, else error level.
  */
-lsmErrorLevel lsmErrorGetLevel(lsmErrorPtr e);
+lsmErrorLevel LSM_DLL_EXPORT lsmErrorGetLevel(lsmErrorPtr e);
 
 /**
  * Retrieves the error message from the error.
@@ -129,7 +130,7 @@ lsmErrorLevel lsmErrorGetLevel(lsmErrorPtr e);
  * @param e     The lsmErrorPtr
  * @return NULL if message data does not exist, else error message.
  */
-char* lsmErrorGetMessage(lsmErrorPtr e);
+char LSM_DLL_EXPORT *lsmErrorGetMessage(lsmErrorPtr e);
 
 /**
  * Retrieves the exception message from the error.
@@ -139,7 +140,7 @@ char* lsmErrorGetMessage(lsmErrorPtr e);
  * @param e     The lsmErrorPtr
  * @return NULL if exception does not exist, else error exception.
  */
-char* lsmErrorGetException(lsmErrorPtr e);
+char LSM_DLL_EXPORT *lsmErrorGetException(lsmErrorPtr e);
 
 /**
  * Retrieves the error message from the error.
@@ -149,7 +150,7 @@ char* lsmErrorGetException(lsmErrorPtr e);
  * @param e     The lsmErrorPtr
  * @return NULL if does not exist, else debug message.
  */
-char* lsmErrorGetDebug(lsmErrorPtr e);
+char LSM_DLL_EXPORT *lsmErrorGetDebug(lsmErrorPtr e);
 
 /**
  * Retrieves the debug data from the error.
@@ -160,7 +161,7 @@ char* lsmErrorGetDebug(lsmErrorPtr e);
  * @param[out] size     Number of bytes of data returned.
  * @return NULL if does not exist, else debug message.
  */
-void* lsmErrorGetDebugData(lsmErrorPtr e, uint32_t *size);
+void LSM_DLL_EXPORT *lsmErrorGetDebugData(lsmErrorPtr e, uint32_t *size);
 
 #ifdef  __cplusplus
 }

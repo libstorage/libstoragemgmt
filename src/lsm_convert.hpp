@@ -20,7 +20,7 @@
 #ifndef LSM_CONVERT_HPP
 #define LSM_CONVERT_HPP
 
-#include "lsm_datatypes.h"
+#include "lsm_datatypes.hpp"
 #include "lsm_ipc.hpp"
 
 /**

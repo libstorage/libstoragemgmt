@@ -35,7 +35,7 @@ import lsm.common
 #TODO Change these to sane defaults
 PID_FILE = '/tmp/lsm/lsmd.pid'
 SOCKET_DIR = lsm.common.UDS_PATH
-PLUGIN_DIR = None
+PLUGIN_DIR = '/usr/bin'
 daemon = None
 
 class LsmDaemon(Daemon):
@@ -68,10 +68,9 @@ class LsmDaemon(Daemon):
             files = os.listdir(plugindir)
 
             for e in files:
-                if e[-10:] == '.lsmplugin':
+                if e[-10:] == '_lsmplugin':
                     name = e[:-10]
                     fqn = plugindir + os.sep + e
-                    print 'FQN=', fqn
 
                     server_sockets[fqn] = self.setup_socket(
                         socketdir + os.sep + name)
@@ -215,6 +214,10 @@ if __name__ == "__main__":
         print sys.stderr.write("--plugindir is a required argument")
         usage()
         sys.exit(2)
+
+    #Check the socket directory, create if we can
+    if not os.path.exists(SOCKET_DIR):
+        os.makedirs(SOCKET_DIR)
 
     daemon = LsmDaemon(PID_FILE)
 
