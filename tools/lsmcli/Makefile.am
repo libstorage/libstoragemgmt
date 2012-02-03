@@ -1,0 +1,8 @@
+INCLUDES = -I$(top_srcdir)/include -I@srcdir@/include
+
+bin_PROGRAMS = lsmcli
+lsmcli_LDADD = ../../src/libstoragemgmt.la $(BOOST_LIBS)
+lsmcli_SOURCES = lsmcli.cpp \
+                 arguments.h arguments.cpp \
+                 lsmcli_func.h lsmcli_func.cpp
+                 
