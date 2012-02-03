@@ -12,8 +12,8 @@ else
 	DEFS = -DPEGASUS_PLATFORM_LINUX_IX86_GNU
 endif
 
-smis.lsmplugin:	lsm_plugin_smis.cpp smis.o qparams.o misc.o  $(LIBINC)
-	$(CXX) $(DEFS) $(INCLUDES) $(CFLAGS) $(LIBDIR) $(LIBS) lsm_plugin_smis.cpp smis.o qparams.o misc.o -o smis.lsmplugin
+smis_lsmplugin:	lsm_plugin_smis.cpp smis.o qparams.o misc.o  $(LIBINC)
+	$(CXX) $(DEFS) $(INCLUDES) $(CFLAGS) $(LIBDIR) $(LIBS) lsm_plugin_smis.cpp smis.o qparams.o misc.o -o smis_lsmplugin
 
 smis.o:	smis.cpp smis.h $(LIBINC)
 	$(CXX) $(DEFS) $(INCLUDES) $(CFLAGS) -c smis.cpp

@@ -31,16 +31,41 @@ void printVolume(const LSM::Arguments &a, lsmVolumePtr v)
     uint64_t block_num = lsmVolumeNumberOfBlocks(v);
     uint32_t status = lsmVolumeOpStatusGet(v);
     uint64_t size = block_size * block_num;
-
+    std::string s = LSM::sizeHuman(a.human.present, size);
+    
     if( a.terse.present ) {
         sep = a.terse.value.c_str();
-        printf("%s%s%s%s%s%s%lu%s%lu%s%u%s%s\n", id, sep, name,
-                sep, vpd, sep, block_size, sep, block_num, sep,
-                status, sep, LSM::sizeHuman(a.human.present, size).c_str());
+        
+        printf("%s", id);
+        printf("%s", sep);
+        printf("%s", name);
+        printf("%s", sep);
+        printf("%s", vpd);
+        printf("%s", sep);
+        printf("%llu", block_size);
+        printf("%s", sep);
+        printf("%llu", block_num);
+        printf("%s", sep);
+        printf("%u", status);
+        printf("%s", sep);
+        printf("%s\n", s.c_str());
+        
+        //Why doesn't this one line work on newer compilers...
+        //printf("%s%s%s%s%s%s%lu%s%lu%s%u%s%s\n", id, sep, name,
+        //        sep, vpd, sep, block_size, sep, block_num, sep,
+        //        status, sep, LSM::sizeHuman(a.human.present, size).c_str());
     } else {
-        printf("%s %-40s\t%s %-8lu\t%-17lu\t%u\t%20s\n", id, name,
-                vpd, block_size, block_num, status,
-                LSM::sizeHuman(a.human.present, size).c_str());
+        printf("%s ", id);
+        printf("%-40s", name);
+        printf("%s ", vpd);
+        printf("%-8llu", block_size);
+        printf("%-17llu", block_num);
+        printf("%u", status);
+        printf("%20s\n", s.c_str());
+        
+        //Again, what is wrong here...
+        //printf("%s %-40s\t%s %-8lu\t%-17lu\t%u\t%20s\n", id, name,
+        //      vpd, block_size, block_num, status, s.c_str());
     }
 }
 
@@ -108,18 +133,15 @@ static int listVolumes(const LSM::Arguments &a, lsmConnectPtr c)
     int rc = 0;
     lsmVolumePtr *vol = NULL;
     uint32_t num_vol = 0;
-    const char *sep = NULL;
-
+  
     rc = lsmVolumeList(c, &vol, & num_vol);
 
     if( rc == LSM_ERR_OK ) {
         uint32_t i;
 
-        if( a.terse.present ) {
-            sep = a.terse.value.c_str();
-        } else {
-            printf("ID           Name\t\t\t\t\tvpd83                      "
-                    "      bs\t\t#blocks\t\t\tstatus\t\t\tsize\n");
+        if( !a.terse.present ) {
+            printf("ID           Name                                    vpd83                      "
+                    "      bs      #blocks          status           size\n");
         }
 
         for( i = 0; i <  num_vol; ++i ) {
@@ -184,8 +206,8 @@ static int listPools(const LSM::Arguments &a, lsmConnectPtr c)
         if( a.terse.present ) {
             sep = a.terse.value.c_str();
         } else {
-            printf("ID                                       Name"
-                    "                        Total space                    "
+            printf("ID                                      Name"
+                    "                         Total space                    "
                     "          Free space\n");
         }
 
