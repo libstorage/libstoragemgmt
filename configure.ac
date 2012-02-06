@@ -75,7 +75,7 @@ AC_CHECK_HEADERS([dlfcn.h])
 YAJL_FOUND=no
 AC_CHECK_HEADERS([yajl/yajl_gen.h yajl/yajl_parse.h], [] , AC_MSG_ERROR([Missing yajl development headers]) )
 
-AC_CHECK_LIB([yajl], [yajl_do_parse])
+AC_CHECK_LIB([yajl], [yajl_parse])
 
 #Check for boost specific headers
 AC_CHECK_HEADERS([boost/regex.hpp], [] , AC_MSG_ERROR([boost headers missing and are required]) )
