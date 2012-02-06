@@ -10,6 +10,9 @@ AC_CONFIG_MACRO_DIR([m4])
 dnl Make automake keep quiet about wildcards & other GNUmake-isms
 AM_INIT_AUTOMAKE([-Wno-portability])
 AM_MAINTAINER_MODE([enable])
+# Enable silent build when available (Automake 1.11)
+m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
+PKG_PROG_PKG_CONFIG
 
 AC_CANONICAL_HOST
 
@@ -72,9 +75,7 @@ AC_CHECK_HEADERS([dlfcn.h])
 YAJL_FOUND=no
 AC_CHECK_HEADERS([yajl/yajl_gen.h yajl/yajl_parse.h], [] , AC_MSG_ERROR([Missing yajl development headers]) )
 
-#OK is there a better way to do this?
-YAJL_LIBS="-lyajl"
-AC_SUBST([YAJL_LIBS])
+AC_CHECK_LIB([yajl], [yajl_do_parse])
 
 #Check for boost specific headers
 AC_CHECK_HEADERS([boost/regex.hpp], [] , AC_MSG_ERROR([boost headers missing and are required]) )
@@ -95,41 +96,8 @@ fi
 dnl ==========================================================================
 dnl find libxml2 library, borrowed from xmlsec
 dnl ==========================================================================
-LIBXML_CONFIG="xml2-config"
-LIBXML_CFLAGS=""
-LIBXML_LIBS=""
-LIBXML_FOUND="no"
 
-AC_ARG_WITH([libxml], AC_HELP_STRING([--with-libxml=@<:@PFX@:>@], [libxml2 location]))
-if test "x$with_libxml" = "xno" ; then
-    AC_MSG_CHECKING(for libxml2 libraries >= $LIBXML_REQUIRED)
-    AC_MSG_ERROR([libxml2 >= $LIBXML_REQUIRED is required for libstoragemgmt])
-elif test "x$with_libxml" = "x" && test "x$PKG_CONFIG" != "x" ; then
-    PKG_CHECK_MODULES(LIBXML, libxml-2.0 >= $LIBXML_REQUIRED, [LIBXML_FOUND=yes], [LIBXML_FOUND=no])
-fi
-if test "$LIBXML_FOUND" = "no" ; then
-    if test "x$with_libxml" != "x" ; then
-	LIBXML_CONFIG=$with_libxml/bin/$LIBXML_CONFIG
-    fi
-    AC_MSG_CHECKING(libxml2 $LIBXML_CONFIG >= $LIBXML_REQUIRED )
-    if ! $LIBXML_CONFIG --version > /dev/null 2>&1 ; then
-	AC_MSG_ERROR([Could not find libxml2 anywhere (see config.log for details).])
-    fi
-    vers=`$LIBXML_CONFIG --version | awk -F. '{ printf "%d", ($1 * 1000 + $2) * 1000 + $3;}'`
-    minvers=`echo $LIBXML_REQUIRED | awk -F. '{ printf "%d", ($1 * 1000 + $2) * 1000 + $3;}'`
-    if test "$vers" -ge "$minvers" ; then
-        LIBXML_LIBS="`$LIBXML_CONFIG --libs`"
-        LIBXML_CFLAGS="`$LIBXML_CONFIG --cflags`"
-	LIBXML_FOUND="yes"
-        AC_MSG_RESULT(yes)
-    else
-        AC_MSG_ERROR(
-          [You need at least libxml2 $LIBXML_REQUIRED for libstoragemgmt])
-    fi
-fi
-
-AC_SUBST([LIBXML_CFLAGS])
-AC_SUBST([LIBXML_LIBS])
+PKG_CHECK_MODULES([LIBXML], [libxml-2.0])
 
 # this sucks but Pegasus requires this test per system, arch, compiler
 PEGASUS_CFLAGS=
