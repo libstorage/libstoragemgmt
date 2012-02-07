@@ -28,10 +28,7 @@
 #include <errno.h>
 #include <string.h>
 #include <libxml/uri.h>
-#include <boost/assign.hpp>
 #include <syslog.h>
-
-using namespace boost::assign;
 
 //Forward decl.
 static int lsmPluginRun(lsmPluginPtr plug);
@@ -533,7 +530,7 @@ static int handle_access_revoke(lsmPluginPtr p, Value &params, Value &response)
 /**
  * map of function pointers
  */
-static std::map<std::string,handler> dispatch = map_list_of
+static std::map<std::string,handler> dispatch = static_map<std::string,handler>
     ("shutdown", handle_shutdown)
     ("set_time_out", handle_set_time_out)
     ("get_time_out", handle_get_time_out)

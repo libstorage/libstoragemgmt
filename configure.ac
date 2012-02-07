@@ -76,11 +76,6 @@ AC_CHECK_HEADERS([yajl/yajl_gen.h yajl/yajl_parse.h], [] , AC_MSG_ERROR([Missing
 AC_CHECK_LIB([yajl], [yajl_parse], [YAJL_LIBS=-lyajl], AC_MSG_ERROR([Missing yajl library]))
 AC_SUBST([YAJL_LIBS])
 
-#Check for boost specific headers
-AC_CHECK_HEADERS([boost/regex.hpp], [] , AC_MSG_ERROR([boost headers missing and are required]) )
-BOOST_LIBS="-lboost_regex"
-AC_SUBST([BOOST_LIBS])
-
 dnl if --prefix is /usr, don't use /usr/var for localstatedir
 dnl or /usr/etc for sysconfdir
 dnl as this makes a lot of things break in testing situations

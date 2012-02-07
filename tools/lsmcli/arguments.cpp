@@ -24,9 +24,11 @@
 #include <stdarg.h>
 #include <unistd.h>
 #include <iomanip>
-#include <boost/algorithm/string/join.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/regex.hpp>
+#include <sstream>
+#include <algorithm>
+
+#define __STDC_FORMAT_MACROS    /* To use PRIu64 */
+#include <inttypes.h>
 
 namespace LSM {
 
@@ -169,6 +171,20 @@ void version()
     exit(0);
 }
 
+static std::string join(std::vector<std::string> s, std::string del)
+{
+    std::string rc = "";
+
+    for( size_t i = 0; i < s.size(); ++i) {
+        rc += s[i];
+        if( i + 1 < s.size()) {
+            rc +=del;
+        }
+    }
+
+    return rc;
+}
+
 std::string validateDomain( std::string option, std::string  value,
                         const std::vector<std::string> &domain)
 {
@@ -181,7 +197,7 @@ std::string validateDomain( std::string option, std::string  value,
         }
     }
     syntaxError("option (%s) with value (%s) not in set [%s]\n", option.c_str(),
-                value.c_str(), boost::algorithm::join(domain, "|").c_str());
+                value.c_str(), join(domain, "|").c_str());
 
     return "Never get here!";
 }
@@ -254,7 +270,7 @@ void parseArguments(int argc, char **argv, Arguments &args) {
                         case (13): {
                             uint64_t s = 0;
 
-                            if( ! sizeArg(optarg, s) ) {
+                            if( ! sizeArg(optarg, &s) ) {
                                 syntaxError("--size %s not in the form "
                                             "<num>|<num>[M|G|T]\n", optarg);
                             }
@@ -448,25 +464,25 @@ void processCommandLine( int argc, char **argv, Arguments &args )
     requiredArguments(args);
 }
 
-bool sizeArg(std::string s, uint64_t &size)
+int sizeArg(const char *s, uint64_t *size)
 {
-    boost::regex e("([0-9]+)([MGT]*)");
-    boost::cmatch what;
-    if( boost::regex_match(s.c_str(), what, e) ) {
-        size = atoll(what[1].first);
-        std::string units = what[2].first;
+    char units = 'M';
+    int rc = 0;
 
-        if( units == "M") {
-            size *= MiB;
-        } else if (units == "G") {
-            size *= GiB;
-        } else if (units == "T") {
-            size *= TiB;
+    if( s != NULL && size != NULL &&
+        (2 == sscanf(s,"%"PRIu64"%c", size, &units)) &&
+        (units == 'M' || units == 'G' || units == 'T') ) {
+
+        if( units == 'M') {
+            *size *= MiB;
+        } else if (units == 'G') {
+            *size *= GiB;
+        } else if (units == 'T') {
+            *size *= TiB;
         }
-        return true;
-    } else {
-        return false;
+        rc = 1;
     }
+    return rc;
 }
 
 std::string sizeHuman(bool human, uint64_t size)

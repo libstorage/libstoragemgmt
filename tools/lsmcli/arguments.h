@@ -208,9 +208,9 @@ const uint64_t TiB = 1099511627776; //2**40
  * Validates and returns the value of size that the user supplied
  * @param s             String in the form [0-9]+[MGT]
  * @param[out] size     Size in bytes.
- * @return True if parsed OK, else false.
+ * @return 1 if parsed OK, else 0.
  */
-bool sizeArg(std::string s, uint64_t &size);
+int sizeArg(const char* s, uint64_t *size);
 
 /**
  * Returns a string representation of a size

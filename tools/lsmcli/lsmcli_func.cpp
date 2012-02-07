@@ -327,7 +327,7 @@ int createVolume(const LSM::Arguments &a, lsmConnectPtr c)
     pool = getPool(c, a.pool.value);
     if( pool ) {
 
-        LSM::sizeArg(a.size.value, size);
+        LSM::sizeArg(a.size.value.c_str(), &size);
 
         rc = lsmVolumeCreate(c,pool, a.commandValue.c_str(),
                                 size, a.provisionType(), &vol, &job);
@@ -451,7 +451,7 @@ int resizeVolume(const LSM::Arguments &a, lsmConnectPtr c)
     lsmVolumePtr newVol = NULL;
     lsmVolumePtr vol = getVolume(c, a.commandValue);
 
-    LSM::sizeArg(a.size.value, size);
+    LSM::sizeArg(a.size.value.c_str(), &size);
 
     if( vol ) {
         rc = lsmVolumeResize(c, vol, size, &newVol, &job);
