@@ -72,10 +72,9 @@ dnl Availability of various common headers (non-fatal if missing).
 AC_CHECK_HEADERS([dlfcn.h])
 
 #Check for json parser yajl
-YAJL_FOUND=no
 AC_CHECK_HEADERS([yajl/yajl_gen.h yajl/yajl_parse.h], [] , AC_MSG_ERROR([Missing yajl development headers]) )
-
-AC_CHECK_LIB([yajl], [yajl_parse])
+AC_CHECK_LIB([yajl], [yajl_parse], [YAJL_LIBS=-lyajl], AC_MSG_ERROR([Missing yajl library]))
+AC_SUBST([YAJL_LIBS])
 
 #Check for boost specific headers
 AC_CHECK_HEADERS([boost/regex.hpp], [] , AC_MSG_ERROR([boost headers missing and are required]) )
