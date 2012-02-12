@@ -181,7 +181,6 @@ class StorageSimulator(IPlugin):
             return self.__create_job(None)[0]
         else:
             raise LsmError(ErrorNumber.INVALID_VOL, 'Volume not found')
-        return None
 
     def initiator_create(self, name, id, id_type):
         if id not in self.__i:

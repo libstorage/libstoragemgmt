@@ -140,7 +140,7 @@ class IPlugin(object):
         pass
 
     @abstractmethod
-    def volume_replicate(self, pool, rep_type, vol_src, name):
+    def volume_replicate(self, pool, rep_type, volume_src, name):
         """
         Replicates a volume from the specified pool.
 

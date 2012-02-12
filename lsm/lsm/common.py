@@ -19,6 +19,7 @@
 
 import os
 import unittest
+import urlparse
 
 from external.enumeration import Enumeration
 import sys
@@ -30,6 +31,10 @@ UDS_PATH = '/tmp/lsm/ipc'
 
 #Set to True for verbose logging
 LOG_VERBOSE = True
+
+def uri_parameters( uri ):
+    url = urlparse.urlparse('http:' + uri[2])
+    return dict([part.split('=') for part in url[4].split('&')])
 
 def params_to_string(*args):
     return ''.join( [ str(e) for e in args] )
@@ -62,6 +67,7 @@ class SocketEOF(Exception):
     pass
 
 class LsmError(Exception):
+
     def __init__(self, code, message, data=None, *args, **kwargs):
         """
         Class represents an error.
@@ -135,6 +141,12 @@ ErrorNumber = Enumeration('ErrorNumber',
         ('NO_MAPPING', 22),
         ('INSUFFICIENT_SPACE', 23),
         ('IS_MAPPED', 24),
+        ('LSM_ERROR_COMMUNICATION', 25),
+        ('LSM_ERROR_SERIALIZATION', 26),
+        ('LSM_INVALID_PLUGIN', 27),
+        ('LSM_ERR_MISSING_HOST', 28),
+        ('LSM_ERR_MISSING_PORT', 29),
+        ('LSM_ERR_MISSING_NS', 30),
         ('AUTH_FAILED', 45)
     ])
 
