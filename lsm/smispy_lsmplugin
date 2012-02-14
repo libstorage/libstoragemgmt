@@ -26,29 +26,53 @@ from lsm.common import uri_parameters, LsmError, ErrorNumber, JobStatus
 from lsm.pluginrunner import PluginRunner
 from lsm.data import Pool, Initiator, Volume
 
+def handle_cim_errors(method):
+    def cim_wrapper(*args, **kwargs):
+        try:
+            return method(*args, **kwargs)
+        except CIMError as ce:
+            raise LsmError(ErrorNumber.PLUGIN_ERROR, str(ce))
+    return cim_wrapper
 
-(JS_NEW, JS_STARTING, JS_RUNNING, JS_SUSPENDED, JS_SHUTTING_DOWN, JS_COMPLETED,
- JS_TERMINATED, JS_KILLED, JS_EXCEPTION) = (2,3,4,5,6,7,8,9,10)
-
-(OP_OK, OP_ERROR, OP_STOPPED, OP_COMPLETE) = (2,6,10,17)
-
-(INVOKE_OK, INVOKE_ASYNC) = (0, 4096)
-
-(SYNC_TYPE_MIRROR, SYNC_TYPE_SNAPSHOT, SYNC_TYPE_CLONE) = (6,7,8)
 
 class Smis(IPlugin):
+    """
+    SMI-S plug-ing which exposes a small subset of the overall provided
+    functionality of SMI-S
+    """
+
+    #SMI-S job 'JobState' enumerations
+    (JS_NEW, JS_STARTING, JS_RUNNING, JS_SUSPENDED, JS_SHUTTING_DOWN, JS_COMPLETED,
+     JS_TERMINATED, JS_KILLED, JS_EXCEPTION) = (2,3,4,5,6,7,8,9,10)
+
+    #SMI-S job 'OperationalStatus' enumerations
+    (JOB_OK, JOB_ERROR, JOB_STOPPED, JOB_COMPLETE) = (2,6,10,17)
+
+    #SMI-S invoke return values we are interested in
+    (INVOKE_OK, INVOKE_ASYNC) = (0, 4096)
+
+    #SMI-S replication enumerations
+    (SYNC_TYPE_MIRROR, SYNC_TYPE_SNAPSHOT, SYNC_TYPE_CLONE) = (6,7,8)
+
+    #SMI-S volume 'OperationalStatus' enumerations
+    (VOL_OP_STATUS_OK, VOL_OP_STATUS_DEGRADED, VOL_OP_STATUS_ERR, VOL_OP_STATUS_STARTING,
+     VOL_OP_STATUS_DORMANT) = (2,3,6,8,15)
+
+    #SMI-S ExposePaths device access enumerations
+    (EXPOSE_PATHS_DA_READ_WRITE,EXPOSE_PATHS_DA_READ_ONLY) = (2,3)
 
     def __init__(self):
-        self.__c = None
-        self.__jobs = {}
-        self.__job_id = 1
+        self._c = None
+        self._jobs = {}
+        self._job_id = 1
 
-    def __get_class_instance(self, class_name, prop_name=None, prop_value=None):
+
+    def _get_class_instance(self, class_name, prop_name=None, prop_value=None):
         """
         Gets an instance of a class that optionally matches a specific
         property name and value
         """
-        instances = self.__c.EnumerateInstances(class_name)
+        instances = self._c.EnumerateInstances(class_name)
 
         if prop_name is None:
             if len(instances) != 1:
@@ -68,58 +92,70 @@ class Smis(IPlugin):
                         " with property " + prop_name +
                         " with value " + prop_value)
 
-    def __get_pool(self, id):
-        return self.__get_class_instance("CIM_StoragePool", "PoolID", id)
+    def _get_pool(self, id):
+        """
+        Get a specific instance of a pool by pool id.
+        """
+        return self._get_class_instance("CIM_StoragePool", "PoolID", id)
 
-    def __get_volume(self, id):
-        return self.__get_class_instance("CIM_StorageVolume", "DeviceID", id)
+    def _get_volume(self, id):
+        """
+        Get a specific instance of a volume by volume id.
+        """
+        return self._get_class_instance("CIM_StorageVolume", "DeviceID", id)
 
-    def __get_spc(self, initiator_id, volume_id):
+    def _get_spc(self, initiator_id, volume_id):
+        """
+        Retrieve the SCSIProtocolController for a given initiator and volume.
+        This will return a non-none value when there is a mapping between the
+        initiator and the volume.
+        """
+        init = self._get_class_instance('CIM_StorageHardwareID', 'StorageID', initiator_id)
 
-        init = self.__get_class_instance('CIM_StorageHardwareID', 'StorageID', initiator_id)
-
-        params = {}
-
-        auths = self.__c.Associators(init.path, **params)
+        auths = self._c.Associators(init.path)
 
         for a in auths:
-            spc = self.__c.Associators(a.path, **params)
+            spc = self._c.Associators(a.path)
 
             if len(spc) > 0:
-                logical_device = self.__c.Associators(spc[0].path, **params)
+                logical_device = self._c.Associators(spc[0].path)
 
                 if len(logical_device) > 0:
-                    vol = self.__c.GetInstance(logical_device[0].path, **params)
+                    vol = self._c.GetInstance(logical_device[0].path)
 
                     if 'DeviceID' in vol and vol['DeviceID'] == volume_id:
-                        return True, spc[0]
+                        return spc[0]
 
-        return False, None
+        return None
 
-    def __process_invoke(self, msg, retrieve_vol, rc, out):
+    def _pi(self, msg, retrieve_vol, rc, out):
+        """
+        Handle the the process of invoking an operation.
+        """
 
         #Check to see if operation is done
-        if rc == INVOKE_OK:
+        if rc == Smis.INVOKE_OK:
             if retrieve_vol:
-                return None, self.__new_vol_from_name(out)
+                return None, self._new_vol_from_name(out)
             else:
                 return None, None
 
-        elif rc == INVOKE_ASYNC:
+        elif rc == Smis.INVOKE_ASYNC:
             #We have an async operation
-            self.__job_id += 1
-            self.__jobs[self.__job_id] = { 'job':out['Job'], 'retrieve_vol':retrieve_vol}
-            return self.__job_id, None
+            self._job_id += 1
+            self._jobs[self._job_id] = { 'job':out['Job'], 'retrieve_vol':retrieve_vol}
+            return self._job_id, None
         else:
             raise LsmError(ErrorNumber.PLUGIN_ERROR, 'Error: ' + msg + " rc= " + str(rc))
 
     def startup(self, uri, password, timeout):
+        """
+        Called when the plug-in runner gets the start request from the client.
+        """
         protocol = 'http'
         u = urlparse.urlparse(uri)
 
-        s = u.scheme.lower()
-
-        if s == 'smispy+ssl':
+        if u.scheme.lower() == 'smispy+ssl':
             protocol = 'https'
 
         url = protocol + '://' + u.hostname + ":" + str(u.port)
@@ -127,42 +163,50 @@ class Smis(IPlugin):
         params = uri_parameters(u)
 
         self.tmo = timeout
-        self.__c = pywbem.WBEMConnection(url, (u.username, password),
+        self._c = pywbem.WBEMConnection(url, (u.username, password),
                                             params["namespace"] )
 
     def set_time_out(self, ms):
-        self.tmp = ms
+        self.tmo = ms
 
     def get_time_out(self):
         return self.tmo
 
     def shutdown(self):
-        self.__c = None
+        self._c = None
+        self._jobs = None
 
-    def __job_completed_ok(self, status):
+    def _job_completed_ok(self, status):
+        """
+        Given a concrete job instance, check the operational status.  This is a
+        little convoluted as different SMI-S proxies return the values in different
+        positions in list :-)
+        """
         rc = False
         op = status['OperationalStatus']
 
         if len(op) > 1 and \
-            ((op[0] == OP_OK and op[1] == OP_COMPLETE) or
-             (op[0] == OP_COMPLETE and op[1] == OP_OK)):
+            ((op[0] == Smis.JOB_OK and op[1] == Smis.JOB_COMPLETE) or
+             (op[0] == Smis.JOB_COMPLETE and op[1] == Smis.JOB_OK)):
             rc = True
 
         return rc
 
-    def __job_progress(self, job_record):
+    def _job_progress(self, job_record):
+        """
+        Given a concrete job instance name, check the status
+        """
         volume = None
         percent_complete = 0
 
         job = job_record['job']
         get_vol = job_record['retrieve_vol']
 
-        in_params = {}
-        concrete_job =self.__c.GetInstance(job, **in_params)
+        concrete_job =self._c.GetInstance(job)
 
         job_state = concrete_job['JobState']
 
-        if job_state == JS_NEW or job_state == JS_STARTING or job_state == JS_RUNNING:
+        if job_state in(Smis.JS_NEW, Smis.JS_STARTING, Smis.JS_RUNNING):
             status = JobStatus.INPROGRESS
 
             pc = concrete_job['PercentComplete']
@@ -171,20 +215,20 @@ class Smis(IPlugin):
             else:
                 percent_complete = pc
 
-        elif job_state == JS_COMPLETED:
+        elif job_state == Smis.JS_COMPLETED:
             status = JobStatus.COMPLETE
             percent_complete = 100
 
-            if self.__job_completed_ok(concrete_job):
+            if self._job_completed_ok(concrete_job):
                 if get_vol:
-                    volume = self.__new_vol_from_job(concrete_job)
+                    volume = self._new_vol_from_job(concrete_job)
             else:
                 status = JobStatus.Error
 
             #See if we should delete the job
             if not concrete_job['DeleteOnCompletion']:
                 try:
-                    self.__c.DeleteInstance(concrete_job.path)
+                    self._c.DeleteInstance(concrete_job.path)
                 except CIMError:
                     pass
         else:
@@ -192,202 +236,233 @@ class Smis(IPlugin):
 
         return status, percent_complete, volume
 
+    @handle_cim_errors
     def job_status(self, job_number):
-        if job_number in self.__jobs:
-            return self.__job_progress(self.__jobs[job_number])
+        """
+        Given a job number (integer) returns the current status as a tuple
+        (status (enum), percent_complete(integer), volume (None or Volume))
+        """
+        if job_number in self._jobs:
+            return self._job_progress(self._jobs[job_number])
         else:
             raise LsmError(ErrorNumber.INVALID_JOB_NUM, 'Non-existent job')
 
-    def __new_vol(self, cv):
+    def _new_vol(self, cv):
+        """
+        Takes a CIMInstance that represents a volume and returns a lsm Volume
+        """
         status = Volume.STATUS_UNKNOWN
 
         if 'OperationalStatus' in cv:
             for s in cv["OperationalStatus"]:
-                if s == 2:
+                if s == Smis.VOL_OP_STATUS_OK:
                     status |= Volume.STATUS_OK
-                elif s == 3:
+                elif s == Smis.VOL_OP_STATUS_DEGRADED:
                     status |= Volume.STATUS_DEGRADED
-                elif s == 6:
+                elif s == Smis.VOL_OP_STATUS_ERR:
                     status |= Volume.STATUS_ERR
-                elif s == 8:
+                elif s == Smis.VOL_OP_STATUS_STARTING:
                     status |= Volume.STATUS_STARTING
-                elif s == 15:
+                elif s == Smis.VOL_OP_STATUS_DORMANT:
                     status |= Volume.STATUS_DORMANT
 
         return Volume(  cv["DeviceID"], cv["ElementName"],
                         cv["OtherIdentifyingInfo"][0], cv["BlockSize"],
                         cv["NumberOfBlocks"], status)
 
-    def __new_vol_from_name(self, out):
-        return self.__new_vol(self.__get_volume(out['TheElement']['DeviceID']))
+    def _new_vol_from_name(self, out):
+        """
+        Given a volume by CIMInstanceName, return a lsm Volume object
+        """
+        return self._new_vol(self._get_volume(out['TheElement']['DeviceID']))
 
-    def __new_vol_from_job(self, job):
-        params = {}
-        associations = self.__c.Associators(job.path, **params)
+    def _new_vol_from_job(self, job):
+        """
+        Given a concrete job instance, return referenced volume as lsm volume
+        """
+        associations = self._c.Associators(job.path)
 
         for a in associations:
-            return self.__new_vol(self.__c.GetInstance(a.path, **params))
+            return self._new_vol(self._c.GetInstance(a.path))
         return None
 
+    @handle_cim_errors
     def volumes(self):
-        try:
-            volumes = self.__c.EnumerateInstances('CIM_StorageVolume')
-            return [ self.__new_vol(v) for v in volumes ]
-        except CIMError as ce:
-            raise LsmError(ErrorNumber.PLUGIN_ERROR, str(ce))
+        """
+        Return all volumes.
+        """
+        volumes = self._c.EnumerateInstances('CIM_StorageVolume')
+        return [ self._new_vol(v) for v in volumes ]
 
+    @handle_cim_errors
     def pools(self):
-        try:
-            pools = self.__c.EnumerateInstances('CIM_StoragePool')
-            return [ Pool(p["PoolID"], p["ElementName"],
-                    p["TotalManagedSpace"],
-                    p["RemainingManagedSpace"]) for p in pools if not p["Primordial"]]
-        except CIMError as ce:
-            raise LsmError(ErrorNumber.PLUGIN_ERROR, str(ce))
+        """
+        Return all pools
+        """
+        pools = self._c.EnumerateInstances('CIM_StoragePool')
+        return [ Pool(p["PoolID"], p["ElementName"],
+                p["TotalManagedSpace"],
+                p["RemainingManagedSpace"]) for p in pools if not p["Primordial"]]
 
+    @handle_cim_errors
     def initiators(self):
-        initiators = self.__c.EnumerateInstances('CIM_StorageHardwareID')
+        """
+        Return all initiators.
+        """
+        initiators = self._c.EnumerateInstances('CIM_StorageHardwareID')
         return [ Initiator(i["StorageID"], i["IDType"]) for i in initiators ]
 
+    @handle_cim_errors
     def volume_create(self, pool, volume_name, size_bytes, provisioning):
+        """
+        Create a volume.
+        """
         if provisioning != Volume.PROVISION_DEFAULT:
             raise LsmError(ErrorNumber.UNSUPPORTED_PROVISIONING,
                             "Unsupported provisioning")
 
-        try:
-            scs = self.__get_class_instance('CIM_StorageConfigurationService')
-            sp = self.__get_pool(pool.id)
+        scs = self._get_class_instance('CIM_StorageConfigurationService')
+        sp = self._get_pool(pool.id)
 
-            in_params = {   'ElementName' : volume_name,
-                            'ElementType' : pywbem.Uint16(2),
-                            'InPool':sp.path,
-                            'Size': pywbem.Uint64(size_bytes) }
+        in_params = {   'ElementName' : volume_name,
+                        'ElementType' : pywbem.Uint16(2),
+                        'InPool':sp.path,
+                        'Size': pywbem.Uint64(size_bytes) }
 
-            return self.__process_invoke("volume_create", True,
-                *(self.__c.InvokeMethod('CreateOrModifyElementFromStoragePool',
-                scs.path, **in_params)))
+        return self._pi("volume_create", True,
+            *(self._c.InvokeMethod('CreateOrModifyElementFromStoragePool',
+            scs.path, **in_params)))
 
-        except CIMError as ce:
-            raise LsmError(ErrorNumber.PLUGIN_ERROR, str(ce))
-
+    @handle_cim_errors
     def volume_delete(self, volume):
-        try:
-            scs = self.__get_class_instance('CIM_StorageConfigurationService')
-            lun = self.__get_volume(volume.id)
+        """
+        Delete a volume
+        """
+        scs = self._get_class_instance('CIM_StorageConfigurationService')
+        lun = self._get_volume(volume.id)
 
-            in_params = { 'TheElement' : lun.path }
+        in_params = { 'TheElement' : lun.path }
 
-            #Delete returns None or Job number
-            return self.__process_invoke("volume_delete", False,
-                            *(self.__c.InvokeMethod('ReturnToStoragePool', scs.path, **in_params)))[0]
+        #Delete returns None or Job number
+        return self._pi("volume_delete", False,
+                        *(self._c.InvokeMethod('ReturnToStoragePool', scs.path, **in_params)))[0]
 
-        except CIMError as ce:
-            raise LsmError(ErrorNumber.PLUGIN_ERROR, str(ce))
-
+    @handle_cim_errors
     def volume_resize(self, volume, new_size_bytes):
-        try:
-            scs = self.__get_class_instance('CIM_StorageConfigurationService')
-            lun = self.__get_volume(volume.id)
+        """
+        Re-size a volume
+        """
+        scs = self._get_class_instance('CIM_StorageConfigurationService')
+        lun = self._get_volume(volume.id)
 
-            in_params = { 'TheElement': lun.path, 'Size': pywbem.Uint64(new_size_bytes)}
+        in_params = { 'TheElement': lun.path, 'Size': pywbem.Uint64(new_size_bytes)}
 
-            return self.__process_invoke("volume_resize", True,
-                                *(self.__c.InvokeMethod('CreateOrModifyElementFromStoragePool',
-                                scs.path, **in_params)))
-        except CIMError as ce:
-            raise LsmError(ErrorNumber.PLUGIN_ERROR, str(ce))
+        return self._pi("volume_resize", True,
+                            *(self._c.InvokeMethod('CreateOrModifyElementFromStoragePool',
+                            scs.path, **in_params)))
 
+    @handle_cim_errors
     def volume_replicate(self, pool, rep_type, volume_src, name):
-        try:
-            rs = self.__get_class_instance("CIM_ReplicationService")
-            pool = self.__get_pool(pool.id)
-            lun = self.__get_volume(volume_src.id)
+        """
+        Replicate a volume
+        """
+        rs = self._get_class_instance("CIM_ReplicationService")
+        pool = self._get_pool(pool.id)
+        lun = self._get_volume(volume_src.id)
 
-            if rep_type == Volume.REPLICATE_CLONE:
-                sync = SYNC_TYPE_CLONE
-            elif rep_type == Volume.REPLICATE_MIRROR:
-                sync = SYNC_TYPE_MIRROR
-            else:
-                sync = SYNC_TYPE_SNAPSHOT
+        if rep_type == Volume.REPLICATE_CLONE:
+            sync = Smis.SYNC_TYPE_CLONE
+        elif rep_type == Volume.REPLICATE_MIRROR:
+            sync = Smis.SYNC_TYPE_MIRROR
+        else:
+            sync = Smis.SYNC_TYPE_SNAPSHOT
 
-            in_params = {   'ElementName': name,
-                            'SyncType' : pywbem.Uint16(sync),
-                            'Mode': pywbem.Uint16(3),
-                            'SourceElement': lun.path,
-                            'TargetPool': pool.path}
+        in_params = {   'ElementName': name,
+                        'SyncType' : pywbem.Uint16(sync),
+                        'Mode': pywbem.Uint16(3),
+                        'SourceElement': lun.path,
+                        'TargetPool': pool.path}
 
-            return self.__process_invoke("volume_replicate", True,
-                                            *(self.__c.InvokeMethod('CreateElementReplica',
-                                            rs.path, **in_params)))
-        except CIMError as ce:
-            raise LsmError(ErrorNumber.PLUGIN_ERROR, str(ce))
+        return self._pi("volume_replicate", True,
+                                        *(self._c.InvokeMethod('CreateElementReplica',
+                                        rs.path, **in_params)))
 
+    @handle_cim_errors
     def volume_online(self, volume):
         return None
 
+    @handle_cim_errors
     def volume_offline(self, volume):
         return None
 
+    @handle_cim_errors
     def initiator_create(self, name, id, id_type):
-        try:
-            hardware = self.__get_class_instance('CIM_StorageHardwareIDManagementService')
+        """
+        Create initiator object
+        """
+        hardware = self._get_class_instance('CIM_StorageHardwareIDManagementService')
 
-            in_params = {'ElementName':name,
-                         'StorageID': id,
-                         'IDType': pywbem.Uint16(id_type)}
+        in_params = {'ElementName':name,
+                     'StorageID': id,
+                     'IDType': pywbem.Uint16(id_type)}
 
-            (rc, out) = self.__c.InvokeMethod('CreateStorageHardwareID',
-                                                hardware.path, **in_params)
-            if not rc:
-                return Initiator(id, id_type)
+        (rc, out) = self._c.InvokeMethod('CreateStorageHardwareID',
+                                            hardware.path, **in_params)
+        if not rc:
+            return Initiator(id, id_type)
 
-            raise LsmError(ErrorNumber.PLUGIN_ERROR, 'Error: ' + str(rc) +
-                                                     ' on initiator_create!')
-        except CIMError as ce:
-            raise LsmError(ErrorNumber.PLUGIN_ERROR, str(ce))
+        raise LsmError(ErrorNumber.PLUGIN_ERROR, 'Error: ' + str(rc) +
+                                                 ' on initiator_create!')
 
+    @handle_cim_errors
     def access_grant(self, initiator, volume, access):
-        try:
-            ccs = self.__get_class_instance('CIM_ControllerConfigurationService')
-            lun = self.__get_volume(volume.id)
+        """
+        Grant access to a volume to an initiator
+        """
+        ccs = self._get_class_instance('CIM_ControllerConfigurationService')
+        lun = self._get_volume(volume.id)
 
-            if access == Volume.ACCESS_READ_ONLY:
-                da = 3
-            else:
-                da = 2
+        if access == Volume.ACCESS_READ_ONLY:
+            da = Smis.EXPOSE_PATHS_DA_READ_ONLY
+        else:
+            da = Smis.EXPOSE_PATHS_DA_READ_WRITE
 
-            in_params = { 'LUNames': [lun['Name']],
-                          'InitiatorPortIDs': [initiator.id],
-                          'DeviceAccesses': [pywbem.Uint16(da)]}
+        in_params = { 'LUNames': [lun['Name']],
+                      'InitiatorPortIDs': [initiator.id],
+                      'DeviceAccesses': [pywbem.Uint16(da)]}
+
+        #Returns None or job id
+        return self._pi("access_grant", False,
+                *(self._c.InvokeMethod('ExposePaths', ccs.path, **in_params)))[0]
+
+    @handle_cim_errors
+    def access_revoke(self, initiator, volume):
+        """
+        Revoke access to a volume from an initiator
+        """
+        spc = self._get_spc(initiator.id, volume.id)
+
+        if spc:
+            ccs = self._get_class_instance('CIM_ControllerConfigurationService')
+
+            in_params = {'ProtocolController': spc.path,
+                         'DeleteChildrenProtocolControllers': True,
+                         'DeleteUnits': True}
 
             #Returns None or job id
-            return self.__process_invoke("access_grant", False,
-                    *(self.__c.InvokeMethod('ExposePaths', ccs.path, **in_params)))[0]
-        except CIMError as ce:
-            raise LsmError(ErrorNumber.PLUGIN_ERROR, str(ce))
+            return self._pi("access_revoke", False,
+                *(self._c.InvokeMethod('DeleteProtocolController', ccs.path,
+                    **in_params)))[0]
 
-    def access_revoke(self, initiator, volume):
-        try:
-            (found, spc) = self.__get_spc(initiator.id, volume.id)
+        raise LsmError(ErrorNumber.NO_MAPPING, "")
 
-            if found:
-                ccs = self.__get_class_instance('CIM_ControllerConfigurationService')
-
-                in_params = dict(ProtocolController=spc.path,
-                    DeleteChildrenProtocolControllers=True, DeleteUnits=True)
-
-                #Returns None or job id
-                return self.__process_invoke("access_revoke", False,
-                    *(self.__c.InvokeMethod('DeleteProtocolController', ccs.path,
-                        **in_params)))[0]
-
-            raise LsmError(ErrorNumber.NO_MAPPING, "")
-        except CIMError as ce:
-            raise LsmError(ErrorNumber.LSM_ERR_PLUGIN_ERROR, str(ce))
-
+    @handle_cim_errors
     def job_free(self, job_number):
-        if job_number in self.__jobs:
-            del self.__jobs[job_number]
+        """
+        Frees the resources given a job number.
+        """
+        if job_number in self._jobs:
+            del self._jobs[job_number]
             #It might be better to delete the actual job from the smi-s proxy
             #here!
         else:
