@@ -19,7 +19,6 @@
 
 from abc import ABCMeta, abstractmethod
 
-# ** Important** See Client class documentation.
 class IPlugin(object):
     """
     Plug-in interface that all plug-ins must implement for basic
@@ -69,9 +68,9 @@ class IPlugin(object):
     @abstractmethod
     def job_status(self, job_number):
         """
-        Returns the stats of the given job number.
+        Returns the stats of the given job.
 
-        Returns a tuple ( status (enumeration), percent_complete, volume).
+        Returns a tuple ( status (enumeration), percent_complete, completed item).
         else LsmError exception.
         """
         pass
@@ -86,17 +85,20 @@ class IPlugin(object):
         pass
 
     @abstractmethod
+    def pools(self):
+        """
+        Returns an array of pool objects.  Pools are used in both block and
+        file system interfaces, thus the reason they are in the base class.
+        """
+        pass
+
+class IStorageAreaNetwork(IPlugin):
+
+    @abstractmethod
     def volumes(self):
         """
         Returns an array of volume objects
 
-        """
-        pass
-
-    @abstractmethod
-    def pools(self):
-        """
-        Returns an array of pool objects
         """
         pass
 
@@ -178,6 +180,15 @@ class IPlugin(object):
         pass
 
     @abstractmethod
+    def initiator_delete(self, initiator):
+        """
+        Deletes an initiator.
+
+        Returns None on success, else raises an LsmError
+        """
+        pass
+
+    @abstractmethod
     def access_grant(self, initiator, volume, access):
         """
         Access control for allowing an initiator to use a volume.
@@ -196,3 +207,148 @@ class IPlugin(object):
         Returns none on success, else raises a LsmError on error.
         """
         pass
+
+class INetworkAttachedStorage(IPlugin):
+    """
+    Class the represents Network attached storage (Common NFS/CIFS operations)
+    """
+    @abstractmethod
+    def fs(self):
+        """
+        Returns a list of file systems on the controller.
+        """
+        pass
+
+    @abstractmethod
+    def fs_delete(self, fs):
+        """
+        WARNING: Destructive
+
+        Deletes a file system and everything it contains
+        Returns None on success, else job id
+        """
+        pass
+
+    @abstractmethod
+    def fs_resize(self, fs, new_size_bytes):
+        """
+        Re-size a file system
+
+        Returns a tuple (job_id, re-sized file system)
+        Note: Tuple return values are mutually exclusive, when one
+        is None the other must be valid.
+        """
+        pass
+
+    @abstractmethod
+    def fs_create(self, pool, name, size_bytes):
+        """
+        Creates a file system given a pool, name and size.
+        Note: size is limited to 2**64 bytes so max size of a single volume
+        at this time is 16 Exabytes
+
+        Returns a tuple (job_id, file system)
+        Note: Tuple return values are mutually exclusive, when one
+        is None the other must be valid.
+        """
+        pass
+
+    @abstractmethod
+    def fs_clone(self, src_fs, dest_fs_name, snapshot=None):
+        """
+        Creates a thin, point in time read/writable copy of src to dest.
+        Optionally uses snapshot as backing of src_fs
+
+        Returns a tuple (job_id, file system)
+        Note: Tuple return values are mutually exclusive, when one
+        is None the other must be valid.
+        """
+        pass
+
+    @abstractmethod
+    def file_clone(self, fs, src_file_name, dest_file_name, snapshot=None):
+        """
+        Creates a thinly provisioned clone of src to dest.
+        Note: Source and Destination are required to be on same filesystem
+
+        Returns None on success, else job id
+        """
+        pass
+
+    @abstractmethod
+    def snapshots(self, fs):
+        """
+        Returns a list of snapshots for the supplied file system
+        """
+        pass
+
+    @abstractmethod
+    def snapshot_create(self, fs, snapshot_name, files=None):
+        """
+        Snapshot is a point in time read-only copy
+
+        Create a snapshot on the chosen file system with a supplied name for
+        each of the files.  Passing None implies snapping all files on the file
+        system.  When files is non-none it implies snap shoting those file.
+        NOTE:  Some arrays only support snapshots at the file system level.  In
+        this case it will not be considered an error if file names are passed.
+        In these cases the file names are effectively discarded as all files
+        are done.
+
+        Returns Snapshot that was created.  Note:  Snapshot name may not match
+        what was passed in (depends on array implementation)
+        """
+        pass
+
+    @abstractmethod
+    def snapshot_delete(self, fs, snapshot):
+        """
+        Frees the re-sources for the given snapshot on the supplied filesystem.
+
+        Returns None on success else job id, LsmError exception on error
+        """
+        pass
+
+    @abstractmethod
+    def snapshot_revert(self, fs, snapshot, files, all_files=False):
+        """
+        WARNING: Destructive!
+
+        Reverts a file-system or just the specified files from the snapshot.  If
+        a list of files is supplied but the array cannot restore just them then
+        the operation will fail with an LsmError raised.  If files == None and
+        all_files = True then all files on the file-system are reverted.
+
+        Returns None on success, else job id, LsmError exception on error
+        """
+        pass
+
+class INfs(INetworkAttachedStorage):
+    @abstractmethod
+    def export_auth(self):
+        """
+        Returns the types of authentication that are available for NFS
+        """
+        pass
+
+    @abstractmethod
+    def exports(self):
+        """
+        Get a list of all exported file systems on the controller.
+        """
+        pass
+
+    @abstractmethod
+    def export_fs(self, export):
+        """
+        Exports a filesystem as specified in the export
+        """
+        pass
+
+    @abstractmethod
+    def export_remove(self, export):
+        """
+        Removes the specified export
+        """
+        pass
+

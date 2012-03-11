@@ -123,8 +123,9 @@ class LsmDaemon(Daemon):
 
         try:
             (d_pid, d_exit) = os.waitpid(-1, os.WNOHANG)
-            while( d_pid > 0 ):
-                Info("Plug-in process " + str(d_pid) + " exited with " +
+            while d_pid > 0:
+                if d_exit != 0:
+                    Error("Plug-in process " + str(d_pid) + " exited with " +
                         str(os.WEXITSTATUS(d_exit)) + " waitpid value= " + str(d_exit))
                 (d_pid, d_exit) = os.waitpid(-1, os.WNOHANG)
         except OSError:
@@ -151,7 +152,7 @@ class LsmDaemon(Daemon):
                             for k, v in s.iteritems():
                                 if c == v:
                                     client = v.accept()[0]
-                                    Info("Client connected for plugin" + k)
+                                    #Info("Client connected for plugin" + k)
                                     self.exec_plugin(client, k)
 
                     self.child_cleanup()
@@ -210,7 +211,7 @@ if __name__ == "__main__":
         elif o in ("--operation"):
             op = a
 
-    if PLUGIN_DIR == None:
+    if PLUGIN_DIR is None:
         print sys.stderr.write("--plugindir is a required argument")
         usage()
         sys.exit(2)

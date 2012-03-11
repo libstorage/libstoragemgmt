@@ -109,7 +109,7 @@ class PluginRunner(object):
         except SocketEOF:
             #Client went away
             Error('Client went away, exiting plug-in')
-        except Exception as e:
+        except Exception:
             Error(traceback.format_exc())
         finally:
             if need_shutdown:

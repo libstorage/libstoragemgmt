@@ -24,6 +24,7 @@ from common import SocketEOF, LsmError
 from data import DataDecoder, DataEncoder
 import unittest
 import threading
+from lsm import common
 
 class Transport(object):
     """
@@ -68,6 +69,7 @@ class Transport(object):
         if msg is None or len(msg) < 1:
             raise ValueError("Msg argument empty")
 
+        #Note: Don't catch io exceptions at this level!
         self.s.sendall(string.zfill(len(msg), self.HDR_LEN) + msg)
 
     def __recvMsg(self):
@@ -75,8 +77,13 @@ class Transport(object):
         Reads header first to get the length and then the remaining
         bytes of the message.
         """
-        l = self.__readAll(self.HDR_LEN)
-        return self.__readAll(int(l))
+        try:
+            l = self.__readAll(self.HDR_LEN)
+            msg = self.__readAll(int(l))
+        except socket.error as e:
+            raise LsmError(common.ErrorNumber.LSM_ERROR_COMMUNICATION,
+                "Error while reading a message from the plug-in", str(e))
+        return msg
 
     def __init__(self, socket):
         self.s = socket
@@ -86,8 +93,13 @@ class Transport(object):
         """
         Returns a connected socket from the passed in path.
         """
-        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        s.connect(path)
+        try:
+            s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            s.connect(path)
+        except socket.error:
+            #self, code, message, data=None, *args, **kwargs
+            raise LsmError(common.ErrorNumber.NO_CONNECT, "Unable to connect "
+                                                          "to lsmd, daemon started?")
         return s
 
     def close(self):
@@ -102,9 +114,14 @@ class Transport(object):
         Note: arguments must be in the form that can be automatically
         serialized to json
         """
-        msg = {'method': method, 'id': 100, 'params': args}
-        data = json.dumps(msg, cls=DataEncoder)
-        self.__sendMsg(data)
+        try:
+            msg = {'method': method, 'id': 100, 'params': args}
+            data = json.dumps(msg, cls=DataEncoder)
+            self.__sendMsg(data)
+        except socket.error as se:
+            raise LsmError(common.ErrorNumber.LSM_ERROR_COMMUNICATION,
+                            "Error while sending a message to the plug-in",
+                            str(se))
 
     def read_req(self):
         """
@@ -112,6 +129,7 @@ class Transport(object):
         """
         data = self.__recvMsg()
         if len(data):
+            #common.Info(str(data))
             return json.loads(data, cls=DataDecoder)
 
     def rpc(self, method, args):
@@ -136,7 +154,6 @@ class Transport(object):
         """
         Used to transmit a response
         """
-
         r = {'id': id, 'result': result}
         self.__sendMsg(json.dumps(r, cls=DataEncoder))
 
@@ -160,7 +177,7 @@ def server(s):
     msg = server.read_req()
 
     try:
-        while( msg['method'] != 'done' ):
+        while msg['method'] != 'done':
 
             if msg['method'] == 'error':
                 server.send_error(msg['id'], msg['params']['errorcode'],
@@ -230,7 +247,7 @@ class TestTransport(unittest.TestCase):
     def tearDown(self):
         self.client.send_req("done", None)
         resp, id = self.client.read_resp()
-        self.assertTrue(resp == None)
+        self.assertTrue(resp is None)
         self.server.join()
 
 

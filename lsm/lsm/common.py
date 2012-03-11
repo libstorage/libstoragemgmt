@@ -32,9 +32,27 @@ UDS_PATH = '/tmp/lsm/ipc'
 #Set to True for verbose logging
 LOG_VERBOSE = True
 
+def uri_parse(uri):
+    rc = {}
+    u = urlparse.urlparse(uri)
+
+    rc['scheme'] = u.scheme
+
+    if '@' in uri:
+        (rc['username'], rc['host']) = u.netloc.split('@',2)
+    else:
+        rc['username'] = None
+        rc['host'] = u.netloc
+    rc['parameters'] = uri_parameters(u)
+    return rc
+
+
 def uri_parameters( uri ):
     url = urlparse.urlparse('http:' + uri[2])
-    return dict([part.split('=') for part in url[4].split('&')])
+    if len(url) >= 5 and len(url[4]):
+        return dict([part.split('=') for part in url[4].split('&')])
+    else:
+        return {}
 
 def params_to_string(*args):
     return ''.join( [ str(e) for e in args] )
@@ -77,6 +95,9 @@ class LsmError(Exception):
         self.code = code
         self.msg = message
         self.data = data
+
+    def __str__(self):
+        return "error: %s msg: %s" % (self.code, self.msg)
 
 
 def addl_error_data(domain, level, exception, debug = None, debug_data = None):
@@ -147,6 +168,8 @@ ErrorNumber = Enumeration('ErrorNumber',
         ('LSM_ERR_MISSING_HOST', 28),
         ('LSM_ERR_MISSING_PORT', 29),
         ('LSM_ERR_MISSING_NS', 30),
+        ('INITIATOR_EXISTS', 31),
+        ('UNSUPPORTED_INITIATOR_TYPE', 32),
         ('AUTH_FAILED', 45)
     ])
 

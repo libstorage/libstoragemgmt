@@ -21,7 +21,7 @@ import sys
 import urlparse
 import pywbem
 from pywbem.cim_operations import CIMError
-from lsm.iplugin import IPlugin
+from lsm.iplugin import IStorageAreaNetwork
 from lsm.common import uri_parameters, LsmError, ErrorNumber, JobStatus
 from lsm.pluginrunner import PluginRunner
 from lsm.data import Pool, Initiator, Volume
@@ -35,7 +35,7 @@ def handle_cim_errors(method):
     return cim_wrapper
 
 
-class Smis(IPlugin):
+class Smis(IStorageAreaNetwork):
     """
     SMI-S plug-ing which exposes a small subset of the overall provided
     functionality of SMI-S
@@ -413,6 +413,30 @@ class Smis(IPlugin):
 
         raise LsmError(ErrorNumber.PLUGIN_ERROR, 'Error: ' + str(rc) +
                                                  ' on initiator_create!')
+
+    @handle_cim_errors
+    def initiator_delete(self, initiator):
+
+        #Find the instance of the initiator to delete.
+        init = self._get_class_instance('CIM_StorageHardwareID', 'StorageID',
+                initiator.id)
+
+        if init:
+            hardware = self._get_class_instance('CIM_StorageHardwareIDManagementService')
+
+            in_params = {'HardwareID': init.path}
+
+            (rc, out) = self._c.InvokeMethod('DeleteStorageHardwareID',
+                        hardware.path, **in_params)
+
+            if not rc:
+                return None
+            else:
+                raise LsmError(ErrorNumber.PLUGIN_ERROR, 'Error: ' + str(rc) +
+                                                         ' on initiator_delete!')
+        else:
+            raise LsmError(ErrorNumber.PLUGIN_ERROR,
+                'Error: initiator %s does not exist!' % initiator.id)
 
     @handle_cim_errors
     def access_grant(self, initiator, volume, access):

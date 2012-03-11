@@ -33,12 +33,10 @@ class DataEncoder(json.JSONEncoder):
         else:
             return my_class.toDict()
 
-
 class DataDecoder(json.JSONDecoder):
     """
     Custom json decoder for objects derived from ILsmData
     """
-
     @staticmethod
     def __process_dict(d):
         """
@@ -99,7 +97,15 @@ class IData(object):
         Represent the class as a dictionary
         """
         rc = {'class': self.__class__.__name__}
-        rc.update(self.__dict__)
+
+        #If one of the attributes is another IData we will
+        #process that too, is there a better way to handle this?
+        for (k,v) in self.__dict__.items():
+            if isinstance(v, IData):
+                rc[k] = v.toDict()
+            else:
+                rc[k] = v
+
         return rc
 
     @staticmethod
@@ -129,9 +135,10 @@ class Initiator(IData):
     (TYPE_OTHER, TYPE_PORT_WWN, TYPE_NODE_WWN, TYPE_HOSTNAME, TYPE_ISCSI) = \
     (1, 2, 3, 4, 5)
 
-    def __init__(self, id, type):
+    def __init__(self, id, type, name = None):
         self.id = id
         self.type = type
+        self.name = name
 
 
 class Volume(IData):
@@ -151,8 +158,37 @@ class Volume(IData):
     (PROVISION_UNKNOWN, PROVISION_THIN, PROVISION_FULL, PROVISION_DEFAULT) = \
     ( -1, 1, 2, 3)
 
+    @staticmethod
+    def prov_string_to_type(type):
+        if type == 'DEFAULT':
+            return Volume.PROVISION_DEFAULT
+        elif type == "FULL":
+            return Volume.PROVISION_FULL
+        elif type == "THIN":
+            return Volume.PROVISION_THIN
+        else:
+            return Volume.PROVISION_UNKNOWN
+
+    @staticmethod
+    def rep_String_to_type(rt):
+        if rt == "RW_SNAP":
+            return Volume.REPLICATE_SNAPSHOT
+        elif rt == "CLONE":
+            return Volume.REPLICATE_CLONE
+        elif rt == "MIRROR":
+            return Volume.REPLICATE_MIRROR
+        else:
+            return Volume.REPLICATE_UNKNOWN
+
     #Initiator access
     (ACCESS_READ_ONLY, ACCESS_READ_WRITE, ACCESS_NONE) = (1,2,3)
+
+    @staticmethod
+    def access_string_to_type(access):
+        if access == "RW":
+            return Volume.ACCESS_READ_WRITE
+        else:
+            return Volume.ACCESS_READ_ONLY
 
     def __init__(self, id, name, vpd83, block_size, num_of_blocks, status):
         self.id = id
@@ -169,6 +205,9 @@ class Volume(IData):
         """
         return self.block_size * self.num_of_blocks
 
+    def __str__(self):
+        return self.name
+
 
 class Pool(IData):
     """
@@ -180,3 +219,43 @@ class Pool(IData):
         self.name = name
         self.total_space = total_space
         self.free_space = free_space
+
+class FileSystem(IData):
+
+    def __init__(self, id, name, total_space, free_space, pool):
+        self.id = id
+        self.name = name
+        self.total_space = total_space
+        self.free_space = free_space
+        self.pool = pool
+
+class Snapshot(IData):
+    def __init__(self, id, name, ts):
+        self.id = id
+        self.name = name
+        self.ts = int(ts)
+
+class NfsExport(IData):
+    def __init__(self, id, fs_id, export_path, auth, root, rw, ro, anonuid, anongid, options):
+        assert(id is not None)
+        assert(fs_id is not None)
+        assert(export_path is not None)
+        assert( type(root) is list )
+        assert( type(rw) is list )
+        assert( type(ro) is list )
+
+        self.id = id
+        self.fs_id = fs_id          #File system exported
+        self.export_path = export_path     #Export path
+        self.auth = auth            #Authentication type
+        self.root = root            #List of hosts with no_root_squash
+        self.rw = rw                #List of hosts with read/write
+        self.ro = ro                #List of hosts with read/only
+        self.anonuid = anonuid      #uid for anonymous user id
+        self.anongid = anongid      #gid for anonymous group id
+        self.options = options      #NFS options
+
+
+if __name__ == '__main__':
+    #TODO Need some unit tests that encode/decode all the types with nested
+    pass

@@ -1,0 +1,454 @@
+#!/usr/bin/env python
+
+# Copyright (C) 2011 Red Hat, Inc.
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+#
+# Author: tasleson
+import hashlib
+import os
+import urllib2
+import urlparse
+from lsm import na
+from lsm.data import Volume, Initiator, FileSystem, Snapshot, NfsExport
+from lsm.pluginrunner import PluginRunner
+from lsm.iplugin import IStorageAreaNetwork, INfs
+from lsm.common import  LsmError, ErrorNumber
+from lsm.data import Pool
+import lsm.na
+import sys
+
+def md5(t):
+    h = hashlib.md5()
+    h.update(t)
+    return h.hexdigest()
+
+def handle_ontap_errors(method):
+    def na_wrapper(*args, **kwargs):
+        try:
+            return method(*args, **kwargs)
+        except lsm.na.FilerError as oe:
+            #TODO Add error code mapping
+            #Translate NetApp error to LsmError
+            raise LsmError(ErrorNumber.PLUGIN_ERROR, oe.reason + ":" + str(oe.errno))
+        except urllib2.HTTPError as he:
+            if he.code == 401:
+                raise LsmError(ErrorNumber.AUTH_FAILED, he.msg)
+            else:
+                raise LsmError(ErrorNumber.LSM_ERROR_COMMUNICATION, str(he))
+        except urllib2.URLError as ce:
+            raise LsmError(ErrorNumber.UNKNOWN_HOST, str(ce))
+    return na_wrapper
+
+class Ontap(IStorageAreaNetwork, INfs):
+
+    (LSM_VOL_PREFIX, LSM_INIT_PREFIX) = ( 'lsm_lun_container', 'lsm_init_')
+
+    def __init__(self):
+        self.f = None
+
+    @handle_ontap_errors
+    def startup(self, uri, password, timeout):
+        ssl = False
+        u = urlparse.urlparse(uri)
+        self.tmo = timeout
+
+        if u.scheme.lower() == 'ontap+ssl':
+            ssl = True
+
+        self.f = lsm.na.Filer(u.hostname, u.username, password, ssl)
+        #Smoke test
+        return self.f.validate()
+
+    def set_time_out(self, ms):
+        self.tmo = ms
+
+    def get_time_out(self):
+        return self.tmo
+
+    def shutdown(self):
+        self._jobs = None
+
+    def _lun(self, l):
+        #Info('_lun=' + str(l))
+        block_size = int(l['block-size'])
+        num_blocks = int(l['size']) / block_size
+        #TODO: Need to retrieve real vpd83 and volume status
+        #The status can be pulled from volume status, the vpd83 I'm not sure.
+        return Volume(l['serial-number'],l['path'], '*'*32,
+                        block_size, num_blocks, Volume.STATUS_OK)
+
+    def _vol(self, v):
+        pool_name = v['containing-aggregate']
+        pools = self.pools()
+
+        for p in pools:
+            if p.name == pool_name:
+                return FileSystem(v['uuid'], v['name'], int(v['size-total']),
+                            int(v['size-available']), p.id)
+
+    def _ss(self, s):
+        #If we use the newer API we can use the uuid instead of this fake md5 one
+        return Snapshot(md5(s['name'] + s['access-time']), s['name'], s['access-time'])
+
+    @handle_ontap_errors
+    def volumes(self):
+        luns = self.f.luns()
+        return [ self._lun(l) for l in luns]
+
+    @handle_ontap_errors
+    def _pool(self, p):
+        total = int(p['size-total'])
+        used = int(p['size-used'])
+        return Pool(p['uuid'], p['name'], total, total - used)
+
+    @handle_ontap_errors
+    def pools(self):
+        aggr = self.f.aggregates()
+        return [ self._pool(p) for p in aggr ]
+
+    @handle_ontap_errors
+    def initiators(self):
+        """
+        Individual initiators really don't exist in NetApp, what happens is we
+        automatically create an initiator group and add one initiator record to
+        it.  This is what the SMI-S kind of does under the covers, except that
+        the initiator records are stored in the smi-s proxy AFAIK
+        """
+        rc = []
+        groups = self.f.igroups()
+
+        for g in groups:
+            if g['initiator-group-name'][0:len(Ontap.LSM_INIT_PREFIX)] \
+                == Ontap.LSM_INIT_PREFIX:
+                #Get the initiator in the group
+                if g['initiators']:
+                    inits = na.to_list(g['initiators']['initiator-info'])
+                    id = inits[0]['initiator-name']
+
+                    if g['initiator-group-type'] == 'iscsi':
+                        type = Initiator.TYPE_ISCSI
+                    else:
+                        type = Initiator.TYPE_PORT_WWN
+
+                    name = g['initiator-group-name'][len(Ontap.LSM_INIT_PREFIX):]
+                    rc.append(Initiator(id,type, name))
+
+        return rc
+
+    def _get_volume(self, vol_name):
+        return self._lun( self.f.luns(vol_name)[0] )
+
+    @handle_ontap_errors
+    def volume_create(self, pool, volume_name, size_bytes, provisioning):
+
+        v = self.f.volume_names()
+
+        if Ontap.LSM_VOL_PREFIX not in v:
+            self.f.volume_create(pool.name, Ontap.LSM_VOL_PREFIX, size_bytes)
+        else:
+            #re-size volume to accommodate new logical unit
+            self.f.volume_resize(Ontap.LSM_VOL_PREFIX, size_bytes)
+
+        lun_name = self.f.lun_build_name(Ontap.LSM_VOL_PREFIX, volume_name)
+        self.f.lun_create(lun_name, size_bytes)
+
+        #Get the information about the newly created LUN
+        return None, self._get_volume(lun_name)
+
+    def _vol_to_na_volume_name(self, volume):
+        return os.path.dirname(volume.name)[5:]
+
+    @handle_ontap_errors
+    def volume_delete(self, volume):
+        vol = self._vol_to_na_volume_name(volume)
+
+        luns = self.f.luns(na_volume_name=vol)
+
+        if len(luns) == 1:
+            self.f.volume_delete(vol)
+        else:
+            self.f.lun_delete(volume.name)
+
+        return None
+
+    @handle_ontap_errors
+    def volume_resize(self, volume, new_size_bytes):
+        na_vol = self._vol_to_na_volume_name(volume)
+        diff = new_size_bytes - volume.size_bytes
+
+        #If the new size is > than old -> re-size volume then lun
+        #If the new size is < than old -> re-size lun then volume
+        if diff > 0:
+            self.f.volume_resize(na_vol, diff)
+            self.f.lun_resize(volume.name, new_size_bytes)
+        else:
+            self.f.lun_resize(volume.name, new_size_bytes)
+            self.f.volume_resize(na_vol, diff)
+
+        return None, self._get_volume(volume.name)
+
+    def _volume_on_aggr(self, pool, volume):
+        search = self._vol_to_na_volume_name(volume)
+        contained_volumes = self.f.aggregate_volume_names(pool.name)
+        return search in contained_volumes
+
+    @handle_ontap_errors
+    def volume_replicate(self, pool, rep_type, volume_src, name):
+        if rep_type == Volume.REPLICATE_MIRROR:
+            raise LsmError(ErrorNumber.NO_SUPPORT, "rep_type not supported")
+
+        #Check to see if our volume is on a pool that was passed in
+        if self._volume_on_aggr(pool, volume_src):
+            #re-size the NetApp volume to accommodate the new lun
+            self.f.volume_resize(self._vol_to_na_volume_name(volume_src),
+                                        volume_src.size_bytes)
+
+            #Thin provision copy the logical unit
+            dest = os.path.dirname(volume_src.name) + '/' + name
+            self.f.clone(volume_src.name, dest)
+            return None, self._get_volume(dest)
+        else:
+            #TODO Need to get instructions on how to provide this functionality
+            raise LsmError(ErrorNumber.NO_SUPPORT, "Unable to replicate volume "
+                                                   "to different pool")
+
+    @handle_ontap_errors
+    def volume_online(self, volume):
+        return self.f.lun_online(volume.name)
+
+    @handle_ontap_errors
+    def volume_offline(self, volume):
+        return self.f.lun_offline(volume.name)
+
+    def _init_group_name(self, name):
+        return "%s%s" % (Ontap.LSM_INIT_PREFIX, name)
+
+    @handle_ontap_errors
+    def initiator_create(self, name, id, id_type):
+        group_name = self._init_group_name(name)
+
+        curr_inits = self.initiators()
+        for ci in curr_inits:
+            if ci.id == id:
+                raise LsmError(ErrorNumber.INITIATOR_EXISTS, 'initiator id exists')
+
+        if not self.f.igroup_exists(group_name):
+
+            if  id_type == lsm.data.Initiator.TYPE_PORT_WWN or \
+                id_type == lsm.data.Initiator.TYPE_NODE_WWN:
+                type = "fcp"
+            elif id_type == lsm.data.Initiator.TYPE_ISCSI:
+                type = "iscsi"
+            else:
+                raise LsmError(ErrorNumber.UNSUPPORTED_INITIATOR_TYPE,
+                                'supported include FC, iSCSI')
+
+            self.f.igroup_create(group_name, type)
+            self.f.igroup_add_initiator(group_name, id)
+            return Initiator(id, id_type, name)
+        else:
+            raise LsmError(ErrorNumber.INITIATOR_EXISTS, 'initiator name exists')
+
+    @handle_ontap_errors
+    def initiator_delete(self, initiator):
+        group_name = self._init_group_name(initiator.name)
+        self.f.igroup_delete(group_name)
+
+    @handle_ontap_errors
+    def access_grant(self, initiator, volume, access):
+        group_name = self._init_group_name(initiator.name)
+        self.f.lun_map(group_name, volume.name)
+        return None
+
+    @handle_ontap_errors
+    def access_revoke(self, initiator, volume):
+        group_name = self._init_group_name(initiator.name)
+        self.f.lun_unmap(group_name, volume.name)
+        return None
+
+    @handle_ontap_errors
+    def job_status(self, job_number):
+        return None
+
+    @handle_ontap_errors
+    def job_free(self, job_number):
+        return None
+
+    @handle_ontap_errors
+    def fs(self):
+        volumes = self.f.volumes()
+        return [ self._vol(v) for v in volumes]
+
+    @handle_ontap_errors
+    def fs_delete(self, fs):
+        self.f.volume_delete(fs.name)
+
+    @handle_ontap_errors
+    def fs_resize(self, fs, new_size_bytes):
+        diff = new_size_bytes - fs.total_space
+        self.f.volume_resize(fs.name, diff)
+        return None, self._vol(self.f.volumes(fs.name)[0])
+
+    @handle_ontap_errors
+    def fs_create(self, pool, name, size_bytes):
+        self.f.volume_create(pool.name, name, size_bytes)
+        return None, self._vol(self.f.volumes(name)[0])
+
+    @handle_ontap_errors
+    def fs_clone(self, src_fs, dest_fs_name, snapshot=None):
+        self.f.volume_clone(src_fs.name, dest_fs_name, snapshot)
+        return None, self._vol(self.f.volumes(dest_fs_name)[0])
+
+    @staticmethod
+    def build_name(volume_name, relative_name):
+        return "/vol/%s/%s" % (volume_name, relative_name)
+
+    @handle_ontap_errors
+    def file_clone(self, fs, src_file_name, dest_file_name, snapshot=None):
+        full_src = Ontap.build_name(fs.name, src_file_name)
+        full_dest = Ontap.build_name(fs.name, dest_file_name)
+
+        ss = None
+        if snapshot:
+            ss = snapshot.name
+
+        self.f.clone(full_src, full_dest, ss)
+        return None
+
+    @handle_ontap_errors
+    def snapshots(self, fs):
+        snapshots = self.f.snapshots(fs.name)
+        return [ self._ss(s) for s in snapshots]
+
+    @handle_ontap_errors
+    def snapshot_create(self, fs, snapshot_name, files=None):
+        #We can't do files, so we will do them all
+        snap = self.f.snapshot_create(fs.name, snapshot_name)
+        return self._ss(snap)
+
+    @handle_ontap_errors
+    def snapshot_delete(self, fs, snapshot):
+        self.f.snapshot_delete(fs.name, snapshot.name)
+
+    @handle_ontap_errors
+    def snapshot_revert(self, fs, snapshot, files, all_files=False):
+        pass
+
+    @handle_ontap_errors
+    def export_auth(self):
+        """
+        Returns the types of authentication that are available for NFS
+        """
+        pass
+
+    def _get_root(self,e):
+        if 'root' in e:
+            return [ r['name'] for r in na.to_list(e['root']['exports-hostname-info']) ]
+        else:
+            return []
+
+    def _get_group(self, access_group, e):
+        rc = []
+
+        if access_group in e:
+            for r in na.to_list(e[access_group]['exports-hostname-info']):
+                if 'all-hosts' in r:
+                    if r['all-hosts'] == 'true':
+                        rc.append('*')
+                else:
+                    rc.append(r['name'])
+        return rc
+
+    def _get_value(self, key, e):
+        if key in e:
+            return e[key]
+        else:
+            return None
+
+    def _get_volume_id(self, volumes, vol_name):
+        for v in volumes:
+            if v.name == vol_name:
+                return v.id
+        raise RuntimeError("Volume not found in volumes:" +
+                           ":".join(volumes) + " " + vol_name)
+
+    def _export(self, volumes, e):
+        if 'actual-pathname' in e:
+            path = e['actual-pathname']
+            export = e['pathname']
+        else:
+            path = e['pathname']
+            export = e['pathname']
+
+        vol_name = path[5:]
+        fs_id = self._get_volume_id(volumes, vol_name)
+
+        return NfsExport(md5(vol_name + fs_id),
+                        fs_id,
+                        export,
+                        e['sec-flavor']['sec-flavor-info']['flavor'],
+                        self._get_group('root', e),
+                        self._get_group('read-write', e),
+                        self._get_group('read-only', e),
+                        self._get_value('anon', e),
+                        None,
+                        None
+                        )
+
+    @handle_ontap_errors
+    def exports(self):
+        #Get the file systems once and pass to _export which needs to lookup
+        #the file system id by name.
+        v = self.fs()
+        return [ self._export(v,e) for e in self.f.nfs_exports() ]
+
+
+    def _get_volume_from_id(self, id):
+        fs = self.fs()
+        for i in fs:
+            if i.id == id:
+                return i
+        raise RuntimeError("fs id not found in fs:" +
+                           ":".join(fs) + " " + id)
+
+    @handle_ontap_errors
+    def export_fs(self, export):
+        #nfs_export_fs(self, volume_path, mount_point, ro_list, rw_list,
+        #    root_list, anonuid, sec_flavor):
+
+        #Get the volume info from the fs_id
+        vol = self._get_volume_from_id(export.fs_id)
+
+        self.f.nfs_export_fs('/vol/'+ vol.name,
+            export.export_path,
+            export.ro,
+            export.rw,
+            export.root,
+            export.anonuid,
+            export.auth)
+
+        current_exports = self.exports()
+        for e in current_exports:
+            if e.fs_id == export.fs_id and e.export_path == export.export_path:
+                return e
+
+        raise LsmError(ErrorNumber.PLUGIN_ERROR, "export not created successfully!")
+
+    @handle_ontap_errors
+    def export_remove(self, export):
+        self.f.nfs_export_remove([export.export_path])
+
+if __name__ == '__main__':
+    PluginRunner(Ontap, sys.argv).run()

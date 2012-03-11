@@ -17,7 +17,7 @@
 #
 # Author: tasleson
 
-from lsm.iplugin import IPlugin
+from lsm.iplugin import IStorageAreaNetwork
 from lsm.common import LsmError, ErrorNumber, JobStatus
 from lsm.pluginrunner import PluginRunner
 import lsm
@@ -30,7 +30,7 @@ import time
 
 lsm.common.LOG_VERBOSE = True
 
-class StorageSimulator(IPlugin):
+class StorageSimulator(IStorageAreaNetwork):
     """
     Simple class that implements enough to allow the framework to be exercised.
     """

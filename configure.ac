@@ -131,6 +131,7 @@ AC_SUBST(PEGASUS_LIBS)
 
 #Check for python as it is needed for the daemon
 AM_PATH_PYTHON([2.6], [], AC_MSG_ERROR([Python interpreter 2.6 or later required]) )
+AC_PYTHON_MODULE([pywbem], [Required])
 
 AC_OUTPUT(Makefile src/Makefile plugin/Makefile doc/Makefile \
           tools/Makefile tools/lsmcli/Makefile tools/smiscli/Makefile \

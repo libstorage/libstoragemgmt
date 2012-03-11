@@ -21,7 +21,6 @@ import time
 import os
 import unittest
 import urlparse
-import sys
 from data import Volume, Initiator
 from transport import Transport
 import common
@@ -44,7 +43,6 @@ class Client(object):
     """
     Client side class used for managing storage.
     """
-
     def __start(self, uri, plain_text_password, timeout_ms):
         """
         Instruct the plug-in to get ready
@@ -67,7 +65,12 @@ class Client(object):
         if 'LSM_UDS_PATH' in os.environ:
             self.uds_path = os.environ['LSM_UDS_PATH']
 
-        self.plugin_path = self.uds_path + '/' + u.scheme
+        scheme = u.scheme
+        if "+" in u.scheme:
+            (plug,proto) = scheme.split("+")
+            scheme = plug
+
+        self.plugin_path = self.uds_path + '/' + scheme
 
         if os.path.exists(self.plugin_path):
             self.tp = Transport(Transport.getSocket(self.plugin_path))
@@ -102,9 +105,9 @@ class Client(object):
 
     def job_status(self, job_number):
         """
-        Returns the stats of the given job number.
+        Returns the stats of the given job.
 
-        Returns a tuple ( status (enumeration), percent_complete, volume).
+        Returns a tuple ( status (enumeration), percent_complete, completed item).
         else LsmError exception.
         """
         return self.tp.rpc('job_status', del_self(locals()))
@@ -122,7 +125,8 @@ class Client(object):
 
     def pools(self):
         """
-        Returns an array of pool objects
+        Returns an array of pool objects.  Pools are used in both block and
+        file system interfaces, thus the reason they are in the base class.
         """
         return self.tp.rpc('pools', del_self(locals()))
 
@@ -200,6 +204,14 @@ class Client(object):
         """
         return self.tp.rpc('initiator_create', del_self(locals()))
 
+    def initiator_delete(self, initiator):
+        """
+        Deletes an initiator record.
+
+        Returns none on success, else raises LsmError
+        """
+        return self.tp.rpc('initiator_delete', del_self(locals()))
+
     def access_grant(self, initiator, volume, access):
         """
         Access control for allowing an initiator to use a volume.
@@ -237,6 +249,129 @@ class Client(object):
         assert group is not None
         assert initiator is not None
         raise NotImplemented()
+
+    def fs(self):
+        """
+        Returns a list of file systems on the controller.
+        """
+        return self.tp.rpc('fs', del_self(locals()))
+
+    def fs_delete(self, fs):
+        """
+        WARNING: Destructive
+
+        Deletes a file system and everything it contains
+        Returns None on success, else job id
+        """
+        return self.tp.rpc('fs_delete', del_self(locals()))
+
+    def fs_resize(self, fs, new_size_bytes):
+        """
+        Re-size a file system
+
+        Returns a tuple (job_id, re-sized file system)
+        Note: Tuple return values are mutually exclusive, when one
+        is None the other must be valid.
+        """
+        return self.tp.rpc('fs_resize', del_self(locals()))
+
+    def fs_create(self, pool, name, size_bytes):
+        """
+        Creates a file system given a pool, name and size.
+        Note: size is limited to 2**64 bytes
+
+        Returns a tuple (job_id, file system)
+        Note: Tuple return values are mutually exclusive, when one
+        is None the other must be valid.
+        """
+        return self.tp.rpc('fs_create', del_self(locals()))
+
+    def fs_clone(self, src_fs, dest_fs_name, snapshot=None):
+        """
+        Creates a thin, point in time read/writable copy of src to dest.
+        Optionally uses snapshot as backing of src_fs
+
+        Returns a tuple (job_id, file system)
+        Note: Tuple return values are mutually exclusive, when one
+        is None the other must be valid.
+        """
+        return self.tp.rpc('fs_clone', del_self(locals()))
+
+    def file_clone(self, fs, src_file_name, dest_file_name, snapshot=None):
+        """
+        Creates a thinly provisioned clone of src to dest.
+        Note: Source and Destination are required to be on same filesystem and
+        all directories in destination path need to exist.
+
+        Returns None on success, else job id
+        """
+        return self.tp.rpc('file_clone', del_self(locals()))
+
+    def snapshots(self, fs):
+        """
+        Returns a list of snapshot names for the supplied file system
+        """
+        return self.tp.rpc('snapshots', del_self(locals()))
+
+    def snapshot_create(self, fs, snapshot_name, files=None):
+        """
+        Snapshot is a point in time read-only copy
+
+        Create a snapshot on the chosen file system with a supplied name for
+        each of the files.  Passing None implies snapping all files on the file
+        system.  When files is non-none it implies snap shoting those file.
+        NOTE:  Some arrays only support snapshots at the file system level.  In
+        this case it will not be considered an error if file names are passed.
+        In these cases the file names are effectively discarded as all files
+        are done.
+
+        Returns Snapshot that was created.  Note:  Snapshot name may not match
+        what was passed in (depends on array implementation)
+        """
+        return self.tp.rpc('snapshot_create', del_self(locals()))
+
+    def snapshot_delete(self, fs, snapshot):
+        """
+        Frees the re-sources for the given snapshot on the supplied filesystem.
+
+        Returns None on success else job id, LsmError exception on error
+        """
+        return self.tp.rpc('snapshot_delete', del_self(locals()))
+
+    def snapshot_revert(self, fs, snapshot, files, all_files=False):
+        """
+        WARNING: Destructive!
+
+        Reverts a file-system or just the specified files from the snapshot.  If
+        a list of files is supplied but the array cannot restore just them then
+        the operation will fail with an LsmError raised.  If files == None and
+        all_files = True then all files on the file-system are reverted.
+
+        Returns None on success, else job id, LsmError exception on error
+        """
+        assert(fs is not None)
+        assert(snapshot is not None)
+        assert(files is None or type(files) is list)
+        assert(type(all_files) is bool)
+        raise NotImplemented()
+
+    def exports(self):
+        """
+        Get a list of all exported file systems on the controller.
+        """
+        return self.tp.rpc('exports', del_self(locals()))
+
+    def export_fs(self, export):
+        """
+        Exports a filesystem as specified in the export
+        """
+        return self.tp.rpc('export_fs', del_self(locals()))
+
+    def export_remove(self, export):
+        """
+        Removes the specified export
+        """
+        return self.tp.rpc('export_remove', del_self(locals()))
 
 
 class TestClient(unittest.TestCase):
