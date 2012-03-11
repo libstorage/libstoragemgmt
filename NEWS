@@ -1,5 +1,7 @@
 News for libStorageMgmt
 
+0.0.2: Mar 11 2012
+    - Native plugin for NetApp
 
 0.0.1alpha: Feb 3 2012
     - First release in package form

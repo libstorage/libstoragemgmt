@@ -1,3 +1,3 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS= lsmcli smiscli
+SUBDIRS = lsmcli smiscli lsmclipy

@@ -2,7 +2,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Copyright (C) 2011 Red Hat, Inc.
 dnl See COPYING.LIB for the License of this software
 
-AC_INIT([libstoragemgmt], [0.0.1alpha], [libstoragemgmt-devel@lists.sourceforge.net], [], [http://sourceforge.net/apps/trac/libstoragemgmt/])
+AC_INIT([libstoragemgmt], [0.0.2], [libstoragemgmt-devel@lists.sourceforge.net], [], [http://sourceforge.net/apps/trac/libstoragemgmt/])
 AC_CONFIG_SRCDIR([src/lsm_datatypes.cpp])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -135,4 +135,5 @@ AC_PYTHON_MODULE([pywbem], [Required])
 
 AC_OUTPUT(Makefile src/Makefile plugin/Makefile doc/Makefile \
           tools/Makefile tools/lsmcli/Makefile tools/smiscli/Makefile \
-          include/Makefile include/libstoragemgmt/Makefile lsm/Makefile)
+          include/Makefile include/libstoragemgmt/Makefile lsm/Makefile \
+          tools/lsmclipy/Makefile)
