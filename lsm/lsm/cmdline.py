@@ -104,8 +104,8 @@ class CmdLine:
         commands.add_option('-l', '--list', action="store", type="choice",
             dest="cmd_list",
             metavar='<[VOLUMES|INITIATORS|POOLS|FS|SNAPSHOTS|EXPORTS]>',
-            choices = ['VOLUMES', 'INITIATORS', 'POOLS', 'FS', 'SNAPSHOTS', 'EXPORTS'],
-            help='List records of type [VOLUMES|INITIATORS|POOLS|FS|SNAPSHOTS|EXPORTS]\n'
+            choices = ['VOLUMES', 'INITIATORS', 'POOLS', 'FS', 'SNAPSHOTS', 'EXPORTS', "NFS_CLIENT_AUTH"],
+            help='List records of type [VOLUMES|INITIATORS|POOLS|FS|SNAPSHOTS|EXPORTS|NFS_CLIENT_AUTH]\n'
                  'Note: SNAPSHOTS requires --fs <fs id>')
 
         commands.add_option( '', '--create-initiator', action="store", type="string",
@@ -216,6 +216,7 @@ class CmdLine:
                                             '--rw <read/write host>\n'
                                             '--anonuid <uid to map to anonymous>\n'
                                             '--anongid <gid to map to anonymous>\n'
+                                            '--auth-type <NFS client authentication type\n'
         )
 
         parser.add_option_group(commands)
@@ -299,6 +300,10 @@ class CmdLine:
         command_args.add_option('', '--anongid', action="store", type="string",
             metavar = "<anonymous uid>", default=None,
             dest="anongid", help="gid to map to anonymous")
+
+        command_args.add_option('', '--authtype', action="store", type="string",
+            metavar = "<type>", default=None,
+            dest="authtype", help="NFS client authentication type")
 
         parser.add_option_group(command_args)
 
@@ -431,6 +436,7 @@ class CmdLine:
                 print "rw%s%s" % (s, self._list(e.rw))
                 print "anonuid%s%s" % ( s, e.anonuid )
                 print "anongid%s%s" % ( s, e.anongid )
+                print "authtype%s%s" % ( s, e.auth )
                 print "options%s%s" % ( s, e.options )
         else:
             for e in exports:
@@ -442,7 +448,17 @@ class CmdLine:
                 print "rw:\t\t", self._list(e.rw)
                 print "anonuid:\t", e.anonuid
                 print "anongid:\t", e.anongid
+                print "auth:\t\t", e.auth
                 print "options:\t", e.options, "\n"
+
+    def display_nfs_client_authentication(self):
+        """
+        Dump the supported nfs client authentication types
+        """
+        if self.options.sep:
+            print self.options.sep.join(self.c.export_auth())
+        else:
+            print ", ".join(self.c.export_auth())
 
     def list(self):
         if self.cmd_value == 'VOLUMES':
@@ -464,6 +480,8 @@ class CmdLine:
             self.display_initiators(self.c.initiators())
         elif self.cmd_value == 'EXPORTS':
             self.display_exports(self.c.exports())
+        elif self.cmd_value == 'NFS_CLIENT_AUTH':
+            self.display_nfs_client_authentication()
         else:
             raise ArgError(" unsupported listing type=%s", self.cmd_value)
 
@@ -706,10 +724,11 @@ class CmdLine:
         if export:
             self.c.export_remove(export)
         else:
-            ArgError("nfs export with id= %s not found!" % self.cmd_value)
+            raise ArgError("nfs export with id= %s not found!" % self.cmd_value)
 
     def nfs_export_fs(self):
         fs = self._get_item(self.c.fs(), self.cmd_value)
+
         if fs:
             #Check to see if we have some type of access specified
             if len(self.options.nfs_root) == 0 and\
@@ -720,7 +739,7 @@ class CmdLine:
                 export = lsm.data.NfsExport( 'NA',        #Not needed on create
                     fs.id,
                     self.options.opt_exportpath,
-                    None,
+                    self.options.authtype,
                     self.options.nfs_root,
                     self.options.nfs_rw,
                     self.options.nfs_ro,

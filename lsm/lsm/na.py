@@ -25,11 +25,14 @@ from lsm.external.xmltodict import ConvertXmlToDict
 #Set to an appropriate directory and file to dump the raw response.
 xml_debug = None
 
+
+
 def netapp_filer_parse_response(resp):
     if xml_debug:
         out = open(xml_debug, "wb")
         out.write(resp)
         out.close()
+
     return ConvertXmlToDict(ElementTree.fromstring(resp))
 
 def param_value(val):
@@ -401,29 +404,39 @@ class Filer(object):
     def snapshot_delete(self, volume_name, snapshot_name):
         self._invoke('snapshot-delete', {'volume':volume_name, 'snapshot':snapshot_name})
 
+    def export_auth_types(self):
+        rc = self._invoke('nfs-get-supported-sec-flavors')
+        return [ e['flavor'] for e in to_list(rc['sec-flavor']['sec-flavor-info'])]
+
     @staticmethod
     def _build_list(pylist, list_name, elem_name):
         """
         Given a python list, build the appropriate dict that contains the
         list items so that it can be converted to xml to be sent on the wire.
         """
-        return {list_name:[ {elem_name:l} for l in pylist ] }
+        return [ {list_name:{elem_name:l}} for l in pylist ]
+
+    @staticmethod
+    def _build_export_fs_all():
+        return  Filer._build_list( ['true'], 'exports-hostname-info', 'all-hosts' )
 
     @staticmethod
     def _build_export_fs_list( hosts ):
-        return  Filer._build_list( hosts, 'exports-hostname-info', 'name' )
+        if hosts[0] == '*':
+            return Filer._build_export_fs_all()
+        else:
+            return  Filer._build_list( hosts, 'exports-hostname-info', 'name' )
 
-    def nfs_export_fs(self, volume_path, mount_point, ro_list, rw_list,
+    def nfs_export_fs(self, volume_path, export_path, ro_list, rw_list,
                       root_list, anonuid = None, sec_flavor = None):
-
-        #One of the more complicated data structures to push down to the
-        #controller
+        """
+        Export a fs, deprecated (Will remove soon)
+        """
         rule = {'pathname': volume_path}
-        if volume_path != mount_point:
-            raise FilerError(911, "only supported mount point for this FS is currently '%s'" % volume_path)
-            #TODO Fix this once we figure it out.
+        if volume_path != export_path:
             #Try creating the directory needed
-            #rule['actual-pathname'] = volume_path
+            rule['actual-pathname'] = volume_path
+            rule['pathname'] = export_path
 
         if len(ro_list):
             rule['read-only'] = Filer._build_export_fs_list(ro_list)
@@ -443,12 +456,77 @@ class Filer(object):
         params = { 'persistent':'true', 'rules':{'exports-rule-info':[rule]}, 'verbose':'true' }
         self._invoke('nfs-exportfs-append-rules', params)
 
+    def _build_export_rules(self, volume_path, export_path, ro_list, rw_list,
+                            root_list, anonuid = None, sec_flavor = None):
+        """
+        Common logic to build up the rules for nfs
+        """
+
+        #One of the more complicated data structures to push down to the
+        #controller
+        rule = {'pathname': volume_path}
+        if volume_path != export_path:
+            rule['actual-pathname'] = volume_path
+            rule['pathname'] = export_path
+
+        rule['security-rules'] = {}
+        rule['security-rules']['security-rule-info'] = {}
+
+        r = rule['security-rules']['security-rule-info']
+
+        if len(ro_list):
+            r['read-only'] = Filer._build_export_fs_list(ro_list)
+
+        if len(rw_list):
+            r['read-write'] = Filer._build_export_fs_list(rw_list)
+
+        if len(root_list):
+            r['root'] = Filer._build_export_fs_list(root_list)
+
+        if anonuid:
+            r['anon'] = anonuid
+
+        if sec_flavor:
+            r['sec-flavor'] = Filer._build_list( [sec_flavor], 'sec-flavor-info', 'flavor')
+
+        return rule
+
+    def nfs_export_fs2(self, volume_path, export_path, ro_list, rw_list,
+                      root_list, anonuid = None, sec_flavor = None):
+        """
+        NFS export a volume.
+        """
+
+        rule = self._build_export_rules(volume_path, export_path, ro_list,
+                    rw_list, root_list, anonuid, sec_flavor)
+
+        params = { 'persistent':'true', 'rules':{'exports-rule-info-2':[rule]}, 'verbose':'true' }
+        self._invoke('nfs-exportfs-append-rules-2', params)
+
+    def nfs_export_fs_modify2(self, volume_path, export_path, ro_list, rw_list,
+                             root_list, anonuid = None, sec_flavor = None):
+
+        """
+        Modifies an existing rule.
+        """
+        rule = self._build_export_rules(volume_path, export_path, ro_list,
+            rw_list, root_list, anonuid, sec_flavor)
+
+        params = { 'persistent':'true', 'rule':{'exports-rule-info-2':[rule]} }
+        self._invoke('nfs-exportfs-modify-rule-2', params)
+
     def nfs_export_remove(self, export_paths):
+        """
+        Removes an existing export
+        """
         assert(type(export_paths) is list)
         paths = Filer._build_list(export_paths, 'pathname-info', 'name')
         self._invoke('nfs-exportfs-delete-rules', {'pathnames':paths, 'persistent':'true'} )
 
     def nfs_exports(self):
+        """
+        Returns a list of exports (in hash form)
+        """
         rc = []
         exports = self._invoke('nfs-exportfs-list-rules')
         if 'rules' in exports and exports['rules']:
@@ -459,5 +537,6 @@ if __name__ == '__main__':
     try:
         #TODO: Need some unit test code
         pass
+
     except FilerError as fe:
         print 'Errno=', fe.errno, 'reason=', fe.reason

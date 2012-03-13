@@ -351,7 +351,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         """
         Returns the types of authentication that are available for NFS
         """
-        pass
+        return self.f.export_auth_types()
 
     def _get_root(self,e):
         if 'root' in e:
@@ -423,15 +423,34 @@ class Ontap(IStorageAreaNetwork, INfs):
         raise RuntimeError("fs id not found in fs:" +
                            ":".join(fs) + " " + id)
 
+    def _current_export(self, export_path):
+        """
+        Checks to see if we already have this export.
+        """
+        cur_exports = self.exports()
+        for ce in cur_exports:
+            if ce.export_path == export_path:
+                return True
+
+        return False
+
     @handle_ontap_errors
     def export_fs(self, export):
-        #nfs_export_fs(self, volume_path, mount_point, ro_list, rw_list,
-        #    root_list, anonuid, sec_flavor):
+        """
+        Creates or modifies the specified export
+        """
 
         #Get the volume info from the fs_id
         vol = self._get_volume_from_id(export.fs_id)
 
-        self.f.nfs_export_fs('/vol/'+ vol.name,
+        #If the export already exists we need to update the existing export
+        #not create a new one.
+        if self._current_export(export.export_path):
+            method = self.f.nfs_export_fs_modify2
+        else:
+            method = self.f.nfs_export_fs2
+
+        method('/vol/'+ vol.name,
             export.export_path,
             export.ro,
             export.rw,

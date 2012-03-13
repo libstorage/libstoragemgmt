@@ -355,6 +355,12 @@ class Client(object):
         assert(type(all_files) is bool)
         raise NotImplemented()
 
+    def export_auth(self):
+        """
+        What types of NFS client authentication are supported.
+        """
+        return self.tp.rpc('export_auth', del_self(locals()))
+
     def exports(self):
         """
         Get a list of all exported file systems on the controller.
