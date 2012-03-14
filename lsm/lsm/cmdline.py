@@ -32,6 +32,20 @@ import lsm.client
 import lsm.data
 import time
 
+def cmd_line_wrapper(client = None):
+    """
+    Common command line code, called.
+    """
+    try:
+        cli = lsm.cmdline.CmdLine()
+        cli.process(client)
+    except ArgError as ae:
+        sys.stderr.write(str(ae))
+        sys.exit(2)
+    except lsm.common.LsmError as le:
+        sys.stderr.write(str(le) + "\n")
+        sys.exit(4)
+
 class MyWrapper:
     """
     Handle \n in text for the command line help etc.
@@ -754,6 +768,7 @@ class CmdLine:
 
     def __init__(self):
         self.c = None
+        self.tmo = 30000        #Need to add ability to tweek timeout from CLI
         self.cli()
 
         #Get and set the command and command value we will be executing
@@ -822,10 +837,19 @@ class CmdLine:
             if u['username'] is None:
                 raise ArgError("password specified with no user name in uri")
 
-    def process(self):
+    def process(self, client = None):
         """
         Process the parsed command.
         """
-        self.c = lsm.client.Client(self.uri,self.password)
+        if client:
+            #Directly invoking code.
+            self.c = client()
+            self.c.startup(self.uri, self.password, self.tmo)
+            cleanup = self.c.shutdown
+        else:
+            #Going across the ipc pipe
+            self.c = lsm.client.Client(self.uri,self.password, self.tmo)
+            cleanup = self.c.close
+
         self.verify[self.cmd]['method']()
-        self.c.close()
+        cleanup()

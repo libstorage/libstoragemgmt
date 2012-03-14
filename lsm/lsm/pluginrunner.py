@@ -21,6 +21,7 @@ import socket
 import traceback
 import sys
 from common import SocketEOF, LsmError, Error
+import lsm.cmdline
 import transport
 
 class PluginRunner(object):
@@ -61,11 +62,7 @@ class PluginRunner(object):
                 sys.exit(2)
 
         else:
-            print   'At this time the only supported parameter'\
-                    ' is a file descriptor.'
-            sys.exit(1)
-            #TODO Add command line parsing to allow stand alone plug-in
-            #development.
+            lsm.cmdline.cmd_line_wrapper(plugin)
 
     def run(self):
         need_shutdown = False

@@ -16,22 +16,8 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
 #
 # Author: tasleson
-import sys
-import lsm
-from lsm.cmdline import ArgError
-import lsm.common
-import lsm.client
-import lsm.data
-import time
+import lsm.cmdline
 
 #Command line interface for libStorageMgmt.
 if __name__ == '__main__':
-    try:
-        cli = lsm.cmdline.CmdLine()
-        cli.process()
-    except ArgError as ae:
-        sys.stderr.write(str(ae))
-        sys.exit(2)
-    except lsm.common.LsmError as le:
-        sys.stderr.write(str(le) + "\n")
-        sys.exit(4)
+    lsm.cmdline.cmd_line_wrapper()
