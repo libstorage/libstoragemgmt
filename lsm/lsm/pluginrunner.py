@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright (C) 2011-2012 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -41,6 +39,7 @@ class PluginRunner(object):
             return False
 
     def __init__(self, plugin, args):
+        self.cmdline = False
         if len(args) == 2 and self._is_number(args[1]):
             try:
                 fd = int(args[1])
@@ -62,9 +61,14 @@ class PluginRunner(object):
                 sys.exit(2)
 
         else:
+            self.cmdline = True
             lsm.cmdline.cmd_line_wrapper(plugin)
 
     def run(self):
+        #Don't need to invoke this when running stand alone as a cmdline
+        if self.cmdline:
+            return
+
         need_shutdown = False
         id = 0
 

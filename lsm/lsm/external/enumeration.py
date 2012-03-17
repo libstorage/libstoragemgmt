@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # NOTE: Enumeration code licensed under PSF license
 # see http://code.activestate.com/recipes/67107/
 

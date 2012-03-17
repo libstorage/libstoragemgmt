@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 #This code taken from recipe
 #http://code.activestate.com/recipes/573463-converting-xml-to-dictionary-and-back/
 #Modified slightly to remove namespace and number of other small details

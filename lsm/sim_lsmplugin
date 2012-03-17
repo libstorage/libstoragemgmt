@@ -16,6 +16,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
 #
 # Author: tasleson
+import os
 
 from lsm.iplugin import IStorageAreaNetwork
 from lsm.common import LsmError, ErrorNumber, JobStatus
@@ -26,9 +27,12 @@ import sys
 import random
 from lsm.data import Pool, Initiator, Volume
 import time
+import pickle
 
 
 lsm.common.LOG_VERBOSE = True
+state = '/tmp/lsm_sim_data'
+
 
 class StorageSimulator(IStorageAreaNetwork):
     """
@@ -100,20 +104,45 @@ class StorageSimulator(IStorageAreaNetwork):
         else:
             return None, volume
 
+    def _load(self):
+        tmp = None
+        if os.path.exists(state):
+            f = open(state, 'rb')
+            tmp = pickle.load(f)
+            f.close()
+        return tmp
+
+    def _save(self):
+        f = open(state, 'wb')
+        pickle.dump(self.__dict__,f)
+        f.close()
+
+        #If we run via the daemon the file will be owned by libstoragemgmt
+        #and if we run sim_lsmplugin stand alone we will be unable to
+        #change the permissions.
+        try:
+            os.chmod(state, 0666)
+        except:
+            pass
 
     def __init__(self):
-        p1 = Pool('P001', 'Pool 1', 2 ** 64, 2 ** 64)
-        p2 = Pool('POO2', 'Pool 2', 2 ** 64, 2 ** 64)
-        pm1 = {'pool': p1, 'volumes': {}}
-        pm2 = {'pool': p2, 'volumes': {}}
 
-        self.__p = {p1.id: pm1, p2.id: pm2}
-        self.__v = {}
-        self.__vol_num = 1
-        self.__i = {}
-        self.tmo = 30000
-        self.jobs = {}
-        self.job_num = 1
+        prev = self._load()
+        if prev:
+            self.__dict__.update(prev)
+        else:
+            p1 = Pool('POO1', 'Pool 1', 2 ** 64, 2 ** 64)
+            p2 = Pool('POO2', 'Pool 2', 2 ** 64, 2 ** 64)
+            pm1 = {'pool': p1, 'volumes': {}}
+            pm2 = {'pool': p2, 'volumes': {}}
+
+            self.__p = {p1.id: pm1, p2.id: pm2}
+            self.__v = {}
+            self.__vol_num = 1
+            self.__i = {}
+            self.tmo = 30000
+            self.jobs = {}
+            self.job_num = 1
 
     def _create_vol(self, pool, name, size_bytes):
         p = self.__p[pool.id]['pool']
@@ -145,7 +174,7 @@ class StorageSimulator(IStorageAreaNetwork):
         return self.tmo
 
     def shutdown(self):
-        pass
+        self._save()
 
     def job_status(self, job_number):
         if job_number in self.jobs:
@@ -189,6 +218,14 @@ class StorageSimulator(IStorageAreaNetwork):
             raise LsmError(ErrorNumber.INVALID_INIT,
                 'Initiator already exists.')
         return self.__i[id]['initiator']
+
+    def initiator_delete(self, initiator):
+        if initiator.id in self.__i:
+            del self.__i[initiator.id]
+        else:
+            raise LsmError(ErrorNumber.INVALID_INIT,
+                'Initiator does not exist')
+        return None
 
     def volume_replicate(self, pool, rep_type, volume_src, name):
         assert rep_type is not None

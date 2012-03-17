@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Licensed under public domain according to web site from
 # which it was downloaded
 # http://www.jejik.com/articles/2007/02/a_simple_unix_linux_daemon_in_python/
@@ -21,18 +19,34 @@ class Daemon:
      Usage: subclass the Daemon class and override the run() method
      """
 
-    def __init__(self, pidfile, stdin='/dev/null', stdout='/dev/null',
+    def __init__(self, pidfile, no_fork = False, stdin='/dev/null', stdout='/dev/null',
                  stderr='/dev/null'):
         self.stdin = stdin
         self.stdout = stdout
         self.stderr = stderr
         self.pidfile = pidfile
+        self.no_fork = no_fork
+
+    def _get_pid(self):
+        try:
+            pf = file(self.pidfile, 'r')
+            pid = int(pf.read().strip())
+            pf.close()
+        except IOError:
+            pid = None
+        return pid
+
+    @staticmethod
+    def _write_pid(pid_file):
+        pid = str(os.getpid())
+        with os.fdopen(os.open(pid_file,
+            (os.O_CREAT|os.O_RDWR), 0644), "w+") as o:
+            o.write("%s\n" % pid)
 
     def daemonize(self):
         """
           do the UNIX double-fork magic, see Stevens' "Advanced
           Programming in the UNIX Environment" for details (ISBN 0201563177)
-          http://www.erlenstar.demon.co.uk/unix/faq_2.html#SEC16
           """
         try:
             pid = os.fork()
@@ -70,11 +84,6 @@ class Daemon:
         os.dup2(so.fileno(), sys.stdout.fileno())
         os.dup2(se.fileno(), sys.stderr.fileno())
 
-        # write pidfile
-        atexit.register(self.delpid)
-        pid = str(os.getpid())
-        file(self.pidfile, 'w+').write("%s\n" % pid)
-
     def delpid(self):
         os.remove(self.pidfile)
 
@@ -83,12 +92,7 @@ class Daemon:
           Start the daemon
           """
         # Check for a pidfile to see if the daemon already runs
-        try:
-            pf = file(self.pidfile, 'r')
-            pid = int(pf.read().strip())
-            pf.close()
-        except IOError:
-            pid = None
+        pid = self._get_pid()
 
         if pid:
             message = "pidfile %s already exist. Daemon already running?\n"
@@ -96,7 +100,13 @@ class Daemon:
             sys.exit(1)
 
         # Start the daemon
-        self.daemonize()
+        if not self.no_fork:
+            self.daemonize()
+
+        # write pidfile
+        self._write_pid(self.pidfile)
+        atexit.register(self.delpid)
+
         self.run()
 
     def stop(self):
@@ -104,12 +114,7 @@ class Daemon:
           Stop the daemon
           """
         # Get the pid from the pidfile
-        try:
-            pf = file(self.pidfile, 'r')
-            pid = int(pf.read().strip())
-            pf.close()
-        except IOError:
-            pid = None
+        pid = self._get_pid()
 
         if not pid:
             message = "pidfile %s does not exist. Daemon not running?\n"

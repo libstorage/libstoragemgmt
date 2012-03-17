@@ -2,7 +2,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Copyright (C) 2011 Red Hat, Inc.
 dnl See COPYING.LIB for the License of this software
 
-AC_INIT([libstoragemgmt], [0.0.2], [libstoragemgmt-devel@lists.sourceforge.net], [], [http://sourceforge.net/apps/trac/libstoragemgmt/])
+AC_INIT([libstoragemgmt], [0.0.3], [libstoragemgmt-devel@lists.sourceforge.net], [], [http://sourceforge.net/apps/trac/libstoragemgmt/])
 AC_CONFIG_SRCDIR([src/lsm_datatypes.cpp])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -133,7 +133,17 @@ AC_SUBST(PEGASUS_LIBS)
 AM_PATH_PYTHON([2.6], [], AC_MSG_ERROR([Python interpreter 2.6 or later required]) )
 AC_PYTHON_MODULE([pywbem], [Required])
 
+#Setup the unit directory for systemd stuff
+PKG_PROG_PKG_CONFIG
+AC_ARG_WITH([systemdsystemunitdir],
+        AS_HELP_STRING([--with-systemdsystemunitdir=DIR], [Directory for systemd service files]),
+        [], [with_systemdsystemunitdir=$($PKG_CONFIG --variable=systemdsystemunitdir systemd)])
+if test "x$with_systemdsystemunitdir" != xno; then
+        AC_SUBST([systemdsystemunitdir], [$with_systemdsystemunitdir])
+fi
+AM_CONDITIONAL(HAVE_SYSTEMD, [test -n "$with_systemdsystemunitdir" -a "x$with_systemdsystemunitdir" != xno ])
+
 AC_OUTPUT(Makefile src/Makefile plugin/Makefile doc/Makefile \
           tools/Makefile tools/lsmcli/Makefile tools/smiscli/Makefile \
           include/Makefile include/libstoragemgmt/Makefile lsm/Makefile \
-          tools/lsmclipy/Makefile)
+          tools/lsmclipy/Makefile packaging/Makefile packaging/daemon/Makefile)

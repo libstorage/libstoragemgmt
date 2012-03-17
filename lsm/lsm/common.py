@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright (C) 2011-2012 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -25,9 +23,8 @@ from external.enumeration import Enumeration
 import sys
 import syslog
 
-# TODO Change this to something more realistic, can be overridden with ENV
 # variable in client and specified on the command line for the daemon
-UDS_PATH = '/tmp/lsm/ipc'
+UDS_PATH = '/var/run/lsm/ipc'
 
 #Set to True for verbose logging
 LOG_VERBOSE = True

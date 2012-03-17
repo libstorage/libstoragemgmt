@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright (C) 2012 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -45,6 +43,9 @@ def cmd_line_wrapper(client = None):
     except lsm.common.LsmError as le:
         sys.stderr.write(str(le) + "\n")
         sys.exit(4)
+    except AttributeError:
+        sys.stderr.write("Operation not supported with this plug-in" + "\n")
+        sys.exit(5)
 
 class MyWrapper:
     """

@@ -25,20 +25,39 @@ import socket
 import stat
 import sys
 import traceback
+import signal
 from lsm.external.daemon import Daemon
 from lsm.common import Error, Info
 import getopt
 import select
 import lsm.common
+import pwd
 
-
-#TODO Change these to sane defaults
-PID_FILE = '/tmp/lsm/lsmd.pid'
+BASE_DIR = '/var/run/lsm'
+PID_FILE = BASE_DIR + '/lsmd.pid'
 SOCKET_DIR = lsm.common.UDS_PATH
 PLUGIN_DIR = '/usr/bin'
+LSM_USER = 'libstoragemgmt'
 daemon = None
 
+(RUNNING, RESTART, EXIT) = (1,2,3)
+serve_state = RUNNING
+
+#If we are running as a new style system daemon
+systemd = False
+
+def Loud(msg):
+    if not systemd:
+        Error(msg)
+    sys.stderr.write(msg + "\n")
+    sys.exit(1)
+
 class LsmDaemon(Daemon):
+
+    def __init__(self, pid_file, no_fork = False):
+        Daemon.__init__(self, pid_file, no_fork)
+        self.no_fork = no_fork
+
     def setup_socket(self, file):
         """
         Setup a Unix domain socket for this file
@@ -51,29 +70,31 @@ class LsmDaemon(Daemon):
         #TODO Look into changing the SELinux permissions.
         server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         server.bind(file)
+        #Depending on umask we could get messed up here, so make sure
+        #socket files have correct permissions so we can access them.
+        os.chmod(file,(stat.S_IREAD|stat.S_IWRITE|stat.S_IRGRP|stat.S_IWGRP|stat.S_IROTH|stat.S_IWOTH))
         server.listen(1)
         return server
 
-
-    def process_plugins(self, plugindir, socketdir):
+    def process_plugins(self, plugin_dir, socket_dir):
         """
         process the plug-in directory and return a list of entries ready to be used
 
         """
         server_sockets = {}
 
-        Info("Scanning plug-in directory " + plugindir)
+        Info("Scanning plug-in directory " + plugin_dir)
 
         try:
-            files = os.listdir(plugindir)
+            files = os.listdir(plugin_dir)
 
             for e in files:
                 if e[-10:] == '_lsmplugin':
                     name = e[:-10]
-                    fqn = plugindir + os.sep + e
+                    fqn = plugin_dir + os.sep + e
 
                     server_sockets[fqn] = self.setup_socket(
-                        socketdir + os.sep + name)
+                        socket_dir + os.sep + name)
                     Info("Plugin " + fqn + " added.")
 
         except Exception:
@@ -81,10 +102,12 @@ class LsmDaemon(Daemon):
 
         return server_sockets
 
-    def clean_sockets(self, dir):
+    @staticmethod
+    def clean_sockets():
         """
-        Remove all the socket files in given directory.
+        Remove all the socket files in directory
         """
+        dir = SOCKET_DIR
         if len(dir):
             for f in os.listdir(dir):
                 p = os.path.join(dir, f)
@@ -92,15 +115,14 @@ class LsmDaemon(Daemon):
 
                 if stat.S_ISSOCK(mode):
                     try:
-                        os.unlink(f)
+                        os.unlink(p)
                     except:
                         pass
 
     def exec_plugin(self, client, executable):
         """
-        Exec the plug-in
+        Executes the desired plug-in
         """
-
         pid = os.fork()
 
         if pid:
@@ -124,27 +146,28 @@ class LsmDaemon(Daemon):
         try:
             (d_pid, d_exit) = os.waitpid(-1, os.WNOHANG)
             while d_pid > 0:
-                if d_exit != 0:
+                if d_exit:
                     Error("Plug-in process " + str(d_pid) + " exited with " +
                         str(os.WEXITSTATUS(d_exit)) + " waitpid value= " + str(d_exit))
                 (d_pid, d_exit) = os.waitpid(-1, os.WNOHANG)
         except OSError:
             pass
 
-    def serve(self):
+
+    def _serving(self):
         """
-        Main daemon worker part.
+        Wait for clients to connect on the unix domain socket and handle them.
         """
+        global serve_state
 
         try:
-            self.clean_sockets(PLUGIN_DIR)
+            LsmDaemon.clean_sockets()
 
             s = self.process_plugins(PLUGIN_DIR, SOCKET_DIR)
             self.servers = s.values()
 
             if len(self.servers):
-
-                while True:
+                while serve_state == RUNNING:
                     input_rdy = select.select(self.servers, [], [], 15)[0]
 
                     if len(input_rdy):
@@ -152,26 +175,80 @@ class LsmDaemon(Daemon):
                             for k, v in s.iteritems():
                                 if c == v:
                                     client = v.accept()[0]
-                                    #Info("Client connected for plugin" + k)
                                     self.exec_plugin(client, k)
 
                     self.child_cleanup()
             else:
                 Error("No plug-ins found in directory: " + PLUGIN_DIR)
-
-        except Exception:
+                serve_state = EXIT
+        except select.error:
+            #Select got interrupted by a signal
+            pass
+        except Exception as e:
             Error(str(traceback.format_exc()))
+        finally:
+            self.cleanup()
+
+    def serve(self):
+        """
+        Main daemon worker part.
+        """
+        global serve_state
+        while serve_state != EXIT:
+            if serve_state == RESTART:
+                Info("Reloading plug-ins")
+                serve_state = RUNNING
+
+            self._serving()
+
+        Info("Service exiting")
 
     def cleanup(self):
+        Info("Closing and removing sockets")
         for e in self.servers:
             e.close()
-
-        self.clean_sockets(PLUGIN_DIR)
-
+        LsmDaemon.clean_sockets()
 
     def run(self):
         self.serve()
 
+def drop_privileges():
+    """
+    Give up root privs as we don't need them at this time
+    """
+    if not systemd:
+        try:
+            pw = pwd.getpwnam(LSM_USER)
+            if not os.geteuid():
+                os.setgid(pw.pw_gid)
+                os.setuid(pw.pw_uid)
+            elif pw.pw_uid != os.getuid():
+                Loud("Daemon not running as correct user")
+        except KeyError:
+            Loud("Missing %s user, running as existing user!" % LSM_USER)
+
+def flight_check():
+    """
+    Make sure we can read and write to the areas of interest.
+    """
+    pid_dir = os.path.dirname(PID_FILE)
+    if not os.path.exists(pid_dir):
+        Loud("Directory %s does not exist for pid file, exiting" % pid_dir)
+
+    if not os.access(pid_dir, os.W_OK):
+        Loud("No write permission for pid file dir %s exiting!" % pid_dir)
+
+    if not os.path.exists(PLUGIN_DIR):
+        Loud("Plug-in directory does not exist %s exiting" % PLUGIN_DIR)
+
+    if not os.path.exists(SOCKET_DIR):
+        Loud("Socket directory does not exist %s exiting" % PLUGIN_DIR)
+
+    if  not os.access(PLUGIN_DIR, os.R_OK):
+        Loud("No permission to read dir %s exiting" % PLUGIN_DIR)
+
+    if not os.access(SOCKET_DIR, os.W_OK):
+        Loud("No write permission to directory %s exiting!" % SOCKET_DIR)
 
 def usage():
     print 'libStorageMgmt plug-in daemon.'
@@ -179,21 +256,33 @@ def usage():
     print "    --pidfile   = The process id file for the daemon"
     print "    --plugindir = The directory where the plugins are located"
     print "    --socketdir = The directory where the Unix domain sockets will be created"
-    print "    --operation = [start|stop|restart]"
+    print "    --operation = [start|stop|restart|force-reload]"
     print "    -v          = Verbose logging"
+    print "    -d          = new style daemon (systemd)"
     sys.exit(2)
+
+def sig_handler(number, frame):
+    global serve_state
+    if number == signal.SIGTERM:
+        serve_state = EXIT
+    elif number == signal.SIGHUP:
+        serve_state = RESTART
+
+def install_sh():
+    signal.signal(signal.SIGTERM, sig_handler)
+    signal.signal(signal.SIGHUP, sig_handler)
 
 if __name__ == "__main__":
     op = "start"
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hv", ["help", "pidfile=",
+        opts, args = getopt.getopt(sys.argv[1:], "hvd", ["help", "pidfile=",
                                                         "plugindir=",
                                                         "socketdir=",
                                                         "operation="])
     except getopt.GetoptError, err:
         # print help information and exit:
-        print str(err) # will print something like "option -a not recognized"
+        print str(err)
         usage()
         sys.exit(2)
 
@@ -208,27 +297,35 @@ if __name__ == "__main__":
             SOCKET_DIR = a
         elif o in "-v":
             lsm.common.LOG_VERBOSE = True
+        elif o in "-d":
+            systemd = True
         elif o in ("--operation"):
             op = a
 
     if PLUGIN_DIR is None:
-        print sys.stderr.write("--plugindir is a required argument")
-        usage()
+        Loud("--plugindir is a required argument")
         sys.exit(2)
 
-    #Check the socket directory, create if we can
-    if not os.path.exists(SOCKET_DIR):
-        os.makedirs(SOCKET_DIR)
+    #Install signal handlers
+    install_sh()
 
-    daemon = LsmDaemon(PID_FILE)
+    #Run as non-root
+    drop_privileges()
+
+    #Check to make sure we can create socket files etc as needed before
+    #we try to become a daemon
+    flight_check()
+
+    daemon = LsmDaemon(PID_FILE, systemd)
 
     if 'start' == op:
         daemon.start()
     elif 'stop' == op:
-        Info("User requesting a stop")
         daemon.stop()
+        LsmDaemon.clean_sockets()
     elif 'restart' == op:
-        Info("User requesting a restart")
+        daemon.restart()
+    elif 'force-reload' == op:
         daemon.restart()
     else:
         print "Invalid operation", op

@@ -1,0 +1,12 @@
+[Unit]
+Description=libstoragemgmt plug-in server daemon
+After=syslog.target
+
+[Service]
+ExecStart=/usr/bin/lsmd -d
+ExecReload=/bin/kill -HUP $MAINPID
+StandardError=syslog
+User=libstoragemgmt
+
+[Install]
+WantedBy=multi-user.target

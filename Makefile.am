@@ -2,7 +2,9 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS= src plugin doc include tools lsm
+DISTCHECK_CONFIGURE_FLAGS = --with-systemdsystemunitdir=$$dc_install_base/$(systemdsystemunitdir)
+
+SUBDIRS= src plugin doc include tools lsm packaging
 
 #EXTRA_DIST = \
 #  autogen.sh
