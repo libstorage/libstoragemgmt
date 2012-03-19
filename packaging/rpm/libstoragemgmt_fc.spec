@@ -9,7 +9,7 @@ Source0:        http://sourceforge.net/projects/libstoragemgmt/files/Alpha/libst
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  boost-devel yajl-devel libxml2-devel tog-pegasus-devel python2-devel pywbem
-Requires:       pywbem
+Requires:       pywbem initscripts
 Requires(post): systemd-units
 Requires(preun): systemd-units
 Requires(postun): systemd-units
@@ -41,11 +41,19 @@ make %{?_smp_mflags}
 rm -rf $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
 find $RPM_BUILD_ROOT -name '*.la' -exec rm -f {} ';'
-install -d -m755 $RPM_BUILD_ROOT/run/lsm
-install -d -m755 $RPM_BUILD_ROOT/run/lsm/ipc
 
 install -d -m755 $RPM_BUILD_ROOT/%{_unitdir}
 install -m644 packaging/daemon/libstoragemgmt.service $RPM_BUILD_ROOT/%{_unitdir}/libstoragemgmt.service
+
+#tempfiles.d configuration for /var/run
+mkdir -p %{buildroot}%{_sysconfdir}/tmpfiles.d
+install -m 0644 packaging/daemon/lsm-tmpfiles.conf %{buildroot}%{_sysconfdir}/tmpfiles.d/%{name}.conf
+
+#Need these to exist at install so we can start the daemon
+#There is probably a better way to do this...
+mkdir -p %{buildroot}%{_localstatedir}/run/
+install -d -m 0755  %{buildroot}%{_localstatedir}/run/lsm
+install -d -m 0755  %{buildroot}%{_localstatedir}/run/lsm/ipc
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -55,9 +63,6 @@ getent group libstoragemgmt >/dev/null || groupadd -r libstoragemgmt
 getent passwd libstoragemgmt >/dev/null || \
     useradd -r -g libstoragemgmt -d /var/run/lsm -s /sbin/nologin \
     -c "daemon account for libstoragemgmt" libstoragemgmt
-
-mkdir -p /run/lsm/ipc
-chown -R libstoragemgmt:libstoragemgmt /run/lsm
 
 %post 
 /sbin/ldconfig
@@ -133,6 +138,12 @@ fi
 %{python_sitelib}/lsm/transport.pyo
 
 %{_unitdir}/libstoragemgmt.service
+
+%dir %{_localstatedir}/run/lsm/
+%dir %{_localstatedir}/run/lsm/ipc
+%attr(0755, libstoragemgmt, libstoragemgmt) %{_localstatedir}/run/lsm/
+%attr(0755, libstoragemgmt, libstoragemgmt) %{_localstatedir}/run/lsm/ipc
+%config(noreplace) %{_sysconfdir}/tmpfiles.d/%{name}.conf
 
 %files devel
 %defattr(-,root,root,-)
