@@ -81,7 +81,7 @@ public:
      */
     int createLun( lsmPoolPtr pool, const char *volumeName,
                         Uint64 size, lsmProvisionType provisioning,
-                        lsmVolumePtr *newVolume, Uint32 *job);
+                        lsmVolumePtr *newVolume, char **job);
 
     /**
      * Creates an initiator record.
@@ -95,6 +95,13 @@ public:
                             lsmInitiatorType type, lsmInitiatorPtr *init);
 
     /**
+     *  Deletes an initiator record.
+     * @param init
+     * @return LSM_ERR_OK, else error reason.
+     */
+    int deleteInit(lsmInitiatorPtr init);
+
+    /**
      * Grants access to a volume to an initiator.
      * @param init      Initiator
      * @param vol       Volume
@@ -103,7 +110,7 @@ public:
      * @return LSM_ERR_OK, LSM_ERR_JOB_STARTED else error reason
      */
     int grantAccess( lsmInitiatorPtr init, lsmVolumePtr vol,
-                        lsmAccessType access, Uint32 *job);
+                        lsmAccessType access, char **job);
 
     /**
      * Removes access to a volume from an initiator.
@@ -125,7 +132,7 @@ public:
      */
     int replicateLun( lsmPoolPtr p, lsmReplicationType repType,
                         lsmVolumePtr volumeSrc, const char *name,
-                        lsmVolumePtr *newReplicant, Uint32 *job);
+                        lsmVolumePtr *newReplicant, char **job);
 
 
     /**
@@ -134,7 +141,7 @@ public:
      * @param job       Async. job id.
      * @return LSM_ERR_OK, LSM_ERR_JOB_STARTED else error reason.
      */
-    int deleteVolume( lsmVolumePtr v, uint32_t *job);
+    int deleteVolume( lsmVolumePtr v, char **job);
 
     /**
      * Re-sizes a volume.
@@ -146,7 +153,7 @@ public:
      */
     int resizeVolume(lsmVolumePtr volume,
                                 uint64_t newSize, lsmVolumePtr *resizedVolume,
-                                uint32_t *job);
+                                char **job);
 
     /**
      * Returns an array of lsmPoolPtr
@@ -181,13 +188,13 @@ public:
 
     /**
      * Retrieve the status for a previous submitted job.
-     * @param[in]  jobNumber           Job number
+     * @param[in]  job_id               Job id
      * @param[out]  status              Job status
      * @param[out]  percentComplete     Percent complete
      * @param[out]  vol                 Volume pointer if job is related to one.
      * @return LSM_ERR_OK else error reason.
      */
-    int jobStatusVol(Uint32 jobNumber, lsmJobStatus *status,
+    int jobStatusVol(const char *job_id, lsmJobStatus *status,
                         Uint8 *percentComplete, lsmVolumePtr *vol);
 
     /**
@@ -195,7 +202,7 @@ public:
      * @param[in] jobNumber     Job number to free.
      * @return LSM_ERR_OK else error reason.
      */
-    int jobFree(Uint32 jobNumber);
+    int jobFree(char *jobNumber);
 
 private:
 
@@ -227,7 +234,6 @@ private:
 
     CIMClient   c;
     CIMNamespaceName    ns;
-    LSM::JobControl<Job> jobs;
 
     int jobStatus(uint32_t jobNumber);
 
@@ -240,14 +246,14 @@ private:
                                  String propertyValue );
 
     int processInvoke( Array<CIMParamValue> &out, CIMValue value,
-                        Uint32 *jobid = NULL, lsmVolumePtr *v = NULL );
+                        char **jobid = NULL, lsmVolumePtr *v = NULL );
 
     CIMValue getParamValue(Array<CIMParamValue> o, String key);
     String getParamValueDebug( Array<CIMParamValue> o );
 
 
     lsmVolumePtr getVolume(const CIMInstance &i);
-    bool getVolume(CIMInstance &vol, const CIMValue &job);
+    bool getVolume(CIMInstance &vol, const String &job);
     bool getVolumeInstance(String name, CIMInstance &i);
     CIMInstance getVolume(lsmVolumePtr v);
 

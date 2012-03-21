@@ -399,6 +399,34 @@ class Filer(object):
         return [ v for v in self.snapshots(volume_name)
                     if v['name'] == snapshot_name ][0]
 
+    def snapshot_file_restore_num(self):
+        """
+        Returns the number of executing file restore snapshots.
+        """
+        rc = self._invoke('snapshot-restore-file-info')
+        if 'sfsr-in-progress' in rc:
+            return int(rc['sfsr-in-progress'])
+
+        return 0
+
+    def snapshot_restore_volume(self, fs_name, snapshot_name):
+        """
+        Restores all files on a volume
+        """
+        params = { 'snapshot':snapshot_name, 'volume':fs_name }
+        self._invoke('snapshot-restore-volume', params)
+
+    def snapshot_restore_file(self, snapshot_name, file, restore_file):
+        """
+        Restore a list of files
+        """
+        params = {'snapshot': snapshot_name, 'path': file }
+
+        if restore_file:
+            params['restore-path'] = restore_file
+
+        self._invoke('snapshot-restore-file', params)
+
     def snapshot_delete(self, volume_name, snapshot_name):
         self._invoke('snapshot-delete', {'volume':volume_name, 'snapshot':snapshot_name})
 

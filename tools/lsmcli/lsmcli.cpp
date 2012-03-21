@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
                 break;
             }
             case (LSM::DELETE_INIT) : {
-                //not implemented yet.
+                main_rc = deleteInit(a,c);
                 break;
             }
             case (LSM::CREATE_VOL) : {

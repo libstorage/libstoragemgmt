@@ -74,7 +74,7 @@ static int cap(lsmPluginPtr c, lsmStorageCapabilitiesPtr *cap)
     return LSM_ERR_NO_SUPPORT;
 }
 
-static int jobStatus(lsmPluginPtr c, uint32_t jobNumber,
+static int jobStatus(lsmPluginPtr c, const char *job_id,
                         lsmJobStatus *status, uint8_t *percentComplete,
                         lsmVolumePtr *vol)
 {
@@ -82,14 +82,14 @@ static int jobStatus(lsmPluginPtr c, uint32_t jobNumber,
     Smis *s = (Smis *)lsmGetPrivateData(c);
 
     try {
-        rc = s->jobStatusVol(jobNumber, status, percentComplete, vol);
+        rc = s->jobStatusVol(job_id, status, percentComplete, vol);
     } catch (Exception &e) {
         rc = logException(c, LSM_ERR_PLUGIN_ERROR, "Error while checking job status", e);
     }
     return rc;
 }
 
-static int jobFree(lsmPluginPtr c, uint32_t jobNumber)
+static int jobFree(lsmPluginPtr c, char *jobNumber)
 {
     int rc = LSM_ERR_OK;
     Smis *s = (Smis *)lsmGetPrivateData(c);
@@ -151,7 +151,7 @@ static int volumes(lsmPluginPtr c, lsmVolumePtr **volArray,
 
 static int createVolume( lsmPluginPtr c, lsmPoolPtr pool, const char *volumeName,
                         uint64_t size, lsmProvisionType provisioning,
-                        lsmVolumePtr *newVolume, uint32_t *job)
+                        lsmVolumePtr *newVolume, char **job)
 {
     int rc = LSM_ERR_OK;
     Smis *s = (Smis *)lsmGetPrivateData(c);
@@ -178,8 +178,21 @@ static int createInit( lsmPluginPtr c, const char *name, const char *id,
     return rc;
 }
 
+static int deleteInit( lsmPluginPtr c, lsmInitiatorPtr init)
+{
+    int rc = LSM_ERR_OK;
+    Smis *s = (Smis *)lsmGetPrivateData(c);
+
+    try {
+        rc = s->deleteInit(init);
+    } catch (Exception &e) {
+        rc = logException(c, LSM_ERR_PLUGIN_ERROR, "Error while deleting initiator", e);
+    }
+    return rc;
+}
+
 static int accessGrant( lsmPluginPtr c, lsmInitiatorPtr i, lsmVolumePtr v,
-                        lsmAccessType access, uint32_t *job)
+                        lsmAccessType access, char **job)
 {
     int rc = LSM_ERR_OK;
     Smis *s = (Smis *)lsmGetPrivateData(c);
@@ -207,7 +220,7 @@ static int accessRemove( lsmPluginPtr c, lsmInitiatorPtr i, lsmVolumePtr v)
 
 static int replicateVolume( lsmPluginPtr c, lsmPoolPtr pool,
                         lsmReplicationType repType, lsmVolumePtr volumeSrc,
-                        const char *name, lsmVolumePtr *newReplicant, uint32_t *job)
+                        const char *name, lsmVolumePtr *newReplicant, char **job)
 {
     int rc = LSM_ERR_OK;
     Smis *s = (Smis *)lsmGetPrivateData(c);
@@ -222,7 +235,7 @@ static int replicateVolume( lsmPluginPtr c, lsmPoolPtr pool,
 
 static int resizeVolume(lsmPluginPtr c, lsmVolumePtr volume,
                                 uint64_t newSize, lsmVolumePtr *resizedVolume,
-                                uint32_t *job)
+                                char **job)
 {
     int rc = LSM_ERR_OK;
     Smis *s = (Smis *)lsmGetPrivateData(c);
@@ -235,7 +248,7 @@ static int resizeVolume(lsmPluginPtr c, lsmVolumePtr volume,
     return rc;
 }
 
-static int deleteVolume( lsmPluginPtr c, lsmVolumePtr volume, uint32_t *job)
+static int deleteVolume( lsmPluginPtr c, lsmVolumePtr volume, char **job)
 {
     int rc = LSM_ERR_OK;
     Smis *s = (Smis *)lsmGetPrivateData(c);
@@ -257,6 +270,7 @@ static struct lsmSanOps sanOps = {
     resizeVolume,
     deleteVolume,
     createInit,
+    deleteInit,
     accessGrant,
     accessRemove,
 };
@@ -328,6 +342,7 @@ int unload( lsmPluginPtr c )
 
 int main(int argc, char *argv[] )
 {
+    syslog(LOG_USER|LOG_NOTICE, "Warning: Plug-in deprecated, use smispy instead!");
     return lsmPluginInit(argc, argv, load, unload);
 }
 

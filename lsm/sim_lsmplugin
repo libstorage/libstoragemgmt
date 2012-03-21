@@ -33,53 +33,70 @@ import pickle
 lsm.common.LOG_VERBOSE = True
 state = '/tmp/lsm_sim_data'
 
+class SimJob(object):
+    """
+    Simulates a longer running job, uses actual wall time.  If test cases
+    take too long we can reduce time by shortening time duration.
+    """
+    def __calc_progress(self):
+        if self.percent < 100:
+            end = self.start + self.duration
+            now = time.time()
+            if now > end:
+                self.percent = 100
+                self.status = JobStatus.COMPLETE
+            else:
+                diff = now - self.start
+                self.percent = int(100 * (diff/self.duration))
+
+    def __init__(self, volume):
+        self.status = JobStatus.INPROGRESS
+        self.percent = 0
+        self.__volume = volume
+        self.start = time.time()
+        #self.duration = float(random.randint(0,1))
+        self.duration = float(0)
+
+    def progress(self):
+        """
+        Returns a tuple (status, percent, volume)
+        """
+        self.__calc_progress()
+        return self.status, self.percent, self.volume
+
+    @property
+    def volume(self):
+        if self.percent >= 100:
+            return self.__volume
+        return None
+
+    @volume.setter
+    def volume(self, value):
+        self.__volume = value
+
+class SimState(object):
+
+    def __init__(self):
+        p1 = Pool('POO1', 'Pool 1', 2 ** 64, 2 ** 64)
+        p2 = Pool('POO2', 'Pool 2', 2 ** 64, 2 ** 64)
+        p3 = Pool('POO3', 'lsm_test_aggr', 2 ** 64, 2 ** 64)
+
+        pm1 = {'pool': p1, 'volumes': {}}
+        pm2 = {'pool': p2, 'volumes': {}}
+        pm3 = {'pool': p3, 'volumes': {}}
+
+        self.pools = { p1.id:pm1 , p2.id:pm2, p3.id:pm3 }
+        self.volumes = {}
+        self.vol_num = 1
+        self.initiators = {}
+        self.tmo = 30000
+        self.jobs = {}
+        self.job_num = 1
 
 class StorageSimulator(IStorageAreaNetwork):
     """
     Simple class that implements enough to allow the framework to be exercised.
     """
-
-    class SimJob(object):
-        """
-        Simulates a longer running job, uses actual wall time.  If test cases
-        take too long we can reduce time by shortening time duration.
-        """
-        def __calc_progress(self):
-            if self.percent < 100:
-                end = self.start + self.duration
-                now = time.time()
-                if now > end:
-                    self.percent = 100
-                    self.status = JobStatus.COMPLETE
-                else:
-                    diff = now - self.start
-                    self.percent = int(100 * (diff/self.duration))
-
-        def __init__(self, volume):
-            self.status = JobStatus.INPROGRESS
-            self.percent = 0
-            self.__volume = volume
-            self.start = time.time()
-            self.duration = float(random.randint(1,10))
-
-        def progress(self):
-            """
-            Returns a tuple (status, percent, volume)
-            """
-            self.__calc_progress()
-            return self.status, self.percent, self.volume
-
-        @property
-        def volume(self):
-            if self.percent >= 100:
-                return self.__volume
-            return None
-
-        @volume.setter
-        def volume(self, value):
-            self.__volume = value
-
-
     @staticmethod
     def __randomVpd():
         """
@@ -97,10 +114,12 @@ class StorageSimulator(IStorageAreaNetwork):
         return (size_bytes / 512) * 512
 
     def __create_job(self, volume):
-        if random.randint(0,5) == 1:
-            self.job_num += 1
-            self.jobs[self.job_num] = StorageSimulator.SimJob(volume)
-            return self.job_num, None
+        if True:
+        #if random.randint(0,5) == 1:
+            self.s.job_num += 1
+            job = "JOB_" + str(self.s.job_num)
+            self.s.jobs[job] = SimJob(volume)
+            return job, None
         else:
             return None, volume
 
@@ -114,7 +133,7 @@ class StorageSimulator(IStorageAreaNetwork):
 
     def _save(self):
         f = open(state, 'wb')
-        pickle.dump(self.__dict__,f)
+        pickle.dump(self.s,f)
         f.close()
 
         #If we run via the daemon the file will be owned by libstoragemgmt
@@ -122,40 +141,29 @@ class StorageSimulator(IStorageAreaNetwork):
         #change the permissions.
         try:
             os.chmod(state, 0666)
-        except:
+        except OSError:
             pass
 
     def __init__(self):
 
         prev = self._load()
         if prev:
-            self.__dict__.update(prev)
+            self.s = prev
         else:
-            p1 = Pool('POO1', 'Pool 1', 2 ** 64, 2 ** 64)
-            p2 = Pool('POO2', 'Pool 2', 2 ** 64, 2 ** 64)
-            pm1 = {'pool': p1, 'volumes': {}}
-            pm2 = {'pool': p2, 'volumes': {}}
-
-            self.__p = {p1.id: pm1, p2.id: pm2}
-            self.__v = {}
-            self.__vol_num = 1
-            self.__i = {}
-            self.tmo = 30000
-            self.jobs = {}
-            self.job_num = 1
+            self.s = SimState()
 
     def _create_vol(self, pool, name, size_bytes):
-        p = self.__p[pool.id]['pool']
+        p = self.s.pools[pool.id]['pool']
 
         rounded_size = self.__block_rounding(size_bytes)
 
         if p.free_space >= rounded_size:
-            nv = Volume('Vol' + str(self.__vol_num), name,
+            nv = Volume('Vol' + str(self.s.vol_num), name,
                 StorageSimulator.__randomVpd(), 512,
                 (rounded_size / 512), Volume.STATUS_OK)
-            self.__v[nv.id] = {'pool': pool, 'volume': nv}
+            self.s.volumes[nv.id] = {'pool': pool, 'volume': nv}
             p.free_space -= rounded_size
-            self.__vol_num += 1
+            self.s.vol_num += 1
             return self.__create_job(nv)
         else:
             raise LsmError(ErrorNumber.INSUFFICIENT_SPACE,
@@ -176,52 +184,52 @@ class StorageSimulator(IStorageAreaNetwork):
     def shutdown(self):
         self._save()
 
-    def job_status(self, job_number):
-        if job_number in self.jobs:
-            return self.jobs[job_number].progress()
+    def job_status(self, job_id):
+        if job_id in self.s.jobs:
+            return self.s.jobs[job_id].progress()
         raise LsmError(ErrorNumber.INVALID_JOB_NUM, 'Non-existent job')
 
-    def job_free(self, job_number):
-        if job_number in self.jobs:
-           del self.jobs[job_number]
+    def job_free(self, job_id):
+        if job_id in self.s.jobs:
+           del self.s.jobs[job_id]
            return None
         raise LsmError(ErrorNumber.INVALID_JOB_NUM, 'Non-existent job')
 
     def volumes(self):
-        return [e['volume'] for e in self.__v.itervalues()]
+        return [e['volume'] for e in self.s.volumes.itervalues()]
 
     def pools(self):
-        return [e['pool'] for e in self.__p.itervalues()]
+        return [e['pool'] for e in self.s.pools.itervalues()]
 
     def initiators(self):
-        return [e['initiator'] for e in self.__i.itervalues()]
+        return [e['initiator'] for e in self.s.initiators.itervalues()]
 
     def volume_create(self, pool, volume_name, size_bytes, provisioning):
         assert provisioning is not None
         return self._create_vol(pool, volume_name, size_bytes)
 
     def volume_delete(self, volume):
-        if volume.id in self.__v:
-            v = self.__v[volume.id]['volume']
-            p = self.__v[volume.id]['pool']
+        if volume.id in self.s.volumes:
+            v = self.s.volumes[volume.id]['volume']
+            p = self.s.volumes[volume.id]['pool']
             p.free_space += v.size_bytes
-            del self.__v[volume.id]
+            del self.s.volumes[volume.id]
             #We only return null or job id.
             return self.__create_job(None)[0]
         else:
             raise LsmError(ErrorNumber.INVALID_VOL, 'Volume not found')
 
     def initiator_create(self, name, id, id_type):
-        if id not in self.__i:
-            self.__i[id] = {'initiator': Initiator(id, id_type), 'access': {}}
+        if id not in self.s.initiators:
+            self.s.initiators[id] = {'initiator': Initiator(id, id_type, name), 'access': {}}
         else:
             raise LsmError(ErrorNumber.INVALID_INIT,
                 'Initiator already exists.')
-        return self.__i[id]['initiator']
+        return self.s.initiators[id]['initiator']
 
     def initiator_delete(self, initiator):
-        if initiator.id in self.__i:
-            del self.__i[initiator.id]
+        if initiator.id in self.s.initiators:
+            del self.s.initiators[initiator.id]
         else:
             raise LsmError(ErrorNumber.INVALID_INIT,
                 'Initiator does not exist')
@@ -230,35 +238,35 @@ class StorageSimulator(IStorageAreaNetwork):
     def volume_replicate(self, pool, rep_type, volume_src, name):
         assert rep_type is not None
 
-        if pool.id in self.__p and volume_src.id in self.__v:
-            p = self.__p[pool.id]['pool']
-            v = self.__v[volume_src.id]['volume']
+        if pool.id in self.s.pools and volume_src.id in self.s.volumes:
+            p = self.s.pools[pool.id]['pool']
+            v = self.s.volumes[volume_src.id]['volume']
 
-            return self._create_vol(p, name, v.size_bytes)
+            return self.s._create_vol(p, name, v.size_bytes)
         else:
-            if pool.id not in self.__p:
+            if pool.id not in self.s.pools:
                 raise LsmError(ErrorNumber.INVALID_POOL, 'Incorrect pool')
 
-            if volume_src.id not in self.__v:
+            if volume_src.id not in self.s.volumes:
                 raise LsmError(ErrorNumber.INVALID_VOL, 'Volume not present')
         return None
 
     def volume_online(self, volume):
-        if volume.id in self.__v:
+        if volume.id in self.s.volumes:
             return None
         else:
             raise LsmError(ErrorNumber.INVALID_VOL, 'Volume not present')
 
     def volume_offline(self, volume):
-        if volume.id in self.__v:
+        if volume.id in self.s.volumes:
             return None
         else:
             raise LsmError(ErrorNumber.INVALID_VOL, 'Volume not present')
 
     def volume_resize(self, volume, new_size_bytes):
-        if volume.id in self.__v:
-            v = self.__v[volume.id]['volume']
-            p = self.__v[volume.id]['pool']
+        if volume.id in self.s.volumes:
+            v = self.s.volumes[volume.id]['volume']
+            p = self.s.volumes[volume.id]['pool']
 
             current_size = v.size_bytes
             new_size = self.__block_rounding(new_size_bytes)
@@ -278,23 +286,23 @@ class StorageSimulator(IStorageAreaNetwork):
         return self.__create_job(v)
 
     def access_grant(self, initiator, volume, access):
-        if initiator.id in self.__i and volume.id in self.__v:
-            access = self.__i[initiator.id]['access']
+        if initiator.id in self.s.initiators and volume.id in self.s.volumes:
+            access = self.s.initiators[initiator.id]['access']
             if volume.id not in access:
                 access[volume.id] = access
             else:
                 raise LsmError(ErrorNumber.IS_MAPPED, 'Existing access present')
         else:
-            if initiator.id not in self.__i:
+            if initiator.id not in self.s.initiators:
                 raise LsmError(ErrorNumber.INVALID_INIT,
                     "Initiator not present")
-            if volume.id not in self.__v:
+            if volume.id not in self.s.volumes:
                 raise LsmError(ErrorNumber.INVALID_VOL, 'Volume not found')
         return None
 
     def access_revoke(self, initiator, volume):
-        if initiator.id in self.__i:
-            access = self.__i[initiator.id]['access']
+        if initiator.id in self.s.initiators:
+            access = self.s.initiators[initiator.id]['access']
             if volume.id in access:
                 del access[volume.id]
             else:

@@ -72,8 +72,9 @@ struct LSM_DLL_LOCAL _lsmPool {
  */
 struct LSM_DLL_LOCAL _lsmInitiator {
     uint32_t magic;             /**< Used for verification */
-    lsmInitiatorType   idType; /**< Type of id */
+    lsmInitiatorType   idType;  /**< Type of id */
     char *id;                   /**< Identifier */
+    char *name;                 /**< Initiator name */
 };
 
 /**

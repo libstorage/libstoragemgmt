@@ -101,7 +101,7 @@ class Client(object):
         """
         return self.tp.rpc('get_time_out', del_self(locals()))
 
-    def job_status(self, job_number):
+    def job_status(self, job_id):
         """
         Returns the stats of the given job.
 
@@ -110,7 +110,7 @@ class Client(object):
         """
         return self.tp.rpc('job_status', del_self(locals()))
 
-    def job_free(self, job_number):
+    def job_free(self, job_id):
         """
         Frees resources for a given job number.
 
@@ -345,13 +345,12 @@ class Client(object):
         the operation will fail with an LsmError raised.  If files == None and
         all_files = True then all files on the file-system are reverted.
 
+        Restore_file if None none must be the same length as files with each
+        index in each list referring to the associated file.
+
         Returns None on success, else job id, LsmError exception on error
         """
-        assert(fs is not None)
-        assert(snapshot is not None)
-        assert(files is None or type(files) is list)
-        assert(type(all_files) is bool)
-        raise NotImplemented()
+        return self.tp.rpc('snapshot_revert', del_self(locals()))
 
     def export_auth(self):
         """

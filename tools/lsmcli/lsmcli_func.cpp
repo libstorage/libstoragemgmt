@@ -24,6 +24,8 @@
 #define __STDC_FORMAT_MACROS    /* To use PRIu64 */
 #include <inttypes.h>
 
+lsmInitiatorPtr getInitiator(lsmConnectPtr c, std::string initId);
+
 void printVolume(const LSM::Arguments &a, lsmVolumePtr v)
 {
     const char *id = lsmVolumeIdGet(v);
@@ -47,31 +49,61 @@ void printVolume(const LSM::Arguments &a, lsmVolumePtr v)
     }
 }
 
-int waitForJob(int cmd_rc, lsmConnectPtr c, uint32_t job,
+void printInitiator(const LSM::Arguments &a, lsmInitiatorPtr i)
+{
+    const char format[] = "%-40s%-16s%-5d\n";
+    const char *sep = NULL;
+
+    const char *id = lsmInitiatorIdGet(i);
+    const char *name = lsmInitiatorNameGet(i);
+    lsmInitiatorType type = lsmInitiatorTypeGet(i);
+
+    if( a.terse.present ) {
+        sep = a.terse.value.c_str();
+    }
+
+    if( a.terse.present ) {
+        printf("%s%s%s%s%d\n", id, sep, name, sep, type);
+    } else {
+        printf(format, id, name, type);
+    }
+}
+
+int waitForJob(int cmd_rc, lsmConnectPtr c, char *job,
                 const LSM::Arguments &a, lsmVolumePtr *vol)
 {
+    lsmVolumePtr new_volume = NULL;
     int rc = cmd_rc;
     //Check to see if we are done!
     if( LSM_ERR_OK != rc ) {
         if ( LSM_ERR_JOB_STARTED == rc ) {
             //We have a job to wait for.
-            printf("Wait for it...\n");
             lsmJobStatus status;
             uint8_t percent = 0;
 
             do {
-                sleep(1);
-                rc = lsmJobStatusGet(c, job, &status, &percent, vol);
+                usleep(10000);
+                rc = lsmJobStatusGet(c, job, &status, &percent, &new_volume);
+                //printf("job = %s, status %d, percent %d\n", job, status, percent);
             } while ( (LSM_JOB_INPROGRESS == status) && (LSM_ERR_OK == rc) );
 
-            if( (LSM_ERR_OK == rc) && (LSM_JOB_COMPLETE == status) && *vol ) {
-                printVolume(a, *vol);
+            if( vol != NULL) {
+                *vol = new_volume;
             } else {
-                printf("RC = %d, job = %d, status %d, percent %d\n", rc, job, status, percent);
+                if( new_volume ) {
+                    lsmVolumeRecordFree(new_volume);
+                    new_volume = NULL;
+                }
+            }
+
+            if( (LSM_ERR_OK == rc) && (LSM_JOB_COMPLETE == status) && new_volume ) {
+                printVolume(a, new_volume);
+            } else {
+                printf("RC = %d, job = %s, status %d, percent %d\n", rc, job, status, percent);
             }
 
             //Clean up the job
-            int jf = lsmJobFree(c, job);
+            int jf = lsmJobFree(c, &job);
             if( LSM_ERR_OK != jf ) {
                 printf("lsmJobFree rc= %d\n", jf);
             }
@@ -139,6 +171,7 @@ static int listInitiators(const LSM::Arguments &a, lsmConnectPtr c)
     lsmInitiatorPtr *init = NULL;
     uint32_t num_init = 0;
     const char *sep = NULL;
+    const char format[] = "%-40s%-16s%-5d\n";
 
     rc = lsmInitiatorList(c, &init, &num_init);
 
@@ -148,20 +181,12 @@ static int listInitiators(const LSM::Arguments &a, lsmConnectPtr c)
         if( a.terse.present ) {
             sep = a.terse.value.c_str();
         } else {
-            printf("ID\t\t\t\t\tType\n");
+            printf(format, "ID", "Name", "Type");
         }
 
         for( i = 0; i < num_init; ++i ) {
-            const char *id = lsmInitiatorIdGet(init[i]);
-            lsmInitiatorType type = lsmInitiatorTypeGet(init[i]);
-
-            if( a.terse.present ) {
-                printf("%s%s%d\n", id, sep, type);
-            } else {
-                printf("%s\t%d\n", id, type);
-            }
+            printInitiator(a,init[i]);
         }
-
         lsmInitiatorRecordFreeArray(init,num_init);
     } else {
         dumpError(rc, lsmErrorGetLast(c));
@@ -234,11 +259,30 @@ int createInit(const LSM::Arguments &a, lsmConnectPtr c)
     int rc = lsmInitiatorCreate(c, a.commandValue.c_str(), a.id.value.c_str(),
                                     a.initiatorType(), &init);
     if( LSM_ERR_OK == rc ) {
+        printInitiator(a,init);
         lsmInitiatorRecordFree(init);
     } else {
         dumpError(rc, lsmErrorGetLast(c));
     }
 
+    return rc;
+}
+
+int deleteInit(const LSM::Arguments &a, lsmConnectPtr c)
+{
+    int rc = 0;
+    lsmInitiatorPtr init = getInitiator(c, a.commandValue);
+
+    if( init ) {
+        rc = lsmInitiatorDelete(c, init);
+        if( LSM_ERR_OK == rc ) {
+            lsmInitiatorRecordFree(init);
+        } else {
+            dumpError(rc, lsmErrorGetLast(c));
+        }
+    } else {
+        printf("Initiator with id= %s not found!\n", a.commandValue.c_str());
+    }
     return rc;
 }
 
@@ -319,7 +363,7 @@ int createVolume(const LSM::Arguments &a, lsmConnectPtr c)
 {
     int rc = 0;
     lsmVolumePtr vol = NULL;
-    uint32_t job = 0;
+    char *job = NULL;
     uint64_t size = 0;
     lsmPoolPtr pool = NULL;
 
@@ -344,13 +388,13 @@ int createVolume(const LSM::Arguments &a, lsmConnectPtr c)
 int deleteVolume(const LSM::Arguments &a, lsmConnectPtr c)
 {
     int rc = 0;
-    uint32_t job = 0;
+    char *job = NULL;
     //Get the volume pointer to the record in question to delete.
     lsmVolumePtr vol = getVolume(c, a.commandValue);
 
     if( vol ) {
         rc = lsmVolumeDelete(c, vol, &job);
-        rc = waitForJob(rc, c, job, a );
+        rc = waitForJob(rc, c, job, a);
     } else {
         printf("Volume with id= %s not found!\n", a.commandValue.c_str());
     }
@@ -360,7 +404,7 @@ int deleteVolume(const LSM::Arguments &a, lsmConnectPtr c)
 int replicateVolume(const LSM::Arguments &a, lsmConnectPtr c)
 {
     int rc = 0;
-    uint32_t job;
+    char *job = NULL;
     lsmVolumePtr newVol = NULL;
     lsmVolumePtr vol = getVolume(c, a.commandValue);
     lsmPoolPtr pool = getPool(c, a.pool.value);
@@ -396,7 +440,7 @@ int replicateVolume(const LSM::Arguments &a, lsmConnectPtr c)
 static int _access(const LSM::Arguments &a, lsmConnectPtr c, bool grant)
 {
     int rc = 0;
-    uint32_t job = 0;
+    char *job = NULL;
     lsmInitiatorPtr init = getInitiator(c, a.commandValue);
     lsmVolumePtr vol = getVolume(c, a.volume.value);
 
@@ -446,7 +490,7 @@ int accessRevoke(const LSM::Arguments &a, lsmConnectPtr c)
 int resizeVolume(const LSM::Arguments &a, lsmConnectPtr c)
 {
     int rc = 0;
-    uint32_t job = 0;
+    char *job = NULL;
     uint64_t size = 0;
     lsmVolumePtr newVol = NULL;
     lsmVolumePtr vol = getVolume(c, a.commandValue);

@@ -223,7 +223,7 @@ def drop_privileges():
                 os.setgid(pw.pw_gid)
                 os.setuid(pw.pw_uid)
             elif pw.pw_uid != os.getuid():
-                Loud("Daemon not running as correct user")
+                print("Daemon not running as correct user")
         except KeyError:
             Loud("Missing %s user, running as existing user!" % LSM_USER)
 

@@ -38,6 +38,8 @@
     lsmErrorFree(c->error);             \
     } while (0)
 
+#define CHECK_NULL_JOB(x) !(x && *x == NULL)
+
 int lsmConnectPassword(const char *uri, const char *password,
                         lsmConnectPtr *conn, uint32_t timeout, lsmErrorPtr *e)
 {
@@ -165,26 +167,30 @@ int lsmConnectGetTimeout(lsmConnectPtr c, uint32_t *timeout)
     return rc;
 }
 
-int lsmJobStatusGet( lsmConnectPtr c, uint32_t jobNumber,
+int lsmJobStatusGet( lsmConnectPtr c, const char *job,
                         lsmJobStatus *status, uint8_t *percentComplete,
                         lsmVolumePtr *vol)
 {
     CONN_SETUP(c);
 
+    if( NULL == job ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
     std::map<std::string, Value> p;
-    p["job_number"] = Value(jobNumber);
+    p["job_id"] = Value(job);
     Value parameters(p);
     Value response;
 
     int rc = rpc(c, "job_status", parameters, response);
     if( LSM_ERR_OK == rc ) {
         //We get back an array [status, percent, volume]
-        std::vector<Value> job = response.asArray();
-        *status = (lsmJobStatus)job[0].asInt32_t();
-        *percentComplete = (uint8_t)job[1].asUint32_t();
+        std::vector<Value> j = response.asArray();
+        *status = (lsmJobStatus)j[0].asInt32_t();
+        *percentComplete = (uint8_t)j[1].asUint32_t();
 
-        if( Value::object_t ==  job[2].valueType() ) {
-            *vol = valueToVolume(job[2]);
+        if( Value::object_t ==  j[2].valueType() ) {
+            *vol = valueToVolume(j[2]);
         } else {
             *vol = NULL;
         }
@@ -192,13 +198,23 @@ int lsmJobStatusGet( lsmConnectPtr c, uint32_t jobNumber,
     return rc;
 }
 
-int lsmJobFree(lsmConnectPtr c, uint32_t jobNumber)
+int lsmJobFree(lsmConnectPtr c, char **job)
 {
     CONN_SETUP(c);
+
+    if( !(job != NULL && *job != NULL)) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
     std::map<std::string, Value> p;
-    p["job_number"] = Value(jobNumber);
+    p["job_id"] = Value(*job);
     Value parameters(p);
     Value response;
+
+    /* Free the memory for the job id */
+    free(*job);
+    *job = NULL;
+
     return rpc(c, "job_free", parameters, response);
 }
 
@@ -281,9 +297,28 @@ int lsmVolumeList(lsmConnectPtr c, lsmVolumePtr **volumes, uint32_t *count)
     return rc;
 }
 
+typedef void* (*convert)(Value &v);
+
+static void* parse_job_response(Value response, int &rc, char **job, convert conv)
+{
+    void *val = NULL;
+    //We get an array back. first value is job, second is data of interest.
+    if( Value::array_t == response.valueType() ) {
+        std::vector<Value> r = response.asArray();
+        if( Value::string_t == r[0].valueType()) {
+            *job = strdup((r[0].asString()).c_str());
+            rc = LSM_ERR_JOB_STARTED;
+        }
+        if( Value::object_t == r[1].valueType() ) {
+            val = conv(r[1]);
+        }
+    }
+    return val;
+}
+
 int lsmVolumeCreate(lsmConnectPtr c, lsmPoolPtr pool, const char *volumeName,
                         uint64_t size, lsmProvisionType provisioning,
-                        lsmVolumePtr *newVolume, uint32_t *job)
+                        lsmVolumePtr *newVolume, char **job)
 {
     CONN_SETUP(c);
 
@@ -291,7 +326,7 @@ int lsmVolumeCreate(lsmConnectPtr c, lsmPoolPtr pool, const char *volumeName,
         return LSM_ERR_INVALID_POOL;
     }
 
-    if( NULL == volumeName ) {
+    if( NULL == volumeName || CHECK_NULL_JOB(job) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -306,28 +341,15 @@ int lsmVolumeCreate(lsmConnectPtr c, lsmPoolPtr pool, const char *volumeName,
 
     int rc = rpc(c, "volume_create", parameters, response);
     if( LSM_ERR_OK == rc ) {
-        *job = 0;
-
-        //We get an array back. first value is job, second is volume
-        if( Value::array_t == response.valueType() ) {
-            std::vector<Value> r = response.asArray();
-            if( Value::numeric_t == r[0].valueType()) {
-                *job = r[0].asInt32_t();
-                rc = LSM_ERR_JOB_STARTED;
-            }
-            if( Value::object_t == r[1].valueType() ) {
-                *newVolume = valueToVolume(r[1]);
-            } else {
-                *newVolume = NULL;
-            }
-        }
+        *newVolume = (lsmVolumePtr)parse_job_response(response, rc, job,
+                                                        (convert)valueToVolume);
     }
     return rc;
 }
 
 int lsmVolumeResize(lsmConnectPtr c, lsmVolumePtr volume,
                         uint64_t newSize, lsmVolumePtr *resizedVolume,
-                        uint32_t *job)
+                        char **job)
 {
     CONN_SETUP(c);
 
@@ -335,7 +357,7 @@ int lsmVolumeResize(lsmConnectPtr c, lsmVolumePtr volume,
         return LSM_ERR_INVALID_VOL;
     }
 
-    if( !resizedVolume || !job || newSize == 0 ) {
+    if( !resizedVolume || CHECK_NULL_JOB(job) || newSize == 0 ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -353,28 +375,15 @@ int lsmVolumeResize(lsmConnectPtr c, lsmVolumePtr volume,
 
     int rc = rpc(c, "volume_resize", parameters, response);
     if( LSM_ERR_OK == rc ) {
-        *job = 0;
-
-        //We get an array back. first value is job, second is volume
-        if( Value::array_t == response.valueType() ) {
-            std::vector<Value> r = response.asArray();
-            if( Value::numeric_t == r[0].valueType()) {
-                *job = r[0].asInt32_t();
-                rc = LSM_ERR_JOB_STARTED;
-            }
-            if( Value::object_t == r[1].valueType() ) {
-                *resizedVolume = valueToVolume(r[1]);
-            } else {
-                *resizedVolume = NULL;
-            }
-        }
+        *resizedVolume = (lsmVolumePtr)parse_job_response(response, rc, job,
+                                                        (convert)valueToVolume);
     }
     return rc;
 }
 
 int lsmVolumeReplicate(lsmConnectPtr c, lsmPoolPtr pool,
                         lsmReplicationType repType, lsmVolumePtr volumeSrc,
-                        const char *name, lsmVolumePtr *newReplicant, uint32_t *job)
+                        const char *name, lsmVolumePtr *newReplicant, char **job)
 {
     CONN_SETUP(c);
 
@@ -386,7 +395,7 @@ int lsmVolumeReplicate(lsmConnectPtr c, lsmPoolPtr pool,
         return LSM_ERR_INVALID_VOL;
     }
 
-    if( !name || !(newReplicant) || !(job) ) {
+    if( !name || !(newReplicant) || CHECK_NULL_JOB(job) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -401,27 +410,14 @@ int lsmVolumeReplicate(lsmConnectPtr c, lsmPoolPtr pool,
 
     int rc = rpc(c, "volume_replicate", parameters, response);
     if( LSM_ERR_OK == rc ) {
-        *job = 0;
-
-        //We get an array back. first value is job, second is volume
-        if( Value::array_t == response.valueType() ) {
-            std::vector<Value> r = response.asArray();
-            if( Value::numeric_t == r[0].valueType()) {
-                *job = r[0].asInt32_t();
-                rc = LSM_ERR_JOB_STARTED;
-            }
-            if( Value::object_t == r[1].valueType() ) {
-                *newReplicant = valueToVolume(r[1]);
-            } else {
-                *newReplicant = NULL;
-            }
-        }
+        *newReplicant = (lsmVolumePtr)parse_job_response(response, rc, job,
+                                                        (convert)valueToVolume);
     }
     return rc;
 
 }
 
-int lsmVolumeDelete(lsmConnectPtr c, lsmVolumePtr volume, uint32_t *job)
+int lsmVolumeDelete(lsmConnectPtr c, lsmVolumePtr volume, char **job)
 {
     CONN_SETUP(c);
 
@@ -429,7 +425,7 @@ int lsmVolumeDelete(lsmConnectPtr c, lsmVolumePtr volume, uint32_t *job)
         return LSM_ERR_INVALID_VOL;
     }
 
-    if( !job ) {
+    if( CHECK_NULL_JOB(job) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -441,11 +437,9 @@ int lsmVolumeDelete(lsmConnectPtr c, lsmVolumePtr volume, uint32_t *job)
 
     int rc = rpc(c, "volume_delete", parameters, response);
     if( LSM_ERR_OK == rc ) {
-        *job = 0;
-
         //We get a value back, either null or job id.
-        if( Value::numeric_t == response.valueType() ) {
-            *job = response.asInt32_t();
+        if( Value::string_t == response.valueType() ) {
+            *job = strdup(response.asString().c_str());
             rc = LSM_ERR_JOB_STARTED;
         }
     }
@@ -478,7 +472,7 @@ int lsmInitiatorCreate(lsmConnectPtr c, const char *name, const char *id,
 
     int rc = rpc(c, "initiator_create", parameters, response);
     if( LSM_ERR_OK == rc ) {
-        //We get a value back, either null or job id.
+        //We get a value back, either null or initiator
         if( Value::object_t == response.valueType() ) {
             *init = valueToInitiator(response);
         }
@@ -486,8 +480,25 @@ int lsmInitiatorCreate(lsmConnectPtr c, const char *name, const char *id,
     return rc;
 }
 
+int lsmInitiatorDelete(lsmConnectPtr c, lsmInitiatorPtr i)
+{
+    CONN_SETUP(c);
+
+    if( !LSM_IS_INIT(i) ){
+        return LSM_ERR_INVALID_INIT;
+    }
+
+    std::map<std::string, Value> p;
+    p["initiator"] = initiatorToValue(i);
+
+    Value parameters(p);
+    Value response;
+
+    return rpc(c, "initiator_delete", parameters, response);
+}
+
 int lsmAccessGrant( lsmConnectPtr c, lsmInitiatorPtr i, lsmVolumePtr v,
-                        lsmAccessType access, uint32_t *job)
+                        lsmAccessType access, char **job)
 {
     CONN_SETUP(c);
 
@@ -499,7 +510,7 @@ int lsmAccessGrant( lsmConnectPtr c, lsmInitiatorPtr i, lsmVolumePtr v,
         return LSM_ERR_INVALID_VOL;
     }
 
-    if( !job ) {
+    if( CHECK_NULL_JOB(job) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -513,11 +524,9 @@ int lsmAccessGrant( lsmConnectPtr c, lsmInitiatorPtr i, lsmVolumePtr v,
 
     int rc = rpc(c, "access_grant", parameters, response);
     if( LSM_ERR_OK == rc ) {
-        *job = 0;
-
         //We get a value back, either null or job id.
-        if( Value::numeric_t == response.valueType() ) {
-            *job = response.asInt32_t();
+        if( Value::string_t == response.valueType() ) {
+            *job = strdup(response.asString().c_str());
             rc = LSM_ERR_JOB_STARTED;
         }
     }

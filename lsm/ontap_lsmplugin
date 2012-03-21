@@ -24,7 +24,7 @@ from lsm import na
 from lsm.data import Volume, Initiator, FileSystem, Snapshot, NfsExport
 from lsm.pluginrunner import PluginRunner
 from lsm.iplugin import IStorageAreaNetwork, INfs
-from lsm.common import  LsmError, ErrorNumber
+from lsm.common import  LsmError, ErrorNumber, JobStatus
 from lsm.data import Pool
 import lsm.na
 import sys
@@ -54,6 +54,8 @@ def handle_ontap_errors(method):
 class Ontap(IStorageAreaNetwork, INfs):
 
     (LSM_VOL_PREFIX, LSM_INIT_PREFIX) = ( 'lsm_lun_container', 'lsm_init_')
+
+    (SS_JOB) = ('ontap-ss-file-restore')
 
     def __init__(self):
         self.f = None
@@ -278,12 +280,35 @@ class Ontap(IStorageAreaNetwork, INfs):
         self.f.lun_unmap(group_name, volume.name)
         return None
 
-    @handle_ontap_errors
-    def job_status(self, job_number):
-        return None
+    @staticmethod
+    def _rpercent(total, current):
+        p = 1 - (current/float(total))
+        p = min(int(100 * p),100)
+        return p
+
+    def _restore_file_status(self, num):
+        running = self.f.snapshot_file_restore_num()
+
+        if running:
+            running = min(num, running)
+            return JobStatus.INPROGRESS, Ontap._rpercent(num,running), None
+
+        return JobStatus.COMPLETE, 100, None
 
     @handle_ontap_errors
-    def job_free(self, job_number):
+    def job_status(self, job_id):
+        if job_id is None and '@' not in job_id:
+            raise LsmError(ErrorNumber.INVALID_JOB, "Invalid job, missing @")
+
+        job = job_id.split('@',2)
+
+        if job[0] == Ontap.SS_JOB:
+            return self._restore_file_status(int(job[1]))
+
+        raise LsmError(ErrorNumber.INVALID_JOB, "Invalid job")
+
+    @handle_ontap_errors
+    def job_free(self, job_id):
         return None
 
     @handle_ontap_errors
@@ -342,9 +367,33 @@ class Ontap(IStorageAreaNetwork, INfs):
     def snapshot_delete(self, fs, snapshot):
         self.f.snapshot_delete(fs.name, snapshot.name)
 
+    def _ss_revert_files(self, volume_name, snapshot_name, files, restore_files):
+        for i in range(len(files)):
+            src = Ontap.build_name(volume_name, files[i])
+            dest = None
+            if restore_files and len(restore_files):
+                dest = Ontap.build_name(volume_name, restore_files[i])
+            self.f.snapshot_restore_file(snapshot_name, src, dest)
+
     @handle_ontap_errors
-    def snapshot_revert(self, fs, snapshot, files, all_files=False):
-        pass
+    def snapshot_revert(self, fs, snapshot, files, restore_files,  all_files=False):
+        """
+        Restores a FS or files on a FS.
+        Note: Restoring an individual file is a O(n) operation, i.e. time it
+        takes to restore a file depends on the file size.  Reverting an entire
+        FS is O(1).  Try to avoid restoring individual files from a snapshot.
+        """
+        if files is None and all_files:
+            self.f.snapshot_restore_volume(fs.name, snapshot.name)
+            return None
+        elif files:
+            if restore_files and len(files) != len(restore_files):
+                raise LsmError(ErrorNumber.INVALID_ARGUMENT, "num files != num restore_files")
+
+            self._ss_revert_files(fs.name, snapshot.name, files, restore_files)
+            return ("%s@%d") % (Ontap.SS_JOB, len(files))
+        else:
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT, "Invalid parameter combination")
 
     @handle_ontap_errors
     def export_auth(self):

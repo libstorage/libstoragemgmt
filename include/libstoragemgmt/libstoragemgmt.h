@@ -77,7 +77,7 @@ extern "C" {
      * @param[out] vol              lsmVolumePtr for completed operation.
      * @return LSM_ERR_OK on success, else error reason.
      */
-    int LSM_DLL_EXPORT lsmJobStatusGet(lsmConnectPtr conn, uint32_t jobNumber,
+    int LSM_DLL_EXPORT lsmJobStatusGet(lsmConnectPtr conn, const char *jobNumber,
                                 lsmJobStatus *status, uint8_t *percentComplete,
                                 lsmVolumePtr *vol);
 
@@ -87,7 +87,7 @@ extern "C" {
      * @param[in] jobNumber
      * @return LSM_ERROR_OK, else error reason.
      */
-    int LSM_DLL_EXPORT lsmJobFree(lsmConnectPtr conn, uint32_t jobNumber);
+    int LSM_DLL_EXPORT lsmJobFree(lsmConnectPtr conn, char **jobNumber);
     /**
      * Storage system query functions
      */
@@ -145,13 +145,13 @@ extern "C" {
      *                              be based on array rounding to blocksize)
      * @param[in]   provisioning    Type of volume provisioning to use
      * @param[out]  newVolume       Valid volume @see lsmVolume_t
-     * @param[out]  job             Indicates job number
+     * @param[out]  job             Indicates job id
      * @return LSM_ERR_OK on success, LSM_JOB_STARTED if async. , else error code
      */
     int LSM_DLL_EXPORT lsmVolumeCreate(lsmConnectPtr conn, lsmPoolPtr pool,
                                         const char *volumeName, uint64_t size,
                                         lsmProvisionType provisioning,
-                                        lsmVolumePtr *newVolume, uint32_t *job);
+                                        lsmVolumePtr *newVolume, char **job);
 
     /**
      * Resize an existing volume.
@@ -159,12 +159,12 @@ extern "C" {
      * @param[in]   volume          volume to resize
      * @param[in]   newSize         New size of volume
      * @param[out]  resizedVolume   Pointer to newly resized lun.
-     * @param[out]  job             Indicates job number
+     * @param[out]  job             Indicates job id
      * @return LSM_ERR_OK on success, LSM_JOB_STARTED if async. , else error code
      */
     int LSM_DLL_EXPORT lsmVolumeResize(lsmConnectPtr conn, lsmVolumePtr volume,
                                 uint64_t newSize, lsmVolumePtr *resizedVolume,
-                                uint32_t *job);
+                                char **job);
 
     /**
      * Replicates a volume
@@ -174,23 +174,23 @@ extern "C" {
      * @param[in] volumeSrc         Which volume to replicate
      * @param[in] name              Human recognizable name (not all arrays support)
      * @param[out] newReplicant     New replicated volume lsmVolume_t
-     * @param[out] job              Indicates job number
+     * @param[out] job              Indicates job id
      * @return LSM_ERR_OK on success, LSM_JOB_STARTED if async. , else error code
      */
     int LSM_DLL_EXPORT lsmVolumeReplicate(lsmConnectPtr conn, lsmPoolPtr pool,
                             lsmReplicationType repType, lsmVolumePtr volumeSrc,
                             const char *name, lsmVolumePtr *newReplicant,
-                            uint32_t *job);
+                            char **job);
 
     /**
      * Deletes a logical unit and data is lost!
      * @param[in]   conn            Valid connection @see lsmConnectUserPass
      * @param[in]   volume          Volume that is to be deleted.
-     * @param[out]  job             Indicates job number
+     * @param[out]  job             Indicates job id
      * @return LSM_ERR_OK on success, LSM_JOB_STARTED if async. , else error code
      */
     int LSM_DLL_EXPORT lsmVolumeDelete(lsmConnectPtr conn, lsmVolumePtr volume,
-                                        uint32_t *job);
+                                        char **job);
 
     /**
      * Query the status of a volume
@@ -233,6 +233,15 @@ extern "C" {
                                             const char *id,
                                             lsmInitiatorType type,
                                             lsmInitiatorPtr *init);
+
+    /**
+     * Used to delete an initiator record.
+     * @param[in] conn      Valid connection
+     * @param[in] init      Initiator to delete
+     * @return LSM_ERR_OK on success, else error reason.
+     */
+    int LSM_DLL_EXPORT lsmInitiatorDelete(lsmConnectPtr conn, lsmInitiatorPtr init);
+
     /**
      * Access control for allowing an initiator to use a volume.
      * Note: An access group will be created automatically with one initiator in it.
@@ -240,13 +249,13 @@ extern "C" {
      * @param[in] initiator             Initiator to grant access to volume
      * @param[in] volume                Volume to allow access to
      * @param[in] access                Type of access
-     * @param[out] job                   Indicates job number
+     * @param[out] job                   Indicates job id
      * @return LSM_ERR_OK on success, LSM_JOB_STARTED if async. , else error code
      */
     int LSM_DLL_EXPORT lsmAccessGrant(lsmConnectPtr conn,
                                         lsmInitiatorPtr initiator,
                                         lsmVolumePtr volume,
-                                        lsmAccessType access, uint32_t *job);
+                                        lsmAccessType access, char **job);
 
     /**
      * Revokes privileges an initiator has to a volume

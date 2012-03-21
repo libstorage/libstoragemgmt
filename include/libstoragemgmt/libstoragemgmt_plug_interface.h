@@ -46,11 +46,11 @@ typedef int (*lsmPlugSetTmo)( lsmPluginPtr c, uint32_t timeout );
 typedef int (*lsmPlugGetTmo)( lsmPluginPtr c, uint32_t *timeout );
 typedef int (*lsmPlugCapabilities)(lsmPluginPtr conn,
                                         lsmStorageCapabilitiesPtr *cap);
-typedef int (*lsmPlugJobStatusVol)(lsmPluginPtr conn, uint32_t jobNumber,
+typedef int (*lsmPlugJobStatusVol)(lsmPluginPtr conn, const char *job,
                                         lsmJobStatus *status,
                                         uint8_t *percentComplete,
                                         lsmVolumePtr *vol);
-typedef int (*lsmPlugJobFree)(lsmPluginPtr c, uint32_t jobNumber);
+typedef int (*lsmPlugJobFree)(lsmPluginPtr c, char *jobNumber);
 
 /**
  * Callback functions for management operations.
@@ -77,25 +77,27 @@ typedef int (*lsmPlugGetVolumes)( lsmPluginPtr c, lsmVolumePtr **volArray,
 typedef int (*lsmPlugCreateVolume)(lsmPluginPtr c, lsmPoolPtr pool,
                         const char *volumeName, uint64_t size,
                         lsmProvisionType provisioning, lsmVolumePtr *newVolume,
-                        uint32_t *job);
+                        char **job);
 
 typedef int (*lsmPlugReplicateVolume)(lsmPluginPtr c, lsmPoolPtr pool,
                         lsmReplicationType repType, lsmVolumePtr volumeSrc,
                         const char *name, lsmVolumePtr *newReplicant,
-                        uint32_t *job);
+                        char **job);
 typedef int (*lsmPlugResizeVolume)(lsmPluginPtr c, lsmVolumePtr volume,
                                 uint64_t newSize, lsmVolumePtr *resizedVolume,
-                                uint32_t *job);
+                                char **job);
 
 typedef int (*lsmPlugDeleteVolume)(lsmPluginPtr c, lsmVolumePtr volume,
-                                    uint32_t *job);
+                                    char **job);
 
 typedef int (*lsmPlugCreateInit)(lsmPluginPtr c, const char *name,
                                     const char *id, lsmInitiatorType type,
                                     lsmInitiatorPtr *init);
 
+typedef int (*lsmPlugDeleteInit)(lsmPluginPtr c, lsmInitiatorPtr init);
+
 typedef int (*lsmPlugAccessGrant)(lsmPluginPtr c, lsmInitiatorPtr i, lsmVolumePtr v,
-                        lsmAccessType access, uint32_t *job);
+                        lsmAccessType access, char **job);
 
 typedef int (*lsmPlugAccessRemove)(lsmPluginPtr c, lsmInitiatorPtr i, lsmVolumePtr v);
 
@@ -111,6 +113,7 @@ struct lsmSanOps {
     lsmPlugResizeVolume vol_resize;     /**< Callback for resizing a volume */
     lsmPlugDeleteVolume vol_delete;     /**< Callback for deleting a volume */
     lsmPlugCreateInit init_create;      /**< Callback for creating initiator */
+    lsmPlugDeleteInit init_delete;      /**< Callback for deleting initiator */
     lsmPlugAccessGrant access_grant;    /**< Callback for granting access */
     lsmPlugAccessRemove access_remove;  /**< Callback for removing access */
 
@@ -224,10 +227,12 @@ lsmInitiatorPtr LSM_DLL_EXPORT *lsmInitiatorRecordAllocArray( uint32_t size );
  * Allocate the storage needed for one initiator record.
  * @param idType    Type of initiator.
  * @param id        ID of initiator.
+ * @param name      Name of initiator
  * @return Allocated memory or NULL on error.
  */
 lsmInitiatorPtr LSM_DLL_EXPORT lsmInitiatorRecordAlloc( lsmInitiatorType idType,
-                                                        const char* id);
+                                                        const char* id,
+                                                        const char* name);
 
 /**
  * Allocate the storage needed for and array of Volume records.

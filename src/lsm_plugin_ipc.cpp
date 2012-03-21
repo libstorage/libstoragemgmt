@@ -272,16 +272,16 @@ static int handle_get_time_out( lsmPluginPtr p, Value &params, Value &response)
 
 static int handle_job_status( lsmPluginPtr p, Value &params, Value &response)
 {
-    uint32_t job_num;
+    const char *job_id = NULL;
     lsmJobStatus status;
     uint8_t percent;
     lsmVolumePtr vol = NULL;
 
     if( p->mgmtOps->job_status ) {
 
-        job_num = params["job_number"].asUint32_t();
+        job_id = params["job_id"].asString().c_str();
 
-        int rc = p->mgmtOps->job_status(p, job_num, &status, &percent, &vol);
+        int rc = p->mgmtOps->job_status(p, job_id, &status, &percent, &vol);
         if( LSM_ERR_OK == rc) {
             std::vector<Value> result;
 
@@ -304,8 +304,9 @@ static int handle_job_status( lsmPluginPtr p, Value &params, Value &response)
 static int handle_job_free(lsmPluginPtr p, Value &params, Value &response)
 {
     if( p->mgmtOps->job_free ) {
-        uint32_t job_num = params["job_number"].asUint32_t();
-        return p->mgmtOps->job_free(p, job_num);
+        std::string job_num = params["job_id"].asString();
+        char *j = (char*)job_num.c_str();
+        return p->mgmtOps->job_free(p, j);
     }
     return LSM_ERR_NO_SUPPORT;
 }
@@ -377,7 +378,7 @@ static int handle_volumes(lsmPluginPtr p, Value &params, Value &response)
     return LSM_ERR_NO_SUPPORT;
 }
 
-static Value job_handle(int rc, lsmVolumePtr vol, uint32_t job)
+static Value job_handle(int rc, lsmVolumePtr vol, char *job)
 {
     Value result;
     std::vector<Value> r;
@@ -402,7 +403,7 @@ static int handle_volume_create(lsmPluginPtr p, Value &params, Value &response)
         uint64_t size = params["size_bytes"].asUint64_t();
         lsmProvisionType pro = (lsmProvisionType)params["provisioning"].asInt32_t();
         lsmVolumePtr vol = NULL;
-        uint32_t job = 0;
+        char *job = NULL;
 
         int rc = p->sanOps->vol_create(p, pool, name, size, pro, &vol, &job);
         response = job_handle(rc, vol, job);
@@ -410,6 +411,7 @@ static int handle_volume_create(lsmPluginPtr p, Value &params, Value &response)
         //Free dynamic data.
         lsmPoolRecordFree(pool);
         lsmVolumeRecordFree(vol);
+        free(job);
         return rc;
     }
     return LSM_ERR_NO_SUPPORT;
@@ -421,13 +423,14 @@ static int handle_volume_resize(lsmPluginPtr p, Value &params, Value &response)
         lsmVolumePtr vol = valueToVolume(params["volume"]);
         lsmVolumePtr resized_vol = NULL;
         uint64_t size = params["new_size_bytes"].asUint64_t();
-        uint32_t job = 0;
+        char *job = NULL;
 
         int rc = p->sanOps->vol_resize(p, vol, size, &resized_vol, &job );
         response = job_handle(rc, resized_vol, job);
 
         lsmVolumeRecordFree(vol);
         lsmVolumeRecordFree(resized_vol);
+        free(job);
         return rc;
     }
     return LSM_ERR_NO_SUPPORT;
@@ -441,7 +444,7 @@ static int handle_volume_replicate(lsmPluginPtr p, Value &params, Value &respons
         lsmVolumePtr newVolume = NULL;
         lsmReplicationType rep = (lsmReplicationType)params["rep_type"].asInt32_t();
         const char *name = params["name"].asString().c_str();
-        uint32_t job = 0;
+        char *job = NULL;
 
         int rc = p->sanOps->vol_replicate(p, pool, rep, vol, name, &newVolume, &job);
         response = job_handle(rc, newVolume, job);
@@ -449,6 +452,7 @@ static int handle_volume_replicate(lsmPluginPtr p, Value &params, Value &respons
         lsmPoolRecordFree(pool);
         lsmVolumeRecordFree(vol);
         lsmVolumeRecordFree(newVolume);
+        free(job);
         return rc;
     }
     return LSM_ERR_NO_SUPPORT;
@@ -458,7 +462,7 @@ static int handle_volume_delete(lsmPluginPtr p, Value &params, Value &response)
 {
     if( p->sanOps->vol_delete ) {
         lsmVolumePtr vol = valueToVolume(params["volume"]);
-        uint32_t job = 0;
+        char *job = NULL;
 
         int rc = p->sanOps->vol_delete(p, vol, &job);
 
@@ -467,6 +471,7 @@ static int handle_volume_delete(lsmPluginPtr p, Value &params, Value &response)
         }
 
         lsmVolumeRecordFree(vol);
+        free(job);
         return rc;
     }
     return LSM_ERR_NO_SUPPORT;
@@ -491,13 +496,25 @@ static int handle_initiator_create(lsmPluginPtr p, Value &params, Value &respons
     return LSM_ERR_NO_SUPPORT;
 }
 
+static int handle_initiator_delete(lsmPluginPtr p, Value &params, Value &response)
+{
+    if( p->sanOps->init_delete ) {
+        lsmInitiatorPtr i = valueToInitiator(params["initiator"]);
+
+        int rc = p->sanOps->init_delete(p, i);
+        lsmInitiatorRecordFree(i);
+        return rc;
+    }
+    return LSM_ERR_NO_SUPPORT;
+}
+
 static int handle_access_grant(lsmPluginPtr p, Value &params, Value &response)
 {
     if( p->sanOps->access_grant ) {
         lsmInitiatorPtr i = valueToInitiator(params["initiator"]);
         lsmVolumePtr v = valueToVolume(params["volume"]);
         lsmAccessType access = (lsmAccessType)params["access"].asInt32_t();
-        uint32_t job = 0;
+        char *job = NULL;
 
         int rc = p->sanOps->access_grant(p, i, v, access, &job);
 
@@ -507,6 +524,7 @@ static int handle_access_grant(lsmPluginPtr p, Value &params, Value &response)
 
         lsmInitiatorRecordFree(i);
         lsmVolumeRecordFree(v);
+        free(job);
         return rc;
     }
     return LSM_ERR_NO_SUPPORT;
@@ -544,6 +562,7 @@ static std::map<std::string,handler> dispatch = static_map<std::string,handler>
     ("volume_replicate", handle_volume_replicate)
     ("volume_delete", handle_volume_delete)
     ("initiator_create", handle_initiator_create)
+    ("initiator_delete", handle_initiator_delete)
     ("access_grant", handle_access_grant)
     ("access_revoke", handle_access_revoke);
 

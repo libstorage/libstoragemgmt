@@ -40,8 +40,7 @@
 extern "C" {
 #endif
 
-/*NOTE: Need to change this! */
-#define LSM_DEFAULT_PLUGIN_DIR "/tmp/lsm/ipc"
+#define LSM_DEFAULT_PLUGIN_DIR "/var/run/lsm/ipc"
 
 
 lsmConnectPtr getConnection()
@@ -398,13 +397,15 @@ lsmInitiatorPtr *lsmInitiatorRecordAllocArray(uint32_t size)
     return(lsmInitiatorPtr*) rc;
 }
 
-lsmInitiatorPtr lsmInitiatorRecordAlloc(lsmInitiatorType idType, const char* id)
+lsmInitiatorPtr lsmInitiatorRecordAlloc(lsmInitiatorType idType, const char* id,
+                                        const char* name)
 {
     lsmInitiatorPtr rc = (lsmInitiatorPtr)malloc(sizeof(lsmInitiator));
     if (rc) {
         rc->magic = LSM_INIT_MAGIC;
         rc->idType = idType;
         rc->id = strdup(id);
+        rc->name = strdup(name);
     }
     return rc;
 }
@@ -413,7 +414,7 @@ lsmInitiatorPtr lsmInitiatorRecordCopy(lsmInitiatorPtr i)
 {
     lsmInitiatorPtr rc = NULL;
     if( LSM_IS_INIT(i)) {
-        rc = lsmInitiatorRecordAlloc(i->idType, i->id);
+        rc = lsmInitiatorRecordAlloc(i->idType, i->id, i->name);
     }
     return rc;
 }
@@ -424,6 +425,7 @@ void lsmInitiatorRecordFree(lsmInitiatorPtr i)
         if (i->id) {
             free(i->id);
             i->id = NULL;
+            free(i->name);
         }
         free(i);
     }
@@ -448,6 +450,11 @@ lsmInitiatorType lsmInitiatorTypeGet(lsmInitiatorPtr i)
 char *lsmInitiatorIdGet(lsmInitiatorPtr i)
 {
     return i->id;
+}
+
+char *lsmInitiatorNameGet(lsmInitiatorPtr i)
+{
+    return i->name;
 }
 
 lsmVolumePtr *lsmVolumeRecordAllocArray(uint32_t size)

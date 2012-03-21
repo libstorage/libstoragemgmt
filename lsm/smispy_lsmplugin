@@ -304,13 +304,17 @@ class Smis(IStorageAreaNetwork):
                 p["TotalManagedSpace"],
                 p["RemainingManagedSpace"]) for p in pools if not p["Primordial"]]
 
+    @staticmethod
+    def _to_init(i):
+        return Initiator(i["StorageID"], i["IDType"], i["ElementName"])
+
     @handle_cim_errors
     def initiators(self):
         """
         Return all initiators.
         """
         initiators = self._c.EnumerateInstances('CIM_StorageHardwareID')
-        return [ Initiator(i["StorageID"], i["IDType"]) for i in initiators ]
+        return [ Smis._to_init(i) for i in initiators ]
 
     @handle_cim_errors
     def volume_create(self, pool, volume_name, size_bytes, provisioning):
@@ -409,7 +413,8 @@ class Smis(IStorageAreaNetwork):
         (rc, out) = self._c.InvokeMethod('CreateStorageHardwareID',
                                             hardware.path, **in_params)
         if not rc:
-            return Initiator(id, id_type)
+            init = self._get_class_instance('CIM_StorageHardwareID', 'StorageID', id)
+            return Smis._to_init(init)
 
         raise LsmError(ErrorNumber.PLUGIN_ERROR, 'Error: ' + str(rc) +
                                                  ' on initiator_create!')

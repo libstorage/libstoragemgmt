@@ -64,7 +64,7 @@ class IPlugin(object):
         pass
 
     @abstractmethod
-    def job_status(self, job_number):
+    def job_status(self, job_id):
         """
         Returns the stats of the given job.
 
@@ -74,9 +74,9 @@ class IPlugin(object):
         pass
 
     @abstractmethod
-    def job_free(self, job_number):
+    def job_free(self, job_id):
         """
-        Frees resources for a given job number.
+        Frees resources for a given job.
 
         Returns None on success, else raises an LsmError
         """
@@ -308,7 +308,7 @@ class INetworkAttachedStorage(IPlugin):
         pass
 
     @abstractmethod
-    def snapshot_revert(self, fs, snapshot, files, all_files=False):
+    def snapshot_revert(self, fs, snapshot, files, restore_files, all_files=False):
         """
         WARNING: Destructive!
 
@@ -316,6 +316,9 @@ class INetworkAttachedStorage(IPlugin):
         a list of files is supplied but the array cannot restore just them then
         the operation will fail with an LsmError raised.  If files == None and
         all_files = True then all files on the file-system are reverted.
+
+        Restore_file if not None must be the same length as files with each
+        index in each list referring to the associated file.
 
         Returns None on success, else job id, LsmError exception on error
         """

@@ -72,7 +72,8 @@ lsmInitiator *valueToInitiator(Value &init)
         std::map<std::string, Value> i = init.asObject();
         rc = lsmInitiatorRecordAlloc(
             (lsmInitiatorType) i["type"].asInt32_t(),
-            i["id"].asString().c_str()
+            i["id"].asString().c_str(),
+            i["name"].asString().c_str()
             );
     }
     return rc;
@@ -85,6 +86,7 @@ Value initiatorToValue(lsmInitiator *init)
     i["class"] = Value("Initiator");
     i["type"] = Value((int32_t) init->idType);
     i["id"] = Value(init->id);
+    i["name"] = Value(init->name);
     return Value(i);
 }
 

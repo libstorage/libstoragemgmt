@@ -162,6 +162,15 @@ class CmdLine:
                  "--file <repeat for each file>(default is all files)\n"
                  "--fs <file system id>")
 
+        commands.add_option( '', '--restore-ss', action="store", type="string",
+            dest=_c("restore-ss"),
+            metavar='<snapshot id>',
+            help="Restores a FS or specified files to previous snapshot state, requires:\n"
+                 "--fs <file system>\n"
+                 "--file <repeat for each file (optional)>\n"
+                 "--fileas <restore file name (optional)>\n"
+                 "--all (optional, exclusive option, restores all files in snapshot other options must be absent)")
+
         commands.add_option( '', '--clone-fs', action="store", type="string",
             dest=_c("clone-fs"),
             metavar='<source file system id>',
@@ -231,7 +240,7 @@ class CmdLine:
                                             '--rw <read/write host>\n'
                                             '--anonuid <uid to map to anonymous>\n'
                                             '--anongid <gid to map to anonymous>\n'
-                                            '--auth-type <NFS client authentication type\n'
+                                            '--auth-type <NFS client authentication type>\n'
         )
 
         parser.add_option_group(commands)
@@ -288,6 +297,10 @@ class CmdLine:
             metavar = "<file>", default=None,
             dest="file", help="file to include in operation, option can be repeated")
 
+        command_args.add_option('', '--fileas', action="append", type="string",
+            metavar = "<fileas>", default=None,
+            dest="fileas", help="file to be renamed as, option can be repeated")
+
         command_args.add_option('', '--fs', action="store", type="string",
             metavar = "<file system>", default=None,
             dest=_o("fs"), help="file system of interest")
@@ -319,6 +332,9 @@ class CmdLine:
         command_args.add_option('', '--authtype', action="store", type="string",
             metavar = "<type>", default=None,
             dest="authtype", help="NFS client authentication type")
+
+        command_args.add_option( '', '--all', action="store_true", dest="all",
+            default=False, help='specify all in an operation')
 
         parser.add_option_group(command_args)
 
@@ -645,6 +661,33 @@ class CmdLine:
         else:
             raise ArgError( "fs with id= %s not found!" % self.options.opt_fs)
 
+    def restore_ss(self):
+        #Get snapshot
+        fs = self._get_item(self.c.fs(), self.options.opt_fs)
+        ss = self._get_item(self.c.snapshots(fs), self.cmd_value)
+
+        if ss and fs:
+
+            if self.options.file:
+                if self.options.fileas:
+                    if len(self.options.file) != len(self.options.fileas):
+                        raise ArgError("number of --files not equal to --fileas")
+
+            if self.options.all:
+                if self.options.file or self.options.fileas:
+                    raise ArgError("Unable to specify --all and --files or --fileas")
+
+            if self.options.all is False and self.options.file is None:
+                raise ArgError("Need to specify --all or at least one --file")
+
+            self._wait_for_it('restore-ss', self.c.snapshot_revert(fs, ss, self.options.file,
+                                    self.options.fileas, self.options.all), None)
+        else:
+            if not ss:
+                raise ArgError( "ss with id= %s not found!" % self.cmd_value)
+            if not fs:
+                raise ArgError( "fs with id= %s not found!" % self.options.opt_fs)
+
     def delete_volume(self):
         v = self._get_item(self.c.volumes(), self.cmd_value)
 
@@ -673,7 +716,7 @@ class CmdLine:
 
                 if s == lsm.common.JobStatus.INPROGRESS:
                     #Add an option to spit out progress?
-                    #print "Percent %s complete" % percent
+                    #print "%s - Percent %s complete" % (job, percent)
                     time.sleep(0.25)
                 elif s == lsm.common.JobStatus.COMPLETE:
                     self.c.job_free(job)
@@ -817,7 +860,9 @@ class CmdLine:
                        'nfs-export-remove': {'options': [],
                                              'method': self.nfs_export_remove},
                        'nfs-export-fs': {'options': ['exportpath'],
-                                         'method': self.nfs_export_fs}}
+                                         'method': self.nfs_export_fs},
+                       'restore-ss': {'options': ['fs'],
+                                        'method': self.restore_ss}}
         self._validate()
 
         self.uri = os.getenv('LSMCLI_URI')
@@ -850,6 +895,10 @@ class CmdLine:
         else:
             #Going across the ipc pipe
             self.c = lsm.client.Client(self.uri,self.password, self.tmo)
+
+            if os.getenv('LSM_DEBUG_PLUGIN'):
+                raw_input("Attach debugger to plug-in, press <return> when ready...")
+
             cleanup = self.c.close
 
         self.verify[self.cmd]['method']()

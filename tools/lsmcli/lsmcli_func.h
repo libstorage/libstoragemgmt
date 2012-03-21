@@ -32,7 +32,7 @@
  * @param vol       New volume to print out.
  * @return LSM_ERR_OK on success else error reason.
  */
-int waitForJob(int cmd_rc, lsmConnectPtr c, uint32_t job,
+int waitForJob(int cmd_rc, lsmConnectPtr c, char *job,
                     const LSM::Arguments &a, lsmVolumePtr *vol = NULL);
 
 /**
@@ -57,6 +57,14 @@ int list(const LSM::Arguments &a, lsmConnectPtr c);
  * @return LSM_ERR_OK on success, else error reason.
  */
 int createInit(const LSM::Arguments &a, lsmConnectPtr c);
+
+/**
+ * Deletes an initiator
+ * @param a     Command line arguments.
+ * @param c     Connection
+ * @return LSM_ERR_OK on success, else error reason.
+ */
+int deleteInit(const LSM::Arguments &a, lsmConnectPtr c);
 
 /**
  * Creates a volume

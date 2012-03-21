@@ -60,6 +60,13 @@ lsmInitiatorType LSM_DLL_EXPORT lsmInitiatorTypeGet(lsmInitiatorPtr i);
  */
 char LSM_DLL_EXPORT *lsmInitiatorIdGet(lsmInitiatorPtr i);
 
+/**
+ * Returns the user specified name associated with an initiator.
+ * @param i     lsmInitiator to inquire
+ * @return      Initiator name
+ */
+char LSM_DLL_EXPORT *lsmInitiatorNameGet(lsmInitiatorPtr i);
+
 #ifdef  __cplusplus
 }
 #endif

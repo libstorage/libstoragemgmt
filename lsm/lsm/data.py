@@ -133,7 +133,11 @@ class Initiator(IData):
     (TYPE_OTHER, TYPE_PORT_WWN, TYPE_NODE_WWN, TYPE_HOSTNAME, TYPE_ISCSI) = \
     (1, 2, 3, 4, 5)
 
-    def __init__(self, id, type, name = None):
+    def __init__(self, id, type, name):
+
+        if not name or not len(name):
+            name = "Unsupported"
+
         self.id = id
         self.type = type
         self.name = name

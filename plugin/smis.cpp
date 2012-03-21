@@ -22,6 +22,8 @@
 #include <libstoragemgmt/libstoragemgmt_volumes.h>
 #include <libstoragemgmt/libstoragemgmt_initiators.h>
 
+#include <string.h>
+
 template <class Type> void getPropValue(CIMInstance i, String key, Type &value)
 {
     i.getProperty(i.findProperty(CIMName(key))).getValue().get(value);
@@ -110,6 +112,7 @@ lsmInitiatorPtr *Smis::getInitiators(Uint32 *count)
     Array<CIMInstance> instances = c.enumerateInstances(ns, CIMName("CIM_StorageHardwareID"));
 
     if (instances.size() > 0) {
+        const char bogus_name[] = "Unsupported";
 
         *count = instances.size();
         rc = lsmInitiatorRecordAllocArray(instances.size());
@@ -117,12 +120,19 @@ lsmInitiatorPtr *Smis::getInitiators(Uint32 *count)
         for (Uint32 i = 0; i < instances.size(); ++i) {
             String storageId;
             Uint16 idType;
+            String name;
 
             getPropValue(instances[i], "StorageID", storageId);
             getPropValue(instances[i], "IDType", idType);
+            getPropValue(instances[i], "ElementName", name);
+
+            if ( !name.size() ) {
+                name = bogus_name;
+            }
 
             rc[i] = lsmInitiatorRecordAlloc((lsmInitiatorType)idType,
-                                                storageId.getCString());
+                                                storageId.getCString(),
+                                                name.getCString());
         }
     }
 
@@ -151,7 +161,7 @@ lsmVolumePtr *Smis::getVolumes(Uint32 *count)
 
 int Smis::createLun(lsmPoolPtr pool, const char *volumeName,
     Uint64 size, lsmProvisionType provisioning,
-    lsmVolumePtr *newVolume, Uint32 *job)
+    lsmVolumePtr *newVolume, char **job)
 {
     Array<CIMParamValue> in;
     Array<CIMParamValue> out;
@@ -187,21 +197,38 @@ int Smis::createInit(const char *name, const char *id, lsmInitiatorType type,
     CIMInstance hardware = getClassInstance("CIM_StorageHardwareIDManagementService");
     in.append(CIMParamValue("ElementName", String(name)));
     in.append(CIMParamValue("StorageID", String(id)));
-      in.append(CIMParamValue("IDType", (Uint16) type));
+    in.append(CIMParamValue("IDType", (Uint16) type));
 
     int rc = processInvoke(out, c.invokeMethod(ns, hardware.getPath(),
         CIMName("CreateStorageHardwareID"), in, out));
 
     if( LSM_ERR_OK == rc ) {
-        *init = lsmInitiatorRecordAlloc(type, id);
+        *init = lsmInitiatorRecordAlloc(type, id, name);
     } else {
         *init = NULL;
     }
     return rc;
 }
 
+int Smis::deleteInit(lsmInitiatorPtr init)
+{
+    Array<CIMParamValue> in;
+    Array<CIMParamValue> out;
+
+    CIMInstance i = getClassInstance("CIM_StorageHardwareID", "StorageID",
+                                        String(lsmInitiatorIdGet(init)));
+
+    CIMInstance hardware = getClassInstance("CIM_StorageHardwareIDManagementService");
+    in.append(CIMParamValue("HardwareID", i.getPath()));
+
+    int rc = processInvoke(out, c.invokeMethod(ns, hardware.getPath(),
+        CIMName("DeleteStorageHardwareID"), in, out));
+
+    return rc;
+}
+
 int Smis::grantAccess(lsmInitiatorPtr i, lsmVolumePtr v, lsmAccessType access,
-    Uint32 *job)
+    char **job)
 {
     Array<CIMParamValue> in;
     Array<CIMParamValue> out;
@@ -227,8 +254,7 @@ int Smis::grantAccess(lsmInitiatorPtr i, lsmVolumePtr v, lsmAccessType access,
     in.append(CIMParamValue("DeviceAccesses", deviceAccess));
 
     return processInvoke(out, c.invokeMethod(ns, ccs.getPath(),
-        CIMName("ExposePaths"),
-        in, out));
+        CIMName("ExposePaths"),in, out));
 }
 
 int Smis::removeAccess(lsmInitiatorPtr i, lsmVolumePtr v)
@@ -258,7 +284,7 @@ int Smis::removeAccess(lsmInitiatorPtr i, lsmVolumePtr v)
 
 int Smis::replicateLun(lsmPoolPtr p, lsmReplicationType repType,
     lsmVolumePtr volumeSrc, const char *name,
-    lsmVolumePtr *newReplicant, Uint32 *job)
+    lsmVolumePtr *newReplicant, char **job)
 {
 
     Array<CIMParamValue> in;
@@ -295,7 +321,7 @@ int Smis::replicateLun(lsmPoolPtr p, lsmReplicationType repType,
 }
 
 int Smis::resizeVolume(lsmVolumePtr volume, uint64_t newSize,
-    lsmVolumePtr *resizedVolume, uint32_t *job)
+    lsmVolumePtr *resizedVolume, char **job)
 {
     Array<CIMParamValue> in;
     Array<CIMParamValue> out;
@@ -311,7 +337,7 @@ int Smis::resizeVolume(lsmVolumePtr volume, uint64_t newSize,
         resizedVolume);
 }
 
-int Smis::deleteVolume(lsmVolumePtr v, uint32_t *jobId)
+int Smis::deleteVolume(lsmVolumePtr v, char **jobId)
 {
     Array<CIMParamValue> in;
     Array<CIMParamValue> out;
@@ -326,7 +352,7 @@ int Smis::deleteVolume(lsmVolumePtr v, uint32_t *jobId)
 }
 
 int Smis::processInvoke(Array<CIMParamValue> &out, CIMValue value,
-    Uint32 *jobId, lsmVolumePtr *v)
+    char **jobId, lsmVolumePtr *v)
 {
     int rc = LSM_ERR_PLUGIN_ERROR;
     Uint32 result = 0;
@@ -342,9 +368,8 @@ int Smis::processInvoke(Array<CIMParamValue> &out, CIMValue value,
         rc = LSM_ERR_OK;
     } else if (INVOKE_ASYNC == result) {
         if (jobId) {
-            Job j;
-            j.cimJob = getParamValue(out, "Job");
-            *jobId = jobs.insert(j);
+            CIMValue cim_job = getParamValue(out, "Job");
+            *jobId = strdup(cim_job.toString().getCString());
             rc = LSM_ERR_JOB_STARTED;
         } else {
             //This really should never happen :-)
@@ -356,13 +381,9 @@ int Smis::processInvoke(Array<CIMParamValue> &out, CIMValue value,
     return rc;
 }
 
-int Smis::jobFree(Uint32 jobNumber)
+int Smis::jobFree(char *jobNumber)
 {
-    if (jobs.present(jobNumber)) {
-        jobs.remove(jobNumber);
-        return LSM_ERR_OK;
-    }
-    return LSM_ERR_INVALID_JOB_NUM;
+    return LSM_ERR_OK;
 }
 
 bool Smis::jobCompletedOk(String jobId)
@@ -386,74 +407,66 @@ bool Smis::jobCompletedOk(String jobId)
     return rc;
 }
 
-int Smis::jobStatusVol(Uint32 jobNumber, lsmJobStatus *status,
+int Smis::jobStatusVol(const char *job_id, lsmJobStatus *status,
     Uint8 *percentComplete, lsmVolumePtr *vol)
 {
-    Job j;
     Uint16 pc = 0;
     Uint16 jobState = 0;
     int rc = LSM_ERR_OK;
     Boolean autodelete = false;
 
-    if (jobs.present(jobNumber)) {
+    if (vol) {
+        *vol = NULL;
+    }
 
-        if (vol) {
-            *vol = NULL;
-        }
+    CIMObject cimStatus = c.getInstance(ns, String(job_id));
 
-        j = jobs.get(jobNumber);
+    cimStatus.getProperty(cimStatus.findProperty("JobState")).
+                            getValue().get(jobState);
 
-        CIMObject cimStatus = c.getInstance(ns, j.cimJob.toString());
+    switch( jobState ) {
+        case(JS_NEW):
+        case(JS_STARTING):
+        case(JS_RUNNING):
+            *status = LSM_JOB_INPROGRESS;
 
-        cimStatus.getProperty(cimStatus.findProperty("JobState")).
-                                getValue().get(jobState);
+            //Grab percentage.
+            cimStatus.getProperty(cimStatus.findProperty("PercentComplete")).
+                                        getValue().get(pc);
+            *percentComplete = (pc > 100) ? 100 : pc;
+            break;
+        case(JS_COMPLETED):
+            *status = LSM_JOB_COMPLETE;
+            *percentComplete = 100;
 
-        switch( jobState ) {
-            case(JS_NEW):
-            case(JS_STARTING):
-            case(JS_RUNNING):
-                *status = LSM_JOB_INPROGRESS;
-
-                //Grab percentage.
-                cimStatus.getProperty(cimStatus.findProperty("PercentComplete")).
-                                            getValue().get(pc);
-                *percentComplete = (pc > 100) ? 100 : pc;
-                break;
-            case(JS_COMPLETED):
-                *status = LSM_JOB_COMPLETE;
-                *percentComplete = 100;
-
-                //Check the operational status.
-                if( !jobCompletedOk(j.cimJob.toString())) {
-                    rc = LSM_JOB_ERROR;
-                } else {
-                    if( vol) {
-                        CIMInstance vi;
-                        if( getVolume(vi, j.cimJob)) {
-                            *vol = getVolume(vi);
-                        }
+            //Check the operational status.
+            if( !jobCompletedOk(String(job_id))) {
+                rc = LSM_JOB_ERROR;
+            } else {
+                if( vol) {
+                    CIMInstance vi;
+                    if( getVolume(vi, String(job_id))) {
+                        *vol = getVolume(vi);
                     }
                 }
+            }
 
-                cimStatus.getProperty(cimStatus.findProperty("DeleteOnCompletion")).
-                                        getValue().get(autodelete);
+            cimStatus.getProperty(cimStatus.findProperty("DeleteOnCompletion")).
+                                    getValue().get(autodelete);
 
-                if (!autodelete) {
-                    //We are done, delete job instance.
-                    try {
-                        c.deleteInstance(ns, j.cimJob.toString());
-                    } catch (Exception &e) {
-                    }
+            if (!autodelete) {
+                //We are done, delete job instance.
+                try {
+                    c.deleteInstance(ns, String(job_id));
+                } catch (Exception &e) {
                 }
-                break;
-            default:
-                //Note: We need to gather debug information about this
-                //and build an error record.
-                *status = LSM_JOB_ERROR;
-                break;
-        }
-    } else {
-        rc = LSM_ERR_INVALID_JOB_NUM;
+            }
+            break;
+        default:
+            //Note: We need to gather debug information about this
+            //and build an error record.
+            *status = LSM_JOB_ERROR;
+            break;
     }
 
     return rc;
@@ -585,9 +598,9 @@ lsmVolumePtr Smis::getVolume(const CIMInstance &i)
     return rc;
 }
 
-bool Smis::getVolume(CIMInstance &vol, const CIMValue &job)
+bool Smis::getVolume(CIMInstance &vol, const String &job)
 {
-    Array<CIMObject> associations = c.associators(ns, job.toString());
+    Array<CIMObject> associations = c.associators(ns, job);
 
     for (Uint32 i = 0; i < associations.size(); ++i) {
         vol = c.getInstance(ns, associations[i].getPath());
