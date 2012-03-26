@@ -1,0 +1,112 @@
+#!/bin/bash
+#	       
+### BEGIN INIT INFO
+# Provides: libstoragmgmtd
+# Required-Start: $local_fs
+# Required-Stop: $local_fs
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: libStorageMgmt plug-in daemon
+### END INIT INFO
+# chkconfig: 2345 100 0
+
+. /etc/init.d/functions
+
+NAME=lsmd
+PROG=/usr/bin/$NAME
+PID=/var/run/lsm/lsmd.pid
+LOCK=/var/lock/subsys/libstoragemgmtd
+
+RETVAL=0
+STATUS=0
+
+if [ "`id -u`" != 0 ] ; then
+	echo "Not root"
+	exit 4
+fi
+
+status_lsm() {
+	status -p $PID $NAME > /dev/null 2>&1
+	STATUS=$?
+}
+
+result() {
+	if [ $RETVAL -eq 0 ]; then
+		success
+	else
+		failure
+	fi
+	echo
+}
+
+# See how we were called.
+case "$1" in
+  start)
+	status_lsm
+
+	echo -n "Starting $NAME daemon:		"
+
+	if [ $STATUS != 0 ] ; then
+		$PROG --operation start
+		RETVAL=$?
+
+		[ $RETVAL -eq 0 ] && touch $LOCK
+	else	
+		RETVAL=$STATUS
+	fi
+
+	result
+	;;
+  force-stop|stop)
+	echo -n $"Stopping $NAME daemon: "
+	status_lsm
+	if [ $STATUS == 0 ] ; then
+		$PROG --operation stop
+		RETVAL=$?
+
+        	if [ $RETVAL -eq 0 ]; then
+			rm -f $LOCK
+		fi
+	else
+		RETVAL=0
+	fi
+
+	result
+	;;
+  reload)
+	status_lsm
+	echo -n $"Reloading $NAME daemon: "
+	if [ $STATUS == 0 ] ; then
+		killproc -p $PID $NAME -HUP
+		RETVAL=$?
+	else
+		$PROG --operation start
+		RETVAL=$?
+	fi
+
+	result
+	;;
+  restart)
+	status_lsm
+	echo -n $"Restarting $NAME daemon: "	
+	if [ $STATUS == 0 ] ; then
+		$PROG --operation restart	
+	else
+		$PROG --operation start
+	fi
+
+	result
+	;;
+
+  status)
+	status -p $PID $NAME
+	RETVAL=$?
+	;;
+
+  *)
+	echo $"Usage: $0 {start|stop|restart|reload|status|force-stop}"
+	;;
+esac
+
+exit $RETVAL
+

@@ -1,11 +1,11 @@
 Name:           libstoragemgmt
-Version:        0.0.3
+Version:        0.0.4
 Release:        1%{?dist}
 Summary:        A library for storage array management
 Group:          System Environment/Libraries
 License:        LGPLv2+
 URL:            http://sourceforge.net/projects/libstoragemgmt/ 
-Source0:        http://sourceforge.net/projects/libstoragemgmt/files/Alpha/libstoragemgmt-0.0.3.tar.gz
+Source0:        http://sourceforge.net/projects/libstoragemgmt/files/Alpha/libstoragemgmt-0.0.4.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  boost-devel yajl-devel libxml2-devel tog-pegasus-devel python2-devel pywbem
@@ -40,13 +40,11 @@ make install DESTDIR=$RPM_BUILD_ROOT
 find $RPM_BUILD_ROOT -name '*.la' -exec rm -f {} ';'
 
 #Need these to exist at install so we can start the daemon
-#There is probably a better way to do this...
 mkdir -p %{buildroot}/etc/rc.d/init.d
-install packaging/daemon/lsmd %{buildroot}/etc/rc.d/init.d/lsmd
+install packaging/daemon/libstoragemgmtd %{buildroot}/etc/rc.d/init.d/libstoragemgmtd
 
-mkdir -p %{buildroot}%{_localstatedir}/run/
-install -d -m 0755  %{buildroot}%{_localstatedir}/run/lsm
-install -d -m 0755  %{buildroot}%{_localstatedir}/run/lsm/ipc
+#Need these to exist at install so we can start the daemon
+mkdir -p %{buildroot}%{_localstatedir}/run/lsm/ipc
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -60,14 +58,14 @@ getent passwd libstoragemgmt >/dev/null || \
 %post 
 /sbin/ldconfig
 if [ $1 -eq 1 ]; then
-    /sbin/chkconfig --add lsmd
-    /etc/rc.d/init.d/lsmd start > /dev/null 2>&1 || :
+    /sbin/chkconfig --add libstoragemgmtd
+    /etc/rc.d/init.d/libstoragemgmtd start > /dev/null 2>&1 || :
 fi
 
 %preun
 if [ $1 -eq 0 ]; then
-    /etc/rc.d/init.d/lsmd stop > /dev/null 2>&1 || :
-    /sbin/chkconfig --del lsmd
+    /etc/rc.d/init.d/libstoragemgmtd stop > /dev/null 2>&1 || :
+    /sbin/chkconfig --del libstoragemgmtd
 fi
 
 %postun
@@ -75,7 +73,7 @@ fi
 /bin/systemctl daemon-reload >/dev/null 2>&1 || :
 if [ $1 -ge 1 ] ; then
     #Restart the daemond
-    /etc/rc.d/init.d/lsmd restart  >/dev/null 2>&1 || :
+    /etc/rc.d/init.d/libstoragemgmtd restart  >/dev/null 2>&1 || :
 fi
 
 %files
@@ -87,6 +85,7 @@ fi
 %{_bindir}/sim_lsmplugin
 %{_bindir}/smis_lsmplugin
 %{_bindir}/ontap_lsmplugin
+%{_bindir}/smispy_lsmplugin
 
 #Python library files
 %{python_sitelib}/lsm/__init__.py
@@ -129,12 +128,10 @@ fi
 %{python_sitelib}/lsm/transport.pyc
 %{python_sitelib}/lsm/transport.pyo
 
-%dir %{_localstatedir}/run/lsm/
-%dir %{_localstatedir}/run/lsm/ipc
-%attr(0755, libstoragemgmt, libstoragemgmt) %{_localstatedir}/run/lsm/
-%attr(0755, libstoragemgmt, libstoragemgmt) %{_localstatedir}/run/lsm/ipc
+%dir %attr(0755, libstoragemgmt, libstoragemgmt) %{_localstatedir}/run/lsm/
+%dir %attr(0755, libstoragemgmt, libstoragemgmt) %{_localstatedir}/run/lsm/ipc
 
-%attr(0755, root, root) /etc/rc.d/init.d/lsmd
+%attr(0755, root, root) /etc/rc.d/init.d/libstoragemgmtd
 
 
 %files devel
@@ -145,6 +142,10 @@ fi
 
 
 %changelog
+* Mon Mar 26 2012 Tony Asleson <tasleson@redhat.com> 0.0.4-1
+- Restore from snapshot
+- Job identifiers string instead of integer
+- Updated license address
 * Wed Mar 14 2012 Tony Asleson <tasleson@redhat.com> 0.0.3-1
 - Changes to installer, daemon uid, gid, /var/run/lsm/*
 - NFS improvements and bug fixes

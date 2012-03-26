@@ -170,7 +170,6 @@ static int listInitiators(const LSM::Arguments &a, lsmConnectPtr c)
     int rc = 0;
     lsmInitiatorPtr *init = NULL;
     uint32_t num_init = 0;
-    const char *sep = NULL;
     const char format[] = "%-40s%-16s%-5d\n";
 
     rc = lsmInitiatorList(c, &init, &num_init);
@@ -178,9 +177,7 @@ static int listInitiators(const LSM::Arguments &a, lsmConnectPtr c)
     if( LSM_ERR_OK == rc ) {
         uint32_t i = 0;
 
-        if( a.terse.present ) {
-            sep = a.terse.value.c_str();
-        } else {
+        if( !a.terse.present ) {
             printf(format, "ID", "Name", "Type");
         }
 

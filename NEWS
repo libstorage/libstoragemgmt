@@ -1,5 +1,10 @@
 News for libStorageMgmt
 
+0.0.4: Mar 26 2012
+    - Restore from snapshot
+    - Job identifiers string instead of integer
+    - Updated license address
+
 0.0.3: Mar 19 2012
     - Updated to support better packaging
     - Fixes for NFS export handling

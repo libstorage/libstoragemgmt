@@ -1,11 +1,11 @@
 Name:           libstoragemgmt
-Version:        0.0.3
+Version:        0.0.4
 Release:        1%{?dist}
 Summary:        A library for storage array management
 Group:          System Environment/Libraries
 License:        LGPLv2+
 URL:            http://sourceforge.net/projects/libstoragemgmt/ 
-Source0:        http://sourceforge.net/projects/libstoragemgmt/files/Alpha/libstoragemgmt-0.0.3.tar.gz
+Source0:        http://sourceforge.net/projects/libstoragemgmt/files/Alpha/libstoragemgmt-0.0.4.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  boost-devel yajl-devel libxml2-devel tog-pegasus-devel python2-devel pywbem
@@ -50,10 +50,7 @@ mkdir -p %{buildroot}%{_sysconfdir}/tmpfiles.d
 install -m 0644 packaging/daemon/lsm-tmpfiles.conf %{buildroot}%{_sysconfdir}/tmpfiles.d/%{name}.conf
 
 #Need these to exist at install so we can start the daemon
-#There is probably a better way to do this...
-mkdir -p %{buildroot}%{_localstatedir}/run/
-install -d -m 0755  %{buildroot}%{_localstatedir}/run/lsm
-install -d -m 0755  %{buildroot}%{_localstatedir}/run/lsm/ipc
+mkdir -p %{buildroot}%{_localstatedir}/run/lsm/ipc
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -95,6 +92,7 @@ fi
 %{_bindir}/sim_lsmplugin
 %{_bindir}/smis_lsmplugin
 %{_bindir}/ontap_lsmplugin
+%{_bindir}/smispy_lsmplugin
 
 #Python library files
 %{python_sitelib}/lsm/__init__.py
@@ -139,10 +137,8 @@ fi
 
 %{_unitdir}/libstoragemgmt.service
 
-%dir %{_localstatedir}/run/lsm/
-%dir %{_localstatedir}/run/lsm/ipc
-%attr(0755, libstoragemgmt, libstoragemgmt) %{_localstatedir}/run/lsm/
-%attr(0755, libstoragemgmt, libstoragemgmt) %{_localstatedir}/run/lsm/ipc
+%dir %attr(0755, libstoragemgmt, libstoragemgmt) %{_localstatedir}/run/lsm/
+%dir %attr(0755, libstoragemgmt, libstoragemgmt) %{_localstatedir}/run/lsm/ipc
 %config(noreplace) %{_sysconfdir}/tmpfiles.d/%{name}.conf
 
 %files devel
@@ -153,6 +149,10 @@ fi
 
 
 %changelog
+* Mon Mar 26 2012 Tony Asleson <tasleson@redhat.com> 0.0.4-1
+- Restore from snapshot
+- Job identifiers string instead of integer
+- Updated license address
 * Wed Mar 14 2012 Tony Asleson <tasleson@redhat.com> 0.0.3-1
 - Changes to installer, daemon uid, gid, /var/run/lsm/*
 - NFS improvements and bug fixes
