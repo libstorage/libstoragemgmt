@@ -16,7 +16,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
 #
 # Author: tasleson
-import hashlib
+
 import os
 import urllib2
 import urlparse
@@ -24,15 +24,10 @@ from lsm import na
 from lsm.data import Volume, Initiator, FileSystem, Snapshot, NfsExport
 from lsm.pluginrunner import PluginRunner
 from lsm.iplugin import IStorageAreaNetwork, INfs
-from lsm.common import  LsmError, ErrorNumber, JobStatus
+from lsm.common import  LsmError, ErrorNumber, JobStatus, md5
 from lsm.data import Pool
 import lsm.na
 import sys
-
-def md5(t):
-    h = hashlib.md5()
-    h.update(t)
-    return h.hexdigest()
 
 def handle_ontap_errors(method):
     def na_wrapper(*args, **kwargs):

@@ -21,6 +21,7 @@ import sys
 import urlparse
 import pywbem
 from pywbem.cim_operations import CIMError
+import lsm
 from lsm.iplugin import IStorageAreaNetwork
 from lsm.common import uri_parameters, LsmError, ErrorNumber, JobStatus
 from lsm.pluginrunner import PluginRunner
@@ -63,9 +64,6 @@ class Smis(IStorageAreaNetwork):
 
     def __init__(self):
         self._c = None
-        self._jobs = {}
-        self._job_id = 1
-
 
     def _get_class_instance(self, class_name, prop_name=None, prop_value=None):
         """
@@ -142,9 +140,9 @@ class Smis(IStorageAreaNetwork):
 
         elif rc == Smis.INVOKE_ASYNC:
             #We have an async operation
-            self._job_id += 1
-            self._jobs[self._job_id] = { 'job':out['Job'], 'retrieve_vol':retrieve_vol}
-            return self._job_id, None
+            job_id = "%s@%s" % (lsm.common.md5(str(out['Job']['InstanceID'])),
+                                str(retrieve_vol))
+            return job_id, None
         else:
             raise LsmError(ErrorNumber.PLUGIN_ERROR, 'Error: ' + msg + " rc= " + str(rc))
 
@@ -192,17 +190,26 @@ class Smis(IStorageAreaNetwork):
 
         return rc
 
-    def _job_progress(self, job_record):
+    def _get_job_details(self, job_id):
+        (id,get_vol) = job_id.split('@',2)
+
+        jobs = self._c.EnumerateInstances('CIM_ConcreteJob')
+
+        for j in jobs:
+            tmp_id = lsm.common.md5(j['InstanceID'])
+            if tmp_id == id:
+                return j, get_vol
+
+        raise LsmError(ErrorNumber.INVALID_JOB_NUM, 'Non-existent job')
+
+    def _job_progress(self, job_id):
         """
         Given a concrete job instance name, check the status
         """
         volume = None
         percent_complete = 0
 
-        job = job_record['job']
-        get_vol = job_record['retrieve_vol']
-
-        concrete_job =self._c.GetInstance(job)
+        (concrete_job, get_vol) = self._get_job_details(job_id)
 
         job_state = concrete_job['JobState']
 
@@ -225,27 +232,18 @@ class Smis(IStorageAreaNetwork):
             else:
                 status = JobStatus.Error
 
-            #See if we should delete the job
-            if not concrete_job['DeleteOnCompletion']:
-                try:
-                    self._c.DeleteInstance(concrete_job.path)
-                except CIMError:
-                    pass
         else:
             status = JobStatus.ERROR
 
         return status, percent_complete, volume
 
     @handle_cim_errors
-    def job_status(self, job_number):
+    def job_status(self, job_id):
         """
         Given a job number (integer) returns the current status as a tuple
         (status (enum), percent_complete(integer), volume (None or Volume))
         """
-        if job_number in self._jobs:
-            return self._job_progress(self._jobs[job_number])
-        else:
-            raise LsmError(ErrorNumber.INVALID_JOB_NUM, 'Non-existent job')
+        return self._job_progress(job_id)
 
     def _new_vol(self, cv):
         """
@@ -486,16 +484,19 @@ class Smis(IStorageAreaNetwork):
         raise LsmError(ErrorNumber.NO_MAPPING, "")
 
     @handle_cim_errors
-    def job_free(self, job_number):
+    def job_free(self, job_id):
         """
         Frees the resources given a job number.
         """
-        if job_number in self._jobs:
-            del self._jobs[job_number]
-            #It might be better to delete the actual job from the smi-s proxy
-            #here!
-        else:
-            raise LsmError(ErrorNumber.INVALID_JOB_NUM, 'Non-existent job')
+        concrete_job = self._get_job_details(job_id)[0]
+
+        #See if we should delete the job
+        if not concrete_job['DeleteOnCompletion']:
+            try:
+                self._c.DeleteInstance(concrete_job.path)
+            except CIMError:
+                pass
+
 
 if __name__ == '__main__':
     PluginRunner(Smis, sys.argv).run()

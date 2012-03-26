@@ -14,6 +14,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
 #
 # Author: tasleson
+import hashlib
 
 import os
 import unittest
@@ -50,6 +51,11 @@ def uri_parameters( uri ):
         return dict([part.split('=') for part in url[4].split('&')])
     else:
         return {}
+
+def md5(t):
+    h = hashlib.md5()
+    h.update(t)
+    return h.hexdigest()
 
 def params_to_string(*args):
     return ''.join( [ str(e) for e in args] )
