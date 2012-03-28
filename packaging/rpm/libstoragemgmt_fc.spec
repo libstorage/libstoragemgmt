@@ -17,7 +17,9 @@ Requires(postun): systemd-units
 %description
 The libStorageMgmt library will provide a vendor agnostic open source storage
 application programming interface (API) that will allow management of storage 
-arrays. 
+arrays.  The library includes a command line interface for interactive use and
+scripting (command lsmcli).  The library also has a daemon that is used for
+executing plug-ins in a separate process (lsmd).
 
 %package        devel
 Summary:        Development files for %{name}
@@ -38,12 +40,12 @@ make %{?_smp_mflags}
 
 
 %install
-rm -rf $RPM_BUILD_ROOT
-make install DESTDIR=$RPM_BUILD_ROOT
-find $RPM_BUILD_ROOT -name '*.la' -exec rm -f {} ';'
+rm -rf %{buildroot}
+make install DESTDIR=%{buildroot}
+find %{buildroot} -name '*.la' -exec rm -f {} ';'
 
-install -d -m755 $RPM_BUILD_ROOT/%{_unitdir}
-install -m644 packaging/daemon/libstoragemgmt.service $RPM_BUILD_ROOT/%{_unitdir}/libstoragemgmt.service
+install -d -m755 %{buildroot}/%{_unitdir}
+install -m644 packaging/daemon/libstoragemgmt.service %{buildroot}/%{_unitdir}/libstoragemgmt.service
 
 #tempfiles.d configuration for /var/run
 mkdir -p %{buildroot}%{_sysconfdir}/tmpfiles.d
@@ -53,7 +55,7 @@ install -m 0644 packaging/daemon/lsm-tmpfiles.conf %{buildroot}%{_sysconfdir}/tm
 mkdir -p %{buildroot}%{_localstatedir}/run/lsm/ipc
 
 %clean
-rm -rf $RPM_BUILD_ROOT
+rm -rf %{buildroot}
 
 %pre
 getent group libstoragemgmt >/dev/null || groupadd -r libstoragemgmt
@@ -86,56 +88,13 @@ fi
 %files
 %defattr(-,root,root,-)
 %doc README COPYING.LIB
-%{_libdir}/*.so.*
-%{_bindir}/lsmcli
-%{_bindir}/lsmd
-%{_bindir}/sim_lsmplugin
-%{_bindir}/smis_lsmplugin
-%{_bindir}/ontap_lsmplugin
-%{_bindir}/smispy_lsmplugin
+%{_libdir}/
+%{_bindir}/
 
 #Python library files
-%{python_sitelib}/lsm/__init__.py
-%{python_sitelib}/lsm/__init__.pyc
-%{python_sitelib}/lsm/__init__.pyo
-%{python_sitelib}/lsm/client.py
-%{python_sitelib}/lsm/client.pyc
-%{python_sitelib}/lsm/client.pyo
-%{python_sitelib}/lsm/cmdline.py
-%{python_sitelib}/lsm/cmdline.pyc
-%{python_sitelib}/lsm/cmdline.pyo
-%{python_sitelib}/lsm/common.py
-%{python_sitelib}/lsm/common.pyc
-%{python_sitelib}/lsm/common.pyo
-%{python_sitelib}/lsm/data.py
-%{python_sitelib}/lsm/data.pyc
-%{python_sitelib}/lsm/data.pyo
-%{python_sitelib}/lsm/external/__init__.py
-%{python_sitelib}/lsm/external/__init__.pyc
-%{python_sitelib}/lsm/external/__init__.pyo
-%{python_sitelib}/lsm/external/daemon.py
-%{python_sitelib}/lsm/external/daemon.pyc
-%{python_sitelib}/lsm/external/daemon.pyo
-%{python_sitelib}/lsm/external/enumeration.py
-%{python_sitelib}/lsm/external/enumeration.pyc
-%{python_sitelib}/lsm/external/enumeration.pyo
-%{python_sitelib}/lsm/external/xmltodict.py
-%{python_sitelib}/lsm/external/xmltodict.pyc
-%{python_sitelib}/lsm/external/xmltodict.pyo
-%{python_sitelib}/lsm/iplugin.py
-%{python_sitelib}/lsm/iplugin.pyc
-%{python_sitelib}/lsm/iplugin.pyo
-%{python_sitelib}/lsm/na.py
-%{python_sitelib}/lsm/na.pyc
-%{python_sitelib}/lsm/na.pyo
-%{python_sitelib}/lsm/pluginrunner.py
-%{python_sitelib}/lsm/pluginrunner.pyc
-%{python_sitelib}/lsm/pluginrunner.pyo
-%{python_sitelib}/lsm/transport.py
-%{python_sitelib}/lsm/transport.pyc
-%{python_sitelib}/lsm/transport.pyo
+%{python_sitelib}/
 
-%{_unitdir}/libstoragemgmt.service
+%{_unitdir}/
 
 %dir %attr(0755, libstoragemgmt, libstoragemgmt) %{_localstatedir}/run/lsm/
 %dir %attr(0755, libstoragemgmt, libstoragemgmt) %{_localstatedir}/run/lsm/ipc
@@ -153,11 +112,14 @@ fi
 - Restore from snapshot
 - Job identifiers string instead of integer
 - Updated license address
+
 * Wed Mar 14 2012 Tony Asleson <tasleson@redhat.com> 0.0.3-1
 - Changes to installer, daemon uid, gid, /var/run/lsm/*
 - NFS improvements and bug fixes
 - Python library clean up (rpmlint errors)
+
 * Sun Mar 11 2012 Tony Asleson <tasleson@redhat.com> 0.0.2-1
 - Added NetApp native plugin
+
 * Mon Feb 6 2012 Tony Asleson <tasleson@redhat.com>  0.0.1alpha-1
 - Initial version of package
