@@ -82,12 +82,12 @@ fi
 %defattr(-,root,root,-)
 %doc README COPYING.LIB
 %{_libdir}/*.so.*
-%{_bindir}
+%{_bindir}/*
 
 #Python library files
 %{python_sitelib}
 
-%{_unitdir}
+%{_unitdir}/*
 
 %dir %attr(0755, libstoragemgmt, libstoragemgmt) %{_localstatedir}/run/lsm/
 %dir %attr(0755, libstoragemgmt, libstoragemgmt) %{_localstatedir}/run/lsm/ipc
