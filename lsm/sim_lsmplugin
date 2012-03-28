@@ -33,6 +33,8 @@ import pickle
 lsm.common.LOG_VERBOSE = True
 state = '/tmp/lsm_sim_data'
 
+duration = os.getenv("LSM_SIM_TIME", 20)
+
 class SimJob(object):
     """
     Simulates a longer running job, uses actual wall time.  If test cases
@@ -54,8 +56,7 @@ class SimJob(object):
         self.percent = 0
         self.__volume = volume
         self.start = time.time()
-        #self.duration = float(random.randint(0,1))
-        self.duration = float(0)
+        self.duration = float(random.randint(0,duration))
 
     def progress(self):
         """
@@ -187,13 +188,13 @@ class StorageSimulator(IStorageAreaNetwork):
     def job_status(self, job_id):
         if job_id in self.s.jobs:
             return self.s.jobs[job_id].progress()
-        raise LsmError(ErrorNumber.INVALID_JOB_NUM, 'Non-existent job')
+        raise LsmError(ErrorNumber.INVALID_JOB, 'Non-existent job')
 
     def job_free(self, job_id):
         if job_id in self.s.jobs:
            del self.s.jobs[job_id]
            return None
-        raise LsmError(ErrorNumber.INVALID_JOB_NUM, 'Non-existent job')
+        raise LsmError(ErrorNumber.INVALID_JOB, 'Non-existent job')
 
     def volumes(self):
         return [e['volume'] for e in self.s.volumes.itervalues()]

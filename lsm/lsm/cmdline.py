@@ -97,7 +97,7 @@ class CmdLine:
         """
         usage = "usage: %prog [options]... [command]... [command options]..."
         optparse.textwrap = MyWrapper
-        parser = OptionParser(usage=usage, version="%prog 0.0.2")
+        parser = OptionParser(usage=usage, version="%prog 0.0.5")
         parser.description = ('libStorageMgmt command line interface. \n')
 
         parser.epilog = ( 'Copyright 2012 Red Hat, Inc.\n'
@@ -112,6 +112,10 @@ class CmdLine:
                  '(e.g., MiB, GiB, TiB)')
         parser.add_option( '-t', '--terse', action="store", dest="sep",
             help='print output in terse form with "SEP" as a record separator')
+
+        parser.add_option( '-b', '', action="store_true", dest="async", default=False,
+            help='run the command async. instead of waiting for completion\n'
+                 'command will exit(7) and job id written to stdout.')
 
         #What action we want to take
         commands = OptionGroup(parser, 'Commands')
@@ -242,6 +246,10 @@ class CmdLine:
                                             '--anongid <gid to map to anonymous>\n'
                                             '--auth-type <NFS client authentication type>\n'
         )
+
+        commands.add_option( '', '--job-status', action="store", type="string",
+            metavar='<job status id>',
+            dest=_c("job-status"), help= 'retrieve information about job')
 
         parser.add_option_group(commands)
 
@@ -711,6 +719,12 @@ class CmdLine:
         if not job:
             return item
         else:
+            #If a user doesn't want to wait, return the job id to stdout
+            #and exit with job in progress
+            if self.options.async:
+                print job
+                self.shutdown(lsm.common.ErrorNumber.JOB_STARTED)
+
             while True:
                 (s, percent, i) = self.c.job_status(job)
 
@@ -724,6 +738,19 @@ class CmdLine:
                 else:
                     #Something better to do here?
                     ArgError(msg + " job error code= %s" % s)
+
+    def job_status(self):
+        (s, percent, i) = self.c.job_status(self.cmd_value)
+
+        if s == lsm.common.JobStatus.COMPLETE:
+            if i:
+                self.display_volumes([i])
+            self.c.job_free(self.cmd_value)
+            self.shutdown(0)
+        else:
+            print str(percent)
+            self.shutdown(s)
+
 
     def replicate_volume(self):
         p = self._get_item(self.c.pools(), self.options.opt_pool)
@@ -815,6 +842,8 @@ class CmdLine:
         self.tmo = 30000        #Need to add ability to tweek timeout from CLI
         self.cli()
 
+        self.cleanup = None
+
         #Get and set the command and command value we will be executing
         (self.cmd, self.cmd_value) = self._cmd()
 
@@ -862,7 +891,10 @@ class CmdLine:
                        'nfs-export-fs': {'options': ['exportpath'],
                                          'method': self.nfs_export_fs},
                        'restore-ss': {'options': ['fs'],
-                                        'method': self.restore_ss}}
+                                        'method': self.restore_ss},
+                       'job-status': {'options': [],
+                                      'method': self.job_status}
+        }
         self._validate()
 
         self.uri = os.getenv('LSMCLI_URI')
@@ -883,6 +915,13 @@ class CmdLine:
             if u['username'] is None:
                 raise ArgError("password specified with no user name in uri")
 
+    def shutdown(self, ec = None):
+        if self.cleanup:
+            self.cleanup()
+
+        if ec:
+            sys.exit(ec)
+
     def process(self, client = None):
         """
         Process the parsed command.
@@ -891,7 +930,7 @@ class CmdLine:
             #Directly invoking code.
             self.c = client()
             self.c.startup(self.uri, self.password, self.tmo)
-            cleanup = self.c.shutdown
+            self.cleanup = self.c.shutdown
         else:
             #Going across the ipc pipe
             self.c = lsm.client.Client(self.uri,self.password, self.tmo)
@@ -899,7 +938,7 @@ class CmdLine:
             if os.getenv('LSM_DEBUG_PLUGIN'):
                 raw_input("Attach debugger to plug-in, press <return> when ready...")
 
-            cleanup = self.c.close
+            self.cleanup = self.c.close
 
         self.verify[self.cmd]['method']()
-        cleanup()
+        self.shutdown()

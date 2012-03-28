@@ -200,7 +200,7 @@ class Smis(IStorageAreaNetwork):
             if tmp_id == id:
                 return j, get_vol
 
-        raise LsmError(ErrorNumber.INVALID_JOB_NUM, 'Non-existent job')
+        raise LsmError(ErrorNumber.INVALID_JOB, 'Non-existent job')
 
     def _job_progress(self, job_id):
         """

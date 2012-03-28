@@ -1,5 +1,6 @@
 #!/bin/bash
 #	       
+# chkconfig: 2345 99 1
 ### BEGIN INIT INFO
 # Provides: libstoragmgmtd
 # Required-Start: $local_fs
@@ -8,7 +9,6 @@
 # Default-Stop: 0 1 6
 # Short-Description: libStorageMgmt plug-in daemon
 ### END INIT INFO
-# chkconfig: 2345 100 0
 
 . /etc/init.d/functions
 

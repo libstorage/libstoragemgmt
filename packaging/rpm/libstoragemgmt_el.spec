@@ -1,11 +1,11 @@
 Name:           libstoragemgmt
-Version:        0.0.4
+Version:        0.0.5
 Release:        1%{?dist}
 Summary:        A library for storage array management
 Group:          System Environment/Libraries
 License:        LGPLv2+
 URL:            http://sourceforge.net/projects/libstoragemgmt/ 
-Source0:        http://sourceforge.net/projects/libstoragemgmt/files/Alpha/libstoragemgmt-0.0.4.tar.gz
+Source0:        http://sourceforge.net/projects/libstoragemgmt/files/Alpha/libstoragemgmt-0.0.5.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  boost-devel yajl-devel libxml2-devel tog-pegasus-devel python2-devel pywbem
@@ -87,7 +87,6 @@ fi
 #Python library files
 %{python_sitelib}
 
-%{_unitdir}/*
 
 %dir %attr(0755, libstoragemgmt, libstoragemgmt) %{_localstatedir}/run/lsm/
 %dir %attr(0755, libstoragemgmt, libstoragemgmt) %{_localstatedir}/run/lsm/ipc
