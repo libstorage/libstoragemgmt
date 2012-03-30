@@ -1,7 +1,7 @@
 Name:           libstoragemgmt
 Version:        0.0.4
 Release:        1%{?dist}
-Summary:        A library for storage array management
+Summary:        Storage array management library
 Group:          System Environment/Libraries
 License:        LGPLv2+
 URL:            http://sourceforge.net/projects/libstoragemgmt/ 
@@ -9,7 +9,7 @@ Source0:        http://sourceforge.net/projects/libstoragemgmt/files/Alpha/libst
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  boost-devel yajl-devel libxml2-devel tog-pegasus-devel python2-devel pywbem
-Requires:       pywbem initscripts
+Requires:       pywbem initscripts 
 Requires(post): systemd-units
 Requires(preun): systemd-units
 Requires(postun): systemd-units
@@ -24,7 +24,7 @@ executing plug-ins in a separate process (lsmd).
 %package        devel
 Summary:        Development files for %{name}
 Group:          Development/Libraries
-Requires:       %{name} = %{version}-%{release}
+Requires:       %{name}%{?_isa} = %{version}-%{release}
 
 %description    devel
 The %{name}-devel package contains libraries and header files for
@@ -63,7 +63,7 @@ getent passwd libstoragemgmt >/dev/null || \
     useradd -r -g libstoragemgmt -d /var/run/lsm -s /sbin/nologin \
     -c "daemon account for libstoragemgmt" libstoragemgmt
 
-%post 
+%post
 /sbin/ldconfig
 if [ $1 -eq 1 ]; then
     /bin/systemctl enable libstoragemgmt.service >/dev/null 2>&1 || :
@@ -92,7 +92,7 @@ fi
 %{_bindir}/*
 
 #Python library files
-%{python_sitelib}
+%{python_sitelib}/*
 
 %{_unitdir}/*
 
@@ -102,7 +102,6 @@ fi
 
 %files devel
 %defattr(-,root,root,-)
-%doc README COPYING.LIB
 %{_includedir}/*
 %{_libdir}/*.so
 

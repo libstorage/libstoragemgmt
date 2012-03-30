@@ -1,7 +1,7 @@
 Name:           libstoragemgmt
 Version:        0.0.5
 Release:        1%{?dist}
-Summary:        A library for storage array management
+Summary:        Storage array management library
 Group:          System Environment/Libraries
 License:        LGPLv2+
 URL:            http://sourceforge.net/projects/libstoragemgmt/ 
@@ -21,7 +21,7 @@ executing plug-ins in a separate process (lsmd).
 %package        devel
 Summary:        Development files for %{name}
 Group:          Development/Libraries
-Requires:       %{name} = %{version}-%{release}
+Requires:       %{name}%{?_isa} = %{version}-%{release}
 
 %description    devel
 The %{name}-devel package contains libraries and header files for
@@ -85,7 +85,7 @@ fi
 %{_bindir}/*
 
 #Python library files
-%{python_sitelib}
+%{python_sitelib}/*
 
 
 %dir %attr(0755, libstoragemgmt, libstoragemgmt) %{_localstatedir}/run/lsm/
@@ -94,7 +94,6 @@ fi
 
 %files devel
 %defattr(-,root,root,-)
-%doc README COPYING.LIB
 %{_includedir}/*
 %{_libdir}/*.so
 
