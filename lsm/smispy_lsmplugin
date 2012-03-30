@@ -110,20 +110,23 @@ class Smis(IStorageAreaNetwork):
         """
         init = self._get_class_instance('CIM_StorageHardwareID', 'StorageID', initiator_id)
 
-        auths = self._c.Associators(init.path)
+        #Look at page 151 (1.5 smi-s spec.) in the block services books for the
+        # SNIA_MappingProtocolControllerView
 
-        for a in auths:
-            spc = self._c.Associators(a.path)
+        if init:
+            auths = self._c.Associators(init.path, AssocClass='CIM_AuthorizedSubject')
 
-            if len(spc) > 0:
-                logical_device = self._c.Associators(spc[0].path)
+            if auths:
+                for a in auths:
+                    spc = self._c.Associators(a.path, AssocClass='CIM_AuthorizedTarget')
+                    if spc and len(spc) > 0:
+                        logical_device = self._c.Associators(spc[0].path,
+                                    AssocClass='CIM_ProtocolControllerForUnit')
 
-                if len(logical_device) > 0:
-                    vol = self._c.GetInstance(logical_device[0].path)
-
-                    if 'DeviceID' in vol and vol['DeviceID'] == volume_id:
-                        return spc[0]
-
+                        if logical_device and len(logical_device) > 0:
+                            vol = self._c.GetInstance(logical_device[0].path)
+                            if 'DeviceID' in vol and vol['DeviceID'] == volume_id:
+                                return spc[0]
         return None
 
     def _pi(self, msg, retrieve_vol, rc, out):
