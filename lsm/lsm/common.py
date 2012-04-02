@@ -30,18 +30,46 @@ UDS_PATH = '/var/run/lsm/ipc'
 #Set to True for verbose logging
 LOG_VERBOSE = True
 
-def uri_parse(uri):
+def uri_parse(uri, requires=None, required_params=None):
+    """
+    Common uri parse method that optionally can check for what is needed
+    before returning successfully.
+    """
+
     rc = {}
     u = urlparse.urlparse(uri)
 
-    rc['scheme'] = u.scheme
+    if u.scheme:
+        rc['scheme'] = u.scheme
 
-    if '@' in uri:
-        (rc['username'], rc['host']) = u.netloc.split('@',2)
+    if u.netloc:
+        rc['netloc'] = u.netloc
+
+    if u.port:
+        rc['port'] = u.port
+
+    if u.netloc and '@' in u.netloc:
+        if u.netloc.count('@') == 1:
+            (rc['username'], rc['host']) = u.netloc.split('@',2)
+        else:
+            raise LsmError(ErrorNumber.PLUGIN_ERROR, "incorrect number of @ symbols in uri")
     else:
         rc['username'] = None
-        rc['host'] = u.netloc
+        if u.netloc:
+            rc['host'] = u.netloc
+
     rc['parameters'] = uri_parameters(u)
+
+    if requires:
+        for r in requires:
+            if r not in rc:
+                raise LsmError(ErrorNumber.PLUGIN_ERROR, 'uri missing %s' % r)
+
+    if required_params:
+        for r in required_params:
+            if r not in rc['parameters']:
+                raise LsmError(ErrorNumber.PLUGIN_ERROR,
+                                'uri missing query parameter %s' % r)
     return rc
 
 

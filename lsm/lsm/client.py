@@ -170,6 +170,19 @@ class Client(object):
         """
         return self.tp.rpc('volume_replicate', del_self(locals()))
 
+    def volume_replicate_range_block_size(self):
+        return self.tp.rpc('volume_replicate_range_block_size', del_self(locals()))
+
+    def volume_replicate_range(self, rep_type, volume_src, volume_dest, ranges):
+        """
+        Replicates a portion of a volume to itself or another volume.  The src,
+        dest and number of blocks values change with vendor, call
+        volume_replicate_range_block_size to get block unit size.
+
+        Returns Job id or None when completed, else raises LsmError on errors.
+        """
+        return self.tp.rpc('volume_replicate_range', del_self(locals()))
+
     def volume_delete(self, volume):
         """
         Deletes a volume.

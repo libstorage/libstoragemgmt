@@ -222,6 +222,14 @@ class Ontap(IStorageAreaNetwork, INfs):
                                                    "to different pool")
 
     @handle_ontap_errors
+    def volume_replicate_range_block_size(self):
+        return 4096
+
+    @handle_ontap_errors
+    def volume_replicate_range(self, rep_type, volume_src, volume_dest, ranges):
+        self.f.clone(volume_src.name, volume_dest.name, None, ranges)
+
+    @handle_ontap_errors
     def volume_online(self, volume):
         return self.f.lun_online(volume.name)
 

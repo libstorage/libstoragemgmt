@@ -205,6 +205,15 @@ class CmdLine:
                                               "--pool <pool id>\n"
                                               "--name <human name>")
 
+        commands.add_option( '', '--replicate-volume-range', action="store", type="string",
+            metavar='<volume id>',
+            dest=_c("replicate-volume-range"), help='replicates a portion of a volume, requires:\n'
+                                              "--type [RW_SNAP|CLONE|MIRROR]\n"
+                                              "--dest <destination volume>\n"
+                                              "--src_start <source block start number>\n"
+                                              "--dest_start <destination block start>\n"
+                                              "--count <number of blocks to replicate>")
+
         commands.add_option( '', '--access-grant', action="store", type="string",
             metavar='<initiator id>',
             dest=_c("access-grant"), help='grants access to an initiator to a volume\n'
@@ -343,6 +352,18 @@ class CmdLine:
 
         command_args.add_option( '', '--all', action="store_true", dest="all",
             default=False, help='specify all in an operation')
+
+        command_args.add_option( '', '--src_start', action="append", type="int",
+            metavar="<source block start>", default=None, dest=_o("src_start"),
+            help="source block address to replicate")
+
+        command_args.add_option( '', '--dest_start', action="append", type="int",
+            metavar="<dest. block start>", default=None, dest=_o("dest_start"),
+            help="destination block address to replicate")
+
+        command_args.add_option( '', '--count', action="append", type="int",
+            metavar="<block count>", default=None, dest=_o("count"),
+            help="number of blocks to replicate")
 
         parser.add_option_group(command_args)
 
@@ -771,6 +792,31 @@ class CmdLine:
             if not v:
                 raise ArgError("Volume with id= %s not found!" % self.cmd_value)
 
+    def replicate_vol_range(self):
+        src = self._get_item(self.c.volumes(), self.cmd_value)
+        dest = self._get_item(self.c.volumes(), self.options.opt_dest)
+
+        if src and dest:
+            type = lsm.data.Volume.rep_String_to_type(self.options.opt_type)
+            if type == lsm.data.Volume.REPLICATE_UNKNOWN:
+                raise ArgError("invalid replication type= %s" % type)
+
+            src_starts = self.options.opt_src_start
+            dest_starts = self.options.opt_dest_start
+            counts = self.options.opt_count
+
+            if( 0 < len(src_starts) == len(dest_starts) and
+                len(dest_starts) == len(counts) ):
+                ranges = []
+
+                for i in range(len(src_starts)):
+                    ranges.append(lsm.data.BlockRange(src_starts[i], dest_starts[i], counts[i]))
+                self.c.volume_replicate_range(type, src, dest, ranges)
+        else:
+            if not src:
+                raise ArgError("src volume with id= %s not found!" % self.cmd_value)
+            if not dest:
+                raise ArgError("dest volume with id= %s not found!" % self.options.opt_dest)
 
     def _access(self, map=True):
         i = self._get_item(self.c.initiators(), self.cmd_value)
@@ -893,7 +939,11 @@ class CmdLine:
                        'restore-ss': {'options': ['fs'],
                                         'method': self.restore_ss},
                        'job-status': {'options': [],
-                                      'method': self.job_status}
+                                      'method': self.job_status},
+                       'replicate-volume-range': {'options': ['type', 'dest',
+                                                    'src_start', 'dest_start',
+                                                    'count'],
+                                      'method': self.replicate_vol_range}
         }
         self._validate()
 

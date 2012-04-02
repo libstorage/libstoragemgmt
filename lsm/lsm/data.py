@@ -258,6 +258,12 @@ class NfsExport(IData):
         self.options = options      #NFS options
 
 
+class BlockRange(IData):
+    def __init__(self, source_start, dest_start, block_count):
+        self.src_block = source_start
+        self.dest_block = dest_start
+        self.block_count = block_count
+
 if __name__ == '__main__':
     #TODO Need some unit tests that encode/decode all the types with nested
     pass

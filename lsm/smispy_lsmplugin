@@ -23,7 +23,7 @@ import pywbem
 from pywbem.cim_operations import CIMError
 import lsm
 from lsm.iplugin import IStorageAreaNetwork
-from lsm.common import uri_parameters, LsmError, ErrorNumber, JobStatus
+from lsm.common import uri_parse, uri_parameters, LsmError, ErrorNumber, JobStatus
 from lsm.pluginrunner import PluginRunner
 from lsm.data import Pool, Initiator, Volume
 
@@ -154,18 +154,16 @@ class Smis(IStorageAreaNetwork):
         Called when the plug-in runner gets the start request from the client.
         """
         protocol = 'http'
-        u = urlparse.urlparse(uri)
+        u = uri_parse(uri, ['scheme','netloc', 'host','port'], ['namespace'])
 
-        if u.scheme.lower() == 'smispy+ssl':
+        if u['scheme'].lower() == 'smispy+ssl':
             protocol = 'https'
 
-        url = protocol + '://' + u.hostname + ":" + str(u.port)
-
-        params = uri_parameters(u)
+        url = protocol + '://' + u['host'] + ":" + str(u['port'])
 
         self.tmo = timeout
-        self._c = pywbem.WBEMConnection(url, (u.username, password),
-                                            params["namespace"] )
+        self._c = pywbem.WBEMConnection(url, (u['username'], password),
+                                            u['parameters']["namespace"] )
 
     def set_time_out(self, ms):
         self.tmo = ms
@@ -391,6 +389,12 @@ class Smis(IStorageAreaNetwork):
         return self._pi("volume_replicate", True,
                                         *(self._c.InvokeMethod('CreateElementReplica',
                                         rs.path, **in_params)))
+
+    def volume_replicate_range_block_size(self):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+    def volume_replicate_range(self, rep_type, volume_src, volume_dest, ranges):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
     @handle_cim_errors
     def volume_online(self, volume):

@@ -318,16 +318,30 @@ class Filer(object):
                     self._invoke('clone-clear', { 'clone-id': e['clone-id'] })
         return None
 
-    def clone(self, source_path, dest_path, backing_snapshot=None):
+    def clone(self, source_path, dest_path, backing_snapshot=None, ranges=None):
         """
         Creates a file clone
         """
-        params = { 'source-path':source_path,
-                   'destination-path ':dest_path }
+        params = { 'source-path':source_path }
+
+        #You can have source == dest, but if you do you can only specify source
+        if source_path != dest_path:
+            params['destination-path'] = dest_path
 
         if backing_snapshot:
             raise FilerError(911, "Support for backing luns not implemented for this API version")
             #params['snapshot-name']= backing_snapshot
+
+        if ranges:
+            block_ranges = []
+            for r in ranges:
+                values = {'block-count': r.block_count,
+                          'destination-block-number':r.dest_block,
+                          'source-block-number':r.src_block}
+
+                block_ranges.append( {'block-range':values } )
+
+            params['block-ranges'] = block_ranges
 
         rc = self._invoke('clone-start', params)
 

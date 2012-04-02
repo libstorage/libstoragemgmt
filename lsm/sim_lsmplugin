@@ -252,6 +252,12 @@ class StorageSimulator(IStorageAreaNetwork):
                 raise LsmError(ErrorNumber.INVALID_VOL, 'Volume not present')
         return None
 
+    def volume_replicate_range_block_size(self):
+        return 512
+
+    def volume_replicate_range(self, rep_type, volume_src, volume_dest, ranges):
+       return None
+
     def volume_online(self, volume):
         if volume.id in self.s.volumes:
             return None

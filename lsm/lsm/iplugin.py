@@ -151,6 +151,30 @@ class IStorageAreaNetwork(IPlugin):
         pass
 
     @abstractmethod
+    def volume_replicate_range_block_size(self):
+        """
+        Returns the number of bytes per block for volume_replicate_range
+        call.  Callers of volume_replicate_range need to use this when
+        calculating start and block lengths.
+
+        Note: bytes per block may not match volume blocksize.
+
+        Returns bytes per block.
+        """
+        pass
+
+    @abstractmethod
+    def volume_replicate_range(self, rep_type, volume_src, volume_dest, ranges):
+        """
+        Replicates a portion of a volume to itself or another volume.  The src,
+        dest and number of blocks values change with vendor, call
+        volume_replicate_range_block_size to get block unit size.
+
+        Returns Job id or None when completed, else raises LsmError on errors.
+        """
+        pass
+
+    @abstractmethod
     def volume_online(self, volume):
         """
         Makes a volume available to the host
