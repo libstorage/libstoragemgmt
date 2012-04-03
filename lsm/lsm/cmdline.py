@@ -758,7 +758,7 @@ class CmdLine:
                     return i
                 else:
                     #Something better to do here?
-                    ArgError(msg + " job error code= %s" % s)
+                    raise ArgError(msg + " job error code= %s" % s)
 
     def job_status(self):
         (s, percent, i) = self.c.job_status(self.cmd_value)

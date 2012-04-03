@@ -18,12 +18,11 @@
 # Author: tasleson
 
 import sys
-import urlparse
 import pywbem
 from pywbem.cim_operations import CIMError
 import lsm
 from lsm.iplugin import IStorageAreaNetwork
-from lsm.common import uri_parse, uri_parameters, LsmError, ErrorNumber, JobStatus
+from lsm.common import uri_parse, LsmError, ErrorNumber, JobStatus
 from lsm.pluginrunner import PluginRunner
 from lsm.data import Pool, Initiator, Volume
 
@@ -234,7 +233,8 @@ class Smis(IStorageAreaNetwork):
                 status = JobStatus.Error
 
         else:
-            status = JobStatus.ERROR
+            raise LsmError(ErrorNumber.PLUGIN_ERROR,
+                            str(concrete_job['ErrorDescription']))
 
         return status, percent_complete, volume
 
