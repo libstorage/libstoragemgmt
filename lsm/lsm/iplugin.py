@@ -170,7 +170,7 @@ class IStorageAreaNetwork(IPlugin):
         dest and number of blocks values change with vendor, call
         volume_replicate_range_block_size to get block unit size.
 
-        Returns Job id or None when completed, else raises LsmError on errors.
+        Returns Job id or None if completed, else raises LsmError on errors.
         """
         pass
 
@@ -227,6 +227,30 @@ class IStorageAreaNetwork(IPlugin):
         Revokes privileges an initiator has to a volume
 
         Returns none on success, else raises a LsmError on error.
+        """
+        pass
+
+    @abstractmethod
+    def volume_child_dependency(self, volume):
+        """
+        Returns True if this volume has other volumes which are dependant on it.
+        Implies that this volume cannot be deleted or possibly modified because
+        it would affect its children.
+        """
+        pass
+
+    @abstractmethod
+    def volume_child_dependency_rm(self, volume):
+        """
+        If this volume has child dependency, this method call will fully
+        replicate the blocks removing the relationship between them.  This
+        should return None (success) if volume_child_dependency would return
+        False.
+
+        Note:  This operation could take a very long time depending on the size
+        of the volume and the number of child dependencies.
+
+        Returns None if complete else job id, raises LsmError on errors.
         """
         pass
 
@@ -345,6 +369,31 @@ class INetworkAttachedStorage(IPlugin):
         index in each list referring to the associated file.
 
         Returns None on success, else job id, LsmError exception on error
+        """
+        pass
+
+    @abstractmethod
+    def fs_child_dependency(self, fs, file=None):
+        """
+        Returns True if the specified filesystem or specified file on this
+        file system has child dependencies.  This implies that this filesystem
+        or specified file on this file system cannot be deleted or possibly
+        modified because it would affect its children.
+        """
+        pass
+
+    @abstractmethod
+    def fs_child_dependency_rm(self, fs, file=None):
+        """
+        If this filesystem or specified file on this filesystem has child
+        dependency this method will fully replicate the blocks removing the
+        relationship between them.  This should return None(success) if
+        fs_child_dependency would return False.
+
+        Note:  This operation could take a very long time depending on the size
+        of the filesystem and the number of child dependencies.
+
+        Returns None if completed, else job id.  Raises LsmError on errors.
         """
         pass
 

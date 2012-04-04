@@ -14,7 +14,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
 #
 # Author: tasleson
-
+import functools
 from optparse import OptionParser, OptionGroup
 import optparse
 import os
@@ -25,10 +25,27 @@ import sys
 import getpass
 import datetime
 import lsm
-import lsm.common
+from lsm.common import LsmError, ErrorNumber
 import lsm.client
 import lsm.data
 import time
+
+class Wrapper(object):
+    """
+    Used to provide an unambiguous error when a feature is not implemented.
+    """
+
+    def __init__(self, obj):
+        self.wrapper = obj
+
+    def __getattr__(self, name):
+        if hasattr(self.wrapper, name):
+            return functools.partial(self.present, name)
+        else:
+            raise LsmError(ErrorNumber.NO_SUPPORT, "Unsupported operation")
+
+    def present(self, name, *args, **kwargs):
+        return getattr(self.wrapper, name)(*args, **kwargs)
 
 def cmd_line_wrapper(client = None):
     """
@@ -43,9 +60,6 @@ def cmd_line_wrapper(client = None):
     except lsm.common.LsmError as le:
         sys.stderr.write(str(le) + "\n")
         sys.exit(4)
-    except AttributeError:
-        sys.stderr.write("Operation not supported with this plug-in" + "\n")
-        sys.exit(5)
 
 class MyWrapper:
     """
@@ -259,6 +273,26 @@ class CmdLine:
         commands.add_option( '', '--job-status', action="store", type="string",
             metavar='<job status id>',
             dest=_c("job-status"), help= 'retrieve information about job')
+
+        commands.add_option( '', '--volume-dependants', action="store", type="string",
+            metavar='<volume id>',
+            dest=_c("volume-dependants"), help= 'Returns True if volume has a dependant child')
+
+        commands.add_option( '', '--volume-dependants-rm', action="store", type="string",
+            metavar='<volume id>',
+            dest=_c("volume-dependants-rm"), help= 'Removes dependencies')
+
+        commands.add_option( '', '--fs-dependants', action="store", type="string",
+            metavar='<fs id>',
+            dest=_c("fs-dependants"), help= 'Returns true if a child dependency exists.\n'
+                                        'Optional:\n'
+                                        '--file <file> for File check' )
+
+        commands.add_option( '', '--fs-dependants-rm', action="store", type="string",
+            metavar='<fs id>',
+            dest=_c("fs-dependants-rm"), help=  'Removes dependencies\n'
+                                                'Optional:\n'
+                                                '--file <file> for File check' )
 
         parser.add_option_group(commands)
 
@@ -882,6 +916,41 @@ class CmdLine:
         else:
             raise ArgError(" file system with id=%s not found!" % self.cmd_value)
 
+    def vol_dependants(self):
+        v = self._get_item(self.c.volumes(), self.cmd_value)
+
+        if v:
+            rc = self.c.volume_child_dependency(v)
+            print str(rc)
+        else:
+            raise ArgError("volume with id= %s not found!" % self.cmd_value)
+
+    def vol_dependants_rm(self):
+        v = self._get_item(self.c.volumes(), self.cmd_value)
+
+        if v:
+            self._wait_for_it("volume-dependant-rm",
+                self.c.volume_child_dependency_rm(v), None)
+        else:
+            raise ArgError("volume with id= %s not found!" % self.cmd_value)
+
+    def fs_dependants(self):
+        fs = self._get_item(self.c.fs(), self.cmd_value)
+
+        if fs:
+            rc = self.c.fs_child_dependency(fs, self.options.file)
+            print str(rc)
+        else:
+            raise ArgError("File system with id= %s not found!" % self.cmd_value)
+
+    def fs_dependants_rm(self):
+        fs = self._get_item(self.c.fs(), self.cmd_value)
+
+        if fs:
+            self._wait_for_it("fs-dependants-rm",
+                self.c.fs_child_dependency_rm(fs, self.options.file), None)
+        else:
+            raise ArgError("File system with id= %s not found!" % self.cmd_value)
 
     def __init__(self):
         self.c = None
@@ -943,7 +1012,20 @@ class CmdLine:
                        'replicate-volume-range': {'options': ['type', 'dest',
                                                     'src_start', 'dest_start',
                                                     'count'],
-                                      'method': self.replicate_vol_range}
+                                      'method': self.replicate_vol_range},
+
+                       'volume-dependants': {'options': [],
+                                                'method': self.vol_dependants},
+
+                       'volume-dependants-rm': {'options': [],
+                                             'method': self.vol_dependants_rm},
+
+                       'fs-dependants': {'options': [],
+                                             'method': self.fs_dependants},
+
+                       'fs-dependants-rm': {'options': [],
+                                         'method': self.fs_dependants_rm},
+
         }
         self._validate()
 
@@ -977,8 +1059,9 @@ class CmdLine:
         Process the parsed command.
         """
         if client:
-            #Directly invoking code.
-            self.c = client()
+            #Directly invoking code though a wrapper to catch unsupported
+            #operations.
+            self.c = Wrapper(client())
             self.c.startup(self.uri, self.password, self.tmo)
             self.cleanup = self.c.shutdown
         else:

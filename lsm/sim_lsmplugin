@@ -318,5 +318,11 @@ class StorageSimulator(IStorageAreaNetwork):
             raise LsmError(ErrorNumber.NO_MAPPING, 'Initiator not found')
         return None
 
+    def volume_child_dependency(self, volume):
+        return False
+
+    def volume_child_dependency_rm(self, volume):
+        return None
+
 if __name__ == '__main__':
     PluginRunner(StorageSimulator, sys.argv).run()

@@ -573,6 +573,33 @@ class Filer(object):
             rc = to_list(exports['rules']['exports-rule-info'])
         return rc
 
+    def volume_children(self, volume):
+        params = { 'volume': volume }
+
+        rc = self._invoke('volume-list-info', params)
+
+        if 'clone-children' in rc['volumes']['volume-info']:
+            tmp = rc['volumes']['volume-info']['clone-children']['clone-child-info']
+            rc = [ c['clone-child-name'] for c in to_list(tmp) ]
+        else:
+            rc = None
+
+        return rc
+
+    def volume_split_clone(self, volume):
+        self._invoke('volume-clone-split-start', { 'volume': volume } )
+
+    def volume_split_status(self):
+        result = []
+
+        rc = self._invoke('volume-clone-split-status')
+
+        if 'clone-split-details' in rc:
+            tmp = rc['clone-split-details']['clone-split-detail-info']
+            result = [ r['name'] for r in to_list(tmp)]
+
+        return result
+
 if __name__ == '__main__':
     try:
         #TODO: Need some unit test code

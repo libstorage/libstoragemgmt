@@ -50,7 +50,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     (LSM_VOL_PREFIX, LSM_INIT_PREFIX) = ( 'lsm_lun_container', 'lsm_init_')
 
-    (SS_JOB) = ('ontap-ss-file-restore')
+    (SS_JOB, SPLIT_JOB) = ('ontap-ss-file-restore', 'ontap-clone-split')
 
     def __init__(self):
         self.f = None
@@ -298,6 +298,23 @@ class Ontap(IStorageAreaNetwork, INfs):
 
         return JobStatus.COMPLETE, 100, None
 
+    def _clone_split_status(self, volumes):
+        vols = volumes.split(',')
+        current = len(vols)
+
+        #It doesn't appear that we have a good percentage
+        #indicator from the clone split status...
+        running = self.f.volume_split_status()
+
+        for v in vols:
+            if v not in running:
+                current -= 1
+
+        if not running:
+            return JobStatus.COMPLETE, 100, None
+        else:
+            return JobStatus.INPROGRESS, Ontap._rpercent(len(vols), current), None
+
     @handle_ontap_errors
     def job_status(self, job_id):
         if job_id is None and '@' not in job_id:
@@ -307,6 +324,8 @@ class Ontap(IStorageAreaNetwork, INfs):
 
         if job[0] == Ontap.SS_JOB:
             return self._restore_file_status(int(job[1]))
+        elif job[0] == Ontap.SPLIT_JOB:
+            return self._clone_split_status(job[1])
 
         raise LsmError(ErrorNumber.INVALID_JOB, "Invalid job")
 
@@ -520,6 +539,38 @@ class Ontap(IStorageAreaNetwork, INfs):
     @handle_ontap_errors
     def export_remove(self, export):
         self.f.nfs_export_remove([export.export_path])
+
+    @handle_ontap_errors
+    def volume_child_dependency(self, volume):
+        return False
+
+    @handle_ontap_errors
+    def volume_child_dependency_rm(self, volume):
+        return None
+
+    @handle_ontap_errors
+    def fs_child_dependency(self, fs, file=None):
+        rc = False
+
+        #TODO: Make sure file actually exists if specified
+
+        if not file:
+            children = self.f.volume_children(fs.name)
+            if children:
+                rc = True
+        return rc
+
+    @handle_ontap_errors
+    def fs_child_dependency_rm(self, fs, file=None):
+        if file:
+            return None
+        else:
+            children = self.f.volume_children(fs.name)
+            if children:
+                for c in children:
+                    self.f.volume_split_clone(c)
+                return "%s@%s" % ( Ontap.SPLIT_JOB, ",".join(children))
+        return None
 
 if __name__ == '__main__':
     PluginRunner(Ontap, sys.argv).run()

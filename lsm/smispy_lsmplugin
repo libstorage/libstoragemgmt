@@ -504,6 +504,11 @@ class Smis(IStorageAreaNetwork):
             except CIMError:
                 pass
 
+    def volume_child_dependency(self, volume):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+    def volume_child_dependency_rm(self, volume):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
 if __name__ == '__main__':
     PluginRunner(Smis, sys.argv).run()

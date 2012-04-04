@@ -18,7 +18,7 @@
 import socket
 import traceback
 import sys
-from common import SocketEOF, LsmError, Error
+from common import SocketEOF, LsmError, Error, ErrorNumber
 import lsm.cmdline
 import transport
 
@@ -83,10 +83,15 @@ class PluginRunner(object):
                     id = msg['id']
                     params = msg['params']
 
-                    if params is None:
-                        result = getattr(self.plugin, method)()
+                    #Check to see if this plug-in implements this operation
+                    #if not return the expected error.
+                    if hasattr(self.plugin, method):
+                        if params is None:
+                            result = getattr(self.plugin, method)()
+                        else:
+                            result = getattr(self.plugin, method)(**msg['params'])
                     else:
-                        result = getattr(self.plugin, method)(**msg['params'])
+                        raise LsmError(ErrorNumber.NO_SUPPORT, "Unsupported operation")
 
                     self.tp.send_resp(result)
 
