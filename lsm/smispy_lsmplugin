@@ -358,7 +358,8 @@ class Smis(IStorageAreaNetwork):
         scs = self._get_class_instance('CIM_StorageConfigurationService')
         lun = self._get_volume(volume.id)
 
-        in_params = { 'TheElement': lun.path, 'Size': pywbem.Uint64(new_size_bytes)}
+        in_params = {   'ElementType': pywbem.Uint16(2),
+                        'TheElement': lun.path, 'Size': pywbem.Uint64(new_size_bytes)}
 
         return self._pi("volume_resize", True,
                             *(self._c.InvokeMethod('CreateOrModifyElementFromStoragePool',

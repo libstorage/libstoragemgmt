@@ -331,6 +331,7 @@ int Smis::resizeVolume(lsmVolumePtr volume, uint64_t newSize,
 
     in.append(CIMParamValue("TheElement", CIMValue(lun.getPath())));
     in.append(CIMParamValue("Size", CIMValue((Uint64) newSize)));
+    in.append(CIMParamValue("ElementType", CIMValue((Uint16) 2)));  //Volume
 
     return processInvoke(out, c.invokeMethod(ns, scs.getPath(),
         CIMName("CreateOrModifyElementFromStoragePool"), in, out), job,
