@@ -241,7 +241,7 @@ class Smis(IStorageAreaNetwork):
     @handle_cim_errors
     def job_status(self, job_id):
         """
-        Given a job number (integer) returns the current status as a tuple
+        Given a job id returns the current status as a tuple
         (status (enum), percent_complete(integer), volume (None or Volume))
         """
         return self._job_progress(job_id)
@@ -470,6 +470,19 @@ class Smis(IStorageAreaNetwork):
         return self._pi("access_grant", False,
                 *(self._c.InvokeMethod('ExposePaths', ccs.path, **in_params)))[0]
 
+
+    def _wait(self, job):
+
+        status = self.job_status(job)[0]
+
+        while( JobStatus.COMPLETE != status ):
+            time.wait(0.5)
+            status = self.job_status(job)[0]
+
+        if JobStatus.COMPLETE != status:
+            raise LsmError(ErrorNumber.PLUGIN_ERROR, "Expected no errors %s %s"
+                            %(job, str(status)))
+
     @handle_cim_errors
     def access_revoke(self, initiator, volume):
         """
@@ -478,7 +491,21 @@ class Smis(IStorageAreaNetwork):
         spc = self._get_spc(initiator.id, volume.id)
 
         if spc:
+
             ccs = self._get_class_instance('CIM_ControllerConfigurationService')
+
+            hide_params = {'InitiatorPortIDs': [initiator.id],
+                           'ProtocolControllers': [spc.path]}
+            hide = self._pi("HidePaths", False,
+                            *(self._c.InvokeMethod('HidePaths', ccs.path,
+                            **hide_params)))[0]
+
+            #If this gets turned into a job, we need to block.  We could also
+            #return here and wait for the user to follow-up with a status check
+            #and then proceed to the next step, but that would only work if the
+            #caller was good about checking back on job status.
+            if hide:
+                self._wait(hide)
 
             in_params = {'ProtocolController': spc.path,
                          'DeleteChildrenProtocolControllers': True,
