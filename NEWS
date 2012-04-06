@@ -1,5 +1,12 @@
 News for libStorageMgmt
 
+0.0.5: Apr 6 2012
+    - Spec file clean-up improvements
+    - Async. operation added to lsmcli and ability to check on job status
+    - Sub volume replication support
+    - Ability to check for child dependencies on VOLUMES, FS and files
+    - SMI-S Bug fixes and improvements
+
 0.0.4: Mar 26 2012
     - Restore from snapshot
     - Job identifiers string instead of integer
