@@ -30,6 +30,11 @@ UDS_PATH = '/var/run/lsm/ipc'
 #Set to True for verbose logging
 LOG_VERBOSE = True
 
+## Common method used to parse a URI.
+# @param    uri         The uri to parse
+# @param    requires    Optional list of keys that must be present in output
+# @param    required_params Optional list of required parameters that must be present.
+# @return   A hash of the parsed values.
 def uri_parse(uri, requires=None, required_params=None):
     """
     Common uri parse method that optionally can check for what is needed
@@ -72,7 +77,9 @@ def uri_parse(uri, requires=None, required_params=None):
                                 'uri missing query parameter %s' % r)
     return rc
 
-
+## Parses the parameters (Query string) of the URI
+# @param    uri     Full uri
+# @returns  hash of the query string parameters.
 def uri_parameters( uri ):
     url = urlparse.urlparse('http:' + uri[2])
     if len(url) >= 5 and len(url[4]):
@@ -80,18 +87,29 @@ def uri_parameters( uri ):
     else:
         return {}
 
+## Generates the md5 hex digest of passed in parameter.
+# @param    t   Item to generate signature on.
+# @returns  md5 hex digest.
 def md5(t):
     h = hashlib.md5()
     h.update(t)
     return h.hexdigest()
 
+## Converts a list of arguments to string.
+# @param    args    Args to join
+# @return string of arguments joined together.
 def params_to_string(*args):
     return ''.join( [ str(e) for e in args] )
 
 # Unfortunately the process name remains as 'python' so we are using argv[0] in
 # the output to allow us to determine which python exe is indeed logging to
 # syslog.
+# TODO:  On newer versions of python this is no longer true, need to fix.
 
+## Posts a message to the syslogger.
+# @param    level   Logging level
+# @param    prg     Program name
+# @param    msg     Message to log.
 def post_msg(level, prg, msg):
     """
     If a message includes new lines we will create multiple syslog

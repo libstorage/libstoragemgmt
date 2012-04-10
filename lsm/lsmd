@@ -184,7 +184,7 @@ class LsmDaemon(Daemon):
         except select.error:
             #Select got interrupted by a signal
             pass
-        except Exception as e:
+        except Exception:
             Error(str(traceback.format_exc()))
         finally:
             self.cleanup()

@@ -30,23 +30,55 @@ import lsm.client
 import lsm.data
 import time
 
+##@package lsm.cmdline
+
+
+## Documentation for Wrapper class.
+#
+# Class to encapsulate the actual class we want to call.  When an attempt is
+# made to access an attribute that doesn't exist we will raise an LsmError
+# instead of the default keyError.
 class Wrapper(object):
     """
     Used to provide an unambiguous error when a feature is not implemented.
     """
 
+    ## The constructor.
+    # @param    self    The object self
+    # @param    obj     The object instance to wrap
     def __init__(self, obj):
+        """
+        Constructor which takes an object to wrap.
+        """
         self.wrapper = obj
 
+    ## Called each time an attribute is requested of the object
+    # @param    self    The object self
+    # @param    name    Name of the attribute being accessed
+    # @return   The result of the method
     def __getattr__(self, name):
+        """
+        Called each time an attribute is requested of the object
+        """
         if hasattr(self.wrapper, name):
             return functools.partial(self.present, name)
         else:
             raise LsmError(ErrorNumber.NO_SUPPORT, "Unsupported operation")
 
+    ## Method which is called to invoke the actual method of interest.
+    # @param    self    The object self
+    # @param    name    Method to invoke
+    # @param    args    Arguments
+    # @param    kwargs  Keyword arguments
+    # @return   The result of the method invocation
     def present(self, name, *args, **kwargs):
+        """
+        Method which is called to invoke the actual method of interest.
+        """
         return getattr(self.wrapper, name)(*args, **kwargs)
 
+## Wraps the invocation to the command line
+# @param    client  Object to invoke calls on (optional)
 def cmd_line_wrapper(client = None):
     """
     Common command line code, called.
@@ -61,6 +93,7 @@ def cmd_line_wrapper(client = None):
         sys.stderr.write(str(le) + "\n")
         sys.exit(4)
 
+## Simple class used to handle \n in optparse output
 class MyWrapper:
     """
     Handle \n in text for the command line help etc.
@@ -79,6 +112,7 @@ class MyWrapper:
             rc.append(textwrap.fill(line, width, **kw))
         return "\n".join(rc)
 
+## This class represents a command line argument error
 class ArgError(Exception):
     def __init__(self, message, *args, **kwargs):
         """
@@ -89,22 +123,34 @@ class ArgError(Exception):
     def __str__(self):
         return "%s: error: %s\n" % ( os.path.basename(sys.argv[0]), self.msg)
 
+## Prefixes cmd with "cmd_"
+# @param    cmd     The command to prefix with cmd_"
+# @return   The cmd string prefixed with "cmd_"
 def _c(cmd):
     return "cmd_" + cmd
 
+## Prefixes option with "opt_"
+# @param    option  The option to prefix with "opt_"
+# @return   The option string prefixed with "opt_"
 def _o(option):
     return "opt_" + option
 
+## Class that encapsulates the command line arguments for lsmcli
+# Note: This class is used by lsmcli and any python plug-ins.
 class CmdLine:
     """
     Command line interface class.
     """
 
-    #Constants for some common units
+    ## Constant for MiB
     MiB = 1048576
+    ## Constant for GiB
     GiB = 1073741824
+    ## Constant for TiB
     TiB = 1099511627776
 
+    ## All the command line arguments and options are created in this method
+    # @param    self    The this object pointer
     def cli(self):
         """
         Command line interface parameters
@@ -403,6 +449,9 @@ class CmdLine:
 
         (self.options, self.args) = parser.parse_args()
 
+    ## Checks to make sure only one command was specified on the command line
+    # @param    self    The this pointer
+    # @return   tuple of command to execute and the value of the command argument
     def _cmd(self):
         cmds = [ e[4:] for e in dir(self.options)
                  if e[0:4]  == "cmd_" and self.options.__dict__[e] is not None ]
@@ -415,6 +464,9 @@ class CmdLine:
             return None, None
 
 
+    ## Validates that the required options for a given command are present.
+    # @param    self    The this pointer
+    # @return   None
     def _validate(self):
         expected_opts = self.verify[self.cmd]['options']
         actual_ops = [ e[4:] for e in dir(self.options)
@@ -437,7 +489,10 @@ class CmdLine:
         if self.options.opt_size:
             self._size(self.options.opt_size)
 
-    #Need to redo these display routines...
+    ## Display the volumes on a storage array
+    # @param    self    The this pointer
+    # @param    vols    The array of volume objects
+    # @return None
     def display_volumes(self, vols):
         if self.options.sep is not None:
             s = self.options.sep
@@ -452,7 +507,10 @@ class CmdLine:
                 out = (v.id, v.name, v.vpd83, v.block_size, v.num_of_blocks,
                        v.status, self._sh(v.size_bytes))
                 print format % out
-
+    ## Display the pools on a storage array
+    # @param    self    The this pointer
+    # @param    pools    The array of pool objects
+    # @return None
     def display_pools(self, pools):
         if self.options.sep is not None:
             s = self.options.sep
@@ -467,6 +525,10 @@ class CmdLine:
                        self._sh(p.free_space))
                 print "%-40s%-32s%-32s%-32s" % out
 
+    ## Display the initiators on a storage array
+    # @param    self    The this pointer
+    # @param    inits   The array of initiator objects
+    # @return None
     def display_initiators(self, inits):
         if self.options.sep is not None:
             s = self.options.sep
@@ -480,6 +542,10 @@ class CmdLine:
                 out = (i.id, i.name, i.type)
                 print format % out
 
+    ## Display the file systems on the storage array
+    # @param    self    The this pointer
+    # @param    fss     Array of file system objects.
+    # @return None
     def display_fs(self, fss):
         if self.options.sep is not None:
             s = self.options.sep
@@ -495,6 +561,10 @@ class CmdLine:
                        self._sh(f.free_space), f.pool)
                 print format % out
 
+    ## Display the snap shots on the storage array
+    # @param    self    The this pointer
+    # @param    ss      Array of snap shot objects
+    # @return None
     def display_snaps(self, ss):
 
         if self.options.sep is not None:
@@ -518,6 +588,10 @@ class CmdLine:
         else:
             return "None"
 
+    ## Display the file system exports on the storage array
+    # @param    self    The this pointer
+    # @param    exports Array of export objects
+    # @return None
     def display_exports(self, exports):
         if self.options.sep is not None:
             s = self.options.sep
@@ -545,6 +619,9 @@ class CmdLine:
                 print "auth:\t\t", e.auth
                 print "options:\t", e.options, "\n"
 
+    ## Display the types of nfs client authentication that are supported.
+    # @param    self    The this pointer
+    # @return None
     def display_nfs_client_authentication(self):
         """
         Dump the supported nfs client authentication types
@@ -554,6 +631,8 @@ class CmdLine:
         else:
             print ", ".join(self.c.export_auth())
 
+    ## Method that calls the appropriate method based on what the cmd_value is
+    # @param    self    The this pointer
     def list(self):
         if self.cmd_value == 'VOLUMES':
             self.display_volumes(self.c.volumes())
@@ -579,6 +658,8 @@ class CmdLine:
         else:
             raise ArgError(" unsupported listing type=%s", self.cmd_value)
 
+    ## Used to create an initiator.
+    # @param    self    The this pointer
     def create_init(self):
         type = self.options.opt_type
 
@@ -596,6 +677,8 @@ class CmdLine:
         init = self.c.initiator_create(self.cmd_value, self.options.opt_id,i)
         self.display_initiators([init])
 
+    ## Used to delete an initiator
+    # @param    self    The this pointer
     def delete_init(self):
         #get init object from id
         i = self._get_item(self.c.initiators(), self.cmd_value)
@@ -604,6 +687,8 @@ class CmdLine:
         else:
             raise ArgError("initiator with id = %s not found!" % self.cmd_value)
 
+    ## Used to delete a file system
+    # @param    self    The this pointer
     def fs_delete(self):
 
         fs = self._get_item(self.c.fs(), self.cmd_value)
@@ -612,6 +697,8 @@ class CmdLine:
         else:
             raise ArgError("fs with id = %s not found!" % self.cmd_value)
 
+    ## Used to create a file system
+    # @param    self    The this pointer
     def fs_create(self):
         #Need a name, size and pool
         size = self._size(self.options.opt_size)
@@ -620,12 +707,16 @@ class CmdLine:
         fs = self._wait_for_it("create-fs", *self.c.fs_create(p, name, size))
         self.display_fs([fs])
 
+    ## Used to resize a file system
+    # @param    self    The this pointer
     def fs_resize(self):
         fs = self._get_item(self.c.fs(), self.cmd_value)
         size = self._size(self.options.opt_size)
         fs = self._wait_for_it("resize-fs", *self.c.fs_resize(fs, size))
         self.display_fs([fs])
 
+    ## Used to clone a file system
+    # @param    self    The this pointer
     def fs_clone(self):
         src_fs = self._get_item(self.c.fs(), self.cmd_value)
         name = self.options.opt_name
@@ -644,6 +735,8 @@ class CmdLine:
         fs = self._wait_for_it("fs_clone", *self.c.fs_clone(src_fs, name, ss))
         self.display_fs([fs])
 
+    ## Used to clone a file(s)
+    # @param    self    The this pointer
     def file_clone(self):
         fs = self._get_item(self.c.fs(), self.cmd_value)
         src = self.options.opt_src
@@ -663,6 +756,9 @@ class CmdLine:
                 return i
         return None
 
+    ##Converts a size parameter into the appropriate number of bytes
+    # @param    s   Size to convert to bytes handles M, G, T postfix
+    # @return Size in bytes
     @staticmethod
     def _size(s):
         s = string.upper(s)
@@ -680,6 +776,9 @@ class CmdLine:
             raise ArgError(" size is not in form <number>|<number[M|G|T]>")
         return rc
 
+    ##Converts the size into humand format.
+    # @param    size    Size in bytes
+    # @return Human representation of size
     def _sh(self, size):
         """
         Size for humans
@@ -702,6 +801,8 @@ class CmdLine:
         else:
             return str(size)
 
+    ## Creates a volume
+    # @param    self    The this pointer
     def create_volume(self):
         #Get pool
         p = self._get_item(self.c.pools(), self.options.opt_pool)
@@ -715,6 +816,8 @@ class CmdLine:
         else:
             raise ArgError(" pool with id= %s not found!" % self.options.opt_pool)
 
+    ## Creates a snapshot
+    # @param    self    The this pointer
     def create_ss(self):
         #Get fs
         fs = self._get_item(self.c.fs(), self.options.opt_fs)
@@ -724,6 +827,8 @@ class CmdLine:
         else:
             raise ArgError( "fs with id= %s not found!" % self.options.opt_fs)
 
+    ## Restores a snap shot
+    # @param    self    The this pointer
     def restore_ss(self):
         #Get snapshot
         fs = self._get_item(self.c.fs(), self.options.opt_fs)
@@ -751,6 +856,8 @@ class CmdLine:
             if not fs:
                 raise ArgError( "fs with id= %s not found!" % self.options.opt_fs)
 
+    ## Deletes a volume
+    # @param    self    The this pointer
     def delete_volume(self):
         v = self._get_item(self.c.volumes(), self.cmd_value)
 
@@ -759,6 +866,8 @@ class CmdLine:
         else:
             raise ArgError(" volume with id= %s not found!" % self.cmd_value)
 
+    ## Deletes a snap shot
+    # @param    self    The this pointer
     def delete_ss(self):
         fs = self._get_item(self.c.fs(), self.options.opt_fs)
         if fs:
@@ -770,6 +879,12 @@ class CmdLine:
         else:
             raise ArgError(" file system with id= %s not found!" % self.options.opt_fs)
 
+    ## Waits for an operation to complete by polling for the status of the
+    # operations.
+    # @param    self    The this pointer
+    # @param    msg     Message to display if this job fails
+    # @param    job     The job id to wait on
+    # @param    item    The item that could be available now if there is no job
     def _wait_for_it(self, msg, job, item):
         if not job:
             return item
@@ -794,6 +909,8 @@ class CmdLine:
                     #Something better to do here?
                     raise ArgError(msg + " job error code= %s" % s)
 
+    ## Retrieves the status of the specified job
+    # @param    self    The this pointer
     def job_status(self):
         (s, percent, i) = self.c.job_status(self.cmd_value)
 
@@ -806,7 +923,8 @@ class CmdLine:
             print str(percent)
             self.shutdown(s)
 
-
+    ## Replicates a volume
+    # @param    self    The this pointer
     def replicate_volume(self):
         p = self._get_item(self.c.pools(), self.options.opt_pool)
         v = self._get_item(self.c.volumes(), self.cmd_value)
@@ -826,6 +944,8 @@ class CmdLine:
             if not v:
                 raise ArgError("Volume with id= %s not found!" % self.cmd_value)
 
+    ## Replicates a range of a volume
+    # @param    self    The this pointer
     def replicate_vol_range(self):
         src = self._get_item(self.c.volumes(), self.cmd_value)
         dest = self._get_item(self.c.volumes(), self.options.opt_dest)
@@ -852,6 +972,9 @@ class CmdLine:
             if not dest:
                 raise ArgError("dest volume with id= %s not found!" % self.options.opt_dest)
 
+    ## Used to grant or revoke access to a volume to an initiator.
+    # @param    self    The this pointer
+    # @param    map     If True we map, else we un-map.
     def _access(self, map=True):
         i = self._get_item(self.c.initiators(), self.cmd_value)
         v = self._get_item(self.c.volumes(), self.options.opt_volume)
@@ -869,12 +992,18 @@ class CmdLine:
             if not v:
                 raise ArgError("volume with id= %s not found!" % self.options.opt_volume)
 
+    ## Grant access to volume to an initiator
+    # @param    self    The this pointer
     def access_grant(self):
         return self._access()
 
+    ## Revoke access to volume to an initiator
+    # @param    self    The this pointer
     def access_revoke(self):
         return self._access(False)
 
+    ## Re-sizes a volume
+    # @param    self    The this pointer
     def resize_volume(self):
         v = self._get_item(self.c.volumes(), self.cmd_value)
         if v:
@@ -884,6 +1013,8 @@ class CmdLine:
         else:
             ArgError("volume with id= %s not found!" % self.cmd_value)
 
+    ## Removes a nfs export
+    # @param    self    The this pointer
     def nfs_export_remove(self):
         export = self._get_item(self.c.exports(), self.cmd_value)
         if export:
@@ -891,6 +1022,8 @@ class CmdLine:
         else:
             raise ArgError("nfs export with id= %s not found!" % self.cmd_value)
 
+    ## Exports a file system as a NFS export
+    # @param    self    The this pointer
     def nfs_export_fs(self):
         fs = self._get_item(self.c.fs(), self.cmd_value)
 
@@ -916,6 +1049,8 @@ class CmdLine:
         else:
             raise ArgError(" file system with id=%s not found!" % self.cmd_value)
 
+    ## Displays volume dependants.
+    # @param    self    The this pointer
     def vol_dependants(self):
         v = self._get_item(self.c.volumes(), self.cmd_value)
 
@@ -925,6 +1060,8 @@ class CmdLine:
         else:
             raise ArgError("volume with id= %s not found!" % self.cmd_value)
 
+    ## Removes volume dependants.
+    # @param    self    The this pointer
     def vol_dependants_rm(self):
         v = self._get_item(self.c.volumes(), self.cmd_value)
 
@@ -934,6 +1071,8 @@ class CmdLine:
         else:
             raise ArgError("volume with id= %s not found!" % self.cmd_value)
 
+    ## Displays file system dependants
+    # @param    self    The this pointer
     def fs_dependants(self):
         fs = self._get_item(self.c.fs(), self.cmd_value)
 
@@ -943,6 +1082,8 @@ class CmdLine:
         else:
             raise ArgError("File system with id= %s not found!" % self.cmd_value)
 
+    ## Removes file system dependants
+    # @param    self    The this pointer
     def fs_dependants_rm(self):
         fs = self._get_item(self.c.fs(), self.cmd_value)
 
@@ -952,9 +1093,11 @@ class CmdLine:
         else:
             raise ArgError("File system with id= %s not found!" % self.cmd_value)
 
+    ## Class constructor.
+    # @param    self    The this pointer
     def __init__(self):
         self.c = None
-        self.tmo = 30000        #Need to add ability to tweek timeout from CLI
+        self.tmo = 30000        #TODO: Need to add ability to tweek timeout from CLI
         self.cli()
 
         self.cleanup = None
@@ -1047,6 +1190,9 @@ class CmdLine:
             if u['username'] is None:
                 raise ArgError("password specified with no user name in uri")
 
+    ## Does appropriate clean-up
+    # @param    self    The this pointer
+    # @param    ec      The exit code
     def shutdown(self, ec = None):
         if self.cleanup:
             self.cleanup()
@@ -1054,6 +1200,9 @@ class CmdLine:
         if ec:
             sys.exit(ec)
 
+    ## Process the specified command
+    # @param    self    The this pointer
+    # @param    client  The object instance to invoke methods on.
     def process(self, client = None):
         """
         Process the parsed command.
