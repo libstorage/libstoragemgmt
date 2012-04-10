@@ -207,7 +207,6 @@ class Smis(IStorageAreaNetwork):
         Given a concrete job instance name, check the status
         """
         volume = None
-        percent_complete = 0
 
         (concrete_job, get_vol) = self._get_job_details(job_id)
 
@@ -475,7 +474,7 @@ class Smis(IStorageAreaNetwork):
 
         status = self.job_status(job)[0]
 
-        while( JobStatus.COMPLETE != status ):
+        while JobStatus.COMPLETE != status:
             time.wait(0.5)
             status = self.job_status(job)[0]
 
