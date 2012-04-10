@@ -146,4 +146,5 @@ AM_CONDITIONAL(HAVE_SYSTEMD, [test -n "$with_systemdsystemunitdir" -a "x$with_sy
 AC_OUTPUT(Makefile src/Makefile plugin/Makefile doc/Makefile \
           tools/Makefile tools/lsmcli/Makefile tools/smiscli/Makefile \
           include/Makefile include/libstoragemgmt/Makefile lsm/Makefile \
-          tools/lsmclipy/Makefile packaging/Makefile packaging/daemon/Makefile)
+          tools/lsmclipy/Makefile packaging/Makefile packaging/daemon/Makefile \
+          doc/man/Makefile)

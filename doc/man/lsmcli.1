@@ -1,0 +1,301 @@
+.TH LSMCLI "1" "April 2012" "lsmcli 0.0.6" "libStorageMgmt"
+.SH NAME
+lsmcli \- LibStorageMgmt command line interface
+.SH SYNOPSIS
+.B lsmcli
+[\fIoptions\fR]... [\fIcommand\fR]... [\fIcommand options\fR]...
+.SH DESCRIPTION
+lsmcli is the command line tool for the libStorageMgmt library.  This tool
+allows users to do one off storage related management operations or to script
+management of their storage.
+.SH "OPTIONS (global)"
+.TP
+\fB\-\-version\fR
+show program's version number and exit
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+show this help message and exit
+.TP
+\fB\-u\fR URI, \fB\-\-uri\fR=\fIURI\fR
+uniform resource identifier (env LSMCLI_URI)
+.TP
+\fB\-P\fR, \fB\-\-prompt\fR
+prompt for password (env LSMCLI_PASSWORD)
+.TP
+\fB\-H\fR, \fB\-\-human\fR
+print sizes in human readable format
+(e.g., MiB, GiB, TiB)
+.TP
+\fB\-t\fR SEP, \fB\-\-terse\fR=\fISEP\fR
+print output in terse form with "SEP" as a record
+separator.  This is to ease scripting of lsmcli.
+.TP
+\fB\-b\fR
+run the command asynchronously instead of waiting for
+completion.  lsmcli command will exit with exit code(7) and job id will be 
+written to stdout when a command is still executing on the storage array.  
+Use --jobstatus <job id> to inquire on the progress of the command.
+
+.SH ENVIRONMENT
+.TP
+LSMCLI_URI
+	The URI for the storage array in question.
+.TP
+LSMCLI_PASSWORD
+	The password to use for the array.
+.IP
+.SH COMMANDS
+.TP
+\fB\-l\fR <type>, \fB\-\-list=\fR<type>
+.TP 
+List records of type:
+[VOLUMES|INITIATORS|POOLS|FS|SNAPSHOTS|EXPORTS|NFS_CLIENT_AUTH]
+.TP
+Note: SNAPSHOTS listing requires: \fB\-\-fs\fR <fs id>
+.TP
+\fB\-\-create\-initiator=\fR<initiator name>
+Create an initiator record, requires:
+.br
+\fB\-\-id\fR <initiator id>
+.br
+\fB\-\-type\fR [WWPN|WWNN|ISCSI|HOSTNAME]
+.TP
+\fB\-\-delete\-initiator=\fR<initiator id>
+Delete an initiator record
+.TP
+\fB\-\-delete\-fs=\fR<fs id>
+Delete a filesystem
+.TP
+\fB\-\-create\-volume=\fR<volume name>
+Creates a volume (logical unit) requires:
+.br
+\fB\-\-size\fR <volume size> (Can use M, G, T)
+.br
+\fB\-\-pool\fR <pool id>
+.br
+\fB\-\-provisioning\fR (optional) [DEFAULT|THIN|FULL]
+.TP
+\fB\-\-create\-fs=\fR<fs name>
+Creates a file system requires:
+.br
+\fB\-\-size\fR <fs size> (Can use M, G, T)
+.br
+\fB\-\-pool\fR <pool id>
+.TP
+\fB\-\-create\-ss=\fR<snapshot name>
+Creates a snapshot requires:
+.br
+\fB\-\-file\fR <repeat for each file> (default is all files)
+.br
+\fB\-\-fs\fR <file system id>
+.TP
+\fB\-\-restore\-ss=\fR<snapshot id>
+Restores a FS or specified files to previous snapshot
+state, requires:
+.br
+\fB\-\-fs\fR <file system>
+.br
+\fB\-\-file\fR <repeat for each file (optional)>
+.br
+\fB\-\-fileas\fR <restore file name (optional)>
+.br
+\fB\-\-all\fR (optional, exclusive option, restores all files
+in snapshot other options must be absent)
+.TP
+\fB\-\-clone\-fs=\fR<source file system id>
+Creates a file system clone requires:
+.br
+\fB\-\-name\fR <file system clone name>
+.br
+\fB\-\-backing\-snapshot\fR <backing snapshot id> (optional)
+.TP
+\fB\-\-clone\-file=\fR<file system>
+Creates a clone of a file (thin provisioned) requires:
+.br
+\fB\-\-src\fR  <source file to clone (relative path)>
+.br
+\fB\-\-dest\fR <destination file (relative path)>
+.br
+\fB\-\-backing\-snapshot\fR <backing snapshot id> (optional)
+.TP
+\fB\-\-delete\-volume=\fR<volume id>
+Deletes a volume given its id
+.TP
+\fB\-\-delete\-ss=\fR<snapshot id>
+Deletes a snapshot requires \fB\-\-fs\fR
+.TP
+\fB\-r\fR <volume id>, \fB\-\-replicate\-volume=\fR<volume id>
+replicates a volume, requires:
+.br
+\fB\-\-type\fR [RW_SNAP|CLONE|MIRROR]
+.br
+\fB\-\-pool\fR <pool id>
+.br
+\fB\-\-name\fR <human name>
+.TP
+\fB\-\-replicate\-volume\-range=\fR<volume id>
+Replicates a portion of a volume, requires:
+.br
+\fB\-\-type\fR [RW_SNAP|CLONE|MIRROR]
+.br
+\fB\-\-dest\fR <destination volume>
+.br
+\fB\-\-src_start\fR <source block start number>
+.br
+\fB\-\-dest_start\fR <destination block start>
+.br
+\fB\-\-count\fR <number of blocks to replicate>
+.TP
+\fB\-\-access\-grant=\fR<initiator id>
+Grants access to an initiator to a volume
+requires:
+.br
+\fB\-\-volume\fR <volume id>
+.br
+\fB\-\-access\fR [RO|RW], read\-only or read\-write
+.TP
+\fB\-\-access\-revoke=\fR<initiator id>
+Removes access for an initiator to a volume
+requires:
+.br
+\fB\-\-volume\fR <volume id>
+.TP
+\fB\-\-resize\-volume=\fR<volume id>
+Re\-sizes a volume, requires:
+.br
+\fB\-\-size\fR <new size>
+.TP
+\fB\-\-resize\-fs=\fR<fs id>
+Re\-sizes a file system, requires:
+.br
+\fB\-\-size\fR <new size>
+.TP
+\fB\-\-nfs\-export\-remove=\fR<nfs export id>
+Removes a nfs export
+.TP
+\fB\-\-nfs\-export\-fs=\fR<file system id>
+creates a nfs export
+.br
+Required:
+.br
+\fB\-\-exportpath\fR e.g. /foo/bar
+.br
+Optional:
+.br
+Note: root, ro, rw are to be repeated for each host
+.br
+\fB\-\-root\fR <no_root_squash host>
+.br
+\fB\-\-ro\fR <read only host>
+.br
+\fB\-\-rw\fR <read/write host>
+.br
+\fB\-\-anonuid\fR <uid to map to anonymous>
+.br
+\fB\-\-anongid\fR <gid to map to anonymous>
+.br
+\fB\-\-auth\-type\fR <NFS client authentication type>
+.TP
+\fB\-\-job\-status=\fR<job status id>
+retrieve information about job
+.TP
+\fB\-\-volume\-dependants=\fR<volume id>
+Returns True if volume has a dependant child
+.TP
+\fB\-\-volume\-dependants\-rm=\fR<volume id>
+Removes dependencies
+.TP
+\fB\-\-fs\-dependants=\fR<fs id>
+Returns true if a child dependency exists.
+.br
+\fB\-\-file\fR <file> for File check (optional)
+.TP
+\fB\-\-fs\-dependants\-rm=\fR<fs id>
+Removes dependencies
+.br
+\fB\-\-file\fR <file> for File check (optional)
+.IP
+.SH COMMAND OPTIONS
+.TP
+\fB\-\-size\fR=\fIsize\fR
+size (Can use M, G, T postfix)
+.TP
+\fB\-\-pool\fR=\fIpool\fR id
+pool ID
+.TP
+\fB\-\-provisioning\fR=\fIPROVISIONING\fR
+[DEFAULT|THIN|FULL]
+.TP
+\fB\-\-type\fR=\fItype\fR
+type specifier
+.TP
+\fB\-\-name\fR=\fIname\fR
+human readable name
+.TP
+\fB\-\-volume\fR=\fIvolume\fR
+volume ID
+.TP
+\fB\-\-access\fR=\fIaccess\fR
+[RO|RW], read\-only or read\-write access
+.TP
+\fB\-\-id\fR=\fIinitiator\fR id
+initiator id
+.TP
+\fB\-\-backing\-snapshot=\fR<backing snapshot>
+backing snap shot name for operation
+.TP
+\fB\-\-src=\fR<source file>
+source of operation
+.TP
+\fB\-\-dest=\fR<source file>
+destination of operation
+.TP
+\fB\-\-file=\fR<file>
+file to include in operation, option can be repeated
+.TP
+\fB\-\-fileas=\fR<fileas>
+file to be renamed as, option can be repeated
+.TP
+\fB\-\-fs=\fR<file system>
+file system of interest
+.TP
+\fB\-\-exportpath=\fR<path for export>
+desired export path on array
+.TP
+\fB\-\-root=\fR<no_root_squash_host>
+list of hosts with no_root_squash
+.TP
+\fB\-\-ro=\fR<read only host>
+list of hosts with read/only access
+.TP
+\fB\-\-rw=\fR<read/write host>
+list of hosts with read/write access
+.TP
+\fB\-\-anonuid=\fR<anonymous uid>
+uid to map to anonymous
+.TP
+\fB\-\-anongid=\fR<anonymous uid>
+gid to map to anonymous
+.TP
+\fB\-\-authtype=\fR<type>
+NFS client authentication type
+.TP
+\fB\-\-all\fR
+specify all in an operation
+.TP
+\fB\-\-src_start=\fR<source block start>
+source block address to replicate
+.TP
+\fB\-\-dest_start=\fR<dest. block start>
+destination block address to replicate
+.TP
+\fB\-\-count=\fR<block count>
+number of blocks to replicate
+.PP
+.SH BUGS
+Please report bugs to 
+<libstoragemgmt\-devel@lists.sourceforge.net>
+.SH AUTHOR
+Tony Asleson <tasleson@redhat.com>
+
+.PP
