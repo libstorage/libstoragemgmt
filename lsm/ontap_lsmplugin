@@ -455,6 +455,11 @@ class Ontap(IStorageAreaNetwork, INfs):
         raise RuntimeError("Volume not found in volumes:" +
                            ":".join(volumes) + " " + vol_name)
 
+    @staticmethod
+    def _get_volume_from_path(path):
+        #Volume paths have the form /vol/<volume name>/<rest of path>
+        return path[5:].split('/')[0]
+
     def _export(self, volumes, e):
         if 'actual-pathname' in e:
             path = e['actual-pathname']
@@ -463,7 +468,7 @@ class Ontap(IStorageAreaNetwork, INfs):
             path = e['pathname']
             export = e['pathname']
 
-        vol_name = path[5:]
+        vol_name = Ontap._get_volume_from_path(path)
         fs_id = self._get_volume_id(volumes, vol_name)
 
         return NfsExport(md5(vol_name + fs_id),
