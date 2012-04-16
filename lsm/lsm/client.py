@@ -332,6 +332,17 @@ class Client(object):
         """
         return self.tp.rpc('access_grant', del_self(locals()))
 
+    ## Access control for allowing an access group to access a volume
+    # @param    self    The this pointer
+    # @param    group   The access group
+    # @param    volume  The volume to grant access to
+    # @param    access  The desired access
+    def access_group_grant(self, group, volume, access):
+        """
+        Allows an access group to access a volume.
+        """
+        return self.tp.rpc('access_group_grant', del_self(locals()))
+
     ## Revokes privileges an initiator has to a volume
     # @param    self    The this pointer
     # @param    initiator   The initiator object
@@ -345,26 +356,68 @@ class Client(object):
         """
         return self.tp.rpc('access_revoke', del_self(locals()))
 
+    ## Revokes access to a volume to initiators in an access group
+    # @param    self    The this pointer
+    # @param    group   The access group
+    # @param    volume  The volume to grant access to
+    def access_group_revoke(self, group, volume):
+        """
+        Revokes access for an access group for a volume
+        """
+        return self.tp.rpc('access_group_revoke', del_self(locals()))
+
+    ## Returns a list of access group objects
+    # @param    self    The this pointer
+    # @returns  List of access groups
     def access_group_list(self):
-        raise NotImplemented()
+        """
+        Returns a list of access groups
+        """
+        return self.tp.rpc('access_group_list', del_self(locals()))
 
-    def access_group_create(self):
-        raise NotImplemented()
+    ## Creates an access a group with the specified initiator in it.
+    # @param    self    The this pointer
+    # @param    name    The initiator group name
+    # @param    id      Initiator id
+    # @param    id_type Type of initiator (Enumeration)
+    # @returns AccessGroup on success, else raises LsmError
+    def access_group_create(self, name, initiator_id, id_type):
+        """
+        Creates an access group and add the specified initiator id, id_type and
+        desired access.
+        """
+        return self.tp.rpc('access_group_create', del_self(locals()))
 
+    ## Deletes an access group.
+    # @param    self    The this pointer
+    # @param    group   The access group to delete
     def access_group_del(self, group):
-        assert group is not None
-        raise NotImplemented()
+        """
+        Deletes an access group
+        """
+        return self.tp.rpc('access_group_del', del_self(locals()))
 
-    def access_group_add_initiator(self, group, initiator, access):
-        assert group is not None
-        assert initiator is not None
-        assert access is not None
-        raise NotImplemented()
+    ## Adds an initiator to an access group
+    # @param    self            The this pointer
+    # @param    group           Group to add initiator to
+    # @param    initiator_id    Initiators id
+    # @param    id_type         Initiator id type (enumeration)
+    def access_group_add_initiator(self, group, initiator_id, id_type):
+        """
+        Adds an initiator to an access group
+        """
+        return self.tp.rpc('access_group_add_initiator', del_self(locals()))
 
+    ## Deletes an initiator from an access group
+    # @param    self        The this pointer
+    # @param    group       The access group to remove initiator from
+    # @param    initiator   The initiator to remove from the group
     def access_group_del_initiator(self, group, initiator):
-        assert group is not None
-        assert initiator is not None
-        raise NotImplemented()
+        """
+        Deletes an initiator from an access group
+        """
+        return self.tp.rpc('access_group_del_initiator', del_self(locals()))
+
 
     ## Returns a list of file system objects.
     # @param    self    The this pointer

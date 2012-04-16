@@ -469,6 +469,9 @@ class Smis(IStorageAreaNetwork):
         return self._pi("access_grant", False,
                 *(self._c.InvokeMethod('ExposePaths', ccs.path, **in_params)))[0]
 
+    def access_group_grant(self, group, volume, access):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
 
     def _wait(self, job):
 
@@ -516,6 +519,24 @@ class Smis(IStorageAreaNetwork):
                     **in_params)))[0]
 
         raise LsmError(ErrorNumber.NO_MAPPING, "")
+
+    def access_group_revoke(self, group, volume):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+    def access_group_list(self):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+    def access_group_create(self, name, id, id_type):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+    def access_group_del(self, group):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+    def access_group_add_initiator(self, group, initiator_id, id_type):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+    def access_group_del_initiator(self, group, initiator):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
     @handle_cim_errors
     def job_free(self, job_id):

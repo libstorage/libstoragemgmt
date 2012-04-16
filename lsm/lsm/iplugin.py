@@ -221,12 +221,59 @@ class IStorageAreaNetwork(IPlugin):
 
         pass
 
+    def access_group_grant(self, group, volume, access):
+        """
+        Allows an access group to access a volume.
+        """
+        pass
+
     @abstractmethod
     def access_revoke(self, initiator, volume):
         """
         Revokes privileges an initiator has to a volume
 
         Returns none on success, else raises a LsmError on error.
+        """
+        pass
+
+    def access_group_revoke(self, group, volume):
+        """
+        Revokes access for an access group for a volume
+        """
+        pass
+
+    @abstractmethod
+    def access_group_list(self):
+        """
+        Returns a list of access groups
+        """
+        pass
+
+    @abstractmethod
+    def access_group_create(self, name, id, id_type):
+        """
+        Returns a list of access groups
+        """
+        pass
+
+    @abstractmethod
+    def access_group_del(self, group):
+        """
+        Deletes an access group
+        """
+        pass
+
+    @abstractmethod
+    def access_group_add_initiator(self, group, initiator_id, id_type):
+        """
+        Adds an initiator to an access group
+        """
+        pass
+
+    @abstractmethod
+    def access_group_del_initiator(self, group, initiator):
+        """
+        Deletes an initiator from an access group
         """
         pass
 

@@ -215,7 +215,6 @@ class Pool(IData):
     """
     Pool specific information
     """
-
     def __init__(self, id, name, total_space, free_space):
         self.id = id
         self.name = name
@@ -223,7 +222,6 @@ class Pool(IData):
         self.free_space = free_space
 
 class FileSystem(IData):
-
     def __init__(self, id, name, total_space, free_space, pool):
         self.id = id
         self.name = name
@@ -263,6 +261,12 @@ class BlockRange(IData):
         self.src_block = source_start
         self.dest_block = dest_start
         self.block_count = block_count
+
+class AccessGroup(IData):
+    def __init__(self, id, name, initiators):
+        self.id = id
+        self.name = name
+        self.initiators = initiators
 
 if __name__ == '__main__':
     #TODO Need some unit tests that encode/decode all the types with nested

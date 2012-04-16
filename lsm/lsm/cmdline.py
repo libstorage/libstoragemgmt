@@ -84,7 +84,7 @@ def cmd_line_wrapper(client = None):
     Common command line code, called.
     """
     try:
-        cli = lsm.cmdline.CmdLine()
+        cli = CmdLine()
         cli.process(client)
     except ArgError as ae:
         sys.stderr.write(str(ae))
@@ -183,8 +183,8 @@ class CmdLine:
         commands.add_option('-l', '--list', action="store", type="choice",
             dest="cmd_list",
             metavar='<[VOLUMES|INITIATORS|POOLS|FS|SNAPSHOTS|EXPORTS]>',
-            choices = ['VOLUMES', 'INITIATORS', 'POOLS', 'FS', 'SNAPSHOTS', 'EXPORTS', "NFS_CLIENT_AUTH"],
-            help='List records of type [VOLUMES|INITIATORS|POOLS|FS|SNAPSHOTS|EXPORTS|NFS_CLIENT_AUTH]\n'
+            choices = ['VOLUMES', 'INITIATORS', 'POOLS', 'FS', 'SNAPSHOTS', 'EXPORTS', "NFS_CLIENT_AUTH", 'ACCESS_GROUPS'],
+            help='List records of type [VOLUMES|INITIATORS|POOLS|FS|SNAPSHOTS|EXPORTS|NFS_CLIENT_AUTH|ACCESS_GROUPS]\n'
                  'Note: SNAPSHOTS requires --fs <fs id>')
 
         commands.add_option( '', '--create-initiator', action="store", type="string",
@@ -204,6 +204,24 @@ class CmdLine:
             metavar='<fs id>',
             help='Delete a filesystem')
 
+        commands.add_option( '', '--delete-access-group', action="store", type="string",
+            dest=_c("delete-access-group"),
+            metavar='<group id>',
+            help='Deletes an access group')
+
+        commands.add_option( '', '--access-group-add', action="store", type="string",
+            dest=_c("access-group-add"),
+            metavar='<access group id>',
+            help='Adds an initiator to an access group, requires:\n'
+                '--id <initiator id\n'
+                '--type <initiator type>' )
+
+        commands.add_option( '', '--access-group-rm', action="store", type="string",
+            dest=_c("access-group-rm"),
+            metavar='<access group id>',
+            help='Removes an initiator from an access group, requires:\n'
+                 '--id <initiator id>')
+
         commands.add_option( '', '--create-volume', action="store", type="string",
             dest=_c("create-volume"),
             metavar='<volume name>',
@@ -222,9 +240,16 @@ class CmdLine:
         commands.add_option( '', '--create-ss', action="store", type="string",
             dest=_c("create-ss"),
             metavar='<snapshot name>',
-            help="Creates a snapshot requires:\n"
+            help="Creates a snapshot, requires:\n"
                  "--file <repeat for each file>(default is all files)\n"
                  "--fs <file system id>")
+
+        commands.add_option('', '--create-access-group', action="store", type="string",
+            dest=_c("create-access-group"),
+            metavar='<Access group name>',
+            help="Creates an access group, requires:\n"
+                 "--id <initiator id>\n"
+                 '--type [WWPN|WWNN|ISCSI|HOSTNAME]')
 
         commands.add_option( '', '--restore-ss', action="store", type="string",
             dest=_c("restore-ss"),
@@ -281,9 +306,22 @@ class CmdLine:
                                           '--volume <volume id>\n'
                                           '--access [RO|RW], read-only or read-write')
 
+        commands.add_option( '', '--access-grant-group', action="store", type="string",
+            metavar='<access group id>',
+            dest=_c("access-grant-group"), help='grants access to an access group to a volume\n'
+                                          'requires:\n'
+                                          '--volume <volume id>\n'
+                                          '--access [RO|RW], read-only or read-write')
+
         commands.add_option( '', '--access-revoke', action="store", type="string",
             metavar='<initiator id>',
             dest=_c("access-revoke"), help= 'removes access for an initiator to a volume\n'
+                                            'requires:\n'
+                                            '--volume <volume id>')
+
+        commands.add_option( '', '--access-revoke-group', action="store", type="string",
+            metavar='<access group id>',
+            dest=_c("access-revoke-group"), help= 'removes access for access group to a volume\n'
                                             'requires:\n'
                                             '--volume <volume id>')
 
@@ -631,6 +669,18 @@ class CmdLine:
         else:
             print ", ".join(self.c.export_auth())
 
+    ## Display the access groups for block storage
+    # @param    self    The this pointer
+    # @return None
+    def display_access_groups(self, ag):
+        for a in ag:
+            if len(a.initiators):
+                for i in a.initiators:
+                    print a.id, a.name, i
+            else:
+                print a.id, a.name, 'None'
+
+
     ## Method that calls the appropriate method based on what the cmd_value is
     # @param    self    The this pointer
     def list(self):
@@ -655,14 +705,16 @@ class CmdLine:
             self.display_exports(self.c.exports())
         elif self.cmd_value == 'NFS_CLIENT_AUTH':
             self.display_nfs_client_authentication()
+        elif self.cmd_value == 'ACCESS_GROUPS':
+            self.display_access_groups(self.c.access_group_list())
         else:
             raise ArgError(" unsupported listing type=%s", self.cmd_value)
 
-    ## Used to create an initiator.
-    # @param    self    The this pointer
-    def create_init(self):
-        type = self.options.opt_type
-
+    ## Converts type initiator type to enumeration type.
+    # @param    type    String representation of type
+    # @returns  Enumerated value
+    @staticmethod
+    def _init_type_to_enum(type):
         if type == 'WWPN':
             i = lsm.data.Initiator.TYPE_PORT_WWN
         elif type == 'WWNN':
@@ -673,9 +725,49 @@ class CmdLine:
             i = lsm.data.Initiator.TYPE_HOSTNAME
         else:
             raise ArgError("invalid initiator type " + type)
+        return i
 
+    ## Used to create an initiator.
+    # @param    self    The this pointer
+    def create_init(self):
+        i = CmdLine._init_type_to_enum(self.options.opt_type)
         init = self.c.initiator_create(self.cmd_value, self.options.opt_id,i)
         self.display_initiators([init])
+
+    ## Creates an access group.
+    # @param    self    The this pointer
+    def create_access_group(self):
+        name = self.cmd_value
+        initiator = self.options.opt_id
+        i = CmdLine._init_type_to_enum(self.options.opt_type)
+        access_group = self.c.access_group_create(name, initiator, i)
+        self.display_access_groups([access_group])
+
+    def _add_rm_access_grp_init(self, op):
+        agl = self.c.access_group_list()
+        group = self._get_item(agl, self.cmd_value)
+
+        if group:
+            if op:
+                i = CmdLine._init_type_to_enum(self.options.opt_type)
+                self.c.access_group_add_initiator(group, self.options.opt_id, i)
+            else:
+                i = self._get_item(self.c.initiators(), self.options.opt_id)
+                if i:
+                    self.c.access_group_del_initiator(group, i)
+                else:
+                    raise ArgError("initiator with id %s not found!" % self.options.opt_id)
+        else:
+            if not group:
+                raise ArgError('access group with id %s not found!' % self.cmd_value)
+
+    ## Adds an initiator from an access group
+    def access_group_add(self):
+        self._add_rm_access_grp_init(True)
+
+    ## Removes an initiator from an access group
+    def access_group_rm(self):
+        self._add_rm_access_grp_init(False)
 
     ## Used to delete an initiator
     # @param    self    The this pointer
@@ -686,6 +778,17 @@ class CmdLine:
             self.c.initiator_delete(i)
         else:
             raise ArgError("initiator with id = %s not found!" % self.cmd_value)
+
+    ## Used to delete access group
+    # @param    self    The this pointer
+    def delete_access_group(self):
+        agl = self.c.access_group_list()
+
+        group = self._get_item(agl, self.cmd_value)
+        if group:
+            return self.c.access_group_del(group)
+        else:
+            raise ArgError("access group with id = %s not found!" % self.cmd_value)
 
     ## Used to delete a file system
     # @param    self    The this pointer
@@ -1002,6 +1105,31 @@ class CmdLine:
     def access_revoke(self):
         return self._access(False)
 
+    def _access_group(self, map=True):
+        agl = self.c.access_group_list()
+        group = self._get_item(agl, self.cmd_value)
+        v = self._get_item(self.c.volumes(), self.options.opt_volume)
+
+        if group and v:
+            if map:
+                access = lsm.data.Volume.access_string_to_type(self.options.opt_access)
+                self.c.access_group_grant(group, v, access)
+            else:
+                self.c.access_group_revoke(group, v)
+        else:
+            if not group:
+                raise ArgError("access group with id= %s not found!" % self.cmd_value)
+            if not v:
+                raise ArgError("volume with id= %s not found!" % self.options.opt_volume)
+
+
+
+    def access_grant_group(self):
+        return self._access_group(True)
+
+    def access_revoke_group(self):
+        return self._access_group(False)
+
     ## Re-sizes a volume
     # @param    self    The this pointer
     def resize_volume(self):
@@ -1120,12 +1248,21 @@ class CmdLine:
                                             'method': self.delete_init},
                        'delete-fs': {'options': [],
                                      'method': self.fs_delete},
+                       'delete-access-group': {'options': [],
+                                     'method': self.delete_access_group},
                        'create-volume': {'options': ['size', 'pool'],
                                          'method': self.create_volume},
                        'create-fs': {'options': ['size', 'pool'],
                                      'method': self.fs_create},
                        'clone-fs': {'options': ['name'],
                                     'method': self.fs_clone},
+                       'create-access-group': {'options': ['id', 'type'],
+                                               'method': self.create_access_group},
+                       'access-group-add': {'options': ['id', 'type'],
+                                               'method': self.access_group_add},
+
+                       'access-group-rm': {'options': ['id'],
+                                               'method': self.access_group_rm},
                        'create-ss': {'options': ['fs'],
                                      'method': self.create_ss},
                        'clone-file': {'options': ['src', 'dest'],
@@ -1138,8 +1275,12 @@ class CmdLine:
                                             'method': self.replicate_volume},
                        'access-grant': {'options': ['volume', 'access'],
                                         'method': self.access_grant},
+                       'access-grant-group': {'options': ['volume', 'access'],
+                                        'method': self.access_grant_group},
                        'access-revoke': {'options': ['volume'],
                                          'method': self.access_revoke},
+                       'access-revoke-group': {'options': ['volume'],
+                                         'method': self.access_revoke_group},
                        'resize-volume': {'options': ['size'],
                                          'method': self.resize_volume},
                        'resize-fs': {'options': ['size'],

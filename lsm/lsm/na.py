@@ -393,6 +393,9 @@ class Filer(object):
     def igroup_add_initiator(self, ig, initiator):
         self._invoke('igroup-add', {'initiator-group-name':ig, 'initiator':initiator} )
 
+    def igroup_del_initiator(self, ig, initiator):
+        self._invoke('igroup-remove', {'initiator-group-name':ig, 'initiator':initiator} )
+
     def lun_map(self, igroup, lun_path):
         self._invoke('lun-map', {'initiator-group':igroup, 'path':lun_path})
 

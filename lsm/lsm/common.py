@@ -219,6 +219,7 @@ ErrorNumber = Enumeration('ErrorNumber',
         ('LSM_ERR_MISSING_NS', 30),
         ('INITIATOR_EXISTS', 31),
         ('UNSUPPORTED_INITIATOR_TYPE', 32),
+        ('ACCESS_GROUP_EXISTS', 33),
         ('AUTH_FAILED', 45)
     ])
 

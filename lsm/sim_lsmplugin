@@ -307,6 +307,9 @@ class StorageSimulator(IStorageAreaNetwork):
                 raise LsmError(ErrorNumber.INVALID_VOL, 'Volume not found')
         return None
 
+    def access_group_grant(self, group, volume, access):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
     def access_revoke(self, initiator, volume):
         if initiator.id in self.s.initiators:
             access = self.s.initiators[initiator.id]['access']
@@ -317,6 +320,24 @@ class StorageSimulator(IStorageAreaNetwork):
         else:
             raise LsmError(ErrorNumber.NO_MAPPING, 'Initiator not found')
         return None
+
+    def access_group_revoke(self, group, volume):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+    def access_group_list(self):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+    def access_group_create(self, name, id, id_type):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+    def access_group_del(self, group):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+    def access_group_add_initiator(self, group, initiator_id, id_type):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+    def access_group_del_initiator(self, group, initiator):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
     def volume_child_dependency(self, volume):
         return False

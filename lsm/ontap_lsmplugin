@@ -21,7 +21,7 @@ import os
 import urllib2
 import urlparse
 from lsm import na
-from lsm.data import Volume, Initiator, FileSystem, Snapshot, NfsExport
+from lsm.data import Volume, Initiator, FileSystem, Snapshot, NfsExport, AccessGroup
 from lsm.pluginrunner import PluginRunner
 from lsm.iplugin import IStorageAreaNetwork, INfs
 from lsm.common import  LsmError, ErrorNumber, JobStatus, md5
@@ -127,20 +127,20 @@ class Ontap(IStorageAreaNetwork, INfs):
         groups = self.f.igroups()
 
         for g in groups:
-            if g['initiator-group-name'][0:len(Ontap.LSM_INIT_PREFIX)] \
-                == Ontap.LSM_INIT_PREFIX:
-                #Get the initiator in the group
-                if g['initiators']:
-                    inits = na.to_list(g['initiators']['initiator-info'])
-                    id = inits[0]['initiator-name']
+            #Get the initiator in the group
+            if g['initiators']:
+                inits = na.to_list(g['initiators']['initiator-info'])
+
+                for i in inits:
+                    id = i['initiator-name']
 
                     if g['initiator-group-type'] == 'iscsi':
                         type = Initiator.TYPE_ISCSI
                     else:
                         type = Initiator.TYPE_PORT_WWN
 
-                    name = g['initiator-group-name'][len(Ontap.LSM_INIT_PREFIX):]
-                    rc.append(Initiator(id,type, name))
+                    name = id
+                    rc.append(Initiator(id,type,name))
 
         return rc
 
@@ -262,6 +262,12 @@ class Ontap(IStorageAreaNetwork, INfs):
 
             self.f.igroup_create(group_name, type)
             self.f.igroup_add_initiator(group_name, id)
+
+            inits = self.initiators()
+            for i in inits:
+                if i.name == name:
+                    return i
+
             return Initiator(id, id_type, name)
         else:
             raise LsmError(ErrorNumber.INITIATOR_EXISTS, 'initiator name exists')
@@ -278,10 +284,77 @@ class Ontap(IStorageAreaNetwork, INfs):
         return None
 
     @handle_ontap_errors
+    def access_group_grant(self, group, volume, access):
+        self.f.lun_map(group.name, volume.name)
+        return None
+
+    @handle_ontap_errors
     def access_revoke(self, initiator, volume):
         group_name = self._init_group_name(initiator.name)
         self.f.lun_unmap(group_name, volume.name)
         return None
+
+    @handle_ontap_errors
+    def access_group_revoke(self, group, volume):
+        self.f.lun_unmap(group.name, volume.name)
+        return None
+
+    def _initiators_in_group(self, g):
+        rc = []
+        if g:
+            if 'initiators' in g and g['initiators'] is not None:
+                initiators = na.to_list(g['initiators']['initiator-info'])
+                rc = [ i['initiator-name'] for i in initiators ]
+
+        return rc
+
+    def _access_group(self, g):
+        name = g['initiator-group-name']
+
+        if 'initiator-group-uuid' in g:
+            id = g['initiator-group-uuid']
+        else:
+            id = md5(name)
+
+        return AccessGroup(id, name, self._initiators_in_group(g))
+
+    @handle_ontap_errors
+    def access_group_list(self):
+        groups = self.f.igroups()
+        return [ self._access_group(g) for g in groups]
+
+    @handle_ontap_errors
+    def access_group_create(self, name, id, id_type):
+        cur_groups = self.access_group_list()
+        for cg in cur_groups:
+            if cg.name == name:
+                raise LsmError(ErrorNumber.ACCESS_GROUP_EXISTS, "Access group exists!")
+
+        if id_type == Initiator.TYPE_ISCSI:
+            self.f.igroup_create(name, 'iscsi')
+        else:
+            self.f.igroup_create(name, 'fcp')
+
+        self.f.igroup_add_initiator(name, id)
+
+        groups = self.access_group_list()
+        for g in groups:
+            if g.name == name:
+                return g
+
+        raise LsmError(ErrorNumber.INTERNAL_ERROR, "Unable to find group just created!")
+
+    @handle_ontap_errors
+    def access_group_del(self, group):
+        return self.f.igroup_delete(group.name)
+
+    @handle_ontap_errors
+    def access_group_add_initiator(self, group, initiator_id, id_type):
+        return self.f.igroup_add_initiator(group.name, initiator_id)
+
+    @handle_ontap_errors
+    def access_group_del_initiator(self, group, initiator):
+        return self.f.igroup_del_initiator(group.name, initiator.name)
 
     @staticmethod
     def _rpercent(total, current):
