@@ -4,19 +4,23 @@ Release:        1%{?dist}
 Summary:        Storage array management library
 Group:          System Environment/Libraries
 License:        LGPLv2+
-URL:            http://sourceforge.net/projects/libstoragemgmt/ 
+URL:            http://sourceforge.net/projects/libstoragemgmt/
 Source0:        http://sourceforge.net/projects/libstoragemgmt/files/Alpha/libstoragemgmt-0.0.5.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  boost-devel yajl-devel libxml2-devel tog-pegasus-devel python2-devel pywbem
-Requires:       pywbem initscripts 
+Requires:       pywbem
+
+%if 0%{?fedora}
+Requires: initscripts
 Requires(post): systemd-units
 Requires(preun): systemd-units
 Requires(postun): systemd-units
+%endif
 
 %description
 The libStorageMgmt library will provide a vendor agnostic open source storage
-application programming interface (API) that will allow management of storage 
+application programming interface (API) that will allow management of storage
 arrays.  The library includes a command line interface for interactive use and
 scripting (command lsmcli).  The library also has a daemon that is used for
 executing plug-ins in a separate process (lsmd).
@@ -44,12 +48,18 @@ rm -rf %{buildroot}
 make install DESTDIR=%{buildroot}
 find %{buildroot} -name '*.la' -exec rm -f {} ';'
 
+%if 0%{?fedora}
 install -d -m755 %{buildroot}/%{_unitdir}
 install -m644 packaging/daemon/libstoragemgmt.service %{buildroot}/%{_unitdir}/libstoragemgmt.service
 
 #tempfiles.d configuration for /var/run
 mkdir -p %{buildroot}%{_sysconfdir}/tmpfiles.d
 install -m 0644 packaging/daemon/lsm-tmpfiles.conf %{buildroot}%{_sysconfdir}/tmpfiles.d/%{name}.conf
+%else
+#Need these to exist at install so we can start the daemon
+mkdir -p %{buildroot}/etc/rc.d/init.d
+install packaging/daemon/libstoragemgmtd %{buildroot}/etc/rc.d/init.d/libstoragemgmtd
+%endif
 
 #Need these to exist at install so we can start the daemon
 mkdir -p %{buildroot}%{_localstatedir}/run/lsm/ipc
@@ -66,23 +76,38 @@ getent passwd libstoragemgmt >/dev/null || \
 %post
 /sbin/ldconfig
 if [ $1 -eq 1 ]; then
+%if 0%{?fedora}
     /bin/systemctl enable libstoragemgmt.service >/dev/null 2>&1 || :
     /bin/systemctl start libstoragemgmt.service >/dev/null 2>&1 || :
+%else
+    /sbin/chkconfig --add libstoragemgmtd
+    /etc/rc.d/init.d/libstoragemgmtd start > /dev/null 2>&1 || :
+%endif
 fi
 
 %preun
 if [ $1 -eq 0 ]; then
-        # On uninstall (not upgrade), disable and stop the units
-        /bin/systemctl --no-reload disable libstoragemgmt.service >/dev/null 2>&1 || :
-        /bin/systemctl stop libstoragemgmt.service >/dev/null 2>&1 || :
+%if 0%{?fedora}
+    # On uninstall (not upgrade), disable and stop the units
+    /bin/systemctl --no-reload disable libstoragemgmt.service >/dev/null 2>&1 || :
+    /bin/systemctl stop libstoragemgmt.service >/dev/null 2>&1 || :
+%else
+    /etc/rc.d/init.d/libstoragemgmtd stop > /dev/null 2>&1 || :
+    /sbin/chkconfig --del libstoragemgmtd
+%endif
 fi
 
 %postun
 /sbin/ldconfig
 /bin/systemctl daemon-reload >/dev/null 2>&1 || :
 if [ $1 -ge 1 ] ; then
-        # On upgrade (not uninstall), optionally, restart the daemon
-        /bin/systemctl try-restart libstoragemgmt.service >/dev/null 2>&1 || :
+%if 0%{?fedora}
+    # On upgrade (not uninstall), optionally, restart the daemon
+    /bin/systemctl try-restart libstoragemgmt.service >/dev/null 2>&1 || :
+%else
+    #Restart the daemond
+    /etc/rc.d/init.d/libstoragemgmtd restart  >/dev/null 2>&1 || :
+%endif
 fi
 
 %files
@@ -96,11 +121,18 @@ fi
 #Python library files
 %{python_sitelib}/*
 
+%if 0%{?fedora}
 %{_unitdir}/*
+%endif
 
 %dir %attr(0755, libstoragemgmt, libstoragemgmt) %{_localstatedir}/run/lsm/
 %dir %attr(0755, libstoragemgmt, libstoragemgmt) %{_localstatedir}/run/lsm/ipc
+
+%if 0%{?fedora}
 %config(noreplace) %{_sysconfdir}/tmpfiles.d/%{name}.conf
+%else
+%attr(0755, root, root) /etc/rc.d/init.d/libstoragemgmtd
+%endif
 
 %files devel
 %defattr(-,root,root,-)
