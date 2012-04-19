@@ -6,12 +6,16 @@ DISTCHECK_CONFIGURE_FLAGS = --with-systemdsystemunitdir=$$dc_install_base/$(syst
 
 SUBDIRS= src plugin doc include tools lsm packaging
 
-#EXTRA_DIST = \
-#  autogen.sh
+EXTRA_DIST = \
+	libstoragemgmt.spec.in \
+	libstoragemgmt.spec
 
 
 #Source code documentation
 docs:
 	doxygen doc/doxygen.conf
+
+rpm: clean
+	@(unset CDPATH ; $(MAKE) dist && rpmbuild -ta $(distdir).tar.gz)
 
 MAINTAINERCLEANFILES = .git-module-status
