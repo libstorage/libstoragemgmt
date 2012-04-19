@@ -88,6 +88,8 @@ fi
 %files
 %defattr(-,root,root,-)
 %doc README COPYING.LIB
+%{_mandir}/man1/lsmcli.1*
+%{_mandir}/man1/lsmd.1*
 %{_libdir}/*.so.*
 %{_bindir}/*
 
