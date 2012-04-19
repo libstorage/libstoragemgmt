@@ -139,7 +139,11 @@ class Ontap(IStorageAreaNetwork, INfs):
                     else:
                         type = Initiator.TYPE_PORT_WWN
 
-                    name = id
+                    if g['initiator-group-name'][:len(Ontap.LSM_INIT_PREFIX)] == Ontap.LSM_INIT_PREFIX:
+                        name = g['initiator-group-name'][len(Ontap.LSM_INIT_PREFIX):]
+                    else:
+                        name = id
+
                     rc.append(Initiator(id,type,name))
 
         return rc
@@ -304,8 +308,13 @@ class Ontap(IStorageAreaNetwork, INfs):
         if g:
             if 'initiators' in g and g['initiators'] is not None:
                 initiators = na.to_list(g['initiators']['initiator-info'])
-                rc = [ i['initiator-name'] for i in initiators ]
+                for i in initiators:
+                    if g['initiator-group-type'] == 'iscsi':
+                        type = Initiator.TYPE_ISCSI
+                    else:
+                        type = Initiator.TYPE_PORT_WWN
 
+                    rc.append(i['initiator-name'])
         return rc
 
     def _access_group(self, g):
@@ -324,7 +333,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         return [ self._access_group(g) for g in groups]
 
     @handle_ontap_errors
-    def access_group_create(self, name, id, id_type):
+    def access_group_create(self, name, initiator_id, id_type):
         cur_groups = self.access_group_list()
         for cg in cur_groups:
             if cg.name == name:
@@ -335,7 +344,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         else:
             self.f.igroup_create(name, 'fcp')
 
-        self.f.igroup_add_initiator(name, id)
+        self.f.igroup_add_initiator(name, initiator_id)
 
         groups = self.access_group_list()
         for g in groups:

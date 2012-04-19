@@ -250,7 +250,7 @@ class IStorageAreaNetwork(IPlugin):
         pass
 
     @abstractmethod
-    def access_group_create(self, name, id, id_type):
+    def access_group_create(self, name, initiator_id, id_type):
         """
         Returns a list of access groups
         """

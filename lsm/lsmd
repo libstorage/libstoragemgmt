@@ -64,7 +64,7 @@ class LsmDaemon(Daemon):
         """
         try:
             os.unlink(file)
-        except:
+        except OSError:
             pass
 
         #TODO Look into changing the SELinux permissions.
@@ -116,7 +116,7 @@ class LsmDaemon(Daemon):
                 if stat.S_ISSOCK(mode):
                     try:
                         os.unlink(p)
-                    except:
+                    except OSError:
                         pass
 
     def exec_plugin(self, client, executable):

@@ -216,8 +216,8 @@ class CmdLine:
                 '--id <initiator id\n'
                 '--type <initiator type>' )
 
-        commands.add_option( '', '--access-group-rm', action="store", type="string",
-            dest=_c("access-group-rm"),
+        commands.add_option( '', '--access-group-remove', action="store", type="string",
+            dest=_c("access-group-remove"),
             metavar='<access group id>',
             help='Removes an initiator from an access group, requires:\n'
                  '--id <initiator id>')
@@ -673,12 +673,27 @@ class CmdLine:
     # @param    self    The this pointer
     # @return None
     def display_access_groups(self, ag):
+        format = "%-40s%-32s%-32s"
+        if self.options.sep is None:
+            print format % ( 'ID', 'Name', 'Initiator ID')
+        else:
+            s = self.options.sep
+
         for a in ag:
-            if len(a.initiators):
-                for i in a.initiators:
-                    print a.id, a.name, i
+            if self.options.sep is not None:
+                if len(a.initiators):
+                    for i in a.initiators:
+                        out = (a.id, s, a.name, s, i)
+                        print "%s"*len(out) % out
+                else:
+                    out = (a.id, a.name, '')
+                    print "%s"*len(out) % out
             else:
-                print a.id, a.name, 'None'
+                if len(a.initiators):
+                    for i in a.initiators:
+                        print format % (a.id, a.name, i)
+                else:
+                    print format % (a.id, a.name, 'No initiators')
 
 
     ## Method that calls the appropriate method based on what the cmd_value is
@@ -766,7 +781,7 @@ class CmdLine:
         self._add_rm_access_grp_init(True)
 
     ## Removes an initiator from an access group
-    def access_group_rm(self):
+    def access_group_remove(self):
         self._add_rm_access_grp_init(False)
 
     ## Used to delete an initiator
@@ -951,8 +966,8 @@ class CmdLine:
             if self.options.all is False and self.options.file is None:
                 raise ArgError("Need to specify --all or at least one --file")
 
-            self._wait_for_it('restore-ss', self.c.snapshot_revert(fs, ss, self.options.file,
-                                    self.options.fileas, self.options.all), None)
+            self._wait_for_it('restore-ss', self.c.snapshot_revert(fs, ss,
+                                    self.options.file, self.options.all), None)
         else:
             if not ss:
                 raise ArgError( "ss with id= %s not found!" % self.cmd_value)
@@ -1261,8 +1276,8 @@ class CmdLine:
                        'access-group-add': {'options': ['id', 'type'],
                                                'method': self.access_group_add},
 
-                       'access-group-rm': {'options': ['id'],
-                                               'method': self.access_group_rm},
+                       'access-group-remove': {'options': ['id'],
+                                               'method': self.access_group_remove},
                        'create-ss': {'options': ['fs'],
                                      'method': self.create_ss},
                        'clone-file': {'options': ['src', 'dest'],

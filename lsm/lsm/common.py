@@ -140,7 +140,6 @@ class LsmError(Exception):
         Class represents an error.
         """
         Exception.__init__(self, *args, **kwargs)
-        self.args = ( code, message, data )
         self.code = code
         self.msg = message
         self.data = data
@@ -220,6 +219,7 @@ ErrorNumber = Enumeration('ErrorNumber',
         ('INITIATOR_EXISTS', 31),
         ('UNSUPPORTED_INITIATOR_TYPE', 32),
         ('ACCESS_GROUP_EXISTS', 33),
+        ('ACCESS_GROUP_NOT_FOUND', 34),
         ('AUTH_FAILED', 45)
     ])
 

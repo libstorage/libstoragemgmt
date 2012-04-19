@@ -22,7 +22,6 @@ from lsm.iplugin import IStorageAreaNetwork
 from lsm.common import LsmError, ErrorNumber, JobStatus
 from lsm.pluginrunner import PluginRunner
 import lsm
-import lsm.data
 import sys
 import random
 from lsm.data import Pool, Initiator, Volume
@@ -243,7 +242,7 @@ class StorageSimulator(IStorageAreaNetwork):
             p = self.s.pools[pool.id]['pool']
             v = self.s.volumes[volume_src.id]['volume']
 
-            return self.s._create_vol(p, name, v.size_bytes)
+            return self._create_vol(p, name, v.size_bytes)
         else:
             if pool.id not in self.s.pools:
                 raise LsmError(ErrorNumber.INVALID_POOL, 'Incorrect pool')

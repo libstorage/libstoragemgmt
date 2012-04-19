@@ -24,7 +24,7 @@ import lsm
 from lsm.iplugin import IStorageAreaNetwork
 from lsm.common import uri_parse, LsmError, ErrorNumber, JobStatus
 from lsm.pluginrunner import PluginRunner
-from lsm.data import Pool, Initiator, Volume
+from lsm.data import Pool, Initiator, Volume, AccessGroup
 
 def handle_cim_errors(method):
     def cim_wrapper(*args, **kwargs):
@@ -49,7 +49,15 @@ class Smis(IStorageAreaNetwork):
     (JOB_OK, JOB_ERROR, JOB_STOPPED, JOB_COMPLETE) = (2,6,10,17)
 
     #SMI-S invoke return values we are interested in
-    (INVOKE_OK, INVOKE_ASYNC) = (0, 4096)
+    ## Reference: Page 54 in 1.5 SMI-S block specification
+    (INVOKE_OK,
+     INVOKE_NOT_SUPPORTED,
+     INVOKE_TIMEOUT,
+     INVOKE_FAILED,
+     INVOKE_INVALID_PARAMETER,
+     INVOKE_IN_USE,
+     INVOKE_SIZE_NOT_SUPPORTED,
+     INVOKE_ASYNC) = (0, 1, 3, 4, 5, 6, 4096, 4097)
 
     #SMI-S replication enumerations
     (SYNC_TYPE_MIRROR, SYNC_TYPE_SNAPSHOT, SYNC_TYPE_CLONE) = (6,7,8)
@@ -145,6 +153,9 @@ class Smis(IStorageAreaNetwork):
             job_id = "%s@%s" % (lsm.common.md5(str(out['Job']['InstanceID'])),
                                 str(retrieve_vol))
             return job_id, None
+        elif rc == Smis.INVOKE_NOT_SUPPORTED:
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                'SMI-S error code indicates operation not supported')
         else:
             raise LsmError(ErrorNumber.PLUGIN_ERROR, 'Error: ' + msg + " rc= " + str(rc))
 
@@ -469,8 +480,33 @@ class Smis(IStorageAreaNetwork):
         return self._pi("access_grant", False,
                 *(self._c.InvokeMethod('ExposePaths', ccs.path, **in_params)))[0]
 
+    @handle_cim_errors
     def access_group_grant(self, group, volume, access):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+        """
+        Grant access to a volume to an group
+        """
+        ccs = self._get_class_instance('CIM_ControllerConfigurationService')
+        lun = self._get_volume(volume.id)
+        spc = self._get_access_group(group.id)
+
+        if not lun:
+            raise LsmError(ErrorNumber.INVALID_VOLUME, "Volume not present")
+
+        if not spc:
+            raise LsmError(ErrorNumber.ACCESS_GROUP_NOT_FOUND, "Access group not present")
+
+        if access == Volume.ACCESS_READ_ONLY:
+            da = Smis.EXPOSE_PATHS_DA_READ_ONLY
+        else:
+            da = Smis.EXPOSE_PATHS_DA_READ_WRITE
+
+        in_params = { 'LUNames': [lun['Name']],
+                      'ProtocolControllers': [spc.path],
+                      'DeviceAccesses': [pywbem.Uint16(da)]}
+
+        #Returns None or job id
+        return self._pi("access_grant", False,
+            *(self._c.InvokeMethod('ExposePaths', ccs.path, **in_params)))[0]
 
 
     def _wait(self, job):
@@ -502,7 +538,7 @@ class Smis(IStorageAreaNetwork):
                             *(self._c.InvokeMethod('HidePaths', ccs.path,
                             **hide_params)))[0]
 
-            #If this gets turned into a job, we need to block.  We could also
+            #If this gets turned into a job, we need to block.  We could  also
             #return here and wait for the user to follow-up with a status check
             #and then proceed to the next step, but that would only work if the
             #caller was good about checking back on job status.
@@ -520,23 +556,122 @@ class Smis(IStorageAreaNetwork):
 
         raise LsmError(ErrorNumber.NO_MAPPING, "")
 
+    @handle_cim_errors
     def access_group_revoke(self, group, volume):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+        ccs = self._get_class_instance('CIM_ControllerConfigurationService')
+        lun = self._get_volume(volume.id)
+        spc = self._get_access_group(group.id)
 
+        if not lun:
+            raise LsmError(ErrorNumber.INVALID_VOLUME, "Volume not present")
+
+        if not spc:
+            raise LsmError(ErrorNumber.ACCESS_GROUP_NOT_FOUND, "Access group not present")
+
+        hide_params = {'LUNames': [lun['Name']],
+                       'ProtocolControllers': [spc.path]}
+        return self._pi("HidePaths", False,
+                *(self._c.InvokeMethod('HidePaths', ccs.path,
+                **hide_params)))[0]
+
+    def _get_access_groups(self):
+        rc = []
+
+        spc = self._c.EnumerateInstances('CIM_SCSIProtocolController')
+
+        #This seems horribly wrong for something that is a standard.
+        for s in spc:
+            if 'Name' in s and s['Name'] == 'Storage Group':
+                #EMC
+                rc.append(s)
+            elif 'DeviceID' in s and s['DeviceID'][0:3] == 'SPC':
+                #NetApp
+                rc.append(s)
+        return rc
+
+    def _get_access_group(self, id):
+        groups = self._get_access_groups()
+        for g in groups:
+            if g['DeviceID'] == id:
+                return g
+
+        return None
+
+    def _get_initiators_in_group(self, group):
+        rc = []
+
+        ap = self._c.Associators(group.path, AssocClass='CIM_AuthorizedTarget')
+
+        if len(ap):
+            for a in ap:
+                inits = self._c.Associators(a.path, AssocClass='CIM_AuthorizedSubject')
+                for i in inits:
+                    rc.append(i['StorageID'])
+
+        return rc
+
+    @handle_cim_errors
     def access_group_list(self):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+        rc = []
+        groups = self._get_access_groups()
 
+        for g in groups:
+            rc.append(AccessGroup(g['DeviceID'], g['ElementName'],
+                                    self._get_initiators_in_group(g)))
+        return rc
+
+    @handle_cim_errors
     def access_group_create(self, name, id, id_type):
+        #page 880 1.5 spec. CreateMaskingView
+        #
+        # No access to a provider that implements this at this time,
+        # so unable to develop and test.
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    @handle_cim_errors
     def access_group_del(self, group):
+        #page 880 1.5 spec. DeleteMaskingView
+        #
+        # No access to a provider that implements this at this time,
+        # so unable to develop and test.
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    @handle_cim_errors
     def access_group_add_initiator(self, group, initiator_id, id_type):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+        #Check to see if we have this initiator already, if we don't create it
+        #and then add to the view.
+        spc = self._get_access_group(group.id)
 
+        inits = self.initiators()
+        initiator = None
+        for i in inits:
+            if i.id == initiator_id:
+                initiator = i
+                break
+
+        if not initiator:
+            initiator = self.initiator_create(initiator_id, id_type, initiator_id)
+
+        ccs = self._get_class_instance('CIM_ControllerConfigurationService')
+
+        in_params = { 'InitiatorPortIDs':[initiator.id],
+                      'ProtocolControllers': [spc.path]
+                    }
+
+        #Returns None or job id
+        return self._pi("access_group_add_initiator", False,
+            *(self._c.InvokeMethod('ExposePaths', ccs.path, **in_params)))[0]
+
+    @handle_cim_errors
     def access_group_del_initiator(self, group, initiator):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+        spc = self._get_access_group(group.id)
+        ccs = self._get_class_instance('CIM_ControllerConfigurationService')
+
+        hide_params = {'InitiatorPortIDs': [initiator.id],
+                       'ProtocolControllers': [spc.path]}
+        return self._pi("HidePaths", False,
+            *(self._c.InvokeMethod('HidePaths', ccs.path,
+                **hide_params)))[0]
 
     @handle_cim_errors
     def job_free(self, job_id):

@@ -20,6 +20,7 @@ import os
 import unittest
 import urlparse
 from data import Volume, Initiator
+from lsm.iplugin import INetworkAttachedStorage, IPlugin, IStorageAreaNetwork
 from transport import Transport
 import common
 
@@ -41,10 +42,14 @@ def del_self(d):
 # using python introspection abilities to translate them to the method and
 # parameter names.  Makes the code compact, but you will break things if the
 # IPlugin class does not match the method names and parameters here!
-class Client(object):
+class Client(INetworkAttachedStorage):
     """
-    Client side class used for managing storage.
+    Client side class used for managing storage that utilises RPC mechanism.
     """
+    ## Method added so shat the interface for the client RPC and the plug-in
+    ## itself match.
+    def startup(self, uri, plain_text_password, timeout_ms):
+        raise RuntimeError("Do not call directly!")
 
     ## Called when we are ready to initialize the plug-in.
     # @param    self    The this pointer
@@ -93,6 +98,13 @@ class Client(object):
             raise ValueError("Plug-in " + u.scheme + " not found!")
 
         self.__start(uri, plain_text_password, timeout_ms)
+
+    ## Synonym for close.
+    def shutdown(self):
+        """
+        Synonym for close.
+        """
+        self.close()
 
     ## Does an orderly shutdown of the plug-in
     # @param    self    The this pointer
@@ -337,6 +349,7 @@ class Client(object):
     # @param    group   The access group
     # @param    volume  The volume to grant access to
     # @param    access  The desired access
+    # @returns  None on success, else job id
     def access_group_grant(self, group, volume, access):
         """
         Allows an access group to access a volume.
@@ -347,7 +360,7 @@ class Client(object):
     # @param    self    The this pointer
     # @param    initiator   The initiator object
     # @param    volume  The volume object
-    # @returns None on success
+    # @returns  None on success, else job id
     def access_revoke(self, initiator, volume):
         """
         Revokes privileges an initiator has to a volume
@@ -360,6 +373,7 @@ class Client(object):
     # @param    self    The this pointer
     # @param    group   The access group
     # @param    volume  The volume to grant access to
+    # @returns  None on success, else job id
     def access_group_revoke(self, group, volume):
         """
         Revokes access for an access group for a volume
@@ -376,10 +390,10 @@ class Client(object):
         return self.tp.rpc('access_group_list', del_self(locals()))
 
     ## Creates an access a group with the specified initiator in it.
-    # @param    self    The this pointer
-    # @param    name    The initiator group name
-    # @param    id      Initiator id
-    # @param    id_type Type of initiator (Enumeration)
+    # @param    self                The this pointer
+    # @param    name                The initiator group name
+    # @param    initiator_id        Initiator id
+    # @param    id_type             Type of initiator (Enumeration)
     # @returns AccessGroup on success, else raises LsmError
     def access_group_create(self, name, initiator_id, id_type):
         """
@@ -391,6 +405,7 @@ class Client(object):
     ## Deletes an access group.
     # @param    self    The this pointer
     # @param    group   The access group to delete
+    # @returns  None on success, else job id
     def access_group_del(self, group):
         """
         Deletes an access group
@@ -402,6 +417,7 @@ class Client(object):
     # @param    group           Group to add initiator to
     # @param    initiator_id    Initiators id
     # @param    id_type         Initiator id type (enumeration)
+    # @returns  None on success, else job id
     def access_group_add_initiator(self, group, initiator_id, id_type):
         """
         Adds an initiator to an access group
@@ -412,12 +428,42 @@ class Client(object):
     # @param    self        The this pointer
     # @param    group       The access group to remove initiator from
     # @param    initiator   The initiator to remove from the group
+    # @returns  None on success, else job id
     def access_group_del_initiator(self, group, initiator):
         """
         Deletes an initiator from an access group
         """
         return self.tp.rpc('access_group_del_initiator', del_self(locals()))
 
+    ## Checks to see if a volume has child dependencies.
+    # @param    self    The this pointer
+    # @param    volume  The volume to check
+    # @returns True or False
+    def volume_child_dependency(self, volume):
+        """
+        Returns True if this volume has other volumes which are dependant on it.
+        Implies that this volume cannot be deleted or possibly modified because
+        it would affect its children.
+        """
+        return self.tp.rpc('volume_child_dependency', del_self(locals()))
+
+    ## Removes any child dependency.
+    # @param    self    The this pointer
+    # @param    volume  The volume to remove dependencies for
+    # @returns None if complete, else job id.
+    def volume_child_dependency_rm(self, volume):
+        """
+        If this volume has child dependency, this method call will fully
+        replicate the blocks removing the relationship between them.  This
+        should return None (success) if volume_child_dependency would return
+        False.
+
+        Note:  This operation could take a very long time depending on the size
+        of the volume and the number of child dependencies.
+
+        Returns None if complete else job id, raises LsmError on errors.
+        """
+        return self.tp.rpc('volume_child_dependency_rm', del_self(locals()))
 
     ## Returns a list of file system objects.
     # @param    self    The this pointer
@@ -561,7 +607,7 @@ class Client(object):
     # @param    snapshot    The snapshot file to revert back too
     # @param    files       The specific files to revert.
     # @param    all_files   Set to True if all files should be reverted back.
-    def snapshot_revert(self, fs, snapshot, files, all_files=False):
+    def snapshot_revert(self, fs, snapshot, files, restore_files, all_files=False):
         """
         WARNING: Destructive!
 
@@ -576,6 +622,38 @@ class Client(object):
         Returns None on success, else job id, LsmError exception on error
         """
         return self.tp.rpc('snapshot_revert', del_self(locals()))
+
+    ## Checks to see if a file system has child dependencies.
+    # @param    fs      The file system to check
+    # @param    file    The file to check.
+    # @returns True or False
+    def fs_child_dependency(self, fs, file=None):
+        """
+        Returns True if the specified filesystem or specified file on this
+        file system has child dependencies.  This implies that this filesystem
+        or specified file on this file system cannot be deleted or possibly
+        modified because it would affect its children.
+        """
+        return self.tp.rpc('fs_child_dependency', del_self(locals()))
+
+    ## Removes child dependencies from a FS or specific file.
+    # @param    self    The this pointer
+    # @param    fs      The file system to remove child dependencies for
+    # @param    file    The file to remove child dependencies for
+    # @returns None if complete, else job id.
+    def fs_child_dependency_rm(self, fs, file=None):
+        """
+        If this filesystem or specified file on this filesystem has child
+        dependency this method will fully replicate the blocks removing the
+        relationship between them.  This should return None(success) if
+        fs_child_dependency would return False.
+
+        Note:  This operation could take a very long time depending on the size
+        of the filesystem and the number of child dependencies.
+
+        Returns None if completed, else job id.  Raises LsmError on errors.
+        """
+        pass
 
     ## Returns a list of all the NFS client authentication types.
     # @param    self    The this pointer
