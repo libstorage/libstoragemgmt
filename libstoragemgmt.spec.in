@@ -5,7 +5,7 @@ Summary:        Storage array management library
 Group:          System Environment/Libraries
 License:        LGPLv2+
 URL:            http://sourceforge.net/projects/libstoragemgmt/
-Source0:        http://sourceforge.net/projects/libstoragemgmt/files/Alpha/libstoragemgmt-0.0.5.tar.gz
+Source0:        http://sourceforge.net/projects/libstoragemgmt/files/Alpha/libstoragemgmt-0.0.6.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  boost-devel yajl-devel libxml2-devel tog-pegasus-devel python2-devel pywbem
@@ -139,8 +139,22 @@ fi
 %{_includedir}/*
 %{_libdir}/*.so
 
-
 %changelog
+* Fri Apr 20 2012 Tony Asleson <tasleson@redhat.com> 0.0.6-1
+- Documentation improvements (man & source code)
+- Support for access groups
+- Unified spec files Fedora/RHEL
+- Package version auto generate
+- Rpm target added to make
+- Bug fix for missing optional property on volume retrieval (smispy plug-in)
+
+* Fri Apr 6 2012 Tony Asleson <tasleson@redhat.com> 0.0.5-1
+- Spec file clean-up improvements
+- Async. operation added to lsmcli and ability to check on job status
+- Sub volume replication support
+- Ability to check for child dependencies on VOLUMES, FS and files
+- SMI-S Bug fixes and improvements
+
 * Mon Mar 26 2012 Tony Asleson <tasleson@redhat.com> 0.0.4-1
 - Restore from snapshot
 - Job identifiers string instead of integer

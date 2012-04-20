@@ -11,8 +11,10 @@ The primary maintainer(s) and people with commit access rights:
 
 Patches have also been contributed by:
 
-   Daniel Veillard      <veillard@redhat.com>
-   Christophe Fergeau   <cfergeau@redhat.com> 
+   Daniel Veillard          <veillard@redhat.com>
+   Christophe Fergeau       <cfergeau@redhat.com> 
+   Eduardo Lima             <eblima@br.ibm.com>
+   Dustin Schoenbrun        <Dustin.Schoenbrun@netapp.com>
 
 
 [....send patches to get your name here....]

@@ -157,7 +157,7 @@ class CmdLine:
         """
         usage = "usage: %prog [options]... [command]... [command options]..."
         optparse.textwrap = MyWrapper
-        parser = OptionParser(usage=usage, version="%prog 0.0.5")
+        parser = OptionParser(usage=usage, version="%prog 0.0.6")
         parser.description = ('libStorageMgmt command line interface. \n')
 
         parser.epilog = ( 'Copyright 2012 Red Hat, Inc.\n'
