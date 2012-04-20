@@ -260,8 +260,13 @@ class Smis(IStorageAreaNetwork):
         """
         Takes a CIMInstance that represents a volume and returns a lsm Volume
         """
+
+        other_id = ''
+
+        #Reference page 134 in 1.5 spec.
         status = Volume.STATUS_UNKNOWN
 
+        #OperationalStatus is mandatory
         if 'OperationalStatus' in cv:
             for s in cv["OperationalStatus"]:
                 if s == Smis.VOL_OP_STATUS_OK:
@@ -275,8 +280,24 @@ class Smis(IStorageAreaNetwork):
                 elif s == Smis.VOL_OP_STATUS_DORMANT:
                     status |= Volume.STATUS_DORMANT
 
-        return Volume(  cv["DeviceID"], cv["ElementName"],
-                        cv["OtherIdentifyingInfo"][0], cv["BlockSize"],
+        #This is optional (User friendly name)
+        if 'ElementName' in cv:
+            user_name = cv["ElementName"]
+        else:
+            #Better fallback value?
+            user_name = cv['DeviceID']
+
+        #This is optional
+        if 'OtherIdentifyingInfo' in cv and len(cv["OtherIdentifyingInfo"]) > 0:
+            other_id = cv["OtherIdentifyingInfo"][0]
+        else:
+            nf = cv['NameFormat']
+            #Check to see if name format is VPD
+            #TODO Convert VPD to standardized format.
+            if 2 <= nf <= 6:
+                other_id = cv["Name"]
+
+        return Volume(  cv["DeviceID"], user_name, other_id, cv["BlockSize"],
                         cv["NumberOfBlocks"], status)
 
     def _new_vol_from_name(self, out):
