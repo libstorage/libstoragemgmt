@@ -135,6 +135,40 @@ def _c(cmd):
 def _o(option):
     return "opt_" + option
 
+##
+# Tries to make the output better when it varies considerably from plug-in to
+# plug-in.
+# @param    rows    Data, first row is header all other data.
+def display_table(rows):
+    """
+    Creates a nicer text dump of tabular data.  First row should be the column
+    headers.
+    """
+    if len(rows) >=2 :
+        #Get the max length of each column
+        lens = [max(len(str(x)) for x in l) for l in zip(*rows)]
+        data_formats = []
+        header_formats = []
+
+        #Build the needed format
+        for i in range(len(rows[0])):
+            header_formats.append("%%-%ds" % lens[i])
+
+            #If the row contains numerical data we will right justify.
+            if isinstance(rows[1][i], int):
+                data_formats.append("%%%dd" % lens[i])
+            else:
+                data_formats.append("%%-%ds" % lens[i])
+
+        #Print the header, header separator and then row data.
+        header_pattern = " | ".join(header_formats)
+        print header_pattern % tuple(rows[0])
+        print "-+-".join(['-' * n for n in lens])
+        data_pattern = " | ".join(data_formats)
+
+        for i in range(1,len(rows)):
+            print data_pattern % tuple(rows[i])
+
 ## Class that encapsulates the command line arguments for lsmcli
 # Note: This class is used by lsmcli and any python plug-ins.
 class CmdLine:
@@ -539,12 +573,12 @@ class CmdLine:
                        v.num_of_blocks, s, v.status, s, self._sh(v.size_bytes))
                 print "%s"*len(out) % out
         else:
-            format = "%-20s%-40s%-34s%-6s%-10s%-8s%-20s"
-            print format % ('ID', 'Name', 'vpd83', 'bs', '#blocks', 'status', 'size')
+            dsp = [['ID', 'Name', 'vpd83', 'bs', '#blocks', 'status', 'size']]
             for v in vols:
-                out = (v.id, v.name, v.vpd83, v.block_size, v.num_of_blocks,
-                       v.status, self._sh(v.size_bytes))
-                print format % out
+                dsp.append([v.id, v.name, v.vpd83, v.block_size, v.num_of_blocks,
+                            v.status, self._sh(v.size_bytes)])
+
+            display_table(dsp)
     ## Display the pools on a storage array
     # @param    self    The this pointer
     # @param    pools    The array of pool objects
@@ -557,11 +591,11 @@ class CmdLine:
                        self._sh(p.free_space))
                 print "%s"*len(out) % out
         else:
-            print "%-40s%-32s%-32s%-32s" % ('ID', 'Name', 'Total space', 'Free space')
+            dsp = [['ID', 'Name', 'Total space', 'Free space']]
             for p in pools:
-                out = (p.id, p.name, self._sh(p.total_space),
-                       self._sh(p.free_space))
-                print "%-40s%-32s%-32s%-32s" % out
+                dsp.append([p.id, p.name, self._sh(p.total_space),
+                            self._sh(p.free_space)])
+            display_table(dsp)
 
     ## Display the initiators on a storage array
     # @param    self    The this pointer
@@ -574,11 +608,10 @@ class CmdLine:
                 out = (i.id, s, i.name, s, i.type)
                 print "%s"*len(out) % out
         else:
-            format = "%-40s%-16s%-5s"
-            print format % ('ID', 'Name', 'Type')
+            dsp = [['ID', 'Name', 'Type']]
             for i in inits:
-                out = (i.id, i.name, i.type)
-                print format % out
+                dsp.append([i.id, i.name, i.type])
+            display_table(dsp)
 
     ## Display the file systems on the storage array
     # @param    self    The this pointer
@@ -592,12 +625,11 @@ class CmdLine:
                        self._sh(f.free_space), s, f.pool)
                 print "%s"*len(out) % out
         else:
-            format = "%-40s%-32s%-21s%-21s%-32s"
-            print format %( 'ID', 'Name', 'Total space', 'Free space', 'Pool ID')
+            dsp = [['ID', 'Name', 'Total space', 'Free space', 'Pool ID']]
             for f in fss:
-                out = (f.id, f.name, self._sh(f.total_space),
-                       self._sh(f.free_space), f.pool)
-                print format % out
+                dsp.append([f.id, f.name, self._sh(f.total_space),
+                            self._sh(f.free_space), f.pool])
+            display_table(dsp)
 
     ## Display the snap shots on the storage array
     # @param    self    The this pointer
@@ -611,11 +643,10 @@ class CmdLine:
                 out = (s.id, p, s.name, p, datetime.datetime.fromtimestamp(s.ts))
                 print "%s"*len(out) % out
         else:
-            format = "%-40s%-32s%-32s"
-            print format % ( 'ID', 'Name', 'Created')
+            dsp = [['ID', 'Name', 'Created']]
             for s in ss:
-                out = (s.id, s.name, datetime.datetime.fromtimestamp(s.ts))
-                print format % out
+                dsp.append([s.id, s.name, datetime.datetime.fromtimestamp(s.ts)])
+            display_table(dsp)
 
     def _list(self,l):
         if l and len(l):
@@ -673,11 +704,11 @@ class CmdLine:
     # @param    self    The this pointer
     # @return None
     def display_access_groups(self, ag):
-        format = "%-40s%-32s%-32s"
+        s = self.options.sep
+        dsp = []
+
         if self.options.sep is None:
-            print format % ( 'ID', 'Name', 'Initiator ID')
-        else:
-            s = self.options.sep
+            dsp.append(['ID', 'Name', 'Initiator ID'])
 
         for a in ag:
             if self.options.sep is not None:
@@ -691,9 +722,12 @@ class CmdLine:
             else:
                 if len(a.initiators):
                     for i in a.initiators:
-                        print format % (a.id, a.name, i)
+                        dsp.append([a.id, a.name, i])
                 else:
-                    print format % (a.id, a.name, 'No initiators')
+                    dsp.append([a.id, a.name, 'No initiators'])
+
+        if self.options.sep is None:
+            display_table(dsp)
 
 
     ## Method that calls the appropriate method based on what the cmd_value is
@@ -917,7 +951,7 @@ class CmdLine:
         if units:
             return "%.2f " % size + units
         else:
-            return str(size)
+            return size
 
     ## Creates a volume
     # @param    self    The this pointer
