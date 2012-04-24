@@ -135,40 +135,6 @@ def _c(cmd):
 def _o(option):
     return "opt_" + option
 
-##
-# Tries to make the output better when it varies considerably from plug-in to
-# plug-in.
-# @param    rows    Data, first row is header all other data.
-def display_table(rows):
-    """
-    Creates a nicer text dump of tabular data.  First row should be the column
-    headers.
-    """
-    if len(rows) >=2 :
-        #Get the max length of each column
-        lens = [max(len(str(x)) for x in l) for l in zip(*rows)]
-        data_formats = []
-        header_formats = []
-
-        #Build the needed format
-        for i in range(len(rows[0])):
-            header_formats.append("%%-%ds" % lens[i])
-
-            #If the row contains numerical data we will right justify.
-            if isinstance(rows[1][i], int):
-                data_formats.append("%%%dd" % lens[i])
-            else:
-                data_formats.append("%%-%ds" % lens[i])
-
-        #Print the header, header separator and then row data.
-        header_pattern = " | ".join(header_formats)
-        print header_pattern % tuple(rows[0])
-        print "-+-".join(['-' * n for n in lens])
-        data_pattern = " | ".join(data_formats)
-
-        for i in range(1,len(rows)):
-            print data_pattern % tuple(rows[i])
-
 ## Class that encapsulates the command line arguments for lsmcli
 # Note: This class is used by lsmcli and any python plug-ins.
 class CmdLine:
@@ -182,6 +148,53 @@ class CmdLine:
     GiB = 1073741824
     ## Constant for TiB
     TiB = 1099511627776
+
+    ##
+    # Tries to make the output better when it varies considerably from plug-in to
+    # plug-in.
+    # @param    rows    Data, first row is header all other data.
+    def display_table(self, rows):
+        """
+        Creates a nicer text dump of tabular data.  First row should be the column
+        headers.
+        """
+        if self.options.sep is not None:
+            s = self.options.sep
+
+            #See if we want to display the header or not!
+            start = 1
+            if self.options.header:
+                start = 0
+
+            for i in range(start, len(rows)):
+                print s.join([ str(x) for x in rows[i] ])
+
+        else:
+            if len(rows) >=2 :
+                #Get the max length of each column
+                lens = [max(len(str(x)) for x in l) for l in zip(*rows)]
+                data_formats = []
+                header_formats = []
+
+                #Build the needed format
+                for i in range(len(rows[0])):
+                    header_formats.append("%%-%ds" % lens[i])
+
+                    #If the row contains numerical data we will right justify.
+                    if isinstance(rows[1][i], int):
+                        data_formats.append("%%%dd" % lens[i])
+                    else:
+                        data_formats.append("%%-%ds" % lens[i])
+
+                #Print the header, header separator and then row data.
+                header_pattern = " | ".join(header_formats)
+                print header_pattern % tuple(rows[0])
+                print "-+-".join(['-' * n for n in lens])
+                data_pattern = " | ".join(data_formats)
+
+                for i in range(1,len(rows)):
+                    print data_pattern % tuple(rows[i])
+
 
     ## All the command line arguments and options are created in this method
     # @param    self    The this object pointer
@@ -206,6 +219,9 @@ class CmdLine:
                  '(e.g., MiB, GiB, TiB)')
         parser.add_option( '-t', '--terse', action="store", dest="sep",
             help='print output in terse form with "SEP" as a record separator')
+
+        parser.add_option( '', '--header', action="store_true", dest="header",
+            help='include the header with terse')
 
         parser.add_option( '-b', '', action="store_true", dest="async", default=False,
             help='run the command async. instead of waiting for completion\n'
@@ -566,87 +582,59 @@ class CmdLine:
     # @param    vols    The array of volume objects
     # @return None
     def display_volumes(self, vols):
-        if self.options.sep is not None:
-            s = self.options.sep
-            for v in vols:
-                out = (v.id, s, v.name, s, v.vpd83, s, v.block_size, s,
-                       v.num_of_blocks, s, v.status, s, self._sh(v.size_bytes))
-                print "%s"*len(out) % out
-        else:
-            dsp = [['ID', 'Name', 'vpd83', 'bs', '#blocks', 'status', 'size']]
-            for v in vols:
-                dsp.append([v.id, v.name, v.vpd83, v.block_size, v.num_of_blocks,
-                            v.status, self._sh(v.size_bytes)])
+        dsp = [['ID', 'Name', 'vpd83', 'bs', '#blocks', 'status', 'size']]
 
-            display_table(dsp)
+        for v in vols:
+            dsp.append([v.id, v.name, v.vpd83, v.block_size, v.num_of_blocks,
+                        v.status, self._sh(v.size_bytes)])
+        self.display_table(dsp)
+
     ## Display the pools on a storage array
     # @param    self    The this pointer
     # @param    pools    The array of pool objects
     # @return None
     def display_pools(self, pools):
-        if self.options.sep is not None:
-            s = self.options.sep
-            for p in pools:
-                out = (p.id, s, p.name, s, self._sh(p.total_space), s,
-                       self._sh(p.free_space))
-                print "%s"*len(out) % out
-        else:
-            dsp = [['ID', 'Name', 'Total space', 'Free space']]
-            for p in pools:
-                dsp.append([p.id, p.name, self._sh(p.total_space),
-                            self._sh(p.free_space)])
-            display_table(dsp)
+        dsp = [['ID', 'Name', 'Total space', 'Free space']]
+
+        for p in pools:
+            dsp.append([p.id, p.name, self._sh(p.total_space),
+                        self._sh(p.free_space)])
+        self.display_table(dsp)
 
     ## Display the initiators on a storage array
     # @param    self    The this pointer
     # @param    inits   The array of initiator objects
     # @return None
     def display_initiators(self, inits):
-        if self.options.sep is not None:
-            s = self.options.sep
-            for i in inits:
-                out = (i.id, s, i.name, s, i.type)
-                print "%s"*len(out) % out
-        else:
-            dsp = [['ID', 'Name', 'Type']]
-            for i in inits:
-                dsp.append([i.id, i.name, i.type])
-            display_table(dsp)
+        dsp = [['ID', 'Name', 'Type']]
+
+        for i in inits:
+            dsp.append([i.id, i.name, i.type])
+
+        self.display_table(dsp)
 
     ## Display the file systems on the storage array
     # @param    self    The this pointer
     # @param    fss     Array of file system objects.
     # @return None
     def display_fs(self, fss):
-        if self.options.sep is not None:
-            s = self.options.sep
-            for f in fss:
-                out = (f.id, s, f.name, s, self._sh(f.total_space), s,
-                       self._sh(f.free_space), s, f.pool)
-                print "%s"*len(out) % out
-        else:
-            dsp = [['ID', 'Name', 'Total space', 'Free space', 'Pool ID']]
-            for f in fss:
-                dsp.append([f.id, f.name, self._sh(f.total_space),
-                            self._sh(f.free_space), f.pool])
-            display_table(dsp)
+        dsp = [['ID', 'Name', 'Total space', 'Free space', 'Pool ID']]
+
+        for f in fss:
+            dsp.append([f.id, f.name, self._sh(f.total_space),
+                        self._sh(f.free_space), f.pool])
+        self.display_table(dsp)
 
     ## Display the snap shots on the storage array
     # @param    self    The this pointer
     # @param    ss      Array of snap shot objects
     # @return None
     def display_snaps(self, ss):
+        dsp = [['ID', 'Name', 'Created']]
 
-        if self.options.sep is not None:
-            p = self.options.sep
-            for s in ss:
-                out = (s.id, p, s.name, p, datetime.datetime.fromtimestamp(s.ts))
-                print "%s"*len(out) % out
-        else:
-            dsp = [['ID', 'Name', 'Created']]
-            for s in ss:
-                dsp.append([s.id, s.name, datetime.datetime.fromtimestamp(s.ts)])
-            display_table(dsp)
+        for s in ss:
+            dsp.append([s.id, s.name, datetime.datetime.fromtimestamp(s.ts)])
+        self.display_table(dsp)
 
     def _list(self,l):
         if l and len(l):
@@ -704,30 +692,16 @@ class CmdLine:
     # @param    self    The this pointer
     # @return None
     def display_access_groups(self, ag):
-        s = self.options.sep
-        dsp = []
-
-        if self.options.sep is None:
-            dsp.append(['ID', 'Name', 'Initiator ID'])
+        dsp = [['ID', 'Name', 'Initiator ID']]
 
         for a in ag:
-            if self.options.sep is not None:
-                if len(a.initiators):
-                    for i in a.initiators:
-                        out = (a.id, s, a.name, s, i)
-                        print "%s"*len(out) % out
-                else:
-                    out = (a.id, a.name, '')
-                    print "%s"*len(out) % out
+            if len(a.initiators):
+                for i in a.initiators:
+                    dsp.append([a.id, a.name, i])
             else:
-                if len(a.initiators):
-                    for i in a.initiators:
-                        dsp.append([a.id, a.name, i])
-                else:
-                    dsp.append([a.id, a.name, 'No initiators'])
+                dsp.append([a.id, a.name, 'No initiators'])
 
-        if self.options.sep is None:
-            display_table(dsp)
+        self.display_table(dsp)
 
 
     ## Method that calls the appropriate method based on what the cmd_value is
