@@ -43,8 +43,8 @@ const std::vector<std::string> initTypes(init_types, init_types + 4);
 const char *prov_types[] = { PROV_TYPE_DEFAULT, PROV_TYPE_THIN, PROV_TYPE_FULL};
 const std::vector<std::string> provTypes(prov_types, prov_types + 3);
 
-const char *rep_types[]  = { REP_TYPE_RW_SNAP, REP_TYPE_CLONE, REP_TYPE_MIRROR };
-const std::vector<std::string> repTypes(rep_types, rep_types + 3);
+const char *rep_types[]  = { REP_TYPE_SNAPSHOT, REP_TYPE_CLONE, REP_TYPE_COPY, REP_TYPE_MIRROR };
+const std::vector<std::string> repTypes(rep_types, rep_types + 4);
 
 const char *access_types[] = { ACCESS_TYPE_RW, ACCESS_TYPE_RO };
 const std::vector<std::string> accessTypes(access_types, access_types + 2);
@@ -81,10 +81,12 @@ lsmReplicationType Arguments::replicationType() const
 {
     lsmReplicationType rc = LSM_VOLUME_REPLICATE_UNKNOWN;
 
-    if( type.value == REP_TYPE_RW_SNAP ) {
+    if( type.value == REP_TYPE_SNAPSHOT ) {
         rc = LSM_VOLUME_REPLICATE_SNAPSHOT;
     } else if ( type.value == REP_TYPE_CLONE) {
         rc = LSM_VOLUME_REPLICATE_CLONE;
+    } else if ( type.value == REP_TYPE_COPY) {
+        rc = LSM_VOLUME_REPLICATE_COPY;
     } else if ( type.value == REP_TYPE_MIRROR ) {
         rc = LSM_VOLUME_REPLICATE_MIRROR;
     }
@@ -142,7 +144,7 @@ Commands include:\n\
 "), stdout);
         fputs(_("\
   -r, --replicate=VOLUME_ID     replicates a volume, requires:\n\
-                                --type [RW_SNAP|CLONE|MIRROR]\n\
+                                --type [SNAPSHOT|CLONE|COPY|MIRROR]\n\
                                 --pool <pool id>\n\
                                 --name <human name>\n\
       --access-grant=INIT_ID    grants access to an initiator to a volume\n\

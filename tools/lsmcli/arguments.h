@@ -40,8 +40,9 @@ namespace LSM {
 #define PROV_TYPE_THIN      "THIN"
 #define PROV_TYPE_FULL      "FULL"
 
-#define REP_TYPE_RW_SNAP    "RW_SNAP"
+#define REP_TYPE_SNAPSHOT   "SNAPSHOT"
 #define REP_TYPE_CLONE      "CLONE"
+#define REP_TYPE_COPY       "COPY"
 #define REP_TYPE_MIRROR     "MIRROR"
 
 #define ACCESS_TYPE_RW      "RW"

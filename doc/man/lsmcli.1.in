@@ -127,7 +127,7 @@ Deletes a snapshot requires \fB\-\-fs\fR
 \fB\-r\fR <volume id>, \fB\-\-replicate\-volume=\fR<volume id>
 replicates a volume, requires:
 .br
-\fB\-\-type\fR [RW_SNAP|CLONE|MIRROR]
+\fB\-\-type\fR [SNAPSHOT|CLONE|COPY|MIRROR]
 .br
 \fB\-\-pool\fR <pool id>
 .br
@@ -136,7 +136,7 @@ replicates a volume, requires:
 \fB\-\-replicate\-volume\-range=\fR<volume id>
 Replicates a portion of a volume, requires:
 .br
-\fB\-\-type\fR [RW_SNAP|CLONE|MIRROR]
+\fB\-\-type\fR [SNAPSHOT|CLONE|COPY|MIRROR]
 .br
 \fB\-\-dest\fR <destination volume>
 .br

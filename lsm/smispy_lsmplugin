@@ -405,11 +405,13 @@ class Smis(IStorageAreaNetwork):
         pool = self._get_pool(pool.id)
         lun = self._get_volume(volume_src.id)
 
-        if rep_type == Volume.REPLICATE_CLONE:
+        if rep_type == Volume.REPLICATE_COPY:
             sync = Smis.SYNC_TYPE_CLONE
         elif rep_type == Volume.REPLICATE_MIRROR:
             sync = Smis.SYNC_TYPE_MIRROR
         else:
+            #Space efficient point in time copies, read only and writable
+            #will be translated into a SMI-S snapshot which is writable
             sync = Smis.SYNC_TYPE_SNAPSHOT
 
         in_params = {   'ElementName': name,

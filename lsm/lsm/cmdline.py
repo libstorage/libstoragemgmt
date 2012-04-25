@@ -337,14 +337,14 @@ class CmdLine:
         commands.add_option( '-r', '--replicate-volume', action="store", type="string",
             metavar='<volume id>',
             dest=_c("replicate-volume"), help='replicates a volume, requires:\n'
-                                              "--type [RW_SNAP|CLONE|MIRROR]\n"
+                                              "--type [SNAPSHOT|CLONE|COPY|MIRROR]\n"
                                               "--pool <pool id>\n"
                                               "--name <human name>")
 
         commands.add_option( '', '--replicate-volume-range', action="store", type="string",
             metavar='<volume id>',
             dest=_c("replicate-volume-range"), help='replicates a portion of a volume, requires:\n'
-                                              "--type [RW_SNAP|CLONE|MIRROR]\n"
+                                              "--type [SNAPSHOT|CLONE|COPY|MIRROR]\n"
                                               "--dest <destination volume>\n"
                                               "--src_start <source block start number>\n"
                                               "--dest_start <destination block start>\n"
@@ -446,7 +446,7 @@ class CmdLine:
             choices=['DEFAULT','THIN','FULL'], dest="provisioning", help='[DEFAULT|THIN|FULL]')
 
         command_args.add_option('', '--type', action="store", type="choice",
-            choices=['WWPN', 'WWNN', 'ISCSI', 'HOSTNAME', 'RW_SNAP', 'CLONE', 'MIRROR'],
+            choices=['WWPN', 'WWNN', 'ISCSI', 'HOSTNAME', 'SNAPSHOT', 'CLONE', 'COPY', 'MIRROR'],
             metavar = "type",
             dest=_o("type"), help='type specifier')
 

@@ -298,11 +298,12 @@ int Smis::replicateLun(lsmPoolPtr p, lsmReplicationType repType,
     in.append(CIMParamValue("ElementName", CIMValue(String(name))));
 
     switch (repType) {
-    case(LSM_VOLUME_REPLICATE_CLONE): sync = CLONE;
+    case(LSM_VOLUME_REPLICATE_COPY): sync = CLONE;
         break;
     case(LSM_VOLUME_REPLICATE_MIRROR): sync = MIRROR;
         break;
     default:
+        //Snapshot or clone translate to snapshot in SMI-S
         sync = SNAPSHOT;
         break;
     }

@@ -153,8 +153,8 @@ class Volume(IData):
      STATUS_DORMANT) = (0x0, 0x1, 0x2, 0x4, 0x8, 0x10)
 
     #Replication types
-    (REPLICATE_UNKNOWN, REPLICATE_SNAPSHOT, REPLICATE_CLONE, REPLICATE_MIRROR) = \
-    (-1, 1, 2, 3)
+    (REPLICATE_UNKNOWN, REPLICATE_SNAPSHOT, REPLICATE_CLONE, REPLICATE_COPY, REPLICATE_MIRROR) = \
+    (-1, 1, 2, 3, 4)
 
     #Provisioning types
     (PROVISION_UNKNOWN, PROVISION_THIN, PROVISION_FULL, PROVISION_DEFAULT) = \
@@ -173,10 +173,12 @@ class Volume(IData):
 
     @staticmethod
     def rep_String_to_type(rt):
-        if rt == "RW_SNAP":
+        if rt == "SNAPSHOT":
             return Volume.REPLICATE_SNAPSHOT
         elif rt == "CLONE":
             return Volume.REPLICATE_CLONE
+        elif rt == "COPY":
+            return Volume.REPLICATE_COPY
         elif rt == "MIRROR":
             return Volume.REPLICATE_MIRROR
         else:
