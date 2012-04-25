@@ -29,6 +29,7 @@ from lsm.common import LsmError, ErrorNumber
 import lsm.client
 import lsm.data
 import time
+from lsm.version import VERSION
 
 ##@package lsm.cmdline
 
@@ -204,7 +205,7 @@ class CmdLine:
         """
         usage = "usage: %prog [options]... [command]... [command options]..."
         optparse.textwrap = MyWrapper
-        parser = OptionParser(usage=usage, version="%prog 0.0.6")
+        parser = OptionParser(usage=usage, version="%prog " + VERSION )
         parser.description = ('libStorageMgmt command line interface. \n')
 
         parser.epilog = ( 'Copyright 2012 Red Hat, Inc.\n'

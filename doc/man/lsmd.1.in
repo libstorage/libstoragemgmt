@@ -1,4 +1,4 @@
-.TH LSMD "1" "April 2012" "lsmd 0.0.6 "libStorageMgmt plug-in daemon"
+.TH LSMD "1" "April 2012" "lsmd @VERSION@" "libStorageMgmt plug-in daemon"
 .SH NAME
 Daemon \- lsmd
 .SH DESCRIPTION

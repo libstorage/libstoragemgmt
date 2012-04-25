@@ -1,4 +1,4 @@
-.TH LSMCLI "1" "April 2012" "lsmcli 0.0.6" "libStorageMgmt"
+.TH LSMCLI "1" "April 2012" "lsmcli @VERSION@" "libStorageMgmt"
 .SH NAME
 lsmcli \- LibStorageMgmt command line interface
 .SH SYNOPSIS

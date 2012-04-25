@@ -148,12 +148,16 @@ AC_OUTPUT(libstoragemgmt.spec \
           src/Makefile \
           plugin/Makefile \
           doc/Makefile \
+          doc/man/lsmcli.1 \
+          doc/man/lsmd.1 \
+          doc/doxygen.conf \
           tools/Makefile \
           tools/lsmcli/Makefile \
           tools/smiscli/Makefile \
           include/Makefile \
           include/libstoragemgmt/Makefile \
           lsm/Makefile \
+          lsm/lsm/version.py \
           tools/lsmclipy/Makefile \
           packaging/Makefile \
           packaging/daemon/Makefile \

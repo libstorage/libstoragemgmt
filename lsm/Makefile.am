@@ -11,7 +11,8 @@ lsm_PYTHON = lsm/__init__.py           \
                    lsm/iplugin.py      \
                    lsm/na.py           \
                    lsm/pluginrunner.py \
-                   lsm/transport.py
+                   lsm/transport.py    \
+                   lsm/version.py
 
 external_PYTHON = lsm/external/__init__.py     \
                    lsm/external/daemon.py      \
