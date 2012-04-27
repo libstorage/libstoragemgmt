@@ -302,6 +302,16 @@ class CmdLine:
                  "--id <initiator id>\n"
                  '--type [WWPN|WWNN|ISCSI|HOSTNAME]')
 
+        commands.add_option('', '--access-group-volumes', action="store", type="string",
+            dest=_c("access-group-volumes"),
+            metavar='<access group id>',
+            help='Lists the volumes that the access group has been granted access to')
+
+        commands.add_option('', '--volume-access-group', action="store", type="string",
+            dest=_c("volume-access-group"),
+            metavar='<volume id>',
+            help='Lists the access group(s) that have access to volume')
+
         commands.add_option( '', '--restore-ss', action="store", type="string",
             dest=_c("restore-ss"),
             metavar='<snapshot id>',
@@ -793,6 +803,25 @@ class CmdLine:
     def access_group_remove(self):
         self._add_rm_access_grp_init(False)
 
+    def access_group_volumes(self):
+        agl = self.c.access_group_list()
+        group = self._get_item(agl, self.cmd_value)
+
+        if group:
+            vols = self.c.volumes_accessible_by_access_group(group)
+            self.display_volumes(vols)
+        else:
+            raise ArgError('access group with id %s not found!' % self.cmd_value)
+
+    def volume_access_group(self):
+        vol = self._get_item(self.c.volumes(), self.cmd_value)
+
+        if vol:
+            groups = self.c.access_groups_granted_to_volume(vol)
+            self.display_access_groups(groups)
+        else:
+            raise ArgError("volume with id= %s not found!" % self.cmd_value)
+
     ## Used to delete an initiator
     # @param    self    The this pointer
     def delete_init(self):
@@ -1146,8 +1175,6 @@ class CmdLine:
             if not v:
                 raise ArgError("volume with id= %s not found!" % self.options.opt_volume)
 
-
-
     def access_grant_group(self):
         return self._access_group(True)
 
@@ -1284,9 +1311,12 @@ class CmdLine:
                                                'method': self.create_access_group},
                        'access-group-add': {'options': ['id', 'type'],
                                                'method': self.access_group_add},
-
                        'access-group-remove': {'options': ['id'],
                                                'method': self.access_group_remove},
+                       'access-group-volumes': {'options': [],
+                                               'method': self.access_group_volumes},
+                       'volume-access-group': {'options': [],
+                                                'method': self.volume_access_group},
                        'create-ss': {'options': ['fs'],
                                      'method': self.create_ss},
                        'clone-file': {'options': ['src', 'dest'],
@@ -1321,16 +1351,12 @@ class CmdLine:
                                                     'src_start', 'dest_start',
                                                     'count'],
                                       'method': self.replicate_vol_range},
-
                        'volume-dependants': {'options': [],
                                                 'method': self.vol_dependants},
-
                        'volume-dependants-rm': {'options': [],
                                              'method': self.vol_dependants_rm},
-
                        'fs-dependants': {'options': [],
                                              'method': self.fs_dependants},
-
                        'fs-dependants-rm': {'options': [],
                                          'method': self.fs_dependants_rm},
 

@@ -306,6 +306,10 @@ class Smis(IStorageAreaNetwork):
         """
         return self._new_vol(self._get_volume(out['TheElement']['DeviceID']))
 
+    def _new_access_group(self, g):
+        return AccessGroup(g['DeviceID'], g['ElementName'],
+            self._get_initiators_in_group(g))
+
     def _new_vol_from_job(self, job):
         """
         Given a concrete job instance, return referenced volume as lsm volume
@@ -634,14 +638,34 @@ class Smis(IStorageAreaNetwork):
         return rc
 
     @handle_cim_errors
-    def access_group_list(self):
-        rc = []
-        groups = self._get_access_groups()
+    def volumes_accessible_by_access_group(self, group):
+        g = self._get_class_instance('CIM_SCSIProtocolController', 'DeviceID',
+            group.id)
+        if g:
+            logical_units = self._c.Associators(g.path,
+                AssocClass='CIM_ProtocolControllerForUnit')
+            return [self._new_vol(v) for v in logical_units]
+        else:
+            raise LsmError(ErrorNumber.PLUGIN_ERROR,
+                'Error: access group %s does not exist!' % group.id)
 
-        for g in groups:
-            rc.append(AccessGroup(g['DeviceID'], g['ElementName'],
-                                    self._get_initiators_in_group(g)))
-        return rc
+    @handle_cim_errors
+    def access_groups_granted_to_volume(self, volume):
+        vol = self._get_class_instance('CIM_StorageVolume', 'DeviceID',
+            volume.id)
+
+        if vol:
+            access_groups = self._c.Associators(vol.path,
+                AssocClass='CIM_ProtocolControllerForUnit')
+            return [self._new_access_group(g) for g in access_groups]
+        else:
+            raise LsmError(ErrorNumber.PLUGIN_ERROR,
+                'Error: access group %s does not exist!' % volume.id)
+
+    @handle_cim_errors
+    def access_group_list(self):
+        groups = self._get_access_groups()
+        return [ self._new_access_group(g) for g in groups]
 
     @handle_cim_errors
     def access_group_create(self, name, id, id_type):

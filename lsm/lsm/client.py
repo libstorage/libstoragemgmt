@@ -20,7 +20,7 @@ import os
 import unittest
 import urlparse
 from data import Volume, Initiator
-from lsm.iplugin import INetworkAttachedStorage, IPlugin, IStorageAreaNetwork
+from lsm.iplugin import INetworkAttachedStorage
 from transport import Transport
 import common
 
@@ -434,6 +434,30 @@ class Client(INetworkAttachedStorage):
         Deletes an initiator from an access group
         """
         return self.tp.rpc('access_group_del_initiator', del_self(locals()))
+
+    ## Returns the list of volumes that access group has access to.
+    # @param    self        The this pointer
+    # @param    group       The access group to list volumes for
+    # @returns list of volumes
+    def volumes_accessible_by_access_group(self, group):
+        """
+        Returns the list of volumes that access group has access to.
+        """
+        return self.tp.rpc('volumes_accessible_by_access_group',
+                            del_self(locals()))
+
+    ##Returns the list of access groups that have access to the specified
+    #volume.
+    # @param    self        The this pointer
+    # @param    volume      The volume to list access groups for
+    # @returns  list of access groups
+    def access_groups_granted_to_volume(self, volume):
+        """
+        Returns the list of access groups that have access to the specified
+        volume.
+        """
+        return self.tp.rpc('access_groups_granted_to_volume',
+            del_self(locals()))
 
     ## Checks to see if a volume has child dependencies.
     # @param    self    The this pointer

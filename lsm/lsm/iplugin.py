@@ -278,6 +278,20 @@ class IStorageAreaNetwork(IPlugin):
         pass
 
     @abstractmethod
+    def volumes_accessible_by_access_group(self, group):
+        """
+        Returns the list of volumes that access group has access to.
+        """
+        pass
+
+    @abstractmethod
+    def access_groups_granted_to_volume(self, volume):
+        """
+        Returns the list of access groups that have access to the specified
+        """
+        pass
+
+    @abstractmethod
     def volume_child_dependency(self, volume):
         """
         Returns True if this volume has other volumes which are dependant on it.

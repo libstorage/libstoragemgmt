@@ -369,6 +369,21 @@ class Ontap(IStorageAreaNetwork, INfs):
     def access_group_del_initiator(self, group, initiator):
         return self.f.igroup_del_initiator(group.name, initiator.name)
 
+    @handle_ontap_errors
+    def volumes_accessible_by_access_group(self, group):
+        rc = []
+
+        if len(group.initiators):
+            luns = self.f.lun_initiator_list_map_info(group.initiators[0],
+                                                        group.name)
+            rc = [ self._lun(l) for l in luns]
+
+        return rc
+    @handle_ontap_errors
+    def access_groups_granted_to_volume(self, volume):
+        groups = self.f.lun_map_list_info(volume.name)
+        return [ self._access_group(g) for g in groups]
+
     @staticmethod
     def _rpercent(total, current):
         p = 1 - (current/float(total))

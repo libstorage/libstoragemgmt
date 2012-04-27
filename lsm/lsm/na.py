@@ -369,9 +369,15 @@ class Filer(object):
     def lun_offline(self, lun_path):
         self._invoke('lun-offline', {'path': lun_path})
 
-    def igroups(self):
+    def igroups(self, group_name = None):
         rc = []
-        g = self._invoke('igroup-list-info')
+
+        if group_name:
+            g = self._invoke('igroup-list-info',
+                            {'initiator-group-name': group_name})
+        else:
+            g = self._invoke('igroup-list-info')
+
         if g['initiator-groups'] :
             rc = to_list(g['initiator-groups']['initiator-group-info'])
         return rc
@@ -401,6 +407,34 @@ class Filer(object):
 
     def lun_unmap(self, igroup, lun_path):
         self._invoke('lun-unmap', {'initiator-group':igroup, 'path':lun_path})
+
+    def lun_map_list_info(self, lun_path):
+        initiator_groups = []
+        rc = self._invoke('lun-map-list-info', {'path': lun_path})
+        if rc['initiator-groups'] is not None:
+            igi = to_list(rc['initiator-groups'])
+            for i in igi:
+                group_name = i['initiator-group-info']['initiator-group-name']
+                initiator_groups.append(self.igroups(group_name)[0])
+
+        return initiator_groups
+
+    def lun_initiator_list_map_info(self, initiator_id, initiator_group_name):
+        """
+        Given an initiator_id and initiator group name, return a list of lun-info
+        """
+        luns = []
+
+        rc = self._invoke('lun-initiator-list-map-info',
+                            {'initiator': initiator_id})
+
+        if rc['lun-maps']:
+            lun_list = to_list(rc['lun-maps']['lun-map-info'])
+            for l in lun_list:
+                if l['initiator-group'] == initiator_group_name:
+                    luns.append(self.luns(l['path'])[0])
+
+        return luns
 
     def snapshots(self, volume_name):
         rc = []
