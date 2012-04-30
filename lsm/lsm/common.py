@@ -220,6 +220,7 @@ ErrorNumber = Enumeration('ErrorNumber',
         ('UNSUPPORTED_INITIATOR_TYPE', 32),
         ('ACCESS_GROUP_EXISTS', 33),
         ('ACCESS_GROUP_NOT_FOUND', 34),
+        ('INITIATOR_NOT_IN_ACCESS_GROUP', 35),
         ('AUTH_FAILED', 45)
     ])
 
