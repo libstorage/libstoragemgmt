@@ -24,7 +24,7 @@ from lsm.pluginrunner import PluginRunner
 import lsm
 import sys
 import random
-from lsm.data import Pool, Initiator, Volume, BlockRange
+from lsm.data import Pool, Initiator, Volume, BlockRange, System
 import time
 import pickle
 
@@ -78,9 +78,10 @@ class SimJob(object):
 class SimState(object):
 
     def __init__(self):
-        p1 = Pool('POO1', 'Pool 1', 2 ** 64, 2 ** 64)
-        p2 = Pool('POO2', 'Pool 2', 2 ** 64, 2 ** 64)
-        p3 = Pool('POO3', 'lsm_test_aggr', 2 ** 64, 2 ** 64)
+        self.sys_info = System('sim-01', 'LSM simulated storage plug-in')
+        p1 = Pool('POO1', 'Pool 1', 2 ** 64, 2 ** 64, self.sys_info.id)
+        p2 = Pool('POO2', 'Pool 2', 2 ** 64, 2 ** 64, self.sys_info.id)
+        p3 = Pool('POO3', 'lsm_test_aggr', 2 ** 64, 2 ** 64, self.sys_info.id)
 
         pm1 = {'pool': p1, 'volumes': {}}
         pm2 = {'pool': p2, 'volumes': {}}
@@ -89,7 +90,6 @@ class SimState(object):
         self.pools = {p1.id: pm1, p2.id: pm2, p3.id: pm3}
         self.volumes = {}
         self.vol_num = 1
-        self.initiators = {}
         self.access_groups = {}
 
         self.tmo = 30000
@@ -100,7 +100,6 @@ class SimState(object):
         #is done because if you delete either part of the relationship
         #you need to delete the association between them.  Holding this stuff
         #in a db would be easier :-)
-        self.init_grants = {}       # Initiator id : {volume id: access }}
         self.group_grants = {}      # {access group id : {volume id: access }}
 
 
@@ -165,7 +164,7 @@ class StorageSimulator(IStorageAreaNetwork):
 
     def _new_access_group(self, name, h):
         return lsm.data.AccessGroup(md5(name), name,
-                [i.id for i in h['initiators']])
+                [i.id for i in h['initiators']], self.s.sys_info.id)
 
     def _create_vol(self, pool, name, size_bytes):
         p = self.s.pools[pool.id]['pool']
@@ -175,7 +174,7 @@ class StorageSimulator(IStorageAreaNetwork):
         if p.free_space >= rounded_size:
             nv = Volume('Vol' + str(self.s.vol_num), name,
                 StorageSimulator.__randomVpd(), 512,
-                (rounded_size / 512), Volume.STATUS_OK)
+                (rounded_size / 512), Volume.STATUS_OK, self.s.sys_info.id)
             self.s.volumes[nv.id] = {'pool': pool, 'volume': nv}
             p.free_space -= rounded_size
             self.s.vol_num += 1
@@ -198,6 +197,9 @@ class StorageSimulator(IStorageAreaNetwork):
 
     def shutdown(self):
         self._save()
+
+    def systems(self):
+        return [ self.s.sys_info ]
 
     def job_status(self, job_id):
         if job_id in self.s.jobs:
@@ -223,7 +225,7 @@ class StorageSimulator(IStorageAreaNetwork):
         return [e['pool'] for e in self.s.pools.itervalues()]
 
     def initiators(self):
-        rc = [e['initiator'] for e in self.s.initiators.itervalues()]
+        rc = []
         if len(self.s.access_groups):
             for v in self.s.access_groups.values():
                 rc.extend(v['initiators'])
@@ -245,34 +247,10 @@ class StorageSimulator(IStorageAreaNetwork):
                 if volume.id in v:
                     del self.s.group_grants[k][volume.id]
 
-            for (k, v) in self.s.init_grants.items():
-                if volume.id in v:
-                    del self.s.group_grants[k][volume.id]
-
             #We only return null or job id.
             return self.__create_job(None)[0]
         else:
             raise LsmError(ErrorNumber.INVALID_VOL, 'Volume not found')
-
-    def initiator_create(self, name, id, id_type):
-        if id not in self.s.initiators:
-            self.s.initiators[id] = {'initiator': Initiator(id, id_type, name),
-                                     'access': {}}
-        else:
-            raise LsmError(ErrorNumber.INVALID_INIT,
-                'Initiator already exists.')
-        return self.s.initiators[id]['initiator']
-
-    def initiator_delete(self, initiator):
-        if initiator.id in self.s.initiators:
-            del self.s.initiators[initiator.id]
-
-            if initiator.id in self.s.init_grants:
-                del self.s.init_grants[initiator.id]
-        else:
-            raise LsmError(ErrorNumber.INVALID_INIT,
-                'Initiator does not exist')
-        return None
 
     def volume_replicate(self, pool, rep_type, volume_src, name):
         assert rep_type is not None
@@ -363,40 +341,6 @@ class StorageSimulator(IStorageAreaNetwork):
 
         return self.__create_job(v)
 
-    def access_grant(self, initiator, volume, access):
-        if initiator.id in self.s.initiators and volume.id in self.s.volumes:
-            if initiator.id not in self.s.init_grants:
-                self.s.init_grants[initiator.id] = {volume.id: access}
-            elif initiator.id in self.s.init_grants and\
-                 volume.id not in self.s.init_grants[initiator.id]:
-                self.s.init_grants[initiator.id][volume.id] = access
-            else:
-                raise LsmError(ErrorNumber.IS_MAPPED,
-                                'Existing access present')
-        else:
-            if initiator.id not in self.s.initiators:
-                raise LsmError(ErrorNumber.INVALID_INIT,
-                    "Initiator not present")
-            if volume.id not in self.s.volumes:
-                raise LsmError(ErrorNumber.INVALID_VOL, 'Volume not found')
-        return None
-
-    def access_revoke(self, initiator, volume):
-        if initiator.id in self.s.initiators and volume.id in self.s.volumes:
-            if initiator.id in self.s.init_grants and \
-            volume.id in self.s.init_grants[initiator.id]:
-                del self.s.init_grants[initiator.id][volume.id]
-            else:
-                raise LsmError(ErrorNumber.NO_MAPPING,
-                    'No volume access to revoke')
-        else:
-            if initiator.id not in self.s.initiators:
-                raise LsmError(ErrorNumber.INVALID_INIT,
-                    "Initiator not present")
-        if volume.id not in self.s.volumes:
-            raise LsmError(ErrorNumber.INVALID_VOL, 'Volume not found')
-        return None
-
     def access_group_grant(self, group, volume, access):
         if group.name not in self.s.access_groups:
             raise LsmError(ErrorNumber.ACCESS_GROUP_NOT_FOUND,
@@ -440,7 +384,7 @@ class StorageSimulator(IStorageAreaNetwork):
                 return g
         return None
 
-    def access_group_create(self, name, id, id_type):
+    def access_group_create(self, name, id, id_type, system_id):
         if name not in self.s.access_groups:
             self.s.access_groups[name] = {'initiators':
                                           [Initiator(id, id_type, 'UNA')],

@@ -21,7 +21,7 @@ import os
 import urllib2
 import urlparse
 from lsm import na
-from lsm.data import Volume, Initiator, FileSystem, Snapshot, NfsExport, AccessGroup
+from lsm.data import Volume, Initiator, FileSystem, Snapshot, NfsExport, AccessGroup, System
 from lsm.pluginrunner import PluginRunner
 from lsm.iplugin import IStorageAreaNetwork, INfs
 from lsm.common import  LsmError, ErrorNumber, JobStatus, md5
@@ -54,6 +54,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     def __init__(self):
         self.f = None
+        self.sys_info = None
 
     @handle_ontap_errors
     def startup(self, uri, password, timeout):
@@ -66,6 +67,8 @@ class Ontap(IStorageAreaNetwork, INfs):
 
         self.f = lsm.na.Filer(u.hostname, u.username, password, ssl)
         #Smoke test
+        i = self.f.system_info()
+        self.sys_info = System(i['system-id'], i['system-name'])
         return self.f.validate()
 
     def set_time_out(self, ms):
@@ -84,7 +87,8 @@ class Ontap(IStorageAreaNetwork, INfs):
         #TODO: Need to retrieve real vpd83 and volume status
         #The status can be pulled from volume status, the vpd83 I'm not sure.
         return Volume(l['serial-number'],l['path'], '*'*32,
-                        block_size, num_blocks, Volume.STATUS_OK)
+                        block_size, num_blocks, Volume.STATUS_OK,
+                        self.sys_info.id)
 
     def _vol(self, v):
         pool_name = v['containing-aggregate']
@@ -93,7 +97,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         for p in pools:
             if p.name == pool_name:
                 return FileSystem(v['uuid'], v['name'], int(v['size-total']),
-                            int(v['size-available']), p.id)
+                            int(v['size-available']), p.id, self.sys_info.id)
 
     def _ss(self, s):
         #If we use the newer API we can use the uuid instead of this fake md5 one
@@ -108,7 +112,7 @@ class Ontap(IStorageAreaNetwork, INfs):
     def _pool(self, p):
         total = int(p['size-total'])
         used = int(p['size-used'])
-        return Pool(p['uuid'], p['name'], total, total - used)
+        return Pool(p['uuid'], p['name'], total, total - used, self.sys_info.id)
 
     @handle_ontap_errors
     def pools(self):
@@ -116,12 +120,13 @@ class Ontap(IStorageAreaNetwork, INfs):
         return [ self._pool(p) for p in aggr ]
 
     @handle_ontap_errors
+    def systems(self):
+        return [self.sys_info]
+
+    @handle_ontap_errors
     def initiators(self):
         """
-        Individual initiators really don't exist in NetApp, what happens is we
-        automatically create an initiator group and add one initiator record to
-        it.  This is what the SMI-S kind of does under the covers, except that
-        the initiator records are stored in the smi-s proxy AFAIK
+        We will list all the initiators that are in all the groups.
         """
         rc = []
         groups = self.f.igroups()
@@ -139,11 +144,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                     else:
                         type = Initiator.TYPE_PORT_WWN
 
-                    if g['initiator-group-name'][:len(Ontap.LSM_INIT_PREFIX)] == Ontap.LSM_INIT_PREFIX:
-                        name = g['initiator-group-name'][len(Ontap.LSM_INIT_PREFIX):]
-                    else:
-                        name = id
-
+                    name = id
                     rc.append(Initiator(id,type,name))
 
         return rc
@@ -245,61 +246,9 @@ class Ontap(IStorageAreaNetwork, INfs):
     def volume_offline(self, volume):
         return self.f.lun_offline(volume.name)
 
-    def _init_group_name(self, name):
-        return "%s%s" % (Ontap.LSM_INIT_PREFIX, name)
-
-    @handle_ontap_errors
-    def initiator_create(self, name, id, id_type):
-        group_name = self._init_group_name(name)
-
-        curr_inits = self.initiators()
-        for ci in curr_inits:
-            if ci.id == id:
-                raise LsmError(ErrorNumber.INITIATOR_EXISTS, 'initiator id exists')
-
-        if not self.f.igroup_exists(group_name):
-
-            if  id_type == lsm.data.Initiator.TYPE_PORT_WWN or \
-                id_type == lsm.data.Initiator.TYPE_NODE_WWN:
-                type = "fcp"
-            elif id_type == lsm.data.Initiator.TYPE_ISCSI:
-                type = "iscsi"
-            else:
-                raise LsmError(ErrorNumber.UNSUPPORTED_INITIATOR_TYPE,
-                                'supported include FC, iSCSI')
-
-            self.f.igroup_create(group_name, type)
-            self.f.igroup_add_initiator(group_name, id)
-
-            inits = self.initiators()
-            for i in inits:
-                if i.name == name:
-                    return i
-
-            return Initiator(id, id_type, name)
-        else:
-            raise LsmError(ErrorNumber.INITIATOR_EXISTS, 'initiator name exists')
-
-    @handle_ontap_errors
-    def initiator_delete(self, initiator):
-        group_name = self._init_group_name(initiator.name)
-        self.f.igroup_delete(group_name)
-
-    @handle_ontap_errors
-    def access_grant(self, initiator, volume, access):
-        group_name = self._init_group_name(initiator.name)
-        self.f.lun_map(group_name, volume.name)
-        return None
-
     @handle_ontap_errors
     def access_group_grant(self, group, volume, access):
         self.f.lun_map(group.name, volume.name)
-        return None
-
-    @handle_ontap_errors
-    def access_revoke(self, initiator, volume):
-        group_name = self._init_group_name(initiator.name)
-        self.f.lun_unmap(group_name, volume.name)
         return None
 
     @handle_ontap_errors
@@ -329,7 +278,8 @@ class Ontap(IStorageAreaNetwork, INfs):
         else:
             id = md5(name)
 
-        return AccessGroup(id, name, self._initiators_in_group(g))
+        return AccessGroup(id, name, self._initiators_in_group(g),
+                            self.sys_info.id)
 
     @handle_ontap_errors
     def access_group_list(self):
@@ -337,7 +287,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         return [ self._access_group(g) for g in groups]
 
     @handle_ontap_errors
-    def access_group_create(self, name, initiator_id, id_type):
+    def access_group_create(self, name, initiator_id, id_type, system_id):
         cur_groups = self.access_group_list()
         for cg in cur_groups:
             if cg.name == name:

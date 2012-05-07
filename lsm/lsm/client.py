@@ -175,6 +175,17 @@ class Client(INetworkAttachedStorage):
         """
         return self.tp.rpc('pools', del_self(locals()))
 
+    ## Returns an array of system objects.
+    # @param    self    The this pointer
+    # @returns An array of system objects.
+    def systems(self):
+        """
+        Returns an array of system objects.  System information is used to
+        distinguish resources from on storage array to another when the plug=in
+        supports the ability to have more than one array managed by it
+        """
+        return self.tp.rpc('systems', del_self(locals()))
+
     ## Returns an array of initiator objects
     # @param    self    The this pointer
     # @returns An array of initiator objects.
@@ -303,47 +314,6 @@ class Client(INetworkAttachedStorage):
         """
         return self.tp.rpc('volume_offline', del_self(locals()))
 
-    ## Creates an initiator
-    # @param    self    The this pointer
-    # @param    name    Human readable text name
-    # @param    id      WWN, iSCSI id etc.
-    # @param    id_type Type of id
-    # @returns Initiator object, else raises LsmError
-    def initiator_create(self, name, id, id_type):
-        """
-        Creates an initiator to be used for granting access to volumes.
-
-        Returns an initiator object, else raises an LsmError
-        """
-        return self.tp.rpc('initiator_create', del_self(locals()))
-
-    ## Deletes an initiator
-    # @param    self    The this pointer
-    # @param    initiator   The initiator to delete
-    # @returns None on success, else raises LsmError
-    def initiator_delete(self, initiator):
-        """
-        Deletes an initiator record.
-
-        Returns none on success, else raises LsmError
-        """
-        return self.tp.rpc('initiator_delete', del_self(locals()))
-
-    ## Access control for allowing an initiator to use a volume.
-    # @param    self    The this pointer
-    # @param    initiator   The initiator object
-    # @param    volume  The volume object
-    # @param    access  The desired access.
-    # @returns None on success, else job if in progress.
-    def access_grant(self, initiator, volume, access):
-        """
-        Access control for allowing an initiator to use a volume.
-
-        Returns None on success else job id if in progress.
-        Raises LsmError on errors.
-        """
-        return self.tp.rpc('access_grant', del_self(locals()))
-
     ## Access control for allowing an access group to access a volume
     # @param    self    The this pointer
     # @param    group   The access group
@@ -394,8 +364,9 @@ class Client(INetworkAttachedStorage):
     # @param    name                The initiator group name
     # @param    initiator_id        Initiator id
     # @param    id_type             Type of initiator (Enumeration)
+    # @param    system_id           Which system to create this group on
     # @returns AccessGroup on success, else raises LsmError
-    def access_group_create(self, name, initiator_id, id_type):
+    def access_group_create(self, name, initiator_id, id_type, system_id):
         """
         Creates an access group and add the specified initiator id, id_type and
         desired access.
@@ -811,33 +782,6 @@ class TestClient(unittest.TestCase):
 
         self.c.volume_offline(re_sized)
         self.c.volume_online(re_sized)
-
-
-    def test_initiators(self):
-        init = self.c.initiators()
-        self.assertTrue(len(init) == 0)
-
-        pools = self.c.pools()
-        vol = self.wait_to_finish( *(self.c.volume_create(pools[0],
-            "TestMap", 1024*1024*10,
-            Volume.PROVISION_DEFAULT)))
-
-
-        i = self.c.initiator_create('Test initiator',
-                                    '47E348D52647842ABB7897B36CA23A91',
-                                    Initiator.TYPE_ISCSI)
-
-        self.assertRaises(common.LsmError, self.c.initiator_create,
-                                    'Test initiator',
-                                    '47E348D52647842ABB7897B36CA23A91',
-                                    Initiator.TYPE_ISCSI)
-
-        init = self.c.initiators()
-        self.assertTrue(len(init) == 1)
-
-        self.c.access_grant(i, vol, Volume.ACCESS_READ_WRITE)
-        self.c.access_revoke(i,vol)
-        self.assertRaises(common.LsmError, self.c.access_revoke, i, vol)
 
 
     def tearDown(self):

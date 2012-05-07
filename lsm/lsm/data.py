@@ -194,13 +194,15 @@ class Volume(IData):
         else:
             return Volume.ACCESS_READ_ONLY
 
-    def __init__(self, id, name, vpd83, block_size, num_of_blocks, status):
+    def __init__(self, id, name, vpd83, block_size, num_of_blocks, status,
+                 system_id):
         self.id = id
         self.name = name
         self.vpd83 = vpd83
         self.block_size = block_size
         self.num_of_blocks = num_of_blocks
         self.status = status
+        self.system_id = system_id
 
     @property
     def size_bytes(self):
@@ -212,24 +214,30 @@ class Volume(IData):
     def __str__(self):
         return self.name
 
+class System(IData):
+    def __init__(self, id, name):
+        self.id = id                # For SMI-S this is the CIM_ComputerSystem->Name
+        self.name = name            # For SMI-S this is the CIM_ComputerSystem->ElementName
 
 class Pool(IData):
     """
     Pool specific information
     """
-    def __init__(self, id, name, total_space, free_space):
+    def __init__(self, id, name, total_space, free_space, system_id):
         self.id = id
         self.name = name
         self.total_space = total_space
         self.free_space = free_space
+        self.system_id = system_id
 
 class FileSystem(IData):
-    def __init__(self, id, name, total_space, free_space, pool):
+    def __init__(self, id, name, total_space, free_space, pool, system_id):
         self.id = id
         self.name = name
         self.total_space = total_space
         self.free_space = free_space
         self.pool = pool
+        self.system_id = system_id
 
 class Snapshot(IData):
     def __init__(self, id, name, ts):
@@ -238,7 +246,8 @@ class Snapshot(IData):
         self.ts = int(ts)
 
 class NfsExport(IData):
-    def __init__(self, id, fs_id, export_path, auth, root, rw, ro, anonuid, anongid, options):
+    def __init__(self, id, fs_id, export_path, auth, root, rw, ro, anonuid,
+                 anongid, options):
         assert(id is not None)
         assert(fs_id is not None)
         assert(export_path is not None)
@@ -265,10 +274,11 @@ class BlockRange(IData):
         self.block_count = block_count
 
 class AccessGroup(IData):
-    def __init__(self, id, name, initiators):
+    def __init__(self, id, name, initiators, system_id = 'NA'):
         self.id = id
         self.name = name
         self.initiators = initiators
+        self.system_id = system_id
 
 if __name__ == '__main__':
     #TODO Need some unit tests that encode/decode all the types with nested

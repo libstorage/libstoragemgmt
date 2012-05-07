@@ -173,7 +173,9 @@ class CmdLine:
         else:
             if len(rows) >=2 :
                 #Get the max length of each column
-                lens = [max(len(str(x)) for x in l) for l in zip(*rows)]
+                lens = []
+                for l in zip(*rows):
+                    lens.append(max(len(str(x)) for x in l))
                 data_formats = []
                 header_formats = []
 
@@ -233,22 +235,13 @@ class CmdLine:
 
         commands.add_option('-l', '--list', action="store", type="choice",
             dest="cmd_list",
-            metavar='<[VOLUMES|INITIATORS|POOLS|FS|SNAPSHOTS|EXPORTS]>',
-            choices = ['VOLUMES', 'INITIATORS', 'POOLS', 'FS', 'SNAPSHOTS', 'EXPORTS', "NFS_CLIENT_AUTH", 'ACCESS_GROUPS'],
-            help='List records of type [VOLUMES|INITIATORS|POOLS|FS|SNAPSHOTS|EXPORTS|NFS_CLIENT_AUTH|ACCESS_GROUPS]\n'
+            metavar='<[VOLUMES|INITIATORS|POOLS|FS|SNAPSHOTS|EXPORTS|SYSTEMS]>',
+            choices = ['VOLUMES', 'INITIATORS', 'POOLS', 'FS', 'SNAPSHOTS',
+                       'EXPORTS', "NFS_CLIENT_AUTH", 'ACCESS_GROUPS',
+                       'SYSTEMS'],
+            help='List records of type [VOLUMES|INITIATORS|POOLS|FS|' \
+                 'SNAPSHOTS|EXPORTS|NFS_CLIENT_AUTH|ACCESS_GROUPS|SYSTEMS]\n'
                  'Note: SNAPSHOTS requires --fs <fs id>')
-
-        commands.add_option( '', '--create-initiator', action="store", type="string",
-            dest=_c("create-initiator"),
-            metavar='<initiator name>',
-            help='Create an initiator record, requires:\n'
-                 '--id <initiator id>\n'
-                 '--type [WWPN|WWNN|ISCSI|HOSTNAME]')
-
-        commands.add_option( '', '--delete-initiator', action="store", type="string",
-            dest=_c("delete-initiator"),
-            metavar='<initiator id>',
-            help='Delete an initiator record')
 
         commands.add_option( '', '--delete-fs', action="store", type="string",
             dest=_c("delete-fs"),
@@ -300,7 +293,8 @@ class CmdLine:
             metavar='<Access group name>',
             help="Creates an access group, requires:\n"
                  "--id <initiator id>\n"
-                 '--type [WWPN|WWNN|ISCSI|HOSTNAME]')
+                 '--type [WWPN|WWNN|ISCSI|HOSTNAME]\n'
+                 '--system <system id>')
 
         commands.add_option('', '--access-group-volumes', action="store", type="string",
             dest=_c("access-group-volumes"),
@@ -360,25 +354,12 @@ class CmdLine:
                                               "--dest_start <destination block start>\n"
                                               "--count <number of blocks to replicate>")
 
-        commands.add_option( '', '--access-grant', action="store", type="string",
-            metavar='<initiator id>',
-            dest=_c("access-grant"), help='grants access to an initiator to a volume\n'
-                                          'requires:\n'
-                                          '--volume <volume id>\n'
-                                          '--access [RO|RW], read-only or read-write')
-
         commands.add_option( '', '--access-grant-group', action="store", type="string",
             metavar='<access group id>',
             dest=_c("access-grant-group"), help='grants access to an access group to a volume\n'
                                           'requires:\n'
                                           '--volume <volume id>\n'
                                           '--access [RO|RW], read-only or read-write')
-
-        commands.add_option( '', '--access-revoke', action="store", type="string",
-            metavar='<initiator id>',
-            dest=_c("access-revoke"), help= 'removes access for an initiator to a volume\n'
-                                            'requires:\n'
-                                            '--volume <volume id>')
 
         commands.add_option( '', '--access-revoke-group', action="store", type="string",
             metavar='<access group id>',
@@ -476,6 +457,10 @@ class CmdLine:
         command_args.add_option('', '--id', action="store", type="string",
             metavar = "initiator id",
             dest=_o("id"), help="initiator id")
+
+        command_args.add_option('', '--system', action="store", type="string",
+            metavar = "system id",
+            dest=_o("system"), help="system id")
 
         command_args.add_option('', '--backing-snapshot', action="store", type="string",
             metavar = "<backing snapshot>", default=None,
@@ -593,11 +578,11 @@ class CmdLine:
     # @param    vols    The array of volume objects
     # @return None
     def display_volumes(self, vols):
-        dsp = [['ID', 'Name', 'vpd83', 'bs', '#blocks', 'status', 'size']]
+        dsp = [['ID', 'Name', 'vpd83', 'bs', '#blocks', 'status', 'size', 'System ID']]
 
         for v in vols:
             dsp.append([v.id, v.name, v.vpd83, v.block_size, v.num_of_blocks,
-                        v.status, self._sh(v.size_bytes)])
+                        v.status, self._sh(v.size_bytes), v.system_id])
         self.display_table(dsp)
 
     ## Display the pools on a storage array
@@ -605,11 +590,21 @@ class CmdLine:
     # @param    pools    The array of pool objects
     # @return None
     def display_pools(self, pools):
-        dsp = [['ID', 'Name', 'Total space', 'Free space']]
+        dsp = [['ID', 'Name', 'Total space', 'Free space', 'System ID']]
 
         for p in pools:
             dsp.append([p.id, p.name, self._sh(p.total_space),
-                        self._sh(p.free_space)])
+                        self._sh(p.free_space), p.system_id])
+        self.display_table(dsp)
+
+    ## Display the arrays managed by the plug-in
+    # @param    self        The this pointer
+    # @param    systems     The array of systems
+    # @return None
+    def display_systems(self, systems):
+        dsp = [['ID', 'Name']]
+        for s in systems:
+            dsp.append([s.id, s.name])
         self.display_table(dsp)
 
     ## Display the initiators on a storage array
@@ -703,14 +698,14 @@ class CmdLine:
     # @param    self    The this pointer
     # @return None
     def display_access_groups(self, ag):
-        dsp = [['ID', 'Name', 'Initiator ID']]
+        dsp = [['ID', 'Name', 'Initiator ID', 'System ID']]
 
         for a in ag:
             if len(a.initiators):
                 for i in a.initiators:
-                    dsp.append([a.id, a.name, i])
+                    dsp.append([a.id, a.name, i, a.system_id])
             else:
-                dsp.append([a.id, a.name, 'No initiators'])
+                dsp.append([a.id, a.name, 'No initiators', a.system_id])
 
         self.display_table(dsp)
 
@@ -741,6 +736,8 @@ class CmdLine:
             self.display_nfs_client_authentication()
         elif self.cmd_value == 'ACCESS_GROUPS':
             self.display_access_groups(self.c.access_group_list())
+        elif self.cmd_value == 'SYSTEMS':
+            self.display_systems(self.c.systems())
         else:
             raise ArgError(" unsupported listing type=%s", self.cmd_value)
 
@@ -761,20 +758,14 @@ class CmdLine:
             raise ArgError("invalid initiator type " + type)
         return i
 
-    ## Used to create an initiator.
-    # @param    self    The this pointer
-    def create_init(self):
-        i = CmdLine._init_type_to_enum(self.options.opt_type)
-        init = self.c.initiator_create(self.cmd_value, self.options.opt_id,i)
-        self.display_initiators([init])
-
     ## Creates an access group.
     # @param    self    The this pointer
     def create_access_group(self):
         name = self.cmd_value
         initiator = self.options.opt_id
         i = CmdLine._init_type_to_enum(self.options.opt_type)
-        access_group = self.c.access_group_create(name, initiator, i)
+        access_group = self.c.access_group_create(name, initiator, i,
+                        self.options.opt_system)
         self.display_access_groups([access_group])
 
     def _add_rm_access_grp_init(self, op):
@@ -821,16 +812,6 @@ class CmdLine:
             self.display_access_groups(groups)
         else:
             raise ArgError("volume with id= %s not found!" % self.cmd_value)
-
-    ## Used to delete an initiator
-    # @param    self    The this pointer
-    def delete_init(self):
-        #get init object from id
-        i = self._get_item(self.c.initiators(), self.cmd_value)
-        if i:
-            self.c.initiator_delete(i)
-        else:
-            raise ArgError("initiator with id = %s not found!" % self.cmd_value)
 
     ## Used to delete access group
     # @param    self    The this pointer
@@ -1128,36 +1109,6 @@ class CmdLine:
             if not dest:
                 raise ArgError("dest volume with id= %s not found!" % self.options.opt_dest)
 
-    ## Used to grant or revoke access to a volume to an initiator.
-    # @param    self    The this pointer
-    # @param    map     If True we map, else we un-map.
-    def _access(self, map=True):
-        i = self._get_item(self.c.initiators(), self.cmd_value)
-        v = self._get_item(self.c.volumes(), self.options.opt_volume)
-
-        if i and v:
-
-            if map:
-                access = lsm.data.Volume.access_string_to_type(self.options.opt_access)
-                self.c.access_grant(i,v,access)
-            else:
-                self.c.access_revoke(i,v)
-        else:
-            if not i:
-                raise ArgError("initiator with id= %s not found!" % self.cmd_value)
-            if not v:
-                raise ArgError("volume with id= %s not found!" % self.options.opt_volume)
-
-    ## Grant access to volume to an initiator
-    # @param    self    The this pointer
-    def access_grant(self):
-        return self._access()
-
-    ## Revoke access to volume to an initiator
-    # @param    self    The this pointer
-    def access_revoke(self):
-        return self._access(False)
-
     def _access_group(self, map=True):
         agl = self.c.access_group_list()
         group = self._get_item(agl, self.cmd_value)
@@ -1190,7 +1141,7 @@ class CmdLine:
             vol = self._wait_for_it("resize", *self.c.volume_resize(v, size))
             self.display_volumes([vol])
         else:
-            ArgError("volume with id= %s not found!" % self.cmd_value)
+            raise ArgError("volume with id= %s not found!" % self.cmd_value)
 
     ## Removes a nfs export
     # @param    self    The this pointer
@@ -1293,10 +1244,6 @@ class CmdLine:
 
         #Data driven validation
         self.verify = {'list': {'options': [], 'method': self.list},
-                       'create-initiator': {'options': ['id', 'type'],
-                                            'method': self.create_init},
-                       'delete-initiator': {'options': [],
-                                            'method': self.delete_init},
                        'delete-fs': {'options': [],
                                      'method': self.fs_delete},
                        'delete-access-group': {'options': [],
@@ -1307,7 +1254,7 @@ class CmdLine:
                                      'method': self.fs_create},
                        'clone-fs': {'options': ['name'],
                                     'method': self.fs_clone},
-                       'create-access-group': {'options': ['id', 'type'],
+                       'create-access-group': {'options': ['id', 'type', 'system'],
                                                'method': self.create_access_group},
                        'access-group-add': {'options': ['id', 'type'],
                                                'method': self.access_group_add},
@@ -1327,12 +1274,8 @@ class CmdLine:
                                      'method': self.delete_ss},
                        'replicate-volume': {'options': ['type', 'pool', 'name'],
                                             'method': self.replicate_volume},
-                       'access-grant': {'options': ['volume', 'access'],
-                                        'method': self.access_grant},
                        'access-grant-group': {'options': ['volume', 'access'],
                                         'method': self.access_grant_group},
-                       'access-revoke': {'options': ['volume'],
-                                         'method': self.access_revoke},
                        'access-revoke-group': {'options': ['volume'],
                                          'method': self.access_revoke_group},
                        'resize-volume': {'options': ['size'],

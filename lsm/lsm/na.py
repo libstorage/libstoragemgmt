@@ -140,6 +140,10 @@ class Filer(object):
         self.password = password
         self.ssl = ssl
 
+    def system_info(self):
+        rc = self._invoke('system-get-info')
+        return rc['system-info']
+
     def validate(self):
         #TODO: Validate that everything we need to function is available?
         self._invoke('system-api-list')

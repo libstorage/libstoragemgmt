@@ -90,6 +90,15 @@ class IPlugin(object):
         """
         pass
 
+    @abstractmethod
+    def systems(self):
+        """
+        Returns an array of system objects.  System information is used to
+        distinguish resources from on storage array to another when the plug=in
+        supports the ability to have more than one array managed by it
+        """
+        pass
+
 class IStorageAreaNetwork(IPlugin):
 
     @abstractmethod
@@ -192,47 +201,9 @@ class IStorageAreaNetwork(IPlugin):
         """
         pass
 
-    @abstractmethod
-    def initiator_create(self, name, id, id_type):
-        """
-        Creates an initiator to be used for granting access to volumes.
-
-        Returns an initiator object, else raises an LsmError
-        """
-        pass
-
-    @abstractmethod
-    def initiator_delete(self, initiator):
-        """
-        Deletes an initiator.
-
-        Returns None on success, else raises an LsmError
-        """
-        pass
-
-    @abstractmethod
-    def access_grant(self, initiator, volume, access):
-        """
-        Access control for allowing an initiator to use a volume.
-
-        Returns None on success else job id if in progress.
-        Raises LsmError on errors.
-        """
-
-        pass
-
     def access_group_grant(self, group, volume, access):
         """
         Allows an access group to access a volume.
-        """
-        pass
-
-    @abstractmethod
-    def access_revoke(self, initiator, volume):
-        """
-        Revokes privileges an initiator has to a volume
-
-        Returns none on success, else raises a LsmError on error.
         """
         pass
 
@@ -250,7 +221,7 @@ class IStorageAreaNetwork(IPlugin):
         pass
 
     @abstractmethod
-    def access_group_create(self, name, initiator_id, id_type):
+    def access_group_create(self, name, initiator_id, id_type, system_id):
         """
         Returns a list of access groups
         """
