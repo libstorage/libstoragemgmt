@@ -724,7 +724,7 @@ class Smis(IStorageAreaNetwork):
         return [ self._new_access_group(g) for g in groups]
 
     @handle_cim_errors
-    def access_group_create(self, name, id, id_type, system_id):
+    def access_group_create(self, name, initiator_id, id_type, system_id):
         #page 880 1.5 spec. CreateMaskingView
         #
         # No access to a provider that implements this at this time,

@@ -384,10 +384,10 @@ class StorageSimulator(IStorageAreaNetwork):
                 return g
         return None
 
-    def access_group_create(self, name, id, id_type, system_id):
+    def access_group_create(self, name, initiator_id, id_type, system_id):
         if name not in self.s.access_groups:
             self.s.access_groups[name] = {'initiators':
-                                          [Initiator(id, id_type, 'UNA')],
+                                          [Initiator(initiator_id, id_type, 'UNA')],
                                           'access': {}}
             return self._new_access_group(name, self.s.access_groups[name])
         else:
@@ -417,12 +417,13 @@ class StorageSimulator(IStorageAreaNetwork):
 
     def access_group_del_initiator(self, group, initiator):
         if group.name in self.s.access_groups:
-            if initiator in self.s.access_groups[group.name]['initiators']:
-                self.s.access_groups[group.name]['initiators'].\
-                                    remove(initiator)
-                return None
-            else:
-                raise LsmError(ErrorNumber.INITIATOR_NOT_IN_ACCESS_GROUP,
+            for i in self.s.access_groups[group.name]['initiators']:
+                if i.id == initiator.id:
+                    self.s.access_groups[group.name]['initiators'].\
+                    remove(i)
+                    return None
+
+            raise LsmError(ErrorNumber.INITIATOR_NOT_IN_ACCESS_GROUP,
                                 "initiator not found")
         else:
             raise LsmError(ErrorNumber.ACCESS_GROUP_NOT_FOUND,

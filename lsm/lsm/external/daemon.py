@@ -34,6 +34,8 @@ class Daemon:
             pf.close()
         except IOError:
             pid = None
+        except ValueError:
+            pid = None
         return pid
 
     @staticmethod

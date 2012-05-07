@@ -223,14 +223,17 @@ def drop_privileges():
                 os.setgid(pw.pw_gid)
                 os.setuid(pw.pw_uid)
             elif pw.pw_uid != os.getuid():
-                print("Daemon not running as correct user")
+                print("Warn: Daemon not running as correct user")
         except KeyError:
-            Loud("Missing %s user, running as existing user!" % LSM_USER)
+            print("Warn: Missing %s user, running as existing user!" % LSM_USER)
 
 def flight_check():
     """
     Make sure we can read and write to the areas of interest.
     """
+    if os.path.exists(PID_FILE) and not os.path.isfile(PID_FILE):
+        Loud("--pidfile %s exits but is not a file" % PID_FILE)
+
     pid_dir = os.path.dirname(PID_FILE)
     if not os.path.exists(pid_dir):
         Loud("Directory %s does not exist for pid file, exiting" % pid_dir)
