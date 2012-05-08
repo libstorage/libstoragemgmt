@@ -301,8 +301,8 @@ lsmPoolPtr *lsmPoolRecordAllocArray(uint32_t size)
     return rc;
 }
 
-lsmPoolPtr lsmPoolRecordAlloc(const char *id, const char *name, uint64_t totalSpace,
-    uint64_t freeSpace)
+lsmPoolPtr lsmPoolRecordAlloc(const char *id, const char *name,
+            uint64_t totalSpace, uint64_t freeSpace, const char *system_id)
 {
     lsmPoolPtr rc = (lsmPoolPtr)malloc(sizeof(lsmPool));
     if (rc) {
@@ -312,6 +312,7 @@ lsmPoolPtr lsmPoolRecordAlloc(const char *id, const char *name, uint64_t totalSp
         rc->name = strdup(name);
         rc->totalSpace = totalSpace;
         rc->freeSpace = freeSpace;
+        rc->system_id = strdup(system_id);
     }
     return rc;
 }
@@ -321,7 +322,8 @@ lsmPoolPtr lsmPoolRecordCopy( lsmPoolPtr toBeCopied)
     if( LSM_IS_POOL(toBeCopied) ) {
         return lsmPoolRecordAlloc(toBeCopied->id, toBeCopied->name,
                                     toBeCopied->totalSpace,
-                                    toBeCopied->freeSpace);
+                                    toBeCopied->freeSpace,
+                                    toBeCopied->system_id);
     }
     return NULL;
 }
@@ -337,6 +339,11 @@ void lsmPoolRecordFree(lsmPoolPtr p)
         if (p->id) {
             free(p->id);
             p->id = NULL;
+        }
+
+        if( p->system_id) {
+            free(p->system_id);
+            p->system_id = NULL;
         }
         free(p);
     }
@@ -383,6 +390,14 @@ uint64_t lsmPoolFreeSpaceGet(lsmPoolPtr p)
         return p->freeSpace;
     }
     return 0;
+}
+
+char *lsmPoolGetSystemId( lsmPoolPtr p )
+{
+    if (LSM_IS_POOL(p)) {
+        return p->system_id;
+    }
+    return NULL;
 }
 
 lsmInitiatorPtr *lsmInitiatorRecordAllocArray(uint32_t size)
@@ -472,7 +487,7 @@ lsmVolumePtr *lsmVolumeRecordAllocArray(uint32_t size)
 lsmVolumePtr lsmVolumeRecordAlloc(const char *id, const char *name,
     const char *vpd83, uint64_t blockSize,
     uint64_t numberOfBlocks,
-    uint32_t status)
+    uint32_t status, const char *system_id)
 {
     lsmVolumePtr rc = (lsmVolumePtr)malloc(sizeof(lsmVolume));
     if (rc) {
@@ -483,6 +498,7 @@ lsmVolumePtr lsmVolumeRecordAlloc(const char *id, const char *name,
         rc->blockSize = blockSize;
         rc->numberOfBlocks = numberOfBlocks;
         rc->status = status;
+        rc->system_id = strdup(system_id);
     }
     return rc;
 }
@@ -493,7 +509,7 @@ lsmVolumePtr lsmVolumeRecordCopy(lsmVolumePtr vol)
     if( LSM_IS_VOL(vol) ) {
         rc = lsmVolumeRecordAlloc( vol->id, vol->name, vol->vpd83,
                                     vol->blockSize, vol->numberOfBlocks,
-                                    vol->status);
+                                    vol->status, vol->system_id);
     }
     return rc;
 }
@@ -516,6 +532,12 @@ void lsmVolumeRecordFree(lsmVolumePtr v)
             free(v->vpd83);
             v->vpd83 = NULL;
         }
+
+        if( v->system_id ) {
+            free(v->system_id);
+            v->system_id = NULL;
+        }
+
         free(v);
     }
 }
@@ -531,37 +553,46 @@ void lsmVolumeRecordFreeArray(lsmVolumePtr vol[], uint32_t size)
     }
 }
 
-#define VOL_GET(x, member) \
-    x->member;
+#define VOL_GET(x, member)  \
+    if( LSM_IS_VOL(x) ) {   \
+        return x->member;   \
+    } else {                \
+        return NULL;        \
+    }                       \
 
 const char* lsmVolumeIdGet(lsmVolumePtr v)
 {
-    return VOL_GET(v, id);
+    VOL_GET(v, id);
 }
 
 const char* lsmVolumeNameGet(lsmVolumePtr v)
 {
-    return VOL_GET(v, name);
+    VOL_GET(v, name);
 }
 
 const char* lsmVolumeVpd83Get(lsmVolumePtr v)
 {
-    return VOL_GET(v, vpd83);
+    VOL_GET(v, vpd83);
 }
 
 uint64_t lsmVolumeBlockSizeGet(lsmVolumePtr v)
 {
-    return VOL_GET(v, blockSize);
+    VOL_GET(v, blockSize);
 }
 
 uint64_t lsmVolumeNumberOfBlocks(lsmVolumePtr v)
 {
-    return VOL_GET(v, numberOfBlocks);
+    VOL_GET(v, numberOfBlocks);
 }
 
 uint32_t lsmVolumeOpStatusGet(lsmVolumePtr v)
 {
-    return VOL_GET(v, status);
+    VOL_GET(v, status);
+}
+
+char LSM_DLL_EXPORT *lsmVolumeGetSystemId( lsmVolumePtr v)
+{
+    VOL_GET(v, system_id);
 }
 
 lsmErrorPtr lsmErrorGetLast(lsmConnectPtr c)

@@ -48,6 +48,7 @@ struct LSM_DLL_LOCAL _lsmVolume {
     uint64_t    blockSize;              /**< Block size */
     uint64_t    numberOfBlocks;         /**< Number of blocks */
     uint32_t    status;                 /**< Status */
+    char *system_id;
 };
 
 #define LSM_POOL_MAGIC       0xFEEDF337
@@ -62,6 +63,7 @@ struct LSM_DLL_LOCAL _lsmPool {
     char *name;                 /**< Human recognizeable name */
     uint64_t    totalSpace;     /**< Total size */
     uint64_t    freeSpace;      /**< Free space available */
+    char *system_id;
 };
 
 
@@ -83,12 +85,93 @@ struct LSM_DLL_LOCAL _lsmInitiator {
 struct _lsmStorageCapabilities {
 };
 
+#define LSM_ACCESS_GROUP_MAGIC  0xFEED1338
+#define LSM_IS_ACCESS_GROUP(obj)    MAGIC_CHECK(obj, LSM_ACCESS_GROUP_MAGIC)
+
 /**
  * Information pertaining to a storage group.
  */
 struct _lsmAccessGroup {
+    uint32_t magic;
+    char *id;
+    char *name;
+    char *system_id;
+    std::vector<std::string> initiator_id;
 };
 
+#define LSM_FILE_SYSTEM_MAGIC  0xFEED1339
+#define LSM_IS_FILE_SYSTEM(obj)    MAGIC_CHECK(obj, LSM_FILE_SYSTEM_MAGIC)
+
+/**
+ * Structure for file systems
+ */
+struct _lsmFileSystem {
+    uint32_t magic;
+    char *id;
+    char *name;
+    uint64_t total_space;
+    uint64_t free_space;
+    char *pool_id;
+    char *system_id;
+};
+
+#define LSM_SNAP_SHOT_MAGIC  0xFEED133A
+#define LSM_IS_SNAP_SHOT(obj)    MAGIC_CHECK(obj, LSM_SNAP_SHOT_MAGIC)
+
+/**
+ * Structure for snapshots.
+ */
+struct _lsmSnapShot {
+    uint32_t magic;
+    char *id;
+    char *name;
+    uint64_t ts;
+};
+
+#define LSM_NFS_EXPORT_MAGIC  0xFEED133B
+#define LSM_IS_NFS_EXPORT(obj)    MAGIC_CHECK(obj, LSM_NFS_EXPORT_MAGIC)
+
+/**
+ * Structure for NFS export information
+ */
+struct _lsmNfsExport {
+    uint32_t magic;
+    char *id;
+    char *fs_id;
+    char *export_path;
+    char *auth_type;
+    std::vector<std::string> root_hosts;
+    std::vector<std::string> rw_hosts;
+    std::vector<std::string> ro_hosts;
+    uint32_t anonuid;
+    uint32_t anongid;
+    char *options;
+};
+
+#define LSM_BLOCK_RANGE_MAGIC  0xFEED133C
+#define LSM_IS_BLOCK_RANGE(obj)    MAGIC_CHECK(obj, LSM_BLOCK_RANGE_MAGIC)
+
+/**
+ * Structure for block range ( a region to be replicated )
+ */
+struct _lsmBlockRange {
+    uint32_t magic;
+    uint64_t source_start;
+    uint64_t dest_start;
+    uint64_t block_count;
+};
+
+#define LSM_SYSTEM_MAGIC  0xFEED133D
+#define LSM_IS_SYSTEM(obj)    MAGIC_CHECK(obj, LSM_SYSTEM_MAGIC)
+
+/**
+ * Structure for a system
+ */
+struct _lsmSystem {
+    uint32_t magic;
+    char *id;
+    char *name;
+};
 
 #define LSM_CONNECT_MAGIC       0xFEEDB0B0
 #define LSM_IS_CONNECT(obj)     MAGIC_CHECK(obj, LSM_CONNECT_MAGIC)

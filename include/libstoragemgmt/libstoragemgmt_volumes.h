@@ -91,6 +91,13 @@ uint64_t LSM_DLL_EXPORT lsmVolumeNumberOfBlocks(lsmVolumePtr v);
  */
 uint32_t LSM_DLL_EXPORT lsmVolumeOpStatusGet(lsmVolumePtr v);
 
+/**
+ * Retrieves the system id of the volume.
+ * @param v     Volume ptr.
+ * @return System id.
+ */
+char LSM_DLL_EXPORT *lsmVolumeGetSystemId( lsmVolumePtr v);
+
 #ifdef  __cplusplus
 }
 #endif

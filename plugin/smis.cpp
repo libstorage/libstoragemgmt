@@ -92,7 +92,7 @@ lsmPoolPtr * Smis::getStoragePools(Uint32 *count)
                 rc[addIndex++] = lsmPoolRecordAlloc(idValue.getCString(),
                     nameValue.getCString(),
                     spaceValue,
-                    freeValue);
+                    freeValue, "TBD");
             }
         }
     }
@@ -595,7 +595,7 @@ lsmVolumePtr Smis::getVolume(const CIMInstance &i)
 
     rc = lsmVolumeRecordAlloc(id.getCString(), name.getCString(),
         vpd[0].getCString(), blockSize,
-        numberOfBlocks, opStatus);
+        numberOfBlocks, opStatus, "TBD");
 
     return rc;
 }

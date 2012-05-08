@@ -43,8 +43,8 @@ lsmVolume *valueToVolume(Value &vol)
             v["vpd83"].asString().c_str(),
             v["block_size"].asUint64_t(),
             v["num_of_blocks"].asUint64_t(),
-            v["status"].asUint32_t()
-            );
+            v["status"].asUint32_t(),
+            v["system_id"].asString().c_str());
     }
 
     return rc;
@@ -61,6 +61,7 @@ Value volumeToValue(lsmVolume *vol)
     v["block_size"] = Value(vol->blockSize);
     v["num_of_blocks"] = Value(vol->numberOfBlocks);
     v["status"] = Value(vol->status);
+    v["system_id"] = Value(vol->system_id);
     return Value(v);
 }
 
@@ -100,8 +101,8 @@ lsmPool *valueToPool(Value &pool)
             i["id"].asString().c_str(),
             i["name"].asString().c_str(),
             i["total_space"].asUint64_t(),
-            i["free_space"].asUint64_t()
-            );
+            i["free_space"].asUint64_t(),
+            i["system_id"].asString().c_str());
     }
     return rc;
 }
@@ -114,5 +115,6 @@ Value poolToValue(lsmPool *pool)
     p["name"] = Value(pool->name);
     p["total_space"] = Value(pool->totalSpace);
     p["free_space"] = Value(pool->freeSpace);
+    p["system_id"] = Value(pool->system_id);
     return Value(p);
 }

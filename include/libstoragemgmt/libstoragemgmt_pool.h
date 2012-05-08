@@ -77,6 +77,13 @@ uint64_t LSM_DLL_EXPORT lsmPoolTotalSpaceGet( lsmPoolPtr p );
  */
 uint64_t LSM_DLL_EXPORT lsmPoolFreeSpaceGet( lsmPoolPtr p );
 
+/**
+ * Retrieve the system id for the specified pool.
+ * @param p     Pool pointer
+ * @return      System ID
+ */
+char LSM_DLL_EXPORT *lsmPoolGetSystemId( lsmPoolPtr p );
+
 #ifdef  __cplusplus
 }
 #endif

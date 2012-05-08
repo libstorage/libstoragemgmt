@@ -62,6 +62,36 @@ typedef struct _lsmAccessGroup lsmAccessGroup;
 typedef lsmAccessGroup *lsmAccessGroupPtr;
 
 /**
+ * Opaque data type for file system
+ */
+typedef struct _lsmFileSystem lsmFileSystem;
+typedef lsmFileSystem *lsmFileSystemPtr;
+
+/**
+ * Opaque data type for snapshots
+ */
+typedef struct _lsmSnapShot lsmSnapShot;
+typedef lsmFileSystem *lsmSnapShotPtr;
+
+/**
+ * Opaque data type for nfs exports
+ */
+typedef struct _lsmNfsExport lsmNfsExport;
+typedef lsmNfsExport *lsmNfsExportPtr;
+
+/**
+ * Opaque data type for block ranges (regions to replicate)
+ */
+typedef struct _lsmBlockRange lsmBlockRange;
+typedef lsmBlockRange *lsmBlockRangePtr;
+
+/**
+ * Opaque data type for systems.
+ */
+typedef struct _lsmSystem lsmSystem;
+typedef lsmSystem *lsmSystemPtr;
+
+/**
  * Different types of replications that can be created
  */
 typedef enum {

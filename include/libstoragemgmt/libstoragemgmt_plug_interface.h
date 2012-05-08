@@ -210,11 +210,13 @@ lsmPoolPtr LSM_DLL_EXPORT *lsmPoolRecordAllocArray( uint32_t size );
  * @param name          Human readable name
  * @param totalSpace    Total space
  * @param freeSpace     Space available
+ * @param system_id     System id
  * @return LSM_ERR_OK on success, else error reason.
  */
 lsmPoolPtr LSM_DLL_EXPORT lsmPoolRecordAlloc(const char *id, const char *name,
                                 uint64_t totalSpace,
-                                uint64_t freeSpace);
+                                uint64_t freeSpace,
+                                const char *system_id);
 
 /**
  * Allocate the storage needed for and array of Initiator records.
@@ -249,13 +251,15 @@ lsmVolumePtr LSM_DLL_EXPORT *lsmVolumeRecordAllocArray( uint32_t size);
  * @param blockSize             Volume block size.
  * @param numberOfBlocks        Volume number of blocks.
  * @param status                Volume status
+ * @param system_id             System id
  * @return Allocated memory or NULL on error.
  */
 lsmVolumePtr LSM_DLL_EXPORT lsmVolumeRecordAlloc( const char *id,
                                         const char *name, const char *vpd83,
                                         uint64_t blockSize,
                                         uint64_t numberOfBlocks,
-                                        uint32_t status);
+                                        uint32_t status,
+                                        const char *system_id);
 
 #ifdef  __cplusplus
 }
