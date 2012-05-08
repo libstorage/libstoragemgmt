@@ -80,13 +80,19 @@ class Ontap(IStorageAreaNetwork, INfs):
     def shutdown(self):
         self._jobs = None
 
+    def _create_vpd(self, sn):
+        """
+        Construct the vpd83 for this lun
+        """
+        return "60a98000" + ''.join( [ "%02x" % ord( x ) for x in sn ] )
+
     def _lun(self, l):
         #Info('_lun=' + str(l))
         block_size = int(l['block-size'])
         num_blocks = int(l['size']) / block_size
-        #TODO: Need to retrieve real vpd83 and volume status
-        #The status can be pulled from volume status, the vpd83 I'm not sure.
-        return Volume(l['serial-number'],l['path'], '*'*32,
+        #TODO: Need to retrieve actual volume status
+        return Volume(l['serial-number'],l['path'],
+                        self._create_vpd(l['serial-number']),
                         block_size, num_blocks, Volume.STATUS_OK,
                         self.sys_info.id)
 
