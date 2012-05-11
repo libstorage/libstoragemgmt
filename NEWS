@@ -1,5 +1,15 @@
 News for libStorageMgmt
 
+0.0.7: May 11 2012
+	- Bug fix for smi-s constants
+	- Display formatting improvements
+	- Added header option for lsmcli
+	- Improved version handling for builds
+	- Made terminology consistent
+	- Ability to list visibility for access groups and volumes
+	- Simulator plug-in fully supports all block operations
+	- Added support for multiple systems with a single plug-in instance
+
 0.0.6: Apr 20 2012
     - Documentation improvements (man & source code)
     - Support for access groups
