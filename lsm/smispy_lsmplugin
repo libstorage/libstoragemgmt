@@ -301,14 +301,15 @@ class Smis(IStorageAreaNetwork):
             #Better fallback value?
             user_name = cv['DeviceID']
 
-        #This is optional
+        #TODO: Make this work for all vendors
+        #This is optional(EMC and NetApp place the vpd here)
         if 'OtherIdentifyingInfo' in cv and len(cv["OtherIdentifyingInfo"]) > 0:
             other_id = cv["OtherIdentifyingInfo"][0]
         else:
+            #Engenio/LSI use this field.
             nf = cv['NameFormat']
-            #Check to see if name format is VPD
-            #TODO Convert VPD to standardized format.
-            if 2 <= nf <= 6:
+            #Check to see if name format is NAA
+            if 9 == nf:
                 other_id = cv["Name"]
 
         return Volume(  self._vol_id(cv), user_name, other_id, cv["BlockSize"],
