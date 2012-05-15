@@ -24,7 +24,12 @@
 #include <libstoragemgmt/libstoragemgmt.h>
 
 
-const char url[] = "sim://username@client:5988?namespace=root/una";
+const char url[] = "sim://";
+const char SYSTEM_NAME[] = "LSM simulated storage plug-in";
+const char SYSTEM_ID[] = "sim-01";
+
+lsmConnectPtr c = NULL;
+
 
 void dump_error(lsmErrorPtr e)
 {
@@ -39,6 +44,26 @@ void dump_error(lsmErrorPtr e)
         printf("No additional error information!\n");
     }
 }
+
+void setup(void)
+{
+    lsmErrorPtr e;
+
+    int rc = lsmConnectPassword(url, NULL, &c, 30000, &e);
+    if( rc ) {
+        printf("rc= %d\n", rc);
+        dump_error(e);
+    }
+    fail_unless(LSM_ERR_OK == rc);
+}
+
+void teardown(void)
+{
+    int rc = lsmConnectClose(c);
+    fail_unless(LSM_ERR_OK == rc, "lsmConnectClose rc = %d", rc);
+}
+
+
 
 char *error(lsmErrorPtr e)
 {
@@ -57,7 +82,7 @@ char *error(lsmErrorPtr e)
     return eb;
 }
 
-lsmVolumePtr wait_for_job(lsmConnectPtr c, uint32_t job_number)
+lsmVolumePtr wait_for_job(lsmConnectPtr c, char **job_id)
 {
     lsmJobStatus status;
     lsmVolumePtr vol = NULL;
@@ -65,14 +90,14 @@ lsmVolumePtr wait_for_job(lsmConnectPtr c, uint32_t job_number)
     int rc = 0;
 
     do {
-        rc = lsmJobStatusGet(c, job_number, &status, &pc, &vol);
+        rc = lsmJobStatusGet(c, *job_id, &status, &pc, &vol);
         fail_unless( LSM_ERR_OK == rc, "rc = %d (%s)", rc,  error(lsmErrorGetLast(c)));
-        printf("Job %d in progress, %d done, status = %d\n", job_number, pc, status);
+        printf("Job %s in progress, %d done, status = %d\n", *job_id, pc, status);
         sleep(1);
 
     } while( status == LSM_JOB_INPROGRESS );
 
-    rc = lsmJobFree(c, job_number);
+    rc = lsmJobFree(c, job_id);
     fail_unless( LSM_ERR_OK == rc, "lsmJobFree %d, (%s)", rc, error(lsmErrorGetLast(c)));
 
     fail_unless( LSM_JOB_COMPLETE == status);
@@ -104,7 +129,7 @@ void mapping(lsmConnectPtr c)
         //Map
         for (i = 0; i < init_count; i++) {
             for (j = 0; j < vol_count; j++) {
-                uint32_t job = 0;
+                char *job = NULL;
 
                 rc = lsmAccessGrant(c, init_list[i], vol_list[j], LSM_VOLUME_ACCESS_READ_WRITE, &job);
 
@@ -135,7 +160,7 @@ void create_volumes(lsmConnectPtr c, lsmPoolPtr p, int num)
 
     for( i = 0; i < num; ++i ) {
         lsmVolumePtr n;
-        uint32_t job;
+        char *job = NULL;
         char name[32];
 
         memset(name, 0, sizeof(name));
@@ -148,7 +173,7 @@ void create_volumes(lsmConnectPtr c, lsmPoolPtr p, int num)
                 "lsmVolumeCreate %d (%s)", vc, error(lsmErrorGetLast(c)));
 
         if( LSM_ERR_JOB_STARTED == vc ) {
-            n = wait_for_job(c, job);
+            n = wait_for_job(c, &job);
         }
 
         lsmVolumeRecordFree(n);
@@ -195,7 +220,7 @@ START_TEST(test_smoke_test)
 
     //Check pool count
     count = poolCount;
-    fail_unless(count == 2, "We are expecting 2 pools from simulator");
+    fail_unless(count == 3, "We are expecting 2 pools from simulator");
 
     //Dump pools and select a pool to use for testing.
     for (i = 0; i < count; ++i) {
@@ -212,7 +237,7 @@ START_TEST(test_smoke_test)
 
     if (poolToUse != -1) {
         lsmVolumePtr n = NULL;
-        uint32_t job;
+        char *job = NULL;
 
         selectedPool = pools[poolToUse];
 
@@ -223,17 +248,17 @@ START_TEST(test_smoke_test)
                     "lsmVolumeCreate %d (%s)", vc, error(lsmErrorGetLast(c)));
 
         if( LSM_ERR_JOB_STARTED == vc ) {
-            n = wait_for_job(c, job);
+            n = wait_for_job(c, &job);
         }
 
-        uint32_t jobDel = 0;
+        char *jobDel = NULL;
         int delRc = lsmVolumeDelete(c, n, &jobDel);
 
         fail_unless( delRc == LSM_ERR_OK || delRc == LSM_ERR_JOB_STARTED,
                     "lsmVolumeDelete %d (%s)", rc, error(lsmErrorGetLast(c)));
 
         if( LSM_ERR_JOB_STARTED == delRc ) {
-            wait_for_job(c, jobDel);
+            wait_for_job(c, &jobDel);
         }
 
         lsmVolumeRecordFree(n);
@@ -247,30 +272,6 @@ START_TEST(test_smoke_test)
                                     error(lsmErrorGetLast(c)));
 
     fail_unless( count == 0, "Count 0 != %d\n", count);
-
-
-    lsmInitiatorPtr init = NULL;
-    rc = lsmInitiatorCreate(c, "test",
-        "iqn.1994-05.com.domain:01.89bd01",
-        LSM_INITIATOR_ISCSI, &init);
-
-    fail_unless( LSM_ERR_OK == rc, "lsmInitiatorCreate %d (%s)", rc,
-                    error(lsmErrorGetLast(c)));
-
-    lsmInitiatorRecordFree(init);
-
-
-    rc = lsmInitiatorList(c, &inits, &count);
-    fail_unless( LSM_ERR_OK == rc, "lsmInitiatorList %d (%s)", rc,
-                    error(lsmErrorGetLast(c)));
-
-    fail_unless( 1 == count, "lsmInitiatorList 1 != %d", count);
-    for (i = 0; i < count; ++i) {
-        printf("Initiator type= %s, id=%s\n",
-            ((lsmInitiatorTypeGet(inits[i]) == LSM_INITIATOR_ISCSI) ? "iSCSI" : "WWN"),
-            lsmInitiatorIdGet(inits[i]));
-    }
-    lsmInitiatorRecordFreeArray(inits, count);
 
 
     //Create some volumes for testing.
@@ -296,11 +297,11 @@ START_TEST(test_smoke_test)
 
 
     lsmVolumePtr rep = NULL;
-    uint32_t job = 0;
+    char *job = NULL;
 
     //Try a re-size then a snapshot
     lsmVolumePtr resized = NULL;
-    uint32_t resizeJob = 0;
+    char  *resizeJob = NULL;
 
     int resizeRc = lsmVolumeResize(c, volumes[0],
         ((lsmVolumeNumberOfBlocks(volumes[0]) *
@@ -311,7 +312,7 @@ START_TEST(test_smoke_test)
                     error(lsmErrorGetLast(c)));
 
     if( LSM_ERR_JOB_STARTED == resizeRc ) {
-        resized = wait_for_job(c, resizeJob);
+        resized = wait_for_job(c, &resizeJob);
     }
 
     lsmVolumeRecordFree(resized);
@@ -327,7 +328,7 @@ START_TEST(test_smoke_test)
                     error(lsmErrorGetLast(c)));
 
     if( LSM_ERR_JOB_STARTED == repRc ) {
-        resized = wait_for_job(c, job);
+        resized = wait_for_job(c, &job);
     }
 
     lsmVolumeRecordFree(rep);
@@ -346,21 +347,40 @@ START_TEST(test_smoke_test)
 
 END_TEST
 
-/**
- * Test a simple connection.
- * @param _i
- */
-START_TEST(test_connect)
-{
-    lsmConnectPtr c;
-    lsmErrorPtr e;
 
-    int rc = lsmConnectPassword("sim://username@client:5988?namespace=root/una",
-        NULL, &c, 30000, &e);
+START_TEST(test_access_groups)
+{
+    lsmErrorPtr e = NULL;
+    fail_unless(c!=NULL);
+
+
+}
+
+END_TEST
+
+START_TEST(test_systems)
+{
+    uint32_t count = 0;
+    lsmSystemPtr *sys=NULL;
+    const char *id = NULL;
+    const char *name = NULL;
+
+    fail_unless(c!=NULL);
+
+    int rc = lsmSystemList(c, &sys, &count);
 
     fail_unless(LSM_ERR_OK == rc);
-    rc = lsmConnectClose(c);
-    fail_unless(LSM_ERR_OK == rc, "lsmConnectClose rc = %d", rc);
+    fail_unless(count == 1);
+
+    id = lsmSystemIdGet(sys[0]);
+    fail_unless(id != NULL);
+    fail_unless(strcmp(id, SYSTEM_ID) == 0);
+
+    name = lsmSystemNameGet(sys[0]);
+    fail_unless(name != NULL);
+    fail_unless(strcmp(name, SYSTEM_NAME) == 0);
+
+    lsmSystemRecordFreeArray(sys, count);
 }
 
 END_TEST
@@ -370,12 +390,13 @@ Suite * lsm_suite(void)
 {
     Suite *s = suite_create("libStorageMgmt");
 
-    /* Connect test case, make sure we can get off the ground */
     TCase *basic = tcase_create("Basic");
-    //tcase_add_checked_fixture (basic, setup, teardown);
-    tcase_add_test(basic, test_connect);
+    tcase_add_checked_fixture (basic, setup, teardown);
     tcase_add_test(basic, test_smoke_test);
+    tcase_add_test(basic, test_access_groups);
+    tcase_add_test(basic, test_systems);
     suite_add_tcase(s, basic);
+
 
     return s;
 }

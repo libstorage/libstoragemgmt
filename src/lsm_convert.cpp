@@ -118,3 +118,26 @@ Value poolToValue(lsmPool *pool)
     p["system_id"] = Value(pool->system_id);
     return Value(p);
 }
+
+lsmSystem *valueToSystem(Value &system)
+{
+    lsmSystem *rc = NULL;
+    if (isExpectedObject(system, "System")) {
+        std::map<std::string, Value> i = system.asObject();
+        rc = lsmSystemRecordAlloc(  i["id"].asString().c_str(),
+                                    i["name"].asString().c_str());
+    }
+    return rc;
+}
+
+Value systemToValue(lsmSystem *system)
+{
+    if( LSM_IS_SYSTEM(system)) {
+        std::map<std::string, Value> s;
+        s["class"] = Value("System");
+        s["id"] = Value(system->id);
+        s["name"] = Value(system->name);
+        return Value(s);
+    }
+    return Value();
+}

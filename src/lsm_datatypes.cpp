@@ -30,6 +30,7 @@
 #include <libstoragemgmt/libstoragemgmt_types.h>
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 #include <libstoragemgmt/libstoragemgmt_error.h>
+#include <libstoragemgmt/libstoragemgmt_systems.h>
 
 #include <string.h>
 #include <stdlib.h>
@@ -180,6 +181,7 @@ lsmErrorPtr lsmErrorCreate(lsmErrorNumber code, lsmErrorDomain domain,
         err->domain = domain;
         err->level = level;
 
+        /* Any of these strdup calls could fail, but we will continue*/
         if (msg) {
             err->message = strdup(msg);
         }
@@ -290,16 +292,46 @@ void* lsmErrorGetDebugData(lsmErrorPtr e, uint32_t *size)
     return NULL;
 }
 
-lsmPoolPtr *lsmPoolRecordAllocArray(uint32_t size)
-{
-    lsmPoolPtr *rc = NULL;
-
-    if (size > 0) {
-        size_t s = sizeof(lsmPoolPtr) * size;
-        rc = (lsmPoolPtr *) malloc(s);
-    }
-    return rc;
+/**
+ * When creating arrays of the different types the code is the same.  This
+ * macro is used to create type safe code.
+ * @param   name    Name of the function
+ * @param   rtype   return type
+ * @return An array of pointers of rtype
+ */
+#define CREATE_ALLOC_ARRAY_FUNC(name, rtype)\
+rtype *name(uint32_t size)                  \
+{                                           \
+    rtype *rc = NULL;                       \
+    if (size > 0) {                         \
+        size_t s = sizeof(rtype) * size;    \
+        rc = (rtype *) malloc(s);           \
+    }                                       \
+    return rc;                              \
 }
+
+/**
+ * Common macro for freeing the memory associated with one of these
+ * data structures.
+ * @param name      Name of function to create
+ * @param free_func Function to call to free one of the elements
+ * @param type      Type to dispose of
+ * @return None
+ */
+#define CREATE_FREE_ARRAY_FUNC(name, free_func, record_type)\
+void name( record_type pa[], uint32_t size)                \
+{                                                   \
+    if (pa && size) {                               \
+        uint32_t i = 0;                             \
+        for (i = 0; i < size; ++i) {                \
+            free_func(pa[i]);                       \
+        }                                           \
+        free(pa);                                   \
+    }                                               \
+}
+
+
+CREATE_ALLOC_ARRAY_FUNC(lsmPoolRecordAllocArray, lsmPoolPtr)
 
 lsmPoolPtr lsmPoolRecordAlloc(const char *id, const char *name,
             uint64_t totalSpace, uint64_t freeSpace, const char *system_id)
@@ -313,6 +345,13 @@ lsmPoolPtr lsmPoolRecordAlloc(const char *id, const char *name,
         rc->totalSpace = totalSpace;
         rc->freeSpace = freeSpace;
         rc->system_id = strdup(system_id);
+
+        if( !rc->id || !rc->name || !rc->system_id ) {
+            free( rc->id );
+            free( rc->name );
+            free( rc->system_id);
+            rc = NULL;
+        }
     }
     return rc;
 }
@@ -349,16 +388,7 @@ void lsmPoolRecordFree(lsmPoolPtr p)
     }
 }
 
-void lsmPoolRecordFreeArray(lsmPoolPtr pa[], uint32_t size)
-{
-    if (pa && size) {
-        uint32_t i = 0;
-        for (i = 0; i < size; ++i) {
-            lsmPoolRecordFree(pa[i]);
-        }
-        free(pa);
-    }
-}
+CREATE_FREE_ARRAY_FUNC(lsmPoolRecordFreeArray, lsmPoolRecordFree, lsmPoolPtr)
 
 char *lsmPoolNameGet(lsmPoolPtr p)
 {
@@ -400,17 +430,7 @@ char *lsmPoolGetSystemId( lsmPoolPtr p )
     return NULL;
 }
 
-lsmInitiatorPtr *lsmInitiatorRecordAllocArray(uint32_t size)
-{
-    lsmInitiator **rc = NULL;
-
-    if (size > 0) {
-        size_t s = sizeof(lsmInitiator *) * size;
-        rc = (lsmInitiator **) malloc(s);
-        memset(rc, 0, s);
-    }
-    return(lsmInitiatorPtr*) rc;
-}
+CREATE_ALLOC_ARRAY_FUNC(lsmInitiatorRecordAllocArray, lsmInitiatorPtr)
 
 lsmInitiatorPtr lsmInitiatorRecordAlloc(lsmInitiatorType idType, const char* id,
                                         const char* name)
@@ -421,6 +441,13 @@ lsmInitiatorPtr lsmInitiatorRecordAlloc(lsmInitiatorType idType, const char* id,
         rc->idType = idType;
         rc->id = strdup(id);
         rc->name = strdup(name);
+
+        if(!rc->id || !rc->name ) {
+            free(rc->id);
+            free(rc->name);
+            free(rc);
+            rc = NULL;
+        }
     }
     return rc;
 }
@@ -446,16 +473,8 @@ void lsmInitiatorRecordFree(lsmInitiatorPtr i)
     }
 }
 
-void lsmInitiatorRecordFreeArray(lsmInitiatorPtr init[], uint32_t size)
-{
-    if (init && size) {
-        uint32_t i = 0;
-        for (i = 0; i < size; ++i) {
-            lsmInitiatorRecordFree(init[i]);
-        }
-        free(init);
-    }
-}
+CREATE_FREE_ARRAY_FUNC( lsmInitiatorRecordFreeArray, lsmInitiatorRecordFree,
+                        lsmInitiatorPtr)
 
 lsmInitiatorType lsmInitiatorTypeGet(lsmInitiatorPtr i)
 {
@@ -472,17 +491,7 @@ char *lsmInitiatorNameGet(lsmInitiatorPtr i)
     return i->name;
 }
 
-lsmVolumePtr *lsmVolumeRecordAllocArray(uint32_t size)
-{
-    lsmVolumePtr *rc = NULL;
-
-    if (size > 0) {
-        size_t s = sizeof(lsmVolume) * size;
-        rc = (lsmVolumePtr *) malloc(s);
-        memset(rc, 0, s);
-    }
-    return rc;
-}
+CREATE_ALLOC_ARRAY_FUNC(lsmVolumeRecordAllocArray, lsmVolumePtr)
 
 lsmVolumePtr lsmVolumeRecordAlloc(const char *id, const char *name,
     const char *vpd83, uint64_t blockSize,
@@ -499,8 +508,72 @@ lsmVolumePtr lsmVolumeRecordAlloc(const char *id, const char *name,
         rc->numberOfBlocks = numberOfBlocks;
         rc->status = status;
         rc->system_id = strdup(system_id);
+
+        if( !rc->id || !rc->name || !rc->vpd83 || !rc->system_id) {
+            free(rc->id);
+            free(rc->name);
+            free(rc->vpd83);
+            free(rc->system_id);
+            free(rc);
+            rc = NULL;
+        }
     }
     return rc;
+}
+
+CREATE_ALLOC_ARRAY_FUNC(lsmSystemRecordAllocArray, lsmSystemPtr)
+
+lsmSystemPtr lsmSystemRecordAlloc( const char *id, const char *name)
+{
+    lsmSystemPtr rc = (lsmSystemPtr)malloc(sizeof(lsmSystem));
+    if (rc) {
+        rc->magic = LSM_SYSTEM_MAGIC;
+        rc->id = strdup(id);
+        rc->name = strdup(name);
+        if( !rc->name || !rc->id ) {
+            free(rc->name);
+            free(rc->id);
+            free(rc);
+            rc = NULL;
+        }
+    }
+    return rc;
+}
+
+void lsmSystemRecordFree(lsmSystemPtr s)
+{
+    if( LSM_IS_SYSTEM(s) ) {
+        free(s->id);
+        free(s->name);
+        free(s);
+    }
+}
+
+CREATE_FREE_ARRAY_FUNC(lsmSystemRecordFreeArray, lsmSystemRecordFree, lsmSystemPtr)
+
+lsmSystemPtr lsmSystemRecordCopy(lsmSystemPtr s)
+{
+    lsmSystemPtr rc = NULL;
+    if( LSM_IS_SYSTEM(s) ) {
+        rc = lsmSystemRecordAlloc(s->id, s->name);
+    }
+    return rc;
+}
+
+const char *lsmSystemIdGet(lsmSystemPtr s)
+{
+    if( LSM_IS_SYSTEM(s) ) {
+        return s->id;
+    }
+    return NULL;
+}
+
+const char *lsmSystemNameGet(lsmSystemPtr s)
+{
+    if( LSM_IS_SYSTEM(s) ) {
+        return s->name;
+    }
+    return NULL;
 }
 
 lsmVolumePtr lsmVolumeRecordCopy(lsmVolumePtr vol)
@@ -542,16 +615,8 @@ void lsmVolumeRecordFree(lsmVolumePtr v)
     }
 }
 
-void lsmVolumeRecordFreeArray(lsmVolumePtr vol[], uint32_t size)
-{
-    if (vol && size) {
-        uint32_t i = 0;
-        for (i = 0; i < size; ++i) {
-            lsmVolumeRecordFree(vol[i]);
-        }
-        free(vol);
-    }
-}
+CREATE_FREE_ARRAY_FUNC( lsmVolumeRecordFreeArray, lsmVolumeRecordFree,
+                        lsmVolumePtr)
 
 #define VOL_GET(x, member)  \
     if( LSM_IS_VOL(x) ) {   \
@@ -595,6 +660,20 @@ char LSM_DLL_EXPORT *lsmVolumeGetSystemId( lsmVolumePtr v)
     VOL_GET(v, system_id);
 }
 
+CREATE_ALLOC_ARRAY_FUNC(lsmAccessGroupAllocArray, lsmAccessGroupPtr)
+
+void lsmAccessGroupFree(lsmAccessGroupPtr ag)
+{
+    if( LSM_IS_ACCESS_GROUP(ag) ) {
+
+    }
+}
+
+
+CREATE_FREE_ARRAY_FUNC(lsmAccessGroupFreeArray, lsmAccessGroupFree,
+                        lsmAccessGroupPtr)
+
+
 lsmErrorPtr lsmErrorGetLast(lsmConnectPtr c)
 {
     if (LSM_IS_CONNECT(c)) {
@@ -604,6 +683,14 @@ lsmErrorPtr lsmErrorGetLast(lsmConnectPtr c)
     }
     return NULL;
 }
+
+
+
+lsmAccessGroupPtr LSM_DLL_EXPORT lsmAccessGroupAlloc(const char *id,
+                                                     const char *name,
+                                                     const char **initiator_ids,
+                                                     const uint32_t num_init,
+                                                     const char *system_id);
 
 #ifdef  __cplusplus
 }

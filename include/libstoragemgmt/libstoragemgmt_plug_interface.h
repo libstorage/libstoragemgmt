@@ -261,6 +261,33 @@ lsmVolumePtr LSM_DLL_EXPORT lsmVolumeRecordAlloc( const char *id,
                                         uint32_t status,
                                         const char *system_id);
 
+/**
+ * Allocate the storage needed for and array of System records.
+ * @param size      Number of elements.
+ * @return Allocated memory or NULL on error.
+ */
+lsmSystemPtr LSM_DLL_EXPORT *lsmSystemRecordAllocArray( uint32_t size );
+
+/**
+ * Allocates the storage for one system record.
+ * @param id        Id
+ * @param name      System name (human readable)
+ * @return  Allocated memory or NULL on error.
+ */
+lsmSystemPtr LSM_DLL_EXPORT lsmSystemRecordAlloc( const char *id,
+                                                  const char *name );
+
+
+
+lsmAccessGroupPtr LSM_DLL_EXPORT *lsmAccessGroupAllocArray( uint32_t size);
+
+
+lsmAccessGroupPtr LSM_DLL_EXPORT lsmAccessGroupAlloc(const char *id,
+                                                     const char *name,
+                                                     const char **initiator_ids,
+                                                     const uint32_t num_init,
+                                                     const char *system_id);
+
 #ifdef  __cplusplus
 }
 #endif

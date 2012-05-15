@@ -92,6 +92,7 @@ dnl find libxml2 library, borrowed from xmlsec
 dnl ==========================================================================
 
 PKG_CHECK_MODULES([LIBXML], [libxml-2.0])
+PKG_CHECK_MODULES([LIBCHECK], [check >= 0.9.8 ])
 
 dnl ==========================================================================
 dnl Check whether to build SMI-S C++ plugin
@@ -178,4 +179,5 @@ AC_OUTPUT(libstoragemgmt.pc \
           tools/lsmclipy/Makefile \
           packaging/Makefile \
           packaging/daemon/Makefile \
-          doc/man/Makefile)
+          doc/man/Makefile \
+          test/Makefile)

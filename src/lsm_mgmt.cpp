@@ -58,14 +58,19 @@ int lsmConnectPassword(const char *uri, const char *password,
         c->uri = xmlParseURI(uri);
         if( c->uri && c->uri->scheme ) {
             c->raw_uri = strdup(uri);
-            rc = loadDriver(c, c->uri, password, timeout, e);
-            if( rc == LSM_ERR_OK ) {
-                *conn = (lsmConnectPtr)c;
+            if( c->raw_uri ) {
+                rc = loadDriver(c, c->uri, password, timeout, e);
+                if( rc == LSM_ERR_OK ) {
+                    *conn = (lsmConnectPtr)c;
+                }
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
             }
         } else {
             rc = LSM_ERR_URI_PARSE;
         }
 
+        /*If we fail for any reason free resources associated with connection*/
         if( rc != LSM_ERR_OK ) {
             freeConnection(c);
         }
@@ -307,6 +312,12 @@ static void* parse_job_response(Value response, int &rc, char **job, convert con
         std::vector<Value> r = response.asArray();
         if( Value::string_t == r[0].valueType()) {
             *job = strdup((r[0].asString()).c_str());
+            if( *job ) {
+                rc = LSM_ERR_JOB_STARTED;
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
+
             rc = LSM_ERR_JOB_STARTED;
         }
         if( Value::object_t == r[1].valueType() ) {
@@ -440,7 +451,12 @@ int lsmVolumeDelete(lsmConnectPtr c, lsmVolumePtr volume, char **job)
         //We get a value back, either null or job id.
         if( Value::string_t == response.valueType() ) {
             *job = strdup(response.asString().c_str());
-            rc = LSM_ERR_JOB_STARTED;
+
+            if( *job ) {
+                rc = LSM_ERR_JOB_STARTED;
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
         }
     }
     return rc;
@@ -527,7 +543,12 @@ int lsmAccessGrant( lsmConnectPtr c, lsmInitiatorPtr i, lsmVolumePtr v,
         //We get a value back, either null or job id.
         if( Value::string_t == response.valueType() ) {
             *job = strdup(response.asString().c_str());
-            rc = LSM_ERR_JOB_STARTED;
+
+            if( *job ) {
+                rc = LSM_ERR_JOB_STARTED;
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
         }
     }
     return rc;
@@ -593,3 +614,27 @@ int lsmAccessGroupDelInitiator( lsmConnectPtr conn, lsmAccessGroupPtr group,
     return LSM_ERR_NO_SUPPORT;
 }
 
+int lsmSystemList(lsmConnectPtr c, lsmSystemPtr **systems,
+                                        uint32_t *systemCount)
+{
+    CONN_SETUP(c);
+    std::map<std::string, Value> p;
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "systems", parameters, response);
+    if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+        std::vector<Value> sys = response.asArray();
+
+        *systemCount = sys.size();
+
+        if( sys.size() ) {
+            *systems = lsmSystemRecordAllocArray(sys.size());
+
+            for( size_t i = 0; i < sys.size(); ++i ) {
+                (*systems)[i] = valueToSystem(sys[i]);
+            }
+        }
+    }
+    return rc;
+}

@@ -372,7 +372,11 @@ int Smis::processInvoke(Array<CIMParamValue> &out, CIMValue value,
         if (jobId) {
             CIMValue cim_job = getParamValue(out, "Job");
             *jobId = strdup(cim_job.toString().getCString());
-            rc = LSM_ERR_JOB_STARTED;
+            if ( *jobId ) {
+                rc = LSM_ERR_JOB_STARTED;
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
         } else {
             //This really should never happen :-)
             rc = LSM_ERR_INTERNAL_ERROR;

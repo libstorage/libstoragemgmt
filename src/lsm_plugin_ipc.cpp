@@ -51,20 +51,28 @@ int lsmRegisterPlugin(lsmPluginPtr plug, const char *desc, const char *version,
                         struct lsmSanOps *sanOp, struct lsmFsOps *fsOp,
                         struct lsmNasOps *nasOp)
 {
+    int rc = LSM_ERR_OK;
+
     if (NULL == desc || NULL == version) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     plug->desc = strdup(desc);
     plug->version = strdup(version);
-    plug->privateData = private_data;
 
-    plug->mgmtOps = mgmOps;
-    plug->sanOps = sanOp;
-    plug->fsOps = fsOp;
-    plug->nasOps = nasOp;
+    if( !plug->desc || !plug->version ) {
+        free(plug->desc);
+        free(plug->version);
+        rc = LSM_ERR_NO_MEMORY;
+    } else {
+        plug->privateData = private_data;
+        plug->mgmtOps = mgmOps;
+        plug->sanOps = sanOp;
+        plug->fsOps = fsOp;
+        plug->nasOps = nasOp;
+    }
 
-    return LSM_ERR_OK;
+    return rc;
 }
 
 void *lsmGetPrivateData(lsmPluginPtr plug)

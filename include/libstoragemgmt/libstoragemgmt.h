@@ -27,6 +27,7 @@
 #include "libstoragemgmt_initiators.h"
 #include "libstoragemgmt_pool.h"
 #include "libstoragemgmt_volumes.h"
+#include "libstoragemgmt_systems.h"
 
 #ifdef  __cplusplus
 extern "C" {
@@ -319,6 +320,18 @@ extern "C" {
     int LSM_DLL_EXPORT lsmAccessGroupDelInitiator(lsmConnectPtr conn,
                                                     lsmAccessGroupPtr group,
                                                     lsmInitiatorPtr initiator);
+
+
+    /**
+     * Retrieves information about the different arrays accessible.
+     * NOTE: Free returned systems by calling to lsm
+     * @param[in]  conn                  Valid connection
+     * @param[out] systems               Array of lsmSystemPtr
+     * @param[out] systemCount           Number of systems
+     * @return LSM_ERR_OK on success, else error reason
+     */
+    int LSM_DLL_EXPORT lsmSystemList(lsmConnectPtr conn, lsmSystemPtr **systems,
+                                        uint32_t *systemCount);
 
 #ifdef  __cplusplus
 }

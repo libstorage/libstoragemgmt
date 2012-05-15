@@ -65,4 +65,18 @@ lsmPool *valueToPool(Value &pool);
  */
 Value poolToValue(lsmPool *pool);
 
+/**
+ * Converts a value to a system
+ * @param system to convert to lsmSystem *
+ * @return lsmSystem pointer, else NULL on error
+ */
+lsmSystem *valueToSystem(Value &system);
+
+/**
+ * Converts a lsmSystem * to a Value
+ * @param system pointer to convert to Value
+ * @return Value
+ */
+Value systemToValue(lsmSystem *system);
+
 #endif

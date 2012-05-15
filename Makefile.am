@@ -4,7 +4,7 @@ ACLOCAL_AMFLAGS = -I m4
 
 DISTCHECK_CONFIGURE_FLAGS = --with-systemdsystemunitdir=$$dc_install_base/$(systemdsystemunitdir)
 
-SUBDIRS= src plugin doc include tools lsm packaging
+SUBDIRS= src plugin doc include tools lsm packaging test
 
 EXTRA_DIST = \
 	libstoragemgmt.pc.in \
