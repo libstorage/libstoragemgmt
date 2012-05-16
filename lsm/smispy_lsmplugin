@@ -180,7 +180,7 @@ class Smis(IStorageAreaNetwork):
         if u['scheme'].lower() == 'smispy+ssl':
             protocol = 'https'
 
-        url = protocol + '://' + u['host'] + ":" + str(u['port'])
+        url = "%s://%s:%s" % (protocol, u['host'], u['port'])
 
         self.tmo = timeout
         self._c = pywbem.WBEMConnection(url, (u['username'], password),

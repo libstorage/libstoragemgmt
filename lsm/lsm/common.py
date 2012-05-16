@@ -53,15 +53,13 @@ def uri_parse(uri, requires=None, required_params=None):
     if u.port:
         rc['port'] = u.port
 
-    if u.netloc and '@' in u.netloc:
-        if u.netloc.count('@') == 1:
-            (rc['username'], rc['host']) = u.netloc.split('@',2)
-        else:
-            raise LsmError(ErrorNumber.PLUGIN_ERROR, "incorrect number of @ symbols in uri")
+    if u.hostname:
+        rc['host'] = u.hostname
+
+    if u.username:
+        rc['username'] = u.username
     else:
         rc['username'] = None
-        if u.netloc:
-            rc['host'] = u.netloc
 
     rc['parameters'] = uri_parameters(u)
 
