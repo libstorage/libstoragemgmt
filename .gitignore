@@ -20,3 +20,8 @@ lsmcli
 smiscli
 *.patch
 libstoragemgmt.spec
+build-aux
+doxygen.conf
+lsmcli.1
+lsmd.1
+version.py
