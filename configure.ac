@@ -3,7 +3,7 @@ dnl Copyright (C) 2011 Red Hat, Inc.
 dnl See COPYING.LIB for the License of this software
 
 AC_INIT([libstoragemgmt], [0.0.7], [libstoragemgmt-devel@lists.sourceforge.net], [], [http://sourceforge.net/apps/trac/libstoragemgmt/])
-AC_CONFIG_SRCDIR([src/lsm_datatypes.cpp])
+AC_CONFIG_SRCDIR([configure.ac])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
@@ -93,43 +93,59 @@ dnl ==========================================================================
 
 PKG_CHECK_MODULES([LIBXML], [libxml-2.0])
 
-# this sucks but Pegasus requires this test per system, arch, compiler
-PEGASUS_CFLAGS=
-case `uname` in
-    *Linux*) case `uname -m` in
-                 x86_64) PEGASUS_CFLAGS="-DPEGASUS_PLATFORM_LINUX_X86_64_GNU";;
-                 i?86)   PEGASUS_CFLAGS="-DPEGASUS_PLATFORM_LINUX_IX86_GNU";;
-             esac
-esac
-if test "$PEGASUS_CFLAGS" = "" ; then
-    AC_MSG_ERROR([Unsupported platform, check see configure.ac \
-                  and Pegasus/Common/Config.h])
+dnl ==========================================================================
+dnl Check whether to build SMI-S C++ plugin
+dnl ==========================================================================
+
+want_smis_cpp="yes"
+AC_ARG_ENABLE([smis-cpp],
+    [AC_HELP_STRING([--disable-smis-cpp], [disable SMI-S C++ plugin build.])],
+    [want_smis_cpp=$enableval], [])
+
+if test "x${want_smis_cpp}" = "xyes"; then
+
+    # this sucks but Pegasus requires this test per system, arch, compiler
+    PEGASUS_CFLAGS=
+    case `uname` in
+        *Linux*) case `uname -m` in
+                     x86_64) PEGASUS_CFLAGS="-DPEGASUS_PLATFORM_LINUX_X86_64_GNU";;
+                     i?86)   PEGASUS_CFLAGS="-DPEGASUS_PLATFORM_LINUX_IX86_GNU";;
+                 esac
+    esac
+    if test "$PEGASUS_CFLAGS" = "" ; then
+        AC_MSG_ERROR([Unsupported platform, check see configure.ac \
+                      and Pegasus/Common/Config.h])
+    fi
+    saved_cflags=$CFLAGS
+    CFLAGS="$CFLAGS $PEGASUS_CFLAGS"
+    AC_CHECK_HEADER(Pegasus/Common/Config.h,,
+                    AC_MSG_ERROR([Pegasus development headers are missing]))
+
+    # look for pegcommon and pegclient libraries, they are C++ and this
+    # is a problem with automake, don't look for symbols !
+    saved_ldflags=$LDFLAGS
+    PEGASUS_LIBS=
+    AC_MSG_CHECKING([for Pegasus libraries])
+    LDFLAGS="${LDFLAGS} -lpegcommon -lpegclient"
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <Pegasus/Common/Config.h>],
+                                    [])],
+                   [AC_MSG_RESULT(found)]
+                   [PEGASUS_LIBS="-lpegcommon -lpegclient"],
+                   [AC_MSG_ERROR([Pegasus libraries are missing])])
+
+    LDFLAGS=$saved_ldflags
+    CFLAGS=$saved_cflags
 fi
-saved_cflags=$CFLAGS
-CFLAGS="$CFLAGS $PEGASUS_CFLAGS"
-AC_CHECK_HEADER(Pegasus/Common/Config.h,,
-                AC_MSG_ERROR([Pegasus development headers are missing]))
-
-# look for pegcommon and pegclient libraries, they are C++ and this
-# is a problem with automake, don't look for symbols !
-saved_ldflags=$LDFLAGS
-PEGASUS_LIBS=
-AC_MSG_CHECKING([for Pegasus libraries])
-LDFLAGS="${LDFLAGS} -lpegcommon -lpegclient"
-AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <Pegasus/Common/Config.h>],
-                                [])],
-               [AC_MSG_RESULT(found)]
-               [PEGASUS_LIBS="-lpegcommon -lpegclient"],
-               [AC_MSG_ERROR([Pegasus libraries are missing])])
-
-
-LDFLAGS=$saved_ldflags
-CFLAGS=$saved_cflags
 
 AC_SUBST(PEGASUS_CFLAGS)
 AC_SUBST(PEGASUS_LIBS)
 
-#Check for python as it is needed for the daemon
+AM_CONDITIONAL([BUILD_SMIS_CPP], [test "x${want_smis_cpp}" = "xyes"])
+
+dnl ==========================================================================
+dnl Check for python as it is needed for the daemon
+dnl ==========================================================================
+
 AM_PATH_PYTHON([2.6], [], AC_MSG_ERROR([Python interpreter 2.6 or later required]) )
 AC_PYTHON_MODULE([pywbem], [Required])
 
