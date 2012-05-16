@@ -159,7 +159,8 @@ if test "x$with_systemdsystemunitdir" != xno; then
 fi
 AM_CONDITIONAL(HAVE_SYSTEMD, [test -n "$with_systemdsystemunitdir" -a "x$with_systemdsystemunitdir" != xno ])
 
-AC_OUTPUT(libstoragemgmt.spec \
+AC_OUTPUT(libstoragemgmt.pc \
+          libstoragemgmt.spec \
           Makefile \
           src/Makefile \
           plugin/Makefile \

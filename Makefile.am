@@ -7,9 +7,13 @@ DISTCHECK_CONFIGURE_FLAGS = --with-systemdsystemunitdir=$$dc_install_base/$(syst
 SUBDIRS= src plugin doc include tools lsm packaging
 
 EXTRA_DIST = \
+	libstoragemgmt.pc.in \
+	libstoragemgmt.pc \
 	libstoragemgmt.spec.in \
 	libstoragemgmt.spec
 
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = libstoragemgmt.pc
 
 #Source code documentation
 docs:

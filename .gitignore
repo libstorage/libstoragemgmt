@@ -19,6 +19,7 @@ stamp-h1
 lsmcli
 smiscli
 *.patch
+libstoragemgmt.pc
 libstoragemgmt.spec
 build-aux
 doxygen.conf

@@ -138,6 +138,7 @@ fi
 %defattr(-,root,root,-)
 %{_includedir}/*
 %{_libdir}/*.so
+%{_libdir}/pkgconfig/libstoragemgmt.pc
 
 %changelog
 * Fri May 11 2012 Tony Asleson <tasleson@redhat.com> @VERSION@-1
