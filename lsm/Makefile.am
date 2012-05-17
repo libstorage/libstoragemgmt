@@ -11,6 +11,7 @@ lsm_PYTHON = lsm/__init__.py           \
                    lsm/iplugin.py      \
                    lsm/na.py           \
                    lsm/pluginrunner.py \
+                   lsm/smis.py         \
                    lsm/transport.py    \
                    lsm/version.py
 
