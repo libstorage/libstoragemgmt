@@ -24,12 +24,12 @@ import textwrap
 import sys
 import getpass
 import datetime
-import lsm
-from lsm.common import LsmError, ErrorNumber
-import lsm.client
-import lsm.data
 import time
-from lsm.version import VERSION
+
+import common
+import client
+import data
+from version import VERSION
 
 ##@package lsm.cmdline
 
@@ -64,7 +64,7 @@ class Wrapper(object):
         if hasattr(self.wrapper, name):
             return functools.partial(self.present, name)
         else:
-            raise LsmError(ErrorNumber.NO_SUPPORT, "Unsupported operation")
+            raise common.LsmError(common.ErrorNumber.NO_SUPPORT, "Unsupported operation")
 
     ## Method which is called to invoke the actual method of interest.
     # @param    self    The object self
@@ -90,7 +90,7 @@ def cmd_line_wrapper(client = None):
     except ArgError as ae:
         sys.stderr.write(str(ae))
         sys.exit(2)
-    except lsm.common.LsmError as le:
+    except common.LsmError as le:
         sys.stderr.write(str(le) + "\n")
         sys.exit(4)
 
@@ -747,13 +747,13 @@ class CmdLine:
     @staticmethod
     def _init_type_to_enum(type):
         if type == 'WWPN':
-            i = lsm.data.Initiator.TYPE_PORT_WWN
+            i = data.Initiator.TYPE_PORT_WWN
         elif type == 'WWNN':
-            i = lsm.data.Initiator.TYPE_NODE_WWN
+            i = data.Initiator.TYPE_NODE_WWN
         elif type == 'ISCSI':
-            i = lsm.data.Initiator.TYPE_ISCSI
+            i = data.Initiator.TYPE_ISCSI
         elif type == 'HOSTNAME':
-            i = lsm.data.Initiator.TYPE_HOSTNAME
+            i = data.Initiator.TYPE_HOSTNAME
         else:
             raise ArgError("invalid initiator type " + type)
         return i
@@ -947,7 +947,7 @@ class CmdLine:
             vol = self._wait_for_it("create-volume",
                 *self.c.volume_create(p, self.cmd_value,
                 self._size(self.options.opt_size),
-                lsm.data.Volume.prov_string_to_type(self.options.provisioning)))
+                data.Volume.prov_string_to_type(self.options.provisioning)))
 
             self.display_volumes([vol])
         else:
@@ -1030,16 +1030,16 @@ class CmdLine:
             #and exit with job in progress
             if self.options.async:
                 print job
-                self.shutdown(lsm.common.ErrorNumber.JOB_STARTED)
+                self.shutdown(common.ErrorNumber.JOB_STARTED)
 
             while True:
                 (s, percent, i) = self.c.job_status(job)
 
-                if s == lsm.common.JobStatus.INPROGRESS:
+                if s == common.JobStatus.INPROGRESS:
                     #Add an option to spit out progress?
                     #print "%s - Percent %s complete" % (job, percent)
                     time.sleep(0.25)
-                elif s == lsm.common.JobStatus.COMPLETE:
+                elif s == common.JobStatus.COMPLETE:
                     self.c.job_free(job)
                     return i
                 else:
@@ -1051,7 +1051,7 @@ class CmdLine:
     def job_status(self):
         (s, percent, i) = self.c.job_status(self.cmd_value)
 
-        if s == lsm.common.JobStatus.COMPLETE:
+        if s == common.JobStatus.COMPLETE:
             if i:
                 self.display_volumes([i])
             self.c.job_free(self.cmd_value)
@@ -1068,8 +1068,8 @@ class CmdLine:
 
         if p and v:
 
-            type = lsm.data.Volume.rep_String_to_type(self.options.opt_type)
-            if type == lsm.data.Volume.REPLICATE_UNKNOWN:
+            type = data.Volume.rep_String_to_type(self.options.opt_type)
+            if type == data.Volume.REPLICATE_UNKNOWN:
                 raise ArgError("invalid replication type= %s" % type)
 
             vol = self._wait_for_it("replicate volume", *self.c.volume_replicate(p, type, v,
@@ -1088,8 +1088,8 @@ class CmdLine:
         dest = self._get_item(self.c.volumes(), self.options.opt_dest)
 
         if src and dest:
-            type = lsm.data.Volume.rep_String_to_type(self.options.opt_type)
-            if type == lsm.data.Volume.REPLICATE_UNKNOWN:
+            type = data.Volume.rep_String_to_type(self.options.opt_type)
+            if type == data.Volume.REPLICATE_UNKNOWN:
                 raise ArgError("invalid replication type= %s" % type)
 
             src_starts = self.options.opt_src_start
@@ -1101,7 +1101,7 @@ class CmdLine:
                 ranges = []
 
                 for i in range(len(src_starts)):
-                    ranges.append(lsm.data.BlockRange(src_starts[i], dest_starts[i], counts[i]))
+                    ranges.append(data.BlockRange(src_starts[i], dest_starts[i], counts[i]))
                 self.c.volume_replicate_range(type, src, dest, ranges)
         else:
             if not src:
@@ -1116,7 +1116,7 @@ class CmdLine:
 
         if group and v:
             if map:
-                access = lsm.data.Volume.access_string_to_type(self.options.opt_access)
+                access = data.Volume.access_string_to_type(self.options.opt_access)
                 self.c.access_group_grant(group, v, access)
             else:
                 self.c.access_group_revoke(group, v)
@@ -1164,7 +1164,7 @@ class CmdLine:
                len(self.options.nfs_ro) == 0:
                 raise ArgError(" please specify --root, --ro or --rw access")
             else:
-                export = lsm.data.NfsExport( 'NA',        #Not needed on create
+                export = data.NfsExport( 'NA',        #Not needed on create
                     fs.id,
                     self.options.opt_exportpath,
                     self.options.authtype,
@@ -1320,7 +1320,7 @@ class CmdLine:
 
         if self.password is not None:
             #Check for username
-            u = lsm.common.uri_parse(self.uri)
+            u = common.uri_parse(self.uri)
             if u['username'] is None:
                 raise ArgError("password specified with no user name in uri")
 
@@ -1337,19 +1337,19 @@ class CmdLine:
     ## Process the specified command
     # @param    self    The this pointer
     # @param    client  The object instance to invoke methods on.
-    def process(self, client = None):
+    def process(self, cli = None):
         """
         Process the parsed command.
         """
-        if client:
+        if cli:
             #Directly invoking code though a wrapper to catch unsupported
             #operations.
-            self.c = Wrapper(client())
+            self.c = Wrapper(cli())
             self.c.startup(self.uri, self.password, self.tmo)
             self.cleanup = self.c.shutdown
         else:
             #Going across the ipc pipe
-            self.c = lsm.client.Client(self.uri,self.password, self.tmo)
+            self.c = client.Client(self.uri,self.password, self.tmo)
 
             if os.getenv('LSM_DEBUG_PLUGIN'):
                 raw_input("Attach debugger to plug-in, press <return> when ready...")

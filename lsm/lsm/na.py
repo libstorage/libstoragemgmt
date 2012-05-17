@@ -18,7 +18,7 @@
 import urllib2
 from xml.etree import ElementTree
 import time
-from lsm.external.xmltodict import ConvertXmlToDict
+from external.xmltodict import ConvertXmlToDict
 
 #Set to an appropriate directory and file to dump the raw response.
 xml_debug = None

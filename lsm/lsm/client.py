@@ -20,7 +20,7 @@ import os
 import unittest
 import urlparse
 from data import Volume, Initiator
-from lsm.iplugin import INetworkAttachedStorage
+from iplugin import INetworkAttachedStorage
 from transport import Transport
 import common
 

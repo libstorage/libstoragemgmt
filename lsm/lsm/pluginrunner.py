@@ -19,7 +19,7 @@ import socket
 import traceback
 import sys
 from common import SocketEOF, LsmError, Error, ErrorNumber
-import lsm.cmdline
+import cmdline
 import transport
 
 class PluginRunner(object):
@@ -62,7 +62,7 @@ class PluginRunner(object):
 
         else:
             self.cmdline = True
-            lsm.cmdline.cmd_line_wrapper(plugin)
+            cmdline.cmd_line_wrapper(plugin)
 
     def run(self):
         #Don't need to invoke this when running stand alone as a cmdline
@@ -110,8 +110,8 @@ class PluginRunner(object):
                 except AttributeError as ae:
                     Error(traceback.format_exc())
                     self.tp.send_error(id, -32601, str(ae))
-                except LsmError as lsm:
-                    self.tp.send_error(id, lsm.code, lsm.msg, lsm.data)
+                except LsmError as lsmerr:
+                    self.tp.send_error(id, lsmerr.code, lsmerr.msg, lsmerr.data)
         except SocketEOF:
             #Client went away
             Error('Client went away, exiting plug-in')

@@ -22,7 +22,7 @@ from common import SocketEOF, LsmError
 from data import DataDecoder, DataEncoder
 import unittest
 import threading
-from lsm import common
+import common
 
 class Transport(object):
     """
