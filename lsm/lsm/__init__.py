@@ -4,6 +4,7 @@ __all__ = [ "client",
             "data",
             "iplugin",
             "pluginrunner",
+            "simulator",
             "smis",
             "transport",
             "version", ]
@@ -16,6 +17,7 @@ from data import DataEncoder, DataDecoder, IData, Initiator, Volume, Pool, \
     FileSystem, Snapshot, NfsExport, BlockRange, AccessGroup
 from iplugin import IPlugin, IStorageAreaNetwork, INetworkAttachedStorage, INfs
 from pluginrunner import PluginRunner
+from simulator import StorageSimulator, SimJob, SimState
 from smis import Smis
 from transport import Transport
 from version import VERSION

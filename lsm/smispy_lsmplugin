@@ -22,8 +22,4 @@ from lsm import PluginRunner
 from lsm import Smis
 
 if __name__ == '__main__':
-    #s = Smis()
-    #s.startup('smispy://client:5988/?namespace=root/ontap', None, 30000)
-    #s.systems()
-
     PluginRunner(Smis, sys.argv).run()
