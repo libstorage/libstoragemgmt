@@ -10,6 +10,7 @@ lsm_PYTHON = lsm/__init__.py           \
                    lsm/data.py         \
                    lsm/iplugin.py      \
                    lsm/na.py           \
+                   lsm/ontap.py        \
                    lsm/pluginrunner.py \
                    lsm/simulator.py    \
                    lsm/smis.py         \
