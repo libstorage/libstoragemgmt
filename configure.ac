@@ -92,7 +92,6 @@ dnl find libxml2 library, borrowed from xmlsec
 dnl ==========================================================================
 
 PKG_CHECK_MODULES([LIBXML], [libxml-2.0])
-PKG_CHECK_MODULES([LIBCHECK], [check >= 0.9.8 ])
 
 dnl ==========================================================================
 dnl Check whether to build SMI-S C++ plugin
@@ -142,6 +141,17 @@ AC_SUBST(PEGASUS_CFLAGS)
 AC_SUBST(PEGASUS_LIBS)
 
 AM_CONDITIONAL([BUILD_SMIS_CPP], [test "x${want_smis_cpp}" = "xyes"])
+
+want_c_unit="yes"
+AC_ARG_ENABLE([build-c-unit],
+    [AC_HELP_STRING([--disable-build-c-unit], [disable building C unit test case.])],
+    [want_c_unit=$enableval], [])
+
+if test "x${want_c_unit}" = "xyes"; then
+    PKG_CHECK_MODULES([LIBCHECK], [check >= 0.9.8 ])
+fi
+
+AM_CONDITIONAL([BUILD_C_UNIT], [test "x${want_c_unit}" = "xyes"])
 
 dnl ==========================================================================
 dnl Check for python as it is needed for the daemon
