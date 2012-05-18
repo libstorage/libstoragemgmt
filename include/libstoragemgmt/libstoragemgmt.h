@@ -28,6 +28,7 @@
 #include "libstoragemgmt_pool.h"
 #include "libstoragemgmt_volumes.h"
 #include "libstoragemgmt_systems.h"
+#include "libstoragemgmt_accessgroups.h"
 
 #ifdef  __cplusplus
 extern "C" {
@@ -281,13 +282,21 @@ extern "C" {
                                             uint32_t *groupCount);
 
     /**
-     * Creates a new access group.
-     * @param[in] conn              Valid connection @see lsmConnectUserPass
-     * @param[in] name              Name of new access group
-     * @return LSM_ERR_OK on success, else error reason.
+     * Creates a new access group with one initiator in it.
+     * @param[in] conn                  Valid connection @see lsmConnectUserPass
+     * @param[in] name                  Name of access group
+     * @param[in] initiator_id          Initiator id to be added to group
+     * @param[in] id_type               Initiator type
+     * @param[in] system_id             System id to create access group for
+     * @param[out] access_group         Returned access group
+     * @return LSM_ERR_OK on success, else error reason
      */
     int LSM_DLL_EXPORT lsmAccessGroupCreate(lsmConnectPtr conn,
-                                                const char *name);
+                                                const char *name,
+                                                const char *initiator_id,
+                                                lsmInitiatorType id_type,
+                                                const char *system_id,
+                                                lsmAccessGroupPtr *access_group);
 
     /**
      * Deletes an access group.
@@ -302,24 +311,28 @@ extern "C" {
      * Adds an initiator to the access group
      * @param[in] conn                  Valid connection @see lsmConnectUserPass
      * @param[in] group                 Group to modify
-     * @param[in] initiator             Initiator to add to group
-     * @param[in] access                Desired access to storage
+     * @param[in] initiator_id          Initiator to add to group
+     * @param[in] id_type               Type of initiator
+     * @param[out] job                  job id
      * @return LSM_ERR_OK on success, else error reason.
      */
     int LSM_DLL_EXPORT lsmAccessGroupAddInitiator(lsmConnectPtr conn,
                                 lsmAccessGroupPtr group,
-                                lsmInitiatorPtr initiator, lsmAccessType access);
+                                const char *initiator_id,
+                                lsmInitiatorType id_type, char **job);
 
     /**
      * Removes an initiator from an access group.
      * @param[in] conn                  Valid connection @see lsmConnectUserPass
      * @param[in] group                 Group to modify
      * @param[in] initiator             Initiator to delete from group
+     * @param[out] job                  job id
      * @return[in] LSM_ERR_OK on success, else error reason.
      */
     int LSM_DLL_EXPORT lsmAccessGroupDelInitiator(lsmConnectPtr conn,
                                                     lsmAccessGroupPtr group,
-                                                    lsmInitiatorPtr initiator);
+                                                    lsmInitiatorPtr initiator,
+                                                    char **job);
 
 
     /**

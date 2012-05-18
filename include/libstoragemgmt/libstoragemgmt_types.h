@@ -20,6 +20,8 @@
 #ifndef LIBSTORAGEMGMT_TYPES_H
 #define LIBSTORAGEMGMT_TYPES_H
 
+#include <stdint.h>
+
 #ifdef  __cplusplus
 extern "C" {
 #endif
@@ -90,6 +92,12 @@ typedef lsmBlockRange *lsmBlockRangePtr;
  */
 typedef struct _lsmSystem lsmSystem;
 typedef lsmSystem *lsmSystemPtr;
+
+/**
+ * Opaque data type for string collection
+ */
+typedef struct _lsmStringList lsmStringList;
+typedef lsmStringList *lsmStringListPtr;
 
 /**
  * Different types of replications that can be created

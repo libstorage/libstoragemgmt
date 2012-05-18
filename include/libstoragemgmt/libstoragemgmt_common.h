@@ -20,6 +20,9 @@
 #ifndef LSM_COMMON_H
 #define LSM_COMMON_H
 
+#include "libstoragemgmt_types.h"
+
+
 #ifdef  __cplusplus
 extern "C" {
 #endif
@@ -39,6 +42,55 @@ extern "C" {
         #define LSM_DLL_LOCAL
     #endif
 #endif
+
+/**
+ * Allocates storage for string line of specified size.
+ * @param size  Number of strings to allocate
+ * @return NULL on error, else valid lsmStringListPtr record pointer
+ */
+lsmStringListPtr LSM_DLL_EXPORT lsmStringListAlloc(uint32_t size);
+
+/**
+ * Frees the memory allocated with the lsmStringListFree
+ * @param sl    Record to free
+ * @return LSM_ERR_OK on success, else error reason.
+ */
+int LSM_DLL_EXPORT lsmStringListFree(lsmStringListPtr sl);
+
+/**
+ * Copies a lsmStringList record.
+ * @param src       Source to copy
+ * @return NULL on error, else copy of source.
+ */
+lsmStringListPtr LSM_DLL_EXPORT lsmStringListCopy(lsmStringListPtr src);
+
+/**
+ * Set the specified element with the passed value.
+ * @param sl        Valid string list pointer
+ * @param index      Element position to set value to
+ * @param value     Value to use for assignment
+ * @return LSM_ERR_OK on success, else error reason
+ */
+int LSM_DLL_EXPORT lsmStringListSetElem(lsmStringListPtr sl, uint32_t index, const char* value);
+
+/**
+ * Returns the value at the specified elem index
+ * @param sl        Valid string list pointer
+ * @param index     Index to retrieve
+ * @return Value at that index position.
+ */
+const char LSM_DLL_EXPORT *lsmStringListGetElem(lsmStringListPtr sl, uint32_t index);
+
+/**
+ * Returns the size of the list
+ * @param sl        Valid string list pointer
+ * @return  size of list, note you cannot create a zero sized list, so
+ *          0 indicates error with structure
+ *
+ */
+uint32_t LSM_DLL_EXPORT lsmStringListSize(lsmStringListPtr sl);
+
+
 
 #ifdef  __cplusplus
 }

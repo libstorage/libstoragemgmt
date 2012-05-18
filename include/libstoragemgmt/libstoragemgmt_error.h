@@ -79,6 +79,14 @@ typedef enum {
     LSM_ERR_MISSING_HOST = 28,          /**< Missing or invalid hostname */
     LSM_ERR_MISSING_PORT = 29,          /**< Missing port */
     LSM_ERR_MISSING_NS = 30,            /**< Missing namespace */
+    LSM_ERR_INITIATOR_EXISTS = 31,      /**< Initiator exists */
+    LSM_ERR_UNSUPPORTED_INITIATOR_TYPE = 32,    /**< Unsupported initiator type */
+    LSM_ERR_ACCESS_GROUP_EXISTS = 33,           /**< Access group exists */
+    LSM_ERR_ACCESS_GROUP_NOT_FOUND = 34,        /**< Access group not found */
+    LSM_ERR_INITIATOR_NOT_IN_ACCESS_GROUP = 35, /**< Initiator not in access group */
+    LSM_ERR_INVALID_SL = 36,            /**< Invalid string list */
+    LSM_ERR_INDEX_BOUNDS = 37,          /**< Out of bounds on string index */
+    LSM_ERR_INVALID_ACCESS_GROUP = 38,      /**< Invalid access group */
     LSM_ERR_AUTH_FAILED = 45,           /**< Authorization failed */
 
 } lsmErrorNumber;

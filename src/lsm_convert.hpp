@@ -79,4 +79,18 @@ lsmSystem *valueToSystem(Value &system);
  */
 Value systemToValue(lsmSystem *system);
 
+/**
+ * Converts a Value to a lsmAccessGroup
+ * @param group to convert to lsmAccessGroup*
+ * @return lsmAccessGroup *, NULL on error
+ */
+lsmAccessGroup *valueToAccessGroup(Value &group);
+
+/**
+ * Converts a lsmAccessGroupPtr to a Value
+ * @param group     Group to convert
+ * @return Value, null value type on error.
+ */
+Value accessGroupToValue(lsmAccessGroupPtr group);
+
 #endif

@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include <libstoragemgmt/libstoragemgmt.h>
 
+#include <inttypes.h>
 
 const char url[] = "sim://";
 const char SYSTEM_NAME[] = "LSM simulated storage plug-in";
@@ -352,7 +353,93 @@ START_TEST(test_access_groups)
 {
     lsmErrorPtr e = NULL;
     fail_unless(c!=NULL);
+    lsmAccessGroupPtr *groups = NULL;
+    lsmAccessGroupPtr group = NULL;
+    uint32_t count = 0;
+    uint32_t i = 0;
 
+    int rc = lsmAccessGroupList(c, &groups, &count);
+    fail_unless(LSM_ERR_OK == rc, "Expected success on listing access groups %d", rc);
+    fail_unless(count == 0, "Expect 0 access groups, got %"PRIu32, count);
+
+    rc = lsmAccessGroupCreate(c, "access_group_test", "iqn.1994-05.com.domain:01.89bd01", LSM_INITIATOR_ISCSI, SYSTEM_ID, &group);
+
+    if( LSM_ERR_OK == rc ) {
+        lsmStringListPtr init_list = lsmAccessGroupInitiatorIdGet(group);
+
+
+
+        printf("%s - %s - %s\n",    lsmAccessGroupIdGet(group),
+                                    lsmAccessGroupNameGet(group),
+                                    lsmAccessGroupSystemIdGet(group));
+
+        fail_unless(NULL != lsmAccessGroupIdGet(group));
+        fail_unless(NULL != lsmAccessGroupNameGet(group));
+        fail_unless(NULL != lsmAccessGroupSystemIdGet(group));
+
+        lsmAccessGroupPtr copy = lsmAccessGroupRecordCopy(group);
+        if( copy ) {
+            fail_unless( strcmp(lsmAccessGroupIdGet(group), lsmAccessGroupIdGet(copy)) == 0);
+            fail_unless( strcmp(lsmAccessGroupNameGet(group), lsmAccessGroupNameGet(copy)) == 0) ;
+            fail_unless( strcmp(lsmAccessGroupSystemIdGet(group), lsmAccessGroupSystemIdGet(copy)) == 0);
+
+            lsmAccessGroupRecordFree(copy);
+        }
+
+        lsmStringListFree(init_list);
+    }
+
+    lsmAccessGroupRecordFreeArray(groups, count);
+
+    rc = lsmAccessGroupList(c, &groups, &count);
+    fail_unless( LSM_ERR_OK == rc);
+    fail_unless( 1 == count );
+
+    lsmAccessGroupRecordFreeArray(groups, count);
+
+    char *job = NULL;
+
+    rc = lsmAccessGroupAddInitiator(c, group, "iqn.1994-05.com.domain:01.89bd02", LSM_INITIATOR_ISCSI, &job);
+
+    fail_unless(LSM_ERR_OK == rc, "Expected success on lsmAccessGroupAddInitiator %d", rc);
+
+    rc = lsmAccessGroupList(c, &groups, &count);
+    fail_unless( LSM_ERR_OK == rc);
+    fail_unless( 1 == count );
+
+    lsmStringListPtr init_list = lsmAccessGroupInitiatorIdGet(groups[0]);
+    fail_unless( lsmStringListSize(init_list) == 2 );
+    for( i = 0; i < lsmStringListSize(init_list); ++i) {
+        printf("%d = %s\n", i, lsmStringListGetElem(init_list, i));
+    }
+    lsmStringListFree(init_list);
+
+
+    uint32_t init_list_count = 0;
+    lsmInitiatorPtr *inits = NULL;
+    rc = lsmInitiatorList(c, &inits, &init_list_count);
+
+    fail_unless(LSM_ERR_OK == rc );
+    printf("We have %d initiators\n", init_list_count);
+
+    fail_unless(2 == init_list_count);
+
+    for( i = 0; i < init_list_count; ++i ) {
+        printf("Deleting initiator %s from group!\n", lsmInitiatorIdGet(inits[i]));
+        rc = lsmAccessGroupDelInitiator(c, groups[0], inits[i], &job);
+        fail_unless(LSM_ERR_OK == rc);
+    }
+
+    lsmAccessGroupRecordFreeArray(groups, count);
+
+    rc = lsmAccessGroupList(c, &groups, &count);
+    fail_unless( LSM_ERR_OK == rc);
+    fail_unless( 1 == count );
+
+    init_list = lsmAccessGroupInitiatorIdGet(groups[0]);
+    fail_unless( init_list == NULL);
+
+    lsmAccessGroupRecordFreeArray(groups, count);
 
 }
 

@@ -586,32 +586,176 @@ int lsmVolumeOffline(lsmConnectPtr conn, lsmVolumePtr volume)
     return LSM_ERR_NO_SUPPORT;
 }
 
-int lsmAccessGroupList( lsmConnectPtr conn, lsmAccessGroupPtr **groups,
+int lsmAccessGroupList( lsmConnectPtr c, lsmAccessGroupPtr **groups,
                         uint32_t *groupCount)
 {
-    return LSM_ERR_NO_SUPPORT;
+    CONN_SETUP(c);
+
+    if( !groups || !groupCount ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "access_group_list", parameters, response);
+    if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+        std::vector<Value> ag = response.asArray();
+
+        *groupCount = ag.size();
+
+        if( ag.size() ) {
+            *groups = lsmAccessGroupRecordAllocArray(ag.size());
+
+            for( size_t i = 0; i < ag.size(); ++i ) {
+                (*groups)[i] = valueToAccessGroup(ag[i]);
+            }
+        }
+    }
+    return rc;
 }
 
-int lsmAccessGroupCreate( lsmConnectPtr conn, const char *name)
+int lsmAccessGroupCreate(lsmConnectPtr c, const char *name,
+                            const char *initiator_id, lsmInitiatorType id_type,
+                            const char *system_id, lsmAccessGroupPtr *access_group)
 {
-    return LSM_ERR_NO_SUPPORT;
+    CONN_SETUP(c);
+
+    if( !name || !initiator_id || !id_type || !system_id ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["name"] = Value(name);
+    p["initiator_id"] = Value(initiator_id);
+    p["id_type"] = Value((int32_t)id_type);
+    p["system_id"] = Value(system_id);
+
+    Value parameters(p);
+    Value response;
+
+    *access_group = NULL;
+
+    int rc = rpc(c, "access_group_create", parameters, response);
+    if( LSM_ERR_OK == rc ) {
+        //We should be getting a value back.
+        if( Value::object_t == response.valueType() ) {
+            *access_group = valueToAccessGroup(response);
+        }
+    }
+    return rc;
 }
 
-int lsmAccessGroupDel( lsmConnectPtr conn, lsmAccessGroupPtr group)
+int lsmAccessGroupDel(lsmConnectPtr c, lsmAccessGroupPtr group, char **job)
 {
-    return LSM_ERR_NO_SUPPORT;
+    CONN_SETUP(c);
+
+    if( !LSM_IS_ACCESS_GROUP(group) ){
+        return LSM_ERR_INVALID_ACCESS_GROUP;
+    }
+
+    std::map<std::string, Value> p;
+    p["group"] = accessGroupToValue(group);
+
+    Value parameters(p);
+    Value response;
+
+    *job = NULL;
+
+    int rc = rpc(c, "access_group_del", parameters, response);
+    if( LSM_ERR_OK == rc ) {
+        //We get a value back, either null or job id.
+        if( Value::string_t == response.valueType() ) {
+            *job = strdup(response.asString().c_str());
+
+            if( *job ) {
+                rc = LSM_ERR_JOB_STARTED;
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
+        }
+    }
+    return rc;
 }
 
-int lsmAccessGroupAddInitiator( lsmConnectPtr conn, lsmAccessGroupPtr group,
-                                lsmInitiatorPtr initiator, lsmAccessType access)
+int lsmAccessGroupAddInitiator(lsmConnectPtr c,
+                                lsmAccessGroupPtr group,
+                                const char *initiator_id,
+                                lsmInitiatorType id_type,
+                                char **job)
 {
-    return LSM_ERR_NO_SUPPORT;
+    CONN_SETUP(c);
+
+    if( !LSM_IS_ACCESS_GROUP(group) ) {
+        return LSM_ERR_INVALID_ACCESS_GROUP;
+    }
+
+    if( !initiator_id || !job) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["group"] = accessGroupToValue(group);
+    p["initiator_id"] = initiator_id;
+    p["id_type"] = Value((int32_t)id_type);
+
+    Value parameters(p);
+    Value response;
+
+    *job = NULL;
+
+    int rc = rpc(c, "access_group_add_initiator", parameters, response);
+    if( LSM_ERR_OK == rc ) {
+        //We get a value back, either null or job id.
+        if( Value::string_t == response.valueType() ) {
+            *job = strdup(response.asString().c_str());
+
+            if( *job ) {
+                rc = LSM_ERR_JOB_STARTED;
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
+        }
+    }
+    return rc;
 }
 
-int lsmAccessGroupDelInitiator( lsmConnectPtr conn, lsmAccessGroupPtr group,
-                                lsmInitiatorPtr initiator)
+int lsmAccessGroupDelInitiator(lsmConnectPtr c, lsmAccessGroupPtr group,
+                                lsmInitiatorPtr initiator, char **job)
 {
-    return LSM_ERR_NO_SUPPORT;
+    CONN_SETUP(c);
+
+    if( !LSM_IS_ACCESS_GROUP(group)) {
+        return LSM_ERR_INVALID_ACCESS_GROUP;
+    }
+
+    if( !LSM_IS_INIT(initiator) ){
+        return LSM_ERR_INVALID_INIT;
+    }
+
+    std::map<std::string, Value> p;
+    p["group"] = accessGroupToValue(group);
+    p["initiator"] = initiatorToValue(initiator);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "access_group_del_initiator", parameters, response);
+
+    if( LSM_ERR_OK == rc ) {
+        //We get a value back, either null or job id.
+        if( Value::string_t == response.valueType() ) {
+            *job = strdup(response.asString().c_str());
+
+            if( *job ) {
+                rc = LSM_ERR_JOB_STARTED;
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
+        }
+    }
+    return rc;
 }
 
 int lsmSystemList(lsmConnectPtr c, lsmSystemPtr **systems,

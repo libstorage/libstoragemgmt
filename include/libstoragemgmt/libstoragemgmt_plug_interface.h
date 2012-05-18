@@ -277,15 +277,25 @@ lsmSystemPtr LSM_DLL_EXPORT *lsmSystemRecordAllocArray( uint32_t size );
 lsmSystemPtr LSM_DLL_EXPORT lsmSystemRecordAlloc( const char *id,
                                                   const char *name );
 
+/**
+ * Allocates storage for AccessGroup array
+ * @param size      Number of elements to store.
+ * @return  NULL on error, else pointer to array for use.
+ */
+lsmAccessGroupPtr LSM_DLL_EXPORT *lsmAccessGroupRecordAllocArray( uint32_t size);
 
 
-lsmAccessGroupPtr LSM_DLL_EXPORT *lsmAccessGroupAllocArray( uint32_t size);
-
-
-lsmAccessGroupPtr LSM_DLL_EXPORT lsmAccessGroupAlloc(const char *id,
+/**
+ * Allocates storage for single AccessGroup
+ * @param id                ID of access group
+ * @param name              Name of access group
+ * @param initiators        List of initiators, can be NULL
+ * @param system_id         System id
+ * @return NULL on error, else valid AccessGroup pointer.
+ */
+lsmAccessGroupPtr LSM_DLL_EXPORT lsmAccessGroupRecordAlloc(const char *id,
                                                      const char *name,
-                                                     const char **initiator_ids,
-                                                     const uint32_t num_init,
+                                                     lsmStringListPtr initiators,
                                                      const char *system_id);
 
 #ifdef  __cplusplus

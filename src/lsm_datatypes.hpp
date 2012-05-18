@@ -22,7 +22,6 @@
 
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 #include <libstoragemgmt/libstoragemgmt_common.h>
-#include <stdint.h>
 #include <libxml/uri.h>
 #include "lsm_ipc.hpp"
 
@@ -96,7 +95,7 @@ struct _lsmAccessGroup {
     char *id;
     char *name;
     char *system_id;
-    std::vector<std::string> initiator_id;
+    lsmStringList *initiators;
 };
 
 #define LSM_FILE_SYSTEM_MAGIC  0xFEED1339
@@ -230,6 +229,17 @@ struct LSM_DLL_LOCAL _lsmError {
     char *debug;                /**< Debug message */
     void *debug_data;           /**< Debug data */
     uint32_t debug_data_size;   /**< Size of the data */
+};
+
+/**
+ * Used to house string collection.
+ */
+#define LSM_STRING_LIST_MAGIC       0xDEAD0001
+#define LSM_IS_STRING_LIST(obj)     MAGIC_CHECK(obj, LSM_STRING_LIST_MAGIC)
+struct LSM_DLL_LOCAL _lsmStringList {
+    uint32_t    magic;          /**< Magic value */
+    uint32_t    size;          /**< Number of elements */
+    char *values[0];
 };
 
 /**

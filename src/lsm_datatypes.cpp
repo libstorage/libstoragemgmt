@@ -24,6 +24,7 @@
 #include <stdio.h>
 
 #include "lsm_datatypes.hpp"
+#include <libstoragemgmt/libstoragemgmt_common.h>
 #include <libstoragemgmt/libstoragemgmt_volumes.h>
 #include <libstoragemgmt/libstoragemgmt_pool.h>
 #include <libstoragemgmt/libstoragemgmt_initiators.h>
@@ -43,6 +44,99 @@ extern "C" {
 
 #define LSM_DEFAULT_PLUGIN_DIR "/var/run/lsm/ipc"
 
+lsmStringListPtr lsmStringListAlloc(uint32_t size)
+{
+    lsmStringList *rc = NULL;
+
+    if( size ) {
+        size_t s = sizeof(lsmStringList) + (sizeof(char*) * size);
+        rc = (lsmStringList *)calloc(1, s);
+        if( rc ) {
+            rc->magic = LSM_STRING_LIST_MAGIC;
+            rc->size = size;
+        }
+    }
+    return rc;
+}
+
+lsmStringListPtr lsmStringListCopy(lsmStringListPtr src)
+{
+    lsmStringList *dest = NULL;
+
+    if( LSM_IS_STRING_LIST(src) ) {
+        dest = lsmStringListAlloc(src->size);
+
+        if( dest ) {
+            uint32_t i;
+            for( i = 0; i < src->size ; ++i ) {
+                if ( LSM_ERR_OK != lsmStringListSetElem(dest, i,
+                        lsmStringListGetElem(src, i))) {
+                    /** We had an allocation failure setting an element item */
+                    lsmStringListFree(dest);
+                    dest = NULL;
+                    break;
+                }
+            }
+        }
+    }
+    return dest;
+}
+
+int lsmStringListFree(lsmStringListPtr sl)
+{
+    if( LSM_IS_STRING_LIST(sl) ) {
+        uint32_t i;
+        for(i = 0; i < sl->size; ++i ) {
+            free(sl->values[i]);
+            sl->values[i] = '\0';
+        }
+        sl->magic = 0;
+        free(sl);
+        return LSM_ERR_OK;
+    }
+    return LSM_ERR_INVALID_SL;
+}
+
+int lsmStringListSetElem(lsmStringListPtr sl, uint32_t index,
+                                            const char* value)
+{
+    int rc = LSM_ERR_OK;
+    if( LSM_IS_STRING_LIST(sl) ) {
+        if( index < sl->size ) {
+            if( sl->values[index] ) {
+                //There is a value here, free it!
+                free(sl->values[index]);
+            }
+            sl->values[index] = strdup(value);
+            if( !sl->values[index] ) {
+                rc = LSM_ERR_NO_MEMORY;
+            }
+        } else {
+            rc = LSM_ERR_INDEX_BOUNDS;
+        }
+    } else {
+        rc = LSM_ERR_INVALID_SL;
+    }
+    return rc;
+}
+
+const char *lsmStringListGetElem(lsmStringListPtr sl, uint32_t index)
+{
+    if( LSM_IS_STRING_LIST(sl) ) {
+        if( index < sl->size ) {
+            return sl->values[index];
+        }
+    }
+    return NULL;
+}
+
+uint32_t lsmStringListSize(lsmStringListPtr sl)
+{
+    if( LSM_IS_STRING_LIST(sl) ) {
+        return sl->size;
+    }
+    return 0;
+}
 
 lsmConnectPtr getConnection()
 {
@@ -313,9 +407,9 @@ rtype *name(uint32_t size)                  \
 /**
  * Common macro for freeing the memory associated with one of these
  * data structures.
- * @param name      Name of function to create
- * @param free_func Function to call to free one of the elements
- * @param type      Type to dispose of
+ * @param name              Name of function to create
+ * @param free_func         Function to call to free one of the elements
+ * @param record_type       Type to record
  * @return None
  */
 #define CREATE_FREE_ARRAY_FUNC(name, free_func, record_type)\
@@ -655,24 +749,95 @@ uint32_t lsmVolumeOpStatusGet(lsmVolumePtr v)
     VOL_GET(v, status);
 }
 
-char LSM_DLL_EXPORT *lsmVolumeGetSystemId( lsmVolumePtr v)
+char LSM_DLL_EXPORT *lsmVolumeGetSystemIdGet( lsmVolumePtr v)
 {
     VOL_GET(v, system_id);
 }
 
-CREATE_ALLOC_ARRAY_FUNC(lsmAccessGroupAllocArray, lsmAccessGroupPtr)
+CREATE_ALLOC_ARRAY_FUNC(lsmAccessGroupRecordAllocArray, lsmAccessGroupPtr)
 
-void lsmAccessGroupFree(lsmAccessGroupPtr ag)
+lsmAccessGroupPtr lsmAccessGroupRecordAlloc(const char *id,
+                                        const char *name,
+                                        lsmStringListPtr initiators,
+                                        const char *system_id)
+{
+    lsmAccessGroup *rc = NULL;
+    if( id && name && initiators && system_id ) {
+        rc = (lsmAccessGroup *)malloc(sizeof(lsmAccessGroup));
+        if( rc ) {
+            rc->magic = LSM_ACCESS_GROUP_MAGIC;
+            rc->id = strdup(id);
+            rc->name = strdup(name);
+            rc->system_id = strdup(system_id);
+            rc->initiators = lsmStringListCopy(initiators);
+
+            if( !rc->id || !rc->name || !rc->system_id || !rc->initiators ) {
+                rc->magic = 0;
+                free(rc->id);
+                free(rc->name);
+                free(rc->system_id);
+                lsmStringListFree(rc->initiators);
+                free(rc);
+                rc = NULL;
+            }
+        }
+    }
+    return rc;
+}
+
+lsmAccessGroupPtr lsmAccessGroupRecordCopy( lsmAccessGroupPtr ag )
+{
+    lsmAccessGroup *rc = NULL;
+    if( LSM_IS_ACCESS_GROUP(ag) ) {
+        rc = lsmAccessGroupRecordAlloc(ag->id, ag->name, ag->initiators, ag->system_id);
+    }
+    return rc;
+}
+
+void lsmAccessGroupRecordFree(lsmAccessGroupPtr ag)
 {
     if( LSM_IS_ACCESS_GROUP(ag) ) {
-
+        ag->magic = 0;
+        free(ag->id);
+        free(ag->name);
+        free(ag->system_id);
+        lsmStringListFree(ag->initiators);
+        free(ag);
     }
 }
 
-
-CREATE_FREE_ARRAY_FUNC(lsmAccessGroupFreeArray, lsmAccessGroupFree,
+CREATE_FREE_ARRAY_FUNC(lsmAccessGroupRecordFreeArray, lsmAccessGroupRecordFree,
                         lsmAccessGroupPtr)
 
+const char *lsmAccessGroupIdGet( lsmAccessGroupPtr group )
+{
+    if( LSM_IS_ACCESS_GROUP(group) ) {
+        return group->id;
+    }
+    return NULL;
+}
+const char *lsmAccessGroupNameGet( lsmAccessGroupPtr group )
+{
+    if( LSM_IS_ACCESS_GROUP(group) ) {
+        return group->name;
+    }
+    return NULL;
+}
+const char *lsmAccessGroupSystemIdGet( lsmAccessGroupPtr group )
+{
+    if( LSM_IS_ACCESS_GROUP(group) ) {
+        return group->system_id;
+    }
+    return NULL;
+}
+
+lsmStringListPtr lsmAccessGroupInitiatorIdGet( lsmAccessGroupPtr group )
+{
+    if( LSM_IS_ACCESS_GROUP(group) ) {
+        return group->initiators;
+    }
+    return NULL;
+}
 
 lsmErrorPtr lsmErrorGetLast(lsmConnectPtr c)
 {
@@ -683,14 +848,6 @@ lsmErrorPtr lsmErrorGetLast(lsmConnectPtr c)
     }
     return NULL;
 }
-
-
-
-lsmAccessGroupPtr LSM_DLL_EXPORT lsmAccessGroupAlloc(const char *id,
-                                                     const char *name,
-                                                     const char **initiator_ids,
-                                                     const uint32_t num_init,
-                                                     const char *system_id);
 
 #ifdef  __cplusplus
 }
