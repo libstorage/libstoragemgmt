@@ -130,6 +130,22 @@ static int rpc(lsmConnectPtr c, const char *method, const Value &parameters,
     return LSM_ERR_OK;
 }
 
+static int jobCheck( int rc, Value &response, char **job )
+{
+    if( LSM_ERR_OK == rc ) {
+        //We get a value back, either null or job id.
+        if( Value::string_t == response.valueType() ) {
+            *job = strdup(response.asString().c_str());
+
+            if( *job ) {
+                rc = LSM_ERR_JOB_STARTED;
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
+        }
+    }
+    return rc;
+}
 
 int lsmConnectClose(lsmConnectPtr c)
 {
@@ -539,18 +555,7 @@ int lsmAccessGrant( lsmConnectPtr c, lsmInitiatorPtr i, lsmVolumePtr v,
     Value response;
 
     int rc = rpc(c, "access_grant", parameters, response);
-    if( LSM_ERR_OK == rc ) {
-        //We get a value back, either null or job id.
-        if( Value::string_t == response.valueType() ) {
-            *job = strdup(response.asString().c_str());
-
-            if( *job ) {
-                rc = LSM_ERR_JOB_STARTED;
-            } else {
-                rc = LSM_ERR_NO_MEMORY;
-            }
-        }
-    }
+    rc = jobCheck(rc, response, job);
     return rc;
 }
 
@@ -664,18 +669,7 @@ int lsmAccessGroupDel(lsmConnectPtr c, lsmAccessGroupPtr group, char **job)
     *job = NULL;
 
     int rc = rpc(c, "access_group_del", parameters, response);
-    if( LSM_ERR_OK == rc ) {
-        //We get a value back, either null or job id.
-        if( Value::string_t == response.valueType() ) {
-            *job = strdup(response.asString().c_str());
-
-            if( *job ) {
-                rc = LSM_ERR_JOB_STARTED;
-            } else {
-                rc = LSM_ERR_NO_MEMORY;
-            }
-        }
-    }
+    rc = jobCheck(rc, response, job);
     return rc;
 }
 
@@ -706,18 +700,7 @@ int lsmAccessGroupAddInitiator(lsmConnectPtr c,
     *job = NULL;
 
     int rc = rpc(c, "access_group_add_initiator", parameters, response);
-    if( LSM_ERR_OK == rc ) {
-        //We get a value back, either null or job id.
-        if( Value::string_t == response.valueType() ) {
-            *job = strdup(response.asString().c_str());
-
-            if( *job ) {
-                rc = LSM_ERR_JOB_STARTED;
-            } else {
-                rc = LSM_ERR_NO_MEMORY;
-            }
-        }
-    }
+    rc = jobCheck(rc, response, job);
     return rc;
 }
 
@@ -742,19 +725,60 @@ int lsmAccessGroupDelInitiator(lsmConnectPtr c, lsmAccessGroupPtr group,
     Value response;
 
     int rc = rpc(c, "access_group_del_initiator", parameters, response);
+    rc = jobCheck(rc, response, job);
+    return rc;
+}
 
-    if( LSM_ERR_OK == rc ) {
-        //We get a value back, either null or job id.
-        if( Value::string_t == response.valueType() ) {
-            *job = strdup(response.asString().c_str());
+int lsmAccessGroupGrant(lsmConnectPtr c, lsmAccessGroupPtr group,
+                                            lsmVolumePtr volume,
+                                            lsmAccessType access, char **job)
+{
+    CONN_SETUP(c);
 
-            if( *job ) {
-                rc = LSM_ERR_JOB_STARTED;
-            } else {
-                rc = LSM_ERR_NO_MEMORY;
-            }
-        }
+    if( !LSM_IS_ACCESS_GROUP(group)) {
+        return LSM_ERR_INVALID_ACCESS_GROUP;
     }
+
+    if( !LSM_IS_VOL(volume)) {
+        return LSM_ERR_INVALID_VOL;
+    }
+
+    std::map<std::string, Value> p;
+    p["group"] = accessGroupToValue(group);
+    p["volume"] = volumeToValue(volume);
+    p["access"] = Value((int32_t)access);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "access_group_grant", parameters, response);
+    rc = jobCheck(rc, response, job);
+    return rc;
+}
+
+
+int lsmAccessGroupRevoke(lsmConnectPtr c, lsmAccessGroupPtr group,
+                                            lsmVolumePtr volume, char **job)
+{
+    CONN_SETUP(c);
+
+    if( !LSM_IS_ACCESS_GROUP(group)) {
+        return LSM_ERR_INVALID_ACCESS_GROUP;
+    }
+
+    if( !LSM_IS_VOL(volume)) {
+        return LSM_ERR_INVALID_VOL;
+    }
+
+    std::map<std::string, Value> p;
+    p["group"] = accessGroupToValue(group);
+    p["volume"] = volumeToValue(volume);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "access_group_revoke", parameters, response);
+    rc = jobCheck(rc, response, job);
     return rc;
 }
 

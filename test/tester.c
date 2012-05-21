@@ -25,12 +25,59 @@
 
 #include <inttypes.h>
 
-const char url[] = "sim://";
+const char uri[] = "sim://localhost/?statefile=/tmp/lsm_sim_%s";
 const char SYSTEM_NAME[] = "LSM simulated storage plug-in";
 const char SYSTEM_ID[] = "sim-01";
+const char *ISCSI_HOST[2] = { "iqn.1994-05.com.domain:01.89bd01", "iqn.1994-05.com.domain:01.89bd02" };
 
 lsmConnectPtr c = NULL;
 
+void generateRandom(char *buff, uint32_t len)
+{
+    uint32_t i = 0;
+    static int seed = 0;
+
+    if( !seed ) {
+        seed = time(NULL);
+        srandom(seed);
+    }
+
+    if( buff && (len > 1) ) {
+        for(i = 0; i < (len - 1); ++i) {
+            buff[i] = 97 + rand()%26;
+        }
+		buff[len-1] = '\0';
+    }
+}
+
+char *stateName()
+{
+    static char fn[128];
+    static char name[32];
+    generateRandom(name, sizeof(name));
+    snprintf(fn, sizeof(fn),  uri, name);
+    return fn;
+}
+
+lsmPoolPtr getTestPool(lsmConnectPtr c)
+{
+    lsmPoolPtr *pools = NULL;
+    uint32_t count = 0;
+    lsmPoolPtr test_pool = NULL;
+
+    int rc = lsmPoolList(c, &pools, &count);
+    if( LSM_ERR_OK == rc ) {
+        uint32_t i = 0;
+        for(i = 0; i < count; ++i ) {
+            if(strcmp(lsmPoolNameGet(pools[i]), "lsm_test_aggr") == 0 ) {
+                test_pool = lsmPoolRecordCopy(pools[i]);
+                lsmPoolRecordFreeArray(pools, count);
+                break;
+            }
+        }
+    }
+    return test_pool;
+}
 
 void dump_error(lsmErrorPtr e)
 {
@@ -50,7 +97,7 @@ void setup(void)
 {
     lsmErrorPtr e;
 
-    int rc = lsmConnectPassword(url, NULL, &c, 30000, &e);
+    int rc = lsmConnectPassword(stateName(), NULL, &c, 30000, &e);
     if( rc ) {
         printf("rc= %d\n", rc);
         dump_error(e);
@@ -184,12 +231,8 @@ void create_volumes(lsmConnectPtr c, lsmPoolPtr p, int num)
 START_TEST(test_smoke_test)
 {
     uint32_t i = 0;
-    lsmConnectPtr c;
     lsmErrorPtr e;
-
-    //Get connected.
-    int rc = lsmConnectPassword(url, NULL, &c, 30000, &e);
-    fail_unless(LSM_ERR_OK == rc, "Bad rc on connect %d %s", rc, error(e));
+    int rc = 0;
 
     lsmPoolPtr selectedPool = NULL;
     uint32_t poolCount = 0;
@@ -341,9 +384,6 @@ START_TEST(test_smoke_test)
     }
 
     mapping(c);
-
-    rc = lsmConnectClose(c);
-    fail_unless(LSM_ERR_OK == rc, "Expected OK on close %d", rc);
 }
 
 END_TEST
@@ -352,11 +392,12 @@ END_TEST
 START_TEST(test_access_groups)
 {
     lsmErrorPtr e = NULL;
-    fail_unless(c!=NULL);
     lsmAccessGroupPtr *groups = NULL;
     lsmAccessGroupPtr group = NULL;
     uint32_t count = 0;
     uint32_t i = 0;
+
+    fail_unless(c!=NULL);
 
     int rc = lsmAccessGroupList(c, &groups, &count);
     fail_unless(LSM_ERR_OK == rc, "Expected success on listing access groups %d", rc);
@@ -445,6 +486,46 @@ START_TEST(test_access_groups)
 
 END_TEST
 
+START_TEST(test_access_groups_grant_revoke)
+{
+    fail_unless(c!=NULL);
+    lsmAccessGroupPtr group;
+    int rc = 0;
+    lsmPoolPtr pool = getTestPool(c);
+    char *job = NULL;
+    lsmVolumePtr n = NULL;
+
+    fail_unless(pool != NULL);
+
+    rc = lsmAccessGroupCreate(c, "access_group_grant_test",
+                                   ISCSI_HOST[0], LSM_INITIATOR_ISCSI, SYSTEM_ID,
+                                    &group);
+
+    fail_unless( LSM_ERR_OK == rc );
+
+    int vc = lsmVolumeCreate(c, pool, "volume_grant_test", 20000000,
+                                    LSM_PROVISION_DEFAULT, &n, &job);
+
+    fail_unless( vc == LSM_ERR_OK || vc == LSM_ERR_JOB_STARTED,
+            "lsmVolumeCreate %d (%s)", vc, error(lsmErrorGetLast(c)));
+
+    if( LSM_ERR_JOB_STARTED == vc ) {
+        n = wait_for_job(c, &job);
+    }
+
+    fail_unless(n != NULL);
+
+    rc = lsmAccessGroupGrant(c, group, n, LSM_VOLUME_ACCESS_READ_WRITE, &job);
+    fail_unless(LSM_ERR_OK == rc);
+
+    rc = lsmAccessGroupRevoke(c, group, n, &job);
+    fail_unless(LSM_ERR_OK == rc);
+
+    lsmVolumeRecordFree(n);
+    lsmPoolRecordFree(pool);
+}
+END_TEST
+
 START_TEST(test_systems)
 {
     uint32_t count = 0;
@@ -482,6 +563,7 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_smoke_test);
     tcase_add_test(basic, test_access_groups);
     tcase_add_test(basic, test_systems);
+    tcase_add_test(basic, test_access_groups_grant_revoke);
     suite_add_tcase(s, basic);
 
 

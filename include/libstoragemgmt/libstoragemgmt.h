@@ -334,6 +334,31 @@ extern "C" {
                                                     lsmInitiatorPtr initiator,
                                                     char **job);
 
+    /**
+     * Grants access to a volume for the specified group
+     * @param[in] conn                  Valid connection
+     * @param[in] group                 Valid group pointer
+     * @param[in] volume                Valid volume pointer
+     * @param[in] access                Desired access
+     * @param[out] job                  job id if all async.
+     * @return LSM_ERR_OK on success, else error reason.
+     */
+    int LSM_DLL_EXPORT lsmAccessGroupGrant(lsmConnectPtr conn,
+                                            lsmAccessGroupPtr group,
+                                            lsmVolumePtr volume,
+                                            lsmAccessType access, char **job);
+
+    /**
+     * Revokes access to a volume for the specified group
+     * @param[in] conn                  Valid connection
+     * @param[in] group                 Valid group pointer
+     * @param[in] volume                Valid volume pointer
+     * @param[out] job                  job id if all async.
+     * @return LSM_ERR_OK on success, else error reason.
+     */
+    int LSM_DLL_EXPORT lsmAccessGroupRevoke(lsmConnectPtr conn,
+                                            lsmAccessGroupPtr group,
+                                            lsmVolumePtr volume, char **job);
 
     /**
      * Retrieves information about the different arrays accessible.

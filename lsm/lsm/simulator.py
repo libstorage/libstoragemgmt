@@ -18,13 +18,13 @@
 import os
 
 from iplugin import IStorageAreaNetwork
-from common import LsmError, ErrorNumber, JobStatus, md5
+from common import LsmError, ErrorNumber, JobStatus, md5, uri_parse
 import random
 from data import Pool, Initiator, Volume, BlockRange, System, AccessGroup
 import time
 import pickle
 
-state = '/tmp/lsm_sim_data'
+SIM_DATA_FILE = '/tmp/lsm_sim_data'
 duration = os.getenv("LSM_SIM_TIME", 8)
 
 class SimJob(object):
@@ -128,14 +128,14 @@ class StorageSimulator(IStorageAreaNetwork):
 
     def _load(self):
         tmp = None
-        if os.path.exists(state):
-            f = open(state, 'rb')
+        if os.path.exists(self.file):
+            f = open(self.file, 'rb')
             tmp = pickle.load(f)
             f.close()
         return tmp
 
     def _save(self):
-        f = open(state, 'wb')
+        f = open(self.file, 'wb')
         pickle.dump(self.s, f)
         f.close()
 
@@ -143,17 +143,21 @@ class StorageSimulator(IStorageAreaNetwork):
         #and if we run sim_lsmplugin stand alone we will be unable to
         #change the permissions.
         try:
-            os.chmod(state, 0666)
+            os.chmod(self.file, 0666)
         except OSError:
             pass
 
-    def __init__(self):
-
+    def _load_state(self):
         prev = self._load()
         if prev:
             self.s = prev
         else:
             self.s = SimState()
+
+    def __init__(self):
+
+        self.file = SIM_DATA_FILE
+        self._load_state()
 
     def _new_access_group(self, name, h):
         return AccessGroup(md5(name), name,
@@ -179,6 +183,15 @@ class StorageSimulator(IStorageAreaNetwork):
     def startup(self, uri, password, timeout):
         self.uri = uri
         self.password = password
+
+        #The caller may want to start clean, so we allow the caller to specify
+        #a file to store and retrieve individual state.
+        qp = uri_parse(uri)
+        if 'parameters' in qp and 'statefile' in qp['parameters'] and \
+            qp['parameters']['statefile'] is not None:
+            self.file = qp['parameters']['statefile']
+            self._load_state()
+
         return None
 
     def set_time_out(self, ms):
