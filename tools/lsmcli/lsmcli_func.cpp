@@ -23,6 +23,7 @@
 #include <stdint.h>
 #define __STDC_FORMAT_MACROS    /* To use PRIu64 */
 #include <inttypes.h>
+#include <unistd.h>
 
 lsmInitiatorPtr getInitiator(lsmConnectPtr c, std::string initId);
 

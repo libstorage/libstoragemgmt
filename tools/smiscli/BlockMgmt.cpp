@@ -19,6 +19,7 @@
  */
 
 #include "BlockMgmt.h"
+#include <unistd.h>
 
 template <class Type> void getPropValue(CIMInstance i, String key, Type &value)
 {

@@ -32,6 +32,7 @@
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 #include <libstoragemgmt/libstoragemgmt_error.h>
 #include <libstoragemgmt/libstoragemgmt_systems.h>
+#include <libstoragemgmt/libstoragemgmt_accessgroups.h>
 
 #include <string.h>
 #include <stdlib.h>
@@ -712,46 +713,46 @@ void lsmVolumeRecordFree(lsmVolumePtr v)
 CREATE_FREE_ARRAY_FUNC( lsmVolumeRecordFreeArray, lsmVolumeRecordFree,
                         lsmVolumePtr)
 
-#define VOL_GET(x, member)  \
+#define VOL_GET(x, member, error)  \
     if( LSM_IS_VOL(x) ) {   \
         return x->member;   \
     } else {                \
-        return NULL;        \
+        return error;       \
     }                       \
 
 const char* lsmVolumeIdGet(lsmVolumePtr v)
 {
-    VOL_GET(v, id);
+    VOL_GET(v, id, NULL);
 }
 
 const char* lsmVolumeNameGet(lsmVolumePtr v)
 {
-    VOL_GET(v, name);
+    VOL_GET(v, name, NULL);
 }
 
 const char* lsmVolumeVpd83Get(lsmVolumePtr v)
 {
-    VOL_GET(v, vpd83);
+    VOL_GET(v, vpd83, NULL);
 }
 
 uint64_t lsmVolumeBlockSizeGet(lsmVolumePtr v)
 {
-    VOL_GET(v, blockSize);
+    VOL_GET(v, blockSize, 0);
 }
 
 uint64_t lsmVolumeNumberOfBlocks(lsmVolumePtr v)
 {
-    VOL_GET(v, numberOfBlocks);
+    VOL_GET(v, numberOfBlocks, 0);
 }
 
 uint32_t lsmVolumeOpStatusGet(lsmVolumePtr v)
 {
-    VOL_GET(v, status);
+    VOL_GET(v, status, 0);
 }
 
 char LSM_DLL_EXPORT *lsmVolumeGetSystemIdGet( lsmVolumePtr v)
 {
-    VOL_GET(v, system_id);
+    VOL_GET(v, system_id, NULL);
 }
 
 CREATE_ALLOC_ARRAY_FUNC(lsmAccessGroupRecordAllocArray, lsmAccessGroupPtr)

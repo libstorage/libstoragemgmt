@@ -33,6 +33,19 @@
 #include <stdio.h>
 #include <list>
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#ifdef HAVE_YAJL_YAJL_VERSION_H
+#include <yajl/yajl_version.h>
+#endif
+
+
+#if defined(HAVE_YAJL_YAJL_VERSION_H) && YAJL_MAJOR > 1
+    #define LSM_NEW_YAJL
+#endif
+
 static std::string zeroPadNum(unsigned int num)
 {
     std::ostringstream ss;
@@ -240,11 +253,21 @@ Value::Value(const std::map<std::string, Value> &v) : t(object_t), obj(v)
 std::string Value::serialize(void)
 {
     const unsigned char *buf;
-    unsigned int len;
     std::string json;
-    yajl_gen_config conf = {1, "  "};
 
-    yajl_gen g = yajl_gen_alloc(&conf, NULL);
+    #ifdef LSM_NEW_YAJL
+        size_t len;
+        yajl_gen g = yajl_gen_alloc(NULL);
+        if( g ) {
+            /* These could fail, but we will continue regardless */
+            yajl_gen_config(g, yajl_gen_beautify, 1);
+            yajl_gen_config(g, yajl_gen_indent_string, "  ");
+        }
+    #else
+        unsigned int len;
+        yajl_gen_config conf = {1, "  "};
+        yajl_gen g = yajl_gen_alloc(&conf, NULL);
+    #endif
 
     if (g) {
         marshal(g);
@@ -506,6 +529,12 @@ public:
     }
 };
 
+#ifdef LSM_NEW_YAJL
+    #define YAJL_SIZE_T size_t
+#else
+    #define YAJL_SIZE_T unsigned int
+#endif
+
 static int handle_value(void * ctx, ParseElement::parse_type type)
 {
     std::list<ParseElement> *l = (std::list<ParseElement> *)ctx;
@@ -532,19 +561,19 @@ static int handle_boolean(void * ctx, int boolean)
     return handle_value(ctx, ParseElement::boolean, b.c_str(), b.size());
 }
 
-static int handle_number(void * ctx, const char *s, unsigned int len)
+static int handle_number(void * ctx, const char *s, YAJL_SIZE_T len)
 {
     return handle_value(ctx, ParseElement::number, s, len);
 }
 
 static int handle_string(void * ctx, const unsigned char * stringVal,
-    unsigned int len)
+    YAJL_SIZE_T len)
 {
     return handle_value(ctx, ParseElement::string, (const char*) stringVal, len);
 }
 
 static int handle_map_key(void * ctx, const unsigned char * stringVal,
-    unsigned int len)
+    YAJL_SIZE_T len)
 {
     return handle_value(ctx, ParseElement::map_key, (const char*) stringVal, len);
 }
@@ -692,9 +721,14 @@ Value Payload::deserialize(const std::string &json)
     yajl_handle hand;
     yajl_status stat;
     std::list<ParseElement> l;
-    yajl_parser_config cfg = {1, 1};
 
-    hand = yajl_alloc(&callbacks, &cfg, NULL, (void *) &l);
+    #ifdef LSM_NEW_YAJL
+        hand = yajl_alloc(&callbacks, NULL, (void *) &l);
+        yajl_config(hand, yajl_allow_comments, 1);
+    #else
+        yajl_parser_config cfg = {1, 1};
+        hand = yajl_alloc(&callbacks, &cfg, NULL, (void *) &l);
+    #endif
 
     if (hand) {
         stat = yajl_parse(hand, (const unsigned char*) json.c_str(), json.size());

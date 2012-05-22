@@ -82,7 +82,7 @@ const char LSM_DLL_EXPORT *lsmAccessGroupSystemIdGet( lsmAccessGroupPtr group );
  * @param group     Access group to retrieve id for.
  * @return Null on error (not an access group), else value of initiator list.
  */
-lsmStringListPtr lsmAccessGroupInitiatorIdGet( lsmAccessGroupPtr group );
+lsmStringListPtr LSM_DLL_EXPORT lsmAccessGroupInitiatorIdGet( lsmAccessGroupPtr group );
 
 
 #ifdef  __cplusplus

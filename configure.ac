@@ -73,6 +73,7 @@ AC_CHECK_HEADERS([dlfcn.h])
 
 #Check for json parser yajl
 AC_CHECK_HEADERS([yajl/yajl_gen.h yajl/yajl_parse.h], [] , AC_MSG_ERROR([Missing yajl development headers]) )
+AC_CHECK_HEADERS([yajl/yajl_version.h])
 AC_CHECK_LIB([yajl], [yajl_parse], [YAJL_LIBS=-lyajl], AC_MSG_ERROR([Missing yajl library]))
 AC_SUBST([YAJL_LIBS])
 
