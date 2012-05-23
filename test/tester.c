@@ -304,6 +304,13 @@ START_TEST(test_smoke_test)
         fail_unless(LSM_ERR_OK == child_depends);
         fail_unless(NULL == job);
 
+
+        int online = lsmVolumeOffline(c, n);
+        fail_unless( LSM_ERR_OK == online);
+
+        online = lsmVolumeOnline(c, n);
+        fail_unless( LSM_ERR_OK == online);
+
         char *jobDel = NULL;
         int delRc = lsmVolumeDelete(c, n, &jobDel);
 

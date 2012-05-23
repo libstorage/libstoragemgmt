@@ -602,14 +602,30 @@ int lsmAccessRevoke( lsmConnectPtr c, lsmInitiatorPtr i, lsmVolumePtr v)
     return rpc(c, "access_revoke", parameters, response);
 }
 
-int lsmVolumeOnline(lsmConnectPtr conn, lsmVolumePtr volume)
+static int online_offline(lsmConnectPtr c, lsmVolumePtr v, const char* operation)
 {
-    return LSM_ERR_NO_SUPPORT;
+    CONN_SETUP(c);
+
+    if( !LSM_IS_VOL(v)) {
+        return LSM_ERR_INVALID_VOL;
+    }
+
+    std::map<std::string, Value> p;
+    p["volume"] = volumeToValue(v);
+
+    Value parameters(p);
+    Value response;
+    return rpc(c, operation, parameters, response);
 }
 
-int lsmVolumeOffline(lsmConnectPtr conn, lsmVolumePtr volume)
+int lsmVolumeOnline(lsmConnectPtr c, lsmVolumePtr volume)
 {
-    return LSM_ERR_NO_SUPPORT;
+    return online_offline(c, volume, "volume_online");
+}
+
+int lsmVolumeOffline(lsmConnectPtr c, lsmVolumePtr volume)
+{
+    return online_offline(c, volume, "volume_offline");
 }
 
 int lsmAccessGroupList( lsmConnectPtr c, lsmAccessGroupPtr **groups,
