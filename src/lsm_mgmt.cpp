@@ -147,6 +147,25 @@ static int jobCheck( int rc, Value &response, char **job )
     return rc;
 }
 
+static int getAccessGroups( int rc, Value &response, lsmAccessGroupPtr **groups,
+                            uint32_t *count)
+{
+    if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+        std::vector<Value> ag = response.asArray();
+
+        *count = ag.size();
+
+        if( ag.size() ) {
+            *groups = lsmAccessGroupRecordAllocArray(ag.size());
+
+            for( size_t i = 0; i < ag.size(); ++i ) {
+                (*groups)[i] = valueToAccessGroup(ag[i]);
+            }
+        }
+    }
+    return rc;
+}
+
 int lsmConnectClose(lsmConnectPtr c)
 {
     CONN_SETUP(c);
@@ -605,20 +624,7 @@ int lsmAccessGroupList( lsmConnectPtr c, lsmAccessGroupPtr **groups,
     Value response;
 
     int rc = rpc(c, "access_group_list", parameters, response);
-    if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
-        std::vector<Value> ag = response.asArray();
-
-        *groupCount = ag.size();
-
-        if( ag.size() ) {
-            *groups = lsmAccessGroupRecordAllocArray(ag.size());
-
-            for( size_t i = 0; i < ag.size(); ++i ) {
-                (*groups)[i] = valueToAccessGroup(ag[i]);
-            }
-        }
-    }
-    return rc;
+    return getAccessGroups(rc, response, groups, groupCount);
 }
 
 int lsmAccessGroupCreate(lsmConnectPtr c, const char *name,
@@ -780,6 +786,69 @@ int lsmAccessGroupRevoke(lsmConnectPtr c, lsmAccessGroupPtr group,
     int rc = rpc(c, "access_group_revoke", parameters, response);
     rc = jobCheck(rc, response, job);
     return rc;
+}
+
+int lsmVolumesAccessibleByAccessGroup(lsmConnectPtr c,
+                                        lsmAccessGroupPtr group,
+                                        lsmVolumePtr **volumes,
+                                        uint32_t *count)
+{
+    CONN_SETUP(c);
+
+    if( !LSM_IS_ACCESS_GROUP(group)) {
+        return LSM_ERR_INVALID_ACCESS_GROUP;
+    }
+
+    if( !volumes || !count ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["group"] = accessGroupToValue(group);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "volumes_accessible_by_access_group", parameters, response);
+    if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+        std::vector<Value> vol = response.asArray();
+
+        *count = vol.size();
+
+        if( vol.size() ) {
+            *volumes = lsmVolumeRecordAllocArray(vol.size());
+
+            for( size_t i = 0; i < vol.size(); ++i ) {
+                (*volumes)[i] = valueToVolume(vol[i]);
+            }
+        }
+    }
+    return rc;
+}
+
+int lsmAccessGroupsGrantedToVolume(lsmConnectPtr c,
+                                    lsmVolumePtr volume,
+                                    lsmAccessGroupPtr **groups,
+                                    uint32_t *groupCount)
+{
+    CONN_SETUP(c);
+
+    if( !LSM_IS_VOL(volume)) {
+        return LSM_ERR_INVALID_VOL;
+    }
+
+    if( !groups || !groupCount ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["volume"] = volumeToValue(volume);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "access_groups_granted_to_volume", parameters, response);
+    return getAccessGroups(rc, response, groups, groupCount);
 }
 
 int lsmSystemList(lsmConnectPtr c, lsmSystemPtr **systems,

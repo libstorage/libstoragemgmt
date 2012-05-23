@@ -518,6 +518,24 @@ START_TEST(test_access_groups_grant_revoke)
     rc = lsmAccessGroupGrant(c, group, n, LSM_VOLUME_ACCESS_READ_WRITE, &job);
     fail_unless(LSM_ERR_OK == rc);
 
+    lsmVolumePtr *volumes = NULL;
+    uint32_t v_count = 0;
+    rc = lsmVolumesAccessibleByAccessGroup(c, group, &volumes, &v_count);
+    fail_unless(LSM_ERR_OK == rc);
+    fail_unless(v_count == 1);
+
+    fail_unless(strcmp(lsmVolumeIdGet(volumes[0]), lsmVolumeIdGet(n)) == 0);
+    lsmVolumeRecordFreeArray(volumes, v_count);
+
+    lsmAccessGroupPtr *groups;
+    uint32_t g_count = 0;
+    rc = lsmAccessGroupsGrantedToVolume(c, n, &groups, &g_count);
+    fail_unless(LSM_ERR_OK == rc);
+    fail_unless(g_count == 1);
+
+    fail_unless(strcmp(lsmAccessGroupIdGet(groups[0]), lsmAccessGroupIdGet(group)) == 0);
+    lsmAccessGroupRecordFreeArray(groups, g_count);
+
     rc = lsmAccessGroupRevoke(c, group, n, &job);
     fail_unless(LSM_ERR_OK == rc);
 

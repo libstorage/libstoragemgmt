@@ -361,6 +361,32 @@ extern "C" {
                                             lsmVolumePtr volume, char **job);
 
     /**
+     * Returns those volumes that the specified group has access to.
+     * @param[in] conn                  Valid connection
+     * @param[in] group                 Valid group
+     * @param[out] volumes              An array of volumes
+     * @param[out] count                Number of volumes
+     * @return LSM_ERR_OK on success, else error reason.
+     */
+    int LSM_DLL_EXPORT lsmVolumesAccessibleByAccessGroup(lsmConnectPtr conn,
+                                                        lsmAccessGroupPtr group,
+                                                        lsmVolumePtr **volumes,
+                                                        uint32_t *count);
+
+    /**
+     * Retrieves the access groups that have access to the specified volume.
+     * @param[in] conn                  Valid connection
+     * @param[in] volume                Valid volume
+     * @param[out] groups               An array of access groups
+     * @param[out] groupCount           Number of access groups
+     * @return LSM_ERR_OK on success, else error reason.
+     */
+    int LSM_DLL_EXPORT lsmAccessGroupsGrantedToVolume(lsmConnectPtr conn,
+                                                    lsmVolumePtr volume,
+                                                    lsmAccessGroupPtr **groups,
+                                                    uint32_t *groupCount);
+
+    /**
      * Retrieves information about the different arrays accessible.
      * NOTE: Free returned systems by calling to lsm
      * @param[in]  conn                  Valid connection
