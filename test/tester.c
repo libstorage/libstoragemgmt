@@ -295,6 +295,15 @@ START_TEST(test_smoke_test)
             n = wait_for_job(c, &job);
         }
 
+        uint8_t dependants = 10;
+        int child_depends = lsmVolumeChildDependency(c, n, &dependants);
+        fail_unless(LSM_ERR_OK == child_depends, "returned = %d", child_depends);
+        fail_unless(dependants == 0);
+
+        child_depends = lsmVolumeChildDependencyRm(c, n, &job);
+        fail_unless(LSM_ERR_OK == child_depends);
+        fail_unless(NULL == job);
+
         char *jobDel = NULL;
         int delRc = lsmVolumeDelete(c, n, &jobDel);
 

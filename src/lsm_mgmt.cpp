@@ -142,6 +142,8 @@ static int jobCheck( int rc, Value &response, char **job )
             } else {
                 rc = LSM_ERR_NO_MEMORY;
             }
+        } else {
+            *job = NULL;
         }
     }
     return rc;
@@ -849,6 +851,62 @@ int lsmAccessGroupsGrantedToVolume(lsmConnectPtr c,
 
     int rc = rpc(c, "access_groups_granted_to_volume", parameters, response);
     return getAccessGroups(rc, response, groups, groupCount);
+}
+
+int lsmVolumeChildDependency(lsmConnectPtr c, lsmVolumePtr volume, uint8_t *yes)
+{
+    CONN_SETUP(c);
+
+    if( !LSM_IS_VOL(volume)) {
+        return LSM_ERR_INVALID_VOL;
+    }
+
+    if( !yes ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["volume"] = volumeToValue(volume);
+
+    Value parameters(p);
+    Value response;
+
+    *yes = 0;
+
+    int rc = rpc(c, "volume_child_dependency", parameters, response);
+    if( LSM_ERR_OK == rc ) {
+        //We should be getting a boolean value back.
+        if( Value::boolean_t == response.valueType() ) {
+            if( response.asBool() ) {
+                *yes = 1;
+            }
+        } else {
+            rc = LSM_ERR_INTERNAL_ERROR;
+        }
+    }
+    return rc;
+}
+
+int lsmVolumeChildDependencyRm(lsmConnectPtr c, lsmVolumePtr volume, char **job)
+{
+    CONN_SETUP(c);
+
+    if( !LSM_IS_VOL(volume)) {
+        return LSM_ERR_INVALID_VOL;
+    }
+
+    if( !job ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["volume"] = volumeToValue(volume);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "volume_child_dependency_rm", parameters, response);
+    return jobCheck(rc, response, job);
 }
 
 int lsmSystemList(lsmConnectPtr c, lsmSystemPtr **systems,

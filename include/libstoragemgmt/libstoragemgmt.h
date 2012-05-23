@@ -387,6 +387,29 @@ extern "C" {
                                                     uint32_t *groupCount);
 
     /**
+     * Returns 1 if the specified volume has child dependencies.
+     * @param[in] conn                  Valid connection
+     * @param[in] volume                Valid volume
+     * @param[out] yes                  1 == Yes, 0 == No
+     * @return LSM_ERR_OK on success, else error reason.
+     */
+    int LSM_DLL_EXPORT lsmVolumeChildDependency(lsmConnectPtr conn,
+                                                lsmVolumePtr volume,
+                                                uint8_t *yes);
+
+    /**
+     * Instructs the array to remove all child dependencies by replicating
+     * required storage.
+     * @param[in] conn                  Valid connection
+     * @param[in] volume                Valid volume
+     * @param[out] job                  Job id
+     * @return LSM_ERR_OK on success, else error reason.
+     */
+    int LSM_DLL_EXPORT lsmVolumeChildDependencyRm(lsmConnectPtr conn,
+                                                    lsmVolumePtr volume,
+                                                    char **job);
+
+    /**
      * Retrieves information about the different arrays accessible.
      * NOTE: Free returned systems by calling to lsm
      * @param[in]  conn                  Valid connection
