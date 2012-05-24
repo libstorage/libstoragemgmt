@@ -29,6 +29,7 @@
 #include "libstoragemgmt_volumes.h"
 #include "libstoragemgmt_systems.h"
 #include "libstoragemgmt_accessgroups.h"
+#include "libstoragemgmt_blockrange.h"
 
 #ifdef  __cplusplus
 extern "C" {
@@ -183,6 +184,33 @@ extern "C" {
                             lsmReplicationType repType, lsmVolumePtr volumeSrc,
                             const char *name, lsmVolumePtr *newReplicant,
                             char **job);
+
+    /**
+     * Unit of block size for the replicate range method.
+     * @param[in] conn                  Valid connection
+     * @param[out] bs                   Block size
+     * @return LSM_ERR_OK on success, else error reason.
+     */
+    int LSM_DLL_EXPORT lsmVolumeReplicateRangeBlockSize(lsmConnectPtr conn,
+                                                            uint32_t *bs);
+
+    /**
+     * Replicates a portion of a volume to a volume.
+     * @param[in] conn                  Valid connection
+     * @param[in] repType               Replication type
+     * @param[in] source                Source volume
+     * @param[in] dest                  Destination volume (can be same as source)
+     * @param[in] ranges                An array of block ranges
+     * @param[in] num_ranges            Number of entries in ranges.
+     * @param[out] job                  Indicates job id
+     * @return LSM_ERR_OK on success, LSM_JOB_STARTED if async., else error code
+     */
+    int LSM_DLL_EXPORT lsmVolumeReplicateRange(lsmConnectPtr conn,
+                                                lsmReplicationType repType,
+                                                lsmVolumePtr source,
+                                                lsmVolumePtr dest,
+                                                lsmBlockRangePtr *ranges,
+                                                uint32_t num_ranges, char **job);
 
     /**
      * Deletes a logical unit and data is lost!

@@ -6,17 +6,17 @@
 lsmincdir = $(includedir)/libstoragemgmt
 
 lsminc_HEADERS =			\
+   libstoragemgmt.h			\
+   libstoragemgmt_accessgroups.h        \
+   libstoragemgmt_blockrange.h          \
    libstoragemgmt_common.h		\
    libstoragemgmt_error.h		\
-   libstoragemgmt.h			\
    libstoragemgmt_initiators.h		\
    libstoragemgmt_plug_interface.h	\
    libstoragemgmt_pool.h		\
-   libstoragemgmt_types.h		\
-   libstoragemgmt_volumes.h             \
    libstoragemgmt_systems.h             \
-   libstoragemgmt_accessgroups.h
-
+   libstoragemgmt_types.h		\
+   libstoragemgmt_volumes.h
 
 
 install-exec-hook:

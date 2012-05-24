@@ -91,7 +91,7 @@ int lsmStringListFree(lsmStringListPtr sl)
             free(sl->values[i]);
             sl->values[i] = '\0';
         }
-        sl->magic = 0;
+        sl->magic = LSM_DEL_MAGIC(LSM_STRING_LIST_MAGIC);
         free(sl);
         return LSM_ERR_OK;
     }
@@ -153,7 +153,7 @@ void freeConnection(lsmConnectPtr c)
 {
     if (c) {
 
-        c->magic = 0;
+        c->magic = LSM_DEL_MAGIC(LSM_SYSTEM_MAGIC);
         c->flags = 0;
 
         if (c->uri) {
@@ -331,7 +331,7 @@ int lsmErrorFree(lsmErrorPtr e)
         e->message = NULL;
     }
 
-    e->magic = 0;
+    e->magic = LSM_DEL_MAGIC(LSM_ERROR_MAGIC);
     free(e);
 
     return LSM_ERR_OK;
@@ -442,6 +442,7 @@ lsmPoolPtr lsmPoolRecordAlloc(const char *id, const char *name,
         rc->system_id = strdup(system_id);
 
         if( !rc->id || !rc->name || !rc->system_id ) {
+            rc->magic = 0;
             free( rc->id );
             free( rc->name );
             free( rc->system_id);
@@ -465,6 +466,7 @@ lsmPoolPtr lsmPoolRecordCopy( lsmPoolPtr toBeCopied)
 void lsmPoolRecordFree(lsmPoolPtr p)
 {
     if (LSM_IS_POOL(p)) {
+        p->magic = LSM_DEL_MAGIC(LSM_POOL_MAGIC);
         if (p->name) {
             free(p->name);
             p->name = NULL;
@@ -559,6 +561,7 @@ lsmInitiatorPtr lsmInitiatorRecordCopy(lsmInitiatorPtr i)
 void lsmInitiatorRecordFree(lsmInitiatorPtr i)
 {
     if (i) {
+        i->magic = LSM_DEL_MAGIC(LSM_INIT_MAGIC);
         if (i->id) {
             free(i->id);
             i->id = NULL;
@@ -684,7 +687,8 @@ lsmVolumePtr lsmVolumeRecordCopy(lsmVolumePtr vol)
 
 void lsmVolumeRecordFree(lsmVolumePtr v)
 {
-    if (v) {
+    if ( LSM_IS_VOL(v) ) {
+        v->magic = LSM_DEL_MAGIC(LSM_VOL_MAGIC);
 
         if (v->id) {
             free(v->id);
@@ -713,8 +717,8 @@ void lsmVolumeRecordFree(lsmVolumePtr v)
 CREATE_FREE_ARRAY_FUNC( lsmVolumeRecordFreeArray, lsmVolumeRecordFree,
                         lsmVolumePtr)
 
-#define VOL_GET(x, member, error)  \
-    if( LSM_IS_VOL(x) ) {   \
+#define MEMBER_GET(x, validation, member, error)  \
+    if( validation(x) ) {   \
         return x->member;   \
     } else {                \
         return error;       \
@@ -722,37 +726,37 @@ CREATE_FREE_ARRAY_FUNC( lsmVolumeRecordFreeArray, lsmVolumeRecordFree,
 
 const char* lsmVolumeIdGet(lsmVolumePtr v)
 {
-    VOL_GET(v, id, NULL);
+    MEMBER_GET(v, LSM_IS_VOL, id, NULL);
 }
 
 const char* lsmVolumeNameGet(lsmVolumePtr v)
 {
-    VOL_GET(v, name, NULL);
+    MEMBER_GET(v, LSM_IS_VOL, name, NULL);
 }
 
 const char* lsmVolumeVpd83Get(lsmVolumePtr v)
 {
-    VOL_GET(v, vpd83, NULL);
+    MEMBER_GET(v, LSM_IS_VOL, vpd83, NULL);
 }
 
 uint64_t lsmVolumeBlockSizeGet(lsmVolumePtr v)
 {
-    VOL_GET(v, blockSize, 0);
+    MEMBER_GET(v, LSM_IS_VOL, blockSize, 0);
 }
 
 uint64_t lsmVolumeNumberOfBlocks(lsmVolumePtr v)
 {
-    VOL_GET(v, numberOfBlocks, 0);
+    MEMBER_GET(v, LSM_IS_VOL, numberOfBlocks, 0);
 }
 
 uint32_t lsmVolumeOpStatusGet(lsmVolumePtr v)
 {
-    VOL_GET(v, status, 0);
+    MEMBER_GET(v, LSM_IS_VOL, status, 0);
 }
 
 char LSM_DLL_EXPORT *lsmVolumeGetSystemIdGet( lsmVolumePtr v)
 {
-    VOL_GET(v, system_id, NULL);
+    MEMBER_GET(v, LSM_IS_VOL, system_id, NULL);
 }
 
 CREATE_ALLOC_ARRAY_FUNC(lsmAccessGroupRecordAllocArray, lsmAccessGroupPtr)
@@ -798,7 +802,7 @@ lsmAccessGroupPtr lsmAccessGroupRecordCopy( lsmAccessGroupPtr ag )
 void lsmAccessGroupRecordFree(lsmAccessGroupPtr ag)
 {
     if( LSM_IS_ACCESS_GROUP(ag) ) {
-        ag->magic = 0;
+        ag->magic = LSM_DEL_MAGIC(LSM_ACCESS_GROUP_MAGIC);
         free(ag->id);
         free(ag->name);
         free(ag->system_id);
@@ -848,6 +852,56 @@ lsmErrorPtr lsmErrorGetLast(lsmConnectPtr c)
         return e;
     }
     return NULL;
+}
+
+lsmBlockRangePtr lsmBlockRangeRecordAlloc(uint64_t source_start,
+                                            uint64_t dest_start,
+                                            uint64_t block_count)
+{
+    lsmBlockRange *rc = NULL;
+
+    rc = (lsmBlockRange*) malloc(sizeof(lsmBlockRange));
+    if( rc ) {
+        rc->magic = LSM_BLOCK_RANGE_MAGIC;
+        rc->source_start = source_start;
+        rc->dest_start = dest_start;
+        rc->block_count = block_count;
+    }
+    return rc;
+}
+
+void  lsmBlockRangeRecordFree( lsmBlockRangePtr br )
+{
+    if( LSM_IS_BLOCK_RANGE(br) ) {
+        br->magic = LSM_DEL_MAGIC(LSM_BLOCK_RANGE_MAGIC);
+        free(br);
+    }
+}
+
+lsmBlockRangePtr LSM_DLL_EXPORT lsmBlockRangeRecordCopy( lsmBlockRangePtr source )
+{
+    return lsmBlockRangeRecordAlloc(source->source_start, source->dest_start,
+                                                    source->block_count);
+}
+
+CREATE_ALLOC_ARRAY_FUNC(lsmBlockRangeRecordAllocArray, lsmBlockRangePtr)
+CREATE_FREE_ARRAY_FUNC(lsmBlockRangeRecordFreeArray, lsmBlockRangeRecordFree,
+                        lsmBlockRangePtr)
+
+
+uint64_t lsmBlockRangeSourceStartGet(lsmBlockRangePtr br)
+{
+    MEMBER_GET(br, LSM_IS_BLOCK_RANGE, source_start, 0);
+}
+
+uint64_t lsmBlockRangeDestStartGet(lsmBlockRangePtr br)
+{
+    MEMBER_GET(br, LSM_IS_BLOCK_RANGE, dest_start, 0);
+}
+
+uint64_t lsmBlockRangeBlockCountGet(lsmBlockRangePtr br)
+{
+    MEMBER_GET(br, LSM_IS_BLOCK_RANGE, block_count, 0);
 }
 
 #ifdef  __cplusplus

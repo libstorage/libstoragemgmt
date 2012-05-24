@@ -18,6 +18,7 @@
  */
 
 #include "lsm_convert.hpp"
+#include <libstoragemgmt/libstoragemgmt_blockrange.h>
 
 static bool isExpectedObject(Value &obj, std::string class_name)
 {
@@ -224,6 +225,32 @@ Value accessGroupToValue( lsmAccessGroupPtr group )
         ag["initiators"] = Value(StringListToValue(group->initiators));
         ag["system_id"] = Value(group->system_id);
         return ag;
+    }
+    return Value();
+}
+
+lsmBlockRange *valueToBlockRange(Value &br)
+{
+    lsmBlockRange *rc = NULL;
+    if( isExpectedObject(br, "BlockRange") ) {
+        std::map<std::string, Value> range = br.asObject();
+
+        rc = lsmBlockRangeRecordAlloc(range["source_start"].asUint64_t(),
+                                        range["dest_start"].asUint64_t(),
+                                        range["block_count"].asUint64_t());
+    }
+    return rc;
+}
+
+Value blockRangeToValue(lsmBlockRange *br)
+{
+    if( LSM_IS_BLOCK_RANGE(br) ) {
+        std::map<std::string, Value> r;
+        r["class"] = Value("BlockRange");
+        r["source_start"] = Value(br->source_start);
+        r["dest_start"] = Value(br->dest_start);
+        r["block_count"] = Value(br->block_count);
+        return r;
     }
     return Value();
 }

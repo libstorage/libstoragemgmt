@@ -465,6 +465,66 @@ int lsmVolumeReplicate(lsmConnectPtr c, lsmPoolPtr pool,
 
 }
 
+int lsmVolumeReplicateRangeBlockSize(lsmConnectPtr c, uint32_t *bs)
+{
+    CONN_SETUP(c);
+
+    if( !bs ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "volume_replicate_range_block_size", parameters, response);
+    if( LSM_ERR_OK == rc ) {
+        if( Value::numeric_t == response.valueType() ) {
+            *bs = response.asUint32_t();
+        }
+    }
+    return rc;
+}
+
+
+int lsmVolumeReplicateRange(lsmConnectPtr c,
+                                                lsmReplicationType repType,
+                                                lsmVolumePtr source,
+                                                lsmVolumePtr dest,
+                                                lsmBlockRangePtr *ranges,
+                                                uint32_t num_ranges,
+                                                char **job)
+{
+    CONN_SETUP(c);
+
+    if( !LSM_IS_VOL(source) || !LSM_IS_VOL(dest) ) {
+        return LSM_ERR_INVALID_VOL;
+    }
+
+    if( !ranges ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["rep_type"] = Value((int32_t)repType);
+    p["volume_src"] = volumeToValue(source);
+    p["volume_dest"] = volumeToValue(dest);
+
+    /* Build up the ranges */
+    std::vector<Value> r;
+    for( uint32_t i = 0; i < num_ranges; ++i ) {
+        r.push_back(blockRangeToValue(ranges[i]));
+    }
+
+    p["ranges"] = Value(r);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "volume_replicate_range", parameters, response);
+    return jobCheck(rc, response, job);
+}
+
 int lsmVolumeDelete(lsmConnectPtr c, lsmVolumePtr volume, char **job)
 {
     CONN_SETUP(c);

@@ -32,8 +32,9 @@ extern "C" {
 
 #define MAGIC_CHECK(obj, m)     ((obj) && \
                                      ((obj)->magic==(m) ))
+#define LSM_DEL_MAGIC(obj)  ((obj & 0x0FFFFFFF) | 0xD0000000)
 
-#define LSM_VOL_MAGIC       0xFEEDEFFE
+#define LSM_VOL_MAGIC       0xAA7A0000
 #define LSM_IS_VOL(obj)     MAGIC_CHECK(obj, LSM_VOL_MAGIC)
 
 /**
@@ -50,7 +51,7 @@ struct LSM_DLL_LOCAL _lsmVolume {
     char *system_id;
 };
 
-#define LSM_POOL_MAGIC       0xFEEDF337
+#define LSM_POOL_MAGIC       0xAA7A0001
 #define LSM_IS_POOL(obj)     MAGIC_CHECK(obj, LSM_POOL_MAGIC)
 
 /**
@@ -66,7 +67,7 @@ struct LSM_DLL_LOCAL _lsmPool {
 };
 
 
-#define LSM_INIT_MAGIC       0xFEED1337
+#define LSM_INIT_MAGIC       0xAA7A0002
 #define LSM_IS_INIT(obj)     MAGIC_CHECK(obj, LSM_INIT_MAGIC)
 /**
  * Information about an initiator.
@@ -84,7 +85,7 @@ struct LSM_DLL_LOCAL _lsmInitiator {
 struct _lsmStorageCapabilities {
 };
 
-#define LSM_ACCESS_GROUP_MAGIC  0xFEED1338
+#define LSM_ACCESS_GROUP_MAGIC  0xAA7A0003
 #define LSM_IS_ACCESS_GROUP(obj)    MAGIC_CHECK(obj, LSM_ACCESS_GROUP_MAGIC)
 
 /**
@@ -98,7 +99,7 @@ struct _lsmAccessGroup {
     lsmStringList *initiators;
 };
 
-#define LSM_FILE_SYSTEM_MAGIC  0xFEED1339
+#define LSM_FILE_SYSTEM_MAGIC  0xAA7A0004
 #define LSM_IS_FILE_SYSTEM(obj)    MAGIC_CHECK(obj, LSM_FILE_SYSTEM_MAGIC)
 
 /**
@@ -114,7 +115,7 @@ struct _lsmFileSystem {
     char *system_id;
 };
 
-#define LSM_SNAP_SHOT_MAGIC  0xFEED133A
+#define LSM_SNAP_SHOT_MAGIC  0xAA7A0005
 #define LSM_IS_SNAP_SHOT(obj)    MAGIC_CHECK(obj, LSM_SNAP_SHOT_MAGIC)
 
 /**
@@ -127,7 +128,7 @@ struct _lsmSnapShot {
     uint64_t ts;
 };
 
-#define LSM_NFS_EXPORT_MAGIC  0xFEED133B
+#define LSM_NFS_EXPORT_MAGIC  0xAA7A0006
 #define LSM_IS_NFS_EXPORT(obj)    MAGIC_CHECK(obj, LSM_NFS_EXPORT_MAGIC)
 
 /**
@@ -147,8 +148,8 @@ struct _lsmNfsExport {
     char *options;
 };
 
-#define LSM_BLOCK_RANGE_MAGIC  0xFEED133C
-#define LSM_IS_BLOCK_RANGE(obj)    MAGIC_CHECK(obj, LSM_BLOCK_RANGE_MAGIC)
+#define LSM_BLOCK_RANGE_MAGIC       0xAA7A0007
+#define LSM_IS_BLOCK_RANGE(obj)     MAGIC_CHECK(obj, LSM_BLOCK_RANGE_MAGIC)
 
 /**
  * Structure for block range ( a region to be replicated )
@@ -160,7 +161,7 @@ struct _lsmBlockRange {
     uint64_t block_count;
 };
 
-#define LSM_SYSTEM_MAGIC  0xFEED133D
+#define LSM_SYSTEM_MAGIC  0xAA7A0009
 #define LSM_IS_SYSTEM(obj)    MAGIC_CHECK(obj, LSM_SYSTEM_MAGIC)
 
 /**
@@ -172,11 +173,11 @@ struct _lsmSystem {
     char *name;
 };
 
-#define LSM_CONNECT_MAGIC       0xFEEDB0B0
+#define LSM_CONNECT_MAGIC       0xAA7A000A
 #define LSM_IS_CONNECT(obj)     MAGIC_CHECK(obj, LSM_CONNECT_MAGIC)
 
 
-#define LSM_PLUGIN_MAGIC    0xD15EA5E
+#define LSM_PLUGIN_MAGIC    0xAA7A000B
 #define LSM_IS_PLUGIN(obj)  MAGIC_CHECK(obj, LSM_PLUGIN_MAGIC)
 
 /**
@@ -212,7 +213,7 @@ struct LSM_DLL_LOCAL _lsmConnect {
 };
 
 
-#define LSM_ERROR_MAGIC       0xDEADB0B0
+#define LSM_ERROR_MAGIC       0xAA7A000C
 #define LSM_IS_ERROR(obj)     MAGIC_CHECK(obj, LSM_ERROR_MAGIC)
 
 /**
@@ -234,7 +235,7 @@ struct LSM_DLL_LOCAL _lsmError {
 /**
  * Used to house string collection.
  */
-#define LSM_STRING_LIST_MAGIC       0xDEAD0001
+#define LSM_STRING_LIST_MAGIC       0xAA7A000D
 #define LSM_IS_STRING_LIST(obj)     MAGIC_CHECK(obj, LSM_STRING_LIST_MAGIC)
 struct LSM_DLL_LOCAL _lsmStringList {
     uint32_t    magic;          /**< Magic value */

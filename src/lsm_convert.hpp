@@ -93,4 +93,18 @@ lsmAccessGroup *valueToAccessGroup(Value &group);
  */
 Value accessGroupToValue(lsmAccessGroupPtr group);
 
+/**
+ * Converts a Value to a lsmBlockRange
+ * @param br        Value representing a block range
+ * @return lsmBlockRangePtr
+ */
+lsmBlockRange *valueToBlockRange(Value &br);
+
+/**
+ * Converts a lsmBlockRange to a Value
+ * @param br        lsmBlockRange to convert
+ * @return Value, null value type on error
+ */
+Value blockRangeToValue(lsmBlockRange *br);
+
 #endif

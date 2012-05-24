@@ -305,6 +305,36 @@ START_TEST(test_smoke_test)
         fail_unless(NULL == job);
 
 
+        lsmBlockRangePtr *range = lsmBlockRangeRecordAllocArray(3);
+        fail_unless(NULL != range);
+
+
+        uint32_t bs = 0;
+        int rep_bs = lsmVolumeReplicateRangeBlockSize(c, &bs);
+        fail_unless(LSM_ERR_OK == rep_bs);
+        fail_unless(512 == bs);
+
+
+        int rep_i = 0;
+
+        for(rep_i = 0; rep_i < 3; ++rep_i) {
+            range[rep_i] = lsmBlockRangeRecordAlloc((rep_i * 1000),
+                                                        ((rep_i + 100) * 10000), 10);
+        }
+
+        int rep_range =  lsmVolumeReplicateRange(c, LSM_VOLUME_REPLICATE_CLONE,
+                                                    n, n, range, 3, &job);
+
+        if( LSM_ERR_OK != rep_range ) {
+            dump_error(lsmErrorGetLast(c));
+        }
+
+        lsmBlockRangeRecordFreeArray(range, 3);
+
+        fail_unless(LSM_ERR_OK == rep_range);
+
+
+
         int online = lsmVolumeOffline(c, n);
         fail_unless( LSM_ERR_OK == online);
 
@@ -388,7 +418,7 @@ START_TEST(test_smoke_test)
                     error(lsmErrorGetLast(c)));
 
     if( LSM_ERR_JOB_STARTED == repRc ) {
-        resized = wait_for_job(c, &job);
+        rep = wait_for_job(c, &job);
     }
 
     lsmVolumeRecordFree(rep);

@@ -287,7 +287,7 @@ class StorageSimulator(IStorageAreaNetwork):
 
         if ranges:
             if isinstance(ranges, list):
-                for r in range:
+                for r in ranges:
                     if isinstance(r, BlockRange):
                         #We could do some overlap range testing etc. here.
                         pass
