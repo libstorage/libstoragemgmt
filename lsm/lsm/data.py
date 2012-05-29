@@ -231,12 +231,12 @@ class Pool(IData):
         self.system_id = system_id
 
 class FileSystem(IData):
-    def __init__(self, id, name, total_space, free_space, pool, system_id):
+    def __init__(self, id, name, total_space, free_space, pool_id, system_id):
         self.id = id
         self.name = name
         self.total_space = total_space
         self.free_space = free_space
-        self.pool = pool
+        self.pool_id = pool_id
         self.system_id = system_id
 
 class Snapshot(IData):

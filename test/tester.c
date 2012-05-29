@@ -25,6 +25,8 @@
 
 #include <inttypes.h>
 
+#include "libstoragemgmt/libstoragemgmt_fs.h"
+
 const char uri[] = "sim://localhost/?statefile=/tmp/lsm_sim_%s";
 const char SYSTEM_NAME[] = "LSM simulated storage plug-in";
 const char SYSTEM_ID[] = "sim-01";
@@ -130,7 +132,7 @@ char *error(lsmErrorPtr e)
     return eb;
 }
 
-lsmVolumePtr wait_for_job(lsmConnectPtr c, char **job_id)
+void wait_for_job(lsmConnectPtr c, char **job_id)
 {
     lsmJobStatus status;
     lsmVolumePtr vol = NULL;
@@ -138,9 +140,31 @@ lsmVolumePtr wait_for_job(lsmConnectPtr c, char **job_id)
     int rc = 0;
 
     do {
-        rc = lsmJobStatusGet(c, *job_id, &status, &pc, &vol);
+        rc = lsmJobStatusVolumeGet(c, *job_id, &status, &pc, &vol);
         fail_unless( LSM_ERR_OK == rc, "rc = %d (%s)", rc,  error(lsmErrorGetLast(c)));
-        printf("Job %s in progress, %d done, status = %d\n", *job_id, pc, status);
+        printf("GENERIC: Job %s in progress, %d done, status = %d\n", *job_id, pc, status);
+        sleep(1);
+
+    } while( status == LSM_JOB_INPROGRESS );
+
+    rc = lsmJobFree(c, job_id);
+    fail_unless( LSM_ERR_OK == rc, "lsmJobFree %d, (%s)", rc, error(lsmErrorGetLast(c)));
+
+    fail_unless( LSM_JOB_COMPLETE == status);
+    fail_unless( 100 == pc);
+}
+
+lsmVolumePtr wait_for_job_vol(lsmConnectPtr c, char **job_id)
+{
+    lsmJobStatus status;
+    lsmVolumePtr vol = NULL;
+    uint8_t pc = 0;
+    int rc = 0;
+
+    do {
+        rc = lsmJobStatusVolumeGet(c, *job_id, &status, &pc, &vol);
+        fail_unless( LSM_ERR_OK == rc, "rc = %d (%s)", rc,  error(lsmErrorGetLast(c)));
+        printf("VOLUME: Job %s in progress, %d done, status = %d\n", *job_id, pc, status);
         sleep(1);
 
     } while( status == LSM_JOB_INPROGRESS );
@@ -152,6 +176,30 @@ lsmVolumePtr wait_for_job(lsmConnectPtr c, char **job_id)
     fail_unless( 100 == pc);
 
     return vol;
+}
+
+lsmFsPtr wait_for_job_fs(lsmConnectPtr c, char **job_id)
+{
+    lsmJobStatus status;
+    lsmFsPtr fs = NULL;
+    uint8_t pc = 0;
+    int rc = 0;
+
+    do {
+        rc = lsmJobStatusFsGet(c, *job_id, &status, &pc, &fs);
+        fail_unless( LSM_ERR_OK == rc, "rc = %d (%s)", rc,  error(lsmErrorGetLast(c)));
+        printf("FS: Job %s in progress, %d done, status = %d\n", *job_id, pc, status);
+        sleep(1);
+
+    } while( status == LSM_JOB_INPROGRESS );
+
+    rc = lsmJobFree(c, job_id);
+    fail_unless( LSM_ERR_OK == rc, "lsmJobFree %d, (%s)", rc, error(lsmErrorGetLast(c)));
+
+    fail_unless( LSM_JOB_COMPLETE == status);
+    fail_unless( 100 == pc);
+
+    return fs;
 }
 
 void mapping(lsmConnectPtr c)
@@ -221,7 +269,7 @@ void create_volumes(lsmConnectPtr c, lsmPoolPtr p, int num)
                 "lsmVolumeCreate %d (%s)", vc, error(lsmErrorGetLast(c)));
 
         if( LSM_ERR_JOB_STARTED == vc ) {
-            n = wait_for_job(c, &job);
+            n = wait_for_job_vol(c, &job);
         }
 
         lsmVolumeRecordFree(n);
@@ -292,7 +340,7 @@ START_TEST(test_smoke_test)
                     "lsmVolumeCreate %d (%s)", vc, error(lsmErrorGetLast(c)));
 
         if( LSM_ERR_JOB_STARTED == vc ) {
-            n = wait_for_job(c, &job);
+            n = wait_for_job_vol(c, &job);
         }
 
         uint8_t dependants = 10;
@@ -348,7 +396,7 @@ START_TEST(test_smoke_test)
                     "lsmVolumeDelete %d (%s)", rc, error(lsmErrorGetLast(c)));
 
         if( LSM_ERR_JOB_STARTED == delRc ) {
-            wait_for_job(c, &jobDel);
+            wait_for_job_vol(c, &jobDel);
         }
 
         lsmVolumeRecordFree(n);
@@ -402,7 +450,7 @@ START_TEST(test_smoke_test)
                     error(lsmErrorGetLast(c)));
 
     if( LSM_ERR_JOB_STARTED == resizeRc ) {
-        resized = wait_for_job(c, &resizeJob);
+        resized = wait_for_job_vol(c, &resizeJob);
     }
 
     lsmVolumeRecordFree(resized);
@@ -418,7 +466,7 @@ START_TEST(test_smoke_test)
                     error(lsmErrorGetLast(c)));
 
     if( LSM_ERR_JOB_STARTED == repRc ) {
-        rep = wait_for_job(c, &job);
+        rep = wait_for_job_vol(c, &job);
     }
 
     lsmVolumeRecordFree(rep);
@@ -556,7 +604,7 @@ START_TEST(test_access_groups_grant_revoke)
             "lsmVolumeCreate %d (%s)", vc, error(lsmErrorGetLast(c)));
 
     if( LSM_ERR_JOB_STARTED == vc ) {
-        n = wait_for_job(c, &job);
+        n = wait_for_job_vol(c, &job);
     }
 
     fail_unless(n != NULL);
@@ -587,6 +635,63 @@ START_TEST(test_access_groups_grant_revoke)
 
     lsmVolumeRecordFree(n);
     lsmPoolRecordFree(pool);
+}
+END_TEST
+
+START_TEST(test_fs)
+{
+    fail_unless(c!=NULL);
+
+    lsmFsPtr *fs_list = NULL;
+    int rc = 0;
+    uint32_t fs_count = 0;
+    lsmFsPtr nfs = NULL;
+    lsmFsPtr resized_fs = NULL;
+    char *job = NULL;
+
+    lsmPoolPtr test_pool = getTestPool(c);
+
+    rc = lsmFsList(c, &fs_list, &fs_count);
+
+    fail_unless(LSM_ERR_OK == rc);
+    fail_unless(0 == fs_count);
+
+    rc = lsmFsCreate(c, test_pool, "C_unit_test", 50000000, &nfs, &job);
+
+    if( LSM_ERR_JOB_STARTED == rc ) {
+        fail_unless(NULL == nfs);
+
+        nfs = wait_for_job_fs(c, &job);
+    } else {
+        fail_unless(LSM_ERR_OK == rc);
+    }
+
+    fail_unless(NULL != nfs);
+
+    rc = lsmFsList(c, &fs_list, &fs_count);
+
+    fail_unless(LSM_ERR_OK == rc);
+    fail_unless(1 == fs_count);
+    lsmFsRecordFreeArray(fs_list, fs_count);
+
+    rc = lsmFsResize(c,nfs, 100000000, &resized_fs, &job);
+
+    if( LSM_ERR_JOB_STARTED == rc ) {
+        fail_unless(NULL == resized_fs);
+        resized_fs = wait_for_job_fs(c, &job);
+    }
+
+    rc = lsmFsDelete(c, resized_fs, &job);
+
+    if( LSM_ERR_JOB_STARTED == rc ) {
+        wait_for_job(c, &job);
+    } else {
+        fail_unless(LSM_ERR_OK == rc);
+    }
+
+    lsmFsRecordFree(resized_fs);
+    lsmFsRecordFree(nfs);
+    lsmPoolRecordFree(test_pool);
 }
 END_TEST
 
@@ -628,9 +733,8 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_access_groups);
     tcase_add_test(basic, test_systems);
     tcase_add_test(basic, test_access_groups_grant_revoke);
+    tcase_add_test(basic, test_fs);
     suite_add_tcase(s, basic);
-
-
     return s;
 }
 

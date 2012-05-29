@@ -628,7 +628,7 @@ class CmdLine:
 
         for f in fss:
             dsp.append([f.id, f.name, self._sh(f.total_space),
-                        self._sh(f.free_space), f.pool])
+                        self._sh(f.free_space), f.pool_id])
         self.display_table(dsp)
 
     ## Display the snap shots on the storage array
@@ -841,8 +841,11 @@ class CmdLine:
         size = self._size(self.options.opt_size)
         p = self._get_item(self.c.pools(), self.options.opt_pool)
         name = self.cmd_value
-        fs = self._wait_for_it("create-fs", *self.c.fs_create(p, name, size))
-        self.display_fs([fs])
+        if p:
+            fs = self._wait_for_it("create-fs", *self.c.fs_create(p, name, size))
+            self.display_fs([fs])
+        else:
+            raise ArgError("pool with id = %s not found!" % self.options.opt_pool)
 
     ## Used to resize a file system
     # @param    self    The this pointer

@@ -209,9 +209,9 @@ int lsmConnectGetTimeout(lsmConnectPtr c, uint32_t *timeout)
     return rc;
 }
 
-int lsmJobStatusGet( lsmConnectPtr c, const char *job,
+static int jobStatus( lsmConnectPtr c, const char *job,
                         lsmJobStatus *status, uint8_t *percentComplete,
-                        lsmVolumePtr *vol)
+                        Value &returned_value)
 {
     CONN_SETUP(c);
 
@@ -231,10 +231,49 @@ int lsmJobStatusGet( lsmConnectPtr c, const char *job,
         *status = (lsmJobStatus)j[0].asInt32_t();
         *percentComplete = (uint8_t)j[1].asUint32_t();
 
-        if( Value::object_t ==  j[2].valueType() ) {
-            *vol = valueToVolume(j[2]);
+        returned_value = j[2];
+    }
+    return rc;
+}
+
+int LSM_DLL_EXPORT lsmJobStatusGet(lsmConnectPtr c, const char *job_id,
+                                lsmJobStatus *status, uint8_t *percentComplete)
+{
+    Value rv;
+    return jobStatus(c, job_id, status, percentComplete, rv);
+}
+
+int lsmJobStatusVolumeGet( lsmConnectPtr c, const char *job,
+                        lsmJobStatus *status, uint8_t *percentComplete,
+                        lsmVolumePtr *vol)
+{
+    Value rv;
+
+    int rc = jobStatus(c, job, status, percentComplete, rv);
+
+    if( LSM_ERR_OK == rc ) {
+        if( Value::object_t ==  rv.valueType() ) {
+            *vol = valueToVolume(rv);
         } else {
             *vol = NULL;
+        }
+    }
+    return rc;
+}
+
+int LSM_DLL_EXPORT lsmJobStatusFsGet(lsmConnectPtr c, const char *job,
+                                lsmJobStatus *status, uint8_t *percentComplete,
+                                lsmFsPtr *fs)
+{
+    Value rv;
+
+    int rc = jobStatus(c, job, status, percentComplete, rv);
+
+    if( LSM_ERR_OK == rc ) {
+        if( Value::object_t ==  rv.valueType() ) {
+            *fs = valueToFs(rv);
+        } else {
+            *fs = NULL;
         }
     }
     return rc;
@@ -1006,6 +1045,112 @@ int lsmSystemList(lsmConnectPtr c, lsmSystemPtr **systems,
                 (*systems)[i] = valueToSystem(sys[i]);
             }
         }
+    }
+    return rc;
+}
+
+int lsmFsList(lsmConnectPtr c, lsmFsPtr **fs, uint32_t *fsCount)
+{
+    CONN_SETUP(c);
+    std::map<std::string, Value> p;
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "fs", parameters, response);
+    if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+        std::vector<Value> sys = response.asArray();
+
+        *fsCount = sys.size();
+
+        if( sys.size() ) {
+            *fs = lsmFsRecordAllocArray(sys.size());
+
+            for( size_t i = 0; i < sys.size(); ++i ) {
+                (*fs)[i] = valueToFs(sys[i]);
+            }
+        }
+    }
+    return rc;
+
+}
+
+int lsmFsCreate(lsmConnectPtr c, lsmPoolPtr pool, const char *name,
+                    uint64_t size_bytes, lsmFsPtr *fs, char **job)
+{
+    CONN_SETUP(c);
+
+    if( !LSM_IS_POOL(pool)) {
+        return LSM_ERR_INVALID_POOL;
+    }
+
+    if( NULL == name || CHECK_NULL_JOB(job) || NULL == fs ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["pool"] = poolToValue(pool);
+    p["name"] = Value(name);
+    p["size_bytes"] = Value(size_bytes);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "fs_create", parameters, response);
+    if( LSM_ERR_OK == rc ) {
+        *fs = (lsmFsPtr)parse_job_response(response, rc, job,
+                                                        (convert)valueToFs);
+    }
+    return rc;
+}
+
+int lsmFsDelete(lsmConnectPtr c, lsmFsPtr fs, char **job)
+{
+    CONN_SETUP(c);
+
+    if( !LSM_IS_FS(fs) ) {
+        return LSM_ERR_INVALID_FS;
+    }
+
+    if( CHECK_NULL_JOB(job) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["fs"] = fsToValue(fs);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "fs_delete", parameters, response);
+    return jobCheck(rc, response, job);
+}
+
+
+int lsmFsResize(lsmConnectPtr c, lsmFsPtr fs,
+                                    uint64_t new_size_bytes, lsmFsPtr *rfs,
+                                    char **job)
+{
+    CONN_SETUP(c);
+
+    if( !LSM_IS_FS(fs)) {
+        return LSM_ERR_INVALID_FS;
+    }
+
+    if( !rfs || CHECK_NULL_JOB(job) || new_size_bytes == 0 ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["fs"] = fsToValue(fs);
+    p["new_size_bytes"] = Value(new_size_bytes);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "fs_resize", parameters, response);
+    if( LSM_ERR_OK == rc ) {
+        *rfs = (lsmFsPtr)parse_job_response(response, rc, job,
+                                                        (convert)valueToFs);
     }
     return rc;
 }

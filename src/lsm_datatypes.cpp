@@ -904,6 +904,93 @@ uint64_t lsmBlockRangeBlockCountGet(lsmBlockRangePtr br)
     MEMBER_GET(br, LSM_IS_BLOCK_RANGE, block_count, 0);
 }
 
+lsmFsPtr lsmFsRecordAlloc( const char *id, const char *name,
+                                            uint64_t total_space,
+                                            uint64_t free_space,
+                                            const char *pool_id,
+                                            const char *system_id)
+{
+    lsmFs *rc = NULL;
+    rc = (lsmFs *)malloc(sizeof(lsmFs));
+    if( rc ) {
+        rc->magic = LSM_FS_MAGIC;
+        rc->id = strdup(id);
+        rc->name = strdup(name);
+        rc->pool_id = strdup(pool_id);
+        rc->system_id = strdup(system_id);
+        rc->total_space = total_space;
+        rc->free_space = free_space;
+
+        if( !rc->id || !rc->name || !rc->pool_id || !rc->system_id ) {
+            free(rc->id);
+            free(rc->name);
+            free(rc->pool_id);
+            free(rc->system_id);
+
+            rc->magic = LSM_DEL_MAGIC(LSM_FS_MAGIC);
+            rc = NULL;
+        }
+    }
+    return rc;
+}
+
+void lsmFsRecordFree( lsmFsPtr fs)
+{
+    if( LSM_IS_FS(fs) ) {
+        fs->magic = LSM_DEL_MAGIC(LSM_FS_MAGIC);
+        free(fs->id);
+        free(fs->name);
+        free(fs->pool_id);
+        free(fs->system_id);
+        free(fs);
+    }
+}
+
+lsmFsPtr lsmFsRecordCopy(lsmFsPtr source)
+{
+    lsmFs *dest = NULL;
+
+    if( LSM_IS_FS(source) ) {
+        dest = lsmFsRecordAlloc(source->id, source->name,
+                                source->total_space, source->free_space,
+                                source->pool_id,
+                                source->system_id);
+    }
+    return dest;
+}
+
+CREATE_ALLOC_ARRAY_FUNC(lsmFsRecordAllocArray, lsmFsPtr)
+CREATE_FREE_ARRAY_FUNC(lsmFsRecordFreeArray, lsmFsRecordFree, lsmFsPtr)
+
+const char *lsmFsIdGet(lsmFsPtr fs)
+{
+    MEMBER_GET(fs, LSM_IS_FS, id, NULL);
+}
+
+const char *lsmFsNameGet(lsmFsPtr fs)
+{
+    MEMBER_GET(fs, LSM_IS_FS, name, NULL);
+}
+
+const char *lsmFsSystemIdGet(lsmFsPtr fs)
+{
+    MEMBER_GET(fs, LSM_IS_FS, system_id, NULL);
+}
+
+const char *lsmFsPoolIdGet(lsmFsPtr fs)
+{
+    MEMBER_GET(fs, LSM_IS_FS, pool_id, NULL);
+}
+
+uint64_t lsmFsTotalSpaceGet(lsmFsPtr fs)
+{
+    MEMBER_GET(fs, LSM_IS_FS, total_space, 0);
+}
+uint64_t lsmFsFreeSpaceGet(lsmFsPtr fs)
+{
+    MEMBER_GET(fs, LSM_IS_FS, free_space, 0);
+}
+
 #ifdef  __cplusplus
 }
 #endif

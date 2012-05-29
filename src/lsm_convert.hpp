@@ -107,4 +107,18 @@ lsmBlockRange *valueToBlockRange(Value &br);
  */
 Value blockRangeToValue(lsmBlockRange *br);
 
+/**
+ * Converts a value to a lsmFs *
+ * @param fs        Value representing a FS to be converted
+ * @return lsmFs pointer or NULL on error.
+ */
+lsmFs *valueToFs(Value &fs);
+
+/**
+ * Converts a lsmFs pointer to a Value
+ * @param fs        File system pointer to convert
+ * @return Value
+ */
+Value fsToValue(lsmFs *fs);
+
 #endif

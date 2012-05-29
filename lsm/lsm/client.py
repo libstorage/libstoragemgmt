@@ -19,7 +19,7 @@ import time
 import os
 import unittest
 import urlparse
-from data import Volume, Initiator
+from data import Volume
 from iplugin import INetworkAttachedStorage
 from transport import Transport
 import common

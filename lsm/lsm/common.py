@@ -219,6 +219,10 @@ ErrorNumber = Enumeration('ErrorNumber',
         ('ACCESS_GROUP_EXISTS', 33),
         ('ACCESS_GROUP_NOT_FOUND', 34),
         ('INITIATOR_NOT_IN_ACCESS_GROUP', 35),
+        ('INVALID_SL', 36),
+        ('INDEX_BOUNDS', 37),
+        ('INVALID_ACCESS_GROUP', 38),
+        ('INVALID_FS', 39),
         ('AUTH_FAILED', 45)
     ])
 

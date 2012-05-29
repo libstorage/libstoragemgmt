@@ -298,6 +298,14 @@ lsmAccessGroupPtr LSM_DLL_EXPORT lsmAccessGroupRecordAlloc(const char *id,
                                                      lsmStringListPtr initiators,
                                                      const char *system_id);
 
+lsmFsPtr LSM_DLL_EXPORT lsmFsRecordAlloc( const char *id, const char *name,
+                                            uint64_t total_space,
+                                            uint64_t free_space,
+                                            const char *pool_id,
+                                            const char *system_id);
+
+lsmFsPtr LSM_DLL_EXPORT *lsmFsRecordAllocArray( uint32_t size );
+
 #ifdef  __cplusplus
 }
 #endif

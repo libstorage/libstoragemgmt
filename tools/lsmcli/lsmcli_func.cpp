@@ -84,7 +84,7 @@ int waitForJob(int cmd_rc, lsmConnectPtr c, char *job,
 
             do {
                 usleep(10000);
-                rc = lsmJobStatusGet(c, job, &status, &percent, &new_volume);
+                rc = lsmJobStatusVolumeGet(c, job, &status, &percent, &new_volume);
                 //printf("job = %s, status %d, percent %d\n", job, status, percent);
             } while ( (LSM_JOB_INPROGRESS == status) && (LSM_ERR_OK == rc) );
 

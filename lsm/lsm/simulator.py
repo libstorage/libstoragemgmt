@@ -17,12 +17,13 @@
 
 import os
 
-from iplugin import IStorageAreaNetwork
 from common import LsmError, ErrorNumber, JobStatus, md5, uri_parse
 import random
 from data import Pool, Initiator, Volume, BlockRange, System, AccessGroup
 import time
 import pickle
+from data import FileSystem
+from iplugin import INfs
 
 SIM_DATA_FILE = '/tmp/lsm_sim_data'
 duration = os.getenv("LSM_SIM_TIME", 8)
@@ -43,10 +44,10 @@ class SimJob(object):
                 diff = now - self.start
                 self.percent = int(100 * (diff / self.duration))
 
-    def __init__(self, volume):
+    def __init__(self, item_to_return):
         self.status = JobStatus.INPROGRESS
         self.percent = 0
-        self.__volume = volume
+        self.__item = item_to_return
         self.start = time.time()
         self.duration = float(random.randint(0, int(duration)))
 
@@ -55,17 +56,17 @@ class SimJob(object):
         Returns a tuple (status, percent, volume)
         """
         self.__calc_progress()
-        return self.status, self.percent, self.volume
+        return self.status, self.percent, self.item
 
     @property
-    def volume(self):
+    def item(self):
         if self.percent >= 100:
-            return self.__volume
+            return self.__item
         return None
 
-    @volume.setter
-    def volume(self, value):
-        self.__volume = value
+    @item.setter
+    def item(self, value):
+        self.__item = value
 
 
 class SimState(object):
@@ -85,6 +86,9 @@ class SimState(object):
         self.vol_num = 1
         self.access_groups = {}
 
+        self.fs = {}
+        self.fs_num = 1
+
         self.tmo = 30000
         self.jobs = {}
         self.job_num = 1
@@ -96,7 +100,7 @@ class SimState(object):
         self.group_grants = {}      # {access group id : {volume id: access }}
 
 
-class StorageSimulator(IStorageAreaNetwork):
+class StorageSimulator(INfs):
     """
     Simple class that implements enough to allow the framework to be exercised.
     """
@@ -116,15 +120,15 @@ class StorageSimulator(IStorageAreaNetwork):
         """
         return (size_bytes / 512) * 512
 
-    def __create_job(self, volume):
+    def __create_job(self, returned_item):
         if True:
         #if random.randint(0,5) == 1:
             self.s.job_num += 1
             job = "JOB_" + str(self.s.job_num)
-            self.s.jobs[job] = SimJob(volume)
+            self.s.jobs[job] = SimJob(returned_item)
             return job, None
         else:
-            return None, volume
+            return None, returned_item
 
     def _load(self):
         tmp = None
@@ -159,26 +163,49 @@ class StorageSimulator(IStorageAreaNetwork):
         self.file = SIM_DATA_FILE
         self._load_state()
 
+    def _allocate_from_pool(self, pool_id, size_bytes):
+        p = self.s.pools[pool_id]['pool']
+
+        rounded_size = self.__block_rounding(size_bytes)
+
+        if p.free_space >= rounded_size:
+            p.free_space -= rounded_size
+        else:
+            raise LsmError(ErrorNumber.INSUFFICIENT_SPACE,
+                'Insufficient space in pool')
+        return rounded_size
+
+    def _deallocate_from_pool(self, pool_id, size_bytes):
+        p = self.s.pools[pool_id]['pool']
+        p.free_space += size_bytes
+
     def _new_access_group(self, name, h):
         return AccessGroup(md5(name), name,
             [i.id for i in h['initiators']], self.s.sys_info.id)
 
     def _create_vol(self, pool, name, size_bytes):
-        p = self.s.pools[pool.id]['pool']
+        actual_size = self._allocate_from_pool(pool.id, size_bytes)
 
-        rounded_size = self.__block_rounding(size_bytes)
+        nv = Volume('Vol' + str(self.s.vol_num), name,
+            StorageSimulator.__randomVpd(), 512,
+            (actual_size / 512), Volume.STATUS_OK, self.s.sys_info.id)
+        self.s.volumes[nv.id] = {'pool': pool, 'volume': nv}
+        self.s.vol_num += 1
+        return self.__create_job(nv)
 
-        if p.free_space >= rounded_size:
-            nv = Volume('Vol' + str(self.s.vol_num), name,
-                StorageSimulator.__randomVpd(), 512,
-                (rounded_size / 512), Volume.STATUS_OK, self.s.sys_info.id)
-            self.s.volumes[nv.id] = {'pool': pool, 'volume': nv}
-            p.free_space -= rounded_size
-            self.s.vol_num += 1
-            return self.__create_job(nv)
+    def _create_fs(self, pool, name, size_bytes):
+        if pool.id in self.s.pools:
+            p = self.s.pools[pool.id]['pool']
+            actual_size = self._allocate_from_pool(p.id, size_bytes)
+
+            new_fs = FileSystem('FS' + str(self.s.fs_num), name, actual_size,
+                        actual_size, p.id, self.s.sys_info.id)
+
+            self.s.fs[new_fs.id] = { 'pool': p, 'fs':new_fs }
+            self.s.fs_num += 1
+            return self.__create_job(new_fs)
         else:
-            raise LsmError(ErrorNumber.INSUFFICIENT_SPACE,
-                'Insufficient space in pool')
+            raise LsmError(ErrorNumber.INVALID_POOL, 'Non-existent pool')
 
     def startup(self, uri, password, timeout):
         self.uri = uri
@@ -246,7 +273,7 @@ class StorageSimulator(IStorageAreaNetwork):
         if volume.id in self.s.volumes:
             v = self.s.volumes[volume.id]['volume']
             p = self.s.volumes[volume.id]['pool']
-            p.free_space += v.size_bytes
+            self._deallocate_from_pool(p.id,v.size_bytes)
             del self.s.volumes[volume.id]
 
             for (k, v) in self.s.group_grants.items():
@@ -460,3 +487,79 @@ class StorageSimulator(IStorageAreaNetwork):
 
     def volume_child_dependency_rm(self, volume):
         return None
+
+    def fs(self):
+        return [e['fs'] for e in self.s.fs.itervalues()]
+
+    def fs_delete(self, fs):
+        if fs.id in self.s.fs:
+            f = self.s.fs[fs.id]['fs']
+            p = self.s.fs[fs.id]['pool']
+
+            self._deallocate_from_pool(p.id, f.total_space)
+            del self.s.fs[fs.id]
+
+            #TODO: Check for exports and remove them.
+
+            return self.__create_job(None)[0]
+        else:
+            raise LsmError(ErrorNumber.INVALID_FS, 'Filesystem not found')
+
+    def fs_resize(self, fs, new_size_bytes):
+        if fs.id in self.s.fs:
+            f = self.s.fs[fs.id]['fs']
+            p = self.s.fs[fs.id]['pool']
+
+            #TODO Check to make sure we have enough space before proceeding
+            self._deallocate_from_pool(p.id, f.total_space)
+            f.total_space = self._allocate_from_pool(p.id, new_size_bytes)
+            f.free_space = f.total_space
+            return self.__create_job(f)
+        else:
+            raise LsmError(ErrorNumber.INVALID_FS, 'Filesystem not found')
+
+    def fs_create(self, pool, name, size_bytes):
+        return self._create_fs(pool, name, size_bytes)
+
+    def fs_clone(self, src_fs, dest_fs_name, snapshot):
+        #TODO If snapshot is not None, then check for existence.
+
+        if src_fs.id in self.s.fs:
+            f = self.s.fs[src_fs.id]['fs']
+            p = self.s.fs[src_fs.id]['pool']
+            return self._create_fs(p, dest_fs_name, f.total_space)
+        else:
+            raise LsmError(ErrorNumber.INVALID_FS, 'Filesystem not found')
+
+    def file_clone(self, fs, src_file_name, dest_file_name, snapshot):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not implemented")
+
+    def snapshots(self, fs):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not implemented")
+
+    def snapshot_create(self, fs, snapshot_name, files):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not implemented")
+
+    def snapshot_delete(self, fs, snapshot):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not implemented")
+
+    def snapshot_revert(self, fs, snapshot, files, restore_files, all_files):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not implemented")
+
+    def fs_child_dependency(self, fs, file):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not implemented")
+
+    def fs_child_dependency_rm(self, fs, file=None):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not implemented")
+
+    def export_auth(self):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not implemented")
+
+    def exports(self):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not implemented")
+
+    def export_fs(self, export):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not implemented")
+
+    def export_remove(self, export):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not implemented")

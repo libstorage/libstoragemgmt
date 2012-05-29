@@ -100,6 +100,12 @@ typedef struct _lsmStringList lsmStringList;
 typedef lsmStringList *lsmStringListPtr;
 
 /**
+ * Opaque data type for file systems
+ */
+typedef struct _lsmFs lsmFs;
+typedef lsmFs *lsmFsPtr;
+
+/**
  * Different types of replications that can be created
  */
 typedef enum {

@@ -254,3 +254,34 @@ Value blockRangeToValue(lsmBlockRange *br)
     }
     return Value();
 }
+
+lsmFs *valueToFs(Value &fs)
+{
+    lsmFs *rc = NULL;
+    if( isExpectedObject(fs, "FileSystem") ) {
+        std::map<std::string, Value> f = fs.asObject();
+        rc = lsmFsRecordAlloc(f["id"].asString().c_str(),
+                                f["name"].asString().c_str(),
+                                f["total_space"].asUint64_t(),
+                                f["free_space"].asUint64_t(),
+                                f["pool_id"].asString().c_str(),
+                                f["system_id"].asString().c_str());
+    }
+    return rc;
+}
+
+Value fsToValue(lsmFs *fs)
+{
+    if( LSM_IS_FS(fs) ) {
+        std::map<std::string, Value> f;
+        f["class"] = Value("FileSystem");
+        f["id"] = Value(fs->id);
+        f["name"] = Value(fs->name);
+        f["total_space"] = Value(fs->total_space);
+        f["free_space"] = Value(fs->free_space);
+        f["pool_id"] = Value(fs->pool_id);
+        f["system_id"] = Value(fs->system_id);
+        return f;
+    }
+    return Value();
+}

@@ -72,17 +72,43 @@ extern "C" {
                                             uint32_t *timeout);
 
     /**
-     * Check on the status of a job.
+     * Check on the status of a job, no data to return on completion.
+     * @param[in] conn              Valid connection
+     * @param[int] job_id           Job id
+     * @param[out] status           Job Status
+     * @param[out] percentComplete  Percent job complete
+     * @return LSM_ERR_OK on success, else error reason
+     */
+    int LSM_DLL_EXPORT lsmJobStatusGet(lsmConnectPtr conn, const char *job_id,
+                                lsmJobStatus *status, uint8_t *percentComplete);
+
+    /**
+     * Check on the status of a job and returns the volume information when
+     * complete.
      * @param[in] conn              Valid connection pointer.
-     * @param[in] jobNumber         Job to check status on
+     * @param[in] job_id            Job to check status on
      * @param[out] status           What is the job status
      * @param[out] percentComplete  Domain 0..100
      * @param[out] vol              lsmVolumePtr for completed operation.
      * @return LSM_ERR_OK on success, else error reason.
      */
-    int LSM_DLL_EXPORT lsmJobStatusGet(lsmConnectPtr conn, const char *jobNumber,
+    int LSM_DLL_EXPORT lsmJobStatusVolumeGet(lsmConnectPtr conn, const char *job_id,
                                 lsmJobStatus *status, uint8_t *percentComplete,
                                 lsmVolumePtr *vol);
+
+
+    /**
+     * Check on the status of a job and return the fs information when complete.
+     * @param[in] conn                  Valid connection pointer
+     * @param[out] job_id               Job to check
+     * @param[out] status               What is the job status
+     * @param[out] percentComplete      Percent of job complete
+     * @param[out] fs                   lsmFsPtr for the completed operation
+     * @return LSM_ERR_OK on success, else error reason.
+     */
+    int LSM_DLL_EXPORT lsmJobStatusFsGet(lsmConnectPtr conn, const char *job_id,
+                                lsmJobStatus *status, uint8_t *percentComplete,
+                                lsmFsPtr *fs);
 
     /**
      * Frees the resources used by a job.
@@ -447,6 +473,51 @@ extern "C" {
      */
     int LSM_DLL_EXPORT lsmSystemList(lsmConnectPtr conn, lsmSystemPtr **systems,
                                         uint32_t *systemCount);
+
+    /**
+     * Retrieves information about the available file systems.
+     * @param[in] conn                      Valid connection
+     * @param[out] fs                       Array of lsmFsPtr
+     * @param[out] fsCount                  Number of file systems
+     * @return LSM_ERR_OK on success, else error reason
+     */
+    int LSM_DLL_EXPORT lsmFsList(lsmConnectPtr conn, lsmFsPtr **fs,
+                                    uint32_t *fsCount);
+
+    /**
+     * Creates a new fils system from the specified pool
+     * @param[in] conn              Valid connection
+     * @param[in] pool              Valid pool
+     * @param[in] name              File system name
+     * @param[in] size_bytes        Size of file system in bytes
+     * @param[out] fs               Newly created fs
+     * @param[out] job              Job id if job is async.
+     * @return LSM_ERR_OK on success, LSM_JOB_STARTED if async. , else error code
+     */
+    int LSM_DLL_EXPORT lsmFsCreate(lsmConnectPtr conn, lsmPoolPtr pool,
+                                    const char *name, uint64_t size_bytes,
+                                    lsmFsPtr *fs, char **job);
+
+    /**
+     * Deletes a file system
+     * @param[in] conn              Valid Connection
+     * @param fs                    File system to delete
+     * @param job                   Job id if job is created async.
+     * @return LSM_ERR_OK on success, LSM_JOB_STARTED if async. , else error code
+     */
+    int LSM_DLL_EXPORT lsmFsDelete(lsmConnectPtr conn, lsmFsPtr fs, char **job);
+
+    /**
+     * Resizes a file system
+     * @param[in] conn                  Valid connection
+     * @param[in] fs                    File system to re-size
+     * @param[in] new_size_bytes        New size of fs
+     * @param[out] rfs                   File system information for re-sized fs
+     * @return @return LSM_ERR_OK on success, LSM_JOB_STARTED if async. , else error code
+     */
+    int LSM_DLL_EXPORT lsmFsResize(lsmConnectPtr conn, lsmFsPtr fs,
+                                    uint64_t new_size_bytes, lsmFsPtr *rfs,
+                                    char **job);
 
 #ifdef  __cplusplus
 }
