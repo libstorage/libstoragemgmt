@@ -1,0 +1,167 @@
+#!/usr/bin/env python
+
+# Copyright (C) 2011 Red Hat, Inc.
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+#
+# Author: Andy Grover <agrover at redhat com>
+
+from lsm.iplugin import IStorageAreaNetwork
+from lsm.common import LsmError, ErrorNumber, JobStatus, md5
+from lsm.pluginrunner import PluginRunner
+import sys
+from lsm.data import Pool, Initiator, Volume, BlockRange, System
+import urllib2
+import json
+
+user = "foo"
+password = "bar"
+host = "localhost"
+url = "http://%s:18700/targetrpc" % host
+
+class LIOStorage(IStorageAreaNetwork):
+
+    def startup(self, uri, password, timeout):
+        self.uri = uri
+        self.password = password
+        self.tmo = timeout
+        self.rpc_id = 1
+
+    def set_time_out(self, ms):
+        self.tmo = ms
+
+    def get_time_out(self):
+        return self.tmo
+
+    def shutdown(self):
+        pass
+
+    def systems(self):
+        return (System("lio", "LIO-based storage appliance"),)
+
+    def job_status(self, job_id):
+        raise NotImplementedError
+
+    def job_free(self, job_id):
+        raise NotImplementedError
+
+    def volumes(self):
+        vol_list = self._jsonrequest("vol_list")
+
+        volumes = []
+        for vol in vol_list:
+            volumes.append(Volume(vol['uuid'], vol['name'], vol['uuid'],
+                                  512, vol['size']/512, Volume.STATUS_OK,
+                                  None))
+        return volumes
+
+    def pools(self):
+        pool_list = self._jsonrequest("pool_list")
+
+        pools = []
+        for pool in pool_list:
+            print pool
+            pools.append(Pool(pool['name'], pool['name'], pool['size'],
+                              pool['free_size'], None))
+        return pools
+
+    def initiators(self):
+        raise NotImplementedError
+
+    def volume_create(self, pool, volume_name, size_bytes, provisioning):
+        self._jsonrequest("vol_create", dict(name=volume_name, size=size_bytes))
+
+    def volume_delete(self, volume):
+        self._jsonrequest("vol_destroy", dict(name=volume.name))
+
+    def volume_replicate(self, pool, rep_type, volume_src, name):
+        raise NotImplementedError
+
+    def volume_replicate_range_block_size(self):
+        raise NotImplementedError
+
+    def volume_replicate_range(self, rep_type, volume_src, volume_dest,
+                               ranges):
+        raise NotImplementedError
+
+    def volume_online(self, volume):
+        raise NotImplementedError
+
+    def volume_offline(self, volume):
+        raise NotImplementedError
+
+    def volume_resize(self, volume, new_size_bytes):
+        raise NotImplementedError
+
+    def access_group_grant(self, group, volume, access):
+        raise NotImplementedError
+
+    def access_group_revoke(self, group, volume):
+        raise NotImplementedError
+
+    def access_group_list(self):
+        raise NotImplementedError
+
+    def access_group_create(self, name, initiator_id, id_type, system_id):
+        raise NotImplementedError
+
+    def access_group_del(self, group):
+        raise NotImplementedError
+
+    def access_group_add_initiator(self, group, initiator_id, id_type):
+        raise NotImplementedError
+
+    def access_group_del_initiator(self, group, initiator):
+        raise NotImplementedError
+
+    def volumes_accessible_by_access_group(self, group):
+        raise NotImplementedError
+
+    def access_groups_granted_to_volume(self, volume):
+        raise NotImplementedError
+
+    def volume_child_dependency(self, volume):
+        raise NotImplementedError
+
+    def volume_child_dependency_rm(self, volume):
+        raise NotImplementedError
+
+    def _jsonrequest(self, method, params=None):
+        data = json.dumps(dict(id=self.rpc_id, method=method,
+                               params=params, jsonrpc="2.0"))
+        self.rpc_id += 1
+        auth = ('%s:%s' % (user, password)).encode('base64')[:-1]
+        headers = {'Content-Type': 'application/json',
+                   'Authorization': 'Basic %s' % (auth,)}
+        request = urllib2.Request(url, data, headers)
+        response_obj = urllib2.urlopen(request)
+        if response_obj.info().status == 'EOF in headers':
+            if self.auto and self.url.startswith('http://'):
+                print('Auto switching to HTTPS connection to %s' % self.url)
+                self.url = 'https' + self.url[4:]
+                request = urllib2.Request(self.url, data, headers)
+                response_obj = urllib2.urlopen(request)
+            else:
+                print('No headers in server response')
+                raise Exception('Bad response from server')
+
+        response_data = response_obj.read()
+        response = json.loads(response_data)
+        if response.get('error') is not None:
+            raise Exception(response['error'].get('message', ''))
+        else:
+            return response.get('result')
+
+if __name__ == '__main__':
+    PluginRunner(LIOStorage, sys.argv).run()
