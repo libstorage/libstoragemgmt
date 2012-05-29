@@ -202,6 +202,30 @@ lsmFsPtr wait_for_job_fs(lsmConnectPtr c, char **job_id)
     return fs;
 }
 
+lsmSsPtr wait_for_job_ss(lsmConnectPtr c, char **job_id)
+{
+    lsmJobStatus status;
+    lsmSsPtr ss = NULL;
+    uint8_t pc = 0;
+    int rc = 0;
+
+    do {
+        rc = lsmJobStatusSsGet(c, *job_id, &status, &pc, &ss);
+        fail_unless( LSM_ERR_OK == rc, "rc = %d (%s)", rc,  error(lsmErrorGetLast(c)));
+        printf("SS: Job %s in progress, %d done, status = %d\n", *job_id, pc, status);
+        sleep(1);
+
+    } while( status == LSM_JOB_INPROGRESS );
+
+    rc = lsmJobFree(c, job_id);
+    fail_unless( LSM_ERR_OK == rc, "lsmJobFree %d, (%s)", rc, error(lsmErrorGetLast(c)));
+
+    fail_unless( LSM_JOB_COMPLETE == status);
+    fail_unless( 100 == pc);
+
+    return ss;
+}
+
 void mapping(lsmConnectPtr c)
 {
 
@@ -695,6 +719,67 @@ START_TEST(test_fs)
 }
 END_TEST
 
+START_TEST(test_ss)
+{
+    fail_unless(c != NULL);
+    lsmSsPtr *ss_list = NULL;
+    uint32_t ss_count = 0;
+    char *job = NULL;
+    lsmFsPtr fs = NULL;
+    lsmSsPtr ss = NULL;
+
+    printf("Testing snapshots\n");
+
+    lsmPoolPtr test_pool = getTestPool(c);
+
+    int rc = lsmFsCreate(c, test_pool, "test_fs", 100000000, &fs, &job);
+
+    if( LSM_ERR_JOB_STARTED == rc ) {
+        fs = wait_for_job_fs(c, &job);
+    }
+
+    fail_unless(fs != NULL);
+
+
+    rc = lsmSsList(c, fs, &ss_list, &ss_count);
+    printf("List return code= %d\n", rc);
+
+    if(rc) {
+        printf("%s\n", error(lsmErrorGetLast(c)));
+    }
+    fail_unless( LSM_ERR_OK == rc);
+    fail_unless( NULL == ss_list);
+    fail_unless( 0 == ss_count );
+
+
+    rc = lsmSsCreate(c, fs, "test_snap", NULL, &ss, &job);
+    if( LSM_ERR_JOB_STARTED == rc ) {
+        printf("Waiting for snap to create!\n");
+        ss = wait_for_job_ss(c, &job);
+    } else {
+        fail_unless(LSM_ERR_OK == rc);
+    }
+
+    fail_unless( NULL != ss);
+
+    rc = lsmSsList(c, fs, &ss_list, &ss_count);
+    fail_unless( LSM_ERR_OK == rc);
+    fail_unless( NULL != ss_list);
+    fail_unless( 1 == ss_count );
+
+    rc = lsmSsDelete(c, fs, ss, &job);
+
+    if( LSM_ERR_JOB_STARTED == rc ) {
+        wait_for_job(c, &job);
+    }
+
+    lsmSsRecordFreeArray(ss_list, ss_count);
+    lsmFsRecordFree(fs);
+
+    printf("Testing snapshots done!\n");
+}
+END_TEST
+
 START_TEST(test_systems)
 {
     uint32_t count = 0;
@@ -719,7 +804,6 @@ START_TEST(test_systems)
 
     lsmSystemRecordFreeArray(sys, count);
 }
-
 END_TEST
 
 
@@ -734,6 +818,7 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_systems);
     tcase_add_test(basic, test_access_groups_grant_revoke);
     tcase_add_test(basic, test_fs);
+    tcase_add_test(basic, test_ss);
     suite_add_tcase(s, basic);
     return s;
 }

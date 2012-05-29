@@ -19,7 +19,7 @@ import os
 
 from common import LsmError, ErrorNumber, JobStatus, md5, uri_parse
 import random
-from data import Pool, Initiator, Volume, BlockRange, System, AccessGroup
+from data import Pool, Initiator, Volume, BlockRange, System, AccessGroup, Snapshot
 import time
 import pickle
 from data import FileSystem
@@ -201,7 +201,7 @@ class StorageSimulator(INfs):
             new_fs = FileSystem('FS' + str(self.s.fs_num), name, actual_size,
                         actual_size, p.id, self.s.sys_info.id)
 
-            self.s.fs[new_fs.id] = { 'pool': p, 'fs':new_fs }
+            self.s.fs[new_fs.id] = { 'pool': p, 'fs':new_fs, 'ss': {} }
             self.s.fs_num += 1
             return self.__create_job(new_fs)
         else:
@@ -532,19 +532,53 @@ class StorageSimulator(INfs):
             raise LsmError(ErrorNumber.INVALID_FS, 'Filesystem not found')
 
     def file_clone(self, fs, src_file_name, dest_file_name, snapshot):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not implemented")
+        #TODO If snapshot is not None, then check for existence.
+        if fs.id in self.s.fs:
+            if src_file_name is not None and dest_file_name is not None:
+                return self.__create_job(None)[0]
+            else:
+                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                                "Invalid src/destination file names")
+        else:
+            raise LsmError(ErrorNumber.INVALID_FS, 'Filesystem not found')
 
     def snapshots(self, fs):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not implemented")
+        if fs.id in self.s.fs:
+            rc =  [e for e in self.s.fs[fs.id]['ss'].itervalues()]
+            return rc
+        else:
+            raise LsmError(ErrorNumber.INVALID_FS, 'Filesystem not found')
 
     def snapshot_create(self, fs, snapshot_name, files):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not implemented")
+        if fs.id in self.s.fs:
+            for e in self.s.fs[fs.id]['ss'].itervalues():
+                if e.name == snapshot_name:
+                    raise LsmError(ErrorNumber.NAME_EXISTS, 'Snapshot name exists')
+
+            s = Snapshot(md5(snapshot_name), snapshot_name, time.time())
+            self.s.fs[fs.id]['ss'][s.id] = s
+            return self.__create_job(s)
+        else:
+            raise LsmError(ErrorNumber.INVALID_FS, 'Filesystem not found')
 
     def snapshot_delete(self, fs, snapshot):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not implemented")
+        if fs.id in self.s.fs:
+            if snapshot.id in self.s.fs[fs.id]['ss']:
+                del self.s.fs[fs.id]['ss'][snapshot.id]
+                return self.__create_job(None)[0]
+            else:
+                raise LsmError(ErrorNumber.INVALID_SS, "Snapshot not found")
+        else:
+            raise LsmError(ErrorNumber.INVALID_FS, 'Filesystem not found')
 
     def snapshot_revert(self, fs, snapshot, files, restore_files, all_files):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not implemented")
+        if fs.id in self.s.fs:
+            if snapshot.id in self.s.fs[fs.id]['ss']:
+                return self.__create_job(None)[0]
+            else:
+                raise LsmError(ErrorNumber.INVALID_SS, "Snapshot not found")
+        else:
+            raise LsmError(ErrorNumber.INVALID_FS, 'Filesystem not found')
 
     def fs_child_dependency(self, fs, file):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not implemented")

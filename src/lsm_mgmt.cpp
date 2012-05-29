@@ -236,7 +236,7 @@ static int jobStatus( lsmConnectPtr c, const char *job,
     return rc;
 }
 
-int LSM_DLL_EXPORT lsmJobStatusGet(lsmConnectPtr c, const char *job_id,
+int lsmJobStatusGet(lsmConnectPtr c, const char *job_id,
                                 lsmJobStatus *status, uint8_t *percentComplete)
 {
     Value rv;
@@ -261,7 +261,7 @@ int lsmJobStatusVolumeGet( lsmConnectPtr c, const char *job,
     return rc;
 }
 
-int LSM_DLL_EXPORT lsmJobStatusFsGet(lsmConnectPtr c, const char *job,
+int lsmJobStatusFsGet(lsmConnectPtr c, const char *job,
                                 lsmJobStatus *status, uint8_t *percentComplete,
                                 lsmFsPtr *fs)
 {
@@ -274,6 +274,24 @@ int LSM_DLL_EXPORT lsmJobStatusFsGet(lsmConnectPtr c, const char *job,
             *fs = valueToFs(rv);
         } else {
             *fs = NULL;
+        }
+    }
+    return rc;
+}
+
+int lsmJobStatusSsGet(lsmConnectPtr c, const char *job,
+                                lsmJobStatus *status, uint8_t *percentComplete,
+                                lsmSsPtr *ss)
+{
+    Value rv;
+
+    int rc = jobStatus(c, job, status, percentComplete, rv);
+
+    if( LSM_ERR_OK == rc ) {
+        if( Value::object_t ==  rv.valueType() ) {
+            *ss = valueToSs(rv);
+        } else {
+            *ss = NULL;
         }
     }
     return rc;
@@ -1153,4 +1171,98 @@ int lsmFsResize(lsmConnectPtr c, lsmFsPtr fs,
                                                         (convert)valueToFs);
     }
     return rc;
+}
+
+
+int lsmSsList(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr **ss,
+                                uint32_t *ssCount)
+{
+    CONN_SETUP(c);
+
+    if( !LSM_IS_FS(fs) ) {
+        return LSM_ERR_INVALID_FS;
+    }
+
+    if( !ss || ! ssCount ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["fs"] = fsToValue(fs);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "snapshots", parameters, response);
+    if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+        std::vector<Value> sys = response.asArray();
+
+        *ssCount = sys.size();
+
+        if( sys.size() ) {
+            *ss = lsmSsRecordAllocArray(sys.size());
+
+            for( size_t i = 0; i < sys.size(); ++i ) {
+                (*ss)[i] = valueToSs(sys[i]);
+            }
+        }
+    }
+    return rc;
+
+}
+
+int lsmSsCreate(lsmConnectPtr c, lsmFsPtr fs, const char *name,
+                    lsmStringListPtr files, lsmSsPtr *snapshot, char **job)
+{
+    CONN_SETUP(c);
+
+    if( !LSM_IS_FS(fs)) {
+        return LSM_ERR_INVALID_FS;
+    }
+
+    if( NULL == snapshot || CHECK_NULL_JOB(job) || !name) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["fs"] = fsToValue(fs);
+    p["snapshot_name"] = Value(name);
+    p["files"] = stringListToValue(files);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "snapshot_create", parameters, response);
+    if( LSM_ERR_OK == rc ) {
+        *snapshot = (lsmSsPtr)parse_job_response(response, rc, job,
+                                                        (convert)valueToSs);
+    }
+    return rc;
+}
+
+int lsmSsDelete(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss, char **job)
+{
+    CONN_SETUP(c);
+
+    if( !LSM_IS_FS(fs) ) {
+        return LSM_ERR_INVALID_FS;
+    }
+
+    if( !LSM_IS_SS(ss) ) {
+        return LSM_ERR_INVALID_SS;
+    }
+
+    if( CHECK_NULL_JOB(job) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["fs"] = fsToValue(fs);
+    p["snapshot"] = ssToValue(ss);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "snapshot_delete", parameters, response);
+    return jobCheck(rc, response, job);
 }

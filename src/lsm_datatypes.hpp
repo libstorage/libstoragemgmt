@@ -255,6 +255,15 @@ struct LSM_DLL_LOCAL _lsmFs {
     char *system_id;
 };
 
+#define LSM_SS_MAGIC                0xAA7A000F
+#define LSM_IS_SS(obj)     MAGIC_CHECK(obj, LSM_SS_MAGIC)
+struct LSM_DLL_LOCAL _lsmSs {
+    uint32_t magic;
+    char *id;
+    char *name;
+    uint64_t ts;
+};
+
 /**
  * Returns a pointer to a newly created connection structure.
  * @return NULL on memory exhaustion, else new connection.

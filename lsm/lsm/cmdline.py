@@ -962,7 +962,10 @@ class CmdLine:
         #Get fs
         fs = self._get_item(self.c.fs(), self.options.opt_fs)
         if fs:
-            ss = self.c.snapshot_create(fs, self.cmd_value, self.options.file)
+            ss = self._wait_for_it("snapshot-create",
+                    *self.c.snapshot_create(fs,self.cmd_value,
+                                            self.options.file))
+
             self.display_snaps([ss])
         else:
             raise ArgError( "fs with id= %s not found!" % self.options.opt_fs)
@@ -989,7 +992,8 @@ class CmdLine:
                 raise ArgError("Need to specify --all or at least one --file")
 
             self._wait_for_it('restore-ss', self.c.snapshot_revert(fs, ss,
-                                    self.options.file, self.options.all), None)
+                                    self.options.file, self.options.fileas,
+                                    self.options.all), None)
         else:
             if not ss:
                 raise ArgError( "ss with id= %s not found!" % self.cmd_value)

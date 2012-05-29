@@ -33,6 +33,7 @@
 #include <libstoragemgmt/libstoragemgmt_error.h>
 #include <libstoragemgmt/libstoragemgmt_systems.h>
 #include <libstoragemgmt/libstoragemgmt_accessgroups.h>
+#include <libstoragemgmt/libstoragemgmt_snapshot.h>
 
 #include <string.h>
 #include <stdlib.h>
@@ -989,6 +990,56 @@ uint64_t lsmFsTotalSpaceGet(lsmFsPtr fs)
 uint64_t lsmFsFreeSpaceGet(lsmFsPtr fs)
 {
     MEMBER_GET(fs, LSM_IS_FS, free_space, 0);
+}
+
+lsmSsPtr lsmSsRecordAlloc( const char *id, const char *name,
+                                            uint64_t ts)
+{
+    lsmSs *rc = (lsmSs *) malloc(sizeof(lsmSs));
+    if( rc ) {
+        rc->magic = LSM_SS_MAGIC;
+        rc->id = strdup(id);
+        rc->name = strdup(name);
+        rc->ts = ts;
+
+        if( !rc->id || ! rc->name ) {
+            rc->magic = LSM_DEL_MAGIC(LSM_SS_MAGIC);
+            free(rc->id);
+            free(rc->name);
+            free(rc);
+            rc = NULL;
+        }
+    }
+    return rc;
+}
+
+void lsmSsRecordFree( lsmSsPtr ss)
+{
+    if( LSM_IS_SS(ss) ) {
+        ss->magic = LSM_DEL_MAGIC(LSM_SS_MAGIC);
+        free(ss->id);
+        free(ss->name);
+        free(ss);
+    }
+}
+
+CREATE_ALLOC_ARRAY_FUNC(lsmSsRecordAllocArray, lsmSsPtr)
+CREATE_FREE_ARRAY_FUNC(lsmSsRecordFreeArray, lsmSsRecordFree, lsmSsPtr)
+
+
+const char *lsmSsIdGet(lsmSsPtr ss)
+{
+    MEMBER_GET(ss, LSM_IS_SS, id, NULL);
+}
+
+const char *lsmSsNameGet(lsmSsPtr ss)
+{
+    MEMBER_GET(ss, LSM_IS_SS, name, NULL);
+}
+
+uint64_t lsmSsTimeStampGet(lsmSsPtr ss)
+{
+    MEMBER_GET(ss, LSM_IS_SS, ts, 0);
 }
 
 #ifdef  __cplusplus

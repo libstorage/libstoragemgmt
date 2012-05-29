@@ -106,6 +106,12 @@ typedef struct _lsmFs lsmFs;
 typedef lsmFs *lsmFsPtr;
 
 /**
+ * Opaque data type for snapshot
+ */
+typedef struct _lsmSs lsmSs;
+typedef lsmSs *lsmSsPtr;
+
+/**
  * Different types of replications that can be created
  */
 typedef enum {

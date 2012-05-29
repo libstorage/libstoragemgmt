@@ -578,8 +578,12 @@ class Client(INetworkAttachedStorage):
         In these cases the file names are effectively discarded as all files
         are done.
 
-        Returns Snapshot that was created.  Note:  Snapshot name may not match
-        what was passed in (depends on array implementation)
+        Returns a tuple (job_id, snapshot)
+        Notes:
+        - Snapshot name may not match what was passed in
+          (depends on array implementation)
+        - Tuple return values are mutually exclusive, when one
+          is None the other must be valid.
         """
         return self.tp.rpc('snapshot_create', del_self(locals()))
 

@@ -30,6 +30,7 @@
 #include "libstoragemgmt_systems.h"
 #include "libstoragemgmt_accessgroups.h"
 #include "libstoragemgmt_blockrange.h"
+#include "libstoragemgmt_snapshot.h"
 
 #ifdef  __cplusplus
 extern "C" {
@@ -100,7 +101,7 @@ extern "C" {
     /**
      * Check on the status of a job and return the fs information when complete.
      * @param[in] conn                  Valid connection pointer
-     * @param[out] job_id               Job to check
+     * @param[in] job_id                Job to check
      * @param[out] status               What is the job status
      * @param[out] percentComplete      Percent of job complete
      * @param[out] fs                   lsmFsPtr for the completed operation
@@ -109,6 +110,20 @@ extern "C" {
     int LSM_DLL_EXPORT lsmJobStatusFsGet(lsmConnectPtr conn, const char *job_id,
                                 lsmJobStatus *status, uint8_t *percentComplete,
                                 lsmFsPtr *fs);
+
+    /**
+     * Check on the status of a job and return the snapshot information when
+     * compete.
+     * @param[in] c                     Valid connection pointer
+     * @param[in] job                   Job id to check
+     * @param[out] status               Job status
+     * @param[out] percentComplete      Percent complete
+     * @param[out] ss                   Snap shot information
+     * @return LSM_ERR_OK on success, else error reason
+     */
+    int LSM_DLL_EXPORT lsmJobStatusSsGet(lsmConnectPtr c, const char *job,
+                                lsmJobStatus *status, uint8_t *percentComplete,
+                                lsmSsPtr *ss);
 
     /**
      * Frees the resources used by a job.
@@ -175,7 +190,7 @@ extern "C" {
      * @param[in]   provisioning    Type of volume provisioning to use
      * @param[out]  newVolume       Valid volume @see lsmVolume_t
      * @param[out]  job             Indicates job id
-     * @return LSM_ERR_OK on success, LSM_JOB_STARTED if async. , else error code
+     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. , else error code
      */
     int LSM_DLL_EXPORT lsmVolumeCreate(lsmConnectPtr conn, lsmPoolPtr pool,
                                         const char *volumeName, uint64_t size,
@@ -189,7 +204,7 @@ extern "C" {
      * @param[in]   newSize         New size of volume
      * @param[out]  resizedVolume   Pointer to newly resized lun.
      * @param[out]  job             Indicates job id
-     * @return LSM_ERR_OK on success, LSM_JOB_STARTED if async. , else error code
+     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. , else error code
      */
     int LSM_DLL_EXPORT lsmVolumeResize(lsmConnectPtr conn, lsmVolumePtr volume,
                                 uint64_t newSize, lsmVolumePtr *resizedVolume,
@@ -204,7 +219,7 @@ extern "C" {
      * @param[in] name              Human recognizable name (not all arrays support)
      * @param[out] newReplicant     New replicated volume lsmVolume_t
      * @param[out] job              Indicates job id
-     * @return LSM_ERR_OK on success, LSM_JOB_STARTED if async. , else error code
+     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. , else error code
      */
     int LSM_DLL_EXPORT lsmVolumeReplicate(lsmConnectPtr conn, lsmPoolPtr pool,
                             lsmReplicationType repType, lsmVolumePtr volumeSrc,
@@ -229,7 +244,7 @@ extern "C" {
      * @param[in] ranges                An array of block ranges
      * @param[in] num_ranges            Number of entries in ranges.
      * @param[out] job                  Indicates job id
-     * @return LSM_ERR_OK on success, LSM_JOB_STARTED if async., else error code
+     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async., else error code
      */
     int LSM_DLL_EXPORT lsmVolumeReplicateRange(lsmConnectPtr conn,
                                                 lsmReplicationType repType,
@@ -243,7 +258,7 @@ extern "C" {
      * @param[in]   conn            Valid connection @see lsmConnectUserPass
      * @param[in]   volume          Volume that is to be deleted.
      * @param[out]  job             Indicates job id
-     * @return LSM_ERR_OK on success, LSM_JOB_STARTED if async. , else error code
+     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. , else error code
      */
     int LSM_DLL_EXPORT lsmVolumeDelete(lsmConnectPtr conn, lsmVolumePtr volume,
                                         char **job);
@@ -306,7 +321,7 @@ extern "C" {
      * @param[in] volume                Volume to allow access to
      * @param[in] access                Type of access
      * @param[out] job                   Indicates job id
-     * @return LSM_ERR_OK on success, LSM_JOB_STARTED if async. , else error code
+     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. , else error code
      */
     int LSM_DLL_EXPORT lsmAccessGrant(lsmConnectPtr conn,
                                         lsmInitiatorPtr initiator,
@@ -492,7 +507,7 @@ extern "C" {
      * @param[in] size_bytes        Size of file system in bytes
      * @param[out] fs               Newly created fs
      * @param[out] job              Job id if job is async.
-     * @return LSM_ERR_OK on success, LSM_JOB_STARTED if async. , else error code
+     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. , else error code
      */
     int LSM_DLL_EXPORT lsmFsCreate(lsmConnectPtr conn, lsmPoolPtr pool,
                                     const char *name, uint64_t size_bytes,
@@ -503,7 +518,7 @@ extern "C" {
      * @param[in] conn              Valid Connection
      * @param fs                    File system to delete
      * @param job                   Job id if job is created async.
-     * @return LSM_ERR_OK on success, LSM_JOB_STARTED if async. , else error code
+     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. , else error code
      */
     int LSM_DLL_EXPORT lsmFsDelete(lsmConnectPtr conn, lsmFsPtr fs, char **job);
 
@@ -513,12 +528,50 @@ extern "C" {
      * @param[in] fs                    File system to re-size
      * @param[in] new_size_bytes        New size of fs
      * @param[out] rfs                   File system information for re-sized fs
-     * @return @return LSM_ERR_OK on success, LSM_JOB_STARTED if async. , else error code
+     * @return @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. , else error code
      */
     int LSM_DLL_EXPORT lsmFsResize(lsmConnectPtr conn, lsmFsPtr fs,
                                     uint64_t new_size_bytes, lsmFsPtr *rfs,
                                     char **job);
 
+
+    /**
+     * Return a list of snapshots
+     * @param[in] conn                  Valid connection
+     * @param[int] fs                   File system to check for snapshots
+     * @param[out] ss                   An array of snapshot pointers
+     * @param[out] ssCount                   Number of elements in the array
+     * @return LSM_ERR_OK on success, else error reason
+     */
+    int LSM_DLL_EXPORT lsmSsList(lsmConnectPtr conn, lsmFsPtr fs, lsmSsPtr **ss,
+                                uint32_t *ssCount);
+
+    /**
+     * Creates a snapshot
+     * @param[in] c                     Valid connection
+     * @param[in] fs                    File system to snapshot
+     * @param[in] name                  Name of snap shot
+     * @param[in] files                 List of file names to snapshot (can be null)
+     * @param[out] snapshot             Snapshot that was created
+     * @param[out] job                  Job id if the operation is async.
+     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if aysnc.,
+     * else error code
+     */
+    int LSM_DLL_EXPORT lsmSsCreate(lsmConnectPtr c, lsmFsPtr fs,
+                                    const char *name, lsmStringListPtr files,
+                                    lsmSsPtr *snapshot, char **job);
+
+    /**
+     * Deletes a snapshot
+     * @param[in] c                 Valid connection
+     * @param[in] fs                File system
+     * @param[in] ss                Snapshot to delete
+     * @param[out] job              Job id if the operation is aysnc.
+     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if aysnc., else error
+     * code.
+     */
+    int LSM_DLL_EXPORT lsmSsDelete(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss,
+                                    char **job);
 #ifdef  __cplusplus
 }
 #endif

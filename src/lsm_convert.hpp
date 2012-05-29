@@ -24,6 +24,20 @@
 #include "lsm_ipc.hpp"
 
 /**
+ * Converts an array of Values to a lsmStringList
+ * @param list      List represented as an vector of strings.
+ * @return lsmStringList pointer, NULL on error.
+ */
+lsmStringList *valueToStringList( std::vector<Value> &list );
+
+/**
+ * Converts a lsmStringList to a Value
+ * @param sl        String list to convert
+ * @return Value
+ */
+Value stringListToValue( lsmStringList *sl);
+
+/**
  * Converts a volume to a volume.
  * @param vol Value to convert.
  * @return lsmVolume *, else NULL on error
@@ -120,5 +134,19 @@ lsmFs *valueToFs(Value &fs);
  * @return Value
  */
 Value fsToValue(lsmFs *fs);
+
+/**
+ * Converts a value to a lsmSs *
+ * @param ss        Value representing a snapshot to be converted
+ * @return lsmSs pointer or NULL on error.
+ */
+lsmSs *valueToSs(Value &ss);
+
+/**
+ * Converts a lsmSs pointer to a Value
+ * @param fs        Snapshot pointer to convert
+ * @return Value
+ */
+Value ssToValue(lsmSs *ss);
 
 #endif

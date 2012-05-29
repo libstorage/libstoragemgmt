@@ -223,6 +223,8 @@ ErrorNumber = Enumeration('ErrorNumber',
         ('INDEX_BOUNDS', 37),
         ('INVALID_ACCESS_GROUP', 38),
         ('INVALID_FS', 39),
+        ('INVALID_SS', 40),
+        ('NAME_EXISTS', 41),
         ('AUTH_FAILED', 45)
     ])
 

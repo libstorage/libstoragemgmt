@@ -88,6 +88,7 @@ typedef enum {
     LSM_ERR_INDEX_BOUNDS = 37,          /**< Out of bounds on string index */
     LSM_ERR_INVALID_ACCESS_GROUP = 38,      /**< Invalid access group */
     LSM_ERR_INVALID_FS = 39,            /**< invalid fs */
+    LSM_ERR_INVALID_SS = 40,            /**< invalid snapshot */
     LSM_ERR_AUTH_FAILED = 45,           /**< Authorization failed */
 
 } lsmErrorNumber;

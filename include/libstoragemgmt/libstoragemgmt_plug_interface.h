@@ -298,13 +298,45 @@ lsmAccessGroupPtr LSM_DLL_EXPORT lsmAccessGroupRecordAlloc(const char *id,
                                                      lsmStringListPtr initiators,
                                                      const char *system_id);
 
+/**
+ * Allocates memory for a file system record
+ * @param id                    ID of file system
+ * @param name                  Name of file system
+ * @param total_space           Total space
+ * @param free_space            Free space
+ * @param pool_id               Pool id
+ * @param system_id             System id
+ * @return lsmFsPtr, NULL on error
+ */
 lsmFsPtr LSM_DLL_EXPORT lsmFsRecordAlloc( const char *id, const char *name,
                                             uint64_t total_space,
                                             uint64_t free_space,
                                             const char *pool_id,
                                             const char *system_id);
 
+/**
+ * Allocates the memory for the array of file system records.
+ * @param size      Number of elements
+ * @return Allocated memory, NULL on error
+ */
 lsmFsPtr LSM_DLL_EXPORT *lsmFsRecordAllocArray( uint32_t size );
+
+/**
+ * Allocates the memory for single snap shot record.
+ * @param id            ID
+ * @param name          Name
+ * @param ts            Epoch time stamp when snapshot was created
+ * @return Allocated memory, NULL on error
+ */
+lsmSsPtr LSM_DLL_EXPORT lsmSsRecordAlloc( const char *id, const char *name,
+                                            uint64_t ts);
+
+/**
+ * Allocates the memory for an array of snapshot records.
+ * @param size          Number of elements
+ * @return Allocated memory, NULL on error
+ */
+lsmSsPtr LSM_DLL_EXPORT *lsmSsRecordAllocArray( uint32_t size );
 
 #ifdef  __cplusplus
 }

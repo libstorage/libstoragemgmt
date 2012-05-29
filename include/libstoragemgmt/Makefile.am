@@ -15,6 +15,7 @@ lsminc_HEADERS =			\
    libstoragemgmt_initiators.h		\
    libstoragemgmt_plug_interface.h	\
    libstoragemgmt_pool.h		\
+   libstoragemgmt_snapshot.h            \
    libstoragemgmt_systems.h             \
    libstoragemgmt_types.h		\
    libstoragemgmt_volumes.h

@@ -143,7 +143,7 @@ Value systemToValue(lsmSystem *system)
     return Value();
 }
 
-static lsmStringList *ValueToStringList( std::vector<Value> &list )
+lsmStringList *valueToStringList( std::vector<Value> &list )
 {
     uint32_t size = list.size();
 
@@ -162,7 +162,7 @@ static lsmStringList *ValueToStringList( std::vector<Value> &list )
     return il;
 }
 
-static Value StringListToValue( lsmStringList *sl) {
+Value stringListToValue( lsmStringList *sl) {
     if( LSM_IS_STRING_LIST(sl) ) {
         std::vector<Value> rc;
         uint32_t size = lsmStringListSize(sl);
@@ -193,7 +193,7 @@ lsmAccessGroup *valueToAccessGroup( Value &group )
         if( inits.size() == 0 ) {
             proceed = 1;
         } else {
-            il = ValueToStringList(inits);
+            il = valueToStringList(inits);
             if( il ) {
                 proceed = 1;
             }
@@ -222,7 +222,7 @@ Value accessGroupToValue( lsmAccessGroupPtr group )
         ag["class"] = Value("AccessGroup");
         ag["id"] = Value(group->id);
         ag["name"] = Value(group->name);
-        ag["initiators"] = Value(StringListToValue(group->initiators));
+        ag["initiators"] = Value(stringListToValue(group->initiators));
         ag["system_id"] = Value(group->system_id);
         return ag;
     }
@@ -281,6 +281,32 @@ Value fsToValue(lsmFs *fs)
         f["free_space"] = Value(fs->free_space);
         f["pool_id"] = Value(fs->pool_id);
         f["system_id"] = Value(fs->system_id);
+        return f;
+    }
+    return Value();
+}
+
+
+lsmSs *valueToSs(Value &ss)
+{
+    lsmSs *rc = NULL;
+    if( isExpectedObject(ss, "Snapshot") ) {
+        std::map<std::string, Value> f = ss.asObject();
+        rc = lsmSsRecordAlloc(f["id"].asString().c_str(),
+                                f["name"].asString().c_str(),
+                                f["ts"].asUint64_t());
+    }
+    return rc;
+}
+
+Value ssToValue(lsmSs *ss)
+{
+    if( LSM_IS_SS(ss) ) {
+        std::map<std::string, Value> f;
+        f["class"] = Value("Snapshot");
+        f["id"] = Value(ss->id);
+        f["name"] = Value(ss->name);
+        f["ts"] = Value(ss->ts);
         return f;
     }
     return Value();
