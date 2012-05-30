@@ -507,7 +507,8 @@ extern "C" {
      * @param[in] size_bytes        Size of file system in bytes
      * @param[out] fs               Newly created fs
      * @param[out] job              Job id if job is async.
-     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. , else error code
+     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. ,
+     * else error code
      */
     int LSM_DLL_EXPORT lsmFsCreate(lsmConnectPtr conn, lsmPoolPtr pool,
                                     const char *name, uint64_t size_bytes,
@@ -515,12 +516,39 @@ extern "C" {
 
     /**
      * Deletes a file system
-     * @param[in] conn              Valid Connection
+     * @param[in] conn              Valid connection
      * @param fs                    File system to delete
      * @param job                   Job id if job is created async.
-     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. , else error code
+     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. ,
+     * else error code
      */
     int LSM_DLL_EXPORT lsmFsDelete(lsmConnectPtr conn, lsmFsPtr fs, char **job);
+
+    /**
+     * Checks to see if the specified file system has a child dependency.
+     * @param[in] conn                  Valid connection
+     * @param[in] fs                    Specific file system
+     * @param[in] files                 Specific files to check (NULL OK)
+     * @param[out] yes                  Zero indicates no, else yes
+     * @return LSM_ERR_OK on success, else error code.
+     */
+    int LSM_DLL_EXPORT lsmFsChildDependency( lsmConnectPtr conn, lsmFsPtr fs,
+                                                lsmStringListPtr files,
+                                                uint8_t *yes);
+
+    /**
+     * Removes child dependencies by duplicating the required storage to remove.
+     * Note: This could take a long time to complete based on dependencies.
+     * @param[in] conn                      Valid connection
+     * @param[in] fs                        File system to remove dependencies for
+     * @param[in] files                     Specific files to check (NULL OK)
+     * @param[out] job                      Job id for async. identification
+     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. ,
+     * else error code
+     */
+    int LSM_DLL_EXPORT lsmFsChildDependencyRm( lsmConnectPtr conn, lsmFsPtr fs,
+                                                lsmStringListPtr files,
+                                                char **job);
 
     /**
      * Resizes a file system
@@ -528,7 +556,8 @@ extern "C" {
      * @param[in] fs                    File system to re-size
      * @param[in] new_size_bytes        New size of fs
      * @param[out] rfs                   File system information for re-sized fs
-     * @return @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. , else error code
+     * @return @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. ,
+     * else error code
      */
     int LSM_DLL_EXPORT lsmFsResize(lsmConnectPtr conn, lsmFsPtr fs,
                                     uint64_t new_size_bytes, lsmFsPtr *rfs,
@@ -551,7 +580,7 @@ extern "C" {
      * @param[in] c                     Valid connection
      * @param[in] fs                    File system to snapshot
      * @param[in] name                  Name of snap shot
-     * @param[in] files                 List of file names to snapshot (can be null)
+     * @param[in] files                 List of file names to snapshot (null OK)
      * @param[out] snapshot             Snapshot that was created
      * @param[out] job                  Job id if the operation is async.
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async.,
@@ -566,8 +595,8 @@ extern "C" {
      * @param[in] c                 Valid connection
      * @param[in] fs                File system
      * @param[in] ss                Snapshot to delete
-     * @param[out] job              Job id if the operation is aysnc.
-     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if aysnc., else error
+     * @param[out] job              Job id if the operation is async.
+     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async., else error
      * code.
      */
     int LSM_DLL_EXPORT lsmSsDelete(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss,

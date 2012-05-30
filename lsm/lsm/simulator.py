@@ -26,7 +26,7 @@ from data import FileSystem
 from iplugin import INfs
 
 SIM_DATA_FILE = '/tmp/lsm_sim_data'
-duration = os.getenv("LSM_SIM_TIME", 8)
+duration = os.getenv("LSM_SIM_TIME", 1)
 
 class SimJob(object):
     """
@@ -580,11 +580,17 @@ class StorageSimulator(INfs):
         else:
             raise LsmError(ErrorNumber.INVALID_FS, 'Filesystem not found')
 
-    def fs_child_dependency(self, fs, file):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not implemented")
+    def fs_child_dependency(self, fs, files=None):
+        if fs.id in self.s.fs:
+            return False
+        else:
+            raise LsmError(ErrorNumber.INVALID_FS, 'Filesystem not found')
 
-    def fs_child_dependency_rm(self, fs, file=None):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not implemented")
+    def fs_child_dependency_rm(self, fs, files=None):
+        if fs.id in self.s.fs:
+            return self.__create_job(None)[0]
+        else:
+            raise LsmError(ErrorNumber.INVALID_FS, 'Filesystem not found')
 
     def export_auth(self):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not implemented")

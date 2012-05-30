@@ -624,9 +624,9 @@ class Client(INetworkAttachedStorage):
 
     ## Checks to see if a file system has child dependencies.
     # @param    fs      The file system to check
-    # @param    file    The file to check.
+    # @param    file    The files to check (optional)
     # @returns True or False
-    def fs_child_dependency(self, fs, file=None):
+    def fs_child_dependency(self, fs, files=None):
         """
         Returns True if the specified filesystem or specified file on this
         file system has child dependencies.  This implies that this filesystem
@@ -638,9 +638,9 @@ class Client(INetworkAttachedStorage):
     ## Removes child dependencies from a FS or specific file.
     # @param    self    The this pointer
     # @param    fs      The file system to remove child dependencies for
-    # @param    file    The file to remove child dependencies for
+    # @param    file    The files to remove child dependencies for (optional)
     # @returns None if complete, else job id.
-    def fs_child_dependency_rm(self, fs, file=None):
+    def fs_child_dependency_rm(self, fs, files=None):
         """
         If this filesystem or specified file on this filesystem has child
         dependency this method will fully replicate the blocks removing the
@@ -652,7 +652,7 @@ class Client(INetworkAttachedStorage):
 
         Returns None if completed, else job id.  Raises LsmError on errors.
         """
-        pass
+        return self.tp.rpc('fs_child_dependency_rm', del_self(locals()))
 
     ## Returns a list of all the NFS client authentication types.
     # @param    self    The this pointer

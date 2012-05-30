@@ -239,6 +239,8 @@ static int jobStatus( lsmConnectPtr c, const char *job,
 int lsmJobStatusGet(lsmConnectPtr c, const char *job_id,
                                 lsmJobStatus *status, uint8_t *percentComplete)
 {
+    CONN_SETUP(c);
+
     Value rv;
     return jobStatus(c, job_id, status, percentComplete, rv);
 }
@@ -248,6 +250,8 @@ int lsmJobStatusVolumeGet( lsmConnectPtr c, const char *job,
                         lsmVolumePtr *vol)
 {
     Value rv;
+
+    CONN_SETUP(c);
 
     int rc = jobStatus(c, job, status, percentComplete, rv);
 
@@ -1173,6 +1177,77 @@ int lsmFsResize(lsmConnectPtr c, lsmFsPtr fs,
     return rc;
 }
 
+int lsmFsChildDependency( lsmConnectPtr c, lsmFsPtr fs, lsmStringListPtr files,
+                                                uint8_t *yes)
+{
+    CONN_SETUP(c);
+
+    if( !LSM_IS_FS(fs) ) {
+        return LSM_ERR_INVALID_FS;
+    }
+
+    if( files ) {
+        if( !LSM_IS_STRING_LIST(files) ) {
+            return LSM_ERR_INVALID_SL;
+        }
+    }
+
+    if( NULL == yes ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["fs"] = fsToValue(fs);
+    p["files"] = stringListToValue(files);
+
+    Value parameters(p);
+    Value response;
+
+    *yes = 0;
+
+    int rc = rpc(c, "fs_child_dependency", parameters, response);
+    if( LSM_ERR_OK == rc ) {
+        //We should be getting a boolean value back.
+        if( Value::boolean_t == response.valueType() ) {
+            if( response.asBool() ) {
+                *yes = 1;
+            }
+        } else {
+            rc = LSM_ERR_INTERNAL_ERROR;
+        }
+    }
+    return rc;
+}
+
+int lsmFsChildDependencyRm( lsmConnectPtr c, lsmFsPtr fs, lsmStringListPtr files,
+                            char **job)
+{
+CONN_SETUP(c);
+
+    if( !LSM_IS_FS(fs)) {
+        return LSM_ERR_INVALID_VOL;
+    }
+
+    if( CHECK_NULL_JOB(job) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    if( files ) {
+        if( !LSM_IS_STRING_LIST(files) ) {
+            return LSM_ERR_INVALID_SL;
+        }
+    }
+
+    std::map<std::string, Value> p;
+    p["fs"] = fsToValue(fs);
+    p["files"] = stringListToValue(files);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "fs_child_dependency_rm", parameters, response);
+    return jobCheck(rc, response, job);
+}
 
 int lsmSsList(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr **ss,
                                 uint32_t *ssCount)

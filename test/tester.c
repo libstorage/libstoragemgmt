@@ -32,6 +32,8 @@ const char SYSTEM_NAME[] = "LSM simulated storage plug-in";
 const char SYSTEM_ID[] = "sim-01";
 const char *ISCSI_HOST[2] = { "iqn.1994-05.com.domain:01.89bd01", "iqn.1994-05.com.domain:01.89bd02" };
 
+#define POLL_SLEEP 300000
+
 lsmConnectPtr c = NULL;
 
 void generateRandom(char *buff, uint32_t len)
@@ -143,7 +145,7 @@ void wait_for_job(lsmConnectPtr c, char **job_id)
         rc = lsmJobStatusVolumeGet(c, *job_id, &status, &pc, &vol);
         fail_unless( LSM_ERR_OK == rc, "rc = %d (%s)", rc,  error(lsmErrorGetLast(c)));
         printf("GENERIC: Job %s in progress, %d done, status = %d\n", *job_id, pc, status);
-        sleep(1);
+        usleep(POLL_SLEEP);
 
     } while( status == LSM_JOB_INPROGRESS );
 
@@ -165,7 +167,7 @@ lsmVolumePtr wait_for_job_vol(lsmConnectPtr c, char **job_id)
         rc = lsmJobStatusVolumeGet(c, *job_id, &status, &pc, &vol);
         fail_unless( LSM_ERR_OK == rc, "rc = %d (%s)", rc,  error(lsmErrorGetLast(c)));
         printf("VOLUME: Job %s in progress, %d done, status = %d\n", *job_id, pc, status);
-        sleep(1);
+        usleep(POLL_SLEEP);
 
     } while( status == LSM_JOB_INPROGRESS );
 
@@ -189,7 +191,7 @@ lsmFsPtr wait_for_job_fs(lsmConnectPtr c, char **job_id)
         rc = lsmJobStatusFsGet(c, *job_id, &status, &pc, &fs);
         fail_unless( LSM_ERR_OK == rc, "rc = %d (%s)", rc,  error(lsmErrorGetLast(c)));
         printf("FS: Job %s in progress, %d done, status = %d\n", *job_id, pc, status);
-        sleep(1);
+        usleep(POLL_SLEEP);
 
     } while( status == LSM_JOB_INPROGRESS );
 
@@ -213,7 +215,7 @@ lsmSsPtr wait_for_job_ss(lsmConnectPtr c, char **job_id)
         rc = lsmJobStatusSsGet(c, *job_id, &status, &pc, &ss);
         fail_unless( LSM_ERR_OK == rc, "rc = %d (%s)", rc,  error(lsmErrorGetLast(c)));
         printf("SS: Job %s in progress, %d done, status = %d\n", *job_id, pc, status);
-        sleep(1);
+        usleep(POLL_SLEEP);
 
     } while( status == LSM_JOB_INPROGRESS );
 
@@ -705,6 +707,19 @@ START_TEST(test_fs)
         resized_fs = wait_for_job_fs(c, &job);
     }
 
+    uint8_t yes_no = 10;
+    rc = lsmFsChildDependency(c, nfs, NULL, &yes_no);
+    fail_unless( LSM_ERR_OK == rc);
+    fail_unless( yes_no == 0);
+
+    rc = lsmFsChildDependencyRm(c, nfs, NULL, &job);
+    if( LSM_ERR_JOB_STARTED == rc ) {
+        fail_unless(NULL != job);
+        wait_for_job(c, &job);
+    } else {
+        fail_unless( LSM_ERR_OK == rc);
+    }
+
     rc = lsmFsDelete(c, resized_fs, &job);
 
     if( LSM_ERR_JOB_STARTED == rc ) {
@@ -769,7 +784,8 @@ START_TEST(test_ss)
 
     lsmStringListPtr files = lsmStringListAlloc(1);
     if(files) {
-        fail_unless(lsmStringListSetElem(files, 0, "some/file/name.txt") != LSM_ERR_OK);
+        rc = lsmStringListSetElem(files, 0, "some/file/name.txt");
+        fail_unless( LSM_ERR_OK == rc, "lsmStringListSetElem rc = %d", rc);
     }
 
     rc = lsmSsRevert(c, fs, ss, files, files, 0, &job);

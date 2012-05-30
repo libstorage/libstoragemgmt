@@ -405,7 +405,7 @@ class INetworkAttachedStorage(IPlugin):
         pass
 
     @abstractmethod
-    def fs_child_dependency(self, fs, file=None):
+    def fs_child_dependency(self, fs, files=None):
         """
         Returns True if the specified filesystem or specified file on this
         file system has child dependencies.  This implies that this filesystem
@@ -415,7 +415,7 @@ class INetworkAttachedStorage(IPlugin):
         pass
 
     @abstractmethod
-    def fs_child_dependency_rm(self, fs, file=None):
+    def fs_child_dependency_rm(self, fs, files=None):
         """
         If this filesystem or specified file on this filesystem has child
         dependency this method will fully replicate the blocks removing the
