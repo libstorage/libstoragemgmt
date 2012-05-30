@@ -1266,3 +1266,49 @@ int lsmSsDelete(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss, char **job)
     int rc = rpc(c, "snapshot_delete", parameters, response);
     return jobCheck(rc, response, job);
 }
+
+int lsmSsRevert(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss,
+                                    lsmStringListPtr files,
+                                    lsmStringListPtr restore_files,
+                                    int all_files, char **job)
+{
+    CONN_SETUP(c);
+
+    if( !LSM_IS_FS(fs) ) {
+        return LSM_ERR_INVALID_FS;
+    }
+
+    if( !LSM_IS_SS(ss) ) {
+        return LSM_ERR_INVALID_SS;
+    }
+
+    if( files ) {
+        if( !LSM_IS_STRING_LIST(files) ) {
+            return LSM_ERR_INVALID_SL;
+        }
+    }
+
+    if( restore_files ) {
+        if( !LSM_IS_STRING_LIST(restore_files) ) {
+            return LSM_ERR_INVALID_SL;
+        }
+    }
+
+    if( CHECK_NULL_JOB(job) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["fs"] = fsToValue(fs);
+    p["snapshot"] = ssToValue(ss);
+    p["files"] = stringListToValue(files);
+    p["restore_files"] = stringListToValue(restore_files);
+    p["all_files"] = Value((all_files)?true:false);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "snapshot_revert", parameters, response);
+    return jobCheck(rc, response, job);
+
+}

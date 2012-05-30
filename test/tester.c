@@ -767,6 +767,21 @@ START_TEST(test_ss)
     fail_unless( NULL != ss_list);
     fail_unless( 1 == ss_count );
 
+    lsmStringListPtr files = lsmStringListAlloc(1);
+    if(files) {
+        fail_unless(lsmStringListSetElem(files, 0, "some/file/name.txt") != LSM_ERR_OK);
+    }
+
+    rc = lsmSsRevert(c, fs, ss, files, files, 0, &job);
+    if( LSM_ERR_JOB_STARTED == rc ) {
+        printf("Waiting for  lsmSsRevert!\n");
+        wait_for_job(c, &job);
+    } else {
+        fail_unless(LSM_ERR_OK == rc);
+    }
+
+    lsmStringListFree(files);
+
     rc = lsmSsDelete(c, fs, ss, &job);
 
     if( LSM_ERR_JOB_STARTED == rc ) {

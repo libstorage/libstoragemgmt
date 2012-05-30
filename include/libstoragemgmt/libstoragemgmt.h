@@ -554,7 +554,7 @@ extern "C" {
      * @param[in] files                 List of file names to snapshot (can be null)
      * @param[out] snapshot             Snapshot that was created
      * @param[out] job                  Job id if the operation is async.
-     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if aysnc.,
+     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async.,
      * else error code
      */
     int LSM_DLL_EXPORT lsmSsCreate(lsmConnectPtr c, lsmFsPtr fs,
@@ -572,6 +572,24 @@ extern "C" {
      */
     int LSM_DLL_EXPORT lsmSsDelete(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss,
                                     char **job);
+
+    /**
+     * Reverts a file system or files to a previous state as specified in the
+     * snapshot.
+     * @param c                     Valid connection
+     * @param fs                    File system which contains the snapshot
+     * @param ss                    Snapshot to revert to
+     * @param files                 Optional list of files to revert
+     * @param restore_files         Optional list of file names to revert to
+     * @param all_files             0 = False else True
+     * @param job                   Job id if operation is async.
+     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async.,
+     * else error code
+     */
+    int LSM_DLL_EXPORT lsmSsRevert(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss,
+                                    lsmStringListPtr files,
+                                    lsmStringListPtr restore_files,
+                                    int all_files, char **job);
 #ifdef  __cplusplus
 }
 #endif
