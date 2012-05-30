@@ -12,6 +12,7 @@ BuildRequires:  boost-devel yajl-devel libxml2-devel tog-pegasus-devel python2-d
 Requires:       pywbem
 
 %if 0%{?fedora}
+BuildRequires:  systemd-units
 Requires: initscripts
 Requires(post): systemd-units
 Requires(preun): systemd-units
@@ -78,10 +79,8 @@ getent passwd libstoragemgmt >/dev/null || \
 if [ $1 -eq 1 ]; then
 %if 0%{?fedora}
     /bin/systemctl enable libstoragemgmt.service >/dev/null 2>&1 || :
-    /bin/systemctl start libstoragemgmt.service >/dev/null 2>&1 || :
 %else
     /sbin/chkconfig --add libstoragemgmtd
-    /etc/rc.d/init.d/libstoragemgmtd start > /dev/null 2>&1 || :
 %endif
 fi
 
