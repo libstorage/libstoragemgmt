@@ -181,7 +181,6 @@ lsmAccessGroup *valueToAccessGroup( Value &group )
     lsmAccessGroup *ag = NULL;
 
     if( isExpectedObject(group, "AccessGroup")) {
-        uint32_t num_inits = 0;
         int proceed = 0;
 
         std::map<std::string, Value> vAg = group.asObject();

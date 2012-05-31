@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <check.h>
 #include <unistd.h>
+#include <time.h>
 #include <libstoragemgmt/libstoragemgmt.h>
 
 #include <inttypes.h>
@@ -305,7 +306,6 @@ void create_volumes(lsmConnectPtr c, lsmPoolPtr p, int num)
 START_TEST(test_smoke_test)
 {
     uint32_t i = 0;
-    lsmErrorPtr e;
     int rc = 0;
 
     lsmPoolPtr selectedPool = NULL;
@@ -511,7 +511,6 @@ END_TEST
 
 START_TEST(test_access_groups)
 {
-    lsmErrorPtr e = NULL;
     lsmAccessGroupPtr *groups = NULL;
     lsmAccessGroupPtr group = NULL;
     uint32_t count = 0;
