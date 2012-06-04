@@ -149,4 +149,18 @@ lsmSs *valueToSs(Value &ss);
  */
 Value ssToValue(lsmSs *ss);
 
+/**
+ * Converts a value to a lsmNfsExport *
+ * @param exp        Value representing a nfs export to be converted
+ * @return lsmNfsExport pointer or NULL on error.
+ */
+lsmNfsExport *valueToNfsExport(Value &exp);
+
+/**
+ * Converts a lsmNfsExport pointer to a Value
+ * @param exp        NFS export pointer to convert
+ * @return Value
+ */
+Value nfsExportToValue(lsmNfsExport *exp);
+
 #endif

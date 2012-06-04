@@ -189,6 +189,11 @@ std::runtime_error(msg), error_code(code)
 
 }
 
+LsmException::LsmException(int code, std::string &msg, const std::string &debug_addl):
+std::runtime_error(msg), error_code(code), debug(debug_addl)
+{
+}
+
 LsmException::~LsmException() throw ()
 {
 }
@@ -238,8 +243,14 @@ Value::Value(const std::vector<Value> &v) : t(array_t), array(v)
 {
 }
 
-Value::Value(const char *v) : t(string_t), s(std::string(v))
+Value::Value(const char *v)
 {
+    if(v) {
+        t = string_t;
+        s = std::string(v);
+    } else {
+        t = null_t;
+    }
 }
 
 Value::Value(const std::string &v) : t(string_t), s(v)
@@ -408,6 +419,16 @@ std::string Value::asString()
 {
     if (t == string_t) {
         return s;
+    }
+    throw ValueException("Value not string");
+}
+
+const char * Value::asC_str()
+{
+    if (t == string_t) {
+        return s.c_str();
+    } else if( t == null_t ) {
+        return NULL;
     }
     throw ValueException("Value not string");
 }
@@ -842,13 +863,12 @@ Value Ipc::readResponse()
     if( r.hasKey(std::string("result"))) {
         return r.getValue("result");
     } else {
-#warning "Add overloaded LsmException ctor which takes data argument"
-
         std::map<std::string, Value> rp = r.asObject();
         std::map<std::string, Value> error = rp["error"].asObject();
 
         std::string msg = error["message"].asString();
-        throw LsmException((int)(error["code"].asInt32_t()), msg);
+        std::string data = error["data"].asString();
+        throw LsmException((int)(error["code"].asInt32_t()), msg, data);
     }
 }
 

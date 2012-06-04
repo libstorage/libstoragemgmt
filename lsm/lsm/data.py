@@ -248,12 +248,8 @@ class Snapshot(IData):
 class NfsExport(IData):
     def __init__(self, id, fs_id, export_path, auth, root, rw, ro, anonuid,
                  anongid, options):
-        assert(id is not None)
         assert(fs_id is not None)
         assert(export_path is not None)
-        assert( type(root) is list )
-        assert( type(rw) is list )
-        assert( type(ro) is list )
 
         self.id = id
         self.fs_id = fs_id          #File system exported

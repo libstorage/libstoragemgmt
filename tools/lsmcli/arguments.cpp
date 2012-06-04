@@ -27,8 +27,6 @@
 #include <sstream>
 #include <algorithm>
 
-#define __STDC_FORMAT_MACROS    /* To use PRIu64 */
-#include <inttypes.h>
 
 namespace LSM {
 

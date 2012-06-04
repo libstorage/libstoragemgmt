@@ -89,6 +89,9 @@ typedef enum {
     LSM_ERR_INVALID_ACCESS_GROUP = 38,      /**< Invalid access group */
     LSM_ERR_INVALID_FS = 39,            /**< invalid fs */
     LSM_ERR_INVALID_SS = 40,            /**< invalid snapshot */
+    LSM_ERR_NAME_EXISTS = 41,           /**< Generic error with name of resource already existing */
+    LSM_ERR_INVALID_NFS_EXPORT = 42,    /**< invalid nfs export record */
+    LSM_ERR_FS_NOT_EXPORTED = 43,       /**< FS not nfs exported */
     LSM_ERR_AUTH_FAILED = 45,           /**< Authorization failed */
 
 } lsmErrorNumber;

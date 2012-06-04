@@ -1387,3 +1387,66 @@ int lsmSsRevert(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss,
     return jobCheck(rc, response, job);
 
 }
+
+int lsmNfsList( lsmConnectPtr c, lsmNfsExportPtr **exports, uint32_t *count )
+{
+    CONN_SETUP(c);
+    std::map<std::string, Value> p;
+    Value parameters(p);
+    Value response;
+
+    if( *exports ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    int rc = rpc(c, "exports", parameters, response);
+    if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+        std::vector<Value> exps = response.asArray();
+
+        *count = exps.size();
+
+        if( *count ) {
+            *exports = lsmNfsExportRecordAllocArray(*count);
+
+            for( size_t i = 0; i < *count; ++i ) {
+                (*exports)[i] = valueToNfsExport(exps[i]);
+            }
+        }
+    }
+    return rc;
+}
+
+static int nfsExport( lsmConnectPtr c, lsmNfsExportPtr *e, const char* op,
+                        int fetch_result)
+{
+    CONN_SETUP(c);
+
+    if( !LSM_IS_NFS_EXPORT(*e) ) {
+        return LSM_ERR_INVALID_NFS_EXPORT;
+    }
+
+    std::map<std::string, Value> p;
+    p["export"] = nfsExportToValue(*e);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, op, parameters, response);
+    if( fetch_result && (LSM_ERR_OK == rc) &&
+        Value::object_t == response.valueType() ) {
+        lsmNfsExportPtr t = valueToNfsExport(response);
+        lsmNfsExportRecordFree(*e);
+        *e = t;
+    }
+    return rc;
+}
+
+int lsmNfsExportFs( lsmConnectPtr c, lsmNfsExportPtr *e )
+{
+    return nfsExport(c, e, "export_fs", 1);
+}
+
+int lsmNfsExportRemove( lsmConnectPtr c, lsmNfsExportPtr *e)
+{
+    return nfsExport(c, e, "export_remove", 0);
+}

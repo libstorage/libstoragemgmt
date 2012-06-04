@@ -437,7 +437,7 @@ class Ontap(IStorageAreaNetwork, INfs):
     def snapshot_create(self, fs, snapshot_name, files=None):
         #We can't do files, so we will do them all
         snap = self.f.snapshot_create(fs.name, snapshot_name)
-        return self._ss(snap)
+        return None, self._ss(snap)
 
     @handle_ontap_errors
     def snapshot_delete(self, fs, snapshot):

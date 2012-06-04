@@ -675,7 +675,7 @@ class Client(INetworkAttachedStorage):
     ## Exports a FS as specified in the export.
     # @param    self    The this pointer
     # @param    export  The export
-    # @returns None on success, else raises LsmError
+    # @returns NfsExport on success, else raises LsmError
     def export_fs(self, export):
         """
         Exports a filesystem as specified in the export

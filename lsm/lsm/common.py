@@ -225,6 +225,8 @@ ErrorNumber = Enumeration('ErrorNumber',
         ('INVALID_FS', 39),
         ('INVALID_SS', 40),
         ('NAME_EXISTS', 41),
+        ('INVALID_NFS', 42),
+        ('FS_NOT_EXPORTED', 43),
         ('AUTH_FAILED', 45)
     ])
 

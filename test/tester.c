@@ -24,14 +24,11 @@
 #include <time.h>
 #include <libstoragemgmt/libstoragemgmt.h>
 
-#include <inttypes.h>
-
-#include "libstoragemgmt/libstoragemgmt_fs.h"
-
 const char uri[] = "sim://localhost/?statefile=/tmp/lsm_sim_%s";
 const char SYSTEM_NAME[] = "LSM simulated storage plug-in";
 const char SYSTEM_ID[] = "sim-01";
-const char *ISCSI_HOST[2] = { "iqn.1994-05.com.domain:01.89bd01", "iqn.1994-05.com.domain:01.89bd02" };
+const char *ISCSI_HOST[2] = {   "iqn.1994-05.com.domain:01.89bd01",
+                                "iqn.1994-05.com.domain:01.89bd02" };
 
 #define POLL_SLEEP 300000
 
@@ -57,11 +54,15 @@ void generateRandom(char *buff, uint32_t len)
 
 char *stateName()
 {
+#if REUSE_STATE
+    return "sim://";
+#else
     static char fn[128];
     static char name[32];
     generateRandom(name, sizeof(name));
     snprintf(fn, sizeof(fn),  uri, name);
     return fn;
+#endif
 }
 
 lsmPoolPtr getTestPool(lsmConnectPtr c)
@@ -522,7 +523,7 @@ START_TEST(test_access_groups)
     fail_unless(LSM_ERR_OK == rc, "Expected success on listing access groups %d", rc);
     fail_unless(count == 0, "Expect 0 access groups, got %"PRIu32, count);
 
-    rc = lsmAccessGroupCreate(c, "access_group_test", "iqn.1994-05.com.domain:01.89bd01", LSM_INITIATOR_ISCSI, SYSTEM_ID, &group);
+    rc = lsmAccessGroupCreate(c, "test_access_groups", "iqn.1994-05.com.domain:01.89bd01", LSM_INITIATOR_ISCSI, SYSTEM_ID, &group);
 
     if( LSM_ERR_OK == rc ) {
         lsmStringListPtr init_list = lsmAccessGroupInitiatorIdGet(group);
@@ -568,7 +569,7 @@ START_TEST(test_access_groups)
     fail_unless( 1 == count );
 
     lsmStringListPtr init_list = lsmAccessGroupInitiatorIdGet(groups[0]);
-    fail_unless( lsmStringListSize(init_list) == 2 );
+    fail_unless( lsmStringListSize(init_list) == 2, "Expecting 2 initiators, current num = %d\n", lsmStringListSize(init_list) );
     for( i = 0; i < lsmStringListSize(init_list); ++i) {
         printf("%d = %s\n", i, lsmStringListGetElem(init_list, i));
     }
@@ -616,7 +617,7 @@ START_TEST(test_access_groups_grant_revoke)
 
     fail_unless(pool != NULL);
 
-    rc = lsmAccessGroupCreate(c, "access_group_grant_test",
+    rc = lsmAccessGroupCreate(c, "test_access_groups_grant_revoke",
                                    ISCSI_HOST[0], LSM_INITIATOR_ISCSI, SYSTEM_ID,
                                     &group);
 
@@ -657,6 +658,10 @@ START_TEST(test_access_groups_grant_revoke)
 
     rc = lsmAccessGroupRevoke(c, group, n, &job);
     fail_unless(LSM_ERR_OK == rc);
+
+    rc = lsmAccessGroupDel(c, group, &job);
+    fail_unless(LSM_ERR_OK == rc);
+    lsmAccessGroupRecordFree(group);
 
     lsmVolumeRecordFree(n);
     lsmPoolRecordFree(pool);
@@ -836,6 +841,77 @@ START_TEST(test_systems)
 }
 END_TEST
 
+START_TEST(test_nfs_exports)
+{
+    fail_unless(c != NULL);
+    int rc = 0;
+
+    lsmPoolPtr test_pool = getTestPool(c);
+    lsmFsPtr nfs = NULL;
+    char *job = NULL;
+
+    fail_unless(NULL != test_pool);
+
+    rc = lsmFsCreate(c, test_pool, "C_unit_test_nfs_export", 50000000, &nfs, &job);
+
+    if( LSM_ERR_JOB_STARTED == rc ) {
+        nfs = wait_for_job_fs(c, &job);
+    } else {
+        fail_unless(LSM_ERR_OK != rc);
+    }
+
+    fail_unless(nfs != NULL);
+    lsmNfsExportPtr *exports = NULL;
+    uint32_t count = 0;
+
+    rc = lsmNfsList(c, &exports, &count);
+
+    fail_unless(LSM_ERR_OK == rc, "lsmNfsList rc= %d\n", rc);
+    fail_unless(count == 0);
+    fail_unless(NULL == exports);
+
+
+    lsmStringListPtr access = lsmStringListAlloc(1);
+    fail_unless(NULL != access);
+
+    lsmStringListSetElem(access, 0, "192.168.2.29");
+    lsmNfsExportPtr e = lsmNfsExportRecordAlloc(NULL,
+                                                lsmFsIdGet(nfs),
+                                                "/tony",
+                                                NULL,
+                                                access,
+                                                access,
+                                                NULL,
+                                                ANON_UID_GID_NA,
+                                                ANON_UID_GID_NA,
+                                                NULL);
+
+    fail_unless( NULL != e );
+
+    rc = lsmNfsExportFs(c,&e);
+    fail_unless(LSM_ERR_OK == rc, "lsmNfsExportFs %d\n", rc);
+
+    lsmNfsExportRecordFree(e);
+
+    rc = lsmNfsList(c, &exports, &count);
+    fail_unless( LSM_ERR_OK == rc);
+    fail_unless( exports != NULL);
+    fail_unless( count == 1 );
+
+    rc  = lsmNfsExportRemove(c, &exports[0]);
+    fail_unless( LSM_ERR_OK == rc );
+    lsmNfsExportRecordFreeArray(exports, count);
+
+    exports = NULL;
+
+    rc = lsmNfsList(c, &exports, &count);
+
+    fail_unless(LSM_ERR_OK == rc, "lsmNfsList rc= %d\n", rc);
+    fail_unless(count == 0);
+    fail_unless(NULL == exports);
+}
+END_TEST
+
 
 Suite * lsm_suite(void)
 {
@@ -849,6 +925,8 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_access_groups_grant_revoke);
     tcase_add_test(basic, test_fs);
     tcase_add_test(basic, test_ss);
+    tcase_add_test(basic, test_nfs_exports);
+
     suite_add_tcase(s, basic);
     return s;
 }

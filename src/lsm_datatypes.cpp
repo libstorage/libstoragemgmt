@@ -30,6 +30,7 @@
 #include <libstoragemgmt/libstoragemgmt_error.h>
 #include <libstoragemgmt/libstoragemgmt_fs.h>
 #include <libstoragemgmt/libstoragemgmt_initiators.h>
+#include <libstoragemgmt/libstoragemgmt_nfsexport.h>
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 #include <libstoragemgmt/libstoragemgmt_pool.h>
 #include <libstoragemgmt/libstoragemgmt_snapshot.h>
@@ -720,12 +721,40 @@ void lsmVolumeRecordFree(lsmVolumePtr v)
 CREATE_FREE_ARRAY_FUNC( lsmVolumeRecordFreeArray, lsmVolumeRecordFree,
                         lsmVolumePtr)
 
+/* We would certainly expand this to encompass the entire function */
 #define MEMBER_GET(x, validation, member, error)  \
     if( validation(x) ) {   \
         return x->member;   \
     } else {                \
         return error;       \
-    }                       \
+    }
+
+/* We would certainly expand this to encompass the entire function */
+#define MEMBER_SET_REF(x, validation, member, value, alloc_func, free_func, error)  \
+    if( validation(x) ) {                   \
+        if(x->member) {                     \
+            free_func(x->member);           \
+            x->member = NULL;               \
+        }                                   \
+        if( value ) {                       \
+            x->member = alloc_func(value);  \
+            if( !x->member ) {              \
+                return LSM_ERR_NO_MEMORY;   \
+            }                               \
+        }                                   \
+        return LSM_ERR_OK;                  \
+    } else {                                \
+        return error;                       \
+    }
+
+/* We would certainly expand this to encompass the entire function */
+#define MEMBER_SET_VAL(x, validation, member, value, error)  \
+    if( validation(x) ) {                   \
+        x->member = value;                  \
+        return LSM_ERR_OK;                  \
+    } else {                                \
+        return error;                       \
+    }
 
 const char* lsmVolumeIdGet(lsmVolumePtr v)
 {
@@ -770,7 +799,7 @@ lsmAccessGroupPtr lsmAccessGroupRecordAlloc(const char *id,
                                         const char *system_id)
 {
     lsmAccessGroup *rc = NULL;
-    if( id && name && initiators && system_id ) {
+    if( id && name && system_id ) {
         rc = (lsmAccessGroup *)malloc(sizeof(lsmAccessGroup));
         if( rc ) {
             rc->magic = LSM_ACCESS_GROUP_MAGIC;
@@ -779,7 +808,7 @@ lsmAccessGroupPtr lsmAccessGroupRecordAlloc(const char *id,
             rc->system_id = strdup(system_id);
             rc->initiators = lsmStringListCopy(initiators);
 
-            if( !rc->id || !rc->name || !rc->system_id || !rc->initiators ) {
+            if( !rc->id || !rc->name || !rc->system_id ) {
                 rc->magic = 0;
                 free(rc->id);
                 free(rc->name);
@@ -1042,6 +1071,181 @@ const char *lsmSsNameGet(lsmSsPtr ss)
 uint64_t lsmSsTimeStampGet(lsmSsPtr ss)
 {
     MEMBER_GET(ss, LSM_IS_SS, ts, 0);
+}
+
+lsmNfsExportPtr lsmNfsExportRecordAlloc( const char *id,
+                                            const char *fs_id,
+                                            const char *export_path,
+                                            const char *auth,
+                                            lsmStringListPtr root,
+                                            lsmStringListPtr rw,
+                                            lsmStringListPtr ro,
+                                            uint64_t anonuid,
+                                            uint64_t anongid,
+                                            const char *options)
+{
+     lsmNfsExportPtr rc = NULL;
+
+    /* These are required */
+    if( fs_id && export_path ) {
+        rc = (lsmNfsExportPtr)malloc(sizeof(lsmNfsExport));
+        if( rc ) {
+            rc->magic = LSM_NFS_EXPORT_MAGIC;
+            rc->id = (id) ? strdup(id) : NULL;
+            rc->fs_id = strdup(fs_id);
+            rc->export_path = strdup(export_path);
+            rc->auth_type = (auth) ? strdup(auth) : NULL;
+            rc->root = lsmStringListCopy(root);
+            rc->rw = lsmStringListCopy(rw);
+            rc->ro = lsmStringListCopy(ro);
+            rc->anonuid = anonuid;
+            rc->anongid = anongid;
+            rc->options = (options) ? strdup(options) : NULL;
+
+            if( !rc->fs_id || !rc->export_path ) {
+                lsmNfsExportRecordFree(rc);
+                rc = NULL;
+            }
+        }
+    }
+
+    return rc;
+}
+
+void lsmNfsExportRecordFree( lsmNfsExportPtr exp )
+{
+    if( LSM_IS_NFS_EXPORT(exp) ) {
+        exp->magic = LSM_DEL_MAGIC(LSM_NFS_EXPORT_MAGIC);
+        free(exp->id);
+        free(exp->fs_id);
+        free(exp->auth_type);
+        lsmStringListFree(exp->root);
+        lsmStringListFree(exp->rw);
+        lsmStringListFree(exp->ro);
+        free(exp->options);
+    }
+}
+
+
+lsmNfsExportPtr lsmNfsExportRecordCopy( lsmNfsExportPtr s )
+{
+    return lsmNfsExportRecordAlloc(s->id, s->fs_id, s->export_path,
+                            s->auth_type, s->root, s->rw, s->ro, s->anonuid,
+                            s->anongid, s->options);
+}
+
+CREATE_ALLOC_ARRAY_FUNC(lsmNfsExportRecordAllocArray, lsmNfsExportPtr)
+CREATE_FREE_ARRAY_FUNC(lsmNfsExportRecordFreeArray, lsmNfsExportRecordFree,
+                        lsmNfsExportPtr)
+
+const char *lsmNfsExportIdGet( lsmNfsExportPtr exp )
+{
+    MEMBER_GET(exp, LSM_IS_NFS_EXPORT, id, NULL);
+}
+
+int lsmNfsExportIdSet(lsmNfsExportPtr exp, const char *ep )
+{
+    MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, id, ep, strdup, free,
+                LSM_ERR_INVALID_NFS_EXPORT);
+}
+
+const char *lsmNfsExportFsIdGet( lsmNfsExportPtr exp )
+{
+    MEMBER_GET(exp, LSM_IS_NFS_EXPORT, fs_id, NULL);
+}
+
+int lsmNfsExportFsIdSet( lsmNfsExportPtr exp, const char *fs_id)
+{
+    MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, fs_id, fs_id, strdup, free,
+                LSM_ERR_INVALID_NFS_EXPORT);
+}
+
+const char *lsmNfsExportExportPathGet( lsmNfsExportPtr exp )
+{
+    MEMBER_GET(exp, LSM_IS_NFS_EXPORT, export_path, NULL);
+}
+
+int lsmNfsExportExportPathSet( lsmNfsExportPtr exp, const char *ep )
+{
+    MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, export_path, ep, strdup, free,
+                LSM_ERR_INVALID_NFS_EXPORT);
+}
+
+const char *lsmNfsExportAuthTypeGet( lsmNfsExportPtr exp )
+{
+    MEMBER_GET(exp, LSM_IS_NFS_EXPORT, auth_type, NULL);
+}
+
+int lsmNfsExportAuthTypeSet( lsmNfsExportPtr exp, const char *auth )
+{
+    MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, auth_type, auth, strdup, free,
+                LSM_ERR_INVALID_NFS_EXPORT);
+}
+
+lsmStringListPtr lsmNfsExportRootGet( lsmNfsExportPtr exp)
+{
+    MEMBER_GET(exp, LSM_IS_NFS_EXPORT, root, NULL);
+}
+
+int lsmNfsExportRootSet( lsmNfsExportPtr exp, lsmStringListPtr root)
+{
+    MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, root, root, lsmStringListCopy,
+                lsmStringListFree, LSM_ERR_INVALID_NFS_EXPORT);
+}
+
+lsmStringListPtr lsmNfsExportReadWriteGet( lsmNfsExportPtr exp)
+{
+    MEMBER_GET(exp, LSM_IS_NFS_EXPORT, rw, NULL);
+}
+
+int lsmNfsExportReadWriteSet( lsmNfsExportPtr exp, lsmStringListPtr rw)
+{
+    MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, rw, rw, lsmStringListCopy,
+                lsmStringListFree, LSM_ERR_INVALID_NFS_EXPORT);
+}
+
+lsmStringListPtr lsmNfsExportReadOnlyGet( lsmNfsExportPtr exp)
+{
+    MEMBER_GET(exp, LSM_IS_NFS_EXPORT, ro, NULL);
+}
+
+int lsmNfsExportReadOnlySet(lsmNfsExportPtr exp, lsmStringListPtr ro)
+{
+    MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, ro, ro, lsmStringListCopy,
+                lsmStringListFree, LSM_ERR_INVALID_NFS_EXPORT);
+}
+
+uint64_t lsmNfsExportAnonUidGet( lsmNfsExportPtr exp )
+{
+    MEMBER_GET(exp, LSM_IS_NFS_EXPORT, anonuid, ANON_UID_GID_ERROR);
+}
+
+int lsmNfsExportAnonUidSet( lsmNfsExportPtr exp, uint64_t value)
+{
+    MEMBER_SET_VAL(exp, LSM_IS_NFS_EXPORT, anonuid, value,
+                    LSM_ERR_INVALID_NFS_EXPORT);
+}
+
+uint64_t lsmNfsExportAnonGidGet( lsmNfsExportPtr exp )
+{
+    MEMBER_GET(exp, LSM_IS_NFS_EXPORT, anongid, ANON_UID_GID_ERROR);
+}
+
+int lsmNfsExportAnonGidSet( lsmNfsExportPtr exp, uint64_t value )
+{
+    MEMBER_SET_VAL(exp, LSM_IS_NFS_EXPORT, anongid, value,
+                    LSM_ERR_INVALID_NFS_EXPORT);
+}
+
+const char *lsmNfsExportOptionsGet( lsmNfsExportPtr exp)
+{
+    MEMBER_GET(exp, LSM_IS_NFS_EXPORT, options, NULL);
+}
+
+int lsmNfsExportOptionsSet( lsmNfsExportPtr exp, const char *value )
+{
+    MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, options, value, strdup, free,
+                LSM_ERR_INVALID_NFS_EXPORT);
 }
 
 #ifdef  __cplusplus

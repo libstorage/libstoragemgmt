@@ -19,6 +19,7 @@
 
 #include "lsm_convert.hpp"
 #include <libstoragemgmt/libstoragemgmt_blockrange.h>
+#include <libstoragemgmt/libstoragemgmt_nfsexport.h>
 
 static bool isExpectedObject(Value &obj, std::string class_name)
 {
@@ -143,19 +144,32 @@ Value systemToValue(lsmSystem *system)
     return Value();
 }
 
-lsmStringList *valueToStringList( std::vector<Value> &list )
+lsmStringList *valueToStringList( Value &v, int *ok)
 {
-    uint32_t size = list.size();
+    lsmStringList *il = NULL;
 
-    lsmStringList *il = lsmStringListAlloc(size);
+    if( Value::array_t == v.valueType() ) {
+        std::vector<Value> vl = v.asArray();
+        uint32_t size = vl.size();
 
-    if( il ) {
-        for( uint32_t i = 0; i < size; ++i ) {
-            if( LSM_ERR_OK !=
-                lsmStringListSetElem(il, i, list[i].asString().c_str())) {
-                lsmStringListFree(il);
-                il = NULL;
-                break;
+        *ok = 1;    /* Assume success */
+
+        /* It is OK to return null when we have none */
+        if( size > 0 ) {
+            il = lsmStringListAlloc(size);
+
+            if( il ) {
+                for( uint32_t i = 0; i < size; ++i ) {
+                    if( LSM_ERR_OK !=
+                        lsmStringListSetElem(il, i, vl[i].asString().c_str())) {
+                        lsmStringListFree(il);
+                        il = NULL;
+                        *ok = 0;
+                        break;
+                    }
+                }
+            } else {
+                *ok = 0;
             }
         }
     }
@@ -179,27 +193,14 @@ lsmAccessGroup *valueToAccessGroup( Value &group )
 {
     lsmStringList *il = NULL;
     lsmAccessGroup *ag = NULL;
+    int ok = -1;
 
     if( isExpectedObject(group, "AccessGroup")) {
-        int proceed = 0;
-
         std::map<std::string, Value> vAg = group.asObject();
 
-        /* Take care of initiators first */
-        std::vector<Value> inits = vAg["initiators"].asArray();
+        il = valueToStringList(vAg["initiators"], &ok);
 
-        /* It is possible to have an access group without initiators */
-        if( inits.size() == 0 ) {
-            proceed = 1;
-        } else {
-            il = valueToStringList(inits);
-            if( il ) {
-                proceed = 1;
-            }
-        }
-
-        if( proceed ) {
-
+        if( ok ) {
 
             ag = lsmAccessGroupRecordAlloc(vAg["id"].asString().c_str(),
                                         vAg["name"].asString().c_str(),
@@ -309,4 +310,72 @@ Value ssToValue(lsmSs *ss)
         return f;
     }
     return Value();
+}
+
+lsmNfsExport *valueToNfsExport(Value &exp)
+{
+    lsmNfsExport *rc = NULL;
+    if( isExpectedObject(exp, "NfsExport") ) {
+        int ok = -1;
+        lsmStringListPtr root = NULL;
+        lsmStringListPtr rw = NULL;
+        lsmStringListPtr ro = NULL;
+
+        std::map<std::string, Value> i = exp.asObject();
+
+        /* Check all the arrays for successful allocation */
+        root = valueToStringList(i["root"], &ok);
+        if( ok ) {
+            rw = valueToStringList(i["rw"], &ok);
+            if( ok ) {
+                ro = valueToStringList(i["ro"], &ok);
+                if( !ok ) {
+                    lsmStringListFree(rw);
+                    lsmStringListFree(root);
+                    rw = NULL;
+                    root = NULL;
+                }
+            } else {
+                lsmStringListFree(root);
+                root = NULL;
+            }
+        }
+
+        if( ok ) {
+            rc = lsmNfsExportRecordAlloc(
+                i["id"].asC_str(),
+                i["fs_id"].asC_str(),
+                i["export_path"].asC_str(),
+                i["auth"].asC_str(),
+                root,
+                rw,
+                ro,
+                i["anonuid"].asUint64_t(),
+                i["anongid"].asUint64_t(),
+                i["options"].asC_str()
+                );
+        }
+    }
+    return rc;
+}
+
+Value nfsExportToValue(lsmNfsExport *exp)
+{
+    if( LSM_IS_NFS_EXPORT(exp) ) {
+        std::map<std::string, Value> f;
+        f["class"] = Value("NfsExport");
+        f["id"] = Value(exp->id);
+        f["fs_id"] = Value(exp->fs_id);
+        f["export_path"] = Value(exp->export_path);
+        f["auth"] = Value(exp->auth_type);
+        f["root"] = Value(stringListToValue(exp->root));
+        f["rw"] = Value(stringListToValue(exp->rw));
+        f["ro"] = Value(stringListToValue(exp->ro));
+        f["anonuid"] = Value(exp->anonuid);
+        f["anongid"] = Value(exp->anongid);
+        f["options"] = Value(exp->options);
+        return f;
+    }
+    return Value();
+
 }

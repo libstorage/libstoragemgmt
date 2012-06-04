@@ -20,7 +20,6 @@
 #ifndef LIBSTORAGEMGMT_PLUG_INTERFACE_H
 #define LIBSTORAGEMGMT_PLUG_INTERFACE_H
 
-#include <stdint.h>
 #include <libxml/uri.h>
 #include "libstoragemgmt_common.h"
 #include "libstoragemgmt_types.h"

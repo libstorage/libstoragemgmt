@@ -201,7 +201,8 @@ class StorageSimulator(INfs):
             new_fs = FileSystem('FS' + str(self.s.fs_num), name, actual_size,
                         actual_size, p.id, self.s.sys_info.id)
 
-            self.s.fs[new_fs.id] = { 'pool': p, 'fs':new_fs, 'ss': {} }
+            self.s.fs[new_fs.id] = { 'pool': p, 'fs':new_fs, 'ss': {},
+                                     'exports' : {} }
             self.s.fs_num += 1
             return self.__create_job(new_fs)
         else:
@@ -593,13 +594,32 @@ class StorageSimulator(INfs):
             raise LsmError(ErrorNumber.INVALID_FS, 'Filesystem not found')
 
     def export_auth(self):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not implemented")
+        return ["simple"]
 
     def exports(self):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not implemented")
+        rc = []
+        for fs in self.s.fs.itervalues():
+            for exp in fs['exports'].values():
+                rc.append(exp)
+        return rc
 
     def export_fs(self, export):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not implemented")
+        fs_id = export.fs_id
+
+        if fs_id in self.s.fs:
+            export.id = md5(export.export_path)
+            self.s.fs[fs_id]['exports'][export.id] = export
+            return export
+        else:
+            raise LsmError(ErrorNumber.INVALID_FS, 'Filesystem not found')
 
     def export_remove(self, export):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not implemented")
+        fs_id = export.fs_id
+
+        if fs_id in self.s.fs:
+            if export.id in self.s.fs[fs_id]['exports']:
+                del self.s.fs[fs_id]['exports'][export.id]
+            else:
+                raise LsmError(ErrorNumber.FS_NOT_EXPORTED, "FS not exported")
+        else:
+            raise LsmError(ErrorNumber.INVALID_FS, 'Filesystem not found')

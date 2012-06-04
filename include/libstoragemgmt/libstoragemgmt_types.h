@@ -20,7 +20,12 @@
 #ifndef LIBSTORAGEMGMT_TYPES_H
 #define LIBSTORAGEMGMT_TYPES_H
 
-#include <stdint.h>
+
+#ifdef __cplusplus
+    #define __STDC_FORMAT_MACROS
+    #define __STDC_LIMIT_MACROS
+#endif
+#include <inttypes.h>
 
 #ifdef  __cplusplus
 extern "C" {

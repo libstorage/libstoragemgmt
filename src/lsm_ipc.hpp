@@ -130,6 +130,7 @@ class LSM_DLL_LOCAL LsmException : public std::runtime_error {
 public:
     LsmException(int code, std::string &msg);
 
+    LsmException(int code, std::string &msg, const std::string &debug_addl);
 
     LsmException(int code, std::string &msg, const std::string &debug_addl,
         const std::string &debug_data_addl);
@@ -319,6 +320,12 @@ public:
      * @return string value else ValueException on error
      */
     std::string asString();
+
+    /**
+     * Return string as a pointer to a character array
+     * @return
+     */
+    const char *asC_str();
 
     /**
      * key/value represented by object.

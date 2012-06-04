@@ -13,6 +13,7 @@ lsminc_HEADERS =			\
    libstoragemgmt_error.h		\
    libstoragemgmt_fs.h                  \
    libstoragemgmt_initiators.h		\
+   libstoragemgmt_nfsexport.h           \
    libstoragemgmt_plug_interface.h	\
    libstoragemgmt_pool.h		\
    libstoragemgmt_snapshot.h            \

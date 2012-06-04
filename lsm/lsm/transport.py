@@ -68,7 +68,9 @@ class Transport(object):
             raise ValueError("Msg argument empty")
 
         #Note: Don't catch io exceptions at this level!
-        self.s.sendall(string.zfill(len(msg), self.HDR_LEN) + msg)
+        s = string.zfill(len(msg), self.HDR_LEN) + msg
+        #common.Info("SEND: ", msg)
+        self.s.sendall(s)
 
     def __recvMsg(self):
         """
@@ -78,6 +80,7 @@ class Transport(object):
         try:
             l = self.__readAll(self.HDR_LEN)
             msg = self.__readAll(int(l))
+            #common.Info("RECV: ", msg)
         except socket.error as e:
             raise LsmError(common.ErrorNumber.LSM_ERROR_COMMUNICATION,
                 "Error while reading a message from the plug-in", str(e))

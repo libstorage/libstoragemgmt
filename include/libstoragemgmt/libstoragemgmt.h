@@ -20,17 +20,19 @@
 #ifndef LIBSTORAGEMGMT_H
 #define LIBSTORAGEMGMT_H
 
-#include <stdint.h>
-#include "libstoragemgmt_common.h"
 #include "libstoragemgmt_types.h"
-#include "libstoragemgmt_error.h"
-#include "libstoragemgmt_initiators.h"
-#include "libstoragemgmt_pool.h"
-#include "libstoragemgmt_volumes.h"
-#include "libstoragemgmt_systems.h"
+#include "libstoragemgmt_common.h"
+
 #include "libstoragemgmt_accessgroups.h"
 #include "libstoragemgmt_blockrange.h"
+#include "libstoragemgmt_error.h"
+#include "libstoragemgmt_fs.h"
+#include "libstoragemgmt_initiators.h"
+#include "libstoragemgmt_nfsexport.h"
+#include "libstoragemgmt_pool.h"
 #include "libstoragemgmt_snapshot.h"
+#include "libstoragemgmt_systems.h"
+#include "libstoragemgmt_volumes.h"
 
 #ifdef  __cplusplus
 extern "C" {
@@ -371,10 +373,11 @@ extern "C" {
      * Deletes an access group.
      * @param[in] conn                  Valid connection @see lsmConnectUserPass
      * @param[in] group                 Group to delete
+     * @param[out] job                  Job ID
      * @return LSM_ERR_OK on success, else error reason.
      */
     int LSM_DLL_EXPORT lsmAccessGroupDel(lsmConnectPtr conn,
-                                            lsmAccessGroupPtr group);
+                                            lsmAccessGroupPtr group, char **job);
 
     /**
      * Adds an initiator to the access group
@@ -619,6 +622,43 @@ extern "C" {
                                     lsmStringListPtr files,
                                     lsmStringListPtr restore_files,
                                     int all_files, char **job);
+
+    /**
+     * Returns the types of NFS client authentication the array supports.
+     * @param[in] c                     Valid connection
+     * @param[out] types                List of types
+     * @return LSM_ERR_OK on success, else error code.
+     */
+    int LSM_DLL_EXPORT lsmNfsAuthTypes( lsmConnectPtr c,
+                                            lsmStringListPtr *types);
+
+    /**
+     * Lists the nfs exports on the specified array.
+     * @param c                         Valid connection
+     * @param exports                   An array of lsmNfsExportPtr
+     * @param count                     Number of items in array
+     * @return LSM_ERR_OK on success else error code.
+     */
+    int LSM_DLL_EXPORT lsmNfsList( lsmConnectPtr c,
+                                            lsmNfsExportPtr **exports,
+                                            uint32_t *count);
+
+    /**
+     * Creates or modifies an NFS export.
+     * @param[in] c                         Valid NFS connection
+     * @param[in|out] e                     NFS volume to export
+     * @return LSM_ERR_OK on success else error code.
+     */
+    int LSM_DLL_EXPORT lsmNfsExportFs( lsmConnectPtr c, lsmNfsExportPtr *e );
+
+    /**
+     *
+     * @param c
+     * @param e
+     * @return LSM_ERR_OK on success else error code.
+     */
+    int LSM_DLL_EXPORT lsmNfsExportRemove( lsmConnectPtr c, lsmNfsExportPtr *e );
+
 #ifdef  __cplusplus
 }
 #endif

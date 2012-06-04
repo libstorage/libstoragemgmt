@@ -140,11 +140,11 @@ struct _lsmNfsExport {
     char *fs_id;
     char *export_path;
     char *auth_type;
-    std::vector<std::string> root_hosts;
-    std::vector<std::string> rw_hosts;
-    std::vector<std::string> ro_hosts;
-    uint32_t anonuid;
-    uint32_t anongid;
+    lsmStringList *root;
+    lsmStringList *rw;
+    lsmStringList *ro;
+    uint64_t anonuid;
+    uint64_t anongid;
     char *options;
 };
 

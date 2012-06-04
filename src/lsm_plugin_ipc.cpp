@@ -208,7 +208,7 @@ static bool startup(lsmPluginPtr p)
             }
         }
     } catch( ... ) {
-        #warning "Add more specific exception catching!"
+        /* TODO Add more specific exception handling and log to syslog */
         if( uri ) {
             xmlFreeURI(uri);
             uri = NULL;
