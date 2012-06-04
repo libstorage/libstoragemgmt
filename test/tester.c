@@ -343,7 +343,7 @@ START_TEST(test_smoke_test)
 
     //Dump pools and select a pool to use for testing.
     for (i = 0; i < count; ++i) {
-        printf("Id= %s, name=%s, capacity= %lu, remaining= %lu\n",
+        printf("Id= %s, name=%s, capacity= %"PRIu64 ", remaining= %"PRIu64"\n",
             lsmPoolIdGet(pools[i]),
             lsmPoolNameGet(pools[i]),
             lsmPoolTotalSpaceGet(pools[i]),
@@ -451,7 +451,7 @@ START_TEST(test_smoke_test)
                                     error(lsmErrorGetLast(c)));
 
     for (i = 0; i < count; ++i) {
-        printf("%s - %s - %s - %lu - %lu - %x\n",
+        printf("%s - %s - %s - %"PRIu64" - %"PRIu64" - %x\n",
             lsmVolumeIdGet(volumes[i]),
             lsmVolumeNameGet(volumes[i]),
             lsmVolumeVpd83Get(volumes[i]),

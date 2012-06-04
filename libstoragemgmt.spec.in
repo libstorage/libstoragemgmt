@@ -5,10 +5,10 @@ Summary:        Storage array management library
 Group:          System Environment/Libraries
 License:        LGPLv2+
 URL:            http://sourceforge.net/projects/libstoragemgmt/
-Source0:        http://sourceforge.net/projects/libstoragemgmt/files/Alpha/libstoragemgmt-@VERSION@.tar.gz
+Source0:        http://sourceforge.net/projects/libstoragemgmt/files/Alpha/libstoragemgmt-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-BuildRequires:  yajl-devel libxml2-devel tog-pegasus-devel pywbem check
+BuildRequires:  yajl-devel libxml2-devel tog-pegasus-devel pywbem check-devel
 Requires:       pywbem
 
 %if 0%{?fedora}
@@ -140,7 +140,23 @@ fi
 %{_libdir}/pkgconfig/libstoragemgmt.pc
 
 %changelog
-* Fri May 11 2012 Tony Asleson <tasleson@redhat.com> @VERSION@-1
+* Mon Jun 4 2012 Tony Asleson <tasleson@redhat.com> 0.0.8-1
+- Make building of SMI-S CPP plugin optional
+- Add pkg-config file
+- SMIS: Fix exception while retrieving Volumes
+- SMIS: Fix exception while retrieving Volumes
+- lsm: Add package imports
+- Make Smis class available in lsm python package
+- Add option to disable building C unit test
+- Make simulator classes available in lsm python package
+- Make ontap class available in lsm python package
+- Changes to support building on Fedora 17 (v2)
+- Spec. file updates from feedback from T. Callaway (spot)
+- F17 linker symbol visibility correction
+- Remove unneeded build dependencies and cleaned up some warnings
+- C Updates, client C library feature parity with python
+
+* Fri May 11 2012 Tony Asleson <tasleson@redhat.com> 0.0.7-1
 - Bug fix for smi-s constants
 - Display formatting improvements
 - Added header option for lsmcli
