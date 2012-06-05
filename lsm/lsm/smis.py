@@ -14,6 +14,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
 #
 # Author: tasleson
+from string import split
 
 import pywbem
 from pywbem import CIMError
@@ -178,6 +179,12 @@ class Smis(IStorageAreaNetwork):
 
         url = "%s://%s:%s" % (protocol, u['host'], u['port'])
 
+        #System filtering
+        self.system_list = None
+
+        if 'systems' in u['parameters']:
+            self.system_list = split(u['parameters']["systems"], ":")
+
         self.tmo = timeout
         self._c = pywbem.WBEMConnection(url, (u['username'], password),
                                             u['parameters']["namespace"] )
@@ -339,17 +346,37 @@ class Smis(IStorageAreaNetwork):
         """
         Return all volumes.
         """
-        volumes = self._c.EnumerateInstances('CIM_StorageVolume')
-        return [ self._new_vol(v) for v in volumes ]
+
+        #If no filtering, we will get all of the volumes in one shot, else
+        #we will retrieve them system by system
+        if self.system_list is None:
+            volumes = self._c.EnumerateInstances('CIM_StorageVolume')
+            return [ self._new_vol(v) for v in volumes ]
+        else:
+            rc = []
+            systems = self._systems()
+            for s in systems:
+                volumes = self._c.Associators(s.path,
+                                                AssocClass='CIM_SystemDevice',
+                                                ResultClass='CIM_StorageVolume')
+                rc.extend([self._new_vol(v) for v in volumes])
+            return rc
 
     def _systems(self):
         rc = []
         ccs = self._c.EnumerateInstances('CIM_ControllerConfigurationService')
 
         for c in ccs:
-            rc.append(self._c.Associators(c.path,
+            system = self._c.Associators(c.path,
                 AssocClass='CIM_HostedService',
-                ResultClass='CIM_ComputerSystem')[0])
+                ResultClass='CIM_ComputerSystem')[0]
+
+            #Filtering
+            if self.system_list:
+                if system['Name'] in self.system_list:
+                    rc.append(system)
+            else:
+                rc.append(system)
 
         return rc
 
@@ -656,19 +683,39 @@ class Smis(IStorageAreaNetwork):
                 *(self._c.InvokeMethod('HidePaths', ccs.path,
                 **hide_params)))[0]
 
+    def _is_access_group(self, s):
+        rc = False
+
+        #This seems horribly wrong for something that is a standard.
+        if 'Name' in s and s['Name'] == 'Storage Group':
+            #EMC
+            rc = True
+        elif 'DeviceID' in s and s['DeviceID'][0:3] == 'SPC':
+            #NetApp
+            rc = True
+        return rc
+
     def _get_access_groups(self):
         rc = []
 
-        spc = self._c.EnumerateInstances('CIM_SCSIProtocolController')
+        #System filtering
+        if self.system_list:
+            systems = self._systems()
+            for s in systems:
+                spc = self._c.Associators(s.path,
+                                AssocClass='CIM_SystemDevice',
+                                ResultClass='CIM_SCSIProtocolController')
+                for s in spc:
+                    if self._is_access_group(s):
+                        rc.append(s)
 
-        #This seems horribly wrong for something that is a standard.
-        for s in spc:
-            if 'Name' in s and s['Name'] == 'Storage Group':
-                #EMC
-                rc.append(s)
-            elif 'DeviceID' in s and s['DeviceID'][0:3] == 'SPC':
-                #NetApp
-                rc.append(s)
+        else:
+            spc = self._c.EnumerateInstances('CIM_SCSIProtocolController')
+
+            for s in spc:
+                if self._is_access_group(s):
+                    rc.append(s)
+
         return rc
 
     def _get_access_group(self, id):
