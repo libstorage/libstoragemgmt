@@ -20,7 +20,6 @@ import os
 import unittest
 import urlparse
 
-from external.enumeration import Enumeration
 import sys
 import syslog
 
@@ -33,7 +32,8 @@ LOG_VERBOSE = True
 ## Common method used to parse a URI.
 # @param    uri         The uri to parse
 # @param    requires    Optional list of keys that must be present in output
-# @param    required_params Optional list of required parameters that must be present.
+# @param    required_params Optional list of required parameters that
+#           must be present.
 # @return   A hash of the parsed values.
 def uri_parse(uri, requires=None, required_params=None):
     """
@@ -119,11 +119,13 @@ def post_msg(level, prg, msg):
             syslog.syslog(level, prg + ": " + l)
 
 def Error(*msg):
-    post_msg(syslog.LOG_ERR, os.path.basename(sys.argv[0]), params_to_string(*msg))
+    post_msg(syslog.LOG_ERR, os.path.basename(sys.argv[0]),
+                params_to_string(*msg))
 
 def Info(*msg):
     if LOG_VERBOSE:
-        post_msg(syslog.LOG_INFO, os.path.basename(sys.argv[0]), params_to_string(*msg))
+        post_msg(syslog.LOG_INFO, os.path.basename(sys.argv[0]),
+                    params_to_string(*msg))
 
 class SocketEOF(Exception):
     """
@@ -171,72 +173,92 @@ def get_class( class_name ):
     return m
 
 
-ErrorLevel = Enumeration('ErrorLevel',
-    [
-        ('None', 0),
-        ('Warning', 1),
-        ('Error', 2)
-    ])
+class ErrorLevel(object):
+    NONE = 0
+    WARNING = 1
+    ERROR = 2
 
 #Note: Some of these don't make sense for python, but they do for other
 #Languages so we will be keeping them consistent even though we won't be
 #using them.
-ErrorNumber = Enumeration('ErrorNumber',
-    [
-        ('OK', 0),
-        ('INTERNAL_ERROR', 1),
-        ('NO_MEMORY', 2),
-        ('NO_SUPPORT', 3),
-        ('UNKNOWN_HOST', 4),
-        ('NO_CONNECT', 5),
-        ('INVALID_CONN', 6),
-        ('JOB_STARTED', 7),
-        ('INVALID_ARGUMENT', 8),
-        ('URI_PARSE', 9),
-        ('PLUGIN_PERMISSION', 10),
-        ('PLUGIN_DLOPEN', 11),
-        ('PLUGIN_DLSYM', 12),
-        ('PLUGIN_ERROR', 13),
-        ('INVALID_ERR', 14),
-        ('PLUGIN_REGISTRATION', 15),
-        ('INVALID_POOL', 16),
-        ('INVALID_JOB', 17),
-        ('UNSUPPORTED_PROVISIONING', 18),
-        ('INVALID_VOLUME', 19),
-        ('VOLUME_SAME_SIZE', 20),
-        ('INVALID_INIT', 21),
-        ('NO_MAPPING', 22),
-        ('INSUFFICIENT_SPACE', 23),
-        ('IS_MAPPED', 24),
-        ('LSM_ERROR_COMMUNICATION', 25),
-        ('LSM_ERROR_SERIALIZATION', 26),
-        ('LSM_INVALID_PLUGIN', 27),
-        ('LSM_ERR_MISSING_HOST', 28),
-        ('LSM_ERR_MISSING_PORT', 29),
-        ('LSM_ERR_MISSING_NS', 30),
-        ('INITIATOR_EXISTS', 31),
-        ('UNSUPPORTED_INITIATOR_TYPE', 32),
-        ('ACCESS_GROUP_EXISTS', 33),
-        ('ACCESS_GROUP_NOT_FOUND', 34),
-        ('INITIATOR_NOT_IN_ACCESS_GROUP', 35),
-        ('INVALID_SL', 36),
-        ('INDEX_BOUNDS', 37),
-        ('INVALID_ACCESS_GROUP', 38),
-        ('INVALID_FS', 39),
-        ('INVALID_SS', 40),
-        ('NAME_EXISTS', 41),
-        ('INVALID_NFS', 42),
-        ('FS_NOT_EXPORTED', 43),
-        ('AUTH_FAILED', 45)
-    ])
+class ErrorNumber(object):
+    OK = 0
+    INTERNAL_ERROR = 1
+    JOB_STARTED = 7
+    INDEX_BOUNDS = 10
 
-JobStatus = Enumeration('JobStatus',
-    [
-        ('INPROGRESS', 1),
-        ('COMPLETE', 2),
-        ('STOPPED', 3),
-        ('ERROR', 4)
-    ])
+    EXISTS_ACCESS_GROUP = 50
+    EXISTS_FS = 51
+    EXISTS_INITIATOR = 52
+    EXISTS_NAME = 53
+    FS_NOT_EXPORTED = 54
+    INITIATOR_NOT_IN_ACCESS_GROUP = 55
+
+    INVALID_ACCESS_GROUP = 100
+    INVALID_ARGUMENT = 101
+    INVALID_CONN = 102
+    INVALID_ERR = 103
+    INVALID_FS = 104
+    INVALID_INIT = 105
+    INVALID_JOB = 106
+    INVALID_NAME = 107
+    INVALID_NFS = 108
+    INVALID_PLUGIN = 109
+    INVALID_POOL = 110
+    INVALID_SL = 111
+    INVALID_SS = 112
+    INVALID_URI = 113
+    INVALID_VALUE = 114
+    INVALID_VOLUME = 115
+
+    IS_MAPPED = 125
+
+    NO_CONNECT = 150
+    NO_MAPPING = 151
+    NO_MEMORY = 152
+    NO_SUPPORT = 153
+
+    NOT_FOUND_ACCESS_GROUP = 200
+    NOT_FOUND_FS = 201
+    NOT_FOUND_JOB = 202
+    NOT_FOUND_POOL = 203
+    NOT_FOUND_SS = 204
+    NOT_FOUND_VOLUME = 205
+
+    NOT_IMPLEMENTED = 206
+    NOT_LICENSED = 207
+
+    OFF_LINE = 250
+    ON_LINE = 251
+
+    PLUGIN_AUTH_FAILED = 300
+    PLUGIN_DLOPEN = 301
+    PLUGIN_DLSYM = 302
+    PLUGIN_ERROR = 303
+    PLUGIN_MISSING_HOST = 304
+    PLUGIN_MISSING_NS = 305
+    PLUGIN_MISSING_PORT = 306
+    PLUGIN_PERMISSION = 307
+    PLUGIN_REGISTRATION = 308
+    PLUGIN_UNKNOWN_HOST = 309
+
+    SIZE_INSUFFICIENT_SPACE = 350
+    SIZE_SAME = 351
+    SIZE_TOO_LARGE = 352
+    SIZE_TOO_SMALL = 353
+
+    TRANSPORT_COMMUNICATION = 400
+    TRANSPORT_SERIALIZATION = 401
+
+    UNSUPPORTED_INITIATOR_TYPE = 450
+    UNSUPPORTED_PROVISIONING = 451
+    UNSUPPORTED_REPLICATION_TYPE = 452
+
+class JobStatus(object):
+    INPROGRESS = 1
+    COMPLETE = 2
+    STOPPED = 3
+    ERROR = 4
 
 class TestCommon(unittest.TestCase):
     def setUp(self):
@@ -252,9 +274,11 @@ class TestCommon(unittest.TestCase):
         try:
             raise LsmError(10, 'Message', 'Data')
         except LsmError as e:
-            self.assertTrue(e.code == 10 and e.msg == 'Message' and e.data == 'Data')
+            self.assertTrue(e.code == 10 and e.msg == 'Message'
+                            and e.data == 'Data')
 
-        ed = addl_error_data('domain', 'level', 'exception', 'debug', 'debug_data')
+        ed = addl_error_data('domain', 'level', 'exception', 'debug',
+                                'debug_data')
         self.assertTrue(ed['domain'] == 'domain' and ed['level'] == 'level'
                         and ed['debug'] == 'debug'
                         and ed['exception'] == 'exception'

@@ -285,7 +285,7 @@ int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
     std::string user;
 
     if(uri->server == NULL) {
-        return LSM_ERR_MISSING_HOST;
+        return LSM_ERR_PLUGIN_MISSING_HOST;
     }
 
     if(uri->user == NULL) {
@@ -295,7 +295,7 @@ int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
     }
 
     if( uri->port == 0 ) {
-        return LSM_ERR_MISSING_PORT;
+        return LSM_ERR_PLUGIN_MISSING_PORT;
     }
 
     /*Open pegasus does not like NULL for the password */
@@ -307,12 +307,12 @@ int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
 
     /** pull the name space! */
     if( !uri->query_raw ) {
-        return LSM_ERR_URI_PARSE;
+        return LSM_ERR_INVALID_URI;
     } else {
         ns = LSM::getValue(uri->query_raw, "namespace");
 
         if( ns.length() == 0 ) {
-            return LSM_ERR_URI_PARSE;
+            return LSM_ERR_INVALID_URI;
         }
     }
 

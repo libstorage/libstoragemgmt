@@ -21,6 +21,8 @@ import time
 from external.xmltodict import ConvertXmlToDict
 
 #Set to an appropriate directory and file to dump the raw response.
+from lsm.common import ErrorNumber, LsmError
+
 xml_debug = None
 
 
@@ -119,8 +121,21 @@ def to_list(v):
 class Filer(object):
     """
     Class to handle NetApp API calls.
+    Note: These are using lsm terminology.
     """
-    EVOLUMEOFFLINE = 13042          #Volume is offline.
+    ENOSPC = 28                     #Out of space
+    ENO_SUCH_VOLUME = 9017          #lun not found
+    ESIZE_TOO_LARGE = 9034          #Specified too large a size
+    ENO_SUCH_FS = 9036              #FS not found
+    EVOLUME_TOO_SMALL = 9041        #Specified too small a size
+    EAPILICENSE = 13008             #Unlicensed API
+    EFSDOESNOTEXIST = 13040         #FS does not exist
+    EFSOFFLINE = 13042              #FS is offline.
+    EFSNAMEINVALID = 13044          #FS Name invalid
+    ESERVICENOTLICENSED = 13902     #Not licensed
+    ECLONE_LICENSE_EXPIRED = 14955  #Not licensed
+    ECLONE_NOT_LICENSED = 14956     #Not licensed
+
 
     def _invoke(self, command, parameters = None):
 
@@ -289,7 +304,7 @@ class Filer(object):
             self._invoke('volume-offline', { 'name':vol_name })
             online = True
         except FilerError as fe:
-            if fe.errno != Filer.EVOLUMEOFFLINE:
+            if fe.errno != Filer.EFSDOESNOTEXIST:
                 raise fe
 
         try:
@@ -333,7 +348,8 @@ class Filer(object):
             params['destination-path'] = dest_path
 
         if backing_snapshot:
-            raise FilerError(911, "Support for backing luns not implemented for this API version")
+            raise FilerError(LsmError.NOT_IMPLEMENTED,
+                "Support for backing luns not implemented for this API version")
             #params['snapshot-name']= backing_snapshot
 
         if ranges:
@@ -365,7 +381,7 @@ class Filer(object):
             elif progress['clone-state'] == 'completed':
                 return progress['destination-file']
             else:
-                raise FilerError(911, 'Unexpected state=' + progress['clone-state'])
+                raise FilerError(ErrorNumber.NOT_IMPLEMENTED, 'Unexpected state=' + progress['clone-state'])
 
     def lun_online(self, lun_path):
         self._invoke('lun-online', {'path': lun_path})

@@ -225,7 +225,7 @@ class Smis(IStorageAreaNetwork):
             if tmp_id == id:
                 return j, get_vol
 
-        raise LsmError(ErrorNumber.INVALID_JOB, 'Non-existent job')
+        raise LsmError(ErrorNumber.NOT_FOUND_JOB, 'Non-existent job')
 
     def _job_progress(self, job_id):
         """
@@ -254,7 +254,7 @@ class Smis(IStorageAreaNetwork):
                 if get_vol:
                     volume = self._new_vol_from_job(concrete_job)
             else:
-                status = JobStatus.Error
+                status = JobStatus.ERROR
 
         else:
             raise LsmError(ErrorNumber.PLUGIN_ERROR,
@@ -597,10 +597,11 @@ class Smis(IStorageAreaNetwork):
         spc = self._get_access_group(group.id)
 
         if not lun:
-            raise LsmError(ErrorNumber.INVALID_VOLUME, "Volume not present")
+            raise LsmError(ErrorNumber.NOT_FOUND_VOLUME, "Volume not present")
 
         if not spc:
-            raise LsmError(ErrorNumber.ACCESS_GROUP_NOT_FOUND, "Access group not present")
+            raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
+                                "Access group not present")
 
         if access == Volume.ACCESS_READ_ONLY:
             da = Smis.EXPOSE_PATHS_DA_READ_ONLY
@@ -672,10 +673,11 @@ class Smis(IStorageAreaNetwork):
         spc = self._get_access_group(group.id)
 
         if not lun:
-            raise LsmError(ErrorNumber.INVALID_VOLUME, "Volume not present")
+            raise LsmError(ErrorNumber.NOT_FOUND_VOLUME, "Volume not present")
 
         if not spc:
-            raise LsmError(ErrorNumber.ACCESS_GROUP_NOT_FOUND, "Access group not present")
+            raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
+                                "Access group not present")
 
         hide_params = {'LUNames': [lun['Name']],
                        'ProtocolControllers': [spc.path]}

@@ -203,17 +203,17 @@ static int establishConnection( lsmConnectPtr c, const char * password,
 
         c->tp->rpc("startup", p);
     } catch (const ValueException &ve) {
-        *e = lsmErrorCreate(LSM_ERROR_SERIALIZATION,
+        *e = lsmErrorCreate(LSM_ERR_TRANS_PORT_SERIALIZATION,
                                 LSM_ERR_DOMAIN_FRAME_WORK,
                                 LSM_ERR_LEVEL_ERROR, "Error in serialization",
                                 ve.what(), NULL, NULL, 0 );
-        rc = LSM_ERROR_SERIALIZATION;
+        rc = LSM_ERR_TRANS_PORT_SERIALIZATION;
     } catch (const LsmException &le) {
-        *e = lsmErrorCreate(LSM_ERROR_COMMUNICATION,
+        *e = lsmErrorCreate(LSM_ERR_TRANSPORT_COMMUNICATION,
                                 LSM_ERR_DOMAIN_FRAME_WORK,
                                 LSM_ERR_LEVEL_ERROR, "Error in communication",
                                 le.what(), NULL, NULL, 0 );
-        rc = LSM_ERROR_COMMUNICATION;
+        rc = LSM_ERR_TRANSPORT_COMMUNICATION;
     } catch (...) {
         *e = lsmErrorCreate(LSM_ERR_INTERNAL_ERROR,
                                 LSM_ERR_DOMAIN_FRAME_WORK,
@@ -1146,7 +1146,7 @@ const char *lsmNfsExportIdGet( lsmNfsExportPtr exp )
 int lsmNfsExportIdSet(lsmNfsExportPtr exp, const char *ep )
 {
     MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, id, ep, strdup, free,
-                LSM_ERR_INVALID_NFS_EXPORT);
+                LSM_ERR_INVALID_NFS);
 }
 
 const char *lsmNfsExportFsIdGet( lsmNfsExportPtr exp )
@@ -1157,7 +1157,7 @@ const char *lsmNfsExportFsIdGet( lsmNfsExportPtr exp )
 int lsmNfsExportFsIdSet( lsmNfsExportPtr exp, const char *fs_id)
 {
     MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, fs_id, fs_id, strdup, free,
-                LSM_ERR_INVALID_NFS_EXPORT);
+                LSM_ERR_INVALID_NFS);
 }
 
 const char *lsmNfsExportExportPathGet( lsmNfsExportPtr exp )
@@ -1168,7 +1168,7 @@ const char *lsmNfsExportExportPathGet( lsmNfsExportPtr exp )
 int lsmNfsExportExportPathSet( lsmNfsExportPtr exp, const char *ep )
 {
     MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, export_path, ep, strdup, free,
-                LSM_ERR_INVALID_NFS_EXPORT);
+                LSM_ERR_INVALID_NFS);
 }
 
 const char *lsmNfsExportAuthTypeGet( lsmNfsExportPtr exp )
@@ -1179,7 +1179,7 @@ const char *lsmNfsExportAuthTypeGet( lsmNfsExportPtr exp )
 int lsmNfsExportAuthTypeSet( lsmNfsExportPtr exp, const char *auth )
 {
     MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, auth_type, auth, strdup, free,
-                LSM_ERR_INVALID_NFS_EXPORT);
+                LSM_ERR_INVALID_NFS);
 }
 
 lsmStringListPtr lsmNfsExportRootGet( lsmNfsExportPtr exp)
@@ -1190,7 +1190,7 @@ lsmStringListPtr lsmNfsExportRootGet( lsmNfsExportPtr exp)
 int lsmNfsExportRootSet( lsmNfsExportPtr exp, lsmStringListPtr root)
 {
     MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, root, root, lsmStringListCopy,
-                lsmStringListFree, LSM_ERR_INVALID_NFS_EXPORT);
+                lsmStringListFree, LSM_ERR_INVALID_NFS);
 }
 
 lsmStringListPtr lsmNfsExportReadWriteGet( lsmNfsExportPtr exp)
@@ -1201,7 +1201,7 @@ lsmStringListPtr lsmNfsExportReadWriteGet( lsmNfsExportPtr exp)
 int lsmNfsExportReadWriteSet( lsmNfsExportPtr exp, lsmStringListPtr rw)
 {
     MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, rw, rw, lsmStringListCopy,
-                lsmStringListFree, LSM_ERR_INVALID_NFS_EXPORT);
+                lsmStringListFree, LSM_ERR_INVALID_NFS);
 }
 
 lsmStringListPtr lsmNfsExportReadOnlyGet( lsmNfsExportPtr exp)
@@ -1212,7 +1212,7 @@ lsmStringListPtr lsmNfsExportReadOnlyGet( lsmNfsExportPtr exp)
 int lsmNfsExportReadOnlySet(lsmNfsExportPtr exp, lsmStringListPtr ro)
 {
     MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, ro, ro, lsmStringListCopy,
-                lsmStringListFree, LSM_ERR_INVALID_NFS_EXPORT);
+                lsmStringListFree, LSM_ERR_INVALID_NFS);
 }
 
 uint64_t lsmNfsExportAnonUidGet( lsmNfsExportPtr exp )
@@ -1223,7 +1223,7 @@ uint64_t lsmNfsExportAnonUidGet( lsmNfsExportPtr exp )
 int lsmNfsExportAnonUidSet( lsmNfsExportPtr exp, uint64_t value)
 {
     MEMBER_SET_VAL(exp, LSM_IS_NFS_EXPORT, anonuid, value,
-                    LSM_ERR_INVALID_NFS_EXPORT);
+                    LSM_ERR_INVALID_NFS);
 }
 
 uint64_t lsmNfsExportAnonGidGet( lsmNfsExportPtr exp )
@@ -1234,7 +1234,7 @@ uint64_t lsmNfsExportAnonGidGet( lsmNfsExportPtr exp )
 int lsmNfsExportAnonGidSet( lsmNfsExportPtr exp, uint64_t value )
 {
     MEMBER_SET_VAL(exp, LSM_IS_NFS_EXPORT, anongid, value,
-                    LSM_ERR_INVALID_NFS_EXPORT);
+                    LSM_ERR_INVALID_NFS);
 }
 
 const char *lsmNfsExportOptionsGet( lsmNfsExportPtr exp)
@@ -1245,7 +1245,7 @@ const char *lsmNfsExportOptionsGet( lsmNfsExportPtr exp)
 int lsmNfsExportOptionsSet( lsmNfsExportPtr exp, const char *value )
 {
     MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, options, value, strdup, free,
-                LSM_ERR_INVALID_NFS_EXPORT);
+                LSM_ERR_INVALID_NFS);
 }
 
 #ifdef  __cplusplus

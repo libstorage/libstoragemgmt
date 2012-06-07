@@ -641,7 +641,7 @@ static int lsmPluginRun(lsmPluginPtr p)
 int lsmPluginErrorLog( lsmPluginPtr plug, lsmErrorPtr error)
 {
     if( !LSM_IS_PLUGIN(plug) ) {
-        return LSM_INVALID_PLUGIN;
+        return LSM_ERR_INVALID_PLUGIN;
     }
 
     if(!LSM_IS_ERROR(error) ) {

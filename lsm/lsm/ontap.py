@@ -20,10 +20,39 @@ import urllib2
 import urlparse
 
 import na
-from data import Volume, Initiator, FileSystem, Snapshot, NfsExport, AccessGroup, System
+from data import Volume, Initiator, FileSystem, Snapshot, NfsExport, \
+    AccessGroup, System
 from iplugin import IStorageAreaNetwork, INfs
 from common import  LsmError, ErrorNumber, JobStatus, md5
 from data import Pool
+
+#Maps na to lsm, this is expected to expand over time.
+e_map = {
+    na.Filer.ENOSPC:                    ErrorNumber.SIZE_INSUFFICIENT_SPACE,
+    na.Filer.ENO_SUCH_VOLUME:           ErrorNumber.NOT_FOUND_VOLUME,
+    na.Filer.ESIZE_TOO_LARGE:           ErrorNumber.SIZE_TOO_LARGE,
+    na.Filer.ENO_SUCH_FS:               ErrorNumber.NOT_FOUND_FS,
+    na.Filer.EVOLUME_TOO_SMALL:         ErrorNumber.SIZE_TOO_SMALL,
+    na.Filer.EAPILICENSE:               ErrorNumber.NOT_LICENSED,
+    na.Filer.EFSDOESNOTEXIST:           ErrorNumber.NOT_FOUND_FS,
+    na.Filer.EFSOFFLINE:                ErrorNumber.OFF_LINE,
+    na.Filer.EFSNAMEINVALID:            ErrorNumber.INVALID_NAME,
+    na.Filer.ESERVICENOTLICENSED:       ErrorNumber.NOT_LICENSED,
+    na.Filer.ECLONE_LICENSE_EXPIRED:    ErrorNumber.NOT_LICENSED,
+    na.Filer.ECLONE_NOT_LICENSED:       ErrorNumber.NOT_LICENSED
+}
+
+
+def error_map(oe):
+    """
+    Maps a ontap error code to a lsm error code.
+    Returns a tuple containing error code and text.
+    """
+    if oe.errno in e_map:
+        return e_map[oe.errno], oe.reason
+    else:
+        return ErrorNumber.PLUGIN_ERROR, oe.reason + \
+                                  " (vendor error code= " + oe.errno + ")"
 
 
 def handle_ontap_errors(method):
@@ -31,21 +60,21 @@ def handle_ontap_errors(method):
         try:
             return method(*args, **kwargs)
         except na.FilerError as oe:
-            #TODO Add error code mapping
-            #Translate NetApp error to LsmError
-            raise LsmError(ErrorNumber.PLUGIN_ERROR, oe.reason + ":" + str(oe.errno))
+            error, error_msg = error_map(oe)
+            raise LsmError(error, error_msg + ":" + str(oe.errno))
         except urllib2.HTTPError as he:
             if he.code == 401:
-                raise LsmError(ErrorNumber.AUTH_FAILED, he.msg)
+                raise LsmError(ErrorNumber.PLUGIN_AUTH_FAILED, he.msg)
             else:
-                raise LsmError(ErrorNumber.LSM_ERROR_COMMUNICATION, str(he))
+                raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION, str(he))
         except urllib2.URLError as ce:
-            raise LsmError(ErrorNumber.UNKNOWN_HOST, str(ce))
+            raise LsmError(ErrorNumber.PLUGIN_UNKNOWN_HOST, str(ce))
     return na_wrapper
+
 
 class Ontap(IStorageAreaNetwork, INfs):
 
-    (LSM_VOL_PREFIX, LSM_INIT_PREFIX) = ( 'lsm_lun_container', 'lsm_init_')
+    (LSM_VOL_PREFIX, LSM_INIT_PREFIX) = ('lsm_lun_container', 'lsm_init_')
 
     (SS_JOB, SPLIT_JOB) = ('ontap-ss-file-restore', 'ontap-clone-split')
 
@@ -81,14 +110,14 @@ class Ontap(IStorageAreaNetwork, INfs):
         """
         Construct the vpd83 for this lun
         """
-        return "60a98000" + ''.join( [ "%02x" % ord( x ) for x in sn ] )
+        return "60a98000" + ''.join(["%02x" % ord(x) for x in sn])
 
     def _lun(self, l):
         #Info('_lun=' + str(l))
         block_size = int(l['block-size'])
         num_blocks = int(l['size']) / block_size
         #TODO: Need to retrieve actual volume status
-        return Volume(l['serial-number'],l['path'],
+        return Volume(l['serial-number'], l['path'],
             self._create_vpd(l['serial-number']),
             block_size, num_blocks, Volume.STATUS_OK,
             self.sys_info.id)
@@ -103,24 +132,27 @@ class Ontap(IStorageAreaNetwork, INfs):
                     int(v['size-available']), p.id, self.sys_info.id)
 
     def _ss(self, s):
-        #If we use the newer API we can use the uuid instead of this fake md5 one
-        return Snapshot(md5(s['name'] + s['access-time']), s['name'], s['access-time'])
+        #If we use the newer API we can use the uuid instead of this fake
+        #md5 one
+        return Snapshot(md5(s['name'] + s['access-time']), s['name'],
+                            s['access-time'])
 
     @handle_ontap_errors
     def volumes(self):
         luns = self.f.luns()
-        return [ self._lun(l) for l in luns]
+        return [self._lun(l) for l in luns]
 
     @handle_ontap_errors
     def _pool(self, p):
         total = int(p['size-total'])
         used = int(p['size-used'])
-        return Pool(p['uuid'], p['name'], total, total - used, self.sys_info.id)
+        return Pool(p['uuid'], p['name'], total, total - used,
+                        self.sys_info.id)
 
     @handle_ontap_errors
     def pools(self):
         aggr = self.f.aggregates()
-        return [ self._pool(p) for p in aggr ]
+        return [self._pool(p) for p in aggr]
 
     @handle_ontap_errors
     def systems(self):
@@ -148,12 +180,12 @@ class Ontap(IStorageAreaNetwork, INfs):
                         type = Initiator.TYPE_PORT_WWN
 
                     name = id
-                    rc.append(Initiator(id,type,name))
+                    rc.append(Initiator(id, type, name))
 
         return rc
 
     def _get_volume(self, vol_name):
-        return self._lun( self.f.luns(vol_name)[0] )
+        return self._lun(self.f.luns(vol_name)[0])
 
     @handle_ontap_errors
     def volume_create(self, pool, volume_name, size_bytes, provisioning):
@@ -228,18 +260,18 @@ class Ontap(IStorageAreaNetwork, INfs):
             return None, self._get_volume(dest)
         else:
             #TODO Need to get instructions on how to provide this functionality
-            raise LsmError(ErrorNumber.NO_SUPPORT, "Unable to replicate volume "
-                                                   "to different pool")
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                        "Unable to replicate volume to different pool")
 
     @handle_ontap_errors
     def volume_replicate_range_block_size(self):
         return 4096
 
     @handle_ontap_errors
-    def volume_replicate_range(self, rep_type, volume_src, volume_dest, ranges):
+    def volume_replicate_range(self, rep_type, vol_src, vol_dest, ranges):
         if rep_type != Volume.REPLICATE_CLONE:
             raise LsmError(ErrorNumber.NO_SUPPORT, "rep_type not supported")
-        self.f.clone(volume_src.name, volume_dest.name, None, ranges)
+        self.f.clone(vol_src.name, vol_dest.name, None, ranges)
 
     @handle_ontap_errors
     def volume_online(self, volume):
@@ -287,14 +319,15 @@ class Ontap(IStorageAreaNetwork, INfs):
     @handle_ontap_errors
     def access_group_list(self):
         groups = self.f.igroups()
-        return [ self._access_group(g) for g in groups]
+        return [self._access_group(g) for g in groups]
 
     @handle_ontap_errors
     def access_group_create(self, name, initiator_id, id_type, system_id):
         cur_groups = self.access_group_list()
         for cg in cur_groups:
             if cg.name == name:
-                raise LsmError(ErrorNumber.ACCESS_GROUP_EXISTS, "Access group exists!")
+                raise LsmError(ErrorNumber.EXISTS_ACCESS_GROUP,
+                                "Access group exists!")
 
         if id_type == Initiator.TYPE_ISCSI:
             self.f.igroup_create(name, 'iscsi')
@@ -308,7 +341,8 @@ class Ontap(IStorageAreaNetwork, INfs):
             if g.name == name:
                 return g
 
-        raise LsmError(ErrorNumber.INTERNAL_ERROR, "Unable to find group just created!")
+        raise LsmError(ErrorNumber.INTERNAL_ERROR,
+                            "Unable to find group just created!")
 
     @handle_ontap_errors
     def access_group_del(self, group):
@@ -329,18 +363,19 @@ class Ontap(IStorageAreaNetwork, INfs):
         if len(group.initiators):
             luns = self.f.lun_initiator_list_map_info(group.initiators[0],
                 group.name)
-            rc = [ self._lun(l) for l in luns]
+            rc = [self._lun(l) for l in luns]
 
         return rc
+
     @handle_ontap_errors
     def access_groups_granted_to_volume(self, volume):
         groups = self.f.lun_map_list_info(volume.name)
-        return [ self._access_group(g) for g in groups]
+        return [self._access_group(g) for g in groups]
 
     @staticmethod
     def _rpercent(total, current):
-        p = 1 - (current/float(total))
-        p = min(int(100 * p),100)
+        p = 1 - (current / float(total))
+        p = min(int(100 * p), 100)
         return p
 
     def _restore_file_status(self, num):
@@ -348,7 +383,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
         if running:
             running = min(num, running)
-            return JobStatus.INPROGRESS, Ontap._rpercent(num,running), None
+            return JobStatus.INPROGRESS, Ontap._rpercent(num, running), None
 
         return JobStatus.COMPLETE, 100, None
 
@@ -367,14 +402,15 @@ class Ontap(IStorageAreaNetwork, INfs):
         if not running:
             return JobStatus.COMPLETE, 100, None
         else:
-            return JobStatus.INPROGRESS, Ontap._rpercent(len(vols), current), None
+            return JobStatus.INPROGRESS, Ontap._rpercent(len(vols), current), \
+                   None
 
     @handle_ontap_errors
     def job_status(self, job_id):
         if job_id is None and '@' not in job_id:
             raise LsmError(ErrorNumber.INVALID_JOB, "Invalid job, missing @")
 
-        job = job_id.split('@',2)
+        job = job_id.split('@', 2)
 
         if job[0] == Ontap.SS_JOB:
             return self._restore_file_status(int(job[1]))
@@ -390,7 +426,7 @@ class Ontap(IStorageAreaNetwork, INfs):
     @handle_ontap_errors
     def fs(self):
         volumes = self.f.volumes()
-        return [ self._vol(v) for v in volumes]
+        return [self._vol(v) for v in volumes]
 
     @handle_ontap_errors
     def fs_delete(self, fs):
@@ -431,7 +467,7 @@ class Ontap(IStorageAreaNetwork, INfs):
     @handle_ontap_errors
     def snapshots(self, fs):
         snapshots = self.f.snapshots(fs.name)
-        return [ self._ss(s) for s in snapshots]
+        return [self._ss(s) for s in snapshots]
 
     @handle_ontap_errors
     def snapshot_create(self, fs, snapshot_name, files=None):
@@ -443,7 +479,8 @@ class Ontap(IStorageAreaNetwork, INfs):
     def snapshot_delete(self, fs, snapshot):
         self.f.snapshot_delete(fs.name, snapshot.name)
 
-    def _ss_revert_files(self, volume_name, snapshot_name, files, restore_files):
+    def _ss_revert_files(self, volume_name, snapshot_name, files,
+                         restore_files):
         for i in range(len(files)):
             src = Ontap.build_name(volume_name, files[i])
             dest = None
@@ -452,7 +489,8 @@ class Ontap(IStorageAreaNetwork, INfs):
             self.f.snapshot_restore_file(snapshot_name, src, dest)
 
     @handle_ontap_errors
-    def snapshot_revert(self, fs, snapshot, files, restore_files,  all_files=False):
+    def snapshot_revert(self, fs, snapshot, files, restore_files,
+                        all_files=False):
         """
         Restores a FS or files on a FS.
         Note: Restoring an individual file is a O(n) operation, i.e. time it
@@ -464,12 +502,14 @@ class Ontap(IStorageAreaNetwork, INfs):
             return None
         elif files:
             if restore_files and len(files) != len(restore_files):
-                raise LsmError(ErrorNumber.INVALID_ARGUMENT, "num files != num restore_files")
+                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                                "num files != num restore_files")
 
             self._ss_revert_files(fs.name, snapshot.name, files, restore_files)
             return ("%s@%d") % (Ontap.SS_JOB, len(files))
         else:
-            raise LsmError(ErrorNumber.INVALID_ARGUMENT, "Invalid parameter combination")
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                            "Invalid parameter combination")
 
     @handle_ontap_errors
     def export_auth(self):
@@ -478,9 +518,10 @@ class Ontap(IStorageAreaNetwork, INfs):
         """
         return self.f.export_auth_types()
 
-    def _get_root(self,e):
+    def _get_root(self, e):
         if 'root' in e:
-            return [ r['name'] for r in na.to_list(e['root']['exports-hostname-info']) ]
+            return [r['name']
+                     for r in na.to_list(e['root']['exports-hostname-info'])]
         else:
             return []
 
@@ -542,8 +583,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         #Get the file systems once and pass to _export which needs to lookup
         #the file system id by name.
         v = self.fs()
-        return [ self._export(v,e) for e in self.f.nfs_exports() ]
-
+        return [self._export(v, e) for e in self.f.nfs_exports()]
 
     def _get_volume_from_id(self, id):
         fs = self.fs()
@@ -580,7 +620,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         else:
             method = self.f.nfs_export_fs2
 
-        method('/vol/'+ vol.name,
+        method('/vol/' + vol.name,
             export.export_path,
             export.ro,
             export.rw,
@@ -593,7 +633,8 @@ class Ontap(IStorageAreaNetwork, INfs):
             if e.fs_id == export.fs_id and e.export_path == export.export_path:
                 return e
 
-        raise LsmError(ErrorNumber.PLUGIN_ERROR, "export not created successfully!")
+        raise LsmError(ErrorNumber.PLUGIN_ERROR,
+                        "export not created successfully!")
 
     @handle_ontap_errors
     def export_remove(self, export):
@@ -628,5 +669,5 @@ class Ontap(IStorageAreaNetwork, INfs):
             if children:
                 for c in children:
                     self.f.volume_split_clone(c)
-                return "%s@%s" % ( Ontap.SPLIT_JOB, ",".join(children))
+                return "%s@%s" % (Ontap.SPLIT_JOB, ",".join(children))
         return None

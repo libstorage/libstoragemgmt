@@ -67,7 +67,7 @@ int lsmConnectPassword(const char *uri, const char *password,
                 rc = LSM_ERR_NO_MEMORY;
             }
         } else {
-            rc = LSM_ERR_URI_PARSE;
+            rc = LSM_ERR_INVALID_URI;
         }
 
         /*If we fail for any reason free resources associated with connection*/
@@ -118,7 +118,7 @@ static int rpc(lsmConnectPtr c, const char *method, const Value &parameters,
     try {
         response = c->tp->rpc(method,parameters);
     } catch ( const ValueException &ve ) {
-        return logException(c, LSM_ERROR_SERIALIZATION, "Serialization error",
+        return logException(c, LSM_ERR_TRANS_PORT_SERIALIZATION, "Serialization error",
                             ve.what());
     } catch ( const LsmException &le ) {
         return logException(c, (lsmErrorNumber)le.error_code, le.what(),
@@ -1422,7 +1422,7 @@ static int nfsExport( lsmConnectPtr c, lsmNfsExportPtr *e, const char* op,
     CONN_SETUP(c);
 
     if( !LSM_IS_NFS_EXPORT(*e) ) {
-        return LSM_ERR_INVALID_NFS_EXPORT;
+        return LSM_ERR_INVALID_NFS;
     }
 
     std::map<std::string, Value> p;

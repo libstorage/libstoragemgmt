@@ -802,7 +802,7 @@ void Ipc::sendRequest(const std::string request, const Value &params, int32_t id
     if( rc != 0 ) {
         std::string em = std::string("Error sending message: errno ")
                             + ::to_string(ec);
-        throw LsmException((int)LSM_ERROR_COMMUNICATION, em);
+        throw LsmException((int)LSM_ERR_TRANSPORT_COMMUNICATION, em);
     }
 }
 
@@ -827,7 +827,7 @@ void Ipc::sendError(int error_code, std::string msg, std::string debug,
     if( rc != 0 ) {
         std::string em = std::string("Error sending error message: errno ")
                             + ::to_string(ec);
-        throw LsmException((int)LSM_ERROR_COMMUNICATION, em);
+        throw LsmException((int)LSM_ERR_TRANSPORT_COMMUNICATION, em);
     }
 }
 
@@ -853,7 +853,7 @@ void Ipc::sendResponse(const Value &response, uint32_t id)
     if( rc != 0 ) {
         std::string em = std::string("Error sending response: errno ")
                             + ::to_string(ec);
-        throw LsmException((int)LSM_ERROR_COMMUNICATION, em);
+        throw LsmException((int)LSM_ERR_TRANSPORT_COMMUNICATION, em);
     }
 }
 

@@ -50,49 +50,75 @@ typedef enum  {
 typedef enum {
     LSM_ERR_OK = 0,                     /**< OK */
     LSM_ERR_INTERNAL_ERROR = 1,         /**< Internal error */
-    LSM_ERR_NO_MEMORY = 2,              /**< Memory allocation failure */
-    LSM_ERR_NO_SUPPORT = 3,             /**< Feature not supported */
-    LSM_ERR_UNKNOWN_HOST = 4,           /**< Name resolution failed */
-    LSM_ERR_NO_CONNECT = 5,             /**< Unable to connect to host */
-    LSM_ERR_INVALID_CONN = 6,           /**< Connection structure is invalid */
     LSM_ERR_JOB_STARTED = 7,            /**< Operation has started */
-    LSM_ERR_INVALID_ARGUMENT = 8,       /**< Precondition checks failed */
-    LSM_ERR_URI_PARSE = 9,              /**< Unable to parse URI */
-    LSM_ERR_PLUGIN_PERMISSIONS = 10,    /**< Unable to access plugin */
-    LSM_ERR_PLUGIN_DLOPEN = 11,         /**< dlopen on plugin failed */
-    LSM_ERR_PLUGIN_DLSYM = 12,          /**< Required symbols in plugin missing */
-    LSM_ERR_PLUGIN_ERROR = 13,          /**< Non-descript plugin error */
-    LSM_ERR_INVALID_ERR = 14,           /**< Invalid error structure */
-    LSM_ERR_PLUGIN_REGISTRATION = 15,   /**< Error during plug-in registration */
-    LSM_ERR_INVALID_POOL = 16,          /**< Invalid pool pointer */
-    LSM_ERR_INVALID_JOB_NUM = 17,       /**< Invalid job number */
-    LSM_ERR_UNSUPPORTED_PROVISIONING = 18,      /**< Unsupported provisioning */
-    LSM_ERR_INVALID_VOL = 19,           /**< Invalid job pointer */
-    LSM_ERR_VOLUME_SAME_SIZE = 20,      /**< Trying to resize to same size */
-    LSM_ERR_INVALID_INIT = 21,          /**< Invalid initiator structure */
-    LSM_ERR_NO_MAPPING = 22,            /**< There is no access for initiator and volume */
-    LSM_ERR_INSUFFICIENT_SPACE = 23,    /**< Insufficient space */
-    LSM_ERROR_IS_MAPPED = 24,           /**< Mapping already exists */
-    LSM_ERROR_COMMUNICATION = 25,       /**< Error comunicating with plug-in */
-    LSM_ERROR_SERIALIZATION = 26,       /**< Transport serialization error */
-    LSM_INVALID_PLUGIN = 27,            /**< Invalid plugin structure */
-    LSM_ERR_MISSING_HOST = 28,          /**< Missing or invalid hostname */
-    LSM_ERR_MISSING_PORT = 29,          /**< Missing port */
-    LSM_ERR_MISSING_NS = 30,            /**< Missing namespace */
-    LSM_ERR_INITIATOR_EXISTS = 31,      /**< Initiator exists */
-    LSM_ERR_UNSUPPORTED_INITIATOR_TYPE = 32,    /**< Unsupported initiator type */
-    LSM_ERR_ACCESS_GROUP_EXISTS = 33,           /**< Access group exists */
-    LSM_ERR_ACCESS_GROUP_NOT_FOUND = 34,        /**< Access group not found */
-    LSM_ERR_INITIATOR_NOT_IN_ACCESS_GROUP = 35, /**< Initiator not in access group */
-    LSM_ERR_INVALID_SL = 36,            /**< Invalid string list */
-    LSM_ERR_INDEX_BOUNDS = 37,          /**< Out of bounds on string index */
-    LSM_ERR_INVALID_ACCESS_GROUP = 38,      /**< Invalid access group */
-    LSM_ERR_INVALID_FS = 39,            /**< invalid fs */
-    LSM_ERR_INVALID_SS = 40,            /**< invalid snapshot */
-    LSM_ERR_NAME_EXISTS = 41,           /**< Generic error with name of resource already existing */
-    LSM_ERR_INVALID_NFS_EXPORT = 42,    /**< invalid nfs export record */
-    LSM_ERR_FS_NOT_EXPORTED = 43,       /**< FS not nfs exported */
-    LSM_ERR_AUTH_FAILED = 45,           /**< Authorization failed */
+    LSM_ERR_INDEX_BOUNDS = 10,          /**< Out of bounds on string index */
+
+    LSM_ERR_EXISTS_ACCESS_GROUP = 50,   /**< Access group exists */
+    LSM_ERR_EXISTS_FS = 51,             /**< FS exists */
+    LSM_ERR_EXISTS_INITIATOR = 52,      /**< Initiator exists */
+    LSM_ERR_EXISTS_NAME = 53,           /**< Named item already exists */
+    LSM_ERR_FS_NOT_EXPORTED = 54,       /**< FS not nfs exported */
+    LSM_ERR_INITIATOR_NOT_IN_ACCESS_GROUP = 55, /**< Initiator not in access group */
+
+    LSM_ERR_INVALID_ACCESS_GROUP = 100, /**< Invalid access group */
+    LSM_ERR_INVALID_ARGUMENT = 101,     /**< Precondition checks failed */
+    LSM_ERR_INVALID_CONN = 102,         /**< Connection structure is invalid */
+    LSM_ERR_INVALID_ERR = 103,          /**< Invalid error structure */
+    LSM_ERR_INVALID_FS = 104,           /**< invalid fs */
+    LSM_ERR_INVALID_INIT = 105,         /**< Invalid initiator structure */
+    LSM_ERR_INVALID_JOB = 106,          /**< Invalid job number */
+    LSM_ERR_INVALID_NAME = 107,         /**< Name specified is invalid */
+    LSM_ERR_INVALID_NFS = 108,          /**< invalid nfs export record */
+    LSM_ERR_INVALID_PLUGIN = 109,       /**< Invalid plugin structure */
+    LSM_ERR_INVALID_POOL = 110,         /**< Invalid pool pointer */
+    LSM_ERR_INVALID_SL = 111,           /**< Invalid string list */
+    LSM_ERR_INVALID_SS = 112,           /**< Invalid snapshot */
+    LSM_ERR_INVALID_URI = 113,          /**< Invalid uri */
+    LSM_ERR_INVALID_VAL = 114,          /**< Invalid value */
+    LSM_ERR_INVALID_VOL = 115,          /**< Invalid job pointer */
+
+    LSM_ERR_IS_MAPPED = 125,            /**< Mapping already exists */
+
+    LSM_ERR_NO_CONNECT = 150,           /**< Unable to connect to host */
+    LSM_ERR_NO_MAPPING = 151,           /**< There is no access for initiator and volume */
+    LSM_ERR_NO_MEMORY = 152,            /**< Memory allocation failure */
+    LSM_ERR_NO_SUPPORT = 153,           /**< Feature not supported */
+
+    LSM_ERR_NOT_FOUND_ACCESS_GROUP = 200,   /**< Specified access group not found */
+    LSM_ERR_NOT_FOUND_FS = 201,         /**< Specified FS not found */
+    LSM_ERR_NOT_FOUND_JOB = 202,        /**< Specified JOB not found */
+    LSM_ERR_NOT_FOUND_POOL = 203,       /**< Specified POOL not found */
+    LSM_ERR_NOT_FOUND_SS = 204,         /**< Specified snap shot not found */
+    LSM_ERR_NOT_FOUND_VOLUME = 205,     /**< Specified volume not found */
+
+    LSM_ERR_NOT_IMPLEMENTED = 206,      /**< Feature not implemented */
+    LSM_ERR_NOT_LICENSED = 207,         /**< Need license for feature */
+
+    LSM_ERR_OFF_LINE = 250,             /**< Specified element is off line */
+    LSM_ERR_ON_LINE = 251,              /**< Specified element is on line */
+
+    LSM_ERR_PLUGIN_AUTH_FAILED = 300,   /**< Authorization failed */
+    LSM_ERR_PLUGIN_DLOPEN = 301,        /**< dlopen on plugin failed */
+    LSM_ERR_PLUGIN_DLSYM = 302,         /**< Required symbols in plugin missing */
+    LSM_ERR_PLUGIN_ERROR = 303,         /**< Non-descript plugin error */
+    LSM_ERR_PLUGIN_MISSING_HOST = 304,  /**< Missing or invalid hostname */
+    LSM_ERR_PLUGIN_MISSING_NS = 305,    /**< Missing namespace */
+    LSM_ERR_PLUGIN_MISSING_PORT = 306,  /**< Missing port */
+    LSM_ERR_PLUGIN_PERMISSIONS = 307,   /**< Unable to access plugin */
+    LSM_ERR_PLUGIN_REGISTRATION = 308,  /**< Error during plug-in registration */
+    LSM_ERR_PLUGIN_UNKNOWN_HOST = 309,  /**< Name resolution failed */
+
+    LSM_ERR_SIZE_INSUFFICIENT_SPACE = 350,  /**< Insufficient space */
+    LSM_ERR_VOLUME_SAME_SIZE = 351,         /**< Trying to resize to same size */
+    LSM_ERR_SIZE_TOO_LARGE = 352,           /**< Size specified is too large */
+    LSM_ERR_SIZE_TOO_SMALL = 353,           /**< Size specified is too small */
+
+    LSM_ERR_TRANSPORT_COMMUNICATION = 400,    /**< Error comunicating with plug-in */
+    LSM_ERR_TRANS_PORT_SERIALIZATION = 401,   /**< Transport serialization error */
+
+    LSM_ERR_UNSUPPORTED_INITIATOR_TYPE = 450,   /**< Unsupported initiator type */
+    LSM_ERR_UNSUPPORTED_PROVISIONING = 451,     /**< Unsupported provisioning */
+    LSM_ERR_UNSUPPORTED_REPLICATION_TYPE = 452  /**< Unsupported replication type */
 
 } lsmErrorNumber;
 

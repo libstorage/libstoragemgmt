@@ -82,7 +82,7 @@ class Transport(object):
             msg = self.__readAll(int(l))
             #common.Info("RECV: ", msg)
         except socket.error as e:
-            raise LsmError(common.ErrorNumber.LSM_ERROR_COMMUNICATION,
+            raise LsmError(common.ErrorNumber.TRANSPORT_COMMUNICATION,
                 "Error while reading a message from the plug-in", str(e))
         return msg
 
@@ -120,7 +120,7 @@ class Transport(object):
             data = json.dumps(msg, cls=DataEncoder)
             self.__sendMsg(data)
         except socket.error as se:
-            raise LsmError(common.ErrorNumber.LSM_ERROR_COMMUNICATION,
+            raise LsmError(common.ErrorNumber.TRANSPORT_COMMUNICATION,
                             "Error while sending a message to the plug-in",
                             str(se))
 
