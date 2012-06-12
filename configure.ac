@@ -2,7 +2,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Copyright (C) 2011 Red Hat, Inc.
 dnl See COPYING.LIB for the License of this software
 
-AC_INIT([libstoragemgmt], [0.0.8], [libstoragemgmt-devel@lists.sourceforge.net], [], [http://sourceforge.net/apps/trac/libstoragemgmt/])
+AC_INIT([libstoragemgmt], [0.0.9], [libstoragemgmt-devel@lists.sourceforge.net], [], [http://sourceforge.net/apps/trac/libstoragemgmt/])
 AC_CONFIG_SRCDIR([configure.ac])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])

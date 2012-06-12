@@ -1,5 +1,11 @@
 News for libStorageMgmt
 
+0.0.9: June 12 2012
+    - Initial checkin of lio plug-in
+    - System filtering via URI (smispy)
+    - Error code mapping (ontap)
+    - Fixed build so same build tarball is used for all binaries
+
 0.0.8: June 4 2012
     - Make building of SMI-S CPP plugin optional
     - Add pkg-config file

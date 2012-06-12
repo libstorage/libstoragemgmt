@@ -140,6 +140,12 @@ fi
 %{_libdir}/pkgconfig/libstoragemgmt.pc
 
 %changelog
+* Tue Jun 12 2012 Tony Asleson <tasleson@redhat.com> 0.0.9-1
+- Initial checkin of lio plug-in
+- System filtering via URI (smispy)
+- Error code mapping (ontap)
+- Fixed build so same build tarball is used for all binaries
+
 * Mon Jun 4 2012 Tony Asleson <tasleson@redhat.com> 0.0.8-1
 - Make building of SMI-S CPP plugin optional
 - Add pkg-config file
