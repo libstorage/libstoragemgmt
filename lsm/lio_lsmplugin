@@ -85,7 +85,11 @@ class LIOStorage(IStorageAreaNetwork):
         self._jsonrequest("vol_destroy", dict(name=volume.name))
 
     def volume_replicate(self, pool, rep_type, volume_src, name):
-        raise NotImplementedError
+        if rep_type != Volume.REPLICATE_COPY:
+            raise NotImplementedError
+
+        self._jsonrequest("vol_copy",
+                          dict(vol_from=volume_src.name, vol_to=name))
 
     def volume_replicate_range_block_size(self):
         raise NotImplementedError
@@ -95,10 +99,12 @@ class LIOStorage(IStorageAreaNetwork):
         raise NotImplementedError
 
     def volume_online(self, volume):
-        raise NotImplementedError
+        vol_list = self._jsonrequest("vol_list")
+
+        return volume.name in [vol['name'] for vol in vol_list]
 
     def volume_offline(self, volume):
-        raise NotImplementedError
+        return not volume_online(volume)
 
     def volume_resize(self, volume, new_size_bytes):
         raise NotImplementedError
