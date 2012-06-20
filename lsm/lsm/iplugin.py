@@ -242,7 +242,7 @@ class IStorageAreaNetwork(IPlugin):
         pass
 
     @abstractmethod
-    def access_group_del_initiator(self, group, initiator):
+    def access_group_del_initiator(self, group, initiator_id):
         """
         Deletes an initiator from an access group
         """

@@ -76,13 +76,21 @@ static int cap(lsmPluginPtr c, lsmStorageCapabilitiesPtr *cap)
 
 static int jobStatus(lsmPluginPtr c, const char *job_id,
                         lsmJobStatus *status, uint8_t *percentComplete,
-                        lsmVolumePtr *vol)
+                        lsmDataType *t,
+                        void **value)
 {
     int rc = LSM_ERR_OK;
     Smis *s = (Smis *)lsmGetPrivateData(c);
+    lsmVolumePtr vol;
+
+    *t = LSM_DATA_TYPE_UNKNOWN;
 
     try {
-        rc = s->jobStatusVol(job_id, status, percentComplete, vol);
+        rc = s->jobStatusVol(job_id, status, percentComplete, &vol);
+        if( LSM_ERR_OK == rc ) {
+            *t = LSM_DATA_TYPE_VOLUME;
+            *value = vol;
+        }
     } catch (Exception &e) {
         rc = logException(c, LSM_ERR_PLUGIN_ERROR, "Error while checking job status", e);
     }
@@ -102,14 +110,6 @@ static int jobFree(lsmPluginPtr c, char *jobNumber)
     return rc;
 }
 
-static struct lsmMgmtOps mgmOps = {
-    tmoSet,
-    tmoGet,
-    cap,
-    jobStatus,
-    jobFree,
-};
-
 static int pools(lsmPluginPtr c, lsmPoolPtr **poolArray,
                         uint32_t *count)
 {
@@ -123,7 +123,15 @@ static int pools(lsmPluginPtr c, lsmPoolPtr **poolArray,
     return LSM_ERR_OK;
 }
 
-
+static struct lsmMgmtOps mgmOps = {
+    tmoSet,
+    tmoGet,
+    cap,
+    jobStatus,
+    jobFree,
+    pools,
+    NULL
+};
 
 static int initiators(lsmPluginPtr c, lsmInitiatorPtr **initArray,
                         uint32_t *count)
@@ -160,60 +168,6 @@ static int createVolume( lsmPluginPtr c, lsmPoolPtr pool, const char *volumeName
         rc = s->createLun(pool, volumeName, size, provisioning, newVolume, job);
     } catch (Exception &e) {
         rc = logException(c, LSM_ERR_PLUGIN_ERROR, "Error while creating volume", e);
-    }
-    return rc;
-}
-
-static int createInit( lsmPluginPtr c, const char *name, const char *id,
-                            lsmInitiatorType type, lsmInitiatorPtr *init)
-{
-    int rc = LSM_ERR_OK;
-    Smis *s = (Smis *)lsmGetPrivateData(c);
-
-    try {
-        rc = s->createInit(name, id, type, init);
-    } catch (Exception &e) {
-        rc = logException(c, LSM_ERR_PLUGIN_ERROR, "Error while creating initiator", e);
-    }
-    return rc;
-}
-
-static int deleteInit( lsmPluginPtr c, lsmInitiatorPtr init)
-{
-    int rc = LSM_ERR_OK;
-    Smis *s = (Smis *)lsmGetPrivateData(c);
-
-    try {
-        rc = s->deleteInit(init);
-    } catch (Exception &e) {
-        rc = logException(c, LSM_ERR_PLUGIN_ERROR, "Error while deleting initiator", e);
-    }
-    return rc;
-}
-
-static int accessGrant( lsmPluginPtr c, lsmInitiatorPtr i, lsmVolumePtr v,
-                        lsmAccessType access, char **job)
-{
-    int rc = LSM_ERR_OK;
-    Smis *s = (Smis *)lsmGetPrivateData(c);
-
-    try {
-        rc = s->grantAccess(i,v, access, job);
-    } catch (Exception &e) {
-        rc = logException(c, LSM_ERR_PLUGIN_ERROR, "Error while granting access", e);
-    }
-    return rc;
-}
-
-static int accessRemove( lsmPluginPtr c, lsmInitiatorPtr i, lsmVolumePtr v)
-{
-    int rc = LSM_ERR_OK;
-    Smis *s = (Smis *)lsmGetPrivateData(c);
-
-    try {
-        rc = s->removeAccess(i,v );
-    } catch (Exception &e) {
-        rc = logException(c, LSM_ERR_PLUGIN_ERROR, "Error while removing access", e);
     }
     return rc;
 }
@@ -262,17 +216,14 @@ static int deleteVolume( lsmPluginPtr c, lsmVolumePtr volume, char **job)
 }
 
 static struct lsmSanOps sanOps = {
-    pools,
     initiators,
     volumes,
     createVolume,
     replicateVolume,
+    NULL,
+    NULL,
     resizeVolume,
     deleteVolume,
-    createInit,
-    deleteInit,
-    accessGrant,
-    accessRemove,
 };
 
 int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,

@@ -450,10 +450,10 @@ class StorageSimulator(INfs):
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
                 "access group not found")
 
-    def access_group_del_initiator(self, group, initiator):
+    def access_group_del_initiator(self, group, initiator_id):
         if group.name in self.s.access_groups:
             for i in self.s.access_groups[group.name]['initiators']:
-                if i.id == initiator.id:
+                if i.id == initiator_id:
                     self.s.access_groups[group.name]['initiators'].\
                     remove(i)
                     return None

@@ -112,6 +112,7 @@ typedef enum {
     LSM_ERR_VOLUME_SAME_SIZE = 351,         /**< Trying to resize to same size */
     LSM_ERR_SIZE_TOO_LARGE = 352,           /**< Size specified is too large */
     LSM_ERR_SIZE_TOO_SMALL = 353,           /**< Size specified is too small */
+    LSM_ERR_SIZE_LIMIT_REACHED = 354,       /**< Limit has been reached */
 
     LSM_ERR_TRANSPORT_COMMUNICATION = 400,    /**< Error comunicating with plug-in */
     LSM_ERR_TRANS_PORT_SERIALIZATION = 401,   /**< Transport serialization error */

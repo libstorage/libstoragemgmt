@@ -18,6 +18,7 @@
  */
 
 #include "lsm_convert.hpp"
+#include "libstoragemgmt/libstoragemgmt_accessgroups.h"
 #include <libstoragemgmt/libstoragemgmt_blockrange.h>
 #include <libstoragemgmt/libstoragemgmt_nfsexport.h>
 
@@ -229,14 +230,51 @@ Value accessGroupToValue( lsmAccessGroupPtr group )
     return Value();
 }
 
+lsmAccessGroup **valueToAccessGroupList( Value &group, uint32_t *count )
+{
+    lsmAccessGroup **rc = NULL;
+    std::vector<Value> ag = group.asArray();
+
+    *count = ag.size();
+
+    if( *count ) {
+        rc = lsmAccessGroupRecordAllocArray(*count);
+        if( rc ) {
+            uint32_t i;
+            for(i = 0; i < *count; ++i ) {
+                rc[i] = valueToAccessGroup(ag[i]);
+                if( !rc[i] ) {
+                    lsmAccessGroupRecordFreeArray(rc, i);
+                    rc = NULL;
+                    break;
+                }
+            }
+        }
+    }
+    return rc;
+}
+
+Value accessGroupListToValue( lsmAccessGroupPtr *group, uint32_t count)
+{
+    std::vector<Value> rc;
+
+    if( group && count ) {
+        uint32_t i;
+        for( i = 0; i < count; ++i ) {
+            rc.push_back(accessGroupToValue(group[i]));
+        }
+    }
+    return rc;
+}
+
 lsmBlockRange *valueToBlockRange(Value &br)
 {
     lsmBlockRange *rc = NULL;
     if( isExpectedObject(br, "BlockRange") ) {
         std::map<std::string, Value> range = br.asObject();
 
-        rc = lsmBlockRangeRecordAlloc(range["source_start"].asUint64_t(),
-                                        range["dest_start"].asUint64_t(),
+        rc = lsmBlockRangeRecordAlloc(range["src_block"].asUint64_t(),
+                                        range["dest_block"].asUint64_t(),
                                         range["block_count"].asUint64_t());
     }
     return rc;
@@ -247,12 +285,43 @@ Value blockRangeToValue(lsmBlockRange *br)
     if( LSM_IS_BLOCK_RANGE(br) ) {
         std::map<std::string, Value> r;
         r["class"] = Value("BlockRange");
-        r["source_start"] = Value(br->source_start);
-        r["dest_start"] = Value(br->dest_start);
+        r["src_block"] = Value(br->source_start);
+        r["dest_block"] = Value(br->dest_start);
         r["block_count"] = Value(br->block_count);
         return r;
     }
     return Value();
+}
+
+lsmBlockRangePtr *valueToBlockRangeList(Value &brl, uint32_t *count)
+{
+    lsmBlockRangePtr *rc = NULL;
+    std::vector<Value> r = brl.asArray();
+    *count = r.size();
+    if( *count ) {
+        rc = lsmBlockRangeRecordAllocArray(*count);
+        if( rc ) {
+            for( uint32_t i = 0; i < *count; ++i ) {
+                rc[i] = valueToBlockRange(r[i]);
+                if( !rc[i] ) {
+                    lsmBlockRangeRecordFreeArray(rc, i);
+                    rc = NULL;
+                    break;
+                }
+            }
+        }
+    }
+    return rc;
+}
+
+Value blockRangeListToValue( lsmBlockRangePtr *brl, uint32_t count )
+{
+    uint32_t i = 0;
+    std::vector<Value> r;
+    for( i = 0; i < count; ++i ) {
+        r.push_back(blockRangeToValue(brl[i]));
+    }
+    return Value(r);
 }
 
 lsmFs *valueToFs(Value &fs)

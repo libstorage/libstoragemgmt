@@ -403,7 +403,7 @@ extern "C" {
      */
     int LSM_DLL_EXPORT lsmAccessGroupDelInitiator(lsmConnectPtr conn,
                                                     lsmAccessGroupPtr group,
-                                                    lsmInitiatorPtr initiator,
+                                                    const char *initiator_id,
                                                     char **job);
 
     /**

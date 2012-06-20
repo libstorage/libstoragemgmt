@@ -93,6 +93,7 @@ dnl find libxml2 library, borrowed from xmlsec
 dnl ==========================================================================
 
 PKG_CHECK_MODULES([LIBXML], [libxml-2.0])
+PKG_CHECK_MODULES([LIBGLIB], [glib-2.0 >= 2.22.5])
 
 dnl ==========================================================================
 dnl Check whether to build SMI-S C++ plugin

@@ -153,17 +153,7 @@ static int getAccessGroups( int rc, Value &response, lsmAccessGroupPtr **groups,
                             uint32_t *count)
 {
     if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
-        std::vector<Value> ag = response.asArray();
-
-        *count = ag.size();
-
-        if( ag.size() ) {
-            *groups = lsmAccessGroupRecordAllocArray(ag.size());
-
-            for( size_t i = 0; i < ag.size(); ++i ) {
-                (*groups)[i] = valueToAccessGroup(ag[i]);
-            }
-        }
+        *groups = valueToAccessGroupList(response, count);
     }
     return rc;
 }
@@ -570,14 +560,7 @@ int lsmVolumeReplicateRange(lsmConnectPtr c,
     p["rep_type"] = Value((int32_t)repType);
     p["volume_src"] = volumeToValue(source);
     p["volume_dest"] = volumeToValue(dest);
-
-    /* Build up the ranges */
-    std::vector<Value> r;
-    for( uint32_t i = 0; i < num_ranges; ++i ) {
-        r.push_back(blockRangeToValue(ranges[i]));
-    }
-
-    p["ranges"] = Value(r);
+    p["ranges"] = blockRangeListToValue(ranges, num_ranges);
 
     Value parameters(p);
     Value response;
@@ -850,7 +833,7 @@ int lsmAccessGroupAddInitiator(lsmConnectPtr c,
 }
 
 int lsmAccessGroupDelInitiator(lsmConnectPtr c, lsmAccessGroupPtr group,
-                                lsmInitiatorPtr initiator, char **job)
+                                const char* initiator_id, char **job)
 {
     CONN_SETUP(c);
 
@@ -858,13 +841,13 @@ int lsmAccessGroupDelInitiator(lsmConnectPtr c, lsmAccessGroupPtr group,
         return LSM_ERR_INVALID_ACCESS_GROUP;
     }
 
-    if( !LSM_IS_INIT(initiator) ){
-        return LSM_ERR_INVALID_INIT;
+    if( !initiator_id || CHECK_NULL_JOB(job) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
     p["group"] = accessGroupToValue(group);
-    p["initiator"] = initiatorToValue(initiator);
+    p["initiator"] = Value(initiator_id);
 
     Value parameters(p);
     Value response;

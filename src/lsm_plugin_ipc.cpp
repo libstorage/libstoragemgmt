@@ -21,6 +21,9 @@
 #include "lsm_datatypes.hpp"
 #include "lsm_ipc.hpp"
 #include "lsm_convert.hpp"
+#include "libstoragemgmt/libstoragemgmt_systems.h"
+#include "libstoragemgmt/libstoragemgmt_blockrange.h"
+#include "libstoragemgmt/libstoragemgmt_accessgroups.h"
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 #include <libstoragemgmt/libstoragemgmt_volumes.h>
 #include <libstoragemgmt/libstoragemgmt_pool.h>
@@ -84,7 +87,8 @@ void *lsmGetPrivateData(lsmPluginPtr plug)
     return plug->privateData;
 }
 
-static lsmPluginPtr lsmPluginAlloc(lsmPluginRegister reg, lsmPluginUnregister unreg) {
+static lsmPluginPtr lsmPluginAlloc(lsmPluginRegister reg,
+                                    lsmPluginUnregister unreg) {
 
     if( !reg || !unreg ) {
         return NULL;
@@ -258,7 +262,7 @@ static int handle_shutdown(lsmPluginPtr p, Value &params, Value &response)
 
 static int handle_set_time_out( lsmPluginPtr p, Value &params, Value &response)
 {
-    if( p->mgmtOps->tmo_set ) {
+    if( p && p->mgmtOps && p->mgmtOps->tmo_set ) {
         return p->mgmtOps->tmo_set(p, params["ms"].asUint32_t() );
     }
     return LSM_ERR_NO_SUPPORT;
@@ -268,7 +272,7 @@ static int handle_get_time_out( lsmPluginPtr p, Value &params, Value &response)
 {
     uint32_t tmo = 0;
 
-    if( p->mgmtOps->tmo_get ) {
+    if( p && p->mgmtOps && p->mgmtOps->tmo_get ) {
         int rc = p->mgmtOps->tmo_get(p, &tmo );
         if( LSM_ERR_OK == rc) {
             response = Value(tmo);
@@ -283,24 +287,31 @@ static int handle_job_status( lsmPluginPtr p, Value &params, Value &response)
     const char *job_id = NULL;
     lsmJobStatus status;
     uint8_t percent;
-    lsmVolumePtr vol = NULL;
+    lsmDataType t = LSM_DATA_TYPE_UNKNOWN;
+    void *value = NULL;
 
-    if( p->mgmtOps->job_status ) {
+    if( p && p->mgmtOps && p->mgmtOps->job_status ) {
 
         job_id = params["job_id"].asString().c_str();
 
-        int rc = p->mgmtOps->job_status(p, job_id, &status, &percent, &vol);
+        int rc = p->mgmtOps->job_status(p, job_id, &status, &percent, &t,
+                    &value);
         if( LSM_ERR_OK == rc) {
             std::vector<Value> result;
 
             result.push_back(Value((int32_t)status));
             result.push_back(Value(percent));
 
-            if( NULL == vol ) {
+            if( NULL == value ) {
                 result.push_back(Value());
             } else {
-                result.push_back(volumeToValue(vol));
-                lsmVolumeRecordFree(vol);
+                if( LSM_DATA_TYPE_VOLUME == t &&
+                    LSM_IS_VOL((lsmVolumePtr)value)) {
+                    result.push_back(volumeToValue((lsmVolumePtr)value));
+                    lsmVolumeRecordFree((lsmVolumePtr)value);
+                } else {
+                    rc = LSM_ERR_PLUGIN_ERROR;
+                }
             }
             response = Value(result);
         }
@@ -311,7 +322,7 @@ static int handle_job_status( lsmPluginPtr p, Value &params, Value &response)
 
 static int handle_job_free(lsmPluginPtr p, Value &params, Value &response)
 {
-    if( p->mgmtOps->job_free ) {
+    if( p && p->mgmtOps && p->mgmtOps->job_free ) {
         std::string job_num = params["job_id"].asString();
         char *j = (char*)job_num.c_str();
         return p->mgmtOps->job_free(p, j);
@@ -319,12 +330,35 @@ static int handle_job_free(lsmPluginPtr p, Value &params, Value &response)
     return LSM_ERR_NO_SUPPORT;
 }
 
+static int handle_system_list(lsmPluginPtr p, Value &params,
+                                    Value &response)
+{
+    if( p && p->mgmtOps && p->mgmtOps->system_list ) {
+        lsmSystemPtr *systems;
+        uint32_t count = 0;
+
+        int rc = p->mgmtOps->system_list(p, &systems, &count);
+        if( LSM_ERR_OK == rc ) {
+            std::vector<Value> result;
+
+            for( uint32_t i = 0; i < count; ++i ) {
+                result.push_back(systemToValue(systems[i]));
+            }
+
+            lsmSystemRecordFreeArray(systems, count);
+            systems = NULL;
+            response = Value(result);
+        }
+        return rc;
+    }
+    return LSM_ERR_NO_SUPPORT;
+}
 static int handle_pools(lsmPluginPtr p, Value &params, Value &response)
 {
-    if( p->sanOps->pool_get ) {
+    if( p && p->mgmtOps && p->mgmtOps->pool_list ) {
         lsmPoolPtr *pools = NULL;
         uint32_t count = 0;
-        int rc = p->sanOps->pool_get(p, &pools, &count);
+        int rc = p->mgmtOps->pool_list(p, &pools, &count);
         if( LSM_ERR_OK == rc) {
             std::vector<Value> result;
 
@@ -343,7 +377,7 @@ static int handle_pools(lsmPluginPtr p, Value &params, Value &response)
 
 static int handle_initiators(lsmPluginPtr p, Value &params, Value &response)
 {
-    if( p->sanOps->init_get ) {
+    if( p && p->sanOps && p->sanOps->init_get ) {
         lsmInitiatorPtr *inits = NULL;
         uint32_t count = 0;
         int rc = p->sanOps->init_get(p, &inits, &count);
@@ -365,7 +399,7 @@ static int handle_initiators(lsmPluginPtr p, Value &params, Value &response)
 
 static int handle_volumes(lsmPluginPtr p, Value &params, Value &response)
 {
-    if( p->sanOps->vol_get ) {
+    if( p && p->sanOps && p->sanOps->vol_get ) {
         lsmVolumePtr *vols = NULL;
         uint32_t count = 0;
         int rc = p->sanOps->vol_get(p, &vols, &count);
@@ -405,7 +439,7 @@ static Value job_handle(int rc, lsmVolumePtr vol, char *job)
 
 static int handle_volume_create(lsmPluginPtr p, Value &params, Value &response)
 {
-    if( p->sanOps->vol_create ) {
+    if( p && p->sanOps && p->sanOps->vol_create ) {
         lsmPoolPtr pool = valueToPool(params["pool"]);
         const char *name = params["volume_name"].asString().c_str();
         uint64_t size = params["size_bytes"].asUint64_t();
@@ -427,7 +461,7 @@ static int handle_volume_create(lsmPluginPtr p, Value &params, Value &response)
 
 static int handle_volume_resize(lsmPluginPtr p, Value &params, Value &response)
 {
-    if( p->sanOps->vol_resize ) {
+    if( p && p->sanOps && p->sanOps->vol_resize ) {
         lsmVolumePtr vol = valueToVolume(params["volume"]);
         lsmVolumePtr resized_vol = NULL;
         uint64_t size = params["new_size_bytes"].asUint64_t();
@@ -446,7 +480,7 @@ static int handle_volume_resize(lsmPluginPtr p, Value &params, Value &response)
 
 static int handle_volume_replicate(lsmPluginPtr p, Value &params, Value &response)
 {
-    if( p->sanOps->vol_replicate ) {
+    if( p && p->sanOps && p->sanOps->vol_replicate ) {
         lsmPoolPtr pool = valueToPool(params["pool"]);
         lsmVolumePtr vol = valueToVolume(params["volume_src"]);
         lsmVolumePtr newVolume = NULL;
@@ -466,9 +500,59 @@ static int handle_volume_replicate(lsmPluginPtr p, Value &params, Value &respons
     return LSM_ERR_NO_SUPPORT;
 }
 
+static int handle_volume_replicate_range_block_size( lsmPluginPtr p,
+                                                        Value &params,
+                                                        Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    uint32_t block_size = 0;
+
+    if( p && p->sanOps && p->sanOps->vol_rep_range_bs ) {
+        rc = p->sanOps->vol_rep_range_bs(p, &block_size);
+        if( LSM_ERR_OK == rc ) {
+            response = Value(block_size);
+        }
+    }
+    return rc;
+}
+
+static int handle_volume_replicate_range(lsmPluginPtr p, Value &params,
+                                            Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    uint32_t range_count = 0;
+    char *job = NULL;
+    if( p && p->sanOps && p->sanOps->vol_rep_range ) {
+        lsmReplicationType repType = (lsmReplicationType)
+                                        params["rep_type"].asInt32_t();
+        lsmVolumePtr source = valueToVolume(params["volume_src"]);
+        lsmVolumePtr dest = valueToVolume(params["volume_dest"]);
+        lsmBlockRangePtr *ranges = valueToBlockRangeList(params["ranges"],
+                                                            &range_count);
+
+        if( source && dest && ranges ) {
+
+            rc = p->sanOps->vol_rep_range(p, repType, source, dest, ranges,
+                                                range_count, &job);
+
+            if( LSM_ERR_JOB_STARTED == rc ) {
+                response = Value(job);
+            }
+
+        } else {
+            rc = LSM_ERR_NO_MEMORY;
+        }
+
+        lsmVolumeRecordFree(source);
+        lsmVolumeRecordFree(dest);
+        lsmBlockRangeRecordFreeArray(ranges, range_count);
+    }
+    return rc;
+}
+
 static int handle_volume_delete(lsmPluginPtr p, Value &params, Value &response)
 {
-    if( p->sanOps->vol_delete ) {
+    if( p && p->sanOps && p->sanOps->vol_delete ) {
         lsmVolumePtr vol = valueToVolume(params["volume"]);
         char *job = NULL;
 
@@ -485,71 +569,290 @@ static int handle_volume_delete(lsmPluginPtr p, Value &params, Value &response)
     return LSM_ERR_NO_SUPPORT;
 }
 
-static int handle_initiator_create(lsmPluginPtr p, Value &params, Value &response)
+static int handle_vol_online_offline( lsmPluginPtr p, Value &params,
+                                        Value &response, int online)
 {
-    if( p->sanOps->init_create ) {
-        const char *name = params["name"].asString().c_str();
-        const char *id = params["id"].asString().c_str();
-        lsmInitiatorType t = (lsmInitiatorType)params["id_type"].asInt32_t();
-        lsmInitiatorPtr init = NULL;
+    int rc = LSM_ERR_NO_SUPPORT;
 
-        int rc = p->sanOps->init_create(p, name, id, t, &init);
+    if( p && p->sanOps &&
+        ((online)? p->sanOps->vol_online : p->sanOps->vol_offline)) {
+        lsmVolumePtr vol = valueToVolume(params["volume"]);
+        if( vol ) {
+            if( online ) {
+                rc = p->sanOps->vol_online(p, vol);
+            } else {
+                rc = p->sanOps->vol_offline(p, vol);
+            }
 
-        if( LSM_ERR_OK == rc ) {
-            response = Value(initiatorToValue(init));
+            lsmVolumeRecordFree(vol);
+        } else {
+            rc = LSM_ERR_NO_MEMORY;
         }
-        lsmInitiatorRecordFree(init);
-        return rc;
     }
-    return LSM_ERR_NO_SUPPORT;
+    return rc;
 }
 
-static int handle_initiator_delete(lsmPluginPtr p, Value &params, Value &response)
+static int handle_volume_online(lsmPluginPtr p, Value &params, Value &response)
 {
-    if( p->sanOps->init_delete ) {
-        lsmInitiatorPtr i = valueToInitiator(params["initiator"]);
-
-        int rc = p->sanOps->init_delete(p, i);
-        lsmInitiatorRecordFree(i);
-        return rc;
-    }
-    return LSM_ERR_NO_SUPPORT;
+    return handle_vol_online_offline(p, params, response, 1);
 }
 
-static int handle_access_grant(lsmPluginPtr p, Value &params, Value &response)
+static int handle_volume_offline(lsmPluginPtr p, Value &params, Value &response)
 {
-    if( p->sanOps->access_grant ) {
-        lsmInitiatorPtr i = valueToInitiator(params["initiator"]);
-        lsmVolumePtr v = valueToVolume(params["volume"]);
-        lsmAccessType access = (lsmAccessType)params["access"].asInt32_t();
+    return handle_vol_online_offline(p, params, response, 0);
+}
+
+static int ag_list(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+
+    if( p && p->sanOps && p->sanOps->ag_list ) {
+        lsmAccessGroupPtr *groups = NULL;
+        uint32_t count;
+
+        rc = p->sanOps->ag_list(p, &groups, &count);
+        if( LSM_ERR_OK == rc ) {
+            response = accessGroupListToValue(groups, count);
+
+            /* Free the memory */
+            lsmAccessGroupRecordFreeArray(groups, count);
+        }
+    }
+    return rc;
+}
+
+static int ag_create(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+
+    if( p && p->sanOps && p->sanOps->ag_create ) {
+        lsmAccessGroupPtr ag = NULL;
+        rc = p->sanOps->ag_create(p, params["name"].asC_str(),
+                                params["initiator_id"].asC_str(),
+                                (lsmInitiatorType)params["id_type"].asInt32_t(),
+                                params["system_id"].asC_str(), &ag);
+        if( LSM_ERR_OK == rc ) {
+            response = accessGroupToValue(ag);
+            lsmAccessGroupRecordFree(ag);
+        }
+    }
+    return rc;
+}
+
+static int ag_delete(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+
+    if( p && p->sanOps && p->sanOps->ag_delete ) {
         char *job = NULL;
 
-        int rc = p->sanOps->access_grant(p, i, v, access, &job);
+        lsmAccessGroupPtr ag = valueToAccessGroup(params["group"]);
+        rc = p->sanOps->ag_delete(p, ag, &job);
 
-         if( LSM_ERR_JOB_STARTED == rc ) {
+        if( LSM_ERR_JOB_STARTED == rc ) {
             response = Value(job);
+            free(job);
         }
 
-        lsmInitiatorRecordFree(i);
-        lsmVolumeRecordFree(v);
-        free(job);
-        return rc;
+        lsmAccessGroupRecordFree(ag);
     }
-    return LSM_ERR_NO_SUPPORT;
+
+    return rc;
 }
 
-static int handle_access_revoke(lsmPluginPtr p, Value &params, Value &response)
+static int ag_initiator_add(lsmPluginPtr p, Value &params, Value &response)
 {
-    if( p->sanOps->access_remove ) {
-        lsmInitiatorPtr i = valueToInitiator(params["initiator"]);
-        lsmVolumePtr v = valueToVolume(params["volume"]);
+    int rc = LSM_ERR_NO_SUPPORT;
 
-        int rc = p->sanOps->access_remove(p, i, v);
+    if( p && p->sanOps && p->sanOps->ag_add_initiator ) {
+        lsmAccessGroupPtr ag = valueToAccessGroup(params["group"]);
+        const char *id = params["initiator_id"].asC_str();
+        char *job = NULL;
+        lsmInitiatorType id_type = (lsmInitiatorType)
+                                    params["id_type"].asInt32_t();
 
-        lsmInitiatorRecordFree(i);
-        lsmVolumeRecordFree(v);
-        return rc;
+        rc = p->sanOps->ag_add_initiator(p, ag, id, id_type, &job);
+
+        if( LSM_ERR_JOB_STARTED == rc ) {
+            response = Value(job);
+            free(job);
+        }
+
+        lsmAccessGroupRecordFree(ag);
     }
+
+    return rc;
+}
+
+static int ag_initiator_del(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+
+    if( p && p->sanOps && p->sanOps->ag_del_initiator ) {
+        lsmAccessGroupPtr ag = valueToAccessGroup(params["group"]);
+        const char *init = params["initiator_id"].asC_str();
+        char *job = NULL;
+
+        rc = p->sanOps->ag_del_initiator(p, ag, init, &job);
+
+        if( LSM_ERR_JOB_STARTED == rc ) {
+            response = Value(job);
+            free(job);
+        }
+
+        lsmAccessGroupRecordFree(ag);
+    }
+
+    return rc;
+}
+
+static int ag_grant(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+
+    if( p && p->sanOps && p->sanOps->ag_grant ) {
+        lsmAccessGroupPtr ag = valueToAccessGroup(params["group"]);
+        lsmVolumePtr vol = valueToVolume(params["volume"]);
+        lsmAccessType access = (lsmAccessType)params["access"].asInt32_t();
+
+        char *job = NULL;
+
+        rc = p->sanOps->ag_grant(p, ag, vol, access, &job);
+
+        if( LSM_ERR_JOB_STARTED == rc ) {
+            response = Value(job);
+            free(job);
+        }
+
+        lsmAccessGroupRecordFree(ag);
+        lsmVolumeRecordFree(vol);
+    }
+
+    return rc;
+}
+
+static int ag_revoke(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+
+    if( p && p->sanOps && p->sanOps->ag_revoke ) {
+        lsmAccessGroupPtr ag = valueToAccessGroup(params["group"]);
+        lsmVolumePtr vol = valueToVolume(params["volume"]);
+
+        char *job = NULL;
+
+        rc = p->sanOps->ag_revoke(p, ag, vol, &job);
+
+        if( LSM_ERR_JOB_STARTED == rc ) {
+            response = Value(job);
+            free(job);
+        }
+
+        lsmAccessGroupRecordFree(ag);
+        lsmVolumeRecordFree(vol);
+    }
+
+    return rc;
+}
+
+static int vol_accessible_by_ag(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+
+    if( p && p->sanOps && p->sanOps->vol_accessible_by_ag ) {
+        lsmAccessGroupPtr ag = valueToAccessGroup(params["group"]);
+        lsmVolumePtr *vols = NULL;
+        uint32_t count = 0;
+
+        rc = p->sanOps->vol_accessible_by_ag(p, ag, &vols, &count);
+
+        if( LSM_ERR_OK == rc ) {
+            std::vector<Value> result;
+
+            for( uint32_t i = 0; i < count; ++i ) {
+                result.push_back(volumeToValue(vols[i]));
+            }
+            response = Value(result);
+        }
+
+        lsmAccessGroupRecordFree(ag);
+        lsmVolumeRecordFreeArray(vols, count);
+        vols = NULL;
+    }
+
+    return rc;
+}
+
+static int ag_granted_to_volume(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+
+    if( p && p->sanOps && p->sanOps->ag_granted_to_vol ) {
+        lsmVolumePtr volume = valueToVolume(params["volume"]);
+        lsmAccessGroupPtr *groups = NULL;
+        uint32_t count = 0;
+
+        rc = p->sanOps->ag_granted_to_vol(p, volume, &groups, &count);
+
+        if( LSM_ERR_OK == rc ) {
+            std::vector<Value> result;
+
+            for( uint32_t i = 0; i < count; ++i ) {
+                result.push_back(accessGroupToValue(groups[i]));
+            }
+            response = Value(result);
+        }
+
+        lsmVolumeRecordFree(volume);
+        lsmAccessGroupRecordFreeArray(groups, count);
+        groups = NULL;
+    }
+
+    return rc;
+}
+
+static int volume_dependency(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+
+    if( p && p->sanOps && p->sanOps->vol_child_depends ) {
+        lsmVolumePtr volume = valueToVolume(params["volume"]);
+        uint8_t yes;
+
+        rc = p->sanOps->vol_child_depends(p, volume, &yes);
+
+        if( LSM_ERR_OK == rc ) {
+            response = Value((bool)(yes));
+        }
+
+        lsmVolumeRecordFree(volume);
+    }
+
+    return rc;
+}
+
+static int volume_dependency_rm(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+
+    if( p && p->sanOps && p->sanOps->vol_child_depends_rm ) {
+        lsmVolumePtr volume = valueToVolume(params["volume"]);
+        char *job = NULL;
+
+        rc = p->sanOps->vol_child_depends_rm(p, volume, &job);
+
+       if( LSM_ERR_JOB_STARTED == rc ) {
+            response = Value(job);
+            free(job);
+        }
+        lsmVolumeRecordFree(volume);
+    }
+
+    return rc;
+}
+
+static int not_supported(lsmPluginPtr p, Value &params, Value &response)
+{
     return LSM_ERR_NO_SUPPORT;
 }
 
@@ -563,16 +866,44 @@ static std::map<std::string,handler> dispatch = static_map<std::string,handler>
     ("job_status", handle_job_status)
     ("job_free", handle_job_free)
     ("pools", handle_pools)
+    ("systems", handle_system_list)
     ("initiators", handle_initiators)
     ("volumes", handle_volumes)
     ("volume_create", handle_volume_create)
     ("volume_resize", handle_volume_resize)
     ("volume_replicate", handle_volume_replicate)
+    ("volume_replicate_range_block_size", handle_volume_replicate_range_block_size)
+    ("volume_replicate_range", handle_volume_replicate_range)
     ("volume_delete", handle_volume_delete)
-    ("initiator_create", handle_initiator_create)
-    ("initiator_delete", handle_initiator_delete)
-    ("access_grant", handle_access_grant)
-    ("access_revoke", handle_access_revoke);
+    ("volume_online", handle_volume_online)
+    ("volume_offline", handle_volume_offline)
+    ("access_group_grant", ag_grant)
+    ("access_group_revoke", ag_revoke)
+    ("access_group_list", ag_list)
+    ("access_group_create", ag_create)
+    ("access_group_del", ag_delete)
+    ("access_group_add_initiator", ag_initiator_add)
+    ("access_group_del_initiator", ag_initiator_del)
+    ("volumes_accessible_by_access_group", vol_accessible_by_ag)
+    ("access_groups_granted_to_volume", ag_granted_to_volume)
+    ("volume_child_dependency", volume_dependency)
+    ("volume_child_dependency_rm", volume_dependency_rm)
+    ("fs", not_supported)
+    ("fs_delete", not_supported)
+    ("fs_resize", not_supported)
+    ("fs_create", not_supported)
+    ("fs_clone", not_supported)
+    ("file_clone", not_supported)
+    ("snapshots", not_supported)
+    ("snapshot_create", not_supported)
+    ("snapshot_delete", not_supported)
+    ("snapshot_revert", not_supported)
+    ("fs_child_dependency", not_supported)
+    ("fs_child_dependency_rm", not_supported)
+    ("export_auth", not_supported)
+    ("exports", not_supported)
+    ("export_fs", not_supported)
+    ("export_remove", not_supported);
 
 static int process_request(lsmPluginPtr p, const std::string &method, Value &request,
                     Value &response)
@@ -636,6 +967,21 @@ static int lsmPluginRun(lsmPluginPtr p)
     p = NULL;
 
     return rc;
+}
+
+int lsmLogErrorBasic( lsmPluginPtr plug, lsmErrorNumber code, const char* msg )
+{
+    lsmErrorPtr e = LSM_ERROR_CREATE_PLUGIN_MSG(code, msg);
+    if( e ) {
+        int rc = lsmPluginErrorLog(plug, e);
+
+        if( LSM_ERR_OK != rc ) {
+            syslog(LOG_USER|LOG_NOTICE,
+                    "Plug-in error %d while reporting an error, code= %d, msg= %s",
+                    rc, code, msg);
+        }
+    }
+    return (int)code;
 }
 
 int lsmPluginErrorLog( lsmPluginPtr plug, lsmErrorPtr error)

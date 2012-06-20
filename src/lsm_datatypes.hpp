@@ -23,6 +23,7 @@
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 #include <libstoragemgmt/libstoragemgmt_common.h>
 #include <libxml/uri.h>
+#include <glib.h>
 #include "lsm_ipc.hpp"
 
 
@@ -239,8 +240,7 @@ struct LSM_DLL_LOCAL _lsmError {
 #define LSM_IS_STRING_LIST(obj)     MAGIC_CHECK(obj, LSM_STRING_LIST_MAGIC)
 struct LSM_DLL_LOCAL _lsmStringList {
     uint32_t    magic;          /**< Magic value */
-    uint32_t    size;          /**< Number of elements */
-    char *values[0];
+    GPtrArray   *values;
 };
 
 #define LSM_FS_MAGIC                0xAA7A000E

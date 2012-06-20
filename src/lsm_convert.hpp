@@ -108,6 +108,23 @@ lsmAccessGroup *valueToAccessGroup(Value &group);
 Value accessGroupToValue(lsmAccessGroupPtr group);
 
 /**
+ * Converts an access group list to an array of access group pointers
+ * @param[in] group         Value representing a std::vector of access groups
+ * @param[out] count         Number of items in the returned array.
+ * @return NULL on memory allocation failure, else pointer to access group
+ *          array.
+ */
+lsmAccessGroup **valueToAccessGroupList( Value &group, uint32_t *count );
+
+/**
+ * Converts an array of lsmAccessGroupPtr to Value(s)
+ * @param group             Pointer to an array of lsmAccessGroupPtr
+ * @param count             Number of items in array.
+ * @return std::vector of Values representing access groups
+ */
+Value accessGroupListToValue( lsmAccessGroupPtr *group, uint32_t count);
+
+/**
  * Converts a Value to a lsmBlockRange
  * @param br        Value representing a block range
  * @return lsmBlockRangePtr
@@ -120,6 +137,22 @@ lsmBlockRange *valueToBlockRange(Value &br);
  * @return Value, null value type on error
  */
 Value blockRangeToValue(lsmBlockRange *br);
+
+/**
+ * Converts a Value to an array of lsmBlockRangePtr
+ * @param brl           Value representing block range(s)
+ * @param[out]count     Number of items in the resulting array
+ * @return NULL on memory allocation failure, else array of lsmBlockRangePtr
+ */
+lsmBlockRangePtr *valueToBlockRangeList(Value &brl,  uint32_t *count);
+
+/**
+ * Converts an array of lsmBlockRangePtr to Value
+ * @param brl           An array of lsmBlockRangePtr
+ * @param count         Number of items in input
+ * @return Value
+ */
+Value blockRangeListToValue( lsmBlockRangePtr *brl, uint32_t count);
 
 /**
  * Converts a value to a lsmFs *

@@ -326,19 +326,6 @@ class Client(INetworkAttachedStorage):
         """
         return self.tp.rpc('access_group_grant', del_self(locals()))
 
-    ## Revokes privileges an initiator has to a volume
-    # @param    self    The this pointer
-    # @param    initiator   The initiator object
-    # @param    volume  The volume object
-    # @returns  None on success, else job id
-    def access_revoke(self, initiator, volume):
-        """
-        Revokes privileges an initiator has to a volume
-
-        Returns none on success, else raises a LsmError on error.
-        """
-        return self.tp.rpc('access_revoke', del_self(locals()))
-
     ## Revokes access to a volume to initiators in an access group
     # @param    self    The this pointer
     # @param    group   The access group
@@ -396,11 +383,11 @@ class Client(INetworkAttachedStorage):
         return self.tp.rpc('access_group_add_initiator', del_self(locals()))
 
     ## Deletes an initiator from an access group
-    # @param    self        The this pointer
-    # @param    group       The access group to remove initiator from
-    # @param    initiator   The initiator to remove from the group
+    # @param    self            The this pointer
+    # @param    group           The access group to remove initiator from
+    # @param    initiator_id    The initiator to remove from the group
     # @returns  None on success, else job id
-    def access_group_del_initiator(self, group, initiator):
+    def access_group_del_initiator(self, group, initiator_id):
         """
         Deletes an initiator from an access group
         """

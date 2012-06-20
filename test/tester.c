@@ -587,7 +587,8 @@ START_TEST(test_access_groups)
 
     for( i = 0; i < init_list_count; ++i ) {
         printf("Deleting initiator %s from group!\n", lsmInitiatorIdGet(inits[i]));
-        rc = lsmAccessGroupDelInitiator(c, groups[0], inits[i], &job);
+        rc = lsmAccessGroupDelInitiator(c, groups[0],
+                                            lsmInitiatorIdGet(inits[i]), &job);
         fail_unless(LSM_ERR_OK == rc);
     }
 

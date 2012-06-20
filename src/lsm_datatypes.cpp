@@ -42,6 +42,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <dlfcn.h>
+#include <glib.h>
 
 #ifdef  __cplusplus
 extern "C" {
@@ -49,19 +50,111 @@ extern "C" {
 
 #define LSM_DEFAULT_PLUGIN_DIR "/var/run/lsm/ipc"
 
+int lsmStringListAppend(lsmStringListPtr sl, const char *value)
+{
+	int rc = LSM_ERR_INVALID_SL;
+
+	if( LSM_IS_STRING_LIST(sl) ) {
+		char *d = strdup(value);
+		if(d) {
+			g_ptr_array_add(sl->values, d);
+			rc = LSM_ERR_OK;
+		} else {
+			rc = LSM_ERR_NO_MEMORY;
+		}
+	}
+	return rc;
+}
+
+int lsmStringListRemove(lsmStringListPtr sl, uint32_t index)
+{
+	int rc = LSM_ERR_INVALID_SL;
+
+	if( LSM_IS_STRING_LIST(sl) ) {
+		if( index < sl->values->len ) {
+			g_ptr_array_remove_index(sl->values, index);
+		} else {
+			rc = LSM_ERR_INDEX_BOUNDS;
+		}
+	}
+	return rc;
+}
+
+
+int lsmStringListSetElem(lsmStringListPtr sl, uint32_t index,
+                                            const char* value)
+{
+    int rc = LSM_ERR_OK;
+    if( LSM_IS_STRING_LIST(sl) ) {
+        if( index < sl->values->len ) {
+
+			char *i = (char *)g_ptr_array_index(sl->values, index);
+
+			if( i )	{
+				free(i);
+			}
+
+			g_ptr_array_index(sl->values, index) = strdup(value);
+
+            if( !g_ptr_array_index(sl->values, index) ) {
+                rc = LSM_ERR_NO_MEMORY;
+            }
+        } else {
+			g_ptr_array_set_size(sl->values, index + 1);
+			g_ptr_array_index(sl->values, index) = strdup(value);
+        }
+    } else {
+        rc = LSM_ERR_INVALID_SL;
+    }
+    return rc;
+}
+
+const char *lsmStringListGetElem(lsmStringListPtr sl, uint32_t index)
+{
+    if( LSM_IS_STRING_LIST(sl) ) {
+        if( index < sl->values->len ) {
+            return (const char*)g_ptr_array_index(sl->values, index);
+        }
+    }
+    return NULL;
+}
+
 lsmStringListPtr lsmStringListAlloc(uint32_t size)
 {
     lsmStringList *rc = NULL;
 
-    if( size ) {
-        size_t s = sizeof(lsmStringList) + (sizeof(char*) * size);
-        rc = (lsmStringList *)calloc(1, s);
-        if( rc ) {
-            rc->magic = LSM_STRING_LIST_MAGIC;
-            rc->size = size;
-        }
+    rc = (lsmStringList *)calloc(1, sizeof(lsmStringList));
+    if( rc ) {
+        rc->magic = LSM_STRING_LIST_MAGIC;
+        rc->values = g_ptr_array_sized_new(size);
+		if( !rc->values ) {
+			free(rc);
+			rc = NULL;
+		} else {
+			g_ptr_array_set_free_func(rc->values, free);
+		}
     }
+
     return rc;
+}
+
+int lsmStringListFree(lsmStringListPtr sl)
+{
+    if( LSM_IS_STRING_LIST(sl) ) {
+        sl->magic = LSM_DEL_MAGIC(LSM_STRING_LIST_MAGIC);
+        g_ptr_array_free(sl->values, TRUE);
+        free(sl);
+        return LSM_ERR_OK;
+    }
+    return LSM_ERR_INVALID_SL;
+}
+
+uint32_t lsmStringListSize(lsmStringListPtr sl)
+{
+    if( LSM_IS_STRING_LIST(sl) ) {
+        return (uint32_t)sl->values->len;
+    }
+    return 0;
 }
 
 lsmStringListPtr lsmStringListCopy(lsmStringListPtr src)
@@ -69,11 +162,13 @@ lsmStringListPtr lsmStringListCopy(lsmStringListPtr src)
     lsmStringList *dest = NULL;
 
     if( LSM_IS_STRING_LIST(src) ) {
-        dest = lsmStringListAlloc(src->size);
+        dest = lsmStringListAlloc(lsmStringListSize(src));
 
         if( dest ) {
             uint32_t i;
-            for( i = 0; i < src->size ; ++i ) {
+			uint32_t size = lsmStringListSize(src);
+
+            for( i = 0; i < size ; ++i ) {
                 if ( LSM_ERR_OK != lsmStringListSetElem(dest, i,
                         lsmStringListGetElem(src, i))) {
                     /** We had an allocation failure setting an element item */
@@ -85,62 +180,6 @@ lsmStringListPtr lsmStringListCopy(lsmStringListPtr src)
         }
     }
     return dest;
-}
-
-int lsmStringListFree(lsmStringListPtr sl)
-{
-    if( LSM_IS_STRING_LIST(sl) ) {
-        uint32_t i;
-        for(i = 0; i < sl->size; ++i ) {
-            free(sl->values[i]);
-            sl->values[i] = '\0';
-        }
-        sl->magic = LSM_DEL_MAGIC(LSM_STRING_LIST_MAGIC);
-        free(sl);
-        return LSM_ERR_OK;
-    }
-    return LSM_ERR_INVALID_SL;
-}
-
-int lsmStringListSetElem(lsmStringListPtr sl, uint32_t index,
-                                            const char* value)
-{
-    int rc = LSM_ERR_OK;
-    if( LSM_IS_STRING_LIST(sl) ) {
-        if( index < sl->size ) {
-            if( sl->values[index] ) {
-                //There is a value here, free it!
-                free(sl->values[index]);
-            }
-            sl->values[index] = strdup(value);
-            if( !sl->values[index] ) {
-                rc = LSM_ERR_NO_MEMORY;
-            }
-        } else {
-            rc = LSM_ERR_INDEX_BOUNDS;
-        }
-    } else {
-        rc = LSM_ERR_INVALID_SL;
-    }
-    return rc;
-}
-
-const char *lsmStringListGetElem(lsmStringListPtr sl, uint32_t index)
-{
-    if( LSM_IS_STRING_LIST(sl) ) {
-        if( index < sl->size ) {
-            return sl->values[index];
-        }
-    }
-    return NULL;
-}
-
-uint32_t lsmStringListSize(lsmStringListPtr sl)
-{
-    if( LSM_IS_STRING_LIST(sl) ) {
-        return sl->size;
-    }
-    return 0;
 }
 
 lsmConnectPtr getConnection()
@@ -420,7 +459,7 @@ rtype *name(uint32_t size)                  \
 #define CREATE_FREE_ARRAY_FUNC(name, free_func, record_type)\
 void name( record_type pa[], uint32_t size)                \
 {                                                   \
-    if (pa && size) {                               \
+    if (pa) {                                       \
         uint32_t i = 0;                             \
         for (i = 0; i < size; ++i) {                \
             free_func(pa[i]);                       \
@@ -454,6 +493,13 @@ lsmPoolPtr lsmPoolRecordAlloc(const char *id, const char *name,
         }
     }
     return rc;
+}
+
+void lsmPoolFreeSpaceSet(lsmPoolPtr p, uint64_t free_space)
+{
+    if( LSM_IS_POOL(p) ) {
+        p->freeSpace = free_space;
+    }
 }
 
 lsmPoolPtr lsmPoolRecordCopy( lsmPoolPtr toBeCopied)
@@ -874,6 +920,19 @@ lsmStringListPtr lsmAccessGroupInitiatorIdGet( lsmAccessGroupPtr group )
         return group->initiators;
     }
     return NULL;
+}
+
+void LSM_DLL_EXPORT lsmAccessGroupInitiatorIdSet(
+                                        lsmAccessGroupPtr group,
+                                        lsmStringListPtr il)
+{
+    if( LSM_IS_ACCESS_GROUP(group) ) {
+        if( group->initiators ) {
+            lsmStringListFree(group->initiators);
+        }
+
+        group->initiators = il;
+    }
 }
 
 lsmErrorPtr lsmErrorGetLast(lsmConnectPtr c)

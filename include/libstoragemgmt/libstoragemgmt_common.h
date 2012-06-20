@@ -45,7 +45,7 @@ extern "C" {
 
 /**
  * Allocates storage for string line of specified size.
- * @param size  Number of strings to allocate
+ * @param size  Initial number of strings to allocate
  * @return NULL on error, else valid lsmStringListPtr record pointer
  */
 lsmStringListPtr LSM_DLL_EXPORT lsmStringListAlloc(uint32_t size);
@@ -89,6 +89,22 @@ const char LSM_DLL_EXPORT *lsmStringListGetElem(lsmStringListPtr sl, uint32_t in
  *
  */
 uint32_t LSM_DLL_EXPORT lsmStringListSize(lsmStringListPtr sl);
+
+/**
+ * Appends a char * to the string list, will grow container as needed.
+ * @param sl    String list to append to
+ * @param add   Character string to add
+ * @return LSM_ERR_OK on success, else error reason
+ */
+int LSM_DLL_EXPORT lsmStringListAppend(lsmStringListPtr sl, const char* add);
+
+/**
+ * Removes the string at the specified index.
+ * @param sl            String list to remove item from
+ * @param index         Specified index
+ * @return LSM_ERR_OK on success, else error reason
+ */
+int LSM_DLL_EXPORT lsmStringListRemove(lsmStringListPtr sl, uint32_t index);
 
 
 
