@@ -29,7 +29,7 @@ user = "foo"
 host = "localhost"
 url = "http://%s:18700/targetrpc" % host
 
-class LIOStorage(IStorageAreaNetwork):
+class TargetdStorage(IStorageAreaNetwork):
 
     def startup(self, uri, password, timeout):
         self.uri = uri
@@ -47,7 +47,7 @@ class LIOStorage(IStorageAreaNetwork):
         pass
 
     def systems(self):
-        return (System("lio", "LIO-based storage appliance"),)
+        return (System("targetd", "targetd storage appliance"),)
 
     def job_status(self, job_id):
         raise NotImplementedError
@@ -178,4 +178,4 @@ class LIOStorage(IStorageAreaNetwork):
 
 
 if __name__ == '__main__':
-    PluginRunner(LIOStorage, sys.argv).run()
+    PluginRunner(TargetdStorage, sys.argv).run()
