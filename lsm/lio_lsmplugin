@@ -26,7 +26,6 @@ import urllib2
 import json
 
 user = "foo"
-password = "bar"
 host = "localhost"
 url = "http://%s:18700/targetrpc" % host
 
@@ -141,7 +140,7 @@ class LIOStorage(IStorageAreaNetwork):
         data = json.dumps(dict(id=self.rpc_id, method=method,
                                params=params, jsonrpc="2.0"))
         self.rpc_id += 1
-        auth = ('%s:%s' % (user, password)).encode('base64')[:-1]
+        auth = ('%s:%s' % (user, self.password)).encode('base64')[:-1]
         headers = {'Content-Type': 'application/json',
                    'Authorization': 'Basic %s' % (auth,)}
         request = urllib2.Request(url, data, headers)
