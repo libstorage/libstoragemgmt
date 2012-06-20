@@ -151,22 +151,31 @@ class LIOStorage(IStorageAreaNetwork):
                    'Authorization': 'Basic %s' % (auth,)}
         request = urllib2.Request(url, data, headers)
         response_obj = urllib2.urlopen(request)
-        if response_obj.info().status == 'EOF in headers':
-            if self.auto and self.url.startswith('http://'):
-                print('Auto switching to HTTPS connection to %s' % self.url)
-                self.url = 'https' + self.url[4:]
-                request = urllib2.Request(self.url, data, headers)
-                response_obj = urllib2.urlopen(request)
-            else:
-                print('No headers in server response')
-                raise Exception('Bad response from server')
-
         response_data = response_obj.read()
         response = json.loads(response_data)
-        if response.get('error') is not None:
-            raise Exception(response['error'].get('message', ''))
-        else:
+        if response.get('error', None) is None:
             return response.get('result')
+        else:
+            if response['error']['code'] <= 0:
+                raise Exception(response['error'].get('message', ''))
+            else: # +code is async execution id
+                print "Async completion, polling for results"
+                async_code = response['error']['code']
+                while True:
+                    time.sleep(1)
+                    results = jsonrequest('async_list')
+                    status = results.get(str(async_code), None)
+                    if status:
+                        if status[0]:
+                            print "%d has error %d" % (async_code, status[0])
+                            break
+                        else:
+                            print "%d still going, %d%% complete" % \
+                                (async_code, status[1])
+                    else:
+                        print "%s done" % async_code
+                        break
+
 
 if __name__ == '__main__':
     PluginRunner(LIOStorage, sys.argv).run()
