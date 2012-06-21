@@ -446,6 +446,10 @@ static int volume_delete(lsmPluginPtr c, lsmVolumePtr volume,
                                     char **job)
 {
     int rc = LSM_ERR_OK;
+    GHashTableIter iter;
+    char *k = NULL;
+    GHashTable *v = NULL;
+    const char *volume_id = lsmVolumeIdGet(volume);
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
     int vi = find_volume_name(pd, lsmVolumeNameGet(volume));
     if( -1 != vi ) {
@@ -457,6 +461,12 @@ static int volume_delete(lsmPluginPtr c, lsmVolumePtr volume,
                         sizeof(struct allocated_volume));
         pd->num_volumes -= 1;
 
+        g_hash_table_iter_init (&iter, pd->group_grant);
+        while( g_hash_table_iter_next( &iter, (gpointer)&k, (gpointer)&v) ) {
+            if( g_hash_table_lookup(v, volume_id) ) {
+                g_hash_table_remove(v, volume_id );
+            }
+        }
     } else {
         rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_VOLUME,
                                     "volume not found!");
@@ -810,7 +820,8 @@ static int vol_accessible_by_ag(lsmPluginPtr c,
     return rc;
 }
 
-static lsmAccessGroupPtr access_group_by_id(struct plugin_data *pd, const char *key)
+static lsmAccessGroupPtr access_group_by_id(struct plugin_data *pd,
+                                            const char *key)
 {
     return g_hash_table_lookup(pd->access_groups, key);
 }
@@ -828,8 +839,6 @@ static int ag_granted_to_volume( lsmPluginPtr c,
     const char* volume_id = lsmVolumeIdGet(volume);
     g_hash_table_iter_init (&iter, pd->group_grant);
     GSList *result = NULL;
-
-
 
     *count = 0;
 
