@@ -74,11 +74,6 @@ typedef lsmAccessGroup *lsmAccessGroupPtr;
 typedef struct _lsmFileSystem lsmFileSystem;
 typedef lsmFileSystem *lsmFileSystemPtr;
 
-/**
- * Opaque data type for snapshots
- */
-typedef struct _lsmSnapShot lsmSnapShot;
-typedef lsmFileSystem *lsmSnapShotPtr;
 
 /**
  * Opaque data type for nfs exports

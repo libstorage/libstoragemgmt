@@ -613,7 +613,7 @@ class Client(INetworkAttachedStorage):
     # @param    fs      The file system to check
     # @param    file    The files to check (optional)
     # @returns True or False
-    def fs_child_dependency(self, fs, files=None):
+    def fs_child_dependency(self, fs, files=[]):
         """
         Returns True if the specified filesystem or specified file on this
         file system has child dependencies.  This implies that this filesystem
@@ -627,7 +627,7 @@ class Client(INetworkAttachedStorage):
     # @param    fs      The file system to remove child dependencies for
     # @param    file    The files to remove child dependencies for (optional)
     # @returns None if complete, else job id.
-    def fs_child_dependency_rm(self, fs, files=None):
+    def fs_child_dependency_rm(self, fs, files=[]):
         """
         If this filesystem or specified file on this filesystem has child
         dependency this method will fully replicate the blocks removing the

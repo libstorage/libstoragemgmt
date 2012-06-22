@@ -264,9 +264,9 @@ class NfsExport(IData):
 
 
 class BlockRange(IData):
-    def __init__(self, source_start, dest_start, block_count):
-        self.src_block = source_start
-        self.dest_block = dest_start
+    def __init__(self, src_block, dest_block, block_count):
+        self.src_block = src_block
+        self.dest_block = dest_block
         self.block_count = block_count
 
 class AccessGroup(IData):

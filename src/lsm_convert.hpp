@@ -26,9 +26,10 @@
 /**
  * Converts an array of Values to a lsmStringList
  * @param list      List represented as an vector of strings.
+ * @param[out]ok    Operation was successful
  * @return lsmStringList pointer, NULL on error.
  */
-lsmStringList *valueToStringList( std::vector<Value> &list );
+lsmStringList *valueToStringList( Value &list, int *ok );
 
 /**
  * Converts a lsmStringList to a Value

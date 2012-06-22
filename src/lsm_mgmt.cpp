@@ -123,6 +123,9 @@ static int rpc(lsmConnectPtr c, const char *method, const Value &parameters,
     } catch ( const LsmException &le ) {
         return logException(c, (lsmErrorNumber)le.error_code, le.what(),
                             NULL);
+    } catch ( EOFException &eof ) {
+        return logException(c, LSM_ERR_TRANSPORT_COMMUNICATION, "Plug-in died",
+                                "Check syslog");
     } catch (...) {
         return logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected exception",
                             "Unknown exception");
@@ -847,7 +850,7 @@ int lsmAccessGroupDelInitiator(lsmConnectPtr c, lsmAccessGroupPtr group,
 
     std::map<std::string, Value> p;
     p["group"] = accessGroupToValue(group);
-    p["initiator"] = Value(initiator_id);
+    p["initiator_id"] = Value(initiator_id);
 
     Value parameters(p);
     Value response;
@@ -1160,6 +1163,37 @@ int lsmFsResize(lsmConnectPtr c, lsmFsPtr fs,
     return rc;
 }
 
+int lsmFsClone(lsmConnectPtr c, lsmFsPtr src_fs,
+                                    const char *name, lsmSsPtr optional_ss,
+                                    lsmFsPtr *cloned_fs,
+                                    char **job)
+{
+    CONN_SETUP(c);
+
+    if( !LSM_IS_FS(src_fs)) {
+        return LSM_ERR_INVALID_FS;
+    }
+
+    if( *name || !cloned_fs || CHECK_NULL_JOB(job) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["src_fs"] = fsToValue(src_fs);
+    p["dest_fs_name"] = Value(name);
+    p["snapshot"] = Value(optional_ss);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "fs_clone", parameters, response);
+    if( LSM_ERR_OK == rc ) {
+        *cloned_fs = (lsmFsPtr)parse_job_response(response, rc, job,
+                                                        (convert)valueToFs);
+    }
+    return rc;
+}
+
 int lsmFsChildDependency( lsmConnectPtr c, lsmFsPtr fs, lsmStringListPtr files,
                                                 uint8_t *yes)
 {
@@ -1205,7 +1239,7 @@ int lsmFsChildDependency( lsmConnectPtr c, lsmFsPtr fs, lsmStringListPtr files,
 int lsmFsChildDependencyRm( lsmConnectPtr c, lsmFsPtr fs, lsmStringListPtr files,
                             char **job)
 {
-CONN_SETUP(c);
+    CONN_SETUP(c);
 
     if( !LSM_IS_FS(fs)) {
         return LSM_ERR_INVALID_VOL;

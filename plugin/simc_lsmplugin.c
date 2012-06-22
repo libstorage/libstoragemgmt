@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) 2011-2012 Red Hat, Inc.
  * This library is free software; you can redistribute it and/or
@@ -29,6 +28,9 @@
 
 #include "libstoragemgmt/libstoragemgmt_accessgroups.h"
 #include "libstoragemgmt/libstoragemgmt_initiators.h"
+#include "libstoragemgmt/libstoragemgmt_fs.h"
+#include "libstoragemgmt/libstoragemgmt_snapshot.h"
+#include "libstoragemgmt/libstoragemgmt_nfsexport.h"
 
 #ifdef  __cplusplus
 extern "C" {
@@ -92,6 +94,13 @@ struct allocated_volume {
     lsmPoolPtr p;
 };
 
+struct allocated_fs {
+    lsmFsPtr fs;
+    lsmPoolPtr p;
+    GHashTable *ss;
+    GHashTable *exports;
+};
+
 struct plugin_data {
     uint32_t tmo;
     uint32_t num_systems;
@@ -103,15 +112,56 @@ struct plugin_data {
     uint32_t num_volumes;
     struct allocated_volume volume[MAX_VOLUMES];
 
-    uint32_t num_fs;
-    lsmFsPtr fs[MAX_FS];
-
-    uint32_t num_exports;
-    lsmNfsExportPtr nfs[MAX_EXPORT];
-
     GHashTable *access_groups;
     GHashTable *group_grant;
+    GHashTable *fs;
 };
+
+void free_fs_record(struct allocated_fs *fs) {
+    if( fs ) {
+        g_hash_table_destroy(fs->ss);
+        g_hash_table_destroy(fs->exports);
+        lsmFsRecordFree(fs->fs);
+        fs->p = NULL;
+        free(fs);
+    }
+}
+
+static void free_ss(void *s)
+{
+    lsmSsRecordFree((lsmSsPtr)s);
+}
+
+static void free_export(void *exp)
+{
+    lsmNfsExportRecordFree((lsmNfsExportPtr)exp);
+}
+
+static struct allocated_fs *alloc_fs_record() {
+    struct allocated_fs *rc = (struct allocated_fs *)
+                                malloc(sizeof(struct allocated_fs));
+    if( rc ) {
+        rc->fs = NULL;
+        rc->p = NULL;
+        rc->ss = g_hash_table_new_full(g_str_hash, g_str_equal, free, free_ss);
+        rc->exports = g_hash_table_new_full(g_str_hash, g_str_equal, free,
+                                            free_export);
+
+        if( !rc->ss || !rc->exports ) {
+            if( rc->ss ) {
+                g_hash_table_destroy(rc->ss);
+            }
+
+            if( rc->exports ) {
+                g_hash_table_destroy(rc->exports);
+            }
+
+            free(rc);
+            rc = NULL;
+        }
+    }
+    return rc;
+}
 
 static int tmo_set(lsmPluginPtr c, uint32_t timeout )
 {
@@ -515,6 +565,7 @@ static int access_group_list(lsmPluginPtr c,
                     groups = NULL;
                     break;
                 }
+                ++i;
             }
         } else {
             rc = LSM_ERR_NO_MEMORY;
@@ -927,12 +978,217 @@ static struct lsmSanOps sanOps = {
     volume_dependency_rm
 };
 
+
+static int fs_list(lsmPluginPtr c, lsmFsPtr **fs, uint32_t *count)
+{
+    int rc = LSM_ERR_OK;
+    struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
+    *count = g_hash_table_size(pd->fs);
+
+    if( *count ) {
+        *fs = lsmFsRecordAllocArray( *count );
+        if( *fs ) {
+            uint32_t i = 0;
+            char *k = NULL;
+            struct allocated_fs *afs = NULL;
+            GHashTableIter iter;
+            g_hash_table_iter_init(&iter, pd->fs);
+            while(g_hash_table_iter_next (&iter,(gpointer) &k,(gpointer)&afs)) {
+                (*fs)[i] = lsmFsRecordCopy(afs->fs);
+                if( !(*fs)[i] ) {
+                    rc = LSM_ERR_NO_MEMORY;
+                    lsmFsRecordFreeArray(*fs, i);
+                    *count = 0;
+                    *fs = NULL;
+                    break;
+                }
+                ++i;
+            }
+        } else {
+            rc = lsmLogErrorBasic(c, LSM_ERR_NO_MEMORY, "ENOMEM");
+        }
+    }
+    return rc;
+}
+
+static int fs_create(lsmPluginPtr c, lsmPoolPtr pool, const char *name,
+                uint64_t size_bytes, lsmFsPtr *fs, char **job)
+{
+    int rc = LSM_ERR_OK;
+    struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
+
+    int pi = find_pool(pd, lsmPoolIdGet(pool));
+
+
+    if( -1 != pi && !g_hash_table_lookup(pd->fs, md5(name)) ) {
+        lsmPoolPtr p = pd->pool[pi];
+        uint64_t allocated_size = pool_allocate(p, size_bytes);
+        if( allocated_size ) {
+            char *id = md5(name);
+            char *key = strdup(id);
+
+            /* Make a copy to store and a copy to hand back to caller */
+            lsmFsPtr tfs = lsmFsRecordAlloc(id, name, allocated_size,
+                                allocated_size, lsmPoolIdGet(pool), sys_id);
+            *fs = lsmFsRecordCopy(tfs);
+
+            /* Allocate the memory to keep the associations */
+            struct allocated_fs *afs = alloc_fs_record();
+
+            if( key && tfs && afs ) {
+                afs->fs = tfs;
+                afs->p = p;
+                g_hash_table_insert(pd->fs, key, afs);
+            } else {
+                free(key);
+                lsmFsRecordFree(*fs);
+                lsmFsRecordFree(tfs);
+                free_fs_record(afs);
+
+                *fs = NULL;
+                rc = lsmLogErrorBasic(c, LSM_ERR_NO_MEMORY, "ENOMEM");
+            }
+        } else {
+            rc = lsmLogErrorBasic(c, LSM_ERR_SIZE_INSUFFICIENT_SPACE,
+                                                "Insufficient space in pool");
+        }
+    } else {
+        if( -1 == pi ) {
+            rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_POOL, "Pool not found!");
+        } else {
+            rc = lsmLogErrorBasic(c, LSM_ERR_EXISTS_NAME,
+                                        "File system with name exists");
+        }
+    }
+    return rc;
+}
+
+static int fs_delete(lsmPluginPtr c, lsmFsPtr fs, char **job)
+{
+    int rc = LSM_ERR_OK;
+    struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
+
+    if( !g_hash_table_remove(pd->fs, lsmFsIdGet(fs)) ) {
+        rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_FS, "FS not found!");
+    }
+    return rc;
+}
+
+static int fs_resize(lsmPluginPtr c, lsmFsPtr fs,
+                                    uint64_t new_size_bytes, lsmFsPtr *rfs,
+                                    char **job)
+{
+    int rc = LSM_ERR_OK;
+    struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
+    struct allocated_fs *afs = g_hash_table_lookup(pd->fs, lsmFsIdGet(fs));
+
+    *rfs = NULL;
+    *job = NULL;
+
+    if( afs ) {
+        lsmPoolPtr p = afs->p;
+        lsmFsPtr tfs = afs->fs;
+
+        pool_deallocate(p, lsmFsTotalSpaceGet(tfs));
+        uint64_t resized_size = pool_allocate(p, new_size_bytes);
+
+        if( resized_size ) {
+
+            lsmFsPtr resized = lsmFsRecordAlloc(lsmFsIdGet(tfs),
+                                                lsmFsNameGet(tfs),
+                                                new_size_bytes,
+                                                new_size_bytes,
+                                                lsmFsPoolIdGet(tfs),
+                                                lsmFsSystemIdGet(tfs));
+            *rfs = lsmFsRecordCopy(resized);
+
+            if( resized && *rfs ) {
+                lsmFsRecordFree(tfs);
+                afs->fs = resized;
+            } else {
+                lsmFsRecordFree(resized);
+                lsmFsRecordFree(*rfs);
+                *rfs = NULL;
+
+                pool_deallocate(p, new_size_bytes);
+                pool_allocate(p, lsmFsTotalSpaceGet(tfs));
+                rc = lsmLogErrorBasic(c, LSM_ERR_NO_MEMORY,
+                                    "ENOMEM");
+            }
+        } else {
+            /*Could not accommodate re-sized, go back */
+            pool_allocate(p, lsmFsTotalSpaceGet(tfs));
+            rc = lsmLogErrorBasic(c, LSM_ERR_SIZE_INSUFFICIENT_SPACE,
+                                                "Insufficient space in pool");
+        }
+
+    } else {
+        rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_FS,
+                                    "file system not found!");
+    }
+    return rc;
+}
+
+static int fs_clone(lsmPluginPtr c, lsmFsPtr src_fs, const char *dest_fs_name,
+                    lsmFsPtr *cloned_fs, lsmSsPtr optional_snapshot,
+                    char **job)
+{
+    int rc = LSM_ERR_OK;
+    struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
+
+    struct allocated_fs *find = g_hash_table_lookup(pd->fs, lsmFsIdGet(src_fs));
+
+    if( find ) {
+        rc = fs_create(c, find->p, dest_fs_name, lsmFsTotalSpaceGet(find->fs),
+                        cloned_fs, job);
+    } else {
+        rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_FS, "Source fs not found");
+    }
+
+    return rc;
+}
+
+static int fs_child_dependency(lsmPluginPtr c, lsmFsPtr fs,
+                                                lsmStringListPtr files,
+                                                uint8_t *yes)
+{
+    int rc = LSM_ERR_OK;
+    struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
+    if( g_hash_table_lookup(pd->fs, lsmFsIdGet(fs))) {
+        *yes = 0;
+    } else {
+        rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_FS, "fs not found");
+    }
+    return rc;
+}
+
+static int fs_child_dependency_rm( lsmPluginPtr c, lsmFsPtr fs,
+                                                lsmStringListPtr files,
+                                                char **job)
+{
+    int rc = LSM_ERR_OK;
+    struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
+    if( !g_hash_table_lookup(pd->fs, lsmFsIdGet(fs))) {
+        rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_FS, "fs not found");
+    }
+    return rc;
+}
+
 static struct lsmFsOps fsOps = {
+    fs_list,
+    fs_create,
+    fs_delete,
+    fs_resize,
+    fs_clone,
+    fs_child_dependency,
+    fs_child_dependency_rm
 };
 
+/*
 static struct lsmNasOps nfsOps = {
 
 };
+*/
 
 void free_ag_value(void *v)
 {
@@ -942,6 +1198,11 @@ void free_ag_value(void *v)
 void free_group_grant_hash(void *v)
 {
     g_hash_table_destroy((GHashTable *)v);
+}
+
+void free_allocated_fs(void *v)
+{
+    free_fs_record((struct allocated_fs*)v);
 }
 
 int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
@@ -975,10 +1236,13 @@ int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
         data->group_grant = g_hash_table_new_full(g_str_hash, g_str_equal,
                             free, free_group_grant_hash);
 
+        data->fs = g_hash_table_new_full(g_str_hash, g_str_equal, free,
+                                            free_allocated_fs);
+
         /*TODO Check all pointers for memory allocation issues */
 
         rc = lsmRegisterPlugin( c, name, version, data, &mgmOps,
-                                    &sanOps, NULL, NULL);
+                                    &sanOps, &fsOps, NULL);
     }
     return rc;
 }

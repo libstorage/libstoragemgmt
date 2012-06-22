@@ -199,6 +199,12 @@ typedef int (*lsmPlugFsCreate)(lsmPluginPtr c, lsmPoolPtr pool,
 
 typedef int (*lsmPlugFsDelete)(lsmPluginPtr c, lsmFsPtr fs, char **job);
 
+typedef int (*lsmPlugFsClone)(lsmPluginPtr c, lsmFsPtr src_fs,
+                                            const char *dest_fs_name,
+                                            lsmFsPtr *cloned_fs,
+                                            lsmSsPtr optional_snapshot,
+                                            char **job);
+
 typedef int (*lsmPlugFsChildDependency)(lsmPluginPtr c, lsmFsPtr fs,
                                                 lsmStringListPtr files,
                                                 uint8_t *yes);
@@ -269,6 +275,7 @@ struct lsmFsOps {
     lsmPlugFsCreate fs_create;
     lsmPlugFsDelete fs_delete;
     lsmPlugFsResize fs_resize;
+    lsmPlugFsClone  fs_clone;
     lsmPlugFsChildDependency fs_child_dependency;
     lsmPlugFsChildDependencyRm fs_child_dependency_rm;
     lsmPlugSsList ss_list;

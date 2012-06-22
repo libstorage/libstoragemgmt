@@ -143,6 +143,7 @@ int lsmStringListFree(lsmStringListPtr sl)
     if( LSM_IS_STRING_LIST(sl) ) {
         sl->magic = LSM_DEL_MAGIC(LSM_STRING_LIST_MAGIC);
         g_ptr_array_free(sl->values, TRUE);
+        sl->values = NULL;
         free(sl);
         return LSM_ERR_OK;
     }

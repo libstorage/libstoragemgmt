@@ -178,16 +178,15 @@ lsmStringList *valueToStringList( Value &v, int *ok)
 }
 
 Value stringListToValue( lsmStringList *sl) {
+    std::vector<Value> rc;
     if( LSM_IS_STRING_LIST(sl) ) {
-        std::vector<Value> rc;
         uint32_t size = lsmStringListSize(sl);
 
         for(uint32_t i = 0; i < size; ++i ) {
             rc.push_back(Value(lsmStringListGetElem(sl, i)));
         }
-        return rc;
     }
-    return Value();
+    return Value(rc);
 }
 
 lsmAccessGroup *valueToAccessGroup( Value &group )

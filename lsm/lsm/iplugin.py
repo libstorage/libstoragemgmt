@@ -361,7 +361,7 @@ class INetworkAttachedStorage(IPlugin):
         pass
 
     @abstractmethod
-    def snapshot_create(self, fs, snapshot_name, files=None):
+    def snapshot_create(self, fs, snapshot_name, files=[]):
         """
         Snapshot is a point in time read-only copy
 
@@ -388,7 +388,7 @@ class INetworkAttachedStorage(IPlugin):
         pass
 
     @abstractmethod
-    def snapshot_revert(self, fs, snapshot, files, restore_files, all_files=False):
+    def snapshot_revert(self, fs, snapshot, files=[], restore_files=[], all_files=False):
         """
         WARNING: Destructive!
 
@@ -405,7 +405,7 @@ class INetworkAttachedStorage(IPlugin):
         pass
 
     @abstractmethod
-    def fs_child_dependency(self, fs, files=None):
+    def fs_child_dependency(self, fs, files=[]):
         """
         Returns True if the specified filesystem or specified file on this
         file system has child dependencies.  This implies that this filesystem
@@ -415,7 +415,7 @@ class INetworkAttachedStorage(IPlugin):
         pass
 
     @abstractmethod
-    def fs_child_dependency_rm(self, fs, files=None):
+    def fs_child_dependency_rm(self, fs, files=[]):
         """
         If this filesystem or specified file on this filesystem has child
         dependency this method will fully replicate the blocks removing the

@@ -523,6 +523,11 @@ START_TEST(test_access_groups)
     fail_unless(LSM_ERR_OK == rc, "Expected success on listing access groups %d", rc);
     fail_unless(count == 0, "Expect 0 access groups, got %"PRIu32, count);
 
+    lsmAccessGroupRecordFreeArray(groups, count);
+    groups = NULL;
+    count = 0;
+
+
     rc = lsmAccessGroupCreate(c, "test_access_groups", "iqn.1994-05.com.domain:01.89bd01", LSM_INITIATOR_ISCSI, SYSTEM_ID, &group);
 
     if( LSM_ERR_OK == rc ) {
@@ -548,15 +553,15 @@ START_TEST(test_access_groups)
         }
 
         lsmStringListFree(init_list);
+        init_list = NULL;
     }
-
-    lsmAccessGroupRecordFreeArray(groups, count);
 
     rc = lsmAccessGroupList(c, &groups, &count);
     fail_unless( LSM_ERR_OK == rc);
     fail_unless( 1 == count );
-
     lsmAccessGroupRecordFreeArray(groups, count);
+    groups = NULL;
+    count = 0;
 
     char *job = NULL;
 
@@ -593,6 +598,8 @@ START_TEST(test_access_groups)
     }
 
     lsmAccessGroupRecordFreeArray(groups, count);
+    groups = NULL;
+    count = 0;
 
     rc = lsmAccessGroupList(c, &groups, &count);
     fail_unless( LSM_ERR_OK == rc);
@@ -602,6 +609,8 @@ START_TEST(test_access_groups)
     fail_unless( init_list == NULL);
 
     lsmAccessGroupRecordFreeArray(groups, count);
+    groups = NULL;
+    count = 0;
 
 }
 

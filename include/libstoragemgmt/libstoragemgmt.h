@@ -528,6 +528,22 @@ extern "C" {
     int LSM_DLL_EXPORT lsmFsDelete(lsmConnectPtr conn, lsmFsPtr fs, char **job);
 
     /**
+     * Clones an existing file system
+     * @param conn                  Valid connection
+     * @param src_fs                Source file system
+     * @param name                  Name of new file system
+     * @param optional_ss           Optional snapshot to base clone from
+     * @param cloned_fs             Newly cloned file system record
+     * @param job                   Job id if operation is async.
+     * @return LSM_ERR_OK on succees, LSM_ERR_JOB_STARTED if async., else
+     * error code.
+     */
+    int LSM_DLL_EXPORT lsmFsClone(lsmConnectPtr conn, lsmFsPtr src_fs,
+                                    const char *name, lsmSsPtr optional_ss,
+                                    lsmFsPtr *cloned_fs,
+                                    char **job);
+
+    /**
      * Checks to see if the specified file system has a child dependency.
      * @param[in] conn                  Valid connection
      * @param[in] fs                    Specific file system

@@ -24,6 +24,7 @@
 #include "libstoragemgmt/libstoragemgmt_systems.h"
 #include "libstoragemgmt/libstoragemgmt_blockrange.h"
 #include "libstoragemgmt/libstoragemgmt_accessgroups.h"
+#include "libstoragemgmt/libstoragemgmt_fs.h"
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 #include <libstoragemgmt/libstoragemgmt_volumes.h>
 #include <libstoragemgmt/libstoragemgmt_pool.h>
@@ -841,13 +842,199 @@ static int volume_dependency_rm(lsmPluginPtr p, Value &params, Value &response)
 
         rc = p->sanOps->vol_child_depends_rm(p, volume, &job);
 
-       if( LSM_ERR_JOB_STARTED == rc ) {
+        if( LSM_ERR_JOB_STARTED == rc ) {
             response = Value(job);
             free(job);
         }
         lsmVolumeRecordFree(volume);
     }
+    return rc;
+}
 
+static int fs(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+
+    if( p && p->sanOps && p->fsOps->fs_list ) {
+        lsmFsPtr *fs = NULL;
+        uint32_t count = 0;
+
+        rc = p->fsOps->fs_list(p, &fs, &count);
+
+        if( LSM_ERR_OK == rc ) {
+            std::vector<Value> result;
+
+            for( uint32_t i = 0; i < count; ++i ) {
+                result.push_back(fsToValue(fs[i]));
+            }
+
+            response = Value(result);
+            lsmFsRecordFreeArray(fs, count);
+            fs = NULL;
+        }
+    }
+    return rc;
+}
+
+static int fs_create(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+
+    if( p && p->sanOps && p->fsOps->fs_create ) {
+        lsmPoolPtr pool = valueToPool(params["pool"]);
+        const char *name = params["name"].asC_str();
+        uint64_t size_bytes = params["size_bytes"].asUint64_t();
+        lsmFsPtr fs = NULL;
+        char *job = NULL;
+
+        rc = p->fsOps->fs_create(p, pool, name, size_bytes, &fs, &job);
+
+        std::vector<Value> r;
+
+        if( LSM_ERR_OK == rc ) {
+            r.push_back(Value());
+            r.push_back(fsToValue(fs));
+            response = Value(r);
+            lsmFsRecordFree(fs);
+        } else if (LSM_ERR_JOB_STARTED == rc ) {
+            r.push_back(Value(job));
+            r.push_back(Value());
+            response = Value(r);
+            free(job);
+        }
+    }
+    return rc;
+}
+
+static int fs_delete(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+
+    if( p && p->sanOps && p->fsOps->fs_delete ) {
+        lsmFsPtr fs = valueToFs(params["fs"]);
+        char *job = NULL;
+
+        rc = p->fsOps->fs_delete(p, fs, &job);
+
+        if( LSM_ERR_JOB_STARTED == rc ) {
+            response = Value(job);
+            free(job);
+        }
+        lsmFsRecordFree(fs);
+    }
+    return rc;
+}
+
+static int fs_resize(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+
+    if( p && p->sanOps && p->fsOps->fs_resize ) {
+        lsmFsPtr fs = valueToFs(params["fs"]);
+        uint64_t size_bytes = params["new_size_bytes"].asUint64_t();
+        lsmFsPtr rfs = NULL;
+        char *job = NULL;
+
+        rc = p->fsOps->fs_resize(p, fs, size_bytes, &rfs, &job);
+
+        std::vector<Value> r;
+
+        if( LSM_ERR_OK == rc ) {
+            r.push_back(Value());
+            r.push_back(fsToValue(rfs));
+            response = Value(r);
+            lsmFsRecordFree(rfs);
+        } else if (LSM_ERR_JOB_STARTED == rc ) {
+            r.push_back(Value(job));
+            r.push_back(Value());
+            response = Value(r);
+            free(job);
+        }
+        lsmFsRecordFree(fs);
+    }
+    return rc;
+}
+
+static int fs_clone(lsmPluginPtr p, Value &params, Value &response)
+{
+   int rc = LSM_ERR_NO_SUPPORT;
+
+    if( p && p->sanOps && p->fsOps->fs_clone ) {
+        lsmFsPtr clonedFs = NULL;
+        char *job = NULL;
+        lsmFsPtr fs = valueToFs(params["src_fs"]);
+        const char* name = params["dest_fs_name"].asC_str();
+        lsmSsPtr ss = valueToSs(params["snapshot"]);
+
+        rc = p->fsOps->fs_clone(p, fs, name, &clonedFs, ss, &job);
+
+        std::vector<Value> r;
+        if( LSM_ERR_OK == rc ) {
+            r.push_back(Value());
+            r.push_back(fsToValue(clonedFs));
+            response = Value(r);
+            lsmFsRecordFree(clonedFs);
+        } else if (LSM_ERR_JOB_STARTED == rc ) {
+            r.push_back(Value(job));
+            r.push_back(Value());
+            response = Value(r);
+            free(job);
+        }
+        lsmFsRecordFree(fs);
+    }
+   return rc;
+}
+
+static int fs_child_dependency(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    if( p && p->sanOps && p->fsOps->fs_child_dependency ) {
+        int ok = 0;
+        lsmFsPtr fs = valueToFs(params["fs"]);
+        lsmStringListPtr files = valueToStringList(params["files"], &ok);
+
+        if( !ok ) {
+            rc = LSM_ERR_NO_MEMORY;
+        } else {
+            uint8_t yes = 0;
+
+            rc = p->fsOps->fs_child_dependency(p, fs, files, &yes);
+
+            if( LSM_ERR_OK == rc ) {
+                response = Value((bool)yes);
+            }
+        }
+
+        lsmFsRecordFree(fs);
+        lsmStringListFree(files);
+    }
+    return rc;
+}
+
+static int fs_child_dependency_rm(lsmPluginPtr p, Value &params, Value &response)
+{
+     int rc = LSM_ERR_NO_SUPPORT;
+    if( p && p->sanOps && p->fsOps->fs_child_dependency_rm ) {
+        int ok = 0;
+        lsmFsPtr fs = valueToFs(params["fs"]);
+        lsmStringListPtr files = valueToStringList(params["files"], &ok);
+        char *job = NULL;
+
+        if( !ok ) {
+
+            rc = LSM_ERR_NO_MEMORY;
+        } else {
+            rc = p->fsOps->fs_child_dependency_rm(p, fs, files, &job);
+
+            if( LSM_ERR_JOB_STARTED == rc ) {
+                response = Value(job);
+                free(job);
+            }
+        }
+
+        lsmFsRecordFree(fs);
+        lsmStringListFree(files);
+    }
     return rc;
 }
 
@@ -888,18 +1075,18 @@ static std::map<std::string,handler> dispatch = static_map<std::string,handler>
     ("access_groups_granted_to_volume", ag_granted_to_volume)
     ("volume_child_dependency", volume_dependency)
     ("volume_child_dependency_rm", volume_dependency_rm)
-    ("fs", not_supported)
-    ("fs_delete", not_supported)
-    ("fs_resize", not_supported)
-    ("fs_create", not_supported)
-    ("fs_clone", not_supported)
+    ("fs", fs)
+    ("fs_delete", fs_delete)
+    ("fs_resize", fs_resize)
+    ("fs_create", fs_create)
+    ("fs_clone", fs_clone)
     ("file_clone", not_supported)
     ("snapshots", not_supported)
     ("snapshot_create", not_supported)
     ("snapshot_delete", not_supported)
     ("snapshot_revert", not_supported)
-    ("fs_child_dependency", not_supported)
-    ("fs_child_dependency_rm", not_supported)
+    ("fs_child_dependency", fs_child_dependency)
+    ("fs_child_dependency_rm", fs_child_dependency_rm)
     ("export_auth", not_supported)
     ("exports", not_supported)
     ("export_fs", not_supported)

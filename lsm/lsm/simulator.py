@@ -158,6 +158,16 @@ class StorageSimulator(INfs):
         else:
             self.s = SimState()
 
+    @staticmethod
+    def _check_sl(string_list):
+        """
+        String list should be an empty list or a list with items
+        """
+        if string_list is not None and isinstance(string_list, list):
+            pass
+        else:
+            raise LsmError(ErrorNumber.INVALID_SL, 'Invalid string list')
+
     def __init__(self):
 
         self.file = SIM_DATA_FILE
@@ -552,6 +562,7 @@ class StorageSimulator(INfs):
             raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
 
     def snapshot_create(self, fs, snapshot_name, files):
+        self._check_sl(files)
         if fs.id in self.s.fs:
             for e in self.s.fs[fs.id]['ss'].itervalues():
                 if e.name == snapshot_name:
@@ -575,6 +586,10 @@ class StorageSimulator(INfs):
             raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
 
     def snapshot_revert(self, fs, snapshot, files, restore_files, all_files):
+
+        self._check_sl(files)
+        self._check_sl(files)
+
         if fs.id in self.s.fs:
             if snapshot.id in self.s.fs[fs.id]['ss']:
                 return self.__create_job(None)[0]
@@ -583,13 +598,15 @@ class StorageSimulator(INfs):
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
 
-    def fs_child_dependency(self, fs, files=None):
+    def fs_child_dependency(self, fs, files):
+        self._check_sl(files)
         if fs.id in self.s.fs:
             return False
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
 
-    def fs_child_dependency_rm(self, fs, files=None):
+    def fs_child_dependency_rm(self, fs, files):
+        self._check_sl(files)
         if fs.id in self.s.fs:
             return self.__create_job(None)[0]
         else:
