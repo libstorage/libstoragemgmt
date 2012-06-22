@@ -1104,6 +1104,17 @@ lsmSsPtr lsmSsRecordAlloc( const char *id, const char *name,
     return rc;
 }
 
+lsmSsPtr lsmSsRecordCopy(lsmSsPtr source)
+{
+    lsmSsPtr rc = NULL;
+    if( LSM_IS_SS(source) ) {
+        rc = lsmSsRecordAlloc(  lsmSsIdGet(source),
+                                lsmSsNameGet(source),
+                                lsmSsTimeStampGet(source));
+    }
+    return rc;
+}
+
 void lsmSsRecordFree( lsmSsPtr ss)
 {
     if( LSM_IS_SS(ss) ) {
@@ -1116,7 +1127,6 @@ void lsmSsRecordFree( lsmSsPtr ss)
 
 CREATE_ALLOC_ARRAY_FUNC(lsmSsRecordAllocArray, lsmSsPtr)
 CREATE_FREE_ARRAY_FUNC(lsmSsRecordFreeArray, lsmSsRecordFree, lsmSsPtr)
-
 
 const char *lsmSsIdGet(lsmSsPtr ss)
 {

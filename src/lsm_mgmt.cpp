@@ -1174,7 +1174,7 @@ int lsmFsClone(lsmConnectPtr c, lsmFsPtr src_fs,
         return LSM_ERR_INVALID_FS;
     }
 
-    if( *name || !cloned_fs || CHECK_NULL_JOB(job) ) {
+    if( !name || !cloned_fs || CHECK_NULL_JOB(job) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1192,6 +1192,32 @@ int lsmFsClone(lsmConnectPtr c, lsmFsPtr src_fs,
                                                         (convert)valueToFs);
     }
     return rc;
+}
+
+int lsmFsFileClone(lsmConnectPtr c, lsmFsPtr fs, const char *src_file_name,
+                    const char *dest_file_name, lsmSsPtr snapshot, char **job)
+{
+    CONN_SETUP(c);
+
+    if( !LSM_IS_FS(fs)) {
+        return LSM_ERR_INVALID_FS;
+    }
+
+    if( !src_file_name || !dest_file_name || CHECK_NULL_JOB(job) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["fs"] = fsToValue(fs);
+    p["src_file_name"] = Value(src_file_name);
+    p["dest_file_name"] = Value(dest_file_name);
+    p["snapshot"] = ssToValue(snapshot);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "file_clone", parameters, response);
+    return jobCheck(rc, response, job);
 }
 
 int lsmFsChildDependency( lsmConnectPtr c, lsmFsPtr fs, lsmStringListPtr files,
@@ -1266,7 +1292,7 @@ int lsmFsChildDependencyRm( lsmConnectPtr c, lsmFsPtr fs, lsmStringListPtr files
     return jobCheck(rc, response, job);
 }
 
-int lsmSsList(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr **ss,
+int lsmFsSsList(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr **ss,
                                 uint32_t *ssCount)
 {
     CONN_SETUP(c);
@@ -1303,7 +1329,7 @@ int lsmSsList(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr **ss,
 
 }
 
-int lsmSsCreate(lsmConnectPtr c, lsmFsPtr fs, const char *name,
+int lsmFsSsCreate(lsmConnectPtr c, lsmFsPtr fs, const char *name,
                     lsmStringListPtr files, lsmSsPtr *snapshot, char **job)
 {
     CONN_SETUP(c);
@@ -1332,7 +1358,7 @@ int lsmSsCreate(lsmConnectPtr c, lsmFsPtr fs, const char *name,
     return rc;
 }
 
-int lsmSsDelete(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss, char **job)
+int lsmFsSsDelete(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss, char **job)
 {
     CONN_SETUP(c);
 
@@ -1359,7 +1385,7 @@ int lsmSsDelete(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss, char **job)
     return jobCheck(rc, response, job);
 }
 
-int lsmSsRevert(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss,
+int lsmFsSsRevert(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss,
                                     lsmStringListPtr files,
                                     lsmStringListPtr restore_files,
                                     int all_files, char **job)

@@ -62,9 +62,9 @@ typedef int (*lsmPluginUnregister)( lsmPluginPtr c );
 
 typedef int (*lsmPlugSetTmo)( lsmPluginPtr c, uint32_t timeout );
 typedef int (*lsmPlugGetTmo)( lsmPluginPtr c, uint32_t *timeout );
-typedef int (*lsmPlugCapabilities)(lsmPluginPtr conn,
+typedef int (*lsmPlugCapabilities)(lsmPluginPtr c,
                                         lsmStorageCapabilitiesPtr *cap);
-typedef int (*lsmPlugJobStatus)(lsmPluginPtr conn, const char *job,
+typedef int (*lsmPlugJobStatus)(lsmPluginPtr c, const char *job,
                                         lsmJobStatus *status,
                                         uint8_t *percentComplete,
                                         lsmDataType *type,
@@ -190,7 +190,7 @@ typedef int (*lsmPlugVolumeChildDependencyRm)(lsmPluginPtr c,
                                             lsmVolumePtr volume,
                                             char **job);
 
-typedef int (*lsmPlugFsList)(lsmPluginPtr conn, lsmFsPtr **fs,
+typedef int (*lsmPlugFsList)(lsmPluginPtr c, lsmFsPtr **fs,
                                     uint32_t *fsCount);
 
 typedef int (*lsmPlugFsCreate)(lsmPluginPtr c, lsmPoolPtr pool,
@@ -213,11 +213,16 @@ typedef int (*lsmPlugFsChildDependencyRm)( lsmPluginPtr c, lsmFsPtr fs,
                                                 lsmStringListPtr files,
                                                 char **job);
 
-typedef int (*lsmPlugFsResize)(lsmPluginPtr conn, lsmFsPtr fs,
+typedef int (*lsmPlugFsResize)(lsmPluginPtr c, lsmFsPtr fs,
                                     uint64_t new_size_bytes, lsmFsPtr *rfs,
                                     char **job);
 
-typedef int (*lsmPlugSsList)(lsmPluginPtr conn, lsmFsPtr fs, lsmSsPtr **ss,
+typedef int (*lsmPlugFsFileClone)(lsmPluginPtr c, lsmFsPtr fs,
+                                    const char *src_file_name,
+                                    const char *dest_file_name,
+                                    lsmSsPtr snapshot, char **job);
+
+typedef int (*lsmPlugSsList)(lsmPluginPtr c, lsmFsPtr fs, lsmSsPtr **ss,
                                 uint32_t *ssCount);
 
 typedef int (*lsmPlugSsCreate)(lsmPluginPtr c, lsmFsPtr fs,
@@ -276,6 +281,7 @@ struct lsmFsOps {
     lsmPlugFsDelete fs_delete;
     lsmPlugFsResize fs_resize;
     lsmPlugFsClone  fs_clone;
+    lsmPlugFsFileClone fs_file_clone;
     lsmPlugFsChildDependency fs_child_dependency;
     lsmPlugFsChildDependencyRm fs_child_dependency_rm;
     lsmPlugSsList ss_list;

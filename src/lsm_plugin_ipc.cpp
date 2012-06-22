@@ -25,6 +25,7 @@
 #include "libstoragemgmt/libstoragemgmt_blockrange.h"
 #include "libstoragemgmt/libstoragemgmt_accessgroups.h"
 #include "libstoragemgmt/libstoragemgmt_fs.h"
+#include "libstoragemgmt/libstoragemgmt_snapshot.h"
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 #include <libstoragemgmt/libstoragemgmt_volumes.h>
 #include <libstoragemgmt/libstoragemgmt_pool.h>
@@ -985,6 +986,30 @@ static int fs_clone(lsmPluginPtr p, Value &params, Value &response)
    return rc;
 }
 
+static int file_clone(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_OK;
+
+    if( p && p->sanOps && p->fsOps->fs_file_clone ) {
+        lsmFsPtr fs = valueToFs(params["fs"]);
+        const char *src = params["src_file_name"].asC_str();
+        const char *dest = params["dest_file_name"].asC_str();
+        lsmSsPtr snapshot = valueToSs(params["snapshot"]);
+        char *job = NULL;
+
+        int rc = p->fsOps->fs_file_clone(p, fs, src, dest, snapshot, &job);
+
+        if( LSM_ERR_JOB_STARTED == rc ) {
+            response = Value(job);
+            free(job);
+        }
+
+        lsmFsRecordFree(fs);
+        lsmSsRecordFree(snapshot);
+    }
+    return rc;
+}
+
 static int fs_child_dependency(lsmPluginPtr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
@@ -1013,7 +1038,7 @@ static int fs_child_dependency(lsmPluginPtr p, Value &params, Value &response)
 
 static int fs_child_dependency_rm(lsmPluginPtr p, Value &params, Value &response)
 {
-     int rc = LSM_ERR_NO_SUPPORT;
+    int rc = LSM_ERR_NO_SUPPORT;
     if( p && p->sanOps && p->fsOps->fs_child_dependency_rm ) {
         int ok = 0;
         lsmFsPtr fs = valueToFs(params["fs"]);
@@ -1034,6 +1059,124 @@ static int fs_child_dependency_rm(lsmPluginPtr p, Value &params, Value &response
 
         lsmFsRecordFree(fs);
         lsmStringListFree(files);
+    }
+    return rc;
+}
+
+static int ss_list(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    if( p && p->sanOps && p->fsOps->ss_list ) {
+        lsmFsPtr fs = valueToFs(params["fs"]);
+        lsmSsPtr *ss = NULL;
+        uint32_t count = 0;
+
+        rc = p->fsOps->ss_list(p, fs, &ss, &count);
+
+        if( LSM_ERR_OK == rc ) {
+            std::vector<Value> result;
+
+            for( uint32_t i = 0; i < count; ++i ) {
+                result.push_back(ssToValue(ss[i]));
+            }
+            response = Value(result);
+
+            lsmFsRecordFree(fs);
+            fs = NULL;
+            lsmSsRecordFreeArray(ss, count);
+            ss = NULL;
+        }
+    }
+    return rc;
+}
+
+static int ss_create(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    if( p && p->sanOps && p->fsOps->ss_create ) {
+        int ok = 0;
+        lsmSsPtr ss = NULL;
+        char *job = NULL;
+        lsmFsPtr fs = valueToFs(params["fs"]);
+        const char *name = params["snapshot_name"].asC_str();
+        lsmStringListPtr files = valueToStringList(params["files"], &ok);
+
+        if( ok ) {
+            rc = p->fsOps->ss_create(p, fs, name, files, &ss, &job);
+
+            std::vector<Value> r;
+            if( LSM_ERR_OK == rc ) {
+                r.push_back(Value());
+                r.push_back(ssToValue(ss));
+                response = Value(r);
+                lsmSsRecordFree(ss);
+            } else if (LSM_ERR_JOB_STARTED == rc ) {
+                r.push_back(Value(job));
+                r.push_back(Value());
+                response = Value(r);
+                free(job);
+            }
+
+            lsmFsRecordFree(fs);
+            lsmStringListFree(files);
+        } else {
+            rc = LSM_ERR_NO_MEMORY;
+        }
+    }
+    return rc;
+}
+
+static int ss_delete(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    if( p && p->sanOps && p->fsOps->ss_delete ) {
+        char *job = NULL;
+        lsmFsPtr fs = valueToFs(params["fs"]);
+        lsmSsPtr ss = valueToSs(params["snapshot"]);
+
+        rc = p->fsOps->ss_delete(p, fs, ss, &job);
+
+        if( LSM_ERR_JOB_STARTED == rc ) {
+            response = Value(job);
+            free(job);
+        }
+
+        lsmFsRecordFree(fs);
+        lsmSsRecordFree(ss);
+    }
+    return rc;
+}
+
+static int ss_revert(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    if( p && p->sanOps && p->fsOps->ss_delete ) {
+        char *job = NULL;
+        int files_ok = 0;
+        int restore_files_ok = 0;
+        lsmFsPtr fs = valueToFs(params["fs"]);
+        lsmSsPtr ss = valueToSs(params["snapshot"]);
+        lsmStringListPtr files = valueToStringList(params["files"], &files_ok);
+        lsmStringListPtr restore_files =
+                valueToStringList(params["restore_files"], &restore_files_ok);
+        int all_files = (params["all_files"].asBool()) ? 1 : 0;
+
+        if( files_ok && restore_files_ok ) {
+            rc = p->fsOps->ss_revert(p, fs, ss, files, restore_files, all_files,
+                                        &job);
+
+            if( LSM_ERR_JOB_STARTED == rc ) {
+                response = Value(job);
+                free(job);
+            }
+        } else {
+            rc = LSM_ERR_NO_MEMORY;
+        }
+
+        lsmFsRecordFree(fs);
+        lsmSsRecordFree(ss);
+        lsmStringListFree(files);
+        lsmStringListFree(restore_files);
     }
     return rc;
 }
@@ -1080,11 +1223,11 @@ static std::map<std::string,handler> dispatch = static_map<std::string,handler>
     ("fs_resize", fs_resize)
     ("fs_create", fs_create)
     ("fs_clone", fs_clone)
-    ("file_clone", not_supported)
-    ("snapshots", not_supported)
-    ("snapshot_create", not_supported)
-    ("snapshot_delete", not_supported)
-    ("snapshot_revert", not_supported)
+    ("file_clone", file_clone)
+    ("snapshots", ss_list)
+    ("snapshot_create", ss_create)
+    ("snapshot_delete", ss_delete)
+    ("snapshot_revert", ss_revert)
     ("fs_child_dependency", fs_child_dependency)
     ("fs_child_dependency_rm", fs_child_dependency_rm)
     ("export_auth", not_supported)

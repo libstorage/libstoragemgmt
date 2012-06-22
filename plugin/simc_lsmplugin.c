@@ -31,6 +31,7 @@
 #include "libstoragemgmt/libstoragemgmt_fs.h"
 #include "libstoragemgmt/libstoragemgmt_snapshot.h"
 #include "libstoragemgmt/libstoragemgmt_nfsexport.h"
+#include <time.h>
 
 #ifdef  __cplusplus
 extern "C" {
@@ -993,7 +994,7 @@ static int fs_list(lsmPluginPtr c, lsmFsPtr **fs, uint32_t *count)
             struct allocated_fs *afs = NULL;
             GHashTableIter iter;
             g_hash_table_iter_init(&iter, pd->fs);
-            while(g_hash_table_iter_next (&iter,(gpointer) &k,(gpointer)&afs)) {
+            while(g_hash_table_iter_next(&iter,(gpointer) &k,(gpointer)&afs)) {
                 (*fs)[i] = lsmFsRecordCopy(afs->fs);
                 if( !(*fs)[i] ) {
                     rc = LSM_ERR_NO_MEMORY;
@@ -1148,6 +1149,22 @@ static int fs_clone(lsmPluginPtr c, lsmFsPtr src_fs, const char *dest_fs_name,
     return rc;
 }
 
+static int fs_file_clone(lsmPluginPtr c, lsmFsPtr fs,
+                                    const char *src_file_name,
+                                    const char *dest_file_name,
+                                    lsmSsPtr snapshot, char **job)
+{
+    int rc = LSM_ERR_OK;
+    struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
+
+    struct allocated_fs *find = (struct allocated_fs *)g_hash_table_lookup(
+                                    pd->fs, lsmFsIdGet(fs));
+    if( !find ) {
+        rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_FS, "fs not found");
+    }
+    return rc;
+}
+
 static int fs_child_dependency(lsmPluginPtr c, lsmFsPtr fs,
                                                 lsmStringListPtr files,
                                                 uint8_t *yes)
@@ -1174,14 +1191,145 @@ static int fs_child_dependency_rm( lsmPluginPtr c, lsmFsPtr fs,
     return rc;
 }
 
+static int ss_list(lsmPluginPtr c, lsmFsPtr fs, lsmSsPtr **ss,
+                                uint32_t *count)
+{
+    int rc = LSM_ERR_OK;
+    struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
+
+    struct allocated_fs *find = (struct allocated_fs *)g_hash_table_lookup(
+                                    pd->fs, lsmFsIdGet(fs));
+
+    if( find ) {
+        char *k = NULL;
+        lsmSsPtr v = NULL;
+        GHashTableIter iter;
+
+        *ss = NULL;
+        *count = g_hash_table_size(find->ss);
+
+        if( *count ) {
+            *ss = lsmSsRecordAllocArray(*count);
+            if( *ss ) {
+                int i = 0;
+                g_hash_table_iter_init(&iter, find->ss);
+
+                while(g_hash_table_iter_next(&iter,
+                                            (gpointer) &k,(gpointer)&v)) {
+                    (*ss)[i] = lsmSsRecordCopy(v);
+                    if( !(*ss)[i] ) {
+                        rc = lsmLogErrorBasic(c, LSM_ERR_NO_MEMORY, "ENOMEM");
+                        lsmSsRecordFreeArray(*ss, i);
+                        *ss = NULL;
+                        *count = 0;
+                        break;
+                    }
+                    ++i;
+                }
+
+            } else {
+                rc = lsmLogErrorBasic(c, LSM_ERR_NO_MEMORY, "ENOMEM");
+                *count = 0;
+            }
+        }
+    } else {
+        rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_FS, "fs not found");
+    }
+    return rc;
+}
+
+static int ss_create(lsmPluginPtr c, lsmFsPtr fs,
+                                    const char *name, lsmStringListPtr files,
+                                    lsmSsPtr *snapshot, char **job)
+{
+    int rc = LSM_ERR_NO_MEMORY;
+    struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
+
+    struct allocated_fs *find = (struct allocated_fs *)g_hash_table_lookup(
+                                    pd->fs, lsmFsIdGet(fs));
+
+    if( find ) {
+        if( !g_hash_table_lookup(find->ss, md5(name)) ) {
+            char *id = strdup(md5(name));
+            if( id ) {
+                lsmSsPtr ss = lsmSsRecordAlloc(id, name, time(NULL));
+                *snapshot = lsmSsRecordCopy(ss);
+                if( ss && *snapshot ) {
+                    g_hash_table_insert(find->ss, (gpointer)id, (gpointer)ss);
+                    rc = LSM_ERR_OK;
+                } else {
+                    lsmSsRecordFree(ss);
+                    ss = NULL;
+                    lsmSsRecordFree(*snapshot);
+                    *snapshot = NULL;
+                    free(id);
+                    id = NULL;
+                }
+            }
+        } else {
+            rc = lsmLogErrorBasic(c, LSM_ERR_EXISTS_NAME, "snapshot name exists");
+        }
+    } else {
+        rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_FS, "fs not found");
+    }
+    return rc;
+}
+
+static int ss_delete(lsmPluginPtr c, lsmFsPtr fs, lsmSsPtr ss,
+                                    char **job)
+{
+    int rc = LSM_ERR_OK;
+    struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
+
+    struct allocated_fs *find = (struct allocated_fs *)g_hash_table_lookup(
+                                    pd->fs, lsmFsIdGet(fs));
+
+    if( find ) {
+        if( !g_hash_table_remove(find->ss, lsmSsIdGet(ss)) ) {
+            rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_SS,
+                                    "snapshot not found");
+        }
+    } else {
+        rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_FS, "fs not found");
+    }
+    return rc;
+}
+
+static int ss_revert(lsmPluginPtr c, lsmFsPtr fs, lsmSsPtr ss,
+                                    lsmStringListPtr files,
+                                    lsmStringListPtr restore_files,
+                                    int all_files, char **job)
+{
+    int rc = LSM_ERR_OK;
+    struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
+
+    struct allocated_fs *find = (struct allocated_fs *)g_hash_table_lookup(
+                                    pd->fs, lsmFsIdGet(fs));
+
+    if( find ) {
+        if(!g_hash_table_lookup(find->ss, lsmSsIdGet(ss))) {
+            rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_SS,
+                                    "snapshot not found");
+        }
+    } else {
+        rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_FS, "fs not found");
+    }
+    return rc;
+}
+
 static struct lsmFsOps fsOps = {
     fs_list,
     fs_create,
     fs_delete,
     fs_resize,
     fs_clone,
+    fs_file_clone,
     fs_child_dependency,
-    fs_child_dependency_rm
+    fs_child_dependency_rm,
+    ss_list,
+    ss_create,
+    ss_delete,
+    ss_revert
 };
 
 /*

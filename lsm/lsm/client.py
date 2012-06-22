@@ -552,8 +552,8 @@ class Client(INetworkAttachedStorage):
     # @param    fs      The file system to snapshot
     # @param    snapshot_name   The human readable snapshot name
     # @param    files   The list of specific files to snapshot.
-    # @returns Snapshot that was created.
-    def snapshot_create(self, fs, snapshot_name, files=None):
+    # @returns tuple (job_id, snapshot)
+    def snapshot_create(self, fs, snapshot_name, files=[]):
         """
         Snapshot is a point in time read-only copy
 
@@ -593,7 +593,9 @@ class Client(INetworkAttachedStorage):
     # @param    snapshot    The snapshot file to revert back too
     # @param    files       The specific files to revert.
     # @param    all_files   Set to True if all files should be reverted back.
-    def snapshot_revert(self, fs, snapshot, files, restore_files, all_files=False):
+    # @return None on success, else job id
+    def snapshot_revert(self, fs, snapshot, files = [], restore_files = [],
+                        all_files=False):
         """
         WARNING: Destructive!
 

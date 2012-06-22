@@ -770,7 +770,7 @@ START_TEST(test_ss)
     fail_unless(fs != NULL);
 
 
-    rc = lsmSsList(c, fs, &ss_list, &ss_count);
+    rc = lsmFsSsList(c, fs, &ss_list, &ss_count);
     printf("List return code= %d\n", rc);
 
     if(rc) {
@@ -781,7 +781,7 @@ START_TEST(test_ss)
     fail_unless( 0 == ss_count );
 
 
-    rc = lsmSsCreate(c, fs, "test_snap", NULL, &ss, &job);
+    rc = lsmFsSsCreate(c, fs, "test_snap", NULL, &ss, &job);
     if( LSM_ERR_JOB_STARTED == rc ) {
         printf("Waiting for snap to create!\n");
         ss = wait_for_job_ss(c, &job);
@@ -791,7 +791,7 @@ START_TEST(test_ss)
 
     fail_unless( NULL != ss);
 
-    rc = lsmSsList(c, fs, &ss_list, &ss_count);
+    rc = lsmFsSsList(c, fs, &ss_list, &ss_count);
     fail_unless( LSM_ERR_OK == rc);
     fail_unless( NULL != ss_list);
     fail_unless( 1 == ss_count );
@@ -802,7 +802,7 @@ START_TEST(test_ss)
         fail_unless( LSM_ERR_OK == rc, "lsmStringListSetElem rc = %d", rc);
     }
 
-    rc = lsmSsRevert(c, fs, ss, files, files, 0, &job);
+    rc = lsmFsSsRevert(c, fs, ss, files, files, 0, &job);
     if( LSM_ERR_JOB_STARTED == rc ) {
         printf("Waiting for  lsmSsRevert!\n");
         wait_for_job(c, &job);
@@ -812,7 +812,7 @@ START_TEST(test_ss)
 
     lsmStringListFree(files);
 
-    rc = lsmSsDelete(c, fs, ss, &job);
+    rc = lsmFsSsDelete(c, fs, ss, &job);
 
     if( LSM_ERR_JOB_STARTED == rc ) {
         wait_for_job(c, &job);

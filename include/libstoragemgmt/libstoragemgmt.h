@@ -574,7 +574,7 @@ extern "C" {
      * @param[in] conn                  Valid connection
      * @param[in] fs                    File system to re-size
      * @param[in] new_size_bytes        New size of fs
-     * @param[out] rfs                   File system information for re-sized fs
+     * @param[out] rfs                  File system information for re-sized fs
      * @return @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. ,
      * else error code
      */
@@ -582,6 +582,21 @@ extern "C" {
                                     uint64_t new_size_bytes, lsmFsPtr *rfs,
                                     char **job);
 
+    /**
+     * Clones a file on a file system.
+     * @param[in]conn                   Valid connection
+     * @param[in]fs                     File system which file resides
+     * @param[in]src_file_name          Source file relative name & path
+     * @param[in]dest_file_name         Dest. file relative name & path
+     * @param[in]snapshot               Optional backing snapshot
+     * @param[out]job                   Job id for async. operation
+     * @return @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. ,
+     * else error code
+     */
+    int LSM_DLL_EXPORT lsmFsFileClone(lsmConnectPtr conn, lsmFsPtr fs,
+                                        const char *src_file_name,
+                                        const char *dest_file_name,
+                                        lsmSsPtr snapshot, char **job);
 
     /**
      * Return a list of snapshots
@@ -591,8 +606,8 @@ extern "C" {
      * @param[out] ssCount                   Number of elements in the array
      * @return LSM_ERR_OK on success, else error reason
      */
-    int LSM_DLL_EXPORT lsmSsList(lsmConnectPtr conn, lsmFsPtr fs, lsmSsPtr **ss,
-                                uint32_t *ssCount);
+    int LSM_DLL_EXPORT lsmFsSsList(lsmConnectPtr conn, lsmFsPtr fs,
+                                    lsmSsPtr **ss, uint32_t *ssCount);
 
     /**
      * Creates a snapshot
@@ -605,7 +620,7 @@ extern "C" {
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async.,
      * else error code
      */
-    int LSM_DLL_EXPORT lsmSsCreate(lsmConnectPtr c, lsmFsPtr fs,
+    int LSM_DLL_EXPORT lsmFsSsCreate(lsmConnectPtr c, lsmFsPtr fs,
                                     const char *name, lsmStringListPtr files,
                                     lsmSsPtr *snapshot, char **job);
 
@@ -618,7 +633,7 @@ extern "C" {
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async., else error
      * code.
      */
-    int LSM_DLL_EXPORT lsmSsDelete(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss,
+    int LSM_DLL_EXPORT lsmFsSsDelete(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss,
                                     char **job);
 
     /**
@@ -634,7 +649,7 @@ extern "C" {
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async.,
      * else error code
      */
-    int LSM_DLL_EXPORT lsmSsRevert(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss,
+    int LSM_DLL_EXPORT lsmFsSsRevert(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss,
                                     lsmStringListPtr files,
                                     lsmStringListPtr restore_files,
                                     int all_files, char **job);
