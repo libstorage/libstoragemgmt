@@ -242,9 +242,20 @@ typedef int (*lsmPlugNfsAuthTypes)( lsmPluginPtr c,
 typedef int (*lsmPlugNfsList)( lsmPluginPtr c,
                                             lsmNfsExportPtr **exports,
                                             uint32_t *count);
-typedef int (*lsmPlugNfsExportFs)( lsmPluginPtr c, lsmNfsExportPtr *e );
+typedef int (*lsmPlugNfsExportFs)( lsmPluginPtr c,
+                                        const char *fs_id,
+                                        const char *export_path,
+                                        lsmStringListPtr root_list,
+                                        lsmStringListPtr rw_list,
+                                        lsmStringListPtr ro_list,
+                                        uint64_t anon_uid,
+                                        uint64_t anon_gid,
+                                        const char *auth_type,
+                                        const char *options,
+                                        lsmNfsExportPtr *exported
+                                        );
 
-typedef int (*lsmPlugNfsExportRemove)( lsmPluginPtr c, lsmNfsExportPtr *e );
+typedef int (*lsmPlugNfsExportRemove)( lsmPluginPtr c, lsmNfsExportPtr e);
 /**
  * Block oriented functions
  */

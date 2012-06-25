@@ -475,11 +475,11 @@ class CmdLine:
             dest=_o("dest"), help="destination of operation")
 
         command_args.add_option('', '--file', action="append", type="string",
-            metavar = "<file>", default=None,
+            metavar = "<file>", default=[],
             dest="file", help="file to include in operation, option can be repeated")
 
         command_args.add_option('', '--fileas', action="append", type="string",
-            metavar = "<fileas>", default=None,
+            metavar = "<fileas>", default=[],
             dest="fileas", help="file to be renamed as, option can be repeated")
 
         command_args.add_option('', '--fs', action="store", type="string",
@@ -779,7 +779,7 @@ class CmdLine:
             else:
                 i = self._get_item(self.c.initiators(), self.options.opt_id)
                 if i:
-                    self.c.access_group_del_initiator(group, i)
+                    self.c.access_group_del_initiator(group, i.id)
                 else:
                     raise ArgError("initiator with id %s not found!" % self.options.opt_id)
         else:
@@ -1170,18 +1170,11 @@ class CmdLine:
                len(self.options.nfs_rw) == 0 and\
                len(self.options.nfs_ro) == 0:
                 raise ArgError(" please specify --root, --ro or --rw access")
-            else:
-                export = data.NfsExport( 'NA',        #Not needed on create
-                    fs.id,
-                    self.options.opt_exportpath,
-                    self.options.authtype,
-                    self.options.nfs_root,
-                    self.options.nfs_rw,
-                    self.options.nfs_ro,
-                    self.options.anonuid,
-                    self.options.anongid,
-                    None)  #No options at this time
-            export = self.c.export_fs(export)
+
+            export = self.c.export_fs(fs.id, self.options.opt_exportpath,
+                self.options.nfs_root, self.options.nfs_rw, self.options.nfs_ro,
+                self.options.anonuid, self.options.anongid,
+                self.options.authtype, None)
             self.display_exports([export])
         else:
             raise ArgError(" file system with id=%s not found!" % self.cmd_value)

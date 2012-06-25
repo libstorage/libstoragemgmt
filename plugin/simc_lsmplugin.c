@@ -39,7 +39,7 @@ extern "C" {
 
 static char name[] = "Compiled plug-in example";
 static char version [] = "0.01";
-static char sys_id[] = "SYS0";
+static char sys_id[] = "sim-01";
 #define BS 512
 
 #define MAX_SYSTEMS 1
@@ -102,6 +102,11 @@ struct allocated_fs {
     GHashTable *exports;
 };
 
+struct allocated_ag {
+    lsmAccessGroupPtr ag;
+    lsmInitiatorType ag_type;
+};
+
 struct plugin_data {
     uint32_t tmo;
     uint32_t num_systems;
@@ -117,6 +122,27 @@ struct plugin_data {
     GHashTable *group_grant;
     GHashTable *fs;
 };
+
+struct allocated_ag *alloc_allocated_ag( lsmAccessGroupPtr ag,
+                                            lsmInitiatorType i)
+{
+    struct allocated_ag *aag =
+                    (struct allocated_ag *)malloc(sizeof(struct allocated_ag));
+    if( aag ) {
+        aag->ag = ag;
+        aag->ag_type = i;
+    }
+    return aag;
+}
+
+void free_allocated_ag(void *v)
+{
+    if( v ) {
+        struct allocated_ag *aag = (struct allocated_ag *)v;
+        lsmAccessGroupRecordFree(aag->ag);
+        free(aag);
+    }
+}
 
 void free_fs_record(struct allocated_fs *fs) {
     if( fs ) {
@@ -253,10 +279,77 @@ static struct lsmMgmtOps mgmOps = {
     list_systems,
 };
 
+void freeInitiator(void *i) {
+    if( i ) {
+        lsmInitiatorRecordFree((lsmInitiatorPtr)i);
+    }
+}
+
 static int list_initiators(lsmPluginPtr c, lsmInitiatorPtr **initArray,
                                         uint32_t *count)
 {
-    return LSM_ERR_NOT_IMPLEMENTED;
+    int rc = LSM_ERR_OK;
+    struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
+
+    GHashTable *tmp_inits = g_hash_table_new_full(g_str_hash, g_str_equal, free,
+                                                    freeInitiator);
+
+    *count = 0;
+    *initArray = NULL;
+
+    if( tmp_inits ) {
+        char *k = NULL;
+        struct allocated_ag *v = NULL;
+        GHashTableIter iter;
+
+        g_hash_table_iter_init (&iter, pd->access_groups);
+        while (g_hash_table_iter_next (&iter, (gpointer) &k, (gpointer)&v) ) {
+            uint32_t i = 0;
+
+            lsmStringListPtr inits = lsmAccessGroupInitiatorIdGet(v->ag);
+
+            for(i = 0; i < lsmStringListSize(inits); ++i ) {
+                char *init_key = strdup(lsmStringListGetElem(inits,i));
+                lsmInitiatorPtr init_val = lsmInitiatorRecordAlloc(v->ag_type,
+                                                                  init_key, "");
+
+                if( init_key && init_val ) {
+                    g_hash_table_insert(tmp_inits, init_key, init_val);
+                } else {
+                    g_hash_table_destroy(tmp_inits);
+                    rc = LSM_ERR_NO_MEMORY;
+                }
+            }
+        }
+
+        if( LSM_ERR_OK == rc ) {
+            *count = g_hash_table_size(tmp_inits);
+
+            if( *count ) {
+                *initArray = lsmInitiatorRecordAllocArray(*count);
+                if( *initArray ) {
+                    int i = 0;
+                    char *ikey = NULL;
+                    lsmInitiatorPtr ival = NULL;
+
+                    g_hash_table_iter_init (&iter, tmp_inits);
+                    while (g_hash_table_iter_next (&iter, (gpointer) &ikey,
+                                                            (gpointer)&ival) ) {
+                        (*initArray)[i] = lsmInitiatorRecordCopy(ival);
+                        if( !(*initArray)[i] ) {
+                            rc = LSM_ERR_NO_MEMORY;
+                            lsmInitiatorRecordFreeArray(*initArray, i);
+                            break;
+                        }
+                        i += 1;
+                    }
+                }
+            }
+        }
+
+        g_hash_table_destroy(tmp_inits);
+    }
+    return rc;
 }
 
 static int list_volumes(lsmPluginPtr c, lsmVolumePtr **vols,
@@ -552,13 +645,14 @@ static int access_group_list(lsmPluginPtr c,
         if( *groups ) {
             int i = 0;
             char *key = NULL;
-            lsmAccessGroupPtr val = NULL;
+            struct allocated_ag *val = NULL;
             GHashTableIter iter;
 
             g_hash_table_iter_init (&iter, pd->access_groups);
 
-            while (g_hash_table_iter_next (&iter, (gpointer) &key, (gpointer)&val) ) {
-                (*groups)[i] = lsmAccessGroupRecordCopy((lsmAccessGroupPtr)val);
+            while (g_hash_table_iter_next (&iter, (gpointer) &key,
+                                                    (gpointer)&val) ) {
+                (*groups)[i] = lsmAccessGroupRecordCopy(val->ag);
                 if( !(*groups)[i] ) {
                     rc = LSM_ERR_NO_MEMORY;
                     lsmAccessGroupRecordFreeArray(*groups, i);
@@ -585,9 +679,10 @@ static int access_group_create(lsmPluginPtr c,
     int rc = LSM_ERR_OK;
     lsmAccessGroupPtr ag = NULL;
     char *id = strdup(md5(name));
+    struct allocated_ag *aag = NULL;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
 
-    lsmAccessGroupPtr find = (lsmAccessGroupPtr)
+    struct allocated_ag *find = (struct allocated_ag *)
                         g_hash_table_lookup(pd->access_groups, id);
 
     if( !find ) {
@@ -596,13 +691,15 @@ static int access_group_create(lsmPluginPtr c,
             (LSM_ERR_OK == lsmStringListSetElem(initiators, 0, initiator_id))) {
             ag = lsmAccessGroupRecordAlloc(id, name, initiators,
                                                         system_id);
-            if( !ag ) {
+            aag = alloc_allocated_ag(ag, id_type);
+            if( !ag || !aag ) {
                 lsmStringListFree(initiators);
+                free_allocated_ag(aag);
                 rc = lsmLogErrorBasic(c, LSM_ERR_NO_MEMORY,
                                     "ENOMEM");
             } else {
                 g_hash_table_insert(pd->access_groups, (gpointer)id,
-                                        (gpointer)ag);
+                                        (gpointer)aag);
                 *access_group = lsmAccessGroupRecordCopy(ag);
             }
         } else {
@@ -652,12 +749,12 @@ static int access_group_add_initiator(  lsmPluginPtr c,
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
 
-    lsmAccessGroupPtr find = (lsmAccessGroupPtr)
+    struct allocated_ag *find = (struct allocated_ag *)
                                 g_hash_table_lookup(pd->access_groups,
                                 lsmAccessGroupIdGet(group));
 
     if( find ) {
-        lsmStringList *inits = lsmAccessGroupInitiatorIdGet(find);
+        lsmStringList *inits = lsmAccessGroupInitiatorIdGet(find->ag);
         rc = lsmStringListAppend(inits, initiator_id);
     } else {
         rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_ACCESS_GROUP,
@@ -674,13 +771,13 @@ static int access_group_del_initiator(  lsmPluginPtr c,
     int rc = LSM_ERR_INITIATOR_NOT_IN_ACCESS_GROUP;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
 
-    lsmAccessGroupPtr find = (lsmAccessGroupPtr)
+    struct allocated_ag *find = (struct allocated_ag *)
                                 g_hash_table_lookup(pd->access_groups,
                                 lsmAccessGroupIdGet(group));
 
     if( find ) {
         uint32_t i;
-        lsmStringList *inits = lsmAccessGroupInitiatorIdGet(find);
+        lsmStringList *inits = lsmAccessGroupInitiatorIdGet(find->ag);
 
         for(i = 0; i < lsmStringListSize(inits); ++i) {
             if( strcmp(init, lsmStringListGetElem(inits, i)) == 0 ) {
@@ -704,7 +801,7 @@ static int access_group_grant(lsmPluginPtr c,
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
 
-    lsmAccessGroupPtr find = (lsmAccessGroupPtr)
+    struct allocated_ag *find = (struct allocated_ag *)
                                 g_hash_table_lookup(pd->access_groups,
                                 lsmAccessGroupIdGet(group));
 
@@ -712,12 +809,12 @@ static int access_group_grant(lsmPluginPtr c,
 
     if( find && (-1 != vi) ) {
         GHashTable *grants = g_hash_table_lookup(pd->group_grant,
-                                    lsmAccessGroupIdGet(find));
+                                    lsmAccessGroupIdGet(find->ag));
         if( !grants ) {
             /* We don't have any mappings for this access group*/
             GHashTable *grant = g_hash_table_new_full(g_str_hash, g_str_equal,
                                                         free, free);
-            char *key = strdup(lsmAccessGroupIdGet(find));
+            char *key = strdup(lsmAccessGroupIdGet(find->ag));
             char *vol_id = strdup(lsmVolumeIdGet(volume));
             lsmAccessType *val = (lsmAccessType*) malloc(sizeof(lsmAccessType));
 
@@ -746,7 +843,8 @@ static int access_group_grant(lsmPluginPtr c,
             char *vol_id = g_hash_table_lookup(grants, lsmVolumeIdGet(volume));
             if( !vol_id ) {
                 vol_id = strdup(lsmVolumeIdGet(volume));
-                lsmAccessType *val = (lsmAccessType*) malloc(sizeof(lsmAccessType));
+                lsmAccessType *val =
+                                (lsmAccessType*) malloc(sizeof(lsmAccessType));
                 if( vol_id && val ) {
                     g_hash_table_insert(grants, vol_id, val);
                 } else {
@@ -778,7 +876,7 @@ static int access_group_revoke(lsmPluginPtr c,
     int rc = LSM_ERR_NO_MAPPING;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
 
-    lsmAccessGroupPtr find = (lsmAccessGroupPtr)
+    struct allocated_ag *find = (struct allocated_ag *)
                                 g_hash_table_lookup(pd->access_groups,
                                 lsmAccessGroupIdGet(group));
 
@@ -786,13 +884,10 @@ static int access_group_revoke(lsmPluginPtr c,
 
     if( find && (-1 != vi) ) {
         GHashTable *grants = g_hash_table_lookup(pd->group_grant,
-                                    lsmAccessGroupIdGet(find));
+                                    lsmAccessGroupIdGet(find->ag));
 
         if( (grants && g_hash_table_remove(grants, lsmVolumeIdGet(volume)))) {
             rc = LSM_ERR_OK;
-
-            /* TODO we could clean up the entry in the group_grant table
-               if the size == 0 */
         }
 
     } else {
@@ -826,12 +921,12 @@ static int vol_accessible_by_ag(lsmPluginPtr c,
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
 
-    lsmAccessGroupPtr find = (lsmAccessGroupPtr)
+    struct allocated_ag *find = (struct allocated_ag *)
                                 g_hash_table_lookup(pd->access_groups,
                                 lsmAccessGroupIdGet(group));
     if( find ) {
         GHashTable *grants = g_hash_table_lookup(pd->group_grant,
-                                    lsmAccessGroupIdGet(find));
+                                    lsmAccessGroupIdGet(find->ag));
         *count = 0;
 
         if( grants && g_hash_table_size(grants) ) {
@@ -875,7 +970,11 @@ static int vol_accessible_by_ag(lsmPluginPtr c,
 static lsmAccessGroupPtr access_group_by_id(struct plugin_data *pd,
                                             const char *key)
 {
-    return g_hash_table_lookup(pd->access_groups, key);
+    struct allocated_ag *find = g_hash_table_lookup(pd->access_groups, key);
+    if(find) {
+        return find->ag;
+    }
+    return NULL;
 }
 
 static int ag_granted_to_volume( lsmPluginPtr c,
@@ -904,19 +1003,23 @@ static int ag_granted_to_volume( lsmPluginPtr c,
     if( *count ) {
         int i = 0;
         *groups = lsmAccessGroupRecordAllocArray(*count);
-        GSList *iter = NULL;
+        GSList *siter = NULL;
 
-        for( iter = result; iter ; iter = g_slist_next(iter), i++) {
-            (*groups)[i] = lsmAccessGroupRecordCopy(
-                                            (lsmAccessGroupPtr)iter->data);
+        if( *groups ) {
+            for( siter = result; siter ; siter = g_slist_next(siter), i++) {
+                (*groups)[i] = lsmAccessGroupRecordCopy(
+                                                (lsmAccessGroupPtr)siter->data);
 
-            if( !(*groups)[i] ) {
-                rc = LSM_ERR_NO_MEMORY;
-                lsmAccessGroupRecordFreeArray(*groups, i);
-                *groups = NULL;
-                *count = 0;
-                break;
+                if( !(*groups)[i] ) {
+                    rc = LSM_ERR_NO_MEMORY;
+                    lsmAccessGroupRecordFreeArray(*groups, i);
+                    *groups = NULL;
+                    *count = 0;
+                    break;
+                }
             }
+        } else {
+            rc = LSM_ERR_NO_MEMORY;
         }
     }
 
@@ -1267,7 +1370,8 @@ static int ss_create(lsmPluginPtr c, lsmFsPtr fs,
                 }
             }
         } else {
-            rc = lsmLogErrorBasic(c, LSM_ERR_EXISTS_NAME, "snapshot name exists");
+            rc = lsmLogErrorBasic(c, LSM_ERR_EXISTS_NAME,
+                                        "snapshot name exists");
         }
     } else {
         rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_FS, "fs not found");
@@ -1332,16 +1436,143 @@ static struct lsmFsOps fsOps = {
     ss_revert
 };
 
-/*
-static struct lsmNasOps nfsOps = {
-
-};
-*/
-
-void free_ag_value(void *v)
+static int nfs_auth_types(lsmPluginPtr c, lsmStringListPtr *types)
 {
-    lsmAccessGroupRecordFree((lsmAccessGroupPtr)v);
+    int rc = LSM_ERR_OK;
+    *types = lsmStringListAlloc(1);
+    if( *types ) {
+        lsmStringListSetElem(*types, 0, "standard");
+    } else {
+        rc = LSM_ERR_NO_MEMORY;
+    }
+    return rc;
 }
+
+static int nfs_export_list( lsmPluginPtr c, lsmNfsExportPtr **exports,
+                                uint32_t *count)
+{
+    int rc = LSM_ERR_OK;
+    GHashTableIter fs_iter;
+    GHashTableIter exports_iter;
+    char *k = NULL;
+    struct allocated_fs *v = NULL;
+    GSList *result = NULL;
+    struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
+
+    g_hash_table_iter_init (&fs_iter, pd->fs);
+
+    *count = 0;
+
+    /* Walk through each of the file systems and their associated exports */
+    while( g_hash_table_iter_next( &fs_iter, (gpointer)&k, (gpointer)&v) ) {
+        char *exp_key = NULL;
+        lsmNfsExportPtr *exp_val = NULL;
+
+        g_hash_table_iter_init (&exports_iter, v->exports );
+        while( g_hash_table_iter_next( &exports_iter,   (gpointer)&exp_key,
+                                                        (gpointer)&exp_val) ) {
+            result = g_slist_prepend(result, exp_val);
+            *count += 1;
+        }
+    }
+
+    if( *count ) {
+        int i = 0;
+        GSList *s_iter = NULL;
+        *exports = lsmNfsExportRecordAllocArray(*count);
+        if( *exports ) {
+            for( s_iter = result; s_iter ; s_iter = g_slist_next(s_iter), i++) {
+                (*exports)[i] = lsmNfsExportRecordCopy(
+                                                (lsmNfsExportPtr)s_iter->data);
+
+                if( !(*exports)[i] ) {
+                    rc = LSM_ERR_NO_MEMORY;
+                    lsmNfsExportRecordFreeArray(*exports, i);
+                    *exports = NULL;
+                    *count = 0;
+                    break;
+                }
+            }
+        } else {
+            rc = LSM_ERR_NO_MEMORY;
+        }
+    }
+
+    return rc;
+}
+
+static int nfs_export_create( lsmPluginPtr c,
+                                        const char *fs_id,
+                                        const char *export_path,
+                                        lsmStringListPtr root_list,
+                                        lsmStringListPtr rw_list,
+                                        lsmStringListPtr ro_list,
+                                        uint64_t anon_uid,
+                                        uint64_t anon_gid,
+                                        const char *auth_type,
+                                        const char *options,
+                                        lsmNfsExportPtr *exported
+                                        )
+{
+    int rc = LSM_ERR_OK;
+    struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
+
+    struct allocated_fs *fs = g_hash_table_lookup(pd->fs, fs_id);
+    if( fs ) {
+        char *key = strdup(md5(export_path));
+        *exported = lsmNfsExportRecordAlloc(md5(export_path),
+                                            fs_id,
+                                            export_path,
+                                            auth_type,
+                                            root_list,
+                                            rw_list,
+                                            ro_list,
+                                            anon_uid,
+                                            anon_gid,
+                                            options);
+
+        lsmNfsExportPtr value = lsmNfsExportRecordCopy(*exported);
+
+        if( key && *exported && value ) {
+            g_hash_table_insert(fs->exports, key, value);
+        } else {
+            rc = LSM_ERR_NO_MEMORY;
+            free(key);
+            lsmNfsExportRecordFree(*exported);
+            lsmNfsExportRecordFree(value);
+        }
+
+    } else {
+        rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_FS, "fs not found");
+    }
+    return rc;
+}
+
+static int nfs_export_remove( lsmPluginPtr c, lsmNfsExportPtr e )
+{
+    int rc = LSM_ERR_OK;
+    struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
+
+    struct allocated_fs *fs = g_hash_table_lookup(pd->fs,
+                                                    lsmNfsExportFsIdGet(e));
+    if( fs ) {
+        if( !g_hash_table_remove(fs->exports, lsmNfsExportIdGet(e))) {
+            rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_NFS_EXPORT,
+                                        "export not found");
+        }
+    } else {
+        rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_FS, "fs not found");
+    }
+    return rc;
+}
+
+static struct lsmNasOps nfsOps = {
+    nfs_auth_types,
+    nfs_export_list,
+    nfs_export_create,
+    nfs_export_remove
+};
+
 
 void free_group_grant_hash(void *v)
 {
@@ -1363,7 +1594,8 @@ int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
         memset(data, 0, sizeof(struct plugin_data));
 
         data->num_systems = 1;
-        data->system[0] = lsmSystemRecordAlloc(sys_id, "C example plug-in");
+        data->system[0] = lsmSystemRecordAlloc(sys_id,
+                                                "LSM simulated storage plug-in");
 
         data->num_pools = MAX_POOLS;
         data->pool[0] = lsmPoolRecordAlloc("POOL_0", "POOL_ZERO", UINT64_MAX,
@@ -1372,12 +1604,11 @@ int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
                                             UINT64_MAX, sys_id);
         data->pool[2] = lsmPoolRecordAlloc("POOL_2", "POOL_TWO", UINT64_MAX,
                                             UINT64_MAX, sys_id);
-        data->pool[3] = lsmPoolRecordAlloc("POOL_3", "lsm_test_aggr", UINT64_MAX,
-                                            UINT64_MAX, sys_id);
-
+        data->pool[3] = lsmPoolRecordAlloc("POOL_3", "lsm_test_aggr",
+                                            UINT64_MAX, UINT64_MAX, sys_id);
 
         data->access_groups = g_hash_table_new_full(g_str_hash, g_str_equal,
-                                                    free, free_ag_value);
+                                                    free, free_allocated_ag);
 
         /*  We will delete the key, but the value will get cleaned up in its
             own container */
@@ -1387,17 +1618,51 @@ int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
         data->fs = g_hash_table_new_full(g_str_hash, g_str_equal, free,
                                             free_allocated_fs);
 
-        /*TODO Check all pointers for memory allocation issues */
-
-        rc = lsmRegisterPlugin( c, name, version, data, &mgmOps,
-                                    &sanOps, &fsOps, NULL);
+        if( !data->system[0] || !data->pool[0] || !data->pool[1] ||
+            !data->pool[2] || !data->pool[3] || !data->access_groups ||
+            !data->group_grant || !data->fs) {
+            rc = LSM_ERR_NO_MEMORY;
+        } else {
+            rc = lsmRegisterPlugin( c, name, version, data, &mgmOps,
+                                    &sanOps, &fsOps, &nfsOps);
+        }
     }
     return rc;
 }
 
 int unload( lsmPluginPtr c )
 {
-    //TODO Free the data
+    uint32_t i = 0;
+
+    struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
+
+    g_hash_table_destroy(pd->fs);
+    pd->fs = NULL;
+
+    g_hash_table_destroy(pd->group_grant);
+    pd->group_grant = NULL;
+
+    g_hash_table_destroy(pd->access_groups);
+
+    for( i = 0; i < pd->num_volumes; ++i ) {
+        lsmVolumeRecordFree(pd->volume[i].v);
+        pd->volume[i].v = NULL;
+        pd->volume[i].p = NULL;
+    }
+    pd->num_volumes = 0;
+
+    for( i = 0; i < pd->num_pools; ++i ) {
+        lsmPoolRecordFree(pd->pool[i]);
+        pd->pool[i]= NULL;
+    }
+    pd->num_pools = 0;
+
+    for( i = 0; i < pd->num_systems; ++i ) {
+        lsmSystemRecordFree(pd->system[i]);
+        pd->system[i]= NULL;
+    }
+    pd->num_systems = 0;
+
     return LSM_ERR_OK;
 }
 

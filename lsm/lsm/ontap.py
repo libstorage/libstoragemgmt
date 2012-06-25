@@ -353,8 +353,8 @@ class Ontap(IStorageAreaNetwork, INfs):
         return self.f.igroup_add_initiator(group.name, initiator_id)
 
     @handle_ontap_errors
-    def access_group_del_initiator(self, group, initiator):
-        return self.f.igroup_del_initiator(group.name, initiator.name)
+    def access_group_del_initiator(self, group, initiator_id):
+        return self.f.igroup_del_initiator(group.name, initiator_id)
 
     @handle_ontap_errors
     def volumes_accessible_by_access_group(self, group):
@@ -605,32 +605,33 @@ class Ontap(IStorageAreaNetwork, INfs):
         return False
 
     @handle_ontap_errors
-    def export_fs(self, export):
+    def export_fs(self, fs_id, export_path, root_list, rw_list, ro_list,
+                  anon_uid, anon_gid, auth_type, options):
         """
         Creates or modifies the specified export
         """
 
         #Get the volume info from the fs_id
-        vol = self._get_volume_from_id(export.fs_id)
+        vol = self._get_volume_from_id(fs_id)
 
         #If the export already exists we need to update the existing export
         #not create a new one.
-        if self._current_export(export.export_path):
+        if self._current_export(export_path):
             method = self.f.nfs_export_fs_modify2
         else:
             method = self.f.nfs_export_fs2
 
         method('/vol/' + vol.name,
-            export.export_path,
-            export.ro,
-            export.rw,
-            export.root,
-            export.anonuid,
-            export.auth)
+            export_path,
+            ro_list,
+            rw_list,
+            root_list,
+            anon_uid,
+            auth_type)
 
         current_exports = self.exports()
         for e in current_exports:
-            if e.fs_id == export.fs_id and e.export_path == export.export_path:
+            if e.fs_id == fs_id and e.export_path == export_path:
                 return e
 
         raise LsmError(ErrorNumber.PLUGIN_ERROR,

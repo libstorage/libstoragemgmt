@@ -145,32 +145,23 @@ Value systemToValue(lsmSystem *system)
     return Value();
 }
 
-lsmStringList *valueToStringList( Value &v, int *ok)
+lsmStringList *valueToStringList(Value &v)
 {
     lsmStringList *il = NULL;
 
     if( Value::array_t == v.valueType() ) {
         std::vector<Value> vl = v.asArray();
         uint32_t size = vl.size();
+        il = lsmStringListAlloc(size);
 
-        *ok = 1;    /* Assume success */
-
-        /* It is OK to return null when we have none */
-        if( size > 0 ) {
-            il = lsmStringListAlloc(size);
-
-            if( il ) {
-                for( uint32_t i = 0; i < size; ++i ) {
-                    if( LSM_ERR_OK !=
-                        lsmStringListSetElem(il, i, vl[i].asString().c_str())) {
-                        lsmStringListFree(il);
-                        il = NULL;
-                        *ok = 0;
-                        break;
-                    }
+        if( il ) {
+            for( uint32_t i = 0; i < size; ++i ) {
+                if( LSM_ERR_OK !=
+                    lsmStringListSetElem(il, i, vl[i].asString().c_str())) {
+                    lsmStringListFree(il);
+                    il = NULL;
+                    break;
                 }
-            } else {
-                *ok = 0;
             }
         }
     }
@@ -193,15 +184,13 @@ lsmAccessGroup *valueToAccessGroup( Value &group )
 {
     lsmStringList *il = NULL;
     lsmAccessGroup *ag = NULL;
-    int ok = -1;
 
     if( isExpectedObject(group, "AccessGroup")) {
         std::map<std::string, Value> vAg = group.asObject();
 
-        il = valueToStringList(vAg["initiators"], &ok);
+        il = valueToStringList(vAg["initiators"]);
 
-        if( ok ) {
-
+        if( il ) {
             ag = lsmAccessGroupRecordAlloc(vAg["id"].asString().c_str(),
                                         vAg["name"].asString().c_str(),
                                         il,
@@ -384,7 +373,7 @@ lsmNfsExport *valueToNfsExport(Value &exp)
 {
     lsmNfsExport *rc = NULL;
     if( isExpectedObject(exp, "NfsExport") ) {
-        int ok = -1;
+        int ok = 0;
         lsmStringListPtr root = NULL;
         lsmStringListPtr rw = NULL;
         lsmStringListPtr ro = NULL;
@@ -392,16 +381,18 @@ lsmNfsExport *valueToNfsExport(Value &exp)
         std::map<std::string, Value> i = exp.asObject();
 
         /* Check all the arrays for successful allocation */
-        root = valueToStringList(i["root"], &ok);
-        if( ok ) {
-            rw = valueToStringList(i["rw"], &ok);
-            if( ok ) {
-                ro = valueToStringList(i["ro"], &ok);
-                if( !ok ) {
+        root = valueToStringList(i["root"]);
+        if( root ) {
+            rw = valueToStringList(i["rw"]);
+            if( rw ) {
+                ro = valueToStringList(i["ro"]);
+                if( !ro ) {
                     lsmStringListFree(rw);
                     lsmStringListFree(root);
                     rw = NULL;
                     root = NULL;
+                } else {
+                    ok = 1;
                 }
             } else {
                 lsmStringListFree(root);

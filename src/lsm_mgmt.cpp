@@ -118,7 +118,7 @@ static int rpc(lsmConnectPtr c, const char *method, const Value &parameters,
     try {
         response = c->tp->rpc(method,parameters);
     } catch ( const ValueException &ve ) {
-        return logException(c, LSM_ERR_TRANS_PORT_SERIALIZATION, "Serialization error",
+        return logException(c, LSM_ERR_TRANSPORT_SERIALIZATION, "Serialization error",
                             ve.what());
     } catch ( const LsmException &le ) {
         return logException(c, (lsmErrorNumber)le.error_code, le.what(),
@@ -1438,7 +1438,7 @@ int lsmNfsList( lsmConnectPtr c, lsmNfsExportPtr **exports, uint32_t *count )
     Value parameters(p);
     Value response;
 
-    if( *exports ) {
+    if( !exports ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1459,37 +1459,62 @@ int lsmNfsList( lsmConnectPtr c, lsmNfsExportPtr **exports, uint32_t *count )
     return rc;
 }
 
-static int nfsExport( lsmConnectPtr c, lsmNfsExportPtr *e, const char* op,
-                        int fetch_result)
+int lsmNfsExportFs( lsmConnectPtr c,
+                                        const char *fs_id,
+                                        const char *export_path,
+                                        lsmStringListPtr root_list,
+                                        lsmStringListPtr rw_list,
+                                        lsmStringListPtr ro_list,
+                                        uint64_t anon_uid,
+                                        uint64_t anon_gid,
+                                        const char *auth_type,
+                                        const char *options,
+                                        lsmNfsExportPtr *exported
+                                        )
 {
     CONN_SETUP(c);
 
-    if( !LSM_IS_NFS_EXPORT(*e) ) {
-        return LSM_ERR_INVALID_NFS;
+    if( !fs_id || !export_path || !exported ||
+        !(root_list || rw_list || ro_list)) {
+        return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
-    p["export"] = nfsExportToValue(*e);
+
+    p["fs_id"] = Value(fs_id);
+    p["export_path"] = Value(export_path);
+    p["root_list"] = stringListToValue(root_list);
+    p["rw_list"] = stringListToValue(rw_list);
+    p["ro_list"] = stringListToValue(ro_list);
+    p["anon_uid"] = Value(anon_uid);
+    p["anon_gid"] = Value(anon_gid);
+    p["auth_type"] = Value(auth_type);
+    p["options"] = Value(options);
 
     Value parameters(p);
     Value response;
 
-    int rc = rpc(c, op, parameters, response);
-    if( fetch_result && (LSM_ERR_OK == rc) &&
-        Value::object_t == response.valueType() ) {
-        lsmNfsExportPtr t = valueToNfsExport(response);
-        lsmNfsExportRecordFree(*e);
-        *e = t;
+    int rc = rpc(c, "export_fs", parameters, response);
+    if( LSM_ERR_OK == rc && Value::object_t == response.valueType()) {
+        *exported = valueToNfsExport(response);
     }
     return rc;
 }
 
-int lsmNfsExportFs( lsmConnectPtr c, lsmNfsExportPtr *e )
+int lsmNfsExportRemove( lsmConnectPtr c, lsmNfsExportPtr e)
 {
-    return nfsExport(c, e, "export_fs", 1);
-}
+    CONN_SETUP(c);
 
-int lsmNfsExportRemove( lsmConnectPtr c, lsmNfsExportPtr *e)
-{
-    return nfsExport(c, e, "export_remove", 0);
+    if( !LSM_IS_NFS_EXPORT(e) ) {
+        return LSM_ERR_INVALID_NFS;
+    }
+
+    std::map<std::string, Value> p;
+    p["export"] = nfsExportToValue(e);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "export_remove", parameters, response);
+    return rc;
 }

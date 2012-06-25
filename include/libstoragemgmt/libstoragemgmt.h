@@ -676,11 +676,31 @@ extern "C" {
 
     /**
      * Creates or modifies an NFS export.
-     * @param[in] c                         Valid NFS connection
-     * @param[in|out] e                     NFS volume to export
-     * @return LSM_ERR_OK on success else error code.
+     * @param[in]c                      Valid connection
+     * @param[in]fs_id                  File system ID to export via NFS
+     * @param[in]export_path            Export path
+     * @param[in]root_list              List of hosts that have root access
+     * @param[in]rw_list                List of hosts that have read/write access
+     * @param[in]ro_list                List of hosts that have read only access
+     * @param[in]anon_uid               UID to map to anonymous
+     * @param[in]anon_gid               GID to map to anonymous
+     * @param[in]auth_type              Array specific authentication types
+     * @param[in]options                Array specific options
+     * @param[out] exported             Export record
+     * @return LSM_ERR_OK on success, else error reason.
      */
-    int LSM_DLL_EXPORT lsmNfsExportFs( lsmConnectPtr c, lsmNfsExportPtr *e );
+    int LSM_DLL_EXPORT lsmNfsExportFs( lsmConnectPtr c,
+                                        const char *fs_id,
+                                        const char *export_path,
+                                        lsmStringListPtr root_list,
+                                        lsmStringListPtr rw_list,
+                                        lsmStringListPtr ro_list,
+                                        uint64_t anon_uid,
+                                        uint64_t anon_gid,
+                                        const char *auth_type,
+                                        const char *options,
+                                        lsmNfsExportPtr *exported
+                                        );
 
     /**
      *
@@ -688,7 +708,7 @@ extern "C" {
      * @param e
      * @return LSM_ERR_OK on success else error code.
      */
-    int LSM_DLL_EXPORT lsmNfsExportRemove( lsmConnectPtr c, lsmNfsExportPtr *e );
+    int LSM_DLL_EXPORT lsmNfsExportRemove( lsmConnectPtr c, lsmNfsExportPtr e );
 
 #ifdef  __cplusplus
 }

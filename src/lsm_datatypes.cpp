@@ -243,11 +243,11 @@ static int establishConnection( lsmConnectPtr c, const char * password,
 
         c->tp->rpc("startup", p);
     } catch (const ValueException &ve) {
-        *e = lsmErrorCreate(LSM_ERR_TRANS_PORT_SERIALIZATION,
+        *e = lsmErrorCreate(LSM_ERR_TRANSPORT_SERIALIZATION,
                                 LSM_ERR_DOMAIN_FRAME_WORK,
                                 LSM_ERR_LEVEL_ERROR, "Error in serialization",
                                 ve.what(), NULL, NULL, 0 );
-        rc = LSM_ERR_TRANS_PORT_SERIALIZATION;
+        rc = LSM_ERR_TRANSPORT_SERIALIZATION;
     } catch (const LsmException &le) {
         *e = lsmErrorCreate(LSM_ERR_TRANSPORT_COMMUNICATION,
                                 LSM_ERR_DOMAIN_FRAME_WORK,
@@ -1199,9 +1199,12 @@ void lsmNfsExportRecordFree( lsmNfsExportPtr exp )
 
 lsmNfsExportPtr lsmNfsExportRecordCopy( lsmNfsExportPtr s )
 {
-    return lsmNfsExportRecordAlloc(s->id, s->fs_id, s->export_path,
-                            s->auth_type, s->root, s->rw, s->ro, s->anonuid,
-                            s->anongid, s->options);
+    if(LSM_IS_NFS_EXPORT(s)) {
+        return lsmNfsExportRecordAlloc(s->id, s->fs_id, s->export_path,
+                                s->auth_type, s->root, s->rw, s->ro, s->anonuid,
+                                s->anongid, s->options);
+    }
+    return NULL;
 }
 
 CREATE_ALLOC_ARRAY_FUNC(lsmNfsExportRecordAllocArray, lsmNfsExportPtr)

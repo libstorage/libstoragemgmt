@@ -19,7 +19,7 @@ import os
 
 from common import LsmError, ErrorNumber, JobStatus, md5, uri_parse
 import random
-from data import Pool, Initiator, Volume, BlockRange, System, AccessGroup, Snapshot
+from data import Pool, Initiator, Volume, BlockRange, System, AccessGroup, Snapshot, NfsExport
 import time
 import pickle
 from data import FileSystem
@@ -75,13 +75,15 @@ class SimState(object):
         self.sys_info = System('sim-01', 'LSM simulated storage plug-in')
         p1 = Pool('POO1', 'Pool 1', 2 ** 64, 2 ** 64, self.sys_info.id)
         p2 = Pool('POO2', 'Pool 2', 2 ** 64, 2 ** 64, self.sys_info.id)
-        p3 = Pool('POO3', 'lsm_test_aggr', 2 ** 64, 2 ** 64, self.sys_info.id)
+        p3 = Pool('POO3', 'Pool 3', 2 ** 64, 2 ** 64, self.sys_info.id)
+        p4 = Pool('POO4', 'lsm_test_aggr', 2 ** 64, 2 ** 64, self.sys_info.id)
 
         pm1 = {'pool': p1, 'volumes': {}}
         pm2 = {'pool': p2, 'volumes': {}}
         pm3 = {'pool': p3, 'volumes': {}}
+        pm4 = {'pool': p4, 'volumes': {}}
 
-        self.pools = {p1.id: pm1, p2.id: pm2, p3.id: pm3}
+        self.pools = {p1.id: pm1, p2.id: pm2, p3.id: pm3, p4.id: pm4}
         self.volumes = {}
         self.vol_num = 1
         self.access_groups = {}
@@ -622,12 +624,17 @@ class StorageSimulator(INfs):
                 rc.append(exp)
         return rc
 
-    def export_fs(self, export):
-        fs_id = export.fs_id
+    def export_fs(self, fs_id, export_path, root_list, rw_list, ro_list,
+                  anon_uid, anon_gid, auth_type,options):
 
         if fs_id in self.s.fs:
-            export.id = md5(export.export_path)
-            self.s.fs[fs_id]['exports'][export.id] = export
+            export_id = md5(export_path)
+
+            export = NfsExport(export_id, fs_id, export_path, auth_type,
+                            root_list, rw_list, ro_list, anon_uid, anon_gid,
+                            options)
+
+            self.s.fs[fs_id]['exports'][export_id] = export
             return export
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')

@@ -24,7 +24,7 @@
 #include <time.h>
 #include <libstoragemgmt/libstoragemgmt.h>
 
-const char uri[] = "sim://localhost/?statefile=/tmp/lsm_sim_%s";
+const char uri[] = "simc://localhost/?statefile=/tmp/lsm_sim_%s";
 const char SYSTEM_NAME[] = "LSM simulated storage plug-in";
 const char SYSTEM_ID[] = "sim-01";
 const char *ISCSI_HOST[2] = {   "iqn.1994-05.com.domain:01.89bd01",
@@ -116,8 +116,6 @@ void teardown(void)
     int rc = lsmConnectClose(c);
     fail_unless(LSM_ERR_OK == rc, "lsmConnectClose rc = %d", rc);
 }
-
-
 
 char *error(lsmErrorPtr e)
 {
@@ -339,7 +337,7 @@ START_TEST(test_smoke_test)
 
     //Check pool count
     count = poolCount;
-    fail_unless(count == 3, "We are expecting 2 pools from simulator");
+    fail_unless(count == 4, "We are expecting 4 pools from simulator");
 
     //Dump pools and select a pool to use for testing.
     for (i = 0; i < count; ++i) {
@@ -606,7 +604,8 @@ START_TEST(test_access_groups)
     fail_unless( 1 == count );
 
     init_list = lsmAccessGroupInitiatorIdGet(groups[0]);
-    fail_unless( init_list == NULL);
+    fail_unless( init_list != NULL);
+    fail_unless( lsmStringListSize(init_list) == 0);
 
     lsmAccessGroupRecordFreeArray(groups, count);
     groups = NULL;
@@ -841,7 +840,7 @@ START_TEST(test_systems)
 
     id = lsmSystemIdGet(sys[0]);
     fail_unless(id != NULL);
-    fail_unless(strcmp(id, SYSTEM_ID) == 0);
+    fail_unless(strcmp(id, SYSTEM_ID) == 0, "%s", id);
 
     name = lsmSystemNameGet(sys[0]);
     fail_unless(name != NULL);
@@ -867,7 +866,7 @@ START_TEST(test_nfs_exports)
     if( LSM_ERR_JOB_STARTED == rc ) {
         nfs = wait_for_job_fs(c, &job);
     } else {
-        fail_unless(LSM_ERR_OK != rc);
+        fail_unless(LSM_ERR_OK == rc, "RC = %d", rc);
     }
 
     fail_unless(nfs != NULL);
@@ -885,30 +884,21 @@ START_TEST(test_nfs_exports)
     fail_unless(NULL != access);
 
     lsmStringListSetElem(access, 0, "192.168.2.29");
-    lsmNfsExportPtr e = lsmNfsExportRecordAlloc(NULL,
-                                                lsmFsIdGet(nfs),
-                                                "/tony",
-                                                NULL,
-                                                access,
-                                                access,
-                                                NULL,
-                                                ANON_UID_GID_NA,
-                                                ANON_UID_GID_NA,
-                                                NULL);
 
-    fail_unless( NULL != e );
+    lsmNfsExportPtr e = NULL;
 
-    rc = lsmNfsExportFs(c,&e);
+    rc = lsmNfsExportFs(c, lsmFsIdGet(nfs), "/tony", access, access, NULL, ANON_UID_GID_NA, ANON_UID_GID_NA, NULL, NULL, &e);
     fail_unless(LSM_ERR_OK == rc, "lsmNfsExportFs %d\n", rc);
 
     lsmNfsExportRecordFree(e);
+    e=NULL;
 
     rc = lsmNfsList(c, &exports, &count);
     fail_unless( LSM_ERR_OK == rc);
     fail_unless( exports != NULL);
     fail_unless( count == 1 );
 
-    rc  = lsmNfsExportRemove(c, &exports[0]);
+    rc  = lsmNfsExportRemove(c, exports[0]);
     fail_unless( LSM_ERR_OK == rc );
     lsmNfsExportRecordFreeArray(exports, count);
 

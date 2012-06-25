@@ -90,9 +90,10 @@ typedef enum {
     LSM_ERR_NOT_FOUND_POOL = 203,       /**< Specified POOL not found */
     LSM_ERR_NOT_FOUND_SS = 204,         /**< Specified snap shot not found */
     LSM_ERR_NOT_FOUND_VOLUME = 205,     /**< Specified volume not found */
+    LSM_ERR_NOT_FOUND_NFS_EXPORT = 206, /**< NFS export not found */
 
-    LSM_ERR_NOT_IMPLEMENTED = 206,      /**< Feature not implemented */
-    LSM_ERR_NOT_LICENSED = 207,         /**< Need license for feature */
+    LSM_ERR_NOT_IMPLEMENTED = 225,      /**< Feature not implemented */
+    LSM_ERR_NOT_LICENSED = 226,         /**< Need license for feature */
 
     LSM_ERR_OFF_LINE = 250,             /**< Specified element is off line */
     LSM_ERR_ON_LINE = 251,              /**< Specified element is on line */
@@ -115,7 +116,8 @@ typedef enum {
     LSM_ERR_SIZE_LIMIT_REACHED = 354,       /**< Limit has been reached */
 
     LSM_ERR_TRANSPORT_COMMUNICATION = 400,    /**< Error comunicating with plug-in */
-    LSM_ERR_TRANS_PORT_SERIALIZATION = 401,   /**< Transport serialization error */
+    LSM_ERR_TRANSPORT_SERIALIZATION = 401,   /**< Transport serialization error */
+    LSM_ERR_TRANSPORT_INVALID_ARG = 402,        /**< Parameter transported over IPC is invalid */
 
     LSM_ERR_UNSUPPORTED_INITIATOR_TYPE = 450,   /**< Unsupported initiator type */
     LSM_ERR_UNSUPPORTED_PROVISIONING = 451,     /**< Unsupported provisioning */

@@ -19,7 +19,7 @@ import time
 import os
 import unittest
 import urlparse
-from data import Volume
+from data import Volume, NfsExport
 from iplugin import INetworkAttachedStorage
 from transport import Transport
 import common
@@ -553,7 +553,7 @@ class Client(INetworkAttachedStorage):
     # @param    snapshot_name   The human readable snapshot name
     # @param    files   The list of specific files to snapshot.
     # @returns tuple (job_id, snapshot)
-    def snapshot_create(self, fs, snapshot_name, files=[]):
+    def snapshot_create(self, fs, snapshot_name, files):
         """
         Snapshot is a point in time read-only copy
 
@@ -594,7 +594,7 @@ class Client(INetworkAttachedStorage):
     # @param    files       The specific files to revert.
     # @param    all_files   Set to True if all files should be reverted back.
     # @return None on success, else job id
-    def snapshot_revert(self, fs, snapshot, files = [], restore_files = [],
+    def snapshot_revert(self, fs, snapshot, files, restore_files,
                         all_files=False):
         """
         WARNING: Destructive!
@@ -615,7 +615,7 @@ class Client(INetworkAttachedStorage):
     # @param    fs      The file system to check
     # @param    file    The files to check (optional)
     # @returns True or False
-    def fs_child_dependency(self, fs, files=[]):
+    def fs_child_dependency(self, fs, files):
         """
         Returns True if the specified filesystem or specified file on this
         file system has child dependencies.  This implies that this filesystem
@@ -627,9 +627,9 @@ class Client(INetworkAttachedStorage):
     ## Removes child dependencies from a FS or specific file.
     # @param    self    The this pointer
     # @param    fs      The file system to remove child dependencies for
-    # @param    file    The files to remove child dependencies for (optional)
+    # @param    file    The list of files to remove child dependencies (optional)
     # @returns None if complete, else job id.
-    def fs_child_dependency_rm(self, fs, files=[]):
+    def fs_child_dependency_rm(self, fs, files):
         """
         If this filesystem or specified file on this filesystem has child
         dependency this method will fully replicate the blocks removing the
@@ -662,12 +662,23 @@ class Client(INetworkAttachedStorage):
         return self.tp.rpc('exports', del_self(locals()))
 
     ## Exports a FS as specified in the export.
-    # @param    self    The this pointer
-    # @param    export  The export
+    # @param    self            The this pointer
+    # @param    fs_id           The FS ID to export
+    # @param    export_path     The export path
+    # @param    rool_list       List of hosts with root access
+    # @param    rw_list         List of hosts with read/write access
+    # @param    ro_list         List of hosts with read only access
+    # @param    anon_uid        UID to map to anonymous
+    # @param    anon_gid        GID to map to anonymous
+    # @param    auth_type       NFS client authentication type
+    # @param    options         Options to pass to plug-in
     # @returns NfsExport on success, else raises LsmError
-    def export_fs(self, export):
+    def export_fs(self, fs_id, export_path, root_list, rw_list, ro_list,
+                  anon_uid=NfsExport.ANON_UID_GID_NA,
+                  anon_gid=NfsExport.ANON_UID_GID_NA,
+                  auth_type=None,options=None):
         """
-        Exports a filesystem as specified in the export
+        Exports a filesystem as specified in the arguments
         """
         return self.tp.rpc('export_fs', del_self(locals()))
 
