@@ -156,8 +156,7 @@ lsmStringList *valueToStringList(Value &v)
 
         if( il ) {
             for( uint32_t i = 0; i < size; ++i ) {
-                if( LSM_ERR_OK !=
-                    lsmStringListSetElem(il, i, vl[i].asString().c_str())) {
+                if(LSM_ERR_OK != lsmStringListSetElem(il, i, vl[i].asC_str())){
                     lsmStringListFree(il);
                     il = NULL;
                     break;
@@ -195,10 +194,9 @@ lsmAccessGroup *valueToAccessGroup( Value &group )
                                         vAg["name"].asString().c_str(),
                                         il,
                                         vAg["system_id"].asString().c_str());
-            if( !ag ) {
-                lsmStringListFree(il);
-                il = NULL;
-            }
+
+            /* Initiator list is copied in AccessroupRecordAlloc */
+            lsmStringListFree(il);
         }
     }
     return ag;
@@ -413,6 +411,10 @@ lsmNfsExport *valueToNfsExport(Value &exp)
                 i["anongid"].asUint64_t(),
                 i["options"].asC_str()
                 );
+
+            lsmStringListFree(root);
+            lsmStringListFree(rw);
+            lsmStringListFree(ro);
         }
     }
     return rc;

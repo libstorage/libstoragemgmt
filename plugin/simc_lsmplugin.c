@@ -359,21 +359,23 @@ static int list_volumes(lsmPluginPtr c, lsmVolumePtr **vols,
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
     *count = pd->num_volumes;
 
-    *vols = lsmVolumeRecordAllocArray( pd->num_volumes );
-    if( *vols ) {
-        uint32_t i = 0;
-        for( i = 0; i < pd->num_volumes; ++i ) {
-            (*vols)[i] = lsmVolumeRecordCopy(pd->volume[i].v);
-            if( !(*vols)[i] ) {
-                rc = LSM_ERR_NO_MEMORY;
-                lsmVolumeRecordFreeArray(*vols, i);
-                *vols = NULL;
-                *count = 0;
-                break;
+    if( *count ) {
+        *vols = lsmVolumeRecordAllocArray( pd->num_volumes );
+        if( *vols ) {
+            uint32_t i = 0;
+            for( i = 0; i < pd->num_volumes; ++i ) {
+                (*vols)[i] = lsmVolumeRecordCopy(pd->volume[i].v);
+                if( !(*vols)[i] ) {
+                    rc = LSM_ERR_NO_MEMORY;
+                    lsmVolumeRecordFreeArray(*vols, i);
+                    *vols = NULL;
+                    *count = 0;
+                    break;
+                }
             }
+        } else {
+            rc = LSM_ERR_NO_MEMORY;
         }
-    } else {
-        rc = LSM_ERR_NO_MEMORY;
     }
 
     return rc;
@@ -678,9 +680,9 @@ static int access_group_create(lsmPluginPtr c,
 {
     int rc = LSM_ERR_OK;
     lsmAccessGroupPtr ag = NULL;
-    char *id = strdup(md5(name));
     struct allocated_ag *aag = NULL;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
+    char *id = strdup(md5(name));
 
     struct allocated_ag *find = (struct allocated_ag *)
                         g_hash_table_lookup(pd->access_groups, id);
@@ -692,20 +694,22 @@ static int access_group_create(lsmPluginPtr c,
             ag = lsmAccessGroupRecordAlloc(id, name, initiators,
                                                         system_id);
             aag = alloc_allocated_ag(ag, id_type);
-            if( !ag || !aag ) {
-                lsmStringListFree(initiators);
-                free_allocated_ag(aag);
-                rc = lsmLogErrorBasic(c, LSM_ERR_NO_MEMORY,
-                                    "ENOMEM");
-            } else {
+            if( ag && aag ) {
                 g_hash_table_insert(pd->access_groups, (gpointer)id,
                                         (gpointer)aag);
                 *access_group = lsmAccessGroupRecordCopy(ag);
+            } else {
+                free_allocated_ag(aag);
+                lsmAccessGroupRecordFree(ag);
+                rc = lsmLogErrorBasic(c, LSM_ERR_NO_MEMORY, "ENOMEM");
             }
         } else {
             rc = lsmLogErrorBasic(c, LSM_ERR_NO_MEMORY,
                                     "ENOMEM");
         }
+
+        /* Initiators is copied when allocating a group record */
+        lsmStringListFree(initiators);
 
     } else {
         rc = lsmLogErrorBasic(c, LSM_ERR_EXISTS_ACCESS_GROUP,
@@ -1498,6 +1502,11 @@ static int nfs_export_list( lsmPluginPtr c, lsmNfsExportPtr **exports,
         }
     }
 
+    if( result ) {
+        g_slist_free(result);
+        result = NULL;
+    }
+
     return rc;
 }
 
@@ -1662,6 +1671,8 @@ int unload( lsmPluginPtr c )
         pd->system[i]= NULL;
     }
     pd->num_systems = 0;
+
+    free(pd);
 
     return LSM_ERR_OK;
 }

@@ -123,7 +123,7 @@ lsmStringListPtr lsmStringListAlloc(uint32_t size)
 {
     lsmStringList *rc = NULL;
 
-    rc = (lsmStringList *)calloc(1, sizeof(lsmStringList));
+    rc = (lsmStringList *)malloc(sizeof(lsmStringList));
     if( rc ) {
         rc->magic = LSM_STRING_LIST_MAGIC;
         rc->values = g_ptr_array_sized_new(size);
@@ -1188,11 +1188,14 @@ void lsmNfsExportRecordFree( lsmNfsExportPtr exp )
         exp->magic = LSM_DEL_MAGIC(LSM_NFS_EXPORT_MAGIC);
         free(exp->id);
         free(exp->fs_id);
+        free(exp->export_path);
         free(exp->auth_type);
         lsmStringListFree(exp->root);
         lsmStringListFree(exp->rw);
         lsmStringListFree(exp->ro);
         free(exp->options);
+
+        free(exp);
     }
 }
 

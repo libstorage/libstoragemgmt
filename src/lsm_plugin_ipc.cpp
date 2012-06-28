@@ -559,13 +559,14 @@ static int handle_volume_replicate(lsmPluginPtr p, Value &params, Value &respons
                                                 &newVolume, &job);
                 response = job_handle(rc, newVolume, job);
 
-                lsmPoolRecordFree(pool);
-                lsmVolumeRecordFree(vol);
                 lsmVolumeRecordFree(newVolume);
                 free(job);
             } else {
-                rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+                rc = LSM_ERR_NO_MEMORY;
             }
+
+            lsmPoolRecordFree(pool);
+            lsmVolumeRecordFree(vol);
 
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;
@@ -1289,12 +1290,13 @@ static int fs_clone(lsmPluginPtr p, Value &params, Value &response)
                     response = Value(r);
                     free(job);
                 }
-                lsmFsRecordFree(fs);
-                lsmSsRecordFree(ss);
 
             } else {
                 rc = LSM_ERR_NO_MEMORY;
             }
+
+            lsmFsRecordFree(fs);
+            lsmSsRecordFree(ss);
 
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;
