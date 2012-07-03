@@ -312,6 +312,14 @@ struct lsmNasOps {
 };
 
 /**
+ * Copies the memory pointed to by item with given type t.
+ * @param t         Type of item to copy
+ * @param item      Pointer to src
+ * @return Null, else copy of item.
+ */
+void LSM_DLL_EXPORT * lsmDataTypeCopy(lsmDataType t, void *item);
+
+/**
  * Initializes the plug-in.
  * @param argc  Command line argument count
  * @param argv  Command line arguments

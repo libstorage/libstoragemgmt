@@ -137,13 +137,12 @@ char *error(lsmErrorPtr e)
 void wait_for_job(lsmConnectPtr c, char **job_id)
 {
     lsmJobStatus status;
-    lsmVolumePtr vol = NULL;
     uint8_t pc = 0;
     int rc = 0;
 
     do {
-        rc = lsmJobStatusVolumeGet(c, *job_id, &status, &pc, &vol);
-        fail_unless( LSM_ERR_OK == rc, "rc = %d (%s)", rc,  error(lsmErrorGetLast(c)));
+        rc = lsmJobStatusGet(c, *job_id, &status, &pc);
+        fail_unless( LSM_ERR_OK == rc, "lsmJobStatusVolumeGet = %d (%s)", rc,  error(lsmErrorGetLast(c)));
         printf("GENERIC: Job %s in progress, %d done, status = %d\n", *job_id, pc, status);
         usleep(POLL_SLEEP);
 
@@ -169,7 +168,9 @@ lsmVolumePtr wait_for_job_vol(lsmConnectPtr c, char **job_id)
         printf("VOLUME: Job %s in progress, %d done, status = %d\n", *job_id, pc, status);
         usleep(POLL_SLEEP);
 
-    } while( status == LSM_JOB_INPROGRESS );
+    } while( rc == LSM_ERR_OK && status == LSM_JOB_INPROGRESS );
+
+    printf("Volume complete: Job %s percent %d done, status = %d, rc=%d\n", *job_id, pc, status, rc);
 
     rc = lsmJobFree(c, job_id);
     fail_unless( LSM_ERR_OK == rc, "lsmJobFree %d, (%s)", rc, error(lsmErrorGetLast(c)));
@@ -313,6 +314,10 @@ START_TEST(test_smoke_test)
     uint32_t set_tmo = 31123;
     uint32_t tmo = 0;
 
+    printf("Attach debugger to plug-in\n");
+    getchar();
+
+
     //Set timeout.
     rc = lsmConnectSetTimeout(c, set_tmo);
     fail_unless(LSM_ERR_OK == rc, "lsmConnectSetTimeout %d (%s)", rc,
@@ -366,6 +371,8 @@ START_TEST(test_smoke_test)
 
         if( LSM_ERR_JOB_STARTED == vc ) {
             n = wait_for_job_vol(c, &job);
+
+            fail_unless( n != NULL);
         }
 
         uint8_t dependants = 10;
@@ -374,8 +381,12 @@ START_TEST(test_smoke_test)
         fail_unless(dependants == 0);
 
         child_depends = lsmVolumeChildDependencyRm(c, n, &job);
-        fail_unless(LSM_ERR_OK == child_depends);
-        fail_unless(NULL == job);
+        if( LSM_ERR_JOB_STARTED == child_depends ) {
+            wait_for_job(c, &job);
+        } else {
+            fail_unless(LSM_ERR_OK == child_depends, "rc = %d", child_depends);
+            fail_unless(NULL == job);
+        }
 
 
         lsmBlockRangePtr *range = lsmBlockRangeRecordAllocArray(3);
@@ -398,15 +409,18 @@ START_TEST(test_smoke_test)
         int rep_range =  lsmVolumeReplicateRange(c, LSM_VOLUME_REPLICATE_CLONE,
                                                     n, n, range, 3, &job);
 
-        if( LSM_ERR_OK != rep_range ) {
-            dump_error(lsmErrorGetLast(c));
+        if( LSM_ERR_JOB_STARTED == rep_range ) {
+            wait_for_job(c, &job);
+        } else {
+
+            if( LSM_ERR_OK != rep_range ) {
+                dump_error(lsmErrorGetLast(c));
+            }
+
+            fail_unless(LSM_ERR_OK == rep_range);
         }
 
         lsmBlockRangeRecordFreeArray(range, 3);
-
-        fail_unless(LSM_ERR_OK == rep_range);
-
-
 
         int online = lsmVolumeOffline(c, n);
         fail_unless( LSM_ERR_OK == online);
@@ -565,7 +579,11 @@ START_TEST(test_access_groups)
 
     rc = lsmAccessGroupAddInitiator(c, group, "iqn.1994-05.com.domain:01.89bd02", LSM_INITIATOR_ISCSI, &job);
 
-    fail_unless(LSM_ERR_OK == rc, "Expected success on lsmAccessGroupAddInitiator %d", rc);
+    if( LSM_ERR_JOB_STARTED == rc ) {
+        wait_for_job(c, &job);
+    } else {
+        fail_unless(LSM_ERR_OK == rc, "Expected success on lsmAccessGroupAddInitiator %d", rc);
+    }
 
     rc = lsmAccessGroupList(c, &groups, &count);
     fail_unless( LSM_ERR_OK == rc);
@@ -592,7 +610,12 @@ START_TEST(test_access_groups)
         printf("Deleting initiator %s from group!\n", lsmInitiatorIdGet(inits[i]));
         rc = lsmAccessGroupDelInitiator(c, groups[0],
                                             lsmInitiatorIdGet(inits[i]), &job);
-        fail_unless(LSM_ERR_OK == rc);
+
+        if( LSM_ERR_JOB_STARTED == rc ) {
+            wait_for_job_fs(c, &job);
+        } else {
+            fail_unless(LSM_ERR_OK == rc);
+        }
     }
 
     lsmAccessGroupRecordFreeArray(groups, count);
@@ -645,7 +668,11 @@ START_TEST(test_access_groups_grant_revoke)
     fail_unless(n != NULL);
 
     rc = lsmAccessGroupGrant(c, group, n, LSM_VOLUME_ACCESS_READ_WRITE, &job);
-    fail_unless(LSM_ERR_OK == rc);
+    if( LSM_ERR_JOB_STARTED == rc ) {
+        wait_for_job(c, &job);
+    } else {
+        fail_unless(LSM_ERR_OK == rc);
+    }
 
     lsmVolumePtr *volumes = NULL;
     uint32_t v_count = 0;
@@ -666,7 +693,11 @@ START_TEST(test_access_groups_grant_revoke)
     lsmAccessGroupRecordFreeArray(groups, g_count);
 
     rc = lsmAccessGroupRevoke(c, group, n, &job);
-    fail_unless(LSM_ERR_OK == rc);
+    if( LSM_ERR_JOB_STARTED == rc ) {
+        wait_for_job(c, &job);
+    } else {
+        fail_unless(LSM_ERR_OK == rc);
+    }
 
     rc = lsmAccessGroupDel(c, group, &job);
     fail_unless(LSM_ERR_OK == rc);

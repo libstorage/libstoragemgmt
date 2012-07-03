@@ -31,6 +31,7 @@
 #include "libstoragemgmt/libstoragemgmt_fs.h"
 #include "libstoragemgmt/libstoragemgmt_snapshot.h"
 #include "libstoragemgmt/libstoragemgmt_nfsexport.h"
+#include "libstoragemgmt/libstoragemgmt_blockrange.h"
 #include <time.h>
 
 #ifdef  __cplusplus
@@ -121,7 +122,67 @@ struct plugin_data {
     GHashTable *access_groups;
     GHashTable *group_grant;
     GHashTable *fs;
+
+    GHashTable *jobs;
 };
+
+struct allocated_job {
+    int polls;
+    lsmDataType type;
+    void *return_data;
+};
+
+struct allocated_job *alloc_allocated_job( lsmDataType type, void *return_data )
+{
+    struct allocated_job *rc = malloc( sizeof(struct allocated_job) );
+    if( rc ) {
+        rc->polls = 0;
+        rc->type = type;
+        rc->return_data = return_data;
+    }
+    return rc;
+}
+
+void free_allocated_job(void *j)
+{
+    struct allocated_job *job = j;
+
+    if( job &&  job->return_data ) {
+        switch( job->type ) {
+        case(LSM_DATA_TYPE_BLOCK_RANGE):
+            lsmBlockRangeRecordFree((lsmBlockRangePtr)job->return_data);
+            break;
+        case(LSM_DATA_TYPE_FS):
+            lsmFsRecordFree((lsmFsPtr)job->return_data);
+            break;
+        case(LSM_DATA_TYPE_INITIATOR):
+            lsmInitiatorRecordFree((lsmInitiatorPtr)job->return_data);
+            break;
+        case(LSM_DATA_TYPE_NFS_EXPORT):
+            lsmNfsExportRecordFree((lsmNfsExportPtr)job->return_data);
+            break;
+        case(LSM_DATA_TYPE_POOL):
+            lsmPoolRecordFree((lsmPoolPtr)job->return_data);
+            break;
+        case(LSM_DATA_TYPE_SS):
+            lsmSsRecordFree((lsmSsPtr)job->return_data);
+            break;
+        case(LSM_DATA_TYPE_STRING_LIST):
+            lsmStringListFree((lsmStringListPtr)job->return_data);
+            break;
+        case(LSM_DATA_TYPE_SYSTEM):
+            lsmSystemRecordFree((lsmSystemPtr)job->return_data);
+            break;
+        case(LSM_DATA_TYPE_VOLUME):
+            lsmVolumeRecordFree((lsmVolumePtr)job->return_data);
+            break;
+        default:
+            break;
+        }
+        job->return_data = NULL;
+    }
+    free(job);
+}
 
 struct allocated_ag *alloc_allocated_ag( lsmAccessGroupPtr ag,
                                             lsmInitiatorType i)
@@ -190,6 +251,48 @@ static struct allocated_fs *alloc_fs_record() {
     return rc;
 }
 
+static int create_job(struct plugin_data *pd, char **job, lsmDataType t,
+                        void *new_value, void **returned_value)
+{
+    static int job_num = 0;
+    int rc = LSM_ERR_JOB_STARTED;
+    char job_id[64];
+    char *key = NULL;
+
+    /* Make this random */
+    if( 0 ) {
+        if( returned_value ) {
+            *returned_value = new_value;
+        }
+        *job = NULL;
+        rc = LSM_ERR_OK;
+    } else {
+        snprintf(job_id, sizeof(job_id), "JOB_%d", job_num);
+        job_num += 1;
+
+        if( returned_value ) {
+            *returned_value = NULL;
+        }
+
+        *job = strdup(job_id);
+        key = strdup(job_id);
+
+        struct allocated_job *value = alloc_allocated_job(t, new_value);
+        if( *job && key && value ) {
+            g_hash_table_insert(pd->jobs, key, value);
+        } else {
+            free(*job);
+            *job = NULL;
+            free(key);
+            key = NULL;
+            free_allocated_job(value);
+            value = NULL;
+            rc = LSM_ERR_NO_MEMORY;
+        }
+    }
+    return rc;
+}
+
 static int tmo_set(lsmPluginPtr c, uint32_t timeout )
 {
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -214,7 +317,30 @@ static int jobStatus(lsmPluginPtr c, const char *job_id,
                         lsmDataType *t,
                         void **value)
 {
-    return LSM_ERR_NO_SUPPORT;
+    int rc = LSM_ERR_OK;
+    struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
+
+    struct allocated_job *val = (struct allocated_job*)
+                                    g_hash_table_lookup(pd->jobs,job_id);
+    if( val ) {
+        *status = LSM_JOB_INPROGRESS;
+
+        val->polls += 34;
+
+        if( (val->polls) >= 100 ) {
+            *t = val->type;
+            *value = lsmDataTypeCopy(val->type, val->return_data);
+            *status = LSM_JOB_COMPLETE;
+            *percentComplete = 100;
+        } else {
+            *percentComplete = val->polls;
+        }
+
+    } else {
+        rc = LSM_ERR_NOT_FOUND_JOB;
+    }
+
+    return rc;
 }
 
 static int list_pools(lsmPluginPtr c, lsmPoolPtr **poolArray,
@@ -266,7 +392,13 @@ static int list_systems(lsmPluginPtr c, lsmSystemPtr **systems,
 
 static int jobFree(lsmPluginPtr c, char *job_id)
 {
-    return LSM_ERR_NOT_IMPLEMENTED;
+    int rc = LSM_ERR_OK;
+    struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
+
+    if( !g_hash_table_remove(pd->jobs, job_id) ) {
+        rc = LSM_ERR_NOT_FOUND_JOB;
+    }
+    return rc;
 }
 
 static struct lsmMgmtOps mgmOps = {
@@ -454,10 +586,13 @@ static int volume_create(lsmPluginPtr c, lsmPoolPtr pool,
                                        "VPD", BS, allocated_size/BS, 0, sys_id);
 
                     if( v ) {
-                        *newVolume = v;
                         pd->volume[pd->num_volumes].v = lsmVolumeRecordCopy(v);
                         pd->volume[pd->num_volumes].p = p;
                         pd->num_volumes +=1;
+
+                        rc = create_job(pd, job, LSM_DATA_TYPE_VOLUME, v,
+                                            (void**)newVolume);
+
                     } else {
                         rc = lsmLogErrorBasic(c, LSM_ERR_NO_MEMORY,
                                                 "Check for leaks");
@@ -536,6 +671,8 @@ static int volume_replicate_range(lsmPluginPtr c,
     if( -1 == src_v || -1 == dest_v ) {
         rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_VOLUME,
                                     "Src or dest volumes not found!");
+    } else {
+        rc = create_job(pd, job, LSM_DATA_TYPE_NONE, NULL, NULL);
     }
 
     return rc;
@@ -567,7 +704,9 @@ static int volume_resize(lsmPluginPtr c, lsmVolumePtr volume,
             if( vp ) {
                 pd->volume[vi].v = vp;
                 lsmVolumeRecordFree(v);
-                *resizedVolume = lsmVolumeRecordCopy(vp);
+                rc = create_job(pd, job, LSM_DATA_TYPE_VOLUME,
+                                    lsmVolumeRecordCopy(vp),
+                                    (void**)resizedVolume);
             } else {
                 pool_deallocate(p, resized_size);
                 pool_allocate(p, curr_size);
@@ -613,6 +752,9 @@ static int volume_delete(lsmPluginPtr c, lsmVolumePtr volume,
                 g_hash_table_remove(v, volume_id );
             }
         }
+
+        rc = create_job(pd, job, LSM_DATA_TYPE_NONE, NULL, NULL);
+
     } else {
         rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_VOLUME,
                                     "volume not found!");
@@ -760,6 +902,9 @@ static int access_group_add_initiator(  lsmPluginPtr c,
     if( find ) {
         lsmStringList *inits = lsmAccessGroupInitiatorIdGet(find->ag);
         rc = lsmStringListAppend(inits, initiator_id);
+        if( LSM_ERR_OK == rc ) {
+            rc = create_job(pd, job, LSM_DATA_TYPE_NONE, NULL, NULL);
+        }
     } else {
         rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_ACCESS_GROUP,
                                     "access group not found");
@@ -789,6 +934,10 @@ static int access_group_del_initiator(  lsmPluginPtr c,
                 rc = LSM_ERR_OK;
                 break;
             }
+        }
+
+        if( LSM_ERR_OK == rc ) {
+            rc = create_job(pd, job, LSM_DATA_TYPE_NONE, NULL, NULL);
         }
     } else {
         rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_ACCESS_GROUP,
@@ -830,6 +979,8 @@ static int access_group_grant(lsmPluginPtr c,
 
                 /* Create the association for access groups */
                 g_hash_table_insert(pd->group_grant, key, grant);
+
+                rc = create_job(pd, job, LSM_DATA_TYPE_NONE, NULL, NULL);
 
             } else {
                 rc = LSM_ERR_NO_MEMORY;
@@ -891,7 +1042,7 @@ static int access_group_revoke(lsmPluginPtr c,
                                     lsmAccessGroupIdGet(find->ag));
 
         if( (grants && g_hash_table_remove(grants, lsmVolumeIdGet(volume)))) {
-            rc = LSM_ERR_OK;
+            rc = create_job(pd, job, LSM_DATA_TYPE_NONE, NULL, NULL);
         }
 
     } else {
@@ -1056,7 +1207,7 @@ int static volume_dependency_rm(lsmPluginPtr c,
     int vi = find_volume_name(pd, lsmVolumeNameGet(volume));
 
     if( -1 != vi ) {
-        return LSM_ERR_OK;
+        return create_job(pd, job, LSM_DATA_TYPE_NONE, NULL, NULL);
     } else {
         return LSM_ERR_NOT_FOUND_VOLUME;
     }
@@ -1134,11 +1285,12 @@ static int fs_create(lsmPluginPtr c, lsmPoolPtr pool, const char *name,
         if( allocated_size ) {
             char *id = md5(name);
             char *key = strdup(id);
+            lsmFsPtr new_fs = NULL;
 
             /* Make a copy to store and a copy to hand back to caller */
             lsmFsPtr tfs = lsmFsRecordAlloc(id, name, allocated_size,
                                 allocated_size, lsmPoolIdGet(pool), sys_id);
-            *fs = lsmFsRecordCopy(tfs);
+            new_fs = lsmFsRecordCopy(tfs);
 
             /* Allocate the memory to keep the associations */
             struct allocated_fs *afs = alloc_fs_record();
@@ -1147,9 +1299,11 @@ static int fs_create(lsmPluginPtr c, lsmPoolPtr pool, const char *name,
                 afs->fs = tfs;
                 afs->p = p;
                 g_hash_table_insert(pd->fs, key, afs);
+
+                rc = create_job(pd, job, LSM_DATA_TYPE_FS, new_fs, (void**)fs);
             } else {
                 free(key);
-                lsmFsRecordFree(*fs);
+                lsmFsRecordFree(new_fs);
                 lsmFsRecordFree(tfs);
                 free_fs_record(afs);
 
@@ -1178,6 +1332,8 @@ static int fs_delete(lsmPluginPtr c, lsmFsPtr fs, char **job)
 
     if( !g_hash_table_remove(pd->fs, lsmFsIdGet(fs)) ) {
         rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_FS, "FS not found!");
+    } else {
+        rc = create_job(pd, job, LSM_DATA_TYPE_NONE, NULL, NULL);
     }
     return rc;
 }
@@ -1208,14 +1364,18 @@ static int fs_resize(lsmPluginPtr c, lsmFsPtr fs,
                                                 new_size_bytes,
                                                 lsmFsPoolIdGet(tfs),
                                                 lsmFsSystemIdGet(tfs));
-            *rfs = lsmFsRecordCopy(resized);
+            lsmFsPtr returned_copy = lsmFsRecordCopy(resized);
 
-            if( resized && *rfs ) {
+            if( resized && returned_copy ) {
                 lsmFsRecordFree(tfs);
                 afs->fs = resized;
+
+                rc = create_job(pd, job, LSM_DATA_TYPE_FS, returned_copy,
+                                    (void**)rfs);
+
             } else {
                 lsmFsRecordFree(resized);
-                lsmFsRecordFree(*rfs);
+                lsmFsRecordFree(returned_copy);
                 *rfs = NULL;
 
                 pool_deallocate(p, new_size_bytes);
@@ -1268,6 +1428,8 @@ static int fs_file_clone(lsmPluginPtr c, lsmFsPtr fs,
                                     pd->fs, lsmFsIdGet(fs));
     if( !find ) {
         rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_FS, "fs not found");
+    } else {
+        rc = create_job(pd, job, LSM_DATA_TYPE_NONE, NULL, NULL);
     }
     return rc;
 }
@@ -1294,6 +1456,8 @@ static int fs_child_dependency_rm( lsmPluginPtr c, lsmFsPtr fs,
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
     if( !g_hash_table_lookup(pd->fs, lsmFsIdGet(fs))) {
         rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_FS, "fs not found");
+    } else {
+        rc = create_job(pd, job, LSM_DATA_TYPE_NONE, NULL, NULL);
     }
     return rc;
 }
@@ -1360,14 +1524,15 @@ static int ss_create(lsmPluginPtr c, lsmFsPtr fs,
             char *id = strdup(md5(name));
             if( id ) {
                 lsmSsPtr ss = lsmSsRecordAlloc(id, name, time(NULL));
-                *snapshot = lsmSsRecordCopy(ss);
-                if( ss && *snapshot ) {
+                lsmSsPtr new_shot = lsmSsRecordCopy(ss);
+                if( ss && new_shot ) {
                     g_hash_table_insert(find->ss, (gpointer)id, (gpointer)ss);
-                    rc = LSM_ERR_OK;
+                    rc = create_job(pd, job, LSM_DATA_TYPE_SS, new_shot,
+                                        (void**)snapshot);
                 } else {
                     lsmSsRecordFree(ss);
                     ss = NULL;
-                    lsmSsRecordFree(*snapshot);
+                    lsmSsRecordFree(new_shot);
                     *snapshot = NULL;
                     free(id);
                     id = NULL;
@@ -1396,6 +1561,8 @@ static int ss_delete(lsmPluginPtr c, lsmFsPtr fs, lsmSsPtr ss,
         if( !g_hash_table_remove(find->ss, lsmSsIdGet(ss)) ) {
             rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_SS,
                                     "snapshot not found");
+        } else {
+            rc = create_job(pd, job, LSM_DATA_TYPE_NONE, NULL, NULL);
         }
     } else {
         rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_FS, "fs not found");
@@ -1418,6 +1585,8 @@ static int ss_revert(lsmPluginPtr c, lsmFsPtr fs, lsmSsPtr ss,
         if(!g_hash_table_lookup(find->ss, lsmSsIdGet(ss))) {
             rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_SS,
                                     "snapshot not found");
+        } else {
+            rc = create_job(pd, job, LSM_DATA_TYPE_NONE, NULL, NULL);
         }
     } else {
         rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_FS, "fs not found");
@@ -1627,6 +1796,9 @@ int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
         data->fs = g_hash_table_new_full(g_str_hash, g_str_equal, free,
                                             free_allocated_fs);
 
+        data->jobs = g_hash_table_new_full(g_str_hash, g_str_equal, free,
+                                            free_allocated_job);
+
         if( !data->system[0] || !data->pool[0] || !data->pool[1] ||
             !data->pool[2] || !data->pool[3] || !data->access_groups ||
             !data->group_grant || !data->fs) {
@@ -1644,6 +1816,9 @@ int unload( lsmPluginPtr c )
     uint32_t i = 0;
 
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
+
+    g_hash_table_destroy(pd->jobs);
+    pd->jobs = NULL;
 
     g_hash_table_destroy(pd->fs);
     pd->fs = NULL;

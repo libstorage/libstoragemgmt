@@ -52,6 +52,46 @@ std::string ss(char *s)
     return std::string();
 }
 
+void * lsmDataTypeCopy(lsmDataType t, void *item)
+{
+    void *rc = NULL;
+
+    if( item ) {
+        switch( t ) {
+            case(LSM_DATA_TYPE_BLOCK_RANGE):
+                rc = lsmBlockRangeRecordCopy((lsmBlockRangePtr)item);
+                break;
+            case(LSM_DATA_TYPE_FS):
+                rc = lsmFsRecordCopy((lsmFsPtr)item);
+                break;
+            case(LSM_DATA_TYPE_INITIATOR):
+                rc = lsmInitiatorRecordCopy((lsmInitiatorPtr)item);
+                break;
+            case(LSM_DATA_TYPE_NFS_EXPORT):
+                rc = lsmNfsExportRecordCopy((lsmNfsExportPtr)item);
+                break;
+            case(LSM_DATA_TYPE_POOL):
+                rc = lsmPoolRecordCopy((lsmPoolPtr)item);
+                break;
+            case(LSM_DATA_TYPE_SS):
+                rc = lsmSsRecordCopy((lsmSsPtr)item);
+                break;
+            case(LSM_DATA_TYPE_STRING_LIST):
+                rc = lsmStringListCopy((lsmStringListPtr)item);
+                break;
+            case(LSM_DATA_TYPE_SYSTEM):
+                rc = lsmSystemRecordCopy((lsmSystemPtr)item);
+                break;
+            case(LSM_DATA_TYPE_VOLUME):
+                rc = lsmVolumeRecordCopy((lsmVolumePtr)item);
+                break;
+            default:
+                break;
+            }
+    }
+    return rc;
+}
+
 int lsmRegisterPlugin(lsmPluginPtr plug, const char *desc, const char *version,
                         void *private_data, struct lsmMgmtOps *mgmOps,
                         struct lsmSanOps *sanOp, struct lsmFsOps *fsOp,
@@ -306,7 +346,7 @@ static int handle_job_status( lsmPluginPtr p, Value &params, Value &response)
 
             job_id = params["job_id"].asString().c_str();
 
-            int rc = p->mgmtOps->job_status(p, job_id, &status, &percent, &t,
+            rc = p->mgmtOps->job_status(p, job_id, &status, &percent, &t,
                         &value);
 
             if( LSM_ERR_OK == rc) {
@@ -322,6 +362,14 @@ static int handle_job_status( lsmPluginPtr p, Value &params, Value &response)
                         LSM_IS_VOL((lsmVolumePtr)value)) {
                         result.push_back(volumeToValue((lsmVolumePtr)value));
                         lsmVolumeRecordFree((lsmVolumePtr)value);
+                    } else if(  LSM_DATA_TYPE_FS == t &&
+                        LSM_IS_FS((lsmFsPtr)value)) {
+                        result.push_back(fsToValue((lsmFsPtr)value));
+                        lsmFsRecordFree((lsmFsPtr)value);
+                    } else if(  LSM_DATA_TYPE_SS == t &&
+                        LSM_IS_SS((lsmSsPtr)value)) {
+                        result.push_back(ssToValue((lsmSsPtr)value));
+                        lsmSsRecordFree((lsmSsPtr)value);
                     } else {
                         rc = LSM_ERR_PLUGIN_ERROR;
                     }

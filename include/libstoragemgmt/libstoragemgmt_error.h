@@ -75,7 +75,7 @@ typedef enum {
     LSM_ERR_INVALID_SS = 112,           /**< Invalid snapshot */
     LSM_ERR_INVALID_URI = 113,          /**< Invalid uri */
     LSM_ERR_INVALID_VAL = 114,          /**< Invalid value */
-    LSM_ERR_INVALID_VOL = 115,          /**< Invalid job pointer */
+    LSM_ERR_INVALID_VOL = 115,          /**< Invalid volume pointer */
 
     LSM_ERR_IS_MAPPED = 125,            /**< Mapping already exists */
 
