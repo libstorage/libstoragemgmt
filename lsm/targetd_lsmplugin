@@ -25,7 +25,7 @@ from lsm.data import Pool, Initiator, Volume, BlockRange, System
 import urllib2
 import json
 
-user = "foo"
+user = "admin"
 host = "localhost"
 url = "http://%s:18700/targetrpc" % host
 
