@@ -57,21 +57,17 @@ class TargetdStorage(IStorageAreaNetwork):
         raise NotImplementedError
 
     def volumes(self):
-        vol_list = self._jsonrequest("vol_list")
-
         volumes = []
-        for vol in vol_list:
-            volumes.append(Volume(vol['uuid'], vol['name'], vol['uuid'],
-                                  512, vol['size']/512, Volume.STATUS_OK,
-                                  None))
+        for pool in (pool['name'] for pool in self._jsonrequest("pool_list")):
+            for vol in self._jsonrequest("vol_list", dict(pool=pool)):
+                volumes.append(Volume(vol['uuid'], vol['name'], vol['uuid'],
+                                      512, vol['size']/512, Volume.STATUS_OK,
+                                      None))
         return volumes
 
     def pools(self):
-        pool_list = self._jsonrequest("pool_list")
-
         pools = []
-        for pool in pool_list:
-            print pool
+        for pool in self._jsonrequest("pool_list"):
             pools.append(Pool(pool['name'], pool['name'], pool['size'],
                               pool['free_size'], None))
         return pools
@@ -80,17 +76,18 @@ class TargetdStorage(IStorageAreaNetwork):
         raise NotImplementedError
 
     def volume_create(self, pool, volume_name, size_bytes, provisioning):
-        self._jsonrequest("vol_create", dict(name=volume_name, size=size_bytes))
+        self._jsonrequest("vol_create", dict(pool=pool.name,
+                                             name=volume_name, size=size_bytes))
 
     def volume_delete(self, volume):
-        self._jsonrequest("vol_destroy", dict(name=volume.name))
+        self._jsonrequest("vol_destroy", dict(pool=volume.pool.name, vol=volume.name))
 
     def volume_replicate(self, pool, rep_type, volume_src, name):
         if rep_type != Volume.REPLICATE_COPY:
             raise NotImplementedError
 
         self._jsonrequest("vol_copy",
-                          dict(vol_from=volume_src.name, vol_to=name))
+                          dict(pool=pool.name, vol_orig=volume_src.name, vol_new=name))
 
     def volume_replicate_range_block_size(self):
         raise NotImplementedError
@@ -100,7 +97,7 @@ class TargetdStorage(IStorageAreaNetwork):
         raise NotImplementedError
 
     def volume_online(self, volume):
-        vol_list = self._jsonrequest("vol_list")
+        vol_list = self._jsonrequest("vol_list", dict(pool=volume.pool.name))
 
         return volume.name in [vol['name'] for vol in vol_list]
 
