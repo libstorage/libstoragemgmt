@@ -24,15 +24,16 @@ import sys
 from lsm.data import Pool, Initiator, Volume, BlockRange, System
 import urllib2
 import json
+import urlparse
 
-user = "admin"
-host = "localhost"
-url = "http://%s:18700/targetrpc" % host
+default_user = "admin"
+default_port = 18700
+path = "/targetrpc"
 
 class TargetdStorage(IStorageAreaNetwork):
 
     def startup(self, uri, password, timeout):
-        self.uri = uri
+        self.uri = urlparse.urlsplit(uri)
         self.password = password
         self.tmo = timeout
         self.rpc_id = 1
@@ -146,6 +147,14 @@ class TargetdStorage(IStorageAreaNetwork):
         data = json.dumps(dict(id=self.rpc_id, method=method,
                                params=params, jsonrpc="2.0"))
         self.rpc_id += 1
+
+        user = self.uri.username or default_user
+        port = self.uri.port or default_port
+        if self.uri.password:
+            print "password in URL not recommended, use -P option"
+            self.password = self.uri.password
+        host_with_port = "%s:%s" % (self.uri.hostname, port)
+        url = urlparse.urlunsplit((self.uri.scheme, host_with_port, path, None, None))
         auth = ('%s:%s' % (user, self.password)).encode('base64')[:-1]
         headers = {'Content-Type': 'application/json',
                    'Authorization': 'Basic %s' % (auth,)}
