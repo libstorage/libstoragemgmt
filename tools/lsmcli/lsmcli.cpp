@@ -53,14 +53,6 @@ int main(int argc, char *argv[])
                 main_rc = list(a,c);
                 break;
             }
-            case (LSM::CREATE_INIT) : {
-                main_rc = createInit(a,c);
-                break;
-            }
-            case (LSM::DELETE_INIT) : {
-                main_rc = deleteInit(a,c);
-                break;
-            }
             case (LSM::CREATE_VOL) : {
                 main_rc = createVolume(a,c);
                 break;
@@ -71,14 +63,6 @@ int main(int argc, char *argv[])
             }
             case (LSM::REPLICATE) : {
                 main_rc = replicateVolume(a,c);
-                break;
-            }
-            case (LSM::ACCESS_GRANT) : {
-                main_rc = accessGrant(a,c);
-                break;
-            }
-            case (LSM::ACCESS_REVOKE) : {
-                main_rc = accessRevoke(a,c);
                 break;
             }
              case (LSM::RESIZE_VOLUME) : {

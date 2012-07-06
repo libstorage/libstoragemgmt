@@ -126,13 +126,7 @@ Options include:\n\
   -t, --terse=SEP               print output in terse form with \"SEP\" as a \n\
                                 record separator\n\
 "), stdout);
-        fputs(_("\
-Commands include:\n\
-  -l                            List records of type [VOLUMES|INITIATORS|POOLS]\n\
-      --create-initiator=NAME   Create an initiator record requires:\n\
-                                --id <initiator id>\n\
-                                --type [WWPN|WWNN|ISCSI|HOSTNAME]\n\
-"), stdout);
+
         fputs(_("\
       --create-volume=NAME      requires:\n\
                                 --size <volume size> Can use M, G, T\n\
@@ -145,13 +139,6 @@ Commands include:\n\
                                 --type [SNAPSHOT|CLONE|COPY|MIRROR]\n\
                                 --pool <pool id>\n\
                                 --name <human name>\n\
-      --access-grant=INIT_ID    grants access to an initiator to a volume\n\
-                                requires:\n\
-                                --volume <volume id>\n\
-                                --access [RO|RW], read-only or read-write\n\
-      --access-revoke=INIT_ID   removes access for an initiator to a volume\n\
-                                requires:\n\
-                                --volume <volume id>\n\
     , --resize-volume=VOLUME_ID resizes a volume, requires:\n\
                                 --size <new size>\n\
 "), stdout);
@@ -262,7 +249,7 @@ void parseArguments(int argc, char **argv, Arguments &args) {
                 if (long_options[long_opt_index].flag != 0)
                     break;
 
-                if( long_opt_index <= ACCESS_REVOKE ) {
+                if( long_opt_index <= REPLICATE ) {
                     setCommand(args, long_options[long_opt_index].name,
                                 (commandTypes)long_opt_index, optarg);
                 } else {
@@ -377,16 +364,7 @@ void requiredArguments( Arguments &args)
                 }
                 break;
             }
-            case ( CREATE_INIT ) : {
-                if( args.id.present && args.type.present ) {
-                    //Make sure type is correct.
-                    validateDomain("--type", args.type.value, initTypes);
-                } else {
-                    syntaxError("--%s requires --id and --type\n",
-                            args.commandStr.c_str());
-                }
-                break;
-            }
+
             case ( REPLICATE ) : {
                 if( args.type.present && args.pool.present &&
                     args.name.present) {
@@ -399,24 +377,6 @@ void requiredArguments( Arguments &args)
                 }
                 break;
             }
-            case ( ACCESS_GRANT ) : {
-                if( args.volume.present && args.access.present ) {
-                    validateDomain("--access", args.access.value, accessTypes);
-                } else {
-                    syntaxError("--%s requires --volume and --access \n",
-                            args.commandStr.c_str());
-                }
-                break;
-            }
-            case ( ACCESS_REVOKE ) : {
-                if( args.volume.present ) {
-
-                } else {
-                    syntaxError("--%s requires --volume\n",
-                                    args.commandStr.c_str());
-                }
-                break;
-            }
             case ( RESIZE_VOLUME ) : {
                 if( !args.size.present ) {
                     syntaxError("--%s requires --size\n",
@@ -425,7 +385,6 @@ void requiredArguments( Arguments &args)
                 break;
             }
             case ( NONE ):
-            case ( DELETE_INIT ):
             case ( DELETE_VOL ):
             case ( LIST ) : {
                 break;

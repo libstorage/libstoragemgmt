@@ -250,40 +250,6 @@ int list(const LSM::Arguments &a, lsmConnectPtr c)
     return rc;
 }
 
-int createInit(const LSM::Arguments &a, lsmConnectPtr c)
-{
-    lsmInitiatorPtr init = NULL;
-
-    int rc = lsmInitiatorCreate(c, a.commandValue.c_str(), a.id.value.c_str(),
-                                    a.initiatorType(), &init);
-    if( LSM_ERR_OK == rc ) {
-        printInitiator(a,init);
-        lsmInitiatorRecordFree(init);
-    } else {
-        dumpError(rc, lsmErrorGetLast(c));
-    }
-
-    return rc;
-}
-
-int deleteInit(const LSM::Arguments &a, lsmConnectPtr c)
-{
-    int rc = 0;
-    lsmInitiatorPtr init = getInitiator(c, a.commandValue);
-
-    if( init ) {
-        rc = lsmInitiatorDelete(c, init);
-        if( LSM_ERR_OK == rc ) {
-            lsmInitiatorRecordFree(init);
-        } else {
-            dumpError(rc, lsmErrorGetLast(c));
-        }
-    } else {
-        printf("Initiator with id= %s not found!\n", a.commandValue.c_str());
-    }
-    return rc;
-}
-
 //Re-factor these next three functions as they are similar.
 lsmPoolPtr getPool(lsmConnectPtr c, std::string poolId)
 {
@@ -433,56 +399,6 @@ int replicateVolume(const LSM::Arguments &a, lsmConnectPtr c)
     }
 
     return rc;
-}
-
-static int _access(const LSM::Arguments &a, lsmConnectPtr c, bool grant)
-{
-    int rc = 0;
-    char *job = NULL;
-    lsmInitiatorPtr init = getInitiator(c, a.commandValue);
-    lsmVolumePtr vol = getVolume(c, a.volume.value);
-
-    if( init && vol ) {
-        if( grant ) {
-            rc = lsmAccessGrant(c, init, vol, a.accessType(), &job);
-            rc = waitForJob(rc, c, job, a );
-        } else {
-            rc = lsmAccessRevoke(c, init, vol);
-
-            if( LSM_ERR_OK != rc ) {
-                dumpError(rc, lsmErrorGetLast(c));
-            }
-        }
-    } else {
-        if( !init ) {
-            printf("Initiator with id= %s not found!\n",
-                    a.commandValue.c_str());
-        }
-        if( !vol ) {
-            printf("Volume with id= %s not found!\n", a.volume.value.c_str());
-        }
-    }
-
-    if( init ) {
-        lsmInitiatorRecordFree(init);
-        init = NULL;
-    }
-
-    if( vol ) {
-        lsmVolumeRecordFree(vol);
-        vol = NULL;
-    }
-    return rc;
-}
-
-int accessGrant(const LSM::Arguments &a, lsmConnectPtr c)
-{
-    return _access(a, c, true);
-}
-
-int accessRevoke(const LSM::Arguments &a, lsmConnectPtr c)
-{
-    return _access(a, c, false);
 }
 
 int resizeVolume(const LSM::Arguments &a, lsmConnectPtr c)

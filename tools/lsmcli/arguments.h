@@ -69,13 +69,13 @@ public:
 typedef enum {
     NONE = -1,
     LIST = 1,
-    CREATE_INIT = 2,
+    //CREATE_INIT = 2,
     CREATE_VOL = 3,
-    DELETE_INIT = 4,
+    //DELETE_INIT = 4,
     DELETE_VOL = 5,
     REPLICATE = 6,
-    ACCESS_GRANT = 7,
-    ACCESS_REVOKE = 8,
+    //ACCESS_GRANT = 7,
+    //ACCESS_REVOKE = 8,
     RESIZE_VOLUME = 21,
 } commandTypes;
 

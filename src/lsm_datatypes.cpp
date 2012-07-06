@@ -131,6 +131,7 @@ lsmStringListPtr lsmStringListAlloc(uint32_t size)
 			free(rc);
 			rc = NULL;
 		} else {
+            g_ptr_array_set_size(rc->values, size);
 			g_ptr_array_set_free_func(rc->values, free);
 		}
     }
