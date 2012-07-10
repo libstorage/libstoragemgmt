@@ -290,6 +290,7 @@ int Smis::replicateLun(lsmPoolPtr p, lsmReplicationType repType,
     Array<CIMParamValue> in;
     Array<CIMParamValue> out;
     Uint16 sync = 0;
+    Uint16 mode = ASYNC;
 
     CIMInstance rs = getClassInstance("CIM_ReplicationService");
     CIMInstance pool = getPool(p);
@@ -300,7 +301,12 @@ int Smis::replicateLun(lsmPoolPtr p, lsmReplicationType repType,
     switch (repType) {
     case(LSM_VOLUME_REPLICATE_COPY): sync = CLONE;
         break;
-    case(LSM_VOLUME_REPLICATE_MIRROR): sync = MIRROR;
+    case(LSM_VOLUME_REPLICATE_MIRROR_SYNC):
+        sync = MIRROR;
+        mode = SYNC;
+        break;
+    case(LSM_VOLUME_REPLICATE_MIRROR_ASYNC):
+        sync = MIRROR;
         break;
     default:
         //Snapshot or clone translate to snapshot in SMI-S
@@ -310,7 +316,7 @@ int Smis::replicateLun(lsmPoolPtr p, lsmReplicationType repType,
     in.append(CIMParamValue("SyncType", sync));
 
 
-    in.append(CIMParamValue("Mode", Uint16(ASYNC)));
+    in.append(CIMParamValue("Mode", mode));
     in.append(CIMParamValue("SourceElement", lun.getPath()));
     in.append(CIMParamValue("TargetPool", pool.getPath()));
 

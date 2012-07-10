@@ -115,11 +115,12 @@ typedef lsmSs *lsmSsPtr;
  * Different types of replications that can be created
  */
 typedef enum {
-    LSM_VOLUME_REPLICATE_UNKNOWN = -1,
-    LSM_VOLUME_REPLICATE_SNAPSHOT = 1,
-    LSM_VOLUME_REPLICATE_CLONE    = 2,
-    LSM_VOLUME_REPLICATE_COPY     = 3,
-    LSM_VOLUME_REPLICATE_MIRROR   = 4,
+    LSM_VOLUME_REPLICATE_UNKNOWN        = -1,
+    LSM_VOLUME_REPLICATE_SNAPSHOT       = 1,
+    LSM_VOLUME_REPLICATE_CLONE          = 2,
+    LSM_VOLUME_REPLICATE_COPY           = 3,
+    LSM_VOLUME_REPLICATE_MIRROR_SYNC    = 4,
+    LSM_VOLUME_REPLICATE_MIRROR_ASYNC   = 5
 } lsmReplicationType;
 
 /**

@@ -151,7 +151,8 @@ class IStorageAreaNetwork(IPlugin):
     @abstractmethod
     def volume_replicate(self, pool, rep_type, volume_src, name):
         """
-        Replicates a volume from the specified pool.
+        Replicates a volume from the specified pool.  In this library, to
+        replicate means to create a new volume which is a copy of the source.
 
         Returns a tuple (job_id, replicated volume)
         Note: Tuple return values are mutually exclusive, when one

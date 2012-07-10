@@ -86,7 +86,7 @@ lsmReplicationType Arguments::replicationType() const
     } else if ( type.value == REP_TYPE_COPY) {
         rc = LSM_VOLUME_REPLICATE_COPY;
     } else if ( type.value == REP_TYPE_MIRROR ) {
-        rc = LSM_VOLUME_REPLICATE_MIRROR;
+        rc = LSM_VOLUME_REPLICATE_MIRROR_ASYNC;
     }
     return rc;
 }

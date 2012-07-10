@@ -1463,7 +1463,7 @@ START_TEST(test_invalid_input)
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     rc = lsmNfsExportRemove(c, NULL);
-    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
+    fail_unless(rc == LSM_ERR_INVALID_NFS, "rc = %d", rc);
 }
 END_TEST
 

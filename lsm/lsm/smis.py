@@ -59,6 +59,9 @@ class Smis(IStorageAreaNetwork):
     #SMI-S replication enumerations
     (SYNC_TYPE_MIRROR, SYNC_TYPE_SNAPSHOT, SYNC_TYPE_CLONE) = (6,7,8)
 
+    #SMI-S mode for mirror updates
+    (CREATE_ELEMENT_REPLICA_MODE_SYNC, CREATE_ELEMENT_REPLICA_MODE_ASYNC ) = (2,3)
+
     #SMI-S volume 'OperationalStatus' enumerations
     (VOL_OP_STATUS_OK, VOL_OP_STATUS_DEGRADED, VOL_OP_STATUS_ERR, VOL_OP_STATUS_STARTING,
      VOL_OP_STATUS_DORMANT) = (2,3,6,8,15)
@@ -483,14 +486,22 @@ class Smis(IStorageAreaNetwork):
         """
         Replicate a volume
         """
+        mode = Smis.CREATE_ELEMENT_REPLICA_MODE_ASYNC
+
         rs = self._get_class_instance("CIM_ReplicationService")
         pool = self._get_pool(pool.id)
         lun = self._get_volume(volume_src.id)
 
         if rep_type == Volume.REPLICATE_COPY:
             sync = Smis.SYNC_TYPE_CLONE
-        elif rep_type == Volume.REPLICATE_MIRROR:
+        elif rep_type == Volume.REPLICATE_MIRROR_SYNC or \
+             rep_type == Volume.REPLICATE_MIRROR_SYNC:
+
             sync = Smis.SYNC_TYPE_MIRROR
+
+            if rep_type == Volume.REPLICATE_MIRROR_SYNC:
+                mode = Smis.CREATE_ELEMENT_REPLICA_MODE_SYNC
+
         else:
             #Space efficient point in time copies, read only and writable
             #will be translated into a SMI-S snapshot which is writable
@@ -498,7 +509,7 @@ class Smis(IStorageAreaNetwork):
 
         in_params = {   'ElementName': name,
                         'SyncType' : pywbem.Uint16(sync),
-                        'Mode': pywbem.Uint16(3),
+                        'Mode': pywbem.Uint16(mode),
                         'SourceElement': lun.path,
                         'TargetPool': pool.path}
 

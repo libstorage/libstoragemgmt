@@ -322,7 +322,7 @@ class StorageSimulator(INfs):
 
         if rep_type not in (Volume.REPLICATE_SNAPSHOT,
                             Volume.REPLICATE_CLONE,
-                            Volume.REPLICATE_COPY, Volume.REPLICATE_MIRROR):
+                            Volume.REPLICATE_COPY, Volume.REPLICATE_MIRROR_SYNC):
             raise LsmError(ErrorNumber.UNSUPPORTED_REPLICATION_TYPE,
                             "rep_type invalid")
 

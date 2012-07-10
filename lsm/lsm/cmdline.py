@@ -341,7 +341,7 @@ class CmdLine:
         commands.add_option( '-r', '--replicate-volume', action="store", type="string",
             metavar='<volume id>',
             dest=_c("replicate-volume"), help='replicates a volume, requires:\n'
-                                              "--type [SNAPSHOT|CLONE|COPY|MIRROR]\n"
+                                              "--type [SNAPSHOT|CLONE|COPY|MIRROR_ASYNC|MIRROR_SYNC]\n"
                                               "--pool <pool id>\n"
                                               "--name <human name>")
 
@@ -437,7 +437,7 @@ class CmdLine:
             choices=['DEFAULT','THIN','FULL'], dest="provisioning", help='[DEFAULT|THIN|FULL]')
 
         command_args.add_option('', '--type', action="store", type="choice",
-            choices=['WWPN', 'WWNN', 'ISCSI', 'HOSTNAME', 'SNAPSHOT', 'CLONE', 'COPY', 'MIRROR'],
+            choices=['WWPN', 'WWNN', 'ISCSI', 'HOSTNAME', 'SNAPSHOT', 'CLONE', 'COPY', 'MIRROR_SYNC', 'MIRROR_ASYNC'],
             metavar = "type",
             dest=_o("type"), help='type specifier')
 
