@@ -83,6 +83,13 @@ class IPlugin(object):
         pass
 
     @abstractmethod
+    def capabilities(self, system):
+        """
+        Returns the capabilities for the selected system
+        """
+        pass
+
+    @abstractmethod
     def pools(self):
         """
         Returns an array of pool objects.  Pools are used in both block and

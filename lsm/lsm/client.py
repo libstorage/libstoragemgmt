@@ -162,8 +162,17 @@ class Client(INetworkAttachedStorage):
         """
         return self.tp.rpc('job_free', del_self(locals()))
 
-    def capabilities(self):
-        raise NotImplemented()
+    ## Gets the capabilities of the array.
+    # @param    self    The this pointer
+    # @param    system  The system of interest
+    # @returns  Capability object
+    def capabilities(self, system):
+        """
+        Fetches the capabilities of the array
+
+        Returns a capability object, see data,py for details.
+        """
+        return self.tp.rpc('capabilities', del_self(locals()))
 
     ## Returns an array of pool objects.
     # @param    self    The this pointer

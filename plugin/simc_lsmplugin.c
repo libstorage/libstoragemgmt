@@ -41,8 +41,8 @@ extern "C" {
 static char name[] = "Compiled plug-in example";
 static char version [] = "0.01";
 static char sys_id[] = "sim-01";
-#define BS 512
 
+#define BS 512
 #define MAX_SYSTEMS 1
 #define MAX_POOLS 4
 #define MAX_VOLUMES 128
@@ -307,9 +307,68 @@ static int tmo_get(lsmPluginPtr c, uint32_t *timeout)
     return LSM_ERR_OK;
 }
 
-static int cap(lsmPluginPtr c, lsmStorageCapabilitiesPtr *cap)
+static int cap(lsmPluginPtr c, lsmSystemPtr system, lsmStorageCapabilitiesPtr *cap)
 {
-    return LSM_ERR_NO_SUPPORT;
+    int rc = LSM_ERR_NO_MEMORY;
+    *cap = lsmCapabilityRecordAlloc(NULL);
+
+    if( *cap ) {
+        rc = lsmCapabilitySetN(*cap, LSM_CAPABILITY_SUPPORTED, 47,
+            LSM_CAP_BLOCK_SUPPORT,
+            LSM_CAP_FS_SUPPORT,
+            LSM_CAP_VOLUMES,
+            LSM_CAP_VOLUME_CREATE,
+            LSM_CAP_VOLUME_RESIZE,
+            LSM_CAP_VOLUME_REPLICATE,
+            LSM_CAP_VOLUME_REPLICATE_CLONE,
+            LSM_CAP_VOLUME_REPLICATE_COPY,
+            LSM_CAP_VOLUME_REPLICATE_MIRROR_ASYNC,
+            LSM_CAP_VOLUME_REPLICATE_MIRROR_SYNC,
+            LSM_CAP_VOLUME_COPY_RANGE_BLOCK_SIZE,
+            LSM_CAP_VOLUME_COPY_RANGE,
+            LSM_CAP_VOLUME_COPY_RANGE_CLONE,
+            LSM_CAP_VOLUME_COPY_RANGE_COPY,
+            LSM_CAP_VOLUME_DELETE,
+            LSM_CAP_VOLUME_ONLINE,
+            LSM_CAP_VOLUME_OFFLINE,
+            LSM_CAP_ACCESS_GROUP_GRANT,
+            LSM_CAP_ACCESS_GROUP_REVOKE,
+            LSM_CAP_ACCESS_GROUP_LIST,
+            LSM_CAP_ACCESS_GROUP_CREATE,
+            LSM_CAP_ACCESS_GROUP_DELETE,
+            LSM_CAP_ACCESS_GROUP_ADD_INITIATOR,
+            LSM_CAP_ACCESS_GROUP_DEL_INITIATOR,
+            LSM_CAP_VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP,
+            LSM_CAP_ACCESS_GROUPS_GRANTED_TO_VOLUME,
+            LSM_CAP_VOLUME_CHILD_DEPENDENCY,
+            LSM_CAP_VOLUME_CHILD_DEPENDENCY_RM,
+            LSM_CAP_FS,
+            LSM_CAP_FS_DELETE,
+            LSM_CAP_FS_RESIZE,
+            LSM_CAP_FS_CREATE,
+            LSM_CAP_FS_CLONE,
+            LSM_CAP_FILE_CLONE,
+            LSM_CAP_SNAPSHOTS,
+            LSM_CAP_SNAPSHOT_CREATE,
+            LSM_CAP_SNAPSHOT_CREATE_SPECIFIC_FILES,
+            LSM_CAP_SNAPSHOT_DELETE,
+            LSM_CAP_SNAPSHOT_REVERT,
+            LSM_CAP_SNAPSHOT_REVERT_SPECIFIC_FILES,
+            LSM_CAP_FS_CHILD_DEPENDENCY,
+            LSM_CAP_FS_CHILD_DEPENDENCY_RM,
+            LSM_CAP_FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES,
+            LSM_CAP_EXPORT_AUTH,
+            LSM_CAP_EXPORTS,
+            LSM_CAP_EXPORT_FS,
+            LSM_CAP_EXPORT_REMOVE
+            );
+
+        if( LSM_ERR_OK != rc ) {
+            lsmCapabilityRecordFree(*cap);
+            *cap = NULL;
+        }
+    }
+    return rc;
 }
 
 static int jobStatus(lsmPluginPtr c, const char *job_id,

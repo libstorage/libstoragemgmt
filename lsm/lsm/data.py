@@ -282,6 +282,104 @@ class AccessGroup(IData):
         self.initiators = initiators
         self.system_id = system_id
 
+class Capabilities(IData):
+
+    (
+        UNSUPPORTED,        #Not supported
+        SUPPORTED,          #Supported
+        SUPPORTED_OFFLINE,  #Supported, but only when item is in offline state
+        NOT_IMPLEMENTED,    #Not implemented
+        UNKNOWN             #Capability not known
+    ) = (0 , 1, 2, 3, 4)
+
+    _NUM = 512
+
+    #Array wide
+    BLOCK_SUPPORT               = 0          #Array handles block operations
+    FS_SUPPORT                  = 1          #Array handles file system
+
+    #Block operations
+    VOLUMES                                 = 20
+    VOLUME_CREATE                           = 21
+    VOLUME_RESIZE                           = 22
+
+    VOLUME_REPLICATE                        = 23
+    VOLUME_REPLICATE_CLONE                  = 24
+    VOLUME_REPLICATE_COPY                   = 25
+    VOLUME_REPLICATE_MIRROR_ASYNC           = 26
+    VOLUME_REPLICATE_MIRROR_SYNC            = 27
+
+    VOLUME_COPY_RANGE_BLOCK_SIZE            = 28
+    VOLUME_COPY_RANGE                       = 39
+    VOLUME_COPY_RANGE_CLONE                 = 30
+    VOLUME_COPY_RANGE_COPY                  = 31
+
+    VOLUME_DELETE                           = 33
+
+    VOLUME_ONLINE                           = 34
+    VOLUME_OFFLINE                          = 35
+
+    ACCESS_GROUP_GRANT                      = 36
+    ACCESS_GROUP_REVOKE                     = 37
+    ACCESS_GROUP_LIST                       = 38
+    ACCESS_GROUP_CREATE                     = 39
+    ACCESS_GROUP_DELETE                     = 40
+    ACCESS_GROUP_ADD_INITIATOR              = 41
+    ACCESS_GROUP_DEL_INITIATOR              = 42
+
+    VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP      = 43
+    ACCESS_GROUPS_GRANTED_TO_VOLUME         = 44
+
+    VOLUME_CHILD_DEPENDENCY                 = 45
+    VOLUME_CHILD_DEPENDENCY_RM              = 46
+
+    #File system
+    FS                                      = 100
+    FS_DELETE                               = 101
+    FS_RESIZE                               = 102
+    FS_CREATE                               = 103
+    FS_CLONE                                = 104
+    FILE_CLONE                              = 105
+    SNAPSHOTS                               = 106
+    SNAPSHOT_CREATE                         = 107
+    SNAPSHOT_CREATE_SPECIFIC_FILES          = 108
+    SNAPSHOT_DELETE                         = 109
+    SNAPSHOT_REVERT                         = 110
+    SNAPSHOT_REVERT_SPECIFIC_FILES          = 111
+    FS_CHILD_DEPENDENCY                     = 112
+    FS_CHILD_DEPENDENCY_RM                  = 113
+    FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES   = 114
+
+    #NFS
+    EXPORT_AUTH                             = 120
+    EXPORTS                                 = 121
+    EXPORT_FS                               = 122
+    EXPORT_REMOVE                           = 123
+
+    def toDict(self):
+        rc = {'class': self.__class__.__name__,
+              'cap': ''.join(['%02x' % b for b in self.cap])}
+        return rc
+
+    def __init__(self, cap=None):
+        if cap is not None:
+            self.cap = bytearray(cap.decode('hex'))
+        else:
+            self.cap = bytearray(Capabilities._NUM)
+
+    def get(self, capability):
+        if capability > len(self.cap):
+            return Capabilities.UNKNOWN
+        return self.cap[capability]
+
+    def set(self, capability, value):
+        self.cap[capability] = value
+        return None
+
+    def enable_all(self):
+        for i in range(len(self.cap)):
+            self.cap[i] = Capabilities.SUPPORTED
+
 if __name__ == '__main__':
     #TODO Need some unit tests that encode/decode all the types with nested
     pass

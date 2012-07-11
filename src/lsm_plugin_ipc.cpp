@@ -441,6 +441,35 @@ static int handle_pools(lsmPluginPtr p, Value &params, Value &response)
     return LSM_ERR_NO_SUPPORT;
 }
 
+static int capabilities(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+
+    if( p && p->mgmtOps && p->mgmtOps->capablities) {
+        lsmStorageCapabilitiesPtr c = NULL;
+
+        Value v_s = params["system"];
+
+        if( Value::object_t == v_s.valueType() ) {
+            lsmSystemPtr sys = valueToSystem(v_s);
+
+            if( sys ) {
+                rc = p->mgmtOps->capablities(p, sys, &c);
+                if( LSM_ERR_OK == rc) {
+                    response = capabilitiesToValue(c);
+                    lsmCapabilityRecordFree(c);
+                    c = NULL;
+                }
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
+        } else {
+            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+        }
+    }
+    return rc;
+}
+
 static int handle_initiators(lsmPluginPtr p, Value &params, Value &response)
 {
     if( p && p->sanOps && p->sanOps->init_get ) {
@@ -1794,50 +1823,51 @@ static int export_remove(lsmPluginPtr p, Value &params, Value &response)
  * map of function pointers
  */
 static std::map<std::string,handler> dispatch = static_map<std::string,handler>
-    ("shutdown", handle_shutdown)
-    ("set_time_out", handle_set_time_out)
-    ("get_time_out", handle_get_time_out)
-    ("job_status", handle_job_status)
-    ("job_free", handle_job_free)
-    ("pools", handle_pools)
-    ("systems", handle_system_list)
-    ("initiators", handle_initiators)
-    ("volumes", handle_volumes)
-    ("volume_create", handle_volume_create)
-    ("volume_resize", handle_volume_resize)
-    ("volume_replicate", handle_volume_replicate)
-    ("volume_replicate_range_block_size", handle_volume_replicate_range_block_size)
-    ("volume_replicate_range", handle_volume_replicate_range)
-    ("volume_delete", handle_volume_delete)
-    ("volume_online", handle_volume_online)
-    ("volume_offline", handle_volume_offline)
-    ("access_group_grant", ag_grant)
-    ("access_group_revoke", ag_revoke)
-    ("access_group_list", ag_list)
+    ("access_group_add_initiator", ag_initiator_add)
     ("access_group_create", ag_create)
     ("access_group_del", ag_delete)
-    ("access_group_add_initiator", ag_initiator_add)
     ("access_group_del_initiator", ag_initiator_del)
-    ("volumes_accessible_by_access_group", vol_accessible_by_ag)
+    ("access_group_grant", ag_grant)
+    ("access_group_list", ag_list)
+    ("access_group_revoke", ag_revoke)
     ("access_groups_granted_to_volume", ag_granted_to_volume)
-    ("volume_child_dependency", volume_dependency)
-    ("volume_child_dependency_rm", volume_dependency_rm)
-    ("fs", fs)
-    ("fs_delete", fs_delete)
-    ("fs_resize", fs_resize)
-    ("fs_create", fs_create)
-    ("fs_clone", fs_clone)
+    ("capabilities", capabilities)
+    ("export_auth", export_auth)
+    ("export_fs", export_fs)
+    ("export_remove", export_remove)
+    ("exports", exports)
     ("file_clone", file_clone)
-    ("snapshots", ss_list)
+    ("fs_child_dependency", fs_child_dependency)
+    ("fs_child_dependency_rm", fs_child_dependency_rm)
+    ("fs_clone", fs_clone)
+    ("fs_create", fs_create)
+    ("fs_delete", fs_delete)
+    ("fs", fs)
+    ("fs_resize", fs_resize)
+    ("get_time_out", handle_get_time_out)
+    ("initiators", handle_initiators)
+    ("job_free", handle_job_free)
+    ("job_status", handle_job_status)
+    ("pools", handle_pools)
+    ("set_time_out", handle_set_time_out)
+    ("shutdown", handle_shutdown)
     ("snapshot_create", ss_create)
     ("snapshot_delete", ss_delete)
     ("snapshot_revert", ss_revert)
-    ("fs_child_dependency", fs_child_dependency)
-    ("fs_child_dependency_rm", fs_child_dependency_rm)
-    ("export_auth", export_auth)
-    ("exports", exports)
-    ("export_fs", export_fs)
-    ("export_remove", export_remove);
+    ("snapshots", ss_list)
+    ("systems", handle_system_list)
+    ("volume_child_dependency_rm", volume_dependency_rm)
+    ("volume_child_dependency", volume_dependency)
+    ("volume_create", handle_volume_create)
+    ("volume_delete", handle_volume_delete)
+    ("volume_offline", handle_volume_offline)
+    ("volume_online", handle_volume_online)
+    ("volume_replicate", handle_volume_replicate)
+    ("volume_replicate_range_block_size", handle_volume_replicate_range_block_size)
+    ("volume_replicate_range", handle_volume_replicate_range)
+    ("volume_resize", handle_volume_resize)
+    ("volumes_accessible_by_access_group", vol_accessible_by_ag)
+    ("volumes", handle_volumes);
 
 static int process_request(lsmPluginPtr p, const std::string &method, Value &request,
                     Value &response)

@@ -196,4 +196,18 @@ lsmNfsExport *valueToNfsExport(Value &exp);
  */
 Value nfsExportToValue(lsmNfsExport *exp);
 
+/**
+ * Converts a Value to a lsmCapabilites
+ * @param exp       Value representing a lsmCapabilities
+ * @return lsmCapabilities pointer or NULL on error
+ */
+lsmStorageCapabilities *valueToCapabilities(Value &exp);
+
+/**
+ * Converts a lsmCapabilites to a value
+ * @param cap       lsmCapabilites to convert to value
+ * @return Value
+ */
+Value capabilitiesToValue(lsmStorageCapabilities *cap);
+
 #endif

@@ -337,9 +337,33 @@ int lsmJobFree(lsmConnectPtr c, char **job)
     return rc;
 }
 
-int lsmCapabilities(lsmConnectPtr c, lsmStorageCapabilitiesPtr *cap)
+int lsmCapabilities(lsmConnectPtr c, lsmSystemPtr system,
+                    lsmStorageCapabilitiesPtr *cap)
 {
-    return LSM_ERR_NO_SUPPORT;
+    CONN_SETUP(c);
+
+    if( !LSM_IS_SYSTEM(system) ) {
+        return LSM_ERR_INVALID_SYSTEM;
+    }
+
+    if( CHECK_RP(cap) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+
+    p["system"] = systemToValue(system);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "capabilities", parameters, response);
+
+    if( LSM_ERR_OK == rc && Value::object_t == response.valueType() ) {
+        *cap = valueToCapabilities(response);
+    }
+
+    return rc;
 }
 
 int lsmPoolList(lsmConnectPtr c, lsmPoolPtr **poolArray,

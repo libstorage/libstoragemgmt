@@ -69,7 +69,7 @@ static int tmoGet(lsmPluginPtr c, uint32_t *timeout)
     return rc;
 }
 
-static int cap(lsmPluginPtr c, lsmStorageCapabilitiesPtr *cap)
+static int cap(lsmPluginPtr c, lsmSystemPtr sys, lsmStorageCapabilitiesPtr *cap)
 {
     return LSM_ERR_NO_SUPPORT;
 }

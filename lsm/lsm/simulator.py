@@ -24,6 +24,7 @@ import time
 import pickle
 from data import FileSystem
 from iplugin import INfs
+from lsm.data import Capabilities
 
 SIM_DATA_FILE = '/tmp/lsm_sim_data'
 duration = os.getenv("LSM_SIM_TIME", 1)
@@ -240,6 +241,11 @@ class StorageSimulator(INfs):
 
     def get_time_out(self):
         return self.tmo
+
+    def capabilities(self, system):
+        rc = Capabilities()
+        rc.enable_all()
+        return rc
 
     def shutdown(self):
         self._save()

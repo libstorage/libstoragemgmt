@@ -150,6 +150,10 @@ class Ontap(IStorageAreaNetwork, INfs):
                         self.sys_info.id)
 
     @handle_ontap_errors
+    def capabilities(self, system):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Coming soon")
+
+    @handle_ontap_errors
     def pools(self):
         aggr = self.f.aggregates()
         return [self._pool(p) for p in aggr]

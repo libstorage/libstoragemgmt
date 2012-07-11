@@ -28,6 +28,7 @@
 #include "libstoragemgmt_systems.h"
 #include "libstoragemgmt_volumes.h"
 #include "libstoragemgmt_pool.h"
+#include "libstoragemgmt_capabilities.h"
 
 #ifdef  __cplusplus
 extern "C" {
@@ -62,8 +63,8 @@ typedef int (*lsmPluginUnregister)( lsmPluginPtr c );
 
 typedef int (*lsmPlugSetTmo)( lsmPluginPtr c, uint32_t timeout );
 typedef int (*lsmPlugGetTmo)( lsmPluginPtr c, uint32_t *timeout );
-typedef int (*lsmPlugCapabilities)(lsmPluginPtr c,
-                                        lsmStorageCapabilitiesPtr *cap);
+typedef int (*lsmPlugCapabilities)(lsmPluginPtr c, lsmSystemPtr sys,
+                                    lsmStorageCapabilitiesPtr *cap);
 typedef int (*lsmPlugJobStatus)(lsmPluginPtr c, const char *job,
                                         lsmJobStatus *status,
                                         uint8_t *percentComplete,
@@ -540,6 +541,36 @@ lsmSsPtr LSM_DLL_EXPORT lsmSsRecordAlloc( const char *id, const char *name,
  * @return Allocated memory, NULL on error
  */
 lsmSsPtr LSM_DLL_EXPORT *lsmSsRecordAllocArray( uint32_t size );
+
+
+/**
+ * Set a capability
+ * @param cap           Valid capability pointer
+ * @param t             Which capability to set
+ * @param v             Value of the capability
+ * @return LSM_ERR_OK on success, else error reason.
+ */
+int LSM_DLL_EXPORT lsmCapabilitySet(lsmStorageCapabilitiesPtr cap, lsmCapabilityType t,
+                        lsmCapabilityValueType v);
+
+/**
+ * Sets 1 or more capabilities with the same value v
+ * @param cap           Valid capability pointer
+ * @param number        Number of Capabilities to set
+ * @param value         What capability they should be set to
+ * @param ...           Which capabilites to set
+ * @return LSM_ERR_OK on success, else error reason
+ */
+int LSM_DLL_EXPORT lsmCapabilitySetN( lsmStorageCapabilitiesPtr cap,
+                                        lsmCapabilityValueType v,
+                                        uint32_t number, ... );
+
+/**
+ * Allocated storage for capabilities
+ * @param value     Set to NULL, used during serialization otherwise.
+ * @return Allocated record, or NULL on memory allocation failure.
+ */
+lsmStorageCapabilitiesPtr LSM_DLL_EXPORT lsmCapabilityRecordAlloc(char const *value);
 
 #ifdef  __cplusplus
 }

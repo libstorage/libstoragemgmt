@@ -80,12 +80,6 @@ struct LSM_DLL_LOCAL _lsmInitiator {
     char *name;                 /**< Initiator name */
 };
 
-/**
- * Capabilities of the plug-in and storage array.
- */
-struct _lsmStorageCapabilities {
-};
-
 #define LSM_ACCESS_GROUP_MAGIC  0xAA7A0003
 #define LSM_IS_ACCESS_GROUP(obj)    MAGIC_CHECK(obj, LSM_ACCESS_GROUP_MAGIC)
 
@@ -160,6 +154,20 @@ struct _lsmBlockRange {
     uint64_t source_start;
     uint64_t dest_start;
     uint64_t block_count;
+};
+
+#define LSM_CAPABILITIES_MAGIC  0xAA7A0008
+#define LSM_IS_CAPABILITIY(obj)    MAGIC_CHECK(obj, LSM_CAPABILITIES_MAGIC)
+
+#define LSM_CAP_MAX 512
+
+/**
+ * Capabilities of the plug-in and storage array.
+ */
+struct _lsmStorageCapabilities {
+    uint32_t magic;
+    uint32_t len;
+    uint8_t *cap;
 };
 
 #define LSM_SYSTEM_MAGIC  0xAA7A0009
@@ -288,6 +296,8 @@ LSM_DLL_LOCAL void freeConnection(lsmConnectPtr c);
 LSM_DLL_LOCAL int loadDriver(lsmConnectPtr c, xmlURIPtr uri,
                                 const char *password, uint32_t timeout,
                                 lsmErrorPtr *e);
+
+LSM_DLL_LOCAL char* capabilityString(lsmStorageCapabilitiesPtr c);
 
 #ifdef  __cplusplus
 }

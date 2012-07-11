@@ -440,3 +440,23 @@ Value nfsExportToValue(lsmNfsExport *exp)
     return Value();
 
 }
+
+lsmStorageCapabilities *valueToCapabilities(Value &exp)
+{
+    lsmStorageCapabilities *rc = NULL;
+    if( isExpectedObject(exp, "Capabilities") ) {
+        const char *val = exp["cap"].asC_str();
+        rc = lsmCapabilityRecordAlloc(val);
+    }
+    return rc;
+}
+
+Value capabilitiesToValue(lsmStorageCapabilities *cap)
+{
+    std::map<std::string, Value> c;
+    char *t = capabilityString(cap);
+    c["class"] = Value("Capabilities");
+    c["cap"] = Value(t);
+    free(t);
+    return c;
+}

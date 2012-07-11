@@ -1159,10 +1159,20 @@ START_TEST(test_invalid_input)
     }
 
     /* lsmStorageCapabilitiesPtr */
-    lsmStorageCapabilitiesPtr cap = NULL;
-    rc = lsmCapabilities(c, &cap);
-    fail_unless(LSM_ERR_NO_SUPPORT == rc);
+    lsmSystemPtr *sys = NULL;
+    uint32_t num_systems = 0;
+    rc = lsmSystemList(c, &sys, &num_systems );
 
+    fail_unless(LSM_ERR_OK == rc, "rc %d", rc);
+    fail_unless( sys != NULL);
+    fail_unless( num_systems >= 1, "num_systems %d", num_systems);
+
+
+    rc = lsmCapabilities(c, NULL, NULL);
+    fail_unless(LSM_ERR_INVALID_SYSTEM, "rc %d", rc);
+
+    rc = lsmCapabilities(c, sys[0], NULL);
+    fail_unless(LSM_ERR_INVALID_ARGUMENT, "rc %d", rc);
 
     /* lsmVolumeReplicate */
     lsmVolumePtr cloned = NULL;
@@ -1467,6 +1477,83 @@ START_TEST(test_invalid_input)
 }
 END_TEST
 
+static void cap_test( lsmStorageCapabilitiesPtr cap,  lsmCapabilityType t)
+{
+    lsmCapabilityValueType supported;
+    supported = lsmCapabilityGet(cap, t);
+
+    fail_unless( supported == LSM_CAPABILITY_SUPPORTED,
+                    "supported = %d for %d", supported, t);
+}
+
+START_TEST(test_capabilities)
+{
+    int rc = 0;
+
+    lsmSystemPtr *sys = NULL;
+    uint32_t sys_count = 0;
+    lsmStorageCapabilitiesPtr cap = NULL;
+
+    rc = lsmSystemList(c, &sys, &sys_count);
+    fail_unless( LSM_ERR_OK == rc, "rc = %d", rc);
+    fail_unless( sys_count >= 1, "count = %d", sys_count);
+
+    printf("lsmCapabilities\n");
+    rc = lsmCapabilities(c, sys[0], &cap);
+    fail_unless( LSM_ERR_OK == rc, "rc = %d", rc);
+
+    if( LSM_ERR_OK == rc ) {
+        cap_test(cap, LSM_CAP_BLOCK_SUPPORT);
+        cap_test(cap, LSM_CAP_FS_SUPPORT);
+        cap_test(cap, LSM_CAP_VOLUMES);
+        cap_test(cap, LSM_CAP_VOLUME_CREATE);
+        cap_test(cap, LSM_CAP_VOLUME_RESIZE);
+        cap_test(cap, LSM_CAP_VOLUME_REPLICATE);
+        cap_test(cap, LSM_CAP_VOLUME_REPLICATE_CLONE);
+        cap_test(cap, LSM_CAP_VOLUME_REPLICATE_COPY);
+        cap_test(cap, LSM_CAP_VOLUME_REPLICATE_MIRROR_ASYNC);
+        cap_test(cap, LSM_CAP_VOLUME_REPLICATE_MIRROR_SYNC);
+        cap_test(cap, LSM_CAP_VOLUME_COPY_RANGE_BLOCK_SIZE);
+        cap_test(cap, LSM_CAP_VOLUME_COPY_RANGE);
+        cap_test(cap, LSM_CAP_VOLUME_COPY_RANGE_CLONE);
+        cap_test(cap, LSM_CAP_VOLUME_COPY_RANGE_COPY);
+        cap_test(cap, LSM_CAP_VOLUME_DELETE);
+        cap_test(cap, LSM_CAP_VOLUME_ONLINE);
+        cap_test(cap, LSM_CAP_VOLUME_OFFLINE);
+        cap_test(cap, LSM_CAP_ACCESS_GROUP_GRANT);
+        cap_test(cap, LSM_CAP_ACCESS_GROUP_REVOKE);
+        cap_test(cap, LSM_CAP_ACCESS_GROUP_LIST);
+        cap_test(cap, LSM_CAP_ACCESS_GROUP_CREATE);
+        cap_test(cap, LSM_CAP_ACCESS_GROUP_DELETE);
+        cap_test(cap, LSM_CAP_ACCESS_GROUP_ADD_INITIATOR);
+        cap_test(cap, LSM_CAP_ACCESS_GROUP_DEL_INITIATOR);
+        cap_test(cap, LSM_CAP_VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP);
+        cap_test(cap, LSM_CAP_ACCESS_GROUPS_GRANTED_TO_VOLUME);
+        cap_test(cap, LSM_CAP_VOLUME_CHILD_DEPENDENCY);
+        cap_test(cap, LSM_CAP_VOLUME_CHILD_DEPENDENCY_RM);
+        cap_test(cap, LSM_CAP_FS);
+        cap_test(cap, LSM_CAP_FS_DELETE);
+        cap_test(cap, LSM_CAP_FS_RESIZE);
+        cap_test(cap, LSM_CAP_FS_CREATE);
+        cap_test(cap, LSM_CAP_FS_CLONE);
+        cap_test(cap, LSM_CAP_FILE_CLONE);
+        cap_test(cap, LSM_CAP_SNAPSHOTS);
+        cap_test(cap, LSM_CAP_SNAPSHOT_CREATE);
+        cap_test(cap, LSM_CAP_SNAPSHOT_CREATE_SPECIFIC_FILES);
+        cap_test(cap, LSM_CAP_SNAPSHOT_DELETE);
+        cap_test(cap, LSM_CAP_SNAPSHOT_REVERT);
+        cap_test(cap, LSM_CAP_SNAPSHOT_REVERT_SPECIFIC_FILES);
+        cap_test(cap, LSM_CAP_FS_CHILD_DEPENDENCY);
+        cap_test(cap, LSM_CAP_FS_CHILD_DEPENDENCY_RM);
+        cap_test(cap, LSM_CAP_FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES );
+        cap_test(cap, LSM_CAP_EXPORT_AUTH);
+        cap_test(cap, LSM_CAP_EXPORTS);
+        cap_test(cap, LSM_CAP_EXPORT_FS);
+        cap_test(cap, LSM_CAP_EXPORT_REMOVE);
+    }
+}
+END_TEST
+
 Suite * lsm_suite(void)
 {
     Suite *s = suite_create("libStorageMgmt");
@@ -1474,6 +1561,7 @@ Suite * lsm_suite(void)
     TCase *basic = tcase_create("Basic");
     tcase_add_checked_fixture (basic, setup, teardown);
 
+    tcase_add_test(basic, test_capabilities);
     tcase_add_test(basic, test_smoke_test);
     tcase_add_test(basic, test_access_groups);
     tcase_add_test(basic, test_systems);
@@ -1482,6 +1570,7 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_ss);
     tcase_add_test(basic, test_nfs_exports);
     tcase_add_test(basic, test_invalid_input);
+
 
     suite_add_tcase(s, basic);
     return s;

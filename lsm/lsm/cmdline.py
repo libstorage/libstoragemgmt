@@ -30,6 +30,7 @@ import common
 import client
 import data
 from version import VERSION
+from data import Capabilities
 
 ##@package lsm.cmdline
 
@@ -242,6 +243,11 @@ class CmdLine:
             help='List records of type [VOLUMES|INITIATORS|POOLS|FS|' \
                  'SNAPSHOTS|EXPORTS|NFS_CLIENT_AUTH|ACCESS_GROUPS|SYSTEMS]\n'
                  'Note: SNAPSHOTS requires --fs <fs id>')
+
+        commands.add_option( '', '--capabilities', action="store", type="string",
+            dest=_c("capabilities"),
+            metavar='<system id>',
+            help='Retrieves array capabilities')
 
         commands.add_option( '', '--delete-fs', action="store", type="string",
             dest=_c("delete-fs"),
@@ -941,6 +947,81 @@ class CmdLine:
         else:
             return size
 
+    def _cp(self, cap, val):
+        if self.options.sep is not None:
+            s = self.options.sep
+        else:
+            s = ':'
+
+        if val == data.Capabilities.SUPPORTED:
+            v = "SUPPORTED"
+        elif val == data.Capabilities.UNSUPPORTED:
+            v = "UNSUPPORTED"
+        elif val == data.Capabilities.SUPPORTED_OFFLINE:
+            v = "SUPPORTED_OFFLINE"
+        elif val == data.Capabilities.NOT_IMPLEMENTED:
+            v = "NOT_IMPLEMENTED"
+        else:
+            v = "UNKNOWN"
+
+        print "%s%s%s" % (cap, s, v)
+
+
+    def capabilities(self):
+        s = self._get_item(self.c.systems(), self.cmd_value)
+
+        if s:
+            cap = self.c.capabilities(s)
+            self._cp("BLOCK_SUPPORT", cap.get(Capabilities.BLOCK_SUPPORT))
+            self._cp("FS_SUPPORT", cap.get(Capabilities.FS_SUPPORT))
+            self._cp("VOLUMES", cap.get(Capabilities.VOLUMES))
+            self._cp("VOLUME_CREATE", cap.get(Capabilities.VOLUME_CREATE))
+            self._cp("VOLUME_RESIZE", cap.get(Capabilities.VOLUME_RESIZE))
+            self._cp("VOLUME_REPLICATE", cap.get(Capabilities.VOLUME_REPLICATE))
+            self._cp("VOLUME_REPLICATE_CLONE", cap.get(Capabilities.VOLUME_REPLICATE_CLONE))
+            self._cp("VOLUME_REPLICATE_COPY", cap.get(Capabilities.VOLUME_REPLICATE_COPY))
+            self._cp("VOLUME_REPLICATE_MIRROR_ASYNC", cap.get(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC))
+            self._cp("VOLUME_REPLICATE_MIRROR_SYNC", cap.get(Capabilities.VOLUME_REPLICATE_MIRROR_SYNC))
+            self._cp("VOLUME_COPY_RANGE_BLOCK_SIZE", cap.get(Capabilities.VOLUME_COPY_RANGE_BLOCK_SIZE))
+            self._cp("VOLUME_COPY_RANGE", cap.get(Capabilities.VOLUME_COPY_RANGE))
+            self._cp("VOLUME_COPY_RANGE_CLONE", cap.get(Capabilities.VOLUME_COPY_RANGE_CLONE))
+            self._cp("VOLUME_COPY_RANGE_COPY", cap.get(Capabilities.VOLUME_COPY_RANGE_COPY))
+            self._cp("VOLUME_DELETE", cap.get(Capabilities.VOLUME_DELETE))
+            self._cp("VOLUME_ONLINE", cap.get(Capabilities.VOLUME_ONLINE))
+            self._cp("VOLUME_OFFLINE", cap.get(Capabilities.VOLUME_OFFLINE))
+            self._cp("ACCESS_GROUP_GRANT", cap.get(Capabilities.ACCESS_GROUP_GRANT))
+            self._cp("ACCESS_GROUP_REVOKE", cap.get(Capabilities.ACCESS_GROUP_REVOKE))
+            self._cp("ACCESS_GROUP_LIST", cap.get(Capabilities.ACCESS_GROUP_LIST))
+            self._cp("ACCESS_GROUP_CREATE", cap.get(Capabilities.ACCESS_GROUP_CREATE))
+            self._cp("ACCESS_GROUP_DELETE", cap.get(Capabilities.ACCESS_GROUP_DELETE))
+            self._cp("ACCESS_GROUP_ADD_INITIATOR", cap.get(Capabilities.ACCESS_GROUP_ADD_INITIATOR))
+            self._cp("ACCESS_GROUP_DEL_INITIATOR", cap.get(Capabilities.ACCESS_GROUP_DEL_INITIATOR))
+            self._cp("VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP", cap.get(Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP))
+            self._cp("ACCESS_GROUPS_GRANTED_TO_VOLUME", cap.get(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME))
+            self._cp("VOLUME_CHILD_DEPENDENCY", cap.get(Capabilities.VOLUME_CHILD_DEPENDENCY))
+            self._cp("VOLUME_CHILD_DEPENDENCY_RM", cap.get(Capabilities.VOLUME_CHILD_DEPENDENCY_RM))
+            self._cp("FS", cap.get(Capabilities.FS))
+            self._cp("FS_DELETE", cap.get(Capabilities.FS_DELETE))
+            self._cp("FS_RESIZE", cap.get(Capabilities.FS_RESIZE))
+            self._cp("FS_CREATE", cap.get(Capabilities.FS_CREATE))
+            self._cp("FS_CLONE", cap.get(Capabilities.FS_CLONE))
+            self._cp("FILE_CLONE", cap.get(Capabilities.FILE_CLONE))
+            self._cp("SNAPSHOTS", cap.get(Capabilities.SNAPSHOTS))
+            self._cp("SNAPSHOT_CREATE", cap.get(Capabilities.SNAPSHOT_CREATE))
+            self._cp("SNAPSHOT_CREATE_SPECIFIC_FILES", cap.get(Capabilities.SNAPSHOT_CREATE_SPECIFIC_FILES))
+            self._cp("SNAPSHOT_DELETE", cap.get(Capabilities.SNAPSHOT_DELETE))
+            self._cp("SNAPSHOT_REVERT", cap.get(Capabilities.SNAPSHOT_REVERT))
+            self._cp("SNAPSHOT_REVERT_SPECIFIC_FILES", cap.get(Capabilities.SNAPSHOT_REVERT_SPECIFIC_FILES))
+            self._cp("FS_CHILD_DEPENDENCY", cap.get(Capabilities.FS_CHILD_DEPENDENCY))
+            self._cp("FS_CHILD_DEPENDENCY_RM", cap.get(Capabilities.FS_CHILD_DEPENDENCY_RM))
+            self._cp("FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES", cap.get(Capabilities.FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES))
+            self._cp("EXPORT_AUTH", cap.get(Capabilities.EXPORT_AUTH))
+            self._cp("EXPORTS", cap.get(Capabilities.EXPORTS))
+            self._cp("EXPORT_FS", cap.get(Capabilities.EXPORT_FS))
+            self._cp("EXPORT_REMOVE", cap.get(Capabilities.EXPORT_REMOVE))
+        else:
+            raise ArgError( "system with id= %s not found!" % self.cmd_value)
+
     ## Creates a volume
     # @param    self    The this pointer
     def create_volume(self):
@@ -1248,6 +1329,8 @@ class CmdLine:
                                      'method': self.fs_delete},
                        'delete-access-group': {'options': [],
                                      'method': self.delete_access_group},
+                       'capabilities': {'options': [],
+                                     'method': self.capabilities },
                        'create-volume': {'options': ['size', 'pool'],
                                          'method': self.create_volume},
                        'create-fs': {'options': ['size', 'pool'],

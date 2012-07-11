@@ -210,6 +210,7 @@ class ErrorNumber(object):
     INVALID_URI = 113
     INVALID_VALUE = 114
     INVALID_VOLUME = 115
+    INVALID_CAPABILITY = 116
 
     IS_MAPPED = 125
 

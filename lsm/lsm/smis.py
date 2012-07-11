@@ -22,6 +22,7 @@ from pywbem import CIMError
 from iplugin import IStorageAreaNetwork
 from common import uri_parse, LsmError, ErrorNumber, JobStatus, md5
 from data import Pool, Initiator, Volume, AccessGroup, System
+from lsm import data
 
 def handle_cim_errors(method):
     def cim_wrapper(*args, **kwargs):
@@ -264,6 +265,10 @@ class Smis(IStorageAreaNetwork):
                             str(concrete_job['ErrorDescription']))
 
         return status, percent_complete, volume
+
+    @handle_cim_errors
+    def capabilities(self, system):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Coming soon")
 
     @handle_cim_errors
     def job_status(self, job_id):

@@ -1325,6 +1325,155 @@ int lsmNfsExportOptionsSet( lsmNfsExportPtr exp, const char *value )
                 LSM_ERR_INVALID_NFS);
 }
 
+lsmCapabilityValueType lsmCapabilityGet(lsmStorageCapabilitiesPtr cap,
+                                        lsmCapabilityType t)
+{
+    lsmCapabilityValueType rc = LSM_CAPABILITY_UNKNOWN;
+
+    if( LSM_IS_CAPABILITIY(cap) && (uint32_t)t < cap->len ) {
+        rc = (lsmCapabilityValueType)cap->cap[t];
+    }
+    return rc;
+}
+
+int lsmCapabilitySet(lsmStorageCapabilitiesPtr cap, lsmCapabilityType t,
+                        lsmCapabilityValueType v)
+{
+    int rc = LSM_ERR_INVALID_ARGUMENT;
+
+    if( !LSM_IS_CAPABILITIY(cap) ) {
+        return LSM_ERR_INVALID_CAPABILITY;
+    }
+
+    if( (uint32_t)t < cap->len) {
+        cap->cap[t] = v;
+        rc = LSM_ERR_OK;
+    }
+    return rc;
+}
+
+int lsmCapabilitySetN( lsmStorageCapabilitiesPtr cap,
+                                lsmCapabilityValueType v, uint32_t number,
+                                ... )
+{
+    uint32_t i = 0;
+    int rc = LSM_ERR_OK;
+
+    if( !LSM_IS_CAPABILITIY(cap) ) {
+        return LSM_ERR_INVALID_CAPABILITY;
+    }
+
+    if( number ) {
+        va_list var_arg;
+
+        va_start(var_arg, number);
+
+        for( i = 0; i < number; ++i ) {
+            int index = va_arg(var_arg, int);
+
+            if( index < (int)cap->len ) {
+                cap->cap[index] = v;
+            } else {
+                rc = LSM_ERR_INVALID_ARGUMENT;
+                break;
+            }
+        }
+
+        va_end(var_arg);
+    }
+
+    return rc;
+}
+
+static char* bytesToString(uint8_t *a, uint32_t len)
+{
+	char *buff = NULL;
+
+	if( a && len ) {
+		uint32_t i = 0;
+		char *tmp = NULL;
+		size_t str_len = ((sizeof(char) * 2) * len + 1);
+		buff = (char*)malloc(str_len);
+
+		if( buff ) {
+			tmp = buff;
+			for( i = 0; i < len; ++i ) {
+				tmp += sprintf(tmp, "%02x", a[i]);
+			}
+			buff[str_len - 1] = '\0';
+		}
+	}
+	return buff;
+}
+
+static uint8_t *stringToBytes(const char *hex_string, uint32_t *l)
+{
+	uint8_t *rc = NULL;
+
+	if( hex_string && l ) {
+		size_t len = strlen(hex_string);
+		if( len && (len % 2) == 0) {
+			len /= 2;
+			rc = (uint8_t*)malloc( sizeof(uint8_t) * len);
+			if( rc ) {
+				size_t i;
+				const char *t = hex_string;
+				*l = len;
+
+				for( i = 0; i < len; ++i ) {
+					sscanf(t, "%02hhx", &rc[i]);
+					t += 2;
+				}
+			}
+		}
+	}
+	return rc;
+}
+
+
+lsmStorageCapabilitiesPtr lsmCapabilityRecordAlloc(const char *value)
+{
+    lsmStorageCapabilitiesPtr rc = NULL;
+    rc = (lsmStorageCapabilitiesPtr)malloc(sizeof(struct _lsmStorageCapabilities));
+    if(rc) {
+        rc->magic = LSM_CAPABILITIES_MAGIC;
+
+        if( value ) {
+            rc->cap = stringToBytes(value, &rc->len);
+        } else {
+            rc->cap = (uint8_t *)malloc(sizeof(uint8_t) * LSM_CAP_MAX);
+            if( rc->cap ) {
+                rc->len = LSM_CAP_MAX;
+                memset(rc->cap, 0, sizeof(uint8_t) * LSM_CAP_MAX);
+            }
+        }
+
+        if( !rc->cap ) {
+            lsmCapabilityRecordFree(rc);
+            rc = NULL;
+        }
+    }
+    return rc;
+}
+
+void lsmCapabilityRecordFree(lsmStorageCapabilitiesPtr cap)
+{
+    if( LSM_IS_CAPABILITIY(cap) ) {
+        cap->magic = LSM_DEL_MAGIC(LSM_CAPABILITIES_MAGIC);
+        free(cap->cap);
+        free(cap);
+    }
+}
+
+char* capabilityString(lsmStorageCapabilitiesPtr c)
+{
+    char *rc = NULL;
+    if( LSM_IS_CAPABILITIY(c) ) {
+        rc = bytesToString(c->cap, c->len);
+    }
+    return rc;
+}
+
 #ifdef  __cplusplus
 }
 #endif

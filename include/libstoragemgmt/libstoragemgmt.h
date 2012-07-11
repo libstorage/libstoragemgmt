@@ -25,6 +25,7 @@
 
 #include "libstoragemgmt_accessgroups.h"
 #include "libstoragemgmt_blockrange.h"
+#include "libstoragemgmt_capabilities.h"
 #include "libstoragemgmt_error.h"
 #include "libstoragemgmt_fs.h"
 #include "libstoragemgmt_initiators.h"
@@ -141,10 +142,12 @@ extern "C" {
     /**
      * Query the capabilities of the storage array.
      * @param[in]   conn    Valid connection @see lsmConnectUserPass
+     * @param[in]   system  System of interest
      * @param[out]  cap     The storage array capabilities
      * @return LSM_ERR_OK on success else error reason
      */
     int LSM_DLL_EXPORT lsmCapabilities(lsmConnectPtr conn,
+                                        lsmSystemPtr system,
                                         lsmStorageCapabilitiesPtr *cap);
 
     /**
