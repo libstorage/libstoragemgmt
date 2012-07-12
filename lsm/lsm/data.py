@@ -372,7 +372,7 @@ class Capabilities(IData):
             return Capabilities.UNKNOWN
         return self.cap[capability]
 
-    def set(self, capability, value):
+    def set(self, capability, value=SUPPORTED):
         self.cap[capability] = value
         return None
 

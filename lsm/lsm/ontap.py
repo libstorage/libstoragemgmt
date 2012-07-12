@@ -21,7 +21,7 @@ import urlparse
 
 import na
 from data import Volume, Initiator, FileSystem, Snapshot, NfsExport, \
-    AccessGroup, System
+    AccessGroup, System, Capabilities
 from iplugin import IStorageAreaNetwork, INfs
 from common import  LsmError, ErrorNumber, JobStatus, md5
 from data import Pool
@@ -151,7 +151,48 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def capabilities(self, system):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Coming soon")
+        cap = Capabilities()
+        cap.set(Capabilities.BLOCK_SUPPORT)
+        cap.set(Capabilities.FS_SUPPORT)
+        cap.set(Capabilities.VOLUMES)
+        cap.set(Capabilities.VOLUME_CREATE)
+        cap.set(Capabilities.VOLUME_RESIZE)
+        cap.set(Capabilities.VOLUME_REPLICATE)
+        cap.set(Capabilities.VOLUME_REPLICATE_CLONE)
+        cap.set(Capabilities.VOLUME_COPY_RANGE_BLOCK_SIZE)
+        cap.set(Capabilities.VOLUME_COPY_RANGE)
+        cap.set(Capabilities.VOLUME_COPY_RANGE_CLONE)
+        cap.set(Capabilities.VOLUME_DELETE)
+        cap.set(Capabilities.VOLUME_ONLINE)
+        cap.set(Capabilities.VOLUME_OFFLINE)
+        cap.set(Capabilities.ACCESS_GROUP_GRANT)
+        cap.set(Capabilities.ACCESS_GROUP_REVOKE)
+        cap.set(Capabilities.ACCESS_GROUP_LIST)
+        cap.set(Capabilities.ACCESS_GROUP_CREATE)
+        cap.set(Capabilities.ACCESS_GROUP_DELETE)
+        cap.set(Capabilities.ACCESS_GROUP_ADD_INITIATOR)
+        cap.set(Capabilities.ACCESS_GROUP_DEL_INITIATOR)
+        cap.set(Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP)
+        cap.set(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME)
+        cap.set(Capabilities.VOLUME_CHILD_DEPENDENCY)
+        cap.set(Capabilities.VOLUME_CHILD_DEPENDENCY_RM)
+        cap.set(Capabilities.FS)
+        cap.set(Capabilities.FS_DELETE)
+        cap.set(Capabilities.FS_RESIZE)
+        cap.set(Capabilities.FS_CREATE)
+        cap.set(Capabilities.FS_CLONE)
+        cap.set(Capabilities.FILE_CLONE)
+        cap.set(Capabilities.SNAPSHOTS)
+        cap.set(Capabilities.SNAPSHOT_CREATE)
+        cap.set(Capabilities.SNAPSHOT_DELETE)
+        cap.set(Capabilities.SNAPSHOT_REVERT)
+        cap.set(Capabilities.FS_CHILD_DEPENDENCY)
+        cap.set(Capabilities.FS_CHILD_DEPENDENCY_RM)
+        cap.set(Capabilities.EXPORT_AUTH)
+        cap.set(Capabilities.EXPORTS)
+        cap.set(Capabilities.EXPORT_FS)
+        cap.set(Capabilities.EXPORT_REMOVE)
+        return cap
 
     @handle_ontap_errors
     def pools(self):
