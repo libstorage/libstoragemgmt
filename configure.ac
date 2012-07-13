@@ -186,6 +186,7 @@ AC_OUTPUT(libstoragemgmt.pc \
           tools/smiscli/Makefile \
           include/Makefile \
           include/libstoragemgmt/Makefile \
+          include/libstoragemgmt/libstoragemgmt_version.h \
           lsm/Makefile \
           lsm/lsm/version.py \
           tools/lsmclipy/Makefile \
