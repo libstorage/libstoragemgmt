@@ -1308,7 +1308,7 @@ int lsmFsSsList(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr **ss,
     Value parameters(p);
     Value response;
 
-    int rc = rpc(c, "snapshots", parameters, response);
+    int rc = rpc(c, "fs_snapshots", parameters, response);
     if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
         std::vector<Value> sys = response.asArray();
 
@@ -1353,7 +1353,7 @@ int lsmFsSsCreate(lsmConnectPtr c, lsmFsPtr fs, const char *name,
     Value parameters(p);
     Value response;
 
-    int rc = rpc(c, "snapshot_create", parameters, response);
+    int rc = rpc(c, "fs_snapshot_create", parameters, response);
     if( LSM_ERR_OK == rc ) {
         *snapshot = (lsmSsPtr)parse_job_response(response, rc, job,
                                                         (convert)valueToSs);
@@ -1384,7 +1384,7 @@ int lsmFsSsDelete(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss, char **job)
     Value parameters(p);
     Value response;
 
-    int rc = rpc(c, "snapshot_delete", parameters, response);
+    int rc = rpc(c, "fs_snapshot_delete", parameters, response);
     return jobCheck(rc, response, job);
 }
 
@@ -1429,7 +1429,7 @@ int lsmFsSsRevert(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss,
     Value parameters(p);
     Value response;
 
-    int rc = rpc(c, "snapshot_revert", parameters, response);
+    int rc = rpc(c, "fs_snapshot_revert", parameters, response);
     return jobCheck(rc, response, job);
 
 }

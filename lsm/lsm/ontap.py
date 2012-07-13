@@ -182,10 +182,10 @@ class Ontap(IStorageAreaNetwork, INfs):
         cap.set(Capabilities.FS_CREATE)
         cap.set(Capabilities.FS_CLONE)
         cap.set(Capabilities.FILE_CLONE)
-        cap.set(Capabilities.SNAPSHOTS)
-        cap.set(Capabilities.SNAPSHOT_CREATE)
-        cap.set(Capabilities.SNAPSHOT_DELETE)
-        cap.set(Capabilities.SNAPSHOT_REVERT)
+        cap.set(Capabilities.FS_SNAPSHOTS)
+        cap.set(Capabilities.FS_SNAPSHOT_CREATE)
+        cap.set(Capabilities.FS_SNAPSHOT_DELETE)
+        cap.set(Capabilities.FS_SNAPSHOT_REVERT)
         cap.set(Capabilities.FS_CHILD_DEPENDENCY)
         cap.set(Capabilities.FS_CHILD_DEPENDENCY_RM)
         cap.set(Capabilities.EXPORT_AUTH)
@@ -510,18 +510,18 @@ class Ontap(IStorageAreaNetwork, INfs):
         return None
 
     @handle_ontap_errors
-    def snapshots(self, fs):
+    def fs_snapshots(self, fs):
         snapshots = self.f.snapshots(fs.name)
         return [self._ss(s) for s in snapshots]
 
     @handle_ontap_errors
-    def snapshot_create(self, fs, snapshot_name, files=None):
+    def fs_snapshot_create(self, fs, snapshot_name, files=None):
         #We can't do files, so we will do them all
         snap = self.f.snapshot_create(fs.name, snapshot_name)
         return None, self._ss(snap)
 
     @handle_ontap_errors
-    def snapshot_delete(self, fs, snapshot):
+    def fs_snapshot_delete(self, fs, snapshot):
         self.f.snapshot_delete(fs.name, snapshot.name)
 
     def _ss_revert_files(self, volume_name, snapshot_name, files,
@@ -534,7 +534,7 @@ class Ontap(IStorageAreaNetwork, INfs):
             self.f.snapshot_restore_file(snapshot_name, src, dest)
 
     @handle_ontap_errors
-    def snapshot_revert(self, fs, snapshot, files, restore_files,
+    def fs_snapshot_revert(self, fs, snapshot, files, restore_files,
                         all_files=False):
         """
         Restores a FS or files on a FS.

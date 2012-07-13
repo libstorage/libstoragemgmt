@@ -21,8 +21,7 @@ from pywbem import CIMError
 
 from iplugin import IStorageAreaNetwork
 from common import uri_parse, LsmError, ErrorNumber, JobStatus, md5
-from data import Pool, Initiator, Volume, AccessGroup, System
-from lsm import data
+from data import Pool, Initiator, Volume, AccessGroup, System, Capabilities
 
 def handle_cim_errors(method):
     def cim_wrapper(*args, **kwargs):
@@ -266,9 +265,102 @@ class Smis(IStorageAreaNetwork):
 
         return status, percent_complete, volume
 
+    def _scs_supported_capabilities(self, system, cap):
+        """
+        Interrogate the supported features of the Storage Configuration service
+        """
+        scs = self._get_class_instance( 'CIM_StorageConfigurationService',
+            'SystemName', system.id)
+
+        scs_cap_inst = self._c.Associators(scs.path,
+                        AssocClass='CIM_ElementCapabilities',
+                        ResultClass = 'CIM_StorageConfigurationCapabilities')[0]
+
+        #print 'Async', scs_cap_inst['SupportedAsynchronousActions']
+        #print 'Sync', scs_cap_inst['SupportedSynchronousActions']
+
+        #TODO Get rid of magic numbers
+        if 2 in scs_cap_inst['SupportedStorageElementTypes']:
+            cap.set(Capabilities.VOLUMES)
+
+        if 5 in scs_cap_inst['SupportedAsynchronousActions'] or \
+            5 in scs_cap_inst['SupportedSynchronousActions']:
+            cap.set(Capabilities.VOLUME_CREATE)
+
+        if 6 in scs_cap_inst['SupportedAsynchronousActions'] or \
+           6 in scs_cap_inst['SupportedSynchronousActions']:
+            cap.set(Capabilities.VOLUME_DELETE)
+
+        if 7 in scs_cap_inst['SupportedAsynchronousActions'] or \
+           7 in scs_cap_inst['SupportedSynchronousActions']:
+            cap.set(Capabilities.VOLUME_RESIZE)
+
+    def _rs_supported_capabilities(self, system, cap):
+        """
+        Interrogate the supported features of the replication service
+        """
+        rs = self._get_class_instance("CIM_ReplicationService", 'SystemName',
+                                        system.id)
+
+        rs_cap = self._c.Associators(rs.path, AssocClass='CIM_ElementCapabilities',
+                                    ResultClass='CIM_ReplicationServiceCapabilities')[0]
+
+        #print 'Async', rs_cap['SupportedAsynchronousActions']
+        #print 'Sync', rs_cap['SupportedSynchronousActions']
+        #print 'SupportedReplicationTypes', rs_cap['SupportedReplicationTypes']
+
+        #TODO Get rid of magic numbers
+        if 2 in rs_cap['SupportedAsynchronousActions'] or\
+           2 in rs_cap['SupportedSynchronousActions']:
+            cap.set(Capabilities.VOLUME_REPLICATE)
+
+        if 2 in rs_cap['SupportedReplicationTypes']:
+            cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_SYNC)
+
+        if 3 in rs_cap['SupportedReplicationTypes']:
+            cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC)
+
+        if 3 in rs_cap['SupportedReplicationTypes']:
+            cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC)
+
+        if 6 or 7 in rs_cap['SupportedReplicationTypes']:
+            cap.set(Capabilities.VOLUME_REPLICATE_CLONE)
+
+        if 10 or 11 in rs_cap['SupportedReplicationTypes']:
+            cap.set(Capabilities.VOLUME_REPLICATE_COPY)
+
+    def _pcm_supported_capabilities(self, system, cap):
+        """
+        Interrogate the supported features of
+        CIM_ProtocolControllerMaskingCapabilities
+        """
+        pcm = self._get_class_instance(
+                                "CIM_ProtocolControllerMaskingCapabilities",
+                                'InstanceID', system.id)
+
+        cap.set(Capabilities.ACCESS_GROUP_LIST)
+
+        if pcm['ExposePathsSupported']:
+            cap.set(Capabilities.ACCESS_GROUP_GRANT)
+            cap.set(Capabilities.ACCESS_GROUP_REVOKE)
+            cap.set(Capabilities.ACCESS_GROUP_ADD_INITIATOR)
+            cap.set(Capabilities.ACCESS_GROUP_DEL_INITIATOR)
+
+        cap.set(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME)
+        cap.set(Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP)
+
     @handle_cim_errors
     def capabilities(self, system):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Coming soon")
+        cap = Capabilities()
+
+        #Assume that the SMI-S we are talking to supports blocks
+        cap.set(Capabilities.BLOCK_SUPPORT)
+
+        self._scs_supported_capabilities(system,cap)
+        self._rs_supported_capabilities(system, cap)
+        self._pcm_supported_capabilities(system, cap)
+
+        return cap
 
     @handle_cim_errors
     def job_status(self, job_id):
@@ -493,7 +585,8 @@ class Smis(IStorageAreaNetwork):
         """
         mode = Smis.CREATE_ELEMENT_REPLICA_MODE_ASYNC
 
-        rs = self._get_class_instance("CIM_ReplicationService")
+        rs = self._get_class_instance("CIM_ReplicationService", 'SystemName',
+                                        pool.system_id)
         pool = self._get_pool(pool.id)
         lun = self._get_volume(volume_src.id)
 
@@ -557,52 +650,6 @@ class Smis(IStorageAreaNetwork):
                                                  ' on initiator_create!')
 
     @handle_cim_errors
-    def initiator_delete(self, initiator):
-
-        #Find the instance of the initiator to delete.
-        init = self._get_class_instance('CIM_StorageHardwareID', 'StorageID',
-                initiator.id)
-
-        if init:
-            hardware = self._get_class_instance('CIM_StorageHardwareIDManagementService')
-
-            in_params = {'HardwareID': init.path}
-
-            (rc, out) = self._c.InvokeMethod('DeleteStorageHardwareID',
-                        hardware.path, **in_params)
-
-            if not rc:
-                return None
-            else:
-                raise LsmError(ErrorNumber.PLUGIN_ERROR, 'Error: ' + str(rc) +
-                                                         ' on initiator_delete!')
-        else:
-            raise LsmError(ErrorNumber.PLUGIN_ERROR,
-                'Error: initiator %s does not exist!' % initiator.id)
-
-    @handle_cim_errors
-    def access_grant(self, initiator, volume, access):
-        """
-        Grant access to a volume to an initiator
-        """
-        ccs = self._get_class_instance('CIM_ControllerConfigurationService',
-                                        'SystemName', volume.system_id)
-        lun = self._get_volume(volume.id)
-
-        if access == Volume.ACCESS_READ_ONLY:
-            da = Smis.EXPOSE_PATHS_DA_READ_ONLY
-        else:
-            da = Smis.EXPOSE_PATHS_DA_READ_WRITE
-
-        in_params = { 'LUNames': [lun['Name']],
-                      'InitiatorPortIDs': [initiator.id],
-                      'DeviceAccesses': [pywbem.Uint16(da)]}
-
-        #Returns None or job id
-        return self._pi("access_grant", False,
-                *(self._c.InvokeMethod('ExposePaths', ccs.path, **in_params)))[0]
-
-    @handle_cim_errors
     def access_group_grant(self, group, volume, access):
         """
         Grant access to a volume to an group
@@ -645,41 +692,6 @@ class Smis(IStorageAreaNetwork):
             raise LsmError(ErrorNumber.PLUGIN_ERROR, "Expected no errors %s %s"
                             %(job, str(status)))
 
-    @handle_cim_errors
-    def access_revoke(self, initiator, volume):
-        """
-        Revoke access to a volume from an initiator
-        """
-        spc = self._get_spc(initiator.id, volume.id)
-
-        if spc:
-
-            ccs = self._get_class_instance('CIM_ControllerConfigurationService',
-                                            'SystemName', volume.system_id)
-
-            hide_params = {'InitiatorPortIDs': [initiator.id],
-                           'ProtocolControllers': [spc.path]}
-            hide = self._pi("HidePaths", False,
-                            *(self._c.InvokeMethod('HidePaths', ccs.path,
-                            **hide_params)))[0]
-
-            #If this gets turned into a job, we need to block.  We could  also
-            #return here and wait for the user to follow-up with a status check
-            #and then proceed to the next step, but that would only work if the
-            #caller was good about checking back on job status.
-            if hide:
-                self._wait(hide)
-
-            in_params = {'ProtocolController': spc.path,
-                         'DeleteChildrenProtocolControllers': True,
-                         'DeleteUnits': True}
-
-            #Returns None or job id
-            return self._pi("access_revoke", False,
-                *(self._c.InvokeMethod('DeleteProtocolController', ccs.path,
-                    **in_params)))[0]
-
-        raise LsmError(ErrorNumber.NO_MAPPING, "")
 
     @handle_cim_errors
     def access_group_revoke(self, group, volume):

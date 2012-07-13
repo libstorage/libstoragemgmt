@@ -562,14 +562,14 @@ class StorageSimulator(INfs):
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
 
-    def snapshots(self, fs):
+    def fs_snapshots(self, fs):
         if fs.id in self.s.fs:
             rc =  [e for e in self.s.fs[fs.id]['ss'].itervalues()]
             return rc
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
 
-    def snapshot_create(self, fs, snapshot_name, files):
+    def fs_snapshot_create(self, fs, snapshot_name, files):
         self._check_sl(files)
         if fs.id in self.s.fs:
             for e in self.s.fs[fs.id]['ss'].itervalues():
@@ -583,7 +583,7 @@ class StorageSimulator(INfs):
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
 
-    def snapshot_delete(self, fs, snapshot):
+    def fs_snapshot_delete(self, fs, snapshot):
         if fs.id in self.s.fs:
             if snapshot.id in self.s.fs[fs.id]['ss']:
                 del self.s.fs[fs.id]['ss'][snapshot.id]
@@ -593,7 +593,7 @@ class StorageSimulator(INfs):
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
 
-    def snapshot_revert(self, fs, snapshot, files, restore_files, all_files):
+    def fs_snapshot_revert(self, fs, snapshot, files, restore_files, all_files):
 
         self._check_sl(files)
         self._check_sl(files)

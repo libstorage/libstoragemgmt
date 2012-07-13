@@ -731,7 +731,7 @@ class CmdLine:
 
             fs = self._get_item(self.c.fs(),self.options.opt_fs)
             if fs:
-                self.display_snaps(self.c.snapshots(fs))
+                self.display_snaps(self.c.fs_snapshots(fs))
             else:
                 raise ArgError("filesystem %s not found!" % self.options.opt_volume)
         elif self.cmd_value == 'INITIATORS':
@@ -872,7 +872,7 @@ class CmdLine:
 
         if self.options.backing_snapshot:
             #go get the snapsnot
-            ss = self._get_item(self.c.snapshots(src_fs), self.options.backing_snapshot)
+            ss = self._get_item(self.c.fs_snapshots(src_fs), self.options.backing_snapshot)
             if not ss:
                 raise ArgError(" snapshot with id= %s not found!" % self.options.backing_snapshot)
         else:
@@ -890,7 +890,7 @@ class CmdLine:
 
         if self.options.backing_snapshot:
             #go get the snapsnot
-            ss = self._get_item(self.c.snapshots(fs), self.options.backing_snapshot)
+            ss = self._get_item(self.c.fs_snapshots(fs), self.options.backing_snapshot)
         else:
             ss = None
 
@@ -1006,12 +1006,12 @@ class CmdLine:
             self._cp("FS_CREATE", cap.get(Capabilities.FS_CREATE))
             self._cp("FS_CLONE", cap.get(Capabilities.FS_CLONE))
             self._cp("FILE_CLONE", cap.get(Capabilities.FILE_CLONE))
-            self._cp("SNAPSHOTS", cap.get(Capabilities.SNAPSHOTS))
-            self._cp("SNAPSHOT_CREATE", cap.get(Capabilities.SNAPSHOT_CREATE))
-            self._cp("SNAPSHOT_CREATE_SPECIFIC_FILES", cap.get(Capabilities.SNAPSHOT_CREATE_SPECIFIC_FILES))
-            self._cp("SNAPSHOT_DELETE", cap.get(Capabilities.SNAPSHOT_DELETE))
-            self._cp("SNAPSHOT_REVERT", cap.get(Capabilities.SNAPSHOT_REVERT))
-            self._cp("SNAPSHOT_REVERT_SPECIFIC_FILES", cap.get(Capabilities.SNAPSHOT_REVERT_SPECIFIC_FILES))
+            self._cp("FS_SNAPSHOTS", cap.get(Capabilities.FS_SNAPSHOTS))
+            self._cp("FS_SNAPSHOT_CREATE", cap.get(Capabilities.FS_SNAPSHOT_CREATE))
+            self._cp("FS_SNAPSHOT_CREATE_SPECIFIC_FILES", cap.get(Capabilities.FS_SNAPSHOT_CREATE_SPECIFIC_FILES))
+            self._cp("FS_SNAPSHOT_DELETE", cap.get(Capabilities.FS_SNAPSHOT_DELETE))
+            self._cp("FS_SNAPSHOT_REVERT", cap.get(Capabilities.FS_SNAPSHOT_REVERT))
+            self._cp("FS_SNAPSHOT_REVERT_SPECIFIC_FILES", cap.get(Capabilities.FS_SNAPSHOT_REVERT_SPECIFIC_FILES))
             self._cp("FS_CHILD_DEPENDENCY", cap.get(Capabilities.FS_CHILD_DEPENDENCY))
             self._cp("FS_CHILD_DEPENDENCY_RM", cap.get(Capabilities.FS_CHILD_DEPENDENCY_RM))
             self._cp("FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES", cap.get(Capabilities.FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES))
@@ -1044,7 +1044,7 @@ class CmdLine:
         fs = self._get_item(self.c.fs(), self.options.opt_fs)
         if fs:
             ss = self._wait_for_it("snapshot-create",
-                    *self.c.snapshot_create(fs,self.cmd_value,
+                    *self.c.fs_snapshot_create(fs,self.cmd_value,
                                             self.options.file))
 
             self.display_snaps([ss])
@@ -1056,7 +1056,7 @@ class CmdLine:
     def restore_ss(self):
         #Get snapshot
         fs = self._get_item(self.c.fs(), self.options.opt_fs)
-        ss = self._get_item(self.c.snapshots(fs), self.cmd_value)
+        ss = self._get_item(self.c.fs_snapshots(fs), self.cmd_value)
 
         if ss and fs:
 
@@ -1072,7 +1072,7 @@ class CmdLine:
             if self.options.all is False and self.options.file is None:
                 raise ArgError("Need to specify --all or at least one --file")
 
-            self._wait_for_it('restore-ss', self.c.snapshot_revert(fs, ss,
+            self._wait_for_it('restore-ss', self.c.fs_snapshot_revert(fs, ss,
                                     self.options.file, self.options.fileas,
                                     self.options.all), None)
         else:
@@ -1096,9 +1096,9 @@ class CmdLine:
     def delete_ss(self):
         fs = self._get_item(self.c.fs(), self.options.opt_fs)
         if fs:
-            ss = self._get_item(self.c.snapshots(fs), self.cmd_value)
+            ss = self._get_item(self.c.fs_snapshots(fs), self.cmd_value)
             if ss:
-                self._wait_for_it("delete-snapshot", self.c.snapshot_delete(fs,ss), None)
+                self._wait_for_it("delete-snapshot", self.c.fs_snapshot_delete(fs,ss), None)
             else:
                 raise ArgError(" snapshot with id= %s not found!" % self.cmd_value)
         else:

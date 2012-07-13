@@ -550,11 +550,11 @@ class Client(INetworkAttachedStorage):
     # @param    self    The this pointer
     # @param    fs      The file system
     # @returns  a list of snapshot objects.
-    def snapshots(self, fs):
+    def fs_snapshots(self, fs):
         """
         Returns a list of snapshot names for the supplied file system
         """
-        return self.tp.rpc('snapshots', del_self(locals()))
+        return self.tp.rpc('fs_snapshots', del_self(locals()))
 
     ## Creates a snapshot (Point in time read only copy)
     # @param    self    The this pointer
@@ -562,7 +562,7 @@ class Client(INetworkAttachedStorage):
     # @param    snapshot_name   The human readable snapshot name
     # @param    files   The list of specific files to snapshot.
     # @returns tuple (job_id, snapshot)
-    def snapshot_create(self, fs, snapshot_name, files):
+    def fs_snapshot_create(self, fs, snapshot_name, files):
         """
         Snapshot is a point in time read-only copy
 
@@ -581,20 +581,20 @@ class Client(INetworkAttachedStorage):
         - Tuple return values are mutually exclusive, when one
           is None the other must be valid.
         """
-        return self.tp.rpc('snapshot_create', del_self(locals()))
+        return self.tp.rpc('fs_snapshot_create', del_self(locals()))
 
     ## Deletes a snapshot
     # @param    self    The this pointer
     # @param    fs      The filesystem the snapshot it for
     # @param    snapshot    The specific snap shot to delete
     # @returns  None on success, else job id
-    def snapshot_delete(self, fs, snapshot):
+    def fs_snapshot_delete(self, fs, snapshot):
         """
         Frees the re-sources for the given snapshot on the supplied filesystem.
 
         Returns None on success else job id, LsmError exception on error
         """
-        return self.tp.rpc('snapshot_delete', del_self(locals()))
+        return self.tp.rpc('fs_snapshot_delete', del_self(locals()))
 
     ## Reverts a snapshot
     # @param    self        The this pointer
@@ -603,7 +603,7 @@ class Client(INetworkAttachedStorage):
     # @param    files       The specific files to revert.
     # @param    all_files   Set to True if all files should be reverted back.
     # @return None on success, else job id
-    def snapshot_revert(self, fs, snapshot, files, restore_files,
+    def fs_snapshot_revert(self, fs, snapshot, files, restore_files,
                         all_files=False):
         """
         WARNING: Destructive!
@@ -618,7 +618,7 @@ class Client(INetworkAttachedStorage):
 
         Returns None on success, else job id, LsmError exception on error
         """
-        return self.tp.rpc('snapshot_revert', del_self(locals()))
+        return self.tp.rpc('fs_snapshot_revert', del_self(locals()))
 
     ## Checks to see if a file system has child dependencies.
     # @param    fs      The file system to check

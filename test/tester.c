@@ -1537,12 +1537,12 @@ START_TEST(test_capabilities)
         cap_test(cap, LSM_CAP_FS_CREATE);
         cap_test(cap, LSM_CAP_FS_CLONE);
         cap_test(cap, LSM_CAP_FILE_CLONE);
-        cap_test(cap, LSM_CAP_SNAPSHOTS);
-        cap_test(cap, LSM_CAP_SNAPSHOT_CREATE);
-        cap_test(cap, LSM_CAP_SNAPSHOT_CREATE_SPECIFIC_FILES);
-        cap_test(cap, LSM_CAP_SNAPSHOT_DELETE);
-        cap_test(cap, LSM_CAP_SNAPSHOT_REVERT);
-        cap_test(cap, LSM_CAP_SNAPSHOT_REVERT_SPECIFIC_FILES);
+        cap_test(cap, LSM_CAP_FS_SNAPSHOTS);
+        cap_test(cap, LSM_CAP_FS_SNAPSHOT_CREATE);
+        cap_test(cap, LSM_CAP_FS_SNAPSHOT_CREATE_SPECIFIC_FILES);
+        cap_test(cap, LSM_CAP_FS_SNAPSHOT_DELETE);
+        cap_test(cap, LSM_CAP_FS_SNAPSHOT_REVERT);
+        cap_test(cap, LSM_CAP_FS_SNAPSHOT_REVERT_SPECIFIC_FILES);
         cap_test(cap, LSM_CAP_FS_CHILD_DEPENDENCY);
         cap_test(cap, LSM_CAP_FS_CHILD_DEPENDENCY_RM);
         cap_test(cap, LSM_CAP_FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES );

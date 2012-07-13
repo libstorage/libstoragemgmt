@@ -362,14 +362,14 @@ class INetworkAttachedStorage(IPlugin):
         pass
 
     @abstractmethod
-    def snapshots(self, fs):
+    def fs_snapshots(self, fs):
         """
         Returns a list of snapshots for the supplied file system
         """
         pass
 
     @abstractmethod
-    def snapshot_create(self, fs, snapshot_name, files):
+    def fs_snapshot_create(self, fs, snapshot_name, files):
         """
         Snapshot is a point in time read-only copy
 
@@ -387,7 +387,7 @@ class INetworkAttachedStorage(IPlugin):
         pass
 
     @abstractmethod
-    def snapshot_delete(self, fs, snapshot):
+    def fs_snapshot_delete(self, fs, snapshot):
         """
         Frees the re-sources for the given snapshot on the supplied filesystem.
 
@@ -396,7 +396,7 @@ class INetworkAttachedStorage(IPlugin):
         pass
 
     @abstractmethod
-    def snapshot_revert(self, fs, snapshot, files, restore_files, all_files=False):
+    def fs_snapshot_revert(self, fs, snapshot, files, restore_files, all_files=False):
         """
         WARNING: Destructive!
 
