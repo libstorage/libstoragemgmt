@@ -52,7 +52,7 @@ def error_map(oe):
         return e_map[oe.errno], oe.reason
     else:
         return ErrorNumber.PLUGIN_ERROR, oe.reason + \
-                                  " (vendor error code= " + oe.errno + ")"
+                                  " (vendor error code= " + str(oe.errno) + ")"
 
 
 def handle_ontap_errors(method):
@@ -61,7 +61,7 @@ def handle_ontap_errors(method):
             return method(*args, **kwargs)
         except na.FilerError as oe:
             error, error_msg = error_map(oe)
-            raise LsmError(error, error_msg + ":" + str(oe.errno))
+            raise LsmError(error, error_msg)
         except urllib2.HTTPError as he:
             if he.code == 401:
                 raise LsmError(ErrorNumber.PLUGIN_AUTH_FAILED, he.msg)
@@ -237,14 +237,21 @@ class Ontap(IStorageAreaNetwork, INfs):
 
         v = self.f.volume_names()
 
-        if Ontap.LSM_VOL_PREFIX not in v:
-            self.f.volume_create(pool.name, Ontap.LSM_VOL_PREFIX, size_bytes)
+        vol_prefix = Ontap.LSM_VOL_PREFIX + '_' + pool.name
+
+        if vol_prefix not in v:
+            self.f.volume_create(pool.name, vol_prefix, size_bytes)
         else:
             #re-size volume to accommodate new logical unit
-            self.f.volume_resize(Ontap.LSM_VOL_PREFIX, size_bytes)
+            self.f.volume_resize(vol_prefix, self._size_kb_padded(size_bytes))
 
-        lun_name = self.f.lun_build_name(Ontap.LSM_VOL_PREFIX, volume_name)
-        self.f.lun_create(lun_name, size_bytes)
+        lun_name = self.f.lun_build_name(vol_prefix, volume_name)
+
+        try:
+            self.f.lun_create(lun_name, size_bytes)
+        except Exception as e:
+            self.f.volume_resize(vol_prefix, -self._size_kb_padded(size_bytes))
+            raise e
 
         #Get the information about the newly created LUN
         return None, self._get_volume(lun_name)
@@ -265,16 +272,31 @@ class Ontap(IStorageAreaNetwork, INfs):
 
         return None
 
+    @staticmethod
+    def _size_kb_padded(size_bytes):
+        return int((size_bytes/1024) * 1.3)
+
     @handle_ontap_errors
     def volume_resize(self, volume, new_size_bytes):
         na_vol = self._vol_to_na_volume_name(volume)
         diff = new_size_bytes - volume.size_bytes
 
+        #Convert to KB and pad for snapshots
+        diff = self._size_kb_padded(diff)
+
         #If the new size is > than old -> re-size volume then lun
         #If the new size is < than old -> re-size lun then volume
         if diff > 0:
+            #if this raises an exception we are fine
             self.f.volume_resize(na_vol, diff)
-            self.f.lun_resize(volume.name, new_size_bytes)
+
+            try:
+                #if this raises an exception we need to revert the volume
+                self.f.lun_resize(volume.name, new_size_bytes)
+            except Exception as e:
+                #Put the volume back to previous size
+                self.f.volume_resize(na_vol, -diff)
+                raise e
         else:
             self.f.lun_resize(volume.name, new_size_bytes)
             self.f.volume_resize(na_vol, diff)
@@ -296,12 +318,20 @@ class Ontap(IStorageAreaNetwork, INfs):
         #Check to see if our volume is on a pool that was passed in
         if self._volume_on_aggr(pool, volume_src):
             #re-size the NetApp volume to accommodate the new lun
-            self.f.volume_resize(self._vol_to_na_volume_name(volume_src),
-                volume_src.size_bytes)
+            size = self._size_kb_padded(volume_src.size_bytes)
+
+            self.f.volume_resize(self._vol_to_na_volume_name(volume_src), size)
 
             #Thin provision copy the logical unit
             dest = os.path.dirname(volume_src.name) + '/' + name
-            self.f.clone(volume_src.name, dest)
+
+            try:
+                self.f.clone(volume_src.name, dest)
+            except Exception as e:
+                #Put volume back to previous size
+                self.f.volume_resize(self._vol_to_na_volume_name(volume_src),
+                                        -size)
+                raise e
             return None, self._get_volume(dest)
         else:
             #TODO Need to get instructions on how to provide this functionality
@@ -480,6 +510,8 @@ class Ontap(IStorageAreaNetwork, INfs):
     @handle_ontap_errors
     def fs_resize(self, fs, new_size_bytes):
         diff = new_size_bytes - fs.total_space
+
+        diff = self._size_kb_padded(diff)
         self.f.volume_resize(fs.name, diff)
         return None, self._vol(self.f.volumes(fs.name)[0])
 

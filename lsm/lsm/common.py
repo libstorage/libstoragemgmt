@@ -145,8 +145,10 @@ class LsmError(Exception):
         self.data = data
 
     def __str__(self):
-        return "error: %s msg: %s" % (self.code, self.msg)
-
+        if self.data is not None:
+            return "error: %s msg: %s data: %s" % (self.code, self.msg, self.data)
+        else:
+            return "error: %s msg: %s " % (self.code, self.msg)
 
 def addl_error_data(domain, level, exception, debug = None, debug_data = None):
     """

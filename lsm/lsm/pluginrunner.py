@@ -91,7 +91,8 @@ class PluginRunner(object):
                         else:
                             result = getattr(self.plugin, method)(**msg['params'])
                     else:
-                        raise LsmError(ErrorNumber.NO_SUPPORT, "Unsupported operation")
+                        raise LsmError(ErrorNumber.NO_SUPPORT,
+                                        "Unsupported operation")
 
                     self.tp.send_resp(result)
 
@@ -115,8 +116,15 @@ class PluginRunner(object):
         except SocketEOF:
             #Client went away
             Error('Client went away, exiting plug-in')
-        except Exception:
-            Error(traceback.format_exc())
+        except Exception as ge:
+            Error("Unhandled exception in plug-in!\n" + traceback.format_exc())
+
+            try:
+                self.tp.send_error(id, ErrorNumber.PLUGIN_ERROR,
+                 "Unhandled exception in plug-in", str(traceback.format_exc()))
+            except Exception:
+                pass
+
         finally:
             if need_shutdown:
                 #Client wasn't nice, we will allow plug-in to cleanup

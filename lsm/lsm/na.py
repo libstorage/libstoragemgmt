@@ -235,20 +235,17 @@ class Filer(object):
         self._invoke('lun-resize', {'path':lun_path, 'size':size_bytes,
                                     'force':'true'})
 
-    def volume_resize(self,  na_vol_name, size_diff):
+    def volume_resize(self,  na_vol_name, size_diff_kb):
         """
-        Given a NetApp volume name and a size change in bytes, re-size the
+        Given a NetApp volume name and a size change in kb, re-size the
         NetApp volume.
         """
         params = { 'volume':na_vol_name }
 
-        #Pad the increase for snapshot stuff
-        size_diff = int((size_diff/1024) * 1.3)
-
-        if size_diff > 0:
-            params['new-size'] = '+' + str(size_diff)+'k'
+        if size_diff_kb > 0:
+            params['new-size'] = '+' + str(size_diff_kb)+'k'
         else:
-            params['new-size'] = str(size_diff)+'k'
+            params['new-size'] = str(size_diff_kb)+'k'
 
         self._invoke('volume-size', params)
         return None
