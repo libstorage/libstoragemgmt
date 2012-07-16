@@ -320,9 +320,6 @@ class Smis(IStorageAreaNetwork):
         if 3 in rs_cap['SupportedReplicationTypes']:
             cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC)
 
-        if 3 in rs_cap['SupportedReplicationTypes']:
-            cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC)
-
         if 6 or 7 in rs_cap['SupportedReplicationTypes']:
             cap.set(Capabilities.VOLUME_REPLICATE_CLONE)
 
