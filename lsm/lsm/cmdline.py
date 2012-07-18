@@ -974,6 +974,7 @@ class CmdLine:
             cap = self.c.capabilities(s)
             self._cp("BLOCK_SUPPORT", cap.get(Capabilities.BLOCK_SUPPORT))
             self._cp("FS_SUPPORT", cap.get(Capabilities.FS_SUPPORT))
+            self._cp("INITIATORS", cap.get(Capabilities.INITIATORS))
             self._cp("VOLUMES", cap.get(Capabilities.VOLUMES))
             self._cp("VOLUME_CREATE", cap.get(Capabilities.VOLUME_CREATE))
             self._cp("VOLUME_RESIZE", cap.get(Capabilities.VOLUME_RESIZE))
@@ -1087,7 +1088,7 @@ class CmdLine:
         v = self._get_item(self.c.volumes(), self.cmd_value)
 
         if v:
-            self.c.volume_delete(v)
+            self._wait_for_it("delete-volume", self.c.volume_delete(v), None)
         else:
             raise ArgError(" volume with id= %s not found!" % self.cmd_value)
 

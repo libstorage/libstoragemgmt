@@ -313,9 +313,10 @@ static int cap(lsmPluginPtr c, lsmSystemPtr system, lsmStorageCapabilitiesPtr *c
     *cap = lsmCapabilityRecordAlloc(NULL);
 
     if( *cap ) {
-        rc = lsmCapabilitySetN(*cap, LSM_CAPABILITY_SUPPORTED, 47,
+        rc = lsmCapabilitySetN(*cap, LSM_CAPABILITY_SUPPORTED, 48,
             LSM_CAP_BLOCK_SUPPORT,
             LSM_CAP_FS_SUPPORT,
+            LSM_CAP_INITIATORS,
             LSM_CAP_VOLUMES,
             LSM_CAP_VOLUME_CREATE,
             LSM_CAP_VOLUME_RESIZE,

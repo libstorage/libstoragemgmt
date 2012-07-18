@@ -70,6 +70,8 @@ typedef enum {
     LSM_CAP_VOLUME_CHILD_DEPENDENCY                 = 45,
     LSM_CAP_VOLUME_CHILD_DEPENDENCY_RM              = 46,
 
+    LSM_CAP_INITIATORS                              = 47,
+
     LSM_CAP_FS                                      = 100,
     LSM_CAP_FS_DELETE                               = 101,
     LSM_CAP_FS_RESIZE                               = 102,

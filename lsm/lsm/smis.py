@@ -59,6 +59,26 @@ class Smis(IStorageAreaNetwork):
     #SMI-S replication enumerations
     (SYNC_TYPE_MIRROR, SYNC_TYPE_SNAPSHOT, SYNC_TYPE_CLONE) = (6,7,8)
 
+    class RepSvc(object):
+
+        class Action(object):
+            CREATE_ELEMENT_REPLICA  = 2
+
+        class RepTypes(object):
+            #SMI-S replication service capabilities
+            SYNC_MIRROR_LOCAL       = 2
+            ASYNC_MIRROR_LOCAL      = 3
+            SYNC_MIRROR_REMOTE      = 4
+            ASYNC_MIRROR_REMOTE     = 5
+            SYNC_SNAPSHOT_LOCAL     = 6
+            ASYNC_SNAPSHOT_LOCAL    = 7
+            SYNC_SNAPSHOT_REMOTE    = 8
+            ASYNC_SNAPSHOT_REMOTE   = 9
+            SYNC_CLONE_LOCAL        = 10
+            ASYNC_CLONE_LOCAL       = 11
+            SYNC_CLONE_REMOTE       = 12
+            ASYNC_CLONE_REMOTE      = 13
+
     #SMI-S mode for mirror updates
     (CREATE_ELEMENT_REPLICA_MODE_SYNC, CREATE_ELEMENT_REPLICA_MODE_ASYNC ) = (2,3)
 
@@ -82,12 +102,22 @@ class Smis(IStorageAreaNetwork):
             "Unable to find class instance " + class_name +
             " with signature " + id)
 
-    def _get_class_instance(self, class_name, prop_name=None, prop_value=None):
+    def _get_class_instance(self, class_name, prop_name=None, prop_value=None,
+                            no_throw_on_missing = False):
         """
         Gets an instance of a class that optionally matches a specific
         property name and value
         """
-        instances = self._c.EnumerateInstances(class_name)
+        instances = None
+
+        try:
+            instances = self._c.EnumerateInstances(class_name)
+        except CIMError as ce:
+            error_code = tuple(ce)[0]
+
+            if error_code == 5 and no_throw_on_missing:
+                return None
+
 
         if prop_name is None:
             if len(instances) != 1:
@@ -221,6 +251,11 @@ class Smis(IStorageAreaNetwork):
     def _get_job_details(self, job_id):
         (id,get_vol) = job_id.split('@',2)
 
+        if get_vol == 'False':
+            get_vol = False
+        else:
+            get_vol = True
+
         jobs = self._c.EnumerateInstances('CIM_ConcreteJob')
 
         for j in jobs:
@@ -300,31 +335,39 @@ class Smis(IStorageAreaNetwork):
         Interrogate the supported features of the replication service
         """
         rs = self._get_class_instance("CIM_ReplicationService", 'SystemName',
-                                        system.id)
+                                        system.id, True)
 
-        rs_cap = self._c.Associators(rs.path, AssocClass='CIM_ElementCapabilities',
-                                    ResultClass='CIM_ReplicationServiceCapabilities')[0]
+        if rs:
+            rs_cap = self._c.Associators(rs.path, AssocClass='CIM_ElementCapabilities',
+                                        ResultClass='CIM_ReplicationServiceCapabilities')[0]
 
-        #print 'Async', rs_cap['SupportedAsynchronousActions']
-        #print 'Sync', rs_cap['SupportedSynchronousActions']
-        #print 'SupportedReplicationTypes', rs_cap['SupportedReplicationTypes']
+            #print 'Async', rs_cap['SupportedAsynchronousActions']
+            #print 'Sync', rs_cap['SupportedSynchronousActions']
+            #print 'SupportedReplicationTypes', rs_cap['SupportedReplicationTypes']
 
-        #TODO Get rid of magic numbers
-        if 2 in rs_cap['SupportedAsynchronousActions'] or\
-           2 in rs_cap['SupportedSynchronousActions']:
-            cap.set(Capabilities.VOLUME_REPLICATE)
+            if self.RepSvc.Action.CREATE_ELEMENT_REPLICA in \
+               rs_cap['SupportedAsynchronousActions'] or \
+               self.RepSvc.Action.CREATE_ELEMENT_REPLICA in \
+               rs_cap['SupportedSynchronousActions']:
+                cap.set(Capabilities.VOLUME_REPLICATE)
 
-        if 2 in rs_cap['SupportedReplicationTypes']:
-            cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_SYNC)
+            if self.RepSvc.RepTypes.SYNC_MIRROR_LOCAL in \
+               rs_cap['SupportedReplicationTypes']:
+                cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_SYNC)
 
-        if 3 in rs_cap['SupportedReplicationTypes']:
-            cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC)
+            if self.RepSvc.RepTypes.ASYNC_MIRROR_LOCAL \
+                in rs_cap['SupportedReplicationTypes']:
+                cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC)
 
-        if 6 or 7 in rs_cap['SupportedReplicationTypes']:
-            cap.set(Capabilities.VOLUME_REPLICATE_CLONE)
+            if self.RepSvc.RepTypes.SYNC_SNAPSHOT_LOCAL or \
+               self.RepSvc.RepTypes.ASYNC_SNAPSHOT_LOCAL \
+                in rs_cap['SupportedReplicationTypes']:
+                cap.set(Capabilities.VOLUME_REPLICATE_CLONE)
 
-        if 10 or 11 in rs_cap['SupportedReplicationTypes']:
-            cap.set(Capabilities.VOLUME_REPLICATE_COPY)
+            if self.RepSvc.RepTypes.SYNC_CLONE_LOCAL or \
+               self.RepSvc.RepTypes.ASYNC_CLONE_LOCAL \
+                in rs_cap['SupportedReplicationTypes']:
+                cap.set(Capabilities.VOLUME_REPLICATE_COPY)
 
     def _pcm_supported_capabilities(self, system, cap):
         """
@@ -333,7 +376,14 @@ class Smis(IStorageAreaNetwork):
         """
         pcm = self._get_class_instance(
                                 "CIM_ProtocolControllerMaskingCapabilities",
-                                'InstanceID', system.id)
+                                'StorageSystem_name', system.id)
+
+        if pcm is None:
+            pcm = self._get_class_instance(
+                "CIM_ProtocolControllerMaskingCapabilities",
+                'InstanceID', system.id)
+
+
 
         cap.set(Capabilities.ACCESS_GROUP_LIST)
 
@@ -352,6 +402,8 @@ class Smis(IStorageAreaNetwork):
 
         #Assume that the SMI-S we are talking to supports blocks
         cap.set(Capabilities.BLOCK_SUPPORT)
+        cap.set(Capabilities.INITIATORS)
+
 
         self._scs_supported_capabilities(system,cap)
         self._rs_supported_capabilities(system, cap)
@@ -509,7 +561,7 @@ class Smis(IStorageAreaNetwork):
 
     @staticmethod
     def _to_init(i):
-        return Initiator(md5(i.path), i["IDType"], i["ElementName"])
+        return Initiator(i['StorageID'], i["IDType"], i["ElementName"])
 
     @handle_cim_errors
     def initiators(self):
@@ -575,42 +627,81 @@ class Smis(IStorageAreaNetwork):
                             *(self._c.InvokeMethod('CreateOrModifyElementFromStoragePool',
                             scs.path, **in_params)))
 
+    def _get_supported_sync_and_mode(self, system_id, rep_type):
+        """
+        Converts from a library capability to a suitable array capability
+
+        returns a tuple (sync, mode)
+        """
+        rc = [ None, None ]
+
+        rs = self._get_class_instance("CIM_ReplicationService", 'SystemName',
+            system_id, True)
+
+        if rs:
+            rs_cap = self._c.Associators(rs.path, AssocClass='CIM_ElementCapabilities',
+                ResultClass='CIM_ReplicationServiceCapabilities')[0]
+
+            s_rt = rs_cap['SupportedReplicationTypes']
+
+            if rep_type == Volume.REPLICATE_COPY:
+                if self.RepSvc.RepTypes.SYNC_CLONE_LOCAL in s_rt:
+                    rc[0] = Smis.SYNC_TYPE_CLONE
+                    rc[1] = Smis.CREATE_ELEMENT_REPLICA_MODE_SYNC
+                elif self.RepSvc.RepTypes.ASYNC_CLONE_LOCAL in s_rt:
+                    rc[0] = Smis.SYNC_TYPE_CLONE
+                    rc[1] = Smis.CREATE_ELEMENT_REPLICA_MODE_ASYNC
+
+            elif rep_type == Volume.REPLICATE_MIRROR_ASYNC:
+                if self.RepSvc.RepTypes.ASYNC_MIRROR_LOCAL in s_rt:
+                    rc[0] = Smis.SYNC_TYPE_MIRROR
+                    rc[1] = Smis.CREATE_ELEMENT_REPLICA_MODE_ASYNC
+
+            elif rep_type == Volume.REPLICATE_MIRROR_SYNC:
+                if self.RepSvc.RepTypes.SYNC_MIRROR_LOCAL in s_rt:
+                    rc[0] = Smis.SYNC_TYPE_MIRROR
+                    rc[1] = Smis.CREATE_ELEMENT_REPLICA_MODE_SYNC
+
+            elif rep_type == Volume.REPLICATE_CLONE or \
+                    rep_type == Volume.REPLICATE_SNAPSHOT:
+                if self.RepSvc.RepTypes.SYNC_CLONE_LOCAL in s_rt:
+                    rc[0] = Smis.SYNC_TYPE_SNAPSHOT
+                    rc[1] = Smis.CREATE_ELEMENT_REPLICA_MODE_SYNC
+                elif self.RepSvc.RepTypes.ASYNC_CLONE_LOCAL in s_rt:
+                    rc[0] = Smis.SYNC_TYPE_SNAPSHOT
+                    rc[1] = Smis.CREATE_ELEMENT_REPLICA_MODE_ASYNC
+
+        if rc[0] is None:
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                            "Replication type not supported")
+
+        return tuple(rc)
+
     @handle_cim_errors
     def volume_replicate(self, pool, rep_type, volume_src, name):
         """
         Replicate a volume
         """
-        mode = Smis.CREATE_ELEMENT_REPLICA_MODE_ASYNC
-
         rs = self._get_class_instance("CIM_ReplicationService", 'SystemName',
-                                        pool.system_id)
-        pool = self._get_pool(pool.id)
-        lun = self._get_volume(volume_src.id)
+                                        pool.system_id, True)
 
-        if rep_type == Volume.REPLICATE_COPY:
-            sync = Smis.SYNC_TYPE_CLONE
-        elif rep_type == Volume.REPLICATE_MIRROR_SYNC or \
-             rep_type == Volume.REPLICATE_MIRROR_SYNC:
+        if rs:
 
-            sync = Smis.SYNC_TYPE_MIRROR
+            cim_pool = self._get_pool(pool.id)
+            lun = self._get_volume(volume_src.id)
 
-            if rep_type == Volume.REPLICATE_MIRROR_SYNC:
-                mode = Smis.CREATE_ELEMENT_REPLICA_MODE_SYNC
+            sync, mode = self._get_supported_sync_and_mode(pool.system_id, rep_type)
 
-        else:
-            #Space efficient point in time copies, read only and writable
-            #will be translated into a SMI-S snapshot which is writable
-            sync = Smis.SYNC_TYPE_SNAPSHOT
+            in_params = {   'ElementName': name,
+                            'SyncType' : pywbem.Uint16(sync),
+                            'Mode': pywbem.Uint16(mode),
+                            'SourceElement': lun.path,
+                            'TargetPool': cim_pool.path}
 
-        in_params = {   'ElementName': name,
-                        'SyncType' : pywbem.Uint16(sync),
-                        'Mode': pywbem.Uint16(mode),
-                        'SourceElement': lun.path,
-                        'TargetPool': pool.path}
-
-        return self._pi("volume_replicate", True,
-                                        *(self._c.InvokeMethod('CreateElementReplica',
-                                        rs.path, **in_params)))
+            return self._pi("volume_replicate", True,
+                                            *(self._c.InvokeMethod('CreateElementReplica',
+                                            rs.path, **in_params)))
+        raise LsmError(ErrorNumber.NO_SUPPORT, "volume-replicate not supported")
 
     def volume_replicate_range_block_size(self):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")

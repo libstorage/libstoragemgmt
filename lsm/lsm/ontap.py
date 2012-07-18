@@ -154,6 +154,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         cap = Capabilities()
         cap.set(Capabilities.BLOCK_SUPPORT)
         cap.set(Capabilities.FS_SUPPORT)
+        cap.set(Capabilities.INITIATORS)
         cap.set(Capabilities.VOLUMES)
         cap.set(Capabilities.VOLUME_CREATE)
         cap.set(Capabilities.VOLUME_RESIZE)
@@ -358,6 +359,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def access_group_grant(self, group, volume, access):
+        self.f.lun_map(group.name, volume.name)
         self.f.lun_map(group.name, volume.name)
         return None
 

@@ -333,6 +333,8 @@ class Capabilities(IData):
     VOLUME_CHILD_DEPENDENCY                 = 45
     VOLUME_CHILD_DEPENDENCY_RM              = 46
 
+    INITIATORS                              = 47
+
     #File system
     FS                                      = 100
     FS_DELETE                               = 101
