@@ -140,6 +140,19 @@ fi
 %{_libdir}/pkgconfig/libstoragemgmt.pc
 
 %changelog
+* Fri Jul 20 2012 Tony Asleson <tasleson@redhat.com> 0.0.10-1
+- Numerous updates and re-name for plug-in targetd_lsmplugin
+- targetd_lsmplugin included in release
+- Memory leak fixes and improved unit tests
+- Initial capability query support, implemented for all plug-ins
+- Flags variable added to API calls, (Warning: C API/ABI breakage, python
+  unaffected)
+- Bug fixes for NetApp ontap plug-in
+- SMI-S bug fixes (initiator listing and replication, mode and sync types)
+- Added ability to specify mirroring async or sync for replication
+- Added version header file to allow client version header checks
+- Simulator plug-in written in C, simc_lsmplugin is available
+
 * Tue Jun 12 2012 Tony Asleson <tasleson@redhat.com> 0.0.9-1
 - Initial checkin of lio plug-in
 - System filtering via URI (smispy)

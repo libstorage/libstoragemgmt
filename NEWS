@@ -1,5 +1,18 @@
 News for libStorageMgmt
 
+0.0.10: July 20 2012
+    - Simulator plug-in written in C, simc_lsmplugin is available
+    - Numerous updates and re-name for plug-in targetd_lsmplugin
+    - targetd_lsmplugin included in release
+    - Memory leak fixes and improved unit tests
+    - Initial capability query support, implemented for all plug-ins
+    - Flags variable added to API calls, (Warning: C API/ABI breakage, python
+      unaffected)
+    - Bug fixes for NetApp ontap plug-in
+    - SMI-S bug fixes (initiator listing and replication, mode and sync types)
+    - Added ability to specify mirroring async or sync for replication
+    - Added version header file to allow client version header checks
+
 0.0.9: June 12 2012
     - Initial checkin of lio plug-in
     - System filtering via URI (smispy)
@@ -23,14 +36,14 @@ News for libStorageMgmt
     - C Updates, client C library feature parity with python
 
 0.0.7: May 11 2012
-	- Bug fix for smi-s constants
-	- Display formatting improvements
-	- Added header option for lsmcli
-	- Improved version handling for builds
-	- Made terminology consistent
-	- Ability to list visibility for access groups and volumes
-	- Simulator plug-in fully supports all block operations
-	- Added support for multiple systems with a single plug-in instance
+    - Bug fix for smi-s constants
+    - Display formatting improvements
+    - Added header option for lsmcli
+    - Improved version handling for builds
+    - Made terminology consistent
+    - Ability to list visibility for access groups and volumes
+    - Simulator plug-in fully supports all block operations
+    - Added support for multiple systems with a single plug-in instance
 
 0.0.6: Apr 20 2012
     - Documentation improvements (man & source code)
