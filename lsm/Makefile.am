@@ -1,4 +1,4 @@
-dist_bin_SCRIPTS = lsmd sim_lsmplugin ontap_lsmplugin smispy_lsmplugin
+dist_bin_SCRIPTS = lsmd sim_lsmplugin ontap_lsmplugin smispy_lsmplugin targetd_lsmplugin
 
 lsmdir = $(pythondir)/lsm
 externaldir = $(lsmdir)/external
