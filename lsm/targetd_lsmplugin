@@ -21,7 +21,8 @@ from lsm.iplugin import IStorageAreaNetwork
 from lsm.common import LsmError, ErrorNumber, JobStatus, md5
 from lsm.pluginrunner import PluginRunner
 import sys
-from lsm.data import Pool, Initiator, Volume, BlockRange, System
+from lsm.data import (Pool, Initiator, Volume, BlockRange, System,
+                      Capabilities)
 import urllib2
 import json
 import urlparse
@@ -48,7 +49,16 @@ class TargetdStorage(IStorageAreaNetwork):
         pass
 
     def capabilities(self, system):
-        raise NotImplementedError
+        cap = Capabilities()
+        cap.set(Capabilities.BLOCK_SUPPORT)
+        cap.set(Capabilities.INITIATORS)
+        cap.set(Capabilities.VOLUMES)
+        cap.set(Capabilities.VOLUME_CREATE)
+        cap.set(Capabilities.VOLUME_REPLICATE)
+        cap.set(Capabilities.VOLUME_DELETE)
+        cap.set(Capabilities.VOLUME_OFFLINE)
+        cap.set(Capabilities.VOLUME_ONLINE)
+        return cap
 
     def systems(self):
         return System("targetd", "targetd storage appliance"),
