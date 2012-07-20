@@ -45,7 +45,7 @@ static lsmErrorNumber logException(lsmPluginPtr p, lsmErrorNumber error,
     return error;
 }
 
-static int tmoSet(lsmPluginPtr c, uint32_t timeout )
+static int tmoSet(lsmPluginPtr c, uint32_t timeout, lsmFlag_t flags )
 {
     int rc = LSM_ERR_OK;
     try {
@@ -56,7 +56,7 @@ static int tmoSet(lsmPluginPtr c, uint32_t timeout )
     return rc;
 }
 
-static int tmoGet(lsmPluginPtr c, uint32_t *timeout)
+static int tmoGet(lsmPluginPtr c, uint32_t *timeout, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     Smis *s = (Smis *)lsmGetPrivateData(c);
@@ -69,7 +69,8 @@ static int tmoGet(lsmPluginPtr c, uint32_t *timeout)
     return rc;
 }
 
-static int cap(lsmPluginPtr c, lsmSystemPtr sys, lsmStorageCapabilitiesPtr *cap)
+static int cap(lsmPluginPtr c, lsmSystemPtr sys,
+                lsmStorageCapabilitiesPtr *cap, lsmFlag_t flags)
 {
     return LSM_ERR_NO_SUPPORT;
 }
@@ -77,7 +78,7 @@ static int cap(lsmPluginPtr c, lsmSystemPtr sys, lsmStorageCapabilitiesPtr *cap)
 static int jobStatus(lsmPluginPtr c, const char *job_id,
                         lsmJobStatus *status, uint8_t *percentComplete,
                         lsmDataType *t,
-                        void **value)
+                        void **value, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     Smis *s = (Smis *)lsmGetPrivateData(c);
@@ -97,7 +98,7 @@ static int jobStatus(lsmPluginPtr c, const char *job_id,
     return rc;
 }
 
-static int jobFree(lsmPluginPtr c, char *jobNumber)
+static int jobFree(lsmPluginPtr c, char *jobNumber, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     Smis *s = (Smis *)lsmGetPrivateData(c);
@@ -111,7 +112,7 @@ static int jobFree(lsmPluginPtr c, char *jobNumber)
 }
 
 static int pools(lsmPluginPtr c, lsmPoolPtr **poolArray,
-                        uint32_t *count)
+                        uint32_t *count, lsmFlag_t flags)
 {
     Smis *s = (Smis *)lsmGetPrivateData(c);
 
@@ -134,7 +135,7 @@ static struct lsmMgmtOps mgmOps = {
 };
 
 static int initiators(lsmPluginPtr c, lsmInitiatorPtr **initArray,
-                        uint32_t *count)
+                        uint32_t *count, lsmFlag_t flags)
 {
     Smis *s = (Smis *)lsmGetPrivateData(c);
     try {
@@ -146,7 +147,7 @@ static int initiators(lsmPluginPtr c, lsmInitiatorPtr **initArray,
 }
 
 static int volumes(lsmPluginPtr c, lsmVolumePtr **volArray,
-                        uint32_t *count)
+                        uint32_t *count, lsmFlag_t flags)
 {
     Smis *s = (Smis *)lsmGetPrivateData(c);
     try {
@@ -159,7 +160,7 @@ static int volumes(lsmPluginPtr c, lsmVolumePtr **volArray,
 
 static int createVolume( lsmPluginPtr c, lsmPoolPtr pool, const char *volumeName,
                         uint64_t size, lsmProvisionType provisioning,
-                        lsmVolumePtr *newVolume, char **job)
+                        lsmVolumePtr *newVolume, char **job, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     Smis *s = (Smis *)lsmGetPrivateData(c);
@@ -174,7 +175,8 @@ static int createVolume( lsmPluginPtr c, lsmPoolPtr pool, const char *volumeName
 
 static int replicateVolume( lsmPluginPtr c, lsmPoolPtr pool,
                         lsmReplicationType repType, lsmVolumePtr volumeSrc,
-                        const char *name, lsmVolumePtr *newReplicant, char **job)
+                        const char *name, lsmVolumePtr *newReplicant,
+                        char **job, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     Smis *s = (Smis *)lsmGetPrivateData(c);
@@ -189,7 +191,7 @@ static int replicateVolume( lsmPluginPtr c, lsmPoolPtr pool,
 
 static int resizeVolume(lsmPluginPtr c, lsmVolumePtr volume,
                                 uint64_t newSize, lsmVolumePtr *resizedVolume,
-                                char **job)
+                                char **job, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     Smis *s = (Smis *)lsmGetPrivateData(c);
@@ -202,7 +204,8 @@ static int resizeVolume(lsmPluginPtr c, lsmVolumePtr volume,
     return rc;
 }
 
-static int deleteVolume( lsmPluginPtr c, lsmVolumePtr volume, char **job)
+static int deleteVolume( lsmPluginPtr c, lsmVolumePtr volume, char **job,
+                            lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     Smis *s = (Smis *)lsmGetPrivateData(c);
@@ -227,7 +230,7 @@ static struct lsmSanOps sanOps = {
 };
 
 int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
-                        uint32_t timeout )
+            uint32_t timeout, lsmFlag_t flags )
 {
     int rc = LSM_ERR_OK;
     Smis *s = NULL;
@@ -284,7 +287,7 @@ int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
     return rc;
 }
 
-int unload( lsmPluginPtr c )
+int unload( lsmPluginPtr c, lsmFlag_t flags )
 {
     Smis *s = (Smis *)lsmGetPrivateData(c);
     delete(s);

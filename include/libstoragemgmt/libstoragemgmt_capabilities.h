@@ -99,7 +99,7 @@ void LSM_DLL_EXPORT lsmCapabilityRecordFree(lsmStorageCapabilitiesPtr cap);
 
 lsmCapabilityValueType LSM_DLL_EXPORT lsmCapabilityGet(
                                         lsmStorageCapabilitiesPtr cap,
-                                        lsmCapabilityType);
+                                        lsmCapabilityType t);
 
 
 #ifdef  __cplusplus

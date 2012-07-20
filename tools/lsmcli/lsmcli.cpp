@@ -44,7 +44,8 @@ int main(int argc, char *argv[])
 
     int main_rc = 0;
     int lib_rc = lsmConnectPassword(a.uri.value.c_str(),
-                                    a.password.value.c_str(), &c, 30000, &e);
+                                    a.password.value.c_str(), &c, 30000, &e,
+                                    LSM_FLAG_RSVD);
 
     if( LSM_ERR_OK == lib_rc ) {
         debug_plugin();
@@ -74,7 +75,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        lib_rc = lsmConnectClose(c);
+        lib_rc = lsmConnectClose(c, LSM_FLAG_RSVD);
         if( LSM_ERR_OK != lib_rc ) {
             printf("Error on close %d!\n", lib_rc);
         }

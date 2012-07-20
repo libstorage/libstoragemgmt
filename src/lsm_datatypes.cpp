@@ -226,7 +226,8 @@ void freeConnection(lsmConnectPtr c)
 }
 
 static int establishConnection( lsmConnectPtr c, const char * password,
-                                uint32_t timeout, lsmErrorPtr *e)
+                                uint32_t timeout, lsmErrorPtr *e,
+                                lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     std::map<std::string, Value> params;
@@ -240,6 +241,7 @@ static int establishConnection( lsmConnectPtr c, const char * password,
             params["password"] = Value();
         }
         params["timeout"] = Value(timeout);
+        params["flags"] = Value(flags);
         Value p(params);
 
         c->tp->rpc("startup", p);
@@ -267,7 +269,7 @@ static int establishConnection( lsmConnectPtr c, const char * password,
 
 
 int loadDriver(lsmConnectPtr c, xmlURIPtr uri, const char *password,
-    uint32_t timeout, lsmErrorPtr *e)
+    uint32_t timeout, lsmErrorPtr *e, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
 
@@ -288,7 +290,7 @@ int loadDriver(lsmConnectPtr c, xmlURIPtr uri, const char *password,
 
         if( sd >= 0 ) {
             c->tp = new Ipc(sd);
-            if( establishConnection(c, password, timeout, e)) {
+            if( establishConnection(c, password, timeout, e, flags)) {
                 rc = LSM_ERR_PLUGIN_DLOPEN;
             }
         } else {

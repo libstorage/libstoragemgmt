@@ -56,27 +56,27 @@ typedef struct _lsmPlugin lsmPlugin;
 typedef lsmPlugin *lsmPluginPtr;
 
 typedef int (*lsmPluginRegister)(  lsmPluginPtr c, xmlURIPtr uri, const char *password,
-                        uint32_t timeout );
+                        uint32_t timeout, lsmFlag_t flags);
 
-typedef int (*lsmPluginUnregister)( lsmPluginPtr c );
+typedef int (*lsmPluginUnregister)( lsmPluginPtr c, lsmFlag_t flags );
 
 
-typedef int (*lsmPlugSetTmo)( lsmPluginPtr c, uint32_t timeout );
-typedef int (*lsmPlugGetTmo)( lsmPluginPtr c, uint32_t *timeout );
+typedef int (*lsmPlugSetTmo)( lsmPluginPtr c, uint32_t timeout, lsmFlag_t flags );
+typedef int (*lsmPlugGetTmo)( lsmPluginPtr c, uint32_t *timeout, lsmFlag_t flags );
 typedef int (*lsmPlugCapabilities)(lsmPluginPtr c, lsmSystemPtr sys,
-                                    lsmStorageCapabilitiesPtr *cap);
+                                    lsmStorageCapabilitiesPtr *cap, lsmFlag_t flags);
 typedef int (*lsmPlugJobStatus)(lsmPluginPtr c, const char *job,
                                         lsmJobStatus *status,
                                         uint8_t *percentComplete,
                                         lsmDataType *type,
-                                        void **value);
-typedef int (*lsmPlugJobFree)(lsmPluginPtr c, char *jobNumber);
+                                        void **value, lsmFlag_t flags);
+typedef int (*lsmPlugJobFree)(lsmPluginPtr c, char *jobNumber, lsmFlag_t flags);
 
 typedef int (*lsmPlugListPools)( lsmPluginPtr c, lsmPoolPtr **poolArray,
-                                        uint32_t *count);
+                                        uint32_t *count, lsmFlag_t flags);
 
 typedef int (*lsmPlugSystemList)(lsmPluginPtr c, lsmSystemPtr **systems,
-                                        uint32_t *systemCount);
+                                        uint32_t *systemCount, lsmFlag_t flags);
 
 /**
  * Callback functions for management operations.
@@ -92,119 +92,119 @@ struct lsmMgmtOps {
 };
 
 typedef int (*lsmPlugListInits)( lsmPluginPtr c, lsmInitiatorPtr **initArray,
-                                        uint32_t *count);
+                                        uint32_t *count, lsmFlag_t flags);
 
 typedef int (*lsmPlugListVolumes)( lsmPluginPtr c, lsmVolumePtr **volArray,
-                                        uint32_t *count);
+                                        uint32_t *count, lsmFlag_t flags);
 
 typedef int (*lsmPlugVolumeCreate)(lsmPluginPtr c, lsmPoolPtr pool,
                         const char *volumeName, uint64_t size,
                         lsmProvisionType provisioning, lsmVolumePtr *newVolume,
-                        char **job);
+                        char **job, lsmFlag_t flags);
 
 typedef int (*lsmPlugVolumeReplicate)(lsmPluginPtr c, lsmPoolPtr pool,
                         lsmReplicationType repType, lsmVolumePtr volumeSrc,
                         const char *name, lsmVolumePtr *newReplicant,
-                        char **job);
+                        char **job, lsmFlag_t flags);
 
-typedef int (*lsmPlugVolumeReplicateRangeBlockSize)(lsmPluginPtr c, uint32_t *bs);
+typedef int (*lsmPlugVolumeReplicateRangeBlockSize)(lsmPluginPtr c, uint32_t *bs, lsmFlag_t flags);
 
 typedef int (*lsmPlugVolumeReplicateRange)(lsmPluginPtr c,
                                                 lsmReplicationType repType,
                                                 lsmVolumePtr source,
                                                 lsmVolumePtr dest,
                                                 lsmBlockRangePtr *ranges,
-                                                uint32_t num_ranges, char **job);
+                                                uint32_t num_ranges, char **job, lsmFlag_t flags);
 
 typedef int (*lsmPlugVolumeResize)(lsmPluginPtr c, lsmVolumePtr volume,
                                 uint64_t newSize, lsmVolumePtr *resizedVolume,
-                                char **job);
+                                char **job, lsmFlag_t flags);
 
 typedef int (*lsmPlugVolumeDelete)(lsmPluginPtr c, lsmVolumePtr volume,
-                                    char **job);
+                                    char **job, lsmFlag_t flags);
 
 typedef int (*lsmPlugCreateInit)(lsmPluginPtr c, const char *name,
                                     const char *id, lsmInitiatorType type,
-                                    lsmInitiatorPtr *init);
+                                    lsmInitiatorPtr *init, lsmFlag_t flags);
 
-typedef int (*lsmPlugInitDelete)(lsmPluginPtr c, lsmInitiatorPtr init);
+typedef int (*lsmPlugInitDelete)(lsmPluginPtr c, lsmInitiatorPtr init, lsmFlag_t flags);
 
 typedef int (*lsmPlugAccessGrant)(lsmPluginPtr c, lsmInitiatorPtr i, lsmVolumePtr v,
-                        lsmAccessType access, char **job);
+                        lsmAccessType access, char **job, lsmFlag_t flags);
 
-typedef int (*lsmPlugAccessRemove)(lsmPluginPtr c, lsmInitiatorPtr i, lsmVolumePtr v);
+typedef int (*lsmPlugAccessRemove)(lsmPluginPtr c, lsmInitiatorPtr i, lsmVolumePtr v, lsmFlag_t flags);
 
 typedef int (*lsmPlugVolumeStatus)(lsmPluginPtr c, lsmVolumePtr v,
-                                                lsmVolumeStatusType *status);
+                                                lsmVolumeStatusType *status, lsmFlag_t flags);
 
-typedef int (*lsmPlugVolumeOnline)(lsmPluginPtr c, lsmVolumePtr v);
-typedef int (*lsmPlugVolumeOffline)(lsmPluginPtr c, lsmVolumePtr v);
+typedef int (*lsmPlugVolumeOnline)(lsmPluginPtr c, lsmVolumePtr v, lsmFlag_t flags);
+typedef int (*lsmPlugVolumeOffline)(lsmPluginPtr c, lsmVolumePtr v, lsmFlag_t flags);
 
 typedef int (*lsmPlugAccessGroupList)(lsmPluginPtr c,
                                         lsmAccessGroupPtr **groups,
-                                        uint32_t *groupCount);
+                                        uint32_t *groupCount, lsmFlag_t flags);
 typedef int (*lsmPlugAccessGroupCreate)(lsmPluginPtr c,
                                             const char *name,
                                             const char *initiator_id,
                                             lsmInitiatorType id_type,
                                             const char *system_id,
-                                            lsmAccessGroupPtr *access_group);
+                                            lsmAccessGroupPtr *access_group, lsmFlag_t flags);
 
 typedef int (*lsmPlugAccessGroupDel)(lsmPluginPtr c,
                                             lsmAccessGroupPtr group,
-                                            char **job);
+                                            char **job, lsmFlag_t flags);
 
 typedef int (*lsmPlugAccessGroupAddInitiator)(lsmPluginPtr c,
                                 lsmAccessGroupPtr group,
                                 const char *initiator_id,
-                                lsmInitiatorType id_type, char **job);
+                                lsmInitiatorType id_type, char **job, lsmFlag_t flags);
 
 typedef int (*lsmPlugAccessGroupDelInitiator)(lsmPluginPtr c,
                                                     lsmAccessGroupPtr group,
                                                     const char *initiator_id,
-                                                    char **job);
+                                                    char **job, lsmFlag_t flags);
 
 typedef int (*lsmPlugAccessGroupGrant)(lsmPluginPtr c,
                                             lsmAccessGroupPtr group,
                                             lsmVolumePtr volume,
-                                            lsmAccessType access, char **job);
+                                            lsmAccessType access, char **job, lsmFlag_t flags);
 
 typedef int (*lsmPlugAccessGroupRevoke)(lsmPluginPtr c,
                                             lsmAccessGroupPtr group,
-                                            lsmVolumePtr volume, char **job);
+                                            lsmVolumePtr volume, char **job, lsmFlag_t flags);
 
 typedef int (*lsmPlugVolumesAccessibleByAccessGroup)(lsmPluginPtr c,
                                                         lsmAccessGroupPtr group,
                                                         lsmVolumePtr **volumes,
-                                                        uint32_t *count);
+                                                        uint32_t *count, lsmFlag_t flags);
 
 typedef int (*lsmPlugAccessGroupsGrantedToVolume)(lsmPluginPtr c,
                                                     lsmVolumePtr volume,
                                                     lsmAccessGroupPtr **groups,
-                                                    uint32_t *groupCount);
+                                                    uint32_t *groupCount, lsmFlag_t flags);
 
 typedef int (*lsmPlugVolumeChildDependency)(lsmPluginPtr c,
                                             lsmVolumePtr volume,
-                                            uint8_t *yes);
+                                            uint8_t *yes, lsmFlag_t flags);
 
 typedef int (*lsmPlugVolumeChildDependencyRm)(lsmPluginPtr c,
                                             lsmVolumePtr volume,
-                                            char **job);
+                                            char **job, lsmFlag_t flags);
 
 typedef int (*lsmPlugFsList)(lsmPluginPtr c, lsmFsPtr **fs,
-                                    uint32_t *fsCount);
+                                    uint32_t *fsCount, lsmFlag_t flags);
 
 typedef int (*lsmPlugFsCreate)(lsmPluginPtr c, lsmPoolPtr pool,
                                     const char *name, uint64_t size_bytes,
-                                    lsmFsPtr *fs, char **job);
+                                    lsmFsPtr *fs, char **job, lsmFlag_t flags);
 
-typedef int (*lsmPlugFsDelete)(lsmPluginPtr c, lsmFsPtr fs, char **job);
+typedef int (*lsmPlugFsDelete)(lsmPluginPtr c, lsmFsPtr fs, char **job, lsmFlag_t flags);
 
 typedef int (*lsmPlugFsClone)(lsmPluginPtr c, lsmFsPtr src_fs,
                                             const char *dest_fs_name,
                                             lsmFsPtr *cloned_fs,
                                             lsmSsPtr optional_snapshot,
-                                            char **job);
+                                            char **job, lsmFlag_t flags);
 
 typedef int (*lsmPlugFsChildDependency)(lsmPluginPtr c, lsmFsPtr fs,
                                                 lsmStringListPtr files,
@@ -212,37 +212,37 @@ typedef int (*lsmPlugFsChildDependency)(lsmPluginPtr c, lsmFsPtr fs,
 
 typedef int (*lsmPlugFsChildDependencyRm)( lsmPluginPtr c, lsmFsPtr fs,
                                                 lsmStringListPtr files,
-                                                char **job);
+                                                char **job, lsmFlag_t flags);
 
 typedef int (*lsmPlugFsResize)(lsmPluginPtr c, lsmFsPtr fs,
                                     uint64_t new_size_bytes, lsmFsPtr *rfs,
-                                    char **job);
+                                    char **job, lsmFlag_t flags);
 
 typedef int (*lsmPlugFsFileClone)(lsmPluginPtr c, lsmFsPtr fs,
                                     const char *src_file_name,
                                     const char *dest_file_name,
-                                    lsmSsPtr snapshot, char **job);
+                                    lsmSsPtr snapshot, char **job, lsmFlag_t flags);
 
 typedef int (*lsmPlugSsList)(lsmPluginPtr c, lsmFsPtr fs, lsmSsPtr **ss,
-                                uint32_t *ssCount);
+                                uint32_t *ssCount, lsmFlag_t flags);
 
 typedef int (*lsmPlugSsCreate)(lsmPluginPtr c, lsmFsPtr fs,
                                     const char *name, lsmStringListPtr files,
-                                    lsmSsPtr *snapshot, char **job);
+                                    lsmSsPtr *snapshot, char **job, lsmFlag_t flags);
 
 typedef int (*lsmPlugSsDelete)(lsmPluginPtr c, lsmFsPtr fs, lsmSsPtr ss,
-                                    char **job);
+                                    char **job, lsmFlag_t flags);
 
 typedef int (*lsmPlugSsRevert)(lsmPluginPtr c, lsmFsPtr fs, lsmSsPtr ss,
                                     lsmStringListPtr files,
                                     lsmStringListPtr restore_files,
-                                    int all_files, char **job);
+                                    int all_files, char **job, lsmFlag_t flags);
 typedef int (*lsmPlugNfsAuthTypes)( lsmPluginPtr c,
-                                            lsmStringListPtr *types);
+                                            lsmStringListPtr *types, lsmFlag_t flags);
 
 typedef int (*lsmPlugNfsList)( lsmPluginPtr c,
                                             lsmNfsExportPtr **exports,
-                                            uint32_t *count);
+                                            uint32_t *count, lsmFlag_t flags);
 typedef int (*lsmPlugNfsExportFs)( lsmPluginPtr c,
                                         const char *fs_id,
                                         const char *export_path,
@@ -253,10 +253,12 @@ typedef int (*lsmPlugNfsExportFs)( lsmPluginPtr c,
                                         uint64_t anon_gid,
                                         const char *auth_type,
                                         const char *options,
-                                        lsmNfsExportPtr *exported
+                                        lsmNfsExportPtr *exported,
+                                        lsmFlag_t flags
                                         );
 
-typedef int (*lsmPlugNfsExportRemove)( lsmPluginPtr c, lsmNfsExportPtr e);
+typedef int (*lsmPlugNfsExportRemove)( lsmPluginPtr c, lsmNfsExportPtr e,
+                                        lsmFlag_t flags);
 /**
  * Block oriented functions
  */
@@ -326,6 +328,7 @@ void LSM_DLL_EXPORT * lsmDataTypeCopy(lsmDataType t, void *item);
  * @param argv  Command line arguments
  * @param reg   Registration function
  * @param unreg Un-Registration function
+ * @param flags Future flags, reserved
  * @return exit code for plug-in
  */
 int LSM_DLL_EXPORT lsmPluginInit( int argc, char *argv[], lsmPluginRegister reg,

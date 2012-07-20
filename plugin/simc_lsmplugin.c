@@ -293,21 +293,22 @@ static int create_job(struct plugin_data *pd, char **job, lsmDataType t,
     return rc;
 }
 
-static int tmo_set(lsmPluginPtr c, uint32_t timeout )
+static int tmo_set(lsmPluginPtr c, uint32_t timeout, lsmFlag_t flags )
 {
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
     pd->tmo = timeout;
     return LSM_ERR_OK;
 }
 
-static int tmo_get(lsmPluginPtr c, uint32_t *timeout)
+static int tmo_get(lsmPluginPtr c, uint32_t *timeout, lsmFlag_t flags)
 {
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
     *timeout = pd->tmo;
     return LSM_ERR_OK;
 }
 
-static int cap(lsmPluginPtr c, lsmSystemPtr system, lsmStorageCapabilitiesPtr *cap)
+static int cap(lsmPluginPtr c, lsmSystemPtr system,
+                lsmStorageCapabilitiesPtr *cap, lsmFlag_t flags)
 {
     int rc = LSM_ERR_NO_MEMORY;
     *cap = lsmCapabilityRecordAlloc(NULL);
@@ -375,7 +376,7 @@ static int cap(lsmPluginPtr c, lsmSystemPtr system, lsmStorageCapabilitiesPtr *c
 static int jobStatus(lsmPluginPtr c, const char *job_id,
                         lsmJobStatus *status, uint8_t *percentComplete,
                         lsmDataType *t,
-                        void **value)
+                        void **value, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -404,7 +405,7 @@ static int jobStatus(lsmPluginPtr c, const char *job_id,
 }
 
 static int list_pools(lsmPluginPtr c, lsmPoolPtr **poolArray,
-                                        uint32_t *count)
+                                        uint32_t *count, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -431,7 +432,7 @@ static int list_pools(lsmPluginPtr c, lsmPoolPtr **poolArray,
 }
 
 static int list_systems(lsmPluginPtr c, lsmSystemPtr **systems,
-                                        uint32_t *systemCount)
+                                        uint32_t *systemCount, lsmFlag_t flags)
 {
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
 
@@ -450,7 +451,7 @@ static int list_systems(lsmPluginPtr c, lsmSystemPtr **systems,
     return LSM_ERR_NO_MEMORY;
 }
 
-static int jobFree(lsmPluginPtr c, char *job_id)
+static int jobFree(lsmPluginPtr c, char *job_id, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -478,7 +479,7 @@ void freeInitiator(void *i) {
 }
 
 static int list_initiators(lsmPluginPtr c, lsmInitiatorPtr **initArray,
-                                        uint32_t *count)
+                                        uint32_t *count, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -545,7 +546,7 @@ static int list_initiators(lsmPluginPtr c, lsmInitiatorPtr **initArray,
 }
 
 static int list_volumes(lsmPluginPtr c, lsmVolumePtr **vols,
-                                        uint32_t *count)
+                                        uint32_t *count, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -627,7 +628,7 @@ static int find_volume_name(struct plugin_data *pd, const char *name)
 static int volume_create(lsmPluginPtr c, lsmPoolPtr pool,
                         const char *volumeName, uint64_t size,
                         lsmProvisionType provisioning, lsmVolumePtr *newVolume,
-                        char **job)
+                        char **job, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
 
@@ -679,7 +680,7 @@ static int volume_create(lsmPluginPtr c, lsmPoolPtr pool,
 static int volume_replicate(lsmPluginPtr c, lsmPoolPtr pool,
                         lsmReplicationType repType, lsmVolumePtr volumeSrc,
                         const char *name, lsmVolumePtr *newReplicant,
-                        char **job)
+                        char **job, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     int pi;
@@ -692,7 +693,7 @@ static int volume_replicate(lsmPluginPtr c, lsmPoolPtr pool,
     if( pi > -1 && vi > -1 ) {
         rc = volume_create(c, pool, name,
                                 lsmVolumeNumberOfBlocks(volumeSrc)*BS,
-                                LSM_PROVISION_DEFAULT, newReplicant, job);
+                                LSM_PROVISION_DEFAULT, newReplicant, job, flags);
 
 
     } else {
@@ -709,7 +710,8 @@ static int volume_replicate(lsmPluginPtr c, lsmPoolPtr pool,
     return rc;
 }
 
-static int volume_replicate_range_bs(lsmPluginPtr c, uint32_t *bs)
+static int volume_replicate_range_bs(lsmPluginPtr c, uint32_t *bs,
+                                    lsmFlag_t flags)
 {
     *bs = BS;
     return LSM_ERR_OK;
@@ -720,7 +722,8 @@ static int volume_replicate_range(lsmPluginPtr c,
                                     lsmVolumePtr source,
                                     lsmVolumePtr dest,
                                     lsmBlockRangePtr *ranges,
-                                    uint32_t num_ranges, char **job)
+                                    uint32_t num_ranges, char **job,
+                                    lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -740,7 +743,7 @@ static int volume_replicate_range(lsmPluginPtr c,
 
 static int volume_resize(lsmPluginPtr c, lsmVolumePtr volume,
                                 uint64_t newSize, lsmVolumePtr *resizedVolume,
-                                char **job)
+                                char **job, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     int vi;
@@ -788,7 +791,7 @@ static int volume_resize(lsmPluginPtr c, lsmVolumePtr volume,
 }
 
 static int volume_delete(lsmPluginPtr c, lsmVolumePtr volume,
-                                    char **job)
+                                    char **job, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     GHashTableIter iter;
@@ -822,7 +825,8 @@ static int volume_delete(lsmPluginPtr c, lsmVolumePtr volume,
     return rc;
 }
 
-static int volume_online_offline(lsmPluginPtr c, lsmVolumePtr v)
+static int volume_online_offline(lsmPluginPtr c, lsmVolumePtr v,
+                                    lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -837,7 +841,7 @@ static int volume_online_offline(lsmPluginPtr c, lsmVolumePtr v)
 
 static int access_group_list(lsmPluginPtr c,
                                 lsmAccessGroupPtr **groups,
-                                uint32_t *groupCount)
+                                uint32_t *groupCount, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -878,7 +882,8 @@ static int access_group_create(lsmPluginPtr c,
                                 const char *initiator_id,
                                 lsmInitiatorType id_type,
                                 const char *system_id,
-                                lsmAccessGroupPtr *access_group)
+                                lsmAccessGroupPtr *access_group,
+                                lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     lsmAccessGroupPtr ag = NULL;
@@ -931,7 +936,7 @@ static int access_group_create(lsmPluginPtr c,
 
 static int access_group_delete( lsmPluginPtr c,
                                 lsmAccessGroupPtr group,
-                                char **job)
+                                char **job, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
 
@@ -950,7 +955,8 @@ static int access_group_delete( lsmPluginPtr c,
 static int access_group_add_initiator(  lsmPluginPtr c,
                                         lsmAccessGroupPtr group,
                                         const char *initiator_id,
-                                        lsmInitiatorType id_type, char **job)
+                                        lsmInitiatorType id_type, char **job,
+                                        lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -975,7 +981,7 @@ static int access_group_add_initiator(  lsmPluginPtr c,
 static int access_group_del_initiator(  lsmPluginPtr c,
                                         lsmAccessGroupPtr group,
                                         const char *init,
-                                        char **job)
+                                        char **job, lsmFlag_t flags)
 {
     int rc = LSM_ERR_INITIATOR_NOT_IN_ACCESS_GROUP;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -1009,7 +1015,8 @@ static int access_group_del_initiator(  lsmPluginPtr c,
 static int access_group_grant(lsmPluginPtr c,
                                 lsmAccessGroupPtr group,
                                 lsmVolumePtr volume,
-                                lsmAccessType access, char **job)
+                                lsmAccessType access, char **job,
+                                lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -1086,7 +1093,8 @@ static int access_group_grant(lsmPluginPtr c,
 
 static int access_group_revoke(lsmPluginPtr c,
                                 lsmAccessGroupPtr group,
-                                lsmVolumePtr volume, char **job)
+                                lsmVolumePtr volume, char **job,
+                                lsmFlag_t flags)
 {
     int rc = LSM_ERR_NO_MAPPING;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -1131,7 +1139,7 @@ static lsmVolumePtr get_volume_by_id(struct plugin_data *pd, const char *id)
 static int vol_accessible_by_ag(lsmPluginPtr c,
                                 lsmAccessGroupPtr group,
                                 lsmVolumePtr **volumes,
-                                uint32_t *count)
+                                uint32_t *count, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -1195,7 +1203,7 @@ static lsmAccessGroupPtr access_group_by_id(struct plugin_data *pd,
 static int ag_granted_to_volume( lsmPluginPtr c,
                                     lsmVolumePtr volume,
                                     lsmAccessGroupPtr **groups,
-                                    uint32_t *count)
+                                    uint32_t *count, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     GHashTableIter iter;
@@ -1246,7 +1254,7 @@ static int ag_granted_to_volume( lsmPluginPtr c,
 
 int static volume_dependency(lsmPluginPtr c,
                                             lsmVolumePtr volume,
-                                            uint8_t *yes)
+                                            uint8_t *yes, lsmFlag_t flags)
 {
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
     int vi = find_volume_name(pd, lsmVolumeNameGet(volume));
@@ -1261,7 +1269,7 @@ int static volume_dependency(lsmPluginPtr c,
 
 int static volume_dependency_rm(lsmPluginPtr c,
                                             lsmVolumePtr volume,
-                                            char **job)
+                                            char **job, lsmFlag_t flags)
 {
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
     int vi = find_volume_name(pd, lsmVolumeNameGet(volume));
@@ -1298,7 +1306,8 @@ static struct lsmSanOps sanOps = {
 };
 
 
-static int fs_list(lsmPluginPtr c, lsmFsPtr **fs, uint32_t *count)
+static int fs_list(lsmPluginPtr c, lsmFsPtr **fs, uint32_t *count,
+                    lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -1331,7 +1340,7 @@ static int fs_list(lsmPluginPtr c, lsmFsPtr **fs, uint32_t *count)
 }
 
 static int fs_create(lsmPluginPtr c, lsmPoolPtr pool, const char *name,
-                uint64_t size_bytes, lsmFsPtr *fs, char **job)
+                uint64_t size_bytes, lsmFsPtr *fs, char **job, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -1385,7 +1394,7 @@ static int fs_create(lsmPluginPtr c, lsmPoolPtr pool, const char *name,
     return rc;
 }
 
-static int fs_delete(lsmPluginPtr c, lsmFsPtr fs, char **job)
+static int fs_delete(lsmPluginPtr c, lsmFsPtr fs, char **job, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -1400,7 +1409,7 @@ static int fs_delete(lsmPluginPtr c, lsmFsPtr fs, char **job)
 
 static int fs_resize(lsmPluginPtr c, lsmFsPtr fs,
                                     uint64_t new_size_bytes, lsmFsPtr *rfs,
-                                    char **job)
+                                    char **job, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -1459,7 +1468,7 @@ static int fs_resize(lsmPluginPtr c, lsmFsPtr fs,
 
 static int fs_clone(lsmPluginPtr c, lsmFsPtr src_fs, const char *dest_fs_name,
                     lsmFsPtr *cloned_fs, lsmSsPtr optional_snapshot,
-                    char **job)
+                    char **job, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -1468,7 +1477,7 @@ static int fs_clone(lsmPluginPtr c, lsmFsPtr src_fs, const char *dest_fs_name,
 
     if( find ) {
         rc = fs_create(c, find->p, dest_fs_name, lsmFsTotalSpaceGet(find->fs),
-                        cloned_fs, job);
+                        cloned_fs, job, flags);
     } else {
         rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_FS, "Source fs not found");
     }
@@ -1479,7 +1488,8 @@ static int fs_clone(lsmPluginPtr c, lsmFsPtr src_fs, const char *dest_fs_name,
 static int fs_file_clone(lsmPluginPtr c, lsmFsPtr fs,
                                     const char *src_file_name,
                                     const char *dest_file_name,
-                                    lsmSsPtr snapshot, char **job)
+                                    lsmSsPtr snapshot, char **job,
+                                    lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -1510,7 +1520,7 @@ static int fs_child_dependency(lsmPluginPtr c, lsmFsPtr fs,
 
 static int fs_child_dependency_rm( lsmPluginPtr c, lsmFsPtr fs,
                                                 lsmStringListPtr files,
-                                                char **job)
+                                                char **job, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -1523,7 +1533,7 @@ static int fs_child_dependency_rm( lsmPluginPtr c, lsmFsPtr fs,
 }
 
 static int ss_list(lsmPluginPtr c, lsmFsPtr fs, lsmSsPtr **ss,
-                                uint32_t *count)
+                                uint32_t *count, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -1571,7 +1581,8 @@ static int ss_list(lsmPluginPtr c, lsmFsPtr fs, lsmSsPtr **ss,
 
 static int ss_create(lsmPluginPtr c, lsmFsPtr fs,
                                     const char *name, lsmStringListPtr files,
-                                    lsmSsPtr *snapshot, char **job)
+                                    lsmSsPtr *snapshot, char **job,
+                                    lsmFlag_t flags)
 {
     int rc = LSM_ERR_NO_MEMORY;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -1609,7 +1620,7 @@ static int ss_create(lsmPluginPtr c, lsmFsPtr fs,
 }
 
 static int ss_delete(lsmPluginPtr c, lsmFsPtr fs, lsmSsPtr ss,
-                                    char **job)
+                                    char **job, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -1633,7 +1644,7 @@ static int ss_delete(lsmPluginPtr c, lsmFsPtr fs, lsmSsPtr ss,
 static int ss_revert(lsmPluginPtr c, lsmFsPtr fs, lsmSsPtr ss,
                                     lsmStringListPtr files,
                                     lsmStringListPtr restore_files,
-                                    int all_files, char **job)
+                                    int all_files, char **job, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -1669,7 +1680,8 @@ static struct lsmFsOps fsOps = {
     ss_revert
 };
 
-static int nfs_auth_types(lsmPluginPtr c, lsmStringListPtr *types)
+static int nfs_auth_types(lsmPluginPtr c, lsmStringListPtr *types,
+                            lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     *types = lsmStringListAlloc(1);
@@ -1682,7 +1694,7 @@ static int nfs_auth_types(lsmPluginPtr c, lsmStringListPtr *types)
 }
 
 static int nfs_export_list( lsmPluginPtr c, lsmNfsExportPtr **exports,
-                                uint32_t *count)
+                                uint32_t *count, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     GHashTableIter fs_iter;
@@ -1749,7 +1761,8 @@ static int nfs_export_create( lsmPluginPtr c,
                                         uint64_t anon_gid,
                                         const char *auth_type,
                                         const char *options,
-                                        lsmNfsExportPtr *exported
+                                        lsmNfsExportPtr *exported,
+                                        lsmFlag_t flags
                                         )
 {
     int rc = LSM_ERR_OK;
@@ -1786,7 +1799,8 @@ static int nfs_export_create( lsmPluginPtr c,
     return rc;
 }
 
-static int nfs_export_remove( lsmPluginPtr c, lsmNfsExportPtr e )
+static int nfs_export_remove( lsmPluginPtr c, lsmNfsExportPtr e,
+                                lsmFlag_t flags )
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -1823,7 +1837,7 @@ void free_allocated_fs(void *v)
 }
 
 int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
-                        uint32_t timeout )
+                        uint32_t timeout,  lsmFlag_t flags)
 {
     struct plugin_data *data = (struct plugin_data *)
                                 malloc(sizeof(struct plugin_data));
@@ -1871,7 +1885,7 @@ int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
     return rc;
 }
 
-int unload( lsmPluginPtr c )
+int unload( lsmPluginPtr c, lsmFlag_t flags)
 {
     uint32_t i = 0;
 

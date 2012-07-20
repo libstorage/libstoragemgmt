@@ -419,6 +419,8 @@ std::string Value::asString()
 {
     if (t == string_t) {
         return s;
+    } else if( t == null_t ) {
+        return std::string();
     }
     throw ValueException("Value not string");
 }

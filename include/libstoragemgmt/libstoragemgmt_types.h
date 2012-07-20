@@ -31,6 +31,14 @@
 extern "C" {
 #endif
 
+/* Just incase we want to change the flag to a different type */
+typedef uint64_t lsmFlag_t;
+
+#define LSM_FLAG_RSVD 0
+#define LSM_FLAG_UNUSED_CHECK(x) ( x != 0 )
+#define LSM_FLAG_GET_VALUE(x) x["flags"].asUint64_t()
+#define LSM_FLAG_EXPECTED_TYPE(x) (Value::numeric_t == x["flags"].valueType())
+
 /**
  * Opaque data type for a connection.
  */

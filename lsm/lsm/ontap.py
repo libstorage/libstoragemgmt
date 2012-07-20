@@ -83,7 +83,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         self.sys_info = None
 
     @handle_ontap_errors
-    def startup(self, uri, password, timeout):
+    def startup(self, uri, password, timeout, flags = 0):
         ssl = False
         u = urlparse.urlparse(uri)
         self.tmo = timeout
@@ -97,13 +97,13 @@ class Ontap(IStorageAreaNetwork, INfs):
         self.sys_info = System(i['system-id'], i['system-name'])
         return self.f.validate()
 
-    def set_time_out(self, ms):
+    def set_time_out(self, ms, flags = 0):
         self.tmo = ms
 
-    def get_time_out(self):
+    def get_time_out(self, flags = 0):
         return self.tmo
 
-    def shutdown(self):
+    def shutdown(self, flags = 0):
         self._jobs = None
 
     def _create_vpd(self, sn):
@@ -138,7 +138,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                             s['access-time'])
 
     @handle_ontap_errors
-    def volumes(self):
+    def volumes(self, flags = 0):
         luns = self.f.luns()
         return [self._lun(l) for l in luns]
 
@@ -150,7 +150,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                         self.sys_info.id)
 
     @handle_ontap_errors
-    def capabilities(self, system):
+    def capabilities(self, system, flags = 0):
         cap = Capabilities()
         cap.set(Capabilities.BLOCK_SUPPORT)
         cap.set(Capabilities.FS_SUPPORT)
@@ -196,16 +196,16 @@ class Ontap(IStorageAreaNetwork, INfs):
         return cap
 
     @handle_ontap_errors
-    def pools(self):
+    def pools(self, flags = 0):
         aggr = self.f.aggregates()
         return [self._pool(p) for p in aggr]
 
     @handle_ontap_errors
-    def systems(self):
+    def systems(self, flags = 0):
         return [self.sys_info]
 
     @handle_ontap_errors
-    def initiators(self):
+    def initiators(self, flags = 0):
         """
         We will list all the initiators that are in all the groups.
         """
@@ -234,7 +234,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         return self._lun(self.f.luns(vol_name)[0])
 
     @handle_ontap_errors
-    def volume_create(self, pool, volume_name, size_bytes, provisioning):
+    def volume_create(self, pool, volume_name, size_bytes, provisioning, flags = 0):
 
         v = self.f.volume_names()
 
@@ -261,7 +261,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         return os.path.dirname(volume.name)[5:]
 
     @handle_ontap_errors
-    def volume_delete(self, volume):
+    def volume_delete(self, volume, flags = 0):
         vol = self._vol_to_na_volume_name(volume)
 
         luns = self.f.luns(na_volume_name=vol)
@@ -278,7 +278,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         return int((size_bytes/1024) * 1.3)
 
     @handle_ontap_errors
-    def volume_resize(self, volume, new_size_bytes):
+    def volume_resize(self, volume, new_size_bytes, flags = 0):
         na_vol = self._vol_to_na_volume_name(volume)
         diff = new_size_bytes - volume.size_bytes
 
@@ -310,7 +310,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         return search in contained_volumes
 
     @handle_ontap_errors
-    def volume_replicate(self, pool, rep_type, volume_src, name):
+    def volume_replicate(self, pool, rep_type, volume_src, name, flags = 0):
         #At the moment we are only supporting space efficient writeable logical
         #units.  Add support for the others later.
         if rep_type != Volume.REPLICATE_CLONE:
@@ -340,31 +340,30 @@ class Ontap(IStorageAreaNetwork, INfs):
                         "Unable to replicate volume to different pool")
 
     @handle_ontap_errors
-    def volume_replicate_range_block_size(self):
+    def volume_replicate_range_block_size(self, flags = 0):
         return 4096
 
     @handle_ontap_errors
-    def volume_replicate_range(self, rep_type, vol_src, vol_dest, ranges):
+    def volume_replicate_range(self, rep_type, vol_src, vol_dest, ranges, flags = 0):
         if rep_type != Volume.REPLICATE_CLONE:
             raise LsmError(ErrorNumber.NO_SUPPORT, "rep_type not supported")
         self.f.clone(vol_src.name, vol_dest.name, None, ranges)
 
     @handle_ontap_errors
-    def volume_online(self, volume):
+    def volume_online(self, volume, flags = 0):
         return self.f.lun_online(volume.name)
 
     @handle_ontap_errors
-    def volume_offline(self, volume):
+    def volume_offline(self, volume, flags = 0):
         return self.f.lun_offline(volume.name)
 
     @handle_ontap_errors
-    def access_group_grant(self, group, volume, access):
-        self.f.lun_map(group.name, volume.name)
+    def access_group_grant(self, group, volume, access, flags = 0):
         self.f.lun_map(group.name, volume.name)
         return None
 
     @handle_ontap_errors
-    def access_group_revoke(self, group, volume):
+    def access_group_revoke(self, group, volume, flags = 0):
         self.f.lun_unmap(group.name, volume.name)
         return None
 
@@ -374,11 +373,6 @@ class Ontap(IStorageAreaNetwork, INfs):
             if 'initiators' in g and g['initiators'] is not None:
                 initiators = na.to_list(g['initiators']['initiator-info'])
                 for i in initiators:
-                    if g['initiator-group-type'] == 'iscsi':
-                        type = Initiator.TYPE_ISCSI
-                    else:
-                        type = Initiator.TYPE_PORT_WWN
-
                     rc.append(i['initiator-name'])
         return rc
 
@@ -394,12 +388,12 @@ class Ontap(IStorageAreaNetwork, INfs):
             self.sys_info.id)
 
     @handle_ontap_errors
-    def access_group_list(self):
+    def access_group_list(self, flags = 0):
         groups = self.f.igroups()
         return [self._access_group(g) for g in groups]
 
     @handle_ontap_errors
-    def access_group_create(self, name, initiator_id, id_type, system_id):
+    def access_group_create(self, name, initiator_id, id_type, system_id, flags = 0):
         cur_groups = self.access_group_list()
         for cg in cur_groups:
             if cg.name == name:
@@ -422,19 +416,19 @@ class Ontap(IStorageAreaNetwork, INfs):
                             "Unable to find group just created!")
 
     @handle_ontap_errors
-    def access_group_del(self, group):
+    def access_group_del(self, group, flags = 0):
         return self.f.igroup_delete(group.name)
 
     @handle_ontap_errors
-    def access_group_add_initiator(self, group, initiator_id, id_type):
+    def access_group_add_initiator(self, group, initiator_id, id_type, flags = 0):
         return self.f.igroup_add_initiator(group.name, initiator_id)
 
     @handle_ontap_errors
-    def access_group_del_initiator(self, group, initiator_id):
+    def access_group_del_initiator(self, group, initiator_id, flags = 0):
         return self.f.igroup_del_initiator(group.name, initiator_id)
 
     @handle_ontap_errors
-    def volumes_accessible_by_access_group(self, group):
+    def volumes_accessible_by_access_group(self, group, flags = 0):
         rc = []
 
         if len(group.initiators):
@@ -445,7 +439,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         return rc
 
     @handle_ontap_errors
-    def access_groups_granted_to_volume(self, volume):
+    def access_groups_granted_to_volume(self, volume, flags = 0):
         groups = self.f.lun_map_list_info(volume.name)
         return [self._access_group(g) for g in groups]
 
@@ -483,7 +477,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                    None
 
     @handle_ontap_errors
-    def job_status(self, job_id):
+    def job_status(self, job_id, flags = 0):
         if job_id is None and '@' not in job_id:
             raise LsmError(ErrorNumber.INVALID_JOB, "Invalid job, missing @")
 
@@ -497,20 +491,20 @@ class Ontap(IStorageAreaNetwork, INfs):
         raise LsmError(ErrorNumber.INVALID_JOB, "Invalid job")
 
     @handle_ontap_errors
-    def job_free(self, job_id):
+    def job_free(self, job_id, flags = 0):
         return None
 
     @handle_ontap_errors
-    def fs(self):
+    def fs(self, flags = 0):
         volumes = self.f.volumes()
         return [self._vol(v) for v in volumes]
 
     @handle_ontap_errors
-    def fs_delete(self, fs):
+    def fs_delete(self, fs, flags = 0):
         self.f.volume_delete(fs.name)
 
     @handle_ontap_errors
-    def fs_resize(self, fs, new_size_bytes):
+    def fs_resize(self, fs, new_size_bytes, flags = 0):
         diff = new_size_bytes - fs.total_space
 
         diff = self._size_kb_padded(diff)
@@ -518,12 +512,12 @@ class Ontap(IStorageAreaNetwork, INfs):
         return None, self._vol(self.f.volumes(fs.name)[0])
 
     @handle_ontap_errors
-    def fs_create(self, pool, name, size_bytes):
+    def fs_create(self, pool, name, size_bytes, flags = 0):
         self.f.volume_create(pool.name, name, size_bytes)
         return None, self._vol(self.f.volumes(name)[0])
 
     @handle_ontap_errors
-    def fs_clone(self, src_fs, dest_fs_name, snapshot=None):
+    def fs_clone(self, src_fs, dest_fs_name, snapshot=None, flags = 0):
         self.f.volume_clone(src_fs.name, dest_fs_name, snapshot)
         return None, self._vol(self.f.volumes(dest_fs_name)[0])
 
@@ -532,7 +526,8 @@ class Ontap(IStorageAreaNetwork, INfs):
         return "/vol/%s/%s" % (volume_name, relative_name)
 
     @handle_ontap_errors
-    def file_clone(self, fs, src_file_name, dest_file_name, snapshot=None):
+    def file_clone(self, fs, src_file_name, dest_file_name, snapshot=None,
+                   flags = 0):
         full_src = Ontap.build_name(fs.name, src_file_name)
         full_dest = Ontap.build_name(fs.name, dest_file_name)
 
@@ -544,18 +539,18 @@ class Ontap(IStorageAreaNetwork, INfs):
         return None
 
     @handle_ontap_errors
-    def fs_snapshots(self, fs):
+    def fs_snapshots(self, fs, flags = 0):
         snapshots = self.f.snapshots(fs.name)
         return [self._ss(s) for s in snapshots]
 
     @handle_ontap_errors
-    def fs_snapshot_create(self, fs, snapshot_name, files=None):
+    def fs_snapshot_create(self, fs, snapshot_name, files=None, flags = 0):
         #We can't do files, so we will do them all
         snap = self.f.snapshot_create(fs.name, snapshot_name)
         return None, self._ss(snap)
 
     @handle_ontap_errors
-    def fs_snapshot_delete(self, fs, snapshot):
+    def fs_snapshot_delete(self, fs, snapshot, flags = 0):
         self.f.snapshot_delete(fs.name, snapshot.name)
 
     def _ss_revert_files(self, volume_name, snapshot_name, files,
@@ -569,7 +564,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def fs_snapshot_revert(self, fs, snapshot, files, restore_files,
-                        all_files=False):
+                        all_files=False, flags = 0):
         """
         Restores a FS or files on a FS.
         Note: Restoring an individual file is a O(n) operation, i.e. time it
@@ -591,7 +586,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                             "Invalid parameter combination")
 
     @handle_ontap_errors
-    def export_auth(self):
+    def export_auth(self, flags = 0):
         """
         Returns the types of authentication that are available for NFS
         """
@@ -658,7 +653,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         )
 
     @handle_ontap_errors
-    def exports(self):
+    def exports(self, flags = 0):
         #Get the file systems once and pass to _export which needs to lookup
         #the file system id by name.
         v = self.fs()
@@ -685,7 +680,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def export_fs(self, fs_id, export_path, root_list, rw_list, ro_list,
-                  anon_uid, anon_gid, auth_type, options):
+                  anon_uid, anon_gid, auth_type, options, flags = 0):
         """
         Creates or modifies the specified export
         """
@@ -717,19 +712,19 @@ class Ontap(IStorageAreaNetwork, INfs):
                         "export not created successfully!")
 
     @handle_ontap_errors
-    def export_remove(self, export):
+    def export_remove(self, export, flags = 0):
         self.f.nfs_export_remove([export.export_path])
 
     @handle_ontap_errors
-    def volume_child_dependency(self, volume):
+    def volume_child_dependency(self, volume, flags = 0):
         return False
 
     @handle_ontap_errors
-    def volume_child_dependency_rm(self, volume):
+    def volume_child_dependency_rm(self, volume, flags = 0):
         return None
 
     @handle_ontap_errors
-    def fs_child_dependency(self, fs, file=None):
+    def fs_child_dependency(self, fs, file=None, flags = 0):
         rc = False
 
         #TODO: Make sure file actually exists if specified
@@ -741,7 +736,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         return rc
 
     @handle_ontap_errors
-    def fs_child_dependency_rm(self, fs, file=None):
+    def fs_child_dependency_rm(self, fs, file=None, flags = 0):
         if file:
             return None
         else:

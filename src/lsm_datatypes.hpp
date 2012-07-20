@@ -291,11 +291,12 @@ LSM_DLL_LOCAL void freeConnection(lsmConnectPtr c);
  * @param password      Password
  * @param timeout       Initial timeout
  * @param e             Error data
+ * @param flags         Reserved flag for future use
  * @return LSM_ERR_OK on success, else error code.
  */
 LSM_DLL_LOCAL int loadDriver(lsmConnectPtr c, xmlURIPtr uri,
                                 const char *password, uint32_t timeout,
-                                lsmErrorPtr *e);
+                                lsmErrorPtr *e, lsmFlag_t flags);
 
 LSM_DLL_LOCAL char* capabilityString(lsmStorageCapabilitiesPtr c);
 

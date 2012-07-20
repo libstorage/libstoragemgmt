@@ -116,7 +116,7 @@ class PluginRunner(object):
         except SocketEOF:
             #Client went away
             Error('Client went away, exiting plug-in')
-        except Exception as ge:
+        except Exception:
             Error("Unhandled exception in plug-in!\n" + traceback.format_exc())
 
             try:

@@ -200,7 +200,7 @@ class Smis(IStorageAreaNetwork):
         else:
             raise LsmError(ErrorNumber.PLUGIN_ERROR, 'Error: ' + msg + " rc= " + str(rc))
 
-    def startup(self, uri, password, timeout):
+    def startup(self, uri, password, timeout, flags = 0):
         """
         Called when the plug-in runner gets the start request from the client.
         """
@@ -222,13 +222,13 @@ class Smis(IStorageAreaNetwork):
         self._c = pywbem.WBEMConnection(url, (u['username'], password),
                                             u['parameters']["namespace"] )
 
-    def set_time_out(self, ms):
+    def set_time_out(self, ms, flags = 0):
         self.tmo = ms
 
-    def get_time_out(self):
+    def get_time_out(self, flags = 0):
         return self.tmo
 
-    def shutdown(self):
+    def shutdown(self, flags = 0):
         self._c = None
         self._jobs = None
 
@@ -397,7 +397,7 @@ class Smis(IStorageAreaNetwork):
         cap.set(Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP)
 
     @handle_cim_errors
-    def capabilities(self, system):
+    def capabilities(self, system, flags = 0):
         cap = Capabilities()
 
         #Assume that the SMI-S we are talking to supports blocks
@@ -412,7 +412,7 @@ class Smis(IStorageAreaNetwork):
         return cap
 
     @handle_cim_errors
-    def job_status(self, job_id):
+    def job_status(self, job_id, flags = 0):
         """
         Given a job id returns the current status as a tuple
         (status (enum), percent_complete(integer), volume (None or Volume))
@@ -491,7 +491,7 @@ class Smis(IStorageAreaNetwork):
         return None
 
     @handle_cim_errors
-    def volumes(self):
+    def volumes(self, flags = 0):
         """
         Return all volumes.
         """
@@ -530,7 +530,7 @@ class Smis(IStorageAreaNetwork):
         return rc
 
     @handle_cim_errors
-    def pools(self):
+    def pools(self, flags = 0):
         """
         Return all pools
         """
@@ -553,7 +553,7 @@ class Smis(IStorageAreaNetwork):
         return System(s['Name'], s['ElementName'])
 
     @handle_cim_errors
-    def systems(self):
+    def systems(self, flags = 0):
         """
         Return the storage arrays accessible from this plug-in at this time
         """
@@ -564,7 +564,7 @@ class Smis(IStorageAreaNetwork):
         return Initiator(i['StorageID'], i["IDType"], i["ElementName"])
 
     @handle_cim_errors
-    def initiators(self):
+    def initiators(self, flags = 0):
         """
         Return all initiators.
         """
@@ -572,7 +572,8 @@ class Smis(IStorageAreaNetwork):
         return [ Smis._to_init(i) for i in initiators ]
 
     @handle_cim_errors
-    def volume_create(self, pool, volume_name, size_bytes, provisioning):
+    def volume_create(self, pool, volume_name, size_bytes, provisioning,
+                      flags = 0):
         """
         Create a volume.
         """
@@ -597,7 +598,7 @@ class Smis(IStorageAreaNetwork):
             scs.path, **in_params)))
 
     @handle_cim_errors
-    def volume_delete(self, volume):
+    def volume_delete(self, volume, flags = 0):
         """
         Delete a volume
         """
@@ -612,7 +613,7 @@ class Smis(IStorageAreaNetwork):
                         *(self._c.InvokeMethod('ReturnToStoragePool', scs.path, **in_params)))[0]
 
     @handle_cim_errors
-    def volume_resize(self, volume, new_size_bytes):
+    def volume_resize(self, volume, new_size_bytes, flags = 0):
         """
         Re-size a volume
         """
@@ -678,7 +679,7 @@ class Smis(IStorageAreaNetwork):
         return tuple(rc)
 
     @handle_cim_errors
-    def volume_replicate(self, pool, rep_type, volume_src, name):
+    def volume_replicate(self, pool, rep_type, volume_src, name, flags = 0):
         """
         Replicate a volume
         """
@@ -703,22 +704,23 @@ class Smis(IStorageAreaNetwork):
                                             rs.path, **in_params)))
         raise LsmError(ErrorNumber.NO_SUPPORT, "volume-replicate not supported")
 
-    def volume_replicate_range_block_size(self):
+    def volume_replicate_range_block_size(self, flags = 0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def volume_replicate_range(self, rep_type, volume_src, volume_dest, ranges):
+    def volume_replicate_range(self, rep_type, volume_src, volume_dest, ranges,
+                               flags = 0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
     @handle_cim_errors
-    def volume_online(self, volume):
+    def volume_online(self, volume, flags = 0):
         return None
 
     @handle_cim_errors
-    def volume_offline(self, volume):
+    def volume_offline(self, volume, flags = 0):
         return None
 
     @handle_cim_errors
-    def initiator_create(self, name, id, id_type):
+    def _initiator_create(self, name, id, id_type):
         """
         Create initiator object
         """
@@ -738,7 +740,7 @@ class Smis(IStorageAreaNetwork):
                                                  ' on initiator_create!')
 
     @handle_cim_errors
-    def access_group_grant(self, group, volume, access):
+    def access_group_grant(self, group, volume, access, flags = 0):
         """
         Grant access to a volume to an group
         """
@@ -782,7 +784,7 @@ class Smis(IStorageAreaNetwork):
 
 
     @handle_cim_errors
-    def access_group_revoke(self, group, volume):
+    def access_group_revoke(self, group, volume, flags = 0):
         ccs = self._get_class_instance('CIM_ControllerConfigurationService',
                                             'SystemName', volume.system_id)
         lun = self._get_volume(volume.id)
@@ -858,7 +860,7 @@ class Smis(IStorageAreaNetwork):
         return rc
 
     @handle_cim_errors
-    def volumes_accessible_by_access_group(self, group):
+    def volumes_accessible_by_access_group(self, group, flags = 0):
         g = self._get_class_instance('CIM_SCSIProtocolController', 'DeviceID',
             group.id)
         if g:
@@ -870,7 +872,7 @@ class Smis(IStorageAreaNetwork):
                 'Error: access group %s does not exist!' % group.id)
 
     @handle_cim_errors
-    def access_groups_granted_to_volume(self, volume):
+    def access_groups_granted_to_volume(self, volume, flags = 0):
         vol = self._get_class_instance('CIM_StorageVolume', 'DeviceID',
             volume.id)
 
@@ -883,12 +885,13 @@ class Smis(IStorageAreaNetwork):
                 'Error: access group %s does not exist!' % volume.id)
 
     @handle_cim_errors
-    def access_group_list(self):
+    def access_group_list(self, flags = 0):
         groups = self._get_access_groups()
         return [ self._new_access_group(g) for g in groups]
 
     @handle_cim_errors
-    def access_group_create(self, name, initiator_id, id_type, system_id):
+    def access_group_create(self, name, initiator_id, id_type, system_id,
+                            flags = 0):
         #page 880 1.5 spec. CreateMaskingView
         #
         # No access to a provider that implements this at this time,
@@ -896,7 +899,7 @@ class Smis(IStorageAreaNetwork):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
     @handle_cim_errors
-    def access_group_del(self, group):
+    def access_group_del(self, group, flags = 0):
         #page 880 1.5 spec. DeleteMaskingView
         #
         # No access to a provider that implements this at this time,
@@ -904,7 +907,8 @@ class Smis(IStorageAreaNetwork):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
     @handle_cim_errors
-    def access_group_add_initiator(self, group, initiator_id, id_type):
+    def access_group_add_initiator(self, group, initiator_id, id_type,
+                                   flags = 0):
         #Check to see if we have this initiator already, if we don't create it
         #and then add to the view.
         spc = self._get_access_group(group.id)
@@ -917,7 +921,7 @@ class Smis(IStorageAreaNetwork):
                 break
 
         if not initiator:
-            initiator = self.initiator_create(initiator_id, id_type, initiator_id)
+            initiator = self._initiator_create(initiator_id, id_type, initiator_id)
 
         ccs = self._get_class_instance('CIM_ControllerConfigurationService',
                                         'SystemName', group.system_id)
@@ -931,7 +935,7 @@ class Smis(IStorageAreaNetwork):
             *(self._c.InvokeMethod('ExposePaths', ccs.path, **in_params)))[0]
 
     @handle_cim_errors
-    def access_group_del_initiator(self, group, initiator):
+    def access_group_del_initiator(self, group, initiator, flags = 0):
         spc = self._get_access_group(group.id)
         ccs = self._get_class_instance('CIM_ControllerConfigurationService',
                                             'SystemName', group.system_id)
@@ -943,7 +947,7 @@ class Smis(IStorageAreaNetwork):
                 **hide_params)))[0]
 
     @handle_cim_errors
-    def job_free(self, job_id):
+    def job_free(self, job_id, flags = 0):
         """
         Frees the resources given a job number.
         """
@@ -956,8 +960,8 @@ class Smis(IStorageAreaNetwork):
             except CIMError:
                 pass
 
-    def volume_child_dependency(self, volume):
+    def volume_child_dependency(self, volume, flags = 0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def volume_child_dependency_rm(self, volume):
+    def volume_child_dependency_rm(self, volume, flags = 0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")

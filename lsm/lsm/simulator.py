@@ -23,7 +23,7 @@ from data import Pool, Initiator, Volume, BlockRange, System, AccessGroup, Snaps
 import time
 import pickle
 from data import FileSystem
-from iplugin import INfs
+from iplugin import INfs, IStorageAreaNetwork
 from lsm.data import Capabilities
 
 SIM_DATA_FILE = '/tmp/lsm_sim_data'
@@ -103,7 +103,7 @@ class SimState(object):
         self.group_grants = {}      # {access group id : {volume id: access }}
 
 
-class StorageSimulator(INfs):
+class StorageSimulator(INfs,IStorageAreaNetwork):
     """
     Simple class that implements enough to allow the framework to be exercised.
     """
@@ -221,7 +221,7 @@ class StorageSimulator(INfs):
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_POOL, 'Pool not found')
 
-    def startup(self, uri, password, timeout):
+    def startup(self, uri, password, timeout, flags = 0):
         self.uri = uri
         self.password = password
 
@@ -235,36 +235,36 @@ class StorageSimulator(INfs):
 
         return None
 
-    def set_time_out(self, ms):
+    def set_time_out(self, ms, flags = 0):
         self.tmo = ms
         return None
 
-    def get_time_out(self):
+    def get_time_out(self, flags = 0):
         return self.tmo
 
-    def capabilities(self, system):
+    def capabilities(self, system, flags = 0):
         rc = Capabilities()
         rc.enable_all()
         return rc
 
-    def shutdown(self):
+    def shutdown(self, flags = 0):
         self._save()
 
-    def systems(self):
+    def systems(self, flags = 0):
         return [ self.s.sys_info ]
 
-    def job_status(self, job_id):
+    def job_status(self, job_id, flags = 0):
         if job_id in self.s.jobs:
             return self.s.jobs[job_id].progress()
         raise LsmError(ErrorNumber.NOT_FOUND_JOB, 'Non-existent job')
 
-    def job_free(self, job_id):
+    def job_free(self, job_id, flags = 0):
         if job_id in self.s.jobs:
             del self.s.jobs[job_id]
             return None
         raise LsmError(ErrorNumber.NOT_FOUND_JOB, 'Non-existent job')
 
-    def volumes(self):
+    def volumes(self, flags = 0):
         return [e['volume'] for e in self.s.volumes.itervalues()]
 
     def _get_volume(self, volume_id):
@@ -273,10 +273,10 @@ class StorageSimulator(INfs):
                 return v['volume']
         return None
 
-    def pools(self):
+    def pools(self, flags = 0):
         return [e['pool'] for e in self.s.pools.itervalues()]
 
-    def initiators(self):
+    def initiators(self, flags = 0):
         rc = []
         if len(self.s.access_groups):
             for v in self.s.access_groups.values():
@@ -284,11 +284,12 @@ class StorageSimulator(INfs):
 
         return rc
 
-    def volume_create(self, pool, volume_name, size_bytes, provisioning):
+    def volume_create(self, pool, volume_name, size_bytes, provisioning,
+                      flags = 0):
         assert provisioning is not None
         return self._create_vol(pool, volume_name, size_bytes)
 
-    def volume_delete(self, volume):
+    def volume_delete(self, volume, flags = 0):
         if volume.id in self.s.volumes:
             v = self.s.volumes[volume.id]['volume']
             p = self.s.volumes[volume.id]['pool']
@@ -304,7 +305,7 @@ class StorageSimulator(INfs):
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_VOLUME, 'Volume not found')
 
-    def volume_replicate(self, pool, rep_type, volume_src, name):
+    def volume_replicate(self, pool, rep_type, volume_src, name, flags = 0):
         assert rep_type is not None
 
         if pool.id in self.s.pools and volume_src.id in self.s.volumes:
@@ -320,11 +321,11 @@ class StorageSimulator(INfs):
                 raise LsmError(ErrorNumber.NOT_FOUND_VOLUME, 'Volume not present')
         return None
 
-    def volume_replicate_range_block_size(self):
+    def volume_replicate_range_block_size(self, flags = 0):
         return 512
 
     def volume_replicate_range(self, rep_type, volume_src, volume_dest,
-                               ranges):
+                               ranges, flags = 0):
 
         if rep_type not in (Volume.REPLICATE_SNAPSHOT,
                             Volume.REPLICATE_CLONE,
@@ -358,19 +359,19 @@ class StorageSimulator(INfs):
                 raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
                     "volume_dest not found")
 
-    def volume_online(self, volume):
+    def volume_online(self, volume, flags = 0):
         if volume.id in self.s.volumes:
             return None
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_VOLUME, 'Volume not present')
 
-    def volume_offline(self, volume):
+    def volume_offline(self, volume, flags = 0):
         if volume.id in self.s.volumes:
             return None
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_VOLUME, 'Volume not present')
 
-    def volume_resize(self, volume, new_size_bytes):
+    def volume_resize(self, volume, new_size_bytes, flags = 0):
         if volume.id in self.s.volumes:
             v = self.s.volumes[volume.id]['volume']
             p = self.s.volumes[volume.id]['pool']
@@ -394,7 +395,7 @@ class StorageSimulator(INfs):
 
         return self.__create_job(v)
 
-    def access_group_grant(self, group, volume, access):
+    def access_group_grant(self, group, volume, access, flags = 0):
         if group.name not in self.s.access_groups:
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
                 "access group not present")
@@ -409,7 +410,7 @@ class StorageSimulator(INfs):
         else:
             raise LsmError(ErrorNumber.IS_MAPPED, 'Existing access present')
 
-    def access_group_revoke(self, group, volume):
+    def access_group_revoke(self, group, volume, flags = 0):
         if group.name not in self.s.access_groups:
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
                 "access group not present")
@@ -424,7 +425,7 @@ class StorageSimulator(INfs):
             raise LsmError(ErrorNumber.NO_MAPPING,
                 'No volume access to revoke')
 
-    def access_group_list(self):
+    def access_group_list(self, flags = 0):
         rc = []
         for (k, v) in self.s.access_groups.items():
             rc.append(self._new_access_group(k, v))
@@ -437,7 +438,8 @@ class StorageSimulator(INfs):
                 return g
         return None
 
-    def access_group_create(self, name, initiator_id, id_type, system_id):
+    def access_group_create(self, name, initiator_id, id_type, system_id,
+                            flags = 0):
         if name not in self.s.access_groups:
             self.s.access_groups[name] = {'initiators':
                                               [Initiator(initiator_id, id_type, 'UNA')],
@@ -447,7 +449,7 @@ class StorageSimulator(INfs):
             raise LsmError(ErrorNumber.EXISTS_ACCESS_GROUP,
                 "Access group with name exists")
 
-    def access_group_del(self, group):
+    def access_group_del(self, group, flags = 0):
         if group.name in self.s.access_groups:
             del self.s.access_groups[group.name]
 
@@ -459,7 +461,8 @@ class StorageSimulator(INfs):
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
                 "access group not found")
 
-    def access_group_add_initiator(self, group, initiator_id, id_type):
+    def access_group_add_initiator(self, group, initiator_id, id_type,
+                                   flags = 0):
         if group.name in self.s.access_groups:
             self.s.access_groups[group.name]['initiators'].\
             append(Initiator(initiator_id, id_type, 'UNA'))
@@ -468,7 +471,7 @@ class StorageSimulator(INfs):
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
                 "access group not found")
 
-    def access_group_del_initiator(self, group, initiator_id):
+    def access_group_del_initiator(self, group, initiator_id, flags = 0):
         if group.name in self.s.access_groups:
             for i in self.s.access_groups[group.name]['initiators']:
                 if i.id == initiator_id:
@@ -482,7 +485,7 @@ class StorageSimulator(INfs):
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
                 "access group not found")
 
-    def volumes_accessible_by_access_group(self, group):
+    def volumes_accessible_by_access_group(self, group, flags = 0):
         rc = []
         if group.name in self.s.access_groups:
             if group.id in self.s.group_grants:
@@ -494,7 +497,7 @@ class StorageSimulator(INfs):
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
                 "access group not found")
 
-    def access_groups_granted_to_volume(self, volume):
+    def access_groups_granted_to_volume(self, volume, flags = 0):
         rc = []
 
         for (k, v) in self.s.group_grants.items():
@@ -502,16 +505,16 @@ class StorageSimulator(INfs):
                 rc.append(self._get_access_group(k))
         return rc
 
-    def volume_child_dependency(self, volume):
+    def volume_child_dependency(self, volume, flags = 0):
         return False
 
-    def volume_child_dependency_rm(self, volume):
+    def volume_child_dependency_rm(self, volume, flags = 0):
         return None
 
-    def fs(self):
+    def fs(self, flags = 0):
         return [e['fs'] for e in self.s.fs.itervalues()]
 
-    def fs_delete(self, fs):
+    def fs_delete(self, fs, flags = 0):
         if fs.id in self.s.fs:
             f = self.s.fs[fs.id]['fs']
             p = self.s.fs[fs.id]['pool']
@@ -525,7 +528,7 @@ class StorageSimulator(INfs):
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
 
-    def fs_resize(self, fs, new_size_bytes):
+    def fs_resize(self, fs, new_size_bytes, flags = 0):
         if fs.id in self.s.fs:
             f = self.s.fs[fs.id]['fs']
             p = self.s.fs[fs.id]['pool']
@@ -538,10 +541,10 @@ class StorageSimulator(INfs):
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
 
-    def fs_create(self, pool, name, size_bytes):
+    def fs_create(self, pool, name, size_bytes, flags = 0):
         return self._create_fs(pool, name, size_bytes)
 
-    def fs_clone(self, src_fs, dest_fs_name, snapshot):
+    def fs_clone(self, src_fs, dest_fs_name, snapshot, flags = 0):
         #TODO If snapshot is not None, then check for existence.
 
         if src_fs.id in self.s.fs:
@@ -551,7 +554,7 @@ class StorageSimulator(INfs):
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
 
-    def file_clone(self, fs, src_file_name, dest_file_name, snapshot):
+    def file_clone(self, fs, src_file_name, dest_file_name, snapshot, flags = 0):
         #TODO If snapshot is not None, then check for existence.
         if fs.id in self.s.fs:
             if src_file_name is not None and dest_file_name is not None:
@@ -562,14 +565,14 @@ class StorageSimulator(INfs):
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
 
-    def fs_snapshots(self, fs):
+    def fs_snapshots(self, fs, flags = 0):
         if fs.id in self.s.fs:
             rc =  [e for e in self.s.fs[fs.id]['ss'].itervalues()]
             return rc
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
 
-    def fs_snapshot_create(self, fs, snapshot_name, files):
+    def fs_snapshot_create(self, fs, snapshot_name, files, flags = 0):
         self._check_sl(files)
         if fs.id in self.s.fs:
             for e in self.s.fs[fs.id]['ss'].itervalues():
@@ -583,7 +586,7 @@ class StorageSimulator(INfs):
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
 
-    def fs_snapshot_delete(self, fs, snapshot):
+    def fs_snapshot_delete(self, fs, snapshot, flags = 0):
         if fs.id in self.s.fs:
             if snapshot.id in self.s.fs[fs.id]['ss']:
                 del self.s.fs[fs.id]['ss'][snapshot.id]
@@ -593,7 +596,8 @@ class StorageSimulator(INfs):
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
 
-    def fs_snapshot_revert(self, fs, snapshot, files, restore_files, all_files):
+    def fs_snapshot_revert(self, fs, snapshot, files, restore_files, all_files,
+                           flags = 0):
 
         self._check_sl(files)
         self._check_sl(files)
@@ -606,24 +610,24 @@ class StorageSimulator(INfs):
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
 
-    def fs_child_dependency(self, fs, files):
+    def fs_child_dependency(self, fs, files, flags = 0):
         self._check_sl(files)
         if fs.id in self.s.fs:
             return False
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
 
-    def fs_child_dependency_rm(self, fs, files):
+    def fs_child_dependency_rm(self, fs, files, flags = 0):
         self._check_sl(files)
         if fs.id in self.s.fs:
             return self.__create_job(None)[0]
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
 
-    def export_auth(self):
+    def export_auth(self, flags = 0):
         return ["simple"]
 
-    def exports(self):
+    def exports(self, flags = 0):
         rc = []
         for fs in self.s.fs.itervalues():
             for exp in fs['exports'].values():
@@ -631,7 +635,7 @@ class StorageSimulator(INfs):
         return rc
 
     def export_fs(self, fs_id, export_path, root_list, rw_list, ro_list,
-                  anon_uid, anon_gid, auth_type,options):
+                  anon_uid, anon_gid, auth_type,options, flags = 0):
 
         if fs_id in self.s.fs:
             export_id = md5(export_path)
@@ -645,7 +649,7 @@ class StorageSimulator(INfs):
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
 
-    def export_remove(self, export):
+    def export_remove(self, export, flags = 0):
         fs_id = export.fs_id
 
         if fs_id in self.s.fs:

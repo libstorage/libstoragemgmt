@@ -84,7 +84,7 @@ int waitForJob(int cmd_rc, lsmConnectPtr c, char *job,
 
             do {
                 usleep(10000);
-                rc = lsmJobStatusVolumeGet(c, job, &status, &percent, &new_volume);
+                rc = lsmJobStatusVolumeGet(c, job, &status, &percent, &new_volume, 0);
                 //printf("job = %s, status %d, percent %d\n", job, status, percent);
             } while ( (LSM_JOB_INPROGRESS == status) && (LSM_ERR_OK == rc) );
 
@@ -104,7 +104,7 @@ int waitForJob(int cmd_rc, lsmConnectPtr c, char *job,
             }
 
             //Clean up the job
-            int jf = lsmJobFree(c, &job);
+            int jf = lsmJobFree(c, &job, 0);
             if( LSM_ERR_OK != jf ) {
                 printf("lsmJobFree rc= %d\n", jf);
             }
@@ -145,7 +145,7 @@ static int listVolumes(const LSM::Arguments &a, lsmConnectPtr c)
     lsmVolumePtr *vol = NULL;
     uint32_t num_vol = 0;
 
-    rc = lsmVolumeList(c, &vol, & num_vol);
+    rc = lsmVolumeList(c, &vol, & num_vol, 0);
 
     if( rc == LSM_ERR_OK ) {
         uint32_t i;
@@ -173,7 +173,7 @@ static int listInitiators(const LSM::Arguments &a, lsmConnectPtr c)
     uint32_t num_init = 0;
     const char format[] = "%-40s%-16s%-5d\n";
 
-    rc = lsmInitiatorList(c, &init, &num_init);
+    rc = lsmInitiatorList(c, &init, &num_init, 0);
 
     if( LSM_ERR_OK == rc ) {
         uint32_t i = 0;
@@ -199,7 +199,7 @@ static int listPools(const LSM::Arguments &a, lsmConnectPtr c)
     uint32_t num_pool = 0;
     const char *sep = NULL;
 
-    rc = lsmPoolList(c, &pool, &num_pool);
+    rc = lsmPoolList(c, &pool, &num_pool, 0);
 
     if( LSM_ERR_OK == rc ) {
         uint32_t i = 0;
@@ -259,7 +259,7 @@ lsmPoolPtr getPool(lsmConnectPtr c, std::string poolId)
     uint32_t num_pool = 0;
     uint32_t i = 0;
 
-    rc = lsmPoolList(c, &pool, &num_pool);
+    rc = lsmPoolList(c, &pool, &num_pool, 0);
 
     if( LSM_ERR_OK == rc ) {
         for( i = 0; i < num_pool; ++i ) {
@@ -283,7 +283,7 @@ lsmVolumePtr getVolume(lsmConnectPtr c, std::string volumeId)
     uint32_t num_vol = 0;
     uint32_t i = 0;
 
-    rc = lsmVolumeList(c, &vol, &num_vol);
+    rc = lsmVolumeList(c, &vol, &num_vol, 0);
 
     if( LSM_ERR_OK == rc ) {
         for( i = 0; i <  num_vol; ++i ) {
@@ -307,7 +307,7 @@ lsmInitiatorPtr getInitiator(lsmConnectPtr c, std::string initId)
     uint32_t num_inits = 0;
     uint32_t i = 0;
 
-    rc = lsmInitiatorList(c, &inits, &num_inits);
+    rc = lsmInitiatorList(c, &inits, &num_inits, 0);
 
     if( LSM_ERR_OK == rc ) {
         for( i = 0; i <  num_inits; ++i ) {
@@ -338,7 +338,7 @@ int createVolume(const LSM::Arguments &a, lsmConnectPtr c)
         LSM::sizeArg(a.size.value.c_str(), &size);
 
         rc = lsmVolumeCreate(c,pool, a.commandValue.c_str(),
-                                size, a.provisionType(), &vol, &job);
+                                size, a.provisionType(), &vol, &job, 0);
 
         rc = waitForJob(rc, c, job, a, &vol);
 
@@ -357,7 +357,7 @@ int deleteVolume(const LSM::Arguments &a, lsmConnectPtr c)
     lsmVolumePtr vol = getVolume(c, a.commandValue);
 
     if( vol ) {
-        rc = lsmVolumeDelete(c, vol, &job);
+        rc = lsmVolumeDelete(c, vol, &job, 0);
         rc = waitForJob(rc, c, job, a);
     } else {
         printf("Volume with id= %s not found!\n", a.commandValue.c_str());
@@ -376,7 +376,7 @@ int replicateVolume(const LSM::Arguments &a, lsmConnectPtr c)
 
     if( vol && pool ) {
         rc = lsmVolumeReplicate(c, pool, a.replicationType(), vol,
-                                    a.name.value.c_str(), &newVol, &job);
+                                    a.name.value.c_str(), &newVol, &job, 0);
         rc = waitForJob(rc, c, job, a, &newVol);
     } else {
         if( !vol ) {
@@ -412,7 +412,7 @@ int resizeVolume(const LSM::Arguments &a, lsmConnectPtr c)
     LSM::sizeArg(a.size.value.c_str(), &size);
 
     if( vol ) {
-        rc = lsmVolumeResize(c, vol, size, &newVol, &job);
+        rc = lsmVolumeResize(c, vol, size, &newVol, &job, 0);
         rc = waitForJob(rc, c, job, a, &newVol);
     } else {
         printf("Volume with id= %s not found!\n", a.commandValue.c_str());

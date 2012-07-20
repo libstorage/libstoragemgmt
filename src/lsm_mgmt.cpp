@@ -51,13 +51,15 @@
 #define CHECK_RP(x)  (!(x) || *(x) != NULL)
 
 int lsmConnectPassword(const char *uri, const char *password,
-                        lsmConnectPtr *conn, uint32_t timeout, lsmErrorPtr *e)
+                        lsmConnectPtr *conn, uint32_t timeout, lsmErrorPtr *e,
+                        lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     lsmConnectPtr c = NULL;
 
     /* Password is optional */
-    if(  CHECK_STR(uri) || CHECK_RP(conn) || !timeout || CHECK_RP(e) ) {
+    if(  CHECK_STR(uri) || CHECK_RP(conn) || !timeout || CHECK_RP(e) ||
+         LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -67,7 +69,7 @@ int lsmConnectPassword(const char *uri, const char *password,
         if( c->uri && c->uri->scheme ) {
             c->raw_uri = strdup(uri);
             if( c->raw_uri ) {
-                rc = loadDriver(c, c->uri, password, timeout, e);
+                rc = loadDriver(c, c->uri, password, timeout, e, flags);
                 if( rc == LSM_ERR_OK ) {
                     *conn = (lsmConnectPtr)c;
                 }
@@ -169,10 +171,16 @@ static int getAccessGroups( int rc, Value &response, lsmAccessGroupPtr **groups,
     return rc;
 }
 
-int lsmConnectClose(lsmConnectPtr c)
+int lsmConnectClose(lsmConnectPtr c, lsmFlag_t flags)
 {
     CONN_SETUP(c);
+
+    if( LSM_FLAG_UNUSED_CHECK(flags) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
     std::map<std::string, Value> p;
+    p["flags"] = Value(flags);
     Value parameters(p);
     Value response;
 
@@ -184,11 +192,17 @@ int lsmConnectClose(lsmConnectPtr c)
     return rc;
 }
 
-int lsmConnectSetTimeout(lsmConnectPtr c, uint32_t timeout)
+int lsmConnectSetTimeout(lsmConnectPtr c, uint32_t timeout, lsmFlag_t flags)
 {
     CONN_SETUP(c);
+
+    if( LSM_FLAG_UNUSED_CHECK(flags) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
     std::map<std::string, Value> p;
     p["ms"] = Value(timeout);
+    p["flags"] = Value(flags);
     Value parameters(p);
     Value response;
 
@@ -196,10 +210,16 @@ int lsmConnectSetTimeout(lsmConnectPtr c, uint32_t timeout)
     return rpc(c, "set_time_out", parameters, response);
 }
 
-int lsmConnectGetTimeout(lsmConnectPtr c, uint32_t *timeout)
+int lsmConnectGetTimeout(lsmConnectPtr c, uint32_t *timeout, lsmFlag_t flags)
 {
     CONN_SETUP(c);
+
+    if( LSM_FLAG_UNUSED_CHECK(flags) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
     std::map<std::string, Value> p;
+    p["flags"] = Value(flags);
     Value parameters(p);
     Value response;
 
@@ -212,7 +232,7 @@ int lsmConnectGetTimeout(lsmConnectPtr c, uint32_t *timeout)
 
 static int jobStatus( lsmConnectPtr c, const char *job,
                         lsmJobStatus *status, uint8_t *percentComplete,
-                        Value &returned_value)
+                        Value &returned_value, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -222,6 +242,7 @@ static int jobStatus( lsmConnectPtr c, const char *job,
 
     std::map<std::string, Value> p;
     p["job_id"] = Value(job);
+    p["flags"] = Value(flags);
     Value parameters(p);
     Value response;
 
@@ -238,27 +259,32 @@ static int jobStatus( lsmConnectPtr c, const char *job,
 }
 
 int lsmJobStatusGet(lsmConnectPtr c, const char *job_id,
-                                lsmJobStatus *status, uint8_t *percentComplete)
+                    lsmJobStatus *status, uint8_t *percentComplete,
+                    lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
+    if( LSM_FLAG_UNUSED_CHECK(flags) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
     Value rv;
-    return jobStatus(c, job_id, status, percentComplete, rv);
+    return jobStatus(c, job_id, status, percentComplete, rv, flags);
 }
 
 int lsmJobStatusVolumeGet( lsmConnectPtr c, const char *job,
                         lsmJobStatus *status, uint8_t *percentComplete,
-                        lsmVolumePtr *vol)
+                        lsmVolumePtr *vol, lsmFlag_t flags)
 {
     Value rv;
 
     CONN_SETUP(c);
 
-    if( CHECK_RP(vol) ) {
+    if( CHECK_RP(vol) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
-    int rc = jobStatus(c, job, status, percentComplete, rv);
+    int rc = jobStatus(c, job, status, percentComplete, rv, flags);
 
     if( LSM_ERR_OK == rc ) {
         if( Value::object_t ==  rv.valueType() ) {
@@ -272,15 +298,15 @@ int lsmJobStatusVolumeGet( lsmConnectPtr c, const char *job,
 
 int lsmJobStatusFsGet(lsmConnectPtr c, const char *job,
                                 lsmJobStatus *status, uint8_t *percentComplete,
-                                lsmFsPtr *fs)
+                                lsmFsPtr *fs, lsmFlag_t flags)
 {
     Value rv;
 
-    int rc = jobStatus(c, job, status, percentComplete, rv);
-
-    if( CHECK_RP(fs) ) {
+    if( CHECK_RP(fs) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
+
+    int rc = jobStatus(c, job, status, percentComplete, rv, flags);
 
     if( LSM_ERR_OK == rc ) {
         if( Value::object_t ==  rv.valueType() ) {
@@ -294,15 +320,15 @@ int lsmJobStatusFsGet(lsmConnectPtr c, const char *job,
 
 int lsmJobStatusSsGet(lsmConnectPtr c, const char *job,
                                 lsmJobStatus *status, uint8_t *percentComplete,
-                                lsmSsPtr *ss)
+                                lsmSsPtr *ss, lsmFlag_t flags)
 {
     Value rv;
 
-    if( CHECK_RP(ss) ) {
+    if( CHECK_RP(ss) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
-    int rc = jobStatus(c, job, status, percentComplete, rv);
+    int rc = jobStatus(c, job, status, percentComplete, rv, flags);
 
     if( LSM_ERR_OK == rc ) {
         if( Value::object_t ==  rv.valueType() ) {
@@ -314,16 +340,17 @@ int lsmJobStatusSsGet(lsmConnectPtr c, const char *job,
     return rc;
 }
 
-int lsmJobFree(lsmConnectPtr c, char **job)
+int lsmJobFree(lsmConnectPtr c, char **job, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
-    if( job == NULL || strlen(*job) < 1 ) {
+    if( job == NULL || strlen(*job) < 1 || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
     p["job_id"] = Value(*job);
+    p["flags"] = Value(flags);
     Value parameters(p);
     Value response;
 
@@ -338,7 +365,7 @@ int lsmJobFree(lsmConnectPtr c, char **job)
 }
 
 int lsmCapabilities(lsmConnectPtr c, lsmSystemPtr system,
-                    lsmStorageCapabilitiesPtr *cap)
+                    lsmStorageCapabilitiesPtr *cap, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -346,13 +373,14 @@ int lsmCapabilities(lsmConnectPtr c, lsmSystemPtr system,
         return LSM_ERR_INVALID_SYSTEM;
     }
 
-    if( CHECK_RP(cap) ) {
+    if( CHECK_RP(cap) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
 
     p["system"] = systemToValue(system);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -367,15 +395,16 @@ int lsmCapabilities(lsmConnectPtr c, lsmSystemPtr system,
 }
 
 int lsmPoolList(lsmConnectPtr c, lsmPoolPtr **poolArray,
-                        uint32_t *count)
+                        uint32_t *count, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
-    if( !poolArray || !count || CHECK_RP(poolArray) ) {
+    if( !poolArray || !count || CHECK_RP(poolArray) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
+    p["flags"] = Value(flags);
     Value parameters(p);
     Value response;
 
@@ -397,17 +426,19 @@ int lsmPoolList(lsmConnectPtr c, lsmPoolPtr **poolArray,
 }
 
 int lsmInitiatorList(lsmConnectPtr c, lsmInitiatorPtr **initiators,
-                                uint32_t *count)
+                                uint32_t *count, lsmFlag_t flags)
 {
     CONN_SETUP(c);
-    std::map<std::string, Value> p;
-    Value parameters(p);
-    Value response;
 
-
-    if( !initiators || !count || CHECK_RP(initiators) ) {
+    if( !initiators || !count || CHECK_RP(initiators) ||
+        LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
+
+    std::map<std::string, Value> p;
+    p["flags"] = Value(flags);
+    Value parameters(p);
+    Value response;
 
     int rc = rpc(c, "initiators", parameters, response);
     if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
@@ -426,16 +457,20 @@ int lsmInitiatorList(lsmConnectPtr c, lsmInitiatorPtr **initiators,
     return rc;
 }
 
-int lsmVolumeList(lsmConnectPtr c, lsmVolumePtr **volumes, uint32_t *count)
+int lsmVolumeList(lsmConnectPtr c, lsmVolumePtr **volumes, uint32_t *count,
+                    lsmFlag_t flags)
 {
     CONN_SETUP(c);
-    std::map<std::string, Value> p;
-    Value parameters(p);
-    Value response;
 
-    if( !volumes || !count || CHECK_RP(volumes) ) {
+    if( !volumes || !count || CHECK_RP(volumes) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
+
+    std::map<std::string, Value> p;
+    p["flags"] = Value(flags);
+
+    Value parameters(p);
+    Value response;
 
     int rc = rpc(c, "volumes", parameters, response);
     if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
@@ -481,7 +516,7 @@ static void* parse_job_response(Value response, int &rc, char **job, convert con
 
 int lsmVolumeCreate(lsmConnectPtr c, lsmPoolPtr pool, const char *volumeName,
                         uint64_t size, lsmProvisionType provisioning,
-                        lsmVolumePtr *newVolume, char **job)
+                        lsmVolumePtr *newVolume, char **job, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -489,7 +524,8 @@ int lsmVolumeCreate(lsmConnectPtr c, lsmPoolPtr pool, const char *volumeName,
         return LSM_ERR_INVALID_POOL;
     }
 
-    if( CHECK_STR(volumeName) || !size || CHECK_RP(newVolume) || CHECK_RP(job)){
+    if( CHECK_STR(volumeName) || !size || CHECK_RP(newVolume) ||
+        CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ){
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -498,6 +534,7 @@ int lsmVolumeCreate(lsmConnectPtr c, lsmPoolPtr pool, const char *volumeName,
     p["volume_name"] = Value(volumeName);
     p["size_bytes"] = Value(size);
     p["provisioning"] = Value((int32_t)provisioning);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -512,7 +549,7 @@ int lsmVolumeCreate(lsmConnectPtr c, lsmPoolPtr pool, const char *volumeName,
 
 int lsmVolumeResize(lsmConnectPtr c, lsmVolumePtr volume,
                         uint64_t newSize, lsmVolumePtr *resizedVolume,
-                        char **job)
+                        char **job, lsmFlag_t flags )
 {
     CONN_SETUP(c);
 
@@ -521,7 +558,7 @@ int lsmVolumeResize(lsmConnectPtr c, lsmVolumePtr volume,
     }
 
     if( !newSize || CHECK_RP(resizedVolume) || CHECK_RP(job)
-        || newSize == 0 ) {
+        || newSize == 0 || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -533,6 +570,7 @@ int lsmVolumeResize(lsmConnectPtr c, lsmVolumePtr volume,
     std::map<std::string, Value> p;
     p["volume"] = volumeToValue(volume);
     p["new_size_bytes"] = Value(newSize);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -547,7 +585,8 @@ int lsmVolumeResize(lsmConnectPtr c, lsmVolumePtr volume,
 
 int lsmVolumeReplicate(lsmConnectPtr c, lsmPoolPtr pool,
                         lsmReplicationType repType, lsmVolumePtr volumeSrc,
-                        const char *name, lsmVolumePtr *newReplicant, char **job)
+                        const char *name, lsmVolumePtr *newReplicant,
+                        char **job, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -559,7 +598,8 @@ int lsmVolumeReplicate(lsmConnectPtr c, lsmPoolPtr pool,
         return LSM_ERR_INVALID_VOL;
     }
 
-    if(CHECK_STR(name) || CHECK_RP(newReplicant) || CHECK_RP(job)) {
+    if(CHECK_STR(name) || CHECK_RP(newReplicant) || CHECK_RP(job) ||
+        LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -568,6 +608,7 @@ int lsmVolumeReplicate(lsmConnectPtr c, lsmPoolPtr pool,
     p["rep_type"] = Value((int32_t)repType);
     p["volume_src"] = volumeToValue(volumeSrc);
     p["name"] = Value(name);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -581,15 +622,17 @@ int lsmVolumeReplicate(lsmConnectPtr c, lsmPoolPtr pool,
 
 }
 
-int lsmVolumeReplicateRangeBlockSize(lsmConnectPtr c, uint32_t *bs)
+int lsmVolumeReplicateRangeBlockSize(lsmConnectPtr c, uint32_t *bs,
+                                        lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
-    if( !bs ) {
+    if( !bs || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
+    p["flags"] = Value(flags);
     Value parameters(p);
     Value response;
 
@@ -609,7 +652,7 @@ int lsmVolumeReplicateRange(lsmConnectPtr c,
                                                 lsmVolumePtr dest,
                                                 lsmBlockRangePtr *ranges,
                                                 uint32_t num_ranges,
-                                                char **job)
+                                                char **job, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -617,7 +660,8 @@ int lsmVolumeReplicateRange(lsmConnectPtr c,
         return LSM_ERR_INVALID_VOL;
     }
 
-    if( !ranges || !num_ranges || CHECK_RP(job) ) {
+    if( !ranges || !num_ranges || CHECK_RP(job) ||
+        LSM_FLAG_UNUSED_CHECK(flags)) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -626,6 +670,7 @@ int lsmVolumeReplicateRange(lsmConnectPtr c,
     p["volume_src"] = volumeToValue(source);
     p["volume_dest"] = volumeToValue(dest);
     p["ranges"] = blockRangeListToValue(ranges, num_ranges);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -634,7 +679,8 @@ int lsmVolumeReplicateRange(lsmConnectPtr c,
     return jobCheck(rc, response, job);
 }
 
-int lsmVolumeDelete(lsmConnectPtr c, lsmVolumePtr volume, char **job)
+int lsmVolumeDelete(lsmConnectPtr c, lsmVolumePtr volume, char **job,
+                    lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -642,12 +688,13 @@ int lsmVolumeDelete(lsmConnectPtr c, lsmVolumePtr volume, char **job)
         return LSM_ERR_INVALID_VOL;
     }
 
-    if( CHECK_RP(job) ) {
+    if( CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
     p["volume"] = volumeToValue(volume);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -670,12 +717,13 @@ int lsmVolumeDelete(lsmConnectPtr c, lsmVolumePtr volume, char **job)
 }
 
 int lsmVolumeStatus(lsmConnectPtr conn, lsmVolumePtr volume,
-                        lsmVolumeStatusType *status)
+                        lsmVolumeStatusType *status, lsmFlag_t flags)
 {
     return LSM_ERR_NO_SUPPORT;
 }
 
-static int online_offline(lsmConnectPtr c, lsmVolumePtr v, const char* operation)
+static int online_offline(lsmConnectPtr c, lsmVolumePtr v,
+                            const char* operation, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -683,34 +731,40 @@ static int online_offline(lsmConnectPtr c, lsmVolumePtr v, const char* operation
         return LSM_ERR_INVALID_VOL;
     }
 
+    if ( LSM_FLAG_UNUSED_CHECK(flags) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
     std::map<std::string, Value> p;
     p["volume"] = volumeToValue(v);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
     return rpc(c, operation, parameters, response);
 }
 
-int lsmVolumeOnline(lsmConnectPtr c, lsmVolumePtr volume)
+int lsmVolumeOnline(lsmConnectPtr c, lsmVolumePtr volume, lsmFlag_t flags)
 {
-    return online_offline(c, volume, "volume_online");
+    return online_offline(c, volume, "volume_online", flags);
 }
 
-int lsmVolumeOffline(lsmConnectPtr c, lsmVolumePtr volume)
+int lsmVolumeOffline(lsmConnectPtr c, lsmVolumePtr volume, lsmFlag_t flags)
 {
-    return online_offline(c, volume, "volume_offline");
+    return online_offline(c, volume, "volume_offline", flags);
 }
 
 int lsmAccessGroupList( lsmConnectPtr c, lsmAccessGroupPtr **groups,
-                        uint32_t *groupCount)
+                        uint32_t *groupCount, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
-    if( !groups || !groupCount ) {
+    if( !groups || !groupCount || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
+    p["flags"] = Value(flags);
     Value parameters(p);
     Value response;
 
@@ -720,12 +774,13 @@ int lsmAccessGroupList( lsmConnectPtr c, lsmAccessGroupPtr **groups,
 
 int lsmAccessGroupCreate(lsmConnectPtr c, const char *name,
                             const char *initiator_id, lsmInitiatorType id_type,
-                            const char *system_id, lsmAccessGroupPtr *access_group)
+                            const char *system_id,
+                            lsmAccessGroupPtr *access_group, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
     if( CHECK_STR(name) || CHECK_STR(initiator_id) || CHECK_STR(system_id)
-        || CHECK_RP(access_group)) {
+        || CHECK_RP(access_group) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -734,6 +789,7 @@ int lsmAccessGroupCreate(lsmConnectPtr c, const char *name,
     p["initiator_id"] = Value(initiator_id);
     p["id_type"] = Value((int32_t)id_type);
     p["system_id"] = Value(system_id);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -750,7 +806,8 @@ int lsmAccessGroupCreate(lsmConnectPtr c, const char *name,
     return rc;
 }
 
-int lsmAccessGroupDel(lsmConnectPtr c, lsmAccessGroupPtr group, char **job)
+int lsmAccessGroupDel(lsmConnectPtr c, lsmAccessGroupPtr group,
+                        char **job, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -758,12 +815,13 @@ int lsmAccessGroupDel(lsmConnectPtr c, lsmAccessGroupPtr group, char **job)
         return LSM_ERR_INVALID_ACCESS_GROUP;
     }
 
-    if( CHECK_RP(job) ) {
+    if( CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
     p["group"] = accessGroupToValue(group);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -777,7 +835,7 @@ int lsmAccessGroupAddInitiator(lsmConnectPtr c,
                                 lsmAccessGroupPtr group,
                                 const char *initiator_id,
                                 lsmInitiatorType id_type,
-                                char **job)
+                                char **job, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -785,7 +843,8 @@ int lsmAccessGroupAddInitiator(lsmConnectPtr c,
         return LSM_ERR_INVALID_ACCESS_GROUP;
     }
 
-    if( CHECK_STR(initiator_id) || CHECK_RP(job) ) {
+    if( CHECK_STR(initiator_id) || CHECK_RP(job) ||
+        LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -793,6 +852,7 @@ int lsmAccessGroupAddInitiator(lsmConnectPtr c,
     p["group"] = accessGroupToValue(group);
     p["initiator_id"] = initiator_id;
     p["id_type"] = Value((int32_t)id_type);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -805,7 +865,8 @@ int lsmAccessGroupAddInitiator(lsmConnectPtr c,
 }
 
 int lsmAccessGroupDelInitiator(lsmConnectPtr c, lsmAccessGroupPtr group,
-                                const char* initiator_id, char **job)
+                                const char* initiator_id, char **job,
+                                lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -813,13 +874,14 @@ int lsmAccessGroupDelInitiator(lsmConnectPtr c, lsmAccessGroupPtr group,
         return LSM_ERR_INVALID_ACCESS_GROUP;
     }
 
-    if( CHECK_STR(initiator_id) || CHECK_RP(job) ) {
+    if( CHECK_STR(initiator_id) || CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
     p["group"] = accessGroupToValue(group);
     p["initiator_id"] = Value(initiator_id);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -831,7 +893,8 @@ int lsmAccessGroupDelInitiator(lsmConnectPtr c, lsmAccessGroupPtr group,
 
 int lsmAccessGroupGrant(lsmConnectPtr c, lsmAccessGroupPtr group,
                                             lsmVolumePtr volume,
-                                            lsmAccessType access, char **job)
+                                            lsmAccessType access, char **job,
+                                            lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -843,7 +906,7 @@ int lsmAccessGroupGrant(lsmConnectPtr c, lsmAccessGroupPtr group,
         return LSM_ERR_INVALID_VOL;
     }
 
-    if( CHECK_RP(job) ) {
+    if( CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -851,6 +914,7 @@ int lsmAccessGroupGrant(lsmConnectPtr c, lsmAccessGroupPtr group,
     p["group"] = accessGroupToValue(group);
     p["volume"] = volumeToValue(volume);
     p["access"] = Value((int32_t)access);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -862,7 +926,8 @@ int lsmAccessGroupGrant(lsmConnectPtr c, lsmAccessGroupPtr group,
 
 
 int lsmAccessGroupRevoke(lsmConnectPtr c, lsmAccessGroupPtr group,
-                                            lsmVolumePtr volume, char **job)
+                                            lsmVolumePtr volume, char **job,
+                                            lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -874,13 +939,14 @@ int lsmAccessGroupRevoke(lsmConnectPtr c, lsmAccessGroupPtr group,
         return LSM_ERR_INVALID_VOL;
     }
 
-    if( CHECK_RP(job)) {
+    if( CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
     p["group"] = accessGroupToValue(group);
     p["volume"] = volumeToValue(volume);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -893,7 +959,7 @@ int lsmAccessGroupRevoke(lsmConnectPtr c, lsmAccessGroupPtr group,
 int lsmVolumesAccessibleByAccessGroup(lsmConnectPtr c,
                                         lsmAccessGroupPtr group,
                                         lsmVolumePtr **volumes,
-                                        uint32_t *count)
+                                        uint32_t *count, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -901,12 +967,13 @@ int lsmVolumesAccessibleByAccessGroup(lsmConnectPtr c,
         return LSM_ERR_INVALID_ACCESS_GROUP;
     }
 
-    if( !volumes || !count ) {
+    if( !volumes || !count || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
     p["group"] = accessGroupToValue(group);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -931,7 +998,7 @@ int lsmVolumesAccessibleByAccessGroup(lsmConnectPtr c,
 int lsmAccessGroupsGrantedToVolume(lsmConnectPtr c,
                                     lsmVolumePtr volume,
                                     lsmAccessGroupPtr **groups,
-                                    uint32_t *groupCount)
+                                    uint32_t *groupCount, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -939,12 +1006,13 @@ int lsmAccessGroupsGrantedToVolume(lsmConnectPtr c,
         return LSM_ERR_INVALID_VOL;
     }
 
-    if( !groups || !groupCount ) {
+    if( !groups || !groupCount || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
     p["volume"] = volumeToValue(volume);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -953,7 +1021,8 @@ int lsmAccessGroupsGrantedToVolume(lsmConnectPtr c,
     return getAccessGroups(rc, response, groups, groupCount);
 }
 
-int lsmVolumeChildDependency(lsmConnectPtr c, lsmVolumePtr volume, uint8_t *yes)
+int lsmVolumeChildDependency(lsmConnectPtr c, lsmVolumePtr volume,
+                                uint8_t *yes, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -961,12 +1030,13 @@ int lsmVolumeChildDependency(lsmConnectPtr c, lsmVolumePtr volume, uint8_t *yes)
         return LSM_ERR_INVALID_VOL;
     }
 
-    if( !yes ) {
+    if( !yes || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
     p["volume"] = volumeToValue(volume);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -987,7 +1057,8 @@ int lsmVolumeChildDependency(lsmConnectPtr c, lsmVolumePtr volume, uint8_t *yes)
     return rc;
 }
 
-int lsmVolumeChildDependencyRm(lsmConnectPtr c, lsmVolumePtr volume, char **job)
+int lsmVolumeChildDependencyRm(lsmConnectPtr c, lsmVolumePtr volume,
+                                char **job, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -995,12 +1066,13 @@ int lsmVolumeChildDependencyRm(lsmConnectPtr c, lsmVolumePtr volume, char **job)
         return LSM_ERR_INVALID_VOL;
     }
 
-    if( CHECK_RP(job)) {
+    if( CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
     p["volume"] = volumeToValue(volume);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -1010,15 +1082,16 @@ int lsmVolumeChildDependencyRm(lsmConnectPtr c, lsmVolumePtr volume, char **job)
 }
 
 int lsmSystemList(lsmConnectPtr c, lsmSystemPtr **systems,
-                                        uint32_t *systemCount)
+                    uint32_t *systemCount, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
-    if( !systems || ! systemCount ) {
+    if( !systems || ! systemCount || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
+    p["flags"] = Value(flags);
     Value parameters(p);
     Value response;
 
@@ -1048,15 +1121,17 @@ int lsmSystemList(lsmConnectPtr c, lsmSystemPtr **systems,
     return rc;
 }
 
-int lsmFsList(lsmConnectPtr c, lsmFsPtr **fs, uint32_t *fsCount)
+int lsmFsList(lsmConnectPtr c, lsmFsPtr **fs, uint32_t *fsCount,
+                lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
-    if( !fs || !fsCount ) {
+    if( !fs || !fsCount || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
+    p["flags"] = Value(flags);
     Value parameters(p);
     Value response;
 
@@ -1079,7 +1154,8 @@ int lsmFsList(lsmConnectPtr c, lsmFsPtr **fs, uint32_t *fsCount)
 }
 
 int lsmFsCreate(lsmConnectPtr c, lsmPoolPtr pool, const char *name,
-                    uint64_t size_bytes, lsmFsPtr *fs, char **job)
+                    uint64_t size_bytes, lsmFsPtr *fs, char **job,
+                    lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -1087,7 +1163,8 @@ int lsmFsCreate(lsmConnectPtr c, lsmPoolPtr pool, const char *name,
         return LSM_ERR_INVALID_POOL;
     }
 
-    if( CHECK_STR(name) || !size_bytes || CHECK_RP(fs) || CHECK_RP(job) ) {
+    if( CHECK_STR(name) || !size_bytes || CHECK_RP(fs) || CHECK_RP(job)
+        || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1095,6 +1172,7 @@ int lsmFsCreate(lsmConnectPtr c, lsmPoolPtr pool, const char *name,
     p["pool"] = poolToValue(pool);
     p["name"] = Value(name);
     p["size_bytes"] = Value(size_bytes);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -1107,7 +1185,7 @@ int lsmFsCreate(lsmConnectPtr c, lsmPoolPtr pool, const char *name,
     return rc;
 }
 
-int lsmFsDelete(lsmConnectPtr c, lsmFsPtr fs, char **job)
+int lsmFsDelete(lsmConnectPtr c, lsmFsPtr fs, char **job, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -1115,12 +1193,13 @@ int lsmFsDelete(lsmConnectPtr c, lsmFsPtr fs, char **job)
         return LSM_ERR_INVALID_FS;
     }
 
-    if( CHECK_RP(job) ) {
+    if( CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
     p["fs"] = fsToValue(fs);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -1132,7 +1211,7 @@ int lsmFsDelete(lsmConnectPtr c, lsmFsPtr fs, char **job)
 
 int lsmFsResize(lsmConnectPtr c, lsmFsPtr fs,
                                     uint64_t new_size_bytes, lsmFsPtr *rfs,
-                                    char **job)
+                                    char **job, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -1140,13 +1219,14 @@ int lsmFsResize(lsmConnectPtr c, lsmFsPtr fs,
         return LSM_ERR_INVALID_FS;
     }
 
-    if( !new_size_bytes || CHECK_RP(rfs) || CHECK_RP(job) ) {
+    if( !new_size_bytes || CHECK_RP(rfs) || CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
     p["fs"] = fsToValue(fs);
     p["new_size_bytes"] = Value(new_size_bytes);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -1162,7 +1242,7 @@ int lsmFsResize(lsmConnectPtr c, lsmFsPtr fs,
 int lsmFsClone(lsmConnectPtr c, lsmFsPtr src_fs,
                                     const char *name, lsmSsPtr optional_ss,
                                     lsmFsPtr *cloned_fs,
-                                    char **job)
+                                    char **job, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -1170,14 +1250,15 @@ int lsmFsClone(lsmConnectPtr c, lsmFsPtr src_fs,
         return LSM_ERR_INVALID_FS;
     }
 
-    if( CHECK_STR(name) || CHECK_RP(cloned_fs) || CHECK_RP(job) ) {
+    if( CHECK_STR(name) || CHECK_RP(cloned_fs) || CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
     p["src_fs"] = fsToValue(src_fs);
     p["dest_fs_name"] = Value(name);
-        p["snapshot"] = ssToValue(optional_ss);
+    p["snapshot"] = ssToValue(optional_ss);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -1191,7 +1272,8 @@ int lsmFsClone(lsmConnectPtr c, lsmFsPtr src_fs,
 }
 
 int lsmFsFileClone(lsmConnectPtr c, lsmFsPtr fs, const char *src_file_name,
-                    const char *dest_file_name, lsmSsPtr snapshot, char **job)
+                    const char *dest_file_name, lsmSsPtr snapshot, char **job,
+                    lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -1200,7 +1282,7 @@ int lsmFsFileClone(lsmConnectPtr c, lsmFsPtr fs, const char *src_file_name,
     }
 
     if( CHECK_STR(src_file_name) || CHECK_STR(dest_file_name)
-        || CHECK_RP(job) ) {
+        || CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1209,6 +1291,7 @@ int lsmFsFileClone(lsmConnectPtr c, lsmFsPtr fs, const char *src_file_name,
     p["src_file_name"] = Value(src_file_name);
     p["dest_file_name"] = Value(dest_file_name);
     p["snapshot"] = ssToValue(snapshot);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -1218,7 +1301,7 @@ int lsmFsFileClone(lsmConnectPtr c, lsmFsPtr fs, const char *src_file_name,
 }
 
 int lsmFsChildDependency( lsmConnectPtr c, lsmFsPtr fs, lsmStringListPtr files,
-                                                uint8_t *yes)
+                            uint8_t *yes, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -1232,13 +1315,14 @@ int lsmFsChildDependency( lsmConnectPtr c, lsmFsPtr fs, lsmStringListPtr files,
         }
     }
 
-    if( !yes ) {
+    if( !yes || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
     p["fs"] = fsToValue(fs);
     p["files"] = stringListToValue(files);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -1260,7 +1344,7 @@ int lsmFsChildDependency( lsmConnectPtr c, lsmFsPtr fs, lsmStringListPtr files,
 }
 
 int lsmFsChildDependencyRm( lsmConnectPtr c, lsmFsPtr fs, lsmStringListPtr files,
-                            char **job)
+                            char **job, lsmFlag_t flags )
 {
     CONN_SETUP(c);
 
@@ -1274,13 +1358,14 @@ int lsmFsChildDependencyRm( lsmConnectPtr c, lsmFsPtr fs, lsmStringListPtr files
         }
     }
 
-    if( CHECK_RP(job) ) {
+    if( CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
     p["fs"] = fsToValue(fs);
     p["files"] = stringListToValue(files);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -1290,7 +1375,7 @@ int lsmFsChildDependencyRm( lsmConnectPtr c, lsmFsPtr fs, lsmStringListPtr files
 }
 
 int lsmFsSsList(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr **ss,
-                                uint32_t *ssCount)
+                                uint32_t *ssCount, lsmFlag_t flags )
 {
     CONN_SETUP(c);
 
@@ -1298,12 +1383,13 @@ int lsmFsSsList(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr **ss,
         return LSM_ERR_INVALID_FS;
     }
 
-    if( CHECK_RP(ss) || !ssCount ) {
+    if( CHECK_RP(ss) || !ssCount || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
     p["fs"] = fsToValue(fs);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -1327,7 +1413,8 @@ int lsmFsSsList(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr **ss,
 }
 
 int lsmFsSsCreate(lsmConnectPtr c, lsmFsPtr fs, const char *name,
-                    lsmStringListPtr files, lsmSsPtr *snapshot, char **job)
+                    lsmStringListPtr files, lsmSsPtr *snapshot, char **job,
+                    lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -1341,7 +1428,7 @@ int lsmFsSsCreate(lsmConnectPtr c, lsmFsPtr fs, const char *name,
         }
     }
 
-    if( CHECK_STR(name) || CHECK_RP(snapshot) || CHECK_RP(job) ) {
+    if( CHECK_STR(name) || CHECK_RP(snapshot) || CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1349,6 +1436,7 @@ int lsmFsSsCreate(lsmConnectPtr c, lsmFsPtr fs, const char *name,
     p["fs"] = fsToValue(fs);
     p["snapshot_name"] = Value(name);
     p["files"] = stringListToValue(files);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -1361,7 +1449,8 @@ int lsmFsSsCreate(lsmConnectPtr c, lsmFsPtr fs, const char *name,
     return rc;
 }
 
-int lsmFsSsDelete(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss, char **job)
+int lsmFsSsDelete(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss, char **job,
+                    lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -1373,13 +1462,14 @@ int lsmFsSsDelete(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss, char **job)
         return LSM_ERR_INVALID_SS;
     }
 
-    if( CHECK_RP(job) ) {
+    if( CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
     p["fs"] = fsToValue(fs);
     p["snapshot"] = ssToValue(ss);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -1391,7 +1481,7 @@ int lsmFsSsDelete(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss, char **job)
 int lsmFsSsRevert(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss,
                                     lsmStringListPtr files,
                                     lsmStringListPtr restore_files,
-                                    int all_files, char **job)
+                                    int all_files, char **job, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -1415,7 +1505,7 @@ int lsmFsSsRevert(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss,
         }
     }
 
-    if( CHECK_RP(job) ) {
+    if( CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1425,6 +1515,7 @@ int lsmFsSsRevert(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss,
     p["files"] = stringListToValue(files);
     p["restore_files"] = stringListToValue(restore_files);
     p["all_files"] = Value((all_files)?true:false);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -1434,17 +1525,19 @@ int lsmFsSsRevert(lsmConnectPtr c, lsmFsPtr fs, lsmSsPtr ss,
 
 }
 
-int lsmNfsList( lsmConnectPtr c, lsmNfsExportPtr **exports, uint32_t *count )
+int lsmNfsList( lsmConnectPtr c, lsmNfsExportPtr **exports, uint32_t *count,
+                lsmFlag_t flags)
 {
-    std::map<std::string, Value> p;
-    Value parameters(p);
-    Value response;
-
     CONN_SETUP(c);
 
-    if( CHECK_RP(exports) || !count ) {
+    if( CHECK_RP(exports) || !count || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
+
+    std::map<std::string, Value> p;
+    p["flags"] = Value(flags);
+    Value parameters(p);
+    Value response;
 
     int rc = rpc(c, "exports", parameters, response);
     if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
@@ -1473,7 +1566,8 @@ int lsmNfsExportFs( lsmConnectPtr c,
                                         uint64_t anon_gid,
                                         const char *auth_type,
                                         const char *options,
-                                        lsmNfsExportPtr *exported
+                                        lsmNfsExportPtr *exported,
+                                        lsmFlag_t flags
                                         )
 {
     CONN_SETUP(c);
@@ -1497,7 +1591,7 @@ int lsmNfsExportFs( lsmConnectPtr c,
     }
 
     if( CHECK_STR(fs_id) || CHECK_STR(export_path) || CHECK_RP(exported)
-        || !(root_list || rw_list || ro_list)) {
+        || !(root_list || rw_list || ro_list) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1512,6 +1606,7 @@ int lsmNfsExportFs( lsmConnectPtr c,
     p["anon_gid"] = Value(anon_gid);
     p["auth_type"] = Value(auth_type);
     p["options"] = Value(options);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
@@ -1523,7 +1618,7 @@ int lsmNfsExportFs( lsmConnectPtr c,
     return rc;
 }
 
-int lsmNfsExportRemove( lsmConnectPtr c, lsmNfsExportPtr e)
+int lsmNfsExportRemove( lsmConnectPtr c, lsmNfsExportPtr e, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -1531,8 +1626,13 @@ int lsmNfsExportRemove( lsmConnectPtr c, lsmNfsExportPtr e)
         return LSM_ERR_INVALID_NFS;
     }
 
+    if( LSM_FLAG_UNUSED_CHECK(flags) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
     std::map<std::string, Value> p;
     p["export"] = nfsExportToValue(e);
+    p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
