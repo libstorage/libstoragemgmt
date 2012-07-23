@@ -79,6 +79,12 @@ class Smis(IStorageAreaNetwork):
             SYNC_CLONE_REMOTE       = 12
             ASYNC_CLONE_REMOTE      = 13
 
+    class CopyStates(object):
+        INITIALIZED     = 2
+        UNSYNCHRONIZED  = 3
+        SYNCHRONIZED    = 4
+        INACTIVE        = 8
+
     #SMI-S mode for mirror updates
     (CREATE_ELEMENT_REPLICA_MODE_SYNC, CREATE_ELEMENT_REPLICA_MODE_ASYNC ) = (2,3)
 
@@ -697,7 +703,9 @@ class Smis(IStorageAreaNetwork):
                             'SyncType' : pywbem.Uint16(sync),
                             'Mode': pywbem.Uint16(mode),
                             'SourceElement': lun.path,
-                            'TargetPool': cim_pool.path}
+                            'TargetPool': cim_pool.path,
+                            'WaitForCopyState' :
+                                pywbem.Uint16(Smis.CopyStates.SYNCHRONIZED)}
 
             return self._pi("volume_replicate", True,
                                             *(self._c.InvokeMethod('CreateElementReplica',
