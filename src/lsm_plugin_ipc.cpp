@@ -44,7 +44,7 @@ static int lsmPluginRun(lsmPluginPtr plug);
  * @param s Character array to convert to std::string
  * @return String representation.
  */
-std::string ss(char *s)
+static std::string ss(char *s)
 {
     if( s ) {
         return std::string(s);
