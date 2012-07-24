@@ -334,6 +334,11 @@ class Capabilities(IData):
     VOLUME_CHILD_DEPENDENCY_RM              = 46
 
     INITIATORS                              = 47
+    INITIATORS_GRANTED_TO_VOLUME            = 48
+
+    VOLUME_INITIATOR_GRANT                  = 50
+    VOLUME_INITIATOR_REVOKE                 = 51
+    VOLUME_ACCESSIBLE_BY_INITIATOR          = 52
 
     #File system
     FS                                      = 100

@@ -505,6 +505,19 @@ class StorageSimulator(INfs,IStorageAreaNetwork):
                 rc.append(self._get_access_group(k))
         return rc
 
+    def initiator_grant(self, initiator_id, initiator_type, volume, access, flags):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+    def initiator_revoke(self, initiator, volume, flags):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+
+    def volumes_accessible_by_initiator(self, initiator, flags):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+    def initiators_granted_to_volume(self, volume, flags):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
     def volume_child_dependency(self, volume, flags = 0):
         return False
 

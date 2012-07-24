@@ -955,6 +955,23 @@ class Smis(IStorageAreaNetwork):
                 **hide_params)))[0]
 
     @handle_cim_errors
+    def initiator_grant(self, initiator_id, initiator_type, volume, access,
+                        flags = 0):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+    @handle_cim_errors
+    def initiator_revoke(self, initiator, volume, flags = 0):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+    @handle_cim_errors
+    def volumes_accessible_by_initiator(self, initiator, flags = 0):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+    @handle_cim_errors
+    def initiators_granted_to_volume(self, volume, flags ):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+    @handle_cim_errors
     def job_free(self, job_id, flags = 0):
         """
         Frees the resources given a job number.

@@ -211,6 +211,20 @@ class IStorageAreaNetwork(IPlugin):
         """
         pass
 
+    @abstractmethod
+    def initiator_grant(self, initiator_id, initiator_type, volume, access, flags = 0):
+        """
+        Allows an initiator to access a volume.
+        """
+        pass
+
+    @abstractmethod
+    def initiator_revoke(self, initiator, volume, flags = 0):
+        """
+        Revokes access to a volume for the specified initiator
+        """
+        pass
+
     def access_group_grant(self, group, volume, access, flags = 0):
         """
         Allows an access group to access a volume.
@@ -295,6 +309,20 @@ class IStorageAreaNetwork(IPlugin):
         of the volume and the number of child dependencies.
 
         Returns None if complete else job id, raises LsmError on errors.
+        """
+        pass
+
+    @abstractmethod
+    def volumes_accessible_by_initiator(self, initiator, flags = 0):
+        """
+        Returns a list of volumes that the initiator has access to.
+        """
+        pass
+
+    @abstractmethod
+    def initiators_granted_to_volume(self, volume, flags = 0):
+        """
+        Returns a list of initiators that have access to the specified volume.
         """
         pass
 

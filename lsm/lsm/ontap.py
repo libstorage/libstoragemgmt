@@ -443,6 +443,23 @@ class Ontap(IStorageAreaNetwork, INfs):
         groups = self.f.lun_map_list_info(volume.name)
         return [self._access_group(g) for g in groups]
 
+    @handle_ontap_errors
+    def initiator_grant(self, initiator_id, initiator_type, volume, access,
+                        flags = 0):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+    @handle_ontap_errors
+    def initiator_revoke(self, initiator, volume, flags = 0):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+    @handle_ontap_errors
+    def volumes_accessible_by_initiator(self, initiator, flags = 0):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+    @handle_ontap_errors
+    def initiators_granted_to_volume(self, volume, flags=0):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
     @staticmethod
     def _rpercent(total, current):
         p = 1 - (current / float(total))

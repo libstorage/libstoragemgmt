@@ -65,7 +65,8 @@ class Wrapper(object):
         if hasattr(self.wrapper, name):
             return functools.partial(self.present, name)
         else:
-            raise common.LsmError(common.ErrorNumber.NO_SUPPORT, "Unsupported operation")
+            raise common.LsmError(common.ErrorNumber.NO_SUPPORT,
+                                    "Unsupported operation")
 
     ## Method which is called to invoke the actual method of interest.
     # @param    self    The object self
@@ -312,6 +313,16 @@ class CmdLine:
             metavar='<volume id>',
             help='Lists the access group(s) that have access to volume')
 
+        commands.add_option('', '--volumes-accessible-initiator', action="store", type="string",
+            dest=_c("volumes-accessible-initiator"),
+            metavar='<initiator id>',
+            help='Lists the volumes that are accessible by the initiator')
+
+        commands.add_option('', '--initiators-granted-volume', action="store", type="string",
+            dest=_c("initiators-granted-volume"),
+            metavar='<volume id>',
+            help='Lists the initiators that have been granted access to specified volume')
+
         commands.add_option( '', '--restore-ss', action="store", type="string",
             dest=_c("restore-ss"),
             metavar='<snapshot id>',
@@ -360,12 +371,26 @@ class CmdLine:
                                               "--dest_start <destination block start>\n"
                                               "--count <number of blocks to replicate>")
 
+        commands.add_option( '', '--access-grant', action="store", type="string",
+            metavar='<initiator id>',
+            dest=_c("access-grant"), help='grants access to an initiator to a volume\n'
+                                          'requires:\n'
+                                          '--type <initiator id type>\n'
+                                          '--volume <volume id>\n'
+                                          '--access [RO|RW], read-only or read-write')
+
         commands.add_option( '', '--access-grant-group', action="store", type="string",
             metavar='<access group id>',
             dest=_c("access-grant-group"), help='grants access to an access group to a volume\n'
                                           'requires:\n'
                                           '--volume <volume id>\n'
                                           '--access [RO|RW], read-only or read-write')
+
+        commands.add_option( '', '--access-revoke', action="store", type="string",
+            metavar='<initiator id>',
+            dest=_c("access-revoke"), help= 'removes access for an initiator to a volume\n'
+                                            'requires:\n'
+                                            '--volume <volume id>')
 
         commands.add_option( '', '--access-revoke-group', action="store", type="string",
             metavar='<access group id>',
@@ -810,6 +835,25 @@ class CmdLine:
         else:
             raise ArgError('access group with id %s not found!' % self.cmd_value)
 
+    def volume_accessible_init(self):
+        i = self._get_item(self.c.initiators(), self.cmd_value)
+
+        if i:
+            volumes = self.c.volumes_accessible_by_initiator(i)
+            self.display_volumes(volumes)
+        else:
+            raise ArgError("initiator with id= %s not found!" % self.cmd_value)
+
+    def init_granted_volume(self):
+        vol = self._get_item(self.c.volumes(), self.cmd_value)
+
+        if vol:
+            initiators = self.c.initiators_granted_to_volume(vol)
+            self.display_initiators(initiators)
+        else:
+            raise ArgError("volume with id= %s not found!" % self.cmd_value)
+
+
     def volume_access_group(self):
         vol = self._get_item(self.c.volumes(), self.cmd_value)
 
@@ -975,6 +1019,7 @@ class CmdLine:
             self._cp("BLOCK_SUPPORT", cap.get(Capabilities.BLOCK_SUPPORT))
             self._cp("FS_SUPPORT", cap.get(Capabilities.FS_SUPPORT))
             self._cp("INITIATORS", cap.get(Capabilities.INITIATORS))
+            self._cp("INITIATORS_GRANTED_TO_VOLUME", cap.get(Capabilities.INITIATORS_GRANTED_TO_VOLUME))
             self._cp("VOLUMES", cap.get(Capabilities.VOLUMES))
             self._cp("VOLUME_CREATE", cap.get(Capabilities.VOLUME_CREATE))
             self._cp("VOLUME_RESIZE", cap.get(Capabilities.VOLUME_RESIZE))
@@ -990,6 +1035,8 @@ class CmdLine:
             self._cp("VOLUME_DELETE", cap.get(Capabilities.VOLUME_DELETE))
             self._cp("VOLUME_ONLINE", cap.get(Capabilities.VOLUME_ONLINE))
             self._cp("VOLUME_OFFLINE", cap.get(Capabilities.VOLUME_OFFLINE))
+            self._cp("VOLUME_INITIATOR_GRANT", cap.get(Capabilities.VOLUME_INITIATOR_GRANT))
+            self._cp("VOLUME_INITIATOR_REVOKE", cap.get(Capabilities.VOLUME_INITIATOR_REVOKE))
             self._cp("ACCESS_GROUP_GRANT", cap.get(Capabilities.ACCESS_GROUP_GRANT))
             self._cp("ACCESS_GROUP_REVOKE", cap.get(Capabilities.ACCESS_GROUP_REVOKE))
             self._cp("ACCESS_GROUP_LIST", cap.get(Capabilities.ACCESS_GROUP_LIST))
@@ -998,6 +1045,7 @@ class CmdLine:
             self._cp("ACCESS_GROUP_ADD_INITIATOR", cap.get(Capabilities.ACCESS_GROUP_ADD_INITIATOR))
             self._cp("ACCESS_GROUP_DEL_INITIATOR", cap.get(Capabilities.ACCESS_GROUP_DEL_INITIATOR))
             self._cp("VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP", cap.get(Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP))
+            self._cp("VOLUME_ACCESSIBLE_BY_INITIATOR", cap.get(Capabilities.VOLUME_ACCESSIBLE_BY_INITIATOR))
             self._cp("ACCESS_GROUPS_GRANTED_TO_VOLUME", cap.get(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME))
             self._cp("VOLUME_CHILD_DEPENDENCY", cap.get(Capabilities.VOLUME_CHILD_DEPENDENCY))
             self._cp("VOLUME_CHILD_DEPENDENCY_RM", cap.get(Capabilities.VOLUME_CHILD_DEPENDENCY_RM))
@@ -1198,6 +1246,34 @@ class CmdLine:
             if not dest:
                 raise ArgError("dest volume with id= %s not found!" % self.options.opt_dest)
 
+    ## Used to grant or revoke access to a volume to an initiator.
+    # @param    self    The this pointer
+    # @param    map     If True we map, else we un-map.
+    def _access(self, map=True):
+        v = self._get_item(self.c.volumes(), self.options.opt_volume)
+        initiator_id = self.cmd_value
+
+        if v:
+            if map:
+                i_type = CmdLine._init_type_to_enum(self.options.opt_type)
+                access = data.Volume.access_string_to_type(self.options.opt_access)
+                self.c.initiator_grant(initiator_id, i_type, v,access)
+            else:
+                self.c.initiator_revoke(initiator_id,v)
+        else:
+            if not v:
+                raise ArgError("volume with id= %s not found!" % self.options.opt_volume)
+
+    ## Grant access to volume to an initiator
+    # @param    self    The this pointer
+    def access_grant(self):
+        return self._access()
+
+    ## Revoke access to volume to an initiator
+    # @param    self    The this pointer
+    def access_revoke(self):
+        return self._access(False)
+
     def _access_group(self, map=True):
         agl = self.c.access_group_list()
         group = self._get_item(agl, self.cmd_value)
@@ -1348,6 +1424,12 @@ class CmdLine:
                                                'method': self.access_group_volumes},
                        'volume-access-group': {'options': [],
                                                 'method': self.volume_access_group},
+                       'volumes-accessible-initiator': {'options': [],
+                                               'method': self.volume_accessible_init},
+
+                       'initiators-granted-volume': {'options': [],
+                                               'method': self.init_granted_volume},
+
                        'create-ss': {'options': ['fs'],
                                      'method': self.create_ss},
                        'clone-file': {'options': ['src', 'dest'],
@@ -1358,8 +1440,12 @@ class CmdLine:
                                      'method': self.delete_ss},
                        'replicate-volume': {'options': ['type', 'pool', 'name'],
                                             'method': self.replicate_volume},
+                       'access-grant': {'options': ['volume', 'access', 'type'],
+                                        'method': self.access_grant},
                        'access-grant-group': {'options': ['volume', 'access'],
                                         'method': self.access_grant_group},
+                       'access-revoke': {'options': ['volume'],
+                                         'method': self.access_revoke},
                        'access-revoke-group': {'options': ['volume'],
                                          'method': self.access_revoke_group},
                        'resize-volume': {'options': ['size'],
