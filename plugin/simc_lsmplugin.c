@@ -1410,7 +1410,7 @@ static int initiator_revoke(lsmPluginPtr c, lsmInitiatorPtr init,
         if( found && !ag) {
             rc = LSM_ERR_NO_MEMORY;
         } else {
-            rc = LSM_ERR_NOT_FOUND_INITIATOR;
+            rc = LSM_ERR_NO_MAPPING;
         }
     }
 

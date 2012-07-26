@@ -276,13 +276,34 @@ class StorageSimulator(INfs,IStorageAreaNetwork):
     def pools(self, flags = 0):
         return [e['pool'] for e in self.s.pools.itervalues()]
 
-    def initiators(self, flags = 0):
+    def _volume_accessible(self, access_group_id, volume):
+        ag = self.s.group_grants[access_group_id]
+
+        if volume.id in ag:
+            return True
+        return False
+
+    def _initiators(self, volume_filter = None):
         rc = []
         if len(self.s.access_groups):
-            for v in self.s.access_groups.values():
-                rc.extend(v['initiators'])
+            for k, v in self.s.access_groups.items():
+                if volume_filter:
+                    ag = self._new_access_group(k,v)
+                    if self._volume_accessible(ag.id,volume_filter):
+                        rc.extend(v['initiators'])
+                else:
+                    rc.extend(v['initiators'])
 
-        return rc
+        #We can have multiples as the same initiator can be in multiple access
+        #groups
+        remove_dupes = {}
+        for x in rc:
+            remove_dupes[x.id] = x
+
+        return list(remove_dupes.values())
+
+    def initiators(self, flags = 0):
+        return self._initiators()
 
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
                       flags = 0):
@@ -505,18 +526,58 @@ class StorageSimulator(INfs,IStorageAreaNetwork):
                 rc.append(self._get_access_group(k))
         return rc
 
-    def initiator_grant(self, initiator_id, initiator_type, volume, access, flags):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+    def initiator_grant(self, initiator_id, initiator_type, volume, access, flags = 0):
+        name = initiator_id + volume.id
+        group = None
 
-    def initiator_revoke(self, initiator, volume, flags):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+        try:
+            group = self.access_group_create(name, initiator_id, initiator_type,
+                                                volume.system_id)
+            result = self.access_group_grant(group,volume,access)
 
+        except Exception as e:
+            if group:
+                self.access_group_del(group)
+            raise e
 
-    def volumes_accessible_by_initiator(self, initiator, flags):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+        return result
 
-    def initiators_granted_to_volume(self, volume, flags):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+    def initiator_revoke(self, initiator, volume, flags = 0):
+        name = initiator.id + volume.id
+
+        if any(x.id for x in self.initiators()):
+            if volume.id in self.s.volumes:
+                ag = self._new_access_group(name, self.s.access_groups[name])
+
+                if ag:
+                    self.access_group_del(ag)
+                else:
+                    raise LsmError(ErrorNumber.NO_MAPPING, "No mapping of initiator "
+                                                           "and volume")
+            else:
+                raise LsmError(ErrorNumber.NOT_FOUND_VOLUME, "volume not found")
+        else:
+            raise LsmError(ErrorNumber.NOT_FOUND_INITIATOR, "Initiator not found")
+
+        return None
+
+    def volumes_accessible_by_initiator(self, initiator, flags = 0):
+        rc = []
+        volumes = {}
+        for k, v in self.s.access_groups.items():
+            initiators = v['initiators']
+            if any(x.id for x in initiators):
+                for (ag_id, volume_mappings) in self.s.group_grants.items():
+                    for volume_id in volume_mappings.keys():
+                        volumes[volume_id] = None
+
+        for vol_id in volumes.keys():
+            rc.append(self._get_volume(vol_id))
+
+        return rc
+
+    def initiators_granted_to_volume(self, volume, flags = 0):
+        return self._initiators(volume)
 
     def volume_child_dependency(self, volume, flags = 0):
         return False

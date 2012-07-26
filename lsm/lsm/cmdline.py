@@ -1257,9 +1257,14 @@ class CmdLine:
             if map:
                 i_type = CmdLine._init_type_to_enum(self.options.opt_type)
                 access = data.Volume.access_string_to_type(self.options.opt_access)
-                self.c.initiator_grant(initiator_id, i_type, v,access)
+                self.c.initiator_grant(initiator_id, i_type, v, access)
             else:
-                self.c.initiator_revoke(initiator_id,v)
+                initiator = self._get_item(self.c.initiators(), initiator_id)
+
+                if initiator:
+                    self.c.initiator_revoke(initiator, v)
+                else:
+                    raise ArgError("initiator with id= %s not found" % initiator_id)
         else:
             if not v:
                 raise ArgError("volume with id= %s not found!" % self.options.opt_volume)
