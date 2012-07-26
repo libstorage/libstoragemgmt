@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <crypt.h>
 #include <glib.h>
+#include <assert.h>
 
 #include "libstoragemgmt/libstoragemgmt_accessgroups.h"
 #include "libstoragemgmt/libstoragemgmt_initiators.h"
@@ -478,10 +479,29 @@ void freeInitiator(void *i) {
     }
 }
 
-static int list_initiators(lsmPluginPtr c, lsmInitiatorPtr **initArray,
-                                        uint32_t *count, lsmFlag_t flags)
+static int _volume_accessible(struct plugin_data *pd, lsmAccessGroupPtr ag,
+                                lsmVolumePtr vol)
 {
-    int rc = LSM_ERR_OK;
+    GHashTable *v = NULL;
+
+    const char *ag_id = lsmAccessGroupIdGet(ag);
+    const char *vol_id = lsmVolumeIdGet(vol);
+
+    v = (GHashTable *)g_hash_table_lookup( pd->group_grant, ag_id );
+
+    if( v ) {
+        if( g_hash_table_lookup(v, vol_id) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int _list_initiators(lsmPluginPtr c, lsmInitiatorPtr **initArray,
+                                        uint32_t *count, lsmFlag_t flags,
+                                        lsmVolumePtr filter)
+{
+     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
 
     GHashTable *tmp_inits = g_hash_table_new_full(g_str_hash, g_str_equal, free,
@@ -497,20 +517,30 @@ static int list_initiators(lsmPluginPtr c, lsmInitiatorPtr **initArray,
 
         g_hash_table_iter_init (&iter, pd->access_groups);
         while (g_hash_table_iter_next (&iter, (gpointer) &k, (gpointer)&v) ) {
+            int include = 1;
+
             uint32_t i = 0;
 
-            lsmStringListPtr inits = lsmAccessGroupInitiatorIdGet(v->ag);
+            if( filter ) {
+                if( !_volume_accessible(pd, v->ag, filter )) {
+                    include = 0;
+                }
+            }
 
-            for(i = 0; i < lsmStringListSize(inits); ++i ) {
-                char *init_key = strdup(lsmStringListGetElem(inits,i));
-                lsmInitiatorPtr init_val = lsmInitiatorRecordAlloc(v->ag_type,
-                                                                  init_key, "");
+            if( include ) {
+                lsmStringListPtr inits = lsmAccessGroupInitiatorIdGet(v->ag);
 
-                if( init_key && init_val ) {
-                    g_hash_table_insert(tmp_inits, init_key, init_val);
-                } else {
-                    g_hash_table_destroy(tmp_inits);
-                    rc = LSM_ERR_NO_MEMORY;
+                for(i = 0; i < lsmStringListSize(inits); ++i ) {
+                    char *init_key = strdup(lsmStringListGetElem(inits,i));
+                    lsmInitiatorPtr init_val = lsmInitiatorRecordAlloc(v->ag_type,
+                                                                    init_key, "");
+
+                    if( init_key && init_val ) {
+                        g_hash_table_insert(tmp_inits, init_key, init_val);
+                    } else {
+                        g_hash_table_destroy(tmp_inits);
+                        rc = LSM_ERR_NO_MEMORY;
+                    }
                 }
             }
         }
@@ -536,6 +566,8 @@ static int list_initiators(lsmPluginPtr c, lsmInitiatorPtr **initArray,
                         }
                         i += 1;
                     }
+                } else {
+                    rc = LSM_ERR_NO_MEMORY;
                 }
             }
         }
@@ -543,6 +575,13 @@ static int list_initiators(lsmPluginPtr c, lsmInitiatorPtr **initArray,
         g_hash_table_destroy(tmp_inits);
     }
     return rc;
+}
+
+
+static int list_initiators(lsmPluginPtr c, lsmInitiatorPtr **initArray,
+                                        uint32_t *count, lsmFlag_t flags)
+{
+    return _list_initiators(c, initArray, count, flags, NULL);
 }
 
 static int list_volumes(lsmPluginPtr c, lsmVolumePtr **vols,
@@ -948,7 +987,14 @@ static int access_group_delete( lsmPluginPtr c,
     if( !r ) {
         rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_ACCESS_GROUP,
                                     "access group not found");
+    } else {
+        g_hash_table_remove(pd->group_grant, id);
     }
+
+    if( !g_hash_table_size(pd->access_groups) ) {
+        assert( g_hash_table_size(pd->group_grant ) == 0);
+    }
+
     return rc;
 }
 
@@ -1281,6 +1327,209 @@ int static volume_dependency_rm(lsmPluginPtr c,
     }
 }
 
+static void str_concat( char *dest, size_t d_len,
+                        const char *str1, const char *str2)
+{
+	if( dest && d_len && str1 && str2 ) {
+        strncpy(dest, str1, d_len);
+        strncat(dest, str2,  d_len - strlen(str1) - 1);
+	}
+}
+
+
+static int initiator_grant(lsmPluginPtr c, const char *initiator_id,
+                                        lsmInitiatorType initiator_type,
+                                        lsmVolumePtr volume,
+                                        lsmAccessType access,
+                                        char **job,
+                                        lsmFlag_t flags)
+{
+    int rc = LSM_ERR_OK;
+    lsmAccessGroupPtr ag = NULL;
+    char name[1024];
+
+    str_concat(name, sizeof(name), initiator_id, lsmVolumeIdGet(volume));
+
+    rc = access_group_create(c, name, initiator_id, initiator_type,
+                        lsmVolumeSystemIdGet(volume), &ag, flags);
+    if( LSM_ERR_OK == rc ) {
+        rc = access_group_grant(c, ag, volume, access, job, flags);
+
+        if( LSM_ERR_OK != rc && LSM_ERR_JOB_STARTED != rc ) {
+            /* If we didn't succeed, remove the access group */
+            access_group_delete(c, ag, job, flags);
+            free(*job);
+        }
+        lsmAccessGroupRecordFree(ag);
+    }
+    return rc;
+}
+
+
+static lsmAccessGroupPtr get_access_group( lsmPluginPtr c, char *group_name,
+                                            int *found)
+{
+    lsmAccessGroupPtr ag = NULL;
+    lsmAccessGroupPtr *groups = NULL;
+    uint32_t count = 0;
+
+    int rc = access_group_list(c, &groups, &count, LSM_FLAG_RSVD);
+
+    if( LSM_ERR_OK == rc ) {
+        uint32_t i;
+        for( i = 0; i < count; ++i ) {
+            if( strcmp(lsmAccessGroupNameGet(groups[i]), group_name) == 0 ) {
+                ag = lsmAccessGroupRecordCopy(groups[i]);
+                *found = 1;
+                break;
+            }
+        }
+        lsmAccessGroupRecordFreeArray(groups, count);
+    }
+    return ag;
+}
+
+
+static int initiator_revoke(lsmPluginPtr c, lsmInitiatorPtr init,
+                                        lsmVolumePtr volume, char **job,
+                                        lsmFlag_t flags)
+{
+    int rc = 0;
+    char name[1024];
+
+
+    str_concat(name, sizeof(name), lsmInitiatorIdGet(init),
+                lsmVolumeIdGet(volume));
+
+    int found = 0;
+    lsmAccessGroupPtr ag = get_access_group(c, name, &found);
+
+    if( found && ag ) {
+        rc = access_group_delete(c, ag, job, flags);
+    } else {
+        if( found && !ag) {
+            rc = LSM_ERR_NO_MEMORY;
+        } else {
+            rc = LSM_ERR_NOT_FOUND_INITIATOR;
+        }
+    }
+
+    lsmAccessGroupRecordFree(ag);
+
+    return rc;
+}
+
+
+
+static int initiators_granted_to_vol(lsmPluginPtr c,
+                                        lsmVolumePtr volume,
+                                        lsmInitiatorPtr **initArray,
+                                        uint32_t *count, lsmFlag_t flags)
+{
+    return _list_initiators(c, initArray, count, flags, volume);
+}
+
+static int _initiator_in_ag(struct plugin_data *pd, lsmAccessGroupPtr ag,
+                            const char *init_id)
+{
+    lsmStringListPtr initiators = lsmAccessGroupInitiatorIdGet(ag);
+    if( initiators ) {
+        uint32_t count = lsmStringListSize(initiators);
+        uint32_t i = 0;
+
+        for ( i = 0; i < count; ++i ) {
+            if( strcmp(lsmStringListGetElem(initiators, i), init_id) == 0 ) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+static int vol_accessible_by_init(lsmPluginPtr c,
+                                    lsmInitiatorPtr initiator,
+                                    lsmVolumePtr **volumes,
+                                    uint32_t *count, lsmFlag_t flags)
+{
+    int rc = LSM_ERR_OK;
+    GHashTableIter iter;
+    char *key = NULL;
+    struct allocated_ag *val = NULL;
+    struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
+    const char *search = lsmInitiatorIdGet(initiator);
+    GHashTable *tmp_vols = g_hash_table_new_full(g_str_hash, g_str_equal, NULL,
+                                                    NULL);
+
+    if( tmp_vols ) {
+
+        /*
+         * Walk through each access group, if the initiator is present in the
+         * group then add all the volumes that are accessible from that group
+         * to a list.  Once we are done, then allocate and fill out the volume
+         * objects to return
+         */
+        g_hash_table_iter_init (&iter, pd->access_groups);
+
+        while (g_hash_table_iter_next (&iter, (gpointer) &key,
+                                                        (gpointer)&val) ) {
+            if( _initiator_in_ag(pd, val->ag, search) ) {
+                GHashTable *v = NULL;
+
+
+                v = (GHashTable *)g_hash_table_lookup( pd->group_grant,
+                                                lsmAccessGroupIdGet(val->ag));
+
+                if( v ) {
+                    GHashTableIter iter_vol;
+                    char *vk = NULL;
+                    lsmAccessType *vv = NULL;
+
+                    g_hash_table_iter_init (&iter_vol, v);
+
+                    while( g_hash_table_iter_next(&iter_vol, (gpointer)&vk,
+                                                    (gpointer)&vv) ) {
+                        g_hash_table_insert(tmp_vols, vk, vk);
+                    }
+                }
+            }
+        }
+
+        *count = g_hash_table_size(tmp_vols);
+        if( *count ) {
+            *volumes = lsmVolumeRecordAllocArray( *count );
+            if( *volumes ) {
+                /* Walk through each volume and see if we should include it*/
+                uint32_t i = 0;
+                uint32_t alloc_count = 0;
+                for( i = 0; i < pd->num_volumes; ++i ) {
+                    lsmVolumePtr tv = pd->volume[i].v;
+
+                    if( g_hash_table_lookup(tmp_vols, lsmVolumeIdGet(tv))) {
+                        (*volumes)[alloc_count] = lsmVolumeRecordCopy(tv);
+                        if( !(*volumes)[alloc_count] ) {
+                            rc = LSM_ERR_NO_MEMORY;
+                            lsmVolumeRecordFreeArray(*volumes, alloc_count);
+                            *count = 0;
+                            *volumes = NULL;
+                        } else {
+                            alloc_count += 1;
+                        }
+                    }
+                }
+            } else {
+                *count = 0;
+                rc = LSM_ERR_NO_MEMORY;
+            }
+        }
+
+        g_hash_table_destroy(tmp_vols);
+    } else {
+        rc = LSM_ERR_NO_MEMORY;
+    }
+
+    return rc;
+}
+
 static struct lsmSanOps sanOps = {
     list_initiators,
     list_volumes,
@@ -1292,6 +1541,9 @@ static struct lsmSanOps sanOps = {
     volume_delete,
     volume_online_offline,
     volume_online_offline,
+    initiator_grant,
+    initiator_revoke,
+    initiators_granted_to_vol,
     access_group_list,
     access_group_create,
     access_group_delete,
@@ -1300,6 +1552,7 @@ static struct lsmSanOps sanOps = {
     access_group_grant,
     access_group_revoke,
     vol_accessible_by_ag,
+    vol_accessible_by_init,
     ag_granted_to_volume,
     volume_dependency,
     volume_dependency_rm

@@ -328,19 +328,22 @@ extern "C" {
 
     /**
      * Access control for allowing an initiator to use a volume.
-     * Note: An access group will be created automatically with one initiator in it.
      * @param[in] conn                  Valid connection @see lsmConnectUserPass
-     * @param[in] initiator             Initiator to grant access to volume
+     * @param[in] initiator_id          Initiator to grant access to volume
+     * @param[in] initiator_type        Type of initiator we are adding
      * @param[in] volume                Volume to allow access to
      * @param[in] access                Type of access
-     * @param[out] job                  Indicates job id
+     * @parma[out] job                  Job id when method is async.
      * @param[in] flags                 Reserved for future use, must be zero.
-     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. , else error code
+     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. ,
+     *          else error code
      */
-    int LSM_DLL_EXPORT lsmAccessGrant(lsmConnectPtr conn,
-                                        lsmInitiatorPtr initiator,
+    int LSM_DLL_EXPORT lsmInitiatorGrant(lsmConnectPtr conn,
+                                        const char *initiator_id,
+                                        lsmInitiatorType initiator_type,
                                         lsmVolumePtr volume,
-                                        lsmAccessType access, char **job,
+                                        lsmAccessType access,
+                                        char **job,
                                         lsmFlag_t flags);
 
     /**
@@ -348,12 +351,16 @@ extern "C" {
      * @param[in] conn          Valid connection
      * @param[in] initiator     Valid initiator
      * @param[in] volume        Valid volume
+     * @param[out] job          Job id for async
      * @param[in] flags         Reserved for future use, must be zero.
-     * @return LSM_ERR_OK, LSM_ERR_NO_MAPPING else error reason.
+     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. ,
+     *          else error code
      */
-    int LSM_DLL_EXPORT lsmAccessRevoke(lsmConnectPtr conn,
+    int LSM_DLL_EXPORT lsmInitiatorRevoke(lsmConnectPtr conn,
                                         lsmInitiatorPtr initiator,
-                                        lsmVolumePtr volume, lsmFlag_t flags);
+                                        lsmVolumePtr volume,
+                                        char **job,
+                                        lsmFlag_t flags);
 
     /**
      * Retrieves a list of access groups.
@@ -459,6 +466,36 @@ extern "C" {
                                             lsmAccessGroupPtr group,
                                             lsmVolumePtr volume, char **job,
                                             lsmFlag_t flags);
+
+    /**
+     * Returns an array of volumes that are accessible by the initiator.
+     * @param[in] conn                  Valid connection
+     * @param[in] initiator             Valid initiator pointer
+     * @param[out]volumes               An array of lsmVolumePtr
+     * @param[out]count                 Number of elements in array
+     * @param[in] flags                     Reserved for future use, must be zero.
+     * @return LSM_ERR_OK on success, else error reason.
+     */
+    int LSM_DLL_EXPORT lsmVolumesAccessibleByInitiator(lsmConnectPtr conn,
+                                        lsmInitiatorPtr initiator,
+                                        lsmVolumePtr **volumes,
+                                        uint32_t *count, lsmFlag_t flags);
+
+
+    /**
+     * Returns an array of initiators that have access to a volume.
+     * @param[in] conn                  Valid connection
+     * @param[in] volume                Volume to interrogate
+     * @param[out] initiators           An array of lsmInitiatorPtr
+     * @param[out] count                Number of elements in array
+     * @param[in] flags                 Reserved for future use, must be zero
+      * @return LSM_ERR_OK on success, else error reason.
+     */
+    int LSM_DLL_EXPORT lsmInitiatorsGrantedToVolume(lsmConnectPtr conn,
+                                                lsmVolumePtr volume,
+                                                lsmInitiatorPtr **initiators,
+                                                uint32_t *count,
+                                                lsmFlag_t flags);
 
     /**
      * Returns those volumes that the specified group has access to.

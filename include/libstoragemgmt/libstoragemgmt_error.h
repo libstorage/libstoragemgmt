@@ -93,6 +93,7 @@ typedef enum {
     LSM_ERR_NOT_FOUND_SS = 204,         /**< Specified snap shot not found */
     LSM_ERR_NOT_FOUND_VOLUME = 205,     /**< Specified volume not found */
     LSM_ERR_NOT_FOUND_NFS_EXPORT = 206, /**< NFS export not found */
+    LSM_ERR_NOT_FOUND_INITIATOR = 207,  /**< Initiator not found */
 
     LSM_ERR_NOT_IMPLEMENTED = 225,      /**< Feature not implemented */
     LSM_ERR_NOT_LICENSED = 226,         /**< Need license for feature */

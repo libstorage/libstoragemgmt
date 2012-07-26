@@ -497,6 +497,22 @@ static int capabilities(lsmPluginPtr p, Value &params, Value &response)
     return rc;
 }
 
+static void get_initiators(int rc, lsmInitiatorPtr *inits, uint32_t count,
+                            Value &resp) {
+
+    if( LSM_ERR_OK == rc ) {
+        std::vector<Value> result;
+
+        for( uint32_t i = 0; i < count; ++i ) {
+            result.push_back(initiatorToValue(inits[i]));
+        }
+
+        lsmInitiatorRecordFreeArray(inits, count);
+        inits = NULL;
+        resp = Value(result);
+    }
+}
+
 static int handle_initiators(lsmPluginPtr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
@@ -504,27 +520,32 @@ static int handle_initiators(lsmPluginPtr p, Value &params, Value &response)
     if( p && p->sanOps && p->sanOps->init_get ) {
         lsmInitiatorPtr *inits = NULL;
         uint32_t count = 0;
-        rc = p->sanOps->init_get(p, &inits, &count,
-                                        LSM_FLAG_GET_VALUE(params));
 
         if( LSM_FLAG_EXPECTED_TYPE(params) ) {
-
-            if( LSM_ERR_OK == rc ) {
-                std::vector<Value> result;
-
-                for( uint32_t i = 0; i < count; ++i ) {
-                    result.push_back(initiatorToValue(inits[i]));
-                }
-
-                lsmInitiatorRecordFreeArray(inits, count);
-                inits = NULL;
-                response = Value(result);
-            }
+            rc = p->sanOps->init_get(p, &inits, &count,
+                                        LSM_FLAG_GET_VALUE(params));
+            get_initiators(rc, inits, count, response);
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;
         }
     }
     return rc;
+}
+
+static void get_volumes(int rc, lsmVolumePtr *vols, uint32_t count,
+                        Value &response)
+{
+    if( LSM_ERR_OK == rc ) {
+        std::vector<Value> result;
+
+        for( uint32_t i = 0; i < count; ++i ) {
+            result.push_back(volumeToValue(vols[i]));
+        }
+
+        lsmVolumeRecordFreeArray(vols, count);
+        vols = NULL;
+        response = Value(result);
+    }
 }
 
 static int handle_volumes(lsmPluginPtr p, Value &params, Value &response)
@@ -540,17 +561,7 @@ static int handle_volumes(lsmPluginPtr p, Value &params, Value &response)
             rc = p->sanOps->vol_get(p, &vols, &count,
                                         LSM_FLAG_GET_VALUE(params));
 
-            if( LSM_ERR_OK == rc ) {
-                std::vector<Value> result;
-
-                for( uint32_t i = 0; i < count; ++i ) {
-                    result.push_back(volumeToValue(vols[i]));
-                }
-
-                lsmVolumeRecordFreeArray(vols, count);
-                vols = NULL;
-                response = Value(result);
-            }
+            get_volumes(rc, vols, count, response);
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;
         }
@@ -1950,6 +1961,146 @@ static int export_remove(lsmPluginPtr p, Value &params, Value &response)
     return rc;
 }
 
+static int initiator_grant(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+
+    if( p && p->sanOps && p->sanOps->initiator_grant ) {
+        Value v_init_id = params["initiator_id"];
+        Value v_init_type = params["initiator_type"];
+        Value v_vol = params["volume"];
+        Value v_access = params["access"];
+
+        if( Value::string_t == v_init_id.valueType() &&
+            Value::numeric_t == v_init_type.valueType() &&
+            Value::object_t == v_vol.valueType() &&
+            Value::numeric_t == v_access.valueType() &&
+            LSM_FLAG_EXPECTED_TYPE(params) ) {
+
+            const char *init_id = v_init_id.asC_str();
+            lsmInitiatorType i_type = (lsmInitiatorType)v_init_type.asInt32_t();
+            lsmVolumePtr vol = valueToVolume(v_vol);
+            lsmAccessType access = (lsmAccessType)v_access.asInt32_t();
+            lsmFlag_t flags = LSM_FLAG_GET_VALUE(params);
+
+            char *job = NULL;
+
+            if( vol ) {
+                rc = p->sanOps->initiator_grant(p, init_id, i_type, vol, access,
+                                                &job, flags);
+
+                if( LSM_ERR_JOB_STARTED == rc ) {
+                    response = Value(job);
+                    free(job);
+                }
+
+                lsmVolumeRecordFree(vol);
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
+        } else {
+            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+        }
+    }
+    return rc;
+}
+
+static int init_granted_to_volume(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+
+    if( p && p->sanOps && p->sanOps->initiators_granted_to_vol ) {
+        Value v_vol = params["volume"];
+
+        if( Value::object_t == v_vol.valueType() &&
+            LSM_FLAG_EXPECTED_TYPE(params) ) {
+            lsmInitiatorPtr *inits = NULL;
+            uint32_t count = 0;
+
+            lsmVolumePtr vol = valueToVolume(v_vol);
+            lsmFlag_t flags = LSM_FLAG_GET_VALUE(params);
+
+            if( vol ) {
+                rc = p->sanOps->initiators_granted_to_vol(p, vol, &inits,
+                                                            &count, flags);
+                get_initiators(rc, inits, count, response);
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
+        } else {
+            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+        }
+    }
+    return rc;
+}
+
+static int initiator_revoke(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    if( p && p->sanOps && p->sanOps->initiator_revoke ) {
+        Value v_init = params["initiator"];
+        Value v_vol = params["volume"];
+
+        if( Value::object_t == v_init.valueType() &&
+            Value::object_t == v_vol.valueType() &&
+            LSM_FLAG_EXPECTED_TYPE(params) ) {
+
+            lsmInitiatorPtr init = valueToInitiator(v_init);
+            lsmVolumePtr vol = valueToVolume(v_vol);
+            lsmFlag_t flags = LSM_FLAG_GET_VALUE(params);
+            char *job = NULL;
+
+            if( init && vol ) {
+                rc = p->sanOps->initiator_revoke(p, init, vol, &job, flags);
+
+                if( LSM_ERR_JOB_STARTED == rc ) {
+                    response = Value(job);
+                    free(job);
+                }
+
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
+
+            lsmInitiatorRecordFree(init);
+            lsmVolumeRecordFree(vol);
+
+        } else {
+            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+        }
+    }
+    return rc;
+}
+
+static int vol_accessible_by_init(lsmPluginPtr p, Value &params, Value &response)
+{
+   int rc = LSM_ERR_NO_SUPPORT;
+
+    if( p && p->sanOps && p->sanOps->vol_accessible_by_init ) {
+        Value v_init = params["initiator"];
+
+        if( Value::object_t == v_init.valueType() &&
+            LSM_FLAG_EXPECTED_TYPE(params) ) {
+            lsmVolumePtr *vols = NULL;
+            uint32_t count = 0;
+
+            lsmInitiatorPtr init = valueToInitiator(v_init);
+            lsmFlag_t flags = LSM_FLAG_GET_VALUE(params);
+
+            if( init ) {
+                rc = p->sanOps->vol_accessible_by_init(p, init, &vols, &count,
+                                                        flags);
+                get_volumes(rc, vols, count, response);
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
+        } else {
+            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+        }
+    }
+    return rc;
+}
+
 /**
  * map of function pointers
  */
@@ -1981,6 +2132,9 @@ static std::map<std::string,handler> dispatch = static_map<std::string,handler>
     ("fs_snapshots", ss_list)
     ("get_time_out", handle_get_time_out)
     ("initiators", handle_initiators)
+    ("initiator_grant", initiator_grant)
+    ("initiators_granted_to_volume", init_granted_to_volume)
+    ("initiator_revoke", initiator_revoke)
     ("job_free", handle_job_free)
     ("job_status", handle_job_status)
     ("pools", handle_pools)
@@ -1998,6 +2152,7 @@ static std::map<std::string,handler> dispatch = static_map<std::string,handler>
     ("volume_replicate_range", handle_volume_replicate_range)
     ("volume_resize", handle_volume_resize)
     ("volumes_accessible_by_access_group", vol_accessible_by_ag)
+    ("volumes_accessible_by_initiator", vol_accessible_by_init)
     ("volumes", handle_volumes);
 
 static int process_request(lsmPluginPtr p, const std::string &method, Value &request,

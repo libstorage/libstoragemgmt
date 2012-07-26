@@ -425,6 +425,32 @@ int lsmPoolList(lsmConnectPtr c, lsmPoolPtr **poolArray,
     return rc;
 }
 
+static int get_initiator_array(int rc, Value &response,
+                                lsmInitiatorPtr **initiators, uint32_t *count)
+{
+    if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+        std::vector<Value> inits = response.asArray();
+
+        *count = inits.size();
+
+        if( inits.size() ) {
+
+            *initiators = lsmInitiatorRecordAllocArray(inits.size());
+
+            if( *initiators ) {
+
+
+                for( size_t i = 0; i < inits.size(); ++i ) {
+                    (*initiators)[i] = valueToInitiator(inits[i]);
+                }
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
+        }
+    }
+    return rc;
+}
+
 int lsmInitiatorList(lsmConnectPtr c, lsmInitiatorPtr **initiators,
                                 uint32_t *count, lsmFlag_t flags)
 {
@@ -441,21 +467,32 @@ int lsmInitiatorList(lsmConnectPtr c, lsmInitiatorPtr **initiators,
     Value response;
 
     int rc = rpc(c, "initiators", parameters, response);
+    return get_initiator_array(rc, response, initiators, count);
+}
+
+static int get_volume_array(int rc, Value response,
+                            lsmVolumePtr **volumes, uint32_t *count)
+{
     if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
-        std::vector<Value> inits = response.asArray();
+        std::vector<Value> vol = response.asArray();
 
-        *count = inits.size();
+        *count = vol.size();
 
-        if( inits.size() ) {
-            *initiators = lsmInitiatorRecordAllocArray(inits.size());
+        if( vol.size() ) {
+            *volumes = lsmVolumeRecordAllocArray(vol.size());
 
-            for( size_t i = 0; i < inits.size(); ++i ) {
-                (*initiators)[i] = valueToInitiator(inits[i]);
+            if( *volumes ){
+                for( size_t i = 0; i < vol.size(); ++i ) {
+                    (*volumes)[i] = valueToVolume(vol[i]);
+                }
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
             }
         }
     }
     return rc;
 }
+
 
 int lsmVolumeList(lsmConnectPtr c, lsmVolumePtr **volumes, uint32_t *count,
                     lsmFlag_t flags)
@@ -473,20 +510,7 @@ int lsmVolumeList(lsmConnectPtr c, lsmVolumePtr **volumes, uint32_t *count,
     Value response;
 
     int rc = rpc(c, "volumes", parameters, response);
-    if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
-        std::vector<Value> vol = response.asArray();
-
-        *count = vol.size();
-
-        if( vol.size() ) {
-            *volumes = lsmVolumeRecordAllocArray(vol.size());
-
-            for( size_t i = 0; i < vol.size(); ++i ) {
-                (*volumes)[i] = valueToVolume(vol[i]);
-            }
-        }
-    }
-    return rc;
+    return get_volume_array(rc, response, volumes, count);
 }
 
 typedef void* (*convert)(Value &v);
@@ -721,6 +745,140 @@ int lsmVolumeStatus(lsmConnectPtr conn, lsmVolumePtr volume,
 {
     return LSM_ERR_NO_SUPPORT;
 }
+
+int lsmInitiatorGrant(lsmConnectPtr c,
+                    const char *initiator_id,
+                    lsmInitiatorType initiator_type,
+                    lsmVolumePtr volume,
+                    lsmAccessType access,
+                    char **job,
+                    lsmFlag_t flags)
+{
+    CONN_SETUP(c);
+
+    if( !LSM_IS_VOL(volume)){
+        return LSM_ERR_INVALID_VOL;
+    }
+
+    if( CHECK_STR(initiator_id) || LSM_FLAG_UNUSED_CHECK(flags) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["initiator_id"] = Value(initiator_id);
+    p["initiator_type"] = Value((int32_t)initiator_type);
+    p["volume"] = volumeToValue(volume);
+    p["access"] = Value((int32_t)access);
+    p["flags"] = Value(flags);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "initiator_grant", parameters, response);
+
+    if( LSM_ERR_OK == rc ) {
+        //We get a value back, either null or job id.
+        if( Value::string_t == response.valueType() ) {
+            *job = strdup(response.asString().c_str());
+
+            if( *job ) {
+                rc = LSM_ERR_JOB_STARTED;
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
+        }
+    }
+    return rc;
+}
+
+int lsmInitiatorRevoke( lsmConnectPtr c, lsmInitiatorPtr i, lsmVolumePtr v,
+                        char **job, lsmFlag_t flags)
+{
+    CONN_SETUP(c);
+
+    if(!LSM_IS_INIT(i)) {
+        return LSM_ERR_INVALID_INIT;
+    }
+
+    if( !LSM_IS_VOL(v) || LSM_FLAG_UNUSED_CHECK(flags) ) {
+        return LSM_ERR_INVALID_VOL;
+    }
+
+    std::map<std::string, Value> p;
+    p["initiator"] = initiatorToValue(i);
+    p["volume"] = volumeToValue(v);
+    p["flags"] = Value(flags);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "initiator_revoke", parameters, response);
+
+     if( LSM_ERR_OK == rc ) {
+        //We get a value back, either null or job id.
+        if( Value::string_t == response.valueType() ) {
+            *job = strdup(response.asString().c_str());
+
+            if( *job ) {
+                rc = LSM_ERR_JOB_STARTED;
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
+        }
+    }
+    return rc;
+}
+
+int lsmVolumesAccessibleByInitiator(lsmConnectPtr c,
+                                        lsmInitiatorPtr initiator,
+                                        lsmVolumePtr **volumes,
+                                        uint32_t *count, lsmFlag_t flags)
+{
+    CONN_SETUP(c);
+
+    if( !LSM_IS_INIT(initiator) ){
+        return LSM_ERR_INVALID_INIT;
+    }
+
+    if( CHECK_RP(volumes) || !count || LSM_FLAG_UNUSED_CHECK(flags) ){
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+
+    std::map<std::string, Value> p;
+    p["initiator"] = initiatorToValue(initiator);
+    p["flags"] = Value(flags);
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "volumes_accessible_by_initiator", parameters, response);
+    return get_volume_array(rc, response, volumes, count);
+}
+
+int lsmInitiatorsGrantedToVolume(lsmConnectPtr c, lsmVolumePtr volume,
+                                lsmInitiatorPtr **initiators, uint32_t *count,
+                                lsmFlag_t flags)
+{
+    CONN_SETUP(c);
+
+    if( !LSM_IS_VOL(volume) ) {
+        return LSM_ERR_INVALID_VOL;
+    }
+
+    if( CHECK_RP(initiators) || !count || LSM_FLAG_UNUSED_CHECK(flags)) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["volume"] = volumeToValue(volume);
+    p["flags"] = Value(flags);
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "initiators_granted_to_volume", parameters, response);
+    return get_initiator_array(rc, response, initiators, count);
+}
+
 
 static int online_offline(lsmConnectPtr c, lsmVolumePtr v,
                             const char* operation, lsmFlag_t flags)

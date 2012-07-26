@@ -96,7 +96,7 @@ uint32_t LSM_DLL_EXPORT lsmVolumeOpStatusGet(lsmVolumePtr v);
  * @param v     Volume ptr.
  * @return System id.
  */
-char LSM_DLL_EXPORT *lsmVolumeGetSystemIdGet( lsmVolumePtr v );
+char LSM_DLL_EXPORT *lsmVolumeSystemIdGet( lsmVolumePtr v );
 
 #ifdef  __cplusplus
 }

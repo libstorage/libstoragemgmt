@@ -836,7 +836,7 @@ uint32_t lsmVolumeOpStatusGet(lsmVolumePtr v)
     MEMBER_GET(v, LSM_IS_VOL, status, 0);
 }
 
-char LSM_DLL_EXPORT *lsmVolumeGetSystemIdGet( lsmVolumePtr v)
+char LSM_DLL_EXPORT *lsmVolumeSystemIdGet( lsmVolumePtr v)
 {
     MEMBER_GET(v, LSM_IS_VOL, system_id, NULL);
 }

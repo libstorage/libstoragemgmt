@@ -1571,6 +1571,115 @@ START_TEST(test_capabilities)
 }
 END_TEST
 
+static int get_init(lsmConnectPtr c, const char *init_id, lsmInitiatorPtr *found) {
+    lsmInitiatorPtr *inits = NULL;
+    uint32_t count = 0;
+    int rc = lsmInitiatorList(c, &inits, &count, LSM_FLAG_RSVD);
+
+    fail_unless(LSM_ERR_OK == rc );
+
+    if( LSM_ERR_OK == rc ) {
+        uint32_t i = 0;
+        for(i = 0; i < count; ++i ) {
+            if( strcmp(lsmInitiatorIdGet(inits[i]), init_id) == 0 ) {
+                *found = lsmInitiatorRecordCopy(inits[i]);
+                if( !*found ) {
+                    rc = LSM_ERR_NO_MEMORY;
+                }
+                break;
+            }
+        }
+    }
+
+    lsmInitiatorRecordFreeArray(inits, count);
+
+    return rc;
+}
+
+
+
+START_TEST(test_initiator_methods)
+{
+    fail_unless(c != NULL);
+
+    lsmPoolPtr test_pool = getTestPool(c);
+    lsmVolumePtr nv = NULL;
+    char *job = NULL;
+    int rc = 0;
+
+
+    rc = lsmVolumeCreate(c, test_pool, "initiator_mapping_test", 40 *1024*1024,
+                        LSM_PROVISION_DEFAULT, &nv, &job, LSM_FLAG_RSVD);
+
+    if( LSM_ERR_JOB_STARTED == rc ) {
+        nv = wait_for_job_vol(c, &job);
+    } else {
+        fail_unless(LSM_ERR_OK == rc );
+    }
+
+    rc = lsmInitiatorGrant(c, ISCSI_HOST[0], LSM_INITIATOR_ISCSI, nv,
+                            LSM_VOLUME_ACCESS_READ_WRITE, &job, LSM_FLAG_RSVD);
+
+    if( LSM_ERR_JOB_STARTED == rc ) {
+        wait_for_job(c, &job);
+    } else {
+        fail_unless(LSM_ERR_OK == rc, "rc = %d", rc);
+    }
+
+    lsmInitiatorPtr initiator = NULL;
+
+    rc = get_init(c, ISCSI_HOST[0], &initiator);
+
+    fail_unless(LSM_ERR_OK == rc, "rc = %d", rc);
+
+
+    lsmVolumePtr *volumes = NULL;
+    uint32_t count = 0;
+    rc = lsmVolumesAccessibleByInitiator(c, initiator, &volumes, &count, LSM_FLAG_RSVD);
+
+    fail_unless( LSM_ERR_OK == rc );
+
+    if( LSM_ERR_OK == rc ) {
+        fail_unless(count == 1, "count = %d", count);
+        if( count == 1 ) {
+            fail_unless( strcmp(lsmVolumeIdGet(volumes[0]), lsmVolumeIdGet(nv)) == 0);
+        }
+
+        lsmVolumeRecordFreeArray(volumes, count);
+    }
+
+    lsmInitiatorPtr *initiators = NULL;
+    count = 0;
+    rc = lsmInitiatorsGrantedToVolume(c, nv, &initiators, &count, LSM_FLAG_RSVD);
+    fail_unless(LSM_ERR_OK == rc, "rc = %d", rc);
+
+    if( LSM_ERR_OK == rc ) {
+        fail_unless( count == 1, "count = %d", count);
+        if( count == 1 ) {
+            fail_unless( strcmp(lsmInitiatorIdGet(initiators[0]),
+                            lsmInitiatorIdGet(initiator)) == 0);
+        }
+
+        lsmInitiatorRecordFreeArray(initiators, count);
+    }
+
+    if( LSM_ERR_OK == rc ) {
+        rc = lsmInitiatorRevoke(c, initiator, nv, &job, LSM_FLAG_RSVD);
+
+        if( LSM_ERR_JOB_STARTED == rc ) {
+            wait_for_job(c, &job);
+        } else {
+            fail_unless(LSM_ERR_OK == rc, "rc = %d", rc);
+        }
+
+        lsmInitiatorRecordFree(initiator);
+    }
+
+    lsmVolumeRecordFree(nv);
+    lsmPoolRecordFree(test_pool);
+}
+END_TEST
+
 Suite * lsm_suite(void)
 {
     Suite *s = suite_create("libStorageMgmt");
@@ -1578,6 +1687,7 @@ Suite * lsm_suite(void)
     TCase *basic = tcase_create("Basic");
     tcase_add_checked_fixture (basic, setup, teardown);
 
+    tcase_add_test(basic, test_initiator_methods);
     tcase_add_test(basic, test_capabilities);
     tcase_add_test(basic, test_smoke_test);
     tcase_add_test(basic, test_access_groups);
@@ -1587,7 +1697,6 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_ss);
     tcase_add_test(basic, test_nfs_exports);
     tcase_add_test(basic, test_invalid_input);
-
 
     suite_add_tcase(s, basic);
     return s;

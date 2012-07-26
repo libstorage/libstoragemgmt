@@ -123,12 +123,6 @@ typedef int (*lsmPlugVolumeResize)(lsmPluginPtr c, lsmVolumePtr volume,
 typedef int (*lsmPlugVolumeDelete)(lsmPluginPtr c, lsmVolumePtr volume,
                                     char **job, lsmFlag_t flags);
 
-typedef int (*lsmPlugCreateInit)(lsmPluginPtr c, const char *name,
-                                    const char *id, lsmInitiatorType type,
-                                    lsmInitiatorPtr *init, lsmFlag_t flags);
-
-typedef int (*lsmPlugInitDelete)(lsmPluginPtr c, lsmInitiatorPtr init, lsmFlag_t flags);
-
 typedef int (*lsmPlugAccessGrant)(lsmPluginPtr c, lsmInitiatorPtr i, lsmVolumePtr v,
                         lsmAccessType access, char **job, lsmFlag_t flags);
 
@@ -139,6 +133,22 @@ typedef int (*lsmPlugVolumeStatus)(lsmPluginPtr c, lsmVolumePtr v,
 
 typedef int (*lsmPlugVolumeOnline)(lsmPluginPtr c, lsmVolumePtr v, lsmFlag_t flags);
 typedef int (*lsmPlugVolumeOffline)(lsmPluginPtr c, lsmVolumePtr v, lsmFlag_t flags);
+
+typedef int (*lsmPlugInitiatorGrant)(lsmPluginPtr c, const char *initiator_id,
+                                        lsmInitiatorType initiator_type,
+                                        lsmVolumePtr volume,
+                                        lsmAccessType access,
+                                        char **job,
+                                        lsmFlag_t flags);
+
+typedef int (*lsmPlugInitiatorRevoke)(lsmPluginPtr c, lsmInitiatorPtr init,
+                                        lsmVolumePtr volume, char **job,
+                                        lsmFlag_t flags);
+
+typedef int (*lsmPlugInitiatorsGrantedToVolume)(lsmPluginPtr c,
+                                        lsmVolumePtr volume,
+                                        lsmInitiatorPtr **initArray,
+                                        uint32_t *count, lsmFlag_t flags);
 
 typedef int (*lsmPlugAccessGroupList)(lsmPluginPtr c,
                                         lsmAccessGroupPtr **groups,
@@ -175,6 +185,11 @@ typedef int (*lsmPlugAccessGroupRevoke)(lsmPluginPtr c,
 
 typedef int (*lsmPlugVolumesAccessibleByAccessGroup)(lsmPluginPtr c,
                                                         lsmAccessGroupPtr group,
+                                                        lsmVolumePtr **volumes,
+                                                        uint32_t *count, lsmFlag_t flags);
+
+typedef int (*lsmPlugVolumesAccessibleByInitiator)(lsmPluginPtr c,
+                                                        lsmInitiatorPtr initiator,
                                                         lsmVolumePtr **volumes,
                                                         uint32_t *count, lsmFlag_t flags);
 
@@ -273,6 +288,9 @@ struct lsmSanOps {
     lsmPlugVolumeDelete vol_delete;     /**< Callback for deleting a volume */
     lsmPlugVolumeOnline vol_online;     /**< Callback for bringing volume online */
     lsmPlugVolumeOffline vol_offline;   /**< Callback for bringing volume offline */
+    lsmPlugInitiatorGrant initiator_grant;      /**< Callback for granting access */
+    lsmPlugInitiatorRevoke initiator_revoke;    /**< Callback for revoking access */
+    lsmPlugInitiatorsGrantedToVolume initiators_granted_to_vol;
     lsmPlugAccessGroupList ag_list;     /**< Callback for access groups */
     lsmPlugAccessGroupCreate ag_create; /**< Callback for access group create */
     lsmPlugAccessGroupDel ag_delete;    /**< Callback for access group delete */
@@ -281,6 +299,7 @@ struct lsmSanOps {
     lsmPlugAccessGroupGrant ag_grant;
     lsmPlugAccessGroupRevoke ag_revoke;
     lsmPlugVolumesAccessibleByAccessGroup vol_accessible_by_ag;
+    lsmPlugVolumesAccessibleByInitiator vol_accessible_by_init;
     lsmPlugAccessGroupsGrantedToVolume ag_granted_to_vol;
     lsmPlugVolumeChildDependency vol_child_depends;
     lsmPlugVolumeChildDependencyRm vol_child_depends_rm;

@@ -217,7 +217,7 @@ class Client(INetworkAttachedStorage):
     # @param    initiator_type  Enumerated initiator type
     # @param    access          Enumerated access type
     # @param    flags           Reserved for future use, must be zero
-    # @returns  None on success, else exception
+    # @returns  None on success, else job id.
     def initiator_grant(self, initiator_id, initiator_type, volume, access,
                         flags = 0):
         """
@@ -230,7 +230,7 @@ class Client(INetworkAttachedStorage):
     # @param    initiator       The iqn, WWID etc.
     # @param    volume          The volume to revoke access for
     # @param    flags           Reserved for future use, must be zero
-    # @returns  None on success, else exception
+    # @return None on success, else job id
     def initiator_revoke(self, initiator, volume, flags = 0):
         """
         Revokes access to a volume for the specified initiator
