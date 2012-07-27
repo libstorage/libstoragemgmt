@@ -212,6 +212,14 @@ class IStorageAreaNetwork(IPlugin):
         pass
 
     @abstractmethod
+    def iscsi_chap_auth_inbound( self, initiator, user, password, flags = 0 ):
+        """
+        Register a user/password for the specified initiator for CHAP
+        authentication.
+        """
+        pass
+
+    @abstractmethod
     def initiator_grant(self, initiator_id, initiator_type, volume, access, flags = 0):
         """
         Allows an initiator to access a volume.

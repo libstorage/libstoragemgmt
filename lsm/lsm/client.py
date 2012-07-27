@@ -211,6 +211,21 @@ class Client(INetworkAttachedStorage):
         """
         return self.tp.rpc('initiators', del_self(locals()))
 
+    ## Register a user/password for the specified initiator for CHAP
+    #  authentication.
+    # @param    self        The this pointer
+    # @param    initiator   The initiator object
+    # @param    user        User for CHAP
+    # @param    password    Password used for CHAP
+    # @param    flags   Reserved for future use, must be zero.
+    # @returns None on success, throws LsmError on errors.
+    def iscsi_chap_auth_inbound( self, initiator, user, password, flags = 0):
+        """
+        Register a user/password for the specified initiator for CHAP
+        authentication.
+        """
+        return self.tp.rpc('iscsi_chap_auth_inbound', del_self(locals()))
+
     ## Grants access so an initiator can read/write the specified volume.
     # @param    self            The this pointer
     # @param    initiator_id    The iqn, WWID etc.

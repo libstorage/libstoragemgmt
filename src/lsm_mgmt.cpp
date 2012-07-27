@@ -746,6 +746,34 @@ int lsmVolumeStatus(lsmConnectPtr conn, lsmVolumePtr volume,
     return LSM_ERR_NO_SUPPORT;
 }
 
+int lsmISCSIChapAuthInbound(lsmConnectPtr c, lsmInitiatorPtr initiator,
+                                const char *username, const char *password,
+                                lsmFlag_t flags)
+{
+    CONN_SETUP(c);
+
+    if( !LSM_IS_INIT(initiator) ) {
+        return LSM_ERR_INVALID_INIT;
+    }
+
+    if( CHECK_STR(username) || CHECK_STR(password) ||
+                LSM_FLAG_UNUSED_CHECK(flags) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["initiator"] = initiatorToValue(initiator);
+    p["user"] = Value(username);
+    p["password"] = Value(password);
+    p["flags"] = Value(flags);
+
+
+    Value parameters(p);
+    Value response;
+
+    return rpc(c, "iscsi_chap_auth_inbound", parameters, response);
+}
+
 int lsmInitiatorGrant(lsmConnectPtr c,
                     const char *initiator_id,
                     lsmInitiatorType initiator_type,

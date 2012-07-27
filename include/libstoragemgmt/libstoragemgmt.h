@@ -327,6 +327,21 @@ extern "C" {
                                         lsmVolumePtr volume, lsmFlag_t flags);
 
     /**
+     * Set the username/password for CHAP authentication.
+     * @param conn                      Valid connection pointer
+     * @param initiator                 Valid initiator pointer
+     * @param username                  Username
+     * @param password                  Password
+     * @param flags                     Reserved for future use, must be zero.
+     * @return LSM_ERR_OK on success, else error code.
+     */
+    int LSM_DLL_EXPORT lsmISCSIChapAuthInbound(lsmConnectPtr conn,
+                                                    lsmInitiatorPtr initiator,
+                                                    const char *username,
+                                                    const char *password,
+                                                    lsmFlag_t flags);
+
+    /**
      * Access control for allowing an initiator to use a volume.
      * @param[in] conn                  Valid connection @see lsmConnectUserPass
      * @param[in] initiator_id          Initiator to grant access to volume

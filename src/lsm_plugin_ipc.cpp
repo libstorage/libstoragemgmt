@@ -2072,6 +2072,37 @@ static int initiator_revoke(lsmPluginPtr p, Value &params, Value &response)
     return rc;
 }
 
+static int iscsi_chap_inbound(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+
+    if( p && p->sanOps && p->sanOps->iscsi_chap_auth_inbound ) {
+        Value v_init = params["initiator"];
+        Value v_user = params["user"];
+        Value v_password = params["password"];
+
+        if( Value::object_t == v_init.valueType() &&
+            Value::string_t == v_user.valueType() &&
+            Value::string_t == v_password.valueType() &&
+            LSM_FLAG_EXPECTED_TYPE(params) ) {
+
+            lsmInitiatorPtr init = valueToInitiator(v_init);
+            if( init ) {
+                rc = p->sanOps->iscsi_chap_auth_inbound(p, init,
+                                                    v_user.asC_str(),
+                                                    v_password.asC_str(),
+                                                    LSM_FLAG_GET_VALUE(params));
+                lsmInitiatorRecordFree(init);
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
+        } else {
+            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+        }
+    }
+    return rc;
+}
+
 static int vol_accessible_by_init(lsmPluginPtr p, Value &params, Value &response)
 {
    int rc = LSM_ERR_NO_SUPPORT;
@@ -2135,6 +2166,7 @@ static std::map<std::string,handler> dispatch = static_map<std::string,handler>
     ("initiator_grant", initiator_grant)
     ("initiators_granted_to_volume", init_granted_to_volume)
     ("initiator_revoke", initiator_revoke)
+    ("iscsi_chap_auth_inbound", iscsi_chap_inbound)
     ("job_free", handle_job_free)
     ("job_status", handle_job_status)
     ("pools", handle_pools)

@@ -1680,6 +1680,44 @@ START_TEST(test_initiator_methods)
 }
 END_TEST
 
+START_TEST(test_iscsi_auth_in)
+{
+    lsmAccessGroupPtr group = NULL;
+    char *job = NULL;
+
+    int rc = lsmAccessGroupCreate(c, "ISCSI_AUTH", ISCSI_HOST[0],
+                    LSM_INITIATOR_ISCSI, SYSTEM_ID, &group, LSM_FLAG_RSVD);
+
+    fail_unless(LSM_ERR_OK == rc, "rc = %d");
+
+    if( LSM_ERR_OK == rc ) {
+        lsmInitiatorPtr *inits = NULL;
+        uint32_t init_count = 0;
+
+         rc = lsmInitiatorList(c, &inits, &init_count, LSM_FLAG_RSVD );
+         fail_unless(LSM_ERR_OK == rc );
+
+         if( LSM_ERR_OK == rc && init_count ) {
+             rc = lsmISCSIChapAuthInbound(c, inits[0], "username", "secret",
+                                            LSM_FLAG_RSVD);
+
+             fail_unless(LSM_ERR_OK == rc, "rc = %d", rc) ;
+         }
+
+         rc = lsmAccessGroupDel(c, group, &job, LSM_FLAG_RSVD);
+
+         if(LSM_ERR_JOB_STARTED == rc ) {
+             wait_for_job(c, &job);
+         } else {
+             fail_unless(LSM_ERR_OK == rc );
+         }
+
+         lsmAccessGroupRecordFree(group);
+         group = NULL;
+    }
+}
+END_TEST
+
 Suite * lsm_suite(void)
 {
     Suite *s = suite_create("libStorageMgmt");
@@ -1687,6 +1725,7 @@ Suite * lsm_suite(void)
     TCase *basic = tcase_create("Basic");
     tcase_add_checked_fixture (basic, setup, teardown);
 
+    tcase_add_test(basic, test_iscsi_auth_in);
     tcase_add_test(basic, test_initiator_methods);
     tcase_add_test(basic, test_capabilities);
     tcase_add_test(basic, test_smoke_test);

@@ -1429,6 +1429,13 @@ static int initiators_granted_to_vol(lsmPluginPtr c,
     return _list_initiators(c, initArray, count, flags, volume);
 }
 
+static int iscsi_chap_auth_in(lsmPluginPtr c, lsmInitiatorPtr initiator,
+                                const char *username, const char *password,
+                                lsmFlag_t flags)
+{
+    return LSM_ERR_NOT_IMPLEMENTED;
+}
+
 static int _initiator_in_ag(struct plugin_data *pd, lsmAccessGroupPtr ag,
                             const char *init_id)
 {
@@ -1544,6 +1551,7 @@ static struct lsmSanOps sanOps = {
     initiator_grant,
     initiator_revoke,
     initiators_granted_to_vol,
+    iscsi_chap_auth_in,
     access_group_list,
     access_group_create,
     access_group_delete,

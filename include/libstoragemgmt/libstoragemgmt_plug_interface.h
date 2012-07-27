@@ -150,6 +150,12 @@ typedef int (*lsmPlugInitiatorsGrantedToVolume)(lsmPluginPtr c,
                                         lsmInitiatorPtr **initArray,
                                         uint32_t *count, lsmFlag_t flags);
 
+typedef int (*lsmPlugIscsiChapAuthInbound)(lsmPluginPtr c,
+                                                lsmInitiatorPtr initiator,
+                                                const char *username,
+                                                const char *password,
+                                                lsmFlag_t flags);
+
 typedef int (*lsmPlugAccessGroupList)(lsmPluginPtr c,
                                         lsmAccessGroupPtr **groups,
                                         uint32_t *groupCount, lsmFlag_t flags);
@@ -291,6 +297,7 @@ struct lsmSanOps {
     lsmPlugInitiatorGrant initiator_grant;      /**< Callback for granting access */
     lsmPlugInitiatorRevoke initiator_revoke;    /**< Callback for revoking access */
     lsmPlugInitiatorsGrantedToVolume initiators_granted_to_vol;
+    lsmPlugIscsiChapAuthInbound iscsi_chap_auth_inbound;
     lsmPlugAccessGroupList ag_list;     /**< Callback for access groups */
     lsmPlugAccessGroupCreate ag_create; /**< Callback for access group create */
     lsmPlugAccessGroupDel ag_delete;    /**< Callback for access group delete */
