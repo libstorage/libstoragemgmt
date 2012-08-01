@@ -20,7 +20,7 @@
 from lsm.iplugin import IStorageAreaNetwork
 from lsm.pluginrunner import PluginRunner
 import sys
-from lsm.data import (Pool, Volume, System, Capabilities)
+from lsm.data import (Pool, Volume, System, Capabilities, Initiator)
 from lsm.common import ( LsmError, ErrorNumber)
 import urllib2
 import json
@@ -150,16 +150,54 @@ class TargetdStorage(IStorageAreaNetwork):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
     def initiator_grant(self, initiator_id, initiator_type, volume, access, flags = 0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+        if initiator_type != Initiator.TYPE_ISCSI:
+            raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+        # find lowest unused lun and use that
+        used_luns = [x['lun'] for x in self._jsonrequest("export_list")]
+        lun = 0
+        while True:
+            if lun in used_luns:
+                lun += 1
+            else:
+                break
+
+        self._jsonrequest("export_create",
+                          dict(pool=volume.pool.name, vol=volume.name,
+                               initiator_wwn=initiator_id, lun=lun))
 
     def initiator_revoke(self, initiator, volume, flags = 0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+        self._jsonrequest("export_destroy",
+                          dict(pool=volume.pool.name, vol=volume.name,
+                               initiator_wwn=initiator_id))
 
     def volumes_accessible_by_initiator(self, initiator, flags = 0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+        exports = [x for x in self._jsonrequest("export_list")
+                     if initiator.id == x['initiator_wwn']]
+        volumes = self.volumes()
 
-    def initiators_granted_to_volume(self, volume , flags = 0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+        ret = []
+        for export in exports:
+            for volume in volumes:
+                if export['vol'] == volume.name \
+                        and export['pool'] == volume.pool.name:
+                    ret.append(volume)
+                    break
+
+        return ret
+
+    def initiators_granted_to_volume(self, volume, flags = 0):
+        exports = [x for x in self._jsonrequest("export_list")
+                   if volume.name == x['vol']
+                   if volume.pool.name == x['pool']
+                   ]
+
+        ret = []
+        for export in exports:
+            name = export['initiator_name']
+            ret.append(Initiator(name, Initiator.TYPE_ISCSI, name))
+
+        return ret
 
     def volume_child_dependency(self, volume, flags = 0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
