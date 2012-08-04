@@ -2,12 +2,13 @@
 #	       
 # chkconfig: 2345 99 1
 ### BEGIN INIT INFO
-# Provides: libstoragmgmtd
-# Required-Start: $local_fs
-# Required-Stop: $local_fs
+# Provides: libstoragemgmtd
+# Required-Start: $remote_fs $local_fs
+# Required-Stop: $remote_fs $local_fs
 # Default-Start: 2 3 4 5
 # Default-Stop: 0 1 6
 # Short-Description: libStorageMgmt plug-in daemon
+# Description: libStorageMgmt plug-in daemon
 ### END INIT INFO
 
 . /etc/init.d/functions
@@ -24,6 +25,11 @@ if [ "`id -u`" != 0 ] ; then
 	echo "Not root"
 	exit 4
 fi
+
+check_dirs() {
+	test -d /var/run/lsm || mkdir -p /var/run/lsm/ipc
+	test -d /var/run/lsm/ipc || mkdir -p /var/run/lsm/ipc
+}
 
 status_lsm() {
 	status -p $PID $NAME > /dev/null 2>&1
@@ -43,6 +49,7 @@ result() {
 case "$1" in
   start)
 	status_lsm
+	check_dirs
 
 	echo -n "Starting $NAME daemon:		"
 
@@ -73,8 +80,9 @@ case "$1" in
 
 	result
 	;;
-  reload)
+  force-reload | reload)
 	status_lsm
+	check_dirs
 	echo -n $"Reloading $NAME daemon: "
 	if [ $STATUS == 0 ] ; then
 		killproc -p $PID $NAME -HUP
@@ -88,6 +96,7 @@ case "$1" in
 	;;
   restart)
 	status_lsm
+	check_dirs
 	echo -n $"Restarting $NAME daemon: "	
 	if [ $STATUS == 0 ] ; then
 		$PROG --operation restart	
