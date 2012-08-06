@@ -1858,12 +1858,12 @@ static int exports(lsmPluginPtr p, Value &params, Value &response)
     return rc;
 }
 
-static uint64_t get_uid_gid(Value &id)
+static int64_t get_uid_gid(Value &id)
 {
     if( Value::null_t == id.valueType() ) {
         return ANON_UID_GID_NA;
     } else {
-        return id.asUint64_t();
+        return id.asInt64_t();
     }
 }
 
@@ -1907,8 +1907,8 @@ static int export_fs(lsmPluginPtr p, Value &params, Value &response)
                 const char *options = v_options.asC_str();
                 lsmNfsExportPtr exported = NULL;
 
-                uint64_t anon_uid = get_uid_gid(v_anon_uid);
-                uint64_t anon_gid = get_uid_gid(v_anon_gid);
+                int64_t anon_uid = get_uid_gid(v_anon_uid);
+                int64_t anon_gid = get_uid_gid(v_anon_gid);
 
                 rc = p->nasOps->nfs_export(p, fs_id, export_path, root_list,
                                             rw_list, ro_list, anon_uid,

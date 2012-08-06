@@ -27,7 +27,7 @@
 extern "C" {
 #endif
 
-#define ANON_UID_GID_NA     UINT64_MAX
+#define ANON_UID_GID_NA     -1
 #define ANON_UID_GID_ERROR (ANON_UID_GID_NA - 1)
 
 /**

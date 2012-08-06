@@ -249,7 +249,7 @@ class Snapshot(IData):
         self.ts = int(ts)
 
 class NfsExport(IData):
-    ANON_UID_GID_NA = 18446744073709551615
+    ANON_UID_GID_NA = -1
     ANON_UID_GID_ERROR = (ANON_UID_GID_NA - 1)
 
     def __init__(self, id, fs_id, export_path, auth, root, rw, ro, anonuid,
