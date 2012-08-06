@@ -339,6 +339,7 @@ class Capabilities(IData):
     VOLUME_INITIATOR_GRANT                  = 50
     VOLUME_INITIATOR_REVOKE                 = 51
     VOLUME_ACCESSIBLE_BY_INITIATOR          = 52
+    VOLUME_ISCSI_CHAP_AUTHENTICATION        = 53
 
     #File system
     FS                                      = 100

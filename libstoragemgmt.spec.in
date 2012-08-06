@@ -9,7 +9,7 @@ Source0:        http://sourceforge.net/projects/libstoragemgmt/files/Alpha/libst
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  yajl-devel libxml2-devel tog-pegasus-devel pywbem check-devel glib2-devel
-Requires:       pywbem
+Requires:       pywbem m2crypto
 
 %if 0%{?fedora}
 BuildRequires:  systemd-units

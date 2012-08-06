@@ -213,6 +213,8 @@ class Client(INetworkAttachedStorage):
 
     ## Register a user/password for the specified initiator for CHAP
     #  authentication.
+    # Note: If you pass an empty user and password the expected behavior is to
+    #       remove any authentication for the specified initiator.
     # @param    self        The this pointer
     # @param    initiator   The initiator object
     # @param    user        User for CHAP

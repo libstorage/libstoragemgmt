@@ -166,6 +166,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         cap.set(Capabilities.VOLUME_DELETE)
         cap.set(Capabilities.VOLUME_ONLINE)
         cap.set(Capabilities.VOLUME_OFFLINE)
+        cap.set(Capabilities.VOLUME_ISCSI_CHAP_AUTHENTICATION)
         cap.set(Capabilities.ACCESS_GROUP_GRANT)
         cap.set(Capabilities.ACCESS_GROUP_REVOKE)
         cap.set(Capabilities.ACCESS_GROUP_LIST)
@@ -442,6 +443,10 @@ class Ontap(IStorageAreaNetwork, INfs):
     def access_groups_granted_to_volume(self, volume, flags = 0):
         groups = self.f.lun_map_list_info(volume.name)
         return [self._access_group(g) for g in groups]
+
+    @handle_ontap_errors
+    def iscsi_chap_auth_inbound( self, initiator, user, password, flags = 0 ):
+        self.f.iscsi_initiator_add_auth(initiator.id, user, password)
 
     @handle_ontap_errors
     def initiator_grant(self, initiator_id, initiator_type, volume, access,

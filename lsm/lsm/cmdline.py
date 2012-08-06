@@ -371,6 +371,13 @@ class CmdLine:
                                               "--dest_start <destination block start>\n"
                                               "--count <number of blocks to replicate>")
 
+        commands.add_option( '', '--iscsi-chap', action="store", type="string",
+            metavar='<initiator id>',
+            dest=_c("iscsi-chap"), help='configures ISCSI inbound CHAP authentication\n'
+                                          'requires:\n'
+                                          '--username <chap user name>\n'
+                                          '--password <chap password>')
+
         commands.add_option( '', '--access-grant', action="store", type="string",
             metavar='<initiator id>',
             dest=_c("access-grant"), help='grants access to an initiator to a volume\n'
@@ -559,6 +566,15 @@ class CmdLine:
         command_args.add_option( '', '--count', action="append", type="int",
             metavar="<block count>", default=None, dest=_o("count"),
             help="number of blocks to replicate")
+
+        command_args.add_option('', '--username', action="store", type="string",
+            metavar = "<username>", default=None,
+            dest=_o("username"), help="user name")
+
+        command_args.add_option('', '--password', action="store", type="string",
+            metavar = "<password>", default=None,
+            dest=_o("password"), help="password")
+
 
         parser.add_option_group(command_args)
 
@@ -853,6 +869,13 @@ class CmdLine:
         else:
             raise ArgError("volume with id= %s not found!" % self.cmd_value)
 
+    def iscsi_chap(self):
+        init = self._get_item(self.c.initiators(), self.cmd_value)
+        if init:
+            self.c.iscsi_chap_auth_inbound(init, self.options.opt_username,
+                                                    self.options.opt_password)
+        else:
+            raise ArgError("initiator with id= %s not found" %self.cmd_value)
 
     def volume_access_group(self):
         vol = self._get_item(self.c.volumes(), self.cmd_value)
@@ -1037,6 +1060,7 @@ class CmdLine:
             self._cp("VOLUME_OFFLINE", cap.get(Capabilities.VOLUME_OFFLINE))
             self._cp("VOLUME_INITIATOR_GRANT", cap.get(Capabilities.VOLUME_INITIATOR_GRANT))
             self._cp("VOLUME_INITIATOR_REVOKE", cap.get(Capabilities.VOLUME_INITIATOR_REVOKE))
+            self._cp("VOLUME_ISCSI_CHAP_AUTHENTICATION", cap.get(Capabilities.VOLUME_ISCSI_CHAP_AUTHENTICATION))
             self._cp("ACCESS_GROUP_GRANT", cap.get(Capabilities.ACCESS_GROUP_GRANT))
             self._cp("ACCESS_GROUP_REVOKE", cap.get(Capabilities.ACCESS_GROUP_REVOKE))
             self._cp("ACCESS_GROUP_LIST", cap.get(Capabilities.ACCESS_GROUP_LIST))
@@ -1434,6 +1458,9 @@ class CmdLine:
 
                        'initiators-granted-volume': {'options': [],
                                                'method': self.init_granted_volume},
+
+                       'iscsi-chap': {'options': ['username', 'password'],
+                                            'method': self.iscsi_chap},
 
                        'create-ss': {'options': ['fs'],
                                      'method': self.create_ss},

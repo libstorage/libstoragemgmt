@@ -19,6 +19,8 @@ import urllib2
 from xml.etree import ElementTree
 import time
 from external.xmltodict import ConvertXmlToDict
+from M2Crypto import RC4
+from binascii import hexlify
 
 #Set to an appropriate directory and file to dump the raw response.
 from lsm.common import ErrorNumber, LsmError
@@ -412,6 +414,25 @@ class Filer(object):
 
     def igroup_delete(self, name):
         self._invoke('igroup-destroy', {'initiator-group-name':name})
+
+    @staticmethod
+    def encode(password):
+        rc4 = RC4.RC4()
+        rc4.set_key("#u82fyi8S5\017pPemw")
+        return hexlify(rc4.update(password))
+
+    def iscsi_initiator_add_auth(self, initiator, user_name, password ):
+        pw = self.encode(password)
+
+        args = {'initiator': initiator }
+
+        if user_name and len(user_name) and password and len(password):
+            args.update({'user-name':user_name,
+                'password': pw, 'auth-type':"CHAP"})
+        else:
+            args.update({'initiator': initiator, 'auth-type':"none" })
+
+        self._invoke('iscsi-initiator-add-auth', args)
 
     def igroup_add_initiator(self, ig, initiator):
         self._invoke('igroup-add', {'initiator-group-name':ig, 'initiator':initiator} )

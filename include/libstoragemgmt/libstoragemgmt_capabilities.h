@@ -65,12 +65,20 @@ typedef enum {
     LSM_CAP_ACCESS_GROUP_DELETE                     = 40,
     LSM_CAP_ACCESS_GROUP_ADD_INITIATOR              = 41,
     LSM_CAP_ACCESS_GROUP_DEL_INITIATOR              = 42,
+
     LSM_CAP_VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP      = 43,
     LSM_CAP_ACCESS_GROUPS_GRANTED_TO_VOLUME         = 44,
+
     LSM_CAP_VOLUME_CHILD_DEPENDENCY                 = 45,
     LSM_CAP_VOLUME_CHILD_DEPENDENCY_RM              = 46,
 
     LSM_CAP_INITIATORS                              = 47,
+    LSM_CAP_INITIATORS_GRANTED_TO_VOLUME            = 48,
+
+    LSM_CAP_VOLUME_INITIATOR_GRANT                  = 50,
+    LSM_CAP_VOLUME_INITIATOR_REVOKE                 = 51,
+    LSM_CAP_VOLUME_ACCESSIBLE_BY_INITIATOR          = 52,
+    LSM_CAP_VOLUME_ISCSI_CHAP_AUTHENTICATION        = 53,
 
     LSM_CAP_FS                                      = 100,
     LSM_CAP_FS_DELETE                               = 101,
