@@ -126,6 +126,7 @@ class Filer(object):
     Note: These are using lsm terminology.
     """
     ENOSPC = 28                     #Out of space
+    EINVALID_ISCSI_NAME = 9006      #Invalid ISCSI IQN
     ENO_SUCH_VOLUME = 9017          #lun not found
     ESIZE_TOO_LARGE = 9034          #Specified too large a size
     ENO_SUCH_FS = 9036              #FS not found
