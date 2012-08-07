@@ -95,7 +95,9 @@ class Ontap(IStorageAreaNetwork, INfs):
         self.f = na.Filer(u.hostname, u.username, password, ssl)
         #Smoke test
         i = self.f.system_info()
-        self.sys_info = System(i['system-id'], i['system-name'])
+        #TODO Get real filer status
+        self.sys_info = System(i['system-id'], i['system-name'],
+                                System.STATUS_OK)
         return self.f.validate()
 
     def set_time_out(self, ms, flags = 0):

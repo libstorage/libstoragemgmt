@@ -170,6 +170,17 @@ typedef enum {
 #define LSM_VOLUME_OP_STATUS_DORMANT    0x10    /**< Volume is inactive or quiesced */
 
 /**
+ * Different states a system status can be in.
+ * Bit field, can be in multiple states at the same time.
+ */
+#define LSM_SYSTEM_STATUS_UNKNOWN               0x00000000
+#define LSM_SYSTEM_STATUS_OK                    0x00000001
+#define LSM_SYSTEM_STATUS_DEGRADED              0x00000002
+#define LSM_SYSTEM_STATUS_ERROR                 0x00000004
+#define LSM_SYSTEM_STATUS_PREDICTIVE_FAILURE    0x00000008
+#define LSM_SYSTEM_STATUS_VENDOR_SPECIFIC       0x00000010
+
+/**
  * Different types of initiator IDs
  */
 typedef enum {

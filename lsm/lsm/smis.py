@@ -92,6 +92,28 @@ class Smis(IStorageAreaNetwork):
     (VOL_OP_STATUS_OK, VOL_OP_STATUS_DEGRADED, VOL_OP_STATUS_ERR, VOL_OP_STATUS_STARTING,
      VOL_OP_STATUS_DORMANT) = (2,3,6,8,15)
 
+    #SMI-S CIM_ComputerSystem OperationalStatus for system
+    class SystemOperationalStatus(object):
+        UNKNOWN = 0
+        OTHER = 1
+        OK = 2
+        DEGRADED = 3
+        STRESSED = 4
+        PREDICTIVE_FAILURE = 5
+        ERROR = 6
+        NON_RECOVERABLE_ERROR = 7
+        STARTING = 8
+        STOPPING = 9
+        STOPPED = 10
+        IN_SERVICE = 11
+        NO_CONTACT = 12
+        LOST_COMMUNICATION = 13
+        ABORTED = 14
+        DORMANT = 15
+        SUPPORTING_ENTITY_IN_ERROR = 16
+        COMPLETED = 17
+        POWER_MODE = 18
+
     #SMI-S ExposePaths device access enumerations
     (EXPOSE_PATHS_DA_READ_WRITE,EXPOSE_PATHS_DA_READ_ONLY) = (2,3)
 
@@ -556,7 +578,22 @@ class Smis(IStorageAreaNetwork):
 
     def _new_system(self, s):
         #In the case of systems we are assuming that the System Name is unique.
-        return System(s['Name'], s['ElementName'])
+        status = System.STATUS_UNKNOWN
+
+        if 'OperationalStatus' in s:
+            for os in s['OperationalStatus']:
+                if os == Smis.SystemOperationalStatus.OK:
+                    status |= System.STATUS_OK
+                elif os == Smis.SystemOperationalStatus.DEGRADED:
+                    status |= System.STATUS_DEGRADED
+                elif os ==  Smis.SystemOperationalStatus.ERROR or \
+                            Smis.SystemOperationalStatus.STRESSED or \
+                            Smis.SystemOperationalStatus.NON_RECOVERABLE_ERROR:
+                    status |= System.STATUS_ERROR
+                elif os == Smis.SystemOperationalStatus.PREDICTIVE_FAILURE:
+                    status |= System.STATUS_PREDICTIVE_FAILURE
+
+        return System(s['Name'], s['ElementName'], status)
 
     @handle_cim_errors
     def systems(self, flags = 0):

@@ -508,7 +508,8 @@ lsmSystemPtr LSM_DLL_EXPORT *lsmSystemRecordAllocArray( uint32_t size );
  * @return  Allocated memory or NULL on error.
  */
 lsmSystemPtr LSM_DLL_EXPORT lsmSystemRecordAlloc( const char *id,
-                                                  const char *name );
+                                                  const char *name,
+                                                  uint32_t status );
 
 /**
  * Allocates storage for AccessGroup array

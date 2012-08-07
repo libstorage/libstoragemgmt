@@ -30,7 +30,7 @@ const char SYSTEM_ID[] = "sim-01";
 const char *ISCSI_HOST[2] = {   "iqn.1994-05.com.domain:01.89bd01",
                                 "iqn.1994-05.com.domain:01.89bd02" };
 
-#define POLL_SLEEP 300000
+#define POLL_SLEEP 3000
 
 lsmConnectPtr c = NULL;
 
@@ -837,6 +837,7 @@ START_TEST(test_systems)
     lsmSystemPtr *sys=NULL;
     const char *id = NULL;
     const char *name = NULL;
+    uint32_t status = 0;
 
     fail_unless(c!=NULL);
 
@@ -852,6 +853,9 @@ START_TEST(test_systems)
     name = lsmSystemNameGet(sys[0]);
     fail_unless(name != NULL);
     fail_unless(strcmp(name, SYSTEM_NAME) == 0);
+
+    status = lsmSystemStatusGet(sys[0]);
+    fail_unless(status == LSM_SYSTEM_STATUS_OK, "status = %x", status);
 
     lsmSystemRecordFreeArray(sys, count);
 }

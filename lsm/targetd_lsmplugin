@@ -60,7 +60,8 @@ class TargetdStorage(IStorageAreaNetwork):
         return cap
 
     def systems(self, flags = 0):
-        return System("targetd", "targetd storage appliance"),
+        return System("targetd", "targetd storage appliance",
+                        System.STATUS_UNKNOWN),
 
     def job_status(self, job_id, flags = 0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
@@ -169,7 +170,7 @@ class TargetdStorage(IStorageAreaNetwork):
     def initiator_revoke(self, initiator, volume, flags = 0):
         self._jsonrequest("export_destroy",
                           dict(pool=volume.pool.name, vol=volume.name,
-                               initiator_wwn=initiator_id))
+                               initiator_wwn=initiator.id))
 
     def volumes_accessible_by_initiator(self, initiator, flags = 0):
         exports = [x for x in self._jsonrequest("export_list")

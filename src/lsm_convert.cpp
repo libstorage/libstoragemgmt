@@ -128,7 +128,8 @@ lsmSystem *valueToSystem(Value &system)
     if (isExpectedObject(system, "System")) {
         std::map<std::string, Value> i = system.asObject();
         rc = lsmSystemRecordAlloc(  i["id"].asString().c_str(),
-                                    i["name"].asString().c_str());
+                                    i["name"].asString().c_str(),
+                                    i["status"].asUint32_t());
     }
     return rc;
 }
@@ -140,6 +141,7 @@ Value systemToValue(lsmSystem *system)
         s["class"] = Value("System");
         s["id"] = Value(system->id);
         s["name"] = Value(system->name);
+        s["status"] = Value(system->status);
         return Value(s);
     }
     return Value();

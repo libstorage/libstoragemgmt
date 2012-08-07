@@ -675,13 +675,15 @@ lsmVolumePtr lsmVolumeRecordAlloc(const char *id, const char *name,
 
 CREATE_ALLOC_ARRAY_FUNC(lsmSystemRecordAllocArray, lsmSystemPtr)
 
-lsmSystemPtr lsmSystemRecordAlloc( const char *id, const char *name)
+lsmSystemPtr lsmSystemRecordAlloc( const char *id, const char *name,
+                                    uint32_t status)
 {
     lsmSystemPtr rc = (lsmSystemPtr)malloc(sizeof(lsmSystem));
     if (rc) {
         rc->magic = LSM_SYSTEM_MAGIC;
         rc->id = strdup(id);
         rc->name = strdup(name);
+        rc->status = status;
         if( !rc->name || !rc->id ) {
             free(rc->name);
             free(rc->id);
@@ -707,7 +709,7 @@ lsmSystemPtr lsmSystemRecordCopy(lsmSystemPtr s)
 {
     lsmSystemPtr rc = NULL;
     if( LSM_IS_SYSTEM(s) ) {
-        rc = lsmSystemRecordAlloc(s->id, s->name);
+        rc = lsmSystemRecordAlloc(s->id, s->name, s->status);
     }
     return rc;
 }
@@ -726,6 +728,14 @@ const char *lsmSystemNameGet(lsmSystemPtr s)
         return s->name;
     }
     return NULL;
+}
+
+uint32_t lsmSystemStatusGet(lsmSystemPtr s)
+{
+    if( LSM_IS_SYSTEM(s) ) {
+        return s->status;
+    }
+    return UINT32_MAX;
 }
 
 lsmVolumePtr lsmVolumeRecordCopy(lsmVolumePtr vol)

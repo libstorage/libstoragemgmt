@@ -66,6 +66,14 @@ const char LSM_DLL_EXPORT *lsmSystemIdGet(lsmSystemPtr s);
  */
 const char LSM_DLL_EXPORT *lsmSystemNameGet(lsmSystemPtr s);
 
+/**
+ * Retrieve the status for the system.
+ * @param s     System to retrieve status for
+ * @return System status which is a bit sensitive field, returns UINT32_MAX on
+ * bad system pointer.
+ */
+uint32_t lsmSystemStatusGet(lsmSystemPtr s);
+
 #ifdef  __cplusplus
 }
 #endif

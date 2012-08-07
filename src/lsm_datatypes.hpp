@@ -180,6 +180,7 @@ struct _lsmSystem {
     uint32_t magic;
     char *id;
     char *name;
+    uint32_t status;
 };
 
 #define LSM_CONNECT_MAGIC       0xAA7A000A

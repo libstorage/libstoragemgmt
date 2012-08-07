@@ -218,9 +218,15 @@ class Volume(IData):
         return self.name
 
 class System(IData):
-    def __init__(self, id, name):
+
+    (STATUS_UNKNOWN, STATUS_OK, STATUS_DEGRADED, STATUS_ERROR,
+     STATUS_PREDICTIVE_FAILURE, STATUS_VENDOR_SPECIFIC) = \
+        ( 0x0, 0x1, 0x2, 0x4, 0x8, 0x10 )
+
+    def __init__(self, id, name, status):
         self.id = id                # For SMI-S this is the CIM_ComputerSystem->Name
         self.name = name            # For SMI-S this is the CIM_ComputerSystem->ElementName
+        self.status = status        # OperationalStatus
 
 class Pool(IData):
     """

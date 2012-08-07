@@ -73,7 +73,8 @@ class SimJob(object):
 class SimState(object):
 
     def __init__(self):
-        self.sys_info = System('sim-01', 'LSM simulated storage plug-in')
+        self.sys_info = System('sim-01', 'LSM simulated storage plug-in',
+                                System.STATUS_OK)
         p1 = Pool('POO1', 'Pool 1', 2 ** 64, 2 ** 64, self.sys_info.id)
         p2 = Pool('POO2', 'Pool 2', 2 ** 64, 2 ** 64, self.sys_info.id)
         p3 = Pool('POO3', 'Pool 3', 2 ** 64, 2 ** 64, self.sys_info.id)

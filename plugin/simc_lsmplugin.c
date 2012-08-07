@@ -2108,7 +2108,8 @@ int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
 
         data->num_systems = 1;
         data->system[0] = lsmSystemRecordAlloc(sys_id,
-                                                "LSM simulated storage plug-in");
+                                                "LSM simulated storage plug-in",
+                                                LSM_SYSTEM_STATUS_OK);
 
         data->num_pools = MAX_POOLS;
         data->pool[0] = lsmPoolRecordAlloc("POOL_0", "POOL_ZERO", UINT64_MAX,

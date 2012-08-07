@@ -649,9 +649,9 @@ class CmdLine:
     # @param    systems     The array of systems
     # @return None
     def display_systems(self, systems):
-        dsp = [['ID', 'Name']]
+        dsp = [['ID', 'Name', 'Status']]
         for s in systems:
-            dsp.append([s.id, s.name])
+            dsp.append([s.id, s.name, s.status])
         self.display_table(dsp)
 
     ## Display the initiators on a storage array
