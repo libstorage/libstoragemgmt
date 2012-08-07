@@ -157,8 +157,11 @@ class Smis(IStorageAreaNetwork):
             return instances[0]
         else:
             for i in instances:
-                if i[prop_name] == prop_value:
+                if prop_name in i and i[prop_name] == prop_value:
                     return i
+
+        if no_throw_on_missing:
+            return None
 
         raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                         "Unable to find class instance " + class_name +
@@ -404,7 +407,7 @@ class Smis(IStorageAreaNetwork):
         """
         pcm = self._get_class_instance(
                                 "CIM_ProtocolControllerMaskingCapabilities",
-                                'StorageSystem_name', system.id)
+                                'StorageSystem_name', system.id, True)
 
         if pcm is None:
             pcm = self._get_class_instance(
