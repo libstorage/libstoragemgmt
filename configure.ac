@@ -95,55 +95,6 @@ dnl ==========================================================================
 PKG_CHECK_MODULES([LIBXML], [libxml-2.0])
 PKG_CHECK_MODULES([LIBGLIB], [glib-2.0 >= 2.22.5])
 
-dnl ==========================================================================
-dnl Check whether to build SMI-S C++ plugin
-dnl ==========================================================================
-
-want_smis_cpp="yes"
-AC_ARG_ENABLE([smis-cpp],
-    [AC_HELP_STRING([--disable-smis-cpp], [disable SMI-S C++ plugin build.])],
-    [want_smis_cpp=$enableval], [])
-
-if test "x${want_smis_cpp}" = "xyes"; then
-
-    # this sucks but Pegasus requires this test per system, arch, compiler
-    PEGASUS_CFLAGS=
-    case `uname` in
-        *Linux*) case `uname -m` in
-                     x86_64) PEGASUS_CFLAGS="-DPEGASUS_PLATFORM_LINUX_X86_64_GNU";;
-                     i?86)   PEGASUS_CFLAGS="-DPEGASUS_PLATFORM_LINUX_IX86_GNU";;
-                 esac
-    esac
-    if test "$PEGASUS_CFLAGS" = "" ; then
-        AC_MSG_ERROR([Unsupported platform, check see configure.ac \
-                      and Pegasus/Common/Config.h])
-    fi
-    saved_cflags=$CFLAGS
-    CFLAGS="$CFLAGS $PEGASUS_CFLAGS"
-    AC_CHECK_HEADER(Pegasus/Common/Config.h,,
-                    AC_MSG_ERROR([Pegasus development headers are missing]))
-
-    # look for pegcommon and pegclient libraries, they are C++ and this
-    # is a problem with automake, don't look for symbols !
-    saved_ldflags=$LDFLAGS
-    PEGASUS_LIBS=
-    AC_MSG_CHECKING([for Pegasus libraries])
-    LDFLAGS="${LDFLAGS} -lpegcommon -lpegclient"
-    AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <Pegasus/Common/Config.h>],
-                                    [])],
-                   [AC_MSG_RESULT(found)]
-                   [PEGASUS_LIBS="-lpegcommon -lpegclient"],
-                   [AC_MSG_ERROR([Pegasus libraries are missing])])
-
-    LDFLAGS=$saved_ldflags
-    CFLAGS=$saved_cflags
-fi
-
-AC_SUBST(PEGASUS_CFLAGS)
-AC_SUBST(PEGASUS_LIBS)
-
-AM_CONDITIONAL([BUILD_SMIS_CPP], [test "x${want_smis_cpp}" = "xyes"])
-
 want_c_unit="yes"
 AC_ARG_ENABLE([build-c-unit],
     [AC_HELP_STRING([--disable-build-c-unit], [disable building C unit test case.])],
@@ -183,7 +134,6 @@ AC_OUTPUT(libstoragemgmt.pc \
           doc/doxygen.conf \
           tools/Makefile \
           tools/lsmcli/Makefile \
-          tools/smiscli/Makefile \
           include/Makefile \
           include/libstoragemgmt/Makefile \
           include/libstoragemgmt/libstoragemgmt_version.h \

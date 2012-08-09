@@ -8,7 +8,7 @@ URL:            http://sourceforge.net/projects/libstoragemgmt/
 Source0:        http://sourceforge.net/projects/libstoragemgmt/files/Alpha/libstoragemgmt-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-BuildRequires:  yajl-devel libxml2-devel tog-pegasus-devel pywbem check-devel glib2-devel
+BuildRequires:  yajl-devel libxml2-devel pywbem check-devel m2crypto glib2-devel
 Requires:       pywbem m2crypto
 
 %if 0%{?fedora}
