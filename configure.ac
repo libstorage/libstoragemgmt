@@ -112,6 +112,7 @@ dnl ==========================================================================
 
 AM_PATH_PYTHON([2.6], [], AC_MSG_ERROR([Python interpreter 2.6 or later required]) )
 AC_PYTHON_MODULE([pywbem], [Required])
+AC_PYTHON_MODULE([M2Crypto], [Required])
 
 #Setup the unit directory for systemd stuff
 PKG_PROG_PKG_CONFIG
