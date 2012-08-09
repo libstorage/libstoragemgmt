@@ -740,12 +740,6 @@ int lsmVolumeDelete(lsmConnectPtr c, lsmVolumePtr volume, char **job,
 
 }
 
-int lsmVolumeStatus(lsmConnectPtr conn, lsmVolumePtr volume,
-                        lsmVolumeStatusType *status, lsmFlag_t flags)
-{
-    return LSM_ERR_NO_SUPPORT;
-}
-
 int lsmISCSIChapAuthInbound(lsmConnectPtr c, lsmInitiatorPtr initiator,
                                 const char *username, const char *password,
                                 lsmFlag_t flags)

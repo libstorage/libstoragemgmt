@@ -295,18 +295,6 @@ extern "C" {
                                         char **job, lsmFlag_t flags);
 
     /**
-     * Query the status of a volume
-     * @param[in] conn              Valid connection @see lsmConnectUserPass
-     * @param[in] volume            Storage volume to get status for
-     * @param[out] status           Status of the volume
-     * @param[in] flags             Reserved for future use, must be zero.
-     * @return LSM_ERR_OK on success, else error code
-     */
-    int LSM_DLL_EXPORT lsmVolumeStatus(lsmConnectPtr conn, lsmVolumePtr volume,
-                                        lsmVolumeStatusType *status,
-                                        lsmFlag_t flags);
-
-    /**
      * Set a Volume to online
      * @param[in] conn                  Valid connection @see lsmConnectUserPass
      * @param[in] volume                Volume that is to be placed online

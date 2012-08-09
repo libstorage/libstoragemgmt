@@ -1226,10 +1226,6 @@ START_TEST(test_invalid_input)
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 
-    rc = lsmVolumeStatus(c, NULL, NULL, LSM_FLAG_RSVD);
-    fail_unless(rc == LSM_ERR_NO_SUPPORT, "rc = %d", rc);
-
-
     rc = lsmVolumeOnline(c, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_VOL, "rc = %d", rc);
 
