@@ -1,5 +1,17 @@
 News for libStorageMgmt
 
+0.0.11: Aug 13 2012
+    - SMI-S fixes and improvements (WaitForCopyState, _get_class_instance)
+    - Methods for arrays that don't support access groups to grant access
+      for luns to initiators etc.
+    - ISCSI Chap authentication
+    - System level status field for overall array status
+    - targetd updates for mapping targets to initiators
+    - Simulator updates (python & C)
+    - Removed tog-pegasus dependency (SMI-S is python plug-in)
+    - Removed lsmVolumeStatus as it was implemented and redundant
+    - initscript, check for /var/run and create if missing
+
 0.0.10: July 20 2012
     - Simulator plug-in written in C, simc_lsmplugin is available
     - Numerous updates and re-name for plug-in targetd_lsmplugin
