@@ -516,7 +516,7 @@ class Smis(IStorageAreaNetwork):
         """
         Given a concrete job instance, return referenced volume as lsm volume
         """
-        associations = self._c.Associators(job.path)
+        associations = self._c.Associators(job.path, ResultClass='CIM_StorageVolume')
 
         for a in associations:
             return self._new_vol(self._c.GetInstance(a.path))
