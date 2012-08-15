@@ -16,6 +16,7 @@
 # Author: tasleson
 from string import split
 
+import time
 import pywbem
 from pywbem import CIMError
 
@@ -643,6 +644,71 @@ class Smis(IStorageAreaNetwork):
             *(self._c.InvokeMethod('CreateOrModifyElementFromStoragePool',
             scs.path, **in_params)))
 
+    def _poll(self, msg, job):
+        if job:
+            while True:
+                (s, percent, i) = self.job_status(job)
+
+                if s == JobStatus.INPROGRESS:
+                    time.sleep(0.25)
+                elif s == JobStatus.COMPLETE:
+                    self.job_free(job)
+                    return i
+                else:
+                    raise LsmError(ErrorNumber.PLUGIN_ERROR, msg +
+                                                ", job error code= " + str(s))
+
+    def _detach(self, vol, sync):
+        rs = self._get_class_instance("CIM_ReplicationService", 'SystemName',
+            vol.system_id, True)
+
+        if rs:
+            in_params = { 'Operation' : pywbem.Uint16(8),
+                          'Synchronization': sync.path }
+
+            job_id = self._pi("_detach", False,
+                *(self._c.InvokeMethod('ModifyReplicaSynchronization', rs.path,
+                                        **in_params)))[0]
+
+            self._poll("ModifyReplicaSynchronization, detach", job_id)
+
+    def _cim_name_match(self, a, b):
+        if  a['DeviceID'] == b['DeviceID'] and \
+            a['SystemName'] == b['SystemName'] and \
+            a['SystemCreationClassName'] == b['SystemCreationClassName']:
+            return True
+        else:
+            return False
+
+    def _check_volume_associations(self, vol):
+        """
+        Check a volume to see if it has any associations with other
+        volumes.
+        """
+        lun = self._get_volume(vol.id)
+
+        ss = self._c.References(lun.path,
+                                    ResultClass='CIM_StorageSynchronized')
+
+        lp = lun.path
+
+        if len(ss):
+            for s in ss:
+                #TODO: Need to see if detach is a supported operation in
+                # replication capabilities.
+                if s['SyncState'] == 6: #Synchronized
+                    if 'SyncedElement' in s:
+                        item = s['SyncedElement']
+
+                        if self._cim_name_match(item, lp):
+                            self._detach(vol, s)
+
+                    if 'SystemElement' in s:
+                        item = s['SystemElement']
+
+                        if self._cim_name_match(item, lp):
+                            self._detach(vol, s)
+
     @handle_cim_errors
     def volume_delete(self, volume, flags = 0):
         """
@@ -652,11 +718,14 @@ class Smis(IStorageAreaNetwork):
                                         'SystemName', volume.system_id)
         lun = self._get_volume(volume.id)
 
+        self._check_volume_associations(volume)
+
         in_params = { 'TheElement' : lun.path }
 
         #Delete returns None or Job number
         return self._pi("volume_delete", False,
-                        *(self._c.InvokeMethod('ReturnToStoragePool', scs.path, **in_params)))[0]
+                        *(self._c.InvokeMethod('ReturnToStoragePool', scs.path,
+                                                **in_params)))[0]
 
     @handle_cim_errors
     def volume_resize(self, volume, new_size_bytes, flags = 0):

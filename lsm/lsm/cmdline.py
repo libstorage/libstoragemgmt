@@ -1205,7 +1205,7 @@ class CmdLine:
                     return i
                 else:
                     #Something better to do here?
-                    raise ArgError(msg + " job error code= %s" % s)
+                    raise ArgError(msg + " job error code= " + str(s))
 
     ## Retrieves the status of the specified job
     # @param    self    The this pointer
