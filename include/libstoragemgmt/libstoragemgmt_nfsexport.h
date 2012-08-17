@@ -34,6 +34,7 @@ extern "C" {
  * Allocated memory for a NFS export record
  * @param id            Export ID  (Set to NULL when creating new export)
  * @param fs_id         File system ID that is exported
+ * @param export_path   The desired path for the export
  * @param auth          NFS client authentication type  (May be NULL)
  * @param root          List of hosts that have root access (May be NULL)
  * @param rw            List of hosts that have read/write access (May be NULL)

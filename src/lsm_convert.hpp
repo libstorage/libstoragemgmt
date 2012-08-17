@@ -140,8 +140,8 @@ Value blockRangeToValue(lsmBlockRange *br);
 
 /**
  * Converts a Value to an array of lsmBlockRangePtr
- * @param brl           Value representing block range(s)
- * @param[out]count     Number of items in the resulting array
+ * @param[in] brl           Value representing block range(s)
+ * @param[out] count        Number of items in the resulting array
  * @return NULL on memory allocation failure, else array of lsmBlockRangePtr
  */
 lsmBlockRangePtr *valueToBlockRangeList(Value &brl,  uint32_t *count);
@@ -177,7 +177,7 @@ lsmSs *valueToSs(Value &ss);
 
 /**
  * Converts a lsmSs pointer to a Value
- * @param fs        Snapshot pointer to convert
+ * @param ss        Snapshot pointer to convert
  * @return Value
  */
 Value ssToValue(lsmSs *ss);

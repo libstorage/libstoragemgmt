@@ -743,6 +743,7 @@ class CmdLine:
 
     ## Display the access groups for block storage
     # @param    self    The this pointer
+    # @param    ag      The access group list to display
     # @return None
     def display_access_groups(self, ag):
         dsp = [['ID', 'Name', 'Initiator ID', 'System ID']]
@@ -1538,7 +1539,7 @@ class CmdLine:
 
     ## Process the specified command
     # @param    self    The this pointer
-    # @param    client  The object instance to invoke methods on.
+    # @param    cli     The object instance to invoke methods on.
     def process(self, cli = None):
         """
         Process the parsed command.

@@ -107,6 +107,7 @@ class Client(INetworkAttachedStorage):
 
     ## Does an orderly shutdown of the plug-in
     # @param    self    The this pointer
+    # @param    flags   Reserved for future use, must be zero.
     def close(self, flags=0):
         """
         Does an orderly shutdown of the plug-in
@@ -232,6 +233,7 @@ class Client(INetworkAttachedStorage):
     # @param    self            The this pointer
     # @param    initiator_id    The iqn, WWID etc.
     # @param    initiator_type  Enumerated initiator type
+    # @param    volume          Volume to grant access to
     # @param    access          Enumerated access type
     # @param    flags           Reserved for future use, must be zero
     # @returns  None on success, else job id.
@@ -706,12 +708,13 @@ class Client(INetworkAttachedStorage):
         return self.tp.rpc('fs_snapshot_delete', del_self(locals()))
 
     ## Reverts a snapshot
-    # @param    self        The this pointer
-    # @param    fs          The file system object to revert snapthot for
-    # @param    snapshot    The snapshot file to revert back too
-    # @param    files       The specific files to revert.
-    # @param    all_files   Set to True if all files should be reverted back.
-    # @param    flags       Reserved for future use, must be zero.
+    # @param    self            The this pointer
+    # @param    fs              The file system object to revert snapthot for
+    # @param    snapshot        The snapshot file to revert back too
+    # @param    files           The specific files to revert
+    # @param    restore_files   Individual files to restore
+    # @param    all_files       Set to True if all files should be reverted back.
+    # @param    flags           Reserved for future use, must be zero.
     # @return None on success, else job id
     def fs_snapshot_revert(self, fs, snapshot, files, restore_files,
                         all_files=False, flags = 0):
@@ -732,7 +735,7 @@ class Client(INetworkAttachedStorage):
 
     ## Checks to see if a file system has child dependencies.
     # @param    fs      The file system to check
-    # @param    file    The files to check (optional)
+    # @param    files   The files to check (optional)
     # @param    flags   Reserved for future use, must be zero.
     # @returns True or False
     def fs_child_dependency(self, fs, files, flags = 0):
@@ -747,7 +750,7 @@ class Client(INetworkAttachedStorage):
     ## Removes child dependencies from a FS or specific file.
     # @param    self    The this pointer
     # @param    fs      The file system to remove child dependencies for
-    # @param    file    The list of files to remove child dependencies (optional)
+    # @param    files   The list of files to remove child dependencies (optional)
     # @param    flags   Reserved for future use, must be zero.
     # @returns None if complete, else job id.
     def fs_child_dependency_rm(self, fs, files, flags = 0):
@@ -788,7 +791,7 @@ class Client(INetworkAttachedStorage):
     # @param    self            The this pointer
     # @param    fs_id           The FS ID to export
     # @param    export_path     The export path
-    # @param    rool_list       List of hosts with root access
+    # @param    root_list       List of hosts with root access
     # @param    rw_list         List of hosts with read/write access
     # @param    ro_list         List of hosts with read only access
     # @param    anon_uid        UID to map to anonymous

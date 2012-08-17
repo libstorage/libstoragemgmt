@@ -82,7 +82,7 @@ extern "C" {
     /**
      * Check on the status of a job, no data to return on completion.
      * @param[in] conn              Valid connection
-     * @param[int] job_id           Job id
+     * @param[in] job_id            Job id
      * @param[out] status           Job Status
      * @param[out] percentComplete  Percent job complete
      * @param[in] flags             Reserved for future use, must be zero.
@@ -336,7 +336,7 @@ extern "C" {
      * @param[in] initiator_type        Type of initiator we are adding
      * @param[in] volume                Volume to allow access to
      * @param[in] access                Type of access
-     * @parma[out] job                  Job id when method is async.
+     * @param[out] job_id                  Job id when method is async.
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. ,
      *          else error code
@@ -346,7 +346,7 @@ extern "C" {
                                         lsmInitiatorType initiator_type,
                                         lsmVolumePtr volume,
                                         lsmAccessType access,
-                                        char **job,
+                                        char **job_id,
                                         lsmFlag_t flags);
 
     /**
@@ -429,7 +429,7 @@ extern "C" {
      * Removes an initiator from an access group.
      * @param[in] conn                  Valid connection @see lsmConnectUserPass
      * @param[in] group                 Group to modify
-     * @param[in] initiator             Initiator to delete from group
+     * @param[in] initiator_id          Initiator to delete from group
      * @param[out] job                  job id
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return[in] LSM_ERR_OK on success, else error reason.
@@ -474,9 +474,9 @@ extern "C" {
      * Returns an array of volumes that are accessible by the initiator.
      * @param[in] conn                  Valid connection
      * @param[in] initiator             Valid initiator pointer
-     * @param[out]volumes               An array of lsmVolumePtr
-     * @param[out]count                 Number of elements in array
-     * @param[in] flags                     Reserved for future use, must be zero.
+     * @param[out] volumes              An array of lsmVolumePtr
+     * @param[out] count                Number of elements in array
+     * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
     int LSM_DLL_EXPORT lsmVolumesAccessibleByInitiator(lsmConnectPtr conn,
@@ -658,22 +658,23 @@ extern "C" {
      * @param[in] fs                    File system to re-size
      * @param[in] new_size_bytes        New size of fs
      * @param[out] rfs                  File system information for re-sized fs
+     * @param[out] job_id               Job id for async. identification
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. ,
      * else error code
      */
     int LSM_DLL_EXPORT lsmFsResize(lsmConnectPtr conn, lsmFsPtr fs,
                                     uint64_t new_size_bytes, lsmFsPtr *rfs,
-                                    char **job, lsmFlag_t flags);
+                                    char **job_id, lsmFlag_t flags);
 
     /**
      * Clones a file on a file system.
-     * @param[in]conn                   Valid connection
-     * @param[in]fs                     File system which file resides
-     * @param[in]src_file_name          Source file relative name & path
-     * @param[in]dest_file_name         Dest. file relative name & path
-     * @param[in]snapshot               Optional backing snapshot
-     * @param[out]job                   Job id for async. operation
+     * @param[in] conn                  Valid connection
+     * @param[in] fs                    File system which file resides
+     * @param[in] src_file_name         Source file relative name & path
+     * @param[in] dest_file_name        Dest. file relative name & path
+     * @param[in] snapshot              Optional backing snapshot
+     * @param[out] job                  Job id for async. operation
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. ,
      * else error code
@@ -687,9 +688,9 @@ extern "C" {
     /**
      * Return a list of snapshots
      * @param[in] conn                  Valid connection
-     * @param[int] fs                   File system to check for snapshots
+     * @param[in] fs                    File system to check for snapshots
      * @param[out] ss                   An array of snapshot pointers
-     * @param[out] ssCount                   Number of elements in the array
+     * @param[out] ssCount              Number of elements in the array
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason
      */
@@ -771,18 +772,18 @@ extern "C" {
 
     /**
      * Creates or modifies an NFS export.
-     * @param[in]c                  Valid connection
-     * @param[in]fs_id              File system ID to export via NFS
-     * @param[in]export_path        Export path
-     * @param[in]root_list          List of hosts that have root access
-     * @param[in]rw_list            List of hosts that have read/write access
-     * @param[in]ro_list            List of hosts that have read only access
-     * @param[in]anon_uid           UID to map to anonymous
-     * @param[in]anon_gid           GID to map to anonymous
-     * @param[in]auth_type          Array specific authentication types
-     * @param[in]options            Array specific options
-     * @param[out] exported         Export record
-     * @param[in] flags             Reserved for future use, must be zero.
+     * @param[in] c                  Valid connection
+     * @param[in] fs_id              File system ID to export via NFS
+     * @param[in] export_path        Export path
+     * @param[in] root_list          List of hosts that have root access
+     * @param[in] rw_list            List of hosts that have read/write access
+     * @param[in] ro_list            List of hosts that have read only access
+     * @param[in] anon_uid           UID to map to anonymous
+     * @param[in] anon_gid           GID to map to anonymous
+     * @param[in] auth_type          Array specific authentication types
+     * @param[in] options            Array specific options
+     * @param[out]  exported         Export record
+     * @param[in]  flags             Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
     int LSM_DLL_EXPORT lsmNfsExportFs( lsmConnectPtr c,

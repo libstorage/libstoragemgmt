@@ -354,7 +354,6 @@ void LSM_DLL_EXPORT * lsmDataTypeCopy(lsmDataType t, void *item);
  * @param argv  Command line arguments
  * @param reg   Registration function
  * @param unreg Un-Registration function
- * @param flags Future flags, reserved
  * @return exit code for plug-in
  */
 int LSM_DLL_EXPORT lsmPluginInit( int argc, char *argv[], lsmPluginRegister reg,
@@ -515,8 +514,9 @@ lsmSystemPtr LSM_DLL_EXPORT *lsmSystemRecordAllocArray( uint32_t size );
 
 /**
  * Allocates the storage for one system record.
- * @param id        Id
- * @param name      System name (human readable)
+ * @param[in] id        Id
+ * @param[in] name      System name (human readable)
+ * @param[in] status    Status of the system
  * @return  Allocated memory or NULL on error.
  */
 lsmSystemPtr LSM_DLL_EXPORT lsmSystemRecordAlloc( const char *id,
@@ -597,8 +597,8 @@ int LSM_DLL_EXPORT lsmCapabilitySet(lsmStorageCapabilitiesPtr cap, lsmCapability
 /**
  * Sets 1 or more capabilities with the same value v
  * @param cap           Valid capability pointer
+ * @param v             The value to set capabilities to
  * @param number        Number of Capabilities to set
- * @param value         What capability they should be set to
  * @param ...           Which capabilites to set
  * @return LSM_ERR_OK on success, else error reason
  */
