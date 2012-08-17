@@ -92,10 +92,10 @@ void * lsmDataTypeCopy(lsmDataType t, void *item)
     return rc;
 }
 
-int lsmRegisterPlugin(lsmPluginPtr plug, const char *desc, const char *version,
+int lsmRegisterPluginV1(lsmPluginPtr plug, const char *desc, const char *version,
                         void *private_data, struct lsmMgmtOps *mgmOps,
-                        struct lsmSanOps *sanOp, struct lsmFsOps *fsOp,
-                        struct lsmNasOps *nasOp)
+                        struct lsmSanOpsV1 *sanOp, struct lsmFsOpsV1 *fsOp,
+                        struct lsmNasOpsV1 *nasOp)
 {
     int rc = LSM_ERR_OK;
 

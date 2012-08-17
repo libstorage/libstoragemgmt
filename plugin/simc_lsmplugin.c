@@ -1537,7 +1537,7 @@ static int vol_accessible_by_init(lsmPluginPtr c,
     return rc;
 }
 
-static struct lsmSanOps sanOps = {
+static struct lsmSanOpsV1 sanOps = {
     list_initiators,
     list_volumes,
     volume_create,
@@ -1926,7 +1926,7 @@ static int ss_revert(lsmPluginPtr c, lsmFsPtr fs, lsmSsPtr ss,
     return rc;
 }
 
-static struct lsmFsOps fsOps = {
+static struct lsmFsOpsV1 fsOps = {
     fs_list,
     fs_create,
     fs_delete,
@@ -2079,7 +2079,7 @@ static int nfs_export_remove( lsmPluginPtr c, lsmNfsExportPtr e,
     return rc;
 }
 
-static struct lsmNasOps nfsOps = {
+static struct lsmNasOpsV1 nfsOps = {
     nfs_auth_types,
     nfs_export_list,
     nfs_export_create,
@@ -2140,7 +2140,7 @@ int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
             !data->group_grant || !data->fs) {
             rc = LSM_ERR_NO_MEMORY;
         } else {
-            rc = lsmRegisterPlugin( c, name, version, data, &mgmOps,
+            rc = lsmRegisterPluginV1( c, name, version, data, &mgmOps,
                                     &sanOps, &fsOps, &nfsOps);
         }
     }

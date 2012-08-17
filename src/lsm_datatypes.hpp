@@ -203,9 +203,9 @@ struct LSM_DLL_LOCAL _lsmPlugin {
     lsmPluginRegister   reg;            /**< Plug-in registration */
     lsmPluginUnregister unreg;          /**< Plug-in unregistration */
     struct lsmMgmtOps    *mgmtOps;      /**< Callback for management ops */
-    struct lsmSanOps    *sanOps;        /**< Callbacks for SAN ops */
-    struct lsmNasOps    *nasOps;        /**< Callbacks for NAS ops */
-    struct lsmFsOps     *fsOps;         /**< Callbacks for fs ops */
+    struct lsmSanOpsV1    *sanOps;        /**< Callbacks for SAN ops */
+    struct lsmNasOpsV1    *nasOps;        /**< Callbacks for NAS ops */
+    struct lsmFsOpsV1     *fsOps;         /**< Callbacks for fs ops */
 };
 
 

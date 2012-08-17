@@ -283,7 +283,7 @@ typedef int (*lsmPlugNfsExportRemove)( lsmPluginPtr c, lsmNfsExportPtr e,
 /**
  * Block oriented functions
  */
-struct lsmSanOps {
+struct lsmSanOpsV1 {
     lsmPlugListInits init_get;          /**< Callback for retrieving initiators */
     lsmPlugListVolumes vol_get;         /**< Callback for retrieving volumes */
     lsmPlugVolumeCreate vol_create;     /**< Callback for creating a lun */
@@ -315,7 +315,7 @@ struct lsmSanOps {
 /**
  * File system oriented functionality
  */
-struct lsmFsOps {
+struct lsmFsOpsV1 {
     lsmPlugFsList   fs_list;
     lsmPlugFsCreate fs_create;
     lsmPlugFsDelete fs_delete;
@@ -333,7 +333,7 @@ struct lsmFsOps {
 /**
  * NAS system oriented functionality
  */
-struct lsmNasOps {
+struct lsmNasOpsV1 {
     lsmPlugNfsAuthTypes nfs_auth_types;
     lsmPlugNfsList nfs_list;
     lsmPlugNfsExportFs nfs_export;
@@ -361,11 +361,23 @@ int LSM_DLL_EXPORT lsmPluginInit( int argc, char *argv[], lsmPluginRegister reg,
                                 lsmPluginUnregister unreg);
 
 
-int LSM_DLL_EXPORT lsmRegisterPlugin( lsmPluginPtr plug, const char *desc,
+/**
+ * Used to register all the data needed for the plug-in operation.
+ * @param plug              Pointer provided by the framework
+ * @param desc              Plug-in description
+ * @param version           Plug-in version
+ * @param private_data      Private data to be used for whatever the plug-in needs
+ * @param mgmOps            Function pointers for management operations
+ * @param sanOp             Function pointers for SAN operations
+ * @param fsOp              Function pointers for file system operations
+ * @param nasOp             Function pointers for NAS operations
+ * @return LSM_ERR_OK on success, else error reason.
+ */
+int LSM_DLL_EXPORT lsmRegisterPluginV1( lsmPluginPtr plug, const char *desc,
                         const char *version,
                         void * private_data, struct lsmMgmtOps *mgmOps,
-                        struct lsmSanOps *sanOp, struct lsmFsOps *fsOp,
-                        struct lsmNasOps *nasOp );
+                        struct lsmSanOpsV1 *sanOp, struct lsmFsOpsV1 *fsOp,
+                        struct lsmNasOpsV1 *nasOp );
 
 /**
  * Used to retrieve private data for plug-in operation.
@@ -571,7 +583,6 @@ lsmSsPtr LSM_DLL_EXPORT lsmSsRecordAlloc( const char *id, const char *name,
  * @return Allocated memory, NULL on error
  */
 lsmSsPtr LSM_DLL_EXPORT *lsmSsRecordAllocArray( uint32_t size );
-
 
 /**
  * Set a capability
