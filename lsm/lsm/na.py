@@ -98,10 +98,13 @@ def netapp_filer(host, username, password, timeout, command, parameters = None,
 
         if handler.getcode() == 200:
             rc = netapp_filer_parse_response(handler.read())
-
+    except urllib2.HTTPError, he:
+        raise he
     except urllib2.URLError, e:
         if isinstance(e.reason, socket.timeout):
             raise FilerError(60, "Connection timeout")
+        else:
+            raise e
     finally:
         if handler:
             handler.close()
