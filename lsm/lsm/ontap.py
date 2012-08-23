@@ -40,7 +40,8 @@ e_map = {
     na.Filer.ESERVICENOTLICENSED:       ErrorNumber.NOT_LICENSED,
     na.Filer.ECLONE_LICENSE_EXPIRED:    ErrorNumber.NOT_LICENSED,
     na.Filer.ECLONE_NOT_LICENSED:       ErrorNumber.NOT_LICENSED,
-    na.Filer.EINVALID_ISCSI_NAME:       ErrorNumber.INVALID_IQN
+    na.Filer.EINVALID_ISCSI_NAME:       ErrorNumber.INVALID_IQN,
+    na.Filer.ETIMEOUT:                  ErrorNumber.PLUGIN_TIMEOUT
 }
 
 
@@ -72,8 +73,8 @@ def handle_ontap_errors(method):
             raise LsmError(ErrorNumber.PLUGIN_UNKNOWN_HOST, str(ce))
     return na_wrapper
 
-
 class Ontap(IStorageAreaNetwork, INfs):
+    TMO_CONV = 1000.0
 
     (LSM_VOL_PREFIX, LSM_INIT_PREFIX) = ('lsm_lun_container', 'lsm_init_')
 
@@ -87,12 +88,12 @@ class Ontap(IStorageAreaNetwork, INfs):
     def startup(self, uri, password, timeout, flags = 0):
         ssl = False
         u = urlparse.urlparse(uri)
-        self.tmo = timeout
 
         if u.scheme.lower() == 'ontap+ssl':
             ssl = True
 
-        self.f = na.Filer(u.hostname, u.username, password, ssl)
+        self.f = na.Filer(u.hostname, u.username, password,
+                            timeout/Ontap.TMO_CONV, ssl)
         #Smoke test
         i = self.f.system_info()
         #TODO Get real filer status
@@ -101,10 +102,10 @@ class Ontap(IStorageAreaNetwork, INfs):
         return self.f.validate()
 
     def set_time_out(self, ms, flags = 0):
-        self.tmo = ms
+        self.f.timeout = ms/Ontap.TMO_CONV
 
     def get_time_out(self, flags = 0):
-        return self.tmo
+        return self.f.timeout * Ontap.TMO_CONV
 
     def shutdown(self, flags = 0):
         self._jobs = None

@@ -16,6 +16,7 @@
 # Author: tasleson
 
 import urllib2
+import socket
 from xml.etree import ElementTree
 import time
 from external.xmltodict import ConvertXmlToDict
@@ -52,7 +53,9 @@ def param_value(val):
         rc = val
     return rc
 
-def netapp_filer(host, username, password, command, parameters = None, ssl=False):
+def netapp_filer(host, username, password, timeout, command, parameters = None,
+                 ssl=False):
+
     """
     Issue a command to the NetApp filer.
     Note: Change to default ssl on before we ship a release version.
@@ -88,13 +91,20 @@ def netapp_filer(host, username, password, command, parameters = None, ssl=False
 </netapp>
 """ % payload
 
-    handler = urllib2.urlopen(req, data)
-
+    handler = None
     rc = None
-    if handler.getcode() == 200:
-        rc = netapp_filer_parse_response(handler.read())
+    try:
+        handler = urllib2.urlopen(req, data, float(timeout))
 
-    handler.close()
+        if handler.getcode() == 200:
+            rc = netapp_filer_parse_response(handler.read())
+
+    except urllib2.URLError, e:
+        if isinstance(e.reason, socket.timeout):
+            raise FilerError(60, "Connection timeout")
+    finally:
+        if handler:
+            handler.close()
 
     return rc
 
@@ -126,6 +136,7 @@ class Filer(object):
     Note: These are using lsm terminology.
     """
     ENOSPC = 28                     #Out of space
+    ETIMEOUT = 60                   #Time-out
     EINVALID_ISCSI_NAME = 9006      #Invalid ISCSI IQN
     ENO_SUCH_VOLUME = 9017          #lun not found
     ESIZE_TOO_LARGE = 9034          #Specified too large a size
@@ -142,7 +153,7 @@ class Filer(object):
 
     def _invoke(self, command, parameters = None):
 
-        rc = netapp_filer(self.host, self.username, self.password,
+        rc = netapp_filer(self.host, self.username, self.password, self.timeout,
             command, parameters, self.ssl)
 
         t = rc['netapp']['results']['attrib']
@@ -152,10 +163,11 @@ class Filer(object):
 
         return rc['netapp']['results']
 
-    def __init__(self, host, username, password, ssl=True):
+    def __init__(self, host, username, password, timeout, ssl=True):
         self.host = host
         self.username = username
         self.password = password
+        self.timeout = timeout
         self.ssl = ssl
 
     def system_info(self):

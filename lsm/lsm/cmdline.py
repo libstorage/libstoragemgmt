@@ -225,6 +225,10 @@ class CmdLine:
         parser.add_option( '-t', '--terse', action="store", dest="sep",
             help='print output in terse form with "SEP" as a record separator')
 
+        parser.add_option( '-w', '--wait', action="store", type="int",
+            dest="wait", default= 30000,
+            help="command timeout value in ms (default = 30s)")
+
         parser.add_option( '', '--header', action="store_true", dest="header",
             help='include the header with terse')
 
@@ -1415,7 +1419,6 @@ class CmdLine:
     # @param    self    The this pointer
     def __init__(self):
         self.c = None
-        self.tmo = 30000        #TODO: Need to add ability to tweek timeout from CLI
         self.cli()
 
         self.cleanup = None
@@ -1508,6 +1511,11 @@ class CmdLine:
 
         }
         self._validate()
+
+        self.tmo = int(self.options.wait)
+        if not self.tmo or self.tmo < 0:
+            raise ArgError("[-w|--wait] reguires a non-zero positive integer")
+
 
         self.uri = os.getenv('LSMCLI_URI')
         self.password = os.getenv('LSMCLI_PASSWORD')
