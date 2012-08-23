@@ -1219,7 +1219,26 @@ class CmdLine:
 
         if s == common.JobStatus.COMPLETE:
             if i:
-                self.display_volumes([i])
+                #TODO Not OOP, need to fix
+                if isinstance(i, data.Volume):
+                    self.display_volumes([i])
+                elif isinstance(i, data.FileSystem):
+                    self.display_fs([i])
+                elif isinstance(i, data.AccessGroup):
+                    self.display_access_groups([i])
+                elif isinstance(i, data.NfsExport):
+                    self.display_exports([i])
+                elif isinstance(i, data.Snapshot):
+                    self.display_snaps([i])
+                elif isinstance(i, data.Initiator):
+                    self.display_initiators([i])
+                elif isinstance(i, data.System):
+                    self.display_systems([i])
+                elif isinstance(i, data.Pool):
+                    self.display_pools([i])
+                else:
+                    print 'Program error, unable to display:' , type(i)
+
             self.c.job_free(self.cmd_value)
         else:
             print str(percent)
