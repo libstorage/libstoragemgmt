@@ -1221,10 +1221,8 @@ class CmdLine:
             if i:
                 self.display_volumes([i])
             self.c.job_free(self.cmd_value)
-            self.shutdown(0)
         else:
             print str(percent)
-            self.shutdown(s)
 
     ## Replicates a volume
     # @param    self    The this pointer
