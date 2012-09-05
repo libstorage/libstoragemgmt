@@ -622,7 +622,7 @@ class StorageSimulator(INfs,IStorageAreaNetwork):
     def fs_create(self, pool, name, size_bytes, flags = 0):
         return self._create_fs(pool, name, size_bytes)
 
-    def fs_clone(self, src_fs, dest_fs_name, snapshot, flags = 0):
+    def fs_clone(self, src_fs, dest_fs_name, snapshot=None, flags= 0):
         #TODO If snapshot is not None, then check for existence.
 
         if src_fs.id in self.s.fs:
@@ -632,7 +632,7 @@ class StorageSimulator(INfs,IStorageAreaNetwork):
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
 
-    def file_clone(self, fs, src_file_name, dest_file_name, snapshot, flags = 0):
+    def file_clone(self, fs, src_file_name, dest_file_name, snapshot=None, flags=0):
         #TODO If snapshot is not None, then check for existence.
         if fs.id in self.s.fs:
             if src_file_name is not None and dest_file_name is not None:
@@ -674,8 +674,8 @@ class StorageSimulator(INfs,IStorageAreaNetwork):
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
 
-    def fs_snapshot_revert(self, fs, snapshot, files, restore_files, all_files,
-                           flags = 0):
+    def fs_snapshot_revert(self, fs, snapshot, files, restore_files,
+                           all_files=False, flags = 0):
 
         self._check_sl(files)
         self._check_sl(files)

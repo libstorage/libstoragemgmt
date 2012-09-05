@@ -1081,7 +1081,7 @@ class Smis(IStorageAreaNetwork):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
     @handle_cim_errors
-    def initiators_granted_to_volume(self, volume, flags ):
+    def initiators_granted_to_volume(self, volume, flags = 0 ):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
     @handle_cim_errors
