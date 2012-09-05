@@ -690,8 +690,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         for i in fs:
             if i.id == id:
                 return i
-        raise RuntimeError("fs id not found in fs:" +
-                           ":".join(fs) + " " + id)
+        raise RuntimeError("fs id not found in fs:" + id)
 
     def _current_export(self, export_path):
         """
