@@ -25,6 +25,7 @@ from lsm.common import ( LsmError, ErrorNumber)
 import urllib2
 import json
 import urlparse
+import time
 
 default_user = "admin"
 default_port = 18700
