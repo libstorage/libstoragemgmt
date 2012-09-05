@@ -24,7 +24,7 @@ from M2Crypto import RC4
 from binascii import hexlify
 
 #Set to an appropriate directory and file to dump the raw response.
-from lsm.common import ErrorNumber, LsmError
+from lsm.common import ErrorNumber
 
 xml_debug = None
 
@@ -363,7 +363,7 @@ class Filer(object):
             params['destination-path'] = dest_path
 
         if backing_snapshot:
-            raise FilerError(LsmError.NOT_IMPLEMENTED,
+            raise FilerError(ErrorNumber.NOT_IMPLEMENTED,
                 "Support for backing luns not implemented for this API version")
             #params['snapshot-name']= backing_snapshot
 
