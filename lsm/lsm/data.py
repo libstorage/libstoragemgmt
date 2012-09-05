@@ -15,10 +15,11 @@
 #
 # Author: tasleson
 
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 import json
 from json.decoder import WHITESPACE
-from common import get_class
+import datetime
+from common import get_class, sh
 
 class DataEncoder(json.JSONEncoder):
     """
@@ -125,6 +126,14 @@ class IData(object):
         """
         return str(self.toDict())
 
+    @abstractmethod
+    def column_headers(self):
+        pass
+
+    @abstractmethod
+    def column_data(self, human=False):
+        pass
+
 
 class Initiator(IData):
     """
@@ -142,6 +151,11 @@ class Initiator(IData):
         self.type = type
         self.name = name
 
+    def column_headers(self):
+        return [['ID', 'Name', 'Type']]
+
+    def column_data(self,human=False):
+        return [[self.id, self.name, self.type]]
 
 class Volume(IData):
     """
@@ -217,6 +231,13 @@ class Volume(IData):
     def __str__(self):
         return self.name
 
+    def column_headers(self):
+        return [['ID', 'Name', 'vpd83', 'bs', '#blocks', 'status', 'size', 'System ID']]
+
+    def column_data(self,human=False):
+        return [[self.id, self.name, self.vpd83, self.block_size, self.num_of_blocks,
+                self.status, sh(self.size_bytes, human), self.system_id]]
+
 class System(IData):
 
     (STATUS_UNKNOWN, STATUS_OK, STATUS_DEGRADED, STATUS_ERROR,
@@ -227,6 +248,12 @@ class System(IData):
         self.id = id                # For SMI-S this is the CIM_ComputerSystem->Name
         self.name = name            # For SMI-S this is the CIM_ComputerSystem->ElementName
         self.status = status        # OperationalStatus
+
+    def column_headers(self):
+        return [['ID', 'Name', 'Status']]
+
+    def column_data(self,human=False):
+        return [[self.id, self.name, self.status]]
 
 class Pool(IData):
     """
@@ -239,6 +266,13 @@ class Pool(IData):
         self.free_space = free_space
         self.system_id = system_id
 
+    def column_headers(self):
+        return [['ID', 'Name', 'Total space', 'Free space', 'System ID']]
+
+    def column_data(self,human=False):
+        return [[self.id, self.name, sh(self.total_space, human),
+                sh(self.free_space,human), sh(self.system_id,human)]]
+
 class FileSystem(IData):
     def __init__(self, id, name, total_space, free_space, pool_id, system_id):
         self.id = id
@@ -248,11 +282,24 @@ class FileSystem(IData):
         self.pool_id = pool_id
         self.system_id = system_id
 
+    def column_headers(self):
+        return [['ID', 'Name', 'Total space', 'Free space', 'Pool ID']]
+
+    def column_data(self,human=False):
+        return [[self.id, self.name, sh(self.total_space, human),
+                sh(self.free_space,human), self.pool_id]]
+
 class Snapshot(IData):
     def __init__(self, id, name, ts):
         self.id = id
         self.name = name
         self.ts = int(ts)
+
+    def column_headers(self):
+        return [['ID', 'Name', 'Created']]
+
+    def column_data(self,human=False):
+        return [[self.id, self.name, datetime.datetime.fromtimestamp(self.ts)]]
 
 class NfsExport(IData):
     ANON_UID_GID_NA = -1
@@ -274,6 +321,22 @@ class NfsExport(IData):
         self.anongid = anongid      #gid for anonymous group id
         self.options = options      #NFS options
 
+    def column_headers(self):
+        return [["Key", 'Value']]
+
+    def column_data(self,human=False):
+        return  [
+                    ['ID', self.id],
+                    ['File system ID', self.fs_id],
+                    ['Export Path', self.export_path],
+                    ['Authentication', self.auth],
+                    ['Root', self.root],
+                    ['Read/Write', self.rw],
+                    ['ReadOnly', self.ro],
+                    ['Anon UID', self.anonuid],
+                    ['Anon GID', self.anongid],
+                    ['Options', self.options]
+                ]
 
 class BlockRange(IData):
     def __init__(self, src_block, dest_block, block_count):
@@ -281,12 +344,31 @@ class BlockRange(IData):
         self.dest_block = dest_block
         self.block_count = block_count
 
+    def column_headers(self):
+        raise NotImplementedError
+
+    def column_data(self,human=False):
+        raise NotImplementedError
+
 class AccessGroup(IData):
     def __init__(self, id, name, initiators, system_id = 'NA'):
         self.id = id
         self.name = name
         self.initiators = initiators
         self.system_id = system_id
+
+    def column_headers(self):
+        return [['ID', 'Name', 'Initiator ID', 'System ID']]
+
+    def column_data(self,human=False):
+        rc = []
+
+        if len(self.initiators):
+            for i in self.initiators:
+                rc.append([self.id, self.name, i, self.system_id])
+        else:
+            rc.append([self.id, self.name, 'No initiators', self.system_id])
+        return rc
 
 class Capabilities(IData):
 
@@ -393,6 +475,12 @@ class Capabilities(IData):
     def enable_all(self):
         for i in range(len(self.cap)):
             self.cap[i] = Capabilities.SUPPORTED
+
+    def column_headers(self):
+        raise NotImplementedError
+
+    def column_data(self,human=False):
+        raise NotImplementedError
 
 if __name__ == '__main__':
     #TODO Need some unit tests that encode/decode all the types with nested

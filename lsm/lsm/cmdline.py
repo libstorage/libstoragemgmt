@@ -23,7 +23,6 @@ import string
 import textwrap
 import sys
 import getpass
-import datetime
 import time
 
 import common
@@ -145,13 +144,6 @@ class CmdLine:
     Command line interface class.
     """
 
-    ## Constant for MiB
-    MiB = 1048576
-    ## Constant for GiB
-    GiB = 1073741824
-    ## Constant for TiB
-    TiB = 1099511627776
-
     ##
     # Tries to make the output better when it varies considerably from plug-in to
     # plug-in.
@@ -161,6 +153,12 @@ class CmdLine:
         Creates a nicer text dump of tabular data.  First row should be the column
         headers.
         """
+        #If any of the table cells is another list, lets flatten using the sep
+        for i in range(len(rows)):
+            for j in range(len(rows[i])):
+                if isinstance(rows[i][j], list):
+                    rows[i][j] = self._list(rows[i][j])
+
         if self.options.sep is not None:
             s = self.options.sep
 
@@ -200,6 +198,16 @@ class CmdLine:
                 for i in range(1,len(rows)):
                     print data_pattern % tuple(rows[i])
 
+    def display_data(self, d):
+
+        if d and len(d):
+
+            rows = d[0].column_headers()
+
+            for r in d:
+                rows.extend(r.column_data(self.options.human))
+
+            self.display_table(rows)
 
     ## All the command line arguments and options are created in this method
     # @param    self    The this object pointer
@@ -624,75 +632,6 @@ class CmdLine:
         if self.options.opt_size:
             self._size(self.options.opt_size)
 
-    ## Display the volumes on a storage array
-    # @param    self    The this pointer
-    # @param    vols    The array of volume objects
-    # @return None
-    def display_volumes(self, vols):
-        dsp = [['ID', 'Name', 'vpd83', 'bs', '#blocks', 'status', 'size', 'System ID']]
-
-        for v in vols:
-            dsp.append([v.id, v.name, v.vpd83, v.block_size, v.num_of_blocks,
-                        v.status, self._sh(v.size_bytes), v.system_id])
-        self.display_table(dsp)
-
-    ## Display the pools on a storage array
-    # @param    self    The this pointer
-    # @param    pools    The array of pool objects
-    # @return None
-    def display_pools(self, pools):
-        dsp = [['ID', 'Name', 'Total space', 'Free space', 'System ID']]
-
-        for p in pools:
-            dsp.append([p.id, p.name, self._sh(p.total_space),
-                        self._sh(p.free_space), p.system_id])
-        self.display_table(dsp)
-
-    ## Display the arrays managed by the plug-in
-    # @param    self        The this pointer
-    # @param    systems     The array of systems
-    # @return None
-    def display_systems(self, systems):
-        dsp = [['ID', 'Name', 'Status']]
-        for s in systems:
-            dsp.append([s.id, s.name, s.status])
-        self.display_table(dsp)
-
-    ## Display the initiators on a storage array
-    # @param    self    The this pointer
-    # @param    inits   The array of initiator objects
-    # @return None
-    def display_initiators(self, inits):
-        dsp = [['ID', 'Name', 'Type']]
-
-        for i in inits:
-            dsp.append([i.id, i.name, i.type])
-
-        self.display_table(dsp)
-
-    ## Display the file systems on the storage array
-    # @param    self    The this pointer
-    # @param    fss     Array of file system objects.
-    # @return None
-    def display_fs(self, fss):
-        dsp = [['ID', 'Name', 'Total space', 'Free space', 'Pool ID']]
-
-        for f in fss:
-            dsp.append([f.id, f.name, self._sh(f.total_space),
-                        self._sh(f.free_space), f.pool_id])
-        self.display_table(dsp)
-
-    ## Display the snap shots on the storage array
-    # @param    self    The this pointer
-    # @param    ss      Array of snap shot objects
-    # @return None
-    def display_snaps(self, ss):
-        dsp = [['ID', 'Name', 'Created']]
-
-        for s in ss:
-            dsp.append([s.id, s.name, datetime.datetime.fromtimestamp(s.ts)])
-        self.display_table(dsp)
-
     def _list(self,l):
         if l and len(l):
             if self.options.sep:
@@ -701,37 +640,6 @@ class CmdLine:
                 return ", ".join(l)
         else:
             return "None"
-
-    ## Display the file system exports on the storage array
-    # @param    self    The this pointer
-    # @param    exports Array of export objects
-    # @return None
-    def display_exports(self, exports):
-        if self.options.sep is not None:
-            s = self.options.sep
-            for e in exports:
-                print "id%s%s" % (s, e.id)
-                print "export%s%s" %(s, e.export_path)
-                print "fs_id%s%s" %(s, e.fs_id )
-                print "root%s%s" % (s, self._list(e.root))
-                print "ro%s%s" % (s, self._list(e.ro))
-                print "rw%s%s" % (s, self._list(e.rw))
-                print "anonuid%s%s" % ( s, e.anonuid )
-                print "anongid%s%s" % ( s, e.anongid )
-                print "authtype%s%s" % ( s, e.auth )
-                print "options%s%s" % ( s, e.options )
-        else:
-            for e in exports:
-                print "id:\t\t", e.id
-                print "export:\t\t", e.export_path
-                print "fs_id:\t\t", e.fs_id
-                print "root:\t\t", self._list(e.root)
-                print "ro:\t\t", self._list(e.ro)
-                print "rw:\t\t", self._list(e.rw)
-                print "anonuid:\t", e.anonuid
-                print "anongid:\t", e.anongid
-                print "auth:\t\t", e.auth
-                print "options:\t", e.options, "\n"
 
     ## Display the types of nfs client authentication that are supported.
     # @param    self    The this pointer
@@ -745,51 +653,34 @@ class CmdLine:
         else:
             print ", ".join(self.c.export_auth())
 
-    ## Display the access groups for block storage
-    # @param    self    The this pointer
-    # @param    ag      The access group list to display
-    # @return None
-    def display_access_groups(self, ag):
-        dsp = [['ID', 'Name', 'Initiator ID', 'System ID']]
-
-        for a in ag:
-            if len(a.initiators):
-                for i in a.initiators:
-                    dsp.append([a.id, a.name, i, a.system_id])
-            else:
-                dsp.append([a.id, a.name, 'No initiators', a.system_id])
-
-        self.display_table(dsp)
-
-
     ## Method that calls the appropriate method based on what the cmd_value is
     # @param    self    The this pointer
     def list(self):
         if self.cmd_value == 'VOLUMES':
-            self.display_volumes(self.c.volumes())
+            self.display_data(self.c.volumes())
         elif self.cmd_value == 'POOLS':
-            self.display_pools(self.c.pools())
+            self.display_data(self.c.pools())
         elif self.cmd_value == 'FS':
-            self.display_fs(self.c.fs())
+            self.display_data(self.c.fs())
         elif self.cmd_value == 'SNAPSHOTS':
             if self.options.opt_fs is None:
                 raise ArgError("--fs <file system id> required")
 
             fs = self._get_item(self.c.fs(),self.options.opt_fs)
             if fs:
-                self.display_snaps(self.c.fs_snapshots(fs))
+                self.display_data(self.c.fs_snapshots(fs))
             else:
                 raise ArgError("filesystem %s not found!" % self.options.opt_volume)
         elif self.cmd_value == 'INITIATORS':
-            self.display_initiators(self.c.initiators())
+            self.display_data(self.c.initiators())
         elif self.cmd_value == 'EXPORTS':
-            self.display_exports(self.c.exports())
+            self.display_data(self.c.exports())
         elif self.cmd_value == 'NFS_CLIENT_AUTH':
             self.display_nfs_client_authentication()
         elif self.cmd_value == 'ACCESS_GROUPS':
-            self.display_access_groups(self.c.access_group_list())
+            self.display_data(self.c.access_group_list())
         elif self.cmd_value == 'SYSTEMS':
-            self.display_systems(self.c.systems())
+            self.display_data(self.c.systems())
         else:
             raise ArgError(" unsupported listing type=%s", self.cmd_value)
 
@@ -818,7 +709,7 @@ class CmdLine:
         i = CmdLine._init_type_to_enum(self.options.opt_type)
         access_group = self.c.access_group_create(name, initiator, i,
                         self.options.opt_system)
-        self.display_access_groups([access_group])
+        self.display_data([access_group])
 
     def _add_rm_access_grp_init(self, op):
         agl = self.c.access_group_list()
@@ -852,7 +743,7 @@ class CmdLine:
 
         if group:
             vols = self.c.volumes_accessible_by_access_group(group)
-            self.display_volumes(vols)
+            self.display_data(vols)
         else:
             raise ArgError('access group with id %s not found!' % self.cmd_value)
 
@@ -861,7 +752,7 @@ class CmdLine:
 
         if i:
             volumes = self.c.volumes_accessible_by_initiator(i)
-            self.display_volumes(volumes)
+            self.display_data(volumes)
         else:
             raise ArgError("initiator with id= %s not found!" % self.cmd_value)
 
@@ -870,7 +761,7 @@ class CmdLine:
 
         if vol:
             initiators = self.c.initiators_granted_to_volume(vol)
-            self.display_initiators(initiators)
+            self.display_data(initiators)
         else:
             raise ArgError("volume with id= %s not found!" % self.cmd_value)
 
@@ -887,7 +778,7 @@ class CmdLine:
 
         if vol:
             groups = self.c.access_groups_granted_to_volume(vol)
-            self.display_access_groups(groups)
+            self.display_data(groups)
         else:
             raise ArgError("volume with id= %s not found!" % self.cmd_value)
 
@@ -921,7 +812,7 @@ class CmdLine:
         name = self.cmd_value
         if p:
             fs = self._wait_for_it("create-fs", *self.c.fs_create(p, name, size))
-            self.display_fs([fs])
+            self.display_data([fs])
         else:
             raise ArgError("pool with id = %s not found!" % self.options.opt_pool)
 
@@ -931,7 +822,7 @@ class CmdLine:
         fs = self._get_item(self.c.fs(), self.cmd_value)
         size = self._size(self.options.opt_size)
         fs = self._wait_for_it("resize-fs", *self.c.fs_resize(fs, size))
-        self.display_fs([fs])
+        self.display_data([fs])
 
     ## Used to clone a file system
     # @param    self    The this pointer
@@ -951,7 +842,7 @@ class CmdLine:
             ss = None
 
         fs = self._wait_for_it("fs_clone", *self.c.fs_clone(src_fs, name, ss))
-        self.display_fs([fs])
+        self.display_data([fs])
 
     ## Used to clone a file(s)
     # @param    self    The this pointer
@@ -985,39 +876,14 @@ class CmdLine:
             unit = m.group(2)
             rc = int(m.group(1))
             if unit == 'M':
-                rc *= CmdLine.MiB
+                rc *= common.MiB
             elif unit == 'G':
-                rc *= CmdLine.GiB
+                rc *= common.GiB
             else:
-                rc *= CmdLine.TiB
+                rc *= common.TiB
         else:
             raise ArgError(" size is not in form <number>|<number[M|G|T]>")
         return rc
-
-    ##Converts the size into humand format.
-    # @param    size    Size in bytes
-    # @return Human representation of size
-    def _sh(self, size):
-        """
-        Size for humans
-        """
-        units = None
-
-        if self.options.human:
-            if size >= CmdLine.TiB:
-                size /= float(CmdLine.TiB)
-                units = "TiB"
-            elif size >= CmdLine.GiB:
-                size /= float(CmdLine.GiB)
-                units = "GiB"
-            elif size >= CmdLine.MiB:
-                size /= float(CmdLine.MiB)
-                units = "MiB"
-
-        if units:
-            return "%.2f " % size + units
-        else:
-            return size
 
     def _cp(self, cap, val):
         if self.options.sep is not None:
@@ -1111,7 +977,7 @@ class CmdLine:
                 self._size(self.options.opt_size),
                 data.Volume.prov_string_to_type(self.options.provisioning)))
 
-            self.display_volumes([vol])
+            self.display_data([vol])
         else:
             raise ArgError(" pool with id= %s not found!" % self.options.opt_pool)
 
@@ -1125,7 +991,7 @@ class CmdLine:
                     *self.c.fs_snapshot_create(fs,self.cmd_value,
                                             self.options.file))
 
-            self.display_snaps([ss])
+            self.display_data([ss])
         else:
             raise ArgError( "fs with id= %s not found!" % self.options.opt_fs)
 
@@ -1219,25 +1085,7 @@ class CmdLine:
 
         if s == common.JobStatus.COMPLETE:
             if i:
-                #TODO Not OOP, need to fix
-                if isinstance(i, data.Volume):
-                    self.display_volumes([i])
-                elif isinstance(i, data.FileSystem):
-                    self.display_fs([i])
-                elif isinstance(i, data.AccessGroup):
-                    self.display_access_groups([i])
-                elif isinstance(i, data.NfsExport):
-                    self.display_exports([i])
-                elif isinstance(i, data.Snapshot):
-                    self.display_snaps([i])
-                elif isinstance(i, data.Initiator):
-                    self.display_initiators([i])
-                elif isinstance(i, data.System):
-                    self.display_systems([i])
-                elif isinstance(i, data.Pool):
-                    self.display_pools([i])
-                else:
-                    print 'Program error, unable to display:' , type(i)
+                self.display_data([i])
 
             self.c.job_free(self.cmd_value)
         else:
@@ -1257,7 +1105,7 @@ class CmdLine:
 
             vol = self._wait_for_it("replicate volume", *self.c.volume_replicate(p, type, v,
                 self.options.opt_name))
-            self.display_volumes([vol])
+            self.display_data([vol])
         else:
             if not p:
                 raise ArgError("pool with id= %s not found!" % self.options.opt_pool)
@@ -1355,7 +1203,7 @@ class CmdLine:
         if v:
             size = self._size(self.options.opt_size)
             vol = self._wait_for_it("resize", *self.c.volume_resize(v, size))
-            self.display_volumes([vol])
+            self.display_data([vol])
         else:
             raise ArgError("volume with id= %s not found!" % self.cmd_value)
 
@@ -1384,7 +1232,7 @@ class CmdLine:
                 self.options.nfs_root, self.options.nfs_rw, self.options.nfs_ro,
                 self.options.anonuid, self.options.anongid,
                 self.options.authtype, None)
-            self.display_exports([export])
+            self.display_data([export])
         else:
             raise ArgError(" file system with id=%s not found!" % self.cmd_value)
 

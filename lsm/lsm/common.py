@@ -29,6 +29,39 @@ UDS_PATH = '/var/run/lsm/ipc'
 #Set to True for verbose logging
 LOG_VERBOSE = True
 
+## Constant for MiB
+MiB = 1048576
+## Constant for GiB
+GiB = 1073741824
+## Constant for TiB
+TiB = 1099511627776
+
+##Converts the size into human format.
+# @param    size    Size in bytes
+# @param    human   True|False
+# @return Human representation of size
+def sh(size, human=False):
+    """
+    Size for humans
+    """
+    units = None
+
+    if human:
+        if size >= TiB:
+            size /= float(TiB)
+            units = "TiB"
+        elif size >= GiB:
+            size /= float(GiB)
+            units = "GiB"
+        elif size >= MiB:
+            size /= float(MiB)
+            units = "MiB"
+
+    if units:
+        return "%.2f " % size + units
+    else:
+        return size
+
 ## Common method used to parse a URI.
 # @param    uri         The uri to parse
 # @param    requires    Optional list of keys that must be present in output
