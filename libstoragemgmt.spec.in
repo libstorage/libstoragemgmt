@@ -140,6 +140,13 @@ fi
 %{_libdir}/pkgconfig/libstoragemgmt.pc
 
 %changelog
+* Fri Sep 07 2012 Tony Asleson (Red Hat) <tasleson@redhat.com>
+- SMI-S plug-in enhancements (Detach before delete, bug fixes for eSeries)
+- Added version specifier for non-opaque structs in plug-in callback interface
+- Documentation updates (doxygen, man pages)
+- Ontap plug-in: support timeout values
+- lsmcli, return back async. values other than volumes when using --job-status
+
 * Mon Aug 13 2012 Tony Asleson <tasleson@redhat.com> 0.0.11-1
 - SMI-S fixes and improvements (WaitForCopyState, _get_class_instance)
 - Methods for arrays that don't support access groups to grant access
