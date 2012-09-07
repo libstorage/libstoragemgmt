@@ -247,14 +247,16 @@ class CmdLine:
         #What action we want to take
         commands = OptionGroup(parser, 'Commands')
 
+        list_choices = ['VOLUMES', 'INITIATORS', 'POOLS', 'FS', 'SNAPSHOTS',
+                        'EXPORTS', "NFS_CLIENT_AUTH", 'ACCESS_GROUPS',
+                        'SYSTEMS']
+
         commands.add_option('-l', '--list', action="store", type="choice",
             dest="cmd_list",
-            metavar='<[VOLUMES|INITIATORS|POOLS|FS|SNAPSHOTS|EXPORTS|SYSTEMS]>',
-            choices = ['VOLUMES', 'INITIATORS', 'POOLS', 'FS', 'SNAPSHOTS',
-                       'EXPORTS', "NFS_CLIENT_AUTH", 'ACCESS_GROUPS',
-                       'SYSTEMS'],
-            help='List records of type [VOLUMES|INITIATORS|POOLS|FS|' \
-                 'SNAPSHOTS|EXPORTS|NFS_CLIENT_AUTH|ACCESS_GROUPS|SYSTEMS]\n'
+            #metavar='<'+ ",".join(list_choices) + '>',
+            metavar='<type>',
+            choices = list_choices,
+            help='List records of type: ' + ",".join(list_choices) + '\n'
                  'Note: SNAPSHOTS requires --fs <fs id>')
 
         commands.add_option( '', '--capabilities', action="store", type="string",
@@ -581,11 +583,11 @@ class CmdLine:
 
         command_args.add_option('', '--username', action="store", type="string",
             metavar = "<username>", default=None,
-            dest=_o("username"), help="user name")
+            dest=_o("username"), help="CHAP user name")
 
         command_args.add_option('', '--password', action="store", type="string",
             metavar = "<password>", default=None,
-            dest=_o("password"), help="password")
+            dest=_o("password"), help="CHAP password")
 
 
         parser.add_option_group(command_args)

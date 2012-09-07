@@ -1,4 +1,4 @@
-.TH LSMCLI "1" "April 2012" "lsmcli @VERSION@" "libStorageMgmt"
+.TH LSMCLI "1" "September 2012" "lsmcli @VERSION@" "libStorageMgmt"
 .SH NAME
 lsmcli \- LibStorageMgmt command line interface
 .SH SYNOPSIS
@@ -28,13 +28,19 @@ print sizes in human readable format
 .TP
 \fB\-t\fR SEP, \fB\-\-terse\fR=\fISEP\fR
 print output in terse form with "SEP" as a record
-separator.  This is to ease scripting of lsmcli.
+separator
+.TP
+\fB\-w\fR WAIT, \fB\-\-wait\fR=\fIWAIT\fR
+command timeout value in ms (default = 30s)
+.TP
+\fB\-\-header\fR
+include the header with terse
 .TP
 \fB\-b\fR
 run the command asynchronously instead of waiting for
 completion.  lsmcli command will exit with exit code(7) and job id will be 
 written to stdout when a command is still executing on the storage array.  
-Use --jobstatus <job id> to inquire on the progress of the command.
+Use --job-status <job id> to inquire on the progress of the command.
 
 .SH ENVIRONMENT
 .TP
@@ -49,22 +55,32 @@ LSMCLI_PASSWORD
 \fB\-l\fR <type>, \fB\-\-list=\fR<type>
 .TP 
 List records of type:
-[VOLUMES|INITIATORS|POOLS|FS|SNAPSHOTS|EXPORTS|NFS_CLIENT_AUTH]
+[VOLUMES|INITIATORS|POOLS|FS|SNAPSHOTS|EXPORTS
+.br
+|NFS_CLIENT_AUTH|ACCESS_GROUPS|SYSTEMS]
 .TP
 Note: SNAPSHOTS listing requires: \fB\-\-fs\fR <fs id>
 .TP
-\fB\-\-create\-initiator=\fR<initiator name>
-Create an initiator record, requires:
-.br
-\fB\-\-id\fR <initiator id>
-.br
-\fB\-\-type\fR [WWPN|WWNN|ISCSI|HOSTNAME]
-.TP
-\fB\-\-delete\-initiator=\fR<initiator id>
-Delete an initiator record
+\fB\-\-capabilities=\fR<system id>
+Retrieves array capabilities
 .TP
 \fB\-\-delete\-fs=\fR<fs id>
 Delete a filesystem
+.TP
+\fB\-\-delete\-access\-group=\fR<group id>
+Deletes an access group
+.TP
+\fB\-\-access\-group\-add=\fR<access group id>
+Adds an initiator to an access group, requires:
+.br
+\fB\-\-id\fR <initiator id
+.br
+\fB\-\-type\fR <initiator type>
+.TP
+\fB\-\-access\-group\-remove=\fR<access group id>
+Removes an initiator from an access group, requires:
+.br
+\fB\-\-id\fR <initiator id>
 .TP
 \fB\-\-create\-volume=\fR<volume name>
 Creates a volume (logical unit) requires:
@@ -88,6 +104,29 @@ Creates a snapshot requires:
 \fB\-\-file\fR <repeat for each file> (default is all files)
 .br
 \fB\-\-fs\fR <file system id>
+.TP
+\fB\-\-create\-access\-group=\fR<Access group name>
+Creates an access group, requires:
+.br
+\fB\-\-id\fR <initiator id>
+.br
+\fB\-\-type\fR [WWPN|WWNN|ISCSI|HOSTNAME]
+.br
+\fB\-\-system\fR <system id>
+.TP
+\fB\-\-access\-group\-volumes=\fR<access group id>
+Lists the volumes that the access group has been
+granted access to
+.TP
+\fB\-\-volume\-access\-group=\fR<volume id>
+Lists the access group(s) that have access to volume
+.TP
+\fB\-\-volumes\-accessible\-initiator=\fR<initiator id>
+Lists the volumes that are accessible by the initiator
+.TP
+\fB\-\-initiators\-granted\-volume=\fR<volume id>
+Lists the initiators that have been granted access to
+specified volume
 .TP
 \fB\-\-restore\-ss=\fR<snapshot id>
 Restores a FS or specified files to previous snapshot
@@ -146,8 +185,26 @@ Replicates a portion of a volume, requires:
 .br
 \fB\-\-count\fR <number of blocks to replicate>
 .TP
+\fB\-\-iscsi\-chap=\fR<initiator id>
+configures ISCSI inbound CHAP authentication
+requires:
+.br
+\fB\-\-username\fR <chap user name>
+.br
+\fB\-\-password\fR <chap password>
+.TP
 \fB\-\-access\-grant=\fR<initiator id>
 Grants access to an initiator to a volume
+requires:
+.br
+\fB\-\-type\fR <initiator id type>
+.br
+\fB\-\-volume\fR <volume id>
+.br
+\fB\-\-access\fR [RO|RW], read\-only or read\-write
+.TP
+\fB\-\-access\-grant\-group=\fR<access group id>
+Grants access to an access group to a volume
 requires:
 .br
 \fB\-\-volume\fR <volume id>
@@ -159,6 +216,13 @@ Removes access for an initiator to a volume
 requires:
 .br
 \fB\-\-volume\fR <volume id>
+.TP
+\fB\-\-access\-revoke\-group=\fR<access group id>
+Removes access for access group to a volume
+requires:
+.br
+\fB\-\-volume\fR <volume id>
+.br
 .TP
 \fB\-\-resize\-volume=\fR<volume id>
 Re\-sizes a volume, requires:
@@ -241,6 +305,9 @@ volume ID
 \fB\-\-id\fR=\fIinitiator\fR id
 initiator id
 .TP
+\fB\-\-system\fR=\fIsystem\fR id
+system id
+.TP
 \fB\-\-backing\-snapshot=\fR<backing snapshot>
 backing snap shot name for operation
 .TP
@@ -291,6 +358,12 @@ destination block address to replicate
 .TP
 \fB\-\-count=\fR<block count>
 number of blocks to replicate
+.TP
+\fB\-\-username=\fR<username>
+CHAP user name
+.TP
+\fB\-\-password=\fR<password>
+CHAP password
 .PP
 .SH BUGS
 Please report bugs to 
