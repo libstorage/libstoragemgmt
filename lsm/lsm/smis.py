@@ -86,6 +86,13 @@ class Smis(IStorageAreaNetwork):
         SYNCHRONIZED    = 4
         INACTIVE        = 8
 
+    class CopyTypes(object):
+        ASYNC           = 2     # Async. mirror
+        SYNC            = 3     # Sync. mirror
+        UNSYNCASSOC     = 4     # lsm Clone
+        UNSYNCUNASSOC   = 5     # lsm Copy
+
+
     #SMI-S mode for mirror updates
     (CREATE_ELEMENT_REPLICA_MODE_SYNC, CREATE_ELEMENT_REPLICA_MODE_ASYNC ) = (2,3)
 
@@ -400,6 +407,35 @@ class Smis(IStorageAreaNetwork):
                self.RepSvc.RepTypes.ASYNC_CLONE_LOCAL \
                 in rs_cap['SupportedReplicationTypes']:
                 cap.set(Capabilities.VOLUME_REPLICATE_COPY)
+        else:
+            #Try older storage configuration service
+
+            rs = self._get_class_instance("CIM_StorageConfigurationService",
+                                            'SystemName',
+                                            system.id, True)
+
+            if rs:
+                rs_cap = self._c.Associators(rs.path,
+                                        AssocClass='CIM_ElementCapabilities',
+                                        ResultClass='CIM_StorageConfigurationCapabilities')[0]
+
+                sct = rs_cap['SupportedCopyTypes']
+
+                if len(sct):
+                    cap.set(Capabilities.VOLUME_REPLICATE)
+
+                    if Smis.CopyTypes.ASYNC in sct:
+                        cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC)
+
+                    if Smis.CopyTypes.SYNC in sct:
+                        cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_SYNC)
+
+                    if Smis.CopyTypes.UNSYNCASSOC in sct:
+                        cap.set(Capabilities.VOLUME_REPLICATE_CLONE)
+
+                    if Smis.CopyTypes.UNSYNCUNASSOC in sct:
+                        cap.set(Capabilities.VOLUME_REPLICATE_COPY)
+
 
     def _pcm_supported_capabilities(self, system, cap):
         """
@@ -505,7 +541,13 @@ class Smis(IStorageAreaNetwork):
         """
         Given a volume by CIMInstanceName, return a lsm Volume object
         """
-        instance = self._c.GetInstance(out['TheElement'])
+        instance = None
+
+        if 'TheElement' in out:
+            instance = self._c.GetInstance(out['TheElement'])
+        elif 'TargetElement' in out:
+            instance = self._c.GetInstance(out['TargetElement'])
+
         return self._new_vol(instance)
 
     def _new_access_group(self, g):
@@ -801,10 +843,11 @@ class Smis(IStorageAreaNetwork):
         rs = self._get_class_instance("CIM_ReplicationService", 'SystemName',
                                         pool.system_id, True)
 
-        if rs:
+        cim_pool = self._get_pool(pool.id)
+        lun = self._get_volume(volume_src.id)
 
-            cim_pool = self._get_pool(pool.id)
-            lun = self._get_volume(volume_src.id)
+        if rs:
+            method = 'CreateElementReplica'
 
             sync, mode = self._get_supported_sync_and_mode(pool.system_id, rep_type)
 
@@ -816,9 +859,34 @@ class Smis(IStorageAreaNetwork):
                             'WaitForCopyState' :
                                 pywbem.Uint16(Smis.CopyStates.SYNCHRONIZED)}
 
+        else:
+            #Check for older support via storage configuration service
+
+            method = 'CreateReplica'
+
+            #Check for storage configuration service
+            rs = self._get_class_instance("CIM_StorageConfigurationService",
+                                            'SystemName', pool.system_id, True)
+
+            ct = Volume.REPLICATE_CLONE
+            if rep_type == Volume.REPLICATE_CLONE:
+                ct = Smis.CopyTypes.UNSYNCASSOC
+            elif rep_type == Volume.REPLICATE_COPY:
+                ct = Smis.CopyTypes.UNSYNCUNASSOC
+            elif rep_type == Volume.REPLICATE_MIRROR_ASYNC:
+                ct = Smis.CopyTypes.ASYNC
+            elif rep_type == Volume.REPLICATE_MIRROR_SYNC:
+                ct = Smis.CopyTypes.SYNC
+
+            in_params = {   'ElementName': name,
+                            'CopyType' : pywbem.Uint16(ct),
+                            'SourceElement': lun.path,
+                            'TargetPool': cim_pool.path}
+        if rs:
             return self._pi("volume_replicate", True,
-                                            *(self._c.InvokeMethod('CreateElementReplica',
+                                            *(self._c.InvokeMethod(method,
                                             rs.path, **in_params)))
+
         raise LsmError(ErrorNumber.NO_SUPPORT, "volume-replicate not supported")
 
     def volume_replicate_range_block_size(self, flags = 0):
