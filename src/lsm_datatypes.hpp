@@ -202,7 +202,7 @@ struct LSM_DLL_LOCAL _lsmPlugin {
     lsmError    *error;                 /**< Error information */
     lsmPluginRegister   reg;            /**< Plug-in registration */
     lsmPluginUnregister unreg;          /**< Plug-in unregistration */
-    struct lsmMgmtOps    *mgmtOps;      /**< Callback for management ops */
+    struct lsmMgmtOpsV1    *mgmtOps;      /**< Callback for management ops */
     struct lsmSanOpsV1    *sanOps;        /**< Callbacks for SAN ops */
     struct lsmNasOpsV1    *nasOps;        /**< Callbacks for NAS ops */
     struct lsmFsOpsV1     *fsOps;         /**< Callbacks for fs ops */

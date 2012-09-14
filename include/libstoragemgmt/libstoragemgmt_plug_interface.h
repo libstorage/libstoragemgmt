@@ -81,7 +81,7 @@ typedef int (*lsmPlugSystemList)(lsmPluginPtr c, lsmSystemPtr **systems,
 /**
  * Callback functions for management operations.
  */
-struct lsmMgmtOps {
+struct lsmMgmtOpsV1 {
     lsmPlugSetTmo       tmo_set;                /**< tmo set callback */
     lsmPlugGetTmo       tmo_get;                /**< tmo get callback */
     lsmPlugCapabilities capablities;            /**< capabilities callback */
@@ -374,7 +374,7 @@ int LSM_DLL_EXPORT lsmPluginInit( int argc, char *argv[], lsmPluginRegister reg,
  */
 int LSM_DLL_EXPORT lsmRegisterPluginV1( lsmPluginPtr plug, const char *desc,
                         const char *version,
-                        void * private_data, struct lsmMgmtOps *mgmOps,
+                        void * private_data, struct lsmMgmtOpsV1 *mgmOps,
                         struct lsmSanOpsV1 *sanOp, struct lsmFsOpsV1 *fsOp,
                         struct lsmNasOpsV1 *nasOp );
 

@@ -463,7 +463,7 @@ static int jobFree(lsmPluginPtr c, char *job_id, lsmFlag_t flags)
     return rc;
 }
 
-static struct lsmMgmtOps mgmOps = {
+static struct lsmMgmtOpsV1 mgmOps = {
     tmo_set,
     tmo_get,
     cap,

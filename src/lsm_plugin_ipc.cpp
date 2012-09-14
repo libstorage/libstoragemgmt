@@ -93,7 +93,7 @@ void * lsmDataTypeCopy(lsmDataType t, void *item)
 }
 
 int lsmRegisterPluginV1(lsmPluginPtr plug, const char *desc, const char *version,
-                        void *private_data, struct lsmMgmtOps *mgmOps,
+                        void *private_data, struct lsmMgmtOpsV1 *mgmOps,
                         struct lsmSanOpsV1 *sanOp, struct lsmFsOpsV1 *fsOp,
                         struct lsmNasOpsV1 *nasOp)
 {
