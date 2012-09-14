@@ -19,7 +19,7 @@
 
 import sys
 from lsm import PluginRunner
-from lsm import Smis
+from lsm import SmisProxy
 
 if __name__ == '__main__':
-    PluginRunner(Smis, sys.argv).run()
+    PluginRunner(SmisProxy, sys.argv).run()

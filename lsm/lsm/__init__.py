@@ -23,3 +23,4 @@ from simulator import StorageSimulator, SimJob, SimState
 from smis import Smis
 from transport import Transport
 from version import VERSION
+from smisproxy import SmisProxy

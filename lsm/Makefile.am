@@ -14,6 +14,7 @@ lsm_PYTHON = lsm/__init__.py           \
                    lsm/pluginrunner.py \
                    lsm/simulator.py    \
                    lsm/smis.py         \
+                   lsm/smisproxy.py    \
                    lsm/transport.py    \
                    lsm/version.py
 
