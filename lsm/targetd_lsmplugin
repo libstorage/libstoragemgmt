@@ -21,11 +21,12 @@ from lsm.iplugin import IStorageAreaNetwork
 from lsm.pluginrunner import PluginRunner
 import sys
 from lsm.data import (Pool, Volume, System, Capabilities, Initiator)
-from lsm.common import ( LsmError, ErrorNumber)
+from lsm.common import (LsmError, ErrorNumber, uri_parse)
 import urllib2
 import json
-import urlparse
 import time
+import urlparse
+import socket
 
 default_user = "admin"
 default_port = 18700
@@ -34,7 +35,7 @@ path = "/targetrpc"
 class TargetdStorage(IStorageAreaNetwork):
 
     def startup(self, uri, password, timeout, flags = 0):
-        self.uri = urlparse.urlsplit(uri)
+        self.uri = uri_parse(uri)
         self.password = password
         self.tmo = timeout
         self.rpc_id = 1
@@ -212,18 +213,27 @@ class TargetdStorage(IStorageAreaNetwork):
                                params=params, jsonrpc="2.0"))
         self.rpc_id += 1
 
-        user = self.uri.username or default_user
-        port = self.uri.port or default_port
-        if self.uri.password:
-            print "password in URL not recommended, use -P option"
-            self.password = self.uri.password
-        host_with_port = "%s:%s" % (self.uri.hostname, port)
-        url = urlparse.urlunsplit((self.uri.scheme, host_with_port, path, None, None))
+        user = self.uri.get('username', default_user)
+        port = self.uri.get('port', default_port)
+        host_with_port = "%s:%s" % (self.uri['host'], port)
+        if int(self.uri['parameters'].get('tls', '0')):
+            scheme = 'https'
+        else:
+            scheme = 'http'
+        url = urlparse.urlunsplit((scheme, host_with_port, path, None, None))
         auth = ('%s:%s' % (user, self.password)).encode('base64')[:-1]
         headers = {'Content-Type': 'application/json',
                    'Authorization': 'Basic %s' % (auth,)}
-        request = urllib2.Request(url, data, headers)
-        response_obj = urllib2.urlopen(request)
+        try:
+            request = urllib2.Request(url, data, headers)
+            response_obj = urllib2.urlopen(request)
+        except socket.error:
+            if scheme == 'https':
+                raise
+            print "socket error, retrying with SSL"
+            url = "https://%s:%s%s" % (host, port, path)
+            request = urllib2.Request(url, data, headers)
+            response_obj = urllib2.urlopen(request)
         response_data = response_obj.read()
         response = json.loads(response_data)
         if response.get('error', None) is None:
