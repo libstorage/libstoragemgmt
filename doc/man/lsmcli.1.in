@@ -365,6 +365,15 @@ CHAP user name
 \fB\-\-password=\fR<password>
 CHAP password
 .PP
+.SH FILES
+.TP
+~/.lsmcli
+lsmcli configuration file, containing name-value pairs separated
+by '='. The only currently supported configuration option is 'uri',
+such as 'uri=smispy://filer.example.com'.
+
+Configuration options in .lsmcli are only used if not overridden by
+command-line option or environment variable.
 .SH BUGS
 Please report bugs to 
 <libstoragemgmt\-devel@lists.sourceforge.net>

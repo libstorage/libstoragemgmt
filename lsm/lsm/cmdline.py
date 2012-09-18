@@ -1282,6 +1282,28 @@ class CmdLine:
         else:
             raise ArgError("File system with id= %s not found!" % self.cmd_value)
 
+    def _read_configfile(self):
+        """
+        Set uri from config file. Will be overridden by cmdline option or
+        env var if present.
+        """
+
+        allowed_config_options = ("uri",)
+
+        config_path = os.path.expanduser("~")+"/.lsmcli"
+        with open(config_path) as f:
+            for line in f:
+
+                if line.lstrip().startswith("#"):
+                    continue
+
+                try:
+                    name, val = [x.strip() for x in line.split("=", 1)]
+                    if name in allowed_config_options:
+                        setattr(self, name, val)
+                except ValueError:
+                    pass
+
     ## Class constructor.
     # @param    self    The this pointer
     def __init__(self):
@@ -1383,8 +1405,9 @@ class CmdLine:
         if not self.tmo or self.tmo < 0:
             raise ArgError("[-w|--wait] reguires a non-zero positive integer")
 
-
-        self.uri = os.getenv('LSMCLI_URI')
+        self._read_configfile()
+        if os.getenv('LSMCLI_URI') is not None:
+            self.uri = os.getenv('LSMCLI_URI')
         self.password = os.getenv('LSMCLI_PASSWORD')
         if self.options.uri is not None:
             self.uri = self.options.uri
