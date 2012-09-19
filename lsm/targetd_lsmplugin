@@ -231,7 +231,7 @@ class TargetdStorage(IStorageAreaNetwork):
             if scheme == 'https':
                 raise
             print "socket error, retrying with SSL"
-            url = "https://%s:%s%s" % (host, port, path)
+            url = urlparse.urlunsplit(("https", host_with_port, path, None, None))
             request = urllib2.Request(url, data, headers)
             response_obj = urllib2.urlopen(request)
         response_data = response_obj.read()
