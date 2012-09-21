@@ -813,7 +813,7 @@ class CmdLine:
         p = self._get_item(self.c.pools(), self.options.opt_pool)
         name = self.cmd_value
         if p:
-            fs = self._wait_for_it("create-fs", self.c.fs_create(p, name, size))
+            fs = self._wait_for_it("create-fs", *self.c.fs_create(p, name, size))
             self.display_data([fs])
         else:
             raise ArgError("pool with id = %s not found!" % self.options.opt_pool)
@@ -823,7 +823,7 @@ class CmdLine:
     def fs_resize(self):
         fs = self._get_item(self.c.fs(), self.cmd_value)
         size = self._size(self.options.opt_size)
-        fs = self._wait_for_it("resize-fs", self.c.fs_resize(fs, size))
+        fs = self._wait_for_it("resize-fs", *self.c.fs_resize(fs, size))
         self.display_data([fs])
 
     ## Used to clone a file system
@@ -843,7 +843,7 @@ class CmdLine:
         else:
             ss = None
 
-        fs = self._wait_for_it("fs_clone", self.c.fs_clone(src_fs, name, ss))
+        fs = self._wait_for_it("fs_clone", *self.c.fs_clone(src_fs, name, ss))
         self.display_data([fs])
 
     ## Used to clone a file(s)
@@ -975,7 +975,7 @@ class CmdLine:
         p = self._get_item(self.c.pools(), self.options.opt_pool)
         if p:
             vol = self._wait_for_it("create-volume",
-                self.c.volume_create(p, self.cmd_value,
+                *self.c.volume_create(p, self.cmd_value,
                 self._size(self.options.opt_size),
                 data.Volume.prov_string_to_type(self.options.provisioning)))
 
@@ -990,7 +990,7 @@ class CmdLine:
         fs = self._get_item(self.c.fs(), self.options.opt_fs)
         if fs:
             ss = self._wait_for_it("snapshot-create",
-                    self.c.fs_snapshot_create(fs,self.cmd_value,
+                    *self.c.fs_snapshot_create(fs,self.cmd_value,
                                             self.options.file))
 
             self.display_data([ss])
@@ -1105,7 +1105,7 @@ class CmdLine:
             if type == data.Volume.REPLICATE_UNKNOWN:
                 raise ArgError("invalid replication type= %s" % type)
 
-            vol = self._wait_for_it("replicate volume", self.c.volume_replicate(p, type, v,
+            vol = self._wait_for_it("replicate volume", *self.c.volume_replicate(p, type, v,
                 self.options.opt_name))
             self.display_data([vol])
         else:
@@ -1204,7 +1204,7 @@ class CmdLine:
         v = self._get_item(self.c.volumes(), self.cmd_value)
         if v:
             size = self._size(self.options.opt_size)
-            vol = self._wait_for_it("resize", self.c.volume_resize(v, size))
+            vol = self._wait_for_it("resize", *self.c.volume_resize(v, size))
             self.display_data([vol])
         else:
             raise ArgError("volume with id= %s not found!" % self.cmd_value)
