@@ -1291,6 +1291,9 @@ class CmdLine:
         allowed_config_options = ("uri",)
 
         config_path = os.path.expanduser("~")+"/.lsmcli"
+        if not os.path.exists(config_path):
+            return
+
         with open(config_path) as f:
             for line in f:
 
