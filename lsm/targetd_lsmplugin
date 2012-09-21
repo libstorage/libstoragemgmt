@@ -88,7 +88,11 @@ class TargetdStorage(IStorageAreaNetwork):
         return pools
 
     def initiators(self, flags = 0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+        inits = []
+        for init in set(i['initiator_wwn'] for i in self._jsonrequest("export_list")):
+            inits.append(Initiator(init, Initiator.TYPE_ISCSI, init))
+
+        return inits
 
     def _get_volume(self, pool_name, volume_name):
         vol = [v for v in self._jsonrequest("vol_list", dict(pool=pool_name))
