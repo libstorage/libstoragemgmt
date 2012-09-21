@@ -215,30 +215,25 @@ class TargetdStorage(IStorageAreaNetwork):
     def volumes_accessible_by_initiator(self, initiator, flags = 0):
         exports = [x for x in self._jsonrequest("export_list")
                      if initiator.id == x['initiator_wwn']]
-        volumes = self.volumes()
 
-        ret = []
+        vols = []
         for export in exports:
-            for volume in volumes:
-                if export['vol'] == volume.name \
-                        and export['pool'] == volume.pool.name:
-                    ret.append(volume)
-                    break
+            vols.append(Volume(export['vol_uuid'], export['vol_name'],
+                               export['vol_uuid'], 512, export['vol_size']/512,
+                               Volume.STATUS_OK, None))
 
-        return ret
+        return vols
 
     def initiators_granted_to_volume(self, volume, flags = 0):
         exports = [x for x in self._jsonrequest("export_list")
-                   if volume.name == x['vol']
-                   if volume.pool.name == x['pool']
-                   ]
+                   if volume.id == x['vol_uuid']]
 
-        ret = []
+        inits = []
         for export in exports:
-            name = export['initiator_name']
-            ret.append(Initiator(name, Initiator.TYPE_ISCSI, name))
+            name = export['initiator_wwn']
+            inits.append(Initiator(name, Initiator.TYPE_ISCSI, name))
 
-        return ret
+        return inits
 
     def volume_child_dependency(self, volume, flags = 0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
