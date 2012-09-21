@@ -1144,31 +1144,30 @@ class CmdLine:
 
     ## Used to grant or revoke access to a volume to an initiator.
     # @param    self    The this pointer
-    # @param    map     If True we map, else we un-map.
-    def _access(self, map=True):
+    # @param    grant   bool, if True we grant, else we un-grant.
+    def _access(self, grant):
         v = self._get_item(self.c.volumes(), self.options.opt_volume)
+        if not v:
+            raise ArgError("volume with id= %s not found" % self.options.opt_volume)
+
         initiator_id = self.cmd_value
 
-        if v:
-            if map:
-                i_type = CmdLine._init_type_to_enum(self.options.opt_type)
-                access = data.Volume.access_string_to_type(self.options.opt_access)
-                self.c.initiator_grant(initiator_id, i_type, v, access)
-            else:
-                initiator = self._get_item(self.c.initiators(), initiator_id)
+        if grant:
+            i_type = CmdLine._init_type_to_enum(self.options.opt_type)
+            access = data.Volume.access_string_to_type(self.options.opt_access)
 
-                if initiator:
-                    self.c.initiator_revoke(initiator, v)
-                else:
-                    raise ArgError("initiator with id= %s not found" % initiator_id)
+            self.c.initiator_grant(initiator_id, i_type, v, access)
         else:
-            if not v:
-                raise ArgError("volume with id= %s not found!" % self.options.opt_volume)
+            initiator = self._get_item(self.c.initiators(), initiator_id)
+            if not initiator:
+                raise ArgError("initiator with id= %s not found" % initiator_id)
+
+            self.c.initiator_revoke(initiator, v)
 
     ## Grant access to volume to an initiator
     # @param    self    The this pointer
     def access_grant(self):
-        return self._access()
+        return self._access(True)
 
     ## Revoke access to volume to an initiator
     # @param    self    The this pointer
