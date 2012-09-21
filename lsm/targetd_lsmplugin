@@ -62,8 +62,11 @@ class TargetdStorage(IStorageAreaNetwork):
         return cap
 
     def systems(self, flags = 0):
-        return System("targetd", "targetd storage appliance",
-                        System.STATUS_UNKNOWN),
+        # verify we're online
+        self._jsonrequest("pool_list")
+
+        return (System("targetd", "targetd storage appliance",
+                        System.STATUS_UNKNOWN),)
 
     def job_status(self, job_id, flags = 0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
