@@ -523,15 +523,18 @@ class Smis(IStorageAreaNetwork):
 
         #TODO: Make this work for all vendors
         #This is optional(EMC and NetApp place the vpd here)
-        if 'OtherIdentifyingInfo' in cv:
+        if 'OtherIdentifyingInfo' in cv and \
+            cv["OtherIdentifyingInfo"] is not None and \
+            len(cv["OtherIdentifyingInfo"]) > 0:
             other_id = cv["OtherIdentifyingInfo"]
-            if other_id is not None and len(other_id) > 0:
+
+            if isinstance(other_id, list):
                 other_id = other_id[0]
         else:
-            #Engenio/LSI use this field.
+            #Engenio/LSI/XIV use this field.
             nf = cv['NameFormat']
-            #Check to see if name format is NAA
-            if 9 == nf:
+            #Check to see if name format is NAA or FC Node WWN
+            if 9 == nf or 8 == nf:
                 other_id = cv["Name"]
 
         return Volume(  self._vol_id(cv), user_name, other_id, cv["BlockSize"],
