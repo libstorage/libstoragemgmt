@@ -442,16 +442,13 @@ class Smis(IStorageAreaNetwork):
         Interrogate the supported features of
         CIM_ProtocolControllerMaskingCapabilities
         """
-        pcm = self._get_class_instance(
-                                "CIM_ProtocolControllerMaskingCapabilities",
-                                'StorageSystem_name', system.id, True)
 
-        if pcm is None:
-            pcm = self._get_class_instance(
-                "CIM_ProtocolControllerMaskingCapabilities",
-                'InstanceID', system.id)
+        #Get the cim object that represents the system
+        cim_sys = self._systems(system.id)[0]
 
-
+        #Get the protocol controller masking capabililites
+        pcm = self._c.Associators(cim_sys.path,
+                        ResultClass='CIM_ProtocolControllerMaskingCapabilities')[0]
 
         cap.set(Capabilities.ACCESS_GROUP_LIST)
 
@@ -588,7 +585,10 @@ class Smis(IStorageAreaNetwork):
                 rc.extend([self._new_vol(v) for v in volumes])
             return rc
 
-    def _systems(self):
+    def _systems(self, system_name = None):
+        """
+        Returns a list of system objects (CIM)
+        """
         rc = []
         ccs = self._c.EnumerateInstances('CIM_ControllerConfigurationService')
 
@@ -598,7 +598,10 @@ class Smis(IStorageAreaNetwork):
                 ResultClass='CIM_ComputerSystem')[0]
 
             #Filtering
-            if self.system_list:
+            if system_name is not None:
+                if system['Name'] == system_name:
+                    rc.append(system)
+            elif self.system_list:
                 if system['Name'] in self.system_list:
                     rc.append(system)
             else:
