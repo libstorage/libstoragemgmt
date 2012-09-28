@@ -140,6 +140,16 @@ fi
 %{_libdir}/pkgconfig/libstoragemgmt.pc
 
 %changelog
+* Fri Sep 28 2012 Tony Asleson (Red Hat) <tasleson@redhat.com>
+- targetD Feature adds/fixes for initiators, init_granted_to_volume,
+  volumes_accessible_by_init, initiator_grant, initiator_revoke
+- SMI-S added compatibility with CIM_StorageConfigurationService
+- SMI-S bug fixes/changes to support XIV arrays (Basic functionality verified)
+- SMI-S Proxy layer added to allow different internal implementations of smi-s
+  client
+- Added missing version information for C plug-in API
+- lsmcli URI can be stored in file .lsmcli in users home directory
+
 * Fri Sep 07 2012 Tony Asleson (Red Hat) <tasleson@redhat.com>
 - SMI-S plug-in enhancements (Detach before delete, bug fixes for eSeries)
 - Added version specifier for non-opaque structs in plug-in callback interface
