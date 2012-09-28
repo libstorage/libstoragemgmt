@@ -15,22 +15,18 @@
 #
 # Author: tasleson
 
-from lsm import Smis
-import functools
+from smis import Smis
 import common
 
 #The unfortunate truth is that each of the vendors implements functionality
 #slightly differently so we will need to have some special code for these
 #instances.
 
-class SmisProxy(object):
+class SmisProxy(common.Proxy):
     """
     Layer to allow us to swap out different implementations of smi-s clients
     based on provider.
     """
-
-    def __init__(self):
-        self.impl = None
 
     def startup(self, uri, password, timeout, flags=0):
         """
@@ -41,15 +37,5 @@ class SmisProxy(object):
         #TODO Add code to interrogate the provider and then based on the type
         #we will instantiate the most appropriate implementation.  At the
         #moment we will drop back to our current mixed implementation.
-        self.impl = Smis()
-        self.impl.startup(uri, password, timeout, flags)
-
-    def __getattr__(self, item):
-        if hasattr(self.impl, item):
-            return functools.partial(self.execute, item)
-        else:
-            raise common.LsmError(common.ErrorNumber.NO_SUPPORT,
-                "Unsupported operation=" + item)
-
-    def execute(self, name, *args, **kwargs):
-        return getattr(self.impl, name)(*args, **kwargs)
+        self.proxied_obj = Smis()
+        self.proxied_obj.startup(uri, password, timeout, flags)

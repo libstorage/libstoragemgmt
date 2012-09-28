@@ -33,52 +33,6 @@ from data import Capabilities
 
 ##@package lsm.cmdline
 
-
-## Documentation for Wrapper class.
-#
-# Class to encapsulate the actual class we want to call.  When an attempt is
-# made to access an attribute that doesn't exist we will raise an LsmError
-# instead of the default keyError.
-class Wrapper(object):
-    """
-    Used to provide an unambiguous error when a feature is not implemented.
-    """
-
-    ## The constructor.
-    # @param    self    The object self
-    # @param    obj     The object instance to wrap
-    def __init__(self, obj):
-        """
-        Constructor which takes an object to wrap.
-        """
-        self.wrapper = obj
-
-    ## Called each time an attribute is requested of the object
-    # @param    self    The object self
-    # @param    name    Name of the attribute being accessed
-    # @return   The result of the method
-    def __getattr__(self, name):
-        """
-        Called each time an attribute is requested of the object
-        """
-        if hasattr(self.wrapper, name):
-            return functools.partial(self.present, name)
-        else:
-            raise common.LsmError(common.ErrorNumber.NO_SUPPORT,
-                                    "Unsupported operation")
-
-    ## Method which is called to invoke the actual method of interest.
-    # @param    self    The object self
-    # @param    name    Method to invoke
-    # @param    args    Arguments
-    # @param    kwargs  Keyword arguments
-    # @return   The result of the method invocation
-    def present(self, name, *args, **kwargs):
-        """
-        Method which is called to invoke the actual method of interest.
-        """
-        return getattr(self.wrapper, name)(*args, **kwargs)
-
 ## Wraps the invocation to the command line
 # @param    client  Object to invoke calls on (optional)
 def cmd_line_wrapper(client = None):
@@ -1447,7 +1401,7 @@ class CmdLine:
         if cli:
             #Directly invoking code though a wrapper to catch unsupported
             #operations.
-            self.c = Wrapper(cli())
+            self.c = common.Proxy(cli())
             self.c.startup(self.uri, self.password, self.tmo)
             self.cleanup = self.c.shutdown
         else:
