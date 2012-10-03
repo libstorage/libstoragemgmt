@@ -44,7 +44,6 @@ class Proxy(object):
         Constructor which takes an object to wrap.
         """
         self.proxied_obj = obj
-        self.proxied_method = None
 
     ## Called each time an attribute is requested of the object
     # @param    self    The object self
@@ -55,22 +54,22 @@ class Proxy(object):
         Called each time an attribute is requested of the object
         """
         if hasattr(self.proxied_obj, name):
-            self.proxied_method = name
-            return functools.partial(self.present)
+            return functools.partial(self.present, name)
         else:
             raise LsmError(ErrorNumber.NO_SUPPORT,
                 "Unsupported operation")
 
     ## Method which is called to invoke the actual method of interest.
-    # @param    self    The object self
-    # @param    args    Arguments
-    # @param    kwargs  Keyword arguments
+    # @param    self                The object self
+    # @param    _proxy_method_name  Method to invoke
+    # @param    args                Arguments
+    # @param    kwargs              Keyword arguments
     # @return   The result of the method invocation
-    def present(self, *args, **kwargs):
+    def present(self, _proxy_method_name, *args, **kwargs):
         """
         Method which is called to invoke the actual method of interest.
         """
-        return getattr(self.proxied_obj, self.proxied_method)(*args, **kwargs)
+        return getattr(self.proxied_obj, _proxy_method_name)(*args, **kwargs)
 
 # variable in client and specified on the command line for the daemon
 UDS_PATH = '/var/run/lsm/ipc'
