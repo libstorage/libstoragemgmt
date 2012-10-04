@@ -237,7 +237,7 @@ class TargetdStorage(IStorageAreaNetwork):
         user = self.uri.get('username', default_user)
         port = self.uri.get('port', default_port)
         host_with_port = "%s:%s" % (self.uri['host'], port)
-        if int(self.uri['parameters'].get('tls', '0')):
+        if self.uri['scheme'] == 'targetd+ssl':
             scheme = 'https'
         else:
             scheme = 'http'
