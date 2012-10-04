@@ -206,7 +206,6 @@ class TargetdStorage(IStorageAreaNetwork):
 
         vols = []
         for export in exports:
-            print exports
             vols.append(Volume(export['vol_uuid'], export['vol_name'],
                                export['vol_uuid'], 512, export['vol_size']/512,
                                Volume.STATUS_OK, self.system.id, export['pool']))
