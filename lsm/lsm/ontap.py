@@ -124,7 +124,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         return Volume(l['serial-number'], l['path'],
             self._create_vpd(l['serial-number']),
             block_size, num_blocks, Volume.STATUS_OK,
-            self.sys_info.id)
+            self.sys_info.id, l['aggr'])
 
     def _vol(self, v):
         pool_name = v['containing-aggregate']
@@ -143,7 +143,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def volumes(self, flags = 0):
-        luns = self.f.luns()
+        luns = self.f.luns_with_aggr_id()
         return [self._lun(l) for l in luns]
 
     @handle_ontap_errors
@@ -235,8 +235,8 @@ class Ontap(IStorageAreaNetwork, INfs):
 
         return rc
 
-    def _get_volume(self, vol_name):
-        return self._lun(self.f.luns(vol_name)[0])
+    def _get_volume(self, vol_name, pool_id):
+        return self._lun(self.f.luns(pool_id, vol_name, None)[0])
 
     @handle_ontap_errors
     def volume_create(self, pool, volume_name, size_bytes, provisioning, flags = 0):
@@ -260,7 +260,7 @@ class Ontap(IStorageAreaNetwork, INfs):
             raise e
 
         #Get the information about the newly created LUN
-        return None, self._get_volume(lun_name)
+        return None, self._get_volume(lun_name, pool.id)
 
     def _vol_to_na_volume_name(self, volume):
         return os.path.dirname(volume.name)[5:]
@@ -269,7 +269,7 @@ class Ontap(IStorageAreaNetwork, INfs):
     def volume_delete(self, volume, flags = 0):
         vol = self._vol_to_na_volume_name(volume)
 
-        luns = self.f.luns(na_volume_name=vol)
+        luns = self.f.luns(aggr=volume.pool_id, na_volume_name=vol)
 
         if len(luns) == 1:
             self.f.volume_delete(vol)
@@ -307,7 +307,7 @@ class Ontap(IStorageAreaNetwork, INfs):
             self.f.lun_resize(volume.name, new_size_bytes)
             self.f.volume_resize(na_vol, diff)
 
-        return None, self._get_volume(volume.name)
+        return None, self._get_volume(volume.name, volume.pool_id)
 
     def _volume_on_aggr(self, pool, volume):
         search = self._vol_to_na_volume_name(volume)
@@ -338,7 +338,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                 self.f.volume_resize(self._vol_to_na_volume_name(volume_src),
                                         -size)
                 raise e
-            return None, self._get_volume(dest)
+            return None, self._get_volume(dest, pool.id)
         else:
             #TODO Need to get instructions on how to provide this functionality
             raise LsmError(ErrorNumber.NO_SUPPORT,
@@ -606,7 +606,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                                 "num files != num restore_files")
 
             self._ss_revert_files(fs.name, snapshot.name, files, restore_files)
-            return ("%s@%d") % (Ontap.SS_JOB, len(files))
+            return "%s@%d" % (Ontap.SS_JOB, len(files))
         else:
             raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                             "Invalid parameter combination")

@@ -47,7 +47,8 @@ lsmVolume *valueToVolume(Value &vol)
             v["block_size"].asUint64_t(),
             v["num_of_blocks"].asUint64_t(),
             v["status"].asUint32_t(),
-            v["system_id"].asString().c_str());
+            v["system_id"].asString().c_str(),
+            v["pool_id"].asString().c_str());
     }
 
     return rc;
@@ -65,6 +66,7 @@ Value volumeToValue(lsmVolume *vol)
     v["num_of_blocks"] = Value(vol->numberOfBlocks);
     v["status"] = Value(vol->status);
     v["system_id"] = Value(vol->system_id);
+    v["pool_id"] = Value(vol->pool_id);
     return Value(v);
 }
 

@@ -212,7 +212,7 @@ class Volume(IData):
             return Volume.ACCESS_READ_ONLY
 
     def __init__(self, id, name, vpd83, block_size, num_of_blocks, status,
-                 system_id):
+                 system_id, pool_id):
         self.id = id
         self.name = name
         self.vpd83 = vpd83
@@ -220,6 +220,7 @@ class Volume(IData):
         self.num_of_blocks = num_of_blocks
         self.status = status
         self.system_id = system_id
+        self.pool_id = pool_id
 
     @property
     def size_bytes(self):
@@ -232,11 +233,11 @@ class Volume(IData):
         return self.name
 
     def column_headers(self):
-        return [['ID', 'Name', 'vpd83', 'bs', '#blocks', 'status', 'size', 'System ID']]
+        return [['ID', 'Name', 'vpd83', 'bs', '#blocks', 'status', 'size', 'System ID', 'Pool ID']]
 
     def column_data(self,human=False):
         return [[self.id, self.name, self.vpd83, self.block_size, self.num_of_blocks,
-                self.status, sh(self.size_bytes, human), self.system_id]]
+                self.status, sh(self.size_bytes, human), self.system_id, self.pool_id]]
 
 class System(IData):
 
@@ -271,7 +272,7 @@ class Pool(IData):
 
     def column_data(self,human=False):
         return [[self.id, self.name, sh(self.total_space, human),
-                sh(self.free_space,human), sh(self.system_id,human)]]
+                sh(self.free_space,human), self.system_id]]
 
 class FileSystem(IData):
     def __init__(self, id, name, total_space, free_space, pool_id, system_id):

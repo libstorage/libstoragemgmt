@@ -26,13 +26,6 @@
 #include <crypt.h>
 #include <glib.h>
 #include <assert.h>
-
-#include "libstoragemgmt/libstoragemgmt_accessgroups.h"
-#include "libstoragemgmt/libstoragemgmt_initiators.h"
-#include "libstoragemgmt/libstoragemgmt_fs.h"
-#include "libstoragemgmt/libstoragemgmt_snapshot.h"
-#include "libstoragemgmt/libstoragemgmt_nfsexport.h"
-#include "libstoragemgmt/libstoragemgmt_blockrange.h"
 #include <time.h>
 
 #ifdef  __cplusplus
@@ -683,7 +676,8 @@ static int volume_create(lsmPluginPtr c, lsmPoolPtr pool,
                     char *id = md5(volumeName);
 
                     lsmVolumePtr v = lsmVolumeRecordAlloc(id, volumeName,
-                                       "VPD", BS, allocated_size/BS, 0, sys_id);
+                                       "VPD", BS, allocated_size/BS, 0, sys_id,
+                                        lsmPoolIdGet(pool));
 
                     if( v ) {
                         pd->volume[pd->num_volumes].v = lsmVolumeRecordCopy(v);
@@ -802,7 +796,8 @@ static int volume_resize(lsmPluginPtr c, lsmVolumePtr volume,
                                                     lsmVolumeNameGet(v),
                                                     lsmVolumeVpd83Get(v),
                                                     lsmVolumeBlockSizeGet(v),
-                                                    resized_size/BS, 0, sys_id);
+                                                    resized_size/BS, 0, sys_id,
+                                                    lsmVolumePoolIdGet(volume));
             if( vp ) {
                 pd->volume[vi].v = vp;
                 lsmVolumeRecordFree(v);

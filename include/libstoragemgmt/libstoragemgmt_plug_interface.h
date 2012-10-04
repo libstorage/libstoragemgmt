@@ -21,14 +21,22 @@
 #define LIBSTORAGEMGMT_PLUG_INTERFACE_H
 
 #include <libxml/uri.h>
-#include "libstoragemgmt_common.h"
-#include "libstoragemgmt_types.h"
-#include "libstoragemgmt_error.h"
 
+
+#include "libstoragemgmt_types.h"
+#include "libstoragemgmt_common.h"
+
+#include "libstoragemgmt_accessgroups.h"
+#include "libstoragemgmt_blockrange.h"
+#include "libstoragemgmt_capabilities.h"
+#include "libstoragemgmt_error.h"
+#include "libstoragemgmt_fs.h"
+#include "libstoragemgmt_initiators.h"
+#include "libstoragemgmt_nfsexport.h"
+#include "libstoragemgmt_pool.h"
+#include "libstoragemgmt_snapshot.h"
 #include "libstoragemgmt_systems.h"
 #include "libstoragemgmt_volumes.h"
-#include "libstoragemgmt_pool.h"
-#include "libstoragemgmt_capabilities.h"
 
 #ifdef  __cplusplus
 extern "C" {
@@ -503,7 +511,8 @@ lsmVolumePtr LSM_DLL_EXPORT lsmVolumeRecordAlloc( const char *id,
                                         uint64_t blockSize,
                                         uint64_t numberOfBlocks,
                                         uint32_t status,
-                                        const char *system_id);
+                                        const char *system_id,
+                                        const char *pool_id);
 
 /**
  * Allocate the storage needed for and array of System records.

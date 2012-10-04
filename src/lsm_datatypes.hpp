@@ -49,7 +49,8 @@ struct LSM_DLL_LOCAL _lsmVolume {
     uint64_t    blockSize;              /**< Block size */
     uint64_t    numberOfBlocks;         /**< Number of blocks */
     uint32_t    status;                 /**< Status */
-    char *system_id;
+    char *system_id;                    /**< System this volume belongs */
+    char *pool_id;                      /**< Pool this volume is derived from */
 };
 
 #define LSM_POOL_MAGIC       0xAA7A0001

@@ -648,7 +648,7 @@ CREATE_ALLOC_ARRAY_FUNC(lsmVolumeRecordAllocArray, lsmVolumePtr)
 lsmVolumePtr lsmVolumeRecordAlloc(const char *id, const char *name,
     const char *vpd83, uint64_t blockSize,
     uint64_t numberOfBlocks,
-    uint32_t status, const char *system_id)
+    uint32_t status, const char *system_id, const char *pool_id)
 {
     lsmVolumePtr rc = (lsmVolumePtr)malloc(sizeof(lsmVolume));
     if (rc) {
@@ -660,12 +660,15 @@ lsmVolumePtr lsmVolumeRecordAlloc(const char *id, const char *name,
         rc->numberOfBlocks = numberOfBlocks;
         rc->status = status;
         rc->system_id = strdup(system_id);
+        rc->pool_id = strdup(pool_id);
 
-        if( !rc->id || !rc->name || !rc->vpd83 || !rc->system_id) {
+        if( !rc->id || !rc->name || !rc->vpd83 || !rc->system_id ||
+            !rc->pool_id) {
             free(rc->id);
             free(rc->name);
             free(rc->vpd83);
             free(rc->system_id);
+            free(rc->pool_id);
             free(rc);
             rc = NULL;
         }
@@ -744,7 +747,7 @@ lsmVolumePtr lsmVolumeRecordCopy(lsmVolumePtr vol)
     if( LSM_IS_VOL(vol) ) {
         rc = lsmVolumeRecordAlloc( vol->id, vol->name, vol->vpd83,
                                     vol->blockSize, vol->numberOfBlocks,
-                                    vol->status, vol->system_id);
+                                    vol->status, vol->system_id, vol->pool_id);
     }
     return rc;
 }
@@ -849,6 +852,11 @@ uint32_t lsmVolumeOpStatusGet(lsmVolumePtr v)
 char LSM_DLL_EXPORT *lsmVolumeSystemIdGet( lsmVolumePtr v)
 {
     MEMBER_GET(v, LSM_IS_VOL, system_id, NULL);
+}
+
+char LSM_DLL_EXPORT *lsmVolumePoolIdGet( lsmVolumePtr v)
+{
+    MEMBER_GET(v, LSM_IS_VOL, pool_id, NULL);
 }
 
 CREATE_ALLOC_ARRAY_FUNC(lsmAccessGroupRecordAllocArray, lsmAccessGroupPtr)

@@ -98,6 +98,13 @@ uint32_t LSM_DLL_EXPORT lsmVolumeOpStatusGet(lsmVolumePtr v);
  */
 char LSM_DLL_EXPORT *lsmVolumeSystemIdGet( lsmVolumePtr v );
 
+/**
+ * Retrieves the pool id that the volume is derived from.
+ * @param v     Volume ptr.
+ * @return Pool id.
+ */
+char LSM_DLL_EXPORT *lsmVolumePoolIdGet( lsmVolumePtr v );
+
 #ifdef  __cplusplus
 }
 #endif

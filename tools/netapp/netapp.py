@@ -62,7 +62,7 @@ if __name__ == '__main__':
             if options.xmlfile:
                 lsm.na.xml_debug = options.xmlfile
 
-            result = lsm.na.netapp_filer(options.host, user, password, options.command,
+            result = lsm.na.netapp_filer(options.host, user, password, 30, options.command,
                 process_params(options.params), options.ssl)
             pp.pprint(result)
         else:

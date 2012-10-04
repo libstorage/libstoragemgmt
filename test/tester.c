@@ -930,6 +930,47 @@ struct bad_record
 };
 
 
+START_TEST(test_volume_methods)
+{
+    lsmVolumePtr v = NULL;
+    lsmPoolPtr test_pool = NULL;
+    char *job = NULL;
+
+    int rc = 0;
+
+    fail_unless(c != NULL);
+
+    test_pool = getTestPool(c);
+
+    if( test_pool ) {
+        rc = lsmVolumeCreate(c, test_pool, "lsm_volume_method_test",
+                                    10000000, LSM_PROVISION_DEFAULT,
+                                    &v, &job, LSM_FLAG_RSVD);
+
+        if( LSM_ERR_JOB_STARTED == rc ) {
+            v = wait_for_job_vol(c, &job);
+        } else {
+            fail_unless(LSM_ERR_OK != rc, "rc %d", rc);
+        }
+
+        if ( v ) {
+            fail_unless( strcmp(lsmVolumePoolIdGet(v), lsmPoolIdGet(test_pool)) == 0 );
+
+            rc = lsmVolumeDelete(c, v, &job, LSM_FLAG_RSVD);
+            if( LSM_ERR_JOB_STARTED == rc ) {
+                v = wait_for_job_vol(c, &job);
+            } else {
+                fail_unless(LSM_ERR_OK != rc, "rc %d", rc);
+            }
+
+            lsmVolumeRecordFree(v);
+        }
+
+        lsmPoolRecordFree(test_pool);
+    }
+}
+END_TEST
+
 START_TEST(test_invalid_input)
 {
     fail_unless(c != NULL);
@@ -1725,6 +1766,7 @@ Suite * lsm_suite(void)
     TCase *basic = tcase_create("Basic");
     tcase_add_checked_fixture (basic, setup, teardown);
 
+    tcase_add_test(basic, test_volume_methods);
     tcase_add_test(basic, test_iscsi_auth_in);
     tcase_add_test(basic, test_initiator_methods);
     tcase_add_test(basic, test_capabilities);

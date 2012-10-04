@@ -39,6 +39,8 @@ class TargetdStorage(IStorageAreaNetwork):
         self.password = password
         self.tmo = timeout
         self.rpc_id = 1
+        self.system = System("targetd", "targetd storage appliance",
+                            System.STATUS_UNKNOWN)
 
     def set_time_out(self, ms, flags = 0):
         self.tmo = ms
@@ -59,14 +61,18 @@ class TargetdStorage(IStorageAreaNetwork):
         cap.set(Capabilities.VOLUME_DELETE)
         cap.set(Capabilities.VOLUME_OFFLINE)
         cap.set(Capabilities.VOLUME_ONLINE)
+        cap.set(Capabilities.INITIATORS)
+        cap.set(Capabilities.VOLUME_INITIATOR_GRANT)
+        cap.set(Capabilities.VOLUME_INITIATOR_REVOKE)
+        cap.set(Capabilities.VOLUME_ACCESSIBLE_BY_INITIATOR)
+        cap.set(Capabilities.INITIATORS_GRANTED_TO_VOLUME)
         return cap
 
     def systems(self, flags = 0):
         # verify we're online
         self._jsonrequest("pool_list")
 
-        return (System("targetd", "targetd storage appliance",
-                        System.STATUS_UNKNOWN),)
+        return [self.system]
 
     def job_status(self, job_id, flags = 0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
@@ -80,7 +86,7 @@ class TargetdStorage(IStorageAreaNetwork):
             for vol in self._jsonrequest("vol_list", dict(pool=pool)):
                 volumes.append(Volume(vol['uuid'], vol['name'], vol['uuid'],
                                       512, vol['size']/512, Volume.STATUS_OK,
-                                      None))
+                                      self.system.id, pool))
         return volumes
 
     def pools(self, flags = 0):
@@ -97,30 +103,30 @@ class TargetdStorage(IStorageAreaNetwork):
 
         return inits
 
-    def _get_volume(self, pool_name, volume_name):
-        vol = [v for v in self._jsonrequest("vol_list", dict(pool=pool_name))
+    def _get_volume(self, pool_id, volume_name):
+        vol = [v for v in self._jsonrequest("vol_list", dict(pool=pool_id))
                if v['name'] == volume_name][0]
 
         return Volume(vol['uuid'], vol['name'], vol['uuid'],
-                      512, vol['size']/512, Volume.STATUS_OK, None)
+                      512, vol['size']/512, Volume.STATUS_OK, self.system.id, pool_id)
 
     def volume_create(self, pool, volume_name, size_bytes, provisioning, flags = 0):
-        self._jsonrequest("vol_create", dict(pool=pool.name,
+        self._jsonrequest("vol_create", dict(pool=pool.id,
                                              name=volume_name, size=size_bytes))
 
-        return (None, self._get_volume(pool.name, volume_name))
+        return None, self._get_volume(pool.id, volume_name)
 
     def volume_delete(self, volume, flags = 0):
-        self._jsonrequest("vol_destroy", dict(pool=volume.pool.name, vol=volume.name))
+        self._jsonrequest("vol_destroy", dict(pool=volume.pool_id, name=volume.name))
 
     def volume_replicate(self, pool, rep_type, volume_src, name, flags = 0):
         if rep_type != Volume.REPLICATE_COPY:
             raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
         self._jsonrequest("vol_copy",
-                          dict(pool=pool.name, vol_orig=volume_src.name, vol_new=name))
+                          dict(pool=pool.id, vol_orig=volume_src.name, vol_new=name))
 
-        return (None, self._get_volume(pool.name, name))
+        return None, self._get_volume(pool.id, name)
 
     def volume_replicate_range_block_size(self, flags = 0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
@@ -130,7 +136,7 @@ class TargetdStorage(IStorageAreaNetwork):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
     def volume_online(self, volume, flags = 0):
-        vol_list = self._jsonrequest("vol_list", dict(pool=volume.pool.name))
+        vol_list = self._jsonrequest("vol_list", dict(pool=volume.pool_id))
 
         return volume.name in [vol['name'] for vol in vol_list]
 
@@ -170,24 +176,6 @@ class TargetdStorage(IStorageAreaNetwork):
     def iscsi_chap_auth_inbound( self, initiator, user, password, flags = 0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def _pool_name_from_vol(self, volume):
-        """
-        Iterate through pools and volumes to find the pool name for a specific
-        volume.
-        """
-
-        pool_name = None
-        for pool in self._jsonrequest("pool_list"):
-            for vol in self._jsonrequest("vol_list", dict(pool=pool['name'])):
-                if vol['uuid'] == volume.id:
-                    pool_name = pool['name']
-                    break
-
-        if not pool_name:
-            raise LsmError(ErrorNumber.INVALID_POOL,
-                           "Could not find pool for volume %s" % volume.id)
-        return pool_name
-
     def initiator_grant(self, initiator_id, initiator_type, volume, access, flags = 0):
         if initiator_type != Initiator.TYPE_ISCSI:
             raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
@@ -202,13 +190,13 @@ class TargetdStorage(IStorageAreaNetwork):
                 break
 
         self._jsonrequest("export_create",
-                          dict(pool=self._pool_name_from_vol(volume),
+                          dict(pool=volume.pool_id,
                                vol=volume.name,
                                initiator_wwn=initiator_id, lun=lun))
 
     def initiator_revoke(self, initiator, volume, flags = 0):
         self._jsonrequest("export_destroy",
-                          dict(pool=self._pool_name_from_vol(volume),
+                          dict(pool=volume.pool_id,
                                vol=volume.name,
                                initiator_wwn=initiator.id))
 
@@ -218,9 +206,10 @@ class TargetdStorage(IStorageAreaNetwork):
 
         vols = []
         for export in exports:
+            print exports
             vols.append(Volume(export['vol_uuid'], export['vol_name'],
                                export['vol_uuid'], 512, export['vol_size']/512,
-                               Volume.STATUS_OK, None))
+                               Volume.STATUS_OK, self.system.id, export['pool']))
 
         return vols
 

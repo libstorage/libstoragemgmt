@@ -210,7 +210,7 @@ class Filer(object):
         """
         return '/vol/%s/%s' % (volume_name, file_name )
 
-    def luns(self, na_lun_name=None, na_volume_name=None):
+    def luns(self, aggr, na_lun_name=None, na_volume_name=None):
         """
         Return all logical units, or information about one or for all those
         on a volume name.
@@ -228,6 +228,26 @@ class Filer(object):
 
         if tmp is not None:
             rc = to_list(tmp['lun-info'])
+
+            if len(rc):
+                #Add a key/value for aggr to hash so upper layers have it.
+                for i in range(len(rc)):
+                    rc[i]['aggr'] = aggr
+
+        return rc
+
+    def luns_with_aggr_id(self):
+        rc = []
+
+        aggrs = self._invoke('aggr-list-info')
+        tmp = aggrs['aggregates']['aggr-info']
+
+        for p in to_list(tmp):
+
+            if p['volumes'] is not None:
+                volumes = to_list(p['volumes']['contained-volume-info'])
+                for v in volumes:
+                    rc.extend(self.luns(p['uuid'], None, v['name']))
 
         return rc
 
@@ -483,11 +503,17 @@ class Filer(object):
                             {'initiator': initiator_id})
 
         if rc['lun-maps']:
-            lun_list = to_list(rc['lun-maps']['lun-map-info'])
-            for l in lun_list:
-                if l['initiator-group'] == initiator_group_name:
-                    luns.append(self.luns(l['path'])[0])
 
+            lun_name_list = to_list(rc['lun-maps']['lun-map-info'])
+
+            #Get all the lun with information about aggr
+            all_luns = self.luns_with_aggr_id()
+
+            for l in lun_name_list:
+                if l['initiator-group'] == initiator_group_name:
+                    for al in all_luns:
+                        if al['path'] == l['path']:
+                            luns.append(al)
         return luns
 
     def snapshots(self, volume_name):

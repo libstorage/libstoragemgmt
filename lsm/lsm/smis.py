@@ -488,7 +488,18 @@ class Smis(IStorageAreaNetwork):
     def _vol_id(c):
         return md5(c['SystemName'] + c['DeviceID'])
 
-    def _new_vol(self, cv):
+    def _get_pool_from_vol(self, cim_volume):
+        """
+         Takes a CIMInstance that represents a volume and returns the pool
+         id for that volume.
+        """
+        p = self._c.Associators(cim_volume.path,
+                            AssocClass='CIM_AllocatedFromStoragePool',
+                            ResultClass='CIM_StoragePool')[0]
+
+        return p['InstanceID']
+
+    def _new_vol(self, cv, pool_id=None):
         """
         Takes a CIMInstance that represents a volume and returns a lsm Volume
         """
@@ -534,8 +545,14 @@ class Smis(IStorageAreaNetwork):
             if 9 == nf or 8 == nf:
                 other_id = cv["Name"]
 
+        #This is a fairly expensive operation, so it's in our best interest
+        #to not call this very often.
+        if pool_id is None:
+            #Go an retrieve the pool id
+            pool_id = self._get_pool_from_vol(cv)
+
         return Volume(  self._vol_id(cv), user_name, other_id, cv["BlockSize"],
-                        cv["NumberOfBlocks"], status, cv['SystemName'])
+                        cv["NumberOfBlocks"], status, cv['SystemName'], pool_id)
 
     def _new_vol_from_name(self, out):
         """
@@ -569,21 +586,16 @@ class Smis(IStorageAreaNetwork):
         """
         Return all volumes.
         """
+        rc = []
+        systems = self._systems()
+        for s in systems:
+            pools = self._pools(s)
 
-        #If no filtering, we will get all of the volumes in one shot, else
-        #we will retrieve them system by system
-        if self.system_list is None:
-            volumes = self._c.EnumerateInstances('CIM_StorageVolume')
-            return [ self._new_vol(v) for v in volumes ]
-        else:
-            rc = []
-            systems = self._systems()
-            for s in systems:
-                volumes = self._c.Associators(s.path,
-                                                AssocClass='CIM_SystemDevice',
-                                                ResultClass='CIM_StorageVolume')
-                rc.extend([self._new_vol(v) for v in volumes])
-            return rc
+            for p in pools:
+                volumes = self._c.Associators(p.path, ResultClass='CIM_StorageVolume')
+                rc.extend([self._new_vol(v, p['InstanceID']) for v in volumes])
+
+        return rc
 
     def _systems(self, system_name = None):
         """
@@ -609,6 +621,13 @@ class Smis(IStorageAreaNetwork):
 
         return rc
 
+    def _pools(self, system):
+        pools = self._c.Associators(system.path,
+                                    AssocClass='CIM_HostedStoragePool',
+                                    ResultClass='CIM_StoragePool')
+
+        return [p for p in pools if not p["Primordial"]]
+
     @handle_cim_errors
     def pools(self, flags = 0):
         """
@@ -617,14 +636,13 @@ class Smis(IStorageAreaNetwork):
         rc = []
         systems = self._systems()
         for s in systems:
-            pools = self._c.Associators(s.path,
-                                AssocClass='CIM_HostedStoragePool',
-                                ResultClass='CIM_StoragePool')
+            pools = self._pools(s)
+
             rc.extend(
                 [ Pool(p['InstanceID'], p["ElementName"],
                 p["TotalManagedSpace"],
                 p["RemainingManagedSpace"],
-                s['Name']) for p in pools if not p["Primordial"]])
+                s['Name']) for p in pools])
 
         return rc
 
