@@ -39,6 +39,22 @@ class TargetdStorage(IStorageAreaNetwork):
         self.password = password
         self.tmo = timeout
         self.rpc_id = 1
+
+        user = self.uri.get('username', default_user)
+        port = self.uri.get('port', default_port)
+
+        self.host_with_port = "%s:%s" % (self.uri['host'], port)
+        if self.uri['scheme'].lower() == 'targetd+ssl':
+            self.scheme = 'https'
+        else:
+            self.scheme = 'http'
+
+        self.url = urlparse.urlunsplit((self.scheme, self.host_with_port, path, None, None))
+
+        auth = ('%s:%s' % (user, self.password)).encode('base64')[:-1]
+        self.headers = {'Content-Type': 'application/json',
+                   'Authorization': 'Basic %s' % (auth,)}
+
         self.system = System("targetd", "targetd storage appliance",
                             System.STATUS_UNKNOWN)
 
@@ -234,27 +250,17 @@ class TargetdStorage(IStorageAreaNetwork):
                                params=params, jsonrpc="2.0"))
         self.rpc_id += 1
 
-        user = self.uri.get('username', default_user)
-        port = self.uri.get('port', default_port)
-        host_with_port = "%s:%s" % (self.uri['host'], port)
-        if self.uri['scheme'] == 'targetd+ssl':
-            scheme = 'https'
-        else:
-            scheme = 'http'
-        url = urlparse.urlunsplit((scheme, host_with_port, path, None, None))
-        auth = ('%s:%s' % (user, self.password)).encode('base64')[:-1]
-        headers = {'Content-Type': 'application/json',
-                   'Authorization': 'Basic %s' % (auth,)}
         try:
-            request = urllib2.Request(url, data, headers)
+            request = urllib2.Request(self.url, data, self.headers)
             response_obj = urllib2.urlopen(request)
         except socket.error:
-            if scheme == 'https':
+            if self.scheme == 'https':
                 raise
             print "socket error, retrying with SSL"
-            url = urlparse.urlunsplit(("https", host_with_port, path, None, None))
-            request = urllib2.Request(url, data, headers)
+            url = urlparse.urlunsplit(("https", self.host_with_port, path, None, None))
+            request = urllib2.Request(url, data, self.headers)
             response_obj = urllib2.urlopen(request)
+
         response_data = response_obj.read()
         response = json.loads(response_data)
         if response.get('error', None) is None:
