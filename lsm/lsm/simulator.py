@@ -202,7 +202,7 @@ class StorageSimulator(INfs,IStorageAreaNetwork):
 
         nv = Volume('Vol' + str(self.s.vol_num), name,
             StorageSimulator.__randomVpd(), 512,
-            (actual_size / 512), Volume.STATUS_OK, self.s.sys_info.id)
+            (actual_size / 512), Volume.STATUS_OK, self.s.sys_info.id, pool.id)
         self.s.volumes[nv.id] = {'pool': pool, 'volume': nv}
         self.s.vol_num += 1
         return self.__create_job(nv)
