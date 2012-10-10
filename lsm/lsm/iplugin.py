@@ -169,7 +169,7 @@ class IStorageAreaNetwork(IPlugin):
         pass
 
     @abstractmethod
-    def volume_replicate_range_block_size(self, flags = 0):
+    def volume_replicate_range_block_size(self, system, flags = 0):
         """
         Returns the number of bytes per block for volume_replicate_range
         call.  Callers of volume_replicate_range need to use this when

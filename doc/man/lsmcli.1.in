@@ -172,6 +172,9 @@ replicates a volume, requires:
 .br
 \fB\-\-name\fR <human name>
 .TP
+\fB\-\-replicate\-volume\-range\-block\-size=\fR<system id>
+size of each replicated block in bytes
+.TP
 \fB\-\-replicate\-volume\-range=\fR<volume id>
 Replicates a portion of a volume, requires:
 .br

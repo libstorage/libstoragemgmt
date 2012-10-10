@@ -343,7 +343,7 @@ class StorageSimulator(INfs,IStorageAreaNetwork):
                 raise LsmError(ErrorNumber.NOT_FOUND_VOLUME, 'Volume not present')
         return None
 
-    def volume_replicate_range_block_size(self, flags = 0):
+    def volume_replicate_range_block_size(self, system, flags = 0):
         return 512
 
     def volume_replicate_range(self, rep_type, volume_src, volume_dest,

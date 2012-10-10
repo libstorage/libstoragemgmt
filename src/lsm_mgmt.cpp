@@ -646,8 +646,8 @@ int lsmVolumeReplicate(lsmConnectPtr c, lsmPoolPtr pool,
 
 }
 
-int lsmVolumeReplicateRangeBlockSize(lsmConnectPtr c, uint32_t *bs,
-                                        lsmFlag_t flags)
+int lsmVolumeReplicateRangeBlockSize(lsmConnectPtr c, lsmSystemPtr system,
+                                        uint32_t *bs, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -655,7 +655,12 @@ int lsmVolumeReplicateRangeBlockSize(lsmConnectPtr c, uint32_t *bs,
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
+    if( !LSM_IS_SYSTEM(system) ) {
+        return LSM_ERR_INVALID_SYSTEM;
+    }
+
     std::map<std::string, Value> p;
+    p["system"] = systemToValue(system);
     p["flags"] = Value(flags);
     Value parameters(p);
     Value response;

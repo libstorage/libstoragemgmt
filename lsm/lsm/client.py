@@ -343,9 +343,10 @@ class Client(INetworkAttachedStorage):
 
     ## Size of a replicated block.
     # @param    self    The this pointer
+    # @param    self    System to request block size value
     # @param    flags   Reserved for future use, must be zero.
     # @returns  Size of the replicated block in bytes
-    def volume_replicate_range_block_size(self, flags = 0):
+    def volume_replicate_range_block_size(self, system, flags = 0):
         """
         Returns the size of a replicated block in bytes.
         """

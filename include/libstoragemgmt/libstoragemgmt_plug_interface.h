@@ -115,7 +115,8 @@ typedef int (*lsmPlugVolumeReplicate)(lsmPluginPtr c, lsmPoolPtr pool,
                         const char *name, lsmVolumePtr *newReplicant,
                         char **job, lsmFlag_t flags);
 
-typedef int (*lsmPlugVolumeReplicateRangeBlockSize)(lsmPluginPtr c, uint32_t *bs, lsmFlag_t flags);
+typedef int (*lsmPlugVolumeReplicateRangeBlockSize)(lsmPluginPtr c, lsmSystemPtr system,
+                                                    uint32_t *bs, lsmFlag_t flags);
 
 typedef int (*lsmPlugVolumeReplicateRange)(lsmPluginPtr c,
                                                 lsmReplicationType repType,

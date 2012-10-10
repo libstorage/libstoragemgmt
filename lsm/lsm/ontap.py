@@ -345,7 +345,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                         "Unable to replicate volume to different pool")
 
     @handle_ontap_errors
-    def volume_replicate_range_block_size(self, flags = 0):
+    def volume_replicate_range_block_size(self, system, flags = 0):
         return 4096
 
     @handle_ontap_errors

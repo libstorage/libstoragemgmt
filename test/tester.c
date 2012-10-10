@@ -267,6 +267,23 @@ void create_volumes(lsmConnectPtr c, lsmPoolPtr p, int num)
     }
 }
 
+lsmSystemPtr get_system()
+{
+    lsmSystemPtr rc_sys = NULL;
+    lsmSystemPtr *sys=NULL;
+    uint32_t count = 0;
+
+    int rc = lsmSystemList(c, &sys, &count, LSM_FLAG_RSVD);
+
+    fail_unless(LSM_ERR_OK == rc);
+
+    if( LSM_ERR_OK == rc && count) {
+        rc_sys = lsmSystemRecordCopy(sys[0]);
+        lsmSystemRecordFreeArray(sys, count);
+    }
+    return rc_sys;
+}
+
 START_TEST(test_smoke_test)
 {
     uint32_t i = 0;
@@ -354,10 +371,13 @@ START_TEST(test_smoke_test)
 
 
         uint32_t bs = 0;
-        int rep_bs = lsmVolumeReplicateRangeBlockSize(c, &bs, LSM_FLAG_RSVD);
-        fail_unless(LSM_ERR_OK == rep_bs);
+        lsmSystemPtr system = get_system();
+
+        int rep_bs = lsmVolumeReplicateRangeBlockSize(c, system, &bs, LSM_FLAG_RSVD);
+        fail_unless(LSM_ERR_OK == rep_bs, "%d", rep_bs);
         fail_unless(512 == bs);
 
+        lsmSystemRecordFree(system);
 
         int rep_i = 0;
 
@@ -1250,7 +1270,7 @@ START_TEST(test_invalid_input)
 
 
     /* lsmVolumeReplicateRangeBlockSize */
-    rc = lsmVolumeReplicateRangeBlockSize(c, NULL, LSM_FLAG_RSVD);
+    rc = lsmVolumeReplicateRangeBlockSize(c, NULL, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     /* lsmVolumeReplicateRange */

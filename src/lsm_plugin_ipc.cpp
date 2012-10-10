@@ -487,6 +487,7 @@ static int capabilities(lsmPluginPtr p, Value &params, Value &response)
                     lsmCapabilityRecordFree(c);
                     c = NULL;
                 }
+                lsmSystemRecordFree(sys);
             } else {
                 rc = LSM_ERR_NO_MEMORY;
             }
@@ -720,13 +721,23 @@ static int handle_volume_replicate_range_block_size( lsmPluginPtr p,
     uint32_t block_size = 0;
 
     if( p && p->sanOps && p->sanOps->vol_rep_range_bs ) {
+        Value v_s = params["system"];
 
-        if( LSM_FLAG_EXPECTED_TYPE(params) ) {
+        if( Value::object_t == v_s.valueType() &&
+            LSM_FLAG_EXPECTED_TYPE(params) ) {
+            lsmSystemPtr sys = valueToSystem(v_s);
 
-            rc = p->sanOps->vol_rep_range_bs(p, &block_size,
+            if( sys ) {
+                rc = p->sanOps->vol_rep_range_bs(p, sys, &block_size,
                                         LSM_FLAG_GET_VALUE(params));
-            if( LSM_ERR_OK == rc ) {
-                response = Value(block_size);
+
+                if( LSM_ERR_OK == rc ) {
+                    response = Value(block_size);
+                }
+
+                lsmSystemRecordFree(sys);
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
             }
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;

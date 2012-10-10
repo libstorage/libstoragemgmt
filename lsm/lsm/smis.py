@@ -913,7 +913,7 @@ class Smis(IStorageAreaNetwork):
 
         raise LsmError(ErrorNumber.NO_SUPPORT, "volume-replicate not supported")
 
-    def volume_replicate_range_block_size(self, flags = 0):
+    def volume_replicate_range_block_size(self, system, flags = 0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
     def volume_replicate_range(self, rep_type, volume_src, volume_dest, ranges,

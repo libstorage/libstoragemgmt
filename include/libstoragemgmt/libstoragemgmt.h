@@ -255,11 +255,13 @@ extern "C" {
     /**
      * Unit of block size for the replicate range method.
      * @param[in] conn                  Valid connection
+     * @param[in] system                Valid lsmSystemPtr
      * @param[out] bs                   Block size
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
     int LSM_DLL_EXPORT lsmVolumeReplicateRangeBlockSize(lsmConnectPtr conn,
+                                                        lsmSystemPtr system,
                                                         uint32_t *bs,
                                                         lsmFlag_t flags);
 

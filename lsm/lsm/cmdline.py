@@ -329,6 +329,10 @@ class CmdLine:
                                               "--pool <pool id>\n"
                                               "--name <human name>")
 
+        commands.add_option( '', '--replicate-volume-range-block-size', action="store", type="string",
+            metavar='<system id>',
+            dest=_c("replicate-volume-range-block-size"), help='size of each replicated block in bytes')
+
         commands.add_option( '', '--replicate-volume-range', action="store", type="string",
             metavar='<volume id>',
             dest=_c("replicate-volume-range"), help='replicates a portion of a volume, requires:\n'
@@ -1095,6 +1099,16 @@ class CmdLine:
             if not dest:
                 raise ArgError("dest volume with id= %s not found!" % self.options.opt_dest)
 
+    ##
+    # Returns the block size in bytes for each block represented in volume_replicate_range
+    # @param    self    The this pointer
+    def replicate_vol_range_bs(self):
+        s = self._get_item(self.c.systems(), self.cmd_value)
+        if s:
+            print self.c.volume_replicate_range_block_size(s)
+        else:
+            raise ArgError("system with id= %s not found" % self.cmd_value)
+
     ## Used to grant or revoke access to a volume to an initiator.
     # @param    self    The this pointer
     # @param    grant   bool, if True we grant, else we un-grant.
@@ -1344,6 +1358,8 @@ class CmdLine:
                                                     'src_start', 'dest_start',
                                                     'count'],
                                       'method': self.replicate_vol_range},
+                       'replicate-volume-range-block-size': {'options': [],
+                                                  'method': self.replicate_vol_range_bs},
                        'volume-dependants': {'options': [],
                                                 'method': self.vol_dependants},
                        'volume-dependants-rm': {'options': [],

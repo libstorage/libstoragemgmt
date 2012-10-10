@@ -743,7 +743,8 @@ static int volume_replicate(lsmPluginPtr c, lsmPoolPtr pool,
     return rc;
 }
 
-static int volume_replicate_range_bs(lsmPluginPtr c, uint32_t *bs,
+static int volume_replicate_range_bs(lsmPluginPtr c, lsmSystemPtr system,
+                                    uint32_t *bs,
                                     lsmFlag_t flags)
 {
     *bs = BS;
