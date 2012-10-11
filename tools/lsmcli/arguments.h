@@ -203,7 +203,7 @@ void processCommandLine( int argc, char **argv, Arguments &args );
 
 const uint64_t MiB = 1048576;       //2**20
 const uint64_t GiB = 1073741824;    //2**30
-const uint64_t TiB = 1099511627776; //2**40
+const uint64_t TiB = 1099511627776ULL; //2**40
 
 /**
  * Validates and returns the value of size that the user supplied
