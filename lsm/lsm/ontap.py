@@ -349,10 +349,10 @@ class Ontap(IStorageAreaNetwork, INfs):
         return 4096
 
     @handle_ontap_errors
-    def volume_replicate_range(self, rep_type, vol_src, vol_dest, ranges, flags = 0):
+    def volume_replicate_range(self, rep_type, volume_src, volume_dest, ranges, flags = 0):
         if rep_type != Volume.REPLICATE_CLONE:
             raise LsmError(ErrorNumber.NO_SUPPORT, "rep_type not supported")
-        self.f.clone(vol_src.name, vol_dest.name, None, ranges)
+        self.f.clone(volume_src.name, volume_dest.name, None, ranges)
 
     @handle_ontap_errors
     def volume_online(self, volume, flags = 0):
