@@ -92,8 +92,25 @@ class Smis(IStorageAreaNetwork):
         UNSYNCASSOC     = 4     # lsm Clone
         UNSYNCUNASSOC   = 5     # lsm Copy
 
+    class Synchronized(object):
+        class SyncState(object):
+            INITIALIZED          = 2
+            PREPAREINPROGRESS    = 3
+            PREPARED             = 4
+            RESYNCINPROGRESS     = 5
+            SYNCHRONIZED         = 6
+            FRACTURE_IN_PROGRESS = 7
+            QUIESCEINPROGRESS    = 8
+            QUIESCED             = 9
+            RESTORE_IN_PROGRESSS = 10
+            IDLE                 = 11
+            BROKEN               = 12
+            FRACTURED            = 13
+            FROZEN               = 14
+            COPY_IN_PROGRESS     = 15
 
-    #SMI-S mode for mirror updates
+
+#SMI-S mode for mirror updates
     (CREATE_ELEMENT_REPLICA_MODE_SYNC, CREATE_ELEMENT_REPLICA_MODE_ASYNC ) = (2,3)
 
     #SMI-S volume 'OperationalStatus' enumerations
@@ -762,7 +779,20 @@ class Smis(IStorageAreaNetwork):
             for s in ss:
                 #TODO: Need to see if detach is a supported operation in
                 # replication capabilities.
-                if s['SyncState'] == 6: #Synchronized
+                #
+                # TODO: Theory of delete.  Some arrays will automatically detach
+                # a clone, check
+                # ReplicationServiceCapabilities.GetSupportedFeatures() and
+                # look for "Synchronized clone target detaches automatically".
+                # If not automatic then detach manually.  However, we have seen
+                # arrays that don't report detach automatically that don't need
+                # a detach.
+                #
+                # This code needs to be re-investigated to work with a wide
+                # range of array vendors.
+
+                if s['SyncState'] == Smis.Synchronized.SyncState.SYNCHRONIZED and \
+                   ( s['CopyType'] != Smis.CopyTypes.UNSYNCASSOC ):
                     if 'SyncedElement' in s:
                         item = s['SyncedElement']
 
