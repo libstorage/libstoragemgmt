@@ -1,5 +1,13 @@
 News for libStorageMgmt
 
+0.0.14: Oct 19 2012
+    - test/cmdline.py added to automatically test what an array supports
+    - Bug fixes (local plug-in execution, smi-s delete clone, code warnings)
+    - targetd: (uri syntax consistency change, initialization code change)
+    - Pool id added to volume information
+    - lsmcli: Added --replicate-volume-range-block-size <system id> to retrieve
+      replicated block size
+
 0.0.13: Sep 28 2012
     - targetD Feature adds/fixes for initiators, init_granted_to_volume,
       volumes_accessible_by_init, initiator_grant, initiator_revoke

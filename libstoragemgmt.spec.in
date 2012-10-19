@@ -140,6 +140,14 @@ fi
 %{_libdir}/pkgconfig/libstoragemgmt.pc
 
 %changelog
+* Fri Oct 19 2012 Tony Asleson <tasleson@redhat.com>
+- test/cmdline.py added to automatically test what an array supports
+- Bug fixes (local plug-in execution, smi-s delete clone, code warnings)
+- targetd: (uri syntax consistency change, initialization code change)
+- Pool id added to volume information
+- lsmcli: Added --replicate-volume-range-block-size <system id> to retrieve
+  replicated block size
+
 * Fri Sep 28 2012 Tony Asleson (Red Hat) <tasleson@redhat.com>
 - targetD Feature adds/fixes for initiators, init_granted_to_volume,
   volumes_accessible_by_init, initiator_grant, initiator_revoke
