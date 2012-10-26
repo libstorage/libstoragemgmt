@@ -475,7 +475,7 @@ START_TEST(test_smoke_test)
     lsmVolumeRecordFree(resized);
 
     //Lets create a snapshot of one.
-    int repRc = lsmVolumeReplicate(c, selectedPool,
+    int repRc = lsmVolumeReplicate(c, NULL,             //Pool is optional
         LSM_VOLUME_REPLICATE_SNAPSHOT,
         volumes[0], "SNAPSHOT1",
         &rep, &job, LSM_FLAG_RSVD);
@@ -1249,7 +1249,7 @@ START_TEST(test_invalid_input)
 
     /* lsmVolumeReplicate */
     lsmVolumePtr cloned = NULL;
-    rc = lsmVolumeReplicate(c, NULL, 0, NULL, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsmVolumeReplicate(c, (lsmPoolPtr)&bad, 0, NULL, NULL, NULL, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_POOL, "rc = %d", rc);
 
     rc = lsmVolumeReplicate(c, test_pool, LSM_VOLUME_REPLICATE_CLONE, NULL,

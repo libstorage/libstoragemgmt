@@ -171,7 +171,7 @@ class CmdLine:
         usage = "usage: %prog [options]... [command]... [command options]..."
         optparse.textwrap = MyWrapper
         parser = OptionParser(usage=usage, version="%prog " + VERSION )
-        parser.description = ('libStorageMgmt command line interface. \n')
+        parser.description = 'libStorageMgmt command line interface. \n'
 
         parser.epilog = ( 'Copyright 2012 Red Hat, Inc.\n'
                           'Please report bugs to <libstoragemgmt-devel@lists.sourceforge.net>\n')
@@ -326,8 +326,9 @@ class CmdLine:
             metavar='<volume id>',
             dest=_c("replicate-volume"), help='replicates a volume, requires:\n'
                                               "--type [SNAPSHOT|CLONE|COPY|MIRROR_ASYNC|MIRROR_SYNC]\n"
-                                              "--pool <pool id>\n"
-                                              "--name <human name>")
+                                              "--name <human name>\n"
+                                              "Optional:\n"
+                                              "--pool <pool id>\n")
 
         commands.add_option( '', '--replicate-volume-range-block-size', action="store", type="string",
             metavar='<system id>',
@@ -570,12 +571,16 @@ class CmdLine:
     # @param    self    The this pointer
     # @return   None
     def _validate(self):
+        optional_opts = 0
         expected_opts = self.verify[self.cmd]['options']
         actual_ops = [ e[4:] for e in dir(self.options)
                        if e[0:4]  == "opt_" and self.options.__dict__[e] is not None ]
 
+        if 'optional' in  self.verify[self.cmd]:
+            optional_opts = len(self.verify[self.cmd]['optional'])
+
         if len(expected_opts):
-            if len(expected_opts) == len(actual_ops):
+            if (optional_opts + len(expected_opts)) >= len(actual_ops):
                 for e in expected_opts:
                     if e not in actual_ops:
                         print "expected=", ":".join(expected_opts)
@@ -1053,10 +1058,14 @@ class CmdLine:
     ## Replicates a volume
     # @param    self    The this pointer
     def replicate_volume(self):
-        p = self._get_item(self.c.pools(), self.options.opt_pool)
+        p = None
+
+        if self.options.opt_pool:
+            p = self._get_item(self.c.pools(), self.options.opt_pool)
+
         v = self._get_item(self.c.volumes(), self.cmd_value)
 
-        if p and v:
+        if v:
 
             type = data.Volume.rep_String_to_type(self.options.opt_type)
             if type == data.Volume.REPLICATE_UNKNOWN:
@@ -1332,7 +1341,8 @@ class CmdLine:
                                          'method': self.delete_volume},
                        'delete-ss': {'options': ['fs'],
                                      'method': self.delete_ss},
-                       'replicate-volume': {'options': ['type', 'pool', 'name'],
+                       'replicate-volume': {'options': ['type', 'name'],
+                                            'optional' : ['pool'],
                                             'method': self.replicate_volume},
                        'access-grant': {'options': ['volume', 'access', 'type'],
                                         'method': self.access_grant},

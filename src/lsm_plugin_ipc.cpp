@@ -678,7 +678,7 @@ static int handle_volume_replicate(lsmPluginPtr p, Value &params, Value &respons
         Value v_rep = params["rep_type"];
         Value v_name = params["name"];
 
-        if( Value::object_t == v_pool.valueType() &&
+        if( (Value::object_t == v_pool.valueType() || Value::null_t == v_pool.valueType()) &&
             Value::object_t == v_vol_src.valueType() &&
             Value::numeric_t == v_rep.valueType() &&
             Value::string_t == v_name.valueType() &&
@@ -691,7 +691,7 @@ static int handle_volume_replicate(lsmPluginPtr p, Value &params, Value &respons
             const char *name = v_name.asC_str();
             char *job = NULL;
 
-            if( pool && vol ) {
+            if( vol ) {
                 rc = p->sanOps->vol_replicate(p, pool, rep, vol, name,
                                                 &newVolume, &job,
                                                 LSM_FLAG_GET_VALUE(params));

@@ -139,10 +139,15 @@ class TargetdStorage(IStorageAreaNetwork):
         if rep_type != Volume.REPLICATE_COPY:
             raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-        self._jsonrequest("vol_copy",
-                          dict(pool=pool.id, vol_orig=volume_src.name, vol_new=name))
+        #pool id is optional, use volume src as default
+        pool_id = volume_src.pool_id
+        if pool:
+            pool_id = pool.id
 
-        return None, self._get_volume(pool.id, name)
+        self._jsonrequest("vol_copy",
+                          dict(pool=pool_id, vol_orig=volume_src.name, vol_new=name))
+
+        return None, self._get_volume(pool_id, name)
 
     def volume_replicate_range_block_size(self, system, flags = 0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")

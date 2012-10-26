@@ -716,15 +716,27 @@ static int volume_replicate(lsmPluginPtr c, lsmPoolPtr pool,
                         char **job, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
-    int pi;
+    int pi = 0;
     int vi;
+    lsmPoolPtr pool_to_use = pool;
+
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
 
-    pi = find_pool(pd, lsmPoolIdGet(pool));
+    /* If the user didn't pass us a pool to use, we will use the same one
+       that the source pool is contained on */
+    if( pool_to_use ) {
+        pi = find_pool(pd, lsmPoolIdGet(pool));
+    } else {
+        int pool_index = find_pool(pd, lsmVolumePoolIdGet(volumeSrc));
+
+        if( pool_index >= 0 )
+            pool_to_use = pd->pool[pool_index];
+    }
+
     vi = find_volume_name(pd, lsmVolumeNameGet(volumeSrc));
 
-    if( pi > -1 && vi > -1 ) {
-        rc = volume_create(c, pool, name,
+    if( pool_to_use && pi > -1 && vi > -1 ) {
+        rc = volume_create(c, pool_to_use, name,
                                 lsmVolumeNumberOfBlocks(volumeSrc)*BS,
                                 LSM_PROVISION_DEFAULT, newReplicant, job, flags);
 

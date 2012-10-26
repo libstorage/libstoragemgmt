@@ -205,7 +205,7 @@ extern "C" {
     /**
      * Creates a new volume (aka. LUN).
      * @param[in]   conn            Valid connection @see lsmConnectUserPass
-     * @param[in]   pool            Valid pool @see lsmPool_t
+     * @param[in]   pool            Valid pool @see lsmPool_t (OPTIONAL, use NULL for plug-in choice)
      * @param[in]   volumeName      Human recognizable name (not all arrays support)
      * @param[in]   size            Size of new volume in bytes (actual size will
      *                              be based on array rounding to blocksize)

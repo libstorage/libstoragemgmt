@@ -614,7 +614,7 @@ int lsmVolumeReplicate(lsmConnectPtr c, lsmPoolPtr pool,
 {
     CONN_SETUP(c);
 
-    if( !LSM_IS_POOL(pool) ) {
+    if( pool && !LSM_IS_POOL(pool) ) {
         return LSM_ERR_INVALID_POOL;
     }
 

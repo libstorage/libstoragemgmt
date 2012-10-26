@@ -321,8 +321,9 @@ class Ontap(IStorageAreaNetwork, INfs):
         if rep_type != Volume.REPLICATE_CLONE:
             raise LsmError(ErrorNumber.NO_SUPPORT, "rep_type not supported")
 
-        #Check to see if our volume is on a pool that was passed in
-        if self._volume_on_aggr(pool, volume_src):
+        #Check to see if our volume is on a pool that was passed in or that
+        #the pool itself is None
+        if pool is None or self._volume_on_aggr(pool, volume_src):
             #re-size the NetApp volume to accommodate the new lun
             size = self._size_kb_padded(volume_src.size_bytes)
 
@@ -338,7 +339,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                 self.f.volume_resize(self._vol_to_na_volume_name(volume_src),
                                         -size)
                 raise e
-            return None, self._get_volume(dest, pool.id)
+            return None, self._get_volume(dest, volume_src.pool_id)
         else:
             #TODO Need to get instructions on how to provide this functionality
             raise LsmError(ErrorNumber.NO_SUPPORT,

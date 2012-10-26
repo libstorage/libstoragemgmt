@@ -330,8 +330,15 @@ class StorageSimulator(INfs,IStorageAreaNetwork):
     def volume_replicate(self, pool, rep_type, volume_src, name, flags = 0):
         assert rep_type is not None
 
-        if pool.id in self.s.pools and volume_src.id in self.s.volumes:
-            p = self.s.pools[pool.id]['pool']
+        p_id = None
+
+        if pool is not None:
+            p_id = pool.id
+        else:
+            p_id = volume_src.pool_id
+
+        if p_id in self.s.pools and volume_src.id in self.s.volumes:
+            p = self.s.pools[p_id]['pool']
             v = self.s.volumes[volume_src.id]['volume']
 
             return self._create_vol(p, name, v.size_bytes)

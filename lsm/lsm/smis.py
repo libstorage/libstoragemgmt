@@ -895,21 +895,24 @@ class Smis(IStorageAreaNetwork):
         Replicate a volume
         """
         rs = self._get_class_instance("CIM_ReplicationService", 'SystemName',
-                                        pool.system_id, True)
+                                        volume_src.system_id, True)
 
-        cim_pool = self._get_pool(pool.id)
+        if pool is not None:
+            cim_pool = self._get_pool(pool.id)
+        else:
+            cim_pool = None
+
         lun = self._get_volume(volume_src.id)
 
         if rs:
             method = 'CreateElementReplica'
 
-            sync, mode = self._get_supported_sync_and_mode(pool.system_id, rep_type)
+            sync, mode = self._get_supported_sync_and_mode(volume_src.system_id, rep_type)
 
             in_params = {   'ElementName': name,
                             'SyncType' : pywbem.Uint16(sync),
                             'Mode': pywbem.Uint16(mode),
                             'SourceElement': lun.path,
-                            'TargetPool': cim_pool.path,
                             'WaitForCopyState' :
                                 pywbem.Uint16(Smis.CopyStates.SYNCHRONIZED)}
 
@@ -920,7 +923,7 @@ class Smis(IStorageAreaNetwork):
 
             #Check for storage configuration service
             rs = self._get_class_instance("CIM_StorageConfigurationService",
-                                            'SystemName', pool.system_id, True)
+                                            'SystemName', volume_src.system_id, True)
 
             ct = Volume.REPLICATE_CLONE
             if rep_type == Volume.REPLICATE_CLONE:
@@ -934,9 +937,13 @@ class Smis(IStorageAreaNetwork):
 
             in_params = {   'ElementName': name,
                             'CopyType' : pywbem.Uint16(ct),
-                            'SourceElement': lun.path,
-                            'TargetPool': cim_pool.path}
+                            'SourceElement': lun.path}
         if rs:
+
+            if cim_pool is not None:
+                in_params['TargetPool'] = cim_pool.path
+
+
             return self._pi("volume_replicate", True,
                                             *(self._c.InvokeMethod(method,
                                             rs.path, **in_params)))

@@ -114,14 +114,17 @@ lsmPool *valueToPool(Value &pool)
 
 Value poolToValue(lsmPool *pool)
 {
-    std::map<std::string, Value> p;
-    p["class"] = Value("Pool");
-    p["id"] = Value(pool->id);
-    p["name"] = Value(pool->name);
-    p["total_space"] = Value(pool->totalSpace);
-    p["free_space"] = Value(pool->freeSpace);
-    p["system_id"] = Value(pool->system_id);
-    return Value(p);
+    if( LSM_IS_POOL(pool) ) {
+        std::map<std::string, Value> p;
+        p["class"] = Value("Pool");
+        p["id"] = Value(pool->id);
+        p["name"] = Value(pool->name);
+        p["total_space"] = Value(pool->totalSpace);
+        p["free_space"] = Value(pool->freeSpace);
+        p["system_id"] = Value(pool->system_id);
+        return Value(p);
+    }
+    return Value();
 }
 
 lsmSystem *valueToSystem(Value &system)
