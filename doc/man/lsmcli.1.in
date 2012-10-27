@@ -166,11 +166,14 @@ Deletes a snapshot requires \fB\-\-fs\fR
 \fB\-r\fR <volume id>, \fB\-\-replicate\-volume=\fR<volume id>
 replicates a volume, requires:
 .br
-\fB\-\-type\fR [SNAPSHOT|CLONE|COPY|MIRROR]
-.br
-\fB\-\-pool\fR <pool id>
+\fB\-\-type\fR [SNAPSHOT|CLONE|COPY|MIRROR_ASYNC|MIRROR_SYNC]
 .br
 \fB\-\-name\fR <human name>
+.br
+Optional:
+.br
+\fB\-\-pool\fR <pool id> (Plugin choice if absent)
+.br
 .TP
 \fB\-\-replicate\-volume\-range\-block\-size=\fR<system id>
 size of each replicated block in bytes
