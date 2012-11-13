@@ -18,7 +18,6 @@
 import time
 import os
 import unittest
-import urlparse
 from data import Volume, NfsExport
 from iplugin import INetworkAttachedStorage
 from transport import Transport
@@ -78,14 +77,14 @@ class Client(INetworkAttachedStorage):
         self.timeout = timeout_ms
         self.uds_path = common.UDS_PATH
 
-        u = urlparse.urlparse(uri)
+        u = common.uri_parse(uri, ['scheme'])
 
         #Figure out which path to use
         if 'LSM_UDS_PATH' in os.environ:
             self.uds_path = os.environ['LSM_UDS_PATH']
 
-        scheme = u.scheme
-        if "+" in u.scheme:
+        scheme = u['scheme']
+        if "+" in scheme:
             (plug,proto) = scheme.split("+")
             scheme = plug
 
@@ -94,7 +93,11 @@ class Client(INetworkAttachedStorage):
         if os.path.exists(self.plugin_path):
             self.tp = Transport(Transport.getSocket(self.plugin_path))
         else:
-            raise ValueError("Plug-in " + u.scheme + " not found!")
+            #Check to see if daemon is running
+            if common.process_exists(['python', 'lsmd']):
+                raise common.LsmError(common.ErrorNumber.PLUGIN_NOT_EXIST, "Plug-in " + self.plugin_path + " not found!")
+            else:
+                raise common.LsmError(common.ErrorNumber.DAEMON_NOT_RUNNING, 'lsmd is not running')
 
         self.__start(uri, plain_text_password, timeout_ms, flags)
 

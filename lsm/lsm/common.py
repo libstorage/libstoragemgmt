@@ -147,7 +147,8 @@ def uri_parse(uri, requires=None, required_params=None):
     if requires:
         for r in requires:
             if r not in rc:
-                raise LsmError(ErrorNumber.PLUGIN_ERROR, 'uri missing %s' % r)
+                raise LsmError(ErrorNumber.PLUGIN_ERROR, 'uri missing \"%s\" '
+                                                         'or is in invalid form' % r)
 
     if required_params:
         for r in required_params:
@@ -270,6 +271,7 @@ class ErrorNumber(object):
     JOB_STARTED = 7
     INDEX_BOUNDS = 10
     TIMEOUT = 11
+    DAEMON_NOT_RUNNING = 12
 
     EXISTS_ACCESS_GROUP = 50
     EXISTS_FS = 51
@@ -331,6 +333,7 @@ class ErrorNumber(object):
     PLUGIN_REGISTRATION = 308
     PLUGIN_UNKNOWN_HOST = 309
     PLUGIN_TIMEOUT = 310
+    PLUGIN_NOT_EXIST = 311
 
     SIZE_INSUFFICIENT_SPACE = 350
     SIZE_SAME = 351
@@ -351,6 +354,38 @@ class JobStatus(object):
     COMPLETE = 2
     STOPPED = 3
     ERROR = 4
+
+def process_exists(search_string):
+    """
+    Checks to see if a process exists that contains the specified string(s)
+    Not exactly 100% valid check, but close enough.
+    """
+    base_dir = '/proc'
+
+    try:
+        processes = [p for p in os.listdir(base_dir) if p.isdigit() ]
+        for p in processes:
+            cmdline = '%s/%s/cmdline' % (base_dir, p)
+
+            try:
+                if os.path.exists(cmdline):
+                    f = open(cmdline)
+                    line = f.read()
+                    f.close()
+
+                    found = True
+                    for s in search_string:
+                        if s not in line:
+                            found = False
+                            break
+
+                    if found:
+                        return True
+            except:
+                pass
+    except:
+        pass
+    return False
 
 class TestCommon(unittest.TestCase):
     def setUp(self):

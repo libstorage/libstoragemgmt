@@ -1285,6 +1285,7 @@ class CmdLine:
     ## Class constructor.
     # @param    self    The this pointer
     def __init__(self):
+        self.uri = None
         self.c = None
         self.cli()
 

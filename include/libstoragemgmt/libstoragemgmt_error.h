@@ -53,6 +53,7 @@ typedef enum {
     LSM_ERR_JOB_STARTED = 7,            /**< Operation has started */
     LSM_ERR_INDEX_BOUNDS = 10,          /**< Out of bounds on string index */
     LSM_ERR_TIMEOUT = 11,               /**< Plug-in is un-responsive */
+    LSM_ERR_DAEMON_NOT_RUNNING = 12,    /**< Daemon is not running */
 
     LSM_ERR_EXISTS_ACCESS_GROUP = 50,   /**< Access group exists */
     LSM_ERR_EXISTS_FS = 51,             /**< FS exists */
@@ -114,6 +115,7 @@ typedef enum {
     LSM_ERR_PLUGIN_REGISTRATION = 308,  /**< Error during plug-in registration */
     LSM_ERR_PLUGIN_UNKNOWN_HOST = 309,  /**< Name resolution failed */
     LSM_ERR_PLUGIN_TIMEOUT = 310,       /**< Plug-in timed out talking to array */
+    LSM_ERR_PLUGIN_NOT_EXIST = 311,     /**< Plug-in does not appear to exist */
 
     LSM_ERR_SIZE_INSUFFICIENT_SPACE = 350,  /**< Insufficient space */
     LSM_ERR_VOLUME_SAME_SIZE = 351,         /**< Trying to resize to same size */
