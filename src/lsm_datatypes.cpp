@@ -777,6 +777,11 @@ void lsmVolumeRecordFree(lsmVolumePtr v)
             v->system_id = NULL;
         }
 
+        if( v->pool_id ) {
+            free(v->pool_id);
+            v->pool_id = NULL;
+        }
+
         free(v);
     }
 }
