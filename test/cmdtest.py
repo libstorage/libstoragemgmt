@@ -191,8 +191,8 @@ def delete_ss(fs_id, ss_id):
     call([cmd, '--delete-ss', ss_id, '--fs', fs_id])
 
 def replicate_volume(source_id, type, pool):
-    out = call([cmd, '-r', source_id, '--type', type , '--pool',
-                pool , '--name', 'lun_' + type + '_' + rs(12), '-t'+sep ])[1]
+    out = call([cmd, '-r', source_id, '--type', type ,
+                '--name', 'lun_' + type + '_' + rs(12), '-t'+sep ])[1]
     r = parse(out)
     return r[0][ID]
 
