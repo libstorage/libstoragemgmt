@@ -1,23 +1,29 @@
 #!/usr/bin/env python
 
 # Copyright (C) 2011-2012 Red Hat, Inc.
-# This library is free software; you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation; either
-# version 2.1 of the License, or any later version.
 #
-# This library is distributed in the hope that it will be useful,
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 # Author: tasleson
 
 #Description:   Query array capabilities and run very basic operational tests.
+#
+# Note: This file is GPL copyright and not LGPL because:
+# 1. It is used to test the library, not provide functionality for it.
+# 2. It uses a function copied from anaconda library which is GPLv2 or later,
+#    thus this code must be GPL as well.
 
 import random
 import string
