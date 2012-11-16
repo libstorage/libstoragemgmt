@@ -501,10 +501,11 @@ lsmVolumePtr LSM_DLL_EXPORT *lsmVolumeRecordAllocArray( uint32_t size);
  * @param id                    ID
  * @param name                  Name
  * @param vpd83                 SCSI vpd 83 id
- * @param blockSize             Volume block size.
- * @param numberOfBlocks        Volume number of blocks.
+ * @param blockSize             Volume block size
+ * @param numberOfBlocks        Volume number of blocks
  * @param status                Volume status
  * @param system_id             System id
+ * @param pool_id               Pool id this volume is created from
  * @return Allocated memory or NULL on error.
  */
 lsmVolumePtr LSM_DLL_EXPORT lsmVolumeRecordAlloc( const char *id,
