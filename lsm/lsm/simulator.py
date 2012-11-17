@@ -25,8 +25,9 @@ import pickle
 from data import FileSystem
 from iplugin import INfs, IStorageAreaNetwork
 from lsm.data import Capabilities
+import tempfile
 
-SIM_DATA_FILE = '/tmp/lsm_sim_data'
+SIM_DATA_FILE = os.getenv("LSM_SIM_DATA", tempfile.gettempdir() + '/lsm_sim_data')
 duration = os.getenv("LSM_SIM_TIME", 1)
 
 class SimJob(object):
