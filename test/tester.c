@@ -1762,7 +1762,7 @@ START_TEST(test_iscsi_auth_in)
              rc = lsmISCSIChapAuthInbound(c, inits[0], "username", "secret",
                                             LSM_FLAG_RSVD);
 
-             fail_unless(LSM_ERR_OK == rc, "rc = %d", rc) ;
+             fail_unless(LSM_ERR_NOT_IMPLEMENTED == rc, "rc = %d", rc) ;
          }
 
          rc = lsmAccessGroupDel(c, group, &job, LSM_FLAG_RSVD);
