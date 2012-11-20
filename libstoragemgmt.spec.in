@@ -140,6 +140,13 @@ fi
 %{_libdir}/pkgconfig/libstoragemgmt.pc
 
 %changelog
+* Tue Nov 19 2012 Tony Asleson <tasleson@redhat.com>
+- Pool parameter is optional when replicating a volume
+- Code improvements(Memory leak fix, lsmcli checks if lsmd is running)
+- Source code documentation updates
+- Ability to override simulator data storage location
+- make check target added to run unit tests
+
 * Fri Oct 19 2012 Tony Asleson <tasleson@redhat.com>
 - test/cmdline.py added to automatically test what an array supports
 - Bug fixes (local plug-in execution, smi-s delete clone, code warnings)

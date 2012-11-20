@@ -1,5 +1,12 @@
 News for libStorageMgmt
 
+0.0.15: Nov 20 2012
+    - Pool parameter is optional when replicating a volume
+    - Code improvements(Memory leak fix, lsmcli checks if lsmd is running)
+    - Source code documentation updates
+    - Ability to override simulator data storage location
+    - make check target added to run unit tests
+
 0.0.14: Oct 19 2012
     - test/cmdline.py added to automatically test what an array supports
     - Bug fixes (local plug-in execution, smi-s delete clone, code warnings)
