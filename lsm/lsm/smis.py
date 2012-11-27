@@ -407,13 +407,14 @@ class Smis(IStorageAreaNetwork):
                rs_cap['SupportedSynchronousActions']:
                 cap.set(Capabilities.VOLUME_REPLICATE)
 
-            if self.RepSvc.RepTypes.SYNC_MIRROR_LOCAL in \
-               rs_cap['SupportedReplicationTypes']:
-                cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_SYNC)
+            #Mirror support is not working and is not supported at this time.
+            #if self.RepSvc.RepTypes.SYNC_MIRROR_LOCAL in \
+            #   rs_cap['SupportedReplicationTypes']:
+            #    cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_SYNC)
 
-            if self.RepSvc.RepTypes.ASYNC_MIRROR_LOCAL \
-                in rs_cap['SupportedReplicationTypes']:
-                cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC)
+            #if self.RepSvc.RepTypes.ASYNC_MIRROR_LOCAL \
+            #    in rs_cap['SupportedReplicationTypes']:
+            #    cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC)
 
             if self.RepSvc.RepTypes.SYNC_SNAPSHOT_LOCAL or \
                self.RepSvc.RepTypes.ASYNC_SNAPSHOT_LOCAL \
@@ -894,6 +895,10 @@ class Smis(IStorageAreaNetwork):
         """
         Replicate a volume
         """
+        if rep_type == Volume.REPLICATE_MIRROR_ASYNC or \
+           rep_type == Volume.REPLICATE_MIRROR_SYNC:
+            raise LsmError(ErrorNumber.NO_SUPPORT,"Mirroring not supported")
+
         rs = self._get_class_instance("CIM_ReplicationService", 'SystemName',
                                         volume_src.system_id, True)
 
