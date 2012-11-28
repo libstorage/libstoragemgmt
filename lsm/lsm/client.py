@@ -63,6 +63,28 @@ class Client(INetworkAttachedStorage):
         """
         self.tp.rpc('startup', del_self(locals()))
 
+    ## Checks to see if any unix domain sockets exist in the base directory
+    # and opens a socket to one to see if the server is actually there.
+    # @param    self    The this pointer
+    # @returns True if daemon appears to be present, else false.
+    def _check_daemon_exists(self):
+        if os.path.exists(self.uds_path):
+            for root, sub_folders, files in os.walk(self.uds_path):
+                for filename in files:
+                    uds = os.path.join(root, filename)
+
+                    try:
+                        #This operation will work if the daemon is available
+                        s = Transport.getSocket(uds)
+                        s.close()
+                        return True
+                    except common.LsmError:
+                        pass
+        else:
+            #Base directory is not present?
+            pass
+        return False
+
     ## Class constructor
     # @param    self                    The this pointer
     # @param    uri                     The uniform resource identifier
@@ -88,13 +110,15 @@ class Client(INetworkAttachedStorage):
             (plug,proto) = scheme.split("+")
             scheme = plug
 
-        self.plugin_path = self.uds_path + '/' + scheme
+        self.plugin_path = os.path.join(self.uds_path, scheme)
 
         if os.path.exists(self.plugin_path):
             self.tp = Transport(Transport.getSocket(self.plugin_path))
         else:
-            #Check to see if daemon is running
-            if common.process_exists(['python', 'lsmd']):
+            #At this point we don't know if the user specified an incorrect
+            #plug-in in the URI or the daemon isn't started.  We will check
+            #the directory for other unix domain sockets.
+            if self._check_daemon_exists():
                 raise common.LsmError(common.ErrorNumber.PLUGIN_NOT_EXIST, "Plug-in " + self.plugin_path + " not found!")
             else:
                 raise common.LsmError(common.ErrorNumber.DAEMON_NOT_RUNNING, 'lsmd is not running')

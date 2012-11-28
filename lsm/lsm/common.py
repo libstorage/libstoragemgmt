@@ -355,38 +355,6 @@ class JobStatus(object):
     STOPPED = 3
     ERROR = 4
 
-def process_exists(search_string):
-    """
-    Checks to see if a process exists that contains the specified string(s)
-    Not exactly 100% valid check, but close enough.
-    """
-    base_dir = '/proc'
-
-    try:
-        processes = [p for p in os.listdir(base_dir) if p.isdigit() ]
-        for p in processes:
-            cmdline = '%s/%s/cmdline' % (base_dir, p)
-
-            try:
-                if os.path.exists(cmdline):
-                    f = open(cmdline)
-                    line = f.read()
-                    f.close()
-
-                    found = True
-                    for s in search_string:
-                        if s not in line:
-                            found = False
-                            break
-
-                    if found:
-                        return True
-            except:
-                pass
-    except:
-        pass
-    return False
-
 class TestCommon(unittest.TestCase):
     def setUp(self):
         pass
