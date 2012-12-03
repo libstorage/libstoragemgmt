@@ -1441,7 +1441,12 @@ static int iscsi_chap_auth_in(lsmPluginPtr c, lsmInitiatorPtr initiator,
                                 const char *username, const char *password,
                                 lsmFlag_t flags)
 {
-    return LSM_ERR_NOT_IMPLEMENTED;
+    struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
+
+    if (pd && username && password && strlen(username) && strlen(password)) {
+        return 0;
+    }
+    return LSM_ERR_INVALID_ARGUMENT;
 }
 
 static int _initiator_in_ag(struct plugin_data *pd, lsmAccessGroupPtr ag,
