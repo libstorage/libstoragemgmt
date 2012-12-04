@@ -25,6 +25,7 @@ import pickle
 from data import FileSystem
 from iplugin import INfs, IStorageAreaNetwork
 from lsm.data import Capabilities
+from lsm.version import VERSION
 import tempfile
 
 SIM_DATA_FILE = os.getenv("LSM_SIM_DATA", tempfile.gettempdir() + '/lsm_sim_data')
@@ -248,6 +249,9 @@ class StorageSimulator(INfs,IStorageAreaNetwork):
         rc = Capabilities()
         rc.enable_all()
         return rc
+
+    def plugin_info(self, flags = 0):
+        return "Storage simulator", VERSION
 
     def shutdown(self, flags = 0):
         self._save()

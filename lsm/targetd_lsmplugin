@@ -27,6 +27,7 @@ import json
 import time
 import urlparse
 import socket
+from lsm.version import VERSION
 
 default_user = "admin"
 default_port = 18700
@@ -83,6 +84,9 @@ class TargetdStorage(IStorageAreaNetwork):
         cap.set(Capabilities.VOLUME_ACCESSIBLE_BY_INITIATOR)
         cap.set(Capabilities.INITIATORS_GRANTED_TO_VOLUME)
         return cap
+
+    def plugin_info(self, flags=0):
+        return "Linux LIO target support", VERSION
 
     def systems(self, flags = 0):
         # verify we're online

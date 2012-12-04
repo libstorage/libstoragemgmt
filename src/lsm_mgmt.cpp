@@ -192,6 +192,41 @@ int lsmConnectClose(lsmConnectPtr c, lsmFlag_t flags)
     return rc;
 }
 
+int LSM_DLL_EXPORT lsmPluginGetInfo(lsmConnectPtr c, char **desc,
+                                        char **version, lsmFlag_t flags)
+{
+    CONN_SETUP(c);
+
+    if( LSM_FLAG_UNUSED_CHECK(flags) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    if( CHECK_RP(desc) || CHECK_RP(version) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["flags"] = Value(flags);
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "plugin_info", parameters, response);
+
+    if( rc == LSM_ERR_OK ) {
+        std::vector<Value> j = response.asArray();
+        *desc = strdup(j[0].asC_str());
+        *version = strdup(j[1].asC_str());
+
+        if( !*desc || !*version ) {
+            rc = LSM_ERR_NO_MEMORY;
+            free(*desc);
+            free(*version);
+        }
+    }
+
+    return rc;
+}
+
 int lsmConnectSetTimeout(lsmConnectPtr c, uint32_t timeout, lsmFlag_t flags)
 {
     CONN_SETUP(c);

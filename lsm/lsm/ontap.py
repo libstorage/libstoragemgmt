@@ -24,6 +24,7 @@ from data import Volume, Initiator, FileSystem, Snapshot, NfsExport, \
     AccessGroup, System, Capabilities
 from iplugin import IStorageAreaNetwork, INfs
 from common import  LsmError, ErrorNumber, JobStatus, md5
+from lsm.version import VERSION
 from data import Pool
 
 #Maps na to lsm, this is expected to expand over time.
@@ -199,6 +200,10 @@ class Ontap(IStorageAreaNetwork, INfs):
         cap.set(Capabilities.EXPORT_FS)
         cap.set(Capabilities.EXPORT_REMOVE)
         return cap
+
+    @handle_ontap_errors
+    def plugin_info(self, flags = 0):
+        return "NetApp Filer support", VERSION
 
     @handle_ontap_errors
     def pools(self, flags = 0):

@@ -391,6 +391,19 @@ static int handle_job_status( lsmPluginPtr p, Value &params, Value &response)
     return rc;
 }
 
+static int handle_plugin_info( lsmPluginPtr p, Value &params, Value &response )
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    if( p ) {
+        std::vector<Value> result;
+        result.push_back(Value(p->desc));
+        result.push_back(Value(p->version));
+        response = Value(result);
+        rc = LSM_ERR_OK;
+    }
+    return rc;
+}
+
 static int handle_job_free(lsmPluginPtr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
@@ -2180,6 +2193,7 @@ static std::map<std::string,handler> dispatch = static_map<std::string,handler>
     ("iscsi_chap_auth_inbound", iscsi_chap_inbound)
     ("job_free", handle_job_free)
     ("job_status", handle_job_status)
+    ("plugin_info", handle_plugin_info)
     ("pools", handle_pools)
     ("set_time_out", handle_set_time_out)
     ("shutdown", handle_shutdown)

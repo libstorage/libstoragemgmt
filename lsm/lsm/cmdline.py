@@ -217,6 +217,10 @@ class CmdLine:
             metavar='<system id>',
             help='Retrieves array capabilities')
 
+        commands.add_option( '', '--plugin-info', action="store_true",
+            dest=_c("plugin-info"),
+            help='Retrieves plugin description and version')
+
         commands.add_option( '', '--delete-fs', action="store", type="string",
             dest=_c("delete-fs"),
             metavar='<fs id>',
@@ -930,6 +934,14 @@ class CmdLine:
         else:
             raise ArgError( "system with id= %s not found!" % self.cmd_value)
 
+    def plugin_info(self):
+        desc, version = self.c.plugin_info()
+
+        if self.options.sep:
+            print "%s%s%s" %( desc, self.options.sep, version )
+        else:
+            print "Description: %s Version: %s" % ( desc, version )
+
     ## Creates a volume
     # @param    self    The this pointer
     def create_volume(self):
@@ -1309,6 +1321,10 @@ class CmdLine:
                                      'method': self.delete_access_group},
                        'capabilities': {'options': [],
                                      'method': self.capabilities },
+
+                       'plugin-info': {'options': [],
+                                        'method': self.plugin_info },
+
                        'create-volume': {'options': ['size', 'pool'],
                                          'method': self.create_volume},
                        'create-fs': {'options': ['size', 'pool'],

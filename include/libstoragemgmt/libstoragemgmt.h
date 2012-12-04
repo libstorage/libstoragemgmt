@@ -60,6 +60,18 @@ extern "C" {
     int LSM_DLL_EXPORT lsmConnectClose(lsmConnectPtr conn, lsmFlag_t flags);
 
     /**
+     * Retrieve information about the plug-in
+     * NOTE: Caller needs to free desc and version!
+     * @param[in] conn      Valid connection @see lsmConnectUserPass
+     * @param[out] desc     Plug-in description
+     * @param[out] version  Plug-in version
+     * @param flags
+     * @return LSM_ERR_OK on success, else error code @see lsmErrorNumber
+     */
+    int LSM_DLL_EXPORT lsmPluginGetInfo(lsmConnectPtr conn, char **desc,
+                                        char **version, lsmFlag_t flags);
+
+    /**
      * Sets the time-out for this connection.
      * @param[in] conn          Valid connection @see lsmConnectUserPass
      * @param[in] timeout       Time-out (in ms)

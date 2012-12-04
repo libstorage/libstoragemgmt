@@ -206,6 +206,16 @@ class Client(INetworkAttachedStorage):
         """
         return self.tp.rpc('capabilities', del_self(locals()))
 
+    ## Gets information about the plug-in
+    # @param    self    The this pointer
+    # @param    flags   Reserved for future use
+    # @returns  Tuple (description, version)
+    def plugin_info(self, flags = 0):
+        """
+        Returns a description and version of plug-in
+        """
+        return self.tp.rpc('plugin_info', del_self(locals()))
+
     ## Returns an array of pool objects.
     # @param    self    The this pointer
     # @param    flags   Reserved for future use, must be zero.

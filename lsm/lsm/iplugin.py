@@ -90,6 +90,13 @@ class IPlugin(object):
         pass
 
     @abstractmethod
+    def plugin_info(self, flags=0):
+        """
+        Returns the description and version for plug-in
+        """
+        pass
+
+    @abstractmethod
     def pools(self, flags = 0):
         """
         Returns an array of pool objects.  Pools are used in both block and

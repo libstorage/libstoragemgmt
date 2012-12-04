@@ -23,6 +23,7 @@ from pywbem import CIMError
 from iplugin import IStorageAreaNetwork
 from common import uri_parse, LsmError, ErrorNumber, JobStatus, md5
 from data import Pool, Initiator, Volume, AccessGroup, System, Capabilities
+from lsm.version import VERSION
 
 def handle_cim_errors(method):
     def cim_wrapper(*args, **kwargs):
@@ -493,6 +494,10 @@ class Smis(IStorageAreaNetwork):
         self._pcm_supported_capabilities(system, cap)
 
         return cap
+
+    @handle_cim_errors
+    def plugin_info(self, flags=0):
+        return "Generic SMI-S support", VERSION
 
     @handle_cim_errors
     def job_status(self, job_id, flags = 0):

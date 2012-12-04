@@ -1779,6 +1779,32 @@ START_TEST(test_iscsi_auth_in)
 }
 END_TEST
 
+START_TEST(test_plugin_info)
+{
+    char *desc = NULL;
+    char *version = NULL;
+
+    int rc = lsmPluginGetInfo(c, &desc, &version, LSM_FLAG_RSVD);
+
+    fail_unless(LSM_ERR_OK == rc, "rc = %d", rc);
+
+    if( LSM_ERR_OK == rc ) {
+        printf("Desc: (%s), Version: (%s)\n", desc, version);
+        free(desc);
+        free(version);
+    }
+
+    rc = lsmPluginGetInfo(NULL, &desc, &version, LSM_FLAG_RSVD);
+    fail_unless(LSM_ERR_INVALID_CONN == rc, "rc = %d", rc);
+
+    rc = lsmPluginGetInfo(c, NULL, &version, LSM_FLAG_RSVD);
+    fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
+
+    rc = lsmPluginGetInfo(c, &desc, NULL, LSM_FLAG_RSVD);
+    fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
+}
+END_TEST
+
 Suite * lsm_suite(void)
 {
     Suite *s = suite_create("libStorageMgmt");
@@ -1786,6 +1812,7 @@ Suite * lsm_suite(void)
     TCase *basic = tcase_create("Basic");
     tcase_add_checked_fixture (basic, setup, teardown);
 
+    tcase_add_test(basic, test_plugin_info);
     tcase_add_test(basic, test_volume_methods);
     tcase_add_test(basic, test_iscsi_auth_in);
     tcase_add_test(basic, test_initiator_methods);

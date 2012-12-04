@@ -64,6 +64,9 @@ Note: SNAPSHOTS listing requires: \fB\-\-fs\fR <fs id>
 \fB\-\-capabilities=\fR<system id>
 Retrieves array capabilities
 .TP
+\fB\-\-plugin\-info\fR
+Retrieves plugin description and version
+.TP
 \fB\-\-delete\-fs=\fR<fs id>
 Delete a filesystem
 .TP
