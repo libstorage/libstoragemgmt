@@ -379,7 +379,7 @@ CHAP password
 ~/.lsmcli
 lsmcli configuration file, containing name-value pairs separated
 by '='. The only currently supported configuration option is 'uri',
-such as 'uri=smispy://filer.example.com'.
+such as 'uri=ontap://user@filer.example.com'.
 
 Configuration options in .lsmcli are only used if not overridden by
 command-line option or environment variable.
