@@ -1066,6 +1066,7 @@ class CmdLine:
             self.c.job_free(self.cmd_value)
         else:
             print str(percent)
+            self.shutdown(common.ErrorNumber.JOB_STARTED)
 
     ## Replicates a volume
     # @param    self    The this pointer
