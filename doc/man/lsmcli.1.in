@@ -30,6 +30,9 @@ print sizes in human readable format
 print output in terse form with "SEP" as a record
 separator
 .TP
+\fB\-e\fR, \fB\-\-enum\fR
+display enumerated types as numbers instead of text
+.TP
 \fB\-w\fR WAIT, \fB\-\-wait\fR=\fIWAIT\fR
 command timeout value in ms (default = 30s)
 .TP

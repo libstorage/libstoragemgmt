@@ -21,6 +21,12 @@ from json.decoder import WHITESPACE
 import datetime
 from common import get_class, sh
 
+def txt_a(txt, append):
+    if len(txt):
+        return txt + ',' + append
+    else:
+        return append
+
 class DataEncoder(json.JSONEncoder):
     """
     Custom json encoder for objects derived form ILsmData
@@ -131,7 +137,7 @@ class IData(object):
         pass
 
     @abstractmethod
-    def column_data(self, human=False):
+    def column_data(self, human=False, enum_as_number=False):
         pass
 
 
@@ -141,6 +147,11 @@ class Initiator(IData):
     """
     (TYPE_OTHER, TYPE_PORT_WWN, TYPE_NODE_WWN, TYPE_HOSTNAME, TYPE_ISCSI) = \
     (1, 2, 3, 4, 5)
+
+    type_map = { 1 : 'Other', 2:'Port WWN', 3:'Node WWN', 4 :'Hostname', 5:'iSCSI' }
+
+    def _type_to_str(self, type):
+        return Initiator.type_map[type]
 
     def __init__(self, id, type, name):
 
@@ -154,8 +165,11 @@ class Initiator(IData):
     def column_headers(self):
         return [['ID', 'Name', 'Type']]
 
-    def column_data(self,human=False):
-        return [[self.id, self.name, self.type]]
+    def column_data(self,human=False, enum_as_number=False):
+        if enum_as_number:
+            return [[self.id, self.name, self.type]]
+        else:
+            return [[self.id, self.name, self._type_to_str(self.type)]]
 
 class Volume(IData):
     """
@@ -205,6 +219,26 @@ class Volume(IData):
     (ACCESS_READ_ONLY, ACCESS_READ_WRITE, ACCESS_NONE) = (1,2,3)
 
     @staticmethod
+    def status_to_str(status):
+        if status == 1:
+            return "OK"
+        elif status == 0:
+            return "Unknown"
+        else:
+            rc = ""
+            if status & Volume.STATUS_OK:
+                rc = txt_a(rc,"OK")
+            if status & Volume.STATUS_DEGRADED:
+                rc = txt_a(rc,"Degraded")
+            if status & Volume.STATUS_DORMANT:
+                rc = txt_a(rc, "Dormant")
+            if status & Volume.STATUS_ERR:
+                rc = txt_a(rc, "Error")
+            if status & Volume.STATUS_STARTING:
+                rc = txt_a(rc, "Starting")
+            return rc
+
+    @staticmethod
     def access_string_to_type(access):
         if access == "RW":
             return Volume.ACCESS_READ_WRITE
@@ -235,15 +269,40 @@ class Volume(IData):
     def column_headers(self):
         return [['ID', 'Name', 'vpd83', 'bs', '#blocks', 'status', 'size', 'System ID', 'Pool ID']]
 
-    def column_data(self,human=False):
-        return [[self.id, self.name, self.vpd83, self.block_size, self.num_of_blocks,
+    def column_data(self,human=False, enum_as_number=False):
+        if enum_as_number:
+            return [[self.id, self.name, self.vpd83, self.block_size, self.num_of_blocks,
                 self.status, sh(self.size_bytes, human), self.system_id, self.pool_id]]
+        else:
+            return [[self.id, self.name, self.vpd83, self.block_size, self.num_of_blocks,
+                     self.status_to_str(self.status), sh(self.size_bytes, human), self.system_id, self.pool_id]]
 
 class System(IData):
 
     (STATUS_UNKNOWN, STATUS_OK, STATUS_DEGRADED, STATUS_ERROR,
      STATUS_PREDICTIVE_FAILURE, STATUS_VENDOR_SPECIFIC) = \
         ( 0x0, 0x1, 0x2, 0x4, 0x8, 0x10 )
+
+    @staticmethod
+    def status_to_str(status):
+        if status == 0:
+            return "Unknown"
+        elif status == 1:
+            return "OK"
+        else:
+            rc = ""
+            if status & System.STATUS_OK:
+                rc = txt_a(rc, "OK")
+            if status & System.STATUS_DEGRADED:
+                rc = txt_a(rc, "Degraded")
+            if status & System.STATUS_ERROR:
+                rc = txt_a(rc, "Error")
+            if status & System.STATUS_PREDICTIVE_FAILURE:
+                rc = txt_a(rc, "Predictive failure")
+            if status & System.STATUS_VENDOR_SPECIFIC:
+                rc = txt_a(rc, "Vendor specific status")
+
+            return rc
 
     def __init__(self, id, name, status):
         self.id = id                # For SMI-S this is the CIM_ComputerSystem->Name
@@ -253,8 +312,11 @@ class System(IData):
     def column_headers(self):
         return [['ID', 'Name', 'Status']]
 
-    def column_data(self,human=False):
-        return [[self.id, self.name, self.status]]
+    def column_data(self,human=False, enum_as_number=False):
+        if enum_as_number:
+            return [[self.id, self.name, self.status]]
+        else:
+            return [[self.id, self.name, self.status_to_str(self.status)]]
 
 class Pool(IData):
     """
@@ -270,7 +332,7 @@ class Pool(IData):
     def column_headers(self):
         return [['ID', 'Name', 'Total space', 'Free space', 'System ID']]
 
-    def column_data(self,human=False):
+    def column_data(self,human=False, enum_as_number=False):
         return [[self.id, self.name, sh(self.total_space, human),
                 sh(self.free_space,human), self.system_id]]
 
@@ -286,7 +348,7 @@ class FileSystem(IData):
     def column_headers(self):
         return [['ID', 'Name', 'Total space', 'Free space', 'Pool ID']]
 
-    def column_data(self,human=False):
+    def column_data(self,human=False, enum_as_number=False):
         return [[self.id, self.name, sh(self.total_space, human),
                 sh(self.free_space,human), self.pool_id]]
 
@@ -299,7 +361,7 @@ class Snapshot(IData):
     def column_headers(self):
         return [['ID', 'Name', 'Created']]
 
-    def column_data(self,human=False):
+    def column_data(self,human=False, enum_as_number=False):
         return [[self.id, self.name, datetime.datetime.fromtimestamp(self.ts)]]
 
 class NfsExport(IData):
@@ -325,7 +387,7 @@ class NfsExport(IData):
     def column_headers(self):
         return [["Key", 'Value']]
 
-    def column_data(self,human=False):
+    def column_data(self,human=False, enum_as_number=False):
         return  [
                     ['ID', self.id],
                     ['File system ID', self.fs_id],
@@ -348,7 +410,7 @@ class BlockRange(IData):
     def column_headers(self):
         raise NotImplementedError
 
-    def column_data(self,human=False):
+    def column_data(self,human=False, enum_as_number=False):
         raise NotImplementedError
 
 class AccessGroup(IData):
@@ -361,7 +423,7 @@ class AccessGroup(IData):
     def column_headers(self):
         return [['ID', 'Name', 'Initiator ID', 'System ID']]
 
-    def column_data(self,human=False):
+    def column_data(self,human=False, enum_as_number=False):
         rc = []
 
         if len(self.initiators):
@@ -480,7 +542,7 @@ class Capabilities(IData):
     def column_headers(self):
         raise NotImplementedError
 
-    def column_data(self,human=False):
+    def column_data(self,human=False, enum_as_number=False):
         raise NotImplementedError
 
 if __name__ == '__main__':

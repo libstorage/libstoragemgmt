@@ -158,7 +158,7 @@ class CmdLine:
             rows = d[0].column_headers()
 
             for r in d:
-                rows.extend(r.column_data(self.options.human))
+                rows.extend(r.column_data(self.options.human, self.options.enum))
 
             self.display_table(rows)
 
@@ -185,6 +185,9 @@ class CmdLine:
                  '(e.g., MiB, GiB, TiB)')
         parser.add_option( '-t', '--terse', action="store", dest="sep",
             help='print output in terse form with "SEP" as a record separator')
+
+        parser.add_option( '-e', '--enum', action="store_true", dest="enum",
+            default=False, help='display enumerated types as numbers instead of text')
 
         parser.add_option( '-w', '--wait', action="store", type="int",
             dest="wait", default= 30000,
