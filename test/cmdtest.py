@@ -123,9 +123,6 @@ def name_to_id(op, name):
 def delete_init(id):
     call( [cmd, '--delete-initiator', id] )
 
-def delete_fs(id):
-    call( [cmd, '--delete-fs', id] )
-
 def create_volume(pool):
     out = call([cmd, '--create-volume', rs(12), '--size', '30M', '--pool',
                 pool, '-t'+sep, '--provisioning', 'DEFAULT'])[1]
@@ -133,7 +130,7 @@ def create_volume(pool):
     return r[0][ID]
 
 def delete_volume(id):
-    call([cmd, '--delete-volume', id, '-t'+sep])
+    call([cmd, '--delete-volume', id, '-t'+sep, '-f'])
 
 def create_fs(pool_id):
     out = call([cmd, '--create-fs', rs(12), '--size', '500M', '--pool',
@@ -142,7 +139,7 @@ def create_fs(pool_id):
     return r[0][ID]
 
 def delete_fs(id):
-    call([cmd, '--delete-fs', id, '-t'+sep])
+    call([cmd, '--delete-fs', id, '-t'+sep, '-f'])
 
 def create_access_group(iqn, system_id):
     out = call([cmd, '--create-access-group', rs(8), '--id', iqn,
@@ -166,15 +163,15 @@ def access_group_revoke(group, volume_id):
     call([cmd, '--access-revoke-group', group, '--volume', volume_id])
 
 def resize_vol(id):
-    call([cmd, '--resize-volume', id, '--size', '60M' , '-t'+sep ])
-    call([cmd, '--resize-volume', id, '--size', '100M' , '-t'+sep ])
+    call([cmd, '--resize-volume', id, '--size', '60M' , '-t'+sep, '-f' ])
+    call([cmd, '--resize-volume', id, '--size', '100M' , '-t'+sep, '-f' ])
     #Some devices cannot re-size down...
     #call([cmd, '--resize-volume', id, '--size', '30M' , '-t'+sep ])
 
 def resize_fs(id):
-    call([cmd, '--resize-fs', id, '--size', '1G' , '-t'+sep ])
-    call([cmd, '--resize-fs', id, '--size', '750M' , '-t'+sep ])
-    call([cmd, '--resize-fs', id, '--size', '300M' , '-t'+sep ])
+    call([cmd, '--resize-fs', id, '--size', '1G' , '-t'+sep, '-f' ])
+    call([cmd, '--resize-fs', id, '--size', '750M' , '-t'+sep, '-f' ])
+    call([cmd, '--resize-fs', id, '--size', '300M' , '-t'+sep, '-f' ])
 
 def map(init, volume):
     call([cmd, '--access-grant', init, '--volume', volume, '--access',
@@ -194,7 +191,7 @@ def create_ss(fs_id):
     return r[0][ID]
 
 def delete_ss(fs_id, ss_id):
-    call([cmd, '--delete-ss', ss_id, '--fs', fs_id])
+    call([cmd, '--delete-ss', ss_id, '--fs', fs_id, '-f'])
 
 def replicate_volume(source_id, type, pool):
     out = call([cmd, '-r', source_id, '--type', type ,
@@ -212,7 +209,7 @@ def replicate_volume_range_bs(system_id):
 def replicate_volume_range(vol_id, dest_vol_id, rep_type, src_start, dest_start, count):
     out = call([cmd, '--replicate-volume-range', vol_id, '--type', rep_type, '--dest' ,
                 dest_vol_id, '--src_start', str(src_start), '--dest_start', str(dest_start),
-                '--count', str(count)])
+                '--count', str(count), '-f'])
 
 def get_systems():
     out = call( [cmd, '-l', 'SYSTEMS', '-t'+sep] )[1]

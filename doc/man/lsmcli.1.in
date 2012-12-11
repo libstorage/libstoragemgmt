@@ -33,6 +33,9 @@ separator
 \fB\-e\fR, \fB\-\-enum\fR
 display enumerated types as numbers instead of text
 .TP
+\fB\-f\fR, \fB\-\-force\fR
+bypass confirmation prompt for data loss operations
+.TP
 \fB\-w\fR WAIT, \fB\-\-wait\fR=\fIWAIT\fR
 command timeout value in ms (default = 30s)
 .TP

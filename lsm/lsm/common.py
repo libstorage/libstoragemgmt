@@ -22,9 +22,23 @@ import urlparse
 
 import sys
 import syslog
+import tty
+import termios
 
 import functools
 
+## Get a character from stdin without needing a <return>.
+# Returns the character pressed
+def getch():
+
+    fd = sys.stdin.fileno()
+    prev = termios.tcgetattr(fd)
+    try:
+        tty.setraw(sys.stdin.fileno())
+        ch = sys.stdin.read(1)
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, prev)
+    return ch
 
 ## Documentation for Proxy class.
 #

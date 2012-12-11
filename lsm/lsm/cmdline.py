@@ -98,6 +98,28 @@ class CmdLine:
     """
 
     ##
+    # Warn of imminent data loss
+    # @param    deleting    Indicate data will be lost vs. may be lost (re-size)
+    # @return True if operation confirmed, else False
+    def confirm_prompt(self, deleting):
+        """
+        Give the user a chance to bail.
+        """
+        if not self.options.force:
+            msg = "will" if deleting else "may"
+            print   "Warning: You are about to do an operation that %s cause data to be lost!\n" \
+                    "Press [Y|y] to continue, any other key to abort" % msg
+
+            pressed = common.getch()
+            if pressed.upper() == 'Y':
+                return True
+            else:
+                print 'Operation aborted!'
+                return False
+        else:
+            return True
+
+    ##
     # Tries to make the output better when it varies considerably from plug-in to
     # plug-in.
     # @param    rows    Data, first row is header all other data.
@@ -188,6 +210,9 @@ class CmdLine:
 
         parser.add_option( '-e', '--enum', action="store_true", dest="enum",
             default=False, help='display enumerated types as numbers instead of text')
+
+        parser.add_option( '-f', '--force', action="store_true", dest="force",
+            default=False, help='bypass confirmation prompt for data loss operations')
 
         parser.add_option( '-w', '--wait', action="store", type="int",
             dest="wait", default= 30000,
@@ -770,7 +795,8 @@ class CmdLine:
 
         fs = self._get_item(self.c.fs(), self.cmd_value)
         if fs:
-            self._wait_for_it("delete-fs", self.c.fs_delete(fs), None)
+            if self.confirm_prompt(True):
+                self._wait_for_it("delete-fs", self.c.fs_delete(fs), None)
         else:
             raise ArgError("fs with id = %s not found!" % self.cmd_value)
 
@@ -792,8 +818,14 @@ class CmdLine:
     def fs_resize(self):
         fs = self._get_item(self.c.fs(), self.cmd_value)
         size = self._size(self.options.opt_size)
-        fs = self._wait_for_it("resize-fs", *self.c.fs_resize(fs, size))
-        self.display_data([fs])
+
+        if fs and size:
+            if self.confirm_prompt(False):
+                fs = self._wait_for_it("resize-fs", *self.c.fs_resize(fs, size))
+                self.display_data([fs])
+        else:
+            if not fs:
+                raise ArgError(" filesystem with id= %s not found!" % self.cmd_value)
 
     ## Used to clone a file system
     # @param    self    The this pointer
@@ -995,9 +1027,10 @@ class CmdLine:
             if self.options.all is False and self.options.file is None:
                 raise ArgError("Need to specify --all or at least one --file")
 
-            self._wait_for_it('restore-ss', self.c.fs_snapshot_revert(fs, ss,
-                                    self.options.file, self.options.fileas,
-                                    self.options.all), None)
+            if self.confirm_prompt(True):
+                self._wait_for_it('restore-ss', self.c.fs_snapshot_revert(fs, ss,
+                                        self.options.file, self.options.fileas,
+                                        self.options.all), None)
         else:
             if not ss:
                 raise ArgError( "ss with id= %s not found!" % self.cmd_value)
@@ -1010,7 +1043,8 @@ class CmdLine:
         v = self._get_item(self.c.volumes(), self.cmd_value)
 
         if v:
-            self._wait_for_it("delete-volume", self.c.volume_delete(v), None)
+            if self.confirm_prompt(True):
+                self._wait_for_it("delete-volume", self.c.volume_delete(v), None)
         else:
             raise ArgError(" volume with id= %s not found!" % self.cmd_value)
 
@@ -1021,7 +1055,8 @@ class CmdLine:
         if fs:
             ss = self._get_item(self.c.fs_snapshots(fs), self.cmd_value)
             if ss:
-                self._wait_for_it("delete-snapshot", self.c.fs_snapshot_delete(fs,ss), None)
+                if self.confirm_prompt(True):
+                    self._wait_for_it("delete-snapshot", self.c.fs_snapshot_delete(fs,ss), None)
             else:
                 raise ArgError(" snapshot with id= %s not found!" % self.cmd_value)
         else:
@@ -1117,7 +1152,9 @@ class CmdLine:
 
                 for i in range(len(src_starts)):
                     ranges.append(data.BlockRange(src_starts[i], dest_starts[i], counts[i]))
-                self.c.volume_replicate_range(type, src, dest, ranges)
+
+                if self.confirm_prompt(False):
+                    self.c.volume_replicate_range(type, src, dest, ranges)
         else:
             if not src:
                 raise ArgError("src volume with id= %s not found!" % self.cmd_value)
@@ -1195,8 +1232,10 @@ class CmdLine:
         v = self._get_item(self.c.volumes(), self.cmd_value)
         if v:
             size = self._size(self.options.opt_size)
-            vol = self._wait_for_it("resize", *self.c.volume_resize(v, size))
-            self.display_data([vol])
+
+            if self.confirm_prompt(False):
+                vol = self._wait_for_it("resize", *self.c.volume_resize(v, size))
+                self.display_data([vol])
         else:
             raise ArgError("volume with id= %s not found!" % self.cmd_value)
 
