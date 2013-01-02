@@ -1,5 +1,15 @@
 News for libStorageMgmt
 
+0.0.16: Jan 1 2013
+    - lsmcli: Add confirmation prompt for data loss operations
+    - lsmcli: Display enumerated values as text
+    - lsmcli: Exit with 7 for --job-status when not complete
+    - Fixed URI example to reference an existing plug-in
+    - lsmcli: Retrieve plug-in desc. and version (lsmcli --plugin-info)
+    - simc: Implement CHAP auth function (no-op)
+    - lsmcli: Change check for determining if lsmd is running
+    - Disable mirroring for SMI-S as it needs some re-work
+
 0.0.15: Nov 20 2012
     - Pool parameter is optional when replicating a volume
     - Code improvements(Memory leak fix, lsmcli checks if lsmd is running)
