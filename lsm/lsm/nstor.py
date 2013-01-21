@@ -26,7 +26,7 @@ import base64
 from iplugin import INfs, IStorageAreaNetwork
 from data import Pool, FileSystem, Snapshot, Capabilities, System, \
     NfsExport, Volume, Initiator, AccessGroup
-from common import LsmError, ErrorNumber, JobStatus, md5
+from common import LsmError, ErrorNumber, md5
 
 class NexentaStor(INfs, IStorageAreaNetwork):
     def __init__(self):
@@ -105,7 +105,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         for fs in fs_list:
             pool_name = self._get_pool_id(fs)
             if pool_name == 'syspool':
-                continue;
+                continue
             if not pool_name in pools:
                 pool_info = self._ns_request('rest/nms',
                     {"method": "get_child_props",
@@ -282,7 +282,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         return fs_name.split('/')[0]
 
     def fs_clone(self, src_fs, dest_fs_name, snapshot=None, flags = 0):
-        if snapshot == None:
+        if snapshot is None:
             raise LsmError(ErrorNumber.INVALID_SS,
                 "Full snapshot name (i.e data/a@A) is mandatory for "
                 "NexentaStor.")
@@ -314,7 +314,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
     def _dependencies_list(self, fs_name, volume = False):
         object = "folder"
-        if volume == True:
+        if volume:
             object = 'volume'
         pool_id = self._get_pool_id(fs_name)
         fs_list = self._ns_request('rest/nms', {"method": "get_all_names",
@@ -556,13 +556,13 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         is None the other must be valid.
         """
         if (rep_type == Volume.REPLICATE_SNAPSHOT):
-            return;
+            return
         elif (rep_type == Volume.REPLICATE_CLONE):
-            return;
+            return
         elif (rep_type == Volume.REPLICATE_COPY):
-            return;
+            return
         elif (rep_type == Volume.REPLICATE_MIRROR_SYNC):
-            return;
+            return
         elif (rep_type == Volume.REPLICATE_MIRROR_ASYNC):
 #            # AutoSync job - code not yet ready
 #            rec = {'type': 'minute',	'auto-mount': '', 'dircontent': '0',
@@ -588,9 +588,9 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 #                                          "params": ['auto-sync', '',
 #                                                     str(volume_src.name),
 #                                                     False, rec]})
-            return;
+            return
         elif (rep_type == Volume.REPLICATE_UNKNOWN):
-            return;
+            return
 
         return
 
@@ -652,7 +652,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         try:
             self.access_group_create(hg_name, initiator_id, initiator_type, 'NA')
         except:
-            True
+            pass
         self._access_group_grant(hg_name, volume.name, access)
         return
 
@@ -793,7 +793,6 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         self._add_initiator(group.name, initiator_id)
         return Initiator(initiator_id, self._initiator_human_type(id_type),
             initiator_id)
-        return
 
     def access_group_del_initiator(self, group, initiator_id, flags = 0):
         """
