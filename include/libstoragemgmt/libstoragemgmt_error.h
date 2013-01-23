@@ -27,26 +27,22 @@
 extern "C" {
 #endif
 
-/**
- * Severity of the error.
- */
+/** @file libstoragemgmt_error.h */
+
+/**< \enum  lsmErrorLevel Severity of the error. */
 typedef enum  {
     LSM_ERR_LEVEL_NONE = 0,
     LSM_ERR_LEVEL_WARNING = 1,
     LSM_ERR_LEVEL_ERROR = 2
 } lsmErrorLevel;
 
-/*
- * Where the error took place
- */
+/**< \enum lsmErrorDomain Where the error took place */
 typedef enum  {
-    LSM_ERR_DOMAIN_FRAME_WORK = 0,
-    LSM_ERR_DOMAIN_PLUG_IN = 1
+    LSM_ERR_DOMAIN_FRAME_WORK = 0,      /**< Frame work */
+    LSM_ERR_DOMAIN_PLUG_IN = 1          /**< Plug-in */
 } lsmErrorDomain;
 
-/**
- * Possible enumerated return codes from library
- */
+/**< \enum lsmErrorNumber Possible enumerated return codes from library */
 typedef enum {
     LSM_ERR_OK = 0,                     /**< OK */
     LSM_ERR_INTERNAL_ERROR = 1,         /**< Internal error */

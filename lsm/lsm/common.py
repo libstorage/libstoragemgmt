@@ -27,7 +27,7 @@ import termios
 
 import functools
 
-## Get a character from stdin without needing a <return>.
+## Get a character from stdin without needing a return key pressed.
 # Returns the character pressed
 def getch():
 

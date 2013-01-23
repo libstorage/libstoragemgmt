@@ -22,7 +22,6 @@
 
 #include <libxml/uri.h>
 
-
 #include "libstoragemgmt_types.h"
 #include "libstoragemgmt_common.h"
 
@@ -42,107 +41,326 @@
 extern "C" {
 #endif
 
+/** @file libstoragemgmt_plug_interface.h */
+
+/** \enum lsmDataType What type of data structure we have */
 typedef enum {
-    LSM_DATA_TYPE_UNKNOWN = -1,
-    LSM_DATA_TYPE_NONE,
-    LSM_DATA_TYPE_ACCESS_GROUP,
-    LSM_DATA_TYPE_BLOCK_RANGE,
-    LSM_DATA_TYPE_FS,
-    LSM_DATA_TYPE_INITIATOR,
-    LSM_DATA_TYPE_NFS_EXPORT,
-    LSM_DATA_TYPE_POOL,
-    LSM_DATA_TYPE_SS,
-    LSM_DATA_TYPE_STRING_LIST,
-    LSM_DATA_TYPE_SYSTEM,
-    LSM_DATA_TYPE_VOLUME,
+    LSM_DATA_TYPE_UNKNOWN = -1,         /**< Unknown */
+    LSM_DATA_TYPE_NONE,                 /**< None */
+    LSM_DATA_TYPE_ACCESS_GROUP,         /**< Access group */
+    LSM_DATA_TYPE_BLOCK_RANGE,          /**< Block range */
+    LSM_DATA_TYPE_FS,                   /**< File system */
+    LSM_DATA_TYPE_INITIATOR,            /**< Initiator */
+    LSM_DATA_TYPE_NFS_EXPORT,           /**< NFS export */
+    LSM_DATA_TYPE_POOL,                 /**< Pool */
+    LSM_DATA_TYPE_SS,                   /**< Snap shot */
+    LSM_DATA_TYPE_STRING_LIST,          /**< String list */
+    LSM_DATA_TYPE_SYSTEM,               /**< System */
+    LSM_DATA_TYPE_VOLUME,               /**< Volume */
 } lsmDataType;
 
 /**
  * Opaque data type for plug-ins
  */
 typedef struct _lsmPlugin lsmPlugin;
+
+/**
+ * Typedef for pointer type
+ */
 typedef lsmPlugin *lsmPluginPtr;
 
-typedef int (*lsmPluginRegister)(  lsmPluginPtr c, xmlURIPtr uri, const char *password,
-                        uint32_t timeout, lsmFlag_t flags);
+/**
+ * Plug-in register callback function signature.
+ * @param   c           Valid lsm plugin pointer
+ * @param   uri         Connection URI
+ * @param   password    Plain text password
+ * @param   timeout     Plug-in timeout to array
+ * @param   flags       Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
+typedef int (*lsmPluginRegister)(  lsmPluginPtr c, xmlURIPtr uri,
+                    const char *password, uint32_t timeout, lsmFlag_t flags);
 
+/**
+ * Plug-in unregister callback function signature
+ * @param   c           Valid lsm plugin pointer
+ * @param   flags       Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPluginUnregister)( lsmPluginPtr c, lsmFlag_t flags );
 
+/**
+ * Set plug-in time-out value callback function signature
+ * @param   c           Valid lsm plug-in pointer
+ * @param   timeout     timeout value in milliseconds
+ * @param   flags       Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
+typedef int (*lsmPlugSetTmo)( lsmPluginPtr c, uint32_t timeout,
+                                    lsmFlag_t flags );
 
-typedef int (*lsmPlugSetTmo)( lsmPluginPtr c, uint32_t timeout, lsmFlag_t flags );
-typedef int (*lsmPlugGetTmo)( lsmPluginPtr c, uint32_t *timeout, lsmFlag_t flags );
+/**
+ * Get the plug-in time-out value callback function signature
+ * @param[in]   c           Valid lsm plug-in pointer
+ * @param[out]  timeout     Time-out value
+ * @param[in]   flags       Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
+typedef int (*lsmPlugGetTmo)( lsmPluginPtr c, uint32_t *timeout,
+                                    lsmFlag_t flags );
+
+/**
+ * Retrieve the plug-in capabilities callback function signature
+ * @param[in]   c           Valid lsm plug-in pointer
+ * @param[in]   sys         System to interrogate
+ * @param[out]  cap         Capabilities
+ * @param[in]   flags       Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugCapabilities)(lsmPluginPtr c, lsmSystemPtr sys,
-                                    lsmStorageCapabilitiesPtr *cap, lsmFlag_t flags);
+                                    lsmStorageCapabilitiesPtr *cap,
+                                    lsmFlag_t flags);
+/**
+ * Retrieve the job status callback function signature
+ * @param[in]   c               Valid lsm plug-in pointer
+ * @param[in]   job             Job identifier
+ * @param[out]  status          Enumerated value representing status
+ * @param[out]  percentComplete How far completed
+ * @param[out]  type            Type of result
+ * @param[out]  value           Value of result
+ * @param[in]   flags           Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
+
 typedef int (*lsmPlugJobStatus)(lsmPluginPtr c, const char *job,
                                         lsmJobStatus *status,
                                         uint8_t *percentComplete,
                                         lsmDataType *type,
                                         void **value, lsmFlag_t flags);
-typedef int (*lsmPlugJobFree)(lsmPluginPtr c, char *jobNumber, lsmFlag_t flags);
+/**
+ * Instructs the plug-in to release the memory for the specified job id,
+ * callback function signature
+ * @param[in]   c               Valid lsm plug-in pointer
+ * @param[in]   jobId           Job ID to free memory for
+ * @param[in]   flags           Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
+typedef int (*lsmPlugJobFree)(lsmPluginPtr c, char *jobId, lsmFlag_t flags);
 
+/**
+ * Retrieves a list of pools callback function signature
+ * @param[in]   c               Valid lsm plug-in pointer
+ * @param[out]  poolArray       List of pools
+ * @param[out]  count           Number of items in array
+ * @param[in]   flags           Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugListPools)( lsmPluginPtr c, lsmPoolPtr **poolArray,
                                         uint32_t *count, lsmFlag_t flags);
 
+/**
+ * Retrieve a list of systems, callback function signature
+ * @param[in]   c               Valid lsm plug-in pointer
+ * @param[out]  systems         List of systems
+ * @param[out]  systemCount     Number of systems
+ * @param[out]  flags           Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugSystemList)(lsmPluginPtr c, lsmSystemPtr **systems,
                                         uint32_t *systemCount, lsmFlag_t flags);
 
-/**
- * Callback functions for management operations.
- */
+/** \struct lsmMgmtOpsV1
+ *  \brief Callback functions for management operations */
 struct lsmMgmtOpsV1 {
     lsmPlugSetTmo       tmo_set;                /**< tmo set callback */
     lsmPlugGetTmo       tmo_get;                /**< tmo get callback */
     lsmPlugCapabilities capablities;            /**< capabilities callback */
     lsmPlugJobStatus    job_status;             /**< status of job */
     lsmPlugJobFree      job_free;               /**< Free a job */
-    lsmPlugListPools    pool_list;
+    lsmPlugListPools    pool_list;              /**< List of pools */
     lsmPlugSystemList   system_list;            /**< List of systems */
 };
 
+/**
+ * Retrieve a list of initiators, callback function signature
+ * @param[in]   c               Valid lsm plug-in pointer
+ * @param[out]  initArray       Array of initiators
+ * @param[out]  count           Number of initiators
+ * @param[out]  flags           Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugListInits)( lsmPluginPtr c, lsmInitiatorPtr **initArray,
                                         uint32_t *count, lsmFlag_t flags);
 
+/**
+ * Retrieve a list of volumes.
+ * @param[in]   c               Valid lsm plug-in pointer
+ * @param[out]  volArray        Array of volumes
+ * @param[out]  count           Number of volumes
+ * @param[in]   flags           Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugListVolumes)( lsmPluginPtr c, lsmVolumePtr **volArray,
                                         uint32_t *count, lsmFlag_t flags);
 
+/**
+ * Creates a volume, callback function signature
+ * @param[in] c                     Valid lsm plug-in pointer
+ * @param[in] pool                  Pool to allocated storage from
+ * @param[in] volumeName            Name of new volume
+ * @param[in] size                  Size of volume in bytes
+ * @param[in] provisioning          How provisioned
+ * @param[out] newVolume            Information on newly created volume
+ * @param[out]  job                 Job ID
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugVolumeCreate)(lsmPluginPtr c, lsmPoolPtr pool,
                         const char *volumeName, uint64_t size,
                         lsmProvisionType provisioning, lsmVolumePtr *newVolume,
                         char **job, lsmFlag_t flags);
 
+/**
+ * Volume replicate, callback function signature
+ * @param[in] c                     Valid lsm plug-in pointer
+ * @param[in] pool                  Pool to allocated replicant from (optional)
+ * @param[in] repType               Replication type
+ * @param[in] volumeSrc             Source of the replication
+ * @param[in] name                  Name of newly replicated volume
+ * @param[out] newReplicant
+ * @param job
+ * @param flags
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugVolumeReplicate)(lsmPluginPtr c, lsmPoolPtr pool,
                         lsmReplicationType repType, lsmVolumePtr volumeSrc,
                         const char *name, lsmVolumePtr *newReplicant,
                         char **job, lsmFlag_t flags);
 
-typedef int (*lsmPlugVolumeReplicateRangeBlockSize)(lsmPluginPtr c, lsmSystemPtr system,
-                                                    uint32_t *bs, lsmFlag_t flags);
+/**
+ * Return the block size of a replicated block range.
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   system              System to query against
+ * @param[out]  bs                  Block size
+ * @param[out]  flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
+typedef int (*lsmPlugVolumeReplicateRangeBlockSize)(lsmPluginPtr c,
+                            lsmSystemPtr system, uint32_t *bs, lsmFlag_t flags);
 
+/**
+ * Replicate a range of a volume to the same volume or different volume.
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   repType             What type of replication
+ * @param[in]   source              Source of the replication
+ * @param[in]   dest                Destination of the replication, can be
+ *                                  same as source
+ * @param[in]   ranges              An array of ranges
+ * @param[in]   num_ranges          Number of items in array
+ * @param[out]  job                 Job ID
+ * @param flags
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugVolumeReplicateRange)(lsmPluginPtr c,
                                                 lsmReplicationType repType,
                                                 lsmVolumePtr source,
                                                 lsmVolumePtr dest,
                                                 lsmBlockRangePtr *ranges,
-                                                uint32_t num_ranges, char **job, lsmFlag_t flags);
+                                                uint32_t num_ranges, char **job,
+                                                lsmFlag_t flags);
 
+/**
+ * Re-size a volume, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   volume              Volume to be re-sized
+ * @param[in]   newSize             New size of volume in bytes
+ * @param[in]   resizedVolume       Information about newly re-sized volume
+ * @param[out]  job                 The job ID
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugVolumeResize)(lsmPluginPtr c, lsmVolumePtr volume,
                                 uint64_t newSize, lsmVolumePtr *resizedVolume,
                                 char **job, lsmFlag_t flags);
 
+/**
+ * Delete a volume, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   volume              Volume to be deleted
+ * @param[out]  job                 Job ID
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugVolumeDelete)(lsmPluginPtr c, lsmVolumePtr volume,
                                     char **job, lsmFlag_t flags);
 
-typedef int (*lsmPlugAccessGrant)(lsmPluginPtr c, lsmInitiatorPtr i, lsmVolumePtr v,
+/**
+ * Grants access to a volume for an initiator, callback function signature.
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   i                   Initiator to grant access for
+ * @param[in]   v                   Volume of interest
+ * @param[in]   access              Requested access
+ * @param[out]  job                 Job ID
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
+int lsmPlugAccessGrant(lsmPluginPtr c, lsmInitiatorPtr i, lsmVolumePtr v,
                         lsmAccessType access, char **job, lsmFlag_t flags);
 
-typedef int (*lsmPlugAccessRemove)(lsmPluginPtr c, lsmInitiatorPtr i, lsmVolumePtr v, lsmFlag_t flags);
+/**
+ * Removes access for an initiator to a volume, callback function signature.
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   i                   Initiator to remove access for
+ * @param[in]   v                   Volume of interest
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
+typedef int (*lsmPlugAccessRemove)(lsmPluginPtr c, lsmInitiatorPtr i,
+                lsmVolumePtr v, lsmFlag_t flags);
 
+/**
+ * Check on the status of a volume
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   v                   Volume to retrieve status for
+ * @param[out]  status              Status of volume
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugVolumeStatus)(lsmPluginPtr c, lsmVolumePtr v,
-                                                lsmVolumeStatusType *status, lsmFlag_t flags);
+                                                lsmVolumeStatusType *status,
+                                                lsmFlag_t flags);
 
-typedef int (*lsmPlugVolumeOnline)(lsmPluginPtr c, lsmVolumePtr v, lsmFlag_t flags);
-typedef int (*lsmPlugVolumeOffline)(lsmPluginPtr c, lsmVolumePtr v, lsmFlag_t flags);
+/**
+ * Place a volume online, callback function signature.
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   v                   Volume to place online
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
+typedef int (*lsmPlugVolumeOnline)(lsmPluginPtr c, lsmVolumePtr v,
+                                    lsmFlag_t flags);
 
+/**
+ * Take a volume offline, callback function signature.
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param v
+ * @param flags
+ * @return LSM_ERR_OK, else error reason
+ */
+typedef int (*lsmPlugVolumeOffline)(lsmPluginPtr c, lsmVolumePtr v,
+                                    lsmFlag_t flags);
+
+/**
+ * Grants access to an initiator for a specified volume, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   initiator_id        Initiator ID
+ * @param[in]   initiator_type      Type of initiator
+ * @param[in]   volume              Volume of interest
+ * @param[in]   access              Desired access to volume
+ * @param[out]  job                 Job ID
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugInitiatorGrant)(lsmPluginPtr c, const char *initiator_id,
                                         lsmInitiatorType initiator_type,
                                         lsmVolumePtr volume,
@@ -150,129 +368,412 @@ typedef int (*lsmPlugInitiatorGrant)(lsmPluginPtr c, const char *initiator_id,
                                         char **job,
                                         lsmFlag_t flags);
 
+/**
+ * Revokes access for an initiator, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   init                Initiator to revoke access to
+ * @param[in]   volume              Volume of interest
+ * @param[out]  job                 The Job ID
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugInitiatorRevoke)(lsmPluginPtr c, lsmInitiatorPtr init,
                                         lsmVolumePtr volume, char **job,
                                         lsmFlag_t flags);
 
+/**
+ * Retrieves an array of initiators that have access to a specified volume
+ * , callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   volume              Volume to lookup
+ * @param[out]  initArray           Array of initiators
+ * @param[out]  count               Number of items in array
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugInitiatorsGrantedToVolume)(lsmPluginPtr c,
                                         lsmVolumePtr volume,
                                         lsmInitiatorPtr **initArray,
                                         uint32_t *count, lsmFlag_t flags);
 
+/**
+ * Setup the cap authentication for the specified initiator, callback
+ * function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   initiator           Initiator to set chap authentication for
+ * @param[in]   username            CHAP username
+ * @param[in]   password            CHAP password
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugIscsiChapAuthInbound)(lsmPluginPtr c,
                                                 lsmInitiatorPtr initiator,
                                                 const char *username,
                                                 const char *password,
                                                 lsmFlag_t flags);
 
+/**
+ * Retrieve a list of access groups, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[out]  groups              Array of groups
+ * @param[out]  groupCount          Number of groups
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugAccessGroupList)(lsmPluginPtr c,
                                         lsmAccessGroupPtr **groups,
                                         uint32_t *groupCount, lsmFlag_t flags);
+/**
+ * Creates an access group, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   name                Name of access group
+ * @param[in]   initiator_id        Initiator to be added to group
+ * @param[in]   id_type             Initiator type
+ * @param[in]   system_id           System to create group for
+ * @param[out]  access_group        Newly created access group
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugAccessGroupCreate)(lsmPluginPtr c,
                                             const char *name,
                                             const char *initiator_id,
                                             lsmInitiatorType id_type,
                                             const char *system_id,
-                                            lsmAccessGroupPtr *access_group, lsmFlag_t flags);
+                                            lsmAccessGroupPtr *access_group,
+                                            lsmFlag_t flags);
 
+/**
+ * Deletes an access group, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   group               Access group to be deleted
+ * @param[out]  job                 Job ID
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugAccessGroupDel)(lsmPluginPtr c,
                                             lsmAccessGroupPtr group,
                                             char **job, lsmFlag_t flags);
 
+/**
+ * Add an initiator to an access group, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   group               Group to add initiator to
+ * @param[in]   initiator_id        Initiator to add to group
+ * @param[in]   id_type             Initiator type
+ * @param[out]  job                 Job ID
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugAccessGroupAddInitiator)(lsmPluginPtr c,
                                 lsmAccessGroupPtr group,
                                 const char *initiator_id,
-                                lsmInitiatorType id_type, char **job, lsmFlag_t flags);
+                                lsmInitiatorType id_type, char **job,
+                                lsmFlag_t flags);
 
+/**
+ * Remove an initiator from an access group, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   group               Group to remove initiator from
+ * @param[in]   initiator_id        Initiator to remove
+ * @param[out]  job                 Job ID
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugAccessGroupDelInitiator)(lsmPluginPtr c,
                                                     lsmAccessGroupPtr group,
                                                     const char *initiator_id,
                                                     char **job, lsmFlag_t flags);
 
+/**
+ * Grants access to a volume for the specified access group, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   group               Group to be granted access
+ * @param[in]   volume              Volume to be given access too
+ * @param[in]   access              Access type
+ * @param[out]  job                 Job ID
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugAccessGroupGrant)(lsmPluginPtr c,
                                             lsmAccessGroupPtr group,
                                             lsmVolumePtr volume,
                                             lsmAccessType access, char **job, lsmFlag_t flags);
 
+/**
+ * Revokes access to a volume for a specified access group, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   group               Group to revoke access for
+ * @param[in]   volume              Volume to which will no longer be accessible by group
+ * @param[out]  job                 Job ID
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugAccessGroupRevoke)(lsmPluginPtr c,
                                             lsmAccessGroupPtr group,
                                             lsmVolumePtr volume, char **job, lsmFlag_t flags);
 
+/**
+ * Retrieve an array of volumes which are accessible by access group, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   group               Group to find volumes for
+ * @param[out]  volumes             Array of volumes
+ * @param[out]  count               Number of volumes
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugVolumesAccessibleByAccessGroup)(lsmPluginPtr c,
                                                         lsmAccessGroupPtr group,
                                                         lsmVolumePtr **volumes,
                                                         uint32_t *count, lsmFlag_t flags);
 
+/**
+ * Retrieve an array of volumes accessible by an initiator, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   initiator           Initiator to find volumes for
+ * @param[out]  volumes             Array of volumes
+ * @param[out]  count               Number of volumes
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugVolumesAccessibleByInitiator)(lsmPluginPtr c,
                                                         lsmInitiatorPtr initiator,
                                                         lsmVolumePtr **volumes,
                                                         uint32_t *count, lsmFlag_t flags);
 
-typedef int (*lsmPlugAccessGroupsGrantedToVolume)(lsmPluginPtr c,
+/**
+ * Retrieve a list of access groups that have access to the specified volume,
+ * callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   volume              Volume to query
+ * @param[out]  groups              Array of access groups
+ * @param[out]  groupCount          Number of access groups
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
+ typedef int (*lsmPlugAccessGroupsGrantedToVolume)(lsmPluginPtr c,
                                                     lsmVolumePtr volume,
                                                     lsmAccessGroupPtr **groups,
                                                     uint32_t *groupCount, lsmFlag_t flags);
 
+/**
+ * Determine if a volume has child dependencies, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   volume              Volume to query
+ * @param[out]  yes                 Boolean
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugVolumeChildDependency)(lsmPluginPtr c,
                                             lsmVolumePtr volume,
                                             uint8_t *yes, lsmFlag_t flags);
 
+/**
+ * Remove dependencies from a volume, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   volume              Volume to remove dependency for
+ * @param[out]  job                 Job ID
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugVolumeChildDependencyRm)(lsmPluginPtr c,
                                             lsmVolumePtr volume,
                                             char **job, lsmFlag_t flags);
 
+/**
+ * File system list, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[out]  fs                  An array of file systems
+ * @param[out]  fsCount             Number of file systems
+ * @param[in] flags                 Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugFsList)(lsmPluginPtr c, lsmFsPtr **fs,
                                     uint32_t *fsCount, lsmFlag_t flags);
 
+/**
+ * Create a file system, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   pool                Pool to create file system from
+ * @param[in]   name                Name of file system
+ * @param[in]   size_bytes          Size of the file system in bytes
+ * @param[out]  fs                  Newly created file system
+ * @param[out]  job                 Job ID
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugFsCreate)(lsmPluginPtr c, lsmPoolPtr pool,
                                     const char *name, uint64_t size_bytes,
                                     lsmFsPtr *fs, char **job, lsmFlag_t flags);
 
+/**
+ * Delete a file system, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   fs                  File system to delete
+ * @param[out]  job                 Job ID
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugFsDelete)(lsmPluginPtr c, lsmFsPtr fs, char **job, lsmFlag_t flags);
 
+/**
+ * Clone a file system, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   dest_fs_name        Clone fs name
+ * @param[out]  cloned_fs           New clone
+ * @param[in]   optional_snapshot   Basis of clone
+ * @param[out]  job                 Job ID
+ * @param[in]   flags               reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugFsClone)(lsmPluginPtr c, lsmFsPtr src_fs,
                                             const char *dest_fs_name,
                                             lsmFsPtr *cloned_fs,
                                             lsmSsPtr optional_snapshot,
                                             char **job, lsmFlag_t flags);
-
+/**
+ * Determine if a file system has child dependencies, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   fs                  File system to check
+ * @param[out]  yes                 Boolean
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugFsChildDependency)(lsmPluginPtr c, lsmFsPtr fs,
                                                 lsmStringListPtr files,
                                                 uint8_t *yes);
 
+/**
+ * Remove dependencies from a file system, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   fs                  File system to remove dependencies for
+ * @param[out]  job                 Job ID
+ * @param[out]  flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugFsChildDependencyRm)( lsmPluginPtr c, lsmFsPtr fs,
                                                 lsmStringListPtr files,
                                                 char **job, lsmFlag_t flags);
 
+/**
+ * Re-size a file system, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   fs                  File system to re-size
+ * @param[in]   new_size_bytes      New size of file system
+ * @param[out]  rfs                 Re-sized file system
+ * @param[out]  job                 Job ID
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugFsResize)(lsmPluginPtr c, lsmFsPtr fs,
                                     uint64_t new_size_bytes, lsmFsPtr *rfs,
                                     char **job, lsmFlag_t flags);
 
+/**
+ * Clone an individual file on a file system, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   fs                  File system which contains the file to clone
+ * @param[in]   src_file_name       Source file name and path
+ * @param[in]   dest_file_name      Destination file and path
+ * @param[in]   snapshot            Optional backing snapshot
+ * @param[out]  job                 Job ID
+ * @param[in]   flags               Reserved
+ * @return  LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugFsFileClone)(lsmPluginPtr c, lsmFsPtr fs,
                                     const char *src_file_name,
                                     const char *dest_file_name,
                                     lsmSsPtr snapshot, char **job, lsmFlag_t flags);
 
+/**
+ * Retrieve a list of snapshots for a file system, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   fs                  File system
+ * @param[out]  ss                  Array of snap shots
+ * @param[out]  ssCount             Count of snapshots
+ * @param[in]   flags               Reserved
+ * @return  LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugSsList)(lsmPluginPtr c, lsmFsPtr fs, lsmSsPtr **ss,
                                 uint32_t *ssCount, lsmFlag_t flags);
 
+/**
+ * Create a snapshot of the specified file system and optionally constrain it to
+ * a list of files, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   fs                  File system to create snapshot for
+ * @param[in]   name                Snap shot name
+ * @param[in]   files               Optional list of files to specifically snapshot
+ * @param[out]  snapshot            Newly created snapshot
+ * @param[out]  job                 Job ID
+ * @return  LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugSsCreate)(lsmPluginPtr c, lsmFsPtr fs,
                                     const char *name, lsmStringListPtr files,
                                     lsmSsPtr *snapshot, char **job, lsmFlag_t flags);
-
+/**
+ * Delete a snapshot, callback function signature, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   fs                  File system to delete snapshot for
+ * @param[in]   ss                  Snapshot to delete
+ * @param[out]  job                 Job ID
+ * @param[in]   flags               Reserved
+ * @return  LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugSsDelete)(lsmPluginPtr c, lsmFsPtr fs, lsmSsPtr ss,
                                     char **job, lsmFlag_t flags);
 
+/**
+ * Revert the state of a file system or specific files to a previous state,
+ * callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   fs                  File system of interest
+ * @param[in]   files               Optional list of files
+ * @param[in]   restore_files       Optional path and name of restored files
+ * @param[in]   all_files           boolean to indicate all files should be reverted
+ * @param[out]  job                 Job ID
+ * @return  LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugSsRevert)(lsmPluginPtr c, lsmFsPtr fs, lsmSsPtr ss,
                                     lsmStringListPtr files,
                                     lsmStringListPtr restore_files,
                                     int all_files, char **job, lsmFlag_t flags);
+
+/**
+ * Get a list of NFS client authentication types, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[out]  types               List of authtication types
+ * @param[in]   flags               Reserved
+ * @return  LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugNfsAuthTypes)( lsmPluginPtr c,
                                             lsmStringListPtr *types, lsmFlag_t flags);
 
+/**
+ * Retrieve a list of NFS exports, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[out]  exports             An array of exported file systems
+ * @param[out]  count               Number of exported file systems
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugNfsList)( lsmPluginPtr c,
                                             lsmNfsExportPtr **exports,
                                             uint32_t *count, lsmFlag_t flags);
+/**
+ * Exports a file system via NFS, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   fs_id               File system id to export
+ * @param[in]   export_path         NFS export path
+ * @param[in]   root_list           List of servers with root access
+ * @param[in]   rw_list             List of servers with read/write access
+ * @param[in]   ro_list             List of servers with read only access
+ * @param[in]   anon_uid            UID to be mapped to anonymous
+ * @param[in]   anon_gid            GID to be mapped to anonymous
+ * @param[in]   auth_type           Client authentication type
+ * @param[in]   options             Options
+ * @param[out]  exported            Newly created export
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugNfsExportFs)( lsmPluginPtr c,
                                         const char *fs_id,
                                         const char *export_path,
@@ -287,66 +788,73 @@ typedef int (*lsmPlugNfsExportFs)( lsmPluginPtr c,
                                         lsmFlag_t flags
                                         );
 
+/**
+ * Removes a NFS export, callback function signature
+ * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   e                   Export to remove
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
 typedef int (*lsmPlugNfsExportRemove)( lsmPluginPtr c, lsmNfsExportPtr e,
                                         lsmFlag_t flags);
-/**
- * Block oriented functions
+/** \struct lsmSanOpsV1
+ *  \brief Block array oriented functions (callback functions)
  */
 struct lsmSanOpsV1 {
-    lsmPlugListInits init_get;          /**< Callback for retrieving initiators */
-    lsmPlugListVolumes vol_get;         /**< Callback for retrieving volumes */
-    lsmPlugVolumeCreate vol_create;     /**< Callback for creating a lun */
-    lsmPlugVolumeReplicate vol_replicate; /**< Callback for replicating lun */
-    lsmPlugVolumeReplicateRangeBlockSize vol_rep_range_bs;
-    lsmPlugVolumeReplicateRange vol_rep_range;
-    lsmPlugVolumeResize vol_resize;     /**< Callback for resizing a volume */
-    lsmPlugVolumeDelete vol_delete;     /**< Callback for deleting a volume */
-    lsmPlugVolumeOnline vol_online;     /**< Callback for bringing volume online */
-    lsmPlugVolumeOffline vol_offline;   /**< Callback for bringing volume offline */
-    lsmPlugInitiatorGrant initiator_grant;      /**< Callback for granting access */
-    lsmPlugInitiatorRevoke initiator_revoke;    /**< Callback for revoking access */
-    lsmPlugInitiatorsGrantedToVolume initiators_granted_to_vol;
-    lsmPlugIscsiChapAuthInbound iscsi_chap_auth_inbound;
-    lsmPlugAccessGroupList ag_list;     /**< Callback for access groups */
-    lsmPlugAccessGroupCreate ag_create; /**< Callback for access group create */
-    lsmPlugAccessGroupDel ag_delete;    /**< Callback for access group delete */
-    lsmPlugAccessGroupAddInitiator ag_add_initiator;
-    lsmPlugAccessGroupDelInitiator ag_del_initiator;
-    lsmPlugAccessGroupGrant ag_grant;
-    lsmPlugAccessGroupRevoke ag_revoke;
-    lsmPlugVolumesAccessibleByAccessGroup vol_accessible_by_ag;
-    lsmPlugVolumesAccessibleByInitiator vol_accessible_by_init;
-    lsmPlugAccessGroupsGrantedToVolume ag_granted_to_vol;
-    lsmPlugVolumeChildDependency vol_child_depends;
-    lsmPlugVolumeChildDependencyRm vol_child_depends_rm;
+    lsmPlugListInits init_get;              /**<  retrieving initiators */
+    lsmPlugListVolumes vol_get;             /**<  retrieving volumes */
+    lsmPlugVolumeCreate vol_create;         /**<  creating a lun */
+    lsmPlugVolumeReplicate vol_replicate;   /**<  replicating lun */
+    lsmPlugVolumeReplicateRangeBlockSize vol_rep_range_bs;  /**<  volume replication range block size */
+    lsmPlugVolumeReplicateRange vol_rep_range;              /**<  volume replication range */
+    lsmPlugVolumeResize vol_resize;         /**<  resizing a volume */
+    lsmPlugVolumeDelete vol_delete;         /**<  deleting a volume */
+    lsmPlugVolumeOnline vol_online;         /**<  bringing volume online */
+    lsmPlugVolumeOffline vol_offline;       /**<  bringing volume offline */
+    lsmPlugInitiatorGrant initiator_grant;      /**<  granting access */
+    lsmPlugInitiatorRevoke initiator_revoke;    /**<  revoking access */
+    lsmPlugInitiatorsGrantedToVolume initiators_granted_to_vol;     /**<  initiators granted to a volume */
+    lsmPlugIscsiChapAuthInbound iscsi_chap_auth_inbound;            /**<  iscsi chap authentication */
+    lsmPlugAccessGroupList ag_list;     /**<  access groups */
+    lsmPlugAccessGroupCreate ag_create; /**<  access group create */
+    lsmPlugAccessGroupDel ag_delete;    /**<  access group delete */
+    lsmPlugAccessGroupAddInitiator ag_add_initiator;    /**<  adding an initiator to an access group */
+    lsmPlugAccessGroupDelInitiator ag_del_initiator;    /**<  deleting an initiator from an access group */
+    lsmPlugAccessGroupGrant ag_grant;   /**<  acess group grant */
+    lsmPlugAccessGroupRevoke ag_revoke; /**<  access group revoke */
+    lsmPlugVolumesAccessibleByAccessGroup vol_accessible_by_ag; /**<  volumes accessible by access group */
+    lsmPlugVolumesAccessibleByInitiator vol_accessible_by_init; /**<  volumes accessible by initiator */
+    lsmPlugAccessGroupsGrantedToVolume ag_granted_to_vol;       /**<  access groups granted to a volume */
+    lsmPlugVolumeChildDependency vol_child_depends;         /**<  volume child dependencies */
+    lsmPlugVolumeChildDependencyRm vol_child_depends_rm;    /**<Callback to remove volume child dependencies */
 };
 
-/**
- * File system oriented functionality
+/** \struct  lsmFsOpsV1
+ *  \brief File system oriented functionality
  */
 struct lsmFsOpsV1 {
-    lsmPlugFsList   fs_list;
-    lsmPlugFsCreate fs_create;
-    lsmPlugFsDelete fs_delete;
-    lsmPlugFsResize fs_resize;
-    lsmPlugFsClone  fs_clone;
-    lsmPlugFsFileClone fs_file_clone;
-    lsmPlugFsChildDependency fs_child_dependency;
-    lsmPlugFsChildDependencyRm fs_child_dependency_rm;
-    lsmPlugSsList ss_list;
-    lsmPlugSsCreate ss_create;
-    lsmPlugSsDelete ss_delete;
-    lsmPlugSsRevert ss_revert;
+    lsmPlugFsList   fs_list;        /**< list file systems */
+    lsmPlugFsCreate fs_create;      /**< create a file system */
+    lsmPlugFsDelete fs_delete;      /**< delete a file system */
+    lsmPlugFsResize fs_resize;      /**< resize a file system */
+    lsmPlugFsClone  fs_clone;       /**< clone a file system */
+    lsmPlugFsFileClone fs_file_clone;   /**< clone files on a file system */
+    lsmPlugFsChildDependency fs_child_dependency;       /**< check file system child dependencies */
+    lsmPlugFsChildDependencyRm fs_child_dependency_rm;  /**< remove file system child dependencies */
+    lsmPlugSsList ss_list;          /**< list snapshots */
+    lsmPlugSsCreate ss_create;      /**< create a snapshot */
+    lsmPlugSsDelete ss_delete;      /**< delete a snapshot */
+    lsmPlugSsRevert ss_revert;      /**< revert a snapshot */
 };
 
-/**
- * NAS system oriented functionality
+/** \struct lsmNasOpsV1
+ * \brief NAS system oriented functionality call back functions
  */
 struct lsmNasOpsV1 {
-    lsmPlugNfsAuthTypes nfs_auth_types;
-    lsmPlugNfsList nfs_list;
-    lsmPlugNfsExportFs nfs_export;
-    lsmPlugNfsExportRemove nfs_export_remove;
+    lsmPlugNfsAuthTypes nfs_auth_types;     /**< List nfs authentication types */
+    lsmPlugNfsList nfs_list;                /**< List nfs exports */
+    lsmPlugNfsExportFs nfs_export;          /**< Export a file system */
+    lsmPlugNfsExportRemove nfs_export_remove;   /**< Remove a file export */
 };
 
 /**

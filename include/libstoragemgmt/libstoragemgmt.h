@@ -35,6 +35,23 @@
 #include "libstoragemgmt_systems.h"
 #include "libstoragemgmt_volumes.h"
 
+
+/*! \mainpage libStorageMgmt
+ *
+ * \section Introduction
+ *
+ * The libStorageMgmt package is a storage array independent Application
+ * Programming Interface (API). It provides a stable and consistent API that
+ * allows developers the ability to programmatically manage different storage
+ * arrays and leverage the hardware accelerated features that they provide.
+ *
+ *  \section additional Additional documentation
+ *
+ * Full documentation can be found at:
+ * http://sourceforge.net/p/libstoragemgmt/wiki/Home/
+ *
+ */
+
 #ifdef  __cplusplus
 extern "C" {
 #endif

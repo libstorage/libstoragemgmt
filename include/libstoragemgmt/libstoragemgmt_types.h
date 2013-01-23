@@ -31,6 +31,8 @@
 extern "C" {
 #endif
 
+/** @file libstoragemgmt_types.h */
+
 /* Just incase we want to change the flag to a different type */
 typedef uint64_t lsmFlag_t;
 
@@ -119,43 +121,35 @@ typedef lsmFs *lsmFsPtr;
 typedef struct _lsmSs lsmSs;
 typedef lsmSs *lsmSsPtr;
 
-/**
- * Different types of replications that can be created
- */
+/**< \enum lsmReplicationType Different types of replications that can be created */
 typedef enum {
-    LSM_VOLUME_REPLICATE_UNKNOWN        = -1,
-    LSM_VOLUME_REPLICATE_SNAPSHOT       = 1,
-    LSM_VOLUME_REPLICATE_CLONE          = 2,
-    LSM_VOLUME_REPLICATE_COPY           = 3,
-    LSM_VOLUME_REPLICATE_MIRROR_SYNC    = 4,
-    LSM_VOLUME_REPLICATE_MIRROR_ASYNC   = 5
+    LSM_VOLUME_REPLICATE_UNKNOWN        = -1,       /**< Unknown replicate */
+    LSM_VOLUME_REPLICATE_SNAPSHOT       = 1,        /**< Space efficient read only copy*/
+    LSM_VOLUME_REPLICATE_CLONE          = 2,        /**< Space efficient copy */
+    LSM_VOLUME_REPLICATE_COPY           = 3,        /**< Full bitwise copy */
+    LSM_VOLUME_REPLICATE_MIRROR_SYNC    = 4,        /**< Mirrors always in sync */
+    LSM_VOLUME_REPLICATE_MIRROR_ASYNC   = 5         /**< Mirror partner updated with delay */
 } lsmReplicationType;
 
-/**
- * Different types of provisioning.
- */
+/**< \enum lsmProvisionType Different types of provisioning */
 typedef enum {
-    LSM_PROVISION_UNKNOWN = -1,
-    LSM_PROVISION_THIN = 1,        /**< Thin provisioning */
-    LSM_PROVISION_FULL = 2,        /**< Thick provisioning */
-    LSM_PROVISION_DEFAULT = 3,     /**< Default provisioning */
+    LSM_PROVISION_UNKNOWN = -1,     /**< Unknown */
+    LSM_PROVISION_THIN = 1,         /**< Thin provisioning */
+    LSM_PROVISION_FULL = 2,         /**< Thick provisioning */
+    LSM_PROVISION_DEFAULT = 3,      /**< Default provisioning */
 } lsmProvisionType;
 
-/**
- * Different types of Volume access
- */
+/**< \enum lsmAccessType Different types of Volume access */
 typedef enum {
-    LSM_VOLUME_ACCESS_READ_ONLY = 1,
-    LSM_VOLUME_ACCESS_READ_WRITE = 2,
-    LSM_VOLUME_ACCESS_NONE = 3,
+    LSM_VOLUME_ACCESS_READ_ONLY = 1,    /**< Read only access */
+    LSM_VOLUME_ACCESS_READ_WRITE = 2,   /**< Read write access */
+    LSM_VOLUME_ACCESS_NONE = 3,         /**< No access */
 } lsmAccessType;
 
-/**
- * Different states that a volume can be in
- */
+/**< \enum lsmVolumeStatusType Different states that a volume can be in */
 typedef enum {
-    LSM_VOLUME_STATUS_ONLINE = 1,  /**< Volume is ready to be used */
-    LSM_VOLUME_STATUS_OFFLINE = 2, /**< Volume is offline, no access */
+    LSM_VOLUME_STATUS_ONLINE = 1,   /**< Volume is ready to be used */
+    LSM_VOLUME_STATUS_OFFLINE = 2,  /**< Volume is offline, no access */
 } lsmVolumeStatusType;
 
 /**
@@ -173,38 +167,35 @@ typedef enum {
  * Different states a system status can be in.
  * Bit field, can be in multiple states at the same time.
  */
-#define LSM_SYSTEM_STATUS_UNKNOWN               0x00000000
-#define LSM_SYSTEM_STATUS_OK                    0x00000001
-#define LSM_SYSTEM_STATUS_DEGRADED              0x00000002
-#define LSM_SYSTEM_STATUS_ERROR                 0x00000004
-#define LSM_SYSTEM_STATUS_PREDICTIVE_FAILURE    0x00000008
-#define LSM_SYSTEM_STATUS_VENDOR_SPECIFIC       0x00000010
+#define LSM_SYSTEM_STATUS_UNKNOWN               0x00000000  /**< System status unknown */
+#define LSM_SYSTEM_STATUS_OK                    0x00000001  /**< System status OK */
+#define LSM_SYSTEM_STATUS_DEGRADED              0x00000002  /**< System is degraded */
+#define LSM_SYSTEM_STATUS_ERROR                 0x00000004  /**< System has error(s) */
+#define LSM_SYSTEM_STATUS_PREDICTIVE_FAILURE    0x00000008  /**< System has predictive failure(s) */
+#define LSM_SYSTEM_STATUS_VENDOR_SPECIFIC       0x00000010  /**< Vendor specific status code */
 
-/**
- * Different types of initiator IDs
- */
+/**< \enum lsmInitiatorType Different types of initiator IDs */
 typedef enum {
-    LSM_INITIATOR_OTHER = 1,
-    LSM_INITIATOR_PORT_WWN = 2,
-    LSM_INITIATOR_NODE_WWN = 3,
-    LSM_INITIATOR_HOSTNAME = 4,
-    LSM_INITIATOR_ISCSI = 5,
+    LSM_INITIATOR_OTHER = 1,                    /**< Other or unspecified */
+    LSM_INITIATOR_PORT_WWN = 2,                 /**< World wide port name */
+    LSM_INITIATOR_NODE_WWN = 3,                 /**< World wide node name */
+    LSM_INITIATOR_HOSTNAME = 4,                 /**< Host name */
+    LSM_INITIATOR_ISCSI = 5,                    /**< iSCSI IQN */
 } lsmInitiatorType;
 
-/**
- * Different types of jobs.
- */
+/**< \enum lsmJobType Different types of jobs */
 typedef enum {
-    LSM_JOB_VOL_CREATE  = 1,
-    LSM_JOB_VOL_RESIZE = 2,
-    LSM_JOB_VOL_REPLICATE = 3,
+    LSM_JOB_VOL_CREATE  = 1,                    /**< Volume create */
+    LSM_JOB_VOL_RESIZE = 2,                     /**< Volume re-size */
+    LSM_JOB_VOL_REPLICATE = 3,                  /**< Volume replicate */
 } lsmJobType;
 
+/**< \enum lsmJobStatus Job states */
 typedef enum {
-    LSM_JOB_INPROGRESS = 1,
-    LSM_JOB_COMPLETE = 2,
-    LSM_JOB_STOPPED = 3,
-    LSM_JOB_ERROR = 4
+    LSM_JOB_INPROGRESS = 1,                     /**< Job is in progress */
+    LSM_JOB_COMPLETE = 2,                       /**< Job is complete */
+    LSM_JOB_STOPPED = 3,                        /**< Job is stopped */
+    LSM_JOB_ERROR = 4                           /**< Job has errored */
 } lsmJobStatus;
 
 #ifdef  __cplusplus

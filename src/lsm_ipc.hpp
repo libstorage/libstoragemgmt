@@ -108,6 +108,10 @@ template <class Type> static std::string to_string(Type v) {
     return out.str();
 }
 
+/**
+ * Class that represents an EOF condition
+ * @param m     Message
+ */
 class LSM_DLL_LOCAL EOFException : public std::runtime_error {
 public:
     EOFException(std::string m);
@@ -126,15 +130,40 @@ public:
     ValueException(std::string m);
 };
 
+/**
+ * User defined class for errors
+ */
 class LSM_DLL_LOCAL LsmException : public std::runtime_error {
 public:
+
+    /**
+     * Constructor
+     * @param code      Error code
+     * @param msg       Error message
+     */
     LsmException(int code, std::string &msg);
 
+    /**
+     * Constructor
+     * @param code          Error code
+     * @param msg           Error message
+     * @param debug_addl    Additional debug data
+     */
     LsmException(int code, std::string &msg, const std::string &debug_addl);
 
+    /**
+     * Constructor
+     * @param code              Error code
+     * @param msg               Error message
+     * @param debug_addl        Additional debug
+     * @param debug_data_addl   Additional debug data
+     */
     LsmException(int code, std::string &msg, const std::string &debug_addl,
         const std::string &debug_data_addl);
 
+    /**
+     * Destructor
+     */
     ~LsmException() throw ();
 
     int error_code;
@@ -370,21 +399,72 @@ public:
 
 class LSM_DLL_LOCAL Ipc {
 public:
+    /**
+     * Constructor
+     */
     Ipc();
+
+    /**
+     * Constructor that takes a file descriptor
+     * @param fd    File descriptor to use
+     */
     Ipc(int fd);
+
+    /**
+     * Constructor that takes a socket path
+     * @param socket_path   Unix domain socket
+     */
     Ipc(std::string socket_path);
+
+    /**
+     * Destructor
+     */
     ~Ipc();
 
+    /**
+     * Send a request over IPC
+     * @param request       IPC function name
+     * @param params        Parameters
+     * @param id            Request ID
+     */
     void sendRequest(const std::string request, const Value &params,
                         int32_t id = 100);
+    /**
+     * Reads a request
+     * @returns Value
+     */
     Value readRequest(void);
 
+    /**
+     * Send a response to a request
+     * @param response      Response value
+     * @param id            Id that matches request
+     */
     void sendResponse(const Value &response, uint32_t id = 100);
+
+    /**
+     * Read a response
+     * @return Value of response
+     */
     Value readResponse();
 
+    /**
+     * Send an error
+     * @param error_code        Error code
+     * @param msg               Error message
+     * @param debug             Debug data
+     * @param id                Id that matches request
+     */
     void sendError(int error_code, std::string msg, std::string debug,
                     uint32_t id = 100);
 
+    /**
+     * Do a remote procedure call (Request with a returned response
+     * @param request           Function method
+     * @param params            Function parameters
+     * @param id                Id of request
+     * @return Result of the operation.
+     */
     Value rpc(const std::string &request, const Value &params, int32_t id = 100);
 
 
