@@ -556,7 +556,7 @@ START_TEST(test_access_groups)
 
     char *job = NULL;
 
-    rc = lsmAccessGroupAddInitiator(c, group, "iqn.1994-05.com.domain:01.89bd02", LSM_INITIATOR_ISCSI, &job, LSM_FLAG_RSVD);
+    rc = lsmAccessGroupAddInitiator(c, group, "iqn.1994-05.com.domain:01.89bd02", LSM_INITIATOR_ISCSI, LSM_FLAG_RSVD);
 
     if( LSM_ERR_JOB_STARTED == rc ) {
         wait_for_job(c, &job);
@@ -588,7 +588,7 @@ START_TEST(test_access_groups)
     for( i = 0; i < init_list_count; ++i ) {
         printf("Deleting initiator %s from group!\n", lsmInitiatorIdGet(inits[i]));
         rc = lsmAccessGroupDelInitiator(c, groups[0],
-                                            lsmInitiatorIdGet(inits[i]), &job, LSM_FLAG_RSVD);
+                                            lsmInitiatorIdGet(inits[i]), LSM_FLAG_RSVD);
 
         if( LSM_ERR_JOB_STARTED == rc ) {
             wait_for_job_fs(c, &job);
@@ -646,7 +646,7 @@ START_TEST(test_access_groups_grant_revoke)
 
     fail_unless(n != NULL);
 
-    rc = lsmAccessGroupGrant(c, group, n, LSM_VOLUME_ACCESS_READ_WRITE, &job, LSM_FLAG_RSVD);
+    rc = lsmAccessGroupGrant(c, group, n, LSM_VOLUME_ACCESS_READ_WRITE, LSM_FLAG_RSVD);
     if( LSM_ERR_JOB_STARTED == rc ) {
         wait_for_job(c, &job);
     } else {
@@ -671,14 +671,14 @@ START_TEST(test_access_groups_grant_revoke)
     fail_unless(strcmp(lsmAccessGroupIdGet(groups[0]), lsmAccessGroupIdGet(group)) == 0);
     lsmAccessGroupRecordFreeArray(groups, g_count);
 
-    rc = lsmAccessGroupRevoke(c, group, n, &job, LSM_FLAG_RSVD);
+    rc = lsmAccessGroupRevoke(c, group, n, LSM_FLAG_RSVD);
     if( LSM_ERR_JOB_STARTED == rc ) {
         wait_for_job(c, &job);
     } else {
         fail_unless(LSM_ERR_OK == rc);
     }
 
-    rc = lsmAccessGroupDel(c, group, &job, LSM_FLAG_RSVD);
+    rc = lsmAccessGroupDel(c, group, LSM_FLAG_RSVD);
     fail_unless(LSM_ERR_OK == rc);
     lsmAccessGroupRecordFree(group);
 
@@ -1311,49 +1311,33 @@ START_TEST(test_invalid_input)
 
 
     /* lsmAccessGroupDel */
-    rc = lsmAccessGroupDel(c, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsmAccessGroupDel(c, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ACCESS_GROUP, "rc = %d", rc);
-
-    rc = lsmAccessGroupDel(c, ag, NULL, LSM_FLAG_RSVD);
-    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
-
 
     /* lsmAccessGroupAddInitiator */
-    rc = lsmAccessGroupAddInitiator(c, NULL, NULL, 0, NULL, LSM_FLAG_RSVD);
+    rc = lsmAccessGroupAddInitiator(c, NULL, NULL, 0, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ACCESS_GROUP, "rc = %d", rc);
 
 
-    rc = lsmAccessGroupAddInitiator(c, ag, ISCSI_HOST[0], 0, NULL,
-                                    LSM_FLAG_RSVD);
-    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
-
-    rc = lsmAccessGroupDelInitiator(c, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsmAccessGroupDelInitiator(c, NULL, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ACCESS_GROUP, "rc = %d", rc);
 
-    rc = lsmAccessGroupDelInitiator(c, ag, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsmAccessGroupDelInitiator(c, ag, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 
 
-    rc = lsmAccessGroupGrant(c, NULL, NULL, 0, NULL, LSM_FLAG_RSVD);
+    rc = lsmAccessGroupGrant(c, NULL, NULL, 0, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ACCESS_GROUP, "rc = %d", rc);
 
-    rc = lsmAccessGroupGrant(c, ag, NULL, 0, NULL, LSM_FLAG_RSVD);
+    rc = lsmAccessGroupGrant(c, ag, NULL, 0, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_VOL, "rc = %d", rc);
 
-
-    rc = lsmAccessGroupGrant(c, ag, new_vol, 0, NULL, LSM_FLAG_RSVD);
-    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
-
-
-    rc = lsmAccessGroupRevoke(c, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsmAccessGroupRevoke(c, NULL, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ACCESS_GROUP, "rc = %d", rc);
 
-    rc = lsmAccessGroupRevoke(c, ag, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsmAccessGroupRevoke(c, ag, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_VOL, "rc = %d", rc);
-
-    rc = lsmAccessGroupRevoke(c, ag, new_vol, NULL,LSM_FLAG_RSVD);
-    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 
     /* lsmVolumesAccessibleByAccessGroup */
@@ -1679,7 +1663,7 @@ START_TEST(test_initiator_methods)
     }
 
     rc = lsmInitiatorGrant(c, ISCSI_HOST[0], LSM_INITIATOR_ISCSI, nv,
-                            LSM_VOLUME_ACCESS_READ_WRITE, &job, LSM_FLAG_RSVD);
+                            LSM_VOLUME_ACCESS_READ_WRITE, LSM_FLAG_RSVD);
 
     if( LSM_ERR_JOB_STARTED == rc ) {
         wait_for_job(c, &job);
@@ -1725,7 +1709,7 @@ START_TEST(test_initiator_methods)
     }
 
     if( LSM_ERR_OK == rc ) {
-        rc = lsmInitiatorRevoke(c, initiator, nv, &job, LSM_FLAG_RSVD);
+        rc = lsmInitiatorRevoke(c, initiator, nv, LSM_FLAG_RSVD);
 
         if( LSM_ERR_JOB_STARTED == rc ) {
             wait_for_job(c, &job);
@@ -1765,7 +1749,7 @@ START_TEST(test_iscsi_auth_in)
              fail_unless(LSM_ERR_OK == rc, "rc = %d", rc) ;
          }
 
-         rc = lsmAccessGroupDel(c, group, &job, LSM_FLAG_RSVD);
+         rc = lsmAccessGroupDel(c, group, LSM_FLAG_RSVD);
 
          if(LSM_ERR_JOB_STARTED == rc ) {
              wait_for_job(c, &job);

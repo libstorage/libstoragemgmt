@@ -56,7 +56,7 @@ typedef enum {
     LSM_DATA_TYPE_SS,                   /**< Snap shot */
     LSM_DATA_TYPE_STRING_LIST,          /**< String list */
     LSM_DATA_TYPE_SYSTEM,               /**< System */
-    LSM_DATA_TYPE_VOLUME,               /**< Volume */
+    LSM_DATA_TYPE_VOLUME                /**< Volume */
 } lsmDataType;
 
 /**
@@ -300,12 +300,11 @@ typedef int (*lsmPlugVolumeDelete)(lsmPluginPtr c, lsmVolumePtr volume,
  * @param[in]   i                   Initiator to grant access for
  * @param[in]   v                   Volume of interest
  * @param[in]   access              Requested access
- * @param[out]  job                 Job ID
  * @param[in]   flags               Reserved
  * @return LSM_ERR_OK, else error reason
  */
 int lsmPlugAccessGrant(lsmPluginPtr c, lsmInitiatorPtr i, lsmVolumePtr v,
-                        lsmAccessType access, char **job, lsmFlag_t flags);
+                        lsmAccessType access, lsmFlag_t flags);
 
 /**
  * Removes access for an initiator to a volume, callback function signature.
@@ -357,7 +356,6 @@ typedef int (*lsmPlugVolumeOffline)(lsmPluginPtr c, lsmVolumePtr v,
  * @param[in]   initiator_type      Type of initiator
  * @param[in]   volume              Volume of interest
  * @param[in]   access              Desired access to volume
- * @param[out]  job                 Job ID
  * @param[in]   flags               Reserved
  * @return LSM_ERR_OK, else error reason
  */
@@ -365,7 +363,6 @@ typedef int (*lsmPlugInitiatorGrant)(lsmPluginPtr c, const char *initiator_id,
                                         lsmInitiatorType initiator_type,
                                         lsmVolumePtr volume,
                                         lsmAccessType access,
-                                        char **job,
                                         lsmFlag_t flags);
 
 /**
@@ -373,12 +370,11 @@ typedef int (*lsmPlugInitiatorGrant)(lsmPluginPtr c, const char *initiator_id,
  * @param[in]   c                   Valid lsm plug-in pointer
  * @param[in]   init                Initiator to revoke access to
  * @param[in]   volume              Volume of interest
- * @param[out]  job                 The Job ID
  * @param[in]   flags               Reserved
  * @return LSM_ERR_OK, else error reason
  */
 typedef int (*lsmPlugInitiatorRevoke)(lsmPluginPtr c, lsmInitiatorPtr init,
-                                        lsmVolumePtr volume, char **job,
+                                        lsmVolumePtr volume,
                                         lsmFlag_t flags);
 
 /**
@@ -446,13 +442,11 @@ typedef int (*lsmPlugAccessGroupCreate)(lsmPluginPtr c,
  * Deletes an access group, callback function signature
  * @param[in]   c                   Valid lsm plug-in pointer
  * @param[in]   group               Access group to be deleted
- * @param[out]  job                 Job ID
  * @param[in]   flags               Reserved
  * @return LSM_ERR_OK, else error reason
  */
 typedef int (*lsmPlugAccessGroupDel)(lsmPluginPtr c,
-                                            lsmAccessGroupPtr group,
-                                            char **job, lsmFlag_t flags);
+                                            lsmAccessGroupPtr group, lsmFlag_t flags);
 
 /**
  * Add an initiator to an access group, callback function signature
@@ -460,29 +454,26 @@ typedef int (*lsmPlugAccessGroupDel)(lsmPluginPtr c,
  * @param[in]   group               Group to add initiator to
  * @param[in]   initiator_id        Initiator to add to group
  * @param[in]   id_type             Initiator type
- * @param[out]  job                 Job ID
  * @param[in]   flags               Reserved
  * @return LSM_ERR_OK, else error reason
  */
 typedef int (*lsmPlugAccessGroupAddInitiator)(lsmPluginPtr c,
                                 lsmAccessGroupPtr group,
                                 const char *initiator_id,
-                                lsmInitiatorType id_type, char **job,
-                                lsmFlag_t flags);
+                                lsmInitiatorType id_type, lsmFlag_t flags);
 
 /**
  * Remove an initiator from an access group, callback function signature
  * @param[in]   c                   Valid lsm plug-in pointer
  * @param[in]   group               Group to remove initiator from
  * @param[in]   initiator_id        Initiator to remove
- * @param[out]  job                 Job ID
  * @param[in]   flags               Reserved
  * @return LSM_ERR_OK, else error reason
  */
 typedef int (*lsmPlugAccessGroupDelInitiator)(lsmPluginPtr c,
                                                     lsmAccessGroupPtr group,
                                                     const char *initiator_id,
-                                                    char **job, lsmFlag_t flags);
+                                                    lsmFlag_t flags);
 
 /**
  * Grants access to a volume for the specified access group, callback function signature
@@ -490,27 +481,25 @@ typedef int (*lsmPlugAccessGroupDelInitiator)(lsmPluginPtr c,
  * @param[in]   group               Group to be granted access
  * @param[in]   volume              Volume to be given access too
  * @param[in]   access              Access type
- * @param[out]  job                 Job ID
  * @param[in]   flags               Reserved
  * @return LSM_ERR_OK, else error reason
  */
 typedef int (*lsmPlugAccessGroupGrant)(lsmPluginPtr c,
                                             lsmAccessGroupPtr group,
                                             lsmVolumePtr volume,
-                                            lsmAccessType access, char **job, lsmFlag_t flags);
+                                            lsmAccessType access, lsmFlag_t flags);
 
 /**
  * Revokes access to a volume for a specified access group, callback function signature
  * @param[in]   c                   Valid lsm plug-in pointer
  * @param[in]   group               Group to revoke access for
  * @param[in]   volume              Volume to which will no longer be accessible by group
- * @param[out]  job                 Job ID
  * @param[in]   flags               Reserved
  * @return LSM_ERR_OK, else error reason
  */
 typedef int (*lsmPlugAccessGroupRevoke)(lsmPluginPtr c,
                                             lsmAccessGroupPtr group,
-                                            lsmVolumePtr volume, char **job, lsmFlag_t flags);
+                                            lsmVolumePtr volume, lsmFlag_t flags);
 
 /**
  * Retrieve an array of volumes which are accessible by access group, callback function signature

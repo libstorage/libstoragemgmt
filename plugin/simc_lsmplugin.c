@@ -983,7 +983,7 @@ static int access_group_create(lsmPluginPtr c,
 
 static int access_group_delete( lsmPluginPtr c,
                                 lsmAccessGroupPtr group,
-                                char **job, lsmFlag_t flags)
+                                lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
 
@@ -1009,7 +1009,7 @@ static int access_group_delete( lsmPluginPtr c,
 static int access_group_add_initiator(  lsmPluginPtr c,
                                         lsmAccessGroupPtr group,
                                         const char *initiator_id,
-                                        lsmInitiatorType id_type, char **job,
+                                        lsmInitiatorType id_type,
                                         lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
@@ -1022,9 +1022,6 @@ static int access_group_add_initiator(  lsmPluginPtr c,
     if( find ) {
         lsmStringList *inits = lsmAccessGroupInitiatorIdGet(find->ag);
         rc = lsmStringListAppend(inits, initiator_id);
-        if( LSM_ERR_OK == rc ) {
-            rc = create_job(pd, job, LSM_DATA_TYPE_NONE, NULL, NULL);
-        }
     } else {
         rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_ACCESS_GROUP,
                                     "access group not found");
@@ -1035,7 +1032,7 @@ static int access_group_add_initiator(  lsmPluginPtr c,
 static int access_group_del_initiator(  lsmPluginPtr c,
                                         lsmAccessGroupPtr group,
                                         const char *init,
-                                        char **job, lsmFlag_t flags)
+                                        lsmFlag_t flags)
 {
     int rc = LSM_ERR_INITIATOR_NOT_IN_ACCESS_GROUP;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -1055,10 +1052,6 @@ static int access_group_del_initiator(  lsmPluginPtr c,
                 break;
             }
         }
-
-        if( LSM_ERR_OK == rc ) {
-            rc = create_job(pd, job, LSM_DATA_TYPE_NONE, NULL, NULL);
-        }
     } else {
         rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_ACCESS_GROUP,
                                     "access group not found");
@@ -1069,7 +1062,7 @@ static int access_group_del_initiator(  lsmPluginPtr c,
 static int access_group_grant(lsmPluginPtr c,
                                 lsmAccessGroupPtr group,
                                 lsmVolumePtr volume,
-                                lsmAccessType access, char **job,
+                                lsmAccessType access,
                                 lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
@@ -1100,8 +1093,6 @@ static int access_group_grant(lsmPluginPtr c,
 
                 /* Create the association for access groups */
                 g_hash_table_insert(pd->group_grant, key, grant);
-
-                rc = create_job(pd, job, LSM_DATA_TYPE_NONE, NULL, NULL);
 
             } else {
                 rc = LSM_ERR_NO_MEMORY;
@@ -1147,7 +1138,7 @@ static int access_group_grant(lsmPluginPtr c,
 
 static int access_group_revoke(lsmPluginPtr c,
                                 lsmAccessGroupPtr group,
-                                lsmVolumePtr volume, char **job,
+                                lsmVolumePtr volume,
                                 lsmFlag_t flags)
 {
     int rc = LSM_ERR_NO_MAPPING;
@@ -1163,8 +1154,9 @@ static int access_group_revoke(lsmPluginPtr c,
         GHashTable *grants = g_hash_table_lookup(pd->group_grant,
                                     lsmAccessGroupIdGet(find->ag));
 
-        if( (grants && g_hash_table_remove(grants, lsmVolumeIdGet(volume)))) {
-            rc = create_job(pd, job, LSM_DATA_TYPE_NONE, NULL, NULL);
+        if( grants ) {
+            g_hash_table_remove(grants, lsmVolumeIdGet(volume));
+            rc = LSM_ERR_OK;
         }
 
     } else {
@@ -1349,7 +1341,6 @@ static int initiator_grant(lsmPluginPtr c, const char *initiator_id,
                                         lsmInitiatorType initiator_type,
                                         lsmVolumePtr volume,
                                         lsmAccessType access,
-                                        char **job,
                                         lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
@@ -1361,12 +1352,11 @@ static int initiator_grant(lsmPluginPtr c, const char *initiator_id,
     rc = access_group_create(c, name, initiator_id, initiator_type,
                         lsmVolumeSystemIdGet(volume), &ag, flags);
     if( LSM_ERR_OK == rc ) {
-        rc = access_group_grant(c, ag, volume, access, job, flags);
+        rc = access_group_grant(c, ag, volume, access, flags);
 
-        if( LSM_ERR_OK != rc && LSM_ERR_JOB_STARTED != rc ) {
+        if( LSM_ERR_OK != rc ) {
             /* If we didn't succeed, remove the access group */
-            access_group_delete(c, ag, job, flags);
-            free(*job);
+            access_group_delete(c, ag, flags);
         }
         lsmAccessGroupRecordFree(ag);
     }
@@ -1399,7 +1389,7 @@ static lsmAccessGroupPtr get_access_group( lsmPluginPtr c, char *group_name,
 
 
 static int initiator_revoke(lsmPluginPtr c, lsmInitiatorPtr init,
-                                        lsmVolumePtr volume, char **job,
+                                        lsmVolumePtr volume,
                                         lsmFlag_t flags)
 {
     int rc = 0;
@@ -1413,7 +1403,7 @@ static int initiator_revoke(lsmPluginPtr c, lsmInitiatorPtr init,
     lsmAccessGroupPtr ag = get_access_group(c, name, &found);
 
     if( found && ag ) {
-        rc = access_group_delete(c, ag, job, flags);
+        rc = access_group_delete(c, ag, flags);
     } else {
         if( found && !ag) {
             rc = LSM_ERR_NO_MEMORY;

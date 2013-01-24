@@ -948,7 +948,6 @@ static int ag_delete(lsmPluginPtr p, Value &params, Value &response)
     int rc = LSM_ERR_NO_SUPPORT;
 
     if( p && p->sanOps && p->sanOps->ag_delete ) {
-        char *job = NULL;
         Value v_group = params["group"];
 
         if( Value::object_t == v_group.valueType() &&
@@ -957,14 +956,7 @@ static int ag_delete(lsmPluginPtr p, Value &params, Value &response)
             lsmAccessGroupPtr ag = valueToAccessGroup(v_group);
 
             if( ag ) {
-                rc = p->sanOps->ag_delete(p, ag, &job,
-                                            LSM_FLAG_GET_VALUE(params));
-
-                if( LSM_ERR_JOB_STARTED == rc ) {
-                    response = Value(job);
-                    free(job);
-                }
-
+                rc = p->sanOps->ag_delete(p, ag, LSM_FLAG_GET_VALUE(params));
                 lsmAccessGroupRecordFree(ag);
             } else {
                 rc = LSM_ERR_NO_MEMORY;
@@ -996,17 +988,11 @@ static int ag_initiator_add(lsmPluginPtr p, Value &params, Value &response)
             lsmAccessGroupPtr ag = valueToAccessGroup(v_group);
             if( ag ) {
                 const char *id = v_id.asC_str();
-                char *job = NULL;
                 lsmInitiatorType id_type = (lsmInitiatorType)
                                             v_id_type.asInt32_t();
 
-                rc = p->sanOps->ag_add_initiator(p, ag, id, id_type, &job,
-                                            LSM_FLAG_GET_VALUE(params));
-
-                if( LSM_ERR_JOB_STARTED == rc ) {
-                    response = Value(job);
-                    free(job);
-                }
+                rc = p->sanOps->ag_add_initiator(p, ag, id, id_type,
+                                                    LSM_FLAG_GET_VALUE(params));
 
                 lsmAccessGroupRecordFree(ag);
             } else {
@@ -1038,16 +1024,8 @@ static int ag_initiator_del(lsmPluginPtr p, Value &params, Value &response)
 
             if( ag ) {
                 const char *init = v_init_id.asC_str();
-                char *job = NULL;
-
-                rc = p->sanOps->ag_del_initiator(p, ag, init, &job,
+                rc = p->sanOps->ag_del_initiator(p, ag, init,
                                                 LSM_FLAG_GET_VALUE(params));
-
-                if( LSM_ERR_JOB_STARTED == rc ) {
-                    response = Value(job);
-                    free(job);
-                }
-
                 lsmAccessGroupRecordFree(ag);
             } else {
                 rc = LSM_ERR_NO_MEMORY;
@@ -1081,15 +1059,10 @@ static int ag_grant(lsmPluginPtr p, Value &params, Value &response)
             if( ag && vol ) {
                 lsmAccessType access = (lsmAccessType)v_access.asInt32_t();
 
-                char *job = NULL;
 
-                rc = p->sanOps->ag_grant(p, ag, vol, access, &job,
+
+                rc = p->sanOps->ag_grant(p, ag, vol, access,
                                             LSM_FLAG_GET_VALUE(params));
-
-                if( LSM_ERR_JOB_STARTED == rc ) {
-                    response = Value(job);
-                    free(job);
-                }
             } else {
                 rc = LSM_ERR_NO_MEMORY;
             }
@@ -1122,15 +1095,8 @@ static int ag_revoke(lsmPluginPtr p, Value &params, Value &response)
             lsmVolumePtr vol = valueToVolume(v_vol);
 
             if( ag && vol ) {
-                char *job = NULL;
-
-                rc = p->sanOps->ag_revoke(p, ag, vol, &job,
+                rc = p->sanOps->ag_revoke(p, ag, vol,
                                             LSM_FLAG_GET_VALUE(params));
-
-                if( LSM_ERR_JOB_STARTED == rc ) {
-                    response = Value(job);
-                    free(job);
-                }
             } else {
                 rc = LSM_ERR_NO_MEMORY;
             }
@@ -2007,17 +1973,9 @@ static int initiator_grant(lsmPluginPtr p, Value &params, Value &response)
             lsmAccessType access = (lsmAccessType)v_access.asInt32_t();
             lsmFlag_t flags = LSM_FLAG_GET_VALUE(params);
 
-            char *job = NULL;
-
             if( vol ) {
                 rc = p->sanOps->initiator_grant(p, init_id, i_type, vol, access,
-                                                &job, flags);
-
-                if( LSM_ERR_JOB_STARTED == rc ) {
-                    response = Value(job);
-                    free(job);
-                }
-
+                                                flags);
                 lsmVolumeRecordFree(vol);
             } else {
                 rc = LSM_ERR_NO_MEMORY;
@@ -2072,16 +2030,9 @@ static int initiator_revoke(lsmPluginPtr p, Value &params, Value &response)
             lsmInitiatorPtr init = valueToInitiator(v_init);
             lsmVolumePtr vol = valueToVolume(v_vol);
             lsmFlag_t flags = LSM_FLAG_GET_VALUE(params);
-            char *job = NULL;
 
             if( init && vol ) {
-                rc = p->sanOps->initiator_revoke(p, init, vol, &job, flags);
-
-                if( LSM_ERR_JOB_STARTED == rc ) {
-                    response = Value(job);
-                    free(job);
-                }
-
+                rc = p->sanOps->initiator_revoke(p, init, vol, flags);
             } else {
                 rc = LSM_ERR_NO_MEMORY;
             }

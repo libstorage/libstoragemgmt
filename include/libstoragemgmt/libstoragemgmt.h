@@ -169,12 +169,12 @@ extern "C" {
 
     /**
      * Frees the resources used by a job.
-     * @param[in] conn
-     * @param[in] jobNumber
-     * @param[in] flags     Reserved for future use, must be zero.
+     * @param[in] conn          Valid connection pointer
+     * @param[in] jobID         Job ID
+     * @param[in] flags         Reserved for future use, must be zero.
      * @return LSM_ERROR_OK, else error reason.
      */
-    int LSM_DLL_EXPORT lsmJobFree(lsmConnectPtr conn, char **jobNumber,
+    int LSM_DLL_EXPORT lsmJobFree(lsmConnectPtr conn, char **jobID,
                                     lsmFlag_t flags);
     /**
      * Storage system query functions
@@ -367,17 +367,14 @@ extern "C" {
      * @param[in] initiator_type        Type of initiator we are adding
      * @param[in] volume                Volume to allow access to
      * @param[in] access                Type of access
-     * @param[out] job_id                  Job id when method is async.
      * @param[in] flags                 Reserved for future use, must be zero.
-     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. ,
-     *          else error code
+     * @return LSM_ERR_OK on success, else error code
      */
     int LSM_DLL_EXPORT lsmInitiatorGrant(lsmConnectPtr conn,
                                         const char *initiator_id,
                                         lsmInitiatorType initiator_type,
                                         lsmVolumePtr volume,
                                         lsmAccessType access,
-                                        char **job_id,
                                         lsmFlag_t flags);
 
     /**
@@ -385,7 +382,6 @@ extern "C" {
      * @param[in] conn          Valid connection
      * @param[in] initiator     Valid initiator
      * @param[in] volume        Valid volume
-     * @param[out] job          Job id for async
      * @param[in] flags         Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. ,
      *          else error code
@@ -393,7 +389,6 @@ extern "C" {
     int LSM_DLL_EXPORT lsmInitiatorRevoke(lsmConnectPtr conn,
                                         lsmInitiatorPtr initiator,
                                         lsmVolumePtr volume,
-                                        char **job,
                                         lsmFlag_t flags);
 
     /**
@@ -432,13 +427,11 @@ extern "C" {
      * Deletes an access group.
      * @param[in] conn                  Valid connection @see lsmConnectUserPass
      * @param[in] group                 Group to delete
-     * @param[out] job                  Job ID
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
     int LSM_DLL_EXPORT lsmAccessGroupDel(lsmConnectPtr conn,
-                                            lsmAccessGroupPtr group, char **job,
-                                            lsmFlag_t flags);
+                                            lsmAccessGroupPtr group, lsmFlag_t flags);
 
     /**
      * Adds an initiator to the access group
@@ -446,29 +439,25 @@ extern "C" {
      * @param[in] group                 Group to modify
      * @param[in] initiator_id          Initiator to add to group
      * @param[in] id_type               Type of initiator
-     * @param[out] job                  job id
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
     int LSM_DLL_EXPORT lsmAccessGroupAddInitiator(lsmConnectPtr conn,
                                 lsmAccessGroupPtr group,
                                 const char *initiator_id,
-                                lsmInitiatorType id_type, char **job,
-                                lsmFlag_t flags);
+                                lsmInitiatorType id_type, lsmFlag_t flags);
 
     /**
      * Removes an initiator from an access group.
      * @param[in] conn                  Valid connection @see lsmConnectUserPass
      * @param[in] group                 Group to modify
      * @param[in] initiator_id          Initiator to delete from group
-     * @param[out] job                  job id
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return[in] LSM_ERR_OK on success, else error reason.
      */
     int LSM_DLL_EXPORT lsmAccessGroupDelInitiator(lsmConnectPtr conn,
                                                     lsmAccessGroupPtr group,
                                                     const char *initiator_id,
-                                                    char **job,
                                                     lsmFlag_t flags);
 
     /**
@@ -477,14 +466,13 @@ extern "C" {
      * @param[in] group                 Valid group pointer
      * @param[in] volume                Valid volume pointer
      * @param[in] access                Desired access
-     * @param[out] job                  job id if all async.
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
     int LSM_DLL_EXPORT lsmAccessGroupGrant(lsmConnectPtr conn,
                                             lsmAccessGroupPtr group,
                                             lsmVolumePtr volume,
-                                            lsmAccessType access, char **job,
+                                            lsmAccessType access,
                                             lsmFlag_t flags);
 
     /**
@@ -492,13 +480,12 @@ extern "C" {
      * @param[in] conn                  Valid connection
      * @param[in] group                 Valid group pointer
      * @param[in] volume                Valid volume pointer
-     * @param[out] job                  job id if all async.
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
     int LSM_DLL_EXPORT lsmAccessGroupRevoke(lsmConnectPtr conn,
                                             lsmAccessGroupPtr group,
-                                            lsmVolumePtr volume, char **job,
+                                            lsmVolumePtr volume,
                                             lsmFlag_t flags);
 
     /**

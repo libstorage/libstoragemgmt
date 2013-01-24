@@ -813,7 +813,6 @@ int lsmInitiatorGrant(lsmConnectPtr c,
                     lsmInitiatorType initiator_type,
                     lsmVolumePtr volume,
                     lsmAccessType access,
-                    char **job,
                     lsmFlag_t flags)
 {
     CONN_SETUP(c);
@@ -836,25 +835,11 @@ int lsmInitiatorGrant(lsmConnectPtr c,
     Value parameters(p);
     Value response;
 
-    int rc = rpc(c, "initiator_grant", parameters, response);
-
-    if( LSM_ERR_OK == rc ) {
-        //We get a value back, either null or job id.
-        if( Value::string_t == response.valueType() ) {
-            *job = strdup(response.asString().c_str());
-
-            if( *job ) {
-                rc = LSM_ERR_JOB_STARTED;
-            } else {
-                rc = LSM_ERR_NO_MEMORY;
-            }
-        }
-    }
-    return rc;
+    return rpc(c, "initiator_grant", parameters, response);
 }
 
 int lsmInitiatorRevoke( lsmConnectPtr c, lsmInitiatorPtr i, lsmVolumePtr v,
-                        char **job, lsmFlag_t flags)
+                        lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -874,21 +859,7 @@ int lsmInitiatorRevoke( lsmConnectPtr c, lsmInitiatorPtr i, lsmVolumePtr v,
     Value parameters(p);
     Value response;
 
-    int rc = rpc(c, "initiator_revoke", parameters, response);
-
-     if( LSM_ERR_OK == rc ) {
-        //We get a value back, either null or job id.
-        if( Value::string_t == response.valueType() ) {
-            *job = strdup(response.asString().c_str());
-
-            if( *job ) {
-                rc = LSM_ERR_JOB_STARTED;
-            } else {
-                rc = LSM_ERR_NO_MEMORY;
-            }
-        }
-    }
-    return rc;
+    return rpc(c, "initiator_revoke", parameters, response);
 }
 
 int lsmVolumesAccessibleByInitiator(lsmConnectPtr c,
@@ -1026,8 +997,7 @@ int lsmAccessGroupCreate(lsmConnectPtr c, const char *name,
     return rc;
 }
 
-int lsmAccessGroupDel(lsmConnectPtr c, lsmAccessGroupPtr group,
-                        char **job, lsmFlag_t flags)
+int lsmAccessGroupDel(lsmConnectPtr c, lsmAccessGroupPtr group, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -1035,7 +1005,7 @@ int lsmAccessGroupDel(lsmConnectPtr c, lsmAccessGroupPtr group,
         return LSM_ERR_INVALID_ACCESS_GROUP;
     }
 
-    if( CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1046,16 +1016,14 @@ int lsmAccessGroupDel(lsmConnectPtr c, lsmAccessGroupPtr group,
     Value parameters(p);
     Value response;
 
-    int rc = rpc(c, "access_group_del", parameters, response);
-    rc = jobCheck(rc, response, job);
-    return rc;
+    return rpc(c, "access_group_del", parameters, response);
 }
 
 int lsmAccessGroupAddInitiator(lsmConnectPtr c,
                                 lsmAccessGroupPtr group,
                                 const char *initiator_id,
                                 lsmInitiatorType id_type,
-                                char **job, lsmFlag_t flags)
+                                lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -1063,7 +1031,7 @@ int lsmAccessGroupAddInitiator(lsmConnectPtr c,
         return LSM_ERR_INVALID_ACCESS_GROUP;
     }
 
-    if( CHECK_STR(initiator_id) || CHECK_RP(job) ||
+    if( CHECK_STR(initiator_id) ||
         LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
@@ -1077,16 +1045,11 @@ int lsmAccessGroupAddInitiator(lsmConnectPtr c,
     Value parameters(p);
     Value response;
 
-    *job = NULL;
-
-    int rc = rpc(c, "access_group_add_initiator", parameters, response);
-    rc = jobCheck(rc, response, job);
-    return rc;
+    return rpc(c, "access_group_add_initiator", parameters, response);
 }
 
 int lsmAccessGroupDelInitiator(lsmConnectPtr c, lsmAccessGroupPtr group,
-                                const char* initiator_id, char **job,
-                                lsmFlag_t flags)
+                                const char* initiator_id, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -1094,7 +1057,7 @@ int lsmAccessGroupDelInitiator(lsmConnectPtr c, lsmAccessGroupPtr group,
         return LSM_ERR_INVALID_ACCESS_GROUP;
     }
 
-    if( CHECK_STR(initiator_id) || CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( CHECK_STR(initiator_id) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1106,14 +1069,12 @@ int lsmAccessGroupDelInitiator(lsmConnectPtr c, lsmAccessGroupPtr group,
     Value parameters(p);
     Value response;
 
-    int rc = rpc(c, "access_group_del_initiator", parameters, response);
-    rc = jobCheck(rc, response, job);
-    return rc;
+    return rpc(c, "access_group_del_initiator", parameters, response);
 }
 
 int lsmAccessGroupGrant(lsmConnectPtr c, lsmAccessGroupPtr group,
                                             lsmVolumePtr volume,
-                                            lsmAccessType access, char **job,
+                                            lsmAccessType access,
                                             lsmFlag_t flags)
 {
     CONN_SETUP(c);
@@ -1126,7 +1087,7 @@ int lsmAccessGroupGrant(lsmConnectPtr c, lsmAccessGroupPtr group,
         return LSM_ERR_INVALID_VOL;
     }
 
-    if( CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1139,14 +1100,12 @@ int lsmAccessGroupGrant(lsmConnectPtr c, lsmAccessGroupPtr group,
     Value parameters(p);
     Value response;
 
-    int rc = rpc(c, "access_group_grant", parameters, response);
-    rc = jobCheck(rc, response, job);
-    return rc;
+    return rpc(c, "access_group_grant", parameters, response);
 }
 
 
 int lsmAccessGroupRevoke(lsmConnectPtr c, lsmAccessGroupPtr group,
-                                            lsmVolumePtr volume, char **job,
+                                            lsmVolumePtr volume,
                                             lsmFlag_t flags)
 {
     CONN_SETUP(c);
@@ -1159,7 +1118,7 @@ int lsmAccessGroupRevoke(lsmConnectPtr c, lsmAccessGroupPtr group,
         return LSM_ERR_INVALID_VOL;
     }
 
-    if( CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1171,9 +1130,7 @@ int lsmAccessGroupRevoke(lsmConnectPtr c, lsmAccessGroupPtr group,
     Value parameters(p);
     Value response;
 
-    int rc = rpc(c, "access_group_revoke", parameters, response);
-    rc = jobCheck(rc, response, job);
-    return rc;
+    return rpc(c, "access_group_revoke", parameters, response);
 }
 
 int lsmVolumesAccessibleByAccessGroup(lsmConnectPtr c,

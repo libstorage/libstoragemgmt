@@ -29,7 +29,7 @@ class IPlugin(object):
         """
         Method first called to setup the plug-in
 
-        Return None on success, else LsmError exception
+        Returns None on success, else LsmError exception
         """
         pass
 
@@ -38,7 +38,7 @@ class IPlugin(object):
         """
         Sets any time-outs for the plug-in (ms)
 
-        Return None on success, else LsmError exception
+        Returns None on success, else LsmError exception
         """
         pass
 
@@ -47,7 +47,7 @@ class IPlugin(object):
         """
         Retrieves the current time-out
 
-        Return time-out in ms, else raise LsmError
+        Returns time-out in ms, else raise LsmError
         """
         pass
 
@@ -59,7 +59,7 @@ class IPlugin(object):
         the socket goes EOF and the shutdown runs into errors the exception(s)
         will not be delivered to the client!
 
-        Return None on success, else LsmError exception
+        Returns None on success, else LsmError exception
         """
         pass
 
@@ -85,14 +85,14 @@ class IPlugin(object):
     @abstractmethod
     def capabilities(self, system, flags = 0):
         """
-        Returns the capabilities for the selected system
+        Returns the capabilities for the selected system, raises LsmError
         """
         pass
 
     @abstractmethod
     def plugin_info(self, flags=0):
         """
-        Returns the description and version for plug-in
+        Returns the description and version for plug-in, raises LsmError
         """
         pass
 
@@ -101,6 +101,8 @@ class IPlugin(object):
         """
         Returns an array of pool objects.  Pools are used in both block and
         file system interfaces, thus the reason they are in the base class.
+
+        Raises LsmError on error
         """
         pass
 
@@ -110,6 +112,8 @@ class IPlugin(object):
         Returns an array of system objects.  System information is used to
         distinguish resources from on storage array to another when the plug=in
         supports the ability to have more than one array managed by it
+
+        Raises LsmError on error
         """
         pass
 
@@ -120,6 +124,7 @@ class IStorageAreaNetwork(IPlugin):
         """
         Returns an array of volume objects
 
+        Raises LsmError on error
         """
         pass
 
@@ -127,6 +132,8 @@ class IStorageAreaNetwork(IPlugin):
     def initiators(self, flags = 0):
         """
         Return an array of initiator objects
+
+        Raises LsmError on error
         """
         pass
 
@@ -136,7 +143,7 @@ class IStorageAreaNetwork(IPlugin):
         """
         Creates a volume, given a pool, volume name, size and provisioning
 
-        returns a tuple (job_id, new volume)
+        Returns a tuple (job_id, new volume)
         Note: Tuple return values are mutually exclusive, when one
         is None the other must be valid.
         """
@@ -147,7 +154,7 @@ class IStorageAreaNetwork(IPlugin):
         """
         Deletes a volume.
 
-        Returns None on success, else raises an LsmError
+        Returns Job id or None if completed, else raises LsmError on errors.
         """
         pass
 
@@ -184,7 +191,7 @@ class IStorageAreaNetwork(IPlugin):
 
         Note: bytes per block may not match volume blocksize.
 
-        Returns bytes per block.
+        Returns bytes per block, Raises LsmError on error
         """
         pass
 
@@ -205,7 +212,7 @@ class IStorageAreaNetwork(IPlugin):
         """
         Makes a volume available to the host
 
-        returns None on success, else raises LsmError on errors.
+        Returns None on success, else raises LsmError on errors.
         """
         pass
 
@@ -214,7 +221,7 @@ class IStorageAreaNetwork(IPlugin):
         """
         Makes a volume unavailable to the host
 
-        returns None on success, else raises LsmError on errors.
+        Returns None on success, else raises LsmError on errors.
         """
         pass
 
@@ -223,6 +230,8 @@ class IStorageAreaNetwork(IPlugin):
         """
         Register a user/password for the specified initiator for CHAP
         authentication.
+
+        Raises LsmError on error
         """
         pass
 
@@ -230,6 +239,8 @@ class IStorageAreaNetwork(IPlugin):
     def initiator_grant(self, initiator_id, initiator_type, volume, access, flags = 0):
         """
         Allows an initiator to access a volume.
+
+        Returns None on success, else raises LsmError on errors.
         """
         pass
 
@@ -237,25 +248,31 @@ class IStorageAreaNetwork(IPlugin):
     def initiator_revoke(self, initiator, volume, flags = 0):
         """
         Revokes access to a volume for the specified initiator
+
+        Returns None on success, else raises LsmError on errors.
         """
         pass
 
     def access_group_grant(self, group, volume, access, flags = 0):
         """
         Allows an access group to access a volume.
+
+        Returns None on success, else raises LsmError on errors.
         """
         pass
 
     def access_group_revoke(self, group, volume, flags = 0):
         """
         Revokes access for an access group for a volume
+
+        Returns None on success, else raises LsmError on errors.
         """
         pass
 
     @abstractmethod
     def access_group_list(self, flags = 0):
         """
-        Returns a list of access groups
+        Returns a list of access groups, raises LsmError on errors.
         """
         pass
 
@@ -263,14 +280,14 @@ class IStorageAreaNetwork(IPlugin):
     def access_group_create(self, name, initiator_id, id_type, system_id,
                             flags = 0):
         """
-        Returns a list of access groups
+        Returns a list of access groups, raises LsmError on errors.
         """
         pass
 
     @abstractmethod
     def access_group_del(self, group, flags = 0):
         """
-        Deletes an access group
+        Deletes an access group, Raises LsmError on error
         """
         pass
 
@@ -278,14 +295,14 @@ class IStorageAreaNetwork(IPlugin):
     def access_group_add_initiator(self, group, initiator_id, id_type,
                                    flags = 0):
         """
-        Adds an initiator to an access group
+        Adds an initiator to an access group, Raises LsmError on error
         """
         pass
 
     @abstractmethod
     def access_group_del_initiator(self, group, initiator_id, flags = 0):
         """
-        Deletes an initiator from an access group
+        Deletes an initiator from an access group, Raises LsmError on error
         """
         pass
 
@@ -293,13 +310,15 @@ class IStorageAreaNetwork(IPlugin):
     def volumes_accessible_by_access_group(self, group, flags = 0):
         """
         Returns the list of volumes that access group has access to.
+        Raises LsmError on error
         """
         pass
 
     @abstractmethod
     def access_groups_granted_to_volume(self, volume, flags = 0):
         """
-        Returns the list of access groups that have access to the specified
+        Returns the list of access groups that have access to the specified,
+        Raises LsmError on error
         """
         pass
 
@@ -330,14 +349,16 @@ class IStorageAreaNetwork(IPlugin):
     @abstractmethod
     def volumes_accessible_by_initiator(self, initiator, flags = 0):
         """
-        Returns a list of volumes that the initiator has access to.
+        Returns a list of volumes that the initiator has access to,
+        Raises LsmError on errors.
         """
         pass
 
     @abstractmethod
     def initiators_granted_to_volume(self, volume, flags = 0):
         """
-        Returns a list of initiators that have access to the specified volume.
+        Returns a list of initiators that have access to the specified volume,
+        Raises LsmError on errors.
         """
         pass
 
@@ -348,7 +369,8 @@ class INetworkAttachedStorage(IPlugin):
     @abstractmethod
     def fs(self, flags = 0):
         """
-        Returns a list of file systems on the controller.
+        Returns a list of file systems on the controller. Raises LsmError on
+        errors.
         """
         pass
 
@@ -405,14 +427,15 @@ class INetworkAttachedStorage(IPlugin):
         Creates a thinly provisioned clone of src to dest.
         Note: Source and Destination are required to be on same filesystem
 
-        Returns None on success, else job id
+        Returns Job id or None if completed, else raises LsmError on errors.
         """
         pass
 
     @abstractmethod
     def fs_snapshots(self, fs, flags = 0):
         """
-        Returns a list of snapshots for the supplied file system
+        Returns a list of snapshots for the supplied file system, Raises LsmError
+        on error
         """
         pass
 
@@ -429,7 +452,11 @@ class INetworkAttachedStorage(IPlugin):
         In these cases the file names are effectively discarded as all files
         are done.
 
-        Returns Snapshot that was created.  Note:  Snapshot name may not match
+        Returns a tuple (job_id, snap shot created)
+        Note: Tuple return values are mutually exclusive, when one
+        is None the other must be valid.
+
+        Note:  Snapshot name may not match
         what was passed in (depends on array implementation)
         """
         pass
@@ -439,7 +466,7 @@ class INetworkAttachedStorage(IPlugin):
         """
         Frees the re-sources for the given snapshot on the supplied filesystem.
 
-        Returns None on success else job id, LsmError exception on error
+        Returns Job id or None if completed, else raises LsmError on errors.
         """
         pass
 
@@ -482,7 +509,7 @@ class INetworkAttachedStorage(IPlugin):
         Note:  This operation could take a very long time depending on the size
         of the filesystem and the number of child dependencies.
 
-        Returns None if completed, else job id.  Raises LsmError on errors.
+        Returns Job id or None if completed, else raises LsmError on errors.
         """
         pass
 
