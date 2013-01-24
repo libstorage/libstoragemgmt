@@ -136,20 +136,20 @@ typedef enum {
     LSM_PROVISION_UNKNOWN = -1,     /**< Unknown */
     LSM_PROVISION_THIN = 1,         /**< Thin provisioning */
     LSM_PROVISION_FULL = 2,         /**< Thick provisioning */
-    LSM_PROVISION_DEFAULT = 3,      /**< Default provisioning */
+    LSM_PROVISION_DEFAULT = 3       /**< Default provisioning */
 } lsmProvisionType;
 
 /**< \enum lsmAccessType Different types of Volume access */
 typedef enum {
     LSM_VOLUME_ACCESS_READ_ONLY = 1,    /**< Read only access */
     LSM_VOLUME_ACCESS_READ_WRITE = 2,   /**< Read write access */
-    LSM_VOLUME_ACCESS_NONE = 3,         /**< No access */
+    LSM_VOLUME_ACCESS_NONE = 3          /**< No access */
 } lsmAccessType;
 
 /**< \enum lsmVolumeStatusType Different states that a volume can be in */
 typedef enum {
     LSM_VOLUME_STATUS_ONLINE = 1,   /**< Volume is ready to be used */
-    LSM_VOLUME_STATUS_OFFLINE = 2,  /**< Volume is offline, no access */
+    LSM_VOLUME_STATUS_OFFLINE = 2   /**< Volume is offline, no access */
 } lsmVolumeStatusType;
 
 /**
@@ -180,14 +180,14 @@ typedef enum {
     LSM_INITIATOR_PORT_WWN = 2,                 /**< World wide port name */
     LSM_INITIATOR_NODE_WWN = 3,                 /**< World wide node name */
     LSM_INITIATOR_HOSTNAME = 4,                 /**< Host name */
-    LSM_INITIATOR_ISCSI = 5,                    /**< iSCSI IQN */
+    LSM_INITIATOR_ISCSI = 5                     /**< iSCSI IQN */
 } lsmInitiatorType;
 
 /**< \enum lsmJobType Different types of jobs */
 typedef enum {
     LSM_JOB_VOL_CREATE  = 1,                    /**< Volume create */
     LSM_JOB_VOL_RESIZE = 2,                     /**< Volume re-size */
-    LSM_JOB_VOL_REPLICATE = 3,                  /**< Volume replicate */
+    LSM_JOB_VOL_REPLICATE = 3                   /**< Volume replicate */
 } lsmJobType;
 
 /**< \enum lsmJobStatus Job states */
