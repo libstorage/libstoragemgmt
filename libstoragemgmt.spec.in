@@ -140,6 +140,11 @@ fi
 %{_libdir}/pkgconfig/libstoragemgmt.pc
 
 %changelog
+* Thu Jan 31 2013 Tony Asleson <tasleson@redhat.com>
+- Inconsistency corrections between C and Python API
+- Source code documentation updates
+- NexentaStor plug-in has been added
+
 * Wed Jan 2 2013 Tony Asleson <tasleson@redhat.com>
 - lsmcli: Add confirmation prompt for data loss operations
 - lsmcli: Display enumerated values as text

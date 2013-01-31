@@ -1,5 +1,10 @@
 News for libStorageMgmt
 
+0.0.17: Jan 31 2013
+    - Inconsistency corrections between C and Python API
+    - Source code documentation updates
+    - NexentaStor plug-in has been added
+
 0.0.16: Jan 1 2013
     - lsmcli: Add confirmation prompt for data loss operations
     - lsmcli: Display enumerated values as text
