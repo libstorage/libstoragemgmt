@@ -96,7 +96,7 @@ MiB = 1048576
 ## Constant for GiB
 GiB = 1073741824
 ## Constant for TiB
-TiB = 1099511627776
+TiB = 1099511627776L
 
 ##Converts the size into human format.
 # @param    size    Size in bytes
