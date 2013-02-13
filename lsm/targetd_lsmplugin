@@ -17,10 +17,11 @@
 #
 # Author: Andy Grover <agrover at redhat com>
 
-from lsm.iplugin import IStorageAreaNetwork
+from lsm.iplugin import IStorageAreaNetwork, INetworkAttachedStorage
 from lsm.pluginrunner import PluginRunner
 import sys
-from lsm.data import (Pool, Volume, System, Capabilities, Initiator)
+from lsm.data import (Pool, Volume, System, Capabilities, Initiator,
+                      FileSystem, Snapshot)
 from lsm.common import (LsmError, ErrorNumber, uri_parse)
 import urllib2
 import json
@@ -28,12 +29,13 @@ import time
 import urlparse
 import socket
 from lsm.version import VERSION
+import os
 
 default_user = "admin"
 default_port = 18700
 path = "/targetrpc"
 
-class TargetdStorage(IStorageAreaNetwork):
+class TargetdStorage(IStorageAreaNetwork,INetworkAttachedStorage):
 
     def startup(self, uri, password, timeout, flags = 0):
         self.uri = uri_parse(uri)
@@ -71,6 +73,7 @@ class TargetdStorage(IStorageAreaNetwork):
     def capabilities(self, system, flags = 0):
         cap = Capabilities()
         cap.set(Capabilities.BLOCK_SUPPORT)
+        cap.set(Capabilities.FS_SUPPORT)
         cap.set(Capabilities.VOLUMES)
         cap.set(Capabilities.VOLUME_CREATE)
         cap.set(Capabilities.VOLUME_REPLICATE)
@@ -83,6 +86,13 @@ class TargetdStorage(IStorageAreaNetwork):
         cap.set(Capabilities.VOLUME_INITIATOR_REVOKE)
         cap.set(Capabilities.VOLUME_ACCESSIBLE_BY_INITIATOR)
         cap.set(Capabilities.INITIATORS_GRANTED_TO_VOLUME)
+        cap.set(Capabilities.FS)
+        cap.set(Capabilities.FS_CREATE)
+        cap.set(Capabilities.FS_DELETE)
+        cap.set(Capabilities.FS_CLONE)
+        cap.set(Capabilities.FS_SNAPSHOT_CREATE)
+        cap.set(Capabilities.FS_SNAPSHOT_DELETE)
+        cap.set(Capabilities.FS_SNAPSHOTS)
         return cap
 
     def plugin_info(self, flags=0):
@@ -102,11 +112,11 @@ class TargetdStorage(IStorageAreaNetwork):
 
     def volumes(self, flags = 0):
         volumes = []
-        for pool in (pool['name'] for pool in self._jsonrequest("pool_list")):
-            for vol in self._jsonrequest("vol_list", dict(pool=pool)):
-                volumes.append(Volume(vol['uuid'], vol['name'], vol['uuid'],
-                                      512, vol['size']/512, Volume.STATUS_OK,
-                                      self.system.id, pool))
+        for p_name in (p['name'] for p in self._jsonrequest("pool_list") if p['type'] == 'block'):
+                for vol in self._jsonrequest("vol_list", dict(pool=p_name)):
+                    volumes.append(Volume(vol['uuid'], vol['name'], vol['uuid'],
+                                          512, vol['size']/512, Volume.STATUS_OK,
+                                          self.system.id, p_name))
         return volumes
 
     def pools(self, flags = 0):
@@ -129,6 +139,20 @@ class TargetdStorage(IStorageAreaNetwork):
 
         return Volume(vol['uuid'], vol['name'], vol['uuid'],
                       512, vol['size']/512, Volume.STATUS_OK, self.system.id, pool_id)
+
+    def _get_fs(self, pool_id, fs_name):
+        fs = self.fs()
+        for f in fs:
+            if f.name == fs_name and f.pool_id == pool_id:
+                return f
+        return None
+
+    def _get_ss(self, fs, ss_name):
+        ss = self.fs_snapshots(fs)
+        for s in ss:
+            if s.name == ss_name:
+                return s
+        return None
 
     def volume_create(self, pool, volume_name, size_bytes, provisioning, flags = 0):
         self._jsonrequest("vol_create", dict(pool=pool.id,
@@ -254,6 +278,71 @@ class TargetdStorage(IStorageAreaNetwork):
     def volume_child_dependency_rm(self, volume, flags = 0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    def fs(self, flags = 0):
+        rc = []
+        for fs in self._jsonrequest("fs_list"):
+            #self, id, name, total_space, free_space, pool_id, system_id
+            rc.append(FileSystem(fs['uuid'], fs['name'], fs['total_space'],
+                        fs['free_space'], fs['pool'], self.system.id))
+        return rc
+
+    def fs_delete(self, fs, flags = 0):
+        self._jsonrequest("fs_destroy", dict(pool=fs.pool_id, uuid=fs.id,
+                            name=fs.name))
+
+    def fs_resize(self, fs, new_size_bytes, flags = 0):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+    def fs_create(self, pool, name, size_bytes, flags = 0):
+        self._jsonrequest("fs_create", dict(pool_name=pool.id, name=name,
+                            size_bytes=size_bytes))
+
+        return None, self._get_fs(pool.name, name)
+
+    def fs_clone(self, src_fs, dest_fs_name, snapshot=None, flags=0):
+
+        ss_id = None
+        if snapshot:
+            ss_id = snapshot.id
+
+        self._jsonrequest("fs_clone", dict(fs_uuid=src_fs.id,
+                                           dest_fs_name=dest_fs_name,
+                                            snapshot_id=ss_id))
+
+        return None, self._get_fs(src_fs.pool_id, dest_fs_name)
+
+    def file_clone(self, fs, src_file_name, dest_file_name, snapshot=None,
+                   flags = 0):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+    def fs_snapshots(self, fs, flags = 0):
+        rc = []
+        for ss in self._jsonrequest("ss_list", dict(fs_uuid=fs.id)):
+            #id, name, timestamp
+            rc.append(Snapshot(ss['uuid'], ss['name'], ss['timestamp']))
+        return rc
+
+    def fs_snapshot_create(self, fs, snapshot_name, files, flags=0):
+
+        self._jsonrequest("fs_snapshot", dict(fs_uuid=fs.id,
+                                              dest_ss_name=snapshot_name))
+
+        return None, self._get_ss(fs, snapshot_name)
+
+    def fs_snapshot_delete(self, fs, snapshot, flags = 0):
+        self._jsonrequest("fs_snapshot_delete", dict(fs_uuid=fs.id,
+                                              ss_uuid=snapshot.id))
+
+    def fs_snapshot_revert(self, fs, snapshot, files, restore_files,
+                           all_files=False, flags = 0):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+    def fs_child_dependency(self, fs, files, flags = 0):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+    def fs_child_dependency_rm(self, fs, files, flags = 0):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
     def _jsonrequest(self, method, params=None):
         data = json.dumps(dict(id=self.rpc_id, method=method,
                                params=params, jsonrpc="2.0"))
@@ -276,8 +365,12 @@ class TargetdStorage(IStorageAreaNetwork):
             return response.get('result')
         else:
             if response['error']['code'] <= 0:
-                raise Exception(response['error'].get('message', ''))
-            else: # +code is async execution id
+                #error_text = "%s:%s" % (str(response['error']['code']),
+                #                        response['error'].get('message', ''))
+
+                raise LsmError(abs(int(response['error']['code'])),
+                               response['error'].get('message', ''))
+            else:  # +code is async execution id
                 print "Async completion, polling for results"
                 async_code = response['error']['code']
                 while True:
