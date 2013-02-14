@@ -288,10 +288,13 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
         return [e['pool'] for e in self.s.pools.itervalues()]
 
     def _volume_accessible(self, access_group_id, volume):
-        ag = self.s.group_grants[access_group_id]
 
-        if volume.id in ag:
-            return True
+        if access_group_id in self.s.group_grants:
+            ag = self.s.group_grants[access_group_id]
+
+            if volume.id in ag:
+                return True
+
         return False
 
     def _initiators(self, volume_filter=None):
@@ -547,7 +550,10 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
         return rc
 
     def iscsi_chap_auth_inbound(self, initiator, user, password, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+        if initiator is None or user is None or len(user) == 0 \
+                or password is None or len(password) == 0:
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           'All arguments are required')
 
     def initiator_grant(self, initiator_id, initiator_type, volume, access,
                         flags=0):
