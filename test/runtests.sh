@@ -19,8 +19,10 @@
 #
 # Unit test case driver
 
-base=/tmp/$RANDOM
+rundir=$RANDOM
+base=/tmp/$rundir
 
+export LSM_TEST_RUNDIR=$rundir
 export LSM_UDS_PATH=$base/lsm/ipc/
 
 cleanup() {

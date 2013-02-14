@@ -24,11 +24,13 @@
 #include <time.h>
 #include <libstoragemgmt/libstoragemgmt.h>
 
-const char uri[] = "simc://localhost/?statefile=/tmp/lsm_sim_%s";
+const char uri[] = "sim://localhost/?statefile=/tmp/%d/lsm_sim_%s";
 const char SYSTEM_NAME[] = "LSM simulated storage plug-in";
 const char SYSTEM_ID[] = "sim-01";
 const char *ISCSI_HOST[2] = {   "iqn.1994-05.com.domain:01.89bd01",
                                 "iqn.1994-05.com.domain:01.89bd02" };
+
+static int which_plugin = 0;
 
 #define POLL_SLEEP 3000
 
@@ -52,17 +54,30 @@ void generateRandom(char *buff, uint32_t len)
     }
 }
 
-char *stateName()
+char *plugin_to_use()
 {
-#if REUSE_STATE
-    return "sim://";
-#else
-    static char fn[128];
-    static char name[32];
-    generateRandom(name, sizeof(name));
-    snprintf(fn, sizeof(fn),  uri, name);
-    return fn;
-#endif
+    if( which_plugin == 1) {
+        return "simc://";
+    } else {
+        char *rundir = getenv("LSM_TEST_RUNDIR");
+
+        /* The python plug-in keeps state, but the unit tests don't expect this
+         * create a new random file for the state to keep things new.
+         */
+
+        if( rundir ) {
+            int rdir = atoi(rundir);
+            static char fn[128];
+            static char name[32];
+            generateRandom(name, sizeof(name));
+            snprintf(fn, sizeof(fn),  uri, rdir, name);
+            printf("URI = %s\n", fn);
+            return fn;
+        } else {
+            printf("Missing LSM_TEST_RUNDIR, expect test failures!\n");
+            return "sim://";
+        }
+    }
 }
 
 lsmPoolPtr getTestPool(lsmConnectPtr c)
@@ -103,7 +118,7 @@ void setup(void)
 {
     lsmErrorPtr e = NULL;
 
-    int rc = lsmConnectPassword(stateName(), NULL, &c, 30000, &e,
+    int rc = lsmConnectPassword(plugin_to_use(), NULL, &c, 30000, &e,
                 LSM_FLAG_RSVD);
     if( rc ) {
         printf("rc= %d\n", rc);
@@ -931,7 +946,7 @@ START_TEST(test_nfs_exports)
     fail_unless( count == 1 );
 
     rc  = lsmNfsExportRemove(c, exports[0], LSM_FLAG_RSVD);
-    fail_unless( LSM_ERR_OK == rc );
+    fail_unless( LSM_ERR_OK == rc, "lsmNfsExportRemove %d\n", rc );
     lsmNfsExportRecordFreeArray(exports, count);
 
     exports = NULL;
@@ -1819,7 +1834,14 @@ int main(int argc, char** argv)
     int number_failed;
     Suite *s = lsm_suite();
     SRunner *sr = srunner_create(s);
+
     srunner_run_all(sr, CK_NORMAL);
+
+    /* Switch plugin backend to test cross language compat. */
+    which_plugin = 1;
+
+    srunner_run_all(sr, CK_NORMAL);
+
     number_failed = srunner_ntests_failed(sr);
     srunner_free(sr);
     return(number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
