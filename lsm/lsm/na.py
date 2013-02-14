@@ -19,15 +19,17 @@ import urllib2
 import socket
 from xml.etree import ElementTree
 import time
-from external.xmltodict import ConvertXmlToDict
-from M2Crypto import RC4
 from binascii import hexlify
+
+from M2Crypto import RC4
+
+from external.xmltodict import ConvertXmlToDict
+
 
 #Set to an appropriate directory and file to dump the raw response.
 from lsm.common import ErrorNumber
 
 xml_debug = None
-
 
 
 def netapp_filer_parse_response(resp):
@@ -38,13 +40,14 @@ def netapp_filer_parse_response(resp):
 
     return ConvertXmlToDict(ElementTree.fromstring(resp))
 
+
 def param_value(val):
     """
     Given a parameter to pass to filer, convert to XML
     """
     rc = ""
     if type(val) is dict or isinstance(val, dict):
-        for k,v in val.items():
+        for k, v in val.items():
             rc += "<%s>%s</%s>" % (k, param_value(v), k)
     elif type(val) is list or isinstance(val, list):
         for i in val:
@@ -53,9 +56,9 @@ def param_value(val):
         rc = val
     return rc
 
-def netapp_filer(host, username, password, timeout, command, parameters = None,
-                 ssl=False):
 
+def netapp_filer(host, username, password, timeout, command, parameters=None,
+                 ssl=False):
     """
     Issue a command to the NetApp filer.
     Note: Change to default ssl on before we ship a release version.
@@ -64,7 +67,8 @@ def netapp_filer(host, username, password, timeout, command, parameters = None,
     if ssl:
         proto = 'https'
 
-    url = "%s://%s/servlets/netapp.servlets.admin.XMLrequest_filer" % (proto, host)
+    url = "%s://%s/servlets/netapp.servlets.admin.XMLrequest_filer" % \
+          (proto, host)
     req = urllib2.Request(url)
     req.add_header('Content-Type', 'text/xml')
 
@@ -79,10 +83,10 @@ def netapp_filer(host, username, password, timeout, command, parameters = None,
     p = ""
 
     if parameters:
-        for k,v in parameters.items():
-            p += "<%s>%s</%s>" % (k, param_value(v) ,k)
+        for k, v in parameters.items():
+            p += "<%s>%s</%s>" % (k, param_value(v), k)
 
-    payload = "<%s>\n%s\n</%s>" % (command,p,command)
+    payload = "<%s>\n%s\n</%s>" % (command, p, command)
 
     data = """<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE netapp SYSTEM "file:/etc/netapp_filer.dtd">
@@ -111,14 +115,17 @@ def netapp_filer(host, username, password, timeout, command, parameters = None,
 
     return rc
 
+
 class FilerError(Exception):
     """
     Class represents a NetApp bad return code
     """
+
     def __init__(self, errno, reason, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
         self.errno = int(errno)
         self.reason = reason
+
 
 def to_list(v):
     """
@@ -133,36 +140,36 @@ def to_list(v):
             rc.append(v)
     return rc
 
+
 class Filer(object):
     """
     Class to handle NetApp API calls.
     Note: These are using lsm terminology.
     """
-    ENOSPC = 28                     #Out of space
-    ETIMEOUT = 60                   #Time-out
-    EINVALID_ISCSI_NAME = 9006      #Invalid ISCSI IQN
-    ENO_SUCH_VOLUME = 9017          #lun not found
-    ESIZE_TOO_LARGE = 9034          #Specified too large a size
-    ENO_SUCH_FS = 9036              #FS not found
-    EVOLUME_TOO_SMALL = 9041        #Specified too small a size
-    EAPILICENSE = 13008             #Unlicensed API
-    EFSDOESNOTEXIST = 13040         #FS does not exist
-    EFSOFFLINE = 13042              #FS is offline.
-    EFSNAMEINVALID = 13044          #FS Name invalid
-    ESERVICENOTLICENSED = 13902     #Not licensed
-    ECLONE_LICENSE_EXPIRED = 14955  #Not licensed
-    ECLONE_NOT_LICENSED = 14956     #Not licensed
+    ENOSPC = 28                     # Out of space
+    ETIMEOUT = 60                   # Time-out
+    EINVALID_ISCSI_NAME = 9006      # Invalid ISCSI IQN
+    ENO_SUCH_VOLUME = 9017          # lun not found
+    ESIZE_TOO_LARGE = 9034          # Specified too large a size
+    ENO_SUCH_FS = 9036              # FS not found
+    EVOLUME_TOO_SMALL = 9041        # Specified too small a size
+    EAPILICENSE = 13008             # Unlicensed API
+    EFSDOESNOTEXIST = 13040         # FS does not exist
+    EFSOFFLINE = 13042              # FS is offline.
+    EFSNAMEINVALID = 13044          # FS Name invalid
+    ESERVICENOTLICENSED = 13902     # Not licensed
+    ECLONE_LICENSE_EXPIRED = 14955  # Not licensed
+    ECLONE_NOT_LICENSED = 14956     # Not licensed
 
-
-    def _invoke(self, command, parameters = None):
+    def _invoke(self, command, parameters=None):
 
         rc = netapp_filer(self.host, self.username, self.password, self.timeout,
-            command, parameters, self.ssl)
+                          command, parameters, self.ssl)
 
         t = rc['netapp']['results']['attrib']
 
         if t['status'] != 'passed':
-            raise FilerError(t['errno'],t['reason'])
+            raise FilerError(t['errno'], t['reason'])
 
         return rc['netapp']['results']
 
@@ -188,27 +195,27 @@ class Filer(object):
         """
         pools = self._invoke('aggr-list-info')
         tmp = pools['aggregates']['aggr-info']
-        return [ p for p in to_list(tmp) if p['mount-state'] == 'online']
+        return [p for p in to_list(tmp) if p['mount-state'] == 'online']
 
     def aggregate_volume_names(self, aggr_name):
         """
         Return a list of volume names that are on an aggregate
         """
         vol_names = []
-        rc = self._invoke('aggr-list-info', { 'aggregate':aggr_name })
+        rc = self._invoke('aggr-list-info', {'aggregate': aggr_name})
 
         aggr = rc['aggregates']['aggr-info']
 
-        if  aggr is not None and aggr['volumes'] is not None:
+        if aggr is not None and aggr['volumes'] is not None:
             vols = aggr['volumes']['contained-volume-info']
-            vol_names = [ e['name'] for e in to_list(vols) ]
+            vol_names = [e['name'] for e in to_list(vols)]
         return vol_names
 
     def lun_build_name(self, volume_name, file_name):
         """
         Given a volume name and file return full path"
         """
-        return '/vol/%s/%s' % (volume_name, file_name )
+        return '/vol/%s/%s' % (volume_name, file_name)
 
     def luns(self, aggr, na_lun_name=None, na_volume_name=None):
         """
@@ -218,9 +225,10 @@ class Filer(object):
         rc = []
 
         if na_lun_name is not None:
-            luns = self._invoke('lun-list-info', {'path': na_lun_name} )
+            luns = self._invoke('lun-list-info', {'path': na_lun_name})
         elif na_volume_name is not None:
-            luns = self._invoke('lun-list-info', {'volume-name':na_volume_name})
+            luns = self._invoke('lun-list-info',
+                                {'volume-name': na_volume_name})
         else:
             luns = self._invoke('lun-list-info')
 
@@ -255,8 +263,8 @@ class Filer(object):
         """
         Creates a lun
         """
-        params = { 'path': full_path_name ,
-                   'size' : size_bytes}
+        params = {'path': full_path_name,
+                  'size': size_bytes}
 
         self._invoke('lun-create-by-size', params)
 
@@ -264,38 +272,38 @@ class Filer(object):
         """
         Deletes a lun given a lun path
         """
-        self._invoke('lun-destroy', { 'path':lun_path })
+        self._invoke('lun-destroy', {'path': lun_path})
 
     def lun_resize(self, lun_path, size_bytes):
         """
         Re-sizes a lun
         """
-        self._invoke('lun-resize', {'path':lun_path, 'size':size_bytes,
-                                    'force':'true'})
+        self._invoke('lun-resize', {'path': lun_path, 'size': size_bytes,
+                                    'force': 'true'})
 
-    def volume_resize(self,  na_vol_name, size_diff_kb):
+    def volume_resize(self, na_vol_name, size_diff_kb):
         """
         Given a NetApp volume name and a size change in kb, re-size the
         NetApp volume.
         """
-        params = { 'volume':na_vol_name }
+        params = {'volume': na_vol_name}
 
         if size_diff_kb > 0:
-            params['new-size'] = '+' + str(size_diff_kb)+'k'
+            params['new-size'] = '+' + str(size_diff_kb) + 'k'
         else:
-            params['new-size'] = str(size_diff_kb)+'k'
+            params['new-size'] = str(size_diff_kb) + 'k'
 
         self._invoke('volume-size', params)
         return None
 
-    def volumes(self, volume_name = None):
+    def volumes(self, volume_name=None):
         """
         Return a list of NetApp volumes
         """
         if not volume_name:
             v = self._invoke('volume-list-info')
         else:
-            v = self._invoke('volume-list-info', { 'volume':volume_name} )
+            v = self._invoke('volume-list-info', {'volume': volume_name})
 
         t = v['volumes']['volume-info']
         rc = to_list(t)
@@ -305,28 +313,29 @@ class Filer(object):
         """
         Creates a volume given an aggr_name, volume name and size in bytes.
         """
-        params = { 'containing-aggr-name': aggr_name,
-                   'size':int(size_in_bytes * 1.30),  #There must be a better way to account for this
-                   'volume': vol_name}
+        params = {'containing-aggr-name': aggr_name,
+                  'size': int(size_in_bytes * 1.30),
+                  #There must be a better way to account for this
+                  'volume': vol_name}
 
         self._invoke('volume-create', params)
 
         #Turn off scheduled snapshots
-        self._invoke('volume-set-option', {'volume':vol_name,
-                                           'option-name':'nosnap',
-                                           'option-value':'on', } )
+        self._invoke('volume-set-option', {'volume': vol_name,
+                                           'option-name': 'nosnap',
+                                           'option-value': 'on', })
 
         #Turn off auto export!
         self.nfs_export_remove(['/vol/' + vol_name])
 
-    def volume_clone(self, src_volume, dest_volume, snapshot = None):
+    def volume_clone(self, src_volume, dest_volume, snapshot=None):
         """
         Clones a volume given a source volume name, destination volume name
         and optional backing snapshot.
         """
-        params = { 'parent-volume':src_volume, 'volume':dest_volume }
+        params = {'parent-volume': src_volume, 'volume': dest_volume}
         if snapshot:
-            params['parent-snapshot']= snapshot.name
+            params['parent-snapshot'] = snapshot.name
         self._invoke('volume-clone-create', params)
 
     def volume_delete(self, vol_name):
@@ -336,19 +345,19 @@ class Filer(object):
         online = False
 
         try:
-            self._invoke('volume-offline', { 'name':vol_name })
+            self._invoke('volume-offline', {'name': vol_name})
             online = True
         except FilerError as fe:
             if fe.errno != Filer.EFSDOESNOTEXIST:
                 raise fe
 
         try:
-            self._invoke('volume-destroy', { 'name':vol_name })
+            self._invoke('volume-destroy', {'name': vol_name})
         except FilerError as fe:
             #If the volume was online, we will return it to same status
             if online:
                 try:
-                    self._invoke('volume-online', { 'name':vol_name })
+                    self._invoke('volume-online', {'name': vol_name})
                 except FilerError:
                     pass
             raise fe
@@ -358,7 +367,7 @@ class Filer(object):
         Return a list of volume names
         """
         vols = self.volumes()
-        return [ v['name'] for v in vols ]
+        return [v['name'] for v in vols]
 
     def clear_all_clone_errors(self):
         """
@@ -369,14 +378,14 @@ class Filer(object):
         if errors is not None:
             errors = to_list(errors['ops-info'])
             for e in errors:
-                    self._invoke('clone-clear', { 'clone-id': e['clone-id'] })
+                self._invoke('clone-clear', {'clone-id': e['clone-id']})
         return None
 
     def clone(self, source_path, dest_path, backing_snapshot=None, ranges=None):
         """
         Creates a file clone
         """
-        params = { 'source-path':source_path }
+        params = {'source-path': source_path}
 
         #You can have source == dest, but if you do you can only specify source
         if source_path != dest_path:
@@ -384,39 +393,41 @@ class Filer(object):
 
         if backing_snapshot:
             raise FilerError(ErrorNumber.NOT_IMPLEMENTED,
-                "Support for backing luns not implemented for this API version")
+                             "Support for backing luns not implemented "
+                             "for this API version")
             #params['snapshot-name']= backing_snapshot
 
         if ranges:
             block_ranges = []
             for r in ranges:
                 values = {'block-count': r.block_count,
-                          'destination-block-number':r.dest_block,
-                          'source-block-number':r.src_block}
+                          'destination-block-number': r.dest_block,
+                          'source-block-number': r.src_block}
 
-                block_ranges.append( {'block-range':values } )
+                block_ranges.append({'block-range': values})
 
             params['block-ranges'] = block_ranges
 
         rc = self._invoke('clone-start', params)
 
-        id = rc['clone-id']
+        c_id = rc['clone-id']
 
         while True:
-            progress = self._invoke('clone-list-status', { 'clone-id': id } )\
-                                    ['status']['ops-info']
+            progress = self._invoke('clone-list-status',
+                                    {'clone-id': c_id})['status']['ops-info']
 
-            if progress['clone-state'] == 'failed' :
-                self._invoke('clone-clear', { 'clone-id': id })
+            if progress['clone-state'] == 'failed':
+                self._invoke('clone-clear', {'clone-id': c_id})
                 raise FilerError(progress['error'], progress['reason'])
-            elif progress['clone-state'] == 'running' or \
-                 progress['clone-state'] == 'fail exit':
-                #State needs to transition to failed before we can clear it!
-                time.sleep(0.2)     #Don't hog cpu
+            elif progress['clone-state'] == 'running' \
+                    or progress['clone-state'] == 'fail exit':
+                # State needs to transition to failed before we can clear it!
+                time.sleep(0.2)     # Don't hog cpu
             elif progress['clone-state'] == 'completed':
                 return progress['destination-file']
             else:
-                raise FilerError(ErrorNumber.NOT_IMPLEMENTED, 'Unexpected state=' + progress['clone-state'])
+                raise FilerError(ErrorNumber.NOT_IMPLEMENTED,
+                                 'Unexpected state=' + progress['clone-state'])
 
     def lun_online(self, lun_path):
         self._invoke('lun-online', {'path': lun_path})
@@ -424,19 +435,19 @@ class Filer(object):
     def lun_offline(self, lun_path):
         self._invoke('lun-offline', {'path': lun_path})
 
-    def igroups(self, group_name = None):
+    def igroups(self, group_name=None):
         rc = []
 
         if group_name:
             g = self._invoke('igroup-list-info',
-                            {'initiator-group-name': group_name})
+                             {'initiator-group-name': group_name})
         else:
             g = self._invoke('igroup-list-info')
 
-        if g['initiator-groups'] :
+        if g['initiator-groups']:
             rc = to_list(g['initiator-groups']['initiator-group-info'])
         return rc
-    
+
     def igroup_exists(self, name):
         g = self.igroups()
         for ig in g:
@@ -444,12 +455,13 @@ class Filer(object):
                 return True
         return False
 
-    def igroup_create(self, name, type):
-        params = { 'initiator-group-name': name, 'initiator-group-type':type}
+    def igroup_create(self, name, igroup_type):
+        params = {'initiator-group-name': name,
+                  'initiator-group-type': igroup_type}
         self._invoke('igroup-create', params)
 
     def igroup_delete(self, name):
-        self._invoke('igroup-destroy', {'initiator-group-name':name})
+        self._invoke('igroup-destroy', {'initiator-group-name': name})
 
     @staticmethod
     def encode(password):
@@ -457,30 +469,32 @@ class Filer(object):
         rc4.set_key("#u82fyi8S5\017pPemw")
         return hexlify(rc4.update(password))
 
-    def iscsi_initiator_add_auth(self, initiator, user_name, password ):
+    def iscsi_initiator_add_auth(self, initiator, user_name, password):
         pw = self.encode(password)
 
-        args = {'initiator': initiator }
+        args = {'initiator': initiator}
 
         if user_name and len(user_name) and password and len(password):
-            args.update({'user-name':user_name,
-                'password': pw, 'auth-type':"CHAP"})
+            args.update({'user-name': user_name,
+                         'password': pw, 'auth-type': "CHAP"})
         else:
-            args.update({'initiator': initiator, 'auth-type':"none" })
+            args.update({'initiator': initiator, 'auth-type': "none"})
 
         self._invoke('iscsi-initiator-add-auth', args)
 
     def igroup_add_initiator(self, ig, initiator):
-        self._invoke('igroup-add', {'initiator-group-name':ig, 'initiator':initiator} )
+        self._invoke('igroup-add',
+                     {'initiator-group-name': ig, 'initiator': initiator})
 
     def igroup_del_initiator(self, ig, initiator):
-        self._invoke('igroup-remove', {'initiator-group-name':ig, 'initiator':initiator} )
+        self._invoke('igroup-remove',
+                     {'initiator-group-name': ig, 'initiator': initiator})
 
     def lun_map(self, igroup, lun_path):
-        self._invoke('lun-map', {'initiator-group':igroup, 'path':lun_path})
+        self._invoke('lun-map', {'initiator-group': igroup, 'path': lun_path})
 
     def lun_unmap(self, igroup, lun_path):
-        self._invoke('lun-unmap', {'initiator-group':igroup, 'path':lun_path})
+        self._invoke('lun-unmap', {'initiator-group': igroup, 'path': lun_path})
 
     def lun_map_list_info(self, lun_path):
         initiator_groups = []
@@ -495,12 +509,13 @@ class Filer(object):
 
     def lun_initiator_list_map_info(self, initiator_id, initiator_group_name):
         """
-        Given an initiator_id and initiator group name, return a list of lun-info
+        Given an initiator_id and initiator group name, return a list of
+        lun-info
         """
         luns = []
 
         rc = self._invoke('lun-initiator-list-map-info',
-                            {'initiator': initiator_id})
+                          {'initiator': initiator_id})
 
         if rc['lun-maps']:
 
@@ -518,17 +533,17 @@ class Filer(object):
 
     def snapshots(self, volume_name):
         rc = []
-        args = { 'target-type':'volume', 'target-name':volume_name }
+        args = {'target-type': 'volume', 'target-name': volume_name}
         ss = self._invoke('snapshot-list-info', args)
         if ss['snapshots']:
             rc = to_list(ss['snapshots']['snapshot-info'])
         return rc
 
     def snapshot_create(self, volume_name, snapshot_name):
-        self._invoke('snapshot-create', {'volume':volume_name,
-                                        'snapshot':snapshot_name })
-        return [ v for v in self.snapshots(volume_name)
-                    if v['name'] == snapshot_name ][0]
+        self._invoke('snapshot-create', {'volume': volume_name,
+                                         'snapshot': snapshot_name})
+        return [v for v in self.snapshots(volume_name)
+                if v['name'] == snapshot_name][0]
 
     def snapshot_file_restore_num(self):
         """
@@ -544,14 +559,14 @@ class Filer(object):
         """
         Restores all files on a volume
         """
-        params = { 'snapshot':snapshot_name, 'volume':fs_name }
+        params = {'snapshot': snapshot_name, 'volume': fs_name}
         self._invoke('snapshot-restore-volume', params)
 
-    def snapshot_restore_file(self, snapshot_name, file, restore_file):
+    def snapshot_restore_file(self, snapshot_name, restore_path, restore_file):
         """
         Restore a list of files
         """
-        params = {'snapshot': snapshot_name, 'path': file }
+        params = {'snapshot': snapshot_name, 'path': restore_path}
 
         if restore_file:
             params['restore-path'] = restore_file
@@ -559,11 +574,13 @@ class Filer(object):
         self._invoke('snapshot-restore-file', params)
 
     def snapshot_delete(self, volume_name, snapshot_name):
-        self._invoke('snapshot-delete', {'volume':volume_name, 'snapshot':snapshot_name})
+        self._invoke('snapshot-delete',
+                     {'volume': volume_name, 'snapshot': snapshot_name})
 
     def export_auth_types(self):
         rc = self._invoke('nfs-get-supported-sec-flavors')
-        return [ e['flavor'] for e in to_list(rc['sec-flavor']['sec-flavor-info'])]
+        return [e['flavor'] for e in
+                to_list(rc['sec-flavor']['sec-flavor-info'])]
 
     @staticmethod
     def _build_list(pylist, list_name, elem_name):
@@ -571,21 +588,21 @@ class Filer(object):
         Given a python list, build the appropriate dict that contains the
         list items so that it can be converted to xml to be sent on the wire.
         """
-        return [ {list_name:{elem_name:l}} for l in pylist ]
+        return [{list_name: {elem_name: l}} for l in pylist]
 
     @staticmethod
     def _build_export_fs_all():
-        return  Filer._build_list( ['true'], 'exports-hostname-info', 'all-hosts' )
+        return Filer._build_list(['true'], 'exports-hostname-info', 'all-hosts')
 
     @staticmethod
-    def _build_export_fs_list( hosts ):
+    def _build_export_fs_list(hosts):
         if hosts[0] == '*':
             return Filer._build_export_fs_all()
         else:
-            return  Filer._build_list( hosts, 'exports-hostname-info', 'name' )
+            return Filer._build_list(hosts, 'exports-hostname-info', 'name')
 
     def nfs_export_fs(self, volume_path, export_path, ro_list, rw_list,
-                      root_list, anonuid = None, sec_flavor = None):
+                      root_list, anonuid=None, sec_flavor=None):
         """
         Export a fs, deprecated (Will remove soon)
         """
@@ -608,13 +625,15 @@ class Filer(object):
             rule['anon'] = anonuid
 
         if sec_flavor:
-            rule['sec-flavor'] = Filer._build_list( [sec_flavor], 'sec-flavor-info', 'flavor')
+            rule['sec-flavor'] = Filer._build_list([sec_flavor],
+                                                   'sec-flavor-info', 'flavor')
 
-        params = { 'persistent':'true', 'rules':{'exports-rule-info':[rule]}, 'verbose':'true' }
+        params = {'persistent': 'true', 'rules': {'exports-rule-info': [rule]},
+                  'verbose': 'true'}
         self._invoke('nfs-exportfs-append-rules', params)
 
     def _build_export_rules(self, volume_path, export_path, ro_list, rw_list,
-                            root_list, anonuid = None, sec_flavor = None):
+                            root_list, anonuid=None, sec_flavor=None):
         """
         Common logic to build up the rules for nfs
         """
@@ -644,41 +663,44 @@ class Filer(object):
             r['anon'] = anonuid
 
         if sec_flavor:
-            r['sec-flavor'] = Filer._build_list( [sec_flavor], 'sec-flavor-info', 'flavor')
+            r['sec-flavor'] = Filer._build_list([sec_flavor], 'sec-flavor-info',
+                                                'flavor')
 
         return rule
 
     def nfs_export_fs2(self, volume_path, export_path, ro_list, rw_list,
-                      root_list, anonuid = None, sec_flavor = None):
+                       root_list, anonuid=None, sec_flavor=None):
         """
         NFS export a volume.
         """
 
         rule = self._build_export_rules(volume_path, export_path, ro_list,
-                    rw_list, root_list, anonuid, sec_flavor)
+                                        rw_list, root_list, anonuid, sec_flavor)
 
-        params = { 'persistent':'true', 'rules':{'exports-rule-info-2':[rule]}, 'verbose':'true' }
+        params = {'persistent': 'true',
+                  'rules': {'exports-rule-info-2': [rule]}, 'verbose': 'true'}
         self._invoke('nfs-exportfs-append-rules-2', params)
 
     def nfs_export_fs_modify2(self, volume_path, export_path, ro_list, rw_list,
-                             root_list, anonuid = None, sec_flavor = None):
+                              root_list, anonuid=None, sec_flavor=None):
 
         """
         Modifies an existing rule.
         """
         rule = self._build_export_rules(volume_path, export_path, ro_list,
-            rw_list, root_list, anonuid, sec_flavor)
+                                        rw_list, root_list, anonuid, sec_flavor)
 
-        params = { 'persistent':'true', 'rule':{'exports-rule-info-2':[rule]} }
+        params = {'persistent': 'true', 'rule': {'exports-rule-info-2': [rule]}}
         self._invoke('nfs-exportfs-modify-rule-2', params)
 
     def nfs_export_remove(self, export_paths):
         """
         Removes an existing export
         """
-        assert(type(export_paths) is list)
+        assert (type(export_paths) is list)
         paths = Filer._build_list(export_paths, 'pathname-info', 'name')
-        self._invoke('nfs-exportfs-delete-rules', {'pathnames':paths, 'persistent':'true'} )
+        self._invoke('nfs-exportfs-delete-rules',
+                     {'pathnames': paths, 'persistent': 'true'})
 
     def nfs_exports(self):
         """
@@ -691,20 +713,21 @@ class Filer(object):
         return rc
 
     def volume_children(self, volume):
-        params = { 'volume': volume }
+        params = {'volume': volume}
 
         rc = self._invoke('volume-list-info', params)
 
         if 'clone-children' in rc['volumes']['volume-info']:
-            tmp = rc['volumes']['volume-info']['clone-children']['clone-child-info']
-            rc = [ c['clone-child-name'] for c in to_list(tmp) ]
+            tmp = rc['volumes']['volume-info']['clone-children'][
+                'clone-child-info']
+            rc = [c['clone-child-name'] for c in to_list(tmp)]
         else:
             rc = None
 
         return rc
 
     def volume_split_clone(self, volume):
-        self._invoke('volume-clone-split-start', { 'volume': volume } )
+        self._invoke('volume-clone-split-start', {'volume': volume})
 
     def volume_split_status(self):
         result = []
@@ -713,9 +736,10 @@ class Filer(object):
 
         if 'clone-split-details' in rc:
             tmp = rc['clone-split-details']['clone-split-detail-info']
-            result = [ r['name'] for r in to_list(tmp)]
+            result = [r['name'] for r in to_list(tmp)]
 
         return result
+
 
 if __name__ == '__main__':
     try:

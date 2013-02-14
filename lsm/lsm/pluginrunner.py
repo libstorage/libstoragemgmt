@@ -22,6 +22,7 @@ from common import SocketEOF, LsmError, Error, ErrorNumber
 import cmdline
 import transport
 
+
 class PluginRunner(object):
     """
     Plug-in side common code which uses the passed in plugin to do meaningful
@@ -52,7 +53,7 @@ class PluginRunner(object):
                     self.plugin = plugin()
                 except Exception as e:
                     self.tp.send_error(0, -32099,
-                        'Error instantiating plug-in ' + str(e))
+                                       'Error instantiating plug-in ' + str(e))
                     raise e
 
             except Exception:
@@ -70,7 +71,7 @@ class PluginRunner(object):
             return
 
         need_shutdown = False
-        id = 0
+        msg_id = 0
 
         try:
             while True:
@@ -80,7 +81,7 @@ class PluginRunner(object):
                     msg = self.tp.read_req()
 
                     method = msg['method']
-                    id = msg['id']
+                    msg_id = msg['id']
                     params = msg['params']
 
                     #Check to see if this plug-in implements this operation
@@ -89,10 +90,11 @@ class PluginRunner(object):
                         if params is None:
                             result = getattr(self.plugin, method)()
                         else:
-                            result = getattr(self.plugin, method)(**msg['params'])
+                            result = getattr(self.plugin, method)(
+                                **msg['params'])
                     else:
                         raise LsmError(ErrorNumber.NO_SUPPORT,
-                                        "Unsupported operation")
+                                       "Unsupported operation")
 
                     self.tp.send_resp(result)
 
@@ -107,12 +109,13 @@ class PluginRunner(object):
 
                 except ValueError as ve:
                     Error(traceback.format_exc())
-                    self.tp.send_error(id, -32700, str(ve))
+                    self.tp.send_error(msg_id, -32700, str(ve))
                 except AttributeError as ae:
                     Error(traceback.format_exc())
-                    self.tp.send_error(id, -32601, str(ae))
-                except LsmError as lsmerr:
-                    self.tp.send_error(id, lsmerr.code, lsmerr.msg, lsmerr.data)
+                    self.tp.send_error(msg_id, -32601, str(ae))
+                except LsmError as lsm_err:
+                    self.tp.send_error(msg_id, lsm_err.code, lsm_err.msg,
+                                       lsm_err.data)
         except SocketEOF:
             #Client went away
             Error('Client went away, exiting plug-in')
@@ -120,8 +123,9 @@ class PluginRunner(object):
             Error("Unhandled exception in plug-in!\n" + traceback.format_exc())
 
             try:
-                self.tp.send_error(id, ErrorNumber.PLUGIN_ERROR,
-                 "Unhandled exception in plug-in", str(traceback.format_exc()))
+                self.tp.send_error(msg_id, ErrorNumber.PLUGIN_ERROR,
+                                   "Unhandled exception in plug-in",
+                                   str(traceback.format_exc()))
             except Exception:
                 pass
 

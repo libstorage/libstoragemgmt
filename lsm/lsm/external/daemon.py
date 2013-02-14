@@ -9,8 +9,12 @@
 # This is really basic stuff and not very original. It's Public Domain, so do
 # with it as you please.
 
-import sys, os, atexit, time
+import sys
+import os
+import atexit
+import time
 from signal import SIGTERM
+
 
 class Daemon:
     """
@@ -19,8 +23,8 @@ class Daemon:
      Usage: subclass the Daemon class and override the run() method
      """
 
-    def __init__(self, pidfile, no_fork = False, stdin='/dev/null', stdout='/dev/null',
-                 stderr='/dev/null'):
+    def __init__(self, pidfile, no_fork=False, stdin='/dev/null',
+                 stdout='/dev/null', stderr='/dev/null'):
         self.stdin = stdin
         self.stdout = stdout
         self.stderr = stderr
@@ -42,7 +46,7 @@ class Daemon:
     def _write_pid(pid_file):
         pid = str(os.getpid())
         with os.fdopen(os.open(pid_file,
-            (os.O_CREAT|os.O_RDWR), 0644), "w+") as o:
+            (os.O_CREAT | os.O_RDWR), 0644), "w+") as o:
             o.write("%s\n" % pid)
 
     def daemonize(self):
@@ -121,7 +125,7 @@ class Daemon:
         if not pid:
             message = "pidfile %s does not exist. Daemon not running?\n"
             sys.stderr.write(message % self.pidfile)
-            return # not an error in a restart
+            return  # not an error in a restart
 
         # Try killing the daemon process
         try:
@@ -146,6 +150,6 @@ class Daemon:
 
     def run(self):
         """
-          You should override this method when you subclass Daemon. It will be called after the process has been
-          daemonized by start() or restart().
+          You should override this method when you subclass Daemon. It will be
+          called after the process has been daemonized by start() or restart().
           """

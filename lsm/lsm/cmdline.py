@@ -32,9 +32,10 @@ from data import Capabilities
 
 ##@package lsm.cmdline
 
+
 ## Wraps the invocation to the command line
 # @param    client  Object to invoke calls on (optional)
-def cmd_line_wrapper(client = None):
+def cmd_line_wrapper(client=None):
     """
     Common command line code, called.
     """
@@ -48,11 +49,13 @@ def cmd_line_wrapper(client = None):
         sys.stderr.write(str(le) + "\n")
         sys.exit(4)
 
+
 ## Simple class used to handle \n in optparse output
 class MyWrapper:
     """
     Handle \n in text for the command line help etc.
     """
+
     @staticmethod
     def wrap(text, width=70, **kw):
         rc = []
@@ -67,6 +70,7 @@ class MyWrapper:
             rc.append(textwrap.fill(line, width, **kw))
         return "\n".join(rc)
 
+
 ## This class represents a command line argument error
 class ArgError(Exception):
     def __init__(self, message, *args, **kwargs):
@@ -75,8 +79,10 @@ class ArgError(Exception):
         """
         Exception.__init__(self, *args, **kwargs)
         self.msg = message
+
     def __str__(self):
-        return "%s: error: %s\n" % ( os.path.basename(sys.argv[0]), self.msg)
+        return "%s: error: %s\n" % (os.path.basename(sys.argv[0]), self.msg)
+
 
 ## Prefixes cmd with "cmd_"
 # @param    cmd     The command to prefix with cmd_"
@@ -84,11 +90,13 @@ class ArgError(Exception):
 def _c(cmd):
     return "cmd_" + cmd
 
+
 ## Prefixes option with "opt_"
 # @param    option  The option to prefix with "opt_"
 # @return   The option string prefixed with "opt_"
 def _o(option):
     return "opt_" + option
+
 
 ## Class that encapsulates the command line arguments for lsmcli
 # Note: This class is used by lsmcli and any python plug-ins.
@@ -107,7 +115,8 @@ class CmdLine:
         """
         if not self.options.force:
             msg = "will" if deleting else "may"
-            print   "Warning: You are about to do an operation that %s cause data to be lost!\n" \
+            print   "Warning: You are about to do an operation that %s cause " \
+                    "data to be lost!\n" \
                     "Press [Y|y] to continue, any other key to abort" % msg
 
             pressed = common.getch()
@@ -120,13 +129,13 @@ class CmdLine:
             return True
 
     ##
-    # Tries to make the output better when it varies considerably from plug-in to
-    # plug-in.
+    # Tries to make the output better when it varies considerably from
+    # plug-in to plug-in.
     # @param    rows    Data, first row is header all other data.
     def display_table(self, rows):
         """
-        Creates a nicer text dump of tabular data.  First row should be the column
-        headers.
+        Creates a nicer text dump of tabular data.  First row should be the
+        column headers.
         """
         #If any of the table cells is another list, lets flatten using the sep
         for i in range(len(rows)):
@@ -143,10 +152,10 @@ class CmdLine:
                 start = 0
 
             for i in range(start, len(rows)):
-                print s.join([ str(x) for x in rows[i] ])
+                print s.join([str(x) for x in rows[i]])
 
         else:
-            if len(rows) >=2 :
+            if len(rows) >= 2:
                 #Get the max length of each column
                 lens = []
                 for l in zip(*rows):
@@ -170,7 +179,7 @@ class CmdLine:
                 print "-+-".join(['-' * n for n in lens])
                 data_pattern = " | ".join(data_formats)
 
-                for i in range(1,len(rows)):
+                for i in range(1, len(rows)):
                     print data_pattern % tuple(rows[i])
 
     def display_data(self, d):
@@ -180,7 +189,8 @@ class CmdLine:
             rows = d[0].column_headers()
 
             for r in d:
-                rows.extend(r.column_data(self.options.human, self.options.enum))
+                rows.extend(
+                    r.column_data(self.options.human, self.options.enum))
 
             self.display_table(rows)
 
@@ -192,38 +202,48 @@ class CmdLine:
         """
         usage = "usage: %prog [options]... [command]... [command options]..."
         optparse.textwrap = MyWrapper
-        parser = OptionParser(usage=usage, version="%prog " + VERSION )
+        parser = OptionParser(usage=usage, version="%prog " + VERSION)
         parser.description = 'libStorageMgmt command line interface. \n'
 
-        parser.epilog = ( 'Copyright 2012 Red Hat, Inc.\n'
-                          'Please report bugs to <libstoragemgmt-devel@lists.sourceforge.net>\n')
+        parser.epilog = ('Copyright 2012 Red Hat, Inc.\n'
+                         'Please report bugs to '
+                         '<libstoragemgmt-devel@lists.sourceforge.net>\n')
 
-        parser.add_option( '-u', '--uri', action="store", type="string", dest="uri",
-            help='uniform resource identifier (env LSMCLI_URI)')
-        parser.add_option( '-P', '--prompt', action="store_true", dest="prompt",
-            help='prompt for password (env LSMCLI_PASSWORD)')
-        parser.add_option( '-H', '--human', action="store_true", dest="human",
-            help='print sizes in human readable format\n'
-                 '(e.g., MiB, GiB, TiB)')
-        parser.add_option( '-t', '--terse', action="store", dest="sep",
-            help='print output in terse form with "SEP" as a record separator')
+        parser.add_option('-u', '--uri', action="store", type="string",
+                          dest="uri",
+                          help='uniform resource identifier (env LSMCLI_URI)')
+        parser.add_option('-P', '--prompt', action="store_true", dest="prompt",
+                          help='prompt for password (env LSMCLI_PASSWORD)')
+        parser.add_option('-H', '--human', action="store_true", dest="human",
+                          help='print sizes in human readable format\n'
+                               '(e.g., MiB, GiB, TiB)')
+        parser.add_option('-t', '--terse', action="store", dest="sep",
+                          help='print output in terse form with "SEP" '
+                               'as a record separator')
 
-        parser.add_option( '-e', '--enum', action="store_true", dest="enum",
-            default=False, help='display enumerated types as numbers instead of text')
+        parser.add_option('-e', '--enum', action="store_true", dest="enum",
+                          default=False,
+                          help='display enumerated types as numbers '
+                               'instead of text')
 
-        parser.add_option( '-f', '--force', action="store_true", dest="force",
-            default=False, help='bypass confirmation prompt for data loss operations')
+        parser.add_option('-f', '--force', action="store_true", dest="force",
+                          default=False,
+                          help='bypass confirmation prompt for data '
+                               'loss operations')
 
-        parser.add_option( '-w', '--wait', action="store", type="int",
-            dest="wait", default= 30000,
-            help="command timeout value in ms (default = 30s)")
+        parser.add_option('-w', '--wait', action="store", type="int",
+                          dest="wait", default=30000,
+                          help="command timeout value in ms (default = 30s)")
 
-        parser.add_option( '', '--header', action="store_true", dest="header",
-            help='include the header with terse')
+        parser.add_option('', '--header', action="store_true", dest="header",
+                          help='include the header with terse')
 
-        parser.add_option( '-b', '', action="store_true", dest="async", default=False,
-            help='run the command async. instead of waiting for completion\n'
-                 'command will exit(7) and job id written to stdout.')
+        parser.add_option('-b', '', action="store_true", dest="async",
+                          default=False,
+                          help='run the command async. instead of waiting '
+                               'for completion\n'
+                               'command will exit(7) and job id written '
+                               'to stdout.')
 
         #What action we want to take
         commands = OptionGroup(parser, 'Commands')
@@ -233,234 +253,297 @@ class CmdLine:
                         'SYSTEMS']
 
         commands.add_option('-l', '--list', action="store", type="choice",
-            dest="cmd_list",
-            #metavar='<'+ ",".join(list_choices) + '>',
-            metavar='<type>',
-            choices = list_choices,
-            help='List records of type: ' + ",".join(list_choices) + '\n'
-                 'Note: SNAPSHOTS requires --fs <fs id>')
+                            dest="cmd_list",
+                            #metavar='<'+ ",".join(list_choices) + '>',
+                            metavar='<type>',
+                            choices=list_choices,
+                            help='List records of type: ' + ",".join(
+                                list_choices) + '\n'
+                                                'Note: SNAPSHOTS requires '
+                                                '--fs <fs id>')
 
-        commands.add_option( '', '--capabilities', action="store", type="string",
-            dest=_c("capabilities"),
-            metavar='<system id>',
-            help='Retrieves array capabilities')
+        commands.add_option('', '--capabilities', action="store", type="string",
+                            dest=_c("capabilities"),
+                            metavar='<system id>',
+                            help='Retrieves array capabilities')
 
-        commands.add_option( '', '--plugin-info', action="store_true",
-            dest=_c("plugin-info"),
-            help='Retrieves plugin description and version')
+        commands.add_option('', '--plugin-info', action="store_true",
+                            dest=_c("plugin-info"),
+                            help='Retrieves plugin description and version')
 
-        commands.add_option( '', '--delete-fs', action="store", type="string",
-            dest=_c("delete-fs"),
-            metavar='<fs id>',
-            help='Delete a filesystem')
+        commands.add_option('', '--delete-fs', action="store", type="string",
+                            dest=_c("delete-fs"),
+                            metavar='<fs id>',
+                            help='Delete a filesystem')
 
-        commands.add_option( '', '--delete-access-group', action="store", type="string",
-            dest=_c("delete-access-group"),
-            metavar='<group id>',
-            help='Deletes an access group')
+        commands.add_option('', '--delete-access-group', action="store",
+                            type="string",
+                            dest=_c("delete-access-group"),
+                            metavar='<group id>',
+                            help='Deletes an access group')
 
-        commands.add_option( '', '--access-group-add', action="store", type="string",
-            dest=_c("access-group-add"),
-            metavar='<access group id>',
-            help='Adds an initiator to an access group, requires:\n'
-                '--id <initiator id\n'
-                '--type <initiator type>' )
+        commands.add_option('', '--access-group-add', action="store",
+                            type="string",
+                            dest=_c("access-group-add"),
+                            metavar='<access group id>',
+                            help='Adds an initiator to an access group, '
+                                 'requires:\n'
+                                 '--id <initiator id\n'
+                                 '--type <initiator type>')
 
-        commands.add_option( '', '--access-group-remove', action="store", type="string",
-            dest=_c("access-group-remove"),
-            metavar='<access group id>',
-            help='Removes an initiator from an access group, requires:\n'
-                 '--id <initiator id>')
+        commands.add_option('', '--access-group-remove', action="store",
+                            type="string",
+                            dest=_c("access-group-remove"),
+                            metavar='<access group id>',
+                            help='Removes an initiator from an access group, '
+                                 'requires:\n'
+                                 '--id <initiator id>')
 
-        commands.add_option( '', '--create-volume', action="store", type="string",
-            dest=_c("create-volume"),
-            metavar='<volume name>',
-            help="Creates a volume (logical unit) requires:\n"
-                 "--size <volume size> (Can use M, G, T)\n"
-                 "--pool <pool id>\n"
-                 "--provisioning (optional) [DEFAULT|THIN|FULL]\n")
+        commands.add_option('', '--create-volume', action="store",
+                            type="string",
+                            dest=_c("create-volume"),
+                            metavar='<volume name>',
+                            help="Creates a volume (logical unit) requires:\n"
+                                 "--size <volume size> (Can use M, G, T)\n"
+                                 "--pool <pool id>\n"
+                                 "--provisioning (optional) "
+                                 "[DEFAULT|THIN|FULL]\n")
 
-        commands.add_option( '', '--create-fs', action="store", type="string",
-            dest=_c("create-fs"),
-            metavar='<fs name>',
-            help="Creates a file system requires:\n"
-                 "--size <fs size> (Can use M, G, T)\n"
-                 "--pool <pool id>")
+        commands.add_option('', '--create-fs', action="store", type="string",
+                            dest=_c("create-fs"),
+                            metavar='<fs name>',
+                            help="Creates a file system requires:\n"
+                                 "--size <fs size> (Can use M, G, T)\n"
+                                 "--pool <pool id>")
 
-        commands.add_option( '', '--create-ss', action="store", type="string",
-            dest=_c("create-ss"),
-            metavar='<snapshot name>',
-            help="Creates a snapshot, requires:\n"
-                 "--file <repeat for each file>(default is all files)\n"
-                 "--fs <file system id>")
+        commands.add_option('', '--create-ss', action="store", type="string",
+                            dest=_c("create-ss"),
+                            metavar='<snapshot name>',
+                            help="Creates a snapshot, requires:\n"
+                                 "--file <repeat for each file>(default "
+                                 "is all files)\n"
+                                 "--fs <file system id>")
 
-        commands.add_option('', '--create-access-group', action="store", type="string",
-            dest=_c("create-access-group"),
-            metavar='<Access group name>',
-            help="Creates an access group, requires:\n"
-                 "--id <initiator id>\n"
-                 '--type [WWPN|WWNN|ISCSI|HOSTNAME]\n'
-                 '--system <system id>')
+        commands.add_option('', '--create-access-group', action="store",
+                            type="string",
+                            dest=_c("create-access-group"),
+                            metavar='<Access group name>',
+                            help="Creates an access group, requires:\n"
+                                 "--id <initiator id>\n"
+                                 '--type [WWPN|WWNN|ISCSI|HOSTNAME]\n'
+                                 '--system <system id>')
 
-        commands.add_option('', '--access-group-volumes', action="store", type="string",
-            dest=_c("access-group-volumes"),
-            metavar='<access group id>',
-            help='Lists the volumes that the access group has been granted access to')
+        commands.add_option('', '--access-group-volumes', action="store",
+                            type="string",
+                            dest=_c("access-group-volumes"),
+                            metavar='<access group id>',
+                            help='Lists the volumes that the access group has'
+                                 ' been granted access to')
 
-        commands.add_option('', '--volume-access-group', action="store", type="string",
-            dest=_c("volume-access-group"),
-            metavar='<volume id>',
-            help='Lists the access group(s) that have access to volume')
+        commands.add_option('', '--volume-access-group', action="store",
+                            type="string",
+                            dest=_c("volume-access-group"),
+                            metavar='<volume id>',
+                            help='Lists the access group(s) that have access'
+                                 ' to volume')
 
-        commands.add_option('', '--volumes-accessible-initiator', action="store", type="string",
-            dest=_c("volumes-accessible-initiator"),
-            metavar='<initiator id>',
-            help='Lists the volumes that are accessible by the initiator')
+        commands.add_option('', '--volumes-accessible-initiator',
+                            action="store", type="string",
+                            dest=_c("volumes-accessible-initiator"),
+                            metavar='<initiator id>',
+                            help='Lists the volumes that are accessible '
+                                 'by the initiator')
 
-        commands.add_option('', '--initiators-granted-volume', action="store", type="string",
-            dest=_c("initiators-granted-volume"),
-            metavar='<volume id>',
-            help='Lists the initiators that have been granted access to specified volume')
+        commands.add_option('', '--initiators-granted-volume', action="store",
+                            type="string",
+                            dest=_c("initiators-granted-volume"),
+                            metavar='<volume id>',
+                            help='Lists the initiators that have been '
+                                 'granted access to specified volume')
 
-        commands.add_option( '', '--restore-ss', action="store", type="string",
-            dest=_c("restore-ss"),
-            metavar='<snapshot id>',
-            help="Restores a FS or specified files to previous snapshot state, requires:\n"
-                 "--fs <file system>\n"
-                 "--file <repeat for each file (optional)>\n"
-                 "--fileas <restore file name (optional)>\n"
-                 "--all (optional, exclusive option, restores all files in snapshot other options must be absent)")
+        commands.add_option('', '--restore-ss', action="store", type="string",
+                            dest=_c("restore-ss"),
+                            metavar='<snapshot id>',
+                            help="Restores a FS or specified files to "
+                                 "previous snapshot state, requires:\n"
+                                 "--fs <file system>\n"
+                                 "--file <repeat for each file (optional)>\n"
+                                 "--fileas <restore file name (optional)>\n"
+                                 "--all (optional, exclusive option, "
+                                 "restores all files in snapshot other "
+                                 "options must be absent)")
 
-        commands.add_option( '', '--clone-fs', action="store", type="string",
-            dest=_c("clone-fs"),
-            metavar='<source file system id>',
-            help="Creates a file system clone requires:\n"
-                 "--name <file system clone name>\n"
-                 "--backing-snapshot <backing snapshot id> (optional)")
+        commands.add_option('', '--clone-fs', action="store", type="string",
+                            dest=_c("clone-fs"),
+                            metavar='<source file system id>',
+                            help="Creates a file system clone requires:\n"
+                                 "--name <file system clone name>\n"
+                                 "--backing-snapshot <backing snapshot id> "
+                                 "(optional)")
 
-        commands.add_option( '', '--clone-file', action="store", type="string",
-            dest=_c("clone-file"),
-            metavar='<file system>',
-            help="Creates a clone of a file (thin provisioned):\n"
-                 "--src  <source file to clone (relative path)>\n"
-                 "--dest <destination file (relative path)>\n"
-                 "--backing-snapshot <backing snapshot id> (optional)")
+        commands.add_option('', '--clone-file', action="store", type="string",
+                            dest=_c("clone-file"),
+                            metavar='<file system>',
+                            help="Creates a clone of a file (thin "
+                                 "provisioned):\n"
+                                 "--src  <source file to clone "
+                                 "(relative path)>\n"
+                                 "--dest <destination file (relative path)>\n"
+                                 "--backing-snapshot <backing snapshot id> "
+                                 "(optional)")
 
-        commands.add_option( '', '--delete-volume', action="store", type="string",
-            metavar='<volume id>',
-            dest=_c("delete-volume"), help='Deletes a volume given its id' )
+        commands.add_option('', '--delete-volume', action="store",
+                            type="string",
+                            metavar='<volume id>',
+                            dest=_c("delete-volume"),
+                            help='Deletes a volume given its id')
 
-        commands.add_option( '', '--delete-ss', action="store", type="string",
-            metavar='<snapshot id>',
-            dest=_c("delete-ss"), help='Deletes a snapshot requires --fs' )
+        commands.add_option('', '--delete-ss', action="store", type="string",
+                            metavar='<snapshot id>',
+                            dest=_c("delete-ss"),
+                            help='Deletes a snapshot requires --fs')
 
-        commands.add_option( '-r', '--replicate-volume', action="store", type="string",
-            metavar='<volume id>',
-            dest=_c("replicate-volume"), help='replicates a volume, requires:\n'
-                                              "--type [SNAPSHOT|CLONE|COPY|MIRROR_ASYNC|MIRROR_SYNC]\n"
-                                              "--name <human name>\n"
-                                              "Optional:\n"
-                                              "--pool <pool id>\n")
+        commands.add_option('-r', '--replicate-volume', action="store",
+                            type="string",
+                            metavar='<volume id>',
+                            dest=_c("replicate-volume"),
+                            help='replicates a volume, requires:\n'
+                                 "--type [SNAPSHOT|CLONE|COPY|MIRROR_ASYNC|"
+                                 "MIRROR_SYNC]\n"
+                                 "--name <human name>\n"
+                                 "Optional:\n"
+                                 "--pool <pool id>\n")
 
-        commands.add_option( '', '--replicate-volume-range-block-size', action="store", type="string",
-            metavar='<system id>',
-            dest=_c("replicate-volume-range-block-size"), help='size of each replicated block in bytes')
+        commands.add_option('', '--replicate-volume-range-block-size',
+                            action="store", type="string",
+                            metavar='<system id>',
+                            dest=_c("replicate-volume-range-block-size"),
+                            help='size of each replicated block in bytes')
 
-        commands.add_option( '', '--replicate-volume-range', action="store", type="string",
-            metavar='<volume id>',
-            dest=_c("replicate-volume-range"), help='replicates a portion of a volume, requires:\n'
-                                              "--type [SNAPSHOT|CLONE|COPY|MIRROR]\n"
-                                              "--dest <destination volume>\n"
-                                              "--src_start <source block start number>\n"
-                                              "--dest_start <destination block start>\n"
-                                              "--count <number of blocks to replicate>")
+        commands.add_option('', '--replicate-volume-range', action="store",
+                            type="string",
+                            metavar='<volume id>',
+                            dest=_c("replicate-volume-range"),
+                            help='replicates a portion of a volume, requires:\n'
+                                 "--type [SNAPSHOT|CLONE|COPY|MIRROR]\n"
+                                 "--dest <destination volume>\n"
+                                 "--src_start <source block start number>\n"
+                                 "--dest_start <destination block start>\n"
+                                 "--count <number of blocks to replicate>")
 
-        commands.add_option( '', '--iscsi-chap', action="store", type="string",
-            metavar='<initiator id>',
-            dest=_c("iscsi-chap"), help='configures ISCSI inbound CHAP authentication\n'
-                                          'requires:\n'
-                                          '--username <chap user name>\n'
-                                          '--password <chap password>')
+        commands.add_option('', '--iscsi-chap', action="store", type="string",
+                            metavar='<initiator id>',
+                            dest=_c("iscsi-chap"),
+                            help='configures ISCSI inbound CHAP '
+                                 'authentication\n'
+                                 'requires:\n'
+                                 '--username <chap user name>\n'
+                                 '--password <chap password>')
 
-        commands.add_option( '', '--access-grant', action="store", type="string",
-            metavar='<initiator id>',
-            dest=_c("access-grant"), help='grants access to an initiator to a volume\n'
-                                          'requires:\n'
-                                          '--type <initiator id type>\n'
-                                          '--volume <volume id>\n'
-                                          '--access [RO|RW], read-only or read-write')
+        commands.add_option('', '--access-grant', action="store", type="string",
+                            metavar='<initiator id>',
+                            dest=_c("access-grant"),
+                            help='grants access to an initiator to a volume\n'
+                                 'requires:\n'
+                                 '--type <initiator id type>\n'
+                                 '--volume <volume id>\n'
+                                 '--access [RO|RW], read-only or read-write')
 
-        commands.add_option( '', '--access-grant-group', action="store", type="string",
-            metavar='<access group id>',
-            dest=_c("access-grant-group"), help='grants access to an access group to a volume\n'
-                                          'requires:\n'
-                                          '--volume <volume id>\n'
-                                          '--access [RO|RW], read-only or read-write')
+        commands.add_option('', '--access-grant-group', action="store",
+                            type="string",
+                            metavar='<access group id>',
+                            dest=_c("access-grant-group"),
+                            help='grants access to an access group to a '
+                                 'volume\n'
+                                 'requires:\n'
+                                 '--volume <volume id>\n'
+                                 '--access [RO|RW], read-only or read-write')
 
-        commands.add_option( '', '--access-revoke', action="store", type="string",
-            metavar='<initiator id>',
-            dest=_c("access-revoke"), help= 'removes access for an initiator to a volume\n'
-                                            'requires:\n'
-                                            '--volume <volume id>')
+        commands.add_option('', '--access-revoke', action="store",
+                            type="string",
+                            metavar='<initiator id>',
+                            dest=_c("access-revoke"),
+                            help='removes access for an initiator to a volume\n'
+                                 'requires:\n'
+                                 '--volume <volume id>')
 
-        commands.add_option( '', '--access-revoke-group', action="store", type="string",
-            metavar='<access group id>',
-            dest=_c("access-revoke-group"), help= 'removes access for access group to a volume\n'
-                                            'requires:\n'
-                                            '--volume <volume id>')
+        commands.add_option('', '--access-revoke-group', action="store",
+                            type="string",
+                            metavar='<access group id>',
+                            dest=_c("access-revoke-group"),
+                            help='removes access for access group to a volume\n'
+                                 'requires:\n'
+                                 '--volume <volume id>')
 
-        commands.add_option( '', '--resize-volume', action="store", type="string",
-            metavar='<volume id>',
-            dest=_c("resize-volume"), help= 're-sizes a volume, requires:\n'
-                                            '--size <new size>')
+        commands.add_option('', '--resize-volume', action="store",
+                            type="string",
+                            metavar='<volume id>',
+                            dest=_c("resize-volume"),
+                            help='re-sizes a volume, requires:\n'
+                                 '--size <new size>')
 
-        commands.add_option( '', '--resize-fs', action="store", type="string",
-            metavar='<fs id>',
-            dest=_c("resize-fs"), help= 're-sizes a file system, requires:\n'
-                                        '--size <new size>')
+        commands.add_option('', '--resize-fs', action="store", type="string",
+                            metavar='<fs id>',
+                            dest=_c("resize-fs"),
+                            help='re-sizes a file system, requires:\n'
+                                 '--size <new size>')
 
-        commands.add_option( '', '--nfs-export-remove', action="store", type="string",
-            metavar='<nfs export id>',
-            dest=_c("nfs-export-remove"), help= 'removes a nfs export')
+        commands.add_option('', '--nfs-export-remove', action="store",
+                            type="string",
+                            metavar='<nfs export id>',
+                            dest=_c("nfs-export-remove"),
+                            help='removes a nfs export')
 
-        commands.add_option( '', '--nfs-export-fs', action="store", type="string",
-            metavar='<file system id>',
-            dest=_c("nfs-export-fs"), help= 'creates a nfs export\n'
-                                            'Required:\n'
-                                            '--exportpath e.g. /foo/bar\n'
-                                            'Optional:\n'
-                                            'Note: root, ro, rw are to be repeated for each host\n'
-                                            '--root <no_root_squash host>\n'
-                                            '--ro <read only host>\n'
-                                            '--rw <read/write host>\n'
-                                            '--anonuid <uid to map to anonymous>\n'
-                                            '--anongid <gid to map to anonymous>\n'
-                                            '--auth-type <NFS client authentication type>\n'
-        )
+        commands.add_option('', '--nfs-export-fs', action="store",
+                            type="string",
+                            metavar='<file system id>',
+                            dest=_c("nfs-export-fs"),
+                            help='creates a nfs export\n'
+                                 'Required:\n'
+                                 '--exportpath e.g. /foo/bar\n'
+                                 'Optional:\n'
+                                 'Note: root, ro, rw are to be repeated for '
+                                 'each host\n'
+                                 '--root <no_root_squash host>\n'
+                                 '--ro <read only host>\n'
+                                 '--rw <read/write host>\n'
+                                 '--anonuid <uid to map to anonymous>\n'
+                                 '--anongid <gid to map to anonymous>\n'
+                                 '--auth-type <NFS client authentication '
+                                 'type>\n')
 
-        commands.add_option( '', '--job-status', action="store", type="string",
-            metavar='<job status id>',
-            dest=_c("job-status"), help= 'retrieve information about job')
+        commands.add_option('', '--job-status', action="store", type="string",
+                            metavar='<job status id>',
+                            dest=_c("job-status"),
+                            help='retrieve information about job')
 
-        commands.add_option( '', '--volume-dependants', action="store", type="string",
-            metavar='<volume id>',
-            dest=_c("volume-dependants"), help= 'Returns True if volume has a dependant child')
+        commands.add_option('', '--volume-dependants', action="store",
+                            type="string",
+                            metavar='<volume id>',
+                            dest=_c("volume-dependants"),
+                            help='Returns True if volume has a dependant child')
 
-        commands.add_option( '', '--volume-dependants-rm', action="store", type="string",
-            metavar='<volume id>',
-            dest=_c("volume-dependants-rm"), help= 'Removes dependencies')
+        commands.add_option('', '--volume-dependants-rm', action="store",
+                            type="string",
+                            metavar='<volume id>',
+                            dest=_c("volume-dependants-rm"),
+                            help='Removes dependencies')
 
-        commands.add_option( '', '--fs-dependants', action="store", type="string",
-            metavar='<fs id>',
-            dest=_c("fs-dependants"), help= 'Returns true if a child dependency exists.\n'
-                                        'Optional:\n'
-                                        '--file <file> for File check' )
+        commands.add_option('', '--fs-dependants', action="store",
+                            type="string",
+                            metavar='<fs id>',
+                            dest=_c("fs-dependants"),
+                            help='Returns true if a child dependency exists.\n'
+                                 'Optional:\n'
+                                 '--file <file> for File check')
 
-        commands.add_option( '', '--fs-dependants-rm', action="store", type="string",
-            metavar='<fs id>',
-            dest=_c("fs-dependants-rm"), help=  'Removes dependencies\n'
-                                                'Optional:\n'
-                                                '--file <file> for File check' )
+        commands.add_option('', '--fs-dependants-rm', action="store",
+                            type="string",
+                            metavar='<fs id>',
+                            dest=_c("fs-dependants-rm"),
+                            help='Removes dependencies\n'
+                                 'Optional:\n'
+                                 '--file <file> for File check')
 
         parser.add_option_group(commands)
 
@@ -469,116 +552,138 @@ class CmdLine:
         #Should we?
         command_args = OptionGroup(parser, 'Command options')
         command_args.add_option('', '--size', action="store", type="string",
-            metavar='size',
-            dest=_o("size"), help='size (Can use M, G, T postfix)')
+                                metavar='size',
+                                dest=_o("size"),
+                                help='size (Can use M, G, T postfix)')
         command_args.add_option('', '--pool', action="store", type="string",
-            metavar='pool id',
-            dest=_o("pool"), help='pool ID')
-        command_args.add_option('', '--provisioning', action="store", type="choice",
-            default = 'DEFAULT',
-            choices=['DEFAULT','THIN','FULL'], dest="provisioning", help='[DEFAULT|THIN|FULL]')
+                                metavar='pool id',
+                                dest=_o("pool"), help='pool ID')
+        command_args.add_option('', '--provisioning', action="store",
+                                type="choice",
+                                default='DEFAULT',
+                                choices=['DEFAULT', 'THIN', 'FULL'],
+                                dest="provisioning", help='[DEFAULT|THIN|FULL]')
 
         command_args.add_option('', '--type', action="store", type="choice",
-            choices=['WWPN', 'WWNN', 'ISCSI', 'HOSTNAME', 'SNAPSHOT', 'CLONE', 'COPY', 'MIRROR_SYNC', 'MIRROR_ASYNC'],
-            metavar = "type",
-            dest=_o("type"), help='type specifier')
+                                choices=['WWPN', 'WWNN', 'ISCSI', 'HOSTNAME',
+                                         'SNAPSHOT', 'CLONE', 'COPY',
+                                         'MIRROR_SYNC', 'MIRROR_ASYNC'],
+                                metavar="type",
+                                dest=_o("type"), help='type specifier')
 
         command_args.add_option('', '--name', action="store", type="string",
-            metavar = "name",
-            dest=_o("name"),
-            help='human readable name')
+                                metavar="name",
+                                dest=_o("name"),
+                                help='human readable name')
 
         command_args.add_option('', '--volume', action="store", type="string",
-            metavar = "volume",
-            dest=_o("volume"), help='volume ID')
+                                metavar="volume",
+                                dest=_o("volume"), help='volume ID')
 
         command_args.add_option('', '--access', action="store", type="choice",
-            metavar = "access",
-            dest=_o("access"), choices=['RO', 'RW'] ,help='[RO|RW], read-only or read-write access')
+                                metavar="access",
+                                dest=_o("access"), choices=['RO', 'RW'],
+                                help='[RO|RW], read-only or read-write access')
 
         command_args.add_option('', '--id', action="store", type="string",
-            metavar = "initiator id",
-            dest=_o("id"), help="initiator id")
+                                metavar="initiator id",
+                                dest=_o("id"), help="initiator id")
 
         command_args.add_option('', '--system', action="store", type="string",
-            metavar = "system id",
-            dest=_o("system"), help="system id")
+                                metavar="system id",
+                                dest=_o("system"), help="system id")
 
-        command_args.add_option('', '--backing-snapshot', action="store", type="string",
-            metavar = "<backing snapshot>", default=None,
-            dest="backing_snapshot", help="backing snap shot name for operation")
+        command_args.add_option('', '--backing-snapshot', action="store",
+                                type="string",
+                                metavar="<backing snapshot>", default=None,
+                                dest="backing_snapshot",
+                                help="backing snap shot name for operation")
 
         command_args.add_option('', '--src', action="store", type="string",
-            metavar = "<source file>", default=None,
-            dest=_o("src"), help="source of operation")
+                                metavar="<source file>", default=None,
+                                dest=_o("src"), help="source of operation")
 
         command_args.add_option('', '--dest', action="store", type="string",
-            metavar = "<source file>", default=None,
-            dest=_o("dest"), help="destination of operation")
+                                metavar="<source file>", default=None,
+                                dest=_o("dest"),
+                                help="destination of operation")
 
         command_args.add_option('', '--file', action="append", type="string",
-            metavar = "<file>", default=[],
-            dest="file", help="file to include in operation, option can be repeated")
+                                metavar="<file>", default=[],
+                                dest="file",
+                                help="file to include in operation, option "
+                                     "can be repeated")
 
         command_args.add_option('', '--fileas', action="append", type="string",
-            metavar = "<fileas>", default=[],
-            dest="fileas", help="file to be renamed as, option can be repeated")
+                                metavar="<fileas>", default=[],
+                                dest="fileas",
+                                help="file to be renamed as, option can "
+                                     "be repeated")
 
         command_args.add_option('', '--fs', action="store", type="string",
-            metavar = "<file system>", default=None,
-            dest=_o("fs"), help="file system of interest")
+                                metavar="<file system>", default=None,
+                                dest=_o("fs"), help="file system of interest")
 
-        command_args.add_option('', '--exportpath', action="store", type="string",
-            metavar = "<path for export>", default=None,
-            dest=_o("exportpath"), help="desired export path on array")
+        command_args.add_option('', '--exportpath', action="store",
+                                type="string",
+                                metavar="<path for export>", default=None,
+                                dest=_o("exportpath"),
+                                help="desired export path on array")
 
         command_args.add_option('', '--root', action="append", type="string",
-            metavar = "<no_root_squash_host>", default=[],
-            dest="nfs_root", help="list of hosts with no_root_squash")
+                                metavar="<no_root_squash_host>", default=[],
+                                dest="nfs_root",
+                                help="list of hosts with no_root_squash")
 
         command_args.add_option('', '--ro', action="append", type="string",
-            metavar = "<read only host>", default=[],
-            dest="nfs_ro", help="list of hosts with read/only access")
+                                metavar="<read only host>", default=[],
+                                dest="nfs_ro",
+                                help="list of hosts with read/only access")
 
         command_args.add_option('', '--rw', action="append", type="string",
-            metavar = "<read/write host>", default=[],
-            dest="nfs_rw", help="list of hosts with read/write access")
+                                metavar="<read/write host>", default=[],
+                                dest="nfs_rw",
+                                help="list of hosts with read/write access")
 
         command_args.add_option('', '--anonuid', action="store", type="string",
-            metavar = "<anonymous uid>", default=None,
-            dest="anonuid", help="uid to map to anonymous")
+                                metavar="<anonymous uid>", default=None,
+                                dest="anonuid", help="uid to map to anonymous")
 
         command_args.add_option('', '--anongid', action="store", type="string",
-            metavar = "<anonymous uid>", default=None,
-            dest="anongid", help="gid to map to anonymous")
+                                metavar="<anonymous uid>", default=None,
+                                dest="anongid", help="gid to map to anonymous")
 
         command_args.add_option('', '--authtype', action="store", type="string",
-            metavar = "<type>", default=None,
-            dest="authtype", help="NFS client authentication type")
+                                metavar="<type>", default=None,
+                                dest="authtype",
+                                help="NFS client authentication type")
 
-        command_args.add_option( '', '--all', action="store_true", dest="all",
-            default=False, help='specify all in an operation')
+        command_args.add_option('', '--all', action="store_true", dest="all",
+                                default=False,
+                                help='specify all in an operation')
 
-        command_args.add_option( '', '--src_start', action="append", type="int",
-            metavar="<source block start>", default=None, dest=_o("src_start"),
-            help="source block address to replicate")
+        command_args.add_option('', '--src_start', action="append", type="int",
+                                metavar="<source block start>", default=None,
+                                dest=_o("src_start"),
+                                help="source block address to replicate")
 
-        command_args.add_option( '', '--dest_start', action="append", type="int",
-            metavar="<dest. block start>", default=None, dest=_o("dest_start"),
-            help="destination block address to replicate")
+        command_args.add_option('', '--dest_start', action="append", type="int",
+                                metavar="<dest. block start>", default=None,
+                                dest=_o("dest_start"),
+                                help="destination block address to replicate")
 
-        command_args.add_option( '', '--count', action="append", type="int",
-            metavar="<block count>", default=None, dest=_o("count"),
-            help="number of blocks to replicate")
+        command_args.add_option('', '--count', action="append", type="int",
+                                metavar="<block count>", default=None,
+                                dest=_o("count"),
+                                help="number of blocks to replicate")
 
         command_args.add_option('', '--username', action="store", type="string",
-            metavar = "<username>", default=None,
-            dest=_o("username"), help="CHAP user name")
+                                metavar="<username>", default=None,
+                                dest=_o("username"), help="CHAP user name")
 
         command_args.add_option('', '--password', action="store", type="string",
-            metavar = "<password>", default=None,
-            dest=_o("password"), help="CHAP password")
-
+                                metavar="<password>", default=None,
+                                dest=_o("password"), help="CHAP password")
 
         parser.add_option_group(command_args)
 
@@ -586,18 +691,20 @@ class CmdLine:
 
     ## Checks to make sure only one command was specified on the command line
     # @param    self    The this pointer
-    # @return   tuple of command to execute and the value of the command argument
+    # @return   tuple of command to execute and the value of the command
+    #           argument
     def _cmd(self):
-        cmds = [ e[4:] for e in dir(self.options)
-                 if e[0:4]  == "cmd_" and self.options.__dict__[e] is not None ]
+        cmds = [e[4:] for e in dir(self.options)
+                if e[0:4] == "cmd_" and self.options.__dict__[e] is not None]
         if len(cmds) > 1:
-            raise ArgError("More than one command operation specified (" + ",".join(cmds) + ")")
+            raise ArgError(
+                "More than one command operation specified (" + ",".join(
+                    cmds) + ")")
 
         if len(cmds) == 1:
             return cmds[0], self.options.__dict__['cmd_' + cmds[0]]
         else:
             return None, None
-
 
     ## Validates that the required options for a given command are present.
     # @param    self    The this pointer
@@ -605,10 +712,11 @@ class CmdLine:
     def _validate(self):
         optional_opts = 0
         expected_opts = self.verify[self.cmd]['options']
-        actual_ops = [ e[4:] for e in dir(self.options)
-                       if e[0:4]  == "opt_" and self.options.__dict__[e] is not None ]
+        actual_ops = [e[4:] for e in dir(self.options)
+                      if
+                      e[0:4] == "opt_" and self.options.__dict__[e] is not None]
 
-        if 'optional' in  self.verify[self.cmd]:
+        if 'optional' in self.verify[self.cmd]:
             optional_opts = len(self.verify[self.cmd]['optional'])
 
         if len(expected_opts):
@@ -628,7 +736,7 @@ class CmdLine:
         if self.options.opt_size:
             self._size(self.options.opt_size)
 
-    def _list(self,l):
+    def _list(self, l):
         if l and len(l):
             if self.options.sep:
                 return self.options.sep.join(l)
@@ -662,11 +770,12 @@ class CmdLine:
             if self.options.opt_fs is None:
                 raise ArgError("--fs <file system id> required")
 
-            fs = self._get_item(self.c.fs(),self.options.opt_fs)
+            fs = self._get_item(self.c.fs(), self.options.opt_fs)
             if fs:
                 self.display_data(self.c.fs_snapshots(fs))
             else:
-                raise ArgError("filesystem %s not found!" % self.options.opt_volume)
+                raise ArgError(
+                    "filesystem %s not found!" % self.options.opt_volume)
         elif self.cmd_value == 'INITIATORS':
             self.display_data(self.c.initiators())
         elif self.cmd_value == 'EXPORTS':
@@ -684,17 +793,17 @@ class CmdLine:
     # @param    type    String representation of type
     # @returns  Enumerated value
     @staticmethod
-    def _init_type_to_enum(type):
-        if type == 'WWPN':
+    def _init_type_to_enum(init_type):
+        if init_type == 'WWPN':
             i = data.Initiator.TYPE_PORT_WWN
-        elif type == 'WWNN':
+        elif init_type == 'WWNN':
             i = data.Initiator.TYPE_NODE_WWN
-        elif type == 'ISCSI':
+        elif init_type == 'ISCSI':
             i = data.Initiator.TYPE_ISCSI
-        elif type == 'HOSTNAME':
+        elif init_type == 'HOSTNAME':
             i = data.Initiator.TYPE_HOSTNAME
         else:
-            raise ArgError("invalid initiator type " + type)
+            raise ArgError("invalid initiator type " + init_type)
         return i
 
     ## Creates an access group.
@@ -704,7 +813,7 @@ class CmdLine:
         initiator = self.options.opt_id
         i = CmdLine._init_type_to_enum(self.options.opt_type)
         access_group = self.c.access_group_create(name, initiator, i,
-                        self.options.opt_system)
+                                                  self.options.opt_system)
         self.display_data([access_group])
 
     def _add_rm_access_grp_init(self, op):
@@ -720,10 +829,12 @@ class CmdLine:
                 if i:
                     self.c.access_group_del_initiator(group, i.id)
                 else:
-                    raise ArgError("initiator with id %s not found!" % self.options.opt_id)
+                    raise ArgError(
+                        "initiator with id %s not found!" % self.options.opt_id)
         else:
             if not group:
-                raise ArgError('access group with id %s not found!' % self.cmd_value)
+                raise ArgError(
+                    'access group with id %s not found!' % self.cmd_value)
 
     ## Adds an initiator from an access group
     def access_group_add(self):
@@ -741,7 +852,8 @@ class CmdLine:
             vols = self.c.volumes_accessible_by_access_group(group)
             self.display_data(vols)
         else:
-            raise ArgError('access group with id %s not found!' % self.cmd_value)
+            raise ArgError(
+                'access group with id %s not found!' % self.cmd_value)
 
     def volume_accessible_init(self):
         i = self._get_item(self.c.initiators(), self.cmd_value)
@@ -765,9 +877,9 @@ class CmdLine:
         init = self._get_item(self.c.initiators(), self.cmd_value)
         if init:
             self.c.iscsi_chap_auth_inbound(init, self.options.opt_username,
-                                                    self.options.opt_password)
+                                           self.options.opt_password)
         else:
-            raise ArgError("initiator with id= %s not found" %self.cmd_value)
+            raise ArgError("initiator with id= %s not found" % self.cmd_value)
 
     def volume_access_group(self):
         vol = self._get_item(self.c.volumes(), self.cmd_value)
@@ -787,7 +899,8 @@ class CmdLine:
         if group:
             return self.c.access_group_del(group)
         else:
-            raise ArgError("access group with id = %s not found!" % self.cmd_value)
+            raise ArgError(
+                "access group with id = %s not found!" % self.cmd_value)
 
     ## Used to delete a file system
     # @param    self    The this pointer
@@ -808,10 +921,12 @@ class CmdLine:
         p = self._get_item(self.c.pools(), self.options.opt_pool)
         name = self.cmd_value
         if p:
-            fs = self._wait_for_it("create-fs", *self.c.fs_create(p, name, size))
+            fs = self._wait_for_it("create-fs",
+                                   *self.c.fs_create(p, name, size))
             self.display_data([fs])
         else:
-            raise ArgError("pool with id = %s not found!" % self.options.opt_pool)
+            raise ArgError(
+                "pool with id = %s not found!" % self.options.opt_pool)
 
     ## Used to resize a file system
     # @param    self    The this pointer
@@ -825,7 +940,8 @@ class CmdLine:
                 self.display_data([fs])
         else:
             if not fs:
-                raise ArgError(" filesystem with id= %s not found!" % self.cmd_value)
+                raise ArgError(
+                    " filesystem with id= %s not found!" % self.cmd_value)
 
     ## Used to clone a file system
     # @param    self    The this pointer
@@ -834,13 +950,17 @@ class CmdLine:
         name = self.options.opt_name
 
         if not src_fs:
-            raise ArgError(" source file system with id=%s not found!" % self.cmd_value)
+            raise ArgError(
+                " source file system with id=%s not found!" % self.cmd_value)
 
         if self.options.backing_snapshot:
             #go get the snapsnot
-            ss = self._get_item(self.c.fs_snapshots(src_fs), self.options.backing_snapshot)
+            ss = self._get_item(self.c.fs_snapshots(src_fs),
+                                self.options.backing_snapshot)
             if not ss:
-                raise ArgError(" snapshot with id= %s not found!" % self.options.backing_snapshot)
+                raise ArgError(
+                    " snapshot with id= %s not found!" %
+                    self.options.backing_snapshot)
         else:
             ss = None
 
@@ -856,15 +976,17 @@ class CmdLine:
 
         if self.options.backing_snapshot:
             #go get the snapsnot
-            ss = self._get_item(self.c.fs_snapshots(fs), self.options.backing_snapshot)
+            ss = self._get_item(self.c.fs_snapshots(fs),
+                                self.options.backing_snapshot)
         else:
             ss = None
 
-        self._wait_for_it("file_clone", self.c.file_clone(fs, src, dest, ss), None)
+        self._wait_for_it("file_clone", self.c.file_clone(fs, src, dest, ss),
+                          None)
 
-    def _get_item(self, l, id):
+    def _get_item(self, l, the_id):
         for i in l:
-            if i.id == id:
+            if i.id == the_id:
                 return i
         return None
 
@@ -907,7 +1029,6 @@ class CmdLine:
 
         print "%s%s%s" % (cap, s, v)
 
-
     def capabilities(self):
         s = self._get_item(self.c.systems(), self.cmd_value)
 
@@ -916,37 +1037,61 @@ class CmdLine:
             self._cp("BLOCK_SUPPORT", cap.get(Capabilities.BLOCK_SUPPORT))
             self._cp("FS_SUPPORT", cap.get(Capabilities.FS_SUPPORT))
             self._cp("INITIATORS", cap.get(Capabilities.INITIATORS))
-            self._cp("INITIATORS_GRANTED_TO_VOLUME", cap.get(Capabilities.INITIATORS_GRANTED_TO_VOLUME))
+            self._cp("INITIATORS_GRANTED_TO_VOLUME",
+                     cap.get(Capabilities.INITIATORS_GRANTED_TO_VOLUME))
             self._cp("VOLUMES", cap.get(Capabilities.VOLUMES))
             self._cp("VOLUME_CREATE", cap.get(Capabilities.VOLUME_CREATE))
             self._cp("VOLUME_RESIZE", cap.get(Capabilities.VOLUME_RESIZE))
             self._cp("VOLUME_REPLICATE", cap.get(Capabilities.VOLUME_REPLICATE))
-            self._cp("VOLUME_REPLICATE_CLONE", cap.get(Capabilities.VOLUME_REPLICATE_CLONE))
-            self._cp("VOLUME_REPLICATE_COPY", cap.get(Capabilities.VOLUME_REPLICATE_COPY))
-            self._cp("VOLUME_REPLICATE_MIRROR_ASYNC", cap.get(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC))
-            self._cp("VOLUME_REPLICATE_MIRROR_SYNC", cap.get(Capabilities.VOLUME_REPLICATE_MIRROR_SYNC))
-            self._cp("VOLUME_COPY_RANGE_BLOCK_SIZE", cap.get(Capabilities.VOLUME_COPY_RANGE_BLOCK_SIZE))
-            self._cp("VOLUME_COPY_RANGE", cap.get(Capabilities.VOLUME_COPY_RANGE))
-            self._cp("VOLUME_COPY_RANGE_CLONE", cap.get(Capabilities.VOLUME_COPY_RANGE_CLONE))
-            self._cp("VOLUME_COPY_RANGE_COPY", cap.get(Capabilities.VOLUME_COPY_RANGE_COPY))
+            self._cp("VOLUME_REPLICATE_CLONE",
+                     cap.get(Capabilities.VOLUME_REPLICATE_CLONE))
+            self._cp("VOLUME_REPLICATE_COPY",
+                     cap.get(Capabilities.VOLUME_REPLICATE_COPY))
+            self._cp("VOLUME_REPLICATE_MIRROR_ASYNC",
+                     cap.get(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC))
+            self._cp("VOLUME_REPLICATE_MIRROR_SYNC",
+                     cap.get(Capabilities.VOLUME_REPLICATE_MIRROR_SYNC))
+            self._cp("VOLUME_COPY_RANGE_BLOCK_SIZE",
+                     cap.get(Capabilities.VOLUME_COPY_RANGE_BLOCK_SIZE))
+            self._cp("VOLUME_COPY_RANGE",
+                     cap.get(Capabilities.VOLUME_COPY_RANGE))
+            self._cp("VOLUME_COPY_RANGE_CLONE",
+                     cap.get(Capabilities.VOLUME_COPY_RANGE_CLONE))
+            self._cp("VOLUME_COPY_RANGE_COPY",
+                     cap.get(Capabilities.VOLUME_COPY_RANGE_COPY))
             self._cp("VOLUME_DELETE", cap.get(Capabilities.VOLUME_DELETE))
             self._cp("VOLUME_ONLINE", cap.get(Capabilities.VOLUME_ONLINE))
             self._cp("VOLUME_OFFLINE", cap.get(Capabilities.VOLUME_OFFLINE))
-            self._cp("VOLUME_INITIATOR_GRANT", cap.get(Capabilities.VOLUME_INITIATOR_GRANT))
-            self._cp("VOLUME_INITIATOR_REVOKE", cap.get(Capabilities.VOLUME_INITIATOR_REVOKE))
-            self._cp("VOLUME_ISCSI_CHAP_AUTHENTICATION", cap.get(Capabilities.VOLUME_ISCSI_CHAP_AUTHENTICATION))
-            self._cp("ACCESS_GROUP_GRANT", cap.get(Capabilities.ACCESS_GROUP_GRANT))
-            self._cp("ACCESS_GROUP_REVOKE", cap.get(Capabilities.ACCESS_GROUP_REVOKE))
-            self._cp("ACCESS_GROUP_LIST", cap.get(Capabilities.ACCESS_GROUP_LIST))
-            self._cp("ACCESS_GROUP_CREATE", cap.get(Capabilities.ACCESS_GROUP_CREATE))
-            self._cp("ACCESS_GROUP_DELETE", cap.get(Capabilities.ACCESS_GROUP_DELETE))
-            self._cp("ACCESS_GROUP_ADD_INITIATOR", cap.get(Capabilities.ACCESS_GROUP_ADD_INITIATOR))
-            self._cp("ACCESS_GROUP_DEL_INITIATOR", cap.get(Capabilities.ACCESS_GROUP_DEL_INITIATOR))
-            self._cp("VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP", cap.get(Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP))
-            self._cp("VOLUME_ACCESSIBLE_BY_INITIATOR", cap.get(Capabilities.VOLUME_ACCESSIBLE_BY_INITIATOR))
-            self._cp("ACCESS_GROUPS_GRANTED_TO_VOLUME", cap.get(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME))
-            self._cp("VOLUME_CHILD_DEPENDENCY", cap.get(Capabilities.VOLUME_CHILD_DEPENDENCY))
-            self._cp("VOLUME_CHILD_DEPENDENCY_RM", cap.get(Capabilities.VOLUME_CHILD_DEPENDENCY_RM))
+            self._cp("VOLUME_INITIATOR_GRANT",
+                     cap.get(Capabilities.VOLUME_INITIATOR_GRANT))
+            self._cp("VOLUME_INITIATOR_REVOKE",
+                     cap.get(Capabilities.VOLUME_INITIATOR_REVOKE))
+            self._cp("VOLUME_ISCSI_CHAP_AUTHENTICATION",
+                     cap.get(Capabilities.VOLUME_ISCSI_CHAP_AUTHENTICATION))
+            self._cp("ACCESS_GROUP_GRANT",
+                     cap.get(Capabilities.ACCESS_GROUP_GRANT))
+            self._cp("ACCESS_GROUP_REVOKE",
+                     cap.get(Capabilities.ACCESS_GROUP_REVOKE))
+            self._cp("ACCESS_GROUP_LIST",
+                     cap.get(Capabilities.ACCESS_GROUP_LIST))
+            self._cp("ACCESS_GROUP_CREATE",
+                     cap.get(Capabilities.ACCESS_GROUP_CREATE))
+            self._cp("ACCESS_GROUP_DELETE",
+                     cap.get(Capabilities.ACCESS_GROUP_DELETE))
+            self._cp("ACCESS_GROUP_ADD_INITIATOR",
+                     cap.get(Capabilities.ACCESS_GROUP_ADD_INITIATOR))
+            self._cp("ACCESS_GROUP_DEL_INITIATOR",
+                     cap.get(Capabilities.ACCESS_GROUP_DEL_INITIATOR))
+            self._cp("VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP",
+                     cap.get(Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP))
+            self._cp("VOLUME_ACCESSIBLE_BY_INITIATOR",
+                     cap.get(Capabilities.VOLUME_ACCESSIBLE_BY_INITIATOR))
+            self._cp("ACCESS_GROUPS_GRANTED_TO_VOLUME",
+                     cap.get(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME))
+            self._cp("VOLUME_CHILD_DEPENDENCY",
+                     cap.get(Capabilities.VOLUME_CHILD_DEPENDENCY))
+            self._cp("VOLUME_CHILD_DEPENDENCY_RM",
+                     cap.get(Capabilities.VOLUME_CHILD_DEPENDENCY_RM))
             self._cp("FS", cap.get(Capabilities.FS))
             self._cp("FS_DELETE", cap.get(Capabilities.FS_DELETE))
             self._cp("FS_RESIZE", cap.get(Capabilities.FS_RESIZE))
@@ -954,28 +1099,36 @@ class CmdLine:
             self._cp("FS_CLONE", cap.get(Capabilities.FS_CLONE))
             self._cp("FILE_CLONE", cap.get(Capabilities.FILE_CLONE))
             self._cp("FS_SNAPSHOTS", cap.get(Capabilities.FS_SNAPSHOTS))
-            self._cp("FS_SNAPSHOT_CREATE", cap.get(Capabilities.FS_SNAPSHOT_CREATE))
-            self._cp("FS_SNAPSHOT_CREATE_SPECIFIC_FILES", cap.get(Capabilities.FS_SNAPSHOT_CREATE_SPECIFIC_FILES))
-            self._cp("FS_SNAPSHOT_DELETE", cap.get(Capabilities.FS_SNAPSHOT_DELETE))
-            self._cp("FS_SNAPSHOT_REVERT", cap.get(Capabilities.FS_SNAPSHOT_REVERT))
-            self._cp("FS_SNAPSHOT_REVERT_SPECIFIC_FILES", cap.get(Capabilities.FS_SNAPSHOT_REVERT_SPECIFIC_FILES))
-            self._cp("FS_CHILD_DEPENDENCY", cap.get(Capabilities.FS_CHILD_DEPENDENCY))
-            self._cp("FS_CHILD_DEPENDENCY_RM", cap.get(Capabilities.FS_CHILD_DEPENDENCY_RM))
-            self._cp("FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES", cap.get(Capabilities.FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES))
+            self._cp("FS_SNAPSHOT_CREATE",
+                     cap.get(Capabilities.FS_SNAPSHOT_CREATE))
+            self._cp("FS_SNAPSHOT_CREATE_SPECIFIC_FILES",
+                     cap.get(Capabilities.FS_SNAPSHOT_CREATE_SPECIFIC_FILES))
+            self._cp("FS_SNAPSHOT_DELETE",
+                     cap.get(Capabilities.FS_SNAPSHOT_DELETE))
+            self._cp("FS_SNAPSHOT_REVERT",
+                     cap.get(Capabilities.FS_SNAPSHOT_REVERT))
+            self._cp("FS_SNAPSHOT_REVERT_SPECIFIC_FILES",
+                     cap.get(Capabilities.FS_SNAPSHOT_REVERT_SPECIFIC_FILES))
+            self._cp("FS_CHILD_DEPENDENCY",
+                     cap.get(Capabilities.FS_CHILD_DEPENDENCY))
+            self._cp("FS_CHILD_DEPENDENCY_RM",
+                     cap.get(Capabilities.FS_CHILD_DEPENDENCY_RM))
+            self._cp("FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES", cap.get(
+                Capabilities.FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES))
             self._cp("EXPORT_AUTH", cap.get(Capabilities.EXPORT_AUTH))
             self._cp("EXPORTS", cap.get(Capabilities.EXPORTS))
             self._cp("EXPORT_FS", cap.get(Capabilities.EXPORT_FS))
             self._cp("EXPORT_REMOVE", cap.get(Capabilities.EXPORT_REMOVE))
         else:
-            raise ArgError( "system with id= %s not found!" % self.cmd_value)
+            raise ArgError("system with id= %s not found!" % self.cmd_value)
 
     def plugin_info(self):
         desc, version = self.c.plugin_info()
 
         if self.options.sep:
-            print "%s%s%s" %( desc, self.options.sep, version )
+            print "%s%s%s" % (desc, self.options.sep, version)
         else:
-            print "Description: %s Version: %s" % ( desc, version )
+            print "Description: %s Version: %s" % (desc, version)
 
     ## Creates a volume
     # @param    self    The this pointer
@@ -984,13 +1137,17 @@ class CmdLine:
         p = self._get_item(self.c.pools(), self.options.opt_pool)
         if p:
             vol = self._wait_for_it("create-volume",
-                *self.c.volume_create(p, self.cmd_value,
-                self._size(self.options.opt_size),
-                data.Volume.prov_string_to_type(self.options.provisioning)))
+                                    *self.c.volume_create(
+                                        p,
+                                        self.cmd_value,
+                                        self._size(self.options.opt_size),
+                                        data.Volume.prov_string_to_type(
+                                            self.options.provisioning)))
 
             self.display_data([vol])
         else:
-            raise ArgError(" pool with id= %s not found!" % self.options.opt_pool)
+            raise ArgError(
+                " pool with id= %s not found!" % self.options.opt_pool)
 
     ## Creates a snapshot
     # @param    self    The this pointer
@@ -999,12 +1156,14 @@ class CmdLine:
         fs = self._get_item(self.c.fs(), self.options.opt_fs)
         if fs:
             ss = self._wait_for_it("snapshot-create",
-                    *self.c.fs_snapshot_create(fs,self.cmd_value,
-                                            self.options.file))
+                                   *self.c.fs_snapshot_create(
+                                       fs,
+                                       self.cmd_value,
+                                       self.options.file))
 
             self.display_data([ss])
         else:
-            raise ArgError( "fs with id= %s not found!" % self.options.opt_fs)
+            raise ArgError("fs with id= %s not found!" % self.options.opt_fs)
 
     ## Restores a snap shot
     # @param    self    The this pointer
@@ -1018,24 +1177,30 @@ class CmdLine:
             if self.options.file:
                 if self.options.fileas:
                     if len(self.options.file) != len(self.options.fileas):
-                        raise ArgError("number of --files not equal to --fileas")
+                        raise ArgError(
+                            "number of --files not equal to --fileas")
 
             if self.options.all:
                 if self.options.file or self.options.fileas:
-                    raise ArgError("Unable to specify --all and --files or --fileas")
+                    raise ArgError(
+                        "Unable to specify --all and --files or --fileas")
 
             if self.options.all is False and self.options.file is None:
                 raise ArgError("Need to specify --all or at least one --file")
 
             if self.confirm_prompt(True):
-                self._wait_for_it('restore-ss', self.c.fs_snapshot_revert(fs, ss,
-                                        self.options.file, self.options.fileas,
-                                        self.options.all), None)
+                self._wait_for_it('restore-ss',
+                                  self.c.fs_snapshot_revert(fs, ss,
+                                                            self.options.file,
+                                                            self.options.fileas,
+                                                            self.options.all),
+                                  None)
         else:
             if not ss:
-                raise ArgError( "ss with id= %s not found!" % self.cmd_value)
+                raise ArgError("ss with id= %s not found!" % self.cmd_value)
             if not fs:
-                raise ArgError( "fs with id= %s not found!" % self.options.opt_fs)
+                raise ArgError(
+                    "fs with id= %s not found!" % self.options.opt_fs)
 
     ## Deletes a volume
     # @param    self    The this pointer
@@ -1044,7 +1209,8 @@ class CmdLine:
 
         if v:
             if self.confirm_prompt(True):
-                self._wait_for_it("delete-volume", self.c.volume_delete(v), None)
+                self._wait_for_it("delete-volume", self.c.volume_delete(v),
+                                  None)
         else:
             raise ArgError(" volume with id= %s not found!" % self.cmd_value)
 
@@ -1056,11 +1222,14 @@ class CmdLine:
             ss = self._get_item(self.c.fs_snapshots(fs), self.cmd_value)
             if ss:
                 if self.confirm_prompt(True):
-                    self._wait_for_it("delete-snapshot", self.c.fs_snapshot_delete(fs,ss), None)
+                    self._wait_for_it("delete-snapshot",
+                                      self.c.fs_snapshot_delete(fs, ss), None)
             else:
-                raise ArgError(" snapshot with id= %s not found!" % self.cmd_value)
+                raise ArgError(
+                    " snapshot with id= %s not found!" % self.cmd_value)
         else:
-            raise ArgError(" file system with id= %s not found!" % self.options.opt_fs)
+            raise ArgError(
+                " file system with id= %s not found!" % self.options.opt_fs)
 
     ## Waits for an operation to complete by polling for the status of the
     # operations.
@@ -1118,16 +1287,18 @@ class CmdLine:
 
         if v:
 
-            type = data.Volume.rep_String_to_type(self.options.opt_type)
-            if type == data.Volume.REPLICATE_UNKNOWN:
-                raise ArgError("invalid replication type= %s" % type)
+            rep_type = data.Volume.rep_String_to_type(self.options.opt_type)
+            if rep_type == data.Volume.REPLICATE_UNKNOWN:
+                raise ArgError("invalid replication type= %s" % rep_type)
 
-            vol = self._wait_for_it("replicate volume", *self.c.volume_replicate(p, type, v,
-                self.options.opt_name))
+            vol = self._wait_for_it("replicate volume",
+                                    *self.c.volume_replicate(
+                                        p, rep_type, v, self.options.opt_name))
             self.display_data([vol])
         else:
             if not p:
-                raise ArgError("pool with id= %s not found!" % self.options.opt_pool)
+                raise ArgError(
+                    "pool with id= %s not found!" % self.options.opt_pool)
             if not v:
                 raise ArgError("Volume with id= %s not found!" % self.cmd_value)
 
@@ -1138,31 +1309,36 @@ class CmdLine:
         dest = self._get_item(self.c.volumes(), self.options.opt_dest)
 
         if src and dest:
-            type = data.Volume.rep_String_to_type(self.options.opt_type)
-            if type == data.Volume.REPLICATE_UNKNOWN:
-                raise ArgError("invalid replication type= %s" % type)
+            rep_type = data.Volume.rep_String_to_type(self.options.opt_type)
+            if rep_type == data.Volume.REPLICATE_UNKNOWN:
+                raise ArgError("invalid replication type= %s" % rep_type)
 
             src_starts = self.options.opt_src_start
             dest_starts = self.options.opt_dest_start
             counts = self.options.opt_count
 
-            if( 0 < len(src_starts) == len(dest_starts) and
-                len(dest_starts) == len(counts) ):
+            if (0 < len(src_starts) == len(dest_starts)
+                    and len(dest_starts) == len(counts)):
                 ranges = []
 
                 for i in range(len(src_starts)):
-                    ranges.append(data.BlockRange(src_starts[i], dest_starts[i], counts[i]))
+                    ranges.append(data.BlockRange(src_starts[i], dest_starts[i],
+                                                  counts[i]))
 
                 if self.confirm_prompt(False):
-                    self.c.volume_replicate_range(type, src, dest, ranges)
+                    self.c.volume_replicate_range(rep_type, src, dest, ranges)
         else:
             if not src:
-                raise ArgError("src volume with id= %s not found!" % self.cmd_value)
+                raise ArgError(
+                    "src volume with id= %s not found!" % self.cmd_value)
             if not dest:
-                raise ArgError("dest volume with id= %s not found!" % self.options.opt_dest)
+                raise ArgError(
+                    "dest volume with id= %s not found!" %
+                    self.options.opt_dest)
 
     ##
-    # Returns the block size in bytes for each block represented in volume_replicate_range
+    # Returns the block size in bytes for each block represented in
+    # volume_replicate_range
     # @param    self    The this pointer
     def replicate_vol_range_bs(self):
         s = self._get_item(self.c.systems(), self.cmd_value)
@@ -1177,7 +1353,8 @@ class CmdLine:
     def _access(self, grant):
         v = self._get_item(self.c.volumes(), self.options.opt_volume)
         if not v:
-            raise ArgError("volume with id= %s not found" % self.options.opt_volume)
+            raise ArgError(
+                "volume with id= %s not found" % self.options.opt_volume)
 
         initiator_id = self.cmd_value
 
@@ -1203,22 +1380,25 @@ class CmdLine:
     def access_revoke(self):
         return self._access(False)
 
-    def _access_group(self, map=True):
+    def _access_group(self, grant=True):
         agl = self.c.access_group_list()
         group = self._get_item(agl, self.cmd_value)
         v = self._get_item(self.c.volumes(), self.options.opt_volume)
 
         if group and v:
-            if map:
-                access = data.Volume.access_string_to_type(self.options.opt_access)
+            if grant:
+                access = data.Volume.access_string_to_type(
+                    self.options.opt_access)
                 self.c.access_group_grant(group, v, access)
             else:
                 self.c.access_group_revoke(group, v)
         else:
             if not group:
-                raise ArgError("access group with id= %s not found!" % self.cmd_value)
+                raise ArgError(
+                    "access group with id= %s not found!" % self.cmd_value)
             if not v:
-                raise ArgError("volume with id= %s not found!" % self.options.opt_volume)
+                raise ArgError(
+                    "volume with id= %s not found!" % self.options.opt_volume)
 
     def access_grant_group(self):
         return self._access_group(True)
@@ -1234,7 +1414,8 @@ class CmdLine:
             size = self._size(self.options.opt_size)
 
             if self.confirm_prompt(False):
-                vol = self._wait_for_it("resize", *self.c.volume_resize(v, size))
+                vol = self._wait_for_it("resize",
+                                        *self.c.volume_resize(v, size))
                 self.display_data([vol])
         else:
             raise ArgError("volume with id= %s not found!" % self.cmd_value)
@@ -1255,18 +1436,23 @@ class CmdLine:
 
         if fs:
             #Check to see if we have some type of access specified
-            if len(self.options.nfs_root) == 0 and\
-               len(self.options.nfs_rw) == 0 and\
-               len(self.options.nfs_ro) == 0:
+            if len(self.options.nfs_root) == 0 \
+                    and len(self.options.nfs_rw) == 0 \
+                    and len(self.options.nfs_ro) == 0:
                 raise ArgError(" please specify --root, --ro or --rw access")
 
-            export = self.c.export_fs(fs.id, self.options.opt_exportpath,
-                self.options.nfs_root, self.options.nfs_rw, self.options.nfs_ro,
-                self.options.anonuid, self.options.anongid,
+            export = self.c.export_fs(
+                fs.id,
+                self.options.opt_exportpath,
+                self.options.nfs_root,
+                self.options.nfs_rw, self.options.nfs_ro,
+                self.options.anonuid,
+                self.options.anongid,
                 self.options.authtype, None)
             self.display_data([export])
         else:
-            raise ArgError(" file system with id=%s not found!" % self.cmd_value)
+            raise ArgError(
+                " file system with id=%s not found!" % self.cmd_value)
 
     ## Displays volume dependants.
     # @param    self    The this pointer
@@ -1286,7 +1472,7 @@ class CmdLine:
 
         if v:
             self._wait_for_it("volume-dependant-rm",
-                self.c.volume_child_dependency_rm(v), None)
+                              self.c.volume_child_dependency_rm(v), None)
         else:
             raise ArgError("volume with id= %s not found!" % self.cmd_value)
 
@@ -1299,7 +1485,8 @@ class CmdLine:
             rc = self.c.fs_child_dependency(fs, self.options.file)
             print str(rc)
         else:
-            raise ArgError("File system with id= %s not found!" % self.cmd_value)
+            raise ArgError(
+                "File system with id= %s not found!" % self.cmd_value)
 
     ## Removes file system dependants
     # @param    self    The this pointer
@@ -1308,9 +1495,12 @@ class CmdLine:
 
         if fs:
             self._wait_for_it("fs-dependants-rm",
-                self.c.fs_child_dependency_rm(fs, self.options.file), None)
+                              self.c.fs_child_dependency_rm(fs,
+                                                            self.options.file),
+                              None)
         else:
-            raise ArgError("File system with id= %s not found!" % self.cmd_value)
+            raise ArgError(
+                "File system with id= %s not found!" % self.cmd_value)
 
     def _read_configfile(self):
         """
@@ -1320,7 +1510,7 @@ class CmdLine:
 
         allowed_config_options = ("uri",)
 
-        config_path = os.path.expanduser("~")+"/.lsmcli"
+        config_path = os.path.expanduser("~") + "/.lsmcli"
         if not os.path.exists(config_path):
             return
 
@@ -1354,19 +1544,20 @@ class CmdLine:
 
         #Check for extras
         if len(self.args):
-            raise ArgError("Extra command line arguments (" + ",".join(self.args) + ")")
+            raise ArgError(
+                "Extra command line arguments (" + ",".join(self.args) + ")")
 
         #Data driven validation
         self.verify = {'list': {'options': [], 'method': self.list},
                        'delete-fs': {'options': [],
                                      'method': self.fs_delete},
-                       'delete-access-group': {'options': [],
-                                     'method': self.delete_access_group},
+                       'delete-access-group':
+                       {'options': [], 'method': self.delete_access_group},
                        'capabilities': {'options': [],
-                                     'method': self.capabilities },
+                                        'method': self.capabilities},
 
                        'plugin-info': {'options': [],
-                                        'method': self.plugin_info },
+                                       'method': self.plugin_info},
 
                        'create-volume': {'options': ['size', 'pool'],
                                          'method': self.create_volume},
@@ -1374,24 +1565,26 @@ class CmdLine:
                                      'method': self.fs_create},
                        'clone-fs': {'options': ['name'],
                                     'method': self.fs_clone},
-                       'create-access-group': {'options': ['id', 'type', 'system'],
-                                               'method': self.create_access_group},
+                       'create-access-group': {
+                       'options': ['id', 'type', 'system'],
+                       'method': self.create_access_group},
                        'access-group-add': {'options': ['id', 'type'],
-                                               'method': self.access_group_add},
-                       'access-group-remove': {'options': ['id'],
-                                               'method': self.access_group_remove},
-                       'access-group-volumes': {'options': [],
-                                               'method': self.access_group_volumes},
-                       'volume-access-group': {'options': [],
-                                                'method': self.volume_access_group},
-                       'volumes-accessible-initiator': {'options': [],
-                                               'method': self.volume_accessible_init},
+                                            'method': self.access_group_add},
+                       'access-group-remove':
+                       {'options': ['id'], 'method': self.access_group_remove},
+                       'access-group-volumes':
+                       {'options': [], 'method': self.access_group_volumes},
+                       'volume-access-group':
+                       {'options': [],
+                       'method': self.volume_access_group},
+                       'volumes-accessible-initiator':
+                       {'options': [], 'method': self.volume_accessible_init},
 
-                       'initiators-granted-volume': {'options': [],
-                                               'method': self.init_granted_volume},
+                       'initiators-granted-volume':
+                       {'options': [], 'method': self.init_granted_volume},
 
                        'iscsi-chap': {'options': ['username', 'password'],
-                                            'method': self.iscsi_chap},
+                                      'method': self.iscsi_chap},
 
                        'create-ss': {'options': ['fs'],
                                      'method': self.create_ss},
@@ -1402,16 +1595,18 @@ class CmdLine:
                        'delete-ss': {'options': ['fs'],
                                      'method': self.delete_ss},
                        'replicate-volume': {'options': ['type', 'name'],
-                                            'optional' : ['pool'],
+                                            'optional': ['pool'],
                                             'method': self.replicate_volume},
                        'access-grant': {'options': ['volume', 'access', 'type'],
                                         'method': self.access_grant},
-                       'access-grant-group': {'options': ['volume', 'access'],
-                                        'method': self.access_grant_group},
+                       'access-grant-group':
+                       {'options': ['volume', 'access'],
+                       'method': self.access_grant_group},
                        'access-revoke': {'options': ['volume'],
                                          'method': self.access_revoke},
-                       'access-revoke-group': {'options': ['volume'],
-                                         'method': self.access_revoke_group},
+                       'access-revoke-group':
+                       {'options': ['volume'],
+                       'method': self.access_revoke_group},
                        'resize-volume': {'options': ['size'],
                                          'method': self.resize_volume},
                        'resize-fs': {'options': ['size'],
@@ -1421,25 +1616,24 @@ class CmdLine:
                        'nfs-export-fs': {'options': ['exportpath'],
                                          'method': self.nfs_export_fs},
                        'restore-ss': {'options': ['fs'],
-                                        'method': self.restore_ss},
+                                      'method': self.restore_ss},
                        'job-status': {'options': [],
                                       'method': self.job_status},
-                       'replicate-volume-range': {'options': ['type', 'dest',
-                                                    'src_start', 'dest_start',
-                                                    'count'],
-                                      'method': self.replicate_vol_range},
-                       'replicate-volume-range-block-size': {'options': [],
-                                                  'method': self.replicate_vol_range_bs},
+                       'replicate-volume-range':
+                       {'options':
+                       ['type', 'dest', 'src_start', 'dest_start', 'count'],
+                       'method': self.replicate_vol_range},
+                       'replicate-volume-range-block-size':
+                       {'options': [],
+                       'method': self.replicate_vol_range_bs},
                        'volume-dependants': {'options': [],
-                                                'method': self.vol_dependants},
-                       'volume-dependants-rm': {'options': [],
-                                             'method': self.vol_dependants_rm},
+                                             'method': self.vol_dependants},
+                       'volume-dependants-rm':
+                       {'options': [], 'method': self.vol_dependants_rm},
                        'fs-dependants': {'options': [],
-                                             'method': self.fs_dependants},
+                                         'method': self.fs_dependants},
                        'fs-dependants-rm': {'options': [],
-                                         'method': self.fs_dependants_rm},
-
-        }
+                                            'method': self.fs_dependants_rm}}
         self._validate()
 
         self.tmo = int(self.options.wait)
@@ -1469,7 +1663,7 @@ class CmdLine:
     ## Does appropriate clean-up
     # @param    self    The this pointer
     # @param    ec      The exit code
-    def shutdown(self, ec = None):
+    def shutdown(self, ec=None):
         if self.cleanup:
             self.cleanup()
 
@@ -1479,7 +1673,7 @@ class CmdLine:
     ## Process the specified command
     # @param    self    The this pointer
     # @param    cli     The object instance to invoke methods on.
-    def process(self, cli = None):
+    def process(self, cli=None):
         """
         Process the parsed command.
         """
@@ -1491,10 +1685,11 @@ class CmdLine:
             self.cleanup = self.c.shutdown
         else:
             #Going across the ipc pipe
-            self.c = client.Client(self.uri,self.password, self.tmo)
+            self.c = client.Client(self.uri, self.password, self.tmo)
 
             if os.getenv('LSM_DEBUG_PLUGIN'):
-                raw_input("Attach debugger to plug-in, press <return> when ready...")
+                raw_input(
+                    "Attach debugger to plug-in, press <return> when ready...")
 
             self.cleanup = self.c.close
 

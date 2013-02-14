@@ -22,6 +22,7 @@ import common
 #slightly differently so we will need to have some special code for these
 #instances.
 
+
 class SmisProxy(common.Proxy):
     """
     Layer to allow us to swap out different implementations of smi-s clients

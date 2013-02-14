@@ -1,12 +1,15 @@
-#This code taken from recipe
-#http://code.activestate.com/recipes/573463-converting-xml-to-dictionary-and-back/
-#Modified slightly to remove namespace and number of other small details
-#Licensed: PSF
+# This code taken from recipe
+# http://code.activestate.com/recipes/
+# 573463-converting-xml-to-dictionary-and-back/
+# Modified slightly to remove namespace and number of other small details
+# Licensed: PSF
 
 from xml.etree import ElementTree
 
+
 def _ns(tag):
-    return tag[tag.find('}')+1:]
+    return tag[tag.find('}') + 1:]
+
 
 class XmlDictObject(dict):
     """
@@ -52,9 +55,11 @@ class XmlDictObject(dict):
 
     def UnWrap(self):
         """
-        Recursively converts an XmlDictObject to a standard dictionary and returns the result.
+        Recursively converts an XmlDictObject to a standard dictionary and
+        returns the result.
         """
         return XmlDictObject._UnWrap(self)
+
 
 def _ConvertDictToXmlRecurse(parent, dictitem):
     assert type(dictitem) is not type([])
@@ -76,6 +81,7 @@ def _ConvertDictToXmlRecurse(parent, dictitem):
     else:
         parent.text = str(dictitem)
 
+
 def ConvertDictToXml(xmldict):
     """
     Converts a dictionary to an XML ElementTree Element
@@ -84,6 +90,7 @@ def ConvertDictToXml(xmldict):
     root = ElementTree.Element(roottag)
     _ConvertDictToXmlRecurse(root, xmldict[roottag])
     return root
+
 
 def _ConvertXmlToDictRecurse(node, dictclass):
     nodedict = dictclass()
@@ -119,7 +126,8 @@ def _ConvertXmlToDictRecurse(node, dictclass):
         text = node.text.strip()
 
     if len(nodedict) > 0:
-    # if we have a dictionary add the text as a dictionary value (if there is any)
+    # if we have a dictionary add the text as a dictionary value
+    # (if there is any)
         if text is not None and len(text) > 0:
             nodedict['_text'] = text
     else:
@@ -127,6 +135,7 @@ def _ConvertXmlToDictRecurse(node, dictclass):
         nodedict = text
 
     return nodedict
+
 
 def ConvertXmlToDict(root, dictclass=XmlDictObject):
     """

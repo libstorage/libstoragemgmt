@@ -292,17 +292,17 @@ if __name__ == "__main__":
     for o, a in opts:
         if o in ("-h", "--help"):
             usage()
-        elif o in ("--pidfile"):
+        elif o in "--pidfile":
             PID_FILE = a
-        elif o in ("--plugindir"):
+        elif o in "--plugindir":
             PLUGIN_DIR = a
-        elif o in ("--socketdir"):
+        elif o in "--socketdir":
             SOCKET_DIR = a
         elif o in "-v":
             lsm.common.LOG_VERBOSE = True
         elif o in "-d":
             systemd = True
-        elif o in ("--operation"):
+        elif o in "--operation":
             op = a
 
     if PLUGIN_DIR is None:

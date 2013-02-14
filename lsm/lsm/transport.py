@@ -24,6 +24,7 @@ import unittest
 import threading
 import common
 
+
 class Transport(object):
     """
     Provides wire serialization by using json.  Loosely conforms to json-rpc,
@@ -40,7 +41,7 @@ class Transport(object):
 
     HDR_LEN = 10
 
-    def __readAll( self, l ):
+    def __readAll(self, l):
         """
         Reads l number of bytes before returning.  Will raise a SocketEOF
         if socket returns zero bytes (i.e. socket no longer connected)
@@ -83,7 +84,8 @@ class Transport(object):
             #common.Info("RECV: ", msg)
         except socket.error as e:
             raise LsmError(common.ErrorNumber.TRANSPORT_COMMUNICATION,
-                "Error while reading a message from the plug-in", str(e))
+                           "Error while reading a message from the plug-in",
+                           str(e))
         return msg
 
     def __init__(self, socket):
@@ -99,8 +101,8 @@ class Transport(object):
             s.connect(path)
         except socket.error:
             #self, code, message, data=None, *args, **kwargs
-            raise LsmError(common.ErrorNumber.NO_CONNECT, "Unable to connect "
-                                                          "to lsmd, daemon started?")
+            raise LsmError(common.ErrorNumber.NO_CONNECT,
+                           "Unable to connect to lsmd, daemon started?")
         return s
 
     def close(self):
@@ -121,8 +123,8 @@ class Transport(object):
             self.__sendMsg(data)
         except socket.error as se:
             raise LsmError(common.ErrorNumber.TRANSPORT_COMMUNICATION,
-                            "Error while sending a message to the plug-in",
-                            str(se))
+                           "Error while sending a message to the plug-in",
+                           str(se))
 
     def read_req(self):
         """
@@ -138,24 +140,23 @@ class Transport(object):
         Sends a request and waits for a response.
         """
         self.send_req(method, args)
-        (reply, id) = self.read_resp()
-        assert id == 100
+        (reply, msg_id) = self.read_resp()
+        assert msg_id == 100
         return reply
 
-    def send_error(self, id, error_code, msg, data=None):
+    def send_error(self, msg_id, error_code, msg, data=None):
         """
         Used to transmit an error.
         """
-        e = {'id': id, 'error': {'code': error_code,
-                                 'message': msg,
-                                 'data': data}}
+        e = {'id': msg_id, 'error': {'code': error_code, 'message': msg,
+                                     'data': data}}
         self.__sendMsg(json.dumps(e, cls=DataEncoder))
 
-    def send_resp(self, result, id=100):
+    def send_resp(self, result, msg_id=100):
         """
         Used to transmit a response
         """
-        r = {'id': id, 'result': result}
+        r = {'id': msg_id, 'result': result}
         self.__sendMsg(json.dumps(r, cls=DataEncoder))
 
     def read_resp(self):
@@ -182,7 +183,7 @@ def server(s):
 
             if msg['method'] == 'error':
                 server.send_error(msg['id'], msg['params']['errorcode'],
-                                    msg['params']['errormsg'])
+                                  msg['params']['errormsg'])
             else:
                 server.send_resp(msg['params'])
             msg = server.read_req()
@@ -193,7 +194,7 @@ def server(s):
 
 class TestTransport(unittest.TestCase):
     def setUp(self):
-        (self.c,self.s) = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+        (self.c, self.s) = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
 
         self.client = Transport(self.c)
 
@@ -201,25 +202,25 @@ class TestTransport(unittest.TestCase):
         self.server.start()
 
     def test_simple(self):
-        tc = [ '0', ' ', '   ', '{}:""', "Some text message", 'DEADBEEF']
+        tc = ['0', ' ', '   ', '{}:""', "Some text message", 'DEADBEEF']
 
         for t in tc:
             self.client.send_req('test', t)
-            reply, id = self.client.read_resp()
-            self.assertTrue( id == 100)
-            self.assertTrue( reply == t )
-
+            reply, msg_id = self.client.read_resp()
+            self.assertTrue(msg_id == 100)
+            self.assertTrue(reply == t)
 
     def test_exceptions(self):
 
         e_msg = 'Test error message'
         e_code = 100
 
-        self.client.send_req('error', {'errorcode':e_code, 'errormsg':e_msg} )
+        self.client.send_req('error', {'errorcode': e_code, 'errormsg': e_msg})
         self.assertRaises(LsmError, self.client.read_resp)
 
         try:
-            self.client.send_req('error', {'errorcode':e_code, 'errormsg':e_msg} )
+            self.client.send_req('error', {'errorcode': e_code,
+                                           'errormsg': e_msg})
             self.client.read_resp()
         except LsmError as e:
             self.assertTrue(e.code == e_code)
@@ -229,7 +230,7 @@ class TestTransport(unittest.TestCase):
 
         #Try to test the receiver getting small chunks to read
         #in a loop
-        for l in range(1, 4096, 10 ):
+        for l in range(1, 4096, 10):
 
             payload = "x" * l
             msg = {'method': 'drip', 'id': 100, 'params': payload}
@@ -242,12 +243,12 @@ class TestTransport(unittest.TestCase):
             for i in wire:
                 self.c.send(i)
 
-            reply, id = self.client.read_resp()
+            reply, msg_id = self.client.read_resp()
             self.assertTrue(payload == reply)
 
     def tearDown(self):
         self.client.send_req("done", None)
-        resp, id = self.client.read_resp()
+        resp, msg_id = self.client.read_resp()
         self.assertTrue(resp is None)
         self.server.join()
 

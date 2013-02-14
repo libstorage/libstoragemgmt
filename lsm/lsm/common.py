@@ -27,10 +27,10 @@ import termios
 
 import functools
 
+
 ## Get a character from stdin without needing a return key pressed.
 # Returns the character pressed
 def getch():
-
     fd = sys.stdin.fileno()
     prev = termios.tcgetattr(fd)
     try:
@@ -39,6 +39,7 @@ def getch():
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, prev)
     return ch
+
 
 ## Documentation for Proxy class.
 #
@@ -71,7 +72,7 @@ class Proxy(object):
             return functools.partial(self.present, name)
         else:
             raise LsmError(ErrorNumber.NO_SUPPORT,
-                "Unsupported operation")
+                           "Unsupported operation")
 
     ## Method which is called to invoke the actual method of interest.
     # @param    self                The object self
@@ -98,6 +99,7 @@ GiB = 1073741824
 ## Constant for TiB
 TiB = 1099511627776L
 
+
 ##Converts the size into human format.
 # @param    size    Size in bytes
 # @param    human   True|False
@@ -123,6 +125,7 @@ def sh(size, human=False):
         return "%.2f " % size + units
     else:
         return size
+
 
 ## Common method used to parse a URI.
 # @param    uri         The uri to parse
@@ -161,25 +164,27 @@ def uri_parse(uri, requires=None, required_params=None):
     if requires:
         for r in requires:
             if r not in rc:
-                raise LsmError(ErrorNumber.PLUGIN_ERROR, 'uri missing \"%s\" '
-                                                         'or is in invalid form' % r)
+                raise LsmError(ErrorNumber.PLUGIN_ERROR,
+                               'uri missing \"%s\" or is in invalid form' % r)
 
     if required_params:
         for r in required_params:
             if r not in rc['parameters']:
                 raise LsmError(ErrorNumber.PLUGIN_ERROR,
-                                'uri missing query parameter %s' % r)
+                               'uri missing query parameter %s' % r)
     return rc
+
 
 ## Parses the parameters (Query string) of the URI
 # @param    uri     Full uri
 # @returns  hash of the query string parameters.
-def uri_parameters( uri ):
+def uri_parameters(uri):
     url = urlparse.urlparse('http:' + uri[2])
     if len(url) >= 5 and len(url[4]):
         return dict([part.split('=') for part in url[4].split('&')])
     else:
         return {}
+
 
 ## Generates the md5 hex digest of passed in parameter.
 # @param    t   Item to generate signature on.
@@ -189,16 +194,18 @@ def md5(t):
     h.update(t)
     return h.hexdigest()
 
+
 ## Converts a list of arguments to string.
 # @param    args    Args to join
 # @return string of arguments joined together.
 def params_to_string(*args):
-    return ''.join( [ str(e) for e in args] )
+    return ''.join([str(e) for e in args])
 
 # Unfortunately the process name remains as 'python' so we are using argv[0] in
 # the output to allow us to determine which python exe is indeed logging to
 # syslog.
 # TODO:  On newer versions of python this is no longer true, need to fix.
+
 
 ## Posts a message to the syslogger.
 # @param    level   Logging level
@@ -214,14 +221,17 @@ def post_msg(level, prg, msg):
         if len(l):
             syslog.syslog(level, prg + ": " + l)
 
+
 def Error(*msg):
     post_msg(syslog.LOG_ERR, os.path.basename(sys.argv[0]),
-                params_to_string(*msg))
+             params_to_string(*msg))
+
 
 def Info(*msg):
     if LOG_VERBOSE:
         post_msg(syslog.LOG_INFO, os.path.basename(sys.argv[0]),
-                    params_to_string(*msg))
+                 params_to_string(*msg))
+
 
 class SocketEOF(Exception):
     """
@@ -229,8 +239,8 @@ class SocketEOF(Exception):
     """
     pass
 
-class LsmError(Exception):
 
+class LsmError(Exception):
     def __init__(self, code, message, data=None, *args, **kwargs):
         """
         Class represents an error.
@@ -242,11 +252,13 @@ class LsmError(Exception):
 
     def __str__(self):
         if self.data is not None:
-            return "error: %s msg: %s data: %s" % (self.code, self.msg, self.data)
+            return "error: %s msg: %s data: %s" % \
+                   (self.code, self.msg, self.data)
         else:
             return "error: %s msg: %s " % (self.code, self.msg)
 
-def addl_error_data(domain, level, exception, debug = None, debug_data = None):
+
+def addl_error_data(domain, level, exception, debug=None, debug_data=None):
     """
     Used for gathering additional information about an error.
     """
@@ -254,7 +266,7 @@ def addl_error_data(domain, level, exception, debug = None, debug_data = None):
             'debug': debug, 'debug_data': debug_data}
 
 
-def get_class( class_name ):
+def get_class(class_name):
     """
     Given a class name it returns the class, caller will then
     need to run the constructor to create.
@@ -275,6 +287,7 @@ class ErrorLevel(object):
     NONE = 0
     WARNING = 1
     ERROR = 2
+
 
 #Note: Some of these don't make sense for python, but they do for other
 #Languages so we will be keeping them consistent even though we won't be
@@ -363,11 +376,13 @@ class ErrorNumber(object):
     UNSUPPORTED_PROVISIONING = 451
     UNSUPPORTED_REPLICATION_TYPE = 452
 
+
 class JobStatus(object):
     INPROGRESS = 1
     COMPLETE = 2
     STOPPED = 3
     ERROR = 4
+
 
 class TestCommon(unittest.TestCase):
     def setUp(self):
@@ -378,16 +393,16 @@ class TestCommon(unittest.TestCase):
         try:
             raise SocketEOF()
         except SocketEOF as e:
-            self.assertTrue( isinstance(e,SocketEOF))
+            self.assertTrue(isinstance(e, SocketEOF))
 
         try:
             raise LsmError(10, 'Message', 'Data')
         except LsmError as e:
-            self.assertTrue(e.code == 10 and e.msg == 'Message'
-                            and e.data == 'Data')
+            self.assertTrue(e.code == 10 and e.msg == 'Message' and
+                            e.data == 'Data')
 
         ed = addl_error_data('domain', 'level', 'exception', 'debug',
-                                'debug_data')
+                             'debug_data')
         self.assertTrue(ed['domain'] == 'domain' and ed['level'] == 'level'
                         and ed['debug'] == 'debug'
                         and ed['exception'] == 'exception'
@@ -395,6 +410,7 @@ class TestCommon(unittest.TestCase):
 
     def tearDown(self):
         pass
+
 
 if __name__ == '__main__':
     unittest.main()
