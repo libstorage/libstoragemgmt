@@ -297,8 +297,7 @@ class TargetdStorage(IStorageAreaNetwork, INetworkAttachedStorage):
         return rc
 
     def fs_delete(self, fs, flags=0):
-        self._jsonrequest("fs_destroy", dict(pool=fs.pool_id, uuid=fs.id,
-                                             name=fs.name))
+        self._jsonrequest("fs_destroy", dict(uuid=fs.id))
 
     def fs_resize(self, fs, new_size_bytes, flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
