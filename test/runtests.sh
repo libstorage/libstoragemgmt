@@ -58,9 +58,11 @@ rootdir=${testdir%/*}
 
 #Are we running within distcheck?
 c_unit=$rootdir/test/tester
+LSMD_DAEMON=$rootdir/src/lsmd
 if [ -e $rootdir/_build ]
 then
 	c_unit=$rootdir/_build/test/tester
+	LSMD_DAEMON=$rootdir/_build/src/lsmd
 fi
 
 #With a distcheck you cannot much with the source file system, so we will copy
@@ -84,7 +86,7 @@ export LD_LIBRARY_PATH=$rootdir/src
 export LSM_SIM_DATA="$base/lsm_sim_data"
 
 #Start daemon
-good "$rootdir/src/lsmd --plugindir $plugins --socketdir $LSM_UDS_PATH" -v
+good "$LSMD_DAEMON --plugindir $plugins --socketdir $LSM_UDS_PATH" -v
 
 LSMD_PID=`pidof lsmd`
 

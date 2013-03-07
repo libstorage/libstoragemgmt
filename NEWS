@@ -1,5 +1,14 @@
 News for libStorageMgmt
 
+0.0.18: Mar 7 2013
+    - lsmd: Re-written in C
+    - Simplify fs_delete
+    - Corrections for C client against Python plugin
+    - Testing: Run cross language unit test too
+    - Initial FS support for targetd plugin
+    - Fix multi-arch python issues which prevent py and compiled py files
+      from being identical on different arches
+
 0.0.17: Jan 31 2013
     - Inconsistency corrections between C and Python API
     - Source code documentation updates
