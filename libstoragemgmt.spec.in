@@ -43,7 +43,6 @@ developing applications that use %{name}.
 #The version.py gets created so set the .py to match .py.in times
 UpdateTimestamps(){
 	touch -r lsm/lsm/version.py.in lsm/lsm/version.py
-	#find . -name '*.py' -exec touch -r lsm/lsm/version.py.in {} ';'
 }
 
 #Tell the install program to preserve file date/timestamps

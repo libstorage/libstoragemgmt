@@ -22,13 +22,15 @@
 rundir=$RANDOM
 base=/tmp/$rundir
 
+LSMD_PID=65535
+
 export LSM_TEST_RUNDIR=$rundir
 export LSM_UDS_PATH=$base/lsm/ipc/
 
 cleanup() {
 
 	#Clean up the daemon if it is running
-	good "$rootdir/lsm/lsmd --plugindir $plugins --socketdir $LSM_UDS_PATH --pidfile $LSM_UDS_PATH/lsmd.pid --operation stop"
+	kill $LSMD_PID
 
 	if [ -e $LSM_UDS_PATH ]
 	then
@@ -82,7 +84,9 @@ export LD_LIBRARY_PATH=$rootdir/src
 export LSM_SIM_DATA="$base/lsm_sim_data"
 
 #Start daemon
-good "$rootdir/lsm/lsmd --plugindir $plugins --socketdir $LSM_UDS_PATH --pidfile $LSM_UDS_PATH/lsmd.pid"
+good "$rootdir/src/lsmd --plugindir $plugins --socketdir $LSM_UDS_PATH" -v
+
+LSMD_PID=`pidof lsmd`
 
 #Run C unit test
 export CK_DEFAULT_TIMEOUT=600

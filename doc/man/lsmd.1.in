@@ -1,4 +1,4 @@
-.TH LSMD "1" "April 2012" "lsmd @VERSION@" "libStorageMgmt plug-in daemon"
+.TH LSMD "1" "March 2013" "lsmd @VERSION@" "libStorageMgmt plug-in daemon"
 .SH NAME
 Daemon \- lsmd
 .SH DESCRIPTION
@@ -7,26 +7,16 @@ for fault isolation and to accommodate different plug\-in licensing
 requirements.  Runs as an unprivileged user.
 
 .SH OPTIONS
-\fB\-\-pidfile\fR <file>
-.HP
-\fB\-\-plugindir\fR <directory> 
-.HP
-\fB\-\-socketdir\fR <dir>
-.TP
-\fB\-\-pidfile\fR
-= The process id file for the daemon
-.HP
 \fB\-\-plugindir\fR = The directory where the plugins are located
 .HP
-\fB\-\-socketdir\fR = The directory where the Unix domain sockets will be created
+\fB\-\-socketdir\fR = The directory for IPC sockets
 .HP
-\fB\-\-operation\fR = [start|stop|restart|force\-reload]
-.TP
 \fB\-v\fR
 = Verbose logging
 .TP
 \fB\-d\fR
-= new style daemon (systemd) non-forking.
+= New style daemon (systemd) non-forking
+
 
 .SH BUGS
 Please report bugs to

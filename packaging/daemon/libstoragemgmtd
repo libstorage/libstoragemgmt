@@ -45,6 +45,12 @@ result() {
 	echo
 }
 
+int_start() {
+	$PROG
+	RETVAL=$?
+	[ $RETVAL -eq 0 ] && touch $LOCK && pidof $NAME > $PID
+}
+
 # See how we were called.
 case "$1" in
   start)
@@ -54,10 +60,7 @@ case "$1" in
 	echo -n "Starting $NAME daemon:		"
 
 	if [ $STATUS != 0 ] ; then
-		$PROG --operation start
-		RETVAL=$?
-
-		[ $RETVAL -eq 0 ] && touch $LOCK
+		int_start
 	else	
 		RETVAL=$STATUS
 	fi
@@ -68,11 +71,12 @@ case "$1" in
 	echo -n $"Stopping $NAME daemon: "
 	status_lsm
 	if [ $STATUS == 0 ] ; then
-		$PROG --operation stop
+		killproc -p $PID $NAME -TERM
 		RETVAL=$?
 
-        	if [ $RETVAL -eq 0 ]; then
+		if [ $RETVAL -eq 0 ]; then
 			rm -f $LOCK
+			rm -f $PID
 		fi
 	else
 		RETVAL=0
@@ -88,8 +92,7 @@ case "$1" in
 		killproc -p $PID $NAME -HUP
 		RETVAL=$?
 	else
-		$PROG --operation start
-		RETVAL=$?
+		int_start
 	fi
 
 	result
@@ -99,9 +102,9 @@ case "$1" in
 	check_dirs
 	echo -n $"Restarting $NAME daemon: "	
 	if [ $STATUS == 0 ] ; then
-		$PROG --operation restart	
+		killproc -p $PID $NAME -HUP
 	else
-		$PROG --operation start
+		int_start
 	fi
 
 	result
