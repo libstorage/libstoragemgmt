@@ -43,10 +43,6 @@ AC_PROG_MAKE_SET
 AC_PROG_CPP
 AM_PROG_CC_STDC
 
-dnl Make sure we have an ANSI compiler
-AM_C_PROTOTYPES
-test "x$U" != "x" && AC_MSG_ERROR([Compiler not ANSI compliant])
-
 AM_PROG_LIBTOOL
 AM_PROG_CC_C_O
 AM_PROG_LD
