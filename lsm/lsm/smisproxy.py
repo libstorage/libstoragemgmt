@@ -17,6 +17,7 @@
 
 from smis import Smis
 import common
+import eseries
 
 #The unfortunate truth is that each of the vendors implements functionality
 #slightly differently so we will need to have some special code for these
@@ -38,5 +39,11 @@ class SmisProxy(common.Proxy):
         #TODO Add code to interrogate the provider and then based on the type
         #we will instantiate the most appropriate implementation.  At the
         #moment we will drop back to our current mixed implementation.
-        self.proxied_obj = Smis()
+
+        #TODO We need to do a better job at check for this.
+        if 'root/lsiarray13' in uri.lower():
+            self.proxied_obj = eseries.ESeries()
+        else:
+            self.proxied_obj = Smis()
+
         self.proxied_obj.startup(uri, password, timeout, flags)

@@ -8,6 +8,7 @@ lsm_PYTHON = lsm/__init__.py           \
                    lsm/cmdline.py      \
                    lsm/common.py       \
                    lsm/data.py         \
+                   lsm/eseries.py      \
                    lsm/iplugin.py      \
                    lsm/na.py           \
                    lsm/ontap.py        \
