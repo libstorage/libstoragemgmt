@@ -420,7 +420,7 @@ class Smis(IStorageAreaNetwork):
             #Mirror support is not working and is not supported at this time.
             #if self.RepSvc.RepTypes.SYNC_MIRROR_LOCAL in \
             #   rs_cap['SupportedReplicationTypes']:
-            #    cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_SYNC)
+            #    cap.set(Capabilities.DeviceID)
 
             #if self.RepSvc.RepTypes.ASYNC_MIRROR_LOCAL \
             #    in rs_cap['SupportedReplicationTypes']:
@@ -453,11 +453,14 @@ class Smis(IStorageAreaNetwork):
                 if len(sct):
                     cap.set(Capabilities.VOLUME_REPLICATE)
 
-                    if Smis.CopyTypes.ASYNC in sct:
-                        cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC)
+                    #Mirror support is not working and is not supported at this
+                    #time.
 
-                    if Smis.CopyTypes.SYNC in sct:
-                        cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_SYNC)
+                    #if Smis.CopyTypes.ASYNC in sct:
+                    #    cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC)
+
+                    #if Smis.CopyTypes.SYNC in sct:
+                    #    cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_SYNC)
 
                     if Smis.CopyTypes.UNSYNCASSOC in sct:
                         cap.set(Capabilities.VOLUME_REPLICATE_CLONE)
@@ -490,8 +493,7 @@ class Smis(IStorageAreaNetwork):
         cap.set(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME)
         cap.set(Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP)
 
-    @handle_cim_errors
-    def capabilities(self, system, flags=0):
+    def _common_capabilities(self, system):
         cap = Capabilities()
 
         #Assume that the SMI-S we are talking to supports blocks
@@ -500,8 +502,12 @@ class Smis(IStorageAreaNetwork):
 
         self._scs_supported_capabilities(system, cap)
         self._rs_supported_capabilities(system, cap)
-        self._pcm_supported_capabilities(system, cap)
+        return cap
 
+    @handle_cim_errors
+    def capabilities(self, system, flags=0):
+        cap = self._common_capabilities(system)
+        self._pcm_supported_capabilities(system, cap)
         return cap
 
     @handle_cim_errors
@@ -601,7 +607,8 @@ class Smis(IStorageAreaNetwork):
 
     def _new_access_group(self, g):
         return AccessGroup(g['DeviceID'], g['ElementName'],
-                           self._get_initiators_in_group(g), g['SystemName'])
+                           self._get_initiators_in_group(g, 'StorageID'),
+                           g['SystemName'])
 
     def _new_vol_from_job(self, job):
         """
@@ -1123,7 +1130,7 @@ class Smis(IStorageAreaNetwork):
 
         return None
 
-    def _get_initiators_in_group(self, group):
+    def _get_initiators_in_group(self, group, field=None):
         rc = []
 
         ap = self._c.Associators(group.path, AssocClass='CIM_AuthorizedTarget')
@@ -1133,7 +1140,10 @@ class Smis(IStorageAreaNetwork):
                 inits = self._c.Associators(a.path,
                                             AssocClass='CIM_AuthorizedSubject')
                 for i in inits:
-                    rc.append(i['StorageID'])
+                    if field is None:
+                        rc.append(i)
+                    else:
+                        rc.append(i[field])
 
         return rc
 
@@ -1151,8 +1161,7 @@ class Smis(IStorageAreaNetwork):
 
     @handle_cim_errors
     def access_groups_granted_to_volume(self, volume, flags=0):
-        vol = self._get_class_instance('CIM_StorageVolume', 'DeviceID',
-                                       volume.id)
+        vol = self._get_volume(volume.id)
 
         if vol:
             access_groups = self._c.Associators(
@@ -1185,6 +1194,19 @@ class Smis(IStorageAreaNetwork):
         # so unable to develop and test.
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    def _initiator_lookup(self, initiator_id):
+        """
+        Looks up an initiator by initiator id
+        returns None or object instance
+        """
+        init_list = self.initiators()
+        initiator = None
+        for i in init_list:
+            if i.id == initiator_id:
+                initiator = i
+                break
+        return initiator
+
     @handle_cim_errors
     def access_group_add_initiator(self, group, initiator_id, id_type,
                                    flags=0):
@@ -1192,16 +1214,11 @@ class Smis(IStorageAreaNetwork):
         #and then add to the view.
         spc = self._get_access_group(group.id)
 
-        inits = self.initiators()
-        initiator = None
-        for i in inits:
-            if i.id == initiator_id:
-                initiator = i
-                break
+        initiator = self._initiator_lookup(initiator_id)
 
         if not initiator:
-            initiator = self._initiator_create(initiator_id, id_type,
-                                               initiator_id)
+            initiator = self._initiator_create(initiator_id, initiator_id,
+                                               id_type)
 
         ccs = self._get_class_instance('CIM_ControllerConfigurationService',
                                        'SystemName', group.system_id)
@@ -1220,7 +1237,7 @@ class Smis(IStorageAreaNetwork):
         ccs = self._get_class_instance('CIM_ControllerConfigurationService',
                                        'SystemName', group.system_id)
 
-        hide_params = {'InitiatorPortIDs': [initiator.id],
+        hide_params = {'InitiatorPortIDs': [initiator],
                        'ProtocolControllers': [spc.path]}
         return self._pi("HidePaths", False,
                         *(self._c.InvokeMethod('HidePaths', ccs.path,
