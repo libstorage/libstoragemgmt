@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright (C) 2012 Red Hat, Inc.
+# Copyright (C) 2012-2013 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -23,6 +23,7 @@ import lsm.na
 import os
 from optparse import OptionParser
 
+
 def process_params(p):
     rc = {}
 
@@ -34,7 +35,7 @@ def process_params(p):
                 (name, value) = e.split('==')
                 rc[name] = value
             else:
-                print 'Param:', e , 'not in the form name==value'
+                print 'Param:', e, 'not in the form name==value'
                 sys.exit(1)
     return rc
 
@@ -45,28 +46,32 @@ if __name__ == '__main__':
     password = os.getenv('NA_PASSWORD')
 
     parser = OptionParser()
-    parser.add_option(  "-t", "--host", action="store", type="string",
-        dest="host", help="controller name or IP")
-    parser.add_option(  "-c", "--command", action="store", type="string",
-        dest="command", help="command to execute")
+    parser.add_option("-t", "--host", action="store", type="string",
+                      dest="host", help="controller name or IP")
+    parser.add_option("-c", "--command", action="store", type="string",
+                      dest="command", help="command to execute")
     parser.add_option("-p", "--param", action="append", type="string",
-        dest="params", help="command parameters in the form name==value")
+                      dest="params",
+                      help="command parameters in the form name==value")
     parser.add_option("-s", "--ssl", action="store_true", dest="ssl",
-        help="enable ssl" )
+                      help="enable ssl")
     parser.add_option('-d', "--dumpxml", action="store", dest="xmlfile",
-        help="file to dump response to for debug")
+                      help="file to dump response to for debug")
 
-    if user and password :
+    if user is not None and password is not None:
         (options, args) = parser.parse_args()
         if options.command and options.host:
             if options.xmlfile:
                 lsm.na.xml_debug = options.xmlfile
 
-            result = lsm.na.netapp_filer(options.host, user, password, 30, options.command,
-                process_params(options.params), options.ssl)
+            result = lsm.na.netapp_filer(options.host, user, password, 30,
+                                         options.command,
+                                         process_params(options.params),
+                                         options.ssl)
             pp.pprint(result)
         else:
             parser.error("host and command are required")
     else:
-        print 'Please create environmental variables for NA_USER and NA_PASSWORD'
+        print 'Please create environmental variables for ' \
+              'NA_USER and NA_PASSWORD'
         sys.exit(1)
