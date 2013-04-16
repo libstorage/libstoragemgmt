@@ -304,7 +304,7 @@ class CmdLine:
                             dest=_c("create-volume"),
                             metavar='<volume name>',
                             help="Creates a volume (logical unit) requires:\n"
-                                 "--size <volume size> (Can use M, G, T)\n"
+                                 "--size <volume size>\n"
                                  "--pool <pool id>\n"
                                  "--provisioning (optional) "
                                  "[DEFAULT|THIN|FULL]\n")
@@ -313,7 +313,7 @@ class CmdLine:
                             dest=_c("create-fs"),
                             metavar='<fs name>',
                             help="Creates a file system requires:\n"
-                                 "--size <fs size> (Can use M, G, T)\n"
+                                 "--size <fs size>\n"
                                  "--pool <pool id>")
 
         commands.add_option('', '--create-ss', action="store", type="string",
@@ -554,7 +554,8 @@ class CmdLine:
         command_args.add_option('', '--size', action="store", type="string",
                                 metavar='size',
                                 dest=_o("size"),
-                                help='size (Can use M, G, T postfix)')
+                                help='size (Can use B, K, M, G, T, P postfix '
+                                     '(IEC sizing)')
         command_args.add_option('', '--pool', action="store", type="string",
                                 metavar='pool id',
                                 dest=_o("pool"), help='pool ID')
@@ -991,24 +992,40 @@ class CmdLine:
         return None
 
     ##Converts a size parameter into the appropriate number of bytes
-    # @param    s   Size to convert to bytes handles M, G, T postfix
+    # @param    s   Size to convert to bytes handles B, K, M, G, T, P postfix
     # @return Size in bytes
     @staticmethod
     def _size(s):
         s = string.upper(s)
-        m = re.match('([0-9]+)([MGT]?)', s)
+        m = re.match('^([0-9]+(\.[0-9]+)?)([BKMGTP]?)$', s)
         if m:
-            unit = m.group(2)
-            rc = int(m.group(1))
-            if unit == 'M':
+            unit = m.group(3)
+            rc = float(m.group(1))
+
+            if unit == 'K':
+                rc *= common.KiB
+            elif unit == 'M':
                 rc *= common.MiB
             elif unit == 'G':
                 rc *= common.GiB
-            else:
+            elif unit == 'T':
                 rc *= common.TiB
+            elif unit == 'P':
+                rc *= common.PiB
+            else:
+                if m.group(2) is None:
+                    rc = m.group(1)
+                else:
+                    raise ArgError(" unable to specify fractional parts "
+                                   "of a byte")
         else:
-            raise ArgError(" size is not in form <number>|<number[M|G|T]>")
-        return rc
+            raise ArgError(" size is not in form <number>|<number"
+                           "[B|K|M|G|T|P] (IEC)> No postfix indicates bytes")
+
+        if int(rc) > ((2 ** 64) - 1):
+            raise ArgError(" specified size too large")
+
+        return int(rc)
 
     def _cp(self, cap, val):
         if self.options.sep is not None:

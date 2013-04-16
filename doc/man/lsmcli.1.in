@@ -1,4 +1,4 @@
-.TH LSMCLI "1" "September 2012" "lsmcli @VERSION@" "libStorageMgmt"
+.TH LSMCLI "1" "April 2013" "lsmcli @VERSION@" "libStorageMgmt"
 .SH NAME
 lsmcli \- LibStorageMgmt command line interface
 .SH SYNOPSIS
@@ -94,7 +94,7 @@ Removes an initiator from an access group, requires:
 \fB\-\-create\-volume=\fR<volume name>
 Creates a volume (logical unit) requires:
 .br
-\fB\-\-size\fR <volume size> (Can use M, G, T)
+\fB\-\-size\fR <volume size>
 .br
 \fB\-\-pool\fR <pool id>
 .br
@@ -103,7 +103,7 @@ Creates a volume (logical unit) requires:
 \fB\-\-create\-fs=\fR<fs name>
 Creates a file system requires:
 .br
-\fB\-\-size\fR <fs size> (Can use M, G, T)
+\fB\-\-size\fR <fs size>
 .br
 \fB\-\-pool\fR <pool id>
 .TP
@@ -297,7 +297,7 @@ Removes dependencies
 .SH COMMAND OPTIONS
 .TP
 \fB\-\-size\fR=\fIsize\fR
-size (Can use M, G, T postfix)
+size (Can use B, K, M, G, T, P postfix, IEC sizing) No postfix indicates bytes
 .TP
 \fB\-\-pool\fR=\fIpool\fR id
 pool ID

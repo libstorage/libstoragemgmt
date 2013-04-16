@@ -92,12 +92,16 @@ UDS_PATH = '/var/run/lsm/ipc'
 #Set to True for verbose logging
 LOG_VERBOSE = True
 
+##Constant for KiB
+KiB = 1024
 ## Constant for MiB
 MiB = 1048576
 ## Constant for GiB
 GiB = 1073741824
 ## Constant for TiB
 TiB = 1099511627776L
+## Constant for PiB
+PiB = 1125899906842624L
 
 
 ##Converts the size into human format.
@@ -111,7 +115,10 @@ def sh(size, human=False):
     units = None
 
     if human:
-        if size >= TiB:
+        if size >= PiB:
+            size /= float(PiB)
+            units = "PiB"
+        elif size >= TiB:
             size /= float(TiB)
             units = "TiB"
         elif size >= GiB:
@@ -120,9 +127,12 @@ def sh(size, human=False):
         elif size >= MiB:
             size /= float(MiB)
             units = "MiB"
+        elif size >= KiB:
+            size /= float(KiB)
+            units = "KiB"
 
     if units:
-        return "%.2f " % size + units
+        return "%.2f %s" % (size, units)
     else:
         return size
 
