@@ -147,7 +147,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def volumes(self, flags=0):
-        luns = self.f.luns_with_aggr_id()
+        luns = self.f.luns_get_all()
         return [self._lun(l) for l in luns]
 
     @handle_ontap_errors
@@ -244,7 +244,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         return rc
 
     def _get_volume(self, vol_name, pool_id):
-        return self._lun(self.f.luns(pool_id, vol_name, None)[0])
+        return self._lun(self.f.luns_get_specific(pool_id, vol_name, None)[0])
 
     @handle_ontap_errors
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
@@ -278,7 +278,7 @@ class Ontap(IStorageAreaNetwork, INfs):
     def volume_delete(self, volume, flags=0):
         vol = self._vol_to_na_volume_name(volume)
 
-        luns = self.f.luns(aggr=volume.pool_id, na_volume_name=vol)
+        luns = self.f.luns_get_specific(aggr=volume.pool_id, na_volume_name=vol)
 
         if len(luns) == 1:
             self.f.volume_delete(vol)

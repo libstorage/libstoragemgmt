@@ -69,6 +69,7 @@ def netapp_filer(host, username, password, timeout, command, parameters=None,
 
     url = "%s://%s/servlets/netapp.servlets.admin.XMLrequest_filer" % \
           (proto, host)
+
     req = urllib2.Request(url)
     req.add_header('Content-Type', 'text/xml')
 
@@ -139,7 +140,6 @@ def to_list(v):
         else:
             rc.append(v)
     return rc
-
 
 class Filer(object):
     """
@@ -217,7 +217,7 @@ class Filer(object):
         """
         return '/vol/%s/%s' % (volume_name, file_name)
 
-    def luns(self, aggr, na_lun_name=None, na_volume_name=None):
+    def luns_get_specific(self, aggr, na_lun_name=None, na_volume_name=None):
         """
         Return all logical units, or information about one or for all those
         on a volume name.
@@ -244,19 +244,33 @@ class Filer(object):
 
         return rc
 
-    def luns_with_aggr_id(self):
-        rc = []
-
+    def _get_aggr_info(self):
         aggrs = self._invoke('aggr-list-info')
-        tmp = aggrs['aggregates']['aggr-info']
+        tmp = to_list(aggrs['aggregates']['aggr-info'])
+        return [x for x in tmp if x['volumes'] is not None]
 
-        for p in to_list(tmp):
+    def luns_get_all(self):
+        """
+        More efficient approach to retrieving all the luns
+        """
+        rc = []
+        lookup = {}
+        aggr_list = self._get_aggr_info()
 
-            if p['volumes'] is not None:
-                volumes = to_list(p['volumes']['contained-volume-info'])
-                for v in volumes:
-                    rc.extend(self.luns(p['uuid'], None, v['name']))
+        #Build volume name to uuid lookup
+        for p in aggr_list:
+            volumes = to_list(p['volumes']['contained-volume-info'])
+            for v in volumes:
+                lookup[v['name']] = p['uuid']
 
+        luns = self._invoke('lun-list-info')['luns']
+
+        if luns is not None:
+            rc = to_list(luns['lun-info'])
+            if len(rc):
+                for i in range(len(rc)):
+                    aggr_name = rc[i]['path'].split('/')[2]
+                    rc[i]['aggr'] = lookup[aggr_name]
         return rc
 
     def lun_create(self, full_path_name, size_bytes):
@@ -522,7 +536,7 @@ class Filer(object):
             lun_name_list = to_list(rc['lun-maps']['lun-map-info'])
 
             #Get all the lun with information about aggr
-            all_luns = self.luns_with_aggr_id()
+            all_luns = self.luns_get_all()
 
             for l in lun_name_list:
                 if l['initiator-group'] == initiator_group_name:
