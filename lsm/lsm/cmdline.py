@@ -33,6 +33,20 @@ from data import Capabilities
 ##@package lsm.cmdline
 
 
+## Users are reporting errors with broken pipe when piping output
+# to another program.  This appears to be related to this issue:
+# http://bugs.python.org/issue11380
+# Unable to reproduce, but hopefully this will address it.
+# @param msg    The message to be written to stdout
+def out(msg):
+    try:
+        sys.stdout.write(str(msg))
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+    except IOError:
+        sys.exit(1)
+
+
 ## Wraps the invocation to the command line
 # @param    client  Object to invoke calls on (optional)
 def cmd_line_wrapper(client=None):
@@ -44,10 +58,14 @@ def cmd_line_wrapper(client=None):
         cli.process(client)
     except ArgError as ae:
         sys.stderr.write(str(ae))
+        sys.stderr.flush()
         sys.exit(2)
     except common.LsmError as le:
         sys.stderr.write(str(le) + "\n")
+        sys.stderr.flush()
         sys.exit(4)
+    except KeyboardInterrupt:
+        sys.exit(1)
 
 
 ## Simple class used to handle \n in optparse output
@@ -115,15 +133,15 @@ class CmdLine:
         """
         if not self.options.force:
             msg = "will" if deleting else "may"
-            print   "Warning: You are about to do an operation that %s cause " \
-                    "data to be lost!\n" \
-                    "Press [Y|y] to continue, any other key to abort" % msg
+            out("Warning: You are about to do an operation that %s cause data "
+                "to be lost!\nPress [Y|y] to continue, any other key to abort"
+                % msg)
 
             pressed = common.getch()
             if pressed.upper() == 'Y':
                 return True
             else:
-                print 'Operation aborted!'
+                out('Operation aborted!')
                 return False
         else:
             return True
@@ -152,7 +170,7 @@ class CmdLine:
                 start = 0
 
             for i in range(start, len(rows)):
-                print s.join([str(x) for x in rows[i]])
+                out(s.join([str(x) for x in rows[i]]) + "\n")
 
         else:
             if len(rows) >= 2:
@@ -175,12 +193,12 @@ class CmdLine:
 
                 #Print the header, header separator and then row data.
                 header_pattern = " | ".join(header_formats)
-                print header_pattern % tuple(rows[0])
-                print "-+-".join(['-' * n for n in lens])
+                out(header_pattern % tuple(rows[0]))
+                out("-+-".join(['-' * n for n in lens]))
                 data_pattern = " | ".join(data_formats)
 
                 for i in range(1, len(rows)):
-                    print data_pattern % tuple(rows[i])
+                    out(data_pattern % tuple(rows[i]))
 
     def display_data(self, d):
 
@@ -724,8 +742,8 @@ class CmdLine:
             if (optional_opts + len(expected_opts)) >= len(actual_ops):
                 for e in expected_opts:
                     if e not in actual_ops:
-                        print "expected=", ":".join(expected_opts)
-                        print "actual=", ":".join(actual_ops)
+                        out("expected=" + ":".join(expected_opts))
+                        out("actual=" + ":".join(actual_ops))
                         raise ArgError("missing option " + e)
 
             else:
@@ -754,9 +772,9 @@ class CmdLine:
         Dump the supported nfs client authentication types
         """
         if self.options.sep:
-            print self.options.sep.join(self.c.export_auth())
+            out(self.options.sep.join(self.c.export_auth()))
         else:
-            print ", ".join(self.c.export_auth())
+            out(", ".join(self.c.export_auth()))
 
     ## Method that calls the appropriate method based on what the cmd_value is
     # @param    self    The this pointer
@@ -1044,7 +1062,7 @@ class CmdLine:
         else:
             v = "UNKNOWN"
 
-        print "%s%s%s" % (cap, s, v)
+        out("%s%s%s" % (cap, s, v))
 
     def capabilities(self):
         s = self._get_item(self.c.systems(), self.cmd_value)
@@ -1143,9 +1161,9 @@ class CmdLine:
         desc, version = self.c.plugin_info()
 
         if self.options.sep:
-            print "%s%s%s" % (desc, self.options.sep, version)
+            out("%s%s%s" % (desc, self.options.sep, version))
         else:
-            print "Description: %s Version: %s" % (desc, version)
+            out("Description: %s Version: %s" % (desc, version))
 
     ## Creates a volume
     # @param    self    The this pointer
@@ -1261,7 +1279,7 @@ class CmdLine:
             #If a user doesn't want to wait, return the job id to stdout
             #and exit with job in progress
             if self.options.async:
-                print job
+                out(job)
                 self.shutdown(common.ErrorNumber.JOB_STARTED)
 
             while True:
@@ -1289,7 +1307,7 @@ class CmdLine:
 
             self.c.job_free(self.cmd_value)
         else:
-            print str(percent)
+            out(str(percent))
             self.shutdown(common.ErrorNumber.JOB_STARTED)
 
     ## Replicates a volume
@@ -1360,7 +1378,7 @@ class CmdLine:
     def replicate_vol_range_bs(self):
         s = self._get_item(self.c.systems(), self.cmd_value)
         if s:
-            print self.c.volume_replicate_range_block_size(s)
+            out(self.c.volume_replicate_range_block_size(s))
         else:
             raise ArgError("system with id= %s not found" % self.cmd_value)
 
@@ -1478,7 +1496,7 @@ class CmdLine:
 
         if v:
             rc = self.c.volume_child_dependency(v)
-            print str(rc)
+            out(rc)
         else:
             raise ArgError("volume with id= %s not found!" % self.cmd_value)
 
@@ -1500,7 +1518,7 @@ class CmdLine:
 
         if fs:
             rc = self.c.fs_child_dependency(fs, self.options.file)
-            print str(rc)
+            out(rc)
         else:
             raise ArgError(
                 "File system with id= %s not found!" % self.cmd_value)
