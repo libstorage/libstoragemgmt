@@ -1,5 +1,12 @@
 News for libStorageMgmt
 
+0.0.19: Apr 20 2013
+    - Improved E-Series array support
+    - Ontap plug-in: improve performance with many Volumes
+    - lsmcli: Number of corrections on handling unit specifiers
+    - lsmcli: Correct stack track when stdout is written to while closed
+    - Fix build to work with automake >= 1.12
+
 0.0.18: Mar 7 2013
     - lsmd: Re-written in C
     - Simplify fs_delete

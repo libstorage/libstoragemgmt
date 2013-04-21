@@ -148,6 +148,13 @@ fi
 %{_libdir}/pkgconfig/libstoragemgmt.pc
 
 %changelog
+* Sat Apr 20 2013 Tony Asleson <tasleson@redhat.com> 0.0.19-1
+- Improved E-Series array support
+- Ontap plug-in: improve performance with many Volumes
+- lsmcli: Number of corrections on handling unit specifiers
+- lsmcli: Correct stack track when stdout is written to while closed
+- Fix build to work with automake >= 1.12
+
 * Thu Mar 7 2013 Tony Asleson <tasleson@redhat.com> 0.0.18-1
 - lsmd: Re-written in C
 - Simplify fs_delete
