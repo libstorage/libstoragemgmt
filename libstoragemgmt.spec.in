@@ -9,7 +9,7 @@ Source0:        http://sourceforge.net/projects/libstoragemgmt/files/Alpha/libst
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  yajl-devel libxml2-devel pywbem check-devel m2crypto glib2-devel
-Requires:       pywbem m2crypto
+Requires:       pywbem m2crypto %{name}-python
 
 %if 0%{?fedora}
 BuildRequires:  systemd-units
@@ -35,6 +35,15 @@ Requires:       %{name}%{?_isa} = %{version}-%{release}
 The %{name}-devel package contains libraries and header files for
 developing applications that use %{name}.
 
+%package        python
+Summary:        Python client libraries and plug-in support for %{name}
+Group:          System Environment/Libraries
+Requires:       %{name}%{?_isa} = %{version}-%{release}
+BuildArch:	noarch
+
+%description	python
+The %{name}-python package contains python client libraries as
+well as python framework support and open source plug-ins written in python.
 
 %prep
 %setup -q
@@ -125,9 +134,6 @@ fi
 %{_libdir}/*.so.*
 %{_bindir}/*
 
-#Python library files
-%{python_sitelib}/*
-
 %if 0%{?fedora}
 %{_unitdir}/*
 %endif
@@ -146,6 +152,11 @@ fi
 %{_includedir}/*
 %{_libdir}/*.so
 %{_libdir}/pkgconfig/libstoragemgmt.pc
+
+%files python
+%defattr(-,root,root,-)
+#Python library files
+%{python_sitelib}/*
 
 %changelog
 * Sat Apr 20 2013 Tony Asleson <tasleson@redhat.com> 0.0.19-1
