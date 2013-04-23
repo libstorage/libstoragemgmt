@@ -18,8 +18,19 @@
 # Author: tasleson
 
 import sys
-from lsm import PluginRunner
-from lsm import SmisProxy
+import syslog
 
-if __name__ == '__main__':
-    PluginRunner(SmisProxy, sys.argv).run()
+try:
+    from lsm import PluginRunner
+    from lsm import SmisProxy
+
+    if __name__ == '__main__':
+        PluginRunner(SmisProxy, sys.argv).run()
+except Exception as e:
+    #This should be quite rare, but when it does happen this is pretty
+    #key in understanding what happened, especially when it happens when running
+    #from the daemon.
+    msg = "Exception: %s\n" % str(e)
+    syslog.syslog(syslog.LOG_ERR, msg)
+    sys.stderr.write(msg)
+    sys.exit(1)

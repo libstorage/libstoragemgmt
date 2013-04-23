@@ -20,9 +20,19 @@
 #
 # Author: legkodymov
 import sys
+import syslog
 
-from lsm.nstor import NexentaStor
-from lsm.pluginrunner import PluginRunner
+try:
+    from lsm.nstor import NexentaStor
+    from lsm.pluginrunner import PluginRunner
 
-if __name__ == '__main__':
-    PluginRunner(NexentaStor, sys.argv).run()
+    if __name__ == '__main__':
+        PluginRunner(NexentaStor, sys.argv).run()
+except Exception as e:
+    #This should be quite rare, but when it does happen this is pretty
+    #key in understanding what happened, especially when it happens when running
+    #from the daemon.
+    msg = "Exception: %s\n" % str(e)
+    syslog.syslog(syslog.LOG_ERR, msg)
+    sys.stderr.write(msg)
+    sys.exit(1)

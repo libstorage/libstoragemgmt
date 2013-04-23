@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright (C) 2011 Red Hat, Inc.
+# Copyright (C) 2011-2013 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -16,10 +16,21 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
 #
 # Author: tasleson
+
 import sys
+import syslog
 
-from lsm.pluginrunner import PluginRunner
-from lsm.simulator import StorageSimulator
+try:
+    from lsm.pluginrunner import PluginRunner
+    from lsm.simulator import StorageSimulator
 
-if __name__ == '__main__':
-    PluginRunner(StorageSimulator, sys.argv).run()
+    if __name__ == '__main__':
+        PluginRunner(StorageSimulator, sys.argv).run()
+except Exception as e:
+    #This should be quite rare, but when it does happen this is pretty
+    #key in understanding what happened, especially when it happens when running
+    #from the daemon.
+    msg = "Exception: %s\n" % str(e)
+    syslog.syslog(syslog.LOG_ERR, msg)
+    sys.stderr.write(msg)
+    sys.exit(1)
