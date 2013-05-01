@@ -170,7 +170,7 @@ class CmdLine:
                 start = 0
 
             for i in range(start, len(rows)):
-                out(s.join([str(x) for x in rows[i]]) + "\n")
+                out(s.join([str(x) for x in rows[i]]))
 
         else:
             if len(rows) >= 2:
