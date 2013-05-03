@@ -32,21 +32,21 @@ extern "C" {
  * Frees the resources for an access group.
  * @param group     Group to free
  */
-void LSM_DLL_EXPORT lsmAccessGroupRecordFree( lsmAccessGroupPtr group );
+void LSM_DLL_EXPORT lsmAccessGroupRecordFree( lsmAccessGroup *group );
 
 /**
  * Frees the resources for an array of access groups.
  * @param ag        Array of access groups to free resources for
  * @param size      Number of elements in the array.
  */
-void LSM_DLL_EXPORT lsmAccessGroupRecordFreeArray( lsmAccessGroupPtr ag[], uint32_t size );
+void LSM_DLL_EXPORT lsmAccessGroupRecordFreeArray( lsmAccessGroup *ag[], uint32_t size );
 
 /**
  * Copies an access group.
  * @param ag    Access group to copy
  * @return NULL on error, else copied access group.
  */
-lsmAccessGroupPtr LSM_DLL_EXPORT lsmAccessGroupRecordCopy( lsmAccessGroupPtr ag );
+lsmAccessGroup LSM_DLL_EXPORT *lsmAccessGroupRecordCopy( lsmAccessGroup *ag );
 
 /**
  * Returns a pointer to the id.
@@ -55,7 +55,7 @@ lsmAccessGroupPtr LSM_DLL_EXPORT lsmAccessGroupRecordCopy( lsmAccessGroupPtr ag 
  * @param group     Access group to retrieve id for.
  * @return Null on error (not an access group), else value of group.
  */
-const char LSM_DLL_EXPORT *lsmAccessGroupIdGet( lsmAccessGroupPtr group );
+const char LSM_DLL_EXPORT *lsmAccessGroupIdGet( lsmAccessGroup *group );
 
 /**
  * Returns a pointer to the name.
@@ -64,7 +64,7 @@ const char LSM_DLL_EXPORT *lsmAccessGroupIdGet( lsmAccessGroupPtr group );
  * @param group     Access group to retrieve id for.
  * @return Null on error (not an access group), else value of name.
  */
-const char LSM_DLL_EXPORT *lsmAccessGroupNameGet( lsmAccessGroupPtr group );
+const char LSM_DLL_EXPORT *lsmAccessGroupNameGet( lsmAccessGroup *group );
 
 /**
  * Returns a pointer to the system id.
@@ -73,7 +73,7 @@ const char LSM_DLL_EXPORT *lsmAccessGroupNameGet( lsmAccessGroupPtr group );
  * @param group     Access group to retrieve id for.
  * @return Null on error (not an access group), else value of system id.
  */
-const char LSM_DLL_EXPORT *lsmAccessGroupSystemIdGet( lsmAccessGroupPtr group );
+const char LSM_DLL_EXPORT *lsmAccessGroupSystemIdGet( lsmAccessGroup *group );
 
 /**
  * Returns a pointer to the initiator list.
@@ -82,7 +82,7 @@ const char LSM_DLL_EXPORT *lsmAccessGroupSystemIdGet( lsmAccessGroupPtr group );
  * @param group     Access group to retrieve id for.
  * @return Null on error (not an access group), else value of initiator list.
  */
-lsmStringListPtr LSM_DLL_EXPORT lsmAccessGroupInitiatorIdGet( lsmAccessGroupPtr group );
+lsmStringList LSM_DLL_EXPORT *lsmAccessGroupInitiatorIdGet( lsmAccessGroup *group );
 
 
 #ifdef  __cplusplus

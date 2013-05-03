@@ -30,42 +30,42 @@ extern "C" {
  * Frees a snapshot record.
  * @param ss    Snapshot record
  */
-void LSM_DLL_EXPORT lsmSsRecordFree(lsmSsPtr ss);
+void LSM_DLL_EXPORT lsmSsRecordFree(lsmSs *ss);
 
 /**
  * Copies a snapshot record.
  * @param source        Source to copy
  * @return Copy of source record snapshot
  */
-lsmSsPtr LSM_DLL_EXPORT lsmSsRecordCopy(lsmSsPtr source);
+lsmSs LSM_DLL_EXPORT *lsmSsRecordCopy(lsmSs *source);
 
 /**
  * Frees an array of snapshot record.
  * @param ss        An array of snapshot record pointers.
  * @param size      Number of snapshot records.
  */
-void LSM_DLL_EXPORT lsmSsRecordFreeArray(lsmSsPtr ss[], uint32_t size);
+void LSM_DLL_EXPORT lsmSsRecordFreeArray(lsmSs *ss[], uint32_t size);
 
 /**
  * Returns the snapshot id.
  * @param ss        The snapshot record
  * @return Pointer to id.
  */
-const char LSM_DLL_EXPORT *lsmSsIdGet(lsmSsPtr ss);
+const char LSM_DLL_EXPORT *lsmSsIdGet(lsmSs *ss);
 
 /**
  * Returns the name.
  * @param ss        The snapshot record
  * @return The Name
  */
-const char LSM_DLL_EXPORT *lsmSsNameGet(lsmSsPtr ss);
+const char LSM_DLL_EXPORT *lsmSsNameGet(lsmSs *ss);
 
 /**
  * Returns the timestamp
  * @param ss    The snapshot record.
  * @return The timestamp the snapshot was taken
  */
-uint64_t LSM_DLL_EXPORT lsmSsTimeStampGet(lsmSsPtr ss);
+uint64_t LSM_DLL_EXPORT lsmSsTimeStampGet(lsmSs *ss);
 
 #ifdef  __cplusplus
 }

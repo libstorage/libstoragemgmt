@@ -33,7 +33,7 @@ extern "C" {
  * @param block_count           Number of blocks to replicate
  * @return Valid block range ptr, otherwise NULL
  */
-lsmBlockRangePtr LSM_DLL_EXPORT lsmBlockRangeRecordAlloc(uint64_t source_start,
+lsmBlockRange LSM_DLL_EXPORT *lsmBlockRangeRecordAlloc(uint64_t source_start,
                                                         uint64_t dest_start,
                                                         uint64_t block_count);
 
@@ -41,7 +41,7 @@ lsmBlockRangePtr LSM_DLL_EXPORT lsmBlockRangeRecordAlloc(uint64_t source_start,
  * Frees a block range record.
  * @param br        Block range to free
  */
-void LSM_DLL_EXPORT lsmBlockRangeRecordFree( lsmBlockRangePtr br);
+void LSM_DLL_EXPORT lsmBlockRangeRecordFree( lsmBlockRange *br);
 
 
 /**
@@ -49,7 +49,7 @@ void LSM_DLL_EXPORT lsmBlockRangeRecordFree( lsmBlockRangePtr br);
  * @param source            Source of the copy
  * @return copy of source
  */
-lsmBlockRangePtr LSM_DLL_EXPORT lsmBlockRangeRecordCopy( lsmBlockRangePtr source );
+lsmBlockRange LSM_DLL_EXPORT *lsmBlockRangeRecordCopy( lsmBlockRange *source );
 
 
 /**
@@ -57,7 +57,7 @@ lsmBlockRangePtr LSM_DLL_EXPORT lsmBlockRangeRecordCopy( lsmBlockRangePtr source
  * @param size                  Number of elements to store.
  * @return  Pointer to memory for array of block ranges.
  */
-lsmBlockRangePtr LSM_DLL_EXPORT *lsmBlockRangeRecordAllocArray( uint32_t size );
+lsmBlockRange LSM_DLL_EXPORT **lsmBlockRangeRecordAllocArray( uint32_t size );
 
 
 /**
@@ -65,7 +65,7 @@ lsmBlockRangePtr LSM_DLL_EXPORT *lsmBlockRangeRecordAllocArray( uint32_t size );
  * @param br                    Array of block ranges to free
  * @param size                  Number of elements in array.
  */
-void LSM_DLL_EXPORT lsmBlockRangeRecordFreeArray( lsmBlockRangePtr br[],
+void LSM_DLL_EXPORT lsmBlockRangeRecordFreeArray( lsmBlockRange *br[],
                                                     uint32_t size );
 
 /**
@@ -73,21 +73,21 @@ void LSM_DLL_EXPORT lsmBlockRangeRecordFreeArray( lsmBlockRangePtr br[],
  * @param br        Valid block range pointer
  * @return value of source start.
  */
-uint64_t lsmBlockRangeSourceStartGet(lsmBlockRangePtr br);
+uint64_t lsmBlockRangeSourceStartGet(lsmBlockRange *br);
 
 /**
  * Retrieves the dest block address.
  * @param br        Valid block range pointer
  * @return value of dest start.
  */
-uint64_t lsmBlockRangeDestStartGet(lsmBlockRangePtr br);
+uint64_t lsmBlockRangeDestStartGet(lsmBlockRange *br);
 
 /**
  * Retrieves the number of blocks to replicate.
  * @param br        Valid block range pointer
  * @return value of number of blocks
  */
-uint64_t lsmBlockRangeBlockCountGet(lsmBlockRangePtr br);
+uint64_t lsmBlockRangeBlockCountGet(lsmBlockRange *br);
 
 #ifdef  __cplusplus
 }

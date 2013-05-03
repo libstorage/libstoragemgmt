@@ -32,39 +32,39 @@ extern "C" {
  * @param s     Record to duplicate
  * @return NULL on memory allocation failure, else duplicated record.
  */
-lsmSystemPtr lsmSystemRecordCopy(lsmSystemPtr s);
+lsmSystem *lsmSystemRecordCopy(lsmSystem *s);
 
 
 /**
- * Frees the resources for a lsmSystemPtr
+ * Frees the resources for a lsmSystem
  * @param s Record to release
  */
-void LSM_DLL_EXPORT lsmSystemRecordFree(lsmSystemPtr s);
+void LSM_DLL_EXPORT lsmSystemRecordFree(lsmSystem *s);
 
 /**
- * Frees the resources for an array for lsmSystemPtrs
+ * Frees the resources for an array for lsmSystem
  * @param s     Array to release memory for
  * @param size  Number of elements.
  */
-void LSM_DLL_EXPORT lsmSystemRecordFreeArray( lsmSystemPtr s[], uint32_t size );
+void LSM_DLL_EXPORT lsmSystemRecordFreeArray(lsmSystem *s[], uint32_t size );
 
 /**
  * Retrieve the Id for the system.
- * Note: Address returned is valid until lsmSystemPtr gets freed, copy return
+ * Note: Address returned is valid until lsmSystem gets freed, copy return
  * value if you need longer scope.  Do not free returned string.
  * @param s System to retrieve id for.
  * @return NULL on error, else value.
  */
-const char LSM_DLL_EXPORT *lsmSystemIdGet(lsmSystemPtr s);
+const char LSM_DLL_EXPORT *lsmSystemIdGet(lsmSystem *s);
 
 /**
  * Retrieve the Id for the system.
- * Note: Address returned is valid until lsmSystemPtr gets freed, copy return
+ * Note: Address returned is valid until lsmSystem gets freed, copy return
  * value if you need longer scope.  Do not free returned string.
  * @param s System to retrieve id for.
  * @return NULL on error, else value.
  */
-const char LSM_DLL_EXPORT *lsmSystemNameGet(lsmSystemPtr s);
+const char LSM_DLL_EXPORT *lsmSystemNameGet(lsmSystem *s);
 
 /**
  * Retrieve the status for the system.
@@ -72,7 +72,7 @@ const char LSM_DLL_EXPORT *lsmSystemNameGet(lsmSystemPtr s);
  * @return System status which is a bit sensitive field, returns UINT32_MAX on
  * bad system pointer.
  */
-uint32_t lsmSystemStatusGet(lsmSystemPtr s);
+uint32_t lsmSystemStatusGet(lsmSystem *s);
 
 #ifdef  __cplusplus
 }

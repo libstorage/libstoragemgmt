@@ -38,6 +38,10 @@ extern "C" {
 #define LSM_VOL_MAGIC       0xAA7A0000
 #define LSM_IS_VOL(obj)     MAGIC_CHECK(obj, LSM_VOL_MAGIC)
 
+#define LSM_FLAG_UNUSED_CHECK(x) ( x != 0 )
+#define LSM_FLAG_GET_VALUE(x) x["flags"].asUint64_t()
+#define LSM_FLAG_EXPECTED_TYPE(x) (Value::numeric_t == x["flags"].valueType())
+
 /**
  * Information about storage volumes.
  */
@@ -278,13 +282,13 @@ struct LSM_DLL_LOCAL _lsmSs {
  * Returns a pointer to a newly created connection structure.
  * @return NULL on memory exhaustion, else new connection.
  */
-LSM_DLL_LOCAL lsmConnectPtr getConnection();
+LSM_DLL_LOCAL lsmConnect *getConnection();
 
 /**
  * De-allocates the connection.
  * @param c     Connection to free.
  */
-LSM_DLL_LOCAL void freeConnection(lsmConnectPtr c);
+LSM_DLL_LOCAL void freeConnection(lsmConnect *c);
 
 /**
  * Loads the requester driver specified in the uri.
@@ -296,11 +300,11 @@ LSM_DLL_LOCAL void freeConnection(lsmConnectPtr c);
  * @param flags         Reserved flag for future use
  * @return LSM_ERR_OK on success, else error code.
  */
-LSM_DLL_LOCAL int loadDriver(lsmConnectPtr c, xmlURIPtr uri,
+LSM_DLL_LOCAL int loadDriver(lsmConnect *c, xmlURIPtr uri,
                                 const char *password, uint32_t timeout,
                                 lsmErrorPtr *e, lsmFlag_t flags);
 
-LSM_DLL_LOCAL char* capabilityString(lsmStorageCapabilitiesPtr c);
+LSM_DLL_LOCAL char* capabilityString(lsmStorageCapabilities *c);
 
 #ifdef  __cplusplus
 }

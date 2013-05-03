@@ -209,7 +209,7 @@ lsmAccessGroup *valueToAccessGroup( Value &group )
     return ag;
 }
 
-Value accessGroupToValue( lsmAccessGroupPtr group )
+Value accessGroupToValue( lsmAccessGroup *group )
 {
     if( LSM_IS_ACCESS_GROUP(group) ) {
         std::map<std::string, Value> ag;
@@ -247,7 +247,7 @@ lsmAccessGroup **valueToAccessGroupList( Value &group, uint32_t *count )
     return rc;
 }
 
-Value accessGroupListToValue( lsmAccessGroupPtr *group, uint32_t count)
+Value accessGroupListToValue( lsmAccessGroup **group, uint32_t count)
 {
     std::vector<Value> rc;
 
@@ -286,9 +286,9 @@ Value blockRangeToValue(lsmBlockRange *br)
     return Value();
 }
 
-lsmBlockRangePtr *valueToBlockRangeList(Value &brl, uint32_t *count)
+lsmBlockRange **valueToBlockRangeList(Value &brl, uint32_t *count)
 {
-    lsmBlockRangePtr *rc = NULL;
+    lsmBlockRange **rc = NULL;
     std::vector<Value> r = brl.asArray();
     *count = r.size();
     if( *count ) {
@@ -307,7 +307,7 @@ lsmBlockRangePtr *valueToBlockRangeList(Value &brl, uint32_t *count)
     return rc;
 }
 
-Value blockRangeListToValue( lsmBlockRangePtr *brl, uint32_t count )
+Value blockRangeListToValue( lsmBlockRange **brl, uint32_t count )
 {
     uint32_t i = 0;
     std::vector<Value> r;
@@ -379,9 +379,9 @@ lsmNfsExport *valueToNfsExport(Value &exp)
     lsmNfsExport *rc = NULL;
     if( isExpectedObject(exp, "NfsExport") ) {
         int ok = 0;
-        lsmStringListPtr root = NULL;
-        lsmStringListPtr rw = NULL;
-        lsmStringListPtr ro = NULL;
+        lsmStringList *root = NULL;
+        lsmStringList *rw = NULL;
+        lsmStringList *ro = NULL;
 
         std::map<std::string, Value> i = exp.asObject();
 

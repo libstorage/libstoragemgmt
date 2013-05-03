@@ -138,7 +138,7 @@ typedef lsmError *lsmErrorPtr;
  * @param c      Connection pointer.
  * @return lsmErrorPtr, Null if no error exists!
  */
-lsmErrorPtr LSM_DLL_EXPORT lsmErrorGetLast(lsmConnectPtr c);
+lsmErrorPtr LSM_DLL_EXPORT lsmErrorGetLast(lsmConnect *c);
 
 /**
  * Frees the error record!

@@ -50,7 +50,7 @@ extern "C" {
 
 #define LSM_DEFAULT_PLUGIN_DIR "/var/run/lsm/ipc"
 
-int lsmStringListAppend(lsmStringListPtr sl, const char *value)
+int lsmStringListAppend(lsmStringList *sl, const char *value)
 {
 	int rc = LSM_ERR_INVALID_SL;
 
@@ -66,7 +66,7 @@ int lsmStringListAppend(lsmStringListPtr sl, const char *value)
 	return rc;
 }
 
-int lsmStringListRemove(lsmStringListPtr sl, uint32_t index)
+int lsmStringListRemove(lsmStringList *sl, uint32_t index)
 {
 	int rc = LSM_ERR_INVALID_SL;
 
@@ -81,7 +81,7 @@ int lsmStringListRemove(lsmStringListPtr sl, uint32_t index)
 }
 
 
-int lsmStringListSetElem(lsmStringListPtr sl, uint32_t index,
+int lsmStringListSetElem(lsmStringList *sl, uint32_t index,
                                             const char* value)
 {
     int rc = LSM_ERR_OK;
@@ -109,7 +109,7 @@ int lsmStringListSetElem(lsmStringListPtr sl, uint32_t index,
     return rc;
 }
 
-const char *lsmStringListGetElem(lsmStringListPtr sl, uint32_t index)
+const char *lsmStringListGetElem(lsmStringList *sl, uint32_t index)
 {
     if( LSM_IS_STRING_LIST(sl) ) {
         if( index < sl->values->len ) {
@@ -119,7 +119,7 @@ const char *lsmStringListGetElem(lsmStringListPtr sl, uint32_t index)
     return NULL;
 }
 
-lsmStringListPtr lsmStringListAlloc(uint32_t size)
+lsmStringList *lsmStringListAlloc(uint32_t size)
 {
     lsmStringList *rc = NULL;
 
@@ -139,7 +139,7 @@ lsmStringListPtr lsmStringListAlloc(uint32_t size)
     return rc;
 }
 
-int lsmStringListFree(lsmStringListPtr sl)
+int lsmStringListFree(lsmStringList *sl)
 {
     if( LSM_IS_STRING_LIST(sl) ) {
         sl->magic = LSM_DEL_MAGIC(LSM_STRING_LIST_MAGIC);
@@ -151,7 +151,7 @@ int lsmStringListFree(lsmStringListPtr sl)
     return LSM_ERR_INVALID_SL;
 }
 
-uint32_t lsmStringListSize(lsmStringListPtr sl)
+uint32_t lsmStringListSize(lsmStringList *sl)
 {
     if( LSM_IS_STRING_LIST(sl) ) {
         return (uint32_t)sl->values->len;
@@ -159,7 +159,7 @@ uint32_t lsmStringListSize(lsmStringListPtr sl)
     return 0;
 }
 
-lsmStringListPtr lsmStringListCopy(lsmStringListPtr src)
+lsmStringList *lsmStringListCopy(lsmStringList *src)
 {
     lsmStringList *dest = NULL;
 
@@ -184,9 +184,9 @@ lsmStringListPtr lsmStringListCopy(lsmStringListPtr src)
     return dest;
 }
 
-lsmConnectPtr getConnection()
+lsmConnect *getConnection()
 {
-    lsmConnectPtr c = (lsmConnectPtr)malloc(sizeof(lsmConnect));
+    lsmConnect *c = (lsmConnect *)malloc(sizeof(lsmConnect));
     if (c) {
         memset(c, 0, sizeof(lsmConnect));
         c->magic = LSM_CONNECT_MAGIC;
@@ -194,7 +194,7 @@ lsmConnectPtr getConnection()
     return c;
 }
 
-void freeConnection(lsmConnectPtr c)
+void freeConnection(lsmConnect *c)
 {
     if (c) {
 
@@ -225,7 +225,7 @@ void freeConnection(lsmConnectPtr c)
     }
 }
 
-static int establishConnection( lsmConnectPtr c, const char * password,
+static int establishConnection( lsmConnect *c, const char * password,
                                 uint32_t timeout, lsmErrorPtr *e,
                                 lsmFlag_t flags)
 {
@@ -268,7 +268,7 @@ static int establishConnection( lsmConnectPtr c, const char * password,
 }
 
 
-int loadDriver(lsmConnectPtr c, xmlURIPtr uri, const char *password,
+int loadDriver(lsmConnect *c, xmlURIPtr uri, const char *password,
     uint32_t timeout, lsmErrorPtr *e, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
@@ -473,12 +473,12 @@ void name( record_type pa[], uint32_t size)                \
 }
 
 
-CREATE_ALLOC_ARRAY_FUNC(lsmPoolRecordAllocArray, lsmPoolPtr)
+CREATE_ALLOC_ARRAY_FUNC(lsmPoolRecordAllocArray, lsmPool *)
 
-lsmPoolPtr lsmPoolRecordAlloc(const char *id, const char *name,
+lsmPool *lsmPoolRecordAlloc(const char *id, const char *name,
             uint64_t totalSpace, uint64_t freeSpace, const char *system_id)
 {
-    lsmPoolPtr rc = (lsmPoolPtr)malloc(sizeof(lsmPool));
+    lsmPool *rc = (lsmPool *)malloc(sizeof(lsmPool));
     if (rc) {
         memset(rc, 0, sizeof(lsmPool));
         rc->magic = LSM_POOL_MAGIC;
@@ -499,14 +499,14 @@ lsmPoolPtr lsmPoolRecordAlloc(const char *id, const char *name,
     return rc;
 }
 
-void lsmPoolFreeSpaceSet(lsmPoolPtr p, uint64_t free_space)
+void lsmPoolFreeSpaceSet(lsmPool *p, uint64_t free_space)
 {
     if( LSM_IS_POOL(p) ) {
         p->freeSpace = free_space;
     }
 }
 
-lsmPoolPtr lsmPoolRecordCopy( lsmPoolPtr toBeCopied)
+lsmPool * lsmPoolRecordCopy( lsmPool *toBeCopied)
 {
     if( LSM_IS_POOL(toBeCopied) ) {
         return lsmPoolRecordAlloc(toBeCopied->id, toBeCopied->name,
@@ -517,7 +517,7 @@ lsmPoolPtr lsmPoolRecordCopy( lsmPoolPtr toBeCopied)
     return NULL;
 }
 
-void lsmPoolRecordFree(lsmPoolPtr p)
+void lsmPoolRecordFree(lsmPool *p)
 {
     if (LSM_IS_POOL(p)) {
         p->magic = LSM_DEL_MAGIC(LSM_POOL_MAGIC);
@@ -539,9 +539,9 @@ void lsmPoolRecordFree(lsmPoolPtr p)
     }
 }
 
-CREATE_FREE_ARRAY_FUNC(lsmPoolRecordFreeArray, lsmPoolRecordFree, lsmPoolPtr)
+CREATE_FREE_ARRAY_FUNC(lsmPoolRecordFreeArray, lsmPoolRecordFree, lsmPool *)
 
-char *lsmPoolNameGet(lsmPoolPtr p)
+char *lsmPoolNameGet(lsmPool *p)
 {
     if (LSM_IS_POOL(p)) {
         return p->name;
@@ -549,7 +549,7 @@ char *lsmPoolNameGet(lsmPoolPtr p)
     return NULL;
 }
 
-char *lsmPoolIdGet(lsmPoolPtr p)
+char *lsmPoolIdGet(lsmPool *p)
 {
     if (LSM_IS_POOL(p)) {
         return p->id;
@@ -557,7 +557,7 @@ char *lsmPoolIdGet(lsmPoolPtr p)
     return NULL;
 }
 
-uint64_t lsmPoolTotalSpaceGet(lsmPoolPtr p)
+uint64_t lsmPoolTotalSpaceGet(lsmPool *p)
 {
     if (LSM_IS_POOL(p)) {
         return p->totalSpace;
@@ -565,7 +565,7 @@ uint64_t lsmPoolTotalSpaceGet(lsmPoolPtr p)
     return 0;
 }
 
-uint64_t lsmPoolFreeSpaceGet(lsmPoolPtr p)
+uint64_t lsmPoolFreeSpaceGet(lsmPool *p)
 {
     if (LSM_IS_POOL(p)) {
         return p->freeSpace;
@@ -573,7 +573,7 @@ uint64_t lsmPoolFreeSpaceGet(lsmPoolPtr p)
     return 0;
 }
 
-char *lsmPoolGetSystemId( lsmPoolPtr p )
+char *lsmPoolGetSystemId( lsmPool *p )
 {
     if (LSM_IS_POOL(p)) {
         return p->system_id;
@@ -581,12 +581,12 @@ char *lsmPoolGetSystemId( lsmPoolPtr p )
     return NULL;
 }
 
-CREATE_ALLOC_ARRAY_FUNC(lsmInitiatorRecordAllocArray, lsmInitiatorPtr)
+CREATE_ALLOC_ARRAY_FUNC(lsmInitiatorRecordAllocArray, lsmInitiator *)
 
-lsmInitiatorPtr lsmInitiatorRecordAlloc(lsmInitiatorType idType, const char* id,
+lsmInitiator *lsmInitiatorRecordAlloc(lsmInitiatorType idType, const char* id,
                                         const char* name)
 {
-    lsmInitiatorPtr rc = (lsmInitiatorPtr)malloc(sizeof(lsmInitiator));
+    lsmInitiator *rc = (lsmInitiator *)malloc(sizeof(lsmInitiator));
     if (rc) {
         rc->magic = LSM_INIT_MAGIC;
         rc->idType = idType;
@@ -603,16 +603,16 @@ lsmInitiatorPtr lsmInitiatorRecordAlloc(lsmInitiatorType idType, const char* id,
     return rc;
 }
 
-lsmInitiatorPtr lsmInitiatorRecordCopy(lsmInitiatorPtr i)
+lsmInitiator *lsmInitiatorRecordCopy(lsmInitiator *i)
 {
-    lsmInitiatorPtr rc = NULL;
+    lsmInitiator *rc = NULL;
     if( LSM_IS_INIT(i)) {
         rc = lsmInitiatorRecordAlloc(i->idType, i->id, i->name);
     }
     return rc;
 }
 
-void lsmInitiatorRecordFree(lsmInitiatorPtr i)
+void lsmInitiatorRecordFree(lsmInitiator *i)
 {
     if (i) {
         i->magic = LSM_DEL_MAGIC(LSM_INIT_MAGIC);
@@ -626,31 +626,31 @@ void lsmInitiatorRecordFree(lsmInitiatorPtr i)
 }
 
 CREATE_FREE_ARRAY_FUNC( lsmInitiatorRecordFreeArray, lsmInitiatorRecordFree,
-                        lsmInitiatorPtr)
+                        lsmInitiator *)
 
-lsmInitiatorType lsmInitiatorTypeGet(lsmInitiatorPtr i)
+lsmInitiatorType lsmInitiatorTypeGet(lsmInitiator *i)
 {
     return i->idType;
 }
 
-char *lsmInitiatorIdGet(lsmInitiatorPtr i)
+char *lsmInitiatorIdGet(lsmInitiator *i)
 {
     return i->id;
 }
 
-char *lsmInitiatorNameGet(lsmInitiatorPtr i)
+char *lsmInitiatorNameGet(lsmInitiator *i)
 {
     return i->name;
 }
 
-CREATE_ALLOC_ARRAY_FUNC(lsmVolumeRecordAllocArray, lsmVolumePtr)
+CREATE_ALLOC_ARRAY_FUNC(lsmVolumeRecordAllocArray, lsmVolume *)
 
-lsmVolumePtr lsmVolumeRecordAlloc(const char *id, const char *name,
+lsmVolume * lsmVolumeRecordAlloc(const char *id, const char *name,
     const char *vpd83, uint64_t blockSize,
     uint64_t numberOfBlocks,
     uint32_t status, const char *system_id, const char *pool_id)
 {
-    lsmVolumePtr rc = (lsmVolumePtr)malloc(sizeof(lsmVolume));
+    lsmVolume *rc = (lsmVolume *)malloc(sizeof(lsmVolume));
     if (rc) {
         rc->magic = LSM_VOL_MAGIC;
         rc->id = strdup(id);
@@ -676,12 +676,12 @@ lsmVolumePtr lsmVolumeRecordAlloc(const char *id, const char *name,
     return rc;
 }
 
-CREATE_ALLOC_ARRAY_FUNC(lsmSystemRecordAllocArray, lsmSystemPtr)
+CREATE_ALLOC_ARRAY_FUNC(lsmSystemRecordAllocArray, lsmSystem *)
 
-lsmSystemPtr lsmSystemRecordAlloc( const char *id, const char *name,
+lsmSystem *lsmSystemRecordAlloc( const char *id, const char *name,
                                     uint32_t status)
 {
-    lsmSystemPtr rc = (lsmSystemPtr)malloc(sizeof(lsmSystem));
+    lsmSystem *rc = (lsmSystem *)malloc(sizeof(lsmSystem));
     if (rc) {
         rc->magic = LSM_SYSTEM_MAGIC;
         rc->id = strdup(id);
@@ -697,7 +697,7 @@ lsmSystemPtr lsmSystemRecordAlloc( const char *id, const char *name,
     return rc;
 }
 
-void lsmSystemRecordFree(lsmSystemPtr s)
+void lsmSystemRecordFree(lsmSystem *s)
 {
     if( LSM_IS_SYSTEM(s) ) {
         free(s->id);
@@ -706,18 +706,18 @@ void lsmSystemRecordFree(lsmSystemPtr s)
     }
 }
 
-CREATE_FREE_ARRAY_FUNC(lsmSystemRecordFreeArray, lsmSystemRecordFree, lsmSystemPtr)
+CREATE_FREE_ARRAY_FUNC(lsmSystemRecordFreeArray, lsmSystemRecordFree, lsmSystem *)
 
-lsmSystemPtr lsmSystemRecordCopy(lsmSystemPtr s)
+lsmSystem *lsmSystemRecordCopy(lsmSystem *s)
 {
-    lsmSystemPtr rc = NULL;
+    lsmSystem *rc = NULL;
     if( LSM_IS_SYSTEM(s) ) {
         rc = lsmSystemRecordAlloc(s->id, s->name, s->status);
     }
     return rc;
 }
 
-const char *lsmSystemIdGet(lsmSystemPtr s)
+const char *lsmSystemIdGet(lsmSystem *s)
 {
     if( LSM_IS_SYSTEM(s) ) {
         return s->id;
@@ -725,7 +725,7 @@ const char *lsmSystemIdGet(lsmSystemPtr s)
     return NULL;
 }
 
-const char *lsmSystemNameGet(lsmSystemPtr s)
+const char *lsmSystemNameGet(lsmSystem *s)
 {
     if( LSM_IS_SYSTEM(s) ) {
         return s->name;
@@ -733,7 +733,7 @@ const char *lsmSystemNameGet(lsmSystemPtr s)
     return NULL;
 }
 
-uint32_t lsmSystemStatusGet(lsmSystemPtr s)
+uint32_t lsmSystemStatusGet(lsmSystem *s)
 {
     if( LSM_IS_SYSTEM(s) ) {
         return s->status;
@@ -741,9 +741,9 @@ uint32_t lsmSystemStatusGet(lsmSystemPtr s)
     return UINT32_MAX;
 }
 
-lsmVolumePtr lsmVolumeRecordCopy(lsmVolumePtr vol)
+lsmVolume *lsmVolumeRecordCopy(lsmVolume *vol)
 {
-    lsmVolumePtr rc = NULL;
+    lsmVolume *rc = NULL;
     if( LSM_IS_VOL(vol) ) {
         rc = lsmVolumeRecordAlloc( vol->id, vol->name, vol->vpd83,
                                     vol->blockSize, vol->numberOfBlocks,
@@ -752,7 +752,7 @@ lsmVolumePtr lsmVolumeRecordCopy(lsmVolumePtr vol)
     return rc;
 }
 
-void lsmVolumeRecordFree(lsmVolumePtr v)
+void lsmVolumeRecordFree(lsmVolume *v)
 {
     if ( LSM_IS_VOL(v) ) {
         v->magic = LSM_DEL_MAGIC(LSM_VOL_MAGIC);
@@ -787,7 +787,7 @@ void lsmVolumeRecordFree(lsmVolumePtr v)
 }
 
 CREATE_FREE_ARRAY_FUNC( lsmVolumeRecordFreeArray, lsmVolumeRecordFree,
-                        lsmVolumePtr)
+                        lsmVolume *)
 
 /* We would certainly expand this to encompass the entire function */
 #define MEMBER_GET(x, validation, member, error)  \
@@ -824,51 +824,51 @@ CREATE_FREE_ARRAY_FUNC( lsmVolumeRecordFreeArray, lsmVolumeRecordFree,
         return error;                       \
     }
 
-const char* lsmVolumeIdGet(lsmVolumePtr v)
+const char* lsmVolumeIdGet(lsmVolume *v)
 {
     MEMBER_GET(v, LSM_IS_VOL, id, NULL);
 }
 
-const char* lsmVolumeNameGet(lsmVolumePtr v)
+const char* lsmVolumeNameGet(lsmVolume *v)
 {
     MEMBER_GET(v, LSM_IS_VOL, name, NULL);
 }
 
-const char* lsmVolumeVpd83Get(lsmVolumePtr v)
+const char* lsmVolumeVpd83Get(lsmVolume *v)
 {
     MEMBER_GET(v, LSM_IS_VOL, vpd83, NULL);
 }
 
-uint64_t lsmVolumeBlockSizeGet(lsmVolumePtr v)
+uint64_t lsmVolumeBlockSizeGet(lsmVolume *v)
 {
     MEMBER_GET(v, LSM_IS_VOL, blockSize, 0);
 }
 
-uint64_t lsmVolumeNumberOfBlocks(lsmVolumePtr v)
+uint64_t lsmVolumeNumberOfBlocks(lsmVolume *v)
 {
     MEMBER_GET(v, LSM_IS_VOL, numberOfBlocks, 0);
 }
 
-uint32_t lsmVolumeOpStatusGet(lsmVolumePtr v)
+uint32_t lsmVolumeOpStatusGet(lsmVolume *v)
 {
     MEMBER_GET(v, LSM_IS_VOL, status, 0);
 }
 
-char LSM_DLL_EXPORT *lsmVolumeSystemIdGet( lsmVolumePtr v)
+char LSM_DLL_EXPORT *lsmVolumeSystemIdGet( lsmVolume *v)
 {
     MEMBER_GET(v, LSM_IS_VOL, system_id, NULL);
 }
 
-char LSM_DLL_EXPORT *lsmVolumePoolIdGet( lsmVolumePtr v)
+char LSM_DLL_EXPORT *lsmVolumePoolIdGet( lsmVolume *v)
 {
     MEMBER_GET(v, LSM_IS_VOL, pool_id, NULL);
 }
 
-CREATE_ALLOC_ARRAY_FUNC(lsmAccessGroupRecordAllocArray, lsmAccessGroupPtr)
+CREATE_ALLOC_ARRAY_FUNC(lsmAccessGroupRecordAllocArray, lsmAccessGroup *)
 
-lsmAccessGroupPtr lsmAccessGroupRecordAlloc(const char *id,
+lsmAccessGroup *lsmAccessGroupRecordAlloc(const char *id,
                                         const char *name,
-                                        lsmStringListPtr initiators,
+                                        lsmStringList *initiators,
                                         const char *system_id)
 {
     lsmAccessGroup *rc = NULL;
@@ -895,7 +895,7 @@ lsmAccessGroupPtr lsmAccessGroupRecordAlloc(const char *id,
     return rc;
 }
 
-lsmAccessGroupPtr lsmAccessGroupRecordCopy( lsmAccessGroupPtr ag )
+lsmAccessGroup *lsmAccessGroupRecordCopy( lsmAccessGroup *ag )
 {
     lsmAccessGroup *rc = NULL;
     if( LSM_IS_ACCESS_GROUP(ag) ) {
@@ -904,7 +904,7 @@ lsmAccessGroupPtr lsmAccessGroupRecordCopy( lsmAccessGroupPtr ag )
     return rc;
 }
 
-void lsmAccessGroupRecordFree(lsmAccessGroupPtr ag)
+void lsmAccessGroupRecordFree(lsmAccessGroup *ag)
 {
     if( LSM_IS_ACCESS_GROUP(ag) ) {
         ag->magic = LSM_DEL_MAGIC(LSM_ACCESS_GROUP_MAGIC);
@@ -917,23 +917,23 @@ void lsmAccessGroupRecordFree(lsmAccessGroupPtr ag)
 }
 
 CREATE_FREE_ARRAY_FUNC(lsmAccessGroupRecordFreeArray, lsmAccessGroupRecordFree,
-                        lsmAccessGroupPtr)
+                        lsmAccessGroup *)
 
-const char *lsmAccessGroupIdGet( lsmAccessGroupPtr group )
+const char *lsmAccessGroupIdGet( lsmAccessGroup *group )
 {
     if( LSM_IS_ACCESS_GROUP(group) ) {
         return group->id;
     }
     return NULL;
 }
-const char *lsmAccessGroupNameGet( lsmAccessGroupPtr group )
+const char *lsmAccessGroupNameGet( lsmAccessGroup *group )
 {
     if( LSM_IS_ACCESS_GROUP(group) ) {
         return group->name;
     }
     return NULL;
 }
-const char *lsmAccessGroupSystemIdGet( lsmAccessGroupPtr group )
+const char *lsmAccessGroupSystemIdGet( lsmAccessGroup *group )
 {
     if( LSM_IS_ACCESS_GROUP(group) ) {
         return group->system_id;
@@ -941,7 +941,7 @@ const char *lsmAccessGroupSystemIdGet( lsmAccessGroupPtr group )
     return NULL;
 }
 
-lsmStringListPtr lsmAccessGroupInitiatorIdGet( lsmAccessGroupPtr group )
+lsmStringList * lsmAccessGroupInitiatorIdGet( lsmAccessGroup *group )
 {
     if( LSM_IS_ACCESS_GROUP(group) ) {
         return group->initiators;
@@ -950,8 +950,8 @@ lsmStringListPtr lsmAccessGroupInitiatorIdGet( lsmAccessGroupPtr group )
 }
 
 void LSM_DLL_EXPORT lsmAccessGroupInitiatorIdSet(
-                                        lsmAccessGroupPtr group,
-                                        lsmStringListPtr il)
+                                        lsmAccessGroup *group,
+                                        lsmStringList *il)
 {
     if( LSM_IS_ACCESS_GROUP(group) ) {
         if( group->initiators ) {
@@ -962,7 +962,7 @@ void LSM_DLL_EXPORT lsmAccessGroupInitiatorIdSet(
     }
 }
 
-lsmErrorPtr lsmErrorGetLast(lsmConnectPtr c)
+lsmErrorPtr lsmErrorGetLast(lsmConnect *c)
 {
     if (LSM_IS_CONNECT(c)) {
         lsmErrorPtr e = c->error;
@@ -972,7 +972,7 @@ lsmErrorPtr lsmErrorGetLast(lsmConnectPtr c)
     return NULL;
 }
 
-lsmBlockRangePtr lsmBlockRangeRecordAlloc(uint64_t source_start,
+lsmBlockRange *lsmBlockRangeRecordAlloc(uint64_t source_start,
                                             uint64_t dest_start,
                                             uint64_t block_count)
 {
@@ -988,7 +988,7 @@ lsmBlockRangePtr lsmBlockRangeRecordAlloc(uint64_t source_start,
     return rc;
 }
 
-void  lsmBlockRangeRecordFree( lsmBlockRangePtr br )
+void  lsmBlockRangeRecordFree( lsmBlockRange *br )
 {
     if( LSM_IS_BLOCK_RANGE(br) ) {
         br->magic = LSM_DEL_MAGIC(LSM_BLOCK_RANGE_MAGIC);
@@ -996,33 +996,33 @@ void  lsmBlockRangeRecordFree( lsmBlockRangePtr br )
     }
 }
 
-lsmBlockRangePtr LSM_DLL_EXPORT lsmBlockRangeRecordCopy( lsmBlockRangePtr source )
+lsmBlockRange LSM_DLL_EXPORT *lsmBlockRangeRecordCopy( lsmBlockRange *source )
 {
     return lsmBlockRangeRecordAlloc(source->source_start, source->dest_start,
                                                     source->block_count);
 }
 
-CREATE_ALLOC_ARRAY_FUNC(lsmBlockRangeRecordAllocArray, lsmBlockRangePtr)
+CREATE_ALLOC_ARRAY_FUNC(lsmBlockRangeRecordAllocArray, lsmBlockRange *)
 CREATE_FREE_ARRAY_FUNC(lsmBlockRangeRecordFreeArray, lsmBlockRangeRecordFree,
-                        lsmBlockRangePtr)
+                        lsmBlockRange *)
 
 
-uint64_t lsmBlockRangeSourceStartGet(lsmBlockRangePtr br)
+uint64_t lsmBlockRangeSourceStartGet(lsmBlockRange *br)
 {
     MEMBER_GET(br, LSM_IS_BLOCK_RANGE, source_start, 0);
 }
 
-uint64_t lsmBlockRangeDestStartGet(lsmBlockRangePtr br)
+uint64_t lsmBlockRangeDestStartGet(lsmBlockRange *br)
 {
     MEMBER_GET(br, LSM_IS_BLOCK_RANGE, dest_start, 0);
 }
 
-uint64_t lsmBlockRangeBlockCountGet(lsmBlockRangePtr br)
+uint64_t lsmBlockRangeBlockCountGet(lsmBlockRange *br)
 {
     MEMBER_GET(br, LSM_IS_BLOCK_RANGE, block_count, 0);
 }
 
-lsmFsPtr lsmFsRecordAlloc( const char *id, const char *name,
+lsmFs * lsmFsRecordAlloc( const char *id, const char *name,
                                             uint64_t total_space,
                                             uint64_t free_space,
                                             const char *pool_id,
@@ -1052,7 +1052,7 @@ lsmFsPtr lsmFsRecordAlloc( const char *id, const char *name,
     return rc;
 }
 
-void lsmFsRecordFree( lsmFsPtr fs)
+void lsmFsRecordFree( lsmFs *fs)
 {
     if( LSM_IS_FS(fs) ) {
         fs->magic = LSM_DEL_MAGIC(LSM_FS_MAGIC);
@@ -1064,7 +1064,7 @@ void lsmFsRecordFree( lsmFsPtr fs)
     }
 }
 
-lsmFsPtr lsmFsRecordCopy(lsmFsPtr source)
+lsmFs *lsmFsRecordCopy(lsmFs *source)
 {
     lsmFs *dest = NULL;
 
@@ -1077,39 +1077,39 @@ lsmFsPtr lsmFsRecordCopy(lsmFsPtr source)
     return dest;
 }
 
-CREATE_ALLOC_ARRAY_FUNC(lsmFsRecordAllocArray, lsmFsPtr)
-CREATE_FREE_ARRAY_FUNC(lsmFsRecordFreeArray, lsmFsRecordFree, lsmFsPtr)
+CREATE_ALLOC_ARRAY_FUNC(lsmFsRecordAllocArray, lsmFs *)
+CREATE_FREE_ARRAY_FUNC(lsmFsRecordFreeArray, lsmFsRecordFree, lsmFs *)
 
-const char *lsmFsIdGet(lsmFsPtr fs)
+const char *lsmFsIdGet(lsmFs *fs)
 {
     MEMBER_GET(fs, LSM_IS_FS, id, NULL);
 }
 
-const char *lsmFsNameGet(lsmFsPtr fs)
+const char *lsmFsNameGet(lsmFs *fs)
 {
     MEMBER_GET(fs, LSM_IS_FS, name, NULL);
 }
 
-const char *lsmFsSystemIdGet(lsmFsPtr fs)
+const char *lsmFsSystemIdGet(lsmFs *fs)
 {
     MEMBER_GET(fs, LSM_IS_FS, system_id, NULL);
 }
 
-const char *lsmFsPoolIdGet(lsmFsPtr fs)
+const char *lsmFsPoolIdGet(lsmFs *fs)
 {
     MEMBER_GET(fs, LSM_IS_FS, pool_id, NULL);
 }
 
-uint64_t lsmFsTotalSpaceGet(lsmFsPtr fs)
+uint64_t lsmFsTotalSpaceGet(lsmFs *fs)
 {
     MEMBER_GET(fs, LSM_IS_FS, total_space, 0);
 }
-uint64_t lsmFsFreeSpaceGet(lsmFsPtr fs)
+uint64_t lsmFsFreeSpaceGet(lsmFs *fs)
 {
     MEMBER_GET(fs, LSM_IS_FS, free_space, 0);
 }
 
-lsmSsPtr lsmSsRecordAlloc( const char *id, const char *name,
+lsmSs * lsmSsRecordAlloc( const char *id, const char *name,
                                             uint64_t ts)
 {
     lsmSs *rc = (lsmSs *) malloc(sizeof(lsmSs));
@@ -1130,9 +1130,9 @@ lsmSsPtr lsmSsRecordAlloc( const char *id, const char *name,
     return rc;
 }
 
-lsmSsPtr lsmSsRecordCopy(lsmSsPtr source)
+lsmSs *lsmSsRecordCopy(lsmSs *source)
 {
-    lsmSsPtr rc = NULL;
+    lsmSs *rc = NULL;
     if( LSM_IS_SS(source) ) {
         rc = lsmSsRecordAlloc(  lsmSsIdGet(source),
                                 lsmSsNameGet(source),
@@ -1141,7 +1141,7 @@ lsmSsPtr lsmSsRecordCopy(lsmSsPtr source)
     return rc;
 }
 
-void lsmSsRecordFree( lsmSsPtr ss)
+void lsmSsRecordFree( lsmSs *ss)
 {
     if( LSM_IS_SS(ss) ) {
         ss->magic = LSM_DEL_MAGIC(LSM_SS_MAGIC);
@@ -1151,40 +1151,40 @@ void lsmSsRecordFree( lsmSsPtr ss)
     }
 }
 
-CREATE_ALLOC_ARRAY_FUNC(lsmSsRecordAllocArray, lsmSsPtr)
-CREATE_FREE_ARRAY_FUNC(lsmSsRecordFreeArray, lsmSsRecordFree, lsmSsPtr)
+CREATE_ALLOC_ARRAY_FUNC(lsmSsRecordAllocArray, lsmSs *)
+CREATE_FREE_ARRAY_FUNC(lsmSsRecordFreeArray, lsmSsRecordFree, lsmSs *)
 
-const char *lsmSsIdGet(lsmSsPtr ss)
+const char *lsmSsIdGet(lsmSs *ss)
 {
     MEMBER_GET(ss, LSM_IS_SS, id, NULL);
 }
 
-const char *lsmSsNameGet(lsmSsPtr ss)
+const char *lsmSsNameGet(lsmSs *ss)
 {
     MEMBER_GET(ss, LSM_IS_SS, name, NULL);
 }
 
-uint64_t lsmSsTimeStampGet(lsmSsPtr ss)
+uint64_t lsmSsTimeStampGet(lsmSs *ss)
 {
     MEMBER_GET(ss, LSM_IS_SS, ts, 0);
 }
 
-lsmNfsExportPtr lsmNfsExportRecordAlloc( const char *id,
+lsmNfsExport *lsmNfsExportRecordAlloc( const char *id,
                                             const char *fs_id,
                                             const char *export_path,
                                             const char *auth,
-                                            lsmStringListPtr root,
-                                            lsmStringListPtr rw,
-                                            lsmStringListPtr ro,
+                                            lsmStringList *root,
+                                            lsmStringList *rw,
+                                            lsmStringList *ro,
                                             uint64_t anonuid,
                                             uint64_t anongid,
                                             const char *options)
 {
-     lsmNfsExportPtr rc = NULL;
+     lsmNfsExport *rc = NULL;
 
     /* These are required */
     if( fs_id && export_path ) {
-        rc = (lsmNfsExportPtr)malloc(sizeof(lsmNfsExport));
+        rc = (lsmNfsExport *)malloc(sizeof(lsmNfsExport));
         if( rc ) {
             rc->magic = LSM_NFS_EXPORT_MAGIC;
             rc->id = (id) ? strdup(id) : NULL;
@@ -1208,7 +1208,7 @@ lsmNfsExportPtr lsmNfsExportRecordAlloc( const char *id,
     return rc;
 }
 
-void lsmNfsExportRecordFree( lsmNfsExportPtr exp )
+void lsmNfsExportRecordFree( lsmNfsExport *exp )
 {
     if( LSM_IS_NFS_EXPORT(exp) ) {
         exp->magic = LSM_DEL_MAGIC(LSM_NFS_EXPORT_MAGIC);
@@ -1226,7 +1226,7 @@ void lsmNfsExportRecordFree( lsmNfsExportPtr exp )
 }
 
 
-lsmNfsExportPtr lsmNfsExportRecordCopy( lsmNfsExportPtr s )
+lsmNfsExport *lsmNfsExportRecordCopy( lsmNfsExport *s )
 {
     if(LSM_IS_NFS_EXPORT(s)) {
         return lsmNfsExportRecordAlloc(s->id, s->fs_id, s->export_path,
@@ -1236,121 +1236,121 @@ lsmNfsExportPtr lsmNfsExportRecordCopy( lsmNfsExportPtr s )
     return NULL;
 }
 
-CREATE_ALLOC_ARRAY_FUNC(lsmNfsExportRecordAllocArray, lsmNfsExportPtr)
+CREATE_ALLOC_ARRAY_FUNC(lsmNfsExportRecordAllocArray, lsmNfsExport *)
 CREATE_FREE_ARRAY_FUNC(lsmNfsExportRecordFreeArray, lsmNfsExportRecordFree,
-                        lsmNfsExportPtr)
+                        lsmNfsExport *)
 
-const char *lsmNfsExportIdGet( lsmNfsExportPtr exp )
+const char *lsmNfsExportIdGet( lsmNfsExport *exp )
 {
     MEMBER_GET(exp, LSM_IS_NFS_EXPORT, id, NULL);
 }
 
-int lsmNfsExportIdSet(lsmNfsExportPtr exp, const char *ep )
+int lsmNfsExportIdSet(lsmNfsExport *exp, const char *ep )
 {
     MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, id, ep, strdup, free,
                 LSM_ERR_INVALID_NFS);
 }
 
-const char *lsmNfsExportFsIdGet( lsmNfsExportPtr exp )
+const char *lsmNfsExportFsIdGet( lsmNfsExport *exp )
 {
     MEMBER_GET(exp, LSM_IS_NFS_EXPORT, fs_id, NULL);
 }
 
-int lsmNfsExportFsIdSet( lsmNfsExportPtr exp, const char *fs_id)
+int lsmNfsExportFsIdSet( lsmNfsExport *exp, const char *fs_id)
 {
     MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, fs_id, fs_id, strdup, free,
                 LSM_ERR_INVALID_NFS);
 }
 
-const char *lsmNfsExportExportPathGet( lsmNfsExportPtr exp )
+const char *lsmNfsExportExportPathGet( lsmNfsExport *exp )
 {
     MEMBER_GET(exp, LSM_IS_NFS_EXPORT, export_path, NULL);
 }
 
-int lsmNfsExportExportPathSet( lsmNfsExportPtr exp, const char *ep )
+int lsmNfsExportExportPathSet( lsmNfsExport *exp, const char *ep )
 {
     MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, export_path, ep, strdup, free,
                 LSM_ERR_INVALID_NFS);
 }
 
-const char *lsmNfsExportAuthTypeGet( lsmNfsExportPtr exp )
+const char *lsmNfsExportAuthTypeGet( lsmNfsExport *exp )
 {
     MEMBER_GET(exp, LSM_IS_NFS_EXPORT, auth_type, NULL);
 }
 
-int lsmNfsExportAuthTypeSet( lsmNfsExportPtr exp, const char *auth )
+int lsmNfsExportAuthTypeSet( lsmNfsExport *exp, const char *auth )
 {
     MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, auth_type, auth, strdup, free,
                 LSM_ERR_INVALID_NFS);
 }
 
-lsmStringListPtr lsmNfsExportRootGet( lsmNfsExportPtr exp)
+lsmStringList * lsmNfsExportRootGet( lsmNfsExport *exp)
 {
     MEMBER_GET(exp, LSM_IS_NFS_EXPORT, root, NULL);
 }
 
-int lsmNfsExportRootSet( lsmNfsExportPtr exp, lsmStringListPtr root)
+int lsmNfsExportRootSet( lsmNfsExport *exp, lsmStringList *root)
 {
     MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, root, root, lsmStringListCopy,
                 lsmStringListFree, LSM_ERR_INVALID_NFS);
 }
 
-lsmStringListPtr lsmNfsExportReadWriteGet( lsmNfsExportPtr exp)
+lsmStringList * lsmNfsExportReadWriteGet( lsmNfsExport *exp)
 {
     MEMBER_GET(exp, LSM_IS_NFS_EXPORT, rw, NULL);
 }
 
-int lsmNfsExportReadWriteSet( lsmNfsExportPtr exp, lsmStringListPtr rw)
+int lsmNfsExportReadWriteSet( lsmNfsExport *exp, lsmStringList *rw)
 {
     MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, rw, rw, lsmStringListCopy,
                 lsmStringListFree, LSM_ERR_INVALID_NFS);
 }
 
-lsmStringListPtr lsmNfsExportReadOnlyGet( lsmNfsExportPtr exp)
+lsmStringList * lsmNfsExportReadOnlyGet( lsmNfsExport *exp)
 {
     MEMBER_GET(exp, LSM_IS_NFS_EXPORT, ro, NULL);
 }
 
-int lsmNfsExportReadOnlySet(lsmNfsExportPtr exp, lsmStringListPtr ro)
+int lsmNfsExportReadOnlySet(lsmNfsExport *exp, lsmStringList *ro)
 {
     MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, ro, ro, lsmStringListCopy,
                 lsmStringListFree, LSM_ERR_INVALID_NFS);
 }
 
-uint64_t lsmNfsExportAnonUidGet( lsmNfsExportPtr exp )
+uint64_t lsmNfsExportAnonUidGet( lsmNfsExport *exp )
 {
     MEMBER_GET(exp, LSM_IS_NFS_EXPORT, anonuid, ANON_UID_GID_ERROR);
 }
 
-int lsmNfsExportAnonUidSet( lsmNfsExportPtr exp, uint64_t value)
+int lsmNfsExportAnonUidSet( lsmNfsExport *exp, uint64_t value)
 {
     MEMBER_SET_VAL(exp, LSM_IS_NFS_EXPORT, anonuid, value,
                     LSM_ERR_INVALID_NFS);
 }
 
-uint64_t lsmNfsExportAnonGidGet( lsmNfsExportPtr exp )
+uint64_t lsmNfsExportAnonGidGet( lsmNfsExport *exp )
 {
     MEMBER_GET(exp, LSM_IS_NFS_EXPORT, anongid, ANON_UID_GID_ERROR);
 }
 
-int lsmNfsExportAnonGidSet( lsmNfsExportPtr exp, uint64_t value )
+int lsmNfsExportAnonGidSet( lsmNfsExport *exp, uint64_t value )
 {
     MEMBER_SET_VAL(exp, LSM_IS_NFS_EXPORT, anongid, value,
                     LSM_ERR_INVALID_NFS);
 }
 
-const char *lsmNfsExportOptionsGet( lsmNfsExportPtr exp)
+const char *lsmNfsExportOptionsGet( lsmNfsExport *exp)
 {
     MEMBER_GET(exp, LSM_IS_NFS_EXPORT, options, NULL);
 }
 
-int lsmNfsExportOptionsSet( lsmNfsExportPtr exp, const char *value )
+int lsmNfsExportOptionsSet( lsmNfsExport *exp, const char *value )
 {
     MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, options, value, strdup, free,
                 LSM_ERR_INVALID_NFS);
 }
 
-lsmCapabilityValueType lsmCapabilityGet(lsmStorageCapabilitiesPtr cap,
+lsmCapabilityValueType lsmCapabilityGet(lsmStorageCapabilities *cap,
                                         lsmCapabilityType t)
 {
     lsmCapabilityValueType rc = LSM_CAPABILITY_UNKNOWN;
@@ -1361,7 +1361,7 @@ lsmCapabilityValueType lsmCapabilityGet(lsmStorageCapabilitiesPtr cap,
     return rc;
 }
 
-int lsmCapabilitySet(lsmStorageCapabilitiesPtr cap, lsmCapabilityType t,
+int lsmCapabilitySet(lsmStorageCapabilities *cap, lsmCapabilityType t,
                         lsmCapabilityValueType v)
 {
     int rc = LSM_ERR_INVALID_ARGUMENT;
@@ -1377,7 +1377,7 @@ int lsmCapabilitySet(lsmStorageCapabilitiesPtr cap, lsmCapabilityType t,
     return rc;
 }
 
-int lsmCapabilitySetN( lsmStorageCapabilitiesPtr cap,
+int lsmCapabilitySetN( lsmStorageCapabilities *cap,
                                 lsmCapabilityValueType v, uint32_t number,
                                 ... )
 {
@@ -1456,10 +1456,10 @@ static uint8_t *stringToBytes(const char *hex_string, uint32_t *l)
 }
 
 
-lsmStorageCapabilitiesPtr lsmCapabilityRecordAlloc(const char *value)
+lsmStorageCapabilities *lsmCapabilityRecordAlloc(const char *value)
 {
-    lsmStorageCapabilitiesPtr rc = NULL;
-    rc = (lsmStorageCapabilitiesPtr)malloc(sizeof(struct _lsmStorageCapabilities));
+    lsmStorageCapabilities *rc = NULL;
+    rc = (lsmStorageCapabilities *)malloc(sizeof(struct _lsmStorageCapabilities));
     if(rc) {
         rc->magic = LSM_CAPABILITIES_MAGIC;
 
@@ -1481,7 +1481,7 @@ lsmStorageCapabilitiesPtr lsmCapabilityRecordAlloc(const char *value)
     return rc;
 }
 
-void lsmCapabilityRecordFree(lsmStorageCapabilitiesPtr cap)
+void lsmCapabilityRecordFree(lsmStorageCapabilities *cap)
 {
     if( LSM_IS_CAPABILITIY(cap) ) {
         cap->magic = LSM_DEL_MAGIC(LSM_CAPABILITIES_MAGIC);
@@ -1490,7 +1490,7 @@ void lsmCapabilityRecordFree(lsmStorageCapabilitiesPtr cap)
     }
 }
 
-char* capabilityString(lsmStorageCapabilitiesPtr c)
+char* capabilityString(lsmStorageCapabilities *c)
 {
     char *rc = NULL;
     if( LSM_IS_CAPABILITIY(c) ) {

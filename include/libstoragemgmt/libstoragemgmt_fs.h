@@ -30,63 +30,63 @@ extern "C" {
  * Frees a File system record
  * @param fs    File system to free.
  */
-void LSM_DLL_EXPORT lsmFsRecordFree(lsmFsPtr fs);
+void LSM_DLL_EXPORT lsmFsRecordFree(lsmFs *fs);
 
 /**
  * Copies a file system record.
  * @param source        File system record to copy.
  * @return Pointer to copy of file system record
  */
-lsmFsPtr LSM_DLL_EXPORT lsmFsRecordCopy(lsmFsPtr source);
+lsmFs LSM_DLL_EXPORT *lsmFsRecordCopy(lsmFs *source);
 
 /**
  * Frees an array of file system records
  * @param fs        Array of file system record pointers
  * @param size      Number in array to free
  */
-void LSM_DLL_EXPORT lsmFsRecordFreeArray(lsmFsPtr fs[], uint32_t size);
+void LSM_DLL_EXPORT lsmFsRecordFreeArray(lsmFs * fs[], uint32_t size);
 
 /**
  * Returns the id of the file system.
  * @param fs        File system record pointer
  * @return Pointer to file system id
  */
-const char LSM_DLL_EXPORT *lsmFsIdGet(lsmFsPtr fs);
+const char LSM_DLL_EXPORT *lsmFsIdGet(lsmFs *fs);
 
 /**
  * Returns the name associated with the file system.
  * @param fs        File system record pointer
  * @return Pointer to file system name
  */
-const char LSM_DLL_EXPORT *lsmFsNameGet(lsmFsPtr fs);
+const char LSM_DLL_EXPORT *lsmFsNameGet(lsmFs *fs);
 
 /**
  * Returns the file system system id.
  * @param fs    File system record pointer
  * @return Pointer to the system id.
  */
-const char LSM_DLL_EXPORT *lsmFsSystemIdGet(lsmFsPtr fs);
+const char LSM_DLL_EXPORT *lsmFsSystemIdGet(lsmFs *fs);
 
 /**
  * Returns the pool id associated with the file system
  * @param fs    File system record pointer
  * @return Pointer to pool id
  */
-const char LSM_DLL_EXPORT *lsmFsPoolIdGet(lsmFsPtr fs);
+const char LSM_DLL_EXPORT *lsmFsPoolIdGet(lsmFs *fs);
 
 /**
  * Returns total space of file system.
  * @param fs        File system record pointer
  * @return Total size of file system in bytes
  */
-uint64_t LSM_DLL_EXPORT lsmFsTotalSpaceGet(lsmFsPtr fs);
+uint64_t LSM_DLL_EXPORT lsmFsTotalSpaceGet(lsmFs *fs);
 
 /**
  * Returns the space available on the file system
  * @param fs        File system record pointer
  * @return Total number of bytes that are free.
  */
-uint64_t LSM_DLL_EXPORT lsmFsFreeSpaceGet(lsmFsPtr fs);
+uint64_t LSM_DLL_EXPORT lsmFsFreeSpaceGet(lsmFs *fs);
 
 
 #ifdef  __cplusplus

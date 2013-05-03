@@ -32,20 +32,20 @@ extern "C" {
  * @param pa    Pool array to free.
  * @param size  Size of the pool array.
  */
-void LSM_DLL_EXPORT lsmPoolRecordFreeArray( lsmPoolPtr pa[], uint32_t size );
+void LSM_DLL_EXPORT lsmPoolRecordFreeArray( lsmPool *pa[], uint32_t size );
 
 /**
  * Frees the memory for an individual pool
  * @param p Valid pool
  */
-void LSM_DLL_EXPORT lsmPoolRecordFree(lsmPoolPtr p);
+void LSM_DLL_EXPORT lsmPoolRecordFree(lsmPool *p);
 
 /**
  * Copies a lsmPoolRecordCopy
  * @param toBeCopied    Record to be copied
  * @return NULL on memory exhaustion, else copy.
  */
-lsmPoolPtr LSM_DLL_EXPORT lsmPoolRecordCopy( lsmPoolPtr toBeCopied);
+lsmPool LSM_DLL_EXPORT *lsmPoolRecordCopy( lsmPool *toBeCopied);
 
 /**
  * Retrieves the name from the pool.
@@ -53,7 +53,7 @@ lsmPoolPtr LSM_DLL_EXPORT lsmPoolRecordCopy( lsmPoolPtr toBeCopied);
  * @param p     Pool
  * @return      The name of the pool.
  */
-char LSM_DLL_EXPORT *lsmPoolNameGet( lsmPoolPtr p );
+char LSM_DLL_EXPORT *lsmPoolNameGet( lsmPool *p );
 
 /**
  * Retrieves the system wide unique identifier for the pool.
@@ -61,28 +61,28 @@ char LSM_DLL_EXPORT *lsmPoolNameGet( lsmPoolPtr p );
  * @param p     Pool
  * @return      The System wide unique identifier.
  */
-char LSM_DLL_EXPORT *lsmPoolIdGet( lsmPoolPtr p );
+char LSM_DLL_EXPORT *lsmPoolIdGet( lsmPool *p );
 
 /**
  * Retrieves the total space for the pool.
  * @param p     Pool
  * @return      Total space of the pool.
  */
-uint64_t LSM_DLL_EXPORT lsmPoolTotalSpaceGet( lsmPoolPtr p );
+uint64_t LSM_DLL_EXPORT lsmPoolTotalSpaceGet( lsmPool *p );
 
 /**
  * Retrieves the remaining free space in the pool.
  * @param p     Pool
  * @return      The amount of free space.
  */
-uint64_t LSM_DLL_EXPORT lsmPoolFreeSpaceGet( lsmPoolPtr p );
+uint64_t LSM_DLL_EXPORT lsmPoolFreeSpaceGet( lsmPool *p );
 
 /**
  * Retrieve the system id for the specified pool.
  * @param p     Pool pointer
  * @return      System ID
  */
-char LSM_DLL_EXPORT *lsmPoolGetSystemId( lsmPoolPtr p );
+char LSM_DLL_EXPORT *lsmPoolGetSystemId( lsmPool *p );
 
 #ifdef  __cplusplus
 }

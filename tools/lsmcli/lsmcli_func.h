@@ -32,8 +32,8 @@
  * @param vol       New volume to print out.
  * @return LSM_ERR_OK on success else error reason.
  */
-int waitForJob(int cmd_rc, lsmConnectPtr c, char *job,
-                    const LSM::Arguments &a, lsmVolumePtr *vol = NULL);
+int waitForJob(int cmd_rc, lsmConnect *c, char *job,
+                    const LSM::Arguments &a, lsmVolume **vol = NULL);
 
 /**
  * Dumps error information to stdout.
@@ -48,7 +48,7 @@ void dumpError(int ec, lsmErrorPtr e);
  * @param c     Connection
  * @return LSM_ERR_OK on success, else error reason.
  */
-int list(const LSM::Arguments &a, lsmConnectPtr c);
+int list(const LSM::Arguments &a, lsmConnect *c);
 
 /**
  * Creates an initiator to use for access granting.
@@ -56,7 +56,7 @@ int list(const LSM::Arguments &a, lsmConnectPtr c);
  * @param c     Connection.
  * @return LSM_ERR_OK on success, else error reason.
  */
-int createInit(const LSM::Arguments &a, lsmConnectPtr c);
+int createInit(const LSM::Arguments &a, lsmConnect *c);
 
 /**
  * Deletes an initiator
@@ -64,7 +64,7 @@ int createInit(const LSM::Arguments &a, lsmConnectPtr c);
  * @param c     Connection
  * @return LSM_ERR_OK on success, else error reason.
  */
-int deleteInit(const LSM::Arguments &a, lsmConnectPtr c);
+int deleteInit(const LSM::Arguments &a, lsmConnect *c);
 
 /**
  * Creates a volume
@@ -72,7 +72,7 @@ int deleteInit(const LSM::Arguments &a, lsmConnectPtr c);
  * @param c     Connection
  * @return LSM_ERR_OK on success, else error reason.
  */
-int createVolume(const LSM::Arguments &a, lsmConnectPtr c);
+int createVolume(const LSM::Arguments &a, lsmConnect *c);
 
 /**
  * Deletes a volume
@@ -80,7 +80,7 @@ int createVolume(const LSM::Arguments &a, lsmConnectPtr c);
  * @param c     Connection
  * @return LSM_ERR_OK on success, else error reason.
  */
-int deleteVolume(const LSM::Arguments &a, lsmConnectPtr c);
+int deleteVolume(const LSM::Arguments &a, lsmConnect *c);
 
 /**
  * Replicates a volume.
@@ -88,7 +88,7 @@ int deleteVolume(const LSM::Arguments &a, lsmConnectPtr c);
  * @param c     Connection
  * @return LSM_ERR_OK on success, else error reason.
  */
-int replicateVolume(const LSM::Arguments &a, lsmConnectPtr c);
+int replicateVolume(const LSM::Arguments &a, lsmConnect *c);
 
 /**
  * Allows an initiator to use a volume.
@@ -96,7 +96,7 @@ int replicateVolume(const LSM::Arguments &a, lsmConnectPtr c);
  * @param c     Connection
  * @return LSM_ERR_OK on success, else error reason.
  */
-int accessGrant(const LSM::Arguments &a, lsmConnectPtr c);
+int accessGrant(const LSM::Arguments &a, lsmConnect *c);
 
 /**
  * Revokes access for an initiator to a volume.
@@ -104,7 +104,7 @@ int accessGrant(const LSM::Arguments &a, lsmConnectPtr c);
  * @param c     Connection.
  * @return LSM_ERR_OK on success, else error reason.
  */
-int accessRevoke(const LSM::Arguments &a, lsmConnectPtr c);
+int accessRevoke(const LSM::Arguments &a, lsmConnect *c);
 
 /**
  * Resize an existing volume.
@@ -112,6 +112,6 @@ int accessRevoke(const LSM::Arguments &a, lsmConnectPtr c);
  * @param c     Connection
  * @return LSM_ERR_OK on success, else error reason.
  */
-int resizeVolume(const LSM::Arguments &a, lsmConnectPtr c);
+int resizeVolume(const LSM::Arguments &a, lsmConnect *c);
 
 #endif

@@ -46,23 +46,23 @@ extern "C" {
 /**
  * Allocates storage for string line of specified size.
  * @param size  Initial number of strings to allocate
- * @return NULL on error, else valid lsmStringListPtr record pointer
+ * @return NULL on error, else valid lsmStringList record pointer
  */
-lsmStringListPtr LSM_DLL_EXPORT lsmStringListAlloc(uint32_t size);
+lsmStringList LSM_DLL_EXPORT *lsmStringListAlloc(uint32_t size);
 
 /**
  * Frees the memory allocated with the lsmStringListFree
  * @param sl    Record to free
  * @return LSM_ERR_OK on success, else error reason.
  */
-int LSM_DLL_EXPORT lsmStringListFree(lsmStringListPtr sl);
+int LSM_DLL_EXPORT lsmStringListFree(lsmStringList *sl);
 
 /**
  * Copies a lsmStringList record.
  * @param src       Source to copy
  * @return NULL on error, else copy of source.
  */
-lsmStringListPtr LSM_DLL_EXPORT lsmStringListCopy(lsmStringListPtr src);
+lsmStringList LSM_DLL_EXPORT *lsmStringListCopy(lsmStringList *src);
 
 /**
  * Set the specified element with the passed value.
@@ -71,7 +71,7 @@ lsmStringListPtr LSM_DLL_EXPORT lsmStringListCopy(lsmStringListPtr src);
  * @param value     Value to use for assignment
  * @return LSM_ERR_OK on success, else error reason
  */
-int LSM_DLL_EXPORT lsmStringListSetElem(lsmStringListPtr sl, uint32_t index, const char* value);
+int LSM_DLL_EXPORT lsmStringListSetElem(lsmStringList *sl, uint32_t index, const char* value);
 
 /**
  * Returns the value at the specified elem index
@@ -79,7 +79,7 @@ int LSM_DLL_EXPORT lsmStringListSetElem(lsmStringListPtr sl, uint32_t index, con
  * @param index     Index to retrieve
  * @return Value at that index position.
  */
-const char LSM_DLL_EXPORT *lsmStringListGetElem(lsmStringListPtr sl, uint32_t index);
+const char LSM_DLL_EXPORT *lsmStringListGetElem(lsmStringList *sl, uint32_t index);
 
 /**
  * Returns the size of the list
@@ -88,7 +88,7 @@ const char LSM_DLL_EXPORT *lsmStringListGetElem(lsmStringListPtr sl, uint32_t in
  *          0 indicates error with structure
  *
  */
-uint32_t LSM_DLL_EXPORT lsmStringListSize(lsmStringListPtr sl);
+uint32_t LSM_DLL_EXPORT lsmStringListSize(lsmStringList *sl);
 
 /**
  * Appends a char * to the string list, will grow container as needed.
@@ -96,7 +96,7 @@ uint32_t LSM_DLL_EXPORT lsmStringListSize(lsmStringListPtr sl);
  * @param add   Character string to add
  * @return LSM_ERR_OK on success, else error reason
  */
-int LSM_DLL_EXPORT lsmStringListAppend(lsmStringListPtr sl, const char* add);
+int LSM_DLL_EXPORT lsmStringListAppend(lsmStringList *sl, const char* add);
 
 /**
  * Removes the string at the specified index.
@@ -104,7 +104,7 @@ int LSM_DLL_EXPORT lsmStringListAppend(lsmStringListPtr sl, const char* add);
  * @param index         Specified index
  * @return LSM_ERR_OK on success, else error reason
  */
-int LSM_DLL_EXPORT lsmStringListRemove(lsmStringListPtr sl, uint32_t index);
+int LSM_DLL_EXPORT lsmStringListRemove(lsmStringList *sl, uint32_t index);
 
 
 

@@ -25,9 +25,9 @@
 #include <inttypes.h>
 #include <unistd.h>
 
-lsmInitiatorPtr getInitiator(lsmConnectPtr c, std::string initId);
+lsmInitiator *getInitiator(lsmConnect *c, std::string initId);
 
-void printVolume(const LSM::Arguments &a, lsmVolumePtr v)
+void printVolume(const LSM::Arguments &a, lsmVolume *v)
 {
     const char *id = lsmVolumeIdGet(v);
     const char *name = lsmVolumeNameGet(v);
@@ -50,7 +50,7 @@ void printVolume(const LSM::Arguments &a, lsmVolumePtr v)
     }
 }
 
-void printInitiator(const LSM::Arguments &a, lsmInitiatorPtr i)
+void printInitiator(const LSM::Arguments &a, lsmInitiator *i)
 {
     const char format[] = "%-40s%-16s%-5d\n";
     const char *sep = NULL;
@@ -70,10 +70,10 @@ void printInitiator(const LSM::Arguments &a, lsmInitiatorPtr i)
     }
 }
 
-int waitForJob(int cmd_rc, lsmConnectPtr c, char *job,
-                const LSM::Arguments &a, lsmVolumePtr *vol)
+int waitForJob(int cmd_rc, lsmConnect *c, char *job,
+                const LSM::Arguments &a, lsmVolume **vol)
 {
-    lsmVolumePtr new_volume = NULL;
+    lsmVolume *new_volume = NULL;
     int rc = cmd_rc;
     //Check to see if we are done!
     if( LSM_ERR_OK != rc ) {
@@ -139,10 +139,10 @@ void dumpError(int ec, lsmErrorPtr e)
 
 //NOTE:  Re-factor these three functions as they are too similar and could be
 //consolidated.
-static int listVolumes(const LSM::Arguments &a, lsmConnectPtr c)
+static int listVolumes(const LSM::Arguments &a, lsmConnect *c)
 {
     int rc = 0;
-    lsmVolumePtr *vol = NULL;
+    lsmVolume **vol = NULL;
     uint32_t num_vol = 0;
 
     rc = lsmVolumeList(c, &vol, & num_vol, 0);
@@ -166,10 +166,10 @@ static int listVolumes(const LSM::Arguments &a, lsmConnectPtr c)
     return rc;
 }
 
-static int listInitiators(const LSM::Arguments &a, lsmConnectPtr c)
+static int listInitiators(const LSM::Arguments &a, lsmConnect *c)
 {
     int rc = 0;
-    lsmInitiatorPtr *init = NULL;
+    lsmInitiator **init = NULL;
     uint32_t num_init = 0;
     const char format[] = "%-40s%-16s%-5d\n";
 
@@ -192,10 +192,10 @@ static int listInitiators(const LSM::Arguments &a, lsmConnectPtr c)
     return rc;
 }
 
-static int listPools(const LSM::Arguments &a, lsmConnectPtr c)
+static int listPools(const LSM::Arguments &a, lsmConnect *c)
 {
     int rc = 0;
-    lsmPoolPtr *pool = NULL;
+    lsmPool **pool = NULL;
     uint32_t num_pool = 0;
     const char *sep = NULL;
 
@@ -236,7 +236,7 @@ static int listPools(const LSM::Arguments &a, lsmConnectPtr c)
     return rc;
 }
 
-int list(const LSM::Arguments &a, lsmConnectPtr c)
+int list(const LSM::Arguments &a, lsmConnect *c)
 {
     int rc = 0;
     if( a.commandValue == LIST_TYPE_VOL ) {
@@ -251,11 +251,11 @@ int list(const LSM::Arguments &a, lsmConnectPtr c)
 }
 
 //Re-factor these next three functions as they are similar.
-lsmPoolPtr getPool(lsmConnectPtr c, std::string poolId)
+lsmPool *getPool(lsmConnect *c, std::string poolId)
 {
     int rc = 0;
-    lsmPoolPtr p = NULL;
-    lsmPoolPtr *pool = NULL;
+    lsmPool *p = NULL;
+    lsmPool **pool = NULL;
     uint32_t num_pool = 0;
     uint32_t i = 0;
 
@@ -275,11 +275,11 @@ lsmPoolPtr getPool(lsmConnectPtr c, std::string poolId)
     return p;
 }
 
-lsmVolumePtr getVolume(lsmConnectPtr c, std::string volumeId)
+lsmVolume *getVolume(lsmConnect *c, std::string volumeId)
 {
     int rc = 0;
-    lsmVolumePtr p = NULL;
-    lsmVolumePtr *vol = NULL;
+    lsmVolume *p = NULL;
+    lsmVolume **vol = NULL;
     uint32_t num_vol = 0;
     uint32_t i = 0;
 
@@ -299,11 +299,11 @@ lsmVolumePtr getVolume(lsmConnectPtr c, std::string volumeId)
     return p;
 }
 
-lsmInitiatorPtr getInitiator(lsmConnectPtr c, std::string initId)
+lsmInitiator *getInitiator(lsmConnect *c, std::string initId)
 {
     int rc = 0;
-    lsmInitiatorPtr p = NULL;
-    lsmInitiatorPtr *inits = NULL;
+    lsmInitiator *p = NULL;
+    lsmInitiator **inits = NULL;
     uint32_t num_inits = 0;
     uint32_t i = 0;
 
@@ -323,13 +323,13 @@ lsmInitiatorPtr getInitiator(lsmConnectPtr c, std::string initId)
     return p;
 }
 
-int createVolume(const LSM::Arguments &a, lsmConnectPtr c)
+int createVolume(const LSM::Arguments &a, lsmConnect *c)
 {
     int rc = 0;
-    lsmVolumePtr vol = NULL;
+    lsmVolume *vol = NULL;
     char *job = NULL;
     uint64_t size = 0;
-    lsmPoolPtr pool = NULL;
+    lsmPool *pool = NULL;
 
     //Get the pool of interest
     pool = getPool(c, a.pool.value);
@@ -349,12 +349,12 @@ int createVolume(const LSM::Arguments &a, lsmConnectPtr c)
     return rc;
 }
 
-int deleteVolume(const LSM::Arguments &a, lsmConnectPtr c)
+int deleteVolume(const LSM::Arguments &a, lsmConnect *c)
 {
     int rc = 0;
     char *job = NULL;
     //Get the volume pointer to the record in question to delete.
-    lsmVolumePtr vol = getVolume(c, a.commandValue);
+    lsmVolume *vol = getVolume(c, a.commandValue);
 
     if( vol ) {
         rc = lsmVolumeDelete(c, vol, &job, 0);
@@ -365,13 +365,13 @@ int deleteVolume(const LSM::Arguments &a, lsmConnectPtr c)
     return rc;
 }
 
-int replicateVolume(const LSM::Arguments &a, lsmConnectPtr c)
+int replicateVolume(const LSM::Arguments &a, lsmConnect *c)
 {
     int rc = 0;
     char *job = NULL;
-    lsmVolumePtr newVol = NULL;
-    lsmVolumePtr vol = getVolume(c, a.commandValue);
-    lsmPoolPtr pool = getPool(c, a.pool.value);
+    lsmVolume *newVol = NULL;
+    lsmVolume *vol = getVolume(c, a.commandValue);
+    lsmPool *pool = getPool(c, a.pool.value);
 
 
     if( vol && pool ) {
@@ -401,13 +401,13 @@ int replicateVolume(const LSM::Arguments &a, lsmConnectPtr c)
     return rc;
 }
 
-int resizeVolume(const LSM::Arguments &a, lsmConnectPtr c)
+int resizeVolume(const LSM::Arguments &a, lsmConnect *c)
 {
     int rc = 0;
     char *job = NULL;
     uint64_t size = 0;
-    lsmVolumePtr newVol = NULL;
-    lsmVolumePtr vol = getVolume(c, a.commandValue);
+    lsmVolume *newVol = NULL;
+    lsmVolume *vol = getVolume(c, a.commandValue);
 
     LSM::sizeArg(a.size.value.c_str(), &size);
 

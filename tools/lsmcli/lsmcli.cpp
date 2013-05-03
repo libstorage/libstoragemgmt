@@ -36,7 +36,7 @@ void debug_plugin(void)
 
 int main(int argc, char *argv[])
 {
-    lsmConnectPtr c = NULL;
+    lsmConnect *c = NULL;
     lsmErrorPtr e = NULL;
 
     LSM::Arguments a;

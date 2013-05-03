@@ -111,7 +111,7 @@ typedef enum {
  * Free the memory used by the storage capabilities data structure
  * @param cap	Valid storage capability data structure.
  */
-void LSM_DLL_EXPORT lsmCapabilityRecordFree(lsmStorageCapabilitiesPtr cap);
+void LSM_DLL_EXPORT lsmCapabilityRecordFree(lsmStorageCapabilities *cap);
 
 /**
  * Return the capability for the specified feature.
@@ -120,7 +120,7 @@ void LSM_DLL_EXPORT lsmCapabilityRecordFree(lsmStorageCapabilitiesPtr cap);
  * @return Value of supported enumerated type.
  */
 lsmCapabilityValueType LSM_DLL_EXPORT lsmCapabilityGet(
-                                        lsmStorageCapabilitiesPtr cap,
+                                        lsmStorageCapabilities *cap,
                                         lsmCapabilityType t);
 
 

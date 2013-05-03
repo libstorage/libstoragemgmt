@@ -37,89 +37,73 @@ extern "C" {
 typedef uint64_t lsmFlag_t;
 
 #define LSM_FLAG_RSVD 0
-#define LSM_FLAG_UNUSED_CHECK(x) ( x != 0 )
-#define LSM_FLAG_GET_VALUE(x) x["flags"].asUint64_t()
-#define LSM_FLAG_EXPECTED_TYPE(x) (Value::numeric_t == x["flags"].valueType())
 
 /**
  * Opaque data type for a connection.
  */
 typedef struct _lsmConnect lsmConnect;
-typedef lsmConnect *lsmConnectPtr;
 
 /**
  * Opaque data type for a block based storage unit
  */
 typedef struct _lsmVolume lsmVolume;
-typedef lsmVolume *lsmVolumePtr;
 
 /**
  * Opaque data type for a storage pool which is used as a base for Volumes etc.
  * to be created from.
  */
 typedef struct _lsmPool lsmPool;
-typedef lsmPool *lsmPoolPtr;
 
 /**
  * Opaque data type for an initiator.
  */
 typedef struct _lsmInitiator lsmInitiator;
-typedef lsmInitiator *lsmInitiatorPtr;
 
 /**
  * Opaque data type for storage capabilities.
  */
 typedef struct _lsmStorageCapabilities lsmStorageCapabilities;
-typedef lsmStorageCapabilities *lsmStorageCapabilitiesPtr;
 
 /**
  * Access group
  */
 typedef struct _lsmAccessGroup lsmAccessGroup;
-typedef lsmAccessGroup *lsmAccessGroupPtr;
 
 /**
  * Opaque data type for file system
  */
 typedef struct _lsmFileSystem lsmFileSystem;
-typedef lsmFileSystem *lsmFileSystemPtr;
 
 
 /**
  * Opaque data type for nfs exports
  */
 typedef struct _lsmNfsExport lsmNfsExport;
-typedef lsmNfsExport *lsmNfsExportPtr;
 
 /**
  * Opaque data type for block ranges (regions to replicate)
  */
 typedef struct _lsmBlockRange lsmBlockRange;
-typedef lsmBlockRange *lsmBlockRangePtr;
 
 /**
  * Opaque data type for systems.
  */
 typedef struct _lsmSystem lsmSystem;
-typedef lsmSystem *lsmSystemPtr;
 
 /**
  * Opaque data type for string collection
  */
 typedef struct _lsmStringList lsmStringList;
-typedef lsmStringList *lsmStringListPtr;
 
 /**
  * Opaque data type for file systems
  */
 typedef struct _lsmFs lsmFs;
-typedef lsmFs *lsmFsPtr;
 
 /**
  * Opaque data type for snapshot
  */
 typedef struct _lsmSs lsmSs;
-typedef lsmSs *lsmSsPtr;
 
 /**< \enum lsmReplicationType Different types of replications that can be created */
 typedef enum {
