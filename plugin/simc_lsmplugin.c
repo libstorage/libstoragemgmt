@@ -398,7 +398,7 @@ static int jobStatus(lsmPluginPtr c, const char *job_id,
     return rc;
 }
 
-static int list_pools(lsmPluginPtr c, lsmPool ***poolArray,
+static int list_pools(lsmPluginPtr c, lsmPool **poolArray[],
                                         uint32_t *count, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
@@ -425,7 +425,7 @@ static int list_pools(lsmPluginPtr c, lsmPool ***poolArray,
     return rc;
 }
 
-static int list_systems(lsmPluginPtr c, lsmSystem ***systems,
+static int list_systems(lsmPluginPtr c, lsmSystem **systems[],
                                         uint32_t *systemCount, lsmFlag_t flags)
 {
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
@@ -490,7 +490,7 @@ static int _volume_accessible(struct plugin_data *pd, lsmAccessGroup *ag,
     return 0;
 }
 
-static int _list_initiators(lsmPluginPtr c, lsmInitiator ***initArray,
+static int _list_initiators(lsmPluginPtr c, lsmInitiator **initArray[],
                                         uint32_t *count, lsmFlag_t flags,
                                         lsmVolume *filter)
 {
@@ -571,13 +571,13 @@ static int _list_initiators(lsmPluginPtr c, lsmInitiator ***initArray,
 }
 
 
-static int list_initiators(lsmPluginPtr c, lsmInitiator ***initArray,
+static int list_initiators(lsmPluginPtr c, lsmInitiator **initArray[],
                                         uint32_t *count, lsmFlag_t flags)
 {
     return _list_initiators(c, initArray, count, flags, NULL);
 }
 
-static int list_volumes(lsmPluginPtr c, lsmVolume ***vols,
+static int list_volumes(lsmPluginPtr c, lsmVolume **vols[],
                                         uint32_t *count, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
@@ -887,7 +887,7 @@ static int volume_online_offline(lsmPluginPtr c, lsmVolume *v,
 }
 
 static int access_group_list(lsmPluginPtr c,
-                                lsmAccessGroup ***groups,
+                                lsmAccessGroup **groups[],
                                 uint32_t *groupCount, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
@@ -1184,7 +1184,7 @@ static lsmVolume *get_volume_by_id(struct plugin_data *pd, const char *id)
 
 static int vol_accessible_by_ag(lsmPluginPtr c,
                                 lsmAccessGroup *group,
-                                lsmVolume ***volumes,
+                                lsmVolume **volumes[],
                                 uint32_t *count, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
@@ -1248,7 +1248,7 @@ static lsmAccessGroup *access_group_by_id(struct plugin_data *pd,
 
 static int ag_granted_to_volume( lsmPluginPtr c,
                                     lsmVolume *volume,
-                                    lsmAccessGroup ***groups,
+                                    lsmAccessGroup **groups[],
                                     uint32_t *count, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
@@ -1421,7 +1421,7 @@ static int initiator_revoke(lsmPluginPtr c, lsmInitiator *init,
 
 static int initiators_granted_to_vol(lsmPluginPtr c,
                                         lsmVolume *volume,
-                                        lsmInitiator ***initArray,
+                                        lsmInitiator **initArray[],
                                         uint32_t *count, lsmFlag_t flags)
 {
     return _list_initiators(c, initArray, count, flags, volume);
@@ -1458,7 +1458,7 @@ static int _initiator_in_ag(struct plugin_data *pd, lsmAccessGroup *ag,
 
 static int vol_accessible_by_init(lsmPluginPtr c,
                                     lsmInitiator *initiator,
-                                    lsmVolume ***volumes,
+                                    lsmVolume **volumes[],
                                     uint32_t *count, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
@@ -1570,7 +1570,7 @@ static struct lsmSanOpsV1 sanOps = {
 };
 
 
-static int fs_list(lsmPluginPtr c, lsmFs ***fs, uint32_t *count,
+static int fs_list(lsmPluginPtr c, lsmFs **fs[], uint32_t *count,
                     lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
@@ -1796,7 +1796,7 @@ static int fs_child_dependency_rm( lsmPluginPtr c, lsmFs *fs,
     return rc;
 }
 
-static int ss_list(lsmPluginPtr c, lsmFs * fs, lsmSs ***ss,
+static int ss_list(lsmPluginPtr c, lsmFs * fs, lsmSs **ss[],
                                 uint32_t *count, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
@@ -1957,7 +1957,7 @@ static int nfs_auth_types(lsmPluginPtr c, lsmStringList **types,
     return rc;
 }
 
-static int nfs_export_list( lsmPluginPtr c, lsmNfsExport ***exports,
+static int nfs_export_list( lsmPluginPtr c, lsmNfsExport **exports[],
                                 uint32_t *count, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;

@@ -155,7 +155,7 @@ typedef int (*lsmPlugJobFree)(lsmPluginPtr c, char *jobId, lsmFlag_t flags);
  * @param[in]   flags           Reserved
  * @return LSM_ERR_OK, else error reason
  */
-typedef int (*lsmPlugListPools)( lsmPluginPtr c, lsmPool ***poolArray,
+typedef int (*lsmPlugListPools)( lsmPluginPtr c, lsmPool **poolArray[],
                                         uint32_t *count, lsmFlag_t flags);
 
 /**
@@ -166,7 +166,7 @@ typedef int (*lsmPlugListPools)( lsmPluginPtr c, lsmPool ***poolArray,
  * @param[out]  flags           Reserved
  * @return LSM_ERR_OK, else error reason
  */
-typedef int (*lsmPlugSystemList)(lsmPluginPtr c, lsmSystem ***systems,
+typedef int (*lsmPlugSystemList)(lsmPluginPtr c, lsmSystem **systems[],
                                         uint32_t *systemCount, lsmFlag_t flags);
 
 /** \struct lsmMgmtOpsV1
@@ -189,7 +189,7 @@ struct lsmMgmtOpsV1 {
  * @param[out]  flags           Reserved
  * @return LSM_ERR_OK, else error reason
  */
-typedef int (*lsmPlugListInits)( lsmPluginPtr c, lsmInitiator ***initArray,
+typedef int (*lsmPlugListInits)( lsmPluginPtr c, lsmInitiator **initArray[],
                                         uint32_t *count, lsmFlag_t flags);
 
 /**
@@ -200,7 +200,7 @@ typedef int (*lsmPlugListInits)( lsmPluginPtr c, lsmInitiator ***initArray,
  * @param[in]   flags           Reserved
  * @return LSM_ERR_OK, else error reason
  */
-typedef int (*lsmPlugListVolumes)( lsmPluginPtr c, lsmVolume ***volArray,
+typedef int (*lsmPlugListVolumes)( lsmPluginPtr c, lsmVolume **volArray[],
                                         uint32_t *count, lsmFlag_t flags);
 
 /**
@@ -389,7 +389,7 @@ typedef int (*lsmPlugInitiatorRevoke)(lsmPluginPtr c, lsmInitiator *init,
  */
 typedef int (*lsmPlugInitiatorsGrantedToVolume)(lsmPluginPtr c,
                                         lsmVolume *volume,
-                                        lsmInitiator ***initArray,
+                                        lsmInitiator **initArray[],
                                         uint32_t *count, lsmFlag_t flags);
 
 /**
@@ -417,7 +417,7 @@ typedef int (*lsmPlugIscsiChapAuthInbound)(lsmPluginPtr c,
  * @return LSM_ERR_OK, else error reason
  */
 typedef int (*lsmPlugAccessGroupList)(lsmPluginPtr c,
-                                        lsmAccessGroup ***groups,
+                                        lsmAccessGroup **groups[],
                                         uint32_t *groupCount, lsmFlag_t flags);
 /**
  * Creates an access group, callback function signature
@@ -512,7 +512,7 @@ typedef int (*lsmPlugAccessGroupRevoke)(lsmPluginPtr c,
  */
 typedef int (*lsmPlugVolumesAccessibleByAccessGroup)(lsmPluginPtr c,
                                                         lsmAccessGroup *group,
-                                                        lsmVolume ***volumes,
+                                                        lsmVolume **volumes[],
                                                         uint32_t *count, lsmFlag_t flags);
 
 /**
@@ -526,7 +526,7 @@ typedef int (*lsmPlugVolumesAccessibleByAccessGroup)(lsmPluginPtr c,
  */
 typedef int (*lsmPlugVolumesAccessibleByInitiator)(lsmPluginPtr c,
                                                         lsmInitiator * initiator,
-                                                        lsmVolume ***volumes,
+                                                        lsmVolume **volumes[],
                                                         uint32_t *count, lsmFlag_t flags);
 
 /**
@@ -541,7 +541,7 @@ typedef int (*lsmPlugVolumesAccessibleByInitiator)(lsmPluginPtr c,
  */
  typedef int (*lsmPlugAccessGroupsGrantedToVolume)(lsmPluginPtr c,
                                                     lsmVolume *volume,
-                                                    lsmAccessGroup ***groups,
+                                                    lsmAccessGroup **groups[],
                                                     uint32_t *groupCount, lsmFlag_t flags);
 
 /**
@@ -576,7 +576,7 @@ typedef int (*lsmPlugVolumeChildDependencyRm)(lsmPluginPtr c,
  * @param[in] flags                 Reserved
  * @return LSM_ERR_OK, else error reason
  */
-typedef int (*lsmPlugFsList)(lsmPluginPtr c, lsmFs ***fs,
+typedef int (*lsmPlugFsList)(lsmPluginPtr c, lsmFs **fs[],
                                     uint32_t *fsCount, lsmFlag_t flags);
 
 /**
@@ -681,7 +681,7 @@ typedef int (*lsmPlugFsFileClone)(lsmPluginPtr c, lsmFs *fs,
  * @param[in]   flags               Reserved
  * @return  LSM_ERR_OK, else error reason
  */
-typedef int (*lsmPlugSsList)(lsmPluginPtr c, lsmFs *fs, lsmSs ***ss,
+typedef int (*lsmPlugSsList)(lsmPluginPtr c, lsmFs *fs, lsmSs **ss[],
                                 uint32_t *ssCount, lsmFlag_t flags);
 
 /**
@@ -745,7 +745,7 @@ typedef int (*lsmPlugNfsAuthTypes)( lsmPluginPtr c,
  * @return LSM_ERR_OK, else error reason
  */
 typedef int (*lsmPlugNfsList)( lsmPluginPtr c,
-                                            lsmNfsExport ***exports,
+                                            lsmNfsExport **exports[],
                                             uint32_t *count, lsmFlag_t flags);
 /**
  * Exports a file system via NFS, callback function signature

@@ -162,7 +162,7 @@ static int jobCheck( int rc, Value &response, char **job )
     return rc;
 }
 
-static int getAccessGroups( int rc, Value &response, lsmAccessGroup ***groups,
+static int getAccessGroups( int rc, Value &response, lsmAccessGroup **groups[],
                             uint32_t *count)
 {
     if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
@@ -429,7 +429,7 @@ int lsmCapabilities(lsmConnect *c, lsmSystem *system,
     return rc;
 }
 
-int lsmPoolList(lsmConnect *c, lsmPool ***poolArray,
+int lsmPoolList(lsmConnect *c, lsmPool **poolArray[],
                         uint32_t *count, lsmFlag_t flags)
 {
     CONN_SETUP(c);
@@ -461,7 +461,7 @@ int lsmPoolList(lsmConnect *c, lsmPool ***poolArray,
 }
 
 static int get_initiator_array(int rc, Value &response,
-                                lsmInitiator ***initiators, uint32_t *count)
+                                lsmInitiator **initiators[], uint32_t *count)
 {
     if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
         std::vector<Value> inits = response.asArray();
@@ -486,7 +486,7 @@ static int get_initiator_array(int rc, Value &response,
     return rc;
 }
 
-int lsmInitiatorList(lsmConnect *c, lsmInitiator ***initiators,
+int lsmInitiatorList(lsmConnect *c, lsmInitiator **initiators[],
                                 uint32_t *count, lsmFlag_t flags)
 {
     CONN_SETUP(c);
@@ -506,7 +506,7 @@ int lsmInitiatorList(lsmConnect *c, lsmInitiator ***initiators,
 }
 
 static int get_volume_array(int rc, Value response,
-                            lsmVolume ***volumes, uint32_t *count)
+                            lsmVolume **volumes[], uint32_t *count)
 {
     if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
         std::vector<Value> vol = response.asArray();
@@ -529,7 +529,7 @@ static int get_volume_array(int rc, Value response,
 }
 
 
-int lsmVolumeList(lsmConnect *c, lsmVolume ***volumes, uint32_t *count,
+int lsmVolumeList(lsmConnect *c, lsmVolume **volumes[], uint32_t *count,
                     lsmFlag_t flags)
 {
     CONN_SETUP(c);
@@ -864,7 +864,7 @@ int lsmInitiatorRevoke( lsmConnect *c, lsmInitiator *i, lsmVolume *v,
 
 int lsmVolumesAccessibleByInitiator(lsmConnect *c,
                                         lsmInitiator *initiator,
-                                        lsmVolume ***volumes,
+                                        lsmVolume **volumes[],
                                         uint32_t *count, lsmFlag_t flags)
 {
     CONN_SETUP(c);
@@ -889,7 +889,7 @@ int lsmVolumesAccessibleByInitiator(lsmConnect *c,
 }
 
 int lsmInitiatorsGrantedToVolume(lsmConnect *c, lsmVolume *volume,
-                                lsmInitiator ***initiators, uint32_t *count,
+                                lsmInitiator **initiators[], uint32_t *count,
                                 lsmFlag_t flags)
 {
     CONN_SETUP(c);
@@ -945,7 +945,7 @@ int lsmVolumeOffline(lsmConnect *c, lsmVolume *volume, lsmFlag_t flags)
     return online_offline(c, volume, "volume_offline", flags);
 }
 
-int lsmAccessGroupList( lsmConnect *c, lsmAccessGroup ***groups,
+int lsmAccessGroupList( lsmConnect *c, lsmAccessGroup **groups[],
                         uint32_t *groupCount, lsmFlag_t flags)
 {
     CONN_SETUP(c);
@@ -1135,7 +1135,7 @@ int lsmAccessGroupRevoke(lsmConnect *c, lsmAccessGroup *group,
 
 int lsmVolumesAccessibleByAccessGroup(lsmConnect *c,
                                         lsmAccessGroup *group,
-                                        lsmVolume ***volumes,
+                                        lsmVolume **volumes[],
                                         uint32_t *count, lsmFlag_t flags)
 {
     CONN_SETUP(c);
@@ -1174,7 +1174,7 @@ int lsmVolumesAccessibleByAccessGroup(lsmConnect *c,
 
 int lsmAccessGroupsGrantedToVolume(lsmConnect *c,
                                     lsmVolume *volume,
-                                    lsmAccessGroup ***groups,
+                                    lsmAccessGroup **groups[],
                                     uint32_t *groupCount, lsmFlag_t flags)
 {
     CONN_SETUP(c);
@@ -1258,7 +1258,7 @@ int lsmVolumeChildDependencyRm(lsmConnect *c, lsmVolume *volume,
     return jobCheck(rc, response, job);
 }
 
-int lsmSystemList(lsmConnect *c, lsmSystem ***systems,
+int lsmSystemList(lsmConnect *c, lsmSystem **systems[],
                     uint32_t *systemCount, lsmFlag_t flags)
 {
     CONN_SETUP(c);
@@ -1298,7 +1298,7 @@ int lsmSystemList(lsmConnect *c, lsmSystem ***systems,
     return rc;
 }
 
-int lsmFsList(lsmConnect *c, lsmFs ***fs, uint32_t *fsCount,
+int lsmFsList(lsmConnect *c, lsmFs **fs[], uint32_t *fsCount,
                 lsmFlag_t flags)
 {
     CONN_SETUP(c);
@@ -1551,7 +1551,7 @@ int lsmFsChildDependencyRm( lsmConnect *c, lsmFs *fs, lsmStringList *files,
     return jobCheck(rc, response, job);
 }
 
-int lsmFsSsList(lsmConnect *c, lsmFs *fs, lsmSs ***ss,
+int lsmFsSsList(lsmConnect *c, lsmFs *fs, lsmSs **ss[],
                                 uint32_t *ssCount, lsmFlag_t flags )
 {
     CONN_SETUP(c);
@@ -1702,7 +1702,7 @@ int lsmFsSsRevert(lsmConnect *c, lsmFs *fs, lsmSs *ss,
 
 }
 
-int lsmNfsList( lsmConnect *c, lsmNfsExport ***exports, uint32_t *count,
+int lsmNfsList( lsmConnect *c, lsmNfsExport **exports[], uint32_t *count,
                 lsmFlag_t flags)
 {
     CONN_SETUP(c);

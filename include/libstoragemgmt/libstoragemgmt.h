@@ -201,7 +201,7 @@ extern "C" {
      * @param[in] flags             Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success else error reason
      */
-    int LSM_DLL_EXPORT lsmPoolList(lsmConnect *conn, lsmPool ***poolArray,
+    int LSM_DLL_EXPORT lsmPoolList(lsmConnect *conn, lsmPool**poolArray[],
                                     uint32_t *count, lsmFlag_t flags);
 
     /**
@@ -213,7 +213,7 @@ extern "C" {
      * @return  LSM_ERR_OK on success else error reason
      */
     int LSM_DLL_EXPORT lsmInitiatorList(lsmConnect *conn,
-                                        lsmInitiator ***initiators,
+                                        lsmInitiator **initiators[],
                                         uint32_t *count, lsmFlag_t flags);
 
     /**
@@ -228,7 +228,7 @@ extern "C" {
      * @param[in] flags         Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success else error reason
      */
-    int LSM_DLL_EXPORT lsmVolumeList(lsmConnect *conn, lsmVolume ***volumes,
+    int LSM_DLL_EXPORT lsmVolumeList(lsmConnect *conn, lsmVolume **volumes[],
                                         uint32_t *count, lsmFlag_t flags);
 
     /**
@@ -400,7 +400,7 @@ extern "C" {
      * @return LSM_ERR_OK on success, else error reason.
      */
     int LSM_DLL_EXPORT lsmAccessGroupList(lsmConnect *conn,
-                                            lsmAccessGroup ***groups,
+                                            lsmAccessGroup **groups[],
                                             uint32_t *groupCount,
                                             lsmFlag_t flags);
 
@@ -499,7 +499,7 @@ extern "C" {
      */
     int LSM_DLL_EXPORT lsmVolumesAccessibleByInitiator(lsmConnect *conn,
                                         lsmInitiator *initiator,
-                                        lsmVolume ***volumes,
+                                        lsmVolume **volumes[],
                                         uint32_t *count, lsmFlag_t flags);
 
 
@@ -514,7 +514,7 @@ extern "C" {
      */
     int LSM_DLL_EXPORT lsmInitiatorsGrantedToVolume(lsmConnect *conn,
                                                 lsmVolume *volume,
-                                                lsmInitiator ***initiators,
+                                                lsmInitiator **initiators[],
                                                 uint32_t *count,
                                                 lsmFlag_t flags);
 
@@ -529,7 +529,7 @@ extern "C" {
      */
     int LSM_DLL_EXPORT lsmVolumesAccessibleByAccessGroup(lsmConnect *conn,
                                                         lsmAccessGroup *group,
-                                                        lsmVolume ***volumes,
+                                                        lsmVolume **volumes[],
                                                         uint32_t *count,
                                                         lsmFlag_t flags);
 
@@ -544,7 +544,7 @@ extern "C" {
      */
     int LSM_DLL_EXPORT lsmAccessGroupsGrantedToVolume(lsmConnect *conn,
                                                     lsmVolume *volume,
-                                                    lsmAccessGroup ***groups,
+                                                    lsmAccessGroup **groups[],
                                                     uint32_t *groupCount,
                                                     lsmFlag_t flags);
 
@@ -583,7 +583,7 @@ extern "C" {
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason
      */
-    int LSM_DLL_EXPORT lsmSystemList(lsmConnect *conn, lsmSystem ***systems,
+    int LSM_DLL_EXPORT lsmSystemList(lsmConnect *conn, lsmSystem **systems[],
                                         uint32_t *systemCount, lsmFlag_t flags);
 
     /**
@@ -594,7 +594,7 @@ extern "C" {
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason
      */
-    int LSM_DLL_EXPORT lsmFsList(lsmConnect *conn, lsmFs ***fs,
+    int LSM_DLL_EXPORT lsmFsList(lsmConnect *conn, lsmFs **fs[],
                                     uint32_t *fsCount, lsmFlag_t flags);
 
     /**
@@ -713,7 +713,7 @@ extern "C" {
      * @return LSM_ERR_OK on success, else error reason
      */
     int LSM_DLL_EXPORT lsmFsSsList(lsmConnect *conn, lsmFs *fs,
-                                    lsmSs ***ss, uint32_t *ssCount,
+                                    lsmSs **ss[], uint32_t *ssCount,
                                     lsmFlag_t flags);
 
     /**
@@ -785,7 +785,7 @@ extern "C" {
      * @return LSM_ERR_OK on success else error code.
      */
     int LSM_DLL_EXPORT lsmNfsList( lsmConnect *c,
-                                            lsmNfsExport ***exports,
+                                            lsmNfsExport **exports[],
                                             uint32_t *count, lsmFlag_t flags);
 
     /**
