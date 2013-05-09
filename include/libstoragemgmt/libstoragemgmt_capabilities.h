@@ -84,6 +84,8 @@ typedef enum {
     LSM_CAP_VOLUME_ACCESSIBLE_BY_INITIATOR          = 52,       /**< List what volumes are accessible by an initiator */
     LSM_CAP_VOLUME_ISCSI_CHAP_AUTHENTICATION        = 53,       /**< If you can configure iSCSI chap authentication */
 
+    LSM_CAP_VOLUME_THIN                             = 55,       /**< Thin provisioned volumes are supported */
+
     LSM_CAP_FS                                      = 100,      /**< List file systems */
     LSM_CAP_FS_DELETE                               = 101,      /**< Delete a file system */
     LSM_CAP_FS_RESIZE                               = 102,      /**< Resize a file system */

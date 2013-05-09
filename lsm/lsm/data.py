@@ -511,6 +511,8 @@ class Capabilities(IData):
     VOLUME_ACCESSIBLE_BY_INITIATOR = 52
     VOLUME_ISCSI_CHAP_AUTHENTICATION = 53
 
+    VOLUME_THIN = 55
+
     #File system
     FS = 100
     FS_DELETE = 101
