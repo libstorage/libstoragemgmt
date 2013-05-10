@@ -346,18 +346,22 @@ extern "C" {
                                         lsmVolume *volume, lsmFlag_t flags);
 
     /**
-     * Set the username/password for CHAP authentication.
+     * Set the username password for CHAP authentication, inbound and outbound.
      * @param conn                      Valid connection pointer
      * @param initiator                 Valid initiator pointer
-     * @param username                  Username
-     * @param password                  Password
+     * @param in_user                   inbound user name
+     * @param in_password               inbound password
+     * @param out_user                  outbound user name
+     * @param out_password              outbound password
      * @param flags                     Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error code.
      */
-    int LSM_DLL_EXPORT lsmISCSIChapAuthInbound(lsmConnect *conn,
+    int LSM_DLL_EXPORT lsmISCSIChapAuth(lsmConnect *conn,
                                                     lsmInitiator *initiator,
-                                                    const char *username,
-                                                    const char *password,
+                                                    const char *in_user,
+                                                    const char *in_password,
+                                                    const char * out_user,
+                                                    const char *out_password,
                                                     lsmFlag_t flags);
 
     /**

@@ -461,8 +461,16 @@ class Ontap(IStorageAreaNetwork, INfs):
         return [self._access_group(g) for g in groups]
 
     @handle_ontap_errors
-    def iscsi_chap_auth_inbound(self, initiator, user, password, flags=0):
-        self.f.iscsi_initiator_add_auth(initiator.id, user, password)
+    def iscsi_chap_auth(self, initiator, in_user, in_password, out_user,
+                        out_password, flags=0):
+        if out_user and out_password and \
+                (in_user is None or in_password is None):
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           "out_user and out_password only supported if "
+                           "inbound is supplied")
+
+        self.f.iscsi_initiator_add_auth(initiator.id, in_user, in_password,
+                                        out_user, out_password)
 
     @handle_ontap_errors
     def initiator_grant(self, initiator_id, initiator_type, volume, access,

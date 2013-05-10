@@ -639,27 +639,33 @@ class NexentaStor(INfs, IStorageAreaNetwork):
     def volume_offline(self, volume, flags=0):
         return
 
-    def iscsi_chap_auth_inbound(self, initiator, user, password, flags=0):
+    def iscsi_chap_auth(self, initiator, in_user, in_password, out_user,
+                        out_password, flags):
         """
         Register a user/password for the specified initiator for CHAP
         authentication.
         """
+        if out_user is not None or out_password is not None:
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           "outbound chap authentication is not supported at "
+                           "this time")
+
         try:
             ret = self._ns_request('rest/nms',
                                    {"method": "create_initiator",
                                     "object": "iscsitarget",
                                     "params": [initiator.name,
-                                               {'initiatorchapuser': user,
+                                               {'initiatorchapuser': in_user,
                                                 'initiatorchapsecret':
-                                                password}]})
+                                                in_password}]})
         except:
             ret = self._ns_request('rest/nms',
                                    {"method": "modify_initiator",
                                     "object": "iscsitarget",
                                     "params": [initiator.name,
-                                               {'initiatorchapuser': user,
+                                               {'initiatorchapuser': in_user,
                                                'initiatorchapsecret':
-                                                password}]})
+                                                in_password}]})
         return
 
     def initiator_grant(self, initiator_id, initiator_type, volume, access,

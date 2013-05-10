@@ -259,18 +259,19 @@ class Client(INetworkAttachedStorage):
     #  authentication.
     # Note: If you pass an empty user and password the expected behavior is to
     #       remove any authentication for the specified initiator.
-    # @param    self        The this pointer
-    # @param    initiator   The initiator object
-    # @param    user        User for CHAP
-    # @param    password    Password used for CHAP
+    # @param    self            The this pointer
+    # @param    initiator       The initiator object
+    # @param    in_user         User for inbound CHAP
+    # @param    in_password     Password for outbound CHAP
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
-    def iscsi_chap_auth_inbound(self, initiator, user, password, flags=0):
+    def iscsi_chap_auth(self, initiator, in_user, in_password,
+                                out_user, out_password, flags=0):
         """
         Register a user/password for the specified initiator for CHAP
         authentication.
         """
-        return self.tp.rpc('iscsi_chap_auth_inbound', del_self(locals()))
+        return self.tp.rpc('iscsi_chap_auth', del_self(locals()))
 
     ## Grants access so an initiator can read/write the specified volume.
     # @param    self            The this pointer

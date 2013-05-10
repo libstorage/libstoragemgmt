@@ -235,12 +235,14 @@ try:
         def access_groups_granted_to_volume(self, volume, flags=0):
             raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-        def iscsi_chap_auth_inbound(self, initiator, user, password, flags=0):
+        def iscsi_chap_auth(self, initiator, in_user, in_password, out_user,
+                            out_password, flags=0):
             self._jsonrequest("initiator_set_auth",
                               dict(initiator_wwn=initiator.id,
-                                   username=user,
-                                   password=password,
-                                   mutual=False))
+                                   in_user=in_user,
+                                   in_pass=in_password,
+                                   out_user=out_user,
+                                   out_pass=out_password))
 
             return None
 

@@ -549,11 +549,11 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
                 rc.append(self._get_access_group(k))
         return rc
 
-    def iscsi_chap_auth_inbound(self, initiator, user, password, flags=0):
-        if initiator is None or user is None or len(user) == 0 \
-                or password is None or len(password) == 0:
+    def iscsi_chap_auth(self, initiator, in_user, in_password, out_user,
+                        out_password, flags=0):
+        if initiator is None:
             raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           'All arguments are required')
+                           'Initiator is required')
 
     def initiator_grant(self, initiator_id, initiator_type, volume, access,
                         flags=0):

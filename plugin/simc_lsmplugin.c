@@ -1427,13 +1427,14 @@ static int initiators_granted_to_vol(lsmPluginPtr c,
     return _list_initiators(c, initArray, count, flags, volume);
 }
 
-static int iscsi_chap_auth_in(lsmPluginPtr c, lsmInitiator *initiator,
-                                const char *username, const char *password,
+static int iscsi_chap_auth(lsmPluginPtr c, lsmInitiator *initiator,
+                                const char *in_user, const char *in_password,
+                                const char *out_user, const char *out_password,
                                 lsmFlag_t flags)
 {
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
 
-    if (pd && username && password && strlen(username) && strlen(password)) {
+    if (initiator) {
         return 0;
     }
     return LSM_ERR_INVALID_ARGUMENT;
@@ -1554,7 +1555,7 @@ static struct lsmSanOpsV1 sanOps = {
     initiator_grant,
     initiator_revoke,
     initiators_granted_to_vol,
-    iscsi_chap_auth_in,
+    iscsi_chap_auth,
     access_group_list,
     access_group_create,
     access_group_delete,

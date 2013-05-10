@@ -483,7 +483,8 @@ class Filer(object):
         rc4.set_key("#u82fyi8S5\017pPemw")
         return hexlify(rc4.update(password))
 
-    def iscsi_initiator_add_auth(self, initiator, user_name, password):
+    def iscsi_initiator_add_auth(self, initiator, user_name, password,
+                                 out_user, out_password):
         pw = self.encode(password)
 
         args = {'initiator': initiator}
@@ -491,6 +492,11 @@ class Filer(object):
         if user_name and len(user_name) and password and len(password):
             args.update({'user-name': user_name,
                          'password': pw, 'auth-type': "CHAP"})
+
+            if out_user and len(out_user) and \
+                    out_password and len(out_password):
+                args.update({'outbound-user-name': out_user,
+                             'outbound-password': out_password})
         else:
             args.update({'initiator': initiator, 'auth-type': "none"})
 

@@ -1758,8 +1758,8 @@ START_TEST(test_iscsi_auth_in)
          fail_unless(LSM_ERR_OK == rc );
 
          if( LSM_ERR_OK == rc && init_count ) {
-             rc = lsmISCSIChapAuthInbound(c, inits[0], "username", "secret",
-                                            LSM_FLAG_RSVD);
+             rc = lsmISCSIChapAuth(c, inits[0], "username", "secret",
+                                            NULL, NULL, LSM_FLAG_RSVD);
 
              fail_unless(LSM_ERR_OK == rc, "rc = %d", rc) ;
          }

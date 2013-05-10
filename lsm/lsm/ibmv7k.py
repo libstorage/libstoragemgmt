@@ -318,7 +318,8 @@ class IbmV7k(IStorageAreaNetwork):
         #       as well... hence doesn't fit under this API
         raise LsmError(ErrorNumber.NO_SUPPORT, "Feature not supported")
 
-    def iscsi_chap_auth_inbound(self, initiator, user, password, flags=0):
+    def iscsi_chap_auth(self, initiator, in_user, in_password, out_user,
+                        out_password, flags=0):
         raise LsmError(ErrorNumber.NOT_IMPLEMENTED,
                        "API not implemented at this time")
 

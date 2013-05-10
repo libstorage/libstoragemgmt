@@ -2047,25 +2047,35 @@ static int initiator_revoke(lsmPluginPtr p, Value &params, Value &response)
     return rc;
 }
 
-static int iscsi_chap_inbound(lsmPluginPtr p, Value &params, Value &response)
+static int iscsi_chap(lsmPluginPtr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
 
-    if( p && p->sanOps && p->sanOps->iscsi_chap_auth_inbound ) {
+    if( p && p->sanOps && p->sanOps->iscsi_chap_auth ) {
         Value v_init = params["initiator"];
-        Value v_user = params["user"];
-        Value v_password = params["password"];
+        Value v_in_user = params["in_user"];
+        Value v_in_password = params["in_password"];
+        Value v_out_user = params["out_user"];
+        Value v_out_password = params["out_password"];
 
         if( Value::object_t == v_init.valueType() &&
-            Value::string_t == v_user.valueType() &&
-            Value::string_t == v_password.valueType() &&
+            (Value::string_t == v_in_user.valueType() ||
+            Value::null_t == v_in_user.valueType()) &&
+            (Value::string_t == v_in_password.valueType() ||
+            Value::null_t == v_in_password.valueType()) &&
+            (Value::string_t == v_out_user.valueType() ||
+            Value::null_t == v_out_user.valueType()) &&
+            (Value::string_t == v_out_password.valueType() ||
+            Value::null_t == v_out_password.valueType()) &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
 
             lsmInitiator *init = valueToInitiator(v_init);
             if( init ) {
-                rc = p->sanOps->iscsi_chap_auth_inbound(p, init,
-                                                    v_user.asC_str(),
-                                                    v_password.asC_str(),
+                rc = p->sanOps->iscsi_chap_auth(p, init,
+                                                    v_in_user.asC_str(),
+                                                    v_in_password.asC_str(),
+                                                    v_out_user.asC_str(),
+                                                    v_out_password.asC_str(),
                                                     LSM_FLAG_GET_VALUE(params));
                 lsmInitiatorRecordFree(init);
             } else {
@@ -2141,7 +2151,7 @@ static std::map<std::string,handler> dispatch = static_map<std::string,handler>
     ("initiator_grant", initiator_grant)
     ("initiators_granted_to_volume", init_granted_to_volume)
     ("initiator_revoke", initiator_revoke)
-    ("iscsi_chap_auth_inbound", iscsi_chap_inbound)
+    ("iscsi_chap_auth", iscsi_chap)
     ("job_free", handle_job_free)
     ("job_status", handle_job_status)
     ("plugin_info", handle_plugin_info)

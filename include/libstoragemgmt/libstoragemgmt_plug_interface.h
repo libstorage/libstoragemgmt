@@ -397,15 +397,19 @@ typedef int (*lsmPlugInitiatorsGrantedToVolume)(lsmPluginPtr c,
  * function signature
  * @param[in]   c                   Valid lsm plug-in pointer
  * @param[in]   initiator           Initiator to set chap authentication for
- * @param[in]   username            CHAP username
- * @param[in]   password            CHAP password
+ * @param[in]   in_user             CHAP inbound username
+ * @param[in]   in_password         CHAP inbound password
+ * @param[in]   out_user            CHAP outbound user name
+ * @param[in]   out_password        CHAP outbound user name
  * @param[in]   flags               Reserved
  * @return LSM_ERR_OK, else error reason
  */
-typedef int (*lsmPlugIscsiChapAuthInbound)(lsmPluginPtr c,
+typedef int (*lsmPlugIscsiChapAuth)(lsmPluginPtr c,
                                                 lsmInitiator *initiator,
-                                                const char *username,
-                                                const char *password,
+                                                const char *in_user,
+                                                const char *in_password,
+                                                const char *out_user,
+                                                const char *out_password,
                                                 lsmFlag_t flags);
 
 /**
@@ -803,7 +807,7 @@ struct lsmSanOpsV1 {
     lsmPlugInitiatorGrant initiator_grant;      /**<  granting access */
     lsmPlugInitiatorRevoke initiator_revoke;    /**<  revoking access */
     lsmPlugInitiatorsGrantedToVolume initiators_granted_to_vol;     /**<  initiators granted to a volume */
-    lsmPlugIscsiChapAuthInbound iscsi_chap_auth_inbound;            /**<  iscsi chap authentication */
+    lsmPlugIscsiChapAuth iscsi_chap_auth;            /**<  iscsi chap authentication */
     lsmPlugAccessGroupList ag_list;     /**<  access groups */
     lsmPlugAccessGroupCreate ag_create; /**<  access group create */
     lsmPlugAccessGroupDel ag_delete;    /**<  access group delete */

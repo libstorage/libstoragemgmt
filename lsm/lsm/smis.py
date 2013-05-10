@@ -1244,7 +1244,8 @@ class Smis(IStorageAreaNetwork):
                                                **hide_params)))[0]
 
     @handle_cim_errors
-    def iscsi_chap_auth_inbound(self, initiator, user, password, flags=0):
+    def iscsi_chap_auth(self, initiator, in_user, in_password, out_user,
+                        out_password, flags):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
     @handle_cim_errors

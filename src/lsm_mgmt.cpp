@@ -780,8 +780,9 @@ int lsmVolumeDelete(lsmConnect *c, lsmVolume *volume, char **job,
 
 }
 
-int lsmISCSIChapAuthInbound(lsmConnect *c, lsmInitiator *initiator,
+int lsmISCSIChapAuth(lsmConnect *c, lsmInitiator *initiator,
                                 const char *username, const char *password,
+                                const char *out_user, const char *out_password,
                                 lsmFlag_t flags)
 {
     CONN_SETUP(c);
@@ -790,22 +791,23 @@ int lsmISCSIChapAuthInbound(lsmConnect *c, lsmInitiator *initiator,
         return LSM_ERR_INVALID_INIT;
     }
 
-    if( CHECK_STR(username) || CHECK_STR(password) ||
-                LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if(LSM_FLAG_UNUSED_CHECK(flags)) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
     p["initiator"] = initiatorToValue(initiator);
-    p["user"] = Value(username);
-    p["password"] = Value(password);
+    p["in_user"] = Value(username);
+    p["in_password"] = Value(password);
+    p["out_user"] = Value(out_user);
+    p["out_password"] = Value(out_password);
     p["flags"] = Value(flags);
 
 
     Value parameters(p);
     Value response;
 
-    return rpc(c, "iscsi_chap_auth_inbound", parameters, response);
+    return rpc(c, "iscsi_chap_auth", parameters, response);
 }
 
 int lsmInitiatorGrant(lsmConnect *c,

@@ -228,10 +228,15 @@ class IStorageAreaNetwork(IPlugin):
         pass
 
     @abstractmethod
-    def iscsi_chap_auth_inbound(self, initiator, user, password, flags=0):
+    def iscsi_chap_auth(self, initiator, in_user, in_password, out_user,
+                        out_password, flags):
         """
         Register a user/password for the specified initiator for CHAP
-        authentication.
+        authentication.  in_user & in_password are for inbound CHAP, out_user &
+        out_password are for outbound CHAP.
+
+        Note: Setting in_user, in_password or out_user, out_password to None
+        will disable authentication.
 
         Raises LsmError on error
         """

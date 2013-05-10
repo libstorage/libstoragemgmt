@@ -452,11 +452,13 @@ class CmdLine:
         commands.add_option('', '--iscsi-chap', action="store", type="string",
                             metavar='<initiator id>',
                             dest=_c("iscsi-chap"),
-                            help='configures ISCSI inbound CHAP '
+                            help='configures ISCSI inbound/outbound CHAP '
                                  'authentication\n'
-                                 'requires:\n'
-                                 '--username <chap user name>\n'
-                                 '--password <chap password>')
+                                 'Optional:\n'
+                                 '--in-user <inbound chap user name>\n'
+                                 '--in-password <inbound chap password>\n'
+                                 '--out-user <outbound chap user name>\n'
+                                 '--out-password <inbound chap user password\n')
 
         commands.add_option('', '--access-grant', action="store", type="string",
                             metavar='<initiator id>',
@@ -696,13 +698,26 @@ class CmdLine:
                                 dest=_o("count"),
                                 help="number of blocks to replicate")
 
-        command_args.add_option('', '--username', action="store", type="string",
+        command_args.add_option('', '--in-user', action="store", type="string",
                                 metavar="<username>", default=None,
-                                dest=_o("username"), help="CHAP user name")
+                                dest=_o("username"),
+                                help="CHAP inbound user name")
 
-        command_args.add_option('', '--password', action="store", type="string",
+        command_args.add_option('', '--in-password', action="store", type="string",
                                 metavar="<password>", default=None,
-                                dest=_o("password"), help="CHAP password")
+                                dest=_o("password"),
+                                help="CHAP inbound password")
+
+        command_args.add_option('', '--out-user', action="store", type="string",
+                                metavar="<out_user>", default=None,
+                                dest=_o("out_user"),
+                                help="CHAP outbound user name")
+
+        command_args.add_option('', '--out-password', action="store",
+                                type="string",
+                                metavar="<out_password>", default=None,
+                                dest=_o("out_password"),
+                                help="CHAP outbound password")
 
         parser.add_option_group(command_args)
 
@@ -895,8 +910,10 @@ class CmdLine:
     def iscsi_chap(self):
         init = self._get_item(self.c.initiators(), self.cmd_value)
         if init:
-            self.c.iscsi_chap_auth_inbound(init, self.options.opt_username,
-                                           self.options.opt_password)
+            self.c.iscsi_chap_auth(init, self.options.opt_username,
+                                   self.options.opt_password,
+                                   self.options.opt_out_user,
+                                   self.options.opt_out_password)
         else:
             raise ArgError("initiator with id= %s not found" % self.cmd_value)
 
@@ -1618,7 +1635,7 @@ class CmdLine:
                        'initiators-granted-volume':
                        {'options': [], 'method': self.init_granted_volume},
 
-                       'iscsi-chap': {'options': ['username', 'password'],
+                       'iscsi-chap': {'options': [],
                                       'method': self.iscsi_chap},
 
                        'create-ss': {'options': ['fs'],
