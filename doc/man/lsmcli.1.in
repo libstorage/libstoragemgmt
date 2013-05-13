@@ -1,4 +1,4 @@
-.TH LSMCLI "1" "April 2013" "lsmcli @VERSION@" "libStorageMgmt"
+.TH LSMCLI "1" "May 2013" "lsmcli @VERSION@" "libStorageMgmt"
 .SH NAME
 lsmcli \- LibStorageMgmt command line interface
 .SH SYNOPSIS
@@ -201,12 +201,17 @@ Replicates a portion of a volume, requires:
 \fB\-\-count\fR <number of blocks to replicate>
 .TP
 \fB\-\-iscsi\-chap=\fR<initiator id>
-configures ISCSI inbound CHAP authentication
-requires:
+configures ISCSI inbound/outbound CHAP authentication
 .br
-\fB\-\-username\fR <chap user name>
+Optional:
 .br
-\fB\-\-password\fR <chap password>
+\fB\-\-in\-user\fR <inbound CHAP user name>
+.br
+\fB\-\-in\-password\fR <inbound CHAP password>
+.br
+\fB\-\-out\-user\fR <outbound CHAP user name>
+.br
+\fB\-\-out\-password\fR <inbound CHAP user password
 .TP
 \fB\-\-access\-grant=\fR<initiator id>
 Grants access to an initiator to a volume
@@ -374,11 +379,17 @@ destination block address to replicate
 \fB\-\-count=\fR<block count>
 number of blocks to replicate
 .TP
-\fB\-\-username=\fR<username>
-CHAP user name
+\fB\-\-in\-user=\fR<username>
+CHAP inbound user name
 .TP
-\fB\-\-password=\fR<password>
-CHAP password
+\fB\-\-in\-password=\fR<password>
+CHAP inbound password
+.TP
+\fB\-\-out\-user=\fR<out_user>
+CHAP outbound user name
+.TP
+\fB\-\-out\-password=\fR<out_password>
+CHAP outbound password
 .PP
 .SH FILES
 .TP
