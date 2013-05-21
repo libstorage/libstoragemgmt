@@ -837,7 +837,7 @@ class Client(INetworkAttachedStorage):
     ## Exports a FS as specified in the export.
     # @param    self            The this pointer
     # @param    fs_id           The FS ID to export
-    # @param    export_path     The export path
+    # @param    export_path     The export path (Set to None for array to pick)
     # @param    root_list       List of hosts with root access
     # @param    rw_list         List of hosts with read/write access
     # @param    ro_list         List of hosts with read only access

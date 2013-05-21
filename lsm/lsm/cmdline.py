@@ -223,7 +223,7 @@ class CmdLine:
         parser = OptionParser(usage=usage, version="%prog " + VERSION)
         parser.description = 'libStorageMgmt command line interface. \n'
 
-        parser.epilog = ('Copyright 2012 Red Hat, Inc.\n'
+        parser.epilog = ('Copyright 2012-2013 Red Hat, Inc.\n'
                          'Please report bugs to '
                          '<libstoragemgmt-devel@lists.sourceforge.net>\n')
 
@@ -519,9 +519,8 @@ class CmdLine:
                             metavar='<file system id>',
                             dest=_c("nfs-export-fs"),
                             help='creates a nfs export\n'
-                                 'Required:\n'
-                                 '--exportpath e.g. /foo/bar\n'
                                  'Optional:\n'
+                                 '--exportpath e.g. /foo/bar\n'
                                  'Note: root, ro, rw are to be repeated for '
                                  'each host\n'
                                  '--root <no_root_squash host>\n'
@@ -1665,7 +1664,7 @@ class CmdLine:
                                      'method': self.fs_resize},
                        'nfs-export-remove': {'options': [],
                                              'method': self.nfs_export_remove},
-                       'nfs-export-fs': {'options': ['exportpath'],
+                       'nfs-export-fs': {'options': [],
                                          'method': self.nfs_export_fs},
                        'restore-ss': {'options': ['fs'],
                                       'method': self.restore_ss},

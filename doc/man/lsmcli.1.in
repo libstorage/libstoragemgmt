@@ -260,11 +260,9 @@ Removes a nfs export
 \fB\-\-nfs\-export\-fs=\fR<file system id>
 creates a nfs export
 .br
-Required:
-.br
-\fB\-\-exportpath\fR e.g. /foo/bar
-.br
 Optional:
+.br
+\fB\-\-exportpath\fR e.g. /foo/bar.
 .br
 Note: root, ro, rw are to be repeated for each host
 .br

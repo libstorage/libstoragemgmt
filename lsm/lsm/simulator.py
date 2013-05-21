@@ -745,6 +745,9 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
                   anon_uid, anon_gid, auth_type, options, flags=0):
 
         if fs_id in self.s.fs:
+            if export_path is None:
+                export_path = "/mnt/lsm/sim/%s" % self.s.fs[fs_id]['fs'].name
+
             export_id = md5(export_path)
 
             export = NfsExport(export_id, fs_id, export_path, auth_type,

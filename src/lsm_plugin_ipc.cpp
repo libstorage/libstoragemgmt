@@ -1874,7 +1874,8 @@ static int export_fs(lsmPluginPtr p, Value &params, Value &response)
         Value v_anon_gid = params["anon_gid"];
 
         if( Value::string_t == v_fs_id.valueType() &&
-            Value::string_t == v_export_path.valueType() &&
+            (Value::string_t == v_export_path.valueType() ||
+            Value::null_t == v_export_path.valueType()) &&
             Value::array_t == v_root_list.valueType() &&
             Value::array_t == v_rw_list.valueType() &&
             Value::array_t == v_ro_list.valueType() &&

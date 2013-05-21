@@ -1769,7 +1769,7 @@ int lsmNfsExportFs( lsmConnect *c,
         }
     }
 
-    if( CHECK_STR(fs_id) || CHECK_STR(export_path) || CHECK_RP(exported)
+    if( CHECK_STR(fs_id) || CHECK_RP(exported)
         || !(root_list || rw_list || ro_list) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }

@@ -933,7 +933,7 @@ START_TEST(test_nfs_exports)
 
     lsmNfsExport *e = NULL;
 
-    rc = lsmNfsExportFs(c, lsmFsIdGet(nfs), "/tony", access, access, NULL,
+    rc = lsmNfsExportFs(c, lsmFsIdGet(nfs), NULL, access, access, NULL,
                             ANON_UID_GID_NA, ANON_UID_GID_NA, NULL, NULL, &e, LSM_FLAG_RSVD);
     fail_unless(LSM_ERR_OK == rc, "lsmNfsExportFs %d\n", rc);
 

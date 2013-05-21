@@ -19,14 +19,15 @@
 
 import sys
 import syslog
+import copy
 
 try:
-    from lsm.iplugin import IStorageAreaNetwork, INetworkAttachedStorage
+    from lsm.iplugin import IStorageAreaNetwork, INetworkAttachedStorage, INfs
     from lsm.pluginrunner import PluginRunner
 
     from lsm.data import (Pool, Volume, System, Capabilities, Initiator,
-                          FileSystem, Snapshot)
-    from lsm.common import (LsmError, ErrorNumber, uri_parse)
+                          FileSystem, Snapshot, NfsExport)
+    from lsm.common import (LsmError, ErrorNumber, uri_parse, md5)
     import urllib2
     import json
     import time
@@ -38,7 +39,7 @@ try:
     default_port = 18700
     path = "/targetrpc"
 
-    class TargetdStorage(IStorageAreaNetwork, INetworkAttachedStorage):
+    class TargetdStorage(IStorageAreaNetwork, INfs):
         def startup(self, uri, password, timeout, flags=0):
             self.uri = uri_parse(uri)
             self.password = password
@@ -366,6 +367,179 @@ try:
 
         def fs_child_dependency_rm(self, fs, files, flags=0):
             raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+        def export_auth(self, flags=0):
+            exports = self._jsonrequest("nfs_export_auth_list")
+            return exports
+
+        def _get_value(self, options, key):
+            for o in options:
+                if '=' in o:
+                    k, v = o.split('=')
+                    if k == key:
+                        return v
+            return None
+
+        def _option_string(self, nfs_options):
+            cpy = copy.copy(nfs_options)
+            if 'ro' in cpy:
+                cpy.remove('ro')
+            if 'rw' in cpy:
+                cpy.remove('rw')
+            if 'no_root_squash' in cpy:
+                cpy.remove('no_root_squash')
+            if 'root_squash' in cpy:
+                cpy.remove('root_squash')
+
+            cpy.sort()
+            s = ','.join(cpy)
+            return s
+
+        def _calculate_export_md5(self, path, options):
+            opts = self._option_string(options)
+            return md5(path + opts)
+
+        def exports(self, flags=0):
+            tmp_exports = {}
+            exports = []
+            nfs_exports = self._jsonrequest("nfs_export_list")
+
+            #Collect like exports to minimize results
+            for e in nfs_exports:
+                key = e['path'] + self._option_string(e['options'])
+                if key in tmp_exports:
+                    tmp_exports[key].append(e)
+                else:
+                    tmp_exports[key] = [e]
+
+            #Walk through the options
+            for le in tmp_exports.values():
+                export_id = ""
+                root = []
+                rw = []
+                ro = []
+                sec = None
+                anonuid = NfsExport.ANON_UID_GID_NA
+                anongid = NfsExport.ANON_UID_GID_NA
+
+                options = None
+
+                for e in le:
+
+                    host = e['host']
+                    export_id += host
+                    export_id += e['path']
+                    export_id += e['fs_uuid']
+
+                    options = e['options']
+
+                    if 'rw' in options:
+                        rw.append(host)
+
+                    if 'ro' in options:
+                        ro.append(host)
+
+                    sec = self._get_value(options, 'sec')
+                    if sec is None:
+                        sec = 'sys'
+
+                    if 'no_root_squash' in options:
+                        root.append(host)
+
+                    uid = self._get_value(options, 'anonuid')
+                    if uid is not None:
+                        anonuid = uid
+                    gid = self._get_value(options, 'anongid')
+                    if gid is not None:
+                        anongid = gid
+
+                exports.append(NfsExport(
+                    self._calculate_export_md5(e['path'], options),
+                    e['fs_uuid'], e['path'], sec, root, rw, ro, anonuid,
+                    anongid, self._option_string(options)))
+
+            return exports
+
+        def _get_fs_path(self, fs_id):
+            for fs in self._jsonrequest("fs_list"):
+                if fs_id == fs['uuid']:
+                    return fs['full_path']
+            return None
+
+        def export_fs(self, fs_id, export_path, root_list, rw_list, ro_list,
+                  anon_uid=NfsExport.ANON_UID_GID_NA,
+                  anon_gid=NfsExport.ANON_UID_GID_NA,
+                  auth_type=None, options=None, flags=0):
+
+            if export_path is not None:
+                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                               'export_path required to be None')
+
+            base_opts = []
+
+            if anon_uid is not None:
+                base_opts.append('anonuid=%s' % str(anon_uid))
+
+            if anon_gid is not None:
+                base_opts.append('anongid=%s' % str(anon_gid))
+
+            if auth_type is not None:
+                base_opts.append('sec=%s' % str(auth_type))
+
+            fs_path = self._get_fs_path(fs_id)
+            if fs_path is None:
+                raise LsmError(ErrorNumber.INVALID_FS, "File system not found")
+
+            for e in rw_list:
+                tmp_opts = copy.copy(base_opts)
+                if e in root_list:
+                    tmp_opts.append('no_root_squash')
+
+                tmp_opts.append('rw')
+
+                self._jsonrequest("nfs_export_add",
+                                  dict(host=e, path=fs_path,
+                                       export_path=None, options=tmp_opts))
+
+            for e in ro_list:
+                tmp_opts = copy.copy(base_opts)
+                if e in root_list:
+                    tmp_opts.append('no_root_squash')
+
+                tmp_opts.append('ro')
+
+                self._jsonrequest("nfs_export_add",
+                                  dict(host=e, path=fs_path,
+                                       export_path=None, options=tmp_opts))
+
+            #Kind of a pain to determine which export was newly created as it
+            #could get merged into an existing record, doh!
+            #Make sure fs_id's match and that one of the hosts is in the
+            #record.
+            exports = self.exports()
+            h = []
+            h.extend(rw_list)
+            h.extend(ro_list)
+            for e in exports:
+                if e.fs_id == fs_id:
+                    l = []
+                    l.extend(e.ro)
+                    l.extend(e.rw)
+                    for host in h:
+                        if host in l:
+                            return e
+
+            raise LsmError(ErrorNumber.PLUGIN_ERROR, "Failed to create export")
+
+        def export_remove(self, export, flags=0):
+
+            for e in export.rw:
+                params = dict(host=e, path=export.export_path)
+                self._jsonrequest("nfs_export_remove", params)
+
+            for e in export.ro:
+                params = dict(host=e, path=export.export_path)
+                self._jsonrequest("nfs_export_remove", params)
 
         def _jsonrequest(self, method, params=None):
             data = json.dumps(dict(id=self.rpc_id, method=method,

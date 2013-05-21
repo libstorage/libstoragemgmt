@@ -1182,14 +1182,14 @@ lsmNfsExport *lsmNfsExportRecordAlloc( const char *id,
 {
      lsmNfsExport *rc = NULL;
 
-    /* These are required */
-    if( fs_id && export_path ) {
+    /* This is required */
+    if( fs_id ) {
         rc = (lsmNfsExport *)malloc(sizeof(lsmNfsExport));
         if( rc ) {
             rc->magic = LSM_NFS_EXPORT_MAGIC;
             rc->id = (id) ? strdup(id) : NULL;
             rc->fs_id = strdup(fs_id);
-            rc->export_path = strdup(export_path);
+            rc->export_path = (export_path) ? strdup(export_path) : NULL;
             rc->auth_type = (auth) ? strdup(auth) : NULL;
             rc->root = lsmStringListCopy(root);
             rc->rw = lsmStringListCopy(rw);
@@ -1198,7 +1198,7 @@ lsmNfsExport *lsmNfsExportRecordAlloc( const char *id,
             rc->anongid = anongid;
             rc->options = (options) ? strdup(options) : NULL;
 
-            if( !rc->fs_id || !rc->export_path ) {
+            if( !rc->fs_id ) {
                 lsmNfsExportRecordFree(rc);
                 rc = NULL;
             }

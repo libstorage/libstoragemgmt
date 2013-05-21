@@ -2031,10 +2031,17 @@ static int nfs_export_create( lsmPluginPtr c,
                                         )
 {
     int rc = LSM_ERR_OK;
+    char auto_export[2048];
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
 
     struct allocated_fs *fs = g_hash_table_lookup(pd->fs, fs_id);
     if( fs ) {
+        if (!export_path) {
+            snprintf(auto_export, sizeof(auto_export), "/mnt/lsm/nfs/%s",
+                lsmFsNameGet(fs->fs));
+            export_path = auto_export;
+        }
+
         char *key = strdup(md5(export_path));
         *exported = lsmNfsExportRecordAlloc(md5(export_path),
                                             fs_id,
