@@ -1117,6 +1117,8 @@ class CmdLine:
                      cap.get(Capabilities.VOLUME_INITIATOR_GRANT))
             self._cp("VOLUME_INITIATOR_REVOKE",
                      cap.get(Capabilities.VOLUME_INITIATOR_REVOKE))
+            self._cp("VOLUME_THIN",
+                     cap.get(Capabilities.VOLUME_THIN))
             self._cp("VOLUME_ISCSI_CHAP_AUTHENTICATION",
                      cap.get(Capabilities.VOLUME_ISCSI_CHAP_AUTHENTICATION))
             self._cp("ACCESS_GROUP_GRANT",
@@ -1170,6 +1172,8 @@ class CmdLine:
             self._cp("EXPORTS", cap.get(Capabilities.EXPORTS))
             self._cp("EXPORT_FS", cap.get(Capabilities.EXPORT_FS))
             self._cp("EXPORT_REMOVE", cap.get(Capabilities.EXPORT_REMOVE))
+            self._cp("EXPORT_CUSTOM_PATH",
+                     cap.get(Capabilities.EXPORT_CUSTOM_PATH))
         else:
             raise ArgError("system with id= %s not found!" % self.cmd_value)
 

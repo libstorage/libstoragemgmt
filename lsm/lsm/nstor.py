@@ -391,6 +391,10 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         """
         Exports a filesystem as specified in the export
         """
+        if export_path is None:
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           "Export path is required")
+
         md5_id = md5(export_path)
         fs_dict = {'auth_type': 'sys', 'anonymous': 'false'}
         if ro_list:

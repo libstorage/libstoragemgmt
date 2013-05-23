@@ -535,6 +535,7 @@ class Capabilities(IData):
     EXPORTS = 121
     EXPORT_FS = 122
     EXPORT_REMOVE = 123
+    EXPORT_CUSTOM_PATH = 124
 
     def toDict(self):
         rc = {'class': self.__class__.__name__,

@@ -105,7 +105,8 @@ typedef enum {
     LSM_CAP_EXPORT_AUTH                             = 120,      /**< Get a list of supported client authentication types */
     LSM_CAP_EXPORTS                                 = 121,      /**< List exported file systems */
     LSM_CAP_EXPORT_FS                               = 122,      /**< Export a file system */
-    LSM_CAP_EXPORT_REMOVE                           = 123       /**< Remove an export */
+    LSM_CAP_EXPORT_REMOVE                           = 123,      /**< Remove an export */
+    LSM_CAP_EXPORT_CUSTOM_PATH                      = 124       /**< Plug-in allows user to define custome export path */
 
 } lsmCapabilityType;
 

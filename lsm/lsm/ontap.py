@@ -202,6 +202,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         cap.set(Capabilities.EXPORTS)
         cap.set(Capabilities.EXPORT_FS)
         cap.set(Capabilities.EXPORT_REMOVE)
+        cap.set(Capabilities.EXPORT_CUSTOM_PATH)
         return cap
 
     @handle_ontap_errors
