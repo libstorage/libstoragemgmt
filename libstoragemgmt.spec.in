@@ -8,8 +8,8 @@ URL:            http://sourceforge.net/projects/libstoragemgmt/
 Source0:        http://sourceforge.net/projects/libstoragemgmt/files/Alpha/libstoragemgmt-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-BuildRequires:  yajl-devel libxml2-devel pywbem check-devel m2crypto glib2-devel
-Requires:       pywbem m2crypto %{name}-python
+BuildRequires:  yajl-devel libxml2-devel pywbem check-devel m2crypto glib2-devel python-paramiko
+Requires:       pywbem m2crypto %{name}-python python-paramiko
 
 %if 0%{?fedora}
 BuildRequires:  systemd-units
@@ -38,8 +38,8 @@ developing applications that use %{name}.
 %package        python
 Summary:        Python client libraries and plug-in support for %{name}
 Group:          System Environment/Libraries
-Requires:       %{name}%{?_isa} = %{version}-%{release}
-BuildArch:	noarch
+Requires:       %{name} = %{version}-%{release}
+BuildArch:      noarch
 
 %description	python
 The %{name}-python package contains python client libraries as
@@ -159,6 +159,15 @@ fi
 %{python_sitelib}/*
 
 %changelog
+* Fri May 24 2013 Tony Asleson <tasleson@redhat.com> 0.0.20-1
+- Python library files now in separate rpm
+- Additional debug for plug-ins when exceptions occur
+- iSCSI CHAP support modified to handle both inbound and outbound authentication
+- VOLUME_THIN Added as new capability flag
+- IBM V7000 storage array support
+- NFS export support for targetd
+- EXPORT_CUSTOM_PATH added capability flag
+
 * Sat Apr 20 2013 Tony Asleson <tasleson@redhat.com> 0.0.19-1
 - Improved E-Series array support
 - Ontap plug-in: improve performance with many Volumes
