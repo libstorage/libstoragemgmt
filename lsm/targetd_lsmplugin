@@ -402,7 +402,18 @@ try:
         def exports(self, flags=0):
             tmp_exports = {}
             exports = []
-            nfs_exports = self._jsonrequest("nfs_export_list")
+            fs_full_paths = {}
+            all_nfs_exports = self._jsonrequest("nfs_export_list")
+            nfs_exports = []
+
+            #Remove those that are not of FS origin
+            fs_list = self._jsonrequest("fs_list")
+            for f in fs_list:
+                fs_full_paths[f['full_path']] = f
+
+            for e in all_nfs_exports:
+                if e['path'] in fs_full_paths:
+                    nfs_exports.append(e)
 
             #Collect like exports to minimize results
             for e in nfs_exports:
@@ -429,7 +440,7 @@ try:
                     host = e['host']
                     export_id += host
                     export_id += e['path']
-                    export_id += e['fs_uuid']
+                    export_id += fs_full_paths[e['path']]['uuid']
 
                     options = e['options']
 
@@ -455,7 +466,8 @@ try:
 
                 exports.append(NfsExport(
                     self._calculate_export_md5(e['path'], options),
-                    e['fs_uuid'], e['path'], sec, root, rw, ro, anonuid,
+                    fs_full_paths[e['path']]['uuid'],
+                    e['path'], sec, root, rw, ro, anonuid,
                     anongid, self._option_string(options)))
 
             return exports
