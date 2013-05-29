@@ -11,7 +11,8 @@
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+# USA
 #
 # Author: tasleson
 
@@ -268,7 +269,8 @@ class Ontap(IStorageAreaNetwork, INfs):
         try:
             self.f.lun_create(lun_name, size_bytes)
         except Exception as e:
-            self.f.volume_resize(vol_prefix, -self._size_kb_padded(size_bytes))
+            self.f.volume_resize(vol_prefix,
+                                 -self._size_kb_padded(size_bytes))
             raise e
 
         #Get the information about the newly created LUN
@@ -281,7 +283,8 @@ class Ontap(IStorageAreaNetwork, INfs):
     def volume_delete(self, volume, flags=0):
         vol = self._vol_to_na_volume_name(volume)
 
-        luns = self.f.luns_get_specific(aggr=volume.pool_id, na_volume_name=vol)
+        luns = self.f.luns_get_specific(aggr=volume.pool_id,
+                                        na_volume_name=vol)
 
         if len(luns) == 1:
             self.f.volume_delete(vol)
@@ -343,8 +346,8 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def volume_replicate(self, pool, rep_type, volume_src, name, flags=0):
-        #At the moment we are only supporting space efficient writeable logical
-        #units.  Add support for the others later.
+        #At the moment we are only supporting space efficient writeable
+        #logical units.  Add support for the others later.
         if rep_type != Volume.REPLICATE_CLONE:
             raise LsmError(ErrorNumber.NO_SUPPORT, "rep_type not supported")
 
@@ -368,7 +371,8 @@ class Ontap(IStorageAreaNetwork, INfs):
                 raise e
             return None, self._get_volume(dest, volume_src.pool_id)
         else:
-            #TODO Need to get instructions on how to provide this functionality
+            #TODO Need to get instructions on how to provide this
+            #functionality
             raise LsmError(ErrorNumber.NO_SUPPORT,
                            "Unable to replicate volume to different pool")
 
@@ -455,7 +459,8 @@ class Ontap(IStorageAreaNetwork, INfs):
         return self.f.igroup_delete(group.name)
 
     @handle_ontap_errors
-    def access_group_add_initiator(self, group, initiator_id, id_type, flags=0):
+    def access_group_add_initiator(self, group, initiator_id, id_type,
+                                   flags=0):
         return self.f.igroup_add_initiator(group.name, initiator_id)
 
     @handle_ontap_errors
@@ -643,7 +648,8 @@ class Ontap(IStorageAreaNetwork, INfs):
                 raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                                "num files != num restore_files")
 
-            self._ss_revert_files(fs.name, snapshot.name, files, restore_files)
+            self._ss_revert_files(fs.name, snapshot.name, files,
+                                  restore_files)
             return "%s@%d" % (Ontap.SS_JOB, len(files))
         else:
             raise LsmError(ErrorNumber.INVALID_ARGUMENT,
