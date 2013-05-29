@@ -16,14 +16,16 @@
 # Author: tasleson
 
 import os
+import traceback
 import urllib2
 import urlparse
+import sys
 
 import na
 from data import Volume, Initiator, FileSystem, Snapshot, NfsExport, \
     AccessGroup, System, Capabilities
 from iplugin import IStorageAreaNetwork, INfs
-from common import LsmError, ErrorNumber, JobStatus, md5
+from common import LsmError, ErrorNumber, JobStatus, md5, Error
 from lsm.version import VERSION
 from data import Pool
 
@@ -303,8 +305,23 @@ class Ontap(IStorageAreaNetwork, INfs):
         #If the new size is > than old -> re-size volume then lun
         #If the new size is < than old -> re-size lun then volume
         if diff > 0:
-            #if this raises an exception we are fine
-            self.f.volume_resize(na_vol, diff)
+            #if this raises an exception we are fine, except when we timeout
+            #and the operation actually completes!  Anytime we get an
+            #exception we will try to put the volume back to original size.
+            try:
+                self.f.volume_resize(na_vol, diff)
+            except:
+                exc_info = sys.exc_info()
+                try:
+                    self.f.volume_resize(na_vol, volume.size_bytes)
+                except:
+                    #Anything happens here we are only going to report the
+                    #primary error through the API and log the secondary
+                    #error to syslog.
+                    Error("Exception on trying to restore NA volume size:" +
+                          traceback.format_exc())
+
+                raise exc_info[0], exc_info[1], exc_info[2]
 
             try:
                 #if this raises an exception we need to revert the volume
