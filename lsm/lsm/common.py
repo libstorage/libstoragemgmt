@@ -19,6 +19,7 @@ import hashlib
 import os
 import unittest
 import urlparse
+import re
 
 import sys
 import syslog
@@ -92,17 +93,35 @@ UDS_PATH = '/var/run/lsm/ipc'
 #Set to True for verbose logging
 LOG_VERBOSE = True
 
-##Constant for KiB
-KiB = 1024
-## Constant for MiB
-MiB = 1048576
-## Constant for GiB
-GiB = 1073741824
-## Constant for TiB
-TiB = 1099511627776L
-## Constant for PiB
-PiB = 1125899906842624L
-
+##Constant for byte size
+SIZE_CONS = {
+    'B'  : 1,
+    'KiB': 2**10,
+    'KB' : 10**3,
+    'K'  : 2**10,
+    'k'  : 2**10,
+    'MiB': 2**20,
+    'MB' : 10**6,
+    'M'  : 2**20,
+    'm'  : 2**20,
+    'GiB': 2**30,
+    'GB' : 10**9,
+    'G'  : 2**30,
+    'g'  : 2**30,
+    'TiB': 2**40,
+    'TB' : 10**12,
+    'T'  : 2**40,
+    't'  : 2**40,
+    'PiB': 2**50,
+    'PB' : 10**15,
+    'P'  : 2**50,
+    'p'  : 2**50,
+    'EiB': 2**60,
+    'EB' : 10**17,
+    'E'  : 2**60,
+    'e'  : 2**60,
+}
+SIZE_CONS_CHK_LST = ['EiB', 'PiB', 'TiB', 'GiB', 'MiB', 'KiB']
 
 ##Converts the size into human format.
 # @param    size    Size in bytes
@@ -110,31 +129,74 @@ PiB = 1125899906842624L
 # @return Human representation of size
 def sh(size, human=False):
     """
-    Size for humans
+    Convert size in bytes to human readable size
+    The return string will follow IEC binary prefixes, e.g. '1.9 KiB'
+    For size less than 1024, we do nothing but return the int we get.
+    TODO: Need a expect to handle when size is not a int. int() might do.
     """
     units = None
-
-    if human:
-        if size >= PiB:
-            size /= float(PiB)
-            units = "PiB"
-        elif size >= TiB:
-            size /= float(TiB)
-            units = "TiB"
-        elif size >= GiB:
-            size /= float(GiB)
-            units = "GiB"
-        elif size >= MiB:
-            size /= float(MiB)
-            units = "MiB"
-        elif size >= KiB:
-            size /= float(KiB)
-            units = "KiB"
-
+    for key_name in SIZE_CONS_CHK_LST:
+        if size >= SIZE_CONS[key_name]:
+            size /= float(SIZE_CONS[key_name])
+            units = key_name
+            break
+    if not units:
+        units = "B"
     if units:
         return "%.2f %s" % (size, units)
     else:
         return size
+
+##Converts the size into human format.
+# @param  size    Size in bytes
+# @return Human representation of size in IEC binary size prefixes.
+def size_bytes_2_size_human(size):
+    """
+    Convert integer size in bytes to human readable size.
+    We are following rules of IEC binary prefixes on size:
+        http://en.wikipedia.org/wiki/Gibibyte
+    The biggest of unit this function supported is PiB.
+    The precision is 2 which means you will get '1.99 KiB'
+    """
+    return sh(size, 1)
+
+
+##Converts the size into human format.
+# @param size_human Human readable size string, e.g. '1.9 KiB'
+# @return Size in bytes
+def size_human_2_size_bytes(size_human):
+    """
+    Convert human readable size string into integer size in bytes.
+    Following rules of IEC binary prefixes on size:
+        http://en.wikipedia.org/wiki/Gibibyte
+    Supported input size_human in these formats:
+        '1.9KiB'        # int(1024*1.9)
+        '1 KiB'         # 2**10
+        '1B'            # 1
+        '2K'            # 2*(2**10), treated as '2KiB'
+        '2k'            # 2*(2**10), treated as '2KiB'
+        '2KB'           # 2*(10**3)
+    """
+    regex_size_human = re.compile(r"""
+        ^
+        ([0-9\.]+)          # 1: number
+        [ \t]*              # might have space between number and unit
+        ([a-zA-Z]*)         # 2: units
+        $
+    """, re.X)
+    regex_match = regex_size_human.match(size_human)
+    units = ''
+    number = 0
+    size_bytes = 0
+    if regex_match:
+        number = regex_match.group(1)
+        units = regex_match.group(2)
+        units = units.replace('IB', 'iB')
+        if not units:
+            return int(number)
+        if units in SIZE_CONS:
+            size_bytes = SIZE_CONS[units] * float(number)
+    return int(size_bytes)
 
 
 ## Common method used to parse a URI.

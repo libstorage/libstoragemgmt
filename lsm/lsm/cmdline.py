@@ -17,8 +17,6 @@
 from optparse import OptionParser, OptionGroup
 import optparse
 import os
-import re
-import string
 import textwrap
 import sys
 import getpass
@@ -1030,36 +1028,10 @@ class CmdLine:
     # @return Size in bytes
     @staticmethod
     def _size(s):
-        s = string.upper(s)
-        m = re.match('^([0-9]+(\.[0-9]+)?)([BKMGTP]?)$', s)
-        if m:
-            unit = m.group(3)
-            rc = float(m.group(1))
-
-            if unit == 'K':
-                rc *= common.KiB
-            elif unit == 'M':
-                rc *= common.MiB
-            elif unit == 'G':
-                rc *= common.GiB
-            elif unit == 'T':
-                rc *= common.TiB
-            elif unit == 'P':
-                rc *= common.PiB
-            else:
-                if m.group(2) is None:
-                    rc = m.group(1)
-                else:
-                    raise ArgError(" unable to specify fractional parts "
-                                   "of a byte")
-        else:
-            raise ArgError(" size is not in form <number>|<number"
-                           "[B|K|M|G|T|P] (IEC)> No postfix indicates bytes")
-
-        if int(rc) > ((2 ** 64) - 1):
-            raise ArgError(" specified size too large")
-
-        return int(rc)
+        size_bytes = common.size_human_2_size_bytes(s)
+        if size_bytes <= 0:
+            raise ArgError("Incorrect size argument format: '%s'" % s)
+        return size_bytes
 
     def _cp(self, cap, val):
         if self.options.sep is not None:

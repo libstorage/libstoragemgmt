@@ -24,7 +24,7 @@ prompt for password (env LSMCLI_PASSWORD)
 .TP
 \fB\-H\fR, \fB\-\-human\fR
 print sizes in human readable format
-(e.g., MiB, GiB, TiB)
+(e.g., KiB, MiB, GiB, TiB, PiB, EiB)
 .TP
 \fB\-t\fR SEP, \fB\-\-terse\fR=\fISEP\fR
 print output in terse form with "SEP" as a record
@@ -44,8 +44,8 @@ include the header with terse
 .TP
 \fB\-b\fR
 run the command asynchronously instead of waiting for
-completion.  lsmcli command will exit with exit code(7) and job id will be 
-written to stdout when a command is still executing on the storage array.  
+completion.  lsmcli command will exit with exit code(7) and job id will be
+written to stdout when a command is still executing on the storage array.
 Use --job-status <job id> to inquire on the progress of the command.
 
 .SH ENVIRONMENT
@@ -59,7 +59,7 @@ LSMCLI_PASSWORD
 .SH COMMANDS
 .TP
 \fB\-l\fR <type>, \fB\-\-list=\fR<type>
-.TP 
+.TP
 List records of type:
 [VOLUMES|INITIATORS|POOLS|FS|SNAPSHOTS|EXPORTS
 .br
@@ -300,7 +300,23 @@ Removes dependencies
 .SH COMMAND OPTIONS
 .TP
 \fB\-\-size\fR=\fIsize\fR
-size (Can use B, K, M, G, T, P postfix, IEC sizing) No postfix indicates bytes
+size No postfix indicates bytes, can use these prefixes:
+    KiB,                    # 2^10 Bytes
+    MiB,                    # 2^20 Bytes
+    GiB,                    # 2^30 Bytes
+    TiB,                    # 2^40 Bytes
+    PiB,                    # 2^50 Bytes
+    EiB,                    # 2^60 Bytes
+    KB,                     # 10^3 Bytes
+    MB,                     # 10^6 Bytes
+    GB,                     # 10^9 Bytes
+    TB,                     # 10^12 Bytes
+    PB,                     # 10^15 Bytes
+    EB,                     # 10^17 Bytes
+
+These prefixes are supported also, but not recommanded:
+    K, M, G, T, P, E,       # equal to KiB, MiB, and etc
+    k, m, g, t, p, e,       # equal to KiB, MiB, and etc
 .TP
 \fB\-\-pool\fR=\fIpool\fR id
 pool ID
@@ -399,7 +415,7 @@ such as 'uri=ontap://user@filer.example.com'.
 Configuration options in .lsmcli are only used if not overridden by
 command-line option or environment variable.
 .SH BUGS
-Please report bugs to 
+Please report bugs to
 <libstoragemgmt\-devel@lists.sourceforge.net>
 .SH AUTHOR
 Tony Asleson <tasleson@redhat.com>
