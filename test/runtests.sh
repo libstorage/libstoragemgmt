@@ -78,7 +78,7 @@ good "mkdir -p $LSM_UDS_PATH"
 good "mkdir -p $plugins"
 
 #Copy plugins to one directory.
-good "find $rootdir \( ! -regex '.*/\..*' \) -type f -name \*_lsmplugin -exec cp {} $plugins \;"
+good "find $rootdir/ \( ! -regex '.*/\..*' \) -type f -name \*_lsmplugin -exec cp {} $plugins \;"
 
 #Export needed vars
 export PYTHONPATH=$rootdir/lsm
