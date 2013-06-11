@@ -135,13 +135,15 @@ def sh(size, human=False):
     TODO: Need a expect to handle when size is not a int. int() might do.
     """
     units = None
-    for key_name in SIZE_CONS_CHK_LST:
-        if size >= SIZE_CONS[key_name]:
-            size /= float(SIZE_CONS[key_name])
-            units = key_name
-            break
-    if not units:
-        units = "B"
+
+    if human:
+        for key_name in SIZE_CONS_CHK_LST:
+            if size >= SIZE_CONS[key_name]:
+                size /= float(SIZE_CONS[key_name])
+                units = key_name
+                break
+        if not units:
+            units = "B"
     if units:
         return "%.2f %s" % (size, units)
     else:
@@ -158,7 +160,7 @@ def size_bytes_2_size_human(size):
     The biggest of unit this function supported is PiB.
     The precision is 2 which means you will get '1.99 KiB'
     """
-    return sh(size, 1)
+    return sh(size, True)
 
 
 ##Converts the size into human format.
