@@ -173,8 +173,8 @@ class IbmV7k(IStorageAreaNetwork):
         return self._execute_command_and_parse_concise(ssh_cmd)
 
     def _pool(self, p):
-        return Pool(p['id'], p['name'], p['capacity'], p['free_capacity'],
-                    self.sys_info.id)
+        return Pool(p['id'], p['name'], int(p['capacity']),
+                    int(p['free_capacity']), self.sys_info.id)
 
     def _get_volumes(self):
         ssh_cmd = 'lsvdisk -bytes -delim !'
