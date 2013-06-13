@@ -127,6 +127,10 @@ class IbmV7k(IStorageAreaNetwork):
         self.sys_info = None
         self.ssh = None
 
+    def _execute_command(self, ssh_cmd):
+        ec, so, se = self.ssh.execute(ssh_cmd)
+        return (ec, so, se)
+
     def _execute_command_and_parse_detailed(self, ssh_cmd):
         exit_code, stdout, stderr = self.ssh.execute(ssh_cmd)
 
@@ -222,6 +226,47 @@ class IbmV7k(IStorageAreaNetwork):
         ssh_cmd = ('rmvdisk %s %s') % ('-force' if force else '', volume)
         ec, so, se = self.ssh.execute(ssh_cmd)
 
+    def _get_initiators(self):
+        ssh_cmd = 'lshost -delim !'
+        return self._execute_command_and_parse_concise(ssh_cmd)
+
+    def _get_initiator(self, init):
+        ssh_cmd = 'lshost -delim ! %s' % init
+        return self._execute_command_and_parse_detailed(ssh_cmd)
+
+    def _initiator(self, init):
+        gi = self._get_initiator(init['id'])
+
+        if 'WWPN' in gi:
+            init_type = Initiator.TYPE_PORT_WWN
+        elif 'iscsiname' in gi:
+            init_type = Initiator.TYPE_ISCSI
+        else:
+            init_type = Initiator.TYPE_OTHER
+
+        return Initiator(init['id'], init_type, init['name'])
+
+    def _get_volumes_accessible_by_initiator(self, init):
+        ssh_cmd = 'lshostvdiskmap -delim ! %s' % init
+        return self._execute_command_and_parse_concise(ssh_cmd)
+
+    def _get_initiators_granted_to_volume(self, v):
+        ssh_cmd = 'lsvdiskhostmap -delim ! %s' % v
+        return self._execute_command_and_parse_concise(ssh_cmd)
+
+    def _initiator_grant(self, init_id, vol_id, force):
+        ssh_cmd = ('mkvdiskhostmap %s -host %s %s') % ('-force' if force else '', init_id, vol_id)
+        return self._execute_command(ssh_cmd)
+
+    def _initiator_grant_is_success(self, stdout):
+        if 'successfully created' in stdout:
+            return True
+        return False
+
+    def _initiator_revoke(self, init_id, vol_id):
+        ssh_cmd = ('rmvdiskhostmap -host %s %s') % (init_id, vol_id)
+        return self._execute_command(ssh_cmd)
+
     def startup(self, uri, password, timeout, flags=0):
         self.uri = uri
         self.password = password
@@ -260,6 +305,11 @@ class IbmV7k(IStorageAreaNetwork):
         cap.set(Capabilities.VOLUME_CREATE)
         cap.set(Capabilities.VOLUME_DELETE)
         cap.set(Capabilities.VOLUME_THIN)
+        cap.set(Capabilities.INITIATORS)
+        cap.set(Capabilities.VOLUME_ACCESSIBLE_BY_INITIATOR)
+        cap.set(Capabilities.INITIATORS_GRANTED_TO_VOLUME)
+        cap.set(Capabilities.VOLUME_INITIATOR_GRANT)
+        cap.set(Capabilities.VOLUME_INITIATOR_REVOKE)
         return cap
 
     def plugin_info(self, flags=0):
@@ -277,8 +327,8 @@ class IbmV7k(IStorageAreaNetwork):
         return [self._volume(v) for v in gv.itervalues()]
 
     def initiators(self, flags=0):
-        raise LsmError(ErrorNumber.NOT_IMPLEMENTED,
-                       "API not implemented at this time")
+        gi = self._get_initiators()
+        return [self._initiator(i) for i in gi.itervalues()]
 
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
                       flags=0):
@@ -325,12 +375,20 @@ class IbmV7k(IStorageAreaNetwork):
 
     def initiator_grant(self, initiator_id, initiator_type, volume, access,
                         flags=0):
-        raise LsmError(ErrorNumber.NOT_IMPLEMENTED,
-                       "API not implemented at this time")
+        # TODO: How to pass -force param ? For now, assume -force.
+        # NOTE: V7000 doesn't provide a way to pass access param,
+        #       access is always rw, if ro, raise error.
+        if access != Volume.ACCESS_READ_WRITE:
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                           "Only RW access to the volume is supported")
+            return False
+
+        ec, so, se = self._initiator_grant(initiator_id, volume.id, force=True)
+        return self._initiator_grant_is_success(so)
 
     def initiator_revoke(self, initiator, volume, flags=0):
-        raise LsmError(ErrorNumber.NOT_IMPLEMENTED,
-                       "API not implemented at this time")
+        self._initiator_revoke(initiator.id, volume.id)
+        return
 
     def access_group_list(self, flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Feature not supported")
@@ -364,9 +422,23 @@ class IbmV7k(IStorageAreaNetwork):
                        "API not implemented at this time")
 
     def volumes_accessible_by_initiator(self, initiator, flags=0):
-        raise LsmError(ErrorNumber.NOT_IMPLEMENTED,
-                       "API not implemented at this time")
+        gvabi = self._get_volumes_accessible_by_initiator(initiator.id)
+
+        vol_list = []
+        for vol in gvabi.itervalues():
+            gv = self._get_volume(vol['vdisk_id'])
+            v = self._volume(gv)
+            vol_list.append(v)
+
+        return vol_list
 
     def initiators_granted_to_volume(self, volume, flags=0):
-        raise LsmError(ErrorNumber.NOT_IMPLEMENTED,
-                       "API not implemented at this time")
+        gigtv = self._get_initiators_granted_to_volume(volume.id)
+
+        init_list = []
+        for init in gigtv.itervalues():
+            gi = self._get_initiator(init['host_id'])
+            i = self._initiator(gi)
+            init_list.append(i)
+
+        return init_list
