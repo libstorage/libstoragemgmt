@@ -2,7 +2,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Copyright (C) 2011 Red Hat, Inc.
 dnl See COPYING.LIB for the License of this software
 
-AC_INIT([libstoragemgmt], [0.0.20], [libstoragemgmt-devel@lists.sourceforge.net], [], [http://sourceforge.net/projects/libstoragemgmt/])
+AC_INIT([libstoragemgmt], [0.0.21], [libstoragemgmt-devel@lists.sourceforge.net], [], [http://sourceforge.net/projects/libstoragemgmt/])
 AC_CONFIG_SRCDIR([configure.ac])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -48,6 +48,10 @@ AM_PROG_CC_C_O
 AM_PROG_LD
 
 AC_CHECK_HEADERS([stdint.h stdlib.h string.h sys/socket.h syslog.h unistd.h])
+
+AC_LANG_PUSH([C++])
+AC_COMPILE_IFELSE([[int i;]], [], [AC_MSG_ERROR([C++ compiler missing or inoperational])])
+AC_LANG_POP([C++])
 
 #Make sure all types are covered
 AC_HEADER_STDBOOL
