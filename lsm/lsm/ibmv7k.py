@@ -234,20 +234,56 @@ class IbmV7k(IStorageAreaNetwork):
         ssh_cmd = 'lshost -delim ! %s' % init
         return self._execute_command_and_parse_detailed(ssh_cmd)
 
-    def _initiator(self, init):
-        gi = self._get_initiator(init['id'])
+    def _initiator(self, v7k_init):
+        # NOTE: There is a terminology gap between what V7k thinks initiator id
+        #       is and what lsm thinks initiator id is.
+        #
+        #       Class Initiator's 'id' field actually is the wwpn/iqn, but V7K
+        #       only takes wwpn/iqn during mkhost, then assigns a numeric id &
+        #       string name to a host, and all future reference to the host
+        #       after mkhost is successfull, is using the numeric/string
+        #       id/name only.
 
-        if 'WWPN' in gi:
-            init_type = Initiator.TYPE_PORT_WWN
-        elif 'iscsiname' in gi:
-            init_type = Initiator.TYPE_ISCSI
+        if 'WWPN' in v7k_init:
+            lsm_init_type = Initiator.TYPE_PORT_WWN
+            # TODO: Add support for > 1 wwpn case.
+            #       v7k cli is not parse friendly for > 1 case.
+            lsm_init_id = v7k_init['WWPN']
+        elif 'iscsi_name' in v7k_init:
+            lsm_init_type = Initiator.TYPE_ISCSI
+            # TODO: Add support for > 1 iscsiname case.
+            #       v7k cli is not parse friendly for > 1 case.
+            lsm_init_id = v7k_init['iscsi_name']
         else:
-            init_type = Initiator.TYPE_OTHER
+            # Since lshost worked, support it as other type.
+            lsm_init_type = Initiator.TYPE_OTHER
+            lsm_init_id = v7k_init['id']
 
-        return Initiator(init['id'], init_type, init['name'])
+        return Initiator(lsm_init_id, lsm_init_type, v7k_init['name'])
 
-    def _get_volumes_accessible_by_initiator(self, init):
-        ssh_cmd = 'lshostvdiskmap -delim ! %s' % init
+    def _map_lsm_init_id_to_v7k(self, lsm_init_id):
+        gi = self._get_initiators()
+
+        v7k_init_id = None
+        for i in gi.itervalues():
+            v7kinit = self._get_initiator(i['id'])
+            if 'WWPN' in v7kinit and v7kinit['WWPN'] == lsm_init_id:
+                v7k_init_id = v7kinit['id']
+
+            if 'iscsi_name' in v7kinit and v7kinit['iscsi_name'] == lsm_init_id:
+                v7k_init_id = v7kinit['id']
+
+        if not v7k_init_id:
+            raise LsmError(ErrorNumber.NOT_FOUND_INITIATOR,
+                           "Initiator not found")
+
+        return v7k_init_id
+
+    def _get_volumes_accessible_by_initiator(self, init_id):
+        # init_id passed is the lsm's init id. Convert it to v7k id.
+        v7k_init_id = self._map_lsm_init_id_to_v7k(init_id)
+
+        ssh_cmd = 'lshostvdiskmap -delim ! %s' % v7k_init_id
         return self._execute_command_and_parse_concise(ssh_cmd)
 
     def _get_initiators_granted_to_volume(self, v):
@@ -255,7 +291,10 @@ class IbmV7k(IStorageAreaNetwork):
         return self._execute_command_and_parse_concise(ssh_cmd)
 
     def _initiator_grant(self, init_id, vol_id, force):
-        ssh_cmd = ('mkvdiskhostmap %s -host %s %s') % ('-force' if force else '', init_id, vol_id)
+        # init_id passed is the lsm's init id. Convert it to v7k id.
+        v7k_init_id = self._map_lsm_init_id_to_v7k(init_id)
+
+        ssh_cmd = ('mkvdiskhostmap %s -host %s %s') % ('-force' if force else '', v7k_init_id, vol_id)
         return self._execute_command(ssh_cmd)
 
     def _initiator_grant_is_success(self, stdout):
@@ -264,7 +303,10 @@ class IbmV7k(IStorageAreaNetwork):
         return False
 
     def _initiator_revoke(self, init_id, vol_id):
-        ssh_cmd = ('rmvdiskhostmap -host %s %s') % (init_id, vol_id)
+        # init_id passed is the lsm's init id. Convert it to v7k id.
+        v7k_init_id = self._map_lsm_init_id_to_v7k(init_id)
+
+        ssh_cmd = ('rmvdiskhostmap -host %s %s') % (v7k_init_id, vol_id)
         return self._execute_command(ssh_cmd)
 
     def startup(self, uri, password, timeout, flags=0):
@@ -327,8 +369,12 @@ class IbmV7k(IStorageAreaNetwork):
         return [self._volume(v) for v in gv.itervalues()]
 
     def initiators(self, flags=0):
+        init_list = []
         gi = self._get_initiators()
-        return [self._initiator(i) for i in gi.itervalues()]
+        for i in gi.itervalues():
+            init = self._get_initiator(i['id'])
+            init_list.append(self._initiator(init))
+        return init_list
 
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
                       flags=0):
