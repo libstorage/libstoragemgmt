@@ -135,7 +135,14 @@ class IbmV7k(IStorageAreaNetwork):
         exit_code, stdout, stderr = self.ssh.execute(ssh_cmd)
 
         cmd_output = {}
-        for line in stdout.split('\n'):
+        if not len(stdout.strip()):
+            return cmd_output
+
+        output_lines = stdout.split('\n')
+        if not len(output_lines):
+            return cmd_output
+
+        for line in output_lines:
             name, foo, value = line.partition('!')
             if name is not None and len(name.strip()):
                 cmd_output[name] = value
@@ -146,13 +153,19 @@ class IbmV7k(IStorageAreaNetwork):
         # This assume -nohdr is *not* present in ssh_cmd
         exit_code, stdout, stderr = self.ssh.execute(ssh_cmd)
 
+        cmd_output = {}
+        if not len(stdout.strip()):
+            return cmd_output
+
         output_lines = stdout.split('\n')
+        if not len(output_lines):
+            return cmd_output
+
         header_line = output_lines[0]
         keylist = header_line.split('!')
 
         # For some reason, concise output gives one extra blank line at the end
         attrib_lines = output_lines[1:-1]
-        cmd_output = {}
         lineindex = 0
 
         for attrib_line in attrib_lines:
@@ -290,9 +303,40 @@ class IbmV7k(IStorageAreaNetwork):
         ssh_cmd = 'lsvdiskhostmap -delim ! %s' % v
         return self._execute_command_and_parse_concise(ssh_cmd)
 
-    def _initiator_grant(self, init_id, vol_id, force):
+    def _initiator_create(self, init_id, init_type):
+        if init_type == Initiator.TYPE_PORT_WWN:
+            type_option = '-hbawwpn'
+        elif init_type == Initiator.TYPE_ISCSI:
+            type_option = '-iscsiname'
+        else:
+            raise LsmError(ErrorNumber.UNSUPPORTED_INITIATOR_TYPE,
+                           "Initiator type not supported")
+
+        ssh_cmd = ('mkhost %s %s') % (type_option, init_id)
+        return self._execute_command(ssh_cmd)
+
+    def _initiator_create_is_success(self, stdout):
+        if 'successfully created' in stdout:
+            return True
+        return False
+
+    def _initiator_grant(self, init_id, init_type, vol_id, force):
         # init_id passed is the lsm's init id. Convert it to v7k id.
-        v7k_init_id = self._map_lsm_init_id_to_v7k(init_id)
+        try:
+            v7k_init_id = self._map_lsm_init_id_to_v7k(init_id)
+        except LsmError as le:
+            if le.code == ErrorNumber.NOT_FOUND_INITIATOR:
+                # Auto add the initiator
+                ec, so, se = self._initiator_create(init_id, init_type)
+                if self._initiator_create_is_success(so):
+                    # If success, get the v7k id for the new init
+                    # This should not cause an exception this time!
+                    v7k_init_id = self._map_lsm_init_id_to_v7k(init_id)
+                else:
+                    raise LsmError(ErrorNumber.PLUGIN_ERROR,
+                                   "Error creating initiator")
+            else:
+                raise le
 
         ssh_cmd = ('mkvdiskhostmap %s -host %s %s') % ('-force' if force else '', v7k_init_id, vol_id)
         return self._execute_command(ssh_cmd)
@@ -302,12 +346,26 @@ class IbmV7k(IStorageAreaNetwork):
             return True
         return False
 
+    def _initiator_delete(self, v7k_init_id, force=True):
+        ssh_cmd = ('rmhost %s %s') % ('-force' if force else '', v7k_init_id)
+        self._execute_command(ssh_cmd)
+
     def _initiator_revoke(self, init_id, vol_id):
         # init_id passed is the lsm's init id. Convert it to v7k id.
         v7k_init_id = self._map_lsm_init_id_to_v7k(init_id)
 
         ssh_cmd = ('rmvdiskhostmap -host %s %s') % (v7k_init_id, vol_id)
-        return self._execute_command(ssh_cmd)
+        self._execute_command(ssh_cmd)
+
+        # Auto remove initiator (if no mapping present)
+        # v7k rmhost raises exception, if host is being removed with mappings
+        # present... unless -force is specified. So exploit that fact here.
+        try:
+            self._initiator_delete(v7k_init_id, force=False)
+        except LsmError:
+            pass
+
+        return
 
     def startup(self, uri, password, timeout, flags=0):
         self.uri = uri
@@ -422,6 +480,9 @@ class IbmV7k(IStorageAreaNetwork):
     def initiator_grant(self, initiator_id, initiator_type, volume, access,
                         flags=0):
         # TODO: How to pass -force param ? For now, assume -force.
+        #       -force allows multiple vdisk-to-host assignments,
+        #       which are not normally allowed
+
         # NOTE: V7000 doesn't provide a way to pass access param,
         #       access is always rw, if ro, raise error.
         if access != Volume.ACCESS_READ_WRITE:
@@ -429,7 +490,8 @@ class IbmV7k(IStorageAreaNetwork):
                            "Only RW access to the volume is supported")
             return False
 
-        ec, so, se = self._initiator_grant(initiator_id, volume.id, force=True)
+        ec, so, se = self._initiator_grant(initiator_id, initiator_type,
+                                           volume.id, force=True)
         return self._initiator_grant_is_success(so)
 
     def initiator_revoke(self, initiator, volume, flags=0):
