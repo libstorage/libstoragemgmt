@@ -253,9 +253,22 @@ def uri_parse(uri, requires=None, required_params=None):
 # @param    uri     Full uri
 # @returns  hash of the query string parameters.
 def uri_parameters(uri):
-    url = urlparse.urlparse('http:' + uri[2])
-    if len(url) >= 5 and len(url[4]):
-        return dict([part.split('=') for part in url[4].split('&')])
+    # workaround for python bug:
+    # http://bugs.python.org/issue9374
+    # for URL: smispy+ssl://admin@emc-smi:5989?namespace=root/emc
+    # Before the patch commited( RHEL 6 and Fedora 18- ):
+    #       '?namespace=root/emc' is saved in uri.path
+    # After patched(RHEL 7 and Fedora 19+):
+    #       'namespace=root/emc' is saved in uri.query
+    query = ''
+    if uri.query:
+        query = uri.query
+    elif uri.path:
+        query = urlparse.urlparse('http:' + uri[2]).query
+    else:
+        return {}
+    if query:
+        return dict([part.split('=') for part in query.split('&')])
     else:
         return {}
 
