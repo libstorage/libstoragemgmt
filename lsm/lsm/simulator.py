@@ -26,8 +26,8 @@ from data import Pool, Initiator, Volume, BlockRange, System, AccessGroup, \
     Snapshot, NfsExport
 from data import FileSystem
 from iplugin import INfs, IStorageAreaNetwork
-from lsm.data import Capabilities
-from lsm.version import VERSION
+from data import Capabilities
+from version import VERSION
 
 SIM_DATA_FILE = os.getenv("LSM_SIM_DATA",
                           tempfile.gettempdir() + '/lsm_sim_data')

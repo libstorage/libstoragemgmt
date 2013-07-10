@@ -27,7 +27,7 @@ from data import Volume, Initiator, FileSystem, Snapshot, NfsExport, \
     AccessGroup, System, Capabilities
 from iplugin import IStorageAreaNetwork, INfs
 from common import LsmError, ErrorNumber, JobStatus, md5, Error
-from lsm.version import VERSION
+from version import VERSION
 from data import Pool
 
 #Maps na to lsm, this is expected to expand over time.

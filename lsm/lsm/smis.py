@@ -23,7 +23,7 @@ from pywbem import CIMError
 from iplugin import IStorageAreaNetwork
 from common import uri_parse, LsmError, ErrorNumber, JobStatus, md5
 from data import Pool, Initiator, Volume, AccessGroup, System, Capabilities
-from lsm.version import VERSION
+from version import VERSION
 
 
 def handle_cim_errors(method):

@@ -22,7 +22,7 @@ import syslog
 
 try:
     from lsm import PluginRunner
-    from lsm import SmisProxy
+    from lsm.smisproxy import SmisProxy
 
     if __name__ == '__main__':
         PluginRunner(SmisProxy, sys.argv).run()

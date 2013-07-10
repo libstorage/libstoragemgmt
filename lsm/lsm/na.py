@@ -27,7 +27,7 @@ from external.xmltodict import ConvertXmlToDict
 
 
 #Set to an appropriate directory and file to dump the raw response.
-from lsm.common import ErrorNumber
+from common import ErrorNumber
 
 xml_debug = None
 
