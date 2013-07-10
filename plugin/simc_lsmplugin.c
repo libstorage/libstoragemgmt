@@ -1432,8 +1432,6 @@ static int iscsi_chap_auth(lsmPluginPtr c, lsmInitiator *initiator,
                                 const char *out_user, const char *out_password,
                                 lsmFlag_t flags)
 {
-    struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
-
     if (initiator) {
         return 0;
     }
