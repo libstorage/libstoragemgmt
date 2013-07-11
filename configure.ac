@@ -98,7 +98,7 @@ PKG_CHECK_MODULES([LIBGLIB], [glib-2.0 >= 2.22.5])
 want_c_unit="yes"
 AC_ARG_ENABLE([build-c-unit],
     [AC_HELP_STRING([--disable-build-c-unit], [disable building C unit test case.])],
-    [want_c_unit=$enableval], [])
+    [want_c_unit=${enableval}], [])
 
 if test "x${want_c_unit}" = "xyes"; then
     PKG_CHECK_MODULES([LIBCHECK], [check >= 0.9.8 ])
@@ -107,12 +107,27 @@ fi
 AM_CONDITIONAL([BUILD_C_UNIT], [test "x${want_c_unit}" = "xyes"])
 
 dnl ==========================================================================
-dnl Check for python as it is needed for the daemon
+dnl Check to see if user wants to exclude code that depends on python-paramiko
+dnl ==========================================================================
+
+AC_ARG_WITH([paramiko],
+    [AS_HELP_STRING([--without-paramiko], [Remove paramiko requirement and disables code which uses it, eg. IBM7K Plugin])],
+        [], [with_paramiko="yes"])
+
+AM_CONDITIONAL([HAVE_PARAMIKO], [test "x${with_paramiko}" = "xyes"])
+
+dnl ==========================================================================
+dnl Check for python as it is needed for the base cmd line function
 dnl ==========================================================================
 
 AM_PATH_PYTHON([2.6], [], AC_MSG_ERROR([Python interpreter 2.6 or later required]) )
 AC_PYTHON_MODULE([pywbem], [Required])
 AC_PYTHON_MODULE([M2Crypto], [Required])
+
+
+if test "x${with_paramiko}" = "xyes"; then
+    AC_PYTHON_MODULE([paramiko], [Required])
+fi
 
 #Setup the unit directory for systemd stuff
 PKG_PROG_PKG_CONFIG
