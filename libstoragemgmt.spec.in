@@ -8,10 +8,10 @@ URL:            http://sourceforge.net/projects/libstoragemgmt/
 Source0:        http://sourceforge.net/projects/libstoragemgmt/files/Alpha/libstoragemgmt-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-BuildRequires:  yajl-devel libxml2-devel pywbem check-devel m2crypto glib2-devel python-paramiko
-Requires:       pywbem m2crypto %{name}-python python-paramiko
+BuildRequires:  yajl-devel libxml2-devel check-devel glib2-devel
+Requires:       %{name}-python
 
-%if 0%{?fedora}
+%if 0%{?fedora} >= 15 || 0%{?rhel} >= 7
 BuildRequires:  systemd-units
 Requires: initscripts
 Requires(post): systemd-units
@@ -45,6 +45,66 @@ BuildArch:      noarch
 The %{name}-python package contains python client libraries as
 well as python framework support and open source plug-ins written in python.
 
+
+%package        smis-plugin
+Summary:        Files for SMI-S generic array support for %{name}
+Group:          System Environment/Libraries
+BuildRequires:  pywbem
+Requires:       pywbem %{name}-python
+BuildArch:      noarch
+
+%description    smis-plugin
+The %{name}-smis-plugin package contains plug-in for generic SMI-S array
+support.
+
+
+%package        netapp-plugin
+Summary:        Files for NetApp array support for %{name}
+Group:          System Environment/Libraries
+BuildRequires:  m2crypto
+Requires:       m2crypto  %{name}-python
+BuildArch:      noarch
+
+%description    netapp-plugin
+The %{name}-netapp-plugin package contains plug-in for NetApp array
+support.
+
+
+%package        targetd-plugin
+Summary:        Files for targetd array support for %{name}
+Group:          System Environment/Libraries
+Requires:       %{name}-python
+BuildArch:      noarch
+
+%description    targetd-plugin
+The %{name}-targetd-plugin package contains plug-in for targetd array
+support.
+
+
+%if 0%{?fedora} || 0%{?rhel} <= 6
+%package        ibm-v7k-plugin
+Summary:        Files for IBM v7k array support for %{name}
+Group:          System Environment/Libraries
+BuildRequires:  python-paramiko
+Requires:       python-paramiko %{name}-python
+BuildArch:      noarch
+
+%description    ibm-v7k-plugin
+The %{name}-ibm-v7k-plugin package contains plug-in for IBM v7k array
+support.
+%endif
+
+
+%package        nstor-plugin
+Summary:        Files for NexentaStor array support for %{name}
+Group:          System Environment/Libraries
+Requires:       %{name}-python
+BuildArch:      noarch
+
+%description    nstor-plugin
+The %{name}-nstor-plugin package contains plug-in for NexentaStor array
+support.
+
 %prep
 %setup -q
 
@@ -55,7 +115,11 @@ UpdateTimestamps(){
 }
 
 #Tell the install program to preserve file date/timestamps
+%if 0%{?rhel} >= 7
+%configure --disable-static INSTALL_DATA="\${INSTALL} -p" --without-paramiko
+%else
 %configure --disable-static INSTALL_DATA="\${INSTALL} -p"
+%endif
 
 UpdateTimestamps
 
@@ -66,7 +130,7 @@ rm -rf %{buildroot}
 make install DESTDIR=%{buildroot}
 find %{buildroot} -name '*.la' -exec rm -f {} ';'
 
-%if 0%{?fedora}
+%if 0%{?fedora} >= 15 || 0%{?rhel} >= 7
 install -d -m755 %{buildroot}/%{_unitdir}
 install -m644 packaging/daemon/libstoragemgmt.service %{buildroot}/%{_unitdir}/libstoragemgmt.service
 
@@ -94,7 +158,7 @@ getent passwd libstoragemgmt >/dev/null || \
 %post
 /sbin/ldconfig
 if [ $1 -eq 1 ]; then
-%if 0%{?fedora}
+%if 0%{?fedora} >= 15 || 0%{?rhel} >= 7
     /bin/systemctl enable libstoragemgmt.service >/dev/null 2>&1 || :
 %else
     /sbin/chkconfig --add libstoragemgmtd
@@ -103,7 +167,7 @@ fi
 
 %preun
 if [ $1 -eq 0 ]; then
-%if 0%{?fedora}
+%if 0%{?fedora} >= 15 || 0%{?rhel} >= 7
     # On uninstall (not upgrade), disable and stop the units
     /bin/systemctl --no-reload disable libstoragemgmt.service >/dev/null 2>&1 || :
     /bin/systemctl stop libstoragemgmt.service >/dev/null 2>&1 || :
@@ -117,7 +181,7 @@ fi
 /sbin/ldconfig
 /bin/systemctl daemon-reload >/dev/null 2>&1 || :
 if [ $1 -ge 1 ] ; then
-%if 0%{?fedora}
+%if 0%{?fedora} >= 15 || 0%{?rhel} >= 7
     # On upgrade (not uninstall), optionally, restart the daemon
     /bin/systemctl try-restart libstoragemgmt.service >/dev/null 2>&1 || :
 %else
@@ -132,16 +196,19 @@ fi
 %{_mandir}/man1/lsmcli.1*
 %{_mandir}/man1/lsmd.1*
 %{_libdir}/*.so.*
-%{_bindir}/*
+%{_bindir}/lsmcli
+%{_bindir}/lsmd
+%{_bindir}/sim_lsmplugin
+%{_bindir}/simc_lsmplugin
 
-%if 0%{?fedora}
+%if 0%{?fedora} >= 15 || 0%{?rhel} >= 7
 %{_unitdir}/*
 %endif
 
 %dir %attr(0755, libstoragemgmt, libstoragemgmt) %{_localstatedir}/run/lsm/
 %dir %attr(0755, libstoragemgmt, libstoragemgmt) %{_localstatedir}/run/lsm/ipc
 
-%if 0%{?fedora}
+%if 0%{?fedora} >= 15 || 0%{?rhel} >= 7
 %config(noreplace) %{_sysconfdir}/tmpfiles.d/%{name}.conf
 %else
 %attr(0755, root, root) /etc/rc.d/init.d/libstoragemgmtd
@@ -156,9 +223,50 @@ fi
 %files python
 %defattr(-,root,root,-)
 #Python library files
-%{python_sitelib}/*
+%{python_sitelib}/lsm/__init__.*
+%{python_sitelib}/lsm/external/*
+%{python_sitelib}/lsm/client.*
+%{python_sitelib}/lsm/cmdline.*
+%{python_sitelib}/lsm/common.*
+%{python_sitelib}/lsm/data.*
+%{python_sitelib}/lsm/iplugin.*
+%{python_sitelib}/lsm/pluginrunner.*
+%{python_sitelib}/lsm/simulator.*
+%{python_sitelib}/lsm/transport.*
+%{python_sitelib}/lsm/version.*
+%{_bindir}/sim_lsmplugin
+
+%files smis-plugin
+%defattr(-,root,root,-)
+%{python_sitelib}/lsm/eseries.*
+%{python_sitelib}/lsm/smis.*
+%{python_sitelib}/lsm/smisproxy.*
+%{_bindir}/smispy_lsmplugin
+
+%files netapp-plugin
+%defattr(-,root,root,-)
+%{python_sitelib}/lsm/na.*
+%{python_sitelib}/lsm/ontap.*
+%{_bindir}/ontap_lsmplugin
+
+%files targetd-plugin
+%defattr(-,root,root,-)
+%{_bindir}/targetd_lsmplugin
+
+
+%if 0%{?fedora} || 0%{?rhel} <= 6
+%files ibm-v7k-plugin
+%defattr(-,root,root,-)
+%{python_sitelib}/lsm/ibmv7k.*
+%{_bindir}/v7k_lsmplugin
+%endif
+
+%files nstor-plugin
+%defattr(-,root,root,-)
+%{_bindir}/nstor_lsmplugin
 
 %changelog
+
 * Fri May 24 2013 Tony Asleson <tasleson@redhat.com> 0.0.20-1
 - Python library files now in separate rpm
 - Additional debug for plug-ins when exceptions occur
