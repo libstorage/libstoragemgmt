@@ -1,5 +1,12 @@
 News for libStorageMgmt
 
+0.0.21: Jul 16 2013
+    - IEC binary size handling
+    - Functionality improvements for IBM V7K array
+    - Workaround for python bug on F19
+    - Bugfix (BZ 968384)
+    - Package plug-ins as separately in rpm packages
+
 0.0.20: May 24 2013
     - Python library files now in separate rpm
     - Additional debug for plug-ins when exceptions occur

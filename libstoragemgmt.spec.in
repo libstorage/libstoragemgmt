@@ -267,6 +267,14 @@ fi
 
 %changelog
 
+* Tue Jul 16 2013 Tony Asleson <tasleson@redhat.com> 0.0.21-1
+- Don't include IBM7K plugin for RHEL > 6 missing paramakio
+- IEC binary size handling
+- Functionality improvements for IBM V7K array
+- Workaround for python bug on F19
+- Bugfix (BZ 968384)
+- Package plug-ins as separately in rpm packages
+
 * Fri May 24 2013 Tony Asleson <tasleson@redhat.com> 0.0.20-1
 - Python library files now in separate rpm
 - Additional debug for plug-ins when exceptions occur
