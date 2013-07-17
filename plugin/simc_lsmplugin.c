@@ -609,7 +609,6 @@ static int list_volumes(lsmPluginPtr c, lsmVolume **vols[],
 static uint64_t pool_allocate(lsmPool *p, uint64_t size)
 {
     uint64_t rounded_size = 0;
-    int rc = LSM_ERR_OK;
     uint64_t free_space = lsmPoolFreeSpaceGet(p);
 
     rounded_size = (size/BS) * BS;
@@ -618,7 +617,7 @@ static uint64_t pool_allocate(lsmPool *p, uint64_t size)
         free_space -= rounded_size;
         lsmPoolFreeSpaceSet(p, free_space);
     } else {
-        rc = 0;
+        rounded_size = 0;
     }
     return rounded_size;
 }

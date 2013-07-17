@@ -171,7 +171,7 @@ static int listInitiators(const LSM::Arguments &a, lsmConnect *c)
     int rc = 0;
     lsmInitiator **init = NULL;
     uint32_t num_init = 0;
-    const char format[] = "%-40s%-16s%-5d\n";
+    const char format[] = "%-40s%-16s%-5s\n";
 
     rc = lsmInitiatorList(c, &init, &num_init, 0);
 
