@@ -74,7 +74,7 @@ Retrieves array capabilities
 Retrieves plugin description and version
 .TP
 \fB\-\-delete\-fs=\fR<fs id>
-Delete a filesystem
+Deletes a filesystem
 .TP
 \fB\-\-delete\-access\-group=\fR<group id>
 Deletes an access group
@@ -258,7 +258,7 @@ Re\-sizes a file system, requires:
 Removes a nfs export
 .TP
 \fB\-\-nfs\-export\-fs=\fR<file system id>
-creates a nfs export
+Creates a nfs export
 .br
 Optional:
 .br
@@ -279,7 +279,7 @@ Note: root, ro, rw are to be repeated for each host
 \fB\-\-auth\-type\fR <NFS client authentication type>
 .TP
 \fB\-\-job\-status=\fR<job status id>
-retrieve information about job
+Retrieves information about job
 .TP
 \fB\-\-volume\-dependants=\fR<volume id>
 Returns True if volume has a dependant child
