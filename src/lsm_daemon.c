@@ -253,11 +253,11 @@ void process_directory( char *dir, void *p, file_op call_back)
 
             if( closedir(dp) ) {
                 err = errno;
-                loud("closedir %s, error %s\n", socket_dir, strerror(err));
+                loud("closedir %s, error %s\n", dir, strerror(err));
             }
         } else {
             err = errno;
-            loud("Error processing socket directory %s, error %s\n", socket_dir,
+            loud("Error processing directory %s, error %s\n", dir,
                     strerror(err));
         }
     }
