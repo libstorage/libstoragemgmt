@@ -31,12 +31,12 @@ void TestIt(int fd)
 
         std::cout << "sending msg" << std::endl;
         rc = t.sendMsg(msg, ec);
-        std::cout << "message sent " << rc << std::endl;
+        std::cout << "message sent: " << rc << std::endl;
         if( rc == 0 ) {
             
             std::cout << "Receiving msg" << std::endl;
             std::string rmsg = t.recvMsg(ec);
-            std::cout << "Message received " << rmsg.size() << std::endl;
+            std::cout << "Message received " << rmsg.size() << " Byte(s)" << std::endl;
 
             if( rmsg.size() > 0 ) {
 
@@ -69,7 +69,7 @@ int main(void)
     if( fd >= 0 ) {
         TestIt(fd);
     } else {
-        std::cout << "Error getting connected socket " << ec << std::endl;
+        std::cout << "Error getting connected socket: " << ec << std::endl;
     }
 
     return 0;
