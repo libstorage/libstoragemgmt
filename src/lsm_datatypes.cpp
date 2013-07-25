@@ -73,6 +73,7 @@ int lsmStringListRemove(lsmStringList *sl, uint32_t index)
 	if( LSM_IS_STRING_LIST(sl) ) {
 		if( index < sl->values->len ) {
 			g_ptr_array_remove_index(sl->values, index);
+			rc = LSM_ERR_OK;
 		} else {
 			rc = LSM_ERR_INDEX_BOUNDS;
 		}
