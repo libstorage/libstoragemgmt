@@ -199,7 +199,7 @@ void freeConnection(lsmConnect *c)
 {
     if (c) {
 
-        c->magic = LSM_DEL_MAGIC(LSM_SYSTEM_MAGIC);
+        c->magic = LSM_DEL_MAGIC(LSM_CONNECT_MAGIC);
         c->flags = 0;
 
         if (c->uri) {
