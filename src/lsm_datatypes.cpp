@@ -165,11 +165,11 @@ lsmStringList *lsmStringListCopy(lsmStringList *src)
     lsmStringList *dest = NULL;
 
     if( LSM_IS_STRING_LIST(src) ) {
-        dest = lsmStringListAlloc(lsmStringListSize(src));
+        uint32_t size = lsmStringListSize(src);
+        dest = lsmStringListAlloc(size);
 
         if( dest ) {
             uint32_t i;
-			uint32_t size = lsmStringListSize(src);
 
             for( i = 0; i < size ; ++i ) {
                 if ( LSM_ERR_OK != lsmStringListSetElem(dest, i,
