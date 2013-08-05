@@ -194,12 +194,12 @@ void flight_check(void)
 void usage(void)
 {
     printf("libStorageMgmt plug-in daemon.\n");
-    printf("lsmd --plugindir <directory> --socketdir <dir> -v -d\n");
-    printf("    --plugindir = The directory where the plugins are located\n");
-    printf("    --socketdir = The directory where the Unix domain sockets will "
+    printf("lsmd [--plugindir <directory>] [--socketdir <dir>] [-v] [-d]\n");
+    printf("     --plugindir = The directory where the plugins are located\n");
+    printf("     --socketdir = The directory where the Unix domain sockets will "
                                 "be created\n");
-    printf("    -v          = Verbose logging\n");
-    printf("    -d          = new style daemon (systemd)\n");
+    printf("     -v          = Verbose logging\n");
+    printf("     -d          = new style daemon (systemd)\n");
 }
 
 /**
@@ -253,11 +253,11 @@ void process_directory( char *dir, void *p, file_op call_back)
 
             if( closedir(dp) ) {
                 err = errno;
-                loud("closedir %s, error %s\n", dir, strerror(err));
+                loud("Error on closing dir %s: %s\n", dir, strerror(err));
             }
         } else {
             err = errno;
-            loud("Error processing directory %s, error %s\n", dir,
+            loud("Error on processing directory %s: %s\n", dir,
                     strerror(err));
         }
     }
@@ -280,7 +280,7 @@ int delete_socket(void *p, char *full_name)
         if( S_ISSOCK(statbuf.st_mode)) {
             if( unlink(full_name) ) {
                 err = errno;
-                loud("Error unlinking file %s, error %s\n",
+                loud("Error on unlinking file %s: %s\n",
                         full_name, strerror(err));
             }
         }
@@ -327,23 +327,23 @@ int setup_socket(char *full_name)
 
         if( -1 == bind(fd, (struct sockaddr *)&addr, sizeof(struct sockaddr_un))) {
             err = errno;
-            loud("bind %s, error %s\n", socket_file, strerror(err));
+            loud("Error on binding socket %s: %s\n", socket_file, strerror(err));
         }
 
         if( -1 == chmod(socket_file, S_IREAD|S_IWRITE|S_IRGRP|S_IWGRP
                                     |S_IROTH|S_IWOTH)) {
             err = errno;
-            loud("chmod %s, error %s\n", socket_file, strerror(err));
+            loud("Error on chmod socket file %s: %s\n", socket_file, strerror(err));
         }
 
         if( -1 == listen(fd, 5)) {
             err = errno;
-            loud("listen %s, error %s\n", socket_file, strerror(err));
+            loud("Error on listening %s: %s\n", socket_file, strerror(err));
         }
 
     } else {
         err = errno;
-        loud("Error unlinking file %s, error %s\n",
+        loud("Error on unlinking file %s: %s\n",
                         socket_file, strerror(err));
     }
 
@@ -367,7 +367,7 @@ void empty_plugin_list(struct plugin_list *list)
 
         if( -1 == close(item->fd) ) {
             err = errno;
-            info("Error on closing fd %d for %s, error= %s\n", item->fd,
+            info("Error on closing fd %d for file %s: %s\n", item->fd,
                     item->file_path, strerror(err));
         }
 
@@ -489,7 +489,7 @@ void exec_plugin( char *plugin, int client_fd )
         int rc = close(client_fd);
         if( -1 == rc ) {
             err = errno;
-            info("Error on accepted socket being closed in parent %s\n",
+            info("Error on closing accepted socket in parent: %s\n",
                      strerror(err));
         }
 
@@ -512,7 +512,7 @@ void exec_plugin( char *plugin, int client_fd )
 
         if( -1 == execve(p_copy, plugin_argv, environ)) {
             int err = errno;
-            loud("Plugin failed to exececute %s, error %s\n",
+            loud("Error on exec'ing Plugin %s: %s\n",
                     p_copy, strerror(err));
         }
     }
@@ -555,7 +555,7 @@ void _serving(void)
                 return;
             } else {
                 err = errno;
-                loud("Error on select: %s", strerror(err));
+                loud("Error on selecting Plugin: %s", strerror(err));
             }
         } else if( ready > 0 ) {
             int fd = 0;
@@ -567,7 +567,7 @@ void _serving(void)
                         exec_plugin(p, cfd);
                     } else {
                         err = errno;
-                        info("Error on accept %s", strerror(err));
+                        info("Error on accepting request: %s", strerror(err));
                     }
                 }
             }
@@ -670,7 +670,7 @@ int main(int argc, char *argv[])
     if( !systemd ) {
         if ( -1 == daemon(0, 0) ) {
             int err = errno;
-            loud("daemon call failed, errno %d\n", err);
+            loud("Error on calling daemon: %s\n", strerror(err));
         }
     }
 
