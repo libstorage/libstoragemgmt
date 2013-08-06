@@ -56,18 +56,20 @@ lsmVolume *valueToVolume(Value &vol)
 
 Value volumeToValue(lsmVolume *vol)
 {
-    std::map<std::string, Value> v;
-
-    v["class"] = Value("Volume");
-    v["id"] = Value(vol->id);
-    v["name"] = Value(vol->name);
-    v["vpd83"] = Value(vol->vpd83);
-    v["block_size"] = Value(vol->blockSize);
-    v["num_of_blocks"] = Value(vol->numberOfBlocks);
-    v["status"] = Value(vol->status);
-    v["system_id"] = Value(vol->system_id);
-    v["pool_id"] = Value(vol->pool_id);
-    return Value(v);
+    if( LSM_IS_VOL(vol) ) {
+        std::map<std::string, Value> v;
+        v["class"] = Value("Volume");
+        v["id"] = Value(vol->id);
+        v["name"] = Value(vol->name);
+        v["vpd83"] = Value(vol->vpd83);
+        v["block_size"] = Value(vol->blockSize);
+        v["num_of_blocks"] = Value(vol->numberOfBlocks);
+        v["status"] = Value(vol->status);
+        v["system_id"] = Value(vol->system_id);
+        v["pool_id"] = Value(vol->pool_id);
+        return Value(v);
+    }
+    return Value();
 }
 
 lsmInitiator *valueToInitiator(Value &init)
@@ -88,12 +90,15 @@ lsmInitiator *valueToInitiator(Value &init)
 
 Value initiatorToValue(lsmInitiator *init)
 {
-    std::map<std::string, Value> i;
-    i["class"] = Value("Initiator");
-    i["type"] = Value((int32_t) init->idType);
-    i["id"] = Value(init->id);
-    i["name"] = Value(init->name);
-    return Value(i);
+    if( LSM_IS_INIT(init) ) {
+        std::map<std::string, Value> i;
+        i["class"] = Value("Initiator");
+        i["type"] = Value((int32_t) init->idType);
+        i["id"] = Value(init->id);
+        i["name"] = Value(init->name);
+        return Value(i);
+    }
+    return Value();
 }
 
 lsmPool *valueToPool(Value &pool)
@@ -174,7 +179,8 @@ lsmStringList *valueToStringList(Value &v)
     return il;
 }
 
-Value stringListToValue( lsmStringList *sl) {
+Value stringListToValue( lsmStringList *sl)
+{
     std::vector<Value> rc;
     if( LSM_IS_STRING_LIST(sl) ) {
         uint32_t size = lsmStringListSize(sl);
@@ -218,7 +224,7 @@ Value accessGroupToValue( lsmAccessGroup *group )
         ag["name"] = Value(group->name);
         ag["initiators"] = Value(stringListToValue(group->initiators));
         ag["system_id"] = Value(group->system_id);
-        return ag;
+        return Value(ag);
     }
     return Value();
 }
@@ -281,7 +287,7 @@ Value blockRangeToValue(lsmBlockRange *br)
         r["src_block"] = Value(br->source_start);
         r["dest_block"] = Value(br->dest_start);
         r["block_count"] = Value(br->block_count);
-        return r;
+        return Value(r);
     }
     return Value();
 }
@@ -309,10 +315,12 @@ lsmBlockRange **valueToBlockRangeList(Value &brl, uint32_t *count)
 
 Value blockRangeListToValue( lsmBlockRange **brl, uint32_t count )
 {
-    uint32_t i = 0;
     std::vector<Value> r;
-    for( i = 0; i < count; ++i ) {
-        r.push_back(blockRangeToValue(brl[i]));
+    if( brl && count) {
+        uint32_t i = 0;
+        for( i = 0; i < count; ++i ) {
+            r.push_back(blockRangeToValue(brl[i]));
+        }
     }
     return Value(r);
 }
@@ -343,7 +351,7 @@ Value fsToValue(lsmFs *fs)
         f["free_space"] = Value(fs->free_space);
         f["pool_id"] = Value(fs->pool_id);
         f["system_id"] = Value(fs->system_id);
-        return f;
+        return Value(f);
     }
     return Value();
 }
@@ -369,7 +377,7 @@ Value ssToValue(lsmSs *ss)
         f["id"] = Value(ss->id);
         f["name"] = Value(ss->name);
         f["ts"] = Value(ss->ts);
-        return f;
+        return Value(f);
     }
     return Value();
 }
@@ -442,7 +450,7 @@ Value nfsExportToValue(lsmNfsExport *exp)
         f["anonuid"] = Value(exp->anonuid);
         f["anongid"] = Value(exp->anongid);
         f["options"] = Value(exp->options);
-        return f;
+        return Value(f);
     }
     return Value();
 
@@ -460,10 +468,13 @@ lsmStorageCapabilities *valueToCapabilities(Value &exp)
 
 Value capabilitiesToValue(lsmStorageCapabilities *cap)
 {
-    std::map<std::string, Value> c;
-    char *t = capabilityString(cap);
-    c["class"] = Value("Capabilities");
-    c["cap"] = Value(t);
-    free(t);
-    return c;
+    if( LSM_IS_CAPABILITIY(cap) ) {
+        std::map<std::string, Value> c;
+        char *t = capabilityString(cap);
+        c["class"] = Value("Capabilities");
+        c["cap"] = Value(t);
+        free(t);
+        return c;
+    }
+    return Value();
 }
