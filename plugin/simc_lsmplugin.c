@@ -50,39 +50,39 @@ static char sys_id[] = "sim-01";
  */
 char* md5(const char *data)
 {
-	return crypt(data, "$1$LSM$");
+    return crypt(data, "$1$LSM$");
 }
 
 /**
  * Removes an item from an array, shifting the elements and clearing the space
  * that was occupied at the end, use with caution :-)
- * @param array			Base address for the array
- * @param remove_index	Element index to remove
- * @param num_elems		Number of elements currently in the array
- * @param elem_size		Size of each array element
+ * @param array         Base address for the array
+ * @param remove_index  Element index to remove
+ * @param num_elems     Number of elements currently in the array
+ * @param elem_size     Size of each array element
  */
 void remove_item( void *array, int remove_index, int num_elems,
-					size_t elem_size)
+                    size_t elem_size)
 {
-	if( array && (num_elems > 0) && (remove_index < num_elems) && elem_size ) {
-		/*Are we at the end?, clear that which is at the end */
-		if( remove_index + 1 == num_elems ) {
-			memset(array + (elem_size * (num_elems - 1)), 0, elem_size);
-			return;
-		}
+    if( array && (num_elems > 0) && (remove_index < num_elems) && elem_size ) {
+        /*Are we at the end?, clear that which is at the end */
+        if( remove_index + 1 == num_elems ) {
+            memset(array + (elem_size * (num_elems - 1)), 0, elem_size);
+            return;
+        }
 
-		/* Calculate the position of the one after that we want to remove */
-		void *src_addr = (void*)(array + ((remove_index + 1) * elem_size));
+        /* Calculate the position of the one after that we want to remove */
+        void *src_addr = (void*)(array + ((remove_index + 1) * elem_size));
 
-		/* Calculate the destination */
-		void *dest_addr = (void*)(array + (remove_index * elem_size));
+        /* Calculate the destination */
+        void *dest_addr = (void*)(array + (remove_index * elem_size));
 
-		/* Shift the memory */
+        /* Shift the memory */
         memmove(dest_addr, src_addr, ((num_elems - 1) - remove_index) *
                 elem_size);
         /* Clear that which was at the end */
-		memset(array + (elem_size * (num_elems - 1)), 0, elem_size);
-	}
+        memset(array + (elem_size * (num_elems - 1)), 0, elem_size);
+    }
 }
 
 struct allocated_volume {
@@ -1329,10 +1329,10 @@ int static volume_dependency_rm(lsmPluginPtr c,
 static void str_concat( char *dest, size_t d_len,
                         const char *str1, const char *str2)
 {
-	if( dest && d_len && str1 && str2 ) {
+    if( dest && d_len && str1 && str2 ) {
         strncpy(dest, str1, d_len);
         strncat(dest, str2,  d_len - strlen(str1) - 1);
-	}
+    }
 }
 
 

@@ -52,33 +52,33 @@ extern "C" {
 
 int lsmStringListAppend(lsmStringList *sl, const char *value)
 {
-	int rc = LSM_ERR_INVALID_SL;
+    int rc = LSM_ERR_INVALID_SL;
 
-	if( LSM_IS_STRING_LIST(sl) ) {
-		char *d = strdup(value);
-		if(d) {
-			g_ptr_array_add(sl->values, d);
-			rc = LSM_ERR_OK;
-		} else {
-			rc = LSM_ERR_NO_MEMORY;
-		}
-	}
-	return rc;
+    if( LSM_IS_STRING_LIST(sl) ) {
+        char *d = strdup(value);
+        if(d) {
+            g_ptr_array_add(sl->values, d);
+            rc = LSM_ERR_OK;
+        } else {
+            rc = LSM_ERR_NO_MEMORY;
+        }
+    }
+    return rc;
 }
 
 int lsmStringListRemove(lsmStringList *sl, uint32_t index)
 {
-	int rc = LSM_ERR_INVALID_SL;
+    int rc = LSM_ERR_INVALID_SL;
 
-	if( LSM_IS_STRING_LIST(sl) ) {
-		if( index < sl->values->len ) {
-			g_ptr_array_remove_index(sl->values, index);
-			rc = LSM_ERR_OK;
-		} else {
-			rc = LSM_ERR_INDEX_BOUNDS;
-		}
-	}
-	return rc;
+    if( LSM_IS_STRING_LIST(sl) ) {
+        if( index < sl->values->len ) {
+            g_ptr_array_remove_index(sl->values, index);
+            rc = LSM_ERR_OK;
+        } else {
+            rc = LSM_ERR_INDEX_BOUNDS;
+        }
+    }
+    return rc;
 }
 
 
@@ -89,20 +89,20 @@ int lsmStringListSetElem(lsmStringList *sl, uint32_t index,
     if( LSM_IS_STRING_LIST(sl) ) {
         if( index < sl->values->len ) {
 
-			char *i = (char *)g_ptr_array_index(sl->values, index);
+            char *i = (char *)g_ptr_array_index(sl->values, index);
 
-			if( i )	{
-				free(i);
-			}
+            if( i ) {
+                free(i);
+            }
 
-			g_ptr_array_index(sl->values, index) = strdup(value);
+            g_ptr_array_index(sl->values, index) = strdup(value);
 
             if( !g_ptr_array_index(sl->values, index) ) {
                 rc = LSM_ERR_NO_MEMORY;
             }
         } else {
-			g_ptr_array_set_size(sl->values, index + 1);
-			g_ptr_array_index(sl->values, index) = strdup(value);
+            g_ptr_array_set_size(sl->values, index + 1);
+            g_ptr_array_index(sl->values, index) = strdup(value);
         }
     } else {
         rc = LSM_ERR_INVALID_SL;
@@ -128,14 +128,14 @@ lsmStringList *lsmStringListAlloc(uint32_t size)
     if( rc ) {
         rc->magic = LSM_STRING_LIST_MAGIC;
         rc->values = g_ptr_array_sized_new(size);
-		if( !rc->values ) {
-                       rc->magic = LSM_DEL_MAGIC(LSM_STRING_LIST_MAGIC);
-			free(rc);
-			rc = NULL;
-		} else {
-                       g_ptr_array_set_size(rc->values, size);
-			g_ptr_array_set_free_func(rc->values, free);
-		}
+        if( !rc->values ) {
+            rc->magic = LSM_DEL_MAGIC(LSM_STRING_LIST_MAGIC);
+            free(rc);
+            rc = NULL;
+        } else {
+            g_ptr_array_set_size(rc->values, size);
+            g_ptr_array_set_free_func(rc->values, free);
+        }
     }
 
     return rc;
@@ -1435,47 +1435,47 @@ int lsmCapabilitySetN( lsmStorageCapabilities *cap,
 
 static char* bytesToString(uint8_t *a, uint32_t len)
 {
-	char *buff = NULL;
+    char *buff = NULL;
 
-	if( a && len ) {
-		uint32_t i = 0;
-		char *tmp = NULL;
-		size_t str_len = ((sizeof(char) * 2) * len + 1);
-		buff = (char*)malloc(str_len);
+    if( a && len ) {
+        uint32_t i = 0;
+        char *tmp = NULL;
+        size_t str_len = ((sizeof(char) * 2) * len + 1);
+        buff = (char*)malloc(str_len);
 
-		if( buff ) {
-			tmp = buff;
-			for( i = 0; i < len; ++i ) {
-				tmp += sprintf(tmp, "%02x", a[i]);
-			}
-			buff[str_len - 1] = '\0';
-		}
-	}
-	return buff;
+        if( buff ) {
+            tmp = buff;
+            for( i = 0; i < len; ++i ) {
+                tmp += sprintf(tmp, "%02x", a[i]);
+            }
+            buff[str_len - 1] = '\0';
+        }
+    }
+    return buff;
 }
 
 static uint8_t *stringToBytes(const char *hex_string, uint32_t *l)
 {
-	uint8_t *rc = NULL;
+    uint8_t *rc = NULL;
 
-	if( hex_string && l ) {
-		size_t len = strlen(hex_string);
-		if( len && (len % 2) == 0) {
-			len /= 2;
-			rc = (uint8_t*)malloc( sizeof(uint8_t) * len);
-			if( rc ) {
-				size_t i;
-				const char *t = hex_string;
-				*l = len;
+    if( hex_string && l ) {
+        size_t len = strlen(hex_string);
+        if( len && (len % 2) == 0) {
+            len /= 2;
+            rc = (uint8_t*)malloc( sizeof(uint8_t) * len);
+            if( rc ) {
+                size_t i;
+                const char *t = hex_string;
+                *l = len;
 
-				for( i = 0; i < len; ++i ) {
-					sscanf(t, "%02hhx", &rc[i]);
-					t += 2;
-				}
-			}
-		}
-	}
-	return rc;
+                for( i = 0; i < len; ++i ) {
+                    sscanf(t, "%02hhx", &rc[i]);
+                    t += 2;
+                }
+            }
+        }
+    }
+    return rc;
 }
 
 

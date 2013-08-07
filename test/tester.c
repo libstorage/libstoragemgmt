@@ -50,7 +50,7 @@ void generateRandom(char *buff, uint32_t len)
         for(i = 0; i < (len - 1); ++i) {
             buff[i] = 97 + rand()%26;
         }
-		buff[len-1] = '\0';
+        buff[len-1] = '\0';
     }
 }
 

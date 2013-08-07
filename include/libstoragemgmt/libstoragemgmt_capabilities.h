@@ -31,11 +31,11 @@ extern "C" {
 /*Note: Domain is 0..255 */
 /** \enum lsmCapabilityValueType Possible values for supported feature*/
 typedef enum {
-    LSM_CAPABILITY_UNSUPPORTED          = 0,		/**< Feature is not supported */
-    LSM_CAPABILITY_SUPPORTED            = 1,		/**< Feature is supported */
-    LSM_CAPABILITY_SUPPORTED_OFFLINE    = 2,		/**< Feature is supported when offlined */
-    LSM_CAPABILITY_NO_IMPLEMENTED       = 3,		/**< Feature is not implemented */
-    LSM_CAPABILITY_UNKNOWN              = 4			/**< Feature status unknown */
+    LSM_CAPABILITY_UNSUPPORTED          = 0,        /**< Feature is not supported */
+    LSM_CAPABILITY_SUPPORTED            = 1,        /**< Feature is supported */
+    LSM_CAPABILITY_SUPPORTED_OFFLINE    = 2,        /**< Feature is supported when offlined */
+    LSM_CAPABILITY_NO_IMPLEMENTED       = 3,        /**< Feature is not implemented */
+    LSM_CAPABILITY_UNKNOWN              = 4         /**< Feature status unknown */
 } lsmCapabilityValueType;
 
 /** \enum lsmCapabilityType Capabilities supported by array */
@@ -112,14 +112,14 @@ typedef enum {
 
 /**
  * Free the memory used by the storage capabilities data structure
- * @param cap	Valid storage capability data structure.
+ * @param cap   Valid storage capability data structure.
  */
 void LSM_DLL_EXPORT lsmCapabilityRecordFree(lsmStorageCapabilities *cap);
 
 /**
  * Return the capability for the specified feature.
- * @param cap	Valid pointer to capability data structure
- * @param t		Which capability you are interested in
+ * @param cap   Valid pointer to capability data structure
+ * @param t     Which capability you are interested in
  * @return Value of supported enumerated type.
  */
 lsmCapabilityValueType LSM_DLL_EXPORT lsmCapabilityGet(
