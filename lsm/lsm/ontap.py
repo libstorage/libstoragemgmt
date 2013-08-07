@@ -313,18 +313,27 @@ class Ontap(IStorageAreaNetwork, INfs):
             #exception we will try to put the volume back to original size.
             try:
                 self.f.volume_resize(na_vol, diff)
-            except:
-                exc_info = sys.exc_info()
-                try:
-                    self.f.volume_resize(na_vol, volume.size_bytes)
-                except:
-                    #Anything happens here we are only going to report the
-                    #primary error through the API and log the secondary
-                    #error to syslog.
-                    Error("Exception on trying to restore NA volume size:" +
-                          traceback.format_exc())
+            except na.FilerError as fe:
+                if fe.errno == na.Filer.ETIMEOUT:
+                    exc_info = sys.exc_info()
+                    current_tmo = self.f.timeout
+                    try:
+                        #If the user selects a short timeout we may not be able
+                        #to restore the array back, so lets give the array
+                        #a chance to recover.
+                        self.f.timeout = 60000
+                        self.f.volume_resize(na_vol, -diff)
+                    except:
+                        #Anything happens here we are only going to report the
+                        #primary error through the API and log the secondary
+                        #error to syslog.
+                        Error("Exception on trying to restore NA volume size:"
+                              + traceback.format_exc())
+                    finally:
+                        #Restore timeout.
+                        self.f.timeout = current_tmo
 
-                raise exc_info[0], exc_info[1], exc_info[2]
+                    raise exc_info[0], exc_info[1], exc_info[2]
 
             try:
                 #if this raises an exception we need to revert the volume

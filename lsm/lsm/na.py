@@ -1,4 +1,4 @@
-# Copyright (C) 2012 Red Hat, Inc.
+# Copyright (C) 2012-2013 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -107,9 +107,11 @@ def netapp_filer(host, username, password, timeout, command, parameters=None,
         raise he
     except urllib2.URLError, e:
         if isinstance(e.reason, socket.timeout):
-            raise FilerError(60, "Connection timeout")
+            raise FilerError(Filer.ETIMEOUT, "Connection timeout")
         else:
             raise e
+    except socket.timeout:
+        raise FilerError(Filer.ETIMEOUT, "Connection timeout")
     finally:
         if handler:
             handler.close()
