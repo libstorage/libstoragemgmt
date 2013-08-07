@@ -129,10 +129,11 @@ lsmStringList *lsmStringListAlloc(uint32_t size)
         rc->magic = LSM_STRING_LIST_MAGIC;
         rc->values = g_ptr_array_sized_new(size);
 		if( !rc->values ) {
+                       rc->magic = LSM_DEL_MAGIC(LSM_STRING_LIST_MAGIC);
 			free(rc);
 			rc = NULL;
 		} else {
-            g_ptr_array_set_size(rc->values, size);
+                       g_ptr_array_set_size(rc->values, size);
 			g_ptr_array_set_free_func(rc->values, free);
 		}
     }
@@ -490,10 +491,14 @@ lsmPool *lsmPoolRecordAlloc(const char *id, const char *name,
         rc->system_id = strdup(system_id);
 
         if( !rc->id || !rc->name || !rc->system_id ) {
-            rc->magic = 0;
-            free( rc->id );
-            free( rc->name );
-            free( rc->system_id);
+            rc->magic = LSM_DEL_MAGIC(LSM_POOL_MAGIC);
+            free(rc->id);
+            rc->id = NULL;
+            free(rc->name);
+            rc->name = NULL;
+            free(rc->system_id);
+            rc->system_id = NULL;
+            free(rc);
             rc = NULL;
         }
     }
@@ -595,8 +600,11 @@ lsmInitiator *lsmInitiatorRecordAlloc(lsmInitiatorType idType, const char* id,
         rc->name = strdup(name);
 
         if(!rc->id || !rc->name ) {
+            rc->magic = LSM_DEL_MAGIC(LSM_INIT_MAGIC);
             free(rc->id);
+            rc->id = NULL;
             free(rc->name);
+            rc->name = NULL;
             free(rc);
             rc = NULL;
         }
@@ -621,6 +629,7 @@ void lsmInitiatorRecordFree(lsmInitiator *i)
             free(i->id);
             i->id = NULL;
             free(i->name);
+            i->name = NULL;
         }
         free(i);
     }
@@ -665,6 +674,7 @@ lsmVolume * lsmVolumeRecordAlloc(const char *id, const char *name,
 
         if( !rc->id || !rc->name || !rc->vpd83 || !rc->system_id ||
             !rc->pool_id) {
+            rc->magic =  LSM_DEL_MAGIC(LSM_VOL_MAGIC);
             free(rc->id);
             free(rc->name);
             free(rc->vpd83);
@@ -689,6 +699,7 @@ lsmSystem *lsmSystemRecordAlloc( const char *id, const char *name,
         rc->name = strdup(name);
         rc->status = status;
         if( !rc->name || !rc->id ) {
+            rc->magic = LSM_DEL_MAGIC(LSM_SYSTEM_MAGIC);
             free(rc->name);
             free(rc->id);
             free(rc);
@@ -701,8 +712,18 @@ lsmSystem *lsmSystemRecordAlloc( const char *id, const char *name,
 void lsmSystemRecordFree(lsmSystem *s)
 {
     if( LSM_IS_SYSTEM(s) ) {
-        free(s->id);
-        free(s->name);
+        s->magic = LSM_DEL_MAGIC(LSM_SYSTEM_MAGIC);
+
+        if (s->id) {
+            free(s->id);
+            s->id = NULL;
+        }
+
+        if (s->name) {
+            free(s->name);
+            s->name = NULL;
+        }
+
         free(s);
     }
 }
@@ -883,7 +904,7 @@ lsmAccessGroup *lsmAccessGroupRecordAlloc(const char *id,
             rc->initiators = lsmStringListCopy(initiators);
 
             if( !rc->id || !rc->name || !rc->system_id ) {
-                rc->magic = 0;
+                rc->magic = LSM_DEL_MAGIC(LSM_ACCESS_GROUP_MAGIC);
                 free(rc->id);
                 free(rc->name);
                 free(rc->system_id);
@@ -1047,6 +1068,7 @@ lsmFs * lsmFsRecordAlloc( const char *id, const char *name,
             free(rc->system_id);
 
             rc->magic = LSM_DEL_MAGIC(LSM_FS_MAGIC);
+            free(rc);
             rc = NULL;
         }
     }
