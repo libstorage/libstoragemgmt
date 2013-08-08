@@ -41,7 +41,7 @@ Group:          System Environment/Libraries
 Requires:       %{name} = %{version}-%{release}
 BuildArch:      noarch
 
-%description	python
+%description    python
 The %{name}-python package contains python client libraries as
 well as python framework support and open source plug-ins written in python.
 
@@ -111,7 +111,7 @@ support.
 %build
 #The version.py gets created so set the .py to match .py.in times
 UpdateTimestamps(){
-	touch -r lsm/lsm/version.py.in lsm/lsm/version.py
+        touch -r lsm/lsm/version.py.in lsm/lsm/version.py
 }
 
 #Tell the install program to preserve file date/timestamps
