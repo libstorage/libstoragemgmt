@@ -199,7 +199,8 @@ void free_allocated_ag(void *v)
     }
 }
 
-void free_fs_record(struct allocated_fs *fs) {
+void free_fs_record(struct allocated_fs *fs)
+{
     if( fs ) {
         g_hash_table_destroy(fs->ss);
         g_hash_table_destroy(fs->exports);
@@ -290,15 +291,23 @@ static int create_job(struct plugin_data *pd, char **job, lsmDataType t,
 static int tmo_set(lsmPluginPtr c, uint32_t timeout, lsmFlag_t flags )
 {
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
-    pd->tmo = timeout;
-    return LSM_ERR_OK;
+
+    if(pd) {
+        pd->tmo = timeout;
+        return LSM_ERR_OK;
+    }
+    return LSM_ERR_INVALID_PLUGIN;
 }
 
 static int tmo_get(lsmPluginPtr c, uint32_t *timeout, lsmFlag_t flags)
 {
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
-    *timeout = pd->tmo;
-    return LSM_ERR_OK;
+
+    if(pd) {
+        *timeout = pd->tmo;
+        return LSM_ERR_OK;
+    }
+    return LSM_ERR_INVALID_PLUGIN;
 }
 
 static int cap(lsmPluginPtr c, lsmSystem *system,
