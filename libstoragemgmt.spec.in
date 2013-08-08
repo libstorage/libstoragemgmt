@@ -5,7 +5,7 @@ Summary:        Storage array management library
 Group:          System Environment/Libraries
 License:        LGPLv2+
 URL:            http://sourceforge.net/projects/libstoragemgmt/
-Source0:        http://sourceforge.net/projects/libstoragemgmt/files/Alpha/libstoragemgmt-%{version}.tar.gz
+Source0:        http://sourceforge.net/projects/libstoragemgmt/files/libstoragemgmt-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  yajl-devel libxml2-devel check-devel glib2-devel
