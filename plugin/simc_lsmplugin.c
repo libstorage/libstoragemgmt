@@ -384,24 +384,28 @@ static int jobStatus(lsmPluginPtr c, const char *job_id,
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
 
-    struct allocated_job *val = (struct allocated_job*)
-                                    g_hash_table_lookup(pd->jobs,job_id);
-    if( val ) {
-        *status = LSM_JOB_INPROGRESS;
+    if(pd) {
+        struct allocated_job *val = (struct allocated_job*)
+                                        g_hash_table_lookup(pd->jobs,job_id);
+        if( val ) {
+            *status = LSM_JOB_INPROGRESS;
 
-        val->polls += 34;
+            val->polls += 34;
 
-        if( (val->polls) >= 100 ) {
-            *t = val->type;
-            *value = lsmDataTypeCopy(val->type, val->return_data);
-            *status = LSM_JOB_COMPLETE;
-            *percentComplete = 100;
+            if( (val->polls) >= 100 ) {
+                *t = val->type;
+                *value = lsmDataTypeCopy(val->type, val->return_data);
+                *status = LSM_JOB_COMPLETE;
+                *percentComplete = 100;
+            } else {
+                *percentComplete = val->polls;
+            }
+
         } else {
-            *percentComplete = val->polls;
+            rc = LSM_ERR_NOT_FOUND_JOB;
         }
-
     } else {
-        rc = LSM_ERR_NOT_FOUND_JOB;
+        rc = LSM_ERR_INVALID_PLUGIN;
     }
 
     return rc;
@@ -412,23 +416,28 @@ static int list_pools(lsmPluginPtr c, lsmPool **poolArray[],
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
-    *count = pd->num_pools;
 
-    *poolArray = lsmPoolRecordAllocArray( pd->num_pools );
-    if( *poolArray ) {
-        uint32_t i = 0;
-        for( i = 0; i < pd->num_pools; ++i ) {
-            (*poolArray)[i] = lsmPoolRecordCopy(pd->pool[i]);
-            if( !(*poolArray)[i] ) {
-                rc = LSM_ERR_NO_MEMORY;
-                lsmPoolRecordFreeArray(*poolArray, i);
-                *poolArray = NULL;
-                *count = 0;
-                break;
+    if(pd) {
+        *count = pd->num_pools;
+        *poolArray = lsmPoolRecordAllocArray( pd->num_pools );
+
+        if( *poolArray ) {
+            uint32_t i = 0;
+            for( i = 0; i < pd->num_pools; ++i ) {
+                (*poolArray)[i] = lsmPoolRecordCopy(pd->pool[i]);
+                if( !(*poolArray)[i] ) {
+                    rc = LSM_ERR_NO_MEMORY;
+                    lsmPoolRecordFreeArray(*poolArray, i);
+                    *poolArray = NULL;
+                    *count = 0;
+                    break;
+                }
             }
+        } else {
+            rc = LSM_ERR_NO_MEMORY;
         }
     } else {
-        rc = LSM_ERR_NO_MEMORY;
+        rc = LSM_ERR_INVALID_PLUGIN;
     }
 
     return rc;
@@ -439,19 +448,23 @@ static int list_systems(lsmPluginPtr c, lsmSystem **systems[],
 {
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
 
-    *systemCount = pd->num_systems;
-    *systems = lsmSystemRecordAllocArray(MAX_SYSTEMS);
+    if(pd) {
+        *systemCount = pd->num_systems;
+        *systems = lsmSystemRecordAllocArray(MAX_SYSTEMS);
 
-    if( *systems ) {
-        (*systems)[0] = lsmSystemRecordCopy(pd->system[0]);
+        if( *systems ) {
+            (*systems)[0] = lsmSystemRecordCopy(pd->system[0]);
 
-        if( (*systems)[0] ) {
-            return LSM_ERR_OK;
-        } else {
-            lsmSystemRecordFreeArray(*systems, pd->num_systems);
+            if( (*systems)[0] ) {
+                return LSM_ERR_OK;
+            } else {
+                lsmSystemRecordFreeArray(*systems, pd->num_systems);
+            }
         }
+        return LSM_ERR_NO_MEMORY;
+    } else {
+        return LSM_ERR_INVALID_PLUGIN;
     }
-    return LSM_ERR_NO_MEMORY;
 }
 
 static int jobFree(lsmPluginPtr c, char *job_id, lsmFlag_t flags)
@@ -459,9 +472,14 @@ static int jobFree(lsmPluginPtr c, char *job_id, lsmFlag_t flags)
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
 
-    if( !g_hash_table_remove(pd->jobs, job_id) ) {
-        rc = LSM_ERR_NOT_FOUND_JOB;
+    if(pd) {
+        if( !g_hash_table_remove(pd->jobs, job_id) ) {
+            rc = LSM_ERR_NOT_FOUND_JOB;
+        }
+    } else {
+        rc = LSM_ERR_INVALID_PLUGIN;
     }
+
     return rc;
 }
 
@@ -503,8 +521,12 @@ static int _list_initiators(lsmPluginPtr c, lsmInitiator **initArray[],
                                         uint32_t *count, lsmFlag_t flags,
                                         lsmVolume *filter)
 {
-     int rc = LSM_ERR_OK;
+    int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
+
+    if(!pd) {
+        return LSM_ERR_INVALID_PLUGIN;
+    }
 
     GHashTable *tmp_inits = g_hash_table_new_full(g_str_hash, g_str_equal, free,
                                                     freeInitiator);
@@ -591,25 +613,30 @@ static int list_volumes(lsmPluginPtr c, lsmVolume **vols[],
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
-    *count = pd->num_volumes;
 
-    if( *count ) {
-        *vols = lsmVolumeRecordAllocArray( pd->num_volumes );
-        if( *vols ) {
-            uint32_t i = 0;
-            for( i = 0; i < pd->num_volumes; ++i ) {
-                (*vols)[i] = lsmVolumeRecordCopy(pd->volume[i].v);
-                if( !(*vols)[i] ) {
-                    rc = LSM_ERR_NO_MEMORY;
-                    lsmVolumeRecordFreeArray(*vols, i);
-                    *vols = NULL;
-                    *count = 0;
-                    break;
+    if(pd) {
+        *count = pd->num_volumes;
+
+        if( *count ) {
+            *vols = lsmVolumeRecordAllocArray( pd->num_volumes );
+            if( *vols ) {
+                uint32_t i = 0;
+                for( i = 0; i < pd->num_volumes; ++i ) {
+                    (*vols)[i] = lsmVolumeRecordCopy(pd->volume[i].v);
+                    if( !(*vols)[i] ) {
+                        rc = LSM_ERR_NO_MEMORY;
+                        lsmVolumeRecordFreeArray(*vols, i);
+                        *vols = NULL;
+                        *count = 0;
+                        break;
+                    }
                 }
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
             }
-        } else {
-            rc = LSM_ERR_NO_MEMORY;
         }
+    } else {
+        rc = LSM_ERR_INVALID_PLUGIN;
     }
 
     return rc;
