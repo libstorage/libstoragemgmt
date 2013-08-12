@@ -226,9 +226,9 @@ typedef int (*file_op)(void *p, char *full_file_path);
 /**
  * For a given directory iterate through each directory item and exec the
  * callback.
- * @param   dir     Directory to transverse
- * @param   p       Pointer to user data (Optional)
- * @param   file_op Function to call against file
+ * @param   dir         Directory to transverse
+ * @param   p           Pointer to user data (Optional)
+ * @param   call_back   Function to call against file
  * @return
  */
 void process_directory( char *dir, void *p, file_op call_back)

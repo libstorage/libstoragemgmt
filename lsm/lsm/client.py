@@ -262,7 +262,9 @@ class Client(INetworkAttachedStorage):
     # @param    self            The this pointer
     # @param    initiator       The initiator object
     # @param    in_user         User for inbound CHAP
-    # @param    in_password     Password for outbound CHAP
+    # @param    in_password     Password for inbound CHAP
+    # @param    out_user        Outbound username
+    # @param    out_password    Outbound password
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     def iscsi_chap_auth(self, initiator, in_user, in_password,

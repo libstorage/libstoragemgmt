@@ -1,5 +1,10 @@
 News for libStorageMgmt
 
+0.0.22: Aug 12 2013
+    - Numerous code improvments/fixes
+    - BZ 968384
+    - BZ 990577
+
 0.0.21: Jul 16 2013
     - IEC binary size handling
     - Functionality improvements for IBM V7K array
