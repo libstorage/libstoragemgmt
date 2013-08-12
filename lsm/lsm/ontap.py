@@ -132,9 +132,11 @@ class Ontap(IStorageAreaNetwork, INfs):
                       block_size, num_blocks, Volume.STATUS_OK,
                       self.sys_info.id, l['aggr'])
 
-    def _vol(self, v):
+    def _vol(self, v, pools=None):
         pool_name = v['containing-aggregate']
-        pools = self.pools()
+
+        if pools is None:
+            pools = self.pools()
 
         for p in pools:
             if p.name == pool_name:
@@ -593,7 +595,8 @@ class Ontap(IStorageAreaNetwork, INfs):
     @handle_ontap_errors
     def fs(self, flags=0):
         volumes = self.f.volumes()
-        return [self._vol(v) for v in volumes]
+        pools = self.pools()
+        return [self._vol(v, pools) for v in volumes]
 
     @handle_ontap_errors
     def fs_delete(self, fs, flags=0):
