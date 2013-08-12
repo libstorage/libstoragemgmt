@@ -250,6 +250,44 @@ class Ontap(IStorageAreaNetwork, INfs):
     def _get_volume(self, vol_name, pool_id):
         return self._lun(self.f.luns_get_specific(pool_id, vol_name, None)[0])
 
+    def _na_resize_recovery(self, vol, size_diff_kb):
+        """
+        We are have entered a failing state and have been asked to
+        put a NetApp volume back.  To make sure this occurs we will
+        interrogate the timeout value and increase if it is quite low or
+        double if it's reasonable to try and get this operation to happen
+        """
+
+        current_tmo = self.get_time_out()
+        try:
+            #If the user selects a short timeout we may not be able
+            #to restore the array back, so lets give the array
+            #a chance to recover.
+            if current_tmo < 30000:
+                self.set_time_out(60000)
+            else:
+                self.set_time_out(current_tmo * 2)
+
+            self.f.volume_resize(vol, size_diff_kb)
+        except:
+            #Anything happens here we are only going to report the
+            #primary error through the API and log the secondary
+            #error to syslog.
+            Error("Exception on trying to restore NA volume size:"
+                  + traceback.format_exc())
+        finally:
+            #Restore timeout.
+            self.set_time_out(current_tmo)
+
+    def _na_volume_resize_restore(self, vol, size_diff):
+        try:
+            self.f.volume_resize(vol, size_diff)
+        except na.FilerError as fe:
+            if fe.errno == na.Filer.ETIMEOUT:
+                exc_info = sys.exc_info()
+                self._na_resize_recovery(vol, -size_diff)
+                raise exc_info[0], exc_info[1], exc_info[2]
+
     @handle_ontap_errors
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
                       flags=0):
@@ -262,15 +300,16 @@ class Ontap(IStorageAreaNetwork, INfs):
             self.f.volume_create(pool.name, vol_prefix, size_bytes)
         else:
             #re-size volume to accommodate new logical unit
-            self.f.volume_resize(vol_prefix, self._size_kb_padded(size_bytes))
+            self._na_volume_resize_restore(vol_prefix,
+                                        self._size_kb_padded(size_bytes))
 
         lun_name = self.f.lun_build_name(vol_prefix, volume_name)
 
         try:
             self.f.lun_create(lun_name, size_bytes)
         except Exception as e:
-            self.f.volume_resize(vol_prefix,
-                                 -self._size_kb_padded(size_bytes))
+            self._na_resize_recovery(vol_prefix,
+                                     -self._size_kb_padded(size_bytes))
             raise e
 
         #Get the information about the newly created LUN
@@ -311,36 +350,14 @@ class Ontap(IStorageAreaNetwork, INfs):
             #if this raises an exception we are fine, except when we timeout
             #and the operation actually completes!  Anytime we get an
             #exception we will try to put the volume back to original size.
-            try:
-                self.f.volume_resize(na_vol, diff)
-            except na.FilerError as fe:
-                if fe.errno == na.Filer.ETIMEOUT:
-                    exc_info = sys.exc_info()
-                    current_tmo = self.f.timeout
-                    try:
-                        #If the user selects a short timeout we may not be able
-                        #to restore the array back, so lets give the array
-                        #a chance to recover.
-                        self.f.timeout = 60000
-                        self.f.volume_resize(na_vol, -diff)
-                    except:
-                        #Anything happens here we are only going to report the
-                        #primary error through the API and log the secondary
-                        #error to syslog.
-                        Error("Exception on trying to restore NA volume size:"
-                              + traceback.format_exc())
-                    finally:
-                        #Restore timeout.
-                        self.f.timeout = current_tmo
-
-                    raise exc_info[0], exc_info[1], exc_info[2]
+            self._na_volume_resize_restore(na_vol, diff)
 
             try:
                 #if this raises an exception we need to revert the volume
                 self.f.lun_resize(volume.name, new_size_bytes)
             except Exception as e:
                 #Put the volume back to previous size
-                self.f.volume_resize(na_vol, -diff)
+                self._na_resize_recovery(na_vol, -diff)
                 raise e
         else:
             self.f.lun_resize(volume.name, new_size_bytes)
@@ -366,7 +383,8 @@ class Ontap(IStorageAreaNetwork, INfs):
             #re-size the NetApp volume to accommodate the new lun
             size = self._size_kb_padded(volume_src.size_bytes)
 
-            self.f.volume_resize(self._vol_to_na_volume_name(volume_src), size)
+            self._na_volume_resize_restore(
+                self._vol_to_na_volume_name(volume_src), size)
 
             #Thin provision copy the logical unit
             dest = os.path.dirname(volume_src.name) + '/' + name
@@ -375,8 +393,8 @@ class Ontap(IStorageAreaNetwork, INfs):
                 self.f.clone(volume_src.name, dest)
             except Exception as e:
                 #Put volume back to previous size
-                self.f.volume_resize(self._vol_to_na_volume_name(volume_src),
-                                     -size)
+                self._na_resize_recovery(
+                    self._vol_to_na_volume_name(volume_src), -size)
                 raise e
             return None, self._get_volume(dest, volume_src.pool_id)
         else:
