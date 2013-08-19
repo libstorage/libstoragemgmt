@@ -263,7 +263,7 @@ Value accessGroupListToValue( lsmAccessGroup **group, uint32_t count)
             rc.push_back(accessGroupToValue(group[i]));
         }
     }
-    return rc;
+    return Value(rc);
 }
 
 lsmBlockRange *valueToBlockRange(Value &br)
@@ -474,7 +474,7 @@ Value capabilitiesToValue(lsmStorageCapabilities *cap)
         c["class"] = Value("Capabilities");
         c["cap"] = Value(t);
         free(t);
-        return c;
+        return Value(c);
     }
     return Value();
 }
