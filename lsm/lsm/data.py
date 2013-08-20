@@ -153,7 +153,7 @@ class Initiator(IData):
         (1, 2, 3, 4, 5)
 
     type_map = {1: 'Other', 2: 'Port WWN', 3: 'Node WWN', 4: 'Hostname',
-                5: 'iSCSI'}
+                5: 'iSCSI', 7: "SAS"}
 
     def _type_to_str(self, init_type):
         return Initiator.type_map[init_type]

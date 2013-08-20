@@ -164,7 +164,8 @@ typedef enum {
     LSM_INITIATOR_PORT_WWN = 2,                 /**< World wide port name */
     LSM_INITIATOR_NODE_WWN = 3,                 /**< World wide node name */
     LSM_INITIATOR_HOSTNAME = 4,                 /**< Host name */
-    LSM_INITIATOR_ISCSI = 5                     /**< iSCSI IQN */
+    LSM_INITIATOR_ISCSI = 5,                    /**< iSCSI IQN */
+    LSM_INITIATOR_SAS = 7                       /**< SAS ID */
 } lsmInitiatorType;
 
 /**< \enum lsmJobType Different types of jobs */
