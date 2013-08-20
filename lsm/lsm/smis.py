@@ -537,11 +537,30 @@ class Smis(IStorageAreaNetwork):
 
         return p['InstanceID']
 
+    @staticmethod
+    def _get_vol_other_id_info(cv):
+        other_id = None
+
+        if 'OtherIdentifyingInfo' in cv \
+                and cv["OtherIdentifyingInfo"] is not None \
+                and len(cv["OtherIdentifyingInfo"]) > 0:
+
+            other_id = cv["OtherIdentifyingInfo"]
+
+            if isinstance(other_id, list):
+                other_id = other_id[0]
+
+            #This is not what we are looking for if the field has this value
+            if other_id is not None and other_id == "VPD83Type3":
+                other_id = None
+
+        return other_id
+
     def _new_vol(self, cv, pool_id=None):
         """
         Takes a CIMInstance that represents a volume and returns a lsm Volume
         """
-        other_id = ''
+        other_id = None
 
         #Reference page 134 in 1.5 spec.
         status = Volume.STATUS_UNKNOWN
@@ -567,21 +586,21 @@ class Smis(IStorageAreaNetwork):
             #Better fallback value?
             user_name = cv['DeviceID']
 
-        #TODO: Make this work for all vendors
+        #No standard way to retrieve this information.  May be bringing this
+        #forward to correct in the standard.
         #This is optional(EMC and NetApp place the vpd here)
-        if 'OtherIdentifyingInfo' in cv \
-                and cv["OtherIdentifyingInfo"] is not None \
-                and len(cv["OtherIdentifyingInfo"]) > 0:
-            other_id = cv["OtherIdentifyingInfo"]
+        #Some vendors are putting VPD83Type3 in the OtherIdentifyingInfo
+        #field and filling out name format and name
+        other_id = Smis._get_vol_other_id_info(cv)
 
-            if isinstance(other_id, list):
-                other_id = other_id[0]
-        else:
-            #Engenio/LSI/XIV use this field.
+        if other_id is None:
+            #Engenio/LSI/XIV/Compellent use this field.
             nf = cv['NameFormat']
             #Check to see if name format is NAA or FC Node WWN
             if 9 == nf or 8 == nf:
                 other_id = cv["Name"]
+            else:
+                other_id = ''
 
         #This is a fairly expensive operation, so it's in our best interest
         #to not call this very often.
