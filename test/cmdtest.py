@@ -36,7 +36,8 @@ from optparse import OptionParser
 
 
 (OP_SYS, OP_POOL, OP_VOL, OP_INIT, OP_FS, OP_EXPORTS, OP_SS) = \
-    ('SYSTEMS', 'POOLS', 'VOLUMES', 'INITIATORS', 'FS', 'EXPORTS', 'SNAPSHOTS')
+    ('SYSTEMS', 'POOLS', 'VOLUMES', 'INITIATORS', 'FS', 'EXPORTS',
+     'SNAPSHOTS')
 
 (ID, NAME) = (0, 1)
 (POOL_TOTAL, POOL_FREE, POOL_SYSTEM) = (2, 3, 4)
@@ -90,8 +91,9 @@ def call(cmd, expected_rc=0):
     out = c.communicate()
 
     if c.returncode != expected_rc:
-        raise RuntimeError("exit code != %s, actual= %s, stdout= %s, stderr= %s"
-                           % (expected_rc, c.returncode, out[0], out[1]))
+        raise RuntimeError("exit code != %s, actual= %s, stdout= %s, "
+                           "stderr= %s" % (expected_rc, c.returncode, out[0],
+                                           out[1]))
 
     return c.returncode, out[0], out[1]
 
@@ -124,8 +126,8 @@ def name_to_id(op, name):
     return None
 
 
-def delete_init(id):
-    call([cmd, '--delete-initiator', id])
+def delete_init(init_id):
+    call([cmd, '--delete-initiator', init_id])
 
 
 def create_volume(pool):
@@ -135,8 +137,8 @@ def create_volume(pool):
     return r[0][ID]
 
 
-def delete_volume(id):
-    call([cmd, '--delete-volume', id, '-t' + sep, '-f'])
+def delete_volume(init_id):
+    call([cmd, '--delete-volume', init_id, '-t' + sep, '-f'])
 
 
 def create_fs(pool_id):
@@ -146,8 +148,8 @@ def create_fs(pool_id):
     return r[0][ID]
 
 
-def delete_fs(id):
-    call([cmd, '--delete-fs', id, '-t' + sep, '-f'])
+def delete_fs(init_id):
+    call([cmd, '--delete-fs', init_id, '-t' + sep, '-f'])
 
 
 def create_access_group(iqn, system_id):
@@ -166,33 +168,34 @@ def access_group_remove_init(group, initiator):
     call([cmd, '--access-group-remove', group, '--id', initiator])
 
 
-def delete_access_group(id):
-    call([cmd, '--delete-access-group', id, '-t' + sep])
+def delete_access_group(init_id):
+    call([cmd, '--delete-access-group', init_id, '-t' + sep])
 
 
 def access_group_grant(group, volume_id):
-    call([cmd, '--access-grant-group', group, '--volume', volume_id, '--access',
-          'RW'])
+    call([cmd, '--access-grant-group', group, '--volume', volume_id,
+          '--access', 'RW'])
 
 
 def access_group_revoke(group, volume_id):
     call([cmd, '--access-revoke-group', group, '--volume', volume_id])
 
 
-def resize_vol(id):
-    call([cmd, '--resize-volume', id, '--size', '60M', '-t' + sep, '-f'])
-    call([cmd, '--resize-volume', id, '--size', '100M', '-t' + sep, '-f'])
+def resize_vol(init_id):
+    call([cmd, '--resize-volume', init_id, '--size', '60M', '-t' + sep, '-f'])
+    call([cmd, '--resize-volume', init_id, '--size', '100M', '-t' + sep,
+          '-f'])
     #Some devices cannot re-size down...
     #call([cmd, '--resize-volume', id, '--size', '30M' , '-t'+sep ])
 
 
-def resize_fs(id):
-    call([cmd, '--resize-fs', id, '--size', '1G', '-t' + sep, '-f'])
-    call([cmd, '--resize-fs', id, '--size', '750M', '-t' + sep, '-f'])
-    call([cmd, '--resize-fs', id, '--size', '300M', '-t' + sep, '-f'])
+def resize_fs(init_id):
+    call([cmd, '--resize-fs', init_id, '--size', '1G', '-t' + sep, '-f'])
+    call([cmd, '--resize-fs', init_id, '--size', '750M', '-t' + sep, '-f'])
+    call([cmd, '--resize-fs', init_id, '--size', '300M', '-t' + sep, '-f'])
 
 
-def map(init, volume):
+def map_init(init, volume):
     call([cmd, '--access-grant', init, '--volume', volume, '--access',
           'RW', '-t' + sep])
 
@@ -218,9 +221,9 @@ def delete_ss(fs_id, ss_id):
     call([cmd, '--delete-ss', ss_id, '--fs', fs_id, '-f'])
 
 
-def replicate_volume(source_id, type, pool):
-    out = call([cmd, '-r', source_id, '--type', type,
-                '--name', 'lun_' + type + '_' + rs(12), '-t' + sep])[1]
+def replicate_volume(source_id, vol_type, pool=None):
+    out = call([cmd, '-r', source_id, '--type', vol_type,
+                '--name', 'lun_' + vol_type + '_' + rs(12), '-t' + sep])[1]
     r = parse(out)
     return r[0][ID]
 
@@ -233,11 +236,11 @@ def replicate_volume_range_bs(system_id):
     return int(out)
 
 
-def replicate_volume_range(vol_id, dest_vol_id, rep_type, src_start, dest_start,
-                           count):
+def replicate_volume_range(vol_id, dest_vol_id, rep_type, src_start,
+                           dest_start, count):
     out = call(
-        [cmd, '--replicate-volume-range', vol_id, '--type', rep_type, '--dest',
-         dest_vol_id, '--src_start', str(src_start), '--dest_start',
+        [cmd, '--replicate-volume-range', vol_id, '--type', rep_type,
+         '--dest', dest_vol_id, '--src_start', str(src_start), '--dest_start',
          str(dest_start),
          '--count', str(count), '-f'])
 
@@ -257,9 +260,11 @@ def initiator_grant(iqn, vol_id):
 
 def initiator_chap(initiator):
     call([cmd, '--iscsi-chap', initiator])
-    call([cmd, '--iscsi-chap', initiator, '--in-user', "foo", '--in-password', "bar"])
-    call([cmd, '--iscsi-chap', initiator, '--in-user', "foo", '--in-password', "bar",
-          '--out-user', "foo", '--out-password', "bar"])
+    call([cmd, '--iscsi-chap', initiator, '--in-user', "foo",
+          '--in-password', "bar"])
+    call([cmd, '--iscsi-chap', initiator, '--in-user', "foo",
+          '--in-password', "bar", '--out-user', "foo",
+          '--out-password', "bar"])
 
 
 def initiator_revoke(iqn, vol_id):
@@ -380,10 +385,12 @@ def test_block_creation(cap, system_id):
 
         if cap['VOLUME_COPY_RANGE']:
             if cap['VOLUME_COPY_RANGE_CLONE']:
-                replicate_volume_range(vol_src, vol_src, "CLONE", 0, 10000, 100)
+                replicate_volume_range(vol_src, vol_src, "CLONE",
+                                       0, 10000, 100)
 
             if cap['VOLUME_COPY_RANGE_COPY']:
-                replicate_volume_range(vol_src, vol_src, "COPY", 0, 10000, 100)
+                replicate_volume_range(vol_src, vol_src, "COPY",
+                                       0, 10000, 100)
 
     if cap['VOLUME_DELETE']:
         delete_volume(vol_src)
@@ -409,13 +416,13 @@ def test_fs_creation(cap, system_id):
         delete_fs(fs_id)
 
     if cap['FS_SNAPSHOT_CREATE'] and cap['FS_CREATE'] and cap['FS_DELETE'] \
-        and cap['FS_SNAPSHOT_DELETE']:
+            and cap['FS_SNAPSHOT_DELETE']:
         #Snapshot create/delete
-        id = create_fs(pool_id)
-        ss = create_ss(id)
+        fs_id = create_fs(pool_id)
+        ss = create_ss(fs_id)
         test_display(cap, system_id)
-        delete_ss(id, ss)
-        delete_fs(id)
+        delete_ss(fs_id, ss)
+        delete_fs(fs_id)
 
 
 def test_mapping(cap, system_id):
@@ -424,29 +431,29 @@ def test_mapping(cap, system_id):
     iqn2 = randomIQN()
 
     if cap['ACCESS_GROUP_CREATE']:
-        id = create_access_group(iqn1, system_id)
+        ag_id = create_access_group(iqn1, system_id)
 
         if cap['ACCESS_GROUP_ADD_INITIATOR']:
-            access_group_add_init(id, iqn2)
+            access_group_add_init(ag_id, iqn2)
 
         if cap['ACCESS_GROUP_GRANT'] and cap['VOLUME_CREATE']:
             vol = create_volume(pool_id)
-            access_group_grant(id, vol)
+            access_group_grant(ag_id, vol)
 
             test_display(cap, system_id)
 
             if cap['ACCESS_GROUP_REVOKE']:
-                access_group_revoke(id, vol)
+                access_group_revoke(ag_id, vol)
 
             if cap['VOLUME_DELETE']:
                 delete_volume(vol)
 
             if cap['ACCESS_GROUP_DEL_INITIATOR']:
-                access_group_remove_init(id, iqn1)
-                access_group_remove_init(id, iqn2)
+                access_group_remove_init(ag_id, iqn1)
+                access_group_remove_init(ag_id, iqn2)
 
             if cap['ACCESS_GROUP_DELETE']:
-                delete_access_group(id)
+                delete_access_group(ag_id)
 
     if cap['VOLUME_INITIATOR_GRANT']:
         vol_id = create_volume(pool_id)
@@ -456,7 +463,6 @@ def test_mapping(cap, system_id):
 
         if cap['VOLUME_ISCSI_CHAP_AUTHENTICATION']:
             initiator_chap(iqn1)
-
 
         if cap['VOLUME_INITIATOR_REVOKE']:
             initiator_revoke(iqn1, vol_id)
@@ -502,7 +508,8 @@ if __name__ == "__main__":
     #       Query all supported query operations (should have more to query)
     #
     #       Create objects of every supported type
-    #           Query all supported query operations (should have more to query),
+    #           Query all supported query operations
+    #           (should have more to query),
     #           run though different options making sure nothing explodes!
     #
     #       Try calling un-supported operations and expect them to fail
