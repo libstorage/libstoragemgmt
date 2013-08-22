@@ -280,9 +280,12 @@ def capabilities(system_id):
 
 
 def get_existing_fs(system_id):
-    out = ( [cmd, '-l', 'FS', '-t' + sep])[1]
+    out = call([cmd, '-l', 'FS', '-t' + sep])[1]
     results = parse(out)
-    print 'fs results=', results
+
+    if len(results) > 0:
+        return results[0][ID]
+    return None
 
 
 def numbers():
@@ -303,6 +306,8 @@ def display_check(display_list, system_id):
 
     if 'SNAPSHOTS' in display_list:
         fs_id = get_existing_fs(system_id)
+        if fs_id:
+            call([cmd, '-l', 'SNAPSHOTS', '--fs', fs_id])
 
 
 def test_display(cap, system_id):
