@@ -341,6 +341,11 @@ def test_block_creation(cap, system_id):
     vol_src = None
     test_pool_id = name_to_id(OP_POOL, test_pool_name)
 
+    # Fail early if no pool is available
+    if test_pool_id is None:
+        print 'Pool %s is not available!' % test_pool_name
+        exit(10)
+
     if cap['VOLUME_CREATE']:
         vol_src = create_volume(test_pool_id)
 
