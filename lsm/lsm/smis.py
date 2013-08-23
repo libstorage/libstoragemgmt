@@ -11,7 +11,8 @@
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+# USA
 #
 # Author: tasleson
 from string import split
@@ -42,16 +43,16 @@ class Smis(IStorageAreaNetwork):
     functionality of SMI-S
     """
 
-    #SMI-S job 'JobState' enumerations
+    # SMI-S job 'JobState' enumerations
     (JS_NEW, JS_STARTING, JS_RUNNING, JS_SUSPENDED, JS_SHUTTING_DOWN,
      JS_COMPLETED,
      JS_TERMINATED, JS_KILLED, JS_EXCEPTION) = (2, 3, 4, 5, 6, 7, 8, 9, 10)
 
-    #SMI-S job 'OperationalStatus' enumerations
+    # SMI-S job 'OperationalStatus' enumerations
     (JOB_OK, JOB_ERROR, JOB_STOPPED, JOB_COMPLETE) = (2, 6, 10, 17)
 
-    #SMI-S invoke return values we are interested in
-    ## Reference: Page 54 in 1.5 SMI-S block specification
+    # SMI-S invoke return values we are interested in
+    # Reference: Page 54 in 1.5 SMI-S block specification
     (INVOKE_OK,
      INVOKE_NOT_SUPPORTED,
      INVOKE_TIMEOUT,
@@ -61,7 +62,7 @@ class Smis(IStorageAreaNetwork):
      INVOKE_ASYNC,
      INVOKE_SIZE_NOT_SUPPORTED) = (0, 1, 3, 4, 5, 6, 4096, 4097)
 
-    #SMI-S replication enumerations
+    # SMI-S replication enumerations
     (SYNC_TYPE_MIRROR, SYNC_TYPE_SNAPSHOT, SYNC_TYPE_CLONE) = (6, 7, 8)
 
     class RepSvc(object):
@@ -70,7 +71,7 @@ class Smis(IStorageAreaNetwork):
             CREATE_ELEMENT_REPLICA = 2
 
         class RepTypes(object):
-            #SMI-S replication service capabilities
+            # SMI-S replication service capabilities
             SYNC_MIRROR_LOCAL = 2
             ASYNC_MIRROR_LOCAL = 3
             SYNC_MIRROR_REMOTE = 4
@@ -91,10 +92,10 @@ class Smis(IStorageAreaNetwork):
         INACTIVE = 8
 
     class CopyTypes(object):
-        ASYNC = 2     # Async. mirror
-        SYNC = 3     # Sync. mirror
+        ASYNC = 2           # Async. mirror
+        SYNC = 3            # Sync. mirror
         UNSYNCASSOC = 4     # lsm Clone
-        UNSYNCUNASSOC = 5     # lsm Copy
+        UNSYNCUNASSOC = 5   # lsm Copy
 
     class Synchronized(object):
         class SyncState(object):
@@ -122,7 +123,7 @@ class Smis(IStorageAreaNetwork):
      VOL_OP_STATUS_STARTING,
      VOL_OP_STATUS_DORMANT) = (2, 3, 6, 8, 15)
 
-    #SMI-S CIM_ComputerSystem OperationalStatus for system
+    # SMI-S CIM_ComputerSystem OperationalStatus for system
     class SystemOperationalStatus(object):
         UNKNOWN = 0
         OTHER = 1
@@ -144,7 +145,7 @@ class Smis(IStorageAreaNetwork):
         COMPLETED = 17
         POWER_MODE = 18
 
-    #SMI-S ExposePaths device access enumerations
+    # SMI-S ExposePaths device access enumerations
     (EXPOSE_PATHS_DA_READ_WRITE, EXPOSE_PATHS_DA_READ_ONLY) = (2, 3)
 
     def __init__(self):
@@ -220,8 +221,8 @@ class Smis(IStorageAreaNetwork):
         init = self._get_class_instance('CIM_StorageHardwareID', 'StorageID',
                                         initiator_id)
 
-        #Look at page 151 (1.5 smi-s spec.) in the block services books for the
-        # SNIA_MappingProtocolControllerView
+        # Look at page 151 (1.5 smi-s spec.) in the block services books for
+        # the SNIA_MappingProtocolControllerView
 
         if init:
             auths = self._c.Associators(init.path,
@@ -229,17 +230,18 @@ class Smis(IStorageAreaNetwork):
 
             if auths:
                 for a in auths:
-                    spc = self._c.Associators(a.path,
-                                              AssocClass='CIM_AuthorizedTarget')
+                    spc = self._c.Associators(
+                        a.path, AssocClass='CIM_AuthorizedTarget')
                     if spc and len(spc) > 0:
                         logical_device = \
-                            self._c.Associators(spc[0].path,
-                                                AssocClass=
-                                                'CIM_ProtocolControllerForUnit')
+                            self._c.Associators(
+                                spc[0].path,
+                                AssocClass='CIM_ProtocolControllerForUnit')
 
                         if logical_device and len(logical_device) > 0:
                             vol = self._c.GetInstance(logical_device[0].path)
-                            if 'DeviceID' in vol and md5(vol.path) == volume_id:
+                            if 'DeviceID' in vol and \
+                                    md5(vol.path) == volume_id:
                                 return spc[0]
         return None
 
@@ -248,7 +250,7 @@ class Smis(IStorageAreaNetwork):
         Handle the the process of invoking an operation.
         """
 
-        #Check to see if operation is done
+        # Check to see if operation is done
         if rc == Smis.INVOKE_OK:
             if retrieve_vol:
                 return None, self._new_vol_from_name(out)
@@ -256,13 +258,14 @@ class Smis(IStorageAreaNetwork):
                 return None, None
 
         elif rc == Smis.INVOKE_ASYNC:
-            #We have an async operation
+            # We have an async operation
             job_id = "%s@%s" % (md5(str(out['Job']['InstanceID'])),
                                 str(retrieve_vol))
             return job_id, None
         elif rc == Smis.INVOKE_NOT_SUPPORTED:
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           'SMI-S error code indicates operation not supported')
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                'SMI-S error code indicates operation not supported')
         else:
             raise LsmError(ErrorNumber.PLUGIN_ERROR,
                            'Error: ' + msg + " rc= " + str(rc))
@@ -272,14 +275,15 @@ class Smis(IStorageAreaNetwork):
         Called when the plug-in runner gets the start request from the client.
         """
         protocol = 'http'
-        u = uri_parse(uri, ['scheme', 'netloc', 'host', 'port'], ['namespace'])
+        u = uri_parse(uri, ['scheme', 'netloc', 'host', 'port'],
+                      ['namespace'])
 
         if u['scheme'].lower() == 'smispy+ssl':
             protocol = 'https'
 
         url = "%s://%s:%s" % (protocol, u['host'], u['port'])
 
-        #System filtering
+        # System filtering
         self.system_list = None
 
         if 'systems' in u['parameters']:
@@ -301,16 +305,16 @@ class Smis(IStorageAreaNetwork):
 
     def _job_completed_ok(self, status):
         """
-        Given a concrete job instance, check the operational status.  This is a
-        little convoluted as different SMI-S proxies return the values in
+        Given a concrete job instance, check the operational status.  This
+        is a little convoluted as different SMI-S proxies return the values in
         different positions in list :-)
         """
         rc = False
         op = status['OperationalStatus']
 
-        if len(op) > 1 \
-                and ((op[0] == Smis.JOB_OK and op[1] == Smis.JOB_COMPLETE)
-                     or (op[0] == Smis.JOB_COMPLETE and op[1] == Smis.JOB_OK)):
+        if len(op) > 1 and \
+                ((op[0] == Smis.JOB_OK and op[1] == Smis.JOB_COMPLETE) or
+                (op[0] == Smis.JOB_COMPLETE and op[1] == Smis.JOB_OK)):
             rc = True
 
         return rc
@@ -369,7 +373,8 @@ class Smis(IStorageAreaNetwork):
 
     def _scs_supported_capabilities(self, system, cap):
         """
-        Interrogate the supported features of the Storage Configuration service
+        Interrogate the supported features of the Storage Configuration
+        service
         """
         scs = self._get_class_instance('CIM_StorageConfigurationService',
                                        'SystemName', system.id)
@@ -379,8 +384,8 @@ class Smis(IStorageAreaNetwork):
             AssocClass='CIM_ElementCapabilities',
             ResultClass='CIM_StorageConfigurationCapabilities')[0]
 
-        #print 'Async', scs_cap_inst['SupportedAsynchronousActions']
-        #print 'Sync', scs_cap_inst['SupportedSynchronousActions']
+        # print 'Async', scs_cap_inst['SupportedAsynchronousActions']
+        # print 'Sync', scs_cap_inst['SupportedSynchronousActions']
 
         #TODO Get rid of magic numbers
         if 2 in scs_cap_inst['SupportedStorageElementTypes']:
@@ -417,12 +422,12 @@ class Smis(IStorageAreaNetwork):
                     rs_cap['SupportedSynchronousActions']:
                 cap.set(Capabilities.VOLUME_REPLICATE)
 
-            #Mirror support is not working and is not supported at this time.
-            #if self.RepSvc.RepTypes.SYNC_MIRROR_LOCAL in \
+            # Mirror support is not working and is not supported at this time.
+            # if self.RepSvc.RepTypes.SYNC_MIRROR_LOCAL in \
             #   rs_cap['SupportedReplicationTypes']:
             #    cap.set(Capabilities.DeviceID)
 
-            #if self.RepSvc.RepTypes.ASYNC_MIRROR_LOCAL \
+            # if self.RepSvc.RepTypes.ASYNC_MIRROR_LOCAL \
             #    in rs_cap['SupportedReplicationTypes']:
             #    cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC)
 
@@ -436,7 +441,7 @@ class Smis(IStorageAreaNetwork):
                     in rs_cap['SupportedReplicationTypes']:
                 cap.set(Capabilities.VOLUME_REPLICATE_COPY)
         else:
-            #Try older storage configuration service
+            # Try older storage configuration service
 
             rs = self._get_class_instance("CIM_StorageConfigurationService",
                                           'SystemName',
@@ -453,13 +458,13 @@ class Smis(IStorageAreaNetwork):
                 if len(sct):
                     cap.set(Capabilities.VOLUME_REPLICATE)
 
-                    #Mirror support is not working and is not supported at this
-                    #time.
+                    # Mirror support is not working and is not supported at
+                    # this time.
 
-                    #if Smis.CopyTypes.ASYNC in sct:
+                    # if Smis.CopyTypes.ASYNC in sct:
                     #    cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC)
 
-                    #if Smis.CopyTypes.SYNC in sct:
+                    # if Smis.CopyTypes.SYNC in sct:
                     #    cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_SYNC)
 
                     if Smis.CopyTypes.UNSYNCASSOC in sct:
@@ -474,10 +479,10 @@ class Smis(IStorageAreaNetwork):
         CIM_ProtocolControllerMaskingCapabilities
         """
 
-        #Get the cim object that represents the system
+        # Get the cim object that represents the system
         cim_sys = self._systems(system.id)[0]
 
-        #Get the protocol controller masking capabililites
+        # Get the protocol controller masking capabilities
         pcm = self._c.Associators(
             cim_sys.path,
             ResultClass='CIM_ProtocolControllerMaskingCapabilities')[0]
@@ -496,7 +501,7 @@ class Smis(IStorageAreaNetwork):
     def _common_capabilities(self, system):
         cap = Capabilities()
 
-        #Assume that the SMI-S we are talking to supports blocks
+        # Assume that the SMI-S we are talking to supports blocks
         cap.set(Capabilities.BLOCK_SUPPORT)
         cap.set(Capabilities.INITIATORS)
 
@@ -550,7 +555,7 @@ class Smis(IStorageAreaNetwork):
             if isinstance(other_id, list):
                 other_id = other_id[0]
 
-            #This is not what we are looking for if the field has this value
+            # This is not what we are looking for if the field has this value
             if other_id is not None and other_id == "VPD83Type3":
                 other_id = None
 
@@ -560,12 +565,11 @@ class Smis(IStorageAreaNetwork):
         """
         Takes a CIMInstance that represents a volume and returns a lsm Volume
         """
-        other_id = None
 
-        #Reference page 134 in 1.5 spec.
+        # Reference page 134 in 1.5 spec.
         status = Volume.STATUS_UNKNOWN
 
-        #OperationalStatus is mandatory
+        # OperationalStatus is mandatory
         if 'OperationalStatus' in cv:
             for s in cv["OperationalStatus"]:
                 if s == Smis.VOL_OP_STATUS_OK:
@@ -579,33 +583,33 @@ class Smis(IStorageAreaNetwork):
                 elif s == Smis.VOL_OP_STATUS_DORMANT:
                     status |= Volume.STATUS_DORMANT
 
-        #This is optional (User friendly name)
+        # This is optional (User friendly name)
         if 'ElementName' in cv:
             user_name = cv["ElementName"]
         else:
             #Better fallback value?
             user_name = cv['DeviceID']
 
-        #No standard way to retrieve this information.  May be bringing this
-        #forward to correct in the standard.
-        #This is optional(EMC and NetApp place the vpd here)
-        #Some vendors are putting VPD83Type3 in the OtherIdentifyingInfo
-        #field and filling out name format and name
+        # No standard way to retrieve this information.  May be bringing this
+        # forward to correct in the standard.
+        # This is optional(EMC and NetApp place the vpd here)
+        # Some vendors are putting VPD83Type3 in the OtherIdentifyingInfo
+        # field and filling out name format and name
         other_id = Smis._get_vol_other_id_info(cv)
 
         if other_id is None:
-            #Engenio/LSI/XIV/Compellent use this field.
+            # Engenio/LSI/XIV/Compellent use this field.
             nf = cv['NameFormat']
-            #Check to see if name format is NAA or FC Node WWN
+            # Check to see if name format is NAA or FC Node WWN
             if 9 == nf or 8 == nf:
                 other_id = cv["Name"]
             else:
                 other_id = ''
 
-        #This is a fairly expensive operation, so it's in our best interest
-        #to not call this very often.
+        # This is a fairly expensive operation, so it's in our best interest
+        # to not call this very often.
         if pool_id is None:
-            #Go an retrieve the pool id
+            # Go an retrieve the pool id
             pool_id = self._get_pool_from_vol(cv)
 
         return Volume(self._vol_id(cv), user_name, other_id, cv["BlockSize"],
@@ -651,9 +655,9 @@ class Smis(IStorageAreaNetwork):
             pools = self._pools(s)
 
             for p in pools:
-                volumes = self._c.Associators(p.path,
-                                              ResultClass='CIM_StorageVolume')
-                rc.extend([self._new_vol(v, p['InstanceID']) for v in volumes])
+                vols = self._c.Associators(
+                    p.path, ResultClass='CIM_StorageVolume')
+                rc.extend([self._new_vol(v, p['InstanceID']) for v in vols])
 
         return rc
 
@@ -669,7 +673,7 @@ class Smis(IStorageAreaNetwork):
                                          AssocClass='CIM_HostedService',
                                          ResultClass='CIM_ComputerSystem')[0]
 
-            #Filtering
+            # Filtering
             if system_name is not None:
                 if system['Name'] == system_name:
                     rc.append(system)
@@ -707,7 +711,8 @@ class Smis(IStorageAreaNetwork):
         return rc
 
     def _new_system(self, s):
-        #In the case of systems we are assuming that the System Name is unique.
+        # In the case of systems we are assuming that the System Name is
+        # unique.
         status = System.STATUS_UNKNOWN
 
         if 'OperationalStatus' in s:
@@ -754,7 +759,7 @@ class Smis(IStorageAreaNetwork):
             raise LsmError(ErrorNumber.UNSUPPORTED_PROVISIONING,
                            "Unsupported provisioning")
 
-        #Get the Configuration service for the system we are interested in.
+        # Get the Configuration service for the system we are interested in.
         scs = self._get_class_instance('CIM_StorageConfigurationService',
                                        'SystemName', pool.system_id)
         sp = self._get_pool(pool.id)
@@ -822,16 +827,16 @@ class Smis(IStorageAreaNetwork):
 
         if len(ss):
             for s in ss:
-                #TODO: Need to see if detach is a supported operation in
+                # TODO: Need to see if detach is a supported operation in
                 # replication capabilities.
                 #
-                # TODO: Theory of delete.  Some arrays will automatically detach
-                # a clone, check
+                # TODO: Theory of delete.  Some arrays will automatically
+                # detach a clone, check
                 # ReplicationServiceCapabilities.GetSupportedFeatures() and
                 # look for "Synchronized clone target detaches automatically".
-                # If not automatic then detach manually.  However, we have seen
-                # arrays that don't report detach automatically that don't need
-                # a detach.
+                # If not automatic then detach manually.  However, we have
+                # seen arrays that don't report detach automatically that
+                # don't need a detach.
                 #
                 # This code needs to be re-investigated to work with a wide
                 # range of array vendors.
@@ -864,9 +869,10 @@ class Smis(IStorageAreaNetwork):
 
         in_params = {'TheElement': lun.path}
 
-        #Delete returns None or Job number
+        # Delete returns None or Job number
         return self._pi("volume_delete", False,
-                        *(self._c.InvokeMethod('ReturnToStoragePool', scs.path,
+                        *(self._c.InvokeMethod('ReturnToStoragePool',
+                                               scs.path,
                                                **in_params)))[0]
 
     @handle_cim_errors
@@ -961,8 +967,8 @@ class Smis(IStorageAreaNetwork):
         if rs:
             method = 'CreateElementReplica'
 
-            sync, mode = self._get_supported_sync_and_mode(volume_src.system_id,
-                                                           rep_type)
+            sync, mode = self._get_supported_sync_and_mode(
+                volume_src.system_id, rep_type)
 
             in_params = {'ElementName': name,
                          'SyncType': pywbem.Uint16(sync),
@@ -972,11 +978,11 @@ class Smis(IStorageAreaNetwork):
                          pywbem.Uint16(Smis.CopyStates.SYNCHRONIZED)}
 
         else:
-            #Check for older support via storage configuration service
+            # Check for older support via storage configuration service
 
             method = 'CreateReplica'
 
-            #Check for storage configuration service
+            # Check for storage configuration service
             rs = self._get_class_instance("CIM_StorageConfigurationService",
                                           'SystemName', volume_src.system_id,
                                           True)
@@ -1003,12 +1009,14 @@ class Smis(IStorageAreaNetwork):
                             *(self._c.InvokeMethod(method,
                                                    rs.path, **in_params)))
 
-        raise LsmError(ErrorNumber.NO_SUPPORT, "volume-replicate not supported")
+        raise LsmError(ErrorNumber.NO_SUPPORT,
+                       "volume-replicate not supported")
 
     def volume_replicate_range_block_size(self, system, flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def volume_replicate_range(self, rep_type, volume_src, volume_dest, ranges,
+    def volume_replicate_range(self, rep_type, volume_src, volume_dest,
+                               ranges,
                                flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
@@ -1068,7 +1076,7 @@ class Smis(IStorageAreaNetwork):
                      'ProtocolControllers': [spc.path],
                      'DeviceAccesses': [pywbem.Uint16(da)]}
 
-        #Returns None or job id
+        # Returns None or job id
         return self._pi("access_grant", False,
                         *(self._c.InvokeMethod('ExposePaths', ccs.path,
                                                **in_params)))[0]
@@ -1082,8 +1090,8 @@ class Smis(IStorageAreaNetwork):
             status = self.job_status(job)[0]
 
         if JobStatus.COMPLETE != status:
-            raise LsmError(ErrorNumber.PLUGIN_ERROR, "Expected no errors %s %s"
-                                                     % (job, str(status)))
+            raise LsmError(ErrorNumber.PLUGIN_ERROR,
+                           "Expected no errors %s %s" % (job, str(status)))
 
     @handle_cim_errors
     def access_group_revoke(self, group, volume, flags=0):
@@ -1108,19 +1116,19 @@ class Smis(IStorageAreaNetwork):
     def _is_access_group(self, s):
         rc = False
 
-        #This seems horribly wrong for something that is a standard.
+        # This seems horribly wrong for something that is a standard.
         if 'Name' in s and s['Name'] == 'Storage Group':
-            #EMC
+            # EMC
             rc = True
         elif 'DeviceID' in s and s['DeviceID'][0:3] == 'SPC':
-            #NetApp
+            # NetApp
             rc = True
         return rc
 
     def _get_access_groups(self):
         rc = []
 
-        #System filtering
+        # System filtering
         if self.system_list:
             systems = self._systems()
             for s in systems:
@@ -1152,12 +1160,13 @@ class Smis(IStorageAreaNetwork):
     def _get_initiators_in_group(self, group, field=None):
         rc = []
 
-        ap = self._c.Associators(group.path, AssocClass='CIM_AuthorizedTarget')
+        ap = self._c.Associators(group.path,
+                                 AssocClass='CIM_AuthorizedTarget')
 
         if len(ap):
             for a in ap:
-                inits = self._c.Associators(a.path,
-                                            AssocClass='CIM_AuthorizedSubject')
+                inits = self._c.Associators(
+                    a.path, AssocClass='CIM_AuthorizedSubject')
                 for i in inits:
                     if field is None:
                         rc.append(i)
@@ -1175,8 +1184,9 @@ class Smis(IStorageAreaNetwork):
                 g.path, AssocClass='CIM_ProtocolControllerForUnit')
             return [self._new_vol(v) for v in logical_units]
         else:
-            raise LsmError(ErrorNumber.PLUGIN_ERROR,
-                           'Error: access group %s does not exist!' % group.id)
+            raise LsmError(
+                ErrorNumber.PLUGIN_ERROR,
+                'Error: access group %s does not exist!' % group.id)
 
     @handle_cim_errors
     def access_groups_granted_to_volume(self, volume, flags=0):
@@ -1188,8 +1198,9 @@ class Smis(IStorageAreaNetwork):
                 AssocClass='CIM_ProtocolControllerForUnit')
             return [self._new_access_group(g) for g in access_groups]
         else:
-            raise LsmError(ErrorNumber.PLUGIN_ERROR,
-                           'Error: access group %s does not exist!' % volume.id)
+            raise LsmError(
+                ErrorNumber.PLUGIN_ERROR,
+                'Error: access group %s does not exist!' % volume.id)
 
     @handle_cim_errors
     def access_group_list(self, flags=0):
@@ -1199,7 +1210,7 @@ class Smis(IStorageAreaNetwork):
     @handle_cim_errors
     def access_group_create(self, name, initiator_id, id_type, system_id,
                             flags=0):
-        #page 880 1.5 spec. CreateMaskingView
+        # page 880 1.5 spec. CreateMaskingView
         #
         # No access to a provider that implements this at this time,
         # so unable to develop and test.
@@ -1207,7 +1218,7 @@ class Smis(IStorageAreaNetwork):
 
     @handle_cim_errors
     def access_group_del(self, group, flags=0):
-        #page 880 1.5 spec. DeleteMaskingView
+        # page 880 1.5 spec. DeleteMaskingView
         #
         # No access to a provider that implements this at this time,
         # so unable to develop and test.
@@ -1229,8 +1240,8 @@ class Smis(IStorageAreaNetwork):
     @handle_cim_errors
     def access_group_add_initiator(self, group, initiator_id, id_type,
                                    flags=0):
-        #Check to see if we have this initiator already, if we don't create it
-        #and then add to the view.
+        # Check to see if we have this initiator already, if we don't create
+        # it and then add to the view.
         spc = self._get_access_group(group.id)
 
         initiator = self._initiator_lookup(initiator_id)
@@ -1245,7 +1256,7 @@ class Smis(IStorageAreaNetwork):
         in_params = {'InitiatorPortIDs': [initiator.id],
                      'ProtocolControllers': [spc.path]}
 
-        #Returns None or job id
+        # Returns None or job id
         return self._pi("access_group_add_initiator", False,
                         *(self._c.InvokeMethod('ExposePaths', ccs.path,
                                                **in_params)))[0]
@@ -1291,7 +1302,7 @@ class Smis(IStorageAreaNetwork):
         """
         concrete_job = self._get_job_details(job_id)[0]
 
-        #See if we should delete the job
+        # See if we should delete the job
         if not concrete_job['DeleteOnCompletion']:
             try:
                 self._c.DeleteInstance(concrete_job.path)
