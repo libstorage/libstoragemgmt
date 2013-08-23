@@ -1086,7 +1086,7 @@ class Smis(IStorageAreaNetwork):
         status = self.job_status(job)[0]
 
         while JobStatus.COMPLETE != status:
-            time.wait(0.5)
+            time.sleep(0.5)
             status = self.job_status(job)[0]
 
         if JobStatus.COMPLETE != status:
