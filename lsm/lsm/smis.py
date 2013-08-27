@@ -917,8 +917,14 @@ class Smis(IStorageAreaNetwork):
         """
         lun = self._get_volume(vol.id)
 
-        ss = self._c.References(lun.path,
-                                ResultClass='CIM_StorageSynchronized')
+        try:
+            ss = self._c.References(lun.path,
+                                    ResultClass='CIM_StorageSynchronized')
+        except pywbem.CIMError as e:
+            if e[0] == pywbem.CIM_ERR_INVALID_CLASS:
+                return
+            else:
+                raise e
 
         lp = lun.path
 
