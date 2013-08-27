@@ -763,7 +763,7 @@ class Smis(IStorageAreaNetwork):
         Returns a list of system objects (CIM)
         """
         rc = []
-        ccs = self._c.EnumerateInstances('CIM_ControllerConfigurationService')
+        ccs = self._c.EnumerateInstances('CIM_StorageConfigurationService')
 
         for c in ccs:
             system = self._c.Associators(c.path,
