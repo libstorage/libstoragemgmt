@@ -758,29 +758,60 @@ class Smis(IStorageAreaNetwork):
 
         return rc
 
+    @handle_cim_errors
     def _systems(self, system_name=None):
         """
         Returns a list of system objects (CIM)
         """
-        rc = []
-        ccs = self._c.EnumerateInstances('CIM_StorageConfigurationService')
-
-        for c in ccs:
-            system = self._c.Associators(c.path,
-                                         AssocClass='CIM_HostedService',
-                                         ResultClass='CIM_ComputerSystem')[0]
-
-            # Filtering
-            if system_name is not None:
-                if system['Name'] == system_name:
-                    rc.append(system)
-            elif self.system_list:
-                if system['Name'] in self.system_list:
-                    rc.append(system)
+        cim_syss = []
+        cim_scss_path = []
+        try:
+            # Note: Please be informed, if PropertyList is an empty list,
+            #       XIV will return NOTHING, so use EnumerateInstanceNames()
+            #       when you need nothing but the CIMInstanceName
+            cim_scss_path = \
+              self._c.EnumerateInstanceNames('CIM_StorageConfigurationService')
+        except CIMError as e:
+            if e[0] == pywbem.CIM_ERR_INVALID_CLASS:
+                # If array does not support CIM_StorageConfigurationService
+                # we use CIM_ComputerSystem which is mandatory.
+                # We might get some non-storage array listed as system.
+                # but we would like to take that risk instead of
+                # skipping basic support of old SMIS provider.
+                cim_syss = \
+                  self._c.EnumerateInstances('CIM_ComputerSystem',
+                                             PropertyList=['Name',
+                                                           'ElementName',
+                                                           'OperationalStatus']
+                                            )
             else:
-                rc.append(system)
+                raise e
+        if not cim_syss:
+            for cim_scs_path in cim_scss_path:
+                cim_tmp = \
+                  self._c.Associators(cim_scs_path,
+                                      AssocClass='CIM_HostedService',
+                                      ResultClass='CIM_ComputerSystem',
+                                      PropertyList=['Name',
+                                                    'ElementName',
+                                                    'OperationalStatus'])
+                if cim_tmp and cim_tmp[0]:
+                    cim_syss.extend([cim_tmp[0]])
 
-        return rc
+        # Filtering
+        if system_name is not None:
+            for cim_sys in cim_syss:
+                if cim_sys['Name'] == system_name:
+                    return [cim_sys]
+
+        elif self.system_list:
+            cim_filterd_syss = []
+            for cim_sys in cim_syss:
+                if cim_sys['Name'] in self.system_list:
+                    cim_filterd_syss.extend([cim_sys])
+            return cim_filterd_syss
+        else:
+            return cim_syss
 
     def _pools(self, system):
         pools = self._c.Associators(system.path,
