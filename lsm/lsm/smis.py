@@ -151,15 +151,27 @@ class Smis(IStorageAreaNetwork):
     def __init__(self):
         self._c = None
 
-    def _get_class(self, class_name, gen_id, ident):
-        instances = self._c.EnumerateInstances(class_name)
-        for i in instances:
-            if gen_id(i) == ident:
-                return i
+    @handle_cim_errors
+    def _get_cim_instance_by_id(self, class_type, requested_id,
+                                flag_full_info=True):
+        """
+        Find out the CIM_XXXX Instance which holding the requested_id
+        If flag_full_info == True, we return a Instance with full info.
+        If you want to save some query time, try set it as False
+        """
+        class_name = self._cim_class_name_of(class_type)
+        property_list = self._property_list_of_id(class_type)
+        cim_xxxs = self._c.EnumerateInstances(class_name,
+                                              PropertyList=property_list)
+        for cim_xxx in cim_xxxs:
+            if self._id(class_type, cim_xxx) == requested_id:
+                if flag_full_info:
+                    cim_xxx = self._c.GetInstance(cim_xxx.path)
+                return cim_xxx
 
         raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                       "Unable to find class instance " + class_name +
-                       " with signature " + ident)
+                       "Cannot find %s Instance with " % class_name +\
+                       "%s ID %s" % (class_type, requested_id))
 
     def _get_class_instance(self, class_name, prop_name=None, prop_value=None,
                             no_throw_on_missing=False):
@@ -170,20 +182,27 @@ class Smis(IStorageAreaNetwork):
         instances = None
 
         try:
-            instances = self._c.EnumerateInstances(class_name)
+            if prop_name:
+                instances = \
+                  self._c.EnumerateInstances(class_name,
+                                             PropertyList=[prop_name])
+            else:
+                instances = self._c.EnumerateInstances(class_name)
         except CIMError as ce:
             error_code = tuple(ce)[0]
 
-            if error_code == 5 and no_throw_on_missing:
+            if error_code == pywbem.CIM_ERR_INVALID_CLASS and \
+                no_throw_on_missing:
                 return None
+            else:
+                raise ce
 
         if prop_name is None:
             if len(instances) != 1:
                 class_names = " ".join([x.classname for x in instances])
                 raise LsmError(ErrorNumber.INTERNAL_ERROR,
-                               "Expecting one instance "
-                               "of " + class_name + " and got: " +
-                               class_names)
+                               "Expecting one instance of %s and got %s" % \
+                               (class_name , class_names))
 
             return instances[0]
         else:
@@ -195,22 +214,9 @@ class Smis(IStorageAreaNetwork):
             return None
 
         raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                       "Unable to find class instance " + class_name +
-                       " with property " + prop_name +
-                       " with value " + prop_value)
-
-    def _get_pool(self, pool_id):
-        """
-        Get a specific instance of a pool by pool id.
-        """
-        return self._get_class_instance("CIM_StoragePool", "InstanceID",
-                                        pool_id)
-
-    def _get_volume(self, volume_id):
-        """
-        Get a specific instance of a volume by volume id.
-        """
-        return self._get_class("CIM_StorageVolume", self._vol_id, volume_id)
+                       "Unable to find class instance %s " % class_name +\
+                       "with property %s " % prop_name +\
+                       "with value %s" % prop_value)
 
     def _get_spc(self, initiator_id, volume_id):
         """
@@ -528,19 +534,106 @@ class Smis(IStorageAreaNetwork):
         return self._job_progress(job_id)
 
     @staticmethod
-    def _vol_id(c):
-        return md5(c['SystemName'] + c['DeviceID'])
+    def _cim_class_name_of(class_type):
+        if class_type == 'Volume':
+            return 'CIM_StorageVolume'
+        if class_type == 'System':
+            return 'CIM_ComputerSystem'
+        if class_type == 'Pool':
+            return 'CIM_StoragePool'
+        raise LsmError(ErrorNumber.INTERNAL_ERROR,
+                       "self._cim_class_name_of() got unknown " +\
+                       "class_type %s" % class_type)
 
-    def _get_pool_from_vol(self, cim_volume):
+    @staticmethod
+    def _property_list_of_id(class_type):
+        """
+        Return a PropertyList which the ID of current class is basing on
+        """
+        if class_type == 'Volume':
+            return ['SystemName', 'DeviceID']
+        if class_type == 'System':
+            return ['Name']
+        if class_type == 'Pool':
+            return ['InstanceID']
+        if class_type == 'SystemChild':
+            return ['SystemName']
+        raise LsmError(ErrorNumber.INTERNAL_ERROR,
+                       "self._cim_class_name_of() got unknown " +\
+                       "class_type %s" % class_type)
+
+    @handle_cim_errors
+    def _sys_id_child(self, cim_xxx):
+        """
+        Find out the system id of Pool/Volume/Disk and etc
+        Currently, we just use SystemName of cim_xxx
+        """
+        return self._id('SystemChild', cim_xxx)
+
+    @handle_cim_errors
+    def _sys_id(self, cim_sys):
+        """
+        Return CIM_ComputerSystem['SystemName']
+        """
+        return self._id('System', cim_sys)
+
+    @handle_cim_errors
+    def _pool_id(self, cim_pool):
+        """
+        Return CIM_StoragePool['InstanceID']
+        """
+        return self._id('Pool', cim_pool)
+
+    @handle_cim_errors
+    def _vol_id(self, cim_vol):
+        """
+        Return the MD5 hash of CIM_StorageVolume['SystemName'] and
+        ['DeviceID']
+        """
+        return self._id('Volume', cim_vol)
+
+    @handle_cim_errors
+    def _id(self, class_type, cim_xxx):
+        """
+        Return the ID of certain class.
+        When ID is based on two or more properties, we use MD5 hash of them.
+        If not, return the property value.
+        """
+        property_list = self._property_list_of_id(class_type)
+        for key in property_list:
+            if key not in cim_xxx:
+                cim_xxx = self._c.GetInstance(cim_xxx.path,
+                                              PropertyList=property_list)
+                break
+
+        id_str = ''
+        for key in property_list:
+            if key not in cim_xxx:
+                cim_class_name = self._cim_class_name_of(class_type)
+                raise LsmError(ErrorNumber.NO_SUPPORT,
+                               "%s %s " % (cim_class_name, cim_xxx.path) +\
+                               "does not have property %" % key +\
+                               "caculate out %s id" % class_type)
+            else:
+                id_str += cim_xxx[key]
+        if len(property_list) == 1:
+            return id_str
+        else:
+            return md5(id_str)
+
+    @handle_cim_errors
+    def _get_pool_from_vol(self, cim_vol):
         """
          Takes a CIMInstance that represents a volume and returns the pool
          id for that volume.
         """
-        p = self._c.Associators(cim_volume.path,
+        property_list = self._property_list_of_id('Pool')
+        cim_pool = self._c.Associators(cim_vol.path,
                                 AssocClass='CIM_AllocatedFromStoragePool',
-                                ResultClass='CIM_StoragePool')[0]
+                                ResultClass='CIM_StoragePool',
+                                PropertyList=property_list)[0]
+        return self._pool_id(cim_pool)
 
-        return p['InstanceID']
 
     @staticmethod
     def _get_vol_other_id_info(cv):
@@ -890,7 +983,7 @@ class Smis(IStorageAreaNetwork):
         # Get the Configuration service for the system we are interested in.
         scs = self._get_class_instance('CIM_StorageConfigurationService',
                                        'SystemName', pool.system_id)
-        sp = self._get_pool(pool.id)
+        sp = self._get_cim_instance_by_id('Pool', pool.id, False)
 
         in_params = {'ElementName': volume_name,
                      'ElementType': pywbem.Uint16(2),
@@ -946,7 +1039,7 @@ class Smis(IStorageAreaNetwork):
         Check a volume to see if it has any associations with other
         volumes.
         """
-        lun = self._get_volume(vol.id)
+        lun = self._get_cim_instance_by_id('Volume', vol.id)
 
         try:
             ss = self._c.References(lun.path,
@@ -997,7 +1090,7 @@ class Smis(IStorageAreaNetwork):
         """
         scs = self._get_class_instance('CIM_StorageConfigurationService',
                                        'SystemName', volume.system_id)
-        lun = self._get_volume(volume.id)
+        lun = self._get_cim_instance_by_id('Volume', volume.id)
 
         self._check_volume_associations(volume)
 
@@ -1016,7 +1109,7 @@ class Smis(IStorageAreaNetwork):
         """
         scs = self._get_class_instance('CIM_StorageConfigurationService',
                                        'SystemName', volume.system_id)
-        lun = self._get_volume(volume.id)
+        lun = self._get_cim_instance_by_id('Volume', volume.id)
 
         in_params = {'ElementType': pywbem.Uint16(2),
                      'TheElement': lun.path,
@@ -1092,11 +1185,11 @@ class Smis(IStorageAreaNetwork):
                                       volume_src.system_id, True)
 
         if pool is not None:
-            cim_pool = self._get_pool(pool.id)
+            cim_pool = self._get_cim_instance_by_id('Pool', pool.id, False)
         else:
             cim_pool = None
 
-        lun = self._get_volume(volume_src.id)
+        lun = self._get_cim_instance_by_id('Volume', volume_src.id)
 
         if rs:
             method = 'CreateElementReplica'
@@ -1191,7 +1284,7 @@ class Smis(IStorageAreaNetwork):
         """
         ccs = self._get_class_instance('CIM_ControllerConfigurationService',
                                        'SystemName', group.system_id)
-        lun = self._get_volume(volume.id)
+        lun = self._get_cim_instance_by_id('Volume', volume.id)
         spc = self._get_access_group(group.id)
 
         if not lun:
@@ -1231,7 +1324,7 @@ class Smis(IStorageAreaNetwork):
     def access_group_revoke(self, group, volume, flags=0):
         ccs = self._get_class_instance('CIM_ControllerConfigurationService',
                                        'SystemName', volume.system_id)
-        lun = self._get_volume(volume.id)
+        lun = self._get_cim_instance_by_id('Volume', volume.id)
         spc = self._get_access_group(group.id)
 
         if not lun:
@@ -1324,7 +1417,7 @@ class Smis(IStorageAreaNetwork):
 
     @handle_cim_errors
     def access_groups_granted_to_volume(self, volume, flags=0):
-        vol = self._get_volume(volume.id)
+        vol = self._get_cim_instance_by_id('Volume', volume.id)
 
         if vol:
             access_groups = self._c.Associators(
