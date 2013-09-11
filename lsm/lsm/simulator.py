@@ -375,7 +375,7 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
                             Volume.REPLICATE_COPY,
                             Volume.REPLICATE_MIRROR_SYNC):
             raise LsmError(ErrorNumber.UNSUPPORTED_REPLICATION_TYPE,
-                           "rep_type invalid")
+                           "Rep_type invalid")
 
         if ranges:
             if isinstance(ranges, list):
@@ -385,11 +385,11 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
                         pass
                     else:
                         raise LsmError(ErrorNumber.INVALID_VALUE,
-                                       "range element not BlockRange")
+                                       "Range element not BlockRange")
 
             else:
                 raise LsmError(ErrorNumber.INVALID_VALUE,
-                               "ranges not a list")
+                               "Ranges not a list")
 
         #Make sure all the arguments are validated
         if volume_src.id in self.s.volumes \
@@ -442,7 +442,7 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
     def access_group_grant(self, group, volume, access, flags=0):
         if group.name not in self.s.access_groups:
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
-                           "access group not present")
+                           "Access group not present")
 
         if volume.id not in self.s.volumes:
             raise LsmError(ErrorNumber.NOT_FOUND_VOLUME, 'Volume not found')
@@ -457,7 +457,7 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
     def access_group_revoke(self, group, volume, flags=0):
         if group.name not in self.s.access_groups:
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
-                           "access group not present")
+                           "Access group not present")
 
         if volume.id not in self.s.volumes:
             raise LsmError(ErrorNumber.NOT_FOUND_VOLUME, 'Volume not found')
@@ -503,7 +503,7 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
             return None
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
-                           "access group not found")
+                           "Access group not found")
 
     def access_group_add_initiator(self, group, initiator_id, id_type,
                                    flags=0):
@@ -513,7 +513,7 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
             return None
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
-                           "access group not found")
+                           "Access group not found")
 
     def access_group_del_initiator(self, group, initiator_id, flags=0):
         if group.name in self.s.access_groups:
@@ -524,10 +524,10 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
                     return None
 
             raise LsmError(ErrorNumber.INITIATOR_NOT_IN_ACCESS_GROUP,
-                           "initiator not found")
+                           "Initiator not found")
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
-                           "access group not found")
+                           "Access group not found")
 
     def volumes_accessible_by_access_group(self, group, flags=0):
         rc = []
@@ -539,7 +539,7 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
             return rc
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
-                           "access group not found")
+                           "Access group not found")
 
     def access_groups_granted_to_volume(self, volume, flags=0):
         rc = []
@@ -586,7 +586,7 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
                                    "No mapping of initiator "
                                    "and volume")
             else:
-                raise LsmError(ErrorNumber.NOT_FOUND_VOLUME, "volume not found")
+                raise LsmError(ErrorNumber.NOT_FOUND_VOLUME, "Volume not found")
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_INITIATOR,
                            "Initiator not found")
