@@ -85,6 +85,8 @@ class SimState(object):
         p3 = Pool('POO3', 'Pool 3', 2 ** 64, 2 ** 64, self.sys_info.id)
         p4 = Pool('POO4', 'lsm_test_aggr', 2 ** 64, 2 ** 64, self.sys_info.id)
 
+        self.block_size = 512
+
         pm1 = {'pool': p1, 'volumes': {}}
         pm2 = {'pool': p2, 'volumes': {}}
         pm3 = {'pool': p3, 'volumes': {}}
@@ -128,7 +130,7 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
         """
         Round the requested size to block size.
         """
-        return (size_bytes / 512) * 512
+        return (size_bytes / self.s.block_size) * self.s.block_size
 
     def __create_job(self, returned_item):
         if True:
@@ -207,8 +209,8 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
         actual_size = self._allocate_from_pool(pool.id, size_bytes)
 
         nv = Volume('Vol' + str(self.s.vol_num), name,
-                    StorageSimulator.__randomVpd(), 512,
-                    (actual_size / 512), Volume.STATUS_OK, self.s.sys_info.id,
+                    StorageSimulator.__randomVpd(), self.s.block_size,
+                    (actual_size / self.s.block_size), Volume.STATUS_OK, self.s.sys_info.id,
                     pool.id)
         self.s.volumes[nv.id] = {'pool': pool, 'volume': nv}
         self.s.vol_num += 1
@@ -365,7 +367,7 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
         return None
 
     def volume_replicate_range_block_size(self, system, flags=0):
-        return 512
+        return self.s.block_size
 
     def volume_replicate_range(self, rep_type, volume_src, volume_dest,
                                ranges, flags=0):
@@ -430,7 +432,7 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
             if new_size < current_size \
                     or p.free_space >= (new_size - current_size):
                 p.free_space -= (new_size - current_size)
-                v.num_of_blocks = new_size / 512
+                v.num_of_blocks = new_size / self.s.block_size
             else:
                 raise LsmError(ErrorNumber.SIZE_INSUFFICIENT_SPACE,
                                'Insufficient space in pool')
