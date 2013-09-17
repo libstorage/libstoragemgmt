@@ -144,7 +144,6 @@ def sh(size, human=False):
                 break
         if not units:
             units = "B"
-    if units:
         return "%.2f %s" % (size, units)
     else:
         return size
