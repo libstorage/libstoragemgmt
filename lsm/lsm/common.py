@@ -192,9 +192,10 @@ def size_human_2_size_bytes(size_human):
     if regex_match:
         number = regex_match.group(1)
         units = regex_match.group(2)
-        units = units.replace('IB', 'iB')
         if not units:
             return int(number)
+        units = units.upper()
+        units = units.replace('IB', 'iB')
         if units in SIZE_CONS:
             size_bytes = SIZE_CONS[units] * float(number)
     return int(size_bytes)
