@@ -28,6 +28,12 @@ def txt_a(txt, append):
     else:
         return append
 
+def get_key(dictionary, value):
+    keys = [k for k, v in dictionary.items() if v == value]
+    if len(keys) > 0:
+        return keys[0]
+    return None
+
 
 class DataEncoder(json.JSONEncoder):
     """
@@ -144,6 +150,139 @@ class IData(object):
     def column_data(self, human=False, enum_as_number=False):
         pass
 
+# Status, using DMTF 2.23.0Final CIM_ManagedSystemElement['OperationalStatus']
+    MAX_STATUS_BITS = 64
+    STATUS_UNKNOWN                      = 1 << 0
+    STATUS_OTHER                        = 1 << 1
+    STATUS_OK                           = 1 << 2
+    STATUS_DEGRADED                     = 1 << 3
+    STATUS_STRESSED                     = 1 << 4
+    STATUS_PREDICTIVE_FAILURE           = 1 << 5
+    STATUS_ERROR                        = 1 << 6
+    STATUS_NON_RECOVERABLE_ERROR        = 1 << 7
+    STATUS_STARTING                     = 1 << 8
+    STATUS_STOPPING                     = 1 << 9
+    STATUS_STOPPED                      = 1 << 10
+    STATUS_IN_SERVICE                   = 1 << 11
+    STATUS_NO_CONTACT                   = 1 << 12
+    STATUS_LOST_COMMUNICATION           = 1 << 13
+    STATUS_ABORTED                      = 1 << 14
+    STATUS_DORMANT                      = 1 << 15
+    STATUS_SUPPORTING_ENTITY_IN_ERROR   = 1 << 16
+    STATUS_COMPLETED                    = 1 << 17
+    STATUS_POWER_MODE                   = 1 << 18
+
+    STATUS = {
+        STATUS_UNKNOWN:                 'UNKNOWN',
+        STATUS_OTHER:                   'OTHER',
+        STATUS_OK:                      'OK',
+        STATUS_DEGRADED:                'DEGRADED',
+        STATUS_STRESSED:                'STRESSED',
+        STATUS_PREDICTIVE_FAILURE:      'PREDICTIVE_FAILURE',
+        STATUS_ERROR:                   'ERROR',
+        STATUS_NON_RECOVERABLE_ERROR:   'NON_RECOVERABLE_ERROR',
+        STATUS_STARTING:                'STARTING',
+        STATUS_STOPPING:                'STOPPING',
+        STATUS_STOPPED:                 'STOPPED',
+        STATUS_IN_SERVICE:              'IN_SERVICE',
+        STATUS_NO_CONTACT:              'NO_CONTACT',
+        STATUS_LOST_COMMUNICATION:      'LOST_COMMUNICATION',
+        STATUS_ABORTED:                 'ABORTED',
+        STATUS_DORMANT:                 'DORMANT',
+        STATUS_SUPPORTING_ENTITY_IN_ERROR: 'SUPPORTING_ENTITY_IN_ERROR',
+        STATUS_COMPLETED:               'COMPLETED',
+        STATUS_POWER_MODE:              'POWER_MODE',
+    }
+
+    @staticmethod
+    def status_to_str(status):
+        """
+        Convert Tier status to a string
+        When having multiple status, will use a comma between them
+        """
+        status_str = ''
+        for x in IData.STATUS.keys():
+            if x & status:
+                status_str = txt_a(status_str, IData.STATUS[x])
+        if status_str:
+            return status_str
+        return IData.STATUS[IData.STATUS_UNKNOWN]
+
+    @staticmethod
+    def status_dmtf_to_lsm_type(dmtf_status):
+        """
+        In DMTF, OperationalStatus is a list of number.
+        In libstoragemgmt, it's a number using binary bit.
+        """
+        rt = 0
+        try:
+            for x in dmtf_status:
+                if 1 <= x < IData.MAX_STATUS_BITS:
+                    rt |= (1 << x)
+            return rt
+        except (TypeError, ValueError):
+            return IData.STATUS_UNKNOWN
+
+    # Enable status, using SNIA SMI-S 1.4 rev6 and DMTF CIM 2.23.0Final:
+    #   CIM_EnabledLogicalElement['EnabledState']
+    #   CIM_DiskDrive['EnabledState']
+    #   CIM_LogicalPort['EnabledState']
+    ENABLE_STATUS_UNKNOWN               = 0
+    ENABLE_STATUS_OTHER                 = 1
+    ENABLE_STATUS_ENABLED               = 2
+    # Enabled (2) indicates that the element is or could be executing
+    # commands, will process any queued commands, and queues new requests.
+    ENABLE_STATUS_DISABLED              = 3
+    # Enabled (2) indicates that the element is or could be executing
+    # commands, will process any queued commands, and queues new requests.
+    ENABLE_STATUS_SHUTTING_DOWN         = 4
+    # Shutting Down (4) indicates that the element is in the process of going
+    # to a Disabled state.
+    ENABLE_STATUS_NOT_APPLICABLE        = 5
+    # Not Applicable (5) indicates the element does not support being enabled
+    # or disabled.
+    ENABLE_STATUS_ENABLED_BUT_OFFLINE   = 6
+    # Enabled but Offline (6) indicates that the element might be completing
+    # commands, and will drop any new requests.
+    ENABLE_STATUS_IN_TEST               = 7
+    # Test (7) indicates that the element is in a test state.
+    ENABLE_STATUS_DEFERRED              = 8
+    # Deferred (8) indicates that the element might be completing commands,
+    # but will queue any new requests.
+    ENABLE_STATUS_QUIESCE               = 9
+    # Quiesce (9) indicates that the element is enabled but in a restricted
+    # mode.
+    ENABLE_STATUS_STARTING              = 10
+    # Starting (10) indicates that the element is in the process of going to
+    # an Enabled state. New requests are queued.
+
+    ENABLE_STATUS = {
+        ENABLE_STATUS_UNKNOWN:              'UNKNOWN',
+        ENABLE_STATUS_OTHER:                'OTHER',
+        ENABLE_STATUS_ENABLED:              'ENABLED',
+        ENABLE_STATUS_DISABLED:             'DISABLED',
+        ENABLE_STATUS_SHUTTING_DOWN:        'SHUTTING_DOWN',
+        ENABLE_STATUS_NOT_APPLICABLE:       'NOT_APPLICABLE',
+        ENABLE_STATUS_ENABLED_BUT_OFFLINE:  'ENABLE_BUT_OFFLINE',
+        ENABLE_STATUS_IN_TEST:              'IN_TEST',
+        ENABLE_STATUS_DEFERRED:             'DEFERRED',
+        ENABLE_STATUS_QUIESCE:              'QUIESCE',
+        ENABLE_STATUS_STARTING:             'STARTING',
+    }
+
+    @staticmethod
+    def enable_status_to_str(enable_status):
+        enable_status_str = ''
+        if enable_status in IData.ENABLE_STATUS.keys():
+            return IData.ENABLE_STATUS[enable_status]
+        return IData.ENABLE_STATUS[IData.ENABLE_STATUS_UNKNOWN]
+
+    @staticmethod
+    def enable_status_str_to_type(enable_status_str):
+        key = get_key(IData.ENABLE_STATUS, enable_status_str)
+        if key or key == 0:
+            return key
+        return IData.ENABLE_STATUS_UNKNOWN
 
 class Initiator(IData):
     """
