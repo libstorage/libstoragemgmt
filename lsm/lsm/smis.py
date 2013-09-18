@@ -23,7 +23,8 @@ from pywbem import CIMError
 
 from iplugin import IStorageAreaNetwork
 from common import uri_parse, LsmError, ErrorNumber, JobStatus, md5
-from data import Pool, Initiator, Volume, AccessGroup, System, Capabilities
+from data import Pool, Initiator, Volume, AccessGroup, System, Capabilities,\
+                 Disk
 from version import VERSION
 
 
@@ -541,6 +542,8 @@ class Smis(IStorageAreaNetwork):
             return 'CIM_ComputerSystem'
         if class_type == 'Pool':
             return 'CIM_StoragePool'
+        if class_type == 'Disk':
+            return 'CIM_DiskDrive'
         raise LsmError(ErrorNumber.INTERNAL_ERROR,
                        "self._cim_class_name_of() got unknown " +\
                        "class_type %s" % class_type)
@@ -558,11 +561,12 @@ class Smis(IStorageAreaNetwork):
             return ['InstanceID']
         if class_type == 'SystemChild':
             return ['SystemName']
+        if class_type == 'Disk':
+            return ['SystemName', 'DeviceID']
         raise LsmError(ErrorNumber.INTERNAL_ERROR,
                        "self._cim_class_name_of() got unknown " +\
                        "class_type %s" % class_type)
 
-    @handle_cim_errors
     def _sys_id_child(self, cim_xxx):
         """
         Find out the system id of Pool/Volume/Disk and etc
@@ -570,21 +574,18 @@ class Smis(IStorageAreaNetwork):
         """
         return self._id('SystemChild', cim_xxx)
 
-    @handle_cim_errors
     def _sys_id(self, cim_sys):
         """
         Return CIM_ComputerSystem['SystemName']
         """
         return self._id('System', cim_sys)
 
-    @handle_cim_errors
     def _pool_id(self, cim_pool):
         """
         Return CIM_StoragePool['InstanceID']
         """
         return self._id('Pool', cim_pool)
 
-    @handle_cim_errors
     def _vol_id(self, cim_vol):
         """
         Return the MD5 hash of CIM_StorageVolume['SystemName'] and
@@ -592,7 +593,12 @@ class Smis(IStorageAreaNetwork):
         """
         return self._id('Volume', cim_vol)
 
-    @handle_cim_errors
+    def _disk_id(self, cim_disk):
+        """
+        Return the MD5 hash of CIM_DiskDrive['SystemName'] and ['DeviceID']
+        """
+        return self._id('Disk', cim_disk)
+
     def _id(self, class_type, cim_xxx):
         """
         Return the ID of certain class.
@@ -609,10 +615,14 @@ class Smis(IStorageAreaNetwork):
         id_str = ''
         for key in property_list:
             if key not in cim_xxx:
-                cim_class_name = self._cim_class_name_of(class_type)
+                cim_class_name = ''
+                if class_type == 'SystemChild':
+                    cim_class_name = str(cim_xxx.classname)
+                else:
+                    cim_class_name = self._cim_class_name_of(class_type)
                 raise LsmError(ErrorNumber.NO_SUPPORT,
                                "%s %s " % (cim_class_name, cim_xxx.path) +\
-                               "does not have property %" % key +\
+                               "does not have property %" % str(key) +\
                                "caculate out %s id" % class_type)
             else:
                 id_str += cim_xxx[key]
@@ -633,7 +643,6 @@ class Smis(IStorageAreaNetwork):
                                 ResultClass='CIM_StoragePool',
                                 PropertyList=property_list)[0]
         return self._pool_id(cim_pool)
-
 
     @staticmethod
     def _get_vol_other_id_info(cv):
@@ -1541,3 +1550,212 @@ class Smis(IStorageAreaNetwork):
 
     def volume_child_dependency_rm(self, volume, flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
+    @handle_cim_errors
+    def disks(self, flags=0):
+        """
+        return all object of data.Disk.
+        We are using "Disk Drive Lite Subprofile" of SNIA SMI-S for these
+        classes:
+            CIM_PhysicalPackage
+            CIM_DiskDrive
+            CIM_StorageExtent (Primordial)
+        Will try these steps to find out disk infomation:
+            1. Find out all associated disks: 'CIM_DiskDrive'.
+            2. Find out all association storage extension: 'CIM_StorageExtent'.
+            3. We will use vendor specific way for all workarounds.
+        """
+        rc = []
+        cim_syss = self._systems()
+        for cim_sys in cim_syss:
+            cim_disk_pros = self._new_disk_cim_disk_pros()
+            cim_disks = self._c.Associators(cim_sys.path,
+                                            ResultClass='CIM_DiskDrive',
+                                            PropertyList=cim_disk_pros)
+            for cim_disk in cim_disks:
+                cim_ext_pros = self._new_disk_cim_ext_pros()
+                cim_ext = self._pri_cim_ext_of_cim_disk(cim_disk.path,
+                                                        cim_ext_pros)
+                rc.extend([self._new_disk(cim_disk, cim_ext)])
+        return rc
+
+    @staticmethod
+    def _new_disk_cim_disk_pros():
+        """
+        Return all CIM_DiskDrive Properties needed to create a Disk object.
+        """
+        return ['OperationalStatus', 'EnabledState', 'Name', 'SystemName',
+                'DeviceID', 'HealthState', 'ErrorDescription', 'ErrorCleared',
+                'PredictiveFailureCount', 'MediaErrorCount', 'Caption',
+                'InterconnectType', 'DiskType']
+
+    @staticmethod
+    def _new_disk_cim_ext_pros():
+        """
+        Return all CIM_StorageExtent Properties needed to create a Disk
+        object.
+        """
+        return ['BlockSize', 'NumberOfBlocks']
+
+    @staticmethod
+    def _new_disk_cim_phy_pkg_pros():
+        """
+        Return all CIM_PhysicalPackage Properties needed to create a Disk
+        object.
+        """
+        return ['BlockSize', 'NumberOfBlocks', 'SerialNumber', 'PartNumber',
+                'Manufacturer', 'Model']
+
+    @handle_cim_errors
+    def _new_disk(self, cim_disk, cim_ext):
+        """
+        Takes a CIM_DiskDrive and CIM_StorageExtent, returns a lsm Disk
+        Assuming cim_disk and cim_ext already contained the correct
+        properties.
+        """
+        cim_phy_pkg_pros = self._new_disk_cim_phy_pkg_pros()
+        cim_phy_pkgs = self._c.Associators(cim_disk.path,
+                                           AssocClass='CIM_Realizes',
+                                           ResultClass='CIM_PhysicalPackage',
+                                           PropertyList=cim_phy_pkg_pros)
+        if not (cim_phy_pkgs and cim_phy_pkgs[0]):
+            raise LsmError(ErrorNumber.INTERNAL_ERROR,
+                           "Failed to find out the CIM_PhysicalPackage " +\
+                           "of CIM_DiskDrive %s" % cim_disk.path)
+        cim_phy_pkg = cim_phy_pkgs[0]
+        status = Disk.STATUS_UNKNOWN
+        enable_status = Disk.ENABLE_STATUS_UNKNOWN
+        name = ''
+        vendor = ''
+        model = ''
+        sn = ''
+        part_num = ''
+        block_size = Disk.BLOCK_SIZE_NOT_FOUND
+        num_of_block = Disk.BLOCK_COUNT_NOT_FOUND
+        system_id = ''
+        error_info = ''
+        media_err_count = Disk.MEDIUM_ERROR_COUNT_NOT_SUPPORT
+        predictive_fail_count = Disk.PREDICTIVE_FAILURE_COUNT_NOT_SUPPORT
+        health = Disk.HEALTH_UNKNOWN
+        disk_type = Disk.DISK_TYPE_UNKNOWN
+
+        # These are mandatory
+        # we do not check whether they follow the SNIA standard.
+        if 'OperationalStatus' in cim_disk:
+            status = \
+              Disk.status_dmtf_to_lsm_type(cim_disk['OperationalStatus'])
+        if 'EnabledState' in cim_disk:
+            enable_status = cim_disk['EnabledState']
+        if 'Name' in cim_disk:
+            name = cim_disk["Name"]
+        if 'DeviceID' in cim_disk:
+            device_id = cim_disk["DeviceID"]
+        if 'SystemName' in cim_disk:
+            system_id = cim_disk['SystemName']
+        if 'HealthState' in cim_disk:
+            health = cim_disk['HealthState']
+        if 'BlockSize' in cim_ext:
+            block_size = cim_ext['BlockSize']
+        if 'NumberOfBlocks' in cim_ext:
+            num_of_block = cim_ext['NumberOfBlocks']
+        if 'Manufacturer' in cim_phy_pkg:
+            vendor = cim_phy_pkg['Manufacturer']
+        if 'Model' in cim_phy_pkg:
+            model = cim_phy_pkg['Model']
+        if 'SerialNumber' in cim_phy_pkg:
+            sn = cim_phy_pkg['SerialNumber']
+        if 'PartNumber' in cim_phy_pkg:
+            part_num = cim_phy_pkg['PartNumber']
+        # SNIA SMI-S 1.4 or even 1.6 does not define anyway to find out disk
+        # type.
+        # Currently, EMC is following DMTF define to do so.
+        if 'InterconnectType' in cim_disk:  # DMTF 2.31 CIM_DiskDrive
+            disk_type = cim_disk['InterconnectType']
+            if 'Caption' in cim_disk:
+                # EMC VNX introduced NL_SAS disk.
+                if cim_disk['Caption'] == 'NL_SAS':
+                    disk_type = Disk.DISK_TYPE_NL_SAS
+
+        if disk_type == Disk.DISK_TYPE_UNKNOWN and 'DiskType' in cim_disk:
+            disk_type = \
+              Disk.dmtf_disk_type_2_lsm_disk_type(cim_disk['DiskType'])
+
+        # LSI way for checking disk type
+        if not disk_type:
+            cim_pes = \
+              self._c.Associators(cim_disk.path,
+                                  AssocClass='CIM_SAPAvailableForElement',
+                                  ResultClass='CIM_ProtocolEndpoint',
+                                  PropertyList=['CreationClassName']
+                                  )
+            if cim_pes and cim_pes[0]:
+                if 'CreationClassName' in cim_pes[0]:
+                    ccn = cim_pes[0]['CreationClassName']
+                    if ccn == 'LSIESG_TargetSATAProtocolEndpoint':
+                        disk_type = Disk.DISK_TYPE_SATA
+                    if ccn == 'LSIESG_TargetSASProtocolEndpoint':
+                        disk_type = Disk.DISK_TYPE_SAS
+
+        if 'ErrorCleared' in cim_disk:
+            if not cim_disk['ErrorCleared']:
+                if 'ErrorDescription' in cim_disk:
+                    error_info = cim_disk['ErrorDescription']
+                else:
+                    raise LsmError(ErrorNumber.INTERNAL_ERROR,
+                                   "CIM_DiskDrive %s " % cim_disk.id + \
+                                   "has ErrorCleared == False but " + \
+                                   "does not have " + \
+                                   "CIM_DiskDrive['ErrorDescription']")
+        if 'MediaErrorCount' in cim_disk:
+            media_err_count = cim_disk['MediaErrorCount']
+        if 'PredictiveFailureCount' in cim_disk:
+            predictive_fail_count = cim_disk['PredictiveFailureCount']
+
+        return Disk(self._disk_id(cim_disk), name, sn, part_num,
+                    vendor, model, disk_type,
+                    block_size, num_of_block,
+                    status, enable_status, health, system_id, error_info,
+                    media_err_count, predictive_fail_count)
+
+    @handle_cim_errors
+    def _pri_cim_ext_of_cim_disk(self, cim_disk_path, property_list=None):
+        """
+        Usage:
+            Find out the Primordial CIM_StorageExtent of CIM_DiskDrive
+            In SNIA SMI-S 1.4 rev.6 Block book, section 11.1.1 'Base Model'
+            quote:
+            A disk drive is modeled as a single MediaAccessDevice (DiskDrive)
+            That shall be linked to a single StorageExtent (representing the
+            storage in the drive) by a MediaPresent association. The
+            StorageExtent class represents the storage of the drive and
+            contains its size.
+        Parameter:
+            cim_disk_path   # CIM_InstanceName of CIM_DiskDrive
+            property_list   # a List of properties needed on returned
+                            # CIM_StorageExtent
+        Returns:
+            cim_pri_ext     # The CIM_Instance of Primordial CIM_StorageExtent
+        Exceptions:
+            LsmError
+                ErrorNumber.INTERNAL_ERROR  # Failed to find out pri cim_ext
+        """
+        if property_list is None:
+            property_list = ['Primordial']
+        else:
+            if 'Primordial' not in property_list:
+                property_list.extend(['Primordial'])
+
+        cim_exts = self._c.Associators(cim_disk_path,
+                                      AssocClass='CIM_MediaPresent',
+                                      ResultClass='CIM_StorageExtent',
+                                      PropertyList=property_list)
+        cim_exts = [p for p in cim_exts if p["Primordial"]]
+        if (cim_exts and cim_exts[0]):
+            # As SNIA commanded, only _ONE_ Primordial CIM_StorageExtent for
+            # each CIM_DiskDrive
+            return cim_exts[0]
+        else:
+            raise LsmError(ErrorNumber.INTERNAL_ERROR,
+                           "Failed to find out Primordial " +\
+                           "CIM_StorageExtent for CIM_DiskDrive %s " % \
+                           cim_disk_path)
