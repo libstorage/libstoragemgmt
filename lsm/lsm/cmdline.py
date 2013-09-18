@@ -266,7 +266,7 @@ class CmdLine:
 
         list_choices = ['VOLUMES', 'INITIATORS', 'POOLS', 'FS', 'SNAPSHOTS',
                         'EXPORTS', "NFS_CLIENT_AUTH", 'ACCESS_GROUPS',
-                        'SYSTEMS']
+                        'SYSTEMS', 'DISKS']
 
         commands.add_option('-l', '--list', action="store", type="choice",
                             dest="cmd_list",
@@ -817,6 +817,8 @@ class CmdLine:
             self.display_data(self.c.access_group_list())
         elif self.cmd_value == 'SYSTEMS':
             self.display_data(self.c.systems())
+        elif self.cmd_value == 'DISKS':
+            self.display_data(self.c.disks())
         else:
             raise ArgError(" unsupported listing type=%s", self.cmd_value)
 

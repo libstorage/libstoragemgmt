@@ -459,6 +459,16 @@ class Client(INetworkAttachedStorage):
         """
         return self.tp.rpc('volume_offline', del_self(locals()))
 
+    ## Returns an array of disk objects
+    # @param    self    The this pointer
+    # @param    flags   Reserved for future use, must be zero.
+    # @returns An array of disk objects.
+    def disks(self, flags=0):
+        """
+        Returns an array of disk objects
+        """
+        return self.tp.rpc('disks', del_self(locals()))
+
     ## Access control for allowing an access group to access a volume
     # @param    self    The this pointer
     # @param    group   The access group

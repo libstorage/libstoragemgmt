@@ -284,6 +284,13 @@ class IData(object):
             return key
         return IData.ENABLE_STATUS_UNKNOWN
 
+    # We use '-1' to indicate we failed to get the requested number.
+    # For example, when block found is undetectable, we use '-1' instead of
+    # confusing 0.
+    BLOCK_COUNT_NOT_FOUND = -1
+    BLOCK_SIZE_NOT_FOUND = -1
+
+
 class Initiator(IData):
     """
     Represents an initiator.
@@ -314,6 +321,203 @@ class Initiator(IData):
             return [[self.id, self.name, self.type]]
         else:
             return [[self.id, self.name, self._type_to_str(self.type)]]
+
+
+class Disk(IData):
+    """
+    Represents a disk.
+    """
+    # Disk Health status, using DMTF 2.29.0 CIM_DiskDrive
+    #   CIM_DiskDrive['HealthState']
+    #   aka. CIM_ManagedSystemElement['HealthState']
+    HEALTH_UNKNOWN              = 0
+    #   The implementation cannot report on HealthState at this time.
+    HEALTH_OK                   = 5
+    #   The element is fully functional and is operating within normal
+    #   operational parameters and without error.
+    HEALTH_DEGRADED             = 10
+    #   The element is in working order and all functionality is
+    #   provided. However, the element is not working to the best of its
+    #   abilities. For example, the element might not be operating at
+    #   optimal performance or it might be reporting recoverable errors.
+    HEALTH_MINOR_FAIL           = 15
+    #   All functionality is available but some might be degraded.
+    HEALTH_MAJOR_FAIL           = 20
+    #   The element is failing. It is possible that some or all of the
+    #   functionality of this component is degraded or not working.
+    HEALTH_CRITICAL_FAIL        = 25
+    #   The element is non-functional and recovery might not be possible.
+    HEALTH_NON_RECOVERABLE_ERR  = 30
+    #   The element has completely failed, and recovery is not possible.
+    #   All functionality provided by this element has been lost.
+
+    HEALTH = {
+        HEALTH_UNKNOWN:             'UNKNOWN',
+        HEALTH_OK:                  'OK',
+        HEALTH_DEGRADED:            'DEGRADED',
+        HEALTH_MINOR_FAIL:          'MINOR_FAIL',
+        HEALTH_MAJOR_FAIL:          'MAJOR_FAIL',
+        HEALTH_CRITICAL_FAIL:       'CRITICAL_FAIL',
+        HEALTH_NON_RECOVERABLE_ERR: 'NON_RECOVERABLE_ERR',
+    }
+
+    # Disk Type, using DMTF 2.31.0+ CIM_DiskDrive['InterconnectType']
+    DISK_TYPE_UNKNOWN           = 0
+    DISK_TYPE_OTHER             = 1
+    DISK_TYPE_NOT_APPLICABLE    = 2
+    DISK_TYPE_ATA               = 3     # IDE disk is seldomly used.
+    DISK_TYPE_SATA              = 4
+    DISK_TYPE_SAS               = 5
+    DISK_TYPE_FC                = 6
+    DISK_TYPE_SOP               = 7     # SCSI over PCIe, often holding SSD
+
+    # Due to complesity of disk types, we are defining these beside DMTF
+    # standards:
+    DISK_TYPE_NL_SAS            = 51    # Near-Line SAS==SATA disk + SAS port.
+
+    # in DMTF CIM 2.34.0+ CIM_DiskDrive['DiskType'], they also defined
+    # SSD and HYBRID disk type. We use it as faillback.
+    DISK_TYPE_HDD               = 52    # Normal HDD
+    DISK_TYPE_SSD               = 53    # Solid State Drive
+    DISK_TYPE_HYBRID            = 54    # uses a combination of HDD and SSD
+
+    DISK_TYPE = {
+        DISK_TYPE_UNKNOWN:          'UNKNOWN',
+        DISK_TYPE_OTHER:            'OTHER',
+        DISK_TYPE_NOT_APPLICABLE:   'NOT_APPLICABLE',
+        DISK_TYPE_ATA:              'ATA',
+        DISK_TYPE_SATA:             'SATA',
+        DISK_TYPE_SAS:              'SAS',
+        DISK_TYPE_FC:               'FC',
+        DISK_TYPE_SOP:              'SOP',
+        DISK_TYPE_NL_SAS:           'NL_SAS',
+        DISK_TYPE_HDD:              'HDD',
+        DISK_TYPE_SSD:              'SSD',
+        DISK_TYPE_HYBRID:           'HYBRID',
+    }
+
+    # DMTF Disk Type
+    DMTF_DISK_TYPE_UNKNOWN = 0
+    DMTF_DISK_TYPE_OTHER = 1
+    DMTF_DISK_TYPE_HDD = 2
+    DMTF_DISK_TYPE_SSD = 3
+    DMTF_DISK_TYPE_HYBRID =4
+
+    DMTF_DISK_TYPE = {
+        DMTF_DISK_TYPE_UNKNOWN: 'UNKNOWN',
+        DMTF_DISK_TYPE_OTHER:   'OTHER',
+        DMTF_DISK_TYPE_HDD:     'HDD',
+        DMTF_DISK_TYPE_SSD:     'SSD',
+        DMTF_DISK_TYPE_HYBRID:  'HYBRID',
+    }
+
+    @staticmethod
+    def dmtf_disk_type_2_lsm_disk_type(dmtf_disk_type):
+        if dmtf_disk_type in Disk.DMTF_DISK_TYPE.keys():
+            return Disk.disk_type_str_to_type(\
+              Disk.DMTF_DISK_TYPE[dmtf_disk_type])
+        else:
+            return Disk.DISK_TYPE_UNKNOWN
+
+    MEDIUM_ERROR_COUNT_NOT_SUPPORT = -1
+    PREDICTIVE_FAILURE_COUNT_NOT_SUPPORT = -1
+
+    def __init__(self, id, name, sn, part_num, vendor, model, disk_type,
+                 block_size, num_of_blocks, status, enable_status, health,
+                 system_id, error_info='',
+                 media_err_count=MEDIUM_ERROR_COUNT_NOT_SUPPORT,
+                 predictive_fail_count=PREDICTIVE_FAILURE_COUNT_NOT_SUPPORT,
+                 owner_ctrler_id=None
+                 ):
+        self.id = id
+        self.name = name
+        self.sn = sn
+        self.part_num = part_num
+        self.vendor  = vendor
+        self.model = model
+        self.disk_type = disk_type
+        self.block_size = block_size
+        self.num_of_blocks = num_of_blocks
+        self.status = status
+        self.enable_status = enable_status
+        self.health = health
+        self.system_id = system_id
+        self.error_info = error_info
+        self.media_err_count = media_err_count   # Only found LSI support
+        self.predictive_fail_count = predictive_fail_count
+        self.owner_ctrler_id = owner_ctrler_id   # space holder for future
+                                                 # Controller Class.
+
+    @property
+    def size_bytes(self):
+        """
+        Volume size in bytes.
+        """
+        return self.block_size * self.num_of_blocks
+
+    @staticmethod
+    def health_to_str(health):
+        if health in Disk.HEALTH.keys():
+            return Disk.HEALTH[health]
+        return Disk.HEALTH[Disk.HEALTH_UNKNOWN]
+
+    @staticmethod
+    def health_str_to_type(health_str):
+        key = get_key(Disk.HEALTH, health_str)
+        if key or key == 0:
+            return key
+        return Disk.HEALTH_UNKNOWN
+
+    @staticmethod
+    def disk_type_to_str(disk_type):
+        if disk_type in Disk.DISK_TYPE.keys():
+            return Disk.DISK_TYPE[disk_type]
+        return Disk.DISK_TYPE[Disk.DISK_TYPE_UNKNOWN]
+
+    @staticmethod
+    def disk_type_str_to_type(disk_type_str):
+        key = get_key(Disk.DISK_TYPE, disk_type_str)
+        if key or key == 0:
+            return key
+        return Disk.DISK_TYPE_UNKNOWN
+
+    def __str__(self):
+        return self.name
+
+    def column_headers(self):
+        return [['ID', 'Name', 'Serial Number', 'Part Number',
+                 'Vendor', 'Model', 'Type',
+                 'Block Size', '#blocks', 'Size',
+                 'Status', 'Enable Status', 'Health', 'Error Info',
+                 'Medium Error Count', 'Predictive Fail Count',
+                 'System ID']]
+
+    def column_data(self, human=False, enum_as_number=False):
+        if enum_as_number:
+            return [[self.id, self.name, self.sn, self.part_num,
+                     self.vendor, self.model, self.disk_type,
+                     sh(self.block_size, human),
+                     self.num_of_blocks,
+                     sh(self.size_bytes, human),
+                     self.status, self.enable_status, self.health,
+                     self.error_info,
+                     self.media_err_count,
+                     self.predictive_fail_count,
+                     self.system_id]]
+        else:
+            return [[self.id, self.name, self.sn, self.part_num,
+                     self.vendor, self.model,
+                     self.disk_type_to_str(self.disk_type),
+                     sh(self.block_size, human),
+                     self.num_of_blocks,
+                     sh(self.size_bytes, human),
+                     self.status_to_str(self.status),
+                     self.enable_status_to_str(self.enable_status),
+                     self.health_to_str(self.enable_status),
+                     self.error_info,
+                     self.media_err_count,
+                     self.predictive_fail_count,
+                     self.system_id]]
 
 
 class Volume(IData):
