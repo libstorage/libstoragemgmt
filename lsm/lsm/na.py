@@ -192,6 +192,10 @@ class Filer(object):
         self._invoke('system-api-list')
         return None
 
+    def disks(self):
+        disks = self._invoke('disk-list-info')
+        return disks['disk-details']['disk-detail-info']
+
     def aggregates(self):
         """
         Return a list of aggregates

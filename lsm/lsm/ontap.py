@@ -24,7 +24,7 @@ import sys
 
 import na
 from data import Volume, Initiator, FileSystem, Snapshot, NfsExport, \
-    AccessGroup, System, Capabilities
+    AccessGroup, System, Capabilities, Disk
 from iplugin import IStorageAreaNetwork, INfs
 from common import LsmError, ErrorNumber, JobStatus, md5, Error
 from version import VERSION
@@ -150,6 +150,39 @@ class Ontap(IStorageAreaNetwork, INfs):
         return Snapshot(md5(s['name'] + s['access-time']), s['name'],
                         s['access-time'])
 
+    @staticmethod
+    def _disk_type(netapp_disk_type):
+        conv = { 'ATA': Disk.DISK_TYPE_ATA, 'BSAS': Disk.DISK_TYPE_SAS,
+                 'EATA': Disk.DISK_TYPE_ATA, 'FCAL': Disk.DISK_TYPE_FC,
+                 'FSAS': Disk.DISK_TYPE_SAS, 'LUN': Disk.DISK_TYPE_OTHER,
+                 'SAS': Disk.DISK_TYPE_SAS, 'SATA': Disk.DISK_TYPE_SATA,
+                 'SCSI': Disk.DISK_TYPE_OTHER, 'SSD': Disk.DISK_TYPE_SSD,
+                 'XATA': Disk.DISK_TYPE_ATA, 'XSAS': Disk.DISK_TYPE_SAS,
+                 'unknown': Disk.DISK_TYPE_UNKNOWN}
+
+        if netapp_disk_type in conv:
+            return conv[netapp_disk_type]
+        return Disk.DISK_TYPE_UNKNOWN
+
+    @handle_ontap_errors
+    def _disk(self, d):
+        error_message = "UNKNOWN"
+
+        if 'broken-details' in d:
+            error_message = d['broken-details']
+
+        enable_status = Disk.ENABLE_STATUS_ENABLED
+        if 'is-offline' in d:
+            enable_status = Disk.ENABLE_STATUS_ENABLED_BUT_OFFLINE
+
+        return Disk(md5(d['disk-uid']), d['vendor-id'], d['serial-number'],
+                    d['disk-model'], d['vendor-id'], d['disk-model'],
+                    Ontap._disk_type(d['disk-type']),
+                    int(d['bytes-per-sector']), int(d['physical-blocks']),
+                    Disk.STATUS_UNKNOWN, enable_status,
+                    Disk.HEALTH_UNKNOWN, self.sys_info.id, error_message,
+                    d['grown-defect-list-count'])
+
     @handle_ontap_errors
     def volumes(self, flags=0):
         luns = self.f.luns_get_all()
@@ -213,6 +246,11 @@ class Ontap(IStorageAreaNetwork, INfs):
     @handle_ontap_errors
     def plugin_info(self, flags=0):
         return "NetApp Filer support", VERSION
+
+    @handle_ontap_errors
+    def disks(self, flags=0):
+        disks = self.f.disks()
+        return [self._disk(d) for d in disks]
 
     @handle_ontap_errors
     def pools(self, flags=0):
