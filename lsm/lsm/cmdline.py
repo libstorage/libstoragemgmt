@@ -123,7 +123,8 @@ class CmdLine:
 
     ##
     # Warn of imminent data loss
-    # @param    deleting    Indicate data will be lost vs. may be lost (re-size)
+    # @param    deleting    Indicate data will be lost vs. may be lost
+    #                       (re-size)
     # @return True if operation confirmed, else False
     def confirm_prompt(self, deleting):
         """
@@ -278,7 +279,8 @@ class CmdLine:
                                                 'Note: SNAPSHOTS requires '
                                                 '--fs <fs id>')
 
-        commands.add_option('', '--capabilities', action="store", type="string",
+        commands.add_option('', '--capabilities', action="store",
+                            type="string",
                             dest=_c("capabilities"),
                             metavar='<system id>',
                             help='Retrieves array capabilities')
@@ -436,36 +438,39 @@ class CmdLine:
                             dest=_c("replicate-volume-range-block-size"),
                             help='size of each replicated block in bytes')
 
-        commands.add_option('', '--replicate-volume-range', action="store",
-                            type="string",
-                            metavar='<volume id>',
-                            dest=_c("replicate-volume-range"),
-                            help='replicates a portion of a volume, requires:\n'
-                                 "--type [SNAPSHOT|CLONE|COPY|MIRROR]\n"
-                                 "--dest <destination volume>\n"
-                                 "--src_start <source block start number>\n"
-                                 "--dest_start <destination block start>\n"
-                                 "--count <number of blocks to replicate>")
+        commands.add_option(
+            '', '--replicate-volume-range', action="store",
+            type="string",
+            metavar='<volume id>',
+            dest=_c("replicate-volume-range"),
+            help='replicates a portion of a volume, requires:\n'
+                 "--type [SNAPSHOT|CLONE|COPY|MIRROR]\n"
+                 "--dest <destination volume>\n"
+                 "--src_start <source block start number>\n"
+                 "--dest_start <destination block start>\n"
+                 "--count <number of blocks to replicate>")
 
-        commands.add_option('', '--iscsi-chap', action="store", type="string",
-                            metavar='<initiator id>',
-                            dest=_c("iscsi-chap"),
-                            help='configures ISCSI inbound/outbound CHAP '
-                                 'authentication\n'
-                                 'Optional:\n'
-                                 '--in-user <inbound chap user name>\n'
-                                 '--in-password <inbound chap password>\n'
-                                 '--out-user <outbound chap user name>\n'
-                                 '--out-password <inbound chap user password\n')
+        commands.add_option(
+            '', '--iscsi-chap', action="store", type="string",
+            metavar='<initiator id>',
+            dest=_c("iscsi-chap"),
+            help='configures ISCSI inbound/outbound CHAP '
+                 'authentication\n'
+                 'Optional:\n'
+                 '--in-user <inbound chap user name>\n'
+                 '--in-password <inbound chap password>\n'
+                 '--out-user <outbound chap user name>\n'
+                 '--out-password <inbound chap user password\n')
 
-        commands.add_option('', '--access-grant', action="store", type="string",
-                            metavar='<initiator id>',
-                            dest=_c("access-grant"),
-                            help='grants access to an initiator to a volume\n'
-                                 'requires:\n'
-                                 '--type <initiator id type>\n'
-                                 '--volume <volume id>\n'
-                                 '--access [RO|RW], read-only or read-write')
+        commands.add_option(
+            '', '--access-grant', action="store", type="string",
+            metavar='<initiator id>',
+            dest=_c("access-grant"),
+            help='grants access to an initiator to a volume\n'
+                 'requires:\n'
+                 '--type <initiator id type>\n'
+                 '--volume <volume id>\n'
+                 '--access [RO|RW], read-only or read-write')
 
         commands.add_option('', '--access-grant-group', action="store",
                             type="string",
@@ -477,21 +482,23 @@ class CmdLine:
                                  '--volume <volume id>\n'
                                  '--access [RO|RW], read-only or read-write')
 
-        commands.add_option('', '--access-revoke', action="store",
-                            type="string",
-                            metavar='<initiator id>',
-                            dest=_c("access-revoke"),
-                            help='removes access for an initiator to a volume\n'
-                                 'requires:\n'
-                                 '--volume <volume id>')
+        commands.add_option(
+            '', '--access-revoke', action="store",
+            type="string",
+            metavar='<initiator id>',
+            dest=_c("access-revoke"),
+            help='removes access for an initiator to a volume\n'
+                 'requires:\n'
+                 '--volume <volume id>')
 
-        commands.add_option('', '--access-revoke-group', action="store",
-                            type="string",
-                            metavar='<access group id>',
-                            dest=_c("access-revoke-group"),
-                            help='removes access for access group to a volume\n'
-                                 'requires:\n'
-                                 '--volume <volume id>')
+        commands.add_option(
+            '', '--access-revoke-group', action="store",
+            type="string",
+            metavar='<access group id>',
+            dest=_c("access-revoke-group"),
+            help='removes access for access group to a volume\n'
+                 'requires:\n'
+                 '--volume <volume id>')
 
         commands.add_option('', '--resize-volume', action="store",
                             type="string",
@@ -534,11 +541,12 @@ class CmdLine:
                             dest=_c("job-status"),
                             help='retrieve information about job')
 
-        commands.add_option('', '--volume-dependants', action="store",
-                            type="string",
-                            metavar='<volume id>',
-                            dest=_c("volume-dependants"),
-                            help='Returns True if volume has a dependant child')
+        commands.add_option(
+            '', '--volume-dependants', action="store",
+            type="string",
+            metavar='<volume id>',
+            dest=_c("volume-dependants"),
+            help='Returns True if volume has a dependant child')
 
         commands.add_option('', '--volume-dependants-rm', action="store",
                             type="string",
@@ -576,11 +584,12 @@ class CmdLine:
         command_args.add_option('', '--pool', action="store", type="string",
                                 metavar='pool id',
                                 dest=_o("pool"), help='pool ID')
-        command_args.add_option('', '--provisioning', action="store",
-                                type="choice",
-                                default='DEFAULT',
-                                choices=['DEFAULT', 'THIN', 'FULL'],
-                                dest="provisioning", help='[DEFAULT|THIN|FULL]')
+        command_args.add_option(
+            '', '--provisioning', action="store",
+            type="choice",
+            default='DEFAULT',
+            choices=['DEFAULT', 'THIN', 'FULL'],
+            dest="provisioning", help='[DEFAULT|THIN|FULL]')
 
         command_args.add_option('', '--type', action="store", type="choice",
                                 choices=['WWPN', 'WWNN', 'ISCSI', 'HOSTNAME',
@@ -671,10 +680,11 @@ class CmdLine:
                                 metavar="<anonymous uid>", default=None,
                                 dest="anongid", help="gid to map to anonymous")
 
-        command_args.add_option('', '--authtype', action="store", type="string",
-                                metavar="<type>", default=None,
-                                dest="authtype",
-                                help="NFS client authentication type")
+        command_args.add_option(
+            '', '--authtype', action="store", type="string",
+            metavar="<type>", default=None,
+            dest="authtype",
+            help="NFS client authentication type")
 
         command_args.add_option('', '--all', action="store_true", dest="all",
                                 default=False,
@@ -685,10 +695,11 @@ class CmdLine:
                                 dest=_o("src_start"),
                                 help="source block address to replicate")
 
-        command_args.add_option('', '--dest_start', action="append", type="int",
-                                metavar="<dest. block start>", default=None,
-                                dest=_o("dest_start"),
-                                help="destination block address to replicate")
+        command_args.add_option(
+            '', '--dest_start', action="append", type="int",
+            metavar="<dest. block start>", default=None,
+            dest=_o("dest_start"),
+            help="destination block address to replicate")
 
         command_args.add_option('', '--count', action="append", type="int",
                                 metavar="<block count>", default=None,
@@ -700,15 +711,17 @@ class CmdLine:
                                 dest=_o("username"),
                                 help="CHAP inbound user name")
 
-        command_args.add_option('', '--in-password', action="store", type="string",
-                                metavar="<password>", default=None,
-                                dest=_o("password"),
-                                help="CHAP inbound password")
+        command_args.add_option(
+            '', '--in-password', action="store", type="string",
+            metavar="<password>", default=None,
+            dest=_o("password"),
+            help="CHAP inbound password")
 
-        command_args.add_option('', '--out-user', action="store", type="string",
-                                metavar="<out_user>", default=None,
-                                dest=_o("out_user"),
-                                help="CHAP outbound user name")
+        command_args.add_option(
+            '', '--out-user', action="store", type="string",
+            metavar="<out_user>", default=None,
+            dest=_o("out_user"),
+            help="CHAP outbound user name")
 
         command_args.add_option('', '--out-password', action="store",
                                 type="string",
@@ -744,8 +757,8 @@ class CmdLine:
         optional_opts = 0
         expected_opts = self.verify[self.cmd]['options']
         actual_ops = [e[4:] for e in dir(self.options)
-                      if
-                      e[0:4] == "opt_" and self.options.__dict__[e] is not None]
+                      if e[0:4] == "opt_" and
+                      self.options.__dict__[e] is not None]
 
         if 'optional' in self.verify[self.cmd]:
             optional_opts = len(self.verify[self.cmd]['optional'])
@@ -856,14 +869,16 @@ class CmdLine:
         if group:
             if op:
                 i = CmdLine._init_type_to_enum(self.options.opt_type)
-                self.c.access_group_add_initiator(group, self.options.opt_id, i)
+                self.c.access_group_add_initiator(
+                    group, self.options.opt_id, i)
             else:
                 i = self._get_item(self.c.initiators(), self.options.opt_id)
                 if i:
                     self.c.access_group_del_initiator(group, i.id)
                 else:
                     raise ArgError(
-                        "initiator with id %s not found!" % self.options.opt_id)
+                        "initiator with id %s not found!" %
+                        self.options.opt_id)
         else:
             if not group:
                 raise ArgError(
@@ -971,7 +986,8 @@ class CmdLine:
 
         if fs and size:
             if self.confirm_prompt(False):
-                fs = self._wait_for_it("resize-fs", *self.c.fs_resize(fs, size))
+                fs = self._wait_for_it("resize-fs",
+                                       *self.c.fs_resize(fs, size))
                 self.display_data([fs])
         else:
             if not fs:
@@ -1067,7 +1083,8 @@ class CmdLine:
             self._cp("VOLUMES", cap.get(Capabilities.VOLUMES))
             self._cp("VOLUME_CREATE", cap.get(Capabilities.VOLUME_CREATE))
             self._cp("VOLUME_RESIZE", cap.get(Capabilities.VOLUME_RESIZE))
-            self._cp("VOLUME_REPLICATE", cap.get(Capabilities.VOLUME_REPLICATE))
+            self._cp("VOLUME_REPLICATE",
+                     cap.get(Capabilities.VOLUME_REPLICATE))
             self._cp("VOLUME_REPLICATE_CLONE",
                      cap.get(Capabilities.VOLUME_REPLICATE_CLONE))
             self._cp("VOLUME_REPLICATE_COPY",
@@ -1219,10 +1236,11 @@ class CmdLine:
 
             if self.confirm_prompt(True):
                 self._wait_for_it('restore-ss',
-                                  self.c.fs_snapshot_revert(fs, ss,
-                                                            self.options.file,
-                                                            self.options.fileas,
-                                                            self.options.all),
+                                  self.c.fs_snapshot_revert(
+                                      fs, ss,
+                                      self.options.file,
+                                      self.options.fileas,
+                                      self.options.all),
                                   None)
         else:
             if not ss:
@@ -1329,7 +1347,8 @@ class CmdLine:
                 raise ArgError(
                     "pool with id= %s not found!" % self.options.opt_pool)
             if not v:
-                raise ArgError("Volume with id= %s not found!" % self.cmd_value)
+                raise ArgError("Volume with id= %s not found!" %
+                               self.cmd_value)
 
     ## Replicates a range of a volume
     # @param    self    The this pointer
@@ -1351,7 +1370,8 @@ class CmdLine:
                 ranges = []
 
                 for i in range(len(src_starts)):
-                    ranges.append(data.BlockRange(src_starts[i], dest_starts[i],
+                    ranges.append(data.BlockRange(src_starts[i],
+                                                  dest_starts[i],
                                                   counts[i]))
 
                 if self.confirm_prompt(False):
@@ -1395,7 +1415,8 @@ class CmdLine:
         else:
             initiator = self._get_item(self.c.initiators(), initiator_id)
             if not initiator:
-                raise ArgError("initiator with id= %s not found" % initiator_id)
+                raise ArgError("initiator with id= %s not found" %
+                               initiator_id)
 
             self.c.initiator_revoke(initiator, v)
 
@@ -1456,7 +1477,8 @@ class CmdLine:
         if export:
             self.c.export_remove(export)
         else:
-            raise ArgError("nfs export with id= %s not found!" % self.cmd_value)
+            raise ArgError("nfs export with id= %s not found!" %
+                           self.cmd_value)
 
     ## Exports a file system as a NFS export
     # @param    self    The this pointer
@@ -1626,8 +1648,9 @@ class CmdLine:
                        'replicate-volume': {'options': ['type', 'name'],
                                             'optional': ['pool'],
                                             'method': self.replicate_volume},
-                       'access-grant': {'options': ['volume', 'access', 'type'],
-                                        'method': self.access_grant},
+                       'access-grant':
+                                    {'options': ['volume', 'access', 'type'],
+                                     'method': self.access_grant},
                        'access-grant-group':
                        {'options': ['volume', 'access'],
                        'method': self.access_grant_group},

@@ -27,7 +27,7 @@ class XmlDictObject(dict):
         self.__setitem__(item, value)
 
     def __str__(self):
-        if self.has_key('_text'):
+        if '_text' in self:
             return self.__getitem__('_text')
         else:
             return ''
@@ -38,7 +38,8 @@ class XmlDictObject(dict):
         Static method to wrap a dictionary recursively as an XmlDictObject
         """
         if isinstance(x, dict):
-            return XmlDictObject((k, XmlDictObject.Wrap(v)) for (k, v) in x.iteritems())
+            return XmlDictObject(
+                (k, XmlDictObject.Wrap(v)) for (k, v) in x.iteritems())
         elif isinstance(x, list):
             return [XmlDictObject.Wrap(v) for v in x]
         else:
@@ -47,7 +48,8 @@ class XmlDictObject(dict):
     @staticmethod
     def _UnWrap(x):
         if isinstance(x, dict):
-            return dict((k, XmlDictObject._UnWrap(v)) for (k, v) in x.iteritems())
+            return dict(
+                (k, XmlDictObject._UnWrap(v)) for (k, v) in x.iteritems())
         elif isinstance(x, list):
             return [XmlDictObject._UnWrap(v) for v in x]
         else:
@@ -108,7 +110,7 @@ def _ConvertXmlToDictRecurse(node, dictclass):
     for child in node:
         # recursively add the element's children
         newitem = _ConvertXmlToDictRecurse(child, dictclass)
-        if nodedict.has_key(_ns(child.tag)):
+        if _ns(child.tag) in nodedict:
             # found duplicate tag, force a list
             if type(nodedict[_ns(child.tag)]) is type([]):
                 # append to existing list
@@ -141,4 +143,5 @@ def ConvertXmlToDict(root, dictclass=XmlDictObject):
     """
     Converts an ElementTree Element to a dictionary
     """
-    return dictclass({_ns(root.tag): _ConvertXmlToDictRecurse(root, dictclass)})
+    return dictclass(
+        {_ns(root.tag): _ConvertXmlToDictRecurse(root, dictclass)})

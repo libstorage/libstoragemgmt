@@ -19,8 +19,7 @@ import paramiko
 from iplugin import IStorageAreaNetwork
 from common import LsmError, ErrorNumber, uri_parse
 from version import VERSION
-from data import Volume, Initiator, FileSystem, Snapshot, \
-    AccessGroup, System, Capabilities, Pool
+from data import Volume, Initiator, System, Capabilities, Pool
 
 
 def handle_ssh_errors(method):
@@ -70,7 +69,8 @@ class SSHClient():
             self.ssh.connect(hostname, username=login, password=passwd,
                              timeout=conn_timeout)
         except Exception as e:
-            msg = ("Error while connecting via ssh to host %s : %s") % (hostname, e)
+            msg = "Error while connecting via ssh to host %s : %s" % \
+                  (hostname, e)
             raise paramiko.SSHException(msg)
 
     @handle_v7k_errors
@@ -103,7 +103,7 @@ class SSHClient():
 
             raise V7kError(errno, reason)
 
-        return (exit_code, stdout, stderr)
+        return exit_code, stdout, stderr
 
     @handle_ssh_errors
     def close(self):
@@ -129,7 +129,7 @@ class IbmV7k(IStorageAreaNetwork):
 
     def _execute_command(self, ssh_cmd):
         ec, so, se = self.ssh.execute(ssh_cmd)
-        return (ec, so, se)
+        return ec, so, se
 
     def _execute_command_and_parse_detailed(self, ssh_cmd):
         exit_code, stdout, stderr = self.ssh.execute(ssh_cmd)
@@ -216,12 +216,13 @@ class IbmV7k(IStorageAreaNetwork):
             vol_status = Volume.STATUS_ERR
 
         return Volume(v['id'], v['name'], v['vdisk_UID'], bs,
-                      (float(v['capacity']) / bs), vol_status, self.sys_info.id,
+                      (float(v['capacity']) / bs), vol_status,
+                      self.sys_info.id,
                       v['mdisk_grp_id'])
 
     def _create_volume(self, pool, volname, size_bytes, prov):
         ssh_cmd = ('mkvdisk -name %s -mdiskgrp %s -iogrp 0 -size %s'
-                  ' -unit b') % (volname, pool, size_bytes)
+                   ' -unit b') % (volname, pool, size_bytes)
 
         if prov == Volume.PROVISION_THIN:
             # Defaults for thinp
@@ -229,14 +230,14 @@ class IbmV7k(IStorageAreaNetwork):
             warning = 0
             autoex = '-autoexpand'
 
-            ssh_cmd += (' -rsize %d%% -warning %d %s') % (rsize, warning,
-                        autoex)
+            ssh_cmd += ' -rsize %d%% -warning %d %s' % \
+                       (rsize, warning, autoex)
 
         ec, so, se = self.ssh.execute(ssh_cmd)
 
     def _delete_volume(self, volume, force):
         # NOTE: volume can be id or name
-        ssh_cmd = ('rmvdisk %s %s') % ('-force' if force else '', volume)
+        ssh_cmd = 'rmvdisk %s %s' % ('-force' if force else '', volume)
         ec, so, se = self.ssh.execute(ssh_cmd)
 
     def _get_initiators(self):
@@ -283,7 +284,8 @@ class IbmV7k(IStorageAreaNetwork):
             if 'WWPN' in v7kinit and v7kinit['WWPN'] == lsm_init_id:
                 v7k_init_id = v7kinit['id']
 
-            if 'iscsi_name' in v7kinit and v7kinit['iscsi_name'] == lsm_init_id:
+            if 'iscsi_name' in v7kinit and v7kinit['iscsi_name'] == \
+                    lsm_init_id:
                 v7k_init_id = v7kinit['id']
 
         if not v7k_init_id:
@@ -312,7 +314,7 @@ class IbmV7k(IStorageAreaNetwork):
             raise LsmError(ErrorNumber.UNSUPPORTED_INITIATOR_TYPE,
                            "Initiator type not supported")
 
-        ssh_cmd = ('mkhost %s %s') % (type_option, init_id)
+        ssh_cmd = 'mkhost %s %s' % (type_option, init_id)
         return self._execute_command(ssh_cmd)
 
     def _initiator_create_is_success(self, stdout):
@@ -338,7 +340,8 @@ class IbmV7k(IStorageAreaNetwork):
             else:
                 raise le
 
-        ssh_cmd = ('mkvdiskhostmap %s -host %s %s') % ('-force' if force else '', v7k_init_id, vol_id)
+        ssh_cmd = 'mkvdiskhostmap %s -host %s %s' % \
+                  ('-force' if force else '', v7k_init_id, vol_id)
         return self._execute_command(ssh_cmd)
 
     def _initiator_grant_is_success(self, stdout):
@@ -347,14 +350,14 @@ class IbmV7k(IStorageAreaNetwork):
         return False
 
     def _initiator_delete(self, v7k_init_id, force=True):
-        ssh_cmd = ('rmhost %s %s') % ('-force' if force else '', v7k_init_id)
+        ssh_cmd = 'rmhost %s %s' % ('-force' if force else '', v7k_init_id)
         self._execute_command(ssh_cmd)
 
     def _initiator_revoke(self, init_id, vol_id):
         # init_id passed is the lsm's init id. Convert it to v7k id.
         v7k_init_id = self._map_lsm_init_id_to_v7k(init_id)
 
-        ssh_cmd = ('rmvdiskhostmap -host %s %s') % (v7k_init_id, vol_id)
+        ssh_cmd = 'rmvdiskhostmap -host %s %s' % (v7k_init_id, vol_id)
         self._execute_command(ssh_cmd)
 
         # Auto remove initiator (if no mapping present)
@@ -488,7 +491,6 @@ class IbmV7k(IStorageAreaNetwork):
         if access != Volume.ACCESS_READ_WRITE:
             raise LsmError(ErrorNumber.NO_SUPPORT,
                            "Only RW access to the volume is supported")
-            return False
 
         ec, so, se = self._initiator_grant(initiator_id, initiator_type,
                                            volume.id, force=True)

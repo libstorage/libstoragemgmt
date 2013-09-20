@@ -95,33 +95,34 @@ LOG_VERBOSE = True
 
 ##Constant for byte size
 SIZE_CONS = {
-    'B'  : 1,
-    'KiB': 2**10,
-    'KB' : 10**3,
-    'K'  : 2**10,
-    'k'  : 2**10,
-    'MiB': 2**20,
-    'MB' : 10**6,
-    'M'  : 2**20,
-    'm'  : 2**20,
-    'GiB': 2**30,
-    'GB' : 10**9,
-    'G'  : 2**30,
-    'g'  : 2**30,
-    'TiB': 2**40,
-    'TB' : 10**12,
-    'T'  : 2**40,
-    't'  : 2**40,
-    'PiB': 2**50,
-    'PB' : 10**15,
-    'P'  : 2**50,
-    'p'  : 2**50,
-    'EiB': 2**60,
-    'EB' : 10**17,
-    'E'  : 2**60,
-    'e'  : 2**60,
+    'B': 1,
+    'KiB': 2 ** 10,
+    'KB': 10 ** 3,
+    'K': 2 ** 10,
+    'k': 2 ** 10,
+    'MiB': 2 ** 20,
+    'MB': 10 ** 6,
+    'M': 2 ** 20,
+    'm': 2 ** 20,
+    'GiB': 2 ** 30,
+    'GB': 10 ** 9,
+    'G': 2 ** 30,
+    'g': 2 ** 30,
+    'TiB': 2 ** 40,
+    'TB': 10 ** 12,
+    'T': 2 ** 40,
+    't': 2 ** 40,
+    'PiB': 2 ** 50,
+    'PB': 10 ** 15,
+    'P': 2 ** 50,
+    'p': 2 ** 50,
+    'EiB': 2 ** 60,
+    'EB': 10 ** 17,
+    'E': 2 ** 60,
+    'e': 2 ** 60,
 }
 SIZE_CONS_CHK_LST = ['EiB', 'PiB', 'TiB', 'GiB', 'MiB', 'KiB']
+
 
 ##Converts the size into human format.
 # @param    size    Size in bytes
@@ -147,6 +148,7 @@ def sh(size, human=False):
         return "%.2f %s" % (size, units)
     else:
         return size
+
 
 ##Converts the size into human format.
 # @param  size    Size in bytes

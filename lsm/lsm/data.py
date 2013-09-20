@@ -28,6 +28,7 @@ def txt_a(txt, append):
     else:
         return append
 
+
 def get_key(dictionary, value):
     keys = [k for k, v in dictionary.items() if v == value]
     if len(keys) > 0:
@@ -152,25 +153,25 @@ class IData(object):
 
 # Status, using DMTF 2.23.0Final CIM_ManagedSystemElement['OperationalStatus']
     MAX_STATUS_BITS = 64
-    STATUS_UNKNOWN                      = 1 << 0
-    STATUS_OTHER                        = 1 << 1
-    STATUS_OK                           = 1 << 2
-    STATUS_DEGRADED                     = 1 << 3
-    STATUS_STRESSED                     = 1 << 4
-    STATUS_PREDICTIVE_FAILURE           = 1 << 5
-    STATUS_ERROR                        = 1 << 6
-    STATUS_NON_RECOVERABLE_ERROR        = 1 << 7
-    STATUS_STARTING                     = 1 << 8
-    STATUS_STOPPING                     = 1 << 9
-    STATUS_STOPPED                      = 1 << 10
-    STATUS_IN_SERVICE                   = 1 << 11
-    STATUS_NO_CONTACT                   = 1 << 12
-    STATUS_LOST_COMMUNICATION           = 1 << 13
-    STATUS_ABORTED                      = 1 << 14
-    STATUS_DORMANT                      = 1 << 15
-    STATUS_SUPPORTING_ENTITY_IN_ERROR   = 1 << 16
-    STATUS_COMPLETED                    = 1 << 17
-    STATUS_POWER_MODE                   = 1 << 18
+    STATUS_UNKNOWN = 1 << 0
+    STATUS_OTHER = 1 << 1
+    STATUS_OK = 1 << 2
+    STATUS_DEGRADED = 1 << 3
+    STATUS_STRESSED = 1 << 4
+    STATUS_PREDICTIVE_FAILURE = 1 << 5
+    STATUS_ERROR = 1 << 6
+    STATUS_NON_RECOVERABLE_ERROR = 1 << 7
+    STATUS_STARTING = 1 << 8
+    STATUS_STOPPING = 1 << 9
+    STATUS_STOPPED = 1 << 10
+    STATUS_IN_SERVICE = 1 << 11
+    STATUS_NO_CONTACT = 1 << 12
+    STATUS_LOST_COMMUNICATION = 1 << 13
+    STATUS_ABORTED = 1 << 14
+    STATUS_DORMANT = 1 << 15
+    STATUS_SUPPORTING_ENTITY_IN_ERROR = 1 << 16
+    STATUS_COMPLETED = 1 << 17
+    STATUS_POWER_MODE = 1 << 18
 
     STATUS = {
         STATUS_UNKNOWN:                 'UNKNOWN',
@@ -227,32 +228,32 @@ class IData(object):
     #   CIM_EnabledLogicalElement['EnabledState']
     #   CIM_DiskDrive['EnabledState']
     #   CIM_LogicalPort['EnabledState']
-    ENABLE_STATUS_UNKNOWN               = 0
-    ENABLE_STATUS_OTHER                 = 1
-    ENABLE_STATUS_ENABLED               = 2
+    ENABLE_STATUS_UNKNOWN = 0
+    ENABLE_STATUS_OTHER = 1
+    ENABLE_STATUS_ENABLED = 2
     # Enabled (2) indicates that the element is or could be executing
     # commands, will process any queued commands, and queues new requests.
-    ENABLE_STATUS_DISABLED              = 3
+    ENABLE_STATUS_DISABLED = 3
     # Enabled (2) indicates that the element is or could be executing
     # commands, will process any queued commands, and queues new requests.
-    ENABLE_STATUS_SHUTTING_DOWN         = 4
+    ENABLE_STATUS_SHUTTING_DOWN = 4
     # Shutting Down (4) indicates that the element is in the process of going
     # to a Disabled state.
-    ENABLE_STATUS_NOT_APPLICABLE        = 5
+    ENABLE_STATUS_NOT_APPLICABLE = 5
     # Not Applicable (5) indicates the element does not support being enabled
     # or disabled.
-    ENABLE_STATUS_ENABLED_BUT_OFFLINE   = 6
+    ENABLE_STATUS_ENABLED_BUT_OFFLINE = 6
     # Enabled but Offline (6) indicates that the element might be completing
     # commands, and will drop any new requests.
-    ENABLE_STATUS_IN_TEST               = 7
+    ENABLE_STATUS_IN_TEST = 7
     # Test (7) indicates that the element is in a test state.
-    ENABLE_STATUS_DEFERRED              = 8
+    ENABLE_STATUS_DEFERRED = 8
     # Deferred (8) indicates that the element might be completing commands,
     # but will queue any new requests.
-    ENABLE_STATUS_QUIESCE               = 9
+    ENABLE_STATUS_QUIESCE = 9
     # Quiesce (9) indicates that the element is enabled but in a restricted
     # mode.
-    ENABLE_STATUS_STARTING              = 10
+    ENABLE_STATUS_STARTING = 10
     # Starting (10) indicates that the element is in the process of going to
     # an Enabled state. New requests are queued.
 
@@ -330,24 +331,24 @@ class Disk(IData):
     # Disk Health status, using DMTF 2.29.0 CIM_DiskDrive
     #   CIM_DiskDrive['HealthState']
     #   aka. CIM_ManagedSystemElement['HealthState']
-    HEALTH_UNKNOWN              = 0
+    HEALTH_UNKNOWN = 0
     #   The implementation cannot report on HealthState at this time.
-    HEALTH_OK                   = 5
+    HEALTH_OK = 5
     #   The element is fully functional and is operating within normal
     #   operational parameters and without error.
-    HEALTH_DEGRADED             = 10
+    HEALTH_DEGRADED = 10
     #   The element is in working order and all functionality is
     #   provided. However, the element is not working to the best of its
     #   abilities. For example, the element might not be operating at
     #   optimal performance or it might be reporting recoverable errors.
-    HEALTH_MINOR_FAIL           = 15
+    HEALTH_MINOR_FAIL = 15
     #   All functionality is available but some might be degraded.
-    HEALTH_MAJOR_FAIL           = 20
+    HEALTH_MAJOR_FAIL = 20
     #   The element is failing. It is possible that some or all of the
     #   functionality of this component is degraded or not working.
-    HEALTH_CRITICAL_FAIL        = 25
+    HEALTH_CRITICAL_FAIL = 25
     #   The element is non-functional and recovery might not be possible.
-    HEALTH_NON_RECOVERABLE_ERR  = 30
+    HEALTH_NON_RECOVERABLE_ERR = 30
     #   The element has completely failed, and recovery is not possible.
     #   All functionality provided by this element has been lost.
 
@@ -362,24 +363,24 @@ class Disk(IData):
     }
 
     # Disk Type, using DMTF 2.31.0+ CIM_DiskDrive['InterconnectType']
-    DISK_TYPE_UNKNOWN           = 0
-    DISK_TYPE_OTHER             = 1
-    DISK_TYPE_NOT_APPLICABLE    = 2
-    DISK_TYPE_ATA               = 3     # IDE disk is seldomly used.
-    DISK_TYPE_SATA              = 4
-    DISK_TYPE_SAS               = 5
-    DISK_TYPE_FC                = 6
-    DISK_TYPE_SOP               = 7     # SCSI over PCIe, often holding SSD
+    DISK_TYPE_UNKNOWN = 0
+    DISK_TYPE_OTHER = 1
+    DISK_TYPE_NOT_APPLICABLE = 2
+    DISK_TYPE_ATA = 3     # IDE disk is seldomly used.
+    DISK_TYPE_SATA = 4
+    DISK_TYPE_SAS = 5
+    DISK_TYPE_FC = 6
+    DISK_TYPE_SOP = 7     # SCSI over PCIe, often holding SSD
 
     # Due to complesity of disk types, we are defining these beside DMTF
     # standards:
-    DISK_TYPE_NL_SAS            = 51    # Near-Line SAS==SATA disk + SAS port.
+    DISK_TYPE_NL_SAS = 51    # Near-Line SAS==SATA disk + SAS port.
 
     # in DMTF CIM 2.34.0+ CIM_DiskDrive['DiskType'], they also defined
     # SSD and HYBRID disk type. We use it as faillback.
-    DISK_TYPE_HDD               = 52    # Normal HDD
-    DISK_TYPE_SSD               = 53    # Solid State Drive
-    DISK_TYPE_HYBRID            = 54    # uses a combination of HDD and SSD
+    DISK_TYPE_HDD = 52    # Normal HDD
+    DISK_TYPE_SSD = 53    # Solid State Drive
+    DISK_TYPE_HYBRID = 54    # uses a combination of HDD and SSD
 
     DISK_TYPE = {
         DISK_TYPE_UNKNOWN:          'UNKNOWN',
@@ -401,7 +402,7 @@ class Disk(IData):
     DMTF_DISK_TYPE_OTHER = 1
     DMTF_DISK_TYPE_HDD = 2
     DMTF_DISK_TYPE_SSD = 3
-    DMTF_DISK_TYPE_HYBRID =4
+    DMTF_DISK_TYPE_HYBRID = 4
 
     DMTF_DISK_TYPE = {
         DMTF_DISK_TYPE_UNKNOWN: 'UNKNOWN',
@@ -415,7 +416,7 @@ class Disk(IData):
     def dmtf_disk_type_2_lsm_disk_type(dmtf_disk_type):
         if dmtf_disk_type in Disk.DMTF_DISK_TYPE.keys():
             return Disk.disk_type_str_to_type(
-              Disk.DMTF_DISK_TYPE[dmtf_disk_type])
+                Disk.DMTF_DISK_TYPE[dmtf_disk_type])
         else:
             return Disk.DISK_TYPE_UNKNOWN
 
@@ -433,7 +434,7 @@ class Disk(IData):
         self.name = name
         self.sn = sn
         self.part_num = part_num
-        self.vendor  = vendor
+        self.vendor = vendor
         self.model = model
         self.disk_type = disk_type
         self.block_size = block_size
@@ -525,7 +526,8 @@ class Volume(IData):
     Represents a volume.
     """
 
-    #Volume status Note: Volumes can have multiple status bits set at same time.
+    # Volume status Note: Volumes can have multiple status bits set at same
+    # time.
     (STATUS_UNKNOWN, STATUS_OK, STATUS_DEGRADED, STATUS_ERR, STATUS_STARTING,
      STATUS_DORMANT) = (0x0, 0x1, 0x2, 0x4, 0x8, 0x10)
 

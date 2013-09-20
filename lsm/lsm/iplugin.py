@@ -333,9 +333,9 @@ class IStorageAreaNetwork(IPlugin):
     @abstractmethod
     def volume_child_dependency(self, volume, flags=0):
         """
-        Returns True if this volume has other volumes which are dependant on it.
-        Implies that this volume cannot be deleted or possibly modified because
-        it would affect its children.
+        Returns True if this volume has other volumes which are dependant on
+        it.  Implies that this volume cannot be deleted or possibly modified
+        because it would affect its children.
         """
         pass
 
@@ -486,10 +486,11 @@ class INetworkAttachedStorage(IPlugin):
         """
         WARNING: Destructive!
 
-        Reverts a file-system or just the specified files from the snapshot.  If
-        a list of files is supplied but the array cannot restore just them then
-        the operation will fail with an LsmError raised.  If files == None and
-        all_files = True then all files on the file-system are reverted.
+        Reverts a file-system or just the specified files from the snapshot.
+        If a list of files is supplied but the array cannot restore just them
+        then the operation will fail with an LsmError raised.
+        If files == None and all_files = True then all files on the
+        file-system are reverted.
 
         Restore_file if not None must be the same length as files with each
         index in each list referring to the associated file.

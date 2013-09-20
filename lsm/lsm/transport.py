@@ -194,7 +194,8 @@ def server(s):
 
 class TestTransport(unittest.TestCase):
     def setUp(self):
-        (self.c, self.s) = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+        (self.c, self.s) = socket.socketpair(
+            socket.AF_UNIX, socket.SOCK_STREAM)
 
         self.client = Transport(self.c)
 

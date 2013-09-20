@@ -176,7 +176,8 @@ class Client(INetworkAttachedStorage):
     # @param    self    The this pointer
     # @param    job_id  The job identifier
     # @param    flags   Reserved for future use, must be zero.
-    # @returns A tuple ( status (enumeration), percent_complete, completed item)
+    # @returns A tuple ( status (enumeration), percent_complete,
+    # completed item)
     def job_status(self, job_id, flags=0):
         """
         Returns the stats of the given job.
@@ -268,7 +269,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     def iscsi_chap_auth(self, initiator, in_user, in_password,
-                                out_user, out_password, flags=0):
+                        out_user, out_password, flags=0):
         """
         Register a user/password for the specified initiator for CHAP
         authentication.
@@ -372,7 +373,8 @@ class Client(INetworkAttachedStorage):
     ## Replicates a volume from the specified pool.
     # @param    self        The this pointer
     # @param    pool        The pool to re-size from
-    # @param    rep_type    Replication type(enumeration,see common.data.Volume)
+    # @param    rep_type    Replication type
+    #                       (enumeration,see common.data.Volume)
     # @param    volume_src  The volume to replicate
     # @param    name        Human readable name of replicated volume
     # @param    flags       Reserved for future use, must be zero.
@@ -590,9 +592,9 @@ class Client(INetworkAttachedStorage):
     # @returns True or False
     def volume_child_dependency(self, volume, flags=0):
         """
-        Returns True if this volume has other volumes which are dependant on it.
-        Implies that this volume cannot be deleted or possibly modified because
-        it would affect its children.
+        Returns True if this volume has other volumes which are dependant on
+        it. Implies that this volume cannot be deleted or possibly modified
+        because it would affect its children.
         """
         return self.tp.rpc('volume_child_dependency', del_self(locals()))
 
@@ -772,7 +774,8 @@ class Client(INetworkAttachedStorage):
     # @param    snapshot        The snapshot file to revert back too
     # @param    files           The specific files to revert
     # @param    restore_files   Individual files to restore
-    # @param    all_files       Set to True if all files should be reverted back
+    # @param    all_files       Set to True if all files should be reverted
+    #                           back
     # @param    flags           Reserved for future use, must be zero.
     # @return None on success, else job id
     def fs_snapshot_revert(self, fs, snapshot, files, restore_files,
@@ -780,10 +783,10 @@ class Client(INetworkAttachedStorage):
         """
         WARNING: Destructive!
 
-        Reverts a file-system or just the specified files from the snapshot.  If
-        a list of files is supplied but the array cannot restore just them then
-        the operation will fail with an LsmError raised.  If files == None and
-        all_files = True then all files on the file-system are reverted.
+        Reverts a file-system or just the specified files from the snapshot.
+        If a list of files is supplied but the array cannot restore just them
+        then the operation will fail with an LsmError raised.  If files == None
+        and all_files = True then all files on the file-system are reverted.
 
         Restore_file if None none must be the same length as files with each
         index in each list referring to the associated file.

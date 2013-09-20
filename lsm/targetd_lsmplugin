@@ -119,10 +119,11 @@ try:
             for p_name in (p['name'] for p in self._jsonrequest("pool_list") if
                            p['type'] == 'block'):
                 for vol in self._jsonrequest("vol_list", dict(pool=p_name)):
-                    volumes.append(Volume(vol['uuid'], vol['name'], vol['uuid'],
-                                          512, vol['size'] / 512,
-                                          Volume.STATUS_OK,
-                                          self.system.id, p_name))
+                    volumes.append(
+                        Volume(vol['uuid'], vol['name'], vol['uuid'],
+                               512, vol['size'] / 512,
+                               Volume.STATUS_OK,
+                               self.system.id, p_name))
             return volumes
 
         def pools(self, flags=0):
@@ -478,10 +479,11 @@ try:
                     return fs['full_path']
             return None
 
-        def export_fs(self, fs_id, export_path, root_list, rw_list, ro_list,
-                  anon_uid=NfsExport.ANON_UID_GID_NA,
-                  anon_gid=NfsExport.ANON_UID_GID_NA,
-                  auth_type=None, options=None, flags=0):
+        def export_fs(
+                self, fs_id, export_path, root_list, rw_list, ro_list,
+                anon_uid=NfsExport.ANON_UID_GID_NA,
+                anon_gid=NfsExport.ANON_UID_GID_NA,
+                auth_type=None, options=None, flags=0):
 
             if export_path is not None:
                 raise LsmError(ErrorNumber.INVALID_ARGUMENT,
@@ -604,8 +606,8 @@ try:
         PluginRunner(TargetdStorage, sys.argv).run()
 except Exception as e:
     #This should be quite rare, but when it does happen this is pretty
-    #key in understanding what happened, especially when it happens when running
-    #from the daemon.
+    #key in understanding what happened, especially when it happens when
+    #running from the daemon.
     msg = "Exception: %s\n" % str(e)
     syslog.syslog(syslog.LOG_ERR, msg)
     sys.stderr.write(msg)

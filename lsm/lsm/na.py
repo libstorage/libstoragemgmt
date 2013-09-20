@@ -143,6 +143,7 @@ def to_list(v):
             rc.append(v)
     return rc
 
+
 class Filer(object):
     """
     Class to handle NetApp API calls.
@@ -165,8 +166,8 @@ class Filer(object):
 
     def _invoke(self, command, parameters=None):
 
-        rc = netapp_filer(self.host, self.username, self.password, self.timeout,
-                          command, parameters, self.ssl)
+        rc = netapp_filer(self.host, self.username, self.password,
+                          self.timeout, command, parameters, self.ssl)
 
         t = rc['netapp']['results']['attrib']
 
@@ -397,7 +398,8 @@ class Filer(object):
                 self._invoke('clone-clear', {'clone-id': e['clone-id']})
         return None
 
-    def clone(self, source_path, dest_path, backing_snapshot=None, ranges=None):
+    def clone(self, source_path, dest_path, backing_snapshot=None,
+              ranges=None):
         """
         Creates a file clone
         """
@@ -516,7 +518,8 @@ class Filer(object):
         self._invoke('lun-map', {'initiator-group': igroup, 'path': lun_path})
 
     def lun_unmap(self, igroup, lun_path):
-        self._invoke('lun-unmap', {'initiator-group': igroup, 'path': lun_path})
+        self._invoke(
+            'lun-unmap', {'initiator-group': igroup, 'path': lun_path})
 
     def lun_map_list_info(self, lun_path):
         initiator_groups = []
@@ -614,7 +617,8 @@ class Filer(object):
 
     @staticmethod
     def _build_export_fs_all():
-        return Filer._build_list(['true'], 'exports-hostname-info', 'all-hosts')
+        return Filer._build_list(
+            ['true'], 'exports-hostname-info', 'all-hosts')
 
     @staticmethod
     def _build_export_fs_list(hosts):
@@ -685,8 +689,8 @@ class Filer(object):
             r['anon'] = anonuid
 
         if sec_flavor:
-            r['sec-flavor'] = Filer._build_list([sec_flavor], 'sec-flavor-info',
-                                                'flavor')
+            r['sec-flavor'] = Filer._build_list(
+                [sec_flavor], 'sec-flavor-info', 'flavor')
 
         return rule
 
@@ -696,8 +700,9 @@ class Filer(object):
         NFS export a volume.
         """
 
-        rule = self._build_export_rules(volume_path, export_path, ro_list,
-                                        rw_list, root_list, anonuid, sec_flavor)
+        rule = self._build_export_rules(
+            volume_path, export_path, ro_list, rw_list, root_list, anonuid,
+            sec_flavor)
 
         params = {'persistent': 'true',
                   'rules': {'exports-rule-info-2': [rule]}, 'verbose': 'true'}
@@ -709,10 +714,12 @@ class Filer(object):
         """
         Modifies an existing rule.
         """
-        rule = self._build_export_rules(volume_path, export_path, ro_list,
-                                        rw_list, root_list, anonuid, sec_flavor)
+        rule = self._build_export_rules(
+            volume_path, export_path, ro_list, rw_list, root_list, anonuid,
+            sec_flavor)
 
-        params = {'persistent': 'true', 'rule': {'exports-rule-info-2': [rule]}}
+        params = {
+            'persistent': 'true', 'rule': {'exports-rule-info-2': [rule]}}
         self._invoke('nfs-exportfs-modify-rule-2', params)
 
     def nfs_export_remove(self, export_paths):

@@ -290,8 +290,8 @@ class NexentaStor(INfs, IStorageAreaNetwork):
     def fs_clone(self, src_fs, dest_fs_name, snapshot=None, flags=0):
         if snapshot is None:
             raise LsmError(ErrorNumber.INVALID_SS,
-                           "Full snapshot name (i.e data/a@A) is mandatory for "
-                           "NexentaStor.")
+                           "Full snapshot name (i.e data/a@A) is mandatory "
+                           "for NexentaStor.")
         self._ns_request('rest/nms', {"method": "clone",
                                       "object": "folder",
                                       "params": [snapshot.name,
@@ -366,17 +366,19 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         """
         Get a list of all exported file systems on the controller.
         """
-        exp_list = self._ns_request('rest/nms', {"method": "get_shared_folders",
+        exp_list = self._ns_request('rest/nms',
+                                    {"method": "get_shared_folders",
                                     "object": "netstorsvc",
                                     "params": [
                                     'svc:/network/nfs/server:default', '']})
         exports = []
         for e in exp_list:
-            opts = self._ns_request('rest/nms',
-                                    {"method": "get_shareopts",
-                                     "object": "netstorsvc",
-                                     "params": [
-                                         'svc:/network/nfs/server:default', e]})
+            opts = self._ns_request(
+                'rest/nms',
+                {"method": "get_shareopts",
+                 "object": "netstorsvc",
+                 "params": [
+                     'svc:/network/nfs/server:default', e]})
             exports.append(NfsExport(md5(opts['name']),
                                      e, opts['name'], opts['auth_type'],
                                      opts['root'],
@@ -411,11 +413,12 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             fs_dict['anonymous'] = 'true'
         if options:
             fs_dict['extra_options'] = str(options)
-        result = self._ns_request('rest/nms',
-                                  {"method": "share_folder",
-                                   "object": "netstorsvc",
-                                   "params": ['svc:/network/nfs/server:default',
-                                              fs_id, fs_dict]})
+        result = self._ns_request(
+            'rest/nms',
+            {"method": "share_folder",
+            "object": "netstorsvc",
+            "params": ['svc:/network/nfs/server:default',
+                      fs_id, fs_dict]})
         return NfsExport(md5_id, fs_id, export_path, auth_type,
                          root_list, rw_list, ro_list, anon_uid, anon_gid,
                          options)
@@ -561,8 +564,8 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                                       "params": [volume.name]})
         new_num_of_blocks = new_size_bytes / volume.block_size
         return None, Volume(volume.id, volume.name, volume.vpd83,
-                            volume.block_size, new_num_of_blocks, volume.status,
-                            volume.system_id, volume.pool_id)
+                            volume.block_size, new_num_of_blocks,
+                            volume.status, volume.system_id, volume.pool_id)
 
     def volume_replicate(self, pool, rep_type, volume_src, name, flags=0):
         """
@@ -869,9 +872,9 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
     def volume_child_dependency(self, volume, flags=0):
         """
-        Returns True if this volume has other volumes which are dependant on it.
-        Implies that this volume cannot be deleted or possibly modified because
-        it would affect its children.
+        Returns True if this volume has other volumes which are dependant on
+        it. Implies that this volume cannot be deleted or possibly modified
+        because it would affect its children.
         """
         return len(self._dependencies_list(volume.name, True)) > 0
 

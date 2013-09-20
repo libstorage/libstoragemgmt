@@ -210,7 +210,8 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
 
         nv = Volume('Vol' + str(self.s.vol_num), name,
                     StorageSimulator.__randomVpd(), self.s.block_size,
-                    (actual_size / self.s.block_size), Volume.STATUS_OK, self.s.sys_info.id,
+                    (actual_size / self.s.block_size), Volume.STATUS_OK,
+                    self.s.sys_info.id,
                     pool.id)
         self.s.volumes[nv.id] = {'pool': pool, 'volume': nv}
         self.s.vol_num += 1
@@ -563,7 +564,8 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
         group = None
 
         try:
-            group = self.access_group_create(name, initiator_id, initiator_type,
+            group = self.access_group_create(name, initiator_id,
+                                             initiator_type,
                                              volume.system_id)
             result = self.access_group_grant(group, volume, access)
 
@@ -588,7 +590,8 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
                                    "No mapping of initiator "
                                    "and volume")
             else:
-                raise LsmError(ErrorNumber.NOT_FOUND_VOLUME, "Volume not found")
+                raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
+                               "Volume not found")
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_INITIATOR,
                            "Initiator not found")

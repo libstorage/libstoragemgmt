@@ -1,12 +1,12 @@
-__all__ = [ "client",
-            "cmdline",
-            "common",
-            "data",
-            "iplugin",
-            "pluginrunner",
-            "simulator",
-            "transport",
-            "version", ]
+__all__ = ["client",
+           "cmdline",
+           "common",
+           "data",
+           "iplugin",
+           "pluginrunner",
+           "simulator",
+           "transport",
+           "version", ]
 
 from client import Client
 from cmdline import ArgError, CmdLine

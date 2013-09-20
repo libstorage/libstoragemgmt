@@ -24,7 +24,7 @@ from pywbem import CIMError
 from iplugin import IStorageAreaNetwork
 from common import uri_parse, LsmError, ErrorNumber, JobStatus, md5
 from data import Pool, Initiator, Volume, AccessGroup, System, Capabilities,\
-                 Disk
+    Disk
 from version import VERSION
 
 
@@ -184,16 +184,15 @@ class Smis(IStorageAreaNetwork):
 
         try:
             if prop_name:
-                instances = \
-                  self._c.EnumerateInstances(class_name,
-                                             PropertyList=[prop_name])
+                instances = self._c.EnumerateInstances(
+                    class_name, PropertyList=[prop_name])
             else:
                 instances = self._c.EnumerateInstances(class_name)
         except CIMError as ce:
             error_code = tuple(ce)[0]
 
-            if error_code == pywbem.CIM_ERR_INVALID_CLASS and \
-                no_throw_on_missing:
+            if error_code == pywbem.CIM_ERR_INVALID_CLASS \
+                    and no_throw_on_missing:
                 return None
             else:
                 raise ce
@@ -203,7 +202,7 @@ class Smis(IStorageAreaNetwork):
                 class_names = " ".join([x.classname for x in instances])
                 raise LsmError(ErrorNumber.INTERNAL_ERROR,
                                "Expecting one instance of %s and got %s" %
-                               (class_name , class_names))
+                               (class_name, class_names))
 
             return instances[0]
         else:
@@ -638,10 +637,11 @@ class Smis(IStorageAreaNetwork):
          id for that volume.
         """
         property_list = self._property_list_of_id('Pool')
-        cim_pool = self._c.Associators(cim_vol.path,
-                                AssocClass='CIM_AllocatedFromStoragePool',
-                                ResultClass='CIM_StoragePool',
-                                PropertyList=property_list)[0]
+        cim_pool = self._c.Associators(
+            cim_vol.path,
+            AssocClass='CIM_AllocatedFromStoragePool',
+            ResultClass='CIM_StoragePool',
+            PropertyList=property_list)[0]
         return self._pool_id(cim_pool)
 
     @staticmethod
@@ -794,7 +794,7 @@ class Smis(IStorageAreaNetwork):
         index = 0
         len_id_des = len(id_des)
         len_other_info = len(other_info)
-        while(index < min(len_id_des, len_other_info)):
+        while index < min(len_id_des, len_other_info):
             if [1 for x in vpd83_namespaces if x == id_des[index]]:
                 return other_info[index]
             index += 1
@@ -872,7 +872,8 @@ class Smis(IStorageAreaNetwork):
             #       XIV will return NOTHING, so use EnumerateInstanceNames()
             #       when you need nothing but the CIMInstanceName
             cim_scss_path = \
-              self._c.EnumerateInstanceNames('CIM_StorageConfigurationService')
+                self._c.EnumerateInstanceNames(
+                    'CIM_StorageConfigurationService')
         except CIMError as e:
             if e[0] == pywbem.CIM_ERR_INVALID_CLASS:
                 # If array does not support CIM_StorageConfigurationService
@@ -881,20 +882,20 @@ class Smis(IStorageAreaNetwork):
                 # but we would like to take that risk instead of
                 # skipping basic support of old SMIS provider.
                 cim_syss = \
-                  self._c.EnumerateInstances('CIM_ComputerSystem',
-                                             PropertyList=['Name',
-                                                           'ElementName',
-                                                           'OperationalStatus']
-                                            )
+                    self._c.EnumerateInstances(
+                        'CIM_ComputerSystem',
+                        PropertyList=['Name',
+                        'ElementName',
+                        'OperationalStatus'])
             else:
                 raise e
         if not cim_syss:
             for cim_scs_path in cim_scss_path:
                 cim_tmp = \
-                  self._c.Associators(cim_scs_path,
-                                      AssocClass='CIM_HostedService',
-                                      ResultClass='CIM_ComputerSystem',
-                                      PropertyList=['Name',
+                    self._c.Associators(cim_scs_path,
+                                        AssocClass='CIM_HostedService',
+                                        ResultClass='CIM_ComputerSystem',
+                                        PropertyList=['Name',
                                                     'ElementName',
                                                     'OperationalStatus'])
                 if cim_tmp and cim_tmp[0]:
@@ -1643,7 +1644,7 @@ class Smis(IStorageAreaNetwork):
         # we do not check whether they follow the SNIA standard.
         if 'OperationalStatus' in cim_disk:
             status = \
-              Disk.status_dmtf_to_lsm_type(cim_disk['OperationalStatus'])
+                Disk.status_dmtf_to_lsm_type(cim_disk['OperationalStatus'])
         if 'EnabledState' in cim_disk:
             enable_status = cim_disk['EnabledState']
         if 'Name' in cim_disk:
@@ -1678,16 +1679,16 @@ class Smis(IStorageAreaNetwork):
 
         if disk_type == Disk.DISK_TYPE_UNKNOWN and 'DiskType' in cim_disk:
             disk_type = \
-              Disk.dmtf_disk_type_2_lsm_disk_type(cim_disk['DiskType'])
+                Disk.dmtf_disk_type_2_lsm_disk_type(cim_disk['DiskType'])
 
         # LSI way for checking disk type
         if not disk_type:
             cim_pes = \
-              self._c.Associators(cim_disk.path,
-                                  AssocClass='CIM_SAPAvailableForElement',
-                                  ResultClass='CIM_ProtocolEndpoint',
-                                  PropertyList=['CreationClassName']
-                                  )
+                self._c.Associators(
+                    cim_disk.path,
+                    AssocClass='CIM_SAPAvailableForElement',
+                    ResultClass='CIM_ProtocolEndpoint',
+                    PropertyList=['CreationClassName'])
             if cim_pes and cim_pes[0]:
                 if 'CreationClassName' in cim_pes[0]:
                     ccn = cim_pes[0]['CreationClassName']
@@ -1750,7 +1751,7 @@ class Smis(IStorageAreaNetwork):
                                       ResultClass='CIM_StorageExtent',
                                       PropertyList=property_list)
         cim_exts = [p for p in cim_exts if p["Primordial"]]
-        if (cim_exts and cim_exts[0]):
+        if cim_exts and cim_exts[0]:
             # As SNIA commanded, only _ONE_ Primordial CIM_StorageExtent for
             # each CIM_DiskDrive
             return cim_exts[0]
