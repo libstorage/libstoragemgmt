@@ -32,7 +32,7 @@ class ESeries(Smis):
         volumes.
         """
         rc = False
-        lun = self._get_volume(vol.id)
+        lun = self._get_cim_instance_by_id('Volume', vol.id)
 
         ss = self._c.References(lun.path,
                                 ResultClass='CIM_StorageSynchronized')
@@ -100,7 +100,7 @@ class ESeries(Smis):
     def initiator_grant(self, initiator_id, initiator_type, volume, access,
                         flags=0):
         ccs = self._get_class_instance('CIM_ControllerConfigurationService')
-        lun = self._get_volume(volume.id)
+        lun = self._get_cim_instance_by_id('Volume', volume.id)
 
         #Need to check for existence of initiator, else create one
         initiator = self._initiator_lookup(initiator_id)
@@ -131,7 +131,8 @@ class ESeries(Smis):
         (found, spc) = self._get_spc(initiator.id, volume.id)
 
         if found:
-            ccs = self._get_class_instance('CIM_ControllerConfigurationService')
+            ccs = self._get_class_instance(
+                'CIM_ControllerConfigurationService')
 
             in_params = dict(ProtocolController=spc.path,
                              DeleteChildrenProtocolControllers=True,
@@ -141,7 +142,6 @@ class ESeries(Smis):
             return self._pi("access_revoke", False,
                             *(self._c.InvokeMethod('DeleteProtocolController',
                                                    ccs.path, **in_params)))[0]
-
 
     def _detach(self, vol, sync):
 
@@ -163,7 +163,7 @@ class ESeries(Smis):
     def volume_delete(self, volume, flags=0):
         scs = self._get_class_instance('CIM_StorageConfigurationService',
                                        'SystemName', volume.system_id)
-        lun = self._get_volume(volume.id)
+        lun = self._get_cim_instance_by_id('Volume', volume.id)
 
         #If we actually have an association to delete, the volume will be
         #deleted with the association, no need to call ReturnToStoragePool
@@ -177,9 +177,9 @@ class ESeries(Smis):
 
         #Loop to check to see if volume is actually gone yet!
         try:
-            lun = self._get_volume(volume.id)
+            lun = self._get_cim_instance_by_id('Volume', volume.id)
             while lun is not None:
-                lun = self._get_volume(volume.id)
+                lun = self._get_cim_instance_by_id('Volume', volume.id)
                 time.sleep(0.125)
         except common.LsmError as e:
             pass
