@@ -622,8 +622,8 @@ class Smis(IStorageAreaNetwork):
                     cim_class_name = self._cim_class_name_of(class_type)
                 raise LsmError(ErrorNumber.NO_SUPPORT,
                                "%s %s " % (cim_class_name, cim_xxx.path) +\
-                               "does not have property %" % str(key) +\
-                               "caculate out %s id" % class_type)
+                               "does not have property %s" % str(key) +\
+                               "calculate out %s id" % class_type)
             else:
                 id_str += cim_xxx[key]
         if len(property_list) == 1:
