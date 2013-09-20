@@ -414,7 +414,7 @@ class Disk(IData):
     @staticmethod
     def dmtf_disk_type_2_lsm_disk_type(dmtf_disk_type):
         if dmtf_disk_type in Disk.DMTF_DISK_TYPE.keys():
-            return Disk.disk_type_str_to_type(\
+            return Disk.disk_type_str_to_type(
               Disk.DMTF_DISK_TYPE[dmtf_disk_type])
         else:
             return Disk.DISK_TYPE_UNKNOWN

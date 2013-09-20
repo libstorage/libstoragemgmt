@@ -171,7 +171,7 @@ class Smis(IStorageAreaNetwork):
                 return cim_xxx
 
         raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                       "Cannot find %s Instance with " % class_name +\
+                       "Cannot find %s Instance with " % class_name +
                        "%s ID %s" % (class_type, requested_id))
 
     def _get_class_instance(self, class_name, prop_name=None, prop_value=None,
@@ -202,7 +202,7 @@ class Smis(IStorageAreaNetwork):
             if len(instances) != 1:
                 class_names = " ".join([x.classname for x in instances])
                 raise LsmError(ErrorNumber.INTERNAL_ERROR,
-                               "Expecting one instance of %s and got %s" % \
+                               "Expecting one instance of %s and got %s" %
                                (class_name , class_names))
 
             return instances[0]
@@ -215,8 +215,8 @@ class Smis(IStorageAreaNetwork):
             return None
 
         raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                       "Unable to find class instance %s " % class_name +\
-                       "with property %s " % prop_name +\
+                       "Unable to find class instance %s " % class_name +
+                       "with property %s " % prop_name +
                        "with value %s" % prop_value)
 
     def _get_spc(self, initiator_id, volume_id):
@@ -545,7 +545,7 @@ class Smis(IStorageAreaNetwork):
         if class_type == 'Disk':
             return 'CIM_DiskDrive'
         raise LsmError(ErrorNumber.INTERNAL_ERROR,
-                       "self._cim_class_name_of() got unknown " +\
+                       "self._cim_class_name_of() got unknown " +
                        "class_type %s" % class_type)
 
     @staticmethod
@@ -564,7 +564,7 @@ class Smis(IStorageAreaNetwork):
         if class_type == 'Disk':
             return ['SystemName', 'DeviceID']
         raise LsmError(ErrorNumber.INTERNAL_ERROR,
-                       "self._cim_class_name_of() got unknown " +\
+                       "self._cim_class_name_of() got unknown " +
                        "class_type %s" % class_type)
 
     def _sys_id_child(self, cim_xxx):
@@ -621,8 +621,8 @@ class Smis(IStorageAreaNetwork):
                 else:
                     cim_class_name = self._cim_class_name_of(class_type)
                 raise LsmError(ErrorNumber.NO_SUPPORT,
-                               "%s %s " % (cim_class_name, cim_xxx.path) +\
-                               "does not have property %s" % str(key) +\
+                               "%s %s " % (cim_class_name, cim_xxx.path) +
+                               "does not have property %s" % str(key) +
                                "calculate out %s id" % class_type)
             else:
                 id_str += cim_xxx[key]
@@ -1620,7 +1620,7 @@ class Smis(IStorageAreaNetwork):
                                            PropertyList=cim_phy_pkg_pros)
         if not (cim_phy_pkgs and cim_phy_pkgs[0]):
             raise LsmError(ErrorNumber.INTERNAL_ERROR,
-                           "Failed to find out the CIM_PhysicalPackage " +\
+                           "Failed to find out the CIM_PhysicalPackage " +
                            "of CIM_DiskDrive %s" % cim_disk.path)
         cim_phy_pkg = cim_phy_pkgs[0]
         status = Disk.STATUS_UNKNOWN
@@ -1702,9 +1702,9 @@ class Smis(IStorageAreaNetwork):
                     error_info = cim_disk['ErrorDescription']
                 else:
                     raise LsmError(ErrorNumber.INTERNAL_ERROR,
-                                   "CIM_DiskDrive %s " % cim_disk.id + \
-                                   "has ErrorCleared == False but " + \
-                                   "does not have " + \
+                                   "CIM_DiskDrive %s " % cim_disk.id +
+                                   "has ErrorCleared == False but " +
+                                   "does not have " +
                                    "CIM_DiskDrive['ErrorDescription']")
         if 'MediaErrorCount' in cim_disk:
             media_err_count = cim_disk['MediaErrorCount']
@@ -1756,6 +1756,6 @@ class Smis(IStorageAreaNetwork):
             return cim_exts[0]
         else:
             raise LsmError(ErrorNumber.INTERNAL_ERROR,
-                           "Failed to find out Primordial " +\
-                           "CIM_StorageExtent for CIM_DiskDrive %s " % \
+                           "Failed to find out Primordial " +
+                           "CIM_StorageExtent for CIM_DiskDrive %s " %
                            cim_disk_path)
