@@ -34,6 +34,4 @@ lsm_PYTHON += $(IBM_CLASS)
 
 
 external_PYTHON = lsm/external/__init__.py     \
-                   lsm/external/daemon.py      \
-                   lsm/external/enumeration.py \
                    lsm/external/xmltodict.py 
