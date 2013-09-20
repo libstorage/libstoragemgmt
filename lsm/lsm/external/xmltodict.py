@@ -64,13 +64,13 @@ class XmlDictObject(dict):
 
 
 def _ConvertDictToXmlRecurse(parent, dictitem):
-    assert type(dictitem) is not type([])
+    assert isinstance(dictitem, dict)
 
     if isinstance(dictitem, dict):
         for (tag, child) in dictitem.iteritems():
             if str(tag) == '_text':
                 parent.text = str(child)
-            elif type(child) is type([]):
+            elif isinstance(child, list):
                 # iterate through the array and convert
                 for listchild in child:
                     elem = ElementTree.Element(tag)
@@ -112,7 +112,7 @@ def _ConvertXmlToDictRecurse(node, dictclass):
         newitem = _ConvertXmlToDictRecurse(child, dictclass)
         if _ns(child.tag) in nodedict:
             # found duplicate tag, force a list
-            if type(nodedict[_ns(child.tag)]) is type([]):
+            if isinstance(nodedict[_ns(child.tag)], list):
                 # append to existing list
                 nodedict[_ns(child.tag)].append(newitem)
             else:
