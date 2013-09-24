@@ -273,7 +273,6 @@ class IData(object):
 
     @staticmethod
     def enable_status_to_str(enable_status):
-        enable_status_str = ''
         if enable_status in IData.ENABLE_STATUS.keys():
             return IData.ENABLE_STATUS[enable_status]
         return IData.ENABLE_STATUS[IData.ENABLE_STATUS_UNKNOWN]
@@ -452,7 +451,7 @@ class Disk(IData):
     @property
     def size_bytes(self):
         """
-        Volume size in bytes.
+        Disk size in bytes.
         """
         return self.block_size * self.num_of_blocks
 
