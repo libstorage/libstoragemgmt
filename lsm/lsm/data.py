@@ -309,9 +309,9 @@ class Initiator(IData):
         if not name or not len(name):
             name = "Unsupported"
 
-        self.id = id
-        self.type = type
-        self.name = name
+        self.id = id            # Identifier
+        self.type = type        # Initiator type id
+        self.name = name        # Initiator name
 
     def column_headers(self):
         return [['ID', 'Name', 'Type']]
@@ -597,14 +597,14 @@ class Volume(IData):
 
     def __init__(self, id, name, vpd83, block_size, num_of_blocks, status,
                  system_id, pool_id):
-        self.id = id
-        self.name = name
-        self.vpd83 = vpd83
-        self.block_size = block_size
-        self.num_of_blocks = num_of_blocks
-        self.status = status
-        self.system_id = system_id
-        self.pool_id = pool_id
+        self.id = id                        # Identifier
+        self.name = name                    # Human recognisable name
+        self.vpd83 = vpd83                  # SCSI page 83 unique ID
+        self.block_size = block_size        # Block size
+        self.num_of_blocks = num_of_blocks  # Number of blocks
+        self.status = status                # Status
+        self.system_id = system_id          # System id this volume belongs
+        self.pool_id = pool_id              # Pool id this volume belongs
 
     @property
     def size_bytes(self):
@@ -680,11 +680,11 @@ class Pool(IData):
     """
 
     def __init__(self, id, name, total_space, free_space, system_id):
-        self.id = id
-        self.name = name
-        self.total_space = total_space
-        self.free_space = free_space
-        self.system_id = system_id
+        self.id = id                    # Identifier
+        self.name = name                # Human recognisable name
+        self.total_space = total_space  # Total size
+        self.free_space = free_space    # Free space available
+        self.system_id = system_id      # Systemd id this pool belongs
 
     def column_headers(self):
         return [['ID', 'Name', 'Total space', 'Free space', 'System ID']]
@@ -779,9 +779,9 @@ class BlockRange(IData):
 class AccessGroup(IData):
     def __init__(self, id, name, initiators, system_id='NA'):
         self.id = id
-        self.name = name
-        self.initiators = initiators
-        self.system_id = system_id
+        self.name = name                # AccessGroup name
+        self.initiators = initiators    # List of initiators
+        self.system_id = system_id      # System id this group belongs
 
     def column_headers(self):
         return [['ID', 'Name', 'Initiator ID', 'System ID']]
