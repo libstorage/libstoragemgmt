@@ -23,10 +23,8 @@ import tempfile
 
 from common import LsmError, ErrorNumber, JobStatus, md5, uri_parse
 from data import Pool, Initiator, Volume, BlockRange, System, AccessGroup, \
-    Snapshot, NfsExport
-from data import FileSystem
+    Snapshot, NfsExport, FileSystem, Capabilities
 from iplugin import INfs, IStorageAreaNetwork
-from data import Capabilities
 from version import VERSION
 
 SIM_DATA_FILE = os.getenv("LSM_SIM_DATA",
