@@ -154,13 +154,13 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @staticmethod
     def _disk_type(netapp_disk_type):
-        conv = { 'ATA': Disk.DISK_TYPE_ATA, 'BSAS': Disk.DISK_TYPE_SAS,
-                 'EATA': Disk.DISK_TYPE_ATA, 'FCAL': Disk.DISK_TYPE_FC,
-                 'FSAS': Disk.DISK_TYPE_SAS, 'LUN': Disk.DISK_TYPE_OTHER,
-                 'SAS': Disk.DISK_TYPE_SAS, 'SATA': Disk.DISK_TYPE_SATA,
-                 'SCSI': Disk.DISK_TYPE_OTHER, 'SSD': Disk.DISK_TYPE_SSD,
-                 'XATA': Disk.DISK_TYPE_ATA, 'XSAS': Disk.DISK_TYPE_SAS,
-                 'unknown': Disk.DISK_TYPE_UNKNOWN}
+        conv = {'ATA': Disk.DISK_TYPE_ATA, 'BSAS': Disk.DISK_TYPE_SAS,
+                'EATA': Disk.DISK_TYPE_ATA, 'FCAL': Disk.DISK_TYPE_FC,
+                'FSAS': Disk.DISK_TYPE_SAS, 'LUN': Disk.DISK_TYPE_OTHER,
+                'SAS': Disk.DISK_TYPE_SAS, 'SATA': Disk.DISK_TYPE_SATA,
+                'SCSI': Disk.DISK_TYPE_OTHER, 'SSD': Disk.DISK_TYPE_SSD,
+                'XATA': Disk.DISK_TYPE_ATA, 'XSAS': Disk.DISK_TYPE_SAS,
+                'unknown': Disk.DISK_TYPE_UNKNOWN}
 
         if netapp_disk_type in conv:
             return conv[netapp_disk_type]
