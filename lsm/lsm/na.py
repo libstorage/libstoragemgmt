@@ -22,6 +22,7 @@ import time
 from binascii import hexlify
 
 from M2Crypto import RC4
+from _ssl import SSLError
 
 from external.xmltodict import ConvertXmlToDict
 
@@ -112,6 +113,16 @@ def netapp_filer(host, username, password, timeout, command, parameters=None,
             raise e
     except socket.timeout:
         raise FilerError(Filer.ETIMEOUT, "Connection timeout")
+    except SSLError as sse:
+        # The ssl library doesn't give a good way to find specific reason.
+        # We are doing a string contains which is not ideal, but other than
+        # throwing a generic error in this case there isn't much we can do
+        # to be more specific.
+        if "timed out" in str(sse).lower():
+            raise FilerError(Filer.ETIMEOUT, "Connection timeout (SSL)")
+        else:
+            raise FilerError(Filer.EUNKNOWN,
+                             "SSL error occurred (%s)", str(sse))
     finally:
         if handler:
             handler.close()
@@ -149,6 +160,7 @@ class Filer(object):
     Class to handle NetApp API calls.
     Note: These are using lsm terminology.
     """
+    EUNKNOWN = 10                   # Non-specific error
     ENOSPC = 28                     # Out of space
     ETIMEOUT = 60                   # Time-out
     EINVALID_ISCSI_NAME = 9006      # Invalid ISCSI IQN
