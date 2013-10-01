@@ -114,9 +114,10 @@ class Ontap(IStorageAreaNetwork, INfs):
         return self.f.timeout * Ontap.TMO_CONV
 
     def shutdown(self, flags=0):
-        self._jobs = None
+        pass
 
-    def _create_vpd(self, sn):
+    @staticmethod
+    def _create_vpd(sn):
         """
         Construct the vpd83 for this lun
         """
@@ -128,7 +129,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         num_blocks = int(l['size']) / block_size
         #TODO: Need to retrieve actual volume status
         return Volume(l['serial-number'], l['path'],
-                      self._create_vpd(l['serial-number']),
+                      Ontap._create_vpd(l['serial-number']),
                       block_size, num_blocks, Volume.STATUS_OK,
                       self.sys_info.id, l['aggr'])
 
@@ -144,7 +145,8 @@ class Ontap(IStorageAreaNetwork, INfs):
                                   int(v['size-available']), p.id,
                                   self.sys_info.id)
 
-    def _ss(self, s):
+    @staticmethod
+    def _ss(s):
         #If we use the newer API we can use the uuid instead of this fake
         #md5 one
         return Snapshot(md5(s['name'] + s['access-time']), s['name'],
@@ -340,8 +342,9 @@ class Ontap(IStorageAreaNetwork, INfs):
             self.f.volume_create(pool.name, vol_prefix, size_bytes)
         else:
             #re-size volume to accommodate new logical unit
-            self._na_volume_resize_restore(vol_prefix,
-                                        self._size_kb_padded(size_bytes))
+            self._na_volume_resize_restore(
+                vol_prefix,
+                Ontap._size_kb_padded(size_bytes))
 
         lun_name = self.f.lun_build_name(vol_prefix, volume_name)
 
@@ -349,18 +352,19 @@ class Ontap(IStorageAreaNetwork, INfs):
             self.f.lun_create(lun_name, size_bytes)
         except Exception as e:
             self._na_resize_recovery(vol_prefix,
-                                     -self._size_kb_padded(size_bytes))
+                                     -Ontap._size_kb_padded(size_bytes))
             raise e
 
         #Get the information about the newly created LUN
         return None, self._get_volume(lun_name, pool.id)
 
-    def _vol_to_na_volume_name(self, volume):
+    @staticmethod
+    def _vol_to_na_volume_name(volume):
         return os.path.dirname(volume.name)[5:]
 
     @handle_ontap_errors
     def volume_delete(self, volume, flags=0):
-        vol = self._vol_to_na_volume_name(volume)
+        vol = Ontap._vol_to_na_volume_name(volume)
 
         luns = self.f.luns_get_specific(aggr=volume.pool_id,
                                         na_volume_name=vol)
@@ -378,11 +382,11 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def volume_resize(self, volume, new_size_bytes, flags=0):
-        na_vol = self._vol_to_na_volume_name(volume)
+        na_vol = Ontap._vol_to_na_volume_name(volume)
         diff = new_size_bytes - volume.size_bytes
 
         #Convert to KB and pad for snapshots
-        diff = self._size_kb_padded(diff)
+        diff = Ontap._size_kb_padded(diff)
 
         #If the new size is > than old -> re-size volume then lun
         #If the new size is < than old -> re-size lun then volume
@@ -406,7 +410,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         return None, self._get_volume(volume.name, volume.pool_id)
 
     def _volume_on_aggr(self, pool, volume):
-        search = self._vol_to_na_volume_name(volume)
+        search = Ontap._vol_to_na_volume_name(volume)
         contained_volumes = self.f.aggregate_volume_names(pool.name)
         return search in contained_volumes
 
@@ -421,10 +425,10 @@ class Ontap(IStorageAreaNetwork, INfs):
         #the pool itself is None
         if pool is None or self._volume_on_aggr(pool, volume_src):
             #re-size the NetApp volume to accommodate the new lun
-            size = self._size_kb_padded(volume_src.size_bytes)
+            size = Ontap._size_kb_padded(volume_src.size_bytes)
 
             self._na_volume_resize_restore(
-                self._vol_to_na_volume_name(volume_src), size)
+                Ontap._vol_to_na_volume_name(volume_src), size)
 
             #Thin provision copy the logical unit
             dest = os.path.dirname(volume_src.name) + '/' + name
@@ -434,7 +438,7 @@ class Ontap(IStorageAreaNetwork, INfs):
             except Exception as e:
                 #Put volume back to previous size
                 self._na_resize_recovery(
-                    self._vol_to_na_volume_name(volume_src), -size)
+                    Ontap._vol_to_na_volume_name(volume_src), -size)
                 raise e
             return None, self._get_volume(dest, volume_src.pool_id)
         else:
@@ -472,7 +476,8 @@ class Ontap(IStorageAreaNetwork, INfs):
         self.f.lun_unmap(group.name, volume.name)
         return None
 
-    def _initiators_in_group(self, g):
+    @staticmethod
+    def _initiators_in_group(g):
         rc = []
         if g:
             if 'initiators' in g and g['initiators'] is not None:
@@ -489,7 +494,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         else:
             ag_id = md5(name)
 
-        return AccessGroup(ag_id, name, self._initiators_in_group(g),
+        return AccessGroup(ag_id, name, Ontap._initiators_in_group(g),
                            self.sys_info.id)
 
     @handle_ontap_errors
@@ -644,7 +649,7 @@ class Ontap(IStorageAreaNetwork, INfs):
     def fs_resize(self, fs, new_size_bytes, flags=0):
         diff = new_size_bytes - fs.total_space
 
-        diff = self._size_kb_padded(diff)
+        diff = Ontap._size_kb_padded(diff)
         self.f.volume_resize(fs.name, diff)
         return None, self._vol(self.f.volumes(fs.name)[0])
 
@@ -678,13 +683,13 @@ class Ontap(IStorageAreaNetwork, INfs):
     @handle_ontap_errors
     def fs_snapshots(self, fs, flags=0):
         snapshots = self.f.snapshots(fs.name)
-        return [self._ss(s) for s in snapshots]
+        return [Ontap._ss(s) for s in snapshots]
 
     @handle_ontap_errors
     def fs_snapshot_create(self, fs, snapshot_name, files=None, flags=0):
         #We can't do files, so we will do them all
         snap = self.f.snapshot_create(fs.name, snapshot_name)
-        return None, self._ss(snap)
+        return None, Ontap._ss(snap)
 
     @handle_ontap_errors
     def fs_snapshot_delete(self, fs, snapshot, flags=0):
@@ -730,14 +735,8 @@ class Ontap(IStorageAreaNetwork, INfs):
         """
         return self.f.export_auth_types()
 
-    def _get_root(self, e):
-        if 'root' in e:
-            return [r['name']
-                    for r in na.to_list(e['root']['exports-hostname-info'])]
-        else:
-            return []
-
-    def _get_group(self, access_group, e):
+    @staticmethod
+    def _get_group(access_group, e):
         rc = []
 
         if access_group in e:
@@ -749,13 +748,15 @@ class Ontap(IStorageAreaNetwork, INfs):
                     rc.append(r['name'])
         return rc
 
-    def _get_value(self, key, e):
+    @staticmethod
+    def _get_value(key, e):
         if key in e:
             return e[key]
         else:
             return None
 
-    def _get_volume_id(self, volumes, vol_name):
+    @staticmethod
+    def _get_volume_id(volumes, vol_name):
         for v in volumes:
             if v.name == vol_name:
                 return v.id
@@ -767,7 +768,8 @@ class Ontap(IStorageAreaNetwork, INfs):
         #Volume paths have the form /vol/<volume name>/<rest of path>
         return path[5:].split('/')[0]
 
-    def _export(self, volumes, e):
+    @staticmethod
+    def _export(volumes, e):
         if 'actual-pathname' in e:
             path = e['actual-pathname']
             export = e['pathname']
@@ -776,16 +778,16 @@ class Ontap(IStorageAreaNetwork, INfs):
             export = e['pathname']
 
         vol_name = Ontap._get_volume_from_path(path)
-        fs_id = self._get_volume_id(volumes, vol_name)
+        fs_id = Ontap._get_volume_id(volumes, vol_name)
 
         return NfsExport(md5(vol_name + fs_id),
                          fs_id,
                          export,
                          e['sec-flavor']['sec-flavor-info']['flavor'],
-                         self._get_group('root', e),
-                         self._get_group('read-write', e),
-                         self._get_group('read-only', e),
-                         self._get_value('anon', e),
+                         Ontap._get_group('root', e),
+                         Ontap._get_group('read-write', e),
+                         Ontap._get_group('read-only', e),
+                         Ontap._get_value('anon', e),
                          None,
                          None)
 
@@ -794,7 +796,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         #Get the file systems once and pass to _export which needs to lookup
         #the file system id by name.
         v = self.fs()
-        return [self._export(v, e) for e in self.f.nfs_exports()]
+        return [Ontap._export(v, e) for e in self.f.nfs_exports()]
 
     def _get_volume_from_id(self, fs_id):
         fs = self.fs()
