@@ -513,7 +513,7 @@ class Disk(IData):
                      sh(self.size_bytes, human),
                      self.status_to_str(self.status),
                      self.enable_status_to_str(self.enable_status),
-                     self.health_to_str(self.enable_status),
+                     self.health_to_str(self.health),
                      self.error_info,
                      self.media_err_count,
                      self.predictive_fail_count,
