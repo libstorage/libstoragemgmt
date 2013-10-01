@@ -24,11 +24,10 @@ import sys
 
 import na
 from data import Volume, Initiator, FileSystem, Snapshot, NfsExport, \
-    AccessGroup, System, Capabilities, Disk
+    AccessGroup, System, Capabilities, Disk, Pool
 from iplugin import IStorageAreaNetwork, INfs
 from common import LsmError, ErrorNumber, JobStatus, md5, Error
 from version import VERSION
-from data import Pool
 
 #Maps na to lsm, this is expected to expand over time.
 e_map = {
@@ -168,21 +167,42 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def _disk(self, d):
-        error_message = "UNKNOWN"
+        error_message = ""
+        status = Disk.STATUS_OK
+        health = Disk.HEALTH_OK
 
-        if 'broken-details' in d:
-            error_message = d['broken-details']
+        if 'raid-state' in d:
+            rs = d['raid-state']
+            if rs == "broken":
+                status = Disk.STATUS_ERROR
+                health = Disk.HEALTH_CRITICAL_FAIL
+                if 'broken-details' in d:
+                    error_message = d['broken-details']
+            elif rs == "Unknown":
+                health = Disk.HEALTH_UNKNOWN
+                status = Disk.STATUS_UNKNOWN
+            elif rs == "reconstructing" or rs == "pending":
+                health = Disk.HEALTH_DEGRADED
+                status = Disk.STATUS_DEGRADED
 
         enable_status = Disk.ENABLE_STATUS_ENABLED
         if 'is-offline' in d:
             enable_status = Disk.ENABLE_STATUS_ENABLED_BUT_OFFLINE
 
-        return Disk(md5(d['disk-uid']), d['vendor-id'], d['serial-number'],
-                    d['disk-model'], d['vendor-id'], d['disk-model'],
+        return Disk(md5(d['disk-uid']),
+                    d['vendor-id'],
+                    d['serial-number'],
+                    d['disk-model'],
+                    d['vendor-id'],
+                    d['disk-model'],
                     Ontap._disk_type(d['disk-type']),
-                    int(d['bytes-per-sector']), int(d['physical-blocks']),
-                    Disk.STATUS_UNKNOWN, enable_status,
-                    Disk.HEALTH_UNKNOWN, self.sys_info.id, error_message,
+                    int(d['bytes-per-sector']),
+                    int(d['physical-blocks']),
+                    status,
+                    enable_status,
+                    health,
+                    self.sys_info.id,
+                    error_message,
                     d['grown-defect-list-count'])
 
     @handle_ontap_errors
