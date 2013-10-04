@@ -44,14 +44,14 @@ class ESeries(Smis):
                 if 'SyncedElement' in s:
                     item = s['SyncedElement']
 
-                    if self._cim_name_match(item, lp):
+                    if Smis._cim_name_match(item, lp):
                         self._detach(vol, s)
                         rc = True
 
                 if 'SystemElement' in s:
                     item = s['SystemElement']
 
-                    if self._cim_name_match(item, lp):
+                    if Smis._cim_name_match(item, lp):
                         self._detach(vol, s)
                         rc = True
 

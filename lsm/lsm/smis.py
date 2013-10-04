@@ -151,6 +151,8 @@ class Smis(IStorageAreaNetwork):
 
     def __init__(self):
         self._c = None
+        self.tmo = 0
+        self.system_list = None
 
     @handle_cim_errors
     def _get_cim_instance_by_id(self, class_type, requested_id,
@@ -307,9 +309,9 @@ class Smis(IStorageAreaNetwork):
 
     def shutdown(self, flags=0):
         self._c = None
-        self._jobs = None
 
-    def _job_completed_ok(self, status):
+    @staticmethod
+    def _job_completed_ok(status):
         """
         Given a concrete job instance, check the operational status.  This
         is a little convoluted as different SMI-S proxies return the values in
@@ -365,7 +367,7 @@ class Smis(IStorageAreaNetwork):
             status = JobStatus.COMPLETE
             percent_complete = 100
 
-            if self._job_completed_ok(concrete_job):
+            if Smis._job_completed_ok(concrete_job):
                 if get_vol:
                     volume = self._new_vol_from_job(concrete_job)
             else:
@@ -692,12 +694,12 @@ class Smis(IStorageAreaNetwork):
             #Better fallback value?
             user_name = cv['DeviceID']
 
-        vpd_83 = self._vpd83_in_cv_name(cv)
+        vpd_83 = Smis._vpd83_in_cv_name(cv)
         if vpd_83 is None:
-            vpd_83 = self._vpd83_in_cv_otherinfo(cv)
+            vpd_83 = Smis._vpd83_in_cv_otherinfo(cv)
 
         if vpd_83 is None:
-            vpd_83 = self._vpd83_in_cv_ibm_xiv(cv)
+            vpd_83 = Smis._vpd83_in_cv_ibm_xiv(cv)
 
         if vpd_83 is None:
             vpd_83 = ''
@@ -711,7 +713,8 @@ class Smis(IStorageAreaNetwork):
         return Volume(self._vol_id(cv), user_name, vpd_83, cv["BlockSize"],
                       cv["NumberOfBlocks"], status, cv['SystemName'], pool_id)
 
-    def _vpd83_in_cv_name(self, cv):
+    @staticmethod
+    def _vpd83_in_cv_name(cv):
         """
         SMI-S 1.6 r4 SPEC part3 5.8.49 Table 81 Page 145, PDF Page 185:
               Table 81 - SMI ReferencedProperties/Methods for
@@ -763,7 +766,8 @@ class Smis(IStorageAreaNetwork):
            (nf == 11 and nn == 4):
             return name
 
-    def _vpd83_in_cv_otherinfo(self, cv):
+    @staticmethod
+    def _vpd83_in_cv_otherinfo(cv):
         """
         In SNIA SMI-S 1.6 r4 part 1 section 7.6.2: "Standard Formats for
         Logical Unit Names" it allow VPD83 stored in 'OtherIdentifyingInfo'
@@ -800,7 +804,8 @@ class Smis(IStorageAreaNetwork):
             index += 1
         return None
 
-    def _vpd83_in_cv_ibm_xiv(self, cv):
+    @staticmethod
+    def _vpd83_in_cv_ibm_xiv(cv):
         """
         IBM XIV IBM.2810-MX90014 is not following SNIA standard.
         They are using NameFormat=NodeWWN(8) and
@@ -941,7 +946,8 @@ class Smis(IStorageAreaNetwork):
 
         return rc
 
-    def _new_system(self, s):
+    @staticmethod
+    def _new_system(s):
         # In the case of systems we are assuming that the System Name is
         # unique.
         status = System.STATUS_UNKNOWN
@@ -966,7 +972,7 @@ class Smis(IStorageAreaNetwork):
         """
         Return the storage arrays accessible from this plug-in at this time
         """
-        return [self._new_system(s) for s in self._systems()]
+        return [Smis._new_system(s) for s in self._systems()]
 
     @staticmethod
     def _to_init(i):
@@ -1035,7 +1041,8 @@ class Smis(IStorageAreaNetwork):
 
             self._poll("ModifyReplicaSynchronization, detach", job_id)
 
-    def _cim_name_match(self, a, b):
+    @staticmethod
+    def _cim_name_match(a, b):
         if a['DeviceID'] == b['DeviceID'] \
                 and a['SystemName'] == b['SystemName'] \
                 and a['SystemCreationClassName'] == \
@@ -1084,13 +1091,13 @@ class Smis(IStorageAreaNetwork):
                     if 'SyncedElement' in s:
                         item = s['SyncedElement']
 
-                        if self._cim_name_match(item, lp):
+                        if Smis._cim_name_match(item, lp):
                             self._detach(vol, s)
 
                     if 'SystemElement' in s:
                         item = s['SystemElement']
 
-                        if self._cim_name_match(item, lp):
+                        if Smis._cim_name_match(item, lp):
                             self._detach(vol, s)
 
     @handle_cim_errors
@@ -1746,10 +1753,11 @@ class Smis(IStorageAreaNetwork):
             if 'Primordial' not in property_list:
                 property_list.extend(['Primordial'])
 
-        cim_exts = self._c.Associators(cim_disk_path,
-                                      AssocClass='CIM_MediaPresent',
-                                      ResultClass='CIM_StorageExtent',
-                                      PropertyList=property_list)
+        cim_exts = self._c.Associators(
+            cim_disk_path,
+            AssocClass='CIM_MediaPresent',
+            ResultClass='CIM_StorageExtent',
+            PropertyList=property_list)
         cim_exts = [p for p in cim_exts if p["Primordial"]]
         if cim_exts and cim_exts[0]:
             # As SNIA commanded, only _ONE_ Primordial CIM_StorageExtent for
