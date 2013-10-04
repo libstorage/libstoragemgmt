@@ -40,11 +40,23 @@ try:
     path = "/targetrpc"
 
     class TargetdStorage(IStorageAreaNetwork, INfs):
+
+        def __init__(self):
+            self.uri = None
+            self.password = None
+            self.tmo = 0
+            self.rpc_id = 1
+            self.host_with_port = None
+            self.scheme = None
+            self.url = None
+            self.headers = None
+            self.system = System("targetd", "targetd storage appliance",
+                                 System.STATUS_UNKNOWN)
+
         def startup(self, uri, password, timeout, flags=0):
             self.uri = uri_parse(uri)
             self.password = password
             self.tmo = timeout
-            self.rpc_id = 1
 
             user = self.uri.get('username', default_user)
             port = self.uri.get('port', default_port)
@@ -61,9 +73,6 @@ try:
             auth = ('%s:%s' % (user, self.password)).encode('base64')[:-1]
             self.headers = {'Content-Type': 'application/json',
                             'Authorization': 'Basic %s' % (auth,)}
-
-            self.system = System("targetd", "targetd storage appliance",
-                                 System.STATUS_UNKNOWN)
 
         def set_time_out(self, ms, flags=0):
             self.tmo = ms
@@ -373,7 +382,8 @@ try:
             exports = self._jsonrequest("nfs_export_auth_list")
             return exports
 
-        def _get_value(self, options, key):
+        @staticmethod
+        def _get_value(options, key):
             for o in options:
                 if '=' in o:
                     k, v = o.split('=')
@@ -381,7 +391,8 @@ try:
                         return v
             return None
 
-        def _option_string(self, nfs_options):
+        @staticmethod
+        def _option_string(nfs_options):
             cpy = copy.copy(nfs_options)
             if 'ro' in cpy:
                 cpy.remove('ro')
@@ -396,9 +407,10 @@ try:
             s = ','.join(cpy)
             return s
 
-        def _calculate_export_md5(self, path, options):
-            opts = self._option_string(options)
-            return md5(path + opts)
+        @staticmethod
+        def _calculate_export_md5(export_path, options):
+            opts = TargetdStorage._option_string(options)
+            return md5(export_path + opts)
 
         def exports(self, flags=0):
             tmp_exports = {}
@@ -412,17 +424,18 @@ try:
             for f in fs_list:
                 fs_full_paths[f['full_path']] = f
 
-            for e in all_nfs_exports:
-                if e['path'] in fs_full_paths:
-                    nfs_exports.append(e)
+            for export in all_nfs_exports:
+                if export['path'] in fs_full_paths:
+                    nfs_exports.append(export)
 
             #Collect like exports to minimize results
-            for e in nfs_exports:
-                key = e['path'] + self._option_string(e['options'])
+            for export in nfs_exports:
+                key = export['path'] + \
+                    TargetdStorage._option_string(export['options'])
                 if key in tmp_exports:
-                    tmp_exports[key].append(e)
+                    tmp_exports[key].append(export)
                 else:
-                    tmp_exports[key] = [e]
+                    tmp_exports[key] = [export]
 
             #Walk through the options
             for le in tmp_exports.values():
@@ -436,14 +449,14 @@ try:
 
                 options = None
 
-                for e in le:
+                for export in le:
 
-                    host = e['host']
+                    host = export['host']
                     export_id += host
-                    export_id += e['path']
-                    export_id += fs_full_paths[e['path']]['uuid']
+                    export_id += export['path']
+                    export_id += fs_full_paths[export['path']]['uuid']
 
-                    options = e['options']
+                    options = export['options']
 
                     if 'rw' in options:
                         rw.append(host)
@@ -451,25 +464,26 @@ try:
                     if 'ro' in options:
                         ro.append(host)
 
-                    sec = self._get_value(options, 'sec')
+                    sec = TargetdStorage._get_value(options, 'sec')
                     if sec is None:
                         sec = 'sys'
 
                     if 'no_root_squash' in options:
                         root.append(host)
 
-                    uid = self._get_value(options, 'anonuid')
+                    uid = TargetdStorage._get_value(options, 'anonuid')
                     if uid is not None:
                         anonuid = uid
-                    gid = self._get_value(options, 'anongid')
+                    gid = TargetdStorage._get_value(options, 'anongid')
                     if gid is not None:
                         anongid = gid
 
                 exports.append(NfsExport(
-                    self._calculate_export_md5(e['path'], options),
-                    fs_full_paths[e['path']]['uuid'],
-                    e['path'], sec, root, rw, ro, anonuid,
-                    anongid, self._option_string(options)))
+                    TargetdStorage._calculate_export_md5(export['path'],
+                                                         options),
+                    fs_full_paths[export['path']]['uuid'],
+                    export['path'], sec, root, rw, ro, anonuid,
+                    anongid, TargetdStorage._option_string(options)))
 
             return exports
 
@@ -504,26 +518,26 @@ try:
             if fs_path is None:
                 raise LsmError(ErrorNumber.INVALID_FS, "File system not found")
 
-            for e in rw_list:
+            for host in rw_list:
                 tmp_opts = copy.copy(base_opts)
-                if e in root_list:
+                if host in root_list:
                     tmp_opts.append('no_root_squash')
 
                 tmp_opts.append('rw')
 
                 self._jsonrequest("nfs_export_add",
-                                  dict(host=e, path=fs_path,
+                                  dict(host=host, path=fs_path,
                                        export_path=None, options=tmp_opts))
 
-            for e in ro_list:
+            for host in ro_list:
                 tmp_opts = copy.copy(base_opts)
-                if e in root_list:
+                if host in root_list:
                     tmp_opts.append('no_root_squash')
 
                 tmp_opts.append('ro')
 
                 self._jsonrequest("nfs_export_add",
-                                  dict(host=e, path=fs_path,
+                                  dict(host=host, path=fs_path,
                                        export_path=None, options=tmp_opts))
 
             #Kind of a pain to determine which export was newly created as it
@@ -534,25 +548,25 @@ try:
             h = []
             h.extend(rw_list)
             h.extend(ro_list)
-            for e in exports:
-                if e.fs_id == fs_id:
+            for host in exports:
+                if host.fs_id == fs_id:
                     l = []
-                    l.extend(e.ro)
-                    l.extend(e.rw)
+                    l.extend(host.ro)
+                    l.extend(host.rw)
                     for host in h:
                         if host in l:
-                            return e
+                            return host
 
             raise LsmError(ErrorNumber.PLUGIN_ERROR, "Failed to create export")
 
         def export_remove(self, export, flags=0):
 
-            for e in export.rw:
-                params = dict(host=e, path=export.export_path)
+            for host in export.rw:
+                params = dict(host=host, path=export.export_path)
                 self._jsonrequest("nfs_export_remove", params)
 
-            for e in export.ro:
-                params = dict(host=e, path=export.export_path)
+            for host in export.ro:
+                params = dict(host=host, path=export.export_path)
                 self._jsonrequest("nfs_export_remove", params)
 
         def _jsonrequest(self, method, params=None):
