@@ -160,8 +160,8 @@ class Smis(IStorageAreaNetwork):
         If flag_full_info == True, we return a Instance with full info.
         If you want to save some query time, try set it as False
         """
-        class_name = self._cim_class_name_of(class_type)
-        property_list = self._property_list_of_id(class_type)
+        class_name = Smis._cim_class_name_of(class_type)
+        property_list = Smis._property_list_of_id(class_type)
         cim_xxxs = self._c.EnumerateInstances(class_name,
                                               PropertyList=property_list)
         for cim_xxx in cim_xxxs:
@@ -544,7 +544,7 @@ class Smis(IStorageAreaNetwork):
         if class_type == 'Disk':
             return 'CIM_DiskDrive'
         raise LsmError(ErrorNumber.INTERNAL_ERROR,
-                       "self._cim_class_name_of() got unknown " +
+                       "Smis._cim_class_name_of() got unknown " +
                        "class_type %s" % class_type)
 
     @staticmethod
@@ -563,7 +563,7 @@ class Smis(IStorageAreaNetwork):
         if class_type == 'Disk':
             return ['SystemName', 'DeviceID']
         raise LsmError(ErrorNumber.INTERNAL_ERROR,
-                       "self._cim_class_name_of() got unknown " +
+                       "Smis._cim_class_name_of() got unknown " +
                        "class_type %s" % class_type)
 
     def _sys_id_child(self, cim_xxx):
@@ -604,7 +604,7 @@ class Smis(IStorageAreaNetwork):
         When ID is based on two or more properties, we use MD5 hash of them.
         If not, return the property value.
         """
-        property_list = self._property_list_of_id(class_type)
+        property_list = Smis._property_list_of_id(class_type)
         for key in property_list:
             if key not in cim_xxx:
                 cim_xxx = self._c.GetInstance(cim_xxx.path,
@@ -618,7 +618,7 @@ class Smis(IStorageAreaNetwork):
                 if class_type == 'SystemChild':
                     cim_class_name = str(cim_xxx.classname)
                 else:
-                    cim_class_name = self._cim_class_name_of(class_type)
+                    cim_class_name = Smis._cim_class_name_of(class_type)
                 raise LsmError(ErrorNumber.NO_SUPPORT,
                                "%s %s " % (cim_class_name, cim_xxx.path) +
                                "does not have property %s" % str(key) +
@@ -636,7 +636,7 @@ class Smis(IStorageAreaNetwork):
          Takes a CIMInstance that represents a volume and returns the pool
          id for that volume.
         """
-        property_list = self._property_list_of_id('Pool')
+        property_list = Smis._property_list_of_id('Pool')
         cim_pool = self._c.Associators(
             cim_vol.path,
             AssocClass='CIM_AllocatedFromStoragePool',
@@ -1569,12 +1569,12 @@ class Smis(IStorageAreaNetwork):
         rc = []
         cim_syss = self._systems()
         for cim_sys in cim_syss:
-            cim_disk_pros = self._new_disk_cim_disk_pros()
+            cim_disk_pros = Smis._new_disk_cim_disk_pros()
             cim_disks = self._c.Associators(cim_sys.path,
                                             ResultClass='CIM_DiskDrive',
                                             PropertyList=cim_disk_pros)
             for cim_disk in cim_disks:
-                cim_ext_pros = self._new_disk_cim_ext_pros()
+                cim_ext_pros = Smis._new_disk_cim_ext_pros()
                 cim_ext = self._pri_cim_ext_of_cim_disk(cim_disk.path,
                                                         cim_ext_pros)
                 rc.extend([self._new_disk(cim_disk, cim_ext)])
@@ -1614,7 +1614,7 @@ class Smis(IStorageAreaNetwork):
         Assuming cim_disk and cim_ext already contained the correct
         properties.
         """
-        cim_phy_pkg_pros = self._new_disk_cim_phy_pkg_pros()
+        cim_phy_pkg_pros = Smis._new_disk_cim_phy_pkg_pros()
         cim_phy_pkgs = self._c.Associators(cim_disk.path,
                                            AssocClass='CIM_Realizes',
                                            ResultClass='CIM_PhysicalPackage',
