@@ -27,9 +27,14 @@ from iplugin import INfs, IStorageAreaNetwork
 from data import Pool, FileSystem, Snapshot, Capabilities, System, \
     NfsExport, Volume, Initiator, AccessGroup
 from common import LsmError, ErrorNumber, md5
+from version import VERSION
 
 
 class NexentaStor(INfs, IStorageAreaNetwork):
+    def plugin_info(self, flags=0):
+        # TODO: Change this to something more appropriate
+        return "NexentaStor support", VERSION
+
     def __init__(self):
         self.uparse = None
         self.password = None
