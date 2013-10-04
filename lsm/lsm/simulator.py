@@ -115,7 +115,7 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
     """
 
     @staticmethod
-    def __randomVpd():
+    def __random_vpd():
         """
         Generate a random 16 digit number as hex
         """
@@ -164,9 +164,8 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
     def _load_state(self):
         prev = self._load()
         if prev:
-            self.s = prev
-        else:
-            self.s = SimState()
+            return prev
+        return SimState()
 
     @staticmethod
     def _check_sl(string_list):
@@ -181,7 +180,10 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
     def __init__(self):
 
         self.file = SIM_DATA_FILE
-        self._load_state()
+        self.s = self._load_state()
+        self.uri = None
+        self.password = None
+        self.tmo = 0
 
     def _allocate_from_pool(self, pool_id, size_bytes):
         p = self.s.pools[pool_id]['pool']
@@ -207,7 +209,7 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
         actual_size = self._allocate_from_pool(pool.id, size_bytes)
 
         nv = Volume('Vol' + str(self.s.vol_num), name,
-                    StorageSimulator.__randomVpd(), self.s.block_size,
+                    StorageSimulator.__random_vpd(), self.s.block_size,
                     (actual_size / self.s.block_size), Volume.STATUS_OK,
                     self.s.sys_info.id,
                     pool.id)
