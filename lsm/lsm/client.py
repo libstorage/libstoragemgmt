@@ -77,7 +77,7 @@ class Client(INetworkAttachedStorage):
 
                     try:
                         #This operation will work if the daemon is available
-                        s = Transport.getSocket(uds)
+                        s = Transport.get_socket(uds)
                         s.close()
                         return True
                     except common.LsmError:
@@ -115,7 +115,7 @@ class Client(INetworkAttachedStorage):
         self.plugin_path = os.path.join(self.uds_path, scheme)
 
         if os.path.exists(self.plugin_path):
-            self.tp = Transport(Transport.getSocket(self.plugin_path))
+            self.tp = Transport(Transport.get_socket(self.plugin_path))
         else:
             #At this point we don't know if the user specified an incorrect
             #plug-in in the URI or the daemon isn't started.  We will check

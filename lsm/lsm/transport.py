@@ -41,7 +41,7 @@ class Transport(object):
 
     HDR_LEN = 10
 
-    def __readAll(self, l):
+    def _read_all(self, l):
         """
         Reads l number of bytes before returning.  Will raise a SocketEOF
         if socket returns zero bytes (i.e. socket no longer connected)
@@ -59,7 +59,7 @@ class Transport(object):
 
         return data
 
-    def __sendMsg(self, msg):
+    def _send_msg(self, msg):
         """
         Sends the json formatted message by pre-appending the length
         first.
@@ -73,14 +73,14 @@ class Transport(object):
         #common.Info("SEND: ", msg)
         self.s.sendall(s)
 
-    def __recvMsg(self):
+    def _recv_msg(self):
         """
         Reads header first to get the length and then the remaining
         bytes of the message.
         """
         try:
-            l = self.__readAll(self.HDR_LEN)
-            msg = self.__readAll(int(l))
+            l = self._read_all(self.HDR_LEN)
+            msg = self._read_all(int(l))
             #common.Info("RECV: ", msg)
         except socket.error as e:
             raise LsmError(common.ErrorNumber.TRANSPORT_COMMUNICATION,
@@ -88,11 +88,11 @@ class Transport(object):
                            str(e))
         return msg
 
-    def __init__(self, socket):
-        self.s = socket
+    def __init__(self, socket_descriptor):
+        self.s = socket_descriptor
 
     @staticmethod
-    def getSocket(path):
+    def get_socket(path):
         """
         Returns a connected socket from the passed in path.
         """
@@ -120,7 +120,7 @@ class Transport(object):
         try:
             msg = {'method': method, 'id': 100, 'params': args}
             data = json.dumps(msg, cls=DataEncoder)
-            self.__sendMsg(data)
+            self._send_msg(data)
         except socket.error as se:
             raise LsmError(common.ErrorNumber.TRANSPORT_COMMUNICATION,
                            "Error while sending a message to the plug-in",
@@ -130,7 +130,7 @@ class Transport(object):
         """
         Reads a message and returns the parsed version of it.
         """
-        data = self.__recvMsg()
+        data = self._recv_msg()
         if len(data):
             #common.Info(str(data))
             return json.loads(data, cls=DataDecoder)
@@ -150,17 +150,17 @@ class Transport(object):
         """
         e = {'id': msg_id, 'error': {'code': error_code, 'message': msg,
                                      'data': data}}
-        self.__sendMsg(json.dumps(e, cls=DataEncoder))
+        self._send_msg(json.dumps(e, cls=DataEncoder))
 
     def send_resp(self, result, msg_id=100):
         """
         Used to transmit a response
         """
         r = {'id': msg_id, 'result': result}
-        self.__sendMsg(json.dumps(r, cls=DataEncoder))
+        self._send_msg(json.dumps(r, cls=DataEncoder))
 
     def read_resp(self):
-        data = self.__recvMsg()
+        data = self._recv_msg()
         resp = json.loads(data, cls=DataDecoder)
 
         if 'result' in resp:
@@ -174,20 +174,22 @@ def server(s):
     """
     Test echo server for test case.
     """
-    server = Transport(s)
+    srv = Transport(s)
 
-    msg = server.read_req()
+    msg = srv.read_req()
 
     try:
         while msg['method'] != 'done':
 
             if msg['method'] == 'error':
-                server.send_error(msg['id'], msg['params']['errorcode'],
-                                  msg['params']['errormsg'])
+                srv.send_error(
+                    msg['id'],
+                    msg['params']['errorcode'],
+                    msg['params']['errormsg'])
             else:
-                server.send_resp(msg['params'])
-            msg = server.read_req()
-        server.send_resp(msg['params'])
+                srv.send_resp(msg['params'])
+            msg = srv.read_req()
+        srv.send_resp(msg['params'])
     finally:
         s.close()
 
