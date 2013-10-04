@@ -683,7 +683,7 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
             raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
 
     def fs_snapshot_create(self, fs, snapshot_name, files, flags=0):
-        self._check_sl(files)
+        StorageSimulator._check_sl(files)
         if fs.id in self.s.fs:
             for e in self.s.fs[fs.id]['ss'].itervalues():
                 if e.name == snapshot_name:
@@ -709,8 +709,8 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
     def fs_snapshot_revert(self, fs, snapshot, files, restore_files,
                            all_files=False, flags=0):
 
-        self._check_sl(files)
-        self._check_sl(files)
+        StorageSimulator._check_sl(files)
+        StorageSimulator._check_sl(files)
 
         if fs.id in self.s.fs:
             if snapshot.id in self.s.fs[fs.id]['ss']:
@@ -721,14 +721,14 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
             raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
 
     def fs_child_dependency(self, fs, files, flags=0):
-        self._check_sl(files)
+        StorageSimulator._check_sl(files)
         if fs.id in self.s.fs:
             return False
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
 
     def fs_child_dependency_rm(self, fs, files, flags=0):
-        self._check_sl(files)
+        StorageSimulator._check_sl(files)
         if fs.id in self.s.fs:
             return self.__create_job(None)[0]
         else:
