@@ -45,7 +45,7 @@ class DataEncoder(json.JSONEncoder):
         if not isinstance(my_class, IData):
             raise ValueError('incorrect class type:' + str(type(my_class)))
         else:
-            return my_class.toDict()
+            return my_class.to_dict()
 
 
 class DataDecoder(json.JSONDecoder):
@@ -108,7 +108,7 @@ class IData(object):
     """
     __metaclass__ = ABCMeta
 
-    def toDict(self):
+    def to_dict(self):
         """
         Represent the class as a dictionary
         """
@@ -118,7 +118,7 @@ class IData(object):
         #process that too, is there a better way to handle this?
         for (k, v) in self.__dict__.items():
             if isinstance(v, IData):
-                rc[k] = v.toDict()
+                rc[k] = v.to_dict()
             else:
                 rc[k] = v
 
@@ -141,7 +141,7 @@ class IData(object):
         """
         Used for human string representation.
         """
-        return str(self.toDict())
+        return str(self.to_dict())
 
     @abstractmethod
     def column_headers(self):
@@ -881,7 +881,7 @@ class Capabilities(IData):
     EXPORT_REMOVE = 123
     EXPORT_CUSTOM_PATH = 124
 
-    def toDict(self):
+    def to_dict(self):
         rc = {'class': self.__class__.__name__,
               'cap': ''.join(['%02x' % b for b in self.cap])}
         return rc
