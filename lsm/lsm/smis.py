@@ -66,6 +66,30 @@ class Smis(IStorageAreaNetwork):
     # SMI-S replication enumerations
     (SYNC_TYPE_MIRROR, SYNC_TYPE_SNAPSHOT, SYNC_TYPE_CLONE) = (6, 7, 8)
 
+    # DMTF 2.29.1 (which SNIA SMI-S 1.6 based on)
+    # CIM_StorageVolume['NameFormat']
+    VOL_NAME_FORMAT_OTHER = 1
+    VOL_NAME_FORMAT_VPD83_NNA6  = 2
+    VOL_NAME_FORMAT_VPD83_NNA5 = 3
+    VOL_NAME_FORMAT_VPD83_TYPE2 = 4
+    VOL_NAME_FORMAT_VPD83_TYPE1 = 5
+    VOL_NAME_FORMAT_VPD83_TYPE0 = 6
+    VOL_NAME_FORMAT_SNVM = 7
+    VOL_NAME_FORMAT_NODE_WWN = 8
+    VOL_NAME_FORMAT_NNA = 9
+    VOL_NAME_FORMAT_EUI64 = 10
+    VOL_NAME_FORMAT_T10VID = 11
+
+    # CIM_StorageVolume['NameNamespace']
+    VOL_NAME_SPACE_OTHER = 1
+    VOL_NAME_SPACE_VPD83_TYPE3 = 2
+    VOL_NAME_SPACE_VPD83_TYPE2 = 3
+    VOL_NAME_SPACE_VPD83_TYPE1 = 4
+    VOL_NAME_SPACE_VPD80 = 5
+    VOL_NAME_SPACE_NODE_WWN = 6
+    VOL_NAME_SPACE_SNVM = 7
+
+
     class RepSvc(object):
 
         class Action(object):
@@ -716,29 +740,14 @@ class Smis(IStorageAreaNetwork):
     @staticmethod
     def _vpd83_in_cv_name(cv):
         """
-        SMI-S 1.6 r4 SPEC part3 5.8.49 Table 81 Page 145, PDF Page 185:
-              Table 81 - SMI ReferencedProperties/Methods for
-                         CIM_StorageVolume
-        NameFomat:
-          1   (Other)
-          2   (VPD83NAA6)
-          3   (VPD83NAA5)
-          4   (VPD83Type2)
-          5   (VPD83Type1)
-          6   (VPD83Type0)
-          7   (SNVM)
-          8   (NodeWWN)
-          9   (NAA)
-          10  (EUI64)
-          11  (T10VID).
         Explanation of these Format is in:
           SMI-S 1.6 r4 SPEC part1 7.6.2 Table 2 Page 38, PDF Page 60:
               Table 2 - Standard Formats for StorageVolume Names
         Only these combinations is allowed when storing VPD83 in cv["Name"]:
          * NameFormat = NAA(9), NameNamespace = VPD83Type3(1)
-            SCSI VPD page 83, type 3h, Association=0, NAA 0010b
-            NAA name with first nibble of 2. Formatted as 16 un-separated
-            upper case hex digits
+            SCSI VPD page 83, type 3h, Association=0, NAA 0101b/0110b/0010b
+            NAA name with first nibble of 2/5/6.
+            Formatted as 16 or 32 un-separated upper case hex digits
          * NameFormat = NAA(9), NameNamespace = VPD83Type3(2)
             SCSI VPD page 83, type 3h, Association=0, NAA 0001b
             NAA name with first nibble of 1. Formatted as 16 un-separated
@@ -760,10 +769,18 @@ class Smis(IStorageAreaNetwork):
         name = cv['Name']
         if not (nf and nn and name):
             return None
-        if (nf == 9 and nn == 1) or \
-           (nf == 9 and nn == 2) or \
-           (nf == 10 and nn == 3) or \
-           (nf == 11 and nn == 4):
+        # SNIA might missly said VPD83Type3(1), it should be
+        # VOL_NAME_FORMAT_OTHER(1) based on DMTF.
+        # Will remove the Smis.VOL_NAME_FORMAT_OTHER condition if confirmed as
+        # SNIA document fault.
+        if (nf == Smis.VOL_NAME_FORMAT_NNA and
+            nn == Smis.VOL_NAME_FORMAT_OTHER) or \
+           (nf == Smis.VOL_NAME_FORMAT_NNA and
+            nn == Smis.VOL_NAME_SPACE_VPD83_TYPE3 ) or \
+           (nf == Smis.VOL_NAME_FORMAT_NODE_EUI64 and
+            nn == Smis.VOL_NAME_SPACE_VPD83_TYPE2) or \
+           (nf == Smis.VOL_NAME_FORMAT_T10VID and
+            nn == Smis.VOL_NAME_SPACE_VPD83_TYPE1):
             return name
 
     @staticmethod
