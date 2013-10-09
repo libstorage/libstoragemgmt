@@ -41,6 +41,7 @@
 #include <sys/time.h>
 #include <libgen.h>
 #include <assert.h>
+#include <grp.h>
 
 #define BASE_DIR  "/var/run/lsm"
 #define SOCKET_DIR BASE_DIR"/ipc"
@@ -153,6 +154,11 @@ void drop_privileges(void)
                 if( -1 == setgid(pw->pw_gid) ) {
                     err = errno;
                     loud("Unexpected error on setgid(errno %d)\n", err);
+                }
+
+                if( -1 == setgroups(1, &pw->pw_gid) ) {
+                    err = errno;
+                    loud("Unexpected error on setgroups(errno %d)\n", err);
                 }
 
                 if( -1 == setuid(pw->pw_uid) ) {
