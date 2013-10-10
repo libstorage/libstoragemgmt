@@ -26,7 +26,8 @@ lsm_PYTHON = lsm/__init__.py           \
                    lsm/smis.py         \
                    lsm/smisproxy.py    \
                    lsm/transport.py    \
-                   lsm/version.py
+                   lsm/version.py      \
+                   lsm/targetd.py
 
 
 dist_bin_SCRIPTS += $(IBM_PLUG)
