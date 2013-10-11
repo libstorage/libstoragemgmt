@@ -777,7 +777,7 @@ class Smis(IStorageAreaNetwork):
             nn == Smis.VOL_NAME_FORMAT_OTHER) or \
            (nf == Smis.VOL_NAME_FORMAT_NNA and
             nn == Smis.VOL_NAME_SPACE_VPD83_TYPE3 ) or \
-           (nf == Smis.VOL_NAME_FORMAT_NODE_EUI64 and
+           (nf == Smis.VOL_NAME_FORMAT_EUI64 and
             nn == Smis.VOL_NAME_SPACE_VPD83_TYPE2) or \
            (nf == Smis.VOL_NAME_FORMAT_T10VID and
             nn == Smis.VOL_NAME_SPACE_VPD83_TYPE1):
