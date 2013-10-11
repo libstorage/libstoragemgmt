@@ -12,5 +12,9 @@ libstoragemgmt_la_SOURCES=lsm_mgmt.cpp lsm_datatypes.hpp lsm_datatypes.cpp \
 
 DEPS = $(top_builddir)/src/libstoragemgmt.la
 
+
+lsmd_LDFLAGS=-Wl,-z,relro,-z,now -pie
+lsmd_CFLAGS=-fPIE -DPIE
+
 lsmd_SOURCES = lsm_daemon.c
 
