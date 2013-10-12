@@ -19,7 +19,7 @@ from abc import ABCMeta, abstractmethod
 import json
 from json.decoder import WHITESPACE
 import datetime
-from common import get_class, sh
+from common import get_class, sh, LsmError, ErrorNumber
 
 
 def txt_a(txt, append):
@@ -134,6 +134,12 @@ class IData(object):
             class_name = d['class']
             del d['class']
             c = get_class(__name__ + '.' + class_name)
+
+            #If any of the parameters are themselves an IData process them
+            for k, v in d.items():
+                if isinstance(v, dict) and 'class' in v:
+                    d[k] = IData.factory(v)
+
             i = c(**d)
             return i
 
@@ -422,31 +428,43 @@ class Disk(IData):
     MEDIUM_ERROR_COUNT_NOT_SUPPORT = -1
     PREDICTIVE_FAILURE_COUNT_NOT_SUPPORT = -1
 
-    def __init__(self, id, name, sn, part_num, vendor, model, disk_type,
-                 block_size, num_of_blocks, status, enable_status, health,
-                 system_id, error_info='',
-                 media_err_count=MEDIUM_ERROR_COUNT_NOT_SUPPORT,
-                 predictive_fail_count=PREDICTIVE_FAILURE_COUNT_NOT_SUPPORT,
-                 owner_ctrler_id=None
-                 ):
+    OPT_PROPERTIES_2_HEADER = {
+        'sn':                       'SN',
+        'part_num':                 'Part Number',
+        'vendor':                   'Vendor',
+        'model':                    'Model',
+        'enable_status':            'Enable Status',
+        'media_err_count':          'Media Error Count',
+        'predictive_fail_count':    'Predictive Fail Count',
+        'error_info':               'Error Info',
+        'owner_ctrler_id':          'Controller Owner',
+    }
+
+    def __init__(self, id, name, disk_type, block_size, num_of_blocks, status,
+                 health, system_id, optional_params=None):
         self.id = id
         self.name = name
-        self.sn = sn
-        self.part_num = part_num
-        self.vendor = vendor
-        self.model = model
         self.disk_type = disk_type
         self.block_size = block_size
         self.num_of_blocks = num_of_blocks
         self.status = status
-        self.enable_status = enable_status
         self.health = health
         self.system_id = system_id
-        self.error_info = error_info
-        self.media_err_count = media_err_count   # Only found LSI support
-        self.predictive_fail_count = predictive_fail_count
-        self.owner_ctrler_id = owner_ctrler_id   # space holder for future
-                                                 # Controller Class.
+
+
+        if optional_params is None:
+            self.optional_params = Properties()
+        else:
+            #Make sure the properties only contain ones we permit
+            allowed = set(Disk.OPT_PROPERTIES_2_HEADER.keys())
+            actual = set(optional_params.list())
+
+            if actual <= allowed:
+                self.optional_params = optional_params
+            else:
+                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                                      "Property keys are invalid: %s" %
+                                      "".join(actual - allowed))
 
     @property
     def size_bytes(self):
@@ -484,40 +502,56 @@ class Disk(IData):
     def __str__(self):
         return self.name
 
+    def _opt_column_headers(self):
+        opt_headers = []
+        opt_pros = self.optional_params.list()
+        for opt_pro in opt_pros:
+            opt_headers.extend([Disk.OPT_PROPERTIES_2_HEADER[opt_pro]])
+        return opt_headers
+
     def column_headers(self):
-        return [['ID', 'Name', 'Serial Number', 'Part Number',
-                 'Vendor', 'Model', 'Type',
-                 'Block Size', '#blocks', 'Size',
-                 'Status', 'Enable Status', 'Health', 'Error Info',
-                 'Medium Error Count', 'Predictive Fail Count',
-                 'System ID']]
+        headers = ['ID', 'Name', 'Disk Type', 'Block Size', '#blocks', 'Size',
+                   'Status', 'Health', 'System ID']
+        opt_headers = self._opt_column_headers()
+        if opt_headers:
+            headers.extend(opt_headers)
+        return [headers]
+
+    def _opt_column_data(self, human=False, enum_as_number=False):
+        opt_data_values = []
+        opt_pros = self.optional_params.list()
+        for opt_pro in opt_pros:
+            opt_pro_value = self.optional_params.get(opt_pro)
+            if enum_as_number:
+                # current no size convert needed.
+                pass
+            else:
+                if opt_pro == 'enable_status':
+                    opt_pro_value = Disk.enable_status_to_str(opt_pro_value)
+
+            opt_data_values.extend([opt_pro_value])
+        return opt_data_values
 
     def column_data(self, human=False, enum_as_number=False):
+        data_values = []
         if enum_as_number:
-            return [[self.id, self.name, self.sn, self.part_num,
-                     self.vendor, self.model, self.disk_type,
-                     sh(self.block_size, human),
-                     self.num_of_blocks,
-                     sh(self.size_bytes, human),
-                     self.status, self.enable_status, self.health,
-                     self.error_info,
-                     self.media_err_count,
-                     self.predictive_fail_count,
-                     self.system_id]]
+            data_values = [
+                self.id, self.name, self.disk_type,
+                sh(self.block_size, human), self.num_of_blocks,
+                sh(self.size_bytes, human), self.status, self.health,
+                self.system_id
+            ]
         else:
-            return [[self.id, self.name, self.sn, self.part_num,
-                     self.vendor, self.model,
-                     self.disk_type_to_str(self.disk_type),
-                     sh(self.block_size, human),
-                     self.num_of_blocks,
-                     sh(self.size_bytes, human),
-                     self.status_to_str(self.status),
-                     self.enable_status_to_str(self.enable_status),
-                     self.health_to_str(self.health),
-                     self.error_info,
-                     self.media_err_count,
-                     self.predictive_fail_count,
-                     self.system_id]]
+            data_values = [
+                self.id, self.name, Disk.disk_type_to_str(self.disk_type),
+                sh(self.block_size, human), self.num_of_blocks,
+                sh(self.size_bytes, human), Disk.status_to_str(self.status),
+                Disk.health_to_str(self.health), self.system_id
+            ]
+        opt_data_values = self._opt_column_data(human, enum_as_number)
+        if opt_data_values:
+            data_values.extend(opt_data_values)
+        return [data_values]
 
 
 class Volume(IData):
@@ -795,6 +829,31 @@ class AccessGroup(IData):
         else:
             rc.append([self.id, self.name, 'No initiators', self.system_id])
         return rc
+
+
+class Properties(IData):
+    def column_data(self, human=False, enum_as_number=False):
+        return [sorted(self.values.iterkeys(),
+                       key=lambda k: self.values[k][1])]
+
+    def column_headers(self):
+        return [sorted(self.values.keys())]
+
+    def __init__(self, values=None):
+        if values is not None:
+            self.values = values
+        else:
+            self.values = {}
+
+    def list(self):
+        rc = self.values.keys()
+        return rc
+
+    def get(self, key):
+        return self.values[key]
+
+    def set(self, key, value):
+        self.values[key] = value
 
 
 class Capabilities(IData):
