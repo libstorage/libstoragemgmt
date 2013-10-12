@@ -14,7 +14,8 @@ EXTRA_DIST = \
 	libstoragemgmt.pc.in \
 	libstoragemgmt.pc \
 	libstoragemgmt.spec.in \
-	libstoragemgmt.spec
+	libstoragemgmt.spec \
+	autogen.sh
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libstoragemgmt.pc
