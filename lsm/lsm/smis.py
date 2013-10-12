@@ -25,7 +25,7 @@ from pywbem import CIMError
 from iplugin import IStorageAreaNetwork
 from common import  Error, uri_parse, LsmError, ErrorNumber, JobStatus, md5
 from data import Pool, Initiator, Volume, AccessGroup, System, Capabilities,\
-    Disk
+    Disk, Properties
 from version import VERSION
 
 
@@ -76,7 +76,7 @@ class Smis(IStorageAreaNetwork):
     # DMTF 2.29.1 (which SNIA SMI-S 1.6 based on)
     # CIM_StorageVolume['NameFormat']
     VOL_NAME_FORMAT_OTHER = 1
-    VOL_NAME_FORMAT_VPD83_NNA6  = 2
+    VOL_NAME_FORMAT_VPD83_NNA6 = 2
     VOL_NAME_FORMAT_VPD83_NNA5 = 3
     VOL_NAME_FORMAT_VPD83_TYPE2 = 4
     VOL_NAME_FORMAT_VPD83_TYPE1 = 5
@@ -95,7 +95,6 @@ class Smis(IStorageAreaNetwork):
     VOL_NAME_SPACE_VPD80 = 5
     VOL_NAME_SPACE_NODE_WWN = 6
     VOL_NAME_SPACE_SNVM = 7
-
 
     class RepSvc(object):
 
@@ -1612,7 +1611,7 @@ class Smis(IStorageAreaNetwork):
         Return all CIM_DiskDrive Properties needed to create a Disk object.
         """
         return ['OperationalStatus', 'EnabledState', 'Name', 'SystemName',
-                'DeviceID', 'HealthState', 'ErrorDescription', 'ErrorCleared',
+                'HealthState', 'ErrorDescription', 'ErrorCleared',
                 'PredictiveFailureCount', 'MediaErrorCount', 'Caption',
                 'InterconnectType', 'DiskType']
 
@@ -1650,32 +1649,21 @@ class Smis(IStorageAreaNetwork):
                            "of CIM_DiskDrive %s" % cim_disk.path)
         cim_phy_pkg = cim_phy_pkgs[0]
         status = Disk.STATUS_UNKNOWN
-        enable_status = Disk.ENABLE_STATUS_UNKNOWN
         name = ''
-        vendor = ''
-        model = ''
-        sn = ''
-        part_num = ''
         block_size = Disk.BLOCK_SIZE_NOT_FOUND
         num_of_block = Disk.BLOCK_COUNT_NOT_FOUND
         system_id = ''
-        error_info = ''
-        media_err_count = Disk.MEDIUM_ERROR_COUNT_NOT_SUPPORT
-        predictive_fail_count = Disk.PREDICTIVE_FAILURE_COUNT_NOT_SUPPORT
         health = Disk.HEALTH_UNKNOWN
         disk_type = Disk.DISK_TYPE_UNKNOWN
+        opt_pro_dict = {}
 
         # These are mandatory
         # we do not check whether they follow the SNIA standard.
         if 'OperationalStatus' in cim_disk:
             status = \
                 Disk.status_dmtf_to_lsm_type(cim_disk['OperationalStatus'])
-        if 'EnabledState' in cim_disk:
-            enable_status = cim_disk['EnabledState']
         if 'Name' in cim_disk:
             name = cim_disk["Name"]
-        if 'DeviceID' in cim_disk:
-            device_id = cim_disk["DeviceID"]
         if 'SystemName' in cim_disk:
             system_id = cim_disk['SystemName']
         if 'HealthState' in cim_disk:
@@ -1684,14 +1672,7 @@ class Smis(IStorageAreaNetwork):
             block_size = cim_ext['BlockSize']
         if 'NumberOfBlocks' in cim_ext:
             num_of_block = cim_ext['NumberOfBlocks']
-        if 'Manufacturer' in cim_phy_pkg:
-            vendor = cim_phy_pkg['Manufacturer']
-        if 'Model' in cim_phy_pkg:
-            model = cim_phy_pkg['Model']
-        if 'SerialNumber' in cim_phy_pkg:
-            sn = cim_phy_pkg['SerialNumber']
-        if 'PartNumber' in cim_phy_pkg:
-            part_num = cim_phy_pkg['PartNumber']
+
         # SNIA SMI-S 1.4 or even 1.6 does not define anyway to find out disk
         # type.
         # Currently, EMC is following DMTF define to do so.
@@ -1722,10 +1703,20 @@ class Smis(IStorageAreaNetwork):
                     if ccn == 'LSIESG_TargetSASProtocolEndpoint':
                         disk_type = Disk.DISK_TYPE_SAS
 
+        if 'EnabledState' in cim_disk:
+            opt_pro_dict['enable_status'] = cim_disk['EnabledState']
+        if 'Manufacturer' in cim_phy_pkg and cim_phy_pkg['Manufacturer']:
+            opt_pro_dict['vendor'] = cim_phy_pkg['Manufacturer']
+        if 'Model' in cim_phy_pkg and cim_phy_pkg['Model']:
+            opt_pro_dict['model'] = cim_phy_pkg['Model']
+        if 'SerialNumber' in cim_phy_pkg and cim_phy_pkg['SerialNumber']:
+            opt_pro_dict['sn'] = cim_phy_pkg['SerialNumber']
+        if 'PartNumber' in cim_phy_pkg and cim_phy_pkg['PartNumber']:
+            opt_pro_dict['part_num'] = cim_phy_pkg['PartNumber']
         if 'ErrorCleared' in cim_disk:
             if not cim_disk['ErrorCleared']:
                 if 'ErrorDescription' in cim_disk:
-                    error_info = cim_disk['ErrorDescription']
+                    opt_pro_dict['error_info'] = cim_disk['ErrorDescription']
                 else:
                     raise LsmError(ErrorNumber.INTERNAL_ERROR,
                                    "CIM_DiskDrive %s " % cim_disk.id +
@@ -1733,15 +1724,20 @@ class Smis(IStorageAreaNetwork):
                                    "does not have " +
                                    "CIM_DiskDrive['ErrorDescription']")
         if 'MediaErrorCount' in cim_disk:
-            media_err_count = cim_disk['MediaErrorCount']
+            opt_pro_dict['media_err_count'] = cim_disk['MediaErrorCount']
         if 'PredictiveFailureCount' in cim_disk:
-            predictive_fail_count = cim_disk['PredictiveFailureCount']
+            opt_pro_dict['predictive_fail_count'] = \
+                cim_disk['PredictiveFailureCount']
 
-        return Disk(self._disk_id(cim_disk), name, sn, part_num,
-                    vendor, model, disk_type,
-                    block_size, num_of_block,
-                    status, enable_status, health, system_id, error_info,
-                    media_err_count, predictive_fail_count)
+        optionals = Properties()
+
+        for opt_pro_name in opt_pro_dict.keys():
+            optionals.set(opt_pro_name, opt_pro_dict[opt_pro_name])
+
+        new_disk = Disk(self._disk_id(cim_disk), name, disk_type, block_size,
+                        num_of_block, status, health, system_id, optionals)
+
+        return new_disk
 
     def _pri_cim_ext_of_cim_disk(self, cim_disk_path, property_list=None):
         """
