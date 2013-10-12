@@ -50,7 +50,8 @@ AM_PROG_LD
 AC_CHECK_HEADERS([stdint.h stdlib.h string.h sys/socket.h syslog.h unistd.h])
 
 AC_LANG_PUSH([C++])
-AC_COMPILE_IFELSE([[int i;]], [], [AC_MSG_ERROR([C++ compiler missing or inoperational])])
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([int i;])],
+   [], [AC_MSG_ERROR([C++ compiler missing or inoperational])])
 AC_LANG_POP([C++])
 
 #Make sure all types are covered

@@ -1,4 +1,4 @@
-INCLUDES = -I$(top_srcdir)/include -I$(top_builddir)/include -I@srcdir@/include $(LIBXML_CFLAGS) $(LIBGLIB_CFLAGS)
+AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_builddir)/include -I@srcdir@/include $(LIBXML_CFLAGS) $(LIBGLIB_CFLAGS)
 
 lib_LTLIBRARIES = libstoragemgmt.la
 

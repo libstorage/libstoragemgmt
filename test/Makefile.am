@@ -1,4 +1,4 @@
-INCLUDES = -I$(top_srcdir)/include -I@srcdir@/include
+AM_CPPFLAGS = -I$(top_srcdir)/include -I@srcdir@/include
 
 EXTRA_DIST=cmdtest.py runtests.sh
 
