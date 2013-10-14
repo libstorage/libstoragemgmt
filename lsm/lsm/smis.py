@@ -1068,15 +1068,15 @@ class Smis(IStorageAreaNetwork):
         else:
             return False
 
-    def _check_volume_associations(self, vol):
+    def _deal_volume_associations(self, vol, lun):
         """
         Check a volume to see if it has any associations with other
-        volumes.
+        volumes and deal with them.
         """
-        lun = self._get_cim_instance_by_id('Volume', vol.id)
+        lun_path = lun.path
 
         try:
-            ss = self._c.References(lun.path,
+            ss = self._c.References(lun_path,
                                     ResultClass='CIM_StorageSynchronized')
         except pywbem.CIMError as e:
             if e[0] == pywbem.CIM_ERR_INVALID_CLASS:
@@ -1084,7 +1084,6 @@ class Smis(IStorageAreaNetwork):
             else:
                 raise e
 
-        lp = lun.path
 
         if len(ss):
             for s in ss:
@@ -1108,13 +1107,13 @@ class Smis(IStorageAreaNetwork):
                     if 'SyncedElement' in s:
                         item = s['SyncedElement']
 
-                        if Smis._cim_name_match(item, lp):
+                        if Smis._cim_name_match(item, lun_path):
                             self._detach(vol, s)
 
                     if 'SystemElement' in s:
                         item = s['SystemElement']
 
-                        if Smis._cim_name_match(item, lp):
+                        if Smis._cim_name_match(item, lun_path):
                             self._detach(vol, s)
 
     @handle_cim_errors
@@ -1126,7 +1125,7 @@ class Smis(IStorageAreaNetwork):
                                        'SystemName', volume.system_id)
         lun = self._get_cim_instance_by_id('Volume', volume.id)
 
-        self._check_volume_associations(volume)
+        self._deal_volume_associations(volume, lun)
 
         in_params = {'TheElement': lun.path}
 
