@@ -128,8 +128,8 @@ class IbmV7k(IStorageAreaNetwork):
         self.ssh = None
 
     def _execute_command(self, ssh_cmd):
-        ec, so, se = self.ssh.execute(ssh_cmd)
-        return ec, so, se
+        exit_code, stdout, stderr = self.ssh.execute(ssh_cmd)
+        return exit_code, stdout, stderr
 
     def _execute_command_and_parse_detailed(self, ssh_cmd):
         exit_code, stdout, stderr = self.ssh.execute(ssh_cmd)
@@ -233,12 +233,12 @@ class IbmV7k(IStorageAreaNetwork):
             ssh_cmd += ' -rsize %d%% -warning %d %s' % \
                        (rsize, warning, autoex)
 
-        ec, so, se = self.ssh.execute(ssh_cmd)
+        exit_code, stdout, stderr = self.ssh.execute(ssh_cmd)
 
     def _delete_volume(self, volume, force):
         # NOTE: volume can be id or name
         ssh_cmd = 'rmvdisk %s %s' % ('-force' if force else '', volume)
-        ec, so, se = self.ssh.execute(ssh_cmd)
+        exit_code, stdout, stderr = self.ssh.execute(ssh_cmd)
 
     def _get_initiators(self):
         ssh_cmd = 'lshost -delim !'
@@ -329,8 +329,8 @@ class IbmV7k(IStorageAreaNetwork):
         except LsmError as le:
             if le.code == ErrorNumber.NOT_FOUND_INITIATOR:
                 # Auto add the initiator
-                ec, so, se = self._initiator_create(init_id, init_type)
-                if self._initiator_create_is_success(so):
+                exit_code, stdout, stderr = self._initiator_create(init_id, init_type)
+                if self._initiator_create_is_success(stdout):
                     # If success, get the v7k id for the new init
                     # This should not cause an exception this time!
                     v7k_init_id = self._map_lsm_init_id_to_v7k(init_id)
@@ -492,9 +492,9 @@ class IbmV7k(IStorageAreaNetwork):
             raise LsmError(ErrorNumber.NO_SUPPORT,
                            "Only RW access to the volume is supported")
 
-        ec, so, se = self._initiator_grant(initiator_id, initiator_type,
+        exit_code, stdout, stderr = self._initiator_grant(initiator_id, initiator_type,
                                            volume.id, force=True)
-        return self._initiator_grant_is_success(so)
+        return self._initiator_grant_is_success(stdout)
 
     def initiator_revoke(self, initiator, volume, flags=0):
         self._initiator_revoke(initiator.id, volume.id)
@@ -515,6 +515,12 @@ class IbmV7k(IStorageAreaNetwork):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Feature not supported")
 
     def access_group_del_initiator(self, group, initiator_id, flags=0):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Feature not supported")
+
+    def access_group_grant(self, group, volume, access, flags=0):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Feature not supported")
+
+    def access_group_revoke(self, group, volume, flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Feature not supported")
 
     def volumes_accessible_by_access_group(self, group, flags=0):
