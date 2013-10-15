@@ -19,10 +19,11 @@ from string import split
 
 import time
 import pywbem
+import traceback
 from pywbem import CIMError
 
 from iplugin import IStorageAreaNetwork
-from common import uri_parse, LsmError, ErrorNumber, JobStatus, md5
+from common import  Error, uri_parse, LsmError, ErrorNumber, JobStatus, md5
 from data import Pool, Initiator, Volume, AccessGroup, System, Capabilities,\
     Disk
 from version import VERSION
@@ -34,7 +35,13 @@ def handle_cim_errors(method):
             return method(*args, **kwargs)
         except CIMError as ce:
             raise LsmError(ErrorNumber.PLUGIN_ERROR, str(ce))
-
+        except pywbem.cim_http.AuthError as ae:
+            raise LsmError(ErrorNumber.PLUGIN_AUTH_FAILED, "Unauthorized user")
+        except pywbem.cim_http.Error as te:
+            raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION, str(te))
+        except Exception as e:
+            Error("Unexpected exception:\n" + traceback.format_exc())
+            raise LsmError(ErrorNumber.PLUGIN_ERROR, str(e))
     return cim_wrapper
 
 
@@ -178,7 +185,6 @@ class Smis(IStorageAreaNetwork):
         self.tmo = 0
         self.system_list = None
 
-    @handle_cim_errors
     def _get_cim_instance_by_id(self, class_type, requested_id,
                                 flag_full_info=True):
         """
@@ -656,7 +662,6 @@ class Smis(IStorageAreaNetwork):
         else:
             return md5(id_str)
 
-    @handle_cim_errors
     def _get_pool_from_vol(self, cim_vol):
         """
          Takes a CIMInstance that represents a volume and returns the pool
@@ -882,7 +887,6 @@ class Smis(IStorageAreaNetwork):
 
         return rc
 
-    @handle_cim_errors
     def _systems(self, system_name=None):
         """
         Returns a list of system objects (CIM)
@@ -1288,7 +1292,6 @@ class Smis(IStorageAreaNetwork):
     def volume_offline(self, volume, flags=0):
         return None
 
-    @handle_cim_errors
     def _initiator_create(self, name, init_id, id_type):
         """
         Create initiator object
@@ -1630,7 +1633,6 @@ class Smis(IStorageAreaNetwork):
         return ['BlockSize', 'NumberOfBlocks', 'SerialNumber', 'PartNumber',
                 'Manufacturer', 'Model']
 
-    @handle_cim_errors
     def _new_disk(self, cim_disk, cim_ext):
         """
         Takes a CIM_DiskDrive and CIM_StorageExtent, returns a lsm Disk
@@ -1741,7 +1743,6 @@ class Smis(IStorageAreaNetwork):
                     status, enable_status, health, system_id, error_info,
                     media_err_count, predictive_fail_count)
 
-    @handle_cim_errors
     def _pri_cim_ext_of_cim_disk(self, cim_disk_path, property_list=None):
         """
         Usage:
