@@ -58,6 +58,9 @@ void * lsmDataTypeCopy(lsmDataType t, void *item)
 
     if( item ) {
         switch( t ) {
+            case(LSM_DATA_TYPE_ACCESS_GROUP):
+                rc = lsmAccessGroupRecordCopy((lsmAccessGroup *)item);
+                break;
             case(LSM_DATA_TYPE_BLOCK_RANGE):
                 rc = lsmBlockRangeRecordCopy((lsmBlockRange *)item);
                 break;
