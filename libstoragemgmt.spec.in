@@ -251,6 +251,7 @@ fi
 
 %files targetd-plugin
 %defattr(-,root,root,-)
+%{python_sitelib}/lsm/targetd.*
 %{_bindir}/targetd_lsmplugin
 
 
