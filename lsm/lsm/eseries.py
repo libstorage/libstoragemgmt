@@ -26,32 +26,30 @@ from common import LsmError, ErrorNumber
 
 class ESeries(Smis):
 
-    def _check_volume_associations(self, vol):
+    def _deal_volume_associations(self, vol, lun):
         """
         Check a volume to see if it has any associations with other
         volumes.
         """
         rc = False
-        lun = self._get_cim_instance_by_id('Volume', vol.id)
+        lun_path = lun.path
 
-        ss = self._c.References(lun.path,
+        ss = self._c.References(lun_path,
                                 ResultClass='CIM_StorageSynchronized')
-
-        lp = lun.path
 
         if len(ss):
             for s in ss:
                 if 'SyncedElement' in s:
                     item = s['SyncedElement']
 
-                    if Smis._cim_name_match(item, lp):
+                    if Smis._cim_name_match(item, lun_path):
                         self._detach(vol, s)
                         rc = True
 
                 if 'SystemElement' in s:
                     item = s['SystemElement']
 
-                    if Smis._cim_name_match(item, lp):
+                    if Smis._cim_name_match(item, lun_path):
                         self._detach(vol, s)
                         rc = True
 
@@ -167,7 +165,7 @@ class ESeries(Smis):
 
         #If we actually have an association to delete, the volume will be
         #deleted with the association, no need to call ReturnToStoragePool
-        if not self._check_volume_associations(volume):
+        if not self._deal_volume_associations(volume, lun):
             in_params = {'TheElement': lun.path}
 
             #Delete returns None or Job number
