@@ -201,8 +201,12 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
         p = self.s.pools[pool_id]['pool']
         p.free_space += size_bytes
 
+    @staticmethod
+    def _ag_id(name):
+        return md5(name)
+
     def _new_access_group(self, name, h):
-        return AccessGroup(md5(name), name,
+        return AccessGroup(StorageSimulator._ag_id(name), name,
                            [i.id for i in h['initiators']], self.s.sys_info.id)
 
     def _create_vol(self, pool, name, size_bytes):
@@ -601,13 +605,21 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
     def volumes_accessible_by_initiator(self, initiator, flags=0):
         rc = []
         volumes = {}
-        for k, v in self.s.access_groups.items():
-            initiators = v['initiators']
-            if any(x.id for x in initiators):
-                for (ag_id, volume_mappings) in self.s.group_grants.items():
-                    for volume_id in volume_mappings.keys():
+
+        #Go through each access group, for each one see if our initiator
+        #is one of them.
+        for ag_name, ag_info in self.s.access_groups.items():
+            # Check to see if the initiator is in the group.
+            if initiator.id in [i.id for i in ag_info['initiators']]:
+                # Look up the privileges for this group, if any
+                ag_id = StorageSimulator._ag_id(ag_name)
+                if ag_id in self.s.group_grants:
+                    # Loop through the volumes granted to this AG
+                    for volume_id in self.s.group_grants[ag_id].keys():
                         volumes[volume_id] = None
 
+        # We very well may have duplicates, thus the reason we enter the
+        # volume id into the hash with no value, we are weeding out dupes
         for vol_id in volumes.keys():
             rc.append(self._get_volume(vol_id))
 
