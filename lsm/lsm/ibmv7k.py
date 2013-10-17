@@ -126,6 +126,8 @@ class IbmV7k(IStorageAreaNetwork):
     def __init__(self):
         self.sys_info = None
         self.ssh = None
+        self.tmo = 0
+        self.password = None
 
     def _execute_command(self, ssh_cmd):
         exit_code, stdout, stderr = self.ssh.execute(ssh_cmd)
@@ -220,9 +222,9 @@ class IbmV7k(IStorageAreaNetwork):
                       self.sys_info.id,
                       v['mdisk_grp_id'])
 
-    def _create_volume(self, pool, volname, size_bytes, prov):
+    def _create_volume(self, pool, vol_name, size_bytes, prov):
         ssh_cmd = ('mkvdisk -name %s -mdiskgrp %s -iogrp 0 -size %s'
-                   ' -unit b') % (volname, pool, size_bytes)
+                   ' -unit b') % (vol_name, pool, size_bytes)
 
         if prov == Volume.PROVISION_THIN:
             # Defaults for thinp
@@ -371,22 +373,22 @@ class IbmV7k(IStorageAreaNetwork):
         return
 
     def startup(self, uri, password, timeout, flags=0):
-        self.uri = uri
         self.password = password
+        self.tmo = timeout
+        self.up = uri_parse(uri)
 
-        up = uri_parse(uri)
-        self.ssh = SSHClient(up['host'], up['username'], password, timeout)
+        self.ssh = SSHClient(self.up['host'], self.up['username'], self.password, self.tmo)
 
         si = self._get_system_info()
         self.sys_info = System(si['id'], si['name'], System.STATUS_OK)
 
     def set_time_out(self, ms, flags=0):
-        raise LsmError(ErrorNumber.NOT_IMPLEMENTED,
-                       "API not implemented at this time")
+        self.tmo = ms
+        self.ssh.close()
+        self.ssh = SSHClient(self.up['host'], self.up['username'], self.password, self.tmo)
 
     def get_time_out(self, flags=0):
-        raise LsmError(ErrorNumber.NOT_IMPLEMENTED,
-                       "API not implemented at this time")
+        return self.tmo
 
     def shutdown(self, flags=0):
         self.ssh.close()
@@ -440,8 +442,8 @@ class IbmV7k(IStorageAreaNetwork):
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
                       flags=0):
         self._create_volume(pool.id, volume_name, size_bytes, provisioning)
-        newvol = self._get_volume(volume_name)
-        return None, self._volume(newvol)
+        new_vol = self._get_volume(volume_name)
+        return None, self._volume(new_vol)
 
     def volume_delete(self, volume, flags=0):
         # TODO: How to pass -force param ? For now, assume -force
