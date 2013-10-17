@@ -143,6 +143,9 @@ void free_allocated_job(void *j)
 
     if( job &&  job->return_data ) {
         switch( job->type ) {
+        case(LSM_DATA_TYPE_ACCESS_GROUP):
+            lsmAccessGroupRecordFree((lsmAccessGroup *)job->return_data);
+            break;
         case(LSM_DATA_TYPE_BLOCK_RANGE):
             lsmBlockRangeRecordFree((lsmBlockRange *)job->return_data);
             break;
