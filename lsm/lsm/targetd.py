@@ -33,7 +33,7 @@ from lsm.version import VERSION
 
 DEFAULT_USER = "admin"
 DEFAULT_PORT = 18700
-path = "/targetrpc"
+PATH = "/targetrpc"
 
 class TargetdStorage(IStorageAreaNetwork, INfs):
 
@@ -64,7 +64,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
             self.scheme = 'http'
 
         self.url = urlparse.urlunsplit(
-            (self.scheme, self.host_with_port, path, None, None))
+            (self.scheme, self.host_with_port, PATH, None, None))
 
         auth = ('%s:%s' % (user, self.password)).encode('base64')[:-1]
         self.headers = {'Content-Type': 'application/json',
@@ -578,7 +578,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                 raise
             print "socket error, retrying with SSL"
             url = urlparse.urlunsplit(
-                ("https", self.host_with_port, path, None, None))
+                ("https", self.host_with_port, PATH, None, None))
             request = urllib2.Request(url, data, self.headers)
             response_obj = urllib2.urlopen(request)
 
