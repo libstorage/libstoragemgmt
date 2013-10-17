@@ -103,6 +103,10 @@ int lsmStringListSetElem(lsmStringList *sl, uint32_t index,
         } else {
             g_ptr_array_set_size(sl->values, index + 1);
             g_ptr_array_index(sl->values, index) = strdup(value);
+
+            if( !g_ptr_array_index(sl->values, index) ) {
+                rc = LSM_ERR_NO_MEMORY;
+            }
         }
     } else {
         rc = LSM_ERR_INVALID_SL;
@@ -198,7 +202,7 @@ lsmConnect *getConnection()
 
 void freeConnection(lsmConnect *c)
 {
-    if (c) {
+    if (LSM_IS_CONNECT(c)) {
 
         c->magic = LSM_DEL_MAGIC(LSM_CONNECT_MAGIC);
         c->flags = 0;
