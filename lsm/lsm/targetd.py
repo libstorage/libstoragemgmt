@@ -19,11 +19,12 @@
 
 import copy
 
-from lsm.iplugin import IStorageAreaNetwork, INetworkAttachedStorage, INfs
+from lsm.iplugin import IStorageAreaNetwork, INfs
 from lsm.data import (Pool, Volume, System, Capabilities, Initiator,
                       FileSystem, Snapshot, NfsExport)
-from lsm.common import (LsmError, ErrorNumber, uri_parse, md5)
+from lsm.common import (LsmError, ErrorNumber, uri_parse, md5, Error)
 
+import traceback
 import urllib2
 import json
 import time
@@ -34,6 +35,22 @@ from lsm.version import VERSION
 DEFAULT_USER = "admin"
 DEFAULT_PORT = 18700
 PATH = "/targetrpc"
+
+
+def handle_errors(method):
+    def target_wrapper(*args, **kwargs):
+        try:
+            return method(*args, **kwargs)
+        except urllib2.HTTPError as he:
+            raise LsmError(ErrorNumber.PLUGIN_AUTH_FAILED, str(he))
+        except urllib2.URLError as ue:
+            Error("Unexpected exception:\n" + traceback.format_exc())
+            raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION, str(ue))
+        except Exception as e:
+            Error("Unexpected exception:\n" + traceback.format_exc())
+            raise e
+    return target_wrapper
+
 
 class TargetdStorage(IStorageAreaNetwork, INfs):
 
@@ -49,6 +66,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         self.system = System("targetd", "targetd storage appliance",
                              System.STATUS_UNKNOWN)
 
+    @handle_errors
     def startup(self, uri, password, timeout, flags=0):
         self.uri = uri_parse(uri)
         self.password = password
@@ -70,15 +88,19 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         self.headers = {'Content-Type': 'application/json',
                         'Authorization': 'Basic %s' % (auth,)}
 
+    @handle_errors
     def set_time_out(self, ms, flags=0):
         self.tmo = ms
 
+    @handle_errors
     def get_time_out(self, flags=0):
         return self.tmo
 
+    @handle_errors
     def shutdown(self, flags=0):
         pass
 
+    @handle_errors
     def capabilities(self, system, flags=0):
         cap = Capabilities()
         cap.set(Capabilities.BLOCK_SUPPORT)
@@ -104,21 +126,26 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         cap.set(Capabilities.FS_SNAPSHOTS)
         return cap
 
+    @handle_errors
     def plugin_info(self, flags=0):
         return "Linux LIO target support", VERSION
 
+    @handle_errors
     def systems(self, flags=0):
         # verify we're online
         self._jsonrequest("pool_list")
 
         return [self.system]
 
+    @handle_errors
     def job_status(self, job_id, flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    @handle_errors
     def job_free(self, job_id, flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    @handle_errors
     def volumes(self, flags=0):
         volumes = []
         for p_name in (p['name'] for p in self._jsonrequest("pool_list") if
@@ -131,6 +158,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                            self.system.id, p_name))
         return volumes
 
+    @handle_errors
     def pools(self, flags=0):
         pools = []
         for pool in self._jsonrequest("pool_list"):
@@ -138,6 +166,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                               pool['free_size'], 'targetd'))
         return pools
 
+    @handle_errors
     def initiators(self, flags=0):
         inits = []
         for init in set(i['initiator_wwn']
@@ -168,6 +197,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                 return s
         return None
 
+    @handle_errors
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
                       flags=0):
         self._jsonrequest("vol_create", dict(pool=pool.id,
@@ -176,10 +206,12 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
 
         return None, self._get_volume(pool.id, volume_name)
 
+    @handle_errors
     def volume_delete(self, volume, flags=0):
         self._jsonrequest("vol_destroy",
                           dict(pool=volume.pool_id, name=volume.name))
 
+    @handle_errors
     def volume_replicate(self, pool, rep_type, volume_src, name, flags=0):
         if rep_type != Volume.REPLICATE_COPY:
             raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
@@ -195,53 +227,68 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
 
         return None, self._get_volume(pool_id, name)
 
+    @handle_errors
     def volume_replicate_range_block_size(self, system, flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    @handle_errors
     def volume_replicate_range(self, rep_type, volume_src, volume_dest,
                                ranges, flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    @handle_errors
     def volume_online(self, volume, flags=0):
         vol_list = self._jsonrequest("vol_list", dict(pool=volume.pool_id))
 
         return volume.name in [vol['name'] for vol in vol_list]
 
+    @handle_errors
     def volume_offline(self, volume, flags=0):
         return not self.volume_online(volume)
 
+    @handle_errors
     def volume_resize(self, volume, new_size_bytes, flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    @handle_errors
     def access_group_grant(self, group, volume, access, flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    @handle_errors
     def access_group_revoke(self, group, volume, flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    @handle_errors
     def access_group_list(self, flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    @handle_errors
     def access_group_create(self, name, initiator_id, id_type, system_id,
                             flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    @handle_errors
     def access_group_del(self, group, flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    @handle_errors
     def access_group_add_initiator(self, group, initiator_id, id_type,
                                    flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    @handle_errors
     def access_group_del_initiator(self, group, initiator, flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    @handle_errors
     def volumes_accessible_by_access_group(self, group, flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    @handle_errors
     def access_groups_granted_to_volume(self, volume, flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    @handle_errors
     def iscsi_chap_auth(self, initiator, in_user, in_password, out_user,
                         out_password, flags=0):
         self._jsonrequest("initiator_set_auth",
@@ -253,6 +300,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
 
         return None
 
+    @handle_errors
     def initiator_grant(self, initiator_id, initiator_type, volume, access,
                         flags=0):
         if initiator_type != Initiator.TYPE_ISCSI:
@@ -272,12 +320,14 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                                vol=volume.name,
                                initiator_wwn=initiator_id, lun=lun))
 
+    @handle_errors
     def initiator_revoke(self, initiator, volume, flags=0):
         self._jsonrequest("export_destroy",
                           dict(pool=volume.pool_id,
                                vol=volume.name,
                                initiator_wwn=initiator.id))
 
+    @handle_errors
     def volumes_accessible_by_initiator(self, initiator, flags=0):
         exports = [x for x in self._jsonrequest("export_list")
                    if initiator.id == x['initiator_wwn']]
@@ -292,6 +342,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
 
         return vols
 
+    @handle_errors
     def initiators_granted_to_volume(self, volume, flags=0):
         exports = [x for x in self._jsonrequest("export_list")
                    if volume.id == x['vol_uuid']]
@@ -303,12 +354,15 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
 
         return inits
 
+    @handle_errors
     def volume_child_dependency(self, volume, flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    @handle_errors
     def volume_child_dependency_rm(self, volume, flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    @handle_errors
     def fs(self, flags=0):
         rc = []
         for fs in self._jsonrequest("fs_list"):
@@ -318,18 +372,22 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                                  self.system.id))
         return rc
 
+    @handle_errors
     def fs_delete(self, fs, flags=0):
         self._jsonrequest("fs_destroy", dict(uuid=fs.id))
 
+    @handle_errors
     def fs_resize(self, fs, new_size_bytes, flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    @handle_errors
     def fs_create(self, pool, name, size_bytes, flags=0):
         self._jsonrequest("fs_create", dict(pool_name=pool.id, name=name,
                                             size_bytes=size_bytes))
 
         return None, self._get_fs(pool.name, name)
 
+    @handle_errors
     def fs_clone(self, src_fs, dest_fs_name, snapshot=None, flags=0):
 
         ss_id = None
@@ -342,10 +400,12 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
 
         return None, self._get_fs(src_fs.pool_id, dest_fs_name)
 
+    @handle_errors
     def file_clone(self, fs, src_file_name, dest_file_name, snapshot=None,
                    flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    @handle_errors
     def fs_snapshots(self, fs, flags=0):
         rc = []
         for ss in self._jsonrequest("ss_list", dict(fs_uuid=fs.id)):
@@ -353,6 +413,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
             rc.append(Snapshot(ss['uuid'], ss['name'], ss['timestamp']))
         return rc
 
+    @handle_errors
     def fs_snapshot_create(self, fs, snapshot_name, files, flags=0):
 
         self._jsonrequest("fs_snapshot", dict(fs_uuid=fs.id,
@@ -360,20 +421,25 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
 
         return None, self._get_ss(fs, snapshot_name)
 
+    @handle_errors
     def fs_snapshot_delete(self, fs, snapshot, flags=0):
         self._jsonrequest("fs_snapshot_delete", dict(fs_uuid=fs.id,
                                                      ss_uuid=snapshot.id))
 
+    @handle_errors
     def fs_snapshot_revert(self, fs, snapshot, files, restore_files,
                            all_files=False, flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    @handle_errors
     def fs_child_dependency(self, fs, files, flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    @handle_errors
     def fs_child_dependency_rm(self, fs, files, flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    @handle_errors
     def export_auth(self, flags=0):
         exports = self._jsonrequest("nfs_export_auth_list")
         return exports
@@ -408,6 +474,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         opts = TargetdStorage._option_string(options)
         return md5(export_path + opts)
 
+    @handle_errors
     def exports(self, flags=0):
         tmp_exports = {}
         exports = []
@@ -489,6 +556,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                 return fs['full_path']
         return None
 
+    @handle_errors
     def export_fs(
             self, fs_id, export_path, root_list, rw_list, ro_list,
             anon_uid=NfsExport.ANON_UID_GID_NA,
@@ -555,6 +623,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
 
         raise LsmError(ErrorNumber.PLUGIN_ERROR, "Failed to create export")
 
+    @handle_errors
     def export_remove(self, export, flags=0):
 
         for host in export.rw:
@@ -574,13 +643,8 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
             request = urllib2.Request(self.url, data, self.headers)
             response_obj = urllib2.urlopen(request)
         except socket.error:
-            if self.scheme == 'https':
-                raise
-            print "socket error, retrying with SSL"
-            url = urlparse.urlunsplit(
-                ("https", self.host_with_port, PATH, None, None))
-            request = urllib2.Request(url, data, self.headers)
-            response_obj = urllib2.urlopen(request)
+            raise LsmError(ErrorNumber.NO_CONNECT,
+                           "Unable to connect to targetd, uri right?")
 
         response_data = response_obj.read()
         response = json.loads(response_data)
@@ -594,7 +658,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                 raise LsmError(abs(int(response['error']['code'])),
                                response['error'].get('message', ''))
             else:  # +code is async execution id
-                print "Async completion, polling for results"
+                #Async completion, polling for results
                 async_code = response['error']['code']
                 while True:
                     time.sleep(1)
@@ -602,12 +666,6 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                     status = results.get(str(async_code), None)
                     if status:
                         if status[0]:
-                            print "%d has error %d" % \
-                                  (async_code, status[0])
-                            break
-                        else:
-                            print "%d still going, %d%% complete" % \
-                                  (async_code, status[1])
-                    else:
-                        print "%s done" % async_code
-                        break
+                            raise LsmError(
+                                ErrorNumber.INTERNAL_ERROR,
+                                "%d has error %d" % (async_code, status[0]))
