@@ -200,6 +200,10 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
     @handle_errors
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
                       flags=0):
+        if provisioning != Volume.PROVISION_DEFAULT:
+            raise LsmError(ErrorNumber.UNSUPPORTED_PROVISIONING,
+                           "Unsupported provisioning")
+
         self._jsonrequest("vol_create", dict(pool=pool.id,
                                              name=volume_name,
                                              size=size_bytes))

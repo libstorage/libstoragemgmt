@@ -354,6 +354,9 @@ class Ontap(IStorageAreaNetwork, INfs):
     @handle_ontap_errors
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
                       flags=0):
+        if provisioning != Volume.PROVISION_DEFAULT:
+            raise LsmError(ErrorNumber.UNSUPPORTED_PROVISIONING,
+                           "Unsupported provisioning")
 
         v = self.f.volume_names()
 
