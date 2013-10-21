@@ -924,7 +924,7 @@ class TestClient(unittest.TestCase):
     def test_pools(self):
         self.pools = self.c.pools()
 
-        self.assertTrue(len(self.pools) == 2)
+        self.assertTrue(len(self.pools) == 4)
 
         for p in self.pools:
             print p
