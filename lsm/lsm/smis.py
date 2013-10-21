@@ -606,7 +606,7 @@ class Smis(IStorageAreaNetwork):
 
     def _sys_id(self, cim_sys):
         """
-        Return CIM_ComputerSystem['SystemName']
+        Return CIM_ComputerSystem['Name']
         """
         return self._id('System', cim_sys)
 
@@ -882,7 +882,7 @@ class Smis(IStorageAreaNetwork):
             for p in pools:
                 vols = self._c.Associators(
                     p.path, ResultClass='CIM_StorageVolume')
-                rc.extend([self._new_vol(v, p['InstanceID']) for v in vols])
+                rc.extend([self._new_vol(v, self._pool_id(p)) for v in vols])
 
         return rc
 
