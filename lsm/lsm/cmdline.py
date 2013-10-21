@@ -348,7 +348,7 @@ class CmdLine:
                             metavar='<Access group name>',
                             help="Creates an access group, requires:\n"
                                  "--id <initiator id>\n"
-                                 '--type [WWPN|WWNN|ISCSI|HOSTNAME]\n'
+                                 '--type [WWPN|WWNN|ISCSI|HOSTNAME|SAS]\n'
                                  '--system <system id>')
 
         commands.add_option('', '--access-group-volumes', action="store",
@@ -593,7 +593,7 @@ class CmdLine:
 
         command_args.add_option('', '--type', action="store", type="choice",
                                 choices=['WWPN', 'WWNN', 'ISCSI', 'HOSTNAME',
-                                         'SNAPSHOT', 'CLONE', 'COPY',
+                                         'SAS', 'SNAPSHOT', 'CLONE', 'COPY',
                                          'MIRROR_SYNC', 'MIRROR_ASYNC'],
                                 metavar="type",
                                 dest=_o("type"), help='type specifier')
@@ -848,6 +848,8 @@ class CmdLine:
             i = data.Initiator.TYPE_ISCSI
         elif init_type == 'HOSTNAME':
             i = data.Initiator.TYPE_HOSTNAME
+        elif init_type == 'SAS':
+            i = data.Initiator.TYPE_SAS
         else:
             raise ArgError("invalid initiator type " + init_type)
         return i
