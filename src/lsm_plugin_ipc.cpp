@@ -95,32 +95,21 @@ void * lsmDataTypeCopy(lsmDataType t, void *item)
     return rc;
 }
 
-int lsmRegisterPluginV1(lsmPluginPtr plug, const char *desc, const char *version,
+int lsmRegisterPluginV1(lsmPluginPtr plug,
                         void *private_data, struct lsmMgmtOpsV1 *mgmOps,
                         struct lsmSanOpsV1 *sanOp, struct lsmFsOpsV1 *fsOp,
                         struct lsmNasOpsV1 *nasOp)
 {
-    int rc = LSM_ERR_OK;
+    int rc = LSM_ERR_INVALID_PLUGIN;
 
-    if (NULL == desc || NULL == version) {
-        return LSM_ERR_INVALID_ARGUMENT;
-    }
-
-    plug->desc = strdup(desc);
-    plug->version = strdup(version);
-
-    if( !plug->desc || !plug->version ) {
-        free(plug->desc);
-        free(plug->version);
-        rc = LSM_ERR_NO_MEMORY;
-    } else {
+    if(LSM_IS_PLUGIN(plug)) {
         plug->privateData = private_data;
         plug->mgmtOps = mgmOps;
         plug->sanOps = sanOp;
         plug->fsOps = fsOp;
         plug->nasOps = nasOp;
+        rc = LSM_ERR_OK;
     }
-
     return rc;
 }
 
@@ -131,23 +120,6 @@ void *lsmGetPrivateData(lsmPluginPtr plug)
     }
 
     return plug->privateData;
-}
-
-static lsmPluginPtr lsmPluginAlloc(lsmPluginRegister reg,
-                                    lsmPluginUnregister unreg) {
-
-    if( !reg || !unreg ) {
-        return NULL;
-    }
-
-    lsmPluginPtr rc = (lsmPluginPtr)malloc(sizeof(lsmPlugin));
-    if( rc ) {
-        memset(rc, 0, sizeof( lsmPlugin));
-        rc->magic = LSM_PLUGIN_MAGIC;
-        rc->reg = reg;
-        rc->unreg = unreg;
-    }
-    return rc;
 }
 
 static void lsmPluginFree(lsmPluginPtr p, lsmFlag_t flags)
@@ -170,8 +142,35 @@ static void lsmPluginFree(lsmPluginPtr p, lsmFlag_t flags)
         lsmErrorFree(p->error);
         p->error = NULL;
 
+        p->magic = LSM_DEL_MAGIC(LSM_PLUGIN_MAGIC);
+
         free(p);
     }
+}
+
+static lsmPluginPtr lsmPluginAlloc(lsmPluginRegister reg,
+                                    lsmPluginUnregister unreg,
+                                    const char* desc, const char *version) {
+
+    if( !reg || !unreg ) {
+        return NULL;
+    }
+
+    lsmPluginPtr rc = (lsmPluginPtr)malloc(sizeof(lsmPlugin));
+    if( rc ) {
+        memset(rc, 0, sizeof( lsmPlugin));
+        rc->magic = LSM_PLUGIN_MAGIC;
+        rc->reg = reg;
+        rc->unreg = unreg;
+        rc->desc = strdup(desc);
+        rc->version = strdup(version);
+
+        if (!rc->desc || !rc->version) {
+            lsmPluginFree(rc, LSM_FLAG_RSVD);
+            rc = NULL;
+        }
+    }
+    return rc;
 }
 
 static void sendError(lsmPluginPtr p, int error_code)
@@ -210,88 +209,30 @@ static bool get_num( char *sn, int &num)
     return false;
 }
 
-/**
- * Handle the startup sequence with the client.
- * @param p Plug-in
- * @return true on success, else false
- */
-static bool startup(lsmPluginPtr p)
-{
-    bool rc = false;
-    xmlURIPtr uri = NULL;
-    lsmErrorPtr e = NULL;
-
-    //We are just getting established with the client, if the socket
-    //closes on us or we encounter an error we will need to log to syslog so
-    //we can debug what went wrong.
-    try {
-
-        Value req = p->tp->readRequest();
-        if( req.isValidRequest() ) {
-            std::map<std::string, Value> r = req.asObject();
-            if( r["method"].asString() == "startup" ) {
-                std::map<std::string, Value> params = r["params"].asObject();
-
-                uri = xmlParseURI(params["uri"].asString().c_str());
-                if( uri ) {
-                    int reg_rc;
-                    const char *pass = NULL;
-
-                    lsmFlag_t flags = LSM_FLAG_GET_VALUE(params);
-
-                    if( Value::string_t == params["password"].valueType() ) {
-                        pass = params["password"].asString().c_str();
-                    }
-
-                    //Let the plug-in initialize itself.
-                    reg_rc = p->reg(p, uri, pass, params["timeout"].asUint32_t(),
-                                    flags);
-
-                    if( LSM_ERR_OK != reg_rc ) {
-                        sendError(p, reg_rc);
-                    } else {
-                        p->tp->sendResponse(Value());
-                        rc = true;
-                    }
-
-                    xmlFreeURI(uri);
-                    uri = NULL;
-                }
-            }
-        }
-    } catch( ... ) {
-        /* TODO Add more specific exception handling and log to syslog */
-        if( uri ) {
-            xmlFreeURI(uri);
-            uri = NULL;
-        }
-
-        if( e ) {
-            lsmErrorFree(e);
-            e = NULL;
-        }
-    }
-    return rc;
-}
-
-
-int lsmPluginInit( int argc, char *argv[], lsmPluginRegister reg,
-                                lsmPluginUnregister unreg)
+int lsmPluginInitV1( int argc, char *argv[], lsmPluginRegister reg,
+                    lsmPluginUnregister unreg,
+                    const char *desc, const char *version)
 {
     int rc = 1;
     lsmPluginPtr plug = NULL;
 
+    if (NULL == desc || NULL == version) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
     int sd = 0;
     if( argc == 2 && get_num(argv[1], sd) ) {
-        plug = lsmPluginAlloc(reg, unreg);
+        plug = lsmPluginAlloc(reg, unreg, desc, version);
         if( plug ) {
             plug->tp = new Ipc(sd);
-            if( !startup(plug) ) {
-                lsmPluginFree(plug, LSM_FLAG_RSVD);
-                plug = NULL;
-            } else {
+            if (plug->tp) {
                 rc = lsmPluginRun(plug);
+            } else {
+                lsmPluginFree(plug, LSM_FLAG_RSVD);
+                rc = LSM_ERR_NO_MEMORY;
             }
+        } else {
+            rc = LSM_ERR_NO_MEMORY;
         }
     } else {
         //Process command line arguments or display help text.
@@ -306,6 +247,32 @@ typedef int (*handler)(lsmPluginPtr p, Value &params, Value &response);
 static int handle_shutdown(lsmPluginPtr p, Value &params, Value &response)
 {
     return LSM_ERR_OK;
+}
+
+static int handle_startup(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    xmlURIPtr uri = NULL;
+
+    if( p ) {
+        uri = xmlParseURI(params["uri"].asString().c_str());
+        if( uri ) {
+            const char *pass = NULL;
+
+            lsmFlag_t flags = LSM_FLAG_GET_VALUE(params);
+
+            if( Value::string_t == params["password"].valueType() ) {
+                pass = params["password"].asString().c_str();
+            }
+
+            //Let the plug-in initialize itself.
+            rc = p->reg(p, uri, pass, params["timeout"].asUint32_t(),
+                            flags);
+            xmlFreeURI(uri);
+            uri = NULL;
+        }
+    }
+    return rc;
 }
 
 static int handle_set_time_out( lsmPluginPtr p, Value &params, Value &response)
@@ -2162,6 +2129,7 @@ static std::map<std::string,handler> dispatch = static_map<std::string,handler>
     ("pools", handle_pools)
     ("set_time_out", handle_set_time_out)
     ("shutdown", handle_shutdown)
+    ("startup", handle_startup)
     ("systems", handle_system_list)
     ("volume_child_dependency_rm", volume_dependency_rm)
     ("volume_child_dependency", volume_dependency)
@@ -2197,54 +2165,69 @@ static int lsmPluginRun(lsmPluginPtr p)
 {
     int rc = 0;
     lsmFlag_t flags = 0;
-    while(true) {
-        try {
-            Value req = p->tp->readRequest();
-            Value resp;
 
-            if( req.isValidRequest() ) {
-                std::string method = req["method"].asString();
-                rc = process_request(p, method, req, resp);
+    if( LSM_IS_PLUGIN(p) ) {
+        while(true) {
+            try {
 
-                if( LSM_ERR_OK == rc || LSM_ERR_JOB_STARTED == rc ) {
-                    p->tp->sendResponse(resp);
-                } else {
-                    sendError(p, rc);
-                }
-
-                if( method == "shutdown" ) {
-                    flags = LSM_FLAG_GET_VALUE(req["params"]);
+                if( !LSM_IS_PLUGIN(p) ) {
+                    syslog(LOG_USER|LOG_NOTICE, "Someone stepped on "
+                                                "plugin pointer, exiting!");
                     break;
                 }
-            } else {
-                syslog(LOG_USER|LOG_NOTICE, "Invalid request");
+
+                Value req = p->tp->readRequest();
+                Value resp;
+
+                if( req.isValidRequest() ) {
+                    std::string method = req["method"].asString();
+                    rc = process_request(p, method, req, resp);
+
+                    if( LSM_ERR_OK == rc || LSM_ERR_JOB_STARTED == rc ) {
+                        p->tp->sendResponse(resp);
+                    } else {
+                        sendError(p, rc);
+                    }
+
+                    if( method == "shutdown" ) {
+                        flags = LSM_FLAG_GET_VALUE(req["params"]);
+                        break;
+                    }
+                } else {
+                    syslog(LOG_USER|LOG_NOTICE, "Invalid request");
+                    break;
+                }
+            } catch (EOFException &eof) {
+                break;
+            } catch (ValueException &ve) {
+                syslog(LOG_USER|LOG_NOTICE, "Plug-in exception: %s", ve.what());
+                rc = 1;
+                break;
+            } catch (LsmException &le) {
+                syslog(LOG_USER|LOG_NOTICE, "Plug-in exception: %s", le.what());
+                rc = 2;
+                break;
+            } catch ( ... ) {
+                syslog(LOG_USER|LOG_NOTICE, "Plug-in un-handled exception");
+                rc = 3;
                 break;
             }
-        } catch (EOFException &eof) {
-            break;
-        } catch (ValueException &ve) {
-            syslog(LOG_USER|LOG_NOTICE, "Plug-in exception: %s", ve.what() );
-            rc = 1;
-            break;
-        } catch (LsmException &le) {
-            syslog(LOG_USER|LOG_NOTICE, "Plug-in exception: %s", le.what() );
-            rc = 2;
-            break;
-        } catch ( ... ) {
-            syslog(LOG_USER|LOG_NOTICE, "Plug-in un-handled exception");
-            rc = 3;
-            break;
         }
+        lsmPluginFree(p, flags);
+        p = NULL;
+    } else {
+        rc = LSM_ERR_INVALID_PLUGIN;
     }
-
-    lsmPluginFree(p, flags);
-    p = NULL;
 
     return rc;
 }
 
 int lsmLogErrorBasic( lsmPluginPtr plug, lsmErrorNumber code, const char* msg )
 {
+    if( !LSM_IS_PLUGIN(plug) ) {
+        return LSM_ERR_INVALID_PLUGIN;
+    }
+
     lsmErrorPtr e = LSM_ERROR_CREATE_PLUGIN_MSG(code, msg);
     if( e ) {
         int rc = lsmPluginErrorLog(plug, e);

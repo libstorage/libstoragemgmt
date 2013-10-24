@@ -211,6 +211,30 @@ class CmdLine:
 
             self.display_table(rows)
 
+    def display_available_plugins(self):
+        d = []
+        sep = '<}{>'
+        plugins = client.Client.get_available_plugins(sep)
+
+        # Nested class for the sole purpose of table display
+        class PlugData(data.IData):
+
+            def __init__(self, description, plugin_version):
+                self.desc = description
+                self.version = plugin_version
+
+            def column_data(self, human=False, enum_as_number=False):
+                return [[self.desc, self.version]]
+
+            def column_headers(self):
+                return [["Description", "Version"]]
+
+        for p in plugins:
+            desc, version = p.split(sep)
+            d.append(PlugData(desc, version))
+
+        self.display_data(d)
+
     ## All the command line arguments and options are created in this method
     # @param    self    The this object pointer
     def cli(self):
@@ -267,7 +291,7 @@ class CmdLine:
 
         list_choices = ['VOLUMES', 'INITIATORS', 'POOLS', 'FS', 'SNAPSHOTS',
                         'EXPORTS', "NFS_CLIENT_AUTH", 'ACCESS_GROUPS',
-                        'SYSTEMS', 'DISKS']
+                        'SYSTEMS', 'DISKS', 'PLUGINS']
 
         commands.add_option('-l', '--list', action="store", type="choice",
                             dest="cmd_list",
@@ -832,6 +856,8 @@ class CmdLine:
             self.display_data(self.c.systems())
         elif self.cmd_value == 'DISKS':
             self.display_data(self.c.disks())
+        elif self.cmd_value == 'PLUGINS':
+            self.display_available_plugins()
         else:
             raise ArgError(" unsupported listing type=%s", self.cmd_value)
 

@@ -295,18 +295,6 @@ typedef int (*lsmPlugVolumeDelete)(lsmPluginPtr c, lsmVolume *volume,
                                     char **job, lsmFlag_t flags);
 
 /**
- * Grants access to a volume for an initiator, callback function signature.
- * @param[in]   c                   Valid lsm plug-in pointer
- * @param[in]   i                   Initiator to grant access for
- * @param[in]   v                   Volume of interest
- * @param[in]   access              Requested access
- * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
- */
-int lsmPlugAccessGrant(lsmPluginPtr c, lsmInitiator *i, lsmVolume *v,
-                        lsmAccessType access, lsmFlag_t flags);
-
-/**
  * Removes access for an initiator to a volume, callback function signature.
  * @param[in]   c                   Valid lsm plug-in pointer
  * @param[in]   i                   Initiator to remove access for
@@ -864,17 +852,18 @@ void LSM_DLL_EXPORT * lsmDataTypeCopy(lsmDataType t, void *item);
  * @param argv  Command line arguments
  * @param reg   Registration function
  * @param unreg Un-Registration function
+ * @param desc  Plug-in description
+ * @param version   Plug-in version
  * @return exit code for plug-in
  */
-int LSM_DLL_EXPORT lsmPluginInit( int argc, char *argv[], lsmPluginRegister reg,
-                                lsmPluginUnregister unreg);
+int LSM_DLL_EXPORT lsmPluginInitV1( int argc, char *argv[], lsmPluginRegister reg,
+                                lsmPluginUnregister unreg,
+                                const char *desc, const char *version);
 
 
 /**
  * Used to register all the data needed for the plug-in operation.
  * @param plug              Pointer provided by the framework
- * @param desc              Plug-in description
- * @param version           Plug-in version
  * @param private_data      Private data to be used for whatever the plug-in needs
  * @param mgmOps            Function pointers for management operations
  * @param sanOp             Function pointers for SAN operations
@@ -882,8 +871,7 @@ int LSM_DLL_EXPORT lsmPluginInit( int argc, char *argv[], lsmPluginRegister reg,
  * @param nasOp             Function pointers for NAS operations
  * @return LSM_ERR_OK on success, else error reason.
  */
-int LSM_DLL_EXPORT lsmRegisterPluginV1( lsmPluginPtr plug, const char *desc,
-                        const char *version,
+int LSM_DLL_EXPORT lsmRegisterPluginV1( lsmPluginPtr plug,
                         void * private_data, struct lsmMgmtOpsV1 *mgmOps,
                         struct lsmSanOpsV1 *sanOp, struct lsmFsOpsV1 *fsOp,
                         struct lsmNasOpsV1 *nasOp );

@@ -2187,7 +2187,7 @@ int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
             !data->group_grant || !data->fs) {
             rc = LSM_ERR_NO_MEMORY;
         } else {
-            rc = lsmRegisterPluginV1( c, name, version, data, &mgmOps,
+            rc = lsmRegisterPluginV1( c, data, &mgmOps,
                                     &sanOps, &fsOps, &nfsOps);
         }
     }
@@ -2200,44 +2200,46 @@ int unload( lsmPluginPtr c, lsmFlag_t flags)
 
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
 
-    g_hash_table_destroy(pd->jobs);
-    pd->jobs = NULL;
+    if( pd ) {
+        g_hash_table_destroy(pd->jobs);
+        pd->jobs = NULL;
 
-    g_hash_table_destroy(pd->fs);
-    pd->fs = NULL;
+        g_hash_table_destroy(pd->fs);
+        pd->fs = NULL;
 
-    g_hash_table_destroy(pd->group_grant);
-    pd->group_grant = NULL;
+        g_hash_table_destroy(pd->group_grant);
+        pd->group_grant = NULL;
 
-    g_hash_table_destroy(pd->access_groups);
+        g_hash_table_destroy(pd->access_groups);
 
-    for( i = 0; i < pd->num_volumes; ++i ) {
-        lsmVolumeRecordFree(pd->volume[i].v);
-        pd->volume[i].v = NULL;
-        pd->volume[i].p = NULL;
+        for( i = 0; i < pd->num_volumes; ++i ) {
+            lsmVolumeRecordFree(pd->volume[i].v);
+            pd->volume[i].v = NULL;
+            pd->volume[i].p = NULL;
+        }
+        pd->num_volumes = 0;
+
+        for( i = 0; i < pd->num_pools; ++i ) {
+            lsmPoolRecordFree(pd->pool[i]);
+            pd->pool[i]= NULL;
+        }
+        pd->num_pools = 0;
+
+        for( i = 0; i < pd->num_systems; ++i ) {
+            lsmSystemRecordFree(pd->system[i]);
+            pd->system[i]= NULL;
+        }
+        pd->num_systems = 0;
+
+        free(pd);
     }
-    pd->num_volumes = 0;
-
-    for( i = 0; i < pd->num_pools; ++i ) {
-        lsmPoolRecordFree(pd->pool[i]);
-        pd->pool[i]= NULL;
-    }
-    pd->num_pools = 0;
-
-    for( i = 0; i < pd->num_systems; ++i ) {
-        lsmSystemRecordFree(pd->system[i]);
-        pd->system[i]= NULL;
-    }
-    pd->num_systems = 0;
-
-    free(pd);
 
     return LSM_ERR_OK;
 }
 
 int main(int argc, char *argv[] )
 {
-    return lsmPluginInit(argc, argv, load, unload);
+    return lsmPluginInitV1(argc, argv, load, unload, name, version);
 }
 
 

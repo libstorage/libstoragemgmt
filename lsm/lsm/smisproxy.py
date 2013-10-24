@@ -18,6 +18,7 @@
 from smis import Smis
 import common
 import eseries
+from version import VERSION
 
 #The unfortunate truth is that each of the vendors implements functionality
 #slightly differently so we will need to have some special code for these
@@ -29,6 +30,9 @@ class SmisProxy(common.Proxy):
     Layer to allow us to swap out different implementations of smi-s clients
     based on provider.
     """
+    def plugin_info(self, flags=0):
+        return "Generic SMI-S support", VERSION
+
 
     def startup(self, uri, password, timeout, flags=0):
         """

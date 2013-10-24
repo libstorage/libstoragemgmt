@@ -28,7 +28,9 @@ class IPlugin(object):
     @abstractmethod
     def startup(self, uri, password, timeout, flags=0):
         """
-        Method first called to setup the plug-in
+        Method first called to setup the plug-in (except for plugin_info)
+
+        This would be the place to make a connection to the array.
 
         Returns None on success, else LsmError exception
         """
@@ -95,6 +97,8 @@ class IPlugin(object):
     def plugin_info(self, flags=0):
         """
         Returns the description and version for plug-in, raises LsmError
+
+        Note: Make sure plugin can handle this call before startup is called.
         """
         pass
 

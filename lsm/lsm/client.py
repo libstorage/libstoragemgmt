@@ -69,9 +69,11 @@ class Client(INetworkAttachedStorage):
     # and opens a socket to one to see if the server is actually there.
     # @param    self    The this pointer
     # @returns True if daemon appears to be present, else false.
-    def _check_daemon_exists(self):
-        if os.path.exists(self.uds_path):
-            for root, sub_folders, files in os.walk(self.uds_path):
+    @staticmethod
+    def _check_daemon_exists():
+        uds_path = Client._plugin_uds_path()
+        if os.path.exists(uds_path):
+            for root, sub_folders, files in os.walk(uds_path):
                 for filename in files:
                     uds = os.path.join(root, filename)
 
@@ -87,6 +89,15 @@ class Client(INetworkAttachedStorage):
             pass
         return False
 
+    @staticmethod
+    def _plugin_uds_path():
+        rc = common.UDS_PATH
+
+        if 'LSM_UDS_PATH' in os.environ:
+            rc = os.environ['LSM_UDS_PATH']
+
+        return rc
+
     ## Class constructor
     # @param    self                    The this pointer
     # @param    uri                     The uniform resource identifier
@@ -99,13 +110,9 @@ class Client(INetworkAttachedStorage):
         self.uri = uri
         self.password = plain_text_password
         self.timeout = timeout_ms
-        self.uds_path = common.UDS_PATH
+        self.uds_path = Client._plugin_uds_path()
 
         u = common.uri_parse(uri, ['scheme'])
-
-        #Figure out which path to use
-        if 'LSM_UDS_PATH' in os.environ:
-            self.uds_path = os.environ['LSM_UDS_PATH']
 
         scheme = u['scheme']
         if "+" in scheme:
@@ -120,7 +127,7 @@ class Client(INetworkAttachedStorage):
             #At this point we don't know if the user specified an incorrect
             #plug-in in the URI or the daemon isn't started.  We will check
             #the directory for other unix domain sockets.
-            if self._check_daemon_exists():
+            if Client._check_daemon_exists():
                 raise common.LsmError(common.ErrorNumber.PLUGIN_NOT_EXIST,
                                       "Plug-in " + self.plugin_path +
                                       " not found!")
@@ -147,6 +154,33 @@ class Client(INetworkAttachedStorage):
         self.tp.rpc('shutdown', del_self(locals()))
         self.tp.close()
         self.tp = None
+
+    ## Retrieves all the available plug-ins
+    @staticmethod
+    def get_available_plugins(field_sep=':', flags=0):
+        """
+        Retrieves all the available plug-ins
+
+        Return list of strings of available plug-ins with the
+        "desc<sep>version"
+        """
+        rc = []
+
+        if not Client._check_daemon_exists():
+            raise common.LsmError(common.ErrorNumber.DAEMON_NOT_RUNNING,
+                                  'lsmd is not running')
+
+        uds_path = Client._plugin_uds_path()
+
+        for root, sub_folders, files in os.walk(uds_path):
+            for filename in files:
+                uds = os.path.join(root, filename)
+                tp = Transport(Transport.get_socket(uds))
+                i, v = tp.rpc('plugin_info', dict(flags=0))
+                rc.append("%s%s%s" % (i, field_sep, v))
+                tp.close()
+
+        return rc
 
     ## Sets the timeout for the plug-in
     # @param    self    The this pointer
