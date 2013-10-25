@@ -173,7 +173,7 @@ Deletes a volume given its id
 Deletes a snapshot requires \fB\-\-fs\fR
 .TP
 \fB\-r\fR <volume id>, \fB\-\-replicate\-volume=\fR<volume id>
-replicates a volume, requires:
+Replicates a volume, requires:
 .br
 \fB\-\-type\fR [SNAPSHOT|CLONE|COPY|MIRROR_ASYNC|MIRROR_SYNC]
 .br
@@ -201,7 +201,7 @@ Replicates a portion of a volume, requires:
 \fB\-\-count\fR <number of blocks to replicate>
 .TP
 \fB\-\-iscsi\-chap=\fR<initiator id>
-configures ISCSI inbound/outbound CHAP authentication
+Configures ISCSI inbound/outbound CHAP authentication
 .br
 Optional:
 .br
