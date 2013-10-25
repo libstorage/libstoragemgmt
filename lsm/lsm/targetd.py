@@ -124,6 +124,10 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         cap.set(Capabilities.FS_SNAPSHOT_CREATE)
         cap.set(Capabilities.FS_SNAPSHOT_DELETE)
         cap.set(Capabilities.FS_SNAPSHOTS)
+        cap.set(Capabilities.EXPORT_AUTH)
+        cap.set(Capabilities.EXPORTS)
+        cap.set(Capabilities.EXPORT_FS)
+        cap.set(Capabilities.EXPORT_REMOVE)
         return cap
 
     @handle_errors
