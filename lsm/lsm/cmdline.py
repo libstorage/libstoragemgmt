@@ -843,7 +843,7 @@ class CmdLine:
                 self.display_data(self.c.fs_snapshots(fs))
             else:
                 raise ArgError(
-                    "filesystem %s not found!" % self.options.opt_volume)
+                    "filesystem %s not found!" % self.options.opt_fs)
         elif self.cmd_value == 'INITIATORS':
             self.display_data(self.c.initiators())
         elif self.cmd_value == 'EXPORTS':
