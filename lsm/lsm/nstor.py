@@ -22,6 +22,7 @@ import urllib2
 import urlparse
 import simplejson as json
 import base64
+import time
 
 from iplugin import INfs, IStorageAreaNetwork
 from data import Pool, FileSystem, Snapshot, Capabilities, System, \
@@ -39,6 +40,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         self.uparse = None
         self.password = None
         self.timeout = None
+        self._system = None
 
     def _ns_request(self, path, data):
         data = json.dumps(data)
@@ -64,12 +66,26 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             raise LsmError(ErrorNumber.PLUGIN_ERROR, resp['error'])
         return resp['result']
 
+    def _request(self, method, obj, params):
+        return self._ns_request('rest/nms', {"method": method, "object": obj,
+                                             "params": params})
+
+    @property
+    def system(self):
+        if self._system is None:
+            license_info = self._request("get_license_info", "appliance", [""])
+            fqdn = self._request("get_fqdn", "appliance", [""])
+            self._system = System(license_info['machine_sig'], fqdn,
+                                  System.STATUS_OK)
+        return self._system
+
     def startup(self, uri, password, timeout, flags=0):
         self.uparse = urlparse.urlparse(uri)
         self.password = password or 'nexenta'
         self.timeout = timeout
 
-    def _to_bytes(self, size):
+    @staticmethod
+    def _to_bytes(size):
         if size.lower().endswith('k'):
             return int(float(size[:-1]) * 1024)
         if size.lower().endswith('m'):
@@ -86,44 +102,39 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         return size
 
     def pools(self, flags=0):
-        pools_list = self._ns_request('rest/nms', {"method": "get_all_names",
-                                                   "object": "volume",
-                                                   "params": [""]})
+        pools_list = self._request("get_all_names", "volume", [""])
+
         pools = []
         for pool in pools_list:
             if pool == 'syspool':
                 continue
-            pool_info = self._ns_request('rest/nms',
-                                         {"method": "get_child_props",
-                                          "object": "volume",
-                                          "params": [str(pool), ""]})
+            pool_info = self._request("get_child_props", "volume",
+                                      [str(pool), ""])
+
             pools.append(Pool(pool_info['name'], pool_info['name'],
-                              self._to_bytes(pool_info['size']),
-                              self._to_bytes(pool_info['free']),
-                              pool_info['guid']))
+                              NexentaStor._to_bytes(pool_info['size']),
+                              NexentaStor._to_bytes(pool_info['free']),
+                              self.system.id))
 
         return pools
 
     def fs(self, flags=0):
-        fs_list = self._ns_request('rest/nms', {"method": "get_all_names",
-                                                "object": "folder",
-                                                "params": [""]})
+        fs_list = self._request("get_all_names", "folder", [""])
+
         fss = []
         pools = {}
         for fs in fs_list:
-            pool_name = self._get_pool_id(fs)
+            pool_name = NexentaStor._get_pool_id(fs)
             if pool_name == 'syspool':
                 continue
             if not pool_name in pools:
-                pool_info = self._ns_request('rest/nms',
-                                             {"method": "get_child_props",
-                                              "object": "volume",
-                                              "params": [str(fs), ""]})
+                pool_info = self._request("get_child_props", "volume",
+                                          [str(fs), ""])
                 pools[pool_name] = pool_info
             else:
                 pool_info = pools[pool_name]
             fss.append(FileSystem(fs, fs,
-                                  self._to_bytes(pool_info['size']),
+                                  NexentaStor._to_bytes(pool_info['size']),
                                   self._to_bytes(pool_info['available']),
                                   pool_name,
                                   fs))
@@ -139,32 +150,22 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         if name.startswith(pool.name + '/'):
             chunks = name.split('/')[1:]
             name = '/'.join(chunks)
-        fs_name = self._ns_request('rest/nms', {"method": "create",
-                                                "object": "folder",
-                                                "params": [pool.name,
-                                                           name]})
+        fs_name = self._request("create", "folder", [pool.name, name])
         filesystem = FileSystem(fs_name, fs_name, pool.total_space,
                                 pool.free_space, pool.id, fs_name)
         return None, filesystem
 
     def fs_delete(self, fs, flags=0):
-        result = self._ns_request('rest/nms', {"method": "destroy",
-                                               "object": "folder",
-                                               "params": [fs.name, "-r"]})
+        result = self._request("destroy", "folder", [fs.name, "-r"])
         return
 
     def fs_snapshots(self, fs, flags=0):
-        snapshot_list = self._ns_request('rest/nms',
-                                         {"method": "get_names",
-                                          "object": "snapshot",
-                                          "params": [fs.name]})
+        snapshot_list = self._request("get_names", "snapshot", [fs.name])
+
         snapshots = []
         for snapshot in snapshot_list:
-            snapshot_info = self._ns_request('rest/nms',
-                                             {"method": "get_child_props",
-                                              "object": "snapshot",
-                                              "params": [snapshot,
-                                                         "creation_seconds"]})
+            snapshot_info = self._request("get_child_props", "snapshot",
+                                          [snapshot, "creation_seconds"])
             snapshots.append(Snapshot(snapshot, snapshot,
                                       snapshot_info['creation_seconds']))
 
@@ -172,22 +173,15 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
     def fs_snapshot_create(self, fs, snapshot_name, files, flags=0):
         full_name = "%s@%s" % (fs.name, snapshot_name)
-        self._ns_request('rest/nms',
-                         {"method": "create",
-                          "object": "snapshot",
-                          "params": [full_name, "0"]})
-        snapshot_info = self._ns_request('rest/nms',
-                                         {"method": "get_child_props",
-                                          "object": "snapshot",
-                                          "params": [full_name,
-                                                     "creation_seconds"]})
+
+        self._request("create", "snapshot", [full_name, "0"])
+        snapshot_info = self._request("get_child_props", "snapshot",
+                                      [full_name, "creation_seconds"])
         return None, Snapshot(full_name, full_name,
                               snapshot_info['creation_seconds'])
 
     def fs_snapshot_delete(self, fs, snapshot, flags=0):
-        result = self._ns_request('rest/nms', {"method": "destroy",
-                                               "object": "snapshot",
-                                               "params": [snapshot.name, ""]})
+        self._request("destroy", "snapshot", [snapshot.name, ""])
         return
 
     def set_time_out(self, ms, flags=0):
@@ -195,7 +189,6 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         return
 
     def get_time_out(self, flags=0):
-
         return self.timeout
 
     def shutdown(self, flags=0):
@@ -217,7 +210,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         #File system
         c.set(Capabilities.FS)
         c.set(Capabilities.FS_DELETE)
-        c.set(Capabilities.FS_RESIZE)
+        #c.set(Capabilities.FS_RESIZE)
         c.set(Capabilities.FS_CREATE)
         c.set(Capabilities.FS_CLONE)
         #        c.set(Capabilities.FILE_CLONE)
@@ -269,47 +262,39 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         c.set(Capabilities.VOLUME_INITIATOR_GRANT)
         c.set(Capabilities.VOLUME_INITIATOR_REVOKE)
         c.set(Capabilities.VOLUME_ACCESSIBLE_BY_INITIATOR)
-        c.set(Capabilities.VOLUME_ISCSI_CHAP_AUTHENTICATION)
+
+        #tasleson, not working at the moment for me.
+        #c.set(Capabilities.VOLUME_ISCSI_CHAP_AUTHENTICATION)
 
         return c
 
     def systems(self, flags=0):
-        license_info = self._ns_request('rest/nms',
-                                        {"method": "get_license_info",
-                                         "object": "appliance",
-                                         "params": [""]})
-        fqdn = self._ns_request('rest/nms',
-                                {"method": "get_fqdn",
-                                 "object": "appliance",
-                                 "params": [""]})
-        self.system = System(license_info['machine_sig'], fqdn,
-                             System.STATUS_OK)
         return [self.system]
 
     def fs_resize(self, fs, new_size_bytes, flags=0):
-        return
+        raise LsmError(ErrorNumber.NOT_IMPLEMENTED, "Not implemented")
 
-    def _get_pool_id(self, fs_name):
+    @staticmethod
+    def _get_pool_id(fs_name):
         return fs_name.split('/')[0]
 
     def fs_clone(self, src_fs, dest_fs_name, snapshot=None, flags=0):
+        folder = src_fs.name.split('/')[0]
+        dest = folder + '/' + dest_fs_name
+
         if snapshot is None:
-            raise LsmError(ErrorNumber.INVALID_SS,
-                           "Full snapshot name (i.e data/a@A) is mandatory "
-                           "for NexentaStor.")
-        self._ns_request('rest/nms', {"method": "clone",
-                                      "object": "folder",
-                                      "params": [snapshot.name,
-                                                 dest_fs_name]})
-        pool_id = self._get_pool_id(dest_fs_name)
-        pool_info = self._ns_request('rest/nms',
-                                     {"method": "get_child_props",
-                                      "object": "volume",
-                                      "params": [pool_id, ""]})
-        fs = FileSystem(dest_fs_name, dest_fs_name,
-                        self._to_bytes(pool_info['size']),
-                        self._to_bytes(pool_info['available']), pool_id,
-                        dest_fs_name)
+            # User did not supply a snapshot, so we will create one for them
+            name = src_fs.name.split('/')[0]
+            snapshot = self.fs_snapshot_create(
+                src_fs, name + "_clone_ss_" + md5(time.ctime()), None)[1]
+
+        self._request("clone", "folder", [snapshot.name, dest])
+        pool_id = NexentaStor._get_pool_id(dest)
+        pool_info = self._request("get_child_props", "volume", [pool_id, ""])
+        fs = FileSystem(dest, dest,
+                        NexentaStor._to_bytes(pool_info['size']),
+                        NexentaStor._to_bytes(pool_info['available']), pool_id,
+                        self.system.id)
         return None, fs
 
     def file_clone(self, fs, src_file_name, dest_file_name, snapshot=None,
@@ -318,26 +303,20 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
     def fs_snapshot_revert(self, fs, snapshot, files, restore_files,
                            all_files=False, flags=0):
-        self._ns_request('rest/nms', {"method": "rollback",
-                                      "object": "snapshot",
-                                      "params": [snapshot.name, '-r']})
-
+        self._request("rollback", "snapshot", [snapshot.name, '-r'])
         return
 
     def _dependencies_list(self, fs_name, volume=False):
         obj = "folder"
         if volume:
             obj = 'volume'
-        pool_id = self._get_pool_id(fs_name)
-        fs_list = self._ns_request('rest/nms', {"method": "get_all_names",
-                                                "object": "folder",
-                                                "params": ["^%s/" % pool_id]})
+        pool_id = NexentaStor._get_pool_id(fs_name)
+        fs_list = self._request("get_all_names", "folder", ["^%s/" % pool_id])
+
         dependency_list = []
         for filesystem in fs_list:
-            origin = self._ns_request('rest/nms', {"method": "get_child_prop",
-                                                   "object": "folder",
-                                                   "params": [filesystem,
-                                                              'origin']})
+            origin = self._request("get_child_prop", "folder",
+                                   [filesystem, 'origin'])
             if origin.startswith("%s/" % fs_name) or \
                     origin.startswith("%s@" % fs_name):
                 dependency_list.append(filesystem)
@@ -352,38 +331,32 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         dep_list = self._dependencies_list(fs.name)
         for dep in dep_list:
             clone_name = dep.split('@')[0]
-            self._ns_request('rest/nms', {"method": "promote",
-                                          "object": "folder",
-                                          "params": [clone_name]})
+            self._request("promote", "folder", [clone_name])
         return None
 
     def export_auth(self, flags=0):
         """
         Returns the types of authentication that are available for NFS
         """
-        result = self._ns_request('rest/nms',
-                                  {"method": "get_share_confopts",
-                                   "object": "netstorsvc", "params":
-                                      ['svc:/network/nfs/server:default']})
-        return [result['auth_type']['opts']]
+        result = self._request("get_share_confopts", "netstorsvc",
+                               ['svc:/network/nfs/server:default'])
+        rc = []
+        methods = result['auth_type']['opts'].split(';')
+        for m in methods:
+            rc.append(m.split('=>')[0])
+        return rc
 
     def exports(self, flags=0):
         """
         Get a list of all exported file systems on the controller.
         """
-        exp_list = self._ns_request('rest/nms',
-                                    {"method": "get_shared_folders",
-                                    "object": "netstorsvc",
-                                    "params": [
-                                    'svc:/network/nfs/server:default', '']})
+        exp_list = self._request("get_shared_folders", "netstorsvc",
+                                 ['svc:/network/nfs/server:default', ''])
+
         exports = []
         for e in exp_list:
-            opts = self._ns_request(
-                'rest/nms',
-                {"method": "get_shareopts",
-                 "object": "netstorsvc",
-                 "params": [
-                     'svc:/network/nfs/server:default', e]})
+            opts = self._request("get_shareopts", "netstorsvc",
+                                 ['svc:/network/nfs/server:default', e])
             exports.append(NfsExport(md5(opts['name']),
                                      e, opts['name'], opts['auth_type'],
                                      opts['root'],
@@ -418,12 +391,10 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             fs_dict['anonymous'] = 'true'
         if options:
             fs_dict['extra_options'] = str(options)
-        result = self._ns_request(
-            'rest/nms',
-            {"method": "share_folder",
-            "object": "netstorsvc",
-            "params": ['svc:/network/nfs/server:default',
-                      fs_id, fs_dict]})
+
+        result = self._request("share_folder", "netstorsvc",
+                               ['svc:/network/nfs/server:default',
+                                fs_id, fs_dict])
         return NfsExport(md5_id, fs_id, export_path, auth_type,
                          root_list, rw_list, ro_list, anon_uid, anon_gid,
                          options)
@@ -432,16 +403,14 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         """
         Removes the specified export
         """
-        self._ns_request('rest/nms',
-                         {"method": "unshare_folder",
-                          "object": "netstorsvc",
-                          "params": ['svc:/network/nfs/server:default',
-                                     export.fs_id, '0']})
+        self._request("unshare_folder", "netstorsvc",
+                      ['svc:/network/nfs/server:default', export.fs_id, '0'])
         return
 
     ###########  SAN
 
-    def _calc_group(self, name):
+    @staticmethod
+    def _calc_group(name):
         return 'lsm_' + md5(name)[0:8]
 
     def volumes(self, flags=0):
@@ -450,33 +419,46 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
         """
         vol_list = []
-        lu_list = self._ns_request('rest/nms', {"method": "get_names",
-                                                "object": "zvol",
-                                                "params": [""]})
+        lu_list = self._request("get_names", "zvol", [""])
+
         #        lu_list = self._ns_request('rest/nms',
         #            {"method": "get_lu_list",
         #             "object": "scsidisk",
         #             "params": ['']})
         for lu in lu_list:
             try:
-                lu_props = self._ns_request('rest/nms',
-                                            {"method": "get_lu_props",
-                                             "object": "scsidisk",
-                                             "params": [lu]})
+                lu_props = self._request("get_lu_props", "scsidisk", [lu])
             except:
                 lu_props = {'guid': 'N/A', 'state': 'N/A'}
-            zvol_props = self._ns_request('rest/nms',
-                                          {"method": "get_child_props",
-                                           "object": "zvol",
-                                           "params": [lu, ""]})
-            block_size = self._to_bytes(zvol_props['volblocksize'])
+
+            zvol_props = self._request("get_child_props", "zvol", [lu, ""])
+
+            block_size = NexentaStor._to_bytes(zvol_props['volblocksize'])
             size_bytes = int(zvol_props['size_bytes'])
             num_of_blocks = size_bytes / block_size
+
+            # Not sure what all the different status are...
+            # Api doc shows, but I may be looking at the wrong thing:
+            # "ONLINE", "DEGRADED", "FAULTED", "OFFLINE", "REMOVED", "UNAVAIL"
+            states_conv = {"ONLINE": Volume.STATUS_OK,
+                           "DEGRADED": Volume.STATUS_DEGRADED,
+                           "FAULTED": Volume.STATUS_ERR,
+                           "OFFLINE": Volume.STATUS_DORMANT,
+                           "REMOVED": Volume.STATUS_ERR,
+                           "UNAVAIL": Volume.STATUS_ERR}
+
+            vol_state = str(lu_props['state']).upper()
+
+            if vol_state in states_conv:
+                state = states_conv[vol_state]
+            else:
+                state = Volume.STATUS_UNKNOWN
+
             vol_list.append(Volume(lu, lu, lu_props['guid'],
                                    block_size, num_of_blocks,
-                                   lu_props['state'],
+                                   state,
                                    'N/A',
-                                   self._get_pool_id(lu)))
+                                   NexentaStor._get_pool_id(lu)))
 
         return vol_list
 
@@ -488,7 +470,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         for ag in self.access_group_list():
             for initiator_id in ag.initiators:
                 i_list.append(Initiator(initiator_id,
-                                        "TYPE_ISCSI", initiator_id))
+                                        Initiator.TYPE_ISCSI, initiator_id))
         return i_list
 
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
@@ -512,26 +494,19 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             sparse = '0'
         name = '%s/%s' % (pool.name, volume_name)
         block_size = ''
-        self._ns_request('rest/nms',
-                         {"method": "create",
-                          "object": "zvol",
-                          "params": [name, str(size_bytes),
-                                     block_size,
-                                     sparse]})
-        self._ns_request('rest/nms',
-                         {"method": "set_child_prop",
-                          "object": "zvol",
-                          "params": [name, 'compression', 'on']})
-        self._ns_request('rest/nms',
-                         {"method": "set_child_prop",
-                          "object": "zvol",
-                          "params": [name, 'logbias', 'throughput']})
-        self._ns_request('rest/nms',
-                         {"method": "create_lu",
-                          "object": "scsidisk",
-                          "params": [name, []]})
 
-        new_volume = Volume(name, name, '', 8192, size_bytes / 8192, '', '',
+        self._request("create", "zvol",
+                      [name, str(size_bytes), block_size, sparse])
+
+        self._request("set_child_prop", "zvol", [name, 'compression', 'on'])
+
+        self._request("set_child_prop", "zvol",
+                      [name, 'logbias', 'throughput'])
+
+        self._request("create_lu", "scsidisk", [name, []])
+
+        new_volume = Volume(name, name, '', 8192, size_bytes / 8192,
+                            Volume.STATUS_OK, '',
                             pool.id)    # FIXhttp://192.168.0.1/st_wlan.phpME
                                         # replace with list request
         return None, new_volume
@@ -542,14 +517,8 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
         Returns None on success, else raises an LsmError
         """
-        self._ns_request('rest/nms',
-                         {"method": "delete_lu",
-                          "object": "scsidisk",
-                          "params": [volume.id]})
-        self._ns_request('rest/nms',
-                         {"method": "destroy",
-                          "object": "zvol",
-                          "params": [volume.id, '']})
+        self._request("delete_lu", "scsidisk", [volume.id])
+        self._request("destroy", "zvol", [volume.id, ''])
         return
 
     def volume_resize(self, volume, new_size_bytes, flags=0):
@@ -560,13 +529,9 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         Note: Tuple return values are mutually exclusive, when one
         is None the other must be valid.
         """
-        self._ns_request('rest/nms', {"method": "set_child_prop",
-                                      "object": "zvol",
-                                      "params": [volume.name, 'volsize',
-                                                 str(new_size_bytes)]})
-        self._ns_request('rest/nms', {"method": "realign_size",
-                                      "object": "scsidisk",
-                                      "params": [volume.name]})
+        self._request("set_child_prop", "zvol",
+                      [volume.name, 'volsize', str(new_size_bytes)])
+        self._request("realign_size", "scsidisk", [volume.name])
         new_num_of_blocks = new_size_bytes / volume.block_size
         return None, Volume(volume.id, volume.name, volume.vpd83,
                             volume.block_size, new_num_of_blocks,
@@ -581,15 +546,18 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         Note: Tuple return values are mutually exclusive, when one
         is None the other must be valid.
         """
-        if rep_type == Volume.REPLICATE_SNAPSHOT:
-            return
-        elif rep_type == Volume.REPLICATE_CLONE:
-            return
-        elif rep_type == Volume.REPLICATE_COPY:
-            return
-        elif rep_type == Volume.REPLICATE_MIRROR_SYNC:
-            return
-        elif rep_type == Volume.REPLICATE_MIRROR_ASYNC:
+        raise LsmError(ErrorNumber.NOT_IMPLEMENTED,
+                       "volume_replicate not implemented")
+
+    #    if rep_type == Volume.REPLICATE_SNAPSHOT:
+    #        return
+    #    elif rep_type == Volume.REPLICATE_CLONE:
+    #        return
+    #    elif rep_type == Volume.REPLICATE_COPY:
+    #        return
+    #    elif rep_type == Volume.REPLICATE_MIRROR_SYNC:
+    #        return
+    #    elif rep_type == Volume.REPLICATE_MIRROR_ASYNC:
     #            # AutoSync job - code not yet ready
     #            rec = {'type': 'minute',	'auto-mount': '', 'dircontent': '0',
     #                'direction': '0', 'keep_src': '1',	'keep_dst': '1',
@@ -614,11 +582,11 @@ class NexentaStor(INfs, IStorageAreaNetwork):
     #                                          "params": ['auto-sync', '',
     #                                                     str(volume_src.name),
     #                                                     False, rec]})
-            return
-        elif rep_type == Volume.REPLICATE_UNKNOWN:
-            return
+    #        return
+    #    elif rep_type == Volume.REPLICATE_UNKNOWN:
+    #        return
 
-        return
+    #    return
 
     def volume_replicate_range_block_size(self, system, flags=0):
         """
@@ -652,26 +620,34 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         return
 
     def iscsi_chap_auth(self, initiator, in_user, in_password, out_user,
-                        out_password, flags):
+                        out_password, flags=0):
         """
         Register a user/password for the specified initiator for CHAP
         authentication.
         """
+        if in_user is None:
+            in_user = ""
+
+        if in_password is None:
+            in_password = ""
+
         if out_user is not None or out_password is not None:
             raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                            "outbound chap authentication is not supported at "
                            "this time")
 
         try:
-            ret = self._ns_request('rest/nms',
-                                   {"method": "create_initiator",
-                                    "object": "iscsitarget",
-                                    "params": [initiator.name,
-                                               {'initiatorchapuser': in_user,
-                                                'initiatorchapsecret':
-                                                in_password}]})
+            self._request("create_initiator", "iscsitarget",
+                          [initiator.name,
+                           {'initiatorchapuser': in_user,
+                           'initiatorchapsecret': in_password}])
         except:
-            ret = self._ns_request('rest/nms',
+            self._request("modify_initiator", "iscsitarget",
+                          [initiator.name,
+                           {'initiatorchapuser': in_user,
+                            'initiatorchapsecret': in_password}])
+
+            self._ns_request('rest/nms',
                                    {"method": "modify_initiator",
                                     "object": "iscsitarget",
                                     "params": [initiator.name,
@@ -685,7 +661,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         """
         Allows an initiator to access a volume.
         """
-        hg_name = self._calc_group(initiator_id)
+        hg_name = NexentaStor._calc_group(initiator_id)
         try:
             self.access_group_create(hg_name, initiator_id, initiator_type,
                                      'NA')
@@ -694,15 +670,16 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         self._access_group_grant(hg_name, volume.name, access)
         return
 
+    def _get_views(self, volume_name):
+        return self._request("list_lun_mapping_entries", "scsidisk",
+                             [volume_name])
+
     def initiator_revoke(self, initiator, volume, flags=0):
         """
         Revokes access to a volume for the specified initiator
         """
-        ag_name = self._calc_group(initiator.name)
-        views = self._ns_request('rest/nms',
-                                 {"method": "list_lun_mapping_entries",
-                                  "object": "scsidisk",
-                                  "params": [volume.name]})
+        ag_name = NexentaStor._calc_group(initiator.name)
+        views = self._get_views(volume.name)
         view_number = -1
         for view in views:
             if view['host_group'] == ag_name:
@@ -711,29 +688,14 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             raise LsmError(ErrorNumber.NO_MAPPING, "There is no such mapping "
                                                    "for volume %s" %
                                                    volume.name)
-        self._ns_request('rest/nms',
-                         {"method": "remove_lun_mapping_entry",
-                          "object": "scsidisk",
-                          "params": [volume.name, view_number]})
-        self._ns_request('rest/nms',
-                         {"method": "destroy_hostgroup",
-                          "object": "stmf",
-                          "params": [ag_name]})
-        return
-
-    def _list_view(self, group, volume):
-        ret = self._ns_request('rest/nms',
-                               {"method": "list_lun_mapping_entries",
-                                "object": "scsidisk",
-                                "params": [volume.name]})
+        self._request("remove_lun_mapping_entry", "scsidisk",
+                      [volume.name, view_number])
+        self._request("destroy_hostgroup", "stmf", [ag_name])
         return
 
     def _access_group_grant(self, group_name, volume_name, access):
-        ret = self._ns_request('rest/nms',
-                               {"method": "add_lun_mapping_entry",
-                                "object": "scsidisk",
-                                "params": [volume_name,
-                                           {'host_group': group_name}]})
+        self._request("add_lun_mapping_entry", "scsidisk",
+                      [volume_name, {'host_group': group_name}])
         return
 
     def access_group_grant(self, group, volume, access, flags=0):
@@ -747,10 +709,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         """
         Revokes access for an access group for a volume
         """
-        views = self._ns_request('rest/nms',
-                                 {"method": "list_lun_mapping_entries",
-                                  "object": "scsidisk",
-                                  "params": [volume.name]})
+        views = self._get_views(volume.name)
         view_number = -1
         for view in views:
             if view['host_group'] == group.name:
@@ -759,33 +718,24 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             raise LsmError(ErrorNumber.NO_MAPPING, "There is no such mapping "
                                                    "for volume %s" %
                                                    volume.name)
-        ret = self._ns_request('rest/nms',
-                               {"method": "remove_lun_mapping_entry",
-                               "object": "scsidisk",
-                               "params": [volume.name, view_number]})
+
+        self._request("remove_lun_mapping_entry", "scsidisk",
+                      [volume.name, view_number])
         return
 
     def access_group_list(self, flags=0):
         """
         Returns a list of access groups
         """
-        ag_list = self._ns_request('rest/nms',
-                                   {"method": "list_hostgroups",
-                                   "object": "stmf",
-                                   "params": []})
-        ag_list = []
-        for hg in ag_list:
-            initiators = self._ns_request('rest/nms',
-                                          {"method": "list_hostgroup_members",
-                                           "object": "stmf",
-                                           "params": [hg]})
-            ag_list.append(AccessGroup(hg, hg, initiators))
-        return ag_list
+        hg_list = self._request("list_hostgroups", "stmf", [])
 
-    def _initiator_human_type(self, init_id):
-        text = ['TYPE_OTHER', 'TYPE_PORT_WWN', 'TYPE_NODE_WWN',
-                'TYPE_HOSTNAME', 'TYPE_ISCSI']
-        return text[init_id - 1]
+        ag_list = []
+        for hg in hg_list:
+            initiators = self._request("list_hostgroup_members", "stmf",
+                                       [hg])
+
+            ag_list.append(AccessGroup(hg, hg, initiators, self.system.id))
+        return ag_list
 
     def access_group_create(self, name, initiator_id, id_type, system_id,
                             flags=0):
@@ -799,32 +749,24 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                                "%s is already part of %s access group" % (
                                    initiator_id,
                                    ag.name))
-        self._ns_request('rest/nms',
-                         {"method": "create_hostgroup",
-                          "object": "stmf",
-                          "params": [name]})
+        self._request("create_hostgroup", "stmf", [name])
         self._add_initiator(name, initiator_id)
-        return Initiator(initiator_id, self._initiator_human_type(id_type),
-                         name)
+
+        return AccessGroup(name, name, [initiator_id], self.system.id)
 
     def access_group_del(self, group, flags=0):
         """
         Deletes an access group
         """
-        self._ns_request('rest/nms',
-                         {"method": "destroy_hostgroup",
-                          "object": "stmf",
-                          "params": [group.name]})
+        self._request("destroy_hostgroup", "stmf", [group.name])
         return
 
     def _add_initiator(self, group_name, initiator_id, remove=False):
         command = "add_hostgroup_member"
         if remove:
             command = "remove_hostgroup_member"
-        self._ns_request('rest/nms',
-                         {"method": command,
-                          "object": "stmf",
-                          "params": [group_name, initiator_id]})
+
+        self._request(command, "stmf", [group_name, initiator_id])
         return
 
     def access_group_add_initiator(self, group, initiator_id, id_type,
@@ -832,9 +774,12 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         """
         Adds an initiator to an access group
         """
+        if id_type != Initiator.TYPE_ISCSI:
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           "ISCSI only initator type supported")
+
         self._add_initiator(group.name, initiator_id)
-        return Initiator(initiator_id, self._initiator_human_type(id_type),
-                         initiator_id)
+        return Initiator(initiator_id, Initiator.TYPE_ISCSI, initiator_id)
 
     def access_group_del_initiator(self, group, initiator_id, flags=0):
         """
@@ -850,11 +795,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         volumes = []
         all_volumes_list = self.volumes()
         for vol in all_volumes_list:
-            views = self._ns_request('rest/nms',
-                                     {"method": "list_lun_mapping_entries",
-                                      "object": "scsidisk",
-                                      "params": [vol.name]})
-            for view in views:
+            for view in self._get_views(vol.name):
                 if view['host_group'] == group.name:
                     volumes.append(vol)
         return volumes
@@ -864,12 +805,9 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         Returns the list of access groups that have access to the specified
         """
         ag_list = self.access_group_list()
-        views = self._ns_request('rest/nms',
-                                 {"method": "list_lun_mapping_entries",
-                                  "object": "scsidisk",
-                                  "params": [volume.name]})
+
         hg = []
-        for view in views:
+        for view in self._get_views(volume.name):
             for ag in ag_list:
                 if ag.name == view['host_group']:
                     hg.append(ag)
@@ -898,24 +836,18 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         dep_list = self._dependencies_list(volume.name)
         for dep in dep_list:
             clone_name = dep.split('@')[0]
-            self._ns_request('rest/nms', {"method": "promote",
-                                          "object": "volume",
-                                          "params": [clone_name]})
+            self._request("promote", "volume", [clone_name])
         return None
 
     def volumes_accessible_by_initiator(self, initiator, flags=0):
         """
         Returns a list of volumes that the initiator has access to.
         """
-        ag_name = self._calc_group(initiator.name)
+        ag_name = NexentaStor._calc_group(initiator.name)
         volumes = []
         all_volumes_list = self.volumes()
         for vol in all_volumes_list:
-            views = self._ns_request('rest/nms',
-                                     {"method": "list_lun_mapping_entries",
-                                      "object": "scsidisk",
-                                      "params": [vol.name]})
-            for view in views:
+            for view in self._get_views(vol.name):
                 if view['host_group'] == ag_name:
                     volumes.append(vol)
         return volumes
@@ -927,11 +859,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         ag_list = self.access_group_list()
         i_list = self.initiators()
         initiators_id = []
-        views = self._ns_request('rest/nms',
-                                 {"method": "list_lun_mapping_entries",
-                                  "object": "scsidisk",
-                                  "params": [volume.name]})
-        for view in views:
+        for view in self._get_views(volume.name):
             for ag in ag_list:
                 if ag.name == view['host_group']:
                     initiators_id.extend(ag.initiators)
