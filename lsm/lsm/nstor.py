@@ -647,13 +647,10 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                            {'initiatorchapuser': in_user,
                             'initiatorchapsecret': in_password}])
 
-            self._ns_request('rest/nms',
-                                   {"method": "modify_initiator",
-                                    "object": "iscsitarget",
-                                    "params": [initiator.name,
-                                               {'initiatorchapuser': in_user,
-                                               'initiatorchapsecret':
-                                                in_password}]})
+            self._request("modify_initiator", "iscsitarget",
+                          [initiator.name,
+                           {'initiatorchapuser': in_user,
+                            'initiatorchapsecret': in_password}])
         return
 
     def initiator_grant(self, initiator_id, initiator_type, volume, access,
