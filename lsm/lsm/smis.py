@@ -1593,17 +1593,83 @@ class Smis(IStorageAreaNetwork):
         """
         rc = []
         cim_syss = self._systems()
+        # In SNIA SMI-S 1.6rev4 Common Book,
+        # 30.1.5 Associations between ComputerSystems and other Logical
+        # Elements
+        # "If the device may become unavailable while the system as a whole
+        # remains available, the device shall be associated to a non-top-level
+        # system that has availability equivalent to the device. This system
+        # could be a real system or a system in an intermediate tier
+        # (representing some redundancy less than full redundancy)."
+
+        # Hence DiskDrive might not associated to top level CIM_ComputerSystem
         for cim_sys in cim_syss:
+            disks = []
             cim_disk_pros = Smis._new_disk_cim_disk_pros()
             cim_disks = self._c.Associators(cim_sys.path,
+                                            AssocClass='CIM_SystemDevice',
                                             ResultClass='CIM_DiskDrive',
                                             PropertyList=cim_disk_pros)
+            # Checking Disks of sub level ComputerSystems.
+            cim_sub_syss_path = self._traverse_computer_sys(cim_sys.path)
+            for cim_sub_sys_path in cim_sub_syss_path:
+                cim_sub_disks = self._c.Associators(
+                    cim_sub_sys_path,
+                    AssocClass='CIM_SystemDevice',
+                    ResultClass='CIM_DiskDrive',
+                    PropertyList=cim_disk_pros)
+                if cim_sub_disks:
+                    cim_disks.extend(cim_sub_disks)
             for cim_disk in cim_disks:
                 cim_ext_pros = Smis._new_disk_cim_ext_pros()
                 cim_ext = self._pri_cim_ext_of_cim_disk(cim_disk.path,
                                                         cim_ext_pros)
-                rc.extend([self._new_disk(cim_disk, cim_ext)])
+                disks.extend([self._new_disk(cim_disk, cim_ext)])
+            # Clean up the duplicate as SNIA said DiskDrive can be
+            # one to many in SNIA SMIS 1.6rev4 CommonProfile Book,
+            # 30.1.5 Associations between ComputerSystems and other Logical
+            # Elements, PDF Page 311.
+            clean_up_dict = {}
+            for disk in disks:
+                clean_up_dict[disk.id] = disk
+            rc.extend(clean_up_dict.values())
         return rc
+
+    def _traverse_computer_sys(self, cim_sys_path):
+        """
+        Walk through the CIM_ComputerSystem based on SNIA SMI-S 1.6rev4
+        CommonProfile Book, Multiple Computer System Subprofile
+        Will return a array of CIM_InstanceName -- CIM_ComputerSystem
+        Including the inter level CIM_ComputerSystem and botton leaf
+        CIM_ComputerSystem, but not including the CIM_ComputerSystem provided.
+        """
+        cim_syss_path = []
+        cim_re_sets_path = []
+        try:
+            cim_re_sets_path = self._c.AssociatorNames(
+                cim_sys_path,
+                AssocClass='CIM_ConcreteIdentity',
+                ResultClass='CIM_RedundancySet')
+        except CIMError as e:
+            if e[0] == pywbem.CIM_ERR_INVALID_CLASS:
+                return []
+
+        if cim_re_sets_path:
+            for cim_re_set_path in cim_re_sets_path:
+                cim_cur_syss_path = self._c.AssociatorNames(
+                    cim_re_set_path,
+                    AssocClass='CIM_MemberOfCollection',
+                    ResultClass='CIM_ComputerSystem')
+                if cim_cur_syss_path:
+                    cim_syss_path.extend(cim_cur_syss_path)
+                # every CIM_RedundancySet should associated to a
+                # CIM_ComputerSystem, so no else.
+                for cim_sys_path in cim_cur_syss_path:
+                    cim_next_syss_path = self._traverse_computer_sys(
+                        cim_sys_path)
+                    if cim_next_syss_path:
+                        cim_syss_path.extend(cim_next_syss_path)
+        return cim_syss_path
 
     @staticmethod
     def _new_disk_cim_disk_pros():
