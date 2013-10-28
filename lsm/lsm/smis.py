@@ -900,12 +900,12 @@ class Smis(IStorageAreaNetwork):
                 self._c.EnumerateInstanceNames(
                     'CIM_StorageConfigurationService')
         except CIMError as e:
+            # If array does not support CIM_StorageConfigurationService
+            # we use CIM_ComputerSystem which is mandatory.
+            # We might get some non-storage array listed as system.
+            # but we would like to take that risk instead of
+            # skipping basic support of old SMIS provider.
             if e[0] == pywbem.CIM_ERR_INVALID_CLASS:
-                # If array does not support CIM_StorageConfigurationService
-                # we use CIM_ComputerSystem which is mandatory.
-                # We might get some non-storage array listed as system.
-                # but we would like to take that risk instead of
-                # skipping basic support of old SMIS provider.
                 cim_syss = \
                     self._c.EnumerateInstances(
                         'CIM_ComputerSystem',
