@@ -776,14 +776,14 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                            "ISCSI only initator type supported")
 
         self._add_initiator(group.name, initiator_id)
-        return Initiator(initiator_id, Initiator.TYPE_ISCSI, initiator_id)
+        return None
 
     def access_group_del_initiator(self, group, initiator_id, flags=0):
         """
         Deletes an initiator from an access group
         """
         self._add_initiator(group.name, initiator_id, True)
-        return
+        return None
 
     def volumes_accessible_by_access_group(self, group, flags=0):
         """
