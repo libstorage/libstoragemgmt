@@ -25,6 +25,8 @@ import sys
 import syslog
 import tty
 import termios
+import collections
+import inspect
 
 import functools
 
@@ -471,6 +473,65 @@ class JobStatus(object):
     COMPLETE = 2
     STOPPED = 3
     ERROR = 4
+
+
+def type_compare(method_name, exp_type, act_val):
+    if isinstance(exp_type, collections.Sequence):
+        if not isinstance(act_val, collections.Sequence):
+            raise TypeError("%s call is returning a %s, but is "
+                            "expecting a sequence" %
+                            (method_name, str(type(act_val))))
+        # If the list has only one expected value we will make sure all
+        # elements in the list adhere to it, otherwise we will enforce a one
+        # to one check against the expected types.
+        if len(exp_type) == 1:
+            for av in act_val:
+                type_compare(method_name, exp_type[0], av)
+        else:
+            # Expect a 1-1 type match, extras get ignored at the moment
+            for exp, act in zip(exp_type, act_val):
+                type_compare(method_name, exp, act)
+    else:
+        # A number of times a method will return None or some valid type,
+        # only check on the type if the value is not None
+        if exp_type != type(act_val) and act_val is not None:
+            if not inspect.isclass(exp_type) or \
+                    not issubclass(type(act_val), exp_type):
+                raise TypeError('%s call expected: %s got: %s ' %
+                                (method_name, str(exp_type),
+                                 str(type(act_val))))
+
+
+def return_requires(*types):
+    """
+    Decorator function that allows us to ensure that we are getting the
+    correct types back from a function/method call.
+
+    Note: This is normally frowned upon by the python community, but this API
+    needs to be language agnostic, so making sure we have the correct types
+    is quite important.
+    """
+    def outer(func):
+        def inner(*args):
+            r = func(*args)
+
+            # In this case the user did something like
+            # @return_requires(int, string, int)
+            # in this case we require that all the args are present.
+            if len(types) > 1:
+                if len(r) != len(types):
+                        raise TypeError("%s call expected %d "
+                                        "return values, actual = %d" %
+                                        (func.__name__, len(types), len(r)))
+
+                type_compare(func.__name__, types, r)
+            elif len(types) == 1:
+                # We have one return type (but it could be a sequence)
+                type_compare(func.__name__, types[0], r)
+
+            return r
+        return inner
+    return outer
 
 
 class TestCommon(unittest.TestCase):
