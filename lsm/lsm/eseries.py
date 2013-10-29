@@ -66,7 +66,7 @@ class ESeries(Smis):
 
         in_params = {'ProtocolController': pc.path}
 
-        return self._pi("access_group_del", False,
+        return self._pi("access_group_del", Smis.JOB_RETRIEVE_NONE,
                         *(self._c.InvokeMethod('DeleteProtocolController',
                                                ccs.path, **in_params)))[0]
 
@@ -120,7 +120,7 @@ class ESeries(Smis):
             in_params['InitiatorPortIDs'] = [initiator_id]
 
         #Returns None or job id
-        return self._pi("initiator_grant", False,
+        return self._pi("initiator_grant", Smis.JOB_RETRIEVE_NONE,
                         *(self._c.InvokeMethod('ExposePaths', ccs.path,
                                                **in_params)))[0]
 
@@ -137,7 +137,7 @@ class ESeries(Smis):
                              DeleteUnits=True)
 
             #Returns None or job id
-            return self._pi("access_revoke", False,
+            return self._pi("access_revoke", Smis.JOB_RETRIEVE_NONE,
                             *(self._c.InvokeMethod('DeleteProtocolController',
                                                    ccs.path, **in_params)))[0]
 
@@ -150,7 +150,7 @@ class ESeries(Smis):
         in_params = {'Operation': pywbem.Uint16(2),
                      'Synchronization': sync.path}
 
-        job_id = self._pi("_detach", False,
+        job_id = self._pi("_detach", Smis.JOB_RETRIEVE_NONE,
                           *(self._c.InvokeMethod(
                               'ModifySynchronization', scs.path,
                               **in_params)))[0]
@@ -169,7 +169,7 @@ class ESeries(Smis):
             in_params = {'TheElement': lun.path}
 
             #Delete returns None or Job number
-            return self._pi("volume_delete", False,
+            return self._pi("volume_delete", Smis.JOB_RETRIEVE_NONE,
                             *(self._c.InvokeMethod('ReturnToStoragePool',
                                                    scs.path, **in_params)))[0]
 

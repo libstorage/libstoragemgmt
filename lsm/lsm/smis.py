@@ -96,6 +96,9 @@ class Smis(IStorageAreaNetwork):
     VOL_NAME_SPACE_NODE_WWN = 6
     VOL_NAME_SPACE_SNVM = 7
 
+    JOB_RETRIEVE_NONE = 0
+    JOB_RETRIEVE_VOLUME = 1
+
     class RepSvc(object):
 
         class Action(object):
@@ -282,22 +285,21 @@ class Smis(IStorageAreaNetwork):
                                 return spc[0]
         return None
 
-    def _pi(self, msg, retrieve_vol, rc, out):
+    def _pi(self, msg, retrieve_data, rc, out):
         """
         Handle the the process of invoking an operation.
         """
 
         # Check to see if operation is done
         if rc == Smis.INVOKE_OK:
-            if retrieve_vol:
+            if retrieve_data == Smis.JOB_RETRIEVE_VOLUME:
                 return None, self._new_vol_from_name(out)
             else:
                 return None, None
 
         elif rc == Smis.INVOKE_ASYNC:
             # We have an async operation
-            job_id = "%s@%s" % (md5(str(out['Job']['InstanceID'])),
-                                str(retrieve_vol))
+            job_id = self._job_id(out['Job'], retrieve_data)
             return job_id, None
         elif rc == Smis.INVOKE_NOT_SUPPORTED:
             raise LsmError(
@@ -349,27 +351,22 @@ class Smis(IStorageAreaNetwork):
         rc = False
         op = status['OperationalStatus']
 
-        if len(op) > 1 and \
-                ((op[0] == Smis.JOB_OK and op[1] == Smis.JOB_COMPLETE) or
-                (op[0] == Smis.JOB_COMPLETE and op[1] == Smis.JOB_OK)):
+        if (len(op) > 1 and
+            ((op[0] == Smis.JOB_OK and op[1] == Smis.JOB_COMPLETE) or
+             (op[0] == Smis.JOB_COMPLETE and op[1] == Smis.JOB_OK))):
             rc = True
 
         return rc
 
     def _get_job_details(self, job_id):
-        (job_id, get_vol) = job_id.split('@', 2)
-
-        if get_vol == 'False':
-            get_vol = False
-        else:
-            get_vol = True
+        (ignore, retrieve_data) = self._parse_job_id(job_id)
 
         jobs = self._c.EnumerateInstances('CIM_ConcreteJob')
 
         for j in jobs:
-            tmp_id = md5(j['InstanceID'])
+            tmp_id = self._job_id(j, retrieve_data)
             if tmp_id == job_id:
-                return j, get_vol
+                return j, retrieve_data
 
         raise LsmError(ErrorNumber.NOT_FOUND_JOB, 'Non-existent job')
 
@@ -377,9 +374,9 @@ class Smis(IStorageAreaNetwork):
         """
         Given a concrete job instance name, check the status
         """
-        volume = None
+        completed_item = None
 
-        (concrete_job, get_vol) = self._get_job_details(job_id)
+        (concrete_job, retrieve_data) = self._get_job_details(job_id)
 
         job_state = concrete_job['JobState']
 
@@ -397,8 +394,8 @@ class Smis(IStorageAreaNetwork):
             percent_complete = 100
 
             if Smis._job_completed_ok(concrete_job):
-                if get_vol:
-                    volume = self._new_vol_from_job(concrete_job)
+                if retrieve_data == Smis.JOB_RETRIEVE_VOLUME:
+                    completed_item = self._new_vol_from_job(concrete_job)
             else:
                 status = JobStatus.ERROR
 
@@ -406,7 +403,7 @@ class Smis(IStorageAreaNetwork):
             raise LsmError(ErrorNumber.PLUGIN_ERROR,
                            str(concrete_job['ErrorDescription']))
 
-        return status, percent_complete, volume
+        return status, percent_complete, completed_item
 
     def _scs_supported_capabilities(self, system, cap):
         """
@@ -574,6 +571,8 @@ class Smis(IStorageAreaNetwork):
             return 'CIM_StoragePool'
         if class_type == 'Disk':
             return 'CIM_DiskDrive'
+        if class_type == 'Job':
+            return 'CIM_ConcreteJob'
         raise LsmError(ErrorNumber.INTERNAL_ERROR,
                        "Smis._cim_class_name_of() got unknown " +
                        "class_type %s" % class_type)
@@ -593,6 +592,8 @@ class Smis(IStorageAreaNetwork):
             return ['SystemName']
         if class_type == 'Disk':
             return ['SystemName', 'DeviceID']
+        if class_type == 'Job':
+            return ['InstanceID']
         raise LsmError(ErrorNumber.INTERNAL_ERROR,
                        "Smis._cim_class_name_of() got unknown " +
                        "class_type %s" % class_type)
@@ -629,6 +630,14 @@ class Smis(IStorageAreaNetwork):
         """
         return self._id('Disk', cim_disk)
 
+    def _job_id(self, cim_job, retrieve_data):
+        """
+        Return the MD5 has of CIM_ConcreteJob['InstanceID'] in conjunction
+        with '@%s' % retrieve_data
+        retrieve_data should be JOB_RETRIEVE_NONE or JOB_RETRIEVE_VOLUME or etc
+        """
+        return "%s@%d" % (self._id('Job', cim_job), int(retrieve_data))
+
     def _id(self, class_type, cim_xxx):
         """
         Return the ID of certain class.
@@ -656,10 +665,23 @@ class Smis(IStorageAreaNetwork):
                                "calculate out %s id" % class_type)
             else:
                 id_str += cim_xxx[key]
-        if len(property_list) == 1:
+        if len(property_list) == 1 and class_type != 'Job':
             return id_str
         else:
             return md5(id_str)
+
+    @staticmethod
+    def _parse_job_id(job_id):
+        """
+        job_id is assembled by a md5 string and retrieve_data
+        This method will split it and return (md5_str, retrieve_data)
+        """
+        tmp_list = job_id.split('@', 2)
+        md5_str = tmp_list[0]
+        retrieve_data = Smis.JOB_RETRIEVE_NONE
+        if len(tmp_list) == 2:
+            retrieve_data = int(tmp_list[1])
+        return (md5_str, retrieve_data)
 
     def _get_pool_from_vol(self, cim_vol):
         """
@@ -1026,7 +1048,7 @@ class Smis(IStorageAreaNetwork):
                      'InPool': sp.path,
                      'Size': pywbem.Uint64(size_bytes)}
 
-        return self._pi("volume_create", True,
+        return self._pi("volume_create", Smis.JOB_RETRIEVE_VOLUME,
                         *(self._c.InvokeMethod(
                             'CreateOrModifyElementFromStoragePool',
                             scs.path, **in_params)))
@@ -1054,7 +1076,7 @@ class Smis(IStorageAreaNetwork):
             in_params = {'Operation': pywbem.Uint16(8),
                          'Synchronization': sync.path}
 
-            job_id = self._pi("_detach", False,
+            job_id = self._pi("_detach", Smis.JOB_RETRIEVE_NONE,
                               *(self._c.InvokeMethod(
                                   'ModifyReplicaSynchronization', rs.path,
                                   **in_params)))[0]
@@ -1133,7 +1155,7 @@ class Smis(IStorageAreaNetwork):
         in_params = {'TheElement': lun.path}
 
         # Delete returns None or Job number
-        return self._pi("volume_delete", False,
+        return self._pi("volume_delete", Smis.JOB_RETRIEVE_NONE,
                         *(self._c.InvokeMethod('ReturnToStoragePool',
                                                scs.path,
                                                **in_params)))[0]
@@ -1151,7 +1173,7 @@ class Smis(IStorageAreaNetwork):
                      'TheElement': lun.path,
                      'Size': pywbem.Uint64(new_size_bytes)}
 
-        return self._pi("volume_resize", True,
+        return self._pi("volume_resize", Smis.JOB_RETRIEVE_VOLUME,
                         *(self._c.InvokeMethod(
                             'CreateOrModifyElementFromStoragePool',
                             scs.path, **in_params)))
@@ -1268,7 +1290,7 @@ class Smis(IStorageAreaNetwork):
             if cim_pool is not None:
                 in_params['TargetPool'] = cim_pool.path
 
-            return self._pi("volume_replicate", True,
+            return self._pi("volume_replicate", Smis.JOB_RETRIEVE_VOLUME,
                             *(self._c.InvokeMethod(method,
                                                    rs.path, **in_params)))
 
@@ -1339,7 +1361,7 @@ class Smis(IStorageAreaNetwork):
                      'DeviceAccesses': [pywbem.Uint16(da)]}
 
         # Returns None or job id
-        return self._pi("access_grant", False,
+        return self._pi("access_grant", Smis.JOB_RETRIEVE_NONE,
                         *(self._c.InvokeMethod('ExposePaths', ccs.path,
                                                **in_params)))[0]
 
@@ -1371,7 +1393,7 @@ class Smis(IStorageAreaNetwork):
 
         hide_params = {'LUNames': [lun['Name']],
                        'ProtocolControllers': [spc.path]}
-        return self._pi("HidePaths", False,
+        return self._pi("HidePaths", Smis.JOB_RETRIEVE_NONE,
                         *(self._c.InvokeMethod('HidePaths', ccs.path,
                                                **hide_params)))[0]
 
@@ -1519,7 +1541,7 @@ class Smis(IStorageAreaNetwork):
                      'ProtocolControllers': [spc.path]}
 
         # Returns None or job id
-        return self._pi("access_group_add_initiator", False,
+        return self._pi("access_group_add_initiator", Smis.JOB_RETRIEVE_NONE,
                         *(self._c.InvokeMethod('ExposePaths', ccs.path,
                                                **in_params)))[0]
 
@@ -1531,7 +1553,7 @@ class Smis(IStorageAreaNetwork):
 
         hide_params = {'InitiatorPortIDs': [initiator],
                        'ProtocolControllers': [spc.path]}
-        return self._pi("HidePaths", False,
+        return self._pi("HidePaths", Smis.JOB_RETRIEVE_NONE,
                         *(self._c.InvokeMethod('HidePaths', ccs.path,
                                                **hide_params)))[0]
 
