@@ -186,25 +186,18 @@ class Ontap(IStorageAreaNetwork, INfs):
                 health = Disk.HEALTH_DEGRADED
                 status = Disk.STATUS_DEGRADED
 
-        enable_status = Disk.ENABLE_STATUS_ENABLED
-        if 'is-offline' in d:
-            enable_status = Disk.ENABLE_STATUS_ENABLED_BUT_OFFLINE
+        #enable_status = Disk.ENABLE_STATUS_ENABLED
+        #if 'is-offline' in d:
+        #    enable_status = Disk.ENABLE_STATUS_ENABLED_BUT_OFFLINE
 
         return Disk(md5(d['disk-uid']),
                     d['vendor-id'],
-                    d['serial-number'],
-                    d['disk-model'],
-                    d['vendor-id'],
-                    d['disk-model'],
                     Ontap._disk_type(d['disk-type']),
                     int(d['bytes-per-sector']),
                     int(d['physical-blocks']),
                     status,
-                    enable_status,
                     health,
-                    self.sys_info.id,
-                    error_message,
-                    d['grown-defect-list-count'])
+                    self.sys_info.id)
 
     @handle_ontap_errors
     def volumes(self, flags=0):
