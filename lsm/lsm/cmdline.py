@@ -1765,7 +1765,8 @@ class CmdLine:
             self.cleanup = self.c.shutdown
         else:
             #Going across the ipc pipe
-            self.c = client.Client(self.uri, self.password, self.tmo)
+            self.c = common.Proxy(
+                client.Client(self.uri, self.password, self.tmo))
 
             if os.getenv('LSM_DEBUG_PLUGIN'):
                 raw_input(
