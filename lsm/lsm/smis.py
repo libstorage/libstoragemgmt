@@ -188,16 +188,23 @@ class Smis(IStorageAreaNetwork):
         self.system_list = None
 
     def _get_cim_instance_by_id(self, class_type, requested_id,
-                                flag_full_info=True):
+                                flag_full_info=True, property_list=None):
         """
         Find out the CIM_XXXX Instance which holding the requested_id
         If flag_full_info == True, we return a Instance with full info.
         If you want to save some query time, try set it as False
         """
         class_name = Smis._cim_class_name_of(class_type)
-        property_list = Smis._property_list_of_id(class_type)
+        id_pros = Smis._property_list_of_id(class_type)
+        if property_list:
+            property_list.extend(id_pros)
+        else:
+            property_list = id_pros
         cim_xxxs = self._c.EnumerateInstances(class_name,
                                               PropertyList=property_list)
+        org_requested_id = requested_id
+        if class_type == 'Job':
+            (requested_id, ignore) = self._parse_job_id(requested_id)
         for cim_xxx in cim_xxxs:
             if self._id(class_type, cim_xxx) == requested_id:
                 if flag_full_info:
@@ -206,7 +213,7 @@ class Smis(IStorageAreaNetwork):
 
         raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                        "Cannot find %s Instance with " % class_name +
-                       "%s ID %s" % (class_type, requested_id))
+                       "%s ID '%s'" % (class_type, org_requested_id))
 
     def _get_class_instance(self, class_name, prop_name=None, prop_value=None,
                             no_throw_on_missing=False):
@@ -340,70 +347,6 @@ class Smis(IStorageAreaNetwork):
 
     def shutdown(self, flags=0):
         self._c = None
-
-    @staticmethod
-    def _job_completed_ok(status):
-        """
-        Given a concrete job instance, check the operational status.  This
-        is a little convoluted as different SMI-S proxies return the values in
-        different positions in list :-)
-        """
-        rc = False
-        op = status['OperationalStatus']
-
-        if (len(op) > 1 and
-            ((op[0] == Smis.JOB_OK and op[1] == Smis.JOB_COMPLETE) or
-             (op[0] == Smis.JOB_COMPLETE and op[1] == Smis.JOB_OK))):
-            rc = True
-
-        return rc
-
-    def _get_job_details(self, job_id):
-        (ignore, retrieve_data) = self._parse_job_id(job_id)
-
-        jobs = self._c.EnumerateInstances('CIM_ConcreteJob')
-
-        for j in jobs:
-            tmp_id = self._job_id(j, retrieve_data)
-            if tmp_id == job_id:
-                return j, retrieve_data
-
-        raise LsmError(ErrorNumber.NOT_FOUND_JOB, 'Non-existent job')
-
-    def _job_progress(self, job_id):
-        """
-        Given a concrete job instance name, check the status
-        """
-        completed_item = None
-
-        (concrete_job, retrieve_data) = self._get_job_details(job_id)
-
-        job_state = concrete_job['JobState']
-
-        if job_state in (Smis.JS_NEW, Smis.JS_STARTING, Smis.JS_RUNNING):
-            status = JobStatus.INPROGRESS
-
-            pc = concrete_job['PercentComplete']
-            if pc > 100:
-                percent_complete = 100
-            else:
-                percent_complete = pc
-
-        elif job_state == Smis.JS_COMPLETED:
-            status = JobStatus.COMPLETE
-            percent_complete = 100
-
-            if Smis._job_completed_ok(concrete_job):
-                if retrieve_data == Smis.JOB_RETRIEVE_VOLUME:
-                    completed_item = self._new_vol_from_job(concrete_job)
-            else:
-                status = JobStatus.ERROR
-
-        else:
-            raise LsmError(ErrorNumber.PLUGIN_ERROR,
-                           str(concrete_job['ErrorDescription']))
-
-        return status, percent_complete, completed_item
 
     def _scs_supported_capabilities(self, system, cap):
         """
@@ -553,13 +496,65 @@ class Smis(IStorageAreaNetwork):
     def plugin_info(self, flags=0):
         return "Generic SMI-S support", VERSION
 
+    @staticmethod
+    def _job_completed_ok(status):
+        """
+        Given a concrete job instance, check the operational status.  This
+        is a little convoluted as different SMI-S proxies return the values in
+        different positions in list :-)
+        """
+        rc = False
+        op = status['OperationalStatus']
+
+        if (len(op) > 1 and
+            ((op[0] == Smis.JOB_OK and op[1] == Smis.JOB_COMPLETE) or
+             (op[0] == Smis.JOB_COMPLETE and op[1] == Smis.JOB_OK))):
+            rc = True
+
+        return rc
+
     @handle_cim_errors
     def job_status(self, job_id, flags=0):
         """
         Given a job id returns the current status as a tuple
         (status (enum), percent_complete(integer), volume (None or Volume))
         """
-        return self._job_progress(job_id)
+        completed_item = None
+
+        cim_job_pros = self._property_list_of_id('Job')
+        cim_job_pros.extend(['JobState', 'PercentComplete',
+                             'ErrorDescription', 'OperationalStatus'])
+
+        cim_job = self._get_cim_instance_by_id('Job', job_id, False,
+                                               cim_job_pros)
+
+        job_state = cim_job['JobState']
+
+        if job_state in (Smis.JS_NEW, Smis.JS_STARTING, Smis.JS_RUNNING):
+            status = JobStatus.INPROGRESS
+
+            pc = cim_job['PercentComplete']
+            if pc > 100:
+                percent_complete = 100
+            else:
+                percent_complete = pc
+
+        elif job_state == Smis.JS_COMPLETED:
+            status = JobStatus.COMPLETE
+            percent_complete = 100
+
+            if Smis._job_completed_ok(cim_job):
+                (ignore, retrieve_data) = self._parse_job_id(job_id)
+                if retrieve_data == Smis.JOB_RETRIEVE_VOLUME:
+                    completed_item = self._new_vol_from_job(cim_job)
+            else:
+                status = JobStatus.ERROR
+
+        else:
+            raise LsmError(ErrorNumber.PLUGIN_ERROR,
+                           str(cim_job['ErrorDescription']))
+
+        return status, percent_complete, completed_item
 
     @staticmethod
     def _cim_class_name_of(class_type):
@@ -1584,12 +1579,12 @@ class Smis(IStorageAreaNetwork):
         """
         Frees the resources given a job number.
         """
-        concrete_job = self._get_job_details(job_id)[0]
+        cim_job = self._get_cim_instance_by_id('Job', job_id)
 
         # See if we should delete the job
-        if not concrete_job['DeleteOnCompletion']:
+        if not cim_job['DeleteOnCompletion']:
             try:
-                self._c.DeleteInstance(concrete_job.path)
+                self._c.DeleteInstance(cim_job.path)
             except CIMError:
                 pass
 
