@@ -632,7 +632,10 @@ CREATE_FREE_ARRAY_FUNC( lsmInitiatorRecordFreeArray, lsmInitiatorRecordFree,
 
 lsmInitiatorType lsmInitiatorTypeGet(lsmInitiator *i)
 {
-    return i->idType;
+    if( LSM_IS_INIT(i) ) {
+        return i->idType;
+    }
+    return LSM_INITIATOR_OTHER;
 }
 
 char *lsmInitiatorIdGet(lsmInitiator *i)
@@ -648,6 +651,7 @@ char *lsmInitiatorNameGet(lsmInitiator *i)
     if( LSM_IS_INIT(i) ) {
         return i->name;
     }
+    return NULL;
 }
 
 CREATE_ALLOC_ARRAY_FUNC(lsmVolumeRecordAllocArray, lsmVolume *)
