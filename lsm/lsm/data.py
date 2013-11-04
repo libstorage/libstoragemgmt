@@ -19,7 +19,7 @@ from abc import ABCMeta, abstractmethod
 import json
 from json.decoder import WHITESPACE
 import datetime
-from common import get_class, sh, LsmError, ErrorNumber
+from common import get_class, sh, LsmError, ErrorNumber, default_property
 
 
 def txt_a(txt, append):
@@ -118,9 +118,9 @@ class IData(object):
         #process that too, is there a better way to handle this?
         for (k, v) in self.__dict__.items():
             if isinstance(v, IData):
-                rc[k] = v.to_dict()
+                rc[k[1:]] = v.to_dict()
             else:
-                rc[k] = v
+                rc[k[1:]] = v
 
         return rc
 
@@ -138,7 +138,9 @@ class IData(object):
             #If any of the parameters are themselves an IData process them
             for k, v in d.items():
                 if isinstance(v, dict) and 'class' in v:
-                    d[k] = IData.factory(v)
+                    d['_' + k] = IData.factory(d.pop(k))
+                else:
+                    d['_' + k] = d.pop(k)
 
             i = c(**d)
             return i
@@ -297,6 +299,9 @@ class IData(object):
     BLOCK_SIZE_NOT_FOUND = -1
 
 
+@default_property('id', doc="Unique identifier")
+@default_property('type', doc="Enumerated initiator type")
+@default_property('name', doc="User supplied name")
 class Initiator(IData):
     """
     Represents an initiator.
@@ -310,14 +315,14 @@ class Initiator(IData):
     def _type_to_str(self, init_type):
         return Initiator.type_map[init_type]
 
-    def __init__(self, id, type, name):
+    def __init__(self, _id, _type, _name):
 
-        if not name or not len(name):
+        if not _name or not len(_name):
             name = "Unsupported"
 
-        self.id = id            # Identifier
-        self.type = type        # Initiator type id
-        self.name = name        # Initiator name
+        self._id = _id            # Identifier
+        self._type = _type        # Initiator type id
+        self._name = _name        # Initiator name
 
     def column_headers(self):
         return [['ID', 'Name', 'Type']]
@@ -329,6 +334,15 @@ class Initiator(IData):
             return [[self.id, self.name, self._type_to_str(self.type)]]
 
 
+@default_property('id', doc="Unique identifier")
+@default_property('name', doc="Disk name (aka. vendor)")
+@default_property('disk_type', doc="Enumerated type of disk")
+@default_property('block_size', doc="Size of each block")
+@default_property('num_of_blocks', doc="Total number of blocks")
+@default_property('status', doc="Enumerated status")
+@default_property('health', doc="Enumerated system health")
+@default_property('system_id', doc="System identifier")
+@default_property("optional_params", doc="Optional data")
 class Disk(IData):
     """
     Represents a disk.
@@ -440,31 +454,30 @@ class Disk(IData):
         'owner_ctrler_id':          'Controller Owner',
     }
 
-    def __init__(self, id, name, disk_type, block_size, num_of_blocks, status,
-                 health, system_id, optional_params=None):
-        self.id = id
-        self.name = name
-        self.disk_type = disk_type
-        self.block_size = block_size
-        self.num_of_blocks = num_of_blocks
-        self.status = status
-        self.health = health
-        self.system_id = system_id
+    def __init__(self, _id, _name, _disk_type, _block_size, _num_of_blocks,
+                 _status, _health, _system_id, _optional_params=None):
+        self._id = _id
+        self._name = _name
+        self._disk_type = _disk_type
+        self._block_size = _block_size
+        self._num_of_blocks = _num_of_blocks
+        self._status = _status
+        self._health = _health
+        self._system_id = _system_id
 
-
-        if optional_params is None:
-            self.optional_params = Properties()
+        if _optional_params is None:
+            self._optional_params = Properties()
         else:
             #Make sure the properties only contain ones we permit
             allowed = set(Disk.OPT_PROPERTIES_2_HEADER.keys())
-            actual = set(optional_params.list())
+            actual = set(_optional_params.list())
 
             if actual <= allowed:
-                self.optional_params = optional_params
+                self._optional_params = _optional_params
             else:
                 raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                                      "Property keys are invalid: %s" %
-                                      "".join(actual - allowed))
+                               "Property keys are invalid: %s" %
+                               "".join(actual - allowed))
 
     @property
     def size_bytes(self):
@@ -554,6 +567,14 @@ class Disk(IData):
         return [data_values]
 
 
+@default_property('id', doc="Unique identifier")
+@default_property('name', doc="User given name")
+@default_property('vpd83', doc="Vital product page 0x83 identifier")
+@default_property('block_size', doc="Volume block size")
+@default_property('num_of_blocks', doc="Number of blocks")
+@default_property('status', doc="Enumerated volume status")
+@default_property('system_id', "System identifier")
+@default_property('pool_id', "Pool identifier")
 class Volume(IData):
     """
     Represents a volume.
@@ -629,16 +650,16 @@ class Volume(IData):
         else:
             return Volume.ACCESS_READ_ONLY
 
-    def __init__(self, id, name, vpd83, block_size, num_of_blocks, status,
-                 system_id, pool_id):
-        self.id = id                        # Identifier
-        self.name = name                    # Human recognisable name
-        self.vpd83 = vpd83                  # SCSI page 83 unique ID
-        self.block_size = block_size        # Block size
-        self.num_of_blocks = num_of_blocks  # Number of blocks
-        self.status = status                # Status
-        self.system_id = system_id          # System id this volume belongs
-        self.pool_id = pool_id              # Pool id this volume belongs
+    def __init__(self, _id, _name, _vpd83, _block_size, _num_of_blocks,
+                 _status, _system_id, _pool_id):
+        self._id = _id                        # Identifier
+        self._name = _name                    # Human recognisable name
+        self._vpd83 = _vpd83                  # SCSI page 83 unique ID
+        self._block_size = _block_size        # Block size
+        self._num_of_blocks = _num_of_blocks  # Number of blocks
+        self._status = _status                # Status
+        self._system_id = _system_id          # System id this volume belongs
+        self._pool_id = _pool_id              # Pool id this volume belongs
 
     @property
     def size_bytes(self):
@@ -667,6 +688,9 @@ class Volume(IData):
                      sh(self.size_bytes, human), self.system_id, self.pool_id]]
 
 
+@default_property('id', doc="Unique identifier")
+@default_property('name', doc="User defined system name")
+@default_property('status', doc="Enumerated status of system")
 class System(IData):
     (STATUS_UNKNOWN, STATUS_OK, STATUS_DEGRADED, STATUS_ERROR,
      STATUS_PREDICTIVE_FAILURE, STATUS_VENDOR_SPECIFIC) = \
@@ -693,10 +717,10 @@ class System(IData):
 
             return rc
 
-    def __init__(self, id, name, status):
-        self.id = id        # For SMI-S this is the CIM_ComputerSystem->Name
-        self.name = name        # For SMI-S , CIM_ComputerSystem->ElementName
-        self.status = status    # OperationalStatus
+    def __init__(self, _id, _name, _status):
+        self._id = _id        # For SMI-S this is the CIM_ComputerSystem->Name
+        self._name = _name        # For SMI-S , CIM_ComputerSystem->ElementName
+        self._status = _status    # OperationalStatus
 
     def column_headers(self):
         return [['ID', 'Name', 'Status']]
@@ -708,17 +732,22 @@ class System(IData):
             return [[self.id, self.name, self.status_to_str(self.status)]]
 
 
+@default_property('id', doc="Unique identifier")
+@default_property('name', doc="User supplied name")
+@default_property('total_space', doc="Total space in bytes")
+@default_property('free_space', doc="Free space in bytes")
+@default_property('system_id', doc="System identifier")
 class Pool(IData):
     """
     Pool specific information
     """
 
-    def __init__(self, id, name, total_space, free_space, system_id):
-        self.id = id                    # Identifier
-        self.name = name                # Human recognisable name
-        self.total_space = total_space  # Total size
-        self.free_space = free_space    # Free space available
-        self.system_id = system_id      # Systemd id this pool belongs
+    def __init__(self, _id, _name, _total_space, _free_space, _system_id):
+        self._id = _id                    # Identifier
+        self._name = _name                # Human recognisable name
+        self._total_space = _total_space  # Total size
+        self._free_space = _free_space    # Free space available
+        self._system_id = _system_id      # Systemd id this pool belongs
 
     def column_headers(self):
         return [['ID', 'Name', 'Total space', 'Free space', 'System ID']]
@@ -728,15 +757,21 @@ class Pool(IData):
                  sh(self.free_space, human), self.system_id]]
 
 
+@default_property('id', doc="Unique identifier")
+@default_property('name', doc="File system name")
+@default_property('total_space', doc="Total space in bytes")
+@default_property('free_space', doc="Free space available")
+@default_property('pool_id', doc="What pool the file system resides on")
+@default_property('system_id', doc="System ID")
 class FileSystem(IData):
-    def __init__(self, id, name, total_space, free_space, pool_id,
-                 system_id):
-        self.id = id
-        self.name = name
-        self.total_space = total_space
-        self.free_space = free_space
-        self.pool_id = pool_id
-        self.system_id = system_id
+    def __init__(self, _id, _name, _total_space, _free_space, _pool_id,
+                 _system_id):
+        self._id = _id
+        self._name = _name
+        self._total_space = _total_space
+        self._free_space = _free_space
+        self._pool_id = _pool_id
+        self._system_id = _system_id
 
     def column_headers(self):
         return [['ID', 'Name', 'Total space', 'Free space', 'Pool ID']]
@@ -746,11 +781,14 @@ class FileSystem(IData):
                  sh(self.free_space, human), self.pool_id]]
 
 
+@default_property('id', doc="Unique identifier")
+@default_property('name', doc="Snapshot name")
+@default_property('ts', doc="Time stamp the snapshot was created")
 class Snapshot(IData):
-    def __init__(self, id, name, ts):
-        self.id = id
-        self.name = name
-        self.ts = int(ts)
+    def __init__(self, _id, _name, _ts):
+        self._id = _id
+        self._name = _name
+        self._ts = int(_ts)
 
     def column_headers(self):
         return [['ID', 'Name', 'Created']]
@@ -759,25 +797,35 @@ class Snapshot(IData):
         return [[self.id, self.name, datetime.datetime.fromtimestamp(self.ts)]]
 
 
+@default_property('id', doc="Unique identifier")
+@default_property('fs_id', doc="Filesystem that is exported")
+@default_property('export_path', doc="Export path")
+@default_property('auth', doc="Authentication type")
+@default_property('root', doc="List of hosts with no_root_squash")
+@default_property('rw', doc="List of hosts with Read & Write privileges")
+@default_property('ro', doc="List of hosts with Read only privileges")
+@default_property('anonuid', doc="UID for anonymous user id")
+@default_property('anongid', doc="GID for anonymous group id")
+@default_property('options', doc="String containing advanced options")
 class NfsExport(IData):
     ANON_UID_GID_NA = -1
     ANON_UID_GID_ERROR = (ANON_UID_GID_NA - 1)
 
-    def __init__(self, id, fs_id, export_path, auth, root, rw, ro,
-                 anonuid, anongid, options):
-        assert (fs_id is not None)
-        assert (export_path is not None)
+    def __init__(self, _id, _fs_id, _export_path, _auth, _root, _rw, _ro,
+                 _anonuid, _anongid, _options):
+        assert (_fs_id is not None)
+        assert (_export_path is not None)
 
-        self.id = id
-        self.fs_id = fs_id          # File system exported
-        self.export_path = export_path     # Export path
-        self.auth = auth            # Authentication type
-        self.root = root            # List of hosts with no_root_squash
-        self.rw = rw                # List of hosts with read/write
-        self.ro = ro                # List of hosts with read/only
-        self.anonuid = anonuid      # uid for anonymous user id
-        self.anongid = anongid      # gid for anonymous group id
-        self.options = options      # NFS options
+        self._id = _id
+        self._fs_id = _fs_id          # File system exported
+        self._export_path = _export_path     # Export path
+        self._auth = _auth            # Authentication type
+        self._root = _root            # List of hosts with no_root_squash
+        self._rw = _rw                # List of hosts with read/write
+        self._ro = _ro                # List of hosts with read/only
+        self._anonuid = _anonuid      # uid for anonymous user id
+        self._anongid = _anongid      # gid for anonymous group id
+        self._options = _options      # NFS options
 
     def column_headers(self):
         return [["Key", 'Value']]
@@ -797,11 +845,14 @@ class NfsExport(IData):
         ]
 
 
+@default_property('src_block', doc="Source logical block address")
+@default_property('dest_block', doc="Destination logical block address")
+@default_property('block_count', doc="Number of blocks")
 class BlockRange(IData):
-    def __init__(self, src_block, dest_block, block_count):
-        self.src_block = src_block
-        self.dest_block = dest_block
-        self.block_count = block_count
+    def __init__(self, _src_block, _dest_block, _block_count):
+        self._src_block = _src_block
+        self._dest_block = _dest_block
+        self._block_count = _block_count
 
     def column_headers(self):
         raise NotImplementedError
@@ -810,12 +861,16 @@ class BlockRange(IData):
         raise NotImplementedError
 
 
+@default_property('id', doc="Unique instance identifier")
+@default_property('name', doc="Access group name")
+@default_property('initiators', doc="List of initiators")
+@default_property('system_id', doc="System identifier")
 class AccessGroup(IData):
-    def __init__(self, id, name, initiators, system_id='NA'):
-        self.id = id
-        self.name = name                # AccessGroup name
-        self.initiators = initiators    # List of initiators
-        self.system_id = system_id      # System id this group belongs
+    def __init__(self, _id, _name, _initiators, _system_id='NA'):
+        self._id = _id
+        self._name = _name                # AccessGroup name
+        self._initiators = _initiators    # List of initiators
+        self._system_id = _system_id      # System id this group belongs
 
     def column_headers(self):
         return [['ID', 'Name', 'Initiator ID', 'System ID']]
@@ -833,27 +888,27 @@ class AccessGroup(IData):
 
 class Properties(IData):
     def column_data(self, human=False, enum_as_number=False):
-        return [sorted(self.values.iterkeys(),
-                       key=lambda k: self.values[k][1])]
+        return [sorted(self._values.iterkeys(),
+                       key=lambda k: self._values[k][1])]
 
     def column_headers(self):
-        return [sorted(self.values.keys())]
+        return [sorted(self._values.keys())]
 
-    def __init__(self, values=None):
-        if values is not None:
-            self.values = values
+    def __init__(self, _values=None):
+        if _values is not None:
+            self._values = _values
         else:
-            self.values = {}
+            self._values = {}
 
     def list(self):
-        rc = self.values.keys()
+        rc = self._values.keys()
         return rc
 
     def get(self, key):
-        return self.values[key]
+        return self._values[key]
 
     def set(self, key, value):
-        self.values[key] = value
+        self._values[key] = value
 
 
 class Capabilities(IData):
@@ -942,27 +997,27 @@ class Capabilities(IData):
 
     def to_dict(self):
         rc = {'class': self.__class__.__name__,
-              'cap': ''.join(['%02x' % b for b in self.cap])}
+              'cap': ''.join(['%02x' % b for b in self._cap])}
         return rc
 
-    def __init__(self, cap=None):
-        if cap is not None:
-            self.cap = bytearray(cap.decode('hex'))
+    def __init__(self, _cap=None):
+        if _cap is not None:
+            self._cap = bytearray(_cap.decode('hex'))
         else:
-            self.cap = bytearray(Capabilities._NUM)
+            self._cap = bytearray(Capabilities._NUM)
 
     def get(self, capability):
-        if capability > len(self.cap):
+        if capability > len(self._cap):
             return Capabilities.UNKNOWN
-        return self.cap[capability]
+        return self._cap[capability]
 
     def set(self, capability, value=SUPPORTED):
-        self.cap[capability] = value
+        self._cap[capability] = value
         return None
 
     def enable_all(self):
-        for i in range(len(self.cap)):
-            self.cap[i] = Capabilities.SUPPORTED
+        for i in range(len(self._cap)):
+            self._cap[i] = Capabilities.SUPPORTED
 
     def column_headers(self):
         raise NotImplementedError

@@ -534,6 +534,30 @@ def return_requires(*types):
     return outer
 
 
+def default_property(name, allow_set=True, doc=None):
+    """
+    Creates the get/set properties for the given name.  It assumes that the
+    actual attribute is '_' + name
+
+    TODO: Expand this with domain validation to ensure the values are correct.
+    """
+    attribute_name = '_' + name
+
+    def getter(self):
+        return getattr(self, attribute_name)
+
+    def setter(self, value):
+        setattr(self, attribute_name, value)
+
+    prop = property(getter, setter if allow_set else None, None, doc)
+
+    def decorator(cls):
+        setattr(cls, name, prop)
+        return cls
+
+    return decorator
+
+
 class TestCommon(unittest.TestCase):
     def setUp(self):
         pass
