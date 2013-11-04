@@ -31,6 +31,9 @@ SIM_DATA_FILE = os.getenv("LSM_SIM_DATA",
                           tempfile.gettempdir() + '/lsm_sim_data')
 duration = os.getenv("LSM_SIM_TIME", 1)
 
+# Bump this when the sim data layout changes on disk
+SIM_DATA_VERSION = 1
+
 
 class SimJob(object):
     """
@@ -74,8 +77,39 @@ class SimJob(object):
         self.__item = value
 
 
+def _signature(obj):
+    """
+    Generate some kind of signature for this object, not sure this is ideal.
+
+    Hopefully this will save some debug time.
+    """
+    sig = ''
+    keys = obj.__dict__.keys()
+    keys.sort()
+
+    for k in keys:
+        sig = md5(sig + k)
+    return sig
+
+
+def _state_signature():
+    rc = ''
+    objects = [Pool('', '', 0, 0, ''), Volume('', '', '', 1, 1, 0, '', ''),
+               AccessGroup('', '', ['']), Initiator('', 0, ''),
+               System('', '', 0), FileSystem('', '', 0, 0, '', ''),
+               BlockRange(0, 100, 50), Capabilities(),
+               NfsExport('', '', '', '', '', '', '', '', '', '', ),
+               Snapshot('', '', 10)]
+
+    for o in objects:
+        rc = md5(rc + _signature(o))
+
+    return rc
+
+
 class SimState(object):
     def __init__(self):
+        self.version = SIM_DATA_VERSION
         self.sys_info = System('sim-01', 'LSM simulated storage plug-in',
                                System.STATUS_OK)
         p1 = Pool('POO1', 'Pool 1', 2 ** 64, 2 ** 64, self.sys_info.id)
@@ -107,6 +141,9 @@ class SimState(object):
         #you need to delete the association between them.  Holding this stuff
         #in a db would be easier :-)
         self.group_grants = {}      # {access group id : {volume id: access }}
+
+        #Create a signature
+        self.signature = _state_signature()
 
 
 class StorageSimulator(INfs, IStorageAreaNetwork):
@@ -140,12 +177,29 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
         else:
             return None, returned_item
 
+    def _version_error(self):
+        raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                               "Stored simulator state incompatible with "
+                               "simulator, please move or delete %s" %
+                               self.file)
+
     def _load(self):
         tmp = None
         if os.path.exists(self.file):
-            f = open(self.file, 'rb')
-            tmp = pickle.load(f)
-            f.close()
+            with open(self.file, 'rb') as f:
+                tmp = pickle.load(f)
+
+            # Going forward we could get smarter about handling this for
+            # changes that aren't invasive, but we at least need to check
+            # to make sure that the data will work and not cause any
+            # undo confusion.
+            try:
+                if tmp.version != SIM_DATA_VERSION or \
+                        tmp.signature != _state_signature():
+                    self._version_error()
+            except AttributeError:
+                self._version_error()
+
         return tmp
 
     def _save(self):
