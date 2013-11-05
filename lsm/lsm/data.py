@@ -342,7 +342,7 @@ class Initiator(IData):
 @default_property('status', doc="Enumerated status")
 @default_property('health', doc="Enumerated system health")
 @default_property('system_id', doc="System identifier")
-@default_property("optional_params", doc="Optional data")
+@default_property("optional_data", doc="Optional data")
 class Disk(IData):
     """
     Represents a disk.
@@ -455,7 +455,7 @@ class Disk(IData):
     }
 
     def __init__(self, _id, _name, _disk_type, _block_size, _num_of_blocks,
-                 _status, _health, _system_id, _optional_params=None):
+                 _status, _health, _system_id, _optional_data=None):
         self._id = _id
         self._name = _name
         self._disk_type = _disk_type
@@ -465,15 +465,15 @@ class Disk(IData):
         self._health = _health
         self._system_id = _system_id
 
-        if _optional_params is None:
-            self._optional_params = Properties()
+        if _optional_data is None:
+            self._optional_data = OptionalData()
         else:
             #Make sure the properties only contain ones we permit
             allowed = set(Disk.OPT_PROPERTIES_2_HEADER.keys())
-            actual = set(_optional_params.list())
+            actual = set(_optional_data.list())
 
             if actual <= allowed:
-                self._optional_params = _optional_params
+                self._optional_data = _optional_data
             else:
                 raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                                "Property keys are invalid: %s" %
@@ -517,7 +517,7 @@ class Disk(IData):
 
     def _opt_column_headers(self):
         opt_headers = []
-        opt_pros = self.optional_params.list()
+        opt_pros = self._optional_data.list()
         for opt_pro in opt_pros:
             opt_headers.extend([Disk.OPT_PROPERTIES_2_HEADER[opt_pro]])
         return opt_headers
@@ -532,9 +532,9 @@ class Disk(IData):
 
     def _opt_column_data(self, human=False, enum_as_number=False):
         opt_data_values = []
-        opt_pros = self.optional_params.list()
+        opt_pros = self._optional_data.list()
         for opt_pro in opt_pros:
-            opt_pro_value = self.optional_params.get(opt_pro)
+            opt_pro_value = self._optional_data.get(opt_pro)
             if enum_as_number:
                 # current no size convert needed.
                 pass
@@ -886,7 +886,7 @@ class AccessGroup(IData):
         return rc
 
 
-class Properties(IData):
+class OptionalData(IData):
     def column_data(self, human=False, enum_as_number=False):
         return [sorted(self._values.iterkeys(),
                        key=lambda k: self._values[k][1])]

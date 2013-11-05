@@ -23,7 +23,7 @@ import tempfile
 
 from common import LsmError, ErrorNumber, JobStatus, md5, uri_parse
 from data import Pool, Initiator, Volume, BlockRange, System, AccessGroup, \
-    Snapshot, NfsExport, FileSystem, Capabilities
+    Snapshot, NfsExport, FileSystem, Capabilities, Disk, OptionalData
 from iplugin import INfs, IStorageAreaNetwork
 from version import VERSION
 
@@ -152,12 +152,12 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
     """
 
     @staticmethod
-    def __random_vpd():
+    def __random_vpd(l=16):
         """
         Generate a random 16 digit number as hex
         """
         vpd = []
-        for i in range(0, 16):
+        for i in range(0, l):
             vpd.append(str('%02X' % (random.randint(0, 255))))
         return "".join(vpd)
 
@@ -841,3 +841,18 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
                 raise LsmError(ErrorNumber.FS_NOT_EXPORTED, "FS not exported")
         else:
             raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
+
+    def disks(self, flags=0):
+
+        rc = []
+        # TODO Make these persistent and make it fit into the total model
+
+        for i in range(0, 10):
+            name = "Sim disk %d" % i
+            optionals = OptionalData()
+            optionals.set('sn', self.__random_vpd(8))
+            rc.append(Disk(md5(name), name, Disk.DISK_TYPE_HYBRID, 512,
+                           1893933056, Disk.ENABLE_STATUS_ENABLED,
+                           Disk.HEALTH_OK, self.s.sys_info.id, optionals))
+
+        return rc

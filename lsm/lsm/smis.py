@@ -25,7 +25,7 @@ from pywbem import CIMError
 from iplugin import IStorageAreaNetwork
 from common import  Error, uri_parse, LsmError, ErrorNumber, JobStatus, md5
 from data import Pool, Initiator, Volume, AccessGroup, System, Capabilities,\
-    Disk, Properties
+    Disk, OptionalData
 from version import VERSION
 
 
@@ -1812,7 +1812,7 @@ class Smis(IStorageAreaNetwork):
             opt_pro_dict['predictive_fail_count'] = \
                 cim_disk['PredictiveFailureCount']
 
-        optionals = Properties()
+        optionals = OptionalData()
 
         for opt_pro_name in opt_pro_dict.keys():
             optionals.set(opt_pro_name, opt_pro_dict[opt_pro_name])

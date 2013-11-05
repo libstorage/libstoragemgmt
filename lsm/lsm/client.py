@@ -527,7 +527,7 @@ class Client(INetworkAttachedStorage):
     # @param    self    The this pointer
     # @param    flags   Reserved for future use, must be zero.
     # @returns An array of disk objects.
-    @return_requires(Disk)
+    @return_requires([Disk])
     def disks(self, flags=0):
         """
         Returns an array of disk objects
