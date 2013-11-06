@@ -88,7 +88,7 @@ export LSM_SIM_DATA="$base/lsm_sim_data"
 #Start daemon
 good "$LSMD_DAEMON --plugindir $plugins --socketdir $LSM_UDS_PATH" -v
 
-LSMD_PID=`pidof lsmd`
+LSMD_PID=$(ps aux | grep $LSM_UDS_PATH | grep -v grep |  awk '{print $2}')
 
 #Run C unit test
 export CK_DEFAULT_TIMEOUT=600
