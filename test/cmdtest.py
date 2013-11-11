@@ -53,12 +53,11 @@ cmd = "lsmcli"
 
 sep = ","
 test_pool_name = 'lsm_test_aggr'
-test_pool_id = None
 
 CUR_SYS_ID = None
 
 
-def randomIQN():
+def random_iqn():
     """Logic taken from anaconda library"""
 
     s = "iqn.1994-05.com.domain:01."
@@ -81,21 +80,20 @@ def rs(l):
         random.choice(string.ascii_uppercase) for x in range(l))
 
 
-def call(cmd, expected_rc=0):
+def call(command, expected_rc=0):
     """
     Call an executable and return a tuple of exitcode, stdout, stderr
     """
-    print cmd
+    print command
 
-    c = Popen(cmd, stdout=PIPE, stderr=PIPE)
-    out = c.communicate()
+    process = Popen(command, stdout=PIPE, stderr=PIPE)
+    out = process.communicate()
 
-    if c.returncode != expected_rc:
+    if process.returncode != expected_rc:
         raise RuntimeError("exit code != %s, actual= %s, stdout= %s, "
-                           "stderr= %s" % (expected_rc, c.returncode, out[0],
-                                           out[1]))
-
-    return c.returncode, out[0], out[1]
+                           "stderr= %s" % (expected_rc, process.returncode,
+                                           out[0], out[1]))
+    return process.returncode, out[0], out[1]
 
 
 def parse(out):
@@ -152,8 +150,8 @@ def delete_fs(init_id):
     call([cmd, '--delete-fs', init_id, '-t' + sep, '-f'])
 
 
-def create_access_group(iqn, system_id):
-    out = call([cmd, '--create-access-group', rs(8), '--id', iqn,
+def create_access_group(init_id, system_id):
+    out = call([cmd, '--create-access-group', rs(8), '--id', init_id,
                 '--type', 'ISCSI', '-t' + sep, '--system', system_id])[1]
     r = parse(out)
     return r[0][ID]
@@ -247,15 +245,15 @@ def replicate_volume_range(vol_id, dest_vol_id, rep_type, src_start,
 
 def get_systems():
     out = call([cmd, '-l', 'SYSTEMS', '-t' + sep])[1]
-    systems = parse(out)
-    return systems
+    system_list = parse(out)
+    return system_list
 
 
-def initiator_grant(iqn, vol_id):
+def initiator_grant(initiator_id, vol_id):
 #initiator_grant(self, initiator_id, initiator_type, volume, access,
 #   flags = 0):
-    call([cmd, '--access-grant', iqn, '--type', 'ISCSI', '--volume', vol_id,
-          '--access', 'RW'])
+    call([cmd, '--access-grant', initiator_id, '--type', 'ISCSI',
+          '--volume', vol_id, '--access', 'RW'])
 
 
 def initiator_chap(initiator):
@@ -267,8 +265,8 @@ def initiator_chap(initiator):
           '--out-password', "bar"])
 
 
-def initiator_revoke(iqn, vol_id):
-    call([cmd, '--access-revoke', iqn, '--volume', vol_id])
+def initiator_revoke(initiator_id, vol_id):
+    call([cmd, '--access-revoke', initiator_id, '--volume', vol_id])
 
 
 def capabilities(system_id):
@@ -295,6 +293,8 @@ def get_existing_fs(system_id):
 
 def numbers():
     vols = []
+    test_pool_id = name_to_id(OP_POOL, test_pool_name)
+
     for i in range(10):
         vols.append(create_volume(test_pool_id))
 
@@ -427,8 +427,8 @@ def test_fs_creation(cap, system_id):
 
 def test_mapping(cap, system_id):
     pool_id = name_to_id(OP_POOL, test_pool_name)
-    iqn1 = randomIQN()
-    iqn2 = randomIQN()
+    iqn1 = random_iqn()
+    iqn2 = random_iqn()
 
     if cap['ACCESS_GROUP_CREATE']:
         ag_id = create_access_group(iqn1, system_id)
@@ -515,6 +515,6 @@ if __name__ == "__main__":
     #       Try calling un-supported operations and expect them to fail
     systems = get_systems()
 
-    for s in systems:
-        cap = capabilities(s[ID])
-        run_all_tests(cap, s[ID])
+    for system in systems:
+        c = capabilities(system[ID])
+        run_all_tests(c, system[ID])
