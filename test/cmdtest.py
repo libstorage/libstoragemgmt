@@ -471,7 +471,12 @@ def test_mapping(cap, system_id):
             delete_volume(vol_id)
 
 
+def test_plugin_info(cap, system_id):
+    out = call([cmd, '--plugin-info', '-t,'])[1]
+
+
 def create_all(cap, system_id):
+    test_plugin_info(cap, system_id)
     test_block_creation(cap, system_id)
     test_fs_creation(cap, system_id)
 
