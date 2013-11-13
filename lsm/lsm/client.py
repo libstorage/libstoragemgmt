@@ -65,7 +65,7 @@ class Client(INetworkAttachedStorage):
         """
         Instruct the plug-in to get ready
         """
-        self.tp.rpc('startup', del_self(locals()))
+        self._tp.rpc('startup', del_self(locals()))
 
     ## Checks to see if any unix domain sockets exist in the base directory
     # and opens a socket to one to see if the server is actually there.
@@ -109,10 +109,10 @@ class Client(INetworkAttachedStorage):
     # @returns None
     def __init__(self, uri, plain_text_password=None, timeout_ms=30000,
                  flags=0):
-        self.uri = uri
-        self.password = plain_text_password
-        self.timeout = timeout_ms
-        self.uds_path = Client._plugin_uds_path()
+        self._uri = uri
+        self._password = plain_text_password
+        self._timeout = timeout_ms
+        self._uds_path = Client._plugin_uds_path()
 
         u = common.uri_parse(uri, ['scheme'])
 
@@ -121,10 +121,10 @@ class Client(INetworkAttachedStorage):
             (plug, proto) = scheme.split("+")
             scheme = plug
 
-        self.plugin_path = os.path.join(self.uds_path, scheme)
+        self.plugin_path = os.path.join(self._uds_path, scheme)
 
         if os.path.exists(self.plugin_path):
-            self.tp = Transport(Transport.get_socket(self.plugin_path))
+            self._tp = Transport(Transport.get_socket(self.plugin_path))
         else:
             #At this point we don't know if the user specified an incorrect
             #plug-in in the URI or the daemon isn't started.  We will check
@@ -155,9 +155,9 @@ class Client(INetworkAttachedStorage):
         """
         Does an orderly shutdown of the plug-in
         """
-        self.tp.rpc('shutdown', del_self(locals()))
-        self.tp.close()
-        self.tp = None
+        self._tp.rpc('shutdown', del_self(locals()))
+        self._tp.close()
+        self._tp = None
 
     ## Retrieves all the available plug-ins
     @staticmethod
@@ -198,7 +198,7 @@ class Client(INetworkAttachedStorage):
 
         Return None on success, else LsmError exception
         """
-        return self.tp.rpc('set_time_out', del_self(locals()))
+        return self._tp.rpc('set_time_out', del_self(locals()))
 
     ## Retrieves the current time-out value.
     # @param    self    The this pointer
@@ -211,7 +211,7 @@ class Client(INetworkAttachedStorage):
 
         Return time-out in ms, else raise LsmError
         """
-        return self.tp.rpc('get_time_out', del_self(locals()))
+        return self._tp.rpc('get_time_out', del_self(locals()))
 
     ## Retrieves the status of the specified job id.
     # @param    self    The this pointer
@@ -228,7 +228,7 @@ class Client(INetworkAttachedStorage):
                             completed item).
         else LsmError exception.
         """
-        return self.tp.rpc('job_status', del_self(locals()))
+        return self._tp.rpc('job_status', del_self(locals()))
 
     ## Frees the resources for the specfied job id.
     # @param    self    The this pointer
@@ -241,7 +241,7 @@ class Client(INetworkAttachedStorage):
 
         Returns None on success, else raises an LsmError
         """
-        return self.tp.rpc('job_free', del_self(locals()))
+        return self._tp.rpc('job_free', del_self(locals()))
 
     ## Gets the capabilities of the array.
     # @param    self    The this pointer
@@ -255,7 +255,7 @@ class Client(INetworkAttachedStorage):
 
         Returns a capability object, see data,py for details.
         """
-        return self.tp.rpc('capabilities', del_self(locals()))
+        return self._tp.rpc('capabilities', del_self(locals()))
 
     ## Gets information about the plug-in
     # @param    self    The this pointer
@@ -266,7 +266,7 @@ class Client(INetworkAttachedStorage):
         """
         Returns a description and version of plug-in
         """
-        return self.tp.rpc('plugin_info', del_self(locals()))
+        return self._tp.rpc('plugin_info', del_self(locals()))
 
     ## Returns an array of pool objects.
     # @param    self    The this pointer
@@ -281,7 +281,7 @@ class Client(INetworkAttachedStorage):
         Returns an array of pool objects.  Pools are used in both block and
         file system interfaces, thus the reason they are in the base class.
         """
-        return self.tp.rpc('pools', del_self(locals()))
+        return self._tp.rpc('pools', del_self(locals()))
 
     ## Returns an array of system objects.
     # @param    self    The this pointer
@@ -294,7 +294,7 @@ class Client(INetworkAttachedStorage):
         distinguish resources from on storage array to another when the plug=in
         supports the ability to have more than one array managed by it
         """
-        return self.tp.rpc('systems', del_self(locals()))
+        return self._tp.rpc('systems', del_self(locals()))
 
     ## Returns an array of initiator objects
     # @param    self    The this pointer
@@ -305,7 +305,7 @@ class Client(INetworkAttachedStorage):
         """
         Return an array of initiator objects
         """
-        return self.tp.rpc('initiators', del_self(locals()))
+        return self._tp.rpc('initiators', del_self(locals()))
 
     ## Register a user/password for the specified initiator for CHAP
     #  authentication.
@@ -326,7 +326,7 @@ class Client(INetworkAttachedStorage):
         Register a user/password for the specified initiator for CHAP
         authentication.
         """
-        return self.tp.rpc('iscsi_chap_auth', del_self(locals()))
+        return self._tp.rpc('iscsi_chap_auth', del_self(locals()))
 
     ## Grants access so an initiator can read/write the specified volume.
     # @param    self            The this pointer
@@ -342,7 +342,7 @@ class Client(INetworkAttachedStorage):
         """
         Allows an initiator to access a volume.
         """
-        return self.tp.rpc('initiator_grant', del_self(locals()))
+        return self._tp.rpc('initiator_grant', del_self(locals()))
 
     ## Revokes access for a volume for the specified initiator.
     # @param    self            The this pointer
@@ -355,7 +355,7 @@ class Client(INetworkAttachedStorage):
         """
         Revokes access to a volume for the specified initiator
         """
-        return self.tp.rpc('initiator_revoke', del_self(locals()))
+        return self._tp.rpc('initiator_revoke', del_self(locals()))
 
     ## Returns a list of volumes that are accessible from the specified
     # initiator.
@@ -367,8 +367,8 @@ class Client(INetworkAttachedStorage):
         """
         Returns a list of volumes that the initiator has access to.
         """
-        return self.tp.rpc('volumes_accessible_by_initiator',
-                           del_self(locals()))
+        return self._tp.rpc('volumes_accessible_by_initiator',
+                            del_self(locals()))
 
     ## Returns a list of initiators that have access to the specified volume.
     # @param    self        The this pointer
@@ -377,7 +377,7 @@ class Client(INetworkAttachedStorage):
     # @returns  List of initiators
     @return_requires([Initiator])
     def initiators_granted_to_volume(self, volume, flags=0):
-        return self.tp.rpc('initiators_granted_to_volume', del_self(locals()))
+        return self._tp.rpc('initiators_granted_to_volume', del_self(locals()))
 
     ## Returns an array of volume objects
     # @param    self    The this pointer
@@ -388,7 +388,7 @@ class Client(INetworkAttachedStorage):
         """
         Returns an array of volume objects
         """
-        return self.tp.rpc('volumes', del_self(locals()))
+        return self._tp.rpc('volumes', del_self(locals()))
 
     ## Creates a volume
     # @param    self            The this pointer
@@ -409,7 +409,7 @@ class Client(INetworkAttachedStorage):
         Note: Tuple return values are mutually exclusive, when one
         is None the other must be valid.
         """
-        return self.tp.rpc('volume_create', del_self(locals()))
+        return self._tp.rpc('volume_create', del_self(locals()))
 
     ## Re-sizes a volume
     # @param    self    The this pointer
@@ -427,7 +427,7 @@ class Client(INetworkAttachedStorage):
         Note: Tuple return values are mutually exclusive, when one
         is None the other must be valid.
         """
-        return self.tp.rpc('volume_resize', del_self(locals()))
+        return self._tp.rpc('volume_resize', del_self(locals()))
 
     ## Replicates a volume from the specified pool.
     # @param    self        The this pointer
@@ -448,7 +448,7 @@ class Client(INetworkAttachedStorage):
         Note: Tuple return values are mutually exclusive, when one
         is None the other must be valid.
         """
-        return self.tp.rpc('volume_replicate', del_self(locals()))
+        return self._tp.rpc('volume_replicate', del_self(locals()))
 
     ## Size of a replicated block.
     # @param    self    The this pointer
@@ -460,8 +460,8 @@ class Client(INetworkAttachedStorage):
         """
         Returns the size of a replicated block in bytes.
         """
-        return self.tp.rpc('volume_replicate_range_block_size',
-                           del_self(locals()))
+        return self._tp.rpc('volume_replicate_range_block_size',
+                            del_self(locals()))
 
     ## Replicates a portion of a volume to itself or another volume.
     # @param    self    The this pointer
@@ -482,7 +482,7 @@ class Client(INetworkAttachedStorage):
 
         Returns Job id or None when completed, else raises LsmError on errors.
         """
-        return self.tp.rpc('volume_replicate_range', del_self(locals()))
+        return self._tp.rpc('volume_replicate_range', del_self(locals()))
 
     ## Deletes a volume
     # @param    self    The this pointer
@@ -496,7 +496,7 @@ class Client(INetworkAttachedStorage):
 
         Returns None on success, else job id
         """
-        return self.tp.rpc('volume_delete', del_self(locals()))
+        return self._tp.rpc('volume_delete', del_self(locals()))
 
     ## Makes a volume online and available to the host.
     # @param    self    The this pointer
@@ -510,7 +510,7 @@ class Client(INetworkAttachedStorage):
 
         returns None on success, else raises LsmError on errors.
         """
-        return self.tp.rpc('volume_online', del_self(locals()))
+        return self._tp.rpc('volume_online', del_self(locals()))
 
     ## Takes a volume offline
     # @param    self    The this pointer
@@ -524,7 +524,7 @@ class Client(INetworkAttachedStorage):
 
         returns None on success, else raises LsmError on errors.
         """
-        return self.tp.rpc('volume_offline', del_self(locals()))
+        return self._tp.rpc('volume_offline', del_self(locals()))
 
     ## Returns an array of disk objects
     # @param    self    The this pointer
@@ -535,7 +535,7 @@ class Client(INetworkAttachedStorage):
         """
         Returns an array of disk objects
         """
-        return self.tp.rpc('disks', del_self(locals()))
+        return self._tp.rpc('disks', del_self(locals()))
 
     ## Access control for allowing an access group to access a volume
     # @param    self    The this pointer
@@ -549,7 +549,7 @@ class Client(INetworkAttachedStorage):
         """
         Allows an access group to access a volume.
         """
-        return self.tp.rpc('access_group_grant', del_self(locals()))
+        return self._tp.rpc('access_group_grant', del_self(locals()))
 
     ## Revokes access to a volume to initiators in an access group
     # @param    self    The this pointer
@@ -562,7 +562,7 @@ class Client(INetworkAttachedStorage):
         """
         Revokes access for an access group for a volume
         """
-        return self.tp.rpc('access_group_revoke', del_self(locals()))
+        return self._tp.rpc('access_group_revoke', del_self(locals()))
 
     ## Returns a list of access group objects
     # @param    self    The this pointer
@@ -573,7 +573,7 @@ class Client(INetworkAttachedStorage):
         """
         Returns a list of access groups
         """
-        return self.tp.rpc('access_group_list', del_self(locals()))
+        return self._tp.rpc('access_group_list', del_self(locals()))
 
     ## Creates an access a group with the specified initiator in it.
     # @param    self                The this pointer
@@ -590,7 +590,7 @@ class Client(INetworkAttachedStorage):
         Creates an access group and add the specified initiator id, id_type and
         desired access.
         """
-        return self.tp.rpc('access_group_create', del_self(locals()))
+        return self._tp.rpc('access_group_create', del_self(locals()))
 
     ## Deletes an access group.
     # @param    self    The this pointer
@@ -602,7 +602,7 @@ class Client(INetworkAttachedStorage):
         """
         Deletes an access group
         """
-        return self.tp.rpc('access_group_del', del_self(locals()))
+        return self._tp.rpc('access_group_del', del_self(locals()))
 
     ## Adds an initiator to an access group
     # @param    self            The this pointer
@@ -617,7 +617,7 @@ class Client(INetworkAttachedStorage):
         """
         Adds an initiator to an access group
         """
-        return self.tp.rpc('access_group_add_initiator', del_self(locals()))
+        return self._tp.rpc('access_group_add_initiator', del_self(locals()))
 
     ## Deletes an initiator from an access group
     # @param    self            The this pointer
@@ -630,7 +630,7 @@ class Client(INetworkAttachedStorage):
         """
         Deletes an initiator from an access group
         """
-        return self.tp.rpc('access_group_del_initiator', del_self(locals()))
+        return self._tp.rpc('access_group_del_initiator', del_self(locals()))
 
     ## Returns the list of volumes that access group has access to.
     # @param    self        The this pointer
@@ -642,8 +642,8 @@ class Client(INetworkAttachedStorage):
         """
         Returns the list of volumes that access group has access to.
         """
-        return self.tp.rpc('volumes_accessible_by_access_group',
-                           del_self(locals()))
+        return self._tp.rpc('volumes_accessible_by_access_group',
+                            del_self(locals()))
 
     ##Returns the list of access groups that have access to the specified
     #volume.
@@ -657,7 +657,7 @@ class Client(INetworkAttachedStorage):
         Returns the list of access groups that have access to the specified
         volume.
         """
-        return self.tp.rpc('access_groups_granted_to_volume',
+        return self._tp.rpc('access_groups_granted_to_volume',
                            del_self(locals()))
 
     ## Checks to see if a volume has child dependencies.
@@ -672,7 +672,7 @@ class Client(INetworkAttachedStorage):
         it. Implies that this volume cannot be deleted or possibly modified
         because it would affect its children.
         """
-        return self.tp.rpc('volume_child_dependency', del_self(locals()))
+        return self._tp.rpc('volume_child_dependency', del_self(locals()))
 
     ## Removes any child dependency.
     # @param    self    The this pointer
@@ -692,7 +692,7 @@ class Client(INetworkAttachedStorage):
 
         Returns None if complete else job id, raises LsmError on errors.
         """
-        return self.tp.rpc('volume_child_dependency_rm', del_self(locals()))
+        return self._tp.rpc('volume_child_dependency_rm', del_self(locals()))
 
     ## Returns a list of file system objects.
     # @param    self    The this pointer
@@ -703,7 +703,7 @@ class Client(INetworkAttachedStorage):
         """
         Returns a list of file systems on the controller.
         """
-        return self.tp.rpc('fs', del_self(locals()))
+        return self._tp.rpc('fs', del_self(locals()))
 
     ## Deletes a file system
     # @param    self    The this pointer
@@ -718,7 +718,7 @@ class Client(INetworkAttachedStorage):
         Deletes a file system and everything it contains
         Returns None on success, else job id
         """
-        return self.tp.rpc('fs_delete', del_self(locals()))
+        return self._tp.rpc('fs_delete', del_self(locals()))
 
     ## Re-sizes a file system
     # @param    self            The this pointer
@@ -736,7 +736,7 @@ class Client(INetworkAttachedStorage):
         Note: Tuple return values are mutually exclusive, when one
         is None the other must be valid.
         """
-        return self.tp.rpc('fs_resize', del_self(locals()))
+        return self._tp.rpc('fs_resize', del_self(locals()))
 
     ## Creates a file system.
     # @param    self        The this pointer
@@ -756,7 +756,7 @@ class Client(INetworkAttachedStorage):
         Note: Tuple return values are mutually exclusive, when one
         is None the other must be valid.
         """
-        return self.tp.rpc('fs_create', del_self(locals()))
+        return self._tp.rpc('fs_create', del_self(locals()))
 
     ## Clones a file system
     # @param    self            The this pointer
@@ -775,7 +775,7 @@ class Client(INetworkAttachedStorage):
         Note: Tuple return values are mutually exclusive, when one
         is None the other must be valid.
         """
-        return self.tp.rpc('fs_clone', del_self(locals()))
+        return self._tp.rpc('fs_clone', del_self(locals()))
 
     ## Clones an individial file or files on the specified file system
     # @param    self            The this pointer
@@ -796,7 +796,7 @@ class Client(INetworkAttachedStorage):
 
         Returns None on success, else job id
         """
-        return self.tp.rpc('file_clone', del_self(locals()))
+        return self._tp.rpc('file_clone', del_self(locals()))
 
     ## Returns a list of snapshots
     # @param    self    The this pointer
@@ -808,7 +808,7 @@ class Client(INetworkAttachedStorage):
         """
         Returns a list of snapshot names for the supplied file system
         """
-        return self.tp.rpc('fs_snapshots', del_self(locals()))
+        return self._tp.rpc('fs_snapshots', del_self(locals()))
 
     ## Creates a snapshot (Point in time read only copy)
     # @param    self            The this pointer
@@ -837,7 +837,7 @@ class Client(INetworkAttachedStorage):
         - Tuple return values are mutually exclusive, when one
           is None the other must be valid.
         """
-        return self.tp.rpc('fs_snapshot_create', del_self(locals()))
+        return self._tp.rpc('fs_snapshot_create', del_self(locals()))
 
     ## Deletes a snapshot
     # @param    self        The this pointer
@@ -852,7 +852,7 @@ class Client(INetworkAttachedStorage):
 
         Returns None on success else job id, LsmError exception on error
         """
-        return self.tp.rpc('fs_snapshot_delete', del_self(locals()))
+        return self._tp.rpc('fs_snapshot_delete', del_self(locals()))
 
     ## Reverts a snapshot
     # @param    self            The this pointer
@@ -880,7 +880,7 @@ class Client(INetworkAttachedStorage):
 
         Returns None on success, else job id, LsmError exception on error
         """
-        return self.tp.rpc('fs_snapshot_revert', del_self(locals()))
+        return self._tp.rpc('fs_snapshot_revert', del_self(locals()))
 
     ## Checks to see if a file system has child dependencies.
     # @param    fs      The file system to check
@@ -895,7 +895,7 @@ class Client(INetworkAttachedStorage):
         or specified file on this file system cannot be deleted or possibly
         modified because it would affect its children.
         """
-        return self.tp.rpc('fs_child_dependency', del_self(locals()))
+        return self._tp.rpc('fs_child_dependency', del_self(locals()))
 
     ## Removes child dependencies from a FS or specific file.
     # @param    self    The this pointer
@@ -916,7 +916,7 @@ class Client(INetworkAttachedStorage):
 
         Returns None if completed, else job id.  Raises LsmError on errors.
         """
-        return self.tp.rpc('fs_child_dependency_rm', del_self(locals()))
+        return self._tp.rpc('fs_child_dependency_rm', del_self(locals()))
 
     ## Returns a list of all the NFS client authentication types.
     # @param    self    The this pointer
@@ -927,7 +927,7 @@ class Client(INetworkAttachedStorage):
         """
         What types of NFS client authentication are supported.
         """
-        return self.tp.rpc('export_auth', del_self(locals()))
+        return self._tp.rpc('export_auth', del_self(locals()))
 
     ## Returns a list of all the exported file systems
     # @param    self    The this pointer
@@ -938,7 +938,7 @@ class Client(INetworkAttachedStorage):
         """
         Get a list of all exported file systems on the controller.
         """
-        return self.tp.rpc('exports', del_self(locals()))
+        return self._tp.rpc('exports', del_self(locals()))
 
     ## Exports a FS as specified in the export.
     # @param    self            The this pointer
@@ -961,7 +961,7 @@ class Client(INetworkAttachedStorage):
         """
         Exports a filesystem as specified in the arguments
         """
-        return self.tp.rpc('export_fs', del_self(locals()))
+        return self._tp.rpc('export_fs', del_self(locals()))
 
     ## Removes the specified export
     # @param    self    The this pointer
@@ -973,7 +973,7 @@ class Client(INetworkAttachedStorage):
         """
         Removes the specified export
         """
-        return self.tp.rpc('export_remove', del_self(locals()))
+        return self._tp.rpc('export_remove', del_self(locals()))
 
 
 class TestClient(unittest.TestCase):
