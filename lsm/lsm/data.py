@@ -206,7 +206,7 @@ class IData(object):
     @staticmethod
     def status_to_str(status):
         """
-        Convert Tier status to a string
+        Convert status to a string
         When having multiple status, will use a comma between them
         """
         status_str = ''
@@ -737,24 +737,283 @@ class System(IData):
 @default_property('total_space', doc="Total space in bytes")
 @default_property('free_space', doc="Free space in bytes")
 @default_property('system_id', doc="System identifier")
+@default_property("optional_data", doc="Optional data")
 class Pool(IData):
     """
     Pool specific information
     """
+    RETRIEVE_FULL_INFO = 1  # Used by client.py for pools() call.
+                            # This might not be a good place, please
+                            # suggest a better one.
 
-    def __init__(self, _id, _name, _total_space, _free_space, _system_id):
+    TOTAL_SPACE_NOT_FOUND = -1
+    FREE_SPACE_NOT_FOUND = -1
+    STRIPE_SIZE_NOT_FOUND = -1
+
+    # RAID_xx name was following SNIA SMI-S 1.4 rev6 Block Book,
+    # section '14.1.5.3', Table 255 - Supported Common RAID Levels
+    RAID_TYPE_RAID0 = 0
+    RAID_TYPE_RAID1 = 1
+    RAID_TYPE_RAID3 = 3
+    RAID_TYPE_RAID4 = 4
+    RAID_TYPE_RAID5 = 5
+    RAID_TYPE_RAID6 = 6
+    RAID_TYPE_RAID10 = 10
+    RAID_TYPE_RAID15 = 15
+    RAID_TYPE_RAID16 = 16
+    RAID_TYPE_RAID50 = 50
+    RAID_TYPE_RAID60 = 60
+    RAID_TYPE_RAID51 = 51
+    RAID_TYPE_RAID61 = 61
+    # number 2x is reserved for non-numbered RAID.
+    RAID_TYPE_JBOD = 20
+    RAID_TYPE_UNKNOWN = 21
+    RAID_TYPE_NOT_APPLICABLE = 22
+    RAID_TYPE_MIXED = 23
+
+    # The string of each RAID_TYPE is for CIM_StorageSetting['ElementName']
+    _STD_RAID_TYPE = {
+        RAID_TYPE_RAID0: 'RAID0',  # stripe
+        RAID_TYPE_RAID1: 'RAID1',  # mirror
+        RAID_TYPE_RAID3: 'RAID3',  # byte-level striping with dedicated
+                                   # parity
+        RAID_TYPE_RAID4: 'RAID4',  # block-level striping with dedicated
+                                   # parity
+        RAID_TYPE_RAID5: 'RAID5',  # block-level striping with distributed
+                                   # parity
+        RAID_TYPE_RAID6: 'RAID6',  # AKA, RAID-DP.
+    }
+
+    _NESTED_RAID_TYPE = {
+        RAID_TYPE_RAID10: 'RAID10',  # stripe of mirrors
+        RAID_TYPE_RAID15: 'RAID15',  # parity of mirrors
+        RAID_TYPE_RAID16: 'RAID16',  # dual parity of mirrors
+        RAID_TYPE_RAID50: 'RAID50',  # stripe of parities
+        RAID_TYPE_RAID60: 'RAID60',  # stripe of dual parities
+        RAID_TYPE_RAID51: 'RAID51',  # mirror of parities
+        RAID_TYPE_RAID61: 'RAID61',  # mirror of dual parities
+    }
+
+    _MISC_RAID_TYPE = {
+        RAID_TYPE_JBOD: 'JBOD',         # Just Bunch of Disks
+        RAID_TYPE_UNKNOWN: 'UNKNOWN',
+        RAID_TYPE_NOT_APPLICABLE: 'NOT_APPLICABLE',
+        RAID_TYPE_MIXED: 'MIXED',  # a Pool are having 2+ RAID groups with
+                                   # different RAID type
+    }
+
+    # Using 'dict(list(x.items()) + list(y.items()))' for python 3 prepare
+    _RAID_TYPE = dict(list(_STD_RAID_TYPE.items()) +
+                      list(_NESTED_RAID_TYPE.items()) +
+                      list(_MISC_RAID_TYPE.items()))
+
+    @staticmethod
+    def raid_type_to_num(raid_type):
+        """
+        Convert Pool.RAID_TYPE_RAID10 into int(10)
+        Only check standard RAID and nested RAID, not including JBOD.
+        The raid_type itself is a int number.
+        If not a valid, we return None
+        """
+        if (raid_type in Pool._STD_RAID_TYPE.keys() or
+           raid_type in Pool._NESTED_RAID_TYPE.keys()):
+            return raid_type
+        return None
+
+    @staticmethod
+    def raid_type_to_str(raid_type):
+        if raid_type in Pool._RAID_TYPE.keys():
+            return Pool._RAID_TYPE[raid_type]
+        return Pool._RAID_TYPE[Pool.RAID_TYPE_UNKNOWN]
+
+    @staticmethod
+    def raid_type_str_to_type(raid_type_str):
+        key = get_key(Pool._RAID_TYPE, raid_type_str)
+        if key or key == 0:
+            return key
+        return Pool.RAID_TYPE_UNKNOWN
+
+    MEMBER_TYPE_UNKNOWN = 0
+    MEMBER_TYPE_DISK = 1
+    MEMBER_TYPE_POOL = 2
+    MEMBER_TYPE_VOLUME = 3
+
+    _MEMBER_TYPE = {
+        MEMBER_TYPE_UNKNOWN: 'UNKNOWN',
+        MEMBER_TYPE_DISK: 'DISK',       # Pool was created from Disk(s).
+        MEMBER_TYPE_POOL: 'POOL',       # Pool was created from other Pool(s).
+        MEMBER_TYPE_VOLUME: 'VOLUME',   # Pool was created from Volume(s).
+    }
+
+    @staticmethod
+    def member_type_to_str(member_type):
+        if member_type in Pool._MEMBER_TYPE.keys():
+            return Pool._MEMBER_TYPE[member_type]
+        return Pool._MEMBER_TYPE[Pool.MEMBER_TYPE_UNKNOWN]
+
+    @staticmethod
+    def member_type_str_to_type(member_type_str):
+        key = get_key(Pool._MEMBER_TYPE, member_type_str)
+        if key or key == 0:
+            return key
+        return Pool._MEMBER_TYPE_UNKNOWN
+
+    @staticmethod
+    def member_ids_to_str(member_ids):
+        member_string = ''
+        if isinstance(member_ids, list):
+            for member_id in member_ids:
+                member_string = txt_a(member_string, str(member_id))
+        return member_string
+
+    THINP_TYPE_UNKNOWN = 0
+    THINP_TYPE_THIN = 1
+    THINP_TYPE_THICK = 5
+    THINP_TYPE_NOT_APPLICABLE = 6
+    # NOT_APPLICABLE means current pool is not implementing Thin Provisioning,
+    # but can create thin or thick pool from it.
+
+    _THINP_TYPE = {
+        THINP_TYPE_UNKNOWN: 'UNKNOWN',
+        THINP_TYPE_THIN: 'THIN',
+        THINP_TYPE_THICK: 'THICK',
+        THINP_TYPE_NOT_APPLICABLE: 'NOT_APPLICABLE',
+    }
+
+    @staticmethod
+    def thinp_type_to_str(thinp_type):
+        if thinp_type in Pool._THINP_TYPE.keys():
+            return Pool._THINP_TYPE[thinp_type]
+        return Pool._THINP_TYPE[Pool.THINP_TYPE_UNKNOWN]
+
+    # Element Type indicate what kind of element could this pool create:
+    #   * Another Pool
+    #   * Volume (aka, LUN)
+    #   * System Reserved Pool.
+    ELEMENT_TYPE_UNKNOWN = 1 << 0
+    ELEMENT_TYPE_POOL = 1 << 1
+    ELEMENT_TYPE_VOLUME = 1 << 2
+    ELEMENT_TYPE_FS = 1 << 3
+    ELEMENT_TYPE_SYS_RESERVED = 1 << 10     # Reserved for system use
+
+    _ELEMENT_TYPE = {
+        ELEMENT_TYPE_UNKNOWN: 'UNKNOWN',
+        ELEMENT_TYPE_POOL: 'POOL',
+        ELEMENT_TYPE_VOLUME: 'VOLUME',
+        ELEMENT_TYPE_FS: 'FILE_SYSTEM',
+        ELEMENT_TYPE_SYS_RESERVED: 'SYSTEM_RESERVED',
+    }
+
+    @staticmethod
+    def element_type_to_str(element_type):
+        element_str = ''
+        for x in Pool._ELEMENT_TYPE.keys():
+            if x & element_type:
+                element_str = txt_a(element_str, Pool._ELEMENT_TYPE[x])
+        if element_str:
+            return element_str
+        return Pool._ELEMENT_TYPE[Pool.ELEMENT_TYPE_UNKNOWN]
+
+    _OPT_PROPERTIES_2_HEADER = {
+        'raid_type': 'RAID Type',
+        # raid_type: RAID Type of this pool's RAID Group(s):
+        #            RAID_TYPE_XXXX, check constants above.
+        'member_type': 'Member Type',
+        # member_type: What kind of items assembled this pool:
+        #              MEMBER_TYPE_DISK/MEMBER_TYPE_POOL/MEMBER_TYPE_VOLUME
+        'member_ids': 'Member IDs',
+        # member_ids: The list of items' ID assembled this pool:
+        #               [Pool.id, ] or [Disk.id, ] or [Volume.id, ]
+        'thinp_type': 'Thin Provision Type',
+        # thinp_type: Can this pool support Thin Provisioning or not:
+        #             THINP_TYPE_THIN vs THINP_TYPE_THICK
+        #             THINP_TYPE_NOT_APPLICABLE for those pool can create
+        #             THICK sub_pool or THIN sub_pool. That means, ThinP is
+        #             not implemented at current pool level.
+        #             If we really need to identify the under algorithm some
+        #             day, we will expand to THINP_TYPE_THIN_ALLOCATED and etc
+        'status': 'Status',
+        # status: The status of this pool, OK, Data Lose, or etc.
+        'element_type': 'Element Type',
+        # element_type: That kind of items can this pool create:
+        #               ELEMENT_TYPE_VOLUME
+        #               ELEMENT_TYPE_POOL
+        #               ELEMENT_TYPE_FS
+        #               For those system reserved pool, use
+        #               ELEMENT_TYPE_SYS_RESERVED
+        #               For example, pools for replication or spare.
+        #               We will split them out once support spare and
+        #               replication. Those system pool should be neither
+        #               filtered or mark as ELEMENT_TYPE_SYS_RESERVED.
+    }
+
+    def __init__(self, _id, _name, _total_space, _free_space, _system_id,
+                 _optional_data=None):
         self._id = _id                    # Identifier
         self._name = _name                # Human recognisable name
         self._total_space = _total_space  # Total size
         self._free_space = _free_space    # Free space available
         self._system_id = _system_id      # Systemd id this pool belongs
 
+        if _optional_data is None:
+            self._optional_data = OptionalData()
+        else:
+            #Make sure the properties only contain ones we permit
+            allowed = set(Pool._OPT_PROPERTIES_2_HEADER.keys())
+            actual = set(_optional_data.list())
+
+            if actual <= allowed:
+                self._optional_data = _optional_data
+            else:
+                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                               "Property keys are invalid: %s" %
+                               "".join(actual - allowed))
+
+    def _opt_column_headers(self):
+        opt_headers = []
+        opt_pros = self._optional_data.list()
+        for opt_pro in opt_pros:
+            opt_headers.extend([Pool._OPT_PROPERTIES_2_HEADER[opt_pro]])
+        return opt_headers
+
     def column_headers(self):
-        return [['ID', 'Name', 'Total space', 'Free space', 'System ID']]
+        headers = ['ID', 'Name', 'Total space', 'Free space', 'System ID']
+        opt_headers = self._opt_column_headers()
+        if opt_headers:
+            headers.extend(opt_headers)
+        return [headers]
+
+    def _opt_column_data(self, human=False, enum_as_number=False):
+        opt_data_values = []
+        opt_pros = self._optional_data.list()
+        for opt_pro in opt_pros:
+            opt_pro_value = self._optional_data.get(opt_pro)
+            if enum_as_number:
+                pass    # no byte size needed to humanize
+            else:
+                if opt_pro == 'member_ids':
+                    opt_pro_value = Pool.member_ids_to_str(opt_pro_value)
+                elif opt_pro == 'raid_type':
+                    opt_pro_value = Pool.raid_type_to_str(opt_pro_value)
+                elif opt_pro == 'member_type':
+                    opt_pro_value = Pool.member_type_to_str(opt_pro_value)
+                elif opt_pro == 'thinp_type':
+                    opt_pro_value = Pool.thinp_type_to_str(opt_pro_value)
+                elif opt_pro == 'status':
+                    opt_pro_value = Pool.status_to_str(opt_pro_value)
+                elif opt_pro == 'element_type':
+                    opt_pro_value = Pool.element_type_to_str(opt_pro_value)
+
+            opt_data_values.extend([opt_pro_value])
+        return opt_data_values
 
     def column_data(self, human=False, enum_as_number=False):
-        return [[self.id, self.name, sh(self.total_space, human),
-                 sh(self.free_space, human), self.system_id]]
+        data_values = [self._id, self._name, sh(self._total_space, human),
+                       sh(self._free_space, human), self._system_id]
+        opt_data_values = self._opt_column_data(human, enum_as_number)
+        if opt_data_values:
+            data_values.extend(opt_data_values)
+        return [data_values]
 
 
 @default_property('id', doc="Unique identifier")
