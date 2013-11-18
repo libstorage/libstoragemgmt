@@ -298,10 +298,10 @@ class CmdLine:
                             #metavar='<'+ ",".join(list_choices) + '>',
                             metavar='<type>',
                             choices=list_choices,
-                            help='List records of type: ' + ",".join(
-                                list_choices) + '\n'
-                                                'Note: SNAPSHOTS requires '
-                                                '--fs <fs id>')
+                            help='List records of type: %s \n' %
+                                 ", ".join(list_choices) +
+                                 'Note: SNAPSHOTS requires --fs <fs id>.\n'+
+                                 '      POOLS can have -o switch.')
 
         commands.add_option('', '--capabilities', action="store",
                             type="string",
@@ -753,6 +753,12 @@ class CmdLine:
                                 dest=_o("out_password"),
                                 help="CHAP outbound password")
 
+        command_args.add_option('-o', '--optional', action="store_true",
+                                metavar="<flag_opt_data>", default=None,
+                                dest=_o("flag_opt_data"),
+                                help="Retrieving optional data also if " +
+                                     "available.")
+
         parser.add_option_group(command_args)
 
         (self.options, self.args) = parser.parse_args()
@@ -831,7 +837,11 @@ class CmdLine:
         if self.cmd_value == 'VOLUMES':
             self.display_data(self.c.volumes())
         elif self.cmd_value == 'POOLS':
-            self.display_data(self.c.pools())
+            if self.options.opt_flag_opt_data is True:
+                self.display_data(
+                    self.c.pools(data.Pool.RETRIEVE_FULL_INFO))
+            else:
+                self.display_data(self.c.pools())
         elif self.cmd_value == 'FS':
             self.display_data(self.c.fs())
         elif self.cmd_value == 'SNAPSHOTS':

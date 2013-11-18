@@ -65,7 +65,12 @@ List records of type:
 .br
 |NFS_CLIENT_AUTH|ACCESS_GROUPS|SYSTEMS|PLUGINS]
 .TP
-Note: SNAPSHOTS listing requires: \fB\-\-fs\fR <fs id>
+Note:
+.br
+\fBSNAPSHOTS\fR listing requires: \fB\-\-fs\fR <fs id>
+.br
+\fBPOOLS\fR can have --optional or -o switch to retrieve optional data if
+available.
 .TP
 \fB\-\-capabilities=\fR<system id>
 Retrieves array capabilities
