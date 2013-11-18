@@ -580,6 +580,10 @@ class Smis(IStorageAreaNetwork):
             return 'CIM_DiskDrive'
         if class_type == 'Job':
             return 'CIM_ConcreteJob'
+        if class_type == 'AccessGroup':
+            return 'CIM_SCSIProtocolController'
+        if class_type == 'Initiator':
+            return 'CIM_StorageHardwareID'
         raise LsmError(ErrorNumber.INTERNAL_ERROR,
                        "Smis._cim_class_name_of() got unknown " +
                        "class_type %s" % class_type)
@@ -601,13 +605,17 @@ class Smis(IStorageAreaNetwork):
             return ['SystemName', 'DeviceID']
         if class_type == 'Job':
             return ['InstanceID']
+        if class_type == 'AccessGroup':
+            return ['DeviceID']
+        if class_type == 'Initiator':
+            return ['StorageID']
         raise LsmError(ErrorNumber.INTERNAL_ERROR,
                        "Smis._cim_class_name_of() got unknown " +
                        "class_type %s" % class_type)
 
     def _sys_id_child(self, cim_xxx):
         """
-        Find out the system id of Pool/Volume/Disk and etc
+        Find out the system id of Pool/Volume/Disk/AccessGroup/Initiator
         Currently, we just use SystemName of cim_xxx
         """
         return self._id('SystemChild', cim_xxx)
@@ -644,6 +652,18 @@ class Smis(IStorageAreaNetwork):
         retrieve_data should be JOB_RETRIEVE_NONE or JOB_RETRIEVE_VOLUME or etc
         """
         return "%s@%d" % (self._id('Job', cim_job), int(retrieve_data))
+
+    def _access_group_id(self, cim_spc):
+        """
+        Retrive Access Group ID from CIM_SCSIProtocolController['DeviceID']
+        """
+        return self._id('AccessGroup', cim_spc)
+
+    def _init_id(self, cim_st_hwid):
+        """
+        Retrive Initiator ID from CIM_StorageHardwareID
+        """
+        return self._id('Initiator', cim_st_hwid)
 
     def _id(self, class_type, cim_xxx):
         """
@@ -882,10 +902,26 @@ class Smis(IStorageAreaNetwork):
 
         return self._new_vol(instance)
 
-    def _new_access_group(self, g):
-        return AccessGroup(g['DeviceID'], g['ElementName'],
-                           self._get_initiators_in_group(g, 'StorageID'),
-                           g['SystemName'])
+    def _new_access_group_cim_spc_pros(self):
+        """
+        Return a list of properties required to build new AccessGroup.
+        """
+        cim_spc_pros = self._property_list_of_id('AccessGroup')
+        cim_spc_pros.extend(self._property_list_of_id('SystemChild'))
+        cim_spc_pros.extend(['ElementName', 'StorageID'])
+        cim_spc_pros.extend(['EMCAdapterRole'])  # EMC specific, used to
+                                                 # filter out the mapping SPC.
+        return cim_spc_pros
+
+    def _new_access_group(self, cim_spc):
+        ag_id = self._access_group_id(cim_spc)
+        ag_name = cim_spc['ElementName']
+        ag_init_ids = []
+        cim_st_hwid_pros = self._property_list_of_id('Initiator')
+        cim_st_hwids = self._get_cim_st_hwid_in_spc(cim_spc, cim_st_hwid_pros)
+        ag_init_ids = [ self._init_id(i) for i in cim_st_hwids]
+        sys_id = self._sys_id_child(cim_spc)
+        return AccessGroup(ag_id, ag_name, ag_init_ids, sys_id)
 
     def _new_vol_from_job(self, job):
         """
@@ -1119,17 +1155,61 @@ class Smis(IStorageAreaNetwork):
         """
         return [Smis._new_system(s) for s in self._systems()]
 
-    @staticmethod
-    def _to_init(i):
-        return Initiator(i['StorageID'], i["IDType"], i["ElementName"])
+    def _new_init(self, cim_st_hwid):
+        """
+        Generate Initiator object from CIM_StorageHardwareID
+        """
+        init_id = self._init_id(cim_st_hwid)
+        init_type = cim_st_hwid['IDType']
+        init_name = cim_st_hwid['ElementName']
+        return Initiator(init_id, init_type, init_name)
+
+    def _new_init_pros(self):
+        """
+        Return a list of properties needed to created Initiator from
+        CIM_StorageHardwareID
+        """
+        cim_st_hwid_pros = self._property_list_of_id('Initiator')
+        cim_st_hwid_pros.extend(['IDType', 'ElementName'])
+        return cim_st_hwid_pros
 
     @handle_cim_errors
     def initiators(self, flags=0):
         """
-        Return all initiators.
+        Return all initiators generated from CIM_StorageHardwareID.
+        Following SNIA SMI-S 'Masking and Mapping Profile':
+            CIM_ComputerSystem
+                 | (CIM_HostedService)
+                 v
+            CIM_StorageHardwareIDManagementService
+                 | (CIM_ConcreteDependency)
+                 v
+            CIM_StorageHardwareID
+        This is supported from SNIA SMI-S 1.3rev6 to latest(1.6rev4).
         """
-        initiators = self._c.EnumerateInstances('CIM_StorageHardwareID')
-        return [Smis._to_init(i) for i in initiators]
+        rc_inits = []
+        cim_st_hwid_pros = self._new_init_pros()
+        cim_syss = self._systems()  # this method is for system filter also.
+        try:
+            for cim_sys in cim_syss:
+                cim_st_hwid_mss_path = self._c.AssociatorNames(
+                    cim_sys.path,
+                    AssocClass='CIM_HostedService',
+                    ResultClass='CIM_StorageHardwareIDManagementService')
+                for cim_st_hwid_ms_path in cim_st_hwid_mss_path:
+                    cim_st_hwids = self._c.Associators(
+                        cim_st_hwid_ms_path,
+                        AssocClass='CIM_ConcreteDependency',
+                        ResultClass='CIM_StorageHardwareID',
+                        PropertyList=cim_st_hwid_pros)
+                    rc_inits.extend([self._new_init(i) for i in cim_st_hwids])
+        except CIMError as ce:
+            error_code = tuple(ce)[0]
+            if error_code == pywbem.CIM_ERR_INVALID_CLASS or \
+               error_code == pywbem.CIM_ERR_INVALID_PARAMETER:
+               raise LsmError(ErrorNumber.NO_SUPPORT,
+                              'Initiator is not supported by this array')
+        return rc_inits
 
     @handle_cim_errors
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
@@ -1432,7 +1512,7 @@ class Smis(IStorageAreaNetwork):
         if not rc:
             init = self._get_class_instance('CIM_StorageHardwareID',
                                             'StorageID', init_id)
-            return Smis._to_init(init)
+            return self._new_init(init)
 
         raise LsmError(ErrorNumber.PLUGIN_ERROR, 'Error: ' + str(rc) +
                                                  ' on initiator_create!')
@@ -1445,7 +1525,7 @@ class Smis(IStorageAreaNetwork):
         ccs = self._get_class_instance('CIM_ControllerConfigurationService',
                                        'SystemName', group.system_id)
         lun = self._get_cim_instance_by_id('Volume', volume.id)
-        spc = self._get_access_group(group.id)
+        spc = self._get_cim_instance_by_id('AccessGroup', group.id)
 
         if not lun:
             raise LsmError(ErrorNumber.NOT_FOUND_VOLUME, "Volume not present")
@@ -1485,7 +1565,7 @@ class Smis(IStorageAreaNetwork):
         ccs = self._get_class_instance('CIM_ControllerConfigurationService',
                                        'SystemName', volume.system_id)
         lun = self._get_cim_instance_by_id('Volume', volume.id)
-        spc = self._get_access_group(group.id)
+        spc = self._get_cim_instance_by_id('AccessGroup', group.id)
 
         if not lun:
             raise LsmError(ErrorNumber.NOT_FOUND_VOLUME, "Volume not present")
@@ -1500,67 +1580,138 @@ class Smis(IStorageAreaNetwork):
                         *(self._c.InvokeMethod('HidePaths', ccs.path,
                                                **hide_params)))[0]
 
-    def _is_access_group(self, s):
-        rc = False
+    def _is_access_group(self, cim_spc):
+        rc = True
+        _SMIS_EMC_ADAPTER_ROLE_MASKING = 'MASK_VIEW'
 
-        # This seems horribly wrong for something that is a standard.
-        if 'Name' in s and s['Name'] == 'Storage Group':
-            # EMC
-            rc = True
-        elif 'DeviceID' in s and s['DeviceID'][0:3] == 'SPC':
-            # NetApp
-            rc = True
+        if 'EMCAdapterRole' in cim_spc:
+            # Currently SNIA does not define LUN mapping.
+            # EMC is using their specific way for LUN mapping which
+            # expose their frontend ports as a SPC(SCSIProtocolController).
+            # which we shall filter out.
+            emc_adp_roles = cim_spc['EMCAdapterRole'].split(' ')
+            if _SMIS_EMC_ADAPTER_ROLE_MASKING not in emc_adp_roles:
+                rc = False
         return rc
 
-    def _get_access_groups(self):
-        rc = []
+    def _get_access_groups(self, property_list=None):
+        """
+        Return a list of CIM_SCSIProtocolController.
+        Following SNIA SMIS 'Masking and Mapping Profile':
+            CIM_ComputerSystem
+                |
+                | CIM_HostedService
+                v
+            CIM_ControllerConfigurationService
+                |
+                | CIM_ConcreteDependency
+                v
+            CIM_SCSIProtocolController
+        """
+        rc_cim_spcs = []
 
-        # System filtering
-        if self.system_list:
-            systems = self._systems()
-            for s in systems:
-                spc = self._c.Associators(
-                    s.path,
-                    AssocClass='CIM_SystemDevice',
-                    ResultClass='CIM_SCSIProtocolController')
-                for s in spc:
-                    if self._is_access_group(s):
-                        rc.append(s)
+        if property_list is None:
+            property_list = []
 
-        else:
-            spc = self._c.EnumerateInstances('CIM_SCSIProtocolController')
+        cim_syss = self._systems()
+        for cim_sys in cim_syss:
+            try:
+                cim_ccss_path = self._c.AssociatorNames(
+                    cim_sys.path,
+                    AssocClass='CIM_HostedService',
+                    ResultClass='CIM_ControllerConfigurationService')
+            except CIMError as ce:
+                error_code = tuple(ce)[0]
+                if error_code == pywbem.CIM_ERR_INVALID_CLASS or \
+                   error_code == pywbem.CIM_ERR_INVALID_PARAMETER:
+                   raise LsmError(ErrorNumber.NO_SUPPORT,
+                                  'AccessGroup is not supported by this array')
+            cim_ccs_path = None
+            if len(cim_ccss_path) == 1:
+                cim_ccs_path = cim_ccss_path[0]
+            elif len(cim_ccss_path) == 0:
+               raise LsmError(ErrorNumber.NO_SUPPORT,
+                              'AccessGroup is not supported by this array')
+            else:
+                raise LsmError(ErrorNumber.INTERNAL_ERROR,
+                               "Got %d instance of " % len(cim_ccss_path) +
+                               "ControllerConfigurationService from %s" %
+                               cim_sys.path + " in _get_access_groups()")
+            cim_spcs = self._c.Associators(
+                cim_ccs_path,
+                AssocClass='CIM_ConcreteDependency',
+                ResultClass='CIM_SCSIProtocolController',
+                PropertyList=property_list)
+            for cim_spc in cim_spcs:
+                if self._is_access_group(cim_spc):
+                    rc_cim_spcs.append(cim_spc)
+        return rc_cim_spcs
 
-            for s in spc:
-                if self._is_access_group(s):
-                    rc.append(s)
+    def _get_cim_st_hwid_in_spc(self, cim_spc, property_list=None):
+        """
+        Take CIM_SCSIProtocolController and return a list of
+        CIM_StorageHardwareID, both are CIMInstance.
+        Two ways to get StorageHardwareID from SCSIProtocolController:
+         * Method A (defined in SNIA SMIS 1.6):
+              CIM_SCSIProtocolController
+                      |
+                      | CIM_AssociatedPrivilege
+                      v
+              CIM_StorageHardwareID
 
-        return rc
+         * Method B (defined in SNIA SMIS 1.3, 1.4, 1.5 and 1.6):
+              CIM_SCSIProtocolController
+                      |
+                      | CIM_AuthorizedTarget
+                      v
+              CIM_AuthorizedPrivilege
+                      |
+                      | CIM_AuthorizedSubject
+                      v
+              CIM_StorageHardwareID
 
-    def _get_access_group(self, ag_id):
-        groups = self._get_access_groups()
-        for g in groups:
-            if g['DeviceID'] == ag_id:
-                return g
+        Method A defined in SNIA SMIS 1.6 deprecated the Method B and Method A
+        saved 1 query which provide better performance.
+        Hence we try method A.
+        Maybe someday, we will stop trying after knowing array's supported
+        SMIS version.
+        """
+        cim_st_hwids = []
+        if property_list is None:
+            property_list = []
+        try:
+            cim_st_hwids = self._c.Associators(
+                cim_spc.path,
+                AssocClass='CIM_AssociatedPrivilege',
+                ResultClass='CIM_StorageHardwareID',
+                PropertyList=property_list)
+        except CIMError as ce:
+            error_code = tuple(ce)[0]
+            if error_code == pywbem.CIM_ERR_INVALID_CLASS or \
+               error_code == pywbem.CIM_ERR_INVALID_PARAMETER:
+                pass
+            else:
+                raise ce
 
-        return None
-
-    def _get_initiators_in_group(self, group, field=None):
-        rc = []
-
-        ap = self._c.Associators(group.path,
-                                 AssocClass='CIM_AuthorizedTarget')
-
-        if len(ap):
-            for a in ap:
-                inits = self._c.Associators(
-                    a.path, AssocClass='CIM_AuthorizedSubject')
-                for i in inits:
-                    if field is None:
-                        rc.append(i)
-                    else:
-                        rc.append(i[field])
-
-        return rc
+        # In better world, we should try fallback way only when got CIMError.
+        # But on NetApp SMI-S, they neither raise a error nor support it.
+        # So we check length of cim_st_hwids, it will cause double check
+        # on EMC or any other array support CIM_AuthorizedPrivilege when
+        # no initiator assigned to this access group.
+        # We will fix this once we support Profile Registration where we
+        # check array's supported SNIA SMIS version.
+        if len(cim_st_hwids) == 0:
+            cim_aps_path = self._c.AssociatorNames(
+                cim_spc.path,
+                AssocClass='CIM_AuthorizedTarget',
+                ResultClass='CIM_AuthorizedPrivilege')
+            for cim_ap_path in cim_aps_path:
+                cim_st_hwids = self._c.Associators(
+                    cim_ap_path,
+                    AssocClass='CIM_AuthorizedSubject',
+                    ResultClass='CIM_StorageHardwareID',
+                    PropertyList=property_list)
+        return cim_st_hwids
 
     @handle_cim_errors
     def volumes_accessible_by_access_group(self, group, flags=0):
@@ -1591,8 +1742,9 @@ class Smis(IStorageAreaNetwork):
 
     @handle_cim_errors
     def access_group_list(self, flags=0):
-        groups = self._get_access_groups()
-        return [self._new_access_group(g) for g in groups]
+        cim_spc_pros = self._new_access_group_cim_spc_pros()
+        cim_spcs = self._get_access_groups(property_list=cim_spc_pros)
+        return [self._new_access_group(cim_spc) for cim_spc in cim_spcs]
 
     @handle_cim_errors
     def access_group_create(self, name, initiator_id, id_type, system_id,
@@ -1629,7 +1781,7 @@ class Smis(IStorageAreaNetwork):
                                    flags=0):
         # Check to see if we have this initiator already, if we don't create
         # it and then add to the view.
-        spc = self._get_access_group(group.id)
+        spc = self._get_cim_instance_by_id('AccessGroup', group.id)
 
         initiator = self._initiator_lookup(initiator_id)
 
@@ -1650,7 +1802,7 @@ class Smis(IStorageAreaNetwork):
 
     @handle_cim_errors
     def access_group_del_initiator(self, group, initiator, flags=0):
-        spc = self._get_access_group(group.id)
+        spc = self._get_cim_instance_by_id('AccessGroup', group.id)
         ccs = self._get_class_instance('CIM_ControllerConfigurationService',
                                        'SystemName', group.system_id)
 
