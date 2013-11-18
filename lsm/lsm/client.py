@@ -270,7 +270,10 @@ class Client(INetworkAttachedStorage):
 
     ## Returns an array of pool objects.
     # @param    self    The this pointer
-    # @param    flags   Reserved for future use, must be zero.
+    # @param    flags   When equal to Pool.RETRIEVE_FULL_INFO,
+    #                   returned objects will contain optional data.
+    #                   If not defined, only the mandatory properties will
+    #                   returned.
     # @returns An array of pool objects.
     @return_requires([Pool])
     def pools(self, flags=0):
