@@ -99,6 +99,18 @@ class Smis(IStorageAreaNetwork):
     JOB_RETRIEVE_NONE = 0
     JOB_RETRIEVE_VOLUME = 1
 
+    # DMTF CIM 2.37.0 experimental CIM_StoragePool['Usage']
+    DMTF_POOL_USAGE_SPARE = 8
+
+    # DMTF CIM 2.29.1 CIM_StorageConfigurationCapabilities
+    # ['SupportedStorageElementFeatures']
+    DMTF_SUPPORT_VOL_CREATE = 3
+
+    # DMTF CIM 2.37.0 experimental CIM_StorageConfigurationCapabilities
+    # ['SupportedStorageElementTypes']
+    DMTF_ELEMENT_THICK_VOLUME = 2
+    DMTF_ELEMENT_THIN_VOLUME = 5
+
     class RepSvc(object):
 
         class Action(object):
@@ -894,7 +906,8 @@ class Smis(IStorageAreaNetwork):
         rc = []
         systems = self._systems()
         for s in systems:
-            pools = self._pools(s)
+            pool_pros = self._property_list_of_id('Pool')
+            pools = self._pools(s, pool_pros)
 
             for p in pools:
                 vols = self._c.Associators(
@@ -958,12 +971,34 @@ class Smis(IStorageAreaNetwork):
         else:
             return cim_syss
 
-    def _pools(self, system):
-        pools = self._c.Associators(system.path,
-                                    AssocClass='CIM_HostedStoragePool',
-                                    ResultClass='CIM_StoragePool')
+    def _pools(self, cim_sys, property_list=None):
+        pros = []
+        if property_list is None:
+            pros = ['Primordial']
+        else:
+            pros = property_list
+            if 'Primordial' not in pros:
+                pros.extend(['Primordial'])
 
-        return [p for p in pools if not p["Primordial"]]
+        cim_pools = self._c.Associators(cim_sys.path,
+                                        AssocClass='CIM_HostedStoragePool',
+                                        ResultClass='CIM_StoragePool',
+                                        PropertyList=pros)
+
+        return [p for p in cim_pools if not p["Primordial"]]
+
+    def _new_pool_cim_pool_pros(self, flag_full_info=False):
+        """
+        Return a list of properties for creating new pool.
+        """
+        pool_pros = self._property_list_of_id('Pool')
+        pool_pros.extend(['ElementName', 'TotalManagedSpace',
+                          'RemainingManagedSpace', 'Usage'])
+        if flag_full_info:
+            pool_pros.extend(['OperationalStatus',
+                              'SpaceLimitDetermination',
+                              'ThinProvisionMetaDataSpace'])
+        return pool_pros
 
     @handle_cim_errors
     def pools(self, flags=0):
@@ -971,17 +1006,90 @@ class Smis(IStorageAreaNetwork):
         Return all pools
         """
         rc = []
-        systems = self._systems()
-        for s in systems:
-            pools = self._pools(s)
+        self._all_tiers = []
+        cim_syss = self._systems()
+        cim_pool_pros = []
+        if flags == Pool.RETRIEVE_FULL_INFO:
+            cim_pool_pros = self._new_pool_cim_pool_pros(flag_full_info=True)
+        else:
+            cim_pool_pros = self._new_pool_cim_pool_pros()
 
-            rc.extend(
-                [Pool(p['InstanceID'], p["ElementName"],
-                      p["TotalManagedSpace"],
-                      p["RemainingManagedSpace"],
-                      s['Name']) for p in pools])
+        for cim_sys in cim_syss:
+            cim_pools = self._pools(cim_sys, cim_pool_pros)
+            system_id = self._sys_id(cim_sys)
+            for cim_pool in cim_pools:
+                # Skip spare storage pool
+                if 'Usage' in cim_pool and \
+                   cim_pool['Usage'] == Smis.DMTF_POOL_USAGE_SPARE:
+                    continue
+                # Skip IBM ArrayPool and ArraySitePool
+                # ArrayPool is holding RAID info.
+                # ArraySitePool is holding 8 disks. Predefined by array.
+                # ArraySite --(1to1 map) --> Array --(1to1 map)--> Rank
 
+                # By design when user get a ELEMENT_TYPE_POOL only pool,
+                # user can assume he/she can allocate spaces from that pool
+                # to create a new pool with ELEMENT_TYPE_VOLUME or
+                # ELEMENT_TYPE_FS ability.
+
+                # If we expose them out, we will have two kind of pools
+                # (ArrayPool and ArraySitePool) having element_type &
+                # ELEMENT_TYPE_POOL, but none of them can create a
+                # ELEMENT_TYPE_VOLUME pool.
+                # Only RankPool can create a ELEMENT_TYPE_VOLUME pool.
+
+                # We are trying to hide the detail to provide a simple
+                # abstraction.
+                if cim_pool.classname == 'IBMTSDS_ArrayPool' or \
+                   cim_pool.classname == 'IBMTSDS_ArraySitePool':
+                    continue
+
+                pool = self._new_pool(cim_pool, system_id)
+                if pool:
+                    rc.extend([pool])
+                    if flags == Pool.RETRIEVE_FULL_INFO:
+                        opt_pro_dict = self._pool_opt_data(cim_pool)
+                        for key, value in opt_pro_dict.items():
+                            pool.optional_data.set(key, value)
+                else:
+                    raise LsmError(ErrorNumber.INTERNAL_ERROR,
+                                   "Failed to retrive pool information " +
+                                   "from CIM_StoragePool: %s" % cim_pool.path)
         return rc
+
+    def _sys_id_of_cim_pool(self, cim_pool):
+        """
+        Find out the system ID for certain CIM_StoragePool.
+        Will return '' if failed.
+        """
+        sys_pros = self._property_list_of_id('System')
+        cim_syss = self._c.Associators(cim_pool.path,
+                                       ResultClass='CIM_ComputerSystem',
+                                       PropertyList=sys_pros)
+        if len(cim_syss) == 1:
+            return self._sys_id(cim_syss[0])
+        return ''
+
+    @handle_cim_errors
+    def _new_pool(self, cim_pool, system_id=''):
+        """
+        Return a Pool object base on information of cim_pool.
+        Assuming cim_pool already holding correct properties.
+        """
+        if not system_id:
+            system_id = self._sys_id_of_cim_pool(cim_pool)
+        pool_id = self._pool_id(cim_pool)
+        name = ''
+        total_space = Pool.TOTAL_SPACE_NOT_FOUND
+        free_space = Pool.FREE_SPACE_NOT_FOUND
+        if 'ElementName' in cim_pool:
+            name = cim_pool['ElementName']
+        if 'TotalManagedSpace' in cim_pool:
+            total_space = cim_pool['TotalManagedSpace']
+        if 'RemainingManagedSpace' in cim_pool:
+            free_space = cim_pool['RemainingManagedSpace']
+
+        return Pool(pool_id, name, total_space, free_space, system_id)
 
     @staticmethod
     def _new_system(s):
@@ -1864,3 +1972,343 @@ class Smis(IStorageAreaNetwork):
                            "Failed to find out Primordial " +
                            "CIM_StorageExtent for CIM_DiskDrive %s " %
                            cim_disk_path)
+
+    def _pool_opt_data(self, cim_pool):
+        """
+        Usage:
+            Update Pool object with optional data found in cim_pool.
+            The CIMInstance cim_pool was supposed to hold all optional data.
+            So that we save 1 SMI-S query.
+            No matter we found any info or not, we still return the unknown
+            filler, with this, we can make sure return object are containing
+            same order/length of column_data().
+        Parameter:
+            cim_pool        # CIMInstance of CIM_StoragePool
+        Returns:
+            opt_pro_dict    # dict containing optional properties
+        Exceptions:
+            NONE
+        """
+        opt_pro_dict = {
+            'thinp_type': Pool.THINP_TYPE_UNKNOWN,
+            'raid_type': Pool.RAID_TYPE_UNKNOWN,
+            'member_type': Pool.MEMBER_TYPE_UNKNOWN,
+            'member_ids': [],
+            'element_type': Pool.ELEMENT_TYPE_UNKNOWN,
+        }
+        if 'OperationalStatus' in cim_pool:
+            opt_pro_dict['status'] = \
+                Pool.status_dmtf_to_lsm_type(cim_pool['OperationalStatus'])
+
+        # check whether current pool support create volume or not.
+        cim_sccs = self._c.Associators(
+            cim_pool.path,
+            AssocClass='CIM_ElementCapabilities',
+            ResultClass='CIM_StorageConfigurationCapabilities',
+            PropertyList=['SupportedStorageElementFeatures',
+                          'SupportedStorageElementTypes'])
+        # Associate StorageConfigurationCapabilities to StoragePool
+        # is experimental in SNIA 1.6rev4, Block Book PDF Page 68.
+        # Section 5.1.6 StoragePool, StorageVolume and LogicalDisk
+        # Manipulation, Figure 9 - Capabilities Specific to a StoragePool
+        if len(cim_sccs) == 1:
+            cim_scc = cim_sccs[0]
+            if 'SupportedStorageElementFeatures' in cim_scc and \
+                Smis.DMTF_SUPPORT_VOL_CREATE in \
+                    cim_scc['SupportedStorageElementFeatures']:
+                opt_pro_dict['element_type'] = Pool.ELEMENT_TYPE_VOLUME
+            # When certain Pool can create ThinlyProvisionedStorageVolume,
+            # we mark it as Thin Pool.
+            if 'SupportedStorageElementTypes' in cim_scc:
+                dmtf_element_types = cim_scc['SupportedStorageElementTypes']
+                if Smis.DMTF_ELEMENT_THIN_VOLUME in dmtf_element_types:
+                    opt_pro_dict['thinp_type'] = Pool.THINP_TYPE_THIN
+                else:
+                    opt_pro_dict['thinp_type'] = Pool.THINP_TYPE_THICK
+        else:
+            # IBM DS 8000 does not support StorageConfigurationCapabilities
+            # per pool yet. They has been informed. Before fix, use a quick
+            # workaround.
+            # TODO: Currently, we don't have a way to detect
+            #       Pool.ELEMENT_TYPE_POOL
+            #       but based on knowning definition of each verndor.
+            if cim_pool.classname == 'IBMTSDS_VirtualPool' or \
+               cim_pool.classname == 'IBMTSDS_ExtentPool':
+                opt_pro_dict['element_type'] = Pool.ELEMENT_TYPE_VOLUME
+            elif cim_pool.classname == 'IBMTSDS_RankPool':
+                opt_pro_dict['element_type'] = Pool.ELEMENT_TYPE_POOL
+            elif cim_pool.classname == 'LSIESG_StoragePool':
+                opt_pro_dict['element_type'] = Pool.ELEMENT_TYPE_VOLUME
+                opt_pro_dict['thinp_type'] = Pool.THINP_TYPE_THICK
+
+        pool_id_pros = self._property_list_of_id('Pool')
+        pool_id_pros.extend(['Primordial'])
+        # We use some blacklist here to speed up by skipping unnecessary
+        # parent pool checking.
+        # These class is knowned as Disk Pool, no need to waste time on
+        # checking 'Pool over Pool' layout.
+        if cim_pool.classname == 'Clar_UnifiedStoragePool' or \
+           cim_pool.classname == 'IBMTSDS_RankPool' or \
+           cim_pool.classname == 'LSIESG_StoragePool' or \
+           cim_pool.classname == 'ONTAP_ConcretePool':
+            pass
+        else:
+            cim_parent_pools = self._c.Associators(
+                cim_pool.path,
+                AssocClass='CIM_AllocatedFromStoragePool',
+                Role='Dependent',
+                ResultRole='Antecedent',
+                ResultClass='CIM_StoragePool',
+                PropertyList=pool_id_pros)
+            for cim_parent_pool in cim_parent_pools:
+                if not cim_parent_pool['Primordial']:
+                    opt_pro_dict['member_type'] = Pool.MEMBER_TYPE_POOL
+                    opt_pro_dict['member_ids'].extend(
+                        [self._pool_id(cim_parent_pool)])
+
+        raid_pros = self._raid_type_pros()
+        raid_pros.extend(['ExtentDiscriminator'])
+        cim_exts = []
+        # We skip disk member checking on VMAX due to bad performance.
+        if cim_pool.classname != 'Symm_DeviceStoragePool':
+            cim_exts = self._c.Associators(cim_pool.path,
+                                           AssocClass='CIM_ConcreteComponent',
+                                           Role='GroupComponent',
+                                           ResultRole='PartComponent',
+                                           ResultClass='CIM_CompositeExtent',
+                                           PropertyList=raid_pros)
+        raid_type = None
+        for cim_ext in cim_exts:
+            if 'ExtentDiscriminator' in cim_ext:
+                if 'SNIA:Remaining' in cim_ext['ExtentDiscriminator']:
+                    continue
+            cur_raid_type = self._raid_type_of(cim_ext)
+
+            if (raid_type is not None) and cur_raid_type != raid_type:
+                raid_type = Pool.RAID_TYPE_MIXED
+            else:
+                raid_type = cur_raid_type
+
+            if opt_pro_dict['member_type'] == Pool.MEMBER_TYPE_POOL or \
+               opt_pro_dict['member_type'] == Pool.MEMBER_TYPE_VOLUME:
+                # we already know current pool is based on pool or volume.
+                # skipping disk member traverse walk.
+                continue
+
+            # TODO: Current way consume too much time(too many SMIS call).
+            #       SNIA current standard (1.6rev4) does not have any better
+            #       way for disk members querying.
+            cim_disks = self._traverseComposition(cim_ext.path)
+            if len(cim_disks) > 0:
+                cur_member_ids = []
+                for cim_disk in cim_disks:
+                    cur_member_ids.extend([self._disk_id(cim_disk)])
+
+                opt_pro_dict['member_type'] = Pool.MEMBER_TYPE_DISK
+                opt_pro_dict['member_ids'].extend(cur_member_ids)
+
+        if raid_type is not None:
+            opt_pro_dict['raid_type'] = raid_type
+
+        return opt_pro_dict
+
+    @staticmethod
+    def _raid_type_pros():
+        """
+        Return a list of properties needed to detect RAID type from
+        CIM_StorageExtent.
+        """
+        return ['DataRedundancy', 'PackageRedundancy',
+                'NoSinglePointOfFailure', 'ExtentStripeLength']
+
+    @staticmethod
+    def _raid_type_of(cim_ext):
+        """
+        Take CIM_CompositePool to check the RAID type of it.
+        Only check the up-first level of RAID, we does not nested down.
+        For example, when got a RAID 1 CIM_CompositePool, we return
+            Pool.RAID_TYPE_RAID1
+        If failed to detect the RAID level, will return:
+            Pool.RAID_TYPE_UNKNOWN
+        Since this is a private method, we do not check whether cim_ext is
+        valid or not.
+        Make sure you have all properties listed in _raid_type_pros()
+        # TODO: to support RAID 3 and RAID 4 level.
+        #       RAID 3/4 could be checked via
+        #       CIM_StorageSetting['ParityLayout']
+        #       RAID 3: stripesize is 512 (ExtentStripeLength == 1)
+        #       RAID 4: stripesize is 512 * (disk_count -1)
+        #
+        #       Problem is: there is no SNIA spec said CIM_StorageSetting
+        #       should associate to CIM_CompositeExtent.
+        #       Since RAID 3/4 is rare in market, low priority.
+        """
+        if not cim_ext:
+            return Pool.RAID_TYPE_UNKNOWN
+        if 'DataRedundancy' not in cim_ext or \
+           'PackageRedundancy' not in cim_ext or \
+           'NoSinglePointOfFailure' not in cim_ext or \
+           'ExtentStripeLength' not in cim_ext:
+            return Pool.RAID_TYPE_UNKNOWN
+
+        # DataRedundancy:
+        # Number of complete copies of data currently maintained.
+        data_redundancy = cim_ext['DataRedundancy']
+        # PackageRedundancy:
+        # How many physical packages can currently fail without data loss.
+        # For example, in the storage domain, this might be disk spindles.
+        pack_redundancy = cim_ext['PackageRedundancy']
+        # NoSinglePointOfFailure:
+        # Indicates whether or not there exists no single point of
+        # failure.
+        no_spof = cim_ext['NoSinglePointOfFailure']
+
+        # ExtentStripeLength:
+        # Number of contiguous underlying StorageExtents counted before
+        # looping back to the first underlying StorageExtent of the
+        # current stripe. It is the number of StorageExtents forming the
+        # user data stripe.
+        stripe_len = cim_ext['ExtentStripeLength']
+
+        # determine the RAID type as SNIA document require.
+        # JBOD
+        if ((data_redundancy == 1) and
+           (pack_redundancy == 0) and
+           (not no_spof) and
+           (stripe_len == 1)):
+            return Pool.RAID_TYPE_JBOD
+        # RAID 0
+        elif ((data_redundancy == 1) and
+             (pack_redundancy == 0) and
+             (not no_spof) and
+             (stripe_len >= 1)):
+            return Pool.RAID_TYPE_RAID0
+        # RAID 1
+        elif ((data_redundancy == 2) and
+             (pack_redundancy == 1) and
+             (no_spof) and
+             (stripe_len == 1)):
+            return Pool.RAID_TYPE_RAID1
+        # RAID 5
+        elif ((data_redundancy == 1) and
+             (pack_redundancy == 1) and
+             (no_spof) and
+             (stripe_len >= 1)):
+            return Pool.RAID_TYPE_RAID5
+        # RAID 6
+        elif ((data_redundancy == 1) and
+             (pack_redundancy == 2) and
+             (no_spof) and
+             (stripe_len >= 1)):
+            return Pool.RAID_TYPE_RAID6
+        # RAID 10
+        elif ((data_redundancy == 2) and
+             (pack_redundancy == 1) and
+             (no_spof) and
+             (stripe_len >= 1)):
+            return Pool.RAID_TYPE_RAID10
+        # Base on these data, we cannot determine RAID 15 or 51 and etc.
+        # In stead of providing incorrect info, we choose to provide nothing.
+        return Pool.RAID_TYPE_UNKNOWN
+
+    # we are using SNIA recipe naming scheme for RAID checking and traversing.
+    # please refer to SNIA SMIS 1.5rev6, Block Book, Section 14.6.1
+    # 'Traverse the virtualization hierarchy of a StorageVolume or
+    # LogicalDisk.' for detail. With few changes to support pool on pool.
+    def _traverseComposition(self, cim_ext_path):
+        """
+        Usage:
+            Take CIM_CompositeExtent to check out its member and raid_type.
+            If member is a another CIM_CompositeExtent, will:
+                * if CIM_CompositeExtent is a another Pools GroupComponent.
+                  We treat it as Pool based on Pool.
+                * else call _traverseComposition() again
+            if member is a StorageExtent, will call _traverseDecomposition()
+            to find out Primordial StorageExtent.
+        Parameter:
+            cim_ext_path    # CIMInstanceName of CIM_CompositeExtent
+        Returns:
+            cim_disks       # a list of CIM_DiskDrive
+        """
+        associations = self._c.ReferenceNames(cim_ext_path, Role='Dependent')
+        member_cim_exts_path = []
+        if associations:
+            member_cim_exts_path = self._c.AssociatorNames(
+                cim_ext_path,
+                AssocClass=associations[0].classname,
+                Role='Dependent',
+                ResultRole='Antecedent')
+        cim_disks = []
+        for member_cim_ext_path in member_cim_exts_path:
+            if (self._ISA('CIM_CompositeExtent', member_cim_ext_path)):
+                cur_cim_disks = self._traverseComposition(member_cim_ext_path)
+                cim_disks.extend(cur_cim_disks)
+            else:
+                cim_disks.extend(
+                    self._traverseDecomposition(member_cim_ext_path))
+        return cim_disks
+
+    def _ISA(self, sup, sub):
+        """
+        Usage:
+            Many storage vendor (like EMC, LSI, etc) renamed the CIM_xxx to
+            their own names. This method was used to check whether provided
+            CIM_xxx in sub is a sub class of 'sup'
+        Parameter:
+            sup         # string of class name, like 'CIM_StorageExtent'
+            sub         # CIM_xxxx object of class CIMInstance
+        Returns:
+            True
+                or
+            None
+        """
+        if pywbem.is_subclass(self._c, self._c.default_namespace,
+                              sup, sub.classname):
+            return True
+        return None
+
+    def _traverseDecomposition(self, cim_ext_path):
+        """
+        Usage:
+            Travers recursively a CIM_StorageExtent to find out its
+            CIM_CompositeExtent status.
+        Parameter:
+            cim_ext     # CIMInstanceName of CIM_CompositeExtent
+        Returns:
+            cim_disks  # a list of cim_disk
+        """
+        cim_disks = []
+        cim_ext = self._c.GetInstance(cim_ext_path,
+                                      PropertyList=['Primordial'])
+        if cim_ext['Primordial']:
+            cim_disk_id_pros = self._property_list_of_id('Disk')
+            cim_disks = self._c.Associators(
+                cim_ext_path,
+                AssocClass='CIM_MediaPresent',
+                Role='Dependent',
+                ResultRole='Antecedent',
+                ResultClass='CIM_DiskDrive',
+                PropertyList=cim_disk_id_pros)
+            return cim_disks
+        else:
+            cim_exts_target_path = self._c.AssociatorNames(
+                cim_ext_path,
+                AssocClass='CIM_BasedOn',
+                Role='Dependent',
+                ResultRole='Antecedent',
+                ResultClass='CIM_StorageExtent')
+            if (cim_exts_target_path and len(cim_exts_target_path) != 1):
+                raise LsmError(ErrorNumber.INTERNAL_ERROR,
+                               "CIM_StorageExtent %s " % cim_ext_path +
+                               "is CIM_BasedOn to two or more " +
+                               "CIM_StorageExtent %s " % cim_exts_target_path +
+                               "should call _traverseComposition() instead")
+            if (cim_exts_target_path and cim_exts_target_path[0]):
+                cim_ext_target_path = cim_exts_target_path[0]
+                if (self._ISA('CIM_CompositeExtent', cim_ext_target_path)):
+                    cim_disks = self._traverseComposition(
+                        cim_ext_target_path)
+                else:
+                    cim_disks = self._traverseDecomposition(
+                        cim_ext_target_path)
+            return cim_disks
