@@ -827,13 +827,13 @@ class Smis(IStorageAreaNetwork):
         # Will remove the Smis.VOL_NAME_FORMAT_OTHER condition if confirmed as
         # SNIA document fault.
         if (nf == Smis.VOL_NAME_FORMAT_NNA and
-            nn == Smis.VOL_NAME_FORMAT_OTHER) or \
+                nn == Smis.VOL_NAME_FORMAT_OTHER) or \
            (nf == Smis.VOL_NAME_FORMAT_NNA and
-            nn == Smis.VOL_NAME_SPACE_VPD83_TYPE3 ) or \
+                nn == Smis.VOL_NAME_SPACE_VPD83_TYPE3) or \
            (nf == Smis.VOL_NAME_FORMAT_EUI64 and
-            nn == Smis.VOL_NAME_SPACE_VPD83_TYPE2) or \
+                nn == Smis.VOL_NAME_SPACE_VPD83_TYPE2) or \
            (nf == Smis.VOL_NAME_FORMAT_T10VID and
-            nn == Smis.VOL_NAME_SPACE_VPD83_TYPE1):
+                nn == Smis.VOL_NAME_SPACE_VPD83_TYPE1):
             return name
 
     @staticmethod
@@ -919,7 +919,7 @@ class Smis(IStorageAreaNetwork):
         ag_init_ids = []
         cim_st_hwid_pros = self._property_list_of_id('Initiator')
         cim_st_hwids = self._get_cim_st_hwid_in_spc(cim_spc, cim_st_hwid_pros)
-        ag_init_ids = [ self._init_id(i) for i in cim_st_hwids]
+        ag_init_ids = [self._init_id(i) for i in cim_st_hwids]
         sys_id = self._sys_id_child(cim_spc)
         return AccessGroup(ag_id, ag_name, ag_init_ids, sys_id)
 
@@ -1206,9 +1206,9 @@ class Smis(IStorageAreaNetwork):
         except CIMError as ce:
             error_code = tuple(ce)[0]
             if error_code == pywbem.CIM_ERR_INVALID_CLASS or \
-               error_code == pywbem.CIM_ERR_INVALID_PARAMETER:
-               raise LsmError(ErrorNumber.NO_SUPPORT,
-                              'Initiator is not supported by this array')
+                    error_code == pywbem.CIM_ERR_INVALID_PARAMETER:
+                raise LsmError(ErrorNumber.NO_SUPPORT,
+                               'Initiator is not supported by this array')
         return rc_inits
 
     @handle_cim_errors
@@ -1291,7 +1291,6 @@ class Smis(IStorageAreaNetwork):
                 return
             else:
                 raise e
-
 
         if len(ss):
             for s in ss:
@@ -1623,15 +1622,15 @@ class Smis(IStorageAreaNetwork):
             except CIMError as ce:
                 error_code = tuple(ce)[0]
                 if error_code == pywbem.CIM_ERR_INVALID_CLASS or \
-                   error_code == pywbem.CIM_ERR_INVALID_PARAMETER:
-                   raise LsmError(ErrorNumber.NO_SUPPORT,
+                        error_code == pywbem.CIM_ERR_INVALID_PARAMETER:
+                    raise LsmError(ErrorNumber.NO_SUPPORT,
                                   'AccessGroup is not supported by this array')
             cim_ccs_path = None
             if len(cim_ccss_path) == 1:
                 cim_ccs_path = cim_ccss_path[0]
             elif len(cim_ccss_path) == 0:
-               raise LsmError(ErrorNumber.NO_SUPPORT,
-                              'AccessGroup is not supported by this array')
+                raise LsmError(ErrorNumber.NO_SUPPORT,
+                               'AccessGroup is not supported by this array')
             else:
                 raise LsmError(ErrorNumber.INTERNAL_ERROR,
                                "Got %d instance of " % len(cim_ccss_path) +
