@@ -23,7 +23,7 @@ import traceback
 from pywbem import CIMError
 
 from iplugin import IStorageAreaNetwork
-from common import  Error, uri_parse, LsmError, ErrorNumber, JobStatus, md5
+from common import Error, uri_parse, LsmError, ErrorNumber, JobStatus, md5
 from data import Pool, Initiator, Volume, AccessGroup, System, Capabilities,\
     Disk, OptionalData
 from version import VERSION
@@ -927,10 +927,8 @@ class Smis(IStorageAreaNetwork):
         """
         Given a concrete job instance, return referenced volume as lsm volume
         """
-        associations = self._c.Associators(job.path,
-                                           ResultClass='CIM_StorageVolume')
-
-        for a in associations:
+        for a in self._c.Associators(job.path,
+                                     ResultClass='CIM_StorageVolume'):
             return self._new_vol(self._c.GetInstance(a.path))
         return None
 
@@ -940,12 +938,9 @@ class Smis(IStorageAreaNetwork):
         Return all volumes.
         """
         rc = []
-        systems = self._systems()
-        for s in systems:
+        for s in self._systems():
             pool_pros = self._property_list_of_id('Pool')
-            pools = self._pools(s, pool_pros)
-
-            for p in pools:
+            for p in self._pools(s, pool_pros):
                 vols = self._c.Associators(
                     p.path, ResultClass='CIM_StorageVolume')
                 rc.extend([self._new_vol(v, self._pool_id(p)) for v in vols])
@@ -1042,18 +1037,12 @@ class Smis(IStorageAreaNetwork):
         Return all pools
         """
         rc = []
-        self._all_tiers = []
-        cim_syss = self._systems()
-        cim_pool_pros = []
-        if flags == Pool.RETRIEVE_FULL_INFO:
-            cim_pool_pros = self._new_pool_cim_pool_pros(flag_full_info=True)
-        else:
-            cim_pool_pros = self._new_pool_cim_pool_pros()
+        cim_pool_pros = self._new_pool_cim_pool_pros(
+            flags == Pool.RETRIEVE_FULL_INFO)
 
-        for cim_sys in cim_syss:
-            cim_pools = self._pools(cim_sys, cim_pool_pros)
+        for cim_sys in self._systems():
             system_id = self._sys_id(cim_sys)
-            for cim_pool in cim_pools:
+            for cim_pool in self._pools(cim_sys, cim_pool_pros):
                 # Skip spare storage pool
                 if 'Usage' in cim_pool and \
                    cim_pool['Usage'] == Smis.DMTF_POOL_USAGE_SPARE:
@@ -1089,7 +1078,7 @@ class Smis(IStorageAreaNetwork):
                             pool.optional_data.set(key, value)
                 else:
                     raise LsmError(ErrorNumber.INTERNAL_ERROR,
-                                   "Failed to retrive pool information " +
+                                   "Failed to retrieve pool information " +
                                    "from CIM_StoragePool: %s" % cim_pool.path)
         return rc
 
@@ -1189,9 +1178,8 @@ class Smis(IStorageAreaNetwork):
         """
         rc_inits = []
         cim_st_hwid_pros = self._new_init_pros()
-        cim_syss = self._systems()  # this method is for system filter also.
         try:
-            for cim_sys in cim_syss:
+            for cim_sys in self._systems():
                 cim_st_hwid_mss_path = self._c.AssociatorNames(
                     cim_sys.path,
                     AssocClass='CIM_HostedService',
@@ -1612,8 +1600,7 @@ class Smis(IStorageAreaNetwork):
         if property_list is None:
             property_list = []
 
-        cim_syss = self._systems()
-        for cim_sys in cim_syss:
+        for cim_sys in self._systems():
             try:
                 cim_ccss_path = self._c.AssociatorNames(
                     cim_sys.path,
@@ -1767,9 +1754,8 @@ class Smis(IStorageAreaNetwork):
         Looks up an initiator by initiator id
         returns None or object instance
         """
-        init_list = self.initiators()
         initiator = None
-        for i in init_list:
+        for i in self.initiators():
             if i.id == initiator_id:
                 initiator = i
                 break
@@ -1868,7 +1854,7 @@ class Smis(IStorageAreaNetwork):
             3. We will use vendor specific way for all workarounds.
         """
         rc = []
-        cim_syss = self._systems()
+
         # In SNIA SMI-S 1.6rev4 Common Book,
         # 30.1.5 Associations between ComputerSystems and other Logical
         # Elements
@@ -1879,7 +1865,7 @@ class Smis(IStorageAreaNetwork):
         # (representing some redundancy less than full redundancy)."
 
         # Hence DiskDrive might not associated to top level CIM_ComputerSystem
-        for cim_sys in cim_syss:
+        for cim_sys in self._systems():
             disks = []
             cim_disk_pros = Smis._new_disk_cim_disk_pros()
             cim_disks = self._c.Associators(cim_sys.path,
@@ -2182,7 +2168,7 @@ class Smis(IStorageAreaNetwork):
             # workaround.
             # TODO: Currently, we don't have a way to detect
             #       Pool.ELEMENT_TYPE_POOL
-            #       but based on knowning definition of each verndor.
+            #       but based on knowing definition of each vendor.
             if cim_pool.classname == 'IBMTSDS_VirtualPool' or \
                cim_pool.classname == 'IBMTSDS_ExtentPool':
                 opt_pro_dict['element_type'] = Pool.ELEMENT_TYPE_VOLUME
@@ -2196,7 +2182,7 @@ class Smis(IStorageAreaNetwork):
         pool_id_pros.extend(['Primordial'])
         # We use some blacklist here to speed up by skipping unnecessary
         # parent pool checking.
-        # These class is knowned as Disk Pool, no need to waste time on
+        # These class are known as Disk Pool, no need to waste time on
         # checking 'Pool over Pool' layout.
         if cim_pool.classname == 'Clar_UnifiedStoragePool' or \
            cim_pool.classname == 'IBMTSDS_RankPool' or \
