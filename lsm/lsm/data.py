@@ -856,7 +856,7 @@ class Pool(IData):
         key = get_key(Pool._MEMBER_TYPE, member_type_str)
         if key or key == 0:
             return key
-        return Pool._MEMBER_TYPE_UNKNOWN
+        return Pool.MEMBER_TYPE_UNKNOWN
 
     @staticmethod
     def member_ids_to_str(member_ids):
