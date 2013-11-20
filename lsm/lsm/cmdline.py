@@ -47,13 +47,13 @@ def out(msg):
 
 ## Wraps the invocation to the command line
 # @param    client  Object to invoke calls on (optional)
-def cmd_line_wrapper(client=None):
+def cmd_line_wrapper(c=None):
     """
     Common command line code, called.
     """
     try:
         cli = CmdLine()
-        cli.process(client)
+        cli.process(c)
     except ArgError as ae:
         sys.stderr.write(str(ae))
         sys.stderr.flush()
@@ -67,10 +67,13 @@ def cmd_line_wrapper(client=None):
 
 
 ## Simple class used to handle \n in optparse output
-class MyWrapper:
+class MyWrapper(object):
     """
     Handle \n in text for the command line help etc.
     """
+
+    def __init__(self):
+        pass
 
     @staticmethod
     def wrap(text, width=70, **kw):
@@ -112,6 +115,16 @@ def _c(cmd):
 # @return   The option string prefixed with "opt_"
 def _o(option):
     return "opt_" + option
+
+
+## Finds an item based on the id.  Each list item requires a member "id"
+# @param    l       list to search
+# @param    the_id  the id to match
+def _get_item(l, the_id):
+    for i in l:
+        if i.id == the_id:
+            return i
+    return None
 
 
 ## Class that encapsulates the command line arguments for lsmcli
@@ -236,8 +249,8 @@ class CmdLine:
         self.display_data(d)
 
     ## All the command line arguments and options are created in this method
-    # @param    self    The this object pointer
-    def cli(self):
+    @staticmethod
+    def cli():
         """
         Command line interface parameters
         """
@@ -300,7 +313,7 @@ class CmdLine:
                             choices=list_choices,
                             help='List records of type: %s \n' %
                                  ", ".join(list_choices) +
-                                 'Note: SNAPSHOTS requires --fs <fs id>.\n'+
+                                 'Note: SNAPSHOTS requires --fs <fs id>.\n' +
                                  '      POOLS can have -o switch.')
 
         commands.add_option('', '--capabilities', action="store",
@@ -761,7 +774,7 @@ class CmdLine:
 
         parser.add_option_group(command_args)
 
-        (self.options, self.args) = parser.parse_args()
+        return parser.parse_args()
 
     ## Checks to make sure only one command was specified on the command line
     # @param    self    The this pointer
@@ -848,7 +861,7 @@ class CmdLine:
             if self.options.opt_fs is None:
                 raise ArgError("--fs <file system id> required")
 
-            fs = self._get_item(self.c.fs(), self.options.opt_fs)
+            fs = _get_item(self.c.fs(), self.options.opt_fs)
             if fs:
                 self.display_data(self.c.fs_snapshots(fs))
             else:
@@ -902,7 +915,7 @@ class CmdLine:
 
     def _add_rm_access_grp_init(self, op):
         agl = self.c.access_group_list()
-        group = self._get_item(agl, self.cmd_value)
+        group = _get_item(agl, self.cmd_value)
 
         if group:
             if op:
@@ -910,7 +923,7 @@ class CmdLine:
                 self.c.access_group_add_initiator(
                     group, self.options.opt_id, i)
             else:
-                i = self._get_item(self.c.initiators(), self.options.opt_id)
+                i = _get_item(self.c.initiators(), self.options.opt_id)
                 if i:
                     self.c.access_group_del_initiator(group, i.id)
                 else:
@@ -932,7 +945,7 @@ class CmdLine:
 
     def access_group_volumes(self):
         agl = self.c.access_group_list()
-        group = self._get_item(agl, self.cmd_value)
+        group = _get_item(agl, self.cmd_value)
 
         if group:
             vols = self.c.volumes_accessible_by_access_group(group)
@@ -942,7 +955,7 @@ class CmdLine:
                 'access group with id %s not found!' % self.cmd_value)
 
     def volume_accessible_init(self):
-        i = self._get_item(self.c.initiators(), self.cmd_value)
+        i = _get_item(self.c.initiators(), self.cmd_value)
 
         if i:
             volumes = self.c.volumes_accessible_by_initiator(i)
@@ -951,7 +964,7 @@ class CmdLine:
             raise ArgError("initiator with id= %s not found!" % self.cmd_value)
 
     def init_granted_volume(self):
-        vol = self._get_item(self.c.volumes(), self.cmd_value)
+        vol = _get_item(self.c.volumes(), self.cmd_value)
 
         if vol:
             initiators = self.c.initiators_granted_to_volume(vol)
@@ -960,7 +973,7 @@ class CmdLine:
             raise ArgError("volume with id= %s not found!" % self.cmd_value)
 
     def iscsi_chap(self):
-        init = self._get_item(self.c.initiators(), self.cmd_value)
+        init = _get_item(self.c.initiators(), self.cmd_value)
         if init:
             self.c.iscsi_chap_auth(init, self.options.opt_username,
                                    self.options.opt_password,
@@ -970,7 +983,7 @@ class CmdLine:
             raise ArgError("initiator with id= %s not found" % self.cmd_value)
 
     def volume_access_group(self):
-        vol = self._get_item(self.c.volumes(), self.cmd_value)
+        vol = _get_item(self.c.volumes(), self.cmd_value)
 
         if vol:
             groups = self.c.access_groups_granted_to_volume(vol)
@@ -983,7 +996,7 @@ class CmdLine:
     def delete_access_group(self):
         agl = self.c.access_group_list()
 
-        group = self._get_item(agl, self.cmd_value)
+        group = _get_item(agl, self.cmd_value)
         if group:
             return self.c.access_group_del(group)
         else:
@@ -994,7 +1007,7 @@ class CmdLine:
     # @param    self    The this pointer
     def fs_delete(self):
 
-        fs = self._get_item(self.c.fs(), self.cmd_value)
+        fs = _get_item(self.c.fs(), self.cmd_value)
         if fs:
             if self.confirm_prompt(True):
                 self._wait_for_it("delete-fs", self.c.fs_delete(fs), None)
@@ -1006,7 +1019,7 @@ class CmdLine:
     def fs_create(self):
         #Need a name, size and pool
         size = self._size(self.options.opt_size)
-        p = self._get_item(self.c.pools(), self.options.opt_pool)
+        p = _get_item(self.c.pools(), self.options.opt_pool)
         name = self.cmd_value
         if p:
             fs = self._wait_for_it("create-fs",
@@ -1019,7 +1032,7 @@ class CmdLine:
     ## Used to resize a file system
     # @param    self    The this pointer
     def fs_resize(self):
-        fs = self._get_item(self.c.fs(), self.cmd_value)
+        fs = _get_item(self.c.fs(), self.cmd_value)
         size = self._size(self.options.opt_size)
 
         if fs and size:
@@ -1035,7 +1048,7 @@ class CmdLine:
     ## Used to clone a file system
     # @param    self    The this pointer
     def fs_clone(self):
-        src_fs = self._get_item(self.c.fs(), self.cmd_value)
+        src_fs = _get_item(self.c.fs(), self.cmd_value)
         name = self.options.opt_name
 
         if not src_fs:
@@ -1044,8 +1057,8 @@ class CmdLine:
 
         if self.options.backing_snapshot:
             #go get the snapsnot
-            ss = self._get_item(self.c.fs_snapshots(src_fs),
-                                self.options.backing_snapshot)
+            ss = _get_item(self.c.fs_snapshots(src_fs),
+                           self.options.backing_snapshot)
             if not ss:
                 raise ArgError(
                     " snapshot with id= %s not found!" %
@@ -1059,25 +1072,19 @@ class CmdLine:
     ## Used to clone a file(s)
     # @param    self    The this pointer
     def file_clone(self):
-        fs = self._get_item(self.c.fs(), self.cmd_value)
+        fs = _get_item(self.c.fs(), self.cmd_value)
         src = self.options.opt_src
         dest = self.options.opt_dest
 
         if self.options.backing_snapshot:
             #go get the snapsnot
-            ss = self._get_item(self.c.fs_snapshots(fs),
-                                self.options.backing_snapshot)
+            ss = _get_item(self.c.fs_snapshots(fs),
+                           self.options.backing_snapshot)
         else:
             ss = None
 
         self._wait_for_it("file_clone", self.c.file_clone(fs, src, dest, ss),
                           None)
-
-    def _get_item(self, l, the_id):
-        for i in l:
-            if i.id == the_id:
-                return i
-        return None
 
     ##Converts a size parameter into the appropriate number of bytes
     # @param    s   Size to convert to bytes handles B, K, M, G, T, P postfix
@@ -1109,7 +1116,7 @@ class CmdLine:
         out("%s%s%s" % (cap, s, v))
 
     def capabilities(self):
-        s = self._get_item(self.c.systems(), self.cmd_value)
+        s = _get_item(self.c.systems(), self.cmd_value)
 
         if s:
             cap = self.c.capabilities(s)
@@ -1218,7 +1225,7 @@ class CmdLine:
     # @param    self    The this pointer
     def create_volume(self):
         #Get pool
-        p = self._get_item(self.c.pools(), self.options.opt_pool)
+        p = _get_item(self.c.pools(), self.options.opt_pool)
         if p:
             vol = self._wait_for_it("create-volume",
                                     *self.c.volume_create(
@@ -1237,7 +1244,7 @@ class CmdLine:
     # @param    self    The this pointer
     def create_ss(self):
         #Get fs
-        fs = self._get_item(self.c.fs(), self.options.opt_fs)
+        fs = _get_item(self.c.fs(), self.options.opt_fs)
         if fs:
             ss = self._wait_for_it("snapshot-create",
                                    *self.c.fs_snapshot_create(
@@ -1253,8 +1260,8 @@ class CmdLine:
     # @param    self    The this pointer
     def restore_ss(self):
         #Get snapshot
-        fs = self._get_item(self.c.fs(), self.options.opt_fs)
-        ss = self._get_item(self.c.fs_snapshots(fs), self.cmd_value)
+        fs = _get_item(self.c.fs(), self.options.opt_fs)
+        ss = _get_item(self.c.fs_snapshots(fs), self.cmd_value)
 
         if ss and fs:
 
@@ -1290,7 +1297,7 @@ class CmdLine:
     ## Deletes a volume
     # @param    self    The this pointer
     def delete_volume(self):
-        v = self._get_item(self.c.volumes(), self.cmd_value)
+        v = _get_item(self.c.volumes(), self.cmd_value)
 
         if v:
             if self.confirm_prompt(True):
@@ -1302,9 +1309,9 @@ class CmdLine:
     ## Deletes a snap shot
     # @param    self    The this pointer
     def delete_ss(self):
-        fs = self._get_item(self.c.fs(), self.options.opt_fs)
+        fs = _get_item(self.c.fs(), self.options.opt_fs)
         if fs:
-            ss = self._get_item(self.c.fs_snapshots(fs), self.cmd_value)
+            ss = _get_item(self.c.fs_snapshots(fs), self.cmd_value)
             if ss:
                 if self.confirm_prompt(True):
                     self._wait_for_it("delete-snapshot",
@@ -1366,9 +1373,9 @@ class CmdLine:
         p = None
 
         if self.options.opt_pool:
-            p = self._get_item(self.c.pools(), self.options.opt_pool)
+            p = _get_item(self.c.pools(), self.options.opt_pool)
 
-        v = self._get_item(self.c.volumes(), self.cmd_value)
+        v = _get_item(self.c.volumes(), self.cmd_value)
 
         if v:
 
@@ -1391,8 +1398,8 @@ class CmdLine:
     ## Replicates a range of a volume
     # @param    self    The this pointer
     def replicate_vol_range(self):
-        src = self._get_item(self.c.volumes(), self.cmd_value)
-        dest = self._get_item(self.c.volumes(), self.options.opt_dest)
+        src = _get_item(self.c.volumes(), self.cmd_value)
+        dest = _get_item(self.c.volumes(), self.options.opt_dest)
 
         if src and dest:
             rep_type = data.Volume.rep_String_to_type(self.options.opt_type)
@@ -1428,7 +1435,7 @@ class CmdLine:
     # volume_replicate_range
     # @param    self    The this pointer
     def replicate_vol_range_bs(self):
-        s = self._get_item(self.c.systems(), self.cmd_value)
+        s = _get_item(self.c.systems(), self.cmd_value)
         if s:
             out(self.c.volume_replicate_range_block_size(s))
         else:
@@ -1438,7 +1445,7 @@ class CmdLine:
     # @param    self    The this pointer
     # @param    grant   bool, if True we grant, else we un-grant.
     def _access(self, grant):
-        v = self._get_item(self.c.volumes(), self.options.opt_volume)
+        v = _get_item(self.c.volumes(), self.options.opt_volume)
         if not v:
             raise ArgError(
                 "volume with id= %s not found" % self.options.opt_volume)
@@ -1451,7 +1458,7 @@ class CmdLine:
 
             self.c.initiator_grant(initiator_id, i_type, v, access)
         else:
-            initiator = self._get_item(self.c.initiators(), initiator_id)
+            initiator = _get_item(self.c.initiators(), initiator_id)
             if not initiator:
                 raise ArgError("initiator with id= %s not found" %
                                initiator_id)
@@ -1470,8 +1477,8 @@ class CmdLine:
 
     def _access_group(self, grant=True):
         agl = self.c.access_group_list()
-        group = self._get_item(agl, self.cmd_value)
-        v = self._get_item(self.c.volumes(), self.options.opt_volume)
+        group = _get_item(agl, self.cmd_value)
+        v = _get_item(self.c.volumes(), self.options.opt_volume)
 
         if group and v:
             if grant:
@@ -1497,7 +1504,7 @@ class CmdLine:
     ## Re-sizes a volume
     # @param    self    The this pointer
     def resize_volume(self):
-        v = self._get_item(self.c.volumes(), self.cmd_value)
+        v = _get_item(self.c.volumes(), self.cmd_value)
         if v:
             size = self._size(self.options.opt_size)
 
@@ -1511,7 +1518,7 @@ class CmdLine:
     ## Removes a nfs export
     # @param    self    The this pointer
     def nfs_export_remove(self):
-        export = self._get_item(self.c.exports(), self.cmd_value)
+        export = _get_item(self.c.exports(), self.cmd_value)
         if export:
             self.c.export_remove(export)
         else:
@@ -1521,7 +1528,7 @@ class CmdLine:
     ## Exports a file system as a NFS export
     # @param    self    The this pointer
     def nfs_export_fs(self):
-        fs = self._get_item(self.c.fs(), self.cmd_value)
+        fs = _get_item(self.c.fs(), self.cmd_value)
 
         if fs:
             #Check to see if we have some type of access specified
@@ -1546,7 +1553,7 @@ class CmdLine:
     ## Displays volume dependants.
     # @param    self    The this pointer
     def vol_dependants(self):
-        v = self._get_item(self.c.volumes(), self.cmd_value)
+        v = _get_item(self.c.volumes(), self.cmd_value)
 
         if v:
             rc = self.c.volume_child_dependency(v)
@@ -1557,7 +1564,7 @@ class CmdLine:
     ## Removes volume dependants.
     # @param    self    The this pointer
     def vol_dependants_rm(self):
-        v = self._get_item(self.c.volumes(), self.cmd_value)
+        v = _get_item(self.c.volumes(), self.cmd_value)
 
         if v:
             self._wait_for_it("volume-dependant-rm",
@@ -1568,7 +1575,7 @@ class CmdLine:
     ## Displays file system dependants
     # @param    self    The this pointer
     def fs_dependants(self):
-        fs = self._get_item(self.c.fs(), self.cmd_value)
+        fs = _get_item(self.c.fs(), self.cmd_value)
 
         if fs:
             rc = self.c.fs_child_dependency(fs, self.options.file)
@@ -1580,7 +1587,7 @@ class CmdLine:
     ## Removes file system dependants
     # @param    self    The this pointer
     def fs_dependants_rm(self):
-        fs = self._get_item(self.c.fs(), self.cmd_value)
+        fs = _get_item(self.c.fs(), self.cmd_value)
 
         if fs:
             self._wait_for_it("fs-dependants-rm",
@@ -1621,7 +1628,7 @@ class CmdLine:
     def __init__(self):
         self.uri = None
         self.c = None
-        self.cli()
+        (self.options, self.args) = CmdLine.cli()
 
         self.cleanup = None
 
