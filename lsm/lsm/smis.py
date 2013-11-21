@@ -1983,7 +1983,16 @@ class Smis(IStorageAreaNetwork):
         system_id = ''
         health = Disk.HEALTH_UNKNOWN
         disk_type = Disk.DISK_TYPE_UNKNOWN
-        opt_pro_dict = {}
+        opt_pro_dict = {
+            'sn': '',
+            'part_num': '',
+            'vendor': '',
+            'model': '',
+            'enable_status': Disk.ENABLE_STATUS_UNKNOWN,
+            'media_err_count': Disk.MEDIUM_ERROR_COUNT_NOT_SUPPORT,
+            'predictive_fail_count': Disk.PREDICTIVE_FAILURE_COUNT_NOT_SUPPORT,
+            'error_info': '',
+        }
 
         # These are mandatory
         # we do not check whether they follow the SNIA standard.
