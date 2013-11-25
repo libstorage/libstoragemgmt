@@ -1744,6 +1744,15 @@ class CmdLine:
         if self.options.uri is not None:
             self.uri = self.options.uri
 
+        # We need a valid plug-in to instantiate even if all we are trying
+        # to do is list the plug-ins at the moment to keep that code
+        # the same in all cases, even though it isn't technically
+        # required for the client library (static method)
+        # TODO: Make this not necessary.
+        if (self.cmd == 'list' and self.options.cmd_list == "PLUGINS"):
+            self.uri = "sim://"
+            self.password = None
+
         if self.uri is None:
             raise ArgError("--uri missing or export LSMCLI_URI")
 

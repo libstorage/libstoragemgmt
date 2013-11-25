@@ -1,4 +1,4 @@
-.TH LSMCLI "1" "October 2013" "lsmcli @VERSION@" "libStorageMgmt"
+.TH LSMCLI "1" "November 2013" "lsmcli @VERSION@" "libStorageMgmt"
 .SH NAME
 lsmcli \- LibStorageMgmt command line interface
 .SH SYNOPSIS
@@ -419,6 +419,61 @@ such as 'uri=ontap://user@filer.example.com'.
 
 Configuration options in .lsmcli are only used if not overridden by
 command-line option or environment variable.
+.PP
+.SH EXAMPLES (command output omitted for brevity)
+.TP
+Simulator, list pools (no password required)
+$ lsmcli -u sim:// -l POOLS
+.TP
+NetApp, list volumes (prompting for password)
+$ lsmcli -u ontap://root@host/ -l VOLUMES -P
+.TP
+SMI-S, list systems (prompting for password)
+.nf
+$ lsmcli -u smispy://username@host:5988/?namespace=root/interop \\
+        -l SYSTEMS -P
+.fi
+.TP
+Targetd, list pools (using env variables for URI and password)
+$ export LSMCLI_URI=targetd://username@host:18700
+.br
+$ export LSMCLI_PASSWORD=<password>
+.br
+$ lsmcli -l POOLS
+.TP
+NexentaStor, create volume (using env variables for URI and password)
+.nf
+$ export LSMCLI_URI='nstor://user@host'
+$ export LSMCLI_PASSWORD=<password>
+$ lsmcli --create-volume volume_name --size 1T --pool default
+.fi
+
+.TP
+.nf
+To list all installed plugins.
+$ lsmcli -l PLUGINS
+.fi
+
+.SH NOTES
+Plugins are installed individually except for the simulator which is always
+included.
+
+.TP
+Secure sockets layer (SSL)
+All of the plugins (except the simulator) support SSL when communicating from the plugin to the
+array.  This is accomplished by adding "+ssl" to the plugin and usually by
+selecting a different port number from non-SSL comunications.
+.br
+.nf
+$ lsmcli -u smispy+ssl://username@host:5989/?namespace=interop \\
+        -l SYSTEMS -P
+.fi
+
+.TP
+URI syntax has the following form
+.nf
+plugin[+transport options]://user@host:port/?<query string params>
+.fi
 .SH BUGS
 Please report bugs to
 <libstoragemgmt\-devel@lists.sourceforge.net>

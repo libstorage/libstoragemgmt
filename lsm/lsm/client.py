@@ -38,6 +38,13 @@ def del_self(d):
     return d
 
 
+## Descriptive exception about daemon not running.
+def raise_no_daemon():
+    raise common.LsmError(common.ErrorNumber.DAEMON_NOT_RUNNING,
+                          "The libStorageMgmt daemon is not running (process "
+                          "name lsmd), try 'service libstoragemgmt start'")
+
+
 ## Main client class for library.
 # ** IMPORTANT **
 # Theory of operation for methods in this class.
@@ -134,8 +141,7 @@ class Client(INetworkAttachedStorage):
                                       "Plug-in " + self.plugin_path +
                                       " not found!")
             else:
-                raise common.LsmError(common.ErrorNumber.DAEMON_NOT_RUNNING,
-                                      'lsmd is not running')
+                raise_no_daemon()
 
         self.__start(uri, plain_text_password, timeout_ms, flags)
 
@@ -172,8 +178,7 @@ class Client(INetworkAttachedStorage):
         rc = []
 
         if not Client._check_daemon_exists():
-            raise common.LsmError(common.ErrorNumber.DAEMON_NOT_RUNNING,
-                                  'lsmd is not running')
+            raise_no_daemon()
 
         uds_path = Client._plugin_uds_path()
 
