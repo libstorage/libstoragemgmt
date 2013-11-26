@@ -1,5 +1,8 @@
 News for libStorageMgmt
 
+0.0.23: Nov 21 2013
+    - SCSI Unit Attention uevent handling
+
 0.0.22: Aug 12 2013
     - Numerous code improvments/fixes
     - BZ 968384
