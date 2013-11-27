@@ -1,6 +1,22 @@
 News for libStorageMgmt
 
-0.0.23: Nov 21 2013
+0.0.23: Nov 27 2013
+    - Addition of listing disks implemented for SMI-S and Ontap plugins
+      (new, not in C library yet)
+    - Add the ability to list currently installed and usable plug-ins
+    - Verify return types are correct in python client calls
+    - Added the ability to retrieve optional data (new, not in C library yet)
+    - Visibility reductions for python code (somethings were public when should be
+      private
+    - Add calls to create/delete pools (new, not in C library yet)
+    - Add missing initiator type for SAS
+    - Improved vpd83 retrieval for SMI-S
+    - Performance improvements for SMI-S plug-in
+    - Numerous small bug fixes
+    - Nstor plugin, additional testing and bug fixes
+    - lsmd, added call to setgroups and enable full relo and PIE (ASLR) for
+      security improvements
+    - simulator state is now versioned
     - SCSI Unit Attention uevent handling
 
 0.0.22: Aug 12 2013
