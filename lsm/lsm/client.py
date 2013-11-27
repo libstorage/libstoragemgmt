@@ -288,6 +288,127 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('pools', del_self(locals()))
 
+    ## Return the newly created pool object.
+    ## When creating a pool, user are normally concern about these things:
+    ##  * Size
+    ##  * RAID level
+    ##  * Disk count # this determine the IOPS.
+    ##  * Disk type # SAS/SATA/SSD, this also determine the IOPS.
+    ## The pool_create() will create a pool with any/all of these info
+    ## provided and let the plugin/array guess out the rest.
+    ##
+    ## These are Capabilities indicate the support status of this method:
+    ## * Capabilities.POOL_CREATE
+    ##      Capabilities.POOL_CREATE is the priority 1 capability for
+    ##      pool_create(), without it, pool_create() is not supported at all.
+    ##      This call is mandatory:
+    ##          pool_create(system_id=<system_id>,
+    ##                      pool_name=<pool_name>,
+    ##                      size_bytes=<size_bytes>)
+    ##          Creates a pool with size bigger or equal to requested
+    ##          'size_bytes'.
+    ##
+    ## * Capabilities.POOL_CREATE_RAID_TYPE
+    ##      This capability indicate user add define RAID type/level when
+    ##      creating pool.
+    ##      Capabilities.POOL_CREATE_RAID_XX is for certain RAID type/level.
+    ##      This call is mandatory:
+    ##          pool_create(system_id=<system_id>,
+    ##                      pool_name=<pool_name>,
+    ##                      size_bytes=<size_bytes>,
+    ##                      raid_type=<raid_type>)
+    ##          Creates a pool with requested RAID level and
+    ##          'size_bytes'.
+    ##          The new pool should holding size bigger or equal to
+    ##          requested 'size_bytes'.
+    ##
+    ## * Capabilities.POOL_CREATE_VIA_MEMEMBER_COUNT
+    ##      This capability require Capabilities.POOL_CREATE_RAID_TYPE.
+    ##      This capability allow user to define how many disk/volume/pool
+    ##      should be used to create new pool.
+    ##      This call is mandatory:
+    ##          pool_create(system_id=<system_id>,
+    ##                      pool_name=<pool_name>,
+    ##                      raid_type=<raid_type>,
+    ##                      member_count=<member_count>)
+    ##          Create a pool with requested more or equal count of
+    ##          disk/volume/pool as requested.
+    ##          For example, user can request a 8 disks RAID5 pool via
+    ##              pool_create(system_id='abc', pool_name='pool1',
+    ##                          member_count=8, raid_type=Pool.RAID_TYPE_RAID5)
+    ##
+    ## * POOL_CREATE_MEMEMBER_TYPE_DISK
+    ##      This capability require Capabilities.POOL_CREATE_RAID_TYPE
+    ##      and Capabilities.POOL_CREATE_VIA_MEMEMBER_COUNT
+    ##      This capability indicate user can define which type of Disk in
+    ##      could be used to create a pool in 'member_type'.
+    ##      These calls are mandatory:
+    ##          pool_create(system_id=<system_id>,
+    ##                      pool_name=<pool_name>,
+    ##                      raid_type=<raid_type>,
+    ##                      member_type=<member_type>,
+    ##                      member_count=<member_count>)
+    ##
+    ##          pool_create(system_id=<system_id>,
+    ##                      pool_name=<pool_name>,
+    ##                      size_bytes=<size_bytes>,
+    ##                      member_type=<member_type>)
+    ## * POOL_CREATE_VIA_MEMEMBER_IDS
+    ##      This capability require Capabilities.POOL_CREATE_RAID_TYPE
+    ##      This capability is used for advanced user who want to control
+    ##      which disks/volumes/pools will be used to create new pool.
+    ##      This call is mandatory:
+    ##          pool_create(system_id=<system_id>,
+    ##                      pool_name=<pool_name>,
+    ##                      raid_type=<raid_type>
+    ##                      member_type=<member_type>,
+    ##                      member_ids=<member_ids>)
+    ##  * Capabilities.POOL_CREATE_THIN or POOL_CREATE_THICK
+    ##      These capabilities indicate user can define thinp_type in
+    ##      pool_create().
+    # @param    self         The this pointer
+    # @param    pool_name    The name of requested new pool.
+    # @param    raid_type    The RAID type applied to members. Should be
+    #                        Data.Extent.RAID_TYPE_XXXX
+    # @param    member_type  Indentify the type of member. Should be
+    #                        Data.Extent.MEMBER_TYPE_XXXX
+    # @param    member_ids   The array of IDs for pool members.
+    #                        Could be ID of disks/pools/volumes
+    # @param    member_count How many disk/voluem/pool should plugin to chose
+    #                        if member_ids is not enough or not defined.
+    #                        If len(member_ids) is larger than member_count,
+    #                        will raise LsmError ErrorNumber.INVALID_ARGUMENT
+    # @param    size_bytes   Required pool size to create.
+    # @param    thinp_type   Pool.THINP_TYPE_UNKNOWN, or THINP_TYPE_THICK,
+    #                        or THINP_TYPE_THIN
+    # @param    flags        Reserved for future use, must be zero.
+    # @returns the newly created pool object.
+    def pool_create(self,
+                    system_id,
+                    pool_name='',
+                    raid_type=Pool.RAID_TYPE_UNKNOWN,
+                    member_type=Pool.MEMBER_TYPE_UNKNOWN,
+                    member_ids=None,
+                    member_count=0,
+                    size_bytes=0,
+                    thinp_type=Pool.THINP_TYPE_UNKNOWN,
+                    flags=0):
+        """
+        Returns the created new pool object.
+        """
+        return self._tp.rpc('pool_create', del_self(locals()))
+
+    ## Remove a pool. This method depend on Capabilities.POOL_DELETE
+    # @param    self        The this pointer
+    # @param    pool        The pool object
+    # @param    flags       Reserved for future use, must be zero.
+    # @returns None on success, else job id.  Raises LsmError on errors.
+    def pool_delete(self, pool, flags=0):
+        """
+        Return None on success, else job id. Raises LsmError on errors.
+        """
+        return self._tp.rpc('pool_delete', del_self(locals()))
+
     ## Returns an array of system objects.
     # @param    self    The this pointer
     # @param    flags   Reserved for future use, must be zero.
