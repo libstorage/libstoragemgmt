@@ -301,6 +301,28 @@ Returns true if a child dependency exists.
 Removes dependencies
 .br
 \fB\-\-file\fR <file> for File check (optional)
+.TP
+\fB\-\-create\-pool=\fR<pool name>
+Create a new pool, requires:
+.br
+    \fB\-\-system \fR <system id>
+.br
+Optional parameters(at least size or member-xxx should defined):
+.br
+    \fB\-\-size\fR <size>
+.br
+    \fB\-\-member\-type\fR [POOL|VOLUME|DISK]
+.br
+    \fB\-\-member\-id\fR <member id> # Repeat this option for multiple members
+.br
+    \fB\-\-member\-count\fR [0-9]+
+.br
+    \fB\-\-raid\-type\fR [JBOD|RAID0|RAID1|RAID5|...]
+.br
+    \fB\-\-thinp\-type\fR [THICK|THIN]
+.TP
+\fB\-\-delete\-pool=\fR<pool id>
+Delete a pool.
 .IP
 .SH COMMAND OPTIONS
 .TP
@@ -319,7 +341,7 @@ size No postfix indicates bytes, can use these prefixes:
     PB,                     # 10^15 Bytes
     EB,                     # 10^17 Bytes
 
-These prefixes are supported also, but not recommanded:
+These prefixes are supported also, but not recommended:
     K, M, G, T, P, E,       # equal to KiB, MiB, and etc
     k, m, g, t, p, e,       # equal to KiB, MiB, and etc
 .TP
@@ -409,6 +431,33 @@ CHAP outbound user name
 .TP
 \fB\-\-out\-password=\fR<out_password>
 CHAP outbound password
+.TP
+\fB\-\-member\-type=\fR<member_type>
+Pool member type, could be 'DISK' or 'VOLUME' or 'POOL'.
+.br
+The 'DISK' member type means pool is created from disk(s).
+.br
+The 'VOLUME' member type means pool is created from volume(s).
+.br
+The 'POOL' member type means pool is allocated from other pool(s).
+.TP
+\fB\-\-member\-id=\fR<member_id>
+The ID of Pool member: disk/volume/pool. Should be used with --member-type
+defined. You can define this option multiple times like:
+.br
+    --member-id <first_id> --member-id <second_id>
+.TP
+\fB\-\-raid\-type=\fR<raid_type>
+The RAID type of Pool. Could be on of these: JBOD, RAID0, RAID1, RAID3,
+RAID4, RAID5, RAID6, RAID10, RAID15, RAID16, RAID51, RAID61.
+.TP
+\fB\-\-thinp\-type=\fR<thinp_type>
+Thin Provisioning type of Pool. Could be THICK or THIN.
+.TP
+\fB\-\-member\-count=\fR<member_count>
+The count of pool members should --create-pool automatically choose.
+If --member-ids also defined, will automatically choose rest members
+when --member-ids is less than --member-count.
 .PP
 .SH FILES
 .TP

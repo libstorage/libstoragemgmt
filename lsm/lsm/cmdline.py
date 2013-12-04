@@ -607,6 +607,27 @@ class CmdLine:
                                  'Optional:\n'
                                  '--file <file> for File check')
 
+        commands.add_option('', '--create-pool', action="store",
+                            type="string",
+                            dest=_c("create-pool"),
+                            metavar='<pool id>',
+                            help="Creates a Pool requires:\n"
+                                 "--system <system id>\n"
+                                 "Optional:\n"
+                                 "--member-id '<first member id>' "
+                                 "--member-id '<second member id>' ...\n"
+                                 "--member-type [DISK|VOLUME|POOL]\n"
+                                 "--raid-type [JBOD|RAID1|RAID3|RAID4|...]\n"
+                                 "--size <pool size>\n"
+                                 "--thinp-type [THIN|THICK]"
+                                 "--member_count [0-9]+")
+
+        commands.add_option('', '--delete-pool', action="store",
+                            type="string",
+                            dest=_c("delete-pool"),
+                            metavar='<pool id>',
+                            help="Delete a Pool\n")
+
         parser.add_option_group(commands)
 
         #Options to the actions
@@ -771,6 +792,41 @@ class CmdLine:
                                 dest=_o("flag_opt_data"),
                                 help="Retrieving optional data also if " +
                                      "available.")
+
+        command_args.add_option('', '--member-id',
+                                action="append",
+                                type="string",
+                                metavar="<member_id>",
+                                default=[],
+                                dest=_o("member_ids"),
+                                help="Pool member ID, could be ID of "
+                                     "Disk/Pool/Volume. This option is "
+                                     "repeatable")
+
+        command_args.add_option('', '--member-type', action="store",
+                                type="string",
+                                metavar="<member_type>", default=None,
+                                dest=_o("member_type_str"),
+                                help="Pool member type, [DISK|POOL|VOLUME]")
+
+        command_args.add_option('', '--member-count', action="store",
+                                type="int",
+                                metavar="<member_count>", default=0,
+                                dest=_o("member_count"),
+                                help="Pool member count, " +
+                                     "integer bigger than 0")
+
+        command_args.add_option('', '--raid-type', action="store",
+                                type="string",
+                                metavar="<raid_type>", default=None,
+                                dest=_o("raid_type_str"),
+                                help="Pool RAID type, [RAID0|RAID1|RAID5...]")
+
+        command_args.add_option('', '--thinp-type', action="store",
+                                type="string",
+                                metavar="<thinp_type>", default=None,
+                                dest=_o("thinp_type_str"),
+                                help="Thin Provisioning Type, [THICK|THIN]")
 
         parser.add_option_group(command_args)
 
@@ -1598,6 +1654,112 @@ class CmdLine:
             raise ArgError(
                 "File system with id= %s not found!" % self.cmd_value)
 
+    ## Deletes a pool
+    # @param    self    The this pointer
+    def delete_pool(self):
+        pool = _get_item(self.c.pools(), self.cmd_value)
+        if pool:
+            if self.confirm_prompt(True):
+                self._wait_for_it("delete-pool",
+                                  self.c.pool_delete(pool),
+                                  None)
+                out("Pool %s deleted" % pool.id)
+        else:
+            raise ArgError("pool with id= %s not found!" % self.cmd_value)
+
+    ## Creates a pool
+    # @param    self    The this pointer
+    def create_pool(self):
+        if not self.options.opt_system:
+            raise ArgError("System ID not defined")
+
+        pool_name = self.cmd_value
+        raid_type = data.Pool.RAID_TYPE_UNKNOWN
+        member_ids = []
+        member_type = data.Pool.MEMBER_TYPE_UNKNOWN
+        member_count = 0
+        thinp_type = data.Pool.THINP_TYPE_UNKNOWN
+        size_bytes = 0
+
+        if self.options.opt_raid_type_str:
+            raid_type = data.Pool.raid_type_str_to_type(
+                self.options.opt_raid_type_str)
+            if raid_type == data.Pool.RAID_TYPE_UNKNOWN or \
+               raid_type == data.Pool.RAID_TYPE_NOT_APPLICABLE:
+                raise ArgError("Unknown RAID type specified: %s" %
+                               self.options.opt_raid_type_str)
+
+        if len(self.options.opt_member_ids) >= 1:
+            member_ids = self.options.opt_member_ids
+
+        if self.options.opt_size:
+            size_bytes = self._size(self.options.opt_size)
+            if size_bytes <= 0:
+                raise ArgError("Incorrect size argument format: '%s'" %
+                               self.options.opt_size)
+
+        if self.options.opt_member_type_str:
+            member_type = data.Pool.member_type_str_to_type(
+                self.options.opt_member_type_str)
+
+        if member_ids and member_type != data.Pool.MEMBER_TYPE_UNKNOWN:
+            if (member_type == data.Pool.MEMBER_TYPE_DISK):
+                disks = self.c.disks()
+                for member_id in member_ids:
+                    flag_found = False
+                    for disk in disks:
+                        if disk.id == member_id:
+                            flag_found = True
+                            break
+                    if not flag_found:
+                        raise ArgError("Invalid Disk ID specified in " +
+                                       "--member-id %s " % member_id)
+            elif (member_type == data.Pool.MEMBER_TYPE_VOLUME):
+                volumes = self.c.volumes()
+                for member_id in member_ids:
+                    flag_found = False
+                    for volume in volumes:
+                        if volume.id == member_id:
+                            flag_found = True
+                            break
+                    if not flag_found:
+                        raise ArgError("Invalid Volume ID specified in " +
+                                       "--member-ids %s " % member_id)
+            elif (member_type == data.Pool.MEMBER_TYPE_POOL):
+                if not self.options.opt_size:
+                    raise ArgError("--size is mandatory when creating Pool " +
+                                   "against another Pool")
+                pools = self.c.pools()
+                for member_id in member_ids:
+                    flag_found = False
+                    for pool in pools:
+                        if pool.id == member_id:
+                            flag_found = True
+                            break
+                    if not flag_found:
+                        raise ArgError("Invalid Pool ID specified in " +
+                                       "--member-ids %s " % member_id)
+            else:
+                raise ArgError("Unkown pool member-type %s, should be %s" %
+                               (self.options.opt_member_type_str,
+                                '[DISK/VOLUME/POOL]'))
+
+        if self.options.opt_thinp_type_str:
+            thinp_type_str = self.options.opt_thinp_type_str
+            thinp_type = data.Pool.thinp_type_str_to_type(thinp_type_str)
+
+        pool = self._wait_for_it("create-pool",
+                                 *self.c.pool_create(self.options.opt_system,
+                                                     pool_name,
+                                                     raid_type,
+                                                     member_type,
+                                                     member_ids,
+                                                     member_count,
+                                                     size_bytes,
+                                                     thinp_type,
+                                                     0))
+        self.display_data([pool])
+
     def _read_configfile(self):
         """
         Set uri from config file. Will be overridden by cmdline option or
@@ -1730,7 +1892,18 @@ class CmdLine:
                        'fs-dependants': {'options': [],
                                          'method': self.fs_dependants},
                        'fs-dependants-rm': {'options': [],
-                                            'method': self.fs_dependants_rm}}
+                                            'method': self.fs_dependants_rm},
+            'create-pool': {
+                'options': ['system'],
+                'optional': ['size', 'member_ids', 'raid_type_str',
+                             'member_type_str', 'member_count', 'thinp_type'],
+                'method': self.create_pool
+            },
+            'delete-pool': {
+                'options': [],
+                'method': self.delete_pool
+            },
+        }
         self._validate()
 
         self.tmo = int(self.options.wait)
