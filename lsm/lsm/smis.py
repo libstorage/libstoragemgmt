@@ -98,6 +98,7 @@ class Smis(IStorageAreaNetwork):
 
     JOB_RETRIEVE_NONE = 0
     JOB_RETRIEVE_VOLUME = 1
+    JOB_RETRIEVE_POOL = 2
 
     # DMTF CIM 2.37.0 experimental CIM_StoragePool['Usage']
     DMTF_POOL_USAGE_SPARE = 8
@@ -110,6 +111,29 @@ class Smis(IStorageAreaNetwork):
     # ['SupportedStorageElementTypes']
     DMTF_ELEMENT_THICK_VOLUME = 2
     DMTF_ELEMENT_THIN_VOLUME = 5
+
+    # DMTF CIM 2.29.1 CIM_StorageConfigurationCapabilities
+    # ['SupportedStoragePoolFeatures']
+    DMTF_ST_POOL_FEATURE_INEXTS = 2
+    DMTF_ST_POOL_FEATURE_SINGLE_INPOOL = 3
+    DMTF_ST_POOL_FEATURE_MULTI_INPOOL = 4
+
+    # DMTF CIM 2.38.0+ CIM_StorageSetting['ThinProvisionedPoolType']
+    DMTF_THINP_POOL_TYPE_ALLOCATED = pywbem.Uint16(7)
+    EMC_THINP_POOL_TYPE_THICK = pywbem.Uint16(0)
+
+    # DMTF CIM 2.38+ CIM_StorageSetting['ParityLayout']
+    DMTF_PARITY_LAYOUT_NO_ROTATE = pywbem.Uint16(1)
+    DMTF_PARITY_LAYOUT_ROTATE = pywbem.Uint16(2)
+
+    @staticmethod
+    def _lsm_thinp_type_to_dmtf(thinp_type):
+        if thinp_type == Pool.THINP_TYPE_THIN:
+            return Smis.DMTF_THINP_POOL_TYPE_ALLOCATED
+        thinp_type_str = Pool.thinp_type_to_str(thinp_type)
+        raise LsmError(ErrorNumber.INTERNAL_ERROR,
+                       "_lsm_thinp_type_to_dmtf() got unkown input " +
+                       "thinp_type %d(%s)" % (thinp_type, thinp_type_str))
 
     class RepSvc(object):
 
@@ -308,11 +332,12 @@ class Smis(IStorageAreaNetwork):
         """
         Handle the the process of invoking an operation.
         """
-
         # Check to see if operation is done
         if rc == Smis.INVOKE_OK:
             if retrieve_data == Smis.JOB_RETRIEVE_VOLUME:
                 return None, self._new_vol_from_name(out)
+            elif retrieve_data == Smis.JOB_RETRIEVE_POOL:
+                return None, self._new_pool_from_name(out)
             else:
                 return None, None
 
@@ -559,6 +584,8 @@ class Smis(IStorageAreaNetwork):
                 (ignore, retrieve_data) = self._parse_job_id(job_id)
                 if retrieve_data == Smis.JOB_RETRIEVE_VOLUME:
                     completed_item = self._new_vol_from_job(cim_job)
+                elif retrieve_data == Smis.JOB_RETRIEVE_POOL:
+                    completed_item = self._new_pool_from_job(cim_job)
             else:
                 status = JobStatus.ERROR
 
@@ -902,6 +929,23 @@ class Smis(IStorageAreaNetwork):
 
         return self._new_vol(instance)
 
+    def _new_pool_from_name(self, out):
+        """
+        For SYNC CreateOrModifyElementFromStoragePool action.
+        The new CIM_StoragePool is stored in out['Pool']
+        """
+        pool_pros = self._new_pool_cim_pool_pros()
+
+        if 'Pool' in out:
+            cim_new_pool = self._c.GetInstance(
+                out['Pool'],
+                PropertyList=pool_pros)
+            return self._new_pool(cim_new_pool)
+        else:
+            raise LsmError(ErrorNumber.INTERNAL_ERROR,
+                           "Got not new Pool from out of InvokeMethod" +
+                           "when CreateOrModifyElementFromStoragePool")
+
     def _new_access_group_cim_spc_pros(self):
         """
         Return a list of properties required to build new AccessGroup.
@@ -931,6 +975,16 @@ class Smis(IStorageAreaNetwork):
                                      ResultClass='CIM_StorageVolume'):
             return self._new_vol(self._c.GetInstance(a.path))
         return None
+
+    def _new_pool_from_job(self, cim_job):
+        """
+        Given a CIMInstance of CIM_ConcreteJob, return a LSM Pool
+        """
+        pool_pros = self._new_pool_cim_pool_pros()
+        cim_pools = self._c.Associators(cim_job.path,
+                                        ResultClass='CIM_StoragePool',
+                                        PropertyList=pool_pros)
+        return self._new_pool(cim_pools[0])
 
     @handle_cim_errors
     def volumes(self, flags=0):
@@ -2458,3 +2512,390 @@ class Smis(IStorageAreaNetwork):
                     cim_disks = self._traverseDecomposition(
                         cim_ext_target_path)
             return cim_disks
+
+    @handle_cim_errors
+    def pool_delete(self, pool, flags=0):
+        """
+        Delete a Pool via CIM_StorageConfigurationService.DeleteStoragePool
+        """
+        cim_sys = self._get_cim_instance_by_id('System', pool.system_id, False)
+        cim_scs = self._get_cim_scs(cim_sys.path, [])
+
+        cim_pool = self._get_cim_instance_by_id('Pool', pool.id, False)
+        in_params = {'Pool': cim_pool.path}
+
+        return self._pi("pool_delete", Smis.JOB_RETRIEVE_NONE,
+                        *(self._c.InvokeMethod('DeleteStoragePool',
+                                               cim_scs.path,
+                                               **in_params)))[0]
+
+    @handle_cim_errors
+    def pool_create(self, system_id, pool_name, raid_type, member_type,
+                    member_ids, member_count, size_bytes, thinp_type, flags=0):
+        """
+        Creating pool via
+        CIM_StorageConfigurationService.CreateOrModifyStoragePool()
+        TODO: Each vendor are needing different parameters for
+              CreateOrModifyStoragePool()
+        """
+        cim_sys = self._get_cim_instance_by_id('System', system_id, False)
+        cim_scs = self._get_cim_scs(cim_sys.path, [])
+
+        # we does not support defining thinp_type yet.
+        # just using whatever provider set.
+
+        in_params = {}
+        if pool_name:
+            in_params['ElementName'] = pool_name
+
+        in_cim_exts_path = []
+        if member_type == Pool.MEMBER_TYPE_DISK:
+            if member_ids and len(member_ids) >= 1:
+                cim_exts = self._pri_cim_ext_of_disk_ids(member_ids)
+                system_id = None
+                for cim_ext in cim_exts:
+                    tmp_system_id = self._sys_id_child(cim_ext)
+                    if not system_id:
+                        system_id = tmp_system_id
+                    elif system_id != tmp_system_id:
+                        raise LsmError(ErrorNumber.INVALID_DISK,
+                                       "Specified member are belong to " +
+                                       "two or more system: %s %s" %
+                                       (system_id, tmp_system_id))
+                if cim_exts:
+                    in_cim_exts_path = [x.path for x in cim_exts]
+                    in_params['InExtents'] = in_cim_exts_path
+
+        elif member_type == Pool.MEMBER_TYPE_POOL:
+            cim_member_pools_path = []
+            for member_id in member_ids:
+                cim_member_pools_path.extend(
+                    [self._get_cim_instance_by_id('Pool', member_id,
+                                                  False, None).path])
+            in_params['InPools'] = cim_member_pools_path
+
+        elif member_type == Pool.MEMBER_TYPE_VOLUME:
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                           "Creating Pool against another Volume is not " +
+                           "supported by SMIS plugin")
+        # TODO: support member_count
+        if member_count and member_count > 0:
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                           "member_count is not supported by " +
+                           "SMI-S plugin yet.")
+
+        if size_bytes > 0:
+            in_params['Size'] = pywbem.Uint64(size_bytes)
+
+        if raid_type != Pool.RAID_TYPE_UNKNOWN and \
+           raid_type != Pool.RAID_TYPE_NOT_APPLICABLE:
+            in_params['Goal'] = self._cim_st_set_for_goal(
+                raid_type, thinp_type, cim_sys.path)
+
+        in_params = self._pool_chg_paras_check(in_params, cim_sys.path)
+        return self._pi("pool_create", Smis.JOB_RETRIEVE_POOL,
+                        *(self._c.InvokeMethod(
+                            'CreateOrModifyStoragePool',
+                            cim_scs.path, **in_params)))
+
+    @handle_cim_errors
+    def _pri_cim_ext_of_disk_ids(self, disk_ids):
+        """
+        Usage:
+            Find out the Primordial CIM_StorageSetting of Disk.
+        Parameter:
+            disk_ids    # a list of Disk.id
+        Returns:
+            [a , b]     # a list of items.
+                or
+            []          # disk_ids is NULL
+        Exception:
+            LsmError
+                ErrorNumber.INVALID_DISK    # Disk ID invalid.
+                ErrorNumber.INVALID_DISK    # No Disk found.
+        """
+        if len(disk_ids) == 0:
+            return []
+        cim_disks = self._c.EnumerateInstances('CIM_DiskDrive',
+                                               PropertyList=['SystemName',
+                                                             'DeviceID'])
+        if len(cim_disks) == 0:
+            raise LsmError(ErrorNumber.INVALID_DISK, "No disk found")
+
+        disk_id_2_cim = {}
+        for cim_disk in cim_disks:
+            disk_id_2_cim[self._disk_id(cim_disk)] = cim_disk
+
+        cim_pri_exts = []
+        for disk_id in disk_ids:
+            if disk_id in disk_id_2_cim.keys():
+                cim_disk = disk_id_2_cim[disk_id]
+                cim_pri_ext = self._pri_cim_ext_of_cim_disk(cim_disk.path)
+                cim_pri_exts.extend([cim_pri_ext])
+            else:
+                raise LsmError(ErrorNumber.INVALID_DISK,
+                               "Disk with ID %s cannot be found\n" % disk_id)
+        return cim_pri_exts
+
+    @handle_cim_errors
+    def _pri_cim_ext_of_cim_disk(self, cim_disk_path, property_list=None):
+        """
+        Usage:
+            Find out the Primordial CIM_StorageExtent of CIM_DiskDrive
+            In SNIA SMI-S 1.4 rev.6 Block book, section 11.1.1 'Base Model'
+            quote:
+            A disk drive is modeled as a single MediaAccessDevice (DiskDrive)
+            That shall be linked to a single StorageExtent (representing the
+            storage in the drive) by a MediaPresent association. The
+            StorageExtent class represents the storage of the drive and
+            contains its size.
+        Parameter:
+            cim_disk_path   # CIM_InstanceName of CIM_DiskDrive
+            property_list   # a List of properties needed on returned
+                            # CIM_StorageExtent
+        Returns:
+            cim_pri_ext     # The CIM_Instance of Primordial CIM_StorageExtent
+        Exceptions:
+            LsmError
+                ErrorNumber.INTERNAL_ERROR  # Failed to find out pri cim_ext
+        """
+        pros = []
+        if property_list is None:
+            pros = ['Primordial']
+        else:
+            pros = property_list
+            if 'Primordial' not in pros:
+                pros.extend(['Primordial'])
+
+        cim_exts = self._c.Associators(cim_disk_path,
+                                       AssocClass='CIM_MediaPresent',
+                                       ResultClass='CIM_StorageExtent',
+                                       PropertyList=pros)
+        cim_exts = [p for p in cim_exts if p["Primordial"]]
+        if (cim_exts and cim_exts[0]):
+            # As SNIA commanded, only _ONE_ Primordial CIM_StorageExtent for
+            # each CIM_DiskDrive
+            return cim_exts[0]
+        else:
+            raise LsmError(ErrorNumber.INTERNAL_ERROR,
+                           "Failed to find out Primordial " +
+                           "CIM_StorageExtent for CIM_DiskDrive %s " %
+                           cim_disk_path)
+
+    @handle_cim_errors
+    def _find_preset_st_set(self, cim_cap_path, raid_type, thinp_type):
+        """
+        Usage:
+            Find first proper CIM_StorageSetting under speficied
+            CIM_StorageCapabilities by giving raid_type and thinp_type.
+        Parameter:
+            cim_cap_path    # CIMInstanceName of CIM_StorageCapabilities
+            raid_type       # Pool.RAID_TYPE_XXX
+            thinp_type      # Pool.THINP_TYPE_XXX
+        Returns:
+            cim_st_set      # CIMInstance of CIM_StorageSetting
+                or
+            None            # No match found
+        """
+        DMTF_CHANGEABLE_TYPE_FIX = 0
+        cim_fix_st_sets = self._c.Associators(
+            cim_cap_path,
+            AssocClass='CIM_StorageSettingsAssociatedToCapabilities',
+            ResultClass='CIM_StorageSetting',
+            PropertyList=['ElementName',
+                          'ThinProvisionedPoolType'])
+        if not cim_fix_st_sets:
+            return None
+        raid_type_str = Pool.raid_type_to_str(raid_type)
+        # According to SNIA suggest, RAID6 can also be writen as RAID5DP
+        # and etc.
+        possible_element_names = [raid_type_str]
+        if raid_type_str == 'RAID6':
+            possible_element_names.extend(['RAID5DP'])
+        elif raid_type_str == 'RAID10':
+            possible_element_names.extend(['RAID1+0'])
+
+        if thinp_type != Pool.THINP_TYPE_UNKNOWN:
+            if thinp_type == Pool.THINP_TYPE_THIN:
+                # searching for a thin CIM_StorageSetting
+                dmtf_thinp_type = self._lsm_thinp_type_to_dmtf(thinp_type)
+
+                for cim_st_set in cim_fix_st_sets:
+                    if 'ElementName' in cim_st_set \
+                        and cim_st_set['ElementName'] \
+                            in possible_element_names \
+                        and cim_st_set['ThinProvisionedPoolType'] \
+                            == dmtf_thinp_type:
+                        return cim_st_set.path
+            else:  # searching for a Thick CIM_StorageSetting
+                for cim_st_set in cim_fix_st_sets:
+                    if 'ElementName' not in cim_st_set or \
+                       cim_st_set['ElementName'] not in possible_element_names:
+                        continue
+                    if 'ThinProvisionedPoolType' not in cim_st_set:
+                        return cim_st_set.path
+                    # EMC define Thick pools with ThinProvisionedPoolType
+                    # value.
+                    elif cim_st_set.classname == 'Clar_StoragePoolSetting' \
+                        and cim_st_set['ThinProvisionedPoolType'] \
+                            == Smis.EMC_THINP_POOL_TYPE_THICK:
+                        return cim_st_set.path
+        else:  # Searching a CIM_StorageSetting regardless Thin or Thick.
+            for cim_st_set in cim_fix_st_sets:
+                if 'ElementName' in cim_st_set and \
+                   cim_st_set['ElementName'] in possible_element_names:
+                    return cim_st_set.path
+        return None
+
+    def _cim_st_set_for_goal(self, raid_type, thinp_type, cim_sys_path):
+        """
+        Usage:
+            Find out the array pre-defined CIM_StorageSetting for certain RAID
+            Level. Only check CIM_StorageSetting['ElementName'] for RAID type,
+            and CIM_StorageSetting['ThinProvisionedPoolType'] for Thin
+            Provision setting.
+            Even SNIA defined a way to create new setting, but we find out
+            that not a good way to follow.
+        Parameter:
+            raid_type       # Tier.RAID_TYPE_XXX
+            disk_count      # how many disks will this RAID group hold.
+            cim_sys_path    # CIMInstanceName of CIM_ComputerSystem.
+        Returns:
+            cim_st_set_path # Found or created CIMInstanceName of
+                            # CIM_StorageSetting
+        Exceptions:
+            LsmError
+                ErrorNumber.NO_SUPPORT         # Failed to find out
+                                               # suitable CIM_StorageSetting
+        """
+        cim_chose_st_set_path = None
+        # We will try to find the existing CIM_StorageSetting
+        # with ElementName equal to raid_type_str
+        # potted(pre-defined) CIM_StorageSetting
+        cim_pool_path = None
+        cim_pools = self._c.Associators(cim_sys_path,
+                                        ResultClass='CIM_StoragePool',
+                                        PropertyList=['Primordial'])
+        # Base on SNIA commanded, each array should provide a
+        # Primordial pool.
+        for cim_tmp_pool in cim_pools:
+            if cim_tmp_pool['Primordial']:
+                cim_pool_path = cim_tmp_pool.path
+                break
+        if not cim_pool_path:
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                           "Target storage array does not have "
+                           "Primordial CIM_StoragePool")
+        cim_caps = self._c.Associators(
+            cim_pool_path,
+            ResultClass='CIM_StorageCapabilities',
+            PropertyList=['ElementType'])
+        for cim_cap in cim_caps:
+            cim_tmp_st_set = self._find_preset_st_set(
+                cim_cap.path,
+                raid_type,
+                thinp_type)
+            if cim_tmp_st_set:
+                cim_chose_st_set_path = cim_tmp_st_set
+                break
+        if not cim_chose_st_set_path:
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                           "Current array does not support RAID type: " +
+                           "%s and thinp_type %s" %
+                           (Pool.raid_type_to_str(raid_type),
+                            Pool.thinp_type_to_str(thinp_type)))
+        return cim_chose_st_set_path
+
+    def _pool_chg_paras_check(self, in_params, cim_sys_path):
+        """
+        Usage:
+            CIM_StorageConfigurationCapabilities
+            ['SupportedStoragePoolFeatures'] provide indication what
+            parameters current array support when CreateOrModifyStoragePool()
+            We will filter out the unsupported parameters.
+        Parameter:
+            in_params   # a dict will be used for CreateOrModifyStoragePool()
+        Returns:
+            new_in_params   # a dict of updated parameters
+        """
+        new_in_params = in_params
+        cim_scss = self._c.AssociatorNames(
+            cim_sys_path,
+            AssocClass='CIM_HostedService',
+            ResultClass='CIM_StorageConfigurationService',)
+        if len(cim_scss) != 1:
+            return new_in_params
+        cim_sccs = self._c.Associators(
+            cim_scss[0],
+            AssocClass='CIM_ElementCapabilities',
+            ResultClass='CIM_StorageConfigurationCapabilities',
+            PropertyList=['SupportedStoragePoolFeatures'])
+        if len(cim_sccs) != 1:
+            return new_in_params
+
+        cur_features = cim_sccs[0]['SupportedStoragePoolFeatures']
+        if 'InExtents' in new_in_params:
+            if Smis.DMTF_ST_POOL_FEATURE_INEXTS not in cur_features:
+                raise LsmError(ErrorNumber.NO_SUPPORT,
+                               "Current array does not support " +
+                               "creating Pool from Volume or Disk")
+        if 'InPools' in new_in_params:
+            if Smis.DMTF_ST_POOL_FEATURE_MULTI_INPOOL not in cur_features \
+               and Smis.DMTF_ST_POOL_FEATURE_SINGLE_INPOOL not in cur_features:
+                raise LsmError(ErrorNumber.NO_SUPPORT,
+                               "Current array does not support " +
+                               "creating Pool from Pool")
+            if Smis.DMTF_ST_POOL_FEATURE_SINGLE_INPOOL in cur_features \
+               and len(new_in_params['InPools']) > 1:
+                raise LsmError(ErrorNumber.NO_SUPPORT,
+                               "Current array does not support " +
+                               "creating Pool from multiple pools")
+        # Vendor specific check
+        if cim_sys_path.classname == 'Clar_StorageSystem':
+            if 'Goal' in new_in_params and 'ElementName' in new_in_params:
+            ## EMC VNX/CX RAID Group should not define a ElementName.
+                cim_st_set_path = new_in_params['Goal']
+                cim_st_set = self._c.GetInstance(
+                    cim_st_set_path,
+                    PropertyList=['ThinProvisionedPoolType'])
+                if cim_st_set['ThinProvisionedPoolType'] == \
+                   Smis.EMC_THINP_POOL_TYPE_THICK:
+                    del new_in_params['ElementName']
+            if 'Pool' in new_in_params and 'Goal' in new_in_params:
+            ## Expanding VNX/CX Pool/RAID Group shoud not define Goal
+            ## Should we raise a error here?
+                raise LsmError(ErrorNumber.NO_SUPPORT,
+                               "EMC VNX/CX does not allowed change RAID " +
+                               "type or add different RAID type tier")
+        return new_in_params
+
+    def _get_cim_scs(self, cim_sys_path, property_list=None):
+        """
+        Usage:
+            Find out the CIM_StorageConfigurationService base on
+            CIM_ComputerSystem
+            Base on SNIA SMI-S 1.6rev4, Block book, Clause 5: Block Services
+            Package, Figure 8 - StoragePool Manipulation Instance Diagram
+            This is only one CIM_StorageConfigurationService associated to
+            CIM_ComputerSystem
+        Parameter:
+            cim_sys_path    # CIMInstanceName of CIM_ComputerSystem
+            property_lis    # the list of properties required in return
+                            # CIMInstance
+        Returns:
+            cim_scs
+        """
+        pros = []
+        if property_list is not None:
+            pros = property_list
+        cim_scss = self._c.Associators(
+            cim_sys_path,
+            ResultClass='CIM_StorageConfigurationService',
+            PropertyList=pros)
+        if cim_scss and len(cim_scss) >= 0:
+            return cim_scss[0]
+        else:
+            raise LsmError(ErrorNumber.INTERNAL_ERROR,
+                           "Failed to find out " +
+                           "CIM_StorageConfigurationService of " +
+                           "CIM_ComputerSystem %s" % cim_sys_path)
