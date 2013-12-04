@@ -898,6 +898,13 @@ class Pool(IData):
             return Pool._THINP_TYPE[thinp_type]
         return Pool._THINP_TYPE[Pool.THINP_TYPE_UNKNOWN]
 
+    @staticmethod
+    def thinp_type_str_to_type(thinp_type_str):
+        key = get_key(Pool._THINP_TYPE, thinp_type_str)
+        if key or key == 0:
+            return key
+        return Pool._THINP_TYPE_UNKNOWN
+
     # Element Type indicate what kind of element could this pool create:
     #   * Another Pool
     #   * Volume (aka, LUN)
