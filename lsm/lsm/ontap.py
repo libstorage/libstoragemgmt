@@ -24,7 +24,7 @@ import sys
 
 import na
 from data import Volume, Initiator, FileSystem, Snapshot, NfsExport, \
-    AccessGroup, System, Capabilities, Disk, Pool
+    AccessGroup, System, Capabilities, Disk, Pool, OptionalData
 from iplugin import IStorageAreaNetwork, INfs
 from common import LsmError, ErrorNumber, JobStatus, md5, Error
 from version import VERSION
@@ -158,7 +158,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                 'EATA': Disk.DISK_TYPE_ATA, 'FCAL': Disk.DISK_TYPE_FC,
                 'FSAS': Disk.DISK_TYPE_SAS, 'LUN': Disk.DISK_TYPE_OTHER,
                 'SAS': Disk.DISK_TYPE_SAS, 'SATA': Disk.DISK_TYPE_SATA,
-                'SCSI': Disk.DISK_TYPE_OTHER, 'SSD': Disk.DISK_TYPE_SSD,
+                'SCSI': Disk.DISK_TYPE_SCSI, 'SSD': Disk.DISK_TYPE_SSD,
                 'XATA': Disk.DISK_TYPE_ATA, 'XSAS': Disk.DISK_TYPE_SAS,
                 'unknown': Disk.DISK_TYPE_UNKNOWN}
 
@@ -167,37 +167,41 @@ class Ontap(IStorageAreaNetwork, INfs):
         return Disk.DISK_TYPE_UNKNOWN
 
     @handle_ontap_errors
-    def _disk(self, d):
+    def _disk(self, d, flag):
         error_message = ""
         status = Disk.STATUS_OK
-        health = Disk.HEALTH_OK
 
         if 'raid-state' in d:
             rs = d['raid-state']
             if rs == "broken":
                 status = Disk.STATUS_ERROR
-                health = Disk.HEALTH_CRITICAL_FAIL
-                if 'broken-details' in d:
-                    error_message = d['broken-details']
             elif rs == "Unknown":
-                health = Disk.HEALTH_UNKNOWN
                 status = Disk.STATUS_UNKNOWN
             elif rs == "reconstructing" or rs == "pending":
-                health = Disk.HEALTH_DEGRADED
                 status = Disk.STATUS_DEGRADED
+        if 'is-prefailed' in d and d['is-prefailed'] == 'true':
+            status = Disk.STATUS_PREDICTIVE_FAILURE
 
         #enable_status = Disk.ENABLE_STATUS_ENABLED
         #if 'is-offline' in d:
         #    enable_status = Disk.ENABLE_STATUS_ENABLED_BUT_OFFLINE
 
+        opt_data = OptionalData()
+        if flag == Disk.RETRIEVE_FULL_INFO:
+            opt_data.set('sn', d['serial-number'])
+            opt_data.set('model', d['disk-model'])
+            opt_data.set('vendor', d['vendor-id'])
+            opt_data.set('error_info', '')
+            if 'broken-details' in d:
+                opt_data.set('error_info', d['broken-details'])
+
         return Disk(md5(d['disk-uid']),
-                    d['vendor-id'],
+                    d['name'],
                     Ontap._disk_type(d['disk-type']),
                     int(d['bytes-per-sector']),
                     int(d['physical-blocks']),
                     status,
-                    health,
-                    self.sys_info.id)
+                    self.sys_info.id, opt_data)
 
     @handle_ontap_errors
     def volumes(self, flags=0):
@@ -266,7 +270,7 @@ class Ontap(IStorageAreaNetwork, INfs):
     @handle_ontap_errors
     def disks(self, flags=0):
         disks = self.f.disks()
-        return [self._disk(d) for d in disks]
+        return [self._disk(d, flags) for d in disks]
 
     @handle_ontap_errors
     def pools(self, flags=0):
