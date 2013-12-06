@@ -340,46 +340,13 @@ class Initiator(IData):
 @default_property('block_size', doc="Size of each block")
 @default_property('num_of_blocks', doc="Total number of blocks")
 @default_property('status', doc="Enumerated status")
-@default_property('health', doc="Enumerated system health")
 @default_property('system_id', doc="System identifier")
 @default_property("optional_data", doc="Optional data")
 class Disk(IData):
     """
     Represents a disk.
     """
-    # Disk Health status, using DMTF 2.29.0 CIM_DiskDrive
-    #   CIM_DiskDrive['HealthState']
-    #   aka. CIM_ManagedSystemElement['HealthState']
-    HEALTH_UNKNOWN = 0
-    #   The implementation cannot report on HealthState at this time.
-    HEALTH_OK = 5
-    #   The element is fully functional and is operating within normal
-    #   operational parameters and without error.
-    HEALTH_DEGRADED = 10
-    #   The element is in working order and all functionality is
-    #   provided. However, the element is not working to the best of its
-    #   abilities. For example, the element might not be operating at
-    #   optimal performance or it might be reporting recoverable errors.
-    HEALTH_MINOR_FAIL = 15
-    #   All functionality is available but some might be degraded.
-    HEALTH_MAJOR_FAIL = 20
-    #   The element is failing. It is possible that some or all of the
-    #   functionality of this component is degraded or not working.
-    HEALTH_CRITICAL_FAIL = 25
-    #   The element is non-functional and recovery might not be possible.
-    HEALTH_NON_RECOVERABLE_ERR = 30
-    #   The element has completely failed, and recovery is not possible.
-    #   All functionality provided by this element has been lost.
-
-    HEALTH = {
-        HEALTH_UNKNOWN:             'UNKNOWN',
-        HEALTH_OK:                  'OK',
-        HEALTH_DEGRADED:            'DEGRADED',
-        HEALTH_MINOR_FAIL:          'MINOR_FAIL',
-        HEALTH_MAJOR_FAIL:          'MAJOR_FAIL',
-        HEALTH_CRITICAL_FAIL:       'CRITICAL_FAIL',
-        HEALTH_NON_RECOVERABLE_ERR: 'NON_RECOVERABLE_ERR',
-    }
+    RETRIEVE_FULL_INFO = 2  # Used by client.py for disks() call.
 
     # Disk Type, using DMTF 2.31.0+ CIM_DiskDrive['InterconnectType']
     DISK_TYPE_UNKNOWN = 0
@@ -390,6 +357,7 @@ class Disk(IData):
     DISK_TYPE_SAS = 5
     DISK_TYPE_FC = 6
     DISK_TYPE_SOP = 7     # SCSI over PCIe, often holding SSD
+    DISK_TYPE_SCSI = 8
 
     # Due to complesity of disk types, we are defining these beside DMTF
     # standards:
@@ -401,7 +369,7 @@ class Disk(IData):
     DISK_TYPE_SSD = 53    # Solid State Drive
     DISK_TYPE_HYBRID = 54    # uses a combination of HDD and SSD
 
-    DISK_TYPE = {
+    _DISK_TYPE = {
         DISK_TYPE_UNKNOWN:          'UNKNOWN',
         DISK_TYPE_OTHER:            'OTHER',
         DISK_TYPE_NOT_APPLICABLE:   'NOT_APPLICABLE',
@@ -416,60 +384,31 @@ class Disk(IData):
         DISK_TYPE_HYBRID:           'HYBRID',
     }
 
-    # DMTF Disk Type
-    DMTF_DISK_TYPE_UNKNOWN = 0
-    DMTF_DISK_TYPE_OTHER = 1
-    DMTF_DISK_TYPE_HDD = 2
-    DMTF_DISK_TYPE_SSD = 3
-    DMTF_DISK_TYPE_HYBRID = 4
-
-    DMTF_DISK_TYPE = {
-        DMTF_DISK_TYPE_UNKNOWN: 'UNKNOWN',
-        DMTF_DISK_TYPE_OTHER:   'OTHER',
-        DMTF_DISK_TYPE_HDD:     'HDD',
-        DMTF_DISK_TYPE_SSD:     'SSD',
-        DMTF_DISK_TYPE_HYBRID:  'HYBRID',
-    }
-
-    @staticmethod
-    def dmtf_disk_type_2_lsm_disk_type(dmtf_disk_type):
-        if dmtf_disk_type in Disk.DMTF_DISK_TYPE.keys():
-            return Disk.disk_type_str_to_type(
-                Disk.DMTF_DISK_TYPE[dmtf_disk_type])
-        else:
-            return Disk.DISK_TYPE_UNKNOWN
-
-    MEDIUM_ERROR_COUNT_NOT_SUPPORT = -1
-    PREDICTIVE_FAILURE_COUNT_NOT_SUPPORT = -1
-
-    OPT_PROPERTIES_2_HEADER = {
+    _OPT_PROPERTIES_2_HEADER = {
         'sn':                       'SN',
         'part_num':                 'Part Number',
         'vendor':                   'Vendor',
         'model':                    'Model',
         'enable_status':            'Enable Status',
-        'media_err_count':          'Media Error Count',
-        'predictive_fail_count':    'Predictive Fail Count',
         'error_info':               'Error Info',
         'owner_ctrler_id':          'Controller Owner',
     }
 
     def __init__(self, _id, _name, _disk_type, _block_size, _num_of_blocks,
-                 _status, _health, _system_id, _optional_data=None):
+                 _status, _system_id, _optional_data=None):
         self._id = _id
         self._name = _name
         self._disk_type = _disk_type
         self._block_size = _block_size
         self._num_of_blocks = _num_of_blocks
         self._status = _status
-        self._health = _health
         self._system_id = _system_id
 
         if _optional_data is None:
             self._optional_data = OptionalData()
         else:
             #Make sure the properties only contain ones we permit
-            allowed = set(Disk.OPT_PROPERTIES_2_HEADER.keys())
+            allowed = set(Disk._OPT_PROPERTIES_2_HEADER.keys())
             actual = set(_optional_data.list())
 
             if actual <= allowed:
@@ -487,27 +426,14 @@ class Disk(IData):
         return self.block_size * self.num_of_blocks
 
     @staticmethod
-    def health_to_str(health):
-        if health in Disk.HEALTH.keys():
-            return Disk.HEALTH[health]
-        return Disk.HEALTH[Disk.HEALTH_UNKNOWN]
-
-    @staticmethod
-    def health_str_to_type(health_str):
-        key = get_key(Disk.HEALTH, health_str)
-        if key or key == 0:
-            return key
-        return Disk.HEALTH_UNKNOWN
-
-    @staticmethod
     def disk_type_to_str(disk_type):
-        if disk_type in Disk.DISK_TYPE.keys():
-            return Disk.DISK_TYPE[disk_type]
-        return Disk.DISK_TYPE[Disk.DISK_TYPE_UNKNOWN]
+        if disk_type in Disk._DISK_TYPE.keys():
+            return Disk._DISK_TYPE[disk_type]
+        return Disk._DISK_TYPE[Disk.DISK_TYPE_UNKNOWN]
 
     @staticmethod
     def disk_type_str_to_type(disk_type_str):
-        key = get_key(Disk.DISK_TYPE, disk_type_str)
+        key = get_key(Disk._DISK_TYPE, disk_type_str)
         if key or key == 0:
             return key
         return Disk.DISK_TYPE_UNKNOWN
@@ -519,12 +445,12 @@ class Disk(IData):
         opt_headers = []
         opt_pros = self._optional_data.list()
         for opt_pro in opt_pros:
-            opt_headers.extend([Disk.OPT_PROPERTIES_2_HEADER[opt_pro]])
+            opt_headers.extend([Disk._OPT_PROPERTIES_2_HEADER[opt_pro]])
         return opt_headers
 
     def column_headers(self):
         headers = ['ID', 'Name', 'Disk Type', 'Block Size', '#blocks', 'Size',
-                   'Status', 'Health', 'System ID']
+                   'Status', 'System ID']
         opt_headers = self._opt_column_headers()
         if opt_headers:
             headers.extend(opt_headers)
@@ -551,15 +477,14 @@ class Disk(IData):
             data_values = [
                 self.id, self.name, self.disk_type,
                 sh(self.block_size, human), self.num_of_blocks,
-                sh(self.size_bytes, human), self.status, self.health,
-                self.system_id
+                sh(self.size_bytes, human), self.status, self.system_id
             ]
         else:
             data_values = [
                 self.id, self.name, Disk.disk_type_to_str(self.disk_type),
                 sh(self.block_size, human), self.num_of_blocks,
                 sh(self.size_bytes, human), Disk.status_to_str(self.status),
-                Disk.health_to_str(self.health), self.system_id
+                self.system_id
             ]
         opt_data_values = self._opt_column_data(human, enum_as_number)
         if opt_data_values:
