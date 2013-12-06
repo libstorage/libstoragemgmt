@@ -933,7 +933,11 @@ class CmdLine:
         elif self.cmd_value == 'SYSTEMS':
             self.display_data(self.c.systems())
         elif self.cmd_value == 'DISKS':
-            self.display_data(self.c.disks())
+            if self.options.opt_flag_opt_data is True:
+                self.display_data(
+                    self.c.disks(data.Disk.RETRIEVE_FULL_INFO))
+            else:
+                self.display_data(self.c.disks())
         elif self.cmd_value == 'PLUGINS':
             self.display_available_plugins()
         else:
