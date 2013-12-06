@@ -1023,12 +1023,9 @@ class Smis(IStorageAreaNetwork):
             # but we would like to take that risk instead of
             # skipping basic support of old SMIS provider.
             if e[0] == pywbem.CIM_ERR_INVALID_CLASS:
-                cim_syss = \
-                    self._c.EnumerateInstances(
-                        'CIM_ComputerSystem',
-                        PropertyList=['Name',
-                        'ElementName',
-                        'OperationalStatus'])
+                cim_syss = self._c.EnumerateInstances(
+                    'CIM_ComputerSystem',
+                    PropertyList=['Name', 'ElementName', 'OperationalStatus'])
             else:
                 raise e
         if not cim_syss:
@@ -1667,7 +1664,8 @@ class Smis(IStorageAreaNetwork):
                 if error_code == pywbem.CIM_ERR_INVALID_CLASS or \
                         error_code == pywbem.CIM_ERR_INVALID_PARAMETER:
                     raise LsmError(ErrorNumber.NO_SUPPORT,
-                                  'AccessGroup is not supported by this array')
+                                   'AccessGroup is not supported ' +
+                                   'by this array')
             cim_ccs_path = None
             if len(cim_ccss_path) == 1:
                 cim_ccs_path = cim_ccss_path[0]
