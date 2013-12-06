@@ -135,6 +135,28 @@ class Smis(IStorageAreaNetwork):
                        "_lsm_thinp_type_to_dmtf() got unkown input " +
                        "thinp_type %d(%s)" % (thinp_type, thinp_type_str))
 
+    # DMTF Disk Type
+    DMTF_DISK_TYPE_UNKNOWN = 0
+    DMTF_DISK_TYPE_OTHER = 1
+    DMTF_DISK_TYPE_HDD = 2
+    DMTF_DISK_TYPE_SSD = 3
+    DMTF_DISK_TYPE_HYBRID = 4
+
+    _DMTF_DISK_TYPE_2_LSM = {
+        DMTF_DISK_TYPE_UNKNOWN: Disk.DISK_TYPE_UNKNOWN,
+        DMTF_DISK_TYPE_OTHER:   Disk.DISK_TYPE_OTHER,
+        DMTF_DISK_TYPE_HDD:     Disk.DISK_TYPE_HDD,
+        DMTF_DISK_TYPE_SSD:     Disk.DISK_TYPE_SSD,
+        DMTF_DISK_TYPE_HYBRID:  Disk.DISK_TYPE_HYBRID,
+    }
+
+    @staticmethod
+    def dmtf_disk_type_2_lsm_disk_type(dmtf_disk_type):
+        if dmtf_disk_type in Smis._DMTF_DISK_TYPE_2_LSM.keys():
+            return Smis._DMTF_DISK_TYPE_2_LSM[dmtf_disk_type]
+        else:
+            return Disk.DISK_TYPE_UNKNOWN
+
     class RepSvc(object):
 
         class Action(object):
@@ -1927,8 +1949,7 @@ class Smis(IStorageAreaNetwork):
 
         # Hence DiskDrive might not associated to top level CIM_ComputerSystem
         for cim_sys in self._systems():
-            disks = []
-            cim_disk_pros = Smis._new_disk_cim_disk_pros()
+            cim_disk_pros = Smis._new_disk_cim_disk_pros(flags)
             cim_disks = self._c.Associators(cim_sys.path,
                                             AssocClass='CIM_SystemDevice',
                                             ResultClass='CIM_DiskDrive',
@@ -1943,19 +1964,20 @@ class Smis(IStorageAreaNetwork):
                     PropertyList=cim_disk_pros)
                 if cim_sub_disks:
                     cim_disks.extend(cim_sub_disks)
-            for cim_disk in cim_disks:
-                cim_ext_pros = Smis._new_disk_cim_ext_pros()
-                cim_ext = self._pri_cim_ext_of_cim_disk(cim_disk.path,
-                                                        cim_ext_pros)
-                disks.extend([self._new_disk(cim_disk, cim_ext)])
             # Clean up the duplicate as SNIA said DiskDrive can be
             # one to many in SNIA SMIS 1.6rev4 CommonProfile Book,
             # 30.1.5 Associations between ComputerSystems and other Logical
             # Elements, PDF Page 311.
             clean_up_dict = {}
-            for disk in disks:
-                clean_up_dict[disk.id] = disk
-            rc.extend(clean_up_dict.values())
+            for cim_disk in cim_disks:
+                clean_up_dict[self._disk_id(cim_disk)] = cim_disk
+            cim_disks = clean_up_dict.values()
+
+            for cim_disk in cim_disks:
+                cim_ext_pros = Smis._new_disk_cim_ext_pros(flags)
+                cim_ext = self._pri_cim_ext_of_cim_disk(cim_disk.path,
+                                                        cim_ext_pros)
+                rc.extend([self._new_disk(cim_disk, cim_ext, flags)])
         return rc
 
     def _traverse_computer_sys(self, cim_sys_path):
@@ -1995,17 +2017,18 @@ class Smis(IStorageAreaNetwork):
         return cim_syss_path
 
     @staticmethod
-    def _new_disk_cim_disk_pros():
+    def _new_disk_cim_disk_pros(flag=False):
         """
         Return all CIM_DiskDrive Properties needed to create a Disk object.
         """
-        return ['OperationalStatus', 'EnabledState', 'Name', 'SystemName',
-                'HealthState', 'ErrorDescription', 'ErrorCleared',
-                'PredictiveFailureCount', 'MediaErrorCount', 'Caption',
-                'InterconnectType', 'DiskType']
+        pros = ['OperationalStatus', 'Name', 'SystemName',
+                'Caption', 'InterconnectType', 'DiskType']
+        if flag == Disk.RETRIEVE_FULL_INFO:
+            pros.extend(['EnabledState', 'ErrorDescription', 'ErrorCleared'])
+        return pros
 
     @staticmethod
-    def _new_disk_cim_ext_pros():
+    def _new_disk_cim_ext_pros(flag=False):
         """
         Return all CIM_StorageExtent Properties needed to create a Disk
         object.
@@ -2013,47 +2036,30 @@ class Smis(IStorageAreaNetwork):
         return ['BlockSize', 'NumberOfBlocks']
 
     @staticmethod
-    def _new_disk_cim_phy_pkg_pros():
+    def _new_disk_cim_phy_pkg_pros(flag=False):
         """
         Return all CIM_PhysicalPackage Properties needed to create a Disk
         object.
         """
-        return ['BlockSize', 'NumberOfBlocks', 'SerialNumber', 'PartNumber',
-                'Manufacturer', 'Model']
+        pros = []   # we don't need CIM_PhysicalPackage when not
+                    # RETRIEVE_FULL_INFO
+        if flag == Disk.RETRIEVE_FULL_INFO:
+            pros.extend(['SerialNumber', 'PartNumber', 'Manufacturer',
+                         'Model'])
+        return pros
 
-    def _new_disk(self, cim_disk, cim_ext):
+    def _new_disk(self, cim_disk, cim_ext, flag_full_info=False):
         """
         Takes a CIM_DiskDrive and CIM_StorageExtent, returns a lsm Disk
         Assuming cim_disk and cim_ext already contained the correct
         properties.
         """
-        cim_phy_pkg_pros = Smis._new_disk_cim_phy_pkg_pros()
-        cim_phy_pkgs = self._c.Associators(cim_disk.path,
-                                           AssocClass='CIM_Realizes',
-                                           ResultClass='CIM_PhysicalPackage',
-                                           PropertyList=cim_phy_pkg_pros)
-        if not (cim_phy_pkgs and cim_phy_pkgs[0]):
-            raise LsmError(ErrorNumber.INTERNAL_ERROR,
-                           "Failed to find out the CIM_PhysicalPackage " +
-                           "of CIM_DiskDrive %s" % cim_disk.path)
-        cim_phy_pkg = cim_phy_pkgs[0]
         status = Disk.STATUS_UNKNOWN
         name = ''
         block_size = Disk.BLOCK_SIZE_NOT_FOUND
         num_of_block = Disk.BLOCK_COUNT_NOT_FOUND
         system_id = ''
-        health = Disk.HEALTH_UNKNOWN
         disk_type = Disk.DISK_TYPE_UNKNOWN
-        opt_pro_dict = {
-            'sn': '',
-            'part_num': '',
-            'vendor': '',
-            'model': '',
-            'enable_status': Disk.ENABLE_STATUS_UNKNOWN,
-            'media_err_count': Disk.MEDIUM_ERROR_COUNT_NOT_SUPPORT,
-            'predictive_fail_count': Disk.PREDICTIVE_FAILURE_COUNT_NOT_SUPPORT,
-            'error_info': '',
-        }
 
         # These are mandatory
         # we do not check whether they follow the SNIA standard.
@@ -2064,8 +2070,6 @@ class Smis(IStorageAreaNetwork):
             name = cim_disk["Name"]
         if 'SystemName' in cim_disk:
             system_id = cim_disk['SystemName']
-        if 'HealthState' in cim_disk:
-            health = cim_disk['HealthState']
         if 'BlockSize' in cim_ext:
             block_size = cim_ext['BlockSize']
         if 'NumberOfBlocks' in cim_ext:
@@ -2083,16 +2087,15 @@ class Smis(IStorageAreaNetwork):
 
         if disk_type == Disk.DISK_TYPE_UNKNOWN and 'DiskType' in cim_disk:
             disk_type = \
-                Disk.dmtf_disk_type_2_lsm_disk_type(cim_disk['DiskType'])
+                Smis.dmtf_disk_type_2_lsm_disk_type(cim_disk['DiskType'])
 
         # LSI way for checking disk type
-        if not disk_type:
-            cim_pes = \
-                self._c.Associators(
-                    cim_disk.path,
-                    AssocClass='CIM_SAPAvailableForElement',
-                    ResultClass='CIM_ProtocolEndpoint',
-                    PropertyList=['CreationClassName'])
+        if not disk_type and cim_disk.classname == 'LSIESG_DiskDrive':
+            cim_pes = self._c.Associators(
+                cim_disk.path,
+                AssocClass='CIM_SAPAvailableForElement',
+                ResultClass='CIM_ProtocolEndpoint',
+                PropertyList=['CreationClassName'])
             if cim_pes and cim_pes[0]:
                 if 'CreationClassName' in cim_pes[0]:
                     ccn = cim_pes[0]['CreationClassName']
@@ -2101,39 +2104,54 @@ class Smis(IStorageAreaNetwork):
                     if ccn == 'LSIESG_TargetSASProtocolEndpoint':
                         disk_type = Disk.DISK_TYPE_SAS
 
-        if 'EnabledState' in cim_disk:
-            opt_pro_dict['enable_status'] = cim_disk['EnabledState']
-        if 'Manufacturer' in cim_phy_pkg and cim_phy_pkg['Manufacturer']:
-            opt_pro_dict['vendor'] = cim_phy_pkg['Manufacturer']
-        if 'Model' in cim_phy_pkg and cim_phy_pkg['Model']:
-            opt_pro_dict['model'] = cim_phy_pkg['Model']
-        if 'SerialNumber' in cim_phy_pkg and cim_phy_pkg['SerialNumber']:
-            opt_pro_dict['sn'] = cim_phy_pkg['SerialNumber']
-        if 'PartNumber' in cim_phy_pkg and cim_phy_pkg['PartNumber']:
-            opt_pro_dict['part_num'] = cim_phy_pkg['PartNumber']
-        if 'ErrorCleared' in cim_disk:
-            if not cim_disk['ErrorCleared']:
-                if 'ErrorDescription' in cim_disk:
-                    opt_pro_dict['error_info'] = cim_disk['ErrorDescription']
-                else:
-                    raise LsmError(ErrorNumber.INTERNAL_ERROR,
-                                   "CIM_DiskDrive %s " % cim_disk.id +
-                                   "has ErrorCleared == False but " +
-                                   "does not have " +
-                                   "CIM_DiskDrive['ErrorDescription']")
-        if 'MediaErrorCount' in cim_disk:
-            opt_pro_dict['media_err_count'] = cim_disk['MediaErrorCount']
-        if 'PredictiveFailureCount' in cim_disk:
-            opt_pro_dict['predictive_fail_count'] = \
-                cim_disk['PredictiveFailureCount']
-
         optionals = OptionalData()
+        if flag_full_info == Disk.RETRIEVE_FULL_INFO:
+            opt_pro_dict = {
+                'sn': '',
+                'part_num': '',
+                'vendor': '',
+                'model': '',
+                'enable_status': Disk.ENABLE_STATUS_UNKNOWN,
+                'error_info': '',
+            }
+            cim_phy_pkg_pros = Smis._new_disk_cim_phy_pkg_pros(flag_full_info)
+            cim_phy_pkgs = self._c.Associators(
+                cim_disk.path,
+                AssocClass='CIM_Realizes',
+                ResultClass='CIM_PhysicalPackage',
+                PropertyList=cim_phy_pkg_pros)
+            if not (cim_phy_pkgs and cim_phy_pkgs[0]):
+                raise LsmError(ErrorNumber.INTERNAL_ERROR,
+                               "Failed to find out the CIM_PhysicalPackage " +
+                               "of CIM_DiskDrive %s" % cim_disk.path)
+            cim_phy_pkg = cim_phy_pkgs[0]
+            if 'EnabledState' in cim_disk:
+                opt_pro_dict['enable_status'] = cim_disk['EnabledState']
+            if 'Manufacturer' in cim_phy_pkg and cim_phy_pkg['Manufacturer']:
+                opt_pro_dict['vendor'] = cim_phy_pkg['Manufacturer']
+            if 'Model' in cim_phy_pkg and cim_phy_pkg['Model']:
+                opt_pro_dict['model'] = cim_phy_pkg['Model']
+            if 'SerialNumber' in cim_phy_pkg and cim_phy_pkg['SerialNumber']:
+                opt_pro_dict['sn'] = cim_phy_pkg['SerialNumber']
+            if 'PartNumber' in cim_phy_pkg and cim_phy_pkg['PartNumber']:
+                opt_pro_dict['part_num'] = cim_phy_pkg['PartNumber']
+            if 'ErrorCleared' in cim_disk:
+                if not cim_disk['ErrorCleared']:
+                    if 'ErrorDescription' in cim_disk:
+                        opt_pro_dict['error_info'] = \
+                            cim_disk['ErrorDescription']
+                    else:
+                        raise LsmError(ErrorNumber.INTERNAL_ERROR,
+                                       "CIM_DiskDrive %s " % cim_disk.id +
+                                       "has ErrorCleared == False but " +
+                                       "does not have " +
+                                       "CIM_DiskDrive['ErrorDescription']")
 
-        for opt_pro_name in opt_pro_dict.keys():
-            optionals.set(opt_pro_name, opt_pro_dict[opt_pro_name])
+            for opt_pro_name in opt_pro_dict.keys():
+                optionals.set(opt_pro_name, opt_pro_dict[opt_pro_name])
 
         new_disk = Disk(self._disk_id(cim_disk), name, disk_type, block_size,
-                        num_of_block, status, health, system_id, optionals)
+                        num_of_block, status, system_id, optionals)
 
         return new_disk
 
