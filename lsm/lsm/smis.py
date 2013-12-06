@@ -972,6 +972,7 @@ class Smis(IStorageAreaNetwork):
         Given a concrete job instance, return referenced volume as lsm volume
         """
         for a in self._c.Associators(job.path,
+                                     AssocClass='CIM_AffectedJobElement',
                                      ResultClass='CIM_StorageVolume'):
             return self._new_vol(self._c.GetInstance(a.path))
         return None
@@ -982,6 +983,7 @@ class Smis(IStorageAreaNetwork):
         """
         pool_pros = self._new_pool_cim_pool_pros()
         cim_pools = self._c.Associators(cim_job.path,
+                                        AssocClass='CIM_AffectedJobElement',
                                         ResultClass='CIM_StoragePool',
                                         PropertyList=pool_pros)
         return self._new_pool(cim_pools[0])
