@@ -654,7 +654,10 @@ class Client(INetworkAttachedStorage):
 
     ## Returns an array of disk objects
     # @param    self    The this pointer
-    # @param    flags   Reserved for future use, must be zero.
+    # @param    flags   When equal to DISK.RETRIEVE_FULL_INFO
+    #                   returned objects will contain optional data.
+    #                   If not defined, only the mandatory properties will
+    #                   be returned.
     # @returns An array of disk objects.
     @return_requires([Disk])
     def disks(self, flags=0):
