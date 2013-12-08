@@ -797,7 +797,6 @@ class CmdLine:
                                 action="append",
                                 type="string",
                                 metavar="<member_id>",
-                                default=[],
                                 dest=_o("member_ids"),
                                 help="Pool member ID, could be ID of "
                                      "Disk/Pool/Volume. This option is "
@@ -805,13 +804,13 @@ class CmdLine:
 
         command_args.add_option('', '--member-type', action="store",
                                 type="string",
-                                metavar="<member_type>", default=None,
+                                metavar="<member_type>",
                                 dest=_o("member_type_str"),
                                 help="Pool member type, [DISK|POOL|VOLUME]")
 
         command_args.add_option('', '--member-count', action="store",
                                 type="int",
-                                metavar="<member_count>", default=0,
+                                metavar="<member_count>",
                                 dest=_o("member_count"),
                                 help="Pool member count, " +
                                      "integer bigger than 0")
