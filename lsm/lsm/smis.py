@@ -1771,10 +1771,17 @@ class Smis(IStorageAreaNetwork):
         vol = self._get_cim_instance_by_id('Volume', volume.id)
 
         if vol:
-            access_groups = self._c.Associators(
+            cim_spcs = self._c.Associators(
                 vol.path,
-                AssocClass='CIM_ProtocolControllerForUnit')
-            return [self._new_access_group(g) for g in access_groups]
+                AssocClass='CIM_ProtocolControllerForUnit',
+                ResultClass='CIM_SCSIProtocolController')
+
+            access_groups = []
+            for cim_spc in cim_spcs:
+                if self._is_access_group(cim_spc):
+                    access_groups.extend([self._new_access_group(cim_spc)])
+
+            return access_groups
         else:
             raise LsmError(
                 ErrorNumber.PLUGIN_ERROR,
