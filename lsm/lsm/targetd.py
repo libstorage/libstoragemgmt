@@ -625,8 +625,8 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                 l = []
                 l.extend(host.ro)
                 l.extend(host.rw)
-                for host in h:
-                    if host in l:
+                for host_entry in h:
+                    if host_entry in l:
                         return host
 
         raise LsmError(ErrorNumber.PLUGIN_ERROR, "Failed to create export")
