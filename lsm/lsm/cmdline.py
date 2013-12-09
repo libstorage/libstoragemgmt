@@ -1591,10 +1591,9 @@ class CmdLine:
 
         if fs:
             #Check to see if we have some type of access specified
-            if len(self.options.nfs_root) == 0 \
-                    and len(self.options.nfs_rw) == 0 \
+            if len(self.options.nfs_rw) == 0 \
                     and len(self.options.nfs_ro) == 0:
-                raise ArgError(" please specify --root, --ro or --rw access")
+                raise ArgError(" please specify --ro or --rw access")
 
             export = self.c.export_fs(
                 fs.id,
