@@ -2036,7 +2036,7 @@ class Smis(IStorageAreaNetwork):
         return ['BlockSize', 'NumberOfBlocks']
 
     @staticmethod
-    def _new_disk_cim_phy_pkg_pros(flag=False):
+    def _new_disk_cim_phy_pkg_pros(flag=0):
         """
         Return all CIM_PhysicalPackage Properties needed to create a Disk
         object.
