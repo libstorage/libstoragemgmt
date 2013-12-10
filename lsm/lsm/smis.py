@@ -2017,7 +2017,7 @@ class Smis(IStorageAreaNetwork):
         return cim_syss_path
 
     @staticmethod
-    def _new_disk_cim_disk_pros(flag=False):
+    def _new_disk_cim_disk_pros(flag=0):
         """
         Return all CIM_DiskDrive Properties needed to create a Disk object.
         """
@@ -2028,7 +2028,7 @@ class Smis(IStorageAreaNetwork):
         return pros
 
     @staticmethod
-    def _new_disk_cim_ext_pros(flag=False):
+    def _new_disk_cim_ext_pros(flag=0):
         """
         Return all CIM_StorageExtent Properties needed to create a Disk
         object.
@@ -2048,7 +2048,7 @@ class Smis(IStorageAreaNetwork):
                          'Model'])
         return pros
 
-    def _new_disk(self, cim_disk, cim_ext, flag_full_info=False):
+    def _new_disk(self, cim_disk, cim_ext, flag_full_info=0):
         """
         Takes a CIM_DiskDrive and CIM_StorageExtent, returns a lsm Disk
         Assuming cim_disk and cim_ext already contained the correct
