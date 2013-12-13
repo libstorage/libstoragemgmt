@@ -53,6 +53,7 @@ cmd = "lsmcli"
 
 sep = ","
 test_pool_name = 'lsm_test_aggr'
+test_fs_pool_id = ''
 
 CUR_SYS_ID = None
 
@@ -397,7 +398,11 @@ def test_block_creation(cap, system_id):
 
 
 def test_fs_creation(cap, system_id):
-    pool_id = name_to_id(OP_POOL, test_pool_name)
+
+    if test_fs_pool_id:
+        pool_id = test_fs_pool_id
+    else:
+        pool_id = name_to_id(OP_POOL, test_pool_name)
 
     if cap['FS_CREATE']:
         fs_id = create_fs(pool_id)
@@ -496,6 +501,10 @@ if __name__ == "__main__":
                       default='lsm_test_aggr',
                       help="pool name to use for testing")
 
+    parser.add_option("-f", "--fspool", action="store", dest="fs_pool_id",
+                      default='',
+                      help="fs pool id to use for testing")
+
     parser.description = "lsmcli command line test tool"
 
     (options, args) = parser.parse_args()
@@ -506,6 +515,9 @@ if __name__ == "__main__":
     else:
         cmd = options.cmd
         test_pool_name = options.pool_name
+
+        if options.fs_pool_id:
+            test_fs_pool_id = options.fs_pool_id
 
     #Theory of testing.
     # For each system that is available to us:
