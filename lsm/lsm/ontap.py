@@ -86,6 +86,8 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     (SS_JOB, SPLIT_JOB) = ('ontap-ss-file-restore', 'ontap-clone-split')
 
+    VOLUME_PREFIX = '/vol'
+
     def __init__(self):
         self.f = None
         self.sys_info = None
@@ -166,7 +168,13 @@ class Ontap(IStorageAreaNetwork, INfs):
             return conv[netapp_disk_type]
         return Disk.DISK_TYPE_UNKNOWN
 
-    @handle_ontap_errors
+    @staticmethod
+    def _disk_id(na_disk):
+        """
+        The md5sum of na_disk['disk-uid']
+        """
+        return md5(na_disk['disk-uid'])
+
     def _disk(self, d, flag):
         error_message = ""
         status = Disk.STATUS_OK
@@ -195,7 +203,7 @@ class Ontap(IStorageAreaNetwork, INfs):
             if 'broken-details' in d:
                 opt_data.set('error_info', d['broken-details'])
 
-        return Disk(md5(d['disk-uid']),
+        return Disk(self._disk_id(d),
                     d['name'],
                     Ontap._disk_type(d['disk-type']),
                     int(d['bytes-per-sector']),
@@ -208,12 +216,154 @@ class Ontap(IStorageAreaNetwork, INfs):
         luns = self.f.luns_get_all()
         return [self._lun(l) for l in luns]
 
-    @handle_ontap_errors
-    def _pool(self, p):
-        total = int(p['size-total'])
-        used = int(p['size-used'])
-        return Pool(p['uuid'], p['name'], total, total - used,
-                    self.sys_info.id)
+    @staticmethod
+    def _pool_id(na_xxx):
+        """
+        Return na_aggr['uuid'] or na_vol['uuid']
+        """
+        return na_xxx['uuid']
+
+    @staticmethod
+    def _raid_type_of_na_aggr(na_aggr):
+        na_raid_statuses = na_aggr['raid-status'].split(',')
+        if 'raid0' in na_raid_statuses:
+            return Pool.RAID_TYPE_RAID0
+        if 'raid4' in na_raid_statuses:
+            return Pool.RAID_TYPE_RAID4
+        if 'raid_dp' in na_raid_statuses:
+            return Pool.RAID_TYPE_RAID6
+        if 'mixed_raid_type' in na_raid_statuses:
+            return Pool.RAID_TYPE_MIXED
+        return Pool.RAID_TYPE_UNKNOWN
+
+    @staticmethod
+    def _status_of_na_aggr(na_aggr):
+        na_aggr_state = na_aggr['state']
+        if na_aggr_state == 'creating':
+            return Pool.STATUS_STARTING
+        if na_aggr_state == 'destroying':
+            return Pool.STATUS_STOPPING
+        if na_aggr_state == 'failed':
+            return Pool.STATUS_ERROR
+        if na_aggr_state == 'frozen':
+            return Pool.STATUS_STOPPED
+        if na_aggr_state == 'inconsistent':
+            return Pool.STATUS_ERROR
+        if na_aggr_state == 'iron_restricted':
+            return Pool.STATUS_STOPPED
+        if na_aggr_state == 'mounting':
+            return Pool.STATUS_STARTING
+        if na_aggr_state == 'offline':
+            return Pool.STATUS_STOPPED
+        if na_aggr_state == 'online':
+            return Pool.STATUS_OK
+        if na_aggr_state == 'partial':
+            return Pool.STATUS_ERROR
+        if na_aggr_state == 'quiesced':
+            return Pool.STATUS_STOPPED
+        if na_aggr_state == 'quiescing':
+            return Pool.STATUS_STOPPING
+        if na_aggr_state == 'restricted':
+            return Pool.STATUS_STOPPED
+        if na_aggr_state == 'reverted':
+            return Pool.STATUS_STOPPED
+        if na_aggr_state == 'unknown':
+            return Pool.STATUS_UNKNOWN
+        if na_aggr_state == 'unmounted':
+            return Pool.STATUS_STOPPED
+        if na_aggr_state == 'unmounting':
+            return Pool.STATUS_STOPPING
+        return Pool.STATUS_UNKNOWN
+
+    def _pool_from_na_aggr(self, na_aggr, na_disks, flags):
+        pool_id = self._pool_id(na_aggr)
+        pool_name = na_aggr['name']
+        total_space = int(na_aggr['size-total'])
+        free_space = int(na_aggr['size-available'])
+        system_id = self.sys_info.id
+        opt_data = OptionalData()
+        if flags == Pool.RETRIEVE_FULL_INFO:
+            opt_data.set('member_type', Pool.MEMBER_TYPE_DISK)
+            member_ids = []
+            for na_disk in na_disks:
+                if 'aggregate' in na_disk and \
+                   na_disk['aggregate'] == pool_name:
+                    member_ids.extend([self._disk_id(na_disk)])
+            opt_data.set('member_ids', member_ids)
+            opt_data.set('raid_type', self._raid_type_of_na_aggr(na_aggr))
+            if na_aggr['type'] == 'aggr':
+                opt_data.set('thinp_type', Pool.THINP_TYPE_THIN)
+            elif na_aggr['type'] == 'trad':
+                opt_data.set('thinp_type', Pool.THINP_TYPE_THICK)
+            else:
+                opt_data.set('thinp_type', Pool.THINP_TYPE_UNKNOWN)
+            opt_data.set('status', self._status_of_na_aggr(na_aggr))
+            element_type = (
+                Pool.ELEMENT_TYPE_POOL |
+                Pool.ELEMENT_TYPE_FS |
+                Pool.ELEMENT_TYPE_VOLUME)
+            if pool_name == 'aggr0':
+                element_type = element_type | Pool.ELEMENT_TYPE_SYS_RESERVED
+            opt_data.set('element_type', element_type)
+
+        return Pool(pool_id, pool_name, total_space, free_space,
+                    system_id, opt_data)
+
+    @staticmethod
+    def _status_of_na_vol(na_vol):
+        na_vol_state = na_vol['state']
+        if na_vol_state == 'offline':
+            return Pool.STATUS_STOPPED
+        if na_vol_state == 'online':
+            return Pool.STATUS_OK
+        if na_vol_state == 'restricted':
+            return Pool.STATUS_STOPPED
+        if na_vol_state == 'unknown':
+            return Pool.STATUS_UNKNOWN
+        if na_vol_state == 'creating':
+            return Pool.STATUS_STARTING
+        if na_vol_state == 'failed':
+            return Pool.STATUS_ERROR
+        if na_vol_state == 'partial':
+            return Pool.STATUS_ERROR
+        return Pool.STATUS_UNKNOWN
+
+    @staticmethod
+    def _pool_name_of_na_vol(na_vol):
+        return "%s/%s" % (Ontap.VOLUME_PREFIX, na_vol['name'])
+
+    @staticmethod
+    def _na_vol_name_of_pool(pool):
+        return pool.name.split('/')[-1]
+
+    def _pool_from_na_vol(self, na_vol, na_aggrs, flags):
+        pool_id = self._pool_id(na_vol)
+        pool_name = self._pool_name_of_na_vol(na_vol)
+        total_space = int(na_vol['size-total'])
+        free_space = int(na_vol['size-available'])
+        system_id = self.sys_info.id
+        opt_data = OptionalData()
+        if flags == Pool.RETRIEVE_FULL_INFO:
+            opt_data.set('member_type', Pool.MEMBER_TYPE_POOL)
+            parent_aggr_name = na_vol['containing-aggregate']
+            for na_aggr in na_aggrs:
+                if na_aggr['name'] == parent_aggr_name:
+                    opt_data.set('member_ids', [self._pool_id(na_aggr)])
+                    break
+            opt_data.set('raid_type', Pool.RAID_TYPE_NOT_APPLICABLE)
+            if na_vol['type'] == 'flex':
+                opt_data.set('thinp_type', Pool.THINP_TYPE_THIN)
+            elif na_vol['type'] == 'trad':
+                opt_data.set('thinp_type', Pool.THINP_TYPE_THICK)
+            else:
+                opt_data.set('thinp_type', Pool.THINP_TYPE_UNKNOWN)
+
+            opt_data.set('status', self._status_of_na_vol(na_vol))
+            element_type = Pool.ELEMENT_TYPE_VOLUME
+            opt_data.set('element_type', element_type)
+
+        return Pool(pool_id, pool_name, total_space, free_space,
+                    system_id, opt_data)
 
     @handle_ontap_errors
     def capabilities(self, system, flags=0):
@@ -274,8 +424,19 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def pools(self, flags=0):
-        aggr = self.f.aggregates()
-        return [self._pool(p) for p in aggr]
+        pools = []
+        na_aggrs = self.f.aggregates()
+        na_disks = []
+        # We do extra flags check in order to save self.f.disks() calls
+        # in case we have multiple aggregates.
+        if flags == Pool.RETRIEVE_FULL_INFO:
+            na_disks = self.f.disks()
+        for na_aggr in na_aggrs:
+            pools.extend([self._pool_from_na_aggr(na_aggr, na_disks, flags)])
+        na_vols = self.f.volumes()
+        for na_vol in na_vols:
+            pools.extend([self._pool_from_na_vol(na_vol, na_aggrs, flags)])
+        return pools
 
     @handle_ontap_errors
     def systems(self, flags=0):
@@ -354,26 +515,35 @@ class Ontap(IStorageAreaNetwork, INfs):
         if provisioning != Volume.PROVISION_DEFAULT:
             raise LsmError(ErrorNumber.UNSUPPORTED_PROVISIONING,
                            "Unsupported provisioning")
-
-        v = self.f.volume_names()
-
-        vol_prefix = Ontap.LSM_VOL_PREFIX + '_' + pool.name
-
-        if vol_prefix not in v:
-            self.f.volume_create(pool.name, vol_prefix, size_bytes)
+        na_aggrs = self.f.aggregates()
+        na_aggr_names = [x['name'] for x in na_aggrs]
+        na_vol_name = ''
+        if pool.name not in na_aggr_names:
+            # user defined a NetApp volume.
+            na_vol_name = self._na_vol_name_of_pool(pool)
         else:
-            #re-size volume to accommodate new logical unit
+            # user defined a NetApp Aggregate
+            v = self.f.volume_names()
+            na_vol_name = Ontap.LSM_VOL_PREFIX + '_' + pool.name
+            if na_vol_name not in v:
+                self.f.volume_create(pool.name, na_vol_name, size_bytes)
+
+        #re-size volume to accommodate new logical unit
+        flag_resize = False
+        if size_bytes > pool.free_space:
+            flag_resize = True
             self._na_volume_resize_restore(
-                vol_prefix,
+                na_vol_name,
                 Ontap._size_kb_padded(size_bytes))
 
-        lun_name = self.f.lun_build_name(vol_prefix, volume_name)
+        lun_name = self.f.lun_build_name(na_vol_name, volume_name)
 
         try:
             self.f.lun_create(lun_name, size_bytes)
         except Exception as e:
-            self._na_resize_recovery(vol_prefix,
-                                     -Ontap._size_kb_padded(size_bytes))
+            if flag_resize:
+                self._na_resize_recovery(na_vol_name,
+                                         -Ontap._size_kb_padded(size_bytes))
             raise e
 
         #Get the information about the newly created LUN
