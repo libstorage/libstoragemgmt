@@ -65,6 +65,9 @@ int main(int argc, char **argv)
 	char	*host_str;
 	int	host_pos;
 	int	host_len;
+	char	*host_next_str;
+	int	host_next_pos;
+	int	host_next_len;
 	char	*target_str;
 	int	target_pos;
 	int	target_len;
@@ -127,24 +130,32 @@ int main(int argc, char **argv)
 		invalid(argv, devpath);
 	host_pos = strlen(devpath) - strlen(host_str);
 
+	if ((host_next_str = strstr(&devpath[host_pos + 1], "/")) == NULL)
+		invalid(argv, devpath);
+	host_next_pos = strlen(devpath) - strlen(host_next_str);
+
 	if ((target_str = strstr(devpath, "/target")) == NULL)
 		invalid(argv, devpath);
 	target_pos = strlen(devpath) - strlen(target_str);
 
-	host_len = target_pos - host_pos;
+	host_len = host_next_pos - host_pos;
 	if (host_len <= strlen("/host"))
+		invalid(argv, devpath);
+
+	host_next_len = strlen(&devpath[host_next_pos]);
+	if (host_next_len <= strlen("/"))
 		invalid(argv, devpath);
 
 	target_len = strlen(&devpath[target_pos]);
 	if (target_len <= strlen("/target"))
 		invalid(argv, devpath);
 
-	sysfs_path = malloc(strlen("/sys") + strlen(devpath) - target_len + strlen("/scsi_host") + host_len + strlen("/scan") + 1);
+	sysfs_path = malloc(strlen("/sys") + strlen(devpath) - host_next_len + strlen("/scsi_host") + host_len + strlen("/scan") + 1);
 
 	strcpy(sysfs_path, "/sys");
-	strncat(sysfs_path, devpath, target_pos);
+	strncat(sysfs_path, devpath, host_next_pos);
 	strcat(sysfs_path, "/scsi_host");
-	strncat(sysfs_path, &devpath[host_pos], host_len);
+	strncat(sysfs_path, host_str, host_len);
 	strcat(sysfs_path, "/scan");
 
 	/*
