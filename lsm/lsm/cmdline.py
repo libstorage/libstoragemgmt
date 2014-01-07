@@ -787,7 +787,7 @@ class CmdLine:
                                 help="CHAP outbound password")
 
         command_args.add_argument('-o', '--optional', action="store_true",
-                                metavar="<flag_opt_data>", default=None,
+                                default=None,
                                 dest=_o("flag_opt_data"),
                                 help="Retrieving optional data also if " +
                                      "available.")
