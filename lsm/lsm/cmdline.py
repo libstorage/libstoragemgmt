@@ -82,11 +82,14 @@ class ArgError(Exception):
 ## Finds an item based on the id.  Each list item requires a member "id"
 # @param    l       list to search
 # @param    the_id  the id to match
-def _get_item(l, the_id):
+# @param    friendly_name - name to put in the exception saying what we
+#           couldn't find
+def _get_item(l, the_id, friendly_name='item'):
     for i in l:
         if i.id == the_id:
             return i
-    return None
+    raise ArgError('%s with id %s not found!' % (friendly_name, the_id))
+
 
 list_choices = ['VOLUMES', 'INITIATORS', 'POOLS', 'FS', 'SNAPSHOTS',
                 'EXPORTS', "NFS_CLIENT_AUTH", 'ACCESS_GROUPS',
@@ -741,12 +744,8 @@ class CmdLine:
             if self.args.opt_fs is None:
                 raise ArgError("--fs <file system id> required")
 
-            fs = _get_item(self.c.fs(), self.args.opt_fs)
-            if fs:
-                self.display_data(self.c.fs_snapshots(fs))
-            else:
-                raise ArgError(
-                    "filesystem %s not found!" % self.args.opt_fs)
+            fs = _get_item(self.c.fs(), args.fs, 'filesystem')
+            self.display_data(self.c.fs_snapshots(fs))
         elif args.type == 'INITIATORS':
             self.display_data(self.c.initiators())
         elif args.type == 'EXPORTS':
@@ -766,7 +765,7 @@ class CmdLine:
         elif args.type == 'PLUGINS':
             self.display_available_plugins()
         else:
-            raise ArgError(" unsupported listing type=%s" % args.type)
+            raise ArgError("unsupported listing type=%s" % args.type)
 
     ## Converts type initiator type to enumeration type.
     # @param    type    String representation of type
@@ -797,25 +796,15 @@ class CmdLine:
 
     def _add_rm_access_grp_init(self, args, op):
         agl = self.c.access_group_list()
-        group = _get_item(agl, args.gid)
+        group = _get_item(agl, args.gid, "access group id")
 
-        if group:
-            if op:
-                i = CmdLine._init_type_to_enum(args.type)
-                self.c.access_group_add_initiator(
-                    group, args.iid, i)
-            else:
-                i = _get_item(self.c.initiators(), args.iid)
-                if i:
-                    self.c.access_group_del_initiator(group, i.id)
-                else:
-                    raise ArgError(
-                        "initiator with id %s not found!" %
-                        self.args.opt_id)
+        if op:
+            i = CmdLine._init_type_to_enum(args.type)
+            self.c.access_group_add_initiator(
+                group, args.iid, i)
         else:
-            if not group:
-                raise ArgError(
-                    'access group with id %s not found!' % self.cmd_value)
+            i = _get_item(self.c.initiators(), args.iid, "initiator id")
+            self.c.access_group_del_initiator(group, i.id)
 
     ## Adds an initiator from an access group
     def access_group_add(self, args):
@@ -827,124 +816,76 @@ class CmdLine:
 
     def access_group_volumes(self, args):
         agl = self.c.access_group_list()
-        group = _get_item(agl, args.gid)
-
-        if group:
-            vols = self.c.volumes_accessible_by_access_group(group)
-            self.display_data(vols)
-        else:
-            raise ArgError(
-                'access group with id %s not found!' % self.cmd_value)
+        group = _get_item(agl, args.gid, "access group id")
+        vols = self.c.volumes_accessible_by_access_group(group)
+        self.display_data(vols)
 
     def volumes_accessible_initiator(self, args):
-        i = _get_item(self.c.initiators(), args.iid)
-
-        if i:
-            volumes = self.c.volumes_accessible_by_initiator(i)
-            self.display_data(volumes)
-        else:
-            raise ArgError("initiator with id= %s not found!" % self.cmd_value)
+        i = _get_item(self.c.initiators(), args.iid, "initiator id")
+        volumes = self.c.volumes_accessible_by_initiator(i)
+        self.display_data(volumes)
 
     def initiators_granted_volume(self, args):
-        vol = _get_item(self.c.volumes(), args.vol_id)
-
-        if vol:
-            initiators = self.c.initiators_granted_to_volume(vol)
-            self.display_data(initiators)
-        else:
-            raise ArgError("volume with id= %s not found!" % self.cmd_value)
+        vol = _get_item(self.c.volumes(), args.vol_id, "volume id")
+        initiators = self.c.initiators_granted_to_volume(vol)
+        self.display_data(initiators)
 
     def iscsi_chap(self, args):
-        init = _get_item(self.c.initiators(), args.iid)
-
-        if init:
-            self.c.iscsi_chap_auth(init, args.in_user,
-                                   self.args.in_password,
-                                   self.args.out_user,
-                                   self.args.out_password)
-        else:
-            raise ArgError("initiator with id= %s not found" % self.cmd_value)
+        init = _get_item(self.c.initiators(), args.iid, "initiator id")
+        self.c.iscsi_chap_auth(init, args.in_user,
+                               self.args.in_password,
+                               self.args.out_user,
+                               self.args.out_password)
 
     def volume_access_group(self, args):
-        vol = _get_item(self.c.volumes(), args.vol_id)
-
-        if vol:
-            groups = self.c.access_groups_granted_to_volume(vol)
-            self.display_data(groups)
-        else:
-            raise ArgError("volume with id= %s not found!" % self.cmd_value)
+        vol = _get_item(self.c.volumes(), args.vol_id, "volume id")
+        groups = self.c.access_groups_granted_to_volume(vol)
+        self.display_data(groups)
 
     ## Used to delete access group
     # @param    self    The this pointer
     def delete_access_group(self, args):
         agl = self.c.access_group_list()
-
-        group = _get_item(agl, args.group_id)
-        if group:
-            return self.c.access_group_del(group)
-        else:
-            raise ArgError(
-                "access group with id = %s not found!" % self.cmd_value)
+        group = _get_item(agl, args.group_id, "access group id")
+        return self.c.access_group_del(group)
 
     ## Used to delete a file system
     # @param    self    The this pointer
     def delete_fs(self, args):
-
-        fs = _get_item(self.c.fs(), args.fs_id)
-        if fs:
-            if self.confirm_prompt(True):
-                self._wait_for_it("delete-fs", self.c.fs_delete(fs), None)
-        else:
-            raise ArgError("fs with id = %s not found!" % self.cmd_value)
+        fs = _get_item(self.c.fs(), args.fs_id, "filesystem id")
+        if self.confirm_prompt(True):
+            self._wait_for_it("delete-fs", self.c.fs_delete(fs), None)
 
     ## Used to create a file system
     # @param    self    The this pointer
     def create_fs(self, args):
-        p = _get_item(self.c.pools(), args.pool)
-        if p:
-            fs = self._wait_for_it("create-fs",
-                                   *self.c.fs_create(p, args.name,
-                                                     self._size(args.size)))
-            self.display_data([fs])
-        else:
-            raise ArgError(
-                "pool with id = %s not found!" % self.args.opt_pool)
+        p = _get_item(self.c.pools(), args.pool, "pool id")
+        fs = self._wait_for_it("create-fs",
+                               *self.c.fs_create(p, args.name,
+                                                 self._size(args.size)))
+        self.display_data([fs])
 
     ## Used to resize a file system
     # @param    self    The this pointer
     def resize_fs(self, args):
-        fs = _get_item(self.c.fs(), args.id)
+        fs = _get_item(self.c.fs(), args.id, "filesystem id")
         size = self._size(args.size)
 
-        if fs and size:
-            if self.confirm_prompt(False):
-                fs = self._wait_for_it("resize-fs",
-                                       *self.c.fs_resize(fs, size))
-                self.display_data([fs])
-        else:
-            if not fs:
-                raise ArgError(
-                    " filesystem with id= %s not found!" % self.cmd_value)
+        if self.confirm_prompt(False):
+            fs = self._wait_for_it("resize-fs",
+                                   *self.c.fs_resize(fs, size))
+            self.display_data([fs])
 
     ## Used to clone a file system
     # @param    self    The this pointer
     def clone_fs(self, args):
-        src_fs = _get_item(self.c.fs(), args.source_name)
+        src_fs = _get_item(self.c.fs(), args.source_name, "source file system id")
 
-        if not src_fs:
-            raise ArgError(
-                " source file system with id=%s not found!" % self.cmd_value)
-
+        ss = None
         if args.backing_snapshot:
             #go get the snapsnot
             ss = _get_item(self.c.fs_snapshots(src_fs),
-                           args.backing_snapshot)
-            if not ss:
-                raise ArgError(
-                    " snapshot with id= %s not found!" %
-                    self.args.backing_snapshot)
-        else:
-            ss = None
+                           args.backing_snapshot, "snapshot id")
 
         fs = self._wait_for_it("fs_clone", *self.c.fs_clone(src_fs, args.dest_name, ss))
         self.display_data([fs])
@@ -952,12 +893,12 @@ class CmdLine:
     ## Used to clone a file(s)
     # @param    self    The this pointer
     def clone_file(self, args):
-        fs = _get_item(self.c.fs(), args.fs)
+        fs = _get_item(self.c.fs(), args.fs, "filesystem id")
 
         if self.args.backing_snapshot:
             #go get the snapsnot
             ss = _get_item(self.c.fs_snapshots(fs),
-                           self.args.backing_snapshot)
+                           args.backing_snapshot, "snapshot id")
         else:
             ss = None
 
@@ -994,102 +935,99 @@ class CmdLine:
         out("%s%s%s" % (cap, s, v))
 
     def capabilities(self, args):
-        s = _get_item(self.c.systems(), args.system_id)
+        s = _get_item(self.c.systems(), args.system_id, "system id")
 
-        if s:
-            cap = self.c.capabilities(s)
-            self._cp("BLOCK_SUPPORT", cap.get(Capabilities.BLOCK_SUPPORT))
-            self._cp("FS_SUPPORT", cap.get(Capabilities.FS_SUPPORT))
-            self._cp("INITIATORS", cap.get(Capabilities.INITIATORS))
-            self._cp("INITIATORS_GRANTED_TO_VOLUME",
-                     cap.get(Capabilities.INITIATORS_GRANTED_TO_VOLUME))
-            self._cp("VOLUMES", cap.get(Capabilities.VOLUMES))
-            self._cp("VOLUME_CREATE", cap.get(Capabilities.VOLUME_CREATE))
-            self._cp("VOLUME_RESIZE", cap.get(Capabilities.VOLUME_RESIZE))
-            self._cp("VOLUME_REPLICATE",
-                     cap.get(Capabilities.VOLUME_REPLICATE))
-            self._cp("VOLUME_REPLICATE_CLONE",
-                     cap.get(Capabilities.VOLUME_REPLICATE_CLONE))
-            self._cp("VOLUME_REPLICATE_COPY",
-                     cap.get(Capabilities.VOLUME_REPLICATE_COPY))
-            self._cp("VOLUME_REPLICATE_MIRROR_ASYNC",
-                     cap.get(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC))
-            self._cp("VOLUME_REPLICATE_MIRROR_SYNC",
-                     cap.get(Capabilities.VOLUME_REPLICATE_MIRROR_SYNC))
-            self._cp("VOLUME_COPY_RANGE_BLOCK_SIZE",
-                     cap.get(Capabilities.VOLUME_COPY_RANGE_BLOCK_SIZE))
-            self._cp("VOLUME_COPY_RANGE",
-                     cap.get(Capabilities.VOLUME_COPY_RANGE))
-            self._cp("VOLUME_COPY_RANGE_CLONE",
-                     cap.get(Capabilities.VOLUME_COPY_RANGE_CLONE))
-            self._cp("VOLUME_COPY_RANGE_COPY",
-                     cap.get(Capabilities.VOLUME_COPY_RANGE_COPY))
-            self._cp("VOLUME_DELETE", cap.get(Capabilities.VOLUME_DELETE))
-            self._cp("VOLUME_ONLINE", cap.get(Capabilities.VOLUME_ONLINE))
-            self._cp("VOLUME_OFFLINE", cap.get(Capabilities.VOLUME_OFFLINE))
-            self._cp("VOLUME_INITIATOR_GRANT",
-                     cap.get(Capabilities.VOLUME_INITIATOR_GRANT))
-            self._cp("VOLUME_INITIATOR_REVOKE",
-                     cap.get(Capabilities.VOLUME_INITIATOR_REVOKE))
-            self._cp("VOLUME_THIN",
-                     cap.get(Capabilities.VOLUME_THIN))
-            self._cp("VOLUME_ISCSI_CHAP_AUTHENTICATION",
-                     cap.get(Capabilities.VOLUME_ISCSI_CHAP_AUTHENTICATION))
-            self._cp("ACCESS_GROUP_GRANT",
-                     cap.get(Capabilities.ACCESS_GROUP_GRANT))
-            self._cp("ACCESS_GROUP_REVOKE",
-                     cap.get(Capabilities.ACCESS_GROUP_REVOKE))
-            self._cp("ACCESS_GROUP_LIST",
-                     cap.get(Capabilities.ACCESS_GROUP_LIST))
-            self._cp("ACCESS_GROUP_CREATE",
-                     cap.get(Capabilities.ACCESS_GROUP_CREATE))
-            self._cp("ACCESS_GROUP_DELETE",
-                     cap.get(Capabilities.ACCESS_GROUP_DELETE))
-            self._cp("ACCESS_GROUP_ADD_INITIATOR",
-                     cap.get(Capabilities.ACCESS_GROUP_ADD_INITIATOR))
-            self._cp("ACCESS_GROUP_DEL_INITIATOR",
-                     cap.get(Capabilities.ACCESS_GROUP_DEL_INITIATOR))
-            self._cp("VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP",
-                     cap.get(Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP))
-            self._cp("VOLUME_ACCESSIBLE_BY_INITIATOR",
-                     cap.get(Capabilities.VOLUME_ACCESSIBLE_BY_INITIATOR))
-            self._cp("ACCESS_GROUPS_GRANTED_TO_VOLUME",
-                     cap.get(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME))
-            self._cp("VOLUME_CHILD_DEPENDENCY",
-                     cap.get(Capabilities.VOLUME_CHILD_DEPENDENCY))
-            self._cp("VOLUME_CHILD_DEPENDENCY_RM",
-                     cap.get(Capabilities.VOLUME_CHILD_DEPENDENCY_RM))
-            self._cp("FS", cap.get(Capabilities.FS))
-            self._cp("FS_DELETE", cap.get(Capabilities.FS_DELETE))
-            self._cp("FS_RESIZE", cap.get(Capabilities.FS_RESIZE))
-            self._cp("FS_CREATE", cap.get(Capabilities.FS_CREATE))
-            self._cp("FS_CLONE", cap.get(Capabilities.FS_CLONE))
-            self._cp("FILE_CLONE", cap.get(Capabilities.FILE_CLONE))
-            self._cp("FS_SNAPSHOTS", cap.get(Capabilities.FS_SNAPSHOTS))
-            self._cp("FS_SNAPSHOT_CREATE",
-                     cap.get(Capabilities.FS_SNAPSHOT_CREATE))
-            self._cp("FS_SNAPSHOT_CREATE_SPECIFIC_FILES",
-                     cap.get(Capabilities.FS_SNAPSHOT_CREATE_SPECIFIC_FILES))
-            self._cp("FS_SNAPSHOT_DELETE",
-                     cap.get(Capabilities.FS_SNAPSHOT_DELETE))
-            self._cp("FS_SNAPSHOT_REVERT",
-                     cap.get(Capabilities.FS_SNAPSHOT_REVERT))
-            self._cp("FS_SNAPSHOT_REVERT_SPECIFIC_FILES",
-                     cap.get(Capabilities.FS_SNAPSHOT_REVERT_SPECIFIC_FILES))
-            self._cp("FS_CHILD_DEPENDENCY",
-                     cap.get(Capabilities.FS_CHILD_DEPENDENCY))
-            self._cp("FS_CHILD_DEPENDENCY_RM",
-                     cap.get(Capabilities.FS_CHILD_DEPENDENCY_RM))
-            self._cp("FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES", cap.get(
+        cap = self.c.capabilities(s)
+        self._cp("BLOCK_SUPPORT", cap.get(Capabilities.BLOCK_SUPPORT))
+        self._cp("FS_SUPPORT", cap.get(Capabilities.FS_SUPPORT))
+        self._cp("INITIATORS", cap.get(Capabilities.INITIATORS))
+        self._cp("INITIATORS_GRANTED_TO_VOLUME",
+                 cap.get(Capabilities.INITIATORS_GRANTED_TO_VOLUME))
+        self._cp("VOLUMES", cap.get(Capabilities.VOLUMES))
+        self._cp("VOLUME_CREATE", cap.get(Capabilities.VOLUME_CREATE))
+        self._cp("VOLUME_RESIZE", cap.get(Capabilities.VOLUME_RESIZE))
+        self._cp("VOLUME_REPLICATE",
+                 cap.get(Capabilities.VOLUME_REPLICATE))
+        self._cp("VOLUME_REPLICATE_CLONE",
+                 cap.get(Capabilities.VOLUME_REPLICATE_CLONE))
+        self._cp("VOLUME_REPLICATE_COPY",
+                 cap.get(Capabilities.VOLUME_REPLICATE_COPY))
+        self._cp("VOLUME_REPLICATE_MIRROR_ASYNC",
+                 cap.get(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC))
+        self._cp("VOLUME_REPLICATE_MIRROR_SYNC",
+                 cap.get(Capabilities.VOLUME_REPLICATE_MIRROR_SYNC))
+        self._cp("VOLUME_COPY_RANGE_BLOCK_SIZE",
+                 cap.get(Capabilities.VOLUME_COPY_RANGE_BLOCK_SIZE))
+        self._cp("VOLUME_COPY_RANGE",
+                 cap.get(Capabilities.VOLUME_COPY_RANGE))
+        self._cp("VOLUME_COPY_RANGE_CLONE",
+                 cap.get(Capabilities.VOLUME_COPY_RANGE_CLONE))
+        self._cp("VOLUME_COPY_RANGE_COPY",
+                 cap.get(Capabilities.VOLUME_COPY_RANGE_COPY))
+        self._cp("VOLUME_DELETE", cap.get(Capabilities.VOLUME_DELETE))
+        self._cp("VOLUME_ONLINE", cap.get(Capabilities.VOLUME_ONLINE))
+        self._cp("VOLUME_OFFLINE", cap.get(Capabilities.VOLUME_OFFLINE))
+        self._cp("VOLUME_INITIATOR_GRANT",
+                 cap.get(Capabilities.VOLUME_INITIATOR_GRANT))
+        self._cp("VOLUME_INITIATOR_REVOKE",
+                 cap.get(Capabilities.VOLUME_INITIATOR_REVOKE))
+        self._cp("VOLUME_THIN",
+                 cap.get(Capabilities.VOLUME_THIN))
+        self._cp("VOLUME_ISCSI_CHAP_AUTHENTICATION",
+                 cap.get(Capabilities.VOLUME_ISCSI_CHAP_AUTHENTICATION))
+        self._cp("ACCESS_GROUP_GRANT",
+                 cap.get(Capabilities.ACCESS_GROUP_GRANT))
+        self._cp("ACCESS_GROUP_REVOKE",
+                 cap.get(Capabilities.ACCESS_GROUP_REVOKE))
+        self._cp("ACCESS_GROUP_LIST",
+                 cap.get(Capabilities.ACCESS_GROUP_LIST))
+        self._cp("ACCESS_GROUP_CREATE",
+                 cap.get(Capabilities.ACCESS_GROUP_CREATE))
+        self._cp("ACCESS_GROUP_DELETE",
+                 cap.get(Capabilities.ACCESS_GROUP_DELETE))
+        self._cp("ACCESS_GROUP_ADD_INITIATOR",
+                 cap.get(Capabilities.ACCESS_GROUP_ADD_INITIATOR))
+        self._cp("ACCESS_GROUP_DEL_INITIATOR",
+                 cap.get(Capabilities.ACCESS_GROUP_DEL_INITIATOR))
+        self._cp("VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP",
+                 cap.get(Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP))
+        self._cp("VOLUME_ACCESSIBLE_BY_INITIATOR",
+                 cap.get(Capabilities.VOLUME_ACCESSIBLE_BY_INITIATOR))
+        self._cp("ACCESS_GROUPS_GRANTED_TO_VOLUME",
+                 cap.get(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME))
+        self._cp("VOLUME_CHILD_DEPENDENCY",
+                 cap.get(Capabilities.VOLUME_CHILD_DEPENDENCY))
+        self._cp("VOLUME_CHILD_DEPENDENCY_RM",
+                 cap.get(Capabilities.VOLUME_CHILD_DEPENDENCY_RM))
+        self._cp("FS", cap.get(Capabilities.FS))
+        self._cp("FS_DELETE", cap.get(Capabilities.FS_DELETE))
+        self._cp("FS_RESIZE", cap.get(Capabilities.FS_RESIZE))
+        self._cp("FS_CREATE", cap.get(Capabilities.FS_CREATE))
+        self._cp("FS_CLONE", cap.get(Capabilities.FS_CLONE))
+        self._cp("FILE_CLONE", cap.get(Capabilities.FILE_CLONE))
+        self._cp("FS_SNAPSHOTS", cap.get(Capabilities.FS_SNAPSHOTS))
+        self._cp("FS_SNAPSHOT_CREATE",
+                 cap.get(Capabilities.FS_SNAPSHOT_CREATE))
+        self._cp("FS_SNAPSHOT_CREATE_SPECIFIC_FILES",
+                 cap.get(Capabilities.FS_SNAPSHOT_CREATE_SPECIFIC_FILES))
+        self._cp("FS_SNAPSHOT_DELETE",
+                 cap.get(Capabilities.FS_SNAPSHOT_DELETE))
+        self._cp("FS_SNAPSHOT_REVERT",
+                 cap.get(Capabilities.FS_SNAPSHOT_REVERT))
+        self._cp("FS_SNAPSHOT_REVERT_SPECIFIC_FILES",
+                 cap.get(Capabilities.FS_SNAPSHOT_REVERT_SPECIFIC_FILES))
+        self._cp("FS_CHILD_DEPENDENCY",
+                 cap.get(Capabilities.FS_CHILD_DEPENDENCY))
+        self._cp("FS_CHILD_DEPENDENCY_RM",
+                 cap.get(Capabilities.FS_CHILD_DEPENDENCY_RM))
+        self._cp("FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES", cap.get(
                 Capabilities.FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES))
-            self._cp("EXPORT_AUTH", cap.get(Capabilities.EXPORT_AUTH))
-            self._cp("EXPORTS", cap.get(Capabilities.EXPORTS))
-            self._cp("EXPORT_FS", cap.get(Capabilities.EXPORT_FS))
-            self._cp("EXPORT_REMOVE", cap.get(Capabilities.EXPORT_REMOVE))
-            self._cp("EXPORT_CUSTOM_PATH",
-                     cap.get(Capabilities.EXPORT_CUSTOM_PATH))
-        else:
-            raise ArgError("system with id= %s not found!" % self.cmd_value)
+        self._cp("EXPORT_AUTH", cap.get(Capabilities.EXPORT_AUTH))
+        self._cp("EXPORTS", cap.get(Capabilities.EXPORTS))
+        self._cp("EXPORT_FS", cap.get(Capabilities.EXPORT_FS))
+        self._cp("EXPORT_REMOVE", cap.get(Capabilities.EXPORT_REMOVE))
+        self._cp("EXPORT_CUSTOM_PATH",
+                 cap.get(Capabilities.EXPORT_CUSTOM_PATH))
 
     def plugin_info(self, args):
         desc, version = self.c.plugin_info()
@@ -1103,103 +1041,76 @@ class CmdLine:
     # @param    self    The this pointer
     def create_volume(self, args):
         #Get pool
-        p = _get_item(self.c.pools(), args.pool)
-        if p:
-            vol = self._wait_for_it("create-volume",
-                                    *self.c.volume_create(
-                                        p,
-                                        args.name,
-                                        self._size(args.size),
-                                        data.Volume.prov_string_to_type(
-                                            args.provisioning)))
-
-            self.display_data([vol])
-        else:
-            raise ArgError(
-                " pool with id= %s not found!" % self.args.opt_pool)
+        p = _get_item(self.c.pools(), args.pool, "pool id")
+        vol = self._wait_for_it("create-volume",
+                                *self.c.volume_create(
+                                p,
+                                args.name,
+                                self._size(args.size),
+                                data.Volume.prov_string_to_type(
+                                    args.provisioning)))
+        self.display_data([vol])
 
     ## Creates a snapshot
     # @param    self    The this pointer
     def create_ss(self, args):
         #Get fs
-        fs = _get_item(self.c.fs(), args.fs)
-        if fs:
-            ss = self._wait_for_it("snapshot-create",
-                                   *self.c.fs_snapshot_create(
-                                       fs,
-                                       args.name,
-                                       self.args.file))
+        fs = _get_item(self.c.fs(), args.fs, "fs id")
+        ss = self._wait_for_it("snapshot-create",
+                               *self.c.fs_snapshot_create(
+                                   fs,
+                                   args.name,
+                                   self.args.file))
 
-            self.display_data([ss])
-        else:
-            raise ArgError("fs with id= %s not found!" % self.args.opt_fs)
+        self.display_data([ss])
 
     ## Restores a snap shot
     # @param    self    The this pointer
     def restore_ss(self, args):
         #Get snapshot
-        fs = _get_item(self.c.fs(), args.fs)
-        ss = _get_item(self.c.fs_snapshots(fs), args.id)
+        fs = _get_item(self.c.fs(), args.fs, "fs id")
+        ss = _get_item(self.c.fs_snapshots(fs), args.id, "ss id")
 
-        if ss and fs:
-
-            if self.args.file:
-                if self.args.fileas:
-                    if len(self.args.file) != len(self.args.fileas):
-                        raise ArgError(
-                            "number of --files not equal to --fileas")
-
-            if self.args.all:
-                if self.args.file or self.args.fileas:
+        if self.args.file:
+            if self.args.fileas:
+                if len(self.args.file) != len(self.args.fileas):
                     raise ArgError(
-                        "Unable to specify --all and --files or --fileas")
+                        "number of --files not equal to --fileas")
 
-            if self.args.all is False and self.args.file is None:
-                raise ArgError("Need to specify --all or at least one --file")
-
-            if self.confirm_prompt(True):
-                self._wait_for_it('restore-ss',
-                                  self.c.fs_snapshot_revert(
-                                      fs, ss,
-                                      self.args.file,
-                                      self.args.fileas,
-                                      self.args.all),
-                                  None)
-        else:
-            if not ss:
-                raise ArgError("ss with id= %s not found!" % self.cmd_value)
-            if not fs:
+        if self.args.all:
+            if self.args.file or self.args.fileas:
                 raise ArgError(
-                    "fs with id= %s not found!" % self.args.opt_fs)
+                    "Unable to specify --all and --files or --fileas")
+
+        if self.args.all is False and self.args.file is None:
+            raise ArgError("Need to specify --all or at least one --file")
+
+        if self.confirm_prompt(True):
+            self._wait_for_it('restore-ss',
+                              self.c.fs_snapshot_revert(
+                                    fs, ss,
+                                    self.args.file,
+                                    self.args.fileas,
+                                    self.args.all),
+                                              None)
 
     ## Deletes a volume
     # @param    self    The this pointer
     def delete_volume(self, args):
-        v = _get_item(self.c.volumes(), args.id)
-
-        if v:
-            if self.confirm_prompt(True):
-                self._wait_for_it("delete-volume", self.c.volume_delete(v),
-                                  None)
-        else:
-            raise ArgError(" volume with id= %s not found!" % self.cmd_value)
+        v = _get_item(self.c.volumes(), args.id, "volume id")
+        if self.confirm_prompt(True):
+            self._wait_for_it("delete-volume", self.c.volume_delete(v),
+                              None)
 
     ## Deletes a snap shot
     # @param    self    The this pointer
     def delete_ss(self, args):
-        fs = _get_item(self.c.fs(), args.fs)
-        if fs:
-            ss = _get_item(self.c.fs_snapshots(fs), args.id)
-            if ss:
-                if self.confirm_prompt(True):
-                    self._wait_for_it("delete-snapshot",
-                                      self.c.fs_snapshot_delete(fs, ss), None)
-            else:
-                raise ArgError(
-                    " snapshot with id= %s not found!" % self.cmd_value)
-        else:
-            raise ArgError(
-                " file system with id= %s not found!" % self.args.opt_fs)
+        fs = _get_item(self.c.fs(), args.fs, "filesystem id")
+        ss = _get_item(self.c.fs_snapshots(fs), args.id, "snapshot id")
+
+        if self.confirm_prompt(True):
+            self._wait_for_it("delete-snapshot",
+                              self.c.fs_snapshot_delete(fs, ss), None)
 
     ## Waits for an operation to complete by polling for the status of the
     # operations.
@@ -1249,84 +1160,59 @@ class CmdLine:
     # @param    self    The this pointer
     def replicate_volume(self, args):
         p = None
-
         if args.pool:
-            p = _get_item(self.c.pools(), args.pool)
+            p = _get_item(self.c.pools(), args.pool, "pool id")
 
-        v = _get_item(self.c.volumes(), args.name)
+        v = _get_item(self.c.volumes(), args.name, "volume id")
 
-        if v:
-            rep_type = data.Volume.rep_String_to_type(args.type)
-            if rep_type == data.Volume.REPLICATE_UNKNOWN:
-                raise ArgError("invalid replication type= %s" % rep_type)
+        rep_type = data.Volume.rep_String_to_type(args.type)
+        if rep_type == data.Volume.REPLICATE_UNKNOWN:
+            raise ArgError("invalid replication type= %s" % rep_type)
 
-            vol = self._wait_for_it("replicate volume",
-                                    *self.c.volume_replicate(
-                                        p, rep_type, v, args.name))
-            self.display_data([vol])
-        else:
-            if not p:
-                raise ArgError(
-                    "pool with id= %s not found!" % self.args.opt_pool)
-            if not v:
-                raise ArgError("Volume with id= %s not found!" %
-                               self.cmd_value)
+        vol = self._wait_for_it("replicate volume",
+                                *self.c.volume_replicate(
+                                p, rep_type, v, args.name))
+        self.display_data([vol])
 
     ## Replicates a range of a volume
     # @param    self    The this pointer
     def replicate_volume_range(self, args):
-        src = _get_item(self.c.volumes(), args.src)
-        dest = _get_item(self.c.volumes(), args.dest)
+        src = _get_item(self.c.volumes(), args.src, "source volume id")
+        dest = _get_item(self.c.volumes(), args.dest, "destination volume id")
 
-        if src and dest:
-            rep_type = data.Volume.rep_String_to_type(args.type)
-            if rep_type == data.Volume.REPLICATE_UNKNOWN:
-                raise ArgError("invalid replication type= %s" % rep_type)
+        rep_type = data.Volume.rep_String_to_type(args.type)
+        if rep_type == data.Volume.REPLICATE_UNKNOWN:
+            raise ArgError("invalid replication type= %s" % rep_type)
 
-            src_starts = args.src_start
-            dest_starts = args.dest_start
-            counts = args.count
+        src_starts = args.src_start
+        dest_starts = args.dest_start
+        counts = args.count
 
-            if (0 < len(src_starts) == len(dest_starts)
-                    and len(dest_starts) == len(counts)):
-                ranges = []
+        if (0 < len(src_starts) == len(dest_starts)
+            and len(dest_starts) == len(counts)):
+            ranges = []
 
-                for i in range(len(src_starts)):
-                    ranges.append(data.BlockRange(src_starts[i],
-                                                  dest_starts[i],
-                                                  counts[i]))
+            for i in range(len(src_starts)):
+                ranges.append(data.BlockRange(src_starts[i],
+                                              dest_starts[i],
+                                              counts[i]))
 
-                if self.confirm_prompt(False):
-                    self.c.volume_replicate_range(rep_type, src, dest, ranges)
-        else:
-            if not src:
-                raise ArgError(
-                    "src volume with id= %s not found!" % self.cmd_value)
-            if not dest:
-                raise ArgError(
-                    "dest volume with id= %s not found!" %
-                    self.args.opt_dest)
+            if self.confirm_prompt(False):
+                self.c.volume_replicate_range(rep_type, src, dest, ranges)
 
     ##
     # Returns the block size in bytes for each block represented in
     # volume_replicate_range
     # @param    self    The this pointer
     def replicate_volume_range_block_size(self, args):
-        s = _get_item(self.c.systems(), args.id)
-        if s:
-            out(self.c.volume_replicate_range_block_size(s))
-        else:
-            raise ArgError("system with id= %s not found" % self.cmd_value)
+        s = _get_item(self.c.systems(), args.id, "system id")
+        out(self.c.volume_replicate_range_block_size(s))
 
     ## Used to grant or revoke access to a volume to an initiator.
     # @param    self    The this pointer
     # @param    grant   bool, if True we grant, else we un-grant.
     def _access(self, grant):
-        v = _get_item(self.c.volumes(), self.args.opt_volume)
-        if not v:
-            raise ArgError(
-                "volume with id= %s not found" % self.args.opt_volume)
-
+        v = _get_item(self.c.volumes(), self.args.opt_volume, "volume id")
         initiator_id = self.cmd_value
 
         if grant:
@@ -1335,10 +1221,7 @@ class CmdLine:
 
             self.c.initiator_grant(initiator_id, i_type, v, access)
         else:
-            initiator = _get_item(self.c.initiators(), initiator_id)
-            if not initiator:
-                raise ArgError("initiator with id= %s not found" %
-                               initiator_id)
+            initiator = _get_item(self.c.initiators(), initiator_id, "initiator id")
 
             self.c.initiator_revoke(initiator, v)
 
@@ -1354,23 +1237,15 @@ class CmdLine:
 
     def _access_group(self, args, grant=True):
         agl = self.c.access_group_list()
-        group = _get_item(agl, args.id)
-        v = _get_item(self.c.volumes(), args.volume)
+        group = _get_item(agl, args.id, "access group id")
+        v = _get_item(self.c.volumes(), args.volume, "volume id")
 
-        if group and v:
-            if grant:
-                access = data.Volume.access_string_to_type(
-                    self.args.opt_access)
-                self.c.access_group_grant(group, v, access)
-            else:
-                self.c.access_group_revoke(group, v)
+        if grant:
+            access = data.Volume.access_string_to_type(
+                self.args.opt_access)
+            self.c.access_group_grant(group, v, access)
         else:
-            if not group:
-                raise ArgError(
-                    "access group with id= %s not found!" % self.cmd_value)
-            if not v:
-                raise ArgError(
-                    "volume with id= %s not found!" % self.args.opt_volume)
+            self.c.access_group_revoke(group, v)
 
     def access_grant_group(self, args):
         return self._access_group(args, grant=True)
@@ -1381,113 +1256,80 @@ class CmdLine:
     ## Re-sizes a volume
     # @param    self    The this pointer
     def resize_volume(self, args):
-        v = _get_item(self.c.volumes(), args.id)
-        if v:
-            size = self._size(args.size)
+        v = _get_item(self.c.volumes(), args.id, "volume id")
+        size = self._size(args.size)
 
-            if self.confirm_prompt(False):
-                vol = self._wait_for_it("resize",
-                                        *self.c.volume_resize(v, size))
-                self.display_data([vol])
-        else:
-            raise ArgError("volume with id= %s not found!" % self.cmd_value)
+        if self.confirm_prompt(False):
+            vol = self._wait_for_it("resize",
+                                    *self.c.volume_resize(v, size))
+            self.display_data([vol])
 
     ## Removes a nfs export
     # @param    self    The this pointer
     def nfs_export_remove(self, args):
-        export = _get_item(self.c.exports(), args.id)
-        if export:
-            self.c.export_remove(export)
-        else:
-            raise ArgError("nfs export with id= %s not found!" %
-                           self.cmd_value)
+        export = _get_item(self.c.exports(), args.id, "nfs export id")
+        self.c.export_remove(export)
 
     ## Exports a file system as a NFS export
     # @param    self    The this pointer
     def nfs_export_fs(self, args):
-        fs = _get_item(self.c.fs(), args.id)
+        fs = _get_item(self.c.fs(), args.id, "file system id")
 
-        if fs:
-            #Check to see if we have some type of access specified
-            if len(args.rw) == 0 \
-                    and len(args.ro) == 0:
-                raise ArgError(" please specify --ro or --rw access")
+        # Check to see if we have some type of access specified
+        if len(args.rw) == 0 \
+                and len(args.ro) == 0:
+            raise ArgError(" please specify --ro or --rw access")
 
-            export = self.c.export_fs(
-                fs.id,
-                args.exportpath,
-                args.nfs_root,
-                args.rw,
-                args.ro,
-                args.anonuid,
-                args.anongid,
-                args.authtype,
-                None)
-            self.display_data([export])
-        else:
-            raise ArgError(
-                " file system with id=%s not found!" % self.cmd_value)
+        export = self.c.export_fs(
+            fs.id,
+            args.exportpath,
+            args.nfs_root,
+            args.rw,
+            args.ro,
+            args.anonuid,
+            args.anongid,
+            args.authtype,
+            None)
+        self.display_data([export])
 
     ## Displays volume dependants.
     # @param    self    The this pointer
     def volume_dependants(self, args):
-        v = _get_item(self.c.volumes(), args.id)
-
-        if v:
-            rc = self.c.volume_child_dependency(v)
-            out(rc)
-        else:
-            raise ArgError("volume with id= %s not found!" % self.cmd_value)
+        v = _get_item(self.c.volumes(), args.id, "volume id")
+        rc = self.c.volume_child_dependency(v)
+        out(rc)
 
     ## Removes volume dependants.
     # @param    self    The this pointer
     def volume_dependants_rm(self, args):
-        v = _get_item(self.c.volumes(), args.id)
-
-        if v:
-            self._wait_for_it("volume-dependant-rm",
-                              self.c.volume_child_dependency_rm(v), None)
-        else:
-            raise ArgError("volume with id= %s not found!" % self.cmd_value)
+        v = _get_item(self.c.volumes(), args.id, "volume id")
+        self._wait_for_it("volume-dependant-rm",
+                          self.c.volume_child_dependency_rm(v), None)
 
     ## Displays file system dependants
     # @param    self    The this pointer
     def fs_dependants(self, args):
-        fs = _get_item(self.c.fs(), args.id)
-
-        if fs:
-            rc = self.c.fs_child_dependency(fs, args.file)
-            out(rc)
-        else:
-            raise ArgError(
-                "File system with id= %s not found!" % self.cmd_value)
+        fs = _get_item(self.c.fs(), args.id, "file system id")
+        rc = self.c.fs_child_dependency(fs, args.file)
+        out(rc)
 
     ## Removes file system dependants
     # @param    self    The this pointer
     def fs_dependants_rm(self, args):
-        fs = _get_item(self.c.fs(), args.id)
-
-        if fs:
-            self._wait_for_it("fs-dependants-rm",
-                              self.c.fs_child_dependency_rm(fs,
-                                                            args.file),
-                              None)
-        else:
-            raise ArgError(
-                "File system with id= %s not found!" % self.cmd_value)
+        fs = _get_item(self.c.fs(), args.id, "file system id")
+        self._wait_for_it("fs-dependants-rm",
+                          self.c.fs_child_dependency_rm(fs,
+                                                        args.file),
+                          None)
 
     ## Deletes a pool
     # @param    self    The this pointer
     def delete_pool(self, args):
-        pool = _get_item(self.c.pools(), args.pool_id)
-        if pool:
-            if self.confirm_prompt(True):
-                self._wait_for_it("delete-pool",
-                                  self.c.pool_delete(pool),
-                                  None)
-                out("Pool %s deleted" % pool.id)
-        else:
-            raise ArgError("pool with id= %s not found!" % self.cmd_value)
+        pool = _get_item(self.c.pools(), args.pool_id, "pool id")
+        if self.confirm_prompt(True):
+            self._wait_for_it("delete-pool",
+                              self.c.pool_delete(pool),
+                              None)
 
     ## Creates a pool
     # @param    self    The this pointer
