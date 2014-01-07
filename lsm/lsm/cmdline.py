@@ -143,7 +143,7 @@ class CmdLine:
         """
         Give the user a chance to bail.
         """
-        if not self.options.force:
+        if not self.args.force:
             msg = "will" if deleting else "may"
             out("Warning: You are about to do an operation that %s cause data "
                 "to be lost!\nPress [Y|y] to continue, any other key to abort"
@@ -173,12 +173,12 @@ class CmdLine:
                 if isinstance(rows[i][j], list):
                     rows[i][j] = self._list(rows[i][j])
 
-        if self.options.sep is not None:
-            s = self.options.sep
+        if self.args.sep is not None:
+            s = self.args.sep
 
             #See if we want to display the header or not!
             start = 1
-            if self.options.header:
+            if self.args.header:
                 start = 0
 
             for i in range(start, len(rows)):
@@ -220,7 +220,7 @@ class CmdLine:
 
             for r in d:
                 rows.extend(
-                    r.column_data(self.options.human, self.options.enum))
+                    r.column_data(self.args.human, self.args.enum))
 
             self.display_table(rows)
 
@@ -837,15 +837,15 @@ class CmdLine:
     # @return   tuple of command to execute and the value of the command
     #           argument
     def _cmd(self):
-        cmds = [e[4:] for e in dir(self.options)
-                if e[0:4] == "cmd_" and self.options.__dict__[e] is not None]
+        cmds = [e[4:] for e in dir(self.args)
+                if e[0:4] == "cmd_" and self.args.__dict__[e] is not None]
         if len(cmds) > 1:
             raise ArgError(
                 "More than one command operation specified (" + ",".join(
                     cmds) + ")")
 
         if len(cmds) == 1:
-            return cmds[0], self.options.__dict__['cmd_' + cmds[0]]
+            return cmds[0], self.args.__dict__['cmd_' + cmds[0]]
         else:
             return None, None
 
@@ -855,9 +855,9 @@ class CmdLine:
     def _validate(self):
         optional_opts = 0
         expected_opts = self.verify[self.cmd]['options']
-        actual_ops = [e[4:] for e in dir(self.options)
+        actual_ops = [e[4:] for e in dir(self.args)
                       if e[0:4] == "opt_" and
-                      self.options.__dict__[e] is not None]
+                      self.args.__dict__[e] is not None]
 
         if 'optional' in self.verify[self.cmd]:
             optional_opts = len(self.verify[self.cmd]['optional'])
@@ -876,13 +876,13 @@ class CmdLine:
                                ",".join(actual_ops) + ")")
 
         #Check size
-        if self.options.opt_size:
-            self._size(self.options.opt_size)
+        if self.args.opt_size:
+            self._size(self.args.opt_size)
 
     def _list(self, l):
         if l and len(l):
-            if self.options.sep:
-                return self.options.sep.join(l)
+            if self.args.sep:
+                return self.args.sep.join(l)
             else:
                 return ", ".join(l)
         else:
@@ -895,8 +895,8 @@ class CmdLine:
         """
         Dump the supported nfs client authentication types
         """
-        if self.options.sep:
-            out(self.options.sep.join(self.c.export_auth()))
+        if self.args.sep:
+            out(self.args.sep.join(self.c.export_auth()))
         else:
             out(", ".join(self.c.export_auth()))
 
@@ -906,7 +906,7 @@ class CmdLine:
         if self.cmd_value == 'VOLUMES':
             self.display_data(self.c.volumes())
         elif self.cmd_value == 'POOLS':
-            if self.options.opt_flag_opt_data is True:
+            if self.args.opt_flag_opt_data is True:
                 self.display_data(
                     self.c.pools(data.Pool.RETRIEVE_FULL_INFO))
             else:
@@ -914,15 +914,15 @@ class CmdLine:
         elif self.cmd_value == 'FS':
             self.display_data(self.c.fs())
         elif self.cmd_value == 'SNAPSHOTS':
-            if self.options.opt_fs is None:
+            if self.args.opt_fs is None:
                 raise ArgError("--fs <file system id> required")
 
-            fs = _get_item(self.c.fs(), self.options.opt_fs)
+            fs = _get_item(self.c.fs(), self.args.opt_fs)
             if fs:
                 self.display_data(self.c.fs_snapshots(fs))
             else:
                 raise ArgError(
-                    "filesystem %s not found!" % self.options.opt_fs)
+                    "filesystem %s not found!" % self.args.opt_fs)
         elif self.cmd_value == 'INITIATORS':
             self.display_data(self.c.initiators())
         elif self.cmd_value == 'EXPORTS':
@@ -967,10 +967,10 @@ class CmdLine:
     # @param    self    The this pointer
     def create_access_group(self):
         name = self.cmd_value
-        initiator = self.options.opt_id
-        i = CmdLine._init_type_to_enum(self.options.opt_type)
+        initiator = self.args.opt_id
+        i = CmdLine._init_type_to_enum(self.args.opt_type)
         access_group = self.c.access_group_create(name, initiator, i,
-                                                  self.options.opt_system)
+                                                  self.args.opt_system)
         self.display_data([access_group])
 
     def _add_rm_access_grp_init(self, op):
@@ -979,17 +979,17 @@ class CmdLine:
 
         if group:
             if op:
-                i = CmdLine._init_type_to_enum(self.options.opt_type)
+                i = CmdLine._init_type_to_enum(self.args.opt_type)
                 self.c.access_group_add_initiator(
-                    group, self.options.opt_id, i)
+                    group, self.args.opt_id, i)
             else:
-                i = _get_item(self.c.initiators(), self.options.opt_id)
+                i = _get_item(self.c.initiators(), self.args.opt_id)
                 if i:
                     self.c.access_group_del_initiator(group, i.id)
                 else:
                     raise ArgError(
                         "initiator with id %s not found!" %
-                        self.options.opt_id)
+                        self.args.opt_id)
         else:
             if not group:
                 raise ArgError(
@@ -1035,10 +1035,10 @@ class CmdLine:
     def iscsi_chap(self):
         init = _get_item(self.c.initiators(), self.cmd_value)
         if init:
-            self.c.iscsi_chap_auth(init, self.options.opt_username,
-                                   self.options.opt_password,
-                                   self.options.opt_out_user,
-                                   self.options.opt_out_password)
+            self.c.iscsi_chap_auth(init, self.args.opt_username,
+                                   self.args.opt_password,
+                                   self.args.opt_out_user,
+                                   self.args.opt_out_password)
         else:
             raise ArgError("initiator with id= %s not found" % self.cmd_value)
 
@@ -1078,8 +1078,8 @@ class CmdLine:
     # @param    self    The this pointer
     def fs_create(self):
         #Need a name, size and pool
-        size = self._size(self.options.opt_size)
-        p = _get_item(self.c.pools(), self.options.opt_pool)
+        size = self._size(self.args.opt_size)
+        p = _get_item(self.c.pools(), self.args.opt_pool)
         name = self.cmd_value
         if p:
             fs = self._wait_for_it("create-fs",
@@ -1087,13 +1087,13 @@ class CmdLine:
             self.display_data([fs])
         else:
             raise ArgError(
-                "pool with id = %s not found!" % self.options.opt_pool)
+                "pool with id = %s not found!" % self.args.opt_pool)
 
     ## Used to resize a file system
     # @param    self    The this pointer
     def fs_resize(self):
         fs = _get_item(self.c.fs(), self.cmd_value)
-        size = self._size(self.options.opt_size)
+        size = self._size(self.args.opt_size)
 
         if fs and size:
             if self.confirm_prompt(False):
@@ -1109,20 +1109,20 @@ class CmdLine:
     # @param    self    The this pointer
     def fs_clone(self):
         src_fs = _get_item(self.c.fs(), self.cmd_value)
-        name = self.options.opt_name
+        name = self.args.opt_name
 
         if not src_fs:
             raise ArgError(
                 " source file system with id=%s not found!" % self.cmd_value)
 
-        if self.options.backing_snapshot:
+        if self.args.backing_snapshot:
             #go get the snapsnot
             ss = _get_item(self.c.fs_snapshots(src_fs),
-                           self.options.backing_snapshot)
+                           self.args.backing_snapshot)
             if not ss:
                 raise ArgError(
                     " snapshot with id= %s not found!" %
-                    self.options.backing_snapshot)
+                    self.args.backing_snapshot)
         else:
             ss = None
 
@@ -1133,13 +1133,13 @@ class CmdLine:
     # @param    self    The this pointer
     def file_clone(self):
         fs = _get_item(self.c.fs(), self.cmd_value)
-        src = self.options.opt_src
-        dest = self.options.opt_dest
+        src = self.args.opt_src
+        dest = self.args.opt_dest
 
-        if self.options.backing_snapshot:
+        if self.args.backing_snapshot:
             #go get the snapsnot
             ss = _get_item(self.c.fs_snapshots(fs),
-                           self.options.backing_snapshot)
+                           self.args.backing_snapshot)
         else:
             ss = None
 
@@ -1157,8 +1157,8 @@ class CmdLine:
         return size_bytes
 
     def _cp(self, cap, val):
-        if self.options.sep is not None:
-            s = self.options.sep
+        if self.args.sep is not None:
+            s = self.args.sep
         else:
             s = ':'
 
@@ -1276,8 +1276,8 @@ class CmdLine:
     def plugin_info(self):
         desc, version = self.c.plugin_info()
 
-        if self.options.sep:
-            out("%s%s%s" % (desc, self.options.sep, version))
+        if self.args.sep:
+            out("%s%s%s" % (desc, self.args.sep, version))
         else:
             out("Description: %s Version: %s" % (desc, version))
 
@@ -1285,74 +1285,74 @@ class CmdLine:
     # @param    self    The this pointer
     def create_volume(self):
         #Get pool
-        p = _get_item(self.c.pools(), self.options.opt_pool)
+        p = _get_item(self.c.pools(), self.args.opt_pool)
         if p:
             vol = self._wait_for_it("create-volume",
                                     *self.c.volume_create(
                                         p,
                                         self.cmd_value,
-                                        self._size(self.options.opt_size),
+                                        self._size(self.args.opt_size),
                                         data.Volume.prov_string_to_type(
-                                            self.options.provisioning)))
+                                            self.args.provisioning)))
 
             self.display_data([vol])
         else:
             raise ArgError(
-                " pool with id= %s not found!" % self.options.opt_pool)
+                " pool with id= %s not found!" % self.args.opt_pool)
 
     ## Creates a snapshot
     # @param    self    The this pointer
     def create_ss(self):
         #Get fs
-        fs = _get_item(self.c.fs(), self.options.opt_fs)
+        fs = _get_item(self.c.fs(), self.args.opt_fs)
         if fs:
             ss = self._wait_for_it("snapshot-create",
                                    *self.c.fs_snapshot_create(
                                        fs,
                                        self.cmd_value,
-                                       self.options.file))
+                                       self.args.file))
 
             self.display_data([ss])
         else:
-            raise ArgError("fs with id= %s not found!" % self.options.opt_fs)
+            raise ArgError("fs with id= %s not found!" % self.args.opt_fs)
 
     ## Restores a snap shot
     # @param    self    The this pointer
     def restore_ss(self):
         #Get snapshot
-        fs = _get_item(self.c.fs(), self.options.opt_fs)
+        fs = _get_item(self.c.fs(), self.args.opt_fs)
         ss = _get_item(self.c.fs_snapshots(fs), self.cmd_value)
 
         if ss and fs:
 
-            if self.options.file:
-                if self.options.fileas:
-                    if len(self.options.file) != len(self.options.fileas):
+            if self.args.file:
+                if self.args.fileas:
+                    if len(self.args.file) != len(self.args.fileas):
                         raise ArgError(
                             "number of --files not equal to --fileas")
 
-            if self.options.all:
-                if self.options.file or self.options.fileas:
+            if self.args.all:
+                if self.args.file or self.args.fileas:
                     raise ArgError(
                         "Unable to specify --all and --files or --fileas")
 
-            if self.options.all is False and self.options.file is None:
+            if self.args.all is False and self.args.file is None:
                 raise ArgError("Need to specify --all or at least one --file")
 
             if self.confirm_prompt(True):
                 self._wait_for_it('restore-ss',
                                   self.c.fs_snapshot_revert(
                                       fs, ss,
-                                      self.options.file,
-                                      self.options.fileas,
-                                      self.options.all),
+                                      self.args.file,
+                                      self.args.fileas,
+                                      self.args.all),
                                   None)
         else:
             if not ss:
                 raise ArgError("ss with id= %s not found!" % self.cmd_value)
             if not fs:
                 raise ArgError(
-                    "fs with id= %s not found!" % self.options.opt_fs)
+                    "fs with id= %s not found!" % self.args.opt_fs)
 
     ## Deletes a volume
     # @param    self    The this pointer
@@ -1369,7 +1369,7 @@ class CmdLine:
     ## Deletes a snap shot
     # @param    self    The this pointer
     def delete_ss(self):
-        fs = _get_item(self.c.fs(), self.options.opt_fs)
+        fs = _get_item(self.c.fs(), self.args.opt_fs)
         if fs:
             ss = _get_item(self.c.fs_snapshots(fs), self.cmd_value)
             if ss:
@@ -1381,7 +1381,7 @@ class CmdLine:
                     " snapshot with id= %s not found!" % self.cmd_value)
         else:
             raise ArgError(
-                " file system with id= %s not found!" % self.options.opt_fs)
+                " file system with id= %s not found!" % self.args.opt_fs)
 
     ## Waits for an operation to complete by polling for the status of the
     # operations.
@@ -1395,7 +1395,7 @@ class CmdLine:
         else:
             #If a user doesn't want to wait, return the job id to stdout
             #and exit with job in progress
-            if self.options.async:
+            if self.args.async:
                 out(job)
                 self.shutdown(common.ErrorNumber.JOB_STARTED)
 
@@ -1432,25 +1432,25 @@ class CmdLine:
     def replicate_volume(self):
         p = None
 
-        if self.options.opt_pool:
-            p = _get_item(self.c.pools(), self.options.opt_pool)
+        if self.args.opt_pool:
+            p = _get_item(self.c.pools(), self.args.opt_pool)
 
         v = _get_item(self.c.volumes(), self.cmd_value)
 
         if v:
 
-            rep_type = data.Volume.rep_String_to_type(self.options.opt_type)
+            rep_type = data.Volume.rep_String_to_type(self.args.opt_type)
             if rep_type == data.Volume.REPLICATE_UNKNOWN:
                 raise ArgError("invalid replication type= %s" % rep_type)
 
             vol = self._wait_for_it("replicate volume",
                                     *self.c.volume_replicate(
-                                        p, rep_type, v, self.options.opt_name))
+                                        p, rep_type, v, self.args.opt_name))
             self.display_data([vol])
         else:
             if not p:
                 raise ArgError(
-                    "pool with id= %s not found!" % self.options.opt_pool)
+                    "pool with id= %s not found!" % self.args.opt_pool)
             if not v:
                 raise ArgError("Volume with id= %s not found!" %
                                self.cmd_value)
@@ -1459,16 +1459,16 @@ class CmdLine:
     # @param    self    The this pointer
     def replicate_vol_range(self):
         src = _get_item(self.c.volumes(), self.cmd_value)
-        dest = _get_item(self.c.volumes(), self.options.opt_dest)
+        dest = _get_item(self.c.volumes(), self.args.opt_dest)
 
         if src and dest:
-            rep_type = data.Volume.rep_String_to_type(self.options.opt_type)
+            rep_type = data.Volume.rep_String_to_type(self.args.opt_type)
             if rep_type == data.Volume.REPLICATE_UNKNOWN:
                 raise ArgError("invalid replication type= %s" % rep_type)
 
-            src_starts = self.options.opt_src_start
-            dest_starts = self.options.opt_dest_start
-            counts = self.options.opt_count
+            src_starts = self.args.opt_src_start
+            dest_starts = self.args.opt_dest_start
+            counts = self.args.opt_count
 
             if (0 < len(src_starts) == len(dest_starts)
                     and len(dest_starts) == len(counts)):
@@ -1488,7 +1488,7 @@ class CmdLine:
             if not dest:
                 raise ArgError(
                     "dest volume with id= %s not found!" %
-                    self.options.opt_dest)
+                    self.args.opt_dest)
 
     ##
     # Returns the block size in bytes for each block represented in
@@ -1505,16 +1505,16 @@ class CmdLine:
     # @param    self    The this pointer
     # @param    grant   bool, if True we grant, else we un-grant.
     def _access(self, grant):
-        v = _get_item(self.c.volumes(), self.options.opt_volume)
+        v = _get_item(self.c.volumes(), self.args.opt_volume)
         if not v:
             raise ArgError(
-                "volume with id= %s not found" % self.options.opt_volume)
+                "volume with id= %s not found" % self.args.opt_volume)
 
         initiator_id = self.cmd_value
 
         if grant:
-            i_type = CmdLine._init_type_to_enum(self.options.opt_type)
-            access = data.Volume.access_string_to_type(self.options.opt_access)
+            i_type = CmdLine._init_type_to_enum(self.args.opt_type)
+            access = data.Volume.access_string_to_type(self.args.opt_access)
 
             self.c.initiator_grant(initiator_id, i_type, v, access)
         else:
@@ -1538,12 +1538,12 @@ class CmdLine:
     def _access_group(self, grant=True):
         agl = self.c.access_group_list()
         group = _get_item(agl, self.cmd_value)
-        v = _get_item(self.c.volumes(), self.options.opt_volume)
+        v = _get_item(self.c.volumes(), self.args.opt_volume)
 
         if group and v:
             if grant:
                 access = data.Volume.access_string_to_type(
-                    self.options.opt_access)
+                    self.args.opt_access)
                 self.c.access_group_grant(group, v, access)
             else:
                 self.c.access_group_revoke(group, v)
@@ -1553,7 +1553,7 @@ class CmdLine:
                     "access group with id= %s not found!" % self.cmd_value)
             if not v:
                 raise ArgError(
-                    "volume with id= %s not found!" % self.options.opt_volume)
+                    "volume with id= %s not found!" % self.args.opt_volume)
 
     def access_grant_group(self):
         return self._access_group(True)
@@ -1566,7 +1566,7 @@ class CmdLine:
     def resize_volume(self):
         v = _get_item(self.c.volumes(), self.cmd_value)
         if v:
-            size = self._size(self.options.opt_size)
+            size = self._size(self.args.opt_size)
 
             if self.confirm_prompt(False):
                 vol = self._wait_for_it("resize",
@@ -1592,18 +1592,18 @@ class CmdLine:
 
         if fs:
             #Check to see if we have some type of access specified
-            if len(self.options.nfs_rw) == 0 \
-                    and len(self.options.nfs_ro) == 0:
+            if len(self.args.nfs_rw) == 0 \
+                    and len(self.args.nfs_ro) == 0:
                 raise ArgError(" please specify --ro or --rw access")
 
             export = self.c.export_fs(
                 fs.id,
-                self.options.opt_exportpath,
-                self.options.nfs_root,
-                self.options.nfs_rw, self.options.nfs_ro,
-                self.options.anonuid,
-                self.options.anongid,
-                self.options.authtype, None)
+                self.args.opt_exportpath,
+                self.args.nfs_root,
+                self.args.nfs_rw, self.args.nfs_ro,
+                self.args.anonuid,
+                self.args.anongid,
+                self.args.authtype, None)
             self.display_data([export])
         else:
             raise ArgError(
@@ -1637,7 +1637,7 @@ class CmdLine:
         fs = _get_item(self.c.fs(), self.cmd_value)
 
         if fs:
-            rc = self.c.fs_child_dependency(fs, self.options.file)
+            rc = self.c.fs_child_dependency(fs, self.args.file)
             out(rc)
         else:
             raise ArgError(
@@ -1651,7 +1651,7 @@ class CmdLine:
         if fs:
             self._wait_for_it("fs-dependants-rm",
                               self.c.fs_child_dependency_rm(fs,
-                                                            self.options.file),
+                                                            self.args.file),
                               None)
         else:
             raise ArgError(
@@ -1673,7 +1673,7 @@ class CmdLine:
     ## Creates a pool
     # @param    self    The this pointer
     def create_pool(self):
-        if not self.options.opt_system:
+        if not self.args.opt_system:
             raise ArgError("System ID not defined")
 
         pool_name = self.cmd_value
@@ -1684,26 +1684,26 @@ class CmdLine:
         thinp_type = data.Pool.THINP_TYPE_UNKNOWN
         size_bytes = 0
 
-        if self.options.opt_raid_type_str:
+        if self.args.opt_raid_type_str:
             raid_type = data.Pool.raid_type_str_to_type(
-                self.options.opt_raid_type_str)
+                self.args.opt_raid_type_str)
             if raid_type == data.Pool.RAID_TYPE_UNKNOWN or \
                raid_type == data.Pool.RAID_TYPE_NOT_APPLICABLE:
                 raise ArgError("Unknown RAID type specified: %s" %
-                               self.options.opt_raid_type_str)
+                               self.args.opt_raid_type_str)
 
-        if len(self.options.opt_member_ids) >= 1:
-            member_ids = self.options.opt_member_ids
+        if len(self.args.opt_member_ids) >= 1:
+            member_ids = self.args.opt_member_ids
 
-        if self.options.opt_size:
-            size_bytes = self._size(self.options.opt_size)
+        if self.args.opt_size:
+            size_bytes = self._size(self.args.opt_size)
             if size_bytes <= 0:
                 raise ArgError("Incorrect size argument format: '%s'" %
-                               self.options.opt_size)
+                               self.args.opt_size)
 
-        if self.options.opt_member_type_str:
+        if self.args.opt_member_type_str:
             member_type = data.Pool.member_type_str_to_type(
-                self.options.opt_member_type_str)
+                self.args.opt_member_type_str)
 
         if member_ids and member_type != data.Pool.MEMBER_TYPE_UNKNOWN:
             if (member_type == data.Pool.MEMBER_TYPE_DISK):
@@ -1729,7 +1729,7 @@ class CmdLine:
                         raise ArgError("Invalid Volume ID specified in " +
                                        "--member-ids %s " % member_id)
             elif (member_type == data.Pool.MEMBER_TYPE_POOL):
-                if not self.options.opt_size:
+                if not self.args.opt_size:
                     raise ArgError("--size is mandatory when creating Pool " +
                                    "against another Pool")
                 pools = self.c.pools()
@@ -1744,15 +1744,15 @@ class CmdLine:
                                        "--member-ids %s " % member_id)
             else:
                 raise ArgError("Unkown pool member-type %s, should be %s" %
-                               (self.options.opt_member_type_str,
+                               (self.args.opt_member_type_str,
                                 '[DISK/VOLUME/POOL]'))
 
-        if self.options.opt_thinp_type_str:
-            thinp_type_str = self.options.opt_thinp_type_str
+        if self.args.opt_thinp_type_str:
+            thinp_type_str = self.args.opt_thinp_type_str
             thinp_type = data.Pool.thinp_type_str_to_type(thinp_type_str)
 
         pool = self._wait_for_it("create-pool",
-                                 *self.c.pool_create(self.options.opt_system,
+                                 *self.c.pool_create(self.args.opt_system,
                                                      pool_name,
                                                      raid_type,
                                                      member_type,
@@ -1793,7 +1793,7 @@ class CmdLine:
     def __init__(self):
         self.uri = None
         self.c = None
-        (self.options, self.args) = CmdLine.cli()
+        self.args = CmdLine.cli()
 
         self.cleanup = None
 
@@ -1802,11 +1802,6 @@ class CmdLine:
 
         if self.cmd is None:
             raise ArgError("no command specified, try --help")
-
-        #Check for extras
-        if len(self.args):
-            raise ArgError(
-                "Extra command line arguments (" + ",".join(self.args) + ")")
 
         #Data driven validation
         self.verify = {'list': {'options': [], 'method': self.list},
@@ -1909,7 +1904,7 @@ class CmdLine:
         }
         self._validate()
 
-        self.tmo = int(self.options.wait)
+        self.tmo = int(self.args.wait)
         if not self.tmo or self.tmo < 0:
             raise ArgError("[-w|--wait] reguires a non-zero positive integer")
 
@@ -1917,15 +1912,15 @@ class CmdLine:
         if os.getenv('LSMCLI_URI') is not None:
             self.uri = os.getenv('LSMCLI_URI')
         self.password = os.getenv('LSMCLI_PASSWORD')
-        if self.options.uri is not None:
-            self.uri = self.options.uri
+        if self.args.uri is not None:
+            self.uri = self.args.uri
 
         # We need a valid plug-in to instantiate even if all we are trying
         # to do is list the plug-ins at the moment to keep that code
         # the same in all cases, even though it isn't technically
         # required for the client library (static method)
         # TODO: Make this not necessary.
-        if (self.cmd == 'list' and self.options.cmd_list == "PLUGINS"):
+        if (self.cmd == 'list' and self.args.cmd_list == "PLUGINS"):
             self.uri = "sim://"
             self.password = None
 
@@ -1933,7 +1928,7 @@ class CmdLine:
             raise ArgError("--uri missing or export LSMCLI_URI")
 
         #Lastly get the password if requested.
-        if self.options.prompt is not None:
+        if self.args.prompt is not None:
             self.password = getpass.getpass()
 
         if self.password is not None:
