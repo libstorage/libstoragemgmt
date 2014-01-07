@@ -324,7 +324,8 @@ class CmdLine:
                             metavar='<system id>',
                             help='Retrieves array capabilities')
 
-        commands.add_argument('--plugin-info', action="store_true",
+        commands.add_argument('--plugin-info', action="store",
+                            metavar='<plugin>',
                             dest=_c("plugin-info"),
                             help='Retrieves plugin description and version')
 
