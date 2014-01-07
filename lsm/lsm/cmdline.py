@@ -307,7 +307,7 @@ class CmdLine:
                         'SYSTEMS', 'DISKS', 'PLUGINS']
 
         commands.add_option('-l', '--list', action="store", type="choice",
-                            dest="cmd_list",
+                            dest=_c("list"),
                             #metavar='<'+ ",".join(list_choices) + '>',
                             metavar='<type>',
                             choices=list_choices,
