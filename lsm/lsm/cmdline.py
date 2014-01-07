@@ -119,7 +119,7 @@ cmds = (
     dict(name='list',
         help="List records of different types",
         args=[
-            dict(name='type',
+            dict(name='--type',
                  help='List records of type: ' +
                  ", ".join(list_choices) +
                  '. SNAPSHOTS requires --fs <fs id>.\n' +
@@ -137,21 +137,21 @@ cmds = (
     dict(name='delete-fs',
         help='Delete a filesystem',
         args=[
-            dict(name="fs_id", help='filesystem id'),
+            dict(name="--fs_id", help='filesystem id'),
             ],
         ),
 
     dict(name='delete-access-group',
         help='Deletes an access group',
         args=[
-            dict(name="group_id", help='access group id'),
+            dict(name="--group_id", help='access group id'),
             ],
         ),
 
     dict(name='capabilities',
         help='Retrieves array capabilities',
         args=[
-            dict(name="system_id", help='system id'),
+            dict(name="--system_id", help='system id'),
             ],
         ),
 
@@ -162,9 +162,9 @@ cmds = (
     dict(name='create-volume',
          help='Creates a volume (logical unit)',
          args=[
-            dict(name="name", help='volume name'),
-            dict(name="size", help=size_help),
-            dict(name="pool", help='pool id'),
+            dict(name="--name", help='volume name'),
+            dict(name="--size", help=size_help),
+            dict(name="--pool", help='pool id'),
             ],
          optional=[
             dict(name="--provisioning",
@@ -176,17 +176,17 @@ cmds = (
     dict(name='create-fs',
         help='Creates a file system',
         args=[
-            dict(name="name", help='name of the file system'),
-            dict(name="size", help=size_help),
-            dict(name="pool", help='pool id'),
+            dict(name="--name", help='name of the file system'),
+            dict(name="--size", help=size_help),
+            dict(name="--pool", help='pool id'),
             ],
         ),
 
     dict(name='clone-fs',
         help='Creates a file system clone',
         args=[
-            dict(name="source_name", help='existing source file system id'),
-            dict(name="dest_name", help='new file system id'),
+            dict(name="--source_name", help='existing source file system id'),
+            dict(name="--dest_name", help='new file system id'),
             ],
         optional=[
             dict(name="--type", help=provision_help,
@@ -198,21 +198,21 @@ cmds = (
     dict(name='create-access-group',
         help='Creates an access group',
         args=[
-            dict(name="name", help='new access group name'),
-            dict(name="id", help='initiator id'),
-            dict(name="type", help=initiator_id_help,
+            dict(name="--name", help='new access group name'),
+            dict(name="--id", help='initiator id'),
+            dict(name="--type", help=initiator_id_help,
                  choices=initiator_id_types,
                  type=str.upper),
-            dict(name="system", help='system id'),
+            dict(name="--system", help='system id'),
             ],
         ),
 
     dict(name='access-group-add',
         help='Adds an initiator to an access group',
         args=[
-            dict(name="gid", help='group id'),
-            dict(name="iid", help='initiator id'),
-            dict(name="type", help=initiator_id_help,
+            dict(name="--gid", help='group id'),
+            dict(name="--iid", help='initiator id'),
+            dict(name="--type", help=initiator_id_help,
                  choices=initiator_id_types,
                  type=str.upper),
             ],
@@ -221,8 +221,8 @@ cmds = (
     dict(name='access-group-remove',
         help='Removes an initiator from an access group',
         args=[
-            dict(name="gid", help='group id'),
-            dict(name="iid", help='initiator id'),
+            dict(name="--gid", help='group id'),
+            dict(name="--iid", help='initiator id'),
             ],
         ),
 
@@ -230,7 +230,7 @@ cmds = (
         help='Lists the volumes that the access group has' \
             ' been granted access to',
         args=[
-            dict(name="gid", help='access group id'),
+            dict(name="--gid", help='access group id'),
             ],
         ),
 
@@ -238,7 +238,7 @@ cmds = (
         help='Lists the access group(s) that have access' \
             ' to volume',
         args=[
-            dict(name="vol_id", help='volume id'),
+            dict(name="--vol_id", help='volume id'),
             ],
         ),
 
@@ -246,7 +246,7 @@ cmds = (
         help='Lists the volumes that are accessible ' \
             'by the initiator',
         args=[
-            dict(name="iid", help='initiator id'),
+            dict(name="--iid", help='initiator id'),
             ],
         ),
 
@@ -254,14 +254,14 @@ cmds = (
         help='Lists the initiators that have been ' \
             'granted access to specified volume',
         args=[
-            dict(name="vol_id", help='volume id'),
+            dict(name="--vol_id", help='volume id'),
             ],
         ),
 
     dict(name='iscsi-chap',
         help='Configures ISCSI inbound/outbound CHAP authentication',
         args=[
-            dict(name="iid", help='initiator id'),
+            dict(name="--iid", help='initiator id'),
             ],
         optional=[
             dict(name="--in-user", help='inbound chap user name'),
@@ -274,8 +274,8 @@ cmds = (
     dict(name='create-ss',
         help='Creates a snapshot',
         args=[
-            dict(name="name", help='snapshot name'),
-            dict(name="fs", help='file system id'),
+            dict(name="--name", help='snapshot name'),
+            dict(name="--fs", help='file system id'),
             ],
         optional=[
             dict(name="--file", help='default: all files. May use more than once.',
@@ -286,9 +286,9 @@ cmds = (
     dict(name='clone-file',
         help='Creates a clone of a file (thin provisioned)',
         args=[
-            dict(name="fs", help='file system'),
-            dict(name="src", help='source file to clone (relative path)'),
-            dict(name="dest", help='destination file (relative path)'),
+            dict(name="--fs", help='file system'),
+            dict(name="--src", help='source file to clone (relative path)'),
+            dict(name="--dest", help='destination file (relative path)'),
             ],
         optional=[
             dict(name="--backing-snapshot", help='backing snapshot id'),
@@ -298,23 +298,23 @@ cmds = (
     dict(name='delete-volume',
         help='Deletes a volume given its id',
         args=[
-            dict(name="id", help='volume id'),
+            dict(name="--id", help='volume id'),
             ],
         ),
 
     dict(name='delete-ss',
         help='Creates a snapshot',
         args=[
-            dict(name="id", help='snapshot id'),
-            dict(name="fs", help='file system id'),
+            dict(name="--id", help='snapshot id'),
+            dict(name="--fs", help='file system id'),
             ],
         ),
 
     dict(name='replicate-volume',
         help='Replicates a volume',
         args=[
-            dict(name="name", help='volume name'),
-            dict(name="type", help=replicate_help,
+            dict(name="--name", help='volume name'),
+            dict(name="--type", help=replicate_help,
                  choices=replicate_types),
             ],
         optional=[
@@ -325,12 +325,12 @@ cmds = (
     dict(name='access-grant',
         help='Grants access to an initiator to a volume',
         args=[
-            dict(name="id", help='initiator id'),
-            dict(name="type", help=initiator_id_help,
+            dict(name="--id", help='initiator id'),
+            dict(name="--type", help=initiator_id_help,
                  choices=initiator_id_types,
                  type=str.upper),
-            dict(name="volume", help='volume id'),
-            dict(name="access", help=access_help,
+            dict(name="--volume", help='volume id'),
+            dict(name="--access", help=access_help,
                  choices=access_types),
             ],
         ),
@@ -338,9 +338,9 @@ cmds = (
     dict(name='access-grant-group',
         help='Grants access to an access group to a volume',
         args=[
-            dict(name="id", help='access group id'),
-            dict(name="volume", help='volume id'),
-            dict(name="access", help=access_help,
+            dict(name="--id", help='access group id'),
+            dict(name="--volume", help='volume id'),
+            dict(name="--access", help=access_help,
                  choices=access_types),
             ],
         ),
@@ -348,46 +348,46 @@ cmds = (
     dict(name='access-revoke',
         help='Removes access for an initiator to a volume',
         args=[
-            dict(name="id", help='initiator id'),
-            dict(name="volume", help='volume id'),
+            dict(name="--id", help='initiator id'),
+            dict(name="--volume", help='volume id'),
             ],
         ),
 
     dict(name='access-revoke-group',
         help='Removes access for an access group to a volume',
         args=[
-            dict(name="id", help='group id'),
-            dict(name="volume", help='volume id'),
+            dict(name="--id", help='group id'),
+            dict(name="--volume", help='volume id'),
             ],
         ),
 
     dict(name='resize-volume',
         help='Resizes a volume',
         args=[
-            dict(name="id", help='volume id'),
-            dict(name="size", help=size_help),
+            dict(name="--id", help='volume id'),
+            dict(name="--size", help=size_help),
             ],
         ),
 
     dict(name='resize-fs',
         help='Resizes a filesystem',
         args=[
-            dict(name="id", help='filesystem id'),
-            dict(name="size", help=size_help),
+            dict(name="--id", help='filesystem id'),
+            dict(name="--size", help=size_help),
             ],
         ),
 
     dict(name='nfs-export-remove',
         help='Removes an NFS export',
         args=[
-            dict(name="id", help='nfs export id'),
+            dict(name="--id", help='nfs export id'),
             ],
         ),
 
     dict(name='nfs-export-fs',
         help='Creates an NFS export',
         args=[
-            dict(name="id", help='nfs export id'),
+            dict(name="--id", help='nfs export id'),
             ],
         optional=[
             dict(name="--exportpath", help="e.g. '/foo/bar'"),
@@ -404,7 +404,7 @@ cmds = (
         help='Restores a FS or specified files to ' \
             'previous snapshot state,',
         args=[
-            dict(name="id", help='snapshot id'),
+            dict(name="--id", help='snapshot id'),
             dict(name="--fs", help='file system'),
             ],
         optional=[
@@ -417,22 +417,22 @@ cmds = (
     dict(name='job-status',
         help='Retrieve information about a job',
         args=[
-            dict(name="id", help='job status id'),
+            dict(name="--id", help='job status id'),
             ],
         ),
 
     dict(name='replicate-volume-range',
         help='Replicates a portion of a volume',
         args=[
-            dict(name="src", help='source volume id'),
-            dict(name="dest", help='destination volume id'),
-            dict(name="type", help=replicate_help,
+            dict(name="--src", help='source volume id'),
+            dict(name="--dest", help='destination volume id'),
+            dict(name="--type", help=replicate_help,
                  choices=replicate_types),
-            dict(name="src_start", help='source block start number',
+            dict(name="--src_start", help='source block start number',
                  action='append'),
-            dict(name="dest_start", help='destination block start number',
+            dict(name="--dest_start", help='destination block start number',
                  action='append'),
-            dict(name="count", help='number of blocks to replicate',
+            dict(name="--count", help='number of blocks to replicate',
                  action='append'),
             ],
         ),
@@ -440,28 +440,28 @@ cmds = (
     dict(name='replicate-volume-range-block-size',
         help='Size of each replicated block on a system in bytes',
         args=[
-            dict(name="id", help='system id'),
+            dict(name="--id", help='system id'),
             ],
         ),
 
     dict(name='volume-dependants',
         help='Returns True if volume has a dependant child',
         args=[
-            dict(name="id", help='volume id'),
+            dict(name="--id", help='volume id'),
             ],
         ),
 
     dict(name='volume-dependants-rm',
         help='Removes dependencies',
         args=[
-            dict(name="id", help='volume id'),
+            dict(name="--id", help='volume id'),
             ],
         ),
 
     dict(name='fs-dependants',
         help='Returns True if a child dependency exists',
         args=[
-            dict(name="id", help='filesystem id'),
+            dict(name="--id", help='filesystem id'),
             ],
         optional=[
             dict(name="--file", help='For file check'),
@@ -471,7 +471,7 @@ cmds = (
     dict(name='fs-dependants-rm',
         help='Removes dependencies',
         args=[
-            dict(name="id", help='filesystem id'),
+            dict(name="--id", help='filesystem id'),
             ],
         optional=[
             dict(name="--file", help='For file check'),
@@ -481,8 +481,8 @@ cmds = (
     dict(name='create-pool',
         help='Creates a pool',
         args=[
-            dict(name="pool_id", help='pool id'),
-            dict(name="system_id", help='system id'),
+            dict(name="--pool_id", help='pool id'),
+            dict(name="--system_id", help='system id'),
             ],
         optional=[
             dict(name="--member-id",
@@ -505,7 +505,7 @@ cmds = (
     dict(name='delete-pool',
         help='Delete a pool',
         args=[
-            dict(name="id", help='pool id'),
+            dict(name="--id", help='pool id'),
             ],
         ),
     )
@@ -690,7 +690,7 @@ class CmdLine:
             for arg in cmd.get('args', []):
                 name = arg['name']
                 del arg['name']
-                sub_parser.add_argument(name, **arg)
+                sub_parser.add_argument(name, required=True, **arg)
             for arg in cmd.get('optional', []):
                 flags = arg['name']
                 del arg['name']
