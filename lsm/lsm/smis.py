@@ -25,7 +25,7 @@ from pywbem import CIMError
 from iplugin import IStorageAreaNetwork
 from common import Error, uri_parse, LsmError, ErrorNumber, JobStatus, md5
 from data import Pool, Initiator, Volume, AccessGroup, System, Capabilities,\
-    Disk, OptionalData
+    Disk, OptionalData, txt_a
 from version import VERSION
 
 
@@ -156,6 +156,91 @@ class Smis(IStorageAreaNetwork):
             return Smis._DMTF_DISK_TYPE_2_LSM[dmtf_disk_type]
         else:
             return Disk.DISK_TYPE_UNKNOWN
+
+    DMTF_STATUS_UNKNOWN = 0
+    DMTF_STATUS_OTHER = 1
+    DMTF_STATUS_OK = 2
+    DMTF_STATUS_DEGRADED = 3
+    DMTF_STATUS_STRESSED = 4
+    DMTF_STATUS_PREDICTIVE_FAILURE = 5
+    DMTF_STATUS_ERROR = 6
+    DMTF_STATUS_NON_RECOVERABLE_ERROR = 7
+    DMTF_STATUS_STARTING = 8
+    DMTF_STATUS_STOPPING = 9
+    DMTF_STATUS_STOPPED = 10
+    DMTF_STATUS_IN_SERVICE = 11
+    DMTF_STATUS_NO_CONTACT = 12
+    DMTF_STATUS_LOST_COMMUNICATION = 13
+    DMTF_STATUS_ABORTED = 14
+    DMTF_STATUS_DORMANT = 15
+    DMTF_STATUS_SUPPORTING_ENTITY_IN_ERROR = 16
+    DMTF_STATUS_COMPLETED = 17
+    DMTF_STATUS_POWER_MODE = 18
+
+    # We will rework this once SNIA documented these out.
+    _DMTF_STAUTS_TO_POOL_STATUS = {
+        DMTF_STATUS_UNKNOWN: Pool.STATUS_UNKNOWN,
+        DMTF_STATUS_OTHER: Pool.STATUS_OTHER,
+        DMTF_STATUS_OK: Pool.STATUS_OK,
+        DMTF_STATUS_DEGRADED: Pool.STATUS_DEGRADED,
+        DMTF_STATUS_STRESSED: Pool.STATUS_STRESSED,
+        DMTF_STATUS_PREDICTIVE_FAILURE: Pool.STATUS_OTHER,
+        DMTF_STATUS_ERROR: Pool.STATUS_ERROR,
+        DMTF_STATUS_NON_RECOVERABLE_ERROR: Pool.STATUS_ERROR,
+        DMTF_STATUS_STARTING: Pool.STATUS_STARTING,
+        DMTF_STATUS_STOPPING: Pool.STATUS_STOPPING,
+        DMTF_STATUS_STOPPED: Pool.STATUS_STOPPED,
+        DMTF_STATUS_IN_SERVICE: Pool.STATUS_OTHER,
+        DMTF_STATUS_NO_CONTACT: Pool.STATUS_OTHER,
+        DMTF_STATUS_LOST_COMMUNICATION: Pool.STATUS_OTHER,
+        DMTF_STATUS_DORMANT: Pool.STATUS_DORMANT,
+        DMTF_STATUS_SUPPORTING_ENTITY_IN_ERROR: Pool.STATUS_OTHER,
+        DMTF_STATUS_COMPLETED: Pool.STATUS_OTHER,
+        DMTF_STATUS_POWER_MODE: Pool.STATUS_OTHER,
+    }
+
+    _DMTF_STAUTS_TO_POOL_STATUS_INFO = {
+        # TODO: Use CIM_RelatedElementCausingError
+        #       to find out the error info.
+        DMTF_STATUS_PREDICTIVE_FAILURE: 'Predictive failure',
+        DMTF_STATUS_IN_SERVICE: 'In service',
+        DMTF_STATUS_NO_CONTACT: 'No contact',
+        DMTF_STATUS_LOST_COMMUNICATION: 'Lost communication',
+        DMTF_STATUS_SUPPORTING_ENTITY_IN_ERROR: 'Supporting entity in error',
+        DMTF_STATUS_COMPLETED: 'Completed',
+        DMTF_STATUS_POWER_MODE: 'Power mode',
+    }
+
+    _DMTF_STAUTS_TO_DISK_STATUS = {
+        DMTF_STATUS_UNKNOWN: Disk.STATUS_UNKNOWN,
+        DMTF_STATUS_OTHER: Disk.STATUS_OTHER,
+        DMTF_STATUS_OK: Disk.STATUS_OK,
+        DMTF_STATUS_DEGRADED: Disk.STATUS_OTHER,
+        DMTF_STATUS_STRESSED: Disk.STATUS_OTHER,
+        DMTF_STATUS_PREDICTIVE_FAILURE: Disk.STATUS_PREDICTIVE_FAILURE,
+        DMTF_STATUS_ERROR: Disk.STATUS_ERROR,
+        DMTF_STATUS_NON_RECOVERABLE_ERROR: Disk.STATUS_ERROR,
+        DMTF_STATUS_STARTING: Disk.STATUS_STARTING,
+        DMTF_STATUS_STOPPING: Disk.STATUS_STOPPING,
+        DMTF_STATUS_STOPPED: Disk.STATUS_STOPPED,
+        DMTF_STATUS_IN_SERVICE: Disk.STATUS_OTHER,
+        DMTF_STATUS_NO_CONTACT: Disk.STATUS_OTHER,
+        DMTF_STATUS_LOST_COMMUNICATION: Disk.STATUS_OTHER,
+        DMTF_STATUS_DORMANT: Disk.STATUS_OFFLINE,
+        DMTF_STATUS_SUPPORTING_ENTITY_IN_ERROR: Disk.STATUS_OTHER,
+        DMTF_STATUS_COMPLETED: Disk.STATUS_OTHER,
+        DMTF_STATUS_POWER_MODE: Disk.STATUS_OTHER,
+    }
+
+    _DMTF_STAUTS_TO_DISK_STATUS_INFO = {
+        DMTF_STATUS_DORMANT: 'Dormant',
+        DMTF_STATUS_IN_SERVICE: 'In service',
+        DMTF_STATUS_NO_CONTACT: 'No contact',
+        DMTF_STATUS_LOST_COMMUNICATION: 'Lost communication',
+        DMTF_STATUS_SUPPORTING_ENTITY_IN_ERROR: 'Supporting entity in error',
+        DMTF_STATUS_COMPLETED: 'Completed',
+        DMTF_STATUS_POWER_MODE: 'Power mode',
+    }
 
     class RepSvc(object):
 
@@ -2024,7 +2109,7 @@ class Smis(IStorageAreaNetwork):
         pros = ['OperationalStatus', 'Name', 'SystemName',
                 'Caption', 'InterconnectType', 'DiskType']
         if flag == Disk.RETRIEVE_FULL_INFO:
-            pros.extend(['EnabledState', 'ErrorDescription', 'ErrorCleared'])
+            pros.extend(['ErrorDescription', 'ErrorCleared'])
         return pros
 
     @staticmethod
@@ -2048,6 +2133,30 @@ class Smis(IStorageAreaNetwork):
                          'Model'])
         return pros
 
+    @staticmethod
+    def _disk_status_of(cim_disk):
+        """
+        Converting CIM_StorageDisk['OperationalStatus'] LSM Disk.status.
+        This might change since OperationalStatus does not provide enough
+        information.
+        Return (status, status_info)
+        """
+        status = Disk.STATUS_UNKNOWN
+        status_info = ''
+        dmtf_statuses = cim_disk['OperationalStatus']
+        for dmtf_status in dmtf_statuses:
+            if dmtf_status in Smis._DMTF_STAUTS_TO_DISK_STATUS.keys():
+                lsm_status = Smis._DMTF_STAUTS_TO_DISK_STATUS[dmtf_status]
+                if status == Disk.STATUS_UNKNOWN:
+                    status = lsm_status
+                else:
+                    status |= lsm_status
+            if dmtf_status in Smis._DMTF_STAUTS_TO_DISK_STATUS_INFO.keys():
+                status_info = txt_a(
+                    status_info,
+                    Smis._DMTF_STAUTS_TO_DISK_STATUS_INFO[dmtf_status])
+        return (status, status_info)
+
     def _new_disk(self, cim_disk, cim_ext, flag_full_info=0):
         """
         Takes a CIM_DiskDrive and CIM_StorageExtent, returns a lsm Disk
@@ -2060,12 +2169,12 @@ class Smis(IStorageAreaNetwork):
         num_of_block = Disk.BLOCK_COUNT_NOT_FOUND
         system_id = ''
         disk_type = Disk.DISK_TYPE_UNKNOWN
+        status_info = ''
 
         # These are mandatory
         # we do not check whether they follow the SNIA standard.
         if 'OperationalStatus' in cim_disk:
-            status = \
-                Disk.status_dmtf_to_lsm_type(cim_disk['OperationalStatus'])
+            (status, status_info) = Smis._disk_status_of(cim_disk)
         if 'Name' in cim_disk:
             name = cim_disk["Name"]
         if 'SystemName' in cim_disk:
@@ -2111,8 +2220,7 @@ class Smis(IStorageAreaNetwork):
                 'part_num': '',
                 'vendor': '',
                 'model': '',
-                'enable_status': Disk.ENABLE_STATUS_UNKNOWN,
-                'error_info': '',
+                'status_info': '',
             }
             cim_phy_pkg_pros = Smis._new_disk_cim_phy_pkg_pros(flag_full_info)
             cim_phy_pkgs = self._c.Associators(
@@ -2125,8 +2233,6 @@ class Smis(IStorageAreaNetwork):
                                "Failed to find out the CIM_PhysicalPackage " +
                                "of CIM_DiskDrive %s" % cim_disk.path)
             cim_phy_pkg = cim_phy_pkgs[0]
-            if 'EnabledState' in cim_disk:
-                opt_pro_dict['enable_status'] = cim_disk['EnabledState']
             if 'Manufacturer' in cim_phy_pkg and cim_phy_pkg['Manufacturer']:
                 opt_pro_dict['vendor'] = cim_phy_pkg['Manufacturer']
             if 'Model' in cim_phy_pkg and cim_phy_pkg['Model']:
@@ -2138,8 +2244,9 @@ class Smis(IStorageAreaNetwork):
             if 'ErrorCleared' in cim_disk:
                 if not cim_disk['ErrorCleared']:
                     if 'ErrorDescription' in cim_disk:
-                        opt_pro_dict['error_info'] = \
-                            cim_disk['ErrorDescription']
+                        opt_pro_dict['status_info'] = txt_a(
+                            status_info,
+                            cim_disk['ErrorDescription'])
                     else:
                         raise LsmError(ErrorNumber.INTERNAL_ERROR,
                                        "CIM_DiskDrive %s " % cim_disk.id +
@@ -2198,6 +2305,224 @@ class Smis(IStorageAreaNetwork):
                            "CIM_StorageExtent for CIM_DiskDrive %s " %
                            cim_disk_path)
 
+    @staticmethod
+    def _pool_status_of(cim_pool):
+        """
+        Converting CIM_StoragePool['OperationalStatus'] LSM Pool.status.
+        This might change since OperationalStatus does not provide enough
+        information.
+        Return (status, status_info)
+        """
+        status = Pool.STATUS_UNKNOWN
+        status_info = ''
+        dmtf_statuses = cim_pool['OperationalStatus']
+        for dmtf_status in dmtf_statuses:
+            if dmtf_status in Smis._DMTF_STAUTS_TO_POOL_STATUS.keys():
+
+                lsm_status = Smis._DMTF_STAUTS_TO_POOL_STATUS[dmtf_status]
+                if status == Pool.STATUS_UNKNOWN:
+                    status = lsm_status
+                else:
+                    status |= lsm_status
+            if dmtf_status in Smis._DMTF_STAUTS_TO_POOL_STATUS_INFO.keys():
+                status_info = txt_a(
+                    status_info,
+                    Smis._DMTF_STAUTS_TO_POOL_STATUS_INFO[dmtf_status])
+        return (status, status_info)
+
+    def _find_out_bottom_cexts(self, cim_pool_path, pros_list=None):
+        """
+        This is based on 'Extent Composition' subprofile.
+        CIM_StoragePool can based on several CIM_CompositeExtent with several
+        level. We will find out the bottom level CIM_CompositeExtent.
+        This is how we traverse down:
+                CIM_StoragePool
+                      ^
+                      | GroupComponent
+                      |
+                      | CIM_ConcreteComponent/CIM_AssociatedComponentExtent
+                      |     |-> deprecated in SMI-S 1.5rev4 by ---^
+                      |
+                      | PartComponent
+                      v
+                CIM_CompositeExtent     # The rest traverse was handle by
+                      ^                 # _traverse_cext()
+                      | GroupComponent
+                      |
+                      | CIM_BasedOn
+                      |
+                      | PartComponent
+                      v
+                CIM_CompositeExtent
+                      .
+                      .
+                      .
+        Will return a list of CIMInstance of CIM_CompositeExtent.
+        Mid-level CIM_CompositeExtent will not included.
+        If nothing found, return []
+        """
+        if pros_list is None:
+            pros_list = []
+        bottom_cim_cexts = []
+        try:
+            cim_cexts = self._c.Associators(
+                cim_pool_path,
+                AssocClass='CIM_AssociatedComponentExtent',
+                Role='GroupComponent',
+                ResultRole='PartComponent',
+                ResultClass='CIM_CompositeExtent',
+                PropertyList=pros_list)
+        except CIMError as ce:
+            error_code = tuple(ce)[0]
+            if error_code == pywbem.CIM_ERR_INVALID_CLASS or \
+               error_code == pywbem.CIM_ERR_INVALID_PARAMETER:
+                # Not support SMIS 1.5, using 1.4 way.
+                cim_cexts = self._c.Associators(
+                    cim_pool_path,
+                    AssocClass='CIM_ConcreteComponent',
+                    Role='GroupComponent',
+                    ResultRole='PartComponent',
+                    ResultClass='CIM_CompositeExtent',
+                    PropertyList=pros_list)
+            else:
+                raise ce
+        if cim_pool_path.classname == 'LSIESG_StoragePool':
+            # LSI does not report error on CIM_AssociatedComponentExtent
+            # But they don't support it.
+            cim_cexts = self._c.Associators(
+                cim_pool_path,
+                AssocClass='CIM_ConcreteComponent',
+                Role='GroupComponent',
+                ResultRole='PartComponent',
+                ResultClass='CIM_CompositeExtent',
+                PropertyList=pros_list)
+
+        if len(cim_cexts) == 0:
+            return []
+        for cim_cext in cim_cexts:
+            tmp_cim_cexts = self._traverse_cext(cim_cext.path, pros_list)
+            if len(tmp_cim_cexts) == 0:
+                # already at the bottom level
+                bottom_cim_cexts.extend([cim_cext])
+            else:
+                bottom_cim_cexts.extend(tmp_cim_cexts)
+        return bottom_cim_cexts
+
+    def _traverse_cext(self, cim_cext_path, pros_list=None):
+        """
+        Using this procedure to find out the bottom level CIM_CompositeExtent.
+                CIM_CompositeExtent
+                      ^
+                      | GroupComponent
+                      |
+                      | CIM_BasedOn
+                      |
+                      | PartComponent
+                      v
+                CIM_CompositeExtent
+                      .
+                      .
+                      .
+        Will return a list of CIMInstance of CIM_CompositeExtent.
+        Mid-level CIM_CompositeExtent will not included.
+        If nothing found, return []
+        """
+        if pros_list is None:
+            pros_list = []
+        cim_sub_cexts = self._c.Associators(
+            cim_cext_path,
+            AssocClass='CIM_BasedOn',
+            ResultClass='CIM_CompositeExtent',
+            Role='GroupComponent',
+            ResultRole='PartComponent',
+            PropertyList=pros_list)
+        if len(cim_sub_cexts) == 0:
+            return []
+        cim_bottom_cexts = []
+        for cim_sub_cext in cim_sub_cexts:
+            tmp_cim_bottom_cexts = self._traverse_cext(cim_sub_cext.path,
+                                                       pros_list)
+            if len(tmp_cim_bottom_cexts) == 0:
+                cim_bottom_cexts.extend([cim_sub_cext])
+            else:
+                cim_bottom_cexts.extend(tmp_cim_bottom_cexts)
+        return cim_bottom_cexts
+
+    def _traverse_cext_2_pri_ext(self, cim_cext_path, pros_list=None):
+        """
+        Using this procedure to find out the member disks of
+        CIM_CompositeExtent:
+                CIM_CompositeExtent
+                      ^
+                      | Dependent
+                      |
+                      | CIM_BasedOn
+                      |
+                      | Antecedent
+                      v
+                CIM_StorageExtent (Concrete)
+                      ^
+                      | Dependent
+                      |
+                      | CIM_BasedOn
+                      |
+                      | Antecedent
+                      v
+                CIM_StorageExtent (Concrete)
+                      .
+                      .
+                      .
+                CIM_StorageExtent (Primordial)
+        """
+        if pros_list is None:
+            pros_list = []
+        if 'Primordial' not in pros_list:
+            pros_list.extend(['Primordial'])
+        cim_sub_exts = self._c.Associators(
+            cim_cext_path,
+            AssocClass='CIM_BasedOn',
+            ResultClass='CIM_StorageExtent',
+            Role='Dependent',
+            ResultRole='Antecedent',
+            PropertyList=pros_list)
+        cim_pri_exts = []
+        for cim_sub_ext in cim_sub_exts:
+            if cim_sub_ext['Primordial']:
+                cim_pri_exts.extend([cim_sub_ext])
+            else:
+                cim_pri_exts.extend(
+                    self._traverse_cext_2_pri_ext(cim_sub_ext.path))
+        return cim_pri_exts
+
+    def _cim_disk_of_pri_ext(self, cim_pri_ext_path, pros_list=None):
+        """
+        Follow this procedure to find out CIM_DiskDrive from Primordial
+        CIM_StorageExtent:
+                CIM_StorageExtent (Primordial)
+                      ^
+                      |
+                      | CIM_MediaPresent
+                      |
+                      v
+                CIM_DiskDrive
+        """
+        if pros_list is None:
+            pros_list = []
+        cim_disks = self._c.Associators(
+            cim_pri_ext_path,
+            AssocClass='CIM_MediaPresent',
+            ResultClass='CIM_DiskDrive',
+            PropertyList=pros_list)
+        if len(cim_disks) == 1:
+            return cim_disks[0]
+        elif len(cim_disks) == 2:
+            return None
+        else:
+            raise LsmError(ErrorNumber.INTERNAL_ERROR,
+                           "Found two or more CIM_DiskDrive associated to " +
+                           "requested CIM_StorageExtent %s" %
+                           cim_pri_ext_path)
+
     def _pool_opt_data(self, cim_pool):
         """
         Usage:
@@ -2220,10 +2545,11 @@ class Smis(IStorageAreaNetwork):
             'member_type': Pool.MEMBER_TYPE_UNKNOWN,
             'member_ids': [],
             'element_type': Pool.ELEMENT_TYPE_UNKNOWN,
+            'status_info': '',
         }
         if 'OperationalStatus' in cim_pool:
-            opt_pro_dict['status'] = \
-                Pool.status_dmtf_to_lsm_type(cim_pool['OperationalStatus'])
+            (opt_pro_dict['status'], opt_pro_dict['status_info']) = \
+                Smis._pool_status_of(cim_pool)
 
         # check whether current pool support create volume or not.
         cim_sccs = self._c.Associators(
@@ -2292,22 +2618,13 @@ class Smis(IStorageAreaNetwork):
                         [self._pool_id(cim_parent_pool)])
 
         raid_pros = self._raid_type_pros()
-        raid_pros.extend(['ExtentDiscriminator'])
-        cim_exts = []
+        cim_cexts = []
         # We skip disk member checking on VMAX due to bad performance.
         if cim_pool.classname != 'Symm_DeviceStoragePool':
-            cim_exts = self._c.Associators(cim_pool.path,
-                                           AssocClass='CIM_ConcreteComponent',
-                                           Role='GroupComponent',
-                                           ResultRole='PartComponent',
-                                           ResultClass='CIM_CompositeExtent',
-                                           PropertyList=raid_pros)
+            cim_cexts = self._find_out_bottom_cexts(cim_pool.path, raid_pros)
         raid_type = None
-        for cim_ext in cim_exts:
-            if 'ExtentDiscriminator' in cim_ext:
-                if 'SNIA:Remaining' in cim_ext['ExtentDiscriminator']:
-                    continue
-            cur_raid_type = self._raid_type_of(cim_ext)
+        for cim_cext in cim_cexts:
+            cur_raid_type = self._raid_type_of(cim_cext)
 
             if (raid_type is not None) and cur_raid_type != raid_type:
                 raid_type = Pool.RAID_TYPE_MIXED
@@ -2323,7 +2640,14 @@ class Smis(IStorageAreaNetwork):
             # TODO: Current way consume too much time(too many SMIS call).
             #       SNIA current standard (1.6rev4) does not have any better
             #       way for disk members querying.
-            cim_disks = self._traverseComposition(cim_ext.path)
+            cim_pri_exts = self._traverse_cext_2_pri_ext(cim_cext.path)
+            cim_disks = []
+            disk_id_pros = self._property_list_of_id('Disk')
+            for cim_pri_ext in cim_pri_exts:
+                cim_disk = self._cim_disk_of_pri_ext(cim_pri_ext.path,
+                                                     disk_id_pros)
+                if cim_disk:
+                    cim_disks.extend([cim_disk])
             if len(cim_disks) > 0:
                 cur_member_ids = []
                 for cim_disk in cim_disks:
@@ -2435,108 +2759,6 @@ class Smis(IStorageAreaNetwork):
         # Base on these data, we cannot determine RAID 15 or 51 and etc.
         # In stead of providing incorrect info, we choose to provide nothing.
         return Pool.RAID_TYPE_UNKNOWN
-
-    # we are using SNIA recipe naming scheme for RAID checking and traversing.
-    # please refer to SNIA SMIS 1.5rev6, Block Book, Section 14.6.1
-    # 'Traverse the virtualization hierarchy of a StorageVolume or
-    # LogicalDisk.' for detail. With few changes to support pool on pool.
-    def _traverseComposition(self, cim_ext_path):
-        """
-        Usage:
-            Take CIM_CompositeExtent to check out its member and raid_type.
-            If member is a another CIM_CompositeExtent, will:
-                * if CIM_CompositeExtent is a another Pools GroupComponent.
-                  We treat it as Pool based on Pool.
-                * else call _traverseComposition() again
-            if member is a StorageExtent, will call _traverseDecomposition()
-            to find out Primordial StorageExtent.
-        Parameter:
-            cim_ext_path    # CIMInstanceName of CIM_CompositeExtent
-        Returns:
-            cim_disks       # a list of CIM_DiskDrive
-        """
-        associations = self._c.ReferenceNames(cim_ext_path, Role='Dependent')
-        member_cim_exts_path = []
-        if associations:
-            member_cim_exts_path = self._c.AssociatorNames(
-                cim_ext_path,
-                AssocClass=associations[0].classname,
-                Role='Dependent',
-                ResultRole='Antecedent')
-        cim_disks = []
-        for member_cim_ext_path in member_cim_exts_path:
-            if (self._ISA('CIM_CompositeExtent', member_cim_ext_path)):
-                cur_cim_disks = self._traverseComposition(member_cim_ext_path)
-                cim_disks.extend(cur_cim_disks)
-            else:
-                cim_disks.extend(
-                    self._traverseDecomposition(member_cim_ext_path))
-        return cim_disks
-
-    def _ISA(self, sup, sub):
-        """
-        Usage:
-            Many storage vendor (like EMC, LSI, etc) renamed the CIM_xxx to
-            their own names. This method was used to check whether provided
-            CIM_xxx in sub is a sub class of 'sup'
-        Parameter:
-            sup         # string of class name, like 'CIM_StorageExtent'
-            sub         # CIM_xxxx object of class CIMInstance
-        Returns:
-            True
-                or
-            None
-        """
-        if pywbem.is_subclass(self._c, self._c.default_namespace,
-                              sup, sub.classname):
-            return True
-        return None
-
-    def _traverseDecomposition(self, cim_ext_path):
-        """
-        Usage:
-            Travers recursively a CIM_StorageExtent to find out its
-            CIM_CompositeExtent status.
-        Parameter:
-            cim_ext     # CIMInstanceName of CIM_CompositeExtent
-        Returns:
-            cim_disks  # a list of cim_disk
-        """
-        cim_disks = []
-        cim_ext = self._c.GetInstance(cim_ext_path,
-                                      PropertyList=['Primordial'])
-        if cim_ext['Primordial']:
-            cim_disk_id_pros = self._property_list_of_id('Disk')
-            cim_disks = self._c.Associators(
-                cim_ext_path,
-                AssocClass='CIM_MediaPresent',
-                Role='Dependent',
-                ResultRole='Antecedent',
-                ResultClass='CIM_DiskDrive',
-                PropertyList=cim_disk_id_pros)
-            return cim_disks
-        else:
-            cim_exts_target_path = self._c.AssociatorNames(
-                cim_ext_path,
-                AssocClass='CIM_BasedOn',
-                Role='Dependent',
-                ResultRole='Antecedent',
-                ResultClass='CIM_StorageExtent')
-            if (cim_exts_target_path and len(cim_exts_target_path) != 1):
-                raise LsmError(ErrorNumber.INTERNAL_ERROR,
-                               "CIM_StorageExtent %s " % cim_ext_path +
-                               "is CIM_BasedOn to two or more " +
-                               "CIM_StorageExtent %s " % cim_exts_target_path +
-                               "should call _traverseComposition() instead")
-            if (cim_exts_target_path and cim_exts_target_path[0]):
-                cim_ext_target_path = cim_exts_target_path[0]
-                if (self._ISA('CIM_CompositeExtent', cim_ext_target_path)):
-                    cim_disks = self._traverseComposition(
-                        cim_ext_target_path)
-                else:
-                    cim_disks = self._traverseDecomposition(
-                        cim_ext_target_path)
-            return cim_disks
 
     @handle_cim_errors
     def pool_delete(self, pool, flags=0):
