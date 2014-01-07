@@ -24,7 +24,7 @@ import sys
 
 import na
 from data import Volume, Initiator, FileSystem, Snapshot, NfsExport, \
-    AccessGroup, System, Capabilities, Disk, Pool, OptionalData
+    AccessGroup, System, Capabilities, Disk, Pool, OptionalData, txt_a
 from iplugin import IStorageAreaNetwork, INfs
 from common import LsmError, ErrorNumber, JobStatus, md5, Error
 from version import VERSION
@@ -87,6 +87,63 @@ class Ontap(IStorageAreaNetwork, INfs):
     (SS_JOB, SPLIT_JOB) = ('ontap-ss-file-restore', 'ontap-clone-split')
 
     VOLUME_PREFIX = '/vol'
+
+    NA_AGGR_STATUS_TO_LSM = {
+        'creating': Pool.STATUS_STARTING,
+        'destroying': Pool.STATUS_DESTROYING,
+        'failed': Pool.STATUS_ERROR,
+        'frozen': Pool.STATUS_OTHER,
+        'inconsistent': Pool.STATUS_DEGRADED,
+        'iron_restricted': Pool.STATUS_OTHER,
+        'mounting': Pool.STATUS_STARTING,
+        'offline': Pool.STATUS_STOPPED,
+        'online': Pool.STATUS_OK,
+        'partial': Pool.STATUS_ERROR,
+        'quiesced': Pool.STATUS_OFFLINE,
+        'quiescing': Pool.STATUS_OFFLINE,
+        'restricted': Pool.STATUS_OFFLINE,
+        'reverted': Pool.STATUS_OTHER,
+        'unknown': Pool.STATUS_UNKNOWN,
+        'unmounted': Pool.STATUS_STOPPED,
+        'unmounting': Pool.STATUS_STOPPING,
+    }
+
+    # Use information in https://communities.netapp.com/thread/9052
+    # (Also found similar documents in ONTAP 7.3 command Manual Page
+    # Reference, Volume 1, PDF Page 18.
+    NA_AGGR_STATUS_TO_LSM_STATUS_INFO = {
+        'frozen': 'aggregate is temporarily not accepting requests ' +
+                  'and is queueing the requests.',
+        'iron_restricted': 'aggregate access is restricted due to ' +
+                           'running wafl_iron.',
+        'partial': 'all the disks in the aggregate are not available.',
+        'quiesced': 'aggregate is temporaily not accepting requests and ' +
+                    'returns an error for the request.',
+        'quiescing': 'aggregate is in the process on quiescing and not ' +
+                     'accessible.',
+        'restricted': 'aggregate is offline for WAFL',
+        'reverted': 'final state of revert before shutting down ONTAP ' +
+                    'and is not accessible.',
+        'unmounted': 'aggregate is unmounted and is not accessible.',
+        'unmounting': 'aggregate is in the process of unmounting and is' +
+                      'not accessible.'
+    }
+
+    NA_VOL_STATUS_TO_LSM = {
+        'offline': Pool.STATUS_STOPPED,
+        'online': Pool.STATUS_OK,
+        'restricted': Pool.STATUS_OTHER,
+        'unknown': Pool.STATUS_UNKNOWN,
+        'creating': Pool.STATUS_STOPPING,
+        'failed': Pool.STATUS_ERROR,
+        'partial': Pool.STATUS_ERROR,
+
+    }
+
+    NA_VOL_STATUS_TO_LSM_STATUS_INFO = {
+        'partial': 'all the disks in the volume are not available.',
+        'restricted': 'volume is restricted to protocol accesses',
+    }
 
     def __init__(self):
         self.f = None
@@ -175,33 +232,59 @@ class Ontap(IStorageAreaNetwork, INfs):
         """
         return md5(na_disk['disk-uid'])
 
-    def _disk(self, d, flag):
-        error_message = ""
+    @staticmethod
+    def _status_of_na_disk(na_disk):
+        """
+        Retrieve Disk.status from NetApp ONTAP disk-detail-info.
+        TODO: API document does not provide enough explaination.
+              Need lab test to verify.
+        """
         status = Disk.STATUS_OK
 
-        if 'raid-state' in d:
-            rs = d['raid-state']
+        if 'raid-state' in na_disk:
+            rs = na_disk['raid-state']
             if rs == "broken":
                 status = Disk.STATUS_ERROR
-            elif rs == "Unknown":
+            elif rs == "unknown":
                 status = Disk.STATUS_UNKNOWN
-            elif rs == "reconstructing" or rs == "pending":
-                status = Disk.STATUS_DEGRADED
-        if 'is-prefailed' in d and d['is-prefailed'] == 'true':
+            elif rs == 'zeroing':
+                status = Disk.STATUS_INITIALIZING
+            elif rs == 'reconstructing':
+                status = Disk.STATUS_RECONSTRUCTING
+
+        if 'is-prefailed' in na_disk and na_disk['is-prefailed'] == 'true':
             status = Disk.STATUS_PREDICTIVE_FAILURE
 
-        #enable_status = Disk.ENABLE_STATUS_ENABLED
-        #if 'is-offline' in d:
-        #    enable_status = Disk.ENABLE_STATUS_ENABLED_BUT_OFFLINE
+        if 'is-offline' in na_disk and na_disk['is-offline'] == 'true':
+            status = Disk.STATUS_ERROR
+        return status
 
+    @staticmethod
+    def _status_info_of_na_disk(na_disk):
+        """
+        Provide more explainaion in Disk.status_info.
+        TODO: API document does not provide enough explaination.
+              Need lab test to verify.
+        """
+        status_info = ''
+        if 'raid-state' in na_disk:
+            rs = na_disk['raid-state']
+            if rs == 'reconstructing':
+                status_info = "Reconstruction progress: %s%%" %\
+                    str(na_disk['reconstruction-percent'])
+            if 'broken-details' in na_disk:
+                status_info = na_disk['broken-details']
+        return status_info
+
+    def _disk(self, d, flag):
+        error_message = ""
         opt_data = OptionalData()
+        status = Ontap._status_of_na_disk(d)
         if flag == Disk.RETRIEVE_FULL_INFO:
             opt_data.set('sn', d['serial-number'])
             opt_data.set('model', d['disk-model'])
             opt_data.set('vendor', d['vendor-id'])
-            opt_data.set('error_info', '')
-            if 'broken-details' in d:
-                opt_data.set('error_info', d['broken-details'])
+            opt_data.set('status_info', Ontap._status_info_of_na_disk(d))
 
         return Disk(self._disk_id(d),
                     d['name'],
@@ -238,42 +321,23 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @staticmethod
     def _status_of_na_aggr(na_aggr):
+        """
+        Use aggr-info['state'] for Pool.status
+        """
         na_aggr_state = na_aggr['state']
-        if na_aggr_state == 'creating':
-            return Pool.STATUS_STARTING
-        if na_aggr_state == 'destroying':
-            return Pool.STATUS_STOPPING
-        if na_aggr_state == 'failed':
-            return Pool.STATUS_ERROR
-        if na_aggr_state == 'frozen':
-            return Pool.STATUS_STOPPED
-        if na_aggr_state == 'inconsistent':
-            return Pool.STATUS_ERROR
-        if na_aggr_state == 'iron_restricted':
-            return Pool.STATUS_STOPPED
-        if na_aggr_state == 'mounting':
-            return Pool.STATUS_STARTING
-        if na_aggr_state == 'offline':
-            return Pool.STATUS_STOPPED
-        if na_aggr_state == 'online':
-            return Pool.STATUS_OK
-        if na_aggr_state == 'partial':
-            return Pool.STATUS_ERROR
-        if na_aggr_state == 'quiesced':
-            return Pool.STATUS_STOPPED
-        if na_aggr_state == 'quiescing':
-            return Pool.STATUS_STOPPING
-        if na_aggr_state == 'restricted':
-            return Pool.STATUS_STOPPED
-        if na_aggr_state == 'reverted':
-            return Pool.STATUS_STOPPED
-        if na_aggr_state == 'unknown':
-            return Pool.STATUS_UNKNOWN
-        if na_aggr_state == 'unmounted':
-            return Pool.STATUS_STOPPED
-        if na_aggr_state == 'unmounting':
-            return Pool.STATUS_STOPPING
+        if na_aggr_state in Ontap.NA_AGGR_STATUS_TO_LSM.keys():
+            return Ontap.NA_AGGR_STATUS_TO_LSM[na_aggr_state]
         return Pool.STATUS_UNKNOWN
+
+    @staticmethod
+    def _status_info_of_na_aggr(na_aggr):
+        """
+        TODO: provides more information on disk failed.
+        """
+        na_aggr_state = na_aggr['state']
+        if na_aggr_state in Ontap.NA_AGGR_STATUS_TO_LSM_STATUS_INFO.keys():
+            return Ontap.NA_AGGR_STATUS_TO_LSM_STATUS_INFO[na_aggr_state]
+        return ''
 
     def _pool_from_na_aggr(self, na_aggr, na_disks, flags):
         pool_id = self._pool_id(na_aggr)
@@ -298,6 +362,7 @@ class Ontap(IStorageAreaNetwork, INfs):
             else:
                 opt_data.set('thinp_type', Pool.THINP_TYPE_UNKNOWN)
             opt_data.set('status', self._status_of_na_aggr(na_aggr))
+            opt_data.set('status_info', self._status_info_of_na_aggr(na_aggr))
             element_type = (
                 Pool.ELEMENT_TYPE_POOL |
                 Pool.ELEMENT_TYPE_FS |
@@ -312,21 +377,16 @@ class Ontap(IStorageAreaNetwork, INfs):
     @staticmethod
     def _status_of_na_vol(na_vol):
         na_vol_state = na_vol['state']
-        if na_vol_state == 'offline':
-            return Pool.STATUS_STOPPED
-        if na_vol_state == 'online':
-            return Pool.STATUS_OK
-        if na_vol_state == 'restricted':
-            return Pool.STATUS_STOPPED
-        if na_vol_state == 'unknown':
-            return Pool.STATUS_UNKNOWN
-        if na_vol_state == 'creating':
-            return Pool.STATUS_STARTING
-        if na_vol_state == 'failed':
-            return Pool.STATUS_ERROR
-        if na_vol_state == 'partial':
-            return Pool.STATUS_ERROR
+        if na_vol_state in Ontap.NA_VOL_STATUS_TO_LSM.keys():
+            return Ontap.NA_VOL_STATUS_TO_LSM[na_vol_state]
         return Pool.STATUS_UNKNOWN
+
+    @staticmethod
+    def _status_info_of_na_vol(na_vol):
+        na_vol_state = na_vol['state']
+        if na_vol_state in Ontap.NA_VOL_STATUS_TO_LSM_STATUS_INFO.keys():
+            return Ontap.NA_VOL_STATUS_TO_LSM_STATUS_INFO[na_vol_state]
+        return ''
 
     @staticmethod
     def _pool_name_of_na_vol(na_vol):
@@ -359,6 +419,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                 opt_data.set('thinp_type', Pool.THINP_TYPE_UNKNOWN)
 
             opt_data.set('status', self._status_of_na_vol(na_vol))
+            opt_data.set('status_info', self._status_info_of_na_vol(na_vol))
             element_type = Pool.ELEMENT_TYPE_VOLUME
             opt_data.set('element_type', element_type)
 
