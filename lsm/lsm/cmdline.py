@@ -296,8 +296,8 @@ class CmdLine:
         parser.add_argument('-b', action="store_true", dest="async",
                           default=False,
                           help='run the command async. instead of waiting '
-                               'for completion\n'
-                               'command will exit(7) and job id written '
+                               'for completion. '
+                               'Command will exit(7) and job id written '
                                'to stdout.')
 
         #What action we want to take
