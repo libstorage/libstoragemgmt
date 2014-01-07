@@ -424,9 +424,12 @@ cmds = (
             dict(name="dest", help='destination volume id'),
             dict(name="type", help=replicate_help,
                  choices=replicate_types),
-            dict(name="src_start", help='source block start number'),
-            dict(name="dest_start", help='destination block start number'),
-            dict(name="count", help='number of blocks to replicate'),
+            dict(name="src_start", help='source block start number',
+                 action='append'),
+            dict(name="dest_start", help='destination block start number',
+                 action='append'),
+            dict(name="count", help='number of blocks to replicate',
+                 action='append'),
             ],
         ),
 
@@ -1170,17 +1173,19 @@ class CmdLine:
         dest_starts = args.dest_start
         counts = args.count
 
-        if (0 < len(src_starts) == len(dest_starts)
-            and len(dest_starts) == len(counts)):
-            ranges = []
+        if not len(src_starts) \
+                or not (len(src_starts) == len(dest_starts) == len(counts)):
+            raise ArgError("Differing numbers of src_start, dest_start, "
+                           "and count parameters")
 
-            for i in range(len(src_starts)):
-                ranges.append(data.BlockRange(src_starts[i],
-                                              dest_starts[i],
-                                              counts[i]))
+        ranges = []
+        for i in range(len(src_starts)):
+            ranges.append(data.BlockRange(src_starts[i],
+                                          dest_starts[i],
+                                          counts[i]))
 
-            if self.confirm_prompt(False):
-                self.c.volume_replicate_range(rep_type, src, dest, ranges)
+        if self.confirm_prompt(False):
+            self.c.volume_replicate_range(rep_type, src, dest, ranges)
 
     ##
     # Returns the block size in bytes for each block represented in
