@@ -14,7 +14,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
 #
 # Author: tasleson
-from optparse import OptionParser, OptionGroup
+from argparse import ArgumentParser
 import optparse
 import os
 import textwrap
@@ -256,43 +256,43 @@ class CmdLine:
         """
         usage = "usage: %prog [options]... [command]... [command options]..."
         optparse.textwrap = MyWrapper
-        parser = OptionParser(usage=usage, version="%prog " + VERSION)
+        parser = ArgumentParser(usage=usage, version="%prog " + VERSION)
         parser.description = 'libStorageMgmt command line interface. \n'
 
         parser.epilog = ('Copyright 2012-2013 Red Hat, Inc.\n'
                          'Please report bugs to '
                          '<libstoragemgmt-devel@lists.sourceforge.net>\n')
 
-        parser.add_option('-u', '--uri', action="store", type="string",
+        parser.add_argument('-u', '--uri', action="store", type=str,
                           dest="uri",
                           help='uniform resource identifier (env LSMCLI_URI)')
-        parser.add_option('-P', '--prompt', action="store_true", dest="prompt",
+        parser.add_argument('-P', '--prompt', action="store_true", dest="prompt",
                           help='prompt for password (env LSMCLI_PASSWORD)')
-        parser.add_option('-H', '--human', action="store_true", dest="human",
+        parser.add_argument('-H', '--human', action="store_true", dest="human",
                           help='print sizes in human readable format\n'
                                '(e.g., MiB, GiB, TiB)')
-        parser.add_option('-t', '--terse', action="store", dest="sep",
+        parser.add_argument('-t', '--terse', action="store", dest="sep",
                           help='print output in terse form with "SEP" '
                                'as a record separator')
 
-        parser.add_option('-e', '--enum', action="store_true", dest="enum",
+        parser.add_argument('-e', '--enum', action="store_true", dest="enum",
                           default=False,
                           help='display enumerated types as numbers '
                                'instead of text')
 
-        parser.add_option('-f', '--force', action="store_true", dest="force",
+        parser.add_argument('-f', '--force', action="store_true", dest="force",
                           default=False,
                           help='bypass confirmation prompt for data '
                                'loss operations')
 
-        parser.add_option('-w', '--wait', action="store", type="int",
+        parser.add_argument('-w', '--wait', action="store", type=int,
                           dest="wait", default=30000,
                           help="command timeout value in ms (default = 30s)")
 
-        parser.add_option('', '--header', action="store_true", dest="header",
+        parser.add_argument('--header', action="store_true", dest="header",
                           help='include the header with terse')
 
-        parser.add_option('-b', '', action="store_true", dest="async",
+        parser.add_argument('-b', action="store_true", dest="async",
                           default=False,
                           help='run the command async. instead of waiting '
                                'for completion\n'
@@ -300,13 +300,13 @@ class CmdLine:
                                'to stdout.')
 
         #What action we want to take
-        commands = OptionGroup(parser, 'Commands')
+        commands = parser.add_argument_group('Commands')
 
         list_choices = ['VOLUMES', 'INITIATORS', 'POOLS', 'FS', 'SNAPSHOTS',
                         'EXPORTS', "NFS_CLIENT_AUTH", 'ACCESS_GROUPS',
                         'SYSTEMS', 'DISKS', 'PLUGINS']
 
-        commands.add_option('-l', '--list', action="store", type="choice",
+        commands.add_argument('-l', '--list', action="store",
                             dest=_c("list"),
                             #metavar='<'+ ",".join(list_choices) + '>',
                             metavar='<type>',
@@ -316,29 +316,29 @@ class CmdLine:
                                  'Note: SNAPSHOTS requires --fs <fs id>.\n' +
                                  '      POOLS can have -o switch.')
 
-        commands.add_option('', '--capabilities', action="store",
-                            type="string",
+        commands.add_argument('--capabilities', action="store",
+                            type=str,
                             dest=_c("capabilities"),
                             metavar='<system id>',
                             help='Retrieves array capabilities')
 
-        commands.add_option('', '--plugin-info', action="store_true",
+        commands.add_argument('--plugin-info', action="store_true",
                             dest=_c("plugin-info"),
                             help='Retrieves plugin description and version')
 
-        commands.add_option('', '--delete-fs', action="store", type="string",
+        commands.add_argument('--delete-fs', action="store", type=str,
                             dest=_c("delete-fs"),
                             metavar='<fs id>',
                             help='Delete a filesystem')
 
-        commands.add_option('', '--delete-access-group', action="store",
-                            type="string",
+        commands.add_argument('--delete-access-group', action="store",
+                            type=str,
                             dest=_c("delete-access-group"),
                             metavar='<group id>',
                             help='Deletes an access group')
 
-        commands.add_option('', '--access-group-add', action="store",
-                            type="string",
+        commands.add_argument('--access-group-add', action="store",
+                            type=str,
                             dest=_c("access-group-add"),
                             metavar='<access group id>',
                             help='Adds an initiator to an access group, '
@@ -346,16 +346,16 @@ class CmdLine:
                                  '--id <initiator id\n'
                                  '--type <initiator type>')
 
-        commands.add_option('', '--access-group-remove', action="store",
-                            type="string",
+        commands.add_argument('--access-group-remove', action="store",
+                            type=str,
                             dest=_c("access-group-remove"),
                             metavar='<access group id>',
                             help='Removes an initiator from an access group, '
                                  'requires:\n'
                                  '--id <initiator id>')
 
-        commands.add_option('', '--create-volume', action="store",
-                            type="string",
+        commands.add_argument('--create-volume', action="store",
+                            type=str,
                             dest=_c("create-volume"),
                             metavar='<volume name>',
                             help="Creates a volume (logical unit) requires:\n"
@@ -364,14 +364,14 @@ class CmdLine:
                                  "--provisioning (optional) "
                                  "[DEFAULT|THIN|FULL]\n")
 
-        commands.add_option('', '--create-fs', action="store", type="string",
+        commands.add_argument('--create-fs', action="store", type=str,
                             dest=_c("create-fs"),
                             metavar='<fs name>',
                             help="Creates a file system requires:\n"
                                  "--size <fs size>\n"
                                  "--pool <pool id>")
 
-        commands.add_option('', '--create-ss', action="store", type="string",
+        commands.add_argument('--create-ss', action="store", type=str,
                             dest=_c("create-ss"),
                             metavar='<snapshot name>',
                             help="Creates a snapshot, requires:\n"
@@ -379,8 +379,8 @@ class CmdLine:
                                  "is all files)\n"
                                  "--fs <file system id>")
 
-        commands.add_option('', '--create-access-group', action="store",
-                            type="string",
+        commands.add_argument('--create-access-group', action="store",
+                            type=str,
                             dest=_c("create-access-group"),
                             metavar='<Access group name>',
                             help="Creates an access group, requires:\n"
@@ -388,35 +388,35 @@ class CmdLine:
                                  '--type [WWPN|WWNN|ISCSI|HOSTNAME|SAS]\n'
                                  '--system <system id>')
 
-        commands.add_option('', '--access-group-volumes', action="store",
-                            type="string",
+        commands.add_argument('--access-group-volumes', action="store",
+                            type=str,
                             dest=_c("access-group-volumes"),
                             metavar='<access group id>',
                             help='Lists the volumes that the access group has'
                                  ' been granted access to')
 
-        commands.add_option('', '--volume-access-group', action="store",
-                            type="string",
+        commands.add_argument('--volume-access-group', action="store",
+                            type=str,
                             dest=_c("volume-access-group"),
                             metavar='<volume id>',
                             help='Lists the access group(s) that have access'
                                  ' to volume')
 
-        commands.add_option('', '--volumes-accessible-initiator',
-                            action="store", type="string",
+        commands.add_argument('--volumes-accessible-initiator',
+                            action="store", type=str,
                             dest=_c("volumes-accessible-initiator"),
                             metavar='<initiator id>',
                             help='Lists the volumes that are accessible '
                                  'by the initiator')
 
-        commands.add_option('', '--initiators-granted-volume', action="store",
-                            type="string",
+        commands.add_argument('--initiators-granted-volume', action="store",
+                            type=str,
                             dest=_c("initiators-granted-volume"),
                             metavar='<volume id>',
                             help='Lists the initiators that have been '
                                  'granted access to specified volume')
 
-        commands.add_option('', '--restore-ss', action="store", type="string",
+        commands.add_argument('--restore-ss', action="store", type=str,
                             dest=_c("restore-ss"),
                             metavar='<snapshot id>',
                             help="Restores a FS or specified files to "
@@ -428,7 +428,7 @@ class CmdLine:
                                  "restores all files in snapshot other "
                                  "options must be absent)")
 
-        commands.add_option('', '--clone-fs', action="store", type="string",
+        commands.add_argument('--clone-fs', action="store", type=str,
                             dest=_c("clone-fs"),
                             metavar='<source file system id>',
                             help="Creates a file system clone requires:\n"
@@ -436,7 +436,7 @@ class CmdLine:
                                  "--backing-snapshot <backing snapshot id> "
                                  "(optional)")
 
-        commands.add_option('', '--clone-file', action="store", type="string",
+        commands.add_argument('--clone-file', action="store", type=str,
                             dest=_c("clone-file"),
                             metavar='<file system>',
                             help="Creates a clone of a file (thin "
@@ -447,19 +447,19 @@ class CmdLine:
                                  "--backing-snapshot <backing snapshot id> "
                                  "(optional)")
 
-        commands.add_option('', '--delete-volume', action="store",
-                            type="string",
+        commands.add_argument('--delete-volume', action="store",
+                            type=str,
                             metavar='<volume id>',
                             dest=_c("delete-volume"),
                             help='Deletes a volume given its id')
 
-        commands.add_option('', '--delete-ss', action="store", type="string",
+        commands.add_argument('--delete-ss', action="store", type=str,
                             metavar='<snapshot id>',
                             dest=_c("delete-ss"),
                             help='Deletes a snapshot requires --fs')
 
-        commands.add_option('-r', '--replicate-volume', action="store",
-                            type="string",
+        commands.add_argument('-r', '--replicate-volume', action="store",
+                            type=str,
                             metavar='<volume id>',
                             dest=_c("replicate-volume"),
                             help='replicates a volume, requires:\n'
@@ -469,15 +469,15 @@ class CmdLine:
                                  "Optional:\n"
                                  "--pool <pool id>\n")
 
-        commands.add_option('', '--replicate-volume-range-block-size',
-                            action="store", type="string",
+        commands.add_argument('--replicate-volume-range-block-size',
+                            action="store", type=str,
                             metavar='<system id>',
                             dest=_c("replicate-volume-range-block-size"),
                             help='size of each replicated block in bytes')
 
-        commands.add_option(
-            '', '--replicate-volume-range', action="store",
-            type="string",
+        commands.add_argument(
+            '--replicate-volume-range', action="store",
+            type=str,
             metavar='<volume id>',
             dest=_c("replicate-volume-range"),
             help='replicates a portion of a volume, requires:\n'
@@ -487,8 +487,8 @@ class CmdLine:
                  "--dest_start <destination block start>\n"
                  "--count <number of blocks to replicate>")
 
-        commands.add_option(
-            '', '--iscsi-chap', action="store", type="string",
+        commands.add_argument(
+            '--iscsi-chap', action="store", type=str,
             metavar='<initiator id>',
             dest=_c("iscsi-chap"),
             help='configures ISCSI inbound/outbound CHAP '
@@ -499,8 +499,8 @@ class CmdLine:
                  '--out-user <outbound chap user name>\n'
                  '--out-password <inbound chap user password\n')
 
-        commands.add_option(
-            '', '--access-grant', action="store", type="string",
+        commands.add_argument(
+            '--access-grant', action="store", type=str,
             metavar='<initiator id>',
             dest=_c("access-grant"),
             help='grants access to an initiator to a volume\n'
@@ -509,8 +509,8 @@ class CmdLine:
                  '--volume <volume id>\n'
                  '--access [RO|RW], read-only or read-write')
 
-        commands.add_option('', '--access-grant-group', action="store",
-                            type="string",
+        commands.add_argument('--access-grant-group', action="store",
+                            type=str,
                             metavar='<access group id>',
                             dest=_c("access-grant-group"),
                             help='grants access to an access group to a '
@@ -519,45 +519,45 @@ class CmdLine:
                                  '--volume <volume id>\n'
                                  '--access [RO|RW], read-only or read-write')
 
-        commands.add_option(
-            '', '--access-revoke', action="store",
-            type="string",
+        commands.add_argument(
+            '--access-revoke', action="store",
+            type=str,
             metavar='<initiator id>',
             dest=_c("access-revoke"),
             help='removes access for an initiator to a volume\n'
                  'requires:\n'
                  '--volume <volume id>')
 
-        commands.add_option(
-            '', '--access-revoke-group', action="store",
-            type="string",
+        commands.add_argument(
+            '--access-revoke-group', action="store",
+            type=str,
             metavar='<access group id>',
             dest=_c("access-revoke-group"),
             help='removes access for access group to a volume\n'
                  'requires:\n'
                  '--volume <volume id>')
 
-        commands.add_option('', '--resize-volume', action="store",
-                            type="string",
+        commands.add_argument('--resize-volume', action="store",
+                            type=str,
                             metavar='<volume id>',
                             dest=_c("resize-volume"),
                             help='re-sizes a volume, requires:\n'
                                  '--size <new size>')
 
-        commands.add_option('', '--resize-fs', action="store", type="string",
+        commands.add_argument('--resize-fs', action="store", type=str,
                             metavar='<fs id>',
                             dest=_c("resize-fs"),
                             help='re-sizes a file system, requires:\n'
                                  '--size <new size>')
 
-        commands.add_option('', '--nfs-export-remove', action="store",
-                            type="string",
+        commands.add_argument('--nfs-export-remove', action="store",
+                            type=str,
                             metavar='<nfs export id>',
                             dest=_c("nfs-export-remove"),
                             help='removes a nfs export')
 
-        commands.add_option('', '--nfs-export-fs', action="store",
-                            type="string",
+        commands.add_argument('--nfs-export-fs', action="store",
+                            type=str,
                             metavar='<file system id>',
                             dest=_c("nfs-export-fs"),
                             help='creates a nfs export\n'
@@ -573,41 +573,41 @@ class CmdLine:
                                  '--auth-type <NFS client authentication '
                                  'type>\n')
 
-        commands.add_option('', '--job-status', action="store", type="string",
+        commands.add_argument('--job-status', action="store", type=str,
                             metavar='<job status id>',
                             dest=_c("job-status"),
                             help='retrieve information about job')
 
-        commands.add_option(
-            '', '--volume-dependants', action="store",
-            type="string",
+        commands.add_argument(
+            '--volume-dependants', action="store",
+            type=str,
             metavar='<volume id>',
             dest=_c("volume-dependants"),
             help='Returns True if volume has a dependant child')
 
-        commands.add_option('', '--volume-dependants-rm', action="store",
-                            type="string",
+        commands.add_argument('--volume-dependants-rm', action="store",
+                            type=str,
                             metavar='<volume id>',
                             dest=_c("volume-dependants-rm"),
                             help='Removes dependencies')
 
-        commands.add_option('', '--fs-dependants', action="store",
-                            type="string",
+        commands.add_argument('--fs-dependants', action="store",
+                            type=str,
                             metavar='<fs id>',
                             dest=_c("fs-dependants"),
                             help='Returns true if a child dependency exists.\n'
                                  'Optional:\n'
                                  '--file <file> for File check')
 
-        commands.add_option('', '--fs-dependants-rm', action="store",
-                            type="string",
+        commands.add_argument('--fs-dependants-rm', action="store",
+                            type=str,
                             metavar='<fs id>',
                             dest=_c("fs-dependants-rm"),
                             help='Removes dependencies\n'
                                  'Optional:\n'
                                  '--file <file> for File check')
 
-        commands.add_option('', '--create-pool', action="store",
+        commands.add_argument('--create-pool', action="store",
                             type="string",
                             dest=_c("create-pool"),
                             metavar='<pool id>',
@@ -622,7 +622,7 @@ class CmdLine:
                                  "--thinp-type [THIN|THICK]"
                                  "--member_count [0-9]+")
 
-        commands.add_option('', '--delete-pool', action="store",
+        commands.add_argument('--delete-pool', action="store",
                             type="string",
                             dest=_c("delete-pool"),
                             metavar='<pool id>',
@@ -633,167 +633,166 @@ class CmdLine:
         #Options to the actions
         #We could hide these with help = optparse.SUPPRESS_HELP
         #Should we?
-        command_args = OptionGroup(parser, 'Command options')
-        command_args.add_option('', '--size', action="store", type="string",
+        command_args = parser.add_argument_group('Command options')
+        command_args.add_argument('--size', action="store", type=str,
                                 metavar='size',
                                 dest=_o("size"),
                                 help='size (Can use B, K, M, G, T, P postfix '
                                      '(IEC sizing)')
-        command_args.add_option('', '--pool', action="store", type="string",
+        command_args.add_argument('--pool', action="store", type=str,
                                 metavar='pool id',
                                 dest=_o("pool"), help='pool ID')
-        command_args.add_option(
-            '', '--provisioning', action="store",
-            type="choice",
+        command_args.add_argument(
+            '--provisioning', action="store",
             default='DEFAULT',
             choices=['DEFAULT', 'THIN', 'FULL'],
             dest="provisioning", help='[DEFAULT|THIN|FULL]')
 
-        command_args.add_option('', '--type', action="store", type="choice",
+        command_args.add_argument('--type', action="store",
                                 choices=['WWPN', 'WWNN', 'ISCSI', 'HOSTNAME',
                                          'SAS', 'SNAPSHOT', 'CLONE', 'COPY',
                                          'MIRROR_SYNC', 'MIRROR_ASYNC'],
                                 metavar="type",
                                 dest=_o("type"), help='type specifier')
 
-        command_args.add_option('', '--name', action="store", type="string",
+        command_args.add_argument('--name', action="store", type=str,
                                 metavar="name",
                                 dest=_o("name"),
                                 help='human readable name')
 
-        command_args.add_option('', '--volume', action="store", type="string",
+        command_args.add_argument('--volume', action="store", type=str,
                                 metavar="volume",
                                 dest=_o("volume"), help='volume ID')
 
-        command_args.add_option('', '--access', action="store", type="choice",
+        command_args.add_argument('--access', action="store",
                                 metavar="access",
                                 dest=_o("access"), choices=['RO', 'RW'],
                                 help='[RO|RW], read-only or read-write access')
 
-        command_args.add_option('', '--id', action="store", type="string",
+        command_args.add_argument('--id', action="store", type=str,
                                 metavar="initiator id",
                                 dest=_o("id"), help="initiator id")
 
-        command_args.add_option('', '--system', action="store", type="string",
+        command_args.add_argument('--system', action="store", type=str,
                                 metavar="system id",
                                 dest=_o("system"), help="system id")
 
-        command_args.add_option('', '--backing-snapshot', action="store",
-                                type="string",
+        command_args.add_argument('--backing-snapshot', action="store",
+                                type=str,
                                 metavar="<backing snapshot>", default=None,
                                 dest="backing_snapshot",
                                 help="backing snap shot name for operation")
 
-        command_args.add_option('', '--src', action="store", type="string",
+        command_args.add_argument('--src', action="store", type=str,
                                 metavar="<source file>", default=None,
                                 dest=_o("src"), help="source of operation")
 
-        command_args.add_option('', '--dest', action="store", type="string",
+        command_args.add_argument('--dest', action="store", type=str,
                                 metavar="<source file>", default=None,
                                 dest=_o("dest"),
                                 help="destination of operation")
 
-        command_args.add_option('', '--file', action="append", type="string",
+        command_args.add_argument('--file', action="append", type=str,
                                 metavar="<file>", default=[],
                                 dest="file",
                                 help="file to include in operation, option "
                                      "can be repeated")
 
-        command_args.add_option('', '--fileas', action="append", type="string",
+        command_args.add_argument('--fileas', action="append", type=str,
                                 metavar="<fileas>", default=[],
                                 dest="fileas",
                                 help="file to be renamed as, option can "
                                      "be repeated")
 
-        command_args.add_option('', '--fs', action="store", type="string",
+        command_args.add_argument('--fs', action="store", type=str,
                                 metavar="<file system>", default=None,
                                 dest=_o("fs"), help="file system of interest")
 
-        command_args.add_option('', '--exportpath', action="store",
-                                type="string",
+        command_args.add_argument('--exportpath', action="store",
+                                type=str,
                                 metavar="<path for export>", default=None,
                                 dest=_o("exportpath"),
                                 help="desired export path on array")
 
-        command_args.add_option('', '--root', action="append", type="string",
+        command_args.add_argument('--root', action="append", type=str,
                                 metavar="<no_root_squash_host>", default=[],
                                 dest="nfs_root",
                                 help="list of hosts with no_root_squash")
 
-        command_args.add_option('', '--ro', action="append", type="string",
+        command_args.add_argument('--ro', action="append", type=str,
                                 metavar="<read only host>", default=[],
                                 dest="nfs_ro",
                                 help="list of hosts with read/only access")
 
-        command_args.add_option('', '--rw', action="append", type="string",
+        command_args.add_argument('--rw', action="append", type=str,
                                 metavar="<read/write host>", default=[],
                                 dest="nfs_rw",
                                 help="list of hosts with read/write access")
 
-        command_args.add_option('', '--anonuid', action="store", type="string",
+        command_args.add_argument('--anonuid', action="store", type=str,
                                 metavar="<anonymous uid>", default=None,
                                 dest="anonuid", help="uid to map to anonymous")
 
-        command_args.add_option('', '--anongid', action="store", type="string",
+        command_args.add_argument('--anongid', action="store", type=str,
                                 metavar="<anonymous uid>", default=None,
                                 dest="anongid", help="gid to map to anonymous")
 
-        command_args.add_option(
-            '', '--authtype', action="store", type="string",
+        command_args.add_argument(
+            '--authtype', action="store", type=str,
             metavar="<type>", default=None,
             dest="authtype",
             help="NFS client authentication type")
 
-        command_args.add_option('', '--all', action="store_true", dest="all",
+        command_args.add_argument('--all', action="store_true", dest="all",
                                 default=False,
                                 help='specify all in an operation')
 
-        command_args.add_option('', '--src_start', action="append", type="int",
+        command_args.add_argument('--src_start', action="append", type=int,
                                 metavar="<source block start>", default=None,
                                 dest=_o("src_start"),
                                 help="source block address to replicate")
 
-        command_args.add_option(
-            '', '--dest_start', action="append", type="int",
+        command_args.add_argument(
+            '--dest_start', action="append", type=int,
             metavar="<dest. block start>", default=None,
             dest=_o("dest_start"),
             help="destination block address to replicate")
 
-        command_args.add_option('', '--count', action="append", type="int",
+        command_args.add_argument('--count', action="append", type=int,
                                 metavar="<block count>", default=None,
                                 dest=_o("count"),
                                 help="number of blocks to replicate")
 
-        command_args.add_option('', '--in-user', action="store", type="string",
+        command_args.add_argument('--in-user', action="store", type=str,
                                 metavar="<username>", default=None,
                                 dest=_o("username"),
                                 help="CHAP inbound user name")
 
-        command_args.add_option(
-            '', '--in-password', action="store", type="string",
+        command_args.add_argument(
+            '--in-password', action="store", type=str,
             metavar="<password>", default=None,
             dest=_o("password"),
             help="CHAP inbound password")
 
-        command_args.add_option(
-            '', '--out-user', action="store", type="string",
+        command_args.add_argument(
+            '--out-user', action="store", type=str,
             metavar="<out_user>", default=None,
             dest=_o("out_user"),
             help="CHAP outbound user name")
 
-        command_args.add_option('', '--out-password', action="store",
-                                type="string",
+        command_args.add_argument('--out-password', action="store",
+                                type=str,
                                 metavar="<out_password>", default=None,
                                 dest=_o("out_password"),
                                 help="CHAP outbound password")
 
-        command_args.add_option('-o', '--optional', action="store_true",
+        command_args.add_argument('-o', '--optional', action="store_true",
                                 metavar="<flag_opt_data>", default=None,
                                 dest=_o("flag_opt_data"),
                                 help="Retrieving optional data also if " +
                                      "available.")
 
-        command_args.add_option('', '--member-id',
+        command_args.add_argument('', '--member-id',
                                 action="append",
                                 type="string",
                                 metavar="<member_id>",
@@ -802,26 +801,26 @@ class CmdLine:
                                      "Disk/Pool/Volume. This option is "
                                      "repeatable")
 
-        command_args.add_option('', '--member-type', action="store",
+        command_args.add_argument('', '--member-type', action="store",
                                 type="string",
                                 metavar="<member_type>",
                                 dest=_o("member_type_str"),
                                 help="Pool member type, [DISK|POOL|VOLUME]")
 
-        command_args.add_option('', '--member-count', action="store",
+        command_args.add_argument('', '--member-count', action="store",
                                 type="int",
                                 metavar="<member_count>",
                                 dest=_o("member_count"),
                                 help="Pool member count, " +
                                      "integer bigger than 0")
 
-        command_args.add_option('', '--raid-type', action="store",
+        command_args.add_argument('', '--raid-type', action="store",
                                 type="string",
                                 metavar="<raid_type>", default=None,
                                 dest=_o("raid_type_str"),
                                 help="Pool RAID type, [RAID0|RAID1|RAID5...]")
 
-        command_args.add_option('', '--thinp-type', action="store",
+        command_args.add_argument('', '--thinp-type', action="store",
                                 type="string",
                                 metavar="<thinp_type>", default=None,
                                 dest=_o("thinp_type_str"),
