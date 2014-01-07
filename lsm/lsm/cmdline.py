@@ -705,7 +705,6 @@ class CmdLine:
             return "None"
 
     ## Display the types of nfs client authentication that are supported.
-    # @param    self    The this pointer
     # @return None
     def display_nfs_client_authentication(self):
         """
@@ -717,7 +716,6 @@ class CmdLine:
             out(", ".join(self.c.export_auth()))
 
     ## Method that calls the appropriate method based on what the list type is
-    # @param    self    The this pointer
     # @param    args    Argparse argument object
     def list(self, args):
 
@@ -787,7 +785,6 @@ class CmdLine:
         return i
 
     ## Creates an access group.
-    # @param    self    The this pointer
     def create_access_group(self, args):
         i = CmdLine._init_type_to_enum(self.args.opt_type)
         access_group = self.c.access_group_create(args.name, args.id, i,
@@ -843,21 +840,18 @@ class CmdLine:
         self.display_data(groups)
 
     ## Used to delete access group
-    # @param    self    The this pointer
     def delete_access_group(self, args):
         agl = self.c.access_group_list()
         group = _get_item(agl, args.group_id, "access group id")
         return self.c.access_group_del(group)
 
     ## Used to delete a file system
-    # @param    self    The this pointer
     def delete_fs(self, args):
         fs = _get_item(self.c.fs(), args.fs_id, "filesystem id")
         if self.confirm_prompt(True):
             self._wait_for_it("delete-fs", self.c.fs_delete(fs), None)
 
     ## Used to create a file system
-    # @param    self    The this pointer
     def create_fs(self, args):
         p = _get_item(self.c.pools(), args.pool, "pool id")
         fs = self._wait_for_it("create-fs",
@@ -866,7 +860,6 @@ class CmdLine:
         self.display_data([fs])
 
     ## Used to resize a file system
-    # @param    self    The this pointer
     def resize_fs(self, args):
         fs = _get_item(self.c.fs(), args.id, "filesystem id")
         size = self._size(args.size)
@@ -877,7 +870,6 @@ class CmdLine:
             self.display_data([fs])
 
     ## Used to clone a file system
-    # @param    self    The this pointer
     def clone_fs(self, args):
         src_fs = _get_item(self.c.fs(), args.source_name, "source file system id")
 
@@ -891,7 +883,6 @@ class CmdLine:
         self.display_data([fs])
 
     ## Used to clone a file(s)
-    # @param    self    The this pointer
     def clone_file(self, args):
         fs = _get_item(self.c.fs(), args.fs, "filesystem id")
 
@@ -1038,7 +1029,6 @@ class CmdLine:
             out("Description: %s Version: %s" % (desc, version))
 
     ## Creates a volume
-    # @param    self    The this pointer
     def create_volume(self, args):
         #Get pool
         p = _get_item(self.c.pools(), args.pool, "pool id")
@@ -1052,7 +1042,6 @@ class CmdLine:
         self.display_data([vol])
 
     ## Creates a snapshot
-    # @param    self    The this pointer
     def create_ss(self, args):
         #Get fs
         fs = _get_item(self.c.fs(), args.fs, "fs id")
@@ -1065,7 +1054,6 @@ class CmdLine:
         self.display_data([ss])
 
     ## Restores a snap shot
-    # @param    self    The this pointer
     def restore_ss(self, args):
         #Get snapshot
         fs = _get_item(self.c.fs(), args.fs, "fs id")
@@ -1095,7 +1083,6 @@ class CmdLine:
                                               None)
 
     ## Deletes a volume
-    # @param    self    The this pointer
     def delete_volume(self, args):
         v = _get_item(self.c.volumes(), args.id, "volume id")
         if self.confirm_prompt(True):
@@ -1103,7 +1090,6 @@ class CmdLine:
                               None)
 
     ## Deletes a snap shot
-    # @param    self    The this pointer
     def delete_ss(self, args):
         fs = _get_item(self.c.fs(), args.fs, "filesystem id")
         ss = _get_item(self.c.fs_snapshots(fs), args.id, "snapshot id")
@@ -1114,7 +1100,6 @@ class CmdLine:
 
     ## Waits for an operation to complete by polling for the status of the
     # operations.
-    # @param    self    The this pointer
     # @param    msg     Message to display if this job fails
     # @param    job     The job id to wait on
     # @param    item    The item that could be available now if there is no job
@@ -1143,7 +1128,6 @@ class CmdLine:
                     raise ArgError(msg + " job error code= " + str(s))
 
     ## Retrieves the status of the specified job
-    # @param    self    The this pointer
     def job_status(self, args):
         (s, percent, i) = self.c.job_status(args.id)
 
@@ -1157,7 +1141,6 @@ class CmdLine:
             self.shutdown(common.ErrorNumber.JOB_STARTED)
 
     ## Replicates a volume
-    # @param    self    The this pointer
     def replicate_volume(self, args):
         p = None
         if args.pool:
@@ -1175,7 +1158,6 @@ class CmdLine:
         self.display_data([vol])
 
     ## Replicates a range of a volume
-    # @param    self    The this pointer
     def replicate_volume_range(self, args):
         src = _get_item(self.c.volumes(), args.src, "source volume id")
         dest = _get_item(self.c.volumes(), args.dest, "destination volume id")
@@ -1203,13 +1185,11 @@ class CmdLine:
     ##
     # Returns the block size in bytes for each block represented in
     # volume_replicate_range
-    # @param    self    The this pointer
     def replicate_volume_range_block_size(self, args):
         s = _get_item(self.c.systems(), args.id, "system id")
         out(self.c.volume_replicate_range_block_size(s))
 
     ## Used to grant or revoke access to a volume to an initiator.
-    # @param    self    The this pointer
     # @param    grant   bool, if True we grant, else we un-grant.
     def _access(self, grant):
         v = _get_item(self.c.volumes(), self.args.opt_volume, "volume id")
@@ -1226,12 +1206,10 @@ class CmdLine:
             self.c.initiator_revoke(initiator, v)
 
     ## Grant access to volume to an initiator
-    # @param    self    The this pointer
     def access_grant(self):
         return self._access(True)
 
     ## Revoke access to volume to an initiator
-    # @param    self    The this pointer
     def access_revoke(self):
         return self._access(False)
 
@@ -1254,7 +1232,6 @@ class CmdLine:
         return self._access_group(args, grant=False)
 
     ## Re-sizes a volume
-    # @param    self    The this pointer
     def resize_volume(self, args):
         v = _get_item(self.c.volumes(), args.id, "volume id")
         size = self._size(args.size)
@@ -1265,13 +1242,11 @@ class CmdLine:
             self.display_data([vol])
 
     ## Removes a nfs export
-    # @param    self    The this pointer
     def nfs_export_remove(self, args):
         export = _get_item(self.c.exports(), args.id, "nfs export id")
         self.c.export_remove(export)
 
     ## Exports a file system as a NFS export
-    # @param    self    The this pointer
     def nfs_export_fs(self, args):
         fs = _get_item(self.c.fs(), args.id, "file system id")
 
@@ -1293,28 +1268,24 @@ class CmdLine:
         self.display_data([export])
 
     ## Displays volume dependants.
-    # @param    self    The this pointer
     def volume_dependants(self, args):
         v = _get_item(self.c.volumes(), args.id, "volume id")
         rc = self.c.volume_child_dependency(v)
         out(rc)
 
     ## Removes volume dependants.
-    # @param    self    The this pointer
     def volume_dependants_rm(self, args):
         v = _get_item(self.c.volumes(), args.id, "volume id")
         self._wait_for_it("volume-dependant-rm",
                           self.c.volume_child_dependency_rm(v), None)
 
     ## Displays file system dependants
-    # @param    self    The this pointer
     def fs_dependants(self, args):
         fs = _get_item(self.c.fs(), args.id, "file system id")
         rc = self.c.fs_child_dependency(fs, args.file)
         out(rc)
 
     ## Removes file system dependants
-    # @param    self    The this pointer
     def fs_dependants_rm(self, args):
         fs = _get_item(self.c.fs(), args.id, "file system id")
         self._wait_for_it("fs-dependants-rm",
@@ -1323,7 +1294,6 @@ class CmdLine:
                           None)
 
     ## Deletes a pool
-    # @param    self    The this pointer
     def delete_pool(self, args):
         pool = _get_item(self.c.pools(), args.pool_id, "pool id")
         if self.confirm_prompt(True):
@@ -1332,7 +1302,6 @@ class CmdLine:
                               None)
 
     ## Creates a pool
-    # @param    self    The this pointer
     def create_pool(self, args):
         pool_name = args.pool_id
         raid_type = data.Pool.RAID_TYPE_UNKNOWN
@@ -1437,7 +1406,6 @@ class CmdLine:
                     pass
 
     ## Class constructor.
-    # @param    self    The this pointer
     def __init__(self):
         self.uri = None
         self.c = None
@@ -1470,7 +1438,6 @@ class CmdLine:
                 raise ArgError("password specified with no user name in uri")
 
     ## Does appropriate clean-up
-    # @param    self    The this pointer
     # @param    ec      The exit code
     def shutdown(self, ec=None):
         if self.cleanup:
@@ -1480,7 +1447,6 @@ class CmdLine:
             sys.exit(ec)
 
     ## Process the specified command
-    # @param    self    The this pointer
     # @param    cli     The object instance to invoke methods on.
     def process(self, cli=None):
         """
