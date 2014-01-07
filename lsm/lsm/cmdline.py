@@ -632,12 +632,11 @@ class CmdLine:
         """
         Command line interface parameters
         """
-        parser = ArgumentParser()
-        parser.description = 'libStorageMgmt command line interface. \n'
-
-        parser.epilog = ('Copyright 2012-2013 Red Hat, Inc.\n'
-                         'Please report bugs to '
-                         '<libstoragemgmt-devel@lists.sourceforge.net>\n')
+        parser = ArgumentParser(description='The libStorageMgmt command line interface.'
+                                ' Run %(prog)s <command> -h for more on each command.',
+                                epilog='Copyright 2012-2013 Red Hat, Inc.\n'
+                                'Please report bugs to '
+                                '<libstoragemgmt-devel@lists.sourceforge.net>\n')
 
         parser.add_argument('-v', '--version', action='version',
                             version="%s %s" % (sys.argv[0], VERSION))
@@ -678,9 +677,7 @@ class CmdLine:
                                'to stdout.')
 
 
-        subparsers = parser.add_subparsers(title='subcommands',
-                                           description='valid subcommands',
-                                           help='additional help')
+        subparsers = parser.add_subparsers(metavar="command")
 
         # Walk the command list and add all of them to the parser
         for cmd in cmds:
