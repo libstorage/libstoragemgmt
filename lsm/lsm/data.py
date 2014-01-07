@@ -159,139 +159,6 @@ class IData(object):
     def column_data(self, human=False, enum_as_number=False):
         pass
 
-# Status, using DMTF 2.23.0Final CIM_ManagedSystemElement['OperationalStatus']
-    MAX_STATUS_BITS = 64
-    STATUS_UNKNOWN = 1 << 0
-    STATUS_OTHER = 1 << 1
-    STATUS_OK = 1 << 2
-    STATUS_DEGRADED = 1 << 3
-    STATUS_STRESSED = 1 << 4
-    STATUS_PREDICTIVE_FAILURE = 1 << 5
-    STATUS_ERROR = 1 << 6
-    STATUS_NON_RECOVERABLE_ERROR = 1 << 7
-    STATUS_STARTING = 1 << 8
-    STATUS_STOPPING = 1 << 9
-    STATUS_STOPPED = 1 << 10
-    STATUS_IN_SERVICE = 1 << 11
-    STATUS_NO_CONTACT = 1 << 12
-    STATUS_LOST_COMMUNICATION = 1 << 13
-    STATUS_ABORTED = 1 << 14
-    STATUS_DORMANT = 1 << 15
-    STATUS_SUPPORTING_ENTITY_IN_ERROR = 1 << 16
-    STATUS_COMPLETED = 1 << 17
-    STATUS_POWER_MODE = 1 << 18
-
-    STATUS = {
-        STATUS_UNKNOWN:                 'UNKNOWN',
-        STATUS_OTHER:                   'OTHER',
-        STATUS_OK:                      'OK',
-        STATUS_DEGRADED:                'DEGRADED',
-        STATUS_STRESSED:                'STRESSED',
-        STATUS_PREDICTIVE_FAILURE:      'PREDICTIVE_FAILURE',
-        STATUS_ERROR:                   'ERROR',
-        STATUS_NON_RECOVERABLE_ERROR:   'NON_RECOVERABLE_ERROR',
-        STATUS_STARTING:                'STARTING',
-        STATUS_STOPPING:                'STOPPING',
-        STATUS_STOPPED:                 'STOPPED',
-        STATUS_IN_SERVICE:              'IN_SERVICE',
-        STATUS_NO_CONTACT:              'NO_CONTACT',
-        STATUS_LOST_COMMUNICATION:      'LOST_COMMUNICATION',
-        STATUS_ABORTED:                 'ABORTED',
-        STATUS_DORMANT:                 'DORMANT',
-        STATUS_SUPPORTING_ENTITY_IN_ERROR: 'SUPPORTING_ENTITY_IN_ERROR',
-        STATUS_COMPLETED:               'COMPLETED',
-        STATUS_POWER_MODE:              'POWER_MODE',
-    }
-
-    @staticmethod
-    def status_to_str(status):
-        """
-        Convert status to a string
-        When having multiple status, will use a comma between them
-        """
-        status_str = ''
-        for x in IData.STATUS.keys():
-            if x & status:
-                status_str = txt_a(status_str, IData.STATUS[x])
-        if status_str:
-            return status_str
-        return IData.STATUS[IData.STATUS_UNKNOWN]
-
-    @staticmethod
-    def status_dmtf_to_lsm_type(dmtf_status):
-        """
-        In DMTF, OperationalStatus is a list of number.
-        In libstoragemgmt, it's a number using binary bit.
-        """
-        rt = 0
-        try:
-            for x in dmtf_status:
-                if 1 <= x < IData.MAX_STATUS_BITS:
-                    rt |= (1 << x)
-            return rt
-        except (TypeError, ValueError):
-            return IData.STATUS_UNKNOWN
-
-    # Enable status, using SNIA SMI-S 1.4 rev6 and DMTF CIM 2.23.0Final:
-    #   CIM_EnabledLogicalElement['EnabledState']
-    #   CIM_DiskDrive['EnabledState']
-    #   CIM_LogicalPort['EnabledState']
-    ENABLE_STATUS_UNKNOWN = 0
-    ENABLE_STATUS_OTHER = 1
-    ENABLE_STATUS_ENABLED = 2
-    # Enabled (2) indicates that the element is or could be executing
-    # commands, will process any queued commands, and queues new requests.
-    ENABLE_STATUS_DISABLED = 3
-    # Enabled (2) indicates that the element is or could be executing
-    # commands, will process any queued commands, and queues new requests.
-    ENABLE_STATUS_SHUTTING_DOWN = 4
-    # Shutting Down (4) indicates that the element is in the process of going
-    # to a Disabled state.
-    ENABLE_STATUS_NOT_APPLICABLE = 5
-    # Not Applicable (5) indicates the element does not support being enabled
-    # or disabled.
-    ENABLE_STATUS_ENABLED_BUT_OFFLINE = 6
-    # Enabled but Offline (6) indicates that the element might be completing
-    # commands, and will drop any new requests.
-    ENABLE_STATUS_IN_TEST = 7
-    # Test (7) indicates that the element is in a test state.
-    ENABLE_STATUS_DEFERRED = 8
-    # Deferred (8) indicates that the element might be completing commands,
-    # but will queue any new requests.
-    ENABLE_STATUS_QUIESCE = 9
-    # Quiesce (9) indicates that the element is enabled but in a restricted
-    # mode.
-    ENABLE_STATUS_STARTING = 10
-    # Starting (10) indicates that the element is in the process of going to
-    # an Enabled state. New requests are queued.
-
-    ENABLE_STATUS = {
-        ENABLE_STATUS_UNKNOWN:              'UNKNOWN',
-        ENABLE_STATUS_OTHER:                'OTHER',
-        ENABLE_STATUS_ENABLED:              'ENABLED',
-        ENABLE_STATUS_DISABLED:             'DISABLED',
-        ENABLE_STATUS_SHUTTING_DOWN:        'SHUTTING_DOWN',
-        ENABLE_STATUS_NOT_APPLICABLE:       'NOT_APPLICABLE',
-        ENABLE_STATUS_ENABLED_BUT_OFFLINE:  'ENABLE_BUT_OFFLINE',
-        ENABLE_STATUS_IN_TEST:              'IN_TEST',
-        ENABLE_STATUS_DEFERRED:             'DEFERRED',
-        ENABLE_STATUS_QUIESCE:              'QUIESCE',
-        ENABLE_STATUS_STARTING:             'STARTING',
-    }
-
-    @staticmethod
-    def enable_status_to_str(enable_status):
-        if enable_status in IData.ENABLE_STATUS.keys():
-            return IData.ENABLE_STATUS[enable_status]
-        return IData.ENABLE_STATUS[IData.ENABLE_STATUS_UNKNOWN]
-
-    @staticmethod
-    def enable_status_str_to_type(enable_status_str):
-        key = get_key(IData.ENABLE_STATUS, enable_status_str)
-        if key or key == 0:
-            return key
-        return IData.ENABLE_STATUS_UNKNOWN
-
     # We use '-1' to indicate we failed to get the requested number.
     # For example, when block found is undetectable, we use '-1' instead of
     # confusing 0.
@@ -384,13 +251,80 @@ class Disk(IData):
         DISK_TYPE_HYBRID:           'HYBRID',
     }
 
+    MAX_DISK_STATUS_BITS = 64
+    # Disk status could be any combination of these status.
+    STATUS_UNKNOWN = 1 << 0
+    # UNKNOWN:
+    #   Failed to query out the status of Disk.
+    STATUS_OK = 1 << 1
+    # OK:
+    #   Disk is accessible with no issue.
+    STATUS_OTHER = 1 << 2
+    # OTHER:
+    #   Should explain in Disk.status_info for detail.
+    STATUS_PREDICTIVE_FAILURE = 1 << 3
+    # PREDICTIVE_FAILURE:
+    #   Disk is in unstable state and will predictive fail.
+    STATUS_ERROR = 1 << 4
+    # ERROR:
+    #   Disk data is not accessible due to hardware issue or connection error.
+    STATUS_OFFLINE = 1 << 5
+    # OFFLINE:
+    #   Disk is connected but disabled by array for internal issue
+    #   Should explain in Disk.status_info for reason.
+    STATUS_STARTING = 1 << 6
+    # STARTING:
+    #   Disk is reviving from STOPPED status. Disk is not accessible.
+    STATUS_STOPPING = 1 << 7
+    # STOPPING:
+    #   Disk is stopping by administrator. Disk is not accessible.
+    STATUS_STOPPED = 1 << 8
+    # STOPPING:
+    #   Disk is stopped by administrator. Disk is not accessible.
+    STATUS_INITIALIZING = 1 << 9
+    # INITIALIZING:
+    #   Disk is in initialing state.
+    #   Mostly shown when new disk inserted or creating spare disk.
+    STATUS_RECONSTRUCTING = 1 << 10
+    # RECONSTRUCTING:
+    #   Disk is in reconstructing date from other RAID member.
+    #   Should explain progress in Disk.status_info
+
+    _STATUS = {
+        STATUS_UNKNOWN: 'UNKNOWN',
+        STATUS_OK: 'OK',
+        STATUS_OTHER: 'OTHER',
+        STATUS_PREDICTIVE_FAILURE: 'PREDICTIVE_FAILURE',
+        STATUS_ERROR: 'ERROR',
+        STATUS_OFFLINE: 'OFFLINE',
+        STATUS_STARTING: 'STARTING',
+        STATUS_STOPPING: 'STOPPING',
+        STATUS_STOPPED: 'STOPPED',
+        STATUS_INITIALIZING: 'INITIALIZING',
+        STATUS_RECONSTRUCTING: 'RECONSTRUCTING',
+    }
+
+    @staticmethod
+    def status_to_str(status):
+        """
+        Convert status to a string
+        When having multiple status, will use a comma between them
+        """
+        status_str = ''
+        for x in Disk._STATUS.keys():
+            if x & status:
+                status_str = txt_a(status_str, Disk._STATUS[x])
+        if status_str:
+            return status_str
+        raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                       "Invalid Disk.status: %d" % status)
+
     _OPT_PROPERTIES_2_HEADER = {
         'sn':                       'SN',
         'part_num':                 'Part Number',
         'vendor':                   'Vendor',
         'model':                    'Model',
-        'enable_status':            'Enable Status',
-        'error_info':               'Error Info',
+        'status_info':              'Status Info',
         'owner_ctrler_id':          'Controller Owner',
     }
 
@@ -464,10 +398,6 @@ class Disk(IData):
             if enum_as_number:
                 # current no size convert needed.
                 pass
-            else:
-                if opt_pro == 'enable_status':
-                    opt_pro_value = Disk.enable_status_to_str(opt_pro_value)
-
             opt_data_values.extend([opt_pro_value])
         return opt_data_values
 
@@ -858,6 +788,122 @@ class Pool(IData):
             return element_str
         return Pool._ELEMENT_TYPE[Pool.ELEMENT_TYPE_UNKNOWN]
 
+    MAX_POOL_STATUS_BITS = 64
+    # Pool status could be any combination of these status.
+    STATUS_UNKNOWN = 1 << 0
+    # UNKNOWN:
+    #   Failed to query out the status of Pool.
+    STATUS_OK = 1 << 1
+    # OK:
+    #   Pool is accessible with no issue.
+    STATUS_OTHER = 1 << 2
+    # OTHER:
+    #   Should explain in Pool.status_info for detail.
+    STATUS_STRESSED = 1 < 3
+    # STRESSED:
+    #   Pool is under heavy workload which cause bad I/O performance.
+    STATUS_DEGRADED = 1 << 4
+    # DEGRADED:
+    #   Pool is accessible but lost full RAID protection due to
+    #   I/O error or offline of one or more RAID member.
+    #   Example:
+    #    * RAID 6 pool lost access to 1 disk or 2 disks.
+    #    * RAID 5 pool lost access to 1 disk.
+    #   May explain detail in Pool.status_info.
+    #   Example:
+    #    * Pool.status = 'Disk 0_0_1 offline'
+    STATUS_ERROR = 1 << 5
+    # ERROR:
+    #   Pool data is not accessible due to RAID members offline.
+    #   Example:
+    #    * RAID 5 pool lost access to 2 disks.
+    #    * RAID 0 pool lost access to 1 disks.
+    STATUS_OFFLINE = 1 << 6
+    # OFFLINE:
+    #   Pool is not accessible for internal issue.
+    #   Should explain in Pool.status_info for reason.
+    STATUS_STARTING = 1 << 7
+    # STARTING:
+    #   Pool is reviving from STOPPED status. Pool is not accessible.
+    STATUS_STOPPING = 1 << 8
+    # STOPPING:
+    #   Pool is stopping by administrator. Pool is not accessible.
+    STATUS_STOPPED = 1 << 9
+    # STOPPING:
+    #   Pool is stopped by administrator. Pool is not accessible.
+    STATUS_READ_ONLY = 1 << 10
+    # READ_ONLY:
+    #   Pool is read only.
+    #   Pool.status_info should explain why.
+    STATUS_DORMANT = 1 << 11
+    # DORMANT:
+    #   Pool is not accessible.
+    #   It's not stopped by administrator, but stopped for some mechanism.
+    #   For example, The DR pool acting as the SYNC replication target will be
+    #   in DORMANT state, As long as the PR(production) pool alive.
+    #   Another example could relocating.
+    STATUS_RECONSTRUCTING = 1 << 12
+    # RECONSTRUCTING:
+    #   Pool is reconstructing the hash data or mirror data.
+    #   Mostly happen when disk revive from offline or disk replaced.
+    #   Pool.status_info can contain progress of this reconstruction job.
+    STATUS_VERIFYING = 1 << 13
+    # VERIFYING:
+    #   Array is running integrity check on data of current pool.
+    #   It might be started by administrator or array itself.
+    #   Pool.status_info can contain progress of this verification job.
+    STATUS_INITIALIZING = 1 << 14
+    # INITIALIZING:
+    #   Pool is in initialing state.
+    #   Mostly shown when new pool created or array boot up.
+    STATUS_GROWING = 1 << 15
+    # GROWING:
+    #   Pool is growing its size and doing internal jobs.
+    #   Pool.status_info can contain progress of this growing job.
+    STATUS_SHRINKING = 1 << 16
+    # SHRINKING:
+    #   Pool is shrinking its size and doing internal jobs.
+    #   Pool.status_info can contain progress of this shrinking job.
+    STATUS_DESTROYING = 1 << 17
+    # DESTROYING:
+    #   Array is removing current pool.
+
+    _STATUS = {
+        STATUS_UNKNOWN: 'UNKNOWN',
+        STATUS_OK: 'OK',
+        STATUS_OTHER: 'OTHER',
+        STATUS_STRESSED: 'STRESSED',
+        STATUS_DEGRADED: 'DEGRADED',
+        STATUS_ERROR: 'ERROR',
+        STATUS_OFFLINE: 'OFFLINE',
+        STATUS_STARTING: 'STARTING',
+        STATUS_STOPPING: 'STOPPING',
+        STATUS_STOPPED: 'STOPPED',
+        STATUS_READ_ONLY: 'READ_ONLY',
+        STATUS_DORMANT: 'DORMANT',
+        STATUS_RECONSTRUCTING: 'RECONSTRUCTING',
+        STATUS_VERIFYING: 'VERIFYING',
+        STATUS_INITIALIZING: 'INITIALIZING',
+        STATUS_GROWING: 'GROWING',
+        STATUS_SHRINKING: 'SHRINKING',
+        STATUS_DESTROYING: 'DESTROYING',
+    }
+
+    @staticmethod
+    def status_to_str(status):
+        """
+        Convert status to a string
+        When having multiple status, will use a comma between them
+        """
+        status_str = ''
+        for x in Pool._STATUS.keys():
+            if x & status:
+                status_str = txt_a(status_str, Pool._STATUS[x])
+        if status_str:
+            return status_str
+        raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                       "Invalid Pool.status: %d" % status)
+
     _OPT_PROPERTIES_2_HEADER = {
         'raid_type': 'RAID Type',
         # raid_type: RAID Type of this pool's RAID Group(s):
@@ -878,6 +924,10 @@ class Pool(IData):
         #             day, we will expand to THINP_TYPE_THIN_ALLOCATED and etc
         'status': 'Status',
         # status: The status of this pool, OK, Data Lose, or etc.
+        'status_info': 'Status Info',
+        # status_info: A string explaining the detail of current status.
+        #              Check comments above about Pool.STATUS_XXX for
+        #              what info you should save in it.
         'element_type': 'Element Type',
         # element_type: That kind of items can this pool create:
         #               ELEMENT_TYPE_VOLUME
