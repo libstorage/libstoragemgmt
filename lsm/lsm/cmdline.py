@@ -254,9 +254,8 @@ class CmdLine:
         """
         Command line interface parameters
         """
-        usage = "usage: %s [options]... [command]... [command options]..." % sys.argv[0]
         optparse.textwrap = MyWrapper
-        parser = ArgumentParser(usage=usage)
+        parser = ArgumentParser()
         parser.description = 'libStorageMgmt command line interface. \n'
 
         parser.epilog = ('Copyright 2012-2013 Red Hat, Inc.\n'
