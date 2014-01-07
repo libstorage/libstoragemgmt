@@ -124,7 +124,8 @@ cmds = (
                  ", ".join(list_choices) +
                  '. SNAPSHOTS requires --fs <fs id>.\n' +
                  '      POOLS can have -o switch.',
-                 choices=list_choices),
+                 choices=list_choices,
+                 type=str.upper),
             ],
         optional=[
             dict(name=('-o', '--optional'),
@@ -200,7 +201,8 @@ cmds = (
             dict(name="name", help='new access group name'),
             dict(name="id", help='initiator id'),
             dict(name="type", help=initiator_id_help,
-                 choices=initiator_id_types),
+                 choices=initiator_id_types,
+                 type=str.upper),
             dict(name="system", help='system id'),
             ],
         ),
@@ -211,7 +213,8 @@ cmds = (
             dict(name="gid", help='group id'),
             dict(name="iid", help='initiator id'),
             dict(name="type", help=initiator_id_help,
-                 choices=initiator_id_types),
+                 choices=initiator_id_types,
+                 type=str.upper),
             ],
         ),
 
@@ -324,7 +327,8 @@ cmds = (
         args=[
             dict(name="id", help='initiator id'),
             dict(name="type", help=initiator_id_help,
-                 choices=initiator_id_types),
+                 choices=initiator_id_types,
+                 type=str.upper),
             dict(name="volume", help='volume id'),
             dict(name="access", help=access_help,
                  choices=access_types),
@@ -488,7 +492,8 @@ cmds = (
             dict(name="--member-type", help=member_help,
                  choices=member_types),
             dict(name="--raid-type", help=raid_help,
-                 choices=raid_types),
+                 choices=raid_types,
+                 type=str.upper),
             dict(name="--size", help=size_help),
             dict(name="--provisioning",
                  help=provision_help,
@@ -683,13 +688,15 @@ class CmdLine:
         for cmd in cmds:
             sub_parser = subparsers.add_parser(cmd['name'], help=cmd['help'])
             for arg in cmd.get('args', []):
-                sub_parser.add_argument(arg['name'], help=arg.get('help', ""))
+                name = arg['name']
+                del arg['name']
+                sub_parser.add_argument(name, **arg)
             for arg in cmd.get('optional', []):
                 flags = arg['name']
+                del arg['name']
                 if not isinstance(flags, tuple):
                     flags = (flags,)
-                sub_parser.add_argument(*flags, help=arg.get('help', ""),
-                                        action=arg.get("action", 'store'))
+                sub_parser.add_argument(*flags, **arg)
 
             sub_parser.set_defaults(func=getattr(self, cmd['name'].replace("-", "_")))
 
