@@ -108,7 +108,7 @@ def parse(out):
 
 def parse_display(op):
     rc = []
-    out = call([cmd, '-l', op, '-t' + sep])[1]
+    out = call([cmd, '-t' + sep, 'list', '--type', op])[1]
     for line in out.split('\n'):
         elem = line.split(sep)
         if len(elem) > 1:
@@ -125,104 +125,112 @@ def name_to_id(op, name):
     return None
 
 
-def delete_init(init_id):
-    call([cmd, '--delete-initiator', init_id])
-
-
 def create_volume(pool):
-    out = call([cmd, '--create-volume', rs(12), '--size', '30M', '--pool',
-                pool, '-t' + sep, '--provisioning', 'DEFAULT'])[1]
+    out = call([cmd, '-t' + sep, 'create-volume', '--name', rs(12), '--size',
+                '30M', '--pool', pool, '--provisioning', 'DEFAULT'])[1]
     r = parse(out)
     return r[0][ID]
 
 
-def delete_volume(init_id):
-    call([cmd, '--delete-volume', init_id, '-t' + sep, '-f'])
+def delete_volume(vol_id):
+    call([cmd, '-t' + sep, '-f', 'delete-volume', '--id', vol_id])
 
 
 def create_fs(pool_id):
-    out = call([cmd, '--create-fs', rs(12), '--size', '500M', '--pool',
-                pool_id, '-t' + sep])[1]
+    out = call([cmd, '-t' + sep, 'create-fs', '--name', rs(12), '--size',
+                '500M', '--pool', pool_id])[1]
     r = parse(out)
     return r[0][ID]
 
 
 def delete_fs(init_id):
-    call([cmd, '--delete-fs', init_id, '-t' + sep, '-f'])
+    call([cmd, '-t' + sep, '-f', 'delete-fs', '--fs_id', init_id])
 
 
 def create_access_group(init_id, system_id):
-    out = call([cmd, '--create-access-group', rs(8), '--id', init_id,
-                '--type', 'ISCSI', '-t' + sep, '--system', system_id])[1]
+    out = call([cmd, '-t' + sep, 'create-access-group', '--name', rs(8),
+                '--id', init_id, '--type', 'ISCSI', '--system', system_id])[1]
     r = parse(out)
     return r[0][ID]
 
 
 def access_group_add_init(group, initiator):
-    call([cmd, '--access-group-add', group, '--id', initiator, '--type',
-          'ISCSI'])
+    call([cmd, 'access-group-add', '--gid', group, '--iid', initiator,
+          '--type', 'ISCSI'])
 
 
 def access_group_remove_init(group, initiator):
-    call([cmd, '--access-group-remove', group, '--id', initiator])
+    call([cmd, 'access-group-remove', '--gid', group, '--iid', initiator])
 
 
-def delete_access_group(init_id):
-    call([cmd, '--delete-access-group', init_id, '-t' + sep])
+# TODO Change --group_id to --gid to be consistent ?
+def delete_access_group(group_id):
+    call([cmd, '-t' + sep, 'delete-access-group', '--group_id', group_id ])
 
 
 def access_group_grant(group, volume_id):
-    call([cmd, '--access-grant-group', group, '--volume', volume_id,
+    call([cmd, 'access-grant-group', '--id', group, '--volume', volume_id,
           '--access', 'RW'])
 
 
 def access_group_revoke(group, volume_id):
-    call([cmd, '--access-revoke-group', group, '--volume', volume_id])
+    call([cmd, 'access-revoke-group', '--id', group, '--volume', volume_id])
 
 
 def resize_vol(init_id):
-    call([cmd, '--resize-volume', init_id, '--size', '60M', '-t' + sep, '-f'])
-    call([cmd, '--resize-volume', init_id, '--size', '100M', '-t' + sep,
-          '-f'])
+    call([cmd, '-t' + sep, '-f',
+          'resize-volume',
+          '--id', init_id,
+          '--size', '60M'])
+    call([cmd, '-t' + sep, '-f',
+          'resize-volume',
+          '--id', init_id,
+          '--size', '100M'])
     #Some devices cannot re-size down...
     #call([cmd, '--resize-volume', id, '--size', '30M' , '-t'+sep ])
 
 
 def resize_fs(init_id):
-    call([cmd, '--resize-fs', init_id, '--size', '1G', '-t' + sep, '-f'])
-    call([cmd, '--resize-fs', init_id, '--size', '750M', '-t' + sep, '-f'])
-    call([cmd, '--resize-fs', init_id, '--size', '300M', '-t' + sep, '-f'])
+    call([cmd, '-t' + sep, '-f', 'resize-fs', '--id', init_id, '--size', '1G'])
+    call([cmd, '-t' + sep, '-f', 'resize-fs', '--id', init_id, '--size', '750M'])
+    call([cmd, '-t' + sep, '-f', 'resize-fs', '--id', init_id, '--size', '300M'])
 
 
 def map_init(init, volume):
-    call([cmd, '--access-grant', init, '--volume', volume, '--access',
-          'RW', '-t' + sep])
+    call([cmd, '-t' + sep, 'access-grant', '--id', init, '--volume', volume,
+          '--access', 'RW'])
 
 
 def unmap(init, volume):
-    call([cmd, '--access-revoke', init, '--volume', volume])
+    call([cmd, 'access-revoke', '--id', init, '--volume', volume])
 
 
 def clone_fs(fs_id):
-    out = call([cmd, '--clone-fs', fs_id, '--name', 'cloned_' + rs(8),
-                '-t' + sep])[1]
+    # TODO Change to --source_id instead of --source_name ?
+    out = call([cmd, '-t' + sep, 'clone-fs', '--source_name', fs_id,
+                '--dest_name', 'cloned_' + rs(8)])[1]
     r = parse(out)
     return r[0][ID]
 
 
 def create_ss(fs_id):
-    out = call([cmd, '--create-ss', rs(12), '--fs', fs_id, '-t' + sep])[1]
+    out = call([cmd, '-t' + sep, 'create-ss', '--name', rs(12), '--fs',
+                fs_id])[1]
     r = parse(out)
     return r[0][ID]
 
 
 def delete_ss(fs_id, ss_id):
-    call([cmd, '--delete-ss', ss_id, '--fs', fs_id, '-f'])
+    call([cmd, '-f', 'delete-ss', '--id', ss_id, '--fs', fs_id])
 
 
 def replicate_volume(source_id, vol_type, pool=None):
-    out = call([cmd, '-r', source_id, '--type', vol_type,
-                '--name', 'lun_' + vol_type + '_' + rs(12), '-t' + sep])[1]
+    out = call([cmd,
+                '-t' + sep,
+                'replicate-volume',
+                '--id', source_id,
+                '--type', vol_type,
+                '--name', 'lun_' + vol_type + '_' + rs(12)])[1]
     r = parse(out)
     return r[0][ID]
 
@@ -231,21 +239,26 @@ def replicate_volume_range_bs(system_id):
     """
     Returns the replicated range block size.
     """
-    out = call([cmd, '--replicate-volume-range-block-size', system_id])[1]
+    out = call([cmd,
+                'replicate-volume-range-block-size',
+                '--id', system_id])[1]
     return int(out)
 
 
 def replicate_volume_range(vol_id, dest_vol_id, rep_type, src_start,
                            dest_start, count):
     out = call(
-        [cmd, '--replicate-volume-range', vol_id, '--type', rep_type,
-         '--dest', dest_vol_id, '--src_start', str(src_start), '--dest_start',
-         str(dest_start),
-         '--count', str(count), '-f'])
+        [cmd, '-f', 'replicate-volume-range',
+            '--src', vol_id,
+            '--type', rep_type,
+            '--dest', dest_vol_id,
+            '--src_start', str(src_start),
+            '--dest_start', str(dest_start),
+            '--count', str(count)])
 
 
 def get_systems():
-    out = call([cmd, '-l', 'SYSTEMS', '-t' + sep])[1]
+    out = call([cmd, '-t' + sep, 'list', '--type', 'SYSTEMS'])[1]
     system_list = parse(out)
     return system_list
 
@@ -253,21 +266,31 @@ def get_systems():
 def initiator_grant(initiator_id, vol_id):
 #initiator_grant(self, initiator_id, initiator_type, volume, access,
 #   flags = 0):
-    call([cmd, '--access-grant', initiator_id, '--type', 'ISCSI',
-          '--volume', vol_id, '--access', 'RW'])
+    call([cmd,
+          'access-grant',
+          '--id', initiator_id,
+          '--type', 'ISCSI',
+          '--volume', vol_id,
+          '--access', 'RW'])
 
 
 def initiator_chap(initiator):
-    call([cmd, '--iscsi-chap', initiator])
-    call([cmd, '--iscsi-chap', initiator, '--in-user', "foo",
+    call([cmd, 'iscsi-chap',
+          '--iid', initiator])
+    call([cmd, 'iscsi-chap',
+          '--iid', initiator,
+          '--in-user', "foo",
           '--in-password', "bar"])
-    call([cmd, '--iscsi-chap', initiator, '--in-user', "foo",
+    call([cmd, 'iscsi-chap',
+          '--iid', initiator, '--in-user', "foo",
           '--in-password', "bar", '--out-user', "foo",
           '--out-password', "bar"])
 
 
 def initiator_revoke(initiator_id, vol_id):
-    call([cmd, '--access-revoke', initiator_id, '--volume', vol_id])
+    call([cmd, 'access-revoke',
+                '--id', initiator_id,
+                '--volume', vol_id])
 
 
 def capabilities(system_id):
@@ -275,7 +298,7 @@ def capabilities(system_id):
     Return a hash table of key:bool where key is supported operation
     """
     rc = {}
-    out = call([cmd, '--capabilities', system_id, '-t' + sep])[1]
+    out = call([cmd, '-t' + sep, 'capabilities', '--system_id', system_id])[1]
     results = parse(out)
 
     for r in results:
@@ -284,7 +307,7 @@ def capabilities(system_id):
 
 
 def get_existing_fs(system_id):
-    out = call([cmd, '-l', 'FS', '-t' + sep])[1]
+    out = call([cmd, '-t' + sep, 'list', '--type', 'FS', ])[1]
     results = parse(out)
 
     if len(results) > 0:
@@ -306,14 +329,14 @@ def numbers():
 def display_check(display_list, system_id):
     s = [x for x in display_list if x != 'SNAPSHOTS']
     for p in s:
-        call([cmd, '-l', p])
-        call([cmd, '-l', p, '-H'])
-        call([cmd, '-l', p, '-H', '-t' + sep])
+        call([cmd, 'list', '--type', p])
+        call([cmd, '-H', 'list', '--type', p, ])
+        call([cmd, '-H', '-t' + sep, 'list', '--type', p])
 
     if 'SNAPSHOTS' in display_list:
         fs_id = get_existing_fs(system_id)
         if fs_id:
-            call([cmd, '-l', 'SNAPSHOTS', '--fs', fs_id])
+            call([cmd, 'list', '--type', 'SNAPSHOTS', '--fs', fs_id])
 
 
 def test_display(cap, system_id):
@@ -477,7 +500,7 @@ def test_mapping(cap, system_id):
 
 
 def test_plugin_info(cap, system_id):
-    out = call([cmd, '--plugin-info', '-t,'])[1]
+    out = call([cmd, '-t' + sep, 'plugin-info', ])[1]
 
 
 def create_all(cap, system_id):
