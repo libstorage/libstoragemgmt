@@ -479,9 +479,20 @@ class Smis(IStorageAreaNetwork):
         if 'systems' in u['parameters']:
             self.system_list = split(u['parameters']["systems"], ":")
 
-        self.tmo = timeout
         self._c = pywbem.WBEMConnection(url, (u['username'], password),
                                         u['parameters']["namespace"])
+        if "no_ssl_verify" in u["parameters"] \
+           and u["parameters"]["no_ssl_verify"] == 'yes':
+            try:
+                self._c = pywbem.WBEMConnection(url, (u['username'], password),
+                                                u['parameters']["namespace"],
+                                                no_verification=True)
+            except TypeError:
+                # pywbem is not holding fix from
+                # https://bugzilla.redhat.com/show_bug.cgi?id=1039801
+                pass
+
+        self.tmo = timeout
 
     def set_time_out(self, ms, flags=0):
         self.tmo = ms
