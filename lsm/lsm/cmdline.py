@@ -14,19 +14,19 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
 #
 # Author: tasleson
-from argparse import ArgumentParser
-import optparse
 import os
-import textwrap
 import sys
 import getpass
 import time
+
+from argparse import ArgumentParser
 
 import common
 import client
 import data
 from version import VERSION
 from data import Capabilities
+
 
 ##@package lsm.cmdline
 
@@ -102,7 +102,7 @@ provision_types = ('DEFAULT', 'THIN', 'FULL')
 provision_help = "provisioning type: " + ", ".join(provision_types)
 
 access_types = ('RO', 'RW')
-access_help = "access type: " + ", ".join(access_types),
+access_help = "access type: " + ", ".join(access_types)
 
 replicate_types = ('SNAPSHOT', 'CLONE', 'COPY', 'MIRROR_ASYNC', 'MIRROR_SYNC')
 replicate_help = "replication type: " + ", ".join(replicate_types)
@@ -131,6 +131,8 @@ cmds = (
             dict(name=('-o', '--optional'),
                  help='Retrieve additional optional info if available',
                  action='store_true'),
+            dict(name=('--fs'),
+                 help="File system id which is required when listing SNAPSHOTS"),
             ],
         ),
 
@@ -313,7 +315,8 @@ cmds = (
     dict(name='replicate-volume',
         help='Replicates a volume',
         args=[
-            dict(name="--name", help='volume name'),
+            dict(name="--id", help='Volume id to replicate'),
+            dict(name="--name", help='New replicated volume name'),
             dict(name="--type", help=replicate_help,
                  choices=replicate_types),
             ],
@@ -746,7 +749,7 @@ class CmdLine:
         elif args.type == 'FS':
             self.display_data(self.c.fs())
         elif args.type == 'SNAPSHOTS':
-            if self.args.opt_fs is None:
+            if args.fs is None:
                 raise ArgError("--fs <file system id> required")
 
             fs = _get_item(self.c.fs(), args.fs, 'filesystem')
@@ -793,7 +796,7 @@ class CmdLine:
 
     ## Creates an access group.
     def create_access_group(self, args):
-        i = CmdLine._init_type_to_enum(self.args.opt_type)
+        i = CmdLine._init_type_to_enum(args.type)
         access_group = self.c.access_group_create(args.name, args.id, i,
                                                   args.system)
         self.display_data([access_group])
@@ -1056,7 +1059,7 @@ class CmdLine:
                                *self.c.fs_snapshot_create(
                                    fs,
                                    args.name,
-                                   self.args.file))
+                                   self.args.file or []))
 
         self.display_data([ss])
 
@@ -1142,7 +1145,7 @@ class CmdLine:
             if i:
                 self.display_data([i])
 
-            self.c.job_free(self.cmd_value)
+            self.c.job_free(args.id)
         else:
             out(str(percent))
             self.shutdown(common.ErrorNumber.JOB_STARTED)
@@ -1153,7 +1156,7 @@ class CmdLine:
         if args.pool:
             p = _get_item(self.c.pools(), args.pool, "pool id")
 
-        v = _get_item(self.c.volumes(), args.name, "volume id")
+        v = _get_item(self.c.volumes(), args.id, "volume id")
 
         rep_type = data.Volume.rep_String_to_type(args.type)
         if rep_type == data.Volume.REPLICATE_UNKNOWN:
@@ -1200,27 +1203,28 @@ class CmdLine:
 
     ## Used to grant or revoke access to a volume to an initiator.
     # @param    grant   bool, if True we grant, else we un-grant.
-    def _access(self, grant):
-        v = _get_item(self.c.volumes(), self.args.opt_volume, "volume id")
-        initiator_id = self.cmd_value
+    def _access(self, grant, args):
+        v = _get_item(self.c.volumes(), args.volume, "volume id")
+        initiator_id = args.id
 
         if grant:
-            i_type = CmdLine._init_type_to_enum(self.args.opt_type)
-            access = data.Volume.access_string_to_type(self.args.opt_access)
+            i_type = CmdLine._init_type_to_enum(args.type)
+            access = data.Volume.access_string_to_type(args.access)
 
             self.c.initiator_grant(initiator_id, i_type, v, access)
         else:
-            initiator = _get_item(self.c.initiators(), initiator_id, "initiator id")
+            initiator = _get_item(self.c.initiators(), initiator_id,
+                                  "initiator id")
 
             self.c.initiator_revoke(initiator, v)
 
     ## Grant access to volume to an initiator
-    def access_grant(self):
-        return self._access(True)
+    def access_grant(self, args):
+        return self._access(True, args)
 
     ## Revoke access to volume to an initiator
-    def access_revoke(self):
-        return self._access(False)
+    def access_revoke(self, args):
+        return self._access(False, args)
 
     def _access_group(self, args, grant=True):
         agl = self.c.access_group_list()
@@ -1228,8 +1232,7 @@ class CmdLine:
         v = _get_item(self.c.volumes(), args.volume, "volume id")
 
         if grant:
-            access = data.Volume.access_string_to_type(
-                self.args.opt_access)
+            access = data.Volume.access_string_to_type(args.access)
             self.c.access_group_grant(group, v, access)
         else:
             self.c.access_group_revoke(group, v)
@@ -1319,6 +1322,7 @@ class CmdLine:
         member_count = 0
         thinp_type = data.Pool.THINP_TYPE_UNKNOWN
         size_bytes = 0
+        prov_type = data.Pool.THINP_TYPE_UNKNOWN
 
         if args.raid_type:
             raid_type = data.Pool.raid_type_str_to_type(
