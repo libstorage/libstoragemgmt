@@ -640,56 +640,64 @@ class CmdLine:
         """
         Command line interface parameters
         """
-        parser = ArgumentParser(description='The libStorageMgmt command line interface.'
-                                ' Run %(prog)s <command> -h for more on each command.',
-                                epilog='Copyright 2012-2013 Red Hat, Inc.\n'
-                                'Please report bugs to '
-                                '<libstoragemgmt-devel@lists.sourceforge.net>\n')
+        parent_parser = ArgumentParser(add_help=False)
 
-        parser.add_argument('-v', '--version', action='version',
+        parent_parser.add_argument('-v', '--version', action='version',
                             version="%s %s" % (sys.argv[0], VERSION))
-        parser.add_argument('-u', '--uri', action="store", type=str,
+        parent_parser.add_argument('-u', '--uri', action="store", type=str,
                           dest="uri",
                           help='uniform resource identifier (env LSMCLI_URI)')
-        parser.add_argument('-P', '--prompt', action="store_true", dest="prompt",
+        parent_parser.add_argument('-P', '--prompt', action="store_true", dest="prompt",
                           help='prompt for password (env LSMCLI_PASSWORD)')
-        parser.add_argument('-H', '--human', action="store_true", dest="human",
+        parent_parser.add_argument('-H', '--human', action="store_true", dest="human",
                           help='print sizes in human readable format\n'
                                '(e.g., MiB, GiB, TiB)')
-        parser.add_argument('-t', '--terse', action="store", dest="sep",
+        parent_parser.add_argument('-t', '--terse', action="store", dest="sep",
                           help='print output in terse form with "SEP" '
                                'as a record separator')
 
-        parser.add_argument('-e', '--enum', action="store_true", dest="enum",
+        parent_parser.add_argument('-e', '--enum', action="store_true", dest="enum",
                           default=False,
                           help='display enumerated types as numbers '
                                'instead of text')
 
-        parser.add_argument('-f', '--force', action="store_true", dest="force",
+        parent_parser.add_argument('-f', '--force', action="store_true", dest="force",
                           default=False,
                           help='bypass confirmation prompt for data '
                                'loss operations')
 
-        parser.add_argument('-w', '--wait', action="store", type=int,
+        parent_parser.add_argument('-w', '--wait', action="store", type=int,
                           dest="wait", default=30000,
                           help="command timeout value in ms (default = 30s)")
 
-        parser.add_argument('--header', action="store_true", dest="header",
+        parent_parser.add_argument('--header', action="store_true", dest="header",
                           help='include the header with terse')
 
-        parser.add_argument('-b', action="store_true", dest="async",
+        parent_parser.add_argument('-b', action="store_true", dest="async",
                           default=False,
                           help='run the command async. instead of waiting '
                                'for completion. '
                                'Command will exit(7) and job id written '
                                'to stdout.')
 
+        parent_parser.add_argument('-s', '--script', action="store_true",
+                            dest="script", default=False,
+                            help='Displaying data in script friendly way.')
+
+        parser = ArgumentParser(description='The libStorageMgmt command line interface.'
+                                ' Run %(prog)s <command> -h for more on each command.',
+                                epilog='Copyright 2012-2013 Red Hat, Inc.\n'
+                                'Please report bugs to '
+                                '<libstoragemgmt-devel@lists.sourceforge.net>\n',
+                                parents=[parent_parser])
+
 
         subparsers = parser.add_subparsers(metavar="command")
 
         # Walk the command list and add all of them to the parser
         for cmd in cmds:
-            sub_parser = subparsers.add_parser(cmd['name'], help=cmd['help'])
+            sub_parser = subparsers.add_parser(cmd['name'], help=cmd['help'],
+                                               parents=[parent_parser])
             for arg in cmd.get('args', []):
                 name = arg['name']
                 del arg['name']
