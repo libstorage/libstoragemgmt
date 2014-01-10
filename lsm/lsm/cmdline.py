@@ -862,10 +862,11 @@ class CmdLine:
         for cmd in cmds:
             sub_parser = subparsers.add_parser(cmd['name'], help=cmd['help'],
                                                parents=[parent_parser])
+            group = sub_parser.add_argument_group("required arguments")
             for arg in cmd.get('args', []):
                 name = arg['name']
                 del arg['name']
-                sub_parser.add_argument(name, required=True, **arg)
+                group.add_argument(name, required=True, **arg)
             for arg in cmd.get('optional', []):
                 flags = arg['name']
                 del arg['name']
