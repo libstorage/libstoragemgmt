@@ -428,9 +428,10 @@ cmds = (
             dict(name="--anonuid", help='uid to map to anonymous'),
             dict(name="--anongid", help='gid to map to anonymous'),
             dict(name="--auth-type", help='NFS client authentication type'),
-            dict(name="--root", help='no root squash', action='store_true'),
-            dict(name="--ro", help='read-only'),
-            dict(name="--rw", help='read-write'),
+            dict(name="--root", help='no root squash', action='append',
+                 default=[]),
+            dict(name="--ro", help='read-only', action='append', default=[]),
+            dict(name="--rw", help='read-write', action='append', default=[]),
         ],
     ),
 
@@ -1442,12 +1443,12 @@ class CmdLine:
         export = self.c.export_fs(
             fs.id,
             args.exportpath,
-            args.nfs_root,
+            args.root,
             args.rw,
             args.ro,
             args.anonuid,
             args.anongid,
-            args.authtype,
+            args.auth_type,
             None)
         self.display_data([export])
 
