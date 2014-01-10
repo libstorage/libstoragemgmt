@@ -340,18 +340,18 @@ class Disk(IData):
     DISK_TYPE_HYBRID = 54    # uses a combination of HDD and SSD
 
     _DISK_TYPE = {
-        DISK_TYPE_UNKNOWN:          'UNKNOWN',
-        DISK_TYPE_OTHER:            'OTHER',
-        DISK_TYPE_NOT_APPLICABLE:   'NOT_APPLICABLE',
-        DISK_TYPE_ATA:              'ATA',
-        DISK_TYPE_SATA:             'SATA',
-        DISK_TYPE_SAS:              'SAS',
-        DISK_TYPE_FC:               'FC',
-        DISK_TYPE_SOP:              'SOP',
-        DISK_TYPE_NL_SAS:           'NL_SAS',
-        DISK_TYPE_HDD:              'HDD',
-        DISK_TYPE_SSD:              'SSD',
-        DISK_TYPE_HYBRID:           'HYBRID',
+        DISK_TYPE_UNKNOWN: 'UNKNOWN',
+        DISK_TYPE_OTHER: 'OTHER',
+        DISK_TYPE_NOT_APPLICABLE: 'NOT_APPLICABLE',
+        DISK_TYPE_ATA: 'ATA',
+        DISK_TYPE_SATA: 'SATA',
+        DISK_TYPE_SAS: 'SAS',
+        DISK_TYPE_FC: 'FC',
+        DISK_TYPE_SOP: 'SOP',
+        DISK_TYPE_NL_SAS: 'NL_SAS',
+        DISK_TYPE_HDD: 'HDD',
+        DISK_TYPE_SSD: 'SSD',
+        DISK_TYPE_HYBRID: 'HYBRID',
     }
 
     MAX_DISK_STATUS_BITS = 64
@@ -438,12 +438,12 @@ class Disk(IData):
                                 'system_id']
 
     _OPT_PROPERTIES_2_HEADER = {
-        'sn':                       'SN',
-        'part_num':                 'Part Number',
-        'vendor':                   'Vendor',
-        'model':                    'Model',
-        'status_info':              'Status Info',
-        'owner_ctrler_id':          'Controller Owner',
+        'sn': 'SN',
+        'part_num': 'Part Number',
+        'vendor': 'Vendor',
+        'model': 'Model',
+        'status_info': 'Status Info',
+        'owner_ctrler_id': 'Controller Owner',
     }
 
     _OPT_PROPERTIES_SEQUENCE = ['sn', 'part_num', 'vendor', 'model',
@@ -568,7 +568,7 @@ class Volume(IData):
             return Volume.PROVISION_UNKNOWN
 
     @staticmethod
-    def rep_String_to_type(rt):
+    def rep_string_to_type(rt):
         if rt == "SNAPSHOT":
             return Volume.REPLICATE_SNAPSHOT
         elif rt == "CLONE":
@@ -1270,6 +1270,7 @@ class NfsExport(IData):
     _MAN_PROPERTIES_SEQUENCE = ['id', 'fs_id', 'export_path', 'auth', 'root',
                                 'rw', 'ro', 'anonuid', 'anongid', 'options']
 
+
 @default_property('src_block', doc="Source logical block address")
 @default_property('dest_block', doc="Destination logical block address")
 @default_property('block_count', doc="Number of blocks")
@@ -1298,7 +1299,7 @@ class AccessGroup(IData):
         'id': 'ID',
         'name': 'Name',
         'initiators': 'Initiator IDs',
-        'system_id':  'System ID',
+        'system_id': 'System ID',
     }
 
     _MAN_PROPERTIES_SEQUENCE = ['id', 'name', 'initiators', 'system_id']

@@ -1331,7 +1331,7 @@ class CmdLine:
 
         v = _get_item(self.c.volumes(), args.id, "volume id")
 
-        rep_type = data.Volume.rep_String_to_type(args.type)
+        rep_type = data.Volume.rep_string_to_type(args.type)
         if rep_type == data.Volume.REPLICATE_UNKNOWN:
             raise ArgError("invalid replication type= %s" % rep_type)
 
@@ -1345,7 +1345,7 @@ class CmdLine:
         src = _get_item(self.c.volumes(), args.src, "source volume id")
         dest = _get_item(self.c.volumes(), args.dest, "destination volume id")
 
-        rep_type = data.Volume.rep_String_to_type(args.type)
+        rep_type = data.Volume.rep_string_to_type(args.type)
         if rep_type == data.Volume.REPLICATE_UNKNOWN:
             raise ArgError("invalid replication type= %s" % rep_type)
 
