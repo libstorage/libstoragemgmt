@@ -57,6 +57,8 @@ test_fs_pool_id = ''
 
 CUR_SYS_ID = None
 
+code_coverage = bool(os.getenv('LSM_PYTHON_COVERAGE', False))
+
 
 def random_iqn():
     """Logic taken from anaconda library"""
@@ -85,9 +87,16 @@ def call(command, expected_rc=0):
     """
     Call an executable and return a tuple of exitcode, stdout, stderr
     """
-    print command
 
-    process = Popen(command, stdout=PIPE, stderr=PIPE)
+    if code_coverage:
+        actual_command = ['coverage', 'run', '-a']
+        actual_command.extend(command)
+    else:
+        actual_command = command
+
+    print actual_command, 'EXPECTED Exit [%d]' % expected_rc
+
+    process = Popen(actual_command, stdout=PIPE, stderr=PIPE)
     out = process.communicate()
 
     if process.returncode != expected_rc:
@@ -177,6 +186,22 @@ def access_group_revoke(group, volume_id):
     call([cmd, 'access-revoke-group', '--id', group, '--volume', volume_id])
 
 
+def volumes_accessible_by_access_group(ag_id):
+    call([cmd, 'access-group-volumes', '--gid', ag_id])
+
+
+def volume_accessible_by_initiator(iqn2):
+    call([cmd, 'volumes-accessible-initiator', '--iid', iqn2])
+
+
+def initiators_granted_to_volume(vol):
+    call([cmd, 'initiators-granted-volume', '--vol_id', vol])
+
+
+def access_groups_granted_to_volume(vol_id):
+    call([cmd, 'volume-access-group', '--vol_id', vol_id])
+
+
 def resize_vol(init_id):
     call([cmd, '-t' + sep, '-f',
           'resize-volume',
@@ -191,9 +216,18 @@ def resize_vol(init_id):
 
 
 def resize_fs(init_id):
-    call([cmd, '-t' + sep, '-f', 'resize-fs', '--id', init_id, '--size', '1G'])
-    call([cmd, '-t' + sep, '-f', 'resize-fs', '--id', init_id, '--size', '750M'])
-    call([cmd, '-t' + sep, '-f', 'resize-fs', '--id', init_id, '--size', '300M'])
+    call([cmd, '-t' + sep, '-f',
+          'resize-fs',
+          '--id', init_id,
+          '--size', '1G'])
+    call([cmd, '-t' + sep, '-f',
+          'resize-fs',
+          '--id', init_id,
+          '--size', '750M'])
+    call([cmd, '-t' + sep, '-f',
+          'resize-fs',
+          '--id', init_id,
+          '--size', '300M'])
 
 
 def map_init(init, volume):
@@ -213,6 +247,19 @@ def clone_fs(fs_id):
     return r[0][ID]
 
 
+def fs_child_dependancy(fs_id):
+    call([cmd, 'fs-dependants', '--id', fs_id])
+
+
+def fs_child_dependancy_rm(fs_id):
+    call([cmd, 'fs-dependants-rm', '--id', fs_id])
+
+
+def clone_file(fs_id):
+    # TODO Make this work outside of the simulator
+    call([cmd, 'clone-file', '--fs', fs_id, '--src', 'foo', '--dest', 'bar'])
+
+
 def create_ss(fs_id):
     out = call([cmd, '-t' + sep, 'create-ss', '--name', rs(12), '--fs',
                 fs_id])[1]
@@ -222,6 +269,10 @@ def create_ss(fs_id):
 
 def delete_ss(fs_id, ss_id):
     call([cmd, '-f', 'delete-ss', '--id', ss_id, '--fs', fs_id])
+
+
+def restore_ss(snapshot_id, fs_id):
+    call([cmd, '-f', 'restore-ss', '--id', snapshot_id, '--fs', fs_id])
 
 
 def replicate_volume(source_id, vol_type, pool=None):
@@ -255,6 +306,14 @@ def replicate_volume_range(vol_id, dest_vol_id, rep_type, src_start,
             '--src_start', str(src_start),
             '--dest_start', str(dest_start),
             '--count', str(count)])
+
+
+def volume_child_dependency(vol_id):
+    call([cmd, 'volume-dependants', '--id', vol_id])
+
+
+def volume_child_dependency_rm(vol_id):
+    call([cmd, 'volume-dependants-rm', '--id', vol_id])
 
 
 def get_systems():
@@ -338,6 +397,9 @@ def display_check(display_list, system_id):
         if fs_id:
             call([cmd, 'list', '--type', 'SNAPSHOTS', '--fs', fs_id])
 
+    if 'POOLS' in display_list:
+        call([cmd, '-H', '-t' + sep, 'list', '--type', 'POOLS', '-o'])
+
 
 def test_display(cap, system_id):
     """
@@ -367,6 +429,9 @@ def test_display(cap, system_id):
 
     if cap['EXPORT_AUTH']:
         to_test.append('NFS_CLIENT_AUTH')
+
+    if cap['EXPORTS']:
+        to_test.append('EXPORTS')
 
     display_check(to_test, system_id)
 
@@ -416,6 +481,12 @@ def test_block_creation(cap, system_id):
                 replicate_volume_range(vol_src, vol_src, "COPY",
                                        0, 10000, 100)
 
+    if cap['VOLUME_CHILD_DEPENDENCY']:
+        volume_child_dependency(vol_src)
+
+    if cap['VOLUME_CHILD_DEPENDENCY_RM']:
+        volume_child_dependency_rm(vol_src)
+
     if cap['VOLUME_DELETE']:
         delete_volume(vol_src)
 
@@ -443,13 +514,30 @@ def test_fs_creation(cap, system_id):
         delete_fs(clone)
         delete_fs(fs_id)
 
+    if cap['FILE_CLONE']:
+        fs_id = create_fs(pool_id)
+        clone_file(fs_id)
+        test_display(cap, system_id)
+        delete_fs(fs_id)
+
     if cap['FS_SNAPSHOT_CREATE'] and cap['FS_CREATE'] and cap['FS_DELETE'] \
             and cap['FS_SNAPSHOT_DELETE']:
         #Snapshot create/delete
         fs_id = create_fs(pool_id)
         ss = create_ss(fs_id)
         test_display(cap, system_id)
+        restore_ss(ss, fs_id)
         delete_ss(fs_id, ss)
+        delete_fs(fs_id)
+
+    if cap['FS_CHILD_DEPENDENCY']:
+        fs_id = create_fs(pool_id)
+        fs_child_dependancy(fs_id)
+        delete_fs(fs_id)
+
+    if cap['FS_CHILD_DEPENDENCY_RM']:
+        fs_id = create_fs(pool_id)
+        fs_child_dependancy_rm(fs_id)
         delete_fs(fs_id)
 
 
@@ -465,16 +553,31 @@ def test_mapping(cap, system_id):
             access_group_add_init(ag_id, iqn2)
 
         if cap['ACCESS_GROUP_GRANT'] and cap['VOLUME_CREATE']:
-            vol = create_volume(pool_id)
-            access_group_grant(ag_id, vol)
+            vol_id = create_volume(pool_id)
+            access_group_grant(ag_id, vol_id)
 
             test_display(cap, system_id)
 
+            if cap['VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP']:
+                volumes_accessible_by_access_group(ag_id)
+
+            if cap['VOLUME_ACCESSIBLE_BY_INITIATOR']:
+                volume_accessible_by_initiator(iqn2)
+
+            if cap['INITIATORS_GRANTED_TO_VOLUME']:
+                initiators_granted_to_volume(vol_id)
+
+            if cap['ACCESS_GROUPS_GRANTED_TO_VOLUME']:
+                access_groups_granted_to_volume(vol_id)
+
+            if cap['ACCESS_GROUPS_GRANTED_TO_VOLUME']:
+                access_groups_granted_to_volume(vol_id)
+
             if cap['ACCESS_GROUP_REVOKE']:
-                access_group_revoke(ag_id, vol)
+                access_group_revoke(ag_id, vol_id)
 
             if cap['VOLUME_DELETE']:
-                delete_volume(vol)
+                delete_volume(vol_id)
 
             if cap['ACCESS_GROUP_DEL_INITIATOR']:
                 access_group_remove_init(ag_id, iqn1)
@@ -499,8 +602,25 @@ def test_mapping(cap, system_id):
             delete_volume(vol_id)
 
 
+def test_nfs_operations(cap, system_id):
+    pass
+
+
 def test_plugin_info(cap, system_id):
+    out = call([cmd, 'plugin-info', ])[1]
     out = call([cmd, '-t' + sep, 'plugin-info', ])[1]
+
+
+def test_plugin_list(cap, system_id):
+    out = call([cmd, 'list', '--type', 'PLUGINS'])[1]
+    out = call([cmd, '-t' + sep, 'list', '--type', 'PLUGINS'])[1]
+
+
+def test_error_paths(cap, system_id):
+
+    # Generate bad argument exception
+    call([cmd, 'list', '--type', 'SNAPSHOTS'], 2)
+    call([cmd, 'list', '--type', 'SNAPSHOTS', '--fs', 'DOES_NOT_EXIST'], 2)
 
 
 def create_all(cap, system_id):
@@ -511,8 +631,11 @@ def create_all(cap, system_id):
 
 def run_all_tests(cap, system_id):
     test_display(cap, system_id)
+    test_plugin_list(cap, system_id)
 
+    test_error_paths(cap, system_id)
     create_all(cap, system_id)
+
     test_mapping(cap, system_id)
 
 
