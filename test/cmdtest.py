@@ -110,8 +110,28 @@ def parse(out):
     rc = []
     for line in out.split('\n'):
         elem = line.split(sep)
+
+        for e in elem:
+            e = e.strip()
+
         if len(elem) > 1:
             rc.append(elem)
+    return rc
+
+
+def parse_key_value(out):
+    rc = []
+    for line in out.split('\n'):
+        elem = line.split(sep)
+        if len(elem) > 1:
+            item = dict()
+
+            for i in range(0, len(elem), 2):
+                key = elem[i].strip()
+                value = elem[i + 1].strip()
+                item[key] = value
+
+            rc.append(item)
     return rc
 
 
@@ -150,6 +170,21 @@ def create_fs(pool_id):
                 '500M', '--pool', pool_id])[1]
     r = parse(out)
     return r[0][ID]
+
+
+def export_fs(fs_id):
+    out = call([cmd, '-t' + sep,
+                'nfs-export-fs',
+                '--id', fs_id,
+                '--rw', '192.168.0.1',
+                '--root', '192.168.0.1', '--script'])[1]
+
+    r = parse_key_value(out)
+    return r[0]['ID']
+
+
+def un_export_fs(export_id):
+    call([cmd, 'nfs-export-remove', '--id', export_id])
 
 
 def delete_fs(init_id):
@@ -541,6 +576,20 @@ def test_fs_creation(cap, system_id):
         delete_fs(fs_id)
 
 
+def test_nfs(cap, system_id):
+    if test_fs_pool_id:
+        pool_id = test_fs_pool_id
+    else:
+        pool_id = name_to_id(OP_POOL, test_pool_name)
+
+    if cap['FS_CREATE'] and cap['EXPORT_FS'] and cap['EXPORT_REMOVE']:
+        fs_id = create_fs(pool_id)
+        export_id = export_fs(fs_id)
+        test_display(cap, system_id)
+        un_export_fs(export_id)
+        delete_fs(fs_id)
+
+
 def test_mapping(cap, system_id):
     pool_id = name_to_id(OP_POOL, test_pool_name)
     iqn1 = random_iqn()
@@ -627,6 +676,7 @@ def create_all(cap, system_id):
     test_plugin_info(cap, system_id)
     test_block_creation(cap, system_id)
     test_fs_creation(cap, system_id)
+    test_nfs(cap, system_id)
 
 
 def run_all_tests(cap, system_id):
