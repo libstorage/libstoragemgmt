@@ -103,8 +103,10 @@ support.
 %package        nstor-plugin
 Summary:        Files for NexentaStor array support for %{name}
 Group:          System Environment/Libraries
+BuildRequires:  python-simplejson
 Requires:       %{name}-python
 Requires:       libstoragemgmt-python = %{version}-%{release}
+Requires:       python-simplejson
 BuildArch:      noarch
 
 %description    nstor-plugin
