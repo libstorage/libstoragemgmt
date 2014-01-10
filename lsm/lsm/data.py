@@ -159,6 +159,52 @@ class IData(object):
     def column_data(self, human=False, enum_as_number=False):
         pass
 
+    @staticmethod
+    @abstractmethod
+    def str_of_key(key_name=None):
+        """
+        If key_name == None or not provided:
+            Return a dictionary providing the mandatory properties key name to
+            human friendly string mapping:
+                {
+                    'id': 'ID',
+                    'member_type': 'Member Type',
+                    .
+                    .
+                    .
+                }
+        else provide the human friendly string of certain key.
+        """
+        pass
+
+    @abstractmethod
+    def value_of_key(self, key_name=None, human=False, enum_as_number=False,
+                     list_convert=False):
+        """
+        Return the value of certain key, allowing do humanize converting,
+        list converting, or enumerate as number.
+        For optional properties, if requesting key is not valid for current
+        instance(but is valid for class definition), return None
+        If key_name == None, we return a dictionary like this:
+            {
+                # key_name: converted_value
+                id: 1232424abcef,
+                raid_type: 'RAID6',
+                    .
+                    .
+                    .
+            }
+        """
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def key_display_seqence():
+        """
+        Return a List with suggested data displaying order of properties.
+        """
+        pass
+
     # We use '-1' to indicate we failed to get the requested number.
     # For example, when block found is undetectable, we use '-1' instead of
     # confusing 0.
@@ -179,7 +225,97 @@ class Initiator(IData):
     type_map = {1: 'Other', 2: 'Port WWN', 3: 'Node WWN', 4: 'Hostname',
                 5: 'iSCSI', 7: "SAS"}
 
-    def _type_to_str(self, init_type):
+    _MAN_PROPERTIES_2_HEADER = {
+        'id': 'ID',
+        'name': 'Name',
+        'type': 'Type',
+    }
+
+    _MAN_PROPERTIES_SEQUENCE = ['id', 'name', 'type']
+
+    _OPT_PROPERTIES_2_HEADER = {
+    }
+
+    _OPT_PROPERTIES_SEQUENCE = []
+
+    @staticmethod
+    def str_of_key(key_name=None):
+        if key_name is None:
+            return dict(list(Initiator._MAN_PROPERTIES_2_HEADER.items()) +
+                        list(Initiator._OPT_PROPERTIES_2_HEADER.items()))
+
+        man_pros_header = Initiator._MAN_PROPERTIES_2_HEADER
+        opt_pros_header = Initiator._OPT_PROPERTIES_2_HEADER
+        if key_name in man_pros_header.keys():
+            return man_pros_header[key_name]
+        elif key_name in opt_pros_header.keys():
+            return opt_pros_header[key_name]
+        else:
+            raise LsmError(ErrorNumber.INVALID_VALUE,
+                           "Initiator class does not provide %s property" %
+                           key_name)
+
+    def value_of_key(self, key_name=None, human=False, enum_as_number=False,
+                     list_convert=False):
+        man_pros_header = Initiator._MAN_PROPERTIES_2_HEADER
+        opt_pros_header = Initiator._OPT_PROPERTIES_2_HEADER
+        if key_name is None:
+            all_value = {}
+            for cur_key_name in man_pros_header.keys():
+                all_value[cur_key_name] = self.value_of_key(
+                    key_name=cur_key_name,
+                    human=human,
+                    enum_as_number=enum_as_number,
+                    list_convert=list_convert)
+            for cur_key_name in opt_pros_header.keys():
+                cur_value = self.value_of_key(
+                    key_name=cur_key_name,
+                    human=human,
+                    enum_as_number=enum_as_number,
+                    list_convert=list_convert)
+                if cur_value is None:
+                    continue
+                else:
+                    all_value[cur_key_name] = cur_value
+            return all_value
+
+        if key_name in man_pros_header.keys():
+            value = getattr(self, key_name)
+            if list_convert:
+                pass
+            if enum_as_number is False:
+                if key_name == 'type':
+                    value = Initiator.type_to_str(value)
+            if human:
+                pass
+            return value
+        elif key_name in opt_pros_header.keys():
+            if key_name not in self._optional_data.list():
+                return None
+            value = self._optional_data.get(key_name)
+            if list_convert:
+                pass
+            if enum_as_number is False:
+                pass
+            if human:
+                pass
+            return value
+        else:
+            raise LsmError(ErrorNumber.INVALID_VALUE,
+                           "Initiator class does not provide %s property" %
+                           key_name)
+
+    @staticmethod
+    def key_display_seqence():
+        """
+        Return a List with suggested data displaying order of properties.
+        """
+        key = Initiator._MAN_PROPERTIES_SEQUENCE
+        key.extend(Initiator._OPT_PROPERTIES_SEQUENCE)
+        return key
+
+    @staticmethod
+    def type_to_str(init_type):
         return Initiator.type_map[init_type]
 
     def __init__(self, _id, _type, _name):
@@ -198,7 +334,7 @@ class Initiator(IData):
         if enum_as_number:
             return [[self.id, self.name, self.type]]
         else:
-            return [[self.id, self.name, self._type_to_str(self.type)]]
+            return [[self.id, self.name, self.type_to_str(self.type)]]
 
 
 @default_property('id', doc="Unique identifier")
@@ -319,6 +455,21 @@ class Disk(IData):
         raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                        "Invalid Disk.status: %d" % status)
 
+    _MAN_PROPERTIES_2_HEADER = {
+        'id': 'ID',
+        'name': 'Name',
+        'disk_type': 'Disk Type',
+        'block_size': 'Block Size',
+        'num_of_blocks': '#blocks',
+        'size_bytes': 'Size',
+        'status': 'Status',
+        'system_id': 'System ID',
+    }
+
+    _MAN_PROPERTIES_SEQUENCE = ['id', 'name', 'disk_type', 'block_size',
+                                'num_of_blocks', 'size_bytes', 'status',
+                                'system_id']
+
     _OPT_PROPERTIES_2_HEADER = {
         'sn':                       'SN',
         'part_num':                 'Part Number',
@@ -327,6 +478,90 @@ class Disk(IData):
         'status_info':              'Status Info',
         'owner_ctrler_id':          'Controller Owner',
     }
+
+    _OPT_PROPERTIES_SEQUENCE = ['sn', 'part_num', 'vendor', 'model',
+                                'status_info', 'owner_ctrler_id']
+
+    @staticmethod
+    def str_of_key(key_name=None):
+        if key_name is None:
+            return dict(list(Disk._MAN_PROPERTIES_2_HEADER.items()) +
+                        list(Disk._OPT_PROPERTIES_2_HEADER.items()))
+
+        man_pros_header = Disk._MAN_PROPERTIES_2_HEADER
+        opt_pros_header = Disk._OPT_PROPERTIES_2_HEADER
+        if key_name in man_pros_header.keys():
+            return man_pros_header[key_name]
+        elif key_name in opt_pros_header.keys():
+            return opt_pros_header[key_name]
+        else:
+            raise LsmError(ErrorNumber.INVALID_VALUE,
+                           "Disk class does not provide %s property" %
+                           key_name)
+
+    def value_of_key(self, key_name=None, human=False, enum_as_number=False,
+                     list_convert=False):
+        man_pros_header = Disk._MAN_PROPERTIES_2_HEADER
+        opt_pros_header = Disk._OPT_PROPERTIES_2_HEADER
+        if key_name is None:
+            all_value = {}
+            for cur_key_name in man_pros_header.keys():
+                all_value[cur_key_name] = self.value_of_key(
+                    key_name=cur_key_name,
+                    human=human,
+                    enum_as_number=enum_as_number,
+                    list_convert=list_convert)
+            for cur_key_name in opt_pros_header.keys():
+                cur_value = self.value_of_key(
+                    key_name=cur_key_name,
+                    human=human,
+                    enum_as_number=enum_as_number,
+                    list_convert=list_convert)
+                if cur_value is None:
+                    continue
+                else:
+                    all_value[cur_key_name] = cur_value
+            return all_value
+
+        if key_name in man_pros_header.keys():
+            value = getattr(self, key_name)
+            if list_convert:
+                pass
+            if enum_as_number is False:
+                if key_name == 'status':
+                    value = Disk.status_to_str(value)
+                elif key_name == 'disk_type':
+                    value = Disk.disk_type_to_str(value)
+            if human:
+                if key_name == 'size_bytes':
+                    value = sh(value, human)
+                elif key_name == 'block_size':
+                    value = sh(value, human)
+            return value
+        elif key_name in opt_pros_header.keys():
+            if key_name not in self._optional_data.list():
+                return None
+            value = self._optional_data.get(key_name)
+            if list_convert:
+                pass
+            if enum_as_number is False:
+                pass
+            if human:
+                pass
+            return value
+        else:
+            raise LsmError(ErrorNumber.INVALID_VALUE,
+                           "Disk class does not provide %s property" %
+                           key_name)
+
+    @staticmethod
+    def key_display_seqence():
+        """
+        Return a List with suggested data displaying order of properties.
+        """
+        key = Disk._MAN_PROPERTIES_SEQUENCE
+        key.extend(Disk._OPT_PROPERTIES_SEQUENCE)
+        return key
 
     def __init__(self, _id, _name, _disk_type, _block_size, _num_of_blocks,
                  _status, _system_id, _optional_data=None):
@@ -395,9 +630,9 @@ class Disk(IData):
         opt_pros = self._optional_data.list()
         for opt_pro in opt_pros:
             opt_pro_value = self._optional_data.get(opt_pro)
-            if enum_as_number:
-                # current no size convert needed.
+            if enum_as_number is False:
                 pass
+
             opt_data_values.extend([opt_pro_value])
         return opt_data_values
 
@@ -542,6 +777,106 @@ class Volume(IData):
                      self.status_to_str(self.status),
                      sh(self.size_bytes, human), self.system_id, self.pool_id]]
 
+    _MAN_PROPERTIES_2_HEADER = {
+        'id': 'ID',
+        'name': 'Name',
+        'vpd83': 'VPD83',
+        'block_size': 'Block Size',
+        'num_of_blocks': '#blocks',
+        'size_bytes': 'Size',
+        'status': 'Status',
+        'system_id': 'System ID',
+        'pool_id': 'Pool ID',
+    }
+
+    _MAN_PROPERTIES_SEQUENCE = ['id', 'name', 'vpd83', 'block_size',
+                                'num_of_blocks', 'size_bytes', 'status',
+                                'system_id', 'pool_id']
+
+    _OPT_PROPERTIES_2_HEADER = {
+    }
+
+    _OPT_PROPERTIES_SEQUENCE = []
+
+    @staticmethod
+    def str_of_key(key_name=None):
+        if key_name is None:
+            return dict(list(Volume._MAN_PROPERTIES_2_HEADER.items()) +
+                        list(Volume._OPT_PROPERTIES_2_HEADER.items()))
+
+        man_pros_header = Volume._MAN_PROPERTIES_2_HEADER
+        opt_pros_header = Volume._OPT_PROPERTIES_2_HEADER
+        if key_name in man_pros_header.keys():
+            return man_pros_header[key_name]
+        elif key_name in opt_pros_header.keys():
+            return opt_pros_header[key_name]
+        else:
+            raise LsmError(ErrorNumber.INVALID_VALUE,
+                           "Volume class does not provide %s property" %
+                           key_name)
+
+    def value_of_key(self, key_name=None, human=False, enum_as_number=False,
+                     list_convert=False):
+        man_pros_header = Volume._MAN_PROPERTIES_2_HEADER
+        opt_pros_header = Volume._OPT_PROPERTIES_2_HEADER
+        if key_name is None:
+            all_value = {}
+            for cur_key_name in man_pros_header.keys():
+                all_value[cur_key_name] = self.value_of_key(
+                    key_name=cur_key_name,
+                    human=human,
+                    enum_as_number=enum_as_number,
+                    list_convert=list_convert)
+            for cur_key_name in opt_pros_header.keys():
+                cur_value = self.value_of_key(
+                    key_name=cur_key_name,
+                    human=human,
+                    enum_as_number=enum_as_number,
+                    list_convert=list_convert)
+                if cur_value is None:
+                    continue
+                else:
+                    all_value[cur_key_name] = cur_value
+            return all_value
+
+        if key_name in man_pros_header.keys():
+            value = getattr(self, key_name)
+            if list_convert:
+                pass
+            if enum_as_number is False:
+                if key_name == 'status':
+                    value = Volume.status_to_str(value)
+            if human:
+                if key_name == 'size_bytes':
+                    value = sh(value, human)
+                elif key_name == 'block_size':
+                    value = sh(value, human)
+            return value
+        elif key_name in opt_pros_header.keys():
+            if key_name not in self._optional_data.list():
+                return None
+            value = self._optional_data.get(key_name)
+            if list_convert:
+                pass
+            if enum_as_number is False:
+                pass
+            if human:
+                pass
+            return value
+        else:
+            raise LsmError(ErrorNumber.INVALID_VALUE,
+                           "Volume class does not provide %s property" %
+                           key_name)
+
+    @staticmethod
+    def key_display_seqence():
+        """
+        Return a List with suggested data displaying order of properties.
+        """
+        key = Volume._MAN_PROPERTIES_SEQUENCE
+        key.extend(Volume._OPT_PROPERTIES_SEQUENCE)
+        return key
+
 
 @default_property('id', doc="Unique identifier")
 @default_property('name', doc="User defined system name")
@@ -585,6 +920,95 @@ class System(IData):
             return [[self.id, self.name, self.status]]
         else:
             return [[self.id, self.name, self.status_to_str(self.status)]]
+
+    _MAN_PROPERTIES_2_HEADER = {
+        'id': 'ID',
+        'name': 'Name',
+        'status': 'Status',
+    }
+
+    _MAN_PROPERTIES_SEQUENCE = ['id', 'name', 'status']
+
+    _OPT_PROPERTIES_2_HEADER = {
+    }
+
+    _OPT_PROPERTIES_SEQUENCE = []
+
+    @staticmethod
+    def str_of_key(key_name=None):
+        if key_name is None:
+            return dict(list(System._MAN_PROPERTIES_2_HEADER.items()) +
+                        list(System._OPT_PROPERTIES_2_HEADER.items()))
+
+        man_pros_header = System._MAN_PROPERTIES_2_HEADER
+        opt_pros_header = System._OPT_PROPERTIES_2_HEADER
+        if key_name in man_pros_header.keys():
+            return man_pros_header[key_name]
+        elif key_name in opt_pros_header.keys():
+            return opt_pros_header[key_name]
+        else:
+            raise LsmError(ErrorNumber.INVALID_VALUE,
+                           "System class does not provide %s property" %
+                           key_name)
+
+    def value_of_key(self, key_name=None, human=False, enum_as_number=False,
+                     list_convert=False):
+        man_pros_header = System._MAN_PROPERTIES_2_HEADER
+        opt_pros_header = System._OPT_PROPERTIES_2_HEADER
+        if key_name is None:
+            all_value = {}
+            for cur_key_name in man_pros_header.keys():
+                all_value[cur_key_name] = self.value_of_key(
+                    key_name=cur_key_name,
+                    human=human,
+                    enum_as_number=enum_as_number,
+                    list_convert=list_convert)
+            for cur_key_name in opt_pros_header.keys():
+                cur_value = self.value_of_key(
+                    key_name=cur_key_name,
+                    human=human,
+                    enum_as_number=enum_as_number,
+                    list_convert=list_convert)
+                if cur_value is None:
+                    continue
+                else:
+                    all_value[cur_key_name] = cur_value
+            return all_value
+
+        if key_name in man_pros_header.keys():
+            value = getattr(self, key_name)
+            if list_convert:
+                pass
+            if enum_as_number is False:
+                if key_name == 'status':
+                    value = System.status_to_str(value)
+            if human:
+                pass
+            return value
+        elif key_name in opt_pros_header.keys():
+            if key_name not in self._optional_data.list():
+                return None
+            value = self._optional_data.get(key_name)
+            if list_convert:
+                pass
+            if enum_as_number is False:
+                pass
+            if human:
+                pass
+            return value
+        else:
+            raise LsmError(ErrorNumber.INVALID_VALUE,
+                           "System class does not provide %s property" %
+                           key_name)
+
+    @staticmethod
+    def key_display_seqence():
+        """
+        Return a List with suggested data displaying order of properties.
+        """
+        key = System._MAN_PROPERTIES_SEQUENCE
+        key.extend(System._OPT_PROPERTIES_SEQUENCE)
+        return key
 
 
 @default_property('id', doc="Unique identifier")
@@ -904,6 +1328,21 @@ class Pool(IData):
         raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                        "Invalid Pool.status: %d" % status)
 
+    _MAN_PROPERTIES_2_HEADER = {
+        'id': 'ID',
+        # id: Identifier of Pool.
+        'name': 'Name',
+        # name: Human readable name of Pool.
+        'total_space': 'Total Space',
+        # total_space: All spaces in bytes could be allocated to user.
+        'free_space': 'Free Space',
+        # free_space: Free spaces in bytes could be allocated to user.
+        'system_id': 'System ID',
+        # system_id: Identifier of belonging system.
+    }
+    _MAN_PROPERTIES_SEQUENCE = ['id', 'name', 'total_space', 'free_space',
+                                'system_id']
+
     _OPT_PROPERTIES_2_HEADER = {
         'raid_type': 'RAID Type',
         # raid_type: RAID Type of this pool's RAID Group(s):
@@ -940,6 +1379,121 @@ class Pool(IData):
         #               replication. Those system pool should be neither
         #               filtered or mark as ELEMENT_TYPE_SYS_RESERVED.
     }
+
+    _OPT_PROPERTIES_SEQUENCE = ['raid_type', 'member_type', 'member_ids',
+                                'element_type', 'thinp_type', 'status',
+                                'status_info']
+
+    @staticmethod
+    def str_of_key(key_name=None):
+        """
+        If key_name == None or not provided:
+            Return a dictionary providing the mandatory properties key name to
+            human friendly string mapping:
+                {
+                    'id': 'ID',
+                    'member_type': 'Member Type',
+                    .
+                    .
+                    .
+                }
+        else provide the human friendly string of certain key.
+        """
+        if key_name is None:
+            return dict(list(Pool._MAN_PROPERTIES_2_HEADER.items()) +
+                        list(Pool._OPT_PROPERTIES_2_HEADER.items()))
+
+        man_pros_header = Pool._MAN_PROPERTIES_2_HEADER
+        opt_pros_header = Pool._OPT_PROPERTIES_2_HEADER
+        if key_name in man_pros_header.keys():
+            return man_pros_header[key_name]
+        elif key_name in opt_pros_header.keys():
+            return opt_pros_header[key_name]
+        else:
+            raise LsmError(ErrorNumber.INVALID_VALUE,
+                           "Pool class does not provide %s property" %
+                           key_name)
+
+    @staticmethod
+    def key_display_seqence():
+        """
+        Return a List with suggested data displaying order of properties.
+        """
+        key = Pool._MAN_PROPERTIES_SEQUENCE
+        key.extend(Pool._OPT_PROPERTIES_SEQUENCE)
+        return key
+
+    def value_of_key(self, key_name=None, human=False, enum_as_number=False,
+                     list_convert=False):
+        """
+        Return the string-converted value of certain key.
+        If key_name == None, we return a dictionary like this:
+            {
+                # key_name: converted_value
+                id: 1232424abcef,
+                raid_type: 'RAID6',
+                    .
+                    .
+                    .
+            }
+        """
+        man_pros_header = Pool._MAN_PROPERTIES_2_HEADER
+        opt_pros_header = Pool._OPT_PROPERTIES_2_HEADER
+        if key_name is None:
+            all_value = {}
+            for cur_key_name in man_pros_header.keys():
+                all_value[cur_key_name] = self.value_of_key(
+                    key_name=cur_key_name,
+                    human=human,
+                    enum_as_number=enum_as_number,
+                    list_convert=list_convert)
+            for cur_key_name in opt_pros_header.keys():
+                cur_value = self.value_of_key(
+                    key_name=cur_key_name,
+                    human=human,
+                    enum_as_number=enum_as_number,
+                    list_convert=list_convert)
+                if cur_value is None:
+                    continue
+                else:
+                    all_value[cur_key_name] = cur_value
+            return all_value
+
+        if key_name in man_pros_header.keys():
+            value = getattr(self, key_name)
+            if list_convert:
+                pass
+            if enum_as_number is False:
+                pass    # no raw needs to show yet.
+            if human:
+                if key_name == 'total_space' or key_name == 'free_space':
+                    value = sh(value, human)
+            return value
+        elif key_name in opt_pros_header.keys():
+            if key_name not in self._optional_data.list():
+                return None
+            value = self._optional_data.get(key_name)
+            if list_convert:
+                if key_name == 'member_ids':
+                    value = Pool.member_ids_to_str(value)
+            if enum_as_number is False:
+                if key_name == 'raid_type':
+                    value = Pool.raid_type_to_str(value)
+                elif key_name == 'member_type':
+                    value = Pool.member_type_to_str(value)
+                elif key_name == 'thinp_type':
+                    value = Pool.thinp_type_to_str(value)
+                elif key_name == 'status':
+                    value = Pool.status_to_str(value)
+                elif key_name == 'element_type':
+                    value = Pool.element_type_to_str(value)
+            if human:
+                pass
+            return value
+        else:
+            raise LsmError(ErrorNumber.INVALID_VALUE,
+                           "Pool class does not provide %s property" %
+                           key_name)
 
     def __init__(self, _id, _name, _total_space, _free_space, _system_id,
                  _optional_data=None):
@@ -1033,6 +1587,100 @@ class FileSystem(IData):
         return [[self.id, self.name, sh(self.total_space, human),
                  sh(self.free_space, human), self.pool_id]]
 
+    _MAN_PROPERTIES_2_HEADER = {
+        'id': 'ID',
+        'name': 'Name',
+        'total_space': 'Total Space',
+        'free_space': 'Free Space',
+        'pool_id': 'Pool ID',
+    }
+
+    _MAN_PROPERTIES_SEQUENCE = ['id', 'name', 'total_space', 'free_space',
+                                'pool_id']
+
+    _OPT_PROPERTIES_2_HEADER = {
+    }
+
+    _OPT_PROPERTIES_SEQUENCE = []
+
+    @staticmethod
+    def str_of_key(key_name=None):
+        if key_name is None:
+            return dict(list(FileSystem._MAN_PROPERTIES_2_HEADER.items()) +
+                        list(FileSystem._OPT_PROPERTIES_2_HEADER.items()))
+
+        man_pros_header = FileSystem._MAN_PROPERTIES_2_HEADER
+        opt_pros_header = FileSystem._OPT_PROPERTIES_2_HEADER
+        if key_name in man_pros_header.keys():
+            return man_pros_header[key_name]
+        elif key_name in opt_pros_header.keys():
+            return opt_pros_header[key_name]
+        else:
+            raise LsmError(ErrorNumber.INVALID_VALUE,
+                           "FileSystem class does not provide %s property" %
+                           key_name)
+
+    def value_of_key(self, key_name=None, human=False, enum_as_number=False,
+                     list_convert=False):
+        man_pros_header = FileSystem._MAN_PROPERTIES_2_HEADER
+        opt_pros_header = FileSystem._OPT_PROPERTIES_2_HEADER
+        if key_name is None:
+            all_value = {}
+            for cur_key_name in man_pros_header.keys():
+                all_value[cur_key_name] = self.value_of_key(
+                    key_name=cur_key_name,
+                    human=human,
+                    enum_as_number=enum_as_number,
+                    list_convert=list_convert)
+            for cur_key_name in opt_pros_header.keys():
+                cur_value = self.value_of_key(
+                    key_name=cur_key_name,
+                    human=human,
+                    enum_as_number=enum_as_number,
+                    list_convert=list_convert)
+                if cur_value is None:
+                    continue
+                else:
+                    all_value[cur_key_name] = cur_value
+            return all_value
+
+        if key_name in man_pros_header.keys():
+            value = getattr(self, key_name)
+            if list_convert:
+                pass
+            if enum_as_number is False:
+                pass    # no raw needs to show yet.
+            if human:
+                if key_name == 'total_space':
+                    value = sh(value, human)
+                elif key_name == 'free_space':
+                    value = sh(value, human)
+            return value
+        elif key_name in opt_pros_header.keys():
+            if key_name not in self._optional_data.list():
+                return None
+            value = self._optional_data.get(key_name)
+            if list_convert:
+                pass
+            if enum_as_number is False:
+                pass
+            if human:
+                pass
+            return value
+        else:
+            raise LsmError(ErrorNumber.INVALID_VALUE,
+                           "FileSystem class does not provide %s property" %
+                           key_name)
+
+    @staticmethod
+    def key_display_seqence():
+        """
+        Return a List with suggested data displaying order of properties.
+        """
+        key = FileSystem._MAN_PROPERTIES_SEQUENCE
+        key.extend(FileSystem._OPT_PROPERTIES_SEQUENCE)
+        return key
+
 
 @default_property('id', doc="Unique identifier")
 @default_property('name', doc="Snapshot name")
@@ -1048,6 +1696,94 @@ class Snapshot(IData):
 
     def column_data(self, human=False, enum_as_number=False):
         return [[self.id, self.name, datetime.datetime.fromtimestamp(self.ts)]]
+
+    _MAN_PROPERTIES_2_HEADER = {
+        'id': 'ID',
+        'name': 'Name',
+        'ts': 'Created',
+    }
+
+    _MAN_PROPERTIES_SEQUENCE = ['id', 'name', 'ts']
+
+    _OPT_PROPERTIES_2_HEADER = {
+    }
+
+    _OPT_PROPERTIES_SEQUENCE = []
+
+    @staticmethod
+    def str_of_key(key_name=None):
+        if key_name is None:
+            return dict(list(Snapshot._MAN_PROPERTIES_2_HEADER.items()) +
+                        list(Snapshot._OPT_PROPERTIES_2_HEADER.items()))
+
+        man_pros_header = Snapshot._MAN_PROPERTIES_2_HEADER
+        opt_pros_header = Snapshot._OPT_PROPERTIES_2_HEADER
+        if key_name in man_pros_header.keys():
+            return man_pros_header[key_name]
+        elif key_name in opt_pros_header.keys():
+            return opt_pros_header[key_name]
+        else:
+            raise LsmError(ErrorNumber.INVALID_VALUE,
+                           "Snapshot class does not provide %s property" %
+                           key_name)
+
+    def value_of_key(self, key_name=None, human=False, enum_as_number=False,
+                     list_convert=False):
+        man_pros_header = Snapshot._MAN_PROPERTIES_2_HEADER
+        opt_pros_header = Snapshot._OPT_PROPERTIES_2_HEADER
+        if key_name is None:
+            all_value = {}
+            for cur_key_name in man_pros_header.keys():
+                all_value[cur_key_name] = self.value_of_key(
+                    key_name=cur_key_name,
+                    human=human,
+                    enum_as_number=enum_as_number,
+                    list_convert=list_convert)
+            for cur_key_name in opt_pros_header.keys():
+                cur_value = self.value_of_key(
+                    key_name=cur_key_name,
+                    human=human,
+                    enum_as_number=enum_as_number,
+                    list_convert=list_convert)
+                if cur_value is None:
+                    continue
+                else:
+                    all_value[cur_key_name] = cur_value
+            return all_value
+
+        if key_name in man_pros_header.keys():
+            value = getattr(self, key_name)
+            if list_convert:
+                pass
+            if enum_as_number is False:
+                pass    # no raw needs to show yet.
+            if human:
+                pass
+            return value
+        elif key_name in opt_pros_header.keys():
+            if key_name not in self._optional_data.list():
+                return None
+            value = self._optional_data.get(key_name)
+            if list_convert:
+                pass
+            if enum_as_number is False:
+                pass
+            if human:
+                pass
+            return value
+        else:
+            raise LsmError(ErrorNumber.INVALID_VALUE,
+                           "Snapshot class does not provide %s property" %
+                           key_name)
+
+    @staticmethod
+    def key_display_seqence():
+        """
+        Return a List with suggested data displaying order of properties.
+        """
+        key = Pool._MAN_PROPERTIES_SEQUENCE
+        key.extend(Pool._OPT_PROPERTIES_SEQUENCE)
+        return key
 
 
 @default_property('id', doc="Unique identifier")
@@ -1097,6 +1833,92 @@ class NfsExport(IData):
             ['Options', self.options]
         ]
 
+    _MAN_PROPERTIES_2_HEADER = {
+
+    }
+
+    _MAN_PROPERTIES_SEQUENCE = []
+
+    _OPT_PROPERTIES_2_HEADER = {
+    }
+
+    _OPT_PROPERTIES_SEQUENCE = []
+
+    @staticmethod
+    def str_of_key(key_name=None):
+        if key_name is None:
+            return dict(list(Pool._MAN_PROPERTIES_2_HEADER.items()) +
+                        list(Pool._OPT_PROPERTIES_2_HEADER.items()))
+
+        man_pros_header = Pool._MAN_PROPERTIES_2_HEADER
+        opt_pros_header = Pool._OPT_PROPERTIES_2_HEADER
+        if key_name in man_pros_header.keys():
+            return man_pros_header[key_name]
+        elif key_name in opt_pros_header.keys():
+            return opt_pros_header[key_name]
+        else:
+            raise LsmError(ErrorNumber.INVALID_VALUE,
+                           "Pool class does not provide %s property" %
+                           key_name)
+
+    def value_of_key(self, key_name=None, human=False, enum_as_number=False,
+                     list_convert=False):
+        man_pros_header = Pool._MAN_PROPERTIES_2_HEADER
+        opt_pros_header = Pool._OPT_PROPERTIES_2_HEADER
+        if key_name is None:
+            all_value = {}
+            for cur_key_name in man_pros_header.keys():
+                all_value[cur_key_name] = self.value_of_key(
+                    key_name=cur_key_name,
+                    human=human,
+                    enum_as_number=enum_as_number,
+                    list_convert=list_convert)
+            for cur_key_name in opt_pros_header.keys():
+                cur_value = self.value_of_key(
+                    key_name=cur_key_name,
+                    human=human,
+                    enum_as_number=enum_as_number,
+                    list_convert=list_convert)
+                if cur_value is None:
+                    continue
+                else:
+                    all_value[cur_key_name] = cur_value
+            return all_value
+
+        if key_name in man_pros_header.keys():
+            value = getattr(self, key_name)
+            if list_convert:
+                pass
+            if enum_as_number is False:
+                pass    # no raw needs to show yet.
+            if human:
+                pass
+            return value
+        elif key_name in opt_pros_header.keys():
+            if key_name not in self._optional_data.list():
+                return None
+            value = self._optional_data.get(key_name)
+            if list_convert:
+                pass
+            if enum_as_number is False:
+                pass
+            if human:
+                pass
+            return value
+        else:
+            raise LsmError(ErrorNumber.INVALID_VALUE,
+                           "Pool class does not provide %s property" %
+                           key_name)
+
+    @staticmethod
+    def key_display_seqence():
+        """
+        Return a List with suggested data displaying order of properties.
+        """
+        key = Pool._MAN_PROPERTIES_SEQUENCE
+        key.extend(Pool._OPT_PROPERTIES_SEQUENCE)
+        return key
+
 
 @default_property('src_block', doc="Source logical block address")
 @default_property('dest_block', doc="Destination logical block address")
@@ -1111,6 +1933,18 @@ class BlockRange(IData):
         raise NotImplementedError
 
     def column_data(self, human=False, enum_as_number=False):
+        raise NotImplementedError
+
+    @staticmethod
+    def str_of_key(key_name=None):
+        raise NotImplementedError
+
+    def value_of_key(self, key_name=None, human=False, enum_as_number=False,
+                     list_convert=False):
+        raise NotImplementedError
+
+    @staticmethod
+    def key_display_seqence():
         raise NotImplementedError
 
 
@@ -1138,6 +1972,96 @@ class AccessGroup(IData):
             rc.append([self.id, self.name, 'No initiators', self.system_id])
         return rc
 
+    _MAN_PROPERTIES_2_HEADER = {
+        'id': 'ID',
+        'name': 'Name',
+        'initiators': 'Initiator IDs',
+        'system_id':  'System ID',
+    }
+
+    _MAN_PROPERTIES_SEQUENCE = ['id', 'name', 'initiators', 'system_id']
+
+    _OPT_PROPERTIES_2_HEADER = {
+    }
+
+    _OPT_PROPERTIES_SEQUENCE = []
+
+    @staticmethod
+    def str_of_key(key_name=None):
+        if key_name is None:
+            return dict(list(AccessGroup._MAN_PROPERTIES_2_HEADER.items()) +
+                        list(AccessGroup._OPT_PROPERTIES_2_HEADER.items()))
+
+        man_pros_header = AccessGroup._MAN_PROPERTIES_2_HEADER
+        opt_pros_header = AccessGroup._OPT_PROPERTIES_2_HEADER
+        if key_name in man_pros_header.keys():
+            return man_pros_header[key_name]
+        elif key_name in opt_pros_header.keys():
+            return opt_pros_header[key_name]
+        else:
+            raise LsmError(ErrorNumber.INVALID_VALUE,
+                           "AccessGroup class does not provide %s property" %
+                           key_name)
+
+    def value_of_key(self, key_name=None, human=False, enum_as_number=False,
+                     list_convert=False):
+        man_pros_header = AccessGroup._MAN_PROPERTIES_2_HEADER
+        opt_pros_header = AccessGroup._OPT_PROPERTIES_2_HEADER
+        if key_name is None:
+            all_value = {}
+            for cur_key_name in man_pros_header.keys():
+                all_value[cur_key_name] = self.value_of_key(
+                    key_name=cur_key_name,
+                    human=human,
+                    enum_as_number=enum_as_number,
+                    list_convert=list_convert)
+            for cur_key_name in opt_pros_header.keys():
+                cur_value = self.value_of_key(
+                    key_name=cur_key_name,
+                    human=human,
+                    enum_as_number=enum_as_number,
+                    list_convert=list_convert)
+                if cur_value is None:
+                    continue
+                else:
+                    all_value[cur_key_name] = cur_value
+            return all_value
+
+        if key_name in man_pros_header.keys():
+            value = getattr(self, key_name)
+            if list_convert:
+                if key_name == 'initiators':
+                    value = ','.join(str(x) for x in value)
+            if enum_as_number is False:
+                pass    # no raw needs to show yet.
+            if human:
+                pass
+            return value
+        elif key_name in opt_pros_header.keys():
+            if key_name not in self._optional_data.list():
+                return None
+            value = self._optional_data.get(key_name)
+            if list_convert:
+                pass
+            if enum_as_number is False:
+                pass
+            if human:
+                pass
+            return value
+        else:
+            raise LsmError(ErrorNumber.INVALID_VALUE,
+                           "AccessGroup class does not provide %s property" %
+                           key_name)
+
+    @staticmethod
+    def key_display_seqence():
+        """
+        Return a List with suggested data displaying order of properties.
+        """
+        key = AccessGroup._MAN_PROPERTIES_SEQUENCE
+        key.extend(AccessGroup._OPT_PROPERTIES_SEQUENCE)
+        return key
+
 
 class OptionalData(IData):
     def column_data(self, human=False, enum_as_number=False):
@@ -1146,6 +2070,18 @@ class OptionalData(IData):
 
     def column_headers(self):
         return [sorted(self._values.keys())]
+
+    @staticmethod
+    def str_of_key(key_name=None):
+        raise NotImplementedError
+
+    def value_of_key(self, key_name=None, human=False, enum_as_number=False,
+                     list_convert=False):
+        raise NotImplementedError
+
+    @staticmethod
+    def key_display_seqence():
+        raise NotImplementedError
 
     def __init__(self, _values=None):
         if _values is not None:
@@ -1305,6 +2241,73 @@ class Capabilities(IData):
 
     def column_data(self, human=False, enum_as_number=False):
         raise NotImplementedError
+
+    @staticmethod
+    def str_of_key(key_name=None):
+        raise NotImplementedError
+
+    def value_of_key(self, key_name=None, human=False, enum_as_number=False,
+                     list_convert=False):
+        raise NotImplementedError
+
+    @staticmethod
+    def key_display_seqence():
+        raise NotImplementedError
+
+
+# Nested class for the sole purpose of table display
+class PlugData(IData):
+
+    def __init__(self, description, plugin_version):
+        self.desc = description
+        self.version = plugin_version
+
+    def column_data(self, human=False, enum_as_number=False):
+        return [[self.desc, self.version]]
+
+    def column_headers(self):
+        return [["Description", "Version"]]
+
+    _MAN_PROPERTIES_2_HEADER = {
+        "desc": "Descriptive",
+        "version": "Version",
+    }
+
+    @staticmethod
+    def str_of_key(key_name=None):
+        if key_name is None:
+            return PlugData._MAN_PROPERTIES_2_HEADER
+        else:
+            if key_name in PlugData._MAN_PROPERTIES_2_HEADER.keys():
+                return PlugData._MAN_PROPERTIES_2_HEADER[key_name]
+        raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                       "key_name %s does not exists " % key_name +
+                       "in class PlugData.")
+
+    def value_of_key(self, key_name=None, human=False,
+                     enum_as_number=False, list_convert=False):
+        if key_name is None:
+            all_value = {}
+            for cur_key_name in PlugData._MAN_PROPERTIES_2_HEADER.keys():
+                all_value[cur_key_name] = self.value_of_key(
+                    key_name=cur_key_name,
+                    human=human,
+                    enum_as_number=enum_as_number,
+                    list_convert=list_convert)
+            return all_value
+        if key_name in PlugData._MAN_PROPERTIES_2_HEADER.keys():
+            value = getattr(self, key_name)
+            if list_convert:
+                pass
+            if enum_as_number is False:
+                pass
+            if human:
+                pass
+            return value
+
+    @staticmethod
+    def key_display_seqence():
+        return ['desc', 'version']
 
 
 if __name__ == '__main__':
