@@ -199,7 +199,7 @@ class IData(object):
 
     @staticmethod
     @abstractmethod
-    def key_display_seqence():
+    def key_display_sequence():
         """
         Return a List with suggested data displaying order of properties.
         """
@@ -306,7 +306,7 @@ class Initiator(IData):
                            key_name)
 
     @staticmethod
-    def key_display_seqence():
+    def key_display_sequence():
         """
         Return a List with suggested data displaying order of properties.
         """
@@ -555,7 +555,7 @@ class Disk(IData):
                            key_name)
 
     @staticmethod
-    def key_display_seqence():
+    def key_display_sequence():
         """
         Return a List with suggested data displaying order of properties.
         """
@@ -869,7 +869,7 @@ class Volume(IData):
                            key_name)
 
     @staticmethod
-    def key_display_seqence():
+    def key_display_sequence():
         """
         Return a List with suggested data displaying order of properties.
         """
@@ -1002,7 +1002,7 @@ class System(IData):
                            key_name)
 
     @staticmethod
-    def key_display_seqence():
+    def key_display_sequence():
         """
         Return a List with suggested data displaying order of properties.
         """
@@ -1415,7 +1415,7 @@ class Pool(IData):
                            key_name)
 
     @staticmethod
-    def key_display_seqence():
+    def key_display_sequence():
         """
         Return a List with suggested data displaying order of properties.
         """
@@ -1673,7 +1673,7 @@ class FileSystem(IData):
                            key_name)
 
     @staticmethod
-    def key_display_seqence():
+    def key_display_sequence():
         """
         Return a List with suggested data displaying order of properties.
         """
@@ -1777,7 +1777,7 @@ class Snapshot(IData):
                            key_name)
 
     @staticmethod
-    def key_display_seqence():
+    def key_display_sequence():
         """
         Return a List with suggested data displaying order of properties.
         """
@@ -1911,7 +1911,7 @@ class NfsExport(IData):
                            key_name)
 
     @staticmethod
-    def key_display_seqence():
+    def key_display_sequence():
         """
         Return a List with suggested data displaying order of properties.
         """
@@ -1944,7 +1944,7 @@ class BlockRange(IData):
         raise NotImplementedError
 
     @staticmethod
-    def key_display_seqence():
+    def key_display_sequence():
         raise NotImplementedError
 
 
@@ -2054,7 +2054,7 @@ class AccessGroup(IData):
                            key_name)
 
     @staticmethod
-    def key_display_seqence():
+    def key_display_sequence():
         """
         Return a List with suggested data displaying order of properties.
         """
@@ -2080,7 +2080,7 @@ class OptionalData(IData):
         raise NotImplementedError
 
     @staticmethod
-    def key_display_seqence():
+    def key_display_sequence():
         raise NotImplementedError
 
     def __init__(self, _values=None):
@@ -2251,7 +2251,7 @@ class Capabilities(IData):
         raise NotImplementedError
 
     @staticmethod
-    def key_display_seqence():
+    def key_display_sequence():
         raise NotImplementedError
 
 
@@ -2306,7 +2306,7 @@ class PlugData(IData):
             return value
 
     @staticmethod
-    def key_display_seqence():
+    def key_display_sequence():
         return ['desc', 'version']
 
 

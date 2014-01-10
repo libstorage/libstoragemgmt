@@ -669,7 +669,7 @@ class CmdLine:
 
         # Assuming all objects are from the same class.
         key_2_str = objects[0].str_of_key()
-        key_seq = objects[0].key_display_seqence()
+        key_seq = objects[0].key_display_sequence()
         all_key_2_values = []
         for obj in objects:
             obj_key_2_value = obj.value_of_key(
