@@ -45,7 +45,7 @@ class SimJob(object):
         if self.percent < 100:
             end = self.start + self.duration
             now = time.time()
-            if now > end:
+            if now >= end:
                 self.percent = 100
                 self.status = JobStatus.COMPLETE
             else:
@@ -849,10 +849,14 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
 
         for i in range(0, 10):
             name = "Sim disk %d" % i
-            optionals = OptionalData()
-            optionals.set('sn', self.__random_vpd(8))
+            optionals = None
+
+            if flags == Disk.RETRIEVE_FULL_INFO:
+                optionals = OptionalData()
+                optionals.set('sn', self.__random_vpd(8))
+
             rc.append(Disk(md5(name), name, Disk.DISK_TYPE_HYBRID, 512,
-                           1893933056, Disk.ENABLE_STATUS_ENABLED,
-                           Disk.HEALTH_OK, self.s.sys_info.id, optionals))
+                           1893933056, Disk.STATUS_OK,
+                           self.s.sys_info.id, optionals))
 
         return rc
