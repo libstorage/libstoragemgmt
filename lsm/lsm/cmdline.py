@@ -281,7 +281,7 @@ cmds = (
             ],
         optional=[
             dict(name="--file", help='default: all files. May use more than once.',
-                 action='append'),
+                 action='append', default=[]),
             ],
         ),
 
@@ -411,8 +411,10 @@ cmds = (
             dict(name="--fs", help='file system'),
             ],
         optional=[
-            dict(name="--file", help='file name'),
-            dict(name="--fileas", help='restore file name'),
+            dict(name="--file", help='file name', action='append',
+                 default=[]),
+            dict(name="--fileas", help='restore file name', action='append',
+                 default=[]),
             dict(name="--all", help='exclusive option'),
             ],
         ),
@@ -467,7 +469,8 @@ cmds = (
             dict(name="--id", help='filesystem id'),
             ],
         optional=[
-            dict(name="--file", help='For file check'),
+            dict(name="--file", help='For file check', action="append",
+                 default=[]),
             ],
         ),
 
@@ -477,7 +480,10 @@ cmds = (
             dict(name="--id", help='filesystem id'),
             ],
         optional=[
-            dict(name="--file", help='For file check'),
+            dict(name="--file",
+                 help='File or files to remove dependencies for',
+                 action='append',
+                 default=[]),
             ],
         ),
 
@@ -1067,7 +1073,7 @@ class CmdLine:
                                *self.c.fs_snapshot_create(
                                    fs,
                                    args.name,
-                                   self.args.file or []))
+                                   self.args.file))
 
         self.display_data([ss])
 
@@ -1081,7 +1087,7 @@ class CmdLine:
             if self.args.fileas:
                 if len(self.args.file) != len(self.args.fileas):
                     raise ArgError(
-                        "number of --files not equal to --fileas")
+                        "number of --file not equal to --fileas")
 
         if self.args.all:
             if self.args.file or self.args.fileas:
