@@ -1300,8 +1300,8 @@ class Smis(IStorageAreaNetwork):
                 elif os == Smis.SystemOperationalStatus.DEGRADED:
                     status |= System.STATUS_DEGRADED
                 elif os == Smis.SystemOperationalStatus.ERROR or \
-                        Smis.SystemOperationalStatus.STRESSED or \
-                        Smis.SystemOperationalStatus.NON_RECOVERABLE_ERROR:
+                     os == Smis.SystemOperationalStatus.STRESSED or \
+                     os == Smis.SystemOperationalStatus.NON_RECOVERABLE_ERROR:
                     status |= System.STATUS_ERROR
                 elif os == Smis.SystemOperationalStatus.PREDICTIVE_FAILURE:
                     status |= System.STATUS_PREDICTIVE_FAILURE
