@@ -182,7 +182,8 @@ int main(int argc, char **argv)
 
 	sysfs_data = malloc(channel_len + strlen(" ") + id_len + strlen(" -") + 1);
 
-	strncpy(sysfs_data, &devpath[target_pos + channel_pos], channel_len);
+	sysfs_data[0] = '\0';
+	strncat(sysfs_data, &devpath[target_pos + channel_pos], channel_len);
 	strcat(sysfs_data, " ");
 	strncat(sysfs_data, &devpath[target_pos + channel_pos + id_pos], id_len);
 	strcat(sysfs_data, " -");
