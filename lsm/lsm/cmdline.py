@@ -20,6 +20,7 @@ import getpass
 import time
 
 from argparse import ArgumentParser
+from argparse import RawTextHelpFormatter
 
 import common
 import client
@@ -90,30 +91,46 @@ def _get_item(l, the_id, friendly_name='item'):
             return i
     raise ArgError('%s with id %s not found!' % (friendly_name, the_id))
 
-
 list_choices = ['VOLUMES', 'INITIATORS', 'POOLS', 'FS', 'SNAPSHOTS',
                 'EXPORTS', "NFS_CLIENT_AUTH", 'ACCESS_GROUPS',
                 'SYSTEMS', 'DISKS', 'PLUGINS']
 
 initiator_id_types = ('WWPN', 'WWNN', 'ISCSI', 'HOSTNAME', 'SAS')
-initiator_id_help = "initiator id type: " + ", ".join(initiator_id_types)
+initiator_id_help = "Initiator ID type: " + ", ".join(initiator_id_types)
 
 provision_types = ('DEFAULT', 'THIN', 'FULL')
 provision_help = "provisioning type: " + ", ".join(provision_types)
 
 access_types = ('RO', 'RW')
-access_help = "access type: " + ", ".join(access_types)
+access_help = "Access type: %s. Default value is RW." % ", ".join(access_types)
 
 replicate_types = ('SNAPSHOT', 'CLONE', 'COPY', 'MIRROR_ASYNC', 'MIRROR_SYNC')
 replicate_help = "replication type: " + ", ".join(replicate_types)
 
-size_help = 'size - Can use B, K, M, G, T, P postfix (IEC sizing)'
+size_help = 'Can use B, KiB, MiB, GiB, TiB, PiB postfix (IEC sizing)'
 
 member_types = ('DISK', 'VOLUME', 'POOL')
-member_help = "member type: " + ", ".join(member_types)
+member_help = "Member type: " + ", ".join(member_types)
 
 raid_types = ('JBOD', 'RAID1', 'RAID3', 'RAID4', 'RAID5', 'RAID6')
 raid_help = "RAID type: " + ", ".join(raid_types)
+
+sys_id_opt = dict(name='--sys', metavar='<SYS_ID>', help='System ID')
+pool_id_opt = dict(name='--pool', metavar='<POOL_ID>', help='Pool ID')
+vol_id_opt = dict(name='--vol', metavar='<VOL_ID>', help='Volume ID')
+fs_id_opt = dict(name='--fs', metavar='<FS_ID>', help='File system ID')
+ag_id_opt = dict(name='--ag', metavar='<AG_ID>', help='Access group ID')
+init_id_opt = dict(name='--init', metavar='<INIT_ID>', help='Initiator ID')
+snap_id_opt = dict(name='--snap', metavar='<SNAP_ID>', help='Snapshot ID')
+export_id_opt = dict(name='--export', metavar='<EXPORT_ID>', help='Export ID')
+
+size_opt = dict(name='--size', metavar='<SIZE>', help=size_help)
+access_opt = dict(name='--access', metavar='<ACCESS>', help=access_help,
+                  choices=access_types, type=str.upper)
+
+init_type_opt = dict(name="--init-type", help=initiator_id_help,
+                     metavar='<INIT_TYPE>', choices=initiator_id_types,
+                     type=str.upper)
 
 cmds = (
     dict(
@@ -121,10 +138,10 @@ cmds = (
         help="List records of different types",
         args=[
             dict(name='--type',
-                 help='List records of type: ' +
-                 ", ".join(list_choices) +
-                 '. SNAPSHOTS requires --fs <fs id>.\n' +
-                 '      POOLS can have -o switch.',
+                 help="List records of type:\n    " +
+                      "\n    ".join(list_choices) +
+                      "\n\nWhen listing SNAPSHOTS, it requires --fs <FS_ID>.",
+                 metavar='<TYPE>',
                  choices=list_choices,
                  type=str.upper),
         ],
@@ -133,25 +150,15 @@ cmds = (
                  help='Retrieve additional optional info if available',
                  default=False,
                  action='store_true'),
-            dict(name=('--fs'),
-                 help="File system id which is required when listing "
-                      "SNAPSHOTS"),
+            dict(fs_id_opt),
         ],
     ),
 
     dict(
-        name='delete-fs',
-        help='Delete a filesystem',
+        name='job-status',
+        help='Retrieve information about a job',
         args=[
-            dict(name="--fs_id", help='filesystem id'),
-        ],
-    ),
-
-    dict(
-        name='delete-access-group',
-        help='Deletes an access group',
-        args=[
-            dict(name="--group_id", help='access group id'),
+            dict(name="--job", metavar="<JOB_ID>", help='job status id'),
         ],
     ),
 
@@ -159,7 +166,7 @@ cmds = (
         name='capabilities',
         help='Retrieves array capabilities',
         args=[
-            dict(name="--system_id", help='system id'),
+            dict(sys_id_opt),
         ],
     ),
 
@@ -169,12 +176,12 @@ cmds = (
     ),
 
     dict(
-        name='create-volume',
+        name='volume-create',
         help='Creates a volume (logical unit)',
         args=[
-            dict(name="--name", help='volume name'),
-            dict(name="--size", help=size_help),
-            dict(name="--pool", help='pool id'),
+            dict(name="--name", help='volume name', metavar='<NAME>'),
+            dict(size_opt),
+            dict(pool_id_opt),
         ],
         optional=[
             dict(name="--provisioning", help=provision_help,
@@ -183,60 +190,189 @@ cmds = (
     ),
 
     dict(
-        name='create-fs',
-        help='Creates a file system',
+        name='volume-delete',
+        help='Deletes a volume given its id',
         args=[
-            dict(name="--name", help='name of the file system'),
-            dict(name="--size", help=size_help),
-            dict(name="--pool", help='pool id'),
+            dict(vol_id_opt),
         ],
     ),
 
     dict(
-        name='clone-fs',
-        help='Creates a file system clone',
+        name='volume-resize',
+        help='Resizes a volume',
         args=[
-            dict(name="--source_name", help='existing source file system id'),
-            dict(name="--dest_name", help='new file system id'),
+            dict(vol_id_opt),
+            dict(name='--size', metavar='<NEW_SIZE>',
+                 help="New size. %s" % size_help),
+        ],
+    ),
+
+    dict(
+        name='volume-replicate',
+        help='Creates a new volume and peplicates provided volume to it.',
+        args=[
+            dict(vol_id_opt),
+            dict(name="--name", metavar='<NEW_VOL_NAME>',
+                 help='The name for New replicated volume'),
+            dict(name="--rep-type", metavar='<REPL_TYPE>',
+                 help=replicate_help, choices=replicate_types),
         ],
         optional=[
-            dict(name="--type", help=provision_help,
-                 choices=provision_types),
-            dict(name="--backing-snapshot", help='backing snapshot id'),
+            dict(name="--pool",
+                 help='Pool ID to contain the new volume.\nBy default, '
+                      'new volume will be created in the same pool.'),
         ],
     ),
 
     dict(
-        name='create-access-group',
-        help='Creates an access group',
+        name='volume-replicate-range',
+        help='Replicates a portion of a volume',
         args=[
-            dict(name="--name", help='new access group name'),
-            dict(name="--id", help='initiator id'),
-            dict(name="--type", help=initiator_id_help,
-                 choices=initiator_id_types,
-                 type=str.upper),
-            dict(name="--system", help='system id'),
+            dict(name="--src-vol", metavar='<SRC_VOL_ID>',
+                 help='Source volume id'),
+            dict(name="--dst-vol", metavar='<DST_VOL_ID>',
+                 help='Destination volume id'),
+            dict(name="--rep-type", metavar='<REP_TYPE>', help=replicate_help,
+                 choices=replicate_types),
+            dict(name="--src-start", metavar='<SRC_START_BLK>',
+                 help='Source volume start block number.\n'
+                      'This is repeatable argument.',
+                 action='append'),
+            dict(name="--dst-start", metavar='<DST_START_BLK>',
+                 help='destination volume start block number.\n'
+                      'This is repeatable argument.',
+                 action='append'),
+            dict(name="--count", metavar='<BLK_COUNT>',
+                 help='Number of blocks to replicate.\n'
+                      'This is repeatable argument.',
+                 action='append'),
         ],
     ),
 
+    dict(
+        name='volume-replicate-range-block-size',
+        help='Size of each replicated block on a system in bytes',
+        args=[
+            dict(sys_id_opt),
+        ],
+    ),
+
+    dict(
+        name='volume-dependants',
+        help='Returns True if volume has a dependant child, like replication',
+        args=[
+            dict(vol_id_opt),
+        ],
+    ),
+
+    dict(
+        name='volume-dependants-rm',
+        help='Removes dependencies',
+        args=[
+            dict(vol_id_opt),
+        ],
+    ),
+
+    dict(
+        name='volume-access-group',
+        help='Lists the access group(s) that have access to volume',
+        args=[
+            dict(vol_id_opt),
+        ],
+    ),
+
+    dict(
+        name='volumes-accessible-initiator',
+        help='Lists the volumes that are accessible by the initiator',
+        args=[
+            dict(init_id_opt),
+        ],
+    ),
+
+
+    dict(
+        name='access-group-grant',
+        help='Grants access to an access group to a volume, '
+             'like LUN Masking',
+        args=[
+            dict(ag_id_opt),
+            dict(vol_id_opt),
+        ],
+        optional=[
+            dict(access_opt),
+        ],
+    ),
+
+    dict(
+        name='access-group-revoke',
+        help='Revoke the access of certain access group to a volume',
+        args=[
+            dict(ag_id_opt),
+            dict(vol_id_opt),
+        ],
+    ),
+
+    dict(
+        name='access-group-create',
+        help='Create an access group',
+        args=[
+            dict(name='--name', metavar='<AG_NAME>',
+                 help="Human readble name for access group"),
+            # TODO: client.py access_group_create should support multipal
+            #       initiators when creating.
+            dict(init_id_opt),
+            dict(init_type_opt),
+            dict(sys_id_opt),
+        ],
+    ),
+
+    # TODO: Merge access_group_add() and access_group_remove() into
+    #       access_group_mofidy(ag_id, new_inits, init_type, flags)
     dict(
         name='access-group-add',
-        help='Adds an initiator to an access group',
+        help='Add an initiator into existing access group',
         args=[
-            dict(name="--gid", help='group id'),
-            dict(name="--iid", help='initiator id'),
-            dict(name="--type", help=initiator_id_help,
-                 choices=initiator_id_types,
-                 type=str.upper),
+            dict(ag_id_opt),
+            dict(init_id_opt),
+            dict(init_type_opt),
+        ],
+    ),
+    dict(
+        name='access-group-remove',
+        help='Remove an initiator from existing access group',
+        args=[
+            dict(ag_id_opt),
+            dict(init_id_opt),
         ],
     ),
 
     dict(
-        name='access-group-remove',
-        help='Removes an initiator from an access group',
+        name='access-group-delete',
+        help='Deletes an access group',
         args=[
-            dict(name="--gid", help='group id'),
-            dict(name="--iid", help='initiator id'),
+            dict(ag_id_opt),
+        ],
+    ),
+
+    dict(
+        name='access-grant',
+        help='Grants access to an initiator to a volume',
+        args=[
+            dict(init_id_opt),
+            dict(init_type_opt),
+            dict(vol_id_opt),
+        ],
+        optional=[
+            dict(access_opt),
+        ],
+    ),
+
+    dict(
+        name='access-revoke',
+        help='Removes access for an initiator to a volume',
+        args=[
+            dict(init_id_opt),
+            dict(vol_id_opt),
         ],
     ),
 
@@ -245,25 +381,7 @@ cmds = (
         help='Lists the volumes that the access group has'
              ' been granted access to',
         args=[
-            dict(name="--gid", help='access group id'),
-        ],
-    ),
-
-    dict(
-        name='volume-access-group',
-        help='Lists the access group(s) that have access'
-             ' to volume',
-        args=[
-            dict(name="--vol_id", help='volume id'),
-        ],
-    ),
-
-    dict(
-        name='volumes-accessible-initiator',
-        help='Lists the volumes that are accessible '
-             'by the initiator',
-        args=[
-            dict(name="--iid", help='initiator id'),
+            dict(ag_id_opt),
         ],
     ),
 
@@ -272,7 +390,7 @@ cmds = (
         help='Lists the initiators that have been '
              'granted access to specified volume',
         args=[
-            dict(name="--vol_id", help='volume id'),
+            dict(vol_id_opt),
         ],
     ),
 
@@ -280,37 +398,190 @@ cmds = (
         name='iscsi-chap',
         help='Configures ISCSI inbound/outbound CHAP authentication',
         args=[
-            dict(name="--iid", help='initiator id'),
+            dict(init_id_opt),
         ],
         optional=[
-            dict(name="--in-user", help='inbound chap user name'),
-            dict(name="--in-password", help='inbound chap password'),
-            dict(name="--out-user", help='outbound chap user name'),
-            dict(name="--out-password", help='outbound chap password'),
+            dict(name="--in-user", metavar='<IN_USER>',
+                 help='Inbound chap user name'),
+            dict(name="--in-pass", metavar='<IN_PASS>',
+                 help='Inbound chap password'),
+            dict(name="--out-user", metavar='<OUT_USER>',
+                 help='Outbound chap user name'),
+            dict(name="--out-pass", metavar='<OUT_PASS>',
+                 help='Outbound chap password'),
         ],
     ),
 
     dict(
-        name='create-ss',
-        help='Creates a snapshot',
+        name='fs-create',
+        help='Creates a file system',
         args=[
-            dict(name="--name", help='snapshot name'),
-            dict(name="--fs", help='file system id'),
+            dict(name="--name", metavar='<FS_NAME>',
+                 help='name of the file system'),
+            dict(size_opt),
+            dict(pool_id_opt),
+        ],
+    ),
+
+    dict(
+        name='fs-delete',
+        help='Delete a filesystem',
+        args=[
+            dict(fs_id_opt)
+        ],
+    ),
+
+    dict(
+        name='fs-resize',
+        help='Resizes a filesystem',
+        args=[
+            dict(fs_id_opt),
+            dict(name="--size", metavar="<NEW_SIZE>",
+                 help="New size. %s" % size_help),
+        ],
+    ),
+
+    dict(
+        name='fs-export',
+        help='Export a filesystem via NFS.',
+        args=[
+            dict(fs_id_opt),
         ],
         optional=[
-            dict(name="--file",
-                 help='default: all files. May use more than once.',
+            dict(name="--exportpath", metavar='<EXPORT_PATH>',
+                 help="NFS server export path. e.g. '/foo/bar'."),
+            dict(name="--anonuid", metavar='<ANONY_UID>',
+                 help='UID(User ID) to map to anonymous user'),
+            dict(name="--anongid", metavar='<ANONY_GID>',
+                 help='GID(Group ID) to map to anonymous user'),
+            dict(name="--auth-type", metavar='<AUTH_TYPE>',
+                 help='NFS client authentication type'),
+            dict(name="--root-host", metavar='<ROOT_HOST>',
+                 help="The host/IP has root access.\n"
+                      "This is repeatable argument.",
+                 action='append',
+                 default=[]),
+            dict(name="--ro-host", metavar='<RO_HOST>',
+                 help="The host/IP has readonly access.\n"
+                      "This is repeatable argument.",
+                 action='append', default=[]),
+            dict(name="--rw-host", metavar='<RW_HOST>',
+                 help="The host/IP has readwrite access.\n"
+                      "This is repeatable argument.",
                  action='append', default=[]),
         ],
     ),
 
     dict(
-        name='clone-file',
+        name='fs-unexport',
+        help='Delete an NFS export',
+        args=[
+            dict(export_id_opt),
+        ],
+    ),
+
+    dict(
+        name='fs-clone',
+        help='Creates a file system clone',
+        args=[
+            dict(name="--src-fs", metavar='<SRC_FS_ID>',
+                 help='The ID of existing source file system.'),
+            dict(name="--dst-name", metavar='<DST_FS_NAME>',
+                 help='The name for newly created destination file system.'),
+        ],
+        optional=[
+            dict(name="--backing-snapshot", metavar='<BE_SS_ID>',
+                 help='backing snapshot id'),
+        ],
+    ),
+
+    dict(
+        name='fs-snap-create',
+        help='Creates a snapshot',
+        args=[
+            dict(name="--name", metavar="<SNAP_NAME>",
+                 help='The human friendly name of new snapshot'),
+            dict(fs_id_opt),
+        ],
+        optional=[
+            dict(name="--file", metavar="<FILE_PATH>",
+                 help="Only create snapshot for provided file\n"
+                      "Without this argument, all files will be snapshoted\n"
+                      "This is a repeatable argument.",
+                 action='append', default=[]),
+        ],
+    ),
+
+    dict(
+        name='fs-snap-delete',
+        help='Deletes a snapshot',
+        args=[
+            dict(snap_id_opt),
+            dict(fs_id_opt),        # TODO: why we need filesystem ID?
+        ],
+    ),
+
+    dict(
+        name='fs-snap-restore',
+        help='Restores a FS or specified files to '
+             'previous snapshot state',
+        args=[
+            dict(snap_id_opt),
+            dict(fs_id_opt),
+        ],
+        optional=[
+            dict(name="--file", metavar="<FILE_PATH>",
+                 help="Only restore provided file\n"
+                      "Without this argument, all files will be restored\n"
+                      "This is a repeatable argument.",
+                 action='append', default=[]),
+            dict(name="--fileas", metavar="<NEW_FILE_PATH>",
+                 help="store restore file name to another name.\n"
+                      "This is a repeatable argument.",
+                 action='append',
+                 default=[]),
+        ],
+    ),
+
+    dict(
+        name='fs-dependants',
+        help='Returns True if filesystem has a child '
+             'dependency(clone/snapshot) exists',
+        args=[
+            dict(fs_id_opt),
+        ],
+        optional=[
+            dict(name="--file", metavar="<FILE_PATH>",
+                 action="append", default=[],
+                 help="For file check\nThis is a repeatable argument."),
+        ],
+    ),
+
+    dict(
+        name='fs-dependants-rm',
+        help='Removes filessystem dependencies',
+        args=[
+            dict(fs_id_opt),
+        ],
+        optional=[
+            dict(name="--file", action='append', default=[],
+                 help='File or files to remove dependencies for.\n'
+                      "This is a repeatable argument.",),
+        ],
+    ),
+
+
+    dict(
+        name='file-clone',
         help='Creates a clone of a file (thin provisioned)',
         args=[
-            dict(name="--fs", help='file system'),
-            dict(name="--src", help='source file to clone (relative path)'),
-            dict(name="--dest", help='destination file (relative path)'),
+            dict(fs_id_opt),
+            dict(name="--src", metavar="<SRC_FILE_PATH>",
+                 help='source file to clone (relative path)\n'
+                      "This is a repeatable argument.",),
+            dict(name="--dst", metavar="<DST_FILE_PATH>",
+                 help='destination file (relative path)'
+                      "This is a repeatable argument."),
         ],
         optional=[
             dict(name="--backing-snapshot", help='backing snapshot id'),
@@ -318,246 +589,41 @@ cmds = (
     ),
 
     dict(
-        name='delete-volume',
-        help='Deletes a volume given its id',
+        name='pool-create',
+        help='Creates a storage pool',
         args=[
-            dict(name="--id", help='volume id'),
-        ],
-    ),
-
-    dict(
-        name='delete-ss',
-        help='Creates a snapshot',
-        args=[
-            dict(name="--id", help='snapshot id'),
-            dict(name="--fs", help='file system id'),
-        ],
-    ),
-
-    dict(
-        name='replicate-volume',
-        help='Replicates a volume',
-        args=[
-            dict(name="--id", help='Volume id to replicate'),
-            dict(name="--name", help='New replicated volume name'),
-            dict(name="--type", help=replicate_help,
-                 choices=replicate_types),
+            dict(name="--name", metavar="<POOL_NAME>",
+                 help="Human friendly name for new pool"),
+            dict(sys_id_opt),
         ],
         optional=[
-            dict(name="--pool", help='pool id'),
-        ],
-    ),
-
-    dict(
-        name='access-grant',
-        help='Grants access to an initiator to a volume',
-        args=[
-            dict(name="--id", help='initiator id'),
-            dict(name="--type", help=initiator_id_help,
-                 choices=initiator_id_types,
-                 type=str.upper),
-            dict(name="--volume", help='volume id'),
-            dict(name="--access", help=access_help,
-                 choices=access_types),
-        ],
-    ),
-
-    dict(
-        name='access-grant-group',
-        help='Grants access to an access group to a volume',
-        args=[
-            dict(name="--id", help='access group id'),
-            dict(name="--volume", help='volume id'),
-            dict(name="--access", help=access_help,
-                 choices=access_types),
-        ],
-    ),
-
-    dict(
-        name='access-revoke',
-        help='Removes access for an initiator to a volume',
-        args=[
-            dict(name="--id", help='initiator id'),
-            dict(name="--volume", help='volume id'),
-        ],
-    ),
-
-    dict(
-        name='access-revoke-group',
-        help='Removes access for an access group to a volume',
-        args=[
-            dict(name="--id", help='group id'),
-            dict(name="--volume", help='volume id'),
-        ],
-    ),
-
-    dict(
-        name='resize-volume',
-        help='Resizes a volume',
-        args=[
-            dict(name="--id", help='volume id'),
-            dict(name="--size", help=size_help),
-        ],
-    ),
-
-    dict(
-        name='resize-fs',
-        help='Resizes a filesystem',
-        args=[
-            dict(name="--id", help='filesystem id'),
-            dict(name="--size", help=size_help),
-        ],
-    ),
-
-    dict(
-        name='nfs-export-remove',
-        help='Removes an NFS export',
-        args=[
-            dict(name="--id", help='nfs export id'),
-        ],
-    ),
-
-    dict(
-        name='nfs-export-fs',
-        help='Creates an NFS export',
-        args=[
-            dict(name="--id", help='nfs export id'),
-        ],
-        optional=[
-            dict(name="--exportpath", help="e.g. '/foo/bar'"),
-            dict(name="--anonuid", help='uid to map to anonymous'),
-            dict(name="--anongid", help='gid to map to anonymous'),
-            dict(name="--auth-type", help='NFS client authentication type'),
-            dict(name="--root", help='no root squash', action='append',
-                 default=[]),
-            dict(name="--ro", help='read-only', action='append', default=[]),
-            dict(name="--rw", help='read-write', action='append', default=[]),
-        ],
-    ),
-
-    dict(
-        name='restore-ss',
-        help='Restores a FS or specified files to '
-             'previous snapshot state,',
-        args=[
-            dict(name="--id", help='snapshot id'),
-            dict(name="--fs", help='file system'),
-        ],
-        optional=[
-            dict(name="--file", help='file name', action='append',
-                 default=[]),
-            dict(name="--fileas", help='restore file name', action='append',
-                 default=[]),
-            dict(name="--all", help='exclusive option'),
-        ],
-    ),
-
-    dict(
-        name='job-status',
-        help='Retrieve information about a job',
-        args=[
-            dict(name="--id", help='job status id'),
-        ],
-    ),
-
-    dict(
-        name='replicate-volume-range',
-        help='Replicates a portion of a volume',
-        args=[
-            dict(name="--src", help='source volume id'),
-            dict(name="--dest", help='destination volume id'),
-            dict(name="--type", help=replicate_help,
-                 choices=replicate_types),
-            dict(name="--src_start", help='source block start number',
+            dict(name="--member-id", metavar='<MEMBER_ID>',
+                 help='Pool member ID, could be ID of Disk/Pool/Volume.\n'
+                 'This is a repeatable argument',
                  action='append'),
-            dict(name="--dest_start", help='destination block start number',
-                 action='append'),
-            dict(name="--count", help='number of blocks to replicate',
-                 action='append'),
-        ],
-    ),
-
-    dict(
-        name='replicate-volume-range-block-size',
-        help='Size of each replicated block on a system in bytes',
-        args=[
-            dict(name="--id", help='system id'),
-        ],
-    ),
-
-    dict(
-        name='volume-dependants',
-        help='Returns True if volume has a dependant child',
-        args=[
-            dict(name="--id", help='volume id'),
-        ],
-    ),
-
-    dict(
-        name='volume-dependants-rm',
-        help='Removes dependencies',
-        args=[
-            dict(name="--id", help='volume id'),
-        ],
-    ),
-
-    dict(
-        name='fs-dependants',
-        help='Returns True if a child dependency exists',
-        args=[
-            dict(name="--id", help='filesystem id'),
-        ],
-        optional=[
-            dict(name="--file", help='For file check', action="append",
-                 default=[]),
-        ],
-    ),
-
-    dict(
-        name='fs-dependants-rm',
-        help='Removes dependencies',
-        args=[
-            dict(name="--id", help='filesystem id'),
-        ],
-        optional=[
-            dict(name="--file",
-                 help='File or files to remove dependencies for',
-                 action='append',
-                 default=[]),
-        ],
-    ),
-
-    dict(
-        name='create-pool',
-        help='Creates a pool',
-        args=[
-            dict(name="--pool_id", help='pool id'),
-            dict(name="--system_id", help='system id'),
-        ],
-        optional=[
-            dict(name="--member-id",
-                 help='Pool member ID, could be ID of Disk/Pool/Volume.'
-                 ' This option is repeatable',
-                 action='append'),
-            dict(name="--member-type", help=member_help,
+            dict(name="--member-type", metavar='<MEMBER_TYPE>',
+                 help=member_help,
                  choices=member_types),
-            dict(name="--raid-type", help=raid_help,
+            dict(name="--raid-type",  metavar='<RAID_TYPE>',
+                 help=raid_help,
                  choices=raid_types,
                  type=str.upper),
-            dict(name="--size", help=size_help),
-            dict(name="--provisioning",
-                 help=provision_help,
-                 choices=provision_types),
+            dict(size_opt),
+            dict(name="--thinp-type",
+                 metavar='<THINP_TYPE>',
+                 help="Thin Provisioning type, THIN, THICK",
+                 choices=['THIN', 'THICK']),
             dict(name="--member-count",
-                 help='Pool member count, 1 or greater'),
+                 help="Pool member count, 1 or greater. \n"
+                      "If bigger than defined --member-id, will auto choose"),
         ],
     ),
 
     dict(
-        name='delete-pool',
-        help='Delete a pool',
+        name='pool-delete',
+        help='Deletes a storage pool',
         args=[
-            dict(name="--id", help='pool id'),
+            dict(pool_id_opt),
         ],
     ),
 )
@@ -665,7 +731,7 @@ class CmdLine:
             out("No data retrieved")
             return
 
-        if  hasattr(self.args, 'optional') and self.args.optional:
+        if hasattr(self.args, 'optional') and self.args.optional:
             self.args.script = True
 
         # Assuming all objects are from the same class.
@@ -806,42 +872,42 @@ class CmdLine:
             version="%s %s" % (sys.argv[0], VERSION))
 
         parent_parser.add_argument(
-            '-u', '--uri', action="store", type=str,
-            dest="uri", help='uniform resource identifier (env LSMCLI_URI)')
+            '-u', '--uri', action="store", type=str, metavar='<URI>',
+            dest="uri", help='Uniform resource identifier (env LSMCLI_URI)')
 
         parent_parser.add_argument(
             '-P', '--prompt', action="store_true", dest="prompt",
-            help='prompt for password (env LSMCLI_PASSWORD)')
+            help='Prompt for password (env LSMCLI_PASSWORD)')
 
         parent_parser.add_argument(
             '-H', '--human', action="store_true", dest="human",
-            help='print sizes in human readable format\n'
+            help='Print sizes in human readable format\n'
                  '(e.g., MiB, GiB, TiB)')
 
         parent_parser.add_argument(
-            '-t', '--terse', action="store", dest="sep",
-            help='print output in terse form with "SEP" '
+            '-t', '--terse', action="store", dest="sep", metavar='<SEP>',
+            help='Print output in terse form with "SEP" '
                  'as a record separator')
 
         parent_parser.add_argument(
             '-e', '--enum', action="store_true", dest="enum", default=False,
-            help='display enumerated types as numbers instead of text')
+            help='Display enumerated types as numbers instead of text')
 
         parent_parser.add_argument(
             '-f', '--force', action="store_true", dest="force", default=False,
-            help='bypass confirmation prompt for data loss operations')
+            help='Bypass confirmation prompt for data loss operations')
 
         parent_parser.add_argument(
             '-w', '--wait', action="store", type=int, dest="wait",
-            default=30000, help="command timeout value in ms (default = 30s)")
+            default=30000, help="Command timeout value in ms (default = 30s)")
 
         parent_parser.add_argument(
             '--header', action="store_true", dest="header",
-            help='include the header with terse')
+            help='Include the header with terse')
 
         parent_parser.add_argument(
             '-b', action="store_true", dest="async", default=False,
-            help='run the command async. instead of waiting for completion. '
+            help='Run the command async. Instead of waiting for completion.\n '
                  'Command will exit(7) and job id written to stdout.')
 
         parent_parser.add_argument(
@@ -854,14 +920,16 @@ class CmdLine:
             epilog='Copyright 2012-2013 Red Hat, Inc.\n'
                    'Please report bugs to '
                    '<libstoragemgmt-devel@lists.sourceforge.net>\n',
+            formatter_class=RawTextHelpFormatter,
             parents=[parent_parser])
 
         subparsers = parser.add_subparsers(metavar="command")
 
         # Walk the command list and add all of them to the parser
         for cmd in cmds:
-            sub_parser = subparsers.add_parser(cmd['name'], help=cmd['help'],
-                                               parents=[parent_parser])
+            sub_parser = subparsers.add_parser(
+                cmd['name'], help=cmd['help'], parents=[parent_parser],
+                formatter_class=RawTextHelpFormatter)
 
             group = sub_parser.add_argument_group("cmd required arguments")
             for arg in cmd.get('args', []):
@@ -972,22 +1040,22 @@ class CmdLine:
         return i
 
     ## Creates an access group.
-    def create_access_group(self, args):
-        i = CmdLine._init_type_to_enum(args.type)
-        access_group = self.c.access_group_create(args.name, args.id, i,
-                                                  args.system)
+    def access_group_create(self, args):
+        i = CmdLine._init_type_to_enum(args.init_type)
+        access_group = self.c.access_group_create(args.name, args.init, i,
+                                                  args.sys)
         self.display_data([access_group])
 
     def _add_rm_access_grp_init(self, args, op):
         agl = self.c.access_group_list()
-        group = _get_item(agl, args.gid, "access group id")
+        group = _get_item(agl, args.ag, "access group id")
 
         if op:
-            i = CmdLine._init_type_to_enum(args.type)
+            i = CmdLine._init_type_to_enum(args.init_type)
             self.c.access_group_add_initiator(
-                group, args.iid, i)
+                group, args.init, i)
         else:
-            i = _get_item(self.c.initiators(), args.iid, "initiator id")
+            i = _get_item(self.c.initiators(), args.init, "initiator id")
             self.c.access_group_del_initiator(group, i.id)
 
     ## Adds an initiator from an access group
@@ -1000,66 +1068,66 @@ class CmdLine:
 
     def access_group_volumes(self, args):
         agl = self.c.access_group_list()
-        group = _get_item(agl, args.gid, "access group id")
+        group = _get_item(agl, args.ag, "access group id")
         vols = self.c.volumes_accessible_by_access_group(group)
         self.display_data(vols)
 
     def volumes_accessible_initiator(self, args):
-        i = _get_item(self.c.initiators(), args.iid, "initiator id")
+        i = _get_item(self.c.initiators(), args.init, "initiator id")
         volumes = self.c.volumes_accessible_by_initiator(i)
         self.display_data(volumes)
 
     def initiators_granted_volume(self, args):
-        vol = _get_item(self.c.volumes(), args.vol_id, "volume id")
+        vol = _get_item(self.c.volumes(), args.vol, "volume id")
         initiators = self.c.initiators_granted_to_volume(vol)
         self.display_data(initiators)
 
     def iscsi_chap(self, args):
-        init = _get_item(self.c.initiators(), args.iid, "initiator id")
+        init = _get_item(self.c.initiators(), args.init, "initiator id")
         self.c.iscsi_chap_auth(init, args.in_user,
-                               self.args.in_password,
+                               self.args.in_pass,
                                self.args.out_user,
-                               self.args.out_password)
+                               self.args.out_pass)
 
     def volume_access_group(self, args):
-        vol = _get_item(self.c.volumes(), args.vol_id, "volume id")
+        vol = _get_item(self.c.volumes(), args.vol, "volume id")
         groups = self.c.access_groups_granted_to_volume(vol)
         self.display_data(groups)
 
     ## Used to delete access group
-    def delete_access_group(self, args):
+    def access_group_delete(self, args):
         agl = self.c.access_group_list()
-        group = _get_item(agl, args.group_id, "access group id")
+        group = _get_item(agl, args.ag, "access group id")
         return self.c.access_group_del(group)
 
     ## Used to delete a file system
-    def delete_fs(self, args):
-        fs = _get_item(self.c.fs(), args.fs_id, "filesystem id")
+    def fs_delete(self, args):
+        fs = _get_item(self.c.fs(), args.fs, "filesystem id")
         if self.confirm_prompt(True):
-            self._wait_for_it("delete-fs", self.c.fs_delete(fs), None)
+            self._wait_for_it("fs-delete", self.c.fs_delete(fs), None)
 
     ## Used to create a file system
-    def create_fs(self, args):
+    def fs_create(self, args):
         p = _get_item(self.c.pools(), args.pool, "pool id")
-        fs = self._wait_for_it("create-fs",
+        fs = self._wait_for_it("fs-create",
                                *self.c.fs_create(p, args.name,
                                                  self._size(args.size)))
         self.display_data([fs])
 
     ## Used to resize a file system
-    def resize_fs(self, args):
-        fs = _get_item(self.c.fs(), args.id, "filesystem id")
+    def fs_resize(self, args):
+        fs = _get_item(self.c.fs(), args.fs, "filesystem id")
         size = self._size(args.size)
 
         if self.confirm_prompt(False):
-            fs = self._wait_for_it("resize-fs",
+            fs = self._wait_for_it("fs-resize",
                                    *self.c.fs_resize(fs, size))
             self.display_data([fs])
 
     ## Used to clone a file system
-    def clone_fs(self, args):
+    def fs_clone(self, args):
         src_fs = _get_item(
-            self.c.fs(), args.source_name, "source file system id")
+            self.c.fs(), args.src_fs, "source file system id")
 
         ss = None
         if args.backing_snapshot:
@@ -1068,11 +1136,11 @@ class CmdLine:
                            args.backing_snapshot, "snapshot id")
 
         fs = self._wait_for_it(
-            "fs_clone", *self.c.fs_clone(src_fs, args.dest_name, ss))
+            "fs_clone", *self.c.fs_clone(src_fs, args.dst_name, ss))
         self.display_data([fs])
 
     ## Used to clone a file(s)
-    def clone_file(self, args):
+    def file_clone(self, args):
         fs = _get_item(self.c.fs(), args.fs, "filesystem id")
 
         if self.args.backing_snapshot:
@@ -1083,7 +1151,7 @@ class CmdLine:
             ss = None
 
         self._wait_for_it(
-            "file_clone", self.c.file_clone(fs, args.src, args.dest, ss), None)
+            "file_clone", self.c.file_clone(fs, args.src, args.dst, ss), None)
 
     ##Converts a size parameter into the appropriate number of bytes
     # @param    s   Size to convert to bytes handles B, K, M, G, T, P postfix
@@ -1115,7 +1183,7 @@ class CmdLine:
         out("%s%s%s" % (cap, s, v))
 
     def capabilities(self, args):
-        s = _get_item(self.c.systems(), args.system_id, "system id")
+        s = _get_item(self.c.systems(), args.sys, "system id")
 
         cap = self.c.capabilities(s)
         self._cp("BLOCK_SUPPORT", cap.get(Capabilities.BLOCK_SUPPORT))
@@ -1218,11 +1286,11 @@ class CmdLine:
             out("Description: %s Version: %s" % (desc, version))
 
     ## Creates a volume
-    def create_volume(self, args):
+    def volume_create(self, args):
         #Get pool
         p = _get_item(self.c.pools(), args.pool, "pool id")
         vol = self._wait_for_it(
-            "create-volume",
+            "volume-create",
             *self.c.volume_create(
                 p,
                 args.name,
@@ -1231,7 +1299,7 @@ class CmdLine:
         self.display_data([vol])
 
     ## Creates a snapshot
-    def create_ss(self, args):
+    def fs_snap_create(self, args):
         #Get fs
         fs = _get_item(self.c.fs(), args.fs, "fs id")
         ss = self._wait_for_it("snapshot-create",
@@ -1243,46 +1311,41 @@ class CmdLine:
         self.display_data([ss])
 
     ## Restores a snap shot
-    def restore_ss(self, args):
+    def fs_snap_restore(self, args):
         #Get snapshot
         fs = _get_item(self.c.fs(), args.fs, "fs id")
-        ss = _get_item(self.c.fs_snapshots(fs), args.id, "ss id")
+        ss = _get_item(self.c.fs_snapshots(fs), args.snap, "snapshot id")
+
+        flag_all_files = True
 
         if self.args.file:
+            flag_all_files = False
             if self.args.fileas:
                 if len(self.args.file) != len(self.args.fileas):
                     raise ArgError(
                         "number of --file not equal to --fileas")
 
-        if self.args.all:
-            if self.args.file or self.args.fileas:
-                raise ArgError(
-                    "Unable to specify --all and --files or --fileas")
-
-        if self.args.all is False and self.args.file is None:
-            raise ArgError("Need to specify --all or at least one --file")
-
         if self.confirm_prompt(True):
             self._wait_for_it(
-                'restore-ss',
+                'fs-snap-restore',
                 self.c.fs_snapshot_revert(
-                    fs, ss, self.args.file, self.args.fileas, self.args.all),
+                    fs, ss, self.args.file, self.args.fileas, flag_all_files),
                 None)
 
     ## Deletes a volume
-    def delete_volume(self, args):
-        v = _get_item(self.c.volumes(), args.id, "volume id")
+    def volume_delete(self, args):
+        v = _get_item(self.c.volumes(), args.vol, "volume id")
         if self.confirm_prompt(True):
-            self._wait_for_it("delete-volume", self.c.volume_delete(v),
+            self._wait_for_it("volume-delete", self.c.volume_delete(v),
                               None)
 
     ## Deletes a snap shot
-    def delete_ss(self, args):
+    def fs_snap_delete(self, args):
         fs = _get_item(self.c.fs(), args.fs, "filesystem id")
-        ss = _get_item(self.c.fs_snapshots(fs), args.id, "snapshot id")
+        ss = _get_item(self.c.fs_snapshots(fs), args.snap, "snapshot id")
 
         if self.confirm_prompt(True):
-            self._wait_for_it("delete-snapshot",
+            self._wait_for_it("fs_snap_delete",
                               self.c.fs_snapshot_delete(fs, ss), None)
 
     ## Waits for an operation to complete by polling for the status of the
@@ -1316,26 +1379,26 @@ class CmdLine:
 
     ## Retrieves the status of the specified job
     def job_status(self, args):
-        (s, percent, i) = self.c.job_status(args.id)
+        (s, percent, i) = self.c.job_status(args.job)
 
         if s == common.JobStatus.COMPLETE:
             if i:
                 self.display_data([i])
 
-            self.c.job_free(args.id)
+            self.c.job_free(args.job)
         else:
             out(str(percent))
             self.shutdown(common.ErrorNumber.JOB_STARTED)
 
     ## Replicates a volume
-    def replicate_volume(self, args):
+    def volume_replicate(self, args):
         p = None
         if args.pool:
             p = _get_item(self.c.pools(), args.pool, "pool id")
 
-        v = _get_item(self.c.volumes(), args.id, "volume id")
+        v = _get_item(self.c.volumes(), args.vol, "volume id")
 
-        rep_type = data.Volume.rep_string_to_type(args.type)
+        rep_type = data.Volume.rep_string_to_type(args.rep_type)
         if rep_type == data.Volume.REPLICATE_UNKNOWN:
             raise ArgError("invalid replication type= %s" % rep_type)
 
@@ -1345,48 +1408,51 @@ class CmdLine:
         self.display_data([vol])
 
     ## Replicates a range of a volume
-    def replicate_volume_range(self, args):
-        src = _get_item(self.c.volumes(), args.src, "source volume id")
-        dest = _get_item(self.c.volumes(), args.dest, "destination volume id")
+    def volume_replicate_range(self, args):
+        src = _get_item(self.c.volumes(), args.src_vol, "source volume id")
+        dst = _get_item(self.c.volumes(), args.dst_vol,
+                        "destination volume id")
 
-        rep_type = data.Volume.rep_string_to_type(args.type)
+        rep_type = data.Volume.rep_string_to_type(args.rep_type)
         if rep_type == data.Volume.REPLICATE_UNKNOWN:
             raise ArgError("invalid replication type= %s" % rep_type)
 
         src_starts = args.src_start
-        dest_starts = args.dest_start
+        dst_starts = args.dst_start
         counts = args.count
 
         if not len(src_starts) \
-                or not (len(src_starts) == len(dest_starts) == len(counts)):
+                or not (len(src_starts) == len(dst_starts) == len(counts)):
             raise ArgError("Differing numbers of src_start, dest_start, "
                            "and count parameters")
 
         ranges = []
         for i in range(len(src_starts)):
             ranges.append(data.BlockRange(src_starts[i],
-                                          dest_starts[i],
+                                          dst_starts[i],
                                           counts[i]))
 
         if self.confirm_prompt(False):
-            self.c.volume_replicate_range(rep_type, src, dest, ranges)
+            self.c.volume_replicate_range(rep_type, src, dst, ranges)
 
     ##
     # Returns the block size in bytes for each block represented in
     # volume_replicate_range
-    def replicate_volume_range_block_size(self, args):
-        s = _get_item(self.c.systems(), args.id, "system id")
+    def volume_replicate_range_block_size(self, args):
+        s = _get_item(self.c.systems(), args.sys, "system id")
         out(self.c.volume_replicate_range_block_size(s))
 
     ## Used to grant or revoke access to a volume to an initiator.
     # @param    grant   bool, if True we grant, else we un-grant.
     def _access(self, grant, args):
-        v = _get_item(self.c.volumes(), args.volume, "volume id")
-        initiator_id = args.id
+        v = _get_item(self.c.volumes(), args.vol, "volume id")
+        initiator_id = args.init
 
         if grant:
-            i_type = CmdLine._init_type_to_enum(args.type)
-            access = data.Volume.access_string_to_type(args.access)
+            i_type = CmdLine._init_type_to_enum(args.init_type)
+            access = 'DEFAULT'
+            if args.access is not None:
+                access = data.Volume.access_string_to_type(args.access)
 
             self.c.initiator_grant(initiator_id, i_type, v, access)
         else:
@@ -1405,24 +1471,27 @@ class CmdLine:
 
     def _access_group(self, args, grant=True):
         agl = self.c.access_group_list()
-        group = _get_item(agl, args.id, "access group id")
-        v = _get_item(self.c.volumes(), args.volume, "volume id")
+        group = _get_item(agl, args.ag, "access group id")
+        v = _get_item(self.c.volumes(), args.vol, "volume id")
 
         if grant:
+            access = 'RW'
+            if args.access is not None:
+                access = args.access
             access = data.Volume.access_string_to_type(args.access)
             self.c.access_group_grant(group, v, access)
         else:
             self.c.access_group_revoke(group, v)
 
-    def access_grant_group(self, args):
+    def access_group_grant(self, args):
         return self._access_group(args, grant=True)
 
-    def access_revoke_group(self, args):
+    def access_group_revoke(self, args):
         return self._access_group(args, grant=False)
 
     ## Re-sizes a volume
-    def resize_volume(self, args):
-        v = _get_item(self.c.volumes(), args.id, "volume id")
+    def volume_resize(self, args):
+        v = _get_item(self.c.volumes(), args.vol, "volume id")
         size = self._size(args.size)
 
         if self.confirm_prompt(False):
@@ -1431,25 +1500,25 @@ class CmdLine:
             self.display_data([vol])
 
     ## Removes a nfs export
-    def nfs_export_remove(self, args):
-        export = _get_item(self.c.exports(), args.id, "nfs export id")
+    def fs_unexport(self, args):
+        export = _get_item(self.c.exports(), args.export, "nfs export id")
         self.c.export_remove(export)
 
     ## Exports a file system as a NFS export
-    def nfs_export_fs(self, args):
-        fs = _get_item(self.c.fs(), args.id, "file system id")
+    def fs_export(self, args):
+        fs = _get_item(self.c.fs(), args.fs, "file system id")
 
         # Check to see if we have some type of access specified
-        if len(args.rw) == 0 \
-                and len(args.ro) == 0:
-            raise ArgError(" please specify --ro or --rw access")
+        if len(args.rw_host) == 0 \
+                and len(args.ro_host) == 0:
+            raise ArgError(" please specify --ro-host or --rw-host")
 
         export = self.c.export_fs(
             fs.id,
             args.exportpath,
-            args.root,
-            args.rw,
-            args.ro,
+            args.root_host,
+            args.rw_host,
+            args.ro_host,
             args.anonuid,
             args.anongid,
             args.auth_type,
@@ -1458,41 +1527,41 @@ class CmdLine:
 
     ## Displays volume dependants.
     def volume_dependants(self, args):
-        v = _get_item(self.c.volumes(), args.id, "volume id")
+        v = _get_item(self.c.volumes(), args.vol, "volume id")
         rc = self.c.volume_child_dependency(v)
         out(rc)
 
     ## Removes volume dependants.
     def volume_dependants_rm(self, args):
-        v = _get_item(self.c.volumes(), args.id, "volume id")
+        v = _get_item(self.c.volumes(), args.vol, "volume id")
         self._wait_for_it("volume-dependant-rm",
                           self.c.volume_child_dependency_rm(v), None)
 
     ## Displays file system dependants
     def fs_dependants(self, args):
-        fs = _get_item(self.c.fs(), args.id, "file system id")
+        fs = _get_item(self.c.fs(), args.fs, "file system id")
         rc = self.c.fs_child_dependency(fs, args.file)
         out(rc)
 
     ## Removes file system dependants
     def fs_dependants_rm(self, args):
-        fs = _get_item(self.c.fs(), args.id, "file system id")
+        fs = _get_item(self.c.fs(), args.fs, "file system id")
         self._wait_for_it("fs-dependants-rm",
                           self.c.fs_child_dependency_rm(fs,
                                                         args.file),
                           None)
 
     ## Deletes a pool
-    def delete_pool(self, args):
-        pool = _get_item(self.c.pools(), args.pool_id, "pool id")
+    def pool_delete(self, args):
+        pool = _get_item(self.c.pools(), args.pool, "pool id")
         if self.confirm_prompt(True):
-            self._wait_for_it("delete-pool",
+            self._wait_for_it("pool-delete",
                               self.c.pool_delete(pool),
                               None)
 
     ## Creates a pool
-    def create_pool(self, args):
-        pool_name = args.pool_id
+    def pool_create(self, args):
+        pool_name = args.name
         raid_type = data.Pool.RAID_TYPE_UNKNOWN
         member_ids = []
         member_type = data.Pool.MEMBER_TYPE_UNKNOWN
@@ -1558,7 +1627,7 @@ class CmdLine:
             provisioning = args.provisioning
             prov_type = data.Pool.thinp_type_str_to_type(provisioning)
 
-        pool = self._wait_for_it("create-pool",
+        pool = self._wait_for_it("pool-create",
                                  *self.c.pool_create(self.args.opt_system,
                                                      pool_name,
                                                      raid_type,

@@ -155,18 +155,18 @@ def name_to_id(op, name):
 
 
 def create_volume(pool):
-    out = call([cmd, '-t' + sep, 'create-volume', '--name', rs(12), '--size',
+    out = call([cmd, '-t' + sep, 'volume-create', '--name', rs(12), '--size',
                 '30M', '--pool', pool, '--provisioning', 'DEFAULT'])[1]
     r = parse(out)
     return r[0][ID]
 
 
-def delete_volume(vol_id):
-    call([cmd, '-t' + sep, '-f', 'delete-volume', '--id', vol_id])
+def volume_delete(vol_id):
+    call([cmd, '-t' + sep, '-f', 'volume-delete', '--vol', vol_id])
 
 
-def create_fs(pool_id):
-    out = call([cmd, '-t' + sep, 'create-fs', '--name', rs(12), '--size',
+def fs_create(pool_id):
+    out = call([cmd, '-t' + sep, 'fs-create', '--name', rs(12), '--size',
                 '500M', '--pool', pool_id])[1]
     r = parse(out)
     return r[0][ID]
@@ -174,181 +174,181 @@ def create_fs(pool_id):
 
 def export_fs(fs_id):
     out = call([cmd, '-t' + sep,
-                'nfs-export-fs',
-                '--id', fs_id,
-                '--rw', '192.168.0.1',
-                '--root', '192.168.0.1', '--script'])[1]
+                'fs-export',
+                '--fs', fs_id,
+                '--rw-host', '192.168.0.1',
+                '--root-host', '192.168.0.1', '--script'])[1]
 
     r = parse_key_value(out)
     return r[0]['ID']
 
 
 def un_export_fs(export_id):
-    call([cmd, 'nfs-export-remove', '--id', export_id])
+    call([cmd, 'fs-unexport', '--export', export_id])
 
 
-def delete_fs(init_id):
-    call([cmd, '-t' + sep, '-f', 'delete-fs', '--fs_id', init_id])
+def delete_fs(fs_id):
+    call([cmd, '-t' + sep, '-f', 'fs-delete', '--fs', fs_id])
 
 
-def create_access_group(init_id, system_id):
-    out = call([cmd, '-t' + sep, 'create-access-group', '--name', rs(8),
-                '--id', init_id, '--type', 'ISCSI', '--system', system_id])[1]
+def access_group_create(init_id, system_id):
+    out = call([cmd, '-t' + sep, 'access-group-create', '--name', rs(8),
+                '--init', init_id, '--init-type', 'ISCSI',
+                '--sys', system_id])[1]
     r = parse(out)
     return r[0][ID]
 
 
 def access_group_add_init(group, initiator):
-    call([cmd, 'access-group-add', '--gid', group, '--iid', initiator,
-          '--type', 'ISCSI'])
+    call([cmd, 'access-group-add', '--ag', group, '--init', initiator,
+          '--init-type', 'ISCSI'])
 
 
 def access_group_remove_init(group, initiator):
-    call([cmd, 'access-group-remove', '--gid', group, '--iid', initiator])
+    call([cmd, 'access-group-remove', '--ag', group, '--init', initiator])
 
 
-# TODO Change --group_id to --gid to be consistent ?
-def delete_access_group(group_id):
-    call([cmd, '-t' + sep, 'delete-access-group', '--group_id', group_id ])
+def access_group_delete(group_id):
+    call([cmd, '-t' + sep, 'access-group-delete', '--ag', group_id])
 
 
 def access_group_grant(group, volume_id):
-    call([cmd, 'access-grant-group', '--id', group, '--volume', volume_id,
+    call([cmd, 'access-group-grant', '--ag', group, '--vol', volume_id,
           '--access', 'RW'])
 
 
 def access_group_revoke(group, volume_id):
-    call([cmd, 'access-revoke-group', '--id', group, '--volume', volume_id])
+    call([cmd, 'access-group-revoke', '--ag', group, '--vol', volume_id])
 
 
 def volumes_accessible_by_access_group(ag_id):
-    call([cmd, 'access-group-volumes', '--gid', ag_id])
+    call([cmd, 'access-group-volumes', '--ag', ag_id])
 
 
 def volume_accessible_by_initiator(iqn2):
-    call([cmd, 'volumes-accessible-initiator', '--iid', iqn2])
+    call([cmd, 'volumes-accessible-initiator', '--init', iqn2])
 
 
 def initiators_granted_to_volume(vol):
-    call([cmd, 'initiators-granted-volume', '--vol_id', vol])
+    call([cmd, 'initiators-granted-volume', '--vol', vol])
 
 
 def access_groups_granted_to_volume(vol_id):
-    call([cmd, 'volume-access-group', '--vol_id', vol_id])
+    call([cmd, 'volume-access-group', '--vol', vol_id])
 
 
-def resize_vol(init_id):
+def resize_vol(vol_id):
     call([cmd, '-t' + sep, '-f',
-          'resize-volume',
-          '--id', init_id,
+          'volume-resize',
+          '--vol', vol_id,
           '--size', '60M'])
     call([cmd, '-t' + sep, '-f',
-          'resize-volume',
-          '--id', init_id,
+          'volume-resize',
+          '--vol', vol_id,
           '--size', '100M'])
     #Some devices cannot re-size down...
-    #call([cmd, '--resize-volume', id, '--size', '30M' , '-t'+sep ])
+    #call([cmd, '--volume-resize', id, '--size', '30M' , '-t'+sep ])
 
 
-def resize_fs(init_id):
+def resize_fs(fs_id):
     call([cmd, '-t' + sep, '-f',
-          'resize-fs',
-          '--id', init_id,
+          'fs-resize',
+          '--fs', fs_id,
           '--size', '1G'])
     call([cmd, '-t' + sep, '-f',
-          'resize-fs',
-          '--id', init_id,
+          'fs-resize',
+          '--fs', fs_id,
           '--size', '750M'])
     call([cmd, '-t' + sep, '-f',
-          'resize-fs',
-          '--id', init_id,
+          'fs-resize',
+          '--fs', fs_id,
           '--size', '300M'])
 
 
 def map_init(init, volume):
-    call([cmd, '-t' + sep, 'access-grant', '--id', init, '--volume', volume,
+    call([cmd, '-t' + sep, 'access-grant', '--init', init, '--vol', volume,
           '--access', 'RW'])
 
 
 def unmap(init, volume):
-    call([cmd, 'access-revoke', '--id', init, '--volume', volume])
+    call([cmd, 'access-revoke', '--init', init, '--vol', volume])
 
 
 def clone_fs(fs_id):
     # TODO Change to --source_id instead of --source_name ?
-    out = call([cmd, '-t' + sep, 'clone-fs', '--source_name', fs_id,
-                '--dest_name', 'cloned_' + rs(8)])[1]
+    out = call([cmd, '-t' + sep, 'fs-clone', '--src-fs', fs_id,
+                '--dst-name', 'cloned_' + rs(8)])[1]
     r = parse(out)
     return r[0][ID]
 
 
 def fs_child_dependancy(fs_id):
-    call([cmd, 'fs-dependants', '--id', fs_id])
+    call([cmd, 'fs-dependants', '--fs', fs_id])
 
 
 def fs_child_dependancy_rm(fs_id):
-    call([cmd, 'fs-dependants-rm', '--id', fs_id])
+    call([cmd, 'fs-dependants-rm', '--fs', fs_id])
 
 
 def clone_file(fs_id):
     # TODO Make this work outside of the simulator
-    call([cmd, 'clone-file', '--fs', fs_id, '--src', 'foo', '--dest', 'bar'])
+    call([cmd, 'file-clone', '--fs', fs_id, '--src', 'foo', '--dst', 'bar'])
 
 
 def create_ss(fs_id):
-    out = call([cmd, '-t' + sep, 'create-ss', '--name', rs(12), '--fs',
+    out = call([cmd, '-t' + sep, 'fs-snap-create', '--name', rs(12), '--fs',
                 fs_id])[1]
     r = parse(out)
     return r[0][ID]
 
 
 def delete_ss(fs_id, ss_id):
-    call([cmd, '-f', 'delete-ss', '--id', ss_id, '--fs', fs_id])
+    call([cmd, '-f', 'fs-snap-delete', '--snap', ss_id, '--fs', fs_id])
 
 
 def restore_ss(snapshot_id, fs_id):
-    call([cmd, '-f', 'restore-ss', '--id', snapshot_id, '--fs', fs_id])
+    call([cmd, '-f', 'fs-snap-restore', '--snap', snapshot_id, '--fs', fs_id])
 
 
-def replicate_volume(source_id, vol_type, pool=None):
+def volume_replicate(source_id, vol_type, pool=None):
     out = call([cmd,
                 '-t' + sep,
-                'replicate-volume',
-                '--id', source_id,
-                '--type', vol_type,
+                'volume-replicate',
+                '--vol', source_id,
+                '--rep-type', vol_type,
                 '--name', 'lun_' + vol_type + '_' + rs(12)])[1]
     r = parse(out)
     return r[0][ID]
 
 
-def replicate_volume_range_bs(system_id):
+def volume_replicate_range_bs(system_id):
     """
     Returns the replicated range block size.
     """
     out = call([cmd,
-                'replicate-volume-range-block-size',
-                '--id', system_id])[1]
+                'volume-replicate-range-block-size',
+                '--sys', system_id])[1]
     return int(out)
 
 
-def replicate_volume_range(vol_id, dest_vol_id, rep_type, src_start,
+def volume_replicate_range(vol_id, dest_vol_id, rep_type, src_start,
                            dest_start, count):
     out = call(
-        [cmd, '-f', 'replicate-volume-range',
-            '--src', vol_id,
-            '--type', rep_type,
-            '--dest', dest_vol_id,
-            '--src_start', str(src_start),
-            '--dest_start', str(dest_start),
+        [cmd, '-f', 'volume-replicate-range',
+            '--src-vol', vol_id,
+            '--rep-type', rep_type,
+            '--dst-vol', dest_vol_id,
+            '--src-start', str(src_start),
+            '--dst-start', str(dest_start),
             '--count', str(count)])
 
 
 def volume_child_dependency(vol_id):
-    call([cmd, 'volume-dependants', '--id', vol_id])
+    call([cmd, 'volume-dependants', '--vol', vol_id])
 
 
 def volume_child_dependency_rm(vol_id):
-    call([cmd, 'volume-dependants-rm', '--id', vol_id])
+    call([cmd, 'volume-dependants-rm', '--vol', vol_id])
 
 
 def get_systems():
@@ -362,29 +362,27 @@ def initiator_grant(initiator_id, vol_id):
 #   flags = 0):
     call([cmd,
           'access-grant',
-          '--id', initiator_id,
-          '--type', 'ISCSI',
-          '--volume', vol_id,
+          '--init', initiator_id,
+          '--init-type', 'ISCSI',
+          '--vol', vol_id,
           '--access', 'RW'])
 
 
 def initiator_chap(initiator):
     call([cmd, 'iscsi-chap',
-          '--iid', initiator])
+          '--init', initiator])
     call([cmd, 'iscsi-chap',
-          '--iid', initiator,
+          '--init', initiator,
           '--in-user', "foo",
-          '--in-password', "bar"])
+          '--in-pass', "bar"])
     call([cmd, 'iscsi-chap',
-          '--iid', initiator, '--in-user', "foo",
-          '--in-password', "bar", '--out-user', "foo",
-          '--out-password', "bar"])
+          '--init', initiator, '--in-user', "foo",
+          '--in-pass', "bar", '--out-user', "foo",
+          '--out-pass', "bar"])
 
 
 def initiator_revoke(initiator_id, vol_id):
-    call([cmd, 'access-revoke',
-                '--id', initiator_id,
-                '--volume', vol_id])
+    call([cmd, 'access-revoke', '--init', initiator_id, '--vol', vol_id])
 
 
 def capabilities(system_id):
@@ -392,7 +390,7 @@ def capabilities(system_id):
     Return a hash table of key:bool where key is supported operation
     """
     rc = {}
-    out = call([cmd, '-t' + sep, 'capabilities', '--system_id', system_id])[1]
+    out = call([cmd, '-t' + sep, 'capabilities', '--sys', system_id])[1]
     results = parse(out)
 
     for r in results:
@@ -417,7 +415,7 @@ def numbers():
         vols.append(create_volume(test_pool_id))
 
     for i in vols:
-        delete_volume(i)
+        volume_delete(i)
 
 
 def display_check(display_list, system_id):
@@ -488,32 +486,32 @@ def test_block_creation(cap, system_id):
 
     if cap['VOLUME_REPLICATE'] and cap['VOLUME_DELETE']:
         if cap['VOLUME_REPLICATE_CLONE']:
-            clone = replicate_volume(vol_src, 'CLONE', test_pool_id)
-            delete_volume(clone)
+            clone = volume_replicate(vol_src, 'CLONE', test_pool_id)
+            volume_delete(clone)
 
         if cap['VOLUME_REPLICATE_COPY']:
-            copy = replicate_volume(vol_src, 'COPY', test_pool_id)
-            delete_volume(copy)
+            copy = volume_replicate(vol_src, 'COPY', test_pool_id)
+            volume_delete(copy)
 
         if cap['VOLUME_REPLICATE_MIRROR_ASYNC']:
-            m = replicate_volume(vol_src, 'MIRROR_ASYNC', test_pool_id)
-            delete_volume(m)
+            m = volume_replicate(vol_src, 'MIRROR_ASYNC', test_pool_id)
+            volume_delete(m)
 
         if cap['VOLUME_REPLICATE_MIRROR_SYNC']:
-            m = replicate_volume(vol_src, 'MIRROR_SYNC', test_pool_id)
-            delete_volume(m)
+            m = volume_replicate(vol_src, 'MIRROR_SYNC', test_pool_id)
+            volume_delete(m)
 
         if cap['VOLUME_COPY_RANGE_BLOCK_SIZE']:
-            size = replicate_volume_range_bs(system_id)
+            size = volume_replicate_range_bs(system_id)
             print 'sub volume replication block size is=', size
 
         if cap['VOLUME_COPY_RANGE']:
             if cap['VOLUME_COPY_RANGE_CLONE']:
-                replicate_volume_range(vol_src, vol_src, "CLONE",
+                volume_replicate_range(vol_src, vol_src, "CLONE",
                                        0, 10000, 100)
 
             if cap['VOLUME_COPY_RANGE_COPY']:
-                replicate_volume_range(vol_src, vol_src, "COPY",
+                volume_replicate_range(vol_src, vol_src, "COPY",
                                        0, 10000, 100)
 
     if cap['VOLUME_CHILD_DEPENDENCY']:
@@ -523,7 +521,7 @@ def test_block_creation(cap, system_id):
         volume_child_dependency_rm(vol_src)
 
     if cap['VOLUME_DELETE']:
-        delete_volume(vol_src)
+        volume_delete(vol_src)
 
 
 def test_fs_creation(cap, system_id):
@@ -534,7 +532,7 @@ def test_fs_creation(cap, system_id):
         pool_id = name_to_id(OP_POOL, test_pool_name)
 
     if cap['FS_CREATE']:
-        fs_id = create_fs(pool_id)
+        fs_id = fs_create(pool_id)
 
         if cap['FS_RESIZE']:
             resize_fs(fs_id)
@@ -543,14 +541,14 @@ def test_fs_creation(cap, system_id):
             delete_fs(fs_id)
 
     if cap['FS_CLONE']:
-        fs_id = create_fs(pool_id)
+        fs_id = fs_create(pool_id)
         clone = clone_fs(fs_id)
         test_display(cap, system_id)
         delete_fs(clone)
         delete_fs(fs_id)
 
     if cap['FILE_CLONE']:
-        fs_id = create_fs(pool_id)
+        fs_id = fs_create(pool_id)
         clone_file(fs_id)
         test_display(cap, system_id)
         delete_fs(fs_id)
@@ -558,7 +556,7 @@ def test_fs_creation(cap, system_id):
     if cap['FS_SNAPSHOT_CREATE'] and cap['FS_CREATE'] and cap['FS_DELETE'] \
             and cap['FS_SNAPSHOT_DELETE']:
         #Snapshot create/delete
-        fs_id = create_fs(pool_id)
+        fs_id = fs_create(pool_id)
         ss = create_ss(fs_id)
         test_display(cap, system_id)
         restore_ss(ss, fs_id)
@@ -566,12 +564,12 @@ def test_fs_creation(cap, system_id):
         delete_fs(fs_id)
 
     if cap['FS_CHILD_DEPENDENCY']:
-        fs_id = create_fs(pool_id)
+        fs_id = fs_create(pool_id)
         fs_child_dependancy(fs_id)
         delete_fs(fs_id)
 
     if cap['FS_CHILD_DEPENDENCY_RM']:
-        fs_id = create_fs(pool_id)
+        fs_id = fs_create(pool_id)
         fs_child_dependancy_rm(fs_id)
         delete_fs(fs_id)
 
@@ -583,7 +581,7 @@ def test_nfs(cap, system_id):
         pool_id = name_to_id(OP_POOL, test_pool_name)
 
     if cap['FS_CREATE'] and cap['EXPORT_FS'] and cap['EXPORT_REMOVE']:
-        fs_id = create_fs(pool_id)
+        fs_id = fs_create(pool_id)
         export_id = export_fs(fs_id)
         test_display(cap, system_id)
         un_export_fs(export_id)
@@ -596,7 +594,7 @@ def test_mapping(cap, system_id):
     iqn2 = random_iqn()
 
     if cap['ACCESS_GROUP_CREATE']:
-        ag_id = create_access_group(iqn1, system_id)
+        ag_id = access_group_create(iqn1, system_id)
 
         if cap['ACCESS_GROUP_ADD_INITIATOR']:
             access_group_add_init(ag_id, iqn2)
@@ -626,14 +624,14 @@ def test_mapping(cap, system_id):
                 access_group_revoke(ag_id, vol_id)
 
             if cap['VOLUME_DELETE']:
-                delete_volume(vol_id)
+                volume_delete(vol_id)
 
             if cap['ACCESS_GROUP_DEL_INITIATOR']:
                 access_group_remove_init(ag_id, iqn1)
                 access_group_remove_init(ag_id, iqn2)
 
             if cap['ACCESS_GROUP_DELETE']:
-                delete_access_group(ag_id)
+                access_group_delete(ag_id)
 
     if cap['VOLUME_INITIATOR_GRANT']:
         vol_id = create_volume(pool_id)
@@ -648,7 +646,7 @@ def test_mapping(cap, system_id):
             initiator_revoke(iqn1, vol_id)
 
         if cap['VOLUME_DELETE']:
-            delete_volume(vol_id)
+            volume_delete(vol_id)
 
 
 def test_nfs_operations(cap, system_id):
