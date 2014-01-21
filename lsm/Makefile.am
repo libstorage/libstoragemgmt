@@ -20,6 +20,7 @@ lsm_PYTHON = lsm/__init__.py           \
                    lsm/eseries.py      \
                    lsm/iplugin.py      \
                    lsm/na.py           \
+                   lsm/nstor.py        \
                    lsm/ontap.py        \
                    lsm/pluginrunner.py \
                    lsm/simulator.py    \
