@@ -11,6 +11,7 @@ lsminc_HEADERS =			\
    libstoragemgmt_blockrange.h          \
    libstoragemgmt_capabilities.h        \
    libstoragemgmt_common.h		\
+   libstoragemgmt_disk.h                \
    libstoragemgmt_error.h		\
    libstoragemgmt_fs.h                  \
    libstoragemgmt_initiators.h		\

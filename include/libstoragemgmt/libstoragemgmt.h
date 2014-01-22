@@ -26,6 +26,7 @@
 #include "libstoragemgmt_accessgroups.h"
 #include "libstoragemgmt_blockrange.h"
 #include "libstoragemgmt_capabilities.h"
+#include "libstoragemgmt_disk.h"
 #include "libstoragemgmt_error.h"
 #include "libstoragemgmt_fs.h"
 #include "libstoragemgmt_initiators.h"

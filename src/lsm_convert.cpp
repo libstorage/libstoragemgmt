@@ -72,6 +72,42 @@ Value volumeToValue(lsmVolume *vol)
     return Value();
 }
 
+lsmDisk *valueToDisk(Value &disk)
+{
+    lsmDisk *rc = NULL;
+    if (isExpectedObject(disk, "Disk")) {
+        std::map<std::string, Value> d = disk.asObject();
+        rc = lsmDiskRecordAlloc(
+            d["id"].asString().c_str(),
+            d["name"].asString().c_str(),
+            (lsmDiskType)d["disk_type"].asInt32_t(),
+            d["block_size"].asUint64_t(),
+            d["num_of_blocks"].asUint64_t(),
+            d["status"].asUint64_t(),
+            d["system_id"].asString().c_str()
+            );
+    }
+    return rc;
+}
+
+
+Value diskToValue(lsmDisk *disk)
+{
+    if ( LSM_IS_DISK(disk) ) {
+        std::map<std::string, Value> d;
+        d["class"] = Value("Disk");
+        d["id"] = Value(disk->id);
+        d["name"] = Value(disk->name);
+        d["disk_type"] = Value(disk->disk_type);
+        d["block_size"] = Value(disk->block_size);
+        d["number_of_blocks"] = Value(disk->block_count);
+        d["status"] = Value(disk->disk_status);
+        d["system_id"] = Value(disk->system_id);
+        return Value(d);
+    }
+    return Value();
+}
+
 lsmInitiator *valueToInitiator(Value &init)
 {
     lsmInitiator *rc = NULL;

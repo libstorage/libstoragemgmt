@@ -27,6 +27,7 @@
 
 #include <libstoragemgmt/libstoragemgmt_accessgroups.h>
 #include <libstoragemgmt/libstoragemgmt_common.h>
+#include <libstoragemgmt/libstoragemgmt_disk.h>
 #include <libstoragemgmt/libstoragemgmt_error.h>
 #include <libstoragemgmt/libstoragemgmt_fs.h>
 #include <libstoragemgmt/libstoragemgmt_initiators.h>
@@ -689,6 +690,31 @@ lsmVolume * lsmVolumeRecordAlloc(const char *id, const char *name,
     return rc;
 }
 
+CREATE_ALLOC_ARRAY_FUNC(lsmDiskRecordAllocArray, lsmDisk *)
+
+lsmDisk *lsmDiskRecordAlloc(const char *id, const char *name,
+        lsmDiskType disk_type, uint64_t block_size, uint64_t block_count,
+        uint64_t disk_status, const char *system_id)
+{
+    lsmDisk *rc = (lsmDisk *)malloc(sizeof(lsmDisk));
+    if( rc ) {
+        rc->magic = LSM_DISK_MAGIC;
+        rc->id = strdup(id);
+        rc->name = strdup(name);
+        rc->disk_type = disk_type;
+        rc->block_size = block_size;
+        rc->block_count = block_count;
+        rc->disk_status = disk_status;
+        rc->system_id = strdup(system_id);
+
+        if( !rc->id || !rc->name || !rc->system_id ) {
+            lsmDiskRecordFree(rc);
+            rc = NULL;
+        }
+    }
+    return rc;
+}
+
 CREATE_ALLOC_ARRAY_FUNC(lsmSystemRecordAllocArray, lsmSystem *)
 
 lsmSystem *lsmSystemRecordAlloc( const char *id, const char *name,
@@ -810,6 +836,37 @@ void lsmVolumeRecordFree(lsmVolume *v)
 CREATE_FREE_ARRAY_FUNC( lsmVolumeRecordFreeArray, lsmVolumeRecordFree,
                         lsmVolume *)
 
+lsmDisk *lsmDiskRecordCopy(lsmDisk *disk)
+{
+    if( LSM_IS_DISK(disk) ) {
+        return lsmDiskRecordAlloc(disk->id, disk->name, disk->disk_type,
+                    disk->block_size, disk->block_count, disk->disk_status,
+                    disk->system_id);
+    }
+    return NULL;
+}
+
+void lsmDiskRecordFree(lsmDisk *d)
+{
+    if ( LSM_IS_DISK(d) ) {
+        d->magic = LSM_DEL_MAGIC(LSM_DISK_MAGIC);
+
+        free(d->id);
+        d->id = NULL;
+
+        free(d->name);
+        d->name = NULL;
+
+        free(d->system_id);
+        d->system_id = NULL;
+
+        free(d);
+    }
+}
+
+CREATE_FREE_ARRAY_FUNC( lsmDiskRecordFreeArray, lsmDiskRecordFree,
+                        lsmDisk *)
+
 /* We would certainly expand this to encompass the entire function */
 #define MEMBER_GET(x, validation, member, error)  \
     if( validation(x) ) {   \
@@ -883,6 +940,41 @@ char LSM_DLL_EXPORT *lsmVolumeSystemIdGet( lsmVolume *v)
 char LSM_DLL_EXPORT *lsmVolumePoolIdGet( lsmVolume *v)
 {
     MEMBER_GET(v, LSM_IS_VOL, pool_id, NULL);
+}
+
+const char LSM_DLL_EXPORT *lsmDiskIdGet( lsmDisk *d)
+{
+    MEMBER_GET(d, LSM_IS_DISK, id, NULL);
+}
+
+const char LSM_DLL_EXPORT *lsmDiskNameGet( lsmDisk *d)
+{
+    MEMBER_GET(d, LSM_IS_DISK, name, NULL);
+}
+
+lsmDiskType LSM_DLL_EXPORT lsmDiskTypeGet( lsmDisk *d)
+{
+    MEMBER_GET(d, LSM_IS_DISK, disk_type, LSM_DISK_TYPE_OTHER);
+}
+
+uint64_t LSM_DLL_EXPORT lsmDiskBlockSizeGet( lsmDisk *d)
+{
+    MEMBER_GET(d, LSM_IS_DISK, block_size, 0);
+}
+
+uint64_t LSM_DLL_EXPORT lsmDiskBlockCountGet( lsmDisk *d)
+{
+    MEMBER_GET(d, LSM_IS_DISK, block_count, 0);
+}
+
+uint64_t LSM_DLL_EXPORT lsmDiskStatusGet( lsmDisk *d)
+{
+    MEMBER_GET(d, LSM_IS_DISK, disk_status, LSM_DISK_STATUS_UNKNOWN);
+}
+
+const char LSM_DLL_EXPORT *lsmDiskSystemIdGet( lsmDisk *d)
+{
+    MEMBER_GET(d, LSM_IS_DISK, system_id, NULL);
 }
 
 CREATE_ALLOC_ARRAY_FUNC(lsmAccessGroupRecordAllocArray, lsmAccessGroup *)

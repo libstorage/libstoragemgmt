@@ -985,6 +985,18 @@ lsmInitiator LSM_DLL_EXPORT *lsmInitiatorRecordAlloc( lsmInitiatorType idType,
  */
 lsmVolume LSM_DLL_EXPORT **lsmVolumeRecordAllocArray( uint32_t size);
 
+
+/**
+ * Allocate the storage needed for tan array of disk records.
+ * @param size      Number of elements
+ * @return Allocated memory or null on error.
+ */
+lsmDisk LSM_DLL_EXPORT **lsmDiskRecordAllocArray( uint32_t size );
+
+lsmDisk LSM_DLL_EXPORT *lsmDiskRecordAlloc(const char *id, const char *name,
+        lsmDiskType disk_type, uint64_t block_size, uint64_t block_count,
+        uint64_t disk_status, const char *system_id);
+
 /**
  * Allocated the storage needed for one volume record.
  * @param id                    ID

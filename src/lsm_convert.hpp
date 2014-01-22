@@ -52,6 +52,20 @@ lsmVolume * valueToVolume(Value &vol);
 Value volumeToValue(lsmVolume *vol);
 
 /**
+ * Converts a Value to a lsmDisk
+ * @param disk  Value representing a disk
+ * @return lsmDisk pointer, else NULL on error
+ */
+lsmDisk *valueToDisk(Value &disk);
+
+/**
+ * Converts a lsmDisk to a value
+ * @param disk  lsmDisk to convert to value
+ * @return Value
+ */
+Value diskToValue(lsmDisk *disk);
+
+/**
  * Converts a value to lsmInitiator *
  * @param init lsmVolume to convert
  * @return lsmInitiator *, else NULL on error.

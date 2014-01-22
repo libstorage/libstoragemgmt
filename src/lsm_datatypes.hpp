@@ -278,6 +278,20 @@ struct LSM_DLL_LOCAL _lsmSs {
     uint64_t ts;
 };
 
+#define LSM_DISK_MAGIC              0xAA7A0010
+#define LSM_IS_DISK(obj)     MAGIC_CHECK(obj, LSM_DISK_MAGIC)
+struct LSM_DLL_LOCAL _lsmDisk {
+    uint32_t magic;
+    char *id;
+    char *name;
+    lsmDiskType disk_type;
+    uint64_t block_size;
+    uint64_t block_count;
+    uint64_t disk_status;        /* Bit field */
+    char *system_id;
+    //TODO Add optional data
+};
+
 /**
  * Returns a pointer to a newly created connection structure.
  * @return NULL on memory exhaustion, else new connection.

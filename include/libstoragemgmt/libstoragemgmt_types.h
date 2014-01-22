@@ -105,6 +105,11 @@ typedef struct _lsmFs lsmFs;
  */
 typedef struct _lsmSs lsmSs;
 
+/**
+ * Opaque data type for disk
+ */
+typedef struct _lsmDisk lsmDisk;
+
 /**< \enum lsmReplicationType Different types of replications that can be created */
 typedef enum {
     LSM_VOLUME_REPLICATE_UNKNOWN        = -1,       /**< Unknown replicate */
@@ -182,6 +187,29 @@ typedef enum {
     LSM_JOB_STOPPED = 3,                        /**< Job is stopped */
     LSM_JOB_ERROR = 4                           /**< Job has errored */
 } lsmJobStatus;
+
+typedef enum {
+    LSM_DISK_TYPE_UNKNOWN = 0,
+    LSM_DISK_TYPE_OTHER = 1,
+    LSM_DISL_TYPE_NOT_APPLICABLE = 2,
+    LSM_DISK_TYPE_ATA = 3,
+    LSM_DISK_TYPE_SATA = 4,
+    LSM_DISK_TYPE_SAS = 5,
+    LSM_DISK_TYPE_FC = 6,
+    LSM_DISK_TYPE_SOP = 7,
+    LSM_DISK_TYPE_SCSI = 8
+} lsmDiskType;
+
+#define LSM_DISK_STATUS_UNKNOWN                     0x0000000000000001
+#define LSM_DISK_STATUS_OK                          0x0000000000000002
+#define LSM_DISK_STATUS_PREDICTIVE_FAILURE          0x0000000000000004
+#define LSM_DISK_STATUS_ERROR                       0x0000000000000008
+#define LSM_DISK_STATUS_OFFLINE                     0x0000000000000010
+#define LSM_DISK_STATUS_STARTING                    0x0000000000000020
+#define LSM_DISK_STATUS_STOPPING                    0x0000000000000040
+#define LSM_DISK_STATUS_STOPPED                     0x0000000000000080
+#define LSM_DISK_STATUS_INITIALIZING                0x0000000000000100
+#define LSM_DISK_STATUS_RECONSTRUCTING              0x0000000000000200
 
 #ifdef  __cplusplus
 }
