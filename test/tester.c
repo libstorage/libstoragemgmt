@@ -32,7 +32,7 @@ const char *ISCSI_HOST[2] = {   "iqn.1994-05.com.domain:01.89bd01",
 
 static int which_plugin = 0;
 
-#define POLL_SLEEP 3000
+#define POLL_SLEEP 50000
 
 lsmConnect *c = NULL;
 
@@ -893,6 +893,48 @@ START_TEST(test_systems)
     fail_unless(status == LSM_SYSTEM_STATUS_OK, "status = %x", status);
 
     lsmSystemRecordFreeArray(sys, count);
+}
+END_TEST
+
+START_TEST(test_disks)
+{
+    uint32_t count = 0;
+    lsmDisk **d = NULL;
+    const char *id;
+    const char *name;
+    const char *system_id;
+    int i = 0;
+
+    fail_unless(c!=NULL);
+
+    // TODO: Implement for C simulator.
+    int rc = lsmDiskList(c, &d, &count, 0);
+
+    if( LSM_ERR_OK == rc ) {
+        fail_unless(LSM_ERR_OK == rc, "%d", rc);
+        fail_unless(count >= 1);
+
+        for( i = 0; i < count; ++i ) {
+            id = lsmDiskIdGet(d[i]);
+            fail_unless(id != NULL && strlen(id) > 0);
+
+            name = lsmDiskNameGet(d[i]);
+            fail_unless(id != NULL && strlen(name) > 0);
+
+            system_id = lsmDiskSystemIdGet(d[i]);
+            fail_unless(id != NULL && strlen(system_id) > 0);
+            fail_unless(strcmp(system_id, SYSTEM_ID) == 0, "%s", id);
+
+            fail_unless( lsmDiskTypeGet(d[i]) >= 1 );
+            fail_unless( lsmDiskBlockCountGet(d[i]) >= 1);
+            fail_unless( lsmDiskBlockSizeGet(d[i]) >= 1);
+            fail_unless( lsmDiskStatusGet(d[i]) >= 1);
+        }
+        lsmDiskRecordFreeArray(d, count);
+    } else {
+        fail_unless(d == NULL);
+        fail_unless(count == 0);
+    }
 }
 END_TEST
 
@@ -1831,6 +1873,7 @@ Suite * lsm_suite(void)
     TCase *basic = tcase_create("Basic");
     tcase_add_checked_fixture (basic, setup, teardown);
 
+    tcase_add_test(basic, test_disks);
     tcase_add_test(basic, test_plugin_info);
     tcase_add_test(basic, test_get_available_plugins);
     tcase_add_test(basic, test_volume_methods);

@@ -244,6 +244,17 @@ extern "C" {
                                         uint32_t *count, lsmFlag_t flags);
 
     /**
+     * Get a list of disk for this array.
+     * @param [in]      conn    Valid connection @see lsmConnectUserPass
+     * @param [out]     disks   An array of lsmDisk types
+     * @param [out]     count   Number of disks
+     * @param [in]      flags   Reserved for future use, must be zero
+     * @return LSM_ERR_OK on success else error reason
+     */
+    int LSM_DLL_EXPORT lsmDiskList(lsmConnect *conn, lsmDisk **disks[],
+                                    uint32_t *count, lsmFlag_t flags);
+
+    /**
      * Creates a new volume (aka. LUN).
      * @param[in]   conn            Valid connection @see lsmConnectUserPass
      * @param[in]   pool            Valid pool @see lsmPool_t (OPTIONAL, use NULL for plug-in choice)

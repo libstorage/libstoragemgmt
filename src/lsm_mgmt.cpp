@@ -644,6 +644,49 @@ int lsmVolumeList(lsmConnect *c, lsmVolume **volumes[], uint32_t *count,
     return get_volume_array(rc, response, volumes, count);
 }
 
+static int get_disk_array(int rc, Value &response, lsmDisk **disks[],
+                            uint32_t *count)
+{
+    if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+        std::vector<Value> d = response.asArray();
+
+        *count = d.size();
+
+        if( d.size() ) {
+            *disks = lsmDiskRecordAllocArray(d.size());
+
+            if( *disks ){
+                for( size_t i = 0; i < d.size(); ++i ) {
+                    (*disks)[i] = valueToDisk(d[i]);
+                }
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
+        }
+    }
+    return rc;
+
+}
+
+int lsmDiskList(lsmConnect *c, lsmDisk **disks[],
+                uint32_t *count, lsmFlag_t flags)
+{
+    CONN_SETUP(c);
+
+    if (CHECK_RP(disks) || !count || LSM_FLAG_UNUSED_CHECK(flags)) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["flags"] = Value(flags);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "disks", parameters, response);
+    return get_disk_array(rc, response, disks, count);
+}
+
 typedef void* (*convert)(Value &v);
 
 static void* parse_job_response(Value response, int &rc, char **job, convert conv)
