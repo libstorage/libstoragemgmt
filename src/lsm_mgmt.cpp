@@ -23,6 +23,7 @@
 #include <libstoragemgmt/libstoragemgmt_types.h>
 #include <stdio.h>
 #include <string.h>
+#include <dirent.h>
 #include <libxml/uri.h>
 
 #include "lsm_datatypes.hpp"
@@ -69,7 +70,8 @@ int lsmConnectPassword(const char *uri, const char *password,
         if( c->uri && c->uri->scheme ) {
             c->raw_uri = strdup(uri);
             if( c->raw_uri ) {
-                rc = loadDriver(c, c->uri, password, timeout, e, flags);
+                rc = loadDriver(c, c->uri->scheme, password, timeout, e, 1,
+                                flags);
                 if( rc == LSM_ERR_OK ) {
                     *conn = (lsmConnect *)c;
                 }
@@ -222,6 +224,100 @@ int LSM_DLL_EXPORT lsmPluginGetInfo(lsmConnect *c, char **desc,
             free(*desc);
             free(*version);
         }
+    }
+
+    return rc;
+}
+
+int LSM_DLL_EXPORT lsmGetAvailablePlugins(const char *sep,
+                                            lsmStringList **plugins,
+                                            lsmFlag_t flags)
+{
+    int rc = LSM_ERR_OK;
+    DIR *dirp = NULL;
+    struct dirent *dp = NULL;
+    lsmConnect *c = NULL;
+    lsmErrorPtr e = NULL;
+    char *desc = NULL;
+    char *version = NULL;
+    char *s = NULL;
+    const char *uds_dir = uds_path();
+    lsmStringList *plugin_list = lsmStringListAlloc(0);
+
+    if( !plugin_list ) {
+        return LSM_ERR_NO_MEMORY;
+    }
+
+    if( CHECK_STR(sep) || CHECK_RP(plugins) || LSM_FLAG_UNUSED_CHECK(flags)) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    dirp = opendir(uds_dir);
+    if( dirp ) {
+        for(;;) {
+            dp = readdir(dirp);
+            if( NULL == dp ) {
+                break;
+            }
+
+            // Check to see if we have a socket
+            if( DT_SOCK == dp->d_type ) {
+                c = getConnection();
+                if ( c ) {
+                    rc = loadDriver(c, dp->d_name, NULL, 30000, &e, 0, 0);
+                    if( LSM_ERR_OK == rc) {
+                        // Get the plugin information
+                        rc = lsmPluginGetInfo(c, &desc, &version, 0);
+                        if( LSM_ERR_OK == rc) {
+                            int format = asprintf(&s, "%s%s%s", desc, sep, version);
+                            free(desc);
+                            desc = NULL;
+                            free(version);
+                            version = NULL;
+
+                            if( -1 == format ) {
+                                rc = LSM_ERR_NO_MEMORY;
+                                goto bail;
+                            }
+
+                            rc = lsmStringListAppend(plugin_list, s);
+                            free(s);
+                            s = NULL;
+                            if( LSM_ERR_OK != rc ) {
+                                goto bail;
+                            }
+
+                        }
+                    } else {
+                        goto bail;
+                    }
+
+                    freeConnection(c);
+                    c = NULL;
+                }
+            }
+        }
+
+ bail:
+        if( c ) {
+           freeConnection(c);
+           c = NULL;
+        }
+
+
+        if( -1 == closedir(dirp)) {
+            //log the error
+            rc = LSM_ERR_INTERNAL_ERROR;
+        }
+    } else {
+        //Log the error
+        rc = LSM_ERR_INTERNAL_ERROR;
+    }
+
+    if (LSM_ERR_OK == rc) {
+        *plugins = plugin_list;
+    } else {
+        lsmStringListFree(plugin_list);
     }
 
     return rc;

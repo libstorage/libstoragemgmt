@@ -273,20 +273,25 @@ static int establishConnection( lsmConnect *c, const char * password,
     return rc;
 }
 
-
-int loadDriver(lsmConnect *c, xmlURIPtr uri, const char *password,
-    uint32_t timeout, lsmErrorPtr *e, lsmFlag_t flags)
+const char *uds_path(void)
 {
-    int rc = LSM_ERR_OK;
-
-    const char *plugin_dir = getenv("LSM_UDS_PATH"); //Make this match for all supported languages
-    char *plugin_file = NULL;
+    const char *plugin_dir = getenv("LSM_UDS_PATH");
 
     if (plugin_dir == NULL) {
         plugin_dir = LSM_DEFAULT_PLUGIN_DIR;
     }
+    return plugin_dir;
+}
 
-    if (asprintf(&plugin_file, "%s/%s", plugin_dir, uri->scheme) == -1) {
+
+int loadDriver(lsmConnect *c, const char *plugin_name, const char *password,
+    uint32_t timeout, lsmErrorPtr *e, int startup, lsmFlag_t flags)
+{
+    int rc = LSM_ERR_OK;
+    char *plugin_file = NULL;
+    const char *plugin_dir = uds_path();
+
+    if (asprintf(&plugin_file, "%s/%s", plugin_dir, plugin_name) == -1) {
         return LSM_ERR_NO_MEMORY;
     }
 
@@ -296,8 +301,10 @@ int loadDriver(lsmConnect *c, xmlURIPtr uri, const char *password,
 
         if( sd >= 0 ) {
             c->tp = new Ipc(sd);
-            if( establishConnection(c, password, timeout, e, flags)) {
-                rc = LSM_ERR_PLUGIN_DLOPEN;
+            if( startup ) {
+                if( establishConnection(c, password, timeout, e, flags)) {
+                    rc = LSM_ERR_PLUGIN_DLOPEN;
+                }
             }
         } else {
              *e = lsmErrorCreate(LSM_ERR_PLUGIN_DLOPEN,

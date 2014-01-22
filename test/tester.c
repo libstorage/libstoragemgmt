@@ -1804,6 +1804,26 @@ START_TEST(test_plugin_info)
 }
 END_TEST
 
+START_TEST(test_get_available_plugins)
+{
+    int i = 0;
+    int num = 0;
+    lsmStringList *plugins = NULL;
+
+    int rc = lsmGetAvailablePlugins(":", &plugins, 0);
+    fail_unless(LSM_ERR_OK == rc, "rc = %d", rc);
+
+    num = lsmStringListSize(plugins);
+    for( i = 0; i < num; i++) {
+        char *info = lsmStringListGetElem(plugins, i);
+        fail_unless(strlen(info) > 0);
+        printf("%s\n", info);
+    }
+
+    fail_unless(lsmStringListFree(plugins) == LSM_ERR_OK);
+}
+END_TEST
+
 Suite * lsm_suite(void)
 {
     Suite *s = suite_create("libStorageMgmt");
@@ -1812,6 +1832,7 @@ Suite * lsm_suite(void)
     tcase_add_checked_fixture (basic, setup, teardown);
 
     tcase_add_test(basic, test_plugin_info);
+    tcase_add_test(basic, test_get_available_plugins);
     tcase_add_test(basic, test_volume_methods);
     tcase_add_test(basic, test_iscsi_auth_in);
     tcase_add_test(basic, test_initiator_methods);

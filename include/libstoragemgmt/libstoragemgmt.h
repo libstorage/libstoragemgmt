@@ -88,6 +88,17 @@ extern "C" {
     int LSM_DLL_EXPORT lsmPluginGetInfo(lsmConnect *conn, char **desc,
                                         char **version, lsmFlag_t flags);
 
+	/**
+	 * Retrieve a list of available plug-ins.
+	 * @param[in] sep		Return data separator
+	 * @param[out] plugins	String list of plug-ins with the form
+	 *						desc<sep>version
+	 * @return LSM_ERR_OK on success, else error code @see lsmErrorNumber
+	 */
+	int LSM_DLL_EXPORT lsmGetAvailablePlugins(const char *sep,
+                                                lsmStringList **plugins,
+                                                lsmFlag_t flags);
+
     /**
      * Sets the time-out for this connection.
      * @param[in] conn          Valid connection @see lsmConnectUserPass

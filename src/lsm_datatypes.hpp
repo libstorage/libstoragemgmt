@@ -293,18 +293,23 @@ LSM_DLL_LOCAL void freeConnection(lsmConnect *c);
 /**
  * Loads the requester driver specified in the uri.
  * @param c             Connection
- * @param uri           URI
+ * @param plugin        Short name of plugin
  * @param password      Password
  * @param timeout       Initial timeout
  * @param e             Error data
+ * @param startup       If non zero call rpc start_up, else skip
  * @param flags         Reserved flag for future use
  * @return LSM_ERR_OK on success, else error code.
  */
-LSM_DLL_LOCAL int loadDriver(lsmConnect *c, xmlURIPtr uri,
+LSM_DLL_LOCAL int loadDriver(lsmConnect *c, const char *plugin,
                                 const char *password, uint32_t timeout,
-                                lsmErrorPtr *e, lsmFlag_t flags);
+                                lsmErrorPtr *e,
+                                int startup,
+                                lsmFlag_t flags);
 
 LSM_DLL_LOCAL char* capabilityString(lsmStorageCapabilities *c);
+
+LSM_DLL_LOCAL const char *uds_path(void);
 
 #ifdef  __cplusplus
 }
