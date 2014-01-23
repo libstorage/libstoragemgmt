@@ -584,7 +584,7 @@ uint64_t lsmPoolFreeSpaceGet(lsmPool *p)
     return 0;
 }
 
-char *lsmPoolGetSystemId( lsmPool *p )
+char *lsmPoolSystemIdGet( lsmPool *p )
 {
     if (LSM_IS_POOL(p)) {
         return p->system_id;
@@ -922,7 +922,7 @@ uint64_t lsmVolumeBlockSizeGet(lsmVolume *v)
     MEMBER_GET(v, LSM_IS_VOL, blockSize, 0);
 }
 
-uint64_t lsmVolumeNumberOfBlocks(lsmVolume *v)
+uint64_t lsmVolumeNumberOfBlocksGet(lsmVolume *v)
 {
     MEMBER_GET(v, LSM_IS_VOL, numberOfBlocks, 0);
 }

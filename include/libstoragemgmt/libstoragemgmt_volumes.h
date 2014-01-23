@@ -82,7 +82,7 @@ uint64_t LSM_DLL_EXPORT lsmVolumeBlockSizeGet(lsmVolume *v);
  * @param v     Volume ptr.
  * @return      Number of blocks.
  */
-uint64_t LSM_DLL_EXPORT lsmVolumeNumberOfBlocks(lsmVolume *v);
+uint64_t LSM_DLL_EXPORT lsmVolumeNumberOfBlocksGet(lsmVolume *v);
 
 /**
  * Retrieves the operational status of the volume.

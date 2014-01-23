@@ -33,7 +33,7 @@ void printVolume(const LSM::Arguments &a, lsmVolume *v)
     const char *name = lsmVolumeNameGet(v);
     const char *vpd = lsmVolumeVpd83Get(v);
     uint64_t block_size = lsmVolumeBlockSizeGet(v);
-    uint64_t block_num = lsmVolumeNumberOfBlocks(v);
+    uint64_t block_num = lsmVolumeNumberOfBlocksGet(v);
     uint32_t status = lsmVolumeOpStatusGet(v);
     uint64_t size = block_size * block_num;
     std::string s = LSM::sizeHuman(a.human.present, size);

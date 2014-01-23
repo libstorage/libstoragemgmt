@@ -82,7 +82,7 @@ uint64_t LSM_DLL_EXPORT lsmPoolFreeSpaceGet( lsmPool *p );
  * @param p     Pool pointer
  * @return      System ID
  */
-char LSM_DLL_EXPORT *lsmPoolGetSystemId( lsmPool *p );
+char LSM_DLL_EXPORT *lsmPoolSystemIdGet( lsmPool *p );
 
 #ifdef  __cplusplus
 }

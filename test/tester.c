@@ -463,7 +463,7 @@ START_TEST(test_smoke_test)
             lsmVolumeNameGet(volumes[i]),
             lsmVolumeVpd83Get(volumes[i]),
             lsmVolumeBlockSizeGet(volumes[i]),
-            lsmVolumeNumberOfBlocks(volumes[i]),
+            lsmVolumeNumberOfBlocksGet(volumes[i]),
             lsmVolumeOpStatusGet(volumes[i]));
     }
 
@@ -476,7 +476,7 @@ START_TEST(test_smoke_test)
     char  *resizeJob = NULL;
 
     int resizeRc = lsmVolumeResize(c, volumes[0],
-        ((lsmVolumeNumberOfBlocks(volumes[0]) *
+        ((lsmVolumeNumberOfBlocksGet(volumes[0]) *
         lsmVolumeBlockSizeGet(volumes[0])) * 2), &resized, &resizeJob, LSM_FLAG_RSVD);
 
     fail_unless(resizeRc == LSM_ERR_OK || resizeRc == LSM_ERR_JOB_STARTED,
@@ -1261,7 +1261,7 @@ START_TEST(test_invalid_input)
     rc = lsmVolumeResize(c, new_vol, 20000000, &resized, NULL, LSM_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    rc = lsmVolumeResize(c, new_vol,    lsmVolumeNumberOfBlocks(new_vol) *
+    rc = lsmVolumeResize(c, new_vol,    lsmVolumeNumberOfBlocksGet(new_vol) *
                                         lsmVolumeBlockSizeGet(new_vol),
                                         &resized, &job, LSM_FLAG_RSVD);
     fail_unless(LSM_ERR_VOLUME_SAME_SIZE == rc, "rc = %d", rc);

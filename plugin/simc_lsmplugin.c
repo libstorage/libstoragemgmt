@@ -801,7 +801,7 @@ static int volume_replicate(lsmPluginPtr c, lsmPool *pool,
 
     if( pool_to_use && pi > -1 && vi > -1 ) {
         rc = volume_create(c, pool_to_use, name,
-                                lsmVolumeNumberOfBlocks(volumeSrc)*BS,
+                                lsmVolumeNumberOfBlocksGet(volumeSrc)*BS,
                                 LSM_PROVISION_DEFAULT, newReplicant, job, flags);
 
 
@@ -864,7 +864,7 @@ static int volume_resize(lsmPluginPtr c, lsmVolume *volume,
     if( -1 != vi ) {
         lsmVolume *v = pd->volume[vi].v;
         lsmPool *p = pd->volume[vi].p;
-        uint64_t curr_size = lsmVolumeNumberOfBlocks(v) * BS;
+        uint64_t curr_size = lsmVolumeNumberOfBlocksGet(v) * BS;
 
         pool_deallocate(p, curr_size);
         uint64_t resized_size = pool_allocate(p, newSize);
@@ -913,7 +913,7 @@ static int volume_delete(lsmPluginPtr c, lsmVolume *volume,
     int vi = find_volume_name(pd, lsmVolumeNameGet(volume));
     if( -1 != vi ) {
         lsmVolume *vp = pd->volume[vi].v;
-        pool_deallocate(pd->volume[vi].p, lsmVolumeNumberOfBlocks(vp)*BS);
+        pool_deallocate(pd->volume[vi].p, lsmVolumeNumberOfBlocksGet(vp)*BS);
 
         lsmVolumeRecordFree(vp);
         remove_item(pd->volume, vi, pd->num_volumes,
