@@ -962,7 +962,7 @@ uint64_t LSM_DLL_EXPORT lsmDiskBlockSizeGet( lsmDisk *d)
     MEMBER_GET(d, LSM_IS_DISK, block_size, 0);
 }
 
-uint64_t LSM_DLL_EXPORT lsmDiskBlockCountGet( lsmDisk *d)
+uint64_t LSM_DLL_EXPORT lsmDiskNumberOfBlocksGet( lsmDisk *d)
 {
     MEMBER_GET(d, LSM_IS_DISK, block_count, 0);
 }

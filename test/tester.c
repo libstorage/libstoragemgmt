@@ -926,7 +926,7 @@ START_TEST(test_disks)
             fail_unless(strcmp(system_id, SYSTEM_ID) == 0, "%s", id);
 
             fail_unless( lsmDiskTypeGet(d[i]) >= 1 );
-            fail_unless( lsmDiskBlockCountGet(d[i]) >= 1);
+            fail_unless( lsmDiskNumberOfBlocksGet(d[i]) >= 1);
             fail_unless( lsmDiskBlockSizeGet(d[i]) >= 1);
             fail_unless( lsmDiskStatusGet(d[i]) >= 1);
         }

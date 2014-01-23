@@ -83,7 +83,7 @@ lsmDiskType LSM_DLL_EXPORT lsmDiskTypeGet(lsmDisk *d);
  * @param d     Disk record of interest
  * @return Number of logical blocks
  */
-uint64_t LSM_DLL_EXPORT lsmDiskBlockCountGet(lsmDisk *d);
+uint64_t LSM_DLL_EXPORT lsmDiskNumberOfBlocksGet(lsmDisk *d);
 
 /**
  * Returns the block size
