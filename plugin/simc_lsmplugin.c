@@ -645,6 +645,32 @@ static int list_volumes(lsmPluginPtr c, lsmVolume **vols[],
     return rc;
 }
 
+static int list_disks(lsmPluginPtr c, lsmDisk **disks[], uint32_t *count,
+                        lsmFlag_t flags)
+{
+    int i;
+    int rc = LSM_ERR_OK;
+    struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
+    char name[17];
+
+    if(pd) {
+        // For now we are going to make up some disks to return.  Later we will
+        // try to make a simulated array that makes sense.
+        *count = 10;
+
+        *disks = lsmDiskRecordAllocArray(*count);
+        for( i = 0; i < *count; ++i ) {
+            snprintf(name, sizeof(name), "Sim C disk %d", i);
+            (*disks)[i] = lsmDiskRecordAlloc(md5(name), name, LSM_DISK_TYPE_SOP, 512,
+                0x8000000000000, LSM_DISK_STATUS_OK, sys_id);
+        }
+    } else {
+        rc = LSM_ERR_INVALID_PLUGIN;
+    }
+
+    return rc;
+}
+
 static uint64_t pool_allocate(lsmPool *p, uint64_t size)
 {
     uint64_t rounded_size = 0;
@@ -1580,7 +1606,7 @@ static int vol_accessible_by_init(lsmPluginPtr c,
 static struct lsmSanOpsV1 sanOps = {
     list_initiators,
     list_volumes,
-    NULL,
+    list_disks,
     volume_create,
     volume_replicate,
     volume_replicate_range_bs,
