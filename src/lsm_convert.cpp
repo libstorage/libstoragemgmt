@@ -100,7 +100,7 @@ Value diskToValue(lsmDisk *disk)
         d["name"] = Value(disk->name);
         d["disk_type"] = Value(disk->disk_type);
         d["block_size"] = Value(disk->block_size);
-        d["number_of_blocks"] = Value(disk->block_count);
+        d["num_of_blocks"] = Value(disk->block_count);
         d["status"] = Value(disk->disk_status);
         d["system_id"] = Value(disk->system_id);
         return Value(d);
