@@ -23,6 +23,7 @@
 #include "lsm_convert.hpp"
 #include "libstoragemgmt/libstoragemgmt_systems.h"
 #include "libstoragemgmt/libstoragemgmt_blockrange.h"
+#include "libstoragemgmt/libstoragemgmt_disk.h"
 #include "libstoragemgmt/libstoragemgmt_accessgroups.h"
 #include "libstoragemgmt/libstoragemgmt_fs.h"
 #include "libstoragemgmt/libstoragemgmt_snapshot.h"
@@ -88,6 +89,9 @@ void * lsmDataTypeCopy(lsmDataType t, void *item)
             case(LSM_DATA_TYPE_VOLUME):
                 rc = lsmVolumeRecordCopy((lsmVolume *)item);
                 break;
+            case(LSM_DATA_TYPE_DISK):
+                 rc = lsmDiskRecordCopy((lsmDisk *)item);
+                 break;
             default:
                 break;
             }
@@ -546,6 +550,40 @@ static int handle_volumes(lsmPluginPtr p, Value &params, Value &response)
                                         LSM_FLAG_GET_VALUE(params));
 
             get_volumes(rc, vols, count, response);
+        } else {
+            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+        }
+    }
+    return rc;
+}
+
+static void get_disks(int rc, lsmDisk **disks, uint32_t count, Value &response)
+{
+     if( LSM_ERR_OK == rc ) {
+        std::vector<Value> result;
+
+        for( uint32_t i = 0; i < count; ++i ) {
+            result.push_back(diskToValue(disks[i]));
+        }
+
+        lsmDiskRecordFreeArray(disks, count);
+        disks = NULL;
+        response = Value(result);
+    }
+}
+
+static int handle_disks(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+
+    if( p && p->sanOps && p->sanOps->disk_get ) {
+        lsmDisk **disks = NULL;
+        uint32_t count = 0;
+
+        if( LSM_FLAG_EXPECTED_TYPE(params) ) {
+            rc = p->sanOps->disk_get(p, &disks, &count,
+                LSM_FLAG_GET_VALUE(params));
+            get_disks(rc, disks, count, response);
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;
         }
@@ -2101,6 +2139,7 @@ static std::map<std::string,handler> dispatch = static_map<std::string,handler>
     ("access_group_revoke", ag_revoke)
     ("access_groups_granted_to_volume", ag_granted_to_volume)
     ("capabilities", capabilities)
+    ("disks", handle_disks)
     ("export_auth", export_auth)
     ("export_fs", export_fs)
     ("export_remove", export_remove)

@@ -56,7 +56,8 @@ typedef enum {
     LSM_DATA_TYPE_SS,                   /**< Snap shot */
     LSM_DATA_TYPE_STRING_LIST,          /**< String list */
     LSM_DATA_TYPE_SYSTEM,               /**< System */
-    LSM_DATA_TYPE_VOLUME                /**< Volume */
+    LSM_DATA_TYPE_VOLUME,               /**< Volume */
+    LSM_DATA_TYPE_DISK                  /**< Disk */
 } lsmDataType;
 
 /**
@@ -202,6 +203,17 @@ typedef int (*lsmPlugListInits)( lsmPluginPtr c, lsmInitiator **initArray[],
  */
 typedef int (*lsmPlugListVolumes)( lsmPluginPtr c, lsmVolume **volArray[],
                                         uint32_t *count, lsmFlag_t flags);
+
+/**
+ * Retrieve a list of volumes.
+ * @param[in]   c               Valid lsm plug-in pointer
+ * @param[out]  diskArray       Array of disk pointers
+ * @param[out]  count           Number of disks
+ * @param[in]   flags           Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
+typedef int (*lsmPlugListDisks)( lsmPluginPtr c, lsmDisk **diskArray[],
+                                uint32_t *count, lsmFlag_t flags);
 
 /**
  * Creates a volume, callback function signature
@@ -784,6 +796,7 @@ typedef int (*lsmPlugNfsExportRemove)( lsmPluginPtr c, lsmNfsExport *e,
 struct lsmSanOpsV1 {
     lsmPlugListInits init_get;              /**<  retrieving initiators */
     lsmPlugListVolumes vol_get;             /**<  retrieving volumes */
+    lsmPlugListDisks disk_get;              /**<  retrieve disks */
     lsmPlugVolumeCreate vol_create;         /**<  creating a lun */
     lsmPlugVolumeReplicate vol_replicate;   /**<  replicating lun */
     lsmPlugVolumeReplicateRangeBlockSize vol_rep_range_bs;  /**<  volume replication range block size */
@@ -993,6 +1006,18 @@ lsmVolume LSM_DLL_EXPORT **lsmVolumeRecordAllocArray( uint32_t size);
  */
 lsmDisk LSM_DLL_EXPORT **lsmDiskRecordAllocArray( uint32_t size );
 
+
+/**
+ * Allocate a disk record.
+ * @param id                Identification
+ * @param name              Human readable name
+ * @param disk_type         Enumerated disk type
+ * @param block_size        Number of bytes per logical block
+ * @param block_count       Number of blocks for disk
+ * @param disk_status       Status
+ * @param system_id         System id this disk resides in
+ * @return Pointer to allocated disk record or NULL on memory error.
+ */
 lsmDisk LSM_DLL_EXPORT *lsmDiskRecordAlloc(const char *id, const char *name,
         lsmDiskType disk_type, uint64_t block_size, uint64_t block_count,
         uint64_t disk_status, const char *system_id);

@@ -1580,6 +1580,7 @@ static int vol_accessible_by_init(lsmPluginPtr c,
 static struct lsmSanOpsV1 sanOps = {
     list_initiators,
     list_volumes,
+    NULL,
     volume_create,
     volume_replicate,
     volume_replicate_range_bs,
