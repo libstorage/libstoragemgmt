@@ -673,7 +673,7 @@ int lsmDiskList(lsmConnect *c, lsmDisk **disks[],
 {
     CONN_SETUP(c);
 
-    if (CHECK_RP(disks) || !count || LSM_FLAG_UNUSED_CHECK(flags)) {
+    if (CHECK_RP(disks) || !count ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 

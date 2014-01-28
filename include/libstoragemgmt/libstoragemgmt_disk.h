@@ -112,6 +112,13 @@ uint64_t LSM_DLL_EXPORT lsmDiskStatusGet(lsmDisk *d);
  */
 const char LSM_DLL_EXPORT *lsmDiskSystemIdGet(lsmDisk *d);
 
+/**
+ * Retrieve optional data for this disk
+ * @param d     Valid lsmDisk pointer
+ * @return NULL if no optional data exists.
+ */
+lsmOptionalData LSM_DLL_EXPORT *lsmDiskOptionalDataGet(lsmDisk *d);
+
 
 #ifdef	__cplusplus
 }

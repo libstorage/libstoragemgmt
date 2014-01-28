@@ -1020,7 +1020,7 @@ lsmDisk LSM_DLL_EXPORT **lsmDiskRecordAllocArray( uint32_t size );
  */
 lsmDisk LSM_DLL_EXPORT *lsmDiskRecordAlloc(const char *id, const char *name,
         lsmDiskType disk_type, uint64_t block_size, uint64_t block_count,
-        uint64_t disk_status, const char *system_id);
+        uint64_t disk_status, lsmOptionalData *op, const char *system_id);
 
 /**
  * Allocated the storage needed for one volume record.
@@ -1149,6 +1149,13 @@ int LSM_DLL_EXPORT lsmCapabilitySetN( lsmStorageCapabilities *cap,
  * @return Allocated record, or NULL on memory allocation failure.
  */
 lsmStorageCapabilities LSM_DLL_EXPORT *lsmCapabilityRecordAlloc(char const *value);
+
+
+/**
+ * Allocate storage for optional data.
+ * @return Allocted record or NULL on memory allocation failure
+ */
+lsmOptionalData LSM_DLL_EXPORT *lsmOptionalDataRecordAlloc(void);
 
 #ifdef  __cplusplus
 }

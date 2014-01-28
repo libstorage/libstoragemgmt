@@ -31,6 +31,7 @@
 #include "libstoragemgmt_fs.h"
 #include "libstoragemgmt_initiators.h"
 #include "libstoragemgmt_nfsexport.h"
+#include "libstoragemgmt_optionaldata.h"
 #include "libstoragemgmt_pool.h"
 #include "libstoragemgmt_snapshot.h"
 #include "libstoragemgmt_systems.h"
@@ -248,7 +249,7 @@ extern "C" {
      * @param [in]      conn    Valid connection @see lsmConnectUserPass
      * @param [out]     disks   An array of lsmDisk types
      * @param [out]     count   Number of disks
-     * @param [in]      flags   Reserved for future use, must be zero
+     * @param [in]      flags   Use LSM_DISK_RETRIEVE_FULL_INFO for all data, else 0
      * @return LSM_ERR_OK on success else error reason
      */
     int LSM_DLL_EXPORT lsmDiskList(lsmConnect *conn, lsmDisk **disks[],
