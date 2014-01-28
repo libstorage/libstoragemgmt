@@ -28,6 +28,8 @@
 #include <assert.h>
 #include <time.h>
 
+#include "libstoragemgmt/libstoragemgmt_optionaldata.h"
+
 #ifdef  __cplusplus
 extern "C" {
 #endif
@@ -652,6 +654,8 @@ static int list_disks(lsmPluginPtr c, lsmDisk **disks[], uint32_t *count,
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
     char name[17];
+    char sn[32];
+    lsmOptionalData *od = lsmOptionalDataRecordAlloc();
 
     if(pd) {
         // For now we are going to make up some disks to return.  Later we will
@@ -661,9 +665,14 @@ static int list_disks(lsmPluginPtr c, lsmDisk **disks[], uint32_t *count,
         *disks = lsmDiskRecordAllocArray(*count);
         for( i = 0; i < *count; ++i ) {
             snprintf(name, sizeof(name), "Sim C disk %d", i);
+            snprintf(sn, sizeof(sn), "SIMDISKSN00000%04d\n", i);
+
+            lsmOptionalDataStringSet(od, "sn", sn);
+
             (*disks)[i] = lsmDiskRecordAlloc(md5(name), name, LSM_DISK_TYPE_SOP, 512,
-                0x8000000000000, LSM_DISK_STATUS_OK, sys_id);
+                0x8000000000000, LSM_DISK_STATUS_OK,  od, sys_id);
         }
+        lsmOptionalDataRecordFree(od);
     } else {
         rc = LSM_ERR_INVALID_PLUGIN;
     }
