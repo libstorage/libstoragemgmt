@@ -418,6 +418,7 @@ class ErrorNumber(object):
     INVALID_SYSTEM = 117
     INVALID_IQN = 118
     INVALID_DISK = 119
+    INVALID_OPTIONAL_DATA = 120
 
     IS_MAPPED = 125
 

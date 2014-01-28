@@ -110,6 +110,11 @@ typedef struct _lsmSs lsmSs;
  */
 typedef struct _lsmDisk lsmDisk;
 
+/**
+ * Optional data type
+ */
+typedef struct _lsmOptionalData lsmOptionalData;
+
 /**< \enum lsmReplicationType Different types of replications that can be created */
 typedef enum {
     LSM_VOLUME_REPLICATE_UNKNOWN        = -1,       /**< Unknown replicate */
@@ -199,6 +204,8 @@ typedef enum {
     LSM_DISK_TYPE_SOP = 7,
     LSM_DISK_TYPE_SCSI = 8
 } lsmDiskType;
+
+#define LSM_DISK_RETRIEVE_FULL_INFO                 0x02
 
 #define LSM_DISK_STATUS_UNKNOWN                     0x0000000000000001
 #define LSM_DISK_STATUS_OK                          0x0000000000000002

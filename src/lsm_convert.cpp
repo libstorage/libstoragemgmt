@@ -19,6 +19,7 @@
 
 #include "lsm_convert.hpp"
 #include "libstoragemgmt/libstoragemgmt_accessgroups.h"
+#include "libstoragemgmt/libstoragemgmt_optionaldata.h"
 #include <libstoragemgmt/libstoragemgmt_blockrange.h>
 #include <libstoragemgmt/libstoragemgmt_nfsexport.h>
 
@@ -76,6 +77,13 @@ lsmDisk *valueToDisk(Value &disk)
 {
     lsmDisk *rc = NULL;
     if (isExpectedObject(disk, "Disk")) {
+        lsmOptionalData *op = NULL;
+
+        if( disk.asObject().find("optional_data") != disk.asObject().end() ) {
+            Value opv = disk["optional_data"];
+            op = valueToOptionalData(opv);
+        }
+
         std::map<std::string, Value> d = disk.asObject();
         rc = lsmDiskRecordAlloc(
             d["id"].asString().c_str(),
@@ -84,6 +92,7 @@ lsmDisk *valueToDisk(Value &disk)
             d["block_size"].asUint64_t(),
             d["num_of_blocks"].asUint64_t(),
             d["status"].asUint64_t(),
+            op,
             d["system_id"].asString().c_str()
             );
     }
@@ -103,6 +112,11 @@ Value diskToValue(lsmDisk *disk)
         d["num_of_blocks"] = Value(disk->block_count);
         d["status"] = Value(disk->disk_status);
         d["system_id"] = Value(disk->system_id);
+
+        if( disk->optional_data ) {
+            d["optional_data"] = optionalDataToValue(disk->optional_data);
+        }
+
         return Value(d);
     }
     return Value();
@@ -510,6 +524,52 @@ Value capabilitiesToValue(lsmStorageCapabilities *cap)
         c["class"] = Value("Capabilities");
         c["cap"] = Value(t);
         free(t);
+        return Value(c);
+    }
+    return Value();
+}
+
+lsmOptionalData *valueToOptionalData(Value &op)
+{
+    lsmOptionalData *rc = NULL;
+    const char *value = NULL;
+    if( isExpectedObject(op, "OptionalData") ) {
+        rc = lsmOptionalDataRecordAlloc();
+        if ( rc ) {
+            std::map<std::string, Value> v = op["values"].asObject();
+            std::map<std::string, Value>::iterator itr;
+            for(itr=v.begin(); itr != v.end(); ++itr) {
+                if( LSM_ERR_OK != lsmOptionalDataStringSet(rc,
+                                            itr->first.c_str(),
+                                            itr->second.asC_str())) {
+                    lsmOptionalDataRecordFree(rc);
+                    rc = NULL;
+                    break;
+                }
+            }
+        }
+    }
+    return rc;
+}
+
+Value optionalDataToValue(lsmOptionalData *op)
+{
+    GHashTableIter iter;
+    gpointer key;
+    gpointer value;
+
+    if( LSM_IS_OPTIONAL_DATA(op) ) {
+        std::map<std::string, Value> c;
+        std::map<std::string, Value> embedded_values;
+
+        g_hash_table_iter_init(&iter, op->data);
+        while(g_hash_table_iter_next(&iter, &key, &value)) {
+            embedded_values[(const char*)key] = Value((const char*)(value));
+        }
+
+        c["class"] = Value("OptionalData");
+        c["values"] = Value(embedded_values);
+
         return Value(c);
     }
     return Value();

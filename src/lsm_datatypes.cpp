@@ -32,6 +32,7 @@
 #include <libstoragemgmt/libstoragemgmt_fs.h>
 #include <libstoragemgmt/libstoragemgmt_initiators.h>
 #include <libstoragemgmt/libstoragemgmt_nfsexport.h>
+#include <libstoragemgmt/libstoragemgmt_optionaldata.h>
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 #include <libstoragemgmt/libstoragemgmt_pool.h>
 #include <libstoragemgmt/libstoragemgmt_snapshot.h>
@@ -694,7 +695,7 @@ CREATE_ALLOC_ARRAY_FUNC(lsmDiskRecordAllocArray, lsmDisk *)
 
 lsmDisk *lsmDiskRecordAlloc(const char *id, const char *name,
         lsmDiskType disk_type, uint64_t block_size, uint64_t block_count,
-        uint64_t disk_status, const char *system_id)
+        uint64_t disk_status, lsmOptionalData *op, const char *system_id)
 {
     lsmDisk *rc = (lsmDisk *)malloc(sizeof(lsmDisk));
     if( rc ) {
@@ -705,6 +706,7 @@ lsmDisk *lsmDiskRecordAlloc(const char *id, const char *name,
         rc->block_size = block_size;
         rc->block_count = block_count;
         rc->disk_status = disk_status;
+        rc->optional_data = lsmOptionalDataRecordCopy(op);
         rc->system_id = strdup(system_id);
 
         if( !rc->id || !rc->name || !rc->system_id ) {
@@ -841,7 +843,7 @@ lsmDisk *lsmDiskRecordCopy(lsmDisk *disk)
     if( LSM_IS_DISK(disk) ) {
         return lsmDiskRecordAlloc(disk->id, disk->name, disk->disk_type,
                     disk->block_size, disk->block_count, disk->disk_status,
-                    disk->system_id);
+                    disk->optional_data, disk->system_id);
     }
     return NULL;
 }
@@ -975,6 +977,11 @@ uint64_t LSM_DLL_EXPORT lsmDiskStatusGet( lsmDisk *d)
 const char LSM_DLL_EXPORT *lsmDiskSystemIdGet( lsmDisk *d)
 {
     MEMBER_GET(d, LSM_IS_DISK, system_id, NULL);
+}
+
+lsmOptionalData LSM_DLL_EXPORT *lsmDiskOptionalDataGet(lsmDisk *d)
+{
+    MEMBER_GET(d, LSM_IS_DISK, optional_data, NULL);
 }
 
 CREATE_ALLOC_ARRAY_FUNC(lsmAccessGroupRecordAllocArray, lsmAccessGroup *)
@@ -1604,6 +1611,117 @@ char* capabilityString(lsmStorageCapabilities *c)
         rc = bytesToString(c->cap, c->len);
     }
     return rc;
+}
+
+lsmOptionalData *lsmOptionalDataRecordAlloc(void)
+{
+    lsmOptionalData *rc = NULL;
+
+    rc = (lsmOptionalData *)malloc(sizeof(lsmOptionalData));
+    if( rc ) {
+        rc->magic = LSM_OPTIONAL_DATA_MAGIC;
+        rc->data = g_hash_table_new_full(g_str_hash, g_str_equal, free, free);
+        if ( !rc->data ) {
+            lsmOptionalDataRecordFree(rc);
+            rc = NULL;
+        }
+    }
+    return rc;
+}
+
+lsmOptionalData *lsmOptionalDataRecordCopy(lsmOptionalData *src)
+{
+    GHashTableIter iter;
+    gpointer key;
+    gpointer value;
+
+    lsmOptionalData *dest = NULL;
+    if( LSM_IS_OPTIONAL_DATA(src) ) {
+        dest = lsmOptionalDataRecordAlloc();
+        if( dest ) {
+            /* Walk through each from src and duplicate it to dest*/
+            g_hash_table_iter_init(&iter, src->data);
+            while(g_hash_table_iter_next(&iter, &key, &value)) {
+                if( LSM_ERR_OK != lsmOptionalDataStringSet(dest,
+                                    (const char*)key, (const char*)value))
+                {
+                    lsmOptionalDataRecordFree(dest);
+                    dest = NULL;
+                }
+            }
+        }
+    }
+    return dest;
+}
+
+void lsmOptionalDataRecordFree(lsmOptionalData *op)
+{
+    if( LSM_IS_OPTIONAL_DATA(op) ) {
+        op->magic = LSM_DEL_MAGIC(LSM_OPTIONAL_DATA_MAGIC);
+
+        if( op->data ) {
+            g_hash_table_destroy(op->data);
+        }
+
+        free(op);
+    }
+}
+
+int lsmOptionalDataListGet(lsmOptionalData *op, lsmStringList **l,
+                            uint32_t *count)
+{
+    GHashTableIter iter;
+    gpointer key;
+    gpointer value;
+
+    if( LSM_IS_OPTIONAL_DATA(op) ) {
+        *count = g_hash_table_size(op->data);
+
+        if( *count ) {
+            *l = lsmStringListAlloc(0);
+            g_hash_table_iter_init(&iter, op->data);
+            while(g_hash_table_iter_next(&iter, &key, &value)) {
+                if(LSM_ERR_OK != lsmStringListAppend(*l, (char *)key) ) {
+                    *count = 0;
+                    lsmStringListFree(*l);
+                    *l = NULL;
+                    return LSM_ERR_NO_MEMORY;
+                }
+            }
+        }
+        return LSM_ERR_OK;
+    }
+    return LSM_ERR_INVALID_OPTIONAL_DATA;
+}
+
+const char *lsmOptionalDataStringGet(lsmOptionalData *op,
+                                                    const char *key)
+{
+    if( LSM_IS_OPTIONAL_DATA(op) ) {
+        return (const char*)g_hash_table_lookup(op->data, key);
+    }
+    return NULL;
+}
+
+int lsmOptionalDataStringSet(lsmOptionalData *op,
+                                                const char *key,
+                                                const char *value)
+{
+    if( LSM_IS_OPTIONAL_DATA(op) ) {
+        char *k_value = strdup(key);
+        char *d_value = strdup(value);
+
+        if( k_value && d_value ) {
+            g_hash_table_remove(op->data, (gpointer)k_value);
+            g_hash_table_insert(op->data, (gpointer)k_value, (gpointer)d_value);
+            return LSM_ERR_OK;
+        } else {
+            free(k_value);
+            free(d_value);
+            return LSM_ERR_NO_MEMORY;
+        }
+    }
+    return LSM_ERR_INVALID_OPTIONAL_DATA;
 }
 
 #ifdef  __cplusplus

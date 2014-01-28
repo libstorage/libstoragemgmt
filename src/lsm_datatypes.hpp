@@ -288,8 +288,15 @@ struct LSM_DLL_LOCAL _lsmDisk {
     uint64_t block_size;
     uint64_t block_count;
     uint64_t disk_status;        /* Bit field */
+    lsmOptionalData *optional_data;
     char *system_id;
-    //TODO Add optional data
+};
+
+#define LSM_OPTIONAL_DATA_MAGIC     0xAA7A0011
+#define LSM_IS_OPTIONAL_DATA(obj)   MAGIC_CHECK(obj, LSM_OPTIONAL_DATA_MAGIC)
+struct LSM_DLL_LOCAL _lsmOptionalData {
+    uint32_t magic;
+    GHashTable *data;
 };
 
 /**

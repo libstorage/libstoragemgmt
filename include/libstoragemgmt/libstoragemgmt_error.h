@@ -77,6 +77,8 @@ typedef enum {
     LSM_ERR_INVALID_CAPABILITY = 116,   /**< Invalid capability pointer */
     LSM_ERR_INVALID_SYSTEM = 117,       /**< Invalid system pointer */
     LSM_ERR_INVALID_IQN = 118,          /**< Invalid IQN */
+    LSM_ERR_INVALID_DISK = 119,         /**< Invalid disk */
+    LSM_ERR_INVALID_OPTIONAL_DATA = 120,/**< Invalid optional data */
 
     LSM_ERR_IS_MAPPED = 125,            /**< Mapping already exists */
 

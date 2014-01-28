@@ -224,4 +224,18 @@ lsmStorageCapabilities *valueToCapabilities(Value &exp);
  */
 Value capabilitiesToValue(lsmStorageCapabilities *cap);
 
+/**
+ * Converts a value to optional data
+ * @param op    Value to convert to optional data
+ * @return lsmOptionalData pointer or NULL on error
+ */
+lsmOptionalData *valueToOptionalData(Value &op);
+
+/**
+ * Converts a lsmOptionalData pointer to a value
+ * @param[in]   op  optional data pointer to convert
+ * @return Value representing optional data
+ */
+Value optionalDataToValue(lsmOptionalData *op);
+
 #endif
