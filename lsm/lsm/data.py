@@ -285,7 +285,7 @@ class Initiator(IData):
 
     def value_convert(self, key_name, value, human, enum_as_number,
                       list_convert):
-        if enum_as_number:
+        if not enum_as_number:
             if key_name == 'type':
                     value = Initiator.type_to_str(value)
         return value
