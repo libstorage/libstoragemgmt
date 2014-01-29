@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2013 Red Hat, Inc.
+# Copyright (C) 2011-2014 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -235,7 +235,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('job_status', del_self(locals()))
 
-    ## Frees the resources for the specfied job id.
+    ## Frees the resources for the specified job id.
     # @param    self    The this pointer
     # @param    job_id  Job id in which to release resource for
     # @param    flags   Reserved for future use, must be zero.
@@ -322,7 +322,7 @@ class Client(INetworkAttachedStorage):
     ##          The new pool should holding size bigger or equal to
     ##          requested 'size_bytes'.
     ##
-    ## * Capabilities.POOL_CREATE_VIA_MEMEMBER_COUNT
+    ## * Capabilities.POOL_CREATE_VIA_MEMBER_COUNT
     ##      This capability require Capabilities.POOL_CREATE_RAID_TYPE.
     ##      This capability allow user to define how many disk/volume/pool
     ##      should be used to create new pool.
@@ -337,9 +337,9 @@ class Client(INetworkAttachedStorage):
     ##              pool_create(system_id='abc', pool_name='pool1',
     ##                          member_count=8, raid_type=Pool.RAID_TYPE_RAID5)
     ##
-    ## * POOL_CREATE_MEMEMBER_TYPE_DISK
+    ## * POOL_CREATE_MEMBER_TYPE_DISK
     ##      This capability require Capabilities.POOL_CREATE_RAID_TYPE
-    ##      and Capabilities.POOL_CREATE_VIA_MEMEMBER_COUNT
+    ##      and Capabilities.POOL_CREATE_VIA_MEMBER_COUNT
     ##      This capability indicate user can define which type of Disk in
     ##      could be used to create a pool in 'member_type'.
     ##      These calls are mandatory:
@@ -353,7 +353,7 @@ class Client(INetworkAttachedStorage):
     ##                      pool_name=<pool_name>,
     ##                      size_bytes=<size_bytes>,
     ##                      member_type=<member_type>)
-    ## * POOL_CREATE_VIA_MEMEMBER_IDS
+    ## * POOL_CREATE_VIA_MEMBER_IDS
     ##      This capability require Capabilities.POOL_CREATE_RAID_TYPE
     ##      This capability is used for advanced user who want to control
     ##      which disks/volumes/pools will be used to create new pool.
@@ -370,11 +370,11 @@ class Client(INetworkAttachedStorage):
     # @param    pool_name    The name of requested new pool.
     # @param    raid_type    The RAID type applied to members. Should be
     #                        Data.Extent.RAID_TYPE_XXXX
-    # @param    member_type  Indentify the type of member. Should be
+    # @param    member_type  Identify the type of member. Should be
     #                        Data.Extent.MEMBER_TYPE_XXXX
     # @param    member_ids   The array of IDs for pool members.
     #                        Could be ID of disks/pools/volumes
-    # @param    member_count How many disk/voluem/pool should plugin to chose
+    # @param    member_count How many disk/volume/pool should plugin to chose
     #                        if member_ids is not enough or not defined.
     #                        If len(member_ids) is larger than member_count,
     #                        will raise LsmError ErrorNumber.INVALID_ARGUMENT
@@ -787,7 +787,7 @@ class Client(INetworkAttachedStorage):
         volume.
         """
         return self._tp.rpc('access_groups_granted_to_volume',
-                           del_self(locals()))
+                            del_self(locals()))
 
     ## Checks to see if a volume has child dependencies.
     # @param    self    The this pointer
@@ -906,7 +906,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('fs_clone', del_self(locals()))
 
-    ## Clones an individial file or files on the specified file system
+    ## Clones an individual file or files on the specified file system
     # @param    self            The this pointer
     # @param    fs              The file system the files are on
     # @param    src_file_name   The source file name
@@ -985,7 +985,7 @@ class Client(INetworkAttachedStorage):
 
     ## Reverts a snapshot
     # @param    self            The this pointer
-    # @param    fs              The file system object to revert snapthot for
+    # @param    fs              The file system object to revert snapshot for
     # @param    snapshot        The snapshot file to revert back too
     # @param    files           The specific files to revert
     # @param    restore_files   Individual files to restore
