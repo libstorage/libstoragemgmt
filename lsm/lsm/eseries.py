@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2013 Red Hat, Inc.
+# Copyright (C) 2011-2014 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -62,7 +62,7 @@ class ESeries(Smis):
     def access_group_del(self, group, flags=0):
         ccs = self._get_class_instance('CIM_ControllerConfigurationService')
 
-        pc = self._get_access_group(group.id)
+        pc = self._get_cim_instance_by_id('AccessGroup', group.id)
 
         in_params = {'ProtocolController': pc.path}
 
@@ -83,13 +83,20 @@ class ESeries(Smis):
         #doesn't work
         return cap
 
+    def _get_initiators_in_group(self, cim_grp):
+        ag_init_ids = []
+        cim_st_hwid_pros = self._property_list_of_id('Initiator')
+        cim_st_hwids = self._get_cim_st_hwid_in_spc(cim_grp, cim_st_hwid_pros)
+        ag_init_ids = [self._init_id(i) for i in cim_st_hwids]
+        return ag_init_ids
+
     def _get_group_initiator_is_in(self, initiator_id):
         groups = self._get_access_groups()
 
         for g in groups:
             initiators = self._get_initiators_in_group(g)
             for i in initiators:
-                if i['StorageID'] == initiator_id:
+                if i == initiator_id:
                     return g
 
         return None
