@@ -904,10 +904,15 @@ START_TEST(test_disks)
     const char *name;
     const char *system_id;
     int i = 0;
+    uint32_t key_count = 0;
+    lsmStringList *keys = NULL;
+    const char *key = NULL;
+    const char *data = NULL;
+    lsmOptionalData *od = NULL;
+    uint32_t j;
 
     fail_unless(c!=NULL);
 
-    // TODO: Implement for C simulator.
     int rc = lsmDiskList(c, &d, &count, 0);
 
     if( LSM_ERR_OK == rc ) {
@@ -929,6 +934,28 @@ START_TEST(test_disks)
             fail_unless( lsmDiskNumberOfBlocksGet(d[i]) >= 1);
             fail_unless( lsmDiskBlockSizeGet(d[i]) >= 1);
             fail_unless( lsmDiskStatusGet(d[i]) >= 1);
+
+            od = lsmDiskOptionalDataGet(d[i]);
+            if( od ) {
+                /* Iterate through the keys, grabbing the data */
+                rc = lsmOptionalDataListGet(od, &keys, &key_count);
+                if( LSM_ERR_OK == rc && keys != NULL && key_count > 0 ) {
+                    uint32_t num_keys = lsmStringListSize(keys);
+                    //fail_unless( num_keys == key_count, "%d != %d", num_keys, key_count);
+                    for(j = 0; j < key_count; ++j ) {
+                        key = lsmStringListGetElem(keys, j);
+                        data = lsmOptionalDataStringGet(od, key);
+                        fail_unless(key != NULL && strlen(key) > 0);
+                        fail_unless(data != NULL && strlen(data) > 0);
+                    }
+
+                    if( keys ) {
+                        rc = lsmStringListFree(keys);
+                        fail_unless(LSM_ERR_OK == rc, "rc = %d", rc);
+                    }
+                }
+                lsmOptionalDataRecordFree(od);
+            }
         }
         lsmDiskRecordFreeArray(d, count);
     } else {
@@ -1857,7 +1884,7 @@ START_TEST(test_get_available_plugins)
 
     num = lsmStringListSize(plugins);
     for( i = 0; i < num; i++) {
-        char *info = lsmStringListGetElem(plugins, i);
+        const char *info = lsmStringListGetElem(plugins, i);
         fail_unless(strlen(info) > 0);
         printf("%s\n", info);
     }
