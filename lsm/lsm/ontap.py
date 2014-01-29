@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2013 Red Hat, Inc.
+# Copyright (C) 2011-2014 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -24,7 +24,7 @@ import sys
 
 import na
 from data import Volume, Initiator, FileSystem, Snapshot, NfsExport, \
-    AccessGroup, System, Capabilities, Disk, Pool, OptionalData, txt_a
+    AccessGroup, System, Capabilities, Disk, Pool, OptionalData
 from iplugin import IStorageAreaNetwork, INfs
 from common import LsmError, ErrorNumber, JobStatus, md5, Error
 from version import VERSION
