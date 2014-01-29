@@ -106,8 +106,34 @@ typedef enum {
     LSM_CAP_EXPORTS                                 = 121,      /**< List exported file systems */
     LSM_CAP_EXPORT_FS                               = 122,      /**< Export a file system */
     LSM_CAP_EXPORT_REMOVE                           = 123,      /**< Remove an export */
-    LSM_CAP_EXPORT_CUSTOM_PATH                      = 124       /**< Plug-in allows user to define custome export path */
+    LSM_CAP_EXPORT_CUSTOM_PATH                      = 124,      /**< Plug-in allows user to define custome export path */
 
+    LSM_CAP_POOL_CREATE                             = 130,      /**< Pool create support */
+    LSM_CAP_POOL_CREATE_THIN                        = 131,      /**< Pool create that support thin prov. */
+    LSM_CAP_POOL_CREATE_THICK                       = 132,      /**< Pool create that supports thick prov. */
+    LSM_CAP_POOL_CREATE_RAID_TYPE                   = 133,      /**< Pool create supports user defined RAID type */
+    LSM_CAP_POOL_CREATE_VIA_MEMBER_COUNT            = 134,      /**< Pool create supports member count param */
+    LSM_CAP_POOL_CREATE_VIA_MEMBER_IDS              = 135,      /**< Pool create specifing member IDs */
+    LSM_CAP_POOL_CREATE_MEMBER_TYPE_DISK            = 136,      /**< Pool create member is disk */
+    LSM_CAP_POOL_CREATE_MEMBER_TYPE_POOL            = 137,      /**< Pool create member is pool */
+    LSM_CAP_POOL_CREATE_MEMBER_TYPE_VOL             = 138,      /**< Pool create member is volume */
+
+    LSM_CAP_POOL_CREATE_RAID_0                      = 140,      /**< Pool create supports RAID N */
+    LSM_CAP_POOL_CREATE_RAID_1                      = 141,
+    LSM_CAP_POOL_CREATE_RAID_JBOD                   = 142,
+    LSM_CAP_POOL_CREATE_RAID_3                      = 143,
+    LSM_CAP_POOL_CREATE_RAID_4                      = 144,
+    LSM_CAP_POOL_CREATE_RAID_5                      = 145,
+    LSM_CAP_POOL_CREATE_RAID_6                      = 146,
+    LSM_CAP_POOL_POOL_CREATE_RAID_10                = 147,
+    LSM_CAP_POOL_POOL_CREATE_RAID_50                = 148,
+    LSM_CAP_POOL_POOL_CREATE_RAID_51                = 149,
+    LSM_CAP_POOL_POOL_CREATE_RAID_60                = 150,
+    LSM_CAP_POOL_POOL_CREATE_RAID_61                = 151,
+    LSM_CAP_POOL_POOL_CREATE_RAID_15                = 152,
+    LSM_CAP_POOL_POOL_CREATE_RAID_16                = 153,
+
+    LSM_CAP_POOL_DELETE                             = 160       /**< Pool delete support */
 } lsmCapabilityType;
 
 /**
