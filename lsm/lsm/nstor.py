@@ -20,7 +20,10 @@
 
 import urllib2
 import urlparse
-import simplejson as json
+try:
+    import simplejson as json
+except ImportError:
+    import json
 import base64
 import time
 
