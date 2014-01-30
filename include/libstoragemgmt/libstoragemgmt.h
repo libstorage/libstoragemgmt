@@ -84,7 +84,7 @@ extern "C" {
      * @param[in] conn      Valid connection @see lsmConnectUserPass
      * @param[out] desc     Plug-in description
      * @param[out] version  Plug-in version
-     * @param flags
+     * @param [in] flags    Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error code @see lsmErrorNumber
      */
     int LSM_DLL_EXPORT lsmPluginGetInfo(lsmConnect *conn, char **desc,
@@ -95,6 +95,7 @@ extern "C" {
 	 * @param[in] sep		Return data separator
 	 * @param[out] plugins	String list of plug-ins with the form
 	 *						desc<sep>version
+     * @param[in] flags     Reserved for future use, must be zero.
 	 * @return LSM_ERR_OK on success, else error code @see lsmErrorNumber
 	 */
 	int LSM_DLL_EXPORT lsmGetAvailablePlugins(const char *sep,

@@ -1015,6 +1015,7 @@ lsmDisk LSM_DLL_EXPORT **lsmDiskRecordAllocArray( uint32_t size );
  * @param block_size        Number of bytes per logical block
  * @param block_count       Number of blocks for disk
  * @param disk_status       Status
+ * @param op                OptionalData can be NULL if not available
  * @param system_id         System id this disk resides in
  * @return Pointer to allocated disk record or NULL on memory error.
  */

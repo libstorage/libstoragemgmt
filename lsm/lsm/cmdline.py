@@ -47,7 +47,7 @@ def out(msg):
 
 
 ## Wraps the invocation to the command line
-# @param    client  Object to invoke calls on (optional)
+# @param    c   Object to invoke calls on (optional)
 def cmd_line_wrapper(c=None):
     """
     Common command line code, called.
@@ -725,7 +725,7 @@ class CmdLine:
     ##
     # Tries to make the output better when it varies considerably from
     # plug-in to plug-in.
-    # @param    rows    Data, first row is header all other data.
+    # @param    objects    Data, first row is header all other data.
     def display_data(self, objects):
         if len(objects) == 0:
             out("No data retrieved")

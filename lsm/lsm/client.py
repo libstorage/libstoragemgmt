@@ -302,9 +302,9 @@ class Client(INetworkAttachedStorage):
     ##      Capabilities.POOL_CREATE is the priority 1 capability for
     ##      pool_create(), without it, pool_create() is not supported at all.
     ##      This call is mandatory:
-    ##          pool_create(system_id=<system_id>,
-    ##                      pool_name=<pool_name>,
-    ##                      size_bytes=<size_bytes>)
+    ##          pool_create(system_id='system_id',
+    ##                      pool_name='pool_name',
+    ##                      size_bytes='size_bytes')
     ##          Creates a pool with size bigger or equal to requested
     ##          'size_bytes'.
     ##
@@ -313,10 +313,10 @@ class Client(INetworkAttachedStorage):
     ##      creating pool.
     ##      Capabilities.POOL_CREATE_RAID_XX is for certain RAID type/level.
     ##      This call is mandatory:
-    ##          pool_create(system_id=<system_id>,
-    ##                      pool_name=<pool_name>,
-    ##                      size_bytes=<size_bytes>,
-    ##                      raid_type=<raid_type>)
+    ##          pool_create(system_id='system_id',
+    ##                      pool_name='pool_name',
+    ##                      size_bytes='size_bytes',
+    ##                      raid_type='raid_type' )
     ##          Creates a pool with requested RAID level and
     ##          'size_bytes'.
     ##          The new pool should holding size bigger or equal to
@@ -327,10 +327,10 @@ class Client(INetworkAttachedStorage):
     ##      This capability allow user to define how many disk/volume/pool
     ##      should be used to create new pool.
     ##      This call is mandatory:
-    ##          pool_create(system_id=<system_id>,
-    ##                      pool_name=<pool_name>,
-    ##                      raid_type=<raid_type>,
-    ##                      member_count=<member_count>)
+    ##          pool_create(system_id='system_id',
+    ##                      pool_name='pool_name',
+    ##                      raid_type='raid_type' ,
+    ##                      member_count='member_count')
     ##          Create a pool with requested more or equal count of
     ##          disk/volume/pool as requested.
     ##          For example, user can request a 8 disks RAID5 pool via
@@ -343,30 +343,31 @@ class Client(INetworkAttachedStorage):
     ##      This capability indicate user can define which type of Disk in
     ##      could be used to create a pool in 'member_type'.
     ##      These calls are mandatory:
-    ##          pool_create(system_id=<system_id>,
-    ##                      pool_name=<pool_name>,
-    ##                      raid_type=<raid_type>,
-    ##                      member_type=<member_type>,
-    ##                      member_count=<member_count>)
+    ##          pool_create(system_id='system_id',
+    ##                      pool_name='pool_name',
+    ##                      raid_type='raid_type',
+    ##                      member_type='member_type',
+    ##                      member_count='member_count')
     ##
-    ##          pool_create(system_id=<system_id>,
-    ##                      pool_name=<pool_name>,
-    ##                      size_bytes=<size_bytes>,
-    ##                      member_type=<member_type>)
+    ##          pool_create(system_id='system_id',
+    ##                      pool_name='pool_name',
+    ##                      size_bytes='size_bytes',
+    ##                      member_type='member_type')
     ## * POOL_CREATE_VIA_MEMBER_IDS
     ##      This capability require Capabilities.POOL_CREATE_RAID_TYPE
     ##      This capability is used for advanced user who want to control
     ##      which disks/volumes/pools will be used to create new pool.
     ##      This call is mandatory:
-    ##          pool_create(system_id=<system_id>,
-    ##                      pool_name=<pool_name>,
-    ##                      raid_type=<raid_type>
-    ##                      member_type=<member_type>,
-    ##                      member_ids=<member_ids>)
+    ##          pool_create(system_id='system_id',
+    ##                      pool_name='pool name',
+    ##                      raid_type='# enumerated_type',
+    ##                      member_type='member_type',
+    ##                      member_ids=(member_ids))
     ##  * Capabilities.POOL_CREATE_THIN or POOL_CREATE_THICK
     ##      These capabilities indicate user can define thinp_type in
     ##      pool_create().
     # @param    self         The this pointer
+    # @param    system_id    ID of the system to create pool on.
     # @param    pool_name    The name of requested new pool.
     # @param    raid_type    The RAID type applied to members. Should be
     #                        Data.Extent.RAID_TYPE_XXXX
