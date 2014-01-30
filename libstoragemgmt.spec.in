@@ -278,6 +278,7 @@ fi
 
 %files nstor-plugin
 %defattr(-,root,root,-)
+%{python_sitelib}/lsm/nstor.*
 %{_bindir}/nstor_lsmplugin
 
 %files udev
