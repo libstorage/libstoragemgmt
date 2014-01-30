@@ -532,7 +532,6 @@ Value capabilitiesToValue(lsmStorageCapabilities *cap)
 lsmOptionalData *valueToOptionalData(Value &op)
 {
     lsmOptionalData *rc = NULL;
-    const char *value = NULL;
     if( isExpectedObject(op, "OptionalData") ) {
         rc = lsmOptionalDataRecordAlloc();
         if ( rc ) {
