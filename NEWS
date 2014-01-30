@@ -1,5 +1,19 @@
 News for libStorageMgmt
 
+0.0.24: Jan 30 2014
+    - Command line interface (CLI) re-factored and improved to be easier to use
+      and more consistent, man pages have been updated
+    - Command line output now has '-s, --script' for an additional way to output
+      information for consumption in scripts
+    - Command line option '-o' for retrieving optional/extended data for disks &
+      pools
+    - Pool creation/deleting in CLI & python API
+    - Numerous small bug fixes
+    - C API, added ability to list disks, list plugins and retrieve optional
+      data for disks
+    - SSL for SMI-S is more stringent on certificate checking for newer
+      distributions, new URI option "no_ssl_verify=yes" to disable
+
 0.0.23: Nov 27 2013
     - Addition of listing disks implemented for SMI-S and Ontap plugins
       (new, not in C library yet)
