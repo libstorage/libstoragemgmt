@@ -242,14 +242,15 @@ int LSM_DLL_EXPORT lsmGetAvailablePlugins(const char *sep,
     char *version = NULL;
     char *s = NULL;
     const char *uds_dir = uds_path();
-    lsmStringList *plugin_list = lsmStringListAlloc(0);
-
-    if( !plugin_list ) {
-        return LSM_ERR_NO_MEMORY;
-    }
+    lsmStringList *plugin_list = NULL;
 
     if( CHECK_STR(sep) || CHECK_RP(plugins) || LSM_FLAG_UNUSED_CHECK(flags)) {
         return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    plugin_list = lsmStringListAlloc(0);
+    if( !plugin_list ) {
+        return LSM_ERR_NO_MEMORY;
     }
 
     dirp = opendir(uds_dir);
@@ -277,28 +278,32 @@ int LSM_DLL_EXPORT lsmGetAvailablePlugins(const char *sep,
 
                             if( -1 == format ) {
                                 rc = LSM_ERR_NO_MEMORY;
-                                goto bail;
+                                break;
                             }
 
                             rc = lsmStringListAppend(plugin_list, s);
                             free(s);
                             s = NULL;
                             if( LSM_ERR_OK != rc ) {
-                                goto bail;
+                                break;
                             }
 
                         }
                     } else {
-                        goto bail;
+                        break;
                     }
 
                     freeConnection(c);
                     c = NULL;
                 }
             }
+        }   /* for(;;) */
+
+        if( e ) {
+            lsmErrorFree(e);
+            e = NULL;
         }
 
- bail:
         if( c ) {
            freeConnection(c);
            c = NULL;
@@ -309,7 +314,8 @@ int LSM_DLL_EXPORT lsmGetAvailablePlugins(const char *sep,
             //log the error
             rc = LSM_ERR_INTERNAL_ERROR;
         }
-    } else {
+
+    } else {  /* If dirp == NULL */
         //Log the error
         rc = LSM_ERR_INTERNAL_ERROR;
     }
@@ -318,6 +324,7 @@ int LSM_DLL_EXPORT lsmGetAvailablePlugins(const char *sep,
         *plugins = plugin_list;
     } else {
         lsmStringListFree(plugin_list);
+        plugin_list = NULL;
     }
 
     return rc;

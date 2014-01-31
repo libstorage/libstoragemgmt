@@ -95,6 +95,9 @@ lsmDisk *valueToDisk(Value &disk)
             op,
             d["system_id"].asString().c_str()
             );
+
+        /* Optional data gets copied in lsmDiskRecordAlloc */
+        lsmOptionalDataRecordFree(op);
     }
     return rc;
 }

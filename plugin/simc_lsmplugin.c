@@ -652,12 +652,12 @@ static int list_disks(lsmPluginPtr c, lsmDisk **disks[], uint32_t *count,
 {
     int i;
     int rc = LSM_ERR_OK;
-    struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
     char name[17];
     char sn[32];
+    struct plugin_data *pd = (struct plugin_data*)lsmGetPrivateData(c);
     lsmOptionalData *od = lsmOptionalDataRecordAlloc();
 
-    if(pd) {
+    if(pd && od) {
         // For now we are going to make up some disks to return.  Later we will
         // try to make a simulated array that makes sense.
         *count = 10;
@@ -672,11 +672,12 @@ static int list_disks(lsmPluginPtr c, lsmDisk **disks[], uint32_t *count,
             (*disks)[i] = lsmDiskRecordAlloc(md5(name), name, LSM_DISK_TYPE_SOP, 512,
                 0x8000000000000, LSM_DISK_STATUS_OK,  od, sys_id);
         }
-        lsmOptionalDataRecordFree(od);
+
     } else {
         rc = LSM_ERR_INVALID_PLUGIN;
     }
 
+    lsmOptionalDataRecordFree(od);
     return rc;
 }
 
