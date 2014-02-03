@@ -567,7 +567,8 @@ static int _list_initiators(lsmPluginPtr c, lsmInitiator **initArray[],
                     if( init_key && init_val ) {
                         g_hash_table_insert(tmp_inits, init_key, init_val);
                     } else {
-                        g_hash_table_destroy(tmp_inits);
+                        free(init_key);
+                        lsmInitiatorRecordFree(init_val);
                         rc = LSM_ERR_NO_MEMORY;
                     }
                 }
@@ -1594,6 +1595,7 @@ static int vol_accessible_by_init(lsmPluginPtr c,
                             lsmVolumeRecordFreeArray(*volumes, alloc_count);
                             *count = 0;
                             *volumes = NULL;
+                            break;
                         } else {
                             alloc_count += 1;
                         }
@@ -2221,8 +2223,25 @@ int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
 
         if( !data->system[0] || !data->pool[0] || !data->pool[1] ||
             !data->pool[2] || !data->pool[3] || !data->access_groups ||
-            !data->group_grant || !data->fs) {
-            rc = LSM_ERR_NO_MEMORY;
+            !data->group_grant || !data->fs || !data->jobs ) {
+            rc = LSM_ERR_NO_MEMORY;             /* We need to free data and everything else */
+
+            if( data->jobs )
+                g_hash_table_destroy(data->jobs);
+            if( data->fs )
+                g_hash_table_destroy(data->fs);
+            if( data->group_grant )
+                g_hash_table_destroy(data->group_grant);
+            if( data->access_groups )
+                g_hash_table_destroy(data->access_groups);
+            lsmPoolRecordFree(data->pool[3]);
+            lsmPoolRecordFree(data->pool[2]);
+            lsmPoolRecordFree(data->pool[1]);
+            lsmPoolRecordFree(data->pool[0]);
+            lsmSystemRecordFree(data->system[0]);
+            memset(data, 0xAA, sizeof(struct plugin_data));
+            free(data);
+            data = NULL;
         } else {
             rc = lsmRegisterPluginV1( c, data, &mgmOps,
                                     &sanOps, &fsOps, &nfsOps);
