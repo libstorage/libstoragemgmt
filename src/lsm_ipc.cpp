@@ -147,6 +147,7 @@ int Transport::getSocket(const std::string& path, int &error_code)
         if (rc != 0) {
             error_code = errno;
             rc = -1; //Redundant, connect should set to -1 on error
+            ::close(sfd);
         } else {
             rc = sfd; //We are good to go.
         }
