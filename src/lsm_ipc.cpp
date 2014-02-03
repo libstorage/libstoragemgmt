@@ -121,9 +121,13 @@ std::string Transport::recvMsg(int &error_code)
 {
     std::string msg;
     error_code = 0;
+    unsigned long int payload_len = 0;
     std::string len = readString(s, HDR_LEN, error_code); //Read the length
     if (len.size() && error_code == 0) {
-        msg = readString(s, strtoul(len.c_str(), NULL, 10), error_code);
+        payload_len = strtoul(len.c_str(), NULL, 10);
+        if( payload_len < 0x80000000 ) {    /* Should be big enough */
+            msg = readString(s, payload_len, error_code);
+        }
         //fprintf(stderr, "<<< %s\n", msg.c_str());
     }
     return msg;
