@@ -37,6 +37,7 @@
         return LSM_ERR_INVALID_CONN;    \
     }                                   \
     lsmErrorFree(c->error);             \
+    c->error = NULL;                    \
     } while (0)
 
 /**
@@ -118,7 +119,7 @@ static lsmErrorNumber logException(lsmConnect *c, lsmErrorNumber error,
                                         LSM_ERR_LEVEL_ERROR, message,
                                         exception_msg, NULL,
                                         NULL, 0);
-    if( err && c ) {
+    if( err ) {
         lsmErrorLog(c, err);
     }
     return error;
