@@ -42,6 +42,7 @@
 #include <libgen.h>
 #include <assert.h>
 #include <grp.h>
+#include <limits.h>
 
 #define BASE_DIR  "/var/run/lsm"
 #define SOCKET_DIR BASE_DIR"/ipc"
@@ -379,7 +380,7 @@ void empty_plugin_list(struct plugin_list *list)
 
         free(item->file_path);
         item->file_path = NULL;
-        item->fd = -1;
+        item->fd = INT_MAX;
         free(item);
     }
 }
