@@ -257,20 +257,20 @@ static int handle_startup(lsmPluginPtr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
     xmlURIPtr uri = NULL;
+    std::string uri_string = params["uri"].asString();
+    std::string password;
 
     if( p ) {
-        uri = xmlParseURI(params["uri"].asString().c_str());
+        uri = xmlParseURI(uri_string.c_str());
         if( uri ) {
-            const char *pass = NULL;
-
             lsmFlag_t flags = LSM_FLAG_GET_VALUE(params);
 
             if( Value::string_t == params["password"].valueType() ) {
-                pass = params["password"].asString().c_str();
+                password = params["password"].asString();
             }
 
             //Let the plug-in initialize itself.
-            rc = p->reg(p, uri, pass, params["timeout"].asUint32_t(),
+            rc = p->reg(p, uri, password.c_str(), params["timeout"].asUint32_t(),
                             flags);
             xmlFreeURI(uri);
             uri = NULL;
@@ -314,7 +314,7 @@ static int handle_get_time_out( lsmPluginPtr p, Value &params, Value &response)
 
 static int handle_job_status( lsmPluginPtr p, Value &params, Value &response)
 {
-    const char *job_id = NULL;
+    std::string job_id;
     lsmJobStatus status;
     uint8_t percent;
     lsmDataType t = LSM_DATA_TYPE_UNKNOWN;
@@ -328,9 +328,9 @@ static int handle_job_status( lsmPluginPtr p, Value &params, Value &response)
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;
         } else {
 
-            job_id = params["job_id"].asString().c_str();
+            job_id = params["job_id"].asString();
 
-            rc = p->mgmtOps->job_status(p, job_id, &status, &percent, &t,
+            rc = p->mgmtOps->job_status(p, job_id.c_str(), &status, &percent, &t,
                         &value, LSM_FLAG_GET_VALUE(params));
 
             if( LSM_ERR_OK == rc) {
