@@ -1560,7 +1560,12 @@ static uint8_t *stringToBytes(const char *hex_string, uint32_t *l)
                 *l = len;
 
                 for( i = 0; i < len; ++i ) {
-                    sscanf(t, "%02hhx", &rc[i]);
+                    if( 1 != sscanf(t, "%02hhx", &rc[i])) {
+                        free(rc);
+                        rc = NULL;
+                        *l = 0;
+                        break;
+                    }
                     t += 2;
                 }
             }
