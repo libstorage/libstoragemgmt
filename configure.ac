@@ -150,7 +150,6 @@ AC_OUTPUT(libstoragemgmt.pc \
           doc/man/lsmd.1 \
           doc/doxygen.conf \
           tools/Makefile \
-          tools/lsmcli/Makefile \
           tools/udev/Makefile \
           include/Makefile \
           include/libstoragemgmt/Makefile \
