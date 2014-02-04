@@ -136,7 +136,7 @@ static int rpc(lsmConnect *c, const char *method, const Value &parameters,
     } catch ( const LsmException &le ) {
         return logException(c, (lsmErrorNumber)le.error_code, le.what(),
                             NULL);
-    } catch ( EOFException &eof ) {
+    } catch ( const EOFException &eof ) {
         return logException(c, LSM_ERR_TRANSPORT_COMMUNICATION, "Plug-in died",
                                 "Check syslog");
     } catch (...) {
@@ -146,21 +146,26 @@ static int rpc(lsmConnect *c, const char *method, const Value &parameters,
     return LSM_ERR_OK;
 }
 
-static int jobCheck( int rc, Value &response, char **job )
+static int jobCheck( lsmConnect *c, int rc, Value &response, char **job )
 {
-    if( LSM_ERR_OK == rc ) {
-        //We get a value back, either null or job id.
-        if( Value::string_t == response.valueType() ) {
-            *job = strdup(response.asString().c_str());
+    try {
+        if( LSM_ERR_OK == rc ) {
+            //We get a value back, either null or job id.
+            if( Value::string_t == response.valueType() ) {
+                *job = strdup(response.asString().c_str());
 
-            if( *job ) {
-                rc = LSM_ERR_JOB_STARTED;
+                if( *job ) {
+                    rc = LSM_ERR_JOB_STARTED;
+                } else {
+                    rc = LSM_ERR_NO_MEMORY;
+                }
             } else {
-                rc = LSM_ERR_NO_MEMORY;
+                *job = NULL;
             }
-        } else {
-            *job = NULL;
         }
+    } catch (const ValueException &ve) {
+        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Wrong type",
+                            ve.what());
     }
     return rc;
 }
@@ -198,6 +203,7 @@ int lsmConnectClose(lsmConnect *c, lsmFlag_t flags)
 int LSM_DLL_EXPORT lsmPluginGetInfo(lsmConnect *c, char **desc,
                                         char **version, lsmFlag_t flags)
 {
+    int rc = LSM_ERR_OK;
     CONN_SETUP(c);
 
     if( LSM_FLAG_UNUSED_CHECK(flags) ) {
@@ -208,23 +214,32 @@ int LSM_DLL_EXPORT lsmPluginGetInfo(lsmConnect *c, char **desc,
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
-    std::map<std::string, Value> p;
-    p["flags"] = Value(flags);
-    Value parameters(p);
-    Value response;
+    try {
+        std::map<std::string, Value> p;
+        p["flags"] = Value(flags);
+        Value parameters(p);
+        Value response;
 
-    int rc = rpc(c, "plugin_info", parameters, response);
+        rc = rpc(c, "plugin_info", parameters, response);
 
-    if( rc == LSM_ERR_OK ) {
-        std::vector<Value> j = response.asArray();
-        *desc = strdup(j[0].asC_str());
-        *version = strdup(j[1].asC_str());
+        if( rc == LSM_ERR_OK ) {
+            std::vector<Value> j = response.asArray();
+            *desc = strdup(j[0].asC_str());
+            *version = strdup(j[1].asC_str());
 
-        if( !*desc || !*version ) {
-            rc = LSM_ERR_NO_MEMORY;
-            free(*desc);
-            free(*version);
+            if( !*desc || !*version ) {
+                rc = LSM_ERR_NO_MEMORY;
+                free(*desc);
+                free(*version);
+            }
         }
+    } catch (const ValueException &ve) {
+        free(*desc);
+        *desc = NULL;
+        free(*version);
+        *version = NULL;
+        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+                            ve.what());
     }
 
     return rc;
@@ -351,20 +366,27 @@ int lsmConnectSetTimeout(lsmConnect *c, uint32_t timeout, lsmFlag_t flags)
 
 int lsmConnectGetTimeout(lsmConnect *c, uint32_t *timeout, lsmFlag_t flags)
 {
+    int rc = 0;
     CONN_SETUP(c);
 
     if( LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
-    std::map<std::string, Value> p;
-    p["flags"] = Value(flags);
-    Value parameters(p);
-    Value response;
+    try {
+        std::map<std::string, Value> p;
+        p["flags"] = Value(flags);
+        Value parameters(p);
+        Value response;
 
-    int rc = rpc(c, "get_time_out", parameters, response);
-    if( rc == LSM_ERR_OK ) {
-        *timeout = response.asUint32_t();
+        rc = rpc(c, "get_time_out", parameters, response);
+        if( rc == LSM_ERR_OK ) {
+            *timeout = response.asUint32_t();
+        }
+    }
+    catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+                            ve.what());
     }
     return rc;
 }
@@ -373,26 +395,32 @@ static int jobStatus( lsmConnect *c, const char *job,
                         lsmJobStatus *status, uint8_t *percentComplete,
                         Value &returned_value, lsmFlag_t flags)
 {
+    int rc = 0;
     CONN_SETUP(c);
 
     if( !job || !status || !percentComplete ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
-    std::map<std::string, Value> p;
-    p["job_id"] = Value(job);
-    p["flags"] = Value(flags);
-    Value parameters(p);
-    Value response;
+    try {
+        std::map<std::string, Value> p;
+        p["job_id"] = Value(job);
+        p["flags"] = Value(flags);
+        Value parameters(p);
+        Value response;
 
-    int rc = rpc(c, "job_status", parameters, response);
-    if( LSM_ERR_OK == rc ) {
-        //We get back an array [status, percent, volume]
-        std::vector<Value> j = response.asArray();
-        *status = (lsmJobStatus)j[0].asInt32_t();
-        *percentComplete = (uint8_t)j[1].asUint32_t();
+        rc = rpc(c, "job_status", parameters, response);
+        if( LSM_ERR_OK == rc ) {
+            //We get back an array [status, percent, volume]
+            std::vector<Value> j = response.asArray();
+            *status = (lsmJobStatus)j[0].asInt32_t();
+            *percentComplete = (uint8_t)j[1].asUint32_t();
 
-        returned_value = j[2];
+            returned_value = j[2];
+        }
+    } catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+                            ve.what());
     }
     return rc;
 }
@@ -536,56 +564,76 @@ int lsmCapabilities(lsmConnect *c, lsmSystem *system,
 int lsmPoolList(lsmConnect *c, lsmPool **poolArray[],
                         uint32_t *count, lsmFlag_t flags)
 {
+    int rc = 0;
     CONN_SETUP(c);
 
     if( !poolArray || !count || CHECK_RP(poolArray) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
-    std::map<std::string, Value> p;
-    p["flags"] = Value(flags);
-    Value parameters(p);
-    Value response;
+    try {
+        std::map<std::string, Value> p;
+        p["flags"] = Value(flags);
+        Value parameters(p);
+        Value response;
 
-    int rc = rpc(c, "pools", parameters, response);
-    if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
-        std::vector<Value> pools = response.asArray();
+        rc = rpc(c, "pools", parameters, response);
+        if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+            std::vector<Value> pools = response.asArray();
 
-        *count = pools.size();
+            *count = pools.size();
 
-        if( pools.size() ) {
-            *poolArray = lsmPoolRecordAllocArray(pools.size());
+            if( pools.size() ) {
+                *poolArray = lsmPoolRecordAllocArray(pools.size());
 
-            for( size_t i = 0; i < pools.size(); ++i ) {
-                (*poolArray)[i] = valueToPool(pools[i]);
+                for( size_t i = 0; i < pools.size(); ++i ) {
+                    (*poolArray)[i] = valueToPool(pools[i]);
+                }
             }
+        }
+    } catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+                            ve.what());
+        if( *poolArray && *count ) {
+            lsmPoolRecordFreeArray(*poolArray, *count);
+            *poolArray = NULL;
+            *count = 0;
         }
     }
     return rc;
 }
 
-static int get_initiator_array(int rc, Value &response,
+static int get_initiator_array(lsmConnect *c, int rc, Value &response,
                                 lsmInitiator **initiators[], uint32_t *count)
 {
-    if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
-        std::vector<Value> inits = response.asArray();
+    try {
+        if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+            std::vector<Value> inits = response.asArray();
 
-        *count = inits.size();
+            *count = inits.size();
 
-        if( inits.size() ) {
+            if( inits.size() ) {
 
-            *initiators = lsmInitiatorRecordAllocArray(inits.size());
+                *initiators = lsmInitiatorRecordAllocArray(inits.size());
 
-            if( *initiators ) {
-
-
-                for( size_t i = 0; i < inits.size(); ++i ) {
-                    (*initiators)[i] = valueToInitiator(inits[i]);
+                if( *initiators ) {
+                    for( size_t i = 0; i < inits.size(); ++i ) {
+                        (*initiators)[i] = valueToInitiator(inits[i]);
+                    }
+                } else {
+                    rc = LSM_ERR_NO_MEMORY;
                 }
-            } else {
-                rc = LSM_ERR_NO_MEMORY;
             }
         }
+    } catch ( const ValueException &ve ) {
+        if( *initiators && *count ) {
+            lsmInitiatorRecordFreeArray(*initiators, *count);
+            *initiators = NULL;
+            *count = 0;
+        }
+
+        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+                            ve.what());
     }
     return rc;
 }
@@ -606,28 +654,39 @@ int lsmInitiatorList(lsmConnect *c, lsmInitiator **initiators[],
     Value response;
 
     int rc = rpc(c, "initiators", parameters, response);
-    return get_initiator_array(rc, response, initiators, count);
+    return get_initiator_array(c, rc, response, initiators, count);
 }
 
-static int get_volume_array(int rc, Value response,
+static int get_volume_array(lsmConnect *c, int rc, Value response,
                             lsmVolume **volumes[], uint32_t *count)
 {
-    if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
-        std::vector<Value> vol = response.asArray();
+    try {
+        if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+            std::vector<Value> vol = response.asArray();
 
-        *count = vol.size();
+            *count = vol.size();
 
-        if( vol.size() ) {
-            *volumes = lsmVolumeRecordAllocArray(vol.size());
+            if( vol.size() ) {
+                *volumes = lsmVolumeRecordAllocArray(vol.size());
 
-            if( *volumes ){
-                for( size_t i = 0; i < vol.size(); ++i ) {
-                    (*volumes)[i] = valueToVolume(vol[i]);
+                if( *volumes ){
+                    for( size_t i = 0; i < vol.size(); ++i ) {
+                        (*volumes)[i] = valueToVolume(vol[i]);
+                    }
+                } else {
+                    rc = LSM_ERR_NO_MEMORY;
                 }
-            } else {
-                rc = LSM_ERR_NO_MEMORY;
             }
         }
+    } catch( const ValueException &ve) {
+        if( *volumes && *count ) {
+            lsmVolumeRecordFreeArray(*volumes, *count);
+            *volumes = NULL;
+            *count = 0;
+        }
+
+        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+                            ve.what());
     }
     return rc;
 }
@@ -649,27 +708,37 @@ int lsmVolumeList(lsmConnect *c, lsmVolume **volumes[], uint32_t *count,
     Value response;
 
     int rc = rpc(c, "volumes", parameters, response);
-    return get_volume_array(rc, response, volumes, count);
+    return get_volume_array(c, rc, response, volumes, count);
 }
 
-static int get_disk_array(int rc, Value &response, lsmDisk **disks[],
-                            uint32_t *count)
+static int get_disk_array(lsmConnect *c, int rc, Value &response,
+                            lsmDisk **disks[], uint32_t *count)
 {
-    if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
-        std::vector<Value> d = response.asArray();
+    try {
+        if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+            std::vector<Value> d = response.asArray();
 
-        *count = d.size();
+            *count = d.size();
 
-        if( d.size() ) {
-            *disks = lsmDiskRecordAllocArray(d.size());
+            if( d.size() ) {
+                *disks = lsmDiskRecordAllocArray(d.size());
 
-            if( *disks ){
-                for( size_t i = 0; i < d.size(); ++i ) {
-                    (*disks)[i] = valueToDisk(d[i]);
+                if( *disks ){
+                    for( size_t i = 0; i < d.size(); ++i ) {
+                        (*disks)[i] = valueToDisk(d[i]);
+                    }
+                } else {
+                    rc = LSM_ERR_NO_MEMORY;
                 }
-            } else {
-                rc = LSM_ERR_NO_MEMORY;
             }
+        }
+    } catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+                            ve.what());
+        if( *disks && *count ) {
+            lsmDiskRecordFreeArray(*disks, *count);
+            *disks = NULL;
+            *count = 0;
         }
     }
     return rc;
@@ -692,30 +761,39 @@ int lsmDiskList(lsmConnect *c, lsmDisk **disks[],
     Value response;
 
     int rc = rpc(c, "disks", parameters, response);
-    return get_disk_array(rc, response, disks, count);
+    return get_disk_array(c, rc, response, disks, count);
 }
 
 typedef void* (*convert)(Value &v);
 
-static void* parse_job_response(Value response, int &rc, char **job, convert conv)
+static void* parse_job_response(lsmConnect *c, Value response, int &rc,
+                                char **job, convert conv)
 {
     void *val = NULL;
-    //We get an array back. first value is job, second is data of interest.
-    if( Value::array_t == response.valueType() ) {
-        std::vector<Value> r = response.asArray();
-        if( Value::string_t == r[0].valueType()) {
-            *job = strdup((r[0].asString()).c_str());
-            if( *job ) {
-                rc = LSM_ERR_JOB_STARTED;
-            } else {
-                rc = LSM_ERR_NO_MEMORY;
-            }
 
-            rc = LSM_ERR_JOB_STARTED;
+    try {
+        //We get an array back. first value is job, second is data of interest.
+        if( Value::array_t == response.valueType() ) {
+            std::vector<Value> r = response.asArray();
+            if( Value::string_t == r[0].valueType()) {
+                *job = strdup((r[0].asString()).c_str());
+                if( *job ) {
+                    rc = LSM_ERR_JOB_STARTED;
+                } else {
+                    rc = LSM_ERR_NO_MEMORY;
+                }
+
+                rc = LSM_ERR_JOB_STARTED;
+            }
+            if( Value::object_t == r[1].valueType() ) {
+                val = conv(r[1]);
+            }
         }
-        if( Value::object_t == r[1].valueType() ) {
-            val = conv(r[1]);
-        }
+    } catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+                            ve.what());
+        free(*job);
+        *job = NULL;
     }
     return val;
 }
@@ -747,7 +825,7 @@ int lsmVolumeCreate(lsmConnect *c, lsmPool *pool, const char *volumeName,
 
     int rc = rpc(c, "volume_create", parameters, response);
     if( LSM_ERR_OK == rc ) {
-        *newVolume = (lsmVolume *)parse_job_response(response, rc, job,
+        *newVolume = (lsmVolume *)parse_job_response(c, response, rc, job,
                                                         (convert)valueToVolume);
     }
     return rc;
@@ -783,7 +861,7 @@ int lsmVolumeResize(lsmConnect *c, lsmVolume *volume,
 
     int rc = rpc(c, "volume_resize", parameters, response);
     if( LSM_ERR_OK == rc ) {
-        *resizedVolume = (lsmVolume *)parse_job_response(response, rc, job,
+        *resizedVolume = (lsmVolume *)parse_job_response(c, response, rc, job,
                                                         (convert)valueToVolume);
     }
     return rc;
@@ -821,7 +899,7 @@ int lsmVolumeReplicate(lsmConnect *c, lsmPool *pool,
 
     int rc = rpc(c, "volume_replicate", parameters, response);
     if( LSM_ERR_OK == rc ) {
-        *newReplicant = (lsmVolume *)parse_job_response(response, rc, job,
+        *newReplicant = (lsmVolume *)parse_job_response(c, response, rc, job,
                                                         (convert)valueToVolume);
     }
     return rc;
@@ -831,6 +909,7 @@ int lsmVolumeReplicate(lsmConnect *c, lsmPool *pool,
 int lsmVolumeReplicateRangeBlockSize(lsmConnect *c, lsmSystem *system,
                                         uint32_t *bs, lsmFlag_t flags)
 {
+    int rc = 0;
     CONN_SETUP(c);
 
     if( !bs || LSM_FLAG_UNUSED_CHECK(flags) ) {
@@ -841,17 +920,22 @@ int lsmVolumeReplicateRangeBlockSize(lsmConnect *c, lsmSystem *system,
         return LSM_ERR_INVALID_SYSTEM;
     }
 
-    std::map<std::string, Value> p;
-    p["system"] = systemToValue(system);
-    p["flags"] = Value(flags);
-    Value parameters(p);
-    Value response;
+    try {
+        std::map<std::string, Value> p;
+        p["system"] = systemToValue(system);
+        p["flags"] = Value(flags);
+        Value parameters(p);
+        Value response;
 
-    int rc = rpc(c, "volume_replicate_range_block_size", parameters, response);
-    if( LSM_ERR_OK == rc ) {
-        if( Value::numeric_t == response.valueType() ) {
-            *bs = response.asUint32_t();
+        rc = rpc(c, "volume_replicate_range_block_size", parameters, response);
+        if( LSM_ERR_OK == rc ) {
+            if( Value::numeric_t == response.valueType() ) {
+                *bs = response.asUint32_t();
+            }
         }
+    } catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+                            ve.what());
     }
     return rc;
 }
@@ -887,12 +971,13 @@ int lsmVolumeReplicateRange(lsmConnect *c,
     Value response;
 
     int rc = rpc(c, "volume_replicate_range", parameters, response);
-    return jobCheck(rc, response, job);
+    return jobCheck(c, rc, response, job);
 }
 
 int lsmVolumeDelete(lsmConnect *c, lsmVolume *volume, char **job,
                     lsmFlag_t flags)
 {
+    int rc = 0;
     CONN_SETUP(c);
 
     if( !LSM_IS_VOL(volume) ) {
@@ -903,25 +988,30 @@ int lsmVolumeDelete(lsmConnect *c, lsmVolume *volume, char **job,
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
-    std::map<std::string, Value> p;
-    p["volume"] = volumeToValue(volume);
-    p["flags"] = Value(flags);
+    try {
+        std::map<std::string, Value> p;
+        p["volume"] = volumeToValue(volume);
+        p["flags"] = Value(flags);
 
-    Value parameters(p);
-    Value response;
+        Value parameters(p);
+        Value response;
 
-    int rc = rpc(c, "volume_delete", parameters, response);
-    if( LSM_ERR_OK == rc ) {
-        //We get a value back, either null or job id.
-        if( Value::string_t == response.valueType() ) {
-            *job = strdup(response.asString().c_str());
+        rc = rpc(c, "volume_delete", parameters, response);
+        if( LSM_ERR_OK == rc ) {
+            //We get a value back, either null or job id.
+            if( Value::string_t == response.valueType() ) {
+                *job = strdup(response.asString().c_str());
 
-            if( *job ) {
-                rc = LSM_ERR_JOB_STARTED;
-            } else {
-                rc = LSM_ERR_NO_MEMORY;
+                if( *job ) {
+                    rc = LSM_ERR_JOB_STARTED;
+                } else {
+                    rc = LSM_ERR_NO_MEMORY;
+                }
             }
         }
+    } catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+                            ve.what());
     }
     return rc;
 
@@ -1034,7 +1124,7 @@ int lsmVolumesAccessibleByInitiator(lsmConnect *c,
     Value response;
 
     int rc = rpc(c, "volumes_accessible_by_initiator", parameters, response);
-    return get_volume_array(rc, response, volumes, count);
+    return get_volume_array(c, rc, response, volumes, count);
 }
 
 int lsmInitiatorsGrantedToVolume(lsmConnect *c, lsmVolume *volume,
@@ -1058,7 +1148,7 @@ int lsmInitiatorsGrantedToVolume(lsmConnect *c, lsmVolume *volume,
     Value response;
 
     int rc = rpc(c, "initiators_granted_to_volume", parameters, response);
-    return get_initiator_array(rc, response, initiators, count);
+    return get_initiator_array(c, rc, response, initiators, count);
 }
 
 
@@ -1287,6 +1377,7 @@ int lsmVolumesAccessibleByAccessGroup(lsmConnect *c,
                                         lsmVolume **volumes[],
                                         uint32_t *count, lsmFlag_t flags)
 {
+    int rc = 0;
     CONN_SETUP(c);
 
     if( !LSM_IS_ACCESS_GROUP(group)) {
@@ -1297,25 +1388,35 @@ int lsmVolumesAccessibleByAccessGroup(lsmConnect *c,
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
-    std::map<std::string, Value> p;
-    p["group"] = accessGroupToValue(group);
-    p["flags"] = Value(flags);
+    try {
+        std::map<std::string, Value> p;
+        p["group"] = accessGroupToValue(group);
+        p["flags"] = Value(flags);
 
-    Value parameters(p);
-    Value response;
+        Value parameters(p);
+        Value response;
 
-    int rc = rpc(c, "volumes_accessible_by_access_group", parameters, response);
-    if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
-        std::vector<Value> vol = response.asArray();
+        rc = rpc(c, "volumes_accessible_by_access_group", parameters, response);
+        if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+            std::vector<Value> vol = response.asArray();
 
-        *count = vol.size();
+            *count = vol.size();
 
-        if( vol.size() ) {
-            *volumes = lsmVolumeRecordAllocArray(vol.size());
+            if( vol.size() ) {
+                *volumes = lsmVolumeRecordAllocArray(vol.size());
 
-            for( size_t i = 0; i < vol.size(); ++i ) {
-                (*volumes)[i] = valueToVolume(vol[i]);
+                for( size_t i = 0; i < vol.size(); ++i ) {
+                    (*volumes)[i] = valueToVolume(vol[i]);
+                }
             }
+        }
+    } catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+                            ve.what());
+        if( *volumes && *count ) {
+            lsmVolumeRecordFreeArray(*volumes, *count);
+            *volumes = NULL;
+            *count = 0;
         }
     }
     return rc;
@@ -1350,6 +1451,7 @@ int lsmAccessGroupsGrantedToVolume(lsmConnect *c,
 int lsmVolumeChildDependency(lsmConnect *c, lsmVolume *volume,
                                 uint8_t *yes, lsmFlag_t flags)
 {
+    int rc = 0;
     CONN_SETUP(c);
 
     if( !LSM_IS_VOL(volume)) {
@@ -1360,25 +1462,30 @@ int lsmVolumeChildDependency(lsmConnect *c, lsmVolume *volume,
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
-    std::map<std::string, Value> p;
-    p["volume"] = volumeToValue(volume);
-    p["flags"] = Value(flags);
+    try {
+        std::map<std::string, Value> p;
+        p["volume"] = volumeToValue(volume);
+        p["flags"] = Value(flags);
 
-    Value parameters(p);
-    Value response;
+        Value parameters(p);
+        Value response;
 
-    *yes = 0;
+        *yes = 0;
 
-    int rc = rpc(c, "volume_child_dependency", parameters, response);
-    if( LSM_ERR_OK == rc ) {
-        //We should be getting a boolean value back.
-        if( Value::boolean_t == response.valueType() ) {
-            if( response.asBool() ) {
-                *yes = 1;
+        rc = rpc(c, "volume_child_dependency", parameters, response);
+        if( LSM_ERR_OK == rc ) {
+            //We should be getting a boolean value back.
+            if( Value::boolean_t == response.valueType() ) {
+                if( response.asBool() ) {
+                    *yes = 1;
+                }
+            } else {
+                rc = LSM_ERR_INTERNAL_ERROR;
             }
-        } else {
-            rc = LSM_ERR_INTERNAL_ERROR;
         }
+    } catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+                            ve.what());
     }
     return rc;
 }
@@ -1404,44 +1511,55 @@ int lsmVolumeChildDependencyRm(lsmConnect *c, lsmVolume *volume,
     Value response;
 
     int rc = rpc(c, "volume_child_dependency_rm", parameters, response);
-    return jobCheck(rc, response, job);
+    return jobCheck(c, rc, response, job);
 }
 
 int lsmSystemList(lsmConnect *c, lsmSystem **systems[],
                     uint32_t *systemCount, lsmFlag_t flags)
 {
+    int rc = 0;
     CONN_SETUP(c);
 
     if( !systems || ! systemCount || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
-    std::map<std::string, Value> p;
-    p["flags"] = Value(flags);
-    Value parameters(p);
-    Value response;
+    try {
+        std::map<std::string, Value> p;
+        p["flags"] = Value(flags);
+        Value parameters(p);
+        Value response;
 
-    int rc = rpc(c, "systems", parameters, response);
-    if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
-        std::vector<Value> sys = response.asArray();
+        rc = rpc(c, "systems", parameters, response);
+        if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+            std::vector<Value> sys = response.asArray();
 
-        *systemCount = sys.size();
+            *systemCount = sys.size();
 
-        if( sys.size() ) {
-            *systems = lsmSystemRecordAllocArray(sys.size());
+            if( sys.size() ) {
+                *systems = lsmSystemRecordAllocArray(sys.size());
 
-            if( *systems ) {
-                for( size_t i = 0; i < sys.size(); ++i ) {
-                    (*systems)[i] = valueToSystem(sys[i]);
-                    if( !(*systems)[i] ) {
-                        lsmSystemRecordFreeArray(*systems, i);
-                        rc = LSM_ERR_NO_MEMORY;
-                        break;
+                if( *systems ) {
+                    for( size_t i = 0; i < sys.size(); ++i ) {
+                        (*systems)[i] = valueToSystem(sys[i]);
+                        if( !(*systems)[i] ) {
+                            lsmSystemRecordFreeArray(*systems, i);
+                            rc = LSM_ERR_NO_MEMORY;
+                            break;
+                        }
                     }
+                } else {
+                    rc = LSM_ERR_NO_MEMORY;
                 }
-            } else {
-                rc = LSM_ERR_NO_MEMORY;
             }
+        }
+    } catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+                            ve.what());
+        if( *systems ) {
+            lsmSystemRecordFreeArray( *systems, *systemCount);
+            *systems = NULL;
+            *systemCount = 0;
         }
     }
     return rc;
@@ -1450,29 +1568,44 @@ int lsmSystemList(lsmConnect *c, lsmSystem **systems[],
 int lsmFsList(lsmConnect *c, lsmFs **fs[], uint32_t *fsCount,
                 lsmFlag_t flags)
 {
+    int rc = 0;
     CONN_SETUP(c);
 
     if( !fs || !fsCount || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
-    std::map<std::string, Value> p;
-    p["flags"] = Value(flags);
-    Value parameters(p);
-    Value response;
+    try {
+        std::map<std::string, Value> p;
+        p["flags"] = Value(flags);
+        Value parameters(p);
+        Value response;
 
-    int rc = rpc(c, "fs", parameters, response);
-    if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
-        std::vector<Value> sys = response.asArray();
+        rc = rpc(c, "fs", parameters, response);
+        if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+            std::vector<Value> sys = response.asArray();
 
-        *fsCount = sys.size();
+            *fsCount = sys.size();
 
-        if( sys.size() ) {
-            *fs = lsmFsRecordAllocArray(sys.size());
+            if( sys.size() ) {
+                *fs = lsmFsRecordAllocArray(sys.size());
 
-            for( size_t i = 0; i < sys.size(); ++i ) {
-                (*fs)[i] = valueToFs(sys[i]);
+                if( *fs ) {
+                    for( size_t i = 0; i < sys.size(); ++i ) {
+                        (*fs)[i] = valueToFs(sys[i]);
+                    }
+                } else {
+                    rc = LSM_ERR_NO_MEMORY;
+                }
             }
+        }
+    } catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+                            ve.what());
+        if( *fs && *fsCount) {
+            lsmFsRecordFreeArray(*fs, *fsCount);
+            *fs = NULL;
+            *fsCount = 0;
         }
     }
     return rc;
@@ -1505,7 +1638,7 @@ int lsmFsCreate(lsmConnect *c, lsmPool *pool, const char *name,
 
     int rc = rpc(c, "fs_create", parameters, response);
     if( LSM_ERR_OK == rc ) {
-        *fs = (lsmFs *)parse_job_response(response, rc, job,
+        *fs = (lsmFs *)parse_job_response(c, response, rc, job,
                                                         (convert)valueToFs);
     }
     return rc;
@@ -1531,7 +1664,7 @@ int lsmFsDelete(lsmConnect *c, lsmFs *fs, char **job, lsmFlag_t flags)
     Value response;
 
     int rc = rpc(c, "fs_delete", parameters, response);
-    return jobCheck(rc, response, job);
+    return jobCheck(c, rc, response, job);
 }
 
 
@@ -1559,7 +1692,7 @@ int lsmFsResize(lsmConnect *c, lsmFs *fs,
 
     int rc = rpc(c, "fs_resize", parameters, response);
     if( LSM_ERR_OK == rc ) {
-        *rfs = (lsmFs *)parse_job_response(response, rc, job,
+        *rfs = (lsmFs *)parse_job_response(c, response, rc, job,
                                                         (convert)valueToFs);
     }
     return rc;
@@ -1591,7 +1724,7 @@ int lsmFsClone(lsmConnect *c, lsmFs *src_fs,
 
     int rc = rpc(c, "fs_clone", parameters, response);
     if( LSM_ERR_OK == rc ) {
-        *cloned_fs = (lsmFs *)parse_job_response(response, rc, job,
+        *cloned_fs = (lsmFs *)parse_job_response(c, response, rc, job,
                                                         (convert)valueToFs);
     }
     return rc;
@@ -1623,12 +1756,13 @@ int lsmFsFileClone(lsmConnect *c, lsmFs *fs, const char *src_file_name,
     Value response;
 
     int rc = rpc(c, "file_clone", parameters, response);
-    return jobCheck(rc, response, job);
+    return jobCheck(c, rc, response, job);
 }
 
 int lsmFsChildDependency( lsmConnect *c, lsmFs *fs, lsmStringList *files,
                             uint8_t *yes, lsmFlag_t flags)
 {
+    int rc = 0;
     CONN_SETUP(c);
 
     if( !LSM_IS_FS(fs) ) {
@@ -1645,26 +1779,31 @@ int lsmFsChildDependency( lsmConnect *c, lsmFs *fs, lsmStringList *files,
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
-    std::map<std::string, Value> p;
-    p["fs"] = fsToValue(fs);
-    p["files"] = stringListToValue(files);
-    p["flags"] = Value(flags);
+    try {
+        std::map<std::string, Value> p;
+        p["fs"] = fsToValue(fs);
+        p["files"] = stringListToValue(files);
+        p["flags"] = Value(flags);
 
-    Value parameters(p);
-    Value response;
+        Value parameters(p);
+        Value response;
 
-    *yes = 0;
+        *yes = 0;
 
-    int rc = rpc(c, "fs_child_dependency", parameters, response);
-    if( LSM_ERR_OK == rc ) {
-        //We should be getting a boolean value back.
-        if( Value::boolean_t == response.valueType() ) {
-            if( response.asBool() ) {
-                *yes = 1;
+        rc = rpc(c, "fs_child_dependency", parameters, response);
+        if( LSM_ERR_OK == rc ) {
+            //We should be getting a boolean value back.
+            if( Value::boolean_t == response.valueType() ) {
+                if( response.asBool() ) {
+                    *yes = 1;
+                }
+            } else {
+                rc = LSM_ERR_INTERNAL_ERROR;
             }
-        } else {
-            rc = LSM_ERR_INTERNAL_ERROR;
         }
+    } catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+                            ve.what());
     }
     return rc;
 }
@@ -1697,12 +1836,13 @@ int lsmFsChildDependencyRm( lsmConnect *c, lsmFs *fs, lsmStringList *files,
     Value response;
 
     int rc = rpc(c, "fs_child_dependency_rm", parameters, response);
-    return jobCheck(rc, response, job);
+    return jobCheck(c, rc, response, job);
 }
 
 int lsmFsSsList(lsmConnect *c, lsmFs *fs, lsmSs **ss[],
                                 uint32_t *ssCount, lsmFlag_t flags )
 {
+    int rc = 0;
     CONN_SETUP(c);
 
     if( !LSM_IS_FS(fs) ) {
@@ -1720,18 +1860,32 @@ int lsmFsSsList(lsmConnect *c, lsmFs *fs, lsmSs **ss[],
     Value parameters(p);
     Value response;
 
-    int rc = rpc(c, "fs_snapshots", parameters, response);
-    if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
-        std::vector<Value> sys = response.asArray();
+    try {
+        rc = rpc(c, "fs_snapshots", parameters, response);
+        if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+            std::vector<Value> sys = response.asArray();
 
-        *ssCount = sys.size();
+            *ssCount = sys.size();
 
-        if( sys.size() ) {
-            *ss = lsmSsRecordAllocArray(sys.size());
+            if( sys.size() ) {
+                *ss = lsmSsRecordAllocArray(sys.size());
 
-            for( size_t i = 0; i < sys.size(); ++i ) {
-                (*ss)[i] = valueToSs(sys[i]);
+                if( *ss ) {
+                    for( size_t i = 0; i < sys.size(); ++i ) {
+                        (*ss)[i] = valueToSs(sys[i]);
+                    }
+                } else {
+                    rc = LSM_ERR_NO_MEMORY;
+                }
             }
+        }
+    } catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+                            ve.what());
+        if( *ss && *ssCount ) {
+            lsmSsRecordFreeArray(*ss, *ssCount);
+            *ss = NULL;
+            *ssCount = 0;
         }
     }
     return rc;
@@ -1769,7 +1923,7 @@ int lsmFsSsCreate(lsmConnect *c, lsmFs *fs, const char *name,
 
     int rc = rpc(c, "fs_snapshot_create", parameters, response);
     if( LSM_ERR_OK == rc ) {
-        *snapshot = (lsmSs *)parse_job_response(response, rc, job,
+        *snapshot = (lsmSs *)parse_job_response(c, response, rc, job,
                                                         (convert)valueToSs);
     }
     return rc;
@@ -1801,7 +1955,7 @@ int lsmFsSsDelete(lsmConnect *c, lsmFs *fs, lsmSs *ss, char **job,
     Value response;
 
     int rc = rpc(c, "fs_snapshot_delete", parameters, response);
-    return jobCheck(rc, response, job);
+    return jobCheck(c, rc, response, job);
 }
 
 int lsmFsSsRevert(lsmConnect *c, lsmFs *fs, lsmSs *ss,
@@ -1847,36 +2001,51 @@ int lsmFsSsRevert(lsmConnect *c, lsmFs *fs, lsmSs *ss,
     Value response;
 
     int rc = rpc(c, "fs_snapshot_revert", parameters, response);
-    return jobCheck(rc, response, job);
+    return jobCheck(c, rc, response, job);
 
 }
 
 int lsmNfsList( lsmConnect *c, lsmNfsExport **exports[], uint32_t *count,
                 lsmFlag_t flags)
 {
+    int rc = 0;
     CONN_SETUP(c);
 
     if( CHECK_RP(exports) || !count || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
-    std::map<std::string, Value> p;
-    p["flags"] = Value(flags);
-    Value parameters(p);
-    Value response;
+    try {
+        std::map<std::string, Value> p;
+        p["flags"] = Value(flags);
+        Value parameters(p);
+        Value response;
 
-    int rc = rpc(c, "exports", parameters, response);
-    if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
-        std::vector<Value> exps = response.asArray();
+        rc = rpc(c, "exports", parameters, response);
+        if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+            std::vector<Value> exps = response.asArray();
 
-        *count = exps.size();
+            *count = exps.size();
 
-        if( *count ) {
-            *exports = lsmNfsExportRecordAllocArray(*count);
+            if( *count ) {
+                *exports = lsmNfsExportRecordAllocArray(*count);
 
-            for( size_t i = 0; i < *count; ++i ) {
-                (*exports)[i] = valueToNfsExport(exps[i]);
+                if( *exports ) {
+                    for( size_t i = 0; i < *count; ++i ) {
+                        (*exports)[i] = valueToNfsExport(exps[i]);
+                    }
+                } else {
+                    rc = LSM_ERR_NO_MEMORY;
+                }
             }
+        }
+    } catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+                            ve.what());
+        if( *exports && *count ) {
+            lsmNfsExportRecordFreeArray( *exports, *count );
+            *exports = NULL;
+            *count = 0;
         }
     }
     return rc;
