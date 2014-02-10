@@ -170,11 +170,16 @@ static int jobCheck( lsmConnect *c, int rc, Value &response, char **job )
     return rc;
 }
 
-static int getAccessGroups( int rc, Value &response, lsmAccessGroup **groups[],
-                            uint32_t *count)
+static int getAccessGroups( lsmConnect *c, int rc, Value &response,
+                            lsmAccessGroup **groups[], uint32_t *count)
 {
-    if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
-        *groups = valueToAccessGroupList(response, count);
+    try {
+        if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+            *groups = valueToAccessGroupList(response, count);
+        }
+    } catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+                            ve.what());
     }
     return rc;
 }
@@ -444,6 +449,7 @@ int lsmJobStatusVolumeGet( lsmConnect *c, const char *job,
                         lsmVolume **vol, lsmFlag_t flags)
 {
     Value rv;
+    int rc = 0;
 
     CONN_SETUP(c);
 
@@ -451,14 +457,20 @@ int lsmJobStatusVolumeGet( lsmConnect *c, const char *job,
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
-    int rc = jobStatus(c, job, status, percentComplete, rv, flags);
+    try {
 
-    if( LSM_ERR_OK == rc ) {
-        if( Value::object_t ==  rv.valueType() ) {
-            *vol = valueToVolume(rv);
-        } else {
-            *vol = NULL;
+        rc = jobStatus(c, job, status, percentComplete, rv, flags);
+
+        if( LSM_ERR_OK == rc ) {
+            if( Value::object_t ==  rv.valueType() ) {
+                *vol = valueToVolume(rv);
+            } else {
+                *vol = NULL;
+            }
         }
+    } catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+                            ve.what());
     }
     return rc;
 }
@@ -467,20 +479,27 @@ int lsmJobStatusFsGet(lsmConnect *c, const char *job,
                                 lsmJobStatus *status, uint8_t *percentComplete,
                                 lsmFs **fs, lsmFlag_t flags)
 {
+    int rc = 0;
     Value rv;
 
     if( CHECK_RP(fs) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
-    int rc = jobStatus(c, job, status, percentComplete, rv, flags);
+    try {
 
-    if( LSM_ERR_OK == rc ) {
-        if( Value::object_t ==  rv.valueType() ) {
-            *fs = valueToFs(rv);
-        } else {
-            *fs = NULL;
+        rc = jobStatus(c, job, status, percentComplete, rv, flags);
+
+        if( LSM_ERR_OK == rc ) {
+            if( Value::object_t ==  rv.valueType() ) {
+                *fs = valueToFs(rv);
+            } else {
+                *fs = NULL;
+            }
         }
+    } catch( const ValueException &ve) {
+        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+                            ve.what());
     }
     return rc;
 }
@@ -489,20 +508,27 @@ int lsmJobStatusSsGet(lsmConnect *c, const char *job,
                                 lsmJobStatus *status, uint8_t *percentComplete,
                                 lsmSs **ss, lsmFlag_t flags)
 {
+    int rc = 0;
     Value rv;
 
     if( CHECK_RP(ss) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
-    int rc = jobStatus(c, job, status, percentComplete, rv, flags);
+    try {
 
-    if( LSM_ERR_OK == rc ) {
-        if( Value::object_t ==  rv.valueType() ) {
-            *ss = valueToSs(rv);
-        } else {
-            *ss = NULL;
+        rc = jobStatus(c, job, status, percentComplete, rv, flags);
+
+        if( LSM_ERR_OK == rc ) {
+            if( Value::object_t ==  rv.valueType() ) {
+                *ss = valueToSs(rv);
+            } else {
+                *ss = NULL;
+            }
         }
+    } catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+                            ve.what());
     }
     return rc;
 }
@@ -534,6 +560,7 @@ int lsmJobFree(lsmConnect *c, char **job, lsmFlag_t flags)
 int lsmCapabilities(lsmConnect *c, lsmSystem *system,
                     lsmStorageCapabilities **cap, lsmFlag_t flags)
 {
+    int rc = 0;
     CONN_SETUP(c);
 
     if( !LSM_IS_SYSTEM(system) ) {
@@ -552,10 +579,15 @@ int lsmCapabilities(lsmConnect *c, lsmSystem *system,
     Value parameters(p);
     Value response;
 
-    int rc = rpc(c, "capabilities", parameters, response);
+    try {
+        rc = rpc(c, "capabilities", parameters, response);
 
-    if( LSM_ERR_OK == rc && Value::object_t == response.valueType() ) {
-        *cap = valueToCapabilities(response);
+        if( LSM_ERR_OK == rc && Value::object_t == response.valueType() ) {
+            *cap = valueToCapabilities(response);
+        }
+    } catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+                            ve.what());
     }
 
     return rc;
@@ -1199,7 +1231,7 @@ int lsmAccessGroupList( lsmConnect *c, lsmAccessGroup **groups[],
     Value response;
 
     int rc = rpc(c, "access_group_list", parameters, response);
-    return getAccessGroups(rc, response, groups, groupCount);
+    return getAccessGroups(c, rc, response, groups, groupCount);
 }
 
 int lsmAccessGroupCreate(lsmConnect *c, const char *name,
@@ -1445,7 +1477,7 @@ int lsmAccessGroupsGrantedToVolume(lsmConnect *c,
     Value response;
 
     int rc = rpc(c, "access_groups_granted_to_volume", parameters, response);
-    return getAccessGroups(rc, response, groups, groupCount);
+    return getAccessGroups(c, rc, response, groups, groupCount);
 }
 
 int lsmVolumeChildDependency(lsmConnect *c, lsmVolume *volume,
