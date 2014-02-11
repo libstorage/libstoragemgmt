@@ -462,7 +462,7 @@ class Client(INetworkAttachedStorage):
     # @param    volume          Volume to grant access to
     # @param    access          Enumerated access type
     # @param    flags           Reserved for future use, must be zero
-    # @returns  None on success, else job id.
+    # @returns  None on success, throws LsmError on errors.
     @return_requires(None)
     def initiator_grant(self, initiator_id, initiator_type, volume, access,
                         flags=0):
@@ -476,7 +476,7 @@ class Client(INetworkAttachedStorage):
     # @param    initiator       The iqn, WWID etc.
     # @param    volume          The volume to revoke access for
     # @param    flags           Reserved for future use, must be zero
-    # @return None on success, else job id
+    # @returns None on success, throws LsmError on errors.
     @return_requires(None)
     def initiator_revoke(self, initiator, volume, flags=0):
         """
@@ -599,6 +599,7 @@ class Client(INetworkAttachedStorage):
     # @param    ranges      An array of Block range objects
     #                       @see lsm.common.data.BlockRange
     # @param    flags       Reserved for future use, must be zero.
+    # @returns Job id or None when completed, else raises LsmError on errors.
     @return_requires(unicode)
     def volume_replicate_range(self, rep_type, volume_src, volume_dest, ranges,
                                flags=0):
@@ -673,8 +674,8 @@ class Client(INetworkAttachedStorage):
     # @param    volume  The volume to grant access to
     # @param    access  The desired access
     # @param    flags   Reserved for future use, must be zero.
-    # @returns  None on success, else job id
-    @return_requires(unicode)
+    # @returns None on success, throws LsmError on errors.
+    @return_requires(None)
     def access_group_grant(self, group, volume, access, flags=0):
         """
         Allows an access group to access a volume.
@@ -686,8 +687,8 @@ class Client(INetworkAttachedStorage):
     # @param    group   The access group
     # @param    volume  The volume to grant access to
     # @param    flags   Reserved for future use, must be zero.
-    # @returns  None on success, else job id
-    @return_requires(unicode)
+    # @returns None on success, throws LsmError on errors.
+    @return_requires(None)
     def access_group_revoke(self, group, volume, flags=0):
         """
         Revokes access for an access group for a volume
@@ -726,8 +727,8 @@ class Client(INetworkAttachedStorage):
     # @param    self    The this pointer
     # @param    group   The access group to delete
     # @param    flags   Reserved for future use, must be zero.
-    # @returns  None on success, else job id
-    @return_requires(unicode)
+    # @returns None on success, throws LsmError on errors.
+    @return_requires(None)
     def access_group_del(self, group, flags=0):
         """
         Deletes an access group
@@ -740,8 +741,8 @@ class Client(INetworkAttachedStorage):
     # @param    initiator_id    Initiators id
     # @param    id_type         Initiator id type (enumeration)
     # @param    flags           Reserved for future use, must be zero.
-    # @returns  None on success, else job id
-    @return_requires(unicode)
+    # @returns None on success, throws LsmError on errors.
+    @return_requires(None)
     def access_group_add_initiator(self, group, initiator_id, id_type,
                                    flags=0):
         """
@@ -754,8 +755,8 @@ class Client(INetworkAttachedStorage):
     # @param    group           The access group to remove initiator from
     # @param    initiator_id    The initiator to remove from the group
     # @param    flags           Reserved for future use, must be zero.
-    # @returns  None on success, else job id
-    @return_requires(unicode)
+    # @returns None on success, throws LsmError on errors.
+    @return_requires(None)
     def access_group_del_initiator(self, group, initiator_id, flags=0):
         """
         Deletes an initiator from an access group
