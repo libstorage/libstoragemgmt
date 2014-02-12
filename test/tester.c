@@ -42,7 +42,7 @@ void generateRandom(char *buff, uint32_t len)
     static int seed = 0;
 
     if( !seed ) {
-        seed = time(NULL);
+        seed = time(NULL) + getpid();
         srandom(seed);
     }
 
