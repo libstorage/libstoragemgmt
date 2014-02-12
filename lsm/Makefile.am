@@ -24,6 +24,7 @@ lsm_PYTHON = lsm/__init__.py           \
                    lsm/ontap.py        \
                    lsm/pluginrunner.py \
                    lsm/simulator.py    \
+                   lsm/simarray.py     \
                    lsm/smis.py         \
                    lsm/smisproxy.py    \
                    lsm/transport.py    \

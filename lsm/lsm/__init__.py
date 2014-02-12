@@ -17,6 +17,7 @@ from data import DataEncoder, DataDecoder, IData, Initiator, Volume, Pool, \
 from iplugin import IPlugin, IStorageAreaNetwork, INetworkAttachedStorage, INfs
 
 from pluginrunner import PluginRunner
-from simulator import StorageSimulator, SimJob, SimState
+from simulator import SimPlugin
+from simarray import SimData, SimJob, SimArray
 from transport import Transport
 from version import VERSION

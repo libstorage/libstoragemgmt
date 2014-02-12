@@ -246,6 +246,7 @@ fi
 %{python_sitelib}/lsm/iplugin.*
 %{python_sitelib}/lsm/pluginrunner.*
 %{python_sitelib}/lsm/simulator.*
+%{python_sitelib}/lsm/simarray.*
 %{python_sitelib}/lsm/transport.*
 %{python_sitelib}/lsm/version.*
 %{_bindir}/sim_lsmplugin

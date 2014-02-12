@@ -26,269 +26,16 @@ from data import Pool, Initiator, Volume, BlockRange, System, AccessGroup, \
     Snapshot, NfsExport, FileSystem, Capabilities, Disk, OptionalData
 from iplugin import INfs, IStorageAreaNetwork
 from version import VERSION
+from simarray import SimArray, SimJob
 
-SIM_DATA_FILE = os.getenv("LSM_SIM_DATA",
-                          tempfile.gettempdir() + '/lsm_sim_data')
-duration = os.getenv("LSM_SIM_TIME", 1)
-
-# Bump this when the sim data layout changes on disk
-SIM_DATA_VERSION = 1
-
-
-class SimJob(object):
-    """
-    Simulates a longer running job, uses actual wall time.  If test cases
-    take too long we can reduce time by shortening time duration.
-    """
-
-    def __calc_progress(self):
-        if self.percent < 100:
-            end = self.start + self.duration
-            now = time.time()
-            if now >= end:
-                self.percent = 100
-                self.status = JobStatus.COMPLETE
-            else:
-                diff = now - self.start
-                self.percent = int(100 * (diff / self.duration))
-
-    def __init__(self, item_to_return):
-        self.status = JobStatus.INPROGRESS
-        self.percent = 0
-        self.__item = item_to_return
-        self.start = time.time()
-        self.duration = float(random.randint(0, int(duration)))
-
-    def progress(self):
-        """
-        Returns a tuple (status, percent, volume)
-        """
-        self.__calc_progress()
-        return self.status, self.percent, self.item
-
-    @property
-    def item(self):
-        if self.percent >= 100:
-            return self.__item
-        return None
-
-    @item.setter
-    def item(self, value):
-        self.__item = value
-
-
-def _signature(obj):
-    """
-    Generate some kind of signature for this object, not sure this is ideal.
-
-    Hopefully this will save some debug time.
-    """
-    sig = ''
-    keys = obj.__dict__.keys()
-    keys.sort()
-
-    for k in keys:
-        sig = md5(sig + k)
-    return sig
-
-
-def _state_signature():
-    rc = ''
-    objects = [Pool('', '', 0, 0, ''), Volume('', '', '', 1, 1, 0, '', ''),
-               AccessGroup('', '', ['']), Initiator('', 0, ''),
-               System('', '', 0), FileSystem('', '', 0, 0, '', ''),
-               BlockRange(0, 100, 50), Capabilities(),
-               NfsExport('', '', '', '', '', '', '', '', '', '', ),
-               Snapshot('', '', 10)]
-
-    for o in objects:
-        rc = md5(rc + _signature(o))
-
-    return rc
-
-
-class SimState(object):
-    def __init__(self):
-        self.version = SIM_DATA_VERSION
-        self.sys_info = System('sim-01', 'LSM simulated storage plug-in',
-                               System.STATUS_OK)
-        p1 = Pool('POO1', 'Pool 1', 2 ** 64, 2 ** 64, self.sys_info.id)
-        p2 = Pool('POO2', 'Pool 2', 2 ** 64, 2 ** 64, self.sys_info.id)
-        p3 = Pool('POO3', 'Pool 3', 2 ** 64, 2 ** 64, self.sys_info.id)
-        p4 = Pool('POO4', 'lsm_test_aggr', 2 ** 64, 2 ** 64, self.sys_info.id)
-
-        self.block_size = 512
-
-        pm1 = {'pool': p1, 'volumes': {}}
-        pm2 = {'pool': p2, 'volumes': {}}
-        pm3 = {'pool': p3, 'volumes': {}}
-        pm4 = {'pool': p4, 'volumes': {}}
-
-        self.pools = {p1.id: pm1, p2.id: pm2, p3.id: pm3, p4.id: pm4}
-        self.volumes = {}
-        self.vol_num = 1
-        self.access_groups = {}
-
-        self.fs = {}
-        self.fs_num = 1
-
-        self.tmo = 30000
-        self.jobs = {}
-        self.job_num = 1
-
-        #These express relationships between initiators and volumes.  This
-        #is done because if you delete either part of the relationship
-        #you need to delete the association between them.  Holding this stuff
-        #in a db would be easier :-)
-        self.group_grants = {}      # {access group id : {volume id: access }}
-
-        #Create a signature
-        self.signature = _state_signature()
-
-
-class StorageSimulator(INfs, IStorageAreaNetwork):
+class SimPlugin(INfs, IStorageAreaNetwork):
     """
     Simple class that implements enough to allow the framework to be exercised.
     """
-
-    @staticmethod
-    def __random_vpd(l=16):
-        """
-        Generate a random 16 digit number as hex
-        """
-        vpd = []
-        for i in range(0, l):
-            vpd.append(str('%02X' % (random.randint(0, 255))))
-        return "".join(vpd)
-
-    def __block_rounding(self, size_bytes):
-        """
-        Round the requested size to block size.
-        """
-        return (size_bytes / self.s.block_size) * self.s.block_size
-
-    def __create_job(self, returned_item):
-        if True:
-        #if random.randint(0,5) == 1:
-            self.s.job_num += 1
-            job = "JOB_" + str(self.s.job_num)
-            self.s.jobs[job] = SimJob(returned_item)
-            return job, None
-        else:
-            return None, returned_item
-
-    def _version_error(self):
-        raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                               "Stored simulator state incompatible with "
-                               "simulator, please move or delete %s" %
-                               self.file)
-
-    def _load(self):
-        tmp = None
-        if os.path.exists(self.file):
-            with open(self.file, 'rb') as f:
-                tmp = pickle.load(f)
-
-            # Going forward we could get smarter about handling this for
-            # changes that aren't invasive, but we at least need to check
-            # to make sure that the data will work and not cause any
-            # undo confusion.
-            try:
-                if tmp.version != SIM_DATA_VERSION or \
-                        tmp.signature != _state_signature():
-                    self._version_error()
-            except AttributeError:
-                self._version_error()
-
-        return tmp
-
-    def _save(self):
-        f = open(self.file, 'wb')
-        pickle.dump(self.s, f)
-        f.close()
-
-        #If we run via the daemon the file will be owned by libstoragemgmt
-        #and if we run sim_lsmplugin stand alone we will be unable to
-        #change the permissions.
-        try:
-            os.chmod(self.file, 0666)
-        except OSError:
-            pass
-
-    def _load_state(self):
-        prev = self._load()
-        if prev:
-            return prev
-        return SimState()
-
-    @staticmethod
-    def _check_sl(string_list):
-        """
-        String list should be an empty list or a list with items
-        """
-        if string_list is not None and isinstance(string_list, list):
-            pass
-        else:
-            raise LsmError(ErrorNumber.INVALID_SL, 'Invalid string list')
-
     def __init__(self):
-
-        self.file = SIM_DATA_FILE
-        self.s = self._load_state()
         self.uri = None
         self.password = None
         self.tmo = 0
-
-    def _allocate_from_pool(self, pool_id, size_bytes):
-        p = self.s.pools[pool_id]['pool']
-
-        rounded_size = self.__block_rounding(size_bytes)
-
-        if p.free_space >= rounded_size:
-            p.free_space -= rounded_size
-        else:
-            raise LsmError(ErrorNumber.SIZE_INSUFFICIENT_SPACE,
-                           'Insufficient space in pool')
-        return rounded_size
-
-    def _deallocate_from_pool(self, pool_id, size_bytes):
-        p = self.s.pools[pool_id]['pool']
-        p.free_space += size_bytes
-
-    @staticmethod
-    def _ag_id(name):
-        return md5(name)
-
-    def _new_access_group(self, name, h):
-        return AccessGroup(StorageSimulator._ag_id(name), name,
-                           [i.id for i in h['initiators']], self.s.sys_info.id)
-
-    def _create_vol(self, pool, name, size_bytes):
-        actual_size = self._allocate_from_pool(pool.id, size_bytes)
-
-        nv = Volume('Vol' + str(self.s.vol_num), name,
-                    StorageSimulator.__random_vpd(), self.s.block_size,
-                    (actual_size / self.s.block_size), Volume.STATUS_OK,
-                    self.s.sys_info.id,
-                    pool.id)
-        self.s.volumes[nv.id] = {'pool': pool, 'volume': nv}
-        self.s.vol_num += 1
-        return self.__create_job(nv)
-
-    def _create_fs(self, pool, name, size_bytes):
-        if pool.id in self.s.pools:
-            p = self.s.pools[pool.id]['pool']
-            actual_size = self._allocate_from_pool(p.id, size_bytes)
-
-            new_fs = FileSystem('FS' + str(self.s.fs_num), name, actual_size,
-                                actual_size, p.id, self.s.sys_info.id)
-
-            self.s.fs[new_fs.id] = {'pool': p, 'fs': new_fs, 'ss': {},
-                                    'exports': {}}
-            self.s.fs_num += 1
-            return self.__create_job(new_fs)
-        else:
-            raise LsmError(ErrorNumber.NOT_FOUND_POOL, 'Pool not found')
 
     def startup(self, uri, password, timeout, flags=0):
         self.uri = uri
@@ -299,17 +46,38 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
         qp = uri_parse(uri)
         if 'parameters' in qp and 'statefile' in qp['parameters'] \
                 and qp['parameters']['statefile'] is not None:
-            self.file = qp['parameters']['statefile']
-            self._load_state()
+            self.sim_array = SimArray(qp['parameters']['statefile'])
+        else:
+            self.sim_array = SimArray()
 
         return None
 
+    def shutdown(self, flags=0):
+        self.sim_array.save_state()
+
+    def job_status(self, job_id, flags=0):
+        return self.sim_array.job_status(job_id, flags)
+
+    def job_free(self, job_id, flags=0):
+        return self.sim_array.job_free(job_id, flags)
+
+    @staticmethod
+    def _sim_data_2_lsm(sim_data):
+        """
+        Fake converter. SimArray already do SimData to LSM data convert.
+        We move data convert to SimArray to make this sample plugin looks
+        clean.
+        But in real world, data converting is often handled by plugin itself
+        rather than array.
+        """
+        return sim_data
+
     def set_time_out(self, ms, flags=0):
-        self.tmo = ms
+        self.sim_array.set_time_out(ms, flags)
         return None
 
     def get_time_out(self, flags=0):
-        return self.tmo
+        return self.sim_array.get_time_out(flags)
 
     def capabilities(self, system, flags=0):
         rc = Capabilities()
@@ -319,544 +87,204 @@ class StorageSimulator(INfs, IStorageAreaNetwork):
     def plugin_info(self, flags=0):
         return "Storage simulator", VERSION
 
-    def shutdown(self, flags=0):
-        self._save()
-
     def systems(self, flags=0):
-        return [self.s.sys_info]
-
-    def job_status(self, job_id, flags=0):
-        if job_id in self.s.jobs:
-            return self.s.jobs[job_id].progress()
-        raise LsmError(ErrorNumber.NOT_FOUND_JOB, 'Non-existent job')
-
-    def job_free(self, job_id, flags=0):
-        if job_id in self.s.jobs:
-            del self.s.jobs[job_id]
-            return None
-        raise LsmError(ErrorNumber.NOT_FOUND_JOB, 'Non-existent job')
-
-    def volumes(self, flags=0):
-        return [e['volume'] for e in self.s.volumes.itervalues()]
-
-    def _get_volume(self, volume_id):
-        for v in self.s.volumes.itervalues():
-            if v['volume'].id == volume_id:
-                return v['volume']
-        return None
+        sim_syss = self.sim_array.systems()
+        return [SimPlugin._sim_data_2_lsm(s) for s in sim_syss]
 
     def pools(self, flags=0):
-        return [e['pool'] for e in self.s.pools.itervalues()]
+        sim_pools = self.sim_array.pools()
+        return [SimPlugin._sim_data_2_lsm(p) for p in sim_pools]
 
-    def _volume_accessible(self, access_group_id, volume):
+    def volumes(self, flags=0):
+        sim_vols = self.sim_array.volumes()
+        return [SimPlugin._sim_data_2_lsm(v) for v in sim_vols]
 
-        if access_group_id in self.s.group_grants:
-            ag = self.s.group_grants[access_group_id]
-
-            if volume.id in ag:
-                return True
-
-        return False
-
-    def _initiators(self, volume_filter=None):
-        rc = []
-        if len(self.s.access_groups):
-            for k, v in self.s.access_groups.items():
-                if volume_filter:
-                    ag = self._new_access_group(k, v)
-                    if self._volume_accessible(ag.id, volume_filter):
-                        rc.extend(v['initiators'])
-                else:
-                    rc.extend(v['initiators'])
-
-        #We can have multiples as the same initiator can be in multiple access
-        #groups
-        remove_dupes = {}
-        for x in rc:
-            remove_dupes[x.id] = x
-
-        return list(remove_dupes.values())
-
-    def initiators(self, flags=0):
-        return self._initiators()
+    def disks(self, flags=0):
+        sim_disks = self.sim_array.disks()
+        return [SimPlugin._sim_data_2_lsm(d) for d in sim_disks]
 
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
                       flags=0):
-        assert provisioning is not None
-        return self._create_vol(pool, volume_name, size_bytes)
+        sim_vol = self.sim_array.volume_create(
+            pool.id, volume_name, size_bytes, provisioning, flags)
+        return SimPlugin._sim_data_2_lsm(sim_vol)
 
     def volume_delete(self, volume, flags=0):
-        if volume.id in self.s.volumes:
-            v = self.s.volumes[volume.id]['volume']
-            p = self.s.volumes[volume.id]['pool']
-            self._deallocate_from_pool(p.id, v.size_bytes)
-            del self.s.volumes[volume.id]
+        return self.sim_array.volume_delete(volume.id, flags)
 
-            for (k, v) in self.s.group_grants.items():
-                if volume.id in v:
-                    del self.s.group_grants[k][volume.id]
-
-            #We only return null or job id.
-            return self.__create_job(None)[0]
-        else:
-            raise LsmError(ErrorNumber.NOT_FOUND_VOLUME, 'Volume not found')
+    def volume_resize(self, volume, new_size_bytes, flags=0):
+        sim_vol = self.sim_array.volume_resize(
+            volume.id, new_size_bytes, flags)
+        return SimPlugin._sim_data_2_lsm(sim_vol)
 
     def volume_replicate(self, pool, rep_type, volume_src, name, flags=0):
-        assert rep_type is not None
-
-        p_id = None
+        dst_pool_id = None
 
         if pool is not None:
-            p_id = pool.id
+            dst_pool_id = pool.id
         else:
-            p_id = volume_src.pool_id
-
-        if p_id in self.s.pools and volume_src.id in self.s.volumes:
-            p = self.s.pools[p_id]['pool']
-            v = self.s.volumes[volume_src.id]['volume']
-
-            return self._create_vol(p, name, v.size_bytes)
-        else:
-            if pool.id not in self.s.pools:
-                raise LsmError(ErrorNumber.NOT_FOUND_POOL, 'Incorrect pool')
-
-            if volume_src.id not in self.s.volumes:
-                raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
-                               'Volume not present')
-        return None
+            dst_pool_id = volume_src.pool_id
+        return self.sim_array.volume_replicate(
+            dst_pool_id, rep_type, volume_src.id, name, flags)
 
     def volume_replicate_range_block_size(self, system, flags=0):
-        return self.s.block_size
+        return self.sim_array.volume_replicate_range_block_size(
+            system.id, flags)
 
     def volume_replicate_range(self, rep_type, volume_src, volume_dest,
                                ranges, flags=0):
-
-        if rep_type not in (Volume.REPLICATE_SNAPSHOT,
-                            Volume.REPLICATE_CLONE,
-                            Volume.REPLICATE_COPY,
-                            Volume.REPLICATE_MIRROR_ASYNC,
-                            Volume.REPLICATE_MIRROR_SYNC):
-            raise LsmError(ErrorNumber.UNSUPPORTED_REPLICATION_TYPE,
-                           "Rep_type invalid")
-
-        if ranges:
-            if isinstance(ranges, list):
-                for r in ranges:
-                    if isinstance(r, BlockRange):
-                        #We could do some overlap range testing etc. here.
-                        pass
-                    else:
-                        raise LsmError(ErrorNumber.INVALID_VALUE,
-                                       "Range element not BlockRange")
-
-            else:
-                raise LsmError(ErrorNumber.INVALID_VALUE,
-                               "Ranges not a list")
-
-        #Make sure all the arguments are validated
-        if volume_src.id in self.s.volumes \
-                and volume_dest.id in self.s.volumes:
-            return None
-        else:
-            if volume_src.id not in self.s.volumes:
-                raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
-                               "volume_src not found")
-            if volume_dest.id not in self.s.volumes:
-                raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
-                               "volume_dest not found")
+        return self.sim_array.volume_replicate_range(
+            rep_type, volume_src.id, volume_dest.id, ranges, flags)
 
     def volume_online(self, volume, flags=0):
-        if volume.id in self.s.volumes:
-            return None
-        else:
-            raise LsmError(ErrorNumber.NOT_FOUND_VOLUME, 'Volume not present')
+        return self.sim_array.volume_online(volume.id, flags)
 
     def volume_offline(self, volume, flags=0):
-        if volume.id in self.s.volumes:
-            return None
-        else:
-            raise LsmError(ErrorNumber.NOT_FOUND_VOLUME, 'Volume not present')
-
-    def volume_resize(self, volume, new_size_bytes, flags=0):
-        if volume.id in self.s.volumes:
-            v = self.s.volumes[volume.id]['volume']
-            p = self.s.volumes[volume.id]['pool']
-
-            current_size = v.size_bytes
-            new_size = self.__block_rounding(new_size_bytes)
-
-            if new_size == current_size:
-                raise LsmError(ErrorNumber.SIZE_SAME,
-                               'Volume same size')
-
-            if new_size < current_size \
-                    or p.free_space >= (new_size - current_size):
-                p.free_space -= (new_size - current_size)
-                v.num_of_blocks = new_size / self.s.block_size
-            else:
-                raise LsmError(ErrorNumber.SIZE_INSUFFICIENT_SPACE,
-                               'Insufficient space in pool')
-        else:
-            raise LsmError(ErrorNumber.NOT_FOUND_VOLUME, 'Volume not found')
-
-        return self.__create_job(v)
-
-    def access_group_grant(self, group, volume, access, flags=0):
-        if group.name not in self.s.access_groups:
-            raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
-                           "Access group not present")
-
-        if volume.id not in self.s.volumes:
-            raise LsmError(ErrorNumber.NOT_FOUND_VOLUME, 'Volume not found')
-
-        if group.id not in self.s.group_grants:
-            self.s.group_grants[group.id] = {volume.id: access}
-        elif volume.id not in self.s.group_grants[group.id]:
-            self.s.group_grants[group.id][volume.id] = access
-        else:
-            raise LsmError(ErrorNumber.IS_MAPPED, 'Existing access present')
-
-    def access_group_revoke(self, group, volume, flags=0):
-        if group.name not in self.s.access_groups:
-            raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
-                           "Access group not present")
-
-        if volume.id not in self.s.volumes:
-            raise LsmError(ErrorNumber.NOT_FOUND_VOLUME, 'Volume not found')
-
-        if group.id in self.s.group_grants \
-                and volume.id in self.s.group_grants[group.id]:
-            del self.s.group_grants[group.id][volume.id]
-        else:
-            raise LsmError(ErrorNumber.NO_MAPPING,
-                           'No volume access to revoke')
+        return self.sim_array.volume_online(volume.id, flags)
 
     def access_group_list(self, flags=0):
-        rc = []
-        for (k, v) in self.s.access_groups.items():
-            rc.append(self._new_access_group(k, v))
-        return rc
-
-    def _get_access_group(self, ag_id):
-        groups = self.access_group_list()
-        for g in groups:
-            if g.id == ag_id:
-                return g
-        return None
+        sim_ags = self.sim_array.ags()
+        return [SimPlugin._sim_data_2_lsm(a) for a in sim_ags]
 
     def access_group_create(self, name, initiator_id, id_type, system_id,
                             flags=0):
-        if name not in self.s.access_groups:
-            self.s.access_groups[name] = \
-                {'initiators': [Initiator(initiator_id, id_type, 'UNA')],
-                    'access': {}}
-            return self._new_access_group(name, self.s.access_groups[name])
-        else:
-            raise LsmError(ErrorNumber.EXISTS_ACCESS_GROUP,
-                           "Access group with name exists")
+        sim_ag = self.sim_array.access_group_create(name, initiator_id,
+            id_type, system_id, flags)
+        return SimPlugin._sim_data_2_lsm(sim_ag)
 
     def access_group_del(self, group, flags=0):
-        if group.name in self.s.access_groups:
-            del self.s.access_groups[group.name]
-
-            if group.id in self.s.group_grants:
-                del self.s.group_grants[group.id]
-
-            return None
-        else:
-            raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
-                           "Access group not found")
+        return self.sim_array.access_group_del(group.id, flags)
 
     def access_group_add_initiator(self, group, initiator_id, id_type,
                                    flags=0):
-        if group.name in self.s.access_groups:
-            self.s.access_groups[group.name]['initiators']. \
-                append(Initiator(initiator_id, id_type, 'UNA'))
-            return None
-        else:
-            raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
-                           "Access group not found")
+        sim_ag = self.sim_array.access_group_add_initiator(
+            group.id, initiator_id, id_type, flags)
+        return SimPlugin._sim_data_2_lsm(sim_ag)
 
     def access_group_del_initiator(self, group, initiator_id, flags=0):
-        if group.name in self.s.access_groups:
-            for i in self.s.access_groups[group.name]['initiators']:
-                if i.id == initiator_id:
-                    self.s.access_groups[group.name]['initiators']. \
-                        remove(i)
-                    return None
+        return self.sim_array.access_group_del_initiator(
+            group.id, initiator_id, flags)
 
-            raise LsmError(ErrorNumber.INITIATOR_NOT_IN_ACCESS_GROUP,
-                           "Initiator not found")
-        else:
-            raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
-                           "Access group not found")
+    def access_group_grant(self, group, volume, access, flags=0):
+        return self.sim_array.access_group_grant(
+            group.id, volume.id, access, flags)
+
+    def access_group_revoke(self, group, volume, flags=0):
+        return self.sim_array.access_group_revoke(
+            group.id, volume.id, flags)
 
     def volumes_accessible_by_access_group(self, group, flags=0):
-        rc = []
-        if group.name in self.s.access_groups:
-            if group.id in self.s.group_grants:
-                for (k, v) in self.s.group_grants[group.id].items():
-                    rc.append(self._get_volume(k))
-
-            return rc
-        else:
-            raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
-                           "Access group not found")
+        sim_vols = self.sim_array.volumes_accessible_by_access_group(
+            group.id, flags)
+        return [SimPlugin._sim_data_2_lsm(v) for v in sim_vols]
 
     def access_groups_granted_to_volume(self, volume, flags=0):
-        rc = []
+        sim_vols = self.sim_array.access_groups_granted_to_volume(
+            volume.id, flags)
+        return [SimPlugin._sim_data_2_lsm(v) for v in sim_vols]
 
-        for (k, v) in self.s.group_grants.items():
-            if volume.id in self.s.group_grants[k]:
-                rc.append(self._get_access_group(k))
-        return rc
-
-    def iscsi_chap_auth(self, initiator, in_user, in_password, out_user,
-                        out_password, flags=0):
-        if initiator is None:
-            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           'Initiator is required')
+    def initiators(self, flags=0):
+        return self.sim_array.inits(flags)
 
     def initiator_grant(self, initiator_id, initiator_type, volume, access,
                         flags=0):
-        name = initiator_id + volume.id
-        group = None
-
-        try:
-            group = self.access_group_create(name, initiator_id,
-                                             initiator_type,
-                                             volume.system_id)
-            result = self.access_group_grant(group, volume, access)
-
-        except Exception as e:
-            if group:
-                self.access_group_del(group)
-            raise e
-
-        return result
+        return self.sim_array.initiator_grant(
+            initiator_id, initiator_type, volume.id, access, flags)
 
     def initiator_revoke(self, initiator, volume, flags=0):
-        name = initiator.id + volume.id
-
-        if any(x.id for x in self.initiators()):
-            if volume.id in self.s.volumes:
-                ag = self._new_access_group(name, self.s.access_groups[name])
-
-                if ag:
-                    self.access_group_del(ag)
-                else:
-                    raise LsmError(ErrorNumber.NO_MAPPING,
-                                   "No mapping of initiator "
-                                   "and volume")
-            else:
-                raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
-                               "Volume not found")
-        else:
-            raise LsmError(ErrorNumber.NOT_FOUND_INITIATOR,
-                           "Initiator not found")
-
-        return None
+        return self.sim_array.initiator_revoke(initiator.id, volume.id, flags)
 
     def volumes_accessible_by_initiator(self, initiator, flags=0):
-        rc = []
-        volumes = {}
-
-        #Go through each access group, for each one see if our initiator
-        #is one of them.
-        for ag_name, ag_info in self.s.access_groups.items():
-            # Check to see if the initiator is in the group.
-            if initiator.id in [i.id for i in ag_info['initiators']]:
-                # Look up the privileges for this group, if any
-                ag_id = StorageSimulator._ag_id(ag_name)
-                if ag_id in self.s.group_grants:
-                    # Loop through the volumes granted to this AG
-                    for volume_id in self.s.group_grants[ag_id].keys():
-                        volumes[volume_id] = None
-
-        # We very well may have duplicates, thus the reason we enter the
-        # volume id into the hash with no value, we are weeding out dupes
-        for vol_id in volumes.keys():
-            rc.append(self._get_volume(vol_id))
-
-        return rc
+        sim_vols = self.sim_array.volumes_accessible_by_initiator(
+            initiator.id, flags)
+        return [SimPlugin._sim_data_2_lsm(v) for v in sim_vols]
 
     def initiators_granted_to_volume(self, volume, flags=0):
-        return self._initiators(volume)
+        sim_inits = self.sim_array.initiators_granted_to_volume(
+            volume.id, flags)
+        return [SimPlugin._sim_data_2_lsm(i) for i in sim_inits]
+
+    def iscsi_chap_auth(self, initiator, in_user, in_password,
+                        out_user, out_password, flags=0):
+        return self.sim_array.iscsi_chap_auth(
+            initiator.id, in_user, in_password, out_user, out_password, flags)
 
     def volume_child_dependency(self, volume, flags=0):
-        return False
+        return self.sim_array.volume_child_dependency(volume.id, flags)
 
     def volume_child_dependency_rm(self, volume, flags=0):
-        return None
+        return self.sim_array.volume_child_dependency_rm(volume.id, flags)
 
     def fs(self, flags=0):
-        return [e['fs'] for e in self.s.fs.itervalues()]
-
-    def fs_delete(self, fs, flags=0):
-        if fs.id in self.s.fs:
-            f = self.s.fs[fs.id]['fs']
-            p = self.s.fs[fs.id]['pool']
-
-            self._deallocate_from_pool(p.id, f.total_space)
-            del self.s.fs[fs.id]
-
-            #TODO: Check for exports and remove them.
-
-            return self.__create_job(None)[0]
-        else:
-            raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
-
-    def fs_resize(self, fs, new_size_bytes, flags=0):
-        if fs.id in self.s.fs:
-            f = self.s.fs[fs.id]['fs']
-            p = self.s.fs[fs.id]['pool']
-
-            #TODO Check to make sure we have enough space before proceeding
-            self._deallocate_from_pool(p.id, f.total_space)
-            f.total_space = self._allocate_from_pool(p.id, new_size_bytes)
-            f.free_space = f.total_space
-            return self.__create_job(f)
-        else:
-            raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
+        sim_fss = self.sim_array.fs()
+        return [SimPlugin._sim_data_2_lsm(f) for f in sim_fss]
 
     def fs_create(self, pool, name, size_bytes, flags=0):
-        return self._create_fs(pool, name, size_bytes)
+        sim_fs = self.sim_array.fs_create(pool.id, name, size_bytes)
+        return SimPlugin._sim_data_2_lsm(sim_fs)
+
+    def fs_delete(self, fs, flags=0):
+        return self.sim_array.fs_delete(fs.id, flags)
+
+    def fs_resize(self, fs, new_size_bytes, flags=0):
+        sim_fs = self.sim_array.fs_resize(
+            fs.id, new_size_bytes, flags)
+        return SimPlugin._sim_data_2_lsm(sim_fs)
 
     def fs_clone(self, src_fs, dest_fs_name, snapshot=None, flags=0):
-        #TODO If snapshot is not None, then check for existence.
-
-        if src_fs.id in self.s.fs:
-            f = self.s.fs[src_fs.id]['fs']
-            p = self.s.fs[src_fs.id]['pool']
-            return self._create_fs(p, dest_fs_name, f.total_space)
-        else:
-            raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
+        if snapshot is None:
+            return self.sim_array.fs_clone(
+                src_fs.id, dest_fs_name, None, flags)
+        return self.sim_array.fs_clone(
+            src_fs.id, dest_fs_name, snapshot.id, flags)
 
     def file_clone(self, fs, src_file_name, dest_file_name, snapshot=None,
                    flags=0):
-        #TODO If snapshot is not None, then check for existence.
-        if fs.id in self.s.fs:
-            if src_file_name is not None and dest_file_name is not None:
-                return self.__create_job(None)[0]
-            else:
-                raise LsmError(ErrorNumber.INVALID_VALUE,
-                               "Invalid src/destination file names")
-        else:
-            raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
+        if snapshot is None:
+            return self.sim_array.file_clone(
+                fs.id, src_file_name, dest_file_name, None, flags)
+
+        return self.sim_array.file_clone(
+            fs.id, src_file_name, dest_file_name, snapshot.id, flags)
 
     def fs_snapshots(self, fs, flags=0):
-        if fs.id in self.s.fs:
-            rc = [e for e in self.s.fs[fs.id]['ss'].itervalues()]
-            return rc
-        else:
-            raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
+        sim_snaps = self.sim_array.fs_snapshots(fs.id, flags)
+        return [SimPlugin._sim_data_2_lsm(s) for s in sim_snaps]
 
     def fs_snapshot_create(self, fs, snapshot_name, files, flags=0):
-        StorageSimulator._check_sl(files)
-        if fs.id in self.s.fs:
-            for e in self.s.fs[fs.id]['ss'].itervalues():
-                if e.name == snapshot_name:
-                    raise LsmError(ErrorNumber.EXISTS_NAME,
-                                   'Snapshot name exists')
-
-            s = Snapshot(md5(snapshot_name), snapshot_name, time.time())
-            self.s.fs[fs.id]['ss'][s.id] = s
-            return self.__create_job(s)
-        else:
-            raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
+        return self.sim_array.fs_snapshot_create(
+            fs.id, snapshot_name, files, flags)
 
     def fs_snapshot_delete(self, fs, snapshot, flags=0):
-        if fs.id in self.s.fs:
-            if snapshot.id in self.s.fs[fs.id]['ss']:
-                del self.s.fs[fs.id]['ss'][snapshot.id]
-                return self.__create_job(None)[0]
-            else:
-                raise LsmError(ErrorNumber.NOT_FOUND_SS, "Snapshot not found")
-        else:
-            raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
+        return self.sim_array.fs_snapshot_delete(
+            fs.id, snapshot.id, flags)
 
     def fs_snapshot_revert(self, fs, snapshot, files, restore_files,
                            all_files=False, flags=0):
-
-        StorageSimulator._check_sl(files)
-        StorageSimulator._check_sl(files)
-
-        if fs.id in self.s.fs:
-            if snapshot.id in self.s.fs[fs.id]['ss']:
-                return self.__create_job(None)[0]
-            else:
-                raise LsmError(ErrorNumber.NOT_FOUND_SS, "Snapshot not found")
-        else:
-            raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
+        return self.sim_array.fs_snapshot_revert(
+            fs.id, snapshot.id, files, restore_files, all_files, flags)
 
     def fs_child_dependency(self, fs, files, flags=0):
-        StorageSimulator._check_sl(files)
-        if fs.id in self.s.fs:
-            return False
-        else:
-            raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
+        return self.sim_array.fs_child_dependency(fs.id, files, flags)
 
     def fs_child_dependency_rm(self, fs, files, flags=0):
-        StorageSimulator._check_sl(files)
-        if fs.id in self.s.fs:
-            return self.__create_job(None)[0]
-        else:
-            raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
+        return self.sim_array.fs_child_dependency_rm(fs.id, files, flags)
 
     def export_auth(self, flags=0):
+        # The API should change some day
         return ["simple"]
 
     def exports(self, flags=0):
-        rc = []
-        for fs in self.s.fs.itervalues():
-            for exp in fs['exports'].values():
-                rc.append(exp)
-        return rc
+        sim_exps = self.sim_array.exports(flags)
+        return [SimPlugin._sim_data_2_lsm(e) for e in sim_exps]
 
     def export_fs(self, fs_id, export_path, root_list, rw_list, ro_list,
                   anon_uid, anon_gid, auth_type, options, flags=0):
-
-        if fs_id in self.s.fs:
-            if export_path is None:
-                export_path = "/mnt/lsm/sim/%s" % self.s.fs[fs_id]['fs'].name
-
-            export_id = md5(export_path)
-
-            export = NfsExport(export_id, fs_id, export_path, auth_type,
-                               root_list, rw_list, ro_list, anon_uid, anon_gid,
-                               options)
-
-            self.s.fs[fs_id]['exports'][export_id] = export
-            return export
-        else:
-            raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
+        sim_exp = self.sim_array.fs_export(
+            fs_id, export_path, root_list, rw_list, ro_list,
+            anon_uid, anon_gid, auth_type, options, flags=0)
+        return SimPlugin._sim_data_2_lsm(sim_exp)
 
     def export_remove(self, export, flags=0):
-        fs_id = export.fs_id
+        return self.sim_array.fs_unexport(export.id, flags)
 
-        if fs_id in self.s.fs:
-            if export.id in self.s.fs[fs_id]['exports']:
-                del self.s.fs[fs_id]['exports'][export.id]
-            else:
-                raise LsmError(ErrorNumber.FS_NOT_EXPORTED, "FS not exported")
-        else:
-            raise LsmError(ErrorNumber.NOT_FOUND_FS, 'Filesystem not found')
-
-    def disks(self, flags=0):
-
-        rc = []
-        # TODO Make these persistent and make it fit into the total model
-
-        for i in range(0, 10):
-            name = "Sim disk %d" % i
-            optionals = None
-
-            if flags == Disk.RETRIEVE_FULL_INFO:
-                optionals = OptionalData()
-                optionals.set('sn', self.__random_vpd(8))
-
-            rc.append(Disk(md5(name), name, Disk.DISK_TYPE_HYBRID, 512,
-                           1893933056, Disk.STATUS_OK,
-                           self.s.sys_info.id, optionals))
-
-        return rc
