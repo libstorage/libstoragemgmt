@@ -15,18 +15,12 @@
 #
 # Author: tasleson
 
-import os
-import random
-import time
-import pickle
-import tempfile
-
-from common import LsmError, ErrorNumber, JobStatus, md5, uri_parse
-from data import Pool, Initiator, Volume, BlockRange, System, AccessGroup, \
-    Snapshot, NfsExport, FileSystem, Capabilities, Disk, OptionalData
+from common import uri_parse
+from data import Capabilities
 from iplugin import INfs, IStorageAreaNetwork
 from version import VERSION
-from simarray import SimArray, SimJob
+from simarray import SimArray
+
 
 class SimPlugin(INfs, IStorageAreaNetwork):
     """
