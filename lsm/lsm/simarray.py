@@ -748,7 +748,7 @@ class SimData(object):
                          flags=0):
         if src_vol_id not in self.vol_dict.keys():
             raise LsmError(ErrorNumber.INVALID_VOLUME,
-                           "No such volume: %s" % vol_id)
+                           "No such volume: %s" % src_vol_id)
         size_bytes = self.vol_dict[src_vol_id]['total_space']
         size_bytes = SimData._block_rounding(size_bytes)
         # check free size
