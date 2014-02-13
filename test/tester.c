@@ -36,15 +36,26 @@ static int which_plugin = 0;
 
 lsmConnect *c = NULL;
 
+/**
+* Generates a random string in the buffer with specified length.
+* Note: This function should not produce repeating sequences or duplicates
+* regardless if it's used repeatedly in the same function in the same process
+* or different forked processes.
+* @param buff  Buffer to write the random string to
+* @param len   Length of the random string
+*/
 void generateRandom(char *buff, uint32_t len)
 {
     uint32_t i = 0;
     static int seed = 0;
+    static int pid = 0;
 
-    if( !seed ) {
-        seed = time(NULL) + getpid();
-        srandom(seed);
-    }
+    /* Re-seed the random number generator at least once per unique process */
+    if( (!seed || !pid) || (pid != getpid()) ) {
+        seed = time(NULL);
+        pid = getpid();
+        srandom(seed + pid);
+     }
 
     if( buff && (len > 1) ) {
         for(i = 0; i < (len - 1); ++i) {
