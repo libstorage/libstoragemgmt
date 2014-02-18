@@ -317,6 +317,11 @@ int loadDriver(lsmConnect *c, const char *plugin_name, const char *password,
             rc = LSM_ERR_PLUGIN_DLOPEN;
         }
     } else {
+        *e = lsmErrorCreate(LSM_ERR_PLUGIN_PERMISSIONS,
+                            LSM_ERR_DOMAIN_FRAME_WORK,
+                            LSM_ERR_LEVEL_ERROR, "Unable to access plugin",
+                            NULL, NULL, NULL, 0 );
+
         rc = LSM_ERR_PLUGIN_PERMISSIONS;
     }
 
@@ -794,9 +799,9 @@ lsmVolume *lsmVolumeRecordCopy(lsmVolume *vol)
 {
     lsmVolume *rc = NULL;
     if( LSM_IS_VOL(vol) ) {
-        rc = lsmVolumeRecordAlloc( vol->id, vol->name, vol->vpd83,
-                                    vol->blockSize, vol->numberOfBlocks,
-                                    vol->status, vol->system_id, vol->pool_id);
+        rc = lsmVolumeRecordAlloc(vol->id, vol->name, vol->vpd83,
+                                  vol->blockSize, vol->numberOfBlocks,
+                                  vol->status, vol->system_id, vol->pool_id);
     }
     return rc;
 }
@@ -861,6 +866,9 @@ void lsmDiskRecordFree(lsmDisk *d)
 
         free(d->system_id);
         d->system_id = NULL;
+
+        lsmOptionalDataRecordFree(d->optional_data);
+        d->optional_data = NULL;
 
         free(d);
     }
