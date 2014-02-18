@@ -28,6 +28,18 @@ from data import Pool, Initiator, Volume, AccessGroup, System, Capabilities,\
     Disk, OptionalData, txt_a
 from version import VERSION
 
+## Variable Naming scheme:
+#   cim_xxx         CIMInstance
+#   cim_xxx_path    CIMInstanceName
+#   cim_sys         CIM_ComputerSystem  (root or leaf)
+#   cim_pool        CIM_StoragePool
+#   cim_scs         CIM_StorageConfigurationService
+#   cim_vol         CIM_StorageVolume
+#
+#   sys             Object of LSM System
+#   pool            Object of LSM Pool
+#   vol             Object of LSM Volume
+
 
 def handle_cim_errors(method):
     def cim_wrapper(*args, **kwargs):
@@ -242,6 +254,20 @@ class Smis(IStorageAreaNetwork):
         DMTF_STATUS_POWER_MODE: 'Power mode',
     }
 
+    # DSP 1033  Profile Registration
+    DMTF_INTEROP_NAMESPACES = ['interop', 'root/interop']
+    SMIS_DEFAULT_NAMESPACE = 'interop'
+    SNIA_BLK_ROOT_PROFILE = 'Array'
+    SNIA_BLK_SRVS_PROFILE = 'Block Services'
+    SNIA_DISK_LITE_PROFILE = 'Disk Drive Lite'
+    SNIA_MULTI_SYS_PROFILE = 'Multiple Computer System'
+    SNIA_SMIS_SPEC_VER_1_4='1.4'
+    SNIA_SMIS_SPEC_VER_1_5='1.5'
+    SNIA_SMIS_SPEC_VER_1_6='1.6'
+
+    IAAN_WBEM_HTTP_PORT = 5988
+    IAAN_WBEM_HTTPS_PORT = 5989
+
     class RepSvc(object):
 
         class Action(object):
@@ -329,6 +355,9 @@ class Smis(IStorageAreaNetwork):
         self._c = None
         self.tmo = 0
         self.system_list = None
+        self.cim_reg_profiles = []
+        self.cim_root_profile_dict = dict()
+        self.fallback_mode = True    # Means we cannot use profile register
 
     def _get_cim_instance_by_id(self, class_type, requested_id,
                                 flag_full_info=True, property_list=None):
@@ -463,35 +492,92 @@ class Smis(IStorageAreaNetwork):
     def startup(self, uri, password, timeout, flags=0):
         """
         Called when the plug-in runner gets the start request from the client.
+        Checkout interop support status via:
+            1. Enumerate CIM_RegisteredProfile in 'interop' namespace.
+            2. if nothing found, then
+               Enumerate CIM_RegisteredProfile in 'root/interop' namespace.
+            3. if nothing found, then
+               Enumerate CIM_RegisteredProfile in userdefined namespace.
         """
         protocol = 'http'
-        u = uri_parse(uri, ['scheme', 'netloc', 'host', 'port'],
-                      ['namespace'])
+        port = Smis.IAAN_WBEM_HTTP_PORT
+        u = uri_parse(uri, ['scheme', 'netloc', 'host'], None)
 
         if u['scheme'].lower() == 'smispy+ssl':
             protocol = 'https'
+            port = Smis.IAAN_WBEM_HTTPS_PORT
 
-        url = "%s://%s:%s" % (protocol, u['host'], u['port'])
+        if 'port' in u:
+            port = u['port']
+
+        url = "%s://%s:%s" % (protocol, u['host'], port)
 
         # System filtering
         self.system_list = None
 
+        namespace = None
+        if 'namespace' in u['parameters']:
+            namespace = u['parameters']['namespace']
+        else:
+            namespace = Smis.SMIS_DEFAULT_NAMESPACE
+
         if 'systems' in u['parameters']:
             self.system_list = split(u['parameters']["systems"], ":")
 
-        self._c = pywbem.WBEMConnection(url, (u['username'], password),
-                                        u['parameters']["namespace"])
-        if "no_ssl_verify" in u["parameters"] \
-           and u["parameters"]["no_ssl_verify"] == 'yes':
-            try:
-                self._c = pywbem.WBEMConnection(url, (u['username'], password),
-                                                u['parameters']["namespace"],
-                                                no_verification=True)
-            except TypeError:
-                # pywbem is not holding fix from
-                # https://bugzilla.redhat.com/show_bug.cgi?id=1039801
-                pass
+        if namespace is not None:
+            self._c = pywbem.WBEMConnection(url, (u['username'], password),
+                                            namespace)
+            if "no_ssl_verify" in u["parameters"] \
+               and u["parameters"]["no_ssl_verify"] == 'yes':
+                try:
+                    self._c = pywbem.WBEMConnection(
+                        url,
+                        (u['username'], password),
+                        namespace,
+                        no_verification=True)
+                except TypeError:
+                    # pywbem is not holding fix from
+                    # https://bugzilla.redhat.com/show_bug.cgi?id=1039801
+                    pass
 
+        # Checking profile registration support status
+        namespace_check_list = Smis.DMTF_INTEROP_NAMESPACES
+        if 'namespace' in u['parameters'] and \
+            u['parameters']['namespace'] not in namespace_check_list:
+            namespace_check_list.extend([u['parameters']['namespace']])
+
+        try:
+            for interop_namespace in Smis.DMTF_INTEROP_NAMESPACES:
+                self.cim_reg_profiles = self._c.EnumerateInstances(
+                    'CIM_RegisteredProfile',
+                    namespace=interop_namespace,
+                    PropertyList=['RegisteredName', 'RegisteredVersion'])
+                if len(self.cim_reg_profiles) != 0:
+                    break
+
+            if len(self.cim_reg_profiles) >= 1:
+                self.fallback_mode = False
+                # Support 'Array' profile is step 0 for this whole plugin.
+                # We find out all 'Array' CIM_RegisteredProfile and stored
+                # them into self.cim_root_profile_dict
+                for cim_reg_profile in self.cim_reg_profiles:
+                    if 'RegisteredName' not in cim_reg_profile or \
+                       'RegisteredVersion' not in cim_reg_profile:
+                        continue
+                    if cim_reg_profile['RegisteredName'] == \
+                       Smis.SNIA_BLK_ROOT_PROFILE:
+                        ver = cim_reg_profile['RegisteredVersion']
+                        self.cim_root_profile_dict[ver]= cim_reg_profile
+                if len(self.cim_root_profile_dict) == 0:
+                    raise LsmError(ErrorNumber.NO_SUPPORT,
+                                   "SMI-S provider does not support 'Array'"
+                                   "profile which is prerequisite")
+        except CIMError as e:
+            if e[0] == pywbem.CIM_ERR_NOT_SUPPORTED or \
+               e[0] == pywbem.CIM_ERR_INVALID_NAMESPACE:
+                pass  # AFAIK, only LSI does not support RegisteredProfile
+            else:
+                raise e
         self.tmo = timeout
 
     def set_time_out(self, ms, flags=0):
@@ -612,23 +698,59 @@ class Smis(IStorageAreaNetwork):
         """
 
         # Get the cim object that represents the system
-        cim_sys = self._systems(system.id)[0]
+        cim_sys = None
+        if self.fallback_mode:
+            cim_sys = self._get_cim_syss_fallback(
+                sys_id=system.id,
+                property_list=[])[0]    # Surely, we will get at least one
+                                        # cim_sys since LSM system already
+                                        # provided.
 
-        # Get the protocol controller masking capabilities
-        pcm = self._c.Associators(
-            cim_sys.path,
-            ResultClass='CIM_ProtocolControllerMaskingCapabilities')[0]
+            # Using 'ExposePathsSupported of
+            # CIM_ProtocolControllerMaskingCapabilities
+            # to check support status of HidePaths() and ExposePaths() is
+            # not documented by SNIA SMI-S 1.4 or 1.6, but only defined in
+            # DMTF CIM MOF files.
+            try:
+                cim_pcms = self._c.Associators(
+                    cim_sys.path,
+                    ResultClass='CIM_ProtocolControllerMaskingCapabilities')
+            except CIMError as e:
+                if e[0] == pywbem.CIM_ERR_NOT_SUPPORTED or \
+                   e[0] == pywbem.CIM_ERR_INVALID_CLASS:
+                    return
+            if len(cim_pcms) == 1:
+                cap.set(Capabilities.ACCESS_GROUP_LIST)
+                cap.set(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME)
+                cap.set(Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP)
 
-        cap.set(Capabilities.ACCESS_GROUP_LIST)
-
-        if pcm['ExposePathsSupported']:
-            cap.set(Capabilities.ACCESS_GROUP_GRANT)
-            cap.set(Capabilities.ACCESS_GROUP_REVOKE)
-            cap.set(Capabilities.ACCESS_GROUP_ADD_INITIATOR)
-            cap.set(Capabilities.ACCESS_GROUP_DEL_INITIATOR)
-
-        cap.set(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME)
-        cap.set(Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP)
+                if cim_pcms[0]['ExposePathsSupported']:
+                    cap.set(Capabilities.ACCESS_GROUP_GRANT)
+                    cap.set(Capabilities.ACCESS_GROUP_REVOKE)
+                    cap.set(Capabilities.ACCESS_GROUP_ADD_INITIATOR)
+                    cap.set(Capabilities.ACCESS_GROUP_DEL_INITIATOR)
+                return
+        else:
+            cim_syss = self._get_cim_syss(
+                Smis.SNIA_BLK_SRVS_PROFILE,
+                Smis.SNIA_SMIS_SPEC_VER_1_4,
+                sys_id=system.id,
+                property_list=[])
+            # we might not get any cim_sys on unsupported system.
+            if len(cim_syss) == 1:
+                cim_sys = cim_syss[0]
+                # Since SNIA SMI-S 1.4rev6:
+                # CIM_ControllerConfigurationService is mandatory
+                # and it's ExposePaths() and HidePaths() are mandatory
+                cap.set(Capabilities.ACCESS_GROUP_LIST)
+                cap.set(Capabilities.ACCESS_GROUP_GRANT)
+                cap.set(Capabilities.ACCESS_GROUP_REVOKE)
+                cap.set(Capabilities.ACCESS_GROUP_ADD_INITIATOR)
+                cap.set(Capabilities.ACCESS_GROUP_DEL_INITIATOR)
+                cap.set(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME)
+                cap.set(Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP)
+            else:
+                return
 
     def _common_capabilities(self, system):
         cap = Capabilities()
@@ -887,7 +1009,18 @@ class Smis(IStorageAreaNetwork):
 
         return other_id
 
-    def _new_vol(self, cv, pool_id=None):
+    def _new_vol_cim_vol_pros(self):
+        """
+        Retrun the PropertyList required for creating new LSM Volume.
+        """
+        cim_vol_pros = self._property_list_of_id("Volume")
+        cim_vol_pros.extend(
+            ['OperationalStatus', 'ElementName', 'NameFormat',
+             'NameNamespace', 'BlockSize', 'NumberOfBlocks', 'Name',
+             'OtherIdentifyingInfo', 'IdentifyingDescriptions'])
+        return cim_vol_pros
+
+    def _new_vol(self, cv, pool_id=None, sys_id=None):
         """
         Takes a CIMInstance that represents a volume and returns a lsm Volume
         """
@@ -932,8 +1065,11 @@ class Smis(IStorageAreaNetwork):
             #Go an retrieve the pool id
             pool_id = self._get_pool_from_vol(cv)
 
+        if sys_id is None:
+            sys_id = cv['SystemName']
+
         return Volume(self._vol_id(cv), user_name, vpd_83, cv["BlockSize"],
-                      cv["NumberOfBlocks"], status, cv['SystemName'], pool_id)
+                      cv["NumberOfBlocks"], status, sys_id, pool_id)
 
     @staticmethod
     def _vpd83_in_cv_name(cv):
@@ -1110,15 +1246,45 @@ class Smis(IStorageAreaNetwork):
     def volumes(self, flags=0):
         """
         Return all volumes.
+        We are basing on "Block Services Package" profile version 1.4 or
+        later:
+            CIM_ComputerSystem
+                 |
+                 |  (CIM_HostedStoragePool)
+                 |
+                 v
+            CIM_StoragePool
+                 |
+                 | (CIM_AllocatedFromStoragePool)
+                 |
+                 v
+            CIM_StorageVolume
         """
         rc = []
-        for s in self._systems():
+        cim_syss = []
+        cim_sys_pros = self._property_list_of_id("System")
+        if self.fallback_mode:
+            cim_syss = self._get_cim_syss_fallback(property_list=cim_sys_pros)
+        else:
+            cim_syss = self._get_cim_syss(
+                    Smis.SNIA_BLK_SRVS_PROFILE,
+                    Smis.SNIA_SMIS_SPEC_VER_1_4,
+                    strict=False,
+                    property_list=cim_sys_pros)
+        cim_vol_pros = self._new_vol_cim_vol_pros()
+        for cim_sys in cim_syss:
+            sys_id = self._sys_id(cim_sys)
             pool_pros = self._property_list_of_id('Pool')
-            for p in self._pools(s, pool_pros):
-                vols = self._c.Associators(
-                    p.path, ResultClass='CIM_StorageVolume')
-                rc.extend([self._new_vol(v, self._pool_id(p)) for v in vols])
-
+            for cim_pool in self._pools(cim_sys, pool_pros):
+                pool_id = self._pool_id(cim_pool)
+                cim_vols = self._c.Associators(
+                    cim_pool.path,
+                    AssocClass='CIM_AllocatedFromStoragePool',
+                    ResultClass='CIM_StorageVolume',
+                    PropertyList=cim_vol_pros)
+                for cim_vol in cim_vols:
+                    vol = self._new_vol(cim_vol, pool_id, sys_id)
+                    rc.extend([vol])
         return rc
 
     def _systems(self, system_name=None):
@@ -1205,16 +1371,34 @@ class Smis(IStorageAreaNetwork):
     @handle_cim_errors
     def pools(self, flags=0):
         """
-        Return all pools
+        We are basing on "Block Services Package" profile version 1.4 or
+        later:
+            CIM_ComputerSystem
+                 |
+                 | (CIM_HostedStoragePool)
+                 |
+                 v
+            CIM_StoragePool
         """
         rc = []
         cim_pool_pros = self._new_pool_cim_pool_pros(
             flags == Pool.RETRIEVE_FULL_INFO)
 
-        for cim_sys in self._systems():
+        cim_sys_pros = self._property_list_of_id("System")
+        cim_syss = []
+        if self.fallback_mode:
+            cim_syss = self._get_cim_syss_fallback(property_list=cim_sys_pros)
+        else:
+            cim_syss = self._get_cim_syss(
+                    Smis.SNIA_BLK_SRVS_PROFILE,
+                    Smis.SNIA_SMIS_SPEC_VER_1_4,
+                    strict=False,
+                    property_list=cim_sys_pros)
+
+        for cim_sys in cim_syss:
             system_id = self._sys_id(cim_sys)
             for cim_pool in self._pools(cim_sys, cim_pool_pros):
-                # Skip spare storage pool
+                # Skip spare storage pool.
                 if 'Usage' in cim_pool and \
                    cim_pool['Usage'] == Smis.DMTF_POOL_USAGE_SPARE:
                     continue
@@ -1288,13 +1472,13 @@ class Smis(IStorageAreaNetwork):
         return Pool(pool_id, name, total_space, free_space, system_id)
 
     @staticmethod
-    def _new_system(s):
+    def _cim_sys_2_lsm_sys(cim_sys):
         # In the case of systems we are assuming that the System Name is
         # unique.
         status = System.STATUS_UNKNOWN
 
-        if 'OperationalStatus' in s:
-            for os in s['OperationalStatus']:
+        if 'OperationalStatus' in cim_sys:
+            for os in cim_sys['OperationalStatus']:
                 if os == Smis.SystemOperationalStatus.OK:
                     status |= System.STATUS_OK
                 elif os == Smis.SystemOperationalStatus.DEGRADED:
@@ -1306,14 +1490,33 @@ class Smis(IStorageAreaNetwork):
                 elif os == Smis.SystemOperationalStatus.PREDICTIVE_FAILURE:
                     status |= System.STATUS_PREDICTIVE_FAILURE
 
-        return System(s['Name'], s['ElementName'], status)
+        return System(cim_sys['Name'], cim_sys['ElementName'], status)
+
+    def _cim_sys_pros(self):
+        """
+        Return a list of properties required to create a LSM System
+        """
+        cim_sys_pros = self._property_list_of_id('System')
+        cim_sys_pros.extend(['ElementName', 'OperationalStatus'])
 
     @handle_cim_errors
     def systems(self, flags=0):
         """
         Return the storage arrays accessible from this plug-in at this time
         """
-        return [Smis._new_system(s) for s in self._systems()]
+        cim_sys_pros = self._cim_sys_pros()
+        if self.fallback_mode:
+            cim_syss = self._get_cim_syss_fallback(property_list=cim_sys_pros)
+        else:
+            cim_syss = self._get_cim_syss(
+                    Smis.SNIA_BLK_ROOT_PROFILE,
+                    Smis.SNIA_SMIS_SPEC_VER_1_4,
+                    strict=False,
+                    property_list=cim_sys_pros)
+
+        if cim_syss is None:
+            return []
+        return [Smis._cim_sys_2_lsm_sys(s) for s in cim_syss]
 
     def _new_init(self, cim_st_hwid):
         """
@@ -2022,58 +2225,106 @@ class Smis(IStorageAreaNetwork):
     def disks(self, flags=0):
         """
         return all object of data.Disk.
-        We are using "Disk Drive Lite Subprofile" of SNIA SMI-S for these
-        classes:
+        We are using "Disk Drive Lite Subprofile" v1.4 of SNIA SMI-S for these
+        classes to create LSM Disk:
             CIM_PhysicalPackage
             CIM_DiskDrive
             CIM_StorageExtent (Primordial)
+        Association Procedure:
+
+                CIM_ComputerSystem
+                        |
+                        | (CIM_SystemDevice)
+                        |
+                        v
+                CIM_DiskDrive
+
+            If 'Multiple Computer System Subprofile' is supported,
+            we run above association on every CIM_ComputerSystem.
+            Leaf CIM_ComputerSystem was found via:
+
+                CIM_ComputerSystem  # Root
+                        |
+                        |   CIM_ConcreteIdentity
+                        |
+                        v
+                CIM_RedundancySet <-----------------+
+                        |                           |
+                        |  CIM_MemberOfCollection   |
+                        |                           | CIM_ConcreteIdentity
+                        v                           |
+                CIM_ComputerSystem  # Leaf          |
+                        |                           |
+                        +---------------------------+
+
         Will try these steps to find out disk infomation:
             1. Find out all associated disks: 'CIM_DiskDrive'.
             2. Find out all association storage extension: 'CIM_StorageExtent'.
             3. We will use vendor specific way for all workarounds.
         """
         rc = []
+        cim_syss = []
+        cim_sys_pros = self._property_list_of_id("System")
+        if self.fallback_mode:
+            cim_syss = self._get_cim_syss_fallback(property_list=cim_sys_pros)
+        else:
+            cim_syss = self._get_cim_syss(
+                    Smis.SNIA_DISK_LITE_PROFILE,
+                    Smis.SNIA_SMIS_SPEC_VER_1_4,
+                    strict=False,
+                    property_list=cim_sys_pros)
 
-        # In SNIA SMI-S 1.6rev4 Common Book,
-        # 30.1.5 Associations between ComputerSystems and other Logical
-        # Elements
-        # "If the device may become unavailable while the system as a whole
-        # remains available, the device shall be associated to a non-top-level
-        # system that has availability equivalent to the device. This system
-        # could be a real system or a system in an intermediate tier
-        # (representing some redundancy less than full redundancy)."
+        flag_multi_sys = None
+        if not self.fallback_mode:
+            flag_multi_sys = self._profile_is_supported(
+                Smis.SNIA_MULTI_SYS_PROFILE, Smis.SNIA_SMIS_SPEC_VER_1_4,
+                strict=False)
+            # In SNIA SMI-S 1.6rev4 Common Book,
+            # 30.1.5 Associations between ComputerSystems and other Logical
+            # Elements
+            # "If the device may become unavailable while the system as a
+            # whole remains available, the device shall be associated to a
+            # non-top-level system that has availability equivalent to the
+            # device. This system could be a real system or a system in an
+            # intermediate tier (representing some redundancy less than full
+            # redundancy)."
 
-        # Hence DiskDrive might not associated to top level CIM_ComputerSystem
-        for cim_sys in self._systems():
+            # Hence DiskDrive might not associated to top level
+            # CIM_ComputerSystem
+
+        for cim_sys in cim_syss:
             cim_disk_pros = Smis._new_disk_cim_disk_pros(flags)
             cim_disks = self._c.Associators(cim_sys.path,
                                             AssocClass='CIM_SystemDevice',
                                             ResultClass='CIM_DiskDrive',
                                             PropertyList=cim_disk_pros)
-            # Checking Disks of sub level ComputerSystems.
-            cim_sub_syss_path = self._traverse_computer_sys(cim_sys.path)
-            for cim_sub_sys_path in cim_sub_syss_path:
-                cim_sub_disks = self._c.Associators(
-                    cim_sub_sys_path,
-                    AssocClass='CIM_SystemDevice',
-                    ResultClass='CIM_DiskDrive',
-                    PropertyList=cim_disk_pros)
-                if cim_sub_disks:
-                    cim_disks.extend(cim_sub_disks)
-            # Clean up the duplicate as SNIA said DiskDrive can be
-            # one to many in SNIA SMIS 1.6rev4 CommonProfile Book,
-            # 30.1.5 Associations between ComputerSystems and other Logical
-            # Elements, PDF Page 311.
-            clean_up_dict = {}
-            for cim_disk in cim_disks:
-                clean_up_dict[self._disk_id(cim_disk)] = cim_disk
-            cim_disks = clean_up_dict.values()
+            if flag_multi_sys is not None:
+                # Checking Disks of sub level ComputerSystems.
+                cim_sub_syss_path = self._traverse_computer_sys(cim_sys.path)
+                for cim_sub_sys_path in cim_sub_syss_path:
+                    cim_sub_disks = self._c.Associators(
+                        cim_sub_sys_path,
+                        AssocClass='CIM_SystemDevice',
+                        ResultClass='CIM_DiskDrive',
+                        PropertyList=cim_disk_pros)
+                    if cim_sub_disks:
+                        cim_disks.extend(cim_sub_disks)
+                # Clean up the duplicate as SNIA said DiskDrive can be
+                # one to many in SNIA SMIS 1.6rev4 CommonProfile Book,
+                # 30.1.5 Associations between ComputerSystems and other
+                # Logical Elements, PDF Page 311.
+                clean_up_dict = {}
+                for cim_disk in cim_disks:
+                    clean_up_dict[self._disk_id(cim_disk)] = cim_disk
+                cim_disks = clean_up_dict.values()
 
+            sys_id = self._sys_id(cim_sys)
             for cim_disk in cim_disks:
                 cim_ext_pros = Smis._new_disk_cim_ext_pros(flags)
                 cim_ext = self._pri_cim_ext_of_cim_disk(cim_disk.path,
                                                         cim_ext_pros)
-                rc.extend([self._new_disk(cim_disk, cim_ext, flags)])
+                rc.extend(
+                    [self._new_disk(cim_disk, cim_ext, sys_id, flags)])
         return rc
 
     def _traverse_computer_sys(self, cim_sys_path):
@@ -2168,7 +2419,7 @@ class Smis(IStorageAreaNetwork):
                     Smis._DMTF_STAUTS_TO_DISK_STATUS_INFO[dmtf_status])
         return (status, status_info)
 
-    def _new_disk(self, cim_disk, cim_ext, flag_full_info=0):
+    def _new_disk(self, cim_disk, cim_ext, sys_id, flag_full_info=False):
         """
         Takes a CIM_DiskDrive and CIM_StorageExtent, returns a lsm Disk
         Assuming cim_disk and cim_ext already contained the correct
@@ -2178,7 +2429,6 @@ class Smis(IStorageAreaNetwork):
         name = ''
         block_size = Disk.BLOCK_SIZE_NOT_FOUND
         num_of_block = Disk.BLOCK_COUNT_NOT_FOUND
-        system_id = ''
         disk_type = Disk.DISK_TYPE_UNKNOWN
         status_info = ''
 
@@ -2188,8 +2438,6 @@ class Smis(IStorageAreaNetwork):
             (status, status_info) = Smis._disk_status_of(cim_disk)
         if 'Name' in cim_disk:
             name = cim_disk["Name"]
-        if 'SystemName' in cim_disk:
-            system_id = cim_disk['SystemName']
         if 'BlockSize' in cim_ext:
             block_size = cim_ext['BlockSize']
         if 'NumberOfBlocks' in cim_ext:
@@ -2269,7 +2517,7 @@ class Smis(IStorageAreaNetwork):
                 optionals.set(opt_pro_name, opt_pro_dict[opt_pro_name])
 
         new_disk = Disk(self._disk_id(cim_disk), name, disk_type, block_size,
-                        num_of_block, status, system_id, optionals)
+                        num_of_block, status, sys_id, optionals)
 
         return new_disk
 
@@ -3138,7 +3386,7 @@ class Smis(IStorageAreaNetwork):
             CIM_ComputerSystem
         Parameter:
             cim_sys_path    # CIMInstanceName of CIM_ComputerSystem
-            property_lis    # the list of properties required in return
+            property_list   # the list of properties required in return
                             # CIMInstance
         Returns:
             cim_scs
@@ -3157,3 +3405,236 @@ class Smis(IStorageAreaNetwork):
                            "Failed to find out " +
                            "CIM_StorageConfigurationService of " +
                            "CIM_ComputerSystem %s" % cim_sys_path)
+
+    def _profile_is_supported(self, profile_name, spec_ver, strict=False):
+        """
+        Usage:
+            Check whether we support certain profile at certain SNIA
+            specification version.
+            When strict == False(default), profile spec version newer than
+            require spec_ver will also be consider as found.
+            When strict == True, only defined spec_version is allowed.
+        Parameter:
+            profile_name    # Smis.SNIA_REGISTERED_PROFILE_XXX
+            spec_ver        # Smis.SNIA_SMIS_SPEC_VER_XXX
+            property_list   # a list of properties should contained in
+                            # returned CIM_ComputerSystem
+                            # When property_list == None, we retrieve full
+                            # data, when property_list == [], we retrieve
+                            # nothing but a CIMInstanceName.
+            strict          # False or True. If True, only defined
+                            # spec_version is consider as supported
+                            # If false, will return the maximum version of
+                            # spec.
+        Returns:
+            None            # Not supported.
+                or
+            spec_version    # the vendor implemented version. like '1.4.1'
+                            # This is a string, NOT float.
+        """
+        max_spec_ver = 0
+        max_spec_ver_flt = 0
+        # assuming spec_ver is well formatted, since we are internal
+        # method, we can do that guess.
+        req_ver_main = spec_ver.split('.')[0]
+        req_ver_sub = spec_ver.split('.')[1]
+
+        for cim_reg_profile in self.cim_reg_profiles:
+            if 'RegisteredName' not in cim_reg_profile or \
+               'RegisteredVersion' not in cim_reg_profile:
+                continue
+            if cim_reg_profile['RegisteredName'] == profile_name:
+                # check spec version
+                cur_ver = cim_reg_profile['RegisteredVersion']
+                cur_ver_list = cur_ver.split('.')
+                if len(cur_ver_list) < 2:
+                    continue
+                cur_ver_flt = float("%s.%s" % tuple(cur_ver_list[0:2]))
+                req_ver_flt = float("%s.%s" % (req_ver_main, req_ver_sub))
+
+                if strict and cur_ver_flt == req_ver_flt:
+                    return cur_ver
+
+                if strict is False and cur_ver_flt >= req_ver_flt:
+                    if cur_ver_flt > max_spec_ver_flt:
+                        max_spec_ver = cur_ver
+                        max_spec_ver_flt = cur_ver_flt
+
+        if max_spec_ver == 0:
+            return None
+        return max_spec_ver
+
+    def _get_cim_syss(self, profile_name, spec_ver, property_list=None,
+                      strict=False, sys_id=None):
+        """
+        Usage:
+            Check whether we support certain profile at certain SNIA
+            specification version.
+            When strict == False(default), profile spec version newer than
+            require spec_ver will also be consider as found.
+            When strict == True, only defined spec_version is allowed.
+
+            If found, follow this procedure to get CIM_ComputerSystem:
+                CIM_RegisteredProfile       # Root Profile('Array') in interop
+                      |
+                      | CIM_ElementConformsToProfile
+                      v
+                CIM_ComputerSystem          # vendor namespace
+
+            We depend on self.cim_reg_profiles which was updated by startup().
+            But this method does not check it, you should check
+            self.fallback_mode == True before call this method.
+
+            Please use constant spec_ver and profile_name for better
+            code management.
+            We also apply to system filter in URI which is stored in
+                self.system_list
+            When returning None, it means current provider does not support
+            requested profile or version.
+        Parameter:
+            profile_name    # Smis.SNIA_REGISTERED_PROFILE_XXX
+            spec_ver        # Smis.SNIA_SMIS_SPEC_VER_XXX
+            property_list   # a list of properties should contained in
+                            # returned CIM_ComputerSystem
+                            # When property_list == None, we retrieve full
+                            # data, when property_list == [], we retrieve
+                            # nothing but a CIMInstanceName.
+            strict          # False or True. If True, only defined
+                            # spec_version is consider as supported
+            sys_id          # Only return CIM_ComputerSystem for certain
+                            # system ID.
+        Returns:
+            cim_syss        # a list of CIMInstanceName of CIM_ComputerSystem
+                or
+            None            # Current SMI-S provider does not support this
+                            # profile at certain version.
+        """
+        max_spec_ver = self._profile_is_supported(
+            profile_name, spec_ver, strict)
+
+        if max_spec_ver is None:
+            return None
+
+        if max_spec_ver not in self.cim_root_profile_dict.keys():
+            raise LsmError(ErrorNumber.INTERNAL_ERROR,
+                           "Failed to find out CIM_RegisteredProfile " +
+                           "for profile %s with version %s " %
+                           (Smis.SNIA_BLK_ROOT_PROFILE, max_spec_ver) +
+                           "even its subprofile found.")
+
+        cim_root_profile = self.cim_root_profile_dict[max_spec_ver]
+
+        if property_list is None:
+            cim_syss = self._c.Associators(
+                cim_root_profile.path,
+                ResultClass='CIM_ComputerSystem',
+                AssocClass='CIM_ElementConformsToProfile')
+        else:
+            sys_id_pros = self._property_list_of_id('System')
+            for key in sys_id_pros:
+                if key not in property_list:
+                    property_list.extend([key])
+            cim_syss = self._c.Associators(
+                cim_root_profile.path,
+                ResultClass='CIM_ComputerSystem',
+                AssocClass='CIM_ElementConformsToProfile',
+                PropertyList=property_list)
+
+        if self.system_list is None:
+            return cim_syss
+
+        # Method level filter
+        if sys_id is not None:
+            return [s for s in cim_syss if self._sys_id(s) == sys_id][0]
+
+        # Apply URI system filter
+        needed_cim_syss = []
+        for cim_sys in cim_syss:
+            if self._sys_id(cim_sys) in self.system_list:
+                needed_cim_syss.extend([cim_sys])
+        return needed_cim_syss
+
+    def _get_cim_syss_fallback(self, sys_id=None, property_list=None):
+        """
+        Usage:
+            Find out the root CIM_ComputerSystem using the fallback method:
+                CIM_StorageConfigurationService     # Enumerate
+                        |
+                        |   CIM_HostedService
+                        v
+                CIM_ComputerSystem
+            If CIM_StorageConfigurationService is not support neither,
+            we enumerate CIM_ComputerSystem.
+        Parameter:
+            property_list   # a list of properties should contained in
+                            # returned CIM_ComputerSystem
+                            # When property_list == None, we retrieve full
+                            # data, when property_list == [], we retrieve
+                            # nothing but a CIMInstanceName.
+        Returns:
+            cim_syss        # A list of CIMInstanceName of CIM_ComputerSystem
+                or
+            None
+        """
+        sys_id_pros = self._property_list_of_id('System')
+        flag_full_info = False
+        if property_list is None:
+            flag_full_info = True
+        else:
+            for key in sys_id_pros:
+                if key not in property_list:
+                    property_list.extend([key])
+
+        cim_syss = []
+        cim_scss_path = []
+        try:
+            # Note: Please be informed, if PropertyList is an empty list,
+            #       XIV will return NOTHING, so use EnumerateInstanceNames()
+            #       when you need nothing but the CIMInstanceName
+            cim_scss_path = self._c.EnumerateInstanceNames(
+                    'CIM_StorageConfigurationService')
+        except CIMError as e:
+            # If array does not support CIM_StorageConfigurationService
+            # we use CIM_ComputerSystem which is mandatory.
+            # We might get some non-storage array listed as system.
+            # but we would like to take that risk instead of
+            # skipping basic support of old SMIS provider.
+            if e[0] == pywbem.CIM_ERR_INVALID_CLASS:
+                if flag_full_info:
+                    cim_syss = self._c.EnumerateInstances('CIM_ComputerSystem')
+                else:
+                    cim_syss = self._c.EnumerateInstances(
+                        'CIM_ComputerSystem',
+                        PropertyList=property_list)
+            else:
+                raise e
+        if not cim_syss:
+            for cim_scs_path in cim_scss_path:
+                cim_tmp = None
+                if flag_full_info:
+                    cim_tmp = self._c.Associators(
+                        cim_scs_path,
+                        AssocClass='CIM_HostedService',
+                        ResultClass='CIM_ComputerSystem')
+                else:
+                    cim_tmp = self._c.Associators(
+                        cim_scs_path,
+                        AssocClass='CIM_HostedService',
+                        ResultClass='CIM_ComputerSystem',
+                        PropertyList=property_list)
+                if cim_tmp and cim_tmp[0]:
+                    cim_syss.extend([cim_tmp[0]])
+
+        # Method level filter
+        if sys_id is not None:
+            return [s for s in cim_syss if self._sys_id(s) == sys_id]
+
+        # System URI Filtering
+        if self.system_list:
+            needed_cim_syss = []
+            for cim_sys in cim_syss:
+                if self._sys_id(cim_sys) in self.system_list:
+                    needed_cim_syss.extend([cim_sys])
+            return needed_cim_syss
+        else:
+            return cim_syss
