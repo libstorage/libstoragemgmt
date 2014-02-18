@@ -951,7 +951,7 @@ START_TEST(test_disks)
                 /* Iterate through the keys, grabbing the data */
                 rc = lsmOptionalDataListGet(od, &keys, &key_count);
                 if( LSM_ERR_OK == rc && keys != NULL && key_count > 0 ) {
-                    uint32_t num_keys = lsmStringListSize(keys);
+                    //uint32_t num_keys = lsmStringListSize(keys);
                     //fail_unless( num_keys == key_count, "%d != %d", num_keys, key_count);
                     for(j = 0; j < key_count; ++j ) {
                         key = lsmStringListGetElem(keys, j);
