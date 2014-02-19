@@ -1361,10 +1361,10 @@ class Smis(IStorageAreaNetwork):
         """
         pool_pros = self._property_list_of_id('Pool')
         pool_pros.extend(['ElementName', 'TotalManagedSpace',
-                          'RemainingManagedSpace', 'Usage'])
+                          'RemainingManagedSpace', 'Usage',
+                          'OperationalStatus'])
         if flag_full_info:
-            pool_pros.extend(['OperationalStatus',
-                              'SpaceLimitDetermination',
+            pool_pros.extend(['SpaceLimitDetermination',
                               'ThinProvisionMetaDataSpace'])
         return pool_pros
 
@@ -1462,14 +1462,17 @@ class Smis(IStorageAreaNetwork):
         name = ''
         total_space = Pool.TOTAL_SPACE_NOT_FOUND
         free_space = Pool.FREE_SPACE_NOT_FOUND
+        status = Pool.STATUS_OK
         if 'ElementName' in cim_pool:
             name = cim_pool['ElementName']
         if 'TotalManagedSpace' in cim_pool:
             total_space = cim_pool['TotalManagedSpace']
         if 'RemainingManagedSpace' in cim_pool:
             free_space = cim_pool['RemainingManagedSpace']
+        if 'OperationalStatus' in cim_pool:
+            status = Smis._pool_status_of(cim_pool)[0]
 
-        return Pool(pool_id, name, total_space, free_space, system_id)
+        return Pool(pool_id, name, total_space, free_space, status, system_id)
 
     @staticmethod
     def _cim_sys_2_lsm_sys(cim_sys):
@@ -2806,9 +2809,6 @@ class Smis(IStorageAreaNetwork):
             'element_type': Pool.ELEMENT_TYPE_UNKNOWN,
             'status_info': '',
         }
-        if 'OperationalStatus' in cim_pool:
-            (opt_pro_dict['status'], opt_pro_dict['status_info']) = \
-                Smis._pool_status_of(cim_pool)
 
         # check whether current pool support create volume or not.
         cim_sccs = self._c.Associators(
@@ -2917,6 +2917,9 @@ class Smis(IStorageAreaNetwork):
 
         if raid_type is not None:
             opt_pro_dict['raid_type'] = raid_type
+
+        if 'OperationalStatus' in cim_pool:
+            opt_pro_dict['status_info'] = Smis._pool_status_of(cim_pool)[1]
 
         return opt_pro_dict
 
