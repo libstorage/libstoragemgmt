@@ -141,7 +141,7 @@ AC_ARG_WITH([rest-api],
     [with_rest_api=yes])
 if test "x$with_rest_api" = "xyes"; then
     PKG_CHECK_MODULES([LIBMICROHTTPD], [libmicrohttpd >= 0.9])
-    PKG_CHECK_MODULES([JSON], [json >= 0.10])
+   PKG_CHECK_MODULES([JSON], [json >= 0.10], [], AC_MSG_ERROR([json-c development libraries 0.10 or later required]))
 fi
 AM_CONDITIONAL([WITH_REST_API], [test "x$with_rest_api" = "xyes"])
 
