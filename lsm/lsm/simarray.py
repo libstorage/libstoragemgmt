@@ -146,7 +146,7 @@ class SimArray(object):
         for sim_pool in sim_pools:
             pool = Pool(sim_pool['pool_id'], sim_pool['name'],
                         sim_pool['total_space'], sim_pool['free_space'],
-                        sim_pool['sys_id'])
+                        sim_pool['status'], sim_pool['sys_id'])
             rc.extend([pool])
         return rc
 
@@ -485,6 +485,7 @@ class SimData(object):
                     'member_type': Pool.MEMBER_TYPE_DISK,
                     'member_ids': ['DISK_ID_000', 'DISK_ID_001'],
                     'raid_type': Pool.RAID_TYPE_RAID1,
+                    'status': Pool.STATUS_OK,
                     'sys_id': SimData.SIM_DATA_SYS_ID,
                 },
                 'POO2': {
@@ -494,6 +495,7 @@ class SimData(object):
                     'member_type': Pool.MEMBER_TYPE_POOL,
                     'member_ids': ['POO1'],
                     'raid_type': Pool.RAID_TYPE_NOT_APPLICABLE,
+                    'status': Pool.STATUS_OK,
                     'sys_id': SimData.SIM_DATA_SYS_ID,
                 },
                 # lsm_test_aggr pool is requred by test/runtest.sh
@@ -503,6 +505,7 @@ class SimData(object):
                     'member_type': Pool.MEMBER_TYPE_DISK,
                     'member_ids': ['DISK_ID_002', 'DISK_ID_003'],
                     'raid_type': Pool.RAID_TYPE_RAID0,
+                    'status': Pool.STATUS_OK,
                     'sys_id': SimData.SIM_DATA_SYS_ID,
                 },
         }
@@ -566,6 +569,7 @@ class SimData(object):
                 self.vol_dict.values()[1]['vol_id'],
             ],
             'raid_type': Pool.RAID_TYPE_RAID1,
+            'status': Pool.STATUS_OK,
             'sys_id': SimData.SIM_DATA_SYS_ID,
         }
 
