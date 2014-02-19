@@ -718,6 +718,7 @@ class System(IData):
 @default_property('name', doc="User supplied name")
 @default_property('total_space', doc="Total space in bytes")
 @default_property('free_space', doc="Free space in bytes")
+@default_property('status', doc="Enumerated status")
 @default_property('system_id', doc="System identifier")
 @default_property("optional_data", doc="Optional data")
 class Pool(IData):
@@ -1040,11 +1041,13 @@ class Pool(IData):
         # total_space: All spaces in bytes could be allocated to user.
         'free_space': 'Free Space',
         # free_space: Free spaces in bytes could be allocated to user.
+        'status':   'Status',
+        # status: Indicate the status of Pool.
         'system_id': 'System ID',
         # system_id: Identifier of belonging system.
     }
     _MAN_PROPERTIES_SEQUENCE = ['id', 'name', 'total_space', 'free_space',
-                                'system_id']
+                                'status', 'system_id']
 
     _OPT_PROPERTIES_2_HEADER = {
         'raid_type': 'RAID Type',
@@ -1084,8 +1087,7 @@ class Pool(IData):
     }
 
     _OPT_PROPERTIES_SEQUENCE = ['raid_type', 'member_type', 'member_ids',
-                                'element_type', 'thinp_type', 'status',
-                                'status_info']
+                                'element_type', 'thinp_type', 'status_info']
 
     def value_convert(self, key_name, value, human, enum_as_number,
                       list_convert):
@@ -1109,13 +1111,14 @@ class Pool(IData):
                 value = self.element_type_to_str(value)
         return value
 
-    def __init__(self, _id, _name, _total_space, _free_space, _system_id,
-                 _optional_data=None):
+    def __init__(self, _id, _name, _total_space, _free_space, _status,
+                 _system_id, _optional_data=None):
         self._id = _id                    # Identifier
         self._name = _name                # Human recognisable name
         self._total_space = _total_space  # Total size
         self._free_space = _free_space    # Free space available
-        self._system_id = _system_id      # Systemd id this pool belongs
+        self._status = _status            # Status of pool.
+        self._system_id = _system_id      # System id this pool belongs
 
         if _optional_data is None:
             self._optional_data = OptionalData()
@@ -1154,8 +1157,6 @@ class Pool(IData):
                     opt_pro_value = Pool.member_type_to_str(opt_pro_value)
                 elif opt_pro == 'thinp_type':
                     opt_pro_value = Pool.thinp_type_to_str(opt_pro_value)
-                elif opt_pro == 'status':
-                    opt_pro_value = Pool.status_to_str(opt_pro_value)
                 elif opt_pro == 'element_type':
                     opt_pro_value = Pool.element_type_to_str(opt_pro_value)
 
