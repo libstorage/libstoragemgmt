@@ -345,6 +345,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         total_space = int(na_aggr['size-total'])
         free_space = int(na_aggr['size-available'])
         system_id = self.sys_info.id
+        status = self._status_of_na_aggr(na_aggr)
         opt_data = OptionalData()
         if flags == Pool.RETRIEVE_FULL_INFO:
             opt_data.set('member_type', Pool.MEMBER_TYPE_DISK)
@@ -361,7 +362,6 @@ class Ontap(IStorageAreaNetwork, INfs):
                 opt_data.set('thinp_type', Pool.THINP_TYPE_THICK)
             else:
                 opt_data.set('thinp_type', Pool.THINP_TYPE_UNKNOWN)
-            opt_data.set('status', self._status_of_na_aggr(na_aggr))
             opt_data.set('status_info', self._status_info_of_na_aggr(na_aggr))
             element_type = (
                 Pool.ELEMENT_TYPE_POOL |
@@ -371,7 +371,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                 element_type = element_type | Pool.ELEMENT_TYPE_SYS_RESERVED
             opt_data.set('element_type', element_type)
 
-        return Pool(pool_id, pool_name, total_space, free_space,
+        return Pool(pool_id, pool_name, total_space, free_space, status,
                     system_id, opt_data)
 
     @staticmethod
@@ -402,6 +402,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         total_space = int(na_vol['size-total'])
         free_space = int(na_vol['size-available'])
         system_id = self.sys_info.id
+        status = self._status_of_na_vol(na_vol)
         opt_data = OptionalData()
         if flags == Pool.RETRIEVE_FULL_INFO:
             opt_data.set('member_type', Pool.MEMBER_TYPE_POOL)
@@ -418,12 +419,11 @@ class Ontap(IStorageAreaNetwork, INfs):
             else:
                 opt_data.set('thinp_type', Pool.THINP_TYPE_UNKNOWN)
 
-            opt_data.set('status', self._status_of_na_vol(na_vol))
             opt_data.set('status_info', self._status_info_of_na_vol(na_vol))
             element_type = Pool.ELEMENT_TYPE_VOLUME
             opt_data.set('element_type', element_type)
 
-        return Pool(pool_id, pool_name, total_space, free_space,
+        return Pool(pool_id, pool_name, total_space, free_space, status,
                     system_id, opt_data)
 
     @handle_ontap_errors
