@@ -371,7 +371,7 @@ int lsmConnectSetTimeout(lsmConnect *c, uint32_t timeout, lsmFlag_t flags)
 
 int lsmConnectGetTimeout(lsmConnect *c, uint32_t *timeout, lsmFlag_t flags)
 {
-    int rc = 0;
+    int rc = LSM_ERR_OK;
     CONN_SETUP(c);
 
     if( LSM_FLAG_UNUSED_CHECK(flags) ) {
@@ -400,7 +400,7 @@ static int jobStatus( lsmConnect *c, const char *job,
                         lsmJobStatus *status, uint8_t *percentComplete,
                         Value &returned_value, lsmFlag_t flags)
 {
-    int rc = 0;
+    int rc = LSM_ERR_OK;
     CONN_SETUP(c);
 
     if( !job || !status || !percentComplete ) {
@@ -449,7 +449,7 @@ int lsmJobStatusVolumeGet( lsmConnect *c, const char *job,
                         lsmVolume **vol, lsmFlag_t flags)
 {
     Value rv;
-    int rc = 0;
+    int rc = LSM_ERR_OK;
 
     CONN_SETUP(c);
 
@@ -479,7 +479,7 @@ int lsmJobStatusFsGet(lsmConnect *c, const char *job,
                                 lsmJobStatus *status, uint8_t *percentComplete,
                                 lsmFs **fs, lsmFlag_t flags)
 {
-    int rc = 0;
+    int rc = LSM_ERR_OK;
     Value rv;
 
     if( CHECK_RP(fs) || LSM_FLAG_UNUSED_CHECK(flags) ) {
@@ -508,7 +508,7 @@ int lsmJobStatusSsGet(lsmConnect *c, const char *job,
                                 lsmJobStatus *status, uint8_t *percentComplete,
                                 lsmSs **ss, lsmFlag_t flags)
 {
-    int rc = 0;
+    int rc = LSM_ERR_OK;
     Value rv;
 
     if( CHECK_RP(ss) || LSM_FLAG_UNUSED_CHECK(flags) ) {
@@ -560,7 +560,7 @@ int lsmJobFree(lsmConnect *c, char **job, lsmFlag_t flags)
 int lsmCapabilities(lsmConnect *c, lsmSystem *system,
                     lsmStorageCapabilities **cap, lsmFlag_t flags)
 {
-    int rc = 0;
+    int rc = LSM_ERR_OK;
     CONN_SETUP(c);
 
     if( !LSM_IS_SYSTEM(system) ) {
@@ -596,7 +596,7 @@ int lsmCapabilities(lsmConnect *c, lsmSystem *system,
 int lsmPoolList(lsmConnect *c, lsmPool **poolArray[],
                         uint32_t *count, lsmFlag_t flags)
 {
-    int rc = 0;
+    int rc = LSM_ERR_OK;
     CONN_SETUP(c);
 
     if( !poolArray || !count || CHECK_RP(poolArray) || LSM_FLAG_UNUSED_CHECK(flags) ) {
@@ -941,7 +941,7 @@ int lsmVolumeReplicate(lsmConnect *c, lsmPool *pool,
 int lsmVolumeReplicateRangeBlockSize(lsmConnect *c, lsmSystem *system,
                                         uint32_t *bs, lsmFlag_t flags)
 {
-    int rc = 0;
+    int rc = LSM_ERR_OK;
     CONN_SETUP(c);
 
     if( !bs || LSM_FLAG_UNUSED_CHECK(flags) ) {
@@ -1009,7 +1009,7 @@ int lsmVolumeReplicateRange(lsmConnect *c,
 int lsmVolumeDelete(lsmConnect *c, lsmVolume *volume, char **job,
                     lsmFlag_t flags)
 {
-    int rc = 0;
+    int rc = LSM_ERR_OK;
     CONN_SETUP(c);
 
     if( !LSM_IS_VOL(volume) ) {
@@ -1409,7 +1409,7 @@ int lsmVolumesAccessibleByAccessGroup(lsmConnect *c,
                                         lsmVolume **volumes[],
                                         uint32_t *count, lsmFlag_t flags)
 {
-    int rc = 0;
+    int rc = LSM_ERR_OK;
     CONN_SETUP(c);
 
     if( !LSM_IS_ACCESS_GROUP(group)) {
@@ -1483,7 +1483,7 @@ int lsmAccessGroupsGrantedToVolume(lsmConnect *c,
 int lsmVolumeChildDependency(lsmConnect *c, lsmVolume *volume,
                                 uint8_t *yes, lsmFlag_t flags)
 {
-    int rc = 0;
+    int rc = LSM_ERR_OK;
     CONN_SETUP(c);
 
     if( !LSM_IS_VOL(volume)) {
@@ -1549,7 +1549,7 @@ int lsmVolumeChildDependencyRm(lsmConnect *c, lsmVolume *volume,
 int lsmSystemList(lsmConnect *c, lsmSystem **systems[],
                     uint32_t *systemCount, lsmFlag_t flags)
 {
-    int rc = 0;
+    int rc = LSM_ERR_OK;
     CONN_SETUP(c);
 
     if( !systems || ! systemCount || LSM_FLAG_UNUSED_CHECK(flags) ) {
@@ -1600,7 +1600,7 @@ int lsmSystemList(lsmConnect *c, lsmSystem **systems[],
 int lsmFsList(lsmConnect *c, lsmFs **fs[], uint32_t *fsCount,
                 lsmFlag_t flags)
 {
-    int rc = 0;
+    int rc = LSM_ERR_OK;
     CONN_SETUP(c);
 
     if( !fs || !fsCount || LSM_FLAG_UNUSED_CHECK(flags) ) {
@@ -1794,7 +1794,7 @@ int lsmFsFileClone(lsmConnect *c, lsmFs *fs, const char *src_file_name,
 int lsmFsChildDependency( lsmConnect *c, lsmFs *fs, lsmStringList *files,
                             uint8_t *yes, lsmFlag_t flags)
 {
-    int rc = 0;
+    int rc = LSM_ERR_OK;
     CONN_SETUP(c);
 
     if( !LSM_IS_FS(fs) ) {
@@ -1874,7 +1874,7 @@ int lsmFsChildDependencyRm( lsmConnect *c, lsmFs *fs, lsmStringList *files,
 int lsmFsSsList(lsmConnect *c, lsmFs *fs, lsmSs **ss[],
                                 uint32_t *ssCount, lsmFlag_t flags )
 {
-    int rc = 0;
+    int rc = LSM_ERR_OK;
     CONN_SETUP(c);
 
     if( !LSM_IS_FS(fs) ) {
@@ -2040,7 +2040,7 @@ int lsmFsSsRevert(lsmConnect *c, lsmFs *fs, lsmSs *ss,
 int lsmNfsList( lsmConnect *c, lsmNfsExport **exports[], uint32_t *count,
                 lsmFlag_t flags)
 {
-    int rc = 0;
+    int rc = LSM_ERR_OK;
     CONN_SETUP(c);
 
     if( CHECK_RP(exports) || !count || LSM_FLAG_UNUSED_CHECK(flags) ) {
