@@ -69,6 +69,7 @@ struct LSM_DLL_LOCAL _lsmPool {
     char *name;                 /**< Human recognizeable name */
     uint64_t    totalSpace;     /**< Total size */
     uint64_t    freeSpace;      /**< Free space available */
+    uint64_t    status;         /**< Status of pool */
     char *system_id;            /**< system id */
 };
 

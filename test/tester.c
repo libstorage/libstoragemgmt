@@ -355,6 +355,9 @@ START_TEST(test_smoke_test)
             lsmPoolTotalSpaceGet(pools[i]),
             lsmPoolFreeSpaceGet(pools[i]));
 
+        fail_unless(lsmPoolStatusGet(pools[i]) == LSM_POOL_STATUS_OK,
+            "%"PRIu64, lsmPoolStatusGet(pools[i]));
+
         if (lsmPoolFreeSpaceGet(pools[i]) > 20000000) {
             poolToUse = i;
         }

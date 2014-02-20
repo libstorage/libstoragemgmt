@@ -2199,13 +2199,18 @@ int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
 
         data->num_pools = MAX_POOLS;
         data->pool[0] = lsmPoolRecordAlloc("POOL_0", "POOL_ZERO", UINT64_MAX,
-                                            UINT64_MAX, sys_id);
+                                            UINT64_MAX, LSM_POOL_STATUS_OK,
+                                            sys_id);
         data->pool[1] = lsmPoolRecordAlloc("POOL_1", "POOL_ONE", UINT64_MAX,
-                                            UINT64_MAX, sys_id);
+                                            UINT64_MAX, LSM_POOL_STATUS_OK,
+                                            sys_id);
         data->pool[2] = lsmPoolRecordAlloc("POOL_2", "POOL_TWO", UINT64_MAX,
-                                            UINT64_MAX, sys_id);
+                                            UINT64_MAX, LSM_POOL_STATUS_OK,
+                                            sys_id);
         data->pool[3] = lsmPoolRecordAlloc("POOL_3", "lsm_test_aggr",
-                                            UINT64_MAX, UINT64_MAX, sys_id);
+                                            UINT64_MAX, UINT64_MAX,
+                                            LSM_POOL_STATUS_OK,
+                                            sys_id);
 
         data->access_groups = g_hash_table_new_full(g_str_hash, g_str_equal,
                                                     free, free_allocated_ag);

@@ -165,6 +165,7 @@ lsmPool *valueToPool(Value &pool)
             i["name"].asString().c_str(),
             i["total_space"].asUint64_t(),
             i["free_space"].asUint64_t(),
+            i["status"].asUint64_t(),
             i["system_id"].asString().c_str());
     }
     return rc;
@@ -179,6 +180,7 @@ Value poolToValue(lsmPool *pool)
         p["name"] = Value(pool->name);
         p["total_space"] = Value(pool->totalSpace);
         p["free_space"] = Value(pool->freeSpace);
+        p["status"] = Value(pool->status);
         p["system_id"] = Value(pool->system_id);
         return Value(p);
     }

@@ -965,12 +965,14 @@ void LSM_DLL_EXPORT lsmPoolFreeSpaceSet(lsmPool *p, uint64_t free_space);
  * @param name          Human readable name
  * @param totalSpace    Total space
  * @param freeSpace     Space available
+ * @param status        Pool status, bit field (See LSM_POOL_STATUS_XXXX constants)
  * @param system_id     System id
  * @return LSM_ERR_OK on success, else error reason.
  */
 lsmPool LSM_DLL_EXPORT *lsmPoolRecordAlloc(const char *id, const char *name,
                                 uint64_t totalSpace,
                                 uint64_t freeSpace,
+                                uint64_t status,
                                 const char *system_id);
 
 /**

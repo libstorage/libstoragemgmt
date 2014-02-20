@@ -78,6 +78,14 @@ uint64_t LSM_DLL_EXPORT lsmPoolTotalSpaceGet( lsmPool *p );
 uint64_t LSM_DLL_EXPORT lsmPoolFreeSpaceGet( lsmPool *p );
 
 /**
+ * Retrieve the status for the Pool.
+ * @param s Pool to retrieve status for
+ * @return  Pool status which is a bit sensitive field, returns UINT64_MAX on
+ * bad pool pointer.
+ */
+uint64_t lsmPoolStatusGet( lsmPool *s );
+
+/**
  * Retrieve the system id for the specified pool.
  * @param p     Pool pointer
  * @return      System ID

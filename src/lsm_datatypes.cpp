@@ -496,7 +496,8 @@ void name( record_type pa[], uint32_t size)                \
 CREATE_ALLOC_ARRAY_FUNC(lsmPoolRecordAllocArray, lsmPool *)
 
 lsmPool *lsmPoolRecordAlloc(const char *id, const char *name,
-            uint64_t totalSpace, uint64_t freeSpace, const char *system_id)
+            uint64_t totalSpace, uint64_t freeSpace, uint64_t status,
+            const char *system_id)
 {
     lsmPool *rc = (lsmPool *)malloc(sizeof(lsmPool));
     if (rc) {
@@ -506,6 +507,7 @@ lsmPool *lsmPoolRecordAlloc(const char *id, const char *name,
         rc->name = strdup(name);
         rc->totalSpace = totalSpace;
         rc->freeSpace = freeSpace;
+        rc->status = status;
         rc->system_id = strdup(system_id);
 
         if( !rc->id || !rc->name || !rc->system_id ) {
@@ -529,6 +531,7 @@ lsmPool * lsmPoolRecordCopy( lsmPool *toBeCopied)
         return lsmPoolRecordAlloc(toBeCopied->id, toBeCopied->name,
                                     toBeCopied->totalSpace,
                                     toBeCopied->freeSpace,
+                                    toBeCopied->status,
                                     toBeCopied->system_id);
     }
     return NULL;
@@ -588,6 +591,14 @@ uint64_t lsmPoolFreeSpaceGet(lsmPool *p)
         return p->freeSpace;
     }
     return 0;
+}
+
+uint64_t lsmPoolStatusGet( lsmPool *p )
+{
+    if (LSM_IS_POOL(p)) {
+        return p->status;
+    }
+    return UINT64_MAX;
 }
 
 char *lsmPoolSystemIdGet( lsmPool *p )
