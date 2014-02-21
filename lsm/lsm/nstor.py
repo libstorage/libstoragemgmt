@@ -117,6 +117,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             pools.append(Pool(pool_info['name'], pool_info['name'],
                               NexentaStor._to_bytes(pool_info['size']),
                               NexentaStor._to_bytes(pool_info['free']),
+                              Pool.STATUS_UNKNOWN,
                               self.system.id))
 
         return pools

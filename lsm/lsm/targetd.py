@@ -167,7 +167,8 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         pools = []
         for pool in self._jsonrequest("pool_list"):
             pools.append(Pool(pool['name'], pool['name'], pool['size'],
-                              pool['free_size'], 'targetd'))
+                              pool['free_size'], Pool.STATUS_UNKNOWN,
+                              'targetd'))
         return pools
 
     @handle_errors
