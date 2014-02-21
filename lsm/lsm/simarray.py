@@ -28,7 +28,7 @@ import time
 from common import md5, LsmError, ErrorNumber, size_human_2_size_bytes, \
     JobStatus
 from data import System, Volume, Disk, Pool, FileSystem, AccessGroup, \
-    Initiator, BlockRange, Snapshot, NfsExport
+    Initiator, Snapshot, NfsExport
 
 class SimJob(object):
     """
