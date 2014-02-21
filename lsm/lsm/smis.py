@@ -699,6 +699,7 @@ class Smis(IStorageAreaNetwork):
 
         # Get the cim object that represents the system
         cim_sys = None
+        cim_pcms = None
         if self.fallback_mode:
             cim_sys = self._get_cim_syss_fallback(
                 sys_id=system.id,
@@ -719,7 +720,7 @@ class Smis(IStorageAreaNetwork):
                 if e[0] == pywbem.CIM_ERR_NOT_SUPPORTED or \
                    e[0] == pywbem.CIM_ERR_INVALID_CLASS:
                     return
-            if len(cim_pcms) == 1:
+            if cim_pcms is not None and len(cim_pcms) == 1:
                 cap.set(Capabilities.ACCESS_GROUP_LIST)
                 cap.set(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME)
                 cap.set(Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP)
@@ -2422,7 +2423,7 @@ class Smis(IStorageAreaNetwork):
                     Smis._DMTF_STAUTS_TO_DISK_STATUS_INFO[dmtf_status])
         return (status, status_info)
 
-    def _new_disk(self, cim_disk, cim_ext, sys_id, flag_full_info=False):
+    def _new_disk(self, cim_disk, cim_ext, sys_id, flag_full_info=0):
         """
         Takes a CIM_DiskDrive and CIM_StorageExtent, returns a lsm Disk
         Assuming cim_disk and cim_ext already contained the correct
