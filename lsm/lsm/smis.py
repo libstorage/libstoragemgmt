@@ -1502,6 +1502,7 @@ class Smis(IStorageAreaNetwork):
         """
         cim_sys_pros = self._property_list_of_id('System')
         cim_sys_pros.extend(['ElementName', 'OperationalStatus'])
+        return cim_sys_pros
 
     @handle_cim_errors
     def systems(self, flags=0):
