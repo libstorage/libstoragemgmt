@@ -729,7 +729,6 @@ class CmdLine:
     # @param    objects    Data, first row is header all other data.
     def display_data(self, objects):
         if len(objects) == 0:
-            out("No data retrieved")
             return
 
         if hasattr(self.args, 'optional') and self.args.optional:
