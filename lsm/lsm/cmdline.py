@@ -185,6 +185,7 @@ cmds = (
         ],
         optional=[
             dict(name="--provisioning", help=provision_help,
+                 default='DEFAULT',
                  choices=provision_types),
         ],
     ),
