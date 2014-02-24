@@ -973,16 +973,6 @@ class CmdLine:
     ## Method that calls the appropriate method based on what the list type is
     # @param    args    Argparse argument object
     def list(self, args):
-
-        # We need a valid plug-in to instantiate even if all we are trying
-        # to do is list the plug-ins at the moment to keep that code
-        # the same in all cases, even though it isn't technically
-        # required for the client library (static method)
-        # TODO: Make this not necessary.
-        if (args.type == "PLUGINS"):
-            self.uri = "sim://"
-            self.password = None
-
         if args.type == 'VOLUMES':
             self.display_data(self.c.volumes())
         elif args.type == 'POOLS':
@@ -1684,7 +1674,16 @@ class CmdLine:
             self.uri = self.args.uri
 
         if self.uri is None:
-            raise ArgError("--uri missing or export LSMCLI_URI")
+            # We need a valid plug-in to instantiate even if all we are trying
+            # to do is list the plug-ins at the moment to keep that code
+            # the same in all cases, even though it isn't technically
+            # required for the client library (static method)
+            # TODO: Make this not necessary.
+            if (self.args.type == "PLUGINS"):
+                self.uri = "sim://"
+                self.password = None
+            else:
+                raise ArgError("--uri missing or export LSMCLI_URI")
 
         # Lastly get the password if requested.
         if self.args.prompt:
