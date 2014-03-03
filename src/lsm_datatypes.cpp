@@ -953,52 +953,52 @@ uint32_t lsmVolumeOpStatusGet(lsmVolume *v)
     MEMBER_GET(v, LSM_IS_VOL, status, 0);
 }
 
-char LSM_DLL_EXPORT *lsmVolumeSystemIdGet( lsmVolume *v)
+char *lsmVolumeSystemIdGet( lsmVolume *v)
 {
     MEMBER_GET(v, LSM_IS_VOL, system_id, NULL);
 }
 
-char LSM_DLL_EXPORT *lsmVolumePoolIdGet( lsmVolume *v)
+char *lsmVolumePoolIdGet( lsmVolume *v)
 {
     MEMBER_GET(v, LSM_IS_VOL, pool_id, NULL);
 }
 
-const char LSM_DLL_EXPORT *lsmDiskIdGet( lsmDisk *d)
+const char *lsmDiskIdGet( lsmDisk *d)
 {
     MEMBER_GET(d, LSM_IS_DISK, id, NULL);
 }
 
-const char LSM_DLL_EXPORT *lsmDiskNameGet( lsmDisk *d)
+const char *lsmDiskNameGet( lsmDisk *d)
 {
     MEMBER_GET(d, LSM_IS_DISK, name, NULL);
 }
 
-lsmDiskType LSM_DLL_EXPORT lsmDiskTypeGet( lsmDisk *d)
+lsmDiskType lsmDiskTypeGet( lsmDisk *d)
 {
     MEMBER_GET(d, LSM_IS_DISK, disk_type, LSM_DISK_TYPE_OTHER);
 }
 
-uint64_t LSM_DLL_EXPORT lsmDiskBlockSizeGet( lsmDisk *d)
+uint64_t lsmDiskBlockSizeGet( lsmDisk *d)
 {
     MEMBER_GET(d, LSM_IS_DISK, block_size, 0);
 }
 
-uint64_t LSM_DLL_EXPORT lsmDiskNumberOfBlocksGet( lsmDisk *d)
+uint64_t lsmDiskNumberOfBlocksGet( lsmDisk *d)
 {
     MEMBER_GET(d, LSM_IS_DISK, block_count, 0);
 }
 
-uint64_t LSM_DLL_EXPORT lsmDiskStatusGet( lsmDisk *d)
+uint64_t lsmDiskStatusGet( lsmDisk *d)
 {
     MEMBER_GET(d, LSM_IS_DISK, disk_status, LSM_DISK_STATUS_UNKNOWN);
 }
 
-const char LSM_DLL_EXPORT *lsmDiskSystemIdGet( lsmDisk *d)
+const char *lsmDiskSystemIdGet( lsmDisk *d)
 {
     MEMBER_GET(d, LSM_IS_DISK, system_id, NULL);
 }
 
-lsmOptionalData LSM_DLL_EXPORT *lsmDiskOptionalDataGet(lsmDisk *d)
+lsmOptionalData *lsmDiskOptionalDataGet(lsmDisk *d)
 {
     MEMBER_GET(d, LSM_IS_DISK, optional_data, NULL);
 }
@@ -1129,7 +1129,7 @@ void  lsmBlockRangeRecordFree( lsmBlockRange *br )
     }
 }
 
-lsmBlockRange LSM_DLL_EXPORT *lsmBlockRangeRecordCopy( lsmBlockRange *source )
+lsmBlockRange *lsmBlockRangeRecordCopy( lsmBlockRange *source )
 {
     lsmBlockRange *dest = NULL;
 

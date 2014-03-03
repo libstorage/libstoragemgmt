@@ -205,7 +205,7 @@ int lsmConnectClose(lsmConnect *c, lsmFlag_t flags)
     return rc;
 }
 
-int LSM_DLL_EXPORT lsmPluginGetInfo(lsmConnect *c, char **desc,
+int lsmPluginGetInfo(lsmConnect *c, char **desc,
                                         char **version, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
@@ -250,7 +250,7 @@ int LSM_DLL_EXPORT lsmPluginGetInfo(lsmConnect *c, char **desc,
     return rc;
 }
 
-int LSM_DLL_EXPORT lsmGetAvailablePlugins(const char *sep,
+int lsmGetAvailablePlugins(const char *sep,
                                             lsmStringList **plugins,
                                             lsmFlag_t flags)
 {
