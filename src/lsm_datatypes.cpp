@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -360,11 +360,11 @@ lsmErrorPtr lsmErrorCreate(lsmErrorNumber code, lsmErrorDomain domain,
          * allocate the storage for the debug data.
          */
         if (debug_data && (debug_data_size > 0)) {
-            err->debug = (char *)malloc(debug_data_size);
+            err->debug_data = malloc(debug_data_size);
 
-            if (debug) {
+            if (err->debug_data) {
                 err->debug_data_size = debug_data_size;
-                memcpy(err->debug, debug, debug_data_size);
+                memcpy(err->debug_data, debug_data, debug_data_size);
             }
         }
     }
