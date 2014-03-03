@@ -1085,6 +1085,15 @@ lsmAccessGroup LSM_DLL_EXPORT * lsmAccessGroupRecordAlloc(const char *id,
                                                      lsmStringList *initiators,
                                                      const char *system_id);
 
+
+/**
+ * Use to change the list of initiators associated with an access group.
+ * @param group     Access group to change initiators for
+ * @param il        String list of initiators.
+ */
+void LSM_DLL_EXPORT lsmAccessGroupInitiatorIdSet( lsmAccessGroup *group,
+                                                    lsmStringList *il);
+
 /**
  * Allocates memory for a file system record
  * @param id                    ID of file system

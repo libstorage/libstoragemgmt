@@ -1084,12 +1084,10 @@ lsmStringList * lsmAccessGroupInitiatorIdGet( lsmAccessGroup *group )
     return NULL;
 }
 
-void LSM_DLL_EXPORT lsmAccessGroupInitiatorIdSet(
-                                        lsmAccessGroup *group,
-                                        lsmStringList *il)
+void lsmAccessGroupInitiatorIdSet( lsmAccessGroup *group, lsmStringList *il)
 {
     if( LSM_IS_ACCESS_GROUP(group) ) {
-        if( group->initiators ) {
+        if( group->initiators && group->initiators != il ) {
             lsmStringListFree(group->initiators);
         }
 
