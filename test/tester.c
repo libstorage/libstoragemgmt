@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <libstoragemgmt/libstoragemgmt.h>
+#include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 
 const char uri[] = "sim://localhost/?statefile=/tmp/%d/lsm_sim_%s";
 const char SYSTEM_NAME[] = "LSM simulated storage plug-in";
@@ -264,6 +265,30 @@ lsmSs *wait_for_job_ss(lsmConnect *c, char **job_id)
     return ss;
 }
 
+int compare_string_lists(lsmStringList *l, lsmStringList *r)
+{
+    if( l && r) {
+        int i = 0;
+
+        if( l == r ) {
+            return 0;
+        }
+
+        if( lsmStringListSize(l) != lsmStringListSize(r) ) {
+            return 1;
+        }
+
+        for( i = 0; i < lsmStringListSize(l); ++i ) {
+            if( strcmp(lsmStringListGetElem(l, i),
+                lsmStringListGetElem(r, i)) != 0) {
+                return 1;
+            }
+        }
+        return 0;
+    }
+    return 1;
+}
+
 void create_volumes(lsmConnect *c, lsmPool *p, int num)
 {
     int i;
@@ -349,11 +374,17 @@ START_TEST(test_smoke_test)
 
     //Dump pools and select a pool to use for testing.
     for (i = 0; i < count; ++i) {
-        printf("Id= %s, name=%s, capacity= %"PRIu64 ", remaining= %"PRIu64"\n",
+        printf("Id= %s, name=%s, capacity= %"PRIu64 ", remaining= %"PRIu64" "
+            "system %s\n",
             lsmPoolIdGet(pools[i]),
             lsmPoolNameGet(pools[i]),
             lsmPoolTotalSpaceGet(pools[i]),
-            lsmPoolFreeSpaceGet(pools[i]));
+            lsmPoolFreeSpaceGet(pools[i]),
+            lsmPoolSystemIdGet(pools[i]));
+
+        fail_unless( strcmp(lsmPoolSystemIdGet(pools[i]), SYSTEM_ID) == 0,
+            "Expecting system id of %s, got %s",
+            SYSTEM_ID, lsmPoolSystemIdGet(pools[i]));
 
         fail_unless(lsmPoolStatusGet(pools[i]) == LSM_POOL_STATUS_OK,
             "%"PRIu64, lsmPoolStatusGet(pools[i]));
@@ -413,6 +444,21 @@ START_TEST(test_smoke_test)
         for(rep_i = 0; rep_i < 3; ++rep_i) {
             range[rep_i] = lsmBlockRangeRecordAlloc((rep_i * 1000),
                                                         ((rep_i + 100) * 10000), 10);
+
+            lsmBlockRange *copy = lsmBlockRangeRecordCopy(range[rep_i]);
+
+            fail_unless( lsmBlockRangeSourceStartGet(range[rep_i]) ==
+                lsmBlockRangeSourceStartGet(copy));
+
+            fail_unless( lsmBlockRangeDestStartGet(range[rep_i]) ==
+                            lsmBlockRangeDestStartGet(copy));
+
+            fail_unless ( lsmBlockRangeBlockCountGet(range[rep_i]) ==
+                            lsmBlockRangeBlockCountGet( copy ));
+
+            lsmBlockRangeRecordFree(copy);
+            copy = NULL;
+
         }
 
         int rep_range =  lsmVolumeReplicateRange(c, LSM_VOLUME_REPLICATE_CLONE,
@@ -552,8 +598,12 @@ START_TEST(test_access_groups)
 
     if( LSM_ERR_OK == rc ) {
         lsmStringList *init_list = lsmAccessGroupInitiatorIdGet(group);
+        lsmStringList *init_copy = NULL;
 
+        fail_unless(lsmStringListSize(init_list) == 1);
 
+        init_copy = lsmStringListCopy(init_list);
+        lsmAccessGroupInitiatorIdSet(group, init_copy);
 
         printf("%s - %s - %s\n",    lsmAccessGroupIdGet(group),
                                     lsmAccessGroupNameGet(group),
@@ -572,8 +622,8 @@ START_TEST(test_access_groups)
             lsmAccessGroupRecordFree(copy);
         }
 
-        lsmStringListFree(init_list);
-        init_list = NULL;
+        lsmStringListFree(init_copy);
+        init_copy = NULL;
     }
 
     rc = lsmAccessGroupList(c, &groups, &count, LSM_FLAG_RSVD);
@@ -726,6 +776,7 @@ START_TEST(test_fs)
     lsmFs *nfs = NULL;
     lsmFs *resized_fs = NULL;
     char *job = NULL;
+    uint64_t fs_free_space = 0;
 
     lsmPool *test_pool = getTestPool(c);
 
@@ -745,6 +796,9 @@ START_TEST(test_fs)
     }
 
     fail_unless(NULL != nfs);
+
+    fs_free_space = lsmFsFreeSpaceGet(nfs);
+    fail_unless(fs_free_space != 0);
 
     lsmFs *cloned_fs = NULL;
     rc = lsmFsClone(c, nfs, "cloned_fs", NULL, &cloned_fs, &job, LSM_FLAG_RSVD);
@@ -910,6 +964,32 @@ START_TEST(test_systems)
 }
 END_TEST
 
+#define COMPARE_STR_FUNC(func, l, r) \
+    rc = strcmp(func(l), func(r)); \
+    if( rc ) \
+        return rc;\
+
+#define COMPARE_NUMBER_FUNC(func, l, r)\
+     if( func(l) != func(r) ) \
+        return 1;\
+
+
+static int compare_disks(lsmDisk *l, lsmDisk *r)
+{
+    int rc;
+    if( l && r ) {
+        COMPARE_STR_FUNC(lsmDiskIdGet, l, r);
+        COMPARE_STR_FUNC(lsmDiskNameGet, l, r);
+        COMPARE_STR_FUNC(lsmDiskSystemIdGet, l, r);
+        COMPARE_NUMBER_FUNC(lsmDiskTypeGet, l, r);
+        COMPARE_NUMBER_FUNC(lsmDiskNumberOfBlocksGet, l, r);
+        COMPARE_NUMBER_FUNC(lsmDiskBlockSizeGet, l, r);
+        COMPARE_NUMBER_FUNC(lsmDiskStatusGet, l, r);
+        return 0;
+    }
+    return 1;
+}
+
 START_TEST(test_disks)
 {
     uint32_t count = 0;
@@ -934,6 +1014,14 @@ START_TEST(test_disks)
         fail_unless(count >= 1);
 
         for( i = 0; i < count; ++i ) {
+            lsmDisk *d_copy = lsmDiskRecordCopy( d[i] );
+            fail_unless( d_copy != NULL );
+            if( d_copy ) {
+                fail_unless(compare_disks(d[i], d_copy) == 0);
+                lsmDiskRecordFree(d_copy);
+                d_copy = NULL;
+            }
+
             id = lsmDiskIdGet(d[i]);
             fail_unless(id != NULL && strlen(id) > 0);
 
@@ -1801,6 +1889,9 @@ START_TEST(test_initiator_methods)
         if( count == 1 ) {
             fail_unless( strcmp(lsmInitiatorIdGet(initiators[0]),
                             lsmInitiatorIdGet(initiator)) == 0);
+
+            fail_unless(lsmInitiatorTypeGet(initiators[0]) == LSM_INITIATOR_ISCSI);
+            fail_unless(lsmInitiatorNameGet(initiators[0]) != NULL);
         }
 
         lsmInitiatorRecordFreeArray(initiators, count);
@@ -1907,6 +1998,306 @@ START_TEST(test_get_available_plugins)
 }
 END_TEST
 
+START_TEST(test_error_reporting)
+{
+    uint8_t d[4] = {0x00, 0x01, 0x02, 0x03};
+    char msg[] = "Testing Errors";
+    char exception[] = "Exception text";
+    char debug_msg[] = "Debug message";
+    void *debug_data = NULL;
+    uint32_t debug_size = 0;
+
+    lsmErrorPtr e = lsmErrorCreate(   LSM_ERR_INTERNAL_ERROR,
+                                        LSM_ERR_DOMAIN_PLUG_IN,
+                                        LSM_ERR_LEVEL_ERROR, msg,
+                                        exception, debug_msg,
+                                        d, sizeof(d));
+
+    fail_unless(e != NULL);
+
+    if( e ) {
+        fail_unless(LSM_ERR_INTERNAL_ERROR == lsmErrorGetNumber(e));
+        fail_unless(LSM_ERR_DOMAIN_PLUG_IN == lsmErrorGetDomain(e));
+        fail_unless(LSM_ERR_LEVEL_ERROR == lsmErrorGetLevel(e));
+        fail_unless(strcmp(msg, lsmErrorGetMessage(e)) == 0);
+        fail_unless(strcmp(exception, lsmErrorGetException(e)) == 0);
+        fail_unless(strcmp(debug_msg, lsmErrorGetDebug(e)) == 0);
+        debug_data = lsmErrorGetDebugData(e, &debug_size);
+        fail_unless(debug_data != NULL);
+        fail_unless(debug_size == sizeof(d));
+        fail_unless(memcmp(d, debug_data, debug_size) == 0);
+        fail_unless( LSM_ERR_OK == lsmErrorFree(e) );
+    }
+}
+END_TEST
+
+START_TEST(test_capability)
+{
+    int rc;
+    int i;
+    lsmCapabilityType expected_present[] = {
+        LSM_CAP_BLOCK_SUPPORT,
+        LSM_CAP_FS_SUPPORT,
+        LSM_CAP_INITIATORS,
+        LSM_CAP_VOLUMES,
+        LSM_CAP_VOLUME_CREATE,
+        LSM_CAP_VOLUME_RESIZE,
+        LSM_CAP_VOLUME_REPLICATE,
+        LSM_CAP_VOLUME_REPLICATE_CLONE,
+        LSM_CAP_VOLUME_REPLICATE_COPY,
+        LSM_CAP_VOLUME_REPLICATE_MIRROR_ASYNC,
+        LSM_CAP_VOLUME_REPLICATE_MIRROR_SYNC,
+        LSM_CAP_VOLUME_COPY_RANGE_BLOCK_SIZE,
+        LSM_CAP_VOLUME_COPY_RANGE,
+        LSM_CAP_VOLUME_COPY_RANGE_CLONE,
+        LSM_CAP_VOLUME_COPY_RANGE_COPY,
+        LSM_CAP_VOLUME_DELETE,
+        LSM_CAP_VOLUME_ONLINE,
+        LSM_CAP_VOLUME_OFFLINE,
+        LSM_CAP_ACCESS_GROUP_GRANT,
+        LSM_CAP_ACCESS_GROUP_REVOKE,
+        LSM_CAP_ACCESS_GROUP_LIST,
+        LSM_CAP_ACCESS_GROUP_CREATE,
+        LSM_CAP_ACCESS_GROUP_DELETE,
+        LSM_CAP_ACCESS_GROUP_ADD_INITIATOR,
+        LSM_CAP_ACCESS_GROUP_DEL_INITIATOR,
+        LSM_CAP_VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP,
+        LSM_CAP_ACCESS_GROUPS_GRANTED_TO_VOLUME,
+        LSM_CAP_VOLUME_CHILD_DEPENDENCY,
+        LSM_CAP_VOLUME_CHILD_DEPENDENCY_RM,
+        LSM_CAP_FS,
+        LSM_CAP_FS_DELETE,
+        LSM_CAP_FS_RESIZE,
+        LSM_CAP_FS_CREATE,
+        LSM_CAP_FS_CLONE,
+        LSM_CAP_FILE_CLONE,
+        LSM_CAP_FS_SNAPSHOTS,
+        LSM_CAP_FS_SNAPSHOT_CREATE,
+        LSM_CAP_FS_SNAPSHOT_CREATE_SPECIFIC_FILES,
+        LSM_CAP_FS_SNAPSHOT_DELETE,
+        LSM_CAP_FS_SNAPSHOT_REVERT,
+        LSM_CAP_FS_SNAPSHOT_REVERT_SPECIFIC_FILES,
+        LSM_CAP_FS_CHILD_DEPENDENCY,
+        LSM_CAP_FS_CHILD_DEPENDENCY_RM,
+        LSM_CAP_FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES,
+        LSM_CAP_EXPORT_AUTH,
+        LSM_CAP_EXPORTS,
+        LSM_CAP_EXPORT_FS,
+        LSM_CAP_EXPORT_REMOVE};
+
+    lsmCapabilityType expected_absent[] = {
+        LSM_CAP_EXPORT_CUSTOM_PATH,
+        LSM_CAP_POOL_CREATE,
+        LSM_CAP_POOL_CREATE_THIN,
+        LSM_CAP_POOL_CREATE_THICK,
+        LSM_CAP_POOL_CREATE_RAID_TYPE,
+        LSM_CAP_POOL_CREATE_VIA_MEMBER_COUNT,
+        LSM_CAP_POOL_CREATE_VIA_MEMBER_IDS,
+        LSM_CAP_POOL_CREATE_MEMBER_TYPE_DISK,
+        LSM_CAP_POOL_CREATE_MEMBER_TYPE_POOL,
+        LSM_CAP_POOL_CREATE_MEMBER_TYPE_VOL,
+        LSM_CAP_POOL_CREATE_RAID_0,
+        LSM_CAP_POOL_CREATE_RAID_1,
+        LSM_CAP_POOL_CREATE_RAID_JBOD,
+        LSM_CAP_POOL_CREATE_RAID_3,
+        LSM_CAP_POOL_CREATE_RAID_4,
+        LSM_CAP_POOL_CREATE_RAID_5,
+        LSM_CAP_POOL_CREATE_RAID_6,
+        LSM_CAP_POOL_POOL_CREATE_RAID_10,
+        LSM_CAP_POOL_POOL_CREATE_RAID_50,
+        LSM_CAP_POOL_POOL_CREATE_RAID_51,
+        LSM_CAP_POOL_POOL_CREATE_RAID_60,
+        LSM_CAP_POOL_POOL_CREATE_RAID_61,
+        LSM_CAP_POOL_POOL_CREATE_RAID_15,
+        LSM_CAP_POOL_POOL_CREATE_RAID_16,
+        LSM_CAP_POOL_DELETE};
+
+
+    lsmStorageCapabilities *cap = lsmCapabilityRecordAlloc(NULL);
+
+    fail_unless(cap != NULL);
+
+    if( cap ) {
+        rc = lsmCapabilitySetN(cap, LSM_CAPABILITY_SUPPORTED, 48,
+            LSM_CAP_BLOCK_SUPPORT,
+            LSM_CAP_FS_SUPPORT,
+            LSM_CAP_INITIATORS,
+            LSM_CAP_VOLUMES,
+            LSM_CAP_VOLUME_CREATE,
+            LSM_CAP_VOLUME_RESIZE,
+            LSM_CAP_VOLUME_REPLICATE,
+            LSM_CAP_VOLUME_REPLICATE_CLONE,
+            LSM_CAP_VOLUME_REPLICATE_COPY,
+            LSM_CAP_VOLUME_REPLICATE_MIRROR_ASYNC,
+            LSM_CAP_VOLUME_REPLICATE_MIRROR_SYNC,
+            LSM_CAP_VOLUME_COPY_RANGE_BLOCK_SIZE,
+            LSM_CAP_VOLUME_COPY_RANGE,
+            LSM_CAP_VOLUME_COPY_RANGE_CLONE,
+            LSM_CAP_VOLUME_COPY_RANGE_COPY,
+            LSM_CAP_VOLUME_DELETE,
+            LSM_CAP_VOLUME_ONLINE,
+            LSM_CAP_VOLUME_OFFLINE,
+            LSM_CAP_ACCESS_GROUP_GRANT,
+            LSM_CAP_ACCESS_GROUP_REVOKE,
+            LSM_CAP_ACCESS_GROUP_LIST,
+            LSM_CAP_ACCESS_GROUP_CREATE,
+            LSM_CAP_ACCESS_GROUP_DELETE,
+            LSM_CAP_ACCESS_GROUP_ADD_INITIATOR,
+            LSM_CAP_ACCESS_GROUP_DEL_INITIATOR,
+            LSM_CAP_VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP,
+            LSM_CAP_ACCESS_GROUPS_GRANTED_TO_VOLUME,
+            LSM_CAP_VOLUME_CHILD_DEPENDENCY,
+            LSM_CAP_VOLUME_CHILD_DEPENDENCY_RM,
+            LSM_CAP_FS,
+            LSM_CAP_FS_DELETE,
+            LSM_CAP_FS_RESIZE,
+            LSM_CAP_FS_CREATE,
+            LSM_CAP_FS_CLONE,
+            LSM_CAP_FILE_CLONE,
+            LSM_CAP_FS_SNAPSHOTS,
+            LSM_CAP_FS_SNAPSHOT_CREATE,
+            LSM_CAP_FS_SNAPSHOT_CREATE_SPECIFIC_FILES,
+            LSM_CAP_FS_SNAPSHOT_DELETE,
+            LSM_CAP_FS_SNAPSHOT_REVERT,
+            LSM_CAP_FS_SNAPSHOT_REVERT_SPECIFIC_FILES,
+            LSM_CAP_FS_CHILD_DEPENDENCY,
+            LSM_CAP_FS_CHILD_DEPENDENCY_RM,
+            LSM_CAP_FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES,
+            LSM_CAP_EXPORT_AUTH,
+            LSM_CAP_EXPORTS,
+            LSM_CAP_EXPORT_FS,
+            LSM_CAP_EXPORT_REMOVE
+            );
+
+        fail_unless(rc == LSM_ERR_OK);
+        rc = lsmCapabilitySet(cap, LSM_CAP_EXPORTS, LSM_CAPABILITY_SUPPORTED);
+        fail_unless(rc == LSM_ERR_OK);
+
+        for( i = 0;
+            i < sizeof(expected_present)/sizeof(expected_present[0]);
+            ++i) {
+
+            fail_unless( lsmCapabilityGet(cap, expected_present[i]) ==
+                            LSM_CAPABILITY_SUPPORTED);
+        }
+
+        for( i = 0;
+            i < sizeof(expected_absent)/sizeof(expected_absent[0]);
+            ++i) {
+
+            fail_unless( lsmCapabilityGet(cap, expected_absent[i]) ==
+                            LSM_CAPABILITY_UNSUPPORTED);
+        }
+
+
+        lsmCapabilityRecordFree(cap);
+    }
+
+}
+END_TEST
+
+
+START_TEST(test_nfs_export_funcs)
+{
+    const char id[] = "export_unique_id";
+    const char fs_id[] = "fs_unique_id";
+    const char export_path[] = "/mnt/foo";
+    const char auth[] = "simple";
+    uint64_t anonuid = 1021;
+    uint64_t anongid = 1000;
+    const char options[] = "vendor_specific_option";
+    char rstring[33];
+
+
+    lsmStringList *root = lsmStringListAlloc(0);
+    lsmStringListAppend(root, "192.168.100.2");
+    lsmStringListAppend(root, "192.168.100.3");
+
+    lsmStringList *rw = lsmStringListAlloc(0);
+    lsmStringListAppend(rw, "192.168.100.2");
+    lsmStringListAppend(rw, "192.168.100.3");
+
+    lsmStringList *rand =  lsmStringListAlloc(0);
+
+    lsmStringList *ro = lsmStringListAlloc(0);
+    lsmStringListAppend(ro, "*");
+
+
+    lsmNfsExport *export = lsmNfsExportRecordAlloc(id, fs_id, export_path, auth,
+        root, rw, ro, anonuid, anongid, options);
+
+    lsmNfsExport *copy = lsmNfsExportRecordCopy(export);
+
+
+    fail_unless( strcmp(lsmNfsExportIdGet(copy), id) == 0 );
+    fail_unless( strcmp(lsmNfsExportFsIdGet(copy), fs_id) == 0);
+    fail_unless( strcmp(lsmNfsExportExportPathGet(copy), export_path) == 0);
+    fail_unless( strcmp(lsmNfsExportAuthTypeGet(copy), auth) == 0);
+    fail_unless( strcmp(lsmNfsExportOptionsGet(copy), options) == 0);
+    fail_unless( lsmNfsExportAnonUidGet(copy) == anonuid);
+    fail_unless( lsmNfsExportAnonGidGet(copy) == anongid);
+
+    fail_unless(compare_string_lists(lsmNfsExportRootGet(export), lsmNfsExportRootGet(copy)) == 0);
+    fail_unless(compare_string_lists(lsmNfsExportReadWriteGet(export), lsmNfsExportReadWriteGet(copy)) == 0);
+    fail_unless(compare_string_lists(lsmNfsExportReadOnlyGet(export), lsmNfsExportReadOnlyGet(copy)) == 0);
+
+    lsmNfsExportRecordFree(copy);
+
+
+    generateRandom(rstring, sizeof(rstring));
+    lsmNfsExportIdSet(export, rstring);
+    fail_unless( strcmp(lsmNfsExportIdGet(export), rstring) == 0 );
+
+    generateRandom(rstring, sizeof(rstring));
+    lsmNfsExportFsIdSet(export, rstring);
+    fail_unless( strcmp(lsmNfsExportFsIdGet(export), rstring) == 0 );
+
+    generateRandom(rstring, sizeof(rstring));
+    lsmNfsExportExportPathSet(export, rstring);
+    fail_unless( strcmp(lsmNfsExportExportPathGet(export), rstring) == 0 );
+
+    generateRandom(rstring, sizeof(rstring));
+    lsmNfsExportAuthTypeSet(export, rstring);
+    fail_unless( strcmp(lsmNfsExportAuthTypeGet(export), rstring) == 0 );
+
+    generateRandom(rstring, sizeof(rstring));
+    lsmNfsExportOptionsSet(export, rstring);
+    fail_unless( strcmp(lsmNfsExportOptionsGet(export), rstring) == 0 );
+
+    anonuid = anonuid + 700;
+    lsmNfsExportAnonUidSet(export, anonuid);
+
+    anongid = anongid + 400;
+    lsmNfsExportAnonGidSet(export, anongid);
+
+    fail_unless(lsmNfsExportAnonUidGet(export) == anonuid);
+    fail_unless(lsmNfsExportAnonGidGet(export) == anongid);
+
+
+    generateRandom(rstring, sizeof(rstring));
+    lsmStringListAppend(rand, rstring);
+    lsmNfsExportRootSet(export, rand);
+    fail_unless(compare_string_lists(lsmNfsExportRootGet(export), rand) == 0);
+
+    generateRandom(rstring, sizeof(rstring));
+    lsmStringListAppend(rand, rstring);
+    lsmNfsExportReadWriteSet(export, rand);
+    fail_unless(compare_string_lists(lsmNfsExportReadWriteGet(export), rand) == 0);
+
+    generateRandom(rstring, sizeof(rstring));
+    lsmStringListAppend(rand, rstring);
+    lsmNfsExportReadOnlySet(export, rand);
+    fail_unless(compare_string_lists(lsmNfsExportReadOnlyGet(export), rand) == 0);
+
+
+    lsmNfsExportRecordFree(export);
+    lsmStringListFree(root);
+    lsmStringListFree(rw);
+    lsmStringListFree(ro);
+    lsmStringListFree(rand);
+}
+END_TEST
+
 Suite * lsm_suite(void)
 {
     Suite *s = suite_create("libStorageMgmt");
@@ -1914,6 +2305,9 @@ Suite * lsm_suite(void)
     TCase *basic = tcase_create("Basic");
     tcase_add_checked_fixture (basic, setup, teardown);
 
+    tcase_add_test(basic, test_error_reporting);
+    tcase_add_test(basic, test_capability);
+    tcase_add_test(basic, test_nfs_export_funcs);
     tcase_add_test(basic, test_disks);
     tcase_add_test(basic, test_plugin_info);
     tcase_add_test(basic, test_get_available_plugins);
