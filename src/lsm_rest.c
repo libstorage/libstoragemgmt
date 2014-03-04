@@ -36,19 +36,18 @@
 #include "lsm_rest.h"
 
 #define MHD_PLATFORM_H
-// prevent 'microhttpd.h' to include other platform headers
+/* prevent 'microhttpd.h' to include other platform headers
 
-// TODO: MHD_get_connection_values() with MHD_GET_ARGUMENT_KIND to
-//	 get all query argument
-// TODO: Check malloc() return code
+ TODO: MHD_get_connection_values() with MHD_GET_ARGUMENT_KIND to
+       get all query argument
+ TODO: Check malloc() return code
 
-// gcc lsm_rest.c -o lsm_restd \
-// 	`pkg-config --cflags --libs libmicrohttpd xml2` \
-// 	`xml2-config --libs` `xml2-config --cflags` \
-// 	`pkd-config --cflags --libs json`
-//
-//
-//
+ gcc lsm_rest.c -o lsm_restd \
+    `pkg-config --cflags --libs libmicrohttpd xml2` \
+    `xml2-config --libs` `xml2-config --cflags` \
+    `pkd-config --cflags --libs json`
+*/
+
 void para_list_init(ParaList_t *para_list)
 {
 	para_list->head = NULL;
@@ -170,7 +169,7 @@ int connect_socket(const char *uri_str, const char *plugin_dir,
 		if (strlen(plugin_file) > (sizeof(addr.sun_path) - 1)){
 			socket_fd = -1;
 			fprintf(stderr, "Plugin file path too long: %s, "
-				"max is %d", plugin_file,
+				"max is %zu", plugin_file,
 				sizeof(addr.sun_path) - 1);
 		}
 		strcpy(addr.sun_path, plugin_file);
@@ -189,9 +188,9 @@ int connect_socket(const char *uri_str, const char *plugin_dir,
 int send_msg(int socket_fd, const char *msg, int *error_no)
 {
 	int rc = -1;
-	ssize_t len = strlen(msg);
+	size_t len = strlen(msg);
 	char * msg_with_header = malloc(strlen(msg) + LSM_HEADER_LEN + 1);
-	sprintf(msg_with_header, "%0*d%s", LSM_HEADER_LEN, len, msg);
+	sprintf(msg_with_header, "%0*zu%s", LSM_HEADER_LEN, len, msg);
 	ssize_t written = 0;
 	msg = msg_with_header;
 	len = strlen(msg_with_header);
@@ -363,7 +362,6 @@ const char *lsm_api_0_1(struct MHD_Connection *connection,
 	const char *url, const char *method,
 	const char *upload_data)
 {
-	const char *json_str = NULL;
 	const char *plugin_dir = getenv("LSM_UDS_PATH");
 	if (plugin_dir == NULL){
 		plugin_dir = LSM_UDS_PATH_DEFAULT;
