@@ -31,6 +31,9 @@ from data import System, Volume, Disk, Pool, FileSystem, AccessGroup, \
     Initiator, Snapshot, NfsExport, OptionalData
 
 
+# Used for format width for disks
+D_FMT = 5
+
 class SimJob(object):
     """
     Simulates a longer running job, uses actual wall time.  If test cases
@@ -530,7 +533,7 @@ class SimData(object):
         }
     """
     SIM_DATA_BLK_SIZE = 512
-    SIM_DATA_VERSION = "2.1"
+    SIM_DATA_VERSION = "2.2"
     SIM_DATA_SYS_ID = 'sim-01'
     SIM_DATA_INIT_NAME = 'NULL'
     SIM_DATA_TMO = 30000    # ms
@@ -579,6 +582,10 @@ class SimData(object):
     def _state_signature():
         return 'LSM_SIMULATOR_DATA_%s' % md5(SimData.SIM_DATA_VERSION)
 
+    @staticmethod
+    def _disk_id(num):
+        return "DISK_ID_%0*d" % (D_FMT, num)
+
     def __init__(self):
         self.tmo = SimData.SIM_DATA_TMO
         self.version = SimData.SIM_DATA_VERSION
@@ -596,7 +603,7 @@ class SimData(object):
                 'pool_id': 'POO1',
                 'name': 'Pool 1',
                 'member_type': Pool.MEMBER_TYPE_DISK_SATA,
-                'member_ids': ['DISK_ID_000', 'DISK_ID_001'],
+                'member_ids': [SimData._disk_id(0), SimData._disk_id(1)],
                 'raid_type': Pool.RAID_TYPE_RAID1,
                 'status': SimData.SIM_DATA_POOL_STATUS,
                 'sys_id': SimData.SIM_DATA_SYS_ID,
@@ -613,12 +620,12 @@ class SimData(object):
                 'sys_id': SimData.SIM_DATA_SYS_ID,
                 'element_type': SimData.SIM_DATA_POOL_ELEMENT_TYPE,
             },
-            # lsm_test_aggr pool is requred by test/runtest.sh
+            # lsm_test_aggr pool is required by test/runtest.sh
             'lsm_test_aggr': {
                 'pool_id': 'lsm_test_aggr',
                 'name': 'lsm_test_aggr',
                 'member_type': Pool.MEMBER_TYPE_DISK_SAS,
-                'member_ids': ['DISK_ID_002', 'DISK_ID_003'],
+                'member_ids': [SimData._disk_id(2), SimData._disk_id(3)],
                 'raid_type': Pool.RAID_TYPE_RAID0,
                 'status': Pool.STATUS_OK,
                 'sys_id': SimData.SIM_DATA_SYS_ID,
@@ -635,163 +642,31 @@ class SimData(object):
         }
         disk_size_2t = size_human_2_size_bytes('2TiB')
         disk_size_512g = size_human_2_size_bytes('512GiB')
-        self.disk_dict = {
-            'DISK_ID_000': {
-                'disk_id': 'DISK_ID_000',
-                'name': 'SATA Disk 000',
-                'total_space': disk_size_2t,
-                'disk_type': Disk.DISK_TYPE_SATA,
-                'sys_id': SimData.SIM_DATA_SYS_ID,
-            },
-            'DISK_ID_001': {
-                'disk_id': 'DISK_ID_001',
-                'name': 'SATA Disk 001',
-                'total_space': disk_size_2t,
-                'disk_type': Disk.DISK_TYPE_SATA,
-                'sys_id': SimData.SIM_DATA_SYS_ID,
-            },
-            'DISK_ID_002': {
-                'disk_id': 'DISK_ID_002',
-                'name': 'SAS Disk 002',
-                'total_space': disk_size_2t,
-                'disk_type': Disk.DISK_TYPE_SAS,
-                'sys_id': SimData.SIM_DATA_SYS_ID,
-            },
-            'DISK_ID_003': {
-                'disk_id': 'DISK_ID_003',
-                'name': 'SAS Disk 003',
-                'total_space': disk_size_2t,
-                'disk_type': Disk.DISK_TYPE_SAS,
-                'sys_id': SimData.SIM_DATA_SYS_ID,
-            },
-            # More free disks for user to create pools on.
-            'DISK_ID_004': {
-                'disk_id': 'DISK_ID_004',
-                'name': 'SAS Disk 004',
-                'total_space': disk_size_2t,
-                'disk_type': Disk.DISK_TYPE_SAS,
-                'sys_id': SimData.SIM_DATA_SYS_ID,
-            },
-            'DISK_ID_005': {
-                'disk_id': 'DISK_ID_005',
-                'name': 'SAS Disk 005',
-                'total_space': disk_size_2t,
-                'disk_type': Disk.DISK_TYPE_SAS,
-                'sys_id': SimData.SIM_DATA_SYS_ID,
-            },
-            'DISK_ID_006': {
-                'disk_id': 'DISK_ID_006',
-                'name': 'SAS Disk 006',
-                'total_space': disk_size_2t,
-                'disk_type': Disk.DISK_TYPE_SAS,
-                'sys_id': SimData.SIM_DATA_SYS_ID,
-            },
-            'DISK_ID_007': {
-                'disk_id': 'DISK_ID_007',
-                'name': 'SAS Disk 007',
-                'total_space': disk_size_2t,
-                'disk_type': Disk.DISK_TYPE_SAS,
-                'sys_id': SimData.SIM_DATA_SYS_ID,
-            },
-            'DISK_ID_008': {
-                'disk_id': 'DISK_ID_008',
-                'name': 'SAS Disk 008',
-                'total_space': disk_size_2t,
-                'disk_type': Disk.DISK_TYPE_SAS,
-                'sys_id': SimData.SIM_DATA_SYS_ID,
-            },
-            'DISK_ID_009': {
-                'disk_id': 'DISK_ID_009',
-                'name': 'SSD Disk 009',
-                'total_space': disk_size_512g,
-                'disk_type': Disk.DISK_TYPE_SSD,
-                'sys_id': SimData.SIM_DATA_SYS_ID,
-            },
-            'DISK_ID_010': {
-                'disk_id': 'DISK_ID_010',
-                'name': 'SSD Disk 010',
-                'total_space': disk_size_512g,
-                'disk_type': Disk.DISK_TYPE_SSD,
-                'sys_id': SimData.SIM_DATA_SYS_ID,
-            },
-            'DISK_ID_011': {
-                'disk_id': 'DISK_ID_011',
-                'name': 'SSD Disk 011',
-                'total_space': disk_size_512g,
-                'disk_type': Disk.DISK_TYPE_SSD,
-                'sys_id': SimData.SIM_DATA_SYS_ID,
-            },
-            'DISK_ID_012': {
-                'disk_id': 'DISK_ID_012',
-                'name': 'SSD Disk 012',
-                'total_space': disk_size_512g,
-                'disk_type': Disk.DISK_TYPE_SSD,
-                'sys_id': SimData.SIM_DATA_SYS_ID,
-            },
-            'DISK_ID_013': {
-                'disk_id': 'DISK_ID_013',
-                'name': 'SSD Disk 013',
-                'total_space': disk_size_512g,
-                'disk_type': Disk.DISK_TYPE_SSD,
-                'sys_id': SimData.SIM_DATA_SYS_ID,
-            },
-            'DISK_ID_014': {
-                'disk_id': 'DISK_ID_014',
-                'name': 'SSD Disk 014',
-                'total_space': disk_size_2t,
-                'disk_type': Disk.DISK_TYPE_SSD,
-                'sys_id': SimData.SIM_DATA_SYS_ID,
-            },
-            'DISK_ID_015': {
-                'disk_id': 'DISK_ID_015',
-                'name': 'SSD Disk 015',
-                'total_space': disk_size_2t,
-                'disk_type': Disk.DISK_TYPE_SSD,
-                'sys_id': SimData.SIM_DATA_SYS_ID,
-            },
-            'DISK_ID_016': {
-                'disk_id': 'DISK_ID_016',
-                'name': 'SSD Disk 016',
-                'total_space': disk_size_2t,
-                'disk_type': Disk.DISK_TYPE_SSD,
-                'sys_id': SimData.SIM_DATA_SYS_ID,
-            },
-            'DISK_ID_017': {
-                'disk_id': 'DISK_ID_017',
-                'name': 'SSD Disk 017',
-                'total_space': disk_size_2t,
-                'disk_type': Disk.DISK_TYPE_SSD,
-                'sys_id': SimData.SIM_DATA_SYS_ID,
-            },
-            'DISK_ID_018': {
-                'disk_id': 'DISK_ID_018',
-                'name': 'SSD Disk 018',
-                'total_space': disk_size_2t,
-                'disk_type': Disk.DISK_TYPE_SSD,
-                'sys_id': SimData.SIM_DATA_SYS_ID,
-            },
-            'DISK_ID_019': {
-                'disk_id': 'DISK_ID_019',
-                'name': 'SSD Disk 019',
-                'total_space': disk_size_2t,
-                'disk_type': Disk.DISK_TYPE_SSD,
-                'sys_id': SimData.SIM_DATA_SYS_ID,
-            },
-            'DISK_ID_020': {
-                'disk_id': 'DISK_ID_020',
-                'name': 'SSD Disk 020',
-                'total_space': disk_size_2t,
-                'disk_type': Disk.DISK_TYPE_SSD,
-                'sys_id': SimData.SIM_DATA_SYS_ID,
-            },
-            'DISK_ID_021': {
-                'disk_id': 'DISK_ID_021',
-                'name': 'SSD Disk 021',
-                'total_space': disk_size_2t,
-                'disk_type': Disk.DISK_TYPE_SSD,
-                'sys_id': SimData.SIM_DATA_SYS_ID,
-            },
-        }
+
+        # Make disks in a loop so that we can create many disks easily
+        # if we wish
+        self.disk_dict = {}
+
+        for i in range(0, 21):
+            d_id = SimData._disk_id(i)
+            d_size = disk_size_2t
+            d_name = "SATA Disk %0*d" % (D_FMT, i)
+            d_type = Disk.DISK_TYPE_SATA
+
+            if 2 <= i <= 8:
+                d_name = "SAS  Disk %0*d" % (D_FMT, i)
+                d_type = Disk.DISK_TYPE_SAS
+            elif 9 <= i:
+                d_name = "SSD  Disk %0*d" % (D_FMT, i)
+                d_type = Disk.DISK_TYPE_SSD
+                if i <= 13:
+                    d_size = disk_size_512g
+
+            self.disk_dict[d_id] = dict(disk_id=d_id, name=d_name,
+                                        total_space=d_size,
+                                        disk_type=d_type,
+                                        sys_id=SimData.SIM_DATA_SYS_ID)
+
         self.ag_dict = {
         }
         self.init_dict = {
