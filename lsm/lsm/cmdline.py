@@ -109,11 +109,29 @@ replicate_help = "replication type: " + ", ".join(replicate_types)
 
 size_help = 'Can use B, KiB, MiB, GiB, TiB, PiB postfix (IEC sizing)'
 
-member_types = ('DISK', 'VOLUME', 'POOL')
-member_help = "Member type: " + ", ".join(member_types)
+member_types = ('DISK', 'VOLUME', 'POOL', 'DISK_ATA', 'DISK_SATA',
+                'DISK_SAS', 'DISK_FC', 'DISK_SOP', 'DISK_SCSI', 'DISK_NL_SAS',
+                'DISK_HDD', 'DISK_SSD', 'DISK_HYBRID')
 
-raid_types = ('JBOD', 'RAID1', 'RAID3', 'RAID4', 'RAID5', 'RAID6')
-raid_help = "RAID type: " + ", ".join(raid_types)
+member_types_formated = ''
+for i in range(0, len(member_types), 4):
+    member_types_formated += "\n    "
+    for member_type_str in member_types[i:i+4]:
+        member_types_formated += "%-15s" % member_type_str
+
+member_help = "Valid member type: " + member_types_formated
+
+raid_types = ('JBOD', 'RAID0', 'RAID1', 'RAID3', 'RAID4', 'RAID5', 'RAID6',
+              'RAID10', 'RAID50', 'RAID60', 'RAID51', 'RAID61',
+              'NOT_APPLICABLE')
+
+raid_types_formated = ''
+for i in range(0, len(raid_types), 4):
+    raid_types_formated += "\n    "
+    for raid_type_str in raid_types[i:i+4]:
+        raid_types_formated += "%-15s" % raid_type_str
+
+raid_help = "Valid RAID type:" + raid_types_formated
 
 sys_id_opt = dict(name='--sys', metavar='<SYS_ID>', help='System ID')
 pool_id_opt = dict(name='--pool', metavar='<POOL_ID>', help='Pool ID')
@@ -593,30 +611,92 @@ cmds = (
         name='pool-create',
         help='Creates a storage pool',
         args=[
+            dict(sys_id_opt),
             dict(name="--name", metavar="<POOL_NAME>",
                  help="Human friendly name for new pool"),
-            dict(sys_id_opt),
+            dict(size_opt),
         ],
         optional=[
-            dict(name="--member-id", metavar='<MEMBER_ID>',
-                 help='Pool member ID, could be ID of Disk/Pool/Volume.\n'
-                 'This is a repeatable argument',
-                 action='append'),
-            dict(name="--member-type", metavar='<MEMBER_TYPE>',
-                 help=member_help,
-                 choices=member_types),
             dict(name="--raid-type",  metavar='<RAID_TYPE>',
                  help=raid_help,
                  choices=raid_types,
                  type=str.upper),
-            dict(size_opt),
-            dict(name="--thinp-type",
-                 metavar='<THINP_TYPE>',
-                 help="Thin Provisioning type, THIN, THICK",
-                 choices=['THIN', 'THICK']),
-            dict(name="--member-count",
-                 help="Pool member count, 1 or greater. \n"
-                      "If bigger than defined --member-id, will auto choose"),
+            dict(name="--member-type", metavar='<MEMBER_TYPE>',
+                 help=member_help,
+                 choices=member_types),
+            dict(name=('-o', '--optional'),
+                 help='Retrieve additional optional info if available',
+                 default=False,
+                 action='store_true'),
+        ],
+    ),
+
+    dict(
+        name='pool-create-from-disks',
+        help='Creates a storage pool from disks',
+        args=[
+            dict(sys_id_opt),
+            dict(name="--name", metavar="<POOL_NAME>",
+                 help="Human friendly name for new pool"),
+            dict(name="--member-id", metavar='<MEMBER_ID>',
+                 help='The ID of disks to create new pool\n'
+                      'This is a repeatable argument',
+                 action='append'),
+            dict(name="--raid-type",  metavar='<RAID_TYPE>',
+                 help=raid_help,
+                 choices=raid_types,
+                 type=str.upper),
+        ],
+        optional=[
+            dict(name=('-o', '--optional'),
+                 help='Retrieve additional optional info if available',
+                 default=False,
+                 action='store_true'),
+        ],
+    ),
+
+    dict(
+        name='pool-create-from-volumes',
+        help='Creates a storage pool from volumes',
+        args=[
+            dict(sys_id_opt),
+            dict(name="--name", metavar="<POOL_NAME>",
+                 help="Human friendly name for new pool"),
+            dict(name="--member-id", metavar='<MEMBER_ID>',
+                 help='The ID of volumes to create new pool\n'
+                      'This is a repeatable argument',
+                 action='append'),
+            dict(name="--raid-type",  metavar='<RAID_TYPE>',
+                 help=raid_help,
+                 choices=raid_types,
+                 type=str.upper),
+        ],
+        optional=[
+            dict(name=('-o', '--optional'),
+                 help='Retrieve additional optional info if available',
+                 default=False,
+                 action='store_true'),
+        ],
+    ),
+
+    dict(
+        name='pool-create-from-pool',
+        help='Creates a sub-pool from another storage pool',
+        args=[
+            dict(sys_id_opt),
+            dict(name="--name", metavar="<POOL_NAME>",
+                 help="Human friendly name for new pool"),
+            dict(name="--member-id", metavar='<POOL_ID>',
+                 help='The ID of pool to create new pool from\n',
+                 action='append'),
+            dict(name="--size", metavar='<SIZE>',
+                 help='The size of new pool'),
+        ],
+        optional=[
+            dict(name=('-o', '--optional'),
+                 help='Retrieve additional optional info if available',
+                 default=False,
+                 action='store_true'),
         ],
     ),
 
@@ -1553,80 +1633,106 @@ class CmdLine:
     def pool_create(self, args):
         pool_name = args.name
         raid_type = data.Pool.RAID_TYPE_UNKNOWN
-        member_ids = []
         member_type = data.Pool.MEMBER_TYPE_UNKNOWN
-        member_count = 0
-        thinp_type = data.Pool.THINP_TYPE_UNKNOWN
-        size_bytes = 0
-        prov_type = data.Pool.THINP_TYPE_UNKNOWN
+        size_bytes = self._size(self.args.size)
 
         if args.raid_type:
             raid_type = data.Pool.raid_type_str_to_type(
-                self.args.opt_raid_type_str)
-            if raid_type == data.Pool.RAID_TYPE_UNKNOWN or \
-               raid_type == data.Pool.RAID_TYPE_NOT_APPLICABLE:
+                self.args.raid_type)
+            if raid_type == data.Pool.RAID_TYPE_UNKNOWN:
                 raise ArgError("Unknown RAID type specified: %s" %
-                               self.args.opt_raid_type_str)
-
-        if len(args.member_id) >= 1:
-            member_ids = args.member_id
-
-        if args.size:
-            size_bytes = self._size(self.args.opt_size)
+                               args.raid_type)
 
         if args.member_type:
             member_type = data.Pool.member_type_str_to_type(
                 args.member_type)
-
-        if member_ids and member_type != data.Pool.MEMBER_TYPE_UNKNOWN:
-            if (member_type == data.Pool.MEMBER_TYPE_DISK):
-                disks = self.c.disks()
-                for member_id in member_ids:
-                    for disk in disks:
-                        if disk.id == member_id:
-                            break
-                    else:
-                        raise ArgError("Invalid Disk ID specified in " +
-                                       "--member-id %s " % member_id)
-            elif (member_type == data.Pool.MEMBER_TYPE_VOLUME):
-                volumes = self.c.volumes()
-                for member_id in member_ids:
-                    for volume in volumes:
-                        if volume.id == member_id:
-                            break
-                    else:
-                        raise ArgError("Invalid Volume ID specified in " +
-                                       "--member-ids %s " % member_id)
-            elif (member_type == data.Pool.MEMBER_TYPE_POOL):
-                if not self.args.opt_size:
-                    raise ArgError("--size is mandatory when creating Pool " +
-                                   "against another Pool")
-                pools = self.c.pools()
-                for member_id in member_ids:
-                    for pool in pools:
-                        if pool.id == member_id:
-                            break
-                    else:
-                        raise ArgError("Invalid Pool ID specified in " +
-                                       "--member-ids %s " % member_id)
-            else:
-                raise ArgError("Unknown pool member-type %s, should be %s" %
-                               (args.member_type, '[DISK/VOLUME/POOL]'))
-
-        if args.provisioning:
-            provisioning = args.provisioning
-            prov_type = data.Pool.thinp_type_str_to_type(provisioning)
+            if member_type == data.Pool.MEMBER_TYPE_UNKNOWN:
+                raise ArgError("Unkonwn member type specified: %s" %
+                                args.member_type)
 
         pool = self._wait_for_it("pool-create",
-                                 *self.c.pool_create(self.args.opt_system,
+                                 *self.c.pool_create(self.args.sys,
                                                      pool_name,
+                                                     size_bytes,
                                                      raid_type,
                                                      member_type,
-                                                     member_ids,
-                                                     member_count,
-                                                     size_bytes,
-                                                     prov_type,
                                                      0))
+        self.display_data([pool])
+
+    def pool_create_from_disks(self, args):
+        if len(args.member_id) <= 0:
+            raise ArgError("No disk ID was provided for new pool")
+
+        member_ids = args.member_id
+        disks = self.c.disks()
+        disk_ids = [d.id for d in disks]
+        for member_id in member_ids:
+            if member_id not in disk_ids:
+                raise ArgError("Invalid Disk ID specified in " +
+                               "--member-id %s " % member_id)
+
+        raid_type = data.Pool.raid_type_str_to_type(
+            self.args.raid_type)
+        if raid_type == data.Pool.RAID_TYPE_UNKNOWN:
+            raise ArgError("Unknown RAID type specified: %s" %
+                           self.args.raid_type)
+
+        pool_name = args.name
+        pool = self._wait_for_it(
+            "pool-create-from-disks",
+            *self.c.pool_create_from_disks(
+                self.args.sys, pool_name, member_ids, raid_type, 0))
+        self.display_data([pool])
+
+    def pool_create_from_volumes(self, args):
+        if len(args.member_id) <= 0:
+            raise ArgError("No volume ID was provided for new pool")
+
+        member_ids = args.member_id
+        volumes = self.c.volumes()
+        vol_ids = [v.id for v in volumes]
+        for member_id in member_ids:
+            if member_id not in vol_ids:
+                raise ArgError("Invalid volumes ID specified in " +
+                               "--member-id %s " % member_id)
+
+        raid_type = data.Pool.raid_type_str_to_type(
+            self.args.raid_type)
+        if raid_type == data.Pool.RAID_TYPE_UNKNOWN:
+            raise ArgError("Unknown RAID type specified: %s" %
+                           self.args.raid_type)
+
+        pool_name = args.name
+        pool = self._wait_for_it(
+            "pool-create-from-volumes",
+            *self.c.pool_create_from_volumes(
+                self.args.sys, pool_name, member_ids, raid_type, 0))
+        self.display_data([pool])
+
+    def pool_create_from_pool(self, args):
+        if len(args.member_id) <= 0:
+            raise ArgError("No volume ID was provided for new pool")
+
+        member_ids = args.member_id
+        if len(member_ids) > 1:
+            raise ArgError("Two or more member defined, but creating pool " +
+                           "from pool only allow one member pool")
+
+        member_id = member_ids[0]
+
+        pools = self.c.pools()
+        pool_ids = [p.id for p in pools]
+        if member_id not in pool_ids:
+            raise ArgError("Invalid pools ID specified in " +
+                           "--member-id %s " % member_id)
+
+        size_bytes = self._size(self.args.size)
+
+        pool_name = args.name
+        pool = self._wait_for_it(
+            "pool-create-from-pool",
+            *self.c.pool_create_from_pool(
+                self.args.sys, pool_name, member_id, size_bytes, 0))
         self.display_data([pool])
 
     def _read_configfile(self):

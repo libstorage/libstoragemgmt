@@ -1,4 +1,4 @@
-.TH LSMCLI "1" "January 2014" "lsmcli @VERSION@" "libStorageMgmt"
+.TH LSMCLI "1" "March 2014" "lsmcli @VERSION@" "libStorageMgmt"
 .SH NAME
 lsmcli - LibStorageMgmt command line interface
 
@@ -44,7 +44,8 @@ Quick examples(please refer to "LibStorageMgmt User Guide" for detail):
 \fBontap+ssl://username@host\fR
 .RE 1
 .RS 12
-* Storage Array support SMI-S(like, EMC CX/VNX, HDS AMS, IBM SVC/DS, and etc):
+* Storage Array support SMI-S(like, EMC CX/VNX, HDS AMS, IBM SVC/DS, LSI
+MegaRAID and etc):
 .RS 4
 \fBsmis://username@host:<port>?namespace=<namespace>\fR
 .br
@@ -573,44 +574,112 @@ For two or more files/paths:
 '\fB--src fileA --src fileB --dst old_fileA --dst old_fileB\fR'.
 
 .SS pool-create
-Creates a storage pool.
+Creates a storage pool. LibStorageMgmt will automatically choose the correct
+pool members to assemble new pool. This require POOL_CREATE capability.
 .TP 15
 \fB--name\fR \fI<POOL_NAME>\fR
 Required. Human friendly name for new pool.
 .TP
 \fB--size\fR \fI<POOL_SIZE>\fR
-Optional. The size of new pool. Due to data alignment and other issue, the
-size of new pool might largger than requested.
+Required. The size of new pool. Due to data alignment or other issue, the
+size of new pool might larger than requested.
 See \fBSIZE OPTION\fR for allowed formats.
 .TP
-\fB--member-id\fR \fI<MEM_ID>\fR
-Optional. Repeatable. Pool member ID, could be ID of Disk/Pool/Volume. Should
-be used with \fB--member-type\fR. For two or more members: '\fB--member-id
-DISK_A --member DISK_B --raid-type RAID1 --member-type DISK\fR'
-.TP
-\fB--member-type\fR \fI<MEM_TYPE>\fR
-Optional. Valid values are: \fBDISK\fR, \fBPOOL\fR, \fBVOLUME\fR.
-.br
-The 'DISK' member type means pool is created from disk(s), might has RAID.
-.br
-The 'VOLUME' member type means pool is created from volume(s), might has RAID.
-.br
-The 'POOL' member type means pool is allocated from other pool(s).
+\fB--sys\fR \fI<SYS_ID>\fR
+Required. ID of the system to create new pool.
 .TP
 \fB--raid-type\fR \fI<RAID_TYPE>\fR
 Optional. The RAID type of new pool. Valid values are:
-\fBJBOD\fR, \fBRAID0\fR, \fBRAID1\fR, \fBRAID5\fR, \fBRAID6\fR, \fBRAID10\fR,
-\fBRAID50\fR, \fBRAID51\fR, \fBRAID60\fR, \fBRAID61\fR.
+\fBNOT_APPLICABLE\fR, \fBJBOD\fR, \fBRAID0\fR, \fBRAID1\fR, \fBRAID5\fR,
+\fBRAID6\fR, \fBRAID10\fR, \fBRAID50\fR, \fBRAID51\fR, \fBRAID60\fR,
+\fBRAID61\fR.
+.br
+The \fBNOT_APPLICABLE\fR means pool only contain 1 member.
+If not defined, will let array to determine the RAID type.
+.br
+When using with \fB--member-type POOL\fR, \fB--raid-type\fR should be unset or
+defined as \fBNOT_APPLICABLE\fR.
 .TP
-\fB--thinp-type\fR \fI<THINP_TYPE>\fR
-Optional. The Thin Provisioning type of new pool. Valid values are:
-\fBTHIN\fR, \fBTHICK\fR. 'THIN' indicates pool can create Thin Provisioning
-volume or filesystem. 'THICK' indicates pool can only create fully allocated
-volume or filesystem.
+\fB--member-type\fR \fI<MEM_TYPE>\fR
+Optional. The type of resource to create new pool. Valid values are:
+\fBDISK\fR, \fBVOLUME\fR, \fBPOOL\fR, \fBDISK_ATA\fR, \fBDISK_SATA\fR,
+\fBDISK_SAS\fR, \fBDISK_FC\fR, \fBDISK_SOP\fR \fBDISK_SCSI\fR, \fBDISK_NL_SAS,
+\fBDISK_HDD\fR, \fBDISK_SSD\fR, \fBDISK_HYBRID\fR.
+.br
+The \fBDISK\fR member type means creating pool from disk(s). For \fBDISK_\fR
+prefixed types, they are used to request new pool creating from certain type
+of DISK.
+\fBDISK_SOP\fR indicate SCSI over PCI-E, normally a PCI-E based SSD.
+\fBDISK_HYBRID\fR indicate HDD and SSD hybrid(mixed) disk.
+.br
+The \fBVOLUME\fR member type means creating pool from volume(s).
+.br
+The \fBPOOL\fR member type means create sub-pool from another pool.
+
+.SS pool-create-from-disks
+Create a new pool by specifying which disks to use with which RAID type.
+This require POOL_CREATE_FROM_DISKS capability.
+.TP 15
+\fB--name\fR \fI<POOL_NAME>\fR
+Required. Human friendly name for new pool.
 .TP
-\fB--member-count\fR \fI<MEM_COUNT>\fR
-Optional. The count of members. If '\fR--member-id\fR' is not defined or less
-than '\fB--member-count\fR', plugin/array will automatically choose the rest.
+\fB--raid-type\fR \fI<RAID_TYPE>\fR
+Required. The RAID type of new pool. Valid values are:
+\fBNOT_APPLICABLE\fR, \fBJBOD\fR, \fBRAID0\fR, \fBRAID1\fR, \fBRAID5\fR,
+\fBRAID6\fR, \fBRAID10\fR, \fBRAID50\fR, \fBRAID51\fR, \fBRAID60\fR,
+\fBRAID61\fR.
+.br
+The \fBNOT_APPLICABLE\fR means pool only contain 1 disks.
+For supported RAID types of certain array, please use \fBcapabilities\fR
+command for POOL_CREATE_DISK_RAID_XXX entries.
+.TP
+\fB--member-id\fR \fI<DISK_ID>\fR
+Required. Repeatable. The ID of disk to create new pool.
+For two or more members: '\fB--member-id DISK_ID_A --member DISK_ID_B\fR'.
+.TP
+\fB--sys\fR \fI<SYS_ID>\fR
+Required. ID of the system to create new pool.
+
+.SS pool-create-from-volumes
+Create a new pool by specifying which volumes to use with which RAID type.
+This require POOL_CREATE_FROM_VOLUMES capability.
+.TP 15
+\fB--name\fR \fI<POOL_NAME>\fR
+Required. Human friendly name for new pool.
+.TP
+\fB--raid-type\fR \fI<RAID_TYPE>\fR
+Required. The RAID type of new pool. Valid values are:
+\fBNOT_APPLICABLE\fR, \fBJBOD\fR, \fBRAID0\fR, \fBRAID1\fR, \fBRAID5\fR,
+\fBRAID6\fR, \fBRAID10\fR, \fBRAID50\fR, \fBRAID51\fR, \fBRAID60\fR,
+\fBRAID61\fR.
+.br
+The \fBNOT_APPLICABLE\fR means pool only contain 1 volume.
+For supported RAID types of certain array, please use \fBcapabilities\fR
+command for POOL_CREATE_VOLUME_RAID_XXX entries.
+.TP
+\fB--member-id\fR \fI<VOL_ID>\fR
+Required. Repeatable. The ID of volume to create new pool.
+For two or more members: '\fB--member-id VOL_ID_A --member VOL_ID_B\fR'.
+.TP
+\fB--sys\fR \fI<SYS_ID>\fR
+Required. ID of the system to create new pool.
+
+.SS pool-create-from-pool
+Create a new sub-pool from specified pool. This require POOL_CREATE_FROM_POOLS
+capability.
+.TP 15
+\fB--name\fR \fI<POOL_NAME>\fR
+Required. Human friendly name for new pool.
+.TP
+\fB--size\fR \fI<POOL_SIZE>\fR
+Required. The spaces of new pool.
+See \fBSIZE OPTION\fR for allowed formats.
+.TP
+\fB--member-id\fR \fI<POOL_ID>\fR
+Required. The ID of pool to create new pool from.
+.TP
+\fB--sys\fR \fI<SYS_ID>\fR
+Required. ID of the system to create new pool.
 
 .SS pool-delete
 Deletes a storage pool.
