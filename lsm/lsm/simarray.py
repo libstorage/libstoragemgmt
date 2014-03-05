@@ -109,7 +109,7 @@ class SimArray(object):
             # to make sure that the data will work and not cause any
             # undo confusion.
                 if self.data.version != SimData.SIM_DATA_VERSION or \
-                   self.data.signature != SimData._state_signature():
+                   self.data.signature != SimData.state_signature():
                     SimArray._version_error(self.dump_file)
             except AttributeError:
                 SimArray._version_error(self.dump_file)
@@ -153,8 +153,8 @@ class SimArray(object):
     def _sim_pool_2_lsm(self, sim_pool, flags=0):
         pool_id = sim_pool['pool_id']
         name = sim_pool['name']
-        total_space = self.data._pool_total_space(pool_id)
-        free_space = self.data._pool_free_space(pool_id)
+        total_space = self.data.pool_total_space(pool_id)
+        free_space = self.data.pool_free_space(pool_id)
         status = sim_pool['status']
         sys_id = sim_pool['sys_id']
         opt_data = OptionalData()
@@ -579,7 +579,7 @@ class SimData(object):
         return "EXP_ID_%08d" % self.SIM_DATA_CUR_EXP_ID
 
     @staticmethod
-    def _state_signature():
+    def state_signature():
         return 'LSM_SIMULATOR_DATA_%s' % md5(SimData.SIM_DATA_VERSION)
 
     @staticmethod
@@ -589,7 +589,7 @@ class SimData(object):
     def __init__(self):
         self.tmo = SimData.SIM_DATA_TMO
         self.version = SimData.SIM_DATA_VERSION
-        self.signature = SimData._state_signature()
+        self.signature = SimData.state_signature()
         self.job_num = 0
         self.job_dict = {
             # id: SimJob
@@ -695,11 +695,11 @@ class SimData(object):
 
         return
 
-    def _pool_free_space(self, pool_id):
+    def pool_free_space(self, pool_id):
         """
         Calculate out the free size of certain pool.
         """
-        free_space = self._pool_total_space(pool_id)
+        free_space = self.pool_total_space(pool_id)
         for sim_vol in self.vol_dict.values():
             if sim_vol['pool_id'] != pool_id:
                 continue
@@ -796,7 +796,7 @@ class SimData(object):
                        "%s(%d)" % (Pool.raid_type_to_str(raid_type),
                                    raid_type))
 
-    def _pool_total_space(self, pool_id):
+    def pool_total_space(self, pool_id):
         """
         Find out the correct size of RAID pool
         """
@@ -864,7 +864,7 @@ class SimData(object):
     def volume_create(self, pool_id, vol_name, size_bytes, thinp, flags=0):
         size_bytes = SimData._block_rounding(size_bytes)
         # check free size
-        free_space = self._pool_free_space(pool_id)
+        free_space = self.pool_free_space(pool_id)
         if (free_space < size_bytes):
             raise LsmError(ErrorNumber.SIZE_INSUFFICIENT_SPACE,
                            "Insufficient space in pool")
@@ -891,7 +891,7 @@ class SimData(object):
         new_size_bytes = SimData._block_rounding(new_size_bytes)
         if vol_id in self.vol_dict.keys():
             pool_id = self.vol_dict[vol_id]['pool_id']
-            free_space = self._pool_free_space(pool_id)
+            free_space = self.pool_free_space(pool_id)
             if (free_space < new_size_bytes):
                 raise LsmError(ErrorNumber.SIZE_INSUFFICIENT_SPACE,
                                "Insufficient space in pool")
@@ -910,7 +910,7 @@ class SimData(object):
         size_bytes = self.vol_dict[src_vol_id]['total_space']
         size_bytes = SimData._block_rounding(size_bytes)
         # check free size
-        free_space = self._pool_free_space(dst_pool_id)
+        free_space = self.pool_free_space(dst_pool_id)
         if (free_space < size_bytes):
             raise LsmError(ErrorNumber.SIZE_INSUFFICIENT_SPACE,
                            "Insufficient space in pool")
@@ -1231,7 +1231,7 @@ class SimData(object):
     def fs_create(self, pool_id, fs_name, size_bytes, flags=0):
         size_bytes = SimData._block_rounding(size_bytes)
         # check free size
-        free_space = self._pool_free_space(pool_id)
+        free_space = self.pool_free_space(pool_id)
         if (free_space < size_bytes):
             raise LsmError(ErrorNumber.SIZE_INSUFFICIENT_SPACE,
                            "Insufficient space in pool")
@@ -1258,7 +1258,7 @@ class SimData(object):
         new_size_bytes = SimData._block_rounding(new_size_bytes)
         if fs_id in self.fs_dict.keys():
             pool_id = self.fs_dict[fs_id]['pool_id']
-            free_space = self._pool_free_space(pool_id)
+            free_space = self.pool_free_space(pool_id)
             if (free_space < new_size_bytes):
                 raise LsmError(ErrorNumber.SIZE_INSUFFICIENT_SPACE,
                                "Insufficient space in pool")
@@ -1547,7 +1547,7 @@ class SimData(object):
             #       in that case we will check whether
             #           total_space == pool_free_size(sim_pool['pool_id'])
             pool_id = sim_pool['pool_id']
-            if self._pool_free_space(pool_id) > 0:
+            if self.pool_free_space(pool_id) > 0:
                 free_sim_pools.extend([sim_pool])
         return sorted(
             free_sim_pools,
@@ -1774,7 +1774,7 @@ class SimData(object):
             else:
                 return None
 
-        free_size = self._pool_free_space(member_id)
+        free_size = self.pool_free_space(member_id)
         if free_size < size_bytes:
             raise LsmError(ErrorNumber.SIZE_INSUFFICIENT_SPACE,
                            "Pool %s does not have requested free" %
@@ -1979,7 +1979,7 @@ class SimData(object):
         if len(sim_pools) >= 1:
             for sim_pool in sim_pools:
                 pool_id = sim_pool['pool_id']
-                free_size = self._pool_free_space(pool_id)
+                free_size = self.pool_free_space(pool_id)
                 if free_size >= size_bytes:
                     return sim_pool
 
