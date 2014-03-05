@@ -34,6 +34,7 @@ from data import System, Volume, Disk, Pool, FileSystem, AccessGroup, \
 # Used for format width for disks
 D_FMT = 5
 
+
 class SimJob(object):
     """
     Simulates a longer running job, uses actual wall time.  If test cases
@@ -141,7 +142,7 @@ class SimArray(object):
     def _sim_vol_2_lsm(sim_vol):
         return Volume(sim_vol['vol_id'], sim_vol['name'], sim_vol['vpd83'],
                       SimData.SIM_DATA_BLK_SIZE,
-                      int(sim_vol['total_space']/SimData.SIM_DATA_BLK_SIZE),
+                      int(sim_vol['total_space'] / SimData.SIM_DATA_BLK_SIZE),
                       Volume.STATUS_OK, sim_vol['sys_id'],
                       sim_vol['pool_id'])
 
@@ -214,7 +215,8 @@ class SimArray(object):
         for sim_disk in sim_disks:
             disk = Disk(sim_disk['disk_id'], sim_disk['name'],
                         sim_disk['disk_type'], SimData.SIM_DATA_BLK_SIZE,
-                        int(sim_disk['total_space']/SimData.SIM_DATA_BLK_SIZE),
+                        int(sim_disk['total_space'] /
+                            SimData.SIM_DATA_BLK_SIZE),
                         Disk.STATUS_OK, sim_disk['sys_id'])
             rc.extend([disk])
         return SimArray._sort_by_id(rc)
@@ -762,7 +764,7 @@ class SimData(object):
               raid_type == Pool.RAID_TYPE_RAID10):
             if member_count % 2 == 1:
                 return 0
-            return int(all_size/2)
+            return int(all_size / 2)
         elif (raid_type == Pool.RAID_TYPE_RAID3 or
               raid_type == Pool.RAID_TYPE_RAID4 or
               raid_type == Pool.RAID_TYPE_RAID5):
@@ -772,7 +774,7 @@ class SimData(object):
         elif raid_type == Pool.RAID_TYPE_RAID50:
             if member_count < 6 or member_count % 2 == 1:
                 return 0
-            return int(all_size - member_size*2)
+            return int(all_size - member_size * 2)
         elif raid_type == Pool.RAID_TYPE_RAID6:
             if member_count < 4:
                 return 0
@@ -780,17 +782,17 @@ class SimData(object):
         elif raid_type == Pool.RAID_TYPE_RAID60:
             if member_count < 8 or member_count % 2 == 1:
                 return 0
-            return int(all_size - member_size*4)
+            return int(all_size - member_size * 4)
         elif raid_type == Pool.RAID_TYPE_RAID51:
             if member_count < 6 or member_count % 2 == 1:
                 return 0
-            return int(all_size/2 - member_size)
+            return int(all_size / 2 - member_size)
         elif raid_type == Pool.RAID_TYPE_RAID61:
             if member_count < 8 or member_count % 2 == 1:
                 return 0
             print "%s" % size_bytes_2_size_human(all_size)
             print "%s" % size_bytes_2_size_human(member_size)
-            return int(all_size/2 - member_size*2)
+            return int(all_size / 2 - member_size * 2)
         raise LsmError(ErrorNumber.INTERNAL_ERROR,
                        "_size_of_raid() got invalid raid type: " +
                        "%s(%d)" % (Pool.raid_type_to_str(raid_type),
