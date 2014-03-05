@@ -469,6 +469,9 @@ class ErrorNumber(object):
     UNSUPPORTED_PROVISIONING = 451
     UNSUPPORTED_REPLICATION_TYPE = 452
 
+    DISK_BUSY = 500
+    VOLUME_BUSY = 501
+
 
 class JobStatus(object):
     INPROGRESS = 1
