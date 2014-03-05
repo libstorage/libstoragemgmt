@@ -234,8 +234,8 @@ class IData(object):
             return self.value_convert(key_name, value, human, enum_as_number,
                                       list_convert)
 
-        elif hasattr(self, '_optional_data') and \
-                        key_name in opt_pros_header.keys():
+        elif (hasattr(self, '_optional_data') and
+              key_name in opt_pros_header.keys()):
             if key_name not in self._optional_data.list():
                 return None
 
@@ -752,6 +752,7 @@ class Pool(IData):
     RAID_TYPE_JBOD = 20
     RAID_TYPE_UNKNOWN = 21
     RAID_TYPE_NOT_APPLICABLE = 22
+    # NOT_APPLICABLE indicate current pool only has one member.
     RAID_TYPE_MIXED = 23
 
     # The string of each RAID_TYPE is for CIM_StorageSetting['ElementName']
@@ -819,23 +820,80 @@ class Pool(IData):
     MEMBER_TYPE_UNKNOWN = 0
     MEMBER_TYPE_DISK = 1
     MEMBER_TYPE_DISK_MIX = 10
-    MEMBER_TYPE_DISK_SAS = 11
+    MEMBER_TYPE_DISK_ATA = 11
     MEMBER_TYPE_DISK_SATA = 12
-    MEMBER_TYPE_DISK_SCSI = 13
-    MEMBER_TYPE_DISK_SSD = 14
-    MEMBER_TYPE_DISK_NL_SAS = 15
+    MEMBER_TYPE_DISK_SAS = 13
+    MEMBER_TYPE_DISK_FC = 14
+    MEMBER_TYPE_DISK_SOP = 15
+    MEMBER_TYPE_DISK_SCSI = 16
+    MEMBER_TYPE_DISK_NL_SAS = 17
+    MEMBER_TYPE_DISK_HDD = 18
+    MEMBER_TYPE_DISK_SSD = 19
+    MEMBER_TYPE_DISK_HYBRID = 110
+
     MEMBER_TYPE_POOL = 2
     MEMBER_TYPE_VOLUME = 3
+
+    _MEMBER_TYPE_2_DISK_TYPE = {
+        MEMBER_TYPE_DISK: Disk.DISK_TYPE_UNKNOWN,
+        MEMBER_TYPE_DISK_MIX: Disk.DISK_TYPE_UNKNOWN,
+        MEMBER_TYPE_DISK_ATA: Disk.DISK_TYPE_ATA,
+        MEMBER_TYPE_DISK_SATA: Disk.DISK_TYPE_SATA,
+        MEMBER_TYPE_DISK_SAS: Disk.DISK_TYPE_SAS,
+        MEMBER_TYPE_DISK_FC: Disk.DISK_TYPE_FC,
+        MEMBER_TYPE_DISK_SOP: Disk.DISK_TYPE_SOP,
+        MEMBER_TYPE_DISK_SCSI: Disk.DISK_TYPE_SCSI,
+        MEMBER_TYPE_DISK_NL_SAS: Disk.DISK_TYPE_NL_SAS,
+        MEMBER_TYPE_DISK_HDD: Disk.DISK_TYPE_HDD,
+        MEMBER_TYPE_DISK_SSD: Disk.DISK_TYPE_SSD,
+        MEMBER_TYPE_DISK_HYBRID: Disk.DISK_TYPE_HYBRID,
+    }
+
+    @staticmethod
+    def member_type_is_disk(member_type):
+        """
+        Returns True if defined 'member_type' is disk.
+        False when else.
+        """
+        if member_type in Pool._MEMBER_TYPE_2_DISK_TYPE.keys():
+            return True
+        return False
+
+    @staticmethod
+    def member_type_to_disk_type(member_type):
+        """
+        Convert member_type to disk_type.
+        For non-disk member, we return Disk.DISK_TYPE_NOT_APPLICABLE
+        """
+        if member_type in Pool._MEMBER_TYPE_2_DISK_TYPE.keys():
+            return Pool._MEMBER_TYPE_2_DISK_TYPE[member_type]
+        return Disk.DISK_TYPE_NOT_APPLICABLE
+
+    @staticmethod
+    def disk_type_to_member_type(disk_type):
+        """
+        Convert disk_type to Pool.MEMBER_TYPE_DISK_XXXX
+        Will return Pool.MEMBER_TYPE_DISK as failback.
+        """
+        key = get_key(Pool._MEMBER_TYPE_2_DISK_TYPE, disk_type)
+        if key or key == 0:
+            return key
+        return Pool.MEMBER_TYPE_DISK
 
     _MEMBER_TYPE = {
         MEMBER_TYPE_UNKNOWN: 'UNKNOWN',
         MEMBER_TYPE_DISK: 'DISK',       # Pool was created from Disk(s).
         MEMBER_TYPE_DISK_MIX: 'DISK_MIX',   # Has two or more types of disks.
-        MEMBER_TYPE_DISK_SAS: 'DISK_SAS',
+        MEMBER_TYPE_DISK_ATA: 'DISK_ATA',
         MEMBER_TYPE_DISK_SATA: 'DISK_SATA',
+        MEMBER_TYPE_DISK_SAS: 'DISK_SAS',
+        MEMBER_TYPE_DISK_FC: 'DISK_FC',
+        MEMBER_TYPE_DISK_SOP: 'DISK_SOP',
         MEMBER_TYPE_DISK_SCSI: 'DISK_SCSI',
-        MEMBER_TYPE_DISK_SSD: 'DISK_SSD',
         MEMBER_TYPE_DISK_NL_SAS: 'DISK_NL_SAS',
+        MEMBER_TYPE_DISK_HDD: 'DISK_HDD',
+        MEMBER_TYPE_DISK_SSD: 'DISK_SSD',
+        MEMBER_TYPE_DISK_HYBRID: 'DISK_HYBRID',
         MEMBER_TYPE_POOL: 'POOL',       # Pool was created from other Pool(s).
         MEMBER_TYPE_VOLUME: 'VOLUME',   # Pool was created from Volume(s).
     }
@@ -1425,31 +1483,43 @@ class Capabilities(IData):
 
     #Pool
     POOL_CREATE = 130
-    POOL_CREATE_THIN = 131
-    POOL_CREATE_THICK = 132
-    POOL_CREATE_RAID_TYPE = 133
-    POOL_CREATE_VIA_MEMBER_COUNT = 134
-    POOL_CREATE_VIA_MEMBER_IDS = 135
-    POOL_CREATE_MEMBER_TYPE_DISK = 136
-    POOL_CREATE_MEMBER_TYPE_POOL = 137
-    POOL_CREATE_MEMBER_TYPE_VOL = 138
+    POOL_CREATE_FROM_DISKS = 131
+    POOL_CREATE_FROM_VOLUMES = 132
+    POOL_CREATE_FROM_POOL = 133
 
-    POOL_CREATE_RAID_0 = 140
-    POOL_CREATE_RAID_1 = 141
-    POOL_CREATE_RAID_JBOD = 142
-    POOL_CREATE_RAID_3 = 143
-    POOL_CREATE_RAID_4 = 144
-    POOL_CREATE_RAID_5 = 145
-    POOL_CREATE_RAID_6 = 146
-    POOL_CREATE_RAID_10 = 147
-    POOL_CREATE_RAID_50 = 148
-    POOL_CREATE_RAID_51 = 149
-    POOL_CREATE_RAID_60 = 150
-    POOL_CREATE_RAID_61 = 151
-    POOL_CREATE_RAID_15 = 152
-    POOL_CREATE_RAID_16 = 153
+    POOL_CREATE_DISK_RAID_0 = 140
+    POOL_CREATE_DISK_RAID_1 = 141
+    POOL_CREATE_DISK_RAID_JBOD = 142
+    POOL_CREATE_DISK_RAID_3 = 143
+    POOL_CREATE_DISK_RAID_4 = 144
+    POOL_CREATE_DISK_RAID_5 = 145
+    POOL_CREATE_DISK_RAID_6 = 146
+    POOL_CREATE_DISK_RAID_10 = 147
+    POOL_CREATE_DISK_RAID_50 = 148
+    POOL_CREATE_DISK_RAID_51 = 149
+    POOL_CREATE_DISK_RAID_60 = 150
+    POOL_CREATE_DISK_RAID_61 = 151
+    POOL_CREATE_DISK_RAID_15 = 152
+    POOL_CREATE_DISK_RAID_16 = 153
+    POOL_CREATE_DISK_RAID_NOT_APPLICABLE = 154
 
-    POOL_DELETE = 160
+    POOL_CREATE_VOLUME_RAID_0 = 160
+    POOL_CREATE_VOLUME_RAID_1 = 161
+    POOL_CREATE_VOLUME_RAID_JBOD = 162
+    POOL_CREATE_VOLUME_RAID_3 = 163
+    POOL_CREATE_VOLUME_RAID_4 = 164
+    POOL_CREATE_VOLUME_RAID_5 = 165
+    POOL_CREATE_VOLUME_RAID_6 = 166
+    POOL_CREATE_VOLUME_RAID_10 = 167
+    POOL_CREATE_VOLUME_RAID_50 = 168
+    POOL_CREATE_VOLUME_RAID_51 = 169
+    POOL_CREATE_VOLUME_RAID_60 = 170
+    POOL_CREATE_VOLUME_RAID_61 = 171
+    POOL_CREATE_VOLUME_RAID_15 = 172
+    POOL_CREATE_VOLUME_RAID_16 = 173
+    POOL_CREATE_VOLUME_RAID_NOT_APPLICABLE = 174
+
+    POOL_DELETE = 200
 
     def to_dict(self):
         rc = {'class': self.__class__.__name__,
