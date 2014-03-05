@@ -2158,7 +2158,7 @@ class SimData(object):
             if len(sim_vols) >= 1:
                 member_ids = [v['vol_id'] for v in sim_vols]
                 sim_pool = self._pool_create_from_volumes(
-                    pool_name, member_ids, disk_raid_type, raise_error)
+                    pool_name, member_ids, vol_raid_type, raise_error)
                 if sim_pool:
                     return sim_pool
 
