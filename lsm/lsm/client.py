@@ -288,122 +288,123 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('pools', del_self(locals()))
 
+    ## Create new pool in user friendly way. Depending on this capability:
+    ##      Capabilities.POOL_CREATE
+    ## For plugin developer: this method require complex codes to chose
+    ## pool members, please refer to SimData.pool_create() in simarray.py for
+    ## sample codes.
     ## Return the newly created pool object.
-    ## When creating a pool, user are normally concern about these things:
-    ##  * Size
-    ##  * RAID level
-    ##  * Disk count # this determine the IOPS.
-    ##  * Disk type # SAS/SATA/SSD, this also determine the IOPS.
-    ## The pool_create() will create a pool with any/all of these info
-    ## provided and let the plugin/array guess out the rest.
-    ##
-    ## These are Capabilities indicate the support status of this method:
-    ## * Capabilities.POOL_CREATE
-    ##      Capabilities.POOL_CREATE is the priority 1 capability for
-    ##      pool_create(), without it, pool_create() is not supported at all.
-    ##      This call is mandatory:
-    ##          pool_create(system_id='system_id',
-    ##                      pool_name='pool_name',
-    ##                      size_bytes='size_bytes')
-    ##          Creates a pool with size bigger or equal to requested
-    ##          'size_bytes'.
-    ##
-    ## * Capabilities.POOL_CREATE_RAID_TYPE
-    ##      This capability indicate user add define RAID type/level when
-    ##      creating pool.
-    ##      Capabilities.POOL_CREATE_RAID_XX is for certain RAID type/level.
-    ##      This call is mandatory:
-    ##          pool_create(system_id='system_id',
-    ##                      pool_name='pool_name',
-    ##                      size_bytes='size_bytes',
-    ##                      raid_type='raid_type' )
-    ##          Creates a pool with requested RAID level and
-    ##          'size_bytes'.
-    ##          The new pool should holding size bigger or equal to
-    ##          requested 'size_bytes'.
-    ##
-    ## * Capabilities.POOL_CREATE_VIA_MEMBER_COUNT
-    ##      This capability require Capabilities.POOL_CREATE_RAID_TYPE.
-    ##      This capability allow user to define how many disk/volume/pool
-    ##      should be used to create new pool.
-    ##      This call is mandatory:
-    ##          pool_create(system_id='system_id',
-    ##                      pool_name='pool_name',
-    ##                      raid_type='raid_type' ,
-    ##                      member_count='member_count')
-    ##          Create a pool with requested more or equal count of
-    ##          disk/volume/pool as requested.
-    ##          For example, user can request a 8 disks RAID5 pool via
-    ##              pool_create(system_id='abc', pool_name='pool1',
-    ##                          member_count=8, raid_type=Pool.RAID_TYPE_RAID5)
-    ##
-    ## * POOL_CREATE_MEMBER_TYPE_DISK
-    ##      This capability require Capabilities.POOL_CREATE_RAID_TYPE
-    ##      and Capabilities.POOL_CREATE_VIA_MEMBER_COUNT
-    ##      This capability indicate user can define which type of Disk in
-    ##      could be used to create a pool in 'member_type'.
-    ##      These calls are mandatory:
-    ##          pool_create(system_id='system_id',
-    ##                      pool_name='pool_name',
-    ##                      raid_type='raid_type',
-    ##                      member_type='member_type',
-    ##                      member_count='member_count')
-    ##
-    ##          pool_create(system_id='system_id',
-    ##                      pool_name='pool_name',
-    ##                      size_bytes='size_bytes',
-    ##                      member_type='member_type')
-    ## * POOL_CREATE_VIA_MEMBER_IDS
-    ##      This capability require Capabilities.POOL_CREATE_RAID_TYPE
-    ##      This capability is used for advanced user who want to control
-    ##      which disks/volumes/pools will be used to create new pool.
-    ##      This call is mandatory:
-    ##          pool_create(system_id='system_id',
-    ##                      pool_name='pool name',
-    ##                      raid_type='# enumerated_type',
-    ##                      member_type='member_type',
-    ##                      member_ids=(member_ids))
-    ##  * Capabilities.POOL_CREATE_THIN or POOL_CREATE_THICK
-    ##      These capabilities indicate user can define thinp_type in
-    ##      pool_create().
-    # @param    self         The this pointer
-    # @param    system_id    ID of the system to create pool on.
-    # @param    pool_name    The name of requested new pool.
-    # @param    raid_type    The RAID type applied to members. Should be
-    #                        Data.Extent.RAID_TYPE_XXXX
-    # @param    member_type  Identify the type of member. Should be
-    #                        Data.Extent.MEMBER_TYPE_XXXX
-    # @param    member_ids   The array of IDs for pool members.
-    #                        Could be ID of disks/pools/volumes
-    # @param    member_count How many disk/volume/pool should plugin to chose
-    #                        if member_ids is not enough or not defined.
-    #                        If len(member_ids) is larger than member_count,
-    #                        will raise LsmError ErrorNumber.INVALID_ARGUMENT
-    # @param    size_bytes   Required pool size to create.
-    # @param    thinp_type   Pool.THINP_TYPE_UNKNOWN, or THINP_TYPE_THICK,
-    #                        or THINP_TYPE_THIN
-    # @param    flags        Reserved for future use, must be zero.
-    # @returns the newly created pool object.
-    def pool_create(self,
-                    system_id,
-                    pool_name='',
+    # @param    self        The this pointer
+    # @param    system_id   The id of system where new pool should reside.
+    # @param    pool_name   The name for new pool. Will not fail if created
+    #                       pool_name is not the same as requested.
+    # @param    size_bytes  The size in bytes for new pool.
+    #                       New pool can have equal or larger size than
+    #                       requested, but not less. Should larger than 0.
+    # @param    raid_type   Optional. If defined, new pool should using
+    #                       defined RAID type.
+    #                       When member_type was set to Pool.MEMBER_TYPE_POOL,
+    #                       only allowed raid_type is RAID_TYPE_UNKNOWN or
+    #                       RAID_TYPE_NOT_APPLICABLE
+    # @param    member_type Optional. If defined, new pool will be assembled
+    #                       by defined member types. For example;
+    #                       when member_type == Pool.MEMBER_TYPE_DISK_SAS,
+    #                       new pool will be created from SAS disks only.
+    # @param    flags       Reserved for future use.
+    # @returns  A tuple (job_id, new_pool), when one is None the other is
+    #           valid.
+    @return_requires(unicode, Pool)
+    def pool_create(self, system_id, pool_name, size_bytes,
                     raid_type=Pool.RAID_TYPE_UNKNOWN,
-                    member_type=Pool.MEMBER_TYPE_UNKNOWN,
-                    member_ids=None,
-                    member_count=0,
-                    size_bytes=0,
-                    thinp_type=Pool.THINP_TYPE_UNKNOWN,
-                    flags=0):
+                    member_type=Pool.MEMBER_TYPE_UNKNOWN, flags=0):
         """
         Returns the created new pool object.
         """
+        # TODO: check size_bytes larger than 0 and raise error.
         return self._tp.rpc('pool_create', del_self(locals()))
+
+    ## Create new pool in the hard way by defined what exactly disks should
+    ## be used. Depending on these capabilities:
+    ##      Capabilities.POOL_CREATE_FROM_DISKS
+    ## Return the newly created pool object with all supported optional data.
+    # @param    self        The this pointer
+    # @param    system_id   The id of system where new pool should reside.
+    # @param    pool_name   The name for new pool. Will not fail if created
+    #                       pool_name is not the same as requested.
+    # @param    member_ids  The ids of disks to create new pool.
+    #                       The new pool could contain more disks than
+    #                       requested due to internal needs, but if possible,
+    #                       new pool should only contain requested disks.
+    # @param    raid_type   The RAID level for new pool.
+    #                       Capabilities.POOL_CREATE_DISK_RAID_XXX will
+    #                       indicate the supported RAID level.
+    # @param    flags       Reserved for future use.
+    # @returns  A tuple (job_id, new_pool), when one is None the other is
+    #           valid.
+    @return_requires(unicode, Pool)
+    def pool_create_from_disks(self, system_id, pool_name, member_ids,
+                               raid_type, flags=0):
+        """
+        Creates pool from disks.
+        Returns the created new pool object.
+        """
+        return self._tp.rpc('pool_create_from_disks', del_self(locals()))
+
+    ## Create new pool in the hard way by defined what exactly volumes should
+    ## be used. Depending on these capabilities:
+    ##      Capabilities.POOL_CREATE_FROM_VOLUMES
+    ## Return the newly created pool object with all supported optional data.
+    # @param    self        The this pointer
+    # @param    system_id   The id of system where new pool should reside.
+    # @param    pool_name   The name for new pool. Will not fail if created
+    #                       pool_name is not the same as requested.
+    # @param    member_ids  The ids of volumes to create new pool.
+    #                       The new pool could contain more volumes than
+    #                       requested due to internal needs, but if possible,
+    #                       new pool should only contain requested volumes.
+    # @param    raid_type   The RAID level for new pool.
+    #                       Capabilities.POOL_CREATE_VOLUME_RAID_XXX will
+    #                       indicate the supported RAID level.
+    # @param    flags       Reserved for future use.
+    # @returns  A tuple (job_id, new_pool), when one is None the other is
+    #           valid.
+    @return_requires(unicode, Pool)
+    def pool_create_from_volumes(self, system_id, pool_name, member_ids,
+                                 raid_type, flags=0):
+        """
+        Creates pool from volumes.
+        Returns the created new pool object.
+        """
+        return self._tp.rpc('pool_create_from_volumes', del_self(locals()))
+
+    ## Create new pool in the hard way by defined what exactly pool should
+    ## be allocate space from. Depending on this capability:
+    ##      Capabilities.POOL_CREATE_FROM_POOL
+    ## Return the newly created pool object with all supported optional data.
+    # @param    self        The this pointer
+    # @param    system_id   The id of system where new pool should reside.
+    # @param    pool_name   The name for new pool. Will not fail if created
+    #                       pool_name is not the same as requested.
+    # @param    member_id   The id of pool to allocate space from for new pool.
+    # @param    size_bytes  The size of the new pool.
+    # @param    flags       Reserved for future use.
+    # @returns  A tuple (job_id, new_pool), when one is None the other is
+    #           valid.
+    @return_requires(unicode, Pool)
+    def pool_create_from_pool(self, system_id, pool_name, member_id,
+                              size_bytes, flags=0):
+        """
+        Creates pool from volumes.
+        Returns the created new pool object.
+        """
+        return self._tp.rpc('pool_create_from_pool', del_self(locals()))
 
     ## Remove a pool. This method depend on Capabilities.POOL_DELETE
     # @param    self        The this pointer
     # @param    pool        The pool object
     # @param    flags       Reserved for future use, must be zero.
     # @returns None on success, else job id.  Raises LsmError on errors.
+    @return_requires(unicode)
     def pool_delete(self, pool, flags=0):
         """
         Return None on success, else job id. Raises LsmError on errors.
