@@ -16,7 +16,7 @@
 # Author: tasleson
 
 from common import uri_parse
-from data import Capabilities
+from data import Capabilities, Pool
 from iplugin import INfs, IStorageAreaNetwork
 from version import VERSION
 from simarray import SimArray
@@ -86,8 +86,32 @@ class SimPlugin(INfs, IStorageAreaNetwork):
         return [SimPlugin._sim_data_2_lsm(s) for s in sim_syss]
 
     def pools(self, flags=0):
-        sim_pools = self.sim_array.pools()
+        sim_pools = self.sim_array.pools(flags)
         return [SimPlugin._sim_data_2_lsm(p) for p in sim_pools]
+
+    def pool_create(self, system_id, pool_name, size_bytes,
+                    raid_type=Pool.RAID_TYPE_UNKNOWN,
+                    member_type=Pool.MEMBER_TYPE_UNKNOWN, flags=0):
+        return self.sim_array.pool_create(
+            system_id, pool_name, size_bytes, raid_type, member_type, flags)
+
+    def pool_create_from_disks(self, system_id, pool_name, member_ids,
+                               raid_type, flags=0):
+        return self.sim_array.pool_create_from_disks(
+            system_id, pool_name, member_ids, raid_type, flags)
+
+    def pool_create_from_volumes(self, system_id, pool_name, member_ids,
+                                 raid_type, flags=0):
+        return self.sim_array.pool_create_from_volumes(
+            system_id, pool_name, member_ids, raid_type, flags)
+
+    def pool_create_from_pool(self, system_id, pool_name, member_id,
+                              size_bytes, flags=0):
+        return self.sim_array.pool_create_from_pool(
+            system_id, pool_name, member_id, size_bytes, flags)
+
+    def pool_delete(self, pool, flags=0):
+        return self.sim_array.pool_delete(pool.id, flags)
 
     def volumes(self, flags=0):
         sim_vols = self.sim_array.volumes()
@@ -142,8 +166,8 @@ class SimPlugin(INfs, IStorageAreaNetwork):
 
     def access_group_create(self, name, initiator_id, id_type, system_id,
                             flags=0):
-        sim_ag = self.sim_array.access_group_create(name, initiator_id,
-            id_type, system_id, flags)
+        sim_ag = self.sim_array.access_group_create(
+            name, initiator_id, id_type, system_id, flags)
         return SimPlugin._sim_data_2_lsm(sim_ag)
 
     def access_group_del(self, group, flags=0):
@@ -281,4 +305,3 @@ class SimPlugin(INfs, IStorageAreaNetwork):
 
     def export_remove(self, export, flags=0):
         return self.sim_array.fs_unexport(export.id, flags)
-
