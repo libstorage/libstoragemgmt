@@ -33,7 +33,6 @@ class SmisProxy(common.Proxy):
     def plugin_info(self, flags=0):
         return "Generic SMI-S support", VERSION
 
-
     def startup(self, uri, password, timeout, flags=0):
         """
         We will provide a concrete implementation of this to get the process

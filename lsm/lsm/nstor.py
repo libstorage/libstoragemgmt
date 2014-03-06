@@ -644,7 +644,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             self._request("create_initiator", "iscsitarget",
                           [initiator.name,
                            {'initiatorchapuser': in_user,
-                           'initiatorchapsecret': in_password}])
+                            'initiatorchapsecret': in_password}])
         except:
             self._request("modify_initiator", "iscsitarget",
                           [initiator.name,

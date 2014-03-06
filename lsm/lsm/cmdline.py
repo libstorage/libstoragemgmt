@@ -1648,7 +1648,7 @@ class CmdLine:
                 args.member_type)
             if member_type == data.Pool.MEMBER_TYPE_UNKNOWN:
                 raise ArgError("Unkonwn member type specified: %s" %
-                                args.member_type)
+                               args.member_type)
 
         pool = self._wait_for_it("pool-create",
                                  *self.c.pool_create(self.args.sys,

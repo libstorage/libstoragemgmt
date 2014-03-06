@@ -332,7 +332,8 @@ class IbmV7k(IStorageAreaNetwork):
         except LsmError as le:
             if le.code == ErrorNumber.NOT_FOUND_INITIATOR:
                 # Auto add the initiator
-                exit_code, stdout, stderr = self._initiator_create(init_id, init_type)
+                exit_code, stdout, stderr = self._initiator_create(init_id,
+                                                                   init_type)
                 if self._initiator_create_is_success(stdout):
                     # If success, get the v7k id for the new init
                     # This should not cause an exception this time!
@@ -378,7 +379,8 @@ class IbmV7k(IStorageAreaNetwork):
         self.tmo = timeout
         self.up = uri_parse(uri)
 
-        self.ssh = SSHClient(self.up['host'], self.up['username'], self.password, self.tmo)
+        self.ssh = SSHClient(self.up['host'], self.up['username'],
+                             self.password, self.tmo)
 
         si = self._get_system_info()
         self.sys_info = System(si['id'], si['name'], System.STATUS_OK)
@@ -386,7 +388,8 @@ class IbmV7k(IStorageAreaNetwork):
     def set_time_out(self, ms, flags=0):
         self.tmo = ms
         self.ssh.close()
-        self.ssh = SSHClient(self.up['host'], self.up['username'], self.password, self.tmo)
+        self.ssh = SSHClient(self.up['host'], self.up['username'],
+                             self.password, self.tmo)
 
     def get_time_out(self, flags=0):
         return self.tmo
@@ -495,8 +498,10 @@ class IbmV7k(IStorageAreaNetwork):
             raise LsmError(ErrorNumber.NO_SUPPORT,
                            "Only RW access to the volume is supported")
 
-        exit_code, stdout, stderr = self._initiator_grant(initiator_id, initiator_type,
-                                           volume.id, force=True)
+        exit_code, stdout, stderr = self._initiator_grant(initiator_id,
+                                                          initiator_type,
+                                                          volume.id,
+                                                          force=True)
         return self._initiator_grant_is_success(stdout)
 
     def initiator_revoke(self, initiator, volume, flags=0):
