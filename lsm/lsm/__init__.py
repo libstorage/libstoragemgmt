@@ -14,7 +14,7 @@ from common import Error, Info, SocketEOF, LsmError, ErrorLevel, \
     ErrorNumber, JobStatus
 from data import DataEncoder, DataDecoder, IData, Initiator, Disk, \
     Volume, Pool, System, FileSystem, Snapshot, NfsExport, BlockRange, \
-    AccessGroup, OptionalData
+    AccessGroup, OptionalData, Capabilities
 from iplugin import IPlugin, IStorageAreaNetwork, INetworkAttachedStorage, \
     INfs
 
