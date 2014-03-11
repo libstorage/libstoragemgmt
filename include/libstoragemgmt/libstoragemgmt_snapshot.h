@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -29,8 +29,9 @@ extern "C" {
 /**
  * Frees a snapshot record.
  * @param ss    Snapshot record
+ * @return LSM_ERR_OK on success, else error reason.
  */
-void LSM_DLL_EXPORT lsmSsRecordFree(lsmSs *ss);
+int LSM_DLL_EXPORT lsmSsRecordFree(lsmSs *ss);
 
 /**
  * Copies a snapshot record.
@@ -43,8 +44,9 @@ lsmSs LSM_DLL_EXPORT *lsmSsRecordCopy(lsmSs *source);
  * Frees an array of snapshot record.
  * @param ss        An array of snapshot record pointers.
  * @param size      Number of snapshot records.
+ * @return LSM_ERR_OK on success, else error reason.
  */
-void LSM_DLL_EXPORT lsmSsRecordFreeArray(lsmSs *ss[], uint32_t size);
+int LSM_DLL_EXPORT lsmSsRecordArrayFree(lsmSs *ss[], uint32_t size);
 
 /**
  * Returns the snapshot id.

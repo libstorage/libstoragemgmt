@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -139,8 +139,9 @@ typedef enum {
 /**
  * Free the memory used by the storage capabilities data structure
  * @param cap   Valid storage capability data structure.
+ * @return LSM_ERR_OK on success, else error reason.
  */
-void LSM_DLL_EXPORT lsmCapabilityRecordFree(lsmStorageCapabilities *cap);
+int LSM_DLL_EXPORT lsmCapabilityRecordFree(lsmStorageCapabilities *cap);
 
 /**
  * Return the capability for the specified feature.

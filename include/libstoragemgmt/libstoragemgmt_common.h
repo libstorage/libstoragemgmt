@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -71,7 +71,8 @@ lsmStringList LSM_DLL_EXPORT *lsmStringListCopy(lsmStringList *src);
  * @param value     Value to use for assignment
  * @return LSM_ERR_OK on success, else error reason
  */
-int LSM_DLL_EXPORT lsmStringListSetElem(lsmStringList *sl, uint32_t index, const char* value);
+int LSM_DLL_EXPORT lsmStringListElemSet(lsmStringList *sl, uint32_t index,
+                                        const char* value);
 
 /**
  * Returns the value at the specified elem index
@@ -79,7 +80,8 @@ int LSM_DLL_EXPORT lsmStringListSetElem(lsmStringList *sl, uint32_t index, const
  * @param index     Index to retrieve
  * @return Value at that index position.
  */
-const char LSM_DLL_EXPORT *lsmStringListGetElem(lsmStringList *sl, uint32_t index);
+const char LSM_DLL_EXPORT *lsmStringListElemGet(lsmStringList *sl,
+                                                uint32_t index);
 
 /**
  * Returns the size of the list
@@ -99,12 +101,15 @@ uint32_t LSM_DLL_EXPORT lsmStringListSize(lsmStringList *sl);
 int LSM_DLL_EXPORT lsmStringListAppend(lsmStringList *sl, const char* add);
 
 /**
- * Removes the string at the specified index.
+ * Deletes the string at the specified index.
+ * NOTE: The elements after this one are moved down, thus if you wanted to
+ * iterate over the list deleting each element one by one you need to do so in
+ * reverse order.
  * @param sl            String list to remove item from
  * @param index         Specified index
  * @return LSM_ERR_OK on success, else error reason
  */
-int LSM_DLL_EXPORT lsmStringListRemove(lsmStringList *sl, uint32_t index);
+int LSM_DLL_EXPORT lsmStringListDelete(lsmStringList *sl, uint32_t index);
 
 
 

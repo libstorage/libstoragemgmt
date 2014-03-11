@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -29,8 +29,9 @@ extern "C" {
 /**
  * Frees the memory fro an individual volume
  * @param v     Volume pointer to free.
+ * @return LSM_ERR_OK on success, else error reason.
  */
-void LSM_DLL_EXPORT lsmVolumeRecordFree(lsmVolume *v);
+int LSM_DLL_EXPORT lsmVolumeRecordFree(lsmVolume *v);
 
 /**
  * Copies a volume record structure.
@@ -43,8 +44,9 @@ lsmVolume LSM_DLL_EXPORT *lsmVolumeRecordCopy(lsmVolume *vol);
  * Frees the memory for each of the volume records and then the array itself.
  * @param init  Array to free.
  * @param size  Size of array.
+ * @return LSM_ERR_OK on success, else error reason.
  */
-void LSM_DLL_EXPORT lsmVolumeRecordFreeArray( lsmVolume *init[], uint32_t size);
+int LSM_DLL_EXPORT lsmVolumeRecordArrayFree( lsmVolume *init[], uint32_t size);
 
 /**
  * Retrieves the volume id.

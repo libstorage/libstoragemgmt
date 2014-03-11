@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -205,7 +205,7 @@ int lsmConnectClose(lsmConnect *c, lsmFlag_t flags)
     return rc;
 }
 
-int lsmPluginGetInfo(lsmConnect *c, char **desc,
+int lsmPluginInfoGet(lsmConnect *c, char **desc,
                                         char **version, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
@@ -250,7 +250,7 @@ int lsmPluginGetInfo(lsmConnect *c, char **desc,
     return rc;
 }
 
-int lsmGetAvailablePlugins(const char *sep,
+int lsmAvailablePluginsList(const char *sep,
                                             lsmStringList **plugins,
                                             lsmFlag_t flags)
 {
@@ -289,7 +289,7 @@ int lsmGetAvailablePlugins(const char *sep,
                     rc = loadDriver(c, dp->d_name, NULL, 30000, &e, 0, 0);
                     if( LSM_ERR_OK == rc) {
                         // Get the plugin information
-                        rc = lsmPluginGetInfo(c, &desc, &version, 0);
+                        rc = lsmPluginInfoGet(c, &desc, &version, 0);
                         if( LSM_ERR_OK == rc) {
                             int format = asprintf(&s, "%s%s%s", desc, sep, version);
                             free(desc);
@@ -351,7 +351,7 @@ int lsmGetAvailablePlugins(const char *sep,
     return rc;
 }
 
-int lsmConnectSetTimeout(lsmConnect *c, uint32_t timeout, lsmFlag_t flags)
+int lsmConnectTimeoutSet(lsmConnect *c, uint32_t timeout, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -369,7 +369,7 @@ int lsmConnectSetTimeout(lsmConnect *c, uint32_t timeout, lsmFlag_t flags)
     return rpc(c, "set_time_out", parameters, response);
 }
 
-int lsmConnectGetTimeout(lsmConnect *c, uint32_t *timeout, lsmFlag_t flags)
+int lsmConnectTimeoutGet(lsmConnect *c, uint32_t *timeout, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
     CONN_SETUP(c);
@@ -616,7 +616,7 @@ int lsmPoolList(lsmConnect *c, lsmPool **poolArray[],
             *count = pools.size();
 
             if( pools.size() ) {
-                *poolArray = lsmPoolRecordAllocArray(pools.size());
+                *poolArray = lsmPoolRecordArrayAlloc(pools.size());
 
                 for( size_t i = 0; i < pools.size(); ++i ) {
                     (*poolArray)[i] = valueToPool(pools[i]);
@@ -627,7 +627,7 @@ int lsmPoolList(lsmConnect *c, lsmPool **poolArray[],
         rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
                             ve.what());
         if( *poolArray && *count ) {
-            lsmPoolRecordFreeArray(*poolArray, *count);
+            lsmPoolRecordArrayFree(*poolArray, *count);
             *poolArray = NULL;
             *count = 0;
         }
@@ -646,7 +646,7 @@ static int get_initiator_array(lsmConnect *c, int rc, Value &response,
 
             if( inits.size() ) {
 
-                *initiators = lsmInitiatorRecordAllocArray(inits.size());
+                *initiators = lsmInitiatorRecordArrayAlloc(inits.size());
 
                 if( *initiators ) {
                     for( size_t i = 0; i < inits.size(); ++i ) {
@@ -659,7 +659,7 @@ static int get_initiator_array(lsmConnect *c, int rc, Value &response,
         }
     } catch ( const ValueException &ve ) {
         if( *initiators && *count ) {
-            lsmInitiatorRecordFreeArray(*initiators, *count);
+            lsmInitiatorRecordArrayFree(*initiators, *count);
             *initiators = NULL;
             *count = 0;
         }
@@ -699,7 +699,7 @@ static int get_volume_array(lsmConnect *c, int rc, Value response,
             *count = vol.size();
 
             if( vol.size() ) {
-                *volumes = lsmVolumeRecordAllocArray(vol.size());
+                *volumes = lsmVolumeRecordArrayAlloc(vol.size());
 
                 if( *volumes ){
                     for( size_t i = 0; i < vol.size(); ++i ) {
@@ -712,7 +712,7 @@ static int get_volume_array(lsmConnect *c, int rc, Value response,
         }
     } catch( const ValueException &ve) {
         if( *volumes && *count ) {
-            lsmVolumeRecordFreeArray(*volumes, *count);
+            lsmVolumeRecordArrayFree(*volumes, *count);
             *volumes = NULL;
             *count = 0;
         }
@@ -753,7 +753,7 @@ static int get_disk_array(lsmConnect *c, int rc, Value &response,
             *count = d.size();
 
             if( d.size() ) {
-                *disks = lsmDiskRecordAllocArray(d.size());
+                *disks = lsmDiskRecordArrayAlloc(d.size());
 
                 if( *disks ){
                     for( size_t i = 0; i < d.size(); ++i ) {
@@ -768,7 +768,7 @@ static int get_disk_array(lsmConnect *c, int rc, Value &response,
         rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
                             ve.what());
         if( *disks && *count ) {
-            lsmDiskRecordFreeArray(*disks, *count);
+            lsmDiskRecordArrayFree(*disks, *count);
             *disks = NULL;
             *count = 0;
         }
@@ -1268,7 +1268,7 @@ int lsmAccessGroupCreate(lsmConnect *c, const char *name,
     return rc;
 }
 
-int lsmAccessGroupDel(lsmConnect *c, lsmAccessGroup *group, lsmFlag_t flags)
+int lsmAccessGroupDelete(lsmConnect *c, lsmAccessGroup *group, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 
@@ -1290,7 +1290,7 @@ int lsmAccessGroupDel(lsmConnect *c, lsmAccessGroup *group, lsmFlag_t flags)
     return rpc(c, "access_group_del", parameters, response);
 }
 
-int lsmAccessGroupAddInitiator(lsmConnect *c,
+int lsmAccessGroupInitiatorAdd(lsmConnect *c,
                                 lsmAccessGroup *group,
                                 const char *initiator_id,
                                 lsmInitiatorType id_type,
@@ -1319,7 +1319,7 @@ int lsmAccessGroupAddInitiator(lsmConnect *c,
     return rpc(c, "access_group_add_initiator", parameters, response);
 }
 
-int lsmAccessGroupDelInitiator(lsmConnect *c, lsmAccessGroup *group,
+int lsmAccessGroupInitiatorDelete(lsmConnect *c, lsmAccessGroup *group,
                                 const char* initiator_id, lsmFlag_t flags)
 {
     CONN_SETUP(c);
@@ -1435,7 +1435,7 @@ int lsmVolumesAccessibleByAccessGroup(lsmConnect *c,
             *count = vol.size();
 
             if( vol.size() ) {
-                *volumes = lsmVolumeRecordAllocArray(vol.size());
+                *volumes = lsmVolumeRecordArrayAlloc(vol.size());
 
                 for( size_t i = 0; i < vol.size(); ++i ) {
                     (*volumes)[i] = valueToVolume(vol[i]);
@@ -1446,7 +1446,7 @@ int lsmVolumesAccessibleByAccessGroup(lsmConnect *c,
         rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
                             ve.what());
         if( *volumes && *count ) {
-            lsmVolumeRecordFreeArray(*volumes, *count);
+            lsmVolumeRecordArrayFree(*volumes, *count);
             *volumes = NULL;
             *count = 0;
         }
@@ -1569,13 +1569,13 @@ int lsmSystemList(lsmConnect *c, lsmSystem **systems[],
             *systemCount = sys.size();
 
             if( sys.size() ) {
-                *systems = lsmSystemRecordAllocArray(sys.size());
+                *systems = lsmSystemRecordArrayAlloc(sys.size());
 
                 if( *systems ) {
                     for( size_t i = 0; i < sys.size(); ++i ) {
                         (*systems)[i] = valueToSystem(sys[i]);
                         if( !(*systems)[i] ) {
-                            lsmSystemRecordFreeArray(*systems, i);
+                            lsmSystemRecordArrayFree(*systems, i);
                             rc = LSM_ERR_NO_MEMORY;
                             break;
                         }
@@ -1589,7 +1589,7 @@ int lsmSystemList(lsmConnect *c, lsmSystem **systems[],
         rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
                             ve.what());
         if( *systems ) {
-            lsmSystemRecordFreeArray( *systems, *systemCount);
+            lsmSystemRecordArrayFree( *systems, *systemCount);
             *systems = NULL;
             *systemCount = 0;
         }
@@ -1620,7 +1620,7 @@ int lsmFsList(lsmConnect *c, lsmFs **fs[], uint32_t *fsCount,
             *fsCount = sys.size();
 
             if( sys.size() ) {
-                *fs = lsmFsRecordAllocArray(sys.size());
+                *fs = lsmFsRecordArrayAlloc(sys.size());
 
                 if( *fs ) {
                     for( size_t i = 0; i < sys.size(); ++i ) {
@@ -1635,7 +1635,7 @@ int lsmFsList(lsmConnect *c, lsmFs **fs[], uint32_t *fsCount,
         rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
                             ve.what());
         if( *fs && *fsCount) {
-            lsmFsRecordFreeArray(*fs, *fsCount);
+            lsmFsRecordArrayFree(*fs, *fsCount);
             *fs = NULL;
             *fsCount = 0;
         }
@@ -1900,7 +1900,7 @@ int lsmFsSsList(lsmConnect *c, lsmFs *fs, lsmSs **ss[],
             *ssCount = sys.size();
 
             if( sys.size() ) {
-                *ss = lsmSsRecordAllocArray(sys.size());
+                *ss = lsmSsRecordArrayAlloc(sys.size());
 
                 if( *ss ) {
                     for( size_t i = 0; i < sys.size(); ++i ) {
@@ -1915,7 +1915,7 @@ int lsmFsSsList(lsmConnect *c, lsmFs *fs, lsmSs **ss[],
         rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
                             ve.what());
         if( *ss && *ssCount ) {
-            lsmSsRecordFreeArray(*ss, *ssCount);
+            lsmSsRecordArrayFree(*ss, *ssCount);
             *ss = NULL;
             *ssCount = 0;
         }
@@ -2060,7 +2060,7 @@ int lsmNfsList( lsmConnect *c, lsmNfsExport **exports[], uint32_t *count,
             *count = exps.size();
 
             if( *count ) {
-                *exports = lsmNfsExportRecordAllocArray(*count);
+                *exports = lsmNfsExportRecordArrayAlloc(*count);
 
                 if( *exports ) {
                     for( size_t i = 0; i < *count; ++i ) {
@@ -2075,7 +2075,7 @@ int lsmNfsList( lsmConnect *c, lsmNfsExport **exports[], uint32_t *count,
         rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
                             ve.what());
         if( *exports && *count ) {
-            lsmNfsExportRecordFreeArray( *exports, *count );
+            lsmNfsExportRecordArrayFree( *exports, *count );
             *exports = NULL;
             *count = 0;
         }
@@ -2145,7 +2145,7 @@ int lsmNfsExportFs( lsmConnect *c,
     return rc;
 }
 
-int lsmNfsExportRemove( lsmConnect *c, lsmNfsExport *e, lsmFlag_t flags)
+int lsmNfsExportDelete( lsmConnect *c, lsmNfsExport *e, lsmFlag_t flags)
 {
     CONN_SETUP(c);
 

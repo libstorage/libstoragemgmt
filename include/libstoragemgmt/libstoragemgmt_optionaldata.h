@@ -30,8 +30,9 @@ extern "C" {
 /**
  * Free a optional data record
  * @param op    Record to free.
+ * @return LSM_ERR_OK on success, else error reason.
  */
-void LSM_DLL_EXPORT lsmOptionalDataRecordFree(lsmOptionalData *op);
+int LSM_DLL_EXPORT lsmOptionalDataRecordFree(lsmOptionalData *op);
 
 /**
  * Get the list of 'keys' available in the optional data

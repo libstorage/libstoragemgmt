@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -31,14 +31,16 @@ extern "C" {
  * Frees the memory for each of the pools and then the pool array itself.
  * @param pa    Pool array to free.
  * @param size  Size of the pool array.
+ * @return LSM_ERR_OK on success, else error reason.
  */
-void LSM_DLL_EXPORT lsmPoolRecordFreeArray( lsmPool *pa[], uint32_t size );
+int LSM_DLL_EXPORT lsmPoolRecordArrayFree( lsmPool *pa[], uint32_t size );
 
 /**
  * Frees the memory for an individual pool
  * @param p Valid pool
+ * @return LSM_ERR_OK on success, else error reason.
  */
-void LSM_DLL_EXPORT lsmPoolRecordFree(lsmPool *p);
+int LSM_DLL_EXPORT lsmPoolRecordFree(lsmPool *p);
 
 /**
  * Copies a lsmPoolRecordCopy

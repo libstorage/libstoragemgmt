@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -40,8 +40,9 @@ lsmBlockRange LSM_DLL_EXPORT *lsmBlockRangeRecordAlloc(uint64_t source_start,
 /**
  * Frees a block range record.
  * @param br        Block range to free
+ * @return LSM_ERR_OK on success, else error reason.
  */
-void LSM_DLL_EXPORT lsmBlockRangeRecordFree( lsmBlockRange *br);
+int LSM_DLL_EXPORT lsmBlockRangeRecordFree( lsmBlockRange *br);
 
 
 /**
@@ -57,15 +58,16 @@ lsmBlockRange LSM_DLL_EXPORT *lsmBlockRangeRecordCopy( lsmBlockRange *source );
  * @param size                  Number of elements to store.
  * @return  Pointer to memory for array of block ranges.
  */
-lsmBlockRange LSM_DLL_EXPORT **lsmBlockRangeRecordAllocArray( uint32_t size );
+lsmBlockRange LSM_DLL_EXPORT **lsmBlockRangeRecordArrayAlloc( uint32_t size );
 
 
 /**
  * Frees the memory for the array and all records contained in it.
  * @param br                    Array of block ranges to free
  * @param size                  Number of elements in array.
+ * @return LSM_ERR_OK on success, else error reason.
  */
-void LSM_DLL_EXPORT lsmBlockRangeRecordFreeArray( lsmBlockRange *br[],
+int LSM_DLL_EXPORT lsmBlockRangeRecordArrayFree( lsmBlockRange *br[],
                                                     uint32_t size );
 
 /**

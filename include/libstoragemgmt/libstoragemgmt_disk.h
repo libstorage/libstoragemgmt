@@ -30,9 +30,9 @@ extern "C" {
 /**
  * Free the memory for a disk record
  * @param d     Disk memory to free
- * @return None
+ * @return LSM_ERR_OK on success, else error reason.
  */
-void LSM_DLL_EXPORT lsmDiskRecordFree(lsmDisk *d);
+int LSM_DLL_EXPORT lsmDiskRecordFree(lsmDisk *d);
 
 /**
  * Copy a disk record
@@ -45,9 +45,9 @@ lsmDisk LSM_DLL_EXPORT *lsmDiskRecordCopy(lsmDisk *d);
  * Free an array of disk records
  * @param disk      Array of disk records
  * @param size      Size of disk array
- * @return None
+ * @return LSM_ERR_OK on success, else error reason.
  */
-void LSM_DLL_EXPORT lsmDiskRecordFreeArray( lsmDisk *disk[], uint32_t size);
+int LSM_DLL_EXPORT lsmDiskRecordArrayFree( lsmDisk *disk[], uint32_t size);
 
 /**
  * Returns the disk id

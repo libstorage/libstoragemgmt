@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -38,15 +38,17 @@ lsmSystem *lsmSystemRecordCopy(lsmSystem *s);
 /**
  * Frees the resources for a lsmSystem
  * @param s Record to release
+ * @return LSM_ERR_OK on success, else error reason.
  */
-void LSM_DLL_EXPORT lsmSystemRecordFree(lsmSystem *s);
+int LSM_DLL_EXPORT lsmSystemRecordFree(lsmSystem *s);
 
 /**
  * Frees the resources for an array for lsmSystem
  * @param s     Array to release memory for
  * @param size  Number of elements.
- */
-void LSM_DLL_EXPORT lsmSystemRecordFreeArray(lsmSystem *s[], uint32_t size );
+ * @return LSM_ERR_OK on success, else error reason.
+ *  */
+int LSM_DLL_EXPORT lsmSystemRecordArrayFree(lsmSystem *s[], uint32_t size );
 
 /**
  * Retrieve the Id for the system.

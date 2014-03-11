@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -62,21 +62,23 @@ lsmNfsExport LSM_DLL_EXPORT * lsmNfsExportRecordAlloc( const char *id,
  * @param size          Number of elements
  * @return Allocated memory, NULL on error
  */
-lsmNfsExport LSM_DLL_EXPORT **lsmNfsExportRecordAllocArray( uint32_t size );
+lsmNfsExport LSM_DLL_EXPORT **lsmNfsExportRecordArrayAlloc( uint32_t size );
 
 
 /**
  * Frees the memory for a NFS export record.
  * @param exp
+ * @return LSM_ERR_OK on success, else error reason.
  */
-void LSM_DLL_EXPORT lsmNfsExportRecordFree( lsmNfsExport *exp );
+int LSM_DLL_EXPORT lsmNfsExportRecordFree( lsmNfsExport *exp );
 
 /**
  * Frees the memory for the NFS export array and the memory for each entry
  * @param exps          Memory to free
  * @param size          Number of entries
- */
-void LSM_DLL_EXPORT lsmNfsExportRecordFreeArray( lsmNfsExport *exps[],
+ * @return LSM_ERR_OK on success, else error reason.
+ *  */
+int LSM_DLL_EXPORT lsmNfsExportRecordArrayFree( lsmNfsExport *exps[],
                                                     uint32_t size);
 
 /**

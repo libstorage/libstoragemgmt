@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -31,15 +31,17 @@ extern "C" {
 /**
  * Frees the resources for an access group.
  * @param group     Group to free
+ * @return LSM_ERR_OK on success, else error reason.
  */
-void LSM_DLL_EXPORT lsmAccessGroupRecordFree( lsmAccessGroup *group );
+int LSM_DLL_EXPORT lsmAccessGroupRecordFree( lsmAccessGroup *group );
 
 /**
  * Frees the resources for an array of access groups.
  * @param ag        Array of access groups to free resources for
  * @param size      Number of elements in the array.
+ * @return LSM_ERR_OK on success, else error reason.
  */
-void LSM_DLL_EXPORT lsmAccessGroupRecordFreeArray( lsmAccessGroup *ag[], uint32_t size );
+int LSM_DLL_EXPORT lsmAccessGroupRecordArrayFree( lsmAccessGroup *ag[], uint32_t size );
 
 /**
  * Copies an access group.

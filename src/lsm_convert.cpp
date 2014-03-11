@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -223,7 +223,7 @@ lsmStringList *valueToStringList(Value &v)
 
         if( il ) {
             for( uint32_t i = 0; i < size; ++i ) {
-                if(LSM_ERR_OK != lsmStringListSetElem(il, i, vl[i].asC_str())){
+                if(LSM_ERR_OK != lsmStringListElemSet(il, i, vl[i].asC_str())){
                     lsmStringListFree(il);
                     il = NULL;
                     break;
@@ -241,7 +241,7 @@ Value stringListToValue( lsmStringList *sl)
         uint32_t size = lsmStringListSize(sl);
 
         for(uint32_t i = 0; i < size; ++i ) {
-            rc.push_back(Value(lsmStringListGetElem(sl, i)));
+            rc.push_back(Value(lsmStringListElemGet(sl, i)));
         }
     }
     return Value(rc);
@@ -292,13 +292,13 @@ lsmAccessGroup **valueToAccessGroupList( Value &group, uint32_t *count )
     *count = ag.size();
 
     if( *count ) {
-        rc = lsmAccessGroupRecordAllocArray(*count);
+        rc = lsmAccessGroupRecordArrayAlloc(*count);
         if( rc ) {
             uint32_t i;
             for(i = 0; i < *count; ++i ) {
                 rc[i] = valueToAccessGroup(ag[i]);
                 if( !rc[i] ) {
-                    lsmAccessGroupRecordFreeArray(rc, i);
+                    lsmAccessGroupRecordArrayFree(rc, i);
                     rc = NULL;
                     break;
                 }
@@ -353,12 +353,12 @@ lsmBlockRange **valueToBlockRangeList(Value &brl, uint32_t *count)
     std::vector<Value> r = brl.asArray();
     *count = r.size();
     if( *count ) {
-        rc = lsmBlockRangeRecordAllocArray(*count);
+        rc = lsmBlockRangeRecordArrayAlloc(*count);
         if( rc ) {
             for( uint32_t i = 0; i < *count; ++i ) {
                 rc[i] = valueToBlockRange(r[i]);
                 if( !rc[i] ) {
-                    lsmBlockRangeRecordFreeArray(rc, i);
+                    lsmBlockRangeRecordArrayFree(rc, i);
                     rc = NULL;
                     break;
                 }

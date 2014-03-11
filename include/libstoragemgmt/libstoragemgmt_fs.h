@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -29,8 +29,9 @@ extern "C" {
 /**
  * Frees a File system record
  * @param fs    File system to free.
+ * @return LSM_ERR_OK on success, else error reason.
  */
-void LSM_DLL_EXPORT lsmFsRecordFree(lsmFs *fs);
+int LSM_DLL_EXPORT lsmFsRecordFree(lsmFs *fs);
 
 /**
  * Copies a file system record.
@@ -43,8 +44,9 @@ lsmFs LSM_DLL_EXPORT *lsmFsRecordCopy(lsmFs *source);
  * Frees an array of file system records
  * @param fs        Array of file system record pointers
  * @param size      Number in array to free
+ * @return LSM_ERR_OK on success, else error reason.
  */
-void LSM_DLL_EXPORT lsmFsRecordFreeArray(lsmFs * fs[], uint32_t size);
+int LSM_DLL_EXPORT lsmFsRecordArrayFree(lsmFs * fs[], uint32_t size);
 
 /**
  * Returns the id of the file system.

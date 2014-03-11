@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -893,7 +893,7 @@ int LSM_DLL_EXPORT lsmRegisterPluginV1( lsmPluginPtr plug,
  * Used to retrieve private data for plug-in operation.
  * @param plug  Opaque plug-in pointer.
  */
-void LSM_DLL_EXPORT *lsmGetPrivateData( lsmPluginPtr plug );
+void LSM_DLL_EXPORT *lsmPrivateDataGet( lsmPluginPtr plug );
 
 
 /**
@@ -950,7 +950,7 @@ lsmErrorPtr LSM_DLL_EXPORT lsmErrorCreate( lsmErrorNumber code,
  * @param size  Number of elements
  * @return Valid pointer or NULL on error.
  */
-lsmPool LSM_DLL_EXPORT **lsmPoolRecordAllocArray( uint32_t size );
+lsmPool LSM_DLL_EXPORT **lsmPoolRecordArrayAlloc( uint32_t size );
 
 /**
  * Used to set the free space on a pool record
@@ -980,7 +980,7 @@ lsmPool LSM_DLL_EXPORT *lsmPoolRecordAlloc(const char *id, const char *name,
  * @param size      Number of elements.
  * @return Allocated memory or NULL on error.
  */
-lsmInitiator LSM_DLL_EXPORT **lsmInitiatorRecordAllocArray( uint32_t size );
+lsmInitiator LSM_DLL_EXPORT **lsmInitiatorRecordArrayAlloc( uint32_t size );
 
 /**
  * Allocate the storage needed for one initiator record.
@@ -998,7 +998,7 @@ lsmInitiator LSM_DLL_EXPORT *lsmInitiatorRecordAlloc( lsmInitiatorType idType,
  * @param size      Number of elements.
  * @return Allocated memory or NULL on error.
  */
-lsmVolume LSM_DLL_EXPORT **lsmVolumeRecordAllocArray( uint32_t size);
+lsmVolume LSM_DLL_EXPORT **lsmVolumeRecordArrayAlloc( uint32_t size);
 
 
 /**
@@ -1006,7 +1006,7 @@ lsmVolume LSM_DLL_EXPORT **lsmVolumeRecordAllocArray( uint32_t size);
  * @param size      Number of elements
  * @return Allocated memory or null on error.
  */
-lsmDisk LSM_DLL_EXPORT **lsmDiskRecordAllocArray( uint32_t size );
+lsmDisk LSM_DLL_EXPORT **lsmDiskRecordArrayAlloc( uint32_t size );
 
 
 /**
@@ -1051,7 +1051,7 @@ lsmVolume LSM_DLL_EXPORT *lsmVolumeRecordAlloc( const char *id,
  * @param size      Number of elements.
  * @return Allocated memory or NULL on error.
  */
-lsmSystem LSM_DLL_EXPORT **lsmSystemRecordAllocArray( uint32_t size );
+lsmSystem LSM_DLL_EXPORT **lsmSystemRecordArrayAlloc( uint32_t size );
 
 /**
  * Allocates the storage for one system record.
@@ -1069,7 +1069,7 @@ lsmSystem LSM_DLL_EXPORT *lsmSystemRecordAlloc( const char *id,
  * @param size      Number of elements to store.
  * @return  NULL on error, else pointer to array for use.
  */
-lsmAccessGroup LSM_DLL_EXPORT **lsmAccessGroupRecordAllocArray( uint32_t size);
+lsmAccessGroup LSM_DLL_EXPORT **lsmAccessGroupRecordArrayAlloc( uint32_t size);
 
 
 /**
@@ -1115,7 +1115,7 @@ lsmFs LSM_DLL_EXPORT *lsmFsRecordAlloc( const char *id, const char *name,
  * @param size      Number of elements
  * @return Allocated memory, NULL on error
  */
-lsmFs LSM_DLL_EXPORT **lsmFsRecordAllocArray( uint32_t size );
+lsmFs LSM_DLL_EXPORT **lsmFsRecordArrayAlloc( uint32_t size );
 
 /**
  * Allocates the memory for single snap shot record.
@@ -1132,7 +1132,7 @@ lsmSs LSM_DLL_EXPORT *lsmSsRecordAlloc( const char *id, const char *name,
  * @param size          Number of elements
  * @return Allocated memory, NULL on error
  */
-lsmSs LSM_DLL_EXPORT **lsmSsRecordAllocArray( uint32_t size );
+lsmSs LSM_DLL_EXPORT **lsmSsRecordArrayAlloc( uint32_t size );
 
 /**
  * Set a capability

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -104,7 +104,7 @@ lsmPool *getTestPool(lsmConnect *c)
         for(i = 0; i < count; ++i ) {
             if(strcmp(lsmPoolNameGet(pools[i]), "lsm_test_aggr") == 0 ) {
                 test_pool = lsmPoolRecordCopy(pools[i]);
-                lsmPoolRecordFreeArray(pools, count);
+                lsmPoolRecordArrayFree(pools, count);
                 break;
             }
         }
@@ -116,8 +116,8 @@ void dump_error(lsmErrorPtr e)
 {
     if (e != NULL) {
         printf("Error msg= %s - exception %s - debug %s\n",
-            lsmErrorGetMessage(e),
-            lsmErrorGetException(e), lsmErrorGetDebug(e));
+            lsmErrorMessageGet(e),
+            lsmErrorExceptionGet(e), lsmErrorDebugGet(e));
 
         lsmErrorFree(e);
         e = NULL;
@@ -159,8 +159,8 @@ char *error(lsmErrorPtr e)
 
     if( e != NULL ) {
         snprintf(eb, sizeof(eb), "Error msg= %s - exception %s - debug %s",
-            lsmErrorGetMessage(e),
-            lsmErrorGetException(e), lsmErrorGetDebug(e));
+            lsmErrorMessageGet(e),
+            lsmErrorExceptionGet(e), lsmErrorDebugGet(e));
         lsmErrorFree(e);
         e = NULL;
     } else {
@@ -177,14 +177,14 @@ void wait_for_job(lsmConnect *c, char **job_id)
 
     do {
         rc = lsmJobStatusGet(c, *job_id, &status, &pc, LSM_FLAG_RSVD);
-        fail_unless( LSM_ERR_OK == rc, "lsmJobStatusVolumeGet = %d (%s)", rc,  error(lsmErrorGetLast(c)));
+        fail_unless( LSM_ERR_OK == rc, "lsmJobStatusVolumeGet = %d (%s)", rc,  error(lsmErrorLastGet(c)));
         printf("GENERIC: Job %s in progress, %d done, status = %d\n", *job_id, pc, status);
         usleep(POLL_SLEEP);
 
     } while( status == LSM_JOB_INPROGRESS );
 
     rc = lsmJobFree(c, job_id, LSM_FLAG_RSVD);
-    fail_unless( LSM_ERR_OK == rc, "lsmJobFree %d, (%s)", rc, error(lsmErrorGetLast(c)));
+    fail_unless( LSM_ERR_OK == rc, "lsmJobFree %d, (%s)", rc, error(lsmErrorLastGet(c)));
 
     fail_unless( LSM_JOB_COMPLETE == status);
     fail_unless( 100 == pc);
@@ -200,7 +200,7 @@ lsmVolume *wait_for_job_vol(lsmConnect *c, char **job_id)
 
     do {
         rc = lsmJobStatusVolumeGet(c, *job_id, &status, &pc, &vol, LSM_FLAG_RSVD);
-        fail_unless( LSM_ERR_OK == rc, "rc = %d (%s)", rc,  error(lsmErrorGetLast(c)));
+        fail_unless( LSM_ERR_OK == rc, "rc = %d (%s)", rc,  error(lsmErrorLastGet(c)));
         printf("VOLUME: Job %s in progress, %d done, status = %d\n", *job_id, pc, status);
         usleep(POLL_SLEEP);
 
@@ -209,7 +209,7 @@ lsmVolume *wait_for_job_vol(lsmConnect *c, char **job_id)
     printf("Volume complete: Job %s percent %d done, status = %d, rc=%d\n", *job_id, pc, status, rc);
 
     rc = lsmJobFree(c, job_id, LSM_FLAG_RSVD);
-    fail_unless( LSM_ERR_OK == rc, "lsmJobFree %d, (%s)", rc, error(lsmErrorGetLast(c)));
+    fail_unless( LSM_ERR_OK == rc, "lsmJobFree %d, (%s)", rc, error(lsmErrorLastGet(c)));
 
     fail_unless( LSM_JOB_COMPLETE == status);
     fail_unless( 100 == pc);
@@ -226,14 +226,14 @@ lsmFs *wait_for_job_fs(lsmConnect *c, char **job_id)
 
     do {
         rc = lsmJobStatusFsGet(c, *job_id, &status, &pc, &fs, LSM_FLAG_RSVD);
-        fail_unless( LSM_ERR_OK == rc, "rc = %d (%s)", rc,  error(lsmErrorGetLast(c)));
+        fail_unless( LSM_ERR_OK == rc, "rc = %d (%s)", rc,  error(lsmErrorLastGet(c)));
         printf("FS: Job %s in progress, %d done, status = %d\n", *job_id, pc, status);
         usleep(POLL_SLEEP);
 
     } while( status == LSM_JOB_INPROGRESS );
 
     rc = lsmJobFree(c, job_id, LSM_FLAG_RSVD);
-    fail_unless( LSM_ERR_OK == rc, "lsmJobFree %d, (%s)", rc, error(lsmErrorGetLast(c)));
+    fail_unless( LSM_ERR_OK == rc, "lsmJobFree %d, (%s)", rc, error(lsmErrorLastGet(c)));
 
     fail_unless( LSM_JOB_COMPLETE == status);
     fail_unless( 100 == pc);
@@ -250,14 +250,14 @@ lsmSs *wait_for_job_ss(lsmConnect *c, char **job_id)
 
     do {
         rc = lsmJobStatusSsGet(c, *job_id, &status, &pc, &ss, LSM_FLAG_RSVD);
-        fail_unless( LSM_ERR_OK == rc, "rc = %d (%s)", rc,  error(lsmErrorGetLast(c)));
+        fail_unless( LSM_ERR_OK == rc, "rc = %d (%s)", rc,  error(lsmErrorLastGet(c)));
         printf("SS: Job %s in progress, %d done, status = %d\n", *job_id, pc, status);
         usleep(POLL_SLEEP);
 
     } while( status == LSM_JOB_INPROGRESS );
 
     rc = lsmJobFree(c, job_id, LSM_FLAG_RSVD);
-    fail_unless( LSM_ERR_OK == rc, "lsmJobFree %d, (%s)", rc, error(lsmErrorGetLast(c)));
+    fail_unless( LSM_ERR_OK == rc, "lsmJobFree %d, (%s)", rc, error(lsmErrorLastGet(c)));
 
     fail_unless( LSM_JOB_COMPLETE == status);
     fail_unless( 100 == pc);
@@ -279,8 +279,8 @@ int compare_string_lists(lsmStringList *l, lsmStringList *r)
         }
 
         for( i = 0; i < lsmStringListSize(l); ++i ) {
-            if( strcmp(lsmStringListGetElem(l, i),
-                lsmStringListGetElem(r, i)) != 0) {
+            if( strcmp(lsmStringListElemGet(l, i),
+                lsmStringListElemGet(r, i)) != 0) {
                 return 1;
             }
         }
@@ -305,7 +305,7 @@ void create_volumes(lsmConnect *c, lsmPool *p, int num)
                                     LSM_PROVISION_DEFAULT, &n, &job, LSM_FLAG_RSVD);
 
         fail_unless( vc == LSM_ERR_OK || vc == LSM_ERR_JOB_STARTED,
-                "lsmVolumeCreate %d (%s)", vc, error(lsmErrorGetLast(c)));
+                "lsmVolumeCreate %d (%s)", vc, error(lsmErrorLastGet(c)));
 
         if( LSM_ERR_JOB_STARTED == vc ) {
             n = wait_for_job_vol(c, &job);
@@ -330,7 +330,7 @@ lsmSystem *get_system()
 
     if( LSM_ERR_OK == rc && count) {
         rc_sys = lsmSystemRecordCopy(sys[0]);
-        lsmSystemRecordFreeArray(sys, count);
+        lsmSystemRecordArrayFree(sys, count);
     }
     return rc_sys;
 }
@@ -347,15 +347,15 @@ START_TEST(test_smoke_test)
     uint32_t tmo = 0;
 
     //Set timeout.
-    rc = lsmConnectSetTimeout(c, set_tmo, LSM_FLAG_RSVD);
+    rc = lsmConnectTimeoutSet(c, set_tmo, LSM_FLAG_RSVD);
     fail_unless(LSM_ERR_OK == rc, "lsmConnectSetTimeout %d (%s)", rc,
-                    error(lsmErrorGetLast(c)));
+                    error(lsmErrorLastGet(c)));
 
 
     //Get time-out.
-    rc = lsmConnectGetTimeout(c, &tmo, LSM_FLAG_RSVD);
+    rc = lsmConnectTimeoutGet(c, &tmo, LSM_FLAG_RSVD);
     fail_unless(LSM_ERR_OK == rc, "Error getting tmo %d (%s)", rc,
-                error(lsmErrorGetLast(c)));
+                error(lsmErrorLastGet(c)));
 
     fail_unless( set_tmo == tmo, " %u != %u", set_tmo, tmo );
 
@@ -366,7 +366,7 @@ START_TEST(test_smoke_test)
     //Get pool list
     rc = lsmPoolList(c, &pools, &poolCount, LSM_FLAG_RSVD);
     fail_unless(LSM_ERR_OK == rc, "lsmPoolList rc =%d (%s)", rc,
-                    error(lsmErrorGetLast(c)));
+                    error(lsmErrorLastGet(c)));
 
     //Check pool count
     count = poolCount;
@@ -404,7 +404,7 @@ START_TEST(test_smoke_test)
                                     LSM_PROVISION_DEFAULT, &n, &job, LSM_FLAG_RSVD);
 
         fail_unless( vc == LSM_ERR_OK || vc == LSM_ERR_JOB_STARTED,
-                    "lsmVolumeCreate %d (%s)", vc, error(lsmErrorGetLast(c)));
+                    "lsmVolumeCreate %d (%s)", vc, error(lsmErrorLastGet(c)));
 
         if( LSM_ERR_JOB_STARTED == vc ) {
             n = wait_for_job_vol(c, &job);
@@ -426,7 +426,7 @@ START_TEST(test_smoke_test)
         }
 
 
-        lsmBlockRange **range = lsmBlockRangeRecordAllocArray(3);
+        lsmBlockRange **range = lsmBlockRangeRecordArrayAlloc(3);
         fail_unless(NULL != range);
 
 
@@ -469,13 +469,13 @@ START_TEST(test_smoke_test)
         } else {
 
             if( LSM_ERR_OK != rep_range ) {
-                dump_error(lsmErrorGetLast(c));
+                dump_error(lsmErrorLastGet(c));
             }
 
             fail_unless(LSM_ERR_OK == rep_range);
         }
 
-        lsmBlockRangeRecordFreeArray(range, 3);
+        lsmBlockRangeRecordArrayFree(range, 3);
 
         int online = lsmVolumeOffline(c, n, LSM_FLAG_RSVD);
         fail_unless( LSM_ERR_OK == online);
@@ -487,7 +487,7 @@ START_TEST(test_smoke_test)
         int delRc = lsmVolumeDelete(c, n, &jobDel, LSM_FLAG_RSVD);
 
         fail_unless( delRc == LSM_ERR_OK || delRc == LSM_ERR_JOB_STARTED,
-                    "lsmVolumeDelete %d (%s)", rc, error(lsmErrorGetLast(c)));
+                    "lsmVolumeDelete %d (%s)", rc, error(lsmErrorLastGet(c)));
 
         if( LSM_ERR_JOB_STARTED == delRc ) {
             wait_for_job_vol(c, &jobDel);
@@ -501,7 +501,7 @@ START_TEST(test_smoke_test)
     rc = lsmInitiatorList(c, &inits, &count, LSM_FLAG_RSVD);
 
     fail_unless( LSM_ERR_OK == rc, "lsmInitiatorList %d (%s)", rc,
-                                    error(lsmErrorGetLast(c)));
+                                    error(lsmErrorLastGet(c)));
 
     fail_unless( count == 0, "Count 0 != %d\n", count);
 
@@ -515,7 +515,7 @@ START_TEST(test_smoke_test)
 
 
     fail_unless( LSM_ERR_OK == rc , "lsmVolumeList %d (%s)",rc,
-                                    error(lsmErrorGetLast(c)));
+                                    error(lsmErrorLastGet(c)));
 
     for (i = 0; i < count; ++i) {
         printf("%s - %s - %s - %"PRIu64" - %"PRIu64" - %x\n",
@@ -541,7 +541,7 @@ START_TEST(test_smoke_test)
 
     fail_unless(resizeRc == LSM_ERR_OK || resizeRc == LSM_ERR_JOB_STARTED,
                     "lsmVolumeResize %d (%s)", resizeRc,
-                    error(lsmErrorGetLast(c)));
+                    error(lsmErrorLastGet(c)));
 
     if( LSM_ERR_JOB_STARTED == resizeRc ) {
         resized = wait_for_job_vol(c, &resizeJob);
@@ -557,7 +557,7 @@ START_TEST(test_smoke_test)
 
     fail_unless(repRc == LSM_ERR_OK || repRc == LSM_ERR_JOB_STARTED,
                     "lsmVolumeReplicate %d (%s)", repRc,
-                    error(lsmErrorGetLast(c)));
+                    error(lsmErrorLastGet(c)));
 
     if( LSM_ERR_JOB_STARTED == repRc ) {
         rep = wait_for_job_vol(c, &job);
@@ -565,10 +565,10 @@ START_TEST(test_smoke_test)
 
     lsmVolumeRecordFree(rep);
 
-    lsmVolumeRecordFreeArray(volumes, count);
+    lsmVolumeRecordArrayFree(volumes, count);
 
     if (pools) {
-        lsmPoolRecordFreeArray(pools, poolCount);
+        lsmPoolRecordArrayFree(pools, poolCount);
     }
 }
 
@@ -588,7 +588,7 @@ START_TEST(test_access_groups)
     fail_unless(LSM_ERR_OK == rc, "Expected success on listing access groups %d", rc);
     fail_unless(count == 0, "Expect 0 access groups, got %"PRIu32, count);
 
-    lsmAccessGroupRecordFreeArray(groups, count);
+    lsmAccessGroupRecordArrayFree(groups, count);
     groups = NULL;
     count = 0;
 
@@ -629,18 +629,18 @@ START_TEST(test_access_groups)
     rc = lsmAccessGroupList(c, &groups, &count, LSM_FLAG_RSVD);
     fail_unless( LSM_ERR_OK == rc);
     fail_unless( 1 == count );
-    lsmAccessGroupRecordFreeArray(groups, count);
+    lsmAccessGroupRecordArrayFree(groups, count);
     groups = NULL;
     count = 0;
 
     char *job = NULL;
 
-    rc = lsmAccessGroupAddInitiator(c, group, "iqn.1994-05.com.domain:01.89bd02", LSM_INITIATOR_ISCSI, LSM_FLAG_RSVD);
+    rc = lsmAccessGroupInitiatorAdd(c, group, "iqn.1994-05.com.domain:01.89bd02", LSM_INITIATOR_ISCSI, LSM_FLAG_RSVD);
 
     if( LSM_ERR_JOB_STARTED == rc ) {
         wait_for_job(c, &job);
     } else {
-        fail_unless(LSM_ERR_OK == rc, "Expected success on lsmAccessGroupAddInitiator %d", rc);
+        fail_unless(LSM_ERR_OK == rc, "Expected success on lsmAccessGroupInitiatorAdd %d", rc);
     }
 
     rc = lsmAccessGroupList(c, &groups, &count, LSM_FLAG_RSVD);
@@ -650,7 +650,7 @@ START_TEST(test_access_groups)
     lsmStringList *init_list = lsmAccessGroupInitiatorIdGet(groups[0]);
     fail_unless( lsmStringListSize(init_list) == 2, "Expecting 2 initiators, current num = %d\n", lsmStringListSize(init_list) );
     for( i = 0; i < lsmStringListSize(init_list); ++i) {
-        printf("%d = %s\n", i, lsmStringListGetElem(init_list, i));
+        printf("%d = %s\n", i, lsmStringListElemGet(init_list, i));
     }
     lsmStringListFree(init_list);
 
@@ -666,7 +666,7 @@ START_TEST(test_access_groups)
 
     for( i = 0; i < init_list_count; ++i ) {
         printf("Deleting initiator %s from group!\n", lsmInitiatorIdGet(inits[i]));
-        rc = lsmAccessGroupDelInitiator(c, groups[0],
+        rc = lsmAccessGroupInitiatorDelete(c, groups[0],
                                             lsmInitiatorIdGet(inits[i]), LSM_FLAG_RSVD);
 
         if( LSM_ERR_JOB_STARTED == rc ) {
@@ -676,7 +676,7 @@ START_TEST(test_access_groups)
         }
     }
 
-    lsmAccessGroupRecordFreeArray(groups, count);
+    lsmAccessGroupRecordArrayFree(groups, count);
     groups = NULL;
     count = 0;
 
@@ -688,7 +688,7 @@ START_TEST(test_access_groups)
     fail_unless( init_list != NULL);
     fail_unless( lsmStringListSize(init_list) == 0);
 
-    lsmAccessGroupRecordFreeArray(groups, count);
+    lsmAccessGroupRecordArrayFree(groups, count);
     groups = NULL;
     count = 0;
 
@@ -717,7 +717,7 @@ START_TEST(test_access_groups_grant_revoke)
                                     LSM_PROVISION_DEFAULT, &n, &job, LSM_FLAG_RSVD);
 
     fail_unless( vc == LSM_ERR_OK || vc == LSM_ERR_JOB_STARTED,
-            "lsmVolumeCreate %d (%s)", vc, error(lsmErrorGetLast(c)));
+            "lsmVolumeCreate %d (%s)", vc, error(lsmErrorLastGet(c)));
 
     if( LSM_ERR_JOB_STARTED == vc ) {
         n = wait_for_job_vol(c, &job);
@@ -739,7 +739,7 @@ START_TEST(test_access_groups_grant_revoke)
     fail_unless(v_count == 1);
 
     fail_unless(strcmp(lsmVolumeIdGet(volumes[0]), lsmVolumeIdGet(n)) == 0);
-    lsmVolumeRecordFreeArray(volumes, v_count);
+    lsmVolumeRecordArrayFree(volumes, v_count);
 
     lsmAccessGroup **groups;
     uint32_t g_count = 0;
@@ -748,7 +748,7 @@ START_TEST(test_access_groups_grant_revoke)
     fail_unless(g_count == 1);
 
     fail_unless(strcmp(lsmAccessGroupIdGet(groups[0]), lsmAccessGroupIdGet(group)) == 0);
-    lsmAccessGroupRecordFreeArray(groups, g_count);
+    lsmAccessGroupRecordArrayFree(groups, g_count);
 
     rc = lsmAccessGroupRevoke(c, group, n, LSM_FLAG_RSVD);
     if( LSM_ERR_JOB_STARTED == rc ) {
@@ -757,7 +757,7 @@ START_TEST(test_access_groups_grant_revoke)
         fail_unless(LSM_ERR_OK == rc);
     }
 
-    rc = lsmAccessGroupDel(c, group, LSM_FLAG_RSVD);
+    rc = lsmAccessGroupDelete(c, group, LSM_FLAG_RSVD);
     fail_unless(LSM_ERR_OK == rc);
     lsmAccessGroupRecordFree(group);
 
@@ -821,7 +821,7 @@ START_TEST(test_fs)
 
     fail_unless(LSM_ERR_OK == rc);
     fail_unless(2 == fs_count, "fs_count = %d", fs_count);
-    lsmFsRecordFreeArray(fs_list, fs_count);
+    lsmFsRecordArrayFree(fs_list, fs_count);
 
     rc = lsmFsResize(c,nfs, 100000000, &resized_fs, &job, LSM_FLAG_RSVD);
 
@@ -883,7 +883,7 @@ START_TEST(test_ss)
     printf("List return code= %d\n", rc);
 
     if(rc) {
-        printf("%s\n", error(lsmErrorGetLast(c)));
+        printf("%s\n", error(lsmErrorLastGet(c)));
     }
     fail_unless( LSM_ERR_OK == rc);
     fail_unless( NULL == ss_list);
@@ -907,8 +907,8 @@ START_TEST(test_ss)
 
     lsmStringList *files = lsmStringListAlloc(1);
     if(files) {
-        rc = lsmStringListSetElem(files, 0, "some/file/name.txt");
-        fail_unless( LSM_ERR_OK == rc, "lsmStringListSetElem rc = %d", rc);
+        rc = lsmStringListElemSet(files, 0, "some/file/name.txt");
+        fail_unless( LSM_ERR_OK == rc, "lsmStringListElemSet rc = %d", rc);
     }
 
     rc = lsmFsSsRevert(c, fs, ss, files, files, 0, &job, LSM_FLAG_RSVD);
@@ -927,7 +927,7 @@ START_TEST(test_ss)
         wait_for_job(c, &job);
     }
 
-    lsmSsRecordFreeArray(ss_list, ss_count);
+    lsmSsRecordArrayFree(ss_list, ss_count);
     lsmFsRecordFree(fs);
 
     printf("Testing snapshots done!\n");
@@ -960,7 +960,7 @@ START_TEST(test_systems)
     status = lsmSystemStatusGet(sys[0]);
     fail_unless(status == LSM_SYSTEM_STATUS_OK, "status = %x", status);
 
-    lsmSystemRecordFreeArray(sys, count);
+    lsmSystemRecordArrayFree(sys, count);
 }
 END_TEST
 
@@ -1045,7 +1045,7 @@ START_TEST(test_disks)
                     //uint32_t num_keys = lsmStringListSize(keys);
                     //fail_unless( num_keys == key_count, "%d != %d", num_keys, key_count);
                     for(j = 0; j < key_count; ++j ) {
-                        key = lsmStringListGetElem(keys, j);
+                        key = lsmStringListElemGet(keys, j);
                         data = lsmOptionalDataStringGet(od, key);
                         fail_unless(key != NULL && strlen(key) > 0);
                         fail_unless(data != NULL && strlen(data) > 0);
@@ -1059,7 +1059,7 @@ START_TEST(test_disks)
                 lsmOptionalDataRecordFree(od);
             }
         }
-        lsmDiskRecordFreeArray(d, count);
+        lsmDiskRecordArrayFree(d, count);
     } else {
         fail_unless(d == NULL);
         fail_unless(count == 0);
@@ -1100,7 +1100,7 @@ START_TEST(test_nfs_exports)
     lsmStringList *access = lsmStringListAlloc(1);
     fail_unless(NULL != access);
 
-    lsmStringListSetElem(access, 0, "192.168.2.29");
+    lsmStringListElemSet(access, 0, "192.168.2.29");
 
     lsmNfsExport *e = NULL;
 
@@ -1116,9 +1116,9 @@ START_TEST(test_nfs_exports)
     fail_unless( exports != NULL);
     fail_unless( count == 1 );
 
-    rc  = lsmNfsExportRemove(c, exports[0], LSM_FLAG_RSVD);
+    rc  = lsmNfsExportDelete(c, exports[0], LSM_FLAG_RSVD);
     fail_unless( LSM_ERR_OK == rc, "lsmNfsExportRemove %d\n", rc );
-    lsmNfsExportRecordFreeArray(exports, count);
+    lsmNfsExportRecordArrayFree(exports, count);
 
     exports = NULL;
 
@@ -1497,18 +1497,18 @@ START_TEST(test_invalid_input)
 
 
     /* lsmAccessGroupDel */
-    rc = lsmAccessGroupDel(c, NULL, LSM_FLAG_RSVD);
+    rc = lsmAccessGroupDelete(c, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ACCESS_GROUP, "rc = %d", rc);
 
-    /* lsmAccessGroupAddInitiator */
-    rc = lsmAccessGroupAddInitiator(c, NULL, NULL, 0, LSM_FLAG_RSVD);
+    /* lsmAccessGroupInitiatorAdd */
+    rc = lsmAccessGroupInitiatorAdd(c, NULL, NULL, 0, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ACCESS_GROUP, "rc = %d", rc);
 
 
-    rc = lsmAccessGroupDelInitiator(c, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsmAccessGroupInitiatorDelete(c, NULL, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ACCESS_GROUP, "rc = %d", rc);
 
-    rc = lsmAccessGroupDelInitiator(c, ag, NULL, LSM_FLAG_RSVD);
+    rc = lsmAccessGroupInitiatorDelete(c, ag, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 
@@ -1720,7 +1720,7 @@ START_TEST(test_invalid_input)
                         LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsmNfsExportRemove(c, NULL, LSM_FLAG_RSVD);
+    rc = lsmNfsExportDelete(c, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_NFS, "rc = %d", rc);
 }
 END_TEST
@@ -1822,7 +1822,7 @@ static int get_init(lsmConnect *c, const char *init_id, lsmInitiator * *found) {
         }
     }
 
-    lsmInitiatorRecordFreeArray(inits, count);
+    lsmInitiatorRecordArrayFree(inits, count);
 
     return rc;
 }
@@ -1876,7 +1876,7 @@ START_TEST(test_initiator_methods)
             fail_unless( strcmp(lsmVolumeIdGet(volumes[0]), lsmVolumeIdGet(nv)) == 0);
         }
 
-        lsmVolumeRecordFreeArray(volumes, count);
+        lsmVolumeRecordArrayFree(volumes, count);
     }
 
     lsmInitiator **initiators = NULL;
@@ -1894,7 +1894,7 @@ START_TEST(test_initiator_methods)
             fail_unless(lsmInitiatorNameGet(initiators[0]) != NULL);
         }
 
-        lsmInitiatorRecordFreeArray(initiators, count);
+        lsmInitiatorRecordArrayFree(initiators, count);
     }
 
     if( LSM_ERR_OK == rc ) {
@@ -1938,7 +1938,7 @@ START_TEST(test_iscsi_auth_in)
              fail_unless(LSM_ERR_OK == rc, "rc = %d", rc) ;
          }
 
-         rc = lsmAccessGroupDel(c, group, LSM_FLAG_RSVD);
+         rc = lsmAccessGroupDelete(c, group, LSM_FLAG_RSVD);
 
          if(LSM_ERR_JOB_STARTED == rc ) {
              wait_for_job(c, &job);
@@ -1957,7 +1957,7 @@ START_TEST(test_plugin_info)
     char *desc = NULL;
     char *version = NULL;
 
-    int rc = lsmPluginGetInfo(c, &desc, &version, LSM_FLAG_RSVD);
+    int rc = lsmPluginInfoGet(c, &desc, &version, LSM_FLAG_RSVD);
 
     fail_unless(LSM_ERR_OK == rc, "rc = %d", rc);
 
@@ -1967,13 +1967,13 @@ START_TEST(test_plugin_info)
         free(version);
     }
 
-    rc = lsmPluginGetInfo(NULL, &desc, &version, LSM_FLAG_RSVD);
+    rc = lsmPluginInfoGet(NULL, &desc, &version, LSM_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_CONN == rc, "rc = %d", rc);
 
-    rc = lsmPluginGetInfo(c, NULL, &version, LSM_FLAG_RSVD);
+    rc = lsmPluginInfoGet(c, NULL, &version, LSM_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
 
-    rc = lsmPluginGetInfo(c, &desc, NULL, LSM_FLAG_RSVD);
+    rc = lsmPluginInfoGet(c, &desc, NULL, LSM_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
 }
 END_TEST
@@ -1984,12 +1984,12 @@ START_TEST(test_get_available_plugins)
     int num = 0;
     lsmStringList *plugins = NULL;
 
-    int rc = lsmGetAvailablePlugins(":", &plugins, 0);
+    int rc = lsmAvailablePluginsList(":", &plugins, 0);
     fail_unless(LSM_ERR_OK == rc, "rc = %d", rc);
 
     num = lsmStringListSize(plugins);
     for( i = 0; i < num; i++) {
-        const char *info = lsmStringListGetElem(plugins, i);
+        const char *info = lsmStringListElemGet(plugins, i);
         fail_unless(strlen(info) > 0);
         printf("%s\n", info);
     }
@@ -2016,13 +2016,13 @@ START_TEST(test_error_reporting)
     fail_unless(e != NULL);
 
     if( e ) {
-        fail_unless(LSM_ERR_INTERNAL_ERROR == lsmErrorGetNumber(e));
-        fail_unless(LSM_ERR_DOMAIN_PLUG_IN == lsmErrorGetDomain(e));
-        fail_unless(LSM_ERR_LEVEL_ERROR == lsmErrorGetLevel(e));
-        fail_unless(strcmp(msg, lsmErrorGetMessage(e)) == 0);
-        fail_unless(strcmp(exception, lsmErrorGetException(e)) == 0);
-        fail_unless(strcmp(debug_msg, lsmErrorGetDebug(e)) == 0);
-        debug_data = lsmErrorGetDebugData(e, &debug_size);
+        fail_unless(LSM_ERR_INTERNAL_ERROR == lsmErrorNumberGet(e));
+        fail_unless(LSM_ERR_DOMAIN_PLUG_IN == lsmErrorDomainGet(e));
+        fail_unless(LSM_ERR_LEVEL_ERROR == lsmErrorLevelGet(e));
+        fail_unless(strcmp(msg, lsmErrorMessageGet(e)) == 0);
+        fail_unless(strcmp(exception, lsmErrorExceptionGet(e)) == 0);
+        fail_unless(strcmp(debug_msg, lsmErrorDebugGet(e)) == 0);
+        debug_data = lsmErrorDebugDataGet(e, &debug_size);
         fail_unless(debug_data != NULL);
         fail_unless(debug_size == sizeof(d));
         fail_unless(memcmp(d, debug_data, debug_size) == 0);

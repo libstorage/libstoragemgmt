@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -87,7 +87,7 @@ extern "C" {
      * @param [in] flags    Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error code @see lsmErrorNumber
      */
-    int LSM_DLL_EXPORT lsmPluginGetInfo(lsmConnect *conn, char **desc,
+    int LSM_DLL_EXPORT lsmPluginInfoGet(lsmConnect *conn, char **desc,
                                         char **version, lsmFlag_t flags);
 
 	/**
@@ -98,7 +98,7 @@ extern "C" {
      * @param[in] flags     Reserved for future use, must be zero.
 	 * @return LSM_ERR_OK on success, else error code @see lsmErrorNumber
 	 */
-	int LSM_DLL_EXPORT lsmGetAvailablePlugins(const char *sep,
+	int LSM_DLL_EXPORT lsmAvailablePluginsList(const char *sep,
                                                 lsmStringList **plugins,
                                                 lsmFlag_t flags);
 
@@ -109,7 +109,7 @@ extern "C" {
      * @param[in] flags         Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason
      */
-    int LSM_DLL_EXPORT lsmConnectSetTimeout(lsmConnect *conn,
+    int LSM_DLL_EXPORT lsmConnectTimeoutSet(lsmConnect *conn,
                                             uint32_t timeout, lsmFlag_t flags);
 
     /**
@@ -119,7 +119,7 @@ extern "C" {
      * @param[in] flags         Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason
      */
-    int LSM_DLL_EXPORT lsmConnectGetTimeout(lsmConnect *conn,
+    int LSM_DLL_EXPORT lsmConnectTimeoutGet(lsmConnect *conn,
                                             uint32_t *timeout, lsmFlag_t flags);
 
     /**
@@ -459,7 +459,7 @@ extern "C" {
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
-    int LSM_DLL_EXPORT lsmAccessGroupDel(lsmConnect *conn,
+    int LSM_DLL_EXPORT lsmAccessGroupDelete(lsmConnect *conn,
                                             lsmAccessGroup *group, lsmFlag_t flags);
 
     /**
@@ -471,7 +471,7 @@ extern "C" {
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
-    int LSM_DLL_EXPORT lsmAccessGroupAddInitiator(lsmConnect *conn,
+    int LSM_DLL_EXPORT lsmAccessGroupInitiatorAdd(lsmConnect *conn,
                                 lsmAccessGroup *group,
                                 const char *initiator_id,
                                 lsmInitiatorType id_type, lsmFlag_t flags);
@@ -484,7 +484,7 @@ extern "C" {
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return[in] LSM_ERR_OK on success, else error reason.
      */
-    int LSM_DLL_EXPORT lsmAccessGroupDelInitiator(lsmConnect *conn,
+    int LSM_DLL_EXPORT lsmAccessGroupInitiatorDelete(lsmConnect *conn,
                                                     lsmAccessGroup *group,
                                                     const char *initiator_id,
                                                     lsmFlag_t flags);
@@ -848,13 +848,13 @@ extern "C" {
                                         );
 
     /**
-     * Remove the export.
+     * Delete the export.
      * @param[in] c             Valid connection
      * @param[in] e             NFS export to remove
      * @param[in] flags         Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success else error code.
      */
-    int LSM_DLL_EXPORT lsmNfsExportRemove( lsmConnect *c, lsmNfsExport *e,
+    int LSM_DLL_EXPORT lsmNfsExportDelete( lsmConnect *c, lsmNfsExport *e,
                                             lsmFlag_t flags );
 
 #ifdef  __cplusplus

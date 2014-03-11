@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -117,7 +117,7 @@ int lsmRegisterPluginV1(lsmPluginPtr plug,
     return rc;
 }
 
-void *lsmGetPrivateData(lsmPluginPtr plug)
+void *lsmPrivateDataGet(lsmPluginPtr plug)
 {
     if (!LSM_IS_PLUGIN(plug)) {
         return NULL;
@@ -414,7 +414,7 @@ static int handle_system_list(lsmPluginPtr p, Value &params,
                     result.push_back(systemToValue(systems[i]));
                 }
 
-                lsmSystemRecordFreeArray(systems, count);
+                lsmSystemRecordArrayFree(systems, count);
                 systems = NULL;
                 response = Value(result);
             }
@@ -442,7 +442,7 @@ static int handle_pools(lsmPluginPtr p, Value &params, Value &response)
                     result.push_back(poolToValue(pools[i]));
                 }
 
-                lsmPoolRecordFreeArray(pools, count);
+                lsmPoolRecordArrayFree(pools, count);
                 pools = NULL;
                 response = Value(result);
             }
@@ -495,7 +495,7 @@ static void get_initiators(int rc, lsmInitiator **inits, uint32_t count,
             result.push_back(initiatorToValue(inits[i]));
         }
 
-        lsmInitiatorRecordFreeArray(inits, count);
+        lsmInitiatorRecordArrayFree(inits, count);
         inits = NULL;
         resp = Value(result);
     }
@@ -530,7 +530,7 @@ static void get_volumes(int rc, lsmVolume **vols, uint32_t count,
             result.push_back(volumeToValue(vols[i]));
         }
 
-        lsmVolumeRecordFreeArray(vols, count);
+        lsmVolumeRecordArrayFree(vols, count);
         vols = NULL;
         response = Value(result);
     }
@@ -566,7 +566,7 @@ static void get_disks(int rc, lsmDisk **disks, uint32_t count, Value &response)
             result.push_back(diskToValue(disks[i]));
         }
 
-        lsmDiskRecordFreeArray(disks, count);
+        lsmDiskRecordArrayFree(disks, count);
         disks = NULL;
         response = Value(result);
     }
@@ -808,7 +808,7 @@ static int handle_volume_replicate_range(lsmPluginPtr p, Value &params,
 
             lsmVolumeRecordFree(source);
             lsmVolumeRecordFree(dest);
-            lsmBlockRangeRecordFreeArray(ranges, range_count);
+            lsmBlockRangeRecordArrayFree(ranges, range_count);
 
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;
@@ -909,7 +909,7 @@ static int ag_list(lsmPluginPtr p, Value &params, Value &response)
                 response = accessGroupListToValue(groups, count);
 
                 /* Free the memory */
-                lsmAccessGroupRecordFreeArray(groups, count);
+                lsmAccessGroupRecordArrayFree(groups, count);
             }
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;
@@ -1148,7 +1148,7 @@ static int vol_accessible_by_ag(lsmPluginPtr p, Value &params, Value &response)
                 }
 
                 lsmAccessGroupRecordFree(ag);
-                lsmVolumeRecordFreeArray(vols, count);
+                lsmVolumeRecordArrayFree(vols, count);
                 vols = NULL;
             } else {
                 rc = LSM_ERR_NO_MEMORY;
@@ -1190,7 +1190,7 @@ static int ag_granted_to_volume(lsmPluginPtr p, Value &params, Value &response)
                 }
 
                 lsmVolumeRecordFree(volume);
-                lsmAccessGroupRecordFreeArray(groups, count);
+                lsmAccessGroupRecordArrayFree(groups, count);
                 groups = NULL;
             } else {
                 rc = LSM_ERR_NO_MEMORY;
@@ -1294,7 +1294,7 @@ static int fs(lsmPluginPtr p, Value &params, Value &response)
                 }
 
                 response = Value(result);
-                lsmFsRecordFreeArray(fs, count);
+                lsmFsRecordArrayFree(fs, count);
                 fs = NULL;
             }
         } else {
@@ -1650,7 +1650,7 @@ static int ss_list(lsmPluginPtr p, Value &params, Value &response)
 
                     lsmFsRecordFree(fs);
                     fs = NULL;
-                    lsmSsRecordFreeArray(ss, count);
+                    lsmSsRecordArrayFree(ss, count);
                     ss = NULL;
                 }
             }
@@ -1844,7 +1844,7 @@ static int exports(lsmPluginPtr p, Value &params, Value &response)
                 }
                 response = Value(result);
 
-                lsmNfsExportRecordFreeArray(exports, count);
+                lsmNfsExportRecordArrayFree(exports, count);
                 exports = NULL;
                 count = 0;
             }
