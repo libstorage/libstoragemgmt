@@ -204,7 +204,8 @@ cmds = (
         optional=[
             dict(name="--provisioning", help=provision_help,
                  default='DEFAULT',
-                 choices=provision_types),
+                 choices=provision_types,
+                 type=str.upper),
         ],
     ),
 
