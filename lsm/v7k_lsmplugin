@@ -20,7 +20,7 @@ import sys
 import syslog
 
 try:
-    from lsm.pluginrunner import PluginRunner
+    from lsm import PluginRunner
     from lsm.ibmv7k import IbmV7k
 
     if __name__ == '__main__':

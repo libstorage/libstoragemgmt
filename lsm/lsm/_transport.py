@@ -18,14 +18,14 @@
 import json
 import socket
 import string
-from common import SocketEOF, LsmError
-from data import DataDecoder, DataEncoder
+from _common import SocketEOF as _SocketEOF
+from _common import LsmError, ErrorNumber
+from _data import DataDecoder as _DataDecoder, DataEncoder as _DataEncoder
 import unittest
 import threading
-import common
 
 
-class Transport(object):
+class TransPort(object):
     """
     Provides wire serialization by using json.  Loosely conforms to json-rpc,
     however a length header was added so that we would have the ability to use
@@ -54,7 +54,7 @@ class Transport(object):
         while len(data) < l:
             r = self.s.recv(l - len(data))
             if not r:
-                raise SocketEOF()
+                raise _SocketEOF()
             data += r
 
         return data
@@ -83,7 +83,7 @@ class Transport(object):
             msg = self._read_all(int(l))
             #common.Info("RECV: ", msg)
         except socket.error as e:
-            raise LsmError(common.ErrorNumber.TRANSPORT_COMMUNICATION,
+            raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
                            "Error while reading a message from the plug-in",
                            str(e))
         return msg
@@ -101,7 +101,7 @@ class Transport(object):
             s.connect(path)
         except socket.error:
             #self, code, message, data=None, *args, **kwargs
-            raise LsmError(common.ErrorNumber.NO_CONNECT,
+            raise LsmError(ErrorNumber.NO_CONNECT,
                            "Unable to connect to lsmd, daemon started?")
         return s
 
@@ -119,10 +119,10 @@ class Transport(object):
         """
         try:
             msg = {'method': method, 'id': 100, 'params': args}
-            data = json.dumps(msg, cls=DataEncoder)
+            data = json.dumps(msg, cls=_DataEncoder)
             self._send_msg(data)
         except socket.error as se:
-            raise LsmError(common.ErrorNumber.TRANSPORT_COMMUNICATION,
+            raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
                            "Error while sending a message to the plug-in",
                            str(se))
 
@@ -133,7 +133,7 @@ class Transport(object):
         data = self._recv_msg()
         if len(data):
             #common.Info(str(data))
-            return json.loads(data, cls=DataDecoder)
+            return json.loads(data, cls=_DataDecoder)
 
     def rpc(self, method, args):
         """
@@ -150,18 +150,18 @@ class Transport(object):
         """
         e = {'id': msg_id, 'error': {'code': error_code, 'message': msg,
                                      'data': data}}
-        self._send_msg(json.dumps(e, cls=DataEncoder))
+        self._send_msg(json.dumps(e, cls=_DataEncoder))
 
     def send_resp(self, result, msg_id=100):
         """
         Used to transmit a response
         """
         r = {'id': msg_id, 'result': result}
-        self._send_msg(json.dumps(r, cls=DataEncoder))
+        self._send_msg(json.dumps(r, cls=_DataEncoder))
 
     def read_resp(self):
         data = self._recv_msg()
-        resp = json.loads(data, cls=DataDecoder)
+        resp = json.loads(data, cls=_DataDecoder)
 
         if 'result' in resp:
             return resp['result'], resp['id']
@@ -170,11 +170,11 @@ class Transport(object):
             raise LsmError(**e)
 
 
-def server(s):
+def _server(s):
     """
     Test echo server for test case.
     """
-    srv = Transport(s)
+    srv = TransPort(s)
 
     msg = srv.read_req()
 
@@ -194,14 +194,14 @@ def server(s):
         s.close()
 
 
-class TestTransport(unittest.TestCase):
+class _TestTransport(unittest.TestCase):
     def setUp(self):
         (self.c, self.s) = socket.socketpair(
             socket.AF_UNIX, socket.SOCK_STREAM)
 
-        self.client = Transport(self.c)
+        self.client = TransPort(self.c)
 
-        self.server = threading.Thread(target=server, args=(self.s,))
+        self.server = threading.Thread(target=_server, args=(self.s,))
         self.server.start()
 
     def test_simple(self):
@@ -237,9 +237,9 @@ class TestTransport(unittest.TestCase):
 
             payload = "x" * l
             msg = {'method': 'drip', 'id': 100, 'params': payload}
-            data = json.dumps(msg, cls=DataEncoder)
+            data = json.dumps(msg, cls=_DataEncoder)
 
-            wire = string.zfill(len(data), Transport.HDR_LEN) + data
+            wire = string.zfill(len(data), TransPort.HDR_LEN) + data
 
             self.assertTrue(len(msg) >= 1)
 

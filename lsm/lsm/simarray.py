@@ -25,11 +25,10 @@ import tempfile
 import os
 import time
 
-from common import md5, LsmError, ErrorNumber, size_human_2_size_bytes, \
-    JobStatus, size_bytes_2_size_human
-from data import System, Volume, Disk, Pool, FileSystem, AccessGroup, \
-    Initiator, Snapshot, NfsExport, OptionalData
-
+from _common import (size_human_2_size_bytes, size_bytes_2_size_human)
+from lsm import (System, Volume, Disk, Pool, FileSystem, AccessGroup,
+                    Initiator, Snapshot, NfsExport, OptionalData, md5,
+                    LsmError, ErrorNumber, JobStatus)
 
 # Used for format width for disks
 D_FMT = 5

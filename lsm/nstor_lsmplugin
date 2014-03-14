@@ -24,7 +24,7 @@ import syslog
 
 try:
     from lsm.nstor import NexentaStor
-    from lsm.pluginrunner import PluginRunner
+    from lsm import PluginRunner
 
     if __name__ == '__main__':
         PluginRunner(NexentaStor, sys.argv).run()

@@ -27,11 +27,9 @@ except ImportError:
 import base64
 import time
 
-from iplugin import INfs, IStorageAreaNetwork
-from data import Pool, FileSystem, Snapshot, Capabilities, System, \
-    NfsExport, Volume, Initiator, AccessGroup
-from common import LsmError, ErrorNumber, md5
-from version import VERSION
+from lsm import (AccessGroup, Capabilities, ErrorNumber, FileSystem, INfs,
+                 IStorageAreaNetwork, Initiator, LsmError, NfsExport, Pool,
+                 Snapshot, System, VERSION, Volume, md5)
 
 
 class NexentaStor(INfs, IStorageAreaNetwork):

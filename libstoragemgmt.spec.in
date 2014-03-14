@@ -143,10 +143,8 @@ support.
 %package        nstor-plugin
 Summary:        Files for NexentaStor array support for %{name}
 Group:          System Environment/Libraries
-BuildRequires:  python-simplejson
 Requires:       %{name}-python
 Requires:       libstoragemgmt-python = %{version}-%{release}
-Requires:       python-simplejson
 BuildArch:      noarch
 
 %description    nstor-plugin
@@ -323,15 +321,15 @@ fi
 #Python library files
 %{python_sitelib}/lsm/__init__.*
 %{python_sitelib}/lsm/external/*
-%{python_sitelib}/lsm/client.*
-%{python_sitelib}/lsm/cmdline.*
-%{python_sitelib}/lsm/common.*
-%{python_sitelib}/lsm/data.*
-%{python_sitelib}/lsm/iplugin.*
-%{python_sitelib}/lsm/pluginrunner.*
+%{python_sitelib}/lsm/_client.*
+%{python_sitelib}/lsm/_cmdline.*
+%{python_sitelib}/lsm/_common.*
+%{python_sitelib}/lsm/_data.*
+%{python_sitelib}/lsm/_iplugin.*
+%{python_sitelib}/lsm/_pluginrunner.*
 %{python_sitelib}/lsm/simulator.*
 %{python_sitelib}/lsm/simarray.*
-%{python_sitelib}/lsm/transport.*
+%{python_sitelib}/lsm/_transport.*
 %{python_sitelib}/lsm/version.*
 %{_bindir}/sim_lsmplugin
 

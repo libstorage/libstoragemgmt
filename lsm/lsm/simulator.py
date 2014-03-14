@@ -15,10 +15,9 @@
 #
 # Author: tasleson
 
-from common import uri_parse
-from data import Capabilities, Pool
-from iplugin import INfs, IStorageAreaNetwork
-from version import VERSION
+from lsm import (uri_parse, VERSION, Capabilities, Pool, INfs,
+                 IStorageAreaNetwork)
+
 from simarray import SimArray
 
 
@@ -30,6 +29,7 @@ class SimPlugin(INfs, IStorageAreaNetwork):
         self.uri = None
         self.password = None
         self.tmo = 0
+        self.sim_array = None
 
     def startup(self, uri, password, timeout, flags=0):
         self.uri = uri

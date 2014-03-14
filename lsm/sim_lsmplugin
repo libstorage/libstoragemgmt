@@ -21,7 +21,7 @@ import sys
 import syslog
 
 try:
-    from lsm.pluginrunner import PluginRunner
+    from lsm import PluginRunner
     from lsm.simulator import SimPlugin
 
     if __name__ == '__main__':

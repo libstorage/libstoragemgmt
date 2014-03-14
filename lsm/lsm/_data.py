@@ -15,11 +15,12 @@
 #
 # Author: tasleson
 
-from abc import ABCMeta
+from abc import ABCMeta as _ABCMeta
 import json
+from datetime import datetime
 from json.decoder import WHITESPACE
-import datetime
-from common import get_class, sh, LsmError, ErrorNumber, default_property
+from lsm import LsmError, ErrorNumber
+from _common import get_class, sh, default_property
 
 
 def txt_a(txt, append):
@@ -45,7 +46,7 @@ class DataEncoder(json.JSONEncoder):
         if not isinstance(my_class, IData):
             raise ValueError('incorrect class type:' + str(type(my_class)))
         else:
-            return my_class.to_dict()
+            return my_class._to_dict()
 
 
 class DataDecoder(json.JSONDecoder):
@@ -61,7 +62,7 @@ class DataDecoder(json.JSONDecoder):
         rc = {}
 
         if 'class' in d:
-            rc = IData.factory(d)
+            rc = IData._factory(d)
         else:
             for (k, v) in d.iteritems():
                 rc[k] = DataDecoder.__decode(v)
@@ -106,9 +107,9 @@ class IData(object):
     Base class functionality of serializable
     classes.
     """
-    __metaclass__ = ABCMeta
+    __metaclass__ = _ABCMeta
 
-    def to_dict(self):
+    def _to_dict(self):
         """
         Represent the class as a dictionary
         """
@@ -118,14 +119,14 @@ class IData(object):
         #process that too, is there a better way to handle this?
         for (k, v) in self.__dict__.items():
             if isinstance(v, IData):
-                rc[k[1:]] = v.to_dict()
+                rc[k[1:]] = v._to_dict()
             else:
                 rc[k[1:]] = v
 
         return rc
 
     @staticmethod
-    def factory(d):
+    def _factory(d):
         """
         Factory for creating the appropriate class given a dictionary.
         This only works for objects that inherit from IData
@@ -138,7 +139,7 @@ class IData(object):
             #If any of the parameters are themselves an IData process them
             for k, v in d.items():
                 if isinstance(v, dict) and 'class' in v:
-                    d['_' + k] = IData.factory(d.pop(k))
+                    d['_' + k] = IData._factory(d.pop(k))
                 else:
                     d['_' + k] = d.pop(k)
 
@@ -149,18 +150,18 @@ class IData(object):
         """
         Used for human string representation.
         """
-        return str(self.to_dict())
+        return str(self._to_dict())
 
     _MAN_PROPERTIES_2_HEADER = dict()
     _OPT_PROPERTIES_2_HEADER = dict()
     _MAN_PROPERTIES_SEQUENCE = []
     _OPT_PROPERTIES_SEQUENCE = []
 
-    def value_convert(self, key_name, value, human, enum_as_number,
+    def _value_convert(self, key_name, value, human, enum_as_number,
                       list_convert):
         return value
 
-    def str_of_key(self, key_name=None):
+    def _str_of_key(self, key_name=None):
         """
         If key_name == None or not provided:
             Return a dictionary providing the mandatory properties key name to
@@ -189,7 +190,7 @@ class IData(object):
                            "%s class does not provide %s property" %
                            (self.__name__, key_name))
 
-    def value_of_key(self, key_name=None, human=False, enum_as_number=False,
+    def _value_of_key(self, key_name=None, human=False, enum_as_number=False,
                      list_convert=False):
         """
         Return the value of certain key, allowing do humanize converting,
@@ -211,13 +212,13 @@ class IData(object):
         if key_name is None:
             all_value = {}
             for cur_key_name in man_pros_header.keys():
-                all_value[cur_key_name] = self.value_of_key(
+                all_value[cur_key_name] = self._value_of_key(
                     key_name=cur_key_name,
                     human=human,
                     enum_as_number=enum_as_number,
                     list_convert=list_convert)
             for cur_key_name in opt_pros_header.keys():
-                cur_value = self.value_of_key(
+                cur_value = self._value_of_key(
                     key_name=cur_key_name,
                     human=human,
                     enum_as_number=enum_as_number,
@@ -231,7 +232,7 @@ class IData(object):
         if key_name in man_pros_header.keys():
             value = getattr(self, key_name)
 
-            return self.value_convert(key_name, value, human, enum_as_number,
+            return self._value_convert(key_name, value, human, enum_as_number,
                                       list_convert)
 
         elif (hasattr(self, '_optional_data') and
@@ -240,26 +241,20 @@ class IData(object):
                 return None
 
             value = self._optional_data.get(key_name)
-            return self.value_convert(key_name, value, human, enum_as_number,
+            return self._value_convert(key_name, value, human, enum_as_number,
                                       list_convert)
         else:
             raise LsmError(ErrorNumber.INVALID_VALUE,
                            "%s class does not provide %s property" %
                            (self.__name__, key_name))
 
-    def key_display_sequence(self):
+    def _key_display_sequence(self):
         """
         Return a List with suggested data displaying order of properties.
         """
         key = self._MAN_PROPERTIES_SEQUENCE
         key.extend(self._OPT_PROPERTIES_SEQUENCE)
         return key
-
-    # We use '-1' to indicate we failed to get the requested number.
-    # For example, when block found is undetectable, we use '-1' instead of
-    # confusing 0.
-    BLOCK_COUNT_NOT_FOUND = -1
-    BLOCK_SIZE_NOT_FOUND = -1
 
 
 @default_property('id', doc="Unique identifier")
@@ -272,7 +267,7 @@ class Initiator(IData):
     (TYPE_OTHER, TYPE_PORT_WWN, TYPE_NODE_WWN, TYPE_HOSTNAME, TYPE_ISCSI,
      TYPE_SAS) = (1, 2, 3, 4, 5, 7)
 
-    type_map = {1: 'Other', 2: 'Port WWN', 3: 'Node WWN', 4: 'Hostname',
+    _type_map = {1: 'Other', 2: 'Port WWN', 3: 'Node WWN', 4: 'Hostname',
                 5: 'iSCSI', 7: "SAS"}
 
     _MAN_PROPERTIES_2_HEADER = {
@@ -283,16 +278,16 @@ class Initiator(IData):
 
     _MAN_PROPERTIES_SEQUENCE = ['id', 'name', 'type']
 
-    def value_convert(self, key_name, value, human, enum_as_number,
+    def _value_convert(self, key_name, value, human, enum_as_number,
                       list_convert):
         if not enum_as_number:
             if key_name == 'type':
-                    value = Initiator.type_to_str(value)
+                    value = Initiator._type_to_str(value)
         return value
 
     @staticmethod
-    def type_to_str(init_type):
-        return Initiator.type_map[init_type]
+    def _type_to_str(init_type):
+        return Initiator._type_map[init_type]
 
     def __init__(self, _id, _type, _name):
 
@@ -316,7 +311,13 @@ class Disk(IData):
     """
     Represents a disk.
     """
-    RETRIEVE_FULL_INFO = 2  # Used by client.py for disks() call.
+    RETRIEVE_FULL_INFO = 2  # Used by _client.py for disks() call.
+
+    # We use '-1' to indicate we failed to get the requested number.
+    # For example, when block found is undetectable, we use '-1' instead of
+    # confusing 0.
+    BLOCK_COUNT_NOT_FOUND = -1
+    BLOCK_SIZE_NOT_FOUND = -1
 
     # Disk Type, using DMTF 2.31.0+ CIM_DiskDrive['InterconnectType']
     DISK_TYPE_UNKNOWN = 0
@@ -449,7 +450,7 @@ class Disk(IData):
     _OPT_PROPERTIES_SEQUENCE = ['sn', 'part_num', 'vendor', 'model',
                                 'status_info', 'owner_ctrler_id']
 
-    def value_convert(self, key_name, value, human, enum_as_number,
+    def _value_convert(self, key_name, value, human, enum_as_number,
                       list_convert):
         if enum_as_number is False:
             if key_name == 'status':
@@ -557,7 +558,7 @@ class Volume(IData):
         (-1, 1, 2, 3)
 
     @staticmethod
-    def prov_string_to_type(prov_type):
+    def _prov_string_to_type(prov_type):
         if prov_type == 'DEFAULT':
             return Volume.PROVISION_DEFAULT
         elif prov_type == "FULL":
@@ -568,7 +569,7 @@ class Volume(IData):
             return Volume.PROVISION_UNKNOWN
 
     @staticmethod
-    def rep_string_to_type(rt):
+    def _rep_string_to_type(rt):
         if rt == "SNAPSHOT":
             return Volume.REPLICATE_SNAPSHOT
         elif rt == "CLONE":
@@ -586,7 +587,7 @@ class Volume(IData):
     (ACCESS_READ_ONLY, ACCESS_READ_WRITE, ACCESS_NONE) = (1, 2, 3)
 
     @staticmethod
-    def status_to_str(status):
+    def _status_to_str(status):
         if status == 1:
             return "OK"
         elif status == 0:
@@ -606,7 +607,7 @@ class Volume(IData):
             return rc
 
     @staticmethod
-    def access_string_to_type(access):
+    def _access_string_to_type(access):
         if access == "RW":
             return Volume.ACCESS_READ_WRITE
         else:
@@ -649,12 +650,12 @@ class Volume(IData):
                                 'num_of_blocks', 'size_bytes', 'status',
                                 'system_id', 'pool_id']
 
-    def value_convert(self, key_name, value, human, enum_as_number,
+    def _value_convert(self, key_name, value, human, enum_as_number,
                       list_convert):
 
         if enum_as_number is False:
                 if key_name == 'status':
-                    value = self.status_to_str(value)
+                    value = self._status_to_str(value)
         if human:
             if key_name == 'size_bytes':
                 value = sh(value, human)
@@ -672,7 +673,7 @@ class System(IData):
         (0x0, 0x1, 0x2, 0x4, 0x8, 0x10)
 
     @staticmethod
-    def status_to_str(status):
+    def _status_to_str(status):
         if status == 0:
             return "Unknown"
         elif status == 1:
@@ -705,12 +706,12 @@ class System(IData):
 
     _MAN_PROPERTIES_SEQUENCE = ['id', 'name', 'status']
 
-    def value_convert(self, key_name, value, human, enum_as_number,
+    def _value_convert(self, key_name, value, human, enum_as_number,
                       list_convert):
 
         if enum_as_number is False:
             if key_name == 'status':
-                value = System.status_to_str(value)
+                value = System._status_to_str(value)
         return value
 
 
@@ -725,7 +726,7 @@ class Pool(IData):
     """
     Pool specific information
     """
-    RETRIEVE_FULL_INFO = 1  # Used by client.py for pools() call.
+    RETRIEVE_FULL_INFO = 1  # Used by _client.py for pools() call.
                             # This might not be a good place, please
                             # suggest a better one.
 
@@ -792,7 +793,7 @@ class Pool(IData):
                       list(_MISC_RAID_TYPE.items()))
 
     @staticmethod
-    def raid_type_to_num(raid_type):
+    def _raid_type_to_num(raid_type):
         """
         Convert Pool.RAID_TYPE_RAID10 into int(10)
         Only check standard RAID and nested RAID, not including JBOD.
@@ -811,7 +812,7 @@ class Pool(IData):
         return Pool._RAID_TYPE[Pool.RAID_TYPE_UNKNOWN]
 
     @staticmethod
-    def raid_type_str_to_type(raid_type_str):
+    def _raid_type_str_to_type(raid_type_str):
         key = get_key(Pool._RAID_TYPE, raid_type_str)
         if key or key == 0:
             return key
@@ -899,20 +900,20 @@ class Pool(IData):
     }
 
     @staticmethod
-    def member_type_to_str(member_type):
+    def _member_type_to_str(member_type):
         if member_type in Pool._MEMBER_TYPE.keys():
             return Pool._MEMBER_TYPE[member_type]
         return Pool._MEMBER_TYPE[Pool.MEMBER_TYPE_UNKNOWN]
 
     @staticmethod
-    def member_type_str_to_type(member_type_str):
+    def _member_type_str_to_type(member_type_str):
         key = get_key(Pool._MEMBER_TYPE, member_type_str)
         if key or key == 0:
             return key
         return Pool.MEMBER_TYPE_UNKNOWN
 
     @staticmethod
-    def member_ids_to_str(member_ids):
+    def _member_ids_to_str(member_ids):
         member_string = ''
         if isinstance(member_ids, list):
             for member_id in member_ids:
@@ -965,7 +966,7 @@ class Pool(IData):
     }
 
     @staticmethod
-    def element_type_to_str(element_type):
+    def _element_type_to_str(element_type):
         element_str = ''
         for x in Pool._ELEMENT_TYPE.keys():
             if x & element_type:
@@ -1076,7 +1077,7 @@ class Pool(IData):
     }
 
     @staticmethod
-    def status_to_str(status):
+    def _status_to_str(status):
         """
         Convert status to a string
         When having multiple status, will use a comma between them
@@ -1147,7 +1148,7 @@ class Pool(IData):
     _OPT_PROPERTIES_SEQUENCE = ['raid_type', 'member_type', 'member_ids',
                                 'element_type', 'thinp_type', 'status_info']
 
-    def value_convert(self, key_name, value, human, enum_as_number,
+    def _value_convert(self, key_name, value, human, enum_as_number,
                       list_convert):
 
         if human:
@@ -1155,18 +1156,18 @@ class Pool(IData):
                 value = sh(value, human)
         if list_convert:
             if key_name == 'member_ids':
-                value = self.member_ids_to_str(value)
+                value = self._member_ids_to_str(value)
         if enum_as_number is False:
             if key_name == 'raid_type':
                 value = self.raid_type_to_str(value)
             elif key_name == 'member_type':
-                value = self.member_type_to_str(value)
+                value = self._member_type_to_str(value)
             elif key_name == 'thinp_type':
                 value = self.thinp_type_to_str(value)
             elif key_name == 'status':
-                value = self.status_to_str(value)
+                value = self._status_to_str(value)
             elif key_name == 'element_type':
-                value = self.element_type_to_str(value)
+                value = self._element_type_to_str(value)
         return value
 
     def __init__(self, _id, _name, _total_space, _free_space, _status,
@@ -1208,15 +1209,15 @@ class Pool(IData):
                 pass    # no byte size needed to humanize
             else:
                 if opt_pro == 'member_ids':
-                    opt_pro_value = Pool.member_ids_to_str(opt_pro_value)
+                    opt_pro_value = Pool._member_ids_to_str(opt_pro_value)
                 elif opt_pro == 'raid_type':
                     opt_pro_value = Pool.raid_type_to_str(opt_pro_value)
                 elif opt_pro == 'member_type':
-                    opt_pro_value = Pool.member_type_to_str(opt_pro_value)
+                    opt_pro_value = Pool._member_type_to_str(opt_pro_value)
                 elif opt_pro == 'thinp_type':
                     opt_pro_value = Pool.thinp_type_to_str(opt_pro_value)
                 elif opt_pro == 'element_type':
-                    opt_pro_value = Pool.element_type_to_str(opt_pro_value)
+                    opt_pro_value = Pool._element_type_to_str(opt_pro_value)
 
             opt_data_values.extend([opt_pro_value])
         return opt_data_values
@@ -1249,7 +1250,7 @@ class FileSystem(IData):
     _MAN_PROPERTIES_SEQUENCE = ['id', 'name', 'total_space', 'free_space',
                                 'pool_id']
 
-    def value_convert(self, key_name, value, human, enum_as_number,
+    def _value_convert(self, key_name, value, human, enum_as_number,
                       list_convert):
         if human:
             if key_name == 'total_space':
@@ -1268,10 +1269,10 @@ class Snapshot(IData):
         self._name = _name
         self._ts = int(_ts)
 
-    def value_convert(self, key_name, value, human, enum_as_number,
+    def _value_convert(self, key_name, value, human, enum_as_number,
                       list_convert):
         if key_name == 'ts':
-            value = datetime.datetime.fromtimestamp(value)
+            value = datetime.fromtimestamp(value)
         return value
 
     _MAN_PROPERTIES_2_HEADER = {
@@ -1339,7 +1340,7 @@ class BlockRange(IData):
         self._dest_block = _dest_block
         self._block_count = _block_count
 
-    def str_of_key(self, key_name=None):
+    def _str_of_key(self, key_name=None):
         raise NotImplementedError
 
 
@@ -1364,7 +1365,7 @@ class AccessGroup(IData):
     _MAN_PROPERTIES_SEQUENCE = ['id', 'name', 'initiators', 'system_id']
     _OPT_PROPERTIES_SEQUENCE = []
 
-    def value_convert(self, key_name, value, human, enum_as_number,
+    def _value_convert(self, key_name, value, human, enum_as_number,
                       list_convert):
         if list_convert:
             if key_name == 'initiators':
@@ -1373,11 +1374,11 @@ class AccessGroup(IData):
 
 
 class OptionalData(IData):
-    def column_data(self, human=False, enum_as_number=False):
+    def _column_data(self, human=False, enum_as_number=False):
         return [sorted(self._values.iterkeys(),
                        key=lambda k: self._values[k][1])]
 
-    def str_of_key(self, key_name=None):
+    def _str_of_key(self, key_name=None):
         raise NotImplementedError
 
     def __init__(self, _values=None):
@@ -1521,7 +1522,7 @@ class Capabilities(IData):
 
     POOL_DELETE = 200
 
-    def to_dict(self):
+    def _to_dict(self):
         rc = {'class': self.__class__.__name__,
               'cap': ''.join(['%02x' % b for b in self._cap])}
         return rc
@@ -1545,7 +1546,7 @@ class Capabilities(IData):
         for i in range(len(self._cap)):
             self._cap[i] = Capabilities.SUPPORTED
 
-    def str_of_key(self, key_name=None):
+    def _str_of_key(self, key_name=None):
         raise NotImplementedError
 
 

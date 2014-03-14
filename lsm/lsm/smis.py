@@ -16,17 +16,15 @@
 #
 # Author: tasleson
 from string import split
-
 import time
-import pywbem
 import traceback
+
+import pywbem
 from pywbem import CIMError
 
-from iplugin import IStorageAreaNetwork
-from common import Error, uri_parse, LsmError, ErrorNumber, JobStatus, md5
-from data import Pool, Initiator, Volume, AccessGroup, System, Capabilities,\
-    Disk, OptionalData, txt_a
-from version import VERSION
+from lsm import (IStorageAreaNetwork, Error, uri_parse, LsmError, ErrorNumber,
+                 JobStatus, md5, Pool, Initiator, Volume, AccessGroup, System,
+                 Capabilities, Disk, OptionalData, txt_a, VERSION)
 
 ## Variable Naming scheme:
 #   cim_xxx         CIMInstance

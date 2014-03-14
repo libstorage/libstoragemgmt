@@ -13,21 +13,21 @@ lsmdir = $(pythondir)/lsm
 externaldir = $(lsmdir)/external
 
 lsm_PYTHON = lsm/__init__.py           \
-                   lsm/client.py       \
-                   lsm/cmdline.py      \
-                   lsm/common.py       \
-                   lsm/data.py         \
+                   lsm/_client.py      \
+                   lsm/_cmdline.py     \
+                   lsm/_common.py      \
+                   lsm/_data.py        \
                    lsm/eseries.py      \
-                   lsm/iplugin.py      \
+                   lsm/_iplugin.py     \
                    lsm/na.py           \
                    lsm/nstor.py        \
                    lsm/ontap.py        \
-                   lsm/pluginrunner.py \
+                   lsm/_pluginrunner.py \
                    lsm/simulator.py    \
                    lsm/simarray.py     \
                    lsm/smis.py         \
                    lsm/smisproxy.py    \
-                   lsm/transport.py    \
+                   lsm/_transport.py   \
                    lsm/version.py      \
                    lsm/targetd.py
 

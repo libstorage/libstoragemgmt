@@ -16,16 +16,15 @@
 # Author: tasleson
 
 from smis import Smis
-import common
+from lsm import Proxy, VERSION
 import eseries
-from version import VERSION
 
 #The unfortunate truth is that each of the vendors implements functionality
 #slightly differently so we will need to have some special code for these
 #instances.
 
 
-class SmisProxy(common.Proxy):
+class SmisProxy(Proxy):
     """
     Layer to allow us to swap out different implementations of smi-s clients
     based on provider.

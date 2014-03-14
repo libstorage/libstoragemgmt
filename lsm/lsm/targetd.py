@@ -19,10 +19,9 @@
 
 import copy
 
-from lsm.iplugin import IStorageAreaNetwork, INfs
-from lsm.data import (Pool, Volume, System, Capabilities, Initiator,
-                      FileSystem, Snapshot, NfsExport)
-from lsm.common import (LsmError, ErrorNumber, uri_parse, md5, Error)
+from lsm import (Pool, Volume, System, Capabilities, Initiator,
+                 IStorageAreaNetwork, INfs, FileSystem, Snapshot, NfsExport,
+                 LsmError, ErrorNumber, uri_parse, md5, Error, VERSION)
 
 import traceback
 import urllib2
@@ -30,7 +29,6 @@ import json
 import time
 import urlparse
 import socket
-from lsm.version import VERSION
 
 DEFAULT_USER = "admin"
 DEFAULT_PORT = 18700

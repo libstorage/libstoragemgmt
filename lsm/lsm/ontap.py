@@ -23,11 +23,10 @@ import urlparse
 import sys
 
 import na
-from data import Volume, Initiator, FileSystem, Snapshot, NfsExport, \
-    AccessGroup, System, Capabilities, Disk, Pool, OptionalData
-from iplugin import IStorageAreaNetwork, INfs
-from common import LsmError, ErrorNumber, JobStatus, md5, Error
-from version import VERSION
+from lsm import (Volume, Initiator, FileSystem, Snapshot, NfsExport,
+                 AccessGroup, System, Capabilities, Disk, Pool, OptionalData,
+                 IStorageAreaNetwork, INfs, LsmError, ErrorNumber, JobStatus,
+                 md5, Error, VERSION)
 
 #Maps na to lsm, this is expected to expand over time.
 e_map = {

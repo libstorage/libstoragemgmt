@@ -16,10 +16,9 @@
 # Author: Deepak C Shetty (deepakcs@linux.vnet.ibm.com)
 
 import paramiko
-from iplugin import IStorageAreaNetwork
-from common import LsmError, ErrorNumber, uri_parse
-from version import VERSION
-from data import Volume, Initiator, System, Capabilities, Pool
+
+from lsm import (Capabilities, ErrorNumber, IStorageAreaNetwork, Initiator,
+                 LsmError, Pool, System, VERSION, Volume, uri_parse)
 
 
 def handle_ssh_errors(method):

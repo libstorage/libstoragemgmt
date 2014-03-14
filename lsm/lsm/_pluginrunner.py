@@ -18,9 +18,10 @@
 import socket
 import traceback
 import sys
-from common import SocketEOF, LsmError, Error, ErrorNumber
-import cmdline
-import transport
+from _common import SocketEOF as _SocketEOF
+from lsm import LsmError, Error, ErrorNumber
+import _cmdline
+import _transport
 
 
 class PluginRunner(object):
@@ -44,7 +45,7 @@ class PluginRunner(object):
         if len(args) == 2 and self._is_number(args[1]):
             try:
                 fd = int(args[1])
-                self.tp = transport.Transport(
+                self.tp = _transport.TransPort(
                     socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM))
 
                 #At this point we can return errors to the client, so we can
@@ -63,7 +64,7 @@ class PluginRunner(object):
 
         else:
             self.cmdline = True
-            cmdline.cmd_line_wrapper(plugin)
+            _cmdline.cmd_line_wrapper(plugin)
 
     def run(self):
         #Don't need to invoke this when running stand alone as a cmdline
@@ -116,7 +117,7 @@ class PluginRunner(object):
                 except LsmError as lsm_err:
                     self.tp.send_error(msg_id, lsm_err.code, lsm_err.msg,
                                        lsm_err.data)
-        except SocketEOF:
+        except _SocketEOF:
             #Client went away
             Error('Client went away, exiting plug-in')
         except Exception:

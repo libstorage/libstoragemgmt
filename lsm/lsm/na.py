@@ -20,16 +20,15 @@ import socket
 from xml.etree import ElementTree
 import time
 from binascii import hexlify
-
-from M2Crypto import RC4
 from _ssl import SSLError
 
+from M2Crypto import RC4
+
 from external.xmltodict import ConvertXmlToDict
+from lsm import (ErrorNumber)
 
 
 #Set to an appropriate directory and file to dump the raw response.
-from common import ErrorNumber
-
 xml_debug = None
 
 

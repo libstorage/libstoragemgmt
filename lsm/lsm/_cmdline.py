@@ -22,12 +22,12 @@ import time
 from argparse import ArgumentParser
 from argparse import RawTextHelpFormatter
 
-import common
-import client
-import data
-from version import VERSION
-from data import Capabilities, PlugData
+from lsm import (Client, Pool, VERSION, LsmError, Capabilities, Disk,
+                 Initiator, Volume, JobStatus, ErrorNumber, BlockRange,
+                 uri_parse)
 
+from _data import PlugData
+from _common import getch, size_human_2_size_bytes, Proxy
 
 ##@package lsm.cmdline
 
@@ -59,7 +59,7 @@ def cmd_line_wrapper(c=None):
         sys.stderr.write(str(ae))
         sys.stderr.flush()
         sys.exit(2)
-    except common.LsmError as le:
+    except LsmError as le:
         sys.stderr.write(str(le) + "\n")
         sys.stderr.flush()
         sys.exit(4)
@@ -338,7 +338,7 @@ cmds = (
         args=[
             dict(name='--name', metavar='<AG_NAME>',
                  help="Human readble name for access group"),
-            # TODO: client.py access_group_create should support multipal
+            # TODO: _client.py access_group_create should support multipal
             #       initiators when creating.
             dict(init_id_opt),
             dict(init_type_opt),
@@ -733,7 +733,7 @@ class CmdLine:
                 "to be lost!\nPress [Y|y] to continue, any other key to abort"
                 % msg)
 
-            pressed = common.getch()
+            pressed = getch()
             if pressed.upper() == 'Y':
                 return True
             else:
@@ -816,11 +816,11 @@ class CmdLine:
             self.args.script = True
 
         # Assuming all objects are from the same class.
-        key_2_str = objects[0].str_of_key()
-        key_seq = objects[0].key_display_sequence()
+        key_2_str = objects[0]._str_of_key()
+        key_seq = objects[0]._key_display_sequence()
         all_key_2_values = []
         for obj in objects:
-            obj_key_2_value = obj.value_of_key(
+            obj_key_2_value = obj._value_of_key(
                 key_name=None,
                 human=self.args.human,
                 enum_as_number=self.args.enum,
@@ -933,7 +933,7 @@ class CmdLine:
     def display_available_plugins(self):
         d = []
         sep = '<}{>'
-        plugins = client.Client.get_available_plugins(sep)
+        plugins = Client.get_available_plugins(sep)
 
         for p in plugins:
             desc, version = p.split(sep)
@@ -1059,7 +1059,7 @@ class CmdLine:
         elif args.type == 'POOLS':
             if args.optional is True:
                 self.display_data(
-                    self.c.pools(data.Pool.RETRIEVE_FULL_INFO))
+                    self.c.pools(Pool.RETRIEVE_FULL_INFO))
             else:
                 self.display_data(self.c.pools())
         elif args.type == 'FS':
@@ -1083,7 +1083,7 @@ class CmdLine:
         elif args.type == 'DISKS':
             if args.optional:
                 self.display_data(
-                    self.c.disks(data.Disk.RETRIEVE_FULL_INFO))
+                    self.c.disks(Disk.RETRIEVE_FULL_INFO))
             else:
                 self.display_data(self.c.disks())
         elif args.type == 'PLUGINS':
@@ -1097,15 +1097,15 @@ class CmdLine:
     @staticmethod
     def _init_type_to_enum(init_type):
         if init_type == 'WWPN':
-            i = data.Initiator.TYPE_PORT_WWN
+            i = Initiator.TYPE_PORT_WWN
         elif init_type == 'WWNN':
-            i = data.Initiator.TYPE_NODE_WWN
+            i = Initiator.TYPE_NODE_WWN
         elif init_type == 'ISCSI':
-            i = data.Initiator.TYPE_ISCSI
+            i = Initiator.TYPE_ISCSI
         elif init_type == 'HOSTNAME':
-            i = data.Initiator.TYPE_HOSTNAME
+            i = Initiator.TYPE_HOSTNAME
         elif init_type == 'SAS':
-            i = data.Initiator.TYPE_SAS
+            i = Initiator.TYPE_SAS
         else:
             raise ArgError("invalid initiator type " + init_type)
         return i
@@ -1229,7 +1229,7 @@ class CmdLine:
     # @return Size in bytes
     @staticmethod
     def _size(s):
-        size_bytes = common.size_human_2_size_bytes(s)
+        size_bytes = size_human_2_size_bytes(s)
         if size_bytes <= 0:
             raise ArgError("Incorrect size argument format: '%s'" % s)
         return size_bytes
@@ -1240,13 +1240,13 @@ class CmdLine:
         else:
             s = ':'
 
-        if val == data.Capabilities.SUPPORTED:
+        if val == Capabilities.SUPPORTED:
             v = "SUPPORTED"
-        elif val == data.Capabilities.UNSUPPORTED:
+        elif val == Capabilities.UNSUPPORTED:
             v = "UNSUPPORTED"
-        elif val == data.Capabilities.SUPPORTED_OFFLINE:
+        elif val == Capabilities.SUPPORTED_OFFLINE:
             v = "SUPPORTED_OFFLINE"
-        elif val == data.Capabilities.NOT_IMPLEMENTED:
+        elif val == Capabilities.NOT_IMPLEMENTED:
             v = "NOT_IMPLEMENTED"
         else:
             v = "UNKNOWN"
@@ -1366,7 +1366,7 @@ class CmdLine:
                 p,
                 args.name,
                 self._size(args.size),
-                data.Volume.prov_string_to_type(args.provisioning)))
+                Volume._prov_string_to_type(args.provisioning)))
         self.display_data([vol])
 
     ## Creates a snapshot
@@ -1432,16 +1432,16 @@ class CmdLine:
             #and exit with job in progress
             if self.args.async:
                 out(job)
-                self.shutdown(common.ErrorNumber.JOB_STARTED)
+                self.shutdown(ErrorNumber.JOB_STARTED)
 
             while True:
                 (s, percent, i) = self.c.job_status(job)
 
-                if s == common.JobStatus.INPROGRESS:
+                if s == JobStatus.INPROGRESS:
                     #Add an option to spit out progress?
                     #print "%s - Percent %s complete" % (job, percent)
                     time.sleep(0.25)
-                elif s == common.JobStatus.COMPLETE:
+                elif s == JobStatus.COMPLETE:
                     self.c.job_free(job)
                     return i
                 else:
@@ -1452,14 +1452,14 @@ class CmdLine:
     def job_status(self, args):
         (s, percent, i) = self.c.job_status(args.job)
 
-        if s == common.JobStatus.COMPLETE:
+        if s == JobStatus.COMPLETE:
             if i:
                 self.display_data([i])
 
             self.c.job_free(args.job)
         else:
             out(str(percent))
-            self.shutdown(common.ErrorNumber.JOB_STARTED)
+            self.shutdown(ErrorNumber.JOB_STARTED)
 
     ## Replicates a volume
     def volume_replicate(self, args):
@@ -1469,8 +1469,8 @@ class CmdLine:
 
         v = _get_item(self.c.volumes(), args.vol, "volume id")
 
-        rep_type = data.Volume.rep_string_to_type(args.rep_type)
-        if rep_type == data.Volume.REPLICATE_UNKNOWN:
+        rep_type = Volume._rep_string_to_type(args.rep_type)
+        if rep_type == Volume.REPLICATE_UNKNOWN:
             raise ArgError("invalid replication type= %s" % rep_type)
 
         vol = self._wait_for_it(
@@ -1484,8 +1484,8 @@ class CmdLine:
         dst = _get_item(self.c.volumes(), args.dst_vol,
                         "destination volume id")
 
-        rep_type = data.Volume.rep_string_to_type(args.rep_type)
-        if rep_type == data.Volume.REPLICATE_UNKNOWN:
+        rep_type = Volume._rep_string_to_type(args.rep_type)
+        if rep_type == Volume.REPLICATE_UNKNOWN:
             raise ArgError("invalid replication type= %s" % rep_type)
 
         src_starts = args.src_start
@@ -1499,9 +1499,7 @@ class CmdLine:
 
         ranges = []
         for i in range(len(src_starts)):
-            ranges.append(data.BlockRange(src_starts[i],
-                                          dst_starts[i],
-                                          counts[i]))
+            ranges.append(BlockRange(src_starts[i], dst_starts[i], counts[i]))
 
         if self.confirm_prompt(False):
             self.c.volume_replicate_range(rep_type, src, dst, ranges)
@@ -1523,7 +1521,7 @@ class CmdLine:
             i_type = CmdLine._init_type_to_enum(args.init_type)
             access = 'DEFAULT'
             if args.access is not None:
-                access = data.Volume.access_string_to_type(args.access)
+                access = Volume._access_string_to_type(args.access)
 
             self.c.initiator_grant(initiator_id, i_type, v, access)
         else:
@@ -1549,7 +1547,7 @@ class CmdLine:
             access = 'RW'
             if args.access is not None:
                 access = args.access
-            access = data.Volume.access_string_to_type(args.access)
+            access = Volume._access_string_to_type(args.access)
             self.c.access_group_grant(group, v, access)
         else:
             self.c.access_group_revoke(group, v)
@@ -1633,21 +1631,21 @@ class CmdLine:
     ## Creates a pool
     def pool_create(self, args):
         pool_name = args.name
-        raid_type = data.Pool.RAID_TYPE_UNKNOWN
-        member_type = data.Pool.MEMBER_TYPE_UNKNOWN
+        raid_type = Pool.RAID_TYPE_UNKNOWN
+        member_type = Pool.MEMBER_TYPE_UNKNOWN
         size_bytes = self._size(self.args.size)
 
         if args.raid_type:
-            raid_type = data.Pool.raid_type_str_to_type(
+            raid_type = Pool._raid_type_str_to_type(
                 self.args.raid_type)
-            if raid_type == data.Pool.RAID_TYPE_UNKNOWN:
+            if raid_type == Pool.RAID_TYPE_UNKNOWN:
                 raise ArgError("Unknown RAID type specified: %s" %
                                args.raid_type)
 
         if args.member_type:
-            member_type = data.Pool.member_type_str_to_type(
+            member_type = Pool._member_type_str_to_type(
                 args.member_type)
-            if member_type == data.Pool.MEMBER_TYPE_UNKNOWN:
+            if member_type == Pool.MEMBER_TYPE_UNKNOWN:
                 raise ArgError("Unkonwn member type specified: %s" %
                                args.member_type)
 
@@ -1672,9 +1670,9 @@ class CmdLine:
                 raise ArgError("Invalid Disk ID specified in " +
                                "--member-id %s " % member_id)
 
-        raid_type = data.Pool.raid_type_str_to_type(
+        raid_type = Pool._raid_type_str_to_type(
             self.args.raid_type)
-        if raid_type == data.Pool.RAID_TYPE_UNKNOWN:
+        if raid_type == Pool.RAID_TYPE_UNKNOWN:
             raise ArgError("Unknown RAID type specified: %s" %
                            self.args.raid_type)
 
@@ -1697,9 +1695,9 @@ class CmdLine:
                 raise ArgError("Invalid volumes ID specified in " +
                                "--member-id %s " % member_id)
 
-        raid_type = data.Pool.raid_type_str_to_type(
+        raid_type = Pool._raid_type_str_to_type(
             self.args.raid_type)
-        if raid_type == data.Pool.RAID_TYPE_UNKNOWN:
+        if raid_type == Pool.RAID_TYPE_UNKNOWN:
             raise ArgError("Unknown RAID type specified: %s" %
                            self.args.raid_type)
 
@@ -1798,7 +1796,7 @@ class CmdLine:
 
         if self.password is not None:
             #Check for username
-            u = common.uri_parse(self.uri)
+            u = uri_parse(self.uri)
             if u['username'] is None:
                 raise ArgError("password specified with no user name in uri")
 
@@ -1820,13 +1818,12 @@ class CmdLine:
         if cli:
             #Directly invoking code though a wrapper to catch unsupported
             #operations.
-            self.c = common.Proxy(cli())
+            self.c = Proxy(cli())
             self.c.startup(self.uri, self.password, self.tmo)
             self.cleanup = self.c.shutdown
         else:
             #Going across the ipc pipe
-            self.c = common.Proxy(
-                client.Client(self.uri, self.password, self.tmo))
+            self.c = Proxy(Client(self.uri, self.password, self.tmo))
 
             if os.getenv('LSM_DEBUG_PLUGIN'):
                 raw_input(

@@ -22,7 +22,7 @@ import syslog
 
 try:
     from lsm.ontap import Ontap
-    from lsm.pluginrunner import PluginRunner
+    from lsm import PluginRunner
 
     if __name__ == '__main__':
         PluginRunner(Ontap, sys.argv).run()

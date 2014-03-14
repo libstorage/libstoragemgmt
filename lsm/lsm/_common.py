@@ -31,6 +31,29 @@ import inspect
 import functools
 
 
+def default_property(name, allow_set=True, doc=None):
+    """
+    Creates the get/set properties for the given name.  It assumes that the
+    actual attribute is '_' + name
+
+    TODO: Expand this with domain validation to ensure the values are correct.
+    """
+    attribute_name = '_' + name
+
+    def getter(self):
+        return getattr(self, attribute_name)
+
+    def setter(self, value):
+        setattr(self, attribute_name, value)
+
+    prop = property(getter, setter if allow_set else None, None, doc)
+
+    def decorator(cls):
+        setattr(cls, name, prop)
+        return cls
+
+    return decorator
+
 ## Get a character from stdin without needing a return key pressed.
 # Returns the character pressed
 def getch():
@@ -72,7 +95,7 @@ class Proxy(object):
         Called each time an attribute is requested of the object
         """
         if hasattr(self.proxied_obj, name):
-            return functools.partial(self.present, name)
+            return functools.partial(self._present, name)
         else:
             raise LsmError(ErrorNumber.NO_SUPPORT,
                            "Unsupported operation")
@@ -83,7 +106,7 @@ class Proxy(object):
     # @param    args                Arguments
     # @param    kwargs              Keyword arguments
     # @return   The result of the method invocation
-    def present(self, _proxy_method_name, *args, **kwargs):
+    def _present(self, _proxy_method_name, *args, **kwargs):
         """
         Method which is called to invoke the actual method of interest.
         """
@@ -331,15 +354,18 @@ class SocketEOF(Exception):
     pass
 
 
+@default_property('code', 'Error code')
+@default_property('msg', 'Error message')
+@default_property('data', 'Optional error data')
 class LsmError(Exception):
     def __init__(self, code, message, data=None, *args, **kwargs):
         """
         Class represents an error.
         """
         Exception.__init__(self, *args, **kwargs)
-        self.code = code
-        self.msg = message
-        self.data = data
+        self._code = code
+        self._msg = message
+        self._data = data
 
     def __str__(self):
         if self.data is not None:
@@ -537,30 +563,6 @@ def return_requires(*types):
             return r
         return inner
     return outer
-
-
-def default_property(name, allow_set=True, doc=None):
-    """
-    Creates the get/set properties for the given name.  It assumes that the
-    actual attribute is '_' + name
-
-    TODO: Expand this with domain validation to ensure the values are correct.
-    """
-    attribute_name = '_' + name
-
-    def getter(self):
-        return getattr(self, attribute_name)
-
-    def setter(self, value):
-        setattr(self, attribute_name, value)
-
-    prop = property(getter, setter if allow_set else None, None, doc)
-
-    def decorator(cls):
-        setattr(cls, name, prop)
-        return cls
-
-    return decorator
 
 
 class TestCommon(unittest.TestCase):

@@ -18,18 +18,21 @@
 import time
 import os
 import unittest
-from data import Volume, NfsExport, IData, Capabilities, Pool, System, \
-    Initiator, Disk, AccessGroup, FileSystem, Snapshot
-from iplugin import INetworkAttachedStorage
-from transport import Transport
-import common
-from common import return_requires
+from lsm import (Volume, NfsExport, Capabilities, Pool, System,
+                 Initiator, Disk, AccessGroup, FileSystem, Snapshot,
+                 uri_parse, LsmError, JobStatus, ErrorNumber,
+                 INetworkAttachedStorage)
+
+from _common import return_requires as _return_requires
+from _common import UDS_PATH as _UDS_PATH
+from _transport import TransPort as _TransPort
+from _data import IData as _IData
 
 
 ## Removes self for the hash d
 # @param    d   Hash to remove self from
 # @returns d with hash removed.
-def del_self(d):
+def _del_self(d):
     """
     Used to remove the self key from the dict d.  Self is included when calling
     the function locals() in a class method.
@@ -39,8 +42,8 @@ def del_self(d):
 
 
 ## Descriptive exception about daemon not running.
-def raise_no_daemon():
-    raise common.LsmError(common.ErrorNumber.DAEMON_NOT_RUNNING,
+def _raise_no_daemon():
+    raise LsmError(ErrorNumber.DAEMON_NOT_RUNNING,
                           "The libStorageMgmt daemon is not running (process "
                           "name lsmd), try 'service libstoragemgmt start'")
 
@@ -72,7 +75,7 @@ class Client(INetworkAttachedStorage):
         """
         Instruct the plug-in to get ready
         """
-        self._tp.rpc('startup', del_self(locals()))
+        self._tp.rpc('startup', _del_self(locals()))
 
     ## Checks to see if any unix domain sockets exist in the base directory
     # and opens a socket to one to see if the server is actually there.
@@ -88,10 +91,10 @@ class Client(INetworkAttachedStorage):
 
                     try:
                         #This operation will work if the daemon is available
-                        s = Transport.get_socket(uds)
+                        s = _TransPort.get_socket(uds)
                         s.close()
                         return True
-                    except common.LsmError:
+                    except LsmError:
                         pass
         else:
             #Base directory is not present?
@@ -100,7 +103,7 @@ class Client(INetworkAttachedStorage):
 
     @staticmethod
     def _plugin_uds_path():
-        rc = common.UDS_PATH
+        rc = _UDS_PATH
 
         if 'LSM_UDS_PATH' in os.environ:
             rc = os.environ['LSM_UDS_PATH']
@@ -121,32 +124,32 @@ class Client(INetworkAttachedStorage):
         self._timeout = timeout_ms
         self._uds_path = Client._plugin_uds_path()
 
-        u = common.uri_parse(uri, ['scheme'])
+        u = uri_parse(uri, ['scheme'])
 
         scheme = u['scheme']
         if "+" in scheme:
             (plug, proto) = scheme.split("+")
             scheme = plug
 
-        self.plugin_path = os.path.join(self._uds_path, scheme)
+        self.plugin_path = os.path.join(_UDS_PATH, scheme)
 
         if os.path.exists(self.plugin_path):
-            self._tp = Transport(Transport.get_socket(self.plugin_path))
+            self._tp = _TransPort(_TransPort.get_socket(self.plugin_path))
         else:
             #At this point we don't know if the user specified an incorrect
             #plug-in in the URI or the daemon isn't started.  We will check
             #the directory for other unix domain sockets.
             if Client._check_daemon_exists():
-                raise common.LsmError(common.ErrorNumber.PLUGIN_NOT_EXIST,
+                raise LsmError(ErrorNumber.PLUGIN_NOT_EXIST,
                                       "Plug-in " + self.plugin_path +
                                       " not found!")
             else:
-                raise_no_daemon()
+                _raise_no_daemon()
 
         self.__start(uri, plain_text_password, timeout_ms, flags)
 
     ## Synonym for close.
-    @return_requires(None)
+    @_return_requires(None)
     def shutdown(self, flags=0):
         """
         Synonym for close.
@@ -156,18 +159,18 @@ class Client(INetworkAttachedStorage):
     ## Does an orderly shutdown of the plug-in
     # @param    self    The this pointer
     # @param    flags   Reserved for future use, must be zero.
-    @return_requires(None)
+    @_return_requires(None)
     def close(self, flags=0):
         """
         Does an orderly shutdown of the plug-in
         """
-        self._tp.rpc('shutdown', del_self(locals()))
+        self._tp.rpc('shutdown', _del_self(locals()))
         self._tp.close()
         self._tp = None
 
     ## Retrieves all the available plug-ins
     @staticmethod
-    @return_requires([unicode])
+    @_return_requires([unicode])
     def get_available_plugins(field_sep=':', flags=0):
         """
         Retrieves all the available plug-ins
@@ -178,14 +181,14 @@ class Client(INetworkAttachedStorage):
         rc = []
 
         if not Client._check_daemon_exists():
-            raise_no_daemon()
+            _raise_no_daemon()
 
         uds_path = Client._plugin_uds_path()
 
         for root, sub_folders, files in os.walk(uds_path):
             for filename in files:
                 uds = os.path.join(root, filename)
-                tp = Transport(Transport.get_socket(uds))
+                tp = _TransPort(_TransPort.get_socket(uds))
                 i, v = tp.rpc('plugin_info', dict(flags=0))
                 rc.append("%s%s%s" % (i, field_sep, v))
                 tp.close()
@@ -196,27 +199,27 @@ class Client(INetworkAttachedStorage):
     # @param    self    The this pointer
     # @param    ms      Time-out in ms
     # @param    flags   Reserved for future use, must be zero.
-    @return_requires(None)
+    @_return_requires(None)
     def set_time_out(self, ms, flags=0):
         """
         Sets any time-outs for the plug-in (ms)
 
         Return None on success, else LsmError exception
         """
-        return self._tp.rpc('set_time_out', del_self(locals()))
+        return self._tp.rpc('set_time_out', _del_self(locals()))
 
     ## Retrieves the current time-out value.
     # @param    self    The this pointer
     # @param    flags   Reserved for future use, must be zero.
     # @returns  Time-out value
-    @return_requires(int)
+    @_return_requires(int)
     def get_time_out(self, flags=0):
         """
         Retrieves the current time-out
 
         Return time-out in ms, else raise LsmError
         """
-        return self._tp.rpc('get_time_out', del_self(locals()))
+        return self._tp.rpc('get_time_out', _del_self(locals()))
 
     ## Retrieves the status of the specified job id.
     # @param    self    The this pointer
@@ -224,7 +227,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns A tuple ( status (enumeration), percent_complete,
     # completed item)
-    @return_requires(int, int, IData)
+    @_return_requires(int, int, _IData)
     def job_status(self, job_id, flags=0):
         """
         Returns the stats of the given job.
@@ -233,45 +236,45 @@ class Client(INetworkAttachedStorage):
                             completed item).
         else LsmError exception.
         """
-        return self._tp.rpc('job_status', del_self(locals()))
+        return self._tp.rpc('job_status', _del_self(locals()))
 
     ## Frees the resources for the specified job id.
     # @param    self    The this pointer
     # @param    job_id  Job id in which to release resource for
     # @param    flags   Reserved for future use, must be zero.
-    @return_requires(None)
+    @_return_requires(None)
     def job_free(self, job_id, flags=0):
         """
         Frees resources for a given job number.
 
         Returns None on success, else raises an LsmError
         """
-        return self._tp.rpc('job_free', del_self(locals()))
+        return self._tp.rpc('job_free', _del_self(locals()))
 
     ## Gets the capabilities of the array.
     # @param    self    The this pointer
     # @param    system  The system of interest
     # @param    flags   Reserved for future use, must be zero.
     # @returns  Capability object
-    @return_requires(Capabilities)
+    @_return_requires(Capabilities)
     def capabilities(self, system, flags=0):
         """
         Fetches the capabilities of the array
 
         Returns a capability object, see data,py for details.
         """
-        return self._tp.rpc('capabilities', del_self(locals()))
+        return self._tp.rpc('capabilities', _del_self(locals()))
 
     ## Gets information about the plug-in
     # @param    self    The this pointer
     # @param    flags   Reserved for future use
     # @returns  Tuple (description, version)
-    @return_requires(unicode, unicode)
+    @_return_requires(unicode, unicode)
     def plugin_info(self, flags=0):
         """
         Returns a description and version of plug-in
         """
-        return self._tp.rpc('plugin_info', del_self(locals()))
+        return self._tp.rpc('plugin_info', _del_self(locals()))
 
     ## Returns an array of pool objects.
     # @param    self    The this pointer
@@ -280,13 +283,13 @@ class Client(INetworkAttachedStorage):
     #                   If not defined, only the mandatory properties will
     #                   returned.
     # @returns An array of pool objects.
-    @return_requires([Pool])
+    @_return_requires([Pool])
     def pools(self, flags=0):
         """
         Returns an array of pool objects.  Pools are used in both block and
         file system interfaces, thus the reason they are in the base class.
         """
-        return self._tp.rpc('pools', del_self(locals()))
+        return self._tp.rpc('pools', _del_self(locals()))
 
     ## Create new pool in user friendly way. Depending on this capability:
     ##      Capabilities.POOL_CREATE
@@ -313,7 +316,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags       Reserved for future use.
     # @returns  A tuple (job_id, new_pool), when one is None the other is
     #           valid.
-    @return_requires(unicode, Pool)
+    @_return_requires(unicode, Pool)
     def pool_create(self, system_id, pool_name, size_bytes,
                     raid_type=Pool.RAID_TYPE_UNKNOWN,
                     member_type=Pool.MEMBER_TYPE_UNKNOWN, flags=0):
@@ -321,7 +324,7 @@ class Client(INetworkAttachedStorage):
         Returns the created new pool object.
         """
         # TODO: check size_bytes larger than 0 and raise error.
-        return self._tp.rpc('pool_create', del_self(locals()))
+        return self._tp.rpc('pool_create', _del_self(locals()))
 
     ## Create new pool in the hard way by defined what exactly disks should
     ## be used. Depending on these capabilities:
@@ -341,14 +344,14 @@ class Client(INetworkAttachedStorage):
     # @param    flags       Reserved for future use.
     # @returns  A tuple (job_id, new_pool), when one is None the other is
     #           valid.
-    @return_requires(unicode, Pool)
+    @_return_requires(unicode, Pool)
     def pool_create_from_disks(self, system_id, pool_name, member_ids,
                                raid_type, flags=0):
         """
         Creates pool from disks.
         Returns the created new pool object.
         """
-        return self._tp.rpc('pool_create_from_disks', del_self(locals()))
+        return self._tp.rpc('pool_create_from_disks', _del_self(locals()))
 
     ## Create new pool in the hard way by defined what exactly volumes should
     ## be used. Depending on these capabilities:
@@ -368,14 +371,14 @@ class Client(INetworkAttachedStorage):
     # @param    flags       Reserved for future use.
     # @returns  A tuple (job_id, new_pool), when one is None the other is
     #           valid.
-    @return_requires(unicode, Pool)
+    @_return_requires(unicode, Pool)
     def pool_create_from_volumes(self, system_id, pool_name, member_ids,
                                  raid_type, flags=0):
         """
         Creates pool from volumes.
         Returns the created new pool object.
         """
-        return self._tp.rpc('pool_create_from_volumes', del_self(locals()))
+        return self._tp.rpc('pool_create_from_volumes', _del_self(locals()))
 
     ## Create new pool in the hard way by defined what exactly pool should
     ## be allocate space from. Depending on this capability:
@@ -390,50 +393,50 @@ class Client(INetworkAttachedStorage):
     # @param    flags       Reserved for future use.
     # @returns  A tuple (job_id, new_pool), when one is None the other is
     #           valid.
-    @return_requires(unicode, Pool)
+    @_return_requires(unicode, Pool)
     def pool_create_from_pool(self, system_id, pool_name, member_id,
                               size_bytes, flags=0):
         """
         Creates pool from volumes.
         Returns the created new pool object.
         """
-        return self._tp.rpc('pool_create_from_pool', del_self(locals()))
+        return self._tp.rpc('pool_create_from_pool', _del_self(locals()))
 
     ## Remove a pool. This method depend on Capabilities.POOL_DELETE
     # @param    self        The this pointer
     # @param    pool        The pool object
     # @param    flags       Reserved for future use, must be zero.
     # @returns None on success, else job id.  Raises LsmError on errors.
-    @return_requires(unicode)
+    @_return_requires(unicode)
     def pool_delete(self, pool, flags=0):
         """
         Return None on success, else job id. Raises LsmError on errors.
         """
-        return self._tp.rpc('pool_delete', del_self(locals()))
+        return self._tp.rpc('pool_delete', _del_self(locals()))
 
     ## Returns an array of system objects.
     # @param    self    The this pointer
     # @param    flags   Reserved for future use, must be zero.
     # @returns An array of system objects.
-    @return_requires([System])
+    @_return_requires([System])
     def systems(self, flags=0):
         """
         Returns an array of system objects.  System information is used to
         distinguish resources from on storage array to another when the plug=in
         supports the ability to have more than one array managed by it
         """
-        return self._tp.rpc('systems', del_self(locals()))
+        return self._tp.rpc('systems', _del_self(locals()))
 
     ## Returns an array of initiator objects
     # @param    self    The this pointer
     # @param    flags   Reserved for future use, must be zero.
     # @returns An array of initiator objects.
-    @return_requires([Initiator])
+    @_return_requires([Initiator])
     def initiators(self, flags=0):
         """
         Return an array of initiator objects
         """
-        return self._tp.rpc('initiators', del_self(locals()))
+        return self._tp.rpc('initiators', _del_self(locals()))
 
     ## Register a user/password for the specified initiator for CHAP
     #  authentication.
@@ -447,14 +450,14 @@ class Client(INetworkAttachedStorage):
     # @param    out_password    Outbound password
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
-    @return_requires(None)
+    @_return_requires(None)
     def iscsi_chap_auth(self, initiator, in_user, in_password,
                         out_user, out_password, flags=0):
         """
         Register a user/password for the specified initiator for CHAP
         authentication.
         """
-        return self._tp.rpc('iscsi_chap_auth', del_self(locals()))
+        return self._tp.rpc('iscsi_chap_auth', _del_self(locals()))
 
     ## Grants access so an initiator can read/write the specified volume.
     # @param    self            The this pointer
@@ -464,13 +467,13 @@ class Client(INetworkAttachedStorage):
     # @param    access          Enumerated access type
     # @param    flags           Reserved for future use, must be zero
     # @returns  None on success, throws LsmError on errors.
-    @return_requires(None)
+    @_return_requires(None)
     def initiator_grant(self, initiator_id, initiator_type, volume, access,
                         flags=0):
         """
         Allows an initiator to access a volume.
         """
-        return self._tp.rpc('initiator_grant', del_self(locals()))
+        return self._tp.rpc('initiator_grant', _del_self(locals()))
 
     ## Revokes access for a volume for the specified initiator.
     # @param    self            The this pointer
@@ -478,45 +481,45 @@ class Client(INetworkAttachedStorage):
     # @param    volume          The volume to revoke access for
     # @param    flags           Reserved for future use, must be zero
     # @returns None on success, throws LsmError on errors.
-    @return_requires(None)
+    @_return_requires(None)
     def initiator_revoke(self, initiator, volume, flags=0):
         """
         Revokes access to a volume for the specified initiator
         """
-        return self._tp.rpc('initiator_revoke', del_self(locals()))
+        return self._tp.rpc('initiator_revoke', _del_self(locals()))
 
     ## Returns a list of volumes that are accessible from the specified
     # initiator.
     # @param    self            The this pointer
     # @param    initiator       The initiator object
     # @param    flags           Reserved for future use, must be zero
-    @return_requires([Volume])
+    @_return_requires([Volume])
     def volumes_accessible_by_initiator(self, initiator, flags=0):
         """
         Returns a list of volumes that the initiator has access to.
         """
         return self._tp.rpc('volumes_accessible_by_initiator',
-                            del_self(locals()))
+                            _del_self(locals()))
 
     ## Returns a list of initiators that have access to the specified volume.
     # @param    self        The this pointer
     # @param    volume      The volume in question
     # @param    flags       Reserved for future use, must be zero
     # @returns  List of initiators
-    @return_requires([Initiator])
+    @_return_requires([Initiator])
     def initiators_granted_to_volume(self, volume, flags=0):
-        return self._tp.rpc('initiators_granted_to_volume', del_self(locals()))
+        return self._tp.rpc('initiators_granted_to_volume', _del_self(locals()))
 
     ## Returns an array of volume objects
     # @param    self    The this pointer
     # @param    flags   Reserved for future use, must be zero.
     # @returns An array of volume objects.
-    @return_requires([Volume])
+    @_return_requires([Volume])
     def volumes(self, flags=0):
         """
         Returns an array of volume objects
         """
-        return self._tp.rpc('volumes', del_self(locals()))
+        return self._tp.rpc('volumes', _del_self(locals()))
 
     ## Creates a volume
     # @param    self            The this pointer
@@ -527,7 +530,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns  A tuple (job_id, new volume), when one is None the other is
     #           valid.
-    @return_requires(unicode, Volume)
+    @_return_requires(unicode, Volume)
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
                       flags=0):
         """
@@ -537,7 +540,7 @@ class Client(INetworkAttachedStorage):
         Note: Tuple return values are mutually exclusive, when one
         is None the other must be valid.
         """
-        return self._tp.rpc('volume_create', del_self(locals()))
+        return self._tp.rpc('volume_create', _del_self(locals()))
 
     ## Re-sizes a volume
     # @param    self    The this pointer
@@ -546,7 +549,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns  A tuple (job_id, new re-sized volume), when one is
     #           None the other is valid.
-    @return_requires(unicode, Volume)
+    @_return_requires(unicode, Volume)
     def volume_resize(self, volume, new_size_bytes, flags=0):
         """
         Re-sizes a volume.
@@ -555,7 +558,7 @@ class Client(INetworkAttachedStorage):
         Note: Tuple return values are mutually exclusive, when one
         is None the other must be valid.
         """
-        return self._tp.rpc('volume_resize', del_self(locals()))
+        return self._tp.rpc('volume_resize', _del_self(locals()))
 
     ## Replicates a volume from the specified pool.
     # @param    self        The this pointer
@@ -567,7 +570,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags       Reserved for future use, must be zero.
     # @returns  A tuple (job_id, new replicated volume), when one is
     #           None the other is valid.
-    @return_requires(unicode, Volume)
+    @_return_requires(unicode, Volume)
     def volume_replicate(self, pool, rep_type, volume_src, name, flags=0):
         """
         Replicates a volume from the specified pool.
@@ -576,20 +579,20 @@ class Client(INetworkAttachedStorage):
         Note: Tuple return values are mutually exclusive, when one
         is None the other must be valid.
         """
-        return self._tp.rpc('volume_replicate', del_self(locals()))
+        return self._tp.rpc('volume_replicate', _del_self(locals()))
 
     ## Size of a replicated block.
     # @param    self    The this pointer
     # @param    system  The system to request the rep. block range size from
     # @param    flags   Reserved for future use, must be zero
     # @returns  Size of the replicated block in bytes
-    @return_requires(int)
+    @_return_requires(int)
     def volume_replicate_range_block_size(self, system, flags=0):
         """
         Returns the size of a replicated block in bytes.
         """
         return self._tp.rpc('volume_replicate_range_block_size',
-                            del_self(locals()))
+                            _del_self(locals()))
 
     ## Replicates a portion of a volume to itself or another volume.
     # @param    self    The this pointer
@@ -601,7 +604,7 @@ class Client(INetworkAttachedStorage):
     #                       @see lsm.common.data.BlockRange
     # @param    flags       Reserved for future use, must be zero.
     # @returns Job id or None when completed, else raises LsmError on errors.
-    @return_requires(unicode)
+    @_return_requires(unicode)
     def volume_replicate_range(self, rep_type, volume_src, volume_dest, ranges,
                                flags=0):
         """
@@ -611,49 +614,49 @@ class Client(INetworkAttachedStorage):
 
         Returns Job id or None when completed, else raises LsmError on errors.
         """
-        return self._tp.rpc('volume_replicate_range', del_self(locals()))
+        return self._tp.rpc('volume_replicate_range', _del_self(locals()))
 
     ## Deletes a volume
     # @param    self    The this pointer
     # @param    volume  The volume object which represents the volume to delete
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, else job id.  Raises LsmError on errors.
-    @return_requires(unicode)
+    @_return_requires(unicode)
     def volume_delete(self, volume, flags=0):
         """
         Deletes a volume.
 
         Returns None on success, else job id
         """
-        return self._tp.rpc('volume_delete', del_self(locals()))
+        return self._tp.rpc('volume_delete', _del_self(locals()))
 
     ## Makes a volume online and available to the host.
     # @param    self    The this pointer
     # @param    volume  The volume to place online
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, else raises LsmError
-    @return_requires(unicode)
+    @_return_requires(unicode)
     def volume_online(self, volume, flags=0):
         """
         Makes a volume available to the host
 
         returns None on success, else raises LsmError on errors.
         """
-        return self._tp.rpc('volume_online', del_self(locals()))
+        return self._tp.rpc('volume_online', _del_self(locals()))
 
     ## Takes a volume offline
     # @param    self    The this pointer
     # @param    volume  The volume object
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, else raises LsmError on errors.
-    @return_requires(None)
+    @_return_requires(None)
     def volume_offline(self, volume, flags=0):
         """
         Makes a volume unavailable to the host
 
         returns None on success, else raises LsmError on errors.
         """
-        return self._tp.rpc('volume_offline', del_self(locals()))
+        return self._tp.rpc('volume_offline', _del_self(locals()))
 
     ## Returns an array of disk objects
     # @param    self    The this pointer
@@ -662,12 +665,12 @@ class Client(INetworkAttachedStorage):
     #                   If not defined, only the mandatory properties will
     #                   be returned.
     # @returns An array of disk objects.
-    @return_requires([Disk])
+    @_return_requires([Disk])
     def disks(self, flags=0):
         """
         Returns an array of disk objects
         """
-        return self._tp.rpc('disks', del_self(locals()))
+        return self._tp.rpc('disks', _del_self(locals()))
 
     ## Access control for allowing an access group to access a volume
     # @param    self    The this pointer
@@ -676,12 +679,12 @@ class Client(INetworkAttachedStorage):
     # @param    access  The desired access
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
-    @return_requires(None)
+    @_return_requires(None)
     def access_group_grant(self, group, volume, access, flags=0):
         """
         Allows an access group to access a volume.
         """
-        return self._tp.rpc('access_group_grant', del_self(locals()))
+        return self._tp.rpc('access_group_grant', _del_self(locals()))
 
     ## Revokes access to a volume to initiators in an access group
     # @param    self    The this pointer
@@ -689,23 +692,23 @@ class Client(INetworkAttachedStorage):
     # @param    volume  The volume to grant access to
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
-    @return_requires(None)
+    @_return_requires(None)
     def access_group_revoke(self, group, volume, flags=0):
         """
         Revokes access for an access group for a volume
         """
-        return self._tp.rpc('access_group_revoke', del_self(locals()))
+        return self._tp.rpc('access_group_revoke', _del_self(locals()))
 
     ## Returns a list of access group objects
     # @param    self    The this pointer
     # @param    flags   Reserved for future use, must be zero.
     # @returns  List of access groups
-    @return_requires([AccessGroup])
+    @_return_requires([AccessGroup])
     def access_group_list(self, flags=0):
         """
         Returns a list of access groups
         """
-        return self._tp.rpc('access_group_list', del_self(locals()))
+        return self._tp.rpc('access_group_list', _del_self(locals()))
 
     ## Creates an access a group with the specified initiator in it.
     # @param    self                The this pointer
@@ -715,26 +718,26 @@ class Client(INetworkAttachedStorage):
     # @param    system_id           Which system to create this group on
     # @param    flags               Reserved for future use, must be zero.
     # @returns AccessGroup on success, else raises LsmError
-    @return_requires(AccessGroup)
+    @_return_requires(AccessGroup)
     def access_group_create(self, name, initiator_id, id_type, system_id,
                             flags=0):
         """
         Creates an access group and add the specified initiator id, id_type and
         desired access.
         """
-        return self._tp.rpc('access_group_create', del_self(locals()))
+        return self._tp.rpc('access_group_create', _del_self(locals()))
 
     ## Deletes an access group.
     # @param    self    The this pointer
     # @param    group   The access group to delete
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
-    @return_requires(None)
+    @_return_requires(None)
     def access_group_del(self, group, flags=0):
         """
         Deletes an access group
         """
-        return self._tp.rpc('access_group_del', del_self(locals()))
+        return self._tp.rpc('access_group_del', _del_self(locals()))
 
     ## Adds an initiator to an access group
     # @param    self            The this pointer
@@ -743,13 +746,13 @@ class Client(INetworkAttachedStorage):
     # @param    id_type         Initiator id type (enumeration)
     # @param    flags           Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
-    @return_requires(None)
+    @_return_requires(None)
     def access_group_add_initiator(self, group, initiator_id, id_type,
                                    flags=0):
         """
         Adds an initiator to an access group
         """
-        return self._tp.rpc('access_group_add_initiator', del_self(locals()))
+        return self._tp.rpc('access_group_add_initiator', _del_self(locals()))
 
     ## Deletes an initiator from an access group
     # @param    self            The this pointer
@@ -757,25 +760,25 @@ class Client(INetworkAttachedStorage):
     # @param    initiator_id    The initiator to remove from the group
     # @param    flags           Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
-    @return_requires(None)
+    @_return_requires(None)
     def access_group_del_initiator(self, group, initiator_id, flags=0):
         """
         Deletes an initiator from an access group
         """
-        return self._tp.rpc('access_group_del_initiator', del_self(locals()))
+        return self._tp.rpc('access_group_del_initiator', _del_self(locals()))
 
     ## Returns the list of volumes that access group has access to.
     # @param    self        The this pointer
     # @param    group       The access group to list volumes for
     # @param    flags       Reserved for future use, must be zero.
     # @returns list of volumes
-    @return_requires([Volume])
+    @_return_requires([Volume])
     def volumes_accessible_by_access_group(self, group, flags=0):
         """
         Returns the list of volumes that access group has access to.
         """
         return self._tp.rpc('volumes_accessible_by_access_group',
-                            del_self(locals()))
+                            _del_self(locals()))
 
     ##Returns the list of access groups that have access to the specified
     #volume.
@@ -783,35 +786,35 @@ class Client(INetworkAttachedStorage):
     # @param    volume      The volume to list access groups for
     # @param    flags       Reserved for future use, must be zero.
     # @returns  list of access groups
-    @return_requires([AccessGroup])
+    @_return_requires([AccessGroup])
     def access_groups_granted_to_volume(self, volume, flags=0):
         """
         Returns the list of access groups that have access to the specified
         volume.
         """
         return self._tp.rpc('access_groups_granted_to_volume',
-                            del_self(locals()))
+                            _del_self(locals()))
 
     ## Checks to see if a volume has child dependencies.
     # @param    self    The this pointer
     # @param    volume  The volume to check
     # @param    flags   Reserved for future use, must be zero.
     # @returns True or False
-    @return_requires(bool)
+    @_return_requires(bool)
     def volume_child_dependency(self, volume, flags=0):
         """
         Returns True if this volume has other volumes which are dependant on
         it. Implies that this volume cannot be deleted or possibly modified
         because it would affect its children.
         """
-        return self._tp.rpc('volume_child_dependency', del_self(locals()))
+        return self._tp.rpc('volume_child_dependency', _del_self(locals()))
 
     ## Removes any child dependency.
     # @param    self    The this pointer
     # @param    volume  The volume to remove dependencies for
     # @param    flags   Reserved for future use, must be zero.
     # @returns None if complete, else job id.
-    @return_requires(unicode)
+    @_return_requires(unicode)
     def volume_child_dependency_rm(self, volume, flags=0):
         """
         If this volume has child dependency, this method call will fully
@@ -824,25 +827,25 @@ class Client(INetworkAttachedStorage):
 
         Returns None if complete else job id, raises LsmError on errors.
         """
-        return self._tp.rpc('volume_child_dependency_rm', del_self(locals()))
+        return self._tp.rpc('volume_child_dependency_rm', _del_self(locals()))
 
     ## Returns a list of file system objects.
     # @param    self    The this pointer
     # @param    flags   Reserved for future use, must be zero.
     # @returns A list of FS objects.
-    @return_requires([FileSystem])
+    @_return_requires([FileSystem])
     def fs(self, flags=0):
         """
         Returns a list of file systems on the controller.
         """
-        return self._tp.rpc('fs', del_self(locals()))
+        return self._tp.rpc('fs', _del_self(locals()))
 
     ## Deletes a file system
     # @param    self    The this pointer
     # @param    fs      The file system to delete
     # @param    flags   Reserved for future use, must be zero.
     # @returns  None on success, else job id
-    @return_requires(unicode)
+    @_return_requires(unicode)
     def fs_delete(self, fs, flags=0):
         """
         WARNING: Destructive
@@ -850,7 +853,7 @@ class Client(INetworkAttachedStorage):
         Deletes a file system and everything it contains
         Returns None on success, else job id
         """
-        return self._tp.rpc('fs_delete', del_self(locals()))
+        return self._tp.rpc('fs_delete', _del_self(locals()))
 
     ## Re-sizes a file system
     # @param    self            The this pointer
@@ -859,7 +862,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns tuple (job_id, re-sized file system),
     # When one is None the other is valid
-    @return_requires(unicode, FileSystem)
+    @_return_requires(unicode, FileSystem)
     def fs_resize(self, fs, new_size_bytes, flags=0):
         """
         Re-size a file system
@@ -868,7 +871,7 @@ class Client(INetworkAttachedStorage):
         Note: Tuple return values are mutually exclusive, when one
         is None the other must be valid.
         """
-        return self._tp.rpc('fs_resize', del_self(locals()))
+        return self._tp.rpc('fs_resize', _del_self(locals()))
 
     ## Creates a file system.
     # @param    self        The this pointer
@@ -878,7 +881,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags       Reserved for future use, must be zero.
     # @returns  tuple (job_id, file system),
     # When one is None the other is valid
-    @return_requires(unicode, FileSystem)
+    @_return_requires(unicode, FileSystem)
     def fs_create(self, pool, name, size_bytes, flags=0):
         """
         Creates a file system given a pool, name and size.
@@ -888,7 +891,7 @@ class Client(INetworkAttachedStorage):
         Note: Tuple return values are mutually exclusive, when one
         is None the other must be valid.
         """
-        return self._tp.rpc('fs_create', del_self(locals()))
+        return self._tp.rpc('fs_create', _del_self(locals()))
 
     ## Clones a file system
     # @param    self            The this pointer
@@ -897,7 +900,7 @@ class Client(INetworkAttachedStorage):
     # @param    snapshot        Optional, create clone from previous snapshot
     # @param    flags           Reserved for future use, must be zero.
     # @returns tuple (job_id, file system)
-    @return_requires(unicode, FileSystem)
+    @_return_requires(unicode, FileSystem)
     def fs_clone(self, src_fs, dest_fs_name, snapshot=None, flags=0):
         """
         Creates a thin, point in time read/writable copy of src to dest.
@@ -907,7 +910,7 @@ class Client(INetworkAttachedStorage):
         Note: Tuple return values are mutually exclusive, when one
         is None the other must be valid.
         """
-        return self._tp.rpc('fs_clone', del_self(locals()))
+        return self._tp.rpc('fs_clone', _del_self(locals()))
 
     ## Clones an individual file or files on the specified file system
     # @param    self            The this pointer
@@ -918,7 +921,7 @@ class Client(INetworkAttachedStorage):
     #                                       file from
     # @param    flags           Reserved for future use, must be zero.
     # @returns  None on success, else job id
-    @return_requires(unicode)
+    @_return_requires(unicode)
     def file_clone(self, fs, src_file_name, dest_file_name, snapshot=None,
                    flags=0):
         """
@@ -928,19 +931,19 @@ class Client(INetworkAttachedStorage):
 
         Returns None on success, else job id
         """
-        return self._tp.rpc('file_clone', del_self(locals()))
+        return self._tp.rpc('file_clone', _del_self(locals()))
 
     ## Returns a list of snapshots
     # @param    self    The this pointer
     # @param    fs      The file system
     # @param    flags   Reserved for future use, must be zero.
     # @returns  a list of snapshot objects.
-    @return_requires([Snapshot])
+    @_return_requires([Snapshot])
     def fs_snapshots(self, fs, flags=0):
         """
         Returns a list of snapshot names for the supplied file system
         """
-        return self._tp.rpc('fs_snapshots', del_self(locals()))
+        return self._tp.rpc('fs_snapshots', _del_self(locals()))
 
     ## Creates a snapshot (Point in time read only copy)
     # @param    self            The this pointer
@@ -949,7 +952,7 @@ class Client(INetworkAttachedStorage):
     # @param    files           The list of specific files to snapshot.
     # @param    flags           Reserved for future use, must be zero.
     # @returns tuple (job_id, snapshot)
-    @return_requires(unicode, Snapshot)
+    @_return_requires(unicode, Snapshot)
     def fs_snapshot_create(self, fs, snapshot_name, files, flags=0):
         """
         Snapshot is a point in time read-only copy
@@ -969,7 +972,7 @@ class Client(INetworkAttachedStorage):
         - Tuple return values are mutually exclusive, when one
           is None the other must be valid.
         """
-        return self._tp.rpc('fs_snapshot_create', del_self(locals()))
+        return self._tp.rpc('fs_snapshot_create', _del_self(locals()))
 
     ## Deletes a snapshot
     # @param    self        The this pointer
@@ -977,14 +980,14 @@ class Client(INetworkAttachedStorage):
     # @param    snapshot    The specific snap shot to delete
     # @param    flags       Reserved for future use, must be zero.
     # @returns  None on success, else job id
-    @return_requires(unicode)
+    @_return_requires(unicode)
     def fs_snapshot_delete(self, fs, snapshot, flags=0):
         """
         Frees the re-sources for the given snapshot on the supplied filesystem.
 
         Returns None on success else job id, LsmError exception on error
         """
-        return self._tp.rpc('fs_snapshot_delete', del_self(locals()))
+        return self._tp.rpc('fs_snapshot_delete', _del_self(locals()))
 
     ## Reverts a snapshot
     # @param    self            The this pointer
@@ -996,7 +999,7 @@ class Client(INetworkAttachedStorage):
     #                           back
     # @param    flags           Reserved for future use, must be zero.
     # @return None on success, else job id
-    @return_requires(unicode)
+    @_return_requires(unicode)
     def fs_snapshot_revert(self, fs, snapshot, files, restore_files,
                            all_files=False, flags=0):
         """
@@ -1012,14 +1015,14 @@ class Client(INetworkAttachedStorage):
 
         Returns None on success, else job id, LsmError exception on error
         """
-        return self._tp.rpc('fs_snapshot_revert', del_self(locals()))
+        return self._tp.rpc('fs_snapshot_revert', _del_self(locals()))
 
     ## Checks to see if a file system has child dependencies.
     # @param    fs      The file system to check
     # @param    files   The files to check (optional)
     # @param    flags   Reserved for future use, must be zero.
     # @returns True or False
-    @return_requires(bool)
+    @_return_requires(bool)
     def fs_child_dependency(self, fs, files, flags=0):
         """
         Returns True if the specified filesystem or specified file on this
@@ -1027,7 +1030,7 @@ class Client(INetworkAttachedStorage):
         or specified file on this file system cannot be deleted or possibly
         modified because it would affect its children.
         """
-        return self._tp.rpc('fs_child_dependency', del_self(locals()))
+        return self._tp.rpc('fs_child_dependency', _del_self(locals()))
 
     ## Removes child dependencies from a FS or specific file.
     # @param    self    The this pointer
@@ -1035,7 +1038,7 @@ class Client(INetworkAttachedStorage):
     # @param    files   The list of files to remove child dependencies (opt.)
     # @param    flags   Reserved for future use, must be zero.
     # @returns None if complete, else job id.
-    @return_requires(unicode)
+    @_return_requires(unicode)
     def fs_child_dependency_rm(self, fs, files, flags=0):
         """
         If this filesystem or specified file on this filesystem has child
@@ -1048,29 +1051,29 @@ class Client(INetworkAttachedStorage):
 
         Returns None if completed, else job id.  Raises LsmError on errors.
         """
-        return self._tp.rpc('fs_child_dependency_rm', del_self(locals()))
+        return self._tp.rpc('fs_child_dependency_rm', _del_self(locals()))
 
     ## Returns a list of all the NFS client authentication types.
     # @param    self    The this pointer
     # @param    flags   Reserved for future use, must be zero.
     # @returns  An array of client authentication types.
-    @return_requires([unicode])
+    @_return_requires([unicode])
     def export_auth(self, flags=0):
         """
         What types of NFS client authentication are supported.
         """
-        return self._tp.rpc('export_auth', del_self(locals()))
+        return self._tp.rpc('export_auth', _del_self(locals()))
 
     ## Returns a list of all the exported file systems
     # @param    self    The this pointer
     # @param    flags   Reserved for future use, must be zero.
     # @returns An array of export objects
-    @return_requires([NfsExport])
+    @_return_requires([NfsExport])
     def exports(self, flags=0):
         """
         Get a list of all exported file systems on the controller.
         """
-        return self._tp.rpc('exports', del_self(locals()))
+        return self._tp.rpc('exports', _del_self(locals()))
 
     ## Exports a FS as specified in the export.
     # @param    self            The this pointer
@@ -1085,7 +1088,7 @@ class Client(INetworkAttachedStorage):
     # @param    options         Options to pass to plug-in
     # @param    flags           Reserved for future use, must be zero.
     # @returns NfsExport on success, else raises LsmError
-    @return_requires(NfsExport)
+    @_return_requires(NfsExport)
     def export_fs(self, fs_id, export_path, root_list, rw_list, ro_list,
                   anon_uid=NfsExport.ANON_UID_GID_NA,
                   anon_gid=NfsExport.ANON_UID_GID_NA,
@@ -1093,22 +1096,22 @@ class Client(INetworkAttachedStorage):
         """
         Exports a filesystem as specified in the arguments
         """
-        return self._tp.rpc('export_fs', del_self(locals()))
+        return self._tp.rpc('export_fs', _del_self(locals()))
 
     ## Removes the specified export
     # @param    self    The this pointer
     # @param    export  The export to remove
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, else raises LsmError
-    @return_requires(None)
+    @_return_requires(None)
     def export_remove(self, export, flags=0):
         """
         Removes the specified export
         """
-        return self._tp.rpc('export_remove', del_self(locals()))
+        return self._tp.rpc('export_remove', _del_self(locals()))
 
 
-class TestClient(unittest.TestCase):
+class _TestClient(unittest.TestCase):
     def wait_to_finish(self, job, vol):
 
         if vol is not None:
@@ -1117,14 +1120,14 @@ class TestClient(unittest.TestCase):
             (status, percent, volume) = self.c.job_status(job)
             print 'Job status:', status, ' percent complete=', percent
 
-            while status == common.JobStatus.INPROGRESS:
+            while status == JobStatus.INPROGRESS:
                 time.sleep(1)
                 (status, percent, volume) = self.c.job_status(job)
                 print 'Job status:', status, ' percent complete=', percent
 
             self.c.job_free(job)
 
-            if status == common.JobStatus.COMPLETE:
+            if status == JobStatus.COMPLETE:
                 self.assertTrue(volume is not None)
 
         return volume
@@ -1143,8 +1146,8 @@ class TestClient(unittest.TestCase):
         self.assertTrue(tmo == expected)
 
     def test_job_errors(self):
-        self.assertRaises(common.LsmError, self.c.job_free, 0)
-        self.assertRaises(common.LsmError, self.c.job_status, 0)
+        self.assertRaises(LsmError, self.c.job_free, 0)
+        self.assertRaises(LsmError, self.c.job_status, 0)
 
     def test_pools(self):
         self.pools = self.c.pools()

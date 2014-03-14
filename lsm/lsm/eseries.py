@@ -17,11 +17,9 @@
 
 from smis import Smis
 import pywbem
-import common
 import time
-from data import Capabilities
 from smis import handle_cim_errors
-from common import LsmError, ErrorNumber
+from lsm import LsmError, ErrorNumber, Capabilities
 
 
 class ESeries(Smis):
@@ -186,5 +184,5 @@ class ESeries(Smis):
             while lun is not None:
                 lun = self._get_cim_instance_by_id('Volume', volume.id)
                 time.sleep(0.125)
-        except common.LsmError as e:
+        except LsmError as e:
             pass
