@@ -219,6 +219,112 @@ extern "C" {
                                     uint32_t *count, lsmFlag_t flags);
 
     /**
+     * Create new pool allowing the array to make the most decisions.
+     * @param [in]      conn            Valid connection @see lsmConnectPass
+     * @param [in]      system_id       System ID of where pool will reside
+     * @param [in]      pool_name       Name of new pool
+     * @param [in]      size_bytes      Size of new pool in bytes
+     * @param [in]      raid_type       Optional. If defined, new pool should
+     *                                  using defined RAID type. When
+     *                                  member_type was set to LSM_POOL_MEMBER_TYPE_POOL,
+     *                                  only allowed raid_type is LSM_POOL_RAID_TYPE_UNKNOWN or
+     *                                  LSM_POOL_RAID_TYPE_NOT_APPLICABLE
+     * @param [in]      member_type     Optional. If defined, new pool will be assembled
+     *                                  by defined member types. For example;
+     *                                  when member_type == LSM_POOL_MEMBER_TYPE_DISK_SAS,
+     *                                  new pool will be created from SAS disks
+     *                                  only.
+     * @param [out]     pool            Newly created pool
+     * @param [out]     job             Job ID of aysnc.
+     * @param [in]      flags           Reserved for future use, must be zero
+     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async.,
+     *          else error code
+     */
+    int LSM_DLL_EXPORT lsmPoolCreate(lsmConnect *conn, const char *system_id,
+                            const char *pool_name, uint64_t size_bytes,
+                            lsmPoolRaidType raid_type,
+                            lsmPoolMemberType member_type, lsmPool** pool,
+                            char **job, lsmFlag_t flags);
+
+    /**
+     * Create a pool specifying specific disks to use.
+     * @param [in]      conn            Valid connection @see lsmConnectPass
+     * @param [in]      system_id       System ID of where pool will reside
+     * @param [in]      pool_name       The name of the new pool, will not fail
+     *                                  if request name cannot be fulfilled
+     * @param [in]      member_ids      The IDs of disks to create new pool from
+     *                                  The new pool could contain more disks
+     *                                  than requested due to internal needs,
+     *                                  but if possible should only contain
+     *                                  requested disks.
+     * @param [in]      raid_type       The RAID type for new pool
+     * @param [out]     pool            Newly created pool
+     * @param [out]     job             Job ID of aysnc.
+     * @param [in]      flags           Reserved for future use, must be zero
+     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async.,
+     *          else error code
+     */
+    int LSM_DLL_EXPORT lsmPoolCreateFromDisks(lsmConnect *conn,
+                        const char *system_id, const char *pool_name,
+                        lsmStringList *member_ids, lsmPoolRaidType raid_type,
+                        lsmPool** pool, char **job, lsmFlag_t flags);
+
+    /**
+     * Create new pool in by specifying which volumes should be used for pool
+     * creation.
+     * @param [in]      conn            Valid connection @see lsmConnectPass
+     * @param [in]      system_id       System ID of where pool will reside
+     * @param [in]      pool_name       The name of the new pool, will not fail
+     *                                  if request name cannot be fulfilled
+     * @param [in]      member_ids      The IDs of volumes to create new pool from
+     *                                  The new pool could contain more volumes
+     *                                  than requested due to internal needs,
+     *                                  but if possible should only contain
+     *                                  requested volumes.
+     * @param [in]      raid_type       The RAID type for new pool
+     * @param [out]     pool            Newly created pool
+     * @param [out]     job             Job ID of aysnc.
+     * @param [in]      flags           Reserved for future use, must be zero
+     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async.,
+     *          else error code
+     */
+    int LSM_DLL_EXPORT lsmPoolCreateFromVolumes(lsmConnect *conn,
+                        const char *system_id, const char *pool_name,
+                        lsmStringList *member_ids, lsmPoolRaidType raid_type,
+                        lsmPool** pool, char **job, lsmFlag_t flags);
+
+    /**
+     * Create new pool from an existing pool
+     * @param [in]      conn            Valid connection @see lsmConnectPass
+     * @param [in]      system_id       System ID of where pool will reside
+     * @param [in]      pool_name       The name of the new pool, will not fail
+     *                                  if request name cannot be fulfilled
+     * @param [in]      member_id       The ID of pool to create new pool from
+     * @param [in]      size_bytes      Desired size of new pool
+     * @param [out]     pool            Newly created pool
+     * @param [out]     job             Job ID of aysnc.
+     * @param [in]      flags           Reserved for future use, must be zero
+     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async.,
+     *          else error code
+     */
+    int LSM_DLL_EXPORT lsmPoolCreateFromPool(lsmConnect *conn,
+                        const char *system_id, const char *pool_name,
+                        const char *member_id, uint64_t size_bytes,
+                        lsmPool** pool, char **job, lsmFlag_t flags);
+
+    /**
+     * Deletes a pool
+     * @param [in]      conn            Valid connection @see lsmConnectPass
+     * @param [in]      pool            The pool to delete
+     * @param [out]     job_id          Job id of job if async.
+     * @param [in]      flags           Reserved for future use, must be zero
+     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async.,
+     *          else error code
+     */
+    int LSM_DLL_EXPORT lsmPoolDelete(lsmConnect *conn, lsmPool *pool,
+                                        char **job_id, lsmFlag_t flags);
+
+    /**
      * Query the list of initiators known to the array
      * @param[in]   conn            Valid connection @see lsmConnectPassword
      * @param[out] initiators       Array of initiators

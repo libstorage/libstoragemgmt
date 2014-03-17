@@ -830,6 +830,221 @@ static void* parse_job_response(lsmConnect *c, Value response, int &rc,
     return val;
 }
 
+static int valid_pool_raid_type(lsmPoolRaidType validate)
+{
+    switch(validate) {
+        case (LSM_POOL_RAID_TYPE_0):
+        case (LSM_POOL_RAID_TYPE_1):
+        case (LSM_POOL_RAID_TYPE_3):
+        case (LSM_POOL_RAID_TYPE_5):
+        case (LSM_POOL_RAID_TYPE_6):
+        case (LSM_POOL_RAID_TYPE_10):
+        case (LSM_POOL_RAID_TYPE_15):
+        case (LSM_POOL_RAID_TYPE_16):
+        case (LSM_POOL_RAID_TYPE_50):
+        case (LSM_POOL_RAID_TYPE_60):
+        case (LSM_POOL_RAID_TYPE_51):
+        case (LSM_POOL_RAID_TYPE_61):
+        case (LSM_POOL_RAID_TYPE_JBOD):
+        case (LSM_POOL_RAID_TYPE_UNKNOWN):
+        case (LSM_POOL_RAID_TYPE_NOT_APPLICABLE):
+        case (LSM_POOL_RAID_TYPE_MIXED):
+            break;
+        default:
+            return 0;
+    }
+    return 1;
+}
+
+static int valid_pool_member_type(lsmPoolMemberType validate)
+{
+    switch(validate) {
+        case (LSM_POOL_MEMBER_TYPE_UNKNOWN):
+        case (LSM_POOL_MEMBER_TYPE_DISK):
+        case (LSM_POOL_MEMBER_TYPE_POOL):
+        case (LSM_POOL_MEMBER_TYPE_VOLUME):
+        case (LSM_POOL_MEMBER_TYPE_DISK_MIX):
+        case (LSM_POOL_MEMBER_TYPE_DISK_ATA):
+        case (LSM_POOL_MEMBER_TYPE_DISK_SATA):
+        case (LSM_POOL_MEMBER_TYPE_DISK_SAS):
+        case (LSM_POOL_MEMBER_TYPE_DISK_FC):
+        case (LSM_POOL_MEMBER_TYPE_DISK_SOP):
+        case (LSM_POOL_MEMBER_TYPE_DISK_SCSI):
+        case (LSM_POOL_MEMBER_TYPE_DISK_NL_SAS):
+        case (LSM_POOL_MEMBER_TYPE_DISK_HDD):
+        case (LSM_POOL_MEMBER_TYPE_DISK_SSD):
+        case (LSM_POOL_MEMBER_TYPE_DISK_HYBRID):
+            break;
+        default:
+            return 0;
+    }
+    return 1;
+}
+
+int lsmPoolCreate(lsmConnect *c, const char *system_id,
+                            const char *pool_name, uint64_t size_bytes,
+                            lsmPoolRaidType raid_type,
+                            lsmPoolMemberType member_type, lsmPool** pool,
+                            char **job, lsmFlag_t flags)
+{
+    CONN_SETUP(c);
+
+    if( CHECK_STR(system_id) || CHECK_STR(pool_name) || !size_bytes ||
+        CHECK_RP(pool)|| CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ||
+        !valid_pool_raid_type(raid_type) ||
+        !valid_pool_member_type(member_type)) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["system_id"] = Value(system_id);
+    p["pool_name"] = Value(pool_name);
+    p["size_bytes"] = Value(size_bytes);
+    p["raid_type"] = Value((int32_t)raid_type);
+    p["member_type"] = Value((int32_t)member_type);
+    p["flags"] = Value(flags);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "pool_create", parameters, response);
+    if( LSM_ERR_OK == rc ) {
+        *pool = (lsmPool *)parse_job_response(c, response, rc, job,
+                                                        (convert)valueToPool);
+    }
+    return rc;
+}
+
+
+static int lsm_pool_create_from(lsmConnect *c,
+                        const char *system_id, const char *pool_name,
+                        lsmStringList *member_ids, lsmPoolRaidType raid_type,
+                        lsmPool** pool, char **job, lsmFlag_t flags,
+                        const char *method)
+{
+    CONN_SETUP(c);
+
+    if( CHECK_STR(system_id) || CHECK_STR(pool_name) ||
+        CHECK_RP(pool)|| CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ||
+        !valid_pool_raid_type(raid_type) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    if( !LSM_IS_STRING_LIST(member_ids) ) {
+        return LSM_ERR_INVALID_SL;
+    }
+
+    std::map<std::string, Value> p;
+    p["system_id"] = Value(system_id);
+    p["pool_name"] = Value(pool_name);
+    p["member_ids"] = stringListToValue(member_ids);
+    p["raid_type"] = Value((int32_t)raid_type);
+    p["flags"] = Value(flags);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, method, parameters, response);
+    if( LSM_ERR_OK == rc ) {
+        *pool = (lsmPool *)parse_job_response(c, response, rc, job,
+                                                        (convert)valueToPool);
+    }
+    return rc;
+}
+
+int LSM_DLL_EXPORT lsmPoolCreateFromDisks(lsmConnect *c,
+                        const char *system_id, const char *pool_name,
+                        lsmStringList *member_ids, lsmPoolRaidType raid_type,
+                        lsmPool** pool, char **job, lsmFlag_t flags)
+{
+    return lsm_pool_create_from(c, system_id, pool_name, member_ids, raid_type,
+                                pool, job, flags, "lsm_pool_create_from_disks");
+}
+
+int LSM_DLL_EXPORT lsmPoolCreateFromVolumes(lsmConnect *c,
+                        const char *system_id, const char *pool_name,
+                        lsmStringList *member_ids, lsmPoolRaidType raid_type,
+                        lsmPool** pool, char **job, lsmFlag_t flags)
+{
+     return lsm_pool_create_from(c, system_id, pool_name, member_ids, raid_type,
+                                pool, job, flags,
+                                "lsm_pool_create_from_volumes");
+}
+
+
+ int lsmPoolCreateFromPool(lsmConnect *c, const char *system_id,
+                        const char *pool_name, const char *member_id,
+                        uint64_t size_bytes, lsmPool **pool, char **job,
+                        lsmFlag_t flags)
+ {
+    CONN_SETUP(c);
+
+    if( CHECK_STR(system_id) || CHECK_STR(pool_name) || CHECK_STR(member_id) ||
+        !size_bytes || CHECK_RP(pool)|| CHECK_RP(job) ||
+        LSM_FLAG_UNUSED_CHECK(flags) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["system_id"] = Value(system_id);
+    p["pool_name"] = Value(pool_name);
+    p["size_bytes"] = Value(size_bytes);
+    p["member_id"] = Value(member_id);
+    p["flags"] = Value(flags);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "pool_create_from_pool", parameters, response);
+    if( LSM_ERR_OK == rc ) {
+        *pool = (lsmPool *)parse_job_response(c, response, rc, job,
+                                                        (convert)valueToPool);
+    }
+    return rc;
+ }
+
+int lsmPoolDelete(lsmConnect *c, lsmPool *pool, char **job, lsmFlag_t flags)
+{
+    int rc;
+    CONN_SETUP(c);
+
+    if( !LSM_IS_POOL(pool) ) {
+        return LSM_ERR_INVALID_POOL;
+    }
+
+    if (CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    try {
+
+        std::map<std::string, Value> p;
+        p["pool"] = poolToValue(pool);
+        p["flags"] = Value(flags);
+
+        Value parameters(p);
+        Value response;
+
+        rc = rpc(c, "pool_delete", parameters, response);
+        if( LSM_ERR_OK == rc ) {
+            //We get a value back, either null or job id.
+            if( Value::string_t == response.valueType() ) {
+                *job = strdup(response.asString().c_str());
+
+                if( *job ) {
+                    rc = LSM_ERR_JOB_STARTED;
+                } else {
+                    rc = LSM_ERR_NO_MEMORY;
+                }
+            }
+        }
+    } catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+                            ve.what());
+    }
+    return rc;
+ }
+
 int lsmVolumeCreate(lsmConnect *c, lsmPool *pool, const char *volumeName,
                         uint64_t size, lsmProvisionType provisioning,
                         lsmVolume **newVolume, char **job, lsmFlag_t flags)
