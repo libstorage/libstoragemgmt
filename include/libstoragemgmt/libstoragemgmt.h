@@ -81,7 +81,7 @@ extern "C" {
     /**
      * Retrieve information about the plug-in
      * NOTE: Caller needs to free desc and version!
-     * @param[in] conn      Valid connection @see lsmConnectUserPass
+     * @param[in] conn      Valid connection @see lsmConnectPassword
      * @param[out] desc     Plug-in description
      * @param[out] version  Plug-in version
      * @param [in] flags    Reserved for future use, must be zero.
@@ -104,7 +104,7 @@ extern "C" {
 
     /**
      * Sets the time-out for this connection.
-     * @param[in] conn          Valid connection @see lsmConnectUserPass
+     * @param[in] conn          Valid connection @see lsmConnectPassword
      * @param[in] timeout       Time-out (in ms)
      * @param[in] flags         Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason
@@ -114,7 +114,7 @@ extern "C" {
 
     /**
      * Gets the time-out for this connection.
-     * @param[in]   conn        Valid connection @see lsmConnectUserPass
+     * @param[in]   conn        Valid connection @see lsmConnectPassword
      * @param[out]  timeout     Time-out (in ms)
      * @param[in] flags         Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason
@@ -196,7 +196,7 @@ extern "C" {
 
     /**
      * Query the capabilities of the storage array.
-     * @param[in]   conn    Valid connection @see lsmConnectUserPass
+     * @param[in]   conn    Valid connection @see lsmConnectPassword
      * @param[in]   system  System of interest
      * @param[out]  cap     The storage array capabilities
      * @param[in] flags     Reserved for future use, must be zero.
@@ -209,7 +209,7 @@ extern "C" {
 
     /**
      * Query the list of storage pools on the array.
-     * @param[in]   conn            Valid connection @see lsmConnectUserPass
+     * @param[in]   conn            Valid connection @see lsmConnectPassword
      * @param[out]  poolArray       Array of storage pools
      * @param[out]  count           Number of storage pools
      * @param[in] flags             Reserved for future use, must be zero.
@@ -220,7 +220,7 @@ extern "C" {
 
     /**
      * Query the list of initiators known to the array
-     * @param[in]   conn            Valid connection @see lsmConnectUserPass
+     * @param[in]   conn            Valid connection @see lsmConnectPassword
      * @param[out] initiators       Array of initiators
      * @param[out] count            Number of initiators
      * @param[in] flags             Reserved for future use, must be zero.
@@ -236,7 +236,7 @@ extern "C" {
 
     /**
      * Gets a list of logical units for this array.
-     * @param[in]   conn        Valid connection @see lsmConnectUserPass
+     * @param[in]   conn        Valid connection @see lsmConnectPassword
      * @param[out]   volumes    An array of lsmVolume_t
      * @param[out]   count      Number of elements in the lsmVolume_t array
      * @param[in] flags         Reserved for future use, must be zero.
@@ -247,7 +247,7 @@ extern "C" {
 
     /**
      * Get a list of disk for this array.
-     * @param [in]      conn    Valid connection @see lsmConnectUserPass
+     * @param [in]      conn    Valid connection @see lsmConnectPassword
      * @param [out]     disks   An array of lsmDisk types
      * @param [out]     count   Number of disks
      * @param [in]      flags   Use LSM_DISK_RETRIEVE_FULL_INFO for all data, else 0
@@ -258,7 +258,7 @@ extern "C" {
 
     /**
      * Creates a new volume (aka. LUN).
-     * @param[in]   conn            Valid connection @see lsmConnectUserPass
+     * @param[in]   conn            Valid connection @see lsmConnectPassword
      * @param[in]   pool            Valid pool @see lsmPool_t (OPTIONAL, use NULL for plug-in choice)
      * @param[in]   volumeName      Human recognizable name (not all arrays support)
      * @param[in]   size            Size of new volume in bytes (actual size will
@@ -277,7 +277,7 @@ extern "C" {
 
     /**
      * Resize an existing volume.
-     * @param[in]   conn            Valid connection @see lsmConnectUserPass
+     * @param[in]   conn            Valid connection @see lsmConnectPassword
      * @param[in]   volume          volume to resize
      * @param[in]   newSize         New size of volume
      * @param[out]  resizedVolume   Pointer to newly resized lun.
@@ -291,7 +291,7 @@ extern "C" {
 
     /**
      * Replicates a volume
-     * @param[in] conn              Valid connection @see lsmConnectUserPass
+     * @param[in] conn              Valid connection @see lsmConnectPassword
      * @param[in] pool              Valid pool
      * @param[in] repType           Type of replication lsmReplicationType
      * @param[in] volumeSrc         Which volume to replicate
@@ -341,7 +341,7 @@ extern "C" {
 
     /**
      * Deletes a logical unit and data is lost!
-     * @param[in]   conn            Valid connection @see lsmConnectUserPass
+     * @param[in]   conn            Valid connection @see lsmConnectPassword
      * @param[in]   volume          Volume that is to be deleted.
      * @param[out]  job             Indicates job id
      * @param[in] flags             Reserved for future use, must be zero.
@@ -352,7 +352,7 @@ extern "C" {
 
     /**
      * Set a Volume to online
-     * @param[in] conn                  Valid connection @see lsmConnectUserPass
+     * @param[in] conn                  Valid connection @see lsmConnectPassword
      * @param[in] volume                Volume that is to be placed online
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error code
@@ -362,7 +362,7 @@ extern "C" {
 
     /**
      * Set a Volume to offline
-     * @param[in] conn                  Valid connection @see lsmConnectUserPass
+     * @param[in] conn                  Valid connection @see lsmConnectPassword
      * @param[in] volume                Volume that is to be placed online
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error code
@@ -391,7 +391,7 @@ extern "C" {
 
     /**
      * Access control for allowing an initiator to use a volume.
-     * @param[in] conn                  Valid connection @see lsmConnectUserPass
+     * @param[in] conn                  Valid connection @see lsmConnectPassword
      * @param[in] initiator_id          Initiator to grant access to volume
      * @param[in] initiator_type        Type of initiator we are adding
      * @param[in] volume                Volume to allow access to
@@ -422,7 +422,7 @@ extern "C" {
 
     /**
      * Retrieves a list of access groups.
-     * @param[in] conn              Valid connection @see lsmConnectUserPass
+     * @param[in] conn              Valid connection @see lsmConnectPassword
      * @param[out] groups           Array of access groups
      * @param[out] groupCount       Size of array
      * @param[in] flags             Reserved for future use, must be zero.
@@ -435,7 +435,7 @@ extern "C" {
 
     /**
      * Creates a new access group with one initiator in it.
-     * @param[in] conn                  Valid connection @see lsmConnectUserPass
+     * @param[in] conn                  Valid connection @see lsmConnectPassword
      * @param[in] name                  Name of access group
      * @param[in] initiator_id          Initiator id to be added to group
      * @param[in] id_type               Initiator type
@@ -454,7 +454,7 @@ extern "C" {
 
     /**
      * Deletes an access group.
-     * @param[in] conn                  Valid connection @see lsmConnectUserPass
+     * @param[in] conn                  Valid connection @see lsmConnectPassword
      * @param[in] group                 Group to delete
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
@@ -464,7 +464,7 @@ extern "C" {
 
     /**
      * Adds an initiator to the access group
-     * @param[in] conn                  Valid connection @see lsmConnectUserPass
+     * @param[in] conn                  Valid connection @see lsmConnectPassword
      * @param[in] group                 Group to modify
      * @param[in] initiator_id          Initiator to add to group
      * @param[in] id_type               Type of initiator
@@ -478,7 +478,7 @@ extern "C" {
 
     /**
      * Removes an initiator from an access group.
-     * @param[in] conn                  Valid connection @see lsmConnectUserPass
+     * @param[in] conn                  Valid connection @see lsmConnectPassword
      * @param[in] group                 Group to modify
      * @param[in] initiator_id          Initiator to delete from group
      * @param[in] flags                 Reserved for future use, must be zero.
