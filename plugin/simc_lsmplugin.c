@@ -40,7 +40,6 @@ static char sys_id[] = "sim-01";
 
 #define BS 512
 #define MAX_SYSTEMS 1
-#define MAX_POOLS 4
 #define MAX_VOLUMES 128
 #define MAX_FS 32
 #define MAX_EXPORT 32
@@ -109,9 +108,6 @@ struct plugin_data {
     uint32_t num_systems;
     lsmSystem *system[MAX_SYSTEMS];
 
-    uint32_t num_pools;
-    lsmPool *pool[MAX_POOLS];
-
     uint32_t num_volumes;
     struct allocated_volume volume[MAX_VOLUMES];
 
@@ -120,6 +116,8 @@ struct plugin_data {
     GHashTable *fs;
 
     GHashTable *jobs;
+
+    GHashTable *pools;
 };
 
 struct allocated_job {
@@ -201,6 +199,13 @@ void free_allocated_ag(void *v)
         struct allocated_ag *aag = (struct allocated_ag *)v;
         lsmAccessGroupRecordFree(aag->ag);
         free(aag);
+    }
+}
+
+void free_pool_record(void *p)
+{
+    if( p ) {
+        lsmPoolRecordFree((lsmPool*)p);
     }
 }
 
@@ -421,30 +426,31 @@ static int list_pools(lsmPluginPtr c, lsmPool **poolArray[],
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmPrivateDataGet(c);
+    *count = g_hash_table_size(pd->pools);
 
-    if(pd) {
-        *count = pd->num_pools;
-        *poolArray = lsmPoolRecordArrayAlloc( pd->num_pools );
-
+    if( *count ) {
+        *poolArray = lsmPoolRecordArrayAlloc( *count );
         if( *poolArray ) {
             uint32_t i = 0;
-            for( i = 0; i < pd->num_pools; ++i ) {
-                (*poolArray)[i] = lsmPoolRecordCopy(pd->pool[i]);
+            char *k = NULL;
+            lsmPool *p = NULL;
+            GHashTableIter iter;
+            g_hash_table_iter_init(&iter, pd->pools);
+            while(g_hash_table_iter_next(&iter,(gpointer) &k,(gpointer)&p)) {
+                (*poolArray)[i] = lsmPoolRecordCopy(p);
                 if( !(*poolArray)[i] ) {
                     rc = LSM_ERR_NO_MEMORY;
                     lsmPoolRecordArrayFree(*poolArray, i);
-                    *poolArray = NULL;
                     *count = 0;
+                    *poolArray = NULL;
                     break;
                 }
+                ++i;
             }
         } else {
-            rc = LSM_ERR_NO_MEMORY;
+            rc = lsmLogErrorBasic(c, LSM_ERR_NO_MEMORY, "ENOMEM");
         }
-    } else {
-        rc = LSM_ERR_INVALID_PLUGIN;
     }
-
     return rc;
 }
 
@@ -706,17 +712,9 @@ void pool_deallocate(lsmPool *p, uint64_t size)
     lsmPoolFreeSpaceSet(p, free_space);
 }
 
-static int find_pool(struct plugin_data *pd, const char* pool_id)
+static lsmPool *find_pool(struct plugin_data *pd, const char* pool_id)
 {
-    if( pd ) {
-        int i;
-        for( i = 0; i < pd->num_pools; ++i ) {
-            if( strcmp(lsmPoolIdGet(pd->pool[i]), pool_id) == 0) {
-                return i;
-            }
-        }
-    }
-    return -1;
+    return (lsmPool*) g_hash_table_lookup(pd->pools, pool_id);
 }
 
 static int find_volume_name(struct plugin_data *pd, const char *name)
@@ -740,12 +738,11 @@ static int volume_create(lsmPluginPtr c, lsmPool *pool,
     int rc = LSM_ERR_OK;
 
     struct plugin_data *pd = (struct plugin_data*)lsmPrivateDataGet(c);
-    int pool_index = find_pool(pd, lsmPoolIdGet(pool));
+    lsmPool *p = find_pool(pd, lsmPoolIdGet(pool));
 
-    if( pool_index >= 0 ) {
+    if( p ) {
         if( -1 == find_volume_name(pd, volumeName) ) {
             if ( pd->num_volumes < MAX_VOLUMES ) {
-                lsmPool *p = pd->pool[pool_index];
                 uint64_t allocated_size = pool_allocate(p, size);
                 if( allocated_size ) {
                     char *id = md5(volumeName);
@@ -791,40 +788,29 @@ static int volume_replicate(lsmPluginPtr c, lsmPool *pool,
                         char **job, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
-    int pi = 0;
     int vi;
-    lsmPool *pool_to_use = pool;
+    lsmPool *pool_to_use = NULL;
 
     struct plugin_data *pd = (struct plugin_data*)lsmPrivateDataGet(c);
 
-    /* If the user didn't pass us a pool to use, we will use the same one
-       that the source pool is contained on */
-    if( pool_to_use ) {
-        pi = find_pool(pd, lsmPoolIdGet(pool));
+    if( pool ) {
+        pool_to_use = find_pool(pd, lsmPoolIdGet(pool));
     } else {
-        int pool_index = find_pool(pd, lsmVolumePoolIdGet(volumeSrc));
-
-        if( pool_index >= 0 )
-            pool_to_use = pd->pool[pool_index];
+        pool_to_use = find_pool(pd, lsmVolumePoolIdGet(volumeSrc));
     }
 
-    vi = find_volume_name(pd, lsmVolumeNameGet(volumeSrc));
-
-    if( pool_to_use && pi > -1 && vi > -1 ) {
-        rc = volume_create(c, pool_to_use, name,
+    if( !pool_to_use ) {
+         rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_POOL,
+                                    "Pool not found!");
+    } else {
+        vi = find_volume_name(pd, lsmVolumeNameGet(volumeSrc));
+        if( vi > -1 ) {
+            rc = volume_create(c, pool_to_use, name,
                                 lsmVolumeNumberOfBlocksGet(volumeSrc)*BS,
                                 LSM_PROVISION_DEFAULT, newReplicant, job, flags);
-
-
-    } else {
-        if ( -1 == vi ) {
+        } else {
             rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_VOLUME,
                                     "Volume not found!");
-        }
-
-        if( -1 == pi ) {
-            rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_POOL,
-                                    "Pool not found!");
         }
     }
     return rc;
@@ -1685,11 +1671,10 @@ static int fs_create(lsmPluginPtr c, lsmPool *pool, const char *name,
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmPrivateDataGet(c);
 
-    int pi = find_pool(pd, lsmPoolIdGet(pool));
+    lsmPool *p = find_pool(pd, lsmPoolIdGet(pool));
 
 
-    if( -1 != pi && !g_hash_table_lookup(pd->fs, md5(name)) ) {
-        lsmPool *p = pd->pool[pi];
+    if( p && !g_hash_table_lookup(pd->fs, md5(name)) ) {
         uint64_t allocated_size = pool_allocate(p, size_bytes);
         if( allocated_size ) {
             char *id = md5(name);
@@ -1724,7 +1709,7 @@ static int fs_create(lsmPluginPtr c, lsmPool *pool, const char *name,
                                                 "Insufficient space in pool");
         }
     } else {
-        if( -1 == pi ) {
+        if( p == NULL ) {
             rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_POOL, "Pool not found!");
         } else {
             rc = lsmLogErrorBasic(c, LSM_ERR_EXISTS_NAME,
@@ -2189,6 +2174,8 @@ int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
     struct plugin_data *data = (struct plugin_data *)
                                 malloc(sizeof(struct plugin_data));
     int rc = LSM_ERR_NO_MEMORY;
+    int i;
+    lsmPool *p;
     if( data ) {
         memset(data, 0, sizeof(struct plugin_data));
 
@@ -2197,20 +2184,31 @@ int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
                                                 "LSM simulated storage plug-in",
                                                 LSM_SYSTEM_STATUS_OK);
 
-        data->num_pools = MAX_POOLS;
-        data->pool[0] = lsmPoolRecordAlloc("POOL_0", "POOL_ZERO", UINT64_MAX,
-                                            UINT64_MAX, LSM_POOL_STATUS_OK,
-                                            sys_id);
-        data->pool[1] = lsmPoolRecordAlloc("POOL_1", "POOL_ONE", UINT64_MAX,
-                                            UINT64_MAX, LSM_POOL_STATUS_OK,
-                                            sys_id);
-        data->pool[2] = lsmPoolRecordAlloc("POOL_2", "POOL_TWO", UINT64_MAX,
-                                            UINT64_MAX, LSM_POOL_STATUS_OK,
-                                            sys_id);
-        data->pool[3] = lsmPoolRecordAlloc("POOL_3", "lsm_test_aggr",
+        p = lsmPoolRecordAlloc("POOL_3", "lsm_test_aggr",
                                             UINT64_MAX, UINT64_MAX,
                                             LSM_POOL_STATUS_OK,
                                             sys_id);
+        if( p ) {
+            data->pools = g_hash_table_new_full(g_str_hash, g_str_equal, NULL,
+                        free_pool_record);
+
+            g_hash_table_insert(data->pools, lsmPoolIdGet(p), p);
+
+            for( i = 0; i < 3; ++i ) {
+                char name[32];
+                snprintf(name, sizeof(name), "POOL_%d", i);
+
+                p = lsmPoolRecordAlloc(name, name, UINT64_MAX,
+                                            UINT64_MAX, LSM_POOL_STATUS_OK, sys_id);
+
+                if( p ) {
+                    g_hash_table_insert(data->pools, lsmPoolIdGet(p), p);
+                } else {
+                    g_hash_table_destroy(data->pools);
+                    data->pools = NULL;
+                }
+            }
+        }
 
         data->access_groups = g_hash_table_new_full(g_str_hash, g_str_equal,
                                                     free, free_allocated_ag);
@@ -2226,8 +2224,7 @@ int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
         data->jobs = g_hash_table_new_full(g_str_hash, g_str_equal, free,
                                             free_allocated_job);
 
-        if( !data->system[0] || !data->pool[0] || !data->pool[1] ||
-            !data->pool[2] || !data->pool[3] || !data->access_groups ||
+        if( !data->system[0] || !data->pools || !data->access_groups ||
             !data->group_grant || !data->fs || !data->jobs ) {
             rc = LSM_ERR_NO_MEMORY;             /* We need to free data and everything else */
 
@@ -2239,10 +2236,8 @@ int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
                 g_hash_table_destroy(data->group_grant);
             if( data->access_groups )
                 g_hash_table_destroy(data->access_groups);
-            lsmPoolRecordFree(data->pool[3]);
-            lsmPoolRecordFree(data->pool[2]);
-            lsmPoolRecordFree(data->pool[1]);
-            lsmPoolRecordFree(data->pool[0]);
+            if( data->pools )
+                g_hash_table_destroy(data->pools);
             lsmSystemRecordFree(data->system[0]);
             memset(data, 0xAA, sizeof(struct plugin_data));
             free(data);
@@ -2280,11 +2275,7 @@ int unload( lsmPluginPtr c, lsmFlag_t flags)
         }
         pd->num_volumes = 0;
 
-        for( i = 0; i < pd->num_pools; ++i ) {
-            lsmPoolRecordFree(pd->pool[i]);
-            pd->pool[i]= NULL;
-        }
-        pd->num_pools = 0;
+        g_hash_table_destroy(pd->pools);
 
         for( i = 0; i < pd->num_systems; ++i ) {
             lsmSystemRecordFree(pd->system[i]);
