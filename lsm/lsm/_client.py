@@ -131,7 +131,7 @@ class Client(INetworkAttachedStorage):
             (plug, proto) = scheme.split("+")
             scheme = plug
 
-        self.plugin_path = os.path.join(_UDS_PATH, scheme)
+        self.plugin_path = os.path.join(self._uds_path, scheme)
 
         if os.path.exists(self.plugin_path):
             self._tp = _TransPort(_TransPort.get_socket(self.plugin_path))
