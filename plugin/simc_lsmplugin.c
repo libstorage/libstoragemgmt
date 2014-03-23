@@ -40,7 +40,6 @@ static char sys_id[] = "sim-01";
 
 #define BS 512
 #define MAX_SYSTEMS 1
-#define MAX_VOLUMES 128
 #define MAX_FS 32
 #define MAX_EXPORT 32
 
@@ -108,9 +107,6 @@ struct plugin_data {
     uint32_t num_systems;
     lsmSystem *system[MAX_SYSTEMS];
 
-    uint32_t num_volumes;
-    struct allocated_volume volume[MAX_VOLUMES];
-
     GHashTable *access_groups;
     GHashTable *group_grant;
     GHashTable *fs;
@@ -118,6 +114,7 @@ struct plugin_data {
     GHashTable *jobs;
 
     GHashTable *pools;
+    GHashTable *volumes;
 };
 
 struct allocated_job {
@@ -625,32 +622,32 @@ static int list_volumes(lsmPluginPtr c, lsmVolume **vols[],
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmPrivateDataGet(c);
+    *count = g_hash_table_size(pd->volumes);
 
-    if(pd) {
-        *count = pd->num_volumes;
 
-        if( *count ) {
-            *vols = lsmVolumeRecordArrayAlloc( pd->num_volumes );
-            if( *vols ) {
-                uint32_t i = 0;
-                for( i = 0; i < pd->num_volumes; ++i ) {
-                    (*vols)[i] = lsmVolumeRecordCopy(pd->volume[i].v);
-                    if( !(*vols)[i] ) {
-                        rc = LSM_ERR_NO_MEMORY;
-                        lsmVolumeRecordArrayFree(*vols, i);
-                        *vols = NULL;
-                        *count = 0;
-                        break;
-                    }
+    if( *count ) {
+        *vols = lsmVolumeRecordArrayAlloc( *count );
+        if( *vols ) {
+            uint32_t i = 0;
+            char *k = NULL;
+            struct allocated_volume *vol;
+            GHashTableIter iter;
+            g_hash_table_iter_init(&iter, pd->volumes);
+            while(g_hash_table_iter_next(&iter,(gpointer) &k,(gpointer)&vol)) {
+                (*vols)[i] = lsmVolumeRecordCopy(vol->v);
+                if( !(*vols)[i] ) {
+                    rc = LSM_ERR_NO_MEMORY;
+                    lsmVolumeRecordArrayFree(*vols, i);
+                    *count = 0;
+                    *vols = NULL;
+                    break;
                 }
-            } else {
-                rc = LSM_ERR_NO_MEMORY;
+                ++i;
             }
+        } else {
+            rc = lsmLogErrorBasic(c, LSM_ERR_NO_MEMORY, "ENOMEM");
         }
-    } else {
-        rc = LSM_ERR_INVALID_PLUGIN;
     }
-
     return rc;
 }
 
@@ -717,17 +714,28 @@ static lsmPool *find_pool(struct plugin_data *pd, const char* pool_id)
     return (lsmPool*) g_hash_table_lookup(pd->pools, pool_id);
 }
 
-static int find_volume_name(struct plugin_data *pd, const char *name)
+static struct allocated_volume *find_volume(struct plugin_data *pd,
+        const char* vol_id)
 {
-    if( pd ) {
-        int i;
-        for( i = 0; i < pd->num_volumes; ++i ) {
-            if( strcmp(lsmVolumeNameGet(pd->volume[i].v), name) == 0) {
-                return i;
-            }
+    struct allocated_volume *rc = g_hash_table_lookup(pd->volumes, vol_id);
+    return rc;
+}
+
+static struct allocated_volume * find_volume_name(struct plugin_data *pd,
+        const char *name)
+{
+    struct allocated_volume *found = NULL;
+    char *k = NULL;
+    struct allocated_volume *vol;
+    GHashTableIter iter;
+    g_hash_table_iter_init(&iter, pd->volumes);
+    while(g_hash_table_iter_next(&iter,(gpointer) &k,(gpointer)&vol)) {
+        if( strcmp(lsmVolumeNameGet(vol->v), name) == 0 ) {
+            found = vol;
+            break;
         }
     }
-    return -1;
+    return found;
 }
 
 static int volume_create(lsmPluginPtr c, lsmPool *pool,
@@ -741,37 +749,48 @@ static int volume_create(lsmPluginPtr c, lsmPool *pool,
     lsmPool *p = find_pool(pd, lsmPoolIdGet(pool));
 
     if( p ) {
-        if( -1 == find_volume_name(pd, volumeName) ) {
-            if ( pd->num_volumes < MAX_VOLUMES ) {
-                uint64_t allocated_size = pool_allocate(p, size);
-                if( allocated_size ) {
-                    char *id = md5(volumeName);
+        if( !find_volume_name(pd, volumeName) ) {
+            uint64_t allocated_size = pool_allocate(p, size);
+            if( allocated_size ) {
+                char *id = md5(volumeName);
 
-                    lsmVolume *v = lsmVolumeRecordAlloc(id, volumeName,
-                                       "VPD", BS, allocated_size/BS, 0, sys_id,
-                                        lsmPoolIdGet(pool));
+                /* We create one to return and a copy to store in memory */
 
-                    if( v ) {
-                        pd->volume[pd->num_volumes].v = lsmVolumeRecordCopy(v);
-                        pd->volume[pd->num_volumes].p = p;
-                        pd->num_volumes +=1;
+                lsmVolume *v = lsmVolumeRecordAlloc(id, volumeName,
+                                   "VPD", BS, allocated_size/BS, 0, sys_id,
+                                    lsmPoolIdGet(pool));
 
-                        rc = create_job(pd, job, LSM_DATA_TYPE_VOLUME, v,
-                                            (void**)newVolume);
+                lsmVolume *to_store = lsmVolumeRecordCopy(v);
+                struct allocated_volume *av = malloc(sizeof(struct allocated_volume));
 
-                    } else {
-                        rc = lsmLogErrorBasic(c, LSM_ERR_NO_MEMORY,
-                                                "Check for leaks");
-                    }
+                if( v && av && to_store) {
+                    av->v = to_store;
+                    av->p = p;
+
+                    /*
+                     * Make a copy of the key, as we may replace the volume,
+                     * but leave the key.
+                     */
+                    g_hash_table_insert(pd->volumes,
+                                        (gpointer)strdup(lsmVolumeIdGet(to_store)),
+                                        (gpointer)av);
+
+                    rc = create_job(pd, job, LSM_DATA_TYPE_VOLUME, v,
+                                        (void**)newVolume);
 
                 } else {
-                    rc = lsmLogErrorBasic(c, LSM_ERR_SIZE_INSUFFICIENT_SPACE,
-                                                "Insufficient space in pool");
+                    free(av);
+                    lsmVolumeRecordFree(v);
+                    lsmVolumeRecordFree(to_store);
+                    rc = lsmLogErrorBasic(c, LSM_ERR_NO_MEMORY,
+                                            "Check for leaks");
                 }
+
             } else {
-                rc = lsmLogErrorBasic(c, LSM_ERR_SIZE_LIMIT_REACHED,
-                                            "Number of volumes limit reached");
+                rc = lsmLogErrorBasic(c, LSM_ERR_SIZE_INSUFFICIENT_SPACE,
+                                            "Insufficient space in pool");
             }
+
         } else {
             rc = lsmLogErrorBasic(c, LSM_ERR_EXISTS_NAME, "Existing volume "
                                                             "with name");
@@ -788,7 +807,6 @@ static int volume_replicate(lsmPluginPtr c, lsmPool *pool,
                         char **job, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
-    int vi;
     lsmPool *pool_to_use = NULL;
 
     struct plugin_data *pd = (struct plugin_data*)lsmPrivateDataGet(c);
@@ -803,8 +821,7 @@ static int volume_replicate(lsmPluginPtr c, lsmPool *pool,
          rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_POOL,
                                     "Pool not found!");
     } else {
-        vi = find_volume_name(pd, lsmVolumeNameGet(volumeSrc));
-        if( vi > -1 ) {
+        if( find_volume(pd, lsmVolumeIdGet(volumeSrc) )) {
             rc = volume_create(c, pool_to_use, name,
                                 lsmVolumeNumberOfBlocksGet(volumeSrc)*BS,
                                 LSM_PROVISION_DEFAULT, newReplicant, job, flags);
@@ -835,10 +852,10 @@ static int volume_replicate_range(lsmPluginPtr c,
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmPrivateDataGet(c);
 
-    int src_v = find_volume_name(pd, lsmVolumeNameGet(source));
-    int dest_v = find_volume_name(pd, lsmVolumeNameGet(dest));
+    struct allocated_volume *src_v = find_volume(pd, lsmVolumeIdGet(source));
+    struct allocated_volume *dest_v = find_volume(pd, lsmVolumeIdGet(dest));
 
-    if( -1 == src_v || -1 == dest_v ) {
+    if( !src_v || !dest_v ) {
         rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_VOLUME,
                                     "Src or dest volumes not found!");
     } else {
@@ -853,14 +870,12 @@ static int volume_resize(lsmPluginPtr c, lsmVolume *volume,
                                 char **job, lsmFlag_t flags)
 {
     int rc = LSM_ERR_OK;
-    int vi;
     struct plugin_data *pd = (struct plugin_data*)lsmPrivateDataGet(c);
+    struct allocated_volume *av = find_volume(pd, lsmVolumeIdGet(volume));
 
-    vi = find_volume_name(pd, lsmVolumeNameGet(volume));
-
-    if( -1 != vi ) {
-        lsmVolume *v = pd->volume[vi].v;
-        lsmPool *p = pd->volume[vi].p;
+    if( av ) {
+        lsmVolume *v = av->v;
+        lsmPool *p = av->p;
         uint64_t curr_size = lsmVolumeNumberOfBlocksGet(v) * BS;
 
         pool_deallocate(p, curr_size);
@@ -872,8 +887,9 @@ static int volume_resize(lsmPluginPtr c, lsmVolume *volume,
                                                     lsmVolumeBlockSizeGet(v),
                                                     resized_size/BS, 0, sys_id,
                                                     lsmVolumePoolIdGet(volume));
+
             if( vp ) {
-                pd->volume[vi].v = vp;
+                av->v = vp;
                 lsmVolumeRecordFree(v);
                 rc = create_job(pd, job, LSM_DATA_TYPE_VOLUME,
                                     lsmVolumeRecordCopy(vp),
@@ -907,15 +923,13 @@ static int volume_delete(lsmPluginPtr c, lsmVolume *volume,
     GHashTable *v = NULL;
     const char *volume_id = lsmVolumeIdGet(volume);
     struct plugin_data *pd = (struct plugin_data*)lsmPrivateDataGet(c);
-    int vi = find_volume_name(pd, lsmVolumeNameGet(volume));
-    if( -1 != vi ) {
-        lsmVolume *vp = pd->volume[vi].v;
-        pool_deallocate(pd->volume[vi].p, lsmVolumeNumberOfBlocksGet(vp)*BS);
 
-        lsmVolumeRecordFree(vp);
-        remove_item(pd->volume, vi, pd->num_volumes,
-                        sizeof(struct allocated_volume));
-        pd->num_volumes -= 1;
+    struct allocated_volume *av = find_volume(pd, lsmVolumeIdGet(volume));
+    if( av ) {
+        lsmVolume *vp = av->v;
+        pool_deallocate(av->p, lsmVolumeNumberOfBlocksGet(vp)*BS);
+
+        g_hash_table_remove(pd->volumes, lsmVolumeIdGet(volume));
 
         g_hash_table_iter_init (&iter, pd->group_grant);
         while( g_hash_table_iter_next( &iter, (gpointer)&k, (gpointer)&v) ) {
@@ -938,9 +952,9 @@ static int volume_online_offline(lsmPluginPtr c, lsmVolume *v,
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmPrivateDataGet(c);
+    struct allocated_volume *av = find_volume(pd, lsmVolumeIdGet(v));
 
-    int vi = find_volume_name(pd, lsmVolumeNameGet(v));
-    if( -1 == vi ) {
+    if( !av) {
         rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_VOLUME,
                                     "volume not found!");
     }
@@ -1133,9 +1147,9 @@ static int access_group_grant(lsmPluginPtr c,
                                 g_hash_table_lookup(pd->access_groups,
                                 lsmAccessGroupIdGet(group));
 
-    int vi = find_volume_name(pd, lsmVolumeNameGet(volume));
+    struct allocated_volume *av = find_volume(pd, lsmVolumeIdGet(volume));
 
-    if( find && (-1 != vi) ) {
+    if( find && av ) {
         GHashTable *grants = g_hash_table_lookup(pd->group_grant,
                                     lsmAccessGroupIdGet(find->ag));
         if( !grants ) {
@@ -1186,7 +1200,7 @@ static int access_group_grant(lsmPluginPtr c,
             }
         }
     } else {
-        if( -1 == vi ) {
+        if( !av ) {
             rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_VOLUME,
                                         "volume not found");
         } else {
@@ -1209,9 +1223,9 @@ static int access_group_revoke(lsmPluginPtr c,
                                 g_hash_table_lookup(pd->access_groups,
                                 lsmAccessGroupIdGet(group));
 
-    int vi = find_volume_name(pd, lsmVolumeNameGet(volume));
+    struct allocated_volume *av = find_volume(pd, lsmVolumeIdGet(volume));
 
-    if( find && (-1 != vi) ) {
+    if( find && av ) {
         GHashTable *grants = g_hash_table_lookup(pd->group_grant,
                                     lsmAccessGroupIdGet(find->ag));
 
@@ -1221,7 +1235,7 @@ static int access_group_revoke(lsmPluginPtr c,
         }
 
     } else {
-       if( -1 == vi ) {
+       if( !av ) {
             rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_VOLUME,
                                         "volume not found");
         } else {
@@ -1234,11 +1248,9 @@ static int access_group_revoke(lsmPluginPtr c,
 
 static lsmVolume *get_volume_by_id(struct plugin_data *pd, const char *id)
 {
-    int i = 0;
-    for( i = 0; i < pd->num_volumes; ++i ) {
-        if( 0 == strcmp(id, lsmVolumeIdGet(pd->volume[i].v))) {
-            return pd->volume[i].v;
-        }
+    struct allocated_volume *av = find_volume(pd, id);
+    if( av ) {
+        return av->v;
     }
     return NULL;
 }
@@ -1364,9 +1376,9 @@ int static volume_dependency(lsmPluginPtr c,
                                             uint8_t *yes, lsmFlag_t flags)
 {
     struct plugin_data *pd = (struct plugin_data*)lsmPrivateDataGet(c);
-    int vi = find_volume_name(pd, lsmVolumeNameGet(volume));
+    struct allocated_volume *av = find_volume(pd, lsmVolumeIdGet(volume));
 
-    if( -1 != vi ) {
+    if( av ) {
         *yes = 0;
         return LSM_ERR_OK;
     } else {
@@ -1379,9 +1391,9 @@ int static volume_dependency_rm(lsmPluginPtr c,
                                             char **job, lsmFlag_t flags)
 {
     struct plugin_data *pd = (struct plugin_data*)lsmPrivateDataGet(c);
-    int vi = find_volume_name(pd, lsmVolumeNameGet(volume));
+   struct allocated_volume *av = find_volume(pd, lsmVolumeIdGet(volume));
 
-    if( -1 != vi ) {
+    if( av ) {
         return create_job(pd, job, LSM_DATA_TYPE_NONE, NULL, NULL);
     } else {
         return LSM_ERR_NOT_FOUND_VOLUME;
@@ -1569,10 +1581,14 @@ static int vol_accessible_by_init(lsmPluginPtr c,
             *volumes = lsmVolumeRecordArrayAlloc( *count );
             if( *volumes ) {
                 /* Walk through each volume and see if we should include it*/
-                uint32_t i = 0;
+
                 uint32_t alloc_count = 0;
-                for( i = 0; i < pd->num_volumes; ++i ) {
-                    lsmVolume *tv = pd->volume[i].v;
+                char *k = NULL;
+                struct allocated_volume *vol;
+                GHashTableIter iter;
+                g_hash_table_iter_init(&iter, pd->volumes);
+                while(g_hash_table_iter_next(&iter,(gpointer) &k,(gpointer)&vol)) {
+                    lsmVolume *tv = vol->v;
 
                     if( g_hash_table_lookup(tmp_vols, lsmVolumeIdGet(tv))) {
                         (*volumes)[alloc_count] = lsmVolumeRecordCopy(tv);
@@ -1605,6 +1621,10 @@ static struct lsmSanOpsV1 sanOps = {
     list_initiators,
     list_volumes,
     list_disks,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
     volume_create,
     volume_replicate,
     volume_replicate_range_bs,
@@ -2168,6 +2188,17 @@ void free_allocated_fs(void *v)
     free_fs_record((struct allocated_fs*)v);
 }
 
+void free_allocated_volume(void *v)
+{
+    if( v ) {
+        struct allocated_volume *av = (struct allocated_volume *)v;
+        lsmVolumeRecordFree(av->v);
+        av->v = NULL;
+		av->p = NULL;  /* Pool takes care of itself */
+		free(av);
+    }
+}
+
 int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
                         uint32_t timeout,  lsmFlag_t flags)
 {
@@ -2210,6 +2241,9 @@ int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
             }
         }
 
+        data->volumes = g_hash_table_new_full(g_str_hash, g_str_equal, free,
+                            free_allocated_volume);
+
         data->access_groups = g_hash_table_new_full(g_str_hash, g_str_equal,
                                                     free, free_allocated_ag);
 
@@ -2224,7 +2258,7 @@ int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
         data->jobs = g_hash_table_new_full(g_str_hash, g_str_equal, free,
                                             free_allocated_job);
 
-        if( !data->system[0] || !data->pools || !data->access_groups ||
+        if( !data->system[0] || !data->volumes || !data->pools || !data->access_groups ||
             !data->group_grant || !data->fs || !data->jobs ) {
             rc = LSM_ERR_NO_MEMORY;             /* We need to free data and everything else */
 
@@ -2238,6 +2272,9 @@ int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
                 g_hash_table_destroy(data->access_groups);
             if( data->pools )
                 g_hash_table_destroy(data->pools);
+            if ( data->volumes )
+                g_hash_table_destroy(data->volumes);
+
             lsmSystemRecordFree(data->system[0]);
             memset(data, 0xAA, sizeof(struct plugin_data));
             free(data);
@@ -2268,12 +2305,7 @@ int unload( lsmPluginPtr c, lsmFlag_t flags)
 
         g_hash_table_destroy(pd->access_groups);
 
-        for( i = 0; i < pd->num_volumes; ++i ) {
-            lsmVolumeRecordFree(pd->volume[i].v);
-            pd->volume[i].v = NULL;
-            pd->volume[i].p = NULL;
-        }
-        pd->num_volumes = 0;
+        g_hash_table_destroy(pd->volumes);
 
         g_hash_table_destroy(pd->pools);
 
