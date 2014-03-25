@@ -444,6 +444,38 @@ int lsmJobStatusGet(lsmConnect *c, const char *job_id,
     return jobStatus(c, job_id, status, percentComplete, rv, flags);
 }
 
+int lsmJobStatusPoolGet(lsmConnect *c,
+                                const char *job, lsmJobStatus *status,
+                                uint8_t *percentComplete, lsmPool **pool,
+                                lsmFlag_t flags)
+{
+    Value rv;
+    int rc = LSM_ERR_OK;
+
+    CONN_SETUP(c);
+
+    if( CHECK_RP(pool) || LSM_FLAG_UNUSED_CHECK(flags) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    try {
+
+        rc = jobStatus(c, job, status, percentComplete, rv, flags);
+
+        if( LSM_ERR_OK == rc ) {
+            if( Value::object_t ==  rv.valueType() ) {
+                *pool = valueToPool(rv);
+            } else {
+                *pool = NULL;
+            }
+        }
+    } catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+                            ve.what());
+    }
+    return rc;
+}
+
 int lsmJobStatusVolumeGet( lsmConnect *c, const char *job,
                         lsmJobStatus *status, uint8_t *percentComplete,
                         lsmVolume **vol, lsmFlag_t flags)
@@ -958,7 +990,7 @@ int LSM_DLL_EXPORT lsmPoolCreateFromDisks(lsmConnect *c,
                         lsmPool** pool, char **job, lsmFlag_t flags)
 {
     return lsm_pool_create_from(c, system_id, pool_name, member_ids, raid_type,
-                                pool, job, flags, "lsm_pool_create_from_disks");
+                                pool, job, flags, "pool_create_from_disks");
 }
 
 int LSM_DLL_EXPORT lsmPoolCreateFromVolumes(lsmConnect *c,
@@ -968,7 +1000,7 @@ int LSM_DLL_EXPORT lsmPoolCreateFromVolumes(lsmConnect *c,
 {
      return lsm_pool_create_from(c, system_id, pool_name, member_ids, raid_type,
                                 pool, job, flags,
-                                "lsm_pool_create_from_volumes");
+                                "pool_create_from_volumes");
 }
 
 

@@ -818,7 +818,7 @@ class SimData(object):
             SimData.SIM_DATA_BLK_SIZE
 
     def job_create(self, returned_item):
-        if True:
+        if False:
         #if random.randint(0,5) == 1:
             self.job_num += 1
             job_id = "JOB_%s" % self.job_num
@@ -2072,6 +2072,12 @@ class SimData(object):
         if pool_id not in self.pool_dict.keys():
             raise LsmError(ErrorNumber.INVALID_POOL,
                            "Pool not found: %s" % pool_id)
+
+        volumes = self.volumes()
+        for v in volumes:
+            if v['pool_id'] == pool_id:
+                raise LsmError(ErrorNumber.EXISTS_VOLUME,
+                               "Volumes exist on pool")
 
         del(self.pool_dict[pool_id])
         return None

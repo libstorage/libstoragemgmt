@@ -99,6 +99,14 @@ void * lsmDataTypeCopy(lsmDataType t, void *item)
     return rc;
 }
 
+static Value job_handle(const Value &val, char *job)
+{
+    std::vector<Value> r;
+    r.push_back(Value(job));
+    r.push_back(val);
+    return Value(r);
+}
+
 int lsmRegisterPluginV1(lsmPluginPtr plug,
                         void *private_data, struct lsmMgmtOpsV1 *mgmOps,
                         struct lsmSanOpsV1 *sanOp, struct lsmFsOpsV1 *fsOp,
@@ -354,6 +362,10 @@ static int handle_job_status( lsmPluginPtr p, Value &params, Value &response)
                         LSM_IS_SS((lsmSs *)value)) {
                         result.push_back(ssToValue((lsmSs *)value));
                         lsmSsRecordFree((lsmSs *)value);
+                    } else if(  LSM_DATA_TYPE_POOL == t &&
+                        LSM_IS_POOL((lsmPool *)value)) {
+                        result.push_back(poolToValue((lsmPool *)value));
+                        lsmPoolRecordFree((lsmPool *)value);
                     } else {
                         rc = LSM_ERR_PLUGIN_ERROR;
                     }
@@ -446,6 +458,190 @@ static int handle_pools(lsmPluginPtr p, Value &params, Value &response)
                 pools = NULL;
                 response = Value(result);
             }
+        } else {
+            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+        }
+    }
+    return rc;
+}
+
+static int handle_pool_create(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    if( p && p->sanOps && p->sanOps->pool_create ) {
+
+        Value v_sys_id = params["system_id"];
+        Value v_pool_name = params["pool_name"];
+        Value v_size = params["size_bytes"];
+        Value v_raid_t = params["raid_type"];
+        Value v_member_t = params["member_type"];
+
+        if( Value::string_t == v_sys_id.valueType() &&
+            Value::string_t == v_pool_name.valueType() &&
+            Value::numeric_t == v_size.valueType() &&
+            Value::numeric_t == v_raid_t.valueType() &&
+            Value::numeric_t == v_member_t.valueType() &&
+            LSM_FLAG_EXPECTED_TYPE(params)) {
+
+            const char *sys_id = v_sys_id.asC_str();
+            const char *pool_name = v_pool_name.asC_str();
+            uint64_t size = v_size.asUint64_t();
+            lsmPoolRaidType raid_type = (lsmPoolRaidType)v_raid_t.asInt32_t();
+            lsmPoolMemberType member_type = (lsmPoolMemberType)v_member_t.asInt32_t();
+            lsmPool *pool = NULL;
+            char *job = NULL;
+
+            rc = p->sanOps->pool_create(p, sys_id, pool_name, size, raid_type,
+                                            member_type, &pool, &job,
+                                            LSM_FLAG_GET_VALUE(params));
+
+            Value p = poolToValue(pool);
+            response = job_handle(p, job);
+            lsmPoolRecordFree(pool);
+            free(job);
+        } else {
+            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+        }
+    }
+    return rc;
+}
+
+typedef int (*lsmPlugPoolCreateFrom)( lsmPluginPtr c,
+                        const char *system_id,
+                        const char *pool_name, lsmStringList *member_ids,
+                        lsmPoolRaidType raid_type, lsmPool** pool, char **job,
+                        lsmFlag_t flags);
+
+
+static int handle_pool_create_from( lsmPluginPtr p, Value &params,
+                                    Value &response,
+                                    lsmPlugPoolCreateFrom pool_create_from)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    if( pool_create_from ) {
+
+        Value v_sys_id = params["system_id"];
+        Value v_pool_name = params["pool_name"];
+        Value v_member_ids = params["member_ids"];
+        Value v_raid_t = params["raid_type"];
+
+        if( Value::string_t == v_sys_id.valueType() &&
+            Value::string_t == v_pool_name.valueType() &&
+            Value::array_t == v_member_ids.valueType() &&
+            Value::numeric_t == v_raid_t.valueType() &&
+            LSM_FLAG_EXPECTED_TYPE(params)) {
+
+            lsmStringList *members = valueToStringList(v_member_ids);
+
+            if( members ) {
+                const char *sys_id = v_sys_id.asC_str();
+                const char *pool_name = v_pool_name.asC_str();
+                lsmPoolRaidType raid_type = (lsmPoolRaidType)v_raid_t.asInt32_t();
+
+                lsmPool *pool = NULL;
+                char *job = NULL;
+
+                rc = pool_create_from(p, sys_id, pool_name, members, raid_type,
+                                        &pool, &job, LSM_FLAG_GET_VALUE(params));
+
+                Value p = poolToValue(pool);
+                response = job_handle(p, job);
+                lsmStringListFree(members);
+                lsmPoolRecordFree(pool);
+                free(job);
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
+        } else {
+            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+        }
+    }
+    return rc;
+}
+
+static int handle_pool_create_from_disks(lsmPluginPtr p, Value &params, Value &response)
+{
+    if( p && p->sanOps && p->sanOps->pool_create_from_disks ) {
+        return handle_pool_create_from(p, params, response,
+            (lsmPlugPoolCreateFrom)(p->sanOps->pool_create_from_disks));
+    }
+    return LSM_ERR_NO_SUPPORT;
+}
+
+static int handle_pool_create_from_volumes(lsmPluginPtr p, Value &params, Value &response)
+{
+    if( p && p->sanOps && p->sanOps->pool_create_from_volumes ) {
+        return handle_pool_create_from(p, params, response,
+            (lsmPlugPoolCreateFrom)(p->sanOps->pool_create_from_volumes));
+    }
+    return LSM_ERR_NO_SUPPORT;
+}
+
+static int handle_pool_create_from_pool(lsmPluginPtr p, Value &params, Value &response)
+{
+     int rc = LSM_ERR_NO_SUPPORT;
+    if( p && p->sanOps && p->sanOps->pool_create_from_pool ) {
+
+        Value v_sys_id = params["system_id"];
+        Value v_pool_name = params["pool_name"];
+        Value v_member_id = params["member_id"];
+        Value v_size = params["size_bytes"];
+
+        if( Value::string_t == v_sys_id.valueType() &&
+            Value::string_t == v_pool_name.valueType() &&
+            Value::string_t == v_member_id.valueType() &&
+            Value::numeric_t == v_size.valueType() &&
+            LSM_FLAG_EXPECTED_TYPE(params)) {
+
+            const char *sys_id = v_sys_id.asC_str();
+            const char *pool_name = v_pool_name.asC_str();
+            const char *member_id = v_member_id.asC_str();
+            uint64_t size = v_size.asUint64_t();
+
+            lsmPool *pool = NULL;
+            char *job = NULL;
+
+            rc = p->sanOps->pool_create_from_pool(p, sys_id, pool_name,
+                                            member_id, size, &pool, &job,
+                                            LSM_FLAG_GET_VALUE(params));
+
+            Value p = poolToValue(pool);
+            response = job_handle(p, job);
+            lsmPoolRecordFree(pool);
+            free(job);
+        } else {
+            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+        }
+    }
+    return rc;
+}
+
+static int handle_pool_delete(lsmPluginPtr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    if( p && p->sanOps && p->sanOps->pool_delete ) {
+        Value v_pool = params["pool"];
+
+        if(Value::object_t == v_pool.valueType() &&
+            LSM_FLAG_EXPECTED_TYPE(params) ) {
+            lsmPool *pool = valueToPool(v_pool);
+
+            if( pool ) {
+                char *job = NULL;
+
+                rc = p->sanOps->pool_delete(p, pool, &job,
+                                            LSM_FLAG_GET_VALUE(params));
+
+                if( LSM_ERR_JOB_STARTED == rc ) {
+                    response = Value(job);
+                }
+
+                lsmPoolRecordFree(pool);
+                free(job);
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
+
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;
         }
@@ -591,23 +787,6 @@ static int handle_disks(lsmPluginPtr p, Value &params, Value &response)
     return rc;
 }
 
-static Value job_handle(int rc, lsmVolume *vol, char *job)
-{
-    Value result;
-    std::vector<Value> r;
-
-    if( LSM_ERR_OK == rc ) {
-        r.push_back(Value());
-        r.push_back(volumeToValue(vol));
-        result = Value(r);
-    } else if( LSM_ERR_JOB_STARTED == rc ) {
-        r.push_back(Value(job));
-        r.push_back(Value());
-        result = Value(r);
-    }
-    return result;
-}
-
 static int handle_volume_create(lsmPluginPtr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
@@ -634,7 +813,9 @@ static int handle_volume_create(lsmPluginPtr p, Value &params, Value &response)
 
                 rc = p->sanOps->vol_create(p, pool, name, size, pro, &vol, &job,
                                             LSM_FLAG_GET_VALUE(params));
-                response = job_handle(rc, vol, job);
+
+                Value v = volumeToValue(vol);
+                response = job_handle(v, job);
 
                 //Free dynamic data.
                 lsmPoolRecordFree(pool);
@@ -671,7 +852,9 @@ static int handle_volume_resize(lsmPluginPtr p, Value &params, Value &response)
 
                 rc = p->sanOps->vol_resize(p, vol, size, &resized_vol, &job,
                                             LSM_FLAG_GET_VALUE(params));
-                response = job_handle(rc, resized_vol, job);
+
+                Value v = volumeToValue(resized_vol);
+                response = job_handle(v, job);
 
                 lsmVolumeRecordFree(vol);
                 lsmVolumeRecordFree(resized_vol);
@@ -716,7 +899,9 @@ static int handle_volume_replicate(lsmPluginPtr p, Value &params, Value &respons
                 rc = p->sanOps->vol_replicate(p, pool, rep, vol, name,
                                                 &newVolume, &job,
                                                 LSM_FLAG_GET_VALUE(params));
-                response = job_handle(rc, newVolume, job);
+
+                Value v = volumeToValue(newVolume);
+                response = job_handle(v, job);
 
                 lsmVolumeRecordFree(newVolume);
                 free(job);
@@ -2166,6 +2351,11 @@ static std::map<std::string,handler> dispatch = static_map<std::string,handler>
     ("job_status", handle_job_status)
     ("plugin_info", handle_plugin_info)
     ("pools", handle_pools)
+    ("pool_create", handle_pool_create)
+    ("pool_create_from_disks", handle_pool_create_from_disks)
+    ("pool_create_from_volumes", handle_pool_create_from_volumes)
+    ("pool_create_from_pool", handle_pool_create_from_pool)
+    ("pool_delete", handle_pool_delete)
     ("set_time_out", handle_set_time_out)
     ("shutdown", handle_shutdown)
     ("startup", handle_startup)

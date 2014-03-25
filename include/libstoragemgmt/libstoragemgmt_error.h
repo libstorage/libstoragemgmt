@@ -57,6 +57,8 @@ typedef enum {
     LSM_ERR_EXISTS_NAME = 53,           /**< Named item already exists */
     LSM_ERR_FS_NOT_EXPORTED = 54,       /**< FS not nfs exported */
     LSM_ERR_INITIATOR_NOT_IN_ACCESS_GROUP = 55, /**< Initiator not in access group */
+    LSM_ERR_EXISTS_POOL = 56,           /**< Pool exists */
+    LSM_ERR_EXISTS_VOLUME = 57,         /**< Volume exists */
 
     LSM_ERR_INVALID_ACCESS_GROUP = 100, /**< Invalid access group */
     LSM_ERR_INVALID_ARGUMENT = 101,     /**< Precondition checks failed */
@@ -96,6 +98,8 @@ typedef enum {
     LSM_ERR_NOT_FOUND_VOLUME = 205,     /**< Specified volume not found */
     LSM_ERR_NOT_FOUND_NFS_EXPORT = 206, /**< NFS export not found */
     LSM_ERR_NOT_FOUND_INITIATOR = 207,  /**< Initiator not found */
+    LSM_ERR_NOT_FOUND_SYSTEM = 208,     /**< System not found */
+    LSM_ERR_NOT_FOUND_DISK = 209,       /**< Disk not found */
 
     LSM_ERR_NOT_IMPLEMENTED = 225,      /**< Feature not implemented */
     LSM_ERR_NOT_LICENSED = 226,         /**< Need license for feature */
@@ -128,7 +132,10 @@ typedef enum {
 
     LSM_ERR_UNSUPPORTED_INITIATOR_TYPE = 450,   /**< Unsupported initiator type */
     LSM_ERR_UNSUPPORTED_PROVISIONING = 451,     /**< Unsupported provisioning */
-    LSM_ERR_UNSUPPORTED_REPLICATION_TYPE = 452  /**< Unsupported replication type */
+    LSM_ERR_UNSUPPORTED_REPLICATION_TYPE = 452, /**< Unsupported replication type */
+
+    LSM_ERR_DISK_BUSY = 500,        /* Disk already in use */
+    LSM_ERR_VOLUME_BUSY = 501       /* Volume already in use */
 
 } lsmErrorNumber;
 

@@ -29,6 +29,7 @@
 #include <time.h>
 
 #include "libstoragemgmt/libstoragemgmt_optionaldata.h"
+#include "libstoragemgmt/libstoragemgmt_disk.h"
 
 #ifdef  __cplusplus
 extern "C" {
@@ -110,11 +111,10 @@ struct plugin_data {
     GHashTable *access_groups;
     GHashTable *group_grant;
     GHashTable *fs;
-
     GHashTable *jobs;
-
     GHashTable *pools;
     GHashTable *volumes;
+    GHashTable *disks;
 };
 
 struct allocated_job {
@@ -654,34 +654,34 @@ static int list_volumes(lsmPluginPtr c, lsmVolume **vols[],
 static int list_disks(lsmPluginPtr c, lsmDisk **disks[], uint32_t *count,
                         lsmFlag_t flags)
 {
-    int i;
     int rc = LSM_ERR_OK;
-    char name[17];
-    char sn[32];
     struct plugin_data *pd = (struct plugin_data*)lsmPrivateDataGet(c);
-    lsmOptionalData *od = lsmOptionalDataRecordAlloc();
+    *count = g_hash_table_size(pd->disks);
 
-    if(pd && od) {
-        // For now we are going to make up some disks to return.  Later we will
-        // try to make a simulated array that makes sense.
-        *count = 10;
 
-        *disks = lsmDiskRecordArrayAlloc(*count);
-        for( i = 0; i < *count; ++i ) {
-            snprintf(name, sizeof(name), "Sim C disk %d", i);
-            snprintf(sn, sizeof(sn), "SIMDISKSN00000%04d\n", i);
-
-            lsmOptionalDataStringSet(od, "sn", sn);
-
-            (*disks)[i] = lsmDiskRecordAlloc(md5(name), name, LSM_DISK_TYPE_SOP, 512,
-                0x8000000000000, LSM_DISK_STATUS_OK,  od, sys_id);
+    if( *count ) {
+        *disks = lsmDiskRecordArrayAlloc( *count );
+        if( *disks ) {
+            uint32_t i = 0;
+            char *k = NULL;
+            lsmDisk *disk;
+            GHashTableIter iter;
+            g_hash_table_iter_init(&iter, pd->disks);
+            while(g_hash_table_iter_next(&iter,(gpointer) &k,(gpointer)&disk)) {
+                (*disks)[i] = lsmDiskRecordCopy(disk);
+                if( !(*disks)[i] ) {
+                    rc = LSM_ERR_NO_MEMORY;
+                    lsmDiskRecordArrayFree(*disks, i);
+                    *count = 0;
+                    *disks = NULL;
+                    break;
+                }
+                ++i;
+            }
+        } else {
+            rc = lsmLogErrorBasic(c, LSM_ERR_NO_MEMORY, "ENOMEM");
         }
-
-    } else {
-        rc = LSM_ERR_INVALID_PLUGIN;
     }
-
-    lsmOptionalDataRecordFree(od);
     return rc;
 }
 
@@ -712,6 +712,25 @@ void pool_deallocate(lsmPool *p, uint64_t size)
 static lsmPool *find_pool(struct plugin_data *pd, const char* pool_id)
 {
     return (lsmPool*) g_hash_table_lookup(pd->pools, pool_id);
+}
+
+static lsmPool * find_pool_name(struct plugin_data *pd, const char *name)
+{
+    char *k = NULL;
+    GHashTableIter iter;
+    lsmPool *pool = NULL;
+    g_hash_table_iter_init(&iter, pd->pools);
+    while(g_hash_table_iter_next(&iter,(gpointer) &k,(gpointer)&pool)) {
+        if( strcmp(lsmPoolNameGet(pool), name) == 0 ) {
+            return pool;
+        }
+    }
+    return NULL;
+}
+
+static lsmDisk * find_disk(struct plugin_data *pd, const char* disk_id)
+{
+    return (lsmDisk*) g_hash_table_lookup(pd->disks, disk_id);
 }
 
 static struct allocated_volume *find_volume(struct plugin_data *pd,
@@ -914,22 +933,20 @@ static int volume_resize(lsmPluginPtr c, lsmVolume *volume,
     return rc;
 }
 
-static int volume_delete(lsmPluginPtr c, lsmVolume *volume,
-                                    char **job, lsmFlag_t flags)
+static int _volume_delete(lsmPluginPtr c, const char *volume_id)
 {
     int rc = LSM_ERR_OK;
     GHashTableIter iter;
     char *k = NULL;
     GHashTable *v = NULL;
-    const char *volume_id = lsmVolumeIdGet(volume);
     struct plugin_data *pd = (struct plugin_data*)lsmPrivateDataGet(c);
+    struct allocated_volume *av = find_volume(pd, volume_id);
 
-    struct allocated_volume *av = find_volume(pd, lsmVolumeIdGet(volume));
     if( av ) {
         lsmVolume *vp = av->v;
         pool_deallocate(av->p, lsmVolumeNumberOfBlocksGet(vp)*BS);
 
-        g_hash_table_remove(pd->volumes, lsmVolumeIdGet(volume));
+        g_hash_table_remove(pd->volumes, volume_id);
 
         g_hash_table_iter_init (&iter, pd->group_grant);
         while( g_hash_table_iter_next( &iter, (gpointer)&k, (gpointer)&v) ) {
@@ -938,11 +955,229 @@ static int volume_delete(lsmPluginPtr c, lsmVolume *volume,
             }
         }
 
-        rc = create_job(pd, job, LSM_DATA_TYPE_NONE, NULL, NULL);
-
     } else {
         rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_VOLUME,
                                     "volume not found!");
+    }
+    return rc;
+}
+
+static int _pool_create(lsmPluginPtr c, const char *system_id,
+                            const char *pool_name, uint64_t size_bytes,
+                            lsmPool **pool, char **job)
+{
+    int rc = LSM_ERR_OK;
+    struct plugin_data *pd = (struct plugin_data*)lsmPrivateDataGet(c);
+    lsmPool *new_pool = NULL;
+    lsmPool *pool_to_store = NULL;
+    char *key = NULL;
+
+    /* Verify system id */
+    if( strcmp(system_id, lsmSystemIdGet(pd->system[0])) == 0 ) {
+        /* Verify that we don't already have a pool by that name */
+        new_pool = find_pool_name(pd, pool_name);
+        if( !new_pool ) {
+            /* Create the pool */
+            new_pool = lsmPoolRecordAlloc(md5(pool_name), pool_name, size_bytes,
+                                        size_bytes, LSM_POOL_STATUS_OK,
+                                        system_id);
+
+            pool_to_store = lsmPoolRecordCopy(new_pool);
+            key = strdup(lsmPoolIdGet(new_pool));
+            if( new_pool && pool_to_store && key ) {
+                g_hash_table_insert(pd->pools, key, pool_to_store);
+
+                /* Create a job */
+                rc = create_job(pd, job, LSM_DATA_TYPE_POOL, new_pool,
+                                        (void**)pool);
+            } else {
+                free(key);
+                lsmPoolRecordFree(new_pool);
+                lsmPoolRecordFree(pool_to_store);
+                rc = lsmLogErrorBasic(c, LSM_ERR_NO_MEMORY, "No memory");
+            }
+        } else {
+            rc = lsmLogErrorBasic(c, LSM_ERR_EXISTS_POOL,
+                                    "Pool with name exists!");
+        }
+    } else {
+        rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_SYSTEM,
+                                    "system not found!");
+    }
+    return rc;
+}
+
+
+static int pool_create(lsmPluginPtr c, const char *system_id,
+                            const char *pool_name, uint64_t size_bytes,
+                            lsmPoolRaidType raid_type,
+                            lsmPoolMemberType member_type, lsmPool** pool,
+                            char **job, lsmFlag_t flags)
+{
+    return _pool_create(c, system_id, pool_name, size_bytes, pool, job);
+}
+
+static int pool_create_from_disks( lsmPluginPtr c, const char *system_id,
+                const char *pool_name, lsmStringList *member_ids,
+                lsmPoolRaidType raid_type, lsmPool **pool, char **job,
+                lsmFlag_t flags)
+{
+    /* Check that the disks are valid, then call common routine */
+    uint64_t size = 0;
+    int rc = LSM_ERR_OK;
+    int i = 0;
+    int num_disks = lsmStringListSize(member_ids);
+    struct plugin_data *pd = (struct plugin_data*)lsmPrivateDataGet(c);
+
+    if( num_disks ) {
+        for( i = 0; i < num_disks; ++i ) {
+            lsmDisk *d = find_disk(pd, lsmStringListElemGet(member_ids, i));
+            if( d ) {
+                size += (lsmDiskNumberOfBlocksGet(d) * lsmDiskBlockSizeGet(d));
+            } else {
+                rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_DISK,
+                                        "Disk not found");
+                goto bail;
+            }
+        }
+
+        rc = _pool_create(c, system_id, pool_name, size, pool, job);
+    } else {
+        rc = lsmLogErrorBasic(c, LSM_ERR_INVALID_ARGUMENT, "No disks provided");
+    }
+bail:
+    return rc;
+}
+
+static int pool_create_from_volumes( lsmPluginPtr c, const char *system_id,
+                const char *pool_name, lsmStringList *member_ids,
+                lsmPoolRaidType raid_type, lsmPool **pool, char **job,
+                lsmFlag_t flags)
+{
+    /* Check that the disks are valid, then call common routine */
+    uint64_t size = 0;
+    int rc = LSM_ERR_OK;
+    int i = 0;
+    int num_volumes = lsmStringListSize(member_ids);
+    struct plugin_data *pd = (struct plugin_data*)lsmPrivateDataGet(c);
+
+    if( num_volumes ) {
+        for( i = 0; i < num_volumes; ++i ) {
+            struct allocated_volume *v =
+                        find_volume(pd, lsmStringListElemGet(member_ids, i));
+            if( v ) {
+                size += (lsmVolumeNumberOfBlocksGet(v->v) *
+                            lsmVolumeNumberOfBlocksGet(v->v));
+            } else {
+                rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_VOLUME,
+                                        "Volume not found");
+                goto bail;
+            }
+        }
+
+        rc = _pool_create(c, system_id, pool_name, size, pool, job);
+    } else {
+        rc = lsmLogErrorBasic(c, LSM_ERR_INVALID_ARGUMENT, "No disks provided");
+    }
+bail:
+    return rc;
+}
+
+static int pool_create_from_pool(lsmPluginPtr c, const char *system_id,
+                        const char *pool_name, const char *member_id,
+                        uint64_t size_bytes, lsmPool **pool, char **job,
+                        lsmFlag_t flags )
+{
+    /* Check that the disks are valid, then call common routine */
+    int rc = LSM_ERR_OK;
+    struct plugin_data *pd = (struct plugin_data*)lsmPrivateDataGet(c);
+    lsmPool *p = find_pool(pd, member_id);
+
+    if( p ) {
+        rc = _pool_create(c, system_id, pool_name, size_bytes, pool, job);
+    } else {
+        rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_POOL, "Pool not found");
+    }
+    return rc;
+}
+
+static int pool_delete(lsmPluginPtr c, lsmPool *pool, char **job,
+                lsmFlag_t flags)
+{
+    int rc = LSM_ERR_OK;
+    struct plugin_data *pd = (struct plugin_data*)lsmPrivateDataGet(c);
+    lsmPool *pool_to_delete = find_pool(pd, lsmPoolIdGet(pool));
+    lsmStringList *vol_delete = lsmStringListAlloc(0);
+
+    if( !vol_delete ) {
+        return LSM_ERR_NO_MEMORY;
+    }
+
+    if( pool_to_delete ) {
+
+        /* Loop through building a list of volumes in this pool */
+        char *k = NULL;
+        struct allocated_volume *vol;
+        GHashTableIter iter;
+        g_hash_table_iter_init(&iter, pd->volumes);
+        while(g_hash_table_iter_next(&iter,(gpointer) &k,(gpointer)&vol)) {
+            if( strcmp(lsmVolumePoolIdGet(vol->v), lsmPoolIdGet(pool)) == 0) {
+                if( LSM_ERR_OK != lsmStringListAppend(vol_delete,
+                        lsmVolumeIdGet(vol->v))) {
+                    lsmStringListFree(vol_delete);
+                    rc = LSM_ERR_NO_MEMORY;
+                    goto bail;
+                }
+            }
+        }
+
+         /*
+         * Actual arrays will fail the pool delete if it contains a volume,
+         * so we will fail with an error.  If this changes we can enable
+         * the code in the for loop below to delete the volumes, one by one.
+         */
+
+        if (lsmStringListSize(vol_delete)) {
+            rc = lsmLogErrorBasic(c, LSM_ERR_EXISTS_VOLUME,
+                                    "volumes exist on pool");
+
+            vol_delete = NULL;
+            goto bail;
+        }
+
+        /*
+        for( i = 0; i < lsmStringListSize(vol_delete); ++i ) {
+            rc = _volume_delete(c, lsmStringListElemGet(vol_delete, i));
+            if( LSM_ERR_OK != rc ) {
+                rc = lsmLogErrorBasic(c, LSM_ERR_INTERNAL_ERROR,
+                                    "Error while removing volume from pool");
+                goto bail;
+            }
+        }
+        */
+
+        /* Remove pool from hash */
+        g_hash_table_remove(pd->pools, lsmPoolIdGet(pool));
+
+        rc = create_job(pd, job, LSM_DATA_TYPE_NONE, NULL, NULL);
+
+    } else {
+        rc = lsmLogErrorBasic(c, LSM_ERR_NOT_FOUND_POOL,
+                                    "pool not found!");
+    }
+bail:
+    lsmStringListFree(vol_delete);
+    return rc;
+}
+
+static int volume_delete(lsmPluginPtr c, lsmVolume *volume,
+                                    char **job, lsmFlag_t flags)
+{
+    struct plugin_data *pd = (struct plugin_data*)lsmPrivateDataGet(c);
+    int rc = _volume_delete(c, lsmVolumeIdGet(volume));
+
+    if( LSM_ERR_OK == rc ) {
+        rc = create_job(pd, job, LSM_DATA_TYPE_NONE, NULL, NULL);
     }
     return rc;
 }
@@ -1621,10 +1856,11 @@ static struct lsmSanOpsV1 sanOps = {
     list_initiators,
     list_volumes,
     list_disks,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
+    pool_create,
+    pool_create_from_disks,
+    pool_create_from_volumes,
+    pool_create_from_pool,
+    pool_delete,
     volume_create,
     volume_replicate,
     volume_replicate_range_bs,
@@ -2188,6 +2424,11 @@ void free_allocated_fs(void *v)
     free_fs_record((struct allocated_fs*)v);
 }
 
+void free_disk(void *d)
+{
+    lsmDiskRecordFree((lsmDisk *)d);
+}
+
 void free_allocated_volume(void *v)
 {
     if( v ) {
@@ -2258,8 +2499,44 @@ int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
         data->jobs = g_hash_table_new_full(g_str_hash, g_str_equal, free,
                                             free_allocated_job);
 
+        data->disks = g_hash_table_new_full(g_str_hash, g_str_equal, free,
+                                            free_disk);
+
+        /* Create disks */
+        lsmOptionalData *od = lsmOptionalDataRecordAlloc();
+        if( od ) {
+            for( i = 0; i < 10; ++i ) {
+                lsmDisk *d = NULL;
+                char name[17];
+                char sn[32];
+                char *key = NULL;
+
+
+                snprintf(name, sizeof(name), "Sim C disk %d", i);
+                snprintf(sn, sizeof(sn), "SIMDISKSN00000%04d\n", i);
+
+                lsmOptionalDataStringSet(od, "sn", sn);
+
+                d = lsmDiskRecordAlloc(md5(name), name, LSM_DISK_TYPE_SOP, 512,
+                    0x8000000000000, LSM_DISK_STATUS_OK,  od, sys_id);
+
+                key = strdup(lsmDiskIdGet(d));
+
+                if( !key ) {
+                    g_hash_table_destroy(data->disks);
+                    data->disks = NULL;
+                    break;
+                }
+
+                g_hash_table_insert(data->disks, key, d);
+                d = NULL;
+            }
+            lsmOptionalDataRecordFree(od);
+        }
+
+
         if( !data->system[0] || !data->volumes || !data->pools || !data->access_groups ||
-            !data->group_grant || !data->fs || !data->jobs ) {
+            !data->group_grant || !data->fs || !data->jobs || !data->disks ) {
             rc = LSM_ERR_NO_MEMORY;             /* We need to free data and everything else */
 
             if( data->jobs )
@@ -2272,8 +2549,10 @@ int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
                 g_hash_table_destroy(data->access_groups);
             if( data->pools )
                 g_hash_table_destroy(data->pools);
-            if ( data->volumes )
+            if( data->volumes )
                 g_hash_table_destroy(data->volumes);
+            if( data->disks )
+                g_hash_table_destroy(data->disks);
 
             lsmSystemRecordFree(data->system[0]);
             memset(data, 0xAA, sizeof(struct plugin_data));

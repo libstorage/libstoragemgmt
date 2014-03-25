@@ -216,6 +216,82 @@ typedef int (*lsmPlugListDisks)( lsmPluginPtr c, lsmDisk **diskArray[],
                                 uint32_t *count, lsmFlag_t flags);
 
 /**
+ * Create a pool.
+ * @param[in]   c               Valid lsm plug-in pointer
+ * @param[in]   system_id       System id
+ * @param[in]   pool_name       Human name of pool
+ * @param[in]   size_bytes      Desired size of pool
+ * @param[in]   raid_type       Raid type for pool
+ * @param[in]   member_type     Type of individual members eg. SAS/FC/SSD etc.
+ * @param[out]  pool            Newly create pool if done sync.
+ * @param[out]  job             Job id if execution is async.
+ * @return  LSM_ERR_OK, else error reason
+ */
+typedef int (*lsmPlugPoolCreate)( lsmPluginPtr c, const char* system_id,
+                const char *pool_name, uint64_t size_bytes,
+                lsmPoolRaidType raid_type, lsmPoolMemberType member_type,
+                lsmPool **pool, char **job, lsmFlag_t flags);
+
+/**
+ * Create a pool and specifying disks to use.
+ * @param[in]   c               Valid lsm plug-in pointer
+ * @param[in]   system_id       System id
+ * @param[in]   pool_name       Human name of pool
+ * @param[in]   member_ids      List of disk IDs to create pool from
+ * @param[in]   raid_type       Raid type for pool
+ * @param[out]  pool            Newly create pool if done sync.
+ * @param[out]  job             Job id if execution is async.
+ * @return  LSM_ERR_OK, else error reason
+ */
+typedef int (*lsmPlugPoolCreateFromDisks)( lsmPluginPtr c, const char *system_id,
+                const char *pool_name, lsmStringList *member_ids,
+                lsmPoolRaidType raid_type, lsmPool **pool, char **job,
+                lsmFlag_t flags);
+
+/**
+ * Create a pool and specifying volumes to use.
+ * @param[in]   c               Valid lsm plug-in pointer
+ * @param[in]   system_id       System id
+ * @param[in]   pool_name       Human name of pool
+ * @param[in]   member_ids      List of volume IDs to create pool from
+ * @param[in]   raid_type       Raid type for pool
+ * @param[out]  pool            Newly create pool if done sync.
+ * @param[out]  job             Job id if execution is async.
+ * @return  LSM_ERR_OK, else error reason
+ */
+typedef int (*lsmPlugPoolCreateFromVolumes)( lsmPluginPtr c, const char *system_id,
+                        const char *pool_name, lsmStringList *member_ids,
+                        lsmPoolRaidType raid_type, lsmPool** pool, char **job,
+                        lsmFlag_t flags);
+
+/**
+ * Create a pool and specifying pool to use.
+ * @param[in]   c               Valid lsm plug-in pointer
+ * @param[in]   system_id       System id
+ * @param[in]   pool_name       Human name of pool
+ * @param[in]   member_id       ID of pool to create pool from
+ * @param[in]   size_bytes      Size of pool
+ * @param[out]  pool            Newly create pool if done sync.
+ * @param[out]  job             Job id if execution is async.
+ * @return  LSM_ERR_OK, else error reason
+ */
+typedef int (*lsmPlugPoolCreateFromPool)( lsmPluginPtr c, const char *system_id,
+                        const char *pool_name, const char *member_id,
+                        uint64_t size_bytes, lsmPool **pool, char **job,
+                        lsmFlag_t flags );
+
+
+/**
+ * Delete a pool.
+ * @param[in]   c               Valid lsm plug-in pointer
+ * @param[in]   pool            Pool to delete
+ * @param[out]  job             Job pointer if job is async
+ * @return LSM_ERR_OK, else error reason
+ */
+typedef int (*lsmPlugPoolDelete)( lsmPluginPtr c, lsmPool *pool, char **job,
+                                    lsmFlag_t flags);
+
+/**
  * Creates a volume, callback function signature
  * @param[in] c                     Valid lsm plug-in pointer
  * @param[in] pool                  Pool to allocated storage from
@@ -797,6 +873,11 @@ struct lsmSanOpsV1 {
     lsmPlugListInits init_get;              /**<  retrieving initiators */
     lsmPlugListVolumes vol_get;             /**<  retrieving volumes */
     lsmPlugListDisks disk_get;              /**<  retrieve disks */
+    lsmPlugPoolCreate pool_create;              /**<  Pool create */
+    lsmPlugPoolCreateFromDisks pool_create_from_disks;  /**< Pool create from disks */
+    lsmPlugPoolCreateFromVolumes pool_create_from_volumes;  /**< Pool create using volumes */
+    lsmPlugPoolCreateFromPool pool_create_from_pool;    /**< Pool creation from pool */
+    lsmPlugPoolDelete pool_delete;          /**<  Delete a pool */
     lsmPlugVolumeCreate vol_create;         /**<  creating a lun */
     lsmPlugVolumeReplicate vol_replicate;   /**<  replicating lun */
     lsmPlugVolumeReplicateRangeBlockSize vol_rep_range_bs;  /**<  volume replication range block size */

@@ -136,6 +136,22 @@ extern "C" {
                                 lsmFlag_t flags);
 
     /**
+     * Check on the status of a job and return the pool information when
+     * complete
+     * @param[in]    conn       Valid connection pointer
+     * @param[in]    job_id     Job to check status on
+     * @param[out]   status     What is the job status
+     * @param[out]   percentComplete    Domain 0..100
+     * @param[out]   pool       lsmPool for completed operation
+     * @param[in]    flags      Reserved for future use, must be zero
+     * @return LSM_ERR_OK on success, else error reason.
+     */
+    int LSM_DLL_EXPORT lsmJobStatusPoolGet(lsmConnect *conn,
+                                const char *job_id, lsmJobStatus *status,
+                                uint8_t *percentComplete, lsmPool **pool,
+                                lsmFlag_t flags);
+
+    /**
      * Check on the status of a job and returns the volume information when
      * complete.
      * @param[in] conn              Valid connection pointer.

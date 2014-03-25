@@ -217,6 +217,30 @@ lsmVolume *wait_for_job_vol(lsmConnect *c, char **job_id)
     return vol;
 }
 
+lsmPool *wait_for_job_pool(lsmConnect *c, char **job_id)
+{
+    lsmJobStatus status;
+    lsmPool *pool = NULL;
+    uint8_t pc = 0;
+    int rc = 0;
+
+    do {
+        rc = lsmJobStatusPoolGet(c, *job_id, &status, &pc, &pool, LSM_FLAG_RSVD);
+        fail_unless( LSM_ERR_OK == rc, "rc = %d (%s)", rc,  error(lsmErrorLastGet(c)));
+        printf("POOL: Job %s in progress, %d done, status = %d\n", *job_id, pc, status);
+        usleep(POLL_SLEEP);
+
+    } while( status == LSM_JOB_INPROGRESS );
+
+    rc = lsmJobFree(c, job_id, LSM_FLAG_RSVD);
+    fail_unless( LSM_ERR_OK == rc, "lsmJobFree %d, (%s)", rc, error(lsmErrorLastGet(c)));
+
+    fail_unless( LSM_JOB_COMPLETE == status);
+    fail_unless( 100 == pc);
+
+    return pool;
+}
+
 lsmFs *wait_for_job_fs(lsmConnect *c, char **job_id)
 {
     lsmJobStatus status;
@@ -729,7 +753,7 @@ START_TEST(test_access_groups_grant_revoke)
     if( LSM_ERR_JOB_STARTED == rc ) {
         wait_for_job(c, &job);
     } else {
-        fail_unless(LSM_ERR_OK == rc);
+        fail_unless(LSM_ERR_OK == rc, "rc = %d", rc);
     }
 
     lsmVolume **volumes = NULL;
@@ -738,8 +762,10 @@ START_TEST(test_access_groups_grant_revoke)
     fail_unless(LSM_ERR_OK == rc);
     fail_unless(v_count == 1);
 
-    fail_unless(strcmp(lsmVolumeIdGet(volumes[0]), lsmVolumeIdGet(n)) == 0);
-    lsmVolumeRecordArrayFree(volumes, v_count);
+    if( v_count >= 1 ) {
+        fail_unless(strcmp(lsmVolumeIdGet(volumes[0]), lsmVolumeIdGet(n)) == 0);
+        lsmVolumeRecordArrayFree(volumes, v_count);
+    }
 
     lsmAccessGroup **groups;
     uint32_t g_count = 0;
@@ -747,8 +773,11 @@ START_TEST(test_access_groups_grant_revoke)
     fail_unless(LSM_ERR_OK == rc);
     fail_unless(g_count == 1);
 
-    fail_unless(strcmp(lsmAccessGroupIdGet(groups[0]), lsmAccessGroupIdGet(group)) == 0);
-    lsmAccessGroupRecordArrayFree(groups, g_count);
+
+    if( g_count >= 1 ) {
+        fail_unless(strcmp(lsmAccessGroupIdGet(groups[0]), lsmAccessGroupIdGet(group)) == 0);
+        lsmAccessGroupRecordArrayFree(groups, g_count);
+    }
 
     rc = lsmAccessGroupRevoke(c, group, n, LSM_FLAG_RSVD);
     if( LSM_ERR_JOB_STARTED == rc ) {
@@ -1156,7 +1185,7 @@ START_TEST(test_volume_methods)
         if( LSM_ERR_JOB_STARTED == rc ) {
             v = wait_for_job_vol(c, &job);
         } else {
-            fail_unless(LSM_ERR_OK != rc, "rc %d", rc);
+            fail_unless(LSM_ERR_OK == rc, "rc %d", rc);
         }
 
         if ( v ) {
@@ -1166,7 +1195,7 @@ START_TEST(test_volume_methods)
             if( LSM_ERR_JOB_STARTED == rc ) {
                 v = wait_for_job_vol(c, &job);
             } else {
-                fail_unless(LSM_ERR_OK != rc, "rc %d", rc);
+                fail_unless(LSM_ERR_OK == rc, "rc %d", rc);
             }
 
             lsmVolumeRecordFree(v);
@@ -1374,7 +1403,7 @@ START_TEST(test_invalid_input)
     if( LSM_ERR_JOB_STARTED == rc ) {
         new_vol = wait_for_job_vol(c, &job);
     } else {
-        fail_unless(LSM_ERR_OK != rc, "rc %d", rc);
+        fail_unless(LSM_ERR_OK == rc, "rc %d", rc);
     }
 
     /* lsmVolumeResize */
@@ -1400,7 +1429,7 @@ START_TEST(test_invalid_input)
     if( LSM_ERR_JOB_STARTED == rc ) {
         resized = wait_for_job_vol(c, &job);
     } else {
-        fail_unless(LSM_ERR_OK != rc, "rc %d", rc);
+        fail_unless(LSM_ERR_OK == rc, "rc %d", rc);
     }
 
     /* lsmVolumeDelete */
@@ -1414,7 +1443,7 @@ START_TEST(test_invalid_input)
     if( LSM_ERR_JOB_STARTED == rc ) {
         wait_for_job(c, &job);
     } else {
-        fail_unless(LSM_ERR_OK != rc, "rc %d", rc);
+        fail_unless(LSM_ERR_OK == rc, "rc %d", rc);
     }
 
     /* lsmStorageCapabilities * */
@@ -1722,6 +1751,49 @@ START_TEST(test_invalid_input)
 
     rc = lsmNfsExportDelete(c, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_NFS, "rc = %d", rc);
+
+
+    /* Pool create */
+    int raid_type = 65535;
+    int member_type = 65535;
+    uint64_t size = 0;
+    int flags = 10;
+
+
+    rc = lsmPoolCreate(NULL, NULL, NULL, size, raid_type, member_type, NULL, NULL, flags);
+    fail_unless(rc == LSM_ERR_INVALID_CONN, "rc = %d", rc);
+
+    rc = lsmPoolCreate(c, NULL, NULL, size, raid_type, member_type, NULL, NULL, flags);
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
+
+    rc = lsmPoolCreate(c, SYSTEM_ID, NULL, size, raid_type, member_type, NULL, NULL, flags);
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
+
+    rc = lsmPoolCreate(c, SYSTEM_ID, "pool name", size, raid_type, member_type, NULL, NULL, flags);
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
+
+    size = 1024*1024*1024;
+
+    rc = lsmPoolCreate(c, SYSTEM_ID, "pool name", size, raid_type, member_type, NULL, NULL, flags);
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
+
+    raid_type = LSM_POOL_RAID_TYPE_0;
+    rc = lsmPoolCreate(c, SYSTEM_ID, "pool name", size, raid_type, member_type, NULL, NULL, flags);
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
+
+    member_type = LSM_POOL_MEMBER_TYPE_DISK;
+    rc = lsmPoolCreate(c, SYSTEM_ID, "pool name", size, raid_type, member_type, NULL, NULL, flags);
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
+
+    lsmPool *pcp = NULL;
+    rc = lsmPoolCreate(c, SYSTEM_ID, "pool name", size, raid_type, member_type, &pcp, NULL, flags);
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
+
+    char *pcj = NULL;
+    rc = lsmPoolCreate(c, SYSTEM_ID, "pool name", size, raid_type, member_type, &pcp, &pcj, flags);
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
+
+
 }
 END_TEST
 
@@ -2088,29 +2160,42 @@ START_TEST(test_capability)
     lsmCapabilityType expected_absent[] = {
         LSM_CAP_EXPORT_CUSTOM_PATH,
         LSM_CAP_POOL_CREATE,
-        LSM_CAP_POOL_CREATE_THIN,
-        LSM_CAP_POOL_CREATE_THICK,
-        LSM_CAP_POOL_CREATE_RAID_TYPE,
-        LSM_CAP_POOL_CREATE_VIA_MEMBER_COUNT,
-        LSM_CAP_POOL_CREATE_VIA_MEMBER_IDS,
-        LSM_CAP_POOL_CREATE_MEMBER_TYPE_DISK,
-        LSM_CAP_POOL_CREATE_MEMBER_TYPE_POOL,
-        LSM_CAP_POOL_CREATE_MEMBER_TYPE_VOL,
-        LSM_CAP_POOL_CREATE_RAID_0,
-        LSM_CAP_POOL_CREATE_RAID_1,
-        LSM_CAP_POOL_CREATE_RAID_JBOD,
-        LSM_CAP_POOL_CREATE_RAID_3,
-        LSM_CAP_POOL_CREATE_RAID_4,
-        LSM_CAP_POOL_CREATE_RAID_5,
-        LSM_CAP_POOL_CREATE_RAID_6,
-        LSM_CAP_POOL_POOL_CREATE_RAID_10,
-        LSM_CAP_POOL_POOL_CREATE_RAID_50,
-        LSM_CAP_POOL_POOL_CREATE_RAID_51,
-        LSM_CAP_POOL_POOL_CREATE_RAID_60,
-        LSM_CAP_POOL_POOL_CREATE_RAID_61,
-        LSM_CAP_POOL_POOL_CREATE_RAID_15,
-        LSM_CAP_POOL_POOL_CREATE_RAID_16,
-        LSM_CAP_POOL_DELETE};
+        LSM_CAP_POOL_CREATE_FROM_DISKS,
+        LSM_CAP_POOL_CREATE_FROM_VOLUMES,
+        LSM_CAP_POOL_CREATE_FROM_POOL,
+
+        LSM_CAP_POOL_CREATE_DISK_RAID_0,
+        LSM_CAP_POOL_CREATE_DISK_RAID_1,
+        LSM_CAP_POOL_CREATE_DISK_RAID_JBOD,
+        LSM_CAP_POOL_CREATE_DISK_RAID_3,
+        LSM_CAP_POOL_CREATE_DISK_RAID_4,
+        LSM_CAP_POOL_CREATE_DISK_RAID_5,
+        LSM_CAP_POOL_CREATE_DISK_RAID_6,
+        LSM_CAP_POOL_CREATE_DISK_RAID_10,
+        LSM_CAP_POOL_CREATE_DISK_RAID_50,
+        LSM_CAP_POOL_CREATE_DISK_RAID_51,
+        LSM_CAP_POOL_CREATE_DISK_RAID_60,
+        LSM_CAP_POOL_CREATE_DISK_RAID_61,
+        LSM_CAP_POOL_CREATE_DISK_RAID_15,
+        LSM_CAP_POOL_CREATE_DISK_RAID_16,
+        LSM_CAP_POOL_CREATE_DISK_RAID_NOT_APPLICABLE,
+
+        LSM_CAP_POOL_CREATE_VOLUME_RAID_0,
+        LSM_CAP_POOL_CREATE_VOLUME_RAID_1,
+        LSM_CAP_POOL_CREATE_VOLUME_RAID_JBOD,
+        LSM_CAP_POOL_CREATE_VOLUME_RAID_3,
+        LSM_CAP_POOL_CREATE_VOLUME_RAID_4,
+        LSM_CAP_POOL_CREATE_VOLUME_RAID_5,
+        LSM_CAP_POOL_CREATE_VOLUME_RAID_6,
+        LSM_CAP_POOL_CREATE_VOLUME_RAID_10,
+        LSM_CAP_POOL_CREATE_VOLUME_RAID_50,
+        LSM_CAP_POOL_CREATE_VOLUME_RAID_51,
+        LSM_CAP_POOL_CREATE_VOLUME_RAID_60,
+        LSM_CAP_POOL_CREATE_VOLUME_RAID_61,
+        LSM_CAP_POOL_CREATE_VOLUME_RAID_15,
+        LSM_CAP_POOL_CREATE_VOLUME_RAID_16,
+        LSM_CAP_POOL_CREATE_VOLUME_RAID_NOT_APPLICABLE
+    };
 
 
     lsmStorageCapabilities *cap = lsmCapabilityRecordAlloc(NULL);
@@ -2298,12 +2383,243 @@ START_TEST(test_nfs_export_funcs)
 }
 END_TEST
 
+START_TEST(test_pool_delete)
+{
+    int rc = 0;
+    char *job = NULL;
+    lsmVolume *v = NULL;
+
+    printf("Testing pool delete!\n");
+
+    lsmPool *test_pool = getTestPool(c);
+
+    fail_unless( test_pool != NULL );
+
+    if( test_pool ) {
+
+        rc = lsmVolumeCreate(c, test_pool, "lsm_volume_pool_remove_test",
+                                    10000000, LSM_PROVISION_DEFAULT,
+                                    &v, &job, LSM_FLAG_RSVD);
+
+        if( LSM_ERR_JOB_STARTED == rc ) {
+            v = wait_for_job_vol(c, &job);
+        } else {
+            fail_unless(LSM_ERR_OK == rc, "rc %d", rc);
+        }
+
+        if( v ) {
+
+            rc = lsmPoolDelete(c, test_pool, &job, LSM_FLAG_RSVD);
+
+            fail_unless(LSM_ERR_EXISTS_VOLUME == rc, "rc %d", rc);
+
+            if( LSM_ERR_EXISTS_VOLUME == rc ) {
+
+                /* Delete the volume and try again */
+                rc = lsmVolumeDelete(c, v, &job, LSM_FLAG_RSVD);
+
+                if( LSM_ERR_JOB_STARTED == rc ) {
+                    v = wait_for_job_vol(c, &job);
+                } else {
+                    fail_unless(LSM_ERR_OK == rc, "rc %d", rc);
+                }
+
+                rc = lsmPoolDelete(c, test_pool, &job, LSM_FLAG_RSVD);
+
+                if( LSM_ERR_JOB_STARTED == rc ) {
+                    v = wait_for_job_vol(c, &job);
+                } else {
+                    fail_unless(LSM_ERR_OK == rc, "rc %d", rc);
+                }
+            }
+        }
+
+        lsmPoolRecordFree(test_pool);
+        lsmVolumeRecordFree(v);
+    }
+}
+END_TEST
+
+START_TEST(test_pool_create)
+{
+    int rc = 0;
+    lsmPool *pool = NULL;
+    char *job = NULL;
+    lsmDisk **disks = NULL;
+    uint32_t num_disks = 0;
+    lsmStringList *member_ids = lsmStringListAlloc(0);
+    char *pool_one = NULL;
+
+    /*
+     * Test basic pool create option.
+     */
+    rc = lsmPoolCreate(c, SYSTEM_ID, "pool_create_unit_test", 1024*1024*1024,
+                        LSM_POOL_RAID_TYPE_0, LSM_POOL_MEMBER_TYPE_DISK, &pool,
+                        &job, LSM_FLAG_RSVD);
+
+    if( LSM_ERR_JOB_STARTED == rc ) {
+        pool = wait_for_job_pool(c, &job);
+    } else {
+        fail_unless(LSM_ERR_OK == rc, "rc %d", rc);
+    }
+
+    lsmPoolRecordFree(pool);
+    pool = NULL;
+
+    /*
+     * Test pool creations from disks
+     */
+    rc = lsmDiskList(c, &disks, &num_disks, LSM_FLAG_RSVD);
+    fail_unless(LSM_ERR_OK == rc, "rc = %d", rc);
+    if( LSM_ERR_OK == rc && num_disks ) {
+        int i = 0;
+
+        /* Python simulator one accepts same type and size */
+        lsmDiskType disk_type = lsmDiskTypeGet(disks[num_disks-1]);
+        uint64_t size = lsmDiskNumberOfBlocksGet(disks[num_disks-1]);
+
+        for( i = 0; i < num_disks; ++i ) {
+            /* Only include disks of one type */
+            if( lsmDiskTypeGet(disks[i]) == disk_type &&
+                    size == lsmDiskNumberOfBlocksGet(disks[i])) {
+                lsmStringListAppend(member_ids, lsmDiskIdGet(disks[i]));
+            }
+        }
+
+        lsmDiskRecordArrayFree(disks, num_disks);
+    }
+
+    rc = lsmPoolCreateFromDisks(c, SYSTEM_ID, "pool_create_from_disks",
+                                member_ids, LSM_POOL_RAID_TYPE_0, &pool, &job,
+                                LSM_FLAG_RSVD);
+
+    if( LSM_ERR_JOB_STARTED == rc ) {
+        pool = wait_for_job_pool(c, &job);
+    } else {
+        fail_unless(LSM_ERR_OK == rc, "lsmPoolCreateFromDisks %d (%s)", rc,
+                                        error(lsmErrorLastGet(c)));
+    }
+
+    lsmStringListFree(member_ids);
+    member_ids = lsmStringListAlloc(0);
+    lsmPoolRecordFree(pool);
+    pool = NULL;
+
+
+    /* Test pool creation from volume */
+    {
+        lsmVolume **volumes = NULL;
+        uint32_t num_volumes = 0;
+        int i = 0;
+        lsmPool **pools = NULL;
+        uint32_t num_pools = 0;
+        lsmVolume *vol = NULL;
+        char r_name[32];
+
+        /* Create some volumes */
+        rc = lsmPoolList(c, &pools, &num_pools, LSM_FLAG_RSVD);
+
+        fail_unless(LSM_ERR_OK == rc, "rc %d", rc);
+
+        if( LSM_ERR_OK == rc ) {
+
+            pool_one = strdup(lsmPoolIdGet(pools[0]));
+
+            for( i = 0; i < num_pools; ++i ) {
+                job = NULL;
+                vol = NULL;
+
+                generateRandom(r_name, sizeof(r_name));
+
+                rc = lsmVolumeCreate(c, pools[i], r_name,
+                        1024*1024*1024, LSM_PROVISION_DEFAULT,
+                        &vol, &job, LSM_FLAG_RSVD);
+
+                if( LSM_ERR_JOB_STARTED == rc ) {
+                    vol = wait_for_job_vol(c, &job);
+                } else {
+                    fail_unless(LSM_ERR_OK == rc, "rc %d", rc);
+                }
+
+                lsmVolumeRecordFree(vol);
+            }
+        }
+
+        rc = lsmVolumeList(c, &volumes, &num_volumes, LSM_FLAG_RSVD);
+        fail_unless( LSM_ERR_OK == rc );
+
+        if( num_volumes ) {
+            uint64_t size = lsmVolumeNumberOfBlocksGet(volumes[num_volumes-1]);
+            for( i = num_volumes - 1; i > 0; --i ) {
+                if( lsmVolumeNumberOfBlocksGet(volumes[i]) == size ) {
+                    lsmStringListAppend(member_ids, lsmVolumeIdGet(volumes[i]));
+                }
+            }
+
+            pool = NULL;
+            job = NULL;
+
+            rc = lsmPoolCreateFromVolumes(c, SYSTEM_ID,
+                                    "pool_create_from_volumes", member_ids,
+                                    LSM_POOL_RAID_TYPE_0, &pool, &job,
+                                    LSM_FLAG_RSVD);
+
+            if( LSM_ERR_JOB_STARTED == rc ) {
+                pool = wait_for_job_pool(c, &job);
+            } else {
+                fail_unless(LSM_ERR_OK == rc,
+                                    "lsmPoolCreateFromVolumes %d (%s)",
+                                    rc, error(lsmErrorLastGet(c)));
+            }
+
+            lsmPoolRecordFree(pool);
+            pool = NULL;
+
+            lsmVolumeRecordArrayFree(volumes, num_volumes);
+            volumes = NULL;
+            num_volumes = 0;
+            lsmStringListFree(member_ids);
+        }
+    }
+
+    /* Test pool creation from pool */
+    {
+        if( pool_one ) {
+            pool = NULL;
+            job = NULL;
+
+            rc = lsmPoolCreateFromPool(c, SYSTEM_ID, "New pool from pool",
+                                        pool_one, 1024*1024*1024, &pool,
+                                        &job, LSM_FLAG_RSVD);
+
+            if( LSM_ERR_JOB_STARTED == rc ) {
+                pool = wait_for_job_pool(c, &job);
+            } else {
+                fail_unless(LSM_ERR_OK == rc,
+                                    "lsmPoolCreateFromVolumes %d (%s)",
+                                    rc, error(lsmErrorLastGet(c)));
+            }
+
+            lsmPoolRecordFree(pool);
+            pool = NULL;
+
+            free(pool_one);
+            pool_one = NULL;
+        }
+    }
+}
+END_TEST
+
 Suite * lsm_suite(void)
 {
     Suite *s = suite_create("libStorageMgmt");
 
     TCase *basic = tcase_create("Basic");
     tcase_add_checked_fixture (basic, setup, teardown);
+
+
+    tcase_add_test(basic, test_pool_delete);
+    tcase_add_test(basic, test_pool_create);
 
     tcase_add_test(basic, test_error_reporting);
     tcase_add_test(basic, test_capability);
