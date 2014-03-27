@@ -36,7 +36,7 @@ extern "C" {
 #endif
 
 static char name[] = "Compiled plug-in example";
-static char version [] = "0.01";
+static char version [] = "0.2.0";
 static char sys_id[] = "sim-01";
 
 #define BS 512
@@ -983,7 +983,7 @@ static int _pool_create(lsmPluginPtr c, const char *system_id,
                                         system_id);
 
             pool_to_store = lsmPoolRecordCopy(new_pool);
-            key = strdup(lsmPoolIdGet(new_pool));
+            key = strdup(lsmPoolIdGet(pool_to_store));
             if( new_pool && pool_to_store && key ) {
                 g_hash_table_insert(pd->pools, key, pool_to_store);
 
@@ -1107,11 +1107,6 @@ static int pool_delete(lsmPluginPtr c, lsmPool *pool, char **job,
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsmPrivateDataGet(c);
     lsmPool *pool_to_delete = find_pool(pd, lsmPoolIdGet(pool));
-    lsmStringList *vol_delete = lsmStringListAlloc(0);
-
-    if( !vol_delete ) {
-        return LSM_ERR_NO_MEMORY;
-    }
 
     if( pool_to_delete ) {
 
@@ -1121,44 +1116,15 @@ static int pool_delete(lsmPluginPtr c, lsmPool *pool, char **job,
         GHashTableIter iter;
         g_hash_table_iter_init(&iter, pd->volumes);
         while(g_hash_table_iter_next(&iter,(gpointer) &k,(gpointer)&vol)) {
-            if( strcmp(lsmVolumePoolIdGet(vol->v), lsmPoolIdGet(pool)) == 0) {
-                if( LSM_ERR_OK != lsmStringListAppend(vol_delete,
-                        lsmVolumeIdGet(vol->v))) {
-                    lsmStringListFree(vol_delete);
-                    rc = LSM_ERR_NO_MEMORY;
-                    goto bail;
-                }
-            }
-        }
-
-         /*
-         * Actual arrays will fail the pool delete if it contains a volume,
-         * so we will fail with an error.  If this changes we can enable
-         * the code in the for loop below to delete the volumes, one by one.
-         */
-
-        if (lsmStringListSize(vol_delete)) {
-            rc = lsmLogErrorBasic(c, LSM_ERR_EXISTS_VOLUME,
+            if( strcmp(lsmVolumePoolIdGet(vol->v), lsmPoolIdGet(pool)) == 0 ) {
+               rc = lsmLogErrorBasic(c, LSM_ERR_EXISTS_VOLUME,
                                     "volumes exist on pool");
-
-            vol_delete = NULL;
-            goto bail;
-        }
-
-        /*
-        for( i = 0; i < lsmStringListSize(vol_delete); ++i ) {
-            rc = _volume_delete(c, lsmStringListElemGet(vol_delete, i));
-            if( LSM_ERR_OK != rc ) {
-                rc = lsmLogErrorBasic(c, LSM_ERR_INTERNAL_ERROR,
-                                    "Error while removing volume from pool");
-                goto bail;
+               goto bail;
             }
         }
-        */
 
-        /* Remove pool from hash */
+        /* Remove pool from hash and create job */
         g_hash_table_remove(pd->pools, lsmPoolIdGet(pool));
-
         rc = create_job(pd, job, LSM_DATA_TYPE_NONE, NULL, NULL);
 
     } else {
@@ -1166,7 +1132,6 @@ static int pool_delete(lsmPluginPtr c, lsmPool *pool, char **job,
                                     "pool not found!");
     }
 bail:
-    lsmStringListFree(vol_delete);
     return rc;
 }
 
@@ -2440,19 +2405,22 @@ void free_allocated_volume(void *v)
     }
 }
 
+/* Foward decl.*/
+int unload( lsmPluginPtr c, lsmFlag_t flags);
+
 int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
                         uint32_t timeout,  lsmFlag_t flags)
 {
-    struct plugin_data *data = (struct plugin_data *)
+    struct plugin_data *pd = (struct plugin_data *)
                                 malloc(sizeof(struct plugin_data));
     int rc = LSM_ERR_NO_MEMORY;
     int i;
-    lsmPool *p;
-    if( data ) {
-        memset(data, 0, sizeof(struct plugin_data));
+    lsmPool *p = NULL;
+    if( pd ) {
+        memset(pd, 0, sizeof(struct plugin_data));
 
-        data->num_systems = 1;
-        data->system[0] = lsmSystemRecordAlloc(sys_id,
+        pd->num_systems = 1;
+        pd->system[0] = lsmSystemRecordAlloc(sys_id,
                                                 "LSM simulated storage plug-in",
                                                 LSM_SYSTEM_STATUS_OK);
 
@@ -2461,45 +2429,47 @@ int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
                                             LSM_POOL_STATUS_OK,
                                             sys_id);
         if( p ) {
-            data->pools = g_hash_table_new_full(g_str_hash, g_str_equal, NULL,
+            pd->pools = g_hash_table_new_full(g_str_hash, g_str_equal, free,
                         free_pool_record);
 
-            g_hash_table_insert(data->pools, lsmPoolIdGet(p), p);
+            g_hash_table_insert(pd->pools, strdup(lsmPoolIdGet(p)), p);
 
             for( i = 0; i < 3; ++i ) {
                 char name[32];
                 snprintf(name, sizeof(name), "POOL_%d", i);
 
                 p = lsmPoolRecordAlloc(name, name, UINT64_MAX,
-                                            UINT64_MAX, LSM_POOL_STATUS_OK, sys_id);
+                                            UINT64_MAX, LSM_POOL_STATUS_OK,
+                                            sys_id);
 
                 if( p ) {
-                    g_hash_table_insert(data->pools, lsmPoolIdGet(p), p);
+                    g_hash_table_insert(pd->pools, strdup(lsmPoolIdGet(p)), p);
                 } else {
-                    g_hash_table_destroy(data->pools);
-                    data->pools = NULL;
+                    g_hash_table_destroy(pd->pools);
+                    pd->pools = NULL;
+                    break;
                 }
             }
         }
 
-        data->volumes = g_hash_table_new_full(g_str_hash, g_str_equal, free,
+        pd->volumes = g_hash_table_new_full(g_str_hash, g_str_equal, free,
                             free_allocated_volume);
 
-        data->access_groups = g_hash_table_new_full(g_str_hash, g_str_equal,
+        pd->access_groups = g_hash_table_new_full(g_str_hash, g_str_equal,
                                                     free, free_allocated_ag);
 
         /*  We will delete the key, but the value will get cleaned up in its
             own container */
-        data->group_grant = g_hash_table_new_full(g_str_hash, g_str_equal,
+        pd->group_grant = g_hash_table_new_full(g_str_hash, g_str_equal,
                             free, free_group_grant_hash);
 
-        data->fs = g_hash_table_new_full(g_str_hash, g_str_equal, free,
+        pd->fs = g_hash_table_new_full(g_str_hash, g_str_equal, free,
                                             free_allocated_fs);
 
-        data->jobs = g_hash_table_new_full(g_str_hash, g_str_equal, free,
+        pd->jobs = g_hash_table_new_full(g_str_hash, g_str_equal, free,
                                             free_allocated_job);
 
-        data->disks = g_hash_table_new_full(g_str_hash, g_str_equal, free,
+        pd->disks = g_hash_table_new_full(g_str_hash, g_str_equal, free,
                                             free_disk);
 
         /* Create disks */
@@ -2523,43 +2493,24 @@ int load( lsmPluginPtr c, xmlURIPtr uri, const char *password,
                 key = strdup(lsmDiskIdGet(d));
 
                 if( !key ) {
-                    g_hash_table_destroy(data->disks);
-                    data->disks = NULL;
+                    g_hash_table_destroy(pd->disks);
+                    pd->disks = NULL;
                     break;
                 }
 
-                g_hash_table_insert(data->disks, key, d);
+                g_hash_table_insert(pd->disks, key, d);
                 d = NULL;
             }
             lsmOptionalDataRecordFree(od);
         }
 
 
-        if( !data->system[0] || !data->volumes || !data->pools || !data->access_groups ||
-            !data->group_grant || !data->fs || !data->jobs || !data->disks ) {
-            rc = LSM_ERR_NO_MEMORY;             /* We need to free data and everything else */
-
-            if( data->jobs )
-                g_hash_table_destroy(data->jobs);
-            if( data->fs )
-                g_hash_table_destroy(data->fs);
-            if( data->group_grant )
-                g_hash_table_destroy(data->group_grant);
-            if( data->access_groups )
-                g_hash_table_destroy(data->access_groups);
-            if( data->pools )
-                g_hash_table_destroy(data->pools);
-            if( data->volumes )
-                g_hash_table_destroy(data->volumes);
-            if( data->disks )
-                g_hash_table_destroy(data->disks);
-
-            lsmSystemRecordFree(data->system[0]);
-            memset(data, 0xAA, sizeof(struct plugin_data));
-            free(data);
-            data = NULL;
+        if( !pd->system[0] || !pd->volumes || !pd->pools || !pd->access_groups
+            || !pd->group_grant || !pd->fs || !pd->jobs || !pd->disks ) {
+            rc = LSM_ERR_NO_MEMORY; /* We need to free everything */
+            unload(c, 0);
         } else {
-            rc = lsmRegisterPluginV1( c, data, &mgmOps,
+            rc = lsmRegisterPluginV1( c, pd, &mgmOps,
                                     &sanOps, &fsOps, &nfsOps);
         }
     }
@@ -2573,20 +2524,41 @@ int unload( lsmPluginPtr c, lsmFlag_t flags)
     struct plugin_data *pd = (struct plugin_data*)lsmPrivateDataGet(c);
 
     if( pd ) {
-        g_hash_table_destroy(pd->jobs);
-        pd->jobs = NULL;
 
-        g_hash_table_destroy(pd->fs);
-        pd->fs = NULL;
+        if( pd->disks ) {
+            g_hash_table_destroy(pd->disks);
+            pd->disks = NULL;
+        }
 
-        g_hash_table_destroy(pd->group_grant);
-        pd->group_grant = NULL;
+        if( pd->jobs ) {
+            g_hash_table_destroy(pd->jobs);
+            pd->jobs = NULL;
+        }
 
-        g_hash_table_destroy(pd->access_groups);
+        if(pd->fs) {
+            g_hash_table_destroy(pd->fs);
+            pd->fs = NULL;
+        }
 
-        g_hash_table_destroy(pd->volumes);
+        if(pd->group_grant) {
+            g_hash_table_destroy(pd->group_grant);
+            pd->group_grant = NULL;
+        }
 
-        g_hash_table_destroy(pd->pools);
+        if( pd->access_groups ) {
+            g_hash_table_destroy(pd->access_groups);
+            pd->access_groups = NULL;
+        }
+
+        if( pd->volumes ) {
+            g_hash_table_destroy(pd->volumes);
+            pd->volumes = NULL;
+        }
+
+        if( pd->pools ) {
+            g_hash_table_destroy(pd->pools);
+            pd->pools = NULL;
+        }
 
         for( i = 0; i < pd->num_systems; ++i ) {
             lsmSystemRecordFree(pd->system[i]);
@@ -2595,6 +2567,7 @@ int unload( lsmPluginPtr c, lsmFlag_t flags)
         pd->num_systems = 0;
 
         free(pd);
+        pd = NULL;
     }
 
     return LSM_ERR_OK;

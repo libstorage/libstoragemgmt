@@ -985,6 +985,8 @@ static int handle_volume_replicate_range(lsmPluginPtr p, Value &params,
 
                 if( LSM_ERR_JOB_STARTED == rc ) {
                     response = Value(job);
+                    free(job);
+                    job = NULL;
                 }
 
             } else {
@@ -2200,6 +2202,8 @@ static int init_granted_to_volume(lsmPluginPtr p, Value &params, Value &response
                 rc = p->sanOps->initiators_granted_to_vol(p, vol, &inits,
                                                             &count, flags);
                 get_initiators(rc, inits, count, response);
+                lsmVolumeRecordFree(vol);
+                vol = NULL;
             } else {
                 rc = LSM_ERR_NO_MEMORY;
             }
@@ -2301,6 +2305,8 @@ static int vol_accessible_by_init(lsmPluginPtr p, Value &params, Value &response
                 rc = p->sanOps->vol_accessible_by_init(p, init, &vols, &count,
                                                         flags);
                 get_volumes(rc, vols, count, response);
+                lsmInitiatorRecordFree(init);
+                init = NULL;
             } else {
                 rc = LSM_ERR_NO_MEMORY;
             }
