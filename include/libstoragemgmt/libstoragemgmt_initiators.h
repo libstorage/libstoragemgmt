@@ -30,14 +30,14 @@ extern "C" {
  * @param i     Initiator record.
  * @return LSM_ERR_OK on success, else error reason.
  */
-int LSM_DLL_EXPORT lsmInitiatorRecordFree(lsmInitiator *i);
+int LSM_DLL_EXPORT lsm_initiator_record_free(lsm_initiator *i);
 
 /**
  * Returns a copy of an initiator record.
  * @param i     Initiator record to be copied.
  * @return Copy of initiator or NULL on error.
  */
-lsmInitiator LSM_DLL_EXPORT *lsmInitiatorRecordCopy(lsmInitiator *i);
+lsm_initiator LSM_DLL_EXPORT *lsm_initiator_record_copy(lsm_initiator *i);
 
 /**
  * Frees the memory for each of the initiators records and then the array itself.
@@ -45,29 +45,29 @@ lsmInitiator LSM_DLL_EXPORT *lsmInitiatorRecordCopy(lsmInitiator *i);
  * @param size  Size of array.
  * @return LSM_ERR_OK on success, else error reason.
  */
-int LSM_DLL_EXPORT lsmInitiatorRecordArrayFree( lsmInitiator *init[], uint32_t size);
+int LSM_DLL_EXPORT lsm_initiator_record_array_free( lsm_initiator *init[], uint32_t size);
 
 /**
  * Returns the type of identifer returned in @see lsmInitiatorIdGet
- * @param i     lsmInitiator to inquire
+ * @param i     lsm_initiator to inquire
  * @return      Initiator Id type, -1 if i is invalid.
  */
-lsmInitiatorType LSM_DLL_EXPORT lsmInitiatorTypeGet(lsmInitiator *i);
+lsm_initiator_type LSM_DLL_EXPORT lsm_initiator_type_get(lsm_initiator *i);
 
 /**
  * Returns the initiator id (WWN, IQN etc.)
  * Note: Returned value is only valid as long as i is valid!.
- * @param i     lsmInitiator to inquire
+ * @param i     lsm_initiator to inquire
  * @return      Initiator id
  */
-char LSM_DLL_EXPORT *lsmInitiatorIdGet(lsmInitiator *i);
+char LSM_DLL_EXPORT *lsm_initiator_id_get(lsm_initiator *i);
 
 /**
  * Returns the user specified name associated with an initiator.
- * @param i     lsmInitiator to inquire
+ * @param i     lsm_initiator to inquire
  * @return      Initiator name
  */
-char LSM_DLL_EXPORT *lsmInitiatorNameGet(lsmInitiator *i);
+char LSM_DLL_EXPORT *lsm_initiator_name_get(lsm_initiator *i);
 
 #ifdef  __cplusplus
 }

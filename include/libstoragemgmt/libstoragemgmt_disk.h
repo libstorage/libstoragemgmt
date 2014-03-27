@@ -32,14 +32,14 @@ extern "C" {
  * @param d     Disk memory to free
  * @return LSM_ERR_OK on success, else error reason.
  */
-int LSM_DLL_EXPORT lsmDiskRecordFree(lsmDisk *d);
+int LSM_DLL_EXPORT lsm_disk_record_free(lsm_disk *d);
 
 /**
  * Copy a disk record
  * @param d     Disk record to copy
  * @return Copy of disk record
  */
-lsmDisk LSM_DLL_EXPORT *lsmDiskRecordCopy(lsmDisk *d);
+lsm_disk LSM_DLL_EXPORT *lsm_disk_record_copy(lsm_disk *d);
 
 /**
  * Free an array of disk records
@@ -47,7 +47,7 @@ lsmDisk LSM_DLL_EXPORT *lsmDiskRecordCopy(lsmDisk *d);
  * @param size      Size of disk array
  * @return LSM_ERR_OK on success, else error reason.
  */
-int LSM_DLL_EXPORT lsmDiskRecordArrayFree( lsmDisk *disk[], uint32_t size);
+int LSM_DLL_EXPORT lsm_disk_record_array_free( lsm_disk *disk[], uint32_t size);
 
 /**
  * Returns the disk id
@@ -56,7 +56,7 @@ int LSM_DLL_EXPORT lsmDiskRecordArrayFree( lsmDisk *disk[], uint32_t size);
  * @param d     Disk record of interest
  * @return String id
  */
-const char LSM_DLL_EXPORT *lsmDiskIdGet(lsmDisk *d);
+const char LSM_DLL_EXPORT *lsm_disk_id_get(lsm_disk *d);
 
 /**
  * Returns the disk name
@@ -65,7 +65,7 @@ const char LSM_DLL_EXPORT *lsmDiskIdGet(lsmDisk *d);
  * @param d     Disk record of interest
  * @return Disk name
  */
-const char LSM_DLL_EXPORT *lsmDiskNameGet(lsmDisk *d);
+const char LSM_DLL_EXPORT *lsm_disk_name_get(lsm_disk *d);
 
 /**
  * Returns the disk type (enumeration)
@@ -74,7 +74,7 @@ const char LSM_DLL_EXPORT *lsmDiskNameGet(lsmDisk *d);
  * @param d     Disk record of interest
  * @return Disk type
  */
-lsmDiskType LSM_DLL_EXPORT lsmDiskTypeGet(lsmDisk *d);
+lsm_disk_type LSM_DLL_EXPORT lsm_disk_type_get(lsm_disk *d);
 
 /**
  * Returns number of blocks for disk
@@ -83,7 +83,7 @@ lsmDiskType LSM_DLL_EXPORT lsmDiskTypeGet(lsmDisk *d);
  * @param d     Disk record of interest
  * @return Number of logical blocks
  */
-uint64_t LSM_DLL_EXPORT lsmDiskNumberOfBlocksGet(lsmDisk *d);
+uint64_t LSM_DLL_EXPORT lsm_disk_number_of_blocks_get(lsm_disk *d);
 
 /**
  * Returns the block size
@@ -92,7 +92,7 @@ uint64_t LSM_DLL_EXPORT lsmDiskNumberOfBlocksGet(lsmDisk *d);
  * @param d     Disk record of interest
  * @return Block size in bytes
  */
-uint64_t LSM_DLL_EXPORT lsmDiskBlockSizeGet(lsmDisk *d);
+uint64_t LSM_DLL_EXPORT lsm_disk_block_size_get(lsm_disk *d);
 
 /**
  * Returns the disk status
@@ -101,7 +101,7 @@ uint64_t LSM_DLL_EXPORT lsmDiskBlockSizeGet(lsmDisk *d);
  * @param d     Disk record of interest
  * @return Status of the disk
  */
-uint64_t LSM_DLL_EXPORT lsmDiskStatusGet(lsmDisk *d);
+uint64_t LSM_DLL_EXPORT lsm_disk_status_get(lsm_disk *d);
 
 /**
  * Returns the system id
@@ -110,14 +110,14 @@ uint64_t LSM_DLL_EXPORT lsmDiskStatusGet(lsmDisk *d);
  * @param d     Disk record of interest
  * @return Which system the disk belongs too.
  */
-const char LSM_DLL_EXPORT *lsmDiskSystemIdGet(lsmDisk *d);
+const char LSM_DLL_EXPORT *lsm_disk_system_id_get(lsm_disk *d);
 
 /**
  * Retrieve optional data for this disk
- * @param d     Valid lsmDisk pointer
+ * @param d     Valid lsm_disk pointer
  * @return NULL if no optional data exists.
  */
-lsmOptionalData LSM_DLL_EXPORT *lsmDiskOptionalDataGet(lsmDisk *d);
+lsm_optional_data LSM_DLL_EXPORT *lsm_disk_optional_data_get(lsm_disk *d);
 
 
 #ifdef	__cplusplus

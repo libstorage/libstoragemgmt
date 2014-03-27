@@ -29,16 +29,16 @@ extern "C" {
 /** @file libstoragemgmt_capabilities.h*/
 
 /*Note: Domain is 0..255 */
-/** \enum lsmCapabilityValueType Possible values for supported feature*/
+/** \enum lsm_capability_value_type Possible values for supported feature*/
 typedef enum {
     LSM_CAPABILITY_UNSUPPORTED          = 0,        /**< Feature is not supported */
     LSM_CAPABILITY_SUPPORTED            = 1,        /**< Feature is supported */
     LSM_CAPABILITY_SUPPORTED_OFFLINE    = 2,        /**< Feature is supported when offlined */
     LSM_CAPABILITY_NO_IMPLEMENTED       = 3,        /**< Feature is not implemented */
     LSM_CAPABILITY_UNKNOWN              = 4         /**< Feature status unknown */
-} lsmCapabilityValueType;
+} lsm_capability_value_type;
 
-/** \enum lsmCapabilityType Capabilities supported by array */
+/** \enum lsm_capability_value_type Capabilities supported by array */
 typedef enum {
     LSM_CAP_BLOCK_SUPPORT                           = 0,        /**< Array supports block ops */
     LSM_CAP_FS_SUPPORT                              = 1,        /**< Array supports file system ops */
@@ -146,14 +146,14 @@ typedef enum {
     LSM_CAP_POOL_CREATE_VOLUME_RAID_NOT_APPLICABLE  = 174,
 
     LSM_CAP_POOL_DELETE                             = 200       /**< Pool delete support */
-} lsmCapabilityType;
+} lsm_capability_type;
 
 /**
  * Free the memory used by the storage capabilities data structure
  * @param cap   Valid storage capability data structure.
  * @return LSM_ERR_OK on success, else error reason.
  */
-int LSM_DLL_EXPORT lsmCapabilityRecordFree(lsmStorageCapabilities *cap);
+int LSM_DLL_EXPORT lsm_capability_record_free(lsm_storage_capabilities *cap);
 
 /**
  * Return the capability for the specified feature.
@@ -161,9 +161,9 @@ int LSM_DLL_EXPORT lsmCapabilityRecordFree(lsmStorageCapabilities *cap);
  * @param t     Which capability you are interested in
  * @return Value of supported enumerated type.
  */
-lsmCapabilityValueType LSM_DLL_EXPORT lsmCapabilityGet(
-                                        lsmStorageCapabilities *cap,
-                                        lsmCapabilityType t);
+lsm_capability_value_type LSM_DLL_EXPORT lsm_capability_get(
+                                        lsm_storage_capabilities *cap,
+                                        lsm_capability_type t);
 
 
 #ifdef  __cplusplus

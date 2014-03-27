@@ -29,20 +29,20 @@ extern "C" {
 
 /** @file libstoragemgmt_error.h */
 
-/**< \enum  lsmErrorLevel Severity of the error. */
+/**< \enum  lsm_error_level Severity of the error. */
 typedef enum  {
     LSM_ERR_LEVEL_NONE = 0,
     LSM_ERR_LEVEL_WARNING = 1,
     LSM_ERR_LEVEL_ERROR = 2
-} lsmErrorLevel;
+} lsm_error_level;
 
-/**< \enum lsmErrorDomain Where the error took place */
+/**< \enum lsm_error_domain Where the error took place */
 typedef enum  {
     LSM_ERR_DOMAIN_FRAME_WORK = 0,      /**< Frame work */
     LSM_ERR_DOMAIN_PLUG_IN = 1          /**< Plug-in */
-} lsmErrorDomain;
+} lsm_error_domain;
 
-/**< \enum lsmErrorNumber Possible enumerated return codes from library */
+/**< \enum lsm_error_number Possible enumerated return codes from library */
 typedef enum {
     LSM_ERR_OK = 0,                     /**< OK */
     LSM_ERR_INTERNAL_ERROR = 1,         /**< Internal error */
@@ -137,87 +137,87 @@ typedef enum {
     LSM_ERR_DISK_BUSY = 500,        /* Disk already in use */
     LSM_ERR_VOLUME_BUSY = 501       /* Volume already in use */
 
-} lsmErrorNumber;
+} lsm_error_number;
 
-typedef struct _lsmError lsmError;
-typedef lsmError *lsmErrorPtr;
+typedef struct _lsm_error lsm_error;
+typedef lsm_error *lsm_error_ptr;
 
 /**
  * Gets the last error structure
- * Note: @see lsmErrorFree to release memory
+ * Note: @see lsm_error_free to release memory
  * @param c      Connection pointer.
- * @return lsmErrorPtr, Null if no error exists!
+ * @return Error pointer, Null if no error exists!
  */
-lsmErrorPtr LSM_DLL_EXPORT lsmErrorLastGet(lsmConnect *c);
+lsm_error_ptr LSM_DLL_EXPORT lsm_error_last_get(lsm_connect *c);
 
 /**
  * Frees the error record!
  * @param err   The error to free!
  * @return LSM_ERR_OK on success, else error reason.
  */
-int LSM_DLL_EXPORT lsmErrorFree(lsmErrorPtr err);
+int LSM_DLL_EXPORT lsm_error_free(lsm_error_ptr err);
 
 /**
  * Retrieves the error number from the error.
- * @param e     The lsmErrorPtr
+ * @param e     The lsm_error_ptr
  * @return -1 if e is not a valid error pointer, else error number.
  */
-lsmErrorNumber LSM_DLL_EXPORT lsmErrorNumberGet(lsmErrorPtr e);
+lsm_error_number LSM_DLL_EXPORT lsm_error_number_get(lsm_error_ptr e);
 
 /**
  * Retrieves the domain from the error.
- * @param e     The lsmErrorPtr
+ * @param e     The lsm_error_ptr
  * @return -1 if e is not a valid error pointer, else error domain value.
  */
-lsmErrorDomain LSM_DLL_EXPORT lsmErrorDomainGet(lsmErrorPtr e);
+lsm_error_domain LSM_DLL_EXPORT lsm_error_domain_get(lsm_error_ptr e);
 
 /**
  * Retrieves the error level from the error.
- * @param e     The lsmErrorPtr
+ * @param e     The lsm_error_ptr
  * @return -1 if e is not a valid error pointer, else error level.
  */
-lsmErrorLevel LSM_DLL_EXPORT lsmErrorLevelGet(lsmErrorPtr e);
+lsm_error_level LSM_DLL_EXPORT lsm_error_level_get(lsm_error_ptr e);
 
 /**
  * Retrieves the error message from the error.
  * Note: The returned value is only valid as long as the e is valid, in addition
  * the function will return NULL if e is invalid.  To remove the ambiguity call
- * lsmErrorNumberGet and check return code.
- * @param e     The lsmErrorPtr
+ * lsm_error_number_get and check return code.
+ * @param e     The lsm_error_ptr
  * @return NULL if message data does not exist, else error message.
  */
-char LSM_DLL_EXPORT *lsmErrorMessageGet(lsmErrorPtr e);
+char LSM_DLL_EXPORT *lsm_error_message_get(lsm_error_ptr e);
 
 /**
  * Retrieves the exception message from the error.
  * Note: The returned value is only valid as long as the e is valid, in addition
  * the function will return NULL if e is invalid.  To remove the ambiguity call
- * lsmErrorNumberGet and check return code.
- * @param e     The lsmErrorPtr
+ * lsm_error_number_get and check return code.
+ * @param e     The lsm_error_ptr
  * @return NULL if exception does not exist, else error exception.
  */
-char LSM_DLL_EXPORT *lsmErrorExceptionGet(lsmErrorPtr e);
+char LSM_DLL_EXPORT *lsm_error_exception_get(lsm_error_ptr e);
 
 /**
  * Retrieves the error message from the error.
  * Note: The returned value is only valid as long as the e is valid, in addition
  * the function will return NULL if e is invalid.  To remove the ambiguity call
- * lsmErrorNumberGet and check return code.
- * @param e     The lsmErrorPtr
+ * lsm_error_number_get and check return code.
+ * @param e     The lsm_error_ptr
  * @return NULL if does not exist, else debug message.
  */
-char LSM_DLL_EXPORT *lsmErrorDebugGet(lsmErrorPtr e);
+char LSM_DLL_EXPORT *lsm_error_debug_get(lsm_error_ptr e);
 
 /**
  * Retrieves the debug data from the error.
  * Note: The returned value is only valid as long as the e is valid, in addition
  * the function will return NULL if e is invalid.  To remove the ambiguity call
- * lsmErrorNumberGet and check return code.
- * @param e             The lsmErrorPtr
+ * lsm_error_number_get and check return code.
+ * @param e             The lsm_error_ptr
  * @param[out] size     Number of bytes of data returned.
  * @return NULL if does not exist, else debug message.
  */
-void LSM_DLL_EXPORT *lsmErrorDebugDataGet(lsmErrorPtr e, uint32_t *size);
+void LSM_DLL_EXPORT *lsm_error_debug_data_get(lsm_error_ptr e, uint32_t *size);
 
 #ifdef  __cplusplus
 }

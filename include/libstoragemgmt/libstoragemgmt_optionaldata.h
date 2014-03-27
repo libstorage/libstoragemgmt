@@ -32,7 +32,7 @@ extern "C" {
  * @param op    Record to free.
  * @return LSM_ERR_OK on success, else error reason.
  */
-int LSM_DLL_EXPORT lsmOptionalDataRecordFree(lsmOptionalData *op);
+int LSM_DLL_EXPORT lsm_optional_data_record_free(lsm_optional_data *op);
 
 /**
  * Get the list of 'keys' available in the optional data
@@ -41,8 +41,8 @@ int LSM_DLL_EXPORT lsmOptionalDataRecordFree(lsmOptionalData *op);
  * @param [out] count   Number of items in string list
  * @return LSM_ERR_OK on success, else error reason
  */
-int LSM_DLL_EXPORT lsmOptionalDataListGet(lsmOptionalData *op,
-                                            lsmStringList **l, uint32_t *count);
+int LSM_DLL_EXPORT lsm_optional_data_list_get(lsm_optional_data *op,
+                                            lsm_string_list **l, uint32_t *count);
 
 /**
  * Get the value of a key (string)
@@ -51,7 +51,7 @@ int LSM_DLL_EXPORT lsmOptionalDataListGet(lsmOptionalData *op,
  * @return Pointer to value, pointer valid until optional data memory
  *          gets released.
  */
-const char LSM_DLL_EXPORT *lsmOptionalDataStringGet(lsmOptionalData *op,
+const char LSM_DLL_EXPORT *lsm_optional_data_string_get(lsm_optional_data *op,
                                                     const char *key);
 
 /**
@@ -62,16 +62,16 @@ const char LSM_DLL_EXPORT *lsmOptionalDataStringGet(lsmOptionalData *op,
  * @param [in]  value   Value of new key (string is duped)
  * @return LSM_ERR_OK on success, else error reason
  */
-int LSM_DLL_EXPORT lsmOptionalDataStringSet(lsmOptionalData *op,
+int LSM_DLL_EXPORT lsm_optional_data_string_set(lsm_optional_data *op,
                                                 const char *key,
                                                 const char *value);
 
 /**
- * Does a copy of an optionalData
- * @param src       OptionalData to copy
+ * Does a copy of an lsm_optional_data
+ * @param src       lsm_optional_data to copy
  * @return NULL on error/memory allocation failure, else copy
  */
-lsmOptionalData LSM_DLL_EXPORT*lsmOptionalDataRecordCopy(lsmOptionalData *src);
+lsm_optional_data LSM_DLL_EXPORT *lsm_optional_data_record_copy(lsm_optional_data *src);
 
 #ifdef	__cplusplus
 }

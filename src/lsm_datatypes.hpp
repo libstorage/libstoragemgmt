@@ -45,13 +45,13 @@ extern "C" {
 /**
  * Information about storage volumes.
  */
-struct LSM_DLL_LOCAL _lsmVolume {
+struct LSM_DLL_LOCAL _lsm_volume {
     uint32_t    magic;
     char *id;                           /**< System wide unique identifier */
     char *name;                         /**< Human recognizeable name */
     char *vpd83;                        /**< SCSI page 83 unique ID */
-    uint64_t    blockSize;              /**< Block size */
-    uint64_t    numberOfBlocks;         /**< Number of blocks */
+    uint64_t    block_size;             /**< Block size */
+    uint64_t    number_of_blocks;       /**< Number of blocks */
     uint32_t    status;                 /**< Status */
     char *system_id;                    /**< System this volume belongs */
     char *pool_id;                      /**< Pool this volume is derived from */
@@ -63,12 +63,12 @@ struct LSM_DLL_LOCAL _lsmVolume {
 /**
  * Information about storage pools.
  */
-struct LSM_DLL_LOCAL _lsmPool {
+struct LSM_DLL_LOCAL _lsm_pool {
     uint32_t    magic;          /**< Used for verfication */
     char *id;                   /**< System wide unique identifier */
     char *name;                 /**< Human recognizeable name */
-    uint64_t    totalSpace;     /**< Total size */
-    uint64_t    freeSpace;      /**< Free space available */
+    uint64_t    total_space;     /**< Total size */
+    uint64_t    free_space;      /**< Free space available */
     uint64_t    status;         /**< Status of pool */
     char *system_id;            /**< system id */
 };
@@ -79,9 +79,9 @@ struct LSM_DLL_LOCAL _lsmPool {
 /**
  * Information about an initiator.
  */
-struct LSM_DLL_LOCAL _lsmInitiator {
+struct LSM_DLL_LOCAL _lsm_initiator {
     uint32_t magic;             /**< Used for verification */
-    lsmInitiatorType   idType;  /**< Type of id */
+    lsm_initiator_type   id_type;  /**< Type of id */
     char *id;                   /**< Identifier */
     char *name;                 /**< Initiator name */
 };
@@ -92,12 +92,12 @@ struct LSM_DLL_LOCAL _lsmInitiator {
 /**
  * Information pertaining to a storage group.
  */
-struct _lsmAccessGroup {
+struct _lsm_access_group {
     uint32_t magic;             /**< Used for verification */
     char *id;                   /**< Id */
     char *name;                 /**< Name */
     char *system_id;            /**< System id */
-    lsmStringList *initiators;  /**< List of initiators */
+    lsm_string_list *initiators;  /**< List of initiators */
 };
 
 #define LSM_FILE_SYSTEM_MAGIC  0xAA7A0004
@@ -106,7 +106,7 @@ struct _lsmAccessGroup {
 /**
  * Structure for file systems
  */
-struct _lsmFileSystem {
+struct _lsm_file_system {
     uint32_t magic;             /**< Used for verification */
     char *id;                   /**< Id */
     char *name;                 /**< Name */
@@ -122,7 +122,7 @@ struct _lsmFileSystem {
 /**
  * Structure for snapshots.
  */
-struct _lsmSnapShot {
+struct _lsm_snap_shot {
     uint32_t magic;             /**< Used for verification */
     char *id;                   /**< Id */
     char *name;                 /**< Name */
@@ -135,15 +135,15 @@ struct _lsmSnapShot {
 /**
  * Structure for NFS export information
  */
-struct _lsmNfsExport {
+struct _lsm_nfs_export {
     uint32_t magic;             /**< Used for verfication */
     char *id;                   /**< Id */
     char *fs_id;                /**< File system id */
     char *export_path;          /**< Export path */
     char *auth_type;            /**< Supported authentication types */
-    lsmStringList *root;        /**< List of hosts with root access */
-    lsmStringList *rw;          /**< List of hosts with read & write access */
-    lsmStringList *ro;          /**< List of hosts with read only access */
+    lsm_string_list *root;        /**< List of hosts with root access */
+    lsm_string_list *rw;          /**< List of hosts with read & write access */
+    lsm_string_list *ro;          /**< List of hosts with read only access */
     uint64_t anonuid;           /**< Uid that should map to anonymous */
     uint64_t anongid;           /**< Gid that should map to anonymous */
     char *options;              /**< Options */
@@ -155,7 +155,7 @@ struct _lsmNfsExport {
 /**
  * Structure for block range ( a region to be replicated )
  */
-struct _lsmBlockRange {
+struct _lsm_block_range {
     uint32_t magic;             /**< Used for verification */
     uint64_t source_start;      /**< Source address */
     uint64_t dest_start;        /**< Dest address */
@@ -170,7 +170,7 @@ struct _lsmBlockRange {
 /**
  * Capabilities of the plug-in and storage array.
  */
-struct _lsmStorageCapabilities {
+struct _lsm_storage_capabilities {
     uint32_t magic;             /**< Used for verification */
     uint32_t len;               /**< Len of cap field */
     uint8_t *cap;               /**< Capacity data */
@@ -182,7 +182,7 @@ struct _lsmStorageCapabilities {
 /**
  * Structure for a system
  */
-struct _lsmSystem {
+struct _lsm_system {
     uint32_t magic;             /**< Used for verification */
     char *id;                   /**< Id */
     char *name;                 /**< Name */
@@ -199,19 +199,19 @@ struct _lsmSystem {
 /**
  * Information pertaining to the plug-in specifics.
  */
-struct LSM_DLL_LOCAL _lsmPlugin {
+struct LSM_DLL_LOCAL _lsm_plugin {
     uint32_t    magic;                  /**< Magic, used for structure validation */
     Ipc         *tp;                    /**< IPC transport */
     char    *desc;                      /**< Description */
     char    *version;                   /**< Version */
-    void    *privateData;               /**< Private data for plug-in */
-    lsmError    *error;                 /**< Error information */
-    lsmPluginRegister   reg;            /**< Plug-in registration */
-    lsmPluginUnregister unreg;          /**< Plug-in unregistration */
-    struct lsmMgmtOpsV1    *mgmtOps;      /**< Callback for management ops */
-    struct lsmSanOpsV1    *sanOps;        /**< Callbacks for SAN ops */
-    struct lsmNasOpsV1    *nasOps;        /**< Callbacks for NAS ops */
-    struct lsmFsOpsV1     *fsOps;         /**< Callbacks for fs ops */
+    void    *private_data;               /**< Private data for plug-in */
+    lsm_error    *error;                 /**< Error information */
+    lsm_plugin_register   reg;            /**< Plug-in registration */
+    lsm_plugin_unregister unreg;          /**< Plug-in unregistration */
+    struct lsm_mgmt_ops_v1    *mgmt_ops;      /**< Callback for management ops */
+    struct lsm_san_ops_v1    *san_ops;        /**< Callbacks for SAN ops */
+    struct lsm_nas_ops_v1    *nas_ops;        /**< Callbacks for NAS ops */
+    struct lsm_fs_ops_v1     *fs_ops;         /**< Callbacks for fs ops */
 };
 
 
@@ -219,12 +219,12 @@ struct LSM_DLL_LOCAL _lsmPlugin {
  * Information pertaining to the connection.  This is the main structure and
  * opaque data type for the library.
  */
-struct LSM_DLL_LOCAL _lsmConnect {
+struct LSM_DLL_LOCAL _lsm_connect {
     uint32_t    magic;          /**< Magic, used for structure validation */
     uint32_t    flags;          /**< Flags for the connection */
     xmlURIPtr   uri;            /**< URI */
     char        *raw_uri;       /**< Raw URI string */
-    lsmError    *error;         /**< Error information */
+    lsm_error    *error;         /**< Error information */
     Ipc *tp;                    /**< IPC transport */
 };
 
@@ -235,11 +235,11 @@ struct LSM_DLL_LOCAL _lsmConnect {
 /**
  * Used to house error information.
  */
-struct LSM_DLL_LOCAL _lsmError {
+struct LSM_DLL_LOCAL _lsm_error {
     uint32_t    magic;          /**< Magic, used for struct validation */
-    lsmErrorNumber code;        /**< Error code */
-    lsmErrorDomain domain;      /**< Where the error occured */
-    lsmErrorLevel level;        /**< Severity of the error */
+    lsm_error_number code;        /**< Error code */
+    lsm_error_domain domain;      /**< Where the error occured */
+    lsm_error_level level;        /**< Severity of the error */
     uint32_t    reserved;       /**< Reserved */
     char *message;              /**< Human readable error message */
     char *exception;            /**< Exception message if present */
@@ -253,14 +253,14 @@ struct LSM_DLL_LOCAL _lsmError {
  */
 #define LSM_STRING_LIST_MAGIC       0xAA7A000D
 #define LSM_IS_STRING_LIST(obj)     MAGIC_CHECK(obj, LSM_STRING_LIST_MAGIC)
-struct LSM_DLL_LOCAL _lsmStringList {
+struct LSM_DLL_LOCAL _lsm_string_list {
     uint32_t    magic;          /**< Magic value */
     GPtrArray   *values;
 };
 
 #define LSM_FS_MAGIC                0xAA7A000E
 #define LSM_IS_FS(obj)     MAGIC_CHECK(obj, LSM_FS_MAGIC)
-struct LSM_DLL_LOCAL _lsmFs {
+struct LSM_DLL_LOCAL _lsm_fs {
     uint32_t magic;
     char *id;
     char *name;
@@ -272,7 +272,7 @@ struct LSM_DLL_LOCAL _lsmFs {
 
 #define LSM_SS_MAGIC                0xAA7A000F
 #define LSM_IS_SS(obj)     MAGIC_CHECK(obj, LSM_SS_MAGIC)
-struct LSM_DLL_LOCAL _lsmSs {
+struct LSM_DLL_LOCAL _lsm_ss {
     uint32_t magic;
     char *id;
     char *name;
@@ -281,21 +281,21 @@ struct LSM_DLL_LOCAL _lsmSs {
 
 #define LSM_DISK_MAGIC              0xAA7A0010
 #define LSM_IS_DISK(obj)     MAGIC_CHECK(obj, LSM_DISK_MAGIC)
-struct LSM_DLL_LOCAL _lsmDisk {
+struct LSM_DLL_LOCAL _lsm_disk {
     uint32_t magic;
     char *id;
     char *name;
-    lsmDiskType disk_type;
+    lsm_disk_type disk_type;
     uint64_t block_size;
     uint64_t block_count;
     uint64_t disk_status;        /* Bit field */
-    lsmOptionalData *optional_data;
+    lsm_optional_data *optional_data;
     char *system_id;
 };
 
 #define LSM_OPTIONAL_DATA_MAGIC     0xAA7A0011
 #define LSM_IS_OPTIONAL_DATA(obj)   MAGIC_CHECK(obj, LSM_OPTIONAL_DATA_MAGIC)
-struct LSM_DLL_LOCAL _lsmOptionalData {
+struct LSM_DLL_LOCAL _lsm_optional_data {
     uint32_t magic;
     GHashTable *data;
 };
@@ -304,13 +304,13 @@ struct LSM_DLL_LOCAL _lsmOptionalData {
  * Returns a pointer to a newly created connection structure.
  * @return NULL on memory exhaustion, else new connection.
  */
-LSM_DLL_LOCAL lsmConnect *getConnection();
+LSM_DLL_LOCAL lsm_connect *connection_get();
 
 /**
  * De-allocates the connection.
  * @param c     Connection to free.
  */
-LSM_DLL_LOCAL void freeConnection(lsmConnect *c);
+LSM_DLL_LOCAL void connection_free(lsm_connect *c);
 
 /**
  * Loads the requester driver specified in the uri.
@@ -323,13 +323,13 @@ LSM_DLL_LOCAL void freeConnection(lsmConnect *c);
  * @param flags         Reserved flag for future use
  * @return LSM_ERR_OK on success, else error code.
  */
-LSM_DLL_LOCAL int loadDriver(lsmConnect *c, const char *plugin,
+LSM_DLL_LOCAL int driver_load(lsm_connect *c, const char *plugin,
                                 const char *password, uint32_t timeout,
-                                lsmErrorPtr *e,
+                                lsm_error_ptr *e,
                                 int startup,
-                                lsmFlag_t flags);
+                                lsm_flag flags);
 
-LSM_DLL_LOCAL char* capabilityString(lsmStorageCapabilities *c);
+LSM_DLL_LOCAL char* capability_string(lsm_storage_capabilities *c);
 
 LSM_DLL_LOCAL const char *uds_path(void);
 

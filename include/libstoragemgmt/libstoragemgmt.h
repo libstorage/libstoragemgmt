@@ -66,29 +66,29 @@ extern "C" {
      * @param[in] timeout   Time-out in milli-seconds, (initial value).
      * @param[out] e        Error data if connection failed.
      * @param[in] flags     Reserved for future use, must be zero.
-     * @return LSM_ERR_OK on success, else error code @see lsmErrorNumber
+     * @return LSM_ERR_OK on success, else error code @see lsm_error_number
      */
-    int LSM_DLL_EXPORT lsmConnectPassword(const char* uri, const char *password,
-        lsmConnect **conn, uint32_t timeout, lsmErrorPtr *e, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_connect_password(const char* uri, const char *password,
+        lsm_connect **conn, uint32_t timeout, lsm_error_ptr *e, lsm_flag flags);
     /**
      * Closes a connection to a storage provider.
      * @param[in] conn      Valid connection to close
      * @param[in] flags     Reserved for future use, must be zero.
-     * @return LSM_ERR_OK on success, else error code @see lsmErrorNumber
+     * @return LSM_ERR_OK on success, else error code @see lsm_error_number
      */
-    int LSM_DLL_EXPORT lsmConnectClose(lsmConnect *conn, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_connect_close(lsm_connect *conn, lsm_flag flags);
 
     /**
      * Retrieve information about the plug-in
      * NOTE: Caller needs to free desc and version!
-     * @param[in] conn      Valid connection @see lsmConnectPassword
+     * @param[in] conn      Valid connection @see lsm_connect_password
      * @param[out] desc     Plug-in description
      * @param[out] version  Plug-in version
      * @param [in] flags    Reserved for future use, must be zero.
-     * @return LSM_ERR_OK on success, else error code @see lsmErrorNumber
+     * @return LSM_ERR_OK on success, else error code @see lsm_error_number
      */
-    int LSM_DLL_EXPORT lsmPluginInfoGet(lsmConnect *conn, char **desc,
-                                        char **version, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_plugin_info_get(lsm_connect *conn, char **desc,
+                                        char **version, lsm_flag flags);
 
 	/**
 	 * Retrieve a list of available plug-ins.
@@ -96,44 +96,44 @@ extern "C" {
 	 * @param[out] plugins	String list of plug-ins with the form
 	 *						desc<sep>version
      * @param[in] flags     Reserved for future use, must be zero.
-	 * @return LSM_ERR_OK on success, else error code @see lsmErrorNumber
+	 * @return LSM_ERR_OK on success, else error code @see lsm_error_number
 	 */
-	int LSM_DLL_EXPORT lsmAvailablePluginsList(const char *sep,
-                                                lsmStringList **plugins,
-                                                lsmFlag_t flags);
+	int LSM_DLL_EXPORT lsm_available_plugins_list(const char *sep,
+                                                lsm_string_list **plugins,
+                                                lsm_flag flags);
 
     /**
      * Sets the time-out for this connection.
-     * @param[in] conn          Valid connection @see lsmConnectPassword
+     * @param[in] conn          Valid connection @see lsm_connect_password
      * @param[in] timeout       Time-out (in ms)
      * @param[in] flags         Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason
      */
-    int LSM_DLL_EXPORT lsmConnectTimeoutSet(lsmConnect *conn,
-                                            uint32_t timeout, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_connect_timeout_set(lsm_connect *conn,
+                                            uint32_t timeout, lsm_flag flags);
 
     /**
      * Gets the time-out for this connection.
-     * @param[in]   conn        Valid connection @see lsmConnectPassword
+     * @param[in]   conn        Valid connection @see lsm_connect_password
      * @param[out]  timeout     Time-out (in ms)
      * @param[in] flags         Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason
      */
-    int LSM_DLL_EXPORT lsmConnectTimeoutGet(lsmConnect *conn,
-                                            uint32_t *timeout, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_connect_timeout_get(lsm_connect *conn,
+                                            uint32_t *timeout, lsm_flag flags);
 
     /**
      * Check on the status of a job, no data to return on completion.
      * @param[in] conn              Valid connection
      * @param[in] job_id            Job id
      * @param[out] status           Job Status
-     * @param[out] percentComplete  Percent job complete
+     * @param[out] percent_complete  Percent job complete
      * @param[in] flags             Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason
      */
-    int LSM_DLL_EXPORT lsmJobStatusGet(lsmConnect *conn, const char *job_id,
-                                lsmJobStatus *status, uint8_t *percentComplete,
-                                lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_job_status_get(lsm_connect *conn, const char *job_id,
+                                lsm_job_status *status, uint8_t *percent_complete,
+                                lsm_flag flags);
 
     /**
      * Check on the status of a job and return the pool information when
@@ -141,15 +141,15 @@ extern "C" {
      * @param[in]    conn       Valid connection pointer
      * @param[in]    job_id     Job to check status on
      * @param[out]   status     What is the job status
-     * @param[out]   percentComplete    Domain 0..100
-     * @param[out]   pool       lsmPool for completed operation
+     * @param[out]   percent_complete    Domain 0..100
+     * @param[out]   pool       lsm_pool for completed operation
      * @param[in]    flags      Reserved for future use, must be zero
      * @return LSM_ERR_OK on success, else error reason.
      */
-    int LSM_DLL_EXPORT lsmJobStatusPoolGet(lsmConnect *conn,
-                                const char *job_id, lsmJobStatus *status,
-                                uint8_t *percentComplete, lsmPool **pool,
-                                lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_job_status_pool_get(lsm_connect *conn,
+                                const char *job_id, lsm_job_status *status,
+                                uint8_t *percent_complete, lsm_pool **pool,
+                                lsm_flag flags);
 
     /**
      * Check on the status of a job and returns the volume information when
@@ -157,15 +157,15 @@ extern "C" {
      * @param[in] conn              Valid connection pointer.
      * @param[in] job_id            Job to check status on
      * @param[out] status           What is the job status
-     * @param[out] percentComplete  Domain 0..100
-     * @param[out] vol              lsmVolume for completed operation.
+     * @param[out] percent_complete  Domain 0..100
+     * @param[out] vol              lsm_volume for completed operation.
      * @param[in] flags             Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
-    int LSM_DLL_EXPORT lsmJobStatusVolumeGet(lsmConnect *conn,
-                                const char *job_id, lsmJobStatus *status,
-                                uint8_t *percentComplete, lsmVolume **vol,
-                                lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_job_status_volume_get(lsm_connect *conn,
+                                const char *job_id, lsm_job_status *status,
+                                uint8_t *percent_complete, lsm_volume **vol,
+                                lsm_flag flags);
 
 
     /**
@@ -173,14 +173,14 @@ extern "C" {
      * @param[in] conn                  Valid connection pointer
      * @param[in] job_id                Job to check
      * @param[out] status               What is the job status
-     * @param[out] percentComplete      Percent of job complete
-     * @param[out] fs                   lsmFs * for the completed operation
+     * @param[out] percent_complete      Percent of job complete
+     * @param[out] fs                   lsm_fs * for the completed operation
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
-    int LSM_DLL_EXPORT lsmJobStatusFsGet(lsmConnect *conn, const char *job_id,
-                                lsmJobStatus *status, uint8_t *percentComplete,
-                                lsmFs **fs, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_job_status_fs_get(lsm_connect *conn, const char *job_id,
+                                lsm_job_status *status, uint8_t *percent_complete,
+                                lsm_fs **fs, lsm_flag flags);
 
     /**
      * Check on the status of a job and return the snapshot information when
@@ -188,55 +188,55 @@ extern "C" {
      * @param[in] c                     Valid connection pointer
      * @param[in] job                   Job id to check
      * @param[out] status               Job status
-     * @param[out] percentComplete      Percent complete
+     * @param[out] percent_complete      Percent complete
      * @param[out] ss                   Snap shot information
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason
      */
-    int LSM_DLL_EXPORT lsmJobStatusSsGet(lsmConnect *c, const char *job,
-                                lsmJobStatus *status, uint8_t *percentComplete,
-                                lsmSs **ss, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_job_status_ss_get(lsm_connect *c, const char *job,
+                                lsm_job_status *status, uint8_t *percent_complete,
+                                lsm_ss **ss, lsm_flag flags);
 
     /**
      * Frees the resources used by a job.
      * @param[in] conn          Valid connection pointer
-     * @param[in] jobID         Job ID
+     * @param[in] job_id        Job ID
      * @param[in] flags         Reserved for future use, must be zero.
      * @return LSM_ERROR_OK, else error reason.
      */
-    int LSM_DLL_EXPORT lsmJobFree(lsmConnect *conn, char **jobID,
-                                    lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_job_free(lsm_connect *conn, char **job_id,
+                                    lsm_flag flags);
     /**
      * Storage system query functions
      */
 
     /**
      * Query the capabilities of the storage array.
-     * @param[in]   conn    Valid connection @see lsmConnectPassword
+     * @param[in]   conn    Valid connection @see lsm_connect_password
      * @param[in]   system  System of interest
      * @param[out]  cap     The storage array capabilities
      * @param[in] flags     Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success else error reason
      */
-    int LSM_DLL_EXPORT lsmCapabilities(lsmConnect *conn,
-                                        lsmSystem *system,
-                                        lsmStorageCapabilities **cap,
-                                        lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_capabilities(lsm_connect *conn,
+                                        lsm_system *system,
+                                        lsm_storage_capabilities **cap,
+                                        lsm_flag flags);
 
     /**
      * Query the list of storage pools on the array.
-     * @param[in]   conn            Valid connection @see lsmConnectPassword
-     * @param[out]  poolArray       Array of storage pools
+     * @param[in]   conn            Valid connection @see lsm_connect_password
+     * @param[out]  pool_array      Array of storage pools
      * @param[out]  count           Number of storage pools
      * @param[in] flags             Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success else error reason
      */
-    int LSM_DLL_EXPORT lsmPoolList(lsmConnect *conn, lsmPool**poolArray[],
-                                    uint32_t *count, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_pool_list(lsm_connect *conn, lsm_pool **pool_array[],
+                                    uint32_t *count, lsm_flag flags);
 
     /**
      * Create new pool allowing the array to make the most decisions.
-     * @param [in]      conn            Valid connection @see lsmConnectPass
+     * @param [in]      conn            Valid connection @see lsm_connect_password
      * @param [in]      system_id       System ID of where pool will reside
      * @param [in]      pool_name       Name of new pool
      * @param [in]      size_bytes      Size of new pool in bytes
@@ -256,15 +256,15 @@ extern "C" {
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async.,
      *          else error code
      */
-    int LSM_DLL_EXPORT lsmPoolCreate(lsmConnect *conn, const char *system_id,
+    int LSM_DLL_EXPORT lsm_pool_create(lsm_connect *conn, const char *system_id,
                             const char *pool_name, uint64_t size_bytes,
-                            lsmPoolRaidType raid_type,
-                            lsmPoolMemberType member_type, lsmPool** pool,
-                            char **job, lsmFlag_t flags);
+                            lsm_pool_raid_type raid_type,
+                            lsm_pool_member_type member_type, lsm_pool** pool,
+                            char **job, lsm_flag flags);
 
     /**
      * Create a pool specifying specific disks to use.
-     * @param [in]      conn            Valid connection @see lsmConnectPass
+     * @param [in]      conn            Valid connection @see lsm_connect_password
      * @param [in]      system_id       System ID of where pool will reside
      * @param [in]      pool_name       The name of the new pool, will not fail
      *                                  if request name cannot be fulfilled
@@ -280,15 +280,15 @@ extern "C" {
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async.,
      *          else error code
      */
-    int LSM_DLL_EXPORT lsmPoolCreateFromDisks(lsmConnect *conn,
+    int LSM_DLL_EXPORT lsm_pool_create_from_disks(lsm_connect *conn,
                         const char *system_id, const char *pool_name,
-                        lsmStringList *member_ids, lsmPoolRaidType raid_type,
-                        lsmPool** pool, char **job, lsmFlag_t flags);
+                        lsm_string_list *member_ids, lsm_pool_raid_type raid_type,
+                        lsm_pool** pool, char **job, lsm_flag flags);
 
     /**
      * Create new pool in by specifying which volumes should be used for pool
      * creation.
-     * @param [in]      conn            Valid connection @see lsmConnectPass
+     * @param [in]      conn            Valid connection @see lsm_connect_password
      * @param [in]      system_id       System ID of where pool will reside
      * @param [in]      pool_name       The name of the new pool, will not fail
      *                                  if request name cannot be fulfilled
@@ -304,14 +304,14 @@ extern "C" {
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async.,
      *          else error code
      */
-    int LSM_DLL_EXPORT lsmPoolCreateFromVolumes(lsmConnect *conn,
+    int LSM_DLL_EXPORT lsm_pool_create_from_volumes(lsm_connect *conn,
                         const char *system_id, const char *pool_name,
-                        lsmStringList *member_ids, lsmPoolRaidType raid_type,
-                        lsmPool** pool, char **job, lsmFlag_t flags);
+                        lsm_string_list *member_ids, lsm_pool_raid_type raid_type,
+                        lsm_pool** pool, char **job, lsm_flag flags);
 
     /**
      * Create new pool from an existing pool
-     * @param [in]      conn            Valid connection @see lsmConnectPass
+     * @param [in]      conn            Valid connection @see lsm_connect_password
      * @param [in]      system_id       System ID of where pool will reside
      * @param [in]      pool_name       The name of the new pool, will not fail
      *                                  if request name cannot be fulfilled
@@ -323,34 +323,34 @@ extern "C" {
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async.,
      *          else error code
      */
-    int LSM_DLL_EXPORT lsmPoolCreateFromPool(lsmConnect *conn,
+    int LSM_DLL_EXPORT lsm_pool_create_from_pool(lsm_connect *conn,
                         const char *system_id, const char *pool_name,
                         const char *member_id, uint64_t size_bytes,
-                        lsmPool** pool, char **job, lsmFlag_t flags);
+                        lsm_pool** pool, char **job, lsm_flag flags);
 
     /**
      * Deletes a pool
-     * @param [in]      conn            Valid connection @see lsmConnectPass
+     * @param [in]      conn            Valid connection @see lsm_connect_password
      * @param [in]      pool            The pool to delete
      * @param [out]     job_id          Job id of job if async.
      * @param [in]      flags           Reserved for future use, must be zero
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async.,
      *          else error code
      */
-    int LSM_DLL_EXPORT lsmPoolDelete(lsmConnect *conn, lsmPool *pool,
-                                        char **job_id, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_pool_delete(lsm_connect *conn, lsm_pool *pool,
+                                        char **job_id, lsm_flag flags);
 
     /**
      * Query the list of initiators known to the array
-     * @param[in]   conn            Valid connection @see lsmConnectPassword
+     * @param[in]   conn            Valid connection @see lsm_connect_password
      * @param[out] initiators       Array of initiators
      * @param[out] count            Number of initiators
      * @param[in] flags             Reserved for future use, must be zero.
      * @return  LSM_ERR_OK on success else error reason
      */
-    int LSM_DLL_EXPORT lsmInitiatorList(lsmConnect *conn,
-                                        lsmInitiator **initiators[],
-                                        uint32_t *count, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_initiator_list(lsm_connect *conn,
+                                        lsm_initiator **initiators[],
+                                        uint32_t *count, lsm_flag flags);
 
     /**
      * Volume management functions
@@ -358,93 +358,93 @@ extern "C" {
 
     /**
      * Gets a list of logical units for this array.
-     * @param[in]   conn        Valid connection @see lsmConnectPassword
-     * @param[out]   volumes    An array of lsmVolume_t
-     * @param[out]   count      Number of elements in the lsmVolume_t array
+     * @param[in]   conn        Valid connection @see lsm_connect_password
+     * @param[out]   volumes    An array of lsm_volume
+     * @param[out]   count      Number of elements in the lsm_volume array
      * @param[in] flags         Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success else error reason
      */
-    int LSM_DLL_EXPORT lsmVolumeList(lsmConnect *conn, lsmVolume **volumes[],
-                                        uint32_t *count, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_volume_list(lsm_connect *conn, lsm_volume **volumes[],
+                                        uint32_t *count, lsm_flag flags);
 
     /**
      * Get a list of disk for this array.
-     * @param [in]      conn    Valid connection @see lsmConnectPassword
-     * @param [out]     disks   An array of lsmDisk types
+     * @param [in]      conn    Valid connection @see lsm_connect_password
+     * @param [out]     disks   An array of lsm_disk types
      * @param [out]     count   Number of disks
      * @param [in]      flags   Use LSM_DISK_RETRIEVE_FULL_INFO for all data, else 0
      * @return LSM_ERR_OK on success else error reason
      */
-    int LSM_DLL_EXPORT lsmDiskList(lsmConnect *conn, lsmDisk **disks[],
-                                    uint32_t *count, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_disk_list(lsm_connect *conn, lsm_disk **disks[],
+                                    uint32_t *count, lsm_flag flags);
 
     /**
      * Creates a new volume (aka. LUN).
-     * @param[in]   conn            Valid connection @see lsmConnectPassword
-     * @param[in]   pool            Valid pool @see lsmPool_t (OPTIONAL, use NULL for plug-in choice)
-     * @param[in]   volumeName      Human recognizable name (not all arrays support)
+     * @param[in]   conn            Valid connection @see lsm_connect_password
+     * @param[in]   pool            Valid pool @see lsm_pool (OPTIONAL, use NULL for plug-in choice)
+     * @param[in]   volume_name     Human recognizable name (not all arrays support)
      * @param[in]   size            Size of new volume in bytes (actual size will
      *                              be based on array rounding to blocksize)
      * @param[in]   provisioning    Type of volume provisioning to use
-     * @param[out]  newVolume       Valid volume @see lsmVolume_t
+     * @param[out]  new_volume      Valid volume @see lsm_volume
      * @param[out]  job             Indicates job id
      * @param[in] flags             Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. , else error code
      */
-    int LSM_DLL_EXPORT lsmVolumeCreate(lsmConnect *conn, lsmPool *pool,
-                                        const char *volumeName, uint64_t size,
-                                        lsmProvisionType provisioning,
-                                        lsmVolume **newVolume, char **job,
-                                        lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_volume_create(lsm_connect *conn, lsm_pool *pool,
+                                        const char *volume_name, uint64_t size,
+                                        lsm_provision_type provisioning,
+                                        lsm_volume **new_volume, char **job,
+                                        lsm_flag flags);
 
     /**
      * Resize an existing volume.
-     * @param[in]   conn            Valid connection @see lsmConnectPassword
+     * @param[in]   conn            Valid connection @see lsm_connect_password
      * @param[in]   volume          volume to resize
-     * @param[in]   newSize         New size of volume
-     * @param[out]  resizedVolume   Pointer to newly resized lun.
+     * @param[in]   new_size         New size of volume
+     * @param[out]  resized_volume  Pointer to newly resized lun.
      * @param[out]  job             Indicates job id
      * @param[in] flags             Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. , else error code
      */
-    int LSM_DLL_EXPORT lsmVolumeResize(lsmConnect *conn, lsmVolume *volume,
-                                uint64_t newSize, lsmVolume **resizedVolume,
-                                char **job, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_volume_resize(lsm_connect *conn, lsm_volume *volume,
+                                uint64_t new_size, lsm_volume **resized_volume,
+                                char **job, lsm_flag flags);
 
     /**
      * Replicates a volume
-     * @param[in] conn              Valid connection @see lsmConnectPassword
+     * @param[in] conn              Valid connection @see lsm_connect_password
      * @param[in] pool              Valid pool
-     * @param[in] repType           Type of replication lsmReplicationType
-     * @param[in] volumeSrc         Which volume to replicate
+     * @param[in] rep_type          Type of replication lsm_replication_type
+     * @param[in] volume_src        Which volume to replicate
      * @param[in] name              Human recognizable name (not all arrays support)
-     * @param[out] newReplicant     New replicated volume lsmVolume_t
+     * @param[out] new_replicant    New replicated volume lsm_volume_t
      * @param[out] job              Indicates job id
      * @param[in] flags             Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. , else error code
      */
-    int LSM_DLL_EXPORT lsmVolumeReplicate(lsmConnect *conn, lsmPool *pool,
-                            lsmReplicationType repType, lsmVolume *volumeSrc,
-                            const char *name, lsmVolume **newReplicant,
-                            char **job, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_volume_replicate(lsm_connect *conn, lsm_pool *pool,
+                            lsm_replication_type rep_type, lsm_volume *volume_src,
+                            const char *name, lsm_volume **new_replicant,
+                            char **job, lsm_flag flags);
 
     /**
      * Unit of block size for the replicate range method.
      * @param[in] conn                  Valid connection
-     * @param[in] system                Valid lsmSystem
+     * @param[in] system                Valid lsm_system
      * @param[out] bs                   Block size
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
-    int LSM_DLL_EXPORT lsmVolumeReplicateRangeBlockSize(lsmConnect *conn,
-                                                        lsmSystem *system,
+    int LSM_DLL_EXPORT lsm_volume_replicate_range_block_size(lsm_connect *conn,
+                                                        lsm_system *system,
                                                         uint32_t *bs,
-                                                        lsmFlag_t flags);
+                                                        lsm_flag flags);
 
     /**
      * Replicates a portion of a volume to a volume.
      * @param[in] conn                  Valid connection
-     * @param[in] repType               Replication type
+     * @param[in] rep_type               Replication type
      * @param[in] source                Source volume
      * @param[in] dest                  Destination volume (can be same as source)
      * @param[in] ranges                An array of block ranges
@@ -453,44 +453,44 @@ extern "C" {
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async., else error code
      */
-    int LSM_DLL_EXPORT lsmVolumeReplicateRange(lsmConnect *conn,
-                                                lsmReplicationType repType,
-                                                lsmVolume *source,
-                                                lsmVolume *dest,
-                                                lsmBlockRange **ranges,
+    int LSM_DLL_EXPORT lsm_volume_replicate_range(lsm_connect *conn,
+                                                lsm_replication_type rep_type,
+                                                lsm_volume *source,
+                                                lsm_volume *dest,
+                                                lsm_block_range **ranges,
                                                 uint32_t num_ranges, char **job,
-                                                lsmFlag_t flags);
+                                                lsm_flag flags);
 
     /**
      * Deletes a logical unit and data is lost!
-     * @param[in]   conn            Valid connection @see lsmConnectPassword
+     * @param[in]   conn            Valid connection @see lsm_connect_password
      * @param[in]   volume          Volume that is to be deleted.
      * @param[out]  job             Indicates job id
      * @param[in] flags             Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. , else error code
      */
-    int LSM_DLL_EXPORT lsmVolumeDelete(lsmConnect *conn, lsmVolume *volume,
-                                        char **job, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_volume_delete(lsm_connect *conn, lsm_volume *volume,
+                                        char **job, lsm_flag flags);
 
     /**
      * Set a Volume to online
-     * @param[in] conn                  Valid connection @see lsmConnectPassword
+     * @param[in] conn                  Valid connection @see lsm_connect_password
      * @param[in] volume                Volume that is to be placed online
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error code
      */
-    int LSM_DLL_EXPORT lsmVolumeOnline(lsmConnect *conn, lsmVolume *volume,
-                                        lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_volume_online(lsm_connect *conn, lsm_volume *volume,
+                                        lsm_flag flags);
 
     /**
      * Set a Volume to offline
-     * @param[in] conn                  Valid connection @see lsmConnectPassword
+     * @param[in] conn                  Valid connection @see lsm_connect_password
      * @param[in] volume                Volume that is to be placed online
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error code
      */
-    int LSM_DLL_EXPORT lsmVolumeOffline(lsmConnect *conn,
-                                        lsmVolume *volume, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_volume_offline(lsm_connect *conn,
+                                        lsm_volume *volume, lsm_flag flags);
 
     /**
      * Set the username password for CHAP authentication, inbound and outbound.
@@ -503,17 +503,17 @@ extern "C" {
      * @param flags                     Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error code.
      */
-    int LSM_DLL_EXPORT lsmISCSIChapAuth(lsmConnect *conn,
-                                                    lsmInitiator *initiator,
+    int LSM_DLL_EXPORT lsm_iscsi_chap_auth(lsm_connect *conn,
+                                                    lsm_initiator *initiator,
                                                     const char *in_user,
                                                     const char *in_password,
                                                     const char * out_user,
                                                     const char *out_password,
-                                                    lsmFlag_t flags);
+                                                    lsm_flag flags);
 
     /**
      * Access control for allowing an initiator to use a volume.
-     * @param[in] conn                  Valid connection @see lsmConnectPassword
+     * @param[in] conn                  Valid connection @see lsm_connect_password
      * @param[in] initiator_id          Initiator to grant access to volume
      * @param[in] initiator_type        Type of initiator we are adding
      * @param[in] volume                Volume to allow access to
@@ -521,12 +521,12 @@ extern "C" {
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error code
      */
-    int LSM_DLL_EXPORT lsmInitiatorGrant(lsmConnect *conn,
+    int LSM_DLL_EXPORT lsm_initiator_grant(lsm_connect *conn,
                                         const char *initiator_id,
-                                        lsmInitiatorType initiator_type,
-                                        lsmVolume *volume,
-                                        lsmAccessType access,
-                                        lsmFlag_t flags);
+                                        lsm_initiator_type initiator_type,
+                                        lsm_volume *volume,
+                                        lsm_access_type access,
+                                        lsm_flag flags);
 
     /**
      * Revokes privileges an initiator has to a volume
@@ -537,27 +537,27 @@ extern "C" {
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. ,
      *          else error code
      */
-    int LSM_DLL_EXPORT lsmInitiatorRevoke(lsmConnect *conn,
-                                        lsmInitiator *initiator,
-                                        lsmVolume *volume,
-                                        lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_initiator_revoke(lsm_connect *conn,
+                                        lsm_initiator *initiator,
+                                        lsm_volume *volume,
+                                        lsm_flag flags);
 
     /**
      * Retrieves a list of access groups.
-     * @param[in] conn              Valid connection @see lsmConnectPassword
+     * @param[in] conn              Valid connection @see lsm_connect_password
      * @param[out] groups           Array of access groups
-     * @param[out] groupCount       Size of array
+     * @param[out] group_count       Size of array
      * @param[in] flags             Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
-    int LSM_DLL_EXPORT lsmAccessGroupList(lsmConnect *conn,
-                                            lsmAccessGroup **groups[],
-                                            uint32_t *groupCount,
-                                            lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_access_group_list(lsm_connect *conn,
+                                            lsm_access_group **groups[],
+                                            uint32_t *group_count,
+                                            lsm_flag flags);
 
     /**
      * Creates a new access group with one initiator in it.
-     * @param[in] conn                  Valid connection @see lsmConnectPassword
+     * @param[in] conn                  Valid connection @see lsm_connect_password
      * @param[in] name                  Name of access group
      * @param[in] initiator_id          Initiator id to be added to group
      * @param[in] id_type               Initiator type
@@ -566,50 +566,50 @@ extern "C" {
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason
      */
-    int LSM_DLL_EXPORT lsmAccessGroupCreate(lsmConnect *conn,
+    int LSM_DLL_EXPORT lsm_access_group_create(lsm_connect *conn,
                                                 const char *name,
                                                 const char *initiator_id,
-                                                lsmInitiatorType id_type,
+                                                lsm_initiator_type id_type,
                                                 const char *system_id,
-                                                lsmAccessGroup **access_group,
-                                                lsmFlag_t flags);
+                                                lsm_access_group **access_group,
+                                                lsm_flag flags);
 
     /**
      * Deletes an access group.
-     * @param[in] conn                  Valid connection @see lsmConnectPassword
+     * @param[in] conn                  Valid connection @see lsm_connect_password
      * @param[in] group                 Group to delete
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
-    int LSM_DLL_EXPORT lsmAccessGroupDelete(lsmConnect *conn,
-                                            lsmAccessGroup *group, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_access_group_delete(lsm_connect *conn,
+                                            lsm_access_group *group, lsm_flag flags);
 
     /**
      * Adds an initiator to the access group
-     * @param[in] conn                  Valid connection @see lsmConnectPassword
+     * @param[in] conn                  Valid connection @see lsm_connect_password
      * @param[in] group                 Group to modify
      * @param[in] initiator_id          Initiator to add to group
      * @param[in] id_type               Type of initiator
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
-    int LSM_DLL_EXPORT lsmAccessGroupInitiatorAdd(lsmConnect *conn,
-                                lsmAccessGroup *group,
+    int LSM_DLL_EXPORT lsm_access_group_initiator_add(lsm_connect *conn,
+                                lsm_access_group *group,
                                 const char *initiator_id,
-                                lsmInitiatorType id_type, lsmFlag_t flags);
+                                lsm_initiator_type id_type, lsm_flag flags);
 
     /**
      * Removes an initiator from an access group.
-     * @param[in] conn                  Valid connection @see lsmConnectPassword
+     * @param[in] conn                  Valid connection @see lsm_connect_password
      * @param[in] group                 Group to modify
      * @param[in] initiator_id          Initiator to delete from group
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return[in] LSM_ERR_OK on success, else error reason.
      */
-    int LSM_DLL_EXPORT lsmAccessGroupInitiatorDelete(lsmConnect *conn,
-                                                    lsmAccessGroup *group,
+    int LSM_DLL_EXPORT lsm_access_group_initiator_delete(lsm_connect *conn,
+                                                    lsm_access_group *group,
                                                     const char *initiator_id,
-                                                    lsmFlag_t flags);
+                                                    lsm_flag flags);
 
     /**
      * Grants access to a volume for the specified group
@@ -620,11 +620,11 @@ extern "C" {
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
-    int LSM_DLL_EXPORT lsmAccessGroupGrant(lsmConnect *conn,
-                                            lsmAccessGroup *group,
-                                            lsmVolume *volume,
-                                            lsmAccessType access,
-                                            lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_access_group_grant(lsm_connect *conn,
+                                            lsm_access_group *group,
+                                            lsm_volume *volume,
+                                            lsm_access_type access,
+                                            lsm_flag flags);
 
     /**
      * Revokes access to a volume for the specified group
@@ -634,40 +634,40 @@ extern "C" {
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
-    int LSM_DLL_EXPORT lsmAccessGroupRevoke(lsmConnect *conn,
-                                            lsmAccessGroup *group,
-                                            lsmVolume *volume,
-                                            lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_access_group_revoke(lsm_connect *conn,
+                                            lsm_access_group *group,
+                                            lsm_volume *volume,
+                                            lsm_flag flags);
 
     /**
      * Returns an array of volumes that are accessible by the initiator.
      * @param[in] conn                  Valid connection
      * @param[in] initiator             Valid initiator pointer
-     * @param[out] volumes              An array of lsmVolume
+     * @param[out] volumes              An array of lsm_volume
      * @param[out] count                Number of elements in array
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
-    int LSM_DLL_EXPORT lsmVolumesAccessibleByInitiator(lsmConnect *conn,
-                                        lsmInitiator *initiator,
-                                        lsmVolume **volumes[],
-                                        uint32_t *count, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_volumes_accessible_by_initiator(lsm_connect *conn,
+                                        lsm_initiator *initiator,
+                                        lsm_volume **volumes[],
+                                        uint32_t *count, lsm_flag flags);
 
 
     /**
      * Returns an array of initiators that have access to a volume.
      * @param[in] conn                  Valid connection
      * @param[in] volume                Volume to interrogate
-     * @param[out] initiators           An array of lsmInitiator
+     * @param[out] initiators           An array of lsm_initiator
      * @param[out] count                Number of elements in array
      * @param[in] flags                 Reserved for future use, must be zero
       * @return LSM_ERR_OK on success, else error reason.
      */
-    int LSM_DLL_EXPORT lsmInitiatorsGrantedToVolume(lsmConnect *conn,
-                                                lsmVolume *volume,
-                                                lsmInitiator **initiators[],
+    int LSM_DLL_EXPORT lsm_initiators_granted_to_volume(lsm_connect *conn,
+                                                lsm_volume *volume,
+                                                lsm_initiator **initiators[],
                                                 uint32_t *count,
-                                                lsmFlag_t flags);
+                                                lsm_flag flags);
 
     /**
      * Returns those volumes that the specified group has access to.
@@ -678,26 +678,26 @@ extern "C" {
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
-    int LSM_DLL_EXPORT lsmVolumesAccessibleByAccessGroup(lsmConnect *conn,
-                                                        lsmAccessGroup *group,
-                                                        lsmVolume **volumes[],
+    int LSM_DLL_EXPORT lsm_volumes_accessible_by_access_group(lsm_connect *conn,
+                                                        lsm_access_group *group,
+                                                        lsm_volume **volumes[],
                                                         uint32_t *count,
-                                                        lsmFlag_t flags);
+                                                        lsm_flag flags);
 
     /**
      * Retrieves the access groups that have access to the specified volume.
      * @param[in] conn                  Valid connection
      * @param[in] volume                Valid volume
      * @param[out] groups               An array of access groups
-     * @param[out] groupCount           Number of access groups
+     * @param[out] group_count          Number of access groups
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
-    int LSM_DLL_EXPORT lsmAccessGroupsGrantedToVolume(lsmConnect *conn,
-                                                    lsmVolume *volume,
-                                                    lsmAccessGroup **groups[],
-                                                    uint32_t *groupCount,
-                                                    lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_access_groups_granted_to_volume(lsm_connect *conn,
+                                                    lsm_volume *volume,
+                                                    lsm_access_group **groups[],
+                                                    uint32_t *group_count,
+                                                    lsm_flag flags);
 
     /**
      * Returns 1 if the specified volume has child dependencies.
@@ -707,10 +707,10 @@ extern "C" {
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
-    int LSM_DLL_EXPORT lsmVolumeChildDependency(lsmConnect *conn,
-                                                lsmVolume *volume,
+    int LSM_DLL_EXPORT lsm_volume_child_dependency(lsm_connect *conn,
+                                                lsm_volume *volume,
                                                 uint8_t *yes,
-                                                lsmFlag_t flags);
+                                                lsm_flag flags);
 
     /**
      * Instructs the array to remove all child dependencies by replicating
@@ -721,32 +721,32 @@ extern "C" {
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
-    int LSM_DLL_EXPORT lsmVolumeChildDependencyDelete(lsmConnect *conn,
-                                                    lsmVolume *volume,
-                                                    char **job, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_volume_child_dependency_delete(lsm_connect *conn,
+                                                    lsm_volume *volume,
+                                                    char **job, lsm_flag flags);
 
     /**
      * Retrieves information about the different arrays accessible.
      * NOTE: Free returned systems by calling to lsm
      * @param[in]  conn                 Valid connection
-     * @param[out] systems              Array of lsmSystem
-     * @param[out] systemCount          Number of systems
+     * @param[out] systems              Array of lsm_system
+     * @param[out] system_count          Number of systems
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason
      */
-    int LSM_DLL_EXPORT lsmSystemList(lsmConnect *conn, lsmSystem **systems[],
-                                        uint32_t *systemCount, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_system_list(lsm_connect *conn, lsm_system **systems[],
+                                        uint32_t *system_count, lsm_flag flags);
 
     /**
      * Retrieves information about the available file systems.
      * @param[in] conn                  Valid connection
-     * @param[out] fs                   Array of lsmFs
-     * @param[out] fsCount              Number of file systems
+     * @param[out] fs                   Array of lsm_fs
+     * @param[out] fs_count             Number of file systems
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason
      */
-    int LSM_DLL_EXPORT lsmFsList(lsmConnect *conn, lsmFs **fs[],
-                                    uint32_t *fsCount, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_fs_list(lsm_connect *conn, lsm_fs **fs[],
+                                    uint32_t *fs_count, lsm_flag flags);
 
     /**
      * Creates a new fils system from the specified pool
@@ -760,9 +760,9 @@ extern "C" {
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. ,
      * else error code
      */
-    int LSM_DLL_EXPORT lsmFsCreate(lsmConnect *conn, lsmPool *pool,
+    int LSM_DLL_EXPORT lsm_fs_create(lsm_connect *conn, lsm_pool *pool,
                                     const char *name, uint64_t size_bytes,
-                                    lsmFs **fs, char **job, lsmFlag_t flags);
+                                    lsm_fs **fs, char **job, lsm_flag flags);
 
     /**
      * Deletes a file system
@@ -773,8 +773,8 @@ extern "C" {
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. ,
      * else error code
      */
-    int LSM_DLL_EXPORT lsmFsDelete(lsmConnect *conn, lsmFs *fs, char **job,
-                                    lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_fs_delete(lsm_connect *conn, lsm_fs *fs, char **job,
+                                    lsm_flag flags);
 
     /**
      * Clones an existing file system
@@ -788,10 +788,10 @@ extern "C" {
      * @return LSM_ERR_OK on succees, LSM_ERR_JOB_STARTED if async., else
      * error code.
      */
-    int LSM_DLL_EXPORT lsmFsClone(lsmConnect *conn, lsmFs *src_fs,
-                                    const char *name, lsmSs *optional_ss,
-                                    lsmFs **cloned_fs,
-                                    char **job, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_fs_clone(lsm_connect *conn, lsm_fs *src_fs,
+                                    const char *name, lsm_ss *optional_ss,
+                                    lsm_fs **cloned_fs,
+                                    char **job, lsm_flag flags);
 
     /**
      * Checks to see if the specified file system has a child dependency.
@@ -802,9 +802,9 @@ extern "C" {
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error code.
      */
-    int LSM_DLL_EXPORT lsmFsChildDependency( lsmConnect *conn, lsmFs *fs,
-                                                lsmStringList *files,
-                                                uint8_t *yes, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_fs_child_dependency( lsm_connect *conn, lsm_fs *fs,
+                                                lsm_string_list *files,
+                                                uint8_t *yes, lsm_flag flags);
 
     /**
      * Removes child dependencies by duplicating the required storage to remove.
@@ -817,9 +817,9 @@ extern "C" {
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. ,
      * else error code
      */
-    int LSM_DLL_EXPORT lsmFsChildDependencyDelete( lsmConnect *conn, lsmFs *fs,
-                                                lsmStringList *files,
-                                                char **job, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_fs_child_dependency_delete( lsm_connect *conn, lsm_fs *fs,
+                                                lsm_string_list *files,
+                                                char **job, lsm_flag flags);
 
     /**
      * Resizes a file system
@@ -832,9 +832,9 @@ extern "C" {
      * @return @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. ,
      * else error code
      */
-    int LSM_DLL_EXPORT lsmFsResize(lsmConnect *conn, lsmFs *fs,
-                                    uint64_t new_size_bytes, lsmFs **rfs,
-                                    char **job_id, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_fs_resize(lsm_connect *conn, lsm_fs *fs,
+                                    uint64_t new_size_bytes, lsm_fs **rfs,
+                                    char **job_id, lsm_flag flags);
 
     /**
      * Clones a file on a file system.
@@ -848,24 +848,24 @@ extern "C" {
      * @return @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. ,
      * else error code
      */
-    int LSM_DLL_EXPORT lsmFsFileClone(lsmConnect *conn, lsmFs *fs,
+    int LSM_DLL_EXPORT lsm_fs_file_clone(lsm_connect *conn, lsm_fs *fs,
                                         const char *src_file_name,
                                         const char *dest_file_name,
-                                        lsmSs *snapshot, char **job,
-                                        lsmFlag_t flags);
+                                        lsm_ss *snapshot, char **job,
+                                        lsm_flag flags);
 
     /**
      * Return a list of snapshots
      * @param[in] conn                  Valid connection
      * @param[in] fs                    File system to check for snapshots
      * @param[out] ss                   An array of snapshot pointers
-     * @param[out] ssCount              Number of elements in the array
+     * @param[out] ss_count             Number of elements in the array
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason
      */
-    int LSM_DLL_EXPORT lsmFsSsList(lsmConnect *conn, lsmFs *fs,
-                                    lsmSs **ss[], uint32_t *ssCount,
-                                    lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_fs_ss_list(lsm_connect *conn, lsm_fs *fs,
+                                    lsm_ss **ss[], uint32_t *ss_count,
+                                    lsm_flag flags);
 
     /**
      * Creates a snapshot
@@ -879,10 +879,10 @@ extern "C" {
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async.,
      * else error code
      */
-    int LSM_DLL_EXPORT lsmFsSsCreate(lsmConnect *c, lsmFs *fs,
-                                    const char *name, lsmStringList *files,
-                                    lsmSs **snapshot, char **job,
-                                    lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_fs_ss_create(lsm_connect *c, lsm_fs *fs,
+                                    const char *name, lsm_string_list *files,
+                                    lsm_ss **snapshot, char **job,
+                                    lsm_flag flags);
 
     /**
      * Deletes a snapshot
@@ -894,8 +894,8 @@ extern "C" {
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async., else error
      * code.
      */
-    int LSM_DLL_EXPORT lsmFsSsDelete(lsmConnect *c, lsmFs *fs, lsmSs *ss,
-                                    char **job, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_fs_ss_delete(lsm_connect *c, lsm_fs *fs, lsm_ss *ss,
+                                    char **job, lsm_flag flags);
 
     /**
      * Reverts a file system or files to a previous state as specified in the
@@ -911,10 +911,10 @@ extern "C" {
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async.,
      * else error code
      */
-    int LSM_DLL_EXPORT lsmFsSsRevert(lsmConnect *c, lsmFs *fs, lsmSs *ss,
-                                    lsmStringList *files,
-                                    lsmStringList *restore_files,
-                                    int all_files, char **job, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_fs_ss_revert(lsm_connect *c, lsm_fs *fs, lsm_ss *ss,
+                                    lsm_string_list *files,
+                                    lsm_string_list *restore_files,
+                                    int all_files, char **job, lsm_flag flags);
 
     /**
      * Returns the types of NFS client authentication the array supports.
@@ -923,21 +923,21 @@ extern "C" {
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error code.
      */
-    int LSM_DLL_EXPORT lsmNfsAuthTypes( lsmConnect *c,
-                                            lsmStringList **types,
-                                            lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_nfs_auth_types( lsm_connect *c,
+                                            lsm_string_list **types,
+                                            lsm_flag flags);
 
     /**
      * Lists the nfs exports on the specified array.
      * @param[in] c                     Valid connection
-     * @param[out] exports              An array of lsmNfsExport
+     * @param[out] exports              An array of lsm_nfs_export
      * @param[out] count                Number of items in array
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success else error code.
      */
-    int LSM_DLL_EXPORT lsmNfsList( lsmConnect *c,
-                                            lsmNfsExport **exports[],
-                                            uint32_t *count, lsmFlag_t flags);
+    int LSM_DLL_EXPORT lsm_nfs_list( lsm_connect *c,
+                                            lsm_nfs_export **exports[],
+                                            uint32_t *count, lsm_flag flags);
 
     /**
      * Creates or modifies an NFS export.
@@ -955,18 +955,18 @@ extern "C" {
      * @param[in]  flags             Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
-    int LSM_DLL_EXPORT lsmNfsExportFs( lsmConnect *c,
+    int LSM_DLL_EXPORT lsm_nfs_export_fs( lsm_connect *c,
                                         const char *fs_id,
                                         const char *export_path,
-                                        lsmStringList *root_list,
-                                        lsmStringList *rw_list,
-                                        lsmStringList *ro_list,
+                                        lsm_string_list *root_list,
+                                        lsm_string_list *rw_list,
+                                        lsm_string_list *ro_list,
                                         uint64_t anon_uid,
                                         uint64_t anon_gid,
                                         const char *auth_type,
                                         const char *options,
-                                        lsmNfsExport **exported,
-                                        lsmFlag_t flags
+                                        lsm_nfs_export **exported,
+                                        lsm_flag flags
                                         );
 
     /**
@@ -976,8 +976,8 @@ extern "C" {
      * @param[in] flags         Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success else error code.
      */
-    int LSM_DLL_EXPORT lsmNfsExportDelete( lsmConnect *c, lsmNfsExport *e,
-                                            lsmFlag_t flags );
+    int LSM_DLL_EXPORT lsm_nfs_export_delete( lsm_connect *c, lsm_nfs_export *e,
+                                            lsm_flag flags );
 
 #ifdef  __cplusplus
 }

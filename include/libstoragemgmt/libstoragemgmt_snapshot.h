@@ -31,14 +31,14 @@ extern "C" {
  * @param ss    Snapshot record
  * @return LSM_ERR_OK on success, else error reason.
  */
-int LSM_DLL_EXPORT lsmSsRecordFree(lsmSs *ss);
+int LSM_DLL_EXPORT lsm_ss_record_free(lsm_ss *ss);
 
 /**
  * Copies a snapshot record.
  * @param source        Source to copy
  * @return Copy of source record snapshot
  */
-lsmSs LSM_DLL_EXPORT *lsmSsRecordCopy(lsmSs *source);
+lsm_ss LSM_DLL_EXPORT *lsm_ss_record_copy(lsm_ss *source);
 
 /**
  * Frees an array of snapshot record.
@@ -46,28 +46,28 @@ lsmSs LSM_DLL_EXPORT *lsmSsRecordCopy(lsmSs *source);
  * @param size      Number of snapshot records.
  * @return LSM_ERR_OK on success, else error reason.
  */
-int LSM_DLL_EXPORT lsmSsRecordArrayFree(lsmSs *ss[], uint32_t size);
+int LSM_DLL_EXPORT lsm_ss_record_array_free(lsm_ss *ss[], uint32_t size);
 
 /**
  * Returns the snapshot id.
  * @param ss        The snapshot record
  * @return Pointer to id.
  */
-const char LSM_DLL_EXPORT *lsmSsIdGet(lsmSs *ss);
+const char LSM_DLL_EXPORT *lsm_ss_id_get(lsm_ss *ss);
 
 /**
  * Returns the name.
  * @param ss        The snapshot record
  * @return The Name
  */
-const char LSM_DLL_EXPORT *lsmSsNameGet(lsmSs *ss);
+const char LSM_DLL_EXPORT *lsm_ss_name_get(lsm_ss *ss);
 
 /**
  * Returns the timestamp
  * @param ss    The snapshot record.
  * @return The timestamp the snapshot was taken
  */
-uint64_t LSM_DLL_EXPORT lsmSsTimeStampGet(lsmSs *ss);
+uint64_t LSM_DLL_EXPORT lsm_ss_time_stamp_get(lsm_ss *ss);
 
 #ifdef  __cplusplus
 }

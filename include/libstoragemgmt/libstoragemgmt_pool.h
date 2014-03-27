@@ -33,21 +33,21 @@ extern "C" {
  * @param size  Size of the pool array.
  * @return LSM_ERR_OK on success, else error reason.
  */
-int LSM_DLL_EXPORT lsmPoolRecordArrayFree( lsmPool *pa[], uint32_t size );
+int LSM_DLL_EXPORT lsm_pool_record_array_free( lsm_pool *pa[], uint32_t size );
 
 /**
  * Frees the memory for an individual pool
  * @param p Valid pool
  * @return LSM_ERR_OK on success, else error reason.
  */
-int LSM_DLL_EXPORT lsmPoolRecordFree(lsmPool *p);
+int LSM_DLL_EXPORT lsm_pool_record_free(lsm_pool *p);
 
 /**
- * Copies a lsmPoolRecordCopy
- * @param toBeCopied    Record to be copied
+ * Copies a lsm_pool record
+ * @param to_be_copied    Record to be copied
  * @return NULL on memory exhaustion, else copy.
  */
-lsmPool LSM_DLL_EXPORT *lsmPoolRecordCopy( lsmPool *toBeCopied);
+lsm_pool LSM_DLL_EXPORT *lsm_pool_record_copy( lsm_pool *to_be_copied);
 
 /**
  * Retrieves the name from the pool.
@@ -55,7 +55,7 @@ lsmPool LSM_DLL_EXPORT *lsmPoolRecordCopy( lsmPool *toBeCopied);
  * @param p     Pool
  * @return      The name of the pool.
  */
-char LSM_DLL_EXPORT *lsmPoolNameGet( lsmPool *p );
+char LSM_DLL_EXPORT *lsm_pool_name_get( lsm_pool *p );
 
 /**
  * Retrieves the system wide unique identifier for the pool.
@@ -63,21 +63,21 @@ char LSM_DLL_EXPORT *lsmPoolNameGet( lsmPool *p );
  * @param p     Pool
  * @return      The System wide unique identifier.
  */
-char LSM_DLL_EXPORT *lsmPoolIdGet( lsmPool *p );
+char LSM_DLL_EXPORT *lsm_pool_id_get( lsm_pool *p );
 
 /**
  * Retrieves the total space for the pool.
  * @param p     Pool
  * @return      Total space of the pool.
  */
-uint64_t LSM_DLL_EXPORT lsmPoolTotalSpaceGet( lsmPool *p );
+uint64_t LSM_DLL_EXPORT lsm_pool_total_space_get( lsm_pool *p );
 
 /**
  * Retrieves the remaining free space in the pool.
  * @param p     Pool
  * @return      The amount of free space.
  */
-uint64_t LSM_DLL_EXPORT lsmPoolFreeSpaceGet( lsmPool *p );
+uint64_t LSM_DLL_EXPORT lsm_pool_free_space_get( lsm_pool *p );
 
 /**
  * Retrieve the status for the Pool.
@@ -85,14 +85,14 @@ uint64_t LSM_DLL_EXPORT lsmPoolFreeSpaceGet( lsmPool *p );
  * @return  Pool status which is a bit sensitive field, returns UINT64_MAX on
  * bad pool pointer.
  */
-uint64_t LSM_DLL_EXPORT lsmPoolStatusGet( lsmPool *s );
+uint64_t LSM_DLL_EXPORT lsm_pool_status_get( lsm_pool *s );
 
 /**
  * Retrieve the system id for the specified pool.
  * @param p     Pool pointer
  * @return      System ID
  */
-char LSM_DLL_EXPORT *lsmPoolSystemIdGet( lsmPool *p );
+char LSM_DLL_EXPORT *lsm_pool_system_id_get( lsm_pool *p );
 
 #ifdef  __cplusplus
 }

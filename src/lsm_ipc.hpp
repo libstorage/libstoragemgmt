@@ -68,7 +68,7 @@ public:
      * @param[out]  error_code  Errno (only valid if we return -1)
      * @return 0 on success, else -1
      */
-    int sendMsg(const std::string &msg, int &error_code);
+    int msg_send(const std::string &msg, int &error_code);
 
     /**
      * Received a message over the transport.
@@ -77,7 +77,7 @@ public:
      * @param error_code    (0 on success, else errno)
      * @return Message on success else 0 size with error_code set (not if EOF)
      */
-    std::string recvMsg(int &error_code);
+    std::string msg_recv(int &error_code);
 
     /**
      * Creates a connected socket (AF_UNIX) to the specified path
@@ -85,7 +85,7 @@ public:
      * @param error_code    Error reason for the failure (errno)
      * @return -1 on error, else connected socket.
      */
-    static int getSocket(const std::string &path, int &error_code);
+    static int socket_get(const std::string &path, int &error_code);
 
     /**
      * Closes the transport, called in the destructor if not done in advance.
@@ -427,7 +427,7 @@ public:
      * @param params        Parameters
      * @param id            Request ID
      */
-    void sendRequest(const std::string request, const Value &params,
+    void requestSend(const std::string request, const Value &params,
                         int32_t id = 100);
     /**
      * Reads a request
@@ -440,13 +440,13 @@ public:
      * @param response      Response value
      * @param id            Id that matches request
      */
-    void sendResponse(const Value &response, uint32_t id = 100);
+    void responseSend(const Value &response, uint32_t id = 100);
 
     /**
      * Read a response
      * @return Value of response
      */
-    Value readResponse();
+    Value responseRead();
 
     /**
      * Send an error
@@ -455,7 +455,7 @@ public:
      * @param debug             Debug data
      * @param id                Id that matches request
      */
-    void sendError(int error_code, std::string msg, std::string debug,
+    void errorSend(int error_code, std::string msg, std::string debug,
                     uint32_t id = 100);
 
     /**

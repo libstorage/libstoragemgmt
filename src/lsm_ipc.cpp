@@ -46,7 +46,7 @@
     #define LSM_NEW_YAJL
 #endif
 
-static std::string zeroPadNum(unsigned int num)
+static std::string zero_pad_num(unsigned int num)
 {
     std::ostringstream ss;
     ss << std::setw(Transport::HDR_LEN) << std::setfill('0') << num;
@@ -61,7 +61,7 @@ Transport::Transport(int socket_desc) : s(socket_desc)
 {
 }
 
-int Transport::sendMsg(const std::string &msg, int &error_code)
+int Transport::msg_send(const std::string &msg, int &error_code)
 {
     int rc = -1;
     error_code = 0;
@@ -69,7 +69,7 @@ int Transport::sendMsg(const std::string &msg, int &error_code)
     if (msg.size() > 0) {
         ssize_t written = 0;
         //fprintf(stderr, ">>> %s\n", msg.c_str());
-        std::string data = zeroPadNum(msg.size()) + msg;
+        std::string data = zero_pad_num(msg.size()) + msg;
         ssize_t msg_size = data.size();
 
         while (written < msg_size) {
@@ -90,7 +90,7 @@ int Transport::sendMsg(const std::string &msg, int &error_code)
     return rc;
 }
 
-static std::string readString(int fd, size_t count, int &error_code)
+static std::string string_read(int fd, size_t count, int &error_code)
 {
     char buff[4096];
     size_t amount_read = 0;
@@ -117,23 +117,23 @@ static std::string readString(int fd, size_t count, int &error_code)
         throw EOFException("");
 }
 
-std::string Transport::recvMsg(int &error_code)
+std::string Transport::msg_recv(int &error_code)
 {
     std::string msg;
     error_code = 0;
     unsigned long int payload_len = 0;
-    std::string len = readString(s, HDR_LEN, error_code); //Read the length
+    std::string len = string_read(s, HDR_LEN, error_code); //Read the length
     if (len.size() && error_code == 0) {
         payload_len = strtoul(len.c_str(), NULL, 10);
         if( payload_len < 0x80000000 ) {    /* Should be big enough */
-            msg = readString(s, payload_len, error_code);
+            msg = string_read(s, payload_len, error_code);
         }
         //fprintf(stderr, "<<< %s\n", msg.c_str());
     }
     return msg;
 }
 
-int Transport::getSocket(const std::string& path, int &error_code)
+int Transport::socket_get(const std::string& path, int &error_code)
 {
     int sfd = socket(AF_UNIX, SOCK_STREAM, 0);
     int rc = -1;
@@ -782,7 +782,7 @@ Ipc::Ipc(int fd):t(fd)
 Ipc::Ipc(std::string socket_path)
 {
     int e = 0;
-    int fd = Transport::getSocket(socket_path, e);
+    int fd = Transport::socket_get(socket_path, e);
     if (fd >= 0) {
         t = Transport(fd);
     }
@@ -793,7 +793,7 @@ Ipc::~Ipc()
     t.close();
 }
 
-void Ipc::sendRequest(const std::string request, const Value &params, int32_t id)
+void Ipc::requestSend(const std::string request, const Value &params, int32_t id)
 {
     int rc = 0;
     int ec = 0;
@@ -804,7 +804,7 @@ void Ipc::sendRequest(const std::string request, const Value &params, int32_t id
     v["params"] = params;
 
     Value req(v);
-    rc = t.sendMsg(Payload::serialize(req), ec);
+    rc = t.msg_send(Payload::serialize(req), ec);
 
     if( rc != 0 ) {
         std::string em = std::string("Error sending message: errno ")
@@ -813,7 +813,7 @@ void Ipc::sendRequest(const std::string request, const Value &params, int32_t id
     }
 }
 
-void Ipc::sendError(int error_code, std::string msg, std::string debug,
+void Ipc::errorSend(int error_code, std::string msg, std::string debug,
                     uint32_t id)
 {
     int ec = 0;
@@ -829,7 +829,7 @@ void Ipc::sendError(int error_code, std::string msg, std::string debug,
     v["id"] = Value(id);
 
     Value e(v);
-    rc = t.sendMsg(Payload::serialize(e), ec);
+    rc = t.msg_send(Payload::serialize(e), ec);
 
     if( rc != 0 ) {
         std::string em = std::string("Error sending error message: errno ")
@@ -841,11 +841,11 @@ void Ipc::sendError(int error_code, std::string msg, std::string debug,
 Value Ipc::readRequest(void)
 {
     int ec;
-    std::string resp = t.recvMsg(ec);
+    std::string resp = t.msg_recv(ec);
     return Payload::deserialize(resp);
 }
 
-void Ipc::sendResponse(const Value &response, uint32_t id)
+void Ipc::responseSend(const Value &response, uint32_t id)
 {
     int rc;
     int ec;
@@ -855,7 +855,7 @@ void Ipc::sendResponse(const Value &response, uint32_t id)
     v["result"] = response;
 
     Value resp(v);
-    rc = t.sendMsg(Payload::serialize(resp), ec);
+    rc = t.msg_send(Payload::serialize(resp), ec);
 
     if( rc != 0 ) {
         std::string em = std::string("Error sending response: errno ")
@@ -864,7 +864,7 @@ void Ipc::sendResponse(const Value &response, uint32_t id)
     }
 }
 
-Value Ipc::readResponse()
+Value Ipc::responseRead()
 {
     Value r = readRequest();
     if( r.hasKey(std::string("result"))) {
@@ -881,6 +881,6 @@ Value Ipc::readResponse()
 
 Value Ipc::rpc(const std::string &request, const Value &params, int32_t id)
 {
-    sendRequest(request, params, id);
-    return readResponse();
+    requestSend(request, params, id);
+    return responseRead();
 }

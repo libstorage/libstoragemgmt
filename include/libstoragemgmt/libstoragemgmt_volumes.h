@@ -31,14 +31,14 @@ extern "C" {
  * @param v     Volume pointer to free.
  * @return LSM_ERR_OK on success, else error reason.
  */
-int LSM_DLL_EXPORT lsmVolumeRecordFree(lsmVolume *v);
+int LSM_DLL_EXPORT lsm_volume_record_free(lsm_volume *v);
 
 /**
  * Copies a volume record structure.
  * @param vol   Volume record to be copied.
  * @return NULL on error, else record copy.
  */
-lsmVolume LSM_DLL_EXPORT *lsmVolumeRecordCopy(lsmVolume *vol);
+lsm_volume LSM_DLL_EXPORT *lsm_volume_record_copy(lsm_volume *vol);
 
 /**
  * Frees the memory for each of the volume records and then the array itself.
@@ -46,7 +46,7 @@ lsmVolume LSM_DLL_EXPORT *lsmVolumeRecordCopy(lsmVolume *vol);
  * @param size  Size of array.
  * @return LSM_ERR_OK on success, else error reason.
  */
-int LSM_DLL_EXPORT lsmVolumeRecordArrayFree( lsmVolume *init[], uint32_t size);
+int LSM_DLL_EXPORT lsm_volume_record_array_free( lsm_volume *init[], uint32_t size);
 
 /**
  * Retrieves the volume id.
@@ -54,7 +54,7 @@ int LSM_DLL_EXPORT lsmVolumeRecordArrayFree( lsmVolume *init[], uint32_t size);
  * @param v     Volume ptr.
  * @return Volume id.
  */
-const char LSM_DLL_EXPORT *lsmVolumeIdGet(lsmVolume *v);
+const char LSM_DLL_EXPORT *lsm_volume_id_get(lsm_volume *v);
 
 /**
  * Retrieves the volume name (human recognizable
@@ -62,7 +62,7 @@ const char LSM_DLL_EXPORT *lsmVolumeIdGet(lsmVolume *v);
  * @param v     Volume ptr.
  * @return Volume name
  */
-const char LSM_DLL_EXPORT *lsmVolumeNameGet(lsmVolume *v);
+const char LSM_DLL_EXPORT *lsm_volume_name_get(lsm_volume *v);
 
 /**
  * Retrieves the SCSI page 83 unique ID.
@@ -70,42 +70,42 @@ const char LSM_DLL_EXPORT *lsmVolumeNameGet(lsmVolume *v);
  * @param v     Volume ptr.
  * @return SCSI page 83 unique ID.
  */
-const char LSM_DLL_EXPORT *lsmVolumeVpd83Get(lsmVolume *v);
+const char LSM_DLL_EXPORT *lsm_volume_vpd83_get(lsm_volume *v);
 
 /**
  * Retrieves the volume block size.
  * @param v     Volume ptr.
  * @return Volume block size.
  */
-uint64_t LSM_DLL_EXPORT lsmVolumeBlockSizeGet(lsmVolume *v);
+uint64_t LSM_DLL_EXPORT lsm_volume_block_size_get(lsm_volume *v);
 
 /**
  * Retrieves the number of blocks.
  * @param v     Volume ptr.
  * @return      Number of blocks.
  */
-uint64_t LSM_DLL_EXPORT lsmVolumeNumberOfBlocksGet(lsmVolume *v);
+uint64_t LSM_DLL_EXPORT lsm_volume_number_of_blocks_get(lsm_volume *v);
 
 /**
  * Retrieves the operational status of the volume.
  * @param v     Volume ptr.
- * @return Operational status of the volume, @see lsmVolumeOpStatus
+ * @return Operational status of the volume, @see lsm_volume_op_status
  */
-uint32_t LSM_DLL_EXPORT lsmVolumeOpStatusGet(lsmVolume *v);
+uint32_t LSM_DLL_EXPORT lsm_volume_op_status_get(lsm_volume *v);
 
 /**
  * Retrieves the system id of the volume.
  * @param v     Volume ptr.
  * @return System id.
  */
-char LSM_DLL_EXPORT *lsmVolumeSystemIdGet( lsmVolume *v);
+char LSM_DLL_EXPORT *lsm_volume_system_id_get( lsm_volume *v);
 
 /**
  * Retrieves the pool id that the volume is derived from.
  * @param v     Volume ptr.
  * @return Pool id.
  */
-char LSM_DLL_EXPORT *lsmVolumePoolIdGet( lsmVolume *v);
+char LSM_DLL_EXPORT *lsm_volume_pool_id_get( lsm_volume *v);
 
 #ifdef  __cplusplus
 }
