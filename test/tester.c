@@ -441,7 +441,7 @@ START_TEST(test_smoke_test)
         fail_unless(LSM_ERR_OK == child_depends, "returned = %d", child_depends);
         fail_unless(dependants == 0);
 
-        child_depends = lsmVolumeChildDependencyRm(c, n, &job, LSM_FLAG_RSVD);
+        child_depends = lsmVolumeChildDependencyDelete(c, n, &job, LSM_FLAG_RSVD);
         if( LSM_ERR_JOB_STARTED == child_depends ) {
             wait_for_job(c, &job);
         } else {
@@ -864,7 +864,7 @@ START_TEST(test_fs)
     fail_unless( LSM_ERR_OK == rc);
     fail_unless( yes_no == 0);
 
-    rc = lsmFsChildDependencyRm(c, nfs, NULL, &job, LSM_FLAG_RSVD);
+    rc = lsmFsChildDependencyDelete(c, nfs, NULL, &job, LSM_FLAG_RSVD);
     if( LSM_ERR_JOB_STARTED == rc ) {
         fail_unless(NULL != job);
         wait_for_job(c, &job);
@@ -1576,11 +1576,11 @@ START_TEST(test_invalid_input)
     rc = lsmVolumeChildDependency(c, new_vol, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    /*lsmVolumeChildDependencyRm*/
-    rc = lsmVolumeChildDependencyRm(c, NULL, NULL, LSM_FLAG_RSVD);
+    /*lsmVolumeChildDependencyDelete*/
+    rc = lsmVolumeChildDependencyDelete(c, NULL, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_VOL, "rc = %d", rc);
 
-    rc = lsmVolumeChildDependencyRm(c, new_vol, NULL, LSM_FLAG_RSVD);
+    rc = lsmVolumeChildDependencyDelete(c, new_vol, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     /* lsmSystemList */
@@ -1659,14 +1659,14 @@ START_TEST(test_invalid_input)
     rc = lsmFsChildDependency(c, arg_fs, f, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    /*lsmFsChildDependencyRm*/
-    rc = lsmFsChildDependencyRm(c, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    /*lsmFsChildDependencyDelete*/
+    rc = lsmFsChildDependencyDelete(c, NULL, NULL, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_FS, "rc = %d", rc);
 
-    rc = lsmFsChildDependencyRm(c, arg_fs, badf, NULL, LSM_FLAG_RSVD);
+    rc = lsmFsChildDependencyDelete(c, arg_fs, badf, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_SL, "rc = %d", rc);
 
-    rc = lsmFsChildDependencyRm(c, arg_fs, f, NULL, LSM_FLAG_RSVD);
+    rc = lsmFsChildDependencyDelete(c, arg_fs, f, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 

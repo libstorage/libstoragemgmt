@@ -1769,7 +1769,7 @@ int lsmVolumeChildDependency(lsmConnect *c, lsmVolume *volume,
     return rc;
 }
 
-int lsmVolumeChildDependencyRm(lsmConnect *c, lsmVolume *volume,
+int lsmVolumeChildDependencyDelete(lsmConnect *c, lsmVolume *volume,
                                 char **job, lsmFlag_t flags)
 {
     CONN_SETUP(c);
@@ -2087,7 +2087,7 @@ int lsmFsChildDependency( lsmConnect *c, lsmFs *fs, lsmStringList *files,
     return rc;
 }
 
-int lsmFsChildDependencyRm( lsmConnect *c, lsmFs *fs, lsmStringList *files,
+int lsmFsChildDependencyDelete( lsmConnect *c, lsmFs *fs, lsmStringList *files,
                             char **job, lsmFlag_t flags )
 {
     CONN_SETUP(c);

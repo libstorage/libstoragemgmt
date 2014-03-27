@@ -721,7 +721,7 @@ extern "C" {
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
-    int LSM_DLL_EXPORT lsmVolumeChildDependencyRm(lsmConnect *conn,
+    int LSM_DLL_EXPORT lsmVolumeChildDependencyDelete(lsmConnect *conn,
                                                     lsmVolume *volume,
                                                     char **job, lsmFlag_t flags);
 
@@ -817,7 +817,7 @@ extern "C" {
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. ,
      * else error code
      */
-    int LSM_DLL_EXPORT lsmFsChildDependencyRm( lsmConnect *conn, lsmFs *fs,
+    int LSM_DLL_EXPORT lsmFsChildDependencyDelete( lsmConnect *conn, lsmFs *fs,
                                                 lsmStringList *files,
                                                 char **job, lsmFlag_t flags);
 
