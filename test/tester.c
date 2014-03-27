@@ -2650,9 +2650,15 @@ int main(int argc, char** argv)
     Suite *s = lsm_suite();
     SRunner *sr = srunner_create(s);
 
-    srunner_run_all(sr, CK_NORMAL);
+    /*
+     * Don't run python plug-in tests if we are looking for
+     * memory leaks.
+     */
+    if( !getenv("LSM_VALGRIND") ) {
+        srunner_run_all(sr, CK_NORMAL);
+    }
 
-    /* Switch plugin backend to test cross language compat. */
+    /* Switch plug-in backend to test C language compat. */
     which_plugin = 1;
 
     srunner_run_all(sr, CK_NORMAL);

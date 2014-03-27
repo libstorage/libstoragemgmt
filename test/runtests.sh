@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (C) 2011-2013 Red Hat, Inc.
+# Copyright (C) 2011-2014 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -49,7 +49,7 @@ good() {
 	fi
 }
 
-#Put us in a consistant spot
+#Put us in a consistent spot
 cd "$(dirname "$0")"
 
 #Get base root directory
@@ -59,15 +59,26 @@ rootdir=${testdir%/*}
 #Are we running within distcheck?
 c_unit=$rootdir/test/tester
 LSMD_DAEMON=$rootdir/src/lsmd
+shared_libs=$rootdir/src/.libs/
+bin_plugin=$rootdir/plugin/.libs/
+
+
 if [ -e $rootdir/_build ]
 then
 	c_unit=$rootdir/_build/test/tester
 	LSMD_DAEMON=$rootdir/_build/src/lsmd
+	shared_libs=$rootdir/_build/src/.libs/
+	bin_plugin=$rootdir/_build/plugin/.libs/
 fi
 
-#With a distcheck you cannot much with the source file system, so we will copy
+#With a distcheck you cannot muck with the source file system, so we will copy
 #plugins somewhere else.
 plugins=$base/plugins
+
+#Export needed vars
+export PYTHONPATH=$rootdir/lsm
+export LD_LIBRARY_PATH=$base/lib
+export LSM_SIM_DATA="$base/lsm_sim_data"
 
 echo "testdir= $testdir"
 echo "rootdir= $rootdir"
@@ -76,27 +87,39 @@ echo "c_unit=  $c_unit"
 #Create the directory for the unix domain sockets
 good "mkdir -p $LSM_UDS_PATH"
 good "mkdir -p $plugins"
+good "mkdir -p $LD_LIBRARY_PATH"
+
+#Copy shared libraries
+good "cp $shared_libs/*.so.* $LD_LIBRARY_PATH"
 
 #Copy plugins to one directory.
 good "find $rootdir/ \( ! -regex '.*/\..*' \) -type f -name \*_lsmplugin -exec cp {} $plugins \;"
 
-#Export needed vars
-export PYTHONPATH=$rootdir/lsm
-export LD_LIBRARY_PATH=$rootdir/src
-export LSM_SIM_DATA="$base/lsm_sim_data"
+#Copy the actual binary, not the shell script pointing to binary otherwise
+#valgrind does not work.
+good "cp $bin_plugin/*_lsmplugin $plugins"
+good "ls -lh $plugins"
+
+
 
 #Start daemon
 good "$LSMD_DAEMON --plugindir $plugins --socketdir $LSM_UDS_PATH" -v
 
 LSMD_PID=$(ps aux | grep $LSM_UDS_PATH | grep -v grep |  awk '{print $2}')
 
+export G_SLICE=always-malloc
+export G_DEBUG=gc-friendly
+
 #Run C unit test
 export CK_DEFAULT_TIMEOUT=600
+export CK_export CK_FORK=no
 good "$c_unit"
 
-#Run cmdline against the simulator
-export LSMCLI_URI='sim://'
-good "$rootdir/test/cmdtest.py -c $rootdir/tools/lsmclipy/lsmcli"
+#Run cmdline against the simulator if we are not checking for leaks
+if [ -z "$LSM_VALGRIND" ]; then
+    export LSMCLI_URI='sim://'
+    good "$rootdir/test/cmdtest.py -c $rootdir/tools/lsmclipy/lsmcli"
+fi
 
 #Pretend we were never here
 cleanup

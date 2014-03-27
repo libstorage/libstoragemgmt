@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -69,6 +69,8 @@ char plugin_extension[] = "_lsmplugin";
 
 typedef enum { RUNNING, RESTART, EXIT } serve_type;
 serve_type serve_state = RUNNING;
+
+int plugin_mem_debug = 0;
 
 /**
  * Each item in plugin list contains this information
@@ -502,8 +504,10 @@ void exec_plugin( char *plugin, int client_fd )
 
     } else {
         /* Child */
+        int exec_rc = 0;
         char fd_str[12];
-        char *plugin_argv[3];
+        char *plugin_argv[7];
+        extern char **environ;
 
         /* Make copy of plug-in string as once we call empty_plugin_list it
          * will be deleted :-) */
@@ -512,12 +516,28 @@ void exec_plugin( char *plugin, int client_fd )
         empty_plugin_list(&head);
         sprintf(fd_str, "%d", client_fd);
 
-        plugin_argv[0] = basename(p_copy);
-        plugin_argv[1] = fd_str;
-        plugin_argv[2] = NULL;
-        extern char **environ;
+        if( plugin_mem_debug  ) {
+            char debug_out[64];
+            snprintf(debug_out, (sizeof(debug_out) - 1),
+                    "--log-file=/tmp/leaking_%d-%d", getppid(), getpid());
 
-        if( -1 == execve(p_copy, plugin_argv, environ)) {
+            plugin_argv[0] = "valgrind";
+            plugin_argv[1] = "--leak-check=full";
+            plugin_argv[2] = "--show-reachable=yes";
+            plugin_argv[3] = debug_out;
+            plugin_argv[4] = p_copy;
+            plugin_argv[5] = fd_str;
+            plugin_argv[6] = NULL;
+
+            exec_rc = execve("/usr/bin/valgrind", plugin_argv, environ);
+        } else {
+            plugin_argv[0] = basename(p_copy);
+            plugin_argv[1] = fd_str;
+            plugin_argv[2] = NULL;
+            exec_rc = execve(p_copy, plugin_argv, environ);
+        }
+
+        if( -1 == exec_rc ) {
             int err = errno;
             loud("Error on exec'ing Plugin %s: %s\n",
                     p_copy, strerror(err));
@@ -667,6 +687,11 @@ int main(int argc, char *argv[])
     /* Setup syslog if needed */
     if( !systemd ) {
         openlog("lsmd", LOG_ODELAY, LOG_USER);
+    }
+
+    /* Check to see if we want to check plugin for memory errors */
+    if( getenv("LSM_VALGRIND") ) {
+        plugin_mem_debug = 1;
     }
 
     install_sh();
