@@ -2405,8 +2405,56 @@ void free_allocated_volume(void *v)
     }
 }
 
-/* Foward decl.*/
-int unload( lsm_plugin_ptr c, lsm_flag flags);
+static void _unload(struct plugin_data *pd) {
+    int i;
+
+    if( pd ) {
+
+        if( pd->disks ) {
+            g_hash_table_destroy(pd->disks);
+            pd->disks = NULL;
+        }
+
+        if( pd->jobs ) {
+            g_hash_table_destroy(pd->jobs);
+            pd->jobs = NULL;
+        }
+
+        if(pd->fs) {
+            g_hash_table_destroy(pd->fs);
+            pd->fs = NULL;
+        }
+
+        if(pd->group_grant) {
+            g_hash_table_destroy(pd->group_grant);
+            pd->group_grant = NULL;
+        }
+
+        if( pd->access_groups ) {
+            g_hash_table_destroy(pd->access_groups);
+            pd->access_groups = NULL;
+        }
+
+        if( pd->volumes ) {
+            g_hash_table_destroy(pd->volumes);
+            pd->volumes = NULL;
+        }
+
+        if( pd->pools ) {
+            g_hash_table_destroy(pd->pools);
+            pd->pools = NULL;
+        }
+
+        for( i = 0; i < pd->num_systems; ++i ) {
+            lsm_system_record_free(pd->system[i]);
+            pd->system[i]= NULL;
+        }
+        pd->num_systems = 0;
+
+        free(pd);
+        pd = NULL;
+    }
+}
 
 int load( lsm_plugin_ptr c, xmlURIPtr uri, const char *password,
                         uint32_t timeout,  lsm_flag flags)
@@ -2492,9 +2540,13 @@ int load( lsm_plugin_ptr c, xmlURIPtr uri, const char *password,
 
                 key = strdup(lsm_disk_id_get(d));
 
-                if( !key ) {
+                if( !key || !d ) {
                     g_hash_table_destroy(pd->disks);
                     pd->disks = NULL;
+
+                    lsm_disk_record_free(d);
+                    d = NULL;
+
                     break;
                 }
 
@@ -2508,7 +2560,8 @@ int load( lsm_plugin_ptr c, xmlURIPtr uri, const char *password,
         if( !pd->system[0] || !pd->volumes || !pd->pools || !pd->access_groups
             || !pd->group_grant || !pd->fs || !pd->jobs || !pd->disks ) {
             rc = LSM_ERR_NO_MEMORY; /* We need to free everything */
-            unload(c, 0);
+            _unload(pd);
+            pd = NULL;
         } else {
             rc = lsm_register_plugin_v1( c, pd, &mgm_ops,
                                     &san_ops, &fs_ops, &nfs_ops);
@@ -2517,60 +2570,17 @@ int load( lsm_plugin_ptr c, xmlURIPtr uri, const char *password,
     return rc;
 }
 
+
+
 int unload( lsm_plugin_ptr c, lsm_flag flags)
 {
-    uint32_t i = 0;
-
     struct plugin_data *pd = (struct plugin_data*)lsm_private_data_get(c);
-
     if( pd ) {
-
-        if( pd->disks ) {
-            g_hash_table_destroy(pd->disks);
-            pd->disks = NULL;
-        }
-
-        if( pd->jobs ) {
-            g_hash_table_destroy(pd->jobs);
-            pd->jobs = NULL;
-        }
-
-        if(pd->fs) {
-            g_hash_table_destroy(pd->fs);
-            pd->fs = NULL;
-        }
-
-        if(pd->group_grant) {
-            g_hash_table_destroy(pd->group_grant);
-            pd->group_grant = NULL;
-        }
-
-        if( pd->access_groups ) {
-            g_hash_table_destroy(pd->access_groups);
-            pd->access_groups = NULL;
-        }
-
-        if( pd->volumes ) {
-            g_hash_table_destroy(pd->volumes);
-            pd->volumes = NULL;
-        }
-
-        if( pd->pools ) {
-            g_hash_table_destroy(pd->pools);
-            pd->pools = NULL;
-        }
-
-        for( i = 0; i < pd->num_systems; ++i ) {
-            lsm_system_record_free(pd->system[i]);
-            pd->system[i]= NULL;
-        }
-        pd->num_systems = 0;
-
-        free(pd);
-        pd = NULL;
+        _unload(pd);
+        return LSM_ERR_OK;
+    } else {
+        return LSM_ERR_INVALID_PLUGIN;
     }
-
-    return LSM_ERR_OK;
 }
 
 int main(int argc, char *argv[] )
