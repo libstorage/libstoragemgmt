@@ -20,9 +20,6 @@
 #ifndef LIBSTORAGEMGMT_PLUG_INTERFACE_H
 #define LIBSTORAGEMGMT_PLUG_INTERFACE_H
 
-#include <libxml/uri.h>
-
-#include "libstoragemgmt_types.h"
 #include "libstoragemgmt_common.h"
 
 #include "libstoragemgmt_accessgroups.h"
@@ -36,6 +33,9 @@
 #include "libstoragemgmt_snapshot.h"
 #include "libstoragemgmt_systems.h"
 #include "libstoragemgmt_volumes.h"
+
+#include "libstoragemgmt_optionaldata.h"
+#include "libstoragemgmt_disk.h"
 
 #ifdef  __cplusplus
 extern "C" {
@@ -79,7 +79,7 @@ typedef lsm_plugin *lsm_plugin_ptr;
  * @param   flags       Reserved
  * @return LSM_ERR_OK, else error reason
  */
-typedef int (*lsm_plugin_register)(  lsm_plugin_ptr c, xmlURIPtr uri,
+typedef int (*lsm_plugin_register)(  lsm_plugin_ptr c, const char *uri,
                     const char *password, uint32_t timeout, lsm_flag flags);
 
 /**

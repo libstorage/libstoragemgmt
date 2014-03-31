@@ -20,16 +20,14 @@
 
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 #include <string.h>
-#include <inttypes.h>
 #define _XOPEN_SOURCE
 #include <unistd.h>
 #include <crypt.h>
 #include <glib.h>
 #include <assert.h>
 #include <time.h>
-
-#include "libstoragemgmt/libstoragemgmt_optionaldata.h"
-#include "libstoragemgmt/libstoragemgmt_disk.h"
+#include <stdlib.h>
+#include <stdio.h>
 
 #ifdef  __cplusplus
 extern "C" {
@@ -2456,7 +2454,7 @@ static void _unload(struct plugin_data *pd) {
     }
 }
 
-int load( lsm_plugin_ptr c, xmlURIPtr uri, const char *password,
+int load( lsm_plugin_ptr c, const char *uri, const char *password,
                         uint32_t timeout,  lsm_flag flags)
 {
     struct plugin_data *pd = (struct plugin_data *)

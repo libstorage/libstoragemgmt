@@ -264,25 +264,36 @@ static int handle_shutdown(lsm_plugin_ptr p, Value &params, Value &response)
 static int handle_startup(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
-    xmlURIPtr uri = NULL;
-    std::string uri_string = params["uri"].asString();
+    std::string uri_string;
     std::string password;
 
-    if( p ) {
-        uri = xmlParseURI(uri_string.c_str());
-        if( uri ) {
+    if( p && p->reg ) {
+
+        Value uri_v = params["uri"];
+        Value passwd_v = params["password"];
+        Value tmo_v = params["timeout"];
+
+        if( Value::string_t == uri_v.valueType() &&
+            (Value::string_t == passwd_v.valueType() ||
+            Value::null_t == passwd_v.valueType()) &&
+            Value::numeric_t == tmo_v.valueType()) {
             lsm_flag flags = LSM_FLAG_GET_VALUE(params);
+
+            uri_string = uri_v.asString();
 
             if( Value::string_t == params["password"].valueType() ) {
                 password = params["password"].asString();
             }
 
             //Let the plug-in initialize itself.
-            rc = p->reg(p, uri, password.c_str(), params["timeout"].asUint32_t(),
+            rc = p->reg(p, uri_string.c_str(), password.c_str(),
+                            tmo_v.asUint32_t(),
                             flags);
-            xmlFreeURI(uri);
-            uri = NULL;
+        } else {
+            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
         }
+    } else {
+        rc = LSM_ERR_NO_SUPPORT;
     }
     return rc;
 }

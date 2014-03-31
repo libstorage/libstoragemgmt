@@ -20,7 +20,6 @@
 #ifndef LIBSTORAGEMGMTERROR_H
 #define LIBSTORAGEMGMTERROR_H
 
-#include <stdlib.h>
 #include "libstoragemgmt_common.h"
 
 #ifdef  __cplusplus

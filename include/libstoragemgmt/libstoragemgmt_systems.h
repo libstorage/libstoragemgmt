@@ -20,7 +20,6 @@
 #define LIBSTORAGEMGMT_SYSTEMS_H
 
 #include "libstoragemgmt_common.h"
-#include "libstoragemgmt_types.h"
 
 #ifdef  __cplusplus
 extern "C" {
