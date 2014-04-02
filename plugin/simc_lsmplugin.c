@@ -28,6 +28,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <openssl/md5.h>
 
 #ifdef  __cplusplus
 extern "C" {
@@ -43,13 +44,25 @@ static char sys_id[] = "sim-01";
 #define MAX_EXPORT 32
 
 /**
- * Creates a pseudo md5 (DO NOT FREE RETURN VALUE!)
+ * Creates a md5 string (DO NOT FREE RETURN VALUE as the string is static)
  * @param data      Data to generate md5
- * @return Pointer to character array.
+ * @return Pointer to string which contains the string digest
  */
 char* md5(const char *data)
 {
-    return crypt(data, "$1$LSM$");
+    int i = 0;
+    MD5_CTX c;
+    unsigned char digest[16];
+    static char digest_str[33];
+
+    MD5_Init(&c);
+    MD5_Update(&c, data, strlen(data));
+    MD5_Final(digest, &c);
+
+    for( i = 0; i < sizeof(digest); ++i ) {
+        sprintf(&digest_str[i*2], "%02x", (unsigned int)digest[i]);
+    }
+    return digest_str;
 }
 
 /**

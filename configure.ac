@@ -72,6 +72,9 @@ AC_CHECK_FUNCS([getpass memset socket strchr strdup strtol strtoul])
 dnl Availability of various common headers (non-fatal if missing).
 AC_CHECK_HEADERS([dlfcn.h])
 
+#Check for openssl development libs, we are using in simc_lsmplugin
+AC_CHECK_LIB([ssl], [SSL_library_init], [], AC_MSG_ERROR([Missing openssl libraries]))
+
 #Check for json parser yajl
 AC_CHECK_HEADERS([yajl/yajl_gen.h yajl/yajl_parse.h], [] , AC_MSG_ERROR([Missing yajl development headers]) )
 AC_CHECK_HEADERS([yajl/yajl_version.h])
