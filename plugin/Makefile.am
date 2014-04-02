@@ -1,5 +1,5 @@
 AM_CPPFLAGS= -I$(top_srcdir)/include -I@srcdir@/include \
-            $(LIBXML_CFLAGS) $(DEFS) $(LIBGLIB_CFLAGS)
+                $(DEFS) $(LIBGLIB_CFLAGS)
 
 bin_PROGRAMS = simc_lsmplugin
 
