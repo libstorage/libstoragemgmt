@@ -16,7 +16,12 @@
 # Author: tasleson
 
 from abc import ABCMeta as _ABCMeta
-import json
+
+try:
+    import simplejson as json
+except ImportError:
+    import json
+
 from datetime import datetime
 from json.decoder import WHITESPACE
 from lsm import LsmError, ErrorNumber

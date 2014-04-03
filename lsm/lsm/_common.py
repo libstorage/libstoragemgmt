@@ -531,6 +531,8 @@ def type_compare(method_name, exp_type, act_val):
         # A number of times a method will return None or some valid type,
         # only check on the type if the value is not None
         if exp_type != type(act_val) and act_val is not None:
+            if (exp_type == unicode and type(act_val) == str):
+                return
             if not inspect.isclass(exp_type) or \
                     not issubclass(type(act_val), exp_type):
                 raise TypeError('%s call expected: %s got: %s ' %
