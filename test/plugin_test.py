@@ -102,9 +102,9 @@ class TestProxy(object):
                    'volume_delete': (unicode,),
                    'volume_child_dependency_rm': (unicode),
                    'fs_delete': (unicode,),
-                   'fs_resize': (unicode,),
-                   'fs_create': (unicode,),
-                   'fs_clone': (unicode,),
+                   'fs_resize': (unicode, lsm.FileSystem),
+                   'fs_create': (unicode, lsm.FileSystem),
+                   'fs_clone': (unicode, lsm.FileSystem),
                    'file_clone': (unicode,),
                    'fs_snapshot_create': (unicode, lsm.Snapshot),
                    'fs_snapshot_delete': (unicode,),
@@ -227,6 +227,11 @@ class TestPlugin(unittest.TestCase):
 
     def setUp(self):
         self.c = TestProxy(lsm.Client(TestPlugin.URI, TestPlugin.PASSWORD))
+
+        self.systems = self.c.systems()
+        self.pools = self.c.pools()
+
+        self.pool_by_sys_id = dict((p.system_id, p) for p in self.pools)
         # TODO Store what exists, so that we don't remove it
 
     def tearDown(self):
@@ -234,6 +239,11 @@ class TestPlugin(unittest.TestCase):
         # What should we do if an array supports a create operation, but not
         # the corresponding remove?
         self.c.close()
+
+    def test_plugin_info(self):
+        (desc, version) = self.c.plugin_info()
+        self.assertTrue(desc is not None and len(desc) > 0)
+        self.assertTrue(version is not None and len(version) > 0)
 
     def test_timeout(self):
         tmo = 40000
@@ -247,33 +257,233 @@ class TestPlugin(unittest.TestCase):
     def test_pools_list(self):
         pools_list = self.c.pools()
 
+    def test_volume_list(self):
+        volumes = self.c.volumes()
+
     def test_disks_list(self):
         disks = self.c.disks()
 
     def test_pool_create(self):
         pass
 
+    def _volume_create(self, system_id):
+        if system_id in self.pool_by_sys_id:
+            p = self.pool_by_sys_id[system_id]
+
+            vol_size = min(p.free_space / 10, mb_in_bytes(512))
+
+            vol = self.c.volume_create(p, rs('volume'), vol_size,
+                                               lsm.Volume.PROVISION_DEFAULT)[1]
+
+            self.assertTrue(self._volume_exists(vol.id))
+            return vol, p
+
+    def _fs_create(self, system_id):
+        if system_id in self.pool_by_sys_id:
+            p = self.pool_by_sys_id[system_id]
+
+            fs_size = min(p.free_space / 10, mb_in_bytes(512))
+            fs = self.c.fs_create(p, rs('fs'), fs_size)[1]
+
+            self.assertTrue(self._fs_exists(fs.id))
+            return fs, p
+
+    def _volume_delete(self, volume):
+        self.c.volume_delete(volume)
+        self.assertFalse(self._volume_exists(volume.id))
+
+    def _fs_delete(self, fs):
+        self.c.fs_delete(fs)
+        self.assertFalse(self._fs_exists(fs.id))
+
+    def _fs_snapshot_delete(self, fs, ss):
+        self.c.fs_snapshot_delete(fs, ss)
+        self.assertFalse(self._fs_snapshot_exists(fs, ss.id))
+
+    def _volume_exists(self, volume_id):
+        volumes = self.c.volumes()
+
+        for v in volumes:
+            if v.id == volume_id:
+                return True
+
+        return False
+
+    def _fs_exists(self, fs_id):
+        fs = self.c.fs()
+
+        for f in fs:
+            if f.id == fs_id:
+                return True
+
+        return False
+
+    def _fs_snapshot_exists(self, fs, ss_id):
+        snapshots = self.c.fs_snapshots(fs)
+
+        for s in snapshots:
+            if s.id == ss_id:
+                return True
+
+        return False
+
     def test_volume_create_delete(self):
-        systems = self.c.systems()
-        pools = self.c.pools()
-
-        p_dict = dict((p.system_id, p) for p in pools)
-
-        for s in systems:
+        for s in self.systems:
             vol = None
             cap = self.c.capabilities(s)
             if cap.get(lsm.Capabilities.VOLUME_CREATE):
+                vol = self._volume_create(s.id)[0]
+                self.assertTrue(vol is not None)
 
-                if s.id in p_dict:
-                    pool = p_dict[s.id]
+                if vol is not None and cap.get(lsm.Capabilities.VOLUME_DELETE):
+                    self._volume_delete(vol)
 
-                    vol_size = min(pool.free_space / 10, mb_in_bytes(512))
+    def test_volume_resize(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
 
-                    vol = self.c.volume_create(pool, rs('volume'), vol_size,
-                                               lsm.Volume.PROVISION_DEFAULT)[1]
+            if cap.get(lsm.Capabilities.VOLUME_CREATE) and \
+                    cap.get(lsm.Capabilities.VOLUME_DELETE) and \
+                    cap.get(lsm.Capabilities.VOLUME_RESIZE):
+                vol = self._volume_create(s.id)[0]
+                vol_resize = self.c.volume_resize(vol,
+                                                  vol.size_bytes * 1.10)[1]
+                self.assertTrue(vol.size_bytes < vol_resize.size_bytes)
+                self._volume_delete(vol_resize)
 
-            if cap.get(lsm.Capabilities.VOLUME_DELETE):
-                self.c.volume_delete(vol)
+    def _replicate_test(self, capability, replication_type):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+
+            if cap.get(lsm.Capabilities.VOLUME_CREATE) and \
+                    cap.get(lsm.Capabilities.VOLUME_DELETE):
+
+                vol, pool = self._volume_create(s.id)
+
+                if cap.get(capability):
+                    volume_clone = self.c.volume_replicate(
+                        pool, replication_type, vol,
+                        rs('volume_clone'))[1]
+
+                    self.assertTrue(volume_clone is not None)
+                    self.assertTrue(self._volume_exists(volume_clone.id))
+                    self._volume_delete(volume_clone)
+
+                self._volume_delete(vol)
+
+    def test_volume_replication(self):
+        self._replicate_test(lsm.Capabilities.VOLUME_REPLICATE_CLONE,
+                             lsm.Volume.REPLICATE_CLONE)
+
+        self._replicate_test(lsm.Capabilities.VOLUME_REPLICATE_COPY,
+                             lsm.Volume.REPLICATE_COPY)
+
+        self._replicate_test(lsm.Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC,
+                             lsm.Volume.REPLICATE_MIRROR_ASYNC)
+
+        self._replicate_test(lsm.Capabilities.VOLUME_REPLICATE_MIRROR_SYNC,
+                             lsm.Volume.REPLICATE_MIRROR_SYNC)
+
+    def test_volume_replicate_range_block_size(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+
+            if cap.get(lsm.Capabilities.VOLUME_COPY_RANGE_BLOCK_SIZE):
+                size = self.c.volume_replicate_range_block_size(s)
+                self.assertTrue(size > 0)
+            else:
+                self.assertRaises(lsm.LsmError,
+                                  self.c.volume_replicate_range_block_size, s)
+
+    def test_replication_range(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+
+            if cap.get(lsm.Capabilities.VOLUME_CREATE) and \
+                    cap.get(lsm.Capabilities.VOLUME_DELETE) and \
+                    cap.get(lsm.Capabilities.VOLUME_COPY_RANGE):
+
+                vol, pool = self._volume_create(s.id)
+
+                br = lsm.BlockRange(0, 100, 10)
+
+                if cap.get(lsm.Capabilities.VOLUME_COPY_RANGE_CLONE):
+                    self.c.volume_replicate_range(lsm.Volume.REPLICATE_CLONE,
+                                                    vol, vol, [br])
+                else:
+                    self.assertRaises(
+                        lsm.LsmError,
+                        self.c.volume_replicate_range,
+                        lsm.Volume.REPLICATE_CLONE, vol, vol, [br])
+
+                br = lsm.BlockRange(200, 400, 50)
+
+                if cap.get(lsm.Capabilities.VOLUME_COPY_RANGE_COPY):
+                    self.c.volume_replicate_range(lsm.Volume.REPLICATE_COPY,
+                                                    vol, vol, [br])
+                else:
+                    self.assertRaises(
+                        lsm.LsmError,
+                        self.c.volume_replicate_range,
+                        lsm.Volume.REPLICATE_COPY, vol, vol, [br])
+
+                self._volume_delete(vol)
+
+    def test_fs_creation_deletion(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+
+            if cap.get(lsm.Capabilities.FS_CREATE):
+                fs = self._fs_create(s.id)[0]
+
+                if cap.get(lsm.Capabilities.FS_DELETE):
+                    self._fs_delete(fs)
+
+    def test_fs_resize(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+
+            if cap.get(lsm.Capabilities.FS_CREATE):
+                fs = self._fs_create(s.id)[0]
+
+                if cap.get(lsm.Capabilities.FS_RESIZE):
+                    fs_size = fs.total_space * 1.10
+                    fs_resized = self.c.fs_resize(fs, fs_size)[1]
+                    self.assertTrue(fs_resized.total_space)
+
+                if cap.get(lsm.Capabilities.FS_DELETE):
+                    self._fs_delete(fs)
+
+    def test_fs_clone(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+
+            if cap.get(lsm.Capabilities.FS_CREATE) and \
+                    cap.get(lsm.Capabilities.FS_CLONE):
+                fs = self._fs_create(s.id)[0]
+                fs_clone = self.c.fs_clone(fs, rs('fs_clone'))[1]
+
+                if cap.get(lsm.Capabilities.FS_DELETE):
+                    self._fs_delete(fs_clone)
+                    self._fs_delete(fs)
+
+    def test_fs_snapshot(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+
+            if cap.get(lsm.Capabilities.FS_CREATE) and \
+                    cap.get(lsm.Capabilities.FS_SNAPSHOT_CREATE):
+
+                fs = self._fs_create(s.id)[0]
+
+                ss = self.c.fs_snapshot_create(fs, rs('fs_snapshot'), None)[1]
+                self.assertTrue(self._fs_snapshot_exists(fs, ss.id))
+
+                # Delete snapshot
+                if cap.get(lsm.Capabilities.FS_SNAPSHOT_DELETE):
+                    self._fs_snapshot_delete(fs, ss)
+
+
 
 
 def dump_results():
@@ -282,9 +492,9 @@ def dump_results():
     get our results out.
 
     output details (yaml) results of what we called, how it finished and how
-    long it tool.
+    long it took.
     """
-    sys.stderr.write(yaml.dump(dict(methods_called=results, stats=stats)))
+    sys.stdout.write(yaml.dump(dict(methods_called=results, stats=stats)))
 
 
 def add_our_params():
