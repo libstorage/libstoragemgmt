@@ -1844,14 +1844,6 @@ class Smis(IStorageAreaNetwork):
         raise LsmError(ErrorNumber.NO_SUPPORT,
                        "volume-replicate not supported")
 
-    def volume_replicate_range_block_size(self, system, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    def volume_replicate_range(self, rep_type, volume_src, volume_dest,
-                               ranges,
-                               flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
     @handle_cim_errors
     def volume_online(self, volume, flags=0):
         return None
@@ -2117,23 +2109,6 @@ class Smis(IStorageAreaNetwork):
         cim_spcs = self._get_access_groups(property_list=cim_spc_pros)
         return [self._new_access_group(cim_spc) for cim_spc in cim_spcs]
 
-    @handle_cim_errors
-    def access_group_create(self, name, initiator_id, id_type, system_id,
-                            flags=0):
-        # page 880 1.5 spec. CreateMaskingView
-        #
-        # No access to a provider that implements this at this time,
-        # so unable to develop and test.
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    @handle_cim_errors
-    def access_group_del(self, group, flags=0):
-        # page 880 1.5 spec. DeleteMaskingView
-        #
-        # No access to a provider that implements this at this time,
-        # so unable to develop and test.
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
     def _initiator_lookup(self, initiator_id):
         """
         Looks up an initiator by initiator id
@@ -2182,27 +2157,6 @@ class Smis(IStorageAreaNetwork):
                         *(self._c.InvokeMethod('HidePaths', ccs.path,
                                                **hide_params)))[0]
 
-    @handle_cim_errors
-    def iscsi_chap_auth(self, initiator, in_user, in_password, out_user,
-                        out_password, flags):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    @handle_cim_errors
-    def initiator_grant(self, initiator_id, initiator_type, volume, access,
-                        flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    @handle_cim_errors
-    def initiator_revoke(self, initiator, volume, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    @handle_cim_errors
-    def volumes_accessible_by_initiator(self, initiator, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    @handle_cim_errors
-    def initiators_granted_to_volume(self, volume, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
     @handle_cim_errors
     def job_free(self, job_id, flags=0):
@@ -2217,12 +2171,6 @@ class Smis(IStorageAreaNetwork):
                 self._c.DeleteInstance(cim_job.path)
             except CIMError:
                 pass
-
-    def volume_child_dependency(self, volume, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    def volume_child_dependency_rm(self, volume, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
     @handle_cim_errors
     def disks(self, flags=0):

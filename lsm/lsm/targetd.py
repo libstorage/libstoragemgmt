@@ -235,15 +235,6 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         return None, self._get_volume(pool_id, name)
 
     @handle_errors
-    def volume_replicate_range_block_size(self, system, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    @handle_errors
-    def volume_replicate_range(self, rep_type, volume_src, volume_dest,
-                               ranges, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    @handle_errors
     def volume_online(self, volume, flags=0):
         vol_list = self._jsonrequest("vol_list", dict(pool=volume.pool_id))
 
@@ -252,48 +243,6 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
     @handle_errors
     def volume_offline(self, volume, flags=0):
         return not self.volume_online(volume)
-
-    @handle_errors
-    def volume_resize(self, volume, new_size_bytes, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    @handle_errors
-    def access_group_grant(self, group, volume, access, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    @handle_errors
-    def access_group_revoke(self, group, volume, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    @handle_errors
-    def access_group_list(self, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    @handle_errors
-    def access_group_create(self, name, initiator_id, id_type, system_id,
-                            flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    @handle_errors
-    def access_group_del(self, group, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    @handle_errors
-    def access_group_add_initiator(self, group, initiator_id, id_type,
-                                   flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    @handle_errors
-    def access_group_del_initiator(self, group, initiator, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    @handle_errors
-    def volumes_accessible_by_access_group(self, group, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    @handle_errors
-    def access_groups_granted_to_volume(self, volume, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
     @handle_errors
     def iscsi_chap_auth(self, initiator, in_user, in_password, out_user,
@@ -362,14 +311,6 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         return inits
 
     @handle_errors
-    def volume_child_dependency(self, volume, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    @handle_errors
-    def volume_child_dependency_rm(self, volume, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    @handle_errors
     def fs(self, flags=0):
         rc = []
         for fs in self._jsonrequest("fs_list"):
@@ -382,10 +323,6 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
     @handle_errors
     def fs_delete(self, fs, flags=0):
         self._jsonrequest("fs_destroy", dict(uuid=fs.id))
-
-    @handle_errors
-    def fs_resize(self, fs, new_size_bytes, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
     @handle_errors
     def fs_create(self, pool, name, size_bytes, flags=0):
@@ -408,11 +345,6 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         return None, self._get_fs(src_fs.pool_id, dest_fs_name)
 
     @handle_errors
-    def file_clone(self, fs, src_file_name, dest_file_name, snapshot=None,
-                   flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    @handle_errors
     def fs_snapshots(self, fs, flags=0):
         rc = []
         for ss in self._jsonrequest("ss_list", dict(fs_uuid=fs.id)):
@@ -432,19 +364,6 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
     def fs_snapshot_delete(self, fs, snapshot, flags=0):
         self._jsonrequest("fs_snapshot_delete", dict(fs_uuid=fs.id,
                                                      ss_uuid=snapshot.id))
-
-    @handle_errors
-    def fs_snapshot_revert(self, fs, snapshot, files, restore_files,
-                           all_files=False, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    @handle_errors
-    def fs_child_dependency(self, fs, files, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    @handle_errors
-    def fs_child_dependency_rm(self, fs, files, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
     @handle_errors
     def export_auth(self, flags=0):

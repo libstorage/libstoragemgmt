@@ -590,37 +590,6 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
     #    return
 
-    def volume_replicate_range_block_size(self, system, flags=0):
-        """
-        Returns the number of bytes per block for volume_replicate_range
-        call.  Callers of volume_replicate_range need to use this when
-        calculating start and block lengths.
-
-        Note: bytes per block may not match volume blocksize.
-
-        Returns bytes per block.
-        """
-        raise LsmError(ErrorNumber.NO_SUPPORT, "This operation is not "
-                                               "supported")
-
-    def volume_replicate_range(self, rep_type, volume_src, volume_dest, ranges,
-                               flags=0):
-        """
-        Replicates a portion of a volume to itself or another volume.  The src,
-        dest and number of blocks values change with vendor, call
-        volume_replicate_range_block_size to get block unit size.
-
-        Returns Job id or None if completed, else raises LsmError on errors.
-        """
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Replicate range operation is"
-                                               " not supported")
-
-    def volume_online(self, volume, flags=0):
-        return
-
-    def volume_offline(self, volume, flags=0):
-        return
-
     def iscsi_chap_auth(self, initiator, in_user, in_password, out_user,
                         out_password, flags=0):
         """
