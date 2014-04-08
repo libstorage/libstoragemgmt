@@ -100,5 +100,3 @@ QPARAM_DLL_LOCAL void free_qparam_set (struct qparam_set *ps);
 #endif
 
 #endif /* _QPARAMS_H_ */
-
-
