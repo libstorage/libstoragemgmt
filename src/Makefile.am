@@ -8,7 +8,8 @@ libstoragemgmt_la_LIBADD=$(LIBXML_LIBS) $(YAJL_LIBS) $(LIBGLIB_LIBS)
 libstoragemgmt_la_LDFLAGS=
 libstoragemgmt_la_SOURCES=lsm_mgmt.cpp lsm_datatypes.hpp lsm_datatypes.cpp \
                           lsm_convert.hpp lsm_convert.cpp lsm_ipc.hpp lsm_ipc.cpp \
-                          lsm_plugin_ipc.hpp lsm_plugin_ipc.cpp
+                          lsm_plugin_ipc.hpp lsm_plugin_ipc.cpp util/qparams.c \
+			  util/qparams.h
 
 DEPS = $(top_builddir)/src/libstoragemgmt.la
 

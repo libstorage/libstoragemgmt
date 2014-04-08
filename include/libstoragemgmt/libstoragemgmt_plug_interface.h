@@ -1251,6 +1251,22 @@ lsm_storage_capabilities LSM_DLL_EXPORT *lsm_capability_record_alloc(char const 
  */
 lsm_optional_data LSM_DLL_EXPORT *lsm_optional_data_record_alloc(void);
 
+
+/**
+ * Convenience function for plug-in writer.
+ * Note: Make sure to free returned items to prevent memory leaks.
+ * @param[in]   uri
+ * @param[out]  scheme
+ * @param[out]  user
+ * @param[out]  server
+ * @param[out]  port
+ * @param[out]  query_params
+ * @return LSM_ERR_OK on successful parse, else error reason.
+ */
+int LSM_DLL_EXPORT lsm_uri_parse(const char *uri, char **scheme, char **user,
+                                char **server, int *port, char **path,
+                                lsm_optional_data **query_params);
+
 #ifdef  __cplusplus
 }
 #endif

@@ -2610,6 +2610,42 @@ START_TEST(test_pool_create)
 }
 END_TEST
 
+START_TEST(test_uri_parse)
+{
+    const char uri_g[] = "sim://user@host:123/path/?namespace=root/uber";
+    char *scheme = NULL;
+    char *user = NULL;
+    char *server = NULL;
+    char *path = NULL;
+    int port = 0;
+    lsm_optional_data *qp = NULL;
+    int rc = lsm_uri_parse(uri_g, &scheme, &user, &server, &port, &path, &qp);
+
+    fail_unless(LSM_ERR_OK == rc, "lsm_uri_parse %d", rc);
+
+    if( LSM_ERR_OK == rc ) {
+        fail_unless(strcmp(scheme, "sim") == 0, "%s", scheme);
+        fail_unless(strcmp(user, "user") == 0, "%s", user);
+        fail_unless(strcmp(server, "host") == 0, "%s", server);
+        fail_unless(strcmp(path, "/path/") == 0, "%s", path);
+        fail_unless(port == 123, "%d", port);
+
+        fail_unless(qp != NULL);
+        if( qp ) {
+            fail_unless(strcmp("root/uber",
+                        lsm_optional_data_string_get(qp, "namespace")) == 0,
+                        "%s", lsm_optional_data_string_get(qp, "namespace"));
+        }
+
+        free(scheme);
+        free(user);
+        free(server);
+        free(path);
+        lsm_optional_data_record_free(qp);
+    }
+}
+END_TEST
+
 Suite * lsm_suite(void)
 {
     Suite *s = suite_create("libStorageMgmt");
@@ -2620,6 +2656,7 @@ Suite * lsm_suite(void)
 
     tcase_add_test(basic, test_pool_delete);
     tcase_add_test(basic, test_pool_create);
+    tcase_add_test(basic, test_uri_parse);
 
     tcase_add_test(basic, test_error_reporting);
     tcase_add_test(basic, test_capability);

@@ -28,13 +28,14 @@
 #include "libstoragemgmt/libstoragemgmt_fs.h"
 #include "libstoragemgmt/libstoragemgmt_snapshot.h"
 #include "libstoragemgmt/libstoragemgmt_nfsexport.h"
-#include <libstoragemgmt/libstoragemgmt_plug_interface.h>
-#include <libstoragemgmt/libstoragemgmt_volumes.h>
-#include <libstoragemgmt/libstoragemgmt_pool.h>
-#include <libstoragemgmt/libstoragemgmt_initiators.h>
+#include "libstoragemgmt/libstoragemgmt_plug_interface.h"
+#include "libstoragemgmt/libstoragemgmt_volumes.h"
+#include "libstoragemgmt/libstoragemgmt_pool.h"
+#include "libstoragemgmt/libstoragemgmt_initiators.h"
 #include <errno.h>
 #include <string.h>
 #include <libxml/uri.h>
+#include "util/qparams.h"
 #include <syslog.h>
 
 //Forward decl.
@@ -2504,4 +2505,84 @@ int lsm_plugin_error_log( lsm_plugin_ptr plug, lsm_error_ptr error)
     plug->error = error;
 
     return LSM_ERR_OK;
+}
+
+
+#define STR_D(c, s) \
+do { \
+    if(s) { \
+        (c) = strdup(s); \
+        if( !c ) {\
+            rc = LSM_ERR_NO_MEMORY; \
+            goto bail; \
+        } \
+    } \
+} while(0)\
+
+int LSM_DLL_EXPORT lsm_uri_parse(const char *uri, char **scheme, char **user,
+                                char **server, int *port, char **path,
+                                lsm_optional_data **query_params)
+{
+    int rc = LSM_ERR_INVALID_URI;
+    xmlURIPtr u = NULL;
+
+    if( uri && strlen(uri) > 0 ) {
+        *scheme = NULL;
+        *user = NULL;
+        *server = NULL;
+        *port = -1;
+        *path = NULL;
+        *query_params = NULL;
+
+        u = xmlParseURI(uri);
+        if( u ) {
+            STR_D(*scheme, u->scheme);
+            STR_D(*user, u->user);
+            STR_D(*server, u->server);
+            STR_D(*path, u->path);
+            *port = u->port;
+
+            *query_params = lsm_optional_data_record_alloc();
+            if( *query_params ) {
+                int i;
+                struct qparam_set *qp = NULL;
+                qp = qparam_query_parse(u->query_raw);
+
+                for( i = 0; i < qp->n; ++i ) {
+                    rc = lsm_optional_data_string_set(*query_params,
+                                                        qp->p[i].name,
+                                                        qp->p[i].value);
+                    if( LSM_ERR_OK != rc ) {
+                        goto bail;
+                    }
+                }
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+                goto bail;
+            }
+
+            rc = LSM_ERR_OK;
+        }
+
+    bail:
+        if( rc != LSM_ERR_OK ){
+            free(*scheme);
+            *scheme = NULL;
+            free(*user);
+            *user = NULL;
+            free(*server);
+            *server = NULL;
+            *port = -1;
+            free(*path);
+            *path = NULL;
+            lsm_optional_data_record_free(*query_params);
+            *query_params = NULL;
+        }
+
+        if( u ) {
+            xmlFreeURI(u);
+            u = NULL;
+        }
+    }
+    return rc;
 }
