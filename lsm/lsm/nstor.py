@@ -77,7 +77,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             license_info = self._request("get_license_info", "appliance", [""])
             fqdn = self._request("get_fqdn", "appliance", [""])
             self._system = System(license_info['machine_sig'], fqdn,
-                                  System.STATUS_OK)
+                                  System.STATUS_OK, '')
         return self._system
 
     def startup(self, uri, password, timeout, flags=0):

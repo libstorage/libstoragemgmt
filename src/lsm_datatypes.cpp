@@ -743,7 +743,7 @@ lsm_disk *lsm_disk_record_alloc(const char *id, const char *name,
 CREATE_ALLOC_ARRAY_FUNC(lsm_system_record_array_alloc, lsm_system *)
 
 lsm_system *lsm_system_record_alloc( const char *id, const char *name,
-                                    uint32_t status)
+                                    uint32_t status, const char *status_info)
 {
     lsm_system *rc = (lsm_system *)malloc(sizeof(lsm_system));
     if (rc) {
@@ -751,7 +751,8 @@ lsm_system *lsm_system_record_alloc( const char *id, const char *name,
         rc->id = strdup(id);
         rc->name = strdup(name);
         rc->status = status;
-        if( !rc->name || !rc->id ) {
+        rc->status_info = strdup(status_info);
+        if( !rc->name || !rc->id || !rc->status_info ) {
             lsm_system_record_free(rc);
             rc = NULL;
         }
@@ -774,6 +775,11 @@ int lsm_system_record_free(lsm_system *s)
             s->name = NULL;
         }
 
+        if (s->status_info) {
+            free(s->status_info);
+            s->status_info = NULL;
+        }
+
         free(s);
         return LSM_ERR_OK;
     }
@@ -787,7 +793,7 @@ lsm_system *lsm_system_record_copy(lsm_system *s)
 {
     lsm_system *rc = NULL;
     if( LSM_IS_SYSTEM(s) ) {
-        rc = lsm_system_record_alloc(s->id, s->name, s->status);
+        rc = lsm_system_record_alloc(s->id, s->name, s->status, s->status_info);
     }
     return rc;
 }

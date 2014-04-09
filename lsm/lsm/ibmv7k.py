@@ -382,7 +382,7 @@ class IbmV7k(IStorageAreaNetwork):
                              self.password, self.tmo)
 
         si = self._get_system_info()
-        self.sys_info = System(si['id'], si['name'], System.STATUS_OK)
+        self.sys_info = System(si['id'], si['name'], System.STATUS_OK, '')
 
     def set_time_out(self, ms, flags=0):
         self.tmo = ms

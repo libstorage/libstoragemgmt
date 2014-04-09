@@ -62,7 +62,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         self.url = None
         self.headers = None
         self.system = System("targetd", "targetd storage appliance",
-                             System.STATUS_UNKNOWN)
+                             System.STATUS_UNKNOWN, '')
 
     @handle_errors
     def startup(self, uri, password, timeout, flags=0):

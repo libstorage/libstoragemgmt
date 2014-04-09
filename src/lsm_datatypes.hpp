@@ -187,6 +187,7 @@ struct _lsm_system {
     char *id;                   /**< Id */
     char *name;                 /**< Name */
     uint32_t status;            /**< Enumerated status value */
+    char *status_info;          /**< System status text */
 };
 
 #define LSM_CONNECT_MAGIC       0xAA7A000A

@@ -194,7 +194,8 @@ lsm_system *value_to_system(Value &system)
         std::map<std::string, Value> i = system.asObject();
         rc = lsm_system_record_alloc(  i["id"].asString().c_str(),
                                     i["name"].asString().c_str(),
-                                    i["status"].asUint32_t());
+                                    i["status"].asUint32_t(),
+                                    i["status_info"].asString().c_str());
     }
     return rc;
 }
@@ -207,6 +208,7 @@ Value system_to_value(lsm_system *system)
         s["id"] = Value(system->id);
         s["name"] = Value(system->name);
         s["status"] = Value(system->status);
+        s["status_info"] = Value(system->status_info);
         return Value(s);
     }
     return Value();

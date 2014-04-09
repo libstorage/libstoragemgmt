@@ -161,12 +161,16 @@ typedef enum {
  * Different states a system status can be in.
  * Bit field, can be in multiple states at the same time.
  */
-#define LSM_SYSTEM_STATUS_UNKNOWN               0x00000000  /**< System status unknown */
-#define LSM_SYSTEM_STATUS_OK                    0x00000001  /**< System status OK */
-#define LSM_SYSTEM_STATUS_DEGRADED              0x00000002  /**< System is degraded */
-#define LSM_SYSTEM_STATUS_ERROR                 0x00000004  /**< System has error(s) */
-#define LSM_SYSTEM_STATUS_PREDICTIVE_FAILURE    0x00000008  /**< System has predictive failure(s) */
-#define LSM_SYSTEM_STATUS_VENDOR_SPECIFIC       0x00000010  /**< Vendor specific status code */
+#define LSM_SYSTEM_STATUS_UNKNOWN               0x00000001  /**< Unknown */
+#define LSM_SYSTEM_STATUS_OK                    0x00000002  /**< OK */
+#define LSM_SYSTEM_STATUS_ERROR                 0x00000004  /**< Error(s) exist */
+#define LSM_SYSTEM_STATUS_DEGRADED              0x00000008  /**< Degraded */
+#define LSM_SYSTEM_STATUS_PREDICTIVE_FAILURE    0x00000010  /**< System has predictive failure(s) */
+#define LSM_SYSTEM_STATUS_STRESSED              0x00000020  /**< Temp or excessive IO */
+#define LSM_SYSTEM_STATUS_STARTING              0x00000040  /**< Booting */
+#define LSM_SYSTEM_STATUS_STOPPING              0x00000080  /**< Shutting down */
+#define LSM_SYSTEM_STATUS_STOPPED               0x00000100  /**< Stopped by admin */
+#define LSM_SYSTEM_STATUS_OTHER                 0x00000200  /**< Vendor specific */
 
 /**< \enum lsm_initiator_type Different types of initiator IDs */
 typedef enum {

@@ -1492,7 +1492,7 @@ class Smis(IStorageAreaNetwork):
                 elif os == Smis.SystemOperationalStatus.PREDICTIVE_FAILURE:
                     status |= System.STATUS_PREDICTIVE_FAILURE
 
-        return System(cim_sys['Name'], cim_sys['ElementName'], status)
+        return System(cim_sys['Name'], cim_sys['ElementName'], status, '')
 
     def _cim_sys_pros(self):
         """

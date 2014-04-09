@@ -28,6 +28,7 @@ from lsm import (Client, Pool, VERSION, LsmError, Capabilities, Disk,
 
 from _data import PlugData
 from _common import getch, size_human_2_size_bytes, Proxy
+from lsmcli_data_display import DisplayData
 
 ##@package lsm.cmdline
 
@@ -164,8 +165,9 @@ cmds = (
                  type=str.upper),
         ],
         optional=[
-            dict(name=('-o', '--optional'),
-                 help='Retrieve additional optional info if available',
+            dict(name=('-a', '--all'),
+                 help='Retrieve and display in scrit friendly way with ' +
+                      'all information including optional data if available',
                  default=False,
                  action='store_true'),
             dict(fs_id_opt),
@@ -808,12 +810,31 @@ class CmdLine:
     # Tries to make the output better when it varies considerably from
     # plug-in to plug-in.
     # @param    objects    Data, first row is header all other data.
-    def display_data(self, objects):
+    def display_data(self, objects, extra_properties=None):
         if len(objects) == 0:
             return
 
-        if hasattr(self.args, 'optional') and self.args.optional:
+        if hasattr(self.args, 'all') and self.args.all:
             self.args.script = True
+
+        flag_with_header = True
+        if self.args.sep:
+            flag_with_header = False
+        if self.args.header:
+            flag_with_header = True
+
+        display_way = DisplayData.DISPLAY_WAY_DEFAULT
+        if self.args.script:
+            display_way = DisplayData.DISPLAY_WAY_SCRIPT
+
+        flag_new_way_works = DisplayData.display_data(
+            objects, display_way=display_way, flag_human=self.args.human,
+            flag_enum=self.args.enum, extra_properties=extra_properties,
+            spliter=self.args.sep, flag_with_header=flag_with_header,
+            flag_dsp_all_data=self.args.all)
+
+        if flag_new_way_works:
+            return
 
         # Assuming all objects are from the same class.
         key_2_str = objects[0]._str_of_key()
@@ -1057,7 +1078,7 @@ class CmdLine:
         if args.type == 'VOLUMES':
             self.display_data(self.c.volumes())
         elif args.type == 'POOLS':
-            if args.optional is True:
+            if args.all:
                 self.display_data(
                     self.c.pools(Pool.RETRIEVE_FULL_INFO))
             else:
@@ -1081,7 +1102,7 @@ class CmdLine:
         elif args.type == 'SYSTEMS':
             self.display_data(self.c.systems())
         elif args.type == 'DISKS':
-            if args.optional:
+            if args.all:
                 self.display_data(
                     self.c.disks(Disk.RETRIEVE_FULL_INFO))
             else:

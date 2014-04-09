@@ -162,7 +162,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         i = self.f.system_info()
         #TODO Get real filer status
         self.sys_info = System(i['system-id'], i['system-name'],
-                               System.STATUS_OK)
+                               System.STATUS_OK, '')
         return self.f.validate()
 
     def set_time_out(self, ms, flags=0):

@@ -672,10 +672,86 @@ class Volume(IData):
 @default_property('id', doc="Unique identifier")
 @default_property('name', doc="User defined system name")
 @default_property('status', doc="Enumerated status of system")
+@default_property('status_info', doc="Detail status information of system")
 class System(IData):
-    (STATUS_UNKNOWN, STATUS_OK, STATUS_DEGRADED, STATUS_ERROR,
-     STATUS_PREDICTIVE_FAILURE, STATUS_VENDOR_SPECIFIC) = \
-        (0x0, 0x1, 0x2, 0x4, 0x8, 0x10)
+    """
+### 11.3 System -- lsm.System
+
+#### 11.3.1 System Properties
+ * id
+   String. Free form string used to identify certain system at plugin level.
+   Plugin can use this property for performance improvement
+   when concerting between LSM object to internal object. When displaying this
+   property to user, use the ID hashed string(like md5) is suggested.
+ * name
+   String. Human friendly name for this system.
+ * status
+   Integer. Byte Map(Check Appendix.D). The health status of system.
+   Could be any combination of these values:
+    * **lsm.System.STATUS_UNKNOWN**
+      Plugin failed to determine the status.
+    * **lsm.System.STATUS_OK**
+      Everything is OK.
+    * **lsm.System.STATUS_ERROR**
+      System is having errors which causing 'Data Unavailable' or 'Data Lose'.
+      Example:
+        * A RAID5 pool lose two disks.
+        * All controllers down.
+        * Internal hardware(like, memory) down and no redundant part.
+      The 'status_info' property will explain the detail.
+    * **lsm.System.STATUS_DEGRADED**
+      System is still functional but lose protection of redundant parts,
+      Example:
+        * One or more controller offline, but existing controller is taking
+          over all works.
+        * A RAID 5 pool lose 1 disk, no spare disk or spare disk is rebuilding.
+        * One or more battery changed from online to offline.
+      The 'status_info' property will explain the detail.
+    * **lsm.System.STATUS_PREDICTIVE_FAILURE**
+      System is still functional and protected by redundant parts, but
+      certain parts will soon be unfunctional.
+        * One or more battery voltage low.
+        * SMART information indicate some disk is dieing.
+      The 'status_info' property will explain the detail.
+    * **lsm.System.STATUS_STRESSED**
+      System is having too much I/O in progress or temperature exceeded the
+      limit. The 'status_info' property will explain the detail.
+    * **lsm.System.STATUS_STARTING**
+      System is booting up.
+    * **lsm.System.STATUS_STOPPING**
+      System is shutting down.
+    * **lsm.System.STATUS_STOPPED**
+      System is stopped by administrator.
+    * **lsm.System.STATUS_OTHER**
+      Vendor specifice status. The 'status_info' property will explain the
+      detail.
+ * status_info
+   String. Free form string used for explaining system status. For example:
+   "Disk <disk_id> is in Offline state. Battery X is near end of life"
+
+##### 11.3.2 System Optional Properties
+
+The lsm.System class does not have any optional properties yet.
+
+##### 11.3.3 System Extra Constants
+
+The lsm.System class does not have any extra constants.
+
+##### 11.3.4 System Class Methods
+
+The lsm.System class does not have class methods.
+    """
+
+    STATUS_UNKNOWN = 1 << 0
+    STATUS_OK = 1 << 1
+    STATUS_ERROR = 1 << 2
+    STATUS_DEGRADED = 1 << 3
+    STATUS_PREDICTIVE_FAILURE = 1 << 4
+    STATUS_STRESSED = 1 << 5
+    STATUS_STARTING = 1 << 6
+    STATUS_STOPPING = 1 << 7
+    STATUS_STOPPED = 1 << 8
+    STATUS_OTHER = 1 << 9
 
     @staticmethod
     def _status_to_str(status):
@@ -698,27 +774,11 @@ class System(IData):
 
             return rc
 
-    def __init__(self, _id, _name, _status):
-        self._id = _id        # For SMI-S this is the CIM_ComputerSystem->Name
-        self._name = _name        # For SMI-S , CIM_ComputerSystem->ElementName
-        self._status = _status    # OperationalStatus
-
-    _MAN_PROPERTIES_2_HEADER = {
-        'id': 'ID',
-        'name': 'Name',
-        'status': 'Status',
-    }
-
-    _MAN_PROPERTIES_SEQUENCE = ['id', 'name', 'status']
-
-    def _value_convert(self, key_name, value, human, enum_as_number,
-                      list_convert):
-
-        if enum_as_number is False:
-            if key_name == 'status':
-                value = System._status_to_str(value)
-        return value
-
+    def __init__(self, _id, _name, _status, _status_info):
+        self._id = _id
+        self._name = _name
+        self._status = _status
+        self._status_info = _status_info
 
 @default_property('id', doc="Unique identifier")
 @default_property('name', doc="User supplied name")

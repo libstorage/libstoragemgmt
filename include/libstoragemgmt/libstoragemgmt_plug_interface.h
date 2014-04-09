@@ -1136,14 +1136,16 @@ lsm_system LSM_DLL_EXPORT **lsm_system_record_array_alloc( uint32_t size );
 
 /**
  * Allocates the storage for one system record.
- * @param[in] id        Id
- * @param[in] name      System name (human readable)
- * @param[in] status    Status of the system
+ * @param[in] id            Id
+ * @param[in] name          System name (human readable)
+ * @param[in] status        Status of the system
+ * @oaram[in] status_info   Additional text for status
  * @return  Allocated memory or NULL on error.
  */
 lsm_system LSM_DLL_EXPORT *lsm_system_record_alloc( const char *id,
                                                   const char *name,
-                                                  uint32_t status );
+                                                  uint32_t status,
+                                                  const char *status_info);
 
 /**
  * Allocates storage for Access_group array

@@ -597,7 +597,7 @@ class SimData(object):
         }
         self.syss = [System(SimData.SIM_DATA_SYS_ID,
                             'LSM simulated storage plug-in',
-                            System.STATUS_OK)]
+                            System.STATUS_OK, '')]
         pool_size_200g = size_human_2_size_bytes('200GiB')
         self.pool_dict = {
             'POO1': {
