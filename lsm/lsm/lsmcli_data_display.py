@@ -1,4 +1,4 @@
-# Copyright (C) 2012 Red Hat, Inc.
+# Copyright (C) 2014 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -20,13 +20,14 @@ from collections import OrderedDict
 
 from lsm import System, size_bytes_2_size_human
 
-class EnumConvert:
-    BIT_MAP_STRING_SPLITER = ','
+
+class EnumConvert(object):
+    BIT_MAP_STRING_SPLITTER = ','
 
     @staticmethod
     def _txt_a(txt, append):
         if len(txt):
-            return txt + EnumConvert.BIT_MAP_STRING_SPLITER + append
+            return txt + EnumConvert.BIT_MAP_STRING_SPLITTER + append
         else:
             return append
 
@@ -54,9 +55,10 @@ class EnumConvert:
             return EnumConvert.SYSTEM_STATUS_CONV[System.STATUS_UNKNOWN]
         return rc
 
-class DisplayData:
 
-    def __init__():
+class DisplayData(object):
+
+    def __init__(self):
         pass
 
     @staticmethod
@@ -68,12 +70,12 @@ class DisplayData:
         except IOError:
             sys.exit(1)
 
-    DISPLAY_WAY_COLUME = 0
+    DISPLAY_WAY_COLUMN = 0
     DISPLAY_WAY_SCRIPT = 1
 
-    DISPLAY_WAY_DEFAULT = DISPLAY_WAY_COLUME
+    DISPLAY_WAY_DEFAULT = DISPLAY_WAY_COLUMN
 
-    DEFAULT_SPLITER=' | '
+    DEFAULT_SPLITTER = ' | '
 
     SYSTEM_MAN_HEADER = OrderedDict()
     SYSTEM_MAN_HEADER['id'] = 'ID'
@@ -148,7 +150,7 @@ class DisplayData:
 
         for key in display_headers.keys():
             key_str = display_headers[key]
-            value =  DisplayData._get_man_pro_value(
+            value = DisplayData._get_man_pro_value(
                 obj, key, value_conv_enum, value_conv_human, flag_human,
                 flag_enum)
             data_dict[key_str] = value
@@ -158,7 +160,7 @@ class DisplayData:
                 if key in display_headers.keys():
                     continue
                 key_str = mandatory_headers[key]
-                value =  DisplayData._get_man_pro_value(
+                value = DisplayData._get_man_pro_value(
                     obj, key, value_conv_enum, value_conv_human, flag_human,
                     flag_enum)
                 data_dict[key_str] = value
@@ -176,7 +178,7 @@ class DisplayData:
                     if key in display_headers.keys():
                         continue
                     key_str = mandatory_headers[key]
-                    value =  DisplayData._get_man_pro_value(
+                    value = DisplayData._get_man_pro_value(
                         obj, key, value_conv_enum, value_conv_human,
                         flag_human, flag_enum)
                     data_dict[key_str] = value
@@ -193,7 +195,7 @@ class DisplayData:
     def display_data(objs, display_way=None,
                      flag_human=True, flag_enum=False,
                      extra_properties=None,
-                     spliter=None,
+                     splitter=None,
                      flag_with_header=True,
                      flag_dsp_all_data=False):
         if len(objs) == 0:
@@ -202,8 +204,8 @@ class DisplayData:
         if display_way is None:
             display_way = DisplayData.DISPLAY_WAY_DEFAULT
 
-        if spliter is None:
-            spliter = DisplayData.DEFAULT_SPLITER
+        if splitter is None:
+            splitter = DisplayData.DEFAULT_SPLITTER
 
         data_dict_list = []
         if type(objs[0]) in DisplayData.VALUE_CONVERT.keys():
@@ -215,14 +217,14 @@ class DisplayData:
         else:
             return None
         if display_way == DisplayData.DISPLAY_WAY_SCRIPT:
-            DisplayData._display_data_script_way(data_dict_list, spliter)
-        elif display_way == DisplayData.DISPLAY_WAY_COLUME:
-            DisplayData._display_data_colume_way(
-                data_dict_list, spliter, flag_with_header)
+            DisplayData._display_data_script_way(data_dict_list, splitter)
+        elif display_way == DisplayData.DISPLAY_WAY_COLUMN:
+            DisplayData._display_data_column_way(
+                data_dict_list, splitter, flag_with_header)
         return True
 
     @staticmethod
-    def _display_data_script_way(data_dict_list, spliter):
+    def _display_data_script_way(data_dict_list, splitter):
         key_column_width = 1
         value_column_width = 1
 
@@ -245,40 +247,41 @@ class DisplayData:
                     value_column_width = cur_value_width
 
         row_format = '%%-%ds%s%%-%ds' % (key_column_width,
-                                         spliter,
+                                         splitter,
                                          value_column_width)
         sub_row_format = '%s%s%%-%ds' % (' ' * key_column_width,
-                                         spliter,
+                                         splitter,
                                          value_column_width)
-        obj_spliter = '%s%s%s' % ('-' * key_column_width,
-                                  '-' * len(spliter),
+        obj_splitter = '%s%s%s' % ('-' * key_column_width,
+                                  '-' * len(splitter),
                                   '-' * value_column_width)
 
         for data_dict in data_dict_list:
-            DisplayData._out(obj_spliter)
+            DisplayData._out(obj_splitter)
             for key_name in data_dict:
                 value = data_dict[key_name]
                 if isinstance(value, list):
                     flag_first_data = True
                     for sub_value in value:
                         if flag_first_data:
-                            out(row_format % (key_name, str(sub_value)))
+                            DisplayData._out(row_format %
+                                             (key_name, str(sub_value)))
                             flag_first_data = False
                         else:
                             DisplayData._out(sub_row_format % str(sub_value))
                 else:
                     DisplayData._out(row_format % (key_name, str(value)))
-        DisplayData._out(obj_spliter)
+        DisplayData._out(obj_splitter)
 
     @staticmethod
-    def _display_data_colume_way(data_dict_list, spliter, flag_with_header):
+    def _display_data_column_way(data_dict_list, splitter, flag_with_header):
         if len(data_dict_list) == 0:
             return
         two_d_list = []
 
         item_count = len(data_dict_list[0].keys())
 
-        # detemin how many lines we will print
+        # determine how many lines we will print
         row_width = 0
         for data_dict in data_dict_list:
             cur_max_wd = 0
@@ -329,16 +332,16 @@ class DisplayData:
 
         # display two_list
         row_formats = []
-        header_spliter = ''
+        header_splitter = ''
         for column_index in range(0, len(two_d_list[0])):
             max_width = DisplayData._find_max_width(two_d_list, column_index)
             row_formats.extend(['%%-%ds' % max_width])
-            header_spliter += '-' * max_width
+            header_splitter += '-' * max_width
             if column_index != (len(two_d_list[0]) - 1):
-                header_spliter += '-' * len(spliter)
+                header_splitter += '-' * len(splitter)
 
-        row_format = spliter.join(row_formats)
+        row_format = splitter.join(row_formats)
         for row_index in range(0, len(two_d_list)):
             DisplayData._out(row_format % tuple(two_d_list[row_index]))
             if row_index == 0 and flag_with_header:
-                DisplayData._out(header_spliter)
+                DisplayData._out(header_splitter)

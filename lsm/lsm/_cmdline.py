@@ -166,9 +166,10 @@ cmds = (
         ],
         optional=[
             dict(name=('-a', '--all'),
-                 help='Retrieve and display in scrit friendly way with ' +
+                 help='Retrieve and display in script friendly way with ' +
                       'all information including optional data if available',
                  default=False,
+                 dest='all',
                  action='store_true'),
             dict(fs_id_opt),
         ],
@@ -811,11 +812,13 @@ class CmdLine:
     # plug-in to plug-in.
     # @param    objects    Data, first row is header all other data.
     def display_data(self, objects, extra_properties=None):
+        display_all = False
+
         if len(objects) == 0:
             return
 
         if hasattr(self.args, 'all') and self.args.all:
-            self.args.script = True
+            display_all = True
 
         flag_with_header = True
         if self.args.sep:
@@ -830,8 +833,8 @@ class CmdLine:
         flag_new_way_works = DisplayData.display_data(
             objects, display_way=display_way, flag_human=self.args.human,
             flag_enum=self.args.enum, extra_properties=extra_properties,
-            spliter=self.args.sep, flag_with_header=flag_with_header,
-            flag_dsp_all_data=self.args.all)
+            splitter=self.args.sep, flag_with_header=flag_with_header,
+            flag_dsp_all_data=display_all)
 
         if flag_new_way_works:
             return

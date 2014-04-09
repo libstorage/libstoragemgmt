@@ -326,6 +326,7 @@ fi
 %{python_sitelib}/lsm/_common.*
 %{python_sitelib}/lsm/_data.*
 %{python_sitelib}/lsm/_iplugin.*
+%{python_sitelib}/lsm/lsmcli_data_display.*
 %{python_sitelib}/lsm/_pluginrunner.*
 %{python_sitelib}/lsm/simulator.*
 %{python_sitelib}/lsm/simarray.*

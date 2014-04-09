@@ -431,7 +431,7 @@ def display_check(display_list, system_id):
             call([cmd, 'list', '--type', 'SNAPSHOTS', '--fs', fs_id])
 
     if 'POOLS' in display_list:
-        call([cmd, '-H', '-t' + sep, 'list', '--type', 'POOLS', '-o'])
+        call([cmd, '-H', '-t' + sep, 'list', '--type', 'POOLS', '-a'])
 
 
 def test_display(cap, system_id):

@@ -19,6 +19,7 @@ lsm_PYTHON = lsm/__init__.py           \
                    lsm/_data.py        \
                    lsm/eseries.py      \
                    lsm/_iplugin.py     \
+                   lsm/lsmcli_data_display.py \
                    lsm/na.py           \
                    lsm/nstor.py        \
                    lsm/ontap.py        \
