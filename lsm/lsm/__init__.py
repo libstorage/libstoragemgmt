@@ -3,7 +3,7 @@ __all__ = []
 from version import VERSION
 
 from _common import Error, Info, LsmError, ErrorLevel, ErrorNumber, \
-    JobStatus, uri_parse, md5, Proxy
+    JobStatus, uri_parse, md5, Proxy, size_bytes_2_size_human
 from _data import Initiator, Disk, \
     Volume, Pool, System, FileSystem, Snapshot, NfsExport, BlockRange, \
     AccessGroup, OptionalData, Capabilities, txt_a
