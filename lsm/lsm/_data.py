@@ -1066,12 +1066,6 @@ class Pool(IData):
     #   Example:
     #    * Pool.status = 'Disk 0_0_1 offline'
     STATUS_ERROR = 1 << 5
-    # ERROR:
-    #   Pool data is not accessible due to RAID members offline.
-    #   Example:
-    #    * RAID 5 pool lost access to 2 disks.
-    #    * RAID 0 pool lost access to 1 disks.
-    STATUS_OFFLINE = 1 << 6
     # OFFLINE:
     #   Pool is not accessible for internal issue.
     #   Should explain in Pool.status_info for reason.
@@ -1128,7 +1122,6 @@ class Pool(IData):
         STATUS_STRESSED: 'STRESSED',
         STATUS_DEGRADED: 'DEGRADED',
         STATUS_ERROR: 'ERROR',
-        STATUS_OFFLINE: 'OFFLINE',
         STATUS_STARTING: 'STARTING',
         STATUS_STOPPING: 'STOPPING',
         STATUS_STOPPED: 'STOPPED',

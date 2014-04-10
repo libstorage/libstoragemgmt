@@ -229,7 +229,7 @@ typedef enum {
 #define LSM_POOL_STATUS_STRESSED                    0x0000000000000008
 #define LSM_POOL_STATUS_DEGRADED                    0x0000000000000010
 #define LSM_POOL_STATUS_ERROR                       0x0000000000000020
-#define LSM_POOL_STATUS_OFFLINE                     0x0000000000000040
+/*#define LSM_POOL_AVAILABLE                        0x0000000000000040 */
 #define LSM_POOL_STATUS_STARTING                    0x0000000000000080
 #define LSM_POOL_STATUS_STOPPING                    0x0000000000000100
 #define LSM_POOL_STATUS_STOPPED                     0x0000000000000200
