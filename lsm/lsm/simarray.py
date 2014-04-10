@@ -156,6 +156,7 @@ class SimArray(object):
         total_space = self.data.pool_total_space(pool_id)
         free_space = self.data.pool_free_space(pool_id)
         status = sim_pool['status']
+        status_info = sim_pool['status_info']
         sys_id = sim_pool['sys_id']
         opt_data = OptionalData()
         if flags == Pool.RETRIEVE_FULL_INFO:
@@ -163,11 +164,10 @@ class SimArray(object):
             opt_data.set('member_type', sim_pool['member_type'])
             opt_data.set('member_ids', sim_pool['member_ids'])
             opt_data.set('thinp_type', Pool.THINP_TYPE_THIN)
-            opt_data.set('status_info', '')
             opt_data.set('element_type', sim_pool['element_type'])
 
-        return Pool(pool_id, name, total_space, free_space, status, sys_id,
-                    opt_data)
+        return Pool(pool_id, name, total_space, free_space, status,
+                    status_info, sys_id, opt_data)
 
     def pools(self, flags=0):
         rc = []
@@ -539,6 +539,7 @@ class SimData(object):
     SIM_DATA_INIT_NAME = 'NULL'
     SIM_DATA_TMO = 30000    # ms
     SIM_DATA_POOL_STATUS = Pool.STATUS_OK
+    SIM_DATA_POOL_STATUS_INFO = ''
     SIM_DATA_DISK_DEFAULT_RAID = Pool.RAID_TYPE_RAID0
     SIM_DATA_VOLUME_DEFAULT_RAID = Pool.RAID_TYPE_RAID0
     SIM_DATA_POOL_ELEMENT_TYPE = Pool.ELEMENT_TYPE_FS \
@@ -607,6 +608,7 @@ class SimData(object):
                 'member_ids': [SimData._disk_id(0), SimData._disk_id(1)],
                 'raid_type': Pool.RAID_TYPE_RAID1,
                 'status': SimData.SIM_DATA_POOL_STATUS,
+                'status_info': SimData.SIM_DATA_POOL_STATUS_INFO,
                 'sys_id': SimData.SIM_DATA_SYS_ID,
                 'element_type': SimData.SIM_DATA_SYS_POOL_ELEMENT_TYPE,
             },
@@ -618,6 +620,7 @@ class SimData(object):
                 'member_size': pool_size_200g,
                 'raid_type': Pool.RAID_TYPE_NOT_APPLICABLE,
                 'status': Pool.STATUS_OK,
+                'status_info': SimData.SIM_DATA_POOL_STATUS_INFO,
                 'sys_id': SimData.SIM_DATA_SYS_ID,
                 'element_type': SimData.SIM_DATA_POOL_ELEMENT_TYPE,
             },
@@ -629,6 +632,7 @@ class SimData(object):
                 'member_ids': [SimData._disk_id(2), SimData._disk_id(3)],
                 'raid_type': Pool.RAID_TYPE_RAID0,
                 'status': Pool.STATUS_OK,
+                'status_info': SimData.SIM_DATA_POOL_STATUS_INFO,
                 'sys_id': SimData.SIM_DATA_SYS_ID,
                 'element_type': SimData.SIM_DATA_POOL_ELEMENT_TYPE,
             },
@@ -690,6 +694,7 @@ class SimData(object):
             ],
             'raid_type': Pool.RAID_TYPE_RAID1,
             'status': Pool.STATUS_OK,
+            'status_info': SimData.SIM_DATA_POOL_STATUS_INFO,
             'sys_id': SimData.SIM_DATA_SYS_ID,
             'element_type': SimData.SIM_DATA_POOL_ELEMENT_TYPE,
         }
@@ -1652,6 +1657,7 @@ class SimData(object):
         sim_pool['sys_id'] = SimData.SIM_DATA_SYS_ID
         sim_pool['element_type'] = SimData.SIM_DATA_POOL_ELEMENT_TYPE
         sim_pool['status'] = SimData.SIM_DATA_POOL_STATUS
+        sim_pool['status_info'] = SimData.SIM_DATA_POOL_STATUS_INFO
         self.pool_dict[pool_id] = sim_pool
         return sim_pool
 
@@ -1749,6 +1755,7 @@ class SimData(object):
         sim_pool['sys_id'] = SimData.SIM_DATA_SYS_ID
         sim_pool['element_type'] = SimData.SIM_DATA_POOL_ELEMENT_TYPE
         sim_pool['status'] = SimData.SIM_DATA_POOL_STATUS
+        sim_pool['status_info'] = SimData.SIM_DATA_POOL_STATUS_INFO
         self.pool_dict[pool_id] = sim_pool
         return sim_pool
 
@@ -1794,6 +1801,7 @@ class SimData(object):
         sim_pool['sys_id'] = SimData.SIM_DATA_SYS_ID
         sim_pool['element_type'] = SimData.SIM_DATA_POOL_ELEMENT_TYPE
         sim_pool['status'] = SimData.SIM_DATA_POOL_STATUS
+        sim_pool['status_info'] = SimData.SIM_DATA_POOL_STATUS_INFO
         self.pool_dict[pool_id] = sim_pool
         return sim_pool
 

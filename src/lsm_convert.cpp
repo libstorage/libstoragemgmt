@@ -160,12 +160,12 @@ lsm_pool *value_to_pool(Value &pool)
 
     if (is_expected_object(pool, "Pool")) {
         std::map<std::string, Value> i = pool.asObject();
-        rc = lsm_pool_record_alloc(
-            i["id"].asString().c_str(),
+        rc = lsm_pool_record_alloc(i["id"].asString().c_str(),
             i["name"].asString().c_str(),
             i["total_space"].asUint64_t(),
             i["free_space"].asUint64_t(),
             i["status"].asUint64_t(),
+			i["status_info"].asString().c_str(),
             i["system_id"].asString().c_str());
     }
     return rc;
@@ -181,6 +181,7 @@ Value pool_to_value(lsm_pool *pool)
         p["total_space"] = Value(pool->total_space);
         p["free_space"] = Value(pool->free_space);
         p["status"] = Value(pool->status);
+		p["status_info"] = Value(pool->status_info);
         p["system_id"] = Value(pool->system_id);
         return Value(p);
     }

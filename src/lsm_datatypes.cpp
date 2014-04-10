@@ -468,6 +468,9 @@ rtype *name(uint32_t size)                  \
     if (size > 0) {                         \
         size_t s = sizeof(rtype) * size;    \
         rc = (rtype *) malloc(s);           \
+        if( rc )  {                         \
+            memset(rc, 0, s);               \
+        }                                   \
     }                                       \
     return rc;                              \
 }
@@ -498,7 +501,7 @@ int name( record_type pa[], uint32_t size)                \
 CREATE_ALLOC_ARRAY_FUNC(lsm_pool_record_array_alloc, lsm_pool *)
 
 lsm_pool *lsm_pool_record_alloc(const char *id, const char *name,
-            uint64_t totalSpace, uint64_t freeSpace, uint64_t status,
+            uint64_t totalSpace, uint64_t freeSpace, uint64_t status, const char* status_info,
             const char *system_id)
 {
     lsm_pool *rc = (lsm_pool *)malloc(sizeof(lsm_pool));
@@ -510,9 +513,10 @@ lsm_pool *lsm_pool_record_alloc(const char *id, const char *name,
         rc->total_space = totalSpace;
         rc->free_space = freeSpace;
         rc->status = status;
+        rc->status_info = strdup(status_info);
         rc->system_id = strdup(system_id);
 
-        if( !rc->id || !rc->name || !rc->system_id ) {
+        if( !rc->id || !rc->name || !rc->system_id || !rc->status_info ) {
             lsm_pool_record_free(rc);
             rc = NULL;
         }
@@ -534,6 +538,7 @@ lsm_pool * lsm_pool_record_copy( lsm_pool *toBeCopied)
                                     toBeCopied->total_space,
                                     toBeCopied->free_space,
                                     toBeCopied->status,
+                                    toBeCopied->status_info,
                                     toBeCopied->system_id);
     }
     return NULL;
@@ -546,6 +551,11 @@ int lsm_pool_record_free(lsm_pool *p)
         if (p->name) {
             free(p->name);
             p->name = NULL;
+        }
+
+        if( p->status_info ) {
+            free(p->status_info);
+            p->status_info = NULL;
         }
 
         if (p->id) {
@@ -604,6 +614,14 @@ uint64_t lsm_pool_status_get( lsm_pool *p )
         return p->status;
     }
     return UINT64_MAX;
+}
+
+const char LSM_DLL_EXPORT *lsm_pool_status_info_get( lsm_pool *p )
+{
+    if (LSM_IS_POOL(p)) {
+        return p->status_info;
+    }
+    return NULL;
 }
 
 char *lsm_pool_system_id_get( lsm_pool *p )

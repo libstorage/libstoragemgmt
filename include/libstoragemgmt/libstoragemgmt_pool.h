@@ -87,6 +87,13 @@ uint64_t LSM_DLL_EXPORT lsm_pool_free_space_get( lsm_pool *p );
 uint64_t LSM_DLL_EXPORT lsm_pool_status_get( lsm_pool *s );
 
 /**
+ * Retrieve the status info for the Pool.
+ * @param s Pool to retrieve status for
+ * @return  Pool status info which is a character string.
+ */
+const char LSM_DLL_EXPORT *lsm_pool_status_info_get( lsm_pool *s );
+
+/**
  * Retrieve the system id for the specified pool.
  * @param p     Pool pointer
  * @return      System ID

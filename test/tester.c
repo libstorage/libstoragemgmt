@@ -1107,55 +1107,63 @@ START_TEST(test_nfs_exports)
 
     fail_unless(NULL != test_pool);
 
-    rc = lsm_fs_create(c, test_pool, "C_unit_test_nfs_export", 50000000, &nfs, &job, LSM_FLAG_RSVD);
+    if( test_pool ) {
+        rc = lsm_fs_create(c, test_pool, "C_unit_test_nfs_export", 50000000, &nfs, &job, LSM_FLAG_RSVD);
 
-    if( LSM_ERR_JOB_STARTED == rc ) {
-        nfs = wait_for_job_fs(c, &job);
-    } else {
-        fail_unless(LSM_ERR_OK == rc, "RC = %d", rc);
+        if( LSM_ERR_JOB_STARTED == rc ) {
+            nfs = wait_for_job_fs(c, &job);
+        } else {
+            fail_unless(LSM_ERR_OK == rc, "RC = %d", rc);
+        }
+
+        fail_unless(nfs != NULL);
+        lsm_nfs_export **exports = NULL;
+        uint32_t count = 0;
+
+        if( nfs ) {
+            rc = lsm_nfs_list(c, &exports, &count, LSM_FLAG_RSVD);
+
+            fail_unless(LSM_ERR_OK == rc, "lsmNfsList rc= %d\n", rc);
+            fail_unless(count == 0);
+            fail_unless(NULL == exports);
+
+
+            lsm_string_list *access = lsm_string_list_alloc(1);
+            fail_unless(NULL != access);
+
+            lsm_string_list_elem_set(access, 0, "192.168.2.29");
+
+            lsm_nfs_export *e = NULL;
+
+            rc = lsm_nfs_export_fs(c, lsm_fs_id_get(nfs), NULL, access,
+                                    access, NULL, ANON_UID_GID_NA,
+                                    ANON_UID_GID_NA, NULL, NULL, &e,
+                                    LSM_FLAG_RSVD);
+            fail_unless(LSM_ERR_OK == rc, "lsmNfsExportFs %d\n", rc);
+
+            lsm_nfs_export_record_free(e);
+            e=NULL;
+
+            rc = lsm_nfs_list(c, &exports, &count, LSM_FLAG_RSVD);
+            fail_unless( LSM_ERR_OK == rc);
+            fail_unless( exports != NULL);
+            fail_unless( count == 1 );
+
+            if( count ) {
+                rc  = lsm_nfs_export_delete(c, exports[0], LSM_FLAG_RSVD);
+                fail_unless( LSM_ERR_OK == rc, "lsmNfsExportRemove %d\n", rc );
+                lsm_nfs_export_record_array_free(exports, count);
+
+                exports = NULL;
+
+                rc = lsm_nfs_list(c, &exports, &count, LSM_FLAG_RSVD);
+
+                fail_unless(LSM_ERR_OK == rc, "lsmNfsList rc= %d\n", rc);
+                fail_unless(count == 0);
+                fail_unless(NULL == exports);
+            }
+        }
     }
-
-    fail_unless(nfs != NULL);
-    lsm_nfs_export **exports = NULL;
-    uint32_t count = 0;
-
-    rc = lsm_nfs_list(c, &exports, &count, LSM_FLAG_RSVD);
-
-    fail_unless(LSM_ERR_OK == rc, "lsmNfsList rc= %d\n", rc);
-    fail_unless(count == 0);
-    fail_unless(NULL == exports);
-
-
-    lsm_string_list *access = lsm_string_list_alloc(1);
-    fail_unless(NULL != access);
-
-    lsm_string_list_elem_set(access, 0, "192.168.2.29");
-
-    lsm_nfs_export *e = NULL;
-
-    rc = lsm_nfs_export_fs(c, lsm_fs_id_get(nfs), NULL, access, access, NULL,
-                            ANON_UID_GID_NA, ANON_UID_GID_NA, NULL, NULL, &e, LSM_FLAG_RSVD);
-    fail_unless(LSM_ERR_OK == rc, "lsmNfsExportFs %d\n", rc);
-
-    lsm_nfs_export_record_free(e);
-    e=NULL;
-
-    rc = lsm_nfs_list(c, &exports, &count, LSM_FLAG_RSVD);
-    fail_unless( LSM_ERR_OK == rc);
-    fail_unless( exports != NULL);
-    fail_unless( count == 1 );
-
-    rc  = lsm_nfs_export_delete(c, exports[0], LSM_FLAG_RSVD);
-    fail_unless( LSM_ERR_OK == rc, "lsmNfsExportRemove %d\n", rc );
-    lsm_nfs_export_record_array_free(exports, count);
-
-    exports = NULL;
-
-    rc = lsm_nfs_list(c, &exports, &count, LSM_FLAG_RSVD);
-
-    fail_unless(LSM_ERR_OK == rc, "lsmNfsList rc= %d\n", rc);
-    fail_unless(count == 0);
-    fail_unless(NULL == exports);
 }
 END_TEST
 

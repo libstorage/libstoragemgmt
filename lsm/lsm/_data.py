@@ -785,6 +785,7 @@ The lsm.System class does not have class methods.
 @default_property('total_space', doc="Total space in bytes")
 @default_property('free_space', doc="Free space in bytes")
 @default_property('status', doc="Enumerated status")
+@default_property('status_info', doc="Text explaining status")
 @default_property('system_id', doc="System identifier")
 @default_property("optional_data", doc="Optional data")
 class Pool(IData):
@@ -1165,13 +1166,17 @@ class Pool(IData):
         # total_space: All spaces in bytes could be allocated to user.
         'free_space': 'Free Space',
         # free_space: Free spaces in bytes could be allocated to user.
-        'status':   'Status',
+        'status': 'Status',
         # status: Indicate the status of Pool.
+        'status_info': 'Status Info',
+        # status_info: A string explaining the detail of current status.
+        #              Check comments above about Pool.STATUS_XXX for
+        #              what info you should save in it.
         'system_id': 'System ID',
         # system_id: Identifier of belonging system.
     }
     _MAN_PROPERTIES_SEQUENCE = ['id', 'name', 'total_space', 'free_space',
-                                'status', 'system_id']
+                                'status', 'status_info', 'system_id']
 
     _OPT_PROPERTIES_2_HEADER = {
         'raid_type': 'RAID Type',
@@ -1191,12 +1196,6 @@ class Pool(IData):
         #             not implemented at current pool level.
         #             If we really need to identify the under algorithm some
         #             day, we will expand to THINP_TYPE_THIN_ALLOCATED and etc
-        'status': 'Status',
-        # status: The status of this pool, OK, Data Lose, or etc.
-        'status_info': 'Status Info',
-        # status_info: A string explaining the detail of current status.
-        #              Check comments above about Pool.STATUS_XXX for
-        #              what info you should save in it.
         'element_type': 'Element Type',
         # element_type: That kind of items can this pool create:
         #               ELEMENT_TYPE_VOLUME
@@ -1211,7 +1210,7 @@ class Pool(IData):
     }
 
     _OPT_PROPERTIES_SEQUENCE = ['raid_type', 'member_type', 'member_ids',
-                                'element_type', 'thinp_type', 'status_info']
+                                'element_type', 'thinp_type']
 
     def _value_convert(self, key_name, value, human, enum_as_number,
                       list_convert):
@@ -1236,12 +1235,13 @@ class Pool(IData):
         return value
 
     def __init__(self, _id, _name, _total_space, _free_space, _status,
-                 _system_id, _optional_data=None):
+                 _status_info, _system_id, _optional_data=None):
         self._id = _id                    # Identifier
         self._name = _name                # Human recognisable name
         self._total_space = _total_space  # Total size
         self._free_space = _free_space    # Free space available
         self._status = _status            # Status of pool.
+        self._status_info = _status_info  # Additional status text of pool
         self._system_id = _system_id      # System id this pool belongs
 
         if _optional_data is None:

@@ -1471,7 +1471,8 @@ class Smis(IStorageAreaNetwork):
         if 'OperationalStatus' in cim_pool:
             status = Smis._pool_status_of(cim_pool)[0]
 
-        return Pool(pool_id, name, total_space, free_space, status, system_id)
+        return Pool(pool_id, name, total_space, free_space, status, '',
+                    system_id)
 
     @staticmethod
     def _cim_sys_2_lsm_sys(cim_sys):
