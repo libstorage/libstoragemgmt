@@ -704,7 +704,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns  List of access groups
     @_return_requires([AccessGroup])
-    def access_group_list(self, flags=0):
+    def access_groups(self, flags=0):
         """
         Returns a list of access groups
         """

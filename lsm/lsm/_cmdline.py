@@ -1101,7 +1101,7 @@ class CmdLine:
         elif args.type == 'NFS_CLIENT_AUTH':
             self.display_nfs_client_authentication()
         elif args.type == 'ACCESS_GROUPS':
-            self.display_data(self.c.access_group_list())
+            self.display_data(self.c.access_groups())
         elif args.type == 'SYSTEMS':
             self.display_data(self.c.systems())
         elif args.type == 'DISKS':
@@ -1142,7 +1142,7 @@ class CmdLine:
         self.display_data([access_group])
 
     def _add_rm_access_grp_init(self, args, op):
-        agl = self.c.access_group_list()
+        agl = self.c.access_groups()
         group = _get_item(agl, args.ag, "access group id")
 
         if op:
@@ -1162,7 +1162,7 @@ class CmdLine:
         self._add_rm_access_grp_init(args, False)
 
     def access_group_volumes(self, args):
-        agl = self.c.access_group_list()
+        agl = self.c.access_groups()
         group = _get_item(agl, args.ag, "access group id")
         vols = self.c.volumes_accessible_by_access_group(group)
         self.display_data(vols)
@@ -1191,7 +1191,7 @@ class CmdLine:
 
     ## Used to delete access group
     def access_group_delete(self, args):
-        agl = self.c.access_group_list()
+        agl = self.c.access_groups()
         group = _get_item(agl, args.ag, "access group id")
         return self.c.access_group_del(group)
 
@@ -1563,7 +1563,7 @@ class CmdLine:
         return self._access(False, args)
 
     def _access_group(self, args, grant=True):
-        agl = self.c.access_group_list()
+        agl = self.c.access_groups()
         group = _get_item(agl, args.ag, "access group id")
         v = _get_item(self.c.volumes(), args.vol, "volume id")
 
