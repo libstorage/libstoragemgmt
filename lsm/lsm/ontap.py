@@ -23,7 +23,7 @@ import urlparse
 import sys
 
 import na
-from lsm import (Volume, Initiator, FileSystem, Snapshot, NfsExport,
+from lsm import (Volume, Initiator, FileSystem, FsSnapshot, NfsExport,
                  AccessGroup, System, Capabilities, Disk, Pool, OptionalData,
                  IStorageAreaNetwork, INfs, LsmError, ErrorNumber, JobStatus,
                  md5, Error, VERSION)
@@ -207,7 +207,7 @@ class Ontap(IStorageAreaNetwork, INfs):
     def _ss(s):
         #If we use the newer API we can use the uuid instead of this fake
         #md5 one
-        return Snapshot(md5(s['name'] + s['access-time']), s['name'],
+        return FsSnapshot(md5(s['name'] + s['access-time']), s['name'],
                         s['access-time'])
 
     @staticmethod

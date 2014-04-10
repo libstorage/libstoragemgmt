@@ -1328,7 +1328,7 @@ class FileSystem(IData):
 @default_property('id', doc="Unique identifier")
 @default_property('name', doc="Snapshot name")
 @default_property('ts', doc="Time stamp the snapshot was created")
-class Snapshot(IData):
+class FsSnapshot(IData):
     def __init__(self, _id, _name, _ts):
         self._id = _id
         self._name = _name

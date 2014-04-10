@@ -20,7 +20,7 @@
 import copy
 
 from lsm import (Pool, Volume, System, Capabilities, Initiator,
-                 IStorageAreaNetwork, INfs, FileSystem, Snapshot, NfsExport,
+                 IStorageAreaNetwork, INfs, FileSystem, FsSnapshot, NfsExport,
                  LsmError, ErrorNumber, uri_parse, md5, Error, VERSION)
 
 import traceback
@@ -349,7 +349,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         rc = []
         for ss in self._jsonrequest("ss_list", dict(fs_uuid=fs.id)):
             #id, name, timestamp
-            rc.append(Snapshot(ss['uuid'], ss['name'], ss['timestamp']))
+            rc.append(FsSnapshot(ss['uuid'], ss['name'], ss['timestamp']))
         return rc
 
     @handle_errors

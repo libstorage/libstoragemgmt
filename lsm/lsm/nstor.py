@@ -29,7 +29,7 @@ import time
 
 from lsm import (AccessGroup, Capabilities, ErrorNumber, FileSystem, INfs,
                  IStorageAreaNetwork, Initiator, LsmError, NfsExport, Pool,
-                 Snapshot, System, VERSION, Volume, md5)
+                 FsSnapshot, System, VERSION, Volume, md5)
 
 
 class NexentaStor(INfs, IStorageAreaNetwork):
@@ -168,7 +168,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         for snapshot in snapshot_list:
             snapshot_info = self._request("get_child_props", "snapshot",
                                           [snapshot, "creation_seconds"])
-            snapshots.append(Snapshot(snapshot, snapshot,
+            snapshots.append(FsSnapshot(snapshot, snapshot,
                                       snapshot_info['creation_seconds']))
 
         return snapshots
@@ -179,7 +179,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         self._request("create", "snapshot", [full_name, "0"])
         snapshot_info = self._request("get_child_props", "snapshot",
                                       [full_name, "creation_seconds"])
-        return None, Snapshot(full_name, full_name,
+        return None, FsSnapshot(full_name, full_name,
                               snapshot_info['creation_seconds'])
 
     def fs_snapshot_delete(self, fs, snapshot, flags=0):

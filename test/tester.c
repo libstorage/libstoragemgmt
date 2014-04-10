@@ -265,10 +265,10 @@ lsm_fs *wait_for_job_fs(lsm_connect *c, char **job_id)
     return fs;
 }
 
-lsm_ss *wait_for_job_ss(lsm_connect *c, char **job_id)
+lsm_fs_ss *wait_for_job_ss(lsm_connect *c, char **job_id)
 {
     lsm_job_status status;
-    lsm_ss *ss = NULL;
+    lsm_fs_ss *ss = NULL;
     uint8_t pc = 0;
     int rc = 0;
 
@@ -889,11 +889,11 @@ END_TEST
 START_TEST(test_ss)
 {
     fail_unless(c != NULL);
-    lsm_ss **ss_list = NULL;
+    lsm_fs_ss **ss_list = NULL;
     uint32_t ss_count = 0;
     char *job = NULL;
     lsm_fs *fs = NULL;
-    lsm_ss *ss = NULL;
+    lsm_fs_ss *ss = NULL;
 
     printf("Testing snapshots\n");
 
@@ -956,7 +956,7 @@ START_TEST(test_ss)
         wait_for_job(c, &job);
     }
 
-    lsm_ss_record_array_free(ss_list, ss_count);
+    lsm_fs_ss_record_array_free(ss_list, ss_count);
     lsm_fs_record_free(fs);
 
     printf("Testing snapshots done!\n");
@@ -1290,7 +1290,7 @@ START_TEST(test_invalid_input)
     fail_unless(LSM_ERR_NOT_FOUND_JOB == rc, "rc %d", rc);
 
     /* lsmJobStatusFsGet */
-    lsm_ss *ss = (lsm_ss *)&bad;
+    lsm_fs_ss *ss = (lsm_fs_ss *)&bad;
 
     rc = lsm_job_status_ss_get(c, NULL, NULL, NULL, NULL, LSM_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
@@ -1685,7 +1685,7 @@ START_TEST(test_invalid_input)
     rc = lsm_fs_ss_create(c, arg_fs, NULL, NULL, NULL, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    lsm_ss *arg_ss = NULL;
+    lsm_fs_ss *arg_ss = NULL;
     rc = lsm_fs_ss_create(c, arg_fs, "arg_snapshot", badf, &arg_ss, &job,
                         LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_SL, "rc = %d", rc);

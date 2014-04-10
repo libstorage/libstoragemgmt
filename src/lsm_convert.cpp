@@ -414,23 +414,23 @@ Value fs_to_value(lsm_fs *fs)
 }
 
 
-lsm_ss *value_to_ss(Value &ss)
+lsm_fs_ss *value_to_ss(Value &ss)
 {
-    lsm_ss *rc = NULL;
-    if( is_expected_object(ss, "Snapshot") ) {
+    lsm_fs_ss *rc = NULL;
+    if( is_expected_object(ss, "FsSnapshot") ) {
         std::map<std::string, Value> f = ss.asObject();
-        rc = lsm_ss_record_alloc(f["id"].asString().c_str(),
+        rc = lsm_fs_ss_record_alloc(f["id"].asString().c_str(),
                                 f["name"].asString().c_str(),
                                 f["ts"].asUint64_t());
     }
     return rc;
 }
 
-Value ss_to_value(lsm_ss *ss)
+Value ss_to_value(lsm_fs_ss *ss)
 {
     if( LSM_IS_SS(ss) ) {
         std::map<std::string, Value> f;
-        f["class"] = Value("Snapshot");
+        f["class"] = Value("FsSnapshot");
         f["id"] = Value(ss->id);
         f["name"] = Value(ss->name);
         f["ts"] = Value(ss->ts);

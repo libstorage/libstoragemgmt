@@ -273,7 +273,7 @@ struct LSM_DLL_LOCAL _lsm_fs {
 
 #define LSM_SS_MAGIC                0xAA7A000F
 #define LSM_IS_SS(obj)     MAGIC_CHECK(obj, LSM_SS_MAGIC)
-struct LSM_DLL_LOCAL _lsm_ss {
+struct LSM_DLL_LOCAL _lsm_fs_ss {
     uint32_t magic;
     char *id;
     char *name;

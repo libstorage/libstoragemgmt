@@ -538,7 +538,7 @@ int lsm_job_status_fs_get(lsm_connect *c, const char *job,
 
 int lsm_job_status_ss_get(lsm_connect *c, const char *job,
                                 lsm_job_status *status, uint8_t *percentComplete,
-                                lsm_ss **ss, lsm_flag flags)
+                                lsm_fs_ss **ss, lsm_flag flags)
 {
     int rc = LSM_ERR_OK;
     Value rv;
@@ -1978,7 +1978,7 @@ int lsm_fs_resize(lsm_connect *c, lsm_fs *fs,
 }
 
 int lsm_fs_clone(lsm_connect *c, lsm_fs *src_fs,
-                                    const char *name, lsm_ss *optional_ss,
+                                    const char *name, lsm_fs_ss *optional_ss,
                                     lsm_fs **cloned_fs,
                                     char **job, lsm_flag flags)
 {
@@ -2010,7 +2010,7 @@ int lsm_fs_clone(lsm_connect *c, lsm_fs *src_fs,
 }
 
 int lsm_fs_file_clone(lsm_connect *c, lsm_fs *fs, const char *src_file_name,
-                    const char *dest_file_name, lsm_ss *snapshot, char **job,
+                    const char *dest_file_name, lsm_fs_ss *snapshot, char **job,
                     lsm_flag flags)
 {
     CONN_SETUP(c);
@@ -2118,7 +2118,7 @@ int lsm_fs_child_dependency_delete( lsm_connect *c, lsm_fs *fs, lsm_string_list 
     return jobCheck(c, rc, response, job);
 }
 
-int lsm_fs_ss_list(lsm_connect *c, lsm_fs *fs, lsm_ss **ss[],
+int lsm_fs_ss_list(lsm_connect *c, lsm_fs *fs, lsm_fs_ss **ss[],
                                 uint32_t *ssCount, lsm_flag flags )
 {
     int rc = LSM_ERR_OK;
@@ -2147,7 +2147,7 @@ int lsm_fs_ss_list(lsm_connect *c, lsm_fs *fs, lsm_ss **ss[],
             *ssCount = sys.size();
 
             if( sys.size() ) {
-                *ss = lsm_ss_record_array_alloc(sys.size());
+                *ss = lsm_fs_ss_record_array_alloc(sys.size());
 
                 if( *ss ) {
                     for( size_t i = 0; i < sys.size(); ++i ) {
@@ -2162,7 +2162,7 @@ int lsm_fs_ss_list(lsm_connect *c, lsm_fs *fs, lsm_ss **ss[],
         rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
                             ve.what());
         if( *ss && *ssCount ) {
-            lsm_ss_record_array_free(*ss, *ssCount);
+            lsm_fs_ss_record_array_free(*ss, *ssCount);
             *ss = NULL;
             *ssCount = 0;
         }
@@ -2172,7 +2172,7 @@ int lsm_fs_ss_list(lsm_connect *c, lsm_fs *fs, lsm_ss **ss[],
 }
 
 int lsm_fs_ss_create(lsm_connect *c, lsm_fs *fs, const char *name,
-                    lsm_string_list *files, lsm_ss **snapshot, char **job,
+                    lsm_string_list *files, lsm_fs_ss **snapshot, char **job,
                     lsm_flag flags)
 {
     CONN_SETUP(c);
@@ -2202,13 +2202,13 @@ int lsm_fs_ss_create(lsm_connect *c, lsm_fs *fs, const char *name,
 
     int rc = rpc(c, "fs_snapshot_create", parameters, response);
     if( LSM_ERR_OK == rc ) {
-        *snapshot = (lsm_ss *)parse_job_response(c, response, rc, job,
+        *snapshot = (lsm_fs_ss *)parse_job_response(c, response, rc, job,
                                                         (convert)value_to_ss);
     }
     return rc;
 }
 
-int lsm_fs_ss_delete(lsm_connect *c, lsm_fs *fs, lsm_ss *ss, char **job,
+int lsm_fs_ss_delete(lsm_connect *c, lsm_fs *fs, lsm_fs_ss *ss, char **job,
                     lsm_flag flags)
 {
     CONN_SETUP(c);
@@ -2237,7 +2237,7 @@ int lsm_fs_ss_delete(lsm_connect *c, lsm_fs *fs, lsm_ss *ss, char **job,
     return jobCheck(c, rc, response, job);
 }
 
-int lsm_fs_ss_revert(lsm_connect *c, lsm_fs *fs, lsm_ss *ss,
+int lsm_fs_ss_revert(lsm_connect *c, lsm_fs *fs, lsm_fs_ss *ss,
                                     lsm_string_list *files,
                                     lsm_string_list *restore_files,
                                     int all_files, char **job, lsm_flag flags)

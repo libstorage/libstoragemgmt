@@ -19,7 +19,7 @@ import time
 import os
 import unittest
 from lsm import (Volume, NfsExport, Capabilities, Pool, System,
-                 Initiator, Disk, AccessGroup, FileSystem, Snapshot,
+                 Initiator, Disk, AccessGroup, FileSystem, FsSnapshot,
                  uri_parse, LsmError, JobStatus, ErrorNumber,
                  INetworkAttachedStorage)
 
@@ -938,7 +938,7 @@ class Client(INetworkAttachedStorage):
     # @param    fs      The file system
     # @param    flags   Reserved for future use, must be zero.
     # @returns  a list of snapshot objects.
-    @_return_requires([Snapshot])
+    @_return_requires([FsSnapshot])
     def fs_snapshots(self, fs, flags=0):
         """
         Returns a list of snapshot names for the supplied file system
@@ -952,7 +952,7 @@ class Client(INetworkAttachedStorage):
     # @param    files           The list of specific files to snapshot.
     # @param    flags           Reserved for future use, must be zero.
     # @returns tuple (job_id, snapshot)
-    @_return_requires(unicode, Snapshot)
+    @_return_requires(unicode, FsSnapshot)
     def fs_snapshot_create(self, fs, snapshot_name, files, flags=0):
         """
         Snapshot is a point in time read-only copy

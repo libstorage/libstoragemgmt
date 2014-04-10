@@ -697,7 +697,7 @@ typedef int (*lsm_plug_fs_delete)(lsm_plugin_ptr c, lsm_fs *fs, char **job, lsm_
 typedef int (*lsm_plug_fs_clone)(lsm_plugin_ptr c, lsm_fs *src_fs,
                                             const char *dest_fs_name,
                                             lsm_fs **cloned_fs,
-                                            lsm_ss *optional_snapshot,
+                                            lsm_fs_ss *optional_snapshot,
                                             char **job, lsm_flag flags);
 /**
  * Determine if a file system has child dependencies, callback function signature
@@ -750,10 +750,11 @@ typedef int (*lsm_plug_fs_resize)(lsm_plugin_ptr c, lsm_fs *fs,
 typedef int (*lsm_plug_fs_file_clone)(lsm_plugin_ptr c, lsm_fs *fs,
                                     const char *src_file_name,
                                     const char *dest_file_name,
-                                    lsm_ss *snapshot, char **job, lsm_flag flags);
+                                    lsm_fs_ss *snapshot, char **job, lsm_flag flags);
 
 /**
- * Retrieve a list of snapshots for a file system, callback function signature
+ * Retrieve a list of fs snapshots for a file system, callback function
+ * signature
  * @param[in]   c                   Valid lsm plug-in pointer
  * @param[in]   fs                  File system
  * @param[out]  ss                  Array of snap shots
@@ -761,12 +762,12 @@ typedef int (*lsm_plug_fs_file_clone)(lsm_plugin_ptr c, lsm_fs *fs,
  * @param[in]   flags               Reserved
  * @return  LSM_ERR_OK, else error reason
  */
-typedef int (*lsm_plug_ss_list)(lsm_plugin_ptr c, lsm_fs *fs, lsm_ss **ss[],
+typedef int (*lsm_plug_fs_ss_list)(lsm_plugin_ptr c, lsm_fs *fs, lsm_fs_ss **ss[],
                                 uint32_t *ss_count, lsm_flag flags);
 
 /**
- * Create a snapshot of the specified file system and optionally constrain it to
- * a list of files, callback function signature
+ * Create a fs snapshot of the specified file system and optionally constrain
+ * it to a list of files, callback function signature
  * @param[in]   c                   Valid lsm plug-in pointer
  * @param[in]   fs                  File system to create snapshot for
  * @param[in]   name                Snap shot name
@@ -775,11 +776,12 @@ typedef int (*lsm_plug_ss_list)(lsm_plugin_ptr c, lsm_fs *fs, lsm_ss **ss[],
  * @param[out]  job                 Job ID
  * @return  LSM_ERR_OK, else error reason
  */
-typedef int (*lsm_plug_ss_create)(lsm_plugin_ptr c, lsm_fs *fs,
+typedef int (*lsm_plug_fs_ss_create)(lsm_plugin_ptr c, lsm_fs *fs,
                                     const char *name, lsm_string_list *files,
-                                    lsm_ss **snapshot, char **job, lsm_flag flags);
+                                    lsm_fs_ss **snapshot, char **job, lsm_flag flags);
 /**
- * Delete a snapshot, callback function signature, callback function signature
+ * Delete a fs snapshot, callback function signature, callback function
+ * signature
  * @param[in]   c                   Valid lsm plug-in pointer
  * @param[in]   fs                  File system to delete snapshot for
  * @param[in]   ss                  Snapshot to delete
@@ -787,7 +789,7 @@ typedef int (*lsm_plug_ss_create)(lsm_plugin_ptr c, lsm_fs *fs,
  * @param[in]   flags               Reserved
  * @return  LSM_ERR_OK, else error reason
  */
-typedef int (*lsm_plug_ss_delete)(lsm_plugin_ptr c, lsm_fs *fs, lsm_ss *ss,
+typedef int (*lsm_plug_fs_ss_delete)(lsm_plugin_ptr c, lsm_fs *fs, lsm_fs_ss *ss,
                                     char **job, lsm_flag flags);
 
 /**
@@ -801,7 +803,7 @@ typedef int (*lsm_plug_ss_delete)(lsm_plugin_ptr c, lsm_fs *fs, lsm_ss *ss,
  * @param[out]  job                 Job ID
  * @return  LSM_ERR_OK, else error reason
  */
-typedef int (*lsm_plug_ss_revert)(lsm_plugin_ptr c, lsm_fs *fs, lsm_ss *ss,
+typedef int (*lsm_plug_fs_ss_revert)(lsm_plugin_ptr c, lsm_fs *fs, lsm_fs_ss *ss,
                                     lsm_string_list *files,
                                     lsm_string_list *restore_files,
                                     int all_files, char **job, lsm_flag flags);
@@ -916,10 +918,10 @@ struct lsm_fs_ops_v1 {
     lsm_plug_fs_file_clone fs_file_clone;   /**< clone files on a file system */
     lsm_plug_fs_child_dependency fs_child_dependency;       /**< check file system child dependencies */
     lsm_plug_fs_child_dependency_delete fs_child_dependency_rm;  /**< remove file system child dependencies */
-    lsm_plug_ss_list ss_list;          /**< list snapshots */
-    lsm_plug_ss_create ss_create;      /**< create a snapshot */
-    lsm_plug_ss_delete ss_delete;      /**< delete a snapshot */
-    lsm_plug_ss_revert ss_revert;      /**< revert a snapshot */
+    lsm_plug_fs_ss_list fs_ss_list;          /**< list snapshots */
+    lsm_plug_fs_ss_create fs_ss_create;      /**< create a snapshot */
+    lsm_plug_fs_ss_delete fs_ss_delete;      /**< delete a snapshot */
+    lsm_plug_fs_ss_revert fs_ss_revert;      /**< revert a snapshot */
 };
 
 /** \struct lsm_nas_ops_v1
@@ -1207,7 +1209,7 @@ lsm_fs LSM_DLL_EXPORT **lsm_fs_record_array_alloc( uint32_t size );
  * @param ts            Epoch time stamp when snapshot was created
  * @return Allocated memory, NULL on error
  */
-lsm_ss LSM_DLL_EXPORT *lsm_ss_record_alloc( const char *id, const char *name,
+lsm_fs_ss LSM_DLL_EXPORT *lsm_fs_ss_record_alloc( const char *id, const char *name,
                                             uint64_t ts);
 
 /**
@@ -1215,7 +1217,7 @@ lsm_ss LSM_DLL_EXPORT *lsm_ss_record_alloc( const char *id, const char *name,
  * @param size          Number of elements
  * @return Allocated memory, NULL on error
  */
-lsm_ss LSM_DLL_EXPORT **lsm_ss_record_array_alloc( uint32_t size );
+lsm_fs_ss LSM_DLL_EXPORT **lsm_fs_ss_record_array_alloc( uint32_t size );
 
 /**
  * Set a capability

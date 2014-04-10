@@ -195,7 +195,7 @@ extern "C" {
      */
     int LSM_DLL_EXPORT lsm_job_status_ss_get(lsm_connect *c, const char *job,
                                 lsm_job_status *status, uint8_t *percent_complete,
-                                lsm_ss **ss, lsm_flag flags);
+                                lsm_fs_ss **ss, lsm_flag flags);
 
     /**
      * Frees the resources used by a job.
@@ -789,7 +789,7 @@ extern "C" {
      * error code.
      */
     int LSM_DLL_EXPORT lsm_fs_clone(lsm_connect *conn, lsm_fs *src_fs,
-                                    const char *name, lsm_ss *optional_ss,
+                                    const char *name, lsm_fs_ss *optional_ss,
                                     lsm_fs **cloned_fs,
                                     char **job, lsm_flag flags);
 
@@ -851,7 +851,7 @@ extern "C" {
     int LSM_DLL_EXPORT lsm_fs_file_clone(lsm_connect *conn, lsm_fs *fs,
                                         const char *src_file_name,
                                         const char *dest_file_name,
-                                        lsm_ss *snapshot, char **job,
+                                        lsm_fs_ss *snapshot, char **job,
                                         lsm_flag flags);
 
     /**
@@ -864,7 +864,7 @@ extern "C" {
      * @return LSM_ERR_OK on success, else error reason
      */
     int LSM_DLL_EXPORT lsm_fs_ss_list(lsm_connect *conn, lsm_fs *fs,
-                                    lsm_ss **ss[], uint32_t *ss_count,
+                                    lsm_fs_ss **ss[], uint32_t *ss_count,
                                     lsm_flag flags);
 
     /**
@@ -881,7 +881,7 @@ extern "C" {
      */
     int LSM_DLL_EXPORT lsm_fs_ss_create(lsm_connect *c, lsm_fs *fs,
                                     const char *name, lsm_string_list *files,
-                                    lsm_ss **snapshot, char **job,
+                                    lsm_fs_ss **snapshot, char **job,
                                     lsm_flag flags);
 
     /**
@@ -894,7 +894,7 @@ extern "C" {
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async., else error
      * code.
      */
-    int LSM_DLL_EXPORT lsm_fs_ss_delete(lsm_connect *c, lsm_fs *fs, lsm_ss *ss,
+    int LSM_DLL_EXPORT lsm_fs_ss_delete(lsm_connect *c, lsm_fs *fs, lsm_fs_ss *ss,
                                     char **job, lsm_flag flags);
 
     /**
@@ -911,7 +911,7 @@ extern "C" {
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async.,
      * else error code
      */
-    int LSM_DLL_EXPORT lsm_fs_ss_revert(lsm_connect *c, lsm_fs *fs, lsm_ss *ss,
+    int LSM_DLL_EXPORT lsm_fs_ss_revert(lsm_connect *c, lsm_fs *fs, lsm_fs_ss *ss,
                                     lsm_string_list *files,
                                     lsm_string_list *restore_files,
                                     int all_files, char **job, lsm_flag flags);

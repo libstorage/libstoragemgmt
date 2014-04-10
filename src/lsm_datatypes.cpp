@@ -1270,10 +1270,10 @@ uint64_t lsm_fs_free_space_get(lsm_fs *fs)
     MEMBER_GET(fs, LSM_IS_FS, free_space, 0);
 }
 
-lsm_ss * lsm_ss_record_alloc( const char *id, const char *name,
+lsm_fs_ss * lsm_fs_ss_record_alloc( const char *id, const char *name,
                                             uint64_t ts)
 {
-    lsm_ss *rc = (lsm_ss *) malloc(sizeof(lsm_ss));
+    lsm_fs_ss *rc = (lsm_fs_ss *) malloc(sizeof(lsm_fs_ss));
     if( rc ) {
         rc->magic = LSM_SS_MAGIC;
         rc->id = strdup(id);
@@ -1281,25 +1281,25 @@ lsm_ss * lsm_ss_record_alloc( const char *id, const char *name,
         rc->ts = ts;
 
         if( !rc->id || ! rc->name ) {
-            lsm_ss_record_free(rc);
+            lsm_fs_ss_record_free(rc);
             rc = NULL;
         }
     }
     return rc;
 }
 
-lsm_ss *lsm_ss_record_copy(lsm_ss *source)
+lsm_fs_ss *lsm_fs_ss_record_copy(lsm_fs_ss *source)
 {
-    lsm_ss *rc = NULL;
+    lsm_fs_ss *rc = NULL;
     if( LSM_IS_SS(source) ) {
-        rc = lsm_ss_record_alloc(  lsm_ss_id_get(source),
-                                lsm_ss_name_get(source),
-                                lsm_ss_time_stamp_get(source));
+        rc = lsm_fs_ss_record_alloc(  lsm_fs_ss_id_get(source),
+                                lsm_fs_ss_name_get(source),
+                                lsm_fs_ss_time_stamp_get(source));
     }
     return rc;
 }
 
-int lsm_ss_record_free( lsm_ss *ss)
+int lsm_fs_ss_record_free( lsm_fs_ss *ss)
 {
     if( LSM_IS_SS(ss) ) {
         ss->magic = LSM_DEL_MAGIC(LSM_SS_MAGIC);
@@ -1311,21 +1311,21 @@ int lsm_ss_record_free( lsm_ss *ss)
     return LSM_ERR_INVALID_SS;
 }
 
-CREATE_ALLOC_ARRAY_FUNC(lsm_ss_record_array_alloc, lsm_ss *)
-CREATE_FREE_ARRAY_FUNC(lsm_ss_record_array_free, lsm_ss_record_free, lsm_ss *,
+CREATE_ALLOC_ARRAY_FUNC(lsm_fs_ss_record_array_alloc, lsm_fs_ss *)
+CREATE_FREE_ARRAY_FUNC(lsm_fs_ss_record_array_free, lsm_fs_ss_record_free, lsm_fs_ss *,
                         LSM_ERR_INVALID_SS)
 
-const char *lsm_ss_id_get(lsm_ss *ss)
+const char *lsm_fs_ss_id_get(lsm_fs_ss *ss)
 {
     MEMBER_GET(ss, LSM_IS_SS, id, NULL);
 }
 
-const char *lsm_ss_name_get(lsm_ss *ss)
+const char *lsm_fs_ss_name_get(lsm_fs_ss *ss)
 {
     MEMBER_GET(ss, LSM_IS_SS, name, NULL);
 }
 
-uint64_t lsm_ss_time_stamp_get(lsm_ss *ss)
+uint64_t lsm_fs_ss_time_stamp_get(lsm_fs_ss *ss)
 {
     MEMBER_GET(ss, LSM_IS_SS, ts, 0);
 }

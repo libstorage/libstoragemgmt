@@ -27,7 +27,7 @@ import time
 
 from _common import (size_human_2_size_bytes, size_bytes_2_size_human)
 from lsm import (System, Volume, Disk, Pool, FileSystem, AccessGroup,
-                    Initiator, Snapshot, NfsExport, OptionalData, md5,
+                    Initiator, FsSnapshot, NfsExport, OptionalData, md5,
                     LsmError, ErrorNumber, JobStatus)
 
 # Used for format width for disks
@@ -295,7 +295,7 @@ class SimArray(object):
 
     @staticmethod
     def _sim_snap_2_lsm(sim_snap):
-        return Snapshot(sim_snap['snap_id'], sim_snap['name'],
+        return FsSnapshot(sim_snap['snap_id'], sim_snap['name'],
                         sim_snap['timestamp'])
 
     def fs_snapshots(self, fs_id, flags=0):

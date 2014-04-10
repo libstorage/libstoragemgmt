@@ -79,7 +79,7 @@ void * lsm_data_type_copy(lsm_data_type t, void *item)
                 rc = lsm_pool_record_copy((lsm_pool *)item);
                 break;
             case(LSM_DATA_TYPE_SS):
-                rc = lsm_ss_record_copy((lsm_ss *)item);
+                rc = lsm_fs_ss_record_copy((lsm_fs_ss *)item);
                 break;
             case(LSM_DATA_TYPE_STRING_LIST):
                 rc = lsm_string_list_copy((lsm_string_list *)item);
@@ -371,9 +371,9 @@ static int handle_job_status( lsm_plugin_ptr p, Value &params, Value &response)
                         result.push_back(fs_to_value((lsm_fs *)value));
                         lsm_fs_record_free((lsm_fs *)value);
                     } else if(  LSM_DATA_TYPE_SS == t &&
-                        LSM_IS_SS((lsm_ss *)value)) {
-                        result.push_back(ss_to_value((lsm_ss *)value));
-                        lsm_ss_record_free((lsm_ss *)value);
+                        LSM_IS_SS((lsm_fs_ss *)value)) {
+                        result.push_back(ss_to_value((lsm_fs_ss *)value));
+                        lsm_fs_ss_record_free((lsm_fs_ss *)value);
                     } else if(  LSM_DATA_TYPE_POOL == t &&
                         LSM_IS_POOL((lsm_pool *)value)) {
                         result.push_back(pool_to_value((lsm_pool *)value));
@@ -1658,7 +1658,7 @@ static int fs_clone(lsm_plugin_ptr p, Value &params, Value &response)
             char *job = NULL;
             lsm_fs *fs = value_to_fs(v_src_fs);
             const char* name = v_name.asC_str();
-            lsm_ss *ss = value_to_ss(v_ss);
+            lsm_fs_ss *ss = value_to_ss(v_ss);
 
             if( fs &&
                 (( ss && v_ss.valueType() == Value::object_t) ||
@@ -1685,7 +1685,7 @@ static int fs_clone(lsm_plugin_ptr p, Value &params, Value &response)
             }
 
             lsm_fs_record_free(fs);
-            lsm_ss_record_free(ss);
+            lsm_fs_ss_record_free(ss);
 
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;
@@ -1713,7 +1713,7 @@ static int file_clone(lsm_plugin_ptr p, Value &params, Value &response)
 
 
             lsm_fs *fs = value_to_fs(v_fs);
-            lsm_ss *ss = value_to_ss(v_ss);
+            lsm_fs_ss *ss = value_to_ss(v_ss);
 
             if( fs &&
                 (( ss && v_ss.valueType() == Value::object_t) ||
@@ -1737,7 +1737,7 @@ static int file_clone(lsm_plugin_ptr p, Value &params, Value &response)
             }
 
             lsm_fs_record_free(fs);
-            lsm_ss_record_free(ss);
+            lsm_fs_ss_record_free(ss);
 
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;
@@ -1823,7 +1823,7 @@ static int fs_child_dependency_rm(lsm_plugin_ptr p, Value &params, Value &respon
 static int ss_list(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
-    if( p && p->san_ops && p->fs_ops->ss_list ) {
+    if( p && p->san_ops && p->fs_ops->fs_ss_list ) {
 
         Value v_fs = params["fs"];
 
@@ -1833,10 +1833,10 @@ static int ss_list(lsm_plugin_ptr p, Value &params, Value &response)
             lsm_fs *fs = value_to_fs(v_fs);
 
             if( fs ) {
-                lsm_ss **ss = NULL;
+                lsm_fs_ss **ss = NULL;
                 uint32_t count = 0;
 
-                rc = p->fs_ops->ss_list(p, fs, &ss, &count,
+                rc = p->fs_ops->fs_ss_list(p, fs, &ss, &count,
                                             LSM_FLAG_GET_VALUE(params));
 
                 if( LSM_ERR_OK == rc ) {
@@ -1849,7 +1849,7 @@ static int ss_list(lsm_plugin_ptr p, Value &params, Value &response)
 
                     lsm_fs_record_free(fs);
                     fs = NULL;
-                    lsm_ss_record_array_free(ss, count);
+                    lsm_fs_ss_record_array_free(ss, count);
                     ss = NULL;
                 }
             }
@@ -1864,7 +1864,7 @@ static int ss_list(lsm_plugin_ptr p, Value &params, Value &response)
 static int ss_create(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
-    if( p && p->san_ops && p->fs_ops->ss_create ) {
+    if( p && p->san_ops && p->fs_ops->fs_ss_create ) {
 
         Value v_fs = params["fs"];
         Value v_ss_name = params["snapshot_name"];
@@ -1879,12 +1879,12 @@ static int ss_create(lsm_plugin_ptr p, Value &params, Value &response)
             lsm_string_list *files = value_to_string_list(v_files);
 
             if( fs && files ) {
-                lsm_ss *ss = NULL;
+                lsm_fs_ss *ss = NULL;
                 char *job = NULL;
 
                 const char *name = v_ss_name.asC_str();
 
-                rc = p->fs_ops->ss_create(p, fs, name, files, &ss, &job,
+                rc = p->fs_ops->fs_ss_create(p, fs, name, files, &ss, &job,
                                             LSM_FLAG_GET_VALUE(params));
 
                 std::vector<Value> r;
@@ -1892,7 +1892,7 @@ static int ss_create(lsm_plugin_ptr p, Value &params, Value &response)
                     r.push_back(Value());
                     r.push_back(ss_to_value(ss));
                     response = Value(r);
-                    lsm_ss_record_free(ss);
+                    lsm_fs_ss_record_free(ss);
                 } else if (LSM_ERR_JOB_STARTED == rc ) {
                     r.push_back(Value(job));
                     r.push_back(Value());
@@ -1917,7 +1917,7 @@ static int ss_create(lsm_plugin_ptr p, Value &params, Value &response)
 static int ss_delete(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
-    if( p && p->san_ops && p->fs_ops->ss_delete ) {
+    if( p && p->san_ops && p->fs_ops->fs_ss_delete ) {
 
         Value v_fs = params["fs"];
         Value v_ss = params["snapshot"];
@@ -1927,11 +1927,11 @@ static int ss_delete(lsm_plugin_ptr p, Value &params, Value &response)
             LSM_FLAG_EXPECTED_TYPE(params)) {
 
             lsm_fs *fs = value_to_fs(v_fs);
-            lsm_ss *ss = value_to_ss(v_ss);
+            lsm_fs_ss *ss = value_to_ss(v_ss);
 
             if( fs && ss ) {
                 char *job = NULL;
-                rc = p->fs_ops->ss_delete(p, fs, ss, &job,
+                rc = p->fs_ops->fs_ss_delete(p, fs, ss, &job,
                                             LSM_FLAG_GET_VALUE(params));
 
                 if( LSM_ERR_JOB_STARTED == rc ) {
@@ -1943,7 +1943,7 @@ static int ss_delete(lsm_plugin_ptr p, Value &params, Value &response)
             }
 
             lsm_fs_record_free(fs);
-            lsm_ss_record_free(ss);
+            lsm_fs_ss_record_free(ss);
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;
         }
@@ -1954,7 +1954,7 @@ static int ss_delete(lsm_plugin_ptr p, Value &params, Value &response)
 static int ss_revert(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
-    if( p && p->san_ops && p->fs_ops->ss_revert ) {
+    if( p && p->san_ops && p->fs_ops->fs_ss_revert ) {
 
         Value v_fs = params["fs"];
         Value v_ss = params["snapshot"];
@@ -1971,14 +1971,14 @@ static int ss_revert(lsm_plugin_ptr p, Value &params, Value &response)
 
             char *job = NULL;
             lsm_fs *fs = value_to_fs(v_fs);
-            lsm_ss *ss = value_to_ss(v_ss);
+            lsm_fs_ss *ss = value_to_ss(v_ss);
             lsm_string_list *files = value_to_string_list(v_files);
             lsm_string_list *restore_files =
                     value_to_string_list(v_restore_files);
             int all_files = (v_all_files.asBool()) ? 1 : 0;
 
             if( fs && ss && files && restore_files ) {
-                rc = p->fs_ops->ss_revert(p, fs, ss, files, restore_files,
+                rc = p->fs_ops->fs_ss_revert(p, fs, ss, files, restore_files,
                                             all_files, &job,
                                             LSM_FLAG_GET_VALUE(params));
 
@@ -1991,7 +1991,7 @@ static int ss_revert(lsm_plugin_ptr p, Value &params, Value &response)
             }
 
             lsm_fs_record_free(fs);
-            lsm_ss_record_free(ss);
+            lsm_fs_ss_record_free(ss);
             lsm_string_list_free(files);
             lsm_string_list_free(restore_files);
         } else {

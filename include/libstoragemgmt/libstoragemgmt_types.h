@@ -103,7 +103,7 @@ typedef struct _lsm_fs lsm_fs;
 /**
  * Opaque data type for snapshot
  */
-typedef struct _lsm_ss lsm_ss;
+typedef struct _lsm_fs_ss lsm_fs_ss;
 
 /**
  * Opaque data type for disk

@@ -187,14 +187,14 @@ Value fs_to_value(lsm_fs *fs);
  * @param ss        Value representing a snapshot to be converted
  * @return lsm_ss pointer or NULL on error.
  */
-lsm_ss *value_to_ss(Value &ss);
+lsm_fs_ss *value_to_ss(Value &ss);
 
 /**
  * Converts a lsm_ss pointer to a Value
  * @param ss        Snapshot pointer to convert
  * @return Value
  */
-Value ss_to_value(lsm_ss *ss);
+Value ss_to_value(lsm_fs_ss *ss);
 
 /**
  * Converts a value to a lsm_nfs_export *

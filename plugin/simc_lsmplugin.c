@@ -170,7 +170,7 @@ void free_allocated_job(void *j)
             lsm_pool_record_free((lsm_pool *)job->return_data);
             break;
         case(LSM_DATA_TYPE_SS):
-            lsm_ss_record_free((lsm_ss *)job->return_data);
+            lsm_fs_ss_record_free((lsm_fs_ss *)job->return_data);
             break;
         case(LSM_DATA_TYPE_STRING_LIST):
             lsm_string_list_free((lsm_string_list *)job->return_data);
@@ -230,7 +230,7 @@ void free_fs_record(struct allocated_fs *fs)
 
 static void free_ss(void *s)
 {
-    lsm_ss_record_free((lsm_ss *)s);
+    lsm_fs_ss_record_free((lsm_fs_ss *)s);
 }
 
 static void free_export(void *exp)
@@ -2024,7 +2024,7 @@ static int fs_resize(lsm_plugin_ptr c, lsm_fs *fs,
 }
 
 static int fs_clone(lsm_plugin_ptr c, lsm_fs *src_fs, const char *dest_fs_name,
-                    lsm_fs **cloned_fs, lsm_ss *optional_snapshot,
+                    lsm_fs **cloned_fs, lsm_fs_ss *optional_snapshot,
                     char **job, lsm_flag flags)
 {
     int rc = LSM_ERR_OK;
@@ -2045,7 +2045,7 @@ static int fs_clone(lsm_plugin_ptr c, lsm_fs *src_fs, const char *dest_fs_name,
 static int fs_file_clone(lsm_plugin_ptr c, lsm_fs *fs,
                                     const char *src_file_name,
                                     const char *dest_file_name,
-                                    lsm_ss *snapshot, char **job,
+                                    lsm_fs_ss *snapshot, char **job,
                                     lsm_flag flags)
 {
     int rc = LSM_ERR_OK;
@@ -2089,7 +2089,7 @@ static int fs_child_dependency_rm( lsm_plugin_ptr c, lsm_fs *fs,
     return rc;
 }
 
-static int ss_list(lsm_plugin_ptr c, lsm_fs * fs, lsm_ss **ss[],
+static int ss_list(lsm_plugin_ptr c, lsm_fs * fs, lsm_fs_ss **ss[],
                                 uint32_t *count, lsm_flag flags)
 {
     int rc = LSM_ERR_OK;
@@ -2100,24 +2100,24 @@ static int ss_list(lsm_plugin_ptr c, lsm_fs * fs, lsm_ss **ss[],
 
     if( find ) {
         char *k = NULL;
-        lsm_ss *v = NULL;
+        lsm_fs_ss *v = NULL;
         GHashTableIter iter;
 
         *ss = NULL;
         *count = g_hash_table_size(find->ss);
 
         if( *count ) {
-            *ss = lsm_ss_record_array_alloc(*count);
+            *ss = lsm_fs_ss_record_array_alloc(*count);
             if( *ss ) {
                 int i = 0;
                 g_hash_table_iter_init(&iter, find->ss);
 
                 while(g_hash_table_iter_next(&iter,
                                             (gpointer) &k,(gpointer)&v)) {
-                    (*ss)[i] = lsm_ss_record_copy(v);
+                    (*ss)[i] = lsm_fs_ss_record_copy(v);
                     if( !(*ss)[i] ) {
                         rc = lsm_log_error_basic(c, LSM_ERR_NO_MEMORY, "ENOMEM");
-                        lsm_ss_record_array_free(*ss, i);
+                        lsm_fs_ss_record_array_free(*ss, i);
                         *ss = NULL;
                         *count = 0;
                         break;
@@ -2138,7 +2138,7 @@ static int ss_list(lsm_plugin_ptr c, lsm_fs * fs, lsm_ss **ss[],
 
 static int ss_create(lsm_plugin_ptr c, lsm_fs *fs,
                                     const char *name, lsm_string_list *files,
-                                    lsm_ss **snapshot, char **job,
+                                    lsm_fs_ss **snapshot, char **job,
                                     lsm_flag flags)
 {
     int rc = LSM_ERR_NO_MEMORY;
@@ -2151,16 +2151,16 @@ static int ss_create(lsm_plugin_ptr c, lsm_fs *fs,
         if( !g_hash_table_lookup(find->ss, md5(name)) ) {
             char *id = strdup(md5(name));
             if( id ) {
-                lsm_ss *ss = lsm_ss_record_alloc(id, name, time(NULL));
-                lsm_ss *new_shot = lsm_ss_record_copy(ss);
+                lsm_fs_ss *ss = lsm_fs_ss_record_alloc(id, name, time(NULL));
+                lsm_fs_ss *new_shot = lsm_fs_ss_record_copy(ss);
                 if( ss && new_shot ) {
                     g_hash_table_insert(find->ss, (gpointer)id, (gpointer)ss);
                     rc = create_job(pd, job, LSM_DATA_TYPE_SS, new_shot,
                                         (void**)snapshot);
                 } else {
-                    lsm_ss_record_free(ss);
+                    lsm_fs_ss_record_free(ss);
                     ss = NULL;
-                    lsm_ss_record_free(new_shot);
+                    lsm_fs_ss_record_free(new_shot);
                     *snapshot = NULL;
                     free(id);
                     id = NULL;
@@ -2176,7 +2176,7 @@ static int ss_create(lsm_plugin_ptr c, lsm_fs *fs,
     return rc;
 }
 
-static int ss_delete(lsm_plugin_ptr c, lsm_fs *fs, lsm_ss *ss,
+static int ss_delete(lsm_plugin_ptr c, lsm_fs *fs, lsm_fs_ss *ss,
                                     char **job, lsm_flag flags)
 {
     int rc = LSM_ERR_OK;
@@ -2186,7 +2186,7 @@ static int ss_delete(lsm_plugin_ptr c, lsm_fs *fs, lsm_ss *ss,
                                     pd->fs, lsm_fs_id_get(fs));
 
     if( find ) {
-        if( !g_hash_table_remove(find->ss, lsm_ss_id_get(ss)) ) {
+        if( !g_hash_table_remove(find->ss, lsm_fs_ss_id_get(ss)) ) {
             rc = lsm_log_error_basic(c, LSM_ERR_NOT_FOUND_SS,
                                     "snapshot not found");
         } else {
@@ -2198,7 +2198,7 @@ static int ss_delete(lsm_plugin_ptr c, lsm_fs *fs, lsm_ss *ss,
     return rc;
 }
 
-static int ss_revert(lsm_plugin_ptr c, lsm_fs *fs, lsm_ss *ss,
+static int ss_revert(lsm_plugin_ptr c, lsm_fs *fs, lsm_fs_ss *ss,
                                     lsm_string_list *files,
                                     lsm_string_list *restore_files,
                                     int all_files, char **job, lsm_flag flags)
@@ -2210,7 +2210,7 @@ static int ss_revert(lsm_plugin_ptr c, lsm_fs *fs, lsm_ss *ss,
                                     pd->fs, lsm_fs_id_get(fs));
 
     if( find ) {
-        if(!g_hash_table_lookup(find->ss, lsm_ss_id_get(ss))) {
+        if(!g_hash_table_lookup(find->ss, lsm_fs_ss_id_get(ss))) {
             rc = lsm_log_error_basic(c, LSM_ERR_NOT_FOUND_SS,
                                     "snapshot not found");
         } else {
