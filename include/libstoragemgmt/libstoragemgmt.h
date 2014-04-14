@@ -237,7 +237,7 @@ extern "C" {
     /**
      * Create new pool allowing the array to make the most decisions.
      * @param [in]      conn            Valid connection @see lsm_connect_password
-     * @param [in]      system_id       System ID of where pool will reside
+     * @param [in]      system          System of where pool will reside
      * @param [in]      pool_name       Name of new pool
      * @param [in]      size_bytes      Size of new pool in bytes
      * @param [in]      raid_type       Optional. If defined, new pool should
@@ -256,7 +256,8 @@ extern "C" {
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async.,
      *          else error code
      */
-    int LSM_DLL_EXPORT lsm_pool_create(lsm_connect *conn, const char *system_id,
+    int LSM_DLL_EXPORT lsm_pool_create(lsm_connect *conn,
+                            lsm_system *system,
                             const char *pool_name, uint64_t size_bytes,
                             lsm_pool_raid_type raid_type,
                             lsm_pool_member_type member_type, lsm_pool** pool,
@@ -265,7 +266,7 @@ extern "C" {
     /**
      * Create a pool specifying specific disks to use.
      * @param [in]      conn            Valid connection @see lsm_connect_password
-     * @param [in]      system_id       System ID of where pool will reside
+     * @param [in]      system          System of where pool will reside
      * @param [in]      pool_name       The name of the new pool, will not fail
      *                                  if request name cannot be fulfilled
      * @param [in]      member_ids      The IDs of disks to create new pool from
@@ -281,7 +282,7 @@ extern "C" {
      *          else error code
      */
     int LSM_DLL_EXPORT lsm_pool_create_from_disks(lsm_connect *conn,
-                        const char *system_id, const char *pool_name,
+                        lsm_system *system, const char *pool_name,
                         lsm_string_list *member_ids, lsm_pool_raid_type raid_type,
                         lsm_pool** pool, char **job, lsm_flag flags);
 
@@ -289,7 +290,7 @@ extern "C" {
      * Create new pool in by specifying which volumes should be used for pool
      * creation.
      * @param [in]      conn            Valid connection @see lsm_connect_password
-     * @param [in]      system_id       System ID of where pool will reside
+     * @param [in]      system          System of where pool will reside
      * @param [in]      pool_name       The name of the new pool, will not fail
      *                                  if request name cannot be fulfilled
      * @param [in]      member_ids      The IDs of volumes to create new pool from
@@ -305,14 +306,14 @@ extern "C" {
      *          else error code
      */
     int LSM_DLL_EXPORT lsm_pool_create_from_volumes(lsm_connect *conn,
-                        const char *system_id, const char *pool_name,
+                        lsm_system *system, const char *pool_name,
                         lsm_string_list *member_ids, lsm_pool_raid_type raid_type,
                         lsm_pool** pool, char **job, lsm_flag flags);
 
     /**
      * Create new pool from an existing pool
      * @param [in]      conn            Valid connection @see lsm_connect_password
-     * @param [in]      system_id       System ID of where pool will reside
+     * @param [in]      system          System of where pool will reside
      * @param [in]      pool_name       The name of the new pool, will not fail
      *                                  if request name cannot be fulfilled
      * @param [in]      member_id       The ID of pool to create new pool from
@@ -324,7 +325,7 @@ extern "C" {
      *          else error code
      */
     int LSM_DLL_EXPORT lsm_pool_create_from_pool(lsm_connect *conn,
-                        const char *system_id, const char *pool_name,
+                        lsm_system *system, const char *pool_name,
                         const char *member_id, uint64_t size_bytes,
                         lsm_pool** pool, char **job, lsm_flag flags);
 

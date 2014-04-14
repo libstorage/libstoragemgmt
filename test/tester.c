@@ -342,7 +342,7 @@ void create_volumes(lsm_connect *c, lsm_pool *p, int num)
     }
 }
 
-lsm_system *get_system()
+lsm_system *get_system(lsm_connect *c)
 {
     lsm_system *rc_sys = NULL;
     lsm_system **sys=NULL;
@@ -455,7 +455,7 @@ START_TEST(test_smoke_test)
 
 
         uint32_t bs = 0;
-        lsm_system * system = get_system();
+        lsm_system * system = get_system(c);
 
         int rep_bs = lsm_volume_replicate_range_block_size(c, system, &bs, LSM_FLAG_RSVD);
         fail_unless(LSM_ERR_OK == rep_bs, "%d", rep_bs);
@@ -1766,39 +1766,40 @@ START_TEST(test_invalid_input)
     int member_type = 65535;
     uint64_t size = 0;
     int flags = 10;
+    lsm_system *system = get_system(c);
 
 
     rc = lsm_pool_create(NULL, NULL, NULL, size, raid_type, member_type, NULL, NULL, flags);
     fail_unless(rc == LSM_ERR_INVALID_CONN, "rc = %d", rc);
 
     rc = lsm_pool_create(c, NULL, NULL, size, raid_type, member_type, NULL, NULL, flags);
+    fail_unless(rc == LSM_ERR_INVALID_SYSTEM, "rc = %d", rc);
+
+    rc = lsm_pool_create(c, system, NULL, size, raid_type, member_type, NULL, NULL, flags);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_pool_create(c, SYSTEM_ID, NULL, size, raid_type, member_type, NULL, NULL, flags);
-    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
-
-    rc = lsm_pool_create(c, SYSTEM_ID, "pool name", size, raid_type, member_type, NULL, NULL, flags);
+    rc = lsm_pool_create(c, system, "pool name", size, raid_type, member_type, NULL, NULL, flags);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     size = 1024*1024*1024;
 
-    rc = lsm_pool_create(c, SYSTEM_ID, "pool name", size, raid_type, member_type, NULL, NULL, flags);
+    rc = lsm_pool_create(c, system, "pool name", size, raid_type, member_type, NULL, NULL, flags);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     raid_type = LSM_POOL_RAID_TYPE_0;
-    rc = lsm_pool_create(c, SYSTEM_ID, "pool name", size, raid_type, member_type, NULL, NULL, flags);
+    rc = lsm_pool_create(c, system, "pool name", size, raid_type, member_type, NULL, NULL, flags);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     member_type = LSM_POOL_MEMBER_TYPE_DISK;
-    rc = lsm_pool_create(c, SYSTEM_ID, "pool name", size, raid_type, member_type, NULL, NULL, flags);
+    rc = lsm_pool_create(c, system, "pool name", size, raid_type, member_type, NULL, NULL, flags);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     lsm_pool *pcp = NULL;
-    rc = lsm_pool_create(c, SYSTEM_ID, "pool name", size, raid_type, member_type, &pcp, NULL, flags);
+    rc = lsm_pool_create(c, system, "pool name", size, raid_type, member_type, &pcp, NULL, flags);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     char *pcj = NULL;
-    rc = lsm_pool_create(c, SYSTEM_ID, "pool name", size, raid_type, member_type, &pcp, &pcj, flags);
+    rc = lsm_pool_create(c, system, "pool name", size, raid_type, member_type, &pcp, &pcj, flags);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 
@@ -2457,11 +2458,12 @@ START_TEST(test_pool_create)
     uint32_t num_disks = 0;
     lsm_string_list *member_ids = lsm_string_list_alloc(0);
     char *pool_one = NULL;
+    lsm_system *system = get_system(c);
 
     /*
      * Test basic pool create option.
      */
-    rc = lsm_pool_create(c, SYSTEM_ID, "pool_create_unit_test", 1024*1024*1024,
+    rc = lsm_pool_create(c, system, "pool_create_unit_test", 1024*1024*1024,
                         LSM_POOL_RAID_TYPE_0, LSM_POOL_MEMBER_TYPE_DISK, &pool,
                         &job, LSM_FLAG_RSVD);
 
@@ -2497,7 +2499,7 @@ START_TEST(test_pool_create)
         lsm_disk_record_array_free(disks, num_disks);
     }
 
-    rc = lsm_pool_create_from_disks(c, SYSTEM_ID, "pool_create_from_disks",
+    rc = lsm_pool_create_from_disks(c, system, "pool_create_from_disks",
                                 member_ids, LSM_POOL_RAID_TYPE_0, &pool, &job,
                                 LSM_FLAG_RSVD);
 
@@ -2567,7 +2569,7 @@ START_TEST(test_pool_create)
             pool = NULL;
             job = NULL;
 
-            rc = lsm_pool_create_from_volumes(c, SYSTEM_ID,
+            rc = lsm_pool_create_from_volumes(c, system,
                                     "pool_create_from_volumes", member_ids,
                                     LSM_POOL_RAID_TYPE_0, &pool, &job,
                                     LSM_FLAG_RSVD);
@@ -2596,7 +2598,7 @@ START_TEST(test_pool_create)
             pool = NULL;
             job = NULL;
 
-            rc = lsm_pool_create_from_pool(c, SYSTEM_ID, "New pool from pool",
+            rc = lsm_pool_create_from_pool(c, system, "New pool from pool",
                                         pool_one, 1024*1024*1024, &pool,
                                         &job, LSM_FLAG_RSVD);
 
@@ -2614,6 +2616,11 @@ START_TEST(test_pool_create)
             free(pool_one);
             pool_one = NULL;
         }
+    }
+
+    if( system ) {
+        lsm_system_record_free(system);
+        system = NULL;
     }
 }
 END_TEST

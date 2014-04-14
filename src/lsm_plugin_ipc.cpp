@@ -482,20 +482,20 @@ static int handle_pool_create(lsm_plugin_ptr p, Value &params, Value &response)
     int rc = LSM_ERR_NO_SUPPORT;
     if( p && p->san_ops && p->san_ops->pool_create ) {
 
-        Value v_sys_id = params["system_id"];
+        Value v_sys = params["system"];
         Value v_pool_name = params["pool_name"];
         Value v_size = params["size_bytes"];
         Value v_raid_t = params["raid_type"];
         Value v_member_t = params["member_type"];
 
-        if( Value::string_t == v_sys_id.valueType() &&
+        if( Value::object_t == v_sys.valueType() &&
             Value::string_t == v_pool_name.valueType() &&
             Value::numeric_t == v_size.valueType() &&
             Value::numeric_t == v_raid_t.valueType() &&
             Value::numeric_t == v_member_t.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
 
-            const char *sys_id = v_sys_id.asC_str();
+            lsm_system *system = value_to_system(v_sys);
             const char *pool_name = v_pool_name.asC_str();
             uint64_t size = v_size.asUint64_t();
             lsm_pool_raid_type raid_type = (lsm_pool_raid_type)v_raid_t.asInt32_t();
@@ -503,13 +503,14 @@ static int handle_pool_create(lsm_plugin_ptr p, Value &params, Value &response)
             lsm_pool *pool = NULL;
             char *job = NULL;
 
-            rc = p->san_ops->pool_create(p, sys_id, pool_name, size, raid_type,
+            rc = p->san_ops->pool_create(p, system, pool_name, size, raid_type,
                                             member_type, &pool, &job,
                                             LSM_FLAG_GET_VALUE(params));
 
             Value p = pool_to_value(pool);
             response = job_handle(p, job);
             lsm_pool_record_free(pool);
+            lsm_system_record_free(system);
             free(job);
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;
@@ -519,7 +520,7 @@ static int handle_pool_create(lsm_plugin_ptr p, Value &params, Value &response)
 }
 
 typedef int (*lsmPlugPoolCreateFrom)( lsm_plugin_ptr c,
-                        const char *system_id,
+                        lsm_system *system,
                         const char *pool_name, lsm_string_list *member_ids,
                         lsm_pool_raid_type raid_type, lsm_pool** pool, char **job,
                         lsm_flag flags);
@@ -532,12 +533,12 @@ static int handle_pool_create_from( lsm_plugin_ptr p, Value &params,
     int rc = LSM_ERR_NO_SUPPORT;
     if( pool_create_from ) {
 
-        Value v_sys_id = params["system_id"];
+        Value v_sys = params["system"];
         Value v_pool_name = params["pool_name"];
         Value v_member_ids = params["member_ids"];
         Value v_raid_t = params["raid_type"];
 
-        if( Value::string_t == v_sys_id.valueType() &&
+        if( Value::object_t == v_sys.valueType() &&
             Value::string_t == v_pool_name.valueType() &&
             Value::array_t == v_member_ids.valueType() &&
             Value::numeric_t == v_raid_t.valueType() &&
@@ -546,20 +547,21 @@ static int handle_pool_create_from( lsm_plugin_ptr p, Value &params,
             lsm_string_list *members = value_to_string_list(v_member_ids);
 
             if( members ) {
-                const char *sys_id = v_sys_id.asC_str();
+                lsm_system *sys = value_to_system(v_sys);
                 const char *pool_name = v_pool_name.asC_str();
                 lsm_pool_raid_type raid_type = (lsm_pool_raid_type)v_raid_t.asInt32_t();
 
                 lsm_pool *pool = NULL;
                 char *job = NULL;
 
-                rc = pool_create_from(p, sys_id, pool_name, members, raid_type,
+                rc = pool_create_from(p, sys, pool_name, members, raid_type,
                                         &pool, &job, LSM_FLAG_GET_VALUE(params));
 
                 Value p = pool_to_value(pool);
                 response = job_handle(p, job);
                 lsm_string_list_free(members);
                 lsm_pool_record_free(pool);
+                lsm_system_record_free(sys);
                 free(job);
             } else {
                 rc = LSM_ERR_NO_MEMORY;
@@ -594,18 +596,18 @@ static int handle_pool_create_from_pool(lsm_plugin_ptr p, Value &params, Value &
      int rc = LSM_ERR_NO_SUPPORT;
     if( p && p->san_ops && p->san_ops->pool_create_from_pool ) {
 
-        Value v_sys_id = params["system_id"];
+        Value v_sys = params["system"];
         Value v_pool_name = params["pool_name"];
         Value v_member_id = params["member_id"];
         Value v_size = params["size_bytes"];
 
-        if( Value::string_t == v_sys_id.valueType() &&
+        if( Value::object_t == v_sys.valueType() &&
             Value::string_t == v_pool_name.valueType() &&
             Value::string_t == v_member_id.valueType() &&
             Value::numeric_t == v_size.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
 
-            const char *sys_id = v_sys_id.asC_str();
+            lsm_system *sys = value_to_system(v_sys);
             const char *pool_name = v_pool_name.asC_str();
             const char *member_id = v_member_id.asC_str();
             uint64_t size = v_size.asUint64_t();
@@ -613,13 +615,14 @@ static int handle_pool_create_from_pool(lsm_plugin_ptr p, Value &params, Value &
             lsm_pool *pool = NULL;
             char *job = NULL;
 
-            rc = p->san_ops->pool_create_from_pool(p, sys_id, pool_name,
+            rc = p->san_ops->pool_create_from_pool(p, sys, pool_name,
                                             member_id, size, &pool, &job,
                                             LSM_FLAG_GET_VALUE(params));
 
             Value p = pool_to_value(pool);
             response = job_handle(p, job);
             lsm_pool_record_free(pool);
+            lsm_system_record_free(sys);
             free(job);
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;

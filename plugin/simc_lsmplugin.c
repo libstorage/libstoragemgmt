@@ -973,7 +973,7 @@ static int _volume_delete(lsm_plugin_ptr c, const char *volume_id)
     return rc;
 }
 
-static int _pool_create(lsm_plugin_ptr c, const char *system_id,
+static int _pool_create(lsm_plugin_ptr c, lsm_system *system,
                             const char *pool_name, uint64_t size_bytes,
                             lsm_pool **pool, char **job)
 {
@@ -984,14 +984,14 @@ static int _pool_create(lsm_plugin_ptr c, const char *system_id,
     char *key = NULL;
 
     /* Verify system id */
-    if( strcmp(system_id, lsm_system_id_get(pd->system[0])) == 0 ) {
+    if( strcmp(lsm_system_id_get(system), lsm_system_id_get(pd->system[0])) == 0 ) {
         /* Verify that we don't already have a pool by that name */
         new_pool = find_pool_name(pd, pool_name);
         if( !new_pool ) {
             /* Create the pool */
             new_pool = lsm_pool_record_alloc(md5(pool_name), pool_name, size_bytes,
                                         size_bytes, LSM_POOL_STATUS_OK, "",
-                                        system_id);
+                                        lsm_system_id_get(system));
 
             pool_to_store = lsm_pool_record_copy(new_pool);
             key = strdup(lsm_pool_id_get(pool_to_store));
@@ -1019,16 +1019,16 @@ static int _pool_create(lsm_plugin_ptr c, const char *system_id,
 }
 
 
-static int pool_create(lsm_plugin_ptr c, const char *system_id,
+static int pool_create(lsm_plugin_ptr c, lsm_system *system,
                             const char *pool_name, uint64_t size_bytes,
                             lsm_pool_raid_type raid_type,
                             lsm_pool_member_type member_type, lsm_pool** pool,
                             char **job, lsm_flag flags)
 {
-    return _pool_create(c, system_id, pool_name, size_bytes, pool, job);
+    return _pool_create(c, system, pool_name, size_bytes, pool, job);
 }
 
-static int pool_create_from_disks( lsm_plugin_ptr c, const char *system_id,
+static int pool_create_from_disks( lsm_plugin_ptr c, lsm_system *system,
                 const char *pool_name, lsm_string_list *member_ids,
                 lsm_pool_raid_type raid_type, lsm_pool **pool, char **job,
                 lsm_flag flags)
@@ -1052,7 +1052,7 @@ static int pool_create_from_disks( lsm_plugin_ptr c, const char *system_id,
             }
         }
 
-        rc = _pool_create(c, system_id, pool_name, size, pool, job);
+        rc = _pool_create(c, system, pool_name, size, pool, job);
     } else {
         rc = lsm_log_error_basic(c, LSM_ERR_INVALID_ARGUMENT, "No disks provided");
     }
@@ -1060,7 +1060,7 @@ bail:
     return rc;
 }
 
-static int pool_create_from_volumes( lsm_plugin_ptr c, const char *system_id,
+static int pool_create_from_volumes( lsm_plugin_ptr c, lsm_system *system,
                 const char *pool_name, lsm_string_list *member_ids,
                 lsm_pool_raid_type raid_type, lsm_pool **pool, char **job,
                 lsm_flag flags)
@@ -1086,7 +1086,7 @@ static int pool_create_from_volumes( lsm_plugin_ptr c, const char *system_id,
             }
         }
 
-        rc = _pool_create(c, system_id, pool_name, size, pool, job);
+        rc = _pool_create(c, system, pool_name, size, pool, job);
     } else {
         rc = lsm_log_error_basic(c, LSM_ERR_INVALID_ARGUMENT, "No disks provided");
     }
@@ -1094,7 +1094,7 @@ bail:
     return rc;
 }
 
-static int pool_create_from_pool(lsm_plugin_ptr c, const char *system_id,
+static int pool_create_from_pool(lsm_plugin_ptr c, lsm_system *system,
                         const char *pool_name, const char *member_id,
                         uint64_t size_bytes, lsm_pool **pool, char **job,
                         lsm_flag flags )
@@ -1105,7 +1105,7 @@ static int pool_create_from_pool(lsm_plugin_ptr c, const char *system_id,
     lsm_pool *p = find_pool(pd, member_id);
 
     if( p ) {
-        rc = _pool_create(c, system_id, pool_name, size_bytes, pool, job);
+        rc = _pool_create(c, system, pool_name, size_bytes, pool, job);
     } else {
         rc = lsm_log_error_basic(c, LSM_ERR_NOT_FOUND_POOL, "Pool not found");
     }

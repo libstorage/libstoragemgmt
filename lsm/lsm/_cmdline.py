@@ -1654,6 +1654,7 @@ class CmdLine:
 
     ## Creates a pool
     def pool_create(self, args):
+        system = _get_item(self.c.systems(), args.sys, "system id")
         pool_name = args.name
         raid_type = Pool.RAID_TYPE_UNKNOWN
         member_type = Pool.MEMBER_TYPE_UNKNOWN
@@ -1674,7 +1675,7 @@ class CmdLine:
                                args.member_type)
 
         pool = self._wait_for_it("pool-create",
-                                 *self.c.pool_create(self.args.sys,
+                                 *self.c.pool_create(system,
                                                      pool_name,
                                                      size_bytes,
                                                      raid_type,
@@ -1683,6 +1684,7 @@ class CmdLine:
         self.display_data([pool])
 
     def pool_create_from_disks(self, args):
+        system = _get_item(self.c.systems(), args.sys, "system id")
         if len(args.member_id) <= 0:
             raise ArgError("No disk ID was provided for new pool")
 
@@ -1704,10 +1706,11 @@ class CmdLine:
         pool = self._wait_for_it(
             "pool-create-from-disks",
             *self.c.pool_create_from_disks(
-                self.args.sys, pool_name, member_ids, raid_type, 0))
+                system, pool_name, member_ids, raid_type, 0))
         self.display_data([pool])
 
     def pool_create_from_volumes(self, args):
+        system = _get_item(self.c.systems(), args.sys, "system id")
         if len(args.member_id) <= 0:
             raise ArgError("No volume ID was provided for new pool")
 
@@ -1729,10 +1732,11 @@ class CmdLine:
         pool = self._wait_for_it(
             "pool-create-from-volumes",
             *self.c.pool_create_from_volumes(
-                self.args.sys, pool_name, member_ids, raid_type, 0))
+                system, pool_name, member_ids, raid_type, 0))
         self.display_data([pool])
 
     def pool_create_from_pool(self, args):
+        system = _get_item(self.c.systems(), args.sys, "system id")
         if len(args.member_id) <= 0:
             raise ArgError("No volume ID was provided for new pool")
 
@@ -1755,7 +1759,7 @@ class CmdLine:
         pool = self._wait_for_it(
             "pool-create-from-pool",
             *self.c.pool_create_from_pool(
-                self.args.sys, pool_name, member_id, size_bytes, 0))
+                system, pool_name, member_id, size_bytes, 0))
         self.display_data([pool])
 
     def _read_configfile(self):

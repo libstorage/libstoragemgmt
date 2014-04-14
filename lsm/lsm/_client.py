@@ -298,7 +298,7 @@ class Client(INetworkAttachedStorage):
     ## sample codes.
     ## Return the newly created pool object.
     # @param    self        The this pointer
-    # @param    system_id   The id of system where new pool should reside.
+    # @param    system      The system where new pool should reside.
     # @param    pool_name   The name for new pool. Will not fail if created
     #                       pool_name is not the same as requested.
     # @param    size_bytes  The size in bytes for new pool.
@@ -317,7 +317,7 @@ class Client(INetworkAttachedStorage):
     # @returns  A tuple (job_id, new_pool), when one is None the other is
     #           valid.
     @_return_requires(unicode, Pool)
-    def pool_create(self, system_id, pool_name, size_bytes,
+    def pool_create(self, system, pool_name, size_bytes,
                     raid_type=Pool.RAID_TYPE_UNKNOWN,
                     member_type=Pool.MEMBER_TYPE_UNKNOWN, flags=0):
         """

@@ -913,7 +913,7 @@ static int valid_pool_member_type(lsm_pool_member_type validate)
     return 1;
 }
 
-int lsm_pool_create(lsm_connect *c, const char *system_id,
+int lsm_pool_create(lsm_connect *c, lsm_system *system,
                             const char *pool_name, uint64_t size_bytes,
                             lsm_pool_raid_type raid_type,
                             lsm_pool_member_type member_type, lsm_pool** pool,
@@ -921,7 +921,11 @@ int lsm_pool_create(lsm_connect *c, const char *system_id,
 {
     CONN_SETUP(c);
 
-    if( CHECK_STR(system_id) || CHECK_STR(pool_name) || !size_bytes ||
+    if( !LSM_IS_SYSTEM(system) ) {
+        return LSM_ERR_INVALID_SYSTEM;
+    }
+
+    if( CHECK_STR(pool_name) || !size_bytes ||
         CHECK_RP(pool)|| CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ||
         !valid_pool_raid_type(raid_type) ||
         !valid_pool_member_type(member_type)) {
@@ -929,7 +933,7 @@ int lsm_pool_create(lsm_connect *c, const char *system_id,
     }
 
     std::map<std::string, Value> p;
-    p["system_id"] = Value(system_id);
+    p["system"] = system_to_value(system);
     p["pool_name"] = Value(pool_name);
     p["size_bytes"] = Value(size_bytes);
     p["raid_type"] = Value((int32_t)raid_type);
@@ -949,14 +953,18 @@ int lsm_pool_create(lsm_connect *c, const char *system_id,
 
 
 static int lsm_pool_create_from(lsm_connect *c,
-                        const char *system_id, const char *pool_name,
+                        lsm_system *system, const char *pool_name,
                         lsm_string_list *member_ids, lsm_pool_raid_type raid_type,
                         lsm_pool** pool, char **job, lsm_flag flags,
                         const char *method)
 {
     CONN_SETUP(c);
 
-    if( CHECK_STR(system_id) || CHECK_STR(pool_name) ||
+    if( !LSM_IS_SYSTEM(system) ) {
+        return LSM_ERR_INVALID_SYSTEM;
+    }
+
+    if( CHECK_STR(pool_name) ||
         CHECK_RP(pool)|| CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ||
         !valid_pool_raid_type(raid_type) ) {
         return LSM_ERR_INVALID_ARGUMENT;
@@ -967,7 +975,7 @@ static int lsm_pool_create_from(lsm_connect *c,
     }
 
     std::map<std::string, Value> p;
-    p["system_id"] = Value(system_id);
+    p["system"] = system_to_value(system);
     p["pool_name"] = Value(pool_name);
     p["member_ids"] = string_list_to_value(member_ids);
     p["raid_type"] = Value((int32_t)raid_type);
@@ -985,40 +993,44 @@ static int lsm_pool_create_from(lsm_connect *c,
 }
 
 int LSM_DLL_EXPORT lsm_pool_create_from_disks(lsm_connect *c,
-                        const char *system_id, const char *pool_name,
+                        lsm_system *system, const char *pool_name,
                         lsm_string_list *member_ids, lsm_pool_raid_type raid_type,
                         lsm_pool** pool, char **job, lsm_flag flags)
 {
-    return lsm_pool_create_from(c, system_id, pool_name, member_ids, raid_type,
+    return lsm_pool_create_from(c, system, pool_name, member_ids, raid_type,
                                 pool, job, flags, "pool_create_from_disks");
 }
 
 int LSM_DLL_EXPORT lsm_pool_create_from_volumes(lsm_connect *c,
-                        const char *system_id, const char *pool_name,
+                        lsm_system *system, const char *pool_name,
                         lsm_string_list *member_ids, lsm_pool_raid_type raid_type,
                         lsm_pool** pool, char **job, lsm_flag flags)
 {
-     return lsm_pool_create_from(c, system_id, pool_name, member_ids, raid_type,
+     return lsm_pool_create_from(c, system, pool_name, member_ids, raid_type,
                                 pool, job, flags,
                                 "pool_create_from_volumes");
 }
 
 
- int lsm_pool_create_from_pool(lsm_connect *c, const char *system_id,
+ int lsm_pool_create_from_pool(lsm_connect *c, lsm_system *system,
                         const char *pool_name, const char *member_id,
                         uint64_t size_bytes, lsm_pool **pool, char **job,
                         lsm_flag flags)
  {
     CONN_SETUP(c);
 
-    if( CHECK_STR(system_id) || CHECK_STR(pool_name) || CHECK_STR(member_id) ||
+    if( !LSM_IS_SYSTEM(system) ) {
+        return LSM_ERR_INVALID_SYSTEM;
+    }
+
+    if( CHECK_STR(pool_name) || CHECK_STR(member_id) ||
         !size_bytes || CHECK_RP(pool)|| CHECK_RP(job) ||
         LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
-    p["system_id"] = Value(system_id);
+    p["system"] = system_to_value(system);
     p["pool_name"] = Value(pool_name);
     p["size_bytes"] = Value(size_bytes);
     p["member_id"] = Value(member_id);
