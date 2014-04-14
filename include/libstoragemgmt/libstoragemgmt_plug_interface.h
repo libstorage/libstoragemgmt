@@ -271,16 +271,16 @@ typedef int (*lsm_plug_pool_create_from_volumes)( lsm_plugin_ptr c,
  * @param[in]   c               Valid lsm plug-in pointer
  * @param[in]   system          System id
  * @param[in]   pool_name       Human name of pool
- * @param[in]   member_id       ID of pool to create pool from
+ * @param[in]   pool            Pool to create pool from
  * @param[in]   size_bytes      Size of pool
- * @param[out]  pool            Newly create pool if done sync.
+ * @param[out]  created_pool    Newly create pool if done sync.
  * @param[out]  job             Job id if execution is async.
  * @return  LSM_ERR_OK, else error reason
  */
 typedef int (*lsm_plug_pool_create_from_pool)( lsm_plugin_ptr c,
                         lsm_system *system,
-                        const char *pool_name, const char *member_id,
-                        uint64_t size_bytes, lsm_pool **pool, char **job,
+                        const char *pool_name, lsm_pool *pool,
+                        uint64_t size_bytes, lsm_pool **created_pool, char **job,
                         lsm_flag flags );
 
 

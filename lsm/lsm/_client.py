@@ -388,13 +388,13 @@ class Client(INetworkAttachedStorage):
     # @param    system_id   The id of system where new pool should reside.
     # @param    pool_name   The name for new pool. Will not fail if created
     #                       pool_name is not the same as requested.
-    # @param    member_id   The id of pool to allocate space from for new pool.
+    # @param    pool        The pool to allocate space from for new pool.
     # @param    size_bytes  The size of the new pool.
     # @param    flags       Reserved for future use.
     # @returns  A tuple (job_id, new_pool), when one is None the other is
     #           valid.
     @_return_requires(unicode, Pool)
-    def pool_create_from_pool(self, system_id, pool_name, member_id,
+    def pool_create_from_pool(self, system_id, pool_name, pool,
                               size_bytes, flags=0):
         """
         Creates pool from volumes.

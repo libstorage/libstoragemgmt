@@ -1013,8 +1013,8 @@ int LSM_DLL_EXPORT lsm_pool_create_from_volumes(lsm_connect *c,
 
 
  int lsm_pool_create_from_pool(lsm_connect *c, lsm_system *system,
-                        const char *pool_name, const char *member_id,
-                        uint64_t size_bytes, lsm_pool **pool, char **job,
+                        const char *pool_name, lsm_pool *pool,
+                        uint64_t size_bytes, lsm_pool **created_pool, char **job,
                         lsm_flag flags)
  {
     CONN_SETUP(c);
@@ -1023,8 +1023,12 @@ int LSM_DLL_EXPORT lsm_pool_create_from_volumes(lsm_connect *c,
         return LSM_ERR_INVALID_SYSTEM;
     }
 
-    if( CHECK_STR(pool_name) || CHECK_STR(member_id) ||
-        !size_bytes || CHECK_RP(pool)|| CHECK_RP(job) ||
+    if( !LSM_IS_POOL(pool) ) {
+        return LSM_ERR_INVALID_POOL;
+    }
+
+    if( CHECK_STR(pool_name) ||
+        !size_bytes || CHECK_RP(created_pool)|| CHECK_RP(job) ||
         LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
@@ -1033,7 +1037,7 @@ int LSM_DLL_EXPORT lsm_pool_create_from_volumes(lsm_connect *c,
     p["system"] = system_to_value(system);
     p["pool_name"] = Value(pool_name);
     p["size_bytes"] = Value(size_bytes);
-    p["member_id"] = Value(member_id);
+    p["pool"] = pool_to_value(pool);
     p["flags"] = Value(flags);
 
     Value parameters(p);
@@ -1041,7 +1045,7 @@ int LSM_DLL_EXPORT lsm_pool_create_from_volumes(lsm_connect *c,
 
     int rc = rpc(c, "pool_create_from_pool", parameters, response);
     if( LSM_ERR_OK == rc ) {
-        *pool = (lsm_pool *)parse_job_response(c, response, rc, job,
+        *created_pool = (lsm_pool *)parse_job_response(c, response, rc, job,
                                                         (convert)value_to_pool);
     }
     return rc;

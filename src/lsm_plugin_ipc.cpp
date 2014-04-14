@@ -598,29 +598,30 @@ static int handle_pool_create_from_pool(lsm_plugin_ptr p, Value &params, Value &
 
         Value v_sys = params["system"];
         Value v_pool_name = params["pool_name"];
-        Value v_member_id = params["member_id"];
+        Value v_pool = params["pool"];
         Value v_size = params["size_bytes"];
 
         if( Value::object_t == v_sys.valueType() &&
             Value::string_t == v_pool_name.valueType() &&
-            Value::string_t == v_member_id.valueType() &&
+            Value::object_t == v_pool.valueType() &&
             Value::numeric_t == v_size.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
 
             lsm_system *sys = value_to_system(v_sys);
             const char *pool_name = v_pool_name.asC_str();
-            const char *member_id = v_member_id.asC_str();
+            lsm_pool *pool = value_to_pool(v_pool);
             uint64_t size = v_size.asUint64_t();
 
-            lsm_pool *pool = NULL;
+            lsm_pool *created_pool = NULL;
             char *job = NULL;
 
             rc = p->san_ops->pool_create_from_pool(p, sys, pool_name,
-                                            member_id, size, &pool, &job,
+                                            pool, size, &created_pool, &job,
                                             LSM_FLAG_GET_VALUE(params));
 
-            Value p = pool_to_value(pool);
+            Value p = pool_to_value(created_pool);
             response = job_handle(p, job);
+            lsm_pool_record_free(created_pool);
             lsm_pool_record_free(pool);
             lsm_system_record_free(sys);
             free(job);

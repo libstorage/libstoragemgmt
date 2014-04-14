@@ -1746,12 +1746,7 @@ class CmdLine:
                            "from pool only allow one member pool")
 
         member_id = member_ids[0]
-
-        pools = self.c.pools()
-        pool_ids = [p.id for p in pools]
-        if member_id not in pool_ids:
-            raise ArgError("Invalid pools ID specified in " +
-                           "--member-id %s " % member_id)
+        pool = _get_item(self.c.pools(), member_id, "pool id")
 
         size_bytes = self._size(self.args.size)
 
@@ -1759,7 +1754,7 @@ class CmdLine:
         pool = self._wait_for_it(
             "pool-create-from-pool",
             *self.c.pool_create_from_pool(
-                system, pool_name, member_id, size_bytes, 0))
+                system, pool_name, pool, size_bytes, 0))
         self.display_data([pool])
 
     def _read_configfile(self):

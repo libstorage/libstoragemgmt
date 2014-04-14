@@ -105,10 +105,10 @@ class SimPlugin(INfs, IStorageAreaNetwork):
         return self.sim_array.pool_create_from_volumes(
             system.id, pool_name, member_ids, raid_type, flags)
 
-    def pool_create_from_pool(self, system, pool_name, member_id,
+    def pool_create_from_pool(self, system, pool_name, pool,
                               size_bytes, flags=0):
         return self.sim_array.pool_create_from_pool(
-            system.id, pool_name, member_id, size_bytes, flags)
+            system.id, pool_name, pool.id, size_bytes, flags)
 
     def pool_delete(self, pool, flags=0):
         return self.sim_array.pool_delete(pool.id, flags)

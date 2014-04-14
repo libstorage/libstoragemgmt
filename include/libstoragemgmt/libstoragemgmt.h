@@ -316,9 +316,9 @@ extern "C" {
      * @param [in]      system          System of where pool will reside
      * @param [in]      pool_name       The name of the new pool, will not fail
      *                                  if request name cannot be fulfilled
-     * @param [in]      member_id       The ID of pool to create new pool from
+     * @param [in]      pool            The pool to create new pool from
      * @param [in]      size_bytes      Desired size of new pool
-     * @param [out]     pool            Newly created pool
+     * @param [out]     created_pool    Newly created pool
      * @param [out]     job             Job ID of aysnc.
      * @param [in]      flags           Reserved for future use, must be zero
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async.,
@@ -326,8 +326,8 @@ extern "C" {
      */
     int LSM_DLL_EXPORT lsm_pool_create_from_pool(lsm_connect *conn,
                         lsm_system *system, const char *pool_name,
-                        const char *member_id, uint64_t size_bytes,
-                        lsm_pool** pool, char **job, lsm_flag flags);
+                        lsm_pool *pool, uint64_t size_bytes,
+                        lsm_pool** created_pool, char **job, lsm_flag flags);
 
     /**
      * Deletes a pool

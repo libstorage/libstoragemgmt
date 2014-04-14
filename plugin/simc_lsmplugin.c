@@ -1095,17 +1095,17 @@ bail:
 }
 
 static int pool_create_from_pool(lsm_plugin_ptr c, lsm_system *system,
-                        const char *pool_name, const char *member_id,
-                        uint64_t size_bytes, lsm_pool **pool, char **job,
+                        const char *pool_name, lsm_pool *pool,
+                        uint64_t size_bytes, lsm_pool **created_pool, char **job,
                         lsm_flag flags )
 {
     /* Check that the disks are valid, then call common routine */
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsm_private_data_get(c);
-    lsm_pool *p = find_pool(pd, member_id);
+    lsm_pool *p = find_pool(pd, lsm_pool_id_get(pool));
 
     if( p ) {
-        rc = _pool_create(c, system, pool_name, size_bytes, pool, job);
+        rc = _pool_create(c, system, pool_name, size_bytes, created_pool, job);
     } else {
         rc = lsm_log_error_basic(c, LSM_ERR_NOT_FOUND_POOL, "Pool not found");
     }

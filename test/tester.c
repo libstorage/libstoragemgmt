@@ -2457,7 +2457,7 @@ START_TEST(test_pool_create)
     lsm_disk **disks = NULL;
     uint32_t num_disks = 0;
     lsm_string_list *member_ids = lsm_string_list_alloc(0);
-    char *pool_one = NULL;
+    lsm_pool *pool_one = NULL;
     lsm_system *system = get_system(c);
 
     /*
@@ -2533,7 +2533,7 @@ START_TEST(test_pool_create)
 
         if( LSM_ERR_OK == rc ) {
 
-            pool_one = strdup(lsm_pool_id_get(pools[0]));
+            pool_one = lsm_pool_record_copy(pools[0]);
 
             for( i = 0; i < num_pools; ++i ) {
                 job = NULL;
@@ -2616,6 +2616,11 @@ START_TEST(test_pool_create)
             free(pool_one);
             pool_one = NULL;
         }
+    }
+
+    if( pool_one ) {
+        lsm_pool_record_free(pool_one);
+        pool_one = NULL;
     }
 
     if( system ) {
