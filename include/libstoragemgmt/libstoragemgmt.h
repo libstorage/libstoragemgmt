@@ -269,11 +269,13 @@ extern "C" {
      * @param [in]      system          System of where pool will reside
      * @param [in]      pool_name       The name of the new pool, will not fail
      *                                  if request name cannot be fulfilled
-     * @param [in]      member_ids      The IDs of disks to create new pool from
+     * @param [in]      disks           An array of disk pointers to create new
+     *                                  pool from.
      *                                  The new pool could contain more disks
      *                                  than requested due to internal needs,
      *                                  but if possible should only contain
      *                                  requested disks.
+     * @param [in]      num_disks       Number of disks in disks array
      * @param [in]      raid_type       The RAID type for new pool
      * @param [out]     pool            Newly created pool
      * @param [out]     job             Job ID of aysnc.
@@ -283,7 +285,8 @@ extern "C" {
      */
     int LSM_DLL_EXPORT lsm_pool_create_from_disks(lsm_connect *conn,
                         lsm_system *system, const char *pool_name,
-                        lsm_string_list *member_ids, lsm_pool_raid_type raid_type,
+                        lsm_disk *disks[], uint32_t num_disks,
+                        lsm_pool_raid_type raid_type,
                         lsm_pool** pool, char **job, lsm_flag flags);
 
     /**
@@ -307,7 +310,8 @@ extern "C" {
      */
     int LSM_DLL_EXPORT lsm_pool_create_from_volumes(lsm_connect *conn,
                         lsm_system *system, const char *pool_name,
-                        lsm_string_list *member_ids, lsm_pool_raid_type raid_type,
+                        lsm_volume *volumes[], uint32_t num_volumes,
+                        lsm_pool_raid_type raid_type,
                         lsm_pool** pool, char **job, lsm_flag flags);
 
     /**

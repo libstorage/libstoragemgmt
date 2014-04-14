@@ -1689,15 +1689,17 @@ class CmdLine:
             raise ArgError("No disk ID was provided for new pool")
 
         member_ids = args.member_id
+        disks_to_use = []
         disks = self.c.disks()
-        disk_ids = [d.id for d in disks]
+        disk_ids = dict((x.id, x) for x in disks)
         for member_id in member_ids:
             if member_id not in disk_ids:
                 raise ArgError("Invalid Disk ID specified in " +
                                "--member-id %s " % member_id)
+            else:
+                disks_to_use.append(disk_ids[member_id])
 
-        raid_type = Pool._raid_type_str_to_type(
-            self.args.raid_type)
+        raid_type = Pool._raid_type_str_to_type(self.args.raid_type)
         if raid_type == Pool.RAID_TYPE_UNKNOWN:
             raise ArgError("Unknown RAID type specified: %s" %
                            self.args.raid_type)
@@ -1706,7 +1708,7 @@ class CmdLine:
         pool = self._wait_for_it(
             "pool-create-from-disks",
             *self.c.pool_create_from_disks(
-                system, pool_name, member_ids, raid_type, 0))
+                system, pool_name, disks_to_use, raid_type, 0))
         self.display_data([pool])
 
     def pool_create_from_volumes(self, args):

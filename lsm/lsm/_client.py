@@ -334,7 +334,7 @@ class Client(INetworkAttachedStorage):
     # @param    system_id   The id of system where new pool should reside.
     # @param    pool_name   The name for new pool. Will not fail if created
     #                       pool_name is not the same as requested.
-    # @param    member_ids  The ids of disks to create new pool.
+    # @param    Disks       The disks (list) to create new pool from.
     #                       The new pool could contain more disks than
     #                       requested due to internal needs, but if possible,
     #                       new pool should only contain requested disks.
@@ -345,7 +345,7 @@ class Client(INetworkAttachedStorage):
     # @returns  A tuple (job_id, new_pool), when one is None the other is
     #           valid.
     @_return_requires(unicode, Pool)
-    def pool_create_from_disks(self, system_id, pool_name, member_ids,
+    def pool_create_from_disks(self, system_id, pool_name, disks,
                                raid_type, flags=0):
         """
         Creates pool from disks.
@@ -361,7 +361,7 @@ class Client(INetworkAttachedStorage):
     # @param    system_id   The id of system where new pool should reside.
     # @param    pool_name   The name for new pool. Will not fail if created
     #                       pool_name is not the same as requested.
-    # @param    member_ids  The ids of volumes to create new pool.
+    # @param    volumes     The volumes to create new pool from.
     #                       The new pool could contain more volumes than
     #                       requested due to internal needs, but if possible,
     #                       new pool should only contain requested volumes.
@@ -372,7 +372,7 @@ class Client(INetworkAttachedStorage):
     # @returns  A tuple (job_id, new_pool), when one is None the other is
     #           valid.
     @_return_requires(unicode, Pool)
-    def pool_create_from_volumes(self, system_id, pool_name, member_ids,
+    def pool_create_from_volumes(self, system_id, pool_name, volumes,
                                  raid_type, flags=0):
         """
         Creates pool from volumes.

@@ -2456,7 +2456,6 @@ START_TEST(test_pool_create)
     char *job = NULL;
     lsm_disk **disks = NULL;
     uint32_t num_disks = 0;
-    lsm_string_list *member_ids = lsm_string_list_alloc(0);
     lsm_pool *pool_one = NULL;
     lsm_system *system = get_system(c);
 
@@ -2480,6 +2479,10 @@ START_TEST(test_pool_create)
      * Test pool creations from disks
      */
     rc = lsm_disk_list(c, &disks, &num_disks, LSM_FLAG_RSVD);
+    lsm_disk *disks_to_use[128];
+    uint32_t num_disks_to_use = 0;
+
+    memset(disks_to_use, 0, sizeof(disks_to_use));
     fail_unless(LSM_ERR_OK == rc, "rc = %d", rc);
     if( LSM_ERR_OK == rc && num_disks ) {
         int i = 0;
@@ -2492,15 +2495,16 @@ START_TEST(test_pool_create)
             /* Only include disks of one type */
             if( lsm_disk_type_get(disks[i]) == disk_type &&
                     size == lsm_disk_number_of_blocks_get(disks[i])) {
-                lsm_string_list_append(member_ids, lsm_disk_id_get(disks[i]));
+
+                disks_to_use[num_disks_to_use] = disks[i];
+                num_disks_to_use += 1;
             }
         }
-
-        lsm_disk_record_array_free(disks, num_disks);
     }
 
     rc = lsm_pool_create_from_disks(c, system, "pool_create_from_disks",
-                                member_ids, LSM_POOL_RAID_TYPE_0, &pool, &job,
+                                disks_to_use, num_disks_to_use,
+                                LSM_POOL_RAID_TYPE_0, &pool, &job,
                                 LSM_FLAG_RSVD);
 
     if( LSM_ERR_JOB_STARTED == rc ) {
@@ -2510,8 +2514,10 @@ START_TEST(test_pool_create)
                                         error(lsm_error_last_get(c)));
     }
 
-    lsm_string_list_free(member_ids);
-    member_ids = lsm_string_list_alloc(0);
+    lsm_disk_record_array_free(disks, num_disks);
+    memset(disks_to_use, 0, sizeof(disks_to_use));
+
+
     lsm_pool_record_free(pool);
     pool = NULL;
 
@@ -2525,6 +2531,10 @@ START_TEST(test_pool_create)
         uint32_t num_pools = 0;
         lsm_volume *vol = NULL;
         char r_name[32];
+        lsm_volume *volumes_to_use[128];
+        uint32_t num_of_volumes_to_use = 0;
+
+        memset(volumes_to_use, 0, sizeof(volumes_to_use));
 
         /* Create some volumes */
         rc = lsm_pool_list(c, &pools, &num_pools, LSM_FLAG_RSVD);
@@ -2562,7 +2572,8 @@ START_TEST(test_pool_create)
             uint64_t size = lsm_volume_number_of_blocks_get(volumes[num_volumes-1]);
             for( i = num_volumes - 1; i > 0; --i ) {
                 if( lsm_volume_number_of_blocks_get(volumes[i]) == size ) {
-                    lsm_string_list_append(member_ids, lsm_volume_id_get(volumes[i]));
+                    volumes_to_use[num_of_volumes_to_use] = volumes[i];
+                    num_of_volumes_to_use += 1;
                 }
             }
 
@@ -2570,7 +2581,8 @@ START_TEST(test_pool_create)
             job = NULL;
 
             rc = lsm_pool_create_from_volumes(c, system,
-                                    "pool_create_from_volumes", member_ids,
+                                    "pool_create_from_volumes", volumes_to_use,
+                                    num_of_volumes_to_use,
                                     LSM_POOL_RAID_TYPE_0, &pool, &job,
                                     LSM_FLAG_RSVD);
 
@@ -2586,9 +2598,10 @@ START_TEST(test_pool_create)
             pool = NULL;
 
             lsm_volume_record_array_free(volumes, num_volumes);
+            memset(volumes_to_use, 0, sizeof(volumes_to_use));
+            num_of_volumes_to_use = 0;
             volumes = NULL;
             num_volumes = 0;
-            lsm_string_list_free(member_ids);
         }
     }
 

@@ -184,10 +184,10 @@ class SimArray(object):
         return self.data.job_create(
             self._sim_pool_2_lsm(sim_pool, Pool.RETRIEVE_FULL_INFO))
 
-    def pool_create_from_disks(self, sys_id, pool_name, member_ids, raid_type,
+    def pool_create_from_disks(self, sys_id, pool_name, disks_ids, raid_type,
                                flags=0):
         sim_pool = self.data.pool_create_from_disks(
-            sys_id, pool_name, member_ids, raid_type, flags)
+            sys_id, pool_name, disks_ids, raid_type, flags)
         return self.data.job_create(
             self._sim_pool_2_lsm(sim_pool, Pool.RETRIEVE_FULL_INFO))
 

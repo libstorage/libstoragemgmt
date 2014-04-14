@@ -73,6 +73,40 @@ Value volume_to_value(lsm_volume *vol)
     return Value();
 }
 
+int value_array_to_volumes(Value &volume_values, lsm_volume **volumes[],
+                            uint32_t *count)
+{
+    int rc = LSM_ERR_OK;
+    try {
+        if( Value::array_t == volume_values.valueType()) {
+            std::vector<Value> vol = volume_values.asArray();
+
+            *count = vol.size();
+
+            if( vol.size() ) {
+                *volumes = lsm_volume_record_array_alloc(vol.size());
+
+                if( *volumes ){
+                    for( size_t i = 0; i < vol.size(); ++i ) {
+                        (*volumes)[i] = value_to_volume(vol[i]);
+                    }
+                } else {
+                    rc = LSM_ERR_NO_MEMORY;
+                }
+            }
+        }
+    } catch( const ValueException &ve) {
+        if( *volumes && *count ) {
+            lsm_volume_record_array_free(*volumes, *count);
+            *volumes = NULL;
+            *count = 0;
+        }
+
+        rc = LSM_ERR_INTERNAL_ERROR;
+    }
+    return rc;
+}
+
 lsm_disk *value_to_disk(Value &disk)
 {
     lsm_disk *rc = NULL;
@@ -123,6 +157,38 @@ Value disk_to_value(lsm_disk *disk)
         return Value(d);
     }
     return Value();
+}
+
+int value_array_to_disks(Value &disk_values, lsm_disk **disks[], uint32_t *count)
+{
+    int rc = LSM_ERR_OK;
+    try {
+        if( Value::array_t == disk_values.valueType()) {
+            std::vector<Value> d = disk_values.asArray();
+
+            *count = d.size();
+
+            if( d.size() ) {
+                *disks = lsm_disk_record_array_alloc(d.size());
+
+                if( *disks ){
+                    for( size_t i = 0; i < d.size(); ++i ) {
+                        (*disks)[i] = value_to_disk(d[i]);
+                    }
+                } else {
+                    rc = LSM_ERR_NO_MEMORY;
+                }
+            }
+        }
+    } catch( const ValueException &ve ) {
+        rc = LSM_ERR_INTERNAL_ERROR;
+        if( *disks && *count ) {
+            lsm_disk_record_array_free(*disks, *count);
+            *disks = NULL;
+            *count = 0;
+        }
+    }
+    return rc;
 }
 
 lsm_initiator *value_to_initiator(Value &init)

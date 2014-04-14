@@ -1029,7 +1029,7 @@ static int pool_create(lsm_plugin_ptr c, lsm_system *system,
 }
 
 static int pool_create_from_disks( lsm_plugin_ptr c, lsm_system *system,
-                const char *pool_name, lsm_string_list *member_ids,
+                const char *pool_name, lsm_disk *disks[], uint32_t num_disks,
                 lsm_pool_raid_type raid_type, lsm_pool **pool, char **job,
                 lsm_flag flags)
 {
@@ -1037,12 +1037,11 @@ static int pool_create_from_disks( lsm_plugin_ptr c, lsm_system *system,
     uint64_t size = 0;
     int rc = LSM_ERR_OK;
     int i = 0;
-    int num_disks = lsm_string_list_size(member_ids);
     struct plugin_data *pd = (struct plugin_data*)lsm_private_data_get(c);
 
     if( num_disks ) {
         for( i = 0; i < num_disks; ++i ) {
-            lsm_disk *d = find_disk(pd, lsm_string_list_elem_get(member_ids, i));
+            lsm_disk *d = find_disk(pd, lsm_disk_id_get(disks[i]));
             if( d ) {
                 size += (lsm_disk_number_of_blocks_get(d) * lsm_disk_block_size_get(d));
             } else {
@@ -1061,7 +1060,7 @@ bail:
 }
 
 static int pool_create_from_volumes( lsm_plugin_ptr c, lsm_system *system,
-                const char *pool_name, lsm_string_list *member_ids,
+                const char *pool_name, lsm_volume *volumes[], uint32_t num_volumes,
                 lsm_pool_raid_type raid_type, lsm_pool **pool, char **job,
                 lsm_flag flags)
 {
@@ -1069,13 +1068,12 @@ static int pool_create_from_volumes( lsm_plugin_ptr c, lsm_system *system,
     uint64_t size = 0;
     int rc = LSM_ERR_OK;
     int i = 0;
-    int num_volumes = lsm_string_list_size(member_ids);
     struct plugin_data *pd = (struct plugin_data*)lsm_private_data_get(c);
 
     if( num_volumes ) {
         for( i = 0; i < num_volumes; ++i ) {
             struct allocated_volume *v =
-                        find_volume(pd, lsm_string_list_elem_get(member_ids, i));
+                        find_volume(pd, lsm_volume_id_get(volumes[i]));
             if( v ) {
                 size += (lsm_volume_number_of_blocks_get(v->v) *
                             lsm_volume_number_of_blocks_get(v->v));

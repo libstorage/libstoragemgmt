@@ -16,7 +16,7 @@
 # Author: tasleson
 
 from lsm import (uri_parse, VERSION, Capabilities, Pool, INfs,
-                 IStorageAreaNetwork)
+                 IStorageAreaNetwork, Error)
 
 from simarray import SimArray
 
@@ -95,13 +95,15 @@ class SimPlugin(INfs, IStorageAreaNetwork):
         return self.sim_array.pool_create(
             system.id, pool_name, size_bytes, raid_type, member_type, flags)
 
-    def pool_create_from_disks(self, system, pool_name, member_ids,
+    def pool_create_from_disks(self, system, pool_name, disks,
                                raid_type, flags=0):
+        member_ids = [x.id for x in disks]
         return self.sim_array.pool_create_from_disks(
             system.id, pool_name, member_ids, raid_type, flags)
 
-    def pool_create_from_volumes(self, system, pool_name, member_ids,
+    def pool_create_from_volumes(self, system, pool_name, volumes,
                                  raid_type, flags=0):
+        member_ids = [x.id for x in volumes]
         return self.sim_array.pool_create_from_volumes(
             system.id, pool_name, member_ids, raid_type, flags)
 

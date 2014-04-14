@@ -237,7 +237,8 @@ typedef int (*lsm_plug_pool_create)( lsm_plugin_ptr c, lsm_system* system,
  * @param[in]   c               Valid lsm plug-in pointer
  * @param[in]   system          System
  * @param[in]   pool_name       Human name of pool
- * @param[in]   member_ids      List of disk IDs to create pool from
+ * @param[in]   disks           Array of disk pointers to create pool from
+ * @param[in]   num_disks       Number of disks
  * @param[in]   raid_type       Raid type for pool
  * @param[out]  pool            Newly create pool if done sync.
  * @param[out]  job             Job id if execution is async.
@@ -245,7 +246,7 @@ typedef int (*lsm_plug_pool_create)( lsm_plugin_ptr c, lsm_system* system,
  */
 typedef int (*lsm_plug_pool_create_from_disks)( lsm_plugin_ptr c,
                 lsm_system *system,
-                const char *pool_name, lsm_string_list *member_ids,
+                const char *pool_name, lsm_disk *disks[], uint32_t num_disks,
                 lsm_pool_raid_type raid_type, lsm_pool **pool, char **job,
                 lsm_flag flags);
 
@@ -254,7 +255,8 @@ typedef int (*lsm_plug_pool_create_from_disks)( lsm_plugin_ptr c,
  * @param[in]   c               Valid lsm plug-in pointer
  * @param[in]   system          System
  * @param[in]   pool_name       Human name of pool
- * @param[in]   member_ids      List of volume IDs to create pool from
+ * @param[in]   volumes         Array of volume pointers
+ * @param[in]   num_volumes     Number of volumes
  * @param[in]   raid_type       Raid type for pool
  * @param[out]  pool            Newly create pool if done sync.
  * @param[out]  job             Job id if execution is async.
@@ -262,7 +264,8 @@ typedef int (*lsm_plug_pool_create_from_disks)( lsm_plugin_ptr c,
  */
 typedef int (*lsm_plug_pool_create_from_volumes)( lsm_plugin_ptr c,
                         lsm_system *system,
-                        const char *pool_name, lsm_string_list *member_ids,
+                        const char *pool_name, lsm_volume *volumes[],
+                        uint32_t num_volumes,
                         lsm_pool_raid_type raid_type, lsm_pool** pool, char **job,
                         lsm_flag flags);
 

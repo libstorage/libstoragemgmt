@@ -954,9 +954,9 @@ int lsm_pool_create(lsm_connect *c, lsm_system *system,
 
 static int lsm_pool_create_from(lsm_connect *c,
                         lsm_system *system, const char *pool_name,
-                        lsm_string_list *member_ids, lsm_pool_raid_type raid_type,
+                        std::vector<Value> &member_ids, lsm_pool_raid_type raid_type,
                         lsm_pool** pool, char **job, lsm_flag flags,
-                        const char *method)
+                        const char *member_id, const char *method)
 {
     CONN_SETUP(c);
 
@@ -970,14 +970,11 @@ static int lsm_pool_create_from(lsm_connect *c,
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
-    if( !LSM_IS_STRING_LIST(member_ids) ) {
-        return LSM_ERR_INVALID_SL;
-    }
 
     std::map<std::string, Value> p;
     p["system"] = system_to_value(system);
     p["pool_name"] = Value(pool_name);
-    p["member_ids"] = string_list_to_value(member_ids);
+    p[member_id] = Value(member_ids);
     p["raid_type"] = Value((int32_t)raid_type);
     p["flags"] = Value(flags);
 
@@ -994,20 +991,49 @@ static int lsm_pool_create_from(lsm_connect *c,
 
 int LSM_DLL_EXPORT lsm_pool_create_from_disks(lsm_connect *c,
                         lsm_system *system, const char *pool_name,
-                        lsm_string_list *member_ids, lsm_pool_raid_type raid_type,
+                        lsm_disk *disks[], uint32_t num_disks,
+                        lsm_pool_raid_type raid_type,
                         lsm_pool** pool, char **job, lsm_flag flags)
 {
-    return lsm_pool_create_from(c, system, pool_name, member_ids, raid_type,
-                                pool, job, flags, "pool_create_from_disks");
+    uint32_t i;
+
+    CONN_SETUP(c);
+
+    if( !disks || !num_disks ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    /* Create disks container */
+    std::vector<Value> d;
+    for( i = 0; i < num_disks; ++i ) {
+        d.push_back(disk_to_value(disks[i]));
+    }
+
+    return lsm_pool_create_from(c, system, pool_name, d, raid_type, pool, job,
+        flags, "disks", "pool_create_from_disks");
+
 }
 
 int LSM_DLL_EXPORT lsm_pool_create_from_volumes(lsm_connect *c,
                         lsm_system *system, const char *pool_name,
-                        lsm_string_list *member_ids, lsm_pool_raid_type raid_type,
+                        lsm_volume *volumes[], uint32_t num_volumes,
+                        lsm_pool_raid_type raid_type,
                         lsm_pool** pool, char **job, lsm_flag flags)
 {
-     return lsm_pool_create_from(c, system, pool_name, member_ids, raid_type,
-                                pool, job, flags,
+    uint32_t i;
+
+    if( !volumes || !num_volumes ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    /* Create disks container */
+    std::vector<Value> vols;
+    for( i = 0; i < num_volumes; ++i ) {
+        vols.push_back(volume_to_value(volumes[i]));
+    }
+
+    return lsm_pool_create_from(c, system, pool_name, vols, raid_type,
+                                pool, job, flags, "volumes",
                                 "pool_create_from_volumes");
 }
 
