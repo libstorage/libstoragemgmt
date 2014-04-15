@@ -45,7 +45,7 @@ lsm_connect *c = NULL;
 * @param buff  Buffer to write the random string to
 * @param len   Length of the random string
 */
-void generateRandom(char *buff, uint32_t len)
+void generate_random(char *buff, uint32_t len)
 {
     uint32_t i = 0;
     static int seed = 0;
@@ -81,7 +81,7 @@ char *plugin_to_use()
             int rdir = atoi(rundir);
             static char fn[128];
             static char name[32];
-            generateRandom(name, sizeof(name));
+            generate_random(name, sizeof(name));
             snprintf(fn, sizeof(fn),  uri, rdir, name);
             printf("URI = %s\n", fn);
             return fn;
@@ -92,7 +92,7 @@ char *plugin_to_use()
     }
 }
 
-lsm_pool *getTestPool(lsm_connect *c)
+lsm_pool *get_test_pool(lsm_connect *c)
 {
     lsm_pool **pools = NULL;
     uint32_t count = 0;
@@ -725,7 +725,7 @@ START_TEST(test_access_groups_grant_revoke)
     fail_unless(c!=NULL);
     lsm_access_group *group = NULL;
     int rc = 0;
-    lsm_pool *pool = getTestPool(c);
+    lsm_pool *pool = get_test_pool(c);
     char *job = NULL;
     lsm_volume *n = NULL;
 
@@ -807,7 +807,7 @@ START_TEST(test_fs)
     char *job = NULL;
     uint64_t fs_free_space = 0;
 
-    lsm_pool *test_pool = getTestPool(c);
+    lsm_pool *test_pool = get_test_pool(c);
 
     rc = lsm_fs_list(c, &fs_list, &fs_count, LSM_FLAG_RSVD);
 
@@ -897,7 +897,7 @@ START_TEST(test_ss)
 
     printf("Testing snapshots\n");
 
-    lsm_pool *test_pool = getTestPool(c);
+    lsm_pool *test_pool = get_test_pool(c);
 
     int rc = lsm_fs_create(c, test_pool, "test_fs", 100000000, &fs, &job, LSM_FLAG_RSVD);
 
@@ -1101,7 +1101,7 @@ START_TEST(test_nfs_exports)
     fail_unless(c != NULL);
     int rc = 0;
 
-    lsm_pool *test_pool = getTestPool(c);
+    lsm_pool *test_pool = get_test_pool(c);
     lsm_fs *nfs = NULL;
     char *job = NULL;
 
@@ -1183,7 +1183,7 @@ START_TEST(test_volume_methods)
 
     fail_unless(c != NULL);
 
-    test_pool = getTestPool(c);
+    test_pool = get_test_pool(c);
 
     if( test_pool ) {
         rc = lsm_volume_create(c, test_pool, "lsm_volume_method_test",
@@ -1224,7 +1224,7 @@ START_TEST(test_invalid_input)
 
     printf("Testing arguments\n");
 
-    lsm_pool *test_pool = getTestPool(c);
+    lsm_pool *test_pool = get_test_pool(c);
 
     lsm_connect *test_connect = NULL;
     lsm_error_ptr test_error = NULL;
@@ -1914,7 +1914,7 @@ START_TEST(test_initiator_methods)
 {
     fail_unless(c != NULL);
 
-    lsm_pool *test_pool = getTestPool(c);
+    lsm_pool *test_pool = get_test_pool(c);
     lsm_volume *nv = NULL;
     char *job = NULL;
     int rc = 0;
@@ -2338,23 +2338,23 @@ START_TEST(test_nfs_export_funcs)
     lsm_nfs_export_record_free(copy);
 
 
-    generateRandom(rstring, sizeof(rstring));
+    generate_random(rstring, sizeof(rstring));
     lsm_nfs_export_id_set(export, rstring);
     fail_unless( strcmp(lsm_nfs_export_id_get(export), rstring) == 0 );
 
-    generateRandom(rstring, sizeof(rstring));
+    generate_random(rstring, sizeof(rstring));
     lsm_nfs_export_fs_id_set(export, rstring);
     fail_unless( strcmp(lsm_nfs_export_fs_id_get(export), rstring) == 0 );
 
-    generateRandom(rstring, sizeof(rstring));
+    generate_random(rstring, sizeof(rstring));
     lsm_nfs_export_export_path_set(export, rstring);
     fail_unless( strcmp(lsm_nfs_export_export_path_get(export), rstring) == 0 );
 
-    generateRandom(rstring, sizeof(rstring));
+    generate_random(rstring, sizeof(rstring));
     lsm_nfs_export_auth_type_set(export, rstring);
     fail_unless( strcmp(lsm_nfs_export_auth_type_get(export), rstring) == 0 );
 
-    generateRandom(rstring, sizeof(rstring));
+    generate_random(rstring, sizeof(rstring));
     lsm_nfs_export_options_set(export, rstring);
     fail_unless( strcmp(lsm_nfs_export_options_get(export), rstring) == 0 );
 
@@ -2368,17 +2368,17 @@ START_TEST(test_nfs_export_funcs)
     fail_unless(lsm_nfs_export_anon_gid_get(export) == anongid);
 
 
-    generateRandom(rstring, sizeof(rstring));
+    generate_random(rstring, sizeof(rstring));
     lsm_string_list_append(rand, rstring);
     lsm_nfs_export_root_set(export, rand);
     fail_unless(compare_string_lists(lsm_nfs_export_root_get(export), rand) == 0);
 
-    generateRandom(rstring, sizeof(rstring));
+    generate_random(rstring, sizeof(rstring));
     lsm_string_list_append(rand, rstring);
     lsm_nfs_export_read_write_set(export, rand);
     fail_unless(compare_string_lists(lsm_nfs_export_read_write_get(export), rand) == 0);
 
-    generateRandom(rstring, sizeof(rstring));
+    generate_random(rstring, sizeof(rstring));
     lsm_string_list_append(rand, rstring);
     lsm_nfs_export_read_only_set(export, rand);
     fail_unless(compare_string_lists(lsm_nfs_export_read_only_get(export), rand) == 0);
@@ -2400,7 +2400,7 @@ START_TEST(test_pool_delete)
 
     printf("Testing pool delete!\n");
 
-    lsm_pool *test_pool = getTestPool(c);
+    lsm_pool *test_pool = get_test_pool(c);
 
     fail_unless( test_pool != NULL );
 
@@ -2549,7 +2549,7 @@ START_TEST(test_pool_create)
                 job = NULL;
                 vol = NULL;
 
-                generateRandom(r_name, sizeof(r_name));
+                generate_random(r_name, sizeof(r_name));
 
                 rc = lsm_volume_create(c, pools[i], r_name,
                         1024*1024*1024, LSM_PROVISION_DEFAULT,
