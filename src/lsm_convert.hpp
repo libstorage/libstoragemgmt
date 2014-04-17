@@ -51,6 +51,14 @@ lsm_volume * value_to_volume(Value &vol);
  */
 Value volume_to_value(lsm_volume *vol);
 
+
+/**
+ * Converts a vector of volume values to an array
+ * @param volume_values     Vector of values that represents volumes
+ * @param volumes           An array of volume pointers
+ * @param count             Number of volumes
+ * @return LSM_ERR_OK on success, else error reason
+ */
 int value_array_to_volumes(Value &volume_values, lsm_volume **volumes[],
                             uint32_t *count);
 
@@ -75,7 +83,8 @@ Value disk_to_value(lsm_disk *disk);
  * @param count     Number of disks
  * @return LSM_ERR_OK on success, else error reason.
  */
-int value_array_to_disks(Value &disk_values, lsm_disk **disks[], uint32_t *count);
+int value_array_to_disks(Value &disk_values, lsm_disk **disks[],
+                            uint32_t *count);
 
 /**
  * Converts a value to lsm_initiator *

@@ -551,7 +551,7 @@ extern "C" {
      * Retrieves a list of access groups.
      * @param[in] conn              Valid connection @see lsm_connect_password
      * @param[out] groups           Array of access groups
-     * @param[out] group_count       Size of array
+     * @param[out] group_count      Size of array
      * @param[in] flags             Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */

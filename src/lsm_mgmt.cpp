@@ -671,6 +671,8 @@ static int get_initiator_array(lsm_connect *c, int rc, Value &response,
                                 lsm_initiator **initiators[], uint32_t *count)
 {
     try {
+        *count = 0;
+
         if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
             std::vector<Value> inits = response.asArray();
 
@@ -721,36 +723,15 @@ int lsm_initiator_list(lsm_connect *c, lsm_initiator **initiators[],
     return get_initiator_array(c, rc, response, initiators, count);
 }
 
-static int get_volume_array(lsm_connect *c, int rc, Value response,
+static int get_volume_array(lsm_connect *c, int rc, Value &response,
                             lsm_volume **volumes[], uint32_t *count)
 {
-    try {
-        if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
-            std::vector<Value> vol = response.asArray();
+    if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+        rc = value_array_to_volumes(response, volumes, count);
 
-            *count = vol.size();
-
-            if( vol.size() ) {
-                *volumes = lsm_volume_record_array_alloc(vol.size());
-
-                if( *volumes ){
-                    for( size_t i = 0; i < vol.size(); ++i ) {
-                        (*volumes)[i] = value_to_volume(vol[i]);
-                    }
-                } else {
-                    rc = LSM_ERR_NO_MEMORY;
-                }
-            }
+        if( LSM_ERR_OK != rc ) {
+            rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type", NULL);
         }
-    } catch( const ValueException &ve) {
-        if( *volumes && *count ) {
-            lsm_volume_record_array_free(*volumes, *count);
-            *volumes = NULL;
-            *count = 0;
-        }
-
-        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
-                            ve.what());
     }
     return rc;
 }
@@ -761,7 +742,8 @@ int lsm_volume_list(lsm_connect *c, lsm_volume **volumes[], uint32_t *count,
 {
     CONN_SETUP(c);
 
-    if( !volumes || !count || CHECK_RP(volumes) || LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( !volumes || !count || CHECK_RP(volumes) ||
+        LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -778,35 +760,15 @@ int lsm_volume_list(lsm_connect *c, lsm_volume **volumes[], uint32_t *count,
 static int get_disk_array(lsm_connect *c, int rc, Value &response,
                             lsm_disk **disks[], uint32_t *count)
 {
-    try {
-        if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
-            std::vector<Value> d = response.asArray();
+    if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+        rc = value_array_to_disks(response, disks, count);
 
-            *count = d.size();
-
-            if( d.size() ) {
-                *disks = lsm_disk_record_array_alloc(d.size());
-
-                if( *disks ){
-                    for( size_t i = 0; i < d.size(); ++i ) {
-                        (*disks)[i] = value_to_disk(d[i]);
-                    }
-                } else {
-                    rc = LSM_ERR_NO_MEMORY;
-                }
-            }
-        }
-    } catch( const ValueException &ve ) {
-        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
-                            ve.what());
-        if( *disks && *count ) {
-            lsm_disk_record_array_free(*disks, *count);
-            *disks = NULL;
-            *count = 0;
+        if( LSM_ERR_OK != rc ) {
+            rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type", NULL);
         }
     }
-    return rc;
 
+    return rc;
 }
 
 int lsm_disk_list(lsm_connect *c, lsm_disk **disks[],
@@ -1433,7 +1395,8 @@ int lsm_volumes_accessible_by_initiator(lsm_connect *c,
         return LSM_ERR_INVALID_INIT;
     }
 
-    if( CHECK_RP(volumes) || !count || LSM_FLAG_UNUSED_CHECK(flags) ){
+    if( CHECK_RP(volumes) || !count || *count != 0 ||
+        LSM_FLAG_UNUSED_CHECK(flags) ){
         return LSM_ERR_INVALID_ARGUMENT;
     }
 

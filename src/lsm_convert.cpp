@@ -78,6 +78,8 @@ int value_array_to_volumes(Value &volume_values, lsm_volume **volumes[],
 {
     int rc = LSM_ERR_OK;
     try {
+        *count = 0;
+
         if( Value::array_t == volume_values.valueType()) {
             std::vector<Value> vol = volume_values.asArray();
 
@@ -163,6 +165,8 @@ int value_array_to_disks(Value &disk_values, lsm_disk **disks[], uint32_t *count
 {
     int rc = LSM_ERR_OK;
     try {
+        *count = 0;
+
         if( Value::array_t == disk_values.valueType()) {
             std::vector<Value> d = disk_values.asArray();
 

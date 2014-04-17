@@ -521,6 +521,7 @@ START_TEST(test_smoke_test)
     }
 
     lsm_initiator **inits = NULL;
+    count = 0;
     /* Get a list of initiators */
     rc = lsm_initiator_list(c, &inits, &count, LSM_FLAG_RSVD);
 
@@ -534,6 +535,7 @@ START_TEST(test_smoke_test)
     create_volumes(c, selectedPool, 3);
 
     lsm_volume **volumes = NULL;
+    count = 0;
     /* Get a list of volumes */
     rc = lsm_volume_list(c, &volumes, &count, LSM_FLAG_RSVD);
 
@@ -551,48 +553,50 @@ START_TEST(test_smoke_test)
             lsm_volume_op_status_get(volumes[i]));
     }
 
+    if( count ) {
 
-    lsm_volume *rep = NULL;
-    char *job = NULL;
+        lsm_volume *rep = NULL;
+        char *job = NULL;
 
-    //Try a re-size then a snapshot
-    lsm_volume *resized = NULL;
-    char  *resizeJob = NULL;
+        //Try a re-size then a snapshot
+        lsm_volume *resized = NULL;
+        char  *resizeJob = NULL;
 
-    int resizeRc = lsm_volume_resize(c, volumes[0],
-        ((lsm_volume_number_of_blocks_get(volumes[0]) *
-        lsm_volume_block_size_get(volumes[0])) * 2), &resized, &resizeJob, LSM_FLAG_RSVD);
+        int resizeRc = lsm_volume_resize(c, volumes[0],
+            ((lsm_volume_number_of_blocks_get(volumes[0]) *
+            lsm_volume_block_size_get(volumes[0])) * 2), &resized, &resizeJob, LSM_FLAG_RSVD);
 
-    fail_unless(resizeRc == LSM_ERR_OK || resizeRc == LSM_ERR_JOB_STARTED,
-                    "lsmVolumeResize %d (%s)", resizeRc,
-                    error(lsm_error_last_get(c)));
+        fail_unless(resizeRc == LSM_ERR_OK || resizeRc == LSM_ERR_JOB_STARTED,
+                        "lsmVolumeResize %d (%s)", resizeRc,
+                        error(lsm_error_last_get(c)));
 
-    if( LSM_ERR_JOB_STARTED == resizeRc ) {
-        resized = wait_for_job_vol(c, &resizeJob);
-    }
+        if( LSM_ERR_JOB_STARTED == resizeRc ) {
+            resized = wait_for_job_vol(c, &resizeJob);
+        }
 
-    lsm_volume_record_free(resized);
+        lsm_volume_record_free(resized);
 
-    //Lets create a snapshot of one.
-    int repRc = lsm_volume_replicate(c, NULL,             //Pool is optional
-        LSM_VOLUME_REPLICATE_SNAPSHOT,
-        volumes[0], "SNAPSHOT1",
-        &rep, &job, LSM_FLAG_RSVD);
+        //Lets create a snapshot of one.
+        int repRc = lsm_volume_replicate(c, NULL,             //Pool is optional
+            LSM_VOLUME_REPLICATE_SNAPSHOT,
+            volumes[0], "SNAPSHOT1",
+            &rep, &job, LSM_FLAG_RSVD);
 
-    fail_unless(repRc == LSM_ERR_OK || repRc == LSM_ERR_JOB_STARTED,
-                    "lsmVolumeReplicate %d (%s)", repRc,
-                    error(lsm_error_last_get(c)));
+        fail_unless(repRc == LSM_ERR_OK || repRc == LSM_ERR_JOB_STARTED,
+                        "lsmVolumeReplicate %d (%s)", repRc,
+                        error(lsm_error_last_get(c)));
 
-    if( LSM_ERR_JOB_STARTED == repRc ) {
-        rep = wait_for_job_vol(c, &job);
-    }
+        if( LSM_ERR_JOB_STARTED == repRc ) {
+            rep = wait_for_job_vol(c, &job);
+        }
 
-    lsm_volume_record_free(rep);
+        lsm_volume_record_free(rep);
 
-    lsm_volume_record_array_free(volumes, count);
+        lsm_volume_record_array_free(volumes, count);
 
-    if (pools) {
-        lsm_pool_record_array_free(pools, poolCount);
+        if (pools) {
+            lsm_pool_record_array_free(pools, poolCount);
+        }
     }
 }
 
