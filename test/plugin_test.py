@@ -1,6 +1,6 @@
 #!/bin/env python
 
-# Copyright (C) 2013 Red Hat, Inc.
+# Copyright (C) 2013-2014 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -86,6 +86,12 @@ class Duration(object):
     def amount(self):
         return self.end - self.start
 
+
+def supported(cap, capability):
+    for c in capability:
+        if cap.get(c) != lsm.Capabilities.SUPPORTED:
+            return False
+    return True
 
 class TestProxy(object):
 
@@ -331,20 +337,21 @@ class TestPlugin(unittest.TestCase):
         for s in self.systems:
             vol = None
             cap = self.c.capabilities(s)
-            if cap.get(lsm.Capabilities.VOLUME_CREATE):
+            if supported(cap, [lsm.Capabilities.VOLUME_CREATE]):
                 vol = self._volume_create(s.id)[0]
                 self.assertTrue(vol is not None)
 
-                if vol is not None and cap.get(lsm.Capabilities.VOLUME_DELETE):
+                if vol is not None and \
+                        supported(cap, [lsm.Capabilities.VOLUME_DELETE]):
                     self._volume_delete(vol)
 
     def test_volume_resize(self):
         for s in self.systems:
             cap = self.c.capabilities(s)
 
-            if cap.get(lsm.Capabilities.VOLUME_CREATE) and \
-                    cap.get(lsm.Capabilities.VOLUME_DELETE) and \
-                    cap.get(lsm.Capabilities.VOLUME_RESIZE):
+            if supported(cap, [lsm.Capabilities.VOLUME_CREATE,
+                               lsm.Capabilities.VOLUME_DELETE,
+                               lsm.Capabilities.VOLUME_RESIZE]):
                 vol = self._volume_create(s.id)[0]
                 vol_resize = self.c.volume_resize(vol,
                                                   vol.size_bytes * 1.10)[1]
@@ -355,12 +362,11 @@ class TestPlugin(unittest.TestCase):
         for s in self.systems:
             cap = self.c.capabilities(s)
 
-            if cap.get(lsm.Capabilities.VOLUME_CREATE) and \
-                    cap.get(lsm.Capabilities.VOLUME_DELETE):
-
+            if supported(cap, [lsm.Capabilities.VOLUME_CREATE,
+                               lsm.Capabilities.VOLUME_DELETE]):
                 vol, pool = self._volume_create(s.id)
 
-                if cap.get(capability):
+                if supported(cap, [capability]):
                     volume_clone = self.c.volume_replicate(
                         pool, replication_type, vol,
                         rs('volume_clone'))[1]
@@ -388,7 +394,7 @@ class TestPlugin(unittest.TestCase):
         for s in self.systems:
             cap = self.c.capabilities(s)
 
-            if cap.get(lsm.Capabilities.VOLUME_COPY_RANGE_BLOCK_SIZE):
+            if supported(cap, [lsm.Capabilities.VOLUME_COPY_RANGE_BLOCK_SIZE]):
                 size = self.c.volume_replicate_range_block_size(s)
                 self.assertTrue(size > 0)
             else:
@@ -399,15 +405,15 @@ class TestPlugin(unittest.TestCase):
         for s in self.systems:
             cap = self.c.capabilities(s)
 
-            if cap.get(lsm.Capabilities.VOLUME_CREATE) and \
-                    cap.get(lsm.Capabilities.VOLUME_DELETE) and \
-                    cap.get(lsm.Capabilities.VOLUME_COPY_RANGE):
+            if supported(cap, [lsm.Capabilities.VOLUME_CREATE,
+                         lsm.Capabilities.VOLUME_DELETE,
+                         lsm.Capabilities.VOLUME_COPY_RANGE]):
 
                 vol, pool = self._volume_create(s.id)
 
                 br = lsm.BlockRange(0, 100, 10)
 
-                if cap.get(lsm.Capabilities.VOLUME_COPY_RANGE_CLONE):
+                if supported(cap, [lsm.Capabilities.VOLUME_COPY_RANGE_CLONE]):
                     self.c.volume_replicate_range(lsm.Volume.REPLICATE_CLONE,
                                                     vol, vol, [br])
                 else:
@@ -418,7 +424,7 @@ class TestPlugin(unittest.TestCase):
 
                 br = lsm.BlockRange(200, 400, 50)
 
-                if cap.get(lsm.Capabilities.VOLUME_COPY_RANGE_COPY):
+                if supported(cap, [lsm.Capabilities.VOLUME_COPY_RANGE_COPY]):
                     self.c.volume_replicate_range(lsm.Volume.REPLICATE_COPY,
                                                     vol, vol, [br])
                 else:
@@ -433,37 +439,37 @@ class TestPlugin(unittest.TestCase):
         for s in self.systems:
             cap = self.c.capabilities(s)
 
-            if cap.get(lsm.Capabilities.FS_CREATE):
+            if supported(cap, [lsm.Capabilities.FS_CREATE]):
                 fs = self._fs_create(s.id)[0]
 
-                if cap.get(lsm.Capabilities.FS_DELETE):
+                if supported(cap, [lsm.Capabilities.FS_DELETE]):
                     self._fs_delete(fs)
 
     def test_fs_resize(self):
         for s in self.systems:
             cap = self.c.capabilities(s)
 
-            if cap.get(lsm.Capabilities.FS_CREATE):
+            if supported(cap, [lsm.Capabilities.FS_CREATE]):
                 fs = self._fs_create(s.id)[0]
 
-                if cap.get(lsm.Capabilities.FS_RESIZE):
+                if supported(cap, [lsm.Capabilities.FS_RESIZE]):
                     fs_size = fs.total_space * 1.10
                     fs_resized = self.c.fs_resize(fs, fs_size)[1]
                     self.assertTrue(fs_resized.total_space)
 
-                if cap.get(lsm.Capabilities.FS_DELETE):
+                if supported(cap, [lsm.Capabilities.FS_DELETE]):
                     self._fs_delete(fs)
 
     def test_fs_clone(self):
         for s in self.systems:
             cap = self.c.capabilities(s)
 
-            if cap.get(lsm.Capabilities.FS_CREATE) and \
-                    cap.get(lsm.Capabilities.FS_CLONE):
+            if supported(cap, [lsm.Capabilities.FS_CREATE,
+                               lsm.Capabilities.FS_CLONE]):
                 fs = self._fs_create(s.id)[0]
                 fs_clone = self.c.fs_clone(fs, rs('fs_clone'))[1]
 
-                if cap.get(lsm.Capabilities.FS_DELETE):
+                if supported(cap, [lsm.Capabilities.FS_DELETE]):
                     self._fs_delete(fs_clone)
                     self._fs_delete(fs)
 
@@ -471,8 +477,8 @@ class TestPlugin(unittest.TestCase):
         for s in self.systems:
             cap = self.c.capabilities(s)
 
-            if cap.get(lsm.Capabilities.FS_CREATE) and \
-                    cap.get(lsm.Capabilities.FS_SNAPSHOT_CREATE):
+            if supported(cap, [lsm.Capabilities.FS_CREATE,
+                               lsm.Capabilities.FS_SNAPSHOT_CREATE]):
 
                 fs = self._fs_create(s.id)[0]
 
@@ -480,10 +486,8 @@ class TestPlugin(unittest.TestCase):
                 self.assertTrue(self._fs_snapshot_exists(fs, ss.id))
 
                 # Delete snapshot
-                if cap.get(lsm.Capabilities.FS_SNAPSHOT_DELETE):
+                if supported(cap, [lsm.Capabilities.FS_SNAPSHOT_DELETE]):
                     self._fs_snapshot_delete(fs, ss)
-
-
 
 
 def dump_results():
