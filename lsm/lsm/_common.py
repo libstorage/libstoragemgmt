@@ -550,8 +550,8 @@ def return_requires(*types):
     is quite important.
     """
     def outer(func):
-        def inner(*args):
-            r = func(*args)
+        def inner(*args, **kwargs):
+            r = func(*args, **kwargs)
 
             # In this case the user did something like
             # @return_requires(int, string, int)
