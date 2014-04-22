@@ -368,11 +368,12 @@ class LsmError(Exception):
         self._data = data
 
     def __str__(self):
+        error_no_str = ErrorNumber.error_number_to_str(self.code)
         if self.data is not None:
-            return "error: %s msg: %s data: %s" % \
-                   (self.code, self.msg, self.data)
+            return "%s: %s Data: %s" % \
+                   (error_no_str, self.msg, self.data)
         else:
-            return "error: %s msg: %s " % (self.code, self.msg)
+            return "%s: %s " % (error_no_str, self.msg)
 
 
 def addl_error_data(domain, level, exception, debug=None, debug_data=None):
@@ -502,6 +503,15 @@ class ErrorNumber(object):
 
     DISK_BUSY = 500
     VOLUME_BUSY = 501
+
+    _LOCALS = locals()
+
+    @staticmethod
+    def error_number_to_str(error_no):
+        for error_str in ErrorNumber._LOCALS.keys():
+            if ErrorNumber._LOCALS[error_str] == error_no:
+                return "%s(%d)" % (error_str, error_no)
+        return "UNKNOWN_ERROR_NUMBER(%d)" % error_no
 
 
 class JobStatus(object):
