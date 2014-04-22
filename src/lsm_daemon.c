@@ -220,7 +220,7 @@ void usage(void)
 char *path_form(const char* path, const char *name)
 {
     size_t s = strlen(path) + strlen(name) + 2;
-    char *full = malloc(s);
+    char *full = calloc(1, s);
     if( full ) {
         snprintf(full, s, "%s/%s", path, name);
     } else {
@@ -401,7 +401,7 @@ int process_plugin(void *p, char *full_name)
 
         if( full_len > ext_len) {
             if( strncmp(full_name + full_len - ext_len, plugin_extension, ext_len) == 0) {
-                struct plugin *item = malloc(sizeof(struct plugin));
+                struct plugin *item = calloc(1, sizeof(struct plugin));
                 if( item ) {
                     item->file_path = strdup(full_name);
                     item->fd = setup_socket(full_name);

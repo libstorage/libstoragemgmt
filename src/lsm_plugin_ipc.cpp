@@ -169,9 +169,8 @@ static lsm_plugin_ptr lsm_plugin_alloc(lsm_plugin_register reg,
         return NULL;
     }
 
-    lsm_plugin_ptr rc = (lsm_plugin_ptr)malloc(sizeof(lsm_plugin));
+    lsm_plugin_ptr rc = (lsm_plugin_ptr)calloc(1, sizeof(lsm_plugin));
     if( rc ) {
-        memset(rc, 0, sizeof( lsm_plugin));
         rc->magic = LSM_PLUGIN_MAGIC;
         rc->reg = reg;
         rc->unreg = unreg;

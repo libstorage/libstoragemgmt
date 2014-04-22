@@ -194,9 +194,8 @@ lsm_string_list *lsm_string_list_copy(lsm_string_list *src)
 
 lsm_connect *connection_get()
 {
-    lsm_connect *c = (lsm_connect *)malloc(sizeof(lsm_connect));
+    lsm_connect *c = (lsm_connect *)calloc(1, sizeof(lsm_connect));
     if (c) {
-        memset(c, 0, sizeof(lsm_connect));
         c->magic = LSM_CONNECT_MAGIC;
     }
     return c;
@@ -334,10 +333,9 @@ lsm_error_ptr lsm_error_create(lsm_error_number code, lsm_error_domain domain,
     const char *exception, const char *debug,
     const void *debug_data, uint32_t debug_data_size)
 {
-    lsm_error_ptr err = (lsm_error_ptr)malloc(sizeof(lsm_error));
+    lsm_error_ptr err = (lsm_error_ptr)calloc(1, sizeof(lsm_error));
 
     if (err) {
-        memset(err, 0, sizeof(lsm_error));
         err->magic = LSM_ERROR_MAGIC;
         err->code = code;
         err->domain = domain;
@@ -466,11 +464,7 @@ rtype *name(uint32_t size)                  \
 {                                           \
     rtype *rc = NULL;                       \
     if (size > 0) {                         \
-        size_t s = sizeof(rtype) * size;    \
-        rc = (rtype *) malloc(s);           \
-        if( rc )  {                         \
-            memset(rc, 0, s);               \
-        }                                   \
+        rc = (rtype *) calloc(size, sizeof(rtype)); \
     }                                       \
     return rc;                              \
 }
@@ -504,9 +498,8 @@ lsm_pool *lsm_pool_record_alloc(const char *id, const char *name,
             uint64_t totalSpace, uint64_t freeSpace, uint64_t status, const char* status_info,
             const char *system_id)
 {
-    lsm_pool *rc = (lsm_pool *)malloc(sizeof(lsm_pool));
+    lsm_pool *rc = (lsm_pool *)calloc(1, sizeof(lsm_pool));
     if (rc) {
-        memset(rc, 0, sizeof(lsm_pool));
         rc->magic = LSM_POOL_MAGIC;
         rc->id = strdup(id);
         rc->name = strdup(name);
@@ -1652,10 +1645,9 @@ lsm_storage_capabilities *lsm_capability_record_alloc(const char *value)
         if( value ) {
             rc->cap = string_to_bytes(value, &rc->len);
         } else {
-            rc->cap = (uint8_t *)malloc(sizeof(uint8_t) * LSM_CAP_MAX);
+            rc->cap = (uint8_t *)calloc(LSM_CAP_MAX, sizeof(uint8_t));
             if( rc->cap ) {
                 rc->len = LSM_CAP_MAX;
-                memset(rc->cap, 0, sizeof(uint8_t) * LSM_CAP_MAX);
             }
         }
 

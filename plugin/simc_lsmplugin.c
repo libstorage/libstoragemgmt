@@ -2469,13 +2469,11 @@ int load( lsm_plugin_ptr c, const char *uri, const char *password,
                         uint32_t timeout,  lsm_flag flags)
 {
     struct plugin_data *pd = (struct plugin_data *)
-                                malloc(sizeof(struct plugin_data));
+                                calloc(1, sizeof(struct plugin_data));
     int rc = LSM_ERR_NO_MEMORY;
     int i;
     lsm_pool *p = NULL;
     if( pd ) {
-        memset(pd, 0, sizeof(struct plugin_data));
-
         pd->num_systems = 1;
         pd->system[0] = lsm_system_record_alloc(sys_id,
                                                 "LSM simulated storage plug-in",
