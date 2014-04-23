@@ -410,7 +410,7 @@ int process_plugin(void *p, char *full_name)
                         LIST_INSERT_HEAD((struct plugin_list*)p, item, pointers);
                         info("Plugin %s added\n", full_name);
                     } else {
-                        loud("strdup failed %s\n", item->file_path);
+                        loud("strdup failed %s\n", full_name);
                     }
                 } else {
                     loud("Memory allocation failure!\n");
@@ -422,11 +422,12 @@ int process_plugin(void *p, char *full_name)
 }
 
 /**
- * Cleans up any children that have existed.
+ * Cleans up any children that have exited.
  */
 void child_cleanup(void)
 {
     int rc;
+    int err;
 
     do {
         siginfo_t si;
@@ -434,12 +435,19 @@ void child_cleanup(void)
 
         rc = waitid(P_ALL, 0, &si, WNOHANG|WEXITED);
 
-        if( rc > 0 ) {
-            if( si.si_code == CLD_EXITED && si.si_status != 0 ) {
-                info("Plug-in process %d exited with %d\n", rc, si.si_status);
-            }
-        } else {
+        if( -1 == rc ) {
+            err = errno;
+            warn("Error: waitid %d - %s\n", err, strerror(err));
             break;
+        } else {
+            if( 0 == rc && si.si_pid == 0 ) {
+                break;
+            } else {
+                if( si.si_code == CLD_EXITED && si.si_status != 0 ) {
+                    info("Plug-in process %d exited with %d\n", si.si_pid,
+                            si.si_status);
+                }
+            }
         }
     } while(1);
 }
