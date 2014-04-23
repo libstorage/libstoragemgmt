@@ -823,8 +823,7 @@ class SimData(object):
             SimData.SIM_DATA_BLK_SIZE
 
     def job_create(self, returned_item):
-        if False:
-        #if random.randint(0,5) == 1:
+        if random.randint(0, 3) > 0:
             self.job_num += 1
             job_id = "JOB_%s" % self.job_num
             self.job_dict[job_id] = SimJob(returned_item)
