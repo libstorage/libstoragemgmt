@@ -1,0 +1,112 @@
+ .angled_table {
+    position: relative;
+    background-color: #FFFFFF;
+    font-size: 10px;
+    padding: 20px 90px 20px 20px;
+    -moz-border-radius: 4px;
+    -webkit-border-radius: 4px;
+    border-radius: 4px;
+}
+.angled_table a {
+    color: #333333;
+    text-decoration: none;
+    font-size: 24px;
+}
+.angled_table notsupported {
+    color: black;
+    text-decoration: none;
+    font-size: 24px;
+    background-color:orange;
+}
+.angled_table fail {
+    color: black;
+    text-decoration: none;
+    font-size: 24px;
+    background-color:red;
+    /* border:2px solid black; */
+}
+
+.angled_table fail_test {
+    color: black;
+    text-decoration: none;
+    font-size: 24px;
+    background-color:red;
+    /* border:2px solid black; */
+}
+
+.angled_table pass {
+    color: black;
+    text-decoration: none;
+    font-size: 24px;
+    background-color:green;
+    /* border:2px solid black; */
+}
+
+.angled_table pass_test {
+    color: black;
+    text-decoration: none;
+    font-size: 24px;
+    background-color:green;
+    /* border:2px solid black; */
+}
+
+.angled_table table th.skew {
+    height: 60px;
+    width: 40px;
+    position: relative;
+    vertical-align: bottom;
+}
+.angled_table table th.skew > div {
+    position: relative;
+    top: 0px;
+    left: 90px;
+    height: 300%;
+    transform:skew(-45deg, 0deg);
+    -ms-transform:skew(-45deg, 0deg);
+    -moz-transform:skew(-45deg, 0deg);
+    -webkit-transform:skew(-45deg, 0deg);
+    -o-transform:skew(-45deg, 0deg);
+    overflow: hidden;
+    border-top: 1px solid #CCCCCC;
+    border-left: 1px solid #CCCCCC;
+    border-right: 1px solid #CCCCCC;
+}
+.angled_table table th.skew span {
+    transform:skew(45deg, 0deg) rotate(315deg);
+    -ms-transform:skew(45deg, 0deg) rotate(315deg);
+    -moz-transform:skew(45deg, 0deg) rotate(315deg);
+    -webkit-transform:skew(45deg, 0deg) rotate(315deg);
+    -o-transform:skew(45deg, 0deg) rotate(315deg);
+    white-space: nowrap;
+    position: absolute;
+    bottom: 15px;
+    left: 1px;
+    display: inline-block;
+    width: 100%;
+    text-align: left;
+}
+.angled_table table td {
+    width: 30px;
+    height: 30px;
+    text-align: center;
+    vertical-align: middle;
+    border: 1px solid #CCCCCC;
+}
+.angled_table table td a {
+    display: block;
+    width: 100%;
+    text-align: center;
+}
+/* This is the API function names */
+ .angled_table table td.operation {
+    width: auto;
+    text-align: right;
+    font-weight: bold;
+    border: none;
+    padding-right: 8px;
+}
+
+/* Backgroud to make things easier to follow */
+.angled_table table .odd {
+    background-color: #DDDDDD;
+}
