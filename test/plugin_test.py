@@ -93,6 +93,7 @@ def supported(cap, capability):
             return False
     return True
 
+
 class TestProxy(object):
 
     # Hash of all calls that can be async
@@ -139,6 +140,13 @@ class TestProxy(object):
         else:
             raise AttributeError("No such method %s" % name)
 
+    @staticmethod
+    def log_result(method, v):
+        if not method in results:
+            results[method] = []
+
+        results[method].append(v)
+
     ## Method which is called to invoke the actual method of interest.
     #
     # The intentions of this method is this:
@@ -159,22 +167,20 @@ class TestProxy(object):
         rc = None
         job_possible = _proxy_method_name in TestProxy.async_calls
 
-        # Check to see if we have a place to store result
-        if not _proxy_method_name in results:
-            results[_proxy_method_name] = []
-
         # Timer block
         with Duration() as method_time:
             try:
                 rc = getattr(self.o, _proxy_method_name)(*args, **kwargs)
-                results[_proxy_method_name].append(dict(rc=True,
-                                                        stack_trace=None,
-                                                        msg=None))
+                TestProxy.log_result(_proxy_method_name,
+                                     dict(rc=True, stack_trace=None, msg=None))
             except Exception as e:
-                results[_proxy_method_name].append(
-                    dict(rc=False,
-                         stack_trace=traceback.format_exc(),
-                         msg=str(e)))
+
+                if isinstance(e, lsm.LsmError) and \
+                        e.code != lsm.ErrorNumber.NO_SUPPORT:
+                    TestProxy.log_result(_proxy_method_name,
+                                         dict(rc=False,
+                                              stack_trace=traceback.format_exc(),
+                                              msg=str(e)))
                 raise e
 
             # If the job can do async, we will block looping on it.
