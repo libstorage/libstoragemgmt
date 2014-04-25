@@ -26,7 +26,7 @@ import na
 from lsm import (Volume, Initiator, FileSystem, FsSnapshot, NfsExport,
                  AccessGroup, System, Capabilities, Disk, Pool, OptionalData,
                  IStorageAreaNetwork, INfs, LsmError, ErrorNumber, JobStatus,
-                 md5, Error, VERSION)
+                 md5, Error, VERSION, common_urllib2_error_handler)
 
 #Maps na to lsm, this is expected to expand over time.
 e_map = {
@@ -67,13 +67,8 @@ def handle_ontap_errors(method):
         except na.FilerError as oe:
             error, error_msg = error_map(oe)
             raise LsmError(error, error_msg)
-        except urllib2.HTTPError as he:
-            if he.code == 401:
-                raise LsmError(ErrorNumber.PLUGIN_AUTH_FAILED, he.msg)
-            else:
-                raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION, str(he))
-        except urllib2.URLError as ce:
-            raise LsmError(ErrorNumber.PLUGIN_UNKNOWN_HOST, str(ce))
+        except Exception as e:
+            common_urllib2_error_handler(e)
 
     return na_wrapper
 

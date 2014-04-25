@@ -44,14 +44,24 @@ def handle_cim_errors(method):
         try:
             return method(*args, **kwargs)
         except CIMError as ce:
-            raise LsmError(ErrorNumber.PLUGIN_ERROR, str(ce))
+            error_code, desc = ce
+
+            if error_code == 0 and 'Socket error' in desc:
+                if 'Errno 111' in desc:
+                    raise LsmError(ErrorNumber.NETWORK_CONNREFUSED,
+                                   'Connection refused')
+                if 'Errno 113' in desc:
+                    raise LsmError(ErrorNumber.NETWORK_HOSTDOWN,
+                                   'Host is down')
+            raise LsmError(ErrorNumber.PLUGIN_ERROR, desc)
         except pywbem.cim_http.AuthError as ae:
             raise LsmError(ErrorNumber.PLUGIN_AUTH_FAILED, "Unauthorized user")
         except pywbem.cim_http.Error as te:
-            raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION, str(te))
+            raise LsmError(ErrorNumber.NETWORK_ERROR, str(te))
         except Exception as e:
             Error("Unexpected exception:\n" + traceback.format_exc())
-            raise LsmError(ErrorNumber.PLUGIN_ERROR, str(e))
+            raise LsmError(ErrorNumber.PLUGIN_ERROR, str(e),
+                           traceback.format_exc())
     return cim_wrapper
 
 
@@ -487,6 +497,7 @@ class Smis(IStorageAreaNetwork):
             raise LsmError(ErrorNumber.PLUGIN_ERROR,
                            'Error: ' + msg + " rc= " + str(rc))
 
+    @handle_cim_errors
     def startup(self, uri, password, timeout, flags=0):
         """
         Called when the plug-in runner gets the start request from the client.

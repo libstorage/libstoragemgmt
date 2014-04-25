@@ -21,9 +21,10 @@ import copy
 
 from lsm import (Pool, Volume, System, Capabilities, Initiator,
                  IStorageAreaNetwork, INfs, FileSystem, FsSnapshot, NfsExport,
-                 LsmError, ErrorNumber, uri_parse, md5, Error, VERSION)
+                 LsmError, ErrorNumber, uri_parse, md5, VERSION,
+                 common_urllib2_error_handler)
 
-import traceback
+
 import urllib2
 import json
 import time
@@ -39,14 +40,9 @@ def handle_errors(method):
     def target_wrapper(*args, **kwargs):
         try:
             return method(*args, **kwargs)
-        except urllib2.HTTPError as he:
-            raise LsmError(ErrorNumber.PLUGIN_AUTH_FAILED, str(he))
-        except urllib2.URLError as ue:
-            Error("Unexpected exception:\n" + traceback.format_exc())
-            raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION, str(ue))
         except Exception as e:
-            Error("Unexpected exception:\n" + traceback.format_exc())
-            raise e
+            common_urllib2_error_handler(e)
+
     return target_wrapper
 
 

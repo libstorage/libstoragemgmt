@@ -29,7 +29,8 @@ import time
 
 from lsm import (AccessGroup, Capabilities, ErrorNumber, FileSystem, INfs,
                  IStorageAreaNetwork, Initiator, LsmError, NfsExport, Pool,
-                 FsSnapshot, System, VERSION, Volume, md5)
+                 FsSnapshot, System, VERSION, Volume, md5,
+                 common_urllib2_error_handler)
 
 
 class NexentaStor(INfs, IStorageAreaNetwork):
@@ -59,8 +60,9 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         request.add_header('Content-Type', 'application/json')
         try:
             response = urllib2.urlopen(request, timeout=self.timeout / 1000)
-        except urllib2.URLError as e:
-            raise LsmError(ErrorNumber.PLUGIN_ERROR, str(e))
+        except Exception as e:
+            common_urllib2_error_handler(e)
+
         resp_json = response.read()
         resp = json.loads(resp_json)
         if resp['error']:

@@ -27,8 +27,10 @@ import tty
 import termios
 import collections
 import inspect
+import urllib2
 
 import functools
+import traceback
 
 
 def default_property(name, allow_set=True, doc=None):
@@ -66,6 +68,27 @@ def getch():
         termios.tcsetattr(fd, termios.TCSADRAIN, prev)
     return ch
 
+
+def common_urllib2_error_handler(exp):
+
+    if isinstance(exp, urllib2.HTTPError):
+        raise LsmError(ErrorNumber.PLUGIN_AUTH_FAILED, str(exp))
+    if isinstance(exp, urllib2.URLError):
+        desc = str(exp)
+        if 'urlopen error' in desc:
+            if 'Errno 111' in desc:
+                raise LsmError(ErrorNumber.NETWORK_CONNREFUSED,
+                               'Connection refused')
+            if 'Errno 113' in desc:
+                raise LsmError(ErrorNumber.NETWORK_HOSTDOWN,
+                               'Host is down')
+        Error("Unexpected network error:\n" + traceback.format_exc())
+        raise LsmError(ErrorNumber.NETWORK_ERROR, desc)
+
+    stack_trace = traceback.format_exc()
+    Error("Unexpected exception:\n" + stack_trace)
+    raise LsmError(ErrorNumber.PLUGIN_ERROR, "Unexpected exception",
+                   stack_trace)
 
 ## Documentation for Proxy class.
 #
@@ -451,6 +474,10 @@ class ErrorNumber(object):
     INVALID_BLOCK_RANGE = 121
 
     IS_MAPPED = 125
+
+    NETWORK_CONNREFUSED = 140   # Host on network, but connection refused
+    NETWORK_HOSTDOWN = 141      # Host unreachable on network
+    NETWORK_ERROR = 142         # Generic network error
 
     NO_CONNECT = 150
     NO_MAPPING = 151
