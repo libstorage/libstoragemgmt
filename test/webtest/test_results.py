@@ -96,15 +96,26 @@ def to_html(results):
     ch = []
     row_data = []
 
+    #Build column header
+    for r in results:
+        ch.append(r['SYSTEM']['ID'])
+
+
+    # Add overall pass/fail for unit tests
+    pass_fail = ['Overall Pass/Fail result']
+    for r in results:
+        if r['META']['ec'] == '0':
+            pass_fail.append('P')
+        else:
+            pass_fail.append('F')
+    row_data.append(pass_fail)
+
     # Append on link for error log
     error_log = ['Error log (click +)']
     for r in results:
         error_log.append('<a href="%s">+</a>' %
                          ('./' + os.path.basename(r['META']['error_file'])))
     row_data.append(error_log)
-
-    for r in results:
-        ch.append(r['SYSTEM']['ID'])
 
     for m in methods:
         row = [m]
