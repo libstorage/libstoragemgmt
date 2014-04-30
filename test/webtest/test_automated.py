@@ -24,7 +24,9 @@ def run_test(cmdline, output_dir, sys_id, uri, password ):
     (ec, out, error) = call(exec_array)
 
     # Save the output to a temp dir
-    fn = "%s/%s" % (output_dir, sys_id.replace(' ', '_'))
+    sys_id = sys_id.replace('/', '-')
+    sys_id = sys_id.replace(' ', '_')
+    fn = "%s/%s" % (output_dir, sys_id)
 
     with open(fn + ".out", 'w') as so:
         so.write(out)
