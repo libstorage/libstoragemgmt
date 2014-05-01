@@ -1,4 +1,26 @@
 #!/usr/bin/env python
+
+# Copyright (C) 2014 Red Hat, Inc.
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+# USA
+#
+# Author: tasleson
+
+# Takes a directory of output from the script test_automated.py and creates
+# a summary html table.
+
 from bs4 import BeautifulSoup as bs
 from htmltag import HTML, div, table, thead, tbody, tr, td, span, th, foo, \
     head, body, html, title, style, link, fail_test, notsupported, pass_test, \
