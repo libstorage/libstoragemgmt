@@ -625,36 +625,32 @@ class Smis(IStorageAreaNetwork):
         """
         rs = self._get_class_instance("CIM_ReplicationService", 'SystemName',
                                       system.id, True)
-
         if rs:
             rs_cap = self._c.Associators(
                 rs.path,
                 AssocClass='CIM_ElementCapabilities',
                 ResultClass='CIM_ReplicationServiceCapabilities')[0]
 
-            if self.RepSvc.Action.CREATE_ELEMENT_REPLICA in \
-                    rs_cap['SupportedAsynchronousActions'] \
-                    or self.RepSvc.Action.CREATE_ELEMENT_REPLICA in \
-                    rs_cap['SupportedSynchronousActions']:
+            s_rt = rs_cap['SupportedReplicationTypes']
+
+            if self.RepSvc.Action.CREATE_ELEMENT_REPLICA in s_rt or \
+                    self.RepSvc.Action.CREATE_ELEMENT_REPLICA in s_rt:
                 cap.set(Capabilities.VOLUME_REPLICATE)
 
             # Mirror support is not working and is not supported at this time.
-            # if self.RepSvc.RepTypes.SYNC_MIRROR_LOCAL in \
-            #   rs_cap['SupportedReplicationTypes']:
+            # if self.RepSvc.RepTypes.SYNC_MIRROR_LOCAL in s_rt:
             #    cap.set(Capabilities.DeviceID)
 
             # if self.RepSvc.RepTypes.ASYNC_MIRROR_LOCAL \
-            #    in rs_cap['SupportedReplicationTypes']:
+            #    in s_rt:
             #    cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC)
 
-            if self.RepSvc.RepTypes.SYNC_SNAPSHOT_LOCAL \
-                    or self.RepSvc.RepTypes.ASYNC_SNAPSHOT_LOCAL \
-                    in rs_cap['SupportedReplicationTypes']:
+            if self.RepSvc.RepTypes.SYNC_SNAPSHOT_LOCAL in s_rt or \
+                    self.RepSvc.RepTypes.ASYNC_SNAPSHOT_LOCAL in s_rt:
                 cap.set(Capabilities.VOLUME_REPLICATE_CLONE)
 
-            if self.RepSvc.RepTypes.SYNC_CLONE_LOCAL \
-                    or self.RepSvc.RepTypes.ASYNC_CLONE_LOCAL \
-                    in rs_cap['SupportedReplicationTypes']:
+            if self.RepSvc.RepTypes.SYNC_CLONE_LOCAL in s_rt or \
+                        self.RepSvc.RepTypes.ASYNC_CLONE_LOCAL in s_rt:
                 cap.set(Capabilities.VOLUME_REPLICATE_COPY)
         else:
             # Try older storage configuration service
