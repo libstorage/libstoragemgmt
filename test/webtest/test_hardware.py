@@ -24,8 +24,8 @@ import yaml
 
 class TestArrays(object):
     col_name = ['COMPANY', 'NAMESPACE', 'SMI_VERSION', 'PRODUCT', 'PRINCIPAL',
-            'PASSWORD', 'CIM_VERSION', 'IP', 'INTEROP_NS',
-            'PROTOCOL', 'PORT']
+                'PASSWORD', 'CIM_VERSION', 'IP', 'INTEROP_NS', 'PROTOCOL',
+                'PORT']
 
     skip_these = ['Brocade', 'Cisco']
 
@@ -44,16 +44,13 @@ class TestArrays(object):
             uri += "+ssl"
             port = "5989"
 
-            uri += "://%s@%s:%s/?namespace=%s&no_ssl_verify=yes" % (d["PRINCIPAL"], d["IP"],
-                                              port,
-                                              d["NAMESPACE"])
+            uri += "://%s@%s:%s/?namespace=%s&no_ssl_verify=yes" % \
+                   (d["PRINCIPAL"], d["IP"], port, d["NAMESPACE"])
         else:
             uri += "://%s@%s:%s/?namespace=%s" % (d["PRINCIPAL"], d["IP"],
-                                              port,
-                                              d["NAMESPACE"])
+                                                  port, d["NAMESPACE"])
 
         return uri, d['PASSWORD']
-
 
     def parse_csv_file(self, filename):
         rc = []
