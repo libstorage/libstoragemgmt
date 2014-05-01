@@ -372,9 +372,11 @@ class TestPlugin(unittest.TestCase):
                                lsm.Capabilities.VOLUME_DELETE]):
                 vol, pool = self._volume_create(s.id)
 
+                # For the moment lets allow the array to pick the pool
+                # to supply the backing store for the replicate
                 if supported(cap, [capability]):
                     volume_clone = self.c.volume_replicate(
-                        pool, replication_type, vol,
+                        None, replication_type, vol,
                         rs('volume_clone'))[1]
 
                     self.assertTrue(volume_clone is not None)
