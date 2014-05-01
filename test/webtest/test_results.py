@@ -111,7 +111,8 @@ def to_html(results):
     methods = ['capabilities', 'get_time_out', 'set_time_out',
                'systems', 'plugin_info', 'pools', 'job_status', 'job_free',
                'volumes', 'volume_create', 'volume_delete', 'volume_resize',
-               'volume_replicate', 'disks', 'volume_replicate_range_block_size',
+               'volume_replicate', 'disks',
+               'volume_replicate_range_block_size',
                'volume_replicate_range', 'fs', 'fs_clone',
                'fs_create', 'fs_delete', 'fs_resize', 'fs_snapshot_create']
 
@@ -121,7 +122,6 @@ def to_html(results):
     #Build column header
     for r in results:
         ch.append(r['SYSTEM']['ID'])
-
 
     # Add overall pass/fail for unit tests
     pass_fail = ['Overall Pass/Fail result']
@@ -154,20 +154,17 @@ def to_html(results):
                           href="../../test.css"),
                 title("libStorageMgmt test results"), ),
                 body(
-                    div( table(_table_header(ch), _table_body(row_data)),
+                    div(table(_table_header(ch), _table_body(row_data)),
                          _class="angled_table"),
-                    div( pre(
-                           "                   Results generated on %s\n\n" %
-                                                    (time.strftime("%c")) +
-                           "                   Legend\n"
-                           "                   P = Pass\n"
-                           "                   F = Fail\n"
-                           "                   U = Unsupported\n"
-                           "                   * = Unable to connect to array\n"
-                           "                   + = hyper link to error log\n"
-                           )
-                       )
-                    ) # End body
+                    div(pre(
+                           "                  Results generated on %s\n\n" %
+                           (time.strftime("%c")) +
+                           "                  Legend\n"
+                           "                  P = Pass\n"
+                           "                  F = Fail\n"
+                           "                  U = Unsupported\n"
+                           "                  * = Unable to connect to array\n"
+                           "                  + = hyper link to error log\n")))
                 ))
 
     return bs(text).prettify()
