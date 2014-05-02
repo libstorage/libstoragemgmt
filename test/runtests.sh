@@ -36,6 +36,12 @@ cleanup() {
 	then
 		rm -rf 	$base
 	fi
+    if [ -e $rootdir/_build ]
+    then
+        rm $lsm_py_folder/lsm/plugin
+        rm $lsm_py_folder/lsm/lsmcli
+        chmod -w $lsm_py_folder/lsm
+    fi
 }
 
 good() {
@@ -58,17 +64,22 @@ rootdir=${testdir%/*}
 
 #Are we running within distcheck?
 c_unit=$rootdir/test/tester
-LSMD_DAEMON=$rootdir/src/lsmd
-shared_libs=$rootdir/src/.libs/
-bin_plugin=$rootdir/plugin/.libs/
-
+LSMD_DAEMON=$rootdir/daemon/lsmd
+shared_libs=$rootdir/c_binding/.libs/
+bin_plugin=$rootdir/plugin/simc/.libs/
+lsm_py_folder=$rootdir/python_binding
+lsm_plugin_py_folder=$rootdir/plugin
+lsmcli_py_folder=$rootdir/tools/lsmcli
 
 if [ -e $rootdir/_build ]
 then
 	c_unit=$rootdir/_build/test/tester
-	LSMD_DAEMON=$rootdir/_build/src/lsmd
-	shared_libs=$rootdir/_build/src/.libs/
-	bin_plugin=$rootdir/_build/plugin/.libs/
+	LSMD_DAEMON=$rootdir/_build/daemon/lsmd
+	shared_libs=$rootdir/_build/c_binding/.libs/
+	bin_plugin=$rootdir/_build/plugin/simc/.libs/
+    # In distcheck, all folder is read only(except _build and _inst).
+    # which prevent us from linking plugin and lsmcli into python/lsm folder.
+    chmod +w $rootdir/python_binding/lsm
 fi
 
 #With a distcheck you cannot muck with the source file system, so we will copy
@@ -76,7 +87,7 @@ fi
 plugins=$base/plugins
 
 #Export needed vars
-export PYTHONPATH=$rootdir/lsm
+export PYTHONPATH=$lsm_py_folder
 export LD_LIBRARY_PATH=$base/lib
 export LSM_SIM_DATA="$base/lsm_sim_data"
 
@@ -92,6 +103,16 @@ good "mkdir -p $LD_LIBRARY_PATH"
 #Copy shared libraries
 good "cp $shared_libs/*.so.* $LD_LIBRARY_PATH"
 
+#Link plugin folder as python/lsm/plugin folder
+if [ ! -L "$lsm_py_folder/lsm/plugin" ];then
+    good "ln -s $lsm_plugin_py_folder $lsm_py_folder/lsm/"
+fi
+
+#Link lsmcli folder as python/lsm/lsmcli folder
+if [ ! -L "$lsm_py_folder/lsm/lsmcli" ];then
+    good "ln -s $lsmcli_py_folder $lsm_py_folder/lsm/"
+fi
+
 #Copy plugins to one directory.
 good "find $rootdir/ \( ! -regex '.*/\..*' \) -type f -name \*_lsmplugin -exec cp {} $plugins \;"
 
@@ -99,7 +120,6 @@ good "find $rootdir/ \( ! -regex '.*/\..*' \) -type f -name \*_lsmplugin -exec c
 #valgrind does not work.
 good "cp $bin_plugin/*_lsmplugin $plugins"
 good "ls -lh $plugins"
-
 
 
 #Start daemon
@@ -118,7 +138,7 @@ good "$c_unit"
 #Run cmdline against the simulator if we are not checking for leaks
 if [ -z "$LSM_VALGRIND" ]; then
     export LSMCLI_URI='sim://'
-    good "$rootdir/test/cmdtest.py -c $rootdir/tools/lsmclipy/lsmcli"
+    good "$rootdir/test/cmdtest.py -c $rootdir/tools/lsmcli/lsmcli"
 fi
 
 #Pretend we were never here

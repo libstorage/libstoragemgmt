@@ -16,7 +16,6 @@ configure
 libtool
 smis_lsmplugin
 stamp-h1
-lsmcli
 smiscli
 *.patch
 libstoragemgmt.pc
@@ -26,3 +25,11 @@ doxygen.conf
 lsmcli.1
 lsmd.1
 version.py
+libstoragemgmt_version.h
+python_binding/lsm/plugin
+python_binding/lsm/lsmcli
+daemon/lsm_restd
+daemon/lsmd
+*.pyc
+test/tester
+tools/udev/scan-scsi-target

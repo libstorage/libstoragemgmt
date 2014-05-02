@@ -160,23 +160,25 @@ fi
 AM_CONDITIONAL(HAVE_SYSTEMD, [test -n "$with_systemdsystemunitdir" -a "x$with_systemdsystemunitdir" != xno ])
 
 AC_OUTPUT(libstoragemgmt.pc \
-          libstoragemgmt.spec \
           Makefile \
-          src/Makefile \
+          c_binding/Makefile \
+          c_binding/include/Makefile \
+          c_binding/include/libstoragemgmt/Makefile \
+          c_binding/include/libstoragemgmt/libstoragemgmt_version.h \
+          python_binding/Makefile \
+          python_binding/lsm/version.py \
           plugin/Makefile \
+          plugin/simc/Makefile \
+          daemon/Makefile \
           doc/Makefile \
           doc/man/lsmcli.1 \
           doc/man/lsmd.1 \
           doc/doxygen.conf \
           tools/Makefile \
           tools/udev/Makefile \
-          include/Makefile \
-          include/libstoragemgmt/Makefile \
-          include/libstoragemgmt/libstoragemgmt_version.h \
-          lsm/Makefile \
-          lsm/lsm/version.py \
-          tools/lsmclipy/Makefile \
+          tools/lsmcli/Makefile \
           packaging/Makefile \
           packaging/daemon/Makefile \
+          packaging/libstoragemgmt.spec \
           doc/man/Makefile \
           test/Makefile)
