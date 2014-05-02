@@ -234,7 +234,7 @@ typedef int (*file_op)(void *p, char *full_file_path);
 
 /**
  * For a given directory iterate through each directory item and exec the
- * callback.
+ * callback, recursively process nested directories too.
  * @param   dir         Directory to transverse
  * @param   p           Pointer to user data (Optional)
  * @param   call_back   Function to call against file
@@ -246,43 +246,34 @@ void process_directory( char *dir, void *p, file_op call_back)
 
     if( call_back && dir && strlen(dir) ) {
         DIR *dp = NULL;
-        dp = opendir(dir);
         struct dirent *entry = NULL;
+        char *full_name = NULL;
+        dp = opendir(dir);
 
         if( dp ) {
             while(( entry = readdir(dp)) != NULL) {
-                char *full_name = path_form(dir, entry->d_name);
                 struct stat entry_st;
-                if ( stat(full_name, &entry_st) != 0)
-                    continue;
-                if( entry_st.st_mode & S_IFDIR ){
-                // In develop folder where plugin is in this path:
-                //   <plugin_dir>/<uri_scheme>/<uri_scheme><plugin_extension>
-                // Example:    plugins/sim/sim_lsmplugin
-                // As there is no folder in /usr/bin, not folder check penalty
-                // for normal user.
-                    if (strcmp(entry->d_name, ".") == 0) continue;
-                    if (strcmp(entry->d_name, "..") == 0) continue;
-                    char *uri_scheme = entry->d_name;
-                    size_t path_len = strlen(full_name) +  strlen(uri_scheme) +
-                        strlen(plugin_extension) + 2;
-                    //                             ^ is '/' and '\0'
-                    char *new_full_name = (char *) malloc(path_len);
-                    snprintf(new_full_name, path_len, "%s/%s%s",
-                             full_name, uri_scheme, plugin_extension);
-                    if( access( new_full_name, F_OK ) != 0 ) continue;
-                    // Maybe we shoud check X_OK for execution permission
-                    free(full_name);
-                    full_name = new_full_name;
-                }
-                int result = call_back(p, full_name);
-
                 free(full_name);
+                full_name = path_form(dir, entry->d_name);
 
-                if( result ) {
-                    break;
+                if( stat(full_name, &entry_st ) != 0 ) {
+                    continue;
+                }
+
+                if( S_ISDIR(entry_st.st_mode) ) {
+                    if( (strcmp(entry->d_name, ".") == 0) ||
+                        (strcmp(entry->d_name, "..") == 0)) {
+                        continue;
+                    }
+                    process_directory(full_name, p, call_back);
+                } else {
+                    if( call_back(p, full_name) ) {
+                        break;
+                    }
                 }
             }
+
+            free(full_name);
 
             if( closedir(dp) ) {
                 err = errno;
