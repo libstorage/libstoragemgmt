@@ -111,10 +111,7 @@ def to_html(results):
     methods = ['capabilities', 'get_time_out', 'set_time_out',
                'systems', 'plugin_info', 'pools', 'job_status', 'job_free',
                'volumes', 'volume_create', 'volume_delete', 'volume_resize',
-               'volume_replicate', 'disks',
-               'volume_replicate_range_block_size',
-               'volume_replicate_range', 'fs', 'fs_clone',
-               'fs_create', 'fs_delete', 'fs_resize', 'fs_snapshot_create']
+               'volume_replicate', 'disks']
 
     ch = []
     row_data = []
@@ -160,11 +157,12 @@ def to_html(results):
                            "                  Results generated on %s\n\n" %
                            (time.strftime("%c")) +
                            "                  Legend\n"
-                           "                  P = Pass\n"
-                           "                  F = Fail\n"
-                           "                  U = Unsupported\n"
-                           "                  * = Unable to connect to array\n"
-                           "                  + = hyper link to error log\n")))
+                           "                  P = Pass (Method called and returned without error)\n"
+                           "                  F = Fail (Method call returned an error)\n"
+                           "                  U = Unsupported or unable to test due to other errors\n"
+                           "                  * = Unable to connect to array or provider totally unsupported\n"
+                           "                  + = hyper link to error log\n\n\n",
+                           HTML('                  Source code for plug-in for this test run <a href=./smis.py.html>is here. </a>'))))
                 ))
 
     return bs(text).prettify()
