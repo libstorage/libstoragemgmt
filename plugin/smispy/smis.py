@@ -606,29 +606,45 @@ class Smis(IStorageAreaNetwork):
         scs = self._get_class_instance('CIM_StorageConfigurationService',
                                        'SystemName', system.id)
 
-        scs_cap_inst = self._c.Associators(
-            scs.path,
-            AssocClass='CIM_ElementCapabilities',
-            ResultClass='CIM_StorageConfigurationCapabilities')[0]
+        if scs is not None:
+            scs_cap_inst = self._c.Associators(
+                scs.path,
+                AssocClass='CIM_ElementCapabilities',
+                ResultClass='CIM_StorageConfigurationCapabilities')[0]
 
-        # print 'Async', scs_cap_inst['SupportedAsynchronousActions']
-        # print 'Sync', scs_cap_inst['SupportedSynchronousActions']
+            if scs_cap_inst is not None:
+                # print 'Async', scs_cap_inst['SupportedAsynchronousActions']
+                # print 'Sync', scs_cap_inst['SupportedSynchronousActions']
+                async = None
+                sync = None
 
-        #TODO Get rid of magic numbers
-        if 2 in scs_cap_inst['SupportedStorageElementTypes']:
-            cap.set(Capabilities.VOLUMES)
+                if 'SupportedAsynchronousActions' in scs_cap_inst:
+                    async = scs_cap_inst['SupportedAsynchronousActions']
+                if 'SupportedSynchronousActions' in scs_cap_inst:
+                    sync = scs_cap_inst['SupportedSynchronousActions']
 
-        if 5 in scs_cap_inst['SupportedAsynchronousActions'] \
-                or 5 in scs_cap_inst['SupportedSynchronousActions']:
-            cap.set(Capabilities.VOLUME_CREATE)
+                if async is None:
+                    async = []
 
-        if 6 in scs_cap_inst['SupportedAsynchronousActions'] \
-                or 6 in scs_cap_inst['SupportedSynchronousActions']:
-            cap.set(Capabilities.VOLUME_DELETE)
+                if sync is None:
+                    sync = []
 
-        if 7 in scs_cap_inst['SupportedAsynchronousActions'] \
-                or 7 in scs_cap_inst['SupportedSynchronousActions']:
-            cap.set(Capabilities.VOLUME_RESIZE)
+                combined = async
+                combined.extend(sync)
+
+                #TODO Get rid of magic numbers
+                if 'SupportedStorageElementTypes' in scs_cap_inst:
+                    if 2 in scs_cap_inst['SupportedStorageElementTypes']:
+                        cap.set(Capabilities.VOLUMES)
+
+                if 5 in combined:
+                    cap.set(Capabilities.VOLUME_CREATE)
+
+                if 6 in combined:
+                    cap.set(Capabilities.VOLUME_DELETE)
+
+                if 7 in combined:
+                    cap.set(Capabilities.VOLUME_RESIZE)
 
     def _rs_supported_capabilities(self, system, cap):
         """
@@ -676,25 +692,26 @@ class Smis(IStorageAreaNetwork):
                     AssocClass='CIM_ElementCapabilities',
                     ResultClass='CIM_StorageConfigurationCapabilities')[0]
 
-                sct = rs_cap['SupportedCopyTypes']
+                if rs_cap is not None and 'SupportedCopyTypes' in rs_cap:
+                    sct = rs_cap['SupportedCopyTypes']
 
-                if len(sct):
-                    cap.set(Capabilities.VOLUME_REPLICATE)
+                    if len(sct):
+                        cap.set(Capabilities.VOLUME_REPLICATE)
 
-                    # Mirror support is not working and is not supported at
-                    # this time.
+                        # Mirror support is not working and is not supported at
+                        # this time.
 
-                    # if Smis.CopyTypes.ASYNC in sct:
-                    #    cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC)
+                        # if Smis.CopyTypes.ASYNC in sct:
+                        #    cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC)
 
-                    # if Smis.CopyTypes.SYNC in sct:
-                    #    cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_SYNC)
+                        # if Smis.CopyTypes.SYNC in sct:
+                        #    cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_SYNC)
 
-                    if Smis.CopyTypes.UNSYNCASSOC in sct:
-                        cap.set(Capabilities.VOLUME_REPLICATE_CLONE)
+                        if Smis.CopyTypes.UNSYNCASSOC in sct:
+                            cap.set(Capabilities.VOLUME_REPLICATE_CLONE)
 
-                    if Smis.CopyTypes.UNSYNCUNASSOC in sct:
-                        cap.set(Capabilities.VOLUME_REPLICATE_COPY)
+                        if Smis.CopyTypes.UNSYNCUNASSOC in sct:
+                            cap.set(Capabilities.VOLUME_REPLICATE_COPY)
 
     def _pcm_supported_capabilities(self, system, cap):
         """
