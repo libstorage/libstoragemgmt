@@ -362,7 +362,15 @@ class TestPlugin(unittest.TestCase):
                 vol_resize = self.c.volume_resize(vol,
                                                   vol.size_bytes * 1.10)[1]
                 self.assertTrue(vol.size_bytes < vol_resize.size_bytes)
-                self._volume_delete(vol_resize)
+                self.assertTrue(vol.id == vol_resize.id,
+                                "Expecting re-sized volume to refer to "
+                                "same volume.  Expected %s, got %s" %
+                                (vol.id, vol_resize.id))
+                if vol.id == vol_resize.id:
+                    self._volume_delete(vol_resize)
+                else:
+                    # Delete the original
+                    self._volume_delete(vol)
 
     def _replicate_test(self, capability, replication_type):
         for s in self.systems:
