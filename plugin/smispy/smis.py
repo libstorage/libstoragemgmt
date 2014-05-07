@@ -381,14 +381,16 @@ class Smis(IStorageAreaNetwork):
         else:
             property_list = id_pros
         cim_xxxs = self._c.EnumerateInstances(class_name,
-                                              PropertyList=property_list)
+                                              PropertyList=property_list,
+                                              LocalOnly=False)
         org_requested_id = requested_id
         if class_type == 'Job':
             (requested_id, ignore) = self._parse_job_id(requested_id)
         for cim_xxx in cim_xxxs:
             if self._id(class_type, cim_xxx) == requested_id:
                 if flag_full_info:
-                    cim_xxx = self._c.GetInstance(cim_xxx.path)
+                    cim_xxx = self._c.GetInstance(cim_xxx.path,
+                                                  LocalOnly=False)
                 return cim_xxx
 
         raise LsmError(ErrorNumber.INVALID_ARGUMENT,
@@ -406,9 +408,10 @@ class Smis(IStorageAreaNetwork):
         try:
             if prop_name:
                 instances = self._c.EnumerateInstances(
-                    class_name, PropertyList=[prop_name])
+                    class_name, PropertyList=[prop_name], LocalOnly=False)
             else:
-                instances = self._c.EnumerateInstances(class_name)
+                instances = self._c.EnumerateInstances(class_name,
+                                                       LocalOnly=False)
         except CIMError as ce:
             error_code = tuple(ce)[0]
 
@@ -466,7 +469,8 @@ class Smis(IStorageAreaNetwork):
                                 AssocClass='CIM_ProtocolControllerForUnit')
 
                         if logical_device and len(logical_device) > 0:
-                            vol = self._c.GetInstance(logical_device[0].path)
+                            vol = self._c.GetInstance(logical_device[0].path,
+                                                      LocalOnly=False)
                             if 'DeviceID' in vol and \
                                     md5(vol.path) == volume_id:
                                 return spc[0]
@@ -560,7 +564,8 @@ class Smis(IStorageAreaNetwork):
                 self.cim_reg_profiles = self._c.EnumerateInstances(
                     'CIM_RegisteredProfile',
                     namespace=interop_namespace,
-                    PropertyList=['RegisteredName', 'RegisteredVersion'])
+                    PropertyList=['RegisteredName', 'RegisteredVersion'],
+                    LocalOnly=False)
                 if len(self.cim_reg_profiles) != 0:
                     break
 
@@ -965,7 +970,8 @@ class Smis(IStorageAreaNetwork):
         for key in property_list:
             if key not in cim_xxx:
                 cim_xxx = self._c.GetInstance(cim_xxx.path,
-                                              PropertyList=property_list)
+                                              PropertyList=property_list,
+                                              LocalOnly=False)
                 break
 
         id_str = ''
@@ -978,7 +984,7 @@ class Smis(IStorageAreaNetwork):
                     cim_class_name = Smis._cim_class_name_of(class_type)
                 raise LsmError(ErrorNumber.NO_SUPPORT,
                                "%s %s " % (cim_class_name, cim_xxx.path) +
-                               "does not have property %s" % str(key) +
+                               "does not have property %s " % str(key) +
                                "calculate out %s id" % class_type)
             else:
                 id_str += cim_xxx[key]
@@ -1200,9 +1206,11 @@ class Smis(IStorageAreaNetwork):
         instance = None
 
         if 'TheElement' in out:
-            instance = self._c.GetInstance(out['TheElement'])
+            instance = self._c.GetInstance(out['TheElement'],
+                                           LocalOnly=False)
         elif 'TargetElement' in out:
-            instance = self._c.GetInstance(out['TargetElement'])
+            instance = self._c.GetInstance(out['TargetElement'],
+                                           LocalOnly=False)
 
         return self._new_vol(instance)
 
@@ -1216,7 +1224,7 @@ class Smis(IStorageAreaNetwork):
         if 'Pool' in out:
             cim_new_pool = self._c.GetInstance(
                 out['Pool'],
-                PropertyList=pool_pros)
+                PropertyList=pool_pros, LocalOnly=False)
             return self._new_pool(cim_new_pool)
         else:
             raise LsmError(ErrorNumber.INTERNAL_ERROR,
@@ -1251,7 +1259,7 @@ class Smis(IStorageAreaNetwork):
         for a in self._c.Associators(job.path,
                                      AssocClass='CIM_AffectedJobElement',
                                      ResultClass='CIM_StorageVolume'):
-            return self._new_vol(self._c.GetInstance(a.path))
+            return self._new_vol(self._c.GetInstance(a.path, LocalOnly=False))
         return None
 
     def _new_pool_from_job(self, cim_job):
@@ -1332,7 +1340,8 @@ class Smis(IStorageAreaNetwork):
             if e[0] == pywbem.CIM_ERR_INVALID_CLASS:
                 cim_syss = self._c.EnumerateInstances(
                     'CIM_ComputerSystem',
-                    PropertyList=['Name', 'ElementName', 'OperationalStatus'])
+                    PropertyList=['Name', 'ElementName', 'OperationalStatus'],
+                    LocalOnly=False)
             else:
                 raise e
         if not cim_syss:
@@ -3100,7 +3109,8 @@ class Smis(IStorageAreaNetwork):
             return []
         cim_disks = self._c.EnumerateInstances('CIM_DiskDrive',
                                                PropertyList=['SystemName',
-                                                             'DeviceID'])
+                                                             'DeviceID'],
+                                               LocalOnly=False)
         if len(cim_disks) == 0:
             raise LsmError(ErrorNumber.INVALID_DISK, "No disk found")
 
@@ -3339,7 +3349,7 @@ class Smis(IStorageAreaNetwork):
                 cim_st_set_path = new_in_params['Goal']
                 cim_st_set = self._c.GetInstance(
                     cim_st_set_path,
-                    PropertyList=['ThinProvisionedPoolType'])
+                    PropertyList=['ThinProvisionedPoolType'],LocalOnly=False)
                 if cim_st_set['ThinProvisionedPoolType'] == \
                    Smis.EMC_THINP_POOL_TYPE_THICK:
                     del new_in_params['ElementName']
@@ -3577,11 +3587,13 @@ class Smis(IStorageAreaNetwork):
             # skipping basic support of old SMIS provider.
             if e[0] == pywbem.CIM_ERR_INVALID_CLASS:
                 if flag_full_info:
-                    cim_syss = self._c.EnumerateInstances('CIM_ComputerSystem')
+                    cim_syss = self._c.EnumerateInstances(
+                        'CIM_ComputerSystem', LocalOnly=False)
                 else:
                     cim_syss = self._c.EnumerateInstances(
                         'CIM_ComputerSystem',
-                        PropertyList=property_list)
+                        PropertyList=property_list,
+                        LocalOnly=False)
             else:
                 raise e
         if not cim_syss:
