@@ -43,6 +43,8 @@ def handle_cim_errors(method):
     def cim_wrapper(*args, **kwargs):
         try:
             return method(*args, **kwargs)
+        except LsmError as lsm:
+            raise lsm
         except CIMError as ce:
             error_code, desc = ce
 
