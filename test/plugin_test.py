@@ -29,6 +29,7 @@ import collections
 import atexit
 import sys
 import yaml
+import re
 
 results = {}
 stats = {}
@@ -264,13 +265,27 @@ class TestPlugin(unittest.TestCase):
 
     def test_systems_list(self):
         arrays = self.c.systems()
-        self.assertTrue(len(arrays) > 0)
+        self.assertTrue(len(arrays) > 0, "We need at least one array for "
+                                         "testing!")
 
     def test_pools_list(self):
         pools_list = self.c.pools()
 
+    @staticmethod
+    def _vpd_correct(vpd):
+        p = re.compile('^[A-F0-9]+$')
+
+        if vpd is not None and len(vpd) > 0 and p.match(vpd) is not None:
+            return True
+        return False
+
     def test_volume_list(self):
         volumes = self.c.volumes()
+
+        for v in volumes:
+            self.assertTrue(TestPlugin._vpd_correct(v.vpd83),
+                            "VPD is not as expected %s for volume id: %s" %
+                            (v.vpd83, v.id))
 
     def test_disks_list(self):
         disks = self.c.disks()
