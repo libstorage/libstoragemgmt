@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2013 Red Hat, Inc.
+# Copyright (C) 2011-2014 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -13,8 +13,7 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 # USA
-#
-# Author: tasleson
+
 from string import split
 import time
 import traceback
@@ -1840,7 +1839,7 @@ class Smis(IStorageAreaNetwork):
 
             in_params = {'ElementName': name,
                          'SyncType': pywbem.Uint16(sync),
-                         'Mode': pywbem.Uint16(mode),
+                         #'Mode': pywbem.Uint16(mode),
                          'SourceElement': lun.path,
                          'WaitForCopyState':
                          pywbem.Uint16(Smis.CopyStates.SYNCHRONIZED)}
