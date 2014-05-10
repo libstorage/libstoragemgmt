@@ -554,7 +554,14 @@ class Smis(IStorageAreaNetwork):
                     # https://bugzilla.redhat.com/show_bug.cgi?id=1039801
                     pass
 
-        # Checking profile registration support status
+        self.tmo = timeout
+
+        if 'force_fallback_mode' in u['parameters'] and \
+           u['parameters']['force_fallback_mode'] == 'yes':
+           return
+
+        # Checking profile registration support status unless
+        # force_fallback_mode is enabled in URI.
         namespace_check_list = Smis.DMTF_INTEROP_NAMESPACES
         if 'namespace' in u['parameters'] and \
             u['parameters']['namespace'] not in namespace_check_list:
@@ -593,7 +600,6 @@ class Smis(IStorageAreaNetwork):
                 pass  # AFAIK, only LSI does not support RegisteredProfile
             else:
                 raise e
-        self.tmo = timeout
 
     def set_time_out(self, ms, flags=0):
         self.tmo = ms
@@ -1302,7 +1308,8 @@ class Smis(IStorageAreaNetwork):
                     Smis.SNIA_BLK_SRVS_PROFILE,
                     Smis.SNIA_SMIS_SPEC_VER_1_4,
                     strict=False,
-                    property_list=cim_sys_pros)
+                    property_list=cim_sys_pros,
+                    raise_error=True)
         cim_vol_pros = self._new_vol_cim_vol_pros()
         for cim_sys in cim_syss:
             sys_id = self._sys_id(cim_sys)
@@ -1426,7 +1433,8 @@ class Smis(IStorageAreaNetwork):
                     Smis.SNIA_BLK_SRVS_PROFILE,
                     Smis.SNIA_SMIS_SPEC_VER_1_4,
                     strict=False,
-                    property_list=cim_sys_pros)
+                    property_list=cim_sys_pros,
+                    raise_error=True)
 
         for cim_sys in cim_syss:
             system_id = self._sys_id(cim_sys)
@@ -1550,7 +1558,8 @@ class Smis(IStorageAreaNetwork):
                     Smis.SNIA_BLK_ROOT_PROFILE,
                     Smis.SNIA_SMIS_SPEC_VER_1_4,
                     strict=False,
-                    property_list=cim_sys_pros)
+                    property_list=cim_sys_pros,
+                    raise_error=True)
 
         if cim_syss is None:
             return []
@@ -2258,7 +2267,8 @@ class Smis(IStorageAreaNetwork):
                     Smis.SNIA_DISK_LITE_PROFILE,
                     Smis.SNIA_SMIS_SPEC_VER_1_4,
                     strict=False,
-                    property_list=cim_sys_pros)
+                    property_list=cim_sys_pros,
+                    raise_error=True)
 
         flag_multi_sys = None
         if not self.fallback_mode:
@@ -3452,7 +3462,7 @@ class Smis(IStorageAreaNetwork):
         return max_spec_ver
 
     def _get_cim_syss(self, profile_name, spec_ver, property_list=None,
-                      strict=False, sys_id=None):
+                      strict=False, sys_id=None, raise_error=False):
         """
         Usage:
             Check whether we support certain profile at certain SNIA
@@ -3500,7 +3510,15 @@ class Smis(IStorageAreaNetwork):
             profile_name, spec_ver, strict)
 
         if max_spec_ver is None:
-            return None
+            if raise_error:
+                error_msg = ("Current SMI-S provider does not support "
+                             "SMI-S %s profile, version %s" %
+                             (profile_name, spec_ver))
+                if not strict:
+                    error_msg = "%s(or later version)" % error_msg
+                raise LsmError(ErrorNumber.NO_SUPPORT, error_msg)
+            else:
+                return None
 
         if max_spec_ver not in self.cim_root_profile_dict.keys():
             raise LsmError(ErrorNumber.INTERNAL_ERROR,
