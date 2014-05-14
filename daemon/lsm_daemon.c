@@ -261,8 +261,7 @@ void process_directory( char *dir, void *p, file_op call_back)
                 }
 
                 if( S_ISDIR(entry_st.st_mode) ) {
-                    if( (strcmp(entry->d_name, ".") == 0) ||
-                        (strcmp(entry->d_name, "..") == 0)) {
+                    if (strncmp(entry->d_name, ".", 1) == 0){
                         continue;
                     }
                     process_directory(full_name, p, call_back);
