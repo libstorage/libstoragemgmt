@@ -3684,7 +3684,7 @@ class Smis(IStorageAreaNetwork):
             if self._sys_id(cim_sys) == system_id:
                 return cim_sys
         raise LsmError(ErrorNumber.NOT_FOUND_SYSTEM,
-                       "System %s not found" % system.id)
+                       "System %s not found" % system_id)
 
     def _get_cim_pool_by_id(self, cim_sys_path, pool_id, property_list=None):
         """
