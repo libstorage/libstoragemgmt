@@ -323,7 +323,9 @@ class Client(INetworkAttachedStorage):
         """
         Returns the created new pool object.
         """
-        # TODO: check size_bytes larger than 0 and raise error.
+        if size_bytes <= 0:
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           "'size_bytes' should larger than 0")
         return self._tp.rpc('pool_create', _del_self(locals()))
 
     ## Create new pool in the hard way by defined what exactly disks should
