@@ -3147,51 +3147,6 @@ class Smis(IStorageAreaNetwork):
         return cim_pri_exts
 
     @handle_cim_errors
-    def _pri_cim_ext_of_cim_disk(self, cim_disk_path, property_list=None):
-        """
-        Usage:
-            Find out the Primordial CIM_StorageExtent of CIM_DiskDrive
-            In SNIA SMI-S 1.4 rev.6 Block book, section 11.1.1 'Base Model'
-            quote:
-            A disk drive is modeled as a single MediaAccessDevice (DiskDrive)
-            That shall be linked to a single StorageExtent (representing the
-            storage in the drive) by a MediaPresent association. The
-            StorageExtent class represents the storage of the drive and
-            contains its size.
-        Parameter:
-            cim_disk_path   # CIM_InstanceName of CIM_DiskDrive
-            property_list   # a List of properties needed on returned
-                            # CIM_StorageExtent
-        Returns:
-            cim_pri_ext     # The CIM_Instance of Primordial CIM_StorageExtent
-        Exceptions:
-            LsmError
-                ErrorNumber.INTERNAL_ERROR  # Failed to find out pri cim_ext
-        """
-        pros = []
-        if property_list is None:
-            pros = ['Primordial']
-        else:
-            pros = property_list
-            if 'Primordial' not in pros:
-                pros.extend(['Primordial'])
-
-        cim_exts = self._c.Associators(cim_disk_path,
-                                       AssocClass='CIM_MediaPresent',
-                                       ResultClass='CIM_StorageExtent',
-                                       PropertyList=pros)
-        cim_exts = [p for p in cim_exts if p["Primordial"]]
-        if (cim_exts and cim_exts[0]):
-            # As SNIA commanded, only _ONE_ Primordial CIM_StorageExtent for
-            # each CIM_DiskDrive
-            return cim_exts[0]
-        else:
-            raise LsmError(ErrorNumber.INTERNAL_ERROR,
-                           "Failed to find out Primordial " +
-                           "CIM_StorageExtent for CIM_DiskDrive %s " %
-                           cim_disk_path)
-
-    @handle_cim_errors
     def _find_preset_cim_st(self, cim_cap_path, raid_type):
         """
         Usage:
