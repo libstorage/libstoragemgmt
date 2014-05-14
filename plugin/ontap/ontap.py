@@ -18,7 +18,6 @@
 
 import os
 import traceback
-import urllib2
 import urlparse
 import sys
 
@@ -271,7 +270,6 @@ class Ontap(IStorageAreaNetwork, INfs):
         return status_info
 
     def _disk(self, d, flag):
-        error_message = ""
         opt_data = OptionalData()
         status = Ontap._status_of_na_disk(d)
         if flag == Disk.RETRIEVE_FULL_INFO:

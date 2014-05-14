@@ -401,18 +401,6 @@ class Filer(object):
         vols = self.volumes()
         return [v['name'] for v in vols]
 
-    def clear_all_clone_errors(self):
-        """
-        Clears all the clone errors.
-        """
-        errors = self._invoke('clone-list-status')['status']
-
-        if errors is not None:
-            errors = to_list(errors['ops-info'])
-            for e in errors:
-                self._invoke('clone-clear', {'clone-id': e['clone-id']})
-        return None
-
     def clone(self, source_path, dest_path, backing_snapshot=None,
               ranges=None):
         """
@@ -480,13 +468,6 @@ class Filer(object):
         if g['initiator-groups']:
             rc = to_list(g['initiator-groups']['initiator-group-info'])
         return rc
-
-    def igroup_exists(self, name):
-        g = self.igroups()
-        for ig in g:
-            if ig['initiator-group-name'] == name:
-                return True
-        return False
 
     def igroup_create(self, name, igroup_type):
         params = {'initiator-group-name': name,
@@ -641,37 +622,6 @@ class Filer(object):
             return Filer._build_export_fs_all()
         else:
             return Filer._build_list(hosts, 'exports-hostname-info', 'name')
-
-    def nfs_export_fs(self, volume_path, export_path, ro_list, rw_list,
-                      root_list, anonuid=None, sec_flavor=None):
-        """
-        Export a fs, deprecated (Will remove soon)
-        """
-        rule = {'pathname': volume_path}
-        if volume_path != export_path:
-            #Try creating the directory needed
-            rule['actual-pathname'] = volume_path
-            rule['pathname'] = export_path
-
-        if len(ro_list):
-            rule['read-only'] = Filer._build_export_fs_list(ro_list)
-
-        if len(rw_list):
-            rule['read-write'] = Filer._build_export_fs_list(rw_list)
-
-        if len(root_list):
-            rule['root'] = Filer._build_export_fs_list(root_list)
-
-        if anonuid:
-            rule['anon'] = anonuid
-
-        if sec_flavor:
-            rule['sec-flavor'] = Filer._build_list([sec_flavor],
-                                                   'sec-flavor-info', 'flavor')
-
-        params = {'persistent': 'true', 'rules': {'exports-rule-info': [rule]},
-                  'verbose': 'true'}
-        self._invoke('nfs-exportfs-append-rules', params)
 
     def _build_export_rules(self, volume_path, export_path, ro_list, rw_list,
                             root_list, anonuid=None, sec_flavor=None):
