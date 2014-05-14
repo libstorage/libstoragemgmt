@@ -1815,6 +1815,8 @@ static void cap_test( lsm_storage_capabilities *cap,  lsm_capability_type t)
     lsm_capability_value_type supported;
     supported = lsm_capability_get(cap, t);
 
+    fail_unless ( lsm_capability_supported(cap, t) != 0,
+            "lsm_capability_supported returned unsupported");
     fail_unless( supported == LSM_CAPABILITY_SUPPORTED,
                     "supported = %d for %d", supported, t);
 }

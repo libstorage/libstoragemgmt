@@ -1527,12 +1527,21 @@ int lsm_nfs_export_options_set( lsm_nfs_export *exp, const char *value )
 lsm_capability_value_type lsm_capability_get(lsm_storage_capabilities *cap,
                                         lsm_capability_type t)
 {
-    lsm_capability_value_type rc = LSM_CAPABILITY_UNKNOWN;
+    lsm_capability_value_type rc = LSM_CAPABILITY_UNSUPPORTED;
 
     if( LSM_IS_CAPABILITIY(cap) && (uint32_t)t < cap->len ) {
         rc = (lsm_capability_value_type)cap->cap[t];
     }
     return rc;
+}
+
+int LSM_DLL_EXPORT lsm_capability_supported(lsm_storage_capabilities *cap,
+                                        lsm_capability_type t)
+{
+    if( lsm_capability_get(cap, t) == LSM_CAPABILITY_SUPPORTED ) {
+        return 1;
+    }
+    return 0;
 }
 
 int lsm_capability_set(lsm_storage_capabilities *cap, lsm_capability_type t,

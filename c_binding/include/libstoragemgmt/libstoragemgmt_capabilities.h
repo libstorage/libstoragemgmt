@@ -32,10 +32,7 @@ extern "C" {
 /** \enum lsm_capability_value_type Possible values for supported feature*/
 typedef enum {
     LSM_CAPABILITY_UNSUPPORTED          = 0,        /**< Feature is not supported */
-    LSM_CAPABILITY_SUPPORTED            = 1,        /**< Feature is supported */
-    LSM_CAPABILITY_SUPPORTED_OFFLINE    = 2,        /**< Feature is supported when offlined */
-    LSM_CAPABILITY_NO_IMPLEMENTED       = 3,        /**< Feature is not implemented */
-    LSM_CAPABILITY_UNKNOWN              = 4         /**< Feature status unknown */
+    LSM_CAPABILITY_SUPPORTED            = 1         /**< Feature is supported */
 } lsm_capability_value_type;
 
 /** \enum lsm_capability_value_type Capabilities supported by array */
@@ -163,6 +160,15 @@ int LSM_DLL_EXPORT lsm_capability_record_free(lsm_storage_capabilities *cap);
  */
 lsm_capability_value_type LSM_DLL_EXPORT lsm_capability_get(
                                         lsm_storage_capabilities *cap,
+                                        lsm_capability_type t);
+
+/**
+ * Boolean version of capability support
+ * @param cap
+ * @param t
+ * @return Non-zero if supported, 0 if not supported
+ */
+int LSM_DLL_EXPORT lsm_capability_supported(lsm_storage_capabilities *cap,
                                         lsm_capability_type t);
 
 

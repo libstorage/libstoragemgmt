@@ -1459,11 +1459,8 @@ class OptionalData(IData):
 class Capabilities(IData):
     (
         UNSUPPORTED,        # Not supported
-        SUPPORTED,          # Supported
-        SUPPORTED_OFFLINE,  # Supported, but only when item is in offline state
-        NOT_IMPLEMENTED,    # Not implemented
-        UNKNOWN             # Capability not known
-    ) = (0, 1, 2, 3, 4)
+        SUPPORTED           # Supported
+    ) = (0, 1)
 
     _NUM = 512
 
@@ -1591,9 +1588,14 @@ class Capabilities(IData):
         else:
             self._cap = bytearray(Capabilities._NUM)
 
+    def supported(self, capability):
+        if self.get(capability) == Capabilities.SUPPORTED:
+            return True
+        return False
+
     def get(self, capability):
         if capability > len(self._cap):
-            return Capabilities.UNKNOWN
+            return Capabilities.UNSUPPORTED
         return self._cap[capability]
 
     def set(self, capability, value=SUPPORTED):

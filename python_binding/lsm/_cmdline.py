@@ -1264,16 +1264,10 @@ class CmdLine:
         else:
             s = ':'
 
-        if val == Capabilities.SUPPORTED:
+        if val:
             v = "SUPPORTED"
-        elif val == Capabilities.UNSUPPORTED:
-            v = "UNSUPPORTED"
-        elif val == Capabilities.SUPPORTED_OFFLINE:
-            v = "SUPPORTED_OFFLINE"
-        elif val == Capabilities.NOT_IMPLEMENTED:
-            v = "NOT_IMPLEMENTED"
         else:
-            v = "UNKNOWN"
+            v = "UNSUPPORTED"
 
         out("%s%s%s" % (cap, s, v))
 
@@ -1281,96 +1275,97 @@ class CmdLine:
         s = _get_item(self.c.systems(), args.sys, "system id")
 
         cap = self.c.capabilities(s)
-        self._cp("BLOCK_SUPPORT", cap.get(Capabilities.BLOCK_SUPPORT))
-        self._cp("FS_SUPPORT", cap.get(Capabilities.FS_SUPPORT))
-        self._cp("INITIATORS", cap.get(Capabilities.INITIATORS))
+        self._cp("BLOCK_SUPPORT", cap.supported(Capabilities.BLOCK_SUPPORT))
+        self._cp("FS_SUPPORT", cap.supported(Capabilities.FS_SUPPORT))
+        self._cp("INITIATORS", cap.supported(Capabilities.INITIATORS))
         self._cp("INITIATORS_GRANTED_TO_VOLUME",
-                 cap.get(Capabilities.INITIATORS_GRANTED_TO_VOLUME))
-        self._cp("VOLUMES", cap.get(Capabilities.VOLUMES))
-        self._cp("VOLUME_CREATE", cap.get(Capabilities.VOLUME_CREATE))
-        self._cp("VOLUME_RESIZE", cap.get(Capabilities.VOLUME_RESIZE))
+                 cap.supported(Capabilities.INITIATORS_GRANTED_TO_VOLUME))
+        self._cp("VOLUMES", cap.supported(Capabilities.VOLUMES))
+        self._cp("VOLUME_CREATE", cap.supported(Capabilities.VOLUME_CREATE))
+        self._cp("VOLUME_RESIZE", cap.supported(Capabilities.VOLUME_RESIZE))
         self._cp("VOLUME_REPLICATE",
-                 cap.get(Capabilities.VOLUME_REPLICATE))
+                 cap.supported(Capabilities.VOLUME_REPLICATE))
         self._cp("VOLUME_REPLICATE_CLONE",
-                 cap.get(Capabilities.VOLUME_REPLICATE_CLONE))
+                 cap.supported(Capabilities.VOLUME_REPLICATE_CLONE))
         self._cp("VOLUME_REPLICATE_COPY",
-                 cap.get(Capabilities.VOLUME_REPLICATE_COPY))
+                 cap.supported(Capabilities.VOLUME_REPLICATE_COPY))
         self._cp("VOLUME_REPLICATE_MIRROR_ASYNC",
-                 cap.get(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC))
+                 cap.supported(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC))
         self._cp("VOLUME_REPLICATE_MIRROR_SYNC",
-                 cap.get(Capabilities.VOLUME_REPLICATE_MIRROR_SYNC))
+                 cap.supported(Capabilities.VOLUME_REPLICATE_MIRROR_SYNC))
         self._cp("VOLUME_COPY_RANGE_BLOCK_SIZE",
-                 cap.get(Capabilities.VOLUME_COPY_RANGE_BLOCK_SIZE))
+                 cap.supported(Capabilities.VOLUME_COPY_RANGE_BLOCK_SIZE))
         self._cp("VOLUME_COPY_RANGE",
-                 cap.get(Capabilities.VOLUME_COPY_RANGE))
+                 cap.supported(Capabilities.VOLUME_COPY_RANGE))
         self._cp("VOLUME_COPY_RANGE_CLONE",
-                 cap.get(Capabilities.VOLUME_COPY_RANGE_CLONE))
+                 cap.supported(Capabilities.VOLUME_COPY_RANGE_CLONE))
         self._cp("VOLUME_COPY_RANGE_COPY",
-                 cap.get(Capabilities.VOLUME_COPY_RANGE_COPY))
-        self._cp("VOLUME_DELETE", cap.get(Capabilities.VOLUME_DELETE))
-        self._cp("VOLUME_ONLINE", cap.get(Capabilities.VOLUME_ONLINE))
-        self._cp("VOLUME_OFFLINE", cap.get(Capabilities.VOLUME_OFFLINE))
+                 cap.supported(Capabilities.VOLUME_COPY_RANGE_COPY))
+        self._cp("VOLUME_DELETE", cap.supported(Capabilities.VOLUME_DELETE))
+        self._cp("VOLUME_ONLINE", cap.supported(Capabilities.VOLUME_ONLINE))
+        self._cp("VOLUME_OFFLINE", cap.supported(Capabilities.VOLUME_OFFLINE))
         self._cp("VOLUME_INITIATOR_GRANT",
-                 cap.get(Capabilities.VOLUME_INITIATOR_GRANT))
+                 cap.supported(Capabilities.VOLUME_INITIATOR_GRANT))
         self._cp("VOLUME_INITIATOR_REVOKE",
-                 cap.get(Capabilities.VOLUME_INITIATOR_REVOKE))
+                 cap.supported(Capabilities.VOLUME_INITIATOR_REVOKE))
         self._cp("VOLUME_THIN",
-                 cap.get(Capabilities.VOLUME_THIN))
+                 cap.supported(Capabilities.VOLUME_THIN))
         self._cp("VOLUME_ISCSI_CHAP_AUTHENTICATION",
-                 cap.get(Capabilities.VOLUME_ISCSI_CHAP_AUTHENTICATION))
+                 cap.supported(Capabilities.VOLUME_ISCSI_CHAP_AUTHENTICATION))
         self._cp("ACCESS_GROUP_GRANT",
-                 cap.get(Capabilities.ACCESS_GROUP_GRANT))
+                 cap.supported(Capabilities.ACCESS_GROUP_GRANT))
         self._cp("ACCESS_GROUP_REVOKE",
-                 cap.get(Capabilities.ACCESS_GROUP_REVOKE))
+                 cap.supported(Capabilities.ACCESS_GROUP_REVOKE))
         self._cp("ACCESS_GROUP_LIST",
-                 cap.get(Capabilities.ACCESS_GROUP_LIST))
+                 cap.supported(Capabilities.ACCESS_GROUP_LIST))
         self._cp("ACCESS_GROUP_CREATE",
-                 cap.get(Capabilities.ACCESS_GROUP_CREATE))
+                 cap.supported(Capabilities.ACCESS_GROUP_CREATE))
         self._cp("ACCESS_GROUP_DELETE",
-                 cap.get(Capabilities.ACCESS_GROUP_DELETE))
+                 cap.supported(Capabilities.ACCESS_GROUP_DELETE))
         self._cp("ACCESS_GROUP_ADD_INITIATOR",
-                 cap.get(Capabilities.ACCESS_GROUP_ADD_INITIATOR))
+                 cap.supported(Capabilities.ACCESS_GROUP_ADD_INITIATOR))
         self._cp("ACCESS_GROUP_DEL_INITIATOR",
-                 cap.get(Capabilities.ACCESS_GROUP_DEL_INITIATOR))
+                 cap.supported(Capabilities.ACCESS_GROUP_DEL_INITIATOR))
         self._cp("VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP",
-                 cap.get(Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP))
+                 cap.supported(
+                     Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP))
         self._cp("VOLUME_ACCESSIBLE_BY_INITIATOR",
-                 cap.get(Capabilities.VOLUME_ACCESSIBLE_BY_INITIATOR))
+                 cap.supported(Capabilities.VOLUME_ACCESSIBLE_BY_INITIATOR))
         self._cp("ACCESS_GROUPS_GRANTED_TO_VOLUME",
-                 cap.get(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME))
+                 cap.supported(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME))
         self._cp("VOLUME_CHILD_DEPENDENCY",
-                 cap.get(Capabilities.VOLUME_CHILD_DEPENDENCY))
+                 cap.supported(Capabilities.VOLUME_CHILD_DEPENDENCY))
         self._cp("VOLUME_CHILD_DEPENDENCY_RM",
-                 cap.get(Capabilities.VOLUME_CHILD_DEPENDENCY_RM))
-        self._cp("FS", cap.get(Capabilities.FS))
-        self._cp("FS_DELETE", cap.get(Capabilities.FS_DELETE))
-        self._cp("FS_RESIZE", cap.get(Capabilities.FS_RESIZE))
-        self._cp("FS_CREATE", cap.get(Capabilities.FS_CREATE))
-        self._cp("FS_CLONE", cap.get(Capabilities.FS_CLONE))
-        self._cp("FILE_CLONE", cap.get(Capabilities.FILE_CLONE))
-        self._cp("FS_SNAPSHOTS", cap.get(Capabilities.FS_SNAPSHOTS))
+                 cap.supported(Capabilities.VOLUME_CHILD_DEPENDENCY_RM))
+        self._cp("FS", cap.supported(Capabilities.FS))
+        self._cp("FS_DELETE", cap.supported(Capabilities.FS_DELETE))
+        self._cp("FS_RESIZE", cap.supported(Capabilities.FS_RESIZE))
+        self._cp("FS_CREATE", cap.supported(Capabilities.FS_CREATE))
+        self._cp("FS_CLONE", cap.supported(Capabilities.FS_CLONE))
+        self._cp("FILE_CLONE", cap.supported(Capabilities.FILE_CLONE))
+        self._cp("FS_SNAPSHOTS", cap.supported(Capabilities.FS_SNAPSHOTS))
         self._cp("FS_SNAPSHOT_CREATE",
-                 cap.get(Capabilities.FS_SNAPSHOT_CREATE))
+                 cap.supported(Capabilities.FS_SNAPSHOT_CREATE))
         self._cp("FS_SNAPSHOT_CREATE_SPECIFIC_FILES",
-                 cap.get(Capabilities.FS_SNAPSHOT_CREATE_SPECIFIC_FILES))
+                 cap.supported(Capabilities.FS_SNAPSHOT_CREATE_SPECIFIC_FILES))
         self._cp("FS_SNAPSHOT_DELETE",
-                 cap.get(Capabilities.FS_SNAPSHOT_DELETE))
+                 cap.supported(Capabilities.FS_SNAPSHOT_DELETE))
         self._cp("FS_SNAPSHOT_REVERT",
-                 cap.get(Capabilities.FS_SNAPSHOT_REVERT))
+                 cap.supported(Capabilities.FS_SNAPSHOT_REVERT))
         self._cp("FS_SNAPSHOT_REVERT_SPECIFIC_FILES",
-                 cap.get(Capabilities.FS_SNAPSHOT_REVERT_SPECIFIC_FILES))
+                 cap.supported(Capabilities.FS_SNAPSHOT_REVERT_SPECIFIC_FILES))
         self._cp("FS_CHILD_DEPENDENCY",
-                 cap.get(Capabilities.FS_CHILD_DEPENDENCY))
+                 cap.supported(Capabilities.FS_CHILD_DEPENDENCY))
         self._cp("FS_CHILD_DEPENDENCY_RM",
-                 cap.get(Capabilities.FS_CHILD_DEPENDENCY_RM))
-        self._cp("FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES", cap.get(
+                 cap.supported(Capabilities.FS_CHILD_DEPENDENCY_RM))
+        self._cp("FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES", cap.supported(
                  Capabilities.FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES))
-        self._cp("EXPORT_AUTH", cap.get(Capabilities.EXPORT_AUTH))
-        self._cp("EXPORTS", cap.get(Capabilities.EXPORTS))
-        self._cp("EXPORT_FS", cap.get(Capabilities.EXPORT_FS))
-        self._cp("EXPORT_REMOVE", cap.get(Capabilities.EXPORT_REMOVE))
+        self._cp("EXPORT_AUTH", cap.supported(Capabilities.EXPORT_AUTH))
+        self._cp("EXPORTS", cap.supported(Capabilities.EXPORTS))
+        self._cp("EXPORT_FS", cap.supported(Capabilities.EXPORT_FS))
+        self._cp("EXPORT_REMOVE", cap.supported(Capabilities.EXPORT_REMOVE))
         self._cp("EXPORT_CUSTOM_PATH",
-                 cap.get(Capabilities.EXPORT_CUSTOM_PATH))
+                 cap.supported(Capabilities.EXPORT_CUSTOM_PATH))
 
     def plugin_info(self, args):
         desc, version = self.c.plugin_info()
