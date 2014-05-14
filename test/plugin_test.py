@@ -260,8 +260,8 @@ class TestPlugin(unittest.TestCase):
 
     def test_timeout(self):
         tmo = 40000
-        self.c.set_time_out(tmo)
-        self.assertEquals(self.c.get_time_out(), tmo)
+        self.c.time_out_set(tmo)
+        self.assertEquals(self.c.time_out_get(), tmo)
 
     def test_systems_list(self):
         arrays = self.c.systems()

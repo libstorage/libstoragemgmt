@@ -39,7 +39,7 @@ class IPlugin(object):
         pass
 
     @_abstractmethod
-    def set_time_out(self, ms, flags=0):
+    def time_out_set(self, ms, flags=0):
         """
         Sets any time-outs for the plug-in (ms)
 
@@ -48,7 +48,7 @@ class IPlugin(object):
         pass
 
     @_abstractmethod
-    def get_time_out(self, flags=0):
+    def time_out_get(self, flags=0):
         """
         Retrieves the current time-out
 

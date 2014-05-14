@@ -66,12 +66,12 @@ class SimPlugin(INfs, IStorageAreaNetwork):
         """
         return sim_data
 
-    def set_time_out(self, ms, flags=0):
-        self.sim_array.set_time_out(ms, flags)
+    def time_out_set(self, ms, flags=0):
+        self.sim_array.time_out_set(ms, flags)
         return None
 
-    def get_time_out(self, flags=0):
-        return self.sim_array.get_time_out(flags)
+    def time_out_get(self, flags=0):
+        return self.sim_array.time_out_get(flags)
 
     def capabilities(self, system, flags=0):
         rc = Capabilities()

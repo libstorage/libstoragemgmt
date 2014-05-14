@@ -200,26 +200,26 @@ class Client(INetworkAttachedStorage):
     # @param    ms      Time-out in ms
     # @param    flags   Reserved for future use, must be zero.
     @_return_requires(None)
-    def set_time_out(self, ms, flags=0):
+    def time_out_set(self, ms, flags=0):
         """
         Sets any time-outs for the plug-in (ms)
 
         Return None on success, else LsmError exception
         """
-        return self._tp.rpc('set_time_out', _del_self(locals()))
+        return self._tp.rpc('time_out_set', _del_self(locals()))
 
     ## Retrieves the current time-out value.
     # @param    self    The this pointer
     # @param    flags   Reserved for future use, must be zero.
     # @returns  Time-out value
     @_return_requires(int)
-    def get_time_out(self, flags=0):
+    def time_out_get(self, flags=0):
         """
         Retrieves the current time-out
 
         Return time-out in ms, else raise LsmError
         """
-        return self._tp.rpc('get_time_out', _del_self(locals()))
+        return self._tp.rpc('time_out_get', _del_self(locals()))
 
     ## Retrieves the status of the specified job id.
     # @param    self    The this pointer
@@ -1143,8 +1143,8 @@ class _TestClient(unittest.TestCase):
     def test_tmo(self):
         expected = 40000
 
-        self.c.set_time_out(expected)
-        tmo = self.c.get_time_out()
+        self.c.time_out_set(expected)
+        tmo = self.c.time_out_get()
         self.assertTrue(tmo == expected)
 
     def test_job_errors(self):

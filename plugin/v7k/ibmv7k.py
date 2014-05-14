@@ -384,13 +384,13 @@ class IbmV7k(IStorageAreaNetwork):
         si = self._get_system_info()
         self.sys_info = System(si['id'], si['name'], System.STATUS_OK, '')
 
-    def set_time_out(self, ms, flags=0):
+    def time_out_set(self, ms, flags=0):
         self.tmo = ms
         self.ssh.close()
         self.ssh = SSHClient(self.up['host'], self.up['username'],
                              self.password, self.tmo)
 
-    def get_time_out(self, flags=0):
+    def time_out_get(self, flags=0):
         return self.tmo
 
     def shutdown(self, flags=0):

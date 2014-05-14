@@ -128,10 +128,10 @@ class SimArray(object):
     def job_free(self, job_id, flags=0):
         return self.data.job_free(job_id, flags=0)
 
-    def set_time_out(self, ms, flags=0):
+    def time_out_set(self, ms, flags=0):
         return self.data.set_time_out(ms, flags)
 
-    def get_time_out(self, flags=0):
+    def time_out_get(self, flags=0):
         return self.data.get_time_out(flags)
 
     def systems(self):

@@ -587,10 +587,10 @@ class Smis(IStorageAreaNetwork):
             else:
                 raise e
 
-    def set_time_out(self, ms, flags=0):
+    def time_out_set(self, ms, flags=0):
         self.tmo = ms
 
-    def get_time_out(self, flags=0):
+    def time_out_get(self, flags=0):
         return self.tmo
 
     def shutdown(self, flags=0):

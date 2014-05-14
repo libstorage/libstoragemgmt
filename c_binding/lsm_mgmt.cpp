@@ -366,7 +366,7 @@ int lsm_connect_timeout_set(lsm_connect *c, uint32_t timeout, lsm_flag flags)
     Value response;
 
     //No response data needed on set time out.
-    return rpc(c, "set_time_out", parameters, response);
+    return rpc(c, "time_out_set", parameters, response);
 }
 
 int lsm_connect_timeout_get(lsm_connect *c, uint32_t *timeout, lsm_flag flags)
@@ -384,7 +384,7 @@ int lsm_connect_timeout_get(lsm_connect *c, uint32_t *timeout, lsm_flag flags)
         Value parameters(p);
         Value response;
 
-        rc = rpc(c, "get_time_out", parameters, response);
+        rc = rpc(c, "time_out_get", parameters, response);
         if( rc == LSM_ERR_OK ) {
             *timeout = response.asUint32_t();
         }

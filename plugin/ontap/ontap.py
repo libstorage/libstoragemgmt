@@ -159,10 +159,10 @@ class Ontap(IStorageAreaNetwork, INfs):
                                System.STATUS_OK, '')
         return self.f.validate()
 
-    def set_time_out(self, ms, flags=0):
+    def time_out_set(self, ms, flags=0):
         self.f.timeout = ms / Ontap.TMO_CONV
 
-    def get_time_out(self, flags=0):
+    def time_out_get(self, flags=0):
         return self.f.timeout * Ontap.TMO_CONV
 
     def shutdown(self, flags=0):
@@ -532,15 +532,15 @@ class Ontap(IStorageAreaNetwork, INfs):
         double if it's reasonable to try and get this operation to happen
         """
 
-        current_tmo = self.get_time_out()
+        current_tmo = self.time_out_get()
         try:
             #If the user selects a short timeout we may not be able
             #to restore the array back, so lets give the array
             #a chance to recover.
             if current_tmo < 30000:
-                self.set_time_out(60000)
+                self.time_out_set(60000)
             else:
-                self.set_time_out(current_tmo * 2)
+                self.time_out_set(current_tmo * 2)
 
             self.f.volume_resize(vol, size_diff_kb)
         except:
@@ -551,7 +551,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                   + traceback.format_exc())
         finally:
             #Restore timeout.
-            self.set_time_out(current_tmo)
+            self.time_out_set(current_tmo)
 
     def _na_volume_resize_restore(self, vol, size_diff):
         try:

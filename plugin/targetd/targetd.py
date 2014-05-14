@@ -83,11 +83,11 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                         'Authorization': 'Basic %s' % (auth,)}
 
     @handle_errors
-    def set_time_out(self, ms, flags=0):
+    def time_out_set(self, ms, flags=0):
         self.tmo = ms
 
     @handle_errors
-    def get_time_out(self, flags=0):
+    def time_out_get(self, flags=0):
         return self.tmo
 
     @handle_errors

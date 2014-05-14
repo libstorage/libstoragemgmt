@@ -188,11 +188,11 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         self._request("destroy", "snapshot", [snapshot.name, ""])
         return
 
-    def set_time_out(self, ms, flags=0):
+    def time_out_set(self, ms, flags=0):
         self.timeout = ms
         return
 
-    def get_time_out(self, flags=0):
+    def time_out_get(self, flags=0):
         return self.timeout
 
     def shutdown(self, flags=0):
