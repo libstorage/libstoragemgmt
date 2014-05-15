@@ -24,7 +24,7 @@
 from bs4 import BeautifulSoup as bs
 from htmltag import HTML, div, table, thead, tbody, tr, td, span, th, foo, \
     head, body, html, title, style, link, fail_test, notsupported, pass_test, \
-    pre
+    pre, h1
 
 import time
 
@@ -151,11 +151,10 @@ def to_html(results):
                           href="../../test.css"),
                 title("libStorageMgmt test results"), ),
                 body(
+                    HTML(h1("Test results generated @ %s") % (time.strftime("%c"))),
                     div(table(_table_header(ch), _table_body(row_data)),
                          _class="angled_table"),
                     div(pre(
-                           "                  Results generated on %s\n\n" %
-                           (time.strftime("%c")) +
                            "                  Legend\n"
                            "                  P = Pass (Method called and returned without error)\n"
                            "                  F = Fail (Method call returned an error)\n"
