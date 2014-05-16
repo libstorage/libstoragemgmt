@@ -48,7 +48,7 @@ def _bit_map_to_str(bit_map, conv_dict):
         if cur_enum & bit_map:
             rc = _txt_a(rc, conv_dict[cur_enum])
     if rc == '':
-        return 'Unknown(%s)' % hex(enum)
+        return 'Unknown(%s)' % hex(bit_map)
     return rc
 
 
