@@ -26,7 +26,12 @@ from lsm import (size_bytes_2_size_human, LsmError, ErrorNumber,
 BIT_MAP_STRING_SPLITTER = ','
 
 
-def _print_out(msg):
+## Users are reporting errors with broken pipe when piping output
+# to another program.  This appears to be related to this issue:
+# http://bugs.python.org/issue11380
+# Unable to reproduce, but hopefully this will address it.
+# @param msg    The message to be written to stdout
+def out(msg):
     try:
         sys.stdout.write(str(msg))
         sys.stdout.write("\n")
@@ -769,20 +774,20 @@ class DisplayData(object):
                                    '-' * value_column_width)
 
         for data_dict in data_dict_list:
-            _print_out(obj_splitter)
+            out(obj_splitter)
             for key_name in data_dict:
                 value = data_dict[key_name]
                 if isinstance(value, list):
                     flag_first_data = True
                     for sub_value in value:
                         if flag_first_data:
-                            _print_out(row_format % (key_name, str(sub_value)))
+                            out(row_format % (key_name, str(sub_value)))
                             flag_first_data = False
                         else:
-                            _print_out(sub_row_format % str(sub_value))
+                            out(sub_row_format % str(sub_value))
                 else:
-                    _print_out(row_format % (key_name, str(value)))
-        _print_out(obj_splitter)
+                    out(row_format % (key_name, str(value)))
+        out(obj_splitter)
 
     @staticmethod
     def _display_data_column_way(data_dict_list, splitter, flag_with_header):
@@ -853,6 +858,6 @@ class DisplayData(object):
 
         row_format = splitter.join(row_formats)
         for row_index in range(0, len(two_d_list)):
-            _print_out(row_format % tuple(two_d_list[row_index]))
+            out(row_format % tuple(two_d_list[row_index]))
             if row_index == 0 and flag_with_header:
-                _print_out(header_splitter)
+                out(header_splitter)

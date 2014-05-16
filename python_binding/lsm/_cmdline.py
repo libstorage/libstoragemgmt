@@ -27,27 +27,10 @@ from lsm import (Client, Pool, VERSION, LsmError, Capabilities, Disk,
 
 from _common import getch, size_human_2_size_bytes, Proxy
 from lsm.lsmcli.data_display import (
-    DisplayData, PlugData,
+    DisplayData, PlugData, out,
     pool_raid_type_str_to_type, pool_member_type_str_to_type,
     vol_provision_str_to_type, vol_rep_type_str_to_type,
     vol_access_type_str_to_type)
-
-
-##@package lsm.cmdline
-
-
-## Users are reporting errors with broken pipe when piping output
-# to another program.  This appears to be related to this issue:
-# http://bugs.python.org/issue11380
-# Unable to reproduce, but hopefully this will address it.
-# @param msg    The message to be written to stdout
-def out(msg):
-    try:
-        sys.stdout.write(str(msg))
-        sys.stdout.write("\n")
-        sys.stdout.flush()
-    except IOError:
-        sys.exit(1)
 
 
 ## Wraps the invocation to the command line
