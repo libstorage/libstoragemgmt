@@ -749,68 +749,6 @@ class CmdLine:
         else:
             return True
 
-    def _display_data_script_way(self, all_key_2_values, key_2_str, key_seq):
-        """
-        Display like iscsiadm do. Better for scripting.
-        """
-        key_column_width = 1
-        value_column_width = 1
-        key_sequence = []
-        for key_name in key_seq:
-            # Use suggested key sequence to sort
-            if key_name not in all_key_2_values[0].keys():
-                continue
-            else:
-                key_sequence.extend([key_name])
-
-        for key_2_value in all_key_2_values:
-            for key_name in key_sequence:
-                # find the max column width of key
-                cur_key_width = len(key_2_str[key_name])
-                if cur_key_width > key_column_width:
-                    key_column_width = cur_key_width
-                # find the max column width of value
-                cur_value = key_2_value[key_name]
-                cur_value_width = 0
-                if isinstance(cur_value, list):
-                    if len(cur_value) == 0:
-                        continue
-                    cur_value_width = len(str(cur_value[0]))
-                else:
-                    cur_value_width = len(str(cur_value))
-                if cur_value_width > value_column_width:
-                    value_column_width = cur_value_width
-
-        spliter = ' | '
-        if self.args.sep is not None:
-            spliter = self.args.sep
-        row_format = '%%-%ds%s%%-%ds' % (key_column_width,
-                                         spliter,
-                                         value_column_width)
-        sub_row_format = '%s%s%%-%ds' % (' ' * key_column_width,
-                                         spliter,
-                                         value_column_width)
-        obj_spliter = '%s%s%s' % ('-' * key_column_width,
-                                  '-' * len(spliter),
-                                  '-' * value_column_width)
-
-        for key_2_value in all_key_2_values:
-            out(obj_spliter)
-            for key_name in key_sequence:
-                key_str = key_2_str[key_name]
-                value = key_2_value[key_name]
-                if isinstance(value, list):
-                    flag_first_data = True
-                    for sub_value in value:
-                        if flag_first_data:
-                            out(row_format % (key_str, str(sub_value)))
-                            flag_first_data = False
-                        else:
-                            out(sub_row_format % str(sub_value))
-                else:
-                    out(row_format % (key_str, str(value)))
-        out(obj_spliter)
-
     ##
     # Tries to make the output better when it varies considerably from
     # plug-in to plug-in.
@@ -834,129 +772,11 @@ class CmdLine:
         if self.args.script:
             display_way = DisplayData.DISPLAY_WAY_SCRIPT
 
-        flag_new_way_works = DisplayData.display_data(
+        DisplayData.display_data(
             objects, display_way=display_way, flag_human=self.args.human,
             flag_enum=self.args.enum, extra_properties=extra_properties,
             splitter=self.args.sep, flag_with_header=flag_with_header,
             flag_dsp_all_data=display_all)
-
-        if flag_new_way_works:
-            return
-
-        # Assuming all objects are from the same class.
-        key_2_str = objects[0]._str_of_key()
-        key_seq = objects[0]._key_display_sequence()
-        all_key_2_values = []
-        for obj in objects:
-            obj_key_2_value = obj._value_of_key(
-                key_name=None,
-                human=self.args.human,
-                enum_as_number=self.args.enum,
-                list_convert=False)
-            for key in obj_key_2_value.keys():
-                if obj_key_2_value[key] is None:
-                    del obj_key_2_value[key]
-            all_key_2_values.extend([obj_key_2_value])
-
-        if self.args.script:
-            self._display_data_script_way(all_key_2_values,
-                                          key_2_str,
-                                          key_seq)
-        else:
-            two_d_list = CmdLine._convert_to_two_d_list(all_key_2_values,
-                                                        key_2_str,
-                                                        key_seq)
-            self._display_two_d_list(two_d_list)
-
-    @staticmethod
-    def _convert_to_two_d_list(all_key_2_values, key_2_str, key_seq):
-        two_d_list = []
-        key_sequence = []
-        for key_name in key_seq:
-            # Use suggested key sequence to sort
-            if key_name in all_key_2_values[0].keys():
-                key_sequence.extend([key_name])
-        column_width = len(key_sequence)
-
-        # find out column width
-        row_width = 0
-        for key_2_value in all_key_2_values:
-            cur_max_wd = 0
-            for key_name in key_2_value.keys():
-                if isinstance(key_2_value[key_name], list):
-                    cur_row_width = len(key_2_value[key_name])
-                    if cur_row_width > cur_max_wd:
-                        cur_max_wd = cur_row_width
-                else:
-                    pass
-            if cur_max_wd == 0:
-                cur_max_wd = 1
-            row_width += cur_max_wd
-        # one line for header
-        row_width += 1
-        # init 2D list
-        for raw in range(0, row_width):
-            new = []
-            for column in range(0, column_width):
-                new.append('')
-            two_d_list.append(new)
-        # header
-        for index in range(0, len(key_sequence)):
-            key_name = key_sequence[index]
-            two_d_list[0][index] = key_2_str[key_name]
-
-        current_row_num = 0
-        for key_2_value in all_key_2_values:
-            current_row_num += 1
-            save_row_num = current_row_num
-            for index in range(0, len(key_sequence)):
-                key_name = key_sequence[index]
-                value = key_2_value[key_name]
-                if isinstance(value, list):
-                    for sub_index in range(0, len(value)):
-                        tmp_row_num = save_row_num + sub_index
-                        two_d_list[tmp_row_num][index] = str(value[sub_index])
-
-                    if save_row_num + len(value) > current_row_num:
-                        current_row_num = save_row_num + len(value) - 1
-                else:
-                    two_d_list[save_row_num][index] = str(value)
-        return two_d_list
-
-    def _display_two_d_list(self, two_d_list):
-        row_formats = []
-        spliter_row_formats = []
-        row_start = 0
-        if self.args.sep is not None:
-            row_start = 1
-            if self.args.header:
-                row_start = 0
-        for column_index in range(0, len(two_d_list[0])):
-            max_width = CmdLine._find_max_width(
-                two_d_list,
-                column_index,
-                row_start)
-            row_formats.extend(['%%-%ds' % max_width])
-            spliter_row_formats.extend(['-' * max_width])
-        row_format = ''
-        if self.args.sep is not None:
-            row_format = self.args.sep.join(row_formats)
-        else:
-            row_format = " | ".join(row_formats)
-        for row_index in range(row_start, len(two_d_list)):
-            out(row_format % tuple(two_d_list[row_index]))
-            if row_index == 0:
-                spliter = '-+-'.join(spliter_row_formats)
-                out(spliter)
-
-    @staticmethod
-    def _find_max_width(two_d_list, column_index, row_start=0):
-        max_width = 1
-        for row_index in range(row_start, len(two_d_list)):
-            row_data = two_d_list[row_index]
-            if len(row_data[column_index]) > max_width:
-                max_width = len(row_data[column_index])
-        return max_width
 
     def display_available_plugins(self):
         d = []
@@ -1058,15 +878,6 @@ class CmdLine:
                 func=getattr(self, cmd['name'].replace("-", "_")))
 
         return parser.parse_args()
-
-    def _list(self, l):
-        if l and len(l):
-            if self.args.sep:
-                return self.args.sep.join(l)
-            else:
-                return ", ".join(l)
-        else:
-            return "None"
 
     ## Display the types of nfs client authentication that are supported.
     # @return None
