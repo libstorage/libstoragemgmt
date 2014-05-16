@@ -26,9 +26,13 @@ from lsm import (Client, Pool, VERSION, LsmError, Capabilities, Disk,
                  Initiator, Volume, JobStatus, ErrorNumber, BlockRange,
                  uri_parse)
 
-from _data import PlugData
 from _common import getch, size_human_2_size_bytes, Proxy
-from lsm.lsmcli.data_display import DisplayData
+from lsm.lsmcli.data_display import (
+    DisplayData, PlugData,
+    pool_raid_type_str_to_type, pool_member_type_str_to_type,
+    vol_provision_str_to_type, vol_rep_type_str_to_type,
+    vol_access_type_str_to_type)
+
 
 ##@package lsm.cmdline
 
@@ -1385,7 +1389,7 @@ class CmdLine:
                 p,
                 args.name,
                 self._size(args.size),
-                Volume._prov_string_to_type(args.provisioning)))
+                vol_provision_str_to_type(args.provisioning)))
         self.display_data([vol])
 
     ## Creates a snapshot
@@ -1488,7 +1492,7 @@ class CmdLine:
 
         v = _get_item(self.c.volumes(), args.vol, "volume id")
 
-        rep_type = Volume._rep_string_to_type(args.rep_type)
+        rep_type = vol_rep_type_str_to_type(args.rep_type)
         if rep_type == Volume.REPLICATE_UNKNOWN:
             raise ArgError("invalid replication type= %s" % rep_type)
 
@@ -1503,7 +1507,7 @@ class CmdLine:
         dst = _get_item(self.c.volumes(), args.dst_vol,
                         "destination volume id")
 
-        rep_type = Volume._rep_string_to_type(args.rep_type)
+        rep_type = vol_rep_type_str_to_type(args.rep_type)
         if rep_type == Volume.REPLICATE_UNKNOWN:
             raise ArgError("invalid replication type= %s" % rep_type)
 
@@ -1540,7 +1544,7 @@ class CmdLine:
             i_type = CmdLine._init_type_to_enum(args.init_type)
             access = 'DEFAULT'
             if args.access is not None:
-                access = Volume._access_string_to_type(args.access)
+                access = vol_access_type_str_to_type(args.access)
 
             self.c.initiator_grant(initiator_id, i_type, v, access)
         else:
@@ -1566,7 +1570,7 @@ class CmdLine:
             access = 'RW'
             if args.access is not None:
                 access = args.access
-            access = Volume._access_string_to_type(args.access)
+            access = vol_access_type_str_to_type(args.access)
             self.c.access_group_grant(group, v, access)
         else:
             self.c.access_group_revoke(group, v)
@@ -1656,14 +1660,14 @@ class CmdLine:
         size_bytes = self._size(self.args.size)
 
         if args.raid_type:
-            raid_type = Pool._raid_type_str_to_type(
+            raid_type = pool_raid_type_str_to_type(
                 self.args.raid_type)
             if raid_type == Pool.RAID_TYPE_UNKNOWN:
                 raise ArgError("Unknown RAID type specified: %s" %
                                args.raid_type)
 
         if args.member_type:
-            member_type = Pool._member_type_str_to_type(
+            member_type = pool_member_type_str_to_type(
                 args.member_type)
             if member_type == Pool.MEMBER_TYPE_UNKNOWN:
                 raise ArgError("Unkonwn member type specified: %s" %
@@ -1694,7 +1698,7 @@ class CmdLine:
             else:
                 disks_to_use.append(disk_ids[member_id])
 
-        raid_type = Pool._raid_type_str_to_type(self.args.raid_type)
+        raid_type = pool_raid_type_str_to_type(self.args.raid_type)
         if raid_type == Pool.RAID_TYPE_UNKNOWN:
             raise ArgError("Unknown RAID type specified: %s" %
                            self.args.raid_type)
@@ -1719,7 +1723,7 @@ class CmdLine:
                 raise ArgError("Invalid volumes ID specified in " +
                                "--member-id %s " % member_id)
 
-        raid_type = Pool._raid_type_str_to_type(
+        raid_type = pool_raid_type_str_to_type(
             self.args.raid_type)
         if raid_type == Pool.RAID_TYPE_UNKNOWN:
             raise ArgError("Unknown RAID type specified: %s" %

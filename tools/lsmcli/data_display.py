@@ -17,58 +17,301 @@
 # Author: Gris Ge <fge@redhat.com>
 import sys
 from collections import OrderedDict
+from datetime import datetime
 
-from lsm import System, size_bytes_2_size_human
+from lsm import (size_bytes_2_size_human, LsmError, ErrorNumber,
+                 System, Pool, Disk, Volume, AccessGroup, Initiator,
+                 FileSystem, FsSnapshot, NfsExport)
+
+BIT_MAP_STRING_SPLITTER = ','
 
 
-class EnumConvert(object):
-    BIT_MAP_STRING_SPLITTER = ','
+def _print_out(msg):
+    try:
+        sys.stdout.write(str(msg))
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+    except IOError:
+        sys.exit(1)
 
-    @staticmethod
-    def _txt_a(txt, append):
-        if len(txt):
-            return txt + EnumConvert.BIT_MAP_STRING_SPLITTER + append
-        else:
-            return append
 
-    SYSTEM_STATUS_CONV = {
-        System.STATUS_UNKNOWN: 'Unknown',
-        System.STATUS_OK: 'OK',
-        System.STATUS_ERROR: 'Error',
-        System.STATUS_DEGRADED: 'Degraded',
-        System.STATUS_PREDICTIVE_FAILURE: 'Predictive failure',
-        System.STATUS_STRESSED: 'Stressed',
-        System.STATUS_STARTING: 'Starting',
-        System.STATUS_STOPPING: 'Stopping',
-        System.STATUS_STOPPED: 'Stopped',
-        System.STATUS_OTHER: 'Other',
-    }
+def _txt_a(txt, append):
+    if len(txt):
+        return txt + BIT_MAP_STRING_SPLITTER + append
+    else:
+        return append
 
-    @staticmethod
-    def system_status_to_str(system_status):
-        rc = ''
-        for cur_sys_status in EnumConvert.SYSTEM_STATUS_CONV.keys():
-            if system_status & cur_sys_status:
-                rc = EnumConvert._txt_a(rc,
-                    EnumConvert.SYSTEM_STATUS_CONV[cur_sys_status])
-        if rc == '':
-            return EnumConvert.SYSTEM_STATUS_CONV[System.STATUS_UNKNOWN]
-        return rc
+
+def _bit_map_to_str(bit_map, conv_dict):
+    rc = ''
+    for cur_enum in conv_dict.keys():
+        if cur_enum & bit_map:
+            rc = _txt_a(rc, conv_dict[cur_enum])
+    if rc == '':
+        return 'Unknown(%s)' % hex(enum)
+    return rc
+
+
+def _enum_type_to_str(int_type, conv_dict):
+    rc = ''
+    if int_type in conv_dict.keys():
+        return conv_dict[int_type]
+    return 'Unknown(%d)' % int_type
+
+
+def _str_to_enum(type_str, conv_dict):
+    keys = [k for k, v in conv_dict.items() if v.lower() == type_str.lower()]
+    if len(keys) > 0:
+        return keys[0]
+    raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                   "Failed to convert %s to lsm type" % type_str)
+
+
+_SYSTEM_STATUS_CONV = {
+    System.STATUS_UNKNOWN: 'Unknown',
+    System.STATUS_OK: 'OK',
+    System.STATUS_ERROR: 'Error',
+    System.STATUS_DEGRADED: 'Degraded',
+    System.STATUS_PREDICTIVE_FAILURE: 'Predictive failure',
+    System.STATUS_STRESSED: 'Stressed',
+    System.STATUS_STARTING: 'Starting',
+    System.STATUS_STOPPING: 'Stopping',
+    System.STATUS_STOPPED: 'Stopped',
+    System.STATUS_OTHER: 'Other',
+}
+
+
+def system_status_to_str(system_status):
+    return _bit_map_to_str(system_status, _SYSTEM_STATUS_CONV)
+
+
+_POOL_STATUS_CONV = {
+    Pool.STATUS_UNKNOWN: 'UNKNOWN',
+    Pool.STATUS_OK: 'OK',
+    Pool.STATUS_OTHER: 'OTHER',
+    Pool.STATUS_STRESSED: 'STRESSED',
+    Pool.STATUS_DEGRADED: 'DEGRADED',
+    Pool.STATUS_ERROR: 'ERROR',
+    Pool.STATUS_STARTING: 'STARTING',
+    Pool.STATUS_STOPPING: 'STOPPING',
+    Pool.STATUS_STOPPED: 'STOPPED',
+    Pool.STATUS_READ_ONLY: 'READ_ONLY',
+    Pool.STATUS_DORMANT: 'DORMANT',
+    Pool.STATUS_RECONSTRUCTING: 'RECONSTRUCTING',
+    Pool.STATUS_VERIFYING: 'VERIFYING',
+    Pool.STATUS_INITIALIZING: 'INITIALIZING',
+    Pool.STATUS_GROWING: 'GROWING',
+    Pool.STATUS_SHRINKING: 'SHRINKING',
+    Pool.STATUS_DESTROYING: 'DESTROYING',
+}
+
+
+def pool_status_to_str(pool_status):
+    return _bit_map_to_str(pool_status, _POOL_STATUS_CONV)
+
+
+_POOL_ELEMENT_TYPE_CONV = {
+    Pool.ELEMENT_TYPE_UNKNOWN: 'UNKNOWN',
+    Pool.ELEMENT_TYPE_POOL: 'POOL',
+    Pool.ELEMENT_TYPE_VOLUME: 'VOLUME',
+    Pool.ELEMENT_TYPE_FS: 'FILE_SYSTEM',
+    Pool.ELEMENT_TYPE_SYS_RESERVED: 'SYSTEM_RESERVED',
+}
+
+
+def pool_element_type_to_str(element_type):
+    return _bit_map_to_str(element_type, _POOL_ELEMENT_TYPE_CONV)
+
+
+_POOL_RAID_TYPE_CONV = {
+    Pool.RAID_TYPE_RAID0: 'RAID0',  # stripe
+    Pool.RAID_TYPE_RAID1: 'RAID1',  # mirror
+    Pool.RAID_TYPE_RAID3: 'RAID3',  # byte-level striping with dedicated
+                                    # parity
+    Pool.RAID_TYPE_RAID4: 'RAID4',  # block-level striping with dedicated
+                                    # parity
+    Pool.RAID_TYPE_RAID5: 'RAID5',  # block-level striping with distributed
+                                    # parity
+    Pool.RAID_TYPE_RAID6: 'RAID6',  # AKA, RAID-DP.
+    Pool.RAID_TYPE_RAID10: 'RAID10',  # stripe of mirrors
+    Pool.RAID_TYPE_RAID15: 'RAID15',  # parity of mirrors
+    Pool.RAID_TYPE_RAID16: 'RAID16',  # dual parity of mirrors
+    Pool.RAID_TYPE_RAID50: 'RAID50',  # stripe of parities
+    Pool.RAID_TYPE_RAID60: 'RAID60',  # stripe of dual parities
+    Pool.RAID_TYPE_RAID51: 'RAID51',  # mirror of parities
+    Pool.RAID_TYPE_RAID61: 'RAID61',  # mirror of dual parities
+    Pool.RAID_TYPE_JBOD: 'JBOD',      # Just Bunch of Disks
+    Pool.RAID_TYPE_UNKNOWN: 'UNKNOWN',
+    Pool.RAID_TYPE_NOT_APPLICABLE: 'NOT_APPLICABLE',
+    Pool.RAID_TYPE_MIXED: 'MIXED',  # a Pool are having 2+ RAID groups with
+                                    # different RAID type
+}
+
+
+def pool_raid_type_to_str(raid_type):
+    return _enum_type_to_str(raid_type, _POOL_RAID_TYPE_CONV)
+
+
+def pool_raid_type_str_to_type(raid_type_str):
+    return _str_to_enum(raid_type_str, _POOL_RAID_TYPE_CONV)
+
+
+_POOL_MEMBER_TYPE_CONV = {
+    Pool.MEMBER_TYPE_UNKNOWN: 'UNKNOWN',
+    Pool.MEMBER_TYPE_DISK: 'DISK',       # Pool was created from Disk(s).
+    Pool.MEMBER_TYPE_DISK_MIX: 'DISK_MIX',   # Has two or more types of disks.
+    Pool.MEMBER_TYPE_DISK_ATA: 'DISK_ATA',
+    Pool.MEMBER_TYPE_DISK_SATA: 'DISK_SATA',
+    Pool.MEMBER_TYPE_DISK_SAS: 'DISK_SAS',
+    Pool.MEMBER_TYPE_DISK_FC: 'DISK_FC',
+    Pool.MEMBER_TYPE_DISK_SOP: 'DISK_SOP',
+    Pool.MEMBER_TYPE_DISK_SCSI: 'DISK_SCSI',
+    Pool.MEMBER_TYPE_DISK_NL_SAS: 'DISK_NL_SAS',
+    Pool.MEMBER_TYPE_DISK_HDD: 'DISK_HDD',
+    Pool.MEMBER_TYPE_DISK_SSD: 'DISK_SSD',
+    Pool.MEMBER_TYPE_DISK_HYBRID: 'DISK_HYBRID',
+    Pool.MEMBER_TYPE_POOL: 'POOL',       # Pool was created from other Pool(s).
+    Pool.MEMBER_TYPE_VOLUME: 'VOLUME',   # Pool was created from Volume(s).
+}
+
+
+def pool_member_type_to_str(member_type):
+    return _enum_type_to_str(member_type, _POOL_MEMBER_TYPE_CONV)
+
+
+def pool_member_type_str_to_type(member_type_str):
+    return _str_to_enum(member_type_str, _POOL_MEMBER_TYPE_CONV)
+
+
+_POOL_THINP_TYPE_CONV = {
+    Pool.THINP_TYPE_UNKNOWN: 'UNKNOWN',
+    Pool.THINP_TYPE_THIN: 'THIN',
+    Pool.THINP_TYPE_THICK: 'THICK',
+    Pool.THINP_TYPE_NOT_APPLICABLE: 'NOT_APPLICABLE',
+}
+
+
+def pool_thinp_type_to_str(thinp_type):
+    return _enum_type_to_str(thinp_type, _POOL_THINP_TYPE_CONV)
+
+
+def pool_thinp_type_str_to_type(thinp_type_str):
+    return _str_to_enum(thinp_type_str, _POOL_THINP_TYPE_CONV)
+
+
+_VOL_STATUS_CONV = {
+    Volume.STATUS_UNKNOWN: 'Unknown',
+    Volume.STATUS_OK: 'OK',
+    Volume.STATUS_DEGRADED: 'Degraded',
+    Volume.STATUS_DORMANT: 'Dormant',
+    Volume.STATUS_ERR: 'Error',
+    Volume.STATUS_STARTING: 'Starting',
+}
+
+
+_VOL_PROVISION_CONV = {
+    Volume.PROVISION_DEFAULT: 'DEFAULT',
+    Volume.PROVISION_FULL: 'FULL',
+    Volume.PROVISION_THIN: 'THIN',
+    Volume.PROVISION_UNKNOWN: 'UNKNOWN',
+}
+
+
+def vol_provision_str_to_type(vol_provision_str):
+    return _str_to_enum(vol_provision_str, _VOL_PROVISION_CONV)
+
+
+_VOL_REP_TYPE_CONV = {
+    Volume.REPLICATE_SNAPSHOT: 'SNAPSHOT',
+    Volume.REPLICATE_CLONE: 'CLONE',
+    Volume.REPLICATE_COPY: 'COPY',
+    Volume.REPLICATE_MIRROR_SYNC: 'MIRROR_SYNC',
+    Volume.REPLICATE_MIRROR_ASYNC: 'MIRROR_ASYNC',
+    Volume.REPLICATE_UNKNOWN: 'UNKNOWN',
+}
+
+
+def vol_rep_type_str_to_type(vol_rep_type_str):
+    return _str_to_enum(vol_rep_type_str, _VOL_REP_TYPE_CONV)
+
+
+_VOL_ACCESS_TYPE_CONV = {
+    Volume.ACCESS_READ_WRITE: 'RW',
+    Volume.ACCESS_READ_ONLY: 'RO'
+}
+
+
+def vol_access_type_str_to_type(vol_access_type_str):
+    return _str_to_enum(vol_access_type_str, _VOL_ACCESS_TYPE_CONV)
+
+
+def vol_status_to_str(vol_status):
+    return _bit_map_to_str(vol_status, _VOL_STATUS_CONV)
+
+
+_DISK_TYPE_CONV = {
+    Disk.DISK_TYPE_UNKNOWN: 'UNKNOWN',
+    Disk.DISK_TYPE_OTHER: 'OTHER',
+    Disk.DISK_TYPE_NOT_APPLICABLE: 'NOT_APPLICABLE',
+    Disk.DISK_TYPE_ATA: 'ATA',
+    Disk.DISK_TYPE_SATA: 'SATA',
+    Disk.DISK_TYPE_SAS: 'SAS',
+    Disk.DISK_TYPE_FC: 'FC',
+    Disk.DISK_TYPE_SOP: 'SOP',
+    Disk.DISK_TYPE_NL_SAS: 'NL_SAS',
+    Disk.DISK_TYPE_HDD: 'HDD',
+    Disk.DISK_TYPE_SSD: 'SSD',
+    Disk.DISK_TYPE_HYBRID: 'HYBRID',
+}
+
+
+def disk_type_to_str(disk_type):
+    return _enum_type_to_str(disk_type, _DISK_TYPE_CONV)
+
+
+_DISK_STATUS_CONV = {
+    Disk.STATUS_UNKNOWN: 'UNKNOWN',
+    Disk.STATUS_OK: 'OK',
+    Disk.STATUS_OTHER: 'OTHER',
+    Disk.STATUS_PREDICTIVE_FAILURE: 'PREDICTIVE_FAILURE',
+    Disk.STATUS_ERROR: 'ERROR',
+    Disk.STATUS_OFFLINE: 'OFFLINE',
+    Disk.STATUS_STARTING: 'STARTING',
+    Disk.STATUS_STOPPING: 'STOPPING',
+    Disk.STATUS_STOPPED: 'STOPPED',
+    Disk.STATUS_INITIALIZING: 'INITIALIZING',
+    Disk.STATUS_RECONSTRUCTING: 'RECONSTRUCTING',
+}
+
+
+def disk_status_to_str(disk_status):
+    return _bit_map_to_str(disk_status, _DISK_STATUS_CONV)
+
+
+_INIT_TYPE_CONV = {
+    Initiator.TYPE_OTHER: 'Other',
+    Initiator.TYPE_PORT_WWN: 'Port WWN',
+    Initiator.TYPE_NODE_WWN: 'Node WWN',
+    Initiator.TYPE_HOSTNAME: 'Hostname',
+    Initiator.TYPE_ISCSI: 'iSCSI',
+    Initiator.TYPE_SAS: "SAS"
+}
+
+
+def init_type_to_str(init_type):
+    return _enum_type_to_str(init_type, _INIT_TYPE_CONV)
+
+
+class PlugData(object):
+    def __init__(self, description, plugin_version):
+            self.desc = description
+            self.version = plugin_version
 
 
 class DisplayData(object):
 
     def __init__(self):
         pass
-
-    @staticmethod
-    def _out(msg):
-        try:
-            sys.stdout.write(str(msg))
-            sys.stdout.write("\n")
-            sys.stdout.flush()
-        except IOError:
-            sys.exit(1)
 
     DISPLAY_WAY_COLUMN = 0
     DISPLAY_WAY_SCRIPT = 1
@@ -77,6 +320,9 @@ class DisplayData(object):
 
     DEFAULT_SPLITTER = ' | '
 
+    VALUE_CONVERT = {}
+
+    # lsm.System
     SYSTEM_MAN_HEADER = OrderedDict()
     SYSTEM_MAN_HEADER['id'] = 'ID'
     SYSTEM_MAN_HEADER['name'] = 'Name'
@@ -85,23 +331,288 @@ class DisplayData(object):
 
     SYSTEM_OPT_HEADER = OrderedDict()
 
-    SYSTEM_DSP_HEADER = SYSTEM_MAN_HEADER   # SYSTEM_DSP_HEADER should be
-                                            # subset of SYSTEM_MAN_HEADER
+    SYSTEM_COLUME_KEYS = SYSTEM_MAN_HEADER.keys()
+    # SYSTEM_COLUME_KEYS should be subset of SYSTEM_MAN_HEADER.keys()
+    # XXX_COLUME_KEYS contain a list of mandatory properties which will be
+    # displayed in column way. It was used to limit the output of properties
+    # in sure the colume display way does not exceeded the column width 78.
+    # All mandatory_headers will be displayed in script way.
+    # if '-o' define, both mandatory_headers and optional_headers will be
+    # displayed in script way.
 
     SYSTEM_VALUE_CONV_ENUM = {
-        'status': EnumConvert.system_status_to_str,
+        'status': system_status_to_str,
     }
 
     SYSTEM_VALUE_CONV_HUMAN = []
 
-    VALUE_CONVERT = {
-        System: {
-            'mandatory_headers': SYSTEM_MAN_HEADER,
-            'display_headers': SYSTEM_DSP_HEADER,
-            'optional_headers': SYSTEM_OPT_HEADER,
-            'value_conv_enum': SYSTEM_VALUE_CONV_ENUM,
-            'value_conv_human': SYSTEM_VALUE_CONV_HUMAN,
-        }
+    VALUE_CONVERT[System] = {
+        'mandatory_headers': SYSTEM_MAN_HEADER,
+        'column_keys': SYSTEM_COLUME_KEYS,
+        'optional_headers': SYSTEM_OPT_HEADER,
+        'value_conv_enum': SYSTEM_VALUE_CONV_ENUM,
+        'value_conv_human': SYSTEM_VALUE_CONV_HUMAN,
+    }
+
+    PLUG_DATA_MAN_HEADER = OrderedDict()
+    PLUG_DATA_MAN_HEADER['desc'] = 'Description'
+    PLUG_DATA_MAN_HEADER['version'] = 'Version'
+
+    PLUG_DATA_COLUME_KEYS = PLUG_DATA_MAN_HEADER.keys()
+
+    PLUG_DATA_OPT_HEADER = OrderedDict()
+    PLUG_DATA_VALUE_CONV_ENUM = {}
+    PLUG_DATA_VALUE_CONV_HUMAN = []
+
+    VALUE_CONVERT[PlugData] = {
+        'mandatory_headers': PLUG_DATA_MAN_HEADER,
+        'column_keys': PLUG_DATA_COLUME_KEYS,
+        'optional_headers': PLUG_DATA_OPT_HEADER,
+        'value_conv_enum': PLUG_DATA_VALUE_CONV_ENUM,
+        'value_conv_human': PLUG_DATA_VALUE_CONV_HUMAN,
+    }
+
+    # lsm.Pool
+    POOL_MAN_HEADER = OrderedDict()
+    POOL_MAN_HEADER['id'] = 'ID'
+    POOL_MAN_HEADER['name'] = 'Name'
+    POOL_MAN_HEADER['total_space'] = 'Total Space'
+    POOL_MAN_HEADER['free_space'] = 'Free Space'
+    POOL_MAN_HEADER['status'] = 'Status'
+    POOL_MAN_HEADER['status_info'] = 'Status Info'
+    POOL_MAN_HEADER['system_id'] = 'System ID'
+
+    POOL_COLUME_KEYS = POOL_MAN_HEADER.keys()
+
+    POOL_OPT_HEADER = OrderedDict()
+    POOL_OPT_HEADER['raid_type'] = 'RAID Type'
+    POOL_OPT_HEADER['member_type'] = 'Member Type'
+    POOL_OPT_HEADER['member_ids'] = 'Member IDs'
+    POOL_OPT_HEADER['thinp_type'] = 'Provision Type'
+    POOL_OPT_HEADER['element_type'] = 'Element Type'
+
+    POOL_VALUE_CONV_ENUM = {
+        'status': pool_status_to_str,
+        'raid_type': pool_raid_type_to_str,
+        'member_type': pool_member_type_to_str,
+        'thinp_type': pool_thinp_type_to_str,
+        'element_type': pool_element_type_to_str,
+    }
+
+    POOL_VALUE_CONV_HUMAN = ['total_space', 'free_space']
+
+    VALUE_CONVERT[Pool] = {
+        'mandatory_headers': POOL_MAN_HEADER,
+        'column_keys': POOL_COLUME_KEYS,
+        'optional_headers': POOL_OPT_HEADER,
+        'value_conv_enum': POOL_VALUE_CONV_ENUM,
+        'value_conv_human': POOL_VALUE_CONV_HUMAN,
+    }
+
+    # lsm.Volume
+    VOL_MAN_HEADER = OrderedDict()
+    VOL_MAN_HEADER['id'] = 'ID'
+    VOL_MAN_HEADER['name'] = 'Name'
+    VOL_MAN_HEADER['vpd83'] = 'SCSI VPD 0x83'
+    VOL_MAN_HEADER['block_size'] = 'Block Size'
+    VOL_MAN_HEADER['num_of_blocks'] = '#blocks'
+    VOL_MAN_HEADER['size_bytes'] = 'Size'
+    VOL_MAN_HEADER['status'] = 'Status'
+    VOL_MAN_HEADER['pool_id'] = 'Pool ID'
+    VOL_MAN_HEADER['system_id'] = 'System ID'
+
+    VOL_COLUME_KEYS = []
+    for key_name in VOL_MAN_HEADER.keys():
+        # Skip these keys for colume display
+        if key_name not in ['block_size', 'num_of_blocks', 'system_id']:
+            VOL_COLUME_KEYS.extend([key_name])
+
+    VOL_OPT_HEADER = OrderedDict()
+
+    VOL_VALUE_CONV_ENUM = {
+        'status': vol_status_to_str,
+    }
+
+    VOL_VALUE_CONV_HUMAN = ['size_bytes', 'block_size']
+
+    VALUE_CONVERT[Volume] = {
+        'mandatory_headers': VOL_MAN_HEADER,
+        'column_keys': VOL_COLUME_KEYS,
+        'optional_headers': VOL_OPT_HEADER,
+        'value_conv_enum': VOL_VALUE_CONV_ENUM,
+        'value_conv_human': VOL_VALUE_CONV_HUMAN,
+    }
+
+    # lsm.Disk
+    DISK_MAN_HEADER = OrderedDict()
+    DISK_MAN_HEADER['id'] = 'ID'
+    DISK_MAN_HEADER['name'] = 'Name'
+    DISK_MAN_HEADER['disk_type'] = 'Type'
+    DISK_MAN_HEADER['block_size'] = 'Block Size'
+    DISK_MAN_HEADER['num_of_blocks'] = '#blocks'
+    DISK_MAN_HEADER['size_bytes'] = 'Size'
+    DISK_MAN_HEADER['status'] = 'Status'
+    DISK_MAN_HEADER['system_id'] = 'System ID'
+
+    DISK_COLUME_KEYS = []
+    for key_name in DISK_MAN_HEADER.keys():
+        # Skip these keys for colume display
+        if key_name not in ['block_size', 'num_of_blocks']:
+            DISK_COLUME_KEYS.extend([key_name])
+
+    DISK_OPT_HEADER = OrderedDict()
+    DISK_OPT_HEADER['sn'] = 'Serial Number'
+    DISK_OPT_HEADER['part_num'] = 'Part Number'
+    DISK_OPT_HEADER['vendor'] = 'Vendor'
+    DISK_OPT_HEADER['model'] = 'Model'
+
+    DISK_VALUE_CONV_ENUM = {
+        'status': disk_status_to_str,
+        'disk_type': disk_type_to_str,
+    }
+
+    DISK_VALUE_CONV_HUMAN = ['size_bytes', 'block_size']
+
+    VALUE_CONVERT[Disk] = {
+        'mandatory_headers': DISK_MAN_HEADER,
+        'column_keys': DISK_COLUME_KEYS,
+        'optional_headers': DISK_OPT_HEADER,
+        'value_conv_enum': DISK_VALUE_CONV_ENUM,
+        'value_conv_human': DISK_VALUE_CONV_HUMAN,
+    }
+
+    # lsm.AccessGroup
+    AG_MAN_HEADER = OrderedDict()
+    AG_MAN_HEADER['id'] = 'ID'
+    AG_MAN_HEADER['name'] = 'Name'
+    AG_MAN_HEADER['initiators'] = 'Initiator IDs'
+    AG_MAN_HEADER['system_id'] = 'System ID'
+
+    AG_COLUME_KEYS = AG_MAN_HEADER.keys()
+
+    AG_OPT_HEADER = OrderedDict()
+
+    AG_VALUE_CONV_ENUM = {}
+
+    AG_VALUE_CONV_HUMAN = []
+
+    VALUE_CONVERT[AccessGroup] = {
+        'mandatory_headers': AG_MAN_HEADER,
+        'column_keys': AG_COLUME_KEYS,
+        'optional_headers': AG_OPT_HEADER,
+        'value_conv_enum': AG_VALUE_CONV_ENUM,
+        'value_conv_human': AG_VALUE_CONV_HUMAN,
+    }
+
+    # lsm.Initiator
+    INIT_MAN_HEADER = OrderedDict()
+    INIT_MAN_HEADER['id'] = 'ID'
+    INIT_MAN_HEADER['name'] = 'Name'
+    INIT_MAN_HEADER['type'] = 'Initiator Type'
+
+    INIT_COLUME_KEYS = INIT_MAN_HEADER.keys()
+
+    INIT_OPT_HEADER = OrderedDict()
+
+    INIT_VALUE_CONV_ENUM = {
+        'type': init_type_to_str,
+    }
+
+    INIT_VALUE_CONV_HUMAN = []
+
+    VALUE_CONVERT[Initiator] = {
+        'mandatory_headers': INIT_MAN_HEADER,
+        'column_keys': INIT_COLUME_KEYS,
+        'optional_headers': INIT_OPT_HEADER,
+        'value_conv_enum': INIT_VALUE_CONV_ENUM,
+        'value_conv_human': INIT_VALUE_CONV_HUMAN,
+    }
+
+    # lsm.FileSystem
+    FS_MAN_HEADER = OrderedDict()
+    FS_MAN_HEADER['id'] = 'ID'
+    FS_MAN_HEADER['name'] = 'Name'
+    FS_MAN_HEADER['total_space'] = 'Total Space'
+    FS_MAN_HEADER['free_space'] = 'Free Space'
+    FS_MAN_HEADER['pool_id'] = 'Pool ID'
+    FS_MAN_HEADER['system_id'] = 'System ID'
+
+    FS_COLUME_KEYS = []
+    for key_name in FS_MAN_HEADER.keys():
+        # Skip these keys for colume display
+        if key_name not in ['system_id']:
+            FS_COLUME_KEYS.extend([key_name])
+
+    FS_OPT_HEADER = OrderedDict()
+
+    FS_VALUE_CONV_ENUM = {
+    }
+
+    FS_VALUE_CONV_HUMAN = ['total_space', 'free_space']
+
+    VALUE_CONVERT[FileSystem] = {
+        'mandatory_headers': FS_MAN_HEADER,
+        'column_keys': FS_COLUME_KEYS,
+        'optional_headers': FS_OPT_HEADER,
+        'value_conv_enum': FS_VALUE_CONV_ENUM,
+        'value_conv_human': FS_VALUE_CONV_HUMAN,
+    }
+
+    # lsm.FsSnapshot
+    FS_SNAP_MAN_HEADER = OrderedDict()
+    FS_SNAP_MAN_HEADER['id'] = 'ID'
+    FS_SNAP_MAN_HEADER['name'] = 'Name'
+    FS_SNAP_MAN_HEADER['ts'] = 'Time Stamp'
+
+    FS_SNAP_COLUME_KEYS = FS_SNAP_MAN_HEADER.keys()
+
+    FS_SNAP_OPT_HEADER = OrderedDict()
+
+    FS_SNAP_VALUE_CONV_ENUM = {
+        'ts': datetime.fromtimestamp
+    }
+
+    FS_SNAP_VALUE_CONV_HUMAN = []
+
+    VALUE_CONVERT[FsSnapshot] = {
+        'mandatory_headers': FS_SNAP_MAN_HEADER,
+        'column_keys': FS_SNAP_COLUME_KEYS,
+        'optional_headers': FS_SNAP_OPT_HEADER,
+        'value_conv_enum': FS_SNAP_VALUE_CONV_ENUM,
+        'value_conv_human': FS_SNAP_VALUE_CONV_HUMAN,
+    }
+
+    # lsm.NfsExport
+    NFS_EXPORT_MAN_HEADER = OrderedDict()
+    NFS_EXPORT_MAN_HEADER['id'] = 'ID'
+    NFS_EXPORT_MAN_HEADER['fs_id'] = 'FileSystem ID'
+    NFS_EXPORT_MAN_HEADER['export_path'] = 'Export Path'
+    NFS_EXPORT_MAN_HEADER['auth'] = 'Auth Type'
+    NFS_EXPORT_MAN_HEADER['root'] = 'Root Hosts'
+    NFS_EXPORT_MAN_HEADER['rw'] = 'RW Hosts'
+    NFS_EXPORT_MAN_HEADER['ro'] = 'RO Hosts'
+    NFS_EXPORT_MAN_HEADER['anonuid'] = 'Anonymous UID'
+    NFS_EXPORT_MAN_HEADER['anongid'] = 'Anonymous GID'
+    NFS_EXPORT_MAN_HEADER['options'] = 'Options'
+
+    NFS_EXPORT_COLUME_KEYS = []
+    for key_name in NFS_EXPORT_MAN_HEADER.keys():
+        # Skip these keys for colume display
+        if key_name not in ['root', 'anonuid', 'anongid', 'auth']:
+            NFS_EXPORT_COLUME_KEYS.extend([key_name])
+
+    NFS_EXPORT_OPT_HEADER = OrderedDict()
+
+    NFS_EXPORT_VALUE_CONV_ENUM = {}
+
+    NFS_EXPORT_VALUE_CONV_HUMAN = []
+
+    VALUE_CONVERT[NfsExport] = {
+        'mandatory_headers': NFS_EXPORT_MAN_HEADER,
+        'column_keys': NFS_EXPORT_COLUME_KEYS,
+        'optional_headers': NFS_EXPORT_OPT_HEADER,
+        'value_conv_enum': NFS_EXPORT_VALUE_CONV_ENUM,
+        'value_conv_human': NFS_EXPORT_VALUE_CONV_HUMAN,
     }
 
     @staticmethod
@@ -138,33 +649,33 @@ class DisplayData(object):
         return max_width
 
     @staticmethod
-    def _data_dict_gen(obj, flag_human, flag_enum, extra_properties=None,
-                       flag_dsp_all_data=False):
+    def _data_dict_gen(obj, flag_human, flag_enum, display_way,
+                       extra_properties=None, flag_dsp_all_data=False):
         data_dict = OrderedDict()
         value_convert = DisplayData.VALUE_CONVERT[type(obj)]
         mandatory_headers = value_convert['mandatory_headers']
-        display_headers = value_convert['display_headers']
         optional_headers = value_convert['optional_headers']
         value_conv_enum = value_convert['value_conv_enum']
         value_conv_human = value_convert['value_conv_human']
 
-        for key in display_headers.keys():
-            key_str = display_headers[key]
+        if flag_dsp_all_data:
+            display_way = DisplayData.DISPLAY_WAY_SCRIPT
+
+        display_keys = []
+
+        if display_way == DisplayData.DISPLAY_WAY_COLUMN:
+            display_keys = value_convert['column_keys']
+        elif display_way == DisplayData.DISPLAY_WAY_SCRIPT:
+            display_keys = mandatory_headers.keys()
+
+        for key in display_keys:
+            key_str = mandatory_headers[key]
             value = DisplayData._get_man_pro_value(
                 obj, key, value_conv_enum, value_conv_human, flag_human,
                 flag_enum)
             data_dict[key_str] = value
 
         if flag_dsp_all_data:
-            for key in mandatory_headers.keys():
-                if key in display_headers.keys():
-                    continue
-                key_str = mandatory_headers[key]
-                value = DisplayData._get_man_pro_value(
-                    obj, key, value_conv_enum, value_conv_human, flag_human,
-                    flag_enum)
-                data_dict[key_str] = value
-
             for key in optional_headers.keys():
                 key_str = optional_headers[key]
                 value = DisplayData._get_opt_pro_value(
@@ -172,11 +683,12 @@ class DisplayData(object):
                     flag_enum)
                 data_dict[key_str] = value
 
-        elif extra_properties:
+        if extra_properties:
             for key in extra_properties:
+                if key in data_dict.keys():
+                    # already contained
+                    continue
                 if key in mandatory_headers.keys():
-                    if key in display_headers.keys():
-                        continue
                     key_str = mandatory_headers[key]
                     value = DisplayData._get_man_pro_value(
                         obj, key, value_conv_enum, value_conv_human,
@@ -211,8 +723,8 @@ class DisplayData(object):
         if type(objs[0]) in DisplayData.VALUE_CONVERT.keys():
             for obj in objs:
                 data_dict = DisplayData._data_dict_gen(
-                    obj, flag_human, flag_enum, extra_properties,
-                    flag_dsp_all_data)
+                    obj, flag_human, flag_enum, display_way,
+                    extra_properties, flag_dsp_all_data)
                 data_dict_list.extend([data_dict])
         else:
             return None
@@ -253,25 +765,24 @@ class DisplayData(object):
                                          splitter,
                                          value_column_width)
         obj_splitter = '%s%s%s' % ('-' * key_column_width,
-                                  '-' * len(splitter),
-                                  '-' * value_column_width)
+                                   '-' * len(splitter),
+                                   '-' * value_column_width)
 
         for data_dict in data_dict_list:
-            DisplayData._out(obj_splitter)
+            _print_out(obj_splitter)
             for key_name in data_dict:
                 value = data_dict[key_name]
                 if isinstance(value, list):
                     flag_first_data = True
                     for sub_value in value:
                         if flag_first_data:
-                            DisplayData._out(row_format %
-                                             (key_name, str(sub_value)))
+                            _print_out(row_format % (key_name, str(sub_value)))
                             flag_first_data = False
                         else:
-                            DisplayData._out(sub_row_format % str(sub_value))
+                            _print_out(sub_row_format % str(sub_value))
                 else:
-                    DisplayData._out(row_format % (key_name, str(value)))
-        DisplayData._out(obj_splitter)
+                    _print_out(row_format % (key_name, str(value)))
+        _print_out(obj_splitter)
 
     @staticmethod
     def _display_data_column_way(data_dict_list, splitter, flag_with_header):
@@ -304,7 +815,7 @@ class DisplayData(object):
         for raw in range(0, row_width):
             new = []
             for column in range(0, item_count):
-                new.append([''])
+                new.append('')
             two_d_list.append(new)
 
         # header
@@ -342,6 +853,6 @@ class DisplayData(object):
 
         row_format = splitter.join(row_formats)
         for row_index in range(0, len(two_d_list)):
-            DisplayData._out(row_format % tuple(two_d_list[row_index]))
+            _print_out(row_format % tuple(two_d_list[row_index]))
             if row_index == 0 and flag_with_header:
-                DisplayData._out(header_splitter)
+                _print_out(header_splitter)

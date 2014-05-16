@@ -114,6 +114,8 @@ class IData(object):
     """
     __metaclass__ = _ABCMeta
 
+    OPT_PROPERTIES = []
+
     def _to_dict(self):
         """
         Represent the class as a dictionary
@@ -157,111 +159,6 @@ class IData(object):
         """
         return str(self._to_dict())
 
-    _MAN_PROPERTIES_2_HEADER = dict()
-    _OPT_PROPERTIES_2_HEADER = dict()
-    _MAN_PROPERTIES_SEQUENCE = []
-    _OPT_PROPERTIES_SEQUENCE = []
-
-    def _value_convert(self, key_name, value, human, enum_as_number,
-                      list_convert):
-        return value
-
-    def _str_of_key(self, key_name=None):
-        """
-        If key_name == None or not provided:
-            Return a dictionary providing the mandatory properties key name to
-            human friendly string mapping:
-                {
-                    'id': 'ID',
-                    'member_type': 'Member Type',
-                    .
-                    .
-                    .
-                }
-        else provide the human friendly string of certain key.
-        """
-        if key_name is None:
-            return dict(list(self._MAN_PROPERTIES_2_HEADER.items()) +
-                        list(self._OPT_PROPERTIES_2_HEADER.items()))
-
-        man_pros_header = self._MAN_PROPERTIES_2_HEADER
-        opt_pros_header = self._OPT_PROPERTIES_2_HEADER
-        if key_name in man_pros_header.keys():
-            return man_pros_header[key_name]
-        elif key_name in opt_pros_header.keys():
-            return opt_pros_header[key_name]
-        else:
-            raise LsmError(ErrorNumber.INVALID_VALUE,
-                           "%s class does not provide %s property" %
-                           (self.__name__, key_name))
-
-    def _value_of_key(self, key_name=None, human=False, enum_as_number=False,
-                     list_convert=False):
-        """
-        Return the value of certain key, allowing do humanize converting,
-        list converting, or enumerate as number.
-        For optional properties, if requesting key is not valid for current
-        instance(but is valid for class definition), return None
-        If key_name == None, we return a dictionary like this:
-            {
-                # key_name: converted_value
-                id: 1232424abcef,
-                raid_type: 'RAID6',
-                    .
-                    .
-                    .
-            }
-        """
-        man_pros_header = self._MAN_PROPERTIES_2_HEADER
-        opt_pros_header = self._OPT_PROPERTIES_2_HEADER
-        if key_name is None:
-            all_value = {}
-            for cur_key_name in man_pros_header.keys():
-                all_value[cur_key_name] = self._value_of_key(
-                    key_name=cur_key_name,
-                    human=human,
-                    enum_as_number=enum_as_number,
-                    list_convert=list_convert)
-            for cur_key_name in opt_pros_header.keys():
-                cur_value = self._value_of_key(
-                    key_name=cur_key_name,
-                    human=human,
-                    enum_as_number=enum_as_number,
-                    list_convert=list_convert)
-                if cur_value is None:
-                    continue
-                else:
-                    all_value[cur_key_name] = cur_value
-            return all_value
-
-        if key_name in man_pros_header.keys():
-            value = getattr(self, key_name)
-
-            return self._value_convert(key_name, value, human, enum_as_number,
-                                      list_convert)
-
-        elif (hasattr(self, '_optional_data') and
-              key_name in opt_pros_header.keys()):
-            if key_name not in self._optional_data.list():
-                return None
-
-            value = self._optional_data.get(key_name)
-            return self._value_convert(key_name, value, human, enum_as_number,
-                                      list_convert)
-        else:
-            raise LsmError(ErrorNumber.INVALID_VALUE,
-                           "%s class does not provide %s property" %
-                           (self.__name__, key_name))
-
-    def _key_display_sequence(self):
-        """
-        Return a List with suggested data displaying order of properties.
-        """
-        key = self._MAN_PROPERTIES_SEQUENCE
-        key.extend(self._OPT_PROPERTIES_SEQUENCE)
-        return key
-
-
 @default_property('id', doc="Unique identifier")
 @default_property('type', doc="Enumerated initiator type")
 @default_property('name', doc="User supplied name")
@@ -271,28 +168,6 @@ class Initiator(IData):
     """
     (TYPE_OTHER, TYPE_PORT_WWN, TYPE_NODE_WWN, TYPE_HOSTNAME, TYPE_ISCSI,
      TYPE_SAS) = (1, 2, 3, 4, 5, 7)
-
-    _type_map = {1: 'Other', 2: 'Port WWN', 3: 'Node WWN', 4: 'Hostname',
-                5: 'iSCSI', 7: "SAS"}
-
-    _MAN_PROPERTIES_2_HEADER = {
-        'id': 'ID',
-        'name': 'Name',
-        'type': 'Type',
-    }
-
-    _MAN_PROPERTIES_SEQUENCE = ['id', 'name', 'type']
-
-    def _value_convert(self, key_name, value, human, enum_as_number,
-                      list_convert):
-        if not enum_as_number:
-            if key_name == 'type':
-                    value = Initiator._type_to_str(value)
-        return value
-
-    @staticmethod
-    def _type_to_str(init_type):
-        return Initiator._type_map[init_type]
 
     def __init__(self, _id, _type, _name):
 
@@ -345,21 +220,6 @@ class Disk(IData):
     DISK_TYPE_SSD = 53    # Solid State Drive
     DISK_TYPE_HYBRID = 54    # uses a combination of HDD and SSD
 
-    _DISK_TYPE = {
-        DISK_TYPE_UNKNOWN: 'UNKNOWN',
-        DISK_TYPE_OTHER: 'OTHER',
-        DISK_TYPE_NOT_APPLICABLE: 'NOT_APPLICABLE',
-        DISK_TYPE_ATA: 'ATA',
-        DISK_TYPE_SATA: 'SATA',
-        DISK_TYPE_SAS: 'SAS',
-        DISK_TYPE_FC: 'FC',
-        DISK_TYPE_SOP: 'SOP',
-        DISK_TYPE_NL_SAS: 'NL_SAS',
-        DISK_TYPE_HDD: 'HDD',
-        DISK_TYPE_SSD: 'SSD',
-        DISK_TYPE_HYBRID: 'HYBRID',
-    }
-
     MAX_DISK_STATUS_BITS = 64
     # Disk status could be any combination of these status.
     STATUS_UNKNOWN = 1 << 0
@@ -399,61 +259,8 @@ class Disk(IData):
     #   Disk is in reconstructing date from other RAID member.
     #   Should explain progress in Disk.status_info
 
-    _STATUS = {
-        STATUS_UNKNOWN: 'UNKNOWN',
-        STATUS_OK: 'OK',
-        STATUS_OTHER: 'OTHER',
-        STATUS_PREDICTIVE_FAILURE: 'PREDICTIVE_FAILURE',
-        STATUS_ERROR: 'ERROR',
-        STATUS_OFFLINE: 'OFFLINE',
-        STATUS_STARTING: 'STARTING',
-        STATUS_STOPPING: 'STOPPING',
-        STATUS_STOPPED: 'STOPPED',
-        STATUS_INITIALIZING: 'INITIALIZING',
-        STATUS_RECONSTRUCTING: 'RECONSTRUCTING',
-    }
-
-    @staticmethod
-    def status_to_str(status):
-        """
-        Convert status to a string
-        When having multiple status, will use a comma between them
-        """
-        status_str = ''
-        for x in Disk._STATUS.keys():
-            if x & status:
-                status_str = txt_a(status_str, Disk._STATUS[x])
-        if status_str:
-            return status_str
-        raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                       "Invalid Disk.status: %d" % status)
-
-    _MAN_PROPERTIES_2_HEADER = {
-        'id': 'ID',
-        'name': 'Name',
-        'disk_type': 'Disk Type',
-        'block_size': 'Block Size',
-        'num_of_blocks': '#blocks',
-        'size_bytes': 'Size',
-        'status': 'Status',
-        'system_id': 'System ID',
-    }
-
-    _MAN_PROPERTIES_SEQUENCE = ['id', 'name', 'disk_type', 'block_size',
-                                'num_of_blocks', 'size_bytes', 'status',
-                                'system_id']
-
-    _OPT_PROPERTIES_2_HEADER = {
-        'sn': 'SN',
-        'part_num': 'Part Number',
-        'vendor': 'Vendor',
-        'model': 'Model',
-        'status_info': 'Status Info',
-        'owner_ctrler_id': 'Controller Owner',
-    }
-
-    _OPT_PROPERTIES_SEQUENCE = ['sn', 'part_num', 'vendor', 'model',
-                                'status_info', 'owner_ctrler_id']
+    OPT_PROPERTIES = ['sn', 'part_num', 'vendor', 'model', 'status_info',
+                      'owner_ctrler_id']
 
     def _value_convert(self, key_name, value, human, enum_as_number,
                       list_convert):
@@ -483,7 +290,7 @@ class Disk(IData):
             self._optional_data = OptionalData()
         else:
             #Make sure the properties only contain ones we permit
-            allowed = set(Disk._OPT_PROPERTIES_2_HEADER.keys())
+            allowed = set(Disk.OPT_PROPERTIES)
             actual = set(_optional_data.list())
 
             if actual <= allowed:
@@ -500,40 +307,8 @@ class Disk(IData):
         """
         return self.block_size * self.num_of_blocks
 
-    @staticmethod
-    def disk_type_to_str(disk_type):
-        if disk_type in Disk._DISK_TYPE.keys():
-            return Disk._DISK_TYPE[disk_type]
-        return Disk._DISK_TYPE[Disk.DISK_TYPE_UNKNOWN]
-
-    @staticmethod
-    def disk_type_str_to_type(disk_type_str):
-        key = get_key(Disk._DISK_TYPE, disk_type_str)
-        if key or key == 0:
-            return key
-        return Disk.DISK_TYPE_UNKNOWN
-
     def __str__(self):
         return self.name
-
-    def _opt_column_headers(self):
-        opt_headers = []
-        opt_pros = self._optional_data.list()
-        for opt_pro in opt_pros:
-            opt_headers.extend([Disk._OPT_PROPERTIES_2_HEADER[opt_pro]])
-        return opt_headers
-
-    def _opt_column_data(self, human=False, enum_as_number=False):
-        opt_data_values = []
-        opt_pros = self._optional_data.list()
-        for opt_pro in opt_pros:
-            opt_pro_value = self._optional_data.get(opt_pro)
-            if enum_as_number is False:
-                pass
-
-            opt_data_values.extend([opt_pro_value])
-        return opt_data_values
-
 
 @default_property('id', doc="Unique identifier")
 @default_property('name', doc="User given name")
@@ -547,7 +322,6 @@ class Volume(IData):
     """
     Represents a volume.
     """
-
     # Volume status Note: Volumes can have multiple status bits set at same
     # time.
     (STATUS_UNKNOWN, STATUS_OK, STATUS_DEGRADED, STATUS_ERR, STATUS_STARTING,
@@ -562,54 +336,8 @@ class Volume(IData):
     (PROVISION_UNKNOWN, PROVISION_THIN, PROVISION_FULL, PROVISION_DEFAULT) = \
         (-1, 1, 2, 3)
 
-    @staticmethod
-    def _prov_string_to_type(prov_type):
-        if prov_type == 'DEFAULT':
-            return Volume.PROVISION_DEFAULT
-        elif prov_type == "FULL":
-            return Volume.PROVISION_FULL
-        elif prov_type == "THIN":
-            return Volume.PROVISION_THIN
-        else:
-            return Volume.PROVISION_UNKNOWN
-
-    @staticmethod
-    def _rep_string_to_type(rt):
-        if rt == "SNAPSHOT":
-            return Volume.REPLICATE_SNAPSHOT
-        elif rt == "CLONE":
-            return Volume.REPLICATE_CLONE
-        elif rt == "COPY":
-            return Volume.REPLICATE_COPY
-        elif rt == "MIRROR_SYNC":
-            return Volume.REPLICATE_MIRROR_SYNC
-        elif rt == "MIRROR_ASYNC":
-            return Volume.REPLICATE_MIRROR_ASYNC
-        else:
-            return Volume.REPLICATE_UNKNOWN
-
     #Initiator access
     (ACCESS_READ_ONLY, ACCESS_READ_WRITE, ACCESS_NONE) = (1, 2, 3)
-
-    @staticmethod
-    def _status_to_str(status):
-        if status == 1:
-            return "OK"
-        elif status == 0:
-            return "Unknown"
-        else:
-            rc = ""
-            if status & Volume.STATUS_OK:
-                rc = txt_a(rc, "OK")
-            if status & Volume.STATUS_DEGRADED:
-                rc = txt_a(rc, "Degraded")
-            if status & Volume.STATUS_DORMANT:
-                rc = txt_a(rc, "Dormant")
-            if status & Volume.STATUS_ERR:
-                rc = txt_a(rc, "Error")
-            if status & Volume.STATUS_STARTING:
-                rc = txt_a(rc, "Starting")
-            return rc
 
     @staticmethod
     def _access_string_to_type(access):
@@ -638,35 +366,6 @@ class Volume(IData):
 
     def __str__(self):
         return self.name
-
-    _MAN_PROPERTIES_2_HEADER = {
-        'id': 'ID',
-        'name': 'Name',
-        'vpd83': 'VPD83',
-        'block_size': 'Block Size',
-        'num_of_blocks': '#blocks',
-        'size_bytes': 'Size',
-        'status': 'Status',
-        'system_id': 'System ID',
-        'pool_id': 'Pool ID',
-    }
-
-    _MAN_PROPERTIES_SEQUENCE = ['id', 'name', 'vpd83', 'block_size',
-                                'num_of_blocks', 'size_bytes', 'status',
-                                'system_id', 'pool_id']
-
-    def _value_convert(self, key_name, value, human, enum_as_number,
-                      list_convert):
-
-        if enum_as_number is False:
-                if key_name == 'status':
-                    value = self._status_to_str(value)
-        if human:
-            if key_name == 'size_bytes':
-                value = sh(value, human)
-            elif key_name == 'block_size':
-                value = sh(value, human)
-        return value
 
 
 @default_property('id', doc="Unique identifier")
@@ -753,32 +452,12 @@ The lsm.System class does not have class methods.
     STATUS_STOPPED = 1 << 8
     STATUS_OTHER = 1 << 9
 
-    @staticmethod
-    def _status_to_str(status):
-        if status == 0:
-            return "Unknown"
-        elif status == 1:
-            return "OK"
-        else:
-            rc = ""
-            if status & System.STATUS_OK:
-                rc = txt_a(rc, "OK")
-            if status & System.STATUS_DEGRADED:
-                rc = txt_a(rc, "Degraded")
-            if status & System.STATUS_ERROR:
-                rc = txt_a(rc, "Error")
-            if status & System.STATUS_PREDICTIVE_FAILURE:
-                rc = txt_a(rc, "Predictive failure")
-            if status & System.STATUS_VENDOR_SPECIFIC:
-                rc = txt_a(rc, "Vendor specific status")
-
-            return rc
-
     def __init__(self, _id, _name, _status, _status_info):
         self._id = _id
         self._name = _name
         self._status = _status
         self._status_info = _status_info
+
 
 @default_property('id', doc="Unique identifier")
 @default_property('name', doc="User supplied name")
@@ -821,68 +500,6 @@ class Pool(IData):
     RAID_TYPE_NOT_APPLICABLE = 22
     # NOT_APPLICABLE indicate current pool only has one member.
     RAID_TYPE_MIXED = 23
-
-    # The string of each RAID_TYPE is for CIM_StorageSetting['ElementName']
-    _STD_RAID_TYPE = {
-        RAID_TYPE_RAID0: 'RAID0',  # stripe
-        RAID_TYPE_RAID1: 'RAID1',  # mirror
-        RAID_TYPE_RAID3: 'RAID3',  # byte-level striping with dedicated
-                                   # parity
-        RAID_TYPE_RAID4: 'RAID4',  # block-level striping with dedicated
-                                   # parity
-        RAID_TYPE_RAID5: 'RAID5',  # block-level striping with distributed
-                                   # parity
-        RAID_TYPE_RAID6: 'RAID6',  # AKA, RAID-DP.
-    }
-
-    _NESTED_RAID_TYPE = {
-        RAID_TYPE_RAID10: 'RAID10',  # stripe of mirrors
-        RAID_TYPE_RAID15: 'RAID15',  # parity of mirrors
-        RAID_TYPE_RAID16: 'RAID16',  # dual parity of mirrors
-        RAID_TYPE_RAID50: 'RAID50',  # stripe of parities
-        RAID_TYPE_RAID60: 'RAID60',  # stripe of dual parities
-        RAID_TYPE_RAID51: 'RAID51',  # mirror of parities
-        RAID_TYPE_RAID61: 'RAID61',  # mirror of dual parities
-    }
-
-    _MISC_RAID_TYPE = {
-        RAID_TYPE_JBOD: 'JBOD',         # Just Bunch of Disks
-        RAID_TYPE_UNKNOWN: 'UNKNOWN',
-        RAID_TYPE_NOT_APPLICABLE: 'NOT_APPLICABLE',
-        RAID_TYPE_MIXED: 'MIXED',  # a Pool are having 2+ RAID groups with
-                                   # different RAID type
-    }
-
-    # Using 'dict(list(x.items()) + list(y.items()))' for python 3 prepare
-    _RAID_TYPE = dict(list(_STD_RAID_TYPE.items()) +
-                      list(_NESTED_RAID_TYPE.items()) +
-                      list(_MISC_RAID_TYPE.items()))
-
-    @staticmethod
-    def _raid_type_to_num(raid_type):
-        """
-        Convert Pool.RAID_TYPE_RAID10 into int(10)
-        Only check standard RAID and nested RAID, not including JBOD.
-        The raid_type itself is a int number.
-        If not a valid, we return None
-        """
-        if (raid_type in Pool._STD_RAID_TYPE.keys() or
-           raid_type in Pool._NESTED_RAID_TYPE.keys()):
-            return raid_type
-        return None
-
-    @staticmethod
-    def raid_type_to_str(raid_type):
-        if raid_type in Pool._RAID_TYPE.keys():
-            return Pool._RAID_TYPE[raid_type]
-        return Pool._RAID_TYPE[Pool.RAID_TYPE_UNKNOWN]
-
-    @staticmethod
-    def _raid_type_str_to_type(raid_type_str):
-        key = get_key(Pool._RAID_TYPE, raid_type_str)
-        if key or key == 0:
-            return key
-        return Pool.RAID_TYPE_UNKNOWN
 
     MEMBER_TYPE_UNKNOWN = 0
     MEMBER_TYPE_DISK = 1
@@ -947,71 +564,12 @@ class Pool(IData):
             return key
         return Pool.MEMBER_TYPE_DISK
 
-    _MEMBER_TYPE = {
-        MEMBER_TYPE_UNKNOWN: 'UNKNOWN',
-        MEMBER_TYPE_DISK: 'DISK',       # Pool was created from Disk(s).
-        MEMBER_TYPE_DISK_MIX: 'DISK_MIX',   # Has two or more types of disks.
-        MEMBER_TYPE_DISK_ATA: 'DISK_ATA',
-        MEMBER_TYPE_DISK_SATA: 'DISK_SATA',
-        MEMBER_TYPE_DISK_SAS: 'DISK_SAS',
-        MEMBER_TYPE_DISK_FC: 'DISK_FC',
-        MEMBER_TYPE_DISK_SOP: 'DISK_SOP',
-        MEMBER_TYPE_DISK_SCSI: 'DISK_SCSI',
-        MEMBER_TYPE_DISK_NL_SAS: 'DISK_NL_SAS',
-        MEMBER_TYPE_DISK_HDD: 'DISK_HDD',
-        MEMBER_TYPE_DISK_SSD: 'DISK_SSD',
-        MEMBER_TYPE_DISK_HYBRID: 'DISK_HYBRID',
-        MEMBER_TYPE_POOL: 'POOL',       # Pool was created from other Pool(s).
-        MEMBER_TYPE_VOLUME: 'VOLUME',   # Pool was created from Volume(s).
-    }
-
-    @staticmethod
-    def _member_type_to_str(member_type):
-        if member_type in Pool._MEMBER_TYPE.keys():
-            return Pool._MEMBER_TYPE[member_type]
-        return Pool._MEMBER_TYPE[Pool.MEMBER_TYPE_UNKNOWN]
-
-    @staticmethod
-    def _member_type_str_to_type(member_type_str):
-        key = get_key(Pool._MEMBER_TYPE, member_type_str)
-        if key or key == 0:
-            return key
-        return Pool.MEMBER_TYPE_UNKNOWN
-
-    @staticmethod
-    def _member_ids_to_str(member_ids):
-        member_string = ''
-        if isinstance(member_ids, list):
-            for member_id in member_ids:
-                member_string = txt_a(member_string, str(member_id))
-        return member_string
-
     THINP_TYPE_UNKNOWN = 0
     THINP_TYPE_THIN = 1
     THINP_TYPE_THICK = 5
     THINP_TYPE_NOT_APPLICABLE = 6
     # NOT_APPLICABLE means current pool is not implementing Thin Provisioning,
     # but can create thin or thick pool from it.
-
-    _THINP_TYPE = {
-        THINP_TYPE_UNKNOWN: 'UNKNOWN',
-        THINP_TYPE_THIN: 'THIN',
-        THINP_TYPE_THICK: 'THICK',
-        THINP_TYPE_NOT_APPLICABLE: 'NOT_APPLICABLE',
-    }
-
-    @staticmethod
-    def thinp_type_to_str(thinp_type):
-        if thinp_type in Pool._THINP_TYPE.keys():
-            return Pool._THINP_TYPE[thinp_type]
-        return Pool._THINP_TYPE[Pool.THINP_TYPE_UNKNOWN]
-
-    @staticmethod
-    def thinp_type_str_to_type(thinp_type_str):
-        key = get_key(Pool._THINP_TYPE, thinp_type_str)
-        if key or key == 0:
-            return key
-        return Pool.THINP_TYPE_UNKNOWN
 
     # Element Type indicate what kind of element could this pool create:
     #   * Another Pool
@@ -1022,24 +580,6 @@ class Pool(IData):
     ELEMENT_TYPE_VOLUME = 1 << 2
     ELEMENT_TYPE_FS = 1 << 3
     ELEMENT_TYPE_SYS_RESERVED = 1 << 10     # Reserved for system use
-
-    _ELEMENT_TYPE = {
-        ELEMENT_TYPE_UNKNOWN: 'UNKNOWN',
-        ELEMENT_TYPE_POOL: 'POOL',
-        ELEMENT_TYPE_VOLUME: 'VOLUME',
-        ELEMENT_TYPE_FS: 'FILE_SYSTEM',
-        ELEMENT_TYPE_SYS_RESERVED: 'SYSTEM_RESERVED',
-    }
-
-    @staticmethod
-    def _element_type_to_str(element_type):
-        element_str = ''
-        for x in Pool._ELEMENT_TYPE.keys():
-            if x & element_type:
-                element_str = txt_a(element_str, Pool._ELEMENT_TYPE[x])
-        if element_str:
-            return element_str
-        return Pool._ELEMENT_TYPE[Pool.ELEMENT_TYPE_UNKNOWN]
 
     MAX_POOL_STATUS_BITS = 64
     # Pool status could be any combination of these status.
@@ -1115,117 +655,9 @@ class Pool(IData):
     # DESTROYING:
     #   Array is removing current pool.
 
-    _STATUS = {
-        STATUS_UNKNOWN: 'UNKNOWN',
-        STATUS_OK: 'OK',
-        STATUS_OTHER: 'OTHER',
-        STATUS_STRESSED: 'STRESSED',
-        STATUS_DEGRADED: 'DEGRADED',
-        STATUS_ERROR: 'ERROR',
-        STATUS_STARTING: 'STARTING',
-        STATUS_STOPPING: 'STOPPING',
-        STATUS_STOPPED: 'STOPPED',
-        STATUS_READ_ONLY: 'READ_ONLY',
-        STATUS_DORMANT: 'DORMANT',
-        STATUS_RECONSTRUCTING: 'RECONSTRUCTING',
-        STATUS_VERIFYING: 'VERIFYING',
-        STATUS_INITIALIZING: 'INITIALIZING',
-        STATUS_GROWING: 'GROWING',
-        STATUS_SHRINKING: 'SHRINKING',
-        STATUS_DESTROYING: 'DESTROYING',
-    }
 
-    @staticmethod
-    def _status_to_str(status):
-        """
-        Convert status to a string
-        When having multiple status, will use a comma between them
-        """
-        status_str = ''
-        for x in Pool._STATUS.keys():
-            if x & status:
-                status_str = txt_a(status_str, Pool._STATUS[x])
-        if status_str:
-            return status_str
-        raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                       "Invalid Pool.status: %d" % status)
-
-    _MAN_PROPERTIES_2_HEADER = {
-        'id': 'ID',
-        # id: Identifier of Pool.
-        'name': 'Name',
-        # name: Human readable name of Pool.
-        'total_space': 'Total Space',
-        # total_space: All spaces in bytes could be allocated to user.
-        'free_space': 'Free Space',
-        # free_space: Free spaces in bytes could be allocated to user.
-        'status': 'Status',
-        # status: Indicate the status of Pool.
-        'status_info': 'Status Info',
-        # status_info: A string explaining the detail of current status.
-        #              Check comments above about Pool.STATUS_XXX for
-        #              what info you should save in it.
-        'system_id': 'System ID',
-        # system_id: Identifier of belonging system.
-    }
-    _MAN_PROPERTIES_SEQUENCE = ['id', 'name', 'total_space', 'free_space',
-                                'status', 'status_info', 'system_id']
-
-    _OPT_PROPERTIES_2_HEADER = {
-        'raid_type': 'RAID Type',
-        # raid_type: RAID Type of this pool's RAID Group(s):
-        #            RAID_TYPE_XXXX, check constants above.
-        'member_type': 'Member Type',
-        # member_type: What kind of items assembled this pool:
-        #              MEMBER_TYPE_DISK/MEMBER_TYPE_POOL/MEMBER_TYPE_VOLUME
-        'member_ids': 'Member IDs',
-        # member_ids: The list of items' ID assembled this pool:
-        #               [Pool.id, ] or [Disk.id, ] or [Volume.id, ]
-        'thinp_type': 'Thin Provision Type',
-        # thinp_type: Can this pool support Thin Provisioning or not:
-        #             THINP_TYPE_THIN vs THINP_TYPE_THICK
-        #             THINP_TYPE_NOT_APPLICABLE for those pool can create
-        #             THICK sub_pool or THIN sub_pool. That means, ThinP is
-        #             not implemented at current pool level.
-        #             If we really need to identify the under algorithm some
-        #             day, we will expand to THINP_TYPE_THIN_ALLOCATED and etc
-        'element_type': 'Element Type',
-        # element_type: That kind of items can this pool create:
-        #               ELEMENT_TYPE_VOLUME
-        #               ELEMENT_TYPE_POOL
-        #               ELEMENT_TYPE_FS
-        #               For those system reserved pool, use
-        #               ELEMENT_TYPE_SYS_RESERVED
-        #               For example, pools for replication or spare.
-        #               We will split them out once support spare and
-        #               replication. Those system pool should be neither
-        #               filtered or mark as ELEMENT_TYPE_SYS_RESERVED.
-    }
-
-    _OPT_PROPERTIES_SEQUENCE = ['raid_type', 'member_type', 'member_ids',
-                                'element_type', 'thinp_type']
-
-    def _value_convert(self, key_name, value, human, enum_as_number,
-                      list_convert):
-
-        if human:
-            if key_name == 'total_space' or key_name == 'free_space':
-                value = sh(value, human)
-        if list_convert:
-            if key_name == 'member_ids':
-                value = self._member_ids_to_str(value)
-        if enum_as_number is False:
-            if key_name == 'raid_type':
-                value = self.raid_type_to_str(value)
-            elif key_name == 'member_type':
-                value = self._member_type_to_str(value)
-            elif key_name == 'thinp_type':
-                value = self.thinp_type_to_str(value)
-            elif key_name == 'status':
-                value = self._status_to_str(value)
-            elif key_name == 'element_type':
-                value = self._element_type_to_str(value)
-        return value
+    OPT_PROPERTIES = ['raid_type', 'member_type', 'member_ids',
+                      'element_type', 'thinp_type']
 
     def __init__(self, _id, _name, _total_space, _free_space, _status,
                  _status_info, _system_id, _optional_data=None):
@@ -1241,7 +673,7 @@ class Pool(IData):
             self._optional_data = OptionalData()
         else:
             #Make sure the properties only contain ones we permit
-            allowed = set(Pool._OPT_PROPERTIES_2_HEADER.keys())
+            allowed = set(Pool.OPT_PROPERTIES)
             actual = set(_optional_data.list())
 
             if actual <= allowed:
@@ -1250,35 +682,6 @@ class Pool(IData):
                 raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                                "Property keys are invalid: %s" %
                                "".join(actual - allowed))
-
-    def _opt_column_headers(self):
-        opt_headers = []
-        opt_pros = self._optional_data.list()
-        for opt_pro in opt_pros:
-            opt_headers.extend([Pool._OPT_PROPERTIES_2_HEADER[opt_pro]])
-        return opt_headers
-
-    def _opt_column_data(self, human=False, enum_as_number=False):
-        opt_data_values = []
-        opt_pros = self._optional_data.list()
-        for opt_pro in opt_pros:
-            opt_pro_value = self._optional_data.get(opt_pro)
-            if enum_as_number:
-                pass    # no byte size needed to humanize
-            else:
-                if opt_pro == 'member_ids':
-                    opt_pro_value = Pool._member_ids_to_str(opt_pro_value)
-                elif opt_pro == 'raid_type':
-                    opt_pro_value = Pool.raid_type_to_str(opt_pro_value)
-                elif opt_pro == 'member_type':
-                    opt_pro_value = Pool._member_type_to_str(opt_pro_value)
-                elif opt_pro == 'thinp_type':
-                    opt_pro_value = Pool.thinp_type_to_str(opt_pro_value)
-                elif opt_pro == 'element_type':
-                    opt_pro_value = Pool._element_type_to_str(opt_pro_value)
-
-            opt_data_values.extend([opt_pro_value])
-        return opt_data_values
 
 
 @default_property('id', doc="Unique identifier")
@@ -1297,26 +700,6 @@ class FileSystem(IData):
         self._pool_id = _pool_id
         self._system_id = _system_id
 
-    _MAN_PROPERTIES_2_HEADER = {
-        'id': 'ID',
-        'name': 'Name',
-        'total_space': 'Total Space',
-        'free_space': 'Free Space',
-        'pool_id': 'Pool ID',
-    }
-
-    _MAN_PROPERTIES_SEQUENCE = ['id', 'name', 'total_space', 'free_space',
-                                'pool_id']
-
-    def _value_convert(self, key_name, value, human, enum_as_number,
-                      list_convert):
-        if human:
-            if key_name == 'total_space':
-                value = sh(value, human)
-            elif key_name == 'free_space':
-                value = sh(value, human)
-        return value
-
 
 @default_property('id', doc="Unique identifier")
 @default_property('name', doc="Snapshot name")
@@ -1326,20 +709,6 @@ class FsSnapshot(IData):
         self._id = _id
         self._name = _name
         self._ts = int(_ts)
-
-    def _value_convert(self, key_name, value, human, enum_as_number,
-                      list_convert):
-        if key_name == 'ts':
-            value = datetime.fromtimestamp(value)
-        return value
-
-    _MAN_PROPERTIES_2_HEADER = {
-        'id': 'ID',
-        'name': 'Name',
-        'ts': 'Created',
-    }
-
-    _MAN_PROPERTIES_SEQUENCE = ['id', 'name', 'ts']
 
 
 @default_property('id', doc="Unique identifier")
@@ -1372,22 +741,6 @@ class NfsExport(IData):
         self._anongid = _anongid      # gid for anonymous group id
         self._options = _options      # NFS options
 
-    _MAN_PROPERTIES_2_HEADER = {
-        'id': 'ID',
-        'fs_id': 'File system ID',
-        'export_path': 'Export Path',
-        'auth': 'Authentication',
-        'root': 'Root',
-        'rw': 'Read/Write',
-        'ro': 'Read Only',
-        'anonuid': 'Anon UID',
-        'anongid': 'Anon GID',
-        'options': 'Options'
-    }
-
-    _MAN_PROPERTIES_SEQUENCE = ['id', 'fs_id', 'export_path', 'auth', 'root',
-                                'rw', 'ro', 'anonuid', 'anongid', 'options']
-
 
 @default_property('src_block', doc="Source logical block address")
 @default_property('dest_block', doc="Destination logical block address")
@@ -1397,9 +750,6 @@ class BlockRange(IData):
         self._src_block = _src_block
         self._dest_block = _dest_block
         self._block_count = _block_count
-
-    def _str_of_key(self, key_name=None):
-        raise NotImplementedError
 
 
 @default_property('id', doc="Unique instance identifier")
@@ -1413,31 +763,11 @@ class AccessGroup(IData):
         self._initiators = _initiators    # List of initiators
         self._system_id = _system_id      # System id this group belongs
 
-    _MAN_PROPERTIES_2_HEADER = {
-        'id': 'ID',
-        'name': 'Name',
-        'initiators': 'Initiator IDs',
-        'system_id': 'System ID',
-    }
-
-    _MAN_PROPERTIES_SEQUENCE = ['id', 'name', 'initiators', 'system_id']
-    _OPT_PROPERTIES_SEQUENCE = []
-
-    def _value_convert(self, key_name, value, human, enum_as_number,
-                      list_convert):
-        if list_convert:
-            if key_name == 'initiators':
-                value = ','.join(str(x) for x in value)
-        return value
-
 
 class OptionalData(IData):
     def _column_data(self, human=False, enum_as_number=False):
         return [sorted(self._values.iterkeys(),
                        key=lambda k: self._values[k][1])]
-
-    def _str_of_key(self, key_name=None):
-        raise NotImplementedError
 
     def __init__(self, _values=None):
         if _values is not None:
@@ -1605,24 +935,6 @@ class Capabilities(IData):
     def enable_all(self):
         for i in range(len(self._cap)):
             self._cap[i] = Capabilities.SUPPORTED
-
-    def _str_of_key(self, key_name=None):
-        raise NotImplementedError
-
-
-# This data is actually never serialized across the RPC, but is used only
-# for displaying the data.
-class PlugData(IData):
-    _MAN_PROPERTIES_2_HEADER = {
-        "desc": "Description",
-        "version": "Version",
-    }
-
-    _MAN_PROPERTIES_SEQUENCE = ['desc', 'version']
-
-    def __init__(self, description, plugin_version):
-        self.desc = description
-        self.version = plugin_version
 
 
 if __name__ == '__main__':
