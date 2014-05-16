@@ -1,4 +1,4 @@
-# Copyright (C) 2012 Red Hat, Inc.
+# Copyright (C) 2012-2014 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -12,8 +12,7 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
-#
-# Author: tasleson
+
 import os
 import sys
 import getpass
@@ -91,9 +90,9 @@ class ArgError(Exception):
 # @param    friendly_name - name to put in the exception saying what we
 #           couldn't find
 def _get_item(l, the_id, friendly_name='item'):
-    for i in l:
-        if i.id == the_id:
-            return i
+    for item in l:
+        if item.id == the_id:
+            return item
     raise ArgError('%s with id %s not found!' % (friendly_name, the_id))
 
 list_choices = ['VOLUMES', 'INITIATORS', 'POOLS', 'FS', 'SNAPSHOTS',
@@ -118,25 +117,25 @@ member_types = ('DISK', 'VOLUME', 'POOL', 'DISK_ATA', 'DISK_SATA',
                 'DISK_SAS', 'DISK_FC', 'DISK_SOP', 'DISK_SCSI', 'DISK_NL_SAS',
                 'DISK_HDD', 'DISK_SSD', 'DISK_HYBRID')
 
-member_types_formated = ''
+member_types_formatted = ''
 for i in range(0, len(member_types), 4):
-    member_types_formated += "\n    "
-    for member_type_str in member_types[i:i+4]:
-        member_types_formated += "%-15s" % member_type_str
+    member_types_formatted += "\n    "
+    for member_type_str in member_types[i:i + 4]:
+        member_types_formatted += "%-15s" % member_type_str
 
-member_help = "Valid member type: " + member_types_formated
+member_help = "Valid member type: " + member_types_formatted
 
 raid_types = ('JBOD', 'RAID0', 'RAID1', 'RAID3', 'RAID4', 'RAID5', 'RAID6',
               'RAID10', 'RAID50', 'RAID60', 'RAID51', 'RAID61',
               'NOT_APPLICABLE')
 
-raid_types_formated = ''
+raid_types_formatted = ''
 for i in range(0, len(raid_types), 4):
-    raid_types_formated += "\n    "
-    for raid_type_str in raid_types[i:i+4]:
-        raid_types_formated += "%-15s" % raid_type_str
+    raid_types_formatted += "\n    "
+    for raid_type_str in raid_types[i:i + 4]:
+        raid_types_formatted += "%-15s" % raid_type_str
 
-raid_help = "Valid RAID type:" + raid_types_formated
+raid_help = "Valid RAID type:" + raid_types_formatted
 
 sys_id_opt = dict(name='--sys', metavar='<SYS_ID>', help='System ID')
 pool_id_opt = dict(name='--pool', metavar='<POOL_ID>', help='Pool ID')
@@ -226,7 +225,7 @@ cmds = (
 
     dict(
         name='volume-resize',
-        help='Resizes a volume',
+        help='Re-sizes a volume',
         args=[
             dict(vol_id_opt),
             dict(name='--size', metavar='<NEW_SIZE>',
@@ -236,7 +235,7 @@ cmds = (
 
     dict(
         name='volume-replicate',
-        help='Creates a new volume and peplicates provided volume to it.',
+        help='Creates a new volume and replicates provided volume to it.',
         args=[
             dict(vol_id_opt),
             dict(name="--name", metavar='<NEW_VOL_NAME>',
@@ -344,8 +343,8 @@ cmds = (
         help='Create an access group',
         args=[
             dict(name='--name', metavar='<AG_NAME>',
-                 help="Human readble name for access group"),
-            # TODO: _client.py access_group_create should support multipal
+                 help="Human readable name for access group"),
+            # TODO: _client.py access_group_create should support multiple
             #       initiators when creating.
             dict(init_id_opt),
             dict(init_type_opt),
@@ -353,8 +352,6 @@ cmds = (
         ],
     ),
 
-    # TODO: Merge access_group_add() and access_group_remove() into
-    #       access_group_mofidy(ag_id, new_inits, init_type, flags)
     dict(
         name='access-group-add',
         help='Add an initiator into existing access group',
@@ -423,7 +420,7 @@ cmds = (
 
     dict(
         name='iscsi-chap',
-        help='Configures ISCSI inbound/outbound CHAP authentication',
+        help='Configures iSCSI inbound/outbound CHAP authentication',
         args=[
             dict(init_id_opt),
         ],
@@ -460,7 +457,7 @@ cmds = (
 
     dict(
         name='fs-resize',
-        help='Resizes a filesystem',
+        help='Re-sizes a filesystem',
         args=[
             dict(fs_id_opt),
             dict(name="--size", metavar="<NEW_SIZE>",
@@ -533,7 +530,7 @@ cmds = (
         optional=[
             dict(name="--file", metavar="<FILE_PATH>",
                  help="Only create snapshot for provided file\n"
-                      "Without this argument, all files will be snapshoted\n"
+                      "Without this argument, all files will be snapshotted\n"
                       "This is a repeatable argument.",
                  action='append', default=[]),
         ],
@@ -586,7 +583,7 @@ cmds = (
 
     dict(
         name='fs-dependants-rm',
-        help='Removes filessystem dependencies',
+        help='Removes file system dependencies',
         args=[
             dict(fs_id_opt),
         ],
@@ -625,7 +622,7 @@ cmds = (
             dict(size_opt),
         ],
         optional=[
-            dict(name="--raid-type",  metavar='<RAID_TYPE>',
+            dict(name="--raid-type", metavar='<RAID_TYPE>',
                  help=raid_help,
                  choices=raid_types,
                  type=str.upper),
@@ -650,7 +647,7 @@ cmds = (
                  help='The ID of disks to create new pool\n'
                       'This is a repeatable argument',
                  action='append'),
-            dict(name="--raid-type",  metavar='<RAID_TYPE>',
+            dict(name="--raid-type", metavar='<RAID_TYPE>',
                  help=raid_help,
                  choices=raid_types,
                  type=str.upper),
@@ -674,7 +671,7 @@ cmds = (
                  help='The ID of volumes to create new pool\n'
                       'This is a repeatable argument',
                  action='append'),
-            dict(name="--raid-type",  metavar='<RAID_TYPE>',
+            dict(name="--raid-type", metavar='<RAID_TYPE>',
                  help=raid_help,
                  choices=raid_types,
                  type=str.upper),
@@ -846,7 +843,7 @@ class CmdLine:
         parser = ArgumentParser(
             description='The libStorageMgmt command line interface.'
                         ' Run %(prog)s <command> -h for more on each command.',
-            epilog='Copyright 2012-2013 Red Hat, Inc.\n'
+            epilog='Copyright 2012-2014 Red Hat, Inc.\n'
                    'Please report bugs to '
                    '<libstoragemgmt-devel@lists.sourceforge.net>\n',
             formatter_class=RawTextHelpFormatter,
@@ -936,24 +933,24 @@ class CmdLine:
     @staticmethod
     def _init_type_to_enum(init_type):
         if init_type == 'WWPN':
-            i = Initiator.TYPE_PORT_WWN
+            init = Initiator.TYPE_PORT_WWN
         elif init_type == 'WWNN':
-            i = Initiator.TYPE_NODE_WWN
+            init = Initiator.TYPE_NODE_WWN
         elif init_type == 'ISCSI':
-            i = Initiator.TYPE_ISCSI
+            init = Initiator.TYPE_ISCSI
         elif init_type == 'HOSTNAME':
-            i = Initiator.TYPE_HOSTNAME
+            init = Initiator.TYPE_HOSTNAME
         elif init_type == 'SAS':
-            i = Initiator.TYPE_SAS
+            init = Initiator.TYPE_SAS
         else:
             raise ArgError("invalid initiator type " + init_type)
-        return i
+        return init
 
     ## Creates an access group.
     def access_group_create(self, args):
-        i = CmdLine._init_type_to_enum(args.init_type)
-        access_group = self.c.access_group_create(args.name, args.init, i,
-                                                  args.sys)
+        init_enum = CmdLine._init_type_to_enum(args.init_type)
+        access_group = self.c.access_group_create(args.name, args.init,
+                                                  init_enum, args.sys)
         self.display_data([access_group])
 
     def _add_rm_access_grp_init(self, args, op):
@@ -961,12 +958,12 @@ class CmdLine:
         group = _get_item(agl, args.ag, "access group id")
 
         if op:
-            i = CmdLine._init_type_to_enum(args.init_type)
+            init = CmdLine._init_type_to_enum(args.init_type)
             self.c.access_group_add_initiator(
-                group, args.init, i)
+                group, args.init, init)
         else:
-            i = _get_item(self.c.initiators(), args.init, "initiator id")
-            self.c.access_group_del_initiator(group, i.id)
+            init = _get_item(self.c.initiators(), args.init, "initiator id")
+            self.c.access_group_del_initiator(group, init.id)
 
     ## Adds an initiator from an access group
     def access_group_add(self, args):
@@ -983,8 +980,8 @@ class CmdLine:
         self.display_data(vols)
 
     def volumes_accessible_initiator(self, args):
-        i = _get_item(self.c.initiators(), args.init, "initiator id")
-        volumes = self.c.volumes_accessible_by_initiator(i)
+        init = _get_item(self.c.initiators(), args.init, "initiator id")
+        volumes = self.c.volumes_accessible_by_initiator(init)
         self.display_data(volumes)
 
     def initiators_granted_volume(self, args):
@@ -1041,7 +1038,7 @@ class CmdLine:
 
         ss = None
         if args.backing_snapshot:
-            #go get the snapsnot
+            #go get the snapshot
             ss = _get_item(self.c.fs_snapshots(src_fs),
                            args.backing_snapshot, "snapshot id")
 
@@ -1054,7 +1051,7 @@ class CmdLine:
         fs = _get_item(self.c.fs(), args.fs, "filesystem id")
 
         if self.args.backing_snapshot:
-            #go get the snapsnot
+            #go get the snapshot
             ss = _get_item(self.c.fs_snapshots(fs),
                            args.backing_snapshot, "snapshot id")
         else:
@@ -1269,7 +1266,7 @@ class CmdLine:
                 self.shutdown(ErrorNumber.JOB_STARTED)
 
             while True:
-                (s, percent, i) = self.c.job_status(job)
+                (s, percent, item) = self.c.job_status(job)
 
                 if s == JobStatus.INPROGRESS:
                     #Add an option to spit out progress?
@@ -1277,18 +1274,18 @@ class CmdLine:
                     time.sleep(0.25)
                 elif s == JobStatus.COMPLETE:
                     self.c.job_free(job)
-                    return i
+                    return item
                 else:
                     #Something better to do here?
                     raise ArgError(msg + " job error code= " + str(s))
 
     ## Retrieves the status of the specified job
     def job_status(self, args):
-        (s, percent, i) = self.c.job_status(args.job)
+        (s, percent, item) = self.c.job_status(args.job)
 
         if s == JobStatus.COMPLETE:
-            if i:
-                self.display_data([i])
+            if item:
+                self.display_data([item])
 
             self.c.job_free(args.job)
         else:
@@ -1332,8 +1329,8 @@ class CmdLine:
                            "and count parameters")
 
         ranges = []
-        for i in range(len(src_starts)):
-            ranges.append(BlockRange(src_starts[i], dst_starts[i], counts[i]))
+        for b in range(len(src_starts)):
+            ranges.append(BlockRange(src_starts[b], dst_starts[b], counts[b]))
 
         if self.confirm_prompt(False):
             self.c.volume_replicate_range(rep_type, src, dst, ranges)
@@ -1481,7 +1478,7 @@ class CmdLine:
             member_type = pool_member_type_str_to_type(
                 args.member_type)
             if member_type == Pool.MEMBER_TYPE_UNKNOWN:
-                raise ArgError("Unkonwn member type specified: %s" %
+                raise ArgError("Unknown member type specified: %s" %
                                args.member_type)
 
         pool = self._wait_for_it("pool-create",
@@ -1604,7 +1601,7 @@ class CmdLine:
 
         self.tmo = int(self.args.wait)
         if not self.tmo or self.tmo < 0:
-            raise ArgError("[-w|--wait] reguires a non-zero positive integer")
+            raise ArgError("[-w|--wait] requires a non-zero positive integer")
 
         self._read_configfile()
         if os.getenv('LSMCLI_URI') is not None:

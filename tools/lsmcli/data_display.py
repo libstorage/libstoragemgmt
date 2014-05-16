@@ -331,11 +331,11 @@ class DisplayData(object):
 
     SYSTEM_OPT_HEADER = OrderedDict()
 
-    SYSTEM_COLUME_KEYS = SYSTEM_MAN_HEADER.keys()
-    # SYSTEM_COLUME_KEYS should be subset of SYSTEM_MAN_HEADER.keys()
-    # XXX_COLUME_KEYS contain a list of mandatory properties which will be
+    SYSTEM_COLUMN_KEYS = SYSTEM_MAN_HEADER.keys()
+    # SYSTEM_COLUMN_KEYS should be subset of SYSTEM_MAN_HEADER.keys()
+    # XXX_COLUMN_KEYS contain a list of mandatory properties which will be
     # displayed in column way. It was used to limit the output of properties
-    # in sure the colume display way does not exceeded the column width 78.
+    # in sure the column display way does not exceeded the column width 78.
     # All mandatory_headers will be displayed in script way.
     # if '-o' define, both mandatory_headers and optional_headers will be
     # displayed in script way.
@@ -348,7 +348,7 @@ class DisplayData(object):
 
     VALUE_CONVERT[System] = {
         'mandatory_headers': SYSTEM_MAN_HEADER,
-        'column_keys': SYSTEM_COLUME_KEYS,
+        'column_keys': SYSTEM_COLUMN_KEYS,
         'optional_headers': SYSTEM_OPT_HEADER,
         'value_conv_enum': SYSTEM_VALUE_CONV_ENUM,
         'value_conv_human': SYSTEM_VALUE_CONV_HUMAN,
@@ -358,7 +358,7 @@ class DisplayData(object):
     PLUG_DATA_MAN_HEADER['desc'] = 'Description'
     PLUG_DATA_MAN_HEADER['version'] = 'Version'
 
-    PLUG_DATA_COLUME_KEYS = PLUG_DATA_MAN_HEADER.keys()
+    PLUG_DATA_COLUMN_KEYS = PLUG_DATA_MAN_HEADER.keys()
 
     PLUG_DATA_OPT_HEADER = OrderedDict()
     PLUG_DATA_VALUE_CONV_ENUM = {}
@@ -366,7 +366,7 @@ class DisplayData(object):
 
     VALUE_CONVERT[PlugData] = {
         'mandatory_headers': PLUG_DATA_MAN_HEADER,
-        'column_keys': PLUG_DATA_COLUME_KEYS,
+        'column_keys': PLUG_DATA_COLUMN_KEYS,
         'optional_headers': PLUG_DATA_OPT_HEADER,
         'value_conv_enum': PLUG_DATA_VALUE_CONV_ENUM,
         'value_conv_human': PLUG_DATA_VALUE_CONV_HUMAN,
@@ -382,7 +382,7 @@ class DisplayData(object):
     POOL_MAN_HEADER['status_info'] = 'Status Info'
     POOL_MAN_HEADER['system_id'] = 'System ID'
 
-    POOL_COLUME_KEYS = POOL_MAN_HEADER.keys()
+    POOL_COLUMN_KEYS = POOL_MAN_HEADER.keys()
 
     POOL_OPT_HEADER = OrderedDict()
     POOL_OPT_HEADER['raid_type'] = 'RAID Type'
@@ -403,7 +403,7 @@ class DisplayData(object):
 
     VALUE_CONVERT[Pool] = {
         'mandatory_headers': POOL_MAN_HEADER,
-        'column_keys': POOL_COLUME_KEYS,
+        'column_keys': POOL_COLUMN_KEYS,
         'optional_headers': POOL_OPT_HEADER,
         'value_conv_enum': POOL_VALUE_CONV_ENUM,
         'value_conv_human': POOL_VALUE_CONV_HUMAN,
@@ -421,11 +421,11 @@ class DisplayData(object):
     VOL_MAN_HEADER['pool_id'] = 'Pool ID'
     VOL_MAN_HEADER['system_id'] = 'System ID'
 
-    VOL_COLUME_KEYS = []
+    VOL_COLUMN_KEYS = []
     for key_name in VOL_MAN_HEADER.keys():
-        # Skip these keys for colume display
+        # Skip these keys for column display
         if key_name not in ['block_size', 'num_of_blocks', 'system_id']:
-            VOL_COLUME_KEYS.extend([key_name])
+            VOL_COLUMN_KEYS.extend([key_name])
 
     VOL_OPT_HEADER = OrderedDict()
 
@@ -437,7 +437,7 @@ class DisplayData(object):
 
     VALUE_CONVERT[Volume] = {
         'mandatory_headers': VOL_MAN_HEADER,
-        'column_keys': VOL_COLUME_KEYS,
+        'column_keys': VOL_COLUMN_KEYS,
         'optional_headers': VOL_OPT_HEADER,
         'value_conv_enum': VOL_VALUE_CONV_ENUM,
         'value_conv_human': VOL_VALUE_CONV_HUMAN,
@@ -454,11 +454,11 @@ class DisplayData(object):
     DISK_MAN_HEADER['status'] = 'Status'
     DISK_MAN_HEADER['system_id'] = 'System ID'
 
-    DISK_COLUME_KEYS = []
+    DISK_COLUMN_KEYS = []
     for key_name in DISK_MAN_HEADER.keys():
-        # Skip these keys for colume display
+        # Skip these keys for column display
         if key_name not in ['block_size', 'num_of_blocks']:
-            DISK_COLUME_KEYS.extend([key_name])
+            DISK_COLUMN_KEYS.extend([key_name])
 
     DISK_OPT_HEADER = OrderedDict()
     DISK_OPT_HEADER['sn'] = 'Serial Number'
@@ -475,7 +475,7 @@ class DisplayData(object):
 
     VALUE_CONVERT[Disk] = {
         'mandatory_headers': DISK_MAN_HEADER,
-        'column_keys': DISK_COLUME_KEYS,
+        'column_keys': DISK_COLUMN_KEYS,
         'optional_headers': DISK_OPT_HEADER,
         'value_conv_enum': DISK_VALUE_CONV_ENUM,
         'value_conv_human': DISK_VALUE_CONV_HUMAN,
@@ -488,7 +488,7 @@ class DisplayData(object):
     AG_MAN_HEADER['initiators'] = 'Initiator IDs'
     AG_MAN_HEADER['system_id'] = 'System ID'
 
-    AG_COLUME_KEYS = AG_MAN_HEADER.keys()
+    AG_COLUMN_KEYS = AG_MAN_HEADER.keys()
 
     AG_OPT_HEADER = OrderedDict()
 
@@ -498,7 +498,7 @@ class DisplayData(object):
 
     VALUE_CONVERT[AccessGroup] = {
         'mandatory_headers': AG_MAN_HEADER,
-        'column_keys': AG_COLUME_KEYS,
+        'column_keys': AG_COLUMN_KEYS,
         'optional_headers': AG_OPT_HEADER,
         'value_conv_enum': AG_VALUE_CONV_ENUM,
         'value_conv_human': AG_VALUE_CONV_HUMAN,
@@ -510,7 +510,7 @@ class DisplayData(object):
     INIT_MAN_HEADER['name'] = 'Name'
     INIT_MAN_HEADER['type'] = 'Initiator Type'
 
-    INIT_COLUME_KEYS = INIT_MAN_HEADER.keys()
+    INIT_COLUMN_KEYS = INIT_MAN_HEADER.keys()
 
     INIT_OPT_HEADER = OrderedDict()
 
@@ -522,7 +522,7 @@ class DisplayData(object):
 
     VALUE_CONVERT[Initiator] = {
         'mandatory_headers': INIT_MAN_HEADER,
-        'column_keys': INIT_COLUME_KEYS,
+        'column_keys': INIT_COLUMN_KEYS,
         'optional_headers': INIT_OPT_HEADER,
         'value_conv_enum': INIT_VALUE_CONV_ENUM,
         'value_conv_human': INIT_VALUE_CONV_HUMAN,
@@ -537,11 +537,11 @@ class DisplayData(object):
     FS_MAN_HEADER['pool_id'] = 'Pool ID'
     FS_MAN_HEADER['system_id'] = 'System ID'
 
-    FS_COLUME_KEYS = []
+    FS_COLUMN_KEYS = []
     for key_name in FS_MAN_HEADER.keys():
-        # Skip these keys for colume display
+        # Skip these keys for column display
         if key_name not in ['system_id']:
-            FS_COLUME_KEYS.extend([key_name])
+            FS_COLUMN_KEYS.extend([key_name])
 
     FS_OPT_HEADER = OrderedDict()
 
@@ -552,7 +552,7 @@ class DisplayData(object):
 
     VALUE_CONVERT[FileSystem] = {
         'mandatory_headers': FS_MAN_HEADER,
-        'column_keys': FS_COLUME_KEYS,
+        'column_keys': FS_COLUMN_KEYS,
         'optional_headers': FS_OPT_HEADER,
         'value_conv_enum': FS_VALUE_CONV_ENUM,
         'value_conv_human': FS_VALUE_CONV_HUMAN,
@@ -564,7 +564,7 @@ class DisplayData(object):
     FS_SNAP_MAN_HEADER['name'] = 'Name'
     FS_SNAP_MAN_HEADER['ts'] = 'Time Stamp'
 
-    FS_SNAP_COLUME_KEYS = FS_SNAP_MAN_HEADER.keys()
+    FS_SNAP_COLUMN_KEYS = FS_SNAP_MAN_HEADER.keys()
 
     FS_SNAP_OPT_HEADER = OrderedDict()
 
@@ -576,7 +576,7 @@ class DisplayData(object):
 
     VALUE_CONVERT[FsSnapshot] = {
         'mandatory_headers': FS_SNAP_MAN_HEADER,
-        'column_keys': FS_SNAP_COLUME_KEYS,
+        'column_keys': FS_SNAP_COLUMN_KEYS,
         'optional_headers': FS_SNAP_OPT_HEADER,
         'value_conv_enum': FS_SNAP_VALUE_CONV_ENUM,
         'value_conv_human': FS_SNAP_VALUE_CONV_HUMAN,
@@ -595,11 +595,11 @@ class DisplayData(object):
     NFS_EXPORT_MAN_HEADER['anongid'] = 'Anonymous GID'
     NFS_EXPORT_MAN_HEADER['options'] = 'Options'
 
-    NFS_EXPORT_COLUME_KEYS = []
+    NFS_EXPORT_COLUMN_KEYS = []
     for key_name in NFS_EXPORT_MAN_HEADER.keys():
-        # Skip these keys for colume display
+        # Skip these keys for column display
         if key_name not in ['root', 'anonuid', 'anongid', 'auth']:
-            NFS_EXPORT_COLUME_KEYS.extend([key_name])
+            NFS_EXPORT_COLUMN_KEYS.extend([key_name])
 
     NFS_EXPORT_OPT_HEADER = OrderedDict()
 
@@ -609,7 +609,7 @@ class DisplayData(object):
 
     VALUE_CONVERT[NfsExport] = {
         'mandatory_headers': NFS_EXPORT_MAN_HEADER,
-        'column_keys': NFS_EXPORT_COLUME_KEYS,
+        'column_keys': NFS_EXPORT_COLUMN_KEYS,
         'optional_headers': NFS_EXPORT_OPT_HEADER,
         'value_conv_enum': NFS_EXPORT_VALUE_CONV_ENUM,
         'value_conv_human': NFS_EXPORT_VALUE_CONV_HUMAN,
