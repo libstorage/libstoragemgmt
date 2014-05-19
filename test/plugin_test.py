@@ -268,6 +268,8 @@ class TestPlugin(unittest.TestCase):
 
     def test_pools_list(self):
         pools_list = self.c.pools()
+        self.assertTrue(len(pools_list) > 0, "We need at least 1 pool to test")
+
 
     @staticmethod
     def _vpd_correct(vpd):
@@ -285,8 +287,11 @@ class TestPlugin(unittest.TestCase):
                             "VPD is not as expected %s for volume id: %s" %
                             (v.vpd83, v.id))
 
+        self.assertTrue(len(volumes) > 0, "We need at least 1 volume to test")
+
     def test_disks_list(self):
         disks = self.c.disks()
+        self.assertTrue(len(disks) > 0, "We need at least 1 disk to test")
 
     def test_pool_create(self):
         pass
@@ -353,58 +358,61 @@ class TestPlugin(unittest.TestCase):
         return False
 
     def test_volume_create_delete(self):
-        for s in self.systems:
-            vol = None
-            cap = self.c.capabilities(s)
-            if supported(cap, [lsm.Capabilities.VOLUME_CREATE]):
-                vol = self._volume_create(s.id)[0]
-                self.assertTrue(vol is not None)
+        if self.pool_by_sys_id:
+            for s in self.systems:
+                vol = None
+                cap = self.c.capabilities(s)
+                if supported(cap, [lsm.Capabilities.VOLUME_CREATE]):
+                    vol = self._volume_create(s.id)[0]
+                    self.assertTrue(vol is not None)
 
-                if vol is not None and \
-                        supported(cap, [lsm.Capabilities.VOLUME_DELETE]):
-                    self._volume_delete(vol)
+                    if vol is not None and \
+                            supported(cap, [lsm.Capabilities.VOLUME_DELETE]):
+                        self._volume_delete(vol)
 
     def test_volume_resize(self):
-        for s in self.systems:
-            cap = self.c.capabilities(s)
+        if self.pool_by_sys_id:
+            for s in self.systems:
+                cap = self.c.capabilities(s)
 
-            if supported(cap, [lsm.Capabilities.VOLUME_CREATE,
-                               lsm.Capabilities.VOLUME_DELETE,
-                               lsm.Capabilities.VOLUME_RESIZE]):
-                vol = self._volume_create(s.id)[0]
-                vol_resize = self.c.volume_resize(vol,
-                                                  vol.size_bytes * 1.10)[1]
-                self.assertTrue(vol.size_bytes < vol_resize.size_bytes)
-                self.assertTrue(vol.id == vol_resize.id,
-                                "Expecting re-sized volume to refer to "
-                                "same volume.  Expected %s, got %s" %
-                                (vol.id, vol_resize.id))
-                if vol.id == vol_resize.id:
-                    self._volume_delete(vol_resize)
-                else:
-                    # Delete the original
-                    self._volume_delete(vol)
+                if supported(cap, [lsm.Capabilities.VOLUME_CREATE,
+                                   lsm.Capabilities.VOLUME_DELETE,
+                                   lsm.Capabilities.VOLUME_RESIZE]):
+                    vol = self._volume_create(s.id)[0]
+                    vol_resize = self.c.volume_resize(vol,
+                                                      vol.size_bytes * 1.10)[1]
+                    self.assertTrue(vol.size_bytes < vol_resize.size_bytes)
+                    self.assertTrue(vol.id == vol_resize.id,
+                                    "Expecting re-sized volume to refer to "
+                                    "same volume.  Expected %s, got %s" %
+                                    (vol.id, vol_resize.id))
+                    if vol.id == vol_resize.id:
+                        self._volume_delete(vol_resize)
+                    else:
+                        # Delete the original
+                        self._volume_delete(vol)
 
     def _replicate_test(self, capability, replication_type):
-        for s in self.systems:
-            cap = self.c.capabilities(s)
+        if self.pool_by_sys_id:
+            for s in self.systems:
+                cap = self.c.capabilities(s)
 
-            if supported(cap, [lsm.Capabilities.VOLUME_CREATE,
-                               lsm.Capabilities.VOLUME_DELETE]):
-                vol, pool = self._volume_create(s.id)
+                if supported(cap, [lsm.Capabilities.VOLUME_CREATE,
+                                   lsm.Capabilities.VOLUME_DELETE]):
+                    vol, pool = self._volume_create(s.id)
 
-                # For the moment lets allow the array to pick the pool
-                # to supply the backing store for the replicate
-                if supported(cap, [capability]):
-                    volume_clone = self.c.volume_replicate(
-                        None, replication_type, vol,
-                        rs('volume_clone'))[1]
+                    # For the moment lets allow the array to pick the pool
+                    # to supply the backing store for the replicate
+                    if supported(cap, [capability]):
+                        volume_clone = self.c.volume_replicate(
+                            None, replication_type, vol,
+                            rs('volume_clone'))[1]
 
-                    self.assertTrue(volume_clone is not None)
-                    self.assertTrue(self._volume_exists(volume_clone.id))
-                    self._volume_delete(volume_clone)
+                        self.assertTrue(volume_clone is not None)
+                        self.assertTrue(self._volume_exists(volume_clone.id))
+                        self._volume_delete(volume_clone)
 
-                self._volume_delete(vol)
+                    self._volume_delete(vol)
 
     def test_volume_replication(self):
         self._replicate_test(lsm.Capabilities.VOLUME_REPLICATE_CLONE,
@@ -431,38 +439,41 @@ class TestPlugin(unittest.TestCase):
                                   self.c.volume_replicate_range_block_size, s)
 
     def test_replication_range(self):
-        for s in self.systems:
-            cap = self.c.capabilities(s)
+        if self.pool_by_sys_id:
+            for s in self.systems:
+                cap = self.c.capabilities(s)
 
-            if supported(cap, [lsm.Capabilities.VOLUME_CREATE,
-                         lsm.Capabilities.VOLUME_DELETE,
-                         lsm.Capabilities.VOLUME_COPY_RANGE]):
+                if supported(cap, [lsm.Capabilities.VOLUME_CREATE,
+                             lsm.Capabilities.VOLUME_DELETE,
+                             lsm.Capabilities.VOLUME_COPY_RANGE]):
 
-                vol, pool = self._volume_create(s.id)
+                    vol, pool = self._volume_create(s.id)
 
-                br = lsm.BlockRange(0, 100, 10)
+                    br = lsm.BlockRange(0, 100, 10)
 
-                if supported(cap, [lsm.Capabilities.VOLUME_COPY_RANGE_CLONE]):
-                    self.c.volume_replicate_range(lsm.Volume.REPLICATE_CLONE,
-                                                    vol, vol, [br])
-                else:
-                    self.assertRaises(
-                        lsm.LsmError,
-                        self.c.volume_replicate_range,
-                        lsm.Volume.REPLICATE_CLONE, vol, vol, [br])
+                    if supported(
+                            cap, [lsm.Capabilities.VOLUME_COPY_RANGE_CLONE]):
+                        self.c.volume_replicate_range(
+                            lsm.Volume.REPLICATE_CLONE, vol, vol, [br])
+                    else:
+                        self.assertRaises(
+                            lsm.LsmError,
+                            self.c.volume_replicate_range,
+                            lsm.Volume.REPLICATE_CLONE, vol, vol, [br])
 
-                br = lsm.BlockRange(200, 400, 50)
+                    br = lsm.BlockRange(200, 400, 50)
 
-                if supported(cap, [lsm.Capabilities.VOLUME_COPY_RANGE_COPY]):
-                    self.c.volume_replicate_range(lsm.Volume.REPLICATE_COPY,
-                                                    vol, vol, [br])
-                else:
-                    self.assertRaises(
-                        lsm.LsmError,
-                        self.c.volume_replicate_range,
-                        lsm.Volume.REPLICATE_COPY, vol, vol, [br])
+                    if supported(
+                            cap, [lsm.Capabilities.VOLUME_COPY_RANGE_COPY]):
+                        self.c.volume_replicate_range(
+                            lsm.Volume.REPLICATE_COPY, vol, vol, [br])
+                    else:
+                        self.assertRaises(
+                            lsm.LsmError,
+                            self.c.volume_replicate_range,
+                            lsm.Volume.REPLICATE_COPY, vol, vol, [br])
 
-                self._volume_delete(vol)
+                    self._volume_delete(vol)
 
     def test_fs_creation_deletion(self):
         for s in self.systems:
