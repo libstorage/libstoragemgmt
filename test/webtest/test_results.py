@@ -108,7 +108,7 @@ def get_result(r, method):
 
 
 def to_html(results):
-    methods = ['capabilities', 'get_time_out', 'set_time_out',
+    methods = ['capabilities',
                'systems', 'plugin_info', 'pools', 'job_status', 'job_free',
                'volumes', 'volume_create', 'volume_delete', 'volume_resize',
                'volume_replicate', 'disks']
