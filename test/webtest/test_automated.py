@@ -26,6 +26,7 @@ import sys
 from subprocess import Popen, PIPE
 from multiprocessing import Process
 import yaml
+import time
 
 
 def call(command):
@@ -84,12 +85,33 @@ if __name__ == '__main__':
 
             p = Process(target=run_test, args=(sys.argv[2], sys.argv[3],
                                                system_id, uri, password))
+            p.name = system_id
             p.start()
             process_list.append(p)
+
+        start = time.time()
+        print 'Test run started at: %s' % time.strftime("%c")
+        sys.stdout.flush()
 
         while len(process_list) > 0:
             for p in process_list:
                 p.join(1)
                 if not p.is_alive():
+                    print '%s exited with %s' % (p.name, str(p.exitcode))
+                    sys.stdout.flush()
                     process_list.remove(p)
                     break
+
+            current = time.time()
+            if current - start > 3600:
+                print 'Test taking too long...'
+                sys.stdout.flush()
+                for p in process_list:
+                    print 'Terminating process %s, name %s' % \
+                          (str(p.pid), p.name)
+                    sys.stdout.flush()
+                    p.terminate()
+                break
+
+        print 'Test run exiting at: %s' % time.strftime("%c")
+        sys.stdout.flush()
