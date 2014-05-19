@@ -1039,7 +1039,7 @@ class Smis(IStorageAreaNetwork):
         cim_vol_pros.extend(
             ['OperationalStatus', 'ElementName', 'NameFormat',
              'NameNamespace', 'BlockSize', 'NumberOfBlocks', 'Name',
-             'OtherIdentifyingInfo', 'IdentifyingDescriptions'])
+             'OtherIdentifyingInfo', 'IdentifyingDescriptions', 'Usage'])
         return cim_vol_pros
 
     def _new_vol(self, cv, pool_id=None, sys_id=None):
@@ -1308,8 +1308,14 @@ class Smis(IStorageAreaNetwork):
                     ResultClass='CIM_StorageVolume',
                     PropertyList=cim_vol_pros)
                 for cim_vol in cim_vols:
-                    vol = self._new_vol(cim_vol, pool_id, sys_id)
-                    rc.extend([vol])
+                    # Exclude those volumes which are reserved for system
+                    if 'Usage' in cim_vol:
+                        if cim_vol['Usage'] != 3:
+                            vol = self._new_vol(cim_vol, pool_id, sys_id)
+                            rc.extend([vol])
+                    else:
+                        vol = self._new_vol(cim_vol, pool_id, sys_id)
+                        rc.extend([vol])
         return rc
 
     def _systems(self, system_name=None):
