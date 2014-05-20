@@ -1709,20 +1709,21 @@ class Smis(IStorageAreaNetwork):
                 # This code needs to be re-investigated to work with a wide
                 # range of array vendors.
 
-                if s[
-                    'SyncState'] == Smis.Synchronized.SyncState.SYNCHRONIZED \
-                        and (s['CopyType'] != Smis.CopyTypes.UNSYNCASSOC):
-                    if 'SyncedElement' in s:
-                        item = s['SyncedElement']
+                if 'SyncState' in s and 'CopyType' in s:
+                    if s['SyncState'] == \
+                            Smis.Synchronized.SyncState.SYNCHRONIZED and \
+                            (s['CopyType'] != Smis.CopyTypes.UNSYNCASSOC):
+                        if 'SyncedElement' in s:
+                            item = s['SyncedElement']
 
-                        if Smis._cim_name_match(item, lun_path):
-                            self._detach(vol, s)
+                            if Smis._cim_name_match(item, lun_path):
+                                self._detach(vol, s)
 
-                    if 'SystemElement' in s:
-                        item = s['SystemElement']
+                        if 'SystemElement' in s:
+                            item = s['SystemElement']
 
-                        if Smis._cim_name_match(item, lun_path):
-                            self._detach(vol, s)
+                            if Smis._cim_name_match(item, lun_path):
+                                self._detach(vol, s)
 
     @handle_cim_errors
     def volume_delete(self, volume, flags=0):
