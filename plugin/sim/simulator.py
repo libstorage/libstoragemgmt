@@ -31,7 +31,7 @@ class SimPlugin(INfs, IStorageAreaNetwork):
         self.tmo = 0
         self.sim_array = None
 
-    def startup(self, uri, password, timeout, flags=0):
+    def plugin_register(self, uri, password, timeout, flags=0):
         self.uri = uri
         self.password = password
 
@@ -46,7 +46,7 @@ class SimPlugin(INfs, IStorageAreaNetwork):
 
         return None
 
-    def shutdown(self, flags=0):
+    def plugin_unregister(self, flags=0):
         self.sim_array.save_state()
 
     def job_status(self, job_id, flags=0):

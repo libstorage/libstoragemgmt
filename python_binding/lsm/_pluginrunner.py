@@ -99,11 +99,11 @@ class PluginRunner(object):
 
                     self.tp.send_resp(result)
 
-                    if method == 'startup':
+                    if method == 'plugin_register':
                         need_shutdown = True
 
-                    if method == 'shutdown':
-                        #This is a graceful shutdown
+                    if method == 'plugin_unregister':
+                        #This is a graceful plugin_unregister
                         need_shutdown = False
                         self.tp.close()
                         break
@@ -133,5 +133,5 @@ class PluginRunner(object):
         finally:
             if need_shutdown:
                 #Client wasn't nice, we will allow plug-in to cleanup
-                self.plugin.shutdown()
+                self.plugin.plugin_unregister()
                 sys.exit(2)

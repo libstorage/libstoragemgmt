@@ -1634,7 +1634,7 @@ class CmdLine:
             #Directly invoking code though a wrapper to catch unsupported
             #operations.
             self.c = Proxy(cli())
-            self.c.startup(self.uri, self.password, self.tmo)
+            self.c.plugin_register(self.uri, self.password, self.tmo)
             self.cleanup = self.c.shutdown
         else:
             #Going across the ipc pipe

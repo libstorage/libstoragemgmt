@@ -32,7 +32,7 @@ class SmisProxy(Proxy):
     def plugin_info(self, flags=0):
         return "Generic SMI-S support", VERSION
 
-    def startup(self, uri, password, timeout, flags=0):
+    def plugin_register(self, uri, password, timeout, flags=0):
         """
         We will provide a concrete implementation of this to get the process
         started.  All other method will be delegated to implementation.
@@ -48,4 +48,4 @@ class SmisProxy(Proxy):
         else:
             self.proxied_obj = Smis()
 
-        self.proxied_obj.startup(uri, password, timeout, flags)
+        self.proxied_obj.plugin_register(uri, password, timeout, flags)

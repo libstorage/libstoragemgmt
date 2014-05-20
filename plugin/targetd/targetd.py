@@ -61,7 +61,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                              System.STATUS_UNKNOWN, '')
 
     @handle_errors
-    def startup(self, uri, password, timeout, flags=0):
+    def plugin_register(self, uri, password, timeout, flags=0):
         self.uri = uri_parse(uri)
         self.password = password
         self.tmo = timeout
@@ -91,7 +91,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         return self.tmo
 
     @handle_errors
-    def shutdown(self, flags=0):
+    def plugin_unregister(self, flags=0):
         pass
 
     @handle_errors

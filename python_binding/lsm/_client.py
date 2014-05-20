@@ -61,7 +61,7 @@ class Client(INetworkAttachedStorage):
     """
     ## Method added so that the interface for the client RPC and the plug-in
     ## itself match.
-    def startup(self, uri, plain_text_password, timeout_ms, flags=0):
+    def plugin_register(self, uri, plain_text_password, timeout_ms, flags=0):
         raise RuntimeError("Do not call directly!")
 
     ## Called when we are ready to initialize the plug-in.
@@ -75,7 +75,7 @@ class Client(INetworkAttachedStorage):
         """
         Instruct the plug-in to get ready
         """
-        self._tp.rpc('startup', _del_self(locals()))
+        self._tp.rpc('plugin_register', _del_self(locals()))
 
     ## Checks to see if any unix domain sockets exist in the base directory
     # and opens a socket to one to see if the server is actually there.
@@ -150,21 +150,21 @@ class Client(INetworkAttachedStorage):
 
     ## Synonym for close.
     @_return_requires(None)
-    def shutdown(self, flags=0):
+    def plugin_unregister(self, flags=0):
         """
         Synonym for close.
         """
         self.close(flags)
 
-    ## Does an orderly shutdown of the plug-in
+    ## Does an orderly plugin_unregister of the plug-in
     # @param    self    The this pointer
     # @param    flags   Reserved for future use, must be zero.
     @_return_requires(None)
     def close(self, flags=0):
         """
-        Does an orderly shutdown of the plug-in
+        Does an orderly plugin_unregister of the plug-in
         """
-        self._tp.rpc('shutdown', _del_self(locals()))
+        self._tp.rpc('plugin_unregister', _del_self(locals()))
         self._tp.close()
         self._tp = None
 

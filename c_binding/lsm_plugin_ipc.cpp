@@ -256,12 +256,12 @@ int lsm_plugin_init_v1( int argc, char *argv[], lsm_plugin_register reg,
 
 typedef int (*handler)(lsm_plugin_ptr p, Value &params, Value &response);
 
-static int handle_shutdown(lsm_plugin_ptr p, Value &params, Value &response)
+static int handle_unregister(lsm_plugin_ptr p, Value &params, Value &response)
 {
     return LSM_ERR_OK;
 }
 
-static int handle_startup(lsm_plugin_ptr p, Value &params, Value &response)
+static int handle_register(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
     std::string uri_string;
@@ -2400,8 +2400,8 @@ static std::map<std::string,handler> dispatch = static_map<std::string,handler>
     ("pool_create_from_pool", handle_pool_create_from_pool)
     ("pool_delete", handle_pool_delete)
     ("time_out_set", handle_set_time_out)
-    ("shutdown", handle_shutdown)
-    ("startup", handle_startup)
+    ("plugin_unregister", handle_unregister)
+    ("plugin_register", handle_register)
     ("systems", handle_system_list)
     ("volume_child_dependency_rm", volume_dependency_rm)
     ("volume_child_dependency", volume_dependency)

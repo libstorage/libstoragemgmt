@@ -489,7 +489,7 @@ class Smis(IStorageAreaNetwork):
                            'Error: ' + msg + " rc= " + str(rc))
 
     @handle_cim_errors
-    def startup(self, uri, password, timeout, flags=0):
+    def plugin_register(self, uri, password, timeout, flags=0):
         """
         Called when the plug-in runner gets the start request from the client.
         Checkout interop support status via:
@@ -593,7 +593,7 @@ class Smis(IStorageAreaNetwork):
     def time_out_get(self, flags=0):
         return self.tmo
 
-    def shutdown(self, flags=0):
+    def plugin_unregister(self, flags=0):
         self._c = None
 
     def _scs_supported_capabilities(self, system, cap):

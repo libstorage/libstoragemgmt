@@ -328,7 +328,7 @@ int plugin_startup(int socket_fd, const char *uri, const char *pass, int tmo)
 	para_list_add(para_list, "uri", uri, lsm_json_type_string, 0);
 	para_list_add(para_list, "password", pass, pass_type, 0);
 	para_list_add(para_list, "timeout", &tmo, lsm_json_type_int, 0);
-	rpc(socket_fd, "startup", para_list, &error_no);
+	rpc(socket_fd, "plugin_register", para_list, &error_no);
 	return error_no;
 }
 
@@ -340,7 +340,7 @@ int plugin_shutdown(int socket_fd)
 	para_list_init(para_list);
 	int lsm_flags = 0;
 	para_list_add(para_list, "flags", &lsm_flags, lsm_json_type_int, 0);
-	rpc(socket_fd, "shutdown", para_list, &error_no);
+	rpc(socket_fd, "plugin_unregister", para_list, &error_no);
 	return error_no;
 }
 
@@ -377,7 +377,7 @@ const char *lsm_api_0_1(struct MHD_Connection *connection,
 	}
 	error_no = plugin_startup(socket_fd, uri, pass, LSM_REST_TMO);
 	if (error_no != 0){
-		fprintf(stderr, "Failed to startup plugin, "
+		fprintf(stderr, "Failed to register plugin, "
 			"error_no %d", error_no);
 		plugin_shutdown(socket_fd);
 		shutdown(socket_fd, 0);
@@ -405,7 +405,7 @@ const char *lsm_api_0_1(struct MHD_Connection *connection,
 	}
 	error_no = plugin_shutdown(socket_fd);
 	if (error_no != 0){
-		fprintf(stderr, "Failed to shutdown plugin, "
+		fprintf(stderr, "Failed to unregister plugin, "
 			"error_no %d", error_no);
 	}
 	shutdown(socket_fd, 0);

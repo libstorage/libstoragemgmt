@@ -28,7 +28,7 @@ class IPlugin(object):
     __metaclass__ = _ABCMeta
 
     @_abstractmethod
-    def startup(self, uri, password, timeout, flags=0):
+    def plugin_register(self, uri, password, timeout, flags=0):
         """
         Method first called to setup the plug-in (except for plugin_info)
 
@@ -57,12 +57,12 @@ class IPlugin(object):
         pass
 
     @_abstractmethod
-    def shutdown(self, flags=0):
+    def plugin_unregister(self, flags=0):
         """
         Called when the client wants to finish up or the socket goes eof.
         Plug-in should clean up all resources.  Note: In the case where
-        the socket goes EOF and the shutdown runs into errors the exception(s)
-        will not be delivered to the client!
+        the socket goes EOF and the plugin_unregister runs into errors the
+        exception(s) will not be delivered to the client!
 
         Returns None on success, else LsmError exception
         """
@@ -100,7 +100,7 @@ class IPlugin(object):
         """
         Returns the description and version for plug-in, raises LsmError
 
-        Note: Make sure plugin can handle this call before startup is called.
+        Note: Make sure plugin can handle this call before plugin_register is called.
         """
         pass
 

@@ -197,8 +197,8 @@ int lsm_connect_close(lsm_connect *c, lsm_flag flags)
     Value parameters(p);
     Value response;
 
-    //No response data needed on shutdown.
-    int rc = rpc(c, "shutdown", parameters, response);
+    //No response data needed on plugin_unregister
+    int rc = rpc(c, "plugin_unregister", parameters, response);
 
     //Free the connection.
     connection_free(c);

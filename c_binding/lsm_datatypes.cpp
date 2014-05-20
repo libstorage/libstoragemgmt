@@ -251,7 +251,7 @@ static int connection_establish( lsm_connect *c, const char * password,
         params["flags"] = Value(flags);
         Value p(params);
 
-        c->tp->rpc("startup", p);
+        c->tp->rpc("plugin_register", p);
     } catch (const ValueException &ve) {
         *e = lsm_error_create(LSM_ERR_TRANSPORT_SERIALIZATION,
                                 LSM_ERR_DOMAIN_FRAME_WORK,

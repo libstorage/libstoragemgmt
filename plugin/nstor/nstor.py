@@ -82,7 +82,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                                   System.STATUS_OK, '')
         return self._system
 
-    def startup(self, uri, password, timeout, flags=0):
+    def plugin_register(self, uri, password, timeout, flags=0):
         self.uparse = urlparse.urlparse(uri)
         self.password = password or 'nexenta'
         self.timeout = timeout
@@ -195,7 +195,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
     def time_out_get(self, flags=0):
         return self.timeout
 
-    def shutdown(self, flags=0):
+    def plugin_unregister(self, flags=0):
         return
 
     def job_status(self, job_id, flags=0):

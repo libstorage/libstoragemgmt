@@ -373,7 +373,7 @@ class IbmV7k(IStorageAreaNetwork):
 
         return
 
-    def startup(self, uri, password, timeout, flags=0):
+    def plugin_register(self, uri, password, timeout, flags=0):
         self.password = password
         self.tmo = timeout
         self.up = uri_parse(uri)
@@ -393,7 +393,7 @@ class IbmV7k(IStorageAreaNetwork):
     def time_out_get(self, flags=0):
         return self.tmo
 
-    def shutdown(self, flags=0):
+    def plugin_unregister(self, flags=0):
         self.ssh.close()
         return
 
