@@ -365,12 +365,12 @@ class SimArray(object):
     def access_group_delete(self, ag_id, flags=0):
         return self.data.access_group_delete(ag_id, flags)
 
-    def access_group_add_initiator(self, ag_id, init_id, init_type, flags=0):
-        return self.data.access_group_add_initiator(
+    def access_group_initiator_add(self, ag_id, init_id, init_type, flags=0):
+        return self.data.access_group_initiator_add(
             ag_id, init_id, init_type, flags)
 
-    def access_group_del_initiator(self, ag_id, init_id, flags=0):
-        return self.data.access_group_del_initiator(ag_id, init_id, flags)
+    def access_group_initiator_delete(self, ag_id, init_id, flags=0):
+        return self.data.access_group_initiator_delete(ag_id, init_id, flags)
 
     def access_group_grant(self, ag_id, vol_id, access, flags=0):
         return self.data.access_group_grant(ag_id, vol_id, access, flags)
@@ -1055,7 +1055,7 @@ class SimData(object):
         del(self.ag_dict[ag_id])
         return None
 
-    def access_group_add_initiator(self, ag_id, init_id, init_type, flags=0):
+    def access_group_initiator_add(self, ag_id, init_id, init_type, flags=0):
         if ag_id not in self.ag_dict.keys():
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
                            "Access group not found")
@@ -1073,7 +1073,7 @@ class SimData(object):
 
         return None
 
-    def access_group_del_initiator(self, ag_id, init_id, flags=0):
+    def access_group_initiator_delete(self, ag_id, init_id, flags=0):
         if ag_id not in self.ag_dict.keys():
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
                            "Access group not found: %s" % ag_id)

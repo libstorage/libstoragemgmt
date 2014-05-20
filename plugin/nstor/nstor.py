@@ -739,7 +739,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         self._request(command, "stmf", [group_name, initiator_id])
         return
 
-    def access_group_add_initiator(self, group, initiator_id, id_type,
+    def access_group_initiator_add(self, group, initiator_id, id_type,
                                    flags=0):
         """
         Adds an initiator to an access group
@@ -751,7 +751,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         self._add_initiator(group.name, initiator_id)
         return None
 
-    def access_group_del_initiator(self, group, initiator_id, flags=0):
+    def access_group_initiator_delete(self, group, initiator_id, flags=0):
         """
         Deletes an initiator from an access group
         """

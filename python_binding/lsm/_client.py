@@ -749,12 +749,12 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     @_return_requires(None)
-    def access_group_add_initiator(self, group, initiator_id, id_type,
+    def access_group_initiator_add(self, group, initiator_id, id_type,
                                    flags=0):
         """
         Adds an initiator to an access group
         """
-        return self._tp.rpc('access_group_add_initiator', _del_self(locals()))
+        return self._tp.rpc('access_group_initiator_add', _del_self(locals()))
 
     ## Deletes an initiator from an access group
     # @param    self            The this pointer
@@ -763,11 +763,11 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     @_return_requires(None)
-    def access_group_del_initiator(self, group, initiator_id, flags=0):
+    def access_group_initiator_delete(self, group, initiator_id, flags=0):
         """
         Deletes an initiator from an access group
         """
-        return self._tp.rpc('access_group_del_initiator', _del_self(locals()))
+        return self._tp.rpc('access_group_initiator_delete', _del_self(locals()))
 
     ## Returns the list of volumes that access group has access to.
     # @param    self        The this pointer

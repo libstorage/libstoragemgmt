@@ -1290,7 +1290,7 @@ static int access_group_delete( lsm_plugin_ptr c,
     return rc;
 }
 
-static int access_group_add_initiator(  lsm_plugin_ptr c,
+static int access_group_initiator_add(  lsm_plugin_ptr c,
                                         lsm_access_group *group,
                                         const char *initiator_id,
                                         lsm_initiator_type id_type,
@@ -1313,7 +1313,7 @@ static int access_group_add_initiator(  lsm_plugin_ptr c,
     return rc;
 }
 
-static int access_group_del_initiator(  lsm_plugin_ptr c,
+static int access_group_initiator_delete(  lsm_plugin_ptr c,
                                         lsm_access_group *group,
                                         const char *init,
                                         lsm_flag flags)
@@ -1850,8 +1850,8 @@ static struct lsm_san_ops_v1 san_ops = {
     access_group_list,
     access_group_create,
     access_group_delete,
-    access_group_add_initiator,
-    access_group_del_initiator,
+    access_group_initiator_add,
+    access_group_initiator_delete,
     access_group_grant,
     access_group_revoke,
     vol_accessible_by_ag,

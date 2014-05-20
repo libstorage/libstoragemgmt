@@ -2358,10 +2358,10 @@ static int vol_accessible_by_init(lsm_plugin_ptr p, Value &params, Value &respon
  * map of function pointers
  */
 static std::map<std::string,handler> dispatch = static_map<std::string,handler>
-    ("access_group_add_initiator", ag_initiator_add)
+    ("access_group_initiator_add", ag_initiator_add)
     ("access_group_create", ag_create)
     ("access_group_delete", ag_delete)
-    ("access_group_del_initiator", ag_initiator_del)
+    ("access_group_initiator_delete", ag_initiator_del)
     ("access_group_grant", ag_grant)
     ("access_group_list", ag_list)
     ("access_group_revoke", ag_revoke)

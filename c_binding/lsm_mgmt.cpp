@@ -1568,7 +1568,7 @@ int lsm_access_group_initiator_add(lsm_connect *c,
     Value parameters(p);
     Value response;
 
-    return rpc(c, "access_group_add_initiator", parameters, response);
+    return rpc(c, "access_group_initiator_add", parameters, response);
 }
 
 int lsm_access_group_initiator_delete(lsm_connect *c, lsm_access_group *group,
@@ -1592,7 +1592,7 @@ int lsm_access_group_initiator_delete(lsm_connect *c, lsm_access_group *group,
     Value parameters(p);
     Value response;
 
-    return rpc(c, "access_group_del_initiator", parameters, response);
+    return rpc(c, "access_group_initiator_delete", parameters, response);
 }
 
 int lsm_access_group_grant(lsm_connect *c, lsm_access_group *group,

@@ -942,11 +942,11 @@ class CmdLine:
 
         if op:
             init = CmdLine._init_type_to_enum(args.init_type)
-            self.c.access_group_add_initiator(
+            self.c.access_group_initiator_add(
                 group, args.init, init)
         else:
             init = _get_item(self.c.initiators(), args.init, "initiator id")
-            self.c.access_group_del_initiator(group, init.id)
+            self.c.access_group_initiator_delete(group, init.id)
 
     ## Adds an initiator from an access group
     def access_group_add(self, args):

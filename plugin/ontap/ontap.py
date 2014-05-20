@@ -775,12 +775,12 @@ class Ontap(IStorageAreaNetwork, INfs):
         return self.f.igroup_delete(group.name)
 
     @handle_ontap_errors
-    def access_group_add_initiator(self, group, initiator_id, id_type,
+    def access_group_initiator_add(self, group, initiator_id, id_type,
                                    flags=0):
         return self.f.igroup_add_initiator(group.name, initiator_id)
 
     @handle_ontap_errors
-    def access_group_del_initiator(self, group, initiator_id, flags=0):
+    def access_group_initiator_delete(self, group, initiator_id, flags=0):
         return self.f.igroup_del_initiator(group.name, initiator_id)
 
     @handle_ontap_errors

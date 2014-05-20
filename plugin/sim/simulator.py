@@ -175,14 +175,14 @@ class SimPlugin(INfs, IStorageAreaNetwork):
     def access_group_delete(self, group, flags=0):
         return self.sim_array.access_group_delete(group.id, flags)
 
-    def access_group_add_initiator(self, group, initiator_id, id_type,
+    def access_group_initiator_add(self, group, initiator_id, id_type,
                                    flags=0):
-        sim_ag = self.sim_array.access_group_add_initiator(
+        sim_ag = self.sim_array.access_group_initiator_add(
             group.id, initiator_id, id_type, flags)
         return SimPlugin._sim_data_2_lsm(sim_ag)
 
-    def access_group_del_initiator(self, group, initiator_id, flags=0):
-        return self.sim_array.access_group_del_initiator(
+    def access_group_initiator_delete(self, group, initiator_id, flags=0):
+        return self.sim_array.access_group_initiator_delete(
             group.id, initiator_id, flags)
 
     def access_group_grant(self, group, volume, access, flags=0):

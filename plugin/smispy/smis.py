@@ -2159,7 +2159,7 @@ class Smis(IStorageAreaNetwork):
         return initiator
 
     @handle_cim_errors
-    def access_group_add_initiator(self, group, initiator_id, id_type,
+    def access_group_initiator_add(self, group, initiator_id, id_type,
                                    flags=0):
         # Check to see if we have this initiator already, if we don't create
         # it and then add to the view.
@@ -2178,12 +2178,12 @@ class Smis(IStorageAreaNetwork):
                      'ProtocolControllers': [spc.path]}
 
         # Returns None or job id
-        return self._pi("access_group_add_initiator", Smis.JOB_RETRIEVE_NONE,
+        return self._pi("access_group_initiator_add", Smis.JOB_RETRIEVE_NONE,
                         *(self._c.InvokeMethod('ExposePaths', ccs.path,
                                                **in_params)))[0]
 
     @handle_cim_errors
-    def access_group_del_initiator(self, group, initiator, flags=0):
+    def access_group_initiator_delete(self, group, initiator, flags=0):
         spc = self._get_cim_instance_by_id('AccessGroup', group.id)
         ccs = self._get_class_instance('CIM_ControllerConfigurationService',
                                        'SystemName', group.system_id)

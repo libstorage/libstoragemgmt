@@ -199,7 +199,7 @@ def access_group_create(init_id, system_id):
     return r[0][ID]
 
 
-def access_group_add_init(group, initiator):
+def access_group_initiator_add(group, initiator):
     call([cmd, 'access-group-add', '--ag', group, '--init', initiator,
           '--init-type', 'ISCSI'])
 
@@ -597,7 +597,7 @@ def test_mapping(cap, system_id):
         ag_id = access_group_create(iqn1, system_id)
 
         if cap['ACCESS_GROUP_ADD_INITIATOR']:
-            access_group_add_init(ag_id, iqn2)
+            access_group_initiator_add(ag_id, iqn2)
 
         if cap['ACCESS_GROUP_GRANT'] and cap['VOLUME_CREATE']:
             vol_id = create_volume(pool_id)
