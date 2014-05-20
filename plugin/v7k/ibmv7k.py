@@ -453,38 +453,6 @@ class IbmV7k(IStorageAreaNetwork):
         self._delete_volume(volume.id, force=True)
         return None
 
-    def volume_resize(self, volume, new_size_bytes, flags=0):
-        raise LsmError(ErrorNumber.NOT_IMPLEMENTED,
-                       "API not implemented at this time")
-
-    def volume_replicate(self, pool, rep_type, volume_src, name, flags=0):
-        raise LsmError(ErrorNumber.NOT_IMPLEMENTED,
-                       "API not implemented at this time")
-
-    def volume_replicate_range_block_size(self, system, flags=0):
-        raise LsmError(ErrorNumber.NOT_IMPLEMENTED,
-                       "API not implemented at this time")
-
-    def volume_replicate_range(self, rep_type, volume_src, volume_dest, ranges,
-                               flags=0):
-        raise LsmError(ErrorNumber.NOT_IMPLEMENTED,
-                       "API not implemented at this time")
-
-    def volume_online(self, volume, flags=0):
-        # NOTE: Closest cli is mkvdiskhostmap, but that needs host id/name
-        #       as well... hence doesn't fit under this API
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Feature not supported")
-
-    def volume_offline(self, volume, flags=0):
-        # NOTE: Closest cli is rmvdiskhostmap, but that needs host id/name
-        #       as well... hence doesn't fit under this API
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Feature not supported")
-
-    def iscsi_chap_auth(self, initiator, in_user, in_password, out_user,
-                        out_password, flags=0):
-        raise LsmError(ErrorNumber.NOT_IMPLEMENTED,
-                       "API not implemented at this time")
-
     def initiator_grant(self, initiator_id, initiator_type, volume, access,
                         flags=0):
         # TODO: How to pass -force param ? For now, assume -force.
@@ -506,43 +474,6 @@ class IbmV7k(IStorageAreaNetwork):
     def initiator_revoke(self, initiator, volume, flags=0):
         self._initiator_revoke(initiator.id, volume.id)
         return
-
-    def access_group_list(self, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Feature not supported")
-
-    def access_group_create(self, name, initiator_id, id_type, system_id,
-                            flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Feature not supported")
-
-    def access_group_del(self, group, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Feature not supported")
-
-    def access_group_add_initiator(self, group, initiator_id, id_type,
-                                   flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Feature not supported")
-
-    def access_group_del_initiator(self, group, initiator_id, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Feature not supported")
-
-    def access_group_grant(self, group, volume, access, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Feature not supported")
-
-    def access_group_revoke(self, group, volume, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Feature not supported")
-
-    def volumes_accessible_by_access_group(self, group, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Feature not supported")
-
-    def access_groups_granted_to_volume(self, volume, flags=0):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Feature not supported")
-
-    def volume_child_dependency(self, volume, flags=0):
-        raise LsmError(ErrorNumber.NOT_IMPLEMENTED,
-                       "API not implemented at this time")
-
-    def volume_child_dependency_rm(self, volume, flags=0):
-        raise LsmError(ErrorNumber.NOT_IMPLEMENTED,
-                       "API not implemented at this time")
 
     def volumes_accessible_by_initiator(self, initiator, flags=0):
         gvabi = self._get_volumes_accessible_by_initiator(initiator.id)
