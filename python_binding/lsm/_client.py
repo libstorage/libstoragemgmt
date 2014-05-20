@@ -993,16 +993,16 @@ class Client(INetworkAttachedStorage):
 
     ## Reverts a snapshot
     # @param    self            The this pointer
-    # @param    fs              The file system object to revert snapshot for
-    # @param    snapshot        The snapshot file to revert back too
-    # @param    files           The specific files to revert
+    # @param    fs              The file system object to restore snapshot for
+    # @param    snapshot        The snapshot file to restore back too
+    # @param    files           The specific files to restore
     # @param    restore_files   Individual files to restore
-    # @param    all_files       Set to True if all files should be reverted
+    # @param    all_files       Set to True if all files should be restored
     #                           back
     # @param    flags           Reserved for future use, must be zero.
     # @return None on success, else job id
     @_return_requires(unicode)
-    def fs_snapshot_revert(self, fs, snapshot, files, restore_files,
+    def fs_snapshot_restore(self, fs, snapshot, files, restore_files,
                            all_files=False, flags=0):
         """
         WARNING: Destructive!
@@ -1010,14 +1010,14 @@ class Client(INetworkAttachedStorage):
         Reverts a file-system or just the specified files from the snapshot.
         If a list of files is supplied but the array cannot restore just them
         then the operation will fail with an LsmError raised.  If files == None
-        and all_files = True then all files on the file-system are reverted.
+        and all_files = True then all files on the file-system are restored.
 
         Restore_file if None none must be the same length as files with each
         index in each list referring to the associated file.
 
         Returns None on success, else job id, LsmError exception on error
         """
-        return self._tp.rpc('fs_snapshot_revert', _del_self(locals()))
+        return self._tp.rpc('fs_snapshot_restore', _del_self(locals()))
 
     ## Checks to see if a file system has child dependencies.
     # @param    fs      The file system to check

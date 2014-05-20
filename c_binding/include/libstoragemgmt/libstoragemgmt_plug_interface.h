@@ -805,11 +805,11 @@ typedef int (*lsm_plug_fs_ss_delete)(lsm_plugin_ptr c, lsm_fs *fs, lsm_fs_ss *ss
  * @param[in]   fs                  File system of interest
  * @param[in]   files               Optional list of files
  * @param[in]   restore_files       Optional path and name of restored files
- * @param[in]   all_files           boolean to indicate all files should be reverted
+ * @param[in]   all_files           boolean to indicate all files should be restored
  * @param[out]  job                 Job ID
  * @return  LSM_ERR_OK, else error reason
  */
-typedef int (*lsm_plug_fs_ss_revert)(lsm_plugin_ptr c, lsm_fs *fs, lsm_fs_ss *ss,
+typedef int (*lsm_plug_fs_ss_restore)(lsm_plugin_ptr c, lsm_fs *fs, lsm_fs_ss *ss,
                                     lsm_string_list *files,
                                     lsm_string_list *restore_files,
                                     int all_files, char **job, lsm_flag flags);
@@ -927,7 +927,7 @@ struct lsm_fs_ops_v1 {
     lsm_plug_fs_ss_list fs_ss_list;          /**< list snapshots */
     lsm_plug_fs_ss_create fs_ss_create;      /**< create a snapshot */
     lsm_plug_fs_ss_delete fs_ss_delete;      /**< delete a snapshot */
-    lsm_plug_fs_ss_revert fs_ss_revert;      /**< revert a snapshot */
+    lsm_plug_fs_ss_restore fs_ss_restore;      /**< restore a snapshot */
 };
 
 /** \struct lsm_nas_ops_v1

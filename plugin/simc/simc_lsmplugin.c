@@ -2196,7 +2196,7 @@ static int ss_delete(lsm_plugin_ptr c, lsm_fs *fs, lsm_fs_ss *ss,
     return rc;
 }
 
-static int ss_revert(lsm_plugin_ptr c, lsm_fs *fs, lsm_fs_ss *ss,
+static int ss_restore(lsm_plugin_ptr c, lsm_fs *fs, lsm_fs_ss *ss,
                                     lsm_string_list *files,
                                     lsm_string_list *restore_files,
                                     int all_files, char **job, lsm_flag flags)
@@ -2232,7 +2232,7 @@ static struct lsm_fs_ops_v1 fs_ops = {
     ss_list,
     ss_create,
     ss_delete,
-    ss_revert
+    ss_restore
 };
 
 static int nfs_auth_types(lsm_plugin_ptr c, lsm_string_list **types,

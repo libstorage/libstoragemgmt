@@ -279,9 +279,9 @@ class SimPlugin(INfs, IStorageAreaNetwork):
         return self.sim_array.fs_snapshot_delete(
             fs.id, snapshot.id, flags)
 
-    def fs_snapshot_revert(self, fs, snapshot, files, restore_files,
+    def fs_snapshot_restore(self, fs, snapshot, files, restore_files,
                            all_files=False, flags=0):
-        return self.sim_array.fs_snapshot_revert(
+        return self.sim_array.fs_snapshot_restore(
             fs.id, snapshot.id, files, restore_files, all_files, flags)
 
     def fs_child_dependency(self, fs, files, flags=0):

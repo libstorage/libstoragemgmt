@@ -311,10 +311,10 @@ class SimArray(object):
         return self.data.job_create(
             self.data.fs_snapshot_delete(fs_id, snap_id, flags))[0]
 
-    def fs_snapshot_revert(self, fs_id, snap_id, files, restore_files,
-                           flag_all_files, flags):
+    def fs_snapshot_restore(self, fs_id, snap_id, files, restore_files,
+                            flag_all_files, flags):
         return self.data.job_create(
-            self.data.fs_snapshot_revert(
+            self.data.fs_snapshot_restore(
                 fs_id, snap_id, files, restore_files,
                 flag_all_files, flags))[0]
 
@@ -1347,7 +1347,7 @@ class SimData(object):
         self.fs_dict[fs_id]['snaps'] = new_snap_ids
         return None
 
-    def fs_snapshot_revert(self, fs_id, snap_id, files, restore_files,
+    def fs_snapshot_restore(self, fs_id, snap_id, files, restore_files,
                            flag_all_files, flags):
         if fs_id not in self.fs_dict.keys():
             raise LsmError(ErrorNumber.INVALID_INIT,
@@ -1355,7 +1355,7 @@ class SimData(object):
         if snap_id not in self.snap_dict.keys():
             raise LsmError(ErrorNumber.INVALID_SS,
                            "No such Snapshot: %s" % snap_id)
-        # Nothing need to done internally for revert.
+        # Nothing need to done internally for restore.
         return None
 
     def fs_child_dependency(self, fs_id, files, flags=0):

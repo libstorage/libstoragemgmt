@@ -1213,7 +1213,7 @@ class CmdLine:
         if self.confirm_prompt(True):
             self._wait_for_it(
                 'fs-snap-restore',
-                self.c.fs_snapshot_revert(
+                self.c.fs_snapshot_restore(
                     fs, ss, self.args.file, self.args.fileas, flag_all_files),
                 None)
 

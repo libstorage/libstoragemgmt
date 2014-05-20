@@ -944,9 +944,9 @@ START_TEST(test_ss)
         fail_unless( LSM_ERR_OK == rc, "lsmStringListElemSet rc = %d", rc);
     }
 
-    rc = lsm_fs_ss_revert(c, fs, ss, files, files, 0, &job, LSM_FLAG_RSVD);
+    rc = lsm_fs_ss_restore(c, fs, ss, files, files, 0, &job, LSM_FLAG_RSVD);
     if( LSM_ERR_JOB_STARTED == rc ) {
-        printf("Waiting for  lsmSsRevert!\n");
+        printf("Waiting for  lsm_fs_ss_restore!\n");
         wait_for_job(c, &job);
     } else {
         fail_unless(LSM_ERR_OK == rc);
@@ -1721,19 +1721,19 @@ START_TEST(test_invalid_input)
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 
-    rc = lsm_fs_ss_revert(c, NULL, NULL, NULL, NULL, 0, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_ss_restore(c, NULL, NULL, NULL, NULL, 0, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_FS, "rc = %d", rc);
 
-    rc = lsm_fs_ss_revert(c, arg_fs, NULL, NULL, NULL, 0, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_ss_restore(c, arg_fs, NULL, NULL, NULL, 0, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_SS, "rc = %d", rc);
 
-    rc = lsm_fs_ss_revert(c, arg_fs, arg_ss, badf, NULL, 0, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_ss_restore(c, arg_fs, arg_ss, badf, NULL, 0, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_SL, "rc = %d", rc);
 
-    rc = lsm_fs_ss_revert(c, arg_fs, arg_ss, badf, badf, 0, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_ss_restore(c, arg_fs, arg_ss, badf, badf, 0, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_SL, "rc = %d", rc);
 
-    rc = lsm_fs_ss_revert(c, arg_fs, arg_ss, f, f, 0, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_ss_restore(c, arg_fs, arg_ss, f, f, 0, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     rc = lsm_nfs_list(c, NULL, NULL, LSM_FLAG_RSVD);

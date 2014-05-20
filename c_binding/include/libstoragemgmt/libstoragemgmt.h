@@ -903,20 +903,20 @@ extern "C" {
                                     char **job, lsm_flag flags);
 
     /**
-     * Reverts a file system or files to a previous state as specified in the
+     * Restores a file system or files to a previous state as specified in the
      * snapshot.
      * @param c                     Valid connection
      * @param fs                    File system which contains the snapshot
-     * @param ss                    Snapshot to revert to
-     * @param files                 Optional list of files to revert
-     * @param restore_files         Optional list of file names to revert to
+     * @param ss                    Snapshot to restore to
+     * @param files                 Optional list of files to restore
+     * @param restore_files         Optional list of file names to restore to
      * @param all_files             0 = False else True
      * @param job                   Job id if operation is async.
      * @param[in] flags             Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async.,
      * else error code
      */
-    int LSM_DLL_EXPORT lsm_fs_ss_revert(lsm_connect *c, lsm_fs *fs, lsm_fs_ss *ss,
+    int LSM_DLL_EXPORT lsm_fs_ss_restore(lsm_connect *c, lsm_fs *fs, lsm_fs_ss *ss,
                                     lsm_string_list *files,
                                     lsm_string_list *restore_files,
                                     int all_files, char **job, lsm_flag flags);

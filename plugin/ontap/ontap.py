@@ -641,7 +641,7 @@ class Ontap(IStorageAreaNetwork, INfs):
             self._na_volume_resize_restore(na_vol, diff)
 
             try:
-                #if this raises an exception we need to revert the volume
+                #if this raises an exception we need to restore the volume
                 self.f.lun_resize(volume.name, new_size_bytes)
             except Exception as e:
                 #Put the volume back to previous size
@@ -922,7 +922,7 @@ class Ontap(IStorageAreaNetwork, INfs):
     def fs_snapshot_delete(self, fs, snapshot, flags=0):
         self.f.snapshot_delete(fs.name, snapshot.name)
 
-    def _ss_revert_files(self, volume_name, snapshot_name, files,
+    def _ss_restore_files(self, volume_name, snapshot_name, files,
                          restore_files):
         for i in range(len(files)):
             src = Ontap.build_name(volume_name, files[i])
@@ -932,7 +932,7 @@ class Ontap(IStorageAreaNetwork, INfs):
             self.f.snapshot_restore_file(snapshot_name, src, dest)
 
     @handle_ontap_errors
-    def fs_snapshot_revert(self, fs, snapshot, files, restore_files,
+    def fs_snapshot_restore(self, fs, snapshot, files, restore_files,
                            all_files=False, flags=0):
         """
         Restores a FS or files on a FS.
@@ -948,7 +948,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                 raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                                "num files != num restore_files")
 
-            self._ss_revert_files(fs.name, snapshot.name, files,
+            self._ss_restore_files(fs.name, snapshot.name, files,
                                   restore_files)
             return "%s@%d" % (Ontap.SS_JOB, len(files))
         else:

@@ -497,7 +497,7 @@ class INetworkAttachedStorage(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def fs_snapshot_revert(self, fs, snapshot, files, restore_files,
+    def fs_snapshot_restore(self, fs, snapshot, files, restore_files,
                            all_files=False, flags=0):
         """
         WARNING: Destructive!
@@ -506,7 +506,7 @@ class INetworkAttachedStorage(IPlugin):
         If a list of files is supplied but the array cannot restore just them
         then the operation will fail with an LsmError raised.
         If files == None and all_files = True then all files on the
-        file-system are reverted.
+        file-system are restored.
 
         Restore_file if not None must be the same length as files with each
         index in each list referring to the associated file.

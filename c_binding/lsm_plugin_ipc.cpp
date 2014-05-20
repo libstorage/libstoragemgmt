@@ -1976,10 +1976,10 @@ static int ss_delete(lsm_plugin_ptr p, Value &params, Value &response)
     return rc;
 }
 
-static int ss_revert(lsm_plugin_ptr p, Value &params, Value &response)
+static int ss_restore(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
-    if( p && p->san_ops && p->fs_ops->fs_ss_revert ) {
+    if( p && p->san_ops && p->fs_ops->fs_ss_restore ) {
 
         Value v_fs = params["fs"];
         Value v_ss = params["snapshot"];
@@ -2003,7 +2003,7 @@ static int ss_revert(lsm_plugin_ptr p, Value &params, Value &response)
             int all_files = (v_all_files.asBool()) ? 1 : 0;
 
             if( fs && ss && files && restore_files ) {
-                rc = p->fs_ops->fs_ss_revert(p, fs, ss, files, restore_files,
+                rc = p->fs_ops->fs_ss_restore(p, fs, ss, files, restore_files,
                                             all_files, &job,
                                             LSM_FLAG_GET_VALUE(params));
 
@@ -2382,7 +2382,7 @@ static std::map<std::string,handler> dispatch = static_map<std::string,handler>
     ("fs_resize", fs_resize)
     ("fs_snapshot_create", ss_create)
     ("fs_snapshot_delete", ss_delete)
-    ("fs_snapshot_revert", ss_revert)
+    ("fs_snapshot_restore", ss_restore)
     ("fs_snapshots", ss_list)
     ("time_out_get", handle_get_time_out)
     ("initiators", handle_initiators)

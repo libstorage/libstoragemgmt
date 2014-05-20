@@ -305,7 +305,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                    flags=0):
         return
 
-    def fs_snapshot_revert(self, fs, snapshot, files, restore_files,
+    def fs_snapshot_restore(self, fs, snapshot, files, restore_files,
                            all_files=False, flags=0):
         self._request("rollback", "snapshot", [snapshot.name, '-r'])
         return

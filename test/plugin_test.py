@@ -114,7 +114,7 @@ class TestProxy(object):
                    'fs_file_clone': (unicode,),
                    'fs_snapshot_create': (unicode, lsm.FsSnapshot),
                    'fs_snapshot_delete': (unicode,),
-                   'fs_snapshot_revert': (unicode,),
+                   'fs_snapshot_restore': (unicode,),
                    'fs_child_dependency_rm': (unicode,)}
 
     ## The constructor.

@@ -2242,7 +2242,7 @@ int lsm_fs_ss_delete(lsm_connect *c, lsm_fs *fs, lsm_fs_ss *ss, char **job,
     return jobCheck(c, rc, response, job);
 }
 
-int lsm_fs_ss_revert(lsm_connect *c, lsm_fs *fs, lsm_fs_ss *ss,
+int lsm_fs_ss_restore(lsm_connect *c, lsm_fs *fs, lsm_fs_ss *ss,
                                     lsm_string_list *files,
                                     lsm_string_list *restore_files,
                                     int all_files, char **job, lsm_flag flags)
@@ -2284,7 +2284,7 @@ int lsm_fs_ss_revert(lsm_connect *c, lsm_fs *fs, lsm_fs_ss *ss,
     Value parameters(p);
     Value response;
 
-    int rc = rpc(c, "fs_snapshot_revert", parameters, response);
+    int rc = rpc(c, "fs_snapshot_restore", parameters, response);
     return jobCheck(c, rc, response, job);
 
 }
