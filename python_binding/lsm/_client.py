@@ -171,7 +171,7 @@ class Client(INetworkAttachedStorage):
     ## Retrieves all the available plug-ins
     @staticmethod
     @_return_requires([unicode])
-    def get_available_plugins(field_sep=':', flags=0):
+    def available_plugins(field_sep=':', flags=0):
         """
         Retrieves all the available plug-ins
 

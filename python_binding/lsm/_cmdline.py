@@ -761,7 +761,7 @@ class CmdLine:
     def display_available_plugins(self):
         d = []
         sep = '<}{>'
-        plugins = Client.get_available_plugins(sep)
+        plugins = Client.available_plugins(sep)
 
         for p in plugins:
             desc, version = p.split(sep)
