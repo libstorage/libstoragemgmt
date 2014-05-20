@@ -258,13 +258,13 @@ class SimPlugin(INfs, IStorageAreaNetwork):
         return self.sim_array.fs_clone(
             src_fs.id, dest_fs_name, snapshot.id, flags)
 
-    def file_clone(self, fs, src_file_name, dest_file_name, snapshot=None,
+    def fs_file_clone(self, fs, src_file_name, dest_file_name, snapshot=None,
                    flags=0):
         if snapshot is None:
-            return self.sim_array.file_clone(
+            return self.sim_array.fs_file_clone(
                 fs.id, src_file_name, dest_file_name, None, flags)
 
-        return self.sim_array.file_clone(
+        return self.sim_array.fs_file_clone(
             fs.id, src_file_name, dest_file_name, snapshot.id, flags)
 
     def fs_snapshots(self, fs, flags=0):

@@ -451,8 +451,8 @@ class INetworkAttachedStorage(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def file_clone(self, fs, src_file_name, dest_file_name, snapshot=None,
-                   flags=0):
+    def fs_file_clone(self, fs, src_file_name, dest_file_name, snapshot=None,
+                      flags=0):
         """
         Creates a thinly provisioned clone of src to dest.
         Note: Source and Destination are required to be on same filesystem

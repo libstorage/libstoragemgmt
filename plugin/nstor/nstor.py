@@ -301,7 +301,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                         self.system.id)
         return None, fs
 
-    def file_clone(self, fs, src_file_name, dest_file_name, snapshot=None,
+    def fs_file_clone(self, fs, src_file_name, dest_file_name, snapshot=None,
                    flags=0):
         return
 

@@ -924,7 +924,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns  None on success, else job id
     @_return_requires(unicode)
-    def file_clone(self, fs, src_file_name, dest_file_name, snapshot=None,
+    def fs_file_clone(self, fs, src_file_name, dest_file_name, snapshot=None,
                    flags=0):
         """
         Creates a thinly provisioned clone of src to dest.
@@ -933,7 +933,7 @@ class Client(INetworkAttachedStorage):
 
         Returns None on success, else job id
         """
-        return self._tp.rpc('file_clone', _del_self(locals()))
+        return self._tp.rpc('fs_file_clone', _del_self(locals()))
 
     ## Returns a list of snapshots
     # @param    self    The this pointer

@@ -288,9 +288,9 @@ class SimArray(object):
         sim_fs = self.data.fs_clone(src_fs_id, dst_fs_name, snap_id, flags)
         return self.data.job_create(SimArray._sim_fs_2_lsm(sim_fs))
 
-    def file_clone(self, fs_id, src_fs_name, dst_fs_name, snap_id, flags=0):
+    def fs_file_clone(self, fs_id, src_fs_name, dst_fs_name, snap_id, flags=0):
         return self.data.job_create(
-            self.data.file_clone(
+            self.data.fs_file_clone(
                 fs_id, src_fs_name, dst_fs_name, snap_id, flags))[0]
 
     @staticmethod
@@ -1292,7 +1292,7 @@ class SimData(object):
         }
         return dst_sim_fs
 
-    def file_clone(self, fs_id, src_fs_name, dst_fs_name, snap_id, flags=0):
+    def fs_file_clone(self, fs_id, src_fs_name, dst_fs_name, snap_id, flags=0):
         if fs_id not in self.fs_dict.keys():
             raise LsmError(ErrorNumber.INVALID_INIT,
                            "No such File System: %s" % fs_id)

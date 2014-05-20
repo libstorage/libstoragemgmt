@@ -111,7 +111,7 @@ class TestProxy(object):
                    'fs_resize': (unicode, lsm.FileSystem),
                    'fs_create': (unicode, lsm.FileSystem),
                    'fs_clone': (unicode, lsm.FileSystem),
-                   'file_clone': (unicode,),
+                   'fs_file_clone': (unicode,),
                    'fs_snapshot_create': (unicode, lsm.FsSnapshot),
                    'fs_snapshot_delete': (unicode,),
                    'fs_snapshot_revert': (unicode,),

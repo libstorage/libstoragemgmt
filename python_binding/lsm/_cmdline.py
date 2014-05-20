@@ -1041,7 +1041,7 @@ class CmdLine:
             ss = None
 
         self._wait_for_it(
-            "file_clone", self.c.file_clone(fs, args.src, args.dst, ss), None)
+            "fs_file_clone", self.c.fs_file_clone(fs, args.src, args.dst, ss), None)
 
     ##Converts a size parameter into the appropriate number of bytes
     # @param    s   Size to convert to bytes handles B, K, M, G, T, P postfix

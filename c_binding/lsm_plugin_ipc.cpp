@@ -1719,7 +1719,7 @@ static int fs_clone(lsm_plugin_ptr p, Value &params, Value &response)
    return rc;
 }
 
-static int file_clone(lsm_plugin_ptr p, Value &params, Value &response)
+static int fs_file_clone(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_OK;
 
@@ -2372,7 +2372,7 @@ static std::map<std::string,handler> dispatch = static_map<std::string,handler>
     ("export_fs", export_fs)
     ("export_remove", export_remove)
     ("exports", exports)
-    ("file_clone", file_clone)
+    ("fs_file_clone", fs_file_clone)
     ("fs_child_dependency", fs_child_dependency)
     ("fs_child_dependency_rm", fs_child_dependency_rm)
     ("fs_clone", fs_clone)

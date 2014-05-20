@@ -895,7 +895,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         return "/vol/%s/%s" % (volume_name, relative_name)
 
     @handle_ontap_errors
-    def file_clone(self, fs, src_file_name, dest_file_name, snapshot=None,
+    def fs_file_clone(self, fs, src_file_name, dest_file_name, snapshot=None,
                    flags=0):
         full_src = Ontap.build_name(fs.name, src_file_name)
         full_dest = Ontap.build_name(fs.name, dest_file_name)

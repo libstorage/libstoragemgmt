@@ -2039,7 +2039,7 @@ int lsm_fs_file_clone(lsm_connect *c, lsm_fs *fs, const char *src_file_name,
     Value parameters(p);
     Value response;
 
-    int rc = rpc(c, "file_clone", parameters, response);
+    int rc = rpc(c, "fs_file_clone", parameters, response);
     return jobCheck(c, rc, response, job);
 }
 
