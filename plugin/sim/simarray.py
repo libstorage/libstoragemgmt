@@ -362,8 +362,8 @@ class SimArray(object):
             name, init_id, init_type, sys_id, flags)
         return SimArray._sim_ag_2_lsm(sim_ag)
 
-    def access_group_del(self, ag_id, flags=0):
-        return self.data.access_group_del(ag_id, flags)
+    def access_group_delete(self, ag_id, flags=0):
+        return self.data.access_group_delete(ag_id, flags)
 
     def access_group_add_initiator(self, ag_id, init_id, init_type, flags=0):
         return self.data.access_group_add_initiator(
@@ -1048,7 +1048,7 @@ class SimData(object):
         self.ag_dict[sim_ag['ag_id']] = sim_ag
         return sim_ag
 
-    def access_group_del(self, ag_id, flags=0):
+    def access_group_delete(self, ag_id, flags=0):
         if ag_id not in self.ag_dict.keys():
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
                            "Access group not found")

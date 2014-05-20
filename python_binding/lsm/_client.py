@@ -735,11 +735,11 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     @_return_requires(None)
-    def access_group_del(self, group, flags=0):
+    def access_group_delete(self, group, flags=0):
         """
         Deletes an access group
         """
-        return self._tp.rpc('access_group_del', _del_self(locals()))
+        return self._tp.rpc('access_group_delete', _del_self(locals()))
 
     ## Adds an initiator to an access group
     # @param    self            The this pointer

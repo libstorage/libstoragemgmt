@@ -328,7 +328,7 @@ class IStorageAreaNetwork(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def access_group_del(self, group, flags=0):
+    def access_group_delete(self, group, flags=0):
         """
         Deletes an access group, Raises LsmError on error
         """

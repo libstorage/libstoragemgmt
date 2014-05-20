@@ -988,7 +988,7 @@ class CmdLine:
     def access_group_delete(self, args):
         agl = self.c.access_groups()
         group = _get_item(agl, args.ag, "access group id")
-        return self.c.access_group_del(group)
+        return self.c.access_group_delete(group)
 
     ## Used to delete a file system
     def fs_delete(self, args):

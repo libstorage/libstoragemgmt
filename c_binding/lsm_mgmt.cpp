@@ -1539,7 +1539,7 @@ int lsm_access_group_delete(lsm_connect *c, lsm_access_group *group, lsm_flag fl
     Value parameters(p);
     Value response;
 
-    return rpc(c, "access_group_del", parameters, response);
+    return rpc(c, "access_group_delete", parameters, response);
 }
 
 int lsm_access_group_initiator_add(lsm_connect *c,

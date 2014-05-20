@@ -724,7 +724,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
         return AccessGroup(name, name, [initiator_id], self.system.id)
 
-    def access_group_del(self, group, flags=0):
+    def access_group_delete(self, group, flags=0):
         """
         Deletes an access group
         """

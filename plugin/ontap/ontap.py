@@ -771,7 +771,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                        "Unable to find group just created!")
 
     @handle_ontap_errors
-    def access_group_del(self, group, flags=0):
+    def access_group_delete(self, group, flags=0):
         return self.f.igroup_delete(group.name)
 
     @handle_ontap_errors
