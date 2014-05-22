@@ -20,8 +20,8 @@ import traceback
 import sys
 from _common import SocketEOF as _SocketEOF
 from lsm import LsmError, Error, ErrorNumber
-import _cmdline
 import _transport
+from lsm.lsmcli import cmd_line_wrapper
 
 
 class PluginRunner(object):
@@ -64,7 +64,7 @@ class PluginRunner(object):
 
         else:
             self.cmdline = True
-            _cmdline.cmd_line_wrapper(plugin)
+            cmd_line_wrapper(plugin)
 
     def run(self):
         #Don't need to invoke this when running stand alone as a cmdline

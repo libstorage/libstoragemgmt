@@ -16,7 +16,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
 #
 # Author: tasleson
-from lsm._cmdline import cmd_line_wrapper
+from lsm.lsmcli import cmd_line_wrapper
 
 ## Command line interface for libStorageMgmt.
 # This is contained in a separate class which can be shared across all the py

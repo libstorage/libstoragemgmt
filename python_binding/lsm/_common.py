@@ -23,8 +23,6 @@ import re
 
 import sys
 import syslog
-import tty
-import termios
 import collections
 import inspect
 import urllib2
@@ -55,19 +53,6 @@ def default_property(name, allow_set=True, doc=None):
         return cls
 
     return decorator
-
-## Get a character from stdin without needing a return key pressed.
-# Returns the character pressed
-def getch():
-    fd = sys.stdin.fileno()
-    prev = termios.tcgetattr(fd)
-    try:
-        tty.setraw(sys.stdin.fileno())
-        ch = sys.stdin.read(1)
-    finally:
-        termios.tcsetattr(fd, termios.TCSADRAIN, prev)
-    return ch
-
 
 def common_urllib2_error_handler(exp):
 

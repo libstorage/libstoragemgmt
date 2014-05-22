@@ -12,20 +12,24 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+#
+# Author: tasleson
+#         Gris Ge <fge@redhat.com>
 
 import os
 import sys
 import getpass
 import time
+import tty
+import termios
 
 from argparse import ArgumentParser
 from argparse import RawTextHelpFormatter
 
 from lsm import (Client, Pool, VERSION, LsmError, Capabilities, Disk,
                  Initiator, Volume, JobStatus, ErrorNumber, BlockRange,
-                 uri_parse)
+                 uri_parse, Proxy, size_human_2_size_bytes)
 
-from _common import getch, size_human_2_size_bytes, Proxy
 from lsm.lsmcli.data_display import (
     DisplayData, PlugData, out,
     pool_raid_type_str_to_type, pool_member_type_str_to_type,
@@ -52,6 +56,19 @@ def cmd_line_wrapper(c=None):
         sys.exit(4)
     except KeyboardInterrupt:
         sys.exit(1)
+
+
+## Get a character from stdin without needing a return key pressed.
+# Returns the character pressed
+def getch():
+    fd = sys.stdin.fileno()
+    prev = termios.tcgetattr(fd)
+    try:
+        tty.setraw(sys.stdin.fileno())
+        ch = sys.stdin.read(1)
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, prev)
+    return ch
 
 
 ## This class represents a command line argument error
