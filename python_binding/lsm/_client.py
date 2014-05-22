@@ -710,7 +710,7 @@ class Client(INetworkAttachedStorage):
         """
         Returns a list of access groups
         """
-        return self._tp.rpc('access_group_list', _del_self(locals()))
+        return self._tp.rpc('access_groups', _del_self(locals()))
 
     ## Creates an access a group with the specified initiator in it.
     # @param    self                The this pointer

@@ -2140,7 +2140,7 @@ class Smis(IStorageAreaNetwork):
                 'Error: access group %s does not exist!' % volume.id)
 
     @handle_cim_errors
-    def access_group_list(self, flags=0):
+    def access_groups(self, flags=0):
         cim_spc_pros = self._new_access_group_cim_spc_pros()
         cim_spcs = self._get_access_groups(property_list=cim_spc_pros)
         return [self._new_access_group(cim_spc) for cim_spc in cim_spcs]

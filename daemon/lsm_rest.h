@@ -44,7 +44,7 @@ enum lsm_json_type {
 };
 
 static const char *lsm_query_strs[] = {
-	"systems", "volumes", "pools", "disks", "fs", "access_group_list",
+	"systems", "volumes", "pools", "disks", "fs", "access_groups",
 	"initiators",
 };
 

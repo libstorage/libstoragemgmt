@@ -742,14 +742,14 @@ class Ontap(IStorageAreaNetwork, INfs):
                            self.sys_info.id)
 
     @handle_ontap_errors
-    def access_group_list(self, flags=0):
+    def access_groups(self, flags=0):
         groups = self.f.igroups()
         return [self._access_group(g) for g in groups]
 
     @handle_ontap_errors
     def access_group_create(self, name, initiator_id, id_type, system_id,
                             flags=0):
-        cur_groups = self.access_group_list()
+        cur_groups = self.access_groups()
         for cg in cur_groups:
             if cg.name == name:
                 raise LsmError(ErrorNumber.EXISTS_ACCESS_GROUP,
@@ -762,7 +762,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
         self.f.igroup_add_initiator(name, initiator_id)
 
-        groups = self.access_group_list()
+        groups = self.access_groups()
         for g in groups:
             if g.name == name:
                 return g

@@ -162,7 +162,7 @@ class SimPlugin(INfs, IStorageAreaNetwork):
     def volume_offline(self, volume, flags=0):
         return self.sim_array.volume_online(volume.id, flags)
 
-    def access_group_list(self, flags=0):
+    def access_groups(self, flags=0):
         sim_ags = self.sim_array.ags()
         return [SimPlugin._sim_data_2_lsm(a) for a in sim_ags]
 

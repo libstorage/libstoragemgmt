@@ -138,8 +138,8 @@ good "$c_unit"
 #Run cmdline against the simulator if we are not checking for leaks
 if [ -z "$LSM_VALGRIND" ]; then
     export LSMCLI_URI='sim://'
+    good "$rootdir/test/cmdtest.py -c $plugins/sim_lsmplugin"
     good "$rootdir/test/cmdtest.py -c $rootdir/tools/lsmcli/lsmcli"
-    good "$rootdir/test/cmdtest.py -c $rootdir/plugin/sim/sim_lsmplugin"
 fi
 
 #Pretend we were never here

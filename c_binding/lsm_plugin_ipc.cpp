@@ -2363,7 +2363,7 @@ static std::map<std::string,handler> dispatch = static_map<std::string,handler>
     ("access_group_delete", ag_delete)
     ("access_group_initiator_delete", ag_initiator_del)
     ("access_group_grant", ag_grant)
-    ("access_group_list", ag_list)
+    ("access_groups", ag_list)
     ("access_group_revoke", ag_revoke)
     ("access_groups_granted_to_volume", ag_granted_to_volume)
     ("capabilities", capabilities)

@@ -471,7 +471,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         Return an array of initiator objects
         """
         i_list = []
-        for ag in self.access_group_list():
+        for ag in self.access_groups():
             for initiator_id in ag.initiators:
                 i_list.append(Initiator(initiator_id,
                                         Initiator.TYPE_ISCSI, initiator_id))
@@ -693,7 +693,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                       [volume.name, view_number])
         return
 
-    def access_group_list(self, flags=0):
+    def access_group(self, flags=0):
         """
         Returns a list of access groups
         """
@@ -713,7 +713,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         Creates of access group
         """
         #  Check that initiator_id is not a part of another hostgroup
-        for ag in self.access_group_list():
+        for ag in self.access_group():
             if initiator_id in ag.initiators:
                 raise LsmError(ErrorNumber.EXISTS_INITIATOR,
                                "%s is already part of %s access group" % (
@@ -774,7 +774,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         """
         Returns the list of access groups that have access to the specified
         """
-        ag_list = self.access_group_list()
+        ag_list = self.access_group()
 
         hg = []
         for view in self._get_views(volume.name):
@@ -826,7 +826,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         """
         Returns a list of initiators that have access to the specified volume.
         """
-        ag_list = self.access_group_list()
+        ag_list = self.access_group()
         i_list = self.initiators()
         initiators_id = []
         for view in self._get_views(volume.name):

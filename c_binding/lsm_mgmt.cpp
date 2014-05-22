@@ -1482,7 +1482,7 @@ int lsm_access_group_list( lsm_connect *c, lsm_access_group **groups[],
     Value parameters(p);
     Value response;
 
-    int rc = rpc(c, "access_group_list", parameters, response);
+    int rc = rpc(c, "access_groups", parameters, response);
     return getAccessGroups(c, rc, response, groups, groupCount);
 }
 

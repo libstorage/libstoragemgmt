@@ -863,7 +863,7 @@ class SimData(object):
     def disks(self):
         return self.disk_dict.values()
 
-    def access_group_list(self):
+    def access_groups(self):
         return self.ag_dict.values()
 
     def volume_create(self, pool_id, vol_name, size_bytes, thinp, flags=0):
