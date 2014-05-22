@@ -5,7 +5,6 @@ externaldir = $(lsmdir)/external
 lsm_PYTHON = \
 	lsm/__init__.py \
 	lsm/_client.py \
-	lsm/_cmdline.py \
 	lsm/_common.py \
 	lsm/_data.py \
 	lsm/_transport.py \
