@@ -298,6 +298,7 @@ fi
 %{_bindir}/simc_lsmplugin
 %{python_sitelib}/lsm/lsmcli/__init__.*
 %{python_sitelib}/lsm/lsmcli/data_display.*
+%{python_sitelib}/lsm/lsmcli/cmdline.*
 
 %if 0%{?fedora} >= 15 || 0%{?rhel} >= 7
 %{_unitdir}/*
@@ -324,7 +325,6 @@ fi
 %{python_sitelib}/lsm/__init__.*
 %{python_sitelib}/lsm/external/*
 %{python_sitelib}/lsm/_client.*
-%{python_sitelib}/lsm/_cmdline.*
 %{python_sitelib}/lsm/_common.*
 %{python_sitelib}/lsm/_data.*
 %{python_sitelib}/lsm/_iplugin.*
