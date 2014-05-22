@@ -1652,7 +1652,7 @@ class CmdLine:
             #operations.
             self.c = Proxy(cli())
             self.c.plugin_register(self.uri, self.password, self.tmo)
-            self.cleanup = self.c.shutdown
+            self.cleanup = self.c.plugin_unregister
         else:
             #Going across the ipc pipe
             self.c = Proxy(Client(self.uri, self.password, self.tmo))
