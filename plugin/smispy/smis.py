@@ -596,7 +596,8 @@ class Smis(IStorageAreaNetwork):
                     LocalOnly=False)
             except CIMError as e:
                 if e[0] == pywbem.CIM_ERR_NOT_SUPPORTED or \
-                   e[0] == pywbem.CIM_ERR_INVALID_NAMESPACE:
+                   e[0] == pywbem.CIM_ERR_INVALID_NAMESPACE or \
+                   e[0] == pywbem.CIM_ERR_INVALID_CLASS:
                     pass
                 else:
                     raise e
