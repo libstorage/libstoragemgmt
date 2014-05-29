@@ -134,7 +134,10 @@ typedef enum {
     LSM_ERR_UNSUPPORTED_REPLICATION_TYPE = 452, /**< Unsupported replication type */
 
     LSM_ERR_DISK_BUSY = 500,        /* Disk already in use */
-    LSM_ERR_VOLUME_BUSY = 501       /* Volume already in use */
+    LSM_ERR_VOLUME_BUSY = 501,      /* Volume already in use */
+
+
+    LSM_ERR_UNSUPPORTED_SEARCH_KEY = 510    /**< Unsupport search key */
 
 } lsm_error_number;
 

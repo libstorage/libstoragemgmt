@@ -203,6 +203,33 @@ static void error_send(lsm_plugin_ptr p, int error_code)
     }
 }
 
+static int get_search_params(Value &params, char **k, char **v)
+{
+    int rc = LSM_ERR_OK;
+    Value key = params["search_key"];
+    Value val = params["search_value"];
+
+    if( Value::string_t == key.valueType() ) {
+        if ( Value::string_t == val.valueType() ) {
+            *k = strdup(key.asC_str());
+            *v = strdup(val.asC_str());
+
+            if( *k == NULL || *v == NULL ) {
+                free( *k );
+                *k = NULL;
+                free( *v );
+                *v = NULL;
+                rc = LSM_ERR_NO_MEMORY;
+            }
+        } else {
+            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+        }
+    } else if( Value::null_t != key.valueType() ) {
+        rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+    }
+
+    return rc;
+}
 
 /**
  * Checks to see if a character string is an integer and returns result
@@ -450,13 +477,16 @@ static int handle_system_list(lsm_plugin_ptr p, Value &params,
 static int handle_pools(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
+    char *key = NULL;
+    char *val = NULL;
 
     if( p && p->mgmt_ops && p->mgmt_ops->pool_list ) {
         lsm_pool **pools = NULL;
         uint32_t count = 0;
 
-        if( LSM_FLAG_EXPECTED_TYPE(params) ) {
-            rc = p->mgmt_ops->pool_list(p, &pools, &count,
+        if( LSM_FLAG_EXPECTED_TYPE(params) &&
+            ((rc = get_search_params(params, &key, &val)) == LSM_ERR_OK )) {
+            rc = p->mgmt_ops->pool_list(p, key, val, &pools, &count,
                                         LSM_FLAG_GET_VALUE(params));
             if( LSM_ERR_OK == rc) {
                 std::vector<Value> result;
@@ -469,8 +499,12 @@ static int handle_pools(lsm_plugin_ptr p, Value &params, Value &response)
                 pools = NULL;
                 response = Value(result);
             }
+            free(key);
+            free(val);
         } else {
-            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+            if( rc == LSM_ERR_NO_SUPPORT ) {
+                rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+            }
         }
     }
     return rc;
@@ -772,19 +806,26 @@ static void get_volumes(int rc, lsm_volume **vols, uint32_t count,
 static int handle_volumes(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
+    char *key = NULL;
+    char *val = NULL;
 
 
     if( p && p->san_ops && p->san_ops->vol_get ) {
         lsm_volume **vols = NULL;
         uint32_t count = 0;
 
-        if( LSM_FLAG_EXPECTED_TYPE(params) ) {
-            rc = p->san_ops->vol_get(p, &vols, &count,
+        if( LSM_FLAG_EXPECTED_TYPE(params) &&
+            (rc = get_search_params(params, &key, &val)) == LSM_ERR_OK ) {
+            rc = p->san_ops->vol_get(p, key, val, &vols, &count,
                                         LSM_FLAG_GET_VALUE(params));
 
             get_volumes(rc, vols, count, response);
+            free(key);
+            free(val);
         } else {
-            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+            if( rc == LSM_ERR_NO_SUPPORT ) {
+                rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+            }
         }
     }
     return rc;
@@ -808,17 +849,24 @@ static void get_disks(int rc, lsm_disk **disks, uint32_t count, Value &response)
 static int handle_disks(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
+    char *key = NULL;
+    char *val = NULL;
 
     if( p && p->san_ops && p->san_ops->disk_get ) {
         lsm_disk **disks = NULL;
         uint32_t count = 0;
 
-        if( LSM_FLAG_EXPECTED_TYPE(params) ) {
-            rc = p->san_ops->disk_get(p, &disks, &count,
-                LSM_FLAG_GET_VALUE(params));
+        if( LSM_FLAG_EXPECTED_TYPE(params) &&
+            (rc = get_search_params(params, &key, &val)) == LSM_ERR_OK ) {
+            rc = p->san_ops->disk_get(p, key, val, &disks, &count,
+                                        LSM_FLAG_GET_VALUE(params));
             get_disks(rc, disks, count, response);
+            free(key);
+            free(val);
         } else {
-            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+            if( rc == LSM_ERR_NO_SUPPORT ) {
+                rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+            }
         }
     }
     return rc;
@@ -1120,14 +1168,17 @@ static int handle_volume_offline(lsm_plugin_ptr p, Value &params, Value &respons
 static int ag_list(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
+    char *key = NULL;
+    char *val = NULL;
 
     if( p && p->san_ops && p->san_ops->ag_list ) {
 
-        if( LSM_FLAG_EXPECTED_TYPE(params) ) {
+        if( LSM_FLAG_EXPECTED_TYPE(params) &&
+            (rc = get_search_params(params, &key, &val)) == LSM_ERR_OK ) {
             lsm_access_group **groups = NULL;
             uint32_t count;
 
-            rc = p->san_ops->ag_list(p, &groups, &count,
+            rc = p->san_ops->ag_list(p, key, val, &groups, &count,
                                     LSM_FLAG_GET_VALUE(params));
             if( LSM_ERR_OK == rc ) {
                 response = access_group_list_to_value(groups, count);
@@ -1135,8 +1186,12 @@ static int ag_list(lsm_plugin_ptr p, Value &params, Value &response)
                 /* Free the memory */
                 lsm_access_group_record_array_free(groups, count);
             }
+            free(key);
+            free(val);
         } else {
-            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+            if( rc == LSM_ERR_NO_SUPPORT ) {
+                rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+            }
         }
     }
     return rc;
@@ -1500,14 +1555,17 @@ static int volume_dependency_rm(lsm_plugin_ptr p, Value &params, Value &response
 static int fs(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
+    char *key = NULL;
+    char *val = NULL;
 
     if( p && p->san_ops && p->fs_ops->fs_list ) {
-        if( LSM_FLAG_EXPECTED_TYPE(params) ) {
+        if( LSM_FLAG_EXPECTED_TYPE(params) &&
+            ((rc = get_search_params(params, &key, &val)) == LSM_ERR_OK )) {
 
             lsm_fs **fs = NULL;
             uint32_t count = 0;
 
-            rc = p->fs_ops->fs_list(p, &fs, &count,
+            rc = p->fs_ops->fs_list(p, key, val, &fs, &count,
                                         LSM_FLAG_GET_VALUE(params));
 
             if( LSM_ERR_OK == rc ) {
@@ -1521,8 +1579,12 @@ static int fs(lsm_plugin_ptr p, Value &params, Value &response)
                 lsm_fs_record_array_free(fs, count);
                 fs = NULL;
             }
+            free(key);
+            free(val);
         } else {
-            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+            if( rc == LSM_ERR_NO_SUPPORT ) {
+                rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+            }
         }
     }
     return rc;
@@ -2051,13 +2113,16 @@ static int export_auth(lsm_plugin_ptr p, Value &params, Value &response)
 static int exports(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
+    char *key = NULL;
+    char *val = NULL;
 
     if( p && p->nas_ops && p->nas_ops->nfs_list ) {
         lsm_nfs_export **exports = NULL;
         uint32_t count = 0;
 
-        if( LSM_FLAG_EXPECTED_TYPE(params) ) {
-            rc = p->nas_ops->nfs_list(p, &exports, &count,
+        if( LSM_FLAG_EXPECTED_TYPE(params) &&
+            (rc = get_search_params(params, &key, &val)) == LSM_ERR_OK ) {
+            rc = p->nas_ops->nfs_list(p, key, val, &exports, &count,
                                         LSM_FLAG_GET_VALUE(params));
 
             if( LSM_ERR_OK == rc ) {
@@ -2072,8 +2137,12 @@ static int exports(lsm_plugin_ptr p, Value &params, Value &response)
                 exports = NULL;
                 count = 0;
             }
+            free(key);
+            free(val);
         } else {
-            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+            if( rc == LSM_ERR_NO_SUPPORT ) {
+                rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+            }
         }
     }
 
@@ -2610,4 +2679,195 @@ int LSM_DLL_EXPORT lsm_uri_parse(const char *uri, char **scheme, char **user,
         }
     }
     return rc;
+}
+
+
+typedef int (*array_cmp)(void *item, void *cmp_data);
+typedef void (*free_item)(void *item);
+
+#define CMP_FUNCTION(name, method, method_type) \
+static int name(void *i, void *d)               \
+{                                               \
+    method_type *v = (method_type *)i;          \
+    char *val = (char *)d;                      \
+                                                \
+    if( strcmp(method(v), val) == 0 ) {         \
+        return 1;                               \
+    }                                           \
+    return 0;                                   \
+}                                               \
+
+
+#define CMP_FREE_FUNCTION(name, method, method_type) \
+static void name(void *i)       \
+{                               \
+    method((method_type *)i);   \
+}                               \
+
+int filter(void *a[], size_t size, array_cmp cmp, void *cmp_data, free_item fo)
+{
+    int remaining = 0;
+    size_t i = 0;
+
+    for( i = 0; i < size; ++i ) {
+        if( cmp(a[i], cmp_data) ) {
+            memmove(&a[remaining], &a[i], sizeof(void *));
+            remaining += 1;
+        } else {
+            fo(a[i]);
+            a[i] = NULL;
+        }
+    }
+    return remaining;
+}
+
+CMP_FUNCTION(volume_compare_id, lsm_volume_id_get, lsm_volume)
+CMP_FUNCTION(volume_compare_system, lsm_volume_system_id_get, lsm_volume)
+CMP_FUNCTION(volume_compare_pool, lsm_volume_pool_id_get, lsm_volume)
+CMP_FREE_FUNCTION(volume_free, lsm_volume_record_free, lsm_volume)
+
+void lsm_plug_volume_search_filter(const char *search_key, const char *search_value,
+                                lsm_volume *vols[], uint32_t *count)
+{
+    array_cmp cmp = NULL;
+
+    if( search_key ) {
+
+        if( 0 == strcmp("id", search_key) ) {
+            cmp = volume_compare_id;
+        } else if( 0 == strcmp("system_id", search_key) ) {
+            cmp = volume_compare_system;
+        } else if ( 0 == strcmp("pool_id", search_key) ) {
+            cmp = volume_compare_pool;
+        }
+
+        if( cmp ) {
+            *count = filter((void **)vols, *count, cmp, (void*)search_value,
+                            volume_free);
+        }
+    }
+}
+
+CMP_FUNCTION(pool_compare_id, lsm_pool_id_get, lsm_pool)
+CMP_FUNCTION(pool_compare_system, lsm_pool_system_id_get, lsm_pool)
+CMP_FREE_FUNCTION(pool_free, lsm_pool_record_free, lsm_pool);
+
+void lsm_plug_pool_search_filter(const char *search_key, const char *search_value,
+                                lsm_pool *pools[], uint32_t *count)
+{
+    array_cmp cmp = NULL;
+
+    if( search_key ) {
+
+        if( 0 == strcmp("id", search_key) ) {
+            cmp = pool_compare_id;
+        } else if( 0 == strcmp("system_id", search_key) ) {
+            cmp = pool_compare_system;
+        }
+
+        if( cmp ) {
+            *count = filter((void **)pools, *count, cmp, (void*)search_value,
+                pool_free);
+        }
+    }
+}
+
+CMP_FUNCTION(disk_compare_id, lsm_disk_id_get, lsm_disk)
+CMP_FUNCTION(disk_compare_system, lsm_disk_system_id_get, lsm_disk)
+CMP_FREE_FUNCTION(disk_free, lsm_disk_record_free, lsm_disk)
+
+void lsm_plug_disk_search_filter(const char *search_key, const char *search_value,
+                            lsm_disk *disks[], uint32_t *count)
+{
+    array_cmp cmp = NULL;
+
+    if( search_key ) {
+
+        if( 0 == strcmp("id", search_key) ) {
+            cmp = disk_compare_id;
+        } else if( 0 == strcmp("system_id", search_key) ) {
+            cmp = disk_compare_system;
+        }
+
+        if( cmp ) {
+            *count = filter((void **)disks, *count, cmp, (void*)search_value,
+                             disk_free);
+        }
+    }
+}
+
+CMP_FUNCTION(access_group_compare_id, lsm_access_group_id_get, lsm_access_group)
+CMP_FUNCTION(access_group_compare_system, lsm_access_group_system_id_get, lsm_access_group)
+CMP_FREE_FUNCTION(access_group_free, lsm_access_group_record_free,
+                    lsm_access_group);
+
+void lsm_plug_access_group_search_filter(const char *search_key,
+                            const char *search_value,
+                            lsm_access_group *ag[], uint32_t *count)
+{
+    array_cmp cmp = NULL;
+
+    if( search_key ) {
+
+        if( 0 == strcmp("id", search_key) ) {
+            cmp = access_group_compare_id;
+        } else if( 0 == strcmp("system_id", search_key) ) {
+            cmp = access_group_compare_system;
+        }
+
+        if( cmp ) {
+            *count = filter((void **)ag, *count, cmp, (void*)search_value,
+                             access_group_free);
+        }
+    }
+}
+
+CMP_FUNCTION(fs_compare_id, lsm_fs_id_get, lsm_fs)
+CMP_FUNCTION(fs_compare_system, lsm_fs_system_id_get, lsm_fs)
+CMP_FREE_FUNCTION(fs_free, lsm_fs_record_free, lsm_fs);
+
+void lsm_plug_fs_search_filter(const char *search_key,
+                            const char *search_value,
+                            lsm_fs *fs[], uint32_t *count)
+{
+    array_cmp cmp = NULL;
+
+    if( search_key ) {
+
+        if( 0 == strcmp("id", search_key) ) {
+            cmp = fs_compare_id;
+        } else if( 0 == strcmp("system_id", search_key) ) {
+            cmp = fs_compare_system;
+        }
+
+        if( cmp ) {
+            *count = filter((void **)fs, *count, cmp, (void*)search_value,
+                             fs_free);
+        }
+    }
+}
+
+CMP_FUNCTION(nfs_compare_id, lsm_nfs_export_id_get, lsm_nfs_export)
+CMP_FUNCTION(nfs_compare_fs_id, lsm_nfs_export_fs_id_get, lsm_nfs_export)
+CMP_FREE_FUNCTION(nfs_free, lsm_nfs_export_record_free, lsm_nfs_export)
+
+void lsm_plug_nfs_export_search_filter(const char *search_key,
+                            const char *search_value,
+                            lsm_nfs_export *exports[], uint32_t *count)
+{
+    array_cmp cmp = NULL;
+
+    if( search_key ) {
+
+        if( 0 == strcmp("id", search_key) ) {
+            cmp = nfs_compare_id;
+        } else if( 0 == strcmp("fs_id", search_key) ) {
+            cmp = nfs_compare_fs_id;
+        }
+
+        if( cmp ) {
+            *count = filter((void **)exports, *count, cmp, (void*)search_value,
+                             nfs_free);
+        }
+    }
 }

@@ -151,12 +151,16 @@ typedef int (*lsm_plug_job_free)(lsm_plugin_ptr c, char *job_id, lsm_flag flags)
 /**
  * Retrieves a list of pools callback function signature
  * @param[in]   c               Valid lsm plug-in pointer
+ * @param[in]   search_key      Search key
+ * @param[in]   search_value    Search value
  * @param[out]  pool_array      List of pools
  * @param[out]  count           Number of items in array
  * @param[in]   flags           Reserved
  * @return LSM_ERR_OK, else error reason
  */
-typedef int (*lsm_plug_pool_list)( lsm_plugin_ptr c, lsm_pool **pool_array[],
+typedef int (*lsm_plug_pool_list)( lsm_plugin_ptr c, const char *search_key,
+                                        const char *search_value,
+                                        lsm_pool **pool_array[],
                                         uint32_t *count, lsm_flag flags);
 
 /**
@@ -196,23 +200,31 @@ typedef int (*lsm_plug_init_list)( lsm_plugin_ptr c, lsm_initiator **init_array[
 /**
  * Retrieve a list of volumes.
  * @param[in]   c               Valid lsm plug-in pointer
+ * @param[in]   search_key      Search key
+ * @param[in]   search_value    Search value
  * @param[out]  vol_array        Array of volumes
  * @param[out]  count           Number of volumes
  * @param[in]   flags           Reserved
  * @return LSM_ERR_OK, else error reason
  */
-typedef int (*lsm_plug_volume_list)( lsm_plugin_ptr c, lsm_volume **vol_array[],
+typedef int (*lsm_plug_volume_list)( lsm_plugin_ptr c, const char *search_key,
+                                        const char *search_val,
+                                        lsm_volume **vol_array[],
                                         uint32_t *count, lsm_flag flags);
 
 /**
  * Retrieve a list of volumes.
  * @param[in]   c               Valid lsm plug-in pointer
+ * @param[in]   search_key      Search key
+ * @param[in]   search_value    Search value
  * @param[out]  disk_array       Array of disk pointers
  * @param[out]  count           Number of disks
  * @param[in]   flags           Reserved
  * @return LSM_ERR_OK, else error reason
  */
-typedef int (*lsm_plug_disk_list)( lsm_plugin_ptr c, lsm_disk **disk_array[],
+typedef int (*lsm_plug_disk_list)( lsm_plugin_ptr c, const char *search_key,
+                                const char *search_value,
+                                lsm_disk **disk_array[],
                                 uint32_t *count, lsm_flag flags);
 
 /**
@@ -497,12 +509,16 @@ typedef int (*lsm_plug_iscsi_chap_auth)(lsm_plugin_ptr c,
 /**
  * Retrieve a list of access groups, callback function signature
  * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   search_key          Field to search on
+ * @param[in]   search_value        Field value
  * @param[out]  groups              Array of groups
  * @param[out]  group_count          Number of groups
  * @param[in]   flags               Reserved
  * @return LSM_ERR_OK, else error reason
  */
 typedef int (*lsm_plug_access_group_list)(lsm_plugin_ptr c,
+                                        const char *search_key,
+                                        const char *search_value,
                                         lsm_access_group **groups[],
                                         uint32_t *group_count, lsm_flag flags);
 /**
@@ -657,12 +673,15 @@ typedef int (*lsm_plug_volume_child_dependency_delete)(lsm_plugin_ptr c,
 /**
  * File system list, callback function signature
  * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   search_key          Search key
+ * @param[in]   search_value        Search value
  * @param[out]  fs                  An array of file systems
  * @param[out]  fs_count             Number of file systems
  * @param[in] flags                 Reserved
  * @return LSM_ERR_OK, else error reason
  */
-typedef int (*lsm_plug_fs_list)(lsm_plugin_ptr c, lsm_fs **fs[],
+typedef int (*lsm_plug_fs_list)(lsm_plugin_ptr c, const char *search_key,
+                                    const char *search_value, lsm_fs **fs[],
                                     uint32_t *fs_count, lsm_flag flags);
 
 /**
@@ -827,14 +846,17 @@ typedef int (*lsm_plug_nfs_auth_types)( lsm_plugin_ptr c,
 /**
  * Retrieve a list of NFS exports, callback function signature
  * @param[in]   c                   Valid lsm plug-in pointer
+ * @param[in]   search_key          Search key
+ * @param[in]   search_value        Search value
  * @param[out]  exports             An array of exported file systems
  * @param[out]  count               Number of exported file systems
  * @param[in]   flags               Reserved
  * @return LSM_ERR_OK, else error reason
  */
-typedef int (*lsm_plug_nfs_list)( lsm_plugin_ptr c,
-                                            lsm_nfs_export **exports[],
-                                            uint32_t *count, lsm_flag flags);
+typedef int (*lsm_plug_nfs_list)( lsm_plugin_ptr c, const char *search_key,
+                                    const char *search_value,
+                                    lsm_nfs_export **exports[],
+                                    uint32_t *count, lsm_flag flags);
 /**
  * Exports a file system via NFS, callback function signature
  * @param[in]   c                   Valid lsm plug-in pointer
@@ -1278,6 +1300,80 @@ int LSM_DLL_EXPORT lsm_uri_parse(const char *uri, char **scheme, char **user,
                                 char **server, int *port, char **path,
                                 lsm_optional_data **query_params);
 
+/**
+ * Provides for volume filtering when an array doesn't support this natively.
+ * Note: Filters in place removing and freeing those that don't match.
+ * @param search_key        Search field
+ * @param search_value      Search value
+ * @param[in,out] vols      Array to filter
+ * @param[in,out] count     Number of volumes to filter, number remain
+ */
+void LSM_DLL_EXPORT lsm_plug_volume_search_filter(const char *search_key,
+                                            const char *search_value,
+                                            lsm_volume *vols[],
+                                            uint32_t *count);
+
+/**
+ * Provides for pool filtering when an array doesn't support this natively.
+ * Note: Filters in place removing and freeing those that don't match.
+ * @param search_key        Search field
+ * @param search_value      Search value
+ * @param[in,out] pools     Array to filter
+ * @param[in,out] count     Number of pools to filter, number remain
+ */
+void LSM_DLL_EXPORT lsm_plug_pool_search_filter( const char *search_key,
+                                            const char *search_value,
+                                            lsm_pool *pools[], uint32_t *count);
+
+/**
+ * Provides for disk filtering when an array doesn't support this natively.
+ * Note: Filters in place removing and freeing those that don't match.
+ * @param search_key        Search field
+ * @param search_value      Search value
+ * @param[in,out] disks     Array to filter
+ * @param[in,out] count     Number of disks to filter, number remain
+ */
+void LSM_DLL_EXPORT lsm_plug_disk_search_filter(const char *search_key,
+                                            const char *search_value,
+                                            lsm_disk *disks[], uint32_t *count);
+
+/**
+ * Provides for access group filtering when an array doesn't support this
+ * natively.
+ * Note: Filters in place removing and freeing those that don't match.
+ * @param search_key        Search field
+ * @param search_value      Search value
+ * @param[in,out] disks     Array to filter
+ * @param[in,out] count     Number of access groups to filter, number remain
+ */
+void LSM_DLL_EXPORT lsm_plug_access_group_search_filter(const char *search_key,
+                            const char *search_value,
+                            lsm_access_group *ag[], uint32_t *count);
+
+/**
+ * Provides for fs filtering when an array doesn't support this natively.
+ * Note: Filters in place removing and freeing those that don't match.
+ * @param search_key        Search field
+ * @param search_value      Search value
+ * @param[in,out] fs        Array to filter
+ * @param[in,out] count     Number of file systems to filter, number remain
+ */
+void LSM_DLL_EXPORT lsm_plug_fs_search_filter(const char *search_key,
+                                        const char *search_value,
+                                        lsm_fs *fs[], uint32_t *count);
+
+/**
+ * Provides for nfs filtering when an array doesn't support this natively.
+ * Note: Filters in place removing and freeing those that don't match.
+ * @param search_key        Search field
+ * @param search_value      Search value
+ * @param[in,out] fs        Array to filter
+ * @param[in,out] count     Number of nfs exports to filter, number remain
+ */
+void LSM_DLL_EXPORT lsm_plug_nfs_export_search_filter(const char *search_key,
+                                            const char *search_value,
+                                            lsm_nfs_export *exports[],
+                                            uint32_t *count);
 #ifdef  __cplusplus
 }
 #endif

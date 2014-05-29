@@ -29,6 +29,26 @@
 #include "lsm_datatypes.hpp"
 #include "lsm_convert.hpp"
 
+#define COUNT_OF(x) ((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x])))))
+
+static const char * const POOL_SEARCH_KEYS[] = { "id", "system_id" };
+#define POOL_SEARCH_KEYS_COUNT COUNT_OF(POOL_SEARCH_KEYS)
+
+static const char * const VOLUME_SEARCH_KEYS[] = {"id", "system_id", "pool_id"};
+#define VOLUME_SEARCH_KEYS_COUNT COUNT_OF(VOLUME_SEARCH_KEYS)
+
+static const char * const DISK_SEARCH_KEYS[] = {"id", "system_id"};
+#define DISK_SEARCH_KEYS_COUNT COUNT_OF(DISK_SEARCH_KEYS)
+
+static const char * const FS_SEARCH_KEYS[] = {"id", "system_id", "pool_id"};
+#define FS_SEARCH_KEYS_COUNT COUNT_OF(FS_SEARCH_KEYS)
+
+static const char * const NFS_EXPORT_SEARCH_KEYS[] = {"id", "fs_id"};
+#define NFS_EXPORT_SEARCH_KEYS_COUNT COUNT_OF(NFS_EXPORT_SEARCH_KEYS)
+
+static const char * const ACCESS_GROUP_SEARCH_KEYS[] = {"id", "system_id"};
+#define ACCESS_GROUP_SEARCH_KEYS_COUNT COUNT_OF(ACCESS_GROUP_SEARCH_KEYS)
+
 /**
  * Common code to validate and initialize the connection.
  */
@@ -39,6 +59,19 @@
     lsm_error_free(c->error);             \
     c->error = NULL;                    \
     } while (0)
+
+static int check_search_key(const char *search_key,
+                            const char * const supported_keys[],
+                            size_t supported_keys_count)
+{
+    size_t i = 0;
+    for( i = 0; i < supported_keys_count; ++i ) {
+        if( 0 == strcmp(search_key, supported_keys[i])) {
+            return 1;
+        }
+    }
+    return 0;
+}
 
 /**
  * Strings are non null with a len >= 1
@@ -182,6 +215,24 @@ static int getAccessGroups( lsm_connect *c, int rc, Value &response,
                             ve.what());
     }
     return rc;
+}
+
+static int add_search_params(std::map<std::string, Value> &p, const char *k,
+                                const char *v, const char * const supported_keys[],
+                                size_t supported_keys_count)
+{
+    if( k ) {
+        if( v ) {
+            if( !check_search_key(k, supported_keys, supported_keys_count) ) {
+                return LSM_ERR_UNSUPPORTED_SEARCH_KEY;
+            }
+        } else {
+            return LSM_ERR_INVALID_ARGUMENT;
+        }
+    }
+    p["search_key"] = Value(k);
+    p["search_value"] = Value(v);
+    return LSM_ERR_OK;
 }
 
 int lsm_connect_close(lsm_connect *c, lsm_flag flags)
@@ -625,8 +676,8 @@ int lsm_capabilities(lsm_connect *c, lsm_system *system,
     return rc;
 }
 
-int lsm_pool_list(lsm_connect *c, lsm_pool **poolArray[],
-                        uint32_t *count, lsm_flag flags)
+int lsm_pool_list(lsm_connect *c, char *search_key, char *search_value,
+                    lsm_pool **poolArray[], uint32_t *count, lsm_flag flags)
 {
     int rc = LSM_ERR_OK;
     CONN_SETUP(c);
@@ -637,6 +688,13 @@ int lsm_pool_list(lsm_connect *c, lsm_pool **poolArray[],
 
     try {
         std::map<std::string, Value> p;
+
+        rc = add_search_params(p, search_key, search_value, POOL_SEARCH_KEYS,
+                                POOL_SEARCH_KEYS_COUNT);
+        if( LSM_ERR_OK != rc ) {
+            return rc;
+        }
+
         p["flags"] = Value(flags);
         Value parameters(p);
         Value response;
@@ -737,8 +795,9 @@ static int get_volume_array(lsm_connect *c, int rc, Value &response,
 }
 
 
-int lsm_volume_list(lsm_connect *c, lsm_volume **volumes[], uint32_t *count,
-                    lsm_flag flags)
+int lsm_volume_list(lsm_connect *c, const char *search_key,
+                    const char *search_value, lsm_volume **volumes[],
+                    uint32_t *count, lsm_flag flags)
 {
     CONN_SETUP(c);
 
@@ -750,10 +809,16 @@ int lsm_volume_list(lsm_connect *c, lsm_volume **volumes[], uint32_t *count,
     std::map<std::string, Value> p;
     p["flags"] = Value(flags);
 
+    int rc = add_search_params(p, search_key, search_value, VOLUME_SEARCH_KEYS,
+                            VOLUME_SEARCH_KEYS_COUNT);
+    if( LSM_ERR_OK != rc ) {
+        return rc;
+    }
+
     Value parameters(p);
     Value response;
 
-    int rc = rpc(c, "volumes", parameters, response);
+    rc = rpc(c, "volumes", parameters, response);
     return get_volume_array(c, rc, response, volumes, count);
 }
 
@@ -771,8 +836,9 @@ static int get_disk_array(lsm_connect *c, int rc, Value &response,
     return rc;
 }
 
-int lsm_disk_list(lsm_connect *c, lsm_disk **disks[],
-                uint32_t *count, lsm_flag flags)
+int lsm_disk_list(lsm_connect *c, const char *search_key,
+                    const char *search_value,
+                    lsm_disk **disks[], uint32_t *count, lsm_flag flags)
 {
     CONN_SETUP(c);
 
@@ -783,10 +849,16 @@ int lsm_disk_list(lsm_connect *c, lsm_disk **disks[],
     std::map<std::string, Value> p;
     p["flags"] = Value(flags);
 
+    int rc = add_search_params(p, search_key, search_value, DISK_SEARCH_KEYS,
+                                DISK_SEARCH_KEYS_COUNT);
+    if( LSM_ERR_OK != rc ) {
+        return rc;
+    }
+
     Value parameters(p);
     Value response;
 
-    int rc = rpc(c, "disks", parameters, response);
+    rc = rpc(c, "disks", parameters, response);
     return get_disk_array(c, rc, response, disks, count);
 }
 
@@ -1468,8 +1540,10 @@ int lsm_volume_offline(lsm_connect *c, lsm_volume *volume, lsm_flag flags)
     return online_offline(c, volume, "volume_offline", flags);
 }
 
-int lsm_access_group_list( lsm_connect *c, lsm_access_group **groups[],
-                        uint32_t *groupCount, lsm_flag flags)
+int lsm_access_group_list(lsm_connect *c, const char *search_key,
+                            const char *search_value,
+                            lsm_access_group **groups[], uint32_t *groupCount,
+                            lsm_flag flags)
 {
     CONN_SETUP(c);
 
@@ -1478,11 +1552,19 @@ int lsm_access_group_list( lsm_connect *c, lsm_access_group **groups[],
     }
 
     std::map<std::string, Value> p;
+
+    int rc = add_search_params(p, search_key, search_value,
+                                ACCESS_GROUP_SEARCH_KEYS,
+                                ACCESS_GROUP_SEARCH_KEYS_COUNT);
+    if( LSM_ERR_OK != rc ) {
+        return rc;
+    }
+
     p["flags"] = Value(flags);
     Value parameters(p);
     Value response;
 
-    int rc = rpc(c, "access_groups", parameters, response);
+    rc = rpc(c, "access_groups", parameters, response);
     return getAccessGroups(c, rc, response, groups, groupCount);
 }
 
@@ -1849,8 +1931,9 @@ int lsm_system_list(lsm_connect *c, lsm_system **systems[],
     return rc;
 }
 
-int lsm_fs_list(lsm_connect *c, lsm_fs **fs[], uint32_t *fsCount,
-                lsm_flag flags)
+int lsm_fs_list(lsm_connect *c, const char *search_key,
+                const char *search_value, lsm_fs **fs[],
+                uint32_t *fsCount, lsm_flag flags)
 {
     int rc = LSM_ERR_OK;
     CONN_SETUP(c);
@@ -1861,6 +1944,13 @@ int lsm_fs_list(lsm_connect *c, lsm_fs **fs[], uint32_t *fsCount,
 
     try {
         std::map<std::string, Value> p;
+
+        int rc = add_search_params(p, search_key, search_value, FS_SEARCH_KEYS,
+                                    FS_SEARCH_KEYS_COUNT);
+        if( LSM_ERR_OK != rc ) {
+            return rc;
+        }
+
         p["flags"] = Value(flags);
         Value parameters(p);
         Value response;
@@ -2289,8 +2379,9 @@ int lsm_fs_ss_restore(lsm_connect *c, lsm_fs *fs, lsm_fs_ss *ss,
 
 }
 
-int lsm_nfs_list( lsm_connect *c, lsm_nfs_export **exports[], uint32_t *count,
-                lsm_flag flags)
+int lsm_nfs_list( lsm_connect *c, const char *search_key,
+                    const char *search_value, lsm_nfs_export **exports[],
+                    uint32_t *count, lsm_flag flags)
 {
     int rc = LSM_ERR_OK;
     CONN_SETUP(c);
@@ -2301,6 +2392,14 @@ int lsm_nfs_list( lsm_connect *c, lsm_nfs_export **exports[], uint32_t *count,
 
     try {
         std::map<std::string, Value> p;
+
+        rc = add_search_params(p, search_key, search_value,
+                                NFS_EXPORT_SEARCH_KEYS,
+                                NFS_EXPORT_SEARCH_KEYS_COUNT);
+        if( LSM_ERR_OK != rc ) {
+            return rc;
+        }
+
         p["flags"] = Value(flags);
         Value parameters(p);
         Value response;

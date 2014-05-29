@@ -142,7 +142,15 @@ typedef enum {
     LSM_CAP_POOL_CREATE_VOLUME_RAID_16              = 173,
     LSM_CAP_POOL_CREATE_VOLUME_RAID_NOT_APPLICABLE  = 174,
 
-    LSM_CAP_POOL_DELETE                             = 200       /**< Pool delete support */
+    LSM_CAP_POOL_DELETE                             = 200,       /**< Pool delete support */
+
+    LSM_CAP_POOLS_QUICK_SEARCH                      = 210,      /**< Seach occurs on array */
+    LSM_CAP_VOLUMES_QUICK_SEARCH                    = 211,      /**< Seach occurs on array */
+    LSM_CAP_DISKS_QUICK_SEARCH                      = 212,      /**< Seach occurs on array */
+    LSM_CAP_ACCESS_GROUPS_QUICK_SEARCH              = 213,      /**< Seach occurs on array */
+    LSM_CAP_FS_QUICK_SEARCH                         = 214,      /**< Seach occurs on array */
+    LSM_CAP_NFS_EXPORTS_QUICK_SEARCH                = 215       /**< Seach occurs on array */
+
 } lsm_capability_type;
 
 /**

@@ -226,12 +226,15 @@ extern "C" {
     /**
      * Query the list of storage pools on the array.
      * @param[in]   conn            Valid connection @see lsm_connect_password
+     * @param[in]   search_key      Search key (NULL for all)
+     * @param[in]   search_value    Search value
      * @param[out]  pool_array      Array of storage pools
      * @param[out]  count           Number of storage pools
      * @param[in] flags             Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success else error reason
      */
-    int LSM_DLL_EXPORT lsm_pool_list(lsm_connect *conn, lsm_pool **pool_array[],
+    int LSM_DLL_EXPORT lsm_pool_list(lsm_connect *conn, char *search_key,
+                                    char *search_value, lsm_pool **pool_array[],
                                     uint32_t *count, lsm_flag flags);
 
     /**
@@ -363,25 +366,36 @@ extern "C" {
 
     /**
      * Gets a list of logical units for this array.
-     * @param[in]   conn        Valid connection @see lsm_connect_password
-     * @param[out]   volumes    An array of lsm_volume
-     * @param[out]   count      Number of elements in the lsm_volume array
-     * @param[in] flags         Reserved for future use, must be zero.
+     * @param[in]   conn            Valid connection @see lsm_connect_password
+     * @param[in]   search_key      Search key (NULL for all)
+     * @param[in]   search_value    Search value
+     * @param[out]  volumes         An array of lsm_volume
+     * @param[out]  count           Number of elements in the lsm_volume array
+     * @param[in] flags             Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success else error reason
      */
-    int LSM_DLL_EXPORT lsm_volume_list(lsm_connect *conn, lsm_volume **volumes[],
+    int LSM_DLL_EXPORT lsm_volume_list(lsm_connect *conn,
+                                        const char *search_key,
+                                        const char *search_value,
+                                        lsm_volume **volumes[],
                                         uint32_t *count, lsm_flag flags);
 
     /**
      * Get a list of disk for this array.
-     * @param [in]      conn    Valid connection @see lsm_connect_password
-     * @param [out]     disks   An array of lsm_disk types
-     * @param [out]     count   Number of disks
-     * @param [in]      flags   Use LSM_DISK_RETRIEVE_FULL_INFO for all data, else 0
+     * @param [in]      conn            Valid connection @see
+     *                                  lsm_connect_password
+     * @param[in]       search_key      Search key (NULL for all)
+     * @param[in]       search_value    Search value
+     * @param [out]     disks           An array of lsm_disk types
+     * @param [out]     count           Number of disks
+     * @param [in]      flags           Use LSM_DISK_RETRIEVE_FULL_INFO for all
+     *                                  data, else 0
      * @return LSM_ERR_OK on success else error reason
      */
-    int LSM_DLL_EXPORT lsm_disk_list(lsm_connect *conn, lsm_disk **disks[],
-                                    uint32_t *count, lsm_flag flags);
+    int LSM_DLL_EXPORT lsm_disk_list(lsm_connect *conn, const char * search_key,
+                                        const char *search_value,
+                                        lsm_disk **disks[], uint32_t *count,
+                                        lsm_flag flags);
 
     /**
      * Creates a new volume (aka. LUN).
@@ -550,12 +564,16 @@ extern "C" {
     /**
      * Retrieves a list of access groups.
      * @param[in] conn              Valid connection @see lsm_connect_password
+     * @param[in] search_key        Search key (NULL for all)
+     * @param[in] search_value      Search value
      * @param[out] groups           Array of access groups
      * @param[out] group_count      Size of array
      * @param[in] flags             Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
     int LSM_DLL_EXPORT lsm_access_group_list(lsm_connect *conn,
+                                            const char *search_key,
+                                            const char *search_value,
                                             lsm_access_group **groups[],
                                             uint32_t *group_count,
                                             lsm_flag flags);
@@ -745,12 +763,15 @@ extern "C" {
     /**
      * Retrieves information about the available file systems.
      * @param[in] conn                  Valid connection
+     * @param[in]  search_key           Search key (NULL for all)
+     * @param[in]  search_value         Search value
      * @param[out] fs                   Array of lsm_fs
      * @param[out] fs_count             Number of file systems
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason
      */
-    int LSM_DLL_EXPORT lsm_fs_list(lsm_connect *conn, lsm_fs **fs[],
+    int LSM_DLL_EXPORT lsm_fs_list(lsm_connect *conn, const char *search_key,
+                                    const char *search_value, lsm_fs **fs[],
                                     uint32_t *fs_count, lsm_flag flags);
 
     /**
@@ -935,12 +956,15 @@ extern "C" {
     /**
      * Lists the nfs exports on the specified array.
      * @param[in] c                     Valid connection
+     * @param[in] search_key            Search key (NULL for all)
+     * @param[in] search_value          Search value
      * @param[out] exports              An array of lsm_nfs_export
      * @param[out] count                Number of items in array
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success else error code.
      */
-    int LSM_DLL_EXPORT lsm_nfs_list( lsm_connect *c,
+    int LSM_DLL_EXPORT lsm_nfs_list(lsm_connect *c, const char *search_key,
+                                            const char *search_value,
                                             lsm_nfs_export **exports[],
                                             uint32_t *count, lsm_flag flags);
 

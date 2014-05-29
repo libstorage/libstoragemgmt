@@ -429,7 +429,8 @@ static int job_status(lsm_plugin_ptr c, const char *job_id,
     return rc;
 }
 
-static int list_pools(lsm_plugin_ptr c, lsm_pool **pool_array[],
+static int list_pools(lsm_plugin_ptr c, const char *search_key,
+                        const char *search_value, lsm_pool **pool_array[],
                                         uint32_t *count, lsm_flag flags)
 {
     int rc = LSM_ERR_OK;
@@ -459,6 +460,11 @@ static int list_pools(lsm_plugin_ptr c, lsm_pool **pool_array[],
             rc = lsm_log_error_basic(c, LSM_ERR_NO_MEMORY, "ENOMEM");
         }
     }
+
+    if( LSM_ERR_OK == rc ) {
+        lsm_plug_pool_search_filter(search_key, search_value, *pool_array, count);
+    }
+
     return rc;
 }
 
@@ -628,13 +634,13 @@ static int list_initiators(lsm_plugin_ptr c, lsm_initiator **init_array[],
     return _list_initiators(c, init_array, count, flags, NULL);
 }
 
-static int list_volumes(lsm_plugin_ptr c, lsm_volume **vols[],
-                                        uint32_t *count, lsm_flag flags)
+static int list_volumes(lsm_plugin_ptr c, const char *search_key,
+                        const char *search_value,
+                        lsm_volume **vols[], uint32_t *count, lsm_flag flags)
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsm_private_data_get(c);
     *count = g_hash_table_size(pd->volumes);
-
 
     if( *count ) {
         *vols = lsm_volume_record_array_alloc( *count );
@@ -659,11 +665,17 @@ static int list_volumes(lsm_plugin_ptr c, lsm_volume **vols[],
             rc = lsm_log_error_basic(c, LSM_ERR_NO_MEMORY, "ENOMEM");
         }
     }
+
+    if( LSM_ERR_OK == rc ) {
+        lsm_plug_volume_search_filter(search_key, search_value, *vols, count);
+    }
+
     return rc;
 }
 
-static int list_disks(lsm_plugin_ptr c, lsm_disk **disks[], uint32_t *count,
-                        lsm_flag flags)
+static int list_disks(lsm_plugin_ptr c, const char *search_key,
+                        const char *search_value, lsm_disk **disks[],
+                        uint32_t *count, lsm_flag flags)
 {
     int rc = LSM_ERR_OK;
     struct plugin_data *pd = (struct plugin_data*)lsm_private_data_get(c);
@@ -693,6 +705,11 @@ static int list_disks(lsm_plugin_ptr c, lsm_disk **disks[], uint32_t *count,
             rc = lsm_log_error_basic(c, LSM_ERR_NO_MEMORY, "ENOMEM");
         }
     }
+
+    if( LSM_ERR_OK == rc ) {
+        lsm_plug_disk_search_filter(search_key, search_value, *disks, count);
+    }
+
     return rc;
 }
 
@@ -1171,6 +1188,8 @@ static int volume_online_offline(lsm_plugin_ptr c, lsm_volume *v,
 }
 
 static int access_group_list(lsm_plugin_ptr c,
+                                const char *search_key,
+                                const char *search_value,
                                 lsm_access_group **groups[],
                                 uint32_t *group_count, lsm_flag flags)
 {
@@ -1205,6 +1224,12 @@ static int access_group_list(lsm_plugin_ptr c,
             rc = LSM_ERR_NO_MEMORY;
         }
     }
+
+    if( LSM_ERR_OK == rc ) {
+        lsm_plug_access_group_search_filter(search_key, search_value, *groups,
+                group_count);
+    }
+
     return rc;
 }
 
@@ -1653,7 +1678,7 @@ static lsm_access_group *get_access_group( lsm_plugin_ptr c, char *group_name,
     lsm_access_group **groups = NULL;
     uint32_t count = 0;
 
-    int rc = access_group_list(c, &groups, &count, LSM_FLAG_RSVD);
+    int rc = access_group_list(c, NULL, NULL, &groups, &count, LSM_FLAG_RSVD);
 
     if( LSM_ERR_OK == rc ) {
         uint32_t i;
@@ -1862,7 +1887,8 @@ static struct lsm_san_ops_v1 san_ops = {
 };
 
 
-static int fs_list(lsm_plugin_ptr c, lsm_fs **fs[], uint32_t *count,
+static int fs_list(lsm_plugin_ptr c, const char *search_key,
+                    const char *search_value, lsm_fs **fs[], uint32_t *count,
                     lsm_flag flags)
 {
     int rc = LSM_ERR_OK;
@@ -1892,6 +1918,11 @@ static int fs_list(lsm_plugin_ptr c, lsm_fs **fs[], uint32_t *count,
             rc = lsm_log_error_basic(c, LSM_ERR_NO_MEMORY, "ENOMEM");
         }
     }
+
+    if( LSM_ERR_OK == rc ) {
+        lsm_plug_fs_search_filter(search_key, search_value, *fs, count);
+    }
+
     return rc;
 }
 
@@ -2248,8 +2279,10 @@ static int nfs_auth_types(lsm_plugin_ptr c, lsm_string_list **types,
     return rc;
 }
 
-static int nfs_export_list( lsm_plugin_ptr c, lsm_nfs_export **exports[],
-                                uint32_t *count, lsm_flag flags)
+static int nfs_export_list( lsm_plugin_ptr c, const char *search_key,
+                            const char *search_value,
+                            lsm_nfs_export **exports[], uint32_t *count,
+                            lsm_flag flags)
 {
     int rc = LSM_ERR_OK;
     GHashTableIter fs_iter;
@@ -2301,6 +2334,10 @@ static int nfs_export_list( lsm_plugin_ptr c, lsm_nfs_export **exports[],
     if( result ) {
         g_slist_free(result);
         result = NULL;
+    }
+
+    if( LSM_ERR_OK == rc ) {
+        lsm_plug_nfs_export_search_filter(search_key, search_value, *exports, count);
     }
 
     return rc;
