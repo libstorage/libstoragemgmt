@@ -161,6 +161,35 @@ PLUGINS will list all supported plugins of LSM, not only the current one.
 \fB-o\fR, \fB--optional\fR
 Optional. Valid for \fBPOOLS\fR and \fBDISKS\fR to retrieve optional data if
 available.
+.TP
+\fB--sys\fR \fI<SYS_ID>\fR
+Search resources from system with SYS_ID. Only supported when querying these
+types of resources: \fBVOLUMES\fR, \fBPOOLS\fR, \fBFS\fR,
+\fBSNAPSHOTS\fR, \fBDISKS\fR, \fBACCESS_GROUPS\fR.
+.TP
+\fB--pool\fR \fI<POOL_ID>\fR
+Search resources from pool with POOL_ID. Only supported by these types of
+resources: \fBVOLUMES\fR, \fBPOOLS\fR, \fBFS\fR.
+.TP
+\fB--vol\fR \fI<VOL_ID>\fR
+Search resources from volume with VOL_ID. Only supported by these types of
+resources: \fBVOLUMES\fR.
+.TP
+\fB--disk\fR \fI<DISK_ID>\fR
+Search resources from disk with DISK_ID. Only supported by these types of
+resources: \fBDISK\fR.
+.TP
+\fB--ag\fR \fI<AG_ID>\fR
+Search resources from access group with AG_ID. Only supported by these types
+of resources: \fBACCESS_GROUPS\fR.
+.TP
+\fB--fs\fR \fI<FS_ID>\fR
+Search resources from file system with FS_ID. Only supported by these types
+of resources: \fBFS\fR.
+.TP
+\fB--nfs-export\fR \fI<NFS_EXPORT_ID>\fR
+Search resources from NFS export with NFS_EXPORT_ID. Only supported by these
+types of resources: \fBEXPORTS\fR.
 
 .SS job-status
 Retrieve information about a job.

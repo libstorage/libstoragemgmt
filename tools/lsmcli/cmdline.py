@@ -28,7 +28,8 @@ from argparse import RawTextHelpFormatter
 
 from lsm import (Client, Pool, VERSION, LsmError, Capabilities, Disk,
                  Initiator, Volume, JobStatus, ErrorNumber, BlockRange,
-                 uri_parse, Proxy, size_human_2_size_bytes)
+                 uri_parse, Proxy, size_human_2_size_bytes, System,
+                 AccessGroup, FileSystem, NfsExport)
 
 from lsm.lsmcli.data_display import (
     DisplayData, PlugData, out,
@@ -138,13 +139,33 @@ for i in range(0, len(raid_types), 4):
 raid_help = "Valid RAID type:" + raid_types_formatted
 
 sys_id_opt = dict(name='--sys', metavar='<SYS_ID>', help='System ID')
+sys_id_filter_opt = sys_id_opt
+sys_id_filter_opt['help'] = 'Search by System ID'
+
 pool_id_opt = dict(name='--pool', metavar='<POOL_ID>', help='Pool ID')
+pool_id_filter_opt = pool_id_opt
+pool_id_filter_opt['help'] = 'Search by Pool ID'
+
 vol_id_opt = dict(name='--vol', metavar='<VOL_ID>', help='Volume ID')
-fs_id_opt = dict(name='--fs', metavar='<FS_ID>', help='File system ID')
-ag_id_opt = dict(name='--ag', metavar='<AG_ID>', help='Access group ID')
+vol_id_filter_opt = vol_id_opt
+vol_id_filter_opt['help'] = 'Search by Volume ID'
+
+fs_id_opt = dict(name='--fs', metavar='<FS_ID>', help='File System ID')
+
+ag_id_opt = dict(name='--ag', metavar='<AG_ID>', help='Access Group ID')
+ag_id_filter_opt = ag_id_opt
+ag_id_filter_opt['help'] = 'Search by Access Group ID'
+
 init_id_opt = dict(name='--init', metavar='<INIT_ID>', help='Initiator ID')
 snap_id_opt = dict(name='--snap', metavar='<SNAP_ID>', help='Snapshot ID')
 export_id_opt = dict(name='--export', metavar='<EXPORT_ID>', help='Export ID')
+
+nfs_export_id_filter_opt = dict(
+    name='--nfs-export', metavar='<NFS_EXPORT_ID>',
+    help='Search by NFS Export ID')
+
+disk_id_filter_opt = dict(name='--disk', metavar='<DISK_ID>',
+                          help='Search by Disk ID')
 
 size_opt = dict(name='--size', metavar='<SIZE>', help=size_help)
 access_opt = dict(name='--access', metavar='<ACCESS>', help=access_help,
@@ -174,7 +195,13 @@ cmds = (
                  default=False,
                  dest='all',
                  action='store_true'),
+            dict(sys_id_filter_opt),
+            dict(pool_id_filter_opt),
+            dict(vol_id_filter_opt),
+            dict(disk_id_filter_opt),
+            dict(ag_id_filter_opt),
             dict(fs_id_opt),
+            dict(nfs_export_id_filter_opt),
         ],
     ),
 
@@ -890,16 +917,56 @@ class CmdLine:
     ## Method that calls the appropriate method based on what the list type is
     # @param    args    Argparse argument object
     def list(self, args):
+        search_key = None
+        search_value = None
+        if args.sys:
+            search_key = 'system_id'
+            search_value = args.sys
+        if args.pool:
+            search_key = 'pool_id'
+            search_value = args.pool
+        if args.vol:
+            search_key = 'volume_id'
+            search_value = args.vol
+        if args.disk:
+            search_key = 'disk_id'
+            search_value = args.disk
+        if args.ag:
+            search_key = 'access_group_id'
+            search_value = args.ag
+        if args.fs:
+            search_key = 'fs_id'
+            search_value = args.ag
+        if args.nfs_export:
+            search_key = 'nfs_export_id'
+            search_value = args.nfs_export
+
         if args.type == 'VOLUMES':
-            self.display_data(self.c.volumes())
+            if search_key == 'volume_id':
+                search_key = 'id'
+            if search_key and search_key not in Volume.SUPPORTED_SEARCH_KEYS:
+                raise ArgError("Search key '%s' is not supported by "
+                               "volume listing." % search_key)
+            self.display_data(self.c.volumes(search_key, search_value))
         elif args.type == 'POOLS':
+            if search_key == 'pool_id':
+                search_key = 'id'
+            if search_key and search_key not in Pool.SUPPORTED_SEARCH_KEYS:
+                raise ArgError("Search key '%s' is not supported by "
+                               "pool listing." % search_key)
+            flags = 0
             if args.all:
-                self.display_data(
-                    self.c.pools(Pool.RETRIEVE_FULL_INFO))
-            else:
-                self.display_data(self.c.pools())
+                flags |= Pool.RETRIEVE_FULL_INFO
+            self.display_data(
+                self.c.pools(search_key, search_value, flags))
         elif args.type == 'FS':
-            self.display_data(self.c.fs())
+            if search_key == 'fs_id':
+                search_key = 'id'
+            if search_key and \
+               search_key not in FileSystem.SUPPORTED_SEARCH_KEYS:
+                raise ArgError("Search key '%s' is not supported by "
+                               "volume listing." % search_key)
+            self.display_data(self.c.fs(search_key, search_value))
         elif args.type == 'SNAPSHOTS':
             if args.fs is None:
                 raise ArgError("--fs <file system id> required")
@@ -909,19 +976,39 @@ class CmdLine:
         elif args.type == 'INITIATORS':
             self.display_data(self.c.initiators())
         elif args.type == 'EXPORTS':
-            self.display_data(self.c.exports())
+            if search_key == 'nfs_export_id':
+                search_key = 'id'
+            if search_key and \
+               search_key not in NfsExport.SUPPORTED_SEARCH_KEYS:
+                raise ArgError("Search key '%s' is not supported by "
+                               "NFS Export listing" % search_key)
+            self.display_data(self.c.exports(search_key, search_value))
         elif args.type == 'NFS_CLIENT_AUTH':
             self.display_nfs_client_authentication()
         elif args.type == 'ACCESS_GROUPS':
-            self.display_data(self.c.access_groups())
+            if search_key == 'access_group_id':
+                search_key = 'id'
+            if search_key and \
+               search_key not in AccessGroup.SUPPORTED_SEARCH_KEYS:
+                raise ArgError("Search key '%s' is not supported by "
+                               "Access Group listing" % search_key)
+            self.display_data(
+                self.c.access_groups(search_key,search_value))
         elif args.type == 'SYSTEMS':
+            if search_key:
+                raise ArgError("System listing with search is not supported")
             self.display_data(self.c.systems())
         elif args.type == 'DISKS':
+            if search_key == 'disk_id':
+                search_key = 'id'
+            if search_key and search_key not in Disk.SUPPORTED_SEARCH_KEYS:
+                raise ArgError("Search key '%s' is not supported by "
+                               "disk listing" % search_key)
+            flags = 0
             if args.all:
-                self.display_data(
-                    self.c.disks(Disk.RETRIEVE_FULL_INFO))
-            else:
-                self.display_data(self.c.disks())
+                flags |= Disk.RETRIEVE_FULL_INFO
+            self.display_data(
+                self.c.disks(search_key, search_value, flags))
         elif args.type == 'PLUGINS':
             self.display_available_plugins()
         else:
@@ -1178,6 +1265,18 @@ class CmdLine:
         self._cp("EXPORT_REMOVE", cap.supported(Capabilities.EXPORT_REMOVE))
         self._cp("EXPORT_CUSTOM_PATH",
                  cap.supported(Capabilities.EXPORT_CUSTOM_PATH))
+        self._cp("POOLS_QUICK_SEARCH",
+                 cap.supported(Capabilities.POOLS_QUICK_SEARCH))
+        self._cp("VOLUMES_QUICK_SEARCH",
+                 cap.supported(Capabilities.VOLUMES_QUICK_SEARCH))
+        self._cp("DISKS_QUICK_SEARCH",
+                 cap.supported(Capabilities.DISKS_QUICK_SEARCH))
+        self._cp("FS_QUICK_SEARCH",
+                 cap.supported(Capabilities.FS_QUICK_SEARCH))
+        self._cp("ACCESS_GROUPS_QUICK_SEARCH",
+                 cap.supported(Capabilities.ACCESS_GROUPS_QUICK_SEARCH))
+        self._cp("NFS_EXPORTS_QUICK_SEARCH",
+                 cap.supported(Capabilities.NFS_EXPORTS_QUICK_SEARCH))
 
     def plugin_info(self, args):
         desc, version = self.c.plugin_info()
