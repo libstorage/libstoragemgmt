@@ -15,6 +15,7 @@
 # USA
 #
 # Author: tasleson
+#         Gris Ge <fge@redhat.com>
 
 import os
 import traceback
@@ -25,7 +26,8 @@ import na
 from lsm import (Volume, Initiator, FileSystem, FsSnapshot, NfsExport,
                  AccessGroup, System, Capabilities, Disk, Pool, OptionalData,
                  IStorageAreaNetwork, INfs, LsmError, ErrorNumber, JobStatus,
-                 md5, Error, VERSION, common_urllib2_error_handler)
+                 md5, Error, VERSION, common_urllib2_error_handler,
+                 search_property)
 
 #Maps na to lsm, this is expected to expand over time.
 e_map = {
@@ -202,7 +204,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         #If we use the newer API we can use the uuid instead of this fake
         #md5 one
         return FsSnapshot(md5(s['name'] + s['access-time']), s['name'],
-                        s['access-time'])
+                          s['access-time'])
 
     @staticmethod
     def _disk_type(netapp_disk_type):
@@ -287,9 +289,10 @@ class Ontap(IStorageAreaNetwork, INfs):
                     self.sys_info.id, opt_data)
 
     @handle_ontap_errors
-    def volumes(self, flags=0):
+    def volumes(self, search_key=None, search_value=None, flags=0):
         luns = self.f.luns_get_all()
-        return [self._lun(l) for l in luns]
+        return search_property(
+            [self._lun(l) for l in luns], search_key, search_value)
 
     @staticmethod
     def _pool_id(na_xxx):
@@ -471,12 +474,13 @@ class Ontap(IStorageAreaNetwork, INfs):
         return "NetApp Filer support", VERSION
 
     @handle_ontap_errors
-    def disks(self, flags=0):
+    def disks(self, search_key=None, search_value=None, flags=0):
         disks = self.f.disks()
-        return [self._disk(d, flags) for d in disks]
+        return search_property(
+            [self._disk(d, flags) for d in disks], search_key, search_value)
 
     @handle_ontap_errors
-    def pools(self, flags=0):
+    def pools(self, search_key=None, search_value=None, flags=0):
         pools = []
         na_aggrs = self.f.aggregates()
         na_disks = []
@@ -489,7 +493,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         na_vols = self.f.volumes()
         for na_vol in na_vols:
             pools.extend([self._pool_from_na_vol(na_vol, na_aggrs, flags)])
-        return pools
+        return search_property(pools, search_key, search_value)
 
     @handle_ontap_errors
     def systems(self, flags=0):
@@ -742,9 +746,10 @@ class Ontap(IStorageAreaNetwork, INfs):
                            self.sys_info.id)
 
     @handle_ontap_errors
-    def access_groups(self, flags=0):
+    def access_groups(self, search_key=None, search_value=None, flags=0):
         groups = self.f.igroups()
-        return [self._access_group(g) for g in groups]
+        return search_property(
+            [self._access_group(g) for g in groups], search_key, search_value)
 
     @handle_ontap_errors
     def access_group_create(self, name, initiator_id, id_type, system_id,
@@ -863,10 +868,11 @@ class Ontap(IStorageAreaNetwork, INfs):
         return None
 
     @handle_ontap_errors
-    def fs(self, flags=0):
+    def fs(self, search_key=None, search_value=None, flags=0):
         volumes = self.f.volumes()
         pools = self.pools()
-        return [self._vol(v, pools) for v in volumes]
+        return search_property(
+            [self._vol(v, pools) for v in volumes], search_key, search_value)
 
     @handle_ontap_errors
     def fs_delete(self, fs, flags=0):
@@ -896,7 +902,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def fs_file_clone(self, fs, src_file_name, dest_file_name, snapshot=None,
-                   flags=0):
+                      flags=0):
         full_src = Ontap.build_name(fs.name, src_file_name)
         full_dest = Ontap.build_name(fs.name, dest_file_name)
 
@@ -923,7 +929,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         self.f.snapshot_delete(fs.name, snapshot.name)
 
     def _ss_restore_files(self, volume_name, snapshot_name, files,
-                         restore_files):
+                          restore_files):
         for i in range(len(files)):
             src = Ontap.build_name(volume_name, files[i])
             dest = None
@@ -933,7 +939,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def fs_snapshot_restore(self, fs, snapshot, files, restore_files,
-                           all_files=False, flags=0):
+                            all_files=False, flags=0):
         """
         Restores a FS or files on a FS.
         Note: Restoring an individual file is a O(n) operation, i.e. time it
@@ -949,7 +955,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                                "num files != num restore_files")
 
             self._ss_restore_files(fs.name, snapshot.name, files,
-                                  restore_files)
+                                   restore_files)
             return "%s@%d" % (Ontap.SS_JOB, len(files))
         else:
             raise LsmError(ErrorNumber.INVALID_ARGUMENT,
@@ -1019,11 +1025,13 @@ class Ontap(IStorageAreaNetwork, INfs):
                          None)
 
     @handle_ontap_errors
-    def exports(self, flags=0):
+    def exports(self, search_key=None, search_value=None, flags=0):
         #Get the file systems once and pass to _export which needs to lookup
         #the file system id by name.
         v = self.fs()
-        return [Ontap._export(v, e) for e in self.f.nfs_exports()]
+        return search_property(
+            [Ontap._export(v, e) for e in self.f.nfs_exports()],
+            search_key, search_value)
 
     def _get_volume_from_id(self, fs_id):
         fs = self.fs()

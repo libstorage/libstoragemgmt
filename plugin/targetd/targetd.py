@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright (C) 2011-2013 Red Hat, Inc.
+# Copyright (C) 2011-2014 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -16,14 +16,14 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
 #
 # Author: Andy Grover <agrover at redhat com>
+#         Gris Ge <fge@redhat.com>
 
 import copy
 
 from lsm import (Pool, Volume, System, Capabilities, Initiator,
                  IStorageAreaNetwork, INfs, FileSystem, FsSnapshot, NfsExport,
                  LsmError, ErrorNumber, uri_parse, md5, VERSION,
-                 common_urllib2_error_handler)
-
+                 common_urllib2_error_handler, search_property)
 
 import urllib2
 import json
@@ -144,7 +144,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
     @handle_errors
-    def volumes(self, flags=0):
+    def volumes(self, search_key=None, search_value=None, flags=0):
         volumes = []
         for p_name in (p['name'] for p in self._jsonrequest("pool_list") if
                        p['type'] == 'block'):
@@ -154,16 +154,16 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                            512, vol['size'] / 512,
                            Volume.STATUS_OK,
                            self.system.id, p_name))
-        return volumes
+        return search_property(volumes, search_key, search_value)
 
     @handle_errors
-    def pools(self, flags=0):
+    def pools(self, search_key=None, search_value=None, flags=0):
         pools = []
         for pool in self._jsonrequest("pool_list"):
             pools.append(Pool(pool['name'], pool['name'], pool['size'],
                               pool['free_size'], Pool.STATUS_UNKNOWN, '',
                               'targetd'))
-        return pools
+        return search_property(pools, search_key, search_value)
 
     @handle_errors
     def initiators(self, flags=0):
@@ -307,14 +307,14 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         return inits
 
     @handle_errors
-    def fs(self, flags=0):
+    def fs(self, search_key=None, search_value=None, flags=0):
         rc = []
         for fs in self._jsonrequest("fs_list"):
             #self, id, name, total_space, free_space, pool_id, system_id
             rc.append(FileSystem(fs['uuid'], fs['name'], fs['total_space'],
                                  fs['free_space'], fs['pool'],
                                  self.system.id))
-        return rc
+        return search_property(rc, search_key, search_value)
 
     @handle_errors
     def fs_delete(self, fs, flags=0):
@@ -397,7 +397,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         return md5(export_path + opts)
 
     @handle_errors
-    def exports(self, flags=0):
+    def exports(self, search_key=None, search_value=None, flags=0):
         tmp_exports = {}
         exports = []
         fs_full_paths = {}
@@ -470,7 +470,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                 export['path'], sec, root, rw, ro, anonuid,
                 anongid, TargetdStorage._option_string(options)))
 
-        return exports
+        return search_property(exports, search_key, search_value)
 
     def _get_fs_path(self, fs_id):
         for fs in self._jsonrequest("fs_list"):

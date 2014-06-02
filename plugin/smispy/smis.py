@@ -26,7 +26,8 @@ from pywbem import CIMError
 
 from lsm import (IStorageAreaNetwork, Error, uri_parse, LsmError, ErrorNumber,
                  JobStatus, md5, Pool, Initiator, Volume, AccessGroup, System,
-                 Capabilities, Disk, OptionalData, txt_a, VERSION)
+                 Capabilities, Disk, OptionalData, txt_a, VERSION,
+                 search_property)
 
 ## Variable Naming scheme:
 #   cim_xxx         CIMInstance
@@ -79,13 +80,14 @@ def handle_cim_errors(method):
                            traceback.format_exc())
     return cim_wrapper
 
+
 def _spec_ver_str_to_num(spec_ver_str):
     """
     Convert version string stored in CIM_RegisteredProfile to a integer.
     Example:
         "1.5.1" -> 1,005,001
     """
-    tmp_list = [0,0,0]
+    tmp_list = [0, 0, 0]
     tmp_list = spec_ver_str.split(".")
     if len(tmp_list) == 2:
         tmp_list.extend([0])
@@ -95,14 +97,15 @@ def _spec_ver_str_to_num(spec_ver_str):
                 int(tmp_list[2]))
     return None
 
+
 class SNIA(object):
     BLK_ROOT_PROFILE = 'Array'
     BLK_SRVS_PROFILE = 'Block Services'
     DISK_LITE_PROFILE = 'Disk Drive Lite'
     MULTI_SYS_PROFILE = 'Multiple Computer System'
-    SMIS_SPEC_VER_1_4 ='1.4'
-    SMIS_SPEC_VER_1_5 ='1.5'
-    SMIS_SPEC_VER_1_6 ='1.6'
+    SMIS_SPEC_VER_1_4 = '1.4'
+    SMIS_SPEC_VER_1_5 = '1.5'
+    SMIS_SPEC_VER_1_6 = '1.6'
     REG_ORG_CODE = pywbem.Uint16(11)
 
 
@@ -577,13 +580,13 @@ class Smis(IStorageAreaNetwork):
 
         if 'force_fallback_mode' in u['parameters'] and \
            u['parameters']['force_fallback_mode'] == 'yes':
-           return
+            return
 
         # Checking profile registration support status unless
         # force_fallback_mode is enabled in URI.
         namespace_check_list = Smis.DMTF_INTEROP_NAMESPACES
         if 'namespace' in u['parameters'] and \
-            u['parameters']['namespace'] not in namespace_check_list:
+           u['parameters']['namespace'] not in namespace_check_list:
             namespace_check_list.extend([u['parameters']['namespace']])
 
         for interop_namespace in Smis.DMTF_INTEROP_NAMESPACES:
@@ -707,7 +710,7 @@ class Smis(IStorageAreaNetwork):
                 cap.set(Capabilities.VOLUME_REPLICATE_CLONE)
 
             if self.RepSvc.RepTypes.SYNC_CLONE_LOCAL in s_rt or \
-                        self.RepSvc.RepTypes.ASYNC_CLONE_LOCAL in s_rt:
+               self.RepSvc.RepTypes.ASYNC_CLONE_LOCAL in s_rt:
                 cap.set(Capabilities.VOLUME_REPLICATE_COPY)
         else:
             # Try older storage configuration service
@@ -728,14 +731,14 @@ class Smis(IStorageAreaNetwork):
                     if len(sct):
                         cap.set(Capabilities.VOLUME_REPLICATE)
 
-                        # Mirror support is not working and is not supported at
-                        # this time.
+                    # Mirror support is not working and is not supported at
+                    # this time.
 
-                        # if Smis.CopyTypes.ASYNC in sct:
-                        #    cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC)
+                    # if Smis.CopyTypes.ASYNC in sct:
+                    #    cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC)
 
-                        # if Smis.CopyTypes.SYNC in sct:
-                        #    cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_SYNC)
+                    # if Smis.CopyTypes.SYNC in sct:
+                    #    cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_SYNC)
 
                         if Smis.CopyTypes.UNSYNCASSOC in sct:
                             cap.set(Capabilities.VOLUME_REPLICATE_CLONE)
@@ -1285,7 +1288,7 @@ class Smis(IStorageAreaNetwork):
         return self._new_pool(cim_pools[0])
 
     @handle_cim_errors
-    def volumes(self, flags=0):
+    def volumes(self, search_key=None, search_value=None, flags=0):
         """
         Return all volumes.
         We are basing on "Block Services Package" profile version 1.4 or
@@ -1328,7 +1331,7 @@ class Smis(IStorageAreaNetwork):
                     else:
                         vol = self._new_vol(cim_vol, pool_id, sys_id)
                         rc.extend([vol])
-        return rc
+        return search_property(rc, search_key, search_value)
 
     def _systems(self, system_name=None):
         """
@@ -1413,7 +1416,7 @@ class Smis(IStorageAreaNetwork):
         return pool_pros
 
     @handle_cim_errors
-    def pools(self, flags=0):
+    def pools(self, search_key=None, search_value=None, flags=0):
         """
         We are basing on "Block Services Package" profile version 1.4 or
         later:
@@ -1474,7 +1477,7 @@ class Smis(IStorageAreaNetwork):
                     raise LsmError(ErrorNumber.INTERNAL_ERROR,
                                    "Failed to retrieve pool information " +
                                    "from CIM_StoragePool: %s" % cim_pool.path)
-        return rc
+        return search_property(rc, search_key, search_value)
 
     def _sys_id_of_cim_pool(self, cim_pool):
         """
@@ -1526,9 +1529,10 @@ class Smis(IStorageAreaNetwork):
                     status |= System.STATUS_OK
                 elif os == Smis.SystemOperationalStatus.DEGRADED:
                     status |= System.STATUS_DEGRADED
-                elif os == Smis.SystemOperationalStatus.ERROR or \
-                     os == Smis.SystemOperationalStatus.STRESSED or \
-                     os == Smis.SystemOperationalStatus.NON_RECOVERABLE_ERROR:
+                elif (os == Smis.SystemOperationalStatus.ERROR or
+                      os == Smis.SystemOperationalStatus.STRESSED or
+                      os ==
+                        Smis.SystemOperationalStatus.NON_RECOVERABLE_ERROR):
                     status |= System.STATUS_ERROR
                 elif os == Smis.SystemOperationalStatus.PREDICTIVE_FAILURE:
                     status |= System.STATUS_PREDICTIVE_FAILURE
@@ -2141,10 +2145,12 @@ class Smis(IStorageAreaNetwork):
                 'Error: access group %s does not exist!' % volume.id)
 
     @handle_cim_errors
-    def access_groups(self, flags=0):
+    def access_groups(self, search_key=None, search_value=None, flags=0):
         cim_spc_pros = self._new_access_group_cim_spc_pros()
         cim_spcs = self._get_access_groups(property_list=cim_spc_pros)
-        return [self._new_access_group(cim_spc) for cim_spc in cim_spcs]
+        return search_property(
+            [self._new_access_group(cim_spc) for cim_spc in cim_spcs],
+            search_key, search_value)
 
     def _initiator_lookup(self, initiator_id):
         """
@@ -2194,7 +2200,6 @@ class Smis(IStorageAreaNetwork):
                         *(self._c.InvokeMethod('HidePaths', ccs.path,
                                                **hide_params)))[0]
 
-
     @handle_cim_errors
     def job_free(self, job_id, flags=0):
         """
@@ -2210,7 +2215,7 @@ class Smis(IStorageAreaNetwork):
                 pass
 
     @handle_cim_errors
-    def disks(self, flags=0):
+    def disks(self, search_key=None, search_value=None, flags=0):
         """
         return all object of data.Disk.
         We are using "Disk Drive Lite Subprofile" v1.4 of SNIA SMI-S for these
@@ -2255,7 +2260,7 @@ class Smis(IStorageAreaNetwork):
                                                         cim_ext_pros)
 
                 rc.extend([self._new_disk(cim_disk, cim_ext, flags)])
-        return rc
+        return search_property(rc, search_key, search_value)
 
     @staticmethod
     def _new_disk_cim_disk_pros(flag=0):
@@ -2922,8 +2927,8 @@ class Smis(IStorageAreaNetwork):
         cim_sys_pros = self._property_list_of_id("System")
         if not self.fallback_mode and \
            self._profile_is_supported(SNIA.BLK_SRVS_PROFILE,
-                                 SNIA.SMIS_SPEC_VER_1_4,
-                                 strict=False) is None:
+                                      SNIA.SMIS_SPEC_VER_1_4,
+                                      strict=False) is None:
             raise LsmError(ErrorNumber.NO_SUPPORT,
                            "SMI-S %s version %s is not supported" %
                            (SNIA.BLK_SRVS_PROFILE,
@@ -2953,8 +2958,8 @@ class Smis(IStorageAreaNetwork):
         """
         if not self.fallback_mode and \
            self._profile_is_supported(SNIA.BLK_SRVS_PROFILE,
-                                 SNIA.SMIS_SPEC_VER_1_4,
-                                 strict=False) is None:
+                                      SNIA.SMIS_SPEC_VER_1_4,
+                                      strict=False) is None:
             raise LsmError(ErrorNumber.NO_SUPPORT,
                            "SMI-S %s version %s is not supported" %
                            (SNIA.BLK_SRVS_PROFILE,
@@ -3085,8 +3090,8 @@ class Smis(IStorageAreaNetwork):
         possible_element_names = []
         if raid_type == Pool.RAID_TYPE_JBOD:
             possible_element_names = ['JBOD']
-        elif raid_type == Pool.RAID_TYPE_RAID0 or \
-             raid_type == Pool.RAID_TYPE_NOT_APPLICABLE:
+        elif (raid_type == Pool.RAID_TYPE_RAID0 or
+              raid_type == Pool.RAID_TYPE_NOT_APPLICABLE):
             possible_element_names = ['RAID0']
         elif raid_type == Pool.RAID_TYPE_RAID1:
             possible_element_names = ['RAID1']
@@ -3376,7 +3381,7 @@ class Smis(IStorageAreaNetwork):
         # we enumerate CIM_ComputerSystem.
             try:
                 cim_scss_path = self._c.EnumerateInstanceNames(
-                        'CIM_StorageConfigurationService')
+                    'CIM_StorageConfigurationService')
             except CIMError as e:
                 # If array does not support CIM_StorageConfigurationService
                 # we use CIM_ComputerSystem which is mandatory.
@@ -3432,7 +3437,6 @@ class Smis(IStorageAreaNetwork):
             return needed_cim_syss
         else:
             return cim_syss
-
 
     def _cim_sys_of_id(self, system_id, property_list=None):
         """

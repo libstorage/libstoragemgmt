@@ -30,7 +30,7 @@ import time
 from lsm import (AccessGroup, Capabilities, ErrorNumber, FileSystem, INfs,
                  IStorageAreaNetwork, Initiator, LsmError, NfsExport, Pool,
                  FsSnapshot, System, VERSION, Volume, md5,
-                 common_urllib2_error_handler)
+                 common_urllib2_error_handler, search_property)
 
 
 class NexentaStor(INfs, IStorageAreaNetwork):
@@ -104,7 +104,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                 float(size[:-1]) * 1024 * 1024 * 1024 * 1024 * 1024 * 1024)
         return size
 
-    def pools(self, flags=0):
+    def pools(self, search_key=None, search_value=None, flags=0):
         pools_list = self._request("get_all_names", "volume", [""])
 
         pools = []
@@ -120,9 +120,9 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                               Pool.STATUS_UNKNOWN, '',
                               self.system.id))
 
-        return pools
+        return search_property(pools, search_key, search_value)
 
-    def fs(self, flags=0):
+    def fs(self, search_key=None, search_value=None, flags=0):
         fs_list = self._request("get_all_names", "folder", [""])
 
         fss = []
@@ -143,7 +143,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                                   pool_name,
                                   fs))
 
-        return fss
+        return search_property(fss, search_key, search_value)
 
     def fs_create(self, pool, name, size_bytes, flags=0):
         """
@@ -171,7 +171,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             snapshot_info = self._request("get_child_props", "snapshot",
                                           [snapshot, "creation_seconds"])
             snapshots.append(FsSnapshot(snapshot, snapshot,
-                                      snapshot_info['creation_seconds']))
+                                        snapshot_info['creation_seconds']))
 
         return snapshots
 
@@ -182,7 +182,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         snapshot_info = self._request("get_child_props", "snapshot",
                                       [full_name, "creation_seconds"])
         return None, FsSnapshot(full_name, full_name,
-                              snapshot_info['creation_seconds'])
+                                snapshot_info['creation_seconds'])
 
     def fs_snapshot_delete(self, fs, snapshot, flags=0):
         self._request("destroy", "snapshot", [snapshot.name, ""])
@@ -302,11 +302,11 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         return None, fs
 
     def fs_file_clone(self, fs, src_file_name, dest_file_name, snapshot=None,
-                   flags=0):
+                      flags=0):
         return
 
     def fs_snapshot_restore(self, fs, snapshot, files, restore_files,
-                           all_files=False, flags=0):
+                            all_files=False, flags=0):
         self._request("rollback", "snapshot", [snapshot.name, '-r'])
         return
 
@@ -350,7 +350,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             rc.append(m.split('=>')[0])
         return rc
 
-    def exports(self, flags=0):
+    def exports(self, search_key=None, search_value=None, flags=0):
         """
         Get a list of all exported file systems on the controller.
         """
@@ -368,7 +368,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                                      'N/A', 'N/A',
                                      opts['extra_options']))
 
-        return exports
+        return search_property(exports, search_key, search_value)
 
     def export_fs(self, fs_id, export_path, root_list, rw_list, ro_list,
                   anon_uid, anon_gid, auth_type, options, flags=0):
@@ -417,7 +417,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
     def _calc_group(name):
         return 'lsm_' + md5(name)[0:8]
 
-    def volumes(self, flags=0):
+    def volumes(self, search_key=None, search_value=None, flags=0):
         """
         Returns an array of volume objects
 
@@ -464,7 +464,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                                    'N/A',
                                    NexentaStor._get_pool_id(lu)))
 
-        return vol_list
+        return search_property(vol_list, search_key, search_value)
 
     def initiators(self, flags=0):
         """
@@ -693,7 +693,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                       [volume.name, view_number])
         return
 
-    def access_group(self, flags=0):
+    def access_groups(self, search_key=None, search_value=None, flags=0):
         """
         Returns a list of access groups
         """
@@ -705,7 +705,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                                        [hg])
 
             ag_list.append(AccessGroup(hg, hg, initiators, self.system.id))
-        return ag_list
+        return search_property(ag_list, search_key, search_value)
 
     def access_group_create(self, name, initiator_id, id_type, system_id,
                             flags=0):

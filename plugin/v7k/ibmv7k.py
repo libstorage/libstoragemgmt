@@ -18,7 +18,8 @@
 import paramiko
 
 from lsm import (Capabilities, ErrorNumber, IStorageAreaNetwork, Initiator,
-                 LsmError, Pool, System, VERSION, Volume, uri_parse)
+                 LsmError, Pool, System, VERSION, Volume, uri_parse,
+                 search_property)
 
 
 def handle_ssh_errors(method):
@@ -423,16 +424,20 @@ class IbmV7k(IStorageAreaNetwork):
     def plugin_info(self, flags=0):
         return "IBM V7000 lsm plugin", VERSION
 
-    def pools(self, flags=0):
+    def pools(self, search_key=None, search_value=None, flags=0):
         gp = self._get_pools()
-        return [self._pool(p) for p in gp.itervalues()]
+        return search_property(
+            [self._pool(p) for p in gp.itervalues()],
+            search_key, search_value)
 
     def systems(self, flags=0):
         return [self.sys_info]
 
-    def volumes(self, flags=0):
+    def volumes(self, search_key=None, search_value=None, flags=0):
         gv = self._get_volumes()
-        return [self._volume(v) for v in gv.itervalues()]
+        return search_property(
+            [self._volume(v) for v in gv.itervalues()],
+            search_key, search_value)
 
     def initiators(self, flags=0):
         init_list = []

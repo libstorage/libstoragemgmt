@@ -16,10 +16,9 @@
 # Author: tasleson
 
 from lsm import (uri_parse, VERSION, Capabilities, Pool, INfs,
-                 IStorageAreaNetwork, Error)
+                 IStorageAreaNetwork, Error, search_property)
 
 from simarray import SimArray
-
 
 class SimPlugin(INfs, IStorageAreaNetwork):
     """
@@ -76,6 +75,13 @@ class SimPlugin(INfs, IStorageAreaNetwork):
     def capabilities(self, system, flags=0):
         rc = Capabilities()
         rc.enable_all()
+        rc.set(Capabilities.POOLS_QUICK_SEARCH, Capabilities.UNSUPPORTED)
+        rc.set(Capabilities.VOLUMES_QUICK_SEARCH, Capabilities.UNSUPPORTED)
+        rc.set(Capabilities.DISKS_QUICK_SEARCH, Capabilities.UNSUPPORTED)
+        rc.set(Capabilities.FS_QUICK_SEARCH, Capabilities.UNSUPPORTED)
+        rc.set(Capabilities.ACCESS_GROUPS_QUICK_SEARCH,
+               Capabilities.UNSUPPORTED)
+        rc.set(Capabilities.NFS_EXPORTS_QUICK_SEARCH, Capabilities.UNSUPPORTED)
         return rc
 
     def plugin_info(self, flags=0):
@@ -85,9 +91,11 @@ class SimPlugin(INfs, IStorageAreaNetwork):
         sim_syss = self.sim_array.systems()
         return [SimPlugin._sim_data_2_lsm(s) for s in sim_syss]
 
-    def pools(self, flags=0):
+    def pools(self, search_key=None, search_value=None, flags=0):
         sim_pools = self.sim_array.pools(flags)
-        return [SimPlugin._sim_data_2_lsm(p) for p in sim_pools]
+        return search_property(
+            [SimPlugin._sim_data_2_lsm(p) for p in sim_pools],
+            search_key, search_value)
 
     def pool_create(self, system, pool_name, size_bytes,
                     raid_type=Pool.RAID_TYPE_UNKNOWN,
@@ -115,13 +123,17 @@ class SimPlugin(INfs, IStorageAreaNetwork):
     def pool_delete(self, pool, flags=0):
         return self.sim_array.pool_delete(pool.id, flags)
 
-    def volumes(self, flags=0):
+    def volumes(self, search_key=None, search_value=None, flags=0):
         sim_vols = self.sim_array.volumes()
-        return [SimPlugin._sim_data_2_lsm(v) for v in sim_vols]
+        return search_property(
+            [SimPlugin._sim_data_2_lsm(v) for v in sim_vols],
+            search_key, search_value)
 
-    def disks(self, flags=0):
+    def disks(self, search_key=None, search_value=None, flags=0):
         sim_disks = self.sim_array.disks()
-        return [SimPlugin._sim_data_2_lsm(d) for d in sim_disks]
+        return search_property(
+            [SimPlugin._sim_data_2_lsm(d) for d in sim_disks],
+            search_key, search_value)
 
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
                       flags=0):
@@ -162,9 +174,11 @@ class SimPlugin(INfs, IStorageAreaNetwork):
     def volume_offline(self, volume, flags=0):
         return self.sim_array.volume_online(volume.id, flags)
 
-    def access_groups(self, flags=0):
+    def access_groups(self, search_key=None, search_value=None, flags=0):
         sim_ags = self.sim_array.ags()
-        return [SimPlugin._sim_data_2_lsm(a) for a in sim_ags]
+        return search_property(
+            [SimPlugin._sim_data_2_lsm(a) for a in sim_ags],
+            search_key, search_value)
 
     def access_group_create(self, name, initiator_id, id_type, system_id,
                             flags=0):
@@ -235,9 +249,11 @@ class SimPlugin(INfs, IStorageAreaNetwork):
     def volume_child_dependency_rm(self, volume, flags=0):
         return self.sim_array.volume_child_dependency_rm(volume.id, flags)
 
-    def fs(self, flags=0):
+    def fs(self, search_key=None, search_value=None, flags=0):
         sim_fss = self.sim_array.fs()
-        return [SimPlugin._sim_data_2_lsm(f) for f in sim_fss]
+        return search_property(
+            [SimPlugin._sim_data_2_lsm(f) for f in sim_fss],
+            search_key, search_value)
 
     def fs_create(self, pool, name, size_bytes, flags=0):
         sim_fs = self.sim_array.fs_create(pool.id, name, size_bytes)
@@ -259,7 +275,7 @@ class SimPlugin(INfs, IStorageAreaNetwork):
             src_fs.id, dest_fs_name, snapshot.id, flags)
 
     def fs_file_clone(self, fs, src_file_name, dest_file_name, snapshot=None,
-                   flags=0):
+                      flags=0):
         if snapshot is None:
             return self.sim_array.fs_file_clone(
                 fs.id, src_file_name, dest_file_name, None, flags)
@@ -280,7 +296,7 @@ class SimPlugin(INfs, IStorageAreaNetwork):
             fs.id, snapshot.id, flags)
 
     def fs_snapshot_restore(self, fs, snapshot, files, restore_files,
-                           all_files=False, flags=0):
+                            all_files=False, flags=0):
         return self.sim_array.fs_snapshot_restore(
             fs.id, snapshot.id, files, restore_files, all_files, flags)
 
@@ -294,9 +310,11 @@ class SimPlugin(INfs, IStorageAreaNetwork):
         # The API should change some day
         return ["simple"]
 
-    def exports(self, flags=0):
+    def exports(self, search_key=None, search_value=None, flags=0):
         sim_exps = self.sim_array.exports(flags)
-        return [SimPlugin._sim_data_2_lsm(e) for e in sim_exps]
+        return search_property(
+            [SimPlugin._sim_data_2_lsm(e) for e in sim_exps],
+            search_key, search_value)
 
     def export_fs(self, fs_id, export_path, root_list, rw_list, ro_list,
                   anon_uid, anon_gid, auth_type, options, flags=0):
