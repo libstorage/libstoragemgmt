@@ -159,6 +159,7 @@ class IData(object):
         """
         return str(self._to_dict())
 
+
 @default_property('id', doc="Unique identifier")
 @default_property('type', doc="Enumerated initiator type")
 @default_property('name', doc="User supplied name")
@@ -191,6 +192,7 @@ class Disk(IData):
     """
     Represents a disk.
     """
+    SUPPORTED_SEARCH_KEYS = ['id', 'system_id']
     RETRIEVE_FULL_INFO = 2  # Used by _client.py for disks() call.
 
     # We use '-1' to indicate we failed to get the requested number.
@@ -263,7 +265,7 @@ class Disk(IData):
                       'owner_ctrler_id']
 
     def _value_convert(self, key_name, value, human, enum_as_number,
-                      list_convert):
+                       list_convert):
         if enum_as_number is False:
             if key_name == 'status':
                 value = self.status_to_str(value)
@@ -310,6 +312,7 @@ class Disk(IData):
     def __str__(self):
         return self.name
 
+
 @default_property('id', doc="Unique identifier")
 @default_property('name', doc="User given name")
 @default_property('vpd83', doc="Vital product page 0x83 identifier")
@@ -322,6 +325,7 @@ class Volume(IData):
     """
     Represents a volume.
     """
+    SUPPORTED_SEARCH_KEYS = ['id', 'system_id', 'pool_id']
     # Volume status Note: Volumes can have multiple status bits set at same
     # time.
     (STATUS_UNKNOWN, STATUS_OK, STATUS_DEGRADED, STATUS_ERR, STATUS_STARTING,
@@ -440,7 +444,6 @@ The lsm.System class does not have any extra constants.
 
 The lsm.System class does not have class methods.
     """
-
     STATUS_UNKNOWN = 1 << 0
     STATUS_OK = 1 << 1
     STATUS_ERROR = 1 << 2
@@ -474,6 +477,7 @@ class Pool(IData):
     RETRIEVE_FULL_INFO = 1  # Used by _client.py for pools() call.
                             # This might not be a good place, please
                             # suggest a better one.
+    SUPPORTED_SEARCH_KEYS = ['id', 'system_id']
 
     TOTAL_SPACE_NOT_FOUND = -1
     FREE_SPACE_NOT_FOUND = -1
@@ -655,7 +659,6 @@ class Pool(IData):
     # DESTROYING:
     #   Array is removing current pool.
 
-
     OPT_PROPERTIES = ['raid_type', 'member_type', 'member_ids',
                       'element_type', 'thinp_type']
 
@@ -691,6 +694,8 @@ class Pool(IData):
 @default_property('pool_id', doc="What pool the file system resides on")
 @default_property('system_id', doc="System ID")
 class FileSystem(IData):
+    SUPPORTED_SEARCH_KEYS = ['id', 'system_id', 'pool_id']
+
     def __init__(self, _id, _name, _total_space, _free_space, _pool_id,
                  _system_id):
         self._id = _id
@@ -722,6 +727,7 @@ class FsSnapshot(IData):
 @default_property('anongid', doc="GID for anonymous group id")
 @default_property('options', doc="String containing advanced options")
 class NfsExport(IData):
+    SUPPORTED_SEARCH_KEYS = ['id', 'fs_id']
     ANON_UID_GID_NA = -1
     ANON_UID_GID_ERROR = (ANON_UID_GID_NA - 1)
 
@@ -757,6 +763,8 @@ class BlockRange(IData):
 @default_property('initiators', doc="List of initiators")
 @default_property('system_id', doc="System identifier")
 class AccessGroup(IData):
+    SUPPORTED_SEARCH_KEYS = ['id', 'system_id']
+
     def __init__(self, _id, _name, _initiators, _system_id='NA'):
         self._id = _id
         self._name = _name                # AccessGroup name
@@ -906,6 +914,13 @@ class Capabilities(IData):
     POOL_CREATE_VOLUME_RAID_NOT_APPLICABLE = 174
 
     POOL_DELETE = 200
+
+    POOLS_QUICK_SEARCH = 210
+    VOLUMES_QUICK_SEARCH = 211
+    DISKS_QUICK_SEARCH = 212
+    ACCESS_GROUPS_QUICK_SEARCH = 213
+    FS_QUICK_SEARCH = 214
+    NFS_EXPORTS_QUICK_SEARCH = 215
 
     def _to_dict(self):
         rc = {'class': self.__class__.__name__,

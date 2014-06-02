@@ -12,4 +12,4 @@ from _iplugin import IPlugin, IStorageAreaNetwork, INetworkAttachedStorage, \
     INfs
 
 from _client import Client
-from _pluginrunner import PluginRunner
+from _pluginrunner import PluginRunner, search_property

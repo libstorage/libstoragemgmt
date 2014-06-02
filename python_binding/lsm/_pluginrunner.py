@@ -24,6 +24,17 @@ import _transport
 from lsm.lsmcli import cmd_line_wrapper
 
 
+def search_property(lsm_objs, search_key, search_value):
+    """
+    This method does not check whether lsm_obj contain requested property.
+    The method caller should do the check.
+    """
+    if search_key is None:
+        return lsm_objs
+    return list(lsm_obj for lsm_obj in lsm_objs
+                if getattr(lsm_obj, search_key) == search_value)
+
+
 class PluginRunner(object):
     """
     Plug-in side common code which uses the passed in plugin to do meaningful

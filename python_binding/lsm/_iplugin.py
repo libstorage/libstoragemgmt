@@ -105,7 +105,7 @@ class IPlugin(object):
         pass
 
     @_abstractmethod
-    def pools(self, flags=0):
+    def pools(self, search_key=None, search_value=None, flags=0):
         """
         Returns an array of pool objects.  Pools are used in both block and
         file system interfaces, thus the reason they are in the base class.
@@ -173,7 +173,7 @@ class IStorageAreaNetwork(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def volumes(self, flags=0):
+    def volumes(self, search_key=None, search_value=None, flags=0):
         """
         Returns an array of volume objects
 
@@ -315,7 +315,7 @@ class IStorageAreaNetwork(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def access_groups(self, flags=0):
+    def access_groups(self, search_key=None, search_value=None, flags=0):
         """
         Returns a list of access groups, raises LsmError on errors.
         """
@@ -402,7 +402,7 @@ class INetworkAttachedStorage(IPlugin):
     """
     Class the represents Network attached storage (Common NFS/CIFS operations)
     """
-    def fs(self, flags=0):
+    def fs(self, search_key=None, search_value=None,  flags=0):
         """
         Returns a list of file systems on the controller. Raises LsmError on
         errors.
@@ -546,7 +546,7 @@ class INfs(INetworkAttachedStorage):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def exports(self, flags=0):
+    def exports(self, search_key=None, search_value=None, flags=0):
         """
         Get a list of all exported file systems on the controller.
         """

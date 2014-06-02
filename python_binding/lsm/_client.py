@@ -21,7 +21,7 @@ import unittest
 from lsm import (Volume, NfsExport, Capabilities, Pool, System,
                  Initiator, Disk, AccessGroup, FileSystem, FsSnapshot,
                  uri_parse, LsmError, JobStatus, ErrorNumber,
-                 INetworkAttachedStorage)
+                 INetworkAttachedStorage, NfsExport)
 
 from _common import return_requires as _return_requires
 from _common import UDS_PATH as _UDS_PATH
@@ -41,11 +41,18 @@ def _del_self(d):
     return d
 
 
+def _check_search_key(search_key, supported_keys):
+    if search_key and search_key not in supported_keys:
+        raise LsmError(ErrorNumber.UNSUPPORTED_SEARCH_KEY,
+                       "Unsupported search_key: '%s'" % search_key)
+    return
+
+
 ## Descriptive exception about daemon not running.
 def _raise_no_daemon():
     raise LsmError(ErrorNumber.DAEMON_NOT_RUNNING,
-                          "The libStorageMgmt daemon is not running (process "
-                          "name lsmd), try 'service libstoragemgmt start'")
+                   "The libStorageMgmt daemon is not running (process "
+                   "name lsmd), try 'service libstoragemgmt start'")
 
 
 ## Main client class for library.
@@ -141,8 +148,7 @@ class Client(INetworkAttachedStorage):
             #the directory for other unix domain sockets.
             if Client._check_daemon_exists():
                 raise LsmError(ErrorNumber.PLUGIN_NOT_EXIST,
-                                      "Plug-in " + self.plugin_path +
-                                      " not found!")
+                               "Plug-in %s not found!" % self.plugin_path)
             else:
                 _raise_no_daemon()
 
@@ -284,11 +290,12 @@ class Client(INetworkAttachedStorage):
     #                   returned.
     # @returns An array of pool objects.
     @_return_requires([Pool])
-    def pools(self, flags=0):
+    def pools(self, search_key=None, search_value=None, flags=0):
         """
         Returns an array of pool objects.  Pools are used in both block and
         file system interfaces, thus the reason they are in the base class.
         """
+        _check_search_key(search_key, Pool.SUPPORTED_SEARCH_KEYS)
         return self._tp.rpc('pools', _del_self(locals()))
 
     ## Create new pool in user friendly way. Depending on this capability:
@@ -510,17 +517,19 @@ class Client(INetworkAttachedStorage):
     # @returns  List of initiators
     @_return_requires([Initiator])
     def initiators_granted_to_volume(self, volume, flags=0):
-        return self._tp.rpc('initiators_granted_to_volume', _del_self(locals()))
+        return self._tp.rpc('initiators_granted_to_volume',
+                            _del_self(locals()))
 
     ## Returns an array of volume objects
     # @param    self    The this pointer
     # @param    flags   Reserved for future use, must be zero.
     # @returns An array of volume objects.
     @_return_requires([Volume])
-    def volumes(self, flags=0):
+    def volumes(self, search_key=None, search_value=None, flags=0):
         """
         Returns an array of volume objects
         """
+        _check_search_key(search_key, Volume.SUPPORTED_SEARCH_KEYS)
         return self._tp.rpc('volumes', _del_self(locals()))
 
     ## Creates a volume
@@ -668,10 +677,11 @@ class Client(INetworkAttachedStorage):
     #                   be returned.
     # @returns An array of disk objects.
     @_return_requires([Disk])
-    def disks(self, flags=0):
+    def disks(self, search_key=None, search_value=None, flags=0):
         """
         Returns an array of disk objects
         """
+        _check_search_key(search_key, Disk.SUPPORTED_SEARCH_KEYS)
         return self._tp.rpc('disks', _del_self(locals()))
 
     ## Access control for allowing an access group to access a volume
@@ -706,10 +716,11 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns  List of access groups
     @_return_requires([AccessGroup])
-    def access_groups(self, flags=0):
+    def access_groups(self, search_key=None, search_value=None, flags=0):
         """
         Returns a list of access groups
         """
+        _check_search_key(search_key, AccessGroup.SUPPORTED_SEARCH_KEYS)
         return self._tp.rpc('access_groups', _del_self(locals()))
 
     ## Creates an access a group with the specified initiator in it.
@@ -767,7 +778,8 @@ class Client(INetworkAttachedStorage):
         """
         Deletes an initiator from an access group
         """
-        return self._tp.rpc('access_group_initiator_delete', _del_self(locals()))
+        return self._tp.rpc('access_group_initiator_delete',
+                            _del_self(locals()))
 
     ## Returns the list of volumes that access group has access to.
     # @param    self        The this pointer
@@ -836,10 +848,11 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns A list of FS objects.
     @_return_requires([FileSystem])
-    def fs(self, flags=0):
+    def fs(self, search_key=None, search_value=None, flags=0):
         """
         Returns a list of file systems on the controller.
         """
+        _check_search_key(search_key, FileSystem.SUPPORTED_SEARCH_KEYS)
         return self._tp.rpc('fs', _del_self(locals()))
 
     ## Deletes a file system
@@ -925,7 +938,7 @@ class Client(INetworkAttachedStorage):
     # @returns  None on success, else job id
     @_return_requires(unicode)
     def fs_file_clone(self, fs, src_file_name, dest_file_name, snapshot=None,
-                   flags=0):
+                      flags=0):
         """
         Creates a thinly provisioned clone of src to dest.
         Note: Source and Destination are required to be on same filesystem and
@@ -1003,7 +1016,7 @@ class Client(INetworkAttachedStorage):
     # @return None on success, else job id
     @_return_requires(unicode)
     def fs_snapshot_restore(self, fs, snapshot, files, restore_files,
-                           all_files=False, flags=0):
+                            all_files=False, flags=0):
         """
         WARNING: Destructive!
 
@@ -1071,10 +1084,11 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns An array of export objects
     @_return_requires([NfsExport])
-    def exports(self, flags=0):
+    def exports(self, search_key=None, search_value=None, flags=0):
         """
         Get a list of all exported file systems on the controller.
         """
+        _check_search_key(search_key, NfsExport.SUPPORTED_SEARCH_KEYS)
         return self._tp.rpc('exports', _del_self(locals()))
 
     ## Exports a FS as specified in the export.

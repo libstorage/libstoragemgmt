@@ -54,6 +54,7 @@ def default_property(name, allow_set=True, doc=None):
 
     return decorator
 
+
 def common_urllib2_error_handler(exp):
 
     if isinstance(exp, urllib2.HTTPError):
@@ -74,6 +75,7 @@ def common_urllib2_error_handler(exp):
     Error("Unexpected exception:\n" + stack_trace)
     raise LsmError(ErrorNumber.PLUGIN_ERROR, "Unexpected exception",
                    stack_trace)
+
 
 ## Documentation for Proxy class.
 #
@@ -515,6 +517,8 @@ class ErrorNumber(object):
 
     DISK_BUSY = 500
     VOLUME_BUSY = 501
+
+    UNSUPPORTED_SEARCH_KEY = 510
 
     _LOCALS = locals()
 
