@@ -54,6 +54,7 @@ cmd = "lsmcli"
 sep = ","
 test_pool_name = 'lsm_test_aggr'
 test_fs_pool_id = ''
+test_disk_id = 'DISK_ID_00000'
 
 CUR_SYS_ID = None
 
@@ -676,6 +677,53 @@ def create_all(cap, system_id):
     test_fs_creation(cap, system_id)
     test_nfs(cap, system_id)
 
+def search_test(cap, system_id):
+    print "\nTesting query with search ID\n"
+    sys_id_filter = "--sys='%s'" % system_id
+    if test_fs_pool_id:
+        pool_id = test_fs_pool_id
+    else:
+        pool_id = name_to_id(OP_POOL, test_pool_name)
+    pool_id_filter = "--pool='%s'" % pool_id
+
+    vol_id = create_volume(pool_id)
+    vol_id_filter = "--vol='%s'" % vol_id
+
+    disk_id_filter = "--disk='%s'" % test_disk_id
+
+    ag_id = access_group_create(iqn[0], system_id)
+    ag_id_filter = "--ag='%s'" % ag_id
+
+    fs_id = fs_create(pool_id)
+    fs_id_filter = "--fs='%s'" % fs_id
+
+    nfs_export_id = export_fs(fs_id)
+    nfs_export_id_filter = "--nfs-export='%s'" % nfs_export_id
+
+    all_filters = [sys_id_filter, pool_id_filter, vol_id_filter,
+                   disk_id_filter, ag_id_filter, fs_id_filter,
+                   nfs_export_id_filter]
+
+    supported = {
+        'pools': [sys_id_filter, pool_id_filter],
+        'volumes': [sys_id_filter, pool_id_filter, vol_id_filter],
+        'disks': [sys_id_filter, disk_id_filter],
+        'access_groups': [sys_id_filter, ag_id_filter],
+        'fs': [sys_id_filter, pool_id_filter, fs_id_filter],
+        'exports': [fs_id_filter, nfs_export_id_filter],
+    }
+    for resouce_type in supported.keys():
+        for cur_filter in all_filters:
+            if cur_filter in supported[resouce_type]:
+                call([cmd, 'list', '--type', resouce_type, cur_filter])
+            else:
+                call([cmd, 'list', '--type', resouce_type, cur_filter], 2)
+
+    un_export_fs(nfs_export_id)
+    delete_fs(fs_id)
+    access_group_delete(ag_id)
+    volume_delete(vol_id)
+    return
 
 def run_all_tests(cap, system_id):
     test_display(cap, system_id)
@@ -685,6 +733,8 @@ def run_all_tests(cap, system_id):
     create_all(cap, system_id)
 
     test_mapping(cap, system_id)
+
+    search_test(cap, system_id)
 
 
 if __name__ == "__main__":
