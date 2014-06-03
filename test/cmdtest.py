@@ -213,13 +213,12 @@ def access_group_delete(group_id):
     call([cmd, '-t' + sep, 'access-group-delete', '--ag', group_id])
 
 
-def access_group_grant(group, volume_id):
-    call([cmd, 'access-group-grant', '--ag', group, '--vol', volume_id,
-          '--access', 'RW'])
+def volume_mask(group, volume_id):
+    call([cmd, 'volume-mask', '--ag', group, '--vol', volume_id])
 
 
-def access_group_revoke(group, volume_id):
-    call([cmd, 'access-group-revoke', '--ag', group, '--vol', volume_id])
+def volume_unmask(group, volume_id):
+    call([cmd, 'volume-unmask', '--ag', group, '--vol', volume_id])
 
 
 def volumes_accessible_by_access_group(ag_id):
@@ -600,9 +599,9 @@ def test_mapping(cap, system_id):
         if cap['ACCESS_GROUP_ADD_INITIATOR']:
             access_group_initiator_add(ag_id, iqn2)
 
-        if cap['ACCESS_GROUP_GRANT'] and cap['VOLUME_CREATE']:
+        if cap['VOLUME_MASK'] and cap['VOLUME_UNMASK']:
             vol_id = create_volume(pool_id)
-            access_group_grant(ag_id, vol_id)
+            volume_mask(ag_id, vol_id)
 
             test_display(cap, system_id)
 
@@ -621,8 +620,8 @@ def test_mapping(cap, system_id):
             if cap['ACCESS_GROUPS_GRANTED_TO_VOLUME']:
                 access_groups_granted_to_volume(vol_id)
 
-            if cap['ACCESS_GROUP_REVOKE']:
-                access_group_revoke(ag_id, vol_id)
+            if cap['VOLUME_UNMASK']:
+                volume_unmask(ag_id, vol_id)
 
             if cap['VOLUME_DELETE']:
                 volume_delete(vol_id)

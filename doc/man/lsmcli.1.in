@@ -1,4 +1,4 @@
-.TH LSMCLI "1" "March 2014" "lsmcli @VERSION@" "libStorageMgmt"
+.TH LSMCLI "1" "June 2014" "lsmcli @VERSION@" "libStorageMgmt"
 .SH NAME
 lsmcli - LibStorageMgmt command line interface
 
@@ -322,9 +322,9 @@ Lists the initiator(s) that have access to the provided volume.
 \fB--vol\fR \fI<VOL_ID>\fR
 Required. The ID of volume to query access.
 
-.SS access-group-grant
+.SS volume-mask
 .TP 15
-Grant a access group the RO or RW access to certain volume. Like LUN masking
+Grant access group RW access to certain volume. Like LUN masking
 or NFS export.
 .TP
 \fB--vol\fR \fI<VOL_ID>\fR
@@ -333,14 +333,9 @@ Required. The ID of volume to access.
 \fB--ag\fR \fI<AG_ID>\fR
 Required. The ID of access group to grant.
 
-.TP
-\fB--access\fR \fI<ACCESS>\fR
-Optional. Permission of access, valid values are \fBRO\fR, \fBRW\fR. Default
-value is \fBRW\fR.
-
-.SS access-group-revoke
+.SS volume-unmask
 .TP 15
-Revoke an access group the RO or RW access to certain volume.
+Revoke access group RW access to specified volume.
 .TP
 \fB--vol\fR \fI<VOL_ID>\fR
 Required. The ID of volume to revoke.

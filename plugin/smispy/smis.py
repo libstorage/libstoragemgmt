@@ -777,8 +777,8 @@ class Smis(IStorageAreaNetwork):
                 cap.set(Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP)
 
                 if cim_pcms[0]['ExposePathsSupported']:
-                    cap.set(Capabilities.ACCESS_GROUP_GRANT)
-                    cap.set(Capabilities.ACCESS_GROUP_REVOKE)
+                    cap.set(Capabilities.VOLUME_MASK)
+                    cap.set(Capabilities.VOLUME_UNMASK)
                     cap.set(Capabilities.ACCESS_GROUP_ADD_INITIATOR)
                     cap.set(Capabilities.ACCESS_GROUP_DEL_INITIATOR)
                 return
@@ -787,8 +787,8 @@ class Smis(IStorageAreaNetwork):
             # CIM_ControllerConfigurationService is mandatory
             # and it's ExposePaths() and HidePaths() are mandatory
             cap.set(Capabilities.ACCESS_GROUP_LIST)
-            cap.set(Capabilities.ACCESS_GROUP_GRANT)
-            cap.set(Capabilities.ACCESS_GROUP_REVOKE)
+            cap.set(Capabilities.VOLUME_MASK)
+            cap.set(Capabilities.VOLUME_UNMASK)
             cap.set(Capabilities.ACCESS_GROUP_ADD_INITIATOR)
             cap.set(Capabilities.ACCESS_GROUP_DEL_INITIATOR)
             cap.set(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME)
@@ -1915,7 +1915,7 @@ class Smis(IStorageAreaNetwork):
                                                  ' on initiator_create!')
 
     @handle_cim_errors
-    def access_group_grant(self, group, volume, access, flags=0):
+    def volume_mask(self, group, volume, flags=0):
         """
         Grant access to a volume to an group
         """
@@ -1931,10 +1931,7 @@ class Smis(IStorageAreaNetwork):
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
                            "Access group not present")
 
-        if access == Volume.ACCESS_READ_ONLY:
-            da = Smis.EXPOSE_PATHS_DA_READ_ONLY
-        else:
-            da = Smis.EXPOSE_PATHS_DA_READ_WRITE
+        da = Smis.EXPOSE_PATHS_DA_READ_WRITE
 
         in_params = {'LUNames': [lun['Name']],
                      'ProtocolControllers': [spc.path],
@@ -1958,7 +1955,7 @@ class Smis(IStorageAreaNetwork):
                            "Expected no errors %s %s" % (job, str(status)))
 
     @handle_cim_errors
-    def access_group_revoke(self, group, volume, flags=0):
+    def volume_unmask(self, group, volume, flags=0):
         ccs = self._get_class_instance('CIM_ControllerConfigurationService',
                                        'SystemName', volume.system_id)
         lun = self._get_cim_instance_by_id('Volume', volume.id)

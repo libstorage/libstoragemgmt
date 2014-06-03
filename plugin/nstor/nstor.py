@@ -250,8 +250,8 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         c.set(Capabilities.VOLUME_DELETE)
         #        c.set(Capabilities.VOLUME_ONLINE)
         #        c.set(Capabilities.VOLUME_OFFLINE)
-        c.set(Capabilities.ACCESS_GROUP_GRANT)
-        c.set(Capabilities.ACCESS_GROUP_REVOKE)
+        c.set(Capabilities.VOLUME_MASK)
+        c.set(Capabilities.VOLUME_UNMASK)
         c.set(Capabilities.ACCESS_GROUP_LIST)
         c.set(Capabilities.ACCESS_GROUP_CREATE)
         c.set(Capabilities.ACCESS_GROUP_DELETE)
@@ -637,7 +637,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                                      'NA')
         except:
             pass
-        self._access_group_grant(hg_name, volume.name, access)
+        self._volume_mask(hg_name, volume.name)
         return
 
     def _get_views(self, volume_name):
@@ -663,19 +663,19 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         self._request("destroy_hostgroup", "stmf", [ag_name])
         return
 
-    def _access_group_grant(self, group_name, volume_name, access):
+    def _volume_mask(self, group_name, volume_name):
         self._request("add_lun_mapping_entry", "scsidisk",
                       [volume_name, {'host_group': group_name}])
         return
 
-    def access_group_grant(self, group, volume, access, flags=0):
+    def volume_mask(self, group, volume, flags=0):
         """
         Allows an access group to access a volume.
         """
-        self._access_group_grant(group.name, volume.name, access)
+        self._volume_mask(group.name, volume.name)
         return
 
-    def access_group_revoke(self, group, volume, flags=0):
+    def volume_unmask(self, group, volume, flags=0):
         """
         Revokes access for an access group for a volume
         """
@@ -713,7 +713,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         Creates of access group
         """
         #  Check that initiator_id is not a part of another hostgroup
-        for ag in self.access_group():
+        for ag in self.access_groups():
             if initiator_id in ag.initiators:
                 raise LsmError(ErrorNumber.EXISTS_INITIATOR,
                                "%s is already part of %s access group" % (
@@ -774,7 +774,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         """
         Returns the list of access groups that have access to the specified
         """
-        ag_list = self.access_group()
+        ag_list = self.access_groups()
 
         hg = []
         for view in self._get_views(volume.name):

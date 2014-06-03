@@ -759,11 +759,11 @@ START_TEST(test_access_groups_grant_revoke)
 
     fail_unless(n != NULL);
 
-    rc = lsm_access_group_grant(c, group, n, LSM_VOLUME_ACCESS_READ_WRITE, LSM_FLAG_RSVD);
+    rc = lsm_volume_mask(c, group, n, LSM_FLAG_RSVD);
     if( LSM_ERR_JOB_STARTED == rc ) {
         wait_for_job(c, &job);
     } else {
-        fail_unless(LSM_ERR_OK == rc, "rc = %d", rc);
+        fail_unless(LSM_ERR_OK == rc, "rc = %d, plug-in = %d", rc, which_plugin);
     }
 
     lsm_volume **volumes = NULL;
@@ -789,11 +789,12 @@ START_TEST(test_access_groups_grant_revoke)
         lsm_access_group_record_array_free(groups, g_count);
     }
 
-    rc = lsm_access_group_revoke(c, group, n, LSM_FLAG_RSVD);
+    rc = lsm_volume_unmask(c, group, n, LSM_FLAG_RSVD);
     if( LSM_ERR_JOB_STARTED == rc ) {
         wait_for_job(c, &job);
     } else {
-        fail_unless(LSM_ERR_OK == rc);
+        fail_unless(LSM_ERR_OK == rc, "rc = %d, which_plugin=%d",
+                    rc, which_plugin);
     }
 
     rc = lsm_access_group_delete(c, group, LSM_FLAG_RSVD);
@@ -1588,16 +1589,16 @@ START_TEST(test_invalid_input)
 
 
 
-    rc = lsm_access_group_grant(c, NULL, NULL, 0, LSM_FLAG_RSVD);
+    rc = lsm_volume_mask(c, NULL, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ACCESS_GROUP, "rc = %d", rc);
 
-    rc = lsm_access_group_grant(c, ag, NULL, 0, LSM_FLAG_RSVD);
+    rc = lsm_volume_mask(c, ag, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_VOL, "rc = %d", rc);
 
-    rc = lsm_access_group_revoke(c, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_volume_unmask(c, NULL, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ACCESS_GROUP, "rc = %d", rc);
 
-    rc = lsm_access_group_revoke(c, ag, NULL, LSM_FLAG_RSVD);
+    rc = lsm_volume_unmask(c, ag, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_VOL, "rc = %d", rc);
 
 
@@ -1892,8 +1893,8 @@ START_TEST(test_capabilities)
             cap_test(cap, LSM_CAP_VOLUME_DELETE);
             cap_test(cap, LSM_CAP_VOLUME_ONLINE);
             cap_test(cap, LSM_CAP_VOLUME_OFFLINE);
-            cap_test(cap, LSM_CAP_ACCESS_GROUP_GRANT);
-            cap_test(cap, LSM_CAP_ACCESS_GROUP_REVOKE);
+            cap_test(cap, LSM_CAP_VOLUME_MASK);
+            cap_test(cap, LSM_CAP_VOLUME_UNMASK);
             cap_test(cap, LSM_CAP_ACCESS_GROUP_LIST);
             cap_test(cap, LSM_CAP_ACCESS_GROUP_CREATE);
             cap_test(cap, LSM_CAP_ACCESS_GROUP_DELETE);
@@ -2179,8 +2180,8 @@ START_TEST(test_capability)
         LSM_CAP_VOLUME_DELETE,
         LSM_CAP_VOLUME_ONLINE,
         LSM_CAP_VOLUME_OFFLINE,
-        LSM_CAP_ACCESS_GROUP_GRANT,
-        LSM_CAP_ACCESS_GROUP_REVOKE,
+        LSM_CAP_VOLUME_MASK,
+        LSM_CAP_VOLUME_UNMASK,
         LSM_CAP_ACCESS_GROUP_LIST,
         LSM_CAP_ACCESS_GROUP_CREATE,
         LSM_CAP_ACCESS_GROUP_DELETE,
@@ -2275,8 +2276,8 @@ START_TEST(test_capability)
             LSM_CAP_VOLUME_DELETE,
             LSM_CAP_VOLUME_ONLINE,
             LSM_CAP_VOLUME_OFFLINE,
-            LSM_CAP_ACCESS_GROUP_GRANT,
-            LSM_CAP_ACCESS_GROUP_REVOKE,
+            LSM_CAP_VOLUME_MASK,
+            LSM_CAP_VOLUME_UNMASK,
             LSM_CAP_ACCESS_GROUP_LIST,
             LSM_CAP_ACCESS_GROUP_CREATE,
             LSM_CAP_ACCESS_GROUP_DELETE,

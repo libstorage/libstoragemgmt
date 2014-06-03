@@ -354,8 +354,8 @@ static int cap(lsm_plugin_ptr c, lsm_system *system,
             LSM_CAP_VOLUME_DELETE,
             LSM_CAP_VOLUME_ONLINE,
             LSM_CAP_VOLUME_OFFLINE,
-            LSM_CAP_ACCESS_GROUP_GRANT,
-            LSM_CAP_ACCESS_GROUP_REVOKE,
+            LSM_CAP_VOLUME_MASK,
+            LSM_CAP_VOLUME_UNMASK,
             LSM_CAP_ACCESS_GROUP_LIST,
             LSM_CAP_ACCESS_GROUP_CREATE,
             LSM_CAP_ACCESS_GROUP_DELETE,
@@ -1368,10 +1368,9 @@ static int access_group_initiator_delete(  lsm_plugin_ptr c,
     return rc;
 }
 
-static int access_group_grant(lsm_plugin_ptr c,
+static int volume_mask(lsm_plugin_ptr c,
                                 lsm_access_group *group,
                                 lsm_volume *volume,
-                                lsm_access_type access,
                                 lsm_flag flags)
 {
     int rc = LSM_ERR_OK;
@@ -1395,7 +1394,7 @@ static int access_group_grant(lsm_plugin_ptr c,
             lsm_access_type *val = (lsm_access_type*) malloc(sizeof(lsm_access_type));
 
             if( grant && key && val && vol_id ) {
-                *val = access;
+                *val = LSM_VOLUME_ACCESS_READ_WRITE;
 
                 /* Create the association for volume id and access value */
                 g_hash_table_insert(grant, vol_id, val);
@@ -1445,7 +1444,7 @@ static int access_group_grant(lsm_plugin_ptr c,
     return rc;
 }
 
-static int access_group_revoke(lsm_plugin_ptr c,
+static int volume_unmask(lsm_plugin_ptr c,
                                 lsm_access_group *group,
                                 lsm_volume *volume,
                                 lsm_flag flags)
@@ -1659,7 +1658,7 @@ static int initiator_grant(lsm_plugin_ptr c, const char *initiator_id,
     rc = access_group_create(c, name, initiator_id, initiator_type,
                         lsm_volume_system_id_get(volume), &ag, flags);
     if( LSM_ERR_OK == rc ) {
-        rc = access_group_grant(c, ag, volume, access, flags);
+        rc = volume_mask(c, ag, volume, flags);
 
         if( LSM_ERR_OK != rc ) {
             /* If we didn't succeed, remove the access group */
@@ -1877,8 +1876,8 @@ static struct lsm_san_ops_v1 san_ops = {
     access_group_delete,
     access_group_initiator_add,
     access_group_initiator_delete,
-    access_group_grant,
-    access_group_revoke,
+    volume_mask,
+    volume_unmask,
     vol_accessible_by_ag,
     vol_accessible_by_init,
     ag_granted_to_volume,

@@ -1325,7 +1325,7 @@ static int ag_initiator_del(lsm_plugin_ptr p, Value &params, Value &response)
     return rc;
 }
 
-static int ag_grant(lsm_plugin_ptr p, Value &params, Value &response)
+static int volume_mask(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
 
@@ -1333,22 +1333,16 @@ static int ag_grant(lsm_plugin_ptr p, Value &params, Value &response)
 
         Value v_group = params["group"];
         Value v_vol = params["volume"];
-        Value v_access = params["access"];
 
         if( Value::object_t == v_group.valueType() &&
             Value::object_t == v_vol.valueType() &&
-            Value::numeric_t == v_access.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
 
             lsm_access_group *ag = value_to_access_group(v_group);
             lsm_volume *vol = value_to_volume(v_vol);
 
             if( ag && vol ) {
-                lsm_access_type access = (lsm_access_type)v_access.asInt32_t();
-
-
-
-                rc = p->san_ops->ag_grant(p, ag, vol, access,
+                rc = p->san_ops->ag_grant(p, ag, vol,
                                             LSM_FLAG_GET_VALUE(params));
             } else {
                 rc = LSM_ERR_NO_MEMORY;
@@ -1365,7 +1359,7 @@ static int ag_grant(lsm_plugin_ptr p, Value &params, Value &response)
     return rc;
 }
 
-static int ag_revoke(lsm_plugin_ptr p, Value &params, Value &response)
+static int volume_unmask(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
 
@@ -2431,9 +2425,9 @@ static std::map<std::string,handler> dispatch = static_map<std::string,handler>
     ("access_group_create", ag_create)
     ("access_group_delete", ag_delete)
     ("access_group_initiator_delete", ag_initiator_del)
-    ("access_group_grant", ag_grant)
+    ("volume_mask", volume_mask)
     ("access_groups", ag_list)
-    ("access_group_revoke", ag_revoke)
+    ("volume_unmask", volume_unmask)
     ("access_groups_granted_to_volume", ag_granted_to_volume)
     ("capabilities", capabilities)
     ("disks", handle_disks)

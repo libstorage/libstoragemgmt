@@ -688,15 +688,14 @@ class Client(INetworkAttachedStorage):
     # @param    self    The this pointer
     # @param    group   The access group
     # @param    volume  The volume to grant access to
-    # @param    access  The desired access
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     @_return_requires(None)
-    def access_group_grant(self, group, volume, access, flags=0):
+    def volume_mask(self, group, volume, flags=0):
         """
         Allows an access group to access a volume.
         """
-        return self._tp.rpc('access_group_grant', _del_self(locals()))
+        return self._tp.rpc('volume_mask', _del_self(locals()))
 
     ## Revokes access to a volume to initiators in an access group
     # @param    self    The this pointer
@@ -705,11 +704,11 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     @_return_requires(None)
-    def access_group_revoke(self, group, volume, flags=0):
+    def volume_unmask(self, group, volume, flags=0):
         """
         Revokes access for an access group for a volume
         """
-        return self._tp.rpc('access_group_revoke', _del_self(locals()))
+        return self._tp.rpc('volume_unmask', _del_self(locals()))
 
     ## Returns a list of access group objects
     # @param    self    The this pointer

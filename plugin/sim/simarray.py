@@ -372,11 +372,11 @@ class SimArray(object):
     def access_group_initiator_delete(self, ag_id, init_id, flags=0):
         return self.data.access_group_initiator_delete(ag_id, init_id, flags)
 
-    def access_group_grant(self, ag_id, vol_id, access, flags=0):
-        return self.data.access_group_grant(ag_id, vol_id, access, flags)
+    def volume_mask(self, ag_id, vol_id, flags=0):
+        return self.data.volume_mask(ag_id, vol_id, flags)
 
-    def access_group_revoke(self, ag_id, vol_id, flags=0):
-        return self.data.access_group_revoke(ag_id, vol_id, flags)
+    def volume_unmask(self, ag_id, vol_id, flags=0):
+        return self.data.volume_unmask(ag_id, vol_id, flags)
 
     def volumes_accessible_by_access_group(self, ag_id, flags=0):
         sim_vols = self.data.volumes_accessible_by_access_group(ag_id, flags)
@@ -1089,7 +1089,7 @@ class SimData(object):
             self.ag_dict[ag_id]['init_ids'] = new_init_ids
         return None
 
-    def access_group_grant(self, ag_id, vol_id, access, flags=0):
+    def volume_mask(self, ag_id, vol_id, flags=0):
         if ag_id not in self.ag_dict.keys():
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
                            "Access group not found: %s" % ag_id)
@@ -1099,10 +1099,10 @@ class SimData(object):
         if 'mask' not in self.vol_dict[vol_id].keys():
             self.vol_dict[vol_id]['mask'] = dict()
 
-        self.vol_dict[vol_id]['mask'][ag_id] = access
+        self.vol_dict[vol_id]['mask'][ag_id] = 2
         return None
 
-    def access_group_revoke(self, ag_id, vol_id, flags=0):
+    def volume_unmask(self, ag_id, vol_id, flags=0):
         if ag_id not in self.ag_dict.keys():
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
                            "Access group not found: %s" % ag_id)

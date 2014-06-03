@@ -639,14 +639,12 @@ extern "C" {
      * @param[in] conn                  Valid connection
      * @param[in] group                 Valid group pointer
      * @param[in] volume                Valid volume pointer
-     * @param[in] access                Desired access
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
-    int LSM_DLL_EXPORT lsm_access_group_grant(lsm_connect *conn,
+    int LSM_DLL_EXPORT lsm_volume_mask(lsm_connect *conn,
                                             lsm_access_group *group,
                                             lsm_volume *volume,
-                                            lsm_access_type access,
                                             lsm_flag flags);
 
     /**
@@ -657,7 +655,7 @@ extern "C" {
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
-    int LSM_DLL_EXPORT lsm_access_group_revoke(lsm_connect *conn,
+    int LSM_DLL_EXPORT lsm_volume_unmask(lsm_connect *conn,
                                             lsm_access_group *group,
                                             lsm_volume *volume,
                                             lsm_flag flags);

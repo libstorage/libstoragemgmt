@@ -582,14 +582,13 @@ typedef int (*lsm_plug_access_group_initiator_delete)(lsm_plugin_ptr c,
  * @param[in]   c                   Valid lsm plug-in pointer
  * @param[in]   group               Group to be granted access
  * @param[in]   volume              Volume to be given access too
- * @param[in]   access              Access type
  * @param[in]   flags               Reserved
  * @return LSM_ERR_OK, else error reason
  */
-typedef int (*lsm_plug_access_group_grant)(lsm_plugin_ptr c,
+typedef int (*lsm_plug_volume_mask)(lsm_plugin_ptr c,
                                             lsm_access_group *group,
                                             lsm_volume *volume,
-                                            lsm_access_type access, lsm_flag flags);
+                                            lsm_flag flags);
 
 /**
  * Revokes access to a volume for a specified access group, callback function signature
@@ -599,7 +598,7 @@ typedef int (*lsm_plug_access_group_grant)(lsm_plugin_ptr c,
  * @param[in]   flags               Reserved
  * @return LSM_ERR_OK, else error reason
  */
-typedef int (*lsm_plug_access_group_revoke)(lsm_plugin_ptr c,
+typedef int (*lsm_plug_volume_unmask)(lsm_plugin_ptr c,
                                             lsm_access_group *group,
                                             lsm_volume *volume, lsm_flag flags);
 
@@ -925,8 +924,8 @@ struct lsm_san_ops_v1 {
     lsm_plug_access_group_delete ag_delete;    /**<  access group delete */
     lsm_plug_access_group_initiator_add ag_add_initiator;    /**<  adding an initiator to an access group */
     lsm_plug_access_group_initiator_delete ag_del_initiator;    /**<  deleting an initiator from an access group */
-    lsm_plug_access_group_grant ag_grant;   /**<  acess group grant */
-    lsm_plug_access_group_revoke ag_revoke; /**<  access group revoke */
+    lsm_plug_volume_mask ag_grant;   /**<  acess group grant */
+    lsm_plug_volume_unmask ag_revoke; /**<  access group revoke */
     lsm_plug_volumes_accessible_by_access_group vol_accessible_by_ag; /**<  volumes accessible by access group */
     lsm_plug_volumes_accessible_by_initiator vol_accessible_by_init; /**<  volumes accessible by initiator */
     lsm_plug_access_groups_granted_to_volume ag_granted_to_vol;       /**<  access groups granted to a volume */

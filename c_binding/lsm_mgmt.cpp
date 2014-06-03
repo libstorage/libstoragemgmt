@@ -1677,9 +1677,8 @@ int lsm_access_group_initiator_delete(lsm_connect *c, lsm_access_group *group,
     return rpc(c, "access_group_initiator_delete", parameters, response);
 }
 
-int lsm_access_group_grant(lsm_connect *c, lsm_access_group *group,
+int lsm_volume_mask(lsm_connect *c, lsm_access_group *group,
                                             lsm_volume *volume,
-                                            lsm_access_type access,
                                             lsm_flag flags)
 {
     CONN_SETUP(c);
@@ -1699,17 +1698,16 @@ int lsm_access_group_grant(lsm_connect *c, lsm_access_group *group,
     std::map<std::string, Value> p;
     p["group"] = access_group_to_value(group);
     p["volume"] = volume_to_value(volume);
-    p["access"] = Value((int32_t)access);
     p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
 
-    return rpc(c, "access_group_grant", parameters, response);
+    return rpc(c, "volume_mask", parameters, response);
 }
 
 
-int lsm_access_group_revoke(lsm_connect *c, lsm_access_group *group,
+int lsm_volume_unmask(lsm_connect *c, lsm_access_group *group,
                                             lsm_volume *volume,
                                             lsm_flag flags)
 {
@@ -1735,7 +1733,7 @@ int lsm_access_group_revoke(lsm_connect *c, lsm_access_group *group,
     Value parameters(p);
     Value response;
 
-    return rpc(c, "access_group_revoke", parameters, response);
+    return rpc(c, "volume_unmask", parameters, response);
 }
 
 int lsm_volumes_accessible_by_access_group(lsm_connect *c,

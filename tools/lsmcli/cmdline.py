@@ -344,21 +344,18 @@ cmds = (
 
 
     dict(
-        name='access-group-grant',
+        name='volume-mask',
         help='Grants access to an access group to a volume, '
              'like LUN Masking',
         args=[
             dict(ag_id_opt),
             dict(vol_id_opt),
         ],
-        optional=[
-            dict(access_opt),
-        ],
     ),
 
     dict(
-        name='access-group-revoke',
-        help='Revoke the access of certain access group to a volume',
+        name='volume-unmask',
+        help='Revoke the access of specified access group to a volume',
         args=[
             dict(ag_id_opt),
             dict(vol_id_opt),
@@ -1211,10 +1208,10 @@ class CmdLine:
                  cap.supported(Capabilities.VOLUME_THIN))
         self._cp("VOLUME_ISCSI_CHAP_AUTHENTICATION",
                  cap.supported(Capabilities.VOLUME_ISCSI_CHAP_AUTHENTICATION))
-        self._cp("ACCESS_GROUP_GRANT",
-                 cap.supported(Capabilities.ACCESS_GROUP_GRANT))
-        self._cp("ACCESS_GROUP_REVOKE",
-                 cap.supported(Capabilities.ACCESS_GROUP_REVOKE))
+        self._cp("VOLUME_MASK",
+                 cap.supported(Capabilities.VOLUME_MASK))
+        self._cp("VOLUME_UNMASK",
+                 cap.supported(Capabilities.VOLUME_UNMASK))
         self._cp("ACCESS_GROUP_LIST",
                  cap.supported(Capabilities.ACCESS_GROUP_LIST))
         self._cp("ACCESS_GROUP_CREATE",
@@ -1468,25 +1465,21 @@ class CmdLine:
     def access_revoke(self, args):
         return self._access(False, args)
 
-    def _access_group(self, args, grant=True):
+    def _volume_masking(self, args, grant=True):
         agl = self.c.access_groups()
         group = _get_item(agl, args.ag, "access group id")
         v = _get_item(self.c.volumes(), args.vol, "volume id")
 
         if grant:
-            access = 'RW'
-            if args.access is not None:
-                access = args.access
-            access = vol_access_type_str_to_type(args.access)
-            self.c.access_group_grant(group, v, access)
+            self.c.volume_mask(group, v)
         else:
-            self.c.access_group_revoke(group, v)
+            self.c.volume_unmask(group, v)
 
-    def access_group_grant(self, args):
-        return self._access_group(args, grant=True)
+    def volume_mask(self, args):
+        return self._volume_masking(args, grant=True)
 
-    def access_group_revoke(self, args):
-        return self._access_group(args, grant=False)
+    def volume_unmask(self, args):
+        return self._volume_masking(args, grant=False)
 
     ## Re-sizes a volume
     def volume_resize(self, args):

@@ -299,7 +299,7 @@ class IStorageAreaNetwork(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def access_group_grant(self, group, volume, access, flags=0):
+    def volume_mask(self, group, volume, flags=0):
         """
         Allows an access group to access a volume.
 
@@ -307,7 +307,7 @@ class IStorageAreaNetwork(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def access_group_revoke(self, group, volume, flags=0):
+    def volume_unmask(self, group, volume, flags=0):
         """
         Revokes access for an access group for a volume
 
@@ -402,7 +402,7 @@ class INetworkAttachedStorage(IPlugin):
     """
     Class the represents Network attached storage (Common NFS/CIFS operations)
     """
-    def fs(self, search_key=None, search_value=None,  flags=0):
+    def fs(self, search_key=None, search_value=None, flags=0):
         """
         Returns a list of file systems on the controller. Raises LsmError on
         errors.
