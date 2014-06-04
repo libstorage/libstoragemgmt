@@ -222,7 +222,7 @@ def volume_unmask(group, volume_id):
 
 
 def volumes_accessible_by_access_group(ag_id):
-    call([cmd, 'access-group-volumes', '--ag', ag_id])
+    call([cmd, 'list', '--type', 'volumes', '--ag', ag_id])
 
 
 def volume_accessible_by_initiator(iqn2):
@@ -234,7 +234,7 @@ def initiators_granted_to_volume(vol):
 
 
 def access_groups_granted_to_volume(vol_id):
-    call([cmd, 'volume-access-group', '--vol', vol_id])
+    call([cmd, 'list', '--type', 'access_groups', '--vol', vol_id])
 
 
 def resize_vol(vol_id):
@@ -454,7 +454,7 @@ def test_display(cap, system_id):
     if cap['EXPORTS']:
         to_test.append("EXPORTS")
 
-    if cap['ACCESS_GROUP_LIST']:
+    if cap['ACCESS_GROUPS']:
         to_test.append("ACCESS_GROUPS")
 
     if cap['FS_SNAPSHOTS']:
