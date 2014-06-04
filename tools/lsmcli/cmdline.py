@@ -28,7 +28,7 @@ from argparse import RawTextHelpFormatter
 
 from lsm import (Client, Pool, VERSION, LsmError, Capabilities, Disk,
                  Initiator, Volume, JobStatus, ErrorNumber, BlockRange,
-                 uri_parse, Proxy, size_human_2_size_bytes, System,
+                 uri_parse, Proxy, size_human_2_size_bytes,
                  AccessGroup, FileSystem, NfsExport)
 
 from lsm.lsmcli.data_display import (
@@ -139,21 +139,21 @@ for i in range(0, len(raid_types), 4):
 raid_help = "Valid RAID type:" + raid_types_formatted
 
 sys_id_opt = dict(name='--sys', metavar='<SYS_ID>', help='System ID')
-sys_id_filter_opt = sys_id_opt
+sys_id_filter_opt = sys_id_opt.copy()
 sys_id_filter_opt['help'] = 'Search by System ID'
 
 pool_id_opt = dict(name='--pool', metavar='<POOL_ID>', help='Pool ID')
-pool_id_filter_opt = pool_id_opt
+pool_id_filter_opt = pool_id_opt.copy()
 pool_id_filter_opt['help'] = 'Search by Pool ID'
 
 vol_id_opt = dict(name='--vol', metavar='<VOL_ID>', help='Volume ID')
-vol_id_filter_opt = vol_id_opt
+vol_id_filter_opt = vol_id_opt.copy()
 vol_id_filter_opt['help'] = 'Search by Volume ID'
 
 fs_id_opt = dict(name='--fs', metavar='<FS_ID>', help='File System ID')
 
 ag_id_opt = dict(name='--ag', metavar='<AG_ID>', help='Access Group ID')
-ag_id_filter_opt = ag_id_opt
+ag_id_filter_opt = ag_id_opt.copy()
 ag_id_filter_opt['help'] = 'Search by Access Group ID'
 
 init_id_opt = dict(name='--init', metavar='<INIT_ID>', help='Initiator ID')
@@ -1483,13 +1483,6 @@ class CmdLine:
     ## Revoke access to volume to an initiator
     def access_revoke(self, args):
         return self._access(False, args)
-
-    def _volume_masking(self, args, grant=True):
-
-        if grant:
-            self.c.volume_mask(group, v)
-        else:
-            self.c.volume_unmask(group, v)
 
     def volume_mask(self, args):
         if not args.ag and not args.init:
