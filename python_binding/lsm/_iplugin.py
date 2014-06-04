@@ -282,7 +282,7 @@ class IStorageAreaNetwork(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def initiator_grant(self, initiator_id, initiator_type, volume, access,
+    def initiator_grant(self, init_id, initiator_type, volume, access,
                         flags=0):
         """
         Allows an initiator to access a volume.
@@ -299,7 +299,7 @@ class IStorageAreaNetwork(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def volume_mask(self, group, volume, flags=0):
+    def volume_mask(self, access_group, volume, flags=0):
         """
         Allows an access group to access a volume.
 
@@ -307,7 +307,7 @@ class IStorageAreaNetwork(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def volume_unmask(self, group, volume, flags=0):
+    def volume_unmask(self, access_group, volume, flags=0):
         """
         Revokes access for an access group for a volume
 
@@ -321,33 +321,34 @@ class IStorageAreaNetwork(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def access_group_create(self, name, initiator_id, id_type, system_id,
+    def access_group_create(self, name, init_id, init_type, system_id,
                             flags=0):
         """
         Returns a list of access groups, raises LsmError on errors.
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def access_group_delete(self, group, flags=0):
+    def access_group_delete(self, access_group, flags=0):
         """
         Deletes an access group, Raises LsmError on error
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def access_group_initiator_add(self, group, initiator_id, id_type,
+    def access_group_initiator_add(self, access_group, init_id, init_type,
                                    flags=0):
         """
         Adds an initiator to an access group, Raises LsmError on error
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def access_group_initiator_delete(self, group, initiator_id, flags=0):
+    def access_group_initiator_delete(self, access_group, init_id,
+                                      flags=0):
         """
         Deletes an initiator from an access group, Raises LsmError on error
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def volumes_accessible_by_access_group(self, group, flags=0):
+    def volumes_accessible_by_access_group(self, access_group, flags=0):
         """
         Returns the list of volumes that access group has access to.
         Raises LsmError on error

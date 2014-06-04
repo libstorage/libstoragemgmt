@@ -691,7 +691,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     @_return_requires(None)
-    def volume_mask(self, group, volume, flags=0):
+    def volume_mask(self, access_group, volume, flags=0):
         """
         Allows an access group to access a volume.
         """
@@ -704,7 +704,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     @_return_requires(None)
-    def volume_unmask(self, group, volume, flags=0):
+    def volume_unmask(self, access_group, volume, flags=0):
         """
         Revokes access for an access group for a volume
         """
@@ -725,17 +725,17 @@ class Client(INetworkAttachedStorage):
     ## Creates an access a group with the specified initiator in it.
     # @param    self                The this pointer
     # @param    name                The initiator group name
-    # @param    initiator_id        Initiator id
-    # @param    id_type             Type of initiator (Enumeration)
+    # @param    init_id             Initiator id
+    # @param    init_type           Type of initiator (Enumeration)
     # @param    system_id           Which system to create this group on
     # @param    flags               Reserved for future use, must be zero.
     # @returns AccessGroup on success, else raises LsmError
     @_return_requires(AccessGroup)
-    def access_group_create(self, name, initiator_id, id_type, system_id,
+    def access_group_create(self, name, init_id, init_type, system_id,
                             flags=0):
         """
-        Creates an access group and add the specified initiator id, id_type and
-        desired access.
+        Creates an access group and add the specified initiator id,
+        init_type and desired access.
         """
         return self._tp.rpc('access_group_create', _del_self(locals()))
 
@@ -745,7 +745,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     @_return_requires(None)
-    def access_group_delete(self, group, flags=0):
+    def access_group_delete(self, access_group, flags=0):
         """
         Deletes an access group
         """
@@ -754,12 +754,12 @@ class Client(INetworkAttachedStorage):
     ## Adds an initiator to an access group
     # @param    self            The this pointer
     # @param    group           Group to add initiator to
-    # @param    initiator_id    Initiators id
-    # @param    id_type         Initiator id type (enumeration)
+    # @param    init_id         Initiators id
+    # @param    init_type       Initiator id type (enumeration)
     # @param    flags           Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     @_return_requires(None)
-    def access_group_initiator_add(self, group, initiator_id, id_type,
+    def access_group_initiator_add(self, access_group, init_id, init_type,
                                    flags=0):
         """
         Adds an initiator to an access group
@@ -773,7 +773,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     @_return_requires(None)
-    def access_group_initiator_delete(self, group, initiator_id, flags=0):
+    def access_group_initiator_delete(self, access_group, init_id, flags=0):
         """
         Deletes an initiator from an access group
         """
@@ -786,7 +786,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags       Reserved for future use, must be zero.
     # @returns list of volumes
     @_return_requires([Volume])
-    def volumes_accessible_by_access_group(self, group, flags=0):
+    def volumes_accessible_by_access_group(self, access_group, flags=0):
         """
         Returns the list of volumes that access group has access to.
         """

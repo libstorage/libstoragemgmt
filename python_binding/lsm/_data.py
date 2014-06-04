@@ -42,6 +42,22 @@ def get_key(dictionary, value):
     return None
 
 
+def _check_opt_data(optional_data, allowed_properties):
+    if optional_data is None:
+        return OptionalData()
+    else:
+        #Make sure the properties only contain ones we permit
+        allowed = set(allowed_properties)
+        actual = set(optional_data.list())
+
+        if actual <= allowed:
+            return optional_data
+        else:
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           "Property keys are not supported: %s" %
+                           "".join(actual - allowed))
+
+
 class DataEncoder(json.JSONEncoder):
     """
     Custom json encoder for objects derived form ILsmData
@@ -760,16 +776,33 @@ class BlockRange(IData):
 
 @default_property('id', doc="Unique instance identifier")
 @default_property('name', doc="Access group name")
-@default_property('initiators', doc="List of initiators")
+@default_property('init_ids', doc="List of initiator IDs")
+@default_property('init_type', doc="Initiator type")
 @default_property('system_id', doc="System identifier")
+@default_property('optional_data', doc="Optional data")
+@default_property('plugin_data', doc="Plugin private data")
 class AccessGroup(IData):
     SUPPORTED_SEARCH_KEYS = ['id', 'system_id']
 
-    def __init__(self, _id, _name, _initiators, _system_id='NA'):
+    INIT_TYPE_UNKNOWN = 0
+    INIT_TYPE_OTHER = 1
+    INIT_TYPE_WWPN = 2
+    INIT_TYPE_WWNN = 3
+    INIT_TYPE_HOSTNAME = 4
+    INIT_TYPE_ISCSI_IQN = 5
+    INIT_TYPE_SAS = 6
+    INIT_TYPE_ISCSI_WWPN_MIXED = 7
+
+    def __init__(self, _id, _name, _init_ids, _init_type,
+                 _system_id, _optional_data=None, _plugin_data=None):
         self._id = _id
         self._name = _name                # AccessGroup name
-        self._initiators = _initiators    # List of initiators
+        self._init_ids = _init_ids        # List of initiator IDs
+        self._init_type = _init_type
         self._system_id = _system_id      # System id this group belongs
+        self._plugin_data = _plugin_data
+        self._optional_data = _check_opt_data(_optional_data,
+                                              AccessGroup.OPT_PROPERTIES)
 
 
 class OptionalData(IData):
@@ -829,7 +862,7 @@ class Capabilities(IData):
 
     VOLUME_MASK = 36
     VOLUME_UNMASK = 37
-    ACCESS_GROUP_LIST = 38
+    ACCESS_GROUPS = 38
     ACCESS_GROUP_CREATE = 39
     ACCESS_GROUP_DELETE = 40
     ACCESS_GROUP_ADD_INITIATOR = 41
