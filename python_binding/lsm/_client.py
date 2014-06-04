@@ -21,7 +21,7 @@ import unittest
 from lsm import (Volume, NfsExport, Capabilities, Pool, System,
                  Initiator, Disk, AccessGroup, FileSystem, FsSnapshot,
                  uri_parse, LsmError, JobStatus, ErrorNumber,
-                 INetworkAttachedStorage, NfsExport)
+                 INetworkAttachedStorage)
 
 from _common import return_requires as _return_requires
 from _common import UDS_PATH as _UDS_PATH
