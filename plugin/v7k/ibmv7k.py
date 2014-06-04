@@ -419,6 +419,7 @@ class IbmV7k(IStorageAreaNetwork):
         cap.set(Capabilities.INITIATORS_GRANTED_TO_VOLUME)
         cap.set(Capabilities.VOLUME_INITIATOR_GRANT)
         cap.set(Capabilities.VOLUME_INITIATOR_REVOKE)
+        cap.set(Capabilities.ACCESS_GROUPS)
         return cap
 
     def plugin_info(self, flags=0):
@@ -446,6 +447,46 @@ class IbmV7k(IStorageAreaNetwork):
             init = self._get_initiator(i['id'])
             init_list.append(self._initiator(init))
         return init_list
+
+    @staticmethod
+    def _v7k_init_to_lsm_ag(v7k_init, system_id):
+        lsm_init_id = None
+        lsm_init_type = AccessGroup.INIT_TYPE_UNKNOWN
+        if 'WWPN' in v7k_init:
+            lsm_init_type = AccessGroup.INIT_TYPE_WWPN
+            # TODO: Add support for > 1 wwpn case.
+            #       v7k cli is not parse friendly for > 1 case.
+            lsm_init_id = v7k_init['WWPN']
+        elif 'iscsi_name' in v7k_init:
+            lsm_init_type = AccessGroup.INIT_TYPE_ISCSI_IQN
+            # TODO: Add support for > 1 iscsiname case.
+            #       v7k cli is not parse friendly for > 1 case.
+            lsm_init_id = v7k_init['iscsi_name']
+        elif 'SAS_WWPN' in v7k_init:
+            # TODO: Add support for > 1 SAS_WWPN case.
+            #       v7k cli is not parse friendly for > 1 case.
+            lsm_init_type = AccessGroup.INIT_TYPE_SAS
+            lsm_init_id = v7k_init['SAS_WWPN']
+        else:
+            # Since lshost worked, support it as other type.
+            lsm_init_type = AccessGroup.INIT_TYPE_OTHER
+            lsm_init_id = v7k_init['id']
+
+        ag_name = 'N/A'
+        if name in v7k_init:
+            ag_name = v7k_init['name']
+
+        return AccessGroup(lsm_init_id, ag_name, [lsm_init_id], lsm_init_type,
+                           system_id)
+
+    def access_groups(self, search_key=None, search_value=None, flags=0):
+        lsm_ags = []
+        v7k_inits_dict = self._get_initiators()
+        for v7k_init_dict in v7k_inits_dict.itervalues():
+            v7k_init = self._get_initiator(v7k_init_dict['id'])
+            lsm_ags.extend(
+                [IbmV7k._v7k_init_to_lsm_ag(v7k_init, self.sys_info.id)])
+        return lsm_ags
 
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
                       flags=0):

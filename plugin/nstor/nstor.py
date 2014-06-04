@@ -17,6 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
 #
 # Author: legkodymov
+#         Gris Ge <fge@redhat.com>
 
 import urllib2
 import urlparse
@@ -252,7 +253,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         #        c.set(Capabilities.VOLUME_OFFLINE)
         c.set(Capabilities.VOLUME_MASK)
         c.set(Capabilities.VOLUME_UNMASK)
-        c.set(Capabilities.ACCESS_GROUP_LIST)
+        c.set(Capabilities.ACCESS_GROUPS)
         c.set(Capabilities.ACCESS_GROUP_CREATE)
         c.set(Capabilities.ACCESS_GROUP_DELETE)
         c.set(Capabilities.ACCESS_GROUP_ADD_INITIATOR)
@@ -668,14 +669,14 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                       [volume_name, {'host_group': group_name}])
         return
 
-    def volume_mask(self, group, volume, flags=0):
+    def volume_mask(self, access_group, volume, flags=0):
         """
         Allows an access group to access a volume.
         """
-        self._volume_mask(group.name, volume.name)
+        self._volume_mask(access_group.name, volume.name)
         return
 
-    def volume_unmask(self, group, volume, flags=0):
+    def volume_unmask(self, access_group, volume, flags=0):
         """
         Revokes access for an access group for a volume
         """
@@ -701,34 +702,40 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
         ag_list = []
         for hg in hg_list:
-            initiators = self._request("list_hostgroup_members", "stmf",
-                                       [hg])
-
-            ag_list.append(AccessGroup(hg, hg, initiators, self.system.id))
+            init_ids = self._request("list_hostgroup_members", "stmf", [hg])
+            ag_list.append(
+                AccessGroup(hg, hg, init_ids,
+                            AccessGroup.INIT_TYPE_ISCSI_IQN,
+                            self.system.id))
         return search_property(ag_list, search_key, search_value)
 
-    def access_group_create(self, name, initiator_id, id_type, system_id,
+    def access_group_create(self, name, init_id, init_type, system_id,
                             flags=0):
         """
         Creates of access group
         """
-        #  Check that initiator_id is not a part of another hostgroup
+        if system_id != self.system_id:
+            raise LsmError(ErrorNumber.NOT_FOUND_SYSTEM,
+                           "System %s not found" % system_id)
+        if init_type != AccessGroup.INIT_TYPE_ISCSI_IQN:
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                           "Nstor only support iSCSI Access Group")
+        #  Check that init_id is not a part of another hostgroup
         for ag in self.access_groups():
-            if initiator_id in ag.initiators:
+            if init_id in ag.init_ids:
                 raise LsmError(ErrorNumber.EXISTS_INITIATOR,
-                               "%s is already part of %s access group" % (
-                                   initiator_id,
-                                   ag.name))
+                               "%s is already part of %s access group" %
+                               (init_id, ag.name))
         self._request("create_hostgroup", "stmf", [name])
-        self._add_initiator(name, initiator_id)
+        self._add_initiator(name, init_id)
 
-        return AccessGroup(name, name, [initiator_id], self.system.id)
+        return AccessGroup(name, name, [init_id], init_type, system_id)
 
-    def access_group_delete(self, group, flags=0):
+    def access_group_delete(self, access_group, flags=0):
         """
         Deletes an access group
         """
-        self._request("destroy_hostgroup", "stmf", [group.name])
+        self._request("destroy_hostgroup", "stmf", [access_group.name])
         return
 
     def _add_initiator(self, group_name, initiator_id, remove=False):
@@ -739,34 +746,34 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         self._request(command, "stmf", [group_name, initiator_id])
         return
 
-    def access_group_initiator_add(self, group, initiator_id, id_type,
+    def access_group_initiator_add(self, access_group, init_id, init_type,
                                    flags=0):
         """
         Adds an initiator to an access group
         """
-        if id_type != Initiator.TYPE_ISCSI:
-            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           "ISCSI only initator type supported")
+        if init_type != Initiator.TYPE_ISCSI:
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                           "Nstor only support iSCSI Access Group")
 
-        self._add_initiator(group.name, initiator_id)
+        self._add_initiator(access_group.name, init_id)
         return None
 
-    def access_group_initiator_delete(self, group, initiator_id, flags=0):
+    def access_group_initiator_delete(self, access_group, init_id, flags=0):
         """
         Deletes an initiator from an access group
         """
-        self._add_initiator(group.name, initiator_id, True)
+        self._add_initiator(access_group.name, init_id, True)
         return None
 
-    def volumes_accessible_by_access_group(self, group, flags=0):
+    def volumes_accessible_by_access_group(self, access_group, flags=0):
         """
         Returns the list of volumes that access group has access to.
         """
         volumes = []
-        all_volumes_list = self.volumes()
+        all_volumes_list = self.volumes(flags=flags)
         for vol in all_volumes_list:
             for view in self._get_views(vol.name):
-                if view['host_group'] == group.name:
+                if view['host_group'] == access_group.name:
                     volumes.append(vol)
         return volumes
 
@@ -774,7 +781,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         """
         Returns the list of access groups that have access to the specified
         """
-        ag_list = self.access_groups()
+        ag_list = self.access_groups(flags=flags)
 
         hg = []
         for view in self._get_views(volume.name):

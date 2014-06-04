@@ -351,7 +351,8 @@ class SimArray(object):
     @staticmethod
     def _sim_ag_2_lsm(sim_ag):
         return AccessGroup(sim_ag['ag_id'], sim_ag['name'],
-                           sim_ag['init_ids'], sim_ag['sys_id'])
+                           sim_ag['init_ids'], sim_ag['init_type'],
+                           sim_ag['sys_id'])
 
     def ags(self):
         sim_ags = self.data.ags()
@@ -467,6 +468,7 @@ class SimData(object):
         }
         sim_ag = {
             'init_ids': [init_id,],
+            'init_type': AccessGroup.init_type,
             'sys_id': SimData.SIM_DATA_SYS_ID,
             'name': name,
             'ag_id': self._next_ag_id()
@@ -534,7 +536,7 @@ class SimData(object):
         }
     """
     SIM_DATA_BLK_SIZE = 512
-    SIM_DATA_VERSION = "2.2"
+    SIM_DATA_VERSION = "2.3"
     SIM_DATA_SYS_ID = 'sim-01'
     SIM_DATA_INIT_NAME = 'NULL'
     SIM_DATA_TMO = 30000    # ms
@@ -1042,6 +1044,7 @@ class SimData(object):
             self.init_dict[init_id] = sim_init
 
         sim_ag['init_ids'] = [init_id]
+        sim_ag['init_type'] = init_type
         sim_ag['sys_id'] = SimData.SIM_DATA_SYS_ID
         sim_ag['name'] = name
         sim_ag['ag_id'] = self._next_ag_id()

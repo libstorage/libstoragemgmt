@@ -180,36 +180,37 @@ class SimPlugin(INfs, IStorageAreaNetwork):
             [SimPlugin._sim_data_2_lsm(a) for a in sim_ags],
             search_key, search_value)
 
-    def access_group_create(self, name, initiator_id, id_type, system_id,
+    def access_group_create(self, name, init_id, init_type, system_id,
                             flags=0):
         sim_ag = self.sim_array.access_group_create(
-            name, initiator_id, id_type, system_id, flags)
+            name, init_id, init_type, system_id, flags)
         return SimPlugin._sim_data_2_lsm(sim_ag)
 
-    def access_group_delete(self, group, flags=0):
-        return self.sim_array.access_group_delete(group.id, flags)
+    def access_group_delete(self, access_group, flags=0):
+        return self.sim_array.access_group_delete(access_group.id, flags)
 
-    def access_group_initiator_add(self, group, initiator_id, id_type,
+    def access_group_initiator_add(self, access_group, init_id, init_type,
                                    flags=0):
         sim_ag = self.sim_array.access_group_initiator_add(
-            group.id, initiator_id, id_type, flags)
+            access_group.id, init_id, init_type, flags)
         return SimPlugin._sim_data_2_lsm(sim_ag)
 
-    def access_group_initiator_delete(self, group, initiator_id, flags=0):
+    def access_group_initiator_delete(self, access_group, init_id,
+                                      flags=0):
         return self.sim_array.access_group_initiator_delete(
-            group.id, initiator_id, flags)
+            access_group.id, init_id, flags)
 
-    def volume_mask(self, group, volume, flags=0):
+    def volume_mask(self, access_group, volume, flags=0):
         return self.sim_array.volume_mask(
-            group.id, volume.id, flags)
+            access_group.id, volume.id, flags)
 
-    def volume_unmask(self, group, volume, flags=0):
+    def volume_unmask(self, access_group, volume, flags=0):
         return self.sim_array.volume_unmask(
-            group.id, volume.id, flags)
+            access_group.id, volume.id, flags)
 
-    def volumes_accessible_by_access_group(self, group, flags=0):
+    def volumes_accessible_by_access_group(self, access_group, flags=0):
         sim_vols = self.sim_array.volumes_accessible_by_access_group(
-            group.id, flags)
+            access_group.id, flags)
         return [SimPlugin._sim_data_2_lsm(v) for v in sim_vols]
 
     def access_groups_granted_to_volume(self, volume, flags=0):

@@ -74,6 +74,22 @@ def handle_ontap_errors(method):
     return na_wrapper
 
 
+_INIT_TYPE_CONV = {
+    'iscsi': AccessGroup.INIT_TYPE_ISCSI_IQN,
+    'fcp': AccessGroup.INIT_TYPE_WWPN,
+    'mixed': AccessGroup.INIT_TYPE_ISCSI_WWPN_MIXED,
+}
+
+
+def _na_init_type_to_lsm(na_ag):
+    if 'initiator-group-type' in na_ag:
+        if na_ag['initiator-group-type'] in _INIT_TYPE_CONV.keys():
+            return _INIT_TYPE_CONV[na_ag['initiator-group-type']]
+        else:
+            return AccessGroup.INIT_TYPE_OTHER
+    return AccessGroup.INIT_TYPE_UNKNOWN
+
+
 class Ontap(IStorageAreaNetwork, INfs):
     TMO_CONV = 1000.0
 
@@ -441,7 +457,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         cap.set(Capabilities.VOLUME_ISCSI_CHAP_AUTHENTICATION)
         cap.set(Capabilities.VOLUME_MASK)
         cap.set(Capabilities.VOLUME_UNMASK)
-        cap.set(Capabilities.ACCESS_GROUP_LIST)
+        cap.set(Capabilities.ACCESS_GROUPS)
         cap.set(Capabilities.ACCESS_GROUP_CREATE)
         cap.set(Capabilities.ACCESS_GROUP_DELETE)
         cap.set(Capabilities.ACCESS_GROUP_ADD_INITIATOR)
@@ -743,7 +759,7 @@ class Ontap(IStorageAreaNetwork, INfs):
             ag_id = md5(name)
 
         return AccessGroup(ag_id, name, Ontap._initiators_in_group(g),
-                           self.sys_info.id)
+                           _na_init_type_to_lsm(g), self.sys_info.id)
 
     @handle_ontap_errors
     def access_groups(self, search_key=None, search_value=None, flags=0):
