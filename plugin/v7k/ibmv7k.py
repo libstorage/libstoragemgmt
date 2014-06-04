@@ -19,7 +19,7 @@ import paramiko
 
 from lsm import (Capabilities, ErrorNumber, IStorageAreaNetwork, Initiator,
                  LsmError, Pool, System, VERSION, Volume, uri_parse,
-                 search_property)
+                 search_property, AccessGroup)
 
 
 def handle_ssh_errors(method):
@@ -473,7 +473,7 @@ class IbmV7k(IStorageAreaNetwork):
             lsm_init_id = v7k_init['id']
 
         ag_name = 'N/A'
-        if name in v7k_init:
+        if 'name' in v7k_init:
             ag_name = v7k_init['name']
 
         return AccessGroup(lsm_init_id, ag_name, [lsm_init_id], lsm_init_type,
