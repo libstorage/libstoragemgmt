@@ -27,11 +27,25 @@ except ImportError:
     import json
 import base64
 import time
+import traceback
 
 from lsm import (AccessGroup, Capabilities, ErrorNumber, FileSystem, INfs,
                  IStorageAreaNetwork, Initiator, LsmError, NfsExport, Pool,
-                 FsSnapshot, System, VERSION, Volume, md5,
+                 FsSnapshot, System, VERSION, Volume, md5, Error,
                  common_urllib2_error_handler, search_property)
+
+
+def handle_nstor_errors(method):
+    def nstor_wrapper(*args, **kwargs):
+        try:
+            return method(*args, **kwargs)
+        except LsmError as lsm:
+            raise
+        except Exception as e:
+            Error("Unexpected exception:\n" + traceback.format_exc())
+            raise LsmError(ErrorNumber.PLUGIN_ERROR, str(e),
+                           traceback.format_exc())
+    return nstor_wrapper
 
 
 class NexentaStor(INfs, IStorageAreaNetwork):
@@ -46,6 +60,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         self._system = None
 
     def _ns_request(self, path, data):
+        response = None
         data = json.dumps(data)
         scheme = 'http'
         if self.uparse.scheme.lower() == 'nstor+ssl':
@@ -105,6 +120,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                 float(size[:-1]) * 1024 * 1024 * 1024 * 1024 * 1024 * 1024)
         return size
 
+    @handle_nstor_errors
     def pools(self, search_key=None, search_value=None, flags=0):
         pools_list = self._request("get_all_names", "volume", [""])
 
@@ -123,6 +139,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
         return search_property(pools, search_key, search_value)
 
+    @handle_nstor_errors
     def fs(self, search_key=None, search_value=None, flags=0):
         fs_list = self._request("get_all_names", "folder", [""])
 
@@ -146,6 +163,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
         return search_property(fss, search_key, search_value)
 
+    @handle_nstor_errors
     def fs_create(self, pool, name, size_bytes, flags=0):
         """
         Consider you have 'data' pool and folder 'a' in it (data/a)
@@ -160,10 +178,12 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                                 pool.free_space, pool.id, fs_name)
         return None, filesystem
 
+    @handle_nstor_errors
     def fs_delete(self, fs, flags=0):
         result = self._request("destroy", "folder", [fs.name, "-r"])
         return
 
+    @handle_nstor_errors
     def fs_snapshots(self, fs, flags=0):
         snapshot_list = self._request("get_names", "snapshot", [fs.name])
 
@@ -176,6 +196,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
         return snapshots
 
+    @handle_nstor_errors
     def fs_snapshot_create(self, fs, snapshot_name, files, flags=0):
         full_name = "%s@%s" % (fs.name, snapshot_name)
 
@@ -185,26 +206,33 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         return None, FsSnapshot(full_name, full_name,
                                 snapshot_info['creation_seconds'])
 
+    @handle_nstor_errors
     def fs_snapshot_delete(self, fs, snapshot, flags=0):
         self._request("destroy", "snapshot", [snapshot.name, ""])
         return
 
+    @handle_nstor_errors
     def time_out_set(self, ms, flags=0):
         self.timeout = ms
         return
 
+    @handle_nstor_errors
     def time_out_get(self, flags=0):
         return self.timeout
 
+    @handle_nstor_errors
     def plugin_unregister(self, flags=0):
         return
 
+    @handle_nstor_errors
     def job_status(self, job_id, flags=0):
         return
 
+    @handle_nstor_errors
     def job_free(self, job_id, flags=0):
         return
 
+    @handle_nstor_errors
     def capabilities(self, system, flags=0):
         c = Capabilities()
 
@@ -273,9 +301,11 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
         return c
 
+    @handle_nstor_errors
     def systems(self, flags=0):
         return [self.system]
 
+    @handle_nstor_errors
     def fs_resize(self, fs, new_size_bytes, flags=0):
         raise LsmError(ErrorNumber.NOT_IMPLEMENTED, "Not implemented")
 
@@ -283,6 +313,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
     def _get_pool_id(fs_name):
         return fs_name.split('/')[0]
 
+    @handle_nstor_errors
     def fs_clone(self, src_fs, dest_fs_name, snapshot=None, flags=0):
         folder = src_fs.name.split('/')[0]
         dest = folder + '/' + dest_fs_name
@@ -302,10 +333,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                         self.system.id)
         return None, fs
 
-    def fs_file_clone(self, fs, src_file_name, dest_file_name, snapshot=None,
-                      flags=0):
-        return
-
+    @handle_nstor_errors
     def fs_snapshot_restore(self, fs, snapshot, files, restore_files,
                             all_files=False, flags=0):
         self._request("rollback", "snapshot", [snapshot.name, '-r'])
@@ -327,11 +355,13 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                 dependency_list.append(filesystem)
         return dependency_list
 
+    @handle_nstor_errors
     def fs_child_dependency(self, fs, files, flags=0):
         # Function get list of all folders of requested pool,
         # then it checks if 'fs' is the origin of one of folders
         return len(self._dependencies_list(fs.name)) > 0
 
+    @handle_nstor_errors
     def fs_child_dependency_rm(self, fs, files, flags=0):
         dep_list = self._dependencies_list(fs.name)
         for dep in dep_list:
@@ -339,6 +369,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             self._request("promote", "folder", [clone_name])
         return None
 
+    @handle_nstor_errors
     def export_auth(self, flags=0):
         """
         Returns the types of authentication that are available for NFS
@@ -351,6 +382,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             rc.append(m.split('=>')[0])
         return rc
 
+    @handle_nstor_errors
     def exports(self, search_key=None, search_value=None, flags=0):
         """
         Get a list of all exported file systems on the controller.
@@ -371,6 +403,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
         return search_property(exports, search_key, search_value)
 
+    @handle_nstor_errors
     def export_fs(self, fs_id, export_path, root_list, rw_list, ro_list,
                   anon_uid, anon_gid, auth_type, options, flags=0):
         """
@@ -403,7 +436,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         return NfsExport(md5_id, fs_id, export_path, auth_type,
                          root_list, rw_list, ro_list, anon_uid, anon_gid,
                          options)
-
+    @handle_nstor_errors
     def export_remove(self, export, flags=0):
         """
         Removes the specified export
@@ -418,6 +451,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
     def _calc_group(name):
         return 'lsm_' + md5(name)[0:8]
 
+    @handle_nstor_errors
     def volumes(self, search_key=None, search_value=None, flags=0):
         """
         Returns an array of volume objects
@@ -467,17 +501,19 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
         return search_property(vol_list, search_key, search_value)
 
+    @handle_nstor_errors
     def initiators(self, flags=0):
         """
         Return an array of initiator objects
         """
         i_list = []
         for ag in self.access_groups():
-            for initiator_id in ag.initiators:
+            for initiator_id in ag.init_ids:
                 i_list.append(Initiator(initiator_id,
                                         Initiator.TYPE_ISCSI, initiator_id))
         return i_list
 
+    @handle_nstor_errors
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
                       flags=0):
         """
@@ -516,6 +552,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                                         # replace with list request
         return None, new_volume
 
+    @handle_nstor_errors
     def volume_delete(self, volume, flags=0):
         """
         Deletes a volume.
@@ -526,6 +563,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         self._request("destroy", "zvol", [volume.id, ''])
         return
 
+    @handle_nstor_errors
     def volume_resize(self, volume, new_size_bytes, flags=0):
         """
         Re-sizes a volume.
@@ -542,6 +580,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                             volume.block_size, new_num_of_blocks,
                             volume.status, volume.system_id, volume.pool_id)
 
+    @handle_nstor_errors
     def volume_replicate(self, pool, rep_type, volume_src, name, flags=0):
         """
         Replicates a volume from the specified pool.  In this library, to
@@ -593,6 +632,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
     #    return
 
+    @handle_nstor_errors
     def iscsi_chap_auth(self, initiator, in_user, in_password, out_user,
                         out_password, flags=0):
         """
@@ -627,6 +667,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                             'initiatorchapsecret': in_password}])
         return
 
+    @handle_nstor_errors
     def initiator_grant(self, initiator_id, initiator_type, volume, access,
                         flags=0):
         """
@@ -645,6 +686,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         return self._request("list_lun_mapping_entries", "scsidisk",
                              [volume_name])
 
+    @handle_nstor_errors
     def initiator_revoke(self, initiator, volume, flags=0):
         """
         Revokes access to a volume for the specified initiator
@@ -669,6 +711,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                       [volume_name, {'host_group': group_name}])
         return
 
+    @handle_nstor_errors
     def volume_mask(self, access_group, volume, flags=0):
         """
         Allows an access group to access a volume.
@@ -676,6 +719,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         self._volume_mask(access_group.name, volume.name)
         return
 
+    @handle_nstor_errors
     def volume_unmask(self, access_group, volume, flags=0):
         """
         Revokes access for an access group for a volume
@@ -683,7 +727,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         views = self._get_views(volume.name)
         view_number = -1
         for view in views:
-            if view['host_group'] == group.name:
+            if view['host_group'] == access_group.name:
                 view_number = view['entry_number']
         if view_number == -1:
             raise LsmError(ErrorNumber.NO_MAPPING, "There is no such mapping "
@@ -694,6 +738,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                       [volume.name, view_number])
         return
 
+    @handle_nstor_errors
     def access_groups(self, search_key=None, search_value=None, flags=0):
         """
         Returns a list of access groups
@@ -709,12 +754,13 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                             self.system.id))
         return search_property(ag_list, search_key, search_value)
 
+    @handle_nstor_errors
     def access_group_create(self, name, init_id, init_type, system_id,
                             flags=0):
         """
         Creates of access group
         """
-        if system_id != self.system_id:
+        if system_id != self.system.id:
             raise LsmError(ErrorNumber.NOT_FOUND_SYSTEM,
                            "System %s not found" % system_id)
         if init_type != AccessGroup.INIT_TYPE_ISCSI_IQN:
@@ -731,6 +777,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
         return AccessGroup(name, name, [init_id], init_type, system_id)
 
+    @handle_nstor_errors
     def access_group_delete(self, access_group, flags=0):
         """
         Deletes an access group
@@ -738,6 +785,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         self._request("destroy_hostgroup", "stmf", [access_group.name])
         return
 
+    @handle_nstor_errors
     def _add_initiator(self, group_name, initiator_id, remove=False):
         command = "add_hostgroup_member"
         if remove:
@@ -746,6 +794,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         self._request(command, "stmf", [group_name, initiator_id])
         return
 
+    @handle_nstor_errors
     def access_group_initiator_add(self, access_group, init_id, init_type,
                                    flags=0):
         """
@@ -758,6 +807,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         self._add_initiator(access_group.name, init_id)
         return None
 
+    @handle_nstor_errors
     def access_group_initiator_delete(self, access_group, init_id, flags=0):
         """
         Deletes an initiator from an access group
@@ -765,6 +815,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         self._add_initiator(access_group.name, init_id, True)
         return None
 
+    @handle_nstor_errors
     def volumes_accessible_by_access_group(self, access_group, flags=0):
         """
         Returns the list of volumes that access group has access to.
@@ -777,6 +828,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                     volumes.append(vol)
         return volumes
 
+    @handle_nstor_errors
     def access_groups_granted_to_volume(self, volume, flags=0):
         """
         Returns the list of access groups that have access to the specified
@@ -790,6 +842,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                     hg.append(ag)
         return hg
 
+    @handle_nstor_errors
     def volume_child_dependency(self, volume, flags=0):
         """
         Returns True if this volume has other volumes which are dependant on
@@ -798,6 +851,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         """
         return len(self._dependencies_list(volume.name, True)) > 0
 
+    @handle_nstor_errors
     def volume_child_dependency_rm(self, volume, flags=0):
         """
         If this volume has child dependency, this method call will fully
@@ -816,6 +870,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             self._request("promote", "volume", [clone_name])
         return None
 
+    @handle_nstor_errors
     def volumes_accessible_by_initiator(self, initiator, flags=0):
         """
         Returns a list of volumes that the initiator has access to.
@@ -829,11 +884,12 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                     volumes.append(vol)
         return volumes
 
+    @handle_nstor_errors
     def initiators_granted_to_volume(self, volume, flags=0):
         """
         Returns a list of initiators that have access to the specified volume.
         """
-        ag_list = self.access_group()
+        ag_list = self.access_groups()
         i_list = self.initiators()
         initiators_id = []
         for view in self._get_views(volume.name):
