@@ -35,7 +35,7 @@ from lsm.lsmcli.data_display import (
     DisplayData, PlugData, out,
     pool_raid_type_str_to_type, pool_member_type_str_to_type,
     vol_provision_str_to_type, vol_rep_type_str_to_type,
-    vol_access_type_str_to_type)
+    vol_access_type_str_to_type, ag_init_type_str_to_lsm)
 
 
 ## Wraps the invocation to the command line
@@ -348,8 +348,17 @@ cmds = (
         help='Grants access to an access group to a volume, '
              'like LUN Masking',
         args=[
-            dict(ag_id_opt),
             dict(vol_id_opt),
+        ],
+        optional=[
+            dict(ag_id_opt),
+            dict(name='--init', metavar='<INIT_ID>', action='append',
+                 help='Initiator ID, only used when access-group-create is '
+                      'not supported'),
+            dict(name="--init-type", type=str.upper,
+                 metavar='<INIT_TYPE>', choices=initiator_id_types,
+                 help="%s only used when access-group-create is not supported"
+                      % initiator_id_help),
         ],
     ),
 
@@ -941,7 +950,12 @@ class CmdLine:
         if args.type == 'VOLUMES':
             if search_key == 'volume_id':
                 search_key = 'id'
-            if search_key and search_key not in Volume.SUPPORTED_SEARCH_KEYS:
+            if search_key == 'access_group_id':
+                lsm_ag = _get_item(self.c.access_groups(), args.ag,
+                                   "Access Group ID")
+                return self.display_data(
+                    self.c.volumes_accessible_by_access_group(lsm_ag))
+            elif search_key and search_key not in Volume.SUPPORTED_SEARCH_KEYS:
                 raise ArgError("Search key '%s' is not supported by "
                                "volume listing." % search_key)
             self.display_data(self.c.volumes(search_key, search_value))
@@ -985,7 +999,12 @@ class CmdLine:
         elif args.type == 'ACCESS_GROUPS':
             if search_key == 'access_group_id':
                 search_key = 'id'
-            if search_key and \
+            if search_key == 'volume_id':
+                lsm_vol = _get_item(self.c.volumes(), args.vol,
+                                   "Volume ID")
+                return self.display_data(
+                    self.c.access_groups_granted_to_volume(lsm_vol))
+            elif search_key and \
                search_key not in AccessGroup.SUPPORTED_SEARCH_KEYS:
                 raise ArgError("Search key '%s' is not supported by "
                                "Access Group listing" % search_key)
@@ -1212,8 +1231,8 @@ class CmdLine:
                  cap.supported(Capabilities.VOLUME_MASK))
         self._cp("VOLUME_UNMASK",
                  cap.supported(Capabilities.VOLUME_UNMASK))
-        self._cp("ACCESS_GROUP_LIST",
-                 cap.supported(Capabilities.ACCESS_GROUP_LIST))
+        self._cp("ACCESS_GROUPS",
+                 cap.supported(Capabilities.ACCESS_GROUPS))
         self._cp("ACCESS_GROUP_CREATE",
                  cap.supported(Capabilities.ACCESS_GROUP_CREATE))
         self._cp("ACCESS_GROUP_DELETE",
@@ -1466,9 +1485,6 @@ class CmdLine:
         return self._access(False, args)
 
     def _volume_masking(self, args, grant=True):
-        agl = self.c.access_groups()
-        group = _get_item(agl, args.ag, "access group id")
-        v = _get_item(self.c.volumes(), args.vol, "volume id")
 
         if grant:
             self.c.volume_mask(group, v)
@@ -1476,10 +1492,29 @@ class CmdLine:
             self.c.volume_unmask(group, v)
 
     def volume_mask(self, args):
-        return self._volume_masking(args, grant=True)
+        if not args.ag and not args.init:
+            raise ArgError('Neither --ag nor --init is defined. '
+                           'Please specify at lease one')
+        if args.init and not args.init_type:
+            raise ArgError('In volume-mask command, --init and '
+                           '--init-type should be defined at the same time')
+        if args.ag and args.init:
+            raise ArgError('In volume-mask command, --init is '
+                           'conflicting with --ag')
+        vol = _get_item(self.c.volumes(), args.vol, 'Volume ID')
+        ag = None
+        if args.ag:
+            ag = _get_item(self.c.access_groups(), args.ag, 'Access Group ID')
+
+        if args.init:
+            init_type = ag_init_type_str_to_lsm(args.init_type)
+            ag = AccessGroup(0, '', args.init, init_type, vol.system_id)
+        self.c.volume_mask(ag, vol)
 
     def volume_unmask(self, args):
-        return self._volume_masking(args, grant=False)
+        ag = _get_item(self.c.access_groups(), args.ag, "Access Group ID")
+        vol = _get_item(self.c.volumes(), args.vol, "volume id")
+        return self.c.volume_unmask(ag, vol)
 
     ## Re-sizes a volume
     def volume_resize(self, args):

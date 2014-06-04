@@ -173,7 +173,7 @@ resources: \fBVOLUMES\fR, \fBPOOLS\fR, \fBFS\fR.
 .TP
 \fB--vol\fR \fI<VOL_ID>\fR
 Search resources from volume with VOL_ID. Only supported by these types of
-resources: \fBVOLUMES\fR.
+resources: \fBVOLUMES\fR, \fBACCESS_GROUPS\fR.
 .TP
 \fB--disk\fR \fI<DISK_ID>\fR
 Search resources from disk with DISK_ID. Only supported by these types of
@@ -181,7 +181,7 @@ resources: \fBDISK\fR.
 .TP
 \fB--ag\fR \fI<AG_ID>\fR
 Search resources from access group with AG_ID. Only supported by these types
-of resources: \fBACCESS_GROUPS\fR.
+of resources: \fBACCESS_GROUPS\fR, \fBVOLUMES\fR.
 .TP
 \fB--fs\fR \fI<FS_ID>\fR
 Search resources from file system with FS_ID. Only supported by these types

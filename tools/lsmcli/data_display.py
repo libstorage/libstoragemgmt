@@ -307,6 +307,26 @@ def init_type_to_str(init_type):
     return _enum_type_to_str(init_type, _INIT_TYPE_CONV)
 
 
+_AG_INIT_TYPE_CONV = {
+    AccessGroup.INIT_TYPE_UNKNOWN: 'Unknown',
+    AccessGroup.INIT_TYPE_OTHER: 'Other',
+    AccessGroup.INIT_TYPE_WWPN: 'WWPN',
+    AccessGroup.INIT_TYPE_WWNN: 'WWNN',
+    AccessGroup.INIT_TYPE_HOSTNAME: 'Hostname',
+    AccessGroup.INIT_TYPE_ISCSI_IQN: 'iSCSI',
+    AccessGroup.INIT_TYPE_SAS: 'SAS',
+    AccessGroup.INIT_TYPE_ISCSI_WWPN_MIXED: 'iSCSI/WWPN Mixed',
+}
+
+
+def ag_init_type_to_str(init_type):
+    return _enum_type_to_str(init_type, _AG_INIT_TYPE_CONV)
+
+
+def ag_init_type_str_to_lsm(init_type_str):
+    return _str_to_enum(init_type_str, _AG_INIT_TYPE_CONV)
+
+
 class PlugData(object):
     def __init__(self, description, plugin_version):
             self.desc = description
@@ -490,14 +510,17 @@ class DisplayData(object):
     AG_MAN_HEADER = OrderedDict()
     AG_MAN_HEADER['id'] = 'ID'
     AG_MAN_HEADER['name'] = 'Name'
-    AG_MAN_HEADER['initiators'] = 'Initiator IDs'
+    AG_MAN_HEADER['init_ids'] = 'Initiator IDs'
+    AG_MAN_HEADER['init_type'] = 'Type'
     AG_MAN_HEADER['system_id'] = 'System ID'
 
     AG_COLUMN_KEYS = AG_MAN_HEADER.keys()
 
     AG_OPT_HEADER = OrderedDict()
 
-    AG_VALUE_CONV_ENUM = {}
+    AG_VALUE_CONV_ENUM = {
+        'init_type': ag_init_type_to_str,
+    }
 
     AG_VALUE_CONV_HUMAN = []
 
