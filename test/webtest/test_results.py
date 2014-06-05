@@ -108,6 +108,8 @@ def get_result(r, method):
 
 
 def to_html(results):
+    PREAMBLE_FILE = os.getenv('LSM_PREAMBLE_FILE', "")
+    preamble = ""
     methods = ['capabilities',
                'systems', 'plugin_info', 'pools', 'job_status', 'job_free',
                'volumes', 'volume_create', 'volume_delete', 'volume_resize',
@@ -115,6 +117,10 @@ def to_html(results):
 
     ch = []
     row_data = []
+
+    if os.path.isfile(PREAMBLE_FILE):
+        with open(PREAMBLE_FILE, 'r') as pm:
+            preamble = pm.read()
 
     #Build column header
     for r in results:
@@ -151,7 +157,7 @@ def to_html(results):
                           href="../../test.css"),
                 title("libStorageMgmt test results"), ),
                 body(
-                    HTML(h1("Test results generated @ %s") % (time.strftime("%c"))),
+                    HTML(h1("%s Results generated @ %s") % (preamble, time.strftime("%c"))),
                     div(table(_table_header(ch), _table_body(row_data)),
                          _class="angled_table"),
                     div(pre(
