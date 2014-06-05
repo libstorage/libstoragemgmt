@@ -1569,21 +1569,21 @@ int lsm_access_group_list(lsm_connect *c, const char *search_key,
 }
 
 int lsm_access_group_create(lsm_connect *c, const char *name,
-                            const char *initiator_id, lsm_initiator_type id_type,
+                            const char *init_id, lsm_initiator_type init_type,
                             const char *system_id,
                             lsm_access_group **access_group, lsm_flag flags)
 {
     CONN_SETUP(c);
 
-    if( CHECK_STR(name) || CHECK_STR(initiator_id) || CHECK_STR(system_id)
+    if( CHECK_STR(name) || CHECK_STR(init_id) || CHECK_STR(system_id)
         || CHECK_RP(access_group) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
     p["name"] = Value(name);
-    p["initiator_id"] = Value(initiator_id);
-    p["id_type"] = Value((int32_t)id_type);
+    p["init_id"] = Value(init_id);
+    p["init_type"] = Value((int32_t)init_type);
     p["system_id"] = Value(system_id);
     p["flags"] = Value(flags);
 
@@ -1602,11 +1602,12 @@ int lsm_access_group_create(lsm_connect *c, const char *name,
     return rc;
 }
 
-int lsm_access_group_delete(lsm_connect *c, lsm_access_group *group, lsm_flag flags)
+int lsm_access_group_delete(lsm_connect *c, lsm_access_group *access_group,
+                            lsm_flag flags)
 {
     CONN_SETUP(c);
 
-    if( !LSM_IS_ACCESS_GROUP(group) ){
+    if( !LSM_IS_ACCESS_GROUP(access_group) ){
         return LSM_ERR_INVALID_ACCESS_GROUP;
     }
 
@@ -1615,7 +1616,7 @@ int lsm_access_group_delete(lsm_connect *c, lsm_access_group *group, lsm_flag fl
     }
 
     std::map<std::string, Value> p;
-    p["group"] = access_group_to_value(group);
+    p["access_group"] = access_group_to_value(access_group);
     p["flags"] = Value(flags);
 
     Value parameters(p);
@@ -1625,26 +1626,26 @@ int lsm_access_group_delete(lsm_connect *c, lsm_access_group *group, lsm_flag fl
 }
 
 int lsm_access_group_initiator_add(lsm_connect *c,
-                                lsm_access_group *group,
-                                const char *initiator_id,
-                                lsm_initiator_type id_type,
+                                lsm_access_group *access_group,
+                                const char *init_id,
+                                lsm_initiator_type init_type,
                                 lsm_flag flags)
 {
     CONN_SETUP(c);
 
-    if( !LSM_IS_ACCESS_GROUP(group) ) {
+    if( !LSM_IS_ACCESS_GROUP(access_group) ) {
         return LSM_ERR_INVALID_ACCESS_GROUP;
     }
 
-    if( CHECK_STR(initiator_id) ||
+    if( CHECK_STR(init_id) ||
         LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
-    p["group"] = access_group_to_value(group);
-    p["initiator_id"] = initiator_id;
-    p["id_type"] = Value((int32_t)id_type);
+    p["access_group"] = access_group_to_value(access_group);
+    p["init_id"] = init_id;
+    p["init_type"] = Value((int32_t)init_type);
     p["flags"] = Value(flags);
 
     Value parameters(p);
@@ -1667,8 +1668,8 @@ int lsm_access_group_initiator_delete(lsm_connect *c, lsm_access_group *group,
     }
 
     std::map<std::string, Value> p;
-    p["group"] = access_group_to_value(group);
-    p["initiator_id"] = Value(initiator_id);
+    p["access_group"] = access_group_to_value(group);
+    p["init_id"] = Value(initiator_id);
     p["flags"] = Value(flags);
 
     Value parameters(p);
@@ -1677,13 +1678,13 @@ int lsm_access_group_initiator_delete(lsm_connect *c, lsm_access_group *group,
     return rpc(c, "access_group_initiator_delete", parameters, response);
 }
 
-int lsm_volume_mask(lsm_connect *c, lsm_access_group *group,
+int lsm_volume_mask(lsm_connect *c, lsm_access_group *access_group,
                                             lsm_volume *volume,
                                             lsm_flag flags)
 {
     CONN_SETUP(c);
 
-    if( !LSM_IS_ACCESS_GROUP(group)) {
+    if( !LSM_IS_ACCESS_GROUP(access_group)) {
         return LSM_ERR_INVALID_ACCESS_GROUP;
     }
 
@@ -1696,7 +1697,7 @@ int lsm_volume_mask(lsm_connect *c, lsm_access_group *group,
     }
 
     std::map<std::string, Value> p;
-    p["group"] = access_group_to_value(group);
+    p["access_group"] = access_group_to_value(access_group);
     p["volume"] = volume_to_value(volume);
     p["flags"] = Value(flags);
 
@@ -1726,7 +1727,7 @@ int lsm_volume_unmask(lsm_connect *c, lsm_access_group *group,
     }
 
     std::map<std::string, Value> p;
-    p["group"] = access_group_to_value(group);
+    p["access_group"] = access_group_to_value(group);
     p["volume"] = volume_to_value(volume);
     p["flags"] = Value(flags);
 
@@ -1754,7 +1755,7 @@ int lsm_volumes_accessible_by_access_group(lsm_connect *c,
 
     try {
         std::map<std::string, Value> p;
-        p["group"] = access_group_to_value(group);
+        p["access_group"] = access_group_to_value(group);
         p["flags"] = Value(flags);
 
         Value parameters(p);

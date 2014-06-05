@@ -1039,7 +1039,10 @@ CREATE_ALLOC_ARRAY_FUNC(lsm_access_group_record_array_alloc, lsm_access_group *)
 lsm_access_group *lsm_access_group_record_alloc(const char *id,
                                         const char *name,
                                         lsm_string_list *initiators,
-                                        const char *system_id)
+                                        lsm_access_group_init_type init_type,
+                                        const char *system_id,
+                                        lsm_optional_data *optional_data,
+                                        const char *plugin_data)
 {
     lsm_access_group *rc = NULL;
     if( id && name && system_id ) {
@@ -1050,8 +1053,18 @@ lsm_access_group *lsm_access_group_record_alloc(const char *id,
             rc->name = strdup(name);
             rc->system_id = strdup(system_id);
             rc->initiators = lsm_string_list_copy(initiators);
+            rc->init_type = init_type;
+            rc->optional_data = lsm_optional_data_record_copy(optional_data);
 
-            if( !rc->id || !rc->name || !rc->system_id ) {
+            if( plugin_data ) {
+                rc->plugin_data = strdup(plugin_data);
+            } else {
+                rc->plugin_data = NULL;
+            }
+
+            if( !rc->id || !rc->name || !rc->system_id  ||
+                (optional_data && !rc->optional_data) ||
+                (plugin_data && !rc->plugin_data)) {
                 lsm_access_group_record_free(rc);
                 rc = NULL;
             }
@@ -1065,7 +1078,9 @@ lsm_access_group *lsm_access_group_record_copy( lsm_access_group *ag )
     lsm_access_group *rc = NULL;
     if( LSM_IS_ACCESS_GROUP(ag) ) {
         rc = lsm_access_group_record_alloc(ag->id, ag->name,
-                                           ag->initiators, ag->system_id);
+                                           ag->initiators, ag->init_type,
+                                           ag->system_id,
+                                           ag->optional_data, ag->plugin_data);
     }
     return rc;
 }
@@ -1078,6 +1093,8 @@ int lsm_access_group_record_free(lsm_access_group *ag)
         free(ag->name);
         free(ag->system_id);
         lsm_string_list_free(ag->initiators);
+        lsm_optional_data_record_free(ag->optional_data);
+        free(ag->plugin_data);
         free(ag);
         return LSM_ERR_OK;
     }

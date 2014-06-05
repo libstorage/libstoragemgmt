@@ -324,20 +324,31 @@ lsm_access_group *value_to_access_group( Value &group )
 {
     lsm_string_list *il = NULL;
     lsm_access_group *ag = NULL;
+    lsm_optional_data *op = NULL;
 
     if( is_expected_object(group, "AccessGroup")) {
         std::map<std::string, Value> vAg = group.asObject();
 
-        il = value_to_string_list(vAg["initiators"]);
+        il = value_to_string_list(vAg["init_ids"]);
+
+        if( group.asObject().find("optional_data") != group.asObject().end() ) {
+            Value opv = group["optional_data"];
+            op = value_to_optional_data(opv);
+        }
 
         if( il ) {
-            ag = lsm_access_group_record_alloc(vAg["id"].asString().c_str(),
-                                        vAg["name"].asString().c_str(),
-                                        il,
-                                        vAg["system_id"].asString().c_str());
+            ag = lsm_access_group_record_alloc(
+                    vAg["id"].asString().c_str(),
+                    vAg["name"].asString().c_str(),
+                    il,
+                    (lsm_access_group_init_type)vAg["init_type"].asInt32_t(),
+                    vAg["system_id"].asString().c_str(),
+                    op,
+                    vAg["plugin_data"].asC_str());
 
-            /* Initiator list is copied in AccessroupRecordAlloc */
+            /* This stuff is copied in lsm_access_group_record_alloc */
             lsm_string_list_free(il);
+            lsm_optional_data_record_free(op);
         }
     }
     return ag;
@@ -350,8 +361,14 @@ Value access_group_to_value( lsm_access_group *group )
         ag["class"] = Value("AccessGroup");
         ag["id"] = Value(group->id);
         ag["name"] = Value(group->name);
-        ag["initiators"] = Value(string_list_to_value(group->initiators));
+        ag["init_ids"] = Value(string_list_to_value(group->initiators));
+        ag["init_type"] = Value(group->init_type);
         ag["system_id"] = Value(group->system_id);
+        ag["plugin_data"] = Value(group->plugin_data);
+
+        if( group->optional_data ) {
+            ag["optional_data"] = optional_data_to_value(group->optional_data);
+        }
         return Value(ag);
     }
     return Value();

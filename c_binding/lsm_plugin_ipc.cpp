@@ -1203,22 +1203,24 @@ static int ag_create(lsm_plugin_ptr p, Value &params, Value &response)
 
     if( p && p->san_ops && p->san_ops->ag_create ) {
         Value v_name = params["name"];
-        Value v_init_id = params["initiator_id"];
-        Value v_id_type = params["id_type"];
+        Value v_init_id = params["init_id"];
+        Value v_init_type = params["init_type"];
         Value v_system_id = params["system_id"];
 
         if( Value::string_t == v_name.valueType() &&
             Value::string_t == v_init_id.valueType() &&
-            Value::numeric_t == v_id_type.valueType() &&
+            Value::numeric_t == v_init_type.valueType() &&
             Value::string_t == v_system_id.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
 
             lsm_access_group *ag = NULL;
-            rc = p->san_ops->ag_create(p, v_name.asC_str(),
-                                    v_init_id.asC_str(),
-                                    (lsm_initiator_type)v_id_type.asInt32_t(),
-                                    v_system_id.asC_str(), &ag,
-                                    LSM_FLAG_GET_VALUE(params));
+            rc = p->san_ops->ag_create(
+                    p,
+                    v_name.asC_str(),
+                    v_init_id.asC_str(),
+                    (lsm_access_group_init_type)v_init_type.asInt32_t(),
+                    v_system_id.asC_str(), &ag,
+                    LSM_FLAG_GET_VALUE(params));
             if( LSM_ERR_OK == rc ) {
                 response = access_group_to_value(ag);
                 lsm_access_group_record_free(ag);
@@ -1235,12 +1237,12 @@ static int ag_delete(lsm_plugin_ptr p, Value &params, Value &response)
     int rc = LSM_ERR_NO_SUPPORT;
 
     if( p && p->san_ops && p->san_ops->ag_delete ) {
-        Value v_group = params["group"];
+        Value v_access_group = params["access_group"];
 
-        if( Value::object_t == v_group.valueType() &&
+        if( Value::object_t == v_access_group.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
 
-            lsm_access_group *ag = value_to_access_group(v_group);
+            lsm_access_group *ag = value_to_access_group(v_access_group);
 
             if( ag ) {
                 rc = p->san_ops->ag_delete(p, ag, LSM_FLAG_GET_VALUE(params));
@@ -1262,21 +1264,21 @@ static int ag_initiator_add(lsm_plugin_ptr p, Value &params, Value &response)
 
     if( p && p->san_ops && p->san_ops->ag_add_initiator ) {
 
-        Value v_group = params["group"];
-        Value v_id = params["initiator_id"];
-        Value v_id_type = params["id_type"];
+        Value v_group = params["access_group"];
+        Value v_init_id = params["init_id"];
+        Value v_init_type = params["init_type"];
 
 
         if( Value::object_t == v_group.valueType() &&
-            Value::string_t == v_id.valueType() &&
-            Value::numeric_t == v_id_type.valueType() &&
+            Value::string_t == v_init_id.valueType() &&
+            Value::numeric_t == v_init_type.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
 
             lsm_access_group *ag = value_to_access_group(v_group);
             if( ag ) {
-                const char *id = v_id.asC_str();
+                const char *id = v_init_id.asC_str();
                 lsm_initiator_type id_type = (lsm_initiator_type)
-                                            v_id_type.asInt32_t();
+                                            v_init_type.asInt32_t();
 
                 rc = p->san_ops->ag_add_initiator(p, ag, id, id_type,
                                                     LSM_FLAG_GET_VALUE(params));
@@ -1300,8 +1302,8 @@ static int ag_initiator_del(lsm_plugin_ptr p, Value &params, Value &response)
 
     if( p && p->san_ops && p->san_ops->ag_del_initiator ) {
 
-        Value v_group = params["group"];
-        Value v_init_id = params["initiator_id"];
+        Value v_group = params["access_group"];
+        Value v_init_id = params["init_id"];
 
         if( Value::object_t == v_group.valueType() &&
             Value::string_t == v_init_id.valueType() &&
@@ -1331,7 +1333,7 @@ static int volume_mask(lsm_plugin_ptr p, Value &params, Value &response)
 
     if( p && p->san_ops && p->san_ops->ag_grant ) {
 
-        Value v_group = params["group"];
+        Value v_group = params["access_group"];
         Value v_vol = params["volume"];
 
         if( Value::object_t == v_group.valueType() &&
@@ -1365,7 +1367,7 @@ static int volume_unmask(lsm_plugin_ptr p, Value &params, Value &response)
 
     if( p && p->san_ops && p->san_ops->ag_revoke ) {
 
-        Value v_group = params["group"];
+        Value v_group = params["access_group"];
         Value v_vol = params["volume"];
 
         if( Value::object_t == v_group.valueType() &&
@@ -1398,11 +1400,11 @@ static int vol_accessible_by_ag(lsm_plugin_ptr p, Value &params, Value &response
     int rc = LSM_ERR_NO_SUPPORT;
 
     if( p && p->san_ops && p->san_ops->vol_accessible_by_ag ) {
-        Value v_group = params["group"];
+        Value v_access_group = params["access_group"];
 
-        if( Value::object_t == v_group.valueType() &&
+        if( Value::object_t == v_access_group.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
-            lsm_access_group *ag = value_to_access_group(v_group);
+            lsm_access_group *ag = value_to_access_group(v_access_group);
 
             if( ag ) {
                 lsm_volume **vols = NULL;

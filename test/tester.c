@@ -671,7 +671,7 @@ START_TEST(test_access_groups)
     if( LSM_ERR_JOB_STARTED == rc ) {
         wait_for_job(c, &job);
     } else {
-        fail_unless(LSM_ERR_OK == rc, "Expected success on lsmAccessGroupInitiatorAdd %d", rc);
+        fail_unless(LSM_ERR_OK == rc, "Expected success on lsmAccessGroupInitiatorAdd %d %d", rc, which_plugin);
     }
 
     rc = lsm_access_group_list(c, NULL, NULL, &groups, &count, LSM_FLAG_RSVD);
@@ -1895,7 +1895,7 @@ START_TEST(test_capabilities)
             cap_test(cap, LSM_CAP_VOLUME_OFFLINE);
             cap_test(cap, LSM_CAP_VOLUME_MASK);
             cap_test(cap, LSM_CAP_VOLUME_UNMASK);
-            cap_test(cap, LSM_CAP_ACCESS_GROUP_LIST);
+            cap_test(cap, LSM_CAP_ACCESS_GROUPS);
             cap_test(cap, LSM_CAP_ACCESS_GROUP_CREATE);
             cap_test(cap, LSM_CAP_ACCESS_GROUP_DELETE);
             cap_test(cap, LSM_CAP_ACCESS_GROUP_ADD_INITIATOR);
@@ -2182,7 +2182,7 @@ START_TEST(test_capability)
         LSM_CAP_VOLUME_OFFLINE,
         LSM_CAP_VOLUME_MASK,
         LSM_CAP_VOLUME_UNMASK,
-        LSM_CAP_ACCESS_GROUP_LIST,
+        LSM_CAP_ACCESS_GROUPS,
         LSM_CAP_ACCESS_GROUP_CREATE,
         LSM_CAP_ACCESS_GROUP_DELETE,
         LSM_CAP_ACCESS_GROUP_ADD_INITIATOR,
@@ -2278,7 +2278,7 @@ START_TEST(test_capability)
             LSM_CAP_VOLUME_OFFLINE,
             LSM_CAP_VOLUME_MASK,
             LSM_CAP_VOLUME_UNMASK,
-            LSM_CAP_ACCESS_GROUP_LIST,
+            LSM_CAP_ACCESS_GROUPS,
             LSM_CAP_ACCESS_GROUP_CREATE,
             LSM_CAP_ACCESS_GROUP_DELETE,
             LSM_CAP_ACCESS_GROUP_ADD_INITIATOR,
@@ -3102,6 +3102,7 @@ Suite * lsm_suite(void)
     TCase *basic = tcase_create("Basic");
     tcase_add_checked_fixture (basic, setup, teardown);
 
+    tcase_add_test(basic, test_access_groups);
     tcase_add_test(basic, test_search_fs);
     tcase_add_test(basic, test_search_access_groups);
     tcase_add_test(basic, test_search_disks);

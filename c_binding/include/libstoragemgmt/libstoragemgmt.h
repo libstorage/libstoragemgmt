@@ -582,8 +582,8 @@ extern "C" {
      * Creates a new access group with one initiator in it.
      * @param[in] conn                  Valid connection @see lsm_connect_password
      * @param[in] name                  Name of access group
-     * @param[in] initiator_id          Initiator id to be added to group
-     * @param[in] id_type               Initiator type
+     * @param[in] init_id               Initiator id to be added to group
+     * @param[in] init_type             Initiator type
      * @param[in] system_id             System id to create access group for
      * @param[out] access_group         Returned access group
      * @param[in] flags                 Reserved for future use, must be zero.
@@ -591,8 +591,8 @@ extern "C" {
      */
     int LSM_DLL_EXPORT lsm_access_group_create(lsm_connect *conn,
                                                 const char *name,
-                                                const char *initiator_id,
-                                                lsm_initiator_type id_type,
+                                                const char *init_id,
+                                                lsm_initiator_type init_type,
                                                 const char *system_id,
                                                 lsm_access_group **access_group,
                                                 lsm_flag flags);
@@ -600,26 +600,27 @@ extern "C" {
     /**
      * Deletes an access group.
      * @param[in] conn                  Valid connection @see lsm_connect_password
-     * @param[in] group                 Group to delete
+     * @param[in] access_group          Group to delete
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
     int LSM_DLL_EXPORT lsm_access_group_delete(lsm_connect *conn,
-                                            lsm_access_group *group, lsm_flag flags);
+                                            lsm_access_group *access_group,
+                                            lsm_flag flags);
 
     /**
      * Adds an initiator to the access group
      * @param[in] conn                  Valid connection @see lsm_connect_password
-     * @param[in] group                 Group to modify
-     * @param[in] initiator_id          Initiator to add to group
-     * @param[in] id_type               Type of initiator
+     * @param[in] access_group          Group to modify
+     * @param[in] init_id               Initiator to add to group
+     * @param[in] init_type             Type of initiator
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
     int LSM_DLL_EXPORT lsm_access_group_initiator_add(lsm_connect *conn,
-                                lsm_access_group *group,
-                                const char *initiator_id,
-                                lsm_initiator_type id_type, lsm_flag flags);
+                                lsm_access_group *access_group,
+                                const char *init_id,
+                                lsm_initiator_type init_type, lsm_flag flags);
 
     /**
      * Removes an initiator from an access group.
@@ -637,26 +638,26 @@ extern "C" {
     /**
      * Grants access to a volume for the specified group
      * @param[in] conn                  Valid connection
-     * @param[in] group                 Valid group pointer
+     * @param[in] access_group          Valid group pointer
      * @param[in] volume                Valid volume pointer
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
     int LSM_DLL_EXPORT lsm_volume_mask(lsm_connect *conn,
-                                            lsm_access_group *group,
+                                            lsm_access_group *access_group,
                                             lsm_volume *volume,
                                             lsm_flag flags);
 
     /**
      * Revokes access to a volume for the specified group
      * @param[in] conn                  Valid connection
-     * @param[in] group                 Valid group pointer
+     * @param[in] access_group          Valid group pointer
      * @param[in] volume                Valid volume pointer
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
     int LSM_DLL_EXPORT lsm_volume_unmask(lsm_connect *conn,
-                                            lsm_access_group *group,
+                                            lsm_access_group *access_group,
                                             lsm_volume *volume,
                                             lsm_flag flags);
 

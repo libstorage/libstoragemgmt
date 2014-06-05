@@ -98,7 +98,10 @@ struct _lsm_access_group {
     char *id;                   /**< Id */
     char *name;                 /**< Name */
     char *system_id;            /**< System id */
+    lsm_access_group_init_type init_type; /**< Init type */
     lsm_string_list *initiators;  /**< List of initiators */
+    lsm_optional_data *optional_data;   /**< Optional data */
+    char *plugin_data;            /**< Reserved for the plugin to use */
 };
 
 #define LSM_FILE_SYSTEM_MAGIC  0xAA7A0004

@@ -535,7 +535,7 @@ typedef int (*lsm_plug_access_group_list)(lsm_plugin_ptr c,
 typedef int (*lsm_plug_access_group_create)(lsm_plugin_ptr c,
                                             const char *name,
                                             const char *initiator_id,
-                                            lsm_initiator_type id_type,
+                                            lsm_access_group_init_type init_type,
                                             const char *system_id,
                                             lsm_access_group **access_group,
                                             lsm_flag flags);
@@ -1191,12 +1191,17 @@ lsm_access_group LSM_DLL_EXPORT **lsm_access_group_record_array_alloc( uint32_t 
  * @param name              Name of access group
  * @param initiators        List of initiators, can be NULL
  * @param system_id         System id
+ * @param optional_data     Optional data
+ * @param plugin_data       Reserved for plug-in use only
  * @return NULL on error, else valid lsm_access_group pointer.
  */
 lsm_access_group LSM_DLL_EXPORT * lsm_access_group_record_alloc(const char *id,
-                                                     const char *name,
-                                                     lsm_string_list *initiators,
-                                                     const char *system_id);
+                                        const char *name,
+                                        lsm_string_list *initiators,
+                                        lsm_access_group_init_type init_type,
+                                        const char *system_id,
+                                        lsm_optional_data *optional_data,
+                                        const char *plugin_data);
 
 
 /**
