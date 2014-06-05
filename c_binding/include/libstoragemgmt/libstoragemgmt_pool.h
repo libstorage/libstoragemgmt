@@ -100,6 +100,13 @@ const char LSM_DLL_EXPORT *lsm_pool_status_info_get( lsm_pool *s );
  */
 char LSM_DLL_EXPORT *lsm_pool_system_id_get( lsm_pool *p );
 
+/**
+ * Retrieve the optional data for the specified pool
+ * @param p Pool pointer
+ * @return Pointer to optional data
+ */
+lsm_optional_data *lsm_pool_optional_data_get( lsm_pool *p );
+
 #ifdef  __cplusplus
 }
 #endif

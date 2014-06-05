@@ -1008,7 +1008,7 @@ static int _pool_create(lsm_plugin_ptr c, lsm_system *system,
             /* Create the pool */
             new_pool = lsm_pool_record_alloc(md5(pool_name), pool_name, size_bytes,
                                         size_bytes, LSM_POOL_STATUS_OK, "",
-                                        lsm_system_id_get(system));
+                                        lsm_system_id_get(system), NULL, NULL);
 
             pool_to_store = lsm_pool_record_copy(new_pool);
             key = strdup(lsm_pool_id_get(pool_to_store));
@@ -2518,7 +2518,7 @@ int load( lsm_plugin_ptr c, const char *uri, const char *password,
         p = lsm_pool_record_alloc("POOL_3", "lsm_test_aggr",
                                             UINT64_MAX, UINT64_MAX,
                                             LSM_POOL_STATUS_OK, "",
-                                            sys_id);
+                                            sys_id, NULL, NULL);
         if( p ) {
             pd->pools = g_hash_table_new_full(g_str_hash, g_str_equal, free,
                         free_pool_record);
@@ -2531,7 +2531,7 @@ int load( lsm_plugin_ptr c, const char *uri, const char *password,
 
                 p = lsm_pool_record_alloc(name, name, UINT64_MAX,
                                             UINT64_MAX, LSM_POOL_STATUS_OK, "",
-                                            sys_id);
+                                            sys_id, NULL, NULL);
 
                 if( p ) {
                     g_hash_table_insert(pd->pools, strdup(lsm_pool_id_get(p)), p);

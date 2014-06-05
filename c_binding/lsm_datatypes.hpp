@@ -31,6 +31,18 @@
 extern "C" {
 #endif
 
+/* Helper macros to ease getter construction */
+
+/* Implementation for generic getter */
+#define MEMBER_FUNC_GET(return_type, name, param_sig,  x, validation, member, error)  \
+return_type name( param_sig )  {\
+    if( validation(x) ) {      \
+        return x->member;      \
+    } else {                   \
+        return error;          \
+    }                          \
+}                              \
+
 #define MAGIC_CHECK(obj, m)     ((obj) && \
                                      ((obj)->magic==(m) ))
 #define LSM_DEL_MAGIC(obj)  ((obj & 0x0FFFFFFF) | 0xD0000000)
@@ -72,6 +84,8 @@ struct LSM_DLL_LOCAL _lsm_pool {
     uint64_t    status;         /**< Status of pool */
     char *status_info;          /**< Status info for pool */
     char *system_id;            /**< system id */
+    lsm_optional_data *optional_data;   /**< Optional data */
+    char *plugin_data;                  /**< Private data for plugin */
 };
 
 

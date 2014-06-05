@@ -49,6 +49,7 @@ def _txt_a(txt, append):
 
 def _bit_map_to_str(bit_map, conv_dict):
     rc = ''
+    bit_map = int(bit_map)
     for cur_enum in conv_dict.keys():
         if cur_enum & bit_map:
             rc = _txt_a(rc, conv_dict[cur_enum])
@@ -59,6 +60,8 @@ def _bit_map_to_str(bit_map, conv_dict):
 
 def _enum_type_to_str(int_type, conv_dict):
     rc = ''
+    int_type = int(int_type)
+
     if int_type in conv_dict.keys():
         return conv_dict[int_type]
     return 'Unknown(%d)' % int_type

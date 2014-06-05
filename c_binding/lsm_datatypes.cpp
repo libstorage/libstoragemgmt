@@ -52,6 +52,14 @@ extern "C" {
 
 #define LSM_DEFAULT_PLUGIN_DIR "/var/run/lsm/ipc"
 
+/* We would certainly expand this to encompass the entire function */
+#define MEMBER_GET(x, validation, member, error)  \
+    if( validation(x) ) {   \
+        return x->member;   \
+    } else {                \
+        return error;       \
+    }
+
 int lsm_string_list_append(lsm_string_list *sl, const char *value)
 {
     int rc = LSM_ERR_INVALID_SL;
@@ -496,7 +504,7 @@ CREATE_ALLOC_ARRAY_FUNC(lsm_pool_record_array_alloc, lsm_pool *)
 
 lsm_pool *lsm_pool_record_alloc(const char *id, const char *name,
             uint64_t totalSpace, uint64_t freeSpace, uint64_t status, const char* status_info,
-            const char *system_id)
+            const char *system_id, lsm_optional_data* optional_data, const char * plugin_data)
 {
     lsm_pool *rc = (lsm_pool *)calloc(1, sizeof(lsm_pool));
     if (rc) {
@@ -508,8 +516,15 @@ lsm_pool *lsm_pool_record_alloc(const char *id, const char *name,
         rc->status = status;
         rc->status_info = strdup(status_info);
         rc->system_id = strdup(system_id);
+        rc->optional_data = lsm_optional_data_record_copy(optional_data);
 
-        if( !rc->id || !rc->name || !rc->system_id || !rc->status_info ) {
+        if( plugin_data ) {
+            rc->plugin_data = strdup(plugin_data);
+        }
+
+        if( !rc->id || !rc->name || !rc->system_id || !rc->status_info ||
+            (optional_data && !rc->optional_data) ||
+            (plugin_data && !rc->plugin_data)) {
             lsm_pool_record_free(rc);
             rc = NULL;
         }
@@ -532,7 +547,9 @@ lsm_pool * lsm_pool_record_copy( lsm_pool *toBeCopied)
                                     toBeCopied->free_space,
                                     toBeCopied->status,
                                     toBeCopied->status_info,
-                                    toBeCopied->system_id);
+                                    toBeCopied->system_id,
+                                    toBeCopied->optional_data,
+                                    toBeCopied->plugin_data);
     }
     return NULL;
 }
@@ -560,6 +577,12 @@ int lsm_pool_record_free(lsm_pool *p)
             free(p->system_id);
             p->system_id = NULL;
         }
+
+        lsm_optional_data_record_free(p->optional_data);
+        p->optional_data = NULL;
+        free(p->plugin_data);
+        p->plugin_data = NULL;
+
         free(p);
         return LSM_ERR_OK;
     }
@@ -609,7 +632,7 @@ uint64_t lsm_pool_status_get( lsm_pool *p )
     return UINT64_MAX;
 }
 
-const char LSM_DLL_EXPORT *lsm_pool_status_info_get( lsm_pool *p )
+const char *lsm_pool_status_info_get( lsm_pool *p )
 {
     if (LSM_IS_POOL(p)) {
         return p->status_info;
@@ -624,6 +647,12 @@ char *lsm_pool_system_id_get( lsm_pool *p )
     }
     return NULL;
 }
+
+MEMBER_FUNC_GET(lsm_optional_data *, lsm_pool_optional_data_get, lsm_pool *p,
+                p, LSM_IS_POOL, optional_data, NULL)
+
+MEMBER_FUNC_GET(const char *, lsm_pool_plugin_data_get, lsm_pool *p,
+                p, LSM_IS_POOL, plugin_data, NULL)
 
 CREATE_ALLOC_ARRAY_FUNC(lsm_initiator_record_array_alloc, lsm_initiator *)
 
@@ -918,14 +947,6 @@ int lsm_disk_record_free(lsm_disk *d)
 
 CREATE_FREE_ARRAY_FUNC( lsm_disk_record_array_free, lsm_disk_record_free,
                         lsm_disk *, LSM_ERR_INVALID_DISK)
-
-/* We would certainly expand this to encompass the entire function */
-#define MEMBER_GET(x, validation, member, error)  \
-    if( validation(x) ) {   \
-        return x->member;   \
-    } else {                \
-        return error;       \
-    }
 
 /* We would certainly expand this to encompass the entire function */
 #define MEMBER_SET_REF(x, validation, member, value, alloc_func, free_func, error)  \

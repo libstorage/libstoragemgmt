@@ -1078,13 +1078,24 @@ void LSM_DLL_EXPORT lsm_pool_free_space_set(lsm_pool *p, uint64_t free_space);
  * @param status        Pool status, bit field (See LSM_POOL_STATUS_XXXX constants)
  * @param status_info   Additional textual information on status
  * @param system_id     System id
+ * @param optiona_data  Optional data
+ * @param plugin_data   Reserved for plugin writer use
  * @return LSM_ERR_OK on success, else error reason.
  */
 lsm_pool LSM_DLL_EXPORT *lsm_pool_record_alloc(const char *id, const char *name,
                                 uint64_t total_space,
                                 uint64_t free_space,
                                 uint64_t status, const char* status_info,
-                                const char *system_id);
+                                const char *system_id,
+                                lsm_optional_data *optional_data,
+                                const char * plugin_data);
+
+/**
+ * Used to retrieve the plugin-private data for a specfic pool
+ * @param p     Pool to retrieve plugin private data for
+ * @return NULL if donesn't exists, else data.
+ */
+const char *lsm_pool_plugin_data_get(lsm_pool *p);
 
 /**
  * Allocate the storage needed for and array of Initiator records.

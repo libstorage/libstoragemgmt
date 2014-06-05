@@ -228,7 +228,8 @@ lsm_pool *wait_for_job_pool(lsm_connect *c, char **job_id)
 
     do {
         rc = lsm_job_status_pool_get(c, *job_id, &status, &pc, &pool, LSM_FLAG_RSVD);
-        fail_unless( LSM_ERR_OK == rc, "rc = %d (%s)", rc,  error(lsm_error_last_get(c)));
+        fail_unless( LSM_ERR_OK == rc, "rc = %d (%s) plugin=%d", rc,
+                    error(lsm_error_last_get(c)), which_plugin);
         printf("POOL: Job %s in progress, %d done, status = %d\n", *job_id, pc, status);
         usleep(POLL_SLEEP);
 
@@ -2514,7 +2515,8 @@ START_TEST(test_pool_create)
     if( LSM_ERR_JOB_STARTED == rc ) {
         pool = wait_for_job_pool(c, &job);
     } else {
-        fail_unless(LSM_ERR_OK == rc, "rc %d", rc);
+        fail_unless(LSM_ERR_OK == rc, "rc %d which_plugin %d", rc,
+                    which_plugin);
     }
 
     lsm_pool_record_free(pool);
@@ -3102,7 +3104,6 @@ Suite * lsm_suite(void)
     TCase *basic = tcase_create("Basic");
     tcase_add_checked_fixture (basic, setup, teardown);
 
-    tcase_add_test(basic, test_access_groups);
     tcase_add_test(basic, test_search_fs);
     tcase_add_test(basic, test_search_access_groups);
     tcase_add_test(basic, test_search_disks);

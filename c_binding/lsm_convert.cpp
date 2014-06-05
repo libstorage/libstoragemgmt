@@ -114,11 +114,8 @@ lsm_disk *value_to_disk(Value &disk)
     lsm_disk *rc = NULL;
     if (is_expected_object(disk, "Disk")) {
         lsm_optional_data *op = NULL;
-
-        if( disk.asObject().find("optional_data") != disk.asObject().end() ) {
-            Value opv = disk["optional_data"];
-            op = value_to_optional_data(opv);
-        }
+        Value opv = disk["optional_data"];
+        op = value_to_optional_data(opv);
 
         std::map<std::string, Value> d = disk.asObject();
         rc = lsm_disk_record_alloc(
@@ -151,10 +148,7 @@ Value disk_to_value(lsm_disk *disk)
         d["num_of_blocks"] = Value(disk->block_count);
         d["status"] = Value(disk->disk_status);
         d["system_id"] = Value(disk->system_id);
-
-        if( disk->optional_data ) {
-            d["optional_data"] = optional_data_to_value(disk->optional_data);
-        }
+        d["optional_data"] = optional_data_to_value(disk->optional_data);
 
         return Value(d);
     }
@@ -229,14 +223,20 @@ lsm_pool *value_to_pool(Value &pool)
     lsm_pool *rc = NULL;
 
     if (is_expected_object(pool, "Pool")) {
+        lsm_optional_data *op = NULL;
         std::map<std::string, Value> i = pool.asObject();
+        Value opv = i["optional_data"];
+        op = value_to_optional_data(opv);
+
         rc = lsm_pool_record_alloc(i["id"].asString().c_str(),
             i["name"].asString().c_str(),
             i["total_space"].asUint64_t(),
             i["free_space"].asUint64_t(),
             i["status"].asUint64_t(),
 			i["status_info"].asString().c_str(),
-            i["system_id"].asString().c_str());
+            i["system_id"].asString().c_str(),
+            op,
+            i["plugin_data"].asC_str());
     }
     return rc;
 }
@@ -253,6 +253,8 @@ Value pool_to_value(lsm_pool *pool)
         p["status"] = Value(pool->status);
 		p["status_info"] = Value(pool->status_info);
         p["system_id"] = Value(pool->system_id);
+        p["optional_data"] = optional_data_to_value(pool->optional_data);
+        p["plugin_data"] = Value(pool->plugin_data);
         return Value(p);
     }
     return Value();
@@ -328,13 +330,9 @@ lsm_access_group *value_to_access_group( Value &group )
 
     if( is_expected_object(group, "AccessGroup")) {
         std::map<std::string, Value> vAg = group.asObject();
-
         il = value_to_string_list(vAg["init_ids"]);
-
-        if( group.asObject().find("optional_data") != group.asObject().end() ) {
-            Value opv = group["optional_data"];
-            op = value_to_optional_data(opv);
-        }
+        Value opv = group["optional_data"];
+        op = value_to_optional_data(opv);
 
         if( il ) {
             ag = lsm_access_group_record_alloc(
@@ -345,11 +343,10 @@ lsm_access_group *value_to_access_group( Value &group )
                     vAg["system_id"].asString().c_str(),
                     op,
                     vAg["plugin_data"].asC_str());
-
-            /* This stuff is copied in lsm_access_group_record_alloc */
-            lsm_string_list_free(il);
-            lsm_optional_data_record_free(op);
         }
+        /* This stuff is copied in lsm_access_group_record_alloc */
+        lsm_string_list_free(il);
+        lsm_optional_data_record_free(op);
     }
     return ag;
 }
@@ -365,10 +362,7 @@ Value access_group_to_value( lsm_access_group *group )
         ag["init_type"] = Value(group->init_type);
         ag["system_id"] = Value(group->system_id);
         ag["plugin_data"] = Value(group->plugin_data);
-
-        if( group->optional_data ) {
-            ag["optional_data"] = optional_data_to_value(group->optional_data);
-        }
+        ag["optional_data"] = optional_data_to_value(group->optional_data);
         return Value(ag);
     }
     return Value();

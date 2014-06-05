@@ -22,7 +22,6 @@ try:
 except ImportError:
     import json
 
-from datetime import datetime
 from json.decoder import WHITESPACE
 from lsm import LsmError, ErrorNumber
 from _common import get_class, sh, default_property
@@ -486,6 +485,7 @@ The lsm.System class does not have class methods.
 @default_property('status_info', doc="Text explaining status")
 @default_property('system_id', doc="System identifier")
 @default_property("optional_data", doc="Optional data")
+@default_property("plugin_data", doc="Plug-in private data")
 class Pool(IData):
     """
     Pool specific information
@@ -679,7 +679,8 @@ class Pool(IData):
                       'element_type', 'thinp_type']
 
     def __init__(self, _id, _name, _total_space, _free_space, _status,
-                 _status_info, _system_id, _optional_data=None):
+                 _status_info, _system_id, _optional_data=None,
+                 _plugin_data=None):
         self._id = _id                    # Identifier
         self._name = _name                # Human recognisable name
         self._total_space = _total_space  # Total size
@@ -687,6 +688,7 @@ class Pool(IData):
         self._status = _status            # Status of pool.
         self._status_info = _status_info  # Additional status text of pool
         self._system_id = _system_id      # System id this pool belongs
+        self._plugin_data = _plugin_data  # Plugin private data
 
         if _optional_data is None:
             self._optional_data = OptionalData()
@@ -824,7 +826,7 @@ class OptionalData(IData):
         return self._values[key]
 
     def set(self, key, value):
-        self._values[key] = value
+        self._values[str(key)] = str(value)
 
 
 class Capabilities(IData):
