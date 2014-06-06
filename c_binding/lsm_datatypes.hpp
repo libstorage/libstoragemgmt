@@ -67,6 +67,8 @@ struct LSM_DLL_LOCAL _lsm_volume {
     uint32_t    status;                 /**< Status */
     char *system_id;                    /**< System this volume belongs */
     char *pool_id;                      /**< Pool this volume is derived from */
+    lsm_optional_data *optional_data;   /**< Optional data */
+    char *plugin_data;                  /**< Private data for plugin */
 };
 
 #define LSM_POOL_MAGIC       0xAA7A0001

@@ -107,6 +107,14 @@ char LSM_DLL_EXPORT *lsm_volume_system_id_get( lsm_volume *v);
  */
 char LSM_DLL_EXPORT *lsm_volume_pool_id_get( lsm_volume *v);
 
+
+/**
+ * Retrieves the optional data for a volume.
+ * @param v     Volume ptr.
+ * @return Optional_data, else NULL if not present.
+ */
+lsm_optional_data LSM_DLL_EXPORT *lsm_volume_optional_data_get( lsm_volume *v );
+
 #ifdef  __cplusplus
 }
 #endif

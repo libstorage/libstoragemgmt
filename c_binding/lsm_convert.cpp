@@ -41,15 +41,23 @@ lsm_volume *value_to_volume(Value &vol)
 
     if (is_expected_object(vol, "Volume")) {
         std::map<std::string, Value> v = vol.asObject();
-        rc = lsm_volume_record_alloc(
-            v["id"].asString().c_str(),
+        lsm_optional_data *op = NULL;
+        Value opv = v["optional_data"];
+        op = value_to_optional_data(opv);
+
+        rc = lsm_volume_record_alloc(v["id"].asString().c_str(),
             v["name"].asString().c_str(),
             v["vpd83"].asString().c_str(),
             v["block_size"].asUint64_t(),
             v["num_of_blocks"].asUint64_t(),
             v["status"].asUint32_t(),
             v["system_id"].asString().c_str(),
-            v["pool_id"].asString().c_str());
+            v["pool_id"].asString().c_str(),
+            op,
+            v["plugin_data"].asC_str());
+
+        /* Optional data gets copied so free */
+        lsm_optional_data_record_free(op);
     }
 
     return rc;
@@ -68,6 +76,8 @@ Value volume_to_value(lsm_volume *vol)
         v["status"] = Value(vol->status);
         v["system_id"] = Value(vol->system_id);
         v["pool_id"] = Value(vol->pool_id);
+        v["optional_data"] = optional_data_to_value(vol->optional_data);
+        v["plugin_data"] = Value(vol->plugin_data);
         return Value(v);
     }
     return Value();

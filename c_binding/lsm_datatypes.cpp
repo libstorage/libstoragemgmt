@@ -731,9 +731,10 @@ CREATE_ALLOC_ARRAY_FUNC(lsm_volume_record_array_alloc, lsm_volume *)
 lsm_volume * lsm_volume_record_alloc(const char *id, const char *name,
     const char *vpd83, uint64_t blockSize,
     uint64_t numberOfBlocks,
-    uint32_t status, const char *system_id, const char *pool_id)
+    uint32_t status, const char *system_id, const char *pool_id,
+    lsm_optional_data* optional_data, const char* plugin_data)
 {
-    lsm_volume *rc = (lsm_volume *)malloc(sizeof(lsm_volume));
+    lsm_volume *rc = (lsm_volume *)calloc(1, sizeof(lsm_volume));
     if (rc) {
         rc->magic = LSM_VOL_MAGIC;
         rc->id = strdup(id);
@@ -744,9 +745,15 @@ lsm_volume * lsm_volume_record_alloc(const char *id, const char *name,
         rc->status = status;
         rc->system_id = strdup(system_id);
         rc->pool_id = strdup(pool_id);
+        rc->optional_data = lsm_optional_data_record_copy(optional_data);
+
+        if( plugin_data ) {
+            rc->plugin_data = strdup(plugin_data);
+        }
 
         if( !rc->id || !rc->name || !rc->vpd83 || !rc->system_id ||
-            !rc->pool_id) {
+            !rc->pool_id || (optional_data && !rc->optional_data) ||
+            (plugin_data && !rc->plugin_data)) {
             lsm_volume_record_free(rc);
             rc = NULL;
         }
@@ -868,7 +875,8 @@ lsm_volume *lsm_volume_record_copy(lsm_volume *vol)
     if( LSM_IS_VOL(vol) ) {
         rc = lsm_volume_record_alloc(vol->id, vol->name, vol->vpd83,
                                   vol->block_size, vol->number_of_blocks,
-                                  vol->status, vol->system_id, vol->pool_id);
+                                  vol->status, vol->system_id, vol->pool_id,
+                                  vol->optional_data, vol->plugin_data);
     }
     return rc;
 }
@@ -902,6 +910,11 @@ int lsm_volume_record_free(lsm_volume *v)
             free(v->pool_id);
             v->pool_id = NULL;
         }
+
+        lsm_optional_data_record_free(v->optional_data);
+        v->optional_data = NULL;
+        free(v->plugin_data);
+        v->plugin_data = NULL;
 
         free(v);
         return LSM_ERR_OK;
@@ -1014,6 +1027,9 @@ char *lsm_volume_pool_id_get( lsm_volume *v)
 {
     MEMBER_GET(v, LSM_IS_VOL, pool_id, NULL);
 }
+
+MEMBER_FUNC_GET(lsm_optional_data *, lsm_volume_optional_data_get, lsm_volume *v, v, LSM_IS_VOL, optional_data, NULL)
+MEMBER_FUNC_GET(const char  *, lsm_volume_plugin_data_get, lsm_volume *v, v, LSM_IS_VOL, plugin_data, NULL)
 
 const char *lsm_disk_id_get( lsm_disk *d)
 {

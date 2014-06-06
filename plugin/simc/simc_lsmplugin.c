@@ -805,7 +805,7 @@ static int volume_create(lsm_plugin_ptr c, lsm_pool *pool,
 
                 lsm_volume *v = lsm_volume_record_alloc(id, volume_name,
                                    "VPD", BS, allocated_size/BS, 0, sys_id,
-                                    lsm_pool_id_get(pool));
+                                    lsm_pool_id_get(pool), NULL, NULL);
 
                 lsm_volume *to_store = lsm_volume_record_copy(v);
                 struct allocated_volume *av = malloc(sizeof(struct allocated_volume));
@@ -933,7 +933,7 @@ static int volume_resize(lsm_plugin_ptr c, lsm_volume *volume,
                                                     lsm_volume_vpd83_get(v),
                                                     lsm_volume_block_size_get(v),
                                                     resized_size/BS, 0, sys_id,
-                                                    lsm_volume_pool_id_get(volume));
+                                                    lsm_volume_pool_id_get(volume), NULL, NULL);
 
             if( vp ) {
                 av->v = vp;

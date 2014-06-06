@@ -336,6 +336,8 @@ class Disk(IData):
 @default_property('status', doc="Enumerated volume status")
 @default_property('system_id', "System identifier")
 @default_property('pool_id', "Pool identifier")
+@default_property("optional_data", "Optional data")
+@default_property("plugin_data", "Private plugin data")
 class Volume(IData):
     """
     Represents a volume.
@@ -366,7 +368,8 @@ class Volume(IData):
             return Volume.ACCESS_READ_ONLY
 
     def __init__(self, _id, _name, _vpd83, _block_size, _num_of_blocks,
-                 _status, _system_id, _pool_id):
+                 _status, _system_id, _pool_id, _optional_data=None,
+                 _plugin_data=None):
         self._id = _id                        # Identifier
         self._name = _name                    # Human recognisable name
         self._vpd83 = _vpd83                  # SCSI page 83 unique ID
@@ -375,6 +378,9 @@ class Volume(IData):
         self._status = _status                # Status
         self._system_id = _system_id          # System id this volume belongs
         self._pool_id = _pool_id              # Pool id this volume belongs
+        self._optional_data = _check_opt_data(_optional_data,
+                                              Volume.OPT_PROPERTIES)
+        self._plugin_data = _plugin_data
 
     @property
     def size_bytes(self):

@@ -1158,15 +1158,26 @@ lsm_disk LSM_DLL_EXPORT *lsm_disk_record_alloc(const char *id, const char *name,
  * @param status                Volume status
  * @param system_id             System id
  * @param pool_id               Pool id this volume is created from
+ * @param optional_data         Optional data
+ * @param plugin_data           Private data for plugin use
  * @return Allocated memory or NULL on error.
  */
-lsm_volume LSM_DLL_EXPORT *lsm_volume_record_alloc( const char *id,
+lsm_volume LSM_DLL_EXPORT *lsm_volume_record_alloc(const char *id,
                                         const char *name, const char *vpd83,
                                         uint64_t block_size,
                                         uint64_t number_of_blocks,
                                         uint32_t status,
                                         const char *system_id,
-                                        const char *pool_id);
+                                        const char *pool_id,
+                                        lsm_optional_data* optional_data,
+                                        const char* plugin_data);
+
+/**
+ * Retrieve the private plug-in data from the volume record.
+ * @param v     Volume pointer
+ * @return Private data, else NULL if it doesn't exist.
+ */
+const char LSM_DLL_EXPORT *lsm_volume_plugin_data_get( lsm_volume *v);
 
 /**
  * Allocate the storage needed for and array of System records.
