@@ -2346,6 +2346,7 @@ START_TEST(test_nfs_export_funcs)
     uint64_t anonuid = 1021;
     uint64_t anongid = 1000;
     const char options[] = "vendor_specific_option";
+    const char p_data[] = "plug-in private data";
     char rstring[33];
 
 
@@ -2364,7 +2365,7 @@ START_TEST(test_nfs_export_funcs)
 
 
     lsm_nfs_export *export = lsm_nfs_export_record_alloc(id, fs_id, export_path, auth,
-        root, rw, ro, anonuid, anongid, options);
+        root, rw, ro, anonuid, anongid, options, NULL, p_data);
 
     lsm_nfs_export *copy = lsm_nfs_export_record_copy(export);
 

@@ -1413,7 +1413,7 @@ uint64_t lsm_fs_ss_time_stamp_get(lsm_fs_ss *ss)
     MEMBER_GET(ss, LSM_IS_SS, ts, 0);
 }
 
-lsm_nfs_export *lsm_nfs_export_record_alloc( const char *id,
+lsm_nfs_export *lsm_nfs_export_record_alloc(const char *id,
                                             const char *fs_id,
                                             const char *export_path,
                                             const char *auth,
@@ -1422,13 +1422,15 @@ lsm_nfs_export *lsm_nfs_export_record_alloc( const char *id,
                                             lsm_string_list *ro,
                                             uint64_t anonuid,
                                             uint64_t anongid,
-                                            const char *options)
+                                            const char *options,
+                                            lsm_optional_data * optional_data,
+                                            const char * plugin_data)
 {
      lsm_nfs_export *rc = NULL;
 
     /* This is required */
     if( fs_id ) {
-        rc = (lsm_nfs_export *)malloc(sizeof(lsm_nfs_export));
+        rc = (lsm_nfs_export *)calloc(1, sizeof(lsm_nfs_export));
         if( rc ) {
             rc->magic = LSM_NFS_EXPORT_MAGIC;
             rc->id = (id) ? strdup(id) : NULL;
@@ -1441,8 +1443,22 @@ lsm_nfs_export *lsm_nfs_export_record_alloc( const char *id,
             rc->anonuid = anonuid;
             rc->anongid = anongid;
             rc->options = (options) ? strdup(options) : NULL;
+            rc->optional_data = lsm_optional_data_record_copy(optional_data);
 
-            if( !rc->fs_id ) {
+            if( plugin_data ) {
+                rc->plugin_data = strdup(plugin_data);
+            }
+
+            if( !rc->id ||
+                !rc->fs_id ||
+                (export_path && !rc->export_path) ||
+                (auth && !rc->auth_type) ||
+                (root && !rc->root) ||
+                (rw && !rc->rw) ||
+                (ro && !rc->ro) ||
+                (options && !rc->options) ||
+                (optional_data && !rc->optional_data) ||
+                (plugin_data && !rc->plugin_data)) {
                 lsm_nfs_export_record_free(rc);
                 rc = NULL;
             }
@@ -1464,6 +1480,8 @@ int lsm_nfs_export_record_free( lsm_nfs_export *exp )
         lsm_string_list_free(exp->rw);
         lsm_string_list_free(exp->ro);
         free(exp->options);
+        lsm_optional_data_record_free(exp->optional_data);
+        free(exp->plugin_data);
 
         free(exp);
         return LSM_ERR_OK;
@@ -1477,7 +1495,8 @@ lsm_nfs_export *lsm_nfs_export_record_copy( lsm_nfs_export *s )
     if(LSM_IS_NFS_EXPORT(s)) {
         return lsm_nfs_export_record_alloc(s->id, s->fs_id, s->export_path,
                                 s->auth_type, s->root, s->rw, s->ro, s->anonuid,
-                                s->anongid, s->options);
+                                s->anongid, s->options, s->optional_data,
+                                s->plugin_data);
     }
     return NULL;
 }
@@ -1595,6 +1614,12 @@ int lsm_nfs_export_options_set( lsm_nfs_export *exp, const char *value )
     MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, options, value, strdup, free,
                 LSM_ERR_INVALID_NFS);
 }
+
+MEMBER_FUNC_GET(lsm_optional_data *, lsm_nfs_export_optional_data_get,
+                lsm_nfs_export *exp, exp, LSM_IS_NFS_EXPORT, optional_data, NULL)
+
+MEMBER_FUNC_GET(const char *, lsm_nfs_export_plugin_data_get,
+                lsm_nfs_export *exp, exp, LSM_IS_NFS_EXPORT, plugin_data, NULL)
 
 lsm_capability_value_type lsm_capability_get(lsm_storage_capabilities *cap,
                                         lsm_capability_type t)

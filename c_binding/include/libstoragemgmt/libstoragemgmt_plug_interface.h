@@ -1411,6 +1411,13 @@ void LSM_DLL_EXPORT lsm_plug_nfs_export_search_filter(const char *search_key,
                                             const char *search_value,
                                             lsm_nfs_export *exports[],
                                             uint32_t *count);
+
+/**
+ * Retrieve private data from nfs export record.
+ * @param exp       Valid nfs export record
+ * @return Private data, else NULL
+ */
+const char LSM_DLL_EXPORT *lsm_nfs_export_plugin_data_get( lsm_nfs_export *exp);
 #ifdef  __cplusplus
 }
 #endif

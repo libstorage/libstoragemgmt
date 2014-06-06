@@ -573,8 +573,11 @@ lsm_nfs_export *value_to_nfs_export(Value &exp)
         }
 
         if( ok ) {
-            rc = lsm_nfs_export_record_alloc(
-                i["id"].asC_str(),
+            lsm_optional_data *op = NULL;
+            Value opv = i["optional_data"];
+            op = value_to_optional_data(opv);
+
+            rc = lsm_nfs_export_record_alloc(i["id"].asC_str(),
                 i["fs_id"].asC_str(),
                 i["export_path"].asC_str(),
                 i["auth"].asC_str(),
@@ -583,8 +586,9 @@ lsm_nfs_export *value_to_nfs_export(Value &exp)
                 ro,
                 i["anonuid"].asUint64_t(),
                 i["anongid"].asUint64_t(),
-                i["options"].asC_str()
-                );
+                i["options"].asC_str(),
+                op,
+                i["plugin_data"].asC_str());
 
             lsm_string_list_free(root);
             lsm_string_list_free(rw);
@@ -609,6 +613,8 @@ Value nfs_export_to_value(lsm_nfs_export *exp)
         f["anonuid"] = Value(exp->anonuid);
         f["anongid"] = Value(exp->anongid);
         f["options"] = Value(exp->options);
+        f["optional_data"] = optional_data_to_value(exp->optional_data);
+        f["plugin_data"] = Value(exp->plugin_data);
         return Value(f);
     }
     return Value();

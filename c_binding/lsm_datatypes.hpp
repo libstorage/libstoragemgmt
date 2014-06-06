@@ -151,6 +151,8 @@ struct _lsm_nfs_export {
     uint64_t anonuid;           /**< Uid that should map to anonymous */
     uint64_t anongid;           /**< Gid that should map to anonymous */
     char *options;              /**< Options */
+    lsm_optional_data *optional_data;   /**< Optional data */
+    char *plugin_data;                  /**< Reserved for the plugin to use */
 };
 
 #define LSM_BLOCK_RANGE_MAGIC       0xAA7A0007

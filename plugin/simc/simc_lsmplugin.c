@@ -2378,7 +2378,7 @@ static int nfs_export_create( lsm_plugin_ptr c,
                                             ro_list,
                                             anon_uid,
                                             anon_gid,
-                                            options);
+                                            options, NULL, NULL);
 
         lsm_nfs_export *value = lsm_nfs_export_record_copy(*exported);
 

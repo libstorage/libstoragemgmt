@@ -755,13 +755,16 @@ class FsSnapshot(IData):
 @default_property('anonuid', doc="UID for anonymous user id")
 @default_property('anongid', doc="GID for anonymous group id")
 @default_property('options', doc="String containing advanced options")
+@default_property('optional_data', doc="Optional data")
+@default_property('plugin_data', doc="Plugin private data")
 class NfsExport(IData):
     SUPPORTED_SEARCH_KEYS = ['id', 'fs_id']
     ANON_UID_GID_NA = -1
     ANON_UID_GID_ERROR = (ANON_UID_GID_NA - 1)
 
     def __init__(self, _id, _fs_id, _export_path, _auth, _root, _rw, _ro,
-                 _anonuid, _anongid, _options):
+                 _anonuid, _anongid, _options, _optional_data=None,
+                 _plugin_data=None):
         assert (_fs_id is not None)
         assert (_export_path is not None)
 
@@ -775,6 +778,10 @@ class NfsExport(IData):
         self._anonuid = _anonuid      # uid for anonymous user id
         self._anongid = _anongid      # gid for anonymous group id
         self._options = _options      # NFS options
+        self._optional_data = _check_opt_data(_optional_data,
+                                              self.OPT_PROPERTIES)
+        self._plugin_data = _plugin_data
+
 
 
 @default_property('src_block', doc="Source logical block address")
