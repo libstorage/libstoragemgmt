@@ -70,12 +70,6 @@ typedef struct _lsm_storage_capabilities lsm_storage_capabilities;
 typedef struct _lsm_access_group lsm_access_group;
 
 /**
- * Opaque data type for file system
- */
-typedef struct _lsm_file_system lsm_file_system;
-
-
-/**
  * Opaque data type for nfs exports
  */
 typedef struct _lsm_nfs_export lsm_nfs_export;

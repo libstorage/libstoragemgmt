@@ -120,24 +120,6 @@ struct _lsm_access_group {
     char *plugin_data;            /**< Reserved for the plugin to use */
 };
 
-#define LSM_FILE_SYSTEM_MAGIC  0xAA7A0004
-#define LSM_IS_FILE_SYSTEM(obj)    MAGIC_CHECK(obj, LSM_FILE_SYSTEM_MAGIC)
-
-/**
- * Structure for file systems
- */
-struct _lsm_file_system {
-    uint32_t magic;             /**< Used for verification */
-    char *id;                   /**< Id */
-    char *name;                 /**< Name */
-    uint64_t total_space;       /**< Total space */
-    uint64_t free_space;        /**< Free space */
-    char *pool_id;              /**< Pool ID */
-    char *system_id;            /**< System ID */
-    lsm_optional_data *optional_data;   /**< Optional data */
-    char *plugin_data;            /**< Reserved for the plugin to use */
-};
-
 #define LSM_SNAP_SHOT_MAGIC  0xAA7A0005
 #define LSM_IS_SNAP_SHOT(obj)    MAGIC_CHECK(obj, LSM_SNAP_SHOT_MAGIC)
 
@@ -281,18 +263,21 @@ struct LSM_DLL_LOCAL _lsm_string_list {
     GPtrArray   *values;
 };
 
+/**
+ * Structure for File system information.
+ */
 #define LSM_FS_MAGIC                0xAA7A000E
-#define LSM_IS_FS(obj)     MAGIC_CHECK(obj, LSM_FS_MAGIC)
+#define LSM_IS_FS(obj)              MAGIC_CHECK(obj, LSM_FS_MAGIC)
 struct LSM_DLL_LOCAL _lsm_fs {
-    uint32_t magic;
-    char *id;
-    char *name;
-    char *pool_id;
-    uint64_t total_space;
-    uint64_t free_space;
-    char *system_id;
-    lsm_optional_data *optional_data;
-    char *plugin_data;
+    uint32_t magic;                     /**< Magic, used for struct validation */
+    char *id;                           /**< Id */
+    char *name;                         /**< Name */
+    char *pool_id;                      /**< Pool ID */
+    uint64_t total_space;               /**< Total space */
+    uint64_t free_space;                /**< Free space */
+    char *system_id;                    /**< System ID */
+    lsm_optional_data *optional_data;   /**< Optional data */
+    char *plugin_data;                  /**< Plugin private data */
 };
 
 #define LSM_SS_MAGIC                0xAA7A000F
