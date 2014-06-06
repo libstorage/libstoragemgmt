@@ -134,6 +134,8 @@ struct _lsm_file_system {
     uint64_t free_space;        /**< Free space */
     char *pool_id;              /**< Pool ID */
     char *system_id;            /**< System ID */
+    lsm_optional_data *optional_data;   /**< Optional data */
+    char *plugin_data;            /**< Reserved for the plugin to use */
 };
 
 #define LSM_SNAP_SHOT_MAGIC  0xAA7A0005
@@ -289,6 +291,8 @@ struct LSM_DLL_LOCAL _lsm_fs {
     uint64_t total_space;
     uint64_t free_space;
     char *system_id;
+    lsm_optional_data *optional_data;
+    char *plugin_data;
 };
 
 #define LSM_SS_MAGIC                0xAA7A000F

@@ -717,17 +717,22 @@ class Pool(IData):
 @default_property('free_space', doc="Free space available")
 @default_property('pool_id', doc="What pool the file system resides on")
 @default_property('system_id', doc="System ID")
+@default_property("optional_data", "Optional data")
+@default_property("plugin_data", "Private plugin data")
 class FileSystem(IData):
     SUPPORTED_SEARCH_KEYS = ['id', 'system_id', 'pool_id']
 
     def __init__(self, _id, _name, _total_space, _free_space, _pool_id,
-                 _system_id):
+                 _system_id, _optional_data=None, _plugin_data=None):
         self._id = _id
         self._name = _name
         self._total_space = _total_space
         self._free_space = _free_space
         self._pool_id = _pool_id
         self._system_id = _system_id
+        self._optional_data = _check_opt_data(_optional_data,
+                                              self.OPT_PROPERTIES)
+        self._plugin_data = _plugin_data
 
 
 @default_property('id', doc="Unique identifier")

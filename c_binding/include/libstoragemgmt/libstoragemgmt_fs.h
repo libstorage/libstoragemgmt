@@ -90,6 +90,12 @@ uint64_t LSM_DLL_EXPORT lsm_fs_total_space_get(lsm_fs *fs);
  */
 uint64_t LSM_DLL_EXPORT lsm_fs_free_space_get(lsm_fs *fs);
 
+/**
+ * Retrieves the optional data for a file system.
+ * @param fs     fs ptr.
+ * @return Optional_data, else NULL if not present.
+ */
+lsm_optional_data LSM_DLL_EXPORT *lsm_fs_optional_data_get( lsm_fs *fs );
 
 #ifdef  __cplusplus
 }

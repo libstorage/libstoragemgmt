@@ -1943,7 +1943,7 @@ static int fs_create(lsm_plugin_ptr c, lsm_pool *pool, const char *name,
 
             /* Make a copy to store and a copy to hand back to caller */
             lsm_fs *tfs = lsm_fs_record_alloc(id, name, allocated_size,
-                                allocated_size, lsm_pool_id_get(pool), sys_id);
+                                allocated_size, lsm_pool_id_get(pool), sys_id, NULL, NULL);
             new_fs = lsm_fs_record_copy(tfs);
 
             /* Allocate the memory to keep the associations */
@@ -2017,7 +2017,7 @@ static int fs_resize(lsm_plugin_ptr c, lsm_fs *fs,
                                                 new_size_bytes,
                                                 new_size_bytes,
                                                 lsm_fs_pool_id_get(tfs),
-                                                lsm_fs_system_id_get(tfs));
+                                                lsm_fs_system_id_get(tfs), NULL, NULL);
             lsm_fs *returned_copy = lsm_fs_record_copy(resized);
 
             if( resized && returned_copy ) {

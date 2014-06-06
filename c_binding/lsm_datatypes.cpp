@@ -1250,14 +1250,16 @@ uint64_t lsm_block_range_block_count_get(lsm_block_range *br)
     MEMBER_GET(br, LSM_IS_BLOCK_RANGE, block_count, 0);
 }
 
-lsm_fs * lsm_fs_record_alloc( const char *id, const char *name,
+lsm_fs * lsm_fs_record_alloc(const char *id, const char *name,
                                             uint64_t total_space,
                                             uint64_t free_space,
                                             const char *pool_id,
-                                            const char *system_id)
+                                            const char *system_id,
+                                            lsm_optional_data *optional_data,
+                                            const char* plugin_data)
 {
     lsm_fs *rc = NULL;
-    rc = (lsm_fs *)malloc(sizeof(lsm_fs));
+    rc = (lsm_fs *)calloc(1, sizeof(lsm_fs));
     if( rc ) {
         rc->magic = LSM_FS_MAGIC;
         rc->id = strdup(id);
@@ -1266,8 +1268,15 @@ lsm_fs * lsm_fs_record_alloc( const char *id, const char *name,
         rc->system_id = strdup(system_id);
         rc->total_space = total_space;
         rc->free_space = free_space;
+        rc->optional_data = lsm_optional_data_record_copy(optional_data);
 
-        if( !rc->id || !rc->name || !rc->pool_id || !rc->system_id ) {
+        if( plugin_data ) {
+            rc->plugin_data = strdup(plugin_data);
+        }
+
+        if( !rc->id || !rc->name || !rc->pool_id || !rc->system_id ||
+            (optional_data && !rc->optional_data) ||
+            (plugin_data && !rc->plugin_data)) {
             lsm_fs_record_free(rc);
             rc = NULL;
         }
@@ -1283,6 +1292,8 @@ int lsm_fs_record_free( lsm_fs *fs)
         free(fs->name);
         free(fs->pool_id);
         free(fs->system_id);
+        lsm_optional_data_record_free(fs->optional_data);
+        free(fs->plugin_data);
         free(fs);
         return LSM_ERR_OK;
     }
@@ -1297,7 +1308,8 @@ lsm_fs *lsm_fs_record_copy(lsm_fs *source)
         dest = lsm_fs_record_alloc(source->id, source->name,
                                 source->total_space, source->free_space,
                                 source->pool_id,
-                                source->system_id);
+                                source->system_id, source->optional_data,
+                                source->plugin_data);
     }
     return dest;
 }
@@ -1334,6 +1346,12 @@ uint64_t lsm_fs_free_space_get(lsm_fs *fs)
 {
     MEMBER_GET(fs, LSM_IS_FS, free_space, 0);
 }
+
+MEMBER_FUNC_GET(lsm_optional_data *, lsm_fs_optional_data_get, lsm_fs *fs,
+                fs, LSM_IS_POOL, optional_data, NULL)
+
+MEMBER_FUNC_GET(const char *, lsm_fs_plugin_data_get, lsm_fs *fs,
+                fs, LSM_IS_POOL, plugin_data, NULL)
 
 lsm_fs_ss * lsm_fs_ss_record_alloc( const char *id, const char *name,
                                             uint64_t ts)

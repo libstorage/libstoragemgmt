@@ -1242,13 +1242,17 @@ void LSM_DLL_EXPORT lsm_access_group_initiator_id_set( lsm_access_group *group,
  * @param free_space            Free space
  * @param pool_id               Pool id
  * @param system_id             System id
+ * @param optional_data         Optional data
+ * @param plugin_data           Reserved for plug-in use only
  * @return lsm_fs, NULL on error
  */
-lsm_fs LSM_DLL_EXPORT *lsm_fs_record_alloc( const char *id, const char *name,
+lsm_fs LSM_DLL_EXPORT *lsm_fs_record_alloc(const char *id, const char *name,
                                             uint64_t total_space,
                                             uint64_t free_space,
                                             const char *pool_id,
-                                            const char *system_id);
+                                            const char *system_id,
+                                            lsm_optional_data * optional_data,
+                                            const char* plugin_data);
 
 /**
  * Allocates the memory for the array of file system records.
@@ -1256,6 +1260,13 @@ lsm_fs LSM_DLL_EXPORT *lsm_fs_record_alloc( const char *id, const char *name,
  * @return Allocated memory, NULL on error
  */
 lsm_fs LSM_DLL_EXPORT **lsm_fs_record_array_alloc( uint32_t size );
+
+/**
+ * Used to retrieve the plug-in private data for a specific pool
+ * @param p     Pool to retrieve plug-in private data for
+ * @return NULL if doesn't exist, else data.
+ */
+const char *lsm_fs_plugin_data_get(lsm_fs *fs);
 
 /**
  * Allocates the memory for single snap shot record.

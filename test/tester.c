@@ -3032,9 +3032,7 @@ START_TEST(test_search_fs)
             fail_unless(LSM_ERR_OK == rc);
         }
 
-        if( LSM_ERR_OK == rc ) {
-            lsm_fs_record_free(fs);
-        }
+        lsm_fs_record_free(fs);
         fs = NULL;
     }
 

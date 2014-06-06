@@ -479,12 +479,20 @@ lsm_fs *value_to_fs(Value &fs)
     lsm_fs *rc = NULL;
     if( is_expected_object(fs, "FileSystem") ) {
         std::map<std::string, Value> f = fs.asObject();
+        lsm_optional_data *op = NULL;
+        Value opv = f["optional_data"];
+        op = value_to_optional_data(opv);
+
         rc = lsm_fs_record_alloc(f["id"].asString().c_str(),
                                 f["name"].asString().c_str(),
                                 f["total_space"].asUint64_t(),
                                 f["free_space"].asUint64_t(),
                                 f["pool_id"].asString().c_str(),
-                                f["system_id"].asString().c_str());
+                                f["system_id"].asString().c_str(),
+                                op,
+                                f["plugin_data"].asC_str());
+
+        lsm_optional_data_record_free(op);
     }
     return rc;
 }
@@ -500,6 +508,8 @@ Value fs_to_value(lsm_fs *fs)
         f["free_space"] = Value(fs->free_space);
         f["pool_id"] = Value(fs->pool_id);
         f["system_id"] = Value(fs->system_id);
+        f["optional_data"] = optional_data_to_value(fs->optional_data);
+        f["plugin_data"] = Value(fs->plugin_data);
         return Value(f);
     }
     return Value();
