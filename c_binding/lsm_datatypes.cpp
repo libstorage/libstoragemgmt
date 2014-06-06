@@ -789,17 +789,27 @@ lsm_disk *lsm_disk_record_alloc(const char *id, const char *name,
 
 CREATE_ALLOC_ARRAY_FUNC(lsm_system_record_array_alloc, lsm_system *)
 
-lsm_system *lsm_system_record_alloc( const char *id, const char *name,
-                                    uint32_t status, const char *status_info)
+lsm_system *lsm_system_record_alloc(const char *id, const char *name,
+                                    uint32_t status, const char *status_info,
+                                    lsm_optional_data *optional_data,
+                                    const char* plugin_data)
 {
-    lsm_system *rc = (lsm_system *)malloc(sizeof(lsm_system));
+    lsm_system *rc = (lsm_system *)calloc(1, sizeof(lsm_system));
     if (rc) {
         rc->magic = LSM_SYSTEM_MAGIC;
         rc->id = strdup(id);
         rc->name = strdup(name);
         rc->status = status;
         rc->status_info = strdup(status_info);
-        if( !rc->name || !rc->id || !rc->status_info ) {
+        rc->optional_data = lsm_optional_data_record_copy(optional_data);
+
+        if( plugin_data ) {
+            rc->plugin_data = strdup(plugin_data);
+        }
+
+        if( !rc->name || !rc->id || !rc->status_info ||
+            (optional_data && !rc->optional_data) ||
+            (plugin_data && !rc->plugin_data)) {
             lsm_system_record_free(rc);
             rc = NULL;
         }
@@ -827,6 +837,9 @@ int lsm_system_record_free(lsm_system *s)
             s->status_info = NULL;
         }
 
+        lsm_optional_data_record_free(s->optional_data);
+        free(s->plugin_data);
+
         free(s);
         return LSM_ERR_OK;
     }
@@ -840,7 +853,8 @@ lsm_system *lsm_system_record_copy(lsm_system *s)
 {
     lsm_system *rc = NULL;
     if( LSM_IS_SYSTEM(s) ) {
-        rc = lsm_system_record_alloc(s->id, s->name, s->status, s->status_info);
+        rc = lsm_system_record_alloc(s->id, s->name, s->status, s->status_info,
+                                    s->optional_data, s->plugin_data);
     }
     return rc;
 }
@@ -868,6 +882,12 @@ uint32_t lsm_system_status_get(lsm_system *s)
     }
     return UINT32_MAX;
 }
+
+MEMBER_FUNC_GET(lsm_optional_data *, lsm_system_optional_data_get,
+                lsm_system *s, s, LSM_IS_SYSTEM, optional_data, NULL)
+
+MEMBER_FUNC_GET(const char *, lsm_system_plugin_data_get, lsm_system *s,
+                s, LSM_IS_SYSTEM, plugin_data, NULL)
 
 lsm_volume *lsm_volume_record_copy(lsm_volume *vol)
 {

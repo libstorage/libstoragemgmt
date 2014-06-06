@@ -194,6 +194,8 @@ struct _lsm_system {
     char *name;                 /**< Name */
     uint32_t status;            /**< Enumerated status value */
     char *status_info;          /**< System status text */
+    lsm_optional_data *optional_data;   /**< Optional data */
+    char *plugin_data;                  /**< Reserved for the plugin to use */
 };
 
 #define LSM_CONNECT_MAGIC       0xAA7A000A

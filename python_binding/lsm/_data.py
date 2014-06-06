@@ -397,6 +397,8 @@ class Volume(IData):
 @default_property('name', doc="User defined system name")
 @default_property('status', doc="Enumerated status of system")
 @default_property('status_info', doc="Detail status information of system")
+@default_property("optional_data", doc="Optional data")
+@default_property("plugin_data", doc="Private plugin data")
 class System(IData):
     """
 ### 11.3 System -- lsm.System
@@ -476,11 +478,15 @@ The lsm.System class does not have class methods.
     STATUS_STOPPED = 1 << 8
     STATUS_OTHER = 1 << 9
 
-    def __init__(self, _id, _name, _status, _status_info):
+    def __init__(self, _id, _name, _status, _status_info, _optional_data=None,
+                 _plugin_data=None):
         self._id = _id
         self._name = _name
         self._status = _status
         self._status_info = _status_info
+        self._optional_data = _check_opt_data(_optional_data,
+                                              self.OPT_PROPERTIES)
+        self._plugin_data = _plugin_data
 
 
 @default_property('id', doc="Unique identifier")

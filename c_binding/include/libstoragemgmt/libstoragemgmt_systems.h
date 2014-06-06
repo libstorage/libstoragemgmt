@@ -73,7 +73,14 @@ const char LSM_DLL_EXPORT *lsm_system_name_get(lsm_system *s);
  * @return System status which is a bit sensitive field, returns UINT32_MAX on
  * bad system pointer.
  */
-uint32_t lsm_system_status_get(lsm_system *s);
+uint32_t LSM_DLL_EXPORT lsm_system_status_get(lsm_system *s);
+
+/**
+ * Retrieve the optional data for the system.
+ * @param s     System to retrieve optional data
+ * @return optional_data, NULL if none exists
+ */
+lsm_optional_data LSM_DLL_EXPORT *lsm_system_optional_data_get(lsm_system *s);
 
 #ifdef  __cplusplus
 }

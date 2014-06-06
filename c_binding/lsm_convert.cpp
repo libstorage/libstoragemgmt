@@ -275,10 +275,18 @@ lsm_system *value_to_system(Value &system)
     lsm_system *rc = NULL;
     if (is_expected_object(system, "System")) {
         std::map<std::string, Value> i = system.asObject();
-        rc = lsm_system_record_alloc(  i["id"].asString().c_str(),
+        lsm_optional_data *op = NULL;
+        Value opv = i["optional_data"];
+        op = value_to_optional_data(opv);
+
+        rc = lsm_system_record_alloc(i["id"].asString().c_str(),
                                     i["name"].asString().c_str(),
                                     i["status"].asUint32_t(),
-                                    i["status_info"].asString().c_str());
+                                    i["status_info"].asString().c_str(),
+                                    op,
+                                    i["plugin_data"].asC_str());
+
+        lsm_optional_data_record_free(op);
     }
     return rc;
 }
@@ -292,6 +300,8 @@ Value system_to_value(lsm_system *system)
         s["name"] = Value(system->name);
         s["status"] = Value(system->status);
         s["status_info"] = Value(system->status_info);
+        s["optional_data"] = optional_data_to_value(system->optional_data);
+        s["plugin_data"] = Value(system->plugin_data);
         return Value(s);
     }
     return Value();

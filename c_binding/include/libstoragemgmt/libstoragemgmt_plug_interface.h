@@ -1192,12 +1192,23 @@ lsm_system LSM_DLL_EXPORT **lsm_system_record_array_alloc( uint32_t size );
  * @param[in] name          System name (human readable)
  * @param[in] status        Status of the system
  * @oaram[in] status_info   Additional text for status
+ * @param[in] optional_data Optional data
+ * @param[in] plugin_data   Private plugin data
  * @return  Allocated memory or NULL on error.
  */
-lsm_system LSM_DLL_EXPORT *lsm_system_record_alloc( const char *id,
-                                                  const char *name,
-                                                  uint32_t status,
-                                                  const char *status_info);
+lsm_system LSM_DLL_EXPORT *lsm_system_record_alloc(const char *id,
+                                            const char *name,
+                                            uint32_t status,
+                                            const char *status_info,
+                                            lsm_optional_data *optional_data,
+                                            const char* plugin_data);
+
+/**
+ * Retrieve plugin private data
+ * @param s     System
+ * @return Optional data, NULL if none exist
+ */
+const char LSM_DLL_EXPORT *lsm_system_plugin_data_get( lsm_system *s);
 
 /**
  * Allocates storage for Access_group array
