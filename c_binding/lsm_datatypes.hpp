@@ -120,19 +120,6 @@ struct _lsm_access_group {
     char *plugin_data;            /**< Reserved for the plugin to use */
 };
 
-#define LSM_SNAP_SHOT_MAGIC  0xAA7A0005
-#define LSM_IS_SNAP_SHOT(obj)    MAGIC_CHECK(obj, LSM_SNAP_SHOT_MAGIC)
-
-/**
- * Structure for snapshots.
- */
-struct _lsm_snap_shot {
-    uint32_t magic;             /**< Used for verification */
-    char *id;                   /**< Id */
-    char *name;                 /**< Name */
-    uint64_t ts;                /**< Time stamp */
-};
-
 #define LSM_NFS_EXPORT_MAGIC  0xAA7A0006
 #define LSM_IS_NFS_EXPORT(obj)    MAGIC_CHECK(obj, LSM_NFS_EXPORT_MAGIC)
 
