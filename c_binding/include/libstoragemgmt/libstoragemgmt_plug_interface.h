@@ -1284,10 +1284,15 @@ const char *lsm_fs_plugin_data_get(lsm_fs *fs);
  * @param id            ID
  * @param name          Name
  * @param ts            Epoch time stamp when snapshot was created
+ * @param optional_data Optional data
+ * @param plugin_data   Private plugin data
  * @return Allocated memory, NULL on error
  */
-lsm_fs_ss LSM_DLL_EXPORT *lsm_fs_ss_record_alloc( const char *id, const char *name,
-                                            uint64_t ts);
+lsm_fs_ss LSM_DLL_EXPORT *lsm_fs_ss_record_alloc(const char *id,
+                                            const char *name,
+                                            uint64_t ts,
+                                            lsm_optional_data *optional_data,
+                                            const char * plugin_data);
 
 /**
  * Allocates the memory for an array of snapshot records.
@@ -1295,6 +1300,13 @@ lsm_fs_ss LSM_DLL_EXPORT *lsm_fs_ss_record_alloc( const char *id, const char *na
  * @return Allocated memory, NULL on error
  */
 lsm_fs_ss LSM_DLL_EXPORT **lsm_fs_ss_record_array_alloc( uint32_t size );
+
+/**
+ * Retrieve private data from fs_ss.
+ * @param exp       Valid fs_ss record
+ * @return Private data, else NULL
+ */
+const char LSM_DLL_EXPORT *lsm_fs_ss_plugin_data_get( lsm_fs_ss *fs_ss );
 
 /**
  * Set a capability

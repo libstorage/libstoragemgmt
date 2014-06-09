@@ -69,6 +69,13 @@ const char LSM_DLL_EXPORT *lsm_fs_ss_name_get(lsm_fs_ss *ss);
  */
 uint64_t LSM_DLL_EXPORT lsm_fs_ss_time_stamp_get(lsm_fs_ss *ss);
 
+/**
+ * Retrieve the optional data
+ * @param ss        The file system snapshot record
+ * @return optional data, else NULL if it doesn't exist.
+ */
+lsm_optional_data LSM_DLL_EXPORT *lsm_fs_ss_optional_data_get(lsm_fs_ss *ss);
+
 #ifdef  __cplusplus
 }
 #endif

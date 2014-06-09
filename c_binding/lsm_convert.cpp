@@ -530,9 +530,14 @@ lsm_fs_ss *value_to_ss(Value &ss)
     lsm_fs_ss *rc = NULL;
     if( is_expected_object(ss, "FsSnapshot") ) {
         std::map<std::string, Value> f = ss.asObject();
+        lsm_optional_data *op = get_optional(f);
+
         rc = lsm_fs_ss_record_alloc(f["id"].asString().c_str(),
                                 f["name"].asString().c_str(),
-                                f["ts"].asUint64_t());
+                                f["ts"].asUint64_t(), op,
+                                f["plugin_data"].asC_str());
+
+        lsm_optional_data_record_free(op);
     }
     return rc;
 }
@@ -545,6 +550,8 @@ Value ss_to_value(lsm_fs_ss *ss)
         f["id"] = Value(ss->id);
         f["name"] = Value(ss->name);
         f["ts"] = Value(ss->ts);
+        f["optional_data"] = optional_data_to_value(ss->optional_data);
+        f["plugin_data"] = Value(ss->plugin_data);
         return Value(f);
     }
     return Value();

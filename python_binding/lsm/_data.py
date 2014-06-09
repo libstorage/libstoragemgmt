@@ -744,11 +744,17 @@ class FileSystem(IData):
 @default_property('id', doc="Unique identifier")
 @default_property('name', doc="Snapshot name")
 @default_property('ts', doc="Time stamp the snapshot was created")
+@default_property("optional_data", "Optional data")
+@default_property("plugin_data", "Private plugin data")
 class FsSnapshot(IData):
-    def __init__(self, _id, _name, _ts):
+    def __init__(self, _id, _name, _ts, _optional_data=None,
+                 _plugin_data=None):
         self._id = _id
         self._name = _name
         self._ts = int(_ts)
+        self._optional_data = _check_opt_data(_optional_data,
+                                              self.OPT_PROPERTIES)
+        self._plugin_data = _plugin_data
 
 
 @default_property('id', doc="Unique identifier")

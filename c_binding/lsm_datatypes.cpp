@@ -1373,17 +1373,24 @@ MEMBER_FUNC_GET(lsm_optional_data *, lsm_fs_optional_data_get, lsm_fs *fs,
 MEMBER_FUNC_GET(const char *, lsm_fs_plugin_data_get, lsm_fs *fs,
                 fs, LSM_IS_POOL, plugin_data, NULL)
 
-lsm_fs_ss * lsm_fs_ss_record_alloc( const char *id, const char *name,
-                                            uint64_t ts)
+lsm_fs_ss * lsm_fs_ss_record_alloc(const char *id, const char *name,
+                                            uint64_t ts,
+                                            lsm_optional_data *optional_data,
+                                            const char * plugin_data)
 {
-    lsm_fs_ss *rc = (lsm_fs_ss *) malloc(sizeof(lsm_fs_ss));
+    lsm_fs_ss *rc = (lsm_fs_ss *) calloc(1, sizeof(lsm_fs_ss));
     if( rc ) {
         rc->magic = LSM_SS_MAGIC;
         rc->id = strdup(id);
         rc->name = strdup(name);
         rc->ts = ts;
+        rc->optional_data = lsm_optional_data_record_copy(optional_data);
+        if( plugin_data ) {
+            rc->plugin_data = strdup(plugin_data);
+        }
 
-        if( !rc->id || ! rc->name ) {
+        if( !rc->id || ! rc->name || (optional_data && !rc->optional_data) ||
+            (plugin_data && !rc->plugin_data)) {
             lsm_fs_ss_record_free(rc);
             rc = NULL;
         }
@@ -1395,9 +1402,10 @@ lsm_fs_ss *lsm_fs_ss_record_copy(lsm_fs_ss *source)
 {
     lsm_fs_ss *rc = NULL;
     if( LSM_IS_SS(source) ) {
-        rc = lsm_fs_ss_record_alloc(  lsm_fs_ss_id_get(source),
-                                lsm_fs_ss_name_get(source),
-                                lsm_fs_ss_time_stamp_get(source));
+        rc = lsm_fs_ss_record_alloc(source->id,
+                                source->name,
+                                source->ts,
+                                source->optional_data, source->plugin_data);
     }
     return rc;
 }
@@ -1408,6 +1416,9 @@ int lsm_fs_ss_record_free( lsm_fs_ss *ss)
         ss->magic = LSM_DEL_MAGIC(LSM_SS_MAGIC);
         free(ss->id);
         free(ss->name);
+        lsm_optional_data_record_free(ss->optional_data);
+        free(ss->plugin_data);
+
         free(ss);
         return LSM_ERR_OK;
     }
@@ -1432,6 +1443,12 @@ uint64_t lsm_fs_ss_time_stamp_get(lsm_fs_ss *ss)
 {
     MEMBER_GET(ss, LSM_IS_SS, ts, 0);
 }
+
+MEMBER_FUNC_GET(lsm_optional_data *, lsm_fs_ss_optional_data_get, lsm_fs_ss *ss,
+                ss, LSM_IS_SS, optional_data, NULL)
+
+MEMBER_FUNC_GET(const char *, lsm_fs_ss_plugin_data_get, lsm_fs_ss *ss,
+                ss, LSM_IS_SS, plugin_data, NULL)
 
 lsm_nfs_export *lsm_nfs_export_record_alloc(const char *id,
                                             const char *fs_id,

@@ -2179,7 +2179,7 @@ static int ss_create(lsm_plugin_ptr c, lsm_fs *fs,
         if( !g_hash_table_lookup(find->ss, md5(name)) ) {
             char *id = strdup(md5(name));
             if( id ) {
-                lsm_fs_ss *ss = lsm_fs_ss_record_alloc(id, name, time(NULL));
+                lsm_fs_ss *ss = lsm_fs_ss_record_alloc(id, name, time(NULL), NULL, NULL);
                 lsm_fs_ss *new_shot = lsm_fs_ss_record_copy(ss);
                 if( ss && new_shot ) {
                     g_hash_table_insert(find->ss, (gpointer)id, (gpointer)ss);

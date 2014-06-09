@@ -291,6 +291,8 @@ struct LSM_DLL_LOCAL _lsm_fs_ss {
     char *id;
     char *name;
     uint64_t ts;
+    lsm_optional_data *optional_data;   /**< Optional data */
+    char *plugin_data;                  /**< Reserved for the plugin to use */
 };
 
 #define LSM_DISK_MAGIC              0xAA7A0010
