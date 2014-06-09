@@ -2638,13 +2638,17 @@ int LSM_DLL_EXPORT lsm_uri_parse(const char *uri, char **scheme, char **user,
                 struct qparam_set *qp = NULL;
                 qp = qparam_query_parse(u->query_raw);
 
-                for( i = 0; i < qp->n; ++i ) {
-                    rc = lsm_optional_data_string_set(*query_params,
-                                                        qp->p[i].name,
-                                                        qp->p[i].value);
-                    if( LSM_ERR_OK != rc ) {
-                        goto bail;
+                if( qp ) {
+                    for( i = 0; i < qp->n; ++i ) {
+                        rc = lsm_optional_data_string_set(*query_params,
+                                                            qp->p[i].name,
+                                                            qp->p[i].value);
+                        if( LSM_ERR_OK != rc ) {
+                            free_qparam_set(qp);
+                            goto bail;
+                        }
                     }
+                    free_qparam_set(qp);
                 }
             } else {
                 rc = LSM_ERR_NO_MEMORY;
