@@ -35,15 +35,21 @@ static bool is_expected_object(Value &obj, std::string class_name)
     return false;
 }
 
+static lsm_optional_data *get_optional(std::map<std::string, Value> &v)
+{
+    lsm_optional_data *op = NULL;
+    Value opv = v["optional_data"];
+    op = value_to_optional_data(opv);
+    return op;
+}
+
 lsm_volume *value_to_volume(Value &vol)
 {
     lsm_volume *rc = NULL;
 
     if (is_expected_object(vol, "Volume")) {
         std::map<std::string, Value> v = vol.asObject();
-        lsm_optional_data *op = NULL;
-        Value opv = v["optional_data"];
-        op = value_to_optional_data(opv);
+        lsm_optional_data *op = get_optional(v);
 
         rc = lsm_volume_record_alloc(v["id"].asString().c_str(),
             v["name"].asString().c_str(),
@@ -123,11 +129,9 @@ lsm_disk *value_to_disk(Value &disk)
 {
     lsm_disk *rc = NULL;
     if (is_expected_object(disk, "Disk")) {
-        lsm_optional_data *op = NULL;
-        Value opv = disk["optional_data"];
-        op = value_to_optional_data(opv);
-
         std::map<std::string, Value> d = disk.asObject();
+        lsm_optional_data *op = get_optional(d);
+
         rc = lsm_disk_record_alloc(
             d["id"].asString().c_str(),
             d["name"].asString().c_str(),
@@ -233,10 +237,8 @@ lsm_pool *value_to_pool(Value &pool)
     lsm_pool *rc = NULL;
 
     if (is_expected_object(pool, "Pool")) {
-        lsm_optional_data *op = NULL;
         std::map<std::string, Value> i = pool.asObject();
-        Value opv = i["optional_data"];
-        op = value_to_optional_data(opv);
+        lsm_optional_data *op = get_optional(i);
 
         rc = lsm_pool_record_alloc(i["id"].asString().c_str(),
             i["name"].asString().c_str(),
@@ -247,6 +249,8 @@ lsm_pool *value_to_pool(Value &pool)
             i["system_id"].asString().c_str(),
             op,
             i["plugin_data"].asC_str());
+
+        lsm_optional_data_record_free(op);
     }
     return rc;
 }
@@ -275,9 +279,7 @@ lsm_system *value_to_system(Value &system)
     lsm_system *rc = NULL;
     if (is_expected_object(system, "System")) {
         std::map<std::string, Value> i = system.asObject();
-        lsm_optional_data *op = NULL;
-        Value opv = i["optional_data"];
-        op = value_to_optional_data(opv);
+        lsm_optional_data *op = get_optional(i);
 
         rc = lsm_system_record_alloc(i["id"].asString().c_str(),
                                     i["name"].asString().c_str(),
@@ -351,8 +353,7 @@ lsm_access_group *value_to_access_group( Value &group )
     if( is_expected_object(group, "AccessGroup")) {
         std::map<std::string, Value> vAg = group.asObject();
         il = value_to_string_list(vAg["init_ids"]);
-        Value opv = group["optional_data"];
-        op = value_to_optional_data(opv);
+        op = get_optional(vAg);
 
         if( il ) {
             ag = lsm_access_group_record_alloc(
@@ -489,9 +490,7 @@ lsm_fs *value_to_fs(Value &fs)
     lsm_fs *rc = NULL;
     if( is_expected_object(fs, "FileSystem") ) {
         std::map<std::string, Value> f = fs.asObject();
-        lsm_optional_data *op = NULL;
-        Value opv = f["optional_data"];
-        op = value_to_optional_data(opv);
+        lsm_optional_data *op = get_optional(f);
 
         rc = lsm_fs_record_alloc(f["id"].asString().c_str(),
                                 f["name"].asString().c_str(),
@@ -583,9 +582,7 @@ lsm_nfs_export *value_to_nfs_export(Value &exp)
         }
 
         if( ok ) {
-            lsm_optional_data *op = NULL;
-            Value opv = i["optional_data"];
-            op = value_to_optional_data(opv);
+            lsm_optional_data *op = get_optional(i);
 
             rc = lsm_nfs_export_record_alloc(i["id"].asC_str(),
                 i["fs_id"].asC_str(),
@@ -603,6 +600,7 @@ lsm_nfs_export *value_to_nfs_export(Value &exp)
             lsm_string_list_free(root);
             lsm_string_list_free(rw);
             lsm_string_list_free(ro);
+            lsm_optional_data_record_free(op);
         }
     }
     return rc;
