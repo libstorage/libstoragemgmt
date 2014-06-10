@@ -25,7 +25,7 @@ except ImportError:
 
 from json.decoder import WHITESPACE
 from lsm import LsmError, ErrorNumber
-from _common import get_class, sh, default_property
+from _common import get_class, default_property
 
 
 def txt_a(txt, append):
@@ -40,22 +40,6 @@ def get_key(dictionary, value):
     if len(keys) > 0:
         return keys[0]
     return None
-
-
-def _check_opt_data(optional_data, allowed_properties):
-    if optional_data is None:
-        return OptionalData()
-    else:
-        #Make sure the properties only contain ones we permit
-        allowed = set(allowed_properties)
-        actual = set(optional_data.list())
-
-        if actual <= allowed:
-            return optional_data
-        else:
-            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           "Property keys are not supported: %s" %
-                           "".join(actual - allowed))
 
 
 class DataEncoder(json.JSONEncoder):
@@ -175,6 +159,21 @@ class IData(object):
         """
         return str(self._to_dict())
 
+    def _check_opt_data(self, optional_data):
+        if optional_data is None:
+            return OptionalData()
+        else:
+            #Make sure the properties only contain ones we permit
+            allowed = set(self.OPT_PROPERTIES)
+            actual = set(optional_data.list())
+
+            if actual <= allowed:
+                return optional_data
+            else:
+                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                               "Property keys are not supported: %s" %
+                               "".join(actual - allowed))
+
 
 @default_property('id', doc="Unique identifier")
 @default_property('type', doc="Enumerated initiator type")
@@ -261,8 +260,7 @@ class Disk(IData):
         self._num_of_blocks = _num_of_blocks
         self._status = _status
         self._system_id = _system_id
-        self._optional_data = _check_opt_data(_optional_data,
-                                              self.OPT_PROPERTIES)
+        self._optional_data = self._check_opt_data(_optional_data)
         self._plugin_data = _plugin_data
 
     @property
@@ -328,8 +326,7 @@ class Volume(IData):
         self._status = _status                # Status
         self._system_id = _system_id          # System id this volume belongs
         self._pool_id = _pool_id              # Pool id this volume belongs
-        self._optional_data = _check_opt_data(_optional_data,
-                                              self.OPT_PROPERTIES)
+        self._optional_data = self._check_opt_data(_optional_data)
         self._plugin_data = _plugin_data
 
     @property
@@ -436,8 +433,7 @@ The lsm.System class does not have class methods.
         self._name = _name
         self._status = _status
         self._status_info = _status_info
-        self._optional_data = _check_opt_data(_optional_data,
-                                              self.OPT_PROPERTIES)
+        self._optional_data = self._check_opt_data(_optional_data)
         self._plugin_data = _plugin_data
 
 
@@ -653,8 +649,8 @@ class Pool(IData):
         self._status_info = _status_info  # Additional status text of pool
         self._system_id = _system_id      # System id this pool belongs
         self._plugin_data = _plugin_data  # Plugin private data
-        self._optional_data = _check_opt_data(_optional_data,
-                                              self.OPT_PROPERTIES)
+        self._optional_data = self._check_opt_data(_optional_data)
+
 
 @default_property('id', doc="Unique identifier")
 @default_property('name', doc="File system name")
@@ -676,8 +672,7 @@ class FileSystem(IData):
         self._free_space = _free_space
         self._pool_id = _pool_id
         self._system_id = _system_id
-        self._optional_data = _check_opt_data(_optional_data,
-                                              self.OPT_PROPERTIES)
+        self._optional_data = self._check_opt_data(_optional_data)
         self._plugin_data = _plugin_data
 
 
@@ -688,13 +683,13 @@ class FileSystem(IData):
 @default_property("plugin_data", "Private plugin data")
 class FsSnapshot(IData):
     FLAG_RETRIEVE_FULL_INFO = 1 << 0
+
     def __init__(self, _id, _name, _ts, _optional_data=None,
                  _plugin_data=None):
         self._id = _id
         self._name = _name
         self._ts = int(_ts)
-        self._optional_data = _check_opt_data(_optional_data,
-                                              self.OPT_PROPERTIES)
+        self._optional_data = self._check_opt_data(_optional_data)
         self._plugin_data = _plugin_data
 
 
@@ -732,8 +727,7 @@ class NfsExport(IData):
         self._anonuid = _anonuid      # uid for anonymous user id
         self._anongid = _anongid      # gid for anonymous group id
         self._options = _options      # NFS options
-        self._optional_data = _check_opt_data(_optional_data,
-                                              self.OPT_PROPERTIES)
+        self._optional_data = self._check_opt_data(_optional_data)
         self._plugin_data = _plugin_data
 
 
@@ -775,8 +769,7 @@ class AccessGroup(IData):
         self._init_type = _init_type
         self._system_id = _system_id      # System id this group belongs
         self._plugin_data = _plugin_data
-        self._optional_data = _check_opt_data(_optional_data,
-                                              self.OPT_PROPERTIES)
+        self._optional_data = self._check_opt_data(_optional_data)
 
 
 class OptionalData(IData):
