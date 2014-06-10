@@ -34,7 +34,6 @@ import os
 from subprocess import Popen, PIPE
 from optparse import OptionParser
 
-
 (OP_SYS, OP_POOL, OP_VOL, OP_INIT, OP_FS, OP_EXPORTS, OP_SS) = \
     ('SYSTEMS', 'POOLS', 'VOLUMES', 'INITIATORS', 'FS', 'EXPORTS',
      'SNAPSHOTS')
@@ -724,6 +723,18 @@ def search_test(cap, system_id):
     volume_delete(vol_id)
     return
 
+def optional_data_check():
+    opt_support_list=['SYSTEMS', 'POOLS', 'VOLUMES', 'DISKS', 'ACCESS_GROUPS',
+                      'FS', 'EXPORTS']
+    # TODO:
+    #   1. Missing SNAPSHOTS
+    #   2. As simulator support all optional properties, we should check
+    #      whether output contain all optional properties.
+
+    print "\nTesting query with optional data\n"
+    for list_type in opt_support_list:
+        call([cmd, 'list', '--type', list_type, '-a'])
+
 def run_all_tests(cap, system_id):
     test_display(cap, system_id)
     test_plugin_list(cap, system_id)
@@ -734,7 +745,7 @@ def run_all_tests(cap, system_id):
     test_mapping(cap, system_id)
 
     search_test(cap, system_id)
-
+    optional_data_check()
 
 if __name__ == "__main__":
     parser = OptionParser()
