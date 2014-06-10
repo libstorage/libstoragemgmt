@@ -442,11 +442,8 @@ class Smis(IStorageAreaNetwork):
         If you want to save some query time, try set it as False
         """
         class_name = Smis._cim_class_name_of(class_type)
-        id_pros = Smis._property_list_of_id(class_type)
-        if property_list:
-            property_list.extend(id_pros)
-        else:
-            property_list = id_pros
+        property_list = Smis._property_list_of_id(class_type, property_list)
+
         cim_xxxs = self._c.EnumerateInstances(class_name,
                                               PropertyList=property_list,
                                               LocalOnly=False)
@@ -884,9 +881,9 @@ class Smis(IStorageAreaNetwork):
         """
         completed_item = None
 
-        cim_job_pros = self._property_list_of_id('Job')
-        cim_job_pros.extend(['JobState', 'PercentComplete',
-                             'ErrorDescription', 'OperationalStatus'])
+        props = ['JobState', 'PercentComplete', 'ErrorDescription',
+                 'OperationalStatus']
+        cim_job_pros = self._property_list_of_id('Job', props)
 
         cim_job = self._get_cim_instance_by_id('Job', job_id, False,
                                                cim_job_pros)
@@ -942,29 +939,37 @@ class Smis(IStorageAreaNetwork):
                        "class_type %s" % class_type)
 
     @staticmethod
-    def _property_list_of_id(class_type):
+    def _property_list_of_id(class_type, requested_properties=None):
         """
         Return a PropertyList which the ID of current class is basing on
         """
+        rc = []
         if class_type == 'Volume':
-            return ['SystemName', 'DeviceID']
-        if class_type == 'System':
-            return ['Name']
-        if class_type == 'Pool':
-            return ['InstanceID']
-        if class_type == 'SystemChild':
-            return ['SystemName']
-        if class_type == 'Disk':
-            return ['SystemName', 'DeviceID']
-        if class_type == 'Job':
-            return ['InstanceID']
-        if class_type == 'AccessGroup':
-            return ['DeviceID']
-        if class_type == 'Initiator':
-            return ['StorageID']
-        raise LsmError(ErrorNumber.INTERNAL_ERROR,
+            rc = ['SystemName', 'DeviceID']
+        elif class_type == 'System':
+            rc = ['Name']
+        elif class_type == 'Pool':
+            rc = ['InstanceID']
+        elif class_type == 'SystemChild':
+            rc = ['SystemName']
+        elif class_type == 'Disk':
+            rc = ['SystemName', 'DeviceID']
+        elif class_type == 'Job':
+            rc = ['InstanceID']
+        elif class_type == 'AccessGroup':
+            rc = ['DeviceID']
+        elif class_type == 'Initiator':
+            rc = ['StorageID']
+        else:
+            raise LsmError(ErrorNumber.INTERNAL_ERROR,
                        "Smis._cim_class_name_of() got unknown " +
                        "class_type %s" % class_type)
+
+        if requested_properties:
+            for p in requested_properties:
+                if p not in rc:
+                    rc.extend([p])
+        return rc
 
     def _sys_id_child(self, cim_xxx):
         """
@@ -1100,11 +1105,10 @@ class Smis(IStorageAreaNetwork):
         """
         Retrun the PropertyList required for creating new LSM Volume.
         """
-        cim_vol_pros = self._property_list_of_id("Volume")
-        cim_vol_pros.extend(
-            ['OperationalStatus', 'ElementName', 'NameFormat',
-             'NameNamespace', 'BlockSize', 'NumberOfBlocks', 'Name',
-             'OtherIdentifyingInfo', 'IdentifyingDescriptions', 'Usage'])
+        props = ['OperationalStatus', 'ElementName', 'NameFormat',
+                 'NameNamespace', 'BlockSize', 'NumberOfBlocks', 'Name',
+                 'OtherIdentifyingInfo', 'IdentifyingDescriptions', 'Usage']
+        cim_vol_pros = self._property_list_of_id("Volume", props)
         return cim_vol_pros
 
     def _new_vol(self, cv, pool_id=None, sys_id=None):
@@ -1605,8 +1609,9 @@ class Smis(IStorageAreaNetwork):
         """
         Return a list of properties required to create a LSM System
         """
-        cim_sys_pros = self._property_list_of_id('System')
-        cim_sys_pros.extend(['ElementName', 'OperationalStatus'])
+        cim_sys_pros = self._property_list_of_id('System',
+                                                 ['ElementName',
+                                                  'OperationalStatus'])
         return cim_sys_pros
 
     @handle_cim_errors
@@ -1637,8 +1642,8 @@ class Smis(IStorageAreaNetwork):
         Return a list of properties needed to created Initiator from
         CIM_StorageHardwareID
         """
-        cim_init_pros = self._property_list_of_id('Initiator')
-        cim_init_pros.extend(['IDType', 'ElementName'])
+        cim_init_pros = self._property_list_of_id('Initiator',
+                                                  ['IDType', 'ElementName'])
         return cim_init_pros
 
     @handle_cim_errors
@@ -2811,8 +2816,7 @@ class Smis(IStorageAreaNetwork):
                 opt_pro_dict['element_type'] = Pool.ELEMENT_TYPE_VOLUME
                 opt_pro_dict['thinp_type'] = Pool.THINP_TYPE_THICK
 
-        pool_id_pros = self._property_list_of_id('Pool')
-        pool_id_pros.extend(['Primordial'])
+        pool_id_pros = self._property_list_of_id('Pool', ['Primordial'])
         # We use some blacklist here to speed up by skipping unnecessary
         # parent pool checking.
         # These class are known as Disk Pool, no need to waste time on
@@ -3423,13 +3427,7 @@ class Smis(IStorageAreaNetwork):
         this is assumption should work. Tested on EMC SMI-S provider which
         provide 1.4, 1.5, 1.6 root profile.
         """
-        cim_sys_id_pros = self._property_list_of_id('System')
-        if property_list is None:
-            property_list = cim_sys_id_pros
-        else:
-            for key_name in cim_sys_id_pros:
-                if key_name not in property_list:
-                    property_list.extend([key_name])
+        property_list = self._property_list_of_id('System', property_list)
 
         cim_syss = []
         if self.fallback_mode:
@@ -3505,14 +3503,7 @@ class Smis(IStorageAreaNetwork):
         """
         Return a CIMInstance of CIM_ComputerSystem for given system id.
         """
-        cim_sys_pros = self._property_list_of_id("System")
-        if property_list is None:
-            property_list = cim_sys_pros
-        else:
-            for pro in cim_sys_pros:
-                if pro not in property_list:
-                    property_list.extend([pro])
-
+        property_list = self._property_list_of_id("System", property_list)
         cim_syss = self._root_cim_syss(property_list)
 
         for cim_sys in cim_syss:
@@ -3525,13 +3516,7 @@ class Smis(IStorageAreaNetwork):
         """
         Return a CIMInstance of CIM_StoragePool for given pool id.
         """
-        cim_sys_pros = self._property_list_of_id("Pool")
-        if property_list is None:
-            property_list = cim_sys_pros
-        else:
-            for pro in cim_sys_pros:
-                if pro not in property_list:
-                    property_list.extend([pro])
+        property_list = self._property_list_of_id("Pool", property_list)
         cim_pools = self._cim_pools_of(cim_sys_path, property_list)
         for cim_pool in cim_pools:
             if self._pool_id(cim_pool) == pool_id:
