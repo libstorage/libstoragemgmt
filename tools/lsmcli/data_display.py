@@ -707,7 +707,10 @@ class DisplayData(object):
             data_dict[key_str] = value
 
         if flag_dsp_all_data:
+            cur_support_opt_keys = obj.optional_data.list()
             for key in optional_headers.keys():
+                if key not in cur_support_opt_keys:
+                    continue
                 key_str = optional_headers[key]
                 value = DisplayData._get_opt_pro_value(
                     obj, key, value_conv_enum, value_conv_human, flag_human,
@@ -715,6 +718,7 @@ class DisplayData(object):
                 data_dict[key_str] = value
 
         if extra_properties:
+            cur_support_opt_keys = obj.optional_data.list()
             for key in extra_properties:
                 if key in data_dict.keys():
                     # already contained
@@ -726,6 +730,8 @@ class DisplayData(object):
                         flag_human, flag_enum)
                     data_dict[key_str] = value
                 elif key in optional_headers.keys():
+                    if key not in cur_support_opt_keys:
+                        continue
                     key_str = optional_headers[key]
                     value = DisplayData._get_opt_pro_value(
                         obj, key, value_conv_enum, value_conv_human,
