@@ -25,7 +25,7 @@ import tempfile
 import os
 import time
 
-from lsm._common import (size_human_2_size_bytes, size_bytes_2_size_human)
+from lsm import (size_human_2_size_bytes, size_bytes_2_size_human)
 from lsm import (System, Volume, Disk, Pool, FileSystem, AccessGroup,
                     Initiator, FsSnapshot, NfsExport, OptionalData, md5,
                     LsmError, ErrorNumber, JobStatus)

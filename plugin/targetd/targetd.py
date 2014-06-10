@@ -210,10 +210,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
 
         if access_group.init_type != AccessGroup.INIT_TYPE_ISCSI_IQN:
             raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "Targetd does not %s(%d) type access group"
-                           % (AccessGroup._init_type_to_str(
-                                access_group.init_type),
-                              access_group.init_type))
+                           "Targetd only support ISCSI initiator group type")
 
         ag_id = md5(access_group.init_ids[0])
         vol_id = volume.id
