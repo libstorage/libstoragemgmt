@@ -682,7 +682,7 @@ int lsm_pool_list(lsm_connect *c, char *search_key, char *search_value,
     int rc = LSM_ERR_OK;
     CONN_SETUP(c);
 
-    if( !poolArray || !count || CHECK_RP(poolArray) || LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( !poolArray || !count || CHECK_RP(poolArray) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -801,8 +801,7 @@ int lsm_volume_list(lsm_connect *c, const char *search_key,
 {
     CONN_SETUP(c);
 
-    if( !volumes || !count || CHECK_RP(volumes) ||
-        LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( !volumes || !count || CHECK_RP(volumes)){
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1547,7 +1546,7 @@ int lsm_access_group_list(lsm_connect *c, const char *search_key,
 {
     CONN_SETUP(c);
 
-    if( !groups || !groupCount || LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( !groups || !groupCount ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1885,7 +1884,7 @@ int lsm_system_list(lsm_connect *c, lsm_system **systems[],
     int rc = LSM_ERR_OK;
     CONN_SETUP(c);
 
-    if( !systems || ! systemCount || LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( !systems || ! systemCount ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1937,7 +1936,7 @@ int lsm_fs_list(lsm_connect *c, const char *search_key,
     int rc = LSM_ERR_OK;
     CONN_SETUP(c);
 
-    if( !fs || !fsCount || LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( !fs || !fsCount ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -2222,7 +2221,7 @@ int lsm_fs_ss_list(lsm_connect *c, lsm_fs *fs, lsm_fs_ss **ss[],
         return LSM_ERR_INVALID_FS;
     }
 
-    if( CHECK_RP(ss) || !ssCount || LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( CHECK_RP(ss) || !ssCount ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -2385,7 +2384,7 @@ int lsm_nfs_list( lsm_connect *c, const char *search_key,
     int rc = LSM_ERR_OK;
     CONN_SETUP(c);
 
-    if( CHECK_RP(exports) || !count || LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( CHECK_RP(exports) || !count ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 

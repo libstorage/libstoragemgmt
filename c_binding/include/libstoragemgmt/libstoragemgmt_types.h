@@ -152,6 +152,12 @@ typedef enum {
 #define LSM_VOLUME_OP_STATUS_DORMANT    0x10    /**< Volume is inactive or quiesced */
 
 /**
+ * Used by 'flags' parameter of lsm_volume_list() function to retrieve
+ * optional data also.
+ */
+#define LSM_VOLUME_FLAG_RETRIEVE_FULL_INFO      0x0000000000000001
+
+/**
  * Different states a system status can be in.
  * Bit field, can be in multiple states at the same time.
  */
@@ -165,6 +171,13 @@ typedef enum {
 #define LSM_SYSTEM_STATUS_STOPPING              0x00000080  /**< Shutting down */
 #define LSM_SYSTEM_STATUS_STOPPED               0x00000100  /**< Stopped by admin */
 #define LSM_SYSTEM_STATUS_OTHER                 0x00000200  /**< Vendor specific */
+
+
+/**
+ * Used by 'flags' parameter of lsm_system_list() function to retrieve
+ * optional data also.
+ */
+#define LSM_SYSTEM_FLAG_RETRIEVE_FULL_INFO      0x0000000000000001
 
 /**< \enum lsm_initiator_type Different types of initiator IDs */
 typedef enum {
@@ -186,6 +199,12 @@ typedef enum {
     LSM_ACCESS_GROUP_INIT_TYPE_SAS = 6,         /**< SAS */
     INIT_TYPE_ISCSI_WWPN_MIXED = 7              /**< More than 1 type */
 } lsm_access_group_init_type;
+
+/**
+ * Used by 'flags' parameter of lsm_access_group_list() function to
+ * retrieve optional data also.
+ */
+#define LSM_ACCESS_GROUP_FLAG_RETRIEVE_FULL_INFO 0x0000000000000001
 
 /**< \enum lsm_job_type Different types of jobs */
 typedef enum {
@@ -214,7 +233,11 @@ typedef enum {
     LSM_DISK_TYPE_SCSI = 8
 } lsm_disk_type;
 
-#define LSM_DISK_RETRIEVE_FULL_INFO                 0x02
+/**
+ * Used by 'flags' parameter of lsm_disk_list() function to retrieve
+ * optional data also.
+ */
+#define LSM_DISK_FLAG_RETRIEVE_FULL_INFO            0x0000000000000001
 
 #define LSM_DISK_STATUS_UNKNOWN                     0x0000000000000001
 #define LSM_DISK_STATUS_OK                          0x0000000000000002
@@ -246,6 +269,12 @@ typedef enum {
 #define LSM_POOL_STATUS_GROWING                     0x0000000000008000
 #define LSM_POOL_STATUS_SHRINKING                   0x0000000000010000
 #define LSM_POOL_STATUS_DESTROYING                  0x0000000000020000
+
+/**
+ * Used by 'flags' parameter of lsm_pool_list() function to retrieve
+ * optional data also.
+ */
+#define LSM_POOL_FLAG_RETRIEVE_FULL_INFO            0x0000000000000001
 
 typedef enum {
     LSM_POOL_MEMBER_TYPE_UNKNOWN = 0,
@@ -284,6 +313,24 @@ typedef enum {
     LSM_POOL_RAID_TYPE_NOT_APPLICABLE = 22,
     LSM_POOL_RAID_TYPE_MIXED = 23
 } lsm_pool_raid_type;
+
+/**
+ * Used by 'flags' parameter of lsm_fs_list() function to retrieve
+ * optional data also.
+ */
+#define LSM_FS_FLAG_RETRIEVE_FULL_INFO      0x0000000000000001
+
+/**
+ * Used by 'flags' parameter of lsm_nfs_list() function to retrieve
+ * optional data also.
+ */
+#define LSM_NFS_FLAG_RETRIEVE_FULL_INFO      0x0000000000000001
+
+/**
+ * Used by 'flags' parameter of lsm_fs_ss_list() function to retrieve
+ * optional data also.
+ */
+#define LSM_FS_SNAPSHOT_FLAG_RETRIEVE_FULL_INFO      0x0000000000000001
 
 #ifdef  __cplusplus
 }

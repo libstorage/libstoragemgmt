@@ -208,7 +208,7 @@ class Disk(IData):
     Represents a disk.
     """
     SUPPORTED_SEARCH_KEYS = ['id', 'system_id']
-    RETRIEVE_FULL_INFO = 2  # Used by _client.py for disks() call.
+    FLAG_RETRIEVE_FULL_INFO = 1 << 0
 
     # We use '-1' to indicate we failed to get the requested number.
     # For example, when block found is undetectable, we use '-1' instead of
@@ -302,20 +302,8 @@ class Disk(IData):
         self._num_of_blocks = _num_of_blocks
         self._status = _status
         self._system_id = _system_id
-
-        if _optional_data is None:
-            self._optional_data = OptionalData()
-        else:
-            #Make sure the properties only contain ones we permit
-            allowed = set(Disk.OPT_PROPERTIES)
-            actual = set(_optional_data.list())
-
-            if actual <= allowed:
-                self._optional_data = _optional_data
-            else:
-                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                               "Property keys are invalid: %s" %
-                               "".join(actual - allowed))
+        self._optional_data = _check_opt_data(_optional_data,
+                                              self.OPT_PROPERTIES)
 
     @property
     def size_bytes(self):
@@ -342,6 +330,8 @@ class Volume(IData):
     """
     Represents a volume.
     """
+    FLAG_RETRIEVE_FULL_INFO = 1 << 0
+
     SUPPORTED_SEARCH_KEYS = ['id', 'system_id', 'pool_id']
     # Volume status Note: Volumes can have multiple status bits set at same
     # time.
@@ -379,7 +369,7 @@ class Volume(IData):
         self._system_id = _system_id          # System id this volume belongs
         self._pool_id = _pool_id              # Pool id this volume belongs
         self._optional_data = _check_opt_data(_optional_data,
-                                              Volume.OPT_PROPERTIES)
+                                              self.OPT_PROPERTIES)
         self._plugin_data = _plugin_data
 
     @property
@@ -467,6 +457,8 @@ The lsm.System class does not have any extra constants.
 
 The lsm.System class does not have class methods.
     """
+    FLAG_RETRIEVE_FULL_INFO = 1 << 0
+
     STATUS_UNKNOWN = 1 << 0
     STATUS_OK = 1 << 1
     STATUS_ERROR = 1 << 2
@@ -502,9 +494,7 @@ class Pool(IData):
     """
     Pool specific information
     """
-    RETRIEVE_FULL_INFO = 1  # Used by _client.py for pools() call.
-                            # This might not be a good place, please
-                            # suggest a better one.
+    FLAG_RETRIEVE_FULL_INFO = 1 << 0
     SUPPORTED_SEARCH_KEYS = ['id', 'system_id']
 
     TOTAL_SPACE_NOT_FOUND = -1
@@ -701,21 +691,8 @@ class Pool(IData):
         self._status_info = _status_info  # Additional status text of pool
         self._system_id = _system_id      # System id this pool belongs
         self._plugin_data = _plugin_data  # Plugin private data
-
-        if _optional_data is None:
-            self._optional_data = OptionalData()
-        else:
-            #Make sure the properties only contain ones we permit
-            allowed = set(Pool.OPT_PROPERTIES)
-            actual = set(_optional_data.list())
-
-            if actual <= allowed:
-                self._optional_data = _optional_data
-            else:
-                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                               "Property keys are invalid: %s" %
-                               "".join(actual - allowed))
-
+        self._optional_data = _check_opt_data(_optional_data,
+                                              self.OPT_PROPERTIES)
 
 @default_property('id', doc="Unique identifier")
 @default_property('name', doc="File system name")
@@ -726,6 +703,7 @@ class Pool(IData):
 @default_property("optional_data", "Optional data")
 @default_property("plugin_data", "Private plugin data")
 class FileSystem(IData):
+    FLAG_RETRIEVE_FULL_INFO = 1 << 0
     SUPPORTED_SEARCH_KEYS = ['id', 'system_id', 'pool_id']
 
     def __init__(self, _id, _name, _total_space, _free_space, _pool_id,
@@ -747,6 +725,7 @@ class FileSystem(IData):
 @default_property("optional_data", "Optional data")
 @default_property("plugin_data", "Private plugin data")
 class FsSnapshot(IData):
+    FLAG_RETRIEVE_FULL_INFO = 1 << 0
     def __init__(self, _id, _name, _ts, _optional_data=None,
                  _plugin_data=None):
         self._id = _id
@@ -770,6 +749,7 @@ class FsSnapshot(IData):
 @default_property('optional_data', doc="Optional data")
 @default_property('plugin_data', doc="Plugin private data")
 class NfsExport(IData):
+    FLAG_RETRIEVE_FULL_INFO = 1 << 0
     SUPPORTED_SEARCH_KEYS = ['id', 'fs_id']
     ANON_UID_GID_NA = -1
     ANON_UID_GID_ERROR = (ANON_UID_GID_NA - 1)
@@ -795,7 +775,6 @@ class NfsExport(IData):
         self._plugin_data = _plugin_data
 
 
-
 @default_property('src_block', doc="Source logical block address")
 @default_property('dest_block', doc="Destination logical block address")
 @default_property('block_count', doc="Number of blocks")
@@ -814,6 +793,7 @@ class BlockRange(IData):
 @default_property('optional_data', doc="Optional data")
 @default_property('plugin_data', doc="Plugin private data")
 class AccessGroup(IData):
+    FLAG_RETRIEVE_FULL_INFO = 1 << 0
     SUPPORTED_SEARCH_KEYS = ['id', 'system_id']
 
     INIT_TYPE_UNKNOWN = 0
@@ -834,7 +814,7 @@ class AccessGroup(IData):
         self._system_id = _system_id      # System id this group belongs
         self._plugin_data = _plugin_data
         self._optional_data = _check_opt_data(_optional_data,
-                                              AccessGroup.OPT_PROPERTIES)
+                                              self.OPT_PROPERTIES)
 
 
 class OptionalData(IData):

@@ -284,7 +284,7 @@ class Client(INetworkAttachedStorage):
 
     ## Returns an array of pool objects.
     # @param    self    The this pointer
-    # @param    flags   When equal to Pool.RETRIEVE_FULL_INFO,
+    # @param    flags   When equal to Pool.FLAG_RETRIEVE_FULL_INFO,
     #                   returned objects will contain optional data.
     #                   If not defined, only the mandatory properties will
     #                   returned.
@@ -671,7 +671,7 @@ class Client(INetworkAttachedStorage):
 
     ## Returns an array of disk objects
     # @param    self    The this pointer
-    # @param    flags   When equal to DISK.RETRIEVE_FULL_INFO
+    # @param    flags   When equal to DISK.FLAG_RETRIEVE_FULL_INFO
     #                   returned objects will contain optional data.
     #                   If not defined, only the mandatory properties will
     #                   be returned.
