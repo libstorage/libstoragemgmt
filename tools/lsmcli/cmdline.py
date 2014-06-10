@@ -29,7 +29,7 @@ from argparse import RawTextHelpFormatter
 from lsm import (Client, Pool, VERSION, LsmError, Capabilities, Disk,
                  Initiator, Volume, JobStatus, ErrorNumber, BlockRange,
                  uri_parse, Proxy, size_human_2_size_bytes,
-                 AccessGroup, FileSystem, NfsExport)
+                 AccessGroup, FileSystem, NfsExport, System, FsSnapshot)
 
 from lsm.lsmcli.data_display import (
     DisplayData, PlugData, out,
@@ -925,6 +925,7 @@ class CmdLine:
     def list(self, args):
         search_key = None
         search_value = None
+        flags = 0
         if args.sys:
             search_key = 'system_id'
             search_value = args.sys
@@ -948,81 +949,91 @@ class CmdLine:
             search_value = args.nfs_export
 
         if args.type == 'VOLUMES':
+            if args.all:
+                flags |= Volume.FLAG_RETRIEVE_FULL_INFO
             if search_key == 'volume_id':
                 search_key = 'id'
             if search_key == 'access_group_id':
                 lsm_ag = _get_item(self.c.access_groups(), args.ag,
                                    "Access Group ID")
                 return self.display_data(
-                    self.c.volumes_accessible_by_access_group(lsm_ag))
+                    self.c.volumes_accessible_by_access_group(lsm_ag, flags))
             elif search_key and search_key not in Volume.SUPPORTED_SEARCH_KEYS:
                 raise ArgError("Search key '%s' is not supported by "
                                "volume listing." % search_key)
-            self.display_data(self.c.volumes(search_key, search_value))
+            self.display_data(self.c.volumes(search_key, search_value, flags))
         elif args.type == 'POOLS':
             if search_key == 'pool_id':
                 search_key = 'id'
             if search_key and search_key not in Pool.SUPPORTED_SEARCH_KEYS:
                 raise ArgError("Search key '%s' is not supported by "
                                "pool listing." % search_key)
-            flags = 0
             if args.all:
-                flags |= Pool.RETRIEVE_FULL_INFO
+                flags |= Pool.FLAG_RETRIEVE_FULL_INFO
             self.display_data(
                 self.c.pools(search_key, search_value, flags))
         elif args.type == 'FS':
+            if args.all:
+                flags |= FileSystem.FLAG_RETRIEVE_FULL_INFO
             if search_key == 'fs_id':
                 search_key = 'id'
             if search_key and \
                search_key not in FileSystem.SUPPORTED_SEARCH_KEYS:
                 raise ArgError("Search key '%s' is not supported by "
                                "volume listing." % search_key)
-            self.display_data(self.c.fs(search_key, search_value))
+            self.display_data(self.c.fs(search_key, search_value, flags))
         elif args.type == 'SNAPSHOTS':
             if args.fs is None:
                 raise ArgError("--fs <file system id> required")
 
+            if args.all:
+                flags |= FsSnapshot.FLAG_RETRIEVE_FULL_INFO
             fs = _get_item(self.c.fs(), args.fs, 'filesystem')
-            self.display_data(self.c.fs_snapshots(fs))
+            self.display_data(self.c.fs_snapshots(fs, flags))
         elif args.type == 'INITIATORS':
             self.display_data(self.c.initiators())
         elif args.type == 'EXPORTS':
+            if args.all:
+                flags |= NfsExport.FLAG_RETRIEVE_FULL_INFO
             if search_key == 'nfs_export_id':
                 search_key = 'id'
             if search_key and \
                search_key not in NfsExport.SUPPORTED_SEARCH_KEYS:
                 raise ArgError("Search key '%s' is not supported by "
                                "NFS Export listing" % search_key)
-            self.display_data(self.c.exports(search_key, search_value))
+            self.display_data(self.c.exports(search_key, search_value, flags))
         elif args.type == 'NFS_CLIENT_AUTH':
             self.display_nfs_client_authentication()
         elif args.type == 'ACCESS_GROUPS':
+            if args.all:
+                flags |= AccessGroup.FLAG_RETRIEVE_FULL_INFO
             if search_key == 'access_group_id':
                 search_key = 'id'
             if search_key == 'volume_id':
                 lsm_vol = _get_item(self.c.volumes(), args.vol,
                                    "Volume ID")
                 return self.display_data(
-                    self.c.access_groups_granted_to_volume(lsm_vol))
+                    self.c.access_groups_granted_to_volume(lsm_vol, flags))
             elif search_key and \
                search_key not in AccessGroup.SUPPORTED_SEARCH_KEYS:
                 raise ArgError("Search key '%s' is not supported by "
                                "Access Group listing" % search_key)
             self.display_data(
-                self.c.access_groups(search_key,search_value))
+                self.c.access_groups(search_key,search_value, flags))
         elif args.type == 'SYSTEMS':
+            if args.all:
+                flags |= System.FLAG_RETRIEVE_FULL_INFO
             if search_key:
                 raise ArgError("System listing with search is not supported")
-            self.display_data(self.c.systems())
+            self.display_data(self.c.systems(flags))
         elif args.type == 'DISKS':
             if search_key == 'disk_id':
                 search_key = 'id'
             if search_key and search_key not in Disk.SUPPORTED_SEARCH_KEYS:
                 raise ArgError("Search key '%s' is not supported by "
                                "disk listing" % search_key)
-            flags = 0
             if args.all:
-                flags |= Disk.RETRIEVE_FULL_INFO
+                flags |= Disk.FLAG_RETRIEVE_FULL_INFO
             self.display_data(
                 self.c.disks(search_key, search_value, flags))
         elif args.type == 'PLUGINS':
