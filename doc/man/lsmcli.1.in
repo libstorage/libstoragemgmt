@@ -120,7 +120,7 @@ Displaying data in script friendly way.
 Without this option, data is displayed in this manner:
 
     ID                                   | Name  | Member IDs
-    -------------------------------------+-------+-------------
+    -----------------------------------------------------------
     87720e90-3a83-11df-b8bf-00a0980ad71b | aggr0 | ID_A
                                          |       | ID_B
     aa0ffc70-3dba-11df-b8cf-00a0980ad71b | aggr1 | ID_C
@@ -139,6 +139,14 @@ With this option, data is displayed in this manner.
     Member IDs  | ID_C
                 | ID_D
     --------------------------------------------------
+
+Please note:
+.br
+Due to console text width limitation(78), NOT all mandatory properties will be
+displayed in column way(default display way).
+But all mandatory properties will be displayed in script way. When with "-o,
+--optional", both mandatory properties and optional properties will be
+displayed.
 
 .SH COMMANDS
 .SS list
@@ -159,8 +167,7 @@ filesystem.
 PLUGINS will list all supported plugins of LSM, not only the current one.
 .TP
 \fB-o\fR, \fB--optional\fR
-Optional. Valid for \fBPOOLS\fR and \fBDISKS\fR to retrieve optional data if
-available.
+Optional. Retrive and display optional data in '--script, -s' display way.
 .TP
 \fB--sys\fR \fI<SYS_ID>\fR
 Search resources from system with SYS_ID. Only supported when querying these

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright (C) 2011-2013 Red Hat, Inc.
+# Copyright (C) 2011-2014 Red Hat, Inc.
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -89,7 +89,7 @@ def call(command, expected_rc=0):
     """
 
     if code_coverage:
-        actual_command = ['coverage', 'run', '-a']
+        actual_command = ['coverage', 'run', '-o']
         actual_command.extend(command)
     else:
         actual_command = command
@@ -430,7 +430,7 @@ def display_check(display_list, system_id):
             call([cmd, 'list', '--type', 'SNAPSHOTS', '--fs', fs_id])
 
     if 'POOLS' in display_list:
-        call([cmd, '-H', '-t' + sep, 'list', '--type', 'POOLS', '-a'])
+        call([cmd, '-H', '-t' + sep, 'list', '--type', 'POOLS', '-o'])
 
 
 def test_display(cap, system_id):
@@ -733,7 +733,7 @@ def optional_data_check():
 
     print "\nTesting query with optional data\n"
     for list_type in opt_support_list:
-        call([cmd, 'list', '--type', list_type, '-a'])
+        call([cmd, 'list', '--type', list_type, '-o'])
 
 def run_all_tests(cap, system_id):
     test_display(cap, system_id)

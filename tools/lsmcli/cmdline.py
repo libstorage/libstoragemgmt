@@ -71,7 +71,6 @@ def getch():
         termios.tcsetattr(fd, termios.TCSADRAIN, prev)
     return ch
 
-
 ## This class represents a command line argument error
 class ArgError(Exception):
     def __init__(self, message, *args, **kwargs):
@@ -189,11 +188,11 @@ cmds = (
                  type=str.upper),
         ],
         optional=[
-            dict(name=('-a', '--all'),
-                 help='Retrieve and display in script friendly way with ' +
-                      'all information including optional data if available',
+             dict(name=('-o', '--optional'),
+                  help='Retrieve both mandatory and optional properties.\n'
+                       'Once define, will use "-s, --script" display way',
                  default=False,
-                 dest='all',
+                 dest='optional',
                  action='store_true'),
             dict(sys_id_filter_opt),
             dict(pool_id_filter_opt),
@@ -789,8 +788,10 @@ class CmdLine:
         if len(objects) == 0:
             return
 
-        if hasattr(self.args, 'all') and self.args.all:
+        display_way = DisplayData.DISPLAY_WAY_DEFAULT
+        if hasattr(self.args, 'optional') and self.args.optional:
             display_all = True
+            display_way = DisplayData.DISPLAY_WAY_SCRIPT
 
         flag_with_header = True
         if self.args.sep:
@@ -798,7 +799,6 @@ class CmdLine:
         if self.args.header:
             flag_with_header = True
 
-        display_way = DisplayData.DISPLAY_WAY_DEFAULT
         if self.args.script:
             display_way = DisplayData.DISPLAY_WAY_SCRIPT
 
@@ -949,7 +949,7 @@ class CmdLine:
             search_value = args.nfs_export
 
         if args.type == 'VOLUMES':
-            if args.all:
+            if args.optional:
                 flags |= Volume.FLAG_RETRIEVE_FULL_INFO
             if search_key == 'volume_id':
                 search_key = 'id'
@@ -968,12 +968,12 @@ class CmdLine:
             if search_key and search_key not in Pool.SUPPORTED_SEARCH_KEYS:
                 raise ArgError("Search key '%s' is not supported by "
                                "pool listing." % search_key)
-            if args.all:
+            if args.optional:
                 flags |= Pool.FLAG_RETRIEVE_FULL_INFO
             self.display_data(
                 self.c.pools(search_key, search_value, flags))
         elif args.type == 'FS':
-            if args.all:
+            if args.optional:
                 flags |= FileSystem.FLAG_RETRIEVE_FULL_INFO
             if search_key == 'fs_id':
                 search_key = 'id'
@@ -986,14 +986,14 @@ class CmdLine:
             if args.fs is None:
                 raise ArgError("--fs <file system id> required")
 
-            if args.all:
+            if args.optional:
                 flags |= FsSnapshot.FLAG_RETRIEVE_FULL_INFO
             fs = _get_item(self.c.fs(), args.fs, 'filesystem')
             self.display_data(self.c.fs_snapshots(fs, flags))
         elif args.type == 'INITIATORS':
             self.display_data(self.c.initiators())
         elif args.type == 'EXPORTS':
-            if args.all:
+            if args.optional:
                 flags |= NfsExport.FLAG_RETRIEVE_FULL_INFO
             if search_key == 'nfs_export_id':
                 search_key = 'id'
@@ -1005,7 +1005,7 @@ class CmdLine:
         elif args.type == 'NFS_CLIENT_AUTH':
             self.display_nfs_client_authentication()
         elif args.type == 'ACCESS_GROUPS':
-            if args.all:
+            if args.optional:
                 flags |= AccessGroup.FLAG_RETRIEVE_FULL_INFO
             if search_key == 'access_group_id':
                 search_key = 'id'
@@ -1021,7 +1021,7 @@ class CmdLine:
             self.display_data(
                 self.c.access_groups(search_key,search_value, flags))
         elif args.type == 'SYSTEMS':
-            if args.all:
+            if args.optional:
                 flags |= System.FLAG_RETRIEVE_FULL_INFO
             if search_key:
                 raise ArgError("System listing with search is not supported")
@@ -1032,7 +1032,7 @@ class CmdLine:
             if search_key and search_key not in Disk.SUPPORTED_SEARCH_KEYS:
                 raise ArgError("Search key '%s' is not supported by "
                                "disk listing" % search_key)
-            if args.all:
+            if args.optional:
                 flags |= Disk.FLAG_RETRIEVE_FULL_INFO
             self.display_data(
                 self.c.disks(search_key, search_value, flags))
