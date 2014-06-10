@@ -290,7 +290,7 @@ class Ontap(IStorageAreaNetwork, INfs):
     def _disk(self, d, flag):
         opt_data = OptionalData()
         status = Ontap._status_of_na_disk(d)
-        if flag == Disk.RETRIEVE_FULL_INFO:
+        if flag & Disk.FLAG_RETRIEVE_FULL_INFO:
             opt_data.set('sn', d['serial-number'])
             opt_data.set('model', d['disk-model'])
             opt_data.set('vendor', d['vendor-id'])
@@ -358,7 +358,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         system_id = self.sys_info.id
         status = self._status_of_na_aggr(na_aggr)
         opt_data = OptionalData()
-        if flags == Pool.RETRIEVE_FULL_INFO:
+        if flags & Pool.FLAG_RETRIEVE_FULL_INFO:
             opt_data.set('member_type', Pool.MEMBER_TYPE_DISK)
             member_ids = []
             for na_disk in na_disks:
@@ -415,7 +415,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         system_id = self.sys_info.id
         status = self._status_of_na_vol(na_vol)
         opt_data = OptionalData()
-        if flags == Pool.RETRIEVE_FULL_INFO:
+        if flags & Pool.FLAG_RETRIEVE_FULL_INFO:
             opt_data.set('member_type', Pool.MEMBER_TYPE_POOL)
             parent_aggr_name = na_vol['containing-aggregate']
             for na_aggr in na_aggrs:
@@ -502,7 +502,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         na_disks = []
         # We do extra flags check in order to save self.f.disks() calls
         # in case we have multiple aggregates.
-        if flags == Pool.RETRIEVE_FULL_INFO:
+        if flags & Pool.FLAG_RETRIEVE_FULL_INFO:
             na_disks = self.f.disks()
         for na_aggr in na_aggrs:
             pools.extend([self._pool_from_na_aggr(na_aggr, na_disks, flags)])

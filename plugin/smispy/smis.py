@@ -1494,7 +1494,7 @@ class Smis(IStorageAreaNetwork):
         """
         rc = []
         cim_pool_pros = self._new_pool_cim_pool_pros(
-            flags == Pool.RETRIEVE_FULL_INFO)
+            bool(flags & Pool.FLAG_RETRIEVE_FULL_INFO))
 
         cim_sys_pros = self._property_list_of_id("System")
         cim_syss = self._root_cim_syss(cim_sys_pros)
@@ -1531,7 +1531,7 @@ class Smis(IStorageAreaNetwork):
                 pool = self._new_pool(cim_pool, system_id)
                 if pool:
                     rc.extend([pool])
-                    if flags == Pool.RETRIEVE_FULL_INFO:
+                    if flags & Pool.FLAG_RETRIEVE_FULL_INFO:
                         opt_pro_dict = self._pool_opt_data(cim_pool)
                         for key, value in opt_pro_dict.items():
                             pool.optional_data.set(key, value)
@@ -2332,7 +2332,7 @@ class Smis(IStorageAreaNetwork):
         """
         pros = ['OperationalStatus', 'Name', 'SystemName',
                 'Caption', 'InterconnectType', 'DiskType']
-        if flag == Disk.RETRIEVE_FULL_INFO:
+        if flag & Disk.FLAG_RETRIEVE_FULL_INFO:
             pros.extend(['ErrorDescription', 'ErrorCleared'])
         return pros
 
@@ -2351,8 +2351,8 @@ class Smis(IStorageAreaNetwork):
         object.
         """
         pros = []   # we don't need CIM_PhysicalPackage when not
-                    # RETRIEVE_FULL_INFO
-        if flag == Disk.RETRIEVE_FULL_INFO:
+                    # FLAG_RETRIEVE_FULL_INFO
+        if flag & Disk.FLAG_RETRIEVE_FULL_INFO:
             pros.extend(['SerialNumber', 'PartNumber', 'Manufacturer',
                          'Model'])
         return pros
@@ -2436,7 +2436,7 @@ class Smis(IStorageAreaNetwork):
                         disk_type = Disk.DISK_TYPE_SAS
 
         optionals = OptionalData()
-        if flag_full_info == Disk.RETRIEVE_FULL_INFO:
+        if flag_full_info & Disk.FLAG_RETRIEVE_FULL_INFO:
             opt_pro_dict = {
                 'sn': '',
                 'part_num': '',

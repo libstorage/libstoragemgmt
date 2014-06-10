@@ -159,7 +159,7 @@ class SimArray(object):
         status_info = sim_pool['status_info']
         sys_id = sim_pool['sys_id']
         opt_data = OptionalData()
-        if flags == Pool.RETRIEVE_FULL_INFO:
+        if flags & Pool.FLAG_RETRIEVE_FULL_INFO:
             opt_data.set('raid_type', sim_pool['raid_type'])
             opt_data.set('member_type', sim_pool['member_type'])
             opt_data.set('member_ids', sim_pool['member_ids'])
@@ -182,28 +182,28 @@ class SimArray(object):
         sim_pool = self.data.pool_create(
             sys_id, pool_name, size_bytes, raid_type, member_type, flags)
         return self.data.job_create(
-            self._sim_pool_2_lsm(sim_pool, Pool.RETRIEVE_FULL_INFO))
+            self._sim_pool_2_lsm(sim_pool, Pool.FLAG_RETRIEVE_FULL_INFO))
 
     def pool_create_from_disks(self, sys_id, pool_name, disks_ids, raid_type,
                                flags=0):
         sim_pool = self.data.pool_create_from_disks(
             sys_id, pool_name, disks_ids, raid_type, flags)
         return self.data.job_create(
-            self._sim_pool_2_lsm(sim_pool, Pool.RETRIEVE_FULL_INFO))
+            self._sim_pool_2_lsm(sim_pool, Pool.FLAG_RETRIEVE_FULL_INFO))
 
     def pool_create_from_volumes(self, sys_id, pool_name, member_ids,
                                  raid_type, flags=0):
         sim_pool = self.data.pool_create_from_volumes(
             sys_id, pool_name, member_ids, raid_type, flags)
         return self.data.job_create(
-            self._sim_pool_2_lsm(sim_pool, Pool.RETRIEVE_FULL_INFO))
+            self._sim_pool_2_lsm(sim_pool, Pool.FLAG_RETRIEVE_FULL_INFO))
 
     def pool_create_from_pool(self, sys_id, pool_name, member_id, size_bytes,
                               flags=0):
         sim_pool = self.data.pool_create_from_pool(
             sys_id, pool_name, member_id, size_bytes, flags)
         return self.data.job_create(
-            self._sim_pool_2_lsm(sim_pool, Pool.RETRIEVE_FULL_INFO))
+            self._sim_pool_2_lsm(sim_pool, Pool.FLAG_RETRIEVE_FULL_INFO))
 
     def pool_delete(self, pool_id, flags=0):
         return self.data.job_create(self.data.pool_delete(pool_id, flags))[0]
