@@ -939,6 +939,7 @@ static int valid_pool_member_type(lsm_pool_member_type validate)
         case (LSM_POOL_MEMBER_TYPE_DISK_HDD):
         case (LSM_POOL_MEMBER_TYPE_DISK_SSD):
         case (LSM_POOL_MEMBER_TYPE_DISK_HYBRID):
+        case (LSM_POOL_MEMBER_TYPE_DISK_LUN):
             break;
         default:
             return 0;

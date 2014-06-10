@@ -226,7 +226,7 @@ class Ontap(IStorageAreaNetwork, INfs):
     def _disk_type(netapp_disk_type):
         conv = {'ATA': Disk.DISK_TYPE_ATA, 'BSAS': Disk.DISK_TYPE_SAS,
                 'EATA': Disk.DISK_TYPE_ATA, 'FCAL': Disk.DISK_TYPE_FC,
-                'FSAS': Disk.DISK_TYPE_SAS, 'LUN': Disk.DISK_TYPE_OTHER,
+                'FSAS': Disk.DISK_TYPE_SAS, 'LUN': Disk.DISK_TYPE_LUN,
                 'SAS': Disk.DISK_TYPE_SAS, 'SATA': Disk.DISK_TYPE_SATA,
                 'SCSI': Disk.DISK_TYPE_SCSI, 'SSD': Disk.DISK_TYPE_SSD,
                 'XATA': Disk.DISK_TYPE_ATA, 'XSAS': Disk.DISK_TYPE_SAS,
@@ -261,7 +261,9 @@ class Ontap(IStorageAreaNetwork, INfs):
             elif rs == 'zeroing':
                 status = Disk.STATUS_INITIALIZING
             elif rs == 'reconstructing':
-                status = Disk.STATUS_RECONSTRUCTING
+                # "reconstructing' should be a pool status, not disk status.
+                # disk under reconstructing should be considered as OK.
+                status = Disk.STATUS_OK
 
         if 'is-prefailed' in na_disk and na_disk['is-prefailed'] == 'true':
             status = Disk.STATUS_PREDICTIVE_FAILURE

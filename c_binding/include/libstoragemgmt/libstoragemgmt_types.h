@@ -230,7 +230,12 @@ typedef enum {
     LSM_DISK_TYPE_SAS = 5,
     LSM_DISK_TYPE_FC = 6,
     LSM_DISK_TYPE_SOP = 7,
-    LSM_DISK_TYPE_SCSI = 8
+    LSM_DISK_TYPE_SCSI = 8,
+    LSM_DISK_TYPE_LUN = 9,
+    LSM_DISK_TYPE_NL_SAS = 51,
+    LSM_DISK_TYPE_HDD = 52,
+    LSM_DISK_TYPE_SSD = 53,
+    LSM_DISK_TYPE_HYBRID = 54,
 } lsm_disk_type;
 
 /**
@@ -248,8 +253,9 @@ typedef enum {
 #define LSM_DISK_STATUS_STOPPING                    0x0000000000000040
 #define LSM_DISK_STATUS_STOPPED                     0x0000000000000080
 #define LSM_DISK_STATUS_INITIALIZING                0x0000000000000100
-#define LSM_DISK_STATUS_RECONSTRUCTING              0x0000000000000200
 
+#define LSM_DISK_BLOCK_SIZE_NOT_FOUND               -1
+#define LSM_DISK_BLOCK_COUNT_NOT_FOUND              -1
 
 #define LSM_POOL_STATUS_UNKNOWN                     0x0000000000000001
 #define LSM_POOL_STATUS_OK                          0x0000000000000002
@@ -291,7 +297,8 @@ typedef enum {
     LSM_POOL_MEMBER_TYPE_DISK_NL_SAS = 17,
     LSM_POOL_MEMBER_TYPE_DISK_HDD = 18,
     LSM_POOL_MEMBER_TYPE_DISK_SSD = 19,
-    LSM_POOL_MEMBER_TYPE_DISK_HYBRID = 110
+    LSM_POOL_MEMBER_TYPE_DISK_HYBRID = 110,
+    LSM_POOL_MEMBER_TYPE_DISK_LUN = 111
 } lsm_pool_member_type;
 
 typedef enum {

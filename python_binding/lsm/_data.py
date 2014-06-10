@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2013 Red Hat, Inc.
+# Copyright (C) 2011-2014 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -14,6 +14,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
 #
 # Author: tasleson
+#         Gris Ge <fge@redhat.com>
 
 from abc import ABCMeta as _ABCMeta
 
@@ -203,6 +204,7 @@ class Initiator(IData):
 @default_property('status', doc="Enumerated status")
 @default_property('system_id', doc="System identifier")
 @default_property("optional_data", doc="Optional data")
+@default_property("plugin_data", doc="Private plugin data")
 class Disk(IData):
     """
     Represents a disk.
@@ -216,16 +218,16 @@ class Disk(IData):
     BLOCK_COUNT_NOT_FOUND = -1
     BLOCK_SIZE_NOT_FOUND = -1
 
-    # Disk Type, using DMTF 2.31.0+ CIM_DiskDrive['InterconnectType']
     DISK_TYPE_UNKNOWN = 0
     DISK_TYPE_OTHER = 1
     DISK_TYPE_NOT_APPLICABLE = 2
-    DISK_TYPE_ATA = 3     # IDE disk is seldomly used.
+    DISK_TYPE_ATA = 3     # IDE disk which is seldomly used.
     DISK_TYPE_SATA = 4
     DISK_TYPE_SAS = 5
     DISK_TYPE_FC = 6
-    DISK_TYPE_SOP = 7     # SCSI over PCIe, often holding SSD
+    DISK_TYPE_SOP = 7     # SCSI over PCIe(SSD)
     DISK_TYPE_SCSI = 8
+    DISK_TYPE_LUN = 9   # Remote LUN was treated as a disk.
 
     # Due to complesity of disk types, we are defining these beside DMTF
     # standards:
@@ -237,64 +239,21 @@ class Disk(IData):
     DISK_TYPE_SSD = 53    # Solid State Drive
     DISK_TYPE_HYBRID = 54    # uses a combination of HDD and SSD
 
-    MAX_DISK_STATUS_BITS = 64
-    # Disk status could be any combination of these status.
     STATUS_UNKNOWN = 1 << 0
-    # UNKNOWN:
-    #   Failed to query out the status of Disk.
     STATUS_OK = 1 << 1
-    # OK:
-    #   Disk is accessible with no issue.
     STATUS_OTHER = 1 << 2
-    # OTHER:
-    #   Should explain in Disk.status_info for detail.
     STATUS_PREDICTIVE_FAILURE = 1 << 3
-    # PREDICTIVE_FAILURE:
-    #   Disk is in unstable state and will predictive fail.
     STATUS_ERROR = 1 << 4
-    # ERROR:
-    #   Disk data is not accessible due to hardware issue or connection error.
     STATUS_OFFLINE = 1 << 5
-    # OFFLINE:
-    #   Disk is connected but disabled by array for internal issue
-    #   Should explain in Disk.status_info for reason.
     STATUS_STARTING = 1 << 6
-    # STARTING:
-    #   Disk is reviving from STOPPED status. Disk is not accessible.
     STATUS_STOPPING = 1 << 7
-    # STOPPING:
-    #   Disk is stopping by administrator. Disk is not accessible.
     STATUS_STOPPED = 1 << 8
-    # STOPPING:
-    #   Disk is stopped by administrator. Disk is not accessible.
     STATUS_INITIALIZING = 1 << 9
-    # INITIALIZING:
-    #   Disk is in initialing state.
-    #   Mostly shown when new disk inserted or creating spare disk.
-    STATUS_RECONSTRUCTING = 1 << 10
-    # RECONSTRUCTING:
-    #   Disk is in reconstructing date from other RAID member.
-    #   Should explain progress in Disk.status_info
 
-    OPT_PROPERTIES = ['sn', 'part_num', 'vendor', 'model', 'status_info',
-                      'owner_ctrler_id']
-
-    def _value_convert(self, key_name, value, human, enum_as_number,
-                       list_convert):
-        if enum_as_number is False:
-            if key_name == 'status':
-                value = self.status_to_str(value)
-            elif key_name == 'disk_type':
-                value = self.disk_type_to_str(value)
-        if human:
-            if key_name == 'size_bytes':
-                value = sh(value, human)
-            elif key_name == 'block_size':
-                value = sh(value, human)
-        return value
+    OPT_PROPERTIES = ['sn', 'part_num', 'vendor', 'model']
 
     def __init__(self, _id, _name, _disk_type, _block_size, _num_of_blocks,
-                 _status, _system_id, _optional_data=None):
+                 _status, _system_id, _optional_data=None, _plugin_data=None):
         self._id = _id
         self._name = _name
         self._disk_type = _disk_type
@@ -304,6 +263,7 @@ class Disk(IData):
         self._system_id = _system_id
         self._optional_data = _check_opt_data(_optional_data,
                                               self.OPT_PROPERTIES)
+        self._plugin_data = _plugin_data
 
     @property
     def size_bytes(self):
@@ -322,10 +282,10 @@ class Disk(IData):
 @default_property('block_size', doc="Volume block size")
 @default_property('num_of_blocks', doc="Number of blocks")
 @default_property('status', doc="Enumerated volume status")
-@default_property('system_id', "System identifier")
-@default_property('pool_id', "Pool identifier")
-@default_property("optional_data", "Optional data")
-@default_property("plugin_data", "Private plugin data")
+@default_property('system_id', doc="System identifier")
+@default_property('pool_id', doc="Pool identifier")
+@default_property("optional_data", doc="Optional data")
+@default_property("plugin_data", doc="Private plugin data")
 class Volume(IData):
     """
     Represents a volume.
@@ -536,6 +496,7 @@ class Pool(IData):
     MEMBER_TYPE_DISK_HDD = 18
     MEMBER_TYPE_DISK_SSD = 19
     MEMBER_TYPE_DISK_HYBRID = 110
+    MEMBER_TYPE_DISK_LUN = 111
 
     MEMBER_TYPE_POOL = 2
     MEMBER_TYPE_VOLUME = 3
@@ -553,6 +514,7 @@ class Pool(IData):
         MEMBER_TYPE_DISK_HDD: Disk.DISK_TYPE_HDD,
         MEMBER_TYPE_DISK_SSD: Disk.DISK_TYPE_SSD,
         MEMBER_TYPE_DISK_HYBRID: Disk.DISK_TYPE_HYBRID,
+        MEMBER_TYPE_DISK_LUN: Disk.DISK_TYPE_LUN,
     }
 
     @staticmethod
