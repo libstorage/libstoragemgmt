@@ -1566,6 +1566,8 @@ class Smis(IStorageAreaNetwork):
         """
         if not system_id:
             system_id = self._sys_id_of_cim_pool(cim_pool)
+
+        status_info = ''
         pool_id = self._pool_id(cim_pool)
         name = ''
         total_space = Pool.TOTAL_SPACE_NOT_FOUND
@@ -1579,9 +1581,10 @@ class Smis(IStorageAreaNetwork):
             free_space = cim_pool['RemainingManagedSpace']
         if 'OperationalStatus' in cim_pool:
             status = Smis._pool_status_of(cim_pool)[0]
+            status_info = Smis._pool_status_of(cim_pool)[1]
 
-        return Pool(pool_id, name, total_space, free_space, status, '',
-                    system_id)
+        return Pool(pool_id, name, total_space, free_space, status,
+                    status_info, system_id)
 
     @staticmethod
     def _cim_sys_2_lsm_sys(cim_sys):
@@ -2772,7 +2775,6 @@ class Smis(IStorageAreaNetwork):
             'member_type': Pool.MEMBER_TYPE_UNKNOWN,
             'member_ids': [],
             'element_type': Pool.ELEMENT_TYPE_UNKNOWN,
-            'status_info': '',
         }
 
         # check whether current pool support create volume or not.
@@ -2881,9 +2883,6 @@ class Smis(IStorageAreaNetwork):
 
         if raid_type is not None:
             opt_pro_dict['raid_type'] = raid_type
-
-        if 'OperationalStatus' in cim_pool:
-            opt_pro_dict['status_info'] = Smis._pool_status_of(cim_pool)[1]
 
         return opt_pro_dict
 
