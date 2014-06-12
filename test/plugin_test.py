@@ -176,10 +176,11 @@ class TestProxy(object):
 
                 if isinstance(e, lsm.LsmError) and \
                         e.code != lsm.ErrorNumber.NO_SUPPORT:
-                    TestProxy.log_result(_proxy_method_name,
-                                         dict(rc=False,
-                                              stack_trace=traceback.format_exc(),
-                                              msg=str(e)))
+                    TestProxy.log_result(
+                        _proxy_method_name,
+                        dict(rc=False,
+                             stack_trace=traceback.format_exc(),
+                             msg=str(e)))
                 raise e
 
             # If the job can do async, we will block looping on it.
@@ -240,10 +241,22 @@ class TestPlugin(unittest.TestCase):
         self.c = TestProxy(lsm.Client(TestPlugin.URI, TestPlugin.PASSWORD))
 
         self.systems = self.c.systems()
-        self.pools = self.c.pools()
+        self.pools = self.c.pools(flags=lsm.Pool.FLAG_RETRIEVE_FULL_INFO)
 
-        self.pool_by_sys_id = dict((p.system_id, p) for p in self.pools)
+        self.pool_by_sys_id = {}
+
+        for s in self.systems:
+            self.pool_by_sys_id[s.id] = [p for p in self.pools if
+                                         p.system_id == s.id]
+
         # TODO Store what exists, so that we don't remove it
+
+    def _get_pool_by_usage(self, system_id, element_type):
+        for p in self.pool_by_sys_id[system_id]:
+            if 'element_type' in p.optional_data.list():
+                if int(p.optional_data.get('element_type')) == element_type:
+                    return p
+        return None
 
     def tearDown(self):
         # TODO Walk the array looking for stuff we have created and remove it
@@ -270,10 +283,9 @@ class TestPlugin(unittest.TestCase):
         pools_list = self.c.pools()
         self.assertTrue(len(pools_list) > 0, "We need at least 1 pool to test")
 
-
     @staticmethod
     def _vpd_correct(vpd):
-        p = re.compile('^[A-F0-9]+$')
+        p = re.compile('^[a-fA-F0-9]+$')
 
         if vpd is not None and len(vpd) > 0 and p.match(vpd) is not None:
             return True
@@ -298,25 +310,31 @@ class TestPlugin(unittest.TestCase):
 
     def _volume_create(self, system_id):
         if system_id in self.pool_by_sys_id:
-            p = self.pool_by_sys_id[system_id]
+            p = self._get_pool_by_usage(system_id,
+                                        lsm.Pool.ELEMENT_TYPE_VOLUME)
 
-            vol_size = min(p.free_space / 10, mb_in_bytes(512))
+            if p:
+                vol_size = min(p.free_space / 10, mb_in_bytes(512))
 
-            vol = self.c.volume_create(p, rs('volume'), vol_size,
-                                               lsm.Volume.PROVISION_DEFAULT)[1]
+                vol = self.c.volume_create(p, rs('volume'), vol_size,
+                                           lsm.Volume.PROVISION_DEFAULT)[1]
 
-            self.assertTrue(self._volume_exists(vol.id))
-            return vol, p
+                self.assertTrue(self._volume_exists(vol.id))
+                return vol, p
 
     def _fs_create(self, system_id):
         if system_id in self.pool_by_sys_id:
-            p = self.pool_by_sys_id[system_id]
+            pools = self.pool_by_sys_id[system_id]
 
-            fs_size = min(p.free_space / 10, mb_in_bytes(512))
-            fs = self.c.fs_create(p, rs('fs'), fs_size)[1]
-
-            self.assertTrue(self._fs_exists(fs.id))
-            return fs, p
+            for p in pools:
+                if p.free_space > mb_in_bytes(250) and \
+                        int(p.optional_data.get('element_type')) & \
+                        lsm.Pool.ELEMENT_TYPE_FS:
+                    fs_size = min(p.free_space / 10, mb_in_bytes(512))
+                    fs = self.c.fs_create(p, rs('fs'), fs_size)[1]
+                    self.assertTrue(self._fs_exists(fs.id))
+                    return fs, p
+            return None, None
 
     def _volume_delete(self, volume):
         self.c.volume_delete(volume)
@@ -379,8 +397,8 @@ class TestPlugin(unittest.TestCase):
                                    lsm.Capabilities.VOLUME_DELETE,
                                    lsm.Capabilities.VOLUME_RESIZE]):
                     vol = self._volume_create(s.id)[0]
-                    vol_resize = self.c.volume_resize(vol,
-                                                      vol.size_bytes * 1.10)[1]
+                    vol_resize = self.c.volume_resize(
+                        vol, int(vol.size_bytes * 1.10))[1]
                     self.assertTrue(vol.size_bytes < vol_resize.size_bytes)
                     self.assertTrue(vol.id == vol_resize.id,
                                     "Expecting re-sized volume to refer to "
@@ -443,13 +461,17 @@ class TestPlugin(unittest.TestCase):
             for s in self.systems:
                 cap = self.c.capabilities(s)
 
-                if supported(cap, [lsm.Capabilities.VOLUME_CREATE,
+                if supported(cap,
+                             [lsm.Capabilities.VOLUME_COPY_RANGE_BLOCK_SIZE,
+                             lsm.Capabilities.VOLUME_CREATE,
                              lsm.Capabilities.VOLUME_DELETE,
                              lsm.Capabilities.VOLUME_COPY_RANGE]):
 
+                    size = self.c.volume_replicate_range_block_size(s)
+
                     vol, pool = self._volume_create(s.id)
 
-                    br = lsm.BlockRange(0, 100, 10)
+                    br = lsm.BlockRange(0, size, size)
 
                     if supported(
                             cap, [lsm.Capabilities.VOLUME_COPY_RANGE_CLONE]):
@@ -461,7 +483,7 @@ class TestPlugin(unittest.TestCase):
                             self.c.volume_replicate_range,
                             lsm.Volume.REPLICATE_CLONE, vol, vol, [br])
 
-                    br = lsm.BlockRange(200, 400, 50)
+                    br = lsm.BlockRange(size * 2, size, size)
 
                     if supported(
                             cap, [lsm.Capabilities.VOLUME_COPY_RANGE_COPY]):

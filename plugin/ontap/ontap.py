@@ -65,6 +65,8 @@ def handle_ontap_errors(method):
     def na_wrapper(*args, **kwargs):
         try:
             return method(*args, **kwargs)
+        except LsmError:
+            raise
         except na.FilerError as oe:
             error, error_msg = error_map(oe)
             raise LsmError(error, error_msg)
@@ -178,10 +180,10 @@ class Ontap(IStorageAreaNetwork, INfs):
         return self.f.validate()
 
     def time_out_set(self, ms, flags=0):
-        self.f.timeout = ms / Ontap.TMO_CONV
+        self.f.timeout = int(ms / Ontap.TMO_CONV)
 
     def time_out_get(self, flags=0):
-        return self.f.timeout * Ontap.TMO_CONV
+        return int(self.f.timeout * Ontap.TMO_CONV)
 
     def plugin_unregister(self, flags=0):
         pass
@@ -375,7 +377,6 @@ class Ontap(IStorageAreaNetwork, INfs):
                 opt_data.set('thinp_type', Pool.THINP_TYPE_THICK)
             else:
                 opt_data.set('thinp_type', Pool.THINP_TYPE_UNKNOWN)
-            opt_data.set('status_info', self._status_info_of_na_aggr(na_aggr))
             element_type = (
                 Pool.ELEMENT_TYPE_POOL |
                 Pool.ELEMENT_TYPE_FS |
@@ -385,6 +386,7 @@ class Ontap(IStorageAreaNetwork, INfs):
             opt_data.set('element_type', element_type)
 
         return Pool(pool_id, pool_name, total_space, free_space, status,
+                    self._status_info_of_na_aggr(na_aggr),
                     system_id, opt_data)
 
     @staticmethod
@@ -433,10 +435,10 @@ class Ontap(IStorageAreaNetwork, INfs):
                 opt_data.set('thinp_type', Pool.THINP_TYPE_UNKNOWN)
 
             opt_data.set('status_info', self._status_info_of_na_vol(na_vol))
-            element_type = Pool.ELEMENT_TYPE_VOLUME
-            opt_data.set('element_type', element_type)
+            opt_data.set('element_type', Pool.ELEMENT_TYPE_VOLUME)
 
         return Pool(pool_id, pool_name, total_space, free_space, status,
+                    self._status_info_of_na_vol(na_vol),
                     system_id, opt_data)
 
     @handle_ontap_errors
@@ -635,7 +637,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         luns = self.f.luns_get_specific(aggr=volume.pool_id,
                                         na_volume_name=vol)
 
-        if len(luns) == 1:
+        if len(luns) == 1 and Ontap.LSM_VOL_PREFIX in vol:
             self.f.volume_delete(vol)
         else:
             self.f.lun_delete(volume.name)
@@ -705,7 +707,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                 #Put volume back to previous size
                 self._na_resize_recovery(
                     Ontap._vol_to_na_volume_name(volume_src), -size)
-                raise e
+                raise
             return None, self._get_volume(dest, volume_src.pool_id)
         else:
             #TODO Need to get instructions on how to provide this

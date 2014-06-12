@@ -379,20 +379,20 @@ class Filer(object):
         try:
             self._invoke('volume-offline', {'name': vol_name})
             online = True
-        except FilerError as fe:
-            if fe.errno != Filer.EFSDOESNOTEXIST:
-                raise fe
+        except FilerError as f_error:
+            if f_error.errno != Filer.EFSDOESNOTEXIST:
+                raise
 
         try:
             self._invoke('volume-destroy', {'name': vol_name})
-        except FilerError as fe:
+        except FilerError as f_error:
             #If the volume was online, we will return it to same status
             if online:
                 try:
                     self._invoke('volume-online', {'name': vol_name})
                 except FilerError:
                     pass
-            raise fe
+            raise f_error
 
     def volume_names(self):
         """
@@ -435,20 +435,29 @@ class Filer(object):
 
         while True:
             progress = self._invoke('clone-list-status',
-                                    {'clone-id': c_id})['status']['ops-info']
+                                    {'clone-id': c_id})
 
-            if progress['clone-state'] == 'failed':
-                self._invoke('clone-clear', {'clone-id': c_id})
-                raise FilerError(progress['error'], progress['reason'])
-            elif progress['clone-state'] == 'running' \
-                    or progress['clone-state'] == 'fail exit':
-                # State needs to transition to failed before we can clear it!
-                time.sleep(0.2)     # Don't hog cpu
-            elif progress['clone-state'] == 'completed':
-                return progress['destination-file']
+            # According to the spec the output is optional, if not present
+            # then we are done and good
+            if 'status' in progress:
+                progress = progress['status']['ops-info']
+
+                if progress['clone-state'] == 'failed':
+                    self._invoke('clone-clear', {'clone-id': c_id})
+                    raise FilerError(progress['error'], progress['reason'])
+                elif progress['clone-state'] == 'running' \
+                        or progress['clone-state'] == 'fail exit':
+                    # State needs to transition to failed before we can
+                    # clear it!
+                    time.sleep(0.2)     # Don't hog cpu
+                elif progress['clone-state'] == 'completed':
+                    return
+                else:
+                    raise FilerError(ErrorNumber.NOT_IMPLEMENTED,
+                                     'Unexpected state=' +
+                                     progress['clone-state'])
             else:
-                raise FilerError(ErrorNumber.NOT_IMPLEMENTED,
-                                 'Unexpected state=' + progress['clone-state'])
+                return
 
     def lun_online(self, lun_path):
         self._invoke('lun-online', {'path': lun_path})
