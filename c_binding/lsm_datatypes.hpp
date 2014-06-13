@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -303,6 +303,18 @@ struct LSM_DLL_LOCAL _lsm_optional_data {
     GHashTable *data;
 };
 
+union optional_value {
+        char *s;
+        long double d;
+        int64_t si;
+        uint64_t ui;
+        lsm_string_list *sl;
+};
+struct optional_data {
+    lsm_optional_data_type t;
+    union optional_value v;
+};
+
 /**
  * Returns a pointer to a newly created connection structure.
  * @return NULL on memory exhaustion, else new connection.
@@ -335,6 +347,23 @@ LSM_DLL_LOCAL int driver_load(lsm_connect *c, const char *plugin,
 LSM_DLL_LOCAL char* capability_string(lsm_storage_capabilities *c);
 
 LSM_DLL_LOCAL const char *uds_path(void);
+
+/**
+ * Take a character string and tries to convert to a number.
+ * Note: Number is defined as what is acceptable for JSON number.  The number
+ * is represented by int64_t if possible, else uint64_t and then long double.
+ * @param str_num       Character string containing number
+ * @param si            Signed 64 bit number
+ * @param ui            Unsigned 64 bit number
+ * @param d             Long double
+ * @return              -1 = Invalid string pointer
+ *                       0 = Not a number
+ *                       1 = Number converted to signed integer, value in si
+ *                       2 = Number converted to unsigned integer, value in ui
+ *                       3 = Number converted to long double, value in d
+ */
+int LSM_DLL_LOCAL number_convert(const char *str_num, int64_t *si, uint64_t *ui,
+                                long double *d);
 
 #ifdef  __cplusplus
 }

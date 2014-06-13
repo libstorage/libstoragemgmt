@@ -45,6 +45,9 @@
 #include <unistd.h>
 #include <dlfcn.h>
 #include <glib.h>
+#include <errno.h>
+#include <float.h>
+#include <inttypes.h>
 
 #ifdef  __cplusplus
 extern "C" {
@@ -1822,6 +1825,44 @@ char* capability_string(lsm_storage_capabilities *c)
     return rc;
 }
 
+void optional_data_free(void *d)
+{
+    struct optional_data *op = (struct optional_data *)d;
+    if (op->t == LSM_OPTIONAL_DATA_STRING_LIST ) {
+        lsm_string_list_free(op->v.sl);
+    } else if( op->t == LSM_OPTIONAL_DATA_STRING ) {
+        free(op->v.s);
+    }
+
+    free(d);
+}
+
+struct optional_data *optional_data_copy(struct optional_data *op)
+{
+    struct optional_data *copy = (struct optional_data*)
+                                        calloc(1, sizeof(optional_data));
+
+    if( copy ) {
+        copy->t = op->t;
+        copy->v = op->v;
+
+        if( op->t == LSM_OPTIONAL_DATA_STRING) {
+            copy->v.s = strdup(op->v.s);
+            if( !copy->v.s ) {
+                optional_data_free(copy);
+                copy = NULL;
+            }
+        } else if( op->t == LSM_OPTIONAL_DATA_STRING_LIST) {
+            copy->v.sl = lsm_string_list_copy(op->v.sl);
+            if( !copy->v.sl ) {
+                optional_data_free(copy);
+                copy = NULL;
+            }
+        }
+    }
+    return copy;
+}
+
 lsm_optional_data *lsm_optional_data_record_alloc(void)
 {
     lsm_optional_data *rc = NULL;
@@ -1829,7 +1870,8 @@ lsm_optional_data *lsm_optional_data_record_alloc(void)
     rc = (lsm_optional_data *)malloc(sizeof(lsm_optional_data));
     if( rc ) {
         rc->magic = LSM_OPTIONAL_DATA_MAGIC;
-        rc->data = g_hash_table_new_full(g_str_hash, g_str_equal, free, free);
+        rc->data = g_hash_table_new_full(g_str_hash, g_str_equal, free,
+                                            optional_data_free);
         if ( !rc->data ) {
             lsm_optional_data_record_free(rc);
             rc = NULL;
@@ -1851,11 +1893,19 @@ lsm_optional_data *lsm_optional_data_record_copy(lsm_optional_data *src)
             /* Walk through each from src and duplicate it to dest*/
             g_hash_table_iter_init(&iter, src->data);
             while(g_hash_table_iter_next(&iter, &key, &value)) {
-                if( LSM_ERR_OK != lsm_optional_data_string_set(dest,
-                                    (const char*)key, (const char*)value))
-                {
+                char *k_value = strdup((char*)key);
+                struct optional_data *d_value =
+                            optional_data_copy((struct optional_data*)value);
+
+                if( k_value && d_value ) {
+                    g_hash_table_insert(dest->data, (gpointer)k_value,
+                                        (gpointer)d_value);
+                } else {
+                    free(k_value);
+                    optional_data_free(d_value);
                     lsm_optional_data_record_free(dest);
                     dest = NULL;
+                    break;
                 }
             }
         }
@@ -1878,22 +1928,22 @@ int lsm_optional_data_record_free(lsm_optional_data *op)
     return LSM_ERR_INVALID_OPTIONAL_DATA;
 }
 
-int lsm_optional_data_list_get(lsm_optional_data *op, lsm_string_list **l,
-                            uint32_t *count)
+int lsm_optional_data_keys(lsm_optional_data *op, lsm_string_list **l)
 {
     GHashTableIter iter;
     gpointer key;
     gpointer value;
+    uint32_t size = 0;
 
     if( LSM_IS_OPTIONAL_DATA(op) ) {
-        *count = g_hash_table_size(op->data);
+        size = g_hash_table_size(op->data);
 
-        if( *count ) {
+        if( size ) {
             *l = lsm_string_list_alloc(0);
             g_hash_table_iter_init(&iter, op->data);
             while(g_hash_table_iter_next(&iter, &key, &value)) {
                 if(LSM_ERR_OK != lsm_string_list_append(*l, (char *)key) ) {
-                    *count = 0;
+                    size = 0;
                     lsm_string_list_free(*l);
                     *l = NULL;
                     return LSM_ERR_NO_MEMORY;
@@ -1905,13 +1955,52 @@ int lsm_optional_data_list_get(lsm_optional_data *op, lsm_string_list **l,
     return LSM_ERR_INVALID_OPTIONAL_DATA;
 }
 
-const char *lsm_optional_data_string_get(lsm_optional_data *op,
+lsm_optional_data_type lsm_optional_data_type_get(lsm_optional_data *op,
                                                     const char *key)
 {
     if( LSM_IS_OPTIONAL_DATA(op) ) {
-        return (const char*)g_hash_table_lookup(op->data, key);
+        struct optional_data *od = (struct optional_data *)
+                                        g_hash_table_lookup(op->data, key);
+        if( od ) {
+            return od->t;
+        }
+        return LSM_OPTIONAL_DATA_NOT_FOUND;
     }
-    return NULL;
+    return LSM_OPTIONAL_DATA_INVALID;
+}
+
+
+#define OP_GETTER(name, return_type, type_value, member, error_value)       \
+return_type name(lsm_optional_data *op, const char *key)                    \
+{                                                                           \
+    if( LSM_IS_OPTIONAL_DATA(op) ) {                                        \
+        struct optional_data *od = (struct optional_data *)                 \
+                                        g_hash_table_lookup(op->data, key); \
+        if( od ) {                                                          \
+            if( od->t == type_value ) {                                     \
+                return od->v.member;                                        \
+            }                                                               \
+        }                                                                   \
+    }                                                                       \
+    return error_value;                                                     \
+}                                                                           \
+
+OP_GETTER(lsm_optional_data_string_list_get, lsm_string_list *,
+            LSM_OPTIONAL_DATA_STRING_LIST, sl, NULL)
+OP_GETTER(lsm_optional_data_string_get, const char *, LSM_OPTIONAL_DATA_STRING,
+            s, NULL)
+OP_GETTER(lsm_optional_data_int64_get, int64_t, LSM_OPTIONAL_DATA_SIGN_INT, si,
+            LLONG_MAX)
+OP_GETTER(lsm_optional_data_uint64_get, uint64_t,
+            LSM_OPTIONAL_DATA_UNSIGNED_INT, ui, ULLONG_MAX)
+OP_GETTER(lsm_optional_data_real_get, long double, LSM_OPTIONAL_DATA_REAL, d,
+            LDBL_MAX)
+
+static void insert_value(GHashTable *ht, const char *key,
+                        struct optional_data *value)
+{
+    g_hash_table_remove(ht, (gpointer)key);
+    g_hash_table_insert(ht, (gpointer)key, (gpointer)value);
 }
 
 int lsm_optional_data_string_set(lsm_optional_data *op,
@@ -1920,19 +2009,162 @@ int lsm_optional_data_string_set(lsm_optional_data *op,
 {
     if( LSM_IS_OPTIONAL_DATA(op) ) {
         char *k_value = strdup(key);
-        char *d_value = strdup(value);
+        char *op_value = strdup(value);
+        struct optional_data *d_value =
+            (struct optional_data *)calloc(1, sizeof(struct optional_data));
 
-        if( k_value && d_value ) {
-            g_hash_table_remove(op->data, (gpointer)k_value);
-            g_hash_table_insert(op->data, (gpointer)k_value, (gpointer)d_value);
+        if( k_value && op_value && d_value) {
+            d_value->t = LSM_OPTIONAL_DATA_STRING;
+            d_value->v.s = op_value;
+            insert_value(op->data, k_value, d_value);
             return LSM_ERR_OK;
         } else {
             free(k_value);
+            free(op_value);
             free(d_value);
             return LSM_ERR_NO_MEMORY;
         }
     }
     return LSM_ERR_INVALID_OPTIONAL_DATA;
+}
+
+int lsm_optional_data_string_list_set(lsm_optional_data *op, const char *key,
+                                        lsm_string_list *value)
+{
+    int rc = LSM_ERR_INVALID_OPTIONAL_DATA;
+    if( LSM_IS_OPTIONAL_DATA(op) ) {
+        char *k_value = strdup(key);
+        lsm_string_list *copy = lsm_string_list_copy(value);
+        struct optional_data *d_value =
+            (struct optional_data *)calloc(1, sizeof(struct optional_data));
+
+        if( k_value && copy && d_value ) {
+            d_value->t = LSM_OPTIONAL_DATA_STRING_LIST;
+            d_value->v.sl = copy;
+            insert_value(op->data, k_value, d_value);
+            rc = LSM_ERR_OK;
+        } else {
+            free(k_value);
+            free(d_value);
+            lsm_string_list_free(copy);
+            rc = LSM_ERR_NO_MEMORY;
+        }
+    }
+    return rc;
+}
+
+int lsm_optional_data_int64_set(lsm_optional_data *op, const char *key,
+                                    int64_t value)
+{
+    int rc = LSM_ERR_INVALID_OPTIONAL_DATA;
+    if( LSM_IS_OPTIONAL_DATA(op) ) {
+        char *k_value = strdup(key);
+        struct optional_data *d_value =
+            (struct optional_data *)calloc(1, sizeof(struct optional_data));
+
+        if( k_value && d_value ) {
+            d_value->t = LSM_OPTIONAL_DATA_SIGN_INT;
+            d_value->v.si = value;
+            insert_value(op->data, k_value, d_value);
+            rc = LSM_ERR_OK;
+        } else {
+            free(k_value);
+            free(d_value);
+            rc = LSM_ERR_NO_MEMORY;
+        }
+    }
+    return rc;
+}
+
+int lsm_optional_data_uint64_set(lsm_optional_data *op, const char *key,
+                                    uint64_t value)
+{
+    int rc = LSM_ERR_INVALID_OPTIONAL_DATA;
+    if( LSM_IS_OPTIONAL_DATA(op) ) {
+        char *k_value = strdup(key);
+        struct optional_data *d_value =
+            (struct optional_data *)calloc(1, sizeof(struct optional_data));
+
+        if( k_value && d_value ) {
+            d_value->t = LSM_OPTIONAL_DATA_UNSIGNED_INT;
+            d_value->v.ui = value;
+            insert_value(op->data, k_value, d_value);
+            rc = LSM_ERR_OK;
+        } else {
+            free(k_value);
+            free(d_value);
+            rc = LSM_ERR_NO_MEMORY;
+        }
+    }
+    return rc;
+}
+
+int lsm_optional_data_real_set(lsm_optional_data *op, const char *key,
+                                    long double value)
+{
+    int rc = LSM_ERR_INVALID_OPTIONAL_DATA;
+    if( LSM_IS_OPTIONAL_DATA(op) ) {
+        char *k_value = strdup(key);
+        struct optional_data *d_value =
+            (struct optional_data *)calloc(1, sizeof(struct optional_data));
+
+        if( k_value && d_value ) {
+            d_value->t = LSM_OPTIONAL_DATA_REAL;
+            d_value->v.d = value;
+            insert_value(op->data, k_value, d_value);
+            rc = LSM_ERR_OK;
+        } else {
+            free(k_value);
+            free(d_value);
+            rc = LSM_ERR_NO_MEMORY;
+        }
+    }
+    return rc;
+}
+
+int number_convert(const char *str_num, int64_t *si, uint64_t *ui,
+                    long double *d)
+{
+    int rc = -1;
+    char *end = NULL;
+
+    if( str_num && str_num != '\0' && strlen(str_num) ) {
+        *si = 0;
+        *ui = 0;
+        *d = 0.0;
+
+        errno = 0;
+        *si = strtoll(str_num, &end, 10);
+        if( errno == 0 && *end == '\0' ) {
+            rc = 1;     /* Signed number */
+        }
+
+        /* strtoull will convert negative, not wanted so skip if it has '-' */
+        if( -1 == rc && str_num[0] != '-') {
+            end = NULL;
+            errno = 0;
+            *ui = strtoull(str_num,  &end, 10);
+
+            if( errno == 0 && *end == '\0' ) {
+                rc = 2; /* Unsigned number */
+            }
+        }
+
+        if( -1 == rc ) {
+            end = NULL;
+            errno = 0;
+
+            *d = strtold(str_num, &end);
+            if( errno == 0 && *end == '\0' ) {
+                rc = 3; /* Real number */
+            }
+        }
+
+        if( -1 == rc ) {
+            rc = 0;     /* Not a number */
+        }
+    }
+    return rc;
 }
 
 #ifdef  __cplusplus

@@ -2574,7 +2574,7 @@ int load( lsm_plugin_ptr c, const char *uri, const char *password,
 
 
                 snprintf(name, sizeof(name), "Sim C disk %d", i);
-                snprintf(sn, sizeof(sn), "SIMDISKSN00000%04d\n", i);
+                snprintf(sn, sizeof(sn), "SIMDISKSN00000%04d", i);
 
                 lsm_optional_data_string_set(od, "sn", sn);
 

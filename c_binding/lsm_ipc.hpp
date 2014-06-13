@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -200,6 +200,7 @@ public:
      * @param v value
      */
     Value(double v);
+    Value(long double v);
 
     /**
      * Numeric unsigned 32 constructor
@@ -301,6 +302,10 @@ public:
      */
     Value getValue(const char* key);
 
+    /**
+     * Returns a numeric as the string holding it.
+     */
+    const char* asNumString();
 
     /**
      * Returns NULL if void type, else ValueException
@@ -319,6 +324,7 @@ public:
      * @return double value else ValueException on error
      */
     double asDouble();
+    long double asLongDouble();
 
     /**
      * Signed 32 integer value represented by object.

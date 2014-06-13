@@ -662,15 +662,59 @@ Value capabilities_to_value(lsm_storage_capabilities *cap)
 lsm_optional_data *value_to_optional_data(Value &op)
 {
     lsm_optional_data *rc = NULL;
+    int set_result = 0;
     if( is_expected_object(op, "OptionalData") ) {
         rc = lsm_optional_data_record_alloc();
         if ( rc ) {
             std::map<std::string, Value> v = op["values"].asObject();
             std::map<std::string, Value>::iterator itr;
             for(itr=v.begin(); itr != v.end(); ++itr) {
-                if( LSM_ERR_OK != lsm_optional_data_string_set(rc,
-                                            itr->first.c_str(),
-                                            itr->second.asC_str())) {
+                const char *key = itr->first.c_str();
+                Value v = itr->second;
+
+                //TODO: Check return codes of all these sets!
+                switch(v.valueType()){
+                    case(Value::string_t): {
+                        set_result =
+                            lsm_optional_data_string_set(rc, key, v.asC_str());
+                        break;
+                    }
+                    case(Value::numeric_t): {
+                        int num_rc = 0;
+                        int64_t si = 0;
+                        uint64_t ui = 0;
+                        long double d = 0;
+
+                        num_rc = number_convert(v.asNumString(), &si, &ui, &d);
+                        if( num_rc > 0 ) {
+                            if( 1 == num_rc ) {
+                                set_result =
+                                    lsm_optional_data_int64_set(rc, key, si);
+                            } else if( 2 == num_rc ) {
+                                set_result =
+                                    lsm_optional_data_uint64_set(rc, key, ui);
+                            } else if( 3 == num_rc ) {
+                                set_result =
+                                    lsm_optional_data_real_set(rc, key, ui);
+                            }
+                        }
+                        break;
+                    }
+                    case(Value::array_t): {
+                        lsm_string_list *sl = value_to_string_list(v);
+                        if( sl ) {
+                            set_result =
+                                lsm_optional_data_string_list_set(rc, key, sl);
+                            lsm_string_list_free(sl);
+                        }
+                        break;
+                    }
+                    default:
+                        break;
+                }
+
+                /* If the set failed free results and bail */
+                if( LSM_ERR_OK != set_result ) {
                     lsm_optional_data_record_free(rc);
                     rc = NULL;
                     break;
@@ -693,7 +737,32 @@ Value optional_data_to_value(lsm_optional_data *op)
 
         g_hash_table_iter_init(&iter, op->data);
         while(g_hash_table_iter_next(&iter, &key, &value)) {
-            embedded_values[(const char*)key] = Value((const char*)(value));
+            struct optional_data *od = (struct optional_data *)value;
+            switch( od->t ) {
+                case( LSM_OPTIONAL_DATA_STRING ): {
+                    embedded_values[(const char*)key] = Value(od->v.s);
+                    break;
+                }
+                case( LSM_OPTIONAL_DATA_STRING_LIST ): {
+                    embedded_values[(const char*)key] =
+                        string_list_to_value(od->v.sl);
+                    break;
+                }
+                case( LSM_OPTIONAL_DATA_SIGN_INT ): {
+                    embedded_values[(const char*)key] = Value(od->v.si);
+                    break;
+                }
+                case( LSM_OPTIONAL_DATA_UNSIGNED_INT ): {
+                    embedded_values[(const char*)key] = Value(od->v.ui);
+                    break;
+                }
+                case( LSM_OPTIONAL_DATA_REAL ): {
+                    embedded_values[(const char*)key] = Value(od->v.d);
+                    break;
+                }
+                default:
+                    break;
+            }
         }
 
         c["class"] = Value("OptionalData");

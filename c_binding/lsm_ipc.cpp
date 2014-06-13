@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Red Hat, Inc.
+ * Copyright (C) 2011-2014 Red Hat, Inc.
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -224,6 +224,10 @@ Value::Value(double v) : t(numeric_t), s(to_string(v))
 {
 }
 
+Value::Value(long double v) : t(numeric_t), s(to_string(v))
+{
+}
+
 Value::Value(uint32_t v) : t(numeric_t), s(to_string(v))
 {
 }
@@ -342,6 +346,16 @@ Value  Value::getValue( const char* key )
     return Value();
 }
 
+const char * Value::asNumString()
+{
+    const char *rc = NULL;
+
+    if (t == numeric_t) {
+        rc = s.c_str();
+    }
+    return rc;
+}
+
 void * Value::asVoid()
 {
     if (t == null_t) {
@@ -367,6 +381,19 @@ double Value::asDouble()
             return rc;
         }
         throw ValueException("Value not a double");
+    }
+    throw ValueException("Value not numeric");
+}
+
+long double Value::asLongDouble()
+{
+    if (t == numeric_t) {
+        long double rc;
+
+        if (sscanf(s.c_str(), "%Lf", &rc) > 0) {
+            return rc;
+        }
+        throw ValueException("Value not a long double");
     }
     throw ValueException("Value not numeric");
 }
