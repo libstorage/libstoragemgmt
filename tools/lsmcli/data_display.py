@@ -707,7 +707,7 @@ class DisplayData(object):
             data_dict[key_str] = value
 
         if flag_dsp_all_data:
-            cur_support_opt_keys = obj.optional_data.list()
+            cur_support_opt_keys = obj.optional_data.keys()
             for key in optional_headers.keys():
                 if key not in cur_support_opt_keys:
                     continue
@@ -718,7 +718,7 @@ class DisplayData(object):
                 data_dict[key_str] = value
 
         if extra_properties:
-            cur_support_opt_keys = obj.optional_data.list()
+            cur_support_opt_keys = obj.optional_data.keys()
             for key in extra_properties:
                 if key in data_dict.keys():
                     # already contained

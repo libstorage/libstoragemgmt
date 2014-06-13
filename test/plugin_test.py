@@ -253,7 +253,7 @@ class TestPlugin(unittest.TestCase):
 
     def _get_pool_by_usage(self, system_id, element_type):
         for p in self.pool_by_sys_id[system_id]:
-            if 'element_type' in p.optional_data.list():
+            if 'element_type' in p.optional_data.keys():
                 if int(p.optional_data.get('element_type')) == element_type:
                     return p
         return None

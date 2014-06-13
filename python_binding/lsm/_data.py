@@ -165,7 +165,7 @@ class IData(object):
         else:
             #Make sure the properties only contain ones we permit
             allowed = set(self.OPT_PROPERTIES)
-            actual = set(optional_data.list())
+            actual = set(optional_data.keys())
 
             if actual <= allowed:
                 return optional_data
@@ -783,7 +783,7 @@ class OptionalData(IData):
         else:
             self._values = {}
 
-    def list(self):
+    def keys(self):
         rc = self._values.keys()
         return rc
 
