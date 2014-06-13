@@ -791,7 +791,7 @@ class OptionalData(IData):
         return self._values[key]
 
     def set(self, key, value):
-        self._values[str(key)] = str(value)
+        self._values[str(key)] = value
 
 
 class Capabilities(IData):
