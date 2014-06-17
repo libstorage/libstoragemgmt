@@ -80,12 +80,13 @@ struct LSM_DLL_LOCAL _lsm_pool {
     uint32_t    magic;          /**< Used for verfication */
     char *id;                   /**< System wide unique identifier */
     char *name;                 /**< Human recognizeable name */
-    uint64_t    total_space;     /**< Total size */
-    uint64_t    free_space;      /**< Free space available */
+	uint64_t    element_type;   /**< What the pool can be used for */
+    uint64_t    total_space;    /**< Total size */
+    uint64_t    free_space;     /**< Free space available */
     uint64_t    status;         /**< Status of pool */
     char *status_info;          /**< Status info for pool */
     char *system_id;            /**< system id */
-    char *plugin_data;                  /**< Private data for plugin */
+    char *plugin_data;          /**< Private data for plugin */
 };
 
 

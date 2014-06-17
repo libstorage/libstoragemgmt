@@ -157,7 +157,9 @@ class SimArray(object):
         status = sim_pool['status']
         status_info = sim_pool['status_info']
         sys_id = sim_pool['sys_id']
-        return Pool(pool_id, name, total_space, free_space, status,
+        return Pool(pool_id, name,
+                    Pool.ELEMENT_TYPE_VOLUME | Pool.ELEMENT_TYPE_FS,
+                    total_space, free_space, status,
                     status_info, sys_id)
 
     def pools(self, flags=0):

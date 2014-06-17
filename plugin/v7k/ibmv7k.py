@@ -192,7 +192,8 @@ class IbmV7k(IStorageAreaNetwork):
         return self._execute_command_and_parse_concise(ssh_cmd)
 
     def _pool(self, p):
-        return Pool(p['id'], p['name'], int(p['capacity']),
+        return Pool(p['id'], p['name'], Pool.ELEMENT_TYPE_VOLUME,
+                    int(p['capacity']),
                     int(p['free_capacity']), Pool.STATUS_UNKNOWN, '',
                     self.sys_info.id)
 

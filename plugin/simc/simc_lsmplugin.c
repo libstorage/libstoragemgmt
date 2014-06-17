@@ -1006,7 +1006,7 @@ static int _pool_create(lsm_plugin_ptr c, lsm_system *system,
         new_pool = find_pool_name(pd, pool_name);
         if( !new_pool ) {
             /* Create the pool */
-            new_pool = lsm_pool_record_alloc(md5(pool_name), pool_name, size_bytes,
+            new_pool = lsm_pool_record_alloc(md5(pool_name), pool_name, 0, size_bytes,
                                         size_bytes, LSM_POOL_STATUS_OK, "",
                                         lsm_system_id_get(system), NULL);
 
@@ -2515,7 +2515,7 @@ int load( lsm_plugin_ptr c, const char *uri, const char *password,
                                                 "LSM simulated storage plug-in",
                                                 LSM_SYSTEM_STATUS_OK, "", NULL);
 
-        p = lsm_pool_record_alloc("POOL_3", "lsm_test_aggr",
+        p = lsm_pool_record_alloc("POOL_3", "lsm_test_aggr", 0,
                                             UINT64_MAX, UINT64_MAX,
                                             LSM_POOL_STATUS_OK, "",
                                             sys_id, NULL);
@@ -2529,7 +2529,7 @@ int load( lsm_plugin_ptr c, const char *uri, const char *password,
                 char name[32];
                 snprintf(name, sizeof(name), "POOL_%d", i);
 
-                p = lsm_pool_record_alloc(name, name, UINT64_MAX,
+                p = lsm_pool_record_alloc(name, name, 0, UINT64_MAX,
                                             UINT64_MAX, LSM_POOL_STATUS_OK, "",
                                             sys_id, NULL);
 

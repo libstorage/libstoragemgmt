@@ -217,6 +217,7 @@ class Smis(IStorageAreaNetwork):
 
     # DMTF CIM 2.37.0 experimental CIM_StoragePool['Usage']
     DMTF_POOL_USAGE_SPARE = 8
+    DMTF_POOL_USAGE_DELTA = 4
 
     # DMTF CIM 2.29.1 CIM_StorageConfigurationCapabilities
     # ['SupportedStorageElementFeatures']
@@ -1502,8 +1503,10 @@ class Smis(IStorageAreaNetwork):
             status = Smis._pool_status_of(cim_pool)[0]
             status_info = Smis._pool_status_of(cim_pool)[1]
 
-        return Pool(pool_id, name, total_space, free_space, status,
-                    status_info, system_id)
+        element_type = self._pool_element_type(cim_pool)
+
+        return Pool(pool_id, name, element_type, total_space, free_space,
+                    status, status_info, system_id)
 
     @staticmethod
     def _cim_sys_2_lsm_sys(cim_sys):
@@ -2581,6 +2584,50 @@ class Smis(IStorageAreaNetwork):
                            "Found two or more CIM_DiskDrive associated to " +
                            "requested CIM_StorageExtent %s" %
                            cim_pri_ext_path)
+
+    def _pool_element_type(self, cim_pool):
+
+        element_type = 0
+
+        # check whether current pool support create volume or not.
+        cim_sccs = self._c.Associators(
+            cim_pool.path,
+            AssocClass='CIM_ElementCapabilities',
+            ResultClass='CIM_StorageConfigurationCapabilities',
+            PropertyList=['SupportedStorageElementFeatures',
+                          'SupportedStorageElementTypes'])
+        # Associate StorageConfigurationCapabilities to StoragePool
+        # is experimental in SNIA 1.6rev4, Block Book PDF Page 68.
+        # Section 5.1.6 StoragePool, StorageVolume and LogicalDisk
+        # Manipulation, Figure 9 - Capabilities Specific to a StoragePool
+        if len(cim_sccs) == 1:
+            cim_scc = cim_sccs[0]
+            if 'SupportedStorageElementFeatures' in cim_scc and \
+                Smis.DMTF_SUPPORT_VOL_CREATE in \
+                    cim_scc['SupportedStorageElementFeatures']:
+                element_type = Pool.ELEMENT_TYPE_VOLUME
+        else:
+            # IBM DS 8000 does not support StorageConfigurationCapabilities
+            # per pool yet. They has been informed. Before fix, use a quick
+            # workaround.
+            # TODO: Currently, we don't have a way to detect
+            #       Pool.ELEMENT_TYPE_POOL
+            #       but based on knowing definition of each vendor.
+            if cim_pool.classname == 'IBMTSDS_VirtualPool' or \
+               cim_pool.classname == 'IBMTSDS_ExtentPool':
+                element_type = Pool.ELEMENT_TYPE_VOLUME
+            elif cim_pool.classname == 'IBMTSDS_RankPool':
+                element_type = Pool.ELEMENT_TYPE_POOL
+            elif cim_pool.classname == 'LSIESG_StoragePool':
+                element_type = Pool.ELEMENT_TYPE_VOLUME
+
+        if 'Usage' in cim_pool:
+            if cim_pool['Usage'] == Smis.DMTF_POOL_USAGE_DELTA:
+                element_type = Pool.ELEMENT_TYPE_DELTA
+            if cim_pool['Usage'] == 2:
+                element_type = Pool.ELEMENT_TYPE_VOLUME
+
+        return element_type
 
     def _pool_opt_data(self, cim_pool):
         """

@@ -160,7 +160,13 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
     def pools(self, search_key=None, search_value=None, flags=0):
         pools = []
         for pool in self._jsonrequest("pool_list"):
-            pools.append(Pool(pool['name'], pool['name'], pool['size'],
+            if pool['name'].startswith('/'):
+                et = Pool.ELEMENT_TYPE_FS
+            else:
+                et = Pool.ELEMENT_TYPE_VOLUME
+
+            pools.append(Pool(pool['name'],
+                              pool['name'], et, pool['size'],
                               pool['free_size'], Pool.STATUS_UNKNOWN, '',
                               'targetd'))
         return search_property(pools, search_key, search_value)

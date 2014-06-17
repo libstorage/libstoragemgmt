@@ -352,17 +352,16 @@ class Ontap(IStorageAreaNetwork, INfs):
         system_id = self.sys_info.id
         status = self._status_of_na_aggr(na_aggr)
 
-        # We will be adding this back as mandatory
-        #    element_type = (
-        #        Pool.ELEMENT_TYPE_POOL |
-        #        Pool.ELEMENT_TYPE_FS |
-        #        Pool.ELEMENT_TYPE_VOLUME)
-        #if pool_name == 'aggr0':
-        #        element_type = element_type | Pool.ELEMENT_TYPE_SYS_RESERVED
-        #opt_data.set('element_type', element_type)
+        element_type = (Pool.ELEMENT_TYPE_POOL | Pool.ELEMENT_TYPE_FS |
+                 Pool.ELEMENT_TYPE_VOLUME)
 
-        return Pool(pool_id, pool_name, total_space, free_space, status,
-                    self._status_info_of_na_aggr(na_aggr), system_id)
+        # The system aggregate can be used to create both FS and volumes, but
+        # you can't take it offline or delete it.
+        if pool_name == 'aggr0':
+            element_type = element_type | Pool.ELEMENT_TYPE_SYS_RESERVED
+
+        return Pool(pool_id, pool_name, element_type, total_space, free_space,
+                    status, self._status_info_of_na_aggr(na_aggr), system_id)
 
     @staticmethod
     def _status_of_na_vol(na_vol):
@@ -394,9 +393,8 @@ class Ontap(IStorageAreaNetwork, INfs):
         system_id = self.sys_info.id
         status = self._status_of_na_vol(na_vol)
 
-        # opt_data.set('element_type', Pool.ELEMENT_TYPE_VOLUME)
-
-        return Pool(pool_id, pool_name, total_space, free_space, status,
+        return Pool(pool_id, pool_name, Pool.ELEMENT_TYPE_VOLUME,
+                    total_space, free_space, status,
                     self._status_info_of_na_vol(na_vol), system_id)
 
     @handle_ontap_errors

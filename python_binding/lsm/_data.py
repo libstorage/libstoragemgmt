@@ -382,6 +382,7 @@ The lsm.System class does not have class methods.
 @default_property('status_info', doc="Text explaining status")
 @default_property('system_id', doc="System identifier")
 @default_property("plugin_data", doc="Plug-in private data")
+@default_property("element_type", doc="What pool can be used for")
 class Pool(IData):
     """
     Pool specific information
@@ -494,6 +495,7 @@ class Pool(IData):
     ELEMENT_TYPE_POOL = 1 << 1
     ELEMENT_TYPE_VOLUME = 1 << 2
     ELEMENT_TYPE_FS = 1 << 3
+    ELEMENT_TYPE_DELTA = 1 << 4
     ELEMENT_TYPE_SYS_RESERVED = 1 << 10     # Reserved for system use
 
     MAX_POOL_STATUS_BITS = 64
@@ -570,13 +572,11 @@ class Pool(IData):
     # DESTROYING:
     #   Array is removing current pool.
 
-    OPT_PROPERTIES = ['raid_type', 'member_type', 'member_ids',
-                      'element_type', 'thinp_type']
-
-    def __init__(self, _id, _name, _total_space, _free_space, _status,
-                 _status_info, _system_id, _plugin_data=None):
+    def __init__(self, _id, _name, _element_type, _total_space, _free_space,
+                 _status, _status_info, _system_id, _plugin_data=None):
         self._id = _id                    # Identifier
         self._name = _name                # Human recognisable name
+        self._element_type = _element_type # What pool can be used to create
         self._total_space = _total_space  # Total size
         self._free_space = _free_space    # Free space available
         self._status = _status            # Status of pool.

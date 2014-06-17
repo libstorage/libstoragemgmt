@@ -124,6 +124,7 @@ _POOL_ELEMENT_TYPE_CONV = {
     Pool.ELEMENT_TYPE_VOLUME: 'VOLUME',
     Pool.ELEMENT_TYPE_FS: 'FILE_SYSTEM',
     Pool.ELEMENT_TYPE_SYS_RESERVED: 'SYSTEM_RESERVED',
+    Pool.ELEMENT_TYPE_DELTA: "DELTA",
 }
 
 
@@ -373,6 +374,7 @@ class DisplayData(object):
     POOL_MAN_HEADER = OrderedDict()
     POOL_MAN_HEADER['id'] = 'ID'
     POOL_MAN_HEADER['name'] = 'Name'
+    POOL_MAN_HEADER['element_type'] = 'Element type'
     POOL_MAN_HEADER['total_space'] = 'Total Space'
     POOL_MAN_HEADER['free_space'] = 'Free Space'
     POOL_MAN_HEADER['status'] = 'Status'

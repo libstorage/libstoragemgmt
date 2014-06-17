@@ -100,6 +100,13 @@ const char LSM_DLL_EXPORT *lsm_pool_status_info_get( lsm_pool *s );
  */
 char LSM_DLL_EXPORT *lsm_pool_system_id_get( lsm_pool *p );
 
+/**
+ * Retrieve what the pool can be used to create
+ * @param p     Pool pointer
+ * @return Usage value
+ */
+uint64_t LSM_DLL_EXPORT lsm_pool_element_type_get( lsm_pool *p );
+
 #ifdef  __cplusplus
 }
 #endif
