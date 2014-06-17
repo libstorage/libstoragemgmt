@@ -34,8 +34,8 @@ import os
 from subprocess import Popen, PIPE
 from optparse import OptionParser
 
-(OP_SYS, OP_POOL, OP_VOL, OP_INIT, OP_FS, OP_EXPORTS, OP_SS) = \
-    ('SYSTEMS', 'POOLS', 'VOLUMES', 'INITIATORS', 'FS', 'EXPORTS',
+(OP_SYS, OP_POOL, OP_VOL, OP_FS, OP_EXPORTS, OP_SS) = \
+    ('SYSTEMS', 'POOLS', 'VOLUMES', 'FS', 'EXPORTS',
      'SNAPSHOTS')
 
 (ID, NAME) = (0, 1)
@@ -430,7 +430,7 @@ def display_check(display_list, system_id):
             call([cmd, 'list', '--type', 'SNAPSHOTS', '--fs', fs_id])
 
     if 'POOLS' in display_list:
-        call([cmd, '-H', '-t' + sep, 'list', '--type', 'POOLS', '-o'])
+        call([cmd, '-H', '-t' + sep, 'list', '--type', 'POOLS'])
 
 
 def test_display(cap, system_id):
@@ -446,9 +446,6 @@ def test_display(cap, system_id):
 
     if cap['FS_SUPPORT'] and cap['FS']:
         to_test.append("FS")
-
-    if cap['INITIATORS']:
-        to_test.append("INITIATORS")
 
     if cap['EXPORTS']:
         to_test.append("EXPORTS")
@@ -607,15 +604,6 @@ def test_mapping(cap, system_id):
             if cap['VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP']:
                 volumes_accessible_by_access_group(ag_id)
 
-            if cap['VOLUME_ACCESSIBLE_BY_INITIATOR']:
-                volume_accessible_by_initiator(iqn2)
-
-            if cap['INITIATORS_GRANTED_TO_VOLUME']:
-                initiators_granted_to_volume(vol_id)
-
-            if cap['ACCESS_GROUPS_GRANTED_TO_VOLUME']:
-                access_groups_granted_to_volume(vol_id)
-
             if cap['ACCESS_GROUPS_GRANTED_TO_VOLUME']:
                 access_groups_granted_to_volume(vol_id)
 
@@ -631,21 +619,6 @@ def test_mapping(cap, system_id):
 
             if cap['ACCESS_GROUP_DELETE']:
                 access_group_delete(ag_id)
-
-    if cap['VOLUME_INITIATOR_GRANT']:
-        vol_id = create_volume(pool_id)
-        initiator_grant(iqn1, vol_id)
-
-        test_display(cap, system_id)
-
-        if cap['VOLUME_ISCSI_CHAP_AUTHENTICATION']:
-            initiator_chap(iqn1)
-
-        if cap['VOLUME_INITIATOR_REVOKE']:
-            initiator_revoke(iqn1, vol_id)
-
-        if cap['VOLUME_DELETE']:
-            volume_delete(vol_id)
 
 
 def test_nfs_operations(cap, system_id):
@@ -704,9 +677,10 @@ def search_test(cap, system_id):
 
     supported = {
         'pools': [sys_id_filter, pool_id_filter],
-        'volumes': [sys_id_filter, pool_id_filter, vol_id_filter],
+        'volumes': [sys_id_filter, pool_id_filter, vol_id_filter,
+                    ag_id_filter],
         'disks': [sys_id_filter, disk_id_filter],
-        'access_groups': [sys_id_filter, ag_id_filter],
+        'access_groups': [sys_id_filter, ag_id_filter, vol_id_filter],
         'fs': [sys_id_filter, pool_id_filter, fs_id_filter],
         'exports': [fs_id_filter, nfs_export_id_filter],
     }
@@ -723,17 +697,6 @@ def search_test(cap, system_id):
     volume_delete(vol_id)
     return
 
-def optional_data_check():
-    opt_support_list=['SYSTEMS', 'POOLS', 'VOLUMES', 'DISKS', 'ACCESS_GROUPS',
-                      'FS', 'EXPORTS']
-    # TODO:
-    #   1. Missing SNAPSHOTS
-    #   2. As simulator support all optional properties, we should check
-    #      whether output contain all optional properties.
-
-    print "\nTesting query with optional data\n"
-    for list_type in opt_support_list:
-        call([cmd, 'list', '--type', list_type, '-o'])
 
 def run_all_tests(cap, system_id):
     test_display(cap, system_id)
@@ -745,7 +708,6 @@ def run_all_tests(cap, system_id):
     test_mapping(cap, system_id)
 
     search_test(cap, system_id)
-    optional_data_check()
 
 if __name__ == "__main__":
     parser = OptionParser()

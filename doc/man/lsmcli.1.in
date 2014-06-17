@@ -155,7 +155,7 @@ List information on LSM objects
 \fB--type\fR \fI<TYPE>\fR
 Required. Valid values are:
 .br
-\fBVOLUMES\fR, \fBINITIATORS\fR, \fBPOOLS\fR, \fBFS\fR, \fBSNAPSHOTS\fR,
+\fBVOLUMES\fR, \fBPOOLS\fR, \fBFS\fR, \fBSNAPSHOTS\fR,
 \fBEXPORTS\fR, \fBDISKS\fR,
 .br
 \fBNFS_CLIENT_AUTH\fR, \fBACCESS_GROUPS\fR,
@@ -181,6 +181,9 @@ resources: \fBVOLUMES\fR, \fBPOOLS\fR, \fBFS\fR.
 \fB--vol\fR \fI<VOL_ID>\fR
 Search resources from volume with VOL_ID. Only supported by these types of
 resources: \fBVOLUMES\fR, \fBACCESS_GROUPS\fR.
+.br
+To query volume masking status, please use this command:
+   lsmcli list --type ACCESS_GROUPS --vol <VOL_ID>
 .TP
 \fB--disk\fR \fI<DISK_ID>\fR
 Search resources from disk with DISK_ID. Only supported by these types of
@@ -189,6 +192,9 @@ resources: \fBDISK\fR.
 \fB--ag\fR \fI<AG_ID>\fR
 Search resources from access group with AG_ID. Only supported by these types
 of resources: \fBACCESS_GROUPS\fR, \fBVOLUMES\fR.
+.br
+To query volume masking status, please use this command:
+   lsmcli list --type VOLUMES --ag <AG_ID>
 .TP
 \fB--fs\fR \fI<FS_ID>\fR
 Search resources from file system with FS_ID. Only supported by these types
@@ -323,12 +329,6 @@ Lists the access group(s) that have access to the provided volume.
 \fB--vol\fR \fI<VOL_ID>\fR
 Required. The ID of volume to query access.
 
-.SS volumes-accessible-initiator
-Lists the initiator(s) that have access to the provided volume.
-.TP 15
-\fB--vol\fR \fI<VOL_ID>\fR
-Required. The ID of volume to query access.
-
 .SS volume-mask
 .TP 15
 Grant access group RW access to certain volume. Like LUN masking
@@ -395,39 +395,11 @@ Delete an access group.
 \fB--ag\fR \fI<AG_ID>\fR
 Required. ID of access group to delete.
 
-.SS access-grant
-Grants access to an initiator to a volume
-.TP 15
-\fB--init\fR \fI<INIT_ID>\fR
-Required. ID of initiator to grant access.
-.TP
-\fB--init-type\fR \fI<INIT_TYPE>\fR
-Required. The initiator type. Valid values are: \fBWWPN\fR, \fBWWNN\fR,
-\fBISCSI\fR, \fBHOSTNAME\fR, \fBSAS\fR.
-.TP
-\fB--vol\fR \fI<VOL_ID>\fR
-Required. The ID of volume to grant access.
-
-.SS access-revoke
-Removes access for an initiator to a volume
-.TP 15
-\fB--vol\fR \fI<VOL_ID>\fR
-Required. The ID of volume to revoke.
-.TP
-\fB--init\fR \fI<INIT_ID>\fR
-Required. ID of initiator to revoke.
-
 .SS access-group-volumes
 Lists the volumes that the access group has been granted access to.
 .TP 15
 \fB--ag\fR \fI<AG_ID>\fR
 Required. The ID of access group to query.
-
-.SS initiators-granted-volume
-Lists the initiators that have been granted access to specified volume
-.TP 15
-\fB--init\fR \fI<INIT_ID>\fR
-Required. The ID of initiator to query.
 
 .SS iscsi-chap
 Configures ISCSI inbound/outbound CHAP authentication

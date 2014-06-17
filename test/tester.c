@@ -523,17 +523,6 @@ START_TEST(test_smoke_test)
         lsm_volume_record_free(n);
     }
 
-    lsm_initiator **inits = NULL;
-    count = 0;
-    /* Get a list of initiators */
-    rc = lsm_initiator_list(c, &inits, &count, LSM_FLAG_RSVD);
-
-    fail_unless( LSM_ERR_OK == rc, "lsmInitiatorList %d (%s)", rc,
-                                    error(lsm_error_last_get(c)));
-
-    fail_unless( count == 0, "Count 0 != %d\n", count);
-
-
     //Create some volumes for testing.
     create_volumes(c, selectedPool, 3);
 
@@ -684,20 +673,25 @@ START_TEST(test_access_groups)
         fail_unless( lsm_string_list_size(init_list) == 2, "Expecting 2 initiators, current num = %d\n", lsm_string_list_size(init_list) );
         for( i = 0; i < lsm_string_list_size(init_list); ++i) {
             printf("%d = %s\n", i, lsm_string_list_elem_get(init_list, i));
+
+
+            printf("Deleting initiator %s from group!\n",
+                    lsm_string_list_elem_get(init_list, i));
+            rc = lsm_access_group_initiator_delete(
+                    c, groups[0], lsm_string_list_elem_get(init_list, i),
+                    LSM_FLAG_RSVD);
+
+            if( LSM_ERR_JOB_STARTED == rc ) {
+                wait_for_job_fs(c, &job);
+            } else {
+                fail_unless(LSM_ERR_OK == rc);
+            }
         }
         lsm_string_list_free(init_list);
         init_list = NULL;
     }
 
-    uint32_t init_list_count = 0;
-    lsm_initiator **inits = NULL;
-    rc = lsm_initiator_list(c, &inits, &init_list_count, LSM_FLAG_RSVD);
-
-    fail_unless(LSM_ERR_OK == rc );
-    printf("We have %d initiators\n", init_list_count);
-
-    fail_unless(2 == init_list_count);
-
+    /* TODO Need to fix this
     for( i = 0; i < init_list_count; ++i ) {
         printf("Deleting initiator %s from group!\n", lsm_initiator_id_get(inits[i]));
         rc = lsm_access_group_initiator_delete(c, groups[0],
@@ -709,6 +703,7 @@ START_TEST(test_access_groups)
             fail_unless(LSM_ERR_OK == rc);
         }
     }
+    */
 
     lsm_access_group_record_array_free(groups, count);
     groups = NULL;
@@ -721,7 +716,8 @@ START_TEST(test_access_groups)
     if( count ) {
         init_list = lsm_access_group_initiator_id_get(groups[0]);
         fail_unless( init_list != NULL);
-        fail_unless( lsm_string_list_size(init_list) == 0);
+        fail_unless( lsm_string_list_size(init_list) == 0, "%d",
+                        lsm_string_list_size(init_list));
         lsm_string_list_free(init_list);
         init_list = NULL;
         lsm_access_group_record_array_free(groups, count);
@@ -1949,118 +1945,6 @@ START_TEST(test_capabilities)
 }
 END_TEST
 
-static int get_init(lsm_connect *c, const char *init_id, lsm_initiator * *found) {
-    lsm_initiator **inits = NULL;
-    uint32_t count = 0;
-    int rc = lsm_initiator_list(c, &inits, &count, LSM_FLAG_RSVD);
-
-    fail_unless(LSM_ERR_OK == rc );
-
-    if( LSM_ERR_OK == rc ) {
-        uint32_t i = 0;
-        for(i = 0; i < count; ++i ) {
-            if( strcmp(lsm_initiator_id_get(inits[i]), init_id) == 0 ) {
-                *found = lsm_initiator_record_copy(inits[i]);
-                if( !*found ) {
-                    rc = LSM_ERR_NO_MEMORY;
-                }
-                break;
-            }
-        }
-    }
-
-    lsm_initiator_record_array_free(inits, count);
-
-    return rc;
-}
-
-
-
-START_TEST(test_initiator_methods)
-{
-    fail_unless(c != NULL);
-
-    lsm_pool *test_pool = get_test_pool(c);
-    lsm_volume *nv = NULL;
-    char *job = NULL;
-    int rc = 0;
-
-
-    rc = lsm_volume_create(c, test_pool, "initiator_mapping_test", 40 *1024*1024,
-                        LSM_PROVISION_DEFAULT, &nv, &job, LSM_FLAG_RSVD);
-
-    if( LSM_ERR_JOB_STARTED == rc ) {
-        nv = wait_for_job_vol(c, &job);
-    } else {
-        fail_unless(LSM_ERR_OK == rc );
-    }
-
-    rc = lsm_initiator_grant(c, ISCSI_HOST[0], LSM_INITIATOR_ISCSI, nv,
-                            LSM_VOLUME_ACCESS_READ_WRITE, LSM_FLAG_RSVD);
-
-    if( LSM_ERR_JOB_STARTED == rc ) {
-        wait_for_job(c, &job);
-    } else {
-        fail_unless(LSM_ERR_OK == rc, "rc = %d", rc);
-    }
-
-    lsm_initiator *initiator = NULL;
-
-    rc = get_init(c, ISCSI_HOST[0], &initiator);
-
-    fail_unless(LSM_ERR_OK == rc, "rc = %d", rc);
-
-
-    lsm_volume **volumes = NULL;
-    uint32_t count = 0;
-    rc = lsm_volumes_accessible_by_initiator(c, initiator, &volumes, &count, LSM_FLAG_RSVD);
-
-    fail_unless( LSM_ERR_OK == rc );
-
-    if( LSM_ERR_OK == rc ) {
-        fail_unless(count == 1, "count = %d", count);
-        if( count == 1 ) {
-            fail_unless( strcmp(lsm_volume_id_get(volumes[0]), lsm_volume_id_get(nv)) == 0);
-        }
-
-        lsm_volume_record_array_free(volumes, count);
-    }
-
-    lsm_initiator **initiators = NULL;
-    count = 0;
-    rc = lsm_initiators_granted_to_volume(c, nv, &initiators, &count, LSM_FLAG_RSVD);
-    fail_unless(LSM_ERR_OK == rc, "rc = %d", rc);
-
-    if( LSM_ERR_OK == rc ) {
-        fail_unless( count == 1, "count = %d", count);
-        if( count == 1 ) {
-            fail_unless( strcmp(lsm_initiator_id_get(initiators[0]),
-                            lsm_initiator_id_get(initiator)) == 0);
-
-            fail_unless(lsm_initiator_type_get(initiators[0]) == LSM_INITIATOR_ISCSI);
-            fail_unless(lsm_initiator_name_get(initiators[0]) != NULL);
-        }
-
-        lsm_initiator_record_array_free(initiators, count);
-    }
-
-    if( LSM_ERR_OK == rc ) {
-        rc = lsm_initiator_revoke(c, initiator, nv, LSM_FLAG_RSVD);
-
-        if( LSM_ERR_JOB_STARTED == rc ) {
-            wait_for_job(c, &job);
-        } else {
-            fail_unless(LSM_ERR_OK == rc, "rc = %d", rc);
-        }
-
-        lsm_initiator_record_free(initiator);
-    }
-
-    lsm_volume_record_free(nv);
-    lsm_pool_record_free(test_pool);
-}
-END_TEST
-
 START_TEST(test_iscsi_auth_in)
 {
     lsm_access_group *group = NULL;
@@ -2072,10 +1956,12 @@ START_TEST(test_iscsi_auth_in)
     fail_unless(LSM_ERR_OK == rc, "rc = %d");
 
     if( LSM_ERR_OK == rc ) {
+        /* TODO FIX THIS UP after we take out the C initiator support.
         lsm_initiator **inits = NULL;
         uint32_t init_count = 0;
 
-         rc = lsm_initiator_list(c, &inits, &init_count, LSM_FLAG_RSVD );
+
+        rc = lsm_initiator_list(c, &inits, &init_count, LSM_FLAG_RSVD );
          fail_unless(LSM_ERR_OK == rc );
 
          if( LSM_ERR_OK == rc && init_count ) {
@@ -2092,6 +1978,7 @@ START_TEST(test_iscsi_auth_in)
          } else {
              fail_unless(LSM_ERR_OK == rc );
          }
+         */
 
          lsm_access_group_record_free(group);
          group = NULL;
@@ -3204,7 +3091,6 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_get_available_plugins);
     tcase_add_test(basic, test_volume_methods);
     tcase_add_test(basic, test_iscsi_auth_in);
-    tcase_add_test(basic, test_initiator_methods);
     tcase_add_test(basic, test_capabilities);
     tcase_add_test(basic, test_smoke_test);
     tcase_add_test(basic, test_access_groups);

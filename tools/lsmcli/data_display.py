@@ -20,7 +20,7 @@ from collections import OrderedDict
 from datetime import datetime
 
 from lsm import (size_bytes_2_size_human, LsmError, ErrorNumber,
-                 System, Pool, Disk, Volume, AccessGroup, Initiator,
+                 System, Pool, Disk, Volume, AccessGroup,
                  FileSystem, FsSnapshot, NfsExport)
 
 BIT_MAP_STRING_SPLITTER = ','
@@ -243,16 +243,6 @@ def vol_rep_type_str_to_type(vol_rep_type_str):
     return _str_to_enum(vol_rep_type_str, _VOL_REP_TYPE_CONV)
 
 
-_VOL_ACCESS_TYPE_CONV = {
-    Volume.ACCESS_READ_WRITE: 'RW',
-    Volume.ACCESS_READ_ONLY: 'RO'
-}
-
-
-def vol_access_type_str_to_type(vol_access_type_str):
-    return _str_to_enum(vol_access_type_str, _VOL_ACCESS_TYPE_CONV)
-
-
 def vol_status_to_str(vol_status):
     return _bit_map_to_str(vol_status, _VOL_STATUS_CONV)
 
@@ -294,20 +284,6 @@ _DISK_STATUS_CONV = {
 
 def disk_status_to_str(disk_status):
     return _bit_map_to_str(disk_status, _DISK_STATUS_CONV)
-
-
-_INIT_TYPE_CONV = {
-    Initiator.TYPE_OTHER: 'Other',
-    Initiator.TYPE_PORT_WWN: 'Port WWN',
-    Initiator.TYPE_NODE_WWN: 'Node WWN',
-    Initiator.TYPE_HOSTNAME: 'Hostname',
-    Initiator.TYPE_ISCSI: 'iSCSI',
-    Initiator.TYPE_SAS: "SAS"
-}
-
-
-def init_type_to_str(init_type):
-    return _enum_type_to_str(init_type, _INIT_TYPE_CONV)
 
 
 _AG_INIT_TYPE_CONV = {
@@ -533,30 +509,6 @@ class DisplayData(object):
         'optional_headers': AG_OPT_HEADER,
         'value_conv_enum': AG_VALUE_CONV_ENUM,
         'value_conv_human': AG_VALUE_CONV_HUMAN,
-    }
-
-    # lsm.Initiator
-    INIT_MAN_HEADER = OrderedDict()
-    INIT_MAN_HEADER['id'] = 'ID'
-    INIT_MAN_HEADER['name'] = 'Name'
-    INIT_MAN_HEADER['type'] = 'Initiator Type'
-
-    INIT_COLUMN_KEYS = INIT_MAN_HEADER.keys()
-
-    INIT_OPT_HEADER = OrderedDict()
-
-    INIT_VALUE_CONV_ENUM = {
-        'type': init_type_to_str,
-    }
-
-    INIT_VALUE_CONV_HUMAN = []
-
-    VALUE_CONVERT[Initiator] = {
-        'mandatory_headers': INIT_MAN_HEADER,
-        'column_keys': INIT_COLUMN_KEYS,
-        'optional_headers': INIT_OPT_HEADER,
-        'value_conv_enum': INIT_VALUE_CONV_ENUM,
-        'value_conv_human': INIT_VALUE_CONV_HUMAN,
     }
 
     # lsm.FileSystem

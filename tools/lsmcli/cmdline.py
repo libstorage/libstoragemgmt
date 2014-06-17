@@ -27,7 +27,7 @@ from argparse import ArgumentParser
 from argparse import RawTextHelpFormatter
 
 from lsm import (Client, Pool, VERSION, LsmError, Capabilities, Disk,
-                 Initiator, Volume, JobStatus, ErrorNumber, BlockRange,
+                 Volume, JobStatus, ErrorNumber, BlockRange,
                  uri_parse, Proxy, size_human_2_size_bytes,
                  AccessGroup, FileSystem, NfsExport, System, FsSnapshot)
 
@@ -35,7 +35,7 @@ from lsm.lsmcli.data_display import (
     DisplayData, PlugData, out,
     pool_raid_type_str_to_type, pool_member_type_str_to_type,
     vol_provision_str_to_type, vol_rep_type_str_to_type,
-    vol_access_type_str_to_type, ag_init_type_str_to_lsm)
+    ag_init_type_str_to_lsm)
 
 
 ## Wraps the invocation to the command line
@@ -89,24 +89,25 @@ class ArgError(Exception):
 # @param    the_id  the id to match
 # @param    friendly_name - name to put in the exception saying what we
 #           couldn't find
-def _get_item(l, the_id, friendly_name='item'):
+def _get_item(l, the_id, friendly_name='item', raise_error=True):
     for item in l:
         if item.id == the_id:
             return item
-    raise ArgError('%s with id %s not found!' % (friendly_name, the_id))
+    if raise_error:
+        raise ArgError('%s with id %s not found!' % (friendly_name, the_id))
+    else:
+        return None
 
-list_choices = ['VOLUMES', 'INITIATORS', 'POOLS', 'FS', 'SNAPSHOTS',
+list_choices = ['VOLUMES', 'POOLS', 'FS', 'SNAPSHOTS',
                 'EXPORTS', "NFS_CLIENT_AUTH", 'ACCESS_GROUPS',
                 'SYSTEMS', 'DISKS', 'PLUGINS']
 
-initiator_id_types = ('WWPN', 'WWNN', 'ISCSI', 'HOSTNAME', 'SAS')
-initiator_id_help = "Initiator ID type: " + ", ".join(initiator_id_types)
+init_types = ('WWPN', 'WWNN', 'ISCSI', 'HOSTNAME', 'SAS')
+init_id_help = "Access Group Initiator type: " + \
+                    ", ".join(init_types)
 
 provision_types = ('DEFAULT', 'THIN', 'FULL')
 provision_help = "provisioning type: " + ", ".join(provision_types)
-
-access_types = ('RO', 'RW')
-access_help = "Access type: %s. Default value is RW." % ", ".join(access_types)
 
 replicate_types = ('SNAPSHOT', 'CLONE', 'COPY', 'MIRROR_ASYNC', 'MIRROR_SYNC')
 replicate_help = "replication type: " + ", ".join(replicate_types)
@@ -167,11 +168,9 @@ disk_id_filter_opt = dict(name='--disk', metavar='<DISK_ID>',
                           help='Search by Disk ID')
 
 size_opt = dict(name='--size', metavar='<SIZE>', help=size_help)
-access_opt = dict(name='--access', metavar='<ACCESS>', help=access_help,
-                  choices=access_types, type=str.upper)
 
-init_type_opt = dict(name="--init-type", help=initiator_id_help,
-                     metavar='<INIT_TYPE>', choices=initiator_id_types,
+init_type_opt = dict(name="--init-type", help=init_id_help,
+                     metavar='<INIT_TYPE>', choices=init_types,
                      type=str.upper)
 
 cmds = (
@@ -355,9 +354,9 @@ cmds = (
                  help='Initiator ID, only used when access-group-create is '
                       'not supported'),
             dict(name="--init-type", type=str.upper,
-                 metavar='<INIT_TYPE>', choices=initiator_id_types,
+                 metavar='<INIT_TYPE>', choices=init_types,
                  help="%s only used when access-group-create is not supported"
-                      % initiator_id_help),
+                      % init_id_help),
         ],
     ),
 
@@ -411,42 +410,11 @@ cmds = (
     ),
 
     dict(
-        name='access-grant',
-        help='Grants access to an initiator to a volume',
-        args=[
-            dict(init_id_opt),
-            dict(init_type_opt),
-            dict(vol_id_opt),
-        ],
-        optional=[
-            dict(access_opt),
-        ],
-    ),
-
-    dict(
-        name='access-revoke',
-        help='Removes access for an initiator to a volume',
-        args=[
-            dict(init_id_opt),
-            dict(vol_id_opt),
-        ],
-    ),
-
-    dict(
         name='access-group-volumes',
         help='Lists the volumes that the access group has'
              ' been granted access to',
         args=[
             dict(ag_id_opt),
-        ],
-    ),
-
-    dict(
-        name='initiators-granted-volume',
-        help='Lists the initiators that have been '
-             'granted access to specified volume',
-        args=[
-            dict(vol_id_opt),
         ],
     ),
 
@@ -955,9 +923,12 @@ class CmdLine:
                 search_key = 'id'
             if search_key == 'access_group_id':
                 lsm_ag = _get_item(self.c.access_groups(), args.ag,
-                                   "Access Group ID")
-                return self.display_data(
-                    self.c.volumes_accessible_by_access_group(lsm_ag, flags))
+                                   "Access Group ID", raise_error=False)
+                if lsm_ag:
+                    return self.display_data(
+                        self.c.volumes_accessible_by_access_group(lsm_ag, flags))
+                else:
+                    return self.display_data([])
             elif search_key and search_key not in Volume.SUPPORTED_SEARCH_KEYS:
                 raise ArgError("Search key '%s' is not supported by "
                                "volume listing." % search_key)
@@ -990,8 +961,6 @@ class CmdLine:
                 flags |= FsSnapshot.FLAG_RETRIEVE_FULL_INFO
             fs = _get_item(self.c.fs(), args.fs, 'filesystem')
             self.display_data(self.c.fs_snapshots(fs, flags))
-        elif args.type == 'INITIATORS':
-            self.display_data(self.c.initiators())
         elif args.type == 'EXPORTS':
             if args.optional:
                 flags |= NfsExport.FLAG_RETRIEVE_FULL_INFO
@@ -1011,9 +980,12 @@ class CmdLine:
                 search_key = 'id'
             if search_key == 'volume_id':
                 lsm_vol = _get_item(self.c.volumes(), args.vol,
-                                   "Volume ID")
-                return self.display_data(
-                    self.c.access_groups_granted_to_volume(lsm_vol, flags))
+                                   "Volume ID", raise_error=False)
+                if lsm_vol:
+                    return self.display_data(
+                        self.c.access_groups_granted_to_volume(lsm_vol, flags))
+                else:
+                    return self.display_data([])
             elif search_key and \
                search_key not in AccessGroup.SUPPORTED_SEARCH_KEYS:
                 raise ArgError("Search key '%s' is not supported by "
@@ -1041,43 +1013,21 @@ class CmdLine:
         else:
             raise ArgError("unsupported listing type=%s" % args.type)
 
-    ## Converts type initiator type to enumeration type.
-    # @param    type    String representation of type
-    # @returns  Enumerated value
-    @staticmethod
-    def _init_type_to_enum(init_type):
-        if init_type == 'WWPN':
-            init = Initiator.TYPE_PORT_WWN
-        elif init_type == 'WWNN':
-            init = Initiator.TYPE_NODE_WWN
-        elif init_type == 'ISCSI':
-            init = Initiator.TYPE_ISCSI
-        elif init_type == 'HOSTNAME':
-            init = Initiator.TYPE_HOSTNAME
-        elif init_type == 'SAS':
-            init = Initiator.TYPE_SAS
-        else:
-            raise ArgError("invalid initiator type " + init_type)
-        return init
-
     ## Creates an access group.
     def access_group_create(self, args):
-        init_enum = CmdLine._init_type_to_enum(args.init_type)
+        init_type = ag_init_type_str_to_lsm(args.init_type)
         access_group = self.c.access_group_create(args.name, args.init,
-                                                  init_enum, args.sys)
+                                                  init_type, args.sys)
         self.display_data([access_group])
 
     def _add_rm_access_grp_init(self, args, op):
-        agl = self.c.access_groups()
-        group = _get_item(agl, args.ag, "access group id")
+        lsm_ag = _get_item(self.c.access_groups(), args.ag, "access group id")
 
         if op:
-            init = CmdLine._init_type_to_enum(args.init_type)
-            self.c.access_group_initiator_add(
-                group, args.init, init)
+            init_type = ag_init_type_str_to_lsm(args.init_type)
+            self.c.access_group_initiator_add(lsm_ag, args.init, init_type)
         else:
-            init = _get_item(self.c.initiators(), args.init, "initiator id")
-            self.c.access_group_initiator_delete(group, init.id)
+            self.c.access_group_initiator_delete(lsm_ag, args.init)
 
     ## Adds an initiator from an access group
     def access_group_add(self, args):
@@ -1098,14 +1048,8 @@ class CmdLine:
         volumes = self.c.volumes_accessible_by_initiator(init)
         self.display_data(volumes)
 
-    def initiators_granted_volume(self, args):
-        vol = _get_item(self.c.volumes(), args.vol, "volume id")
-        initiators = self.c.initiators_granted_to_volume(vol)
-        self.display_data(initiators)
-
     def iscsi_chap(self, args):
-        init = _get_item(self.c.initiators(), args.init, "initiator id")
-        self.c.iscsi_chap_auth(init, args.in_user,
+        self.c.iscsi_chap_auth(args.init, args.in_user,
                                self.args.in_pass,
                                self.args.out_user,
                                self.args.out_pass)
@@ -1203,9 +1147,6 @@ class CmdLine:
         cap = self.c.capabilities(s)
         self._cp("BLOCK_SUPPORT", cap.supported(Capabilities.BLOCK_SUPPORT))
         self._cp("FS_SUPPORT", cap.supported(Capabilities.FS_SUPPORT))
-        self._cp("INITIATORS", cap.supported(Capabilities.INITIATORS))
-        self._cp("INITIATORS_GRANTED_TO_VOLUME",
-                 cap.supported(Capabilities.INITIATORS_GRANTED_TO_VOLUME))
         self._cp("VOLUMES", cap.supported(Capabilities.VOLUMES))
         self._cp("VOLUME_CREATE", cap.supported(Capabilities.VOLUME_CREATE))
         self._cp("VOLUME_RESIZE", cap.supported(Capabilities.VOLUME_RESIZE))
@@ -1230,10 +1171,6 @@ class CmdLine:
         self._cp("VOLUME_DELETE", cap.supported(Capabilities.VOLUME_DELETE))
         self._cp("VOLUME_ONLINE", cap.supported(Capabilities.VOLUME_ONLINE))
         self._cp("VOLUME_OFFLINE", cap.supported(Capabilities.VOLUME_OFFLINE))
-        self._cp("VOLUME_INITIATOR_GRANT",
-                 cap.supported(Capabilities.VOLUME_INITIATOR_GRANT))
-        self._cp("VOLUME_INITIATOR_REVOKE",
-                 cap.supported(Capabilities.VOLUME_INITIATOR_REVOKE))
         self._cp("VOLUME_THIN",
                  cap.supported(Capabilities.VOLUME_THIN))
         self._cp("VOLUME_ISCSI_CHAP_AUTHENTICATION",
@@ -1255,8 +1192,6 @@ class CmdLine:
         self._cp("VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP",
                  cap.supported(
                      Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP))
-        self._cp("VOLUME_ACCESSIBLE_BY_INITIATOR",
-                 cap.supported(Capabilities.VOLUME_ACCESSIBLE_BY_INITIATOR))
         self._cp("ACCESS_GROUPS_GRANTED_TO_VOLUME",
                  cap.supported(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME))
         self._cp("VOLUME_CHILD_DEPENDENCY",
@@ -1467,33 +1402,6 @@ class CmdLine:
     def volume_replicate_range_block_size(self, args):
         s = _get_item(self.c.systems(), args.sys, "system id")
         out(self.c.volume_replicate_range_block_size(s))
-
-    ## Used to grant or revoke access to a volume to an initiator.
-    # @param    grant   bool, if True we grant, else we un-grant.
-    def _access(self, grant, args):
-        v = _get_item(self.c.volumes(), args.vol, "volume id")
-        initiator_id = args.init
-
-        if grant:
-            i_type = CmdLine._init_type_to_enum(args.init_type)
-            access = 'DEFAULT'
-            if args.access is not None:
-                access = vol_access_type_str_to_type(args.access)
-
-            self.c.initiator_grant(initiator_id, i_type, v, access)
-        else:
-            initiator = _get_item(self.c.initiators(), initiator_id,
-                                  "initiator id")
-
-            self.c.initiator_revoke(initiator, v)
-
-    ## Grant access to volume to an initiator
-    def access_grant(self, args):
-        return self._access(True, args)
-
-    ## Revoke access to volume to an initiator
-    def access_revoke(self, args):
-        return self._access(False, args)
 
     def volume_mask(self, args):
         if not args.ag and not args.init:
