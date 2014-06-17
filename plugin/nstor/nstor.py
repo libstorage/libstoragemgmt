@@ -30,7 +30,7 @@ import time
 import traceback
 
 from lsm import (AccessGroup, Capabilities, ErrorNumber, FileSystem, INfs,
-                 IStorageAreaNetwork, Initiator, LsmError, NfsExport, Pool,
+                 IStorageAreaNetwork, LsmError, NfsExport, Pool,
                  FsSnapshot, System, VERSION, Volume, md5, Error,
                  common_urllib2_error_handler, search_property)
 
@@ -502,18 +502,6 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         return search_property(vol_list, search_key, search_value)
 
     @handle_nstor_errors
-    def initiators(self, flags=0):
-        """
-        Return an array of initiator objects
-        """
-        i_list = []
-        for ag in self.access_groups():
-            for initiator_id in ag.init_ids:
-                i_list.append(Initiator(initiator_id,
-                                        Initiator.TYPE_ISCSI, initiator_id))
-        return i_list
-
-    @handle_nstor_errors
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
                       flags=0):
         """
@@ -633,7 +621,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
     #    return
 
     @handle_nstor_errors
-    def iscsi_chap_auth(self, initiator, in_user, in_password, out_user,
+    def iscsi_chap_auth(self, init_id, in_user, in_password, out_user,
                         out_password, flags=0):
         """
         Register a user/password for the specified initiator for CHAP
@@ -652,59 +640,24 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
         try:
             self._request("create_initiator", "iscsitarget",
-                          [initiator.name,
+                          [init_id,
                            {'initiatorchapuser': in_user,
                             'initiatorchapsecret': in_password}])
         except:
             self._request("modify_initiator", "iscsitarget",
-                          [initiator.name,
+                          [init_id,
                            {'initiatorchapuser': in_user,
                             'initiatorchapsecret': in_password}])
 
             self._request("modify_initiator", "iscsitarget",
-                          [initiator.name,
+                          [init_id,
                            {'initiatorchapuser': in_user,
                             'initiatorchapsecret': in_password}])
-        return
-
-    @handle_nstor_errors
-    def initiator_grant(self, initiator_id, initiator_type, volume, access,
-                        flags=0):
-        """
-        Allows an initiator to access a volume.
-        """
-        hg_name = NexentaStor._calc_group(initiator_id)
-        try:
-            self.access_group_create(hg_name, initiator_id, initiator_type,
-                                     'NA')
-        except:
-            pass
-        self._volume_mask(hg_name, volume.name)
         return
 
     def _get_views(self, volume_name):
         return self._request("list_lun_mapping_entries", "scsidisk",
                              [volume_name])
-
-    @handle_nstor_errors
-    def initiator_revoke(self, initiator, volume, flags=0):
-        """
-        Revokes access to a volume for the specified initiator
-        """
-        ag_name = NexentaStor._calc_group(initiator.name)
-        views = self._get_views(volume.name)
-        view_number = -1
-        for view in views:
-            if view['host_group'] == ag_name:
-                view_number = view['entry_number']
-        if view_number == -1:
-            raise LsmError(ErrorNumber.NO_MAPPING, "There is no such mapping "
-                                                   "for volume %s" %
-                                                   volume.name)
-        self._request("remove_lun_mapping_entry", "scsidisk",
-                      [volume.name, view_number])
-        self._request("destroy_hostgroup", "stmf", [ag_name])
-        return
 
     def _volume_mask(self, group_name, volume_name):
         self._request("add_lun_mapping_entry", "scsidisk",
@@ -800,7 +753,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         """
         Adds an initiator to an access group
         """
-        if init_type != Initiator.TYPE_ISCSI:
+        if init_type != AccessGroup.INIT_TYPE_ISCSI_IQN:
             raise LsmError(ErrorNumber.NO_SUPPORT,
                            "Nstor only support iSCSI Access Group")
 
@@ -869,35 +822,3 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             clone_name = dep.split('@')[0]
             self._request("promote", "volume", [clone_name])
         return None
-
-    @handle_nstor_errors
-    def volumes_accessible_by_initiator(self, initiator, flags=0):
-        """
-        Returns a list of volumes that the initiator has access to.
-        """
-        ag_name = NexentaStor._calc_group(initiator.name)
-        volumes = []
-        all_volumes_list = self.volumes()
-        for vol in all_volumes_list:
-            for view in self._get_views(vol.name):
-                if view['host_group'] == ag_name:
-                    volumes.append(vol)
-        return volumes
-
-    @handle_nstor_errors
-    def initiators_granted_to_volume(self, volume, flags=0):
-        """
-        Returns a list of initiators that have access to the specified volume.
-        """
-        ag_list = self.access_groups()
-        i_list = self.initiators()
-        initiators_id = []
-        for view in self._get_views(volume.name):
-            for ag in ag_list:
-                if ag.name == view['host_group']:
-                    initiators_id.extend(ag.initiators)
-        initiators = []
-        for i in i_list:
-            if i.name in initiators_id:
-                initiators.append(i)
-        return initiators

@@ -25,7 +25,7 @@ import pywbem
 from pywbem import CIMError
 
 from lsm import (IStorageAreaNetwork, Error, uri_parse, LsmError, ErrorNumber,
-                 JobStatus, md5, Pool, Initiator, Volume, AccessGroup, System,
+                 JobStatus, md5, Pool, Volume, AccessGroup, System,
                  Capabilities, Disk, OptionalData, txt_a, VERSION,
                  search_property)
 
@@ -71,7 +71,7 @@ def handle_cim_errors(method):
                 if 'Errno 113' in desc:
                     raise LsmError(ErrorNumber.NETWORK_HOSTDOWN,
                                    'Host is down')
-            raise LsmError(ErrorNumber.PLUGIN_ERROR, desc)
+            raise LsmError(ErrorNumber.LSM_BUG, desc)
         except pywbem.cim_http.AuthError as ae:
             raise LsmError(ErrorNumber.PLUGIN_AUTH_FAILED, "Unauthorized user")
         except pywbem.cim_http.Error as te:
@@ -100,13 +100,19 @@ def _spec_ver_str_to_num(spec_ver_str):
     return None
 
 
+def _merge_list(list_a, list_b):
+    return list(set(list_a + list_b))
+
+
 class DMTF(object):
+    # CIM_StorageHardwareID['IDType']
     ID_TYPE_OTHER = pywbem.Uint16(1)
     ID_TYPE_WWPN = pywbem.Uint16(2)
     ID_TYPE_WWNN = pywbem.Uint16(3)
     ID_TYPE_HOSTNAME = pywbem.Uint16(4)
     ID_TYPE_ISCSI = pywbem.Uint16(5)
     ID_TYPE_SW_WWN = pywbem.Uint16(6)
+    ID_TYPE_SAS = pywbem.Uint16(7)
 
 
 _INIT_TYPE_CONV = {
@@ -116,6 +122,7 @@ _INIT_TYPE_CONV = {
     DMTF.ID_TYPE_HOSTNAME: AccessGroup.INIT_TYPE_HOSTNAME,
     DMTF.ID_TYPE_ISCSI: AccessGroup.INIT_TYPE_ISCSI_IQN,
     DMTF.ID_TYPE_SW_WWN: AccessGroup.INIT_TYPE_OTHER,
+    DMTF.ID_TYPE_SAS: AccessGroup.INIT_TYPE_SAS,
 }
 
 
@@ -124,6 +131,8 @@ def _dmtf_init_type_to_lsm(cim_init):
         return _INIT_TYPE_CONV[cim_init['IDType']]
     return AccessGroup.INIT_TYPE_UNKNOWN
 
+def _lsm_init_type_to_dmtf(lsm_init_type):
+    return _get_key(_INIT_TYPE_CONV, lsm_init_type)
 
 def _get_key(dictionary, value):
     keys = [k for k, v in dictionary.items() if v == value]
@@ -433,111 +442,69 @@ class Smis(IStorageAreaNetwork):
         self.cim_rps = []
         self.cim_root_profile_dict = dict()
         self.fallback_mode = True    # Means we cannot use profile register
+        self.all_vendor_namespaces = []
 
     def _get_cim_instance_by_id(self, class_type, requested_id,
-                                flag_full_info=True, property_list=None):
+                                property_list=None, raise_error=True):
         """
         Find out the CIM_XXXX Instance which holding the requested_id
-        If flag_full_info == True, we return a Instance with full info.
-        If you want to save some query time, try set it as False
+        Return None when error and raise_error is False
         """
         class_name = Smis._cim_class_name_of(class_type)
-        property_list = Smis._property_list_of_id(class_type, property_list)
+        error_numer = Smis._not_found_error_of_class(class_type)
+        id_pros = Smis._property_list_of_id(class_type, property_list)
 
-        cim_xxxs = self._c.EnumerateInstances(class_name,
-                                              PropertyList=property_list,
-                                              LocalOnly=False)
+        if property_list is None:
+            property_list = id_pros
+        else:
+            property_list = _merge_list(property_list, id_pros)
+
+        cim_xxxs = self._enumerate(class_name, property_list)
         org_requested_id = requested_id
         if class_type == 'Job':
             (requested_id, ignore) = self._parse_job_id(requested_id)
         for cim_xxx in cim_xxxs:
             if self._id(class_type, cim_xxx) == requested_id:
-                if flag_full_info:
-                    cim_xxx = self._c.GetInstance(cim_xxx.path,
-                                                  LocalOnly=False)
                 return cim_xxx
+        if raise_error is False:
+            return None
 
-        raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+        raise LsmError(error_numer,
                        "Cannot find %s Instance with " % class_name +
                        "%s ID '%s'" % (class_type, org_requested_id))
 
-    def _get_class_instance(self, class_name, prop_name=None, prop_value=None,
-                            no_throw_on_missing=False):
+    def _get_class_instance(self, class_name, prop_name, prop_value,
+                            raise_error=True, property_list=None):
         """
         Gets an instance of a class that optionally matches a specific
         property name and value
         """
         instances = None
+        if property_list is None:
+            property_list = [prop_name]
+        else:
+            property_list = _merge_list(property_list, [prop_name])
 
         try:
-            if prop_name:
-                instances = self._c.EnumerateInstances(
-                    class_name, PropertyList=[prop_name], LocalOnly=False)
-            else:
-                instances = self._c.EnumerateInstances(class_name,
-                                                       LocalOnly=False)
+            cim_xxxs = self._enumerate(class_name, property_list)
         except CIMError as ce:
             error_code = tuple(ce)[0]
 
-            if error_code == pywbem.CIM_ERR_INVALID_CLASS \
-                    and no_throw_on_missing:
+            if error_code == pywbem.CIM_ERR_INVALID_CLASS and \
+               raise_error is False:
                 return None
             else:
                 raise ce
 
-        if prop_name is None:
-            if len(instances) != 1:
-                class_names = " ".join([x.classname for x in instances])
-                raise LsmError(ErrorNumber.INTERNAL_ERROR,
-                               "Expecting one instance of %s and got %s" %
-                               (class_name, class_names))
+        for cim_xxx in cim_xxxs:
+            if prop_name in cim_xxx and cim_xxx[prop_name] == prop_value:
+                return cim_xxx
 
-            return instances[0]
-        else:
-            for i in instances:
-                if prop_name in i and i[prop_name] == prop_value:
-                    return i
-
-        if no_throw_on_missing:
-            return None
-
-        raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                       "Unable to find class instance %s " % class_name +
-                       "with property %s " % prop_name +
-                       "with value %s" % prop_value)
-
-    def _get_spc(self, initiator_id, volume_id):
-        """
-        Retrieve the SCSIProtocolController for a given initiator and volume.
-        This will return a non-none value when there is a mapping between the
-        initiator and the volume.
-        """
-        init = self._get_class_instance('CIM_StorageHardwareID', 'StorageID',
-                                        initiator_id)
-
-        # Look at page 151 (1.5 smi-s spec.) in the block services books for
-        # the SNIA_MappingProtocolControllerView
-
-        if init:
-            auths = self._c.Associators(init.path,
-                                        AssocClass='CIM_AuthorizedSubject')
-
-            if auths:
-                for a in auths:
-                    spc = self._c.Associators(
-                        a.path, AssocClass='CIM_AuthorizedTarget')
-                    if spc and len(spc) > 0:
-                        logical_device = \
-                            self._c.Associators(
-                                spc[0].path,
-                                AssocClass='CIM_ProtocolControllerForUnit')
-
-                        if logical_device and len(logical_device) > 0:
-                            vol = self._c.GetInstance(logical_device[0].path,
-                                                      LocalOnly=False)
-                            if 'DeviceID' in vol and \
-                                    md5(vol.path) == volume_id:
-                                return spc[0]
+        if raise_error:
+            raise LsmError(ErrorNumber.LSM_BUG,
+                           "Unable to find class instance %s " % class_name +
+                           "with property %s " % prop_name +
+                           "with value %s" % prop_value)
         return None
 
     def _pi(self, msg, retrieve_data, rc, out):
@@ -595,6 +562,7 @@ class Smis(IStorageAreaNetwork):
         namespace = None
         if 'namespace' in u['parameters']:
             namespace = u['parameters']['namespace']
+            self.all_vendor_namespaces = [namespace]
         else:
             namespace = Smis.SMIS_DEFAULT_NAMESPACE
 
@@ -650,6 +618,7 @@ class Smis(IStorageAreaNetwork):
 
         if len(self.cim_rps) >= 1:
             self.fallback_mode = False
+            self.all_vendor_namespaces = []
             # Support 'Array' profile is step 0 for this whole plugin.
             # We find out all 'Array' CIM_RegisteredProfile and stored
             # them into self.cim_root_profile_dict
@@ -658,7 +627,7 @@ class Smis(IStorageAreaNetwork):
                     SNIA.SMIS_SPEC_VER_1_4,
                     strict=False):
                 raise LsmError(ErrorNumber.NO_SUPPORT,
-                               "SMI-S provider does not support "
+                               "Target SMI-S provider does not support "
                                "SNIA SMI-S SPEC %s '%s' profile" %
                                (SNIA.SMIS_SPEC_VER_1_4,
                                 SNIA.BLK_ROOT_PROFILE))
@@ -725,7 +694,7 @@ class Smis(IStorageAreaNetwork):
         Interrogate the supported features of the replication service
         """
         rs = self._get_class_instance("CIM_ReplicationService", 'SystemName',
-                                      system.id, True)
+                                      system.id, raise_error=False)
         if rs:
             rs_cap = self._c.Associators(
                 rs.path,
@@ -758,7 +727,7 @@ class Smis(IStorageAreaNetwork):
 
             rs = self._get_class_instance("CIM_StorageConfigurationService",
                                           'SystemName',
-                                          system.id, True)
+                                          system.id, raise_error=False)
 
             if rs:
                 rs_cap = self._c.Associators(
@@ -796,7 +765,7 @@ class Smis(IStorageAreaNetwork):
         # Get the cim object that represents the system
         cim_sys = None
         cim_pcms = None
-        cim_sys = self._cim_sys_of_id(system.id)
+        cim_sys = self._get_cim_instance_by_id('System', system.id)
         if self.fallback_mode:
 
             # Using 'ExposePathsSupported of
@@ -840,7 +809,6 @@ class Smis(IStorageAreaNetwork):
 
         # Assume that the SMI-S we are talking to supports blocks
         cap.set(Capabilities.BLOCK_SUPPORT)
-        cap.set(Capabilities.INITIATORS)
 
         self._scs_supported_capabilities(system, cap)
         self._rs_supported_capabilities(system, cap)
@@ -885,8 +853,7 @@ class Smis(IStorageAreaNetwork):
                  'OperationalStatus']
         cim_job_pros = self._property_list_of_id('Job', props)
 
-        cim_job = self._get_cim_instance_by_id('Job', job_id, False,
-                                               cim_job_pros)
+        cim_job = self._get_cim_instance_by_id('Job', job_id, cim_job_pros)
 
         job_state = cim_job['JobState']
 
@@ -934,12 +901,33 @@ class Smis(IStorageAreaNetwork):
             return 'CIM_SCSIProtocolController'
         if class_type == 'Initiator':
             return 'CIM_StorageHardwareID'
-        raise LsmError(ErrorNumber.INTERNAL_ERROR,
+        raise LsmError(ErrorNumber.LSM_BUG,
                        "Smis._cim_class_name_of() got unknown " +
                        "class_type %s" % class_type)
 
     @staticmethod
-    def _property_list_of_id(class_type, requested_properties=None):
+    def _not_found_error_of_class(class_type):
+        if class_type == 'Volume':
+            return ErrorNumber.NOT_FOUND_VOLUME
+        if class_type == 'System':
+            return ErrorNumber.NOT_FOUND_SYSTEM
+        if class_type == 'Pool':
+            return ErrorNumber.NOT_FOUND_POOL
+        if class_type == 'Disk':
+            return ErrorNumber.NOT_FOUND_DISK
+        if class_type == 'Job':
+            return ErrorNumber.NOT_FOUND_JOB
+        if class_type == 'AccessGroup':
+            return ErrorNumber.NOT_FOUND_ACCESS_GROUP
+        if class_type == 'Initiator':
+            return ErrorNumber.INVALID_ARGUMENT
+        raise LsmError(ErrorNumber.LSM_BUG,
+                       "Smis._cim_class_name_of() got unknown " +
+                       "class_type %s" % class_type)
+
+
+    @staticmethod
+    def _property_list_of_id(class_type, extra_properties=None):
         """
         Return a PropertyList which the ID of current class is basing on
         """
@@ -961,14 +949,12 @@ class Smis(IStorageAreaNetwork):
         elif class_type == 'Initiator':
             rc = ['StorageID']
         else:
-            raise LsmError(ErrorNumber.INTERNAL_ERROR,
+            raise LsmError(ErrorNumber.LSM_BUG,
                        "Smis._cim_class_name_of() got unknown " +
                        "class_type %s" % class_type)
 
-        if requested_properties:
-            for p in requested_properties:
-                if p not in rc:
-                    rc.extend([p])
+        if extra_properties:
+            rc = _merge_list(rc, extra_properties)
         return rc
 
     def _sys_id_child(self, cim_xxx):
@@ -1289,7 +1275,7 @@ class Smis(IStorageAreaNetwork):
                 PropertyList=pool_pros, LocalOnly=False)
             return self._new_pool(cim_new_pool)
         else:
-            raise LsmError(ErrorNumber.INTERNAL_ERROR,
+            raise LsmError(ErrorNumber.LSM_BUG,
                            "Got not new Pool from out of InvokeMethod" +
                            "when CreateOrModifyElementFromStoragePool")
 
@@ -1399,72 +1385,16 @@ class Smis(IStorageAreaNetwork):
                         rc.extend([vol])
         return search_property(rc, search_key, search_value)
 
-    def _systems(self, system_name=None):
-        """
-        Returns a list of system objects (CIM)
-        """
-        cim_syss = []
-        cim_scss_path = []
-        try:
-            # Note: Please be informed, if PropertyList is an empty list,
-            #       XIV will return NOTHING, so use EnumerateInstanceNames()
-            #       when you need nothing but the CIMInstanceName
-            cim_scss_path = \
-                self._c.EnumerateInstanceNames(
-                    'CIM_StorageConfigurationService')
-        except CIMError as e:
-            # If array does not support CIM_StorageConfigurationService
-            # we use CIM_ComputerSystem which is mandatory.
-            # We might get some non-storage array listed as system.
-            # but we would like to take that risk instead of
-            # skipping basic support of old SMIS provider.
-            if e[0] == pywbem.CIM_ERR_INVALID_CLASS:
-                cim_syss = self._c.EnumerateInstances(
-                    'CIM_ComputerSystem',
-                    PropertyList=['Name', 'ElementName', 'OperationalStatus'],
-                    LocalOnly=False)
-            else:
-                raise e
-        if not cim_syss:
-            for cim_scs_path in cim_scss_path:
-                cim_tmp = \
-                    self._c.Associators(cim_scs_path,
-                                        AssocClass='CIM_HostedService',
-                                        ResultClass='CIM_ComputerSystem',
-                                        PropertyList=['Name',
-                                                    'ElementName',
-                                                    'OperationalStatus'])
-                if cim_tmp and cim_tmp[0]:
-                    cim_syss.extend([cim_tmp[0]])
-
-        # Filtering
-        if system_name is not None:
-            for cim_sys in cim_syss:
-                if cim_sys['Name'] == system_name:
-                    return [cim_sys]
-
-        elif self.system_list:
-            cim_filterd_syss = []
-            for cim_sys in cim_syss:
-                if cim_sys['Name'] in self.system_list:
-                    cim_filterd_syss.extend([cim_sys])
-            return cim_filterd_syss
-        else:
-            return cim_syss
-
     def _cim_pools_of(self, cim_sys_path, property_list=None):
-        pros = []
         if property_list is None:
-            pros = ['Primordial']
+            property_list = ['Primordial']
         else:
-            pros = property_list
-            if 'Primordial' not in pros:
-                pros.extend(['Primordial'])
+            property_list = _merge_list(property_list, ['Primordial'])
 
         cim_pools = self._c.Associators(cim_sys_path,
                                         AssocClass='CIM_HostedStoragePool',
                                         ResultClass='CIM_StoragePool',
-                                        PropertyList=pros)
+                                        PropertyList=property_list)
 
         return [p for p in cim_pools if not p["Primordial"]]
 
@@ -1540,7 +1470,7 @@ class Smis(IStorageAreaNetwork):
                         for key, value in opt_pro_dict.items():
                             pool.optional_data.set(key, value)
                 else:
-                    raise LsmError(ErrorNumber.INTERNAL_ERROR,
+                    raise LsmError(ErrorNumber.LSM_BUG,
                                    "Failed to retrieve pool information " +
                                    "from CIM_StoragePool: %s" % cim_pool.path)
         return search_property(rc, search_key, search_value)
@@ -1631,61 +1561,6 @@ class Smis(IStorageAreaNetwork):
 
         return [Smis._cim_sys_2_lsm_sys(s) for s in cim_syss]
 
-    def _new_init(self, cim_init):
-        """
-        Generate Initiator object from CIM_StorageHardwareID
-        """
-        init_id = self._init_id(cim_init)
-        init_type = cim_init['IDType']
-        init_name = cim_init['ElementName']
-        return Initiator(init_id, init_type, init_name)
-
-    def _new_init_pros(self):
-        """
-        Return a list of properties needed to created Initiator from
-        CIM_StorageHardwareID
-        """
-        cim_init_pros = self._property_list_of_id('Initiator',
-                                                  ['IDType', 'ElementName'])
-        return cim_init_pros
-
-    @handle_cim_errors
-    def initiators(self, flags=0):
-        """
-        Return all initiators generated from CIM_StorageHardwareID.
-        Following SNIA SMI-S 'Masking and Mapping Profile':
-            CIM_ComputerSystem
-                 | (CIM_HostedService)
-                 v
-            CIM_StorageHardwareIDManagementService
-                 | (CIM_ConcreteDependency)
-                 v
-            CIM_StorageHardwareID
-        This is supported from SNIA SMI-S 1.3rev6 to latest(1.6rev4).
-        """
-        rc_inits = []
-        cim_init_pros = self._new_init_pros()
-        try:
-            for cim_sys in self._systems():
-                cim_init_mss_path = self._c.AssociatorNames(
-                    cim_sys.path,
-                    AssocClass='CIM_HostedService',
-                    ResultClass='CIM_StorageHardwareIDManagementService')
-                for cim_init_ms_path in cim_init_mss_path:
-                    cim_inits = self._c.Associators(
-                        cim_init_ms_path,
-                        AssocClass='CIM_ConcreteDependency',
-                        ResultClass='CIM_StorageHardwareID',
-                        PropertyList=cim_init_pros)
-                    rc_inits.extend([self._new_init(i) for i in cim_inits])
-        except CIMError as ce:
-            error_code = tuple(ce)[0]
-            if error_code == pywbem.CIM_ERR_INVALID_CLASS or \
-                    error_code == pywbem.CIM_ERR_INVALID_PARAMETER:
-                raise LsmError(ErrorNumber.NO_SUPPORT,
-                               'Initiator is not supported by this array')
-        return rc_inits
-
     @handle_cim_errors
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
                       flags=0):
@@ -1699,7 +1574,7 @@ class Smis(IStorageAreaNetwork):
         # Get the Configuration service for the system we are interested in.
         scs = self._get_class_instance('CIM_StorageConfigurationService',
                                        'SystemName', pool.system_id)
-        sp = self._get_cim_instance_by_id('Pool', pool.id, False)
+        sp = self._get_cim_instance_by_id('Pool', pool.id)
 
         in_params = {'ElementName': volume_name,
                      'ElementType': pywbem.Uint16(2),
@@ -1728,7 +1603,7 @@ class Smis(IStorageAreaNetwork):
 
     def _detach(self, vol, sync):
         rs = self._get_class_instance("CIM_ReplicationService", 'SystemName',
-                                      vol.system_id, True)
+                                      vol.system_id, raise_error=False)
 
         if rs:
             in_params = {'Operation': pywbem.Uint16(8),
@@ -1845,7 +1720,7 @@ class Smis(IStorageAreaNetwork):
         rc = [None, None]
 
         rs = self._get_class_instance("CIM_ReplicationService", 'SystemName',
-                                      system_id, True)
+                                      system_id, raise_error=False)
 
         if rs:
             rs_cap = self._c.Associators(
@@ -1901,7 +1776,7 @@ class Smis(IStorageAreaNetwork):
                                       volume_src.system_id, True)
 
         if pool is not None:
-            cim_pool = self._get_cim_instance_by_id('Pool', pool.id, False)
+            cim_pool = self._get_cim_instance_by_id('Pool', pool.id)
         else:
             cim_pool = None
 
@@ -1928,7 +1803,7 @@ class Smis(IStorageAreaNetwork):
             # Check for storage configuration service
             rs = self._get_class_instance("CIM_StorageConfigurationService",
                                           'SystemName', volume_src.system_id,
-                                          True)
+                                          raise_error=False)
 
             ct = Volume.REPLICATE_CLONE
             if rep_type == Volume.REPLICATE_CLONE:
@@ -1963,35 +1838,15 @@ class Smis(IStorageAreaNetwork):
     def volume_offline(self, volume, flags=0):
         return None
 
-    def _initiator_create(self, name, init_id, id_type):
-        """
-        Create initiator object
-        """
-        hardware = self._get_class_instance(
-            'CIM_StorageHardwareIDManagementService')
-
-        in_params = {'ElementName': name,
-                     'StorageID': init_id,
-                     'IDType': pywbem.Uint16(id_type)}
-
-        (rc, out) = self._c.InvokeMethod('CreateStorageHardwareID',
-                                         hardware.path, **in_params)
-        if not rc:
-            init = self._get_class_instance('CIM_StorageHardwareID',
-                                            'StorageID', init_id)
-            return self._new_init(init)
-
-        raise LsmError(ErrorNumber.PLUGIN_ERROR, 'Error: ' + str(rc) +
-                                                 ' on initiator_create!')
-
     @handle_cim_errors
     def volume_mask(self, access_group, volume, flags=0):
         """
         Grant access to a volume to an group
         """
-        ccs = self._get_class_instance('CIM_ControllerConfigurationService',
-                                       'SystemName', access_group.system_id)
-        lun = self._get_cim_instance_by_id('Volume', volume.id)
+        cim_ccs = self._get_class_instance(
+            'CIM_ControllerConfigurationService',
+            'SystemName', access_group.system_id)
+        lun = self._get_cim_instance_by_id('Volume', volume.id, ['Name'])
         spc = self._get_cim_instance_by_id('AccessGroup', access_group.id)
 
         if not lun:
@@ -2009,7 +1864,7 @@ class Smis(IStorageAreaNetwork):
 
         # Returns None or job id
         return self._pi("access_grant", Smis.JOB_RETRIEVE_NONE,
-                        *(self._c.InvokeMethod('ExposePaths', ccs.path,
+                        *(self._c.InvokeMethod('ExposePaths', cim_ccs.path,
                                                **in_params)))[0]
 
     def _wait(self, job):
@@ -2026,9 +1881,10 @@ class Smis(IStorageAreaNetwork):
 
     @handle_cim_errors
     def volume_unmask(self, access_group, volume, flags=0):
-        ccs = self._get_class_instance('CIM_ControllerConfigurationService',
-                                       'SystemName', volume.system_id)
-        lun = self._get_cim_instance_by_id('Volume', volume.id)
+        cim_ccs = self._get_class_instance(
+            'CIM_ControllerConfigurationService',
+            'SystemName', access_group.system_id)
+        lun = self._get_cim_instance_by_id('Volume', volume.id, ['Name'])
         spc = self._get_cim_instance_by_id('AccessGroup', access_group.id)
 
         if not lun:
@@ -2041,7 +1897,7 @@ class Smis(IStorageAreaNetwork):
         hide_params = {'LUNames': [lun['Name']],
                        'ProtocolControllers': [spc.path]}
         return self._pi("HidePaths", Smis.JOB_RETRIEVE_NONE,
-                        *(self._c.InvokeMethod('HidePaths', ccs.path,
+                        *(self._c.InvokeMethod('HidePaths', cim_ccs.path,
                                                **hide_params)))[0]
 
     def _is_access_group(self, cim_ag):
@@ -2096,7 +1952,7 @@ class Smis(IStorageAreaNetwork):
             raise LsmError(ErrorNumber.NO_SUPPORT,
                            'AccessGroup is not supported by this array')
         else:
-            raise LsmError(ErrorNumber.INTERNAL_ERROR,
+            raise LsmError(ErrorNumber.LSM_BUG,
                            "Got %d instance of " % len(cim_ccss_path) +
                            "ControllerConfigurationService from %s" %
                            cim_sys.path + " in _cim_ags_of()")
@@ -2220,55 +2076,91 @@ class Smis(IStorageAreaNetwork):
 
         return search_property(rc, search_key, search_value)
 
-    def _initiator_lookup(self, initiator_id):
+    def _initiator_create(self, cim_sys_path, init_id, dmtf_id_type):
         """
-        Looks up an initiator by initiator id
-        returns None or object instance
+        Create a CIM_StorageHardwareID.
+        Raise error if failed. Return if pass.
         """
-        initiator = None
-        for i in self.initiators():
-            if i.id == initiator_id:
-                initiator = i
-                break
-        return initiator
+        cim_hw_srvs = self._c.AssociatorNames(
+            cim_sys_path,
+            ResultClass='CIM_StorageHardwareIDManagementService',
+            AssocClass='CIM_HostedService')
+        if len(cim_hw_srvs) == 0:
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                           "Target SMI-S provider does not support "
+                           "access_group_initiator_add(): No "
+                           "CIM_StorageHardwareIDManagementService to create"
+                           "new initiator")
+        if len(cim_hw_srvs) != 1:
+            raise LsmError(ErrorNumber.LSM_BUG,
+                           "_initiator_create(): Got more than one "
+                           "CIM_StorageHardwareIDManagementService")
+
+        in_params = {#'ElementName': init_id,
+                     'StorageID': init_id,
+                     'IDType': pywbem.Uint16(dmtf_id_type)}
+        print in_params
+
+        (rc, out) = self._c.InvokeMethod('CreateStorageHardwareID',
+                                         cim_hw_srvs[0], **in_params)
+        if not rc:
+            return
+
+        # Ideally, we should handle CIM Error here in stead of raise
+        # LSM_BUG error. Let's wait user report on bug.
+        raise LsmError(ErrorNumber.LSM_BUG,
+                       'Error on _initiator_create(): rc: "%s", out: "%s"'
+                       % (str(rc), out))
 
     @handle_cim_errors
     def access_group_initiator_add(self, access_group, init_id, init_type,
                                    flags=0):
+        # CIM_StorageHardwareIDManagementService.CreateStorageHardwareID()
+        # is mandatory since 1.4rev6
+        if not self.fallback_mode:
+            self._profile_is_supported(SNIA.MASK_PROFILE,
+                                       SNIA.SMIS_SPEC_VER_1_4,
+                                       strict=False,
+                                       raise_error=True)
+
+        cim_sys = self._get_cim_instance_by_id('System',
+                                               access_group.system_id)
+
         # Check to see if we have this initiator already, if we don't create
         # it and then add to the view.
+        if self._get_cim_instance_by_id(
+            'Initiator', init_id, raise_error=False) is None:
+            dmtf_id_type = _lsm_init_type_to_dmtf(init_type)
+            if dmtf_id_type is None:
+                raise LsmError(ErrorNumber.NO_SUPPORT,
+                               "SMI-S Plugin does not support init_type %d"
+                               % init_type)
+            self._initiator_create(cim_sys.path, init_id, dmtf_id_type)
 
-        spc = self._get_cim_instance_by_id('AccessGroup', access_group.id)
+        cim_ag = self._get_cim_instance_by_id('AccessGroup', access_group.id)
+        cim_ccs = self._get_class_instance(
+            'CIM_ControllerConfigurationService',
+            'SystemName', access_group.system_id)
 
-        # This need rework when removing lsm.Initiator class
-        initiator = self._initiator_lookup(init_id)
-        lsm_init_type = _lsm_init_type_to_dmtf(init_type)
-
-        if not initiator:
-            initiator = self._initiator_create(init_id, init_id,
-                                               lsm_init_type)
-
-        ccs = self._get_class_instance('CIM_ControllerConfigurationService',
-                                       'SystemName', access_group.system_id)
-
-        in_params = {'InitiatorPortIDs': [initiator.id],
-                     'ProtocolControllers': [spc.path]}
+        in_params = {'InitiatorPortIDs': [init_id],
+                     'ProtocolControllers': [cim_ag.path]}
 
         # Returns None or job id
         return self._pi("access_group_initiator_add", Smis.JOB_RETRIEVE_NONE,
-                        *(self._c.InvokeMethod('ExposePaths', ccs.path,
+                        *(self._c.InvokeMethod('ExposePaths', cim_ccs.path,
                                                **in_params)))[0]
 
     @handle_cim_errors
     def access_group_initiator_delete(self, access_group, init_id, flags=0):
-        spc = self._get_cim_instance_by_id('AccessGroup', access_group.id)
-        ccs = self._get_class_instance('CIM_ControllerConfigurationService',
-                                       'SystemName', access_group.system_id)
+        cim_ag = self._get_cim_instance_by_id('AccessGroup', access_group.id)
+        cim_ccs = self._get_class_instance(
+            'CIM_ControllerConfigurationService',
+            'SystemName', access_group.system_id)
 
         hide_params = {'InitiatorPortIDs': [init_id],
-                       'ProtocolControllers': [spc.path]}
+                       'ProtocolControllers': [cim_ag.path]}
         return self._pi("HidePaths", Smis.JOB_RETRIEVE_NONE,
-                        *(self._c.InvokeMethod('HidePaths', ccs.path,
+                        *(self._c.InvokeMethod('HidePaths', cim_ccs.path,
                                                **hide_params)))[0]
 
     @handle_cim_errors
@@ -2276,7 +2168,8 @@ class Smis(IStorageAreaNetwork):
         """
         Frees the resources given a job number.
         """
-        cim_job = self._get_cim_instance_by_id('Job', job_id)
+        cim_job = self._get_cim_instance_by_id('Job', job_id,
+                                               ['DeleteOnCompletion'])
 
         # See if we should delete the job
         if not cim_job['DeleteOnCompletion']:
@@ -2284,6 +2177,30 @@ class Smis(IStorageAreaNetwork):
                 self._c.DeleteInstance(cim_job.path)
             except CIMError:
                 pass
+
+    def _enumerate(self, class_name, property_list):
+        """
+        Please do the filter of "sytems=" in URI by yourself.
+        """
+        if len(self.all_vendor_namespaces) == 0:
+            # We need to find out the vendor spaces.
+            # We do it here to save plugin_register() time.
+            # Only non-fallback mode can goes there.
+            cim_syss = self._root_cim_syss()
+            all_vendor_namespaces = []
+            for cim_sys in cim_syss:
+                if cim_sys.path.namespace not in all_vendor_namespaces:
+                    all_vendor_namespaces.extend([cim_sys.path.namespace])
+            self.all_vendor_namespaces = all_vendor_namespaces
+        rc = []
+        for vendor_namespace in self.all_vendor_namespaces:
+            rc.extend(
+                self._c.EnumerateInstances(
+                    class_name,
+                    namespace=vendor_namespace,
+                    PropertyList=property_list,
+                    LocalOnly=False))
+        return rc
 
     @handle_cim_errors
     def disks(self, search_key=None, search_value=None, flags=0):
@@ -2300,37 +2217,22 @@ class Smis(IStorageAreaNetwork):
         by ourself in case URI contain 'system=xxx'.
         """
         rc = []
-        cim_sys_pros = self._property_list_of_id("System")
         if not self.fallback_mode:
             self._profile_is_supported(SNIA.DISK_LITE_PROFILE,
                                        SNIA.SMIS_SPEC_VER_1_4,
                                        strict=False,
                                        raise_error=True)
-        cim_syss = self._root_cim_syss(cim_sys_pros)
-
-        if len(cim_syss) < 1:
-            return []
-
-        all_vendor_namespaces = []
-        for cim_sys in cim_syss:
-            if cim_sys.path.namespace not in all_vendor_namespaces:
-                all_vendor_namespaces.extend([cim_sys.path.namespace])
-
         cim_disk_pros = Smis._new_disk_cim_disk_pros(flags)
-        for vendor_namespace in all_vendor_namespaces:
-            cim_disks = self._c.EnumerateInstances(
-                'CIM_DiskDrive',
-                namespace=vendor_namespace,
-                PropertyList=cim_disk_pros)
-            for cim_disk in cim_disks:
-                if self.system_list:
-                    if self._sys_id_child(cim_disk) not in self.system_list:
-                        continue
-                cim_ext_pros = Smis._new_disk_cim_ext_pros(flags)
-                cim_ext = self._pri_cim_ext_of_cim_disk(cim_disk.path,
-                                                        cim_ext_pros)
+        cim_disks = self._enumerate('CIM_DiskDrive', cim_disk_pros)
+        for cim_disk in cim_disks:
+            if self.system_list:
+                if self._sys_id_child(cim_disk) not in self.system_list:
+                    continue
+            cim_ext_pros = Smis._new_disk_cim_ext_pros(flags)
+            cim_ext = self._pri_cim_ext_of_cim_disk(cim_disk.path,
+                                                    cim_ext_pros)
 
-                rc.extend([self._new_disk(cim_disk, cim_ext, flags)])
+            rc.extend([self._new_disk(cim_disk, cim_ext, flags)])
         return search_property(rc, search_key, search_value)
 
     @staticmethod
@@ -2459,7 +2361,7 @@ class Smis(IStorageAreaNetwork):
                 ResultClass='CIM_PhysicalPackage',
                 PropertyList=cim_phy_pkg_pros)
             if not (cim_phy_pkgs and cim_phy_pkgs[0]):
-                raise LsmError(ErrorNumber.INTERNAL_ERROR,
+                raise LsmError(ErrorNumber.LSM_BUG,
                                "Failed to find out the CIM_PhysicalPackage " +
                                "of CIM_DiskDrive %s" % cim_disk.path)
             cim_phy_pkg = cim_phy_pkgs[0]
@@ -2478,7 +2380,7 @@ class Smis(IStorageAreaNetwork):
                             status_info,
                             cim_disk['ErrorDescription'])
                     else:
-                        raise LsmError(ErrorNumber.INTERNAL_ERROR,
+                        raise LsmError(ErrorNumber.LSM_BUG,
                                        "CIM_DiskDrive %s " % cim_disk.id +
                                        "has ErrorCleared == False but " +
                                        "does not have " +
@@ -2511,13 +2413,12 @@ class Smis(IStorageAreaNetwork):
             cim_pri_ext     # The CIM_Instance of Primordial CIM_StorageExtent
         Exceptions:
             LsmError
-                ErrorNumber.INTERNAL_ERROR  # Failed to find out pri cim_ext
+                ErrorNumber.LSM_BUG  # Failed to find out pri cim_ext
         """
         if property_list is None:
             property_list = ['Primordial']
         else:
-            if 'Primordial' not in property_list:
-                property_list.extend(['Primordial'])
+            property_list = _merge_list(property_list, ['Primordial'])
 
         cim_exts = self._c.Associators(
             cim_disk_path,
@@ -2530,7 +2431,7 @@ class Smis(IStorageAreaNetwork):
             # each CIM_DiskDrive
             return cim_exts[0]
         else:
-            raise LsmError(ErrorNumber.INTERNAL_ERROR,
+            raise LsmError(ErrorNumber.LSM_BUG,
                            "Failed to find out Primordial " +
                            "CIM_StorageExtent for CIM_DiskDrive %s " %
                            cim_disk_path)
@@ -2748,7 +2649,7 @@ class Smis(IStorageAreaNetwork):
         elif len(cim_disks) == 2:
             return None
         else:
-            raise LsmError(ErrorNumber.INTERNAL_ERROR,
+            raise LsmError(ErrorNumber.LSM_BUG,
                            "Found two or more CIM_DiskDrive associated to " +
                            "requested CIM_StorageExtent %s" %
                            cim_pri_ext_path)
@@ -2990,7 +2891,6 @@ class Smis(IStorageAreaNetwork):
         """
         Delete a Pool via CIM_StorageConfigurationService.DeleteStoragePool
         """
-        cim_sys_pros = self._property_list_of_id("System")
         if not self.fallback_mode and \
            self._profile_is_supported(SNIA.BLK_SRVS_PROFILE,
                                       SNIA.SMIS_SPEC_VER_1_4,
@@ -3000,9 +2900,10 @@ class Smis(IStorageAreaNetwork):
                            (SNIA.BLK_SRVS_PROFILE,
                             SNIA.SMIS_SPEC_VER_1_4))
 
-        cim_sys = self._cim_sys_of_id(pool.system_id)
-        cim_pool = self._get_cim_pool_by_id(cim_sys.path, pool.id)
-        cim_scs = self._get_cim_scs(cim_sys.path)
+        cim_pool = self._get_cim_instance_by_id('Pool', pool.id)
+        cim_scs = self._get_class_instance(
+            'CIM_StorageConfigurationService',
+            'SystemName', pool.system_id)
 
         in_params = {'Pool': cim_pool.path}
 
@@ -3031,7 +2932,7 @@ class Smis(IStorageAreaNetwork):
                            (SNIA.BLK_SRVS_PROFILE,
                             SNIA.SMIS_SPEC_VER_1_4))
 
-        cim_sys = self._cim_sys_of_id(system.id)
+        cim_sys = self._get_cim_instance_by_id('System', system.id)
 
         # we does not support defining thinp_type yet.
         # just using whatever provider set.
@@ -3082,53 +2983,15 @@ class Smis(IStorageAreaNetwork):
             in_params['Goal'] = self._cim_st_path_for_goal(
                 raid_type, cim_sys.path)
 
-        cim_scs = self._get_cim_scs(cim_sys.path)
+        cim_scs = self._get_class_instance(
+            'CIM_StorageConfigurationService',
+            'SystemName', system.id)
 
         in_params = self._pool_chg_paras_check(in_params, cim_sys.path)
         return self._pi("pool_create", Smis.JOB_RETRIEVE_POOL,
                         *(self._c.InvokeMethod(
                             'CreateOrModifyStoragePool',
                             cim_scs.path, **in_params)))
-
-    @handle_cim_errors
-    def _pri_cim_ext_of_disk_ids(self, disk_ids):
-        """
-        Usage:
-            Find out the Primordial CIM_StorageSetting of Disk.
-        Parameter:
-            disk_ids    # a list of Disk.id
-        Returns:
-            [a , b]     # a list of items.
-                or
-            []          # disk_ids is NULL
-        Exception:
-            LsmError
-                ErrorNumber.INVALID_DISK    # Disk ID invalid.
-                ErrorNumber.INVALID_DISK    # No Disk found.
-        """
-        if len(disk_ids) == 0:
-            return []
-        cim_disks = self._c.EnumerateInstances('CIM_DiskDrive',
-                                               PropertyList=['SystemName',
-                                                             'DeviceID'],
-                                               LocalOnly=False)
-        if len(cim_disks) == 0:
-            raise LsmError(ErrorNumber.INVALID_DISK, "No disk found")
-
-        disk_id_2_cim = {}
-        for cim_disk in cim_disks:
-            disk_id_2_cim[self._disk_id(cim_disk)] = cim_disk
-
-        cim_pri_exts = []
-        for disk_id in disk_ids:
-            if disk_id in disk_id_2_cim.keys():
-                cim_disk = disk_id_2_cim[disk_id]
-                cim_pri_ext = self._pri_cim_ext_of_cim_disk(cim_disk.path)
-                cim_pri_exts.extend([cim_pri_ext])
-            else:
-                raise LsmError(ErrorNumber.INVALID_DISK,
-                               "Disk with ID %s cannot be found\n" % disk_id)
-        return cim_pri_exts
 
     @handle_cim_errors
     def _find_preset_cim_st(self, cim_cap_path, raid_type):
@@ -3324,37 +3187,6 @@ class Smis(IStorageAreaNetwork):
                                "type or add different RAID type tier")
         return new_in_params
 
-    def _get_cim_scs(self, cim_sys_path, property_list=None):
-        """
-        Usage:
-            Find out the CIM_StorageConfigurationService base on
-            CIM_ComputerSystem
-            Base on SNIA SMI-S 1.6rev4, Block book, Clause 5: Block Services
-            Package, Figure 8 - StoragePool Manipulation Instance Diagram
-            This is only one CIM_StorageConfigurationService associated to
-            CIM_ComputerSystem
-        Parameter:
-            cim_sys_path    # CIMInstanceName of CIM_ComputerSystem
-            property_list   # the list of properties required in return
-                            # CIMInstance
-        Returns:
-            cim_scs
-        """
-        pros = []
-        if property_list is not None:
-            pros = property_list
-        cim_scss = self._c.Associators(
-            cim_sys_path,
-            ResultClass='CIM_StorageConfigurationService',
-            PropertyList=pros)
-        if cim_scss and len(cim_scss) >= 0:
-            return cim_scss[0]
-        else:
-            raise LsmError(ErrorNumber.INTERNAL_ERROR,
-                           "Failed to find out " +
-                           "CIM_StorageConfigurationService of " +
-                           "CIM_ComputerSystem %s" % cim_sys_path)
-
     def _profile_is_supported(self, profile_name, spec_ver, strict=False,
                               raise_error=False):
         """
@@ -3426,7 +3258,11 @@ class Smis(IStorageAreaNetwork):
         this is assumption should work. Tested on EMC SMI-S provider which
         provide 1.4, 1.5, 1.6 root profile.
         """
-        property_list = self._property_list_of_id('System', property_list)
+        id_pros = self._property_list_of_id('System', property_list)
+        if property_list is None:
+            property_list = id_pros
+        else:
+            property_list = _merge_list(property_list, id_pros)
 
         cim_syss = []
         if self.fallback_mode:
@@ -3497,29 +3333,3 @@ class Smis(IStorageAreaNetwork):
             return needed_cim_syss
         else:
             return cim_syss
-
-    def _cim_sys_of_id(self, system_id, property_list=None):
-        """
-        Return a CIMInstance of CIM_ComputerSystem for given system id.
-        """
-        property_list = self._property_list_of_id("System", property_list)
-        cim_syss = self._root_cim_syss(property_list)
-
-        for cim_sys in cim_syss:
-            if self._sys_id(cim_sys) == system_id:
-                return cim_sys
-        raise LsmError(ErrorNumber.NOT_FOUND_SYSTEM,
-                       "System %s not found" % system_id)
-
-    def _get_cim_pool_by_id(self, cim_sys_path, pool_id, property_list=None):
-        """
-        Return a CIMInstance of CIM_StoragePool for given pool id.
-        """
-        property_list = self._property_list_of_id("Pool", property_list)
-        cim_pools = self._cim_pools_of(cim_sys_path, property_list)
-        for cim_pool in cim_pools:
-            if self._pool_id(cim_pool) == pool_id:
-                return cim_pool
-
-        raise LsmError(ErrorNumber.NOT_FOUND_POOL,
-                       "System %s not found" % pool_id)

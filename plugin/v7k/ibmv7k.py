@@ -17,7 +17,7 @@
 
 import paramiko
 
-from lsm import (Capabilities, ErrorNumber, IStorageAreaNetwork, Initiator,
+from lsm import (Capabilities, ErrorNumber, IStorageAreaNetwork,
                  LsmError, Pool, System, VERSION, Volume, uri_parse,
                  search_property, AccessGroup)
 
@@ -278,102 +278,6 @@ class IbmV7k(IStorageAreaNetwork):
 
         return Initiator(lsm_init_id, lsm_init_type, v7k_init['name'])
 
-    def _map_lsm_init_id_to_v7k(self, lsm_init_id):
-        gi = self._get_initiators()
-
-        v7k_init_id = None
-        for i in gi.itervalues():
-            v7kinit = self._get_initiator(i['id'])
-            if 'WWPN' in v7kinit and v7kinit['WWPN'] == lsm_init_id:
-                v7k_init_id = v7kinit['id']
-
-            if 'iscsi_name' in v7kinit and v7kinit['iscsi_name'] == \
-                    lsm_init_id:
-                v7k_init_id = v7kinit['id']
-
-        if not v7k_init_id:
-            raise LsmError(ErrorNumber.NOT_FOUND_INITIATOR,
-                           "Initiator not found")
-
-        return v7k_init_id
-
-    def _get_volumes_accessible_by_initiator(self, init_id):
-        # init_id passed is the lsm's init id. Convert it to v7k id.
-        v7k_init_id = self._map_lsm_init_id_to_v7k(init_id)
-
-        ssh_cmd = 'lshostvdiskmap -delim ! %s' % v7k_init_id
-        return self._execute_command_and_parse_concise(ssh_cmd)
-
-    def _get_initiators_granted_to_volume(self, v):
-        ssh_cmd = 'lsvdiskhostmap -delim ! %s' % v
-        return self._execute_command_and_parse_concise(ssh_cmd)
-
-    def _initiator_create(self, init_id, init_type):
-        if init_type == Initiator.TYPE_PORT_WWN:
-            type_option = '-hbawwpn'
-        elif init_type == Initiator.TYPE_ISCSI:
-            type_option = '-iscsiname'
-        else:
-            raise LsmError(ErrorNumber.UNSUPPORTED_INITIATOR_TYPE,
-                           "Initiator type not supported")
-
-        ssh_cmd = 'mkhost %s %s' % (type_option, init_id)
-        return self._execute_command(ssh_cmd)
-
-    def _initiator_create_is_success(self, stdout):
-        if 'successfully created' in stdout:
-            return True
-        return False
-
-    def _initiator_grant(self, init_id, init_type, vol_id, force):
-        # init_id passed is the lsm's init id. Convert it to v7k id.
-        try:
-            v7k_init_id = self._map_lsm_init_id_to_v7k(init_id)
-        except LsmError as le:
-            if le.code == ErrorNumber.NOT_FOUND_INITIATOR:
-                # Auto add the initiator
-                exit_code, stdout, stderr = self._initiator_create(init_id,
-                                                                   init_type)
-                if self._initiator_create_is_success(stdout):
-                    # If success, get the v7k id for the new init
-                    # This should not cause an exception this time!
-                    v7k_init_id = self._map_lsm_init_id_to_v7k(init_id)
-                else:
-                    raise LsmError(ErrorNumber.PLUGIN_ERROR,
-                                   "Error creating initiator")
-            else:
-                raise le
-
-        ssh_cmd = 'mkvdiskhostmap %s -host %s %s' % \
-                  ('-force' if force else '', v7k_init_id, vol_id)
-        return self._execute_command(ssh_cmd)
-
-    def _initiator_grant_is_success(self, stdout):
-        if 'successfully created' in stdout:
-            return True
-        return False
-
-    def _initiator_delete(self, v7k_init_id, force=True):
-        ssh_cmd = 'rmhost %s %s' % ('-force' if force else '', v7k_init_id)
-        self._execute_command(ssh_cmd)
-
-    def _initiator_revoke(self, init_id, vol_id):
-        # init_id passed is the lsm's init id. Convert it to v7k id.
-        v7k_init_id = self._map_lsm_init_id_to_v7k(init_id)
-
-        ssh_cmd = 'rmvdiskhostmap -host %s %s' % (v7k_init_id, vol_id)
-        self._execute_command(ssh_cmd)
-
-        # Auto remove initiator (if no mapping present)
-        # v7k rmhost raises exception, if host is being removed with mappings
-        # present... unless -force is specified. So exploit that fact here.
-        try:
-            self._initiator_delete(v7k_init_id, force=False)
-        except LsmError:
-            pass
-
-        return
-
     def plugin_register(self, uri, password, timeout, flags=0):
         self.password = password
         self.tmo = timeout
@@ -440,14 +344,6 @@ class IbmV7k(IStorageAreaNetwork):
             [self._volume(v) for v in gv.itervalues()],
             search_key, search_value)
 
-    def initiators(self, flags=0):
-        init_list = []
-        gi = self._get_initiators()
-        for i in gi.itervalues():
-            init = self._get_initiator(i['id'])
-            init_list.append(self._initiator(init))
-        return init_list
-
     @staticmethod
     def _v7k_init_to_lsm_ag(v7k_init, system_id):
         lsm_init_id = None
@@ -498,47 +394,3 @@ class IbmV7k(IStorageAreaNetwork):
         # TODO: How to pass -force param ? For now, assume -force
         self._delete_volume(volume.id, force=True)
         return None
-
-    def initiator_grant(self, initiator_id, initiator_type, volume, access,
-                        flags=0):
-        # TODO: How to pass -force param ? For now, assume -force.
-        #       -force allows multiple vdisk-to-host assignments,
-        #       which are not normally allowed
-
-        # NOTE: V7000 doesn't provide a way to pass access param,
-        #       access is always rw, if ro, raise error.
-        if access != Volume.ACCESS_READ_WRITE:
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "Only RW access to the volume is supported")
-
-        exit_code, stdout, stderr = self._initiator_grant(initiator_id,
-                                                          initiator_type,
-                                                          volume.id,
-                                                          force=True)
-        return self._initiator_grant_is_success(stdout)
-
-    def initiator_revoke(self, initiator, volume, flags=0):
-        self._initiator_revoke(initiator.id, volume.id)
-        return
-
-    def volumes_accessible_by_initiator(self, initiator, flags=0):
-        gvabi = self._get_volumes_accessible_by_initiator(initiator.id)
-
-        vol_list = []
-        for vol in gvabi.itervalues():
-            gv = self._get_volume(vol['vdisk_id'])
-            v = self._volume(gv)
-            vol_list.append(v)
-
-        return vol_list
-
-    def initiators_granted_to_volume(self, volume, flags=0):
-        gigtv = self._get_initiators_granted_to_volume(volume.id)
-
-        init_list = []
-        for init in gigtv.itervalues():
-            gi = self._get_initiator(init['host_id'])
-            i = self._initiator(gi)
-            init_list.append(i)
-
-        return init_list

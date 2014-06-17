@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2013 Red Hat, Inc.
+# Copyright (C) 2011-2014 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -27,8 +27,8 @@ import time
 
 from lsm import (size_human_2_size_bytes, size_bytes_2_size_human)
 from lsm import (System, Volume, Disk, Pool, FileSystem, AccessGroup,
-                    Initiator, FsSnapshot, NfsExport, OptionalData, md5,
-                    LsmError, ErrorNumber, JobStatus)
+                 FsSnapshot, NfsExport, OptionalData, md5, LsmError,
+                 ErrorNumber, JobStatus)
 
 # Used for format width for disks
 D_FMT = 5
@@ -387,30 +387,6 @@ class SimArray(object):
         sim_ags = self.data.access_groups_granted_to_volume(vol_id, flags)
         return [SimArray._sim_ag_2_lsm(a) for a in sim_ags]
 
-    @staticmethod
-    def _sim_init_2_lsm(sim_init):
-        return Initiator(sim_init['init_id'], sim_init['init_type'],
-                         sim_init['name'])
-
-    def inits(self, flags=0):
-        sim_inits = self.data.inits()
-        return [SimArray._sim_init_2_lsm(a) for a in sim_inits]
-
-    def initiator_grant(self, init_id, init_type, vol_id, access, flags=0):
-        return self.data.initiator_grant(
-            init_id, init_type, vol_id, access, flags)
-
-    def initiator_revoke(self, init_id, vol_id, flags=0):
-        return self.data.initiator_revoke(init_id, vol_id, flags)
-
-    def volumes_accessible_by_initiator(self, init_id, flags=0):
-        sim_vols = self.data.volumes_accessible_by_initiator(init_id, flags)
-        return [SimArray._sim_vol_2_lsm(v) for v in sim_vols]
-
-    def initiators_granted_to_volume(self, vol_id, flags=0):
-        sim_inits = self.data.initiators_granted_to_volume(vol_id, flags)
-        return [SimArray._sim_init_2_lsm(i) for i in sim_inits]
-
     def iscsi_chap_auth(self, init_id, in_user, in_pass, out_user, out_pass,
                         flags=0):
         return self.data.iscsi_chap_auth(init_id, in_user, in_pass, out_user,
@@ -451,16 +427,6 @@ class SimData(object):
             'mask_init': {
                 init_id = Volume.ACCESS_READ_WRITE|Volume.ACCESS_READ_ONLY,
             }
-        }
-
-        self.init_dict = {
-            Initiator.id = sim_init,
-        }
-        sim_init = {
-            'init_id': Initiator.id,
-            'init_type': Initiator.TYPE_XXXX,
-            'name': SimData.SIM_DATA_INIT_NAME,
-            'sys_id': SimData.SIM_DATA_SYS_ID,
         }
 
         self.ag_dict ={
@@ -536,7 +502,7 @@ class SimData(object):
         }
     """
     SIM_DATA_BLK_SIZE = 512
-    SIM_DATA_VERSION = "2.3"
+    SIM_DATA_VERSION = "2.4"
     SIM_DATA_SYS_ID = 'sim-01'
     SIM_DATA_INIT_NAME = 'NULL'
     SIM_DATA_TMO = 30000    # ms
@@ -869,6 +835,8 @@ class SimData(object):
         return self.ag_dict.values()
 
     def volume_create(self, pool_id, vol_name, size_bytes, thinp, flags=0):
+        self._check_dup_name(
+            self.vol_dict.values(), vol_name, ErrorNumber.EXISTS_VOLUME)
         size_bytes = SimData._block_rounding(size_bytes)
         # check free size
         free_space = self.pool_free_space(pool_id)
@@ -1033,16 +1001,23 @@ class SimData(object):
     def ags(self, flags=0):
         return self.ag_dict.values()
 
-    def access_group_create(self, name, init_id, init_type, sys_id, flags=0):
-        sim_ag = dict()
-        if init_id not in self.init_dict.keys():
-            sim_init = dict()
-            sim_init['init_id'] = init_id
-            sim_init['init_type'] = init_type
-            sim_init['name'] = SimData.SIM_DATA_INIT_NAME
-            sim_init['sys_id'] = SimData.SIM_DATA_SYS_ID
-            self.init_dict[init_id] = sim_init
+    def _check_dup_init(self, init_id):
+        for sim_ag in self.ag_dict.values():
+            if init_id in sim_ag['init_ids']:
+                raise LsmError(ErrorNumber.EXISTS_INITIATOR,
+                               "init_id %s already exist in other "
+                               % init_id +
+                               "access group %s" % sim_ag['ag_id'])
+    def _check_dup_name(self, sim_list, name, error_num):
+        used_names = [x['name'] for x in sim_list]
+        if name in used_names:
+            raise LsmError(error_num, "Name '%s' already in use" % name)
 
+    def access_group_create(self, name, init_id, init_type, sys_id, flags=0):
+        self._check_dup_name(
+            self.ag_dict.values(), name, ErrorNumber.EXISTS_ACCESS_GROUP)
+        self._check_dup_init(init_id)
+        sim_ag = dict()
         sim_ag['init_ids'] = [init_id]
         sim_ag['init_type'] = init_type
         sim_ag['sys_id'] = SimData.SIM_DATA_SYS_ID
@@ -1062,26 +1037,18 @@ class SimData(object):
         if ag_id not in self.ag_dict.keys():
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
                            "Access group not found")
-        if init_id not in self.init_dict.keys():
-            sim_init = dict()
-            sim_init['init_id'] = init_id
-            sim_init['init_type'] = init_type
-            sim_init['name'] = SimData.SIM_DATA_INIT_NAME
-            sim_init['sys_id'] = SimData.SIM_DATA_SYS_ID
-            self.init_dict[init_id] = sim_init
         if init_id in self.ag_dict[ag_id]['init_ids']:
-            return self.ag_dict[ag_id]
+            return None
+
+        self._check_dup_init(init_id)
 
         self.ag_dict[ag_id]['init_ids'].extend([init_id])
-
         return None
 
     def access_group_initiator_delete(self, ag_id, init_id, flags=0):
         if ag_id not in self.ag_dict.keys():
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
                            "Access group not found: %s" % ag_id)
-        if init_id not in self.init_dict.keys():
-            return None
 
         if init_id in self.ag_dict[ag_id]['init_ids']:
             new_init_ids = []
@@ -1122,9 +1089,7 @@ class SimData(object):
         return None
 
     def volumes_accessible_by_access_group(self, ag_id, flags=0):
-        if ag_id not in self.ag_dict.keys():
-            raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
-                           "Access group not found: %s" % ag_id)
+        # We don't check wether ag_id is valid
         rc = []
         for sim_vol in self.vol_dict.values():
             if 'mask' not in sim_vol:
@@ -1134,49 +1099,13 @@ class SimData(object):
         return rc
 
     def access_groups_granted_to_volume(self, vol_id, flags=0):
-        if vol_id not in self.vol_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_VOLUME,
-                           "No such Volume: %s" % vol_id)
+        # We don't check wether vold_id is valid
         sim_ags = []
         if 'mask' in self.vol_dict[vol_id].keys():
             ag_ids = self.vol_dict[vol_id]['mask'].keys()
             for ag_id in ag_ids:
                 sim_ags.extend([self.ag_dict[ag_id]])
         return sim_ags
-
-    def inits(self, flags=0):
-        return self.init_dict.values()
-
-    def initiator_grant(self, init_id, init_type, vol_id, access, flags):
-        if vol_id not in self.vol_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_VOLUME,
-                           "No such Volume: %s" % vol_id)
-        if init_id not in self.init_dict.keys():
-            sim_init = dict()
-            sim_init['init_id'] = init_id
-            sim_init['init_type'] = init_type
-            sim_init['name'] = SimData.SIM_DATA_INIT_NAME
-            sim_init['sys_id'] = SimData.SIM_DATA_SYS_ID
-            self.init_dict[init_id] = sim_init
-        if 'mask_init' not in self.vol_dict[vol_id].keys():
-            self.vol_dict[vol_id]['mask_init'] = dict()
-
-        self.vol_dict[vol_id]['mask_init'][init_id] = access
-        return None
-
-    def initiator_revoke(self, init_id, vol_id, flags=0):
-        if vol_id not in self.vol_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_VOLUME,
-                           "No such Volume: %s" % vol_id)
-        if init_id not in self.init_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_INIT,
-                           "No such Initiator: %s" % init_id)
-
-        if 'mask_init' in self.vol_dict[vol_id].keys():
-            if init_id in self.vol_dict[vol_id]['mask_init'].keys():
-                del self.vol_dict[vol_id]['mask_init'][init_id]
-
-        return None
 
     def _ag_ids_of_init(self, init_id):
         """
@@ -1189,44 +1118,9 @@ class SimData(object):
                 rc.extend([sim_ag['ag_id']])
         return rc
 
-    def volumes_accessible_by_initiator(self, init_id, flags=0):
-        if init_id not in self.init_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_INIT,
-                           "No such Initiator: %s" % init_id)
-        rc_dedup_dict = dict()
-        ag_ids = self._ag_ids_of_init(init_id)
-        for ag_id in ag_ids:
-            sim_vols = self.volumes_accessible_by_access_group(ag_id)
-            for sim_vol in sim_vols:
-                rc_dedup_dict[sim_vol['vol_id']] = sim_vol
-
-        for sim_vol in self.vol_dict.values():
-            if 'mask_init' in sim_vol:
-                if init_id in sim_vol['mask_init'].keys():
-                    rc_dedup_dict[sim_vol['vol_id']] = sim_vol
-        return rc_dedup_dict.values()
-
-    def initiators_granted_to_volume(self, vol_id, flags=0):
-        if vol_id not in self.vol_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_VOLUME,
-                           "No such Volume: %s" % vol_id)
-        rc_dedup_dict = dict()
-        sim_ags = self.access_groups_granted_to_volume(vol_id, flags)
-        for sim_ag in sim_ags:
-            for init_id in sim_ag['init_ids']:
-                rc_dedup_dict[init_id] = self.init_dict[init_id]
-
-        if 'mask_init' in self.vol_dict[vol_id].keys():
-            for init_id in self.vol_dict[vol_id]['mask_init']:
-                rc_dedup_dict[init_id] = self.init_dict[init_id]
-
-        return rc_dedup_dict.values()
-
     def iscsi_chap_auth(self, init_id, in_user, in_pass, out_user, out_pass,
                         flags=0):
-        if init_id not in self.init_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_INIT,
-                           "No such Initiator: %s" % init_id)
+        # to_code
         if self.init_dict[init_id]['init_type'] != Initiator.TYPE_ISCSI:
             raise LsmError(ErrorNumber.UNSUPPORTED_INITIATOR_TYPE,
                            "Initiator %s is not an iSCSI IQN" % init_id)
@@ -1280,8 +1174,8 @@ class SimData(object):
 
     def fs_clone(self, src_fs_id, dst_fs_name, snap_id, flags=0):
         if src_fs_id not in self.fs_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_INIT,
-                           "No such File System: %s" % src_fs_id)
+            raise LsmError(ErrorNumber.NOT_FOUND_FS,
+                           "File System: %s not found" % src_fs_id)
         if snap_id and snap_id not in self.snap_dict.keys():
             raise LsmError(ErrorNumber.INVALID_SS,
                            "No such Snapshot: %s" % snap_id)
@@ -1297,8 +1191,8 @@ class SimData(object):
 
     def fs_file_clone(self, fs_id, src_fs_name, dst_fs_name, snap_id, flags=0):
         if fs_id not in self.fs_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_INIT,
-                           "No such File System: %s" % fs_id)
+            raise LsmError(ErrorNumber.NOT_FOUND_FS,
+                           "File System: %s not found" % fs_id)
         if snap_id and snap_id not in self.snap_dict.keys():
             raise LsmError(ErrorNumber.INVALID_SS,
                            "No such Snapshot: %s" % snap_id)
@@ -1307,8 +1201,8 @@ class SimData(object):
 
     def fs_snapshots(self, fs_id, flags=0):
         if fs_id not in self.fs_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_INIT,
-                           "No such File System: %s" % fs_id)
+            raise LsmError(ErrorNumber.NOT_FOUND_FS,
+                           "File System: %s not found" % fs_id)
         rc = []
         if 'snaps' in self.fs_dict[fs_id].keys():
             for snap_id in self.fs_dict[fs_id]['snaps']:
@@ -1317,8 +1211,8 @@ class SimData(object):
 
     def fs_snapshot_create(self, fs_id, snap_name, files, flags=0):
         if fs_id not in self.fs_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_INIT,
-                           "No such File System: %s" % fs_id)
+            raise LsmError(ErrorNumber.NOT_FOUND_FS,
+                           "File System: %s not found" % fs_id)
         if 'snaps' not in self.fs_dict[fs_id].keys():
             self.fs_dict[fs_id]['snaps'] = []
 
@@ -1337,8 +1231,8 @@ class SimData(object):
 
     def fs_snapshot_delete(self, fs_id, snap_id, flags=0):
         if fs_id not in self.fs_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_INIT,
-                           "No such File System: %s" % fs_id)
+            raise LsmError(ErrorNumber.NOT_FOUND_FS,
+                           "File System: %s not found" % fs_id)
         if snap_id not in self.snap_dict.keys():
             raise LsmError(ErrorNumber.INVALID_SS,
                            "No such Snapshot: %s" % snap_id)
@@ -1353,8 +1247,8 @@ class SimData(object):
     def fs_snapshot_restore(self, fs_id, snap_id, files, restore_files,
                            flag_all_files, flags):
         if fs_id not in self.fs_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_INIT,
-                           "No such File System: %s" % fs_id)
+            raise LsmError(ErrorNumber.NOT_FOUND_FS,
+                           "File System: %s not found" % fs_id)
         if snap_id not in self.snap_dict.keys():
             raise LsmError(ErrorNumber.INVALID_SS,
                            "No such Snapshot: %s" % snap_id)
@@ -1363,8 +1257,8 @@ class SimData(object):
 
     def fs_child_dependency(self, fs_id, files, flags=0):
         if fs_id not in self.fs_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_INIT,
-                           "No such File System: %s" % fs_id)
+            raise LsmError(ErrorNumber.NOT_FOUND_FS,
+                           "File System: %s not found" % fs_id)
         if 'snaps' not in self.fs_dict[fs_id].keys():
             return False
         if files is None or len(files) == 0:
@@ -1382,8 +1276,8 @@ class SimData(object):
 
     def fs_child_dependency_rm(self, fs_id, files, flags=0):
         if fs_id not in self.fs_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_INIT,
-                           "No such File System: %s" % fs_id)
+            raise LsmError(ErrorNumber.NOT_FOUND_FS,
+                           "File System: %s not found" % fs_id)
         if 'snaps' not in self.fs_dict[fs_id].keys():
             return None
         if files is None or len(files) == 0:
@@ -1431,8 +1325,8 @@ class SimData(object):
     def fs_export(self, fs_id, exp_path, root_hosts, rw_hosts, ro_hosts,
                   anon_uid, anon_gid, auth_type, options, flags=0):
         if fs_id not in self.fs_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_INIT,
-                           "No such File System: %s" % fs_id)
+            raise LsmError(ErrorNumber.NOT_FOUND_FS,
+                           "File System: %s not found" % fs_id)
         sim_exp = dict()
         sim_exp['exp_id'] = self._next_exp_id()
         sim_exp['fs_id'] = fs_id

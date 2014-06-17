@@ -20,7 +20,7 @@
 
 import copy
 
-from lsm import (Pool, Volume, System, Capabilities, Initiator,
+from lsm import (Pool, Volume, System, Capabilities,
                  IStorageAreaNetwork, INfs, FileSystem, FsSnapshot, NfsExport,
                  LsmError, ErrorNumber, uri_parse, md5, VERSION,
                  common_urllib2_error_handler, search_property,
@@ -260,15 +260,6 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         lsm_ags = self.access_groups(flags=flags)
         return [x for x in lsm_ags if x.id in ag_ids]
 
-    @handle_errors
-    def initiators(self, flags=0):
-        inits = []
-        for init in set(i['initiator_wwn']
-                        for i in self._jsonrequest("export_list")):
-            inits.append(Initiator(init, Initiator.TYPE_ISCSI, init))
-
-        return inits
-
     def _get_volume(self, pool_id, volume_name):
         vol = [v for v in self._jsonrequest("vol_list", dict(pool=pool_id))
                if v['name'] == volume_name][0]
@@ -336,70 +327,16 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         return not self.volume_online(volume)
 
     @handle_errors
-    def iscsi_chap_auth(self, initiator, in_user, in_password, out_user,
+    def iscsi_chap_auth(self, init_id, in_user, in_password, out_user,
                         out_password, flags=0):
         self._jsonrequest("initiator_set_auth",
-                          dict(initiator_wwn=initiator.id,
+                          dict(initiator_wwn=init_id,
                                in_user=in_user,
                                in_pass=in_password,
                                out_user=out_user,
                                out_pass=out_password))
 
         return None
-
-    @handle_errors
-    def initiator_grant(self, initiator_id, initiator_type, volume, access,
-                        flags=0):
-        if initiator_type != Initiator.TYPE_ISCSI:
-            raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-        # find lowest unused lun and use that
-        used_luns = [x['lun'] for x in self._jsonrequest("export_list")]
-        lun = 0
-        while True:
-            if lun in used_luns:
-                lun += 1
-            else:
-                break
-
-        self._jsonrequest("export_create",
-                          dict(pool=volume.pool_id,
-                               vol=volume.name,
-                               initiator_wwn=initiator_id, lun=lun))
-
-    @handle_errors
-    def initiator_revoke(self, initiator, volume, flags=0):
-        self._jsonrequest("export_destroy",
-                          dict(pool=volume.pool_id,
-                               vol=volume.name,
-                               initiator_wwn=initiator.id))
-
-    @handle_errors
-    def volumes_accessible_by_initiator(self, initiator, flags=0):
-        exports = [x for x in self._jsonrequest("export_list")
-                   if initiator.id == x['initiator_wwn']]
-
-        vols = []
-        for export in exports:
-            vols.append(Volume(export['vol_uuid'], export['vol_name'],
-                               export['vol_uuid'], 512,
-                               export['vol_size'] / 512,
-                               Volume.STATUS_OK, self.system.id,
-                               export['pool']))
-
-        return vols
-
-    @handle_errors
-    def initiators_granted_to_volume(self, volume, flags=0):
-        exports = [x for x in self._jsonrequest("export_list")
-                   if volume.id == x['vol_uuid']]
-
-        inits = []
-        for export in exports:
-            name = export['initiator_wwn']
-            inits.append(Initiator(name, Initiator.TYPE_ISCSI, name))
-
-        return inits
 
     @handle_errors
     def fs(self, search_key=None, search_value=None, flags=0):

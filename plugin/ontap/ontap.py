@@ -23,7 +23,7 @@ import urlparse
 import sys
 
 import na
-from lsm import (Volume, Initiator, FileSystem, FsSnapshot, NfsExport,
+from lsm import (Volume, FileSystem, FsSnapshot, NfsExport,
                  AccessGroup, System, Capabilities, Disk, Pool, OptionalData,
                  IStorageAreaNetwork, INfs, LsmError, ErrorNumber, JobStatus,
                  md5, Error, VERSION, common_urllib2_error_handler,
@@ -519,32 +519,6 @@ class Ontap(IStorageAreaNetwork, INfs):
     def systems(self, flags=0):
         return [self.sys_info]
 
-    @handle_ontap_errors
-    def initiators(self, flags=0):
-        """
-        We will list all the initiators that are in all the groups.
-        """
-        rc = []
-        groups = self.f.igroups()
-
-        for g in groups:
-            #Get the initiator in the group
-            if g['initiators']:
-                inits = na.to_list(g['initiators']['initiator-info'])
-
-                for i in inits:
-                    init = i['initiator-name']
-
-                    if g['initiator-group-type'] == 'iscsi':
-                        init_type = Initiator.TYPE_ISCSI
-                    else:
-                        init_type = Initiator.TYPE_PORT_WWN
-
-                    name = init
-                    rc.append(Initiator(init, init_type, name))
-
-        return rc
-
     def _get_volume(self, vol_name, pool_id):
         return self._lun(self.f.luns_get_specific(pool_id, vol_name, None)[0])
 
@@ -735,13 +709,13 @@ class Ontap(IStorageAreaNetwork, INfs):
         return self.f.lun_offline(volume.name)
 
     @handle_ontap_errors
-    def volume_mask(self, group, volume, flags=0):
-        self.f.lun_map(group.name, volume.name)
+    def volume_mask(self, access_group, volume, flags=0):
+        self.f.lun_map(access_group.name, volume.name)
         return None
 
     @handle_ontap_errors
-    def volume_unmask(self, group, volume, flags=0):
-        self.f.lun_unmap(group.name, volume.name)
+    def volume_unmask(self, access_group, volume, flags=0):
+        self.f.lun_unmap(access_group.name, volume.name)
         return None
 
     @staticmethod
@@ -772,20 +746,24 @@ class Ontap(IStorageAreaNetwork, INfs):
             [self._access_group(g) for g in groups], search_key, search_value)
 
     @handle_ontap_errors
-    def access_group_create(self, name, initiator_id, id_type, system_id,
+    def access_group_create(self, name, init_id, init_type, system_id,
                             flags=0):
         cur_groups = self.access_groups()
         for cg in cur_groups:
             if cg.name == name:
                 raise LsmError(ErrorNumber.EXISTS_ACCESS_GROUP,
-                               "Access group exists!")
+                               "Access group with the same name exists!")
 
-        if id_type == Initiator.TYPE_ISCSI:
+        if init_type == AccessGroup.INIT_TYPE_ISCSI_IQN:
             self.f.igroup_create(name, 'iscsi')
-        else:
+        elif init_type == AccessGroup.INIT_TYPE_WWPN:
             self.f.igroup_create(name, 'fcp')
+        else:
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                           "ONTAP only support iSCSI and FC/FCoE, but got "
+                           "init_type: %d" % init_type)
 
-        self.f.igroup_add_initiator(name, initiator_id)
+        self.f.igroup_add_initiator(name, init_id)
 
         groups = self.access_groups()
         for g in groups:
@@ -796,25 +774,25 @@ class Ontap(IStorageAreaNetwork, INfs):
                        "Unable to find group just created!")
 
     @handle_ontap_errors
-    def access_group_delete(self, group, flags=0):
-        return self.f.igroup_delete(group.name)
+    def access_group_delete(self, access_group, flags=0):
+        return self.f.igroup_delete(access_group.name)
 
     @handle_ontap_errors
-    def access_group_initiator_add(self, group, initiator_id, id_type,
+    def access_group_initiator_add(self, access_group, init_id, init_type,
                                    flags=0):
-        return self.f.igroup_add_initiator(group.name, initiator_id)
+        return self.f.igroup_add_initiator(access_group.name, init_id)
 
     @handle_ontap_errors
-    def access_group_initiator_delete(self, group, initiator_id, flags=0):
-        return self.f.igroup_del_initiator(group.name, initiator_id)
+    def access_group_initiator_delete(self, access_group, init_id, flags=0):
+        return self.f.igroup_del_initiator(access_group.name, init_id)
 
     @handle_ontap_errors
-    def volumes_accessible_by_access_group(self, group, flags=0):
+    def volumes_accessible_by_access_group(self, access_group, flags=0):
         rc = []
 
-        if len(group.initiators):
-            luns = self.f.lun_initiator_list_map_info(group.initiators[0],
-                                                      group.name)
+        if len(access_group.init_ids):
+            luns = self.f.lun_initiator_list_map_info(access_group.init_ids[0],
+                                                      access_group.name)
             rc = [self._lun(l) for l in luns]
 
         return rc
@@ -825,7 +803,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         return [self._access_group(g) for g in groups]
 
     @handle_ontap_errors
-    def iscsi_chap_auth(self, initiator, in_user, in_password, out_user,
+    def iscsi_chap_auth(self, init_id, in_user, in_password, out_user,
                         out_password, flags=0):
         if out_user and out_password and \
                 (in_user is None or in_password is None):
@@ -833,7 +811,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                            "out_user and out_password only supported if "
                            "inbound is supplied")
 
-        self.f.iscsi_initiator_add_auth(initiator.id, in_user, in_password,
+        self.f.iscsi_initiator_add_auth(init_id, in_user, in_password,
                                         out_user, out_password)
 
     @staticmethod

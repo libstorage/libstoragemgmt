@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2013 Red Hat, Inc.
+# Copyright (C) 2011-2014 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -14,6 +14,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
 #
 # Author: tasleson
+#         Gris Ge <fge@redhat.com>
 
 from lsm import (uri_parse, VERSION, Capabilities, Pool, INfs,
                  IStorageAreaNetwork, Error, search_property)
@@ -218,31 +219,10 @@ class SimPlugin(INfs, IStorageAreaNetwork):
             volume.id, flags)
         return [SimPlugin._sim_data_2_lsm(v) for v in sim_vols]
 
-    def initiators(self, flags=0):
-        return self.sim_array.inits(flags)
-
-    def initiator_grant(self, initiator_id, initiator_type, volume, access,
-                        flags=0):
-        return self.sim_array.initiator_grant(
-            initiator_id, initiator_type, volume.id, access, flags)
-
-    def initiator_revoke(self, initiator, volume, flags=0):
-        return self.sim_array.initiator_revoke(initiator.id, volume.id, flags)
-
-    def volumes_accessible_by_initiator(self, initiator, flags=0):
-        sim_vols = self.sim_array.volumes_accessible_by_initiator(
-            initiator.id, flags)
-        return [SimPlugin._sim_data_2_lsm(v) for v in sim_vols]
-
-    def initiators_granted_to_volume(self, volume, flags=0):
-        sim_inits = self.sim_array.initiators_granted_to_volume(
-            volume.id, flags)
-        return [SimPlugin._sim_data_2_lsm(i) for i in sim_inits]
-
-    def iscsi_chap_auth(self, initiator, in_user, in_password,
+    def iscsi_chap_auth(self, init_id, in_user, in_password,
                         out_user, out_password, flags=0):
         return self.sim_array.iscsi_chap_auth(
-            initiator.id, in_user, in_password, out_user, out_password, flags)
+            init_id, in_user, in_password, out_user, out_password, flags)
 
     def volume_child_dependency(self, volume, flags=0):
         return self.sim_array.volume_child_dependency(volume.id, flags)
