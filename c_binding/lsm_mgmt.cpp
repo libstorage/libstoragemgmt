@@ -725,62 +725,6 @@ int lsm_pool_list(lsm_connect *c, char *search_key, char *search_value,
     return rc;
 }
 
-static int get_initiator_array(lsm_connect *c, int rc, Value &response,
-                                lsm_initiator **initiators[], uint32_t *count)
-{
-    try {
-        *count = 0;
-
-        if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
-            std::vector<Value> inits = response.asArray();
-
-            *count = inits.size();
-
-            if( inits.size() ) {
-
-                *initiators = lsm_initiator_record_array_alloc(inits.size());
-
-                if( *initiators ) {
-                    for( size_t i = 0; i < inits.size(); ++i ) {
-                        (*initiators)[i] = value_to_initiator(inits[i]);
-                    }
-                } else {
-                    rc = LSM_ERR_NO_MEMORY;
-                }
-            }
-        }
-    } catch ( const ValueException &ve ) {
-        if( *initiators && *count ) {
-            lsm_initiator_record_array_free(*initiators, *count);
-            *initiators = NULL;
-            *count = 0;
-        }
-
-        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
-                            ve.what());
-    }
-    return rc;
-}
-
-int lsm_initiator_list(lsm_connect *c, lsm_initiator **initiators[],
-                                uint32_t *count, lsm_flag flags)
-{
-    CONN_SETUP(c);
-
-    if( !initiators || !count || CHECK_RP(initiators) ||
-        LSM_FLAG_UNUSED_CHECK(flags) ) {
-        return LSM_ERR_INVALID_ARGUMENT;
-    }
-
-    std::map<std::string, Value> p;
-    p["flags"] = Value(flags);
-    Value parameters(p);
-    Value response;
-
-    int rc = rpc(c, "initiators", parameters, response);
-    return get_initiator_array(c, rc, response, initiators, count);
-}
-
 static int get_volume_array(lsm_connect *c, int rc, Value &response,
                             lsm_volume **volumes[], uint32_t *count)
 {
@@ -1372,23 +1316,20 @@ int lsm_volume_delete(lsm_connect *c, lsm_volume *volume, char **job,
 
 }
 
-int lsm_iscsi_chap_auth(lsm_connect *c, lsm_initiator *initiator,
+int lsm_iscsi_chap_auth(lsm_connect *c, const char *init_id,
                                 const char *username, const char *password,
                                 const char *out_user, const char *out_password,
                                 lsm_flag flags)
 {
     CONN_SETUP(c);
 
-    if( !LSM_IS_INIT(initiator) ) {
-        return LSM_ERR_INVALID_INIT;
-    }
-
-    if(LSM_FLAG_UNUSED_CHECK(flags)) {
+    if( NULL == init_id || strlen(init_id) == 0 ||
+        LSM_FLAG_UNUSED_CHECK(flags)) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
-    p["initiator"] = initiator_to_value(initiator);
+    p["initiator"] = Value(init_id);
     p["in_user"] = Value(username);
     p["in_password"] = Value(password);
     p["out_user"] = Value(out_user);
@@ -1401,112 +1342,6 @@ int lsm_iscsi_chap_auth(lsm_connect *c, lsm_initiator *initiator,
 
     return rpc(c, "iscsi_chap_auth", parameters, response);
 }
-
-int lsm_initiator_grant(lsm_connect *c,
-                    const char *initiator_id,
-                    lsm_initiator_type initiator_type,
-                    lsm_volume *volume,
-                    lsm_access_type access,
-                    lsm_flag flags)
-{
-    CONN_SETUP(c);
-
-    if( !LSM_IS_VOL(volume)){
-        return LSM_ERR_INVALID_VOL;
-    }
-
-    if( CHECK_STR(initiator_id) || LSM_FLAG_UNUSED_CHECK(flags) ) {
-        return LSM_ERR_INVALID_ARGUMENT;
-    }
-
-    std::map<std::string, Value> p;
-    p["initiator_id"] = Value(initiator_id);
-    p["initiator_type"] = Value((int32_t)initiator_type);
-    p["volume"] = volume_to_value(volume);
-    p["access"] = Value((int32_t)access);
-    p["flags"] = Value(flags);
-
-    Value parameters(p);
-    Value response;
-
-    return rpc(c, "initiator_grant", parameters, response);
-}
-
-int lsm_initiator_revoke( lsm_connect *c, lsm_initiator *i, lsm_volume *v,
-                        lsm_flag flags)
-{
-    CONN_SETUP(c);
-
-    if(!LSM_IS_INIT(i)) {
-        return LSM_ERR_INVALID_INIT;
-    }
-
-    if( !LSM_IS_VOL(v) || LSM_FLAG_UNUSED_CHECK(flags) ) {
-        return LSM_ERR_INVALID_VOL;
-    }
-
-    std::map<std::string, Value> p;
-    p["initiator"] = initiator_to_value(i);
-    p["volume"] = volume_to_value(v);
-    p["flags"] = Value(flags);
-
-    Value parameters(p);
-    Value response;
-
-    return rpc(c, "initiator_revoke", parameters, response);
-}
-
-int lsm_volumes_accessible_by_initiator(lsm_connect *c,
-                                        lsm_initiator *initiator,
-                                        lsm_volume **volumes[],
-                                        uint32_t *count, lsm_flag flags)
-{
-    CONN_SETUP(c);
-
-    if( !LSM_IS_INIT(initiator) ){
-        return LSM_ERR_INVALID_INIT;
-    }
-
-    if( CHECK_RP(volumes) || !count || *count != 0 ||
-        LSM_FLAG_UNUSED_CHECK(flags) ){
-        return LSM_ERR_INVALID_ARGUMENT;
-    }
-
-
-    std::map<std::string, Value> p;
-    p["initiator"] = initiator_to_value(initiator);
-    p["flags"] = Value(flags);
-    Value parameters(p);
-    Value response;
-
-    int rc = rpc(c, "volumes_accessible_by_initiator", parameters, response);
-    return get_volume_array(c, rc, response, volumes, count);
-}
-
-int lsm_initiators_granted_to_volume(lsm_connect *c, lsm_volume *volume,
-                                lsm_initiator **initiators[], uint32_t *count,
-                                lsm_flag flags)
-{
-    CONN_SETUP(c);
-
-    if( !LSM_IS_VOL(volume) ) {
-        return LSM_ERR_INVALID_VOL;
-    }
-
-    if( CHECK_RP(initiators) || !count || LSM_FLAG_UNUSED_CHECK(flags)) {
-        return LSM_ERR_INVALID_ARGUMENT;
-    }
-
-    std::map<std::string, Value> p;
-    p["volume"] = volume_to_value(volume);
-    p["flags"] = Value(flags);
-    Value parameters(p);
-    Value response;
-
-    int rc = rpc(c, "initiators_granted_to_volume", parameters, response);
-    return get_initiator_array(c, rc, response, initiators, count);
-}
-
 
 static int online_offline(lsm_connect *c, lsm_volume *v,
                             const char* operation, lsm_flag flags)

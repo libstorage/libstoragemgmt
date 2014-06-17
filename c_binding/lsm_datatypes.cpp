@@ -30,7 +30,6 @@
 #include <libstoragemgmt/libstoragemgmt_disk.h>
 #include <libstoragemgmt/libstoragemgmt_error.h>
 #include <libstoragemgmt/libstoragemgmt_fs.h>
-#include <libstoragemgmt/libstoragemgmt_initiators.h>
 #include <libstoragemgmt/libstoragemgmt_nfsexport.h>
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 #include <libstoragemgmt/libstoragemgmt_pool.h>
@@ -651,78 +650,6 @@ MEMBER_FUNC_GET(const char *, lsm_pool_plugin_data_get, lsm_pool *p,
 
 MEMBER_FUNC_GET( uint64_t, lsm_pool_element_type_get, lsm_pool *p, p, LSM_IS_POOL,
                     element_type, 0)
-
-CREATE_ALLOC_ARRAY_FUNC(lsm_initiator_record_array_alloc, lsm_initiator *)
-
-lsm_initiator *lsm_initiator_record_alloc(lsm_initiator_type idType, const char* id,
-                                        const char* name)
-{
-    lsm_initiator *rc = (lsm_initiator *)malloc(sizeof(lsm_initiator));
-    if (rc) {
-        rc->magic = LSM_INIT_MAGIC;
-        rc->id_type = idType;
-        rc->id = strdup(id);
-        rc->name = strdup(name);
-
-        if(!rc->id || !rc->name ) {
-            lsm_initiator_record_free(rc);
-            rc = NULL;
-        }
-    }
-    return rc;
-}
-
-lsm_initiator *lsm_initiator_record_copy(lsm_initiator *i)
-{
-    lsm_initiator *rc = NULL;
-    if( LSM_IS_INIT(i) ) {
-        rc = lsm_initiator_record_alloc(i->id_type, i->id, i->name);
-    }
-    return rc;
-}
-
-int lsm_initiator_record_free(lsm_initiator *i)
-{
-    if( LSM_IS_INIT(i) ) {
-        i->magic = LSM_DEL_MAGIC(LSM_INIT_MAGIC);
-        if (i->id) {
-            free(i->id);
-            i->id = NULL;
-            free(i->name);
-            i->name = NULL;
-        }
-        free(i);
-        return LSM_ERR_OK;
-    }
-    return LSM_ERR_INVALID_INIT;
-}
-
-CREATE_FREE_ARRAY_FUNC( lsm_initiator_record_array_free, lsm_initiator_record_free,
-                        lsm_initiator *, LSM_ERR_INVALID_INIT)
-
-lsm_initiator_type lsm_initiator_type_get(lsm_initiator *i)
-{
-    if( LSM_IS_INIT(i) ) {
-        return i->id_type;
-    }
-    return LSM_INITIATOR_OTHER;
-}
-
-char *lsm_initiator_id_get(lsm_initiator *i)
-{
-    if( LSM_IS_INIT(i) ) {
-        return i->id;
-    }
-    return NULL;
-}
-
-char *lsm_initiator_name_get(lsm_initiator *i)
-{
-    if( LSM_IS_INIT(i) ) {
-        return i->name;
-    }
-    return NULL;
-}
 
 CREATE_ALLOC_ARRAY_FUNC(lsm_volume_record_array_alloc, lsm_volume *)
 

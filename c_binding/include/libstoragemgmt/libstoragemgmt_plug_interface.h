@@ -27,7 +27,6 @@
 #include "libstoragemgmt_capabilities.h"
 #include "libstoragemgmt_error.h"
 #include "libstoragemgmt_fs.h"
-#include "libstoragemgmt_initiators.h"
 #include "libstoragemgmt_nfsexport.h"
 #include "libstoragemgmt_hash.h"
 #include "libstoragemgmt_pool.h"
@@ -49,7 +48,6 @@ typedef enum {
     LSM_DATA_TYPE_ACCESS_GROUP,         /**< Access group */
     LSM_DATA_TYPE_BLOCK_RANGE,          /**< Block range */
     LSM_DATA_TYPE_FS,                   /**< File system */
-    LSM_DATA_TYPE_INITIATOR,            /**< Initiator */
     LSM_DATA_TYPE_NFS_EXPORT,           /**< NFS export */
     LSM_DATA_TYPE_POOL,                 /**< Pool */
     LSM_DATA_TYPE_SS,                   /**< Snap shot */
@@ -184,17 +182,6 @@ struct lsm_mgmt_ops_v1 {
     lsm_plug_pool_list      pool_list;              /**< List of pools */
     lsm_plug_system_list    system_list;            /**< List of systems */
 };
-
-/**
- * Retrieve a list of initiators, callback function signature
- * @param[in]   c               Valid lsm plug-in pointer
- * @param[out]  init_array      Array of initiators
- * @param[out]  count           Number of initiators
- * @param[out]  flags           Reserved
- * @return LSM_ERR_OK, else error reason
- */
-typedef int (*lsm_plug_init_list)( lsm_plugin_ptr c, lsm_initiator **init_array[],
-                                        uint32_t *count, lsm_flag flags);
 
 /**
  * Retrieve a list of volumes.
@@ -400,17 +387,6 @@ typedef int (*lsm_plug_volume_delete)(lsm_plugin_ptr c, lsm_volume *volume,
                                     char **job, lsm_flag flags);
 
 /**
- * Removes access for an initiator to a volume, callback function signature.
- * @param[in]   c                   Valid lsm plug-in pointer
- * @param[in]   i                   Initiator to remove access for
- * @param[in]   v                   Volume of interest
- * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
- */
-typedef int (*lsm_plug_access_remove)(lsm_plugin_ptr c, lsm_initiator *i,
-                lsm_volume *v, lsm_flag flags);
-
-/**
  * Check on the status of a volume
  * @param[in]   c                   Valid lsm plug-in pointer
  * @param[in]   v                   Volume to retrieve status for
@@ -459,37 +435,10 @@ typedef int (*lsm_plug_initiator_grant)(lsm_plugin_ptr c, const char *initiator_
                                         lsm_flag flags);
 
 /**
- * Revokes access for an initiator, callback function signature
- * @param[in]   c                   Valid lsm plug-in pointer
- * @param[in]   init                Initiator to revoke access to
- * @param[in]   volume              Volume of interest
- * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
- */
-typedef int (*lsm_plug_initiator_revoke)(lsm_plugin_ptr c, lsm_initiator *init,
-                                        lsm_volume *volume,
-                                        lsm_flag flags);
-
-/**
- * Retrieves an array of initiators that have access to a specified volume
- * , callback function signature
- * @param[in]   c                   Valid lsm plug-in pointer
- * @param[in]   volume              Volume to lookup
- * @param[out]  init_array           Array of initiators
- * @param[out]  count               Number of items in array
- * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
- */
-typedef int (*lsm_plug_initiators_granted_to_volume)(lsm_plugin_ptr c,
-                                        lsm_volume *volume,
-                                        lsm_initiator **init_array[],
-                                        uint32_t *count, lsm_flag flags);
-
-/**
  * Setup the cap authentication for the specified initiator, callback
  * function signature
  * @param[in]   c                   Valid lsm plug-in pointer
- * @param[in]   initiator           Initiator to set chap authentication for
+ * @param[in]   init_id             Initiator to set chap authentication for
  * @param[in]   in_user             CHAP inbound username
  * @param[in]   in_password         CHAP inbound password
  * @param[in]   out_user            CHAP outbound user name
@@ -498,7 +447,7 @@ typedef int (*lsm_plug_initiators_granted_to_volume)(lsm_plugin_ptr c,
  * @return LSM_ERR_OK, else error reason
  */
 typedef int (*lsm_plug_iscsi_chap_auth)(lsm_plugin_ptr c,
-                                                lsm_initiator *initiator,
+                                                const char *init_id,
                                                 const char *in_user,
                                                 const char *in_password,
                                                 const char *out_user,
@@ -612,20 +561,6 @@ typedef int (*lsm_plug_volume_unmask)(lsm_plugin_ptr c,
  */
 typedef int (*lsm_plug_volumes_accessible_by_access_group)(lsm_plugin_ptr c,
                                                         lsm_access_group *group,
-                                                        lsm_volume **volumes[],
-                                                        uint32_t *count, lsm_flag flags);
-
-/**
- * Retrieve an array of volumes accessible by an initiator, callback function signature
- * @param[in]   c                   Valid lsm plug-in pointer
- * @param[in]   initiator           Initiator to find volumes for
- * @param[out]  volumes             Array of volumes
- * @param[out]  count               Number of volumes
- * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
- */
-typedef int (*lsm_plug_volumes_accessible_by_initiator)(lsm_plugin_ptr c,
-                                                        lsm_initiator * initiator,
                                                         lsm_volume **volumes[],
                                                         uint32_t *count, lsm_flag flags);
 
@@ -898,7 +833,6 @@ typedef int (*lsm_plug_nfs_export_remove)( lsm_plugin_ptr c, lsm_nfs_export *e,
  *  \brief Block array oriented functions (callback functions)
  */
 struct lsm_san_ops_v1 {
-    lsm_plug_init_list init_get;              /**<  retrieving initiators */
     lsm_plug_volume_list vol_get;             /**<  retrieving volumes */
     lsm_plug_disk_list disk_get;              /**<  retrieve disks */
     lsm_plug_pool_create pool_create;              /**<  Pool create */
@@ -914,9 +848,6 @@ struct lsm_san_ops_v1 {
     lsm_plug_volume_delete vol_delete;         /**<  deleting a volume */
     lsm_plug_volume_online vol_online;         /**<  bringing volume online */
     lsm_plug_volume_offline vol_offline;       /**<  bringing volume offline */
-    lsm_plug_initiator_grant initiator_grant;      /**<  granting access */
-    lsm_plug_initiator_revoke initiator_revoke;    /**<  revoking access */
-    lsm_plug_initiators_granted_to_volume initiators_granted_to_vol;     /**<  initiators granted to a volume */
     lsm_plug_iscsi_chap_auth iscsi_chap_auth;            /**<  iscsi chap authentication */
     lsm_plug_access_group_list ag_list;     /**<  access groups */
     lsm_plug_access_group_create ag_create; /**<  access group create */
@@ -926,7 +857,6 @@ struct lsm_san_ops_v1 {
     lsm_plug_volume_mask ag_grant;   /**<  acess group grant */
     lsm_plug_volume_unmask ag_revoke; /**<  access group revoke */
     lsm_plug_volumes_accessible_by_access_group vol_accessible_by_ag; /**<  volumes accessible by access group */
-    lsm_plug_volumes_accessible_by_initiator vol_accessible_by_init; /**<  volumes accessible by initiator */
     lsm_plug_access_groups_granted_to_volume ag_granted_to_vol;       /**<  access groups granted to a volume */
     lsm_plug_volume_child_dependency vol_child_depends;         /**<  volume child dependencies */
     lsm_plug_volume_child_dependency_delete vol_child_depends_rm;    /**<Callback to remove volume child dependencies */
@@ -1096,24 +1026,6 @@ lsm_pool LSM_DLL_EXPORT *lsm_pool_record_alloc(const char *id, const char *name,
  * @return NULL if donesn't exists, else data.
  */
 const char *lsm_pool_plugin_data_get(lsm_pool *p);
-
-/**
- * Allocate the storage needed for and array of Initiator records.
- * @param size      Number of elements.
- * @return Allocated memory or NULL on error.
- */
-lsm_initiator LSM_DLL_EXPORT **lsm_initiator_record_array_alloc( uint32_t size );
-
-/**
- * Allocate the storage needed for one initiator record.
- * @param id_type    Type of initiator.
- * @param id        ID of initiator.
- * @param name      Name of initiator
- * @return Allocated memory or NULL on error.
- */
-lsm_initiator LSM_DLL_EXPORT *lsm_initiator_record_alloc( lsm_initiator_type id_type,
-                                                        const char* id,
-                                                        const char* name);
 
 /**
  * Allocate the storage needed for and array of Volume records.

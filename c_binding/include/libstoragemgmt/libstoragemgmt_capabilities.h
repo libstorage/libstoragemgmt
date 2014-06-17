@@ -73,12 +73,6 @@ typedef enum {
     LSM_CAP_VOLUME_CHILD_DEPENDENCY                 = 45,       /**< Used to determine if a volume has any dependencies */
     LSM_CAP_VOLUME_CHILD_DEPENDENCY_RM              = 46,       /**< Removes dependendies */
 
-    LSM_CAP_INITIATORS                              = 47,       /**< List initiators */
-    LSM_CAP_INITIATORS_GRANTED_TO_VOLUME            = 48,       /**< List initiators granted to a volume */
-
-    LSM_CAP_VOLUME_INITIATOR_GRANT                  = 50,       /**< Grant a initiator to a volume */
-    LSM_CAP_VOLUME_INITIATOR_REVOKE                 = 51,       /**< Remove access to a volume for a specified initiator */
-    LSM_CAP_VOLUME_ACCESSIBLE_BY_INITIATOR          = 52,       /**< List what volumes are accessible by an initiator */
     LSM_CAP_VOLUME_ISCSI_CHAP_AUTHENTICATION        = 53,       /**< If you can configure iSCSI chap authentication */
 
     LSM_CAP_VOLUME_THIN                             = 55,       /**< Thin provisioned volumes are supported */

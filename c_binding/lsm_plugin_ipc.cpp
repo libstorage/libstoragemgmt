@@ -31,7 +31,6 @@
 #include "libstoragemgmt/libstoragemgmt_plug_interface.h"
 #include "libstoragemgmt/libstoragemgmt_volumes.h"
 #include "libstoragemgmt/libstoragemgmt_pool.h"
-#include "libstoragemgmt/libstoragemgmt_initiators.h"
 #include <errno.h>
 #include <string.h>
 #include <libxml/uri.h>
@@ -68,9 +67,6 @@ void * lsm_data_type_copy(lsm_data_type t, void *item)
                 break;
             case(LSM_DATA_TYPE_FS):
                 rc = lsm_fs_record_copy((lsm_fs *)item);
-                break;
-            case(LSM_DATA_TYPE_INITIATOR):
-                rc = lsm_initiator_record_copy((lsm_initiator *)item);
                 break;
             case(LSM_DATA_TYPE_NFS_EXPORT):
                 rc = lsm_nfs_export_record_copy((lsm_nfs_export *)item);
@@ -745,41 +741,6 @@ static int capabilities(lsm_plugin_ptr p, Value &params, Value &response)
             } else {
                 rc = LSM_ERR_NO_MEMORY;
             }
-        } else {
-            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
-        }
-    }
-    return rc;
-}
-
-static void get_initiators(int rc, lsm_initiator **inits, uint32_t count,
-                            Value &resp) {
-
-    if( LSM_ERR_OK == rc ) {
-        std::vector<Value> result;
-
-        for( uint32_t i = 0; i < count; ++i ) {
-            result.push_back(initiator_to_value(inits[i]));
-        }
-
-        lsm_initiator_record_array_free(inits, count);
-        inits = NULL;
-        resp = Value(result);
-    }
-}
-
-static int handle_initiators(lsm_plugin_ptr p, Value &params, Value &response)
-{
-    int rc = LSM_ERR_NO_SUPPORT;
-
-    if( p && p->san_ops && p->san_ops->init_get ) {
-        lsm_initiator **inits = NULL;
-        uint32_t count = 0;
-
-        if( LSM_FLAG_EXPECTED_TYPE(params) ) {
-            rc = p->san_ops->init_get(p, &inits, &count,
-                                        LSM_FLAG_GET_VALUE(params));
-            get_initiators(rc, inits, count, response);
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;
         }
@@ -2249,104 +2210,6 @@ static int export_remove(lsm_plugin_ptr p, Value &params, Value &response)
     return rc;
 }
 
-static int initiator_grant(lsm_plugin_ptr p, Value &params, Value &response)
-{
-    int rc = LSM_ERR_NO_SUPPORT;
-
-    if( p && p->san_ops && p->san_ops->initiator_grant ) {
-        Value v_init_id = params["initiator_id"];
-        Value v_init_type = params["initiator_type"];
-        Value v_vol = params["volume"];
-        Value v_access = params["access"];
-
-        if( Value::string_t == v_init_id.valueType() &&
-            Value::numeric_t == v_init_type.valueType() &&
-            Value::object_t == v_vol.valueType() &&
-            Value::numeric_t == v_access.valueType() &&
-            LSM_FLAG_EXPECTED_TYPE(params) ) {
-
-            const char *init_id = v_init_id.asC_str();
-            lsm_initiator_type i_type = (lsm_initiator_type)v_init_type.asInt32_t();
-            lsm_volume *vol = value_to_volume(v_vol);
-            lsm_access_type access = (lsm_access_type)v_access.asInt32_t();
-            lsm_flag flags = LSM_FLAG_GET_VALUE(params);
-
-            if( vol ) {
-                rc = p->san_ops->initiator_grant(p, init_id, i_type, vol, access,
-                                                flags);
-                lsm_volume_record_free(vol);
-            } else {
-                rc = LSM_ERR_NO_MEMORY;
-            }
-        } else {
-            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
-        }
-    }
-    return rc;
-}
-
-static int init_granted_to_volume(lsm_plugin_ptr p, Value &params, Value &response)
-{
-    int rc = LSM_ERR_NO_SUPPORT;
-
-    if( p && p->san_ops && p->san_ops->initiators_granted_to_vol ) {
-        Value v_vol = params["volume"];
-
-        if( Value::object_t == v_vol.valueType() &&
-            LSM_FLAG_EXPECTED_TYPE(params) ) {
-            lsm_initiator **inits = NULL;
-            uint32_t count = 0;
-
-            lsm_volume *vol = value_to_volume(v_vol);
-            lsm_flag flags = LSM_FLAG_GET_VALUE(params);
-
-            if( vol ) {
-                rc = p->san_ops->initiators_granted_to_vol(p, vol, &inits,
-                                                            &count, flags);
-                get_initiators(rc, inits, count, response);
-                lsm_volume_record_free(vol);
-                vol = NULL;
-            } else {
-                rc = LSM_ERR_NO_MEMORY;
-            }
-        } else {
-            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
-        }
-    }
-    return rc;
-}
-
-static int initiator_revoke(lsm_plugin_ptr p, Value &params, Value &response)
-{
-    int rc = LSM_ERR_NO_SUPPORT;
-    if( p && p->san_ops && p->san_ops->initiator_revoke ) {
-        Value v_init = params["initiator"];
-        Value v_vol = params["volume"];
-
-        if( Value::object_t == v_init.valueType() &&
-            Value::object_t == v_vol.valueType() &&
-            LSM_FLAG_EXPECTED_TYPE(params) ) {
-
-            lsm_initiator *init = value_to_initiator(v_init);
-            lsm_volume *vol = value_to_volume(v_vol);
-            lsm_flag flags = LSM_FLAG_GET_VALUE(params);
-
-            if( init && vol ) {
-                rc = p->san_ops->initiator_revoke(p, init, vol, flags);
-            } else {
-                rc = LSM_ERR_NO_MEMORY;
-            }
-
-            lsm_initiator_record_free(init);
-            lsm_volume_record_free(vol);
-
-        } else {
-            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
-        }
-    }
-    return rc;
-}
-
 static int iscsi_chap(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
@@ -2358,7 +2221,7 @@ static int iscsi_chap(lsm_plugin_ptr p, Value &params, Value &response)
         Value v_out_user = params["out_user"];
         Value v_out_password = params["out_password"];
 
-        if( Value::object_t == v_init.valueType() &&
+        if( Value::string_t == v_init.valueType() &&
             (Value::string_t == v_in_user.valueType() ||
             Value::null_t == v_in_user.valueType()) &&
             (Value::string_t == v_in_password.valueType() ||
@@ -2369,49 +2232,13 @@ static int iscsi_chap(lsm_plugin_ptr p, Value &params, Value &response)
             Value::null_t == v_out_password.valueType()) &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
 
-            lsm_initiator *init = value_to_initiator(v_init);
-            if( init ) {
-                rc = p->san_ops->iscsi_chap_auth(p, init,
-                                                    v_in_user.asC_str(),
-                                                    v_in_password.asC_str(),
-                                                    v_out_user.asC_str(),
-                                                    v_out_password.asC_str(),
-                                                    LSM_FLAG_GET_VALUE(params));
-                lsm_initiator_record_free(init);
-            } else {
-                rc = LSM_ERR_NO_MEMORY;
-            }
-        } else {
-            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
-        }
-    }
-    return rc;
-}
+            rc = p->san_ops->iscsi_chap_auth(p, v_init.asC_str(),
+                                                v_in_user.asC_str(),
+                                                v_in_password.asC_str(),
+                                                v_out_user.asC_str(),
+                                                v_out_password.asC_str(),
+                                                LSM_FLAG_GET_VALUE(params));
 
-static int vol_accessible_by_init(lsm_plugin_ptr p, Value &params, Value &response)
-{
-   int rc = LSM_ERR_NO_SUPPORT;
-
-    if( p && p->san_ops && p->san_ops->vol_accessible_by_init ) {
-        Value v_init = params["initiator"];
-
-        if( Value::object_t == v_init.valueType() &&
-            LSM_FLAG_EXPECTED_TYPE(params) ) {
-            lsm_volume **vols = NULL;
-            uint32_t count = 0;
-
-            lsm_initiator *init = value_to_initiator(v_init);
-            lsm_flag flags = LSM_FLAG_GET_VALUE(params);
-
-            if( init ) {
-                rc = p->san_ops->vol_accessible_by_init(p, init, &vols, &count,
-                                                        flags);
-                get_volumes(rc, vols, count, response);
-                lsm_initiator_record_free(init);
-                init = NULL;
-            } else {
-                rc = LSM_ERR_NO_MEMORY;
-            }
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;
         }
@@ -2450,10 +2277,6 @@ static std::map<std::string,handler> dispatch = static_map<std::string,handler>
     ("fs_snapshot_restore", ss_restore)
     ("fs_snapshots", ss_list)
     ("time_out_get", handle_get_time_out)
-    ("initiators", handle_initiators)
-    ("initiator_grant", initiator_grant)
-    ("initiators_granted_to_volume", init_granted_to_volume)
-    ("initiator_revoke", initiator_revoke)
     ("iscsi_chap_auth", iscsi_chap)
     ("job_free", handle_job_free)
     ("job_status", handle_job_status)
@@ -2479,7 +2302,6 @@ static std::map<std::string,handler> dispatch = static_map<std::string,handler>
     ("volume_replicate_range", handle_volume_replicate_range)
     ("volume_resize", handle_volume_resize)
     ("volumes_accessible_by_access_group", vol_accessible_by_ag)
-    ("volumes_accessible_by_initiator", vol_accessible_by_init)
     ("volumes", handle_volumes);
 
 static int process_request(lsm_plugin_ptr p, const std::string &method, Value &request,

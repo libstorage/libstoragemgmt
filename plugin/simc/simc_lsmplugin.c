@@ -160,9 +160,6 @@ void free_allocated_job(void *j)
         case(LSM_DATA_TYPE_FS):
             lsm_fs_record_free((lsm_fs *)job->return_data);
             break;
-        case(LSM_DATA_TYPE_INITIATOR):
-            lsm_initiator_record_free((lsm_initiator *)job->return_data);
-            break;
         case(LSM_DATA_TYPE_NFS_EXPORT):
             lsm_nfs_export_record_free((lsm_nfs_export *)job->return_data);
             break;
@@ -338,7 +335,6 @@ static int cap(lsm_plugin_ptr c, lsm_system *system,
         rc = lsm_capability_set_n(*cap, LSM_CAPABILITY_SUPPORTED, 48,
             LSM_CAP_BLOCK_SUPPORT,
             LSM_CAP_FS_SUPPORT,
-            LSM_CAP_INITIATORS,
             LSM_CAP_VOLUMES,
             LSM_CAP_VOLUME_CREATE,
             LSM_CAP_VOLUME_RESIZE,
@@ -517,122 +513,6 @@ static struct lsm_mgmt_ops_v1 mgm_ops = {
     list_pools,
     list_systems,
 };
-
-void initiator_free(void *i) {
-    if( i ) {
-        lsm_initiator_record_free((lsm_initiator *)i);
-    }
-}
-
-static int _volume_accessible(struct plugin_data *pd, lsm_access_group *ag,
-                                lsm_volume *vol)
-{
-    GHashTable *v = NULL;
-
-    const char *ag_id = lsm_access_group_id_get(ag);
-    const char *vol_id = lsm_volume_id_get(vol);
-
-    v = (GHashTable *)g_hash_table_lookup( pd->group_grant, ag_id );
-
-    if( v ) {
-        if( g_hash_table_lookup(v, vol_id) ) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
-static int _list_initiators(lsm_plugin_ptr c, lsm_initiator **init_array[],
-                                        uint32_t *count, lsm_flag flags,
-                                        lsm_volume *filter)
-{
-    int rc = LSM_ERR_OK;
-    struct plugin_data *pd = (struct plugin_data*)lsm_private_data_get(c);
-
-    if(!pd) {
-        return LSM_ERR_INVALID_PLUGIN;
-    }
-
-    GHashTable *tmp_inits = g_hash_table_new_full(g_str_hash, g_str_equal, free,
-                                                    initiator_free);
-
-    *count = 0;
-    *init_array = NULL;
-
-    if( tmp_inits ) {
-        char *k = NULL;
-        struct allocated_ag *v = NULL;
-        GHashTableIter iter;
-
-        g_hash_table_iter_init (&iter, pd->access_groups);
-        while (g_hash_table_iter_next (&iter, (gpointer) &k, (gpointer)&v) ) {
-            int include = 1;
-
-            uint32_t i = 0;
-
-            if( filter ) {
-                if( !_volume_accessible(pd, v->ag, filter )) {
-                    include = 0;
-                }
-            }
-
-            if( include ) {
-                lsm_string_list *inits = lsm_access_group_initiator_id_get(v->ag);
-
-                for(i = 0; i < lsm_string_list_size(inits); ++i ) {
-                    char *init_key = strdup(lsm_string_list_elem_get(inits,i));
-                    lsm_initiator *init_val = lsm_initiator_record_alloc(v->ag_type,
-                                                                    init_key, "");
-
-                    if( init_key && init_val ) {
-                        g_hash_table_insert(tmp_inits, init_key, init_val);
-                    } else {
-                        free(init_key);
-                        lsm_initiator_record_free(init_val);
-                        rc = LSM_ERR_NO_MEMORY;
-                    }
-                }
-            }
-        }
-
-        if( LSM_ERR_OK == rc ) {
-            *count = g_hash_table_size(tmp_inits);
-
-            if( *count ) {
-                *init_array = lsm_initiator_record_array_alloc(*count);
-                if( *init_array ) {
-                    int i = 0;
-                    char *ikey = NULL;
-                    lsm_initiator *ival = NULL;
-
-                    g_hash_table_iter_init (&iter, tmp_inits);
-                    while (g_hash_table_iter_next (&iter, (gpointer) &ikey,
-                                                            (gpointer)&ival) ) {
-                        (*init_array)[i] = lsm_initiator_record_copy(ival);
-                        if( !(*init_array)[i] ) {
-                            rc = LSM_ERR_NO_MEMORY;
-                            lsm_initiator_record_array_free(*init_array, i);
-                            break;
-                        }
-                        i += 1;
-                    }
-                } else {
-                    rc = LSM_ERR_NO_MEMORY;
-                }
-            }
-        }
-
-        g_hash_table_destroy(tmp_inits);
-    }
-    return rc;
-}
-
-
-static int list_initiators(lsm_plugin_ptr c, lsm_initiator **init_array[],
-                                        uint32_t *count, lsm_flag flags)
-{
-    return _list_initiators(c, init_array, count, flags, NULL);
-}
 
 static int list_volumes(lsm_plugin_ptr c, const char *search_key,
                         const char *search_value,
@@ -1642,216 +1522,18 @@ static void str_concat( char *dest, size_t d_len,
     }
 }
 
-
-static int initiator_grant(lsm_plugin_ptr c, const char *initiator_id,
-                                        lsm_initiator_type initiator_type,
-                                        lsm_volume *volume,
-                                        lsm_access_type access,
-                                        lsm_flag flags)
-{
-    int rc = LSM_ERR_OK;
-    lsm_access_group *ag = NULL;
-    char name[1024];
-
-    str_concat(name, sizeof(name), initiator_id, lsm_volume_id_get(volume));
-
-    rc = access_group_create(c, name, initiator_id, initiator_type,
-                        lsm_volume_system_id_get(volume), &ag, flags);
-    if( LSM_ERR_OK == rc ) {
-        rc = volume_mask(c, ag, volume, flags);
-
-        if( LSM_ERR_OK != rc ) {
-            /* If we didn't succeed, remove the access group */
-            access_group_delete(c, ag, flags);
-        }
-        lsm_access_group_record_free(ag);
-    }
-    return rc;
-}
-
-
-static lsm_access_group *get_access_group( lsm_plugin_ptr c, char *group_name,
-                                            int *found)
-{
-    lsm_access_group *ag = NULL;
-    lsm_access_group **groups = NULL;
-    uint32_t count = 0;
-
-    int rc = access_group_list(c, NULL, NULL, &groups, &count, LSM_FLAG_RSVD);
-
-    if( LSM_ERR_OK == rc ) {
-        uint32_t i;
-        for( i = 0; i < count; ++i ) {
-            if( strcmp(lsm_access_group_name_get(groups[i]), group_name) == 0 ) {
-                ag = lsm_access_group_record_copy(groups[i]);
-                *found = 1;
-                break;
-            }
-        }
-        lsm_access_group_record_array_free(groups, count);
-    }
-    return ag;
-}
-
-
-static int initiator_revoke(lsm_plugin_ptr c, lsm_initiator *init,
-                                        lsm_volume *volume,
-                                        lsm_flag flags)
-{
-    int rc = 0;
-    char name[1024];
-
-
-    str_concat(name, sizeof(name), lsm_initiator_id_get(init),
-                lsm_volume_id_get(volume));
-
-    int found = 0;
-    lsm_access_group *ag = get_access_group(c, name, &found);
-
-    if( found && ag ) {
-        rc = access_group_delete(c, ag, flags);
-    } else {
-        if( found && !ag) {
-            rc = LSM_ERR_NO_MEMORY;
-        } else {
-            rc = LSM_ERR_NO_MAPPING;
-        }
-    }
-
-    lsm_access_group_record_free(ag);
-
-    return rc;
-}
-
-
-
-static int initiators_granted_to_vol(lsm_plugin_ptr c,
-                                        lsm_volume *volume,
-                                        lsm_initiator **init_array[],
-                                        uint32_t *count, lsm_flag flags)
-{
-    return _list_initiators(c, init_array, count, flags, volume);
-}
-
-static int iscsi_chap_auth(lsm_plugin_ptr c, lsm_initiator *initiator,
+static int iscsi_chap_auth(lsm_plugin_ptr c, const char *init_id,
                                 const char *in_user, const char *in_password,
                                 const char *out_user, const char *out_password,
                                 lsm_flag flags)
 {
-    if (initiator) {
+    if (init_id) {
         return 0;
     }
     return LSM_ERR_INVALID_ARGUMENT;
 }
 
-static int _initiator_in_ag(struct plugin_data *pd, lsm_access_group *ag,
-                            const char *init_id)
-{
-    lsm_string_list *initiators = lsm_access_group_initiator_id_get(ag);
-    if( initiators ) {
-        uint32_t count = lsm_string_list_size(initiators);
-        uint32_t i = 0;
-
-        for ( i = 0; i < count; ++i ) {
-            if( strcmp(lsm_string_list_elem_get(initiators, i), init_id) == 0 ) {
-                return 1;
-            }
-        }
-    }
-    return 0;
-}
-
-static int vol_accessible_by_init(lsm_plugin_ptr c,
-                                    lsm_initiator *initiator,
-                                    lsm_volume **volumes[],
-                                    uint32_t *count, lsm_flag flags)
-{
-    int rc = LSM_ERR_OK;
-    GHashTableIter iter;
-    char *key = NULL;
-    struct allocated_ag *val = NULL;
-    struct plugin_data *pd = (struct plugin_data*)lsm_private_data_get(c);
-    const char *search = lsm_initiator_id_get(initiator);
-    GHashTable *tmp_vols = g_hash_table_new_full(g_str_hash, g_str_equal, NULL,
-                                                    NULL);
-
-    if( tmp_vols ) {
-
-        /*
-         * Walk through each access group, if the initiator is present in the
-         * group then add all the volumes that are accessible from that group
-         * to a list.  Once we are done, then allocate and fill out the volume
-         * objects to return
-         */
-        g_hash_table_iter_init (&iter, pd->access_groups);
-
-        while (g_hash_table_iter_next (&iter, (gpointer) &key,
-                                                        (gpointer)&val) ) {
-            if( _initiator_in_ag(pd, val->ag, search) ) {
-                GHashTable *v = NULL;
-
-
-                v = (GHashTable *)g_hash_table_lookup( pd->group_grant,
-                                                lsm_access_group_id_get(val->ag));
-
-                if( v ) {
-                    GHashTableIter iter_vol;
-                    char *vk = NULL;
-                    lsm_access_type *vv = NULL;
-
-                    g_hash_table_iter_init (&iter_vol, v);
-
-                    while( g_hash_table_iter_next(&iter_vol, (gpointer)&vk,
-                                                    (gpointer)&vv) ) {
-                        g_hash_table_insert(tmp_vols, vk, vk);
-                    }
-                }
-            }
-        }
-
-        *count = g_hash_table_size(tmp_vols);
-        if( *count ) {
-            *volumes = lsm_volume_record_array_alloc( *count );
-            if( *volumes ) {
-                /* Walk through each volume and see if we should include it*/
-
-                uint32_t alloc_count = 0;
-                char *k = NULL;
-                struct allocated_volume *vol;
-                GHashTableIter iter;
-                g_hash_table_iter_init(&iter, pd->volumes);
-                while(g_hash_table_iter_next(&iter,(gpointer) &k,(gpointer)&vol)) {
-                    lsm_volume *tv = vol->v;
-
-                    if( g_hash_table_lookup(tmp_vols, lsm_volume_id_get(tv))) {
-                        (*volumes)[alloc_count] = lsm_volume_record_copy(tv);
-                        if( !(*volumes)[alloc_count] ) {
-                            rc = LSM_ERR_NO_MEMORY;
-                            lsm_volume_record_array_free(*volumes, alloc_count);
-                            *count = 0;
-                            *volumes = NULL;
-                            break;
-                        } else {
-                            alloc_count += 1;
-                        }
-                    }
-                }
-            } else {
-                *count = 0;
-                rc = LSM_ERR_NO_MEMORY;
-            }
-        }
-
-        g_hash_table_destroy(tmp_vols);
-    } else {
-        rc = LSM_ERR_NO_MEMORY;
-    }
-
-    return rc;
-}
-
 static struct lsm_san_ops_v1 san_ops = {
-    list_initiators,
     list_volumes,
     list_disks,
     pool_create,
@@ -1867,9 +1549,6 @@ static struct lsm_san_ops_v1 san_ops = {
     volume_delete,
     volume_online_offline,
     volume_online_offline,
-    initiator_grant,
-    initiator_revoke,
-    initiators_granted_to_vol,
     iscsi_chap_auth,
     access_group_list,
     access_group_create,
@@ -1879,7 +1558,6 @@ static struct lsm_san_ops_v1 san_ops = {
     volume_mask,
     volume_unmask,
     vol_accessible_by_ag,
-    vol_accessible_by_init,
     ag_granted_to_volume,
     volume_dependency,
     volume_dependency_rm

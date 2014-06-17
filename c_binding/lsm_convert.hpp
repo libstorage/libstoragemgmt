@@ -87,20 +87,6 @@ int value_array_to_disks(Value &disk_values, lsm_disk **disks[],
                             uint32_t *count);
 
 /**
- * Converts a value to lsm_initiator *
- * @param init  to convert
- * @return lsm_initiator *, else NULL on error.
- */
-lsm_initiator *value_to_initiator(Value &init);
-
-/**
- * Converts an lsm_initiator * to Value
- * @param init lsm_initiator to convert
- * @return Value
- */
-Value initiator_to_value(lsm_initiator *init);
-
-/**
  * Converts a value to a pool
  * @param pool To convert to lsm_pool *
  * @return lsm_pool *, else NULL on error.

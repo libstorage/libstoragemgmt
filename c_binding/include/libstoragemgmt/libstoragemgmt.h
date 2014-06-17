@@ -29,7 +29,6 @@
 #include "libstoragemgmt_disk.h"
 #include "libstoragemgmt_error.h"
 #include "libstoragemgmt_fs.h"
-#include "libstoragemgmt_initiators.h"
 #include "libstoragemgmt_nfsexport.h"
 #include "libstoragemgmt_pool.h"
 #include "libstoragemgmt_snapshot.h"
@@ -347,17 +346,6 @@ extern "C" {
     int LSM_DLL_EXPORT lsm_pool_delete(lsm_connect *conn, lsm_pool *pool,
                                         char **job_id, lsm_flag flags);
 
-    /**
-     * Query the list of initiators known to the array
-     * @param[in]   conn            Valid connection @see lsm_connect_password
-     * @param[out] initiators       Array of initiators
-     * @param[out] count            Number of initiators
-     * @param[in] flags             Reserved for future use, must be zero.
-     * @return  LSM_ERR_OK on success else error reason
-     */
-    int LSM_DLL_EXPORT lsm_initiator_list(lsm_connect *conn,
-                                        lsm_initiator **initiators[],
-                                        uint32_t *count, lsm_flag flags);
 
     /**
      * Volume management functions
@@ -512,7 +500,7 @@ extern "C" {
     /**
      * Set the username password for CHAP authentication, inbound and outbound.
      * @param conn                      Valid connection pointer
-     * @param initiator                 Valid initiator pointer
+     * @param initiator                 Initiator ID
      * @param in_user                   inbound user name
      * @param in_password               inbound password
      * @param out_user                  outbound user name
@@ -521,43 +509,12 @@ extern "C" {
      * @return LSM_ERR_OK on success, else error code.
      */
     int LSM_DLL_EXPORT lsm_iscsi_chap_auth(lsm_connect *conn,
-                                                    lsm_initiator *initiator,
+                                                    const char *init_id,
                                                     const char *in_user,
                                                     const char *in_password,
                                                     const char * out_user,
                                                     const char *out_password,
                                                     lsm_flag flags);
-
-    /**
-     * Access control for allowing an initiator to use a volume.
-     * @param[in] conn                  Valid connection @see lsm_connect_password
-     * @param[in] initiator_id          Initiator to grant access to volume
-     * @param[in] initiator_type        Type of initiator we are adding
-     * @param[in] volume                Volume to allow access to
-     * @param[in] access                Type of access
-     * @param[in] flags                 Reserved for future use, must be zero.
-     * @return LSM_ERR_OK on success, else error code
-     */
-    int LSM_DLL_EXPORT lsm_initiator_grant(lsm_connect *conn,
-                                        const char *initiator_id,
-                                        lsm_initiator_type initiator_type,
-                                        lsm_volume *volume,
-                                        lsm_access_type access,
-                                        lsm_flag flags);
-
-    /**
-     * Revokes privileges an initiator has to a volume
-     * @param[in] conn          Valid connection
-     * @param[in] initiator     Valid initiator
-     * @param[in] volume        Valid volume
-     * @param[in] flags         Reserved for future use, must be zero.
-     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. ,
-     *          else error code
-     */
-    int LSM_DLL_EXPORT lsm_initiator_revoke(lsm_connect *conn,
-                                        lsm_initiator *initiator,
-                                        lsm_volume *volume,
-                                        lsm_flag flags);
 
     /**
      * Retrieves a list of access groups.
@@ -658,36 +615,6 @@ extern "C" {
                                             lsm_access_group *access_group,
                                             lsm_volume *volume,
                                             lsm_flag flags);
-
-    /**
-     * Returns an array of volumes that are accessible by the initiator.
-     * @param[in] conn                  Valid connection
-     * @param[in] initiator             Valid initiator pointer
-     * @param[out] volumes              An array of lsm_volume
-     * @param[out] count                Number of elements in array
-     * @param[in] flags                 Reserved for future use, must be zero.
-     * @return LSM_ERR_OK on success, else error reason.
-     */
-    int LSM_DLL_EXPORT lsm_volumes_accessible_by_initiator(lsm_connect *conn,
-                                        lsm_initiator *initiator,
-                                        lsm_volume **volumes[],
-                                        uint32_t *count, lsm_flag flags);
-
-
-    /**
-     * Returns an array of initiators that have access to a volume.
-     * @param[in] conn                  Valid connection
-     * @param[in] volume                Volume to interrogate
-     * @param[out] initiators           An array of lsm_initiator
-     * @param[out] count                Number of elements in array
-     * @param[in] flags                 Reserved for future use, must be zero
-      * @return LSM_ERR_OK on success, else error reason.
-     */
-    int LSM_DLL_EXPORT lsm_initiators_granted_to_volume(lsm_connect *conn,
-                                                lsm_volume *volume,
-                                                lsm_initiator **initiators[],
-                                                uint32_t *count,
-                                                lsm_flag flags);
 
     /**
      * Returns those volumes that the specified group has access to.

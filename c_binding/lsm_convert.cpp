@@ -181,35 +181,6 @@ int value_array_to_disks(Value &disk_values, lsm_disk **disks[], uint32_t *count
     return rc;
 }
 
-lsm_initiator *value_to_initiator(Value &init)
-{
-    lsm_initiator *rc = NULL;
-
-    if (is_expected_object(init, "Initiator")) {
-        std::map<std::string, Value> i = init.asObject();
-        rc = lsm_initiator_record_alloc(
-            (lsm_initiator_type) i["type"].asInt32_t(),
-            i["id"].asString().c_str(),
-            i["name"].asString().c_str()
-            );
-    }
-    return rc;
-
-}
-
-Value initiator_to_value(lsm_initiator *init)
-{
-    if( LSM_IS_INIT(init) ) {
-        std::map<std::string, Value> i;
-        i["class"] = Value("Initiator");
-        i["type"] = Value((int32_t) init->id_type);
-        i["id"] = Value(init->id);
-        i["name"] = Value(init->name);
-        return Value(i);
-    }
-    return Value();
-}
-
 lsm_pool *value_to_pool(Value &pool)
 {
     lsm_pool *rc = NULL;

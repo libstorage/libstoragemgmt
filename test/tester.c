@@ -1346,21 +1346,6 @@ START_TEST(test_invalid_input)
     rc = lsm_pool_list(c, "bogus_key", NULL, &pools, &count, LSM_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    /* lsmInitiatorList */
-     rc = lsm_initiator_list(c, NULL, NULL, LSM_FLAG_RSVD);
-    fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
-
-    lsm_initiator **inits = NULL;
-    rc = lsm_initiator_list(c, &inits, NULL, LSM_FLAG_RSVD);
-    fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
-
-    rc = lsm_initiator_list(c, NULL, &count, LSM_FLAG_RSVD);
-    fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
-
-    inits = (lsm_initiator **)&bad;
-    rc = lsm_initiator_list(c, &inits, &count, LSM_FLAG_RSVD);
-    fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
-
     /* lsmVolumeList */
      rc = lsm_volume_list(c, NULL, NULL, NULL, NULL, LSM_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
@@ -2025,7 +2010,6 @@ START_TEST(test_capability)
     lsm_capability_type expected_present[] = {
         LSM_CAP_BLOCK_SUPPORT,
         LSM_CAP_FS_SUPPORT,
-        LSM_CAP_INITIATORS,
         LSM_CAP_VOLUMES,
         LSM_CAP_VOLUME_CREATE,
         LSM_CAP_VOLUME_RESIZE,
@@ -2118,10 +2102,9 @@ START_TEST(test_capability)
     fail_unless(cap != NULL);
 
     if( cap ) {
-        rc = lsm_capability_set_n(cap, LSM_CAPABILITY_SUPPORTED, 48,
+        rc = lsm_capability_set_n(cap, LSM_CAPABILITY_SUPPORTED, 47,
             LSM_CAP_BLOCK_SUPPORT,
             LSM_CAP_FS_SUPPORT,
-            LSM_CAP_INITIATORS,
             LSM_CAP_VOLUMES,
             LSM_CAP_VOLUME_CREATE,
             LSM_CAP_VOLUME_RESIZE,
