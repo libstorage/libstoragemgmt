@@ -181,7 +181,7 @@ class TestProxy(object):
                         dict(rc=False,
                              stack_trace=traceback.format_exc(),
                              msg=str(e)))
-                raise e
+                raise
 
             # If the job can do async, we will block looping on it.
             if job_possible and rc is not None:
@@ -241,7 +241,7 @@ class TestPlugin(unittest.TestCase):
         self.c = TestProxy(lsm.Client(TestPlugin.URI, TestPlugin.PASSWORD))
 
         self.systems = self.c.systems()
-        self.pools = self.c.pools(flags=lsm.Pool.FLAG_RETRIEVE_FULL_INFO)
+        self.pools = self.c.pools()
 
         self.pool_by_sys_id = {}
 
@@ -253,9 +253,10 @@ class TestPlugin(unittest.TestCase):
 
     def _get_pool_by_usage(self, system_id, element_type):
         for p in self.pool_by_sys_id[system_id]:
-            if 'element_type' in p.optional_data.keys():
-                if int(p.optional_data.get('element_type')) == element_type:
-                    return p
+            return p
+            #if 'element_type' in p.optional_data.keys():
+            #    if int(p.optional_data.get('element_type')) == element_type:
+            #        return p
         return None
 
     def tearDown(self):
@@ -327,9 +328,9 @@ class TestPlugin(unittest.TestCase):
             pools = self.pool_by_sys_id[system_id]
 
             for p in pools:
-                if p.free_space > mb_in_bytes(250) and \
-                        int(p.optional_data.get('element_type')) & \
-                        lsm.Pool.ELEMENT_TYPE_FS:
+                if p.free_space > mb_in_bytes(250): #and \
+                        #int(p.optional_data.get('element_type')) & \
+                        #lsm.Pool.ELEMENT_TYPE_FS:
                     fs_size = min(p.free_space / 10, mb_in_bytes(512))
                     fs = self.c.fs_create(p, rs('fs'), fs_size)[1]
                     self.assertTrue(self._fs_exists(fs.id))

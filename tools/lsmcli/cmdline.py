@@ -29,7 +29,7 @@ from argparse import RawTextHelpFormatter
 from lsm import (Client, Pool, VERSION, LsmError, Capabilities, Disk,
                  Volume, JobStatus, ErrorNumber, BlockRange,
                  uri_parse, Proxy, size_human_2_size_bytes,
-                 AccessGroup, FileSystem, NfsExport, System, FsSnapshot)
+                 AccessGroup, FileSystem, NfsExport)
 
 from lsm.lsmcli.data_display import (
     DisplayData, PlugData, out,
@@ -71,6 +71,7 @@ def getch():
         termios.tcsetattr(fd, termios.TCSADRAIN, prev)
     return ch
 
+
 ## This class represents a command line argument error
 class ArgError(Exception):
     def __init__(self, message, *args, **kwargs):
@@ -104,7 +105,7 @@ list_choices = ['VOLUMES', 'POOLS', 'FS', 'SNAPSHOTS',
 
 init_types = ('WWPN', 'WWNN', 'ISCSI', 'HOSTNAME', 'SAS')
 init_id_help = "Access Group Initiator type: " + \
-                    ", ".join(init_types)
+               ", ".join(init_types)
 
 provision_types = ('DEFAULT', 'THIN', 'FULL')
 provision_help = "provisioning type: " + ", ".join(provision_types)
@@ -187,12 +188,6 @@ cmds = (
                  type=str.upper),
         ],
         optional=[
-             dict(name=('-o', '--optional'),
-                  help='Retrieve both mandatory and optional properties.\n'
-                       'Once define, will use "-s, --script" display way',
-                 default=False,
-                 dest='optional',
-                 action='store_true'),
             dict(sys_id_filter_opt),
             dict(pool_id_filter_opt),
             dict(vol_id_filter_opt),
@@ -629,10 +624,6 @@ cmds = (
             dict(name="--member-type", metavar='<MEMBER_TYPE>',
                  help=member_help,
                  choices=member_types),
-            dict(name=('-o', '--optional'),
-                 help='Retrieve additional optional info if available',
-                 default=False,
-                 action='store_true'),
         ],
     ),
 
@@ -652,12 +643,6 @@ cmds = (
                  choices=raid_types,
                  type=str.upper),
         ],
-        optional=[
-            dict(name=('-o', '--optional'),
-                 help='Retrieve additional optional info if available',
-                 default=False,
-                 action='store_true'),
-        ],
     ),
 
     dict(
@@ -676,12 +661,6 @@ cmds = (
                  choices=raid_types,
                  type=str.upper),
         ],
-        optional=[
-            dict(name=('-o', '--optional'),
-                 help='Retrieve additional optional info if available',
-                 default=False,
-                 action='store_true'),
-        ],
     ),
 
     dict(
@@ -696,12 +675,6 @@ cmds = (
                  action='append'),
             dict(name="--size", metavar='<SIZE>',
                  help='The size of new pool'),
-        ],
-        optional=[
-            dict(name=('-o', '--optional'),
-                 help='Retrieve additional optional info if available',
-                 default=False,
-                 action='store_true'),
         ],
     ),
 
@@ -750,16 +723,13 @@ class CmdLine:
     # Tries to make the output better when it varies considerably from
     # plug-in to plug-in.
     # @param    objects    Data, first row is header all other data.
-    def display_data(self, objects, extra_properties=None):
+    def display_data(self, objects):
         display_all = False
 
         if len(objects) == 0:
             return
 
         display_way = DisplayData.DISPLAY_WAY_DEFAULT
-        if hasattr(self.args, 'optional') and self.args.optional:
-            display_all = True
-            display_way = DisplayData.DISPLAY_WAY_SCRIPT
 
         flag_with_header = True
         if self.args.sep:
@@ -772,7 +742,7 @@ class CmdLine:
 
         DisplayData.display_data(
             objects, display_way=display_way, flag_human=self.args.human,
-            flag_enum=self.args.enum, extra_properties=extra_properties,
+            flag_enum=self.args.enum,
             splitter=self.args.sep, flag_with_header=flag_with_header,
             flag_dsp_all_data=display_all)
 
@@ -893,7 +863,6 @@ class CmdLine:
     def list(self, args):
         search_key = None
         search_value = None
-        flags = 0
         if args.sys:
             search_key = 'system_id'
             search_value = args.sys
@@ -917,8 +886,6 @@ class CmdLine:
             search_value = args.nfs_export
 
         if args.type == 'VOLUMES':
-            if args.optional:
-                flags |= Volume.FLAG_RETRIEVE_FULL_INFO
             if search_key == 'volume_id':
                 search_key = 'id'
             if search_key == 'access_group_id':
@@ -926,56 +893,45 @@ class CmdLine:
                                    "Access Group ID", raise_error=False)
                 if lsm_ag:
                     return self.display_data(
-                        self.c.volumes_accessible_by_access_group(lsm_ag, flags))
+                        self.c.volumes_accessible_by_access_group(lsm_ag))
                 else:
                     return self.display_data([])
             elif search_key and search_key not in Volume.SUPPORTED_SEARCH_KEYS:
                 raise ArgError("Search key '%s' is not supported by "
                                "volume listing." % search_key)
-            self.display_data(self.c.volumes(search_key, search_value, flags))
+            self.display_data(self.c.volumes(search_key, search_value))
         elif args.type == 'POOLS':
             if search_key == 'pool_id':
                 search_key = 'id'
             if search_key and search_key not in Pool.SUPPORTED_SEARCH_KEYS:
                 raise ArgError("Search key '%s' is not supported by "
                                "pool listing." % search_key)
-            if args.optional:
-                flags |= Pool.FLAG_RETRIEVE_FULL_INFO
             self.display_data(
-                self.c.pools(search_key, search_value, flags))
+                self.c.pools(search_key, search_value))
         elif args.type == 'FS':
-            if args.optional:
-                flags |= FileSystem.FLAG_RETRIEVE_FULL_INFO
             if search_key == 'fs_id':
                 search_key = 'id'
             if search_key and \
                search_key not in FileSystem.SUPPORTED_SEARCH_KEYS:
                 raise ArgError("Search key '%s' is not supported by "
                                "volume listing." % search_key)
-            self.display_data(self.c.fs(search_key, search_value, flags))
+            self.display_data(self.c.fs(search_key, search_value))
         elif args.type == 'SNAPSHOTS':
             if args.fs is None:
                 raise ArgError("--fs <file system id> required")
-
-            if args.optional:
-                flags |= FsSnapshot.FLAG_RETRIEVE_FULL_INFO
             fs = _get_item(self.c.fs(), args.fs, 'filesystem')
-            self.display_data(self.c.fs_snapshots(fs, flags))
+            self.display_data(self.c.fs_snapshots(fs))
         elif args.type == 'EXPORTS':
-            if args.optional:
-                flags |= NfsExport.FLAG_RETRIEVE_FULL_INFO
             if search_key == 'nfs_export_id':
                 search_key = 'id'
             if search_key and \
                search_key not in NfsExport.SUPPORTED_SEARCH_KEYS:
                 raise ArgError("Search key '%s' is not supported by "
                                "NFS Export listing" % search_key)
-            self.display_data(self.c.exports(search_key, search_value, flags))
+            self.display_data(self.c.exports(search_key, search_value))
         elif args.type == 'NFS_CLIENT_AUTH':
             self.display_nfs_client_authentication()
         elif args.type == 'ACCESS_GROUPS':
-            if args.optional:
-                flags |= AccessGroup.FLAG_RETRIEVE_FULL_INFO
             if search_key == 'access_group_id':
                 search_key = 'id'
             if search_key == 'volume_id':
@@ -983,7 +939,7 @@ class CmdLine:
                                    "Volume ID", raise_error=False)
                 if lsm_vol:
                     return self.display_data(
-                        self.c.access_groups_granted_to_volume(lsm_vol, flags))
+                        self.c.access_groups_granted_to_volume(lsm_vol))
                 else:
                     return self.display_data([])
             elif search_key and \
@@ -991,23 +947,19 @@ class CmdLine:
                 raise ArgError("Search key '%s' is not supported by "
                                "Access Group listing" % search_key)
             self.display_data(
-                self.c.access_groups(search_key,search_value, flags))
+                self.c.access_groups(search_key, search_value))
         elif args.type == 'SYSTEMS':
-            if args.optional:
-                flags |= System.FLAG_RETRIEVE_FULL_INFO
             if search_key:
                 raise ArgError("System listing with search is not supported")
-            self.display_data(self.c.systems(flags))
+            self.display_data(self.c.systems())
         elif args.type == 'DISKS':
             if search_key == 'disk_id':
                 search_key = 'id'
             if search_key and search_key not in Disk.SUPPORTED_SEARCH_KEYS:
                 raise ArgError("Search key '%s' is not supported by "
                                "disk listing" % search_key)
-            if args.optional:
-                flags |= Disk.FLAG_RETRIEVE_FULL_INFO
             self.display_data(
-                self.c.disks(search_key, search_value, flags))
+                self.c.disks(search_key, search_value))
         elif args.type == 'PLUGINS':
             self.display_available_plugins()
         else:

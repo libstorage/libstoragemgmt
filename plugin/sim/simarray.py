@@ -27,7 +27,7 @@ import time
 
 from lsm import (size_human_2_size_bytes, size_bytes_2_size_human)
 from lsm import (System, Volume, Disk, Pool, FileSystem, AccessGroup,
-                 FsSnapshot, NfsExport, OptionalData, md5, LsmError,
+                 FsSnapshot, NfsExport, md5, LsmError,
                  ErrorNumber, JobStatus)
 
 # Used for format width for disks
@@ -142,8 +142,7 @@ class SimArray(object):
         return Volume(sim_vol['vol_id'], sim_vol['name'], sim_vol['vpd83'],
                       SimData.SIM_DATA_BLK_SIZE,
                       int(sim_vol['total_space'] / SimData.SIM_DATA_BLK_SIZE),
-                      Volume.STATUS_OK, sim_vol['sys_id'],
-                      sim_vol['pool_id'])
+                      Volume.STATUS_OK, sim_vol['sys_id'], sim_vol['pool_id'])
 
     def volumes(self):
         sim_vols = self.data.volumes()
@@ -158,16 +157,8 @@ class SimArray(object):
         status = sim_pool['status']
         status_info = sim_pool['status_info']
         sys_id = sim_pool['sys_id']
-        opt_data = OptionalData()
-        if flags & Pool.FLAG_RETRIEVE_FULL_INFO:
-            opt_data.set('raid_type', sim_pool['raid_type'])
-            opt_data.set('member_type', sim_pool['member_type'])
-            opt_data.set('member_ids', sim_pool['member_ids'])
-            opt_data.set('thinp_type', Pool.THINP_TYPE_THIN)
-            opt_data.set('element_type', sim_pool['element_type'])
-
         return Pool(pool_id, name, total_space, free_space, status,
-                    status_info, sys_id, opt_data)
+                    status_info, sys_id)
 
     def pools(self, flags=0):
         rc = []
@@ -182,28 +173,28 @@ class SimArray(object):
         sim_pool = self.data.pool_create(
             sys_id, pool_name, size_bytes, raid_type, member_type, flags)
         return self.data.job_create(
-            self._sim_pool_2_lsm(sim_pool, Pool.FLAG_RETRIEVE_FULL_INFO))
+            self._sim_pool_2_lsm(sim_pool))
 
     def pool_create_from_disks(self, sys_id, pool_name, disks_ids, raid_type,
                                flags=0):
         sim_pool = self.data.pool_create_from_disks(
             sys_id, pool_name, disks_ids, raid_type, flags)
         return self.data.job_create(
-            self._sim_pool_2_lsm(sim_pool, Pool.FLAG_RETRIEVE_FULL_INFO))
+            self._sim_pool_2_lsm(sim_pool))
 
     def pool_create_from_volumes(self, sys_id, pool_name, member_ids,
                                  raid_type, flags=0):
         sim_pool = self.data.pool_create_from_volumes(
             sys_id, pool_name, member_ids, raid_type, flags)
         return self.data.job_create(
-            self._sim_pool_2_lsm(sim_pool, Pool.FLAG_RETRIEVE_FULL_INFO))
+            self._sim_pool_2_lsm(sim_pool))
 
     def pool_create_from_pool(self, sys_id, pool_name, member_id, size_bytes,
                               flags=0):
         sim_pool = self.data.pool_create_from_pool(
             sys_id, pool_name, member_id, size_bytes, flags)
         return self.data.job_create(
-            self._sim_pool_2_lsm(sim_pool, Pool.FLAG_RETRIEVE_FULL_INFO))
+            self._sim_pool_2_lsm(sim_pool))
 
     def pool_delete(self, pool_id, flags=0):
         return self.data.job_create(self.data.pool_delete(pool_id, flags))[0]
@@ -215,8 +206,8 @@ class SimArray(object):
             disk = Disk(sim_disk['disk_id'], sim_disk['name'],
                         sim_disk['disk_type'], SimData.SIM_DATA_BLK_SIZE,
                         int(sim_disk['total_space'] /
-                            SimData.SIM_DATA_BLK_SIZE),
-                        Disk.STATUS_OK, sim_disk['sys_id'])
+                            SimData.SIM_DATA_BLK_SIZE), Disk.STATUS_OK,
+                        sim_disk['sys_id'])
             rc.extend([disk])
         return SimArray._sort_by_id(rc)
 
@@ -296,7 +287,7 @@ class SimArray(object):
     @staticmethod
     def _sim_snap_2_lsm(sim_snap):
         return FsSnapshot(sim_snap['snap_id'], sim_snap['name'],
-                        sim_snap['timestamp'])
+                          sim_snap['timestamp'])
 
     def fs_snapshots(self, fs_id, flags=0):
         sim_snaps = self.data.fs_snapshots(fs_id, flags)
@@ -327,11 +318,11 @@ class SimArray(object):
 
     @staticmethod
     def _sim_exp_2_lsm(sim_exp):
-        return NfsExport(
-            sim_exp['exp_id'], sim_exp['fs_id'], sim_exp['exp_path'],
-            sim_exp['auth_type'], sim_exp['root_hosts'], sim_exp['rw_hosts'],
-            sim_exp['ro_hosts'], sim_exp['anon_uid'], sim_exp['anon_gid'],
-            sim_exp['options'])
+        return NfsExport(sim_exp['exp_id'], sim_exp['fs_id'],
+                         sim_exp['exp_path'], sim_exp['auth_type'],
+                         sim_exp['root_hosts'], sim_exp['rw_hosts'],
+                         sim_exp['ro_hosts'], sim_exp['anon_uid'],
+                         sim_exp['anon_gid'], sim_exp['options'])
 
     def exports(self, flags=0):
         sim_exps = self.data.exports(flags)
@@ -350,9 +341,8 @@ class SimArray(object):
 
     @staticmethod
     def _sim_ag_2_lsm(sim_ag):
-        return AccessGroup(sim_ag['ag_id'], sim_ag['name'],
-                           sim_ag['init_ids'], sim_ag['init_type'],
-                           sim_ag['sys_id'])
+        return AccessGroup(sim_ag['ag_id'], sim_ag['name'], sim_ag['init_ids'],
+                           sim_ag['init_type'], sim_ag['sys_id'])
 
     def ags(self):
         sim_ags = self.data.ags()
@@ -564,9 +554,9 @@ class SimData(object):
         self.job_dict = {
             # id: SimJob
         }
-        self.syss = [System(SimData.SIM_DATA_SYS_ID,
-                            'LSM simulated storage plug-in',
-                            System.STATUS_OK, '')]
+        self.syss = [
+            System(SimData.SIM_DATA_SYS_ID, 'LSM simulated storage plug-in',
+                   System.STATUS_OK, '')]
         pool_size_200g = size_human_2_size_bytes('200GiB')
         self.pool_dict = {
             'POO1': {
@@ -1121,8 +1111,9 @@ class SimData(object):
     def iscsi_chap_auth(self, init_id, in_user, in_pass, out_user, out_pass,
                         flags=0):
         # to_code
-        if self.init_dict[init_id]['init_type'] != Initiator.TYPE_ISCSI:
-            raise LsmError(ErrorNumber.UNSUPPORTED_INITIATOR_TYPE,
+        if self.init_dict[init_id]['init_type'] != \
+                AccessGroup.INIT_TYPE_ISCSI_IQN:
+            raise LsmError(ErrorNumber.NO_SUPPORT,
                            "Initiator %s is not an iSCSI IQN" % init_id)
         # No iscsi chap query API yet
         return None

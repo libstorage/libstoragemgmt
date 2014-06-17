@@ -144,9 +144,7 @@ Please note:
 .br
 Due to console text width limitation(78), NOT all mandatory properties will be
 displayed in column way(default display way).
-But all mandatory properties will be displayed in script way. When with "-o,
---optional", both mandatory properties and optional properties will be
-displayed.
+But all mandatory properties will be displayed in script way.
 
 .SH COMMANDS
 .SS list
@@ -165,9 +163,6 @@ Required. Valid values are:
 Required for \fB--type\fR=\fBSNAPSHOTS\fR. List the snapshots of certain
 filesystem.
 PLUGINS will list all supported plugins of LSM, not only the current one.
-.TP
-\fB-o\fR, \fB--optional\fR
-Optional. Retrive and display optional data in '--script, -s' display way.
 .TP
 \fB--sys\fR \fI<SYS_ID>\fR
 Search resources from system with SYS_ID. Only supported when querying these

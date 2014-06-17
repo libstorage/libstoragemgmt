@@ -805,7 +805,7 @@ static int volume_create(lsm_plugin_ptr c, lsm_pool *pool,
 
                 lsm_volume *v = lsm_volume_record_alloc(id, volume_name,
                                    "VPD", BS, allocated_size/BS, 0, sys_id,
-                                    lsm_pool_id_get(pool), NULL, NULL);
+                                    lsm_pool_id_get(pool), NULL);
 
                 lsm_volume *to_store = lsm_volume_record_copy(v);
                 struct allocated_volume *av = malloc(sizeof(struct allocated_volume));
@@ -933,7 +933,7 @@ static int volume_resize(lsm_plugin_ptr c, lsm_volume *volume,
                                                     lsm_volume_vpd83_get(v),
                                                     lsm_volume_block_size_get(v),
                                                     resized_size/BS, 0, sys_id,
-                                                    lsm_volume_pool_id_get(volume), NULL, NULL);
+                                                    lsm_volume_pool_id_get(volume), NULL);
 
             if( vp ) {
                 av->v = vp;
@@ -1008,7 +1008,7 @@ static int _pool_create(lsm_plugin_ptr c, lsm_system *system,
             /* Create the pool */
             new_pool = lsm_pool_record_alloc(md5(pool_name), pool_name, size_bytes,
                                         size_bytes, LSM_POOL_STATUS_OK, "",
-                                        lsm_system_id_get(system), NULL, NULL);
+                                        lsm_system_id_get(system), NULL);
 
             pool_to_store = lsm_pool_record_copy(new_pool);
             key = strdup(lsm_pool_id_get(pool_to_store));
@@ -1255,7 +1255,7 @@ static int access_group_create(lsm_plugin_ptr c,
         if( initiators && id &&
             (LSM_ERR_OK == lsm_string_list_elem_set(initiators, 0, initiator_id))) {
             ag = lsm_access_group_record_alloc(id, name, initiators, id_type,
-                                                        system_id, NULL, NULL);
+                                                        system_id, NULL);
             aag = alloc_allocated_ag(ag, id_type);
             if( ag && aag ) {
                 g_hash_table_insert(pd->access_groups, (gpointer)id,
@@ -1943,7 +1943,7 @@ static int fs_create(lsm_plugin_ptr c, lsm_pool *pool, const char *name,
 
             /* Make a copy to store and a copy to hand back to caller */
             lsm_fs *tfs = lsm_fs_record_alloc(id, name, allocated_size,
-                                allocated_size, lsm_pool_id_get(pool), sys_id, NULL, NULL);
+                                allocated_size, lsm_pool_id_get(pool), sys_id, NULL);
             new_fs = lsm_fs_record_copy(tfs);
 
             /* Allocate the memory to keep the associations */
@@ -2017,7 +2017,7 @@ static int fs_resize(lsm_plugin_ptr c, lsm_fs *fs,
                                                 new_size_bytes,
                                                 new_size_bytes,
                                                 lsm_fs_pool_id_get(tfs),
-                                                lsm_fs_system_id_get(tfs), NULL, NULL);
+                                                lsm_fs_system_id_get(tfs), NULL);
             lsm_fs *returned_copy = lsm_fs_record_copy(resized);
 
             if( resized && returned_copy ) {
@@ -2179,7 +2179,7 @@ static int ss_create(lsm_plugin_ptr c, lsm_fs *fs,
         if( !g_hash_table_lookup(find->ss, md5(name)) ) {
             char *id = strdup(md5(name));
             if( id ) {
-                lsm_fs_ss *ss = lsm_fs_ss_record_alloc(id, name, time(NULL), NULL, NULL);
+                lsm_fs_ss *ss = lsm_fs_ss_record_alloc(id, name, time(NULL), NULL);
                 lsm_fs_ss *new_shot = lsm_fs_ss_record_copy(ss);
                 if( ss && new_shot ) {
                     g_hash_table_insert(find->ss, (gpointer)id, (gpointer)ss);
@@ -2378,7 +2378,7 @@ static int nfs_export_create( lsm_plugin_ptr c,
                                             ro_list,
                                             anon_uid,
                                             anon_gid,
-                                            options, NULL, NULL);
+                                            options, NULL);
 
         lsm_nfs_export *value = lsm_nfs_export_record_copy(*exported);
 
@@ -2513,12 +2513,12 @@ int load( lsm_plugin_ptr c, const char *uri, const char *password,
         pd->num_systems = 1;
         pd->system[0] = lsm_system_record_alloc(sys_id,
                                                 "LSM simulated storage plug-in",
-                                                LSM_SYSTEM_STATUS_OK, "", NULL, NULL);
+                                                LSM_SYSTEM_STATUS_OK, "", NULL);
 
         p = lsm_pool_record_alloc("POOL_3", "lsm_test_aggr",
                                             UINT64_MAX, UINT64_MAX,
                                             LSM_POOL_STATUS_OK, "",
-                                            sys_id, NULL, NULL);
+                                            sys_id, NULL);
         if( p ) {
             pd->pools = g_hash_table_new_full(g_str_hash, g_str_equal, free,
                         free_pool_record);
@@ -2531,7 +2531,7 @@ int load( lsm_plugin_ptr c, const char *uri, const char *password,
 
                 p = lsm_pool_record_alloc(name, name, UINT64_MAX,
                                             UINT64_MAX, LSM_POOL_STATUS_OK, "",
-                                            sys_id, NULL, NULL);
+                                            sys_id, NULL);
 
                 if( p ) {
                     g_hash_table_insert(pd->pools, strdup(lsm_pool_id_get(p)), p);
@@ -2563,42 +2563,31 @@ int load( lsm_plugin_ptr c, const char *uri, const char *password,
         pd->disks = g_hash_table_new_full(g_str_hash, g_str_equal, free,
                                             free_disk);
 
-        /* Create disks */
-        lsm_optional_data *od = lsm_optional_data_record_alloc();
-        if( od ) {
-            for( i = 0; i < 10; ++i ) {
-                lsm_disk *d = NULL;
-                char name[17];
-                char sn[32];
-                char *key = NULL;
 
+        for( i = 0; i < 10; ++i ) {
+            lsm_disk *d = NULL;
+            char name[17];
+            char *key = NULL;
+            snprintf(name, sizeof(name), "Sim C disk %d", i);
 
-                snprintf(name, sizeof(name), "Sim C disk %d", i);
-                snprintf(sn, sizeof(sn), "SIMDISKSN00000%04d", i);
+            d = lsm_disk_record_alloc(md5(name), name, LSM_DISK_TYPE_SOP, 512,
+                0x8000000000000, LSM_DISK_STATUS_OK, sys_id);
 
-                lsm_optional_data_string_set(od, "sn", sn);
+            key = strdup(lsm_disk_id_get(d));
 
-                d = lsm_disk_record_alloc(md5(name), name, LSM_DISK_TYPE_SOP, 512,
-                    0x8000000000000, LSM_DISK_STATUS_OK,  od, sys_id);
+            if( !key || !d ) {
+                g_hash_table_destroy(pd->disks);
+                pd->disks = NULL;
 
-                key = strdup(lsm_disk_id_get(d));
-
-                if( !key || !d ) {
-                    g_hash_table_destroy(pd->disks);
-                    pd->disks = NULL;
-
-                    lsm_disk_record_free(d);
-                    d = NULL;
-
-                    break;
-                }
-
-                g_hash_table_insert(pd->disks, key, d);
+                lsm_disk_record_free(d);
                 d = NULL;
-            }
-            lsm_optional_data_record_free(od);
-        }
 
+                break;
+            }
+
+            g_hash_table_insert(pd->disks, key, d);
+            d = NULL;
+        }
 
         if( !pd->system[0] || !pd->volumes || !pd->pools || !pd->access_groups
             || !pd->group_grant || !pd->fs || !pd->jobs || !pd->disks ) {

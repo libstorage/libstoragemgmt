@@ -151,10 +151,9 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                        p['type'] == 'block'):
             for vol in self._jsonrequest("vol_list", dict(pool=p_name)):
                 volumes.append(
-                    Volume(vol['uuid'], vol['name'], vol['uuid'],
-                           512, vol['size'] / 512,
-                           Volume.STATUS_OK,
-                           self.system.id, p_name))
+                    Volume(vol['uuid'], vol['name'], vol['uuid'], 512,
+                           vol['size'] / 512, Volume.STATUS_OK, self.system.id,
+                           p_name))
         return search_property(volumes, search_key, search_value)
 
     @handle_errors
@@ -176,9 +175,8 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
             ag_name = 'N/A'
             init_ids = [init_id]
             rc.extend(
-                [AccessGroup(
-                    ag_id, ag_name, init_ids, init_type,
-                    self.system.id)])
+                [AccessGroup(ag_id, ag_name, init_ids, init_type,
+                             self.system.id)])
         return search_property(rc, search_key, search_value)
 
     def _mask_infos(self):
@@ -264,9 +262,9 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         vol = [v for v in self._jsonrequest("vol_list", dict(pool=pool_id))
                if v['name'] == volume_name][0]
 
-        return Volume(vol['uuid'], vol['name'], vol['uuid'],
-                      512, vol['size'] / 512, Volume.STATUS_OK,
-                      self.system.id, pool_id)
+        return Volume(vol['uuid'], vol['name'], vol['uuid'], 512,
+                      vol['size'] / 512, Volume.STATUS_OK, self.system.id,
+                      pool_id)
 
     def _get_fs(self, pool_id, fs_name):
         fs = self.fs()
@@ -344,8 +342,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         for fs in self._jsonrequest("fs_list"):
             #self, id, name, total_space, free_space, pool_id, system_id
             rc.append(FileSystem(fs['uuid'], fs['name'], fs['total_space'],
-                                 fs['free_space'], fs['pool'],
-                                 self.system.id))
+                                 fs['free_space'], fs['pool'], self.system.id))
         return search_property(rc, search_key, search_value)
 
     @handle_errors
@@ -495,12 +492,12 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                 if gid is not None:
                     anongid = gid
 
-            exports.append(NfsExport(
-                TargetdStorage._calculate_export_md5(export['path'],
-                                                     options),
-                fs_full_paths[export['path']]['uuid'],
-                export['path'], sec, root, rw, ro, anonuid,
-                anongid, TargetdStorage._option_string(options)))
+            exports.append(
+                NfsExport(TargetdStorage._calculate_export_md5(export['path'],
+                                                               options),
+                          fs_full_paths[export['path']]['uuid'],
+                          export['path'], sec, root, rw, ro, anonuid, anongid,
+                          TargetdStorage._option_string(options)))
 
         return search_property(exports, search_key, search_value)
 

@@ -24,7 +24,7 @@ import sys
 
 import na
 from lsm import (Volume, FileSystem, FsSnapshot, NfsExport,
-                 AccessGroup, System, Capabilities, Disk, Pool, OptionalData,
+                 AccessGroup, System, Capabilities, Disk, Pool,
                  IStorageAreaNetwork, INfs, LsmError, ErrorNumber, JobStatus,
                  md5, Error, VERSION, common_urllib2_error_handler,
                  search_property)
@@ -201,9 +201,9 @@ class Ontap(IStorageAreaNetwork, INfs):
         num_blocks = int(l['size']) / block_size
         #TODO: Need to retrieve actual volume status
         return Volume(l['serial-number'], l['path'],
-                      Ontap._create_vpd(l['serial-number']),
-                      block_size, num_blocks, Volume.STATUS_OK,
-                      self.sys_info.id, l['aggr'])
+                      Ontap._create_vpd(l['serial-number']), block_size,
+                      num_blocks, Volume.STATUS_OK, self.sys_info.id,
+                      l['aggr'])
 
     def _vol(self, v, pools=None):
         pool_name = v['containing-aggregate']
@@ -292,21 +292,11 @@ class Ontap(IStorageAreaNetwork, INfs):
         return status_info
 
     def _disk(self, d, flag):
-        opt_data = OptionalData()
         status = Ontap._status_of_na_disk(d)
-        if flag & Disk.FLAG_RETRIEVE_FULL_INFO:
-            opt_data.set('sn', d['serial-number'])
-            opt_data.set('model', d['disk-model'])
-            opt_data.set('vendor', d['vendor-id'])
-            opt_data.set('status_info', Ontap._status_info_of_na_disk(d))
-
-        return Disk(self._disk_id(d),
-                    d['name'],
+        return Disk(self._disk_id(d), d['name'],
                     Ontap._disk_type(d['disk-type']),
-                    int(d['bytes-per-sector']),
-                    int(d['physical-blocks']),
-                    status,
-                    self.sys_info.id, opt_data)
+                    int(d['bytes-per-sector']), int(d['physical-blocks']),
+                    status, self.sys_info.id)
 
     @handle_ontap_errors
     def volumes(self, search_key=None, search_value=None, flags=0):
@@ -361,33 +351,18 @@ class Ontap(IStorageAreaNetwork, INfs):
         free_space = int(na_aggr['size-available'])
         system_id = self.sys_info.id
         status = self._status_of_na_aggr(na_aggr)
-        opt_data = OptionalData()
-        if flags & Pool.FLAG_RETRIEVE_FULL_INFO:
-            opt_data.set('member_type', Pool.MEMBER_TYPE_DISK)
-            member_ids = []
-            for na_disk in na_disks:
-                if 'aggregate' in na_disk and \
-                   na_disk['aggregate'] == pool_name:
-                    member_ids.extend([self._disk_id(na_disk)])
-            opt_data.set('member_ids', member_ids)
-            opt_data.set('raid_type', self._raid_type_of_na_aggr(na_aggr))
-            if na_aggr['type'] == 'aggr':
-                opt_data.set('thinp_type', Pool.THINP_TYPE_THIN)
-            elif na_aggr['type'] == 'trad':
-                opt_data.set('thinp_type', Pool.THINP_TYPE_THICK)
-            else:
-                opt_data.set('thinp_type', Pool.THINP_TYPE_UNKNOWN)
-            element_type = (
-                Pool.ELEMENT_TYPE_POOL |
-                Pool.ELEMENT_TYPE_FS |
-                Pool.ELEMENT_TYPE_VOLUME)
-            if pool_name == 'aggr0':
-                element_type = element_type | Pool.ELEMENT_TYPE_SYS_RESERVED
-            opt_data.set('element_type', element_type)
+
+        # We will be adding this back as mandatory
+        #    element_type = (
+        #        Pool.ELEMENT_TYPE_POOL |
+        #        Pool.ELEMENT_TYPE_FS |
+        #        Pool.ELEMENT_TYPE_VOLUME)
+        #if pool_name == 'aggr0':
+        #        element_type = element_type | Pool.ELEMENT_TYPE_SYS_RESERVED
+        #opt_data.set('element_type', element_type)
 
         return Pool(pool_id, pool_name, total_space, free_space, status,
-                    self._status_info_of_na_aggr(na_aggr),
-                    system_id, opt_data)
+                    self._status_info_of_na_aggr(na_aggr), system_id)
 
     @staticmethod
     def _status_of_na_vol(na_vol):
@@ -418,28 +393,11 @@ class Ontap(IStorageAreaNetwork, INfs):
         free_space = int(na_vol['size-available'])
         system_id = self.sys_info.id
         status = self._status_of_na_vol(na_vol)
-        opt_data = OptionalData()
-        if flags & Pool.FLAG_RETRIEVE_FULL_INFO:
-            opt_data.set('member_type', Pool.MEMBER_TYPE_POOL)
-            parent_aggr_name = na_vol['containing-aggregate']
-            for na_aggr in na_aggrs:
-                if na_aggr['name'] == parent_aggr_name:
-                    opt_data.set('member_ids', [self._pool_id(na_aggr)])
-                    break
-            opt_data.set('raid_type', Pool.RAID_TYPE_NOT_APPLICABLE)
-            if na_vol['type'] == 'flex':
-                opt_data.set('thinp_type', Pool.THINP_TYPE_THIN)
-            elif na_vol['type'] == 'trad':
-                opt_data.set('thinp_type', Pool.THINP_TYPE_THICK)
-            else:
-                opt_data.set('thinp_type', Pool.THINP_TYPE_UNKNOWN)
 
-            opt_data.set('status_info', self._status_info_of_na_vol(na_vol))
-            opt_data.set('element_type', Pool.ELEMENT_TYPE_VOLUME)
+        # opt_data.set('element_type', Pool.ELEMENT_TYPE_VOLUME)
 
         return Pool(pool_id, pool_name, total_space, free_space, status,
-                    self._status_info_of_na_vol(na_vol),
-                    system_id, opt_data)
+                    self._status_info_of_na_vol(na_vol), system_id)
 
     @handle_ontap_errors
     def capabilities(self, system, flags=0):
@@ -1011,16 +969,12 @@ class Ontap(IStorageAreaNetwork, INfs):
         vol_name = Ontap._get_volume_from_path(path)
         fs_id = Ontap._get_volume_id(volumes, vol_name)
 
-        return NfsExport(md5(vol_name + fs_id),
-                         fs_id,
-                         export,
+        return NfsExport(md5(vol_name + fs_id), fs_id, export,
                          e['sec-flavor']['sec-flavor-info']['flavor'],
                          Ontap._get_group('root', e),
                          Ontap._get_group('read-write', e),
                          Ontap._get_group('read-only', e),
-                         Ontap._get_value('anon', e),
-                         None,
-                         None)
+                         Ontap._get_value('anon', e), None, None)
 
     @handle_ontap_errors
     def exports(self, search_key=None, search_value=None, flags=0):

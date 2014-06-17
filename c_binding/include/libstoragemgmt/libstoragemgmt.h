@@ -31,7 +31,6 @@
 #include "libstoragemgmt_fs.h"
 #include "libstoragemgmt_initiators.h"
 #include "libstoragemgmt_nfsexport.h"
-#include "libstoragemgmt_optionaldata.h"
 #include "libstoragemgmt_pool.h"
 #include "libstoragemgmt_snapshot.h"
 #include "libstoragemgmt_systems.h"
@@ -230,8 +229,7 @@ extern "C" {
      * @param[in]   search_value    Search value
      * @param[out]  pool_array      Array of storage pools
      * @param[out]  count           Number of storage pools
-     * @param[in]   flags           Use LSM_POOL_FLAG_RETRIEVE_FULL_INFO
-     *                              for all data, else 0
+     * @param[in]   flags           Reserved, set to 0
      * @return LSM_ERR_OK on success else error reason
      */
     int LSM_DLL_EXPORT lsm_pool_list(lsm_connect *conn, char *search_key,
@@ -372,8 +370,7 @@ extern "C" {
      * @param[in]   search_value    Search value
      * @param[out]  volumes         An array of lsm_volume
      * @param[out]  count           Number of elements in the lsm_volume array
-     * @param[in]   flags           Use LSM_VOLUME_FLAG_RETRIEVE_FULL_INFO
-     *                              for all data, else 0
+     * @param[in]   flags           Reserved set to 0
      * @return LSM_ERR_OK on success else error reason
      */
     int LSM_DLL_EXPORT lsm_volume_list(lsm_connect *conn,
@@ -390,8 +387,7 @@ extern "C" {
      * @param[in]       search_value    Search value
      * @param [out]     disks           An array of lsm_disk types
      * @param [out]     count           Number of disks
-     * @param [in]      flags           Use LSM_DISK_FLAG_RETRIEVE_FULL_INFO
-     *                                  for all data, else 0
+     * @param [in]      flags           Reserved set to zero
      * @return LSM_ERR_OK on success else error reason
      */
     int LSM_DLL_EXPORT lsm_disk_list(lsm_connect *conn, const char * search_key,
@@ -570,8 +566,7 @@ extern "C" {
      * @param[in] search_value      Search value
      * @param[out] groups           Array of access groups
      * @param[out] group_count      Size of array
-     * @param[in] flags            Use LSM_ACCESS_GROUP_FLAG_RETRIEVE_FULL_INFO
-     *                             for all data, else 0
+     * @param[in] flags             Reserved set to zero
      * @return LSM_ERR_OK on success, else error reason.
      */
     int LSM_DLL_EXPORT lsm_access_group_list(lsm_connect *conn,
@@ -755,9 +750,8 @@ extern "C" {
      * NOTE: Free returned systems by calling to lsm
      * @param[in]  conn                 Valid connection
      * @param[out] systems              Array of lsm_system
-     * @param[out] system_count          Number of systems
-     * @param[in]  flags                Use LSM_SYSTEM_FLAG_RETRIEVE_FULL_INFO
-     *                                  for all data, else 0
+     * @param[out] system_count         Number of systems
+     * @param[in]  flags                Reserved set to zero
      * @return LSM_ERR_OK on success, else error reason
      */
     int LSM_DLL_EXPORT lsm_system_list(lsm_connect *conn, lsm_system **systems[],
@@ -770,8 +764,7 @@ extern "C" {
      * @param[in]  search_value         Search value
      * @param[out] fs                   Array of lsm_fs
      * @param[out] fs_count             Number of file systems
-     * @param[in]  flags                Use LSM_FS_FLAG_RETRIEVE_FULL_INFO
-     *                                  for all data, else 0
+     * @param[in]  flags                Reserved set to zero
      * @return LSM_ERR_OK on success, else error reason
      */
     int LSM_DLL_EXPORT lsm_fs_list(lsm_connect *conn, const char *search_key,
@@ -890,8 +883,7 @@ extern "C" {
      * @param[in] fs            File system to check for snapshots
      * @param[out] ss           An array of snapshot pointers
      * @param[out] ss_count     Number of elements in the array
-     * @param[in]  flags        Use LSM_FS_SNAPSHOT_FLAG_RETRIEVE_FULL_INFO
-     *                          for all data, else 0
+     * @param[in]  flags        Reserved set to zero
      * @return LSM_ERR_OK on success, else error reason
      */
     int LSM_DLL_EXPORT lsm_fs_ss_list(lsm_connect *conn, lsm_fs *fs,
@@ -965,8 +957,7 @@ extern "C" {
      * @param[in] search_value          Search value
      * @param[out] exports              An array of lsm_nfs_export
      * @param[out] count                Number of items in array
-     * @param[in]  flags                Use LSM_NFS_FLAG_RETRIEVE_FULL_INFO
-     *                                  for all data, else 0
+     * @param[in]  flags                Reserved set to zero
      * @return LSM_ERR_OK on success else error code.
      */
     int LSM_DLL_EXPORT lsm_nfs_list(lsm_connect *c, const char *search_key,

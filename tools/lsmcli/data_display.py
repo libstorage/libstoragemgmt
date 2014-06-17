@@ -333,16 +333,12 @@ class DisplayData(object):
     SYSTEM_MAN_HEADER['status'] = 'Status'
     SYSTEM_MAN_HEADER['status_info'] = 'Status Info'
 
-    SYSTEM_OPT_HEADER = OrderedDict()
-
     SYSTEM_COLUMN_KEYS = SYSTEM_MAN_HEADER.keys()
     # SYSTEM_COLUMN_KEYS should be subset of SYSTEM_MAN_HEADER.keys()
     # XXX_COLUMN_KEYS contain a list of mandatory properties which will be
     # displayed in column way. It was used to limit the output of properties
     # in sure the column display way does not exceeded the column width 78.
     # All mandatory_headers will be displayed in script way.
-    # if '-o' define, both mandatory_headers and optional_headers will be
-    # displayed in script way.
 
     SYSTEM_VALUE_CONV_ENUM = {
         'status': system_status_to_str,
@@ -353,7 +349,6 @@ class DisplayData(object):
     VALUE_CONVERT[System] = {
         'mandatory_headers': SYSTEM_MAN_HEADER,
         'column_keys': SYSTEM_COLUMN_KEYS,
-        'optional_headers': SYSTEM_OPT_HEADER,
         'value_conv_enum': SYSTEM_VALUE_CONV_ENUM,
         'value_conv_human': SYSTEM_VALUE_CONV_HUMAN,
     }
@@ -364,14 +359,12 @@ class DisplayData(object):
 
     PLUG_DATA_COLUMN_KEYS = PLUG_DATA_MAN_HEADER.keys()
 
-    PLUG_DATA_OPT_HEADER = OrderedDict()
     PLUG_DATA_VALUE_CONV_ENUM = {}
     PLUG_DATA_VALUE_CONV_HUMAN = []
 
     VALUE_CONVERT[PlugData] = {
         'mandatory_headers': PLUG_DATA_MAN_HEADER,
         'column_keys': PLUG_DATA_COLUMN_KEYS,
-        'optional_headers': PLUG_DATA_OPT_HEADER,
         'value_conv_enum': PLUG_DATA_VALUE_CONV_ENUM,
         'value_conv_human': PLUG_DATA_VALUE_CONV_HUMAN,
     }
@@ -388,13 +381,6 @@ class DisplayData(object):
 
     POOL_COLUMN_KEYS = POOL_MAN_HEADER.keys()
 
-    POOL_OPT_HEADER = OrderedDict()
-    POOL_OPT_HEADER['raid_type'] = 'RAID Type'
-    POOL_OPT_HEADER['member_type'] = 'Member Type'
-    POOL_OPT_HEADER['member_ids'] = 'Member IDs'
-    POOL_OPT_HEADER['thinp_type'] = 'Provision Type'
-    POOL_OPT_HEADER['element_type'] = 'Element Type'
-
     POOL_VALUE_CONV_ENUM = {
         'status': pool_status_to_str,
         'raid_type': pool_raid_type_to_str,
@@ -408,7 +394,6 @@ class DisplayData(object):
     VALUE_CONVERT[Pool] = {
         'mandatory_headers': POOL_MAN_HEADER,
         'column_keys': POOL_COLUMN_KEYS,
-        'optional_headers': POOL_OPT_HEADER,
         'value_conv_enum': POOL_VALUE_CONV_ENUM,
         'value_conv_human': POOL_VALUE_CONV_HUMAN,
     }
@@ -431,8 +416,6 @@ class DisplayData(object):
         if key_name not in ['block_size', 'num_of_blocks', 'system_id']:
             VOL_COLUMN_KEYS.extend([key_name])
 
-    VOL_OPT_HEADER = OrderedDict()
-
     VOL_VALUE_CONV_ENUM = {
         'status': vol_status_to_str,
     }
@@ -442,7 +425,6 @@ class DisplayData(object):
     VALUE_CONVERT[Volume] = {
         'mandatory_headers': VOL_MAN_HEADER,
         'column_keys': VOL_COLUMN_KEYS,
-        'optional_headers': VOL_OPT_HEADER,
         'value_conv_enum': VOL_VALUE_CONV_ENUM,
         'value_conv_human': VOL_VALUE_CONV_HUMAN,
     }
@@ -464,12 +446,6 @@ class DisplayData(object):
         if key_name not in ['block_size', 'num_of_blocks']:
             DISK_COLUMN_KEYS.extend([key_name])
 
-    DISK_OPT_HEADER = OrderedDict()
-    DISK_OPT_HEADER['sn'] = 'Serial Number'
-    DISK_OPT_HEADER['part_num'] = 'Part Number'
-    DISK_OPT_HEADER['vendor'] = 'Vendor'
-    DISK_OPT_HEADER['model'] = 'Model'
-
     DISK_VALUE_CONV_ENUM = {
         'status': disk_status_to_str,
         'disk_type': disk_type_to_str,
@@ -480,7 +456,6 @@ class DisplayData(object):
     VALUE_CONVERT[Disk] = {
         'mandatory_headers': DISK_MAN_HEADER,
         'column_keys': DISK_COLUMN_KEYS,
-        'optional_headers': DISK_OPT_HEADER,
         'value_conv_enum': DISK_VALUE_CONV_ENUM,
         'value_conv_human': DISK_VALUE_CONV_HUMAN,
     }
@@ -495,8 +470,6 @@ class DisplayData(object):
 
     AG_COLUMN_KEYS = AG_MAN_HEADER.keys()
 
-    AG_OPT_HEADER = OrderedDict()
-
     AG_VALUE_CONV_ENUM = {
         'init_type': ag_init_type_to_str,
     }
@@ -506,7 +479,6 @@ class DisplayData(object):
     VALUE_CONVERT[AccessGroup] = {
         'mandatory_headers': AG_MAN_HEADER,
         'column_keys': AG_COLUMN_KEYS,
-        'optional_headers': AG_OPT_HEADER,
         'value_conv_enum': AG_VALUE_CONV_ENUM,
         'value_conv_human': AG_VALUE_CONV_HUMAN,
     }
@@ -526,8 +498,6 @@ class DisplayData(object):
         if key_name not in ['system_id']:
             FS_COLUMN_KEYS.extend([key_name])
 
-    FS_OPT_HEADER = OrderedDict()
-
     FS_VALUE_CONV_ENUM = {
     }
 
@@ -536,7 +506,6 @@ class DisplayData(object):
     VALUE_CONVERT[FileSystem] = {
         'mandatory_headers': FS_MAN_HEADER,
         'column_keys': FS_COLUMN_KEYS,
-        'optional_headers': FS_OPT_HEADER,
         'value_conv_enum': FS_VALUE_CONV_ENUM,
         'value_conv_human': FS_VALUE_CONV_HUMAN,
     }
@@ -549,8 +518,6 @@ class DisplayData(object):
 
     FS_SNAP_COLUMN_KEYS = FS_SNAP_MAN_HEADER.keys()
 
-    FS_SNAP_OPT_HEADER = OrderedDict()
-
     FS_SNAP_VALUE_CONV_ENUM = {
         'ts': datetime.fromtimestamp
     }
@@ -560,7 +527,6 @@ class DisplayData(object):
     VALUE_CONVERT[FsSnapshot] = {
         'mandatory_headers': FS_SNAP_MAN_HEADER,
         'column_keys': FS_SNAP_COLUMN_KEYS,
-        'optional_headers': FS_SNAP_OPT_HEADER,
         'value_conv_enum': FS_SNAP_VALUE_CONV_ENUM,
         'value_conv_human': FS_SNAP_VALUE_CONV_HUMAN,
     }
@@ -584,8 +550,6 @@ class DisplayData(object):
         if key_name not in ['root', 'anonuid', 'anongid', 'auth']:
             NFS_EXPORT_COLUMN_KEYS.extend([key_name])
 
-    NFS_EXPORT_OPT_HEADER = OrderedDict()
-
     NFS_EXPORT_VALUE_CONV_ENUM = {}
 
     NFS_EXPORT_VALUE_CONV_HUMAN = []
@@ -593,7 +557,6 @@ class DisplayData(object):
     VALUE_CONVERT[NfsExport] = {
         'mandatory_headers': NFS_EXPORT_MAN_HEADER,
         'column_keys': NFS_EXPORT_COLUMN_KEYS,
-        'optional_headers': NFS_EXPORT_OPT_HEADER,
         'value_conv_enum': NFS_EXPORT_VALUE_CONV_ENUM,
         'value_conv_human': NFS_EXPORT_VALUE_CONV_HUMAN,
     }
@@ -602,18 +565,6 @@ class DisplayData(object):
     def _get_man_pro_value(obj, key, value_conv_enum, value_conv_human,
                            flag_human, flag_enum):
         value = getattr(obj, key)
-        if not flag_enum:
-            if key in value_conv_enum.keys():
-                value = value_conv_enum[key](value)
-        if flag_human:
-            if key in value_conv_human:
-                value = size_bytes_2_size_human(value)
-        return value
-
-    @staticmethod
-    def _get_opt_pro_value(obj, key, value_conv_enum, value_conv_human,
-                           flag_human, flag_enum):
-        value = obj.optional_data.get(key)
         if not flag_enum:
             if key in value_conv_enum.keys():
                 value = value_conv_enum[key](value)
@@ -637,7 +588,6 @@ class DisplayData(object):
         data_dict = OrderedDict()
         value_convert = DisplayData.VALUE_CONVERT[type(obj)]
         mandatory_headers = value_convert['mandatory_headers']
-        optional_headers = value_convert['optional_headers']
         value_conv_enum = value_convert['value_conv_enum']
         value_conv_human = value_convert['value_conv_human']
 
@@ -657,38 +607,6 @@ class DisplayData(object):
                 obj, key, value_conv_enum, value_conv_human, flag_human,
                 flag_enum)
             data_dict[key_str] = value
-
-        if flag_dsp_all_data:
-            cur_support_opt_keys = obj.optional_data.keys()
-            for key in optional_headers.keys():
-                if key not in cur_support_opt_keys:
-                    continue
-                key_str = optional_headers[key]
-                value = DisplayData._get_opt_pro_value(
-                    obj, key, value_conv_enum, value_conv_human, flag_human,
-                    flag_enum)
-                data_dict[key_str] = value
-
-        if extra_properties:
-            cur_support_opt_keys = obj.optional_data.keys()
-            for key in extra_properties:
-                if key in data_dict.keys():
-                    # already contained
-                    continue
-                if key in mandatory_headers.keys():
-                    key_str = mandatory_headers[key]
-                    value = DisplayData._get_man_pro_value(
-                        obj, key, value_conv_enum, value_conv_human,
-                        flag_human, flag_enum)
-                    data_dict[key_str] = value
-                elif key in optional_headers.keys():
-                    if key not in cur_support_opt_keys:
-                        continue
-                    key_str = optional_headers[key]
-                    value = DisplayData._get_opt_pro_value(
-                        obj, key, value_conv_enum, value_conv_human,
-                        flag_human, flag_enum)
-                    data_dict[key_str] = value
 
         return data_dict
 

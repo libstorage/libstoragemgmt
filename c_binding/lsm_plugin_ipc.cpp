@@ -2611,7 +2611,7 @@ do { \
 
 int LSM_DLL_EXPORT lsm_uri_parse(const char *uri, char **scheme, char **user,
                                 char **server, int *port, char **path,
-                                lsm_optional_data **query_params)
+                                lsm_hash **query_params)
 {
     int rc = LSM_ERR_INVALID_URI;
     xmlURIPtr u = NULL;
@@ -2632,7 +2632,7 @@ int LSM_DLL_EXPORT lsm_uri_parse(const char *uri, char **scheme, char **user,
             STR_D(*path, u->path);
             *port = u->port;
 
-            *query_params = lsm_optional_data_record_alloc();
+            *query_params = lsm_hash_alloc();
             if( *query_params ) {
                 int i;
                 struct qparam_set *qp = NULL;
@@ -2640,7 +2640,7 @@ int LSM_DLL_EXPORT lsm_uri_parse(const char *uri, char **scheme, char **user,
 
                 if( qp ) {
                     for( i = 0; i < qp->n; ++i ) {
-                        rc = lsm_optional_data_string_set(*query_params,
+                        rc = lsm_hash_string_set(*query_params,
                                                             qp->p[i].name,
                                                             qp->p[i].value);
                         if( LSM_ERR_OK != rc ) {
@@ -2669,7 +2669,7 @@ int LSM_DLL_EXPORT lsm_uri_parse(const char *uri, char **scheme, char **user,
             *port = -1;
             free(*path);
             *path = NULL;
-            lsm_optional_data_record_free(*query_params);
+            lsm_hash_free(*query_params);
             *query_params = NULL;
         }
 

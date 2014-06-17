@@ -1035,16 +1035,10 @@ START_TEST(test_disks)
     const char *name;
     const char *system_id;
     int i = 0;
-    lsm_string_list *keys = NULL;
-    const char *key = NULL;
-    const char *data = NULL;
-    lsm_optional_data *od = NULL;
-    uint32_t j;
 
     fail_unless(c!=NULL);
 
-    int rc = lsm_disk_list(c, NULL, NULL, &d, &count,
-                            LSM_DISK_FLAG_RETRIEVE_FULL_INFO);
+    int rc = lsm_disk_list(c, NULL, NULL, &d, &count, 0);
 
     if( LSM_ERR_OK == rc ) {
         fail_unless(LSM_ERR_OK == rc, "%d", rc);
@@ -1074,47 +1068,6 @@ START_TEST(test_disks)
             fail_unless( lsm_disk_block_size_get(d[i]) >= 1);
             fail_unless( lsm_disk_status_get(d[i]) >= 1);
 
-            od = lsm_disk_optional_data_get(d[i]);
-            if( od ) {
-                lsm_optional_data_type t;
-
-                /* Iterate through the keys, grabbing the data */
-                rc = lsm_optional_data_keys(od, &keys);
-                if( LSM_ERR_OK == rc && keys != NULL &&
-                        lsm_string_list_size(keys) > 0 ) {
-                    for(j = 0; j < lsm_string_list_size(keys); ++j ) {
-                        key = lsm_string_list_elem_get(keys, j);
-
-                        fail_unless(key != NULL && strlen(key) > 0);
-
-                        t = lsm_optional_data_type_get(od, key);
-                        if( LSM_OPTIONAL_DATA_STRING == t ) {
-                            data = lsm_optional_data_string_get(od, key);
-                            printf("Key=%s, Data=%s\n", key, data);
-                            fail_unless(data != NULL && strlen(data) > 0);
-                        } else if( LSM_OPTIONAL_DATA_STRING_LIST == t ) {
-                            lsm_string_list *sl = lsm_optional_data_string_list_get(od, key);
-                            if( sl ) {
-                                int size = lsm_string_list_size(sl);
-                                int j;
-
-                                printf("Key=%s, Data=", key);
-
-                                for( j = 0; j < size; j++ ) {
-                                    printf("%s ", lsm_string_list_elem_get(sl, j));
-                                }
-                                printf("\n");
-                            }
-                        }
-                    }
-
-                    if( keys ) {
-                        rc = lsm_string_list_free(keys);
-                        fail_unless(LSM_ERR_OK == rc, "rc = %d", rc);
-                    }
-                }
-                lsm_optional_data_record_free(od);
-            }
         }
         lsm_disk_record_array_free(d, count);
     } else {
@@ -2272,7 +2225,7 @@ START_TEST(test_nfs_export_funcs)
 
 
     lsm_nfs_export *export = lsm_nfs_export_record_alloc(id, fs_id, export_path, auth,
-        root, rw, ro, anonuid, anongid, options, NULL, p_data);
+        root, rw, ro, anonuid, anongid, options, p_data);
 
     lsm_nfs_export *copy = lsm_nfs_export_record_copy(export);
 
@@ -2607,7 +2560,7 @@ START_TEST(test_uri_parse)
     char *server = NULL;
     char *path = NULL;
     int port = 0;
-    lsm_optional_data *qp = NULL;
+    lsm_hash *qp = NULL;
     int rc = lsm_uri_parse(uri_g, &scheme, &user, &server, &port, &path, &qp);
 
     fail_unless(LSM_ERR_OK == rc, "lsm_uri_parse %d", rc);
@@ -2622,15 +2575,15 @@ START_TEST(test_uri_parse)
         fail_unless(qp != NULL);
         if( qp ) {
             fail_unless(strcmp("root/uber",
-                        lsm_optional_data_string_get(qp, "namespace")) == 0,
-                        "%s", lsm_optional_data_string_get(qp, "namespace"));
+                        lsm_hash_string_get(qp, "namespace")) == 0,
+                        "%s", lsm_hash_string_get(qp, "namespace"));
         }
 
         free(scheme);
         free(user);
         free(server);
         free(path);
-        lsm_optional_data_record_free(qp);
+        lsm_hash_free(qp);
     }
 }
 END_TEST
@@ -3003,68 +2956,6 @@ START_TEST(test_search_fs)
 }
 END_TEST
 
-START_TEST(test_pool_listing)
-{
-    lsm_pool **pools = NULL;
-    uint32_t count = 0;
-    lsm_optional_data *op = NULL;
-    uint32_t i,j = 0;
-    lsm_optional_data_type t;
-    lsm_string_list *keys = NULL;
-
-    int rc = lsm_pool_list(c, NULL, NULL, &pools, &count,
-                            LSM_POOL_FLAG_RETRIEVE_FULL_INFO);
-    if( LSM_ERR_OK == rc ) {
-        for( i = 0; i < count; ++i ) {
-            op = lsm_pool_optional_data_get(pools[i]);
-
-            if( op ) {
-                rc = lsm_optional_data_keys(op, &keys);
-                fail_unless(LSM_ERR_OK == rc, "lsm_optional_data_keys %d", rc);
-
-                if(LSM_ERR_OK == rc ) {
-
-                    for(j = 0; j < lsm_string_list_size(keys); ++j ) {
-                        const char *key = lsm_string_list_elem_get(keys, j);
-                        t = lsm_optional_data_type_get(op, key);
-                        if( LSM_OPTIONAL_DATA_STRING == t ) {
-                            const char *value = lsm_optional_data_string_get(op, key);
-                            fail_unless(value != NULL && strlen(value) > 0);
-                            printf("%s=%s\n", key, value);
-                        } else if( LSM_OPTIONAL_DATA_STRING_LIST == t ) {
-                            lsm_string_list *v = lsm_optional_data_string_list_get(op, key);
-                            if( v ) {
-                                uint32_t k;
-
-                                printf("%s=[", key);
-                                for( k = 0; k < lsm_string_list_size(v); ++k ) {
-                                    printf("%s ",
-                                            lsm_string_list_elem_get(v, k));
-                                }
-                                printf("]\n");
-                                lsm_string_list_free(v);
-                            }
-                        } else if( LSM_OPTIONAL_DATA_SIGN_INT == t ) {
-                            int64_t value = lsm_optional_data_int64_get(op, key);
-                            printf("%s:%" PRId64 "\n", key, value);
-                        }
-                    }
-
-                    rc = lsm_string_list_free(keys);
-                    fail_unless(LSM_ERR_OK == rc, "lsm_string_list_free %d", rc);
-                }
-
-                rc = lsm_optional_data_record_free(op);
-                fail_unless(LSM_ERR_OK == rc, "lsm_optional_data_record_free %d", rc);
-            }
-        }
-
-        rc = lsm_pool_record_array_free(pools, count);
-        fail_unless(LSM_ERR_OK == rc, "lsm_pool_record_array_free %d", rc);
-    }
-}
-END_TEST
-
 Suite * lsm_suite(void)
 {
     Suite *s = suite_create("libStorageMgmt");
@@ -3072,7 +2963,6 @@ Suite * lsm_suite(void)
     TCase *basic = tcase_create("Basic");
     tcase_add_checked_fixture (basic, setup, teardown);
 
-    tcase_add_test(basic, test_pool_listing);
     tcase_add_test(basic, test_search_fs);
     tcase_add_test(basic, test_search_access_groups);
     tcase_add_test(basic, test_search_disks);

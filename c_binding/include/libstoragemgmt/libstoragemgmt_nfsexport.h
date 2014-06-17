@@ -44,7 +44,6 @@ extern "C" {
  * @param anongid       Group id that should be mapped to anonymous
  *                      (Valid or set to ANON_UID_GID_NA)
  * @param options       String of options passed to array
- * @param optional_data Optional data
  * @param plugin_data   Reserved for plug-in use
  * @return Valid export pointer, else NULL on error.
  */
@@ -58,7 +57,6 @@ lsm_nfs_export LSM_DLL_EXPORT * lsm_nfs_export_record_alloc(const char *id,
                                             uint64_t anonuid,
                                             uint64_t anongid,
                                             const char *options,
-                                            lsm_optional_data * optional_data,
                                             const char * plugin_data);
 
 /**
@@ -179,15 +177,6 @@ int LSM_DLL_EXPORT lsm_nfs_export_anon_gid_set( lsm_nfs_export *exp, uint64_t va
 const char LSM_DLL_EXPORT *lsm_nfs_export_options_get( lsm_nfs_export *exp);
 int LSM_DLL_EXPORT lsm_nfs_export_options_set( lsm_nfs_export *exp,
                                             const char *value);
-
-
-/**
- * Retrieve optional data.
- * @param exp   Valid nfs export
- * @return optional data, else NULL
- */
-lsm_optional_data LSM_DLL_EXPORT *lsm_nfs_export_optional_data_get(
-                                                lsm_nfs_export *exp );
 
 #ifdef  __cplusplus
 }

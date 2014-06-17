@@ -134,8 +134,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             pools.append(Pool(pool_info['name'], pool_info['name'],
                               NexentaStor._to_bytes(pool_info['size']),
                               NexentaStor._to_bytes(pool_info['free']),
-                              Pool.STATUS_UNKNOWN, '',
-                              self.system.id))
+                              Pool.STATUS_UNKNOWN, '', self.system.id))
 
         return search_property(pools, search_key, search_value)
 
@@ -155,11 +154,10 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                 pools[pool_name] = pool_info
             else:
                 pool_info = pools[pool_name]
-            fss.append(FileSystem(fs, fs,
-                                  NexentaStor._to_bytes(pool_info['size']),
-                                  self._to_bytes(pool_info['available']),
-                                  pool_name,
-                                  fs))
+            fss.append(
+                FileSystem(fs, fs, NexentaStor._to_bytes(pool_info['size']),
+                           self._to_bytes(pool_info['available']), pool_name,
+                           fs))
 
         return search_property(fss, search_key, search_value)
 
@@ -327,8 +325,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         self._request("clone", "folder", [snapshot.name, dest])
         pool_id = NexentaStor._get_pool_id(dest)
         pool_info = self._request("get_child_props", "volume", [pool_id, ""])
-        fs = FileSystem(dest, dest,
-                        NexentaStor._to_bytes(pool_info['size']),
+        fs = FileSystem(dest, dest, NexentaStor._to_bytes(pool_info['size']),
                         NexentaStor._to_bytes(pool_info['available']), pool_id,
                         self.system.id)
         return None, fs
@@ -394,12 +391,10 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         for e in exp_list:
             opts = self._request("get_shareopts", "netstorsvc",
                                  ['svc:/network/nfs/server:default', e])
-            exports.append(NfsExport(md5(opts['name']),
-                                     e, opts['name'], opts['auth_type'],
-                                     opts['root'],
+            exports.append(NfsExport(md5(opts['name']), e, opts['name'],
+                                     opts['auth_type'], opts['root'],
                                      opts['read_write'], opts['read_only'],
-                                     'N/A', 'N/A',
-                                     opts['extra_options']))
+                                     'N/A', 'N/A', opts['extra_options']))
 
         return search_property(exports, search_key, search_value)
 
@@ -433,9 +428,8 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         result = self._request("share_folder", "netstorsvc",
                                ['svc:/network/nfs/server:default',
                                 fs_id, fs_dict])
-        return NfsExport(md5_id, fs_id, export_path, auth_type,
-                         root_list, rw_list, ro_list, anon_uid, anon_gid,
-                         options)
+        return NfsExport(md5_id, fs_id, export_path, auth_type, root_list,
+                         rw_list, ro_list, anon_uid, anon_gid, options)
     @handle_nstor_errors
     def export_remove(self, export, flags=0):
         """
@@ -493,11 +487,9 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             else:
                 state = Volume.STATUS_UNKNOWN
 
-            vol_list.append(Volume(lu, lu, lu_props['guid'],
-                                   block_size, num_of_blocks,
-                                   state,
-                                   'N/A',
-                                   NexentaStor._get_pool_id(lu)))
+            vol_list.append(
+                Volume(lu, lu, lu_props['guid'], block_size, num_of_blocks,
+                       state, 'N/A', NexentaStor._get_pool_id(lu)))
 
         return search_property(vol_list, search_key, search_value)
 
@@ -536,7 +528,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
         new_volume = Volume(name, name, '', 8192, size_bytes / 8192,
                             Volume.STATUS_OK, '',
-                            pool.id)    # FIXhttp://192.168.0.1/st_wlan.phpME
+                            pool.id)  # FIXhttp://192.168.0.1/st_wlan.phpME
                                         # replace with list request
         return None, new_volume
 
@@ -702,8 +694,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         for hg in hg_list:
             init_ids = self._request("list_hostgroup_members", "stmf", [hg])
             ag_list.append(
-                AccessGroup(hg, hg, init_ids,
-                            AccessGroup.INIT_TYPE_ISCSI_IQN,
+                AccessGroup(hg, hg, init_ids, AccessGroup.INIT_TYPE_ISCSI_IQN,
                             self.system.id))
         return search_property(ag_list, search_key, search_value)
 

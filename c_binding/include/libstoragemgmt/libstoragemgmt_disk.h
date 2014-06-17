@@ -112,14 +112,6 @@ uint64_t LSM_DLL_EXPORT lsm_disk_status_get(lsm_disk *d);
  */
 const char LSM_DLL_EXPORT *lsm_disk_system_id_get(lsm_disk *d);
 
-/**
- * Retrieve optional data for this disk
- * @param d     Valid lsm_disk pointer
- * @return NULL if no optional data exists.
- */
-lsm_optional_data LSM_DLL_EXPORT *lsm_disk_optional_data_get(lsm_disk *d);
-
-
 #ifdef	__cplusplus
 }
 #endif

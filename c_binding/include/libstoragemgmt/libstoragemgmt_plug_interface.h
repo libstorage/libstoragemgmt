@@ -29,6 +29,7 @@
 #include "libstoragemgmt_fs.h"
 #include "libstoragemgmt_initiators.h"
 #include "libstoragemgmt_nfsexport.h"
+#include "libstoragemgmt_optionaldata.h"
 #include "libstoragemgmt_pool.h"
 #include "libstoragemgmt_snapshot.h"
 #include "libstoragemgmt_systems.h"
@@ -1078,7 +1079,6 @@ void LSM_DLL_EXPORT lsm_pool_free_space_set(lsm_pool *p, uint64_t free_space);
  * @param status        Pool status, bit field (See LSM_POOL_STATUS_XXXX constants)
  * @param status_info   Additional textual information on status
  * @param system_id     System id
- * @param optiona_data  Optional data
  * @param plugin_data   Reserved for plugin writer use
  * @return LSM_ERR_OK on success, else error reason.
  */
@@ -1087,7 +1087,6 @@ lsm_pool LSM_DLL_EXPORT *lsm_pool_record_alloc(const char *id, const char *name,
                                 uint64_t free_space,
                                 uint64_t status, const char* status_info,
                                 const char *system_id,
-                                lsm_optional_data *optional_data,
                                 const char * plugin_data);
 
 /**
@@ -1139,14 +1138,12 @@ lsm_disk LSM_DLL_EXPORT **lsm_disk_record_array_alloc( uint32_t size );
  * @param block_size        Number of bytes per logical block
  * @param block_count       Number of blocks for disk
  * @param disk_status       Status
- * @param op                lsm_optional_data can be NULL if not available
- *                          NOTE: op gets copied internally
  * @param system_id         System id this disk resides in
  * @return Pointer to allocated disk record or NULL on memory error.
  */
 lsm_disk LSM_DLL_EXPORT *lsm_disk_record_alloc(const char *id, const char *name,
         lsm_disk_type disk_type, uint64_t block_size, uint64_t block_count,
-        uint64_t disk_status, lsm_optional_data *op, const char *system_id);
+        uint64_t disk_status, const char *system_id);
 
 /**
  * Allocated the storage needed for one volume record.
@@ -1158,7 +1155,6 @@ lsm_disk LSM_DLL_EXPORT *lsm_disk_record_alloc(const char *id, const char *name,
  * @param status                Volume status
  * @param system_id             System id
  * @param pool_id               Pool id this volume is created from
- * @param optional_data         Optional data
  * @param plugin_data           Private data for plugin use
  * @return Allocated memory or NULL on error.
  */
@@ -1169,7 +1165,6 @@ lsm_volume LSM_DLL_EXPORT *lsm_volume_record_alloc(const char *id,
                                         uint32_t status,
                                         const char *system_id,
                                         const char *pool_id,
-                                        lsm_optional_data* optional_data,
                                         const char* plugin_data);
 
 /**
@@ -1192,7 +1187,6 @@ lsm_system LSM_DLL_EXPORT **lsm_system_record_array_alloc( uint32_t size );
  * @param[in] name          System name (human readable)
  * @param[in] status        Status of the system
  * @oaram[in] status_info   Additional text for status
- * @param[in] optional_data Optional data
  * @param[in] plugin_data   Private plugin data
  * @return  Allocated memory or NULL on error.
  */
@@ -1200,7 +1194,6 @@ lsm_system LSM_DLL_EXPORT *lsm_system_record_alloc(const char *id,
                                             const char *name,
                                             uint32_t status,
                                             const char *status_info,
-                                            lsm_optional_data *optional_data,
                                             const char* plugin_data);
 
 /**
@@ -1224,7 +1217,6 @@ lsm_access_group LSM_DLL_EXPORT **lsm_access_group_record_array_alloc( uint32_t 
  * @param name              Name of access group
  * @param initiators        List of initiators, can be NULL
  * @param system_id         System id
- * @param optional_data     Optional data
  * @param plugin_data       Reserved for plug-in use only
  * @return NULL on error, else valid lsm_access_group pointer.
  */
@@ -1233,7 +1225,6 @@ lsm_access_group LSM_DLL_EXPORT * lsm_access_group_record_alloc(const char *id,
                                         lsm_string_list *initiators,
                                         lsm_access_group_init_type init_type,
                                         const char *system_id,
-                                        lsm_optional_data *optional_data,
                                         const char *plugin_data);
 
 
@@ -1253,7 +1244,6 @@ void LSM_DLL_EXPORT lsm_access_group_initiator_id_set( lsm_access_group *group,
  * @param free_space            Free space
  * @param pool_id               Pool id
  * @param system_id             System id
- * @param optional_data         Optional data
  * @param plugin_data           Reserved for plug-in use only
  * @return lsm_fs, NULL on error
  */
@@ -1262,7 +1252,6 @@ lsm_fs LSM_DLL_EXPORT *lsm_fs_record_alloc(const char *id, const char *name,
                                             uint64_t free_space,
                                             const char *pool_id,
                                             const char *system_id,
-                                            lsm_optional_data * optional_data,
                                             const char* plugin_data);
 
 /**
@@ -1284,14 +1273,12 @@ const char *lsm_fs_plugin_data_get(lsm_fs *fs);
  * @param id            ID
  * @param name          Name
  * @param ts            Epoch time stamp when snapshot was created
- * @param optional_data Optional data
  * @param plugin_data   Private plugin data
  * @return Allocated memory, NULL on error
  */
 lsm_fs_ss LSM_DLL_EXPORT *lsm_fs_ss_record_alloc(const char *id,
                                             const char *name,
                                             uint64_t ts,
-                                            lsm_optional_data *optional_data,
                                             const char * plugin_data);
 
 /**
@@ -1337,14 +1324,6 @@ int LSM_DLL_EXPORT lsm_capability_set_n( lsm_storage_capabilities *cap,
  */
 lsm_storage_capabilities LSM_DLL_EXPORT *lsm_capability_record_alloc(char const *value);
 
-
-/**
- * Allocate storage for optional data.
- * @return Allocated record or NULL on memory allocation failure
- */
-lsm_optional_data LSM_DLL_EXPORT *lsm_optional_data_record_alloc(void);
-
-
 /**
  * Convenience function for plug-in writer.
  * Note: Make sure to free returned items to prevent memory leaks.
@@ -1358,7 +1337,7 @@ lsm_optional_data LSM_DLL_EXPORT *lsm_optional_data_record_alloc(void);
  */
 int LSM_DLL_EXPORT lsm_uri_parse(const char *uri, char **scheme, char **user,
                                 char **server, int *port, char **path,
-                                lsm_optional_data **query_params);
+                                lsm_hash **query_params);
 
 /**
  * Provides for volume filtering when an array doesn't support this natively.

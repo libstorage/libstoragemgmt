@@ -220,8 +220,7 @@ class IbmV7k(IStorageAreaNetwork):
 
         return Volume(v['id'], v['name'], v['vdisk_UID'], bs,
                       (float(v['capacity']) / bs), vol_status,
-                      self.sys_info.id,
-                      v['mdisk_grp_id'])
+                      self.sys_info.id, v['mdisk_grp_id'])
 
     def _create_volume(self, pool, vol_name, size_bytes, prov):
         ssh_cmd = ('mkvdisk -name %s -mdiskgrp %s -iogrp 0 -size %s'

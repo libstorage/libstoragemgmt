@@ -26,7 +26,7 @@ from pywbem import CIMError
 
 from lsm import (IStorageAreaNetwork, Error, uri_parse, LsmError, ErrorNumber,
                  JobStatus, md5, Pool, Volume, AccessGroup, System,
-                 Capabilities, Disk, OptionalData, txt_a, VERSION,
+                 Capabilities, Disk, txt_a, VERSION,
                  search_property)
 
 ## Variable Naming scheme:
@@ -131,8 +131,6 @@ def _dmtf_init_type_to_lsm(cim_init):
         return _INIT_TYPE_CONV[cim_init['IDType']]
     return AccessGroup.INIT_TYPE_UNKNOWN
 
-def _lsm_init_type_to_dmtf(lsm_init_type):
-    return _get_key(_INIT_TYPE_CONV, lsm_init_type)
 
 def _get_key(dictionary, value):
     keys = [k for k, v in dictionary.items() if v == value]
@@ -147,7 +145,7 @@ def _lsm_init_type_to_dmtf(init_type):
         raise LsmError(ErrorNumber.NO_SUPPORT,
                        "Does not support provided init_type: %d" % init_type)
     else:
-        return  key
+        return key
 
 
 class SNIA(object):
@@ -247,10 +245,10 @@ class Smis(IStorageAreaNetwork):
 
     _DMTF_DISK_TYPE_2_LSM = {
         DMTF_DISK_TYPE_UNKNOWN: Disk.DISK_TYPE_UNKNOWN,
-        DMTF_DISK_TYPE_OTHER:   Disk.DISK_TYPE_OTHER,
-        DMTF_DISK_TYPE_HDD:     Disk.DISK_TYPE_HDD,
-        DMTF_DISK_TYPE_SSD:     Disk.DISK_TYPE_SSD,
-        DMTF_DISK_TYPE_HYBRID:  Disk.DISK_TYPE_HYBRID,
+        DMTF_DISK_TYPE_OTHER: Disk.DISK_TYPE_OTHER,
+        DMTF_DISK_TYPE_HDD: Disk.DISK_TYPE_HDD,
+        DMTF_DISK_TYPE_SSD: Disk.DISK_TYPE_SSD,
+        DMTF_DISK_TYPE_HYBRID: Disk.DISK_TYPE_HYBRID,
     }
 
     @staticmethod
@@ -925,7 +923,6 @@ class Smis(IStorageAreaNetwork):
                        "Smis._cim_class_name_of() got unknown " +
                        "class_type %s" % class_type)
 
-
     @staticmethod
     def _property_list_of_id(class_type, extra_properties=None):
         """
@@ -950,8 +947,8 @@ class Smis(IStorageAreaNetwork):
             rc = ['StorageID']
         else:
             raise LsmError(ErrorNumber.LSM_BUG,
-                       "Smis._cim_class_name_of() got unknown " +
-                       "class_type %s" % class_type)
+                           "Smis._cim_class_name_of() got unknown " +
+                           "class_type %s" % class_type)
 
         if extra_properties:
             rc = _merge_list(rc, extra_properties)
@@ -1398,7 +1395,7 @@ class Smis(IStorageAreaNetwork):
 
         return [p for p in cim_pools if not p["Primordial"]]
 
-    def _new_pool_cim_pool_pros(self, flag_full_info=False):
+    def _new_pool_cim_pool_pros(self):
         """
         Return a list of properties for creating new pool.
         """
@@ -1406,9 +1403,6 @@ class Smis(IStorageAreaNetwork):
         pool_pros.extend(['ElementName', 'TotalManagedSpace',
                           'RemainingManagedSpace', 'Usage',
                           'OperationalStatus'])
-        if flag_full_info:
-            pool_pros.extend(['SpaceLimitDetermination',
-                              'ThinProvisionMetaDataSpace'])
         return pool_pros
 
     @handle_cim_errors
@@ -1427,8 +1421,7 @@ class Smis(IStorageAreaNetwork):
         profile.
         """
         rc = []
-        cim_pool_pros = self._new_pool_cim_pool_pros(
-            bool(flags & Pool.FLAG_RETRIEVE_FULL_INFO))
+        cim_pool_pros = self._new_pool_cim_pool_pros()
 
         cim_sys_pros = self._property_list_of_id("System")
         cim_syss = self._root_cim_syss(cim_sys_pros)
@@ -1465,10 +1458,6 @@ class Smis(IStorageAreaNetwork):
                 pool = self._new_pool(cim_pool, system_id)
                 if pool:
                     rc.extend([pool])
-                    if flags & Pool.FLAG_RETRIEVE_FULL_INFO:
-                        opt_pro_dict = self._pool_opt_data(cim_pool)
-                        for key, value in opt_pro_dict.items():
-                            pool.optional_data.set(key, value)
                 else:
                     raise LsmError(ErrorNumber.LSM_BUG,
                                    "Failed to retrieve pool information " +
@@ -2096,10 +2085,8 @@ class Smis(IStorageAreaNetwork):
                            "_initiator_create(): Got more than one "
                            "CIM_StorageHardwareIDManagementService")
 
-        in_params = {#'ElementName': init_id,
-                     'StorageID': init_id,
+        in_params = {'StorageID': init_id,
                      'IDType': pywbem.Uint16(dmtf_id_type)}
-        print in_params
 
         (rc, out) = self._c.InvokeMethod('CreateStorageHardwareID',
                                          cim_hw_srvs[0], **in_params)
@@ -2129,7 +2116,7 @@ class Smis(IStorageAreaNetwork):
         # Check to see if we have this initiator already, if we don't create
         # it and then add to the view.
         if self._get_cim_instance_by_id(
-            'Initiator', init_id, raise_error=False) is None:
+                'Initiator', init_id, raise_error=False) is None:
             dmtf_id_type = _lsm_init_type_to_dmtf(init_type)
             if dmtf_id_type is None:
                 raise LsmError(ErrorNumber.NO_SUPPORT,
@@ -2232,7 +2219,7 @@ class Smis(IStorageAreaNetwork):
             cim_ext = self._pri_cim_ext_of_cim_disk(cim_disk.path,
                                                     cim_ext_pros)
 
-            rc.extend([self._new_disk(cim_disk, cim_ext, flags)])
+            rc.extend([self._new_disk(cim_disk, cim_ext)])
         return search_property(rc, search_key, search_value)
 
     @staticmethod
@@ -2242,8 +2229,6 @@ class Smis(IStorageAreaNetwork):
         """
         pros = ['OperationalStatus', 'Name', 'SystemName',
                 'Caption', 'InterconnectType', 'DiskType']
-        if flag & Disk.FLAG_RETRIEVE_FULL_INFO:
-            pros.extend(['ErrorDescription', 'ErrorCleared'])
         return pros
 
     @staticmethod
@@ -2253,19 +2238,6 @@ class Smis(IStorageAreaNetwork):
         object.
         """
         return ['BlockSize', 'NumberOfBlocks']
-
-    @staticmethod
-    def _new_disk_cim_phy_pkg_pros(flag=0):
-        """
-        Return all CIM_PhysicalPackage Properties needed to create a Disk
-        object.
-        """
-        pros = []   # we don't need CIM_PhysicalPackage when not
-                    # FLAG_RETRIEVE_FULL_INFO
-        if flag & Disk.FLAG_RETRIEVE_FULL_INFO:
-            pros.extend(['SerialNumber', 'PartNumber', 'Manufacturer',
-                         'Model'])
-        return pros
 
     @staticmethod
     def _disk_status_of(cim_disk):
@@ -2291,7 +2263,7 @@ class Smis(IStorageAreaNetwork):
                     Smis._DMTF_STAUTS_TO_DISK_STATUS_INFO[dmtf_status])
         return (status, status_info)
 
-    def _new_disk(self, cim_disk, cim_ext, flag_full_info=0):
+    def _new_disk(self, cim_disk, cim_ext):
         """
         Takes a CIM_DiskDrive and CIM_StorageExtent, returns a lsm Disk
         Assuming cim_disk and cim_ext already contained the correct
@@ -2345,52 +2317,8 @@ class Smis(IStorageAreaNetwork):
                     if ccn == 'LSIESG_TargetSASProtocolEndpoint':
                         disk_type = Disk.DISK_TYPE_SAS
 
-        optionals = OptionalData()
-        if flag_full_info & Disk.FLAG_RETRIEVE_FULL_INFO:
-            opt_pro_dict = {
-                'sn': '',
-                'part_num': '',
-                'vendor': '',
-                'model': '',
-                'status_info': '',
-            }
-            cim_phy_pkg_pros = Smis._new_disk_cim_phy_pkg_pros(flag_full_info)
-            cim_phy_pkgs = self._c.Associators(
-                cim_disk.path,
-                AssocClass='CIM_Realizes',
-                ResultClass='CIM_PhysicalPackage',
-                PropertyList=cim_phy_pkg_pros)
-            if not (cim_phy_pkgs and cim_phy_pkgs[0]):
-                raise LsmError(ErrorNumber.LSM_BUG,
-                               "Failed to find out the CIM_PhysicalPackage " +
-                               "of CIM_DiskDrive %s" % cim_disk.path)
-            cim_phy_pkg = cim_phy_pkgs[0]
-            if 'Manufacturer' in cim_phy_pkg and cim_phy_pkg['Manufacturer']:
-                opt_pro_dict['vendor'] = cim_phy_pkg['Manufacturer']
-            if 'Model' in cim_phy_pkg and cim_phy_pkg['Model']:
-                opt_pro_dict['model'] = cim_phy_pkg['Model']
-            if 'SerialNumber' in cim_phy_pkg and cim_phy_pkg['SerialNumber']:
-                opt_pro_dict['sn'] = cim_phy_pkg['SerialNumber']
-            if 'PartNumber' in cim_phy_pkg and cim_phy_pkg['PartNumber']:
-                opt_pro_dict['part_num'] = cim_phy_pkg['PartNumber']
-            if 'ErrorCleared' in cim_disk:
-                if not cim_disk['ErrorCleared']:
-                    if 'ErrorDescription' in cim_disk:
-                        opt_pro_dict['status_info'] = txt_a(
-                            status_info,
-                            cim_disk['ErrorDescription'])
-                    else:
-                        raise LsmError(ErrorNumber.LSM_BUG,
-                                       "CIM_DiskDrive %s " % cim_disk.id +
-                                       "has ErrorCleared == False but " +
-                                       "does not have " +
-                                       "CIM_DiskDrive['ErrorDescription']")
-
-            for opt_pro_name in opt_pro_dict.keys():
-                optionals.set(opt_pro_name, opt_pro_dict[opt_pro_name])
-
         new_disk = Disk(self._disk_id(cim_disk), name, disk_type, block_size,
-                        num_of_block, status, sys_id, optionals)
+                        num_of_block, status, sys_id)
 
         return new_disk
 

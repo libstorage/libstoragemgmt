@@ -67,7 +67,6 @@ struct LSM_DLL_LOCAL _lsm_volume {
     uint32_t    status;                 /**< Status */
     char *system_id;                    /**< System this volume belongs */
     char *pool_id;                      /**< Pool this volume is derived from */
-    lsm_optional_data *optional_data;   /**< Optional data */
     char *plugin_data;                  /**< Private data for plugin */
 };
 
@@ -86,7 +85,6 @@ struct LSM_DLL_LOCAL _lsm_pool {
     uint64_t    status;         /**< Status of pool */
     char *status_info;          /**< Status info for pool */
     char *system_id;            /**< system id */
-    lsm_optional_data *optional_data;   /**< Optional data */
     char *plugin_data;                  /**< Private data for plugin */
 };
 
@@ -116,7 +114,6 @@ struct _lsm_access_group {
     char *system_id;            /**< System id */
     lsm_access_group_init_type init_type; /**< Init type */
     lsm_string_list *initiators;  /**< List of initiators */
-    lsm_optional_data *optional_data;   /**< Optional data */
     char *plugin_data;            /**< Reserved for the plugin to use */
 };
 
@@ -138,7 +135,6 @@ struct _lsm_nfs_export {
     uint64_t anonuid;           /**< Uid that should map to anonymous */
     uint64_t anongid;           /**< Gid that should map to anonymous */
     char *options;              /**< Options */
-    lsm_optional_data *optional_data;   /**< Optional data */
     char *plugin_data;                  /**< Reserved for the plugin to use */
 };
 
@@ -181,8 +177,7 @@ struct _lsm_system {
     char *name;                 /**< Name */
     uint32_t status;            /**< Enumerated status value */
     char *status_info;          /**< System status text */
-    lsm_optional_data *optional_data;   /**< Optional data */
-    char *plugin_data;                  /**< Reserved for the plugin to use */
+    char *plugin_data;          /**< Reserved for the plugin to use */
 };
 
 #define LSM_CONNECT_MAGIC       0xAA7A000A
@@ -267,7 +262,6 @@ struct LSM_DLL_LOCAL _lsm_fs {
     uint64_t total_space;               /**< Total space */
     uint64_t free_space;                /**< Free space */
     char *system_id;                    /**< System ID */
-    lsm_optional_data *optional_data;   /**< Optional data */
     char *plugin_data;                  /**< Plugin private data */
 };
 
@@ -278,7 +272,6 @@ struct LSM_DLL_LOCAL _lsm_fs_ss {
     char *id;
     char *name;
     uint64_t ts;
-    lsm_optional_data *optional_data;   /**< Optional data */
     char *plugin_data;                  /**< Reserved for the plugin to use */
 };
 
@@ -292,27 +285,14 @@ struct LSM_DLL_LOCAL _lsm_disk {
     uint64_t block_size;
     uint64_t block_count;
     uint64_t disk_status;        /* Bit field */
-    lsm_optional_data *optional_data;
     char *system_id;
 };
 
-#define LSM_OPTIONAL_DATA_MAGIC     0xAA7A0011
-#define LSM_IS_OPTIONAL_DATA(obj)   MAGIC_CHECK(obj, LSM_OPTIONAL_DATA_MAGIC)
-struct LSM_DLL_LOCAL _lsm_optional_data {
+#define LSM_HASH_MAGIC     0xAA7A0011
+#define LSM_IS_HASH(obj)   MAGIC_CHECK(obj, LSM_HASH_MAGIC)
+struct LSM_DLL_LOCAL _lsm_hash {
     uint32_t magic;
     GHashTable *data;
-};
-
-union optional_value {
-        char *s;
-        long double d;
-        int64_t si;
-        uint64_t ui;
-        lsm_string_list *sl;
-};
-struct optional_data {
-    lsm_optional_data_type t;
-    union optional_value v;
 };
 
 /**

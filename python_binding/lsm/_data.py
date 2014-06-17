@@ -24,7 +24,6 @@ except ImportError:
     import json
 
 from json.decoder import WHITESPACE
-from lsm import LsmError, ErrorNumber
 from _common import get_class, default_property
 
 
@@ -159,21 +158,6 @@ class IData(object):
         """
         return str(self._to_dict())
 
-    def _check_opt_data(self, optional_data):
-        if optional_data is None:
-            return OptionalData()
-        else:
-            #Make sure the properties only contain ones we permit
-            allowed = set(self.OPT_PROPERTIES)
-            actual = set(optional_data.keys())
-
-            if actual <= allowed:
-                return optional_data
-            else:
-                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                               "Property keys are not supported: %s" %
-                               "".join(actual - allowed))
-
 
 @default_property('id', doc="Unique identifier")
 @default_property('name', doc="Disk name (aka. vendor)")
@@ -182,14 +166,12 @@ class IData(object):
 @default_property('num_of_blocks', doc="Total number of blocks")
 @default_property('status', doc="Enumerated status")
 @default_property('system_id', doc="System identifier")
-@default_property("optional_data", doc="Optional data")
 @default_property("plugin_data", doc="Private plugin data")
 class Disk(IData):
     """
     Represents a disk.
     """
     SUPPORTED_SEARCH_KEYS = ['id', 'system_id']
-    FLAG_RETRIEVE_FULL_INFO = 1 << 0
 
     # We use '-1' to indicate we failed to get the requested number.
     # For example, when block found is undetectable, we use '-1' instead of
@@ -232,7 +214,7 @@ class Disk(IData):
     OPT_PROPERTIES = ['sn', 'part_num', 'vendor', 'model']
 
     def __init__(self, _id, _name, _disk_type, _block_size, _num_of_blocks,
-                 _status, _system_id, _optional_data=None, _plugin_data=None):
+                 _status, _system_id, _plugin_data=None):
         self._id = _id
         self._name = _name
         self._disk_type = _disk_type
@@ -240,7 +222,6 @@ class Disk(IData):
         self._num_of_blocks = _num_of_blocks
         self._status = _status
         self._system_id = _system_id
-        self._optional_data = self._check_opt_data(_optional_data)
         self._plugin_data = _plugin_data
 
     @property
@@ -262,14 +243,11 @@ class Disk(IData):
 @default_property('status', doc="Enumerated volume status")
 @default_property('system_id', doc="System identifier")
 @default_property('pool_id', doc="Pool identifier")
-@default_property("optional_data", doc="Optional data")
 @default_property("plugin_data", doc="Private plugin data")
 class Volume(IData):
     """
     Represents a volume.
     """
-    FLAG_RETRIEVE_FULL_INFO = 1 << 0
-
     SUPPORTED_SEARCH_KEYS = ['id', 'system_id', 'pool_id']
     # Volume status Note: Volumes can have multiple status bits set at same
     # time.
@@ -286,8 +264,7 @@ class Volume(IData):
         (-1, 1, 2, 3)
 
     def __init__(self, _id, _name, _vpd83, _block_size, _num_of_blocks,
-                 _status, _system_id, _pool_id, _optional_data=None,
-                 _plugin_data=None):
+                 _status, _system_id, _pool_id, _plugin_data=None):
         self._id = _id                        # Identifier
         self._name = _name                    # Human recognisable name
         self._vpd83 = _vpd83                  # SCSI page 83 unique ID
@@ -296,7 +273,6 @@ class Volume(IData):
         self._status = _status                # Status
         self._system_id = _system_id          # System id this volume belongs
         self._pool_id = _pool_id              # Pool id this volume belongs
-        self._optional_data = self._check_opt_data(_optional_data)
         self._plugin_data = _plugin_data
 
     @property
@@ -314,7 +290,6 @@ class Volume(IData):
 @default_property('name', doc="User defined system name")
 @default_property('status', doc="Enumerated status of system")
 @default_property('status_info', doc="Detail status information of system")
-@default_property("optional_data", doc="Optional data")
 @default_property("plugin_data", doc="Private plugin data")
 class System(IData):
     """
@@ -372,10 +347,6 @@ class System(IData):
    String. Free form string used for explaining system status. For example:
    "Disk <disk_id> is in Offline state. Battery X is near end of life"
 
-##### 11.3.2 System Optional Properties
-
-The lsm.System class does not have any optional properties yet.
-
 ##### 11.3.3 System Extra Constants
 
 The lsm.System class does not have any extra constants.
@@ -384,8 +355,6 @@ The lsm.System class does not have any extra constants.
 
 The lsm.System class does not have class methods.
     """
-    FLAG_RETRIEVE_FULL_INFO = 1 << 0
-
     STATUS_UNKNOWN = 1 << 0
     STATUS_OK = 1 << 1
     STATUS_ERROR = 1 << 2
@@ -397,13 +366,11 @@ The lsm.System class does not have class methods.
     STATUS_STOPPED = 1 << 8
     STATUS_OTHER = 1 << 9
 
-    def __init__(self, _id, _name, _status, _status_info, _optional_data=None,
-                 _plugin_data=None):
+    def __init__(self, _id, _name, _status, _status_info, _plugin_data=None):
         self._id = _id
         self._name = _name
         self._status = _status
         self._status_info = _status_info
-        self._optional_data = self._check_opt_data(_optional_data)
         self._plugin_data = _plugin_data
 
 
@@ -414,13 +381,11 @@ The lsm.System class does not have class methods.
 @default_property('status', doc="Enumerated status")
 @default_property('status_info', doc="Text explaining status")
 @default_property('system_id', doc="System identifier")
-@default_property("optional_data", doc="Optional data")
 @default_property("plugin_data", doc="Plug-in private data")
 class Pool(IData):
     """
     Pool specific information
     """
-    FLAG_RETRIEVE_FULL_INFO = 1 << 0
     SUPPORTED_SEARCH_KEYS = ['id', 'system_id']
 
     TOTAL_SPACE_NOT_FOUND = -1
@@ -609,8 +574,7 @@ class Pool(IData):
                       'element_type', 'thinp_type']
 
     def __init__(self, _id, _name, _total_space, _free_space, _status,
-                 _status_info, _system_id, _optional_data=None,
-                 _plugin_data=None):
+                 _status_info, _system_id, _plugin_data=None):
         self._id = _id                    # Identifier
         self._name = _name                # Human recognisable name
         self._total_space = _total_space  # Total size
@@ -619,7 +583,6 @@ class Pool(IData):
         self._status_info = _status_info  # Additional status text of pool
         self._system_id = _system_id      # System id this pool belongs
         self._plugin_data = _plugin_data  # Plugin private data
-        self._optional_data = self._check_opt_data(_optional_data)
 
 
 @default_property('id', doc="Unique identifier")
@@ -628,38 +591,31 @@ class Pool(IData):
 @default_property('free_space', doc="Free space available")
 @default_property('pool_id', doc="What pool the file system resides on")
 @default_property('system_id', doc="System ID")
-@default_property("optional_data", "Optional data")
 @default_property("plugin_data", "Private plugin data")
 class FileSystem(IData):
-    FLAG_RETRIEVE_FULL_INFO = 1 << 0
     SUPPORTED_SEARCH_KEYS = ['id', 'system_id', 'pool_id']
 
     def __init__(self, _id, _name, _total_space, _free_space, _pool_id,
-                 _system_id, _optional_data=None, _plugin_data=None):
+                 _system_id, _plugin_data=None):
         self._id = _id
         self._name = _name
         self._total_space = _total_space
         self._free_space = _free_space
         self._pool_id = _pool_id
         self._system_id = _system_id
-        self._optional_data = self._check_opt_data(_optional_data)
         self._plugin_data = _plugin_data
 
 
 @default_property('id', doc="Unique identifier")
 @default_property('name', doc="Snapshot name")
 @default_property('ts', doc="Time stamp the snapshot was created")
-@default_property("optional_data", "Optional data")
 @default_property("plugin_data", "Private plugin data")
 class FsSnapshot(IData):
-    FLAG_RETRIEVE_FULL_INFO = 1 << 0
 
-    def __init__(self, _id, _name, _ts, _optional_data=None,
-                 _plugin_data=None):
+    def __init__(self, _id, _name, _ts, _plugin_data=None):
         self._id = _id
         self._name = _name
         self._ts = int(_ts)
-        self._optional_data = self._check_opt_data(_optional_data)
         self._plugin_data = _plugin_data
 
 
@@ -673,17 +629,14 @@ class FsSnapshot(IData):
 @default_property('anonuid', doc="UID for anonymous user id")
 @default_property('anongid', doc="GID for anonymous group id")
 @default_property('options', doc="String containing advanced options")
-@default_property('optional_data', doc="Optional data")
 @default_property('plugin_data', doc="Plugin private data")
 class NfsExport(IData):
-    FLAG_RETRIEVE_FULL_INFO = 1 << 0
     SUPPORTED_SEARCH_KEYS = ['id', 'fs_id']
     ANON_UID_GID_NA = -1
     ANON_UID_GID_ERROR = (ANON_UID_GID_NA - 1)
 
     def __init__(self, _id, _fs_id, _export_path, _auth, _root, _rw, _ro,
-                 _anonuid, _anongid, _options, _optional_data=None,
-                 _plugin_data=None):
+                 _anonuid, _anongid, _options, _plugin_data=None):
         assert (_fs_id is not None)
         assert (_export_path is not None)
 
@@ -697,7 +650,6 @@ class NfsExport(IData):
         self._anonuid = _anonuid      # uid for anonymous user id
         self._anongid = _anongid      # gid for anonymous group id
         self._options = _options      # NFS options
-        self._optional_data = self._check_opt_data(_optional_data)
         self._plugin_data = _plugin_data
 
 
@@ -716,10 +668,8 @@ class BlockRange(IData):
 @default_property('init_ids', doc="List of initiator IDs")
 @default_property('init_type', doc="Initiator type")
 @default_property('system_id', doc="System identifier")
-@default_property('optional_data', doc="Optional data")
 @default_property('plugin_data', doc="Plugin private data")
 class AccessGroup(IData):
-    FLAG_RETRIEVE_FULL_INFO = 1 << 0
     SUPPORTED_SEARCH_KEYS = ['id', 'system_id']
 
     INIT_TYPE_UNKNOWN = 0
@@ -731,37 +681,14 @@ class AccessGroup(IData):
     INIT_TYPE_SAS = 6
     INIT_TYPE_ISCSI_WWPN_MIXED = 7
 
-    def __init__(self, _id, _name, _init_ids, _init_type,
-                 _system_id, _optional_data=None, _plugin_data=None):
+    def __init__(self, _id, _name, _init_ids, _init_type, _system_id,
+                 _plugin_data=None):
         self._id = _id
         self._name = _name                # AccessGroup name
         self._init_ids = _init_ids        # List of initiator IDs
         self._init_type = _init_type
         self._system_id = _system_id      # System id this group belongs
         self._plugin_data = _plugin_data
-        self._optional_data = self._check_opt_data(_optional_data)
-
-
-class OptionalData(IData):
-    def _column_data(self, human=False, enum_as_number=False):
-        return [sorted(self._values.iterkeys(),
-                       key=lambda k: self._values[k][1])]
-
-    def __init__(self, _values=None):
-        if _values is not None:
-            self._values = _values
-        else:
-            self._values = {}
-
-    def keys(self):
-        rc = self._values.keys()
-        return rc
-
-    def get(self, key):
-        return self._values[key]
-
-    def set(self, key, value):
-        self._values[str(key)] = value
 
 
 class Capabilities(IData):

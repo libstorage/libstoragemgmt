@@ -17,9 +17,10 @@
 #         Gris Ge <fge@redhat.com>
 
 from lsm import (uri_parse, VERSION, Capabilities, Pool, INfs,
-                 IStorageAreaNetwork, Error, search_property)
+                 IStorageAreaNetwork, search_property)
 
 from simarray import SimArray
+
 
 class SimPlugin(INfs, IStorageAreaNetwork):
     """
