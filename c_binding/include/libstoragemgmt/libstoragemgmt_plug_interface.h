@@ -29,13 +29,11 @@
 #include "libstoragemgmt_fs.h"
 #include "libstoragemgmt_initiators.h"
 #include "libstoragemgmt_nfsexport.h"
-#include "libstoragemgmt_optionaldata.h"
+#include "libstoragemgmt_hash.h"
 #include "libstoragemgmt_pool.h"
 #include "libstoragemgmt_snapshot.h"
 #include "libstoragemgmt_systems.h"
 #include "libstoragemgmt_volumes.h"
-
-#include "libstoragemgmt_optionaldata.h"
 #include "libstoragemgmt_disk.h"
 
 #ifdef  __cplusplus
