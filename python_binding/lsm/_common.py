@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2013 Red Hat, Inc.
+# Copyright (C) 2011-2014 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -423,6 +423,7 @@ class ErrorLevel(object):
 class ErrorNumber(object):
     OK = 0
     INTERNAL_ERROR = 1
+    LSM_BUG = 2
     JOB_STARTED = 7
     INDEX_BOUNDS = 10
     TIMEOUT = 11
@@ -433,7 +434,6 @@ class ErrorNumber(object):
     EXISTS_INITIATOR = 52
     EXISTS_NAME = 53
     FS_NOT_EXPORTED = 54
-    INITIATOR_NOT_IN_ACCESS_GROUP = 55
     EXISTS_POOL = 56
     EXISTS_VOLUME = 57
 
@@ -442,7 +442,6 @@ class ErrorNumber(object):
     INVALID_CONN = 102
     INVALID_ERR = 103
     INVALID_FS = 104
-    INVALID_INIT = 105
     INVALID_JOB = 106
     INVALID_NAME = 107
     INVALID_NFS = 108
@@ -478,7 +477,6 @@ class ErrorNumber(object):
     NOT_FOUND_SS = 204
     NOT_FOUND_VOLUME = 205
     NOT_FOUND_NFS_EXPORT = 206
-    NOT_FOUND_INITIATOR = 207
     NOT_FOUND_SYSTEM = 208
     NOT_FOUND_DISK = 209
 
@@ -511,7 +509,6 @@ class ErrorNumber(object):
     TRANSPORT_SERIALIZATION = 401
     TRANSPORT_INVALID_ARG = 402
 
-    UNSUPPORTED_INITIATOR_TYPE = 450
     UNSUPPORTED_PROVISIONING = 451
     UNSUPPORTED_REPLICATION_TYPE = 452
 

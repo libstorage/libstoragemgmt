@@ -181,14 +181,6 @@ class IStorageAreaNetwork(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def initiators(self, flags=0):
-        """
-        Return an array of initiator objects
-
-        Raises LsmError on error
-        """
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
                       flags=0):
         """
@@ -268,7 +260,7 @@ class IStorageAreaNetwork(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def iscsi_chap_auth(self, initiator, in_user, in_password, out_user,
+    def iscsi_chap_auth(self, init_id, in_user, in_password, out_user,
                         out_password, flags):
         """
         Register a user/password for the specified initiator for CHAP
@@ -279,23 +271,6 @@ class IStorageAreaNetwork(IPlugin):
         will disable authentication.
 
         Raises LsmError on error
-        """
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    def initiator_grant(self, init_id, initiator_type, volume, access,
-                        flags=0):
-        """
-        Allows an initiator to access a volume.
-
-        Returns None on success, else raises LsmError on errors.
-        """
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    def initiator_revoke(self, initiator, volume, flags=0):
-        """
-        Revokes access to a volume for the specified initiator
-
-        Returns None on success, else raises LsmError on errors.
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
@@ -383,21 +358,6 @@ class IStorageAreaNetwork(IPlugin):
         Returns None if complete else job id, raises LsmError on errors.
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    def volumes_accessible_by_initiator(self, initiator, flags=0):
-        """
-        Returns a list of volumes that the initiator has access to,
-        Raises LsmError on errors.
-        """
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    def initiators_granted_to_volume(self, volume, flags=0):
-        """
-        Returns a list of initiators that have access to the specified volume,
-        Raises LsmError on errors.
-        """
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
 
 class INetworkAttachedStorage(IPlugin):
     """

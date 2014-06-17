@@ -176,26 +176,6 @@ class IData(object):
 
 
 @default_property('id', doc="Unique identifier")
-@default_property('type', doc="Enumerated initiator type")
-@default_property('name', doc="User supplied name")
-class Initiator(IData):
-    """
-    Represents an initiator.
-    """
-    (TYPE_OTHER, TYPE_PORT_WWN, TYPE_NODE_WWN, TYPE_HOSTNAME, TYPE_ISCSI,
-     TYPE_SAS) = (1, 2, 3, 4, 5, 7)
-
-    def __init__(self, _id, _type, _name):
-
-        if not _name or not len(_name):
-            name = "Unsupported"
-
-        self._id = _id            # Identifier
-        self._type = _type        # Initiator type id
-        self._name = _name        # Initiator name
-
-
-@default_property('id', doc="Unique identifier")
 @default_property('name', doc="Disk name (aka. vendor)")
 @default_property('disk_type', doc="Enumerated type of disk")
 @default_property('block_size', doc="Size of each block")
@@ -304,16 +284,6 @@ class Volume(IData):
     #Provisioning types
     (PROVISION_UNKNOWN, PROVISION_THIN, PROVISION_FULL, PROVISION_DEFAULT) = \
         (-1, 1, 2, 3)
-
-    #Initiator access
-    (ACCESS_READ_ONLY, ACCESS_READ_WRITE, ACCESS_NONE) = (1, 2, 3)
-
-    @staticmethod
-    def _access_string_to_type(access):
-        if access == "RW":
-            return Volume.ACCESS_READ_WRITE
-        else:
-            return Volume.ACCESS_READ_ONLY
 
     def __init__(self, _id, _name, _vpd83, _block_size, _num_of_blocks,
                  _status, _system_id, _pool_id, _optional_data=None,
@@ -841,12 +811,6 @@ class Capabilities(IData):
     VOLUME_CHILD_DEPENDENCY = 45
     VOLUME_CHILD_DEPENDENCY_RM = 46
 
-    INITIATORS = 47
-    INITIATORS_GRANTED_TO_VOLUME = 48
-
-    VOLUME_INITIATOR_GRANT = 50
-    VOLUME_INITIATOR_REVOKE = 51
-    VOLUME_ACCESSIBLE_BY_INITIATOR = 52
     VOLUME_ISCSI_CHAP_AUTHENTICATION = 53
 
     VOLUME_THIN = 55

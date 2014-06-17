@@ -19,7 +19,7 @@ import time
 import os
 import unittest
 from lsm import (Volume, NfsExport, Capabilities, Pool, System,
-                 Initiator, Disk, AccessGroup, FileSystem, FsSnapshot,
+                 Disk, AccessGroup, FileSystem, FsSnapshot,
                  uri_parse, LsmError, JobStatus, ErrorNumber,
                  INetworkAttachedStorage)
 
@@ -436,23 +436,12 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('systems', _del_self(locals()))
 
-    ## Returns an array of initiator objects
-    # @param    self    The this pointer
-    # @param    flags   Reserved for future use, must be zero.
-    # @returns An array of initiator objects.
-    @_return_requires([Initiator])
-    def initiators(self, flags=0):
-        """
-        Return an array of initiator objects
-        """
-        return self._tp.rpc('initiators', _del_self(locals()))
-
     ## Register a user/password for the specified initiator for CHAP
     #  authentication.
     # Note: If you pass an empty user and password the expected behavior is to
     #       remove any authentication for the specified initiator.
     # @param    self            The this pointer
-    # @param    initiator       The initiator object
+    # @param    init_id         The initiator ID
     # @param    in_user         User for inbound CHAP
     # @param    in_password     Password for inbound CHAP
     # @param    out_user        Outbound username
@@ -460,65 +449,13 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     @_return_requires(None)
-    def iscsi_chap_auth(self, initiator, in_user, in_password,
+    def iscsi_chap_auth(self, init_id, in_user, in_password,
                         out_user, out_password, flags=0):
         """
         Register a user/password for the specified initiator for CHAP
         authentication.
         """
         return self._tp.rpc('iscsi_chap_auth', _del_self(locals()))
-
-    ## Grants access so an initiator can read/write the specified volume.
-    # @param    self            The this pointer
-    # @param    initiator_id    The iqn, WWID etc.
-    # @param    initiator_type  Enumerated initiator type
-    # @param    volume          Volume to grant access to
-    # @param    access          Enumerated access type
-    # @param    flags           Reserved for future use, must be zero
-    # @returns  None on success, throws LsmError on errors.
-    @_return_requires(None)
-    def initiator_grant(self, initiator_id, initiator_type, volume, access,
-                        flags=0):
-        """
-        Allows an initiator to access a volume.
-        """
-        return self._tp.rpc('initiator_grant', _del_self(locals()))
-
-    ## Revokes access for a volume for the specified initiator.
-    # @param    self            The this pointer
-    # @param    initiator       The iqn, WWID etc.
-    # @param    volume          The volume to revoke access for
-    # @param    flags           Reserved for future use, must be zero
-    # @returns None on success, throws LsmError on errors.
-    @_return_requires(None)
-    def initiator_revoke(self, initiator, volume, flags=0):
-        """
-        Revokes access to a volume for the specified initiator
-        """
-        return self._tp.rpc('initiator_revoke', _del_self(locals()))
-
-    ## Returns a list of volumes that are accessible from the specified
-    # initiator.
-    # @param    self            The this pointer
-    # @param    initiator       The initiator object
-    # @param    flags           Reserved for future use, must be zero
-    @_return_requires([Volume])
-    def volumes_accessible_by_initiator(self, initiator, flags=0):
-        """
-        Returns a list of volumes that the initiator has access to.
-        """
-        return self._tp.rpc('volumes_accessible_by_initiator',
-                            _del_self(locals()))
-
-    ## Returns a list of initiators that have access to the specified volume.
-    # @param    self        The this pointer
-    # @param    volume      The volume in question
-    # @param    flags       Reserved for future use, must be zero
-    # @returns  List of initiators
-    @_return_requires([Initiator])
-    def initiators_granted_to_volume(self, volume, flags=0):
-        return self._tp.rpc('initiators_granted_to_volume',
-                            _del_self(locals()))
 
     ## Returns an array of volume objects
     # @param    self    The this pointer
