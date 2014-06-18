@@ -1765,7 +1765,7 @@ class Smis(IStorageAreaNetwork):
             raise LsmError(ErrorNumber.NO_SUPPORT, "Mirroring not supported")
 
         rs = self._get_class_instance("CIM_ReplicationService", 'SystemName',
-                                      volume_src.system_id, True)
+                                      volume_src.system_id, raise_error=False)
 
         if pool is not None:
             cim_pool = self._get_cim_instance_by_id('Pool', pool.id)
