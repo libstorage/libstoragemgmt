@@ -180,7 +180,6 @@ _POOL_MEMBER_TYPE_CONV = {
     Pool.MEMBER_TYPE_DISK_SSD: 'DISK_SSD',
     Pool.MEMBER_TYPE_DISK_HYBRID: 'DISK_HYBRID',
     Pool.MEMBER_TYPE_POOL: 'POOL',       # Pool was created from other Pool(s).
-    Pool.MEMBER_TYPE_VOLUME: 'VOLUME',   # Pool was created from Volume(s).
 }
 
 

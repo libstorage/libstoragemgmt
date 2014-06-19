@@ -637,24 +637,6 @@ cmds = (
     ),
 
     dict(
-        name='pool-create-from-volumes',
-        help='Creates a storage pool from volumes',
-        args=[
-            dict(sys_id_opt),
-            dict(name="--name", metavar="<POOL_NAME>",
-                 help="Human friendly name for new pool"),
-            dict(name="--member-id", metavar='<MEMBER_ID>',
-                 help='The ID of volumes to create new pool\n'
-                      'This is a repeatable argument',
-                 action='append'),
-            dict(name="--raid-type", metavar='<RAID_TYPE>',
-                 help=raid_help,
-                 choices=raid_types,
-                 type=str.upper),
-        ],
-    ),
-
-    dict(
         name='pool-create-from-pool',
         help='Creates a sub-pool from another storage pool',
         args=[
@@ -1493,32 +1475,6 @@ class CmdLine:
             "pool-create-from-disks",
             *self.c.pool_create_from_disks(
                 system, pool_name, disks_to_use, raid_type, 0))
-        self.display_data([pool])
-
-    def pool_create_from_volumes(self, args):
-        system = _get_item(self.c.systems(), args.sys, "system id")
-        if len(args.member_id) <= 0:
-            raise ArgError("No volume ID was provided for new pool")
-
-        member_ids = args.member_id
-        volumes = self.c.volumes()
-        vol_ids = [v.id for v in volumes]
-        for member_id in member_ids:
-            if member_id not in vol_ids:
-                raise ArgError("Invalid volumes ID specified in " +
-                               "--member-id %s " % member_id)
-
-        raid_type = pool_raid_type_str_to_type(
-            self.args.raid_type)
-        if raid_type == Pool.RAID_TYPE_UNKNOWN:
-            raise ArgError("Unknown RAID type specified: %s" %
-                           self.args.raid_type)
-
-        pool_name = args.name
-        pool = self._wait_for_it(
-            "pool-create-from-volumes",
-            *self.c.pool_create_from_volumes(
-                system, pool_name, member_ids, raid_type, 0))
         self.display_data([pool])
 
     def pool_create_from_pool(self, args):

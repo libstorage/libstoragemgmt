@@ -638,30 +638,6 @@ For two or more members: '\fB--member-id DISK_ID_A --member DISK_ID_B\fR'.
 \fB--sys\fR \fI<SYS_ID>\fR
 Required. ID of the system to create new pool.
 
-.SS pool-create-from-volumes
-Create a new pool by specifying which volumes to use with which RAID type.
-This require POOL_CREATE_FROM_VOLUMES capability.
-.TP 15
-\fB--name\fR \fI<POOL_NAME>\fR
-Required. Human friendly name for new pool.
-.TP
-\fB--raid-type\fR \fI<RAID_TYPE>\fR
-Required. The RAID type of new pool. Valid values are:
-\fBNOT_APPLICABLE\fR, \fBJBOD\fR, \fBRAID0\fR, \fBRAID1\fR, \fBRAID5\fR,
-\fBRAID6\fR, \fBRAID10\fR, \fBRAID50\fR, \fBRAID51\fR, \fBRAID60\fR,
-\fBRAID61\fR.
-.br
-The \fBNOT_APPLICABLE\fR means pool only contain 1 volume.
-For supported RAID types of certain array, please use \fBcapabilities\fR
-command for POOL_CREATE_VOLUME_RAID_XXX entries.
-.TP
-\fB--member-id\fR \fI<VOL_ID>\fR
-Required. Repeatable. The ID of volume to create new pool.
-For two or more members: '\fB--member-id VOL_ID_A --member VOL_ID_B\fR'.
-.TP
-\fB--sys\fR \fI<SYS_ID>\fR
-Required. ID of the system to create new pool.
-
 .SS pool-create-from-pool
 Create a new sub-pool from specified pool. This require POOL_CREATE_FROM_POOLS
 capability.
