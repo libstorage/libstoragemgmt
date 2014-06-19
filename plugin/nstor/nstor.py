@@ -289,11 +289,6 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         c.set(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME)
         c.set(Capabilities.VOLUME_CHILD_DEPENDENCY)
         c.set(Capabilities.VOLUME_CHILD_DEPENDENCY_RM)
-        c.set(Capabilities.INITIATORS)
-        c.set(Capabilities.INITIATORS_GRANTED_TO_VOLUME)
-        c.set(Capabilities.VOLUME_INITIATOR_GRANT)
-        c.set(Capabilities.VOLUME_INITIATOR_REVOKE)
-        c.set(Capabilities.VOLUME_ACCESSIBLE_BY_INITIATOR)
 
         #tasleson, not working at the moment for me.
         #c.set(Capabilities.VOLUME_ISCSI_CHAP_AUTHENTICATION)
