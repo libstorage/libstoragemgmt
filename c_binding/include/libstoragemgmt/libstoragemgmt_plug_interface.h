@@ -248,24 +248,6 @@ typedef int (*lsm_plug_pool_create_from_disks)( lsm_plugin_ptr c,
                 lsm_pool_raid_type raid_type, lsm_pool **pool, char **job,
                 lsm_flag flags);
 
-/**
- * Create a pool and specifying volumes to use.
- * @param[in]   c               Valid lsm plug-in pointer
- * @param[in]   system          System
- * @param[in]   pool_name       Human name of pool
- * @param[in]   volumes         Array of volume pointers
- * @param[in]   num_volumes     Number of volumes
- * @param[in]   raid_type       Raid type for pool
- * @param[out]  pool            Newly create pool if done sync.
- * @param[out]  job             Job id if execution is async.
- * @return  LSM_ERR_OK, else error reason
- */
-typedef int (*lsm_plug_pool_create_from_volumes)( lsm_plugin_ptr c,
-                        lsm_system *system,
-                        const char *pool_name, lsm_volume *volumes[],
-                        uint32_t num_volumes,
-                        lsm_pool_raid_type raid_type, lsm_pool** pool, char **job,
-                        lsm_flag flags);
 
 /**
  * Create a pool and specifying pool to use.
@@ -837,7 +819,6 @@ struct lsm_san_ops_v1 {
     lsm_plug_disk_list disk_get;              /**<  retrieve disks */
     lsm_plug_pool_create pool_create;              /**<  Pool create */
     lsm_plug_pool_create_from_disks pool_create_from_disks;  /**< Pool create from disks */
-    lsm_plug_pool_create_from_volumes pool_create_from_volumes;  /**< Pool create using volumes */
     lsm_plug_pool_create_from_pool pool_create_from_pool;    /**< Pool creation from pool */
     lsm_plug_pool_delete pool_delete;          /**<  Delete a pool */
     lsm_plug_volume_create vol_create;         /**<  creating a lun */

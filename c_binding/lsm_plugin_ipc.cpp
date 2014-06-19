@@ -595,53 +595,6 @@ static int handle_pool_create_from_disks(lsm_plugin_ptr p, Value &params, Value 
     return rc;
 }
 
-static int handle_pool_create_from_volumes(lsm_plugin_ptr p, Value &params, Value &response)
-{
-    int rc = LSM_ERR_NO_SUPPORT;
-    if( p && p->san_ops && p->san_ops->pool_create_from_volumes ) {
-
-        Value v_sys = params["system"];
-        Value v_pool_name = params["pool_name"];
-        Value v_volumes = params["volumes"];
-        Value v_raid_t = params["raid_type"];
-
-        if( Value::object_t == v_sys.valueType() &&
-            Value::string_t == v_pool_name.valueType() &&
-            Value::array_t == v_volumes.valueType() &&
-            Value::numeric_t == v_raid_t.valueType() &&
-            LSM_FLAG_EXPECTED_TYPE(params)) {
-
-            /* Get the array of disks */
-            lsm_volume **volumes = NULL;
-            uint32_t num_volumes = 0;
-            rc = value_array_to_volumes(v_volumes, &volumes, &num_volumes);
-
-            if( LSM_ERR_OK == rc ) {
-                lsm_system *sys = value_to_system(v_sys);
-                const char *pool_name = v_pool_name.asC_str();
-                lsm_pool_raid_type raid_type = (lsm_pool_raid_type)v_raid_t.asInt32_t();
-
-                lsm_pool *pool = NULL;
-                char *job = NULL;
-
-                rc = p->san_ops->pool_create_from_volumes(p, sys, pool_name,
-                                        volumes, num_volumes, raid_type,
-                                        &pool, &job, LSM_FLAG_GET_VALUE(params));
-
-                Value p = pool_to_value(pool);
-                response = job_handle(p, job);
-                lsm_volume_record_array_free(volumes, num_volumes);
-                lsm_pool_record_free(pool);
-                lsm_system_record_free(sys);
-                free(job);
-            }
-        } else {
-            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
-        }
-    }
-    return rc;
-}
-
 static int handle_pool_create_from_pool(lsm_plugin_ptr p, Value &params, Value &response)
 {
      int rc = LSM_ERR_NO_SUPPORT;
@@ -2284,7 +2237,6 @@ static std::map<std::string,handler> dispatch = static_map<std::string,handler>
     ("pools", handle_pools)
     ("pool_create", handle_pool_create)
     ("pool_create_from_disks", handle_pool_create_from_disks)
-    ("pool_create_from_volumes", handle_pool_create_from_volumes)
     ("pool_create_from_pool", handle_pool_create_from_pool)
     ("pool_delete", handle_pool_delete)
     ("time_out_set", handle_set_time_out)

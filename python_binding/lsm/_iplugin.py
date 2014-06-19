@@ -151,17 +151,6 @@ class IStorageAreaNetwork(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def pool_create_from_volumes(self, system_id, pool_name, member_ids,
-                                 raid_type, flags=0):
-        """
-        Creates a pool from existing volumes
-
-        Returns a tuple (job_id, re-sized_volume)
-        Note: Tuple return values are mutually exclusive, when one
-        is None the other must be valid.
-        """
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
     def pool_create_from_pool(self, system_id, pool_name, member_id,
                               size_bytes, flags=0):
         """

@@ -871,7 +871,6 @@ static int valid_pool_member_type(lsm_pool_member_type validate)
         case (LSM_POOL_MEMBER_TYPE_UNKNOWN):
         case (LSM_POOL_MEMBER_TYPE_DISK):
         case (LSM_POOL_MEMBER_TYPE_POOL):
-        case (LSM_POOL_MEMBER_TYPE_VOLUME):
         case (LSM_POOL_MEMBER_TYPE_DISK_MIX):
         case (LSM_POOL_MEMBER_TYPE_DISK_ATA):
         case (LSM_POOL_MEMBER_TYPE_DISK_SATA):
@@ -990,29 +989,6 @@ int LSM_DLL_EXPORT lsm_pool_create_from_disks(lsm_connect *c,
     return lsm_pool_create_from(c, system, pool_name, d, raid_type, pool, job,
         flags, "disks", "pool_create_from_disks");
 
-}
-
-int LSM_DLL_EXPORT lsm_pool_create_from_volumes(lsm_connect *c,
-                        lsm_system *system, const char *pool_name,
-                        lsm_volume *volumes[], uint32_t num_volumes,
-                        lsm_pool_raid_type raid_type,
-                        lsm_pool** pool, char **job, lsm_flag flags)
-{
-    uint32_t i;
-
-    if( !volumes || !num_volumes ) {
-        return LSM_ERR_INVALID_ARGUMENT;
-    }
-
-    /* Create disks container */
-    std::vector<Value> vols;
-    for( i = 0; i < num_volumes; ++i ) {
-        vols.push_back(volume_to_value(volumes[i]));
-    }
-
-    return lsm_pool_create_from(c, system, pool_name, vols, raid_type,
-                                pool, job, flags, "volumes",
-                                "pool_create_from_volumes");
 }
 
 

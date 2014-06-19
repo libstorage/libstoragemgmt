@@ -362,33 +362,6 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('pool_create_from_disks', _del_self(locals()))
 
-    ## Create new pool in the hard way by defined what exactly volumes should
-    ## be used. Depending on these capabilities:
-    ##      Capabilities.POOL_CREATE_FROM_VOLUMES
-    ## Return the newly created pool object with all supported optional data.
-    # @param    self        The this pointer
-    # @param    system_id   The id of system where new pool should reside.
-    # @param    pool_name   The name for new pool. Will not fail if created
-    #                       pool_name is not the same as requested.
-    # @param    volumes     The volumes to create new pool from.
-    #                       The new pool could contain more volumes than
-    #                       requested due to internal needs, but if possible,
-    #                       new pool should only contain requested volumes.
-    # @param    raid_type   The RAID level for new pool.
-    #                       Capabilities.POOL_CREATE_VOLUME_RAID_XXX will
-    #                       indicate the supported RAID level.
-    # @param    flags       Reserved for future use.
-    # @returns  A tuple (job_id, new_pool), when one is None the other is
-    #           valid.
-    @_return_requires(unicode, Pool)
-    def pool_create_from_volumes(self, system_id, pool_name, volumes,
-                                 raid_type, flags=0):
-        """
-        Creates pool from volumes.
-        Returns the created new pool object.
-        """
-        return self._tp.rpc('pool_create_from_volumes', _del_self(locals()))
-
     ## Create new pool in the hard way by defined what exactly pool should
     ## be allocate space from. Depending on this capability:
     ##      Capabilities.POOL_CREATE_FROM_POOL

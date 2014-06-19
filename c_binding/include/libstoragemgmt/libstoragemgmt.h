@@ -291,31 +291,6 @@ extern "C" {
                         lsm_pool** pool, char **job, lsm_flag flags);
 
     /**
-     * Create new pool in by specifying which volumes should be used for pool
-     * creation.
-     * @param [in]      conn            Valid connection @see lsm_connect_password
-     * @param [in]      system          System of where pool will reside
-     * @param [in]      pool_name       The name of the new pool, will not fail
-     *                                  if request name cannot be fulfilled
-     * @param [in]      member_ids      The IDs of volumes to create new pool from
-     *                                  The new pool could contain more volumes
-     *                                  than requested due to internal needs,
-     *                                  but if possible should only contain
-     *                                  requested volumes.
-     * @param [in]      raid_type       The RAID type for new pool
-     * @param [out]     pool            Newly created pool
-     * @param [out]     job             Job ID of aysnc.
-     * @param [in]      flags           Reserved for future use, must be zero
-     * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async.,
-     *          else error code
-     */
-    int LSM_DLL_EXPORT lsm_pool_create_from_volumes(lsm_connect *conn,
-                        lsm_system *system, const char *pool_name,
-                        lsm_volume *volumes[], uint32_t num_volumes,
-                        lsm_pool_raid_type raid_type,
-                        lsm_pool** pool, char **job, lsm_flag flags);
-
-    /**
      * Create new pool from an existing pool
      * @param [in]      conn            Valid connection @see lsm_connect_password
      * @param [in]      system          System of where pool will reside
