@@ -402,7 +402,6 @@ class Ontap(IStorageAreaNetwork, INfs):
         cap = Capabilities()
         cap.set(Capabilities.BLOCK_SUPPORT)
         cap.set(Capabilities.FS_SUPPORT)
-        cap.set(Capabilities.INITIATORS)
         cap.set(Capabilities.VOLUMES)
         cap.set(Capabilities.VOLUME_CREATE)
         cap.set(Capabilities.VOLUME_RESIZE)
@@ -462,8 +461,6 @@ class Ontap(IStorageAreaNetwork, INfs):
         na_disks = []
         # We do extra flags check in order to save self.f.disks() calls
         # in case we have multiple aggregates.
-        if flags & Pool.FLAG_RETRIEVE_FULL_INFO:
-            na_disks = self.f.disks()
         for na_aggr in na_aggrs:
             pools.extend([self._pool_from_na_aggr(na_aggr, na_disks, flags)])
         na_vols = self.f.volumes()
