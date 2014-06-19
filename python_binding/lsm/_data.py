@@ -690,6 +690,57 @@ class AccessGroup(IData):
         self._plugin_data = _plugin_data
 
 
+@default_property('id', doc="Unique instance identifier")
+@default_property('port_type', doc="Target port type")
+@default_property('service_address', doc="Target port service address")
+@default_property('network_address', doc="Target port network address")
+@default_property('physical_address', doc="Target port physical address")
+@default_property('physical_name', doc="Target port physical port name")
+@default_property('system_id', doc="System identifier")
+@default_property('plugin_data', doc="Plugin private data")
+class TargetPort(IData):
+    SUPPORTED_SEARCH_KEYS = ['id', 'system_id']
+
+    PORT_TYPE_UNKNOWN = 0
+    PORT_TYPE_OTHER = 1
+    PORT_TYPE_FC = 2
+    PORT_TYPE_FCOE = 3
+    PORT_TYPE_ISCSI = 4
+
+    def __init__(self, _id, _port_type, _service_address,
+                 _network_address, _physical_address, _physical_name,
+                 _system_id, _plugin_data=None):
+        self._id = _id
+        self._port_type = _port_type
+        self._service_address = _service_address
+        # service_address:
+        #   The address used by upper layer like FC and iSCSI:
+        #       FC and FCoE:    WWPN
+        #       iSCSI:          IQN
+        #   String. Lower case, split with : every two digits if WWPN.
+        self._network_address = _network_address
+        # network_address:
+        #   The address used by network layer like FC and TCP/IP:
+        #       FC/FCoE:        WWPN
+        #       iSCSI:          IPv4:Port
+        #                       [IPv6]:Port
+        #   String. Lower case, split with : every two digits if WWPN.
+        self._physical_address = _physical_address
+        # physical_address:
+        #   The address used by physical layer like FC-0 and MAC:
+        #       FC:             WWPN
+        #       FCoE:           MAC
+        #       iSCSI:          MAC
+        #   String. Lower case, split with : every two digits.
+        self._physical_name = _physical_name
+        # physical_name
+        #   The name of physical port. Administrator could use this name to
+        #   locate the port on storage system.
+        #   String.
+        self._system_id = _system_id
+        self._plugin_data = _plugin_data
+
+
 class Capabilities(IData):
     (
         UNSUPPORTED,        # Not supported
@@ -794,6 +845,8 @@ class Capabilities(IData):
     ACCESS_GROUPS_QUICK_SEARCH = 213
     FS_QUICK_SEARCH = 214
     NFS_EXPORTS_QUICK_SEARCH = 215
+    TARGET_PORTS = 215
+    TARGET_PORTS_QUICK_SEARCH = 217
 
     def _to_dict(self):
         rc = {'class': self.__class__.__name__,

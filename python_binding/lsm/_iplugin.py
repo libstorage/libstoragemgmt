@@ -348,6 +348,9 @@ class IStorageAreaNetwork(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    def target_ports(self, search_key=None, search_value=None, flags=0):
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
+
 class INetworkAttachedStorage(IPlugin):
     """
     Class the represents Network attached storage (Common NFS/CIFS operations)

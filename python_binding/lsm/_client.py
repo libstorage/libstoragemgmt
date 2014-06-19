@@ -21,7 +21,7 @@ import unittest
 from lsm import (Volume, NfsExport, Capabilities, Pool, System,
                  Disk, AccessGroup, FileSystem, FsSnapshot,
                  uri_parse, LsmError, JobStatus, ErrorNumber,
-                 INetworkAttachedStorage)
+                 INetworkAttachedStorage, TargetPort)
 
 from _common import return_requires as _return_requires
 from _common import UDS_PATH as _UDS_PATH
@@ -1034,6 +1034,10 @@ class Client(INetworkAttachedStorage):
         Removes the specified export
         """
         return self._tp.rpc('export_remove', _del_self(locals()))
+
+    @_return_requires([TargetPort])
+    def target_ports(self, search_key=None, search_value=None, flags=0):
+        return self._tp.rpc('target_ports', _del_self(locals()))
 
 
 class _TestClient(unittest.TestCase):
