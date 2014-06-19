@@ -111,12 +111,6 @@ class SimPlugin(INfs, IStorageAreaNetwork):
         return self.sim_array.pool_create_from_disks(
             system.id, pool_name, member_ids, raid_type, flags)
 
-    def pool_create_from_volumes(self, system, pool_name, volumes,
-                                 raid_type, flags=0):
-        member_ids = [x.id for x in volumes]
-        return self.sim_array.pool_create_from_volumes(
-            system.id, pool_name, member_ids, raid_type, flags)
-
     def pool_create_from_pool(self, system, pool_name, pool,
                               size_bytes, flags=0):
         return self.sim_array.pool_create_from_pool(

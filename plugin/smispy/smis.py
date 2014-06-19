@@ -2732,8 +2732,7 @@ class Smis(IStorageAreaNetwork):
             else:
                 raid_type = cur_raid_type
 
-            if opt_pro_dict['member_type'] == Pool.MEMBER_TYPE_POOL or \
-               opt_pro_dict['member_type'] == Pool.MEMBER_TYPE_VOLUME:
+            if opt_pro_dict['member_type'] == Pool.MEMBER_TYPE_POOL:
                 # we already know current pool is based on pool or volume.
                 # skipping disk member traverse walk.
                 continue
@@ -2942,10 +2941,6 @@ class Smis(IStorageAreaNetwork):
                            "The pool_create of SMI-S plugin does not "
                            "support creating pool over pool(sub-pool) yet")
 
-        elif member_type == Pool.MEMBER_TYPE_VOLUME:
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "The pool_create of SMI-S plugin does not "
-                           "support creating pool on volume yet")
         elif member_type == Pool.MEMBER_TYPE_UNKNOWN:
             pass
         else:

@@ -184,13 +184,6 @@ class SimArray(object):
         return self.data.job_create(
             self._sim_pool_2_lsm(sim_pool))
 
-    def pool_create_from_volumes(self, sys_id, pool_name, member_ids,
-                                 raid_type, flags=0):
-        sim_pool = self.data.pool_create_from_volumes(
-            sys_id, pool_name, member_ids, raid_type, flags)
-        return self.data.job_create(
-            self._sim_pool_2_lsm(sim_pool))
-
     def pool_create_from_pool(self, sys_id, pool_name, member_id, size_bytes,
                               flags=0):
         sim_pool = self.data.pool_create_from_pool(
@@ -494,7 +487,7 @@ class SimData(object):
         }
     """
     SIM_DATA_BLK_SIZE = 512
-    SIM_DATA_VERSION = "2.4"
+    SIM_DATA_VERSION = "2.5"
     SIM_DATA_SYS_ID = 'sim-01'
     SIM_DATA_INIT_NAME = 'NULL'
     SIM_DATA_TMO = 30000    # ms
@@ -647,10 +640,10 @@ class SimData(object):
         self.pool_dict['POO3'] = {
             'pool_id': 'POO3',
             'name': 'Pool 3',
-            'member_type': Pool.MEMBER_TYPE_VOLUME,
+            'member_type': Pool.MEMBER_TYPE_DISK_SSD,
             'member_ids': [
-                self.vol_dict.values()[0]['vol_id'],
-                self.vol_dict.values()[1]['vol_id'],
+                self.disk_dict[SimData._disk_id(9)]['disk_id'],
+                self.disk_dict[SimData._disk_id(10)]['disk_id'],
             ],
             'raid_type': Pool.RAID_TYPE_RAID1,
             'status': Pool.STATUS_OK,
@@ -701,10 +694,6 @@ class SimData(object):
         if Pool.member_type_is_disk(member_type):
             for member_id in member_ids:
                 member_sizes.extend([self.disk_dict[member_id]['total_space']])
-
-        elif member_type == Pool.MEMBER_TYPE_VOLUME:
-            for member_id in member_ids:
-                member_sizes.extend([self.vol_dict[member_id]['total_space']])
 
         elif member_type == Pool.MEMBER_TYPE_POOL:
             for member_id in member_ids:
@@ -1394,44 +1383,6 @@ class SimData(object):
 
         return rc
 
-    def _free_volumes_list(self):
-        rc = []
-        for sim_vol in self.vol_dict.values():
-            flag_free = True
-            for sim_pool in self.pool_dict.values():
-                if sim_pool['member_type'] == Pool.MEMBER_TYPE_VOLUME and \
-                   sim_vol['vol_id'] in sim_pool['member_ids']:
-                    flag_free = False
-                    break
-            if flag_free:
-                rc.extend([sim_vol])
-        return sorted(rc, key=lambda k: (k['vol_id']))
-
-    def _free_volumes(self, size_bytes=0):
-        """
-        We group sim_vol based on theri total_space because RAID (except
-        JBOD) require member in the same spaces.
-        Return a dictionary like this:
-            {
-                sim_vol['total_space']: [sim_vol, ]
-            }
-        """
-        free_sim_vols = self._free_volumes_list()
-        if len(free_sim_vols) <= 0:
-            return dict()
-        rc = dict()
-        for sim_vol in free_sim_vols:
-            if size_bytes != 0 and sim_vol['total_space'] != size_bytes:
-                continue
-            # TODO: one day we will introduce free_size of Volume.
-            #       in that case we will check whether
-            #           total_space == vol_free_size(sim_vol['vol_id'])
-
-            if sim_vol['total_space'] not in rc.keys():
-                rc[sim_vol['total_space']] = []
-            rc[sim_vol['total_space']].extend([sim_vol])
-        return rc
-
     def _free_pools_list(self):
         """
         Return a list of sim_pool or []
@@ -1561,100 +1512,6 @@ class SimData(object):
 
         return self._pool_create_from_disks(pool_name, member_ids, raid_type,
                                             raise_error=True)
-
-    def _pool_create_from_volumes(self, pool_name, member_ids, raid_type,
-                                  raise_error=False):
-        # Check:
-        #   1. The vol_id is valid
-        #   3. All volumes are free.
-        if len(member_ids) == 0:
-            if raise_error:
-                raise LsmError(ErrorNumber.INVALID_VOLUME,
-                               "No volume ID defined")
-            else:
-                return None
-
-        if raid_type == Pool.RAID_TYPE_NOT_APPLICABLE and \
-           len(member_ids) >= 2:
-            if raise_error:
-                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                               "Pool.RAID_TYPE_NOT_APPLICABLE means only 1 " +
-                               "member, but got 2 or more: %s" %
-                               ', '.join(member_ids))
-            else:
-                return None
-
-        current_vol_size = None
-        for vol_id in member_ids:
-            if vol_id not in self.vol_dict.keys() and raise_error:
-                if raise_error:
-                    raise LsmError(ErrorNumber.INVALID_DISK,
-                                   "The vol ID %s does not exist" % vol_id)
-                else:
-                    return None
-            sim_vol = self.vol_dict[vol_id]
-            if current_vol_size is None:
-                current_vol_size = sim_vol['total_space']
-            elif current_vol_size != sim_vol['total_space']:
-                if raise_error:
-                    raise LsmError(ErrorNumber.NO_SUPPORT,
-                                   "Mixing volume size in one pool " +
-                                   "is not supported: %d and %d" %
-                                   (current_vol_size, sim_vol['total_space']))
-                else:
-                    return None
-
-        all_free_vols = self._free_volumes_list()
-        if all_free_vols is None:
-            if raise_error:
-                raise LsmError(ErrorNumber.VOLUME_BUSY,
-                               "No free volume to create new pool")
-            else:
-                return None
-        all_free_vol_ids = [v['vol_id'] for v in all_free_vols]
-        for vol_id in member_ids:
-            if vol_id not in all_free_vol_ids:
-                if raise_error:
-                    raise LsmError(ErrorNumber.VOLUME_BUSY,
-                                   "Volume %s is used by other pool" % vol_id)
-                else:
-                    return None
-
-        if raid_type == Pool.RAID_TYPE_UNKNOWN or \
-           raid_type == Pool.RAID_TYPE_MIXED:
-            if raise_error:
-                raise LsmError(ErrorNumber.NO_SUPPORT,
-                               "RAID type %s(%d) is not supported" %
-                               (Pool.raid_type_to_str(raid_type), raid_type))
-            else:
-                return None
-
-        pool_id = self._next_pool_id()
-        if pool_name == '':
-            pool_name = 'POOL %s' % SimData._random_vpd(4)
-        sim_pool = dict()
-        sim_pool['name'] = pool_name
-        sim_pool['pool_id'] = pool_id
-        if len(member_ids) == 1:
-            sim_pool['raid_type'] = Pool.RAID_TYPE_NOT_APPLICABLE
-        else:
-            sim_pool['raid_type'] = raid_type
-        sim_pool['member_ids'] = member_ids
-        sim_pool['member_type'] = Pool.MEMBER_TYPE_VOLUME
-        sim_pool['sys_id'] = SimData.SIM_DATA_SYS_ID
-        sim_pool['element_type'] = SimData.SIM_DATA_POOL_ELEMENT_TYPE
-        sim_pool['status'] = SimData.SIM_DATA_POOL_STATUS
-        sim_pool['status_info'] = SimData.SIM_DATA_POOL_STATUS_INFO
-        self.pool_dict[pool_id] = sim_pool
-        return sim_pool
-
-    def pool_create_from_volumes(self, sys_id, pool_name, member_ids,
-                                 raid_type, flags=0):
-        if sys_id != SimData.SIM_DATA_SYS_ID:
-            raise LsmError(ErrorNumber.INVALID_SYSTEM,
-                           "No such system: %s" % sys_id)
-        return self._pool_create_from_volumes(pool_name, member_ids, raid_type,
-                                              raise_error=True)
 
     def _pool_create_from_pool(self, pool_name, member_id,
                                size_bytes, raise_error=False):
@@ -1789,85 +1646,6 @@ class SimData(object):
         else:
             return []
 
-    def _auto_choose_vol(self, size_bytes, raid_type, raise_error=False):
-        """
-        Return a list of member ids suitable for creating RAID pool with
-        required size_bytes.
-        Return [] if nothing found.
-        Raise LsmError if raise_error is True
-        """
-        if raid_type == Pool.RAID_TYPE_NOT_APPLICABLE:
-        # NOT_APPLICABLE means pool will only contain one volume.
-            sim_vols = self._free_volumes_list()
-            if len(sim_vols) == 0:
-                if raise_error:
-                    raise LsmError(ErrorNumber.VOLUME_BUSY,
-                                   "No free volume found")
-                else:
-                    return []
-            for sim_vol in sim_vols:
-                if sim_vol['total_space'] >= size_bytes:
-                    return [sim_vol]
-
-            if raise_error:
-                raise LsmError(ErrorNumber.SIZE_INSUFFICIENT_SPACE,
-                               "No volume is bigger than expected size: " +
-                               "%s(%d)" %
-                               (size_bytes_2_size_human(size_bytes),
-                                size_bytes))
-            else:
-                return []
-
-        if raid_type == Pool.RAID_TYPE_JBOD:
-        # JBOD does not require all vols in the same size.
-            sim_vols = self._free_volumes_list()
-            if len(sim_vols) == 0:
-                if raise_error:
-                    raise LsmError(ErrorNumber.VOLUME_BUSY,
-                                   "No free volume found")
-                else:
-                    return []
-
-            chose_sim_vols = []
-            all_free_size = 0
-            for sim_vol in sim_vols:
-                chose_sim_vols.extend([sim_vol])
-                all_free_size += sim_vol['total_space']
-                if all_free_size >= size_bytes:
-                    return chose_sim_vols
-
-            if raise_error:
-                raise LsmError(ErrorNumber.SIZE_INSUFFICIENT_SPACE,
-                               "No enough volumes to provide size %s(%d)" %
-                               (size_bytes_2_size_human(size_bytes),
-                                size_bytes))
-            else:
-                return []
-
-        # Rest RAID types require volume to be the same size.
-        sim_vols_dict = self._free_volumes()
-        for vol_size in sim_vols_dict.keys():
-            sim_vols = sim_vols_dict[vol_size]
-            if len(sim_vols) == 0:
-                continue
-            for member_count in range(1, len(sim_vols) + 1):
-                partial_sim_vols = sim_vols[0:member_count]
-                member_ids = [v['vol_id'] for v in partial_sim_vols]
-                raid_actual_size = self._size_of_raid(
-                    Pool.MEMBER_TYPE_VOLUME, member_ids, raid_type)
-                if size_bytes <= raid_actual_size:
-                    return sim_vols[0:member_count]
-
-        if raise_error:
-            raise LsmError(ErrorNumber.SIZE_INSUFFICIENT_SPACE,
-                           "No enough volumes to create "
-                           "%s providing size: %s(%d)" %
-                           (Pool.raid_type_to_str(raid_type),
-                            size_bytes_2_size_human(size_bytes),
-                            size_bytes))
-        else:
-            return []
-
     def _auto_choose_pool(self, size_bytes, raise_error=False):
         """
         Return a sim_pool.
@@ -1922,20 +1700,7 @@ class SimData(object):
                     return sim_pool
 
         if member_type == Pool.MEMBER_TYPE_UNKNOWN or \
-           member_type == Pool.MEMBER_TYPE_VOLUME:
-            vol_raid_type = raid_type
-            if raid_type == Pool.RAID_TYPE_UNKNOWN:
-                vol_raid_type = SimData.SIM_DATA_VOLUME_DEFAULT_RAID
-            sim_vols = self._auto_choose_vol(
-                size_bytes, vol_raid_type, raise_error)
-            if len(sim_vols) >= 1:
-                member_ids = [v['vol_id'] for v in sim_vols]
-                sim_pool = self._pool_create_from_volumes(
-                    pool_name, member_ids, vol_raid_type, raise_error)
-                if sim_pool:
-                    return sim_pool
-
-        if member_type == Pool.MEMBER_TYPE_POOL:
+           member_type == Pool.MEMBER_TYPE_POOL:
             if raid_type != Pool.RAID_TYPE_UNKNOWN and \
                raid_type != Pool.RAID_TYPE_NOT_APPLICABLE:
                 raise LsmError(ErrorNumber.NO_SUPPORT,
