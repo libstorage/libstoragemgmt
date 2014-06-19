@@ -27,7 +27,7 @@ import time
 
 from lsm import (size_human_2_size_bytes, size_bytes_2_size_human)
 from lsm import (System, Volume, Disk, Pool, FileSystem, AccessGroup,
-                 FsSnapshot, NfsExport, md5, LsmError,
+                 FsSnapshot, NfsExport, md5, LsmError, TargetPort,
                  ErrorNumber, JobStatus)
 
 # Used for format width for disks
@@ -377,6 +377,18 @@ class SimArray(object):
         return self.data.iscsi_chap_auth(init_id, in_user, in_pass, out_user,
                                          out_pass, flags)
 
+    @staticmethod
+    def _sim_tgt_2_lsm(sim_tgt):
+        return TargetPort(
+            sim_tgt['tgt_id'], sim_tgt['port_type'],
+            sim_tgt['service_address'], sim_tgt['network_address'],
+            sim_tgt['physical_address'], sim_tgt['physical_name'],
+            sim_tgt['sys_id'])
+
+    def target_ports(self):
+        sim_tgts = self.data.target_ports()
+        return [SimArray._sim_tgt_2_lsm(t) for t in sim_tgts]
+
 
 class SimData(object):
     """
@@ -650,6 +662,45 @@ class SimData(object):
             'status_info': SimData.SIM_DATA_POOL_STATUS_INFO,
             'sys_id': SimData.SIM_DATA_SYS_ID,
             'element_type': SimData.SIM_DATA_POOL_ELEMENT_TYPE,
+        }
+
+        self.tgt_dict = {
+            'TGT_PORT_ID_01': {
+                'tgt_id': 'TGT_PORT_ID_01',
+                'port_type': TargetPort.PORT_TYPE_FC,
+                'service_address': '50:0a:09:86:99:4b:8d:c5',
+                'network_address': '50:0a:09:86:99:4b:8d:c5',
+                'physical_address': '50:0a:09:86:99:4b:8d:c5',
+                'physical_name': 'FC_a_0b',
+                'sys_id': SimData.SIM_DATA_SYS_ID,
+            },
+            'TGT_PORT_ID_02': {
+                'tgt_id': 'TGT_PORT_ID_02',
+                'port_type': TargetPort.PORT_TYPE_FCOE,
+                'service_address': '50:0a:09:86:99:4b:8d:c6',
+                'network_address': '50:0a:09:86:99:4b:8d:c6',
+                'physical_address': '00:1b:21:3f:a1:b4',
+                'physical_name': 'FCoE_b_0c',
+                'sys_id': SimData.SIM_DATA_SYS_ID,
+            },
+            'TGT_PORT_ID_03': {
+                'tgt_id': 'TGT_PORT_ID_03',
+                'port_type': TargetPort.PORT_TYPE_ISCSI,
+                'service_address': 'iqn.1986-05.com.example:sim-tgt-03',
+                'network_address': 'sim-iscsi-tgt-3.example.com:3260',
+                'physical_address': 'a4:4e:31:47:f4:e0',
+                'physical_name': 'iSCSI_c_0d',
+                'sys_id': SimData.SIM_DATA_SYS_ID,
+            },
+            'TGT_PORT_ID_04': {
+                'tgt_id': 'TGT_PORT_ID_04',
+                'port_type': TargetPort.PORT_TYPE_ISCSI,
+                'service_address': 'iqn.1986-05.com.example:sim-tgt-03',
+                'network_address': '10.0.0.1:3260',
+                'physical_address': 'a4:4e:31:47:f4:e1',
+                'physical_name': 'iSCSI_c_0e',
+                'sys_id': SimData.SIM_DATA_SYS_ID,
+            },
         }
 
         return
@@ -1743,3 +1794,6 @@ class SimData(object):
 
         del(self.pool_dict[pool_id])
         return None
+
+    def target_ports(self):
+        return self.tgt_dict.values()

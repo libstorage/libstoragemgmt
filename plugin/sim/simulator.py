@@ -84,6 +84,8 @@ class SimPlugin(INfs, IStorageAreaNetwork):
         rc.set(Capabilities.ACCESS_GROUPS_QUICK_SEARCH,
                Capabilities.UNSUPPORTED)
         rc.set(Capabilities.NFS_EXPORTS_QUICK_SEARCH, Capabilities.UNSUPPORTED)
+        rc.set(Capabilities.TARGET_PORTS_QUICK_SEARCH,
+               Capabilities.UNSUPPORTED)
         return rc
 
     def plugin_info(self, flags=0):
@@ -301,3 +303,9 @@ class SimPlugin(INfs, IStorageAreaNetwork):
 
     def export_remove(self, export, flags=0):
         return self.sim_array.fs_unexport(export.id, flags)
+
+    def target_ports(self, search_key=None, search_value=None, flags=0):
+        sim_tgts = self.sim_array.target_ports()
+        return search_property(
+            [SimPlugin._sim_data_2_lsm(t) for t in sim_tgts],
+            search_key, search_value)
