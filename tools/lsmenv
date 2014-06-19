@@ -1,0 +1,195 @@
+#!/usr/bin/perl -w
+## Copyright (C) 2014 Red Hat, Inc.
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+#
+# Author: Gris Ge <fge@redhat.com>
+
+use strict;
+require 5.10.0;    # For smart match ~~
+use Config::IniFiles;
+use File::Basename;
+use Cwd 'abs_path';
+
+$|++;
+
+my $LSM_UDS_PATH = '/tmp/lsm/ipc/';
+my $BASE_DIR;      # Used to store the path of libstoragemgmt-code path.
+my $LSM_URI_FILE = "$ENV{HOME}/.lsm_uri";
+my $URI_CFG = Config::IniFiles->new( -file => $LSM_URI_FILE );
+
+my $REF_PRE_BUILD_URI = {
+    "sim"  => "sim://",
+    "simc" => "simc://",
+};
+
+sub help() {
+    my $help_str = <<END;
+
+Usage:
+    lsmenv is used for setting up envirionment variables for running lsmcli
+    or lsmd in the develop code folder.
+    It also read a config file: $LSM_URI_FILE to set up URI and password.
+
+    The sample config file format is:
+
+        [emc]   # dev_alias
+        uri=smispy+ssl://admin\@emc-smi?no_ssl_verify=yes
+        passwd=#1Password
+
+    The sample command would be:
+        lsmenv emc lsmcli list --type POOLS
+
+    The URI for simulator plugins already prebuilded. Please use these command:
+        lsmenv sim lsmcli
+        lsmenv simc lsmcli
+
+Commands:
+    lsmenv lsmd
+        # Run the lsmd
+    lsmenv -l
+        # List all device alias
+    lsmenv <dev_alias> lsmcli ...
+        # Run lsmcli command on certain device
+    lsmenv all lsmcli ...
+        # Run lsmcli command on all devices
+    lsmenv <dev_alias> <any_command>
+        # Run <any_command> with LSM envirionment variables.
+END
+    print $help_str;
+    exit 1;
+}
+
+sub lsm_env_setup() {
+    $BASE_DIR = dirname( dirname( abs_path($0) ) );
+    my $py_binding_dir = "$BASE_DIR/python_binding";
+    my $c_binding_dir  = "$BASE_DIR/c_binding";
+    unless ( ( -e $py_binding_dir ) && ( -e $c_binding_dir ) ) {
+        print "FAIL: lsmenv is not from libstoragemgmt code tree.\n";
+        exit 1;
+    }
+    my $py_lsm_dir = "$py_binding_dir/lsm";
+    unless ( -l "$py_lsm_dir/plugin" ) {
+        print "INFO: Creating softlink for plugin folder\n";
+        system("ln -sv ../../plugin $py_lsm_dir");
+    }
+    unless ( -l "$py_lsm_dir/lsmcli" ) {
+        print "INFO: Creating softlink for lsmcli folder\n";
+        system("ln -sv ../../tools/lsmcli $py_lsm_dir");
+    }
+
+    unless ( -d "$LSM_UDS_PATH" ) {
+        print "INFO: Creating socket folder $LSM_UDS_PATH\n";
+        system("mkdir -pv $LSM_UDS_PATH");
+    }
+
+    $ENV{LSM_UDS_PATH} = $LSM_UDS_PATH;
+    $ENV{PYTHONPATH}      .= ":$py_binding_dir";
+    $ENV{LD_LIBRARY_PATH} .= ":$c_binding_dir";
+}
+
+sub call_out($) {
+
+    # take section name as $1 and global $cfg
+    # then run commands after(not include) ARGV[0]
+    my $dev_alias = shift;
+
+    if ( $#ARGV < 1 ) {
+        print "Missing command to excute\n\n";
+        help();
+    }
+
+    if ( $dev_alias ~~ [ keys( %{$REF_PRE_BUILD_URI} ) ] ) {
+        $ENV{LSMCLI_URI} = $REF_PRE_BUILD_URI->{$dev_alias};
+    }
+    else {
+        my $uri = $URI_CFG->val( $dev_alias, 'uri' );
+        if ( $uri =~ /\n/m ) {
+            print "Duplicate settings for \"$dev_alias\"\n";
+            exit 1;
+        }
+        $ENV{LSMCLI_URI} = $uri;
+        unless ( $URI_CFG->val( $dev_alias, 'passwd' ) ) {
+            delete $ENV{LSMCLI_PASSWORD};
+        }
+        else {
+            $ENV{LSMCLI_PASSWORD} = $URI_CFG->val( $dev_alias, 'passwd' );
+        }
+    }
+
+    print "LSMCLI_URI: $ENV{LSMCLI_URI}\n";
+
+    my @cmd = @ARGV;
+    shift @cmd;
+    print "@cmd", "\n";
+    if ( $cmd[0] eq "lsmcli" ) {
+        $cmd[0] = "$BASE_DIR/tools/lsmcli/lsmcli";
+    }
+    system( "time", "-f", '\nTime: %E\n', @cmd );
+    my $rc = $? >> 8;
+    if ( $rc != 0 ) {
+        print "Return code: $rc\n";
+    }
+}
+
+sub start_lsmd() {
+    my $lsmd_exec_file = "$BASE_DIR/daemon/lsmd";
+    unless ( -f $lsmd_exec_file ) {
+        print "FAIL: $lsmd_exec_file not exist, "
+          . "please run 'make' in '$BASE_DIR' folder again\n";
+        exit 1;
+    }
+    unless ( -x $lsmd_exec_file ) {
+        print "FAIL: $lsmd_exec_file is not excutable, "
+          . "please run 'make' in '$BASE_DIR' folder again\n";
+        exit 1;
+    }
+    my $plugin_dir = "$BASE_DIR/plugin";
+    system( "$lsmd_exec_file --plugindir $plugin_dir "
+          . "--socketdir $LSM_UDS_PATH -v -d" );
+}
+
+sub main() {
+    if ( $#ARGV < 0 ) {
+        help();
+    }
+
+    lsm_env_setup();
+    if ( $ARGV[0] eq 'lsmd' ) {
+        start_lsmd();
+        exit 0;
+    }
+    elsif ( $ARGV[0] eq '-l' ) {
+        map { print "$_\n"; } @{ $URI_CFG->{sects} };
+        exit 0;
+    }
+    elsif ( $ARGV[0] eq 'all' ) {
+        map { call_out($_) } keys( %{$REF_PRE_BUILD_URI} );
+        map { call_out($_) } @{ $URI_CFG->{sects} };
+        exit 0;
+    }
+    elsif ( $ARGV[0] =~ /^-h$|^--help$/ ) {
+        help();
+    }
+    elsif (( $ARGV[0] ~~ [ keys( %{$REF_PRE_BUILD_URI} ) ] )
+        || ( $ARGV[0] ~~ @{ $URI_CFG->{sects} } ) )
+    {
+        call_out( $ARGV[0] );
+        exit 0;
+    }
+    print "ERROR: Configuration for '$ARGV[0]' not found\n";
+    help();
+}
+
+main();
