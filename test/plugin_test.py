@@ -253,7 +253,8 @@ class TestPlugin(unittest.TestCase):
 
     def _get_pool_by_usage(self, system_id, element_type):
         for p in self.pool_by_sys_id[system_id]:
-            if p.element_type & element_type:
+            if p.element_type & element_type and \
+                    p.free_space > mb_in_bytes(250):
                 return p
         return None
 
@@ -313,7 +314,7 @@ class TestPlugin(unittest.TestCase):
                                         lsm.Pool.ELEMENT_TYPE_VOLUME)
 
             if p:
-                vol_size = min(p.free_space / 10, mb_in_bytes(512))
+                vol_size = min(p.free_space / 5, mb_in_bytes(30))
 
                 vol = self.c.volume_create(p, rs('volume'), vol_size,
                                            lsm.Volume.PROVISION_DEFAULT)[1]
@@ -328,7 +329,7 @@ class TestPlugin(unittest.TestCase):
             for p in pools:
                 if p.free_space > mb_in_bytes(250) and \
                         p.element_type & lsm.Pool.ELEMENT_TYPE_FS:
-                    fs_size = min(p.free_space / 10, mb_in_bytes(512))
+                    fs_size = min(p.free_space / 5, mb_in_bytes(30))
                     fs = self.c.fs_create(p, rs('fs'), fs_size)[1]
                     self.assertTrue(self._fs_exists(fs.id))
                     return fs, p
