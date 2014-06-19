@@ -27,7 +27,7 @@ from lsm import (Volume, FileSystem, FsSnapshot, NfsExport,
                  AccessGroup, System, Capabilities, Disk, Pool,
                  IStorageAreaNetwork, INfs, LsmError, ErrorNumber, JobStatus,
                  md5, Error, VERSION, common_urllib2_error_handler,
-                 search_property)
+                 search_property, TargetPort)
 
 #Maps na to lsm, this is expected to expand over time.
 e_map = {
@@ -353,7 +353,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         status = self._status_of_na_aggr(na_aggr)
 
         element_type = (Pool.ELEMENT_TYPE_POOL | Pool.ELEMENT_TYPE_FS |
-                 Pool.ELEMENT_TYPE_VOLUME)
+                        Pool.ELEMENT_TYPE_VOLUME)
 
         # The system aggregate can be used to create both FS and volumes, but
         # you can't take it offline or delete it.
@@ -442,6 +442,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         cap.set(Capabilities.EXPORT_FS)
         cap.set(Capabilities.EXPORT_REMOVE)
         cap.set(Capabilities.EXPORT_CUSTOM_PATH)
+        cap.set(Capabilities.TARGET_PORTS)
         return cap
 
     @handle_ontap_errors
@@ -1066,3 +1067,35 @@ class Ontap(IStorageAreaNetwork, INfs):
                     self.f.volume_split_clone(c)
                 return "%s@%s" % (Ontap.SPLIT_JOB, ",".join(children))
         return None
+
+    @handle_ontap_errors
+    def target_ports(self, search_key=None, search_value=None, flags=0):
+        tp = []
+
+        #Get all FC
+        fcp = self.f.fcp_list()
+
+        for f in fcp:
+            a = f['addr']
+            adapter = f['adapter']
+            tp.append(TargetPort(md5(a), TargetPort.PORT_TYPE_FC, a, a, a,
+                                 adapter, self.sys_info.id))
+
+        node_name = self.f.iscsi_node_name()
+        iscsi = self.f.iscsi_list()
+        for i in iscsi:
+            #Get all iSCSI
+            service_address = node_name
+            network_address = "%s:%s" % (i['ip'], i['port'])
+            physical_address = i['mac']
+            physical_name = i['interface']
+            tid = md5(service_address + network_address + physical_address +
+                      physical_name)
+            tp.append(TargetPort(tid, TargetPort.PORT_TYPE_ISCSI,
+                                 service_address,
+                                 network_address,
+                                 physical_address,
+                                 physical_name,
+                                 self.sys_info.id))
+
+        return search_property(tp, search_key, search_value)
