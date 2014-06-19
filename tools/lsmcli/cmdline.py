@@ -328,15 +328,6 @@ cmds = (
     ),
 
     dict(
-        name='volumes-accessible-initiator',
-        help='Lists the volumes that are accessible by the initiator',
-        args=[
-            dict(init_id_opt),
-        ],
-    ),
-
-
-    dict(
         name='volume-mask',
         help='Grants access to an access group to a volume, '
              'like LUN Masking',
@@ -994,11 +985,6 @@ class CmdLine:
         group = _get_item(agl, args.ag, "access group id")
         vols = self.c.volumes_accessible_by_access_group(group)
         self.display_data(vols)
-
-    def volumes_accessible_initiator(self, args):
-        init = _get_item(self.c.initiators(), args.init, "initiator id")
-        volumes = self.c.volumes_accessible_by_initiator(init)
-        self.display_data(volumes)
 
     def iscsi_chap(self, args):
         self.c.iscsi_chap_auth(args.init, args.in_user,
