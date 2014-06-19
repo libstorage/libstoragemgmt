@@ -29,7 +29,7 @@ from argparse import RawTextHelpFormatter
 from lsm import (Client, Pool, VERSION, LsmError, Capabilities, Disk,
                  Volume, JobStatus, ErrorNumber, BlockRange,
                  uri_parse, Proxy, size_human_2_size_bytes,
-                 AccessGroup, FileSystem, NfsExport)
+                 AccessGroup, FileSystem, NfsExport, TargetPort)
 
 from lsm.lsmcli.data_display import (
     DisplayData, PlugData, out,
@@ -101,7 +101,7 @@ def _get_item(l, the_id, friendly_name='item', raise_error=True):
 
 list_choices = ['VOLUMES', 'POOLS', 'FS', 'SNAPSHOTS',
                 'EXPORTS', "NFS_CLIENT_AUTH", 'ACCESS_GROUPS',
-                'SYSTEMS', 'DISKS', 'PLUGINS']
+                'SYSTEMS', 'DISKS', 'PLUGINS', 'TARGET_PORTS',]
 
 init_types = ('WWPN', 'WWNN', 'ISCSI', 'HOSTNAME', 'SAS')
 init_id_help = "Access Group Initiator type: " + \
@@ -173,6 +173,8 @@ size_opt = dict(name='--size', metavar='<SIZE>', help=size_help)
 init_type_opt = dict(name="--init-type", help=init_id_help,
                      metavar='<INIT_TYPE>', choices=init_types,
                      type=str.upper)
+tgt_id_opt = dict(name="--tgt", help="Search by target port ID",
+                  metavar='<TGT_ID>')
 
 cmds = (
     dict(
@@ -195,6 +197,7 @@ cmds = (
             dict(ag_id_filter_opt),
             dict(fs_id_opt),
             dict(nfs_export_id_filter_opt),
+            dict(tgt_id_opt),
         ],
     ),
 
@@ -857,6 +860,9 @@ class CmdLine:
         if args.nfs_export:
             search_key = 'nfs_export_id'
             search_value = args.nfs_export
+        if args.tgt:
+            search_key = 'tgt_port_id'
+            search_value = args.tgt
 
         if args.type == 'VOLUMES':
             if search_key == 'volume_id':
@@ -933,6 +939,15 @@ class CmdLine:
                                "disk listing" % search_key)
             self.display_data(
                 self.c.disks(search_key, search_value))
+        elif args.type == 'TARGET_PORTS':
+            if search_key == 'tgt_port_id':
+                search_key = 'id'
+            if search_key and \
+               search_key not in TargetPort.SUPPORTED_SEARCH_KEYS:
+                raise ArgError("Search key '%s' is not supported by "
+                               "target port listing" % search_key)
+            self.display_data(
+                self.c.target_ports(search_key, search_value))
         elif args.type == 'PLUGINS':
             self.display_available_plugins()
         else:
@@ -1159,6 +1174,10 @@ class CmdLine:
                  cap.supported(Capabilities.ACCESS_GROUPS_QUICK_SEARCH))
         self._cp("NFS_EXPORTS_QUICK_SEARCH",
                  cap.supported(Capabilities.NFS_EXPORTS_QUICK_SEARCH))
+        self._cp("TARGET_PORTS",
+                 cap.supported(Capabilities.TARGET_PORTS))
+        self._cp("TARGET_PORTS_QUICK_SEARCH",
+                 cap.supported(Capabilities.TARGET_PORTS_QUICK_SEARCH))
 
     def plugin_info(self, args):
         desc, version = self.c.plugin_info()

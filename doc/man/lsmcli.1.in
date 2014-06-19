@@ -157,7 +157,7 @@ Required. Valid values are:
 \fBEXPORTS\fR, \fBDISKS\fR,
 .br
 \fBNFS_CLIENT_AUTH\fR, \fBACCESS_GROUPS\fR,
-\fBSYSTEMS\fR, \fBPLUGINS.
+\fBSYSTEMS\fR, \fBTARGET_PORTS\fR, \fBPLUGINS\fR.
 .TP
 \fB--fs\fR \fI<FS_ID>\fR
 Required for \fB--type\fR=\fBSNAPSHOTS\fR. List the snapshots of certain
@@ -198,6 +198,10 @@ of resources: \fBFS\fR.
 \fB--nfs-export\fR \fI<NFS_EXPORT_ID>\fR
 Search resources from NFS export with NFS_EXPORT_ID. Only supported by these
 types of resources: \fBEXPORTS\fR.
+.TP
+\fB--tgt\fR \fI<TGT_ID>\fR
+Search resources from target port with target port ID. Only supported by these
+types of resources: \fBTARGET_PORTS\fR.
 
 .SS job-status
 Retrieve information about a job.

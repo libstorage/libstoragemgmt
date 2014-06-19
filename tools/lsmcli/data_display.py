@@ -21,7 +21,7 @@ from datetime import datetime
 
 from lsm import (size_bytes_2_size_human, LsmError, ErrorNumber,
                  System, Pool, Disk, Volume, AccessGroup,
-                 FileSystem, FsSnapshot, NfsExport)
+                 FileSystem, FsSnapshot, NfsExport, TargetPort)
 
 BIT_MAP_STRING_SPLITTER = ','
 
@@ -306,6 +306,19 @@ def ag_init_type_str_to_lsm(init_type_str):
     return _str_to_enum(init_type_str, _AG_INIT_TYPE_CONV)
 
 
+_TGT_PORT_TYPE_CONV = {
+    TargetPort.PORT_TYPE_UNKNOWN: 'Unknown',
+    TargetPort.PORT_TYPE_OTHER: 'Other',
+    TargetPort.PORT_TYPE_FC: 'FC',
+    TargetPort.PORT_TYPE_FCOE: 'FCoE',
+    TargetPort.PORT_TYPE_ISCSI: 'iSCSI',
+}
+
+
+def tgt_port_type_to_str(port_type):
+    return _enum_type_to_str(port_type, _TGT_PORT_TYPE_CONV)
+
+
 class PlugData(object):
     def __init__(self, description, plugin_version):
             self.desc = description
@@ -560,6 +573,35 @@ class DisplayData(object):
         'column_keys': NFS_EXPORT_COLUMN_KEYS,
         'value_conv_enum': NFS_EXPORT_VALUE_CONV_ENUM,
         'value_conv_human': NFS_EXPORT_VALUE_CONV_HUMAN,
+    }
+
+    # lsm.TargetPort
+    TGT_PORT_MAN_HEADER = OrderedDict()
+    TGT_PORT_MAN_HEADER['id'] = 'ID'
+    TGT_PORT_MAN_HEADER['port_type'] = 'Type'
+    TGT_PORT_MAN_HEADER['physical_name'] = 'Physical Name'
+    TGT_PORT_MAN_HEADER['service_address'] = 'Address'
+    TGT_PORT_MAN_HEADER['network_address'] = 'Network Address'
+    TGT_PORT_MAN_HEADER['physical_address'] = 'Physical Address'
+    TGT_PORT_MAN_HEADER['system_id'] = 'System ID'
+
+    TGT_PORT_COLUMN_KEYS = []
+    for key_name in TGT_PORT_MAN_HEADER.keys():
+        # Skip these keys for column display
+        if key_name not in ['physical_address', 'network_address']:
+            TGT_PORT_COLUMN_KEYS.extend([key_name])
+
+    TGT_PORT_VALUE_CONV_ENUM = {
+        'port_type': tgt_port_type_to_str,
+    }
+
+    TGT_PORT_VALUE_CONV_HUMAN = []
+
+    VALUE_CONVERT[TargetPort] = {
+        'mandatory_headers': TGT_PORT_MAN_HEADER,
+        'column_keys': TGT_PORT_COLUMN_KEYS,
+        'value_conv_enum': TGT_PORT_VALUE_CONV_ENUM,
+        'value_conv_human': TGT_PORT_VALUE_CONV_HUMAN,
     }
 
     @staticmethod
