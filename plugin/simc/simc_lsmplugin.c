@@ -956,39 +956,6 @@ bail:
     return rc;
 }
 
-static int pool_create_from_volumes( lsm_plugin_ptr c, lsm_system *system,
-                const char *pool_name, lsm_volume *volumes[], uint32_t num_volumes,
-                lsm_pool_raid_type raid_type, lsm_pool **pool, char **job,
-                lsm_flag flags)
-{
-    /* Check that the disks are valid, then call common routine */
-    uint64_t size = 0;
-    int rc = LSM_ERR_OK;
-    int i = 0;
-    struct plugin_data *pd = (struct plugin_data*)lsm_private_data_get(c);
-
-    if( num_volumes ) {
-        for( i = 0; i < num_volumes; ++i ) {
-            struct allocated_volume *v =
-                        find_volume(pd, lsm_volume_id_get(volumes[i]));
-            if( v ) {
-                size += (lsm_volume_number_of_blocks_get(v->v) *
-                            lsm_volume_number_of_blocks_get(v->v));
-            } else {
-                rc = lsm_log_error_basic(c, LSM_ERR_NOT_FOUND_VOLUME,
-                                        "Volume not found");
-                goto bail;
-            }
-        }
-
-        rc = _pool_create(c, system, pool_name, size, pool, job);
-    } else {
-        rc = lsm_log_error_basic(c, LSM_ERR_INVALID_ARGUMENT, "No disks provided");
-    }
-bail:
-    return rc;
-}
-
 static int pool_create_from_pool(lsm_plugin_ptr c, lsm_system *system,
                         const char *pool_name, lsm_pool *pool,
                         uint64_t size_bytes, lsm_pool **created_pool, char **job,
@@ -1513,15 +1480,6 @@ int static volume_dependency_rm(lsm_plugin_ptr c,
     }
 }
 
-static void str_concat( char *dest, size_t d_len,
-                        const char *str1, const char *str2)
-{
-    if( dest && d_len && str1 && str2 ) {
-        strncpy(dest, str1, d_len);
-        strncat(dest, str2,  d_len - strlen(str1) - 1);
-    }
-}
-
 static int iscsi_chap_auth(lsm_plugin_ptr c, const char *init_id,
                                 const char *in_user, const char *in_password,
                                 const char *out_user, const char *out_password,
@@ -1538,7 +1496,6 @@ static struct lsm_san_ops_v1 san_ops = {
     list_disks,
     pool_create,
     pool_create_from_disks,
-    pool_create_from_volumes,
     pool_create_from_pool,
     pool_delete,
     volume_create,
