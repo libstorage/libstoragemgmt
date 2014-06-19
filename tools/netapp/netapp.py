@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright (C) 2012-2013 Red Hat, Inc.
+# Copyright (C) 2012-2014 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -19,7 +19,8 @@
 
 import pprint
 import sys
-import lsm.na
+from lsm.plugin.ontap.na import netapp_filer
+import lsm.plugin.ontap.na
 import os
 from optparse import OptionParser
 
@@ -62,9 +63,9 @@ if __name__ == '__main__':
         (options, args) = parser.parse_args()
         if options.command and options.host:
             if options.xmlfile:
-                lsm.na.xml_debug = options.xmlfile
+                lsm.plugin.ontap.na.xml_debug = options.xmlfile
 
-            result = lsm.na.netapp_filer(options.host, user, password, 30,
+            result = netapp_filer(options.host, user, password, 30,
                                          options.command,
                                          process_params(options.params),
                                          options.ssl)
