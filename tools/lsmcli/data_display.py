@@ -588,7 +588,7 @@ class DisplayData(object):
     TGT_PORT_COLUMN_KEYS = []
     for key_name in TGT_PORT_MAN_HEADER.keys():
         # Skip these keys for column display
-        if key_name not in ['physical_address', 'network_address']:
+        if key_name not in ['physical_address', 'physical_name']:
             TGT_PORT_COLUMN_KEYS.extend([key_name])
 
     TGT_PORT_VALUE_CONV_ENUM = {
