@@ -16,10 +16,11 @@
 # Author: tasleson
 
 from smis import Smis
+from string import split
 import pywbem
 import time
 from lsm.plugin.smispy.smis import handle_cim_errors
-from lsm import LsmError, ErrorNumber, Capabilities, uri_parse
+from lsm import LsmError, ErrorNumber, uri_parse
 
 
 class ESeries(Smis):
@@ -115,10 +116,6 @@ class ESeries(Smis):
     @handle_cim_errors
     def capabilities(self, system, flags=0):
         cap = self._common_capabilities(system)
-
-        #We will explicitly set initiator grant/revoke
-        cap.set(Capabilities.VOLUME_INITIATOR_GRANT)
-        cap.set(Capabilities.VOLUME_INITIATOR_REVOKE)
 
         #TODO We need to investigate why our interrogation code doesn't work.
         #The array is telling us one thing, but when we try to use it, it
