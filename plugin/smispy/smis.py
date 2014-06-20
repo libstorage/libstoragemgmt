@@ -26,7 +26,7 @@ from pywbem import CIMError
 
 from lsm import (IStorageAreaNetwork, Error, uri_parse, LsmError, ErrorNumber,
                  JobStatus, md5, Pool, Volume, AccessGroup, System,
-                 Capabilities, Disk, txt_a, VERSION,
+                 Capabilities, Disk, txt_a, VERSION, TargetPort,
                  search_property)
 
 ## Variable Naming scheme:
@@ -39,6 +39,12 @@ from lsm import (IStorageAreaNetwork, Error, uri_parse, LsmError, ErrorNumber,
 #   cim_rp          CIM_RegisteredProfile
 #   cim_init        CIM_StorageHardwareID
 #   cim_ag          CIM_SCSIProtocolController
+#   cim_fc_tgt      CIM_FCPort
+#   cim_iscsi_pg    CIM_iSCSIProtocolEndpoint   # iSCSI portal group
+#   cim_iscsi_node  CIM_SCSIProtocolController
+#   cim_tcp         CIM_TCPProtocolEndpoint,
+#   cim_ip          CIM_IPProtocolEndpoint
+#   cim_eth         CIM_EthernetPort
 #
 #   sys             Object of LSM System
 #   pool            Object of LSM Pool
@@ -113,6 +119,16 @@ class DMTF(object):
     ID_TYPE_ISCSI = pywbem.Uint16(5)
     ID_TYPE_SW_WWN = pywbem.Uint16(6)
     ID_TYPE_SAS = pywbem.Uint16(7)
+    TGT_PORT_USAGE_FRONTEND_ONLY = pywbem.Uint16(2)
+    TGT_PORT_USAGE_UNRESTRICTED = pywbem.Uint16(4)
+    # CIM_FCPort['PortDiscriminator']
+    FC_PORT_PORT_DISCRIMINATOR_FCOE = pywbem.Uint16(10)
+    # CIM_NetworkPort['LinkTechnology']
+    NET_PORT_LINK_TECH_ETHERNET = pywbem.Uint16(2)
+    # CIM_iSCSIProtocolEndpoint['Role']
+    ISCSI_TGT_ROLE_TARGET = pywbem.Uint16(3)
+    # CIM_SCSIProtocolController['NameFormat']
+    SPC_NAME_FORMAT_ISCSI = pywbem.Uint16(3)
 
 
 _INIT_TYPE_CONV = {
@@ -139,6 +155,23 @@ def _get_key(dictionary, value):
     return None
 
 
+def _lsm_tgt_port_type_of_cim_fc_tgt(cim_fc_tgt):
+    """
+    We are assuming we got CIM_FCPort. Caller should make sure of that.
+    Return TargetPool.PORT_TYPE_FC as fallback
+    """
+    # In SNIA SMI-S 1.6.1 public draft 2, 'PortDiscriminator' is mandatroy
+    # for FCoE target port.
+    if 'PortDiscriminator' in cim_fc_tgt and \
+       cim_fc_tgt['PortDiscriminator'] and \
+       DMTF.FC_PORT_PORT_DISCRIMINATOR_FCOE in cim_fc_tgt['PortDiscriminator']:
+        return TargetPort.PORT_TYPE_FCOE
+    if 'LinkTechnology' in cim_fc_tgt and \
+       cim_fc_tgt['LinkTechnology'] == DMTF.NET_PORT_LINK_TECH_ETHERNET:
+        return TargetPort.PORT_TYPE_FCOE
+    return TargetPort.PORT_TYPE_FC
+
+
 def _lsm_init_type_to_dmtf(init_type):
     key = _get_key(_INIT_TYPE_CONV, init_type)
     if key is None:
@@ -154,6 +187,8 @@ class SNIA(object):
     DISK_LITE_PROFILE = 'Disk Drive Lite'
     MULTI_SYS_PROFILE = 'Multiple Computer System'
     MASK_PROFILE = 'Masking and Mapping'
+    FC_TGT_PORT_PROFILE = 'FC Target Ports'
+    ISCSI_TGT_PORT_PROFILE = 'iSCSI Target Ports'
     SMIS_SPEC_VER_1_4 = '1.4'
     SMIS_SPEC_VER_1_5 = '1.5'
     SMIS_SPEC_VER_1_6 = '1.6'
@@ -3303,3 +3338,307 @@ class Smis(IStorageAreaNetwork):
             return needed_cim_syss
         else:
             return cim_syss
+
+    @staticmethod
+    def _cim_fc_tgt_to_lsm(cim_fc_tgt):
+        """
+        When provider support "Multiple Computer System" profile,
+        CIM_FCPort['SystemName'] might not the name of root CIM_ComputerSystem
+
+        Caller should update cim_fc_tgt['SystemName'] with the name of
+        root CIM_ComputerSystem
+        """
+        port_id = md5(cim_fc_tgt['DeviceID'])
+        port_type = _lsm_tgt_port_type_of_cim_fc_tgt(cim_fc_tgt)
+        wwpn = cim_fc_tgt['PermanentAddress'].lower()
+        wwpn = ':'.join(wwpn[i:i+2] for i in range(0,16,2))
+        port_name = cim_fc_tgt['ElementName']
+        system_id = cim_fc_tgt['SystemName']
+        plugin_data = None
+        return TargetPort(port_id, port_type, wwpn, wwpn, wwpn, port_name,
+                          system_id, plugin_data)
+
+    def _iscsi_node_name_of(self, cim_iscsi_pg_path):
+        """
+            CIM_iSCSIProtocolEndpoint
+                    |
+                    |
+                    v
+            CIM_SAPAvailableForElement
+                    |
+                    |
+                    v
+            CIM_SCSIProtocolController  # iSCSI Node
+
+        """
+        cim_spcs = self._c.Associators(
+            cim_iscsi_pg_path,
+            ResultClass='CIM_SCSIProtocolController',
+            AssocClass='CIM_SAPAvailableForElement',
+            PropertyList=['Name', 'NameFormat'])
+        cim_iscsi_nodes = []
+        for cim_spc in cim_spcs:
+            if cim_spc.classname == 'Clar_MappingSCSIProtocolController':
+                # EMC has vendor specific class which contain identical
+                # properties of SPC for iSCSI node.
+                continue
+            if cim_spc['NameFormat'] == DMTF.SPC_NAME_FORMAT_ISCSI:
+                cim_iscsi_nodes.extend([cim_spc])
+
+        if len(cim_iscsi_nodes) == 0:
+            raise LsmError(ErrorNumber.LSM_BUG,
+                           "_iscsi_node_of(): No iSCSI node "
+                           "CIM_SCSIProtocolController associated to %s"
+                           % cim_iscsi_pg_path)
+        if len(cim_iscsi_nodes) > 1:
+            raise LsmError(ErrorNumber.LSM_BUG,
+                           "_iscsi_node_of(): Got two or more iSCSI node "
+                           "CIM_SCSIProtocolController associated to %s: %s"
+                           % (cim_iscsi_pg_path, cim_iscsi_nodes))
+        return cim_iscsi_nodes[0]['Name']
+
+    def _cim_iscsi_pg_to_lsm(self, cim_iscsi_pg, system_id):
+        """
+        Return a list of TargetPort CIM_iSCSIProtocolEndpoint
+        Associations:
+            CIM_SCSIProtocolController  # iSCSI Node
+                    ^
+                    |   CIM_SAPAvailableForElement
+                    |
+            CIM_iSCSIProtocolEndpoint   # iSCSI Portal Group
+                    |
+                    |   CIM_BindsTo
+                    v
+            CIM_TCPProtocolEndpoint     # Need TCP port, default is 3260
+                    |
+                    |   CIM_BindsTo
+                    v
+            CIM_IPProtocolEndpoint      # Need IPv4 and IPv6 address
+                    |
+                    |   CIM_BindsTo
+                    v
+            CIM_EthernetPort            # Need MAC address (Optional)
+        Assuming there is storage array support iSER
+        (iSCSI over RDMA of Infinity Band),
+        this method is only for iSCSI over TCP.
+        """
+        rc = []
+        port_type = TargetPort.PORT_TYPE_ISCSI
+        plugin_data = None
+        cim_tcps = self._c.Associators(
+            cim_iscsi_pg.path,
+            ResultClass='CIM_TCPProtocolEndpoint',
+            AssocClass='CIM_BindsTo',
+            PropertyList=['PortNumber'])
+        if len(cim_tcps) == 0:
+            raise LsmError(ErrorNumber.LSM_BUG,
+                           "_cim_iscsi_pg_to_lsm():  "
+                           "No CIM_TCPProtocolEndpoint associated to %s"
+                           % cim_iscsi_pg.path)
+
+        iscsi_node_name = self._iscsi_node_name_of(cim_iscsi_pg.path)
+
+        for cim_tcp in cim_tcps:
+            tcp_port = cim_tcp['PortNumber']
+            cim_ips = self._c.Associators(
+                cim_tcp.path,
+                ResultClass='CIM_IPProtocolEndpoint',
+                AssocClass='CIM_BindsTo',
+                PropertyList=['IPv4Address', 'IPv6Address', 'SystemName',
+                              'EMCPortNumber'])
+            for cim_ip in cim_ips:
+                ipv4_addr = None
+                ipv6_addr = None
+                # 'IPv4Address' and 'IPv6Address' are optional.
+                if 'IPv4Address' in cim_ip and cim_ip['IPv4Address']:
+                    ipv4_addr = cim_ip['IPv4Address']
+                if 'IPv6Address' in cim_ip and cim_ip['IPv6Address']:
+                    ipv6_addr = cim_ip['IPv6Address']
+                if ipv4_addr is None and ipv6_addr is None:
+                    continue
+                cim_eths = self._c.Associators(
+                    cim_ip.path,
+                    ResultClass='CIM_EthernetPort',
+                    AssocClass='CIM_BindsTo',
+                    PropertyList=['PermanentAddress', 'ElementName'])
+                # AFAIK, no storage array support ethernet bonding.
+                # assuming CIM_IPProtocolEndpoint is one-to-one map to
+                # CIM_EthernetPort
+                if len(cim_eths) != 1 and len(cim_eths) != 0:
+                    raise LsmError(ErrorNumber.NO_SUPPORT,
+                                   "_cim_iscsi_pg_to_lsm(): "
+                                   "Got two or more CIM_EthernetPort from "
+                                   "%s: %s"
+                                   % (cim_ip.path, cim_eths))
+                # If CIM_EthernetPort not support,
+                # we have to leave this as NULL.
+                mac_address = ''
+                port_name = ''
+                if len(cim_eths) == 1:
+                    mac_address = cim_eths[0]["PermanentAddress"]
+                    # 'ElementName' is optional in CIM_EthernetPort
+                    if 'ElementName' in cim_eths[0]:
+                        port_name = cim_eths[0]['ElementName']
+                elif cim_ip.classname == 'Clar_IPProtocolEndpoint':
+                    # EMC does not have CIM_EthernetPort yet.
+                    sp_name = cim_ip['SystemName']
+                    start_index = sp_name.find('SP')+3
+                    sp_name_short = sp_name[start_index:start_index+1].upper()
+                    if sp_name_short == 'A' or sp_name_short == 'B':
+                        port_name = "SP_%s_%s" % (sp_name_short,
+                                                  cim_ip['EMCPortNumber'])
+                elif cim_ip.classname == 'Symm_IPProtocolEndpoint':
+                    # EMC does not have CIM_EthernetPort yet.
+                    se_name = cim_ip['SystemName']
+                    start_index = se_name.find('SE')+3
+                    se_name_short = se_name[start_index:start_index+2].upper()
+                    port_name = "SE_%s_%s" % (se_name_short,
+                                              cim_ip['EMCPortNumber'])
+
+                if ipv4_addr:
+                    network_address="%s:%s" % (ipv4_addr, tcp_port)
+                    port_id = md5("%s:%s:%s" % (mac_address, network_address,
+                                                iscsi_node_name))
+                    rc.extend(
+                        [TargetPort(port_id, port_type, iscsi_node_name,
+                                    network_address, mac_address,
+                                    port_name, system_id, plugin_data)])
+                if ipv6_addr:
+                    network_address="[%s]:%s" % (ipv6_addr, tcp_port)
+                    port_id = md5("%s:%s:%s" % (mac_address, network_address,
+                                                iscsi_node_name))
+                    rc.extend(
+                        [TargetPort(port_id, port_type, iscsi_node_name,
+                                    network_address, mac_address,
+                                    port_name, system_id, plugin_data)])
+        return rc
+
+    def _leaf_cim_syss_of(self, cim_sys_path, property_list=None):
+        """
+        Return a list of CIMInstance of CIM_ComputerSystem
+        """
+        if property_list is None:
+            property_list = []
+
+        max_loop_count = 10   # There is no storage array need 10 layer of
+                              # Computer
+        loop_counter = max_loop_count
+        rc = []
+        leaf_cim_syss = self._c.Associators(
+                cim_sys_path,
+                ResultClass='CIM_ComputerSystem',
+                AssocClass='CIM_ComponentCS',
+                Role='GroupComponent',
+                ResultRole='PartComponent',
+                PropertyList=property_list)
+        if len(leaf_cim_syss) > 0:
+            rc = leaf_cim_syss
+            for cim_sys in leaf_cim_syss:
+                rc.extend(self._leaf_cim_syss_of(cim_sys.path, property_list))
+
+        return rc
+
+    @handle_cim_errors
+    def target_ports(self, search_key=None, search_value=None, flags=0):
+        rc = []
+        flag_fc_support = True      # we should try both for fallback mode
+        flag_iscsi_support = True
+        flag_multi_sys_support = False
+        if not self.fallback_mode:
+            flag_fc_support = self._profile_is_supported(
+                SNIA.FC_TGT_PORT_PROFILE,
+                SNIA.SMIS_SPEC_VER_1_4,
+                strict=False,
+                raise_error=False)
+            flag_iscsi_support = self._profile_is_supported(
+                SNIA.ISCSI_TGT_PORT_PROFILE,
+                SNIA.SMIS_SPEC_VER_1_4,
+                strict=False,
+                raise_error=False)
+            if flag_fc_support is None and flag_iscsi_support is None:
+                raise LsmError(ErrorNumber.NO_SUPPORT,
+                               "Target SMI-S provider does not support any of"
+                               "these profiles: '%s %s', '%s %s'"
+                               % (SNIA.SMIS_SPEC_VER_1_4,
+                                  SNIA.FC_TGT_PORT_PROFILE,
+                                  SNIA.SMIS_SPEC_VER_1_4,
+                                  SNIA.ISCSI_TGT_PORT_PROFILE))
+        if not self.fallback_mode:
+            flag_multi_sys_support = self._profile_is_supported(
+                SNIA.MULTI_SYS_PROFILE,
+                SNIA.SMIS_SPEC_VER_1_4,
+                strict=False,
+                raise_error=False)
+
+        cim_fc_tgt_pros = ['UsageRestriction', 'ElementName', 'SystemName',
+                           'PermanentAddress', 'PortDiscriminator',
+                           'LinkTechnology', 'DeviceID']
+
+        if flag_fc_support:
+            cim_fc_tgts = []
+            if flag_multi_sys_support:
+                # CIM_FCPort might be not belong to root cim_sys
+                # In that case, CIM_FCPort['SystemName'] will not be
+                # the name of root CIM_ComputerSystem
+                cim_syss = self._root_cim_syss(
+                    property_list=self._property_list_of_id('System'))
+                for cim_sys in cim_syss:
+                    cim_fc_tgts.extend(
+                        self._c.Associators(
+                            cim_sys.path,
+                            AssocClass='CIM_SystemDevice',
+                            ResultClass='CIM_FCPort',
+                            PropertyList=cim_fc_tgt_pros))
+
+                    system_id = self._sys_id(cim_sys)
+                    leaf_cim_syss = self._leaf_cim_syss_of(cim_sys.path)
+                    for leaf_cim_sys in leaf_cim_syss:
+                        cur_cim_fc_tgts = self._c.Associators(
+                                leaf_cim_sys.path,
+                                AssocClass='CIM_SystemDevice',
+                                ResultClass='CIM_FCPort',
+                                PropertyList=cim_fc_tgt_pros)
+
+                        # Update SystemName which will be used as system_id
+                        for cim_fc_tgt in cur_cim_fc_tgts:
+                            cim_fc_tgt['SystemName'] = system_id
+                            cim_fc_tgts.extend([cim_fc_tgt])
+            else:
+                cim_fc_tgts = self._enumerate('CIM_FCPort',
+                                              property_list=cim_fc_tgt_pros)
+            for cim_fc_tgt in cim_fc_tgts:
+                dmtf_usage = cim_fc_tgt['UsageRestriction']
+                if dmtf_usage != DMTF.TGT_PORT_USAGE_FRONTEND_ONLY and \
+                   dmtf_usage != DMTF.TGT_PORT_USAGE_UNRESTRICTED:
+                    continue
+                rc.extend([Smis._cim_fc_tgt_to_lsm(cim_fc_tgt)])
+
+        if flag_iscsi_support:
+            # As we need do more Associators() call in _cim_iscsi_pg_to_lsm()
+            # We can not change SystemName as we did for FC/FCoE
+            cim_iscsi_pg_pros = ['Role']
+
+            cim_syss = self._root_cim_syss(
+                property_list=self._property_list_of_id('System'))
+            for cim_sys in cim_syss:
+                cim_iscsi_pgs = self._c.Associators(
+                        cim_sys.path,
+                        AssocClass='CIM_HostedAccessPoint',
+                        ResultClass='CIM_iSCSIProtocolEndpoint',
+                        PropertyList=cim_iscsi_pg_pros)
+                system_id = self._sys_id(cim_sys)
+                if flag_multi_sys_support:
+                    leaf_cim_syss = self._leaf_cim_syss_of(cim_sys.path)
+                    for leaf_cim_sys in leaf_cim_syss:
+                        cim_iscsi_pgs.extend(self._c.Associators(
+                            leaf_cim_sys.path,
+                            AssocClass='CIM_HostedAccessPoint',
+                            ResultClass='CIM_iSCSIProtocolEndpoint',
+                            PropertyList=cim_iscsi_pg_pros))
+                for cim_iscsi_pg in cim_iscsi_pgs:
+                    if cim_iscsi_pg['Role'] != DMTF.ISCSI_TGT_ROLE_TARGET:
+                        continue
+                    rc.extend(
+                        self._cim_iscsi_pg_to_lsm(cim_iscsi_pg, system_id))
+
+        return search_property(rc, search_key, search_value)
