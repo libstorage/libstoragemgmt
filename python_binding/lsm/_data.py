@@ -573,15 +573,15 @@ class Pool(IData):
 
     def __init__(self, _id, _name, _element_type, _total_space, _free_space,
                  _status, _status_info, _system_id, _plugin_data=None):
-        self._id = _id                    # Identifier
-        self._name = _name                # Human recognisable name
-        self._element_type = _element_type # What pool can be used to create
-        self._total_space = _total_space  # Total size
-        self._free_space = _free_space    # Free space available
-        self._status = _status            # Status of pool.
-        self._status_info = _status_info  # Additional status text of pool
-        self._system_id = _system_id      # System id this pool belongs
-        self._plugin_data = _plugin_data  # Plugin private data
+        self._id = _id                      # Identifier
+        self._name = _name                  # Human recognisable name
+        self._element_type = _element_type  # What pool can be used to create
+        self._total_space = _total_space    # Total size
+        self._free_space = _free_space      # Free space available
+        self._status = _status              # Status of pool.
+        self._status_info = _status_info    # Additional status text of pool
+        self._system_id = _system_id        # System id this pool belongs
+        self._plugin_data = _plugin_data    # Plugin private data
 
 
 @default_property('id', doc="Unique identifier")

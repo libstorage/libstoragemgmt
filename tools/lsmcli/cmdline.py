@@ -101,7 +101,7 @@ def _get_item(l, the_id, friendly_name='item', raise_error=True):
 
 list_choices = ['VOLUMES', 'POOLS', 'FS', 'SNAPSHOTS',
                 'EXPORTS', "NFS_CLIENT_AUTH", 'ACCESS_GROUPS',
-                'SYSTEMS', 'DISKS', 'PLUGINS', 'TARGET_PORTS',]
+                'SYSTEMS', 'DISKS', 'PLUGINS', 'TARGET_PORTS']
 
 init_types = ('WWPN', 'WWNN', 'ISCSI', 'HOSTNAME', 'SAS')
 init_id_help = "Access Group Initiator type: " + \
@@ -915,7 +915,7 @@ class CmdLine:
                 search_key = 'id'
             if search_key == 'volume_id':
                 lsm_vol = _get_item(self.c.volumes(), args.vol,
-                                   "Volume ID", raise_error=False)
+                                    "Volume ID", raise_error=False)
                 if lsm_vol:
                     return self.display_data(
                         self.c.access_groups_granted_to_volume(lsm_vol))
@@ -1051,7 +1051,8 @@ class CmdLine:
             ss = None
 
         self._wait_for_it(
-            "fs_file_clone", self.c.fs_file_clone(fs, args.src, args.dst, ss), None)
+            "fs_file_clone", self.c.fs_file_clone(fs, args.src, args.dst, ss),
+            None)
 
     ##Converts a size parameter into the appropriate number of bytes
     # @param    s   Size to convert to bytes handles B, K, M, G, T, P postfix

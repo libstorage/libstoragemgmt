@@ -100,7 +100,8 @@ class IPlugin(object):
         """
         Returns the description and version for plug-in, raises LsmError
 
-        Note: Make sure plugin can handle this call before plugin_register is called.
+        Note: Make sure plugin can handle this call before plugin_register is
+        called.
         """
         pass
 
@@ -351,6 +352,7 @@ class IStorageAreaNetwork(IPlugin):
     def target_ports(self, search_key=None, search_value=None, flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+
 class INetworkAttachedStorage(IPlugin):
     """
     Class the represents Network attached storage (Common NFS/CIFS operations)
@@ -451,7 +453,7 @@ class INetworkAttachedStorage(IPlugin):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
     def fs_snapshot_restore(self, fs, snapshot, files, restore_files,
-                           all_files=False, flags=0):
+                            all_files=False, flags=0):
         """
         WARNING: Destructive!
 
