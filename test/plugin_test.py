@@ -552,6 +552,23 @@ class TestPlugin(unittest.TestCase):
                 if supported(cap, [lsm.Capabilities.FS_SNAPSHOT_DELETE]):
                     self._fs_snapshot_delete(fs, ss)
 
+    def test_target_ports(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+
+            if supported(cap, [lsm.Capabilities.TARGET_PORTS]):
+                ports = self.c.target_ports()
+
+                for p in ports:
+                    self.assertTrue(p.id is not None)
+                    self.assertTrue(p.port_type is not None)
+                    self.assertTrue(p.service_address is not None)
+                    self.assertTrue(p.network_address is not None)
+                    self.assertTrue(p.physical_address is not None)
+                    self.assertTrue(p.physical_name is not None)
+                    self.assertTrue(p.system_id is not None)
+
+
 
 def dump_results():
     """
