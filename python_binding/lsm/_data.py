@@ -729,7 +729,7 @@ class TargetPort(IData):
         # physical_address:
         #   The address used by physical layer like FC-0 and MAC:
         #       FC:             WWPN
-        #       FCoE:           MAC
+        #       FCoE:           WWPN
         #       iSCSI:          MAC
         #   String. Lower case, split with : every two digits.
         self._physical_name = _physical_name
