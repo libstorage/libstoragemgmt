@@ -41,7 +41,8 @@ class PluginRunner(object):
     work.
     """
 
-    def _is_number(self, val):
+    @staticmethod
+    def _is_number(val):
         """
         Returns True if val is an integer.
         """
@@ -53,7 +54,7 @@ class PluginRunner(object):
 
     def __init__(self, plugin, args):
         self.cmdline = False
-        if len(args) == 2 and self._is_number(args[1]):
+        if len(args) == 2 and PluginRunner._is_number(args[1]):
             try:
                 fd = int(args[1])
                 self.tp = _transport.TransPort(
