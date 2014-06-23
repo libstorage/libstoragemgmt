@@ -175,15 +175,13 @@ class TestProxy(object):
                 rc = getattr(self.o, _proxy_method_name)(*args, **kwargs)
                 TestProxy.log_result(_proxy_method_name,
                                      dict(rc=True, stack_trace=None, msg=None))
-            except Exception as e:
-
-                if isinstance(e, lsm.LsmError) and \
-                        e.code != lsm.ErrorNumber.NO_SUPPORT:
+            except lsm.LsmError as le:
+                if le.code != lsm.ErrorNumber.NO_SUPPORT:
                     TestProxy.log_result(
                         _proxy_method_name,
                         dict(rc=False,
                              stack_trace=traceback.format_exc(),
-                             msg=str(e)))
+                             msg=str(le)))
                 raise
 
             # If the job can do async, we will block looping on it.
