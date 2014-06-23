@@ -499,7 +499,7 @@ class SimData(object):
         }
     """
     SIM_DATA_BLK_SIZE = 512
-    SIM_DATA_VERSION = "2.5"
+    SIM_DATA_VERSION = "2.6"
     SIM_DATA_SYS_ID = 'sim-01'
     SIM_DATA_INIT_NAME = 'NULL'
     SIM_DATA_TMO = 30000    # ms
@@ -679,7 +679,7 @@ class SimData(object):
                 'port_type': TargetPort.PORT_TYPE_FCOE,
                 'service_address': '50:0a:09:86:99:4b:8d:c6',
                 'network_address': '50:0a:09:86:99:4b:8d:c6',
-                'physical_address': '00:1b:21:3f:a1:b4',
+                'physical_address': '50:0a:09:86:99:4b:8d:c6',
                 'physical_name': 'FCoE_b_0c',
                 'sys_id': SimData.SIM_DATA_SYS_ID,
             },
@@ -697,6 +697,15 @@ class SimData(object):
                 'port_type': TargetPort.PORT_TYPE_ISCSI,
                 'service_address': 'iqn.1986-05.com.example:sim-tgt-03',
                 'network_address': '10.0.0.1:3260',
+                'physical_address': 'a4:4e:31:47:f4:e1',
+                'physical_name': 'iSCSI_c_0e',
+                'sys_id': SimData.SIM_DATA_SYS_ID,
+            },
+            'TGT_PORT_ID_05': {
+                'tgt_id': 'TGT_PORT_ID_05',
+                'port_type': TargetPort.PORT_TYPE_ISCSI,
+                'service_address': 'iqn.1986-05.com.example:sim-tgt-03',
+                'network_address': '[2001:470:1f09:efe:a64e:31ff::1]:3260',
                 'physical_address': 'a4:4e:31:47:f4:e1',
                 'physical_name': 'iSCSI_c_0e',
                 'sys_id': SimData.SIM_DATA_SYS_ID,
