@@ -17,6 +17,7 @@
 
 import urllib2
 import socket
+import sys
 from xml.etree import ElementTree
 import time
 from binascii import hexlify
@@ -104,12 +105,12 @@ def netapp_filer(host, username, password, timeout, command, parameters=None,
         if handler.getcode() == 200:
             rc = netapp_filer_parse_response(handler.read())
     except urllib2.HTTPError as he:
-        raise he
+        raise
     except urllib2.URLError as ue:
         if isinstance(ue.reason, socket.timeout):
             raise FilerError(Filer.ETIMEOUT, "Connection timeout")
         else:
-            raise ue
+            raise
     except socket.timeout:
         raise FilerError(Filer.ETIMEOUT, "Connection timeout")
     except SSLError as sse:
@@ -387,12 +388,15 @@ class Filer(object):
             self._invoke('volume-destroy', {'name': vol_name})
         except FilerError as f_error:
             #If the volume was online, we will return it to same status
+            # Store the original exception information
+            exception_info = sys.exc_info()
+
             if online:
                 try:
                     self._invoke('volume-online', {'name': vol_name})
                 except FilerError:
                     pass
-            raise f_error
+            raise exception_info[1], None, exception_info[2]
 
     def volume_names(self):
         """
@@ -759,7 +763,7 @@ class Filer(object):
                                              adapter=f['adapter']))
         except FilerError as na:
             if na.errno != Filer.EAPILICENSE:
-                raise na
+                raise
 
         return fcp_list
 
@@ -770,7 +774,7 @@ class Filer(object):
                 return rc['node-name']
         except FilerError as na:
             if na.errno != Filer.EAPILICENSE:
-                raise na
+                raise
         return None
 
     def interface_get_infos(self):
@@ -806,7 +810,7 @@ class Filer(object):
                                            mac=i_info[p['interface-name']]['mac-address']))
         except FilerError as na:
             if na.errno != Filer.EAPILICENSE:
-                raise na
+                raise
 
         return i_list
 

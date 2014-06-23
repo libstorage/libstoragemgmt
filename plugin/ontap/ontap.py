@@ -546,10 +546,12 @@ class Ontap(IStorageAreaNetwork, INfs):
         try:
             self.f.lun_create(lun_name, size_bytes)
         except Exception as e:
+            exception_info = sys.exc_info()
+
             if flag_resize:
                 self._na_resize_recovery(na_vol_name,
                                          -Ontap._size_kb_padded(size_bytes))
-            raise e
+            raise exception_info[1], None, exception_info[2]
 
         #Get the information about the newly created LUN
         return None, self._get_volume(lun_name, pool.id)
@@ -596,9 +598,11 @@ class Ontap(IStorageAreaNetwork, INfs):
                 #if this raises an exception we need to restore the volume
                 self.f.lun_resize(volume.name, new_size_bytes)
             except Exception as e:
+                exception_info = sys.exc_info()
+
                 #Put the volume back to previous size
                 self._na_resize_recovery(na_vol, -diff)
-                raise e
+                raise exception_info[1], None, exception_info[2]
         else:
             self.f.lun_resize(volume.name, new_size_bytes)
             self.f.volume_resize(na_vol, diff)

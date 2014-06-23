@@ -66,7 +66,7 @@ def handle_cim_errors(method):
         try:
             return method(*args, **kwargs)
         except LsmError as lsm:
-            raise lsm
+            raise
         except CIMError as ce:
             error_code, desc = ce
 
@@ -545,7 +545,7 @@ class Smis(IStorageAreaNetwork):
                raise_error is False:
                 return None
             else:
-                raise ce
+                raise
 
         for cim_xxx in cim_xxxs:
             if prop_name in cim_xxx and cim_xxx[prop_name] == prop_value:
@@ -663,7 +663,7 @@ class Smis(IStorageAreaNetwork):
                    e[0] == pywbem.CIM_ERR_INVALID_CLASS:
                     pass
                 else:
-                    raise e
+                    raise
             if len(self.cim_rps) != 0:
                 break
 
@@ -1684,7 +1684,7 @@ class Smis(IStorageAreaNetwork):
             if e[0] == pywbem.CIM_ERR_INVALID_CLASS:
                 return
             else:
-                raise e
+                raise
 
         if len(ss):
             for s in ss:
@@ -2499,7 +2499,7 @@ class Smis(IStorageAreaNetwork):
                     ResultClass='CIM_CompositeExtent',
                     PropertyList=pros_list)
             else:
-                raise ce
+                raise
         if cim_pool_path.classname == 'LSIESG_StoragePool':
             # LSI does not report error on CIM_AssociatedComponentExtent
             # But they don't support it.
@@ -3312,7 +3312,7 @@ class Smis(IStorageAreaNetwork):
                             PropertyList=property_list,
                             LocalOnly=False)
                 else:
-                    raise e
+                    raise
 
             if not cim_syss:
                 for cim_scs_path in cim_scss_path:
