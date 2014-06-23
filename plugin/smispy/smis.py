@@ -109,6 +109,10 @@ def _spec_ver_str_to_num(spec_ver_str):
 def _merge_list(list_a, list_b):
     return list(set(list_a + list_b))
 
+def _hex_string_format(hex_str, length, every):
+    hex_str = hex_str.lower()
+    return ':'.join(hex_str[i:i+every] for i in range(0,length,every))
+
 
 class DMTF(object):
     # CIM_StorageHardwareID['IDType']
@@ -129,6 +133,19 @@ class DMTF(object):
     ISCSI_TGT_ROLE_TARGET = pywbem.Uint16(3)
     # CIM_SCSIProtocolController['NameFormat']
     SPC_NAME_FORMAT_ISCSI = pywbem.Uint16(3)
+    # CIM_IPProtocolEndpoint['IPv6AddressType']
+    IPV6_ADDR_TYPE_GUA = pywbem.Uint16(6)
+    # GUA: Global Unicast Address.
+    #      2000::/3
+    IPV6_ADDR_TYPE_6TO4 = pywbem.Uint16(7)
+    # IPv6 to IPv4 transition
+    #      ::ffff:0:0/96
+    #      ::ffff:0:0:0/96
+    #      64:ff9b::/96     # well-known prefix
+    #      2002::/16        # 6to4
+    IPV6_ADDR_TYPE_ULA = pywbem.Uint16(8)
+    # ULA: Unique Local Address, aka Site Local Unicast.
+    #      fc00::/7
 
 
 _INIT_TYPE_CONV = {
@@ -3350,8 +3367,9 @@ class Smis(IStorageAreaNetwork):
         """
         port_id = md5(cim_fc_tgt['DeviceID'])
         port_type = _lsm_tgt_port_type_of_cim_fc_tgt(cim_fc_tgt)
-        wwpn = cim_fc_tgt['PermanentAddress'].lower()
-        wwpn = ':'.join(wwpn[i:i+2] for i in range(0,16,2))
+        # SNIA define WWPN string as upper, no spliter, 16 digits.
+        # No need to check.
+        wwpn = _hex_string_format(cim_fc_tgt['PermanentAddress'], 16, 2)
         port_name = cim_fc_tgt['ElementName']
         system_id = cim_fc_tgt['SystemName']
         plugin_data = None
@@ -3415,7 +3433,7 @@ class Smis(IStorageAreaNetwork):
                     v
             CIM_IPProtocolEndpoint      # Need IPv4 and IPv6 address
                     |
-                    |   CIM_BindsTo
+                    |   CIM_DeviceSAPImplementation
                     v
             CIM_EthernetPort            # Need MAC address (Optional)
         Assuming there is storage array support iSER
@@ -3435,7 +3453,6 @@ class Smis(IStorageAreaNetwork):
                            "_cim_iscsi_pg_to_lsm():  "
                            "No CIM_TCPProtocolEndpoint associated to %s"
                            % cim_iscsi_pg.path)
-
         iscsi_node_name = self._iscsi_node_name_of(cim_iscsi_pg.path)
 
         for cim_tcp in cim_tcps:
@@ -3445,72 +3462,92 @@ class Smis(IStorageAreaNetwork):
                 ResultClass='CIM_IPProtocolEndpoint',
                 AssocClass='CIM_BindsTo',
                 PropertyList=['IPv4Address', 'IPv6Address', 'SystemName',
-                              'EMCPortNumber'])
+                              'EMCPortNumber', 'IPv6AddressType'])
             for cim_ip in cim_ips:
-                ipv4_addr = None
-                ipv6_addr = None
-                # 'IPv4Address' and 'IPv6Address' are optional.
+                ipv4_addr = ''
+                ipv6_addr = ''
+                # 'IPv4Address', 'IPv6Address' are optional in SMI-S 1.4.
                 if 'IPv4Address' in cim_ip and cim_ip['IPv4Address']:
                     ipv4_addr = cim_ip['IPv4Address']
                 if 'IPv6Address' in cim_ip and cim_ip['IPv6Address']:
                     ipv6_addr = cim_ip['IPv6Address']
+                # 'IPv6AddressType' is not listed in SMI-S but in DMTF CIM
+                # Schema
+                # Only allow IPv6 Global Unicast Address, 6to4, and Unique
+                # Local Address.
+                if 'IPv6AddressType' in cim_ip and cim_ip['IPv6AddressType']:
+                    ipv6_addr_type = cim_ip['IPv6AddressType']
+                    if ipv6_addr_type != DMTF.IPV6_ADDR_TYPE_GUA and \
+                       ipv6_addr_type != DMTF.IPV6_ADDR_TYPE_6TO4 and \
+                       ipv6_addr_type != DMTF.IPV6_ADDR_TYPE_ULA:
+                        ipv6_addr = ''
+
+                # NetApp is using this kind of IPv6 address
+                # 0000:0000:0000:0000:0000:0000:0a10:29d5
+                # even when IPv6 is not enabled on their array.
+                # It's not a legal IPv6 address anyway. No need to do
+                # vendor check.
+                if ipv6_addr[0:29] == '0000:0000:0000:0000:0000:0000':
+                    ipv6_addr = ''
+
                 if ipv4_addr is None and ipv6_addr is None:
                     continue
                 cim_eths = self._c.Associators(
                     cim_ip.path,
                     ResultClass='CIM_EthernetPort',
-                    AssocClass='CIM_BindsTo',
+                    AssocClass='CIM_DeviceSAPImplementation',
                     PropertyList=['PermanentAddress', 'ElementName'])
-                # AFAIK, no storage array support ethernet bonding.
-                # assuming CIM_IPProtocolEndpoint is one-to-one map to
-                # CIM_EthernetPort
-                if len(cim_eths) != 1 and len(cim_eths) != 0:
-                    raise LsmError(ErrorNumber.NO_SUPPORT,
-                                   "_cim_iscsi_pg_to_lsm(): "
-                                   "Got two or more CIM_EthernetPort from "
-                                   "%s: %s"
-                                   % (cim_ip.path, cim_eths))
-                # If CIM_EthernetPort not support,
-                # we have to leave this as NULL.
-                mac_address = ''
-                port_name = ''
-                if len(cim_eths) == 1:
-                    mac_address = cim_eths[0]["PermanentAddress"]
-                    # 'ElementName' is optional in CIM_EthernetPort
-                    if 'ElementName' in cim_eths[0]:
-                        port_name = cim_eths[0]['ElementName']
-                elif cim_ip.classname == 'Clar_IPProtocolEndpoint':
-                    # EMC does not have CIM_EthernetPort yet.
-                    sp_name = cim_ip['SystemName']
-                    start_index = sp_name.find('SP')+3
-                    sp_name_short = sp_name[start_index:start_index+1].upper()
-                    if sp_name_short == 'A' or sp_name_short == 'B':
-                        port_name = "SP_%s_%s" % (sp_name_short,
-                                                  cim_ip['EMCPortNumber'])
-                elif cim_ip.classname == 'Symm_IPProtocolEndpoint':
-                    # EMC does not have CIM_EthernetPort yet.
-                    se_name = cim_ip['SystemName']
-                    start_index = se_name.find('SE')+3
-                    se_name_short = se_name[start_index:start_index+2].upper()
-                    port_name = "SE_%s_%s" % (se_name_short,
-                                              cim_ip['EMCPortNumber'])
+                nics = []
+                # NetApp ONTAP cluster-mode show one IP bonded to multiple
+                # ethernet,
+                # Not suer it's their BUG or real ethernet channel bonding.
+                # Waiting reply.
+                if len(cim_eths) == 0:
+                    nics = [('', '')]
+                else:
+                    for cim_eth in cim_eths:
+                        mac_addr = ''
+                        port_name = ''
+                        if 'PermanentAddress' in cim_eth and \
+                           cim_eth["PermanentAddress"]:
+                            mac_addr = cim_eth["PermanentAddress"]
+                        # 'ElementName' is optional in CIM_EthernetPort
+                        if 'ElementName' in cim_eth and cim_eth["ElementName"]:
+                            port_name = cim_eth['ElementName']
+                        nics.extend([(mac_addr, port_name)])
+                for nic in nics:
+                    mac_address = nic[0]
+                    port_name = nic[1]
+                    if mac_address:
+                        # Convert to lsm require form
+                        mac_address = _hex_string_format(mac_address, 12, 2)
 
-                if ipv4_addr:
-                    network_address="%s:%s" % (ipv4_addr, tcp_port)
-                    port_id = md5("%s:%s:%s" % (mac_address, network_address,
-                                                iscsi_node_name))
-                    rc.extend(
-                        [TargetPort(port_id, port_type, iscsi_node_name,
-                                    network_address, mac_address,
-                                    port_name, system_id, plugin_data)])
-                if ipv6_addr:
-                    network_address="[%s]:%s" % (ipv6_addr, tcp_port)
-                    port_id = md5("%s:%s:%s" % (mac_address, network_address,
-                                                iscsi_node_name))
-                    rc.extend(
-                        [TargetPort(port_id, port_type, iscsi_node_name,
-                                    network_address, mac_address,
-                                    port_name, system_id, plugin_data)])
+                    if ipv4_addr:
+                        network_address="%s:%s" % (ipv4_addr, tcp_port)
+                        port_id = md5("%s:%s:%s" % (mac_address,
+                                                    network_address,
+                                                    iscsi_node_name))
+                        rc.extend(
+                            [TargetPort(port_id, port_type, iscsi_node_name,
+                                        network_address, mac_address,
+                                        port_name, system_id, plugin_data)])
+                    if ipv6_addr:
+                        # DMTF or SNIA did defined the IPv6 string format.
+                        # we just guess here.
+                        if len(ipv6_addr) == 39:
+                            ipv6_addr = ipv6_addr.replace(':','')
+                            if len(ipv6_addr) == 32:
+                                ipv6_addr = _hex_string_format(
+                                    ipv6_addr, 32, 4)
+
+                        network_address="[%s]:%s" % (ipv6_addr, tcp_port)
+                        port_id = md5("%s:%s:%s" % (mac_address,
+                                                    network_address,
+                                                    iscsi_node_name))
+                        rc.extend(
+                            [TargetPort(port_id, port_type, iscsi_node_name,
+                                        network_address, mac_address,
+                                        port_name, system_id, plugin_data)])
         return rc
 
     def _leaf_cim_syss_of(self, cim_sys_path, property_list=None):
@@ -3550,11 +3587,23 @@ class Smis(IStorageAreaNetwork):
                 SNIA.SMIS_SPEC_VER_1_4,
                 strict=False,
                 raise_error=False)
+            # One more check for NetApp Typo:
+            #   NetApp:     'FC Target Port'
+            #   SMI-S:      'FC Target Ports'
+            # Bug reported.
+            if not flag_fc_support:
+                flag_fc_support = self._profile_is_supported(
+                    'FC Target Port',
+                    SNIA.SMIS_SPEC_VER_1_4,
+                    strict=False,
+                    raise_error=False)
+
             flag_iscsi_support = self._profile_is_supported(
                 SNIA.ISCSI_TGT_PORT_PROFILE,
                 SNIA.SMIS_SPEC_VER_1_4,
                 strict=False,
                 raise_error=False)
+
             if flag_fc_support is None and flag_iscsi_support is None:
                 raise LsmError(ErrorNumber.NO_SUPPORT,
                                "Target SMI-S provider does not support any of"
@@ -3640,5 +3689,18 @@ class Smis(IStorageAreaNetwork):
                         continue
                     rc.extend(
                         self._cim_iscsi_pg_to_lsm(cim_iscsi_pg, system_id))
+            # NetApp is sharing CIM_TCPProtocolEndpoint which
+            # cause duplicate TargetPort. It's a long story, they heard my
+            # bug report.
+            if len(cim_syss) >= 1 and \
+               cim_syss[0].classname == 'ONTAP_StorageSystem':
+                id_list = []
+                new_rc = []
+                # We keep the original list order by not using dict.values()
+                for lsm_tp in rc:
+                    if lsm_tp.id not in id_list:
+                        id_list.extend([lsm_tp.id])
+                        new_rc.extend([lsm_tp])
+                rc = new_rc
 
         return search_property(rc, search_key, search_value)
