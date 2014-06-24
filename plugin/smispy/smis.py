@@ -2272,7 +2272,7 @@ class Smis(IStorageAreaNetwork):
             except CIMError:
                 pass
 
-    def _enumerate(self, class_name, property_list):
+    def _enumerate(self, class_name, property_list=None):
         """
         Please do the filter of "sytems=" in URI by yourself.
         """
