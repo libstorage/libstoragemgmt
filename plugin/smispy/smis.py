@@ -865,10 +865,62 @@ class Smis(IStorageAreaNetwork):
         self._rs_supported_capabilities(system, cap)
         return cap
 
+    def _tgt_port_capabilities(self, system, cap):
+        flag_fc_support = False
+        flag_iscsi_support = False
+        if self.fallback_mode:
+            flag_fc_support = True
+            flag_iscsi_support = True
+            # CIM_FCPort is the contral class of FC Targets profile
+            try:
+                self._enumerate('CIM_FCPort')
+            except CIMError as e:
+                if e[0] == pywbem.CIM_ERR_NOT_SUPPORTED or \
+                   e[0] == pywbem.CIM_ERR_INVALID_CLASS:
+                    flag_fc_support = False
+
+            # Even CIM_EthernetPort is the contral class of iSCSI Target
+            # Ports profile, but that class is optional. :(
+            # We use CIM_iSCSIProtocolEndpoint as it's a start point we are
+            # using in our code of target_ports().
+            try:
+                self._enumerate('CIM_iSCSIProtocolEndpoint')
+            except CIMError as e:
+                if e[0] == pywbem.CIM_ERR_NOT_SUPPORTED or \
+                   e[0] == pywbem.CIM_ERR_INVALID_CLASS:
+                    flag_iscsi_support = False
+        else:
+            flag_fc_support = self._profile_is_supported(
+                SNIA.FC_TGT_PORT_PROFILE,
+                SNIA.SMIS_SPEC_VER_1_4,
+                strict=False,
+                raise_error=False)
+            # One more check for NetApp Typo:
+            #   NetApp:     'FC Target Port'
+            #   SMI-S:      'FC Target Ports'
+            # Bug reported.
+            if not flag_fc_support:
+                flag_fc_support = self._profile_is_supported(
+                    'FC Target Port',
+                    SNIA.SMIS_SPEC_VER_1_4,
+                    strict=False,
+                    raise_error=False)
+            flag_iscsi_support = self._profile_is_supported(
+                SNIA.ISCSI_TGT_PORT_PROFILE,
+                SNIA.SMIS_SPEC_VER_1_4,
+                strict=False,
+                raise_error=False)
+
+        if flag_fc_support or flag_iscsi_support:
+            cap.set(Capabilities.TARGET_PORTS)
+        return
+
+
     @handle_cim_errors
     def capabilities(self, system, flags=0):
         cap = self._common_capabilities(system)
         self._pcm_supported_capabilities(system, cap)
+        self._tgt_port_capabilities(system, cap)
         return cap
 
     @handle_cim_errors
