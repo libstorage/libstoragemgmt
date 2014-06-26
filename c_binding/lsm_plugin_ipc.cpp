@@ -29,6 +29,7 @@
 #include "libstoragemgmt/libstoragemgmt_snapshot.h"
 #include "libstoragemgmt/libstoragemgmt_nfsexport.h"
 #include "libstoragemgmt/libstoragemgmt_plug_interface.h"
+#include "libstoragemgmt/libstoragemgmt_targetport.h"
 #include "libstoragemgmt/libstoragemgmt_volumes.h"
 #include "libstoragemgmt/libstoragemgmt_pool.h"
 #include <errno.h>
@@ -493,6 +494,42 @@ static int handle_pools(lsm_plugin_ptr p, Value &params, Value &response)
 
                 lsm_pool_record_array_free(pools, count);
                 pools = NULL;
+                response = Value(result);
+            }
+            free(key);
+            free(val);
+        } else {
+            if( rc == LSM_ERR_NO_SUPPORT ) {
+                rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+            }
+        }
+    }
+    return rc;
+}
+
+static int handle_target_ports(lsm_plugin_ptr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    char *key = NULL;
+    char *val = NULL;
+
+    if( p && p->san_ops && p->san_ops->target_port_list ) {
+        lsm_target_port **target_ports = NULL;
+        uint32_t count = 0;
+
+        if( LSM_FLAG_EXPECTED_TYPE(params) &&
+            ((rc = get_search_params(params, &key, &val)) == LSM_ERR_OK )) {
+            rc = p->san_ops->target_port_list(p, key, val, &target_ports, &count,
+                                        LSM_FLAG_GET_VALUE(params));
+            if( LSM_ERR_OK == rc) {
+                std::vector<Value> result;
+
+                for( uint32_t i = 0; i < count; ++i ) {
+                    result.push_back(target_port_to_value(target_ports[i]));
+                }
+
+                lsm_target_port_record_array_free(target_ports, count);
+                target_ports = NULL;
                 response = Value(result);
             }
             free(key);
@@ -2239,6 +2276,7 @@ static std::map<std::string,handler> dispatch = static_map<std::string,handler>
     ("pool_create_from_disks", handle_pool_create_from_disks)
     ("pool_create_from_pool", handle_pool_create_from_pool)
     ("pool_delete", handle_pool_delete)
+    ("target_ports", handle_target_ports)
     ("time_out_set", handle_set_time_out)
     ("plugin_unregister", handle_unregister)
     ("plugin_register", handle_register)

@@ -49,6 +49,9 @@ static const char * const NFS_EXPORT_SEARCH_KEYS[] = {"id", "fs_id"};
 static const char * const ACCESS_GROUP_SEARCH_KEYS[] = {"id", "system_id"};
 #define ACCESS_GROUP_SEARCH_KEYS_COUNT COUNT_OF(ACCESS_GROUP_SEARCH_KEYS)
 
+static const char * const TARGET_PORT_SEARCH_KEYS[] = {"id", "system_id"};
+#define TARGET_PORT_SEARCH_KEYS_COUNT COUNT_OF(TARGET_PORT_SEARCH_KEYS)
+
 /**
  * Common code to validate and initialize the connection.
  */
@@ -719,6 +722,59 @@ int lsm_pool_list(lsm_connect *c, char *search_key, char *search_value,
         if( *poolArray && *count ) {
             lsm_pool_record_array_free(*poolArray, *count);
             *poolArray = NULL;
+            *count = 0;
+        }
+    }
+    return rc;
+}
+
+int lsm_target_port_list(lsm_connect *c, const char *search_key,
+                            const char *search_value,
+                            lsm_target_port **target_ports[],
+                            uint32_t *count,
+                            lsm_flag flags)
+{
+    int rc = LSM_ERR_OK;
+    CONN_SETUP(c);
+
+    if( !target_ports || !count || CHECK_RP(target_ports )) {
+         return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+     try {
+        std::map<std::string, Value> p;
+
+        rc = add_search_params(p, search_key, search_value,
+                                TARGET_PORT_SEARCH_KEYS,
+                                TARGET_PORT_SEARCH_KEYS_COUNT);
+        if( LSM_ERR_OK != rc ) {
+            return rc;
+        }
+
+        p["flags"] = Value(flags);
+        Value parameters(p);
+        Value response;
+
+        rc = rpc(c, "target_ports", parameters, response);
+        if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+            std::vector<Value> tp = response.asArray();
+
+            *count = tp.size();
+
+            if( tp.size() ) {
+                *target_ports = lsm_target_port_record_array_alloc(tp.size());
+
+                for( size_t i = 0; i < tp.size(); ++i ) {
+                    (*target_ports)[i] = value_to_target_port(tp[i]);
+                }
+            }
+        }
+    } catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+                            ve.what());
+        if( *target_ports && *count ) {
+            lsm_target_port_record_array_free(*target_ports, *count);
+            *target_ports = NULL;
             *count = 0;
         }
     }

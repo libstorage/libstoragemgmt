@@ -2838,6 +2838,40 @@ START_TEST(test_search_fs)
 }
 END_TEST
 
+START_TEST(test_target_ports)
+{
+    lsm_target_port **tp = NULL;
+    uint32_t count = 0;
+    uint32_t i = 0;
+    int rc = 0;
+
+
+    rc = lsm_target_port_list(c, NULL, NULL, &tp, &count, LSM_FLAG_RSVD);
+    fail_unless(LSM_ERR_OK == rc, "lsm_target_port_list %d", rc);
+
+    if( LSM_ERR_OK != rc ) {
+        dump_error(lsm_error_last_get(c));
+    }
+
+    if( LSM_ERR_OK == rc ) {
+        for( i = 0; i < count; ++i ) {
+            printf("%s - %d - %s - %s - %s - %s - %s\n",
+                    lsm_target_port_id_get(tp[i]),
+                    lsm_target_port_type_get(tp[i]),
+                    lsm_target_port_service_address_get(tp[i]),
+                    lsm_target_port_network_address_get(tp[i]),
+                    lsm_target_port_physical_address_get(tp[i]),
+                    lsm_target_port_physical_name_get(tp[i]),
+                    lsm_target_port_system_id_get(tp[i]));
+        }
+
+        rc = lsm_target_port_record_array_free(tp, count);
+        fail_unless(LSM_ERR_OK == rc, "lsm_target_port_record_array_free %d", rc);
+    }
+
+}
+END_TEST
+
 Suite * lsm_suite(void)
 {
     Suite *s = suite_create("libStorageMgmt");
@@ -2845,6 +2879,7 @@ Suite * lsm_suite(void)
     TCase *basic = tcase_create("Basic");
     tcase_add_checked_fixture (basic, setup, teardown);
 
+    tcase_add_test(basic, test_target_ports);
     tcase_add_test(basic, test_search_fs);
     tcase_add_test(basic, test_search_access_groups);
     tcase_add_test(basic, test_search_disks);

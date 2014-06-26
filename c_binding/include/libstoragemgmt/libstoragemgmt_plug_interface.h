@@ -214,6 +214,22 @@ typedef int (*lsm_plug_disk_list)( lsm_plugin_ptr c, const char *search_key,
                                 uint32_t *count, lsm_flag flags);
 
 /**
+ * Retrieve a list of target ports.
+ * @param[in]   c                   Valid lsm plugin-in pointer
+ * @param[in]   search_key          Search key
+ * @param[in]   search_value        Search value
+ * @parma[out]  target_port_array   Array of target port pointers
+ * @param[out]  count               Number of target ports
+ * @param[in]   flags               Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
+typedef int (*lsm_plug_target_port_list)( lsm_plugin_ptr c,
+                                            const char *search_key,
+                                            const char *search_value,
+                                            lsm_target_port **target_port_array[],
+                                            uint32_t *count, lsm_flag flags);
+
+/**
  * Create a pool.
  * @param[in]   c               Valid lsm plug-in pointer
  * @param[in]   system          System
@@ -841,6 +857,7 @@ struct lsm_san_ops_v1 {
     lsm_plug_access_groups_granted_to_volume ag_granted_to_vol;       /**<  access groups granted to a volume */
     lsm_plug_volume_child_dependency vol_child_depends;         /**<  volume child dependencies */
     lsm_plug_volume_child_dependency_delete vol_child_depends_rm;    /**<Callback to remove volume child dependencies */
+    lsm_plug_target_port_list target_port_list; /**< Callback to get list of target ports */
 };
 
 /** \struct  lsm_fs_ops_v1

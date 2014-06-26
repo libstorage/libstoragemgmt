@@ -30,6 +30,8 @@
 #include <stdio.h>
 #include <openssl/md5.h>
 
+#include "libstoragemgmt/libstoragemgmt_targetport.h"
+
 #ifdef  __cplusplus
 extern "C" {
 #endif
@@ -590,6 +592,63 @@ static int list_disks(lsm_plugin_ptr c, const char *search_key,
         lsm_plug_disk_search_filter(search_key, search_value, *disks, count);
     }
 
+    return rc;
+}
+
+static int list_targets(lsm_plugin_ptr c, const char *search_key,
+                        const char *search_value, lsm_target_port **tp[],
+                        uint32_t *count, lsm_flag flags)
+{
+    uint32_t i = 0;
+    const char p0[] = "50:0a:09:86:99:4b:8d:c5";
+    const char p1[] = "50:0a:09:86:99:4b:8d:c6";
+    int rc = LSM_ERR_OK;
+
+    *count = 5;
+    *tp = lsm_target_port_record_array_alloc(*count);
+
+    if( *tp ) {
+        (*tp)[0] = lsm_target_port_record_alloc("TGT_PORT_ID_01",
+                                                LSM_PORT_TYPE_FC, p0, p0, p0,
+                                                "FC_a_0b", sys_id, NULL);
+
+        (*tp)[1] = lsm_target_port_record_alloc("TGT_PORT_ID_02",
+                                                LSM_PORT_TYPE_FCOE, p1, p1, p1,
+                                                "FC_a_0c", sys_id, NULL);
+
+        (*tp)[2] = lsm_target_port_record_alloc("TGT_PORT_ID_03",
+                                        LSM_PORT_TYPE_ISCSI,
+                                        "iqn.1986-05.com.example:sim-tgt-03",
+                                        "sim-iscsi-tgt-3.example.com:3260",
+                                        "a4:4e:31:47:f4:e0",
+                                        "iSCSI_c_0d", sys_id, NULL);
+
+        (*tp)[3] = lsm_target_port_record_alloc("TGT_PORT_ID_04",
+                                        LSM_PORT_TYPE_ISCSI,
+                                        "iqn.1986-05.com.example:sim-tgt-03",
+                                        "10.0.0.1:3260",
+                                        "a4:4e:31:47:f4:e1",
+                                        "iSCSI_c_0e", sys_id, NULL);
+
+        (*tp)[4] = lsm_target_port_record_alloc("TGT_PORT_ID_05",
+                                        LSM_PORT_TYPE_ISCSI,
+                                        "iqn.1986-05.com.example:sim-tgt-03",
+                                        "[2001:470:1f09:efe:a64e:31ff::1]:3260",
+                                        "a4:4e:31:47:f4:e1",
+                                        "iSCSI_c_0e", sys_id, NULL);
+
+        for( i = 0; i < *count; ++i ) {
+            if ( !(*tp)[i] ) {
+                rc = lsm_log_error_basic(c, LSM_ERR_NO_MEMORY, "ENOMEM");
+                lsm_target_port_record_array_free(*tp, *count);
+                *count = 0;
+                break;
+            }
+        }
+    } else {
+        rc = lsm_log_error_basic(c, LSM_ERR_NO_MEMORY, "ENOMEM");
+        *count = 0;
+    }
     return rc;
 }
 
@@ -1517,7 +1576,8 @@ static struct lsm_san_ops_v1 san_ops = {
     vol_accessible_by_ag,
     ag_granted_to_volume,
     volume_dependency,
-    volume_dependency_rm
+    volume_dependency_rm,
+    list_targets
 };
 
 

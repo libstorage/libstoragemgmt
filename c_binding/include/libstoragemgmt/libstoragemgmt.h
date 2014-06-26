@@ -908,6 +908,23 @@ extern "C" {
     int LSM_DLL_EXPORT lsm_nfs_export_delete( lsm_connect *c, lsm_nfs_export *e,
                                             lsm_flag flags );
 
+/**
+ * Retrieve a list of target ports
+ * @param[in] c                     Valid connection
+ * @param[in] search_key            Search key (NULL for all)
+ * @param[in] search_value          Search value
+ * @param[out] target_ports         Array of target ports
+ * @param[out] count                Number of target ports
+ * @param[in] flags                 Reserved, set to 0
+ * @return LSM_ERR_OK on success else error reason
+ */
+    int LSM_DLL_EXPORT lsm_target_port_list(lsm_connect *c,
+                                            const char *search_key,
+                                            const char *search_value,
+                                            lsm_target_port **target_ports[],
+                                            uint32_t *count,
+                                            lsm_flag flags);
+
 #ifdef  __cplusplus
 }
 #endif
