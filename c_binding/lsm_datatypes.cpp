@@ -35,6 +35,7 @@
 #include <libstoragemgmt/libstoragemgmt_pool.h>
 #include <libstoragemgmt/libstoragemgmt_snapshot.h>
 #include <libstoragemgmt/libstoragemgmt_systems.h>
+#include <libstoragemgmt/libstoragemgmt_targetport.h>
 #include <libstoragemgmt/libstoragemgmt_types.h>
 #include <libstoragemgmt/libstoragemgmt_volumes.h>
 
@@ -1807,6 +1808,90 @@ int lsm_hash_string_set(lsm_hash *op,
     }
     return LSM_ERR_INVALID_HASH;
 }
+
+lsm_target_port *lsm_target_port_record_alloc(  const char *id,
+                                                lsm_target_port_type port_type,
+                                                const char *service_address,
+                                                const char *network_address,
+                                                const char *physical_address,
+                                                const char *physical_name,
+                                                const char *system_id,
+                                                const char *plugin_data)
+{
+    lsm_target_port *rc = (lsm_target_port *) calloc(1, sizeof(lsm_target_port));
+    if( rc ) {
+        rc->magic = LSM_TARGET_PORT_MAGIC;
+        rc->id = strdup(id);
+        rc->port_type = port_type;
+        rc->service_address = strdup(service_address);
+        rc->network_address = strdup(network_address);
+        rc->physical_address = strdup(physical_address);
+        rc->physical_name = strdup(physical_name);
+        rc->system_id = strdup(system_id);
+        rc->plugin_data = (plugin_data) ? strdup(plugin_data) : NULL;
+
+        if( !rc->id || !rc->service_address || !rc->network_address ||
+            !rc->physical_address || !rc->physical_name ||
+            !rc->system_id || (plugin_data && !rc->plugin_data)) {
+                lsm_target_port_record_free(rc);
+                rc = NULL;
+        }
+    }
+    return rc;
+}
+
+int lsm_target_port_record_free(lsm_target_port *tp)
+{
+    if( LSM_IS_TARGET_PORT(tp) ) {
+        tp->magic = LSM_DEL_MAGIC(LSM_TARGET_PORT_MAGIC);
+        free(tp->plugin_data);
+        tp->plugin_data = NULL;
+        free(tp->system_id);
+        tp->system_id = NULL;
+        free(tp->physical_name);
+        tp->physical_name = NULL;
+        free(tp->physical_address);
+        tp->physical_address = NULL;
+        free(tp->network_address);
+        tp->network_address = NULL;
+        free(tp->service_address);
+        tp->service_address = NULL;
+        free(tp);
+        return LSM_ERR_OK;
+    }
+    return LSM_ERR_INVALID_ARGUMENT;
+}
+
+lsm_target_port LSM_DLL_EXPORT *lsm_target_port_copy(lsm_target_port *tp)
+{
+    lsm_target_port *rc = NULL;
+
+    if( LSM_IS_TARGET_PORT(tp) ) {
+        rc = lsm_target_port_record_alloc(tp->id, tp->port_type,
+                                            tp->service_address,
+                                            tp->network_address,
+                                            tp->physical_address,
+                                            tp->physical_name,
+                                            tp->system_id,
+                                            tp->plugin_data);
+    }
+    return NULL;
+}
+
+MEMBER_FUNC_GET(const char *, lsm_target_port_id_get, lsm_target_port *tp, tp, LSM_IS_TARGET_PORT, id, NULL)
+MEMBER_FUNC_GET(lsm_target_port_type, lsm_target_port_type_get, lsm_target_port *tp, tp, LSM_IS_TARGET_PORT, port_type, LSM_PORT_TYPE_UNKNOWN)
+MEMBER_FUNC_GET(const char *, lsm_target_port_service_address_get, lsm_target_port *tp, tp, LSM_IS_TARGET_PORT, service_address, NULL)
+MEMBER_FUNC_GET(const char *, lsm_target_port_network_address_get, lsm_target_port *tp, tp, LSM_IS_TARGET_PORT, network_address, NULL)
+MEMBER_FUNC_GET(const char *, lsm_target_port_physical_address_get, lsm_target_port *tp, tp, LSM_IS_TARGET_PORT, physical_address, NULL)
+MEMBER_FUNC_GET(const char *, lsm_target_port_physical_name_get, lsm_target_port *tp, tp, LSM_IS_TARGET_PORT, physical_name, NULL)
+MEMBER_FUNC_GET(const char *, lsm_target_port_system_id_get, lsm_target_port *tp, tp, LSM_IS_TARGET_PORT, system_id, NULL)
+
+CREATE_ALLOC_ARRAY_FUNC(lsm_target_port_record_array_alloc, lsm_target_port *)
+CREATE_FREE_ARRAY_FUNC(lsm_target_port_record_array_free,
+                        lsm_target_port_record_free, lsm_target_port *,
+                        LSM_ERR_INVALID_SS)
+
+
 
 #ifdef  __cplusplus
 }

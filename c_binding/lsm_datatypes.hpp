@@ -296,6 +296,22 @@ struct LSM_DLL_LOCAL _lsm_hash {
     GHashTable *data;
 };
 
+
+#define LSM_TARGET_PORT_MAGIC     0xAA7A0012
+#define LSM_IS_TARGET_PORT(obj)   MAGIC_CHECK(obj, LSM_TARGET_PORT_MAGIC)
+struct LSM_DLL_LOCAL _lsm_target_port {
+    uint32_t magic;
+    char *id;
+    lsm_target_port_type port_type;
+    char *service_address;
+    char *network_address;
+    char *physical_address;
+    char *physical_name;
+    char *system_id;
+    char *plugin_data;
+};
+
+
 /**
  * Returns a pointer to a newly created connection structure.
  * @return NULL on memory exhaustion, else new connection.

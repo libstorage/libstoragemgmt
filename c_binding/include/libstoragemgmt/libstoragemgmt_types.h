@@ -109,6 +109,11 @@ typedef struct _lsm_disk lsm_disk;
  */
 typedef struct _lsm_hash lsm_hash;
 
+/**
+ * Opaque data type for Target ports
+ */
+typedef struct _lsm_target_port lsm_target_port;
+
 /**< \enum lsm_replication_type Different types of replications that can be created */
 typedef enum {
     LSM_VOLUME_REPLICATE_UNKNOWN        = -1,       /**< Unknown replicate */
@@ -298,6 +303,14 @@ typedef enum {
     LSM_POOL_RAID_TYPE_NOT_APPLICABLE = 22,
     LSM_POOL_RAID_TYPE_MIXED = 23
 } lsm_pool_raid_type;
+
+typedef enum {
+    LSM_PORT_TYPE_UNKNOWN = 0,
+    LSM_PORT_TYPE_OTHER = 1,
+    LSM_PORT_TYPE_FC = 2,
+    LSM_PORT_TYPE_FCOE = 3,
+    LSM_PORT_TYPE_ISCSI = 4
+} lsm_target_port_type;
 
 #ifdef  __cplusplus
 }

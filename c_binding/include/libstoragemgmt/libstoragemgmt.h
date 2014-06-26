@@ -33,6 +33,7 @@
 #include "libstoragemgmt_pool.h"
 #include "libstoragemgmt_snapshot.h"
 #include "libstoragemgmt_systems.h"
+#include "libstoragemgmt_targetport.h"
 #include "libstoragemgmt_volumes.h"
 
 

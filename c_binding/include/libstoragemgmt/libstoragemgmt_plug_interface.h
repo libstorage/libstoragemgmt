@@ -1314,6 +1314,46 @@ void LSM_DLL_EXPORT lsm_plug_nfs_export_search_filter(const char *search_key,
  * @return Private data, else NULL
  */
 const char LSM_DLL_EXPORT *lsm_nfs_export_plugin_data_get( lsm_nfs_export *exp);
+
+
+/**
+ * Allocate a target port
+ * @param id                    ID of target port
+ * @param port_type             Port type
+ * @param service_address       Service address
+ * @param network_address       Network Address
+ * @param physical_address      Physical address
+ * @param physical_name         Physical name
+ * @param system_id             System ID
+ * @param plugin_data           Plug-in data
+ * @return valid lsm_target_port, else NULL on memory allocation failure
+ */
+lsm_target_port LSM_DLL_EXPORT *lsm_target_port_record_alloc(
+                                    const char *id,
+                                    lsm_target_port_type port_type,
+                                    const char *service_address,
+                                    const char *network_address,
+                                    const char *physical_address,
+                                    const char *physical_name,
+                                    const char *system_id,
+                                    const char *plugin_data);
+
+/**
+ * Retrieve the plug-in private data pointer
+ * @param tp    Valid target port pointer
+ * @return Character pointer to string, NULL on error
+ */
+const char LSM_DLL_EXPORT *lsm_target_port_plugin_data_get(lsm_target_port *tp);
+
+/**
+ * Allocated an array of target pointers
+ * @param size      Number of pointers to store
+ * @return Allocated memory, NULL on allocation errors
+ */
+lsm_target_port LSM_DLL_EXPORT **lsm_target_port_record_array_alloc(
+                                                                uint32_t size );
+
+
 #ifdef  __cplusplus
 }
 #endif

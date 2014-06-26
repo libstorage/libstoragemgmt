@@ -579,3 +579,44 @@ Value capabilities_to_value(lsm_storage_capabilities *cap)
     }
     return Value();
 }
+
+
+lsm_target_port *value_to_target_port(Value &tp)
+{
+   lsm_target_port *rc = NULL;
+    if( is_expected_object(tp, "TargetPort") ) {
+        rc = lsm_target_port_record_alloc(
+                            tp["id"].asC_str(),
+                            (lsm_target_port_type)tp["port_type"].asInt32_t(),
+                            tp["service_address"].asC_str(),
+                            tp["network_address"].asC_str(),
+                            tp["physical_address"].asC_str(),
+                            tp["physical_name"].asC_str(),
+                            tp["system_id"].asC_str(),
+                            tp["plugin_data"].asC_str());
+    }
+    return rc;
+}
+
+/**
+ * Converts a lsm_target_port to a value
+ * @param cap       lsm_target_port to convert to value
+ * @return Value
+ */
+Value target_port_to_value(lsm_target_port *tp)
+{
+    if( LSM_IS_TARGET_PORT(tp) ) {
+        std::map<std::string, Value> p;
+        p["class"] = Value("TargetPort");
+        p["id"] = Value(tp->id);
+        p["port_type"] = Value(tp->port_type);
+        p["service_address"] = Value(tp->service_address);
+        p["network_address"] = Value(tp->network_address);
+        p["physical_address"] = Value(tp->physical_address);
+        p["physical_name"] = Value(tp->physical_name);
+        p["system_id"] = Value(tp->system_id);
+        p["plugin_data"] = Value(tp->plugin_data);
+        return Value(p);
+    }
+    return Value();
+}

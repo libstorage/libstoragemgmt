@@ -231,4 +231,18 @@ lsm_storage_capabilities *value_to_capabilities(Value &exp);
  */
 Value capabilities_to_value(lsm_storage_capabilities *cap);
 
+/**
+ * Convert a Value representation to lsm_target_port
+ * @param tp    Value to convert to lsm_target_port
+ * @return lsm_target_port pointer or NULL on errors
+ */
+lsm_target_port *value_to_target_port(Value &tp);
+
+/**
+ * Converts a lsm_target_port to a value
+ * @param cap       lsm_target_port to convert to value
+ * @return Value
+ */
+Value target_port_to_value(lsm_target_port *tp);
+
 #endif
