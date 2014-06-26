@@ -2683,3 +2683,29 @@ void lsm_plug_nfs_export_search_filter(const char *search_key,
         }
     }
 }
+
+CMP_FUNCTION(tp_compare_id, lsm_target_port_id_get, lsm_target_port)
+CMP_FUNCTION(tp_compare_system_id, lsm_target_port_system_id_get, lsm_target_port)
+CMP_FREE_FUNCTION(tp_free, lsm_target_port_record_free, lsm_target_port)
+
+void lsm_plug_target_port_search_filter(const char *search_key,
+                                            const char *search_value,
+                                            lsm_target_port *tp[],
+                                            uint32_t *count)
+{
+    array_cmp cmp = NULL;
+
+    if( search_key ) {
+
+        if( 0 == strcmp("id", search_key) ) {
+            cmp = tp_compare_id;
+        } else if( 0 == strcmp("system_id", search_key) ) {
+            cmp = tp_compare_system_id;
+        }
+
+        if( cmp ) {
+            *count = filter((void **)tp, *count, cmp, (void*)search_value,
+                             tp_free);
+        }
+    }
+}

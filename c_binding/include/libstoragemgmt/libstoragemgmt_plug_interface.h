@@ -1371,6 +1371,20 @@ lsm_target_port LSM_DLL_EXPORT **lsm_target_port_record_array_alloc(
                                                                 uint32_t size );
 
 
+/**
+ * Provides for target port filtering when an array doesn't support this
+ * natively.
+ * Note: Filters in place removing and freeing those that don't match.
+ * @param search_key        Search field
+ * @param search_value      Search value
+ * @param[in,out] tp        Array to filter
+ * @param[in,out] count     Number of target ports to filter, number remain
+ */
+void LSM_DLL_EXPORT lsm_plug_target_port_search_filter(const char *search_key,
+                                            const char *search_value,
+                                            lsm_target_port *tp[],
+                                            uint32_t *count);
+
 #ifdef  __cplusplus
 }
 #endif

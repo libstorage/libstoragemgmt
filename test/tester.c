@@ -2865,6 +2865,28 @@ START_TEST(test_target_ports)
                     lsm_target_port_system_id_get(tp[i]));
         }
 
+        {
+            lsm_target_port **search = NULL;
+            uint32_t search_count = 0;
+
+            rc = lsm_target_port_list(c, "id", "does_not_exist",
+                                        &search, &search_count,
+                                        LSM_FLAG_RSVD);
+
+            fail_unless(LSM_ERR_OK == rc, "lsm_target_port_list %d", rc);
+            fail_unless(search_count == 0, "%d", search_count);
+
+            rc = lsm_target_port_list(c, "system_id", "sim-01",
+                                        &search, &search_count,
+                                        LSM_FLAG_RSVD);
+
+            fail_unless(LSM_ERR_OK == rc, "lsm_target_port_list %d", rc);
+            fail_unless(search_count == 5, "%d", search_count);
+            if( search_count ) {
+                lsm_target_port_record_array_free(search, search_count);
+            }
+        }
+
         rc = lsm_target_port_record_array_free(tp, count);
         fail_unless(LSM_ERR_OK == rc, "lsm_target_port_record_array_free %d", rc);
     }

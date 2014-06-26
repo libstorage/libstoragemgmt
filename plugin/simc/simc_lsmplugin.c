@@ -649,6 +649,11 @@ static int list_targets(lsm_plugin_ptr c, const char *search_key,
         rc = lsm_log_error_basic(c, LSM_ERR_NO_MEMORY, "ENOMEM");
         *count = 0;
     }
+
+    if( LSM_ERR_OK == rc ) {
+        lsm_plug_target_port_search_filter(search_key, search_value, *tp, count);
+    }
+
     return rc;
 }
 
