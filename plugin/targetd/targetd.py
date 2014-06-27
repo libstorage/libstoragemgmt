@@ -107,11 +107,8 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         cap.set(Capabilities.VOLUME_DELETE)
         cap.set(Capabilities.VOLUME_OFFLINE)
         cap.set(Capabilities.VOLUME_ONLINE)
-        cap.set(Capabilities.INITIATORS)
-        cap.set(Capabilities.VOLUME_INITIATOR_GRANT)
-        cap.set(Capabilities.VOLUME_INITIATOR_REVOKE)
-        cap.set(Capabilities.VOLUME_ACCESSIBLE_BY_INITIATOR)
-        cap.set(Capabilities.INITIATORS_GRANTED_TO_VOLUME)
+        cap.set(Capabilities.VOLUME_MASK)
+        cap.set(Capabilities.VOLUME_UNMASK)
         cap.set(Capabilities.FS)
         cap.set(Capabilities.FS_CREATE)
         cap.set(Capabilities.FS_DELETE)
@@ -123,6 +120,11 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         cap.set(Capabilities.EXPORTS)
         cap.set(Capabilities.EXPORT_FS)
         cap.set(Capabilities.EXPORT_REMOVE)
+        cap.set(Capabilities.ACCESS_GROUPS)
+        cap.set(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME)
+        cap.set(Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP)
+        cap.set(Capabilities.VOLUME_ISCSI_CHAP_AUTHENTICATION)
+
         return cap
 
     @handle_errors
