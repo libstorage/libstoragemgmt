@@ -1875,7 +1875,7 @@ lsm_target_port LSM_DLL_EXPORT *lsm_target_port_copy(lsm_target_port *tp)
                                             tp->system_id,
                                             tp->plugin_data);
     }
-    return NULL;
+    return rc;
 }
 
 MEMBER_FUNC_GET(const char *, lsm_target_port_id_get, lsm_target_port *tp, tp, LSM_IS_TARGET_PORT, id, NULL)
