@@ -218,7 +218,7 @@ typedef int (*lsm_plug_disk_list)( lsm_plugin_ptr c, const char *search_key,
  * @param[in]   c                   Valid lsm plugin-in pointer
  * @param[in]   search_key          Search key
  * @param[in]   search_value        Search value
- * @parma[out]  target_port_array   Array of target port pointers
+ * @param[out]  target_port_array   Array of target port pointers
  * @param[out]  count               Number of target ports
  * @param[in]   flags               Reserved
  * @return LSM_ERR_OK, else error reason
@@ -1000,7 +1000,7 @@ void LSM_DLL_EXPORT lsm_pool_free_space_set(lsm_pool *p, uint64_t free_space);
  * Helper function to allocate a pool record.
  * @param id            System unique identifier
  * @param name          Human readable name
- * @param usage         A bit field which states what the pool can be used to
+ * @param element_type  A bit field which states what the pool can be used to
  *                      create
  * @param total_space   Total space
  * @param free_space    Space available
@@ -1097,7 +1097,7 @@ lsm_system LSM_DLL_EXPORT **lsm_system_record_array_alloc( uint32_t size );
  * @param[in] id            Id
  * @param[in] name          System name (human readable)
  * @param[in] status        Status of the system
- * @oaram[in] status_info   Additional text for status
+ * @param[in] status_info   Additional text for status
  * @param[in] plugin_data   Private plugin data
  * @return  Allocated memory or NULL on error.
  */
@@ -1127,6 +1127,7 @@ lsm_access_group LSM_DLL_EXPORT **lsm_access_group_record_array_alloc( uint32_t 
  * @param id                ID of access group
  * @param name              Name of access group
  * @param initiators        List of initiators, can be NULL
+ * @param init_type         Initiator group type
  * @param system_id         System id
  * @param plugin_data       Reserved for plug-in use only
  * @return NULL on error, else valid lsm_access_group pointer.
@@ -1174,7 +1175,7 @@ lsm_fs LSM_DLL_EXPORT **lsm_fs_record_array_alloc( uint32_t size );
 
 /**
  * Used to retrieve the plug-in private data for a specific pool
- * @param p     Pool to retrieve plug-in private data for
+ * @param fs     FS to retrieve plug-in private data for
  * @return NULL if doesn't exist, else data.
  */
 const char *lsm_fs_plugin_data_get(lsm_fs *fs);
@@ -1201,7 +1202,7 @@ lsm_fs_ss LSM_DLL_EXPORT **lsm_fs_ss_record_array_alloc( uint32_t size );
 
 /**
  * Retrieve private data from fs_ss.
- * @param exp       Valid fs_ss record
+ * @param fs_ss       Valid fs_ss record
  * @return Private data, else NULL
  */
 const char LSM_DLL_EXPORT *lsm_fs_ss_plugin_data_get( lsm_fs_ss *fs_ss );
@@ -1238,12 +1239,13 @@ lsm_storage_capabilities LSM_DLL_EXPORT *lsm_capability_record_alloc(char const 
 /**
  * Convenience function for plug-in writer.
  * Note: Make sure to free returned items to prevent memory leaks.
- * @param[in]   uri
- * @param[out]  scheme
- * @param[out]  user
- * @param[out]  server
- * @param[out]  port
- * @param[out]  query_params
+ * @param[in]   uri             URI to parse
+ * @param[out]  scheme          returned scheme
+ * @param[out]  user            returned user
+ * @param[out]  server          returned server
+ * @param[out]  port            returned port
+ * @param[out]  path            returned path
+ * @param[out]  query_params    returned query params
  * @return LSM_ERR_OK on successful parse, else error reason.
  */
 int LSM_DLL_EXPORT lsm_uri_parse(const char *uri, char **scheme, char **user,
@@ -1293,7 +1295,7 @@ void LSM_DLL_EXPORT lsm_plug_disk_search_filter(const char *search_key,
  * Note: Filters in place removing and freeing those that don't match.
  * @param search_key        Search field
  * @param search_value      Search value
- * @param[in,out] disks     Array to filter
+ * @param[in,out] ag        Array to filter
  * @param[in,out] count     Number of access groups to filter, number remain
  */
 void LSM_DLL_EXPORT lsm_plug_access_group_search_filter(const char *search_key,
@@ -1317,7 +1319,7 @@ void LSM_DLL_EXPORT lsm_plug_fs_search_filter(const char *search_key,
  * Note: Filters in place removing and freeing those that don't match.
  * @param search_key        Search field
  * @param search_value      Search value
- * @param[in,out] fs        Array to filter
+ * @param[in,out] exports   Array to filter
  * @param[in,out] count     Number of nfs exports to filter, number remain
  */
 void LSM_DLL_EXPORT lsm_plug_nfs_export_search_filter(const char *search_key,

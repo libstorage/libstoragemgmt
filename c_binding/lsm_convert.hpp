@@ -78,9 +78,9 @@ Value disk_to_value(lsm_disk *disk);
 
 /**
  * Converts a vector of disk values to an array.
- * @param disks     Vector of values that represents disks
- * @param disks     An array of disk pointers
- * @param count     Number of disks
+ * @param[in] disk_values       Vector of values that represents disks
+ * @param[out] disks            An array of disk pointers
+ * @param[out] count            Number of disks
  * @return LSM_ERR_OK on success, else error reason.
  */
 int value_array_to_disks(Value &disk_values, lsm_disk **disks[],
@@ -240,7 +240,7 @@ lsm_target_port *value_to_target_port(Value &tp);
 
 /**
  * Converts a lsm_target_port to a value
- * @param cap       lsm_target_port to convert to value
+ * @param tp       lsm_target_port to convert to value
  * @return Value
  */
 Value target_port_to_value(lsm_target_port *tp);

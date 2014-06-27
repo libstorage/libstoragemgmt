@@ -37,7 +37,7 @@ lsm_target_port LSM_DLL_EXPORT *lsm_target_port_copy(lsm_target_port *tp);
 
 /**
  * Frees the resources for a lsm_system
- * @param s Record to release
+ * @param tp        Record to release
  * @return LSM_ERR_OK on success, else error reason.
  */
 int LSM_DLL_EXPORT lsm_target_port_record_free(lsm_target_port *tp);

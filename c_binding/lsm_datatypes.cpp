@@ -482,6 +482,7 @@ rtype *name(uint32_t size)                  \
  * @param name              Name of function to create
  * @param free_func         Function to call to free one of the elements
  * @param record_type       Type to record
+ * @param error             Value to return on error
  * @return None
  */
 #define CREATE_FREE_ARRAY_FUNC(name, free_func, record_type, error)\

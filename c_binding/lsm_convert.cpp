@@ -598,11 +598,6 @@ lsm_target_port *value_to_target_port(Value &tp)
     return rc;
 }
 
-/**
- * Converts a lsm_target_port to a value
- * @param cap       lsm_target_port to convert to value
- * @return Value
- */
 Value target_port_to_value(lsm_target_port *tp)
 {
     if( LSM_IS_TARGET_PORT(tp) ) {

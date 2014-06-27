@@ -283,11 +283,10 @@ class Client(INetworkAttachedStorage):
         return self._tp.rpc('plugin_info', _del_self(locals()))
 
     ## Returns an array of pool objects.
-    # @param    self    The this pointer
-    # @param    flags   When equal to Pool.FLAG_RETRIEVE_FULL_INFO,
-    #                   returned objects will contain optional data.
-    #                   If not defined, only the mandatory properties will
-    #                   returned.
+    # @param    self            The this pointer
+    # @param    search_key      Search key
+    # @param    search_value    Search value
+    # @param    flags           Reserved for future use, must be zero.
     # @returns An array of pool objects.
     @_return_requires([Pool])
     def pools(self, search_key=None, search_value=None, flags=0):
@@ -343,7 +342,7 @@ class Client(INetworkAttachedStorage):
     # @param    system_id   The id of system where new pool should reside.
     # @param    pool_name   The name for new pool. Will not fail if created
     #                       pool_name is not the same as requested.
-    # @param    Disks       The disks (list) to create new pool from.
+    # @param    disks       The disks (list) to create new pool from.
     #                       The new pool could contain more disks than
     #                       requested due to internal needs, but if possible,
     #                       new pool should only contain requested disks.
@@ -431,8 +430,10 @@ class Client(INetworkAttachedStorage):
         return self._tp.rpc('iscsi_chap_auth', _del_self(locals()))
 
     ## Returns an array of volume objects
-    # @param    self    The this pointer
-    # @param    flags   Reserved for future use, must be zero.
+    # @param    self            The this pointer
+    # @param    search_key      Search key to use
+    # @param    search_value    Search value
+    # @param    flags           Reserved for future use, must be zero.
     # @returns An array of volume objects.
     @_return_requires([Volume])
     def volumes(self, search_key=None, search_value=None, flags=0):
@@ -581,6 +582,8 @@ class Client(INetworkAttachedStorage):
 
     ## Returns an array of disk objects
     # @param    self    The this pointer
+    # @param    search_key      Search Key
+    # @param    search_value    Search value
     # @param    flags   When equal to DISK.FLAG_RETRIEVE_FULL_INFO
     #                   returned objects will contain optional data.
     #                   If not defined, only the mandatory properties will
@@ -595,10 +598,10 @@ class Client(INetworkAttachedStorage):
         return self._tp.rpc('disks', _del_self(locals()))
 
     ## Access control for allowing an access group to access a volume
-    # @param    self    The this pointer
-    # @param    group   The access group
-    # @param    volume  The volume to grant access to
-    # @param    flags   Reserved for future use, must be zero.
+    # @param    self            The this pointer
+    # @param    access_group    The access group
+    # @param    volume          The volume to grant access to
+    # @param    flags           Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     @_return_requires(None)
     def volume_mask(self, access_group, volume, flags=0):
@@ -608,10 +611,10 @@ class Client(INetworkAttachedStorage):
         return self._tp.rpc('volume_mask', _del_self(locals()))
 
     ## Revokes access to a volume to initiators in an access group
-    # @param    self    The this pointer
-    # @param    group   The access group
-    # @param    volume  The volume to grant access to
-    # @param    flags   Reserved for future use, must be zero.
+    # @param    self            The this pointer
+    # @param    access_group    The access group
+    # @param    volume          The volume to grant access to
+    # @param    flags           Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     @_return_requires(None)
     def volume_unmask(self, access_group, volume, flags=0):
@@ -622,6 +625,8 @@ class Client(INetworkAttachedStorage):
 
     ## Returns a list of access group objects
     # @param    self    The this pointer
+    # @param    search_key      Search Key
+    # @param    search_value    Search value
     # @param    flags   Reserved for future use, must be zero.
     # @returns  List of access groups
     @_return_requires([AccessGroup])
@@ -650,9 +655,9 @@ class Client(INetworkAttachedStorage):
         return self._tp.rpc('access_group_create', _del_self(locals()))
 
     ## Deletes an access group.
-    # @param    self    The this pointer
-    # @param    group   The access group to delete
-    # @param    flags   Reserved for future use, must be zero.
+    # @param    self            The this pointer
+    # @param    access_group    The access group to delete
+    # @param    flags           Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     @_return_requires(None)
     def access_group_delete(self, access_group, flags=0):
@@ -663,7 +668,7 @@ class Client(INetworkAttachedStorage):
 
     ## Adds an initiator to an access group
     # @param    self            The this pointer
-    # @param    group           Group to add initiator to
+    # @param    access_group    Group to add initiator to
     # @param    init_id         Initiators id
     # @param    init_type       Initiator id type (enumeration)
     # @param    flags           Reserved for future use, must be zero.
@@ -678,8 +683,8 @@ class Client(INetworkAttachedStorage):
 
     ## Deletes an initiator from an access group
     # @param    self            The this pointer
-    # @param    group           The access group to remove initiator from
-    # @param    initiator_id    The initiator to remove from the group
+    # @param    access_group    The access group to remove initiator from
+    # @param    init_id         The initiator to remove from the group
     # @param    flags           Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     @_return_requires(None)
@@ -691,9 +696,9 @@ class Client(INetworkAttachedStorage):
                             _del_self(locals()))
 
     ## Returns the list of volumes that access group has access to.
-    # @param    self        The this pointer
-    # @param    group       The access group to list volumes for
-    # @param    flags       Reserved for future use, must be zero.
+    # @param    self            The this pointer
+    # @param    access_group    The access group to list volumes for
+    # @param    flags           Reserved for future use, must be zero.
     # @returns list of volumes
     @_return_requires([Volume])
     def volumes_accessible_by_access_group(self, access_group, flags=0):
@@ -753,8 +758,10 @@ class Client(INetworkAttachedStorage):
         return self._tp.rpc('volume_child_dependency_rm', _del_self(locals()))
 
     ## Returns a list of file system objects.
-    # @param    self    The this pointer
-    # @param    flags   Reserved for future use, must be zero.
+    # @param    self            The this pointer
+    # @param    search_key      Search Key
+    # @param    search_value    Search value
+    # @param    flags           Reserved for future use, must be zero.
     # @returns A list of FS objects.
     @_return_requires([FileSystem])
     def fs(self, search_key=None, search_value=None, flags=0):
@@ -990,6 +997,8 @@ class Client(INetworkAttachedStorage):
 
     ## Returns a list of all the exported file systems
     # @param    self    The this pointer
+    # @param    search_key      Search Key
+    # @param    search_value    Search value
     # @param    flags   Reserved for future use, must be zero.
     # @returns An array of export objects
     @_return_requires([NfsExport])

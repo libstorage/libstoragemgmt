@@ -476,7 +476,7 @@ extern "C" {
     /**
      * Set the username password for CHAP authentication, inbound and outbound.
      * @param conn                      Valid connection pointer
-     * @param initiator                 Initiator ID
+     * @param init_id                   Initiator ID
      * @param in_user                   inbound user name
      * @param in_password               inbound password
      * @param out_user                  outbound user name
@@ -488,7 +488,7 @@ extern "C" {
                                                     const char *init_id,
                                                     const char *in_user,
                                                     const char *in_password,
-                                                    const char * out_user,
+                                                    const char *out_user,
                                                     const char *out_password,
                                                     lsm_flag flags);
 
