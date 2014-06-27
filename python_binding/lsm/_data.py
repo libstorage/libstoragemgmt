@@ -113,8 +113,6 @@ class IData(object):
     """
     __metaclass__ = _ABCMeta
 
-    OPT_PROPERTIES = []
-
     def _to_dict(self):
         """
         Represent the class as a dictionary
@@ -210,8 +208,6 @@ class Disk(IData):
     STATUS_STOPPING = 1 << 7
     STATUS_STOPPED = 1 << 8
     STATUS_INITIALIZING = 1 << 9
-
-    OPT_PROPERTIES = ['sn', 'part_num', 'vendor', 'model']
 
     def __init__(self, _id, _name, _disk_type, _block_size, _num_of_blocks,
                  _status, _system_id, _plugin_data=None):
