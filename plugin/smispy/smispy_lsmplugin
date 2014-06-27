@@ -27,7 +27,7 @@ try:
 
     if __name__ == '__main__':
         PluginRunner(SmisProxy, sys.argv).run()
-except:
+except Exception:
     #This should be quite rare, but when it does happen this is pretty
     #key in understanding what happened, especially when it happens when
     #running from the daemon.
