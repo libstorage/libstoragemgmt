@@ -90,16 +90,16 @@ class SSHClient():
         stderr_strm.close()
 
         if check_exit_code and exit_code != 0:
-            errList = stderr.split(' ', 1)
+            error_list = stderr.split(' ', 1)
 
             if exit_code == 127:
                 # command not found error
                 errno = exit_code
             else:
                 # other errors
-                errno = errList[0]
+                errno = error_list[0]
 
-            reason = errList[1]
+            reason = error_list[1]
 
             raise V7kError(errno, reason)
 
@@ -128,6 +128,7 @@ class IbmV7k(IStorageAreaNetwork):
         self.ssh = None
         self.tmo = 0
         self.password = None
+        self.up = None
 
     def _execute_command(self, ssh_cmd):
         exit_code, stdout, stderr = self.ssh.execute(ssh_cmd)
@@ -251,33 +252,6 @@ class IbmV7k(IStorageAreaNetwork):
         ssh_cmd = 'lshost -delim ! %s' % init
         return self._execute_command_and_parse_detailed(ssh_cmd)
 
-    def _initiator(self, v7k_init):
-        # NOTE: There is a terminology gap between what V7k thinks initiator id
-        #       is and what lsm thinks initiator id is.
-        #
-        #       Class Initiator's 'id' field actually is the wwpn/iqn, but V7K
-        #       only takes wwpn/iqn during mkhost, then assigns a numeric id &
-        #       string name to a host, and all future reference to the host
-        #       after mkhost is successfull, is using the numeric/string
-        #       id/name only.
-
-        if 'WWPN' in v7k_init:
-            lsm_init_type = Initiator.TYPE_PORT_WWN
-            # TODO: Add support for > 1 wwpn case.
-            #       v7k cli is not parse friendly for > 1 case.
-            lsm_init_id = v7k_init['WWPN']
-        elif 'iscsi_name' in v7k_init:
-            lsm_init_type = Initiator.TYPE_ISCSI
-            # TODO: Add support for > 1 iscsiname case.
-            #       v7k cli is not parse friendly for > 1 case.
-            lsm_init_id = v7k_init['iscsi_name']
-        else:
-            # Since lshost worked, support it as other type.
-            lsm_init_type = Initiator.TYPE_OTHER
-            lsm_init_id = v7k_init['id']
-
-        return Initiator(lsm_init_id, lsm_init_type, v7k_init['name'])
-
     def plugin_register(self, uri, password, timeout, flags=0):
         self.password = password
         self.tmo = timeout
@@ -318,11 +292,6 @@ class IbmV7k(IStorageAreaNetwork):
         cap.set(Capabilities.VOLUME_CREATE)
         cap.set(Capabilities.VOLUME_DELETE)
         cap.set(Capabilities.VOLUME_THIN)
-        cap.set(Capabilities.INITIATORS)
-        cap.set(Capabilities.VOLUME_ACCESSIBLE_BY_INITIATOR)
-        cap.set(Capabilities.INITIATORS_GRANTED_TO_VOLUME)
-        cap.set(Capabilities.VOLUME_INITIATOR_GRANT)
-        cap.set(Capabilities.VOLUME_INITIATOR_REVOKE)
         cap.set(Capabilities.ACCESS_GROUPS)
         return cap
 
