@@ -334,7 +334,7 @@ static int cap(lsm_plugin_ptr c, lsm_system *system,
     *cap = lsm_capability_record_alloc(NULL);
 
     if( *cap ) {
-        rc = lsm_capability_set_n(*cap, LSM_CAPABILITY_SUPPORTED, 48,
+        rc = lsm_capability_set_n(*cap, LSM_CAPABILITY_SUPPORTED, 47,
             LSM_CAP_BLOCK_SUPPORT,
             LSM_CAP_FS_SUPPORT,
             LSM_CAP_VOLUMES,
