@@ -33,37 +33,37 @@ class XmlDictObject(dict):
             return ''
 
     @staticmethod
-    def Wrap(x):
+    def wrap(x):
         """
         Static method to wrap a dictionary recursively as an XmlDictObject
         """
         if isinstance(x, dict):
             return XmlDictObject(
-                (k, XmlDictObject.Wrap(v)) for (k, v) in x.iteritems())
+                (k, XmlDictObject.wrap(v)) for (k, v) in x.iteritems())
         elif isinstance(x, list):
-            return [XmlDictObject.Wrap(v) for v in x]
+            return [XmlDictObject.wrap(v) for v in x]
         else:
             return x
 
     @staticmethod
-    def _UnWrap(x):
+    def _un_wrap(x):
         if isinstance(x, dict):
             return dict(
-                (k, XmlDictObject._UnWrap(v)) for (k, v) in x.iteritems())
+                (k, XmlDictObject._un_wrap(v)) for (k, v) in x.iteritems())
         elif isinstance(x, list):
-            return [XmlDictObject._UnWrap(v) for v in x]
+            return [XmlDictObject._un_wrap(v) for v in x]
         else:
             return x
 
-    def UnWrap(self):
+    def un_wrap(self):
         """
         Recursively converts an XmlDictObject to a standard dictionary and
         returns the result.
         """
-        return XmlDictObject._UnWrap(self)
+        return XmlDictObject._un_wrap(self)
 
 
-def _ConvertDictToXmlRecurse(parent, dictitem):
+def _convert_dict_to_xml_recurse(parent, dictitem):
     assert isinstance(dictitem, dict)
 
     if isinstance(dictitem, dict):
@@ -75,26 +75,26 @@ def _ConvertDictToXmlRecurse(parent, dictitem):
                 for listchild in child:
                     elem = ElementTree.Element(tag)
                     parent.append(elem)
-                    _ConvertDictToXmlRecurse(elem, listchild)
+                    _convert_dict_to_xml_recurse(elem, listchild)
             else:
                 elem = ElementTree.Element(tag)
                 parent.append(elem)
-                _ConvertDictToXmlRecurse(elem, child)
+                _convert_dict_to_xml_recurse(elem, child)
     else:
         parent.text = str(dictitem)
 
 
-def ConvertDictToXml(xmldict):
+def convert_dict_to_xml(xmldict):
     """
     Converts a dictionary to an XML ElementTree Element
     """
     roottag = xmldict.keys()[0]
     root = ElementTree.Element(roottag)
-    _ConvertDictToXmlRecurse(root, xmldict[roottag])
+    _convert_dict_to_xml_recurse(root, xmldict[roottag])
     return root
 
 
-def _ConvertXmlToDictRecurse(node, dictclass):
+def _convert_xml_to_dict_recurse(node, dictclass):
     nodedict = dictclass()
 
     if len(node.items()) > 0:
@@ -109,7 +109,7 @@ def _ConvertXmlToDictRecurse(node, dictclass):
 
     for child in node:
         # recursively add the element's children
-        newitem = _ConvertXmlToDictRecurse(child, dictclass)
+        newitem = _convert_xml_to_dict_recurse(child, dictclass)
         if _ns(child.tag) in nodedict:
             # found duplicate tag, force a list
             if isinstance(nodedict[_ns(child.tag)], list):
@@ -139,9 +139,9 @@ def _ConvertXmlToDictRecurse(node, dictclass):
     return nodedict
 
 
-def ConvertXmlToDict(root, dictclass=XmlDictObject):
+def convert_xml_to_dict(root, dictclass=XmlDictObject):
     """
     Converts an ElementTree Element to a dictionary
     """
     return dictclass(
-        {_ns(root.tag): _ConvertXmlToDictRecurse(root, dictclass)})
+        {_ns(root.tag): _convert_xml_to_dict_recurse(root, dictclass)})

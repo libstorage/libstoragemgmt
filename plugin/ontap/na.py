@@ -25,7 +25,7 @@ from _ssl import SSLError
 
 from M2Crypto import RC4
 
-from lsm.external.xmltodict import ConvertXmlToDict
+from lsm.external.xmltodict import convert_xml_to_dict
 from lsm import (ErrorNumber)
 
 
@@ -39,7 +39,7 @@ def netapp_filer_parse_response(resp):
         out.write(resp)
         out.close()
 
-    return ConvertXmlToDict(ElementTree.fromstring(resp))
+    return convert_xml_to_dict(ElementTree.fromstring(resp))
 
 
 def param_value(val):
