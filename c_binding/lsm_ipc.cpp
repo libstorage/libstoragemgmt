@@ -19,7 +19,7 @@
 
 #include "lsm_ipc.hpp"
 
-#include <libstoragemgmt/libstoragemgmt_plug_interface.h>
+#include "libstoragemgmt/libstoragemgmt_plug_interface.h"
 
 #include <unistd.h>
 #include <errno.h>

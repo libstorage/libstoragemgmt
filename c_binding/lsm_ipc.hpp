@@ -20,7 +20,7 @@
 #ifndef LSM_IPC_H
 #define LSM_IPC_H
 
-#include <libstoragemgmt/libstoragemgmt_common.h>
+#include "libstoragemgmt/libstoragemgmt_common.h"
 #include <yajl/yajl_parse.h>
 #include <yajl/yajl_gen.h>
 #include <stdint.h>

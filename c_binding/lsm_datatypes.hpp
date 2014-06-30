@@ -20,9 +20,9 @@
 #ifndef LSM_DATATYPES_H
 #define LSM_DATATYPES_H
 
-#include <libstoragemgmt/libstoragemgmt_plug_interface.h>
-#include <libstoragemgmt/libstoragemgmt_common.h>
-#include <libxml/uri.h>
+#include "libstoragemgmt/libstoragemgmt_plug_interface.h"
+#include "libstoragemgmt/libstoragemgmt_common.h"
+#include "libxml/uri.h"
 #include <glib.h>
 #include "lsm_ipc.hpp"
 
