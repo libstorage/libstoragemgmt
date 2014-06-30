@@ -19,6 +19,12 @@
 #
 # Unit test case driver
 
+# Make sure these are available in the envirnoment before we start lsmd
+export G_SLICE=always-malloc
+export G_DEBUG=gc-friendly
+export CK_DEFAULT_TIMEOUT=600
+export CK_export CK_FORK=no
+
 rundir=$RANDOM
 base=/tmp/$rundir
 
@@ -127,12 +133,7 @@ good "$LSMD_DAEMON --plugindir $plugins --socketdir $LSM_UDS_PATH" -v
 
 LSMD_PID=$(ps aux | grep $LSM_UDS_PATH | grep -v grep |  awk '{print $2}')
 
-export G_SLICE=always-malloc
-export G_DEBUG=gc-friendly
-
 #Run C unit test
-export CK_DEFAULT_TIMEOUT=600
-export CK_export CK_FORK=no
 good "$c_unit"
 
 #Run cmdline against the simulator if we are not checking for leaks

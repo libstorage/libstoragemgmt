@@ -545,7 +545,7 @@ void exec_plugin( char *plugin, int client_fd )
 
             plugin_argv[0] = "valgrind";
             plugin_argv[1] = "--leak-check=full";
-            plugin_argv[2] = "--show-reachable=yes";
+            plugin_argv[2] = "--show-reachable=no";
             plugin_argv[3] = debug_out;
             plugin_argv[4] = p_copy;
             plugin_argv[5] = fd_str;
