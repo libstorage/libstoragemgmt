@@ -1845,6 +1845,8 @@ int lsm_target_port_record_free(lsm_target_port *tp)
 {
     if( LSM_IS_TARGET_PORT(tp) ) {
         tp->magic = LSM_DEL_MAGIC(LSM_TARGET_PORT_MAGIC);
+        free(tp->id);
+        tp->id = NULL;
         free(tp->plugin_data);
         tp->plugin_data = NULL;
         free(tp->system_id);
