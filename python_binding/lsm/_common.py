@@ -68,11 +68,11 @@ def common_urllib2_error_handler(exp):
             if 'Errno 113' in desc:
                 raise LsmError(ErrorNumber.NETWORK_HOSTDOWN,
                                'Host is down')
-        Error("Unexpected network error:\n" + traceback.format_exc())
+        error("Unexpected network error:\n" + traceback.format_exc())
         raise LsmError(ErrorNumber.NETWORK_ERROR, desc)
 
     stack_trace = traceback.format_exc()
-    Error("Unexpected exception:\n" + stack_trace)
+    error("Unexpected exception:\n" + stack_trace)
     raise LsmError(ErrorNumber.PLUGIN_ERROR, "Unexpected exception",
                    stack_trace)
 
@@ -346,12 +346,12 @@ def post_msg(level, prg, msg):
             syslog.syslog(level, prg + ": " + l)
 
 
-def Error(*msg):
+def error(*msg):
     post_msg(syslog.LOG_ERR, os.path.basename(sys.argv[0]),
              params_to_string(*msg))
 
 
-def Info(*msg):
+def info(*msg):
     if LOG_VERBOSE:
         post_msg(syslog.LOG_INFO, os.path.basename(sys.argv[0]),
                  params_to_string(*msg))

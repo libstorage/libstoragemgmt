@@ -31,7 +31,7 @@ import traceback
 
 from lsm import (AccessGroup, Capabilities, ErrorNumber, FileSystem, INfs,
                  IStorageAreaNetwork, LsmError, NfsExport, Pool,
-                 FsSnapshot, System, VERSION, Volume, md5, Error,
+                 FsSnapshot, System, VERSION, Volume, md5, error,
                  common_urllib2_error_handler, search_property)
 
 
@@ -42,7 +42,7 @@ def handle_nstor_errors(method):
         except LsmError as lsm:
             raise
         except Exception as e:
-            Error("Unexpected exception:\n" + traceback.format_exc())
+            error("Unexpected exception:\n" + traceback.format_exc())
             raise LsmError(ErrorNumber.PLUGIN_ERROR, str(e),
                            traceback.format_exc())
     return nstor_wrapper

@@ -19,7 +19,7 @@ import socket
 import traceback
 import sys
 from _common import SocketEOF as _SocketEOF
-from lsm import LsmError, Error, ErrorNumber
+from lsm import LsmError, error, ErrorNumber
 import _transport
 from lsm.lsmcli import cmd_line_wrapper
 
@@ -72,8 +72,8 @@ class PluginRunner(object):
                     raise exception_info[1], None, exception_info[2]
 
             except Exception:
-                Error(traceback.format_exc())
-                Error('Plug-in exiting.')
+                error(traceback.format_exc())
+                error('Plug-in exiting.')
                 sys.exit(2)
 
         else:
@@ -123,19 +123,19 @@ class PluginRunner(object):
                         break
 
                 except ValueError as ve:
-                    Error(traceback.format_exc())
+                    error(traceback.format_exc())
                     self.tp.send_error(msg_id, -32700, str(ve))
                 except AttributeError as ae:
-                    Error(traceback.format_exc())
+                    error(traceback.format_exc())
                     self.tp.send_error(msg_id, -32601, str(ae))
                 except LsmError as lsm_err:
                     self.tp.send_error(msg_id, lsm_err.code, lsm_err.msg,
                                        lsm_err.data)
         except _SocketEOF:
             #Client went away
-            Error('Client went away, exiting plug-in')
+            error('Client went away, exiting plug-in')
         except Exception:
-            Error("Unhandled exception in plug-in!\n" + traceback.format_exc())
+            error("Unhandled exception in plug-in!\n" + traceback.format_exc())
 
             try:
                 self.tp.send_error(msg_id, ErrorNumber.PLUGIN_ERROR,

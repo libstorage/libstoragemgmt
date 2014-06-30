@@ -26,7 +26,7 @@ import na
 from lsm import (Volume, FileSystem, FsSnapshot, NfsExport,
                  AccessGroup, System, Capabilities, Disk, Pool,
                  IStorageAreaNetwork, INfs, LsmError, ErrorNumber, JobStatus,
-                 md5, Error, VERSION, common_urllib2_error_handler,
+                 md5, error, VERSION, common_urllib2_error_handler,
                  search_property, TargetPort)
 
 #Maps na to lsm, this is expected to expand over time.
@@ -499,7 +499,7 @@ class Ontap(IStorageAreaNetwork, INfs):
             #Anything happens here we are only going to report the
             #primary error through the API and log the secondary
             #error to syslog.
-            Error("Exception on trying to restore NA volume size:"
+            error("Exception on trying to restore NA volume size:"
                   + traceback.format_exc())
         finally:
             #Restore timeout.

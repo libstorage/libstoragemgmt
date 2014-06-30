@@ -24,7 +24,7 @@ import traceback
 import pywbem
 from pywbem import CIMError
 
-from lsm import (IStorageAreaNetwork, Error, uri_parse, LsmError, ErrorNumber,
+from lsm import (IStorageAreaNetwork, error, uri_parse, LsmError, ErrorNumber,
                  JobStatus, md5, Pool, Volume, AccessGroup, System,
                  Capabilities, Disk, txt_a, VERSION, TargetPort,
                  search_property)
@@ -83,7 +83,7 @@ def handle_cim_errors(method):
         except pywbem.cim_http.Error as te:
             raise LsmError(ErrorNumber.NETWORK_ERROR, str(te))
         except Exception as e:
-            Error("Unexpected exception:\n" + traceback.format_exc())
+            error("Unexpected exception:\n" + traceback.format_exc())
             raise LsmError(ErrorNumber.PLUGIN_ERROR, str(e),
                            traceback.format_exc())
     return cim_wrapper
