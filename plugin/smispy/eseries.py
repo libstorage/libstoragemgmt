@@ -102,18 +102,6 @@ class ESeries(Smis):
         return True
 
     @handle_cim_errors
-    def access_group_delete(self, group, flags=0):
-        ccs = self._get_class_instance('CIM_ControllerConfigurationService')
-
-        pc = self._get_cim_instance_by_id('AccessGroup', group.id)
-
-        in_params = {'ProtocolController': pc.path}
-
-        return self._pi("access_group_delete", Smis.JOB_RETRIEVE_NONE,
-                        *(self._c.InvokeMethod('DeleteProtocolController',
-                                               ccs.path, **in_params)))[0]
-
-    @handle_cim_errors
     def capabilities(self, system, flags=0):
         cap = self._common_capabilities(system)
 
