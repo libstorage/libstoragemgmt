@@ -2024,6 +2024,7 @@ class Smis(IStorageAreaNetwork):
                 v
             CIM_SCSIProtocolController
         """
+        cim_ccss_path = []
         rc_cim_ags = []
 
         if property_list is None:
@@ -3332,6 +3333,7 @@ class Smis(IStorageAreaNetwork):
         this is assumption should work. Tested on EMC SMI-S provider which
         provide 1.4, 1.5, 1.6 root profile.
         """
+        cim_scss_path = []
         id_pros = self._property_list_of_id('System', property_list)
         if property_list is None:
             property_list = id_pros
