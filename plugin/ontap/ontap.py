@@ -68,8 +68,8 @@ def handle_ontap_errors(method):
         except LsmError:
             raise
         except na.FilerError as oe:
-            error, error_msg = error_map(oe)
-            raise LsmError(error, error_msg)
+            error_code, error_msg = error_map(oe)
+            raise LsmError(error_code, error_msg)
         except Exception as e:
             common_urllib2_error_handler(e)
 
