@@ -1049,6 +1049,7 @@ class SimData(object):
                                "init_id %s already exist in other "
                                % init_id +
                                "access group %s" % sim_ag['ag_id'])
+
     def _check_dup_name(self, sim_list, name, error_num):
         used_names = [x['name'] for x in sim_list]
         if name in used_names:
@@ -1287,7 +1288,7 @@ class SimData(object):
         return None
 
     def fs_snapshot_restore(self, fs_id, snap_id, files, restore_files,
-                           flag_all_files, flags):
+                            flag_all_files, flags):
         if fs_id not in self.fs_dict.keys():
             raise LsmError(ErrorNumber.NOT_FOUND_FS,
                            "File System: %s not found" % fs_id)

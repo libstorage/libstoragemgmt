@@ -132,7 +132,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                                       [str(pool), ""])
 
             pools.append(Pool(pool_info['name'], pool_info['name'],
-                              Pool.ELEMENT_TYPE_VOLUME|Pool.ELEMENT_TYPE_FS,
+                              Pool.ELEMENT_TYPE_VOLUME | Pool.ELEMENT_TYPE_FS,
                               NexentaStor._to_bytes(pool_info['size']),
                               NexentaStor._to_bytes(pool_info['free']),
                               Pool.STATUS_UNKNOWN, '', self.system.id))
@@ -426,6 +426,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                                 fs_id, fs_dict])
         return NfsExport(md5_id, fs_id, export_path, auth_type, root_list,
                          rw_list, ro_list, anon_uid, anon_gid, options)
+
     @handle_nstor_errors
     def export_remove(self, export, flags=0):
         """

@@ -109,9 +109,10 @@ def _spec_ver_str_to_num(spec_ver_str):
 def _merge_list(list_a, list_b):
     return list(set(list_a + list_b))
 
+
 def _hex_string_format(hex_str, length, every):
     hex_str = hex_str.lower()
-    return ':'.join(hex_str[i:i+every] for i in range(0,length,every))
+    return ':'.join(hex_str[i:i + every] for i in range(0, length, every))
 
 
 class DMTF(object):
@@ -914,7 +915,6 @@ class Smis(IStorageAreaNetwork):
         if flag_fc_support or flag_iscsi_support:
             cap.set(Capabilities.TARGET_PORTS)
         return
-
 
     @handle_cim_errors
     def capabilities(self, system, flags=0):
@@ -3575,7 +3575,7 @@ class Smis(IStorageAreaNetwork):
                         mac_address = _hex_string_format(mac_address, 12, 2)
 
                     if ipv4_addr:
-                        network_address="%s:%s" % (ipv4_addr, tcp_port)
+                        network_address = "%s:%s" % (ipv4_addr, tcp_port)
                         port_id = md5("%s:%s:%s" % (mac_address,
                                                     network_address,
                                                     iscsi_node_name))
@@ -3587,12 +3587,12 @@ class Smis(IStorageAreaNetwork):
                         # DMTF or SNIA did defined the IPv6 string format.
                         # we just guess here.
                         if len(ipv6_addr) == 39:
-                            ipv6_addr = ipv6_addr.replace(':','')
+                            ipv6_addr = ipv6_addr.replace(':', '')
                             if len(ipv6_addr) == 32:
                                 ipv6_addr = _hex_string_format(
                                     ipv6_addr, 32, 4)
 
-                        network_address="[%s]:%s" % (ipv6_addr, tcp_port)
+                        network_address = "[%s]:%s" % (ipv6_addr, tcp_port)
                         port_id = md5("%s:%s:%s" % (mac_address,
                                                     network_address,
                                                     iscsi_node_name))
@@ -3614,12 +3614,12 @@ class Smis(IStorageAreaNetwork):
         loop_counter = max_loop_count
         rc = []
         leaf_cim_syss = self._c.Associators(
-                cim_sys_path,
-                ResultClass='CIM_ComputerSystem',
-                AssocClass='CIM_ComponentCS',
-                Role='GroupComponent',
-                ResultRole='PartComponent',
-                PropertyList=property_list)
+            cim_sys_path,
+            ResultClass='CIM_ComputerSystem',
+            AssocClass='CIM_ComponentCS',
+            Role='GroupComponent',
+            ResultRole='PartComponent',
+            PropertyList=property_list)
         if len(leaf_cim_syss) > 0:
             rc = leaf_cim_syss
             for cim_sys in leaf_cim_syss:
@@ -3695,10 +3695,10 @@ class Smis(IStorageAreaNetwork):
                     leaf_cim_syss = self._leaf_cim_syss_of(cim_sys.path)
                     for leaf_cim_sys in leaf_cim_syss:
                         cur_cim_fc_tgts = self._c.Associators(
-                                leaf_cim_sys.path,
-                                AssocClass='CIM_SystemDevice',
-                                ResultClass='CIM_FCPort',
-                                PropertyList=cim_fc_tgt_pros)
+                            leaf_cim_sys.path,
+                            AssocClass='CIM_SystemDevice',
+                            ResultClass='CIM_FCPort',
+                            PropertyList=cim_fc_tgt_pros)
 
                         # Update SystemName which will be used as system_id
                         for cim_fc_tgt in cur_cim_fc_tgts:
@@ -3723,10 +3723,10 @@ class Smis(IStorageAreaNetwork):
                 property_list=self._property_list_of_id('System'))
             for cim_sys in cim_syss:
                 cim_iscsi_pgs = self._c.Associators(
-                        cim_sys.path,
-                        AssocClass='CIM_HostedAccessPoint',
-                        ResultClass='CIM_iSCSIProtocolEndpoint',
-                        PropertyList=cim_iscsi_pg_pros)
+                    cim_sys.path,
+                    AssocClass='CIM_HostedAccessPoint',
+                    ResultClass='CIM_iSCSIProtocolEndpoint',
+                    PropertyList=cim_iscsi_pg_pros)
                 system_id = self._sys_id(cim_sys)
                 if flag_multi_sys_support:
                     leaf_cim_syss = self._leaf_cim_syss_of(cim_sys.path)
