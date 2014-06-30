@@ -756,8 +756,8 @@ class Filer(object):
 
             if 'fcp-config-adapters' in rc:
                 if 'fcp-config-adapter-info' in rc['fcp-config-adapters']:
-
-                    adapters = rc['fcp-config-adapters']['fcp-config-adapter-info']
+                    fc_config = rc['fcp-config-adapters']
+                    adapters = fc_config['fcp-config-adapter-info']
                     for f in adapters:
                         fcp_list.append(dict(addr=f['port-name'],
                                              adapter=f['adapter']))
@@ -783,8 +783,9 @@ class Filer(object):
         rc = self._invoke('net-ifconfig-get')
 
         if 'interface-config-info' in rc:
-            if 'interface-config-info' in rc['interface-config-info']:
-                tmp = to_list(rc['interface-config-info']['interface-config-info'])
+            i_config = rc['interface-config-info']
+            if 'interface-config-info' in i_config:
+                tmp = to_list(i_config['interface-config-info'])
                 for i in tmp:
                     i_info[i['interface-name']] = i
 
@@ -800,14 +801,16 @@ class Filer(object):
             rc = self._invoke('iscsi-portal-list-info')
 
             if 'iscsi-portal-list-entries' in rc:
-                if 'iscsi-portal-list-entry-info' in rc['iscsi-portal-list-entries']:
-                    tmp = rc['iscsi-portal-list-entries']['iscsi-portal-list-entry-info']
+                portal_entries = rc['iscsi-portal-list-entries']
+                if 'iscsi-portal-list-entry-info' in portal_entries:
+                    tmp = portal_entries['iscsi-portal-list-entry-info']
                     portals = to_list(tmp)
                     for p in portals:
+                        mac = i_info[p['interface-name']]['mac-address']
                         i_list.append(dict(interface=p['interface-name'],
                                            ip=p['ip-address'],
                                            port=p['ip-port'],
-                                           mac=i_info[p['interface-name']]['mac-address']))
+                                           mac=mac))
         except FilerError as na:
             if na.errno != Filer.EAPILICENSE:
                 raise
