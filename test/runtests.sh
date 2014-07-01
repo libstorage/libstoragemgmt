@@ -34,20 +34,23 @@ export LSM_TEST_RUNDIR=$rundir
 export LSM_UDS_PATH=$base/lsm/ipc/
 
 cleanup() {
-
 	#Clean up the daemon if it is running
-	kill $LSMD_PID
+	if [ $LSMD_PID -ne 65535 ]
+	then
+		kill -s INT $LSMD_PID
+	fi
 
 	if [ -e $LSM_UDS_PATH ]
 	then
 		rm -rf 	$base
 	fi
-    if [ -e $rootdir/_build ]
-    then
-        rm $lsm_py_folder/lsm/plugin
-        rm $lsm_py_folder/lsm/lsmcli
-        chmod -w $lsm_py_folder/lsm
-    fi
+
+	if [ -e $rootdir/_build ]
+	then
+		rm $lsm_py_folder/lsm/plugin
+		rm $lsm_py_folder/lsm/lsmcli
+		chmod -w $lsm_py_folder/lsm
+	fi
 }
 
 good() {
@@ -60,6 +63,9 @@ good() {
 		exit 1
 	fi
 }
+
+# Add a signal handler to clean-up
+trap "cleanup; exit 1" INT
 
 #Put us in a consistent spot
 cd "$(dirname "$0")"
