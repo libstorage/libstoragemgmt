@@ -1096,7 +1096,7 @@ void lsm_access_group_initiator_id_set( lsm_access_group *group, lsm_string_list
             lsm_string_list_free(group->initiators);
         }
 
-        group->initiators = il;
+        group->initiators = lsm_string_list_copy(il);
     }
 }
 
