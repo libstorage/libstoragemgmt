@@ -134,7 +134,11 @@ good "$LSMD_DAEMON --plugindir $plugins --socketdir $LSM_UDS_PATH" -v
 LSMD_PID=$(ps aux | grep $LSM_UDS_PATH | grep -v grep |  awk '{print $2}')
 
 #Run C unit test
-good "$c_unit"
+if [ -z "$LSM_VALGRIND" ]; then
+	good "$c_unit"
+else
+	good "valgrind --leak-check=full --show-reachable=no --log-file=/tmp/leaking_client $rootdir/test/.libs/tester"
+fi
 
 #Run cmdline against the simulator if we are not checking for leaks
 if [ -z "$LSM_VALGRIND" ]; then

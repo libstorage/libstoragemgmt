@@ -617,6 +617,8 @@ START_TEST(test_access_groups)
     rc = lsm_access_group_create(c, "test_access_groups", "iqn.1994-05.com.domain:01.89bd01",
                     LSM_INITIATOR_ISCSI, SYSTEM_ID, &group, LSM_FLAG_RSVD);
 
+    fail_unless(LSM_ERR_OK == rc, "rc = %d", rc);
+
     if( LSM_ERR_OK == rc ) {
         lsm_string_list *init_list = lsm_access_group_initiator_id_get(group);
         lsm_string_list *init_copy = NULL;
@@ -640,7 +642,9 @@ START_TEST(test_access_groups)
             fail_unless( strcmp(lsm_access_group_name_get(group), lsm_access_group_name_get(copy)) == 0) ;
             fail_unless( strcmp(lsm_access_group_system_id_get(group), lsm_access_group_system_id_get(copy)) == 0);
 
-            lsm_access_group_record_free(copy);
+            rc = lsm_access_group_record_free(copy);
+            copy = NULL;
+            fail_unless(LSM_ERR_OK == rc, "rc = %d", rc);
         }
 
         lsm_string_list_free(init_copy);
@@ -687,7 +691,6 @@ START_TEST(test_access_groups)
                 fail_unless(LSM_ERR_OK == rc);
             }
         }
-        lsm_string_list_free(init_list);
         init_list = NULL;
     }
 
@@ -705,6 +708,12 @@ START_TEST(test_access_groups)
     }
     */
 
+    if( group ) {
+        rc = lsm_access_group_record_free(group);
+        group = NULL;
+        fail_unless(LSM_ERR_OK == rc, "rc = %d", rc);
+    }
+
     lsm_access_group_record_array_free(groups, count);
     groups = NULL;
     count = 0;
@@ -718,7 +727,6 @@ START_TEST(test_access_groups)
         fail_unless( init_list != NULL);
         fail_unless( lsm_string_list_size(init_list) == 0, "%d",
                         lsm_string_list_size(init_list));
-        lsm_string_list_free(init_list);
         init_list = NULL;
         lsm_access_group_record_array_free(groups, count);
         groups = NULL;
@@ -842,6 +850,10 @@ START_TEST(test_fs)
     if( LSM_ERR_JOB_STARTED == rc ) {
         fail_unless(NULL == cloned_fs);
         cloned_fs = wait_for_job_fs(c, &job);
+
+        rc = lsm_fs_record_free(cloned_fs);
+        cloned_fs = NULL;
+        fail_unless(LSM_ERR_OK == rc, "rc= %d", rc);
     } else {
         fail_unless(LSM_ERR_OK == rc, "rc= %d", rc);
     }
@@ -915,6 +927,10 @@ START_TEST(test_ss)
 
     fail_unless(fs != NULL);
 
+    rc = lsm_pool_record_free(test_pool);
+    fail_unless(LSM_ERR_OK == rc, "rc = %d", rc);
+    test_pool = NULL;
+
 
     rc = lsm_fs_ss_list(c, fs, &ss_list, &ss_count, LSM_FLAG_RSVD);
     printf("List return code= %d\n", rc);
@@ -966,6 +982,7 @@ START_TEST(test_ss)
 
     lsm_fs_ss_record_array_free(ss_list, ss_count);
     lsm_fs_record_free(fs);
+    lsm_fs_ss_record_free(ss);
 
     printf("Testing snapshots done!\n");
 }
@@ -1101,6 +1118,11 @@ START_TEST(test_nfs_exports)
         lsm_nfs_export **exports = NULL;
         uint32_t count = 0;
 
+        rc = lsm_pool_record_free(test_pool);
+        test_pool = NULL;
+        fail_unless(LSM_ERR_OK == rc, "lsm_pool_record_free rc= %d\n", rc);
+
+
         if( nfs ) {
             rc = lsm_nfs_list(c, NULL, NULL, &exports, &count, LSM_FLAG_RSVD);
 
@@ -1125,6 +1147,10 @@ START_TEST(test_nfs_exports)
             lsm_nfs_export_record_free(e);
             e=NULL;
 
+            rc = lsm_string_list_free(access);
+            access = NULL;
+            fail_unless( LSM_ERR_OK == rc, "rc = %d", rc);
+
             rc = lsm_nfs_list(c, NULL, NULL, &exports, &count, LSM_FLAG_RSVD);
             fail_unless( LSM_ERR_OK == rc);
             fail_unless( exports != NULL);
@@ -1143,6 +1169,11 @@ START_TEST(test_nfs_exports)
                 fail_unless(count == 0);
                 fail_unless(NULL == exports);
             }
+
+
+            rc = lsm_fs_record_free(nfs);
+            nfs = NULL;
+            fail_unless(LSM_ERR_OK == rc, "lsm_fs_record_free rc= %d\n", rc);
         }
     }
 }
@@ -1178,16 +1209,21 @@ START_TEST(test_volume_methods)
         }
 
         if ( v ) {
-            fail_unless( strcmp(lsm_volume_pool_id_get(v), lsm_pool_id_get(test_pool)) == 0 );
+            fail_unless( strcmp(lsm_volume_pool_id_get(v),
+                            lsm_pool_id_get(test_pool)) == 0 );
 
             rc = lsm_volume_delete(c, v, &job, LSM_FLAG_RSVD);
             if( LSM_ERR_JOB_STARTED == rc ) {
+                rc = lsm_volume_record_free(v);
+                fail_unless(LSM_ERR_OK == rc, "rc %d", rc);
+                v = NULL;
                 v = wait_for_job_vol(c, &job);
             } else {
                 fail_unless(LSM_ERR_OK == rc, "rc %d", rc);
             }
 
             lsm_volume_record_free(v);
+            v = NULL;
         }
 
         lsm_pool_record_free(test_pool);
@@ -1732,6 +1768,18 @@ START_TEST(test_invalid_input)
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 
+    rc = lsm_access_group_record_free(ag);
+    ag = NULL;
+    fail_unless(LSM_ERR_OK == rc, "%d", rc);
+
+    rc = lsm_fs_ss_record_free(arg_ss);
+    fail_unless(LSM_ERR_OK == rc, "%d", rc);
+    arg_ss = NULL;
+
+    rc = lsm_fs_record_free(arg_fs);
+    fail_unless(LSM_ERR_OK == rc, "%d", rc);
+    arg_fs = NULL;
+
     rc = lsm_nfs_export_fs(c, NULL, NULL, NULL, NULL, NULL, 0,0,NULL, NULL, NULL,
                         LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
@@ -1755,6 +1803,15 @@ START_TEST(test_invalid_input)
 
     rc = lsm_nfs_export_delete(c, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_NFS, "rc = %d", rc);
+
+
+    rc = lsm_volume_record_free(new_vol);
+    new_vol = NULL;
+    fail_unless(rc == LSM_ERR_OK, "rc = %d", rc);
+
+    rc = lsm_volume_record_free(resized);
+    resized = NULL;
+    fail_unless(rc == LSM_ERR_OK, "rc = %d", rc);
 
 
     /* Pool create */
@@ -1798,6 +1855,20 @@ START_TEST(test_invalid_input)
     rc = lsm_pool_create(c, system, "pool name", size, raid_type, member_type, &pcp, &pcj, flags);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
+
+    rc = lsm_system_record_array_free(sys, num_systems);
+    fail_unless(LSM_ERR_OK == rc, "%d", rc);
+
+    rc = lsm_pool_record_free(test_pool);
+    fail_unless(LSM_ERR_OK == rc, "%d", rc);
+
+    rc = lsm_system_record_free(system);
+    fail_unless(LSM_ERR_OK == rc, "%d", rc);
+
+
+    rc = lsm_string_list_free(f);
+    f = NULL;
+    fail_unless(LSM_ERR_OK == rc, "%d", rc);
 
 }
 END_TEST
@@ -1878,7 +1949,15 @@ START_TEST(test_capabilities)
             cap_test(cap, LSM_CAP_EXPORTS);
             cap_test(cap, LSM_CAP_EXPORT_FS);
             cap_test(cap, LSM_CAP_EXPORT_REMOVE);
+
+
+            rc = lsm_capability_record_free(cap);
+            fail_unless( LSM_ERR_OK == rc, "rc = %d", rc);
+            cap = NULL;
         }
+
+        lsm_system_record_array_free(sys, sys_count);
+        fail_unless( LSM_ERR_OK == rc, "rc = %d", rc);
     }
 }
 END_TEST
@@ -2302,7 +2381,7 @@ START_TEST(test_pool_delete)
                 rc = lsm_volume_delete(c, v, &job, LSM_FLAG_RSVD);
 
                 if( LSM_ERR_JOB_STARTED == rc ) {
-                    v = wait_for_job_vol(c, &job);
+                    wait_for_job(c, &job);
                 } else {
                     fail_unless(LSM_ERR_OK == rc, "rc %d", rc);
                 }
@@ -2310,15 +2389,19 @@ START_TEST(test_pool_delete)
                 rc = lsm_pool_delete(c, test_pool, &job, LSM_FLAG_RSVD);
 
                 if( LSM_ERR_JOB_STARTED == rc ) {
-                    v = wait_for_job_vol(c, &job);
+                    wait_for_job(c, &job);
                 } else {
                     fail_unless(LSM_ERR_OK == rc, "rc %d", rc);
                 }
             }
         }
 
-        lsm_pool_record_free(test_pool);
-        lsm_volume_record_free(v);
+        rc = lsm_pool_record_free(test_pool);
+        fail_unless(LSM_ERR_OK == rc, "rc %d", rc);
+        test_pool = NULL;
+        rc = lsm_volume_record_free(v);
+        v = NULL;
+        fail_unless(LSM_ERR_OK == rc, "rc %d", rc);
     }
 }
 END_TEST
