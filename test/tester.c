@@ -2921,6 +2921,14 @@ START_TEST(test_search_fs)
 }
 END_TEST
 
+static void verify_string(const char *method, const char *value)
+{
+    fail_unless(method != NULL, "%s rc is NULL", method);
+    if( value ) {
+        fail_unless( strlen(value) > 0, "%s string len = 0", method);
+    }
+}
+
 START_TEST(test_target_ports)
 {
     lsm_target_port **tp = NULL;
@@ -2938,14 +2946,27 @@ START_TEST(test_target_ports)
 
     if( LSM_ERR_OK == rc ) {
         for( i = 0; i < count; ++i ) {
-            printf("%s - %d - %s - %s - %s - %s - %s\n",
-                    lsm_target_port_id_get(tp[i]),
-                    lsm_target_port_type_get(tp[i]),
-                    lsm_target_port_service_address_get(tp[i]),
-                    lsm_target_port_network_address_get(tp[i]),
-                    lsm_target_port_physical_address_get(tp[i]),
-                    lsm_target_port_physical_name_get(tp[i]),
-                    lsm_target_port_system_id_get(tp[i]));
+            verify_string("lsm_target_port_id_get",
+                            lsm_target_port_id_get(tp[i]));
+
+            int pt = (int)lsm_target_port_type_get(tp[i]);
+            fail_unless(pt >= 0 && pt <= 4, "%d", pt);
+
+            verify_string("lsm_target_port_service_address_get",
+                            lsm_target_port_service_address_get(tp[i]));
+
+            verify_string("lsm_target_port_network_address_get",
+                            lsm_target_port_network_address_get(tp[i]));
+
+            verify_string("lsm_target_port_physical_address_get",
+                            lsm_target_port_physical_address_get(tp[i]));
+
+            verify_string("lsm_target_port_physical_name_get",
+                            lsm_target_port_physical_name_get(tp[i]));
+
+            verify_string("lsm_target_port_system_id_get",
+                            lsm_target_port_system_id_get(tp[i]));
+
         }
 
         {
