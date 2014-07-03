@@ -388,6 +388,14 @@ fi
 %endif
 
 %changelog
+* Thu Jul 3 2014 Tony Asleson <tasleson@redhat.com> 0.1.0
+- Release candidate for a 1.0.0 release
+- Optional data removed
+- Initiator only functions removed
+- Pool create from from volumes removed
+- Code directory structure updated
+- Target port listing added
+
 * Tue Feb 18 2014 Gris Ge <fge@redhat.com> 0.0.24-2
 - Introduce a REST daemon(only for systemd yet).
 - Allowing enable/disable ibm_v7k plugin via 'rpmbuild --with ibm_v7k' or

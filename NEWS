@@ -1,5 +1,13 @@
 News for libStorageMgmt
 
+0.1.0: Jul 3 2014
+    - Release candidate for a 1.0.0 release
+    - Optional data removed
+    - Initiator only functions removed
+    - Pool create from from volumes removed
+    - Code directory structure updated
+    - Target port listing added
+
 0.0.24: Jan 30 2014
     - Command line interface (CLI) re-factored and improved to be easier to use
       and more consistent, man pages have been updated
