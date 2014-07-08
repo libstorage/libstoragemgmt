@@ -23,12 +23,36 @@ LIBSM_VERSION=$LIBSM_MAJOR_VERSION.$LIBSM_MINOR_VERSION.$LIBSM_MICRO_VERSION$LIB
 LIBSM_VERSION_INFO=`expr $LIBSM_MAJOR_VERSION + $LIBSM_MINOR_VERSION`:$LIBSM_MICRO_VERSION:$LIBSM_MINOR_VERSION
 LIBSM_VERSION_NUMBER=`expr $LIBSM_MAJOR_VERSION \* 1000000 + $LIBSM_MINOR_VERSION \* 1000 + $LIBSM_MICRO_VERSION`
 
+# Our intention is that we will always be backward compatible.  Thus we will
+# set the library version in such a way so that we will always be
+# libstoragemgmt.so.1.n.n once we officially release our ver 1.0.0.
+#
+# To make this happen we will use the minor version as the libtool current and
+# age set to minor - 1 and the micro used for revision.  Basically this will get
+# us what we expect while utilizing the libtool revision system.
+#
+# For this to work we need to make sure that when we add to the interface we
+# increment minor and set micro to 0.  If we make a code change which doesn't
+# change the API we can just bump micro.
+#
+# 0.1.0 -> libstoragemgmt.so.0.1.0
+# 1.0.0 -> libstoragemgmt.so.1.0.0
+# 1.1.0 -> libstoragemgmt.so.1.1.0
+# 1.1.1 -> libstoragemgmt.so.1.1.1
+
+CURRENT=`expr $LIBSM_MAJOR_VERSION '*' 1 + $LIBSM_MINOR_VERSION`
+AGE=$LIBSM_MINOR_VERSION
+REVISION=$LIBSM_MICRO_VERSION
+
+LIBSM_LIBTOOL_VERSION=$CURRENT:$REVISION:$AGE
+
 AC_SUBST([LIBSM_MAJOR_VERSION])
 AC_SUBST([LIBSM_MINOR_VERSION])
 AC_SUBST([LIBSM_MICRO_VERSION])
 AC_SUBST([LIBSM_VERSION])
 AC_SUBST([LIBSM_VERSION_INFO])
 AC_SUBST([LIBSM_VERSION_NUMBER])
+AC_SUBST([LIBSM_LIBTOOL_VERSION])
 
 dnl Required minimum versions of all libs we depend on
 LIBXML_REQUIRED="2.5.0"
