@@ -2288,13 +2288,12 @@ class Smis(IStorageAreaNetwork):
                     all_vendor_namespaces.extend([cim_sys.path.namespace])
             self.all_vendor_namespaces = all_vendor_namespaces
         rc = []
+        e_args = dict(LocalOnly=False)
+        if property_list is not None:
+            e_args['PropertyList'] = property_list
         for vendor_namespace in self.all_vendor_namespaces:
-            rc.extend(
-                self._c.EnumerateInstances(
-                    class_name,
-                    namespace=vendor_namespace,
-                    PropertyList=property_list,
-                    LocalOnly=False))
+            rc.extend(self._c.EnumerateInstances(class_name, vendor_namespace,
+                                                 **e_args))
         return rc
 
     @handle_cim_errors
