@@ -81,6 +81,10 @@ Summary:        Python client libraries and plug-in support for %{name}
 Group:          System Environment/Libraries
 Requires:       %{name} = %{version}-%{release}
 BuildArch:      noarch
+%if 0%{?rhel} <= 6
+Requires:       python-argparse
+BuildRequires:  python-argparse
+%endif
 
 %description    python
 The %{name}-python package contains python client libraries as
