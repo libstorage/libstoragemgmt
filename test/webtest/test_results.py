@@ -115,7 +115,9 @@ def to_html(results):
                'volumes', 'volume_create', 'volume_delete', 'volume_resize',
                'volume_replicate', 'disks', 'target_ports', 'volume_mask',
                'volume_unmask', 'access_groups_granted_to_volume',
-               'volumes_accessible_by_access_group']
+               'volumes_accessible_by_access_group', 'access_group_create',
+               'access_group_delete', 'access_group_initiator_add',
+               'access_group_initiator_delete']
 
     ch = []
     row_data = []

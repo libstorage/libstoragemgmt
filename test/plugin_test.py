@@ -623,6 +623,136 @@ class TestPlugin(unittest.TestCase):
                         self._masking_state(cap, ag, vol, False)
                         self._volume_delete(vol)
 
+    def _create_access_group(self, cap, s):
+        ag_created = None
+
+        # Without this information we would need to systematically go through
+        # different port types trying to create an access group, which we
+        # can do, but not until we need too.
+        if not supported(cap, [lsm.Capabilities.TARGET_PORTS]):
+            return None
+
+        tps = self.c.target_ports('system_id', s.id)
+        if len(tps):
+            tp = tps[0]
+
+            if tp.port_type == lsm.TargetPort.PORT_TYPE_FC:
+                ag_created = self.c.access_group_create(
+                    rs('access_group'),
+                    '500A0986994B8DC5',
+                    lsm.AccessGroup.INIT_TYPE_WWPN, s.id)
+            if tp.port_type == lsm.TargetPort.PORT_TYPE_ISCSI:
+                ag_created = self.c.access_group_create(
+                    rs('access_group'),
+                    'iqn.1994-05.com.domain:01.89bd01',
+                    lsm.AccessGroup.INIT_TYPE_ISCSI_IQN, s.id)
+
+            self.assertTrue(ag_created is not None)
+
+        if ag_created is not None:
+            ag_list = self.c.access_groups()
+            match = [x for x in ag_list if x.id == ag_created.id]
+            self.assertTrue(len(match) == 1, "Newly created access group %s "
+                                             "not in the access group listing"
+                                             % (ag_created.name))
+
+        return ag_created
+
+    def _delete_access_group(self, ag):
+        self.c.access_group_delete(ag)
+        ag_list = self.c.access_groups()
+        match = [x for x in ag_list if x.id == ag.id]
+        self.assertTrue(len(match) == 0, "Expected access group that was "
+                                         "deleted to not show up in the "
+                                         "access group list!")
+
+    def _test_ag_create_delete(self, cap, s):
+        if supported(cap, [lsm.Capabilities.ACCESS_GROUPS,
+                           lsm.Capabilities.ACCESS_GROUP_CREATE]):
+            ag = self._create_access_group(cap, s)
+            if ag is not None and \
+                    supported(cap, [lsm.Capabilities.ACCESS_GROUP_DELETE]):
+                self._delete_access_group(ag)
+
+    def test_access_group_create_delete(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            self._test_ag_create_delete(cap, s)
+
+    def test_access_group_list(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+
+            if supported(cap, [lsm.Capabilities.ACCESS_GROUPS]):
+                ag_list = self.c.access_groups('system_id', s.id)
+                if len(ag_list) == 0:
+                    self._test_ag_create_delete(cap, s)
+                else:
+                    self.assertTrue(len(ag_list) > 0,
+                                    "Need at least 1 access group for testing "
+                                    "and no support exists for creation of "
+                                    "access groups for this system")
+
+    def _ag_init_add(self, ag):
+        t = None
+        t_id = ''
+
+        if ag.init_type == lsm.AccessGroup.INIT_TYPE_ISCSI_IQN:
+            t_id = 'iqn.1994-05.com.domain:01.89bd02'
+            t = lsm.AccessGroup.INIT_TYPE_ISCSI_IQN
+        else:
+            # We will try FC PN
+            t_id = '500A0986994B8DC5'
+            t = lsm.AccessGroup.INIT_TYPE_WWPN
+
+        self.c.access_group_initiator_add(ag, t_id, t)
+
+        ag_after = self.c.access_groups('id', ag.id)[0]
+        match = [x for x in ag_after.init_ids if x == t_id]
+        self.assertTrue(len(match) == 1)
+        return t_id
+
+    def _ag_init_delete(self, ag, init_id):
+        self.c.access_group_initiator_delete(ag, init_id)
+        ag_after = self.c.access_groups('id', ag.id)[0]
+        match = [x for x in ag_after.init_ids if x == init_id]
+        self.assertTrue(len(match) == 0)
+
+    def test_access_group_initiator_add_delete(self):
+        usable_ag_types = [lsm.AccessGroup.INIT_TYPE_WWPN,
+                           lsm.AccessGroup.INIT_TYPE_ISCSI_IQN]
+
+        for s in self.systems:
+            ag_to_delete = None
+
+            cap = self.c.capabilities(s)
+            if supported(cap, [lsm.Capabilities.ACCESS_GROUPS]):
+                ag_list = self.c.access_groups('system_id', s.id)
+
+                if len(ag_list) == 0 and \
+                        supported(cap, [lsm.Capabilities.ACCESS_GROUP_CREATE,
+                                        lsm.Capabilities.ACCESS_GROUP_DELETE]):
+                    ag_to_delete = self._create_access_group(cap, s)
+                    ag_list = self.c.access_groups('system_id', s.id)
+
+                if len(ag_list):
+                    # Try and find an initiator group that has a usable access
+                    # group type instead of unknown or other...
+                    ag = ag_list[0]
+                    for a_tmp in ag_list:
+                        if a_tmp.init_type in usable_ag_types:
+                            ag = a_tmp
+                            break
+
+                    if supported(cap, [lsm.Capabilities.
+                                       ACCESS_GROUP_ADD_INITIATOR]):
+                        init_id = self._ag_init_add(ag)
+                        if supported(cap, [lsm.Capabilities.
+                                            ACCESS_GROUP_DEL_INITIATOR]):
+                            self._ag_init_delete(ag, init_id)
+
+                if ag_to_delete is not None:
+                    self._delete_access_group(ag_to_delete)
 
 def dump_results():
     """
