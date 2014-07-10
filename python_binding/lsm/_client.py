@@ -1044,8 +1044,18 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('export_remove', _del_self(locals()))
 
+    ## Returns a list of target ports
+    # @param    self    The this pointer
+    # @param    search_key      The key to search against
+    # @param    search_value    The value to search for
+    # @param    flags           Reserved for future use, must be zero
+    # @returns List of target ports, else raises LsmError
     @_return_requires([TargetPort])
     def target_ports(self, search_key=None, search_value=None, flags=0):
+        """
+        Returns a list of target ports
+        """
+        _check_search_key(search_key, TargetPort.SUPPORTED_SEARCH_KEYS)
         return self._tp.rpc('target_ports', _del_self(locals()))
 
 
