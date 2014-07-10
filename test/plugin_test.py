@@ -33,7 +33,8 @@ results = {}
 stats = {}
 
 
-MIN_VOLUME_SIZE = 50
+MIN_POOL_SIZE = 2048
+MIN_OBJECT_SIZE = 128
 
 
 def mb_in_bytes(mib):
@@ -238,6 +239,9 @@ class TestPlugin(unittest.TestCase):
     URI = 'sim://'
     PASSWORD = None
 
+    def _object_size(self, pool):
+        return mb_in_bytes(MIN_OBJECT_SIZE)
+
     def setUp(self):
         self.c = TestProxy(lsm.Client(TestPlugin.URI, TestPlugin.PASSWORD))
 
@@ -255,7 +259,7 @@ class TestPlugin(unittest.TestCase):
     def _get_pool_by_usage(self, system_id, element_type):
         for p in self.pool_by_sys_id[system_id]:
             if p.element_type & element_type and \
-                    p.free_space > mb_in_bytes(250):
+                    p.free_space > mb_in_bytes(MIN_POOL_SIZE):
                 return p
         return None
 
@@ -315,7 +319,7 @@ class TestPlugin(unittest.TestCase):
                                         lsm.Pool.ELEMENT_TYPE_VOLUME)
 
             if p:
-                vol_size = max(p.free_space / 10, mb_in_bytes(MIN_VOLUME_SIZE))
+                vol_size = self._object_size(p)
 
                 vol = self.c.volume_create(p, rs('volume'), vol_size,
                                            lsm.Volume.PROVISION_DEFAULT)[1]
@@ -328,10 +332,9 @@ class TestPlugin(unittest.TestCase):
             pools = self.pool_by_sys_id[system_id]
 
             for p in pools:
-                if p.free_space > mb_in_bytes(250) and \
+                if p.free_space > mb_in_bytes(MIN_POOL_SIZE) and \
                         p.element_type & lsm.Pool.ELEMENT_TYPE_FS:
-                    fs_size = max(p.free_space / 10,
-                                  mb_in_bytes(MIN_VOLUME_SIZE))
+                    fs_size = self._object_size(p)
                     fs = self.c.fs_create(p, rs('fs'), fs_size)[1]
                     self.assertTrue(self._fs_exists(fs.id))
                     return fs, p
@@ -568,6 +571,57 @@ class TestPlugin(unittest.TestCase):
                     self.assertTrue(p.physical_name is not None)
                     self.assertTrue(p.system_id is not None)
 
+    def _masking_state(self, cap, ag, vol, masked):
+        if supported(cap,
+                     [lsm.Capabilities.
+                      VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP]):
+            vol_masked = \
+                self.c.volumes_accessible_by_access_group(ag)
+
+            match = [x for x in vol_masked if x.id == vol.id]
+
+            if masked:
+                self.assertTrue(len(match) == 1)
+            else:
+                self.assertTrue(len(match) == 0)
+
+        if supported(cap,
+                     [lsm.Capabilities.
+                      ACCESS_GROUPS_GRANTED_TO_VOLUME]):
+            ag_masked = \
+                self.c.access_groups_granted_to_volume(vol)
+
+            match = [x for x in ag_masked if x.id == ag.id]
+
+            if masked:
+                self.assertTrue(len(match) == 1)
+            else:
+                self.assertTrue(len(match) == 0)
+
+    def test_mask_unmask(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+
+            if supported(cap, [lsm.Capabilities.ACCESS_GROUPS,
+                               lsm.Capabilities.VOLUME_MASK,
+                               lsm.Capabilities.VOLUME_UNMASK,
+                               lsm.Capabilities.VOLUME_CREATE,
+                               lsm.Capabilities.VOLUME_DELETE]):
+
+                # Make sure we have an access group to test with, many
+                # smi-s providers don't provide functionality to create them!
+                ag_list = self.c.access_groups('system_id', s.id)
+                if len(ag_list):
+                    vol = self._volume_create(s.id)[0]
+                    self.assertTrue(vol is not None)
+                    ag = ag_list[0]
+
+                    if vol is not None:
+                        self.c.volume_mask(ag, vol)
+                        self._masking_state(cap, ag, vol, True)
+                        self.c.volume_unmask(ag, vol)
+                        self._masking_state(cap, ag, vol, False)
+                        self._volume_delete(vol)
 
 
 def dump_results():

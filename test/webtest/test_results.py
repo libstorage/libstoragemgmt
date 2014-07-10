@@ -113,7 +113,9 @@ def to_html(results):
     methods = ['capabilities',
                'systems', 'plugin_info', 'pools', 'job_status', 'job_free',
                'volumes', 'volume_create', 'volume_delete', 'volume_resize',
-               'volume_replicate', 'disks', 'target_ports']
+               'volume_replicate', 'disks', 'target_ports', 'volume_mask',
+               'volume_unmask', 'access_groups_granted_to_volume',
+               'volumes_accessible_by_access_group']
 
     ch = []
     row_data = []
