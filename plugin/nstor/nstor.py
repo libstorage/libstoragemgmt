@@ -196,7 +196,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         return snapshots
 
     @handle_nstor_errors
-    def fs_snapshot_create(self, fs, snapshot_name, files, flags=0):
+    def fs_snapshot_create(self, fs, snapshot_name, flags=0):
         full_name = "%s@%s" % (fs.name, snapshot_name)
 
         self._request("create", "snapshot", [full_name, "0"])
@@ -316,7 +316,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             # User did not supply a snapshot, so we will create one for them
             name = src_fs.name.split('/')[0]
             snapshot = self.fs_snapshot_create(
-                src_fs, name + "_clone_ss_" + md5(time.ctime()), None)[1]
+                src_fs, name + "_clone_ss_" + md5(time.ctime()))[1]
 
         self._request("clone", "folder", [snapshot.name, dest])
         pool_id = NexentaStor._get_pool_id(dest)

@@ -921,7 +921,7 @@ START_TEST(test_ss)
     fail_unless( 0 == ss_count );
 
 
-    rc = lsm_fs_ss_create(c, fs, "test_snap", NULL, &ss, &job, LSM_FLAG_RSVD);
+    rc = lsm_fs_ss_create(c, fs, "test_snap", &ss, &job, LSM_FLAG_RSVD);
     if( LSM_ERR_JOB_STARTED == rc ) {
         printf("Waiting for snap to create!\n");
         ss = wait_for_job_ss(c, &job);
@@ -1682,18 +1682,15 @@ START_TEST(test_invalid_input)
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 
-    rc = lsm_fs_ss_create(c, NULL, NULL, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_ss_create(c, NULL, NULL, NULL, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_FS, "rc = %d", rc);
 
-    rc = lsm_fs_ss_create(c, arg_fs, NULL, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_ss_create(c, arg_fs, NULL, NULL, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     lsm_fs_ss *arg_ss = NULL;
-    rc = lsm_fs_ss_create(c, arg_fs, "arg_snapshot", badf, &arg_ss, &job,
-                        LSM_FLAG_RSVD);
-    fail_unless(rc == LSM_ERR_INVALID_SL, "rc = %d", rc);
 
-    rc = lsm_fs_ss_create(c, arg_fs, "arg_snapshot", NULL, &arg_ss, &job,
+    rc = lsm_fs_ss_create(c, arg_fs, "arg_snapshot", &arg_ss, &job,
                         LSM_FLAG_RSVD);
 
     if( LSM_ERR_JOB_STARTED == rc ) {
@@ -1898,7 +1895,6 @@ START_TEST(test_capabilities)
             cap_test(cap, LSM_CAP_FILE_CLONE);
             cap_test(cap, LSM_CAP_FS_SNAPSHOTS);
             cap_test(cap, LSM_CAP_FS_SNAPSHOT_CREATE);
-            cap_test(cap, LSM_CAP_FS_SNAPSHOT_CREATE_SPECIFIC_FILES);
             cap_test(cap, LSM_CAP_FS_SNAPSHOT_DELETE);
             cap_test(cap, LSM_CAP_FS_SNAPSHOT_REVERT);
             cap_test(cap, LSM_CAP_FS_SNAPSHOT_REVERT_SPECIFIC_FILES);
@@ -2082,7 +2078,6 @@ START_TEST(test_capability)
         LSM_CAP_FILE_CLONE,
         LSM_CAP_FS_SNAPSHOTS,
         LSM_CAP_FS_SNAPSHOT_CREATE,
-        LSM_CAP_FS_SNAPSHOT_CREATE_SPECIFIC_FILES,
         LSM_CAP_FS_SNAPSHOT_DELETE,
         LSM_CAP_FS_SNAPSHOT_REVERT,
         LSM_CAP_FS_SNAPSHOT_REVERT_SPECIFIC_FILES,
@@ -2124,7 +2119,7 @@ START_TEST(test_capability)
     fail_unless(cap != NULL);
 
     if( cap ) {
-        G(rc, lsm_capability_set_n, cap, LSM_CAPABILITY_SUPPORTED, 47,
+        G(rc, lsm_capability_set_n, cap, LSM_CAPABILITY_SUPPORTED, 46,
             LSM_CAP_BLOCK_SUPPORT,
             LSM_CAP_FS_SUPPORT,
             LSM_CAP_VOLUMES,
@@ -2161,7 +2156,6 @@ START_TEST(test_capability)
             LSM_CAP_FILE_CLONE,
             LSM_CAP_FS_SNAPSHOTS,
             LSM_CAP_FS_SNAPSHOT_CREATE,
-            LSM_CAP_FS_SNAPSHOT_CREATE_SPECIFIC_FILES,
             LSM_CAP_FS_SNAPSHOT_DELETE,
             LSM_CAP_FS_SNAPSHOT_REVERT,
             LSM_CAP_FS_SNAPSHOT_REVERT_SPECIFIC_FILES,

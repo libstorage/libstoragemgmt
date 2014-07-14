@@ -548,7 +548,7 @@ class TestPlugin(unittest.TestCase):
 
                 fs = self._fs_create(s.id)[0]
 
-                ss = self.c.fs_snapshot_create(fs, rs('fs_snapshot'), None)[1]
+                ss = self.c.fs_snapshot_create(fs, rs('fs_snapshot'))[1]
                 self.assertTrue(self._fs_snapshot_exists(fs, ss.id))
 
                 # Delete snapshot

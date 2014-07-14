@@ -880,21 +880,14 @@ class Client(INetworkAttachedStorage):
     # @param    self            The this pointer
     # @param    fs              The file system to snapshot
     # @param    snapshot_name   The human readable snapshot name
-    # @param    files           The list of specific files to snapshot.
     # @param    flags           Reserved for future use, must be zero.
     # @returns tuple (job_id, snapshot)
     @_return_requires(unicode, FsSnapshot)
-    def fs_snapshot_create(self, fs, snapshot_name, files, flags=0):
+    def fs_snapshot_create(self, fs, snapshot_name, flags=0):
         """
         Snapshot is a point in time read-only copy
 
-        Create a snapshot on the chosen file system with a supplied name for
-        each of the files.  Passing None implies snapping all files on the file
-        system.  When files is non-none it implies snap shooting those file.
-        NOTE:  Some arrays only support snapshots at the file system level.  In
-        this case it will not be considered an error if file names are passed.
-        In these cases the file names are effectively discarded as all files
-        are done.
+        Create a snapshot on the chosen file system.
 
         Returns a tuple (job_id, snapshot)
         Notes:

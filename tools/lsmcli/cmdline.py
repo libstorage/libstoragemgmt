@@ -516,13 +516,6 @@ cmds = (
                  help='The human friendly name of new snapshot'),
             dict(fs_id_opt),
         ],
-        optional=[
-            dict(name="--file", metavar="<FILE_PATH>",
-                 help="Only create snapshot for provided file\n"
-                      "Without this argument, all files will be snapshotted\n"
-                      "This is a repeatable argument.",
-                 action='append', default=[]),
-        ],
     ),
 
     dict(
@@ -1143,8 +1136,6 @@ class CmdLine:
         self._cp("FS_SNAPSHOTS", cap.supported(Capabilities.FS_SNAPSHOTS))
         self._cp("FS_SNAPSHOT_CREATE",
                  cap.supported(Capabilities.FS_SNAPSHOT_CREATE))
-        self._cp("FS_SNAPSHOT_CREATE_SPECIFIC_FILES",
-                 cap.supported(Capabilities.FS_SNAPSHOT_CREATE_SPECIFIC_FILES))
         self._cp("FS_SNAPSHOT_DELETE",
                  cap.supported(Capabilities.FS_SNAPSHOT_DELETE))
         self._cp("FS_SNAPSHOT_REVERT",
@@ -1208,8 +1199,7 @@ class CmdLine:
         ss = self._wait_for_it("snapshot-create",
                                *self.c.fs_snapshot_create(
                                    fs,
-                                   args.name,
-                                   self.args.file))
+                                   args.name))
 
         self.display_data([ss])
 

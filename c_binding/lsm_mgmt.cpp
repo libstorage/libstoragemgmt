@@ -2132,20 +2132,13 @@ int lsm_fs_ss_list(lsm_connect *c, lsm_fs *fs, lsm_fs_ss **ss[],
 
 }
 
-int lsm_fs_ss_create(lsm_connect *c, lsm_fs *fs, const char *name,
-                    lsm_string_list *files, lsm_fs_ss **snapshot, char **job,
+int lsm_fs_ss_create(lsm_connect *c, lsm_fs *fs, const char *name, lsm_fs_ss **snapshot, char **job,
                     lsm_flag flags)
 {
     CONN_SETUP(c);
 
     if( !LSM_IS_FS(fs)) {
         return LSM_ERR_INVALID_FS;
-    }
-
-    if( files ) {
-        if( !LSM_IS_STRING_LIST(files) ) {
-            return LSM_ERR_INVALID_SL;
-        }
     }
 
     if( CHECK_STR(name) || CHECK_RP(snapshot) || CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
@@ -2155,7 +2148,6 @@ int lsm_fs_ss_create(lsm_connect *c, lsm_fs *fs, const char *name,
     std::map<std::string, Value> p;
     p["fs"] = fs_to_value(fs);
     p["snapshot_name"] = Value(name);
-    p["files"] = string_list_to_value(files);
     p["flags"] = Value(flags);
 
     Value parameters(p);

@@ -265,9 +265,9 @@ class SimPlugin(INfs, IStorageAreaNetwork):
         sim_snaps = self.sim_array.fs_snapshots(fs.id, flags)
         return [SimPlugin._sim_data_2_lsm(s) for s in sim_snaps]
 
-    def fs_snapshot_create(self, fs, snapshot_name, files, flags=0):
+    def fs_snapshot_create(self, fs, snapshot_name, flags=0):
         return self.sim_array.fs_snapshot_create(
-            fs.id, snapshot_name, files, flags)
+            fs.id, snapshot_name, flags)
 
     def fs_snapshot_delete(self, fs, snapshot, flags=0):
         return self.sim_array.fs_snapshot_delete(

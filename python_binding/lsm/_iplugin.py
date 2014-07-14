@@ -423,17 +423,11 @@ class INetworkAttachedStorage(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def fs_snapshot_create(self, fs, snapshot_name, files, flags=0):
+    def fs_snapshot_create(self, fs, snapshot_name, flags=0):
         """
         Snapshot is a point in time read-only copy
 
-        Create a snapshot on the chosen file system with a supplied name for
-        each of the files.  Passing None implies snapping all files on the file
-        system.  When files is non-none it implies snap shoting those file.
-        NOTE:  Some arrays only support snapshots at the file system level.  In
-        this case it will not be considered an error if file names are passed.
-        In these cases the file names are effectively discarded as all files
-        are done.
+        Create a snapshot on the chosen file system
 
         Returns a tuple (job_id, snap shot created)
         Note: Tuple return values are mutually exclusive, when one

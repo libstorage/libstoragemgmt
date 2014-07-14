@@ -85,7 +85,6 @@ typedef enum {
     LSM_CAP_FILE_CLONE                              = 105,      /**< Clone a file on a file system */
     LSM_CAP_FS_SNAPSHOTS                            = 106,      /**< List FS snapshots */
     LSM_CAP_FS_SNAPSHOT_CREATE                      = 107,      /**< Create a snapshot */
-    LSM_CAP_FS_SNAPSHOT_CREATE_SPECIFIC_FILES       = 108,      /**< Create snapshots for one or more specific files */
     LSM_CAP_FS_SNAPSHOT_DELETE                      = 109,      /**< Delete a snapshot */
     LSM_CAP_FS_SNAPSHOT_REVERT                      = 110,      /**< Revert the state of a FS to the specified snapshot */
     LSM_CAP_FS_SNAPSHOT_REVERT_SPECIFIC_FILES       = 111,      /**< Revert the state of a list of files to a specified snapshot */

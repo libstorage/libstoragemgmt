@@ -288,9 +288,8 @@ class SimArray(object):
         sim_snaps = self.data.fs_snapshots(fs_id, flags)
         return [SimArray._sim_snap_2_lsm(s) for s in sim_snaps]
 
-    def fs_snapshot_create(self, fs_id, snap_name, files, flags=0):
-        sim_snap = self.data.fs_snapshot_create(fs_id, snap_name, files,
-                                                flags)
+    def fs_snapshot_create(self, fs_id, snap_name, flags=0):
+        sim_snap = self.data.fs_snapshot_create(fs_id, snap_name, flags)
         return self.data.job_create(SimArray._sim_snap_2_lsm(sim_snap))
 
     def fs_snapshot_delete(self, fs_id, snap_id, flags=0):
@@ -1252,7 +1251,7 @@ class SimData(object):
                 rc.extend([self.snap_dict[snap_id]])
         return rc
 
-    def fs_snapshot_create(self, fs_id, snap_name, files, flags=0):
+    def fs_snapshot_create(self, fs_id, snap_name, flags=0):
         if fs_id not in self.fs_dict.keys():
             raise LsmError(ErrorNumber.NOT_FOUND_FS,
                            "File System: %s not found" % fs_id)
@@ -1263,10 +1262,8 @@ class SimData(object):
         sim_snap = dict()
         sim_snap['snap_id'] = snap_id
         sim_snap['name'] = snap_name
-        if files is None:
-            sim_snap['files'] = []
-        else:
-            sim_snap['files'] = files
+        sim_snap['files'] = []
+
         sim_snap['timestamp'] = time.time()
         self.snap_dict[snap_id] = sim_snap
         self.fs_dict[fs_id]['snaps'].extend([snap_id])

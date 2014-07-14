@@ -386,7 +386,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         return rc
 
     @handle_errors
-    def fs_snapshot_create(self, fs, snapshot_name, files, flags=0):
+    def fs_snapshot_create(self, fs, snapshot_name, flags=0):
 
         self._jsonrequest("fs_snapshot", dict(fs_uuid=fs.id,
                                               dest_ss_name=snapshot_name))

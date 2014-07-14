@@ -334,7 +334,7 @@ static int cap(lsm_plugin_ptr c, lsm_system *system,
     *cap = lsm_capability_record_alloc(NULL);
 
     if( *cap ) {
-        rc = lsm_capability_set_n(*cap, LSM_CAPABILITY_SUPPORTED, 47,
+        rc = lsm_capability_set_n(*cap, LSM_CAPABILITY_SUPPORTED, 46,
             LSM_CAP_BLOCK_SUPPORT,
             LSM_CAP_FS_SUPPORT,
             LSM_CAP_VOLUMES,
@@ -371,7 +371,6 @@ static int cap(lsm_plugin_ptr c, lsm_system *system,
             LSM_CAP_FILE_CLONE,
             LSM_CAP_FS_SNAPSHOTS,
             LSM_CAP_FS_SNAPSHOT_CREATE,
-            LSM_CAP_FS_SNAPSHOT_CREATE_SPECIFIC_FILES,
             LSM_CAP_FS_SNAPSHOT_DELETE,
             LSM_CAP_FS_SNAPSHOT_REVERT,
             LSM_CAP_FS_SNAPSHOT_REVERT_SPECIFIC_FILES,
@@ -1865,7 +1864,7 @@ static int ss_list(lsm_plugin_ptr c, lsm_fs * fs, lsm_fs_ss **ss[],
 }
 
 static int ss_create(lsm_plugin_ptr c, lsm_fs *fs,
-                                    const char *name, lsm_string_list *files,
+                                    const char *name,
                                     lsm_fs_ss **snapshot, char **job,
                                     lsm_flag flags)
 {

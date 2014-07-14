@@ -1902,23 +1902,19 @@ static int ss_create(lsm_plugin_ptr p, Value &params, Value &response)
 
         Value v_fs = params["fs"];
         Value v_ss_name = params["snapshot_name"];
-        Value v_files = params["files"];
 
         if( Value::object_t == v_fs.valueType() &&
             Value::string_t == v_ss_name.valueType() &&
-            Value::array_t == v_files.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
-
             lsm_fs *fs = value_to_fs(v_fs);
-            lsm_string_list *files = value_to_string_list(v_files);
 
-            if( fs && files ) {
+            if( fs ) {
                 lsm_fs_ss *ss = NULL;
                 char *job = NULL;
 
                 const char *name = v_ss_name.asC_str();
 
-                rc = p->fs_ops->fs_ss_create(p, fs, name, files, &ss, &job,
+                rc = p->fs_ops->fs_ss_create(p, fs, name, &ss, &job,
                                             LSM_FLAG_GET_VALUE(params));
 
                 std::vector<Value> r;
@@ -1939,7 +1935,6 @@ static int ss_create(lsm_plugin_ptr p, Value &params, Value &response)
             }
 
             lsm_fs_record_free(fs);
-            lsm_string_list_free(files);
 
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;

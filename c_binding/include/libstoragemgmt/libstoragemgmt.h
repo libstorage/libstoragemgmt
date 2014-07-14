@@ -798,7 +798,6 @@ extern "C" {
      * @param[in] c                     Valid connection
      * @param[in] fs                    File system to snapshot
      * @param[in] name                  Name of snap shot
-     * @param[in] files                 List of file names to snapshot (null OK)
      * @param[out] snapshot             Snapshot that was created
      * @param[out] job                  Job id if the operation is async.
      * @param[in] flags                 Reserved for future use, must be zero.
@@ -806,7 +805,7 @@ extern "C" {
      * else error code
      */
     int LSM_DLL_EXPORT lsm_fs_ss_create(lsm_connect *c, lsm_fs *fs,
-                                    const char *name, lsm_string_list *files,
+                                    const char *name,
                                     lsm_fs_ss **snapshot, char **job,
                                     lsm_flag flags);
 

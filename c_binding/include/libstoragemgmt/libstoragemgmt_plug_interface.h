@@ -727,14 +727,14 @@ typedef int (*lsm_plug_fs_ss_list)(lsm_plugin_ptr c, lsm_fs *fs, lsm_fs_ss **ss[
  * @param[in]   c                   Valid lsm plug-in pointer
  * @param[in]   fs                  File system to create snapshot for
  * @param[in]   name                Snap shot name
- * @param[in]   files               Optional list of files to specifically snapshot
  * @param[out]  snapshot            Newly created snapshot
  * @param[out]  job                 Job ID
  * @return  LSM_ERR_OK, else error reason
  */
 typedef int (*lsm_plug_fs_ss_create)(lsm_plugin_ptr c, lsm_fs *fs,
-                                    const char *name, lsm_string_list *files,
-                                    lsm_fs_ss **snapshot, char **job, lsm_flag flags);
+                                    const char *name,
+                                    lsm_fs_ss **snapshot, char **job,
+                                    lsm_flag flags);
 /**
  * Delete a fs snapshot, callback function signature, callback function
  * signature
