@@ -841,8 +841,8 @@ class Smis(IStorageAreaNetwork):
                 if cim_pcms[0]['ExposePathsSupported']:
                     cap.set(Capabilities.VOLUME_MASK)
                     cap.set(Capabilities.VOLUME_UNMASK)
-                    cap.set(Capabilities.ACCESS_GROUP_ADD_INITIATOR)
-                    cap.set(Capabilities.ACCESS_GROUP_DEL_INITIATOR)
+                    cap.set(Capabilities.ACCESS_GROUP_INITIATOR_ADD)
+                    cap.set(Capabilities.ACCESS_GROUP_INITIATOR_DELETE)
                 return
         else:
             # Since SNIA SMI-S 1.4rev6:
@@ -851,8 +851,8 @@ class Smis(IStorageAreaNetwork):
             cap.set(Capabilities.ACCESS_GROUPS)
             cap.set(Capabilities.VOLUME_MASK)
             cap.set(Capabilities.VOLUME_UNMASK)
-            cap.set(Capabilities.ACCESS_GROUP_ADD_INITIATOR)
-            cap.set(Capabilities.ACCESS_GROUP_DEL_INITIATOR)
+            cap.set(Capabilities.ACCESS_GROUP_INITIATOR_ADD)
+            cap.set(Capabilities.ACCESS_GROUP_INITIATOR_DELETE)
             cap.set(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME)
             cap.set(Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP)
 

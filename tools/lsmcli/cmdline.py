@@ -1122,9 +1122,9 @@ class CmdLine:
         self._cp("ACCESS_GROUP_DELETE",
                  cap.supported(Capabilities.ACCESS_GROUP_DELETE))
         self._cp("ACCESS_GROUP_ADD_INITIATOR",
-                 cap.supported(Capabilities.ACCESS_GROUP_ADD_INITIATOR))
+                 cap.supported(Capabilities.ACCESS_GROUP_INITIATOR_ADD))
         self._cp("ACCESS_GROUP_DEL_INITIATOR",
-                 cap.supported(Capabilities.ACCESS_GROUP_DEL_INITIATOR))
+                 cap.supported(Capabilities.ACCESS_GROUP_INITIATOR_DELETE))
         self._cp("VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP",
                  cap.supported(
                      Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP))

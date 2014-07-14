@@ -745,10 +745,10 @@ class TestPlugin(unittest.TestCase):
                             break
 
                     if supported(cap, [lsm.Capabilities.
-                                       ACCESS_GROUP_ADD_INITIATOR]):
+                                       ACCESS_GROUP_INITIATOR_ADD]):
                         init_id = self._ag_init_add(ag)
                         if supported(cap, [lsm.Capabilities.
-                                            ACCESS_GROUP_DEL_INITIATOR]):
+                                            ACCESS_GROUP_INITIATOR_DELETE]):
                             self._ag_init_delete(ag, init_id)
 
                 if ag_to_delete is not None:

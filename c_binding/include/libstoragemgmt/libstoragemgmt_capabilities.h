@@ -64,8 +64,8 @@ typedef enum {
     LSM_CAP_ACCESS_GROUPS                           = 38,       /**< List access groups */
     LSM_CAP_ACCESS_GROUP_CREATE                     = 39,       /**< Create an access group */
     LSM_CAP_ACCESS_GROUP_DELETE                     = 40,       /**< Delete an access group */
-    LSM_CAP_ACCESS_GROUP_ADD_INITIATOR              = 41,       /**< Add an initiator to an access group */
-    LSM_CAP_ACCESS_GROUP_DEL_INITIATOR              = 42,       /**< Remove an initiator from an access group */
+    LSM_CAP_ACCESS_GROUP_INITIATOR_ADD              = 41,       /**< Add an initiator to an access group */
+    LSM_CAP_ACCESS_GROUP_INITIATOR_DELETE           = 42,       /**< Remove an initiator from an access group */
 
     LSM_CAP_VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP      = 43,       /**< Retrieve a list of volumes accessible by an access group */
     LSM_CAP_ACCESS_GROUPS_GRANTED_TO_VOLUME         = 44,       /**< Retrieve a list of what access groups are accessible for a given volume */
