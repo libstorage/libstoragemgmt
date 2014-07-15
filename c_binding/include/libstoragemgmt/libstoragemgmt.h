@@ -62,7 +62,7 @@ extern "C" {
      * @param[in] uri       Uniform Resource Identifier (see URI documentation)
      * @param[in] password  Password for the storage array (optional, can be NULL)
      * @param[out] conn     The connection to use for all the other library calls
-     * @param[in] timeout   Time-out in milli-seconds, (initial value).
+     * @param[in] timeout   Time-out in milliseconds, (initial value).
      * @param[out] e        Error data if connection failed.
      * @param[in] flags     Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error code @see lsm_error_number
@@ -253,7 +253,7 @@ extern "C" {
      *                                  new pool will be created from SAS disks
      *                                  only.
      * @param [out]     pool            Newly created pool
-     * @param [out]     job             Job ID of aysnc.
+     * @param [out]     job             Job ID of async. operation
      * @param [in]      flags           Reserved for future use, must be zero
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async.,
      *          else error code
@@ -280,7 +280,7 @@ extern "C" {
      * @param [in]      num_disks       Number of disks in disks array
      * @param [in]      raid_type       The RAID type for new pool
      * @param [out]     pool            Newly created pool
-     * @param [out]     job             Job ID of aysnc.
+     * @param [out]     job             Job ID of async. operation
      * @param [in]      flags           Reserved for future use, must be zero
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async.,
      *          else error code
@@ -300,7 +300,7 @@ extern "C" {
      * @param [in]      pool            The pool to create new pool from
      * @param [in]      size_bytes      Desired size of new pool
      * @param [out]     created_pool    Newly created pool
-     * @param [out]     job             Job ID of aysnc.
+     * @param [out]     job             Job ID of async.
      * @param [in]      flags           Reserved for future use, must be zero
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async.,
      *          else error code
@@ -365,7 +365,7 @@ extern "C" {
      * @param[in]   pool            Valid pool @see lsm_pool (OPTIONAL, use NULL for plug-in choice)
      * @param[in]   volume_name     Human recognizable name (not all arrays support)
      * @param[in]   size            Size of new volume in bytes (actual size will
-     *                              be based on array rounding to blocksize)
+     *                              be based on array rounding to block size)
      * @param[in]   provisioning    Type of volume provisioning to use
      * @param[out]  new_volume      Valid volume @see lsm_volume
      * @param[out]  job             Indicates job id
@@ -381,9 +381,9 @@ extern "C" {
     /**
      * Resize an existing volume.
      * @param[in]   conn            Valid connection @see lsm_connect_password
-     * @param[in]   volume          volume to resize
-     * @param[in]   new_size         New size of volume
-     * @param[out]  resized_volume  Pointer to newly resized lun.
+     * @param[in]   volume          volume to re-size
+     * @param[in]   new_size        New size of volume
+     * @param[out]  resized_volume  Pointer to newly re-sized lun.
      * @param[out]  job             Indicates job id
      * @param[in] flags             Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, LSM_ERR_JOB_STARTED if async. , else error code
