@@ -1229,6 +1229,7 @@ static int access_group_initiator_add(  lsm_plugin_ptr c,
                                         lsm_access_group *group,
                                         const char *initiator_id,
                                         lsm_initiator_type id_type,
+                                        lsm_access_group **updated_access_group,
                                         lsm_flag flags)
 {
     int rc = LSM_ERR_OK;
@@ -1241,6 +1242,13 @@ static int access_group_initiator_add(  lsm_plugin_ptr c,
     if( find ) {
         lsm_string_list *inits = lsm_access_group_initiator_id_get(find->ag);
         rc = lsm_string_list_append(inits, initiator_id);
+
+        if( LSM_ERR_OK == rc ) {
+            *updated_access_group = lsm_access_group_record_copy(find->ag);
+            if( !*updated_access_group ) {
+                rc = LSM_ERR_NO_MEMORY;
+            }
+        }
     } else {
         rc = lsm_log_error_basic(c, LSM_ERR_NOT_FOUND_ACCESS_GROUP,
                                     "access group not found");
@@ -1251,6 +1259,7 @@ static int access_group_initiator_add(  lsm_plugin_ptr c,
 static int access_group_initiator_delete(  lsm_plugin_ptr c,
                                         lsm_access_group *group,
                                         const char *init,
+                                        lsm_access_group **updated_access_group,
                                         lsm_flag flags)
 {
     int rc = LSM_ERR_INITIATOR_NOT_IN_ACCESS_GROUP;
@@ -1271,6 +1280,14 @@ static int access_group_initiator_delete(  lsm_plugin_ptr c,
                 break;
             }
         }
+
+        if( LSM_ERR_OK == rc ) {
+            *updated_access_group = lsm_access_group_record_copy(find->ag);
+            if( !*updated_access_group ) {
+                rc = LSM_ERR_NO_MEMORY;
+            }
+        }
+
     } else {
         rc = lsm_log_error_basic(c, LSM_ERR_NOT_FOUND_ACCESS_GROUP,
                                     "access group not found");

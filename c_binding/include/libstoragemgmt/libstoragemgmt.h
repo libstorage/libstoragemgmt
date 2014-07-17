@@ -545,26 +545,31 @@ extern "C" {
      * @param[in] access_group          Group to modify
      * @param[in] init_id               Initiator to add to group
      * @param[in] init_type             Type of initiator
+     * @param[out] updated_access_group Updated access group
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason.
      */
     int LSM_DLL_EXPORT lsm_access_group_initiator_add(lsm_connect *conn,
                                 lsm_access_group *access_group,
                                 const char *init_id,
-                                lsm_initiator_type init_type, lsm_flag flags);
+                                lsm_initiator_type init_type,
+                                lsm_access_group **updated_access_group,
+                                lsm_flag flags);
 
     /**
      * Removes an initiator from an access group.
      * @param[in] conn                  Valid connection @see lsm_connect_password
-     * @param[in] group                 Group to modify
+     * @param[in] access_group          Group to modify
      * @param[in] initiator_id          Initiator to delete from group
+     * @param[out] updated_access_group Updated access group
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return[in] LSM_ERR_OK on success, else error reason.
      */
     int LSM_DLL_EXPORT lsm_access_group_initiator_delete(lsm_connect *conn,
-                                                    lsm_access_group *group,
-                                                    const char *initiator_id,
-                                                    lsm_flag flags);
+                                        lsm_access_group *access_group,
+                                        const char *initiator_id,
+                                        lsm_access_group **updated_access_group,
+                                        lsm_flag flags);
 
     /**
      * Grants access to a volume for the specified group

@@ -1496,6 +1496,7 @@ int lsm_access_group_initiator_add(lsm_connect *c,
                                 lsm_access_group *access_group,
                                 const char *init_id,
                                 lsm_initiator_type init_type,
+                                lsm_access_group **updated_access_group,
                                 lsm_flag flags)
 {
     CONN_SETUP(c);
@@ -1504,8 +1505,8 @@ int lsm_access_group_initiator_add(lsm_connect *c,
         return LSM_ERR_INVALID_ACCESS_GROUP;
     }
 
-    if( CHECK_STR(init_id) ||
-        LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( CHECK_STR(init_id) || LSM_FLAG_UNUSED_CHECK(flags) ||
+        CHECK_RP(updated_access_group)) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1518,31 +1519,51 @@ int lsm_access_group_initiator_add(lsm_connect *c,
     Value parameters(p);
     Value response;
 
-    return rpc(c, "access_group_initiator_add", parameters, response);
+    int rc = rpc(c, "access_group_initiator_add", parameters, response);
+    if( LSM_ERR_OK == rc ) {
+        //We should be getting a value back.
+        if( Value::object_t == response.valueType() ) {
+            *updated_access_group = value_to_access_group(response);
+        }
+    }
+
+    return rc;
 }
 
-int lsm_access_group_initiator_delete(lsm_connect *c, lsm_access_group *group,
-                                const char* initiator_id, lsm_flag flags)
+int lsm_access_group_initiator_delete(lsm_connect *c,
+                                lsm_access_group *access_group,
+                                const char* initiator_id,
+                                lsm_access_group **updated_access_group,
+                                lsm_flag flags)
 {
     CONN_SETUP(c);
 
-    if( !LSM_IS_ACCESS_GROUP(group)) {
+    if( !LSM_IS_ACCESS_GROUP(access_group)) {
         return LSM_ERR_INVALID_ACCESS_GROUP;
     }
 
-    if( CHECK_STR(initiator_id) || LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( CHECK_STR(initiator_id) || LSM_FLAG_UNUSED_CHECK(flags) ||
+        CHECK_RP(updated_access_group)) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
-    p["access_group"] = access_group_to_value(group);
+    p["access_group"] = access_group_to_value(access_group);
     p["init_id"] = Value(initiator_id);
     p["flags"] = Value(flags);
 
     Value parameters(p);
     Value response;
 
-    return rpc(c, "access_group_initiator_delete", parameters, response);
+    int rc = rpc(c, "access_group_initiator_delete", parameters, response);
+    if( LSM_ERR_OK == rc ) {
+        //We should be getting a value back.
+        if( Value::object_t == response.valueType() ) {
+            *updated_access_group = value_to_access_group(response);
+        }
+    }
+
+    return rc;
 }
 
 int lsm_volume_mask(lsm_connect *c, lsm_access_group *access_group,

@@ -648,38 +648,37 @@ START_TEST(test_access_groups)
     G(rc, lsm_access_group_record_array_free, groups, count);
     groups = NULL;
     count = 0;
-
     char *job = NULL;
+    lsm_access_group *updated = NULL;
 
-    rc = lsm_access_group_initiator_add(c, group, "iqn.1994-05.com.domain:01.89bd02", LSM_INITIATOR_ISCSI, LSM_FLAG_RSVD);
-
-    if( LSM_ERR_JOB_STARTED == rc ) {
-        wait_for_job(c, &job);
-    } else {
-        fail_unless(LSM_ERR_OK == rc, "Expected success on lsmAccessGroupInitiatorAdd %d %d", rc, which_plugin);
-    }
+    rc = lsm_access_group_initiator_add(c, group, "iqn.1994-05.com.domain:01.89bd02", LSM_INITIATOR_ISCSI, &updated, LSM_FLAG_RSVD);
+    fail_unless(LSM_ERR_OK == rc, "Expected success on lsmAccessGroupInitiatorAdd %d %d", rc, which_plugin);
 
     G(rc, lsm_access_group_list, c, NULL, NULL, &groups, &count, LSM_FLAG_RSVD);
     fail_unless( 1 == count );
 
+    fail_unless( updated != NULL );
+    lsm_access_group_record_free(updated);
+    updated = NULL;
+
     if( count ) {
         init_list = lsm_access_group_initiator_id_get(groups[0]);
-        fail_unless( lsm_string_list_size(init_list) == 2, "Expecting 2 initiators, current num = %d\n", lsm_string_list_size(init_list) );
+        fail_unless( lsm_string_list_size(init_list) == 2,
+                "Expecting 2 initiators, current num = %d\n",
+                lsm_string_list_size(init_list) );
         for( i = 0; i < lsm_string_list_size(init_list); ++i) {
             printf("%d = %s\n", i, lsm_string_list_elem_get(init_list, i));
 
-
             printf("Deleting initiator %s from group!\n",
                     lsm_string_list_elem_get(init_list, i));
-            rc = lsm_access_group_initiator_delete(
-                    c, groups[0], lsm_string_list_elem_get(init_list, i),
-                    LSM_FLAG_RSVD);
 
-            if( LSM_ERR_JOB_STARTED == rc ) {
-                wait_for_job_fs(c, &job);
-            } else {
-                fail_unless(LSM_ERR_OK == rc);
-            }
+            G(rc, lsm_access_group_initiator_delete, c, groups[0],
+                    lsm_string_list_elem_get(init_list, i), &updated,
+                    LSM_FLAG_RSVD)
+
+            fail_unless(updated != NULL);
+            lsm_access_group_record_free(updated);
+            updated = NULL;
         }
         init_list = NULL;
     }
@@ -1531,14 +1530,14 @@ START_TEST(test_invalid_input)
     fail_unless(rc == LSM_ERR_INVALID_ACCESS_GROUP, "rc = %d", rc);
 
     /* lsmAccessGroupInitiatorAdd */
-    rc = lsm_access_group_initiator_add(c, NULL, NULL, 0, LSM_FLAG_RSVD);
+    rc = lsm_access_group_initiator_add(c, NULL, NULL, 0, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ACCESS_GROUP, "rc = %d", rc);
 
 
-    rc = lsm_access_group_initiator_delete(c, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_access_group_initiator_delete(c, NULL, NULL, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ACCESS_GROUP, "rc = %d", rc);
 
-    rc = lsm_access_group_initiator_delete(c, ag, NULL, LSM_FLAG_RSVD);
+    rc = lsm_access_group_initiator_delete(c, ag, NULL, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 

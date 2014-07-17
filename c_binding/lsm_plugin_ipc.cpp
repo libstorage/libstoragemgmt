@@ -1227,12 +1227,19 @@ static int ag_initiator_add(lsm_plugin_ptr p, Value &params, Value &response)
 
             lsm_access_group *ag = value_to_access_group(v_group);
             if( ag ) {
+                lsm_access_group *updated_access_group = NULL;
                 const char *id = v_init_id.asC_str();
                 lsm_initiator_type id_type = (lsm_initiator_type)
                                             v_init_type.asInt32_t();
 
                 rc = p->san_ops->ag_add_initiator(p, ag, id, id_type,
+                                                    &updated_access_group,
                                                     LSM_FLAG_GET_VALUE(params));
+
+                if( LSM_ERR_OK == rc ) {
+                    response = access_group_to_value(updated_access_group);
+                    lsm_access_group_record_free(updated_access_group);
+                }
 
                 lsm_access_group_record_free(ag);
             } else {
@@ -1263,9 +1270,17 @@ static int ag_initiator_del(lsm_plugin_ptr p, Value &params, Value &response)
             lsm_access_group *ag = value_to_access_group(v_group);
 
             if( ag ) {
+                lsm_access_group *updated_access_group = NULL;
                 const char *init = v_init_id.asC_str();
                 rc = p->san_ops->ag_del_initiator(p, ag, init,
+                                                &updated_access_group,
                                                 LSM_FLAG_GET_VALUE(params));
+
+                if( LSM_ERR_OK == rc ) {
+                    response = access_group_to_value(updated_access_group);
+                    lsm_access_group_record_free(updated_access_group);
+                }
+
                 lsm_access_group_record_free(ag);
             } else {
                 rc = LSM_ERR_NO_MEMORY;
