@@ -958,17 +958,18 @@ class CmdLine:
 
         if op:
             init_type = ag_init_type_str_to_lsm(args.init_type)
-            self.c.access_group_initiator_add(lsm_ag, args.init, init_type)
+            return self.c.access_group_initiator_add(lsm_ag, args.init,
+                                                     init_type)
         else:
-            self.c.access_group_initiator_delete(lsm_ag, args.init)
+            return self.c.access_group_initiator_delete(lsm_ag, args.init)
 
     ## Adds an initiator from an access group
     def access_group_add(self, args):
-        self._add_rm_access_grp_init(args, True)
+        self.display_data([self._add_rm_access_grp_init(args, True)])
 
     ## Removes an initiator from an access group
     def access_group_remove(self, args):
-        self._add_rm_access_grp_init(args, False)
+        self.display_data([self._add_rm_access_grp_init(args, False)])
 
     def access_group_volumes(self, args):
         agl = self.c.access_groups()
