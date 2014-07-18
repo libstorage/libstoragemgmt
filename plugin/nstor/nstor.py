@@ -248,7 +248,6 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         #        c.set(Capabilities.FILE_CLONE)
         c.set(Capabilities.FS_SNAPSHOTS)
         c.set(Capabilities.FS_SNAPSHOT_CREATE)
-        #        c.set(Capabilities.FS_SNAPSHOT_CREATE_SPECIFIC_FILES)
         c.set(Capabilities.FS_SNAPSHOT_DELETE)
         c.set(Capabilities.FS_SNAPSHOT_REVERT)
         #        c.set(Capabilities.FS_SNAPSHOT_REVERT_SPECIFIC_FILES)
