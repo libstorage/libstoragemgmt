@@ -351,11 +351,13 @@ class SimArray(object):
         return self.data.access_group_delete(ag_id, flags)
 
     def access_group_initiator_add(self, ag_id, init_id, init_type, flags=0):
-        return self.data.access_group_initiator_add(
+        sim_ag = self.data.access_group_initiator_add(
             ag_id, init_id, init_type, flags)
+        return SimArray._sim_ag_2_lsm(sim_ag)
 
     def access_group_initiator_delete(self, ag_id, init_id, flags=0):
-        return self.data.access_group_initiator_delete(ag_id, init_id, flags)
+        sim_ag = self.data.access_group_initiator_delete(ag_id, init_id, flags)
+        return SimArray._sim_ag_2_lsm(sim_ag)
 
     def volume_mask(self, ag_id, vol_id, flags=0):
         return self.data.volume_mask(ag_id, vol_id, flags)
@@ -1079,12 +1081,12 @@ class SimData(object):
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
                            "Access group not found")
         if init_id in self.ag_dict[ag_id]['init_ids']:
-            return None
+            return self.ag_dict[ag_id]
 
         self._check_dup_init(init_id)
 
         self.ag_dict[ag_id]['init_ids'].extend([init_id])
-        return None
+        return self.ag_dict[ag_id]
 
     def access_group_initiator_delete(self, ag_id, init_id, flags=0):
         if ag_id not in self.ag_dict.keys():
@@ -1098,7 +1100,7 @@ class SimData(object):
                     new_init_ids.extend([cur_init_id])
             del(self.ag_dict[ag_id]['init_ids'])
             self.ag_dict[ag_id]['init_ids'] = new_init_ids
-        return None
+        return self.ag_dict[ag_id]
 
     def volume_mask(self, ag_id, vol_id, flags=0):
         if ag_id not in self.ag_dict.keys():

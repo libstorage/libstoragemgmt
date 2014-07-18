@@ -745,16 +745,47 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             raise LsmError(ErrorNumber.NO_SUPPORT,
                            "Nstor only support iSCSI Access Group")
 
+        hg_list = self._request("list_hostgroups", "stmf", [])
+        if access_group.name not in hg_list:
+            raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
+                           "AccessGroup %s(%s) not found" %
+                           (access_group.name, access_group.id))
+
+        init_ids = self._request("list_hostgroup_members", "stmf",
+                                 [access_group.name])
+        if init_id in init_ids:
+            # Already in requested group.
+            return access_group
+
         self._add_initiator(access_group.name, init_id)
-        return None
+        init_ids = self._request("list_hostgroup_members", "stmf",
+                                 [access_group.name])
+        return AccessGroup(access_group.name, access_group.name,
+                           init_ids, AccessGroup.INIT_TYPE_ISCSI_IQN,
+                           access_group.id)
 
     @handle_nstor_errors
     def access_group_initiator_delete(self, access_group, init_id, flags=0):
         """
         Deletes an initiator from an access group
         """
+        hg_list = self._request("list_hostgroups", "stmf", [])
+        if access_group.name not in hg_list:
+            raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
+                           "AccessGroup %s(%s) not found" %
+                           (access_group.name, access_group.id))
+
+        init_ids = self._request("list_hostgroup_members", "stmf",
+                                 [access_group.name])
+        if init_id not in init_ids:
+            # Already removed from requested group.
+            return access_group
         self._add_initiator(access_group.name, init_id, True)
-        return None
+        init_ids = self._request("list_hostgroup_members", "stmf",
+                                 [access_group.name])
+        return AccessGroup(access_group.name, access_group.name,
+                           init_ids, AccessGroup.INIT_TYPE_ISCSI_IQN,
+                           access_group.id)
 
     @handle_nstor_errors
     def volumes_accessible_by_access_group(self, access_group, flags=0):

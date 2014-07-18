@@ -738,11 +738,47 @@ class Ontap(IStorageAreaNetwork, INfs):
     @handle_ontap_errors
     def access_group_initiator_add(self, access_group, init_id, init_type,
                                    flags=0):
-        return self.f.igroup_add_initiator(access_group.name, init_id)
+        try:
+            self.f.igroup_add_initiator(access_group.name, init_id)
+        except na.FilerError as oe:
+            if oe.errno == na.FilerError.IGROUP_ALREADY_HAS_INIT:
+                return access_group
+            elif oe.errno == na.FilerError.NO_SUCH_IGROUP:
+                raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
+                               "AccessGroup %s(%d) not found" %
+                               (access_group.name, access_group.id))
+            else:
+                raise
+        na_ags = self.f.igroups(access_group.name)
+        if len(na_ags) != 1:
+            raise LsmError(ErrorNumber.LSM_BUG,
+                           "access_group_initiator_add(): Got unexpected"
+                           "(not 1) count of na_ag: %s" % na_ags)
+
+        return self._access_group(na_ags[0])
 
     @handle_ontap_errors
     def access_group_initiator_delete(self, access_group, init_id, flags=0):
-        return self.f.igroup_del_initiator(access_group.name, init_id)
+        try:
+            self.f.igroup_del_initiator(access_group.name, init_id)
+        except na.FilerError as oe:
+            error_code, error_msg = error_map(oe)
+            if oe.errno == na.FilerError.IGROUP_NOT_CONTAIN_GIVEN_INIT:
+                return access_group
+            elif oe.errno == na.FilerError.NO_SUCH_IGROUP:
+                raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
+                               "AccessGroup %s(%d) not found" %
+                               (access_group.name, access_group.id))
+            else:
+                raise
+        na_ags = self.f.igroups(access_group.name)
+        if len(na_ags) != 1:
+            raise LsmError(ErrorNumber.LSM_BUG,
+                           "access_group_initiator_add(): Got unexpected"
+                           "(not 1) count of na_ag: %s" % na_ags)
+
+        return self._access_group(na_ags[0])
+
 
     @handle_ontap_errors
     def volumes_accessible_by_access_group(self, access_group, flags=0):

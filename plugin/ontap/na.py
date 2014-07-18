@@ -134,6 +134,9 @@ class FilerError(Exception):
     """
     Class represents a NetApp bad return code
     """
+    IGROUP_NOT_CONTAIN_GIVEN_INIT = 9007
+    IGROUP_ALREADY_HAS_INIT = 9008
+    NO_SUCH_IGROUP = 9003
 
     def __init__(self, errno, reason, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
@@ -521,7 +524,9 @@ class Filer(object):
 
     def igroup_del_initiator(self, ig, initiator):
         self._invoke('igroup-remove',
-                     {'initiator-group-name': ig, 'initiator': initiator})
+                     {'initiator-group-name': ig,
+                      'initiator': initiator,
+                      'force': 'true'})
 
     def lun_map(self, igroup, lun_path):
         self._invoke('lun-map', {'initiator-group': igroup, 'path': lun_path})

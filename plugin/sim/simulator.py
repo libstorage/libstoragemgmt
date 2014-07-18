@@ -195,8 +195,9 @@ class SimPlugin(INfs, IStorageAreaNetwork):
 
     def access_group_initiator_delete(self, access_group, init_id,
                                       flags=0):
-        return self.sim_array.access_group_initiator_delete(
+        sim_ag = self.sim_array.access_group_initiator_delete(
             access_group.id, init_id, flags)
+        return SimPlugin._sim_data_2_lsm(sim_ag)
 
     def volume_mask(self, access_group, volume, flags=0):
         return self.sim_array.volume_mask(
