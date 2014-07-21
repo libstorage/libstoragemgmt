@@ -735,6 +735,16 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         self._request(command, "stmf", [group_name, initiator_id])
         return
 
+    def _access_group_initiators(self, access_group):
+        hg_list = self._request("list_hostgroups", "stmf", [])
+        if access_group.name not in hg_list:
+            raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
+                           "AccessGroup %s(%s) not found" %
+                           (access_group.name, access_group.id))
+
+        return self._request("list_hostgroup_members", "stmf",
+                                 [access_group.name])
+
     @handle_nstor_errors
     def access_group_initiator_add(self, access_group, init_id, init_type,
                                    flags=0):
@@ -745,14 +755,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             raise LsmError(ErrorNumber.NO_SUPPORT,
                            "Nstor only support iSCSI Access Group")
 
-        hg_list = self._request("list_hostgroups", "stmf", [])
-        if access_group.name not in hg_list:
-            raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
-                           "AccessGroup %s(%s) not found" %
-                           (access_group.name, access_group.id))
-
-        init_ids = self._request("list_hostgroup_members", "stmf",
-                                 [access_group.name])
+        init_ids = self._access_group_initiators(access_group)
         if init_id in init_ids:
             # Already in requested group.
             return copy.deepcopy(access_group)
@@ -769,14 +772,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         """
         Deletes an initiator from an access group
         """
-        hg_list = self._request("list_hostgroups", "stmf", [])
-        if access_group.name not in hg_list:
-            raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
-                           "AccessGroup %s(%s) not found" %
-                           (access_group.name, access_group.id))
-
-        init_ids = self._request("list_hostgroup_members", "stmf",
-                                 [access_group.name])
+        init_ids = self._access_group_initiators(access_group)
         if init_id not in init_ids:
             # Already removed from requested group.
             return copy.deepcopy(access_group)
