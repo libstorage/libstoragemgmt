@@ -21,6 +21,7 @@ import os
 import traceback
 import urlparse
 import sys
+import copy
 
 import na
 from lsm import (Volume, FileSystem, FsSnapshot, NfsExport,
@@ -742,7 +743,7 @@ class Ontap(IStorageAreaNetwork, INfs):
             self.f.igroup_add_initiator(access_group.name, init_id)
         except na.FilerError as oe:
             if oe.errno == na.FilerError.IGROUP_ALREADY_HAS_INIT:
-                return access_group
+                return copy.deepcopy(access_group)
             elif oe.errno == na.FilerError.NO_SUCH_IGROUP:
                 raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
                                "AccessGroup %s(%d) not found" %
@@ -764,7 +765,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         except na.FilerError as oe:
             error_code, error_msg = error_map(oe)
             if oe.errno == na.FilerError.IGROUP_NOT_CONTAIN_GIVEN_INIT:
-                return access_group
+                return copy.deepcopy(access_group)
             elif oe.errno == na.FilerError.NO_SUCH_IGROUP:
                 raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
                                "AccessGroup %s(%d) not found" %

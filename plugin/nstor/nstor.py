@@ -28,6 +28,7 @@ except ImportError:
 import base64
 import time
 import traceback
+import copy
 
 from lsm import (AccessGroup, Capabilities, ErrorNumber, FileSystem, INfs,
                  IStorageAreaNetwork, LsmError, NfsExport, Pool,
@@ -754,7 +755,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                                  [access_group.name])
         if init_id in init_ids:
             # Already in requested group.
-            return access_group
+            return copy.deepcopy(access_group)
 
         self._add_initiator(access_group.name, init_id)
         init_ids = self._request("list_hostgroup_members", "stmf",
@@ -778,7 +779,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                                  [access_group.name])
         if init_id not in init_ids:
             # Already removed from requested group.
-            return access_group
+            return copy.deepcopy(access_group)
         self._add_initiator(access_group.name, init_id, True)
         init_ids = self._request("list_hostgroup_members", "stmf",
                                  [access_group.name])
