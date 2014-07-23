@@ -44,7 +44,9 @@ typedef enum  {
 /**< \enum lsm_error_number Possible enumerated return codes from library */
 typedef enum {
     LSM_ERR_OK = 0,                     /**< OK */
-    LSM_ERR_INTERNAL_ERROR = 1,         /**< Internal error */
+    LSM_ERR_LIB_BUG = 1,                /**< Library BUG */
+    LSM_ERR_PLUGIN_BUG = 2,             /**< Plugin BUG */
+    LSM_ERR_STORAGE_SDK_BUG = 3,        /**< Storage SDK BUG */
     LSM_ERR_JOB_STARTED = 7,            /**< Operation has started */
     LSM_ERR_INDEX_BOUNDS = 10,          /**< Out of bounds on string index */
     LSM_ERR_TIMEOUT = 11,               /**< Plug-in is un-responsive */

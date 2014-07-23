@@ -272,11 +272,11 @@ static int connection_establish( lsm_connect *c, const char * password,
                                 le.what(), NULL, NULL, 0 );
         rc = LSM_ERR_TRANSPORT_COMMUNICATION;
     } catch (...) {
-        *e = lsm_error_create(LSM_ERR_INTERNAL_ERROR,
+        *e = lsm_error_create(LSM_ERR_LIB_BUG,
                                 LSM_ERR_DOMAIN_FRAME_WORK,
                                 LSM_ERR_LEVEL_ERROR, "Undefined exception",
                                 NULL, NULL, NULL, 0 );
-        rc = LSM_ERR_INTERNAL_ERROR;
+        rc = LSM_ERR_LIB_BUG;
     }
     return rc;
 }

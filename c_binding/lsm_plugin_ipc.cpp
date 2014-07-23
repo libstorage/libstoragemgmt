@@ -2307,7 +2307,7 @@ static std::map<std::string,handler> dispatch = static_map<std::string,handler>
 static int process_request(lsm_plugin_ptr p, const std::string &method, Value &request,
                     Value &response)
 {
-    int rc = LSM_ERR_INTERNAL_ERROR;
+    int rc = LSM_ERR_LIB_BUG;
 
     response = Value(); //Default response will be null
 

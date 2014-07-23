@@ -105,7 +105,7 @@ int value_array_to_volumes(Value &volume_values, lsm_volume **volumes[],
             *count = 0;
         }
 
-        rc = LSM_ERR_INTERNAL_ERROR;
+        rc = LSM_ERR_LIB_BUG;
     }
     return rc;
 }
@@ -171,7 +171,7 @@ int value_array_to_disks(Value &disk_values, lsm_disk **disks[], uint32_t *count
             }
         }
     } catch( const ValueException &ve ) {
-        rc = LSM_ERR_INTERNAL_ERROR;
+        rc = LSM_ERR_LIB_BUG;
         if( *disks && *count ) {
             lsm_disk_record_array_free(*disks, *count);
             *disks = NULL;

@@ -176,7 +176,7 @@ static int rpc(lsm_connect *c, const char *method, const Value &parameters,
         return logException(c, LSM_ERR_TRANSPORT_COMMUNICATION, "Plug-in died",
                                 "Check syslog");
     } catch (...) {
-        return logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected exception",
+        return logException(c, LSM_ERR_LIB_BUG, "Unexpected exception",
                             "Unknown exception");
     }
     return LSM_ERR_OK;
@@ -200,7 +200,7 @@ static int jobCheck( lsm_connect *c, int rc, Value &response, char **job )
             }
         }
     } catch (const ValueException &ve) {
-        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Wrong type",
+        rc = logException(c, LSM_ERR_LIB_BUG, "Wrong type",
                             ve.what());
     }
     return rc;
@@ -214,7 +214,7 @@ static int getAccessGroups( lsm_connect *c, int rc, Value &response,
             *groups = value_to_access_group_list(response, count);
         }
     } catch( const ValueException &ve ) {
-        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
     }
     return rc;
@@ -297,7 +297,7 @@ int lsm_plugin_info_get(lsm_connect *c, char **desc,
         *desc = NULL;
         free(*version);
         *version = NULL;
-        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
     }
 
@@ -387,12 +387,12 @@ int lsm_available_plugins_list(const char *sep,
 
         if( -1 == closedir(dirp)) {
             //log the error
-            rc = LSM_ERR_INTERNAL_ERROR;
+            rc = LSM_ERR_LIB_BUG;
         }
 
     } else {  /* If dirp == NULL */
         //Log the error
-        rc = LSM_ERR_INTERNAL_ERROR;
+        rc = LSM_ERR_LIB_BUG;
     }
 
     if (LSM_ERR_OK == rc) {
@@ -444,7 +444,7 @@ int lsm_connect_timeout_get(lsm_connect *c, uint32_t *timeout, lsm_flag flags)
         }
     }
     catch( const ValueException &ve ) {
-        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
     }
     return rc;
@@ -478,7 +478,7 @@ static int jobStatus( lsm_connect *c, const char *job,
             returned_value = j[2];
         }
     } catch( const ValueException &ve ) {
-        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
     }
     return rc;
@@ -524,7 +524,7 @@ int lsm_job_status_pool_get(lsm_connect *c,
             }
         }
     } catch( const ValueException &ve ) {
-        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
     }
     return rc;
@@ -555,7 +555,7 @@ int lsm_job_status_volume_get( lsm_connect *c, const char *job,
             }
         }
     } catch( const ValueException &ve ) {
-        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
     }
     return rc;
@@ -584,7 +584,7 @@ int lsm_job_status_fs_get(lsm_connect *c, const char *job,
             }
         }
     } catch( const ValueException &ve) {
-        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
     }
     return rc;
@@ -613,7 +613,7 @@ int lsm_job_status_ss_get(lsm_connect *c, const char *job,
             }
         }
     } catch( const ValueException &ve ) {
-        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
     }
     return rc;
@@ -672,7 +672,7 @@ int lsm_capabilities(lsm_connect *c, lsm_system *system,
             *cap = value_to_capabilities(response);
         }
     } catch( const ValueException &ve ) {
-        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
     }
 
@@ -717,7 +717,7 @@ int lsm_pool_list(lsm_connect *c, char *search_key, char *search_value,
             }
         }
     } catch( const ValueException &ve ) {
-        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
         if( *poolArray && *count ) {
             lsm_pool_record_array_free(*poolArray, *count);
@@ -770,7 +770,7 @@ int lsm_target_port_list(lsm_connect *c, const char *search_key,
             }
         }
     } catch( const ValueException &ve ) {
-        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
         if( *target_ports && *count ) {
             lsm_target_port_record_array_free(*target_ports, *count);
@@ -788,7 +788,7 @@ static int get_volume_array(lsm_connect *c, int rc, Value &response,
         rc = value_array_to_volumes(response, volumes, count);
 
         if( LSM_ERR_OK != rc ) {
-            rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type", NULL);
+            rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type", NULL);
         }
     }
     return rc;
@@ -828,7 +828,7 @@ static int get_disk_array(lsm_connect *c, int rc, Value &response,
         rc = value_array_to_disks(response, disks, count);
 
         if( LSM_ERR_OK != rc ) {
-            rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type", NULL);
+            rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type", NULL);
         }
     }
 
@@ -887,7 +887,7 @@ static void* parse_job_response(lsm_connect *c, Value response, int &rc,
             }
         }
     } catch( const ValueException &ve ) {
-        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
         free(*job);
         *job = NULL;
@@ -1123,7 +1123,7 @@ int lsm_pool_delete(lsm_connect *c, lsm_pool *pool, char **job, lsm_flag flags)
             }
         }
     } catch( const ValueException &ve ) {
-        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
     }
     return rc;
@@ -1265,7 +1265,7 @@ int lsm_volume_replicate_range_block_size(lsm_connect *c, lsm_system *system,
             }
         }
     } catch( const ValueException &ve ) {
-        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
     }
     return rc;
@@ -1341,7 +1341,7 @@ int lsm_volume_delete(lsm_connect *c, lsm_volume *volume, char **job,
             }
         }
     } catch( const ValueException &ve ) {
-        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
     }
     return rc;
@@ -1664,7 +1664,7 @@ int lsm_volumes_accessible_by_access_group(lsm_connect *c,
             }
         }
     } catch( const ValueException &ve ) {
-        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
         if( *volumes && *count ) {
             lsm_volume_record_array_free(*volumes, *count);
@@ -1733,11 +1733,11 @@ int lsm_volume_child_dependency(lsm_connect *c, lsm_volume *volume,
                     *yes = 1;
                 }
             } else {
-                rc = LSM_ERR_INTERNAL_ERROR;
+                rc = LSM_ERR_LIB_BUG;
             }
         }
     } catch( const ValueException &ve ) {
-        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
     }
     return rc;
@@ -1807,7 +1807,7 @@ int lsm_system_list(lsm_connect *c, lsm_system **systems[],
             }
         }
     } catch( const ValueException &ve ) {
-        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
         if( *systems ) {
             lsm_system_record_array_free( *systems, *systemCount);
@@ -1861,7 +1861,7 @@ int lsm_fs_list(lsm_connect *c, const char *search_key,
             }
         }
     } catch( const ValueException &ve ) {
-        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
         if( *fs && *fsCount) {
             lsm_fs_record_array_free(*fs, *fsCount);
@@ -2059,11 +2059,11 @@ int lsm_fs_child_dependency( lsm_connect *c, lsm_fs *fs, lsm_string_list *files,
                     *yes = 1;
                 }
             } else {
-                rc = LSM_ERR_INTERNAL_ERROR;
+                rc = LSM_ERR_LIB_BUG;
             }
         }
     } catch( const ValueException &ve ) {
-        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
     }
     return rc;
@@ -2141,7 +2141,7 @@ int lsm_fs_ss_list(lsm_connect *c, lsm_fs *fs, lsm_fs_ss **ss[],
             }
         }
     } catch( const ValueException &ve ) {
-        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
         if( *ss && *ssCount ) {
             lsm_fs_ss_record_array_free(*ss, *ssCount);
@@ -2302,7 +2302,7 @@ int lsm_nfs_list( lsm_connect *c, const char *search_key,
             }
         }
     } catch( const ValueException &ve ) {
-        rc = logException(c, LSM_ERR_INTERNAL_ERROR, "Unexpected type",
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
         if( *exports && *count ) {
             lsm_nfs_export_record_array_free( *exports, *count );
