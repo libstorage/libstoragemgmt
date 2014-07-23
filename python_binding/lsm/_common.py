@@ -422,8 +422,9 @@ class ErrorLevel(object):
 #using them.
 class ErrorNumber(object):
     OK = 0
-    INTERNAL_ERROR = 1
-    LSM_BUG = 2
+    LSM_LIB_BUG = 1
+    LSM_PLUGIN_BUG = 2
+    LSM_STORAGE_SDK_BUG = 3
     JOB_STARTED = 7
     INDEX_BOUNDS = 10
     TIMEOUT = 11
