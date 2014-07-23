@@ -2012,7 +2012,7 @@ START_TEST(test_error_reporting)
     void *debug_data = NULL;
     uint32_t debug_size = 0;
 
-    lsm_error_ptr e = lsm_error_create(   LSM_ERR_INTERNAL_ERROR,
+    lsm_error_ptr e = lsm_error_create(   LSM_ERR_LIB_BUG,
                                         LSM_ERR_DOMAIN_PLUG_IN,
                                         LSM_ERR_LEVEL_ERROR, msg,
                                         exception, debug_msg,
@@ -2021,7 +2021,7 @@ START_TEST(test_error_reporting)
     fail_unless(e != NULL);
 
     if( e ) {
-        fail_unless(LSM_ERR_INTERNAL_ERROR == lsm_error_number_get(e));
+        fail_unless(LSM_ERR_LIB_BUG == lsm_error_number_get(e));
         fail_unless(LSM_ERR_DOMAIN_PLUG_IN == lsm_error_domain_get(e));
         fail_unless(LSM_ERR_LEVEL_ERROR == lsm_error_level_get(e));
         fail_unless(strcmp(msg, lsm_error_message_get(e)) == 0);
