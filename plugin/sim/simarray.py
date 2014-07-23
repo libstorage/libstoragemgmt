@@ -761,7 +761,7 @@ class SimData(object):
                 member_sizes.extend([pool_each_size])
 
         else:
-            raise LsmError(ErrorNumber.INTERNAL_ERROR,
+            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
                            "Got unsupported member_type in _size_of_raid()" +
                            ": %d" % member_type)
         all_size = 0
@@ -807,7 +807,7 @@ class SimData(object):
             print "%s" % size_bytes_2_size_human(all_size)
             print "%s" % size_bytes_2_size_human(member_size)
             return int(all_size / 2 - member_size * 2)
-        raise LsmError(ErrorNumber.INTERNAL_ERROR,
+        raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
                        "_size_of_raid() got invalid raid type: " +
                        "%s(%d)" % (Pool.raid_type_to_str(raid_type),
                                    raid_type))

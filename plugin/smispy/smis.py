@@ -77,7 +77,7 @@ def handle_cim_errors(method):
                 if 'Errno 113' in desc:
                     raise LsmError(ErrorNumber.NETWORK_HOSTDOWN,
                                    'Host is down')
-            raise LsmError(ErrorNumber.LSM_BUG, desc)
+            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG, desc)
         except pywbem.cim_http.AuthError as ae:
             raise LsmError(ErrorNumber.PLUGIN_AUTH_FAILED, "Unauthorized user")
         except pywbem.cim_http.Error as te:
@@ -553,7 +553,7 @@ class Smis(IStorageAreaNetwork):
                 return cim_xxx
 
         if raise_error:
-            raise LsmError(ErrorNumber.LSM_BUG,
+            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
                            "Unable to find class instance %s " % class_name +
                            "with property %s " % prop_name +
                            "with value %s" % prop_value)
@@ -1004,7 +1004,7 @@ class Smis(IStorageAreaNetwork):
             return 'CIM_SCSIProtocolController'
         if class_type == 'Initiator':
             return 'CIM_StorageHardwareID'
-        raise LsmError(ErrorNumber.LSM_BUG,
+        raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
                        "Smis._cim_class_name_of() got unknown " +
                        "class_type %s" % class_type)
 
@@ -1024,7 +1024,7 @@ class Smis(IStorageAreaNetwork):
             return ErrorNumber.NOT_FOUND_ACCESS_GROUP
         if class_type == 'Initiator':
             return ErrorNumber.INVALID_ARGUMENT
-        raise LsmError(ErrorNumber.LSM_BUG,
+        raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
                        "Smis._cim_class_name_of() got unknown " +
                        "class_type %s" % class_type)
 
@@ -1051,7 +1051,7 @@ class Smis(IStorageAreaNetwork):
         elif class_type == 'Initiator':
             rc = ['StorageID']
         else:
-            raise LsmError(ErrorNumber.LSM_BUG,
+            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
                            "Smis._cim_class_name_of() got unknown " +
                            "class_type %s" % class_type)
 
@@ -1377,7 +1377,7 @@ class Smis(IStorageAreaNetwork):
                 PropertyList=pool_pros, LocalOnly=False)
             return self._new_pool(cim_new_pool)
         else:
-            raise LsmError(ErrorNumber.LSM_BUG,
+            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
                            "Got not new Pool from out of InvokeMethod" +
                            "when CreateOrModifyElementFromStoragePool")
 
@@ -1564,7 +1564,7 @@ class Smis(IStorageAreaNetwork):
                 if pool:
                     rc.extend([pool])
                 else:
-                    raise LsmError(ErrorNumber.LSM_BUG,
+                    raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
                                    "Failed to retrieve pool information " +
                                    "from CIM_StoragePool: %s" % cim_pool.path)
         return search_property(rc, search_key, search_value)
@@ -2049,7 +2049,7 @@ class Smis(IStorageAreaNetwork):
             raise LsmError(ErrorNumber.NO_SUPPORT,
                            'AccessGroup is not supported by this array')
         else:
-            raise LsmError(ErrorNumber.LSM_BUG,
+            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
                            "Got %d instance of " % len(cim_ccss_path) +
                            "ControllerConfigurationService from %s" %
                            cim_sys.path + " in _cim_ags_of()")
@@ -2189,7 +2189,7 @@ class Smis(IStorageAreaNetwork):
                            "CIM_StorageHardwareIDManagementService to create"
                            "new initiator")
         if len(cim_hw_srvs) != 1:
-            raise LsmError(ErrorNumber.LSM_BUG,
+            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
                            "_initiator_create(): Got more than one "
                            "CIM_StorageHardwareIDManagementService")
 
@@ -2202,8 +2202,8 @@ class Smis(IStorageAreaNetwork):
             return
 
         # Ideally, we should handle CIM Error here in stead of raise
-        # LSM_BUG error. Let's wait user report on bug.
-        raise LsmError(ErrorNumber.LSM_BUG,
+        # LSM_PLUGIN_BUG error. Let's wait user report on bug.
+        raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
                        'Error on _initiator_create(): rc: "%s", out: "%s"'
                        % (str(rc), out))
 
@@ -2448,7 +2448,7 @@ class Smis(IStorageAreaNetwork):
             cim_pri_ext     # The CIM_Instance of Primordial CIM_StorageExtent
         Exceptions:
             LsmError
-                ErrorNumber.LSM_BUG  # Failed to find out pri cim_ext
+                ErrorNumber.LSM_PLUGIN_BUG  # Failed to find out pri cim_ext
         """
         if property_list is None:
             property_list = ['Primordial']
@@ -2466,7 +2466,7 @@ class Smis(IStorageAreaNetwork):
             # each CIM_DiskDrive
             return cim_exts[0]
         else:
-            raise LsmError(ErrorNumber.LSM_BUG,
+            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
                            "Failed to find out Primordial " +
                            "CIM_StorageExtent for CIM_DiskDrive %s " %
                            cim_disk_path)
@@ -2684,7 +2684,7 @@ class Smis(IStorageAreaNetwork):
         elif len(cim_disks) == 2:
             return None
         else:
-            raise LsmError(ErrorNumber.LSM_BUG,
+            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
                            "Found two or more CIM_DiskDrive associated to " +
                            "requested CIM_StorageExtent %s" %
                            cim_pri_ext_path)
@@ -3457,12 +3457,12 @@ class Smis(IStorageAreaNetwork):
                 cim_iscsi_nodes.extend([cim_spc])
 
         if len(cim_iscsi_nodes) == 0:
-            raise LsmError(ErrorNumber.LSM_BUG,
+            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
                            "_iscsi_node_of(): No iSCSI node "
                            "CIM_SCSIProtocolController associated to %s"
                            % cim_iscsi_pg_path)
         if len(cim_iscsi_nodes) > 1:
-            raise LsmError(ErrorNumber.LSM_BUG,
+            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
                            "_iscsi_node_of(): Got two or more iSCSI node "
                            "CIM_SCSIProtocolController associated to %s: %s"
                            % (cim_iscsi_pg_path, cim_iscsi_nodes))
@@ -3502,7 +3502,7 @@ class Smis(IStorageAreaNetwork):
             AssocClass='CIM_BindsTo',
             PropertyList=['PortNumber'])
         if len(cim_tcps) == 0:
-            raise LsmError(ErrorNumber.LSM_BUG,
+            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
                            "_cim_iscsi_pg_to_lsm():  "
                            "No CIM_TCPProtocolEndpoint associated to %s"
                            % cim_iscsi_pg.path)

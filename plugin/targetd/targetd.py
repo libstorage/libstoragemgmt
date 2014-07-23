@@ -626,5 +626,5 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                     if status:
                         if status[0]:
                             raise LsmError(
-                                ErrorNumber.INTERNAL_ERROR,
+                                ErrorNumber.LSM_PLUGIN_BUG,
                                 "%d has error %d" % (async_code, status[0]))

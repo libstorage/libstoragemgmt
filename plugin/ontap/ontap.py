@@ -729,8 +729,9 @@ class Ontap(IStorageAreaNetwork, INfs):
             if g.name == name:
                 return g
 
-        raise LsmError(ErrorNumber.INTERNAL_ERROR,
-                       "Unable to find group just created!")
+        raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
+                       "access_group_create(): Unable to find access group "
+                       "%s just created!" % g.name)
 
     @handle_ontap_errors
     def access_group_delete(self, access_group, flags=0):
@@ -752,7 +753,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                 raise
         na_ags = self.f.igroups(access_group.name)
         if len(na_ags) != 1:
-            raise LsmError(ErrorNumber.LSM_BUG,
+            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
                            "access_group_initiator_add(): Got unexpected"
                            "(not 1) count of na_ag: %s" % na_ags)
 
@@ -774,7 +775,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                 raise
         na_ags = self.f.igroups(access_group.name)
         if len(na_ags) != 1:
-            raise LsmError(ErrorNumber.LSM_BUG,
+            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
                            "access_group_initiator_add(): Got unexpected"
                            "(not 1) count of na_ag: %s" % na_ags)
 
