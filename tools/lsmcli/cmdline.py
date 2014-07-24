@@ -949,9 +949,9 @@ class CmdLine:
     ## Creates an access group.
     def access_group_create(self, args):
         init_type = ag_init_type_str_to_lsm(args.init_type)
-        sys = _get_item(self.c.systems(), args.sys, "system id")
+        system = _get_item(self.c.systems(), args.sys, "system id")
         access_group = self.c.access_group_create(args.name, args.init,
-                                                  init_type, sys)
+                                                  init_type, system)
         self.display_data([access_group])
 
     def _add_rm_access_grp_init(self, args, op):
