@@ -600,16 +600,20 @@ START_TEST(test_access_groups)
     uint32_t count = 0;
     uint32_t i = 0;
     lsm_string_list *init_list = NULL;
+    lsm_system *system = NULL;
     int rc = 0;
 
     fail_unless(c!=NULL);
+
+
+    system = get_system(c);
 
     G(rc, lsm_access_group_list, c, NULL, NULL, &groups, &count, LSM_FLAG_RSVD);
     fail_unless(count == 0, "Expect 0 access groups, got %"PRIu32, count);
     fail_unless(groups == NULL);
 
     G(rc, lsm_access_group_create, c, "test_access_groups",
-            "iqn.1994-05.com.domain:01.89bd01", LSM_INITIATOR_ISCSI, SYSTEM_ID,
+            "iqn.1994-05.com.domain:01.89bd01", LSM_INITIATOR_ISCSI, system,
             &group, LSM_FLAG_RSVD);
 
     if( LSM_ERR_OK == rc ) {
@@ -720,6 +724,9 @@ START_TEST(test_access_groups)
         groups = NULL;
         count = 0;
     }
+
+    G(rc, lsm_system_record_free, system);
+    system = NULL;
 }
 END_TEST
 
@@ -731,12 +738,14 @@ START_TEST(test_access_groups_grant_revoke)
     lsm_pool *pool = get_test_pool(c);
     char *job = NULL;
     lsm_volume *n = NULL;
+    lsm_system *system = NULL;
 
     fail_unless(pool != NULL);
+    system = get_system(c);
 
     G(rc, lsm_access_group_create, c, "test_access_groups_grant_revoke",
                                    ISCSI_HOST[0], LSM_INITIATOR_ISCSI,
-                                    SYSTEM_ID,
+                                    system,
                                     &group, LSM_FLAG_RSVD);
 
 
@@ -795,6 +804,8 @@ START_TEST(test_access_groups_grant_revoke)
 
     G(rc, lsm_volume_record_free, n);
     G(rc, lsm_pool_record_free, pool);
+
+    G(rc, lsm_system_record_free, system);
 }
 END_TEST
 
@@ -1511,16 +1522,19 @@ START_TEST(test_invalid_input)
 
     /* lsmAccessGroupCreate */
     lsm_access_group *ag = NULL;
+    lsm_system *system = NULL;
+    system = get_system(c);
 
-    rc = lsm_access_group_create(c, NULL, NULL, 0, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_access_group_create(c, NULL, NULL, 0, system, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     rc = lsm_access_group_create(c, "my_group", ISCSI_HOST[0], LSM_INITIATOR_OTHER,
-                                "system-id", NULL, LSM_FLAG_RSVD);
-    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
+                                NULL, NULL, LSM_FLAG_RSVD);
+    fail_unless(rc == LSM_ERR_INVALID_SYSTEM, "rc = %d", rc);
+
 
     rc = lsm_access_group_create(c, "my_group", ISCSI_HOST[0], LSM_INITIATOR_OTHER,
-                                SYSTEM_ID, &ag, LSM_FLAG_RSVD);
+                                system, &ag, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_OK, "rc = %d", rc);
     fail_unless(ag != NULL);
 
@@ -1778,8 +1792,6 @@ START_TEST(test_invalid_input)
     int member_type = 65535;
     uint64_t size = 0;
     int flags = 10;
-    lsm_system *system = get_system(c);
-
 
     rc = lsm_pool_create(NULL, NULL, NULL, size, raid_type, member_type, NULL, NULL, flags);
     fail_unless(rc == LSM_ERR_INVALID_CONN, "rc = %d", rc);
@@ -1821,13 +1833,10 @@ START_TEST(test_invalid_input)
     rc = lsm_pool_record_free(test_pool);
     fail_unless(LSM_ERR_OK == rc, "%d", rc);
 
-    rc = lsm_system_record_free(system);
-    fail_unless(LSM_ERR_OK == rc, "%d", rc);
-
-
-    rc = lsm_string_list_free(f);
+    G(rc, lsm_system_record_free, system );
+    system = NULL;
+    G(rc, lsm_string_list_free, f);
     f = NULL;
-    fail_unless(LSM_ERR_OK == rc, "%d", rc);
 
 }
 END_TEST
@@ -1918,13 +1927,18 @@ END_TEST
 START_TEST(test_iscsi_auth_in)
 {
     lsm_access_group *group = NULL;
+    lsm_system *system = NULL;
     //char *job = NULL;
     int rc;
 
+    system = get_system(c);
+
     G(rc, lsm_access_group_create, c, "ISCSI_AUTH", ISCSI_HOST[0],
-                    LSM_INITIATOR_ISCSI, SYSTEM_ID, &group, LSM_FLAG_RSVD);
+                    LSM_INITIATOR_ISCSI, system, &group, LSM_FLAG_RSVD);
 
     fail_unless(LSM_ERR_OK == rc, "rc = %d");
+    G(rc, lsm_system_record_free, system);
+    system = NULL;
 
     if( LSM_ERR_OK == rc ) {
         /* TODO FIX THIS UP after we take out the C initiator support.
@@ -2670,7 +2684,10 @@ START_TEST(test_search_access_groups)
     lsm_access_group *group = NULL;
 
     lsm_pool *pool = get_test_pool(c);
+    lsm_system *system = get_system(c);
 
+
+    fail_unless(system != NULL, "Missing system!");
 
     for( i = 0; i < 2; ++i ) {
         char ag_name[64];
@@ -2678,13 +2695,16 @@ START_TEST(test_search_access_groups)
         snprintf(ag_name, sizeof(ag_name), "test_access_group_%d", i);
 
         G(rc, lsm_access_group_create, c, ag_name, ISCSI_HOST[i],
-                    LSM_INITIATOR_ISCSI, SYSTEM_ID, &group, LSM_FLAG_RSVD);
+                    LSM_INITIATOR_ISCSI, system, &group, LSM_FLAG_RSVD);
 
         if( LSM_ERR_OK == rc ) {
             G(rc, lsm_access_group_record_free, group);
             group = NULL;
         }
     }
+
+    G(rc, lsm_system_record_free, system);
+    system = NULL;
 
     G(rc, lsm_access_group_list, c, NULL, NULL, &ag, &count, LSM_FLAG_RSVD);
     fail_unless(count > 0, "We are expecting some access_groups!");

@@ -515,7 +515,7 @@ extern "C" {
      * @param[in] name                  Name of access group
      * @param[in] init_id               Initiator id to be added to group
      * @param[in] init_type             Initiator type
-     * @param[in] system_id             System id to create access group for
+     * @param[in] system                System to create access group for
      * @param[out] access_group         Returned access group
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error reason
@@ -524,7 +524,7 @@ extern "C" {
                                                 const char *name,
                                                 const char *init_id,
                                                 lsm_initiator_type init_type,
-                                                const char *system_id,
+                                                lsm_system *system,
                                                 lsm_access_group **access_group,
                                                 lsm_flag flags);
 

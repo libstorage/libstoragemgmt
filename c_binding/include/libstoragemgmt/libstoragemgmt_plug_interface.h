@@ -473,7 +473,7 @@ typedef int (*lsm_plug_access_group_list)(lsm_plugin_ptr c,
  * @param[in]   name                Name of access group
  * @param[in]   initiator_id        Initiator to be added to group
  * @param[in]   id_type             Initiator type
- * @param[in]   system_id           System to create group for
+ * @param[in]   system              System to create group for
  * @param[out]  access_group        Newly created access group
  * @param[in]   flags               Reserved
  * @return LSM_ERR_OK, else error reason
@@ -482,7 +482,7 @@ typedef int (*lsm_plug_access_group_create)(lsm_plugin_ptr c,
                                             const char *name,
                                             const char *initiator_id,
                                             lsm_access_group_init_type init_type,
-                                            const char *system_id,
+                                            lsm_system *system,
                                             lsm_access_group **access_group,
                                             lsm_flag flags);
 

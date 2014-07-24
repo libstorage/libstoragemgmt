@@ -1147,7 +1147,7 @@ static int access_group_create(lsm_plugin_ptr c,
                                 const char *name,
                                 const char *initiator_id,
                                 lsm_access_group_init_type id_type,
-                                const char *system_id,
+                                lsm_system *system,
                                 lsm_access_group **access_group,
                                 lsm_flag flags)
 {
@@ -1165,7 +1165,8 @@ static int access_group_create(lsm_plugin_ptr c,
         if( initiators && id &&
             (LSM_ERR_OK == lsm_string_list_elem_set(initiators, 0, initiator_id))) {
             ag = lsm_access_group_record_alloc(id, name, initiators, id_type,
-                                                        system_id, NULL);
+                                                lsm_system_id_get(system),
+                                                NULL);
             aag = alloc_allocated_ag(ag, id_type);
             if( ag && aag ) {
                 g_hash_table_insert(pd->access_groups, (gpointer)id,

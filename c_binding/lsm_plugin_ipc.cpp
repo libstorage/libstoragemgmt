@@ -1156,25 +1156,32 @@ static int ag_create(lsm_plugin_ptr p, Value &params, Value &response)
         Value v_name = params["name"];
         Value v_init_id = params["init_id"];
         Value v_init_type = params["init_type"];
-        Value v_system_id = params["system_id"];
+        Value v_system = params["system"];
 
         if( Value::string_t == v_name.valueType() &&
             Value::string_t == v_init_id.valueType() &&
             Value::numeric_t == v_init_type.valueType() &&
-            Value::string_t == v_system_id.valueType() &&
+            Value::object_t == v_system.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
 
             lsm_access_group *ag = NULL;
-            rc = p->san_ops->ag_create(
-                    p,
-                    v_name.asC_str(),
-                    v_init_id.asC_str(),
-                    (lsm_access_group_init_type)v_init_type.asInt32_t(),
-                    v_system_id.asC_str(), &ag,
-                    LSM_FLAG_GET_VALUE(params));
-            if( LSM_ERR_OK == rc ) {
-                response = access_group_to_value(ag);
-                lsm_access_group_record_free(ag);
+            lsm_system *system = value_to_system(v_system);
+
+            if( system ) {
+                rc = p->san_ops->ag_create(
+                        p,
+                        v_name.asC_str(),
+                        v_init_id.asC_str(),
+                        (lsm_access_group_init_type)v_init_type.asInt32_t(),
+                        system, &ag,
+                        LSM_FLAG_GET_VALUE(params));
+                if( LSM_ERR_OK == rc ) {
+                    response = access_group_to_value(ag);
+                    lsm_access_group_record_free(ag);
+                }
+
+                lsm_system_record_free(system);
+                system = NULL;
             }
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;

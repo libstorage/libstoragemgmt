@@ -1437,13 +1437,17 @@ int lsm_access_group_list(lsm_connect *c, const char *search_key,
 
 int lsm_access_group_create(lsm_connect *c, const char *name,
                             const char *init_id, lsm_initiator_type init_type,
-                            const char *system_id,
+                            lsm_system *system,
                             lsm_access_group **access_group, lsm_flag flags)
 {
     CONN_SETUP(c);
 
-    if( CHECK_STR(name) || CHECK_STR(init_id) || CHECK_STR(system_id)
-        || CHECK_RP(access_group) || LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( !LSM_IS_SYSTEM(system) ) {
+        return LSM_ERR_INVALID_SYSTEM;
+    }
+
+    if( CHECK_STR(name) || CHECK_STR(init_id) || CHECK_RP(access_group) ||
+        LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1451,7 +1455,7 @@ int lsm_access_group_create(lsm_connect *c, const char *name,
     p["name"] = Value(name);
     p["init_id"] = Value(init_id);
     p["init_type"] = Value((int32_t)init_type);
-    p["system_id"] = Value(system_id);
+    p["system"] = system_to_value(system);
     p["flags"] = Value(flags);
 
     Value parameters(p);
