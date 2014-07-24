@@ -734,7 +734,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
         raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
                        "access_group_create(): Unable to find access group "
-                       "%s just created!" % g.name)
+                       "%s just created!" % name)
 
     @handle_ontap_errors
     def access_group_delete(self, access_group, flags=0):
