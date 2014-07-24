@@ -286,7 +286,7 @@ class IStorageAreaNetwork(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def access_group_create(self, name, init_id, init_type, system_id,
+    def access_group_create(self, name, init_id, init_type, system,
                             flags=0):
         """
         Returns a list of access groups, raises LsmError on errors.

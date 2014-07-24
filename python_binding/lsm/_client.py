@@ -642,11 +642,11 @@ class Client(INetworkAttachedStorage):
     # @param    name                The initiator group name
     # @param    init_id             Initiator id
     # @param    init_type           Type of initiator (Enumeration)
-    # @param    system_id           Which system to create this group on
+    # @param    system              Which system to create this group on
     # @param    flags               Reserved for future use, must be zero.
     # @returns AccessGroup on success, else raises LsmError
     @_return_requires(AccessGroup)
-    def access_group_create(self, name, init_id, init_type, system_id,
+    def access_group_create(self, name, init_id, init_type, system,
                             flags=0):
         """
         Creates an access group and add the specified initiator id,
