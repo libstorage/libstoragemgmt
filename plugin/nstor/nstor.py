@@ -696,14 +696,14 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         return search_property(ag_list, search_key, search_value)
 
     @handle_nstor_errors
-    def access_group_create(self, name, init_id, init_type, system_id,
+    def access_group_create(self, name, init_id, init_type, system,
                             flags=0):
         """
         Creates of access group
         """
-        if system_id != self.system.id:
+        if system.id != self.system.id:
             raise LsmError(ErrorNumber.NOT_FOUND_SYSTEM,
-                           "System %s not found" % system_id)
+                           "System %s not found" % system.id)
         if init_type != AccessGroup.INIT_TYPE_ISCSI_IQN:
             raise LsmError(ErrorNumber.NO_SUPPORT,
                            "Nstor only support iSCSI Access Group")
@@ -716,7 +716,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         self._request("create_hostgroup", "stmf", [name])
         self._add_initiator(name, init_id)
 
-        return AccessGroup(name, name, [init_id], init_type, system_id)
+        return AccessGroup(name, name, [init_id], init_type, system.id)
 
     @handle_nstor_errors
     def access_group_delete(self, access_group, flags=0):

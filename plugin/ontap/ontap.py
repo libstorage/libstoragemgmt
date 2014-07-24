@@ -705,8 +705,11 @@ class Ontap(IStorageAreaNetwork, INfs):
             [self._access_group(g) for g in groups], search_key, search_value)
 
     @handle_ontap_errors
-    def access_group_create(self, name, init_id, init_type, system_id,
+    def access_group_create(self, name, init_id, init_type, system,
                             flags=0):
+        if self.sys_info.id != system.id:
+            raise LsmError(ErrorNumber.NOT_FOUND_SYSTEM,
+                           "System %s not found" % system.id)
         cur_groups = self.access_groups()
         for cg in cur_groups:
             if cg.name == name:

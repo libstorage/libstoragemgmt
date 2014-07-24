@@ -178,10 +178,10 @@ class SimPlugin(INfs, IStorageAreaNetwork):
             [SimPlugin._sim_data_2_lsm(a) for a in sim_ags],
             search_key, search_value)
 
-    def access_group_create(self, name, init_id, init_type, system_id,
+    def access_group_create(self, name, init_id, init_type, system,
                             flags=0):
         sim_ag = self.sim_array.access_group_create(
-            name, init_id, init_type, system_id, flags)
+            name, init_id, init_type, system.id, flags)
         return SimPlugin._sim_data_2_lsm(sim_ag)
 
     def access_group_delete(self, access_group, flags=0):
