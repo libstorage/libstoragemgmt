@@ -128,6 +128,7 @@ sub call_out($) {
         }
     }
 
+    print "Device alias: $dev_alias\n";
     print "LSMCLI_URI: $ENV{LSMCLI_URI}\n";
 
     my @cmd = @ARGV;
