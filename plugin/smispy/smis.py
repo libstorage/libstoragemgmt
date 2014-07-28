@@ -4573,7 +4573,7 @@ class Smis(IStorageAreaNetwork):
                 job_state = cim_job['JobState']
                 if job_state in (Smis.JS_NEW, Smis.JS_STARTING,
                                   Smis.JS_RUNNING):
-                    loop_counter = loop_counter + 1
+                    loop_counter += 1
                     time.sleep(Smis._INVOKE_CHECK_INTERVAL)
                     continue
                 elif job_state == Smis.JS_COMPLETED:
