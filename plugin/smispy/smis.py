@@ -178,8 +178,6 @@ class DMTF(object):
     #   Allowing empty DeviceMaskingGroup associated to SPC
     GMM_CAP_INIT_MG_ALLOW_EMPTY_W_SPC = pywbem.Uint16(5)
 
-
-
 _INIT_TYPE_CONV = {
     DMTF.ID_TYPE_OTHER: AccessGroup.INIT_TYPE_OTHER,
     DMTF.ID_TYPE_WWPN: AccessGroup.INIT_TYPE_WWPN,
@@ -2007,7 +2005,8 @@ class Smis(IStorageAreaNetwork):
                            "count of %s from cim_sys %s: %s" %
                            (class_name, cim_sys_path, cim_srvs))
 
-    def _cim_dev_mg_path_create(self, cim_gmm_path, name, cim_vol_path, vol_id):
+    def _cim_dev_mg_path_create(self, cim_gmm_path, name, cim_vol_path,
+                                vol_id):
         rc = Smis.INVOKE_FAILED
         out = None
 
@@ -2035,9 +2034,8 @@ class Smis(IStorageAreaNetwork):
 
         return cim_dev_mg_path
 
-
     def _cim_tgt_mg_path_create(self, cim_sys_path, cim_gmm_path, name,
-                            init_type):
+                                init_type):
         """
         Create CIM_TargetMaskingGroup
         Currently, LSM does not support target ports masking
@@ -2085,7 +2083,7 @@ class Smis(IStorageAreaNetwork):
         return cim_tgt_mg_path
 
     def _cim_spc_path_create(self, cim_gmm_path, cim_init_mg_path,
-                         cim_tgt_mg_path, cim_dev_mg_path, name):
+                             cim_tgt_mg_path, cim_dev_mg_path, name):
         in_params = {
             'ElementName': name,
             'InitiatorMaskingGroup': cim_init_mg_path,
@@ -2248,7 +2246,7 @@ class Smis(IStorageAreaNetwork):
         cim_sys = self._get_cim_instance_by_id(
             'System', volume.system_id, raise_error=True)
 
-        cim_gmm_cap =  self._c.Associators(
+        cim_gmm_cap = self._c.Associators(
             cim_sys.path,
             AssocClass='CIM_ElementCapabilities',
             ResultClass='CIM_GroupMaskingMappingCapabilities',
@@ -2310,7 +2308,7 @@ class Smis(IStorageAreaNetwork):
                                 cim_gmm_path, **in_params)
                             self._wait_invoke(rc, out)
 
-                    in_params={
+                    in_params = {
                         'MaskingGroup': cim_dev_mg_path,
                         'Members': [cim_vol.path],
                     }
@@ -2371,7 +2369,7 @@ class Smis(IStorageAreaNetwork):
         return rc
 
     def _cim_spc_of_id(self, access_group_id, property_list=None,
-                      raise_error=False):
+                       raise_error=False):
         """
         Return CIMInstance of CIM_SCSIProtocolController
         Return None if not found.
@@ -2392,7 +2390,6 @@ class Smis(IStorageAreaNetwork):
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
                            "AccessGroup %s not found" % access_group_id)
         return None
-
 
     def _cim_spc_of(self, cim_sys_path, property_list=None):
         """
@@ -2593,9 +2590,8 @@ class Smis(IStorageAreaNetwork):
                     AssocClass='CIM_AssociatedInitiatorMaskingGroup',
                     ResultClass='CIM_InitiatorMaskingGroup',
                     PropertyList=cim_init_mg_pros)
-                rc.extend(
-                    list(self._cim_init_mg_to_lsm(x, volume.system_id)
-                    for x in cim_init_mgs))
+                rc.extend(list(self._cim_init_mg_to_lsm(x, volume.system_id)
+                               for x in cim_init_mgs))
         else:
             for cim_spc in cim_spcs:
                 if self._is_access_group(cim_spc):
@@ -2627,7 +2623,6 @@ class Smis(IStorageAreaNetwork):
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
                            "AccessGroup %s not found" % access_group_id)
         return None
-
 
     def _cim_init_mg_of(self, cim_sys_path, property_list=None):
         """
@@ -2706,9 +2701,8 @@ class Smis(IStorageAreaNetwork):
                 cim_init_mg_pros = self._cim_init_mg_pros()
                 cim_init_mgs = self._cim_init_mg_of(cim_sys.path,
                                                     cim_init_mg_pros)
-                rc.extend(
-                    list(self._cim_init_mg_to_lsm(x, system_id)
-                    for x in cim_init_mgs))
+                rc.extend(list(self._cim_init_mg_to_lsm(x, system_id)
+                               for x in cim_init_mgs))
             elif mask_type == Smis.MASK_TYPE_MASK:
                 cim_spcs = self._cim_spc_of(cim_sys.path, cim_spc_pros)
                 rc.extend(
@@ -2750,7 +2744,6 @@ class Smis(IStorageAreaNetwork):
             cim_sys_path, init_id, dmtf_id_type)
 
         return cim_init
-
 
     def _cim_init_create(self, cim_sys_path, init_id, dmtf_id_type):
         """
@@ -2811,7 +2804,8 @@ class Smis(IStorageAreaNetwork):
             expect_class='CIM_InitiatorMaskingGroup')
         cim_init_mg_pros = self._cim_init_mg_pros()
         new_cim_init_mg = self._c.GetInstance(
-            new_cim_init_mg_path, PropertyList=cim_init_mg_pros, LocalOnly=False)
+            new_cim_init_mg_path, PropertyList=cim_init_mg_pros,
+            LocalOnly=False)
         return self._cim_init_mg_to_lsm(
             new_cim_init_mg, access_group.system_id)
 
@@ -2876,7 +2870,6 @@ class Smis(IStorageAreaNetwork):
             cim_spc_path, PropertyList=cim_spc_pros, LocalOnly=False)
         return self._cim_spc_to_lsm(cim_spc, access_group.system_id)
 
-
     def _ag_init_del_group(self, access_group, init_id):
         """
         LSM Require support of empty access group.
@@ -2888,7 +2881,7 @@ class Smis(IStorageAreaNetwork):
         cim_sys = self._get_cim_instance_by_id(
             'System', access_group.system_id, raise_error=True)
 
-        cim_gmm_cap =  self._c.Associators(
+        cim_gmm_cap = self._c.Associators(
             cim_sys.path,
             AssocClass='CIM_ElementCapabilities',
             ResultClass='CIM_GroupMaskingMappingCapabilities',
@@ -4805,7 +4798,7 @@ class Smis(IStorageAreaNetwork):
             AssocClass='CIM_ServiceAffectsElement',
             ResultClass='CIM_GroupMaskingMappingService')[0]
 
-        in_params={
+        in_params = {
             'MaskingGroup': cim_init_mg.path,
             'Force': True,
         }
@@ -4813,5 +4806,5 @@ class Smis(IStorageAreaNetwork):
         (rc, out) = self._c.InvokeMethod('DeleteGroup', cim_gmm_path,
                                          **in_params)
 
-        self._wait_invoke(rc,  out)
+        self._wait_invoke(rc, out)
         return None
