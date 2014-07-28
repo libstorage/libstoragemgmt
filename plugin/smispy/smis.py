@@ -2008,6 +2008,9 @@ class Smis(IStorageAreaNetwork):
                            (class_name, cim_sys_path, cim_srvs))
 
     def _cim_dev_mg_path_create(self, cim_gmm_path, name, cim_vol_path, vol_id):
+        rc = Smis.INVOKE_FAILED
+        out = None
+
         in_params = {
             'GroupName': name,
             'Members': [cim_vol_path],
@@ -2041,6 +2044,9 @@ class Smis(IStorageAreaNetwork):
         we will mask to all target ports.
         Return CIMInstanceName of CIM_TargetMaskingGroup
         """
+        rc = Smis.INVOKE_FAILED
+        out = None
+
         in_params = {
             'GroupName': name,
             'Type': DMTF.MASK_GROUP_TYPE_TGT}
@@ -2430,7 +2436,7 @@ class Smis(IStorageAreaNetwork):
             raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
                            "Got %d instance of " % len(cim_ccss_path) +
                            "ControllerConfigurationService from %s" %
-                           cim_sys.path + " in _cim_spc_of()")
+                           cim_sys_path + " in _cim_spc_of()")
         cim_spcs = self._c.Associators(
             cim_ccs_path,
             AssocClass='CIM_ConcreteDependency',
@@ -2965,7 +2971,7 @@ class Smis(IStorageAreaNetwork):
         hide_params = {'InitiatorPortIDs': [init_id],
                        'ProtocolControllers': [cim_spc.path]}
         (rc, out) = self._c.InvokeMethod(
-            'HidePaths', cim_ccs.path, **hide_params)
+            'HidePaths', cim_ccs_path, **hide_params)
 
         self._wait_invoke(rc, out)
         return None
