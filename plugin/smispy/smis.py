@@ -2566,7 +2566,7 @@ class Smis(IStorageAreaNetwork):
         # Workaround for EMC VNX/CX
         if mask_type == Smis.MASK_TYPE_GROUP:
             cim_sys = self._get_cim_instance_by_id(
-                'System', volume.id, raise_error=True)
+                'System', volume.system_id, raise_error=True)
             if cim_sys.path.classname == 'Clar_StorageSystem':
                 mask_type = Smis.MASK_TYPE_MASK
 
