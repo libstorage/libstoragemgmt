@@ -514,8 +514,16 @@ class ErrorNumber(object):
 
     DISK_BUSY = 500
     VOLUME_BUSY = 501
+    ACCESS_GROUP_BUSY = 502     # refuse to remove the last initiator from
+                                # access group which have volume masked.
 
     UNSUPPORTED_SEARCH_KEY = 510
+
+    EMPTY_ACCESS_GROUP = 511    # volume_mask() will fail if access group
+                                # has no member/initiator.
+
+    MASKED_ACCESS_GROUP = 512   # access_group_delete() will fail if
+                                # have volume masked.
 
     _LOCALS = locals()
 
