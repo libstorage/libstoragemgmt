@@ -1867,8 +1867,6 @@ START_TEST(test_capabilities)
         G(rc, lsm_capabilities, c, sys[0], &cap, LSM_FLAG_RSVD);
 
         if( LSM_ERR_OK == rc ) {
-            cap_test(cap, LSM_CAP_BLOCK_SUPPORT);
-            cap_test(cap, LSM_CAP_FS_SUPPORT);
             cap_test(cap, LSM_CAP_VOLUMES);
             cap_test(cap, LSM_CAP_VOLUME_CREATE);
             cap_test(cap, LSM_CAP_VOLUME_RESIZE);
@@ -1887,9 +1885,8 @@ START_TEST(test_capabilities)
             cap_test(cap, LSM_CAP_VOLUME_MASK);
             cap_test(cap, LSM_CAP_VOLUME_UNMASK);
             cap_test(cap, LSM_CAP_ACCESS_GROUPS);
-            cap_test(cap, LSM_CAP_ACCESS_GROUP_CREATE);
-            cap_test(cap, LSM_CAP_ACCESS_GROUP_DELETE);
-            cap_test(cap, LSM_CAP_ACCESS_GROUP_INITIATOR_ADD);
+            cap_test(cap, LSM_CAP_ACCESS_GROUP_CREATE_WWPN);
+            cap_test(cap, LSM_CAP_ACCESS_GROUP_INITIATOR_ADD_WWPN);
             cap_test(cap, LSM_CAP_ACCESS_GROUP_INITIATOR_DELETE);
             cap_test(cap, LSM_CAP_VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP);
             cap_test(cap, LSM_CAP_ACCESS_GROUPS_GRANTED_TO_VOLUME);
@@ -1904,8 +1901,8 @@ START_TEST(test_capabilities)
             cap_test(cap, LSM_CAP_FS_SNAPSHOTS);
             cap_test(cap, LSM_CAP_FS_SNAPSHOT_CREATE);
             cap_test(cap, LSM_CAP_FS_SNAPSHOT_DELETE);
-            cap_test(cap, LSM_CAP_FS_SNAPSHOT_REVERT);
-            cap_test(cap, LSM_CAP_FS_SNAPSHOT_REVERT_SPECIFIC_FILES);
+            cap_test(cap, LSM_CAP_FS_SNAPSHOT_RESTORE);
+            cap_test(cap, LSM_CAP_FS_SNAPSHOT_RESTORE_SPECIFIC_FILES);
             cap_test(cap, LSM_CAP_FS_CHILD_DEPENDENCY);
             cap_test(cap, LSM_CAP_FS_CHILD_DEPENDENCY_RM);
             cap_test(cap, LSM_CAP_FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES );
@@ -2055,8 +2052,6 @@ START_TEST(test_capability)
     int rc;
     int i;
     lsm_capability_type expected_present[] = {
-        LSM_CAP_BLOCK_SUPPORT,
-        LSM_CAP_FS_SUPPORT,
         LSM_CAP_VOLUMES,
         LSM_CAP_VOLUME_CREATE,
         LSM_CAP_VOLUME_RESIZE,
@@ -2075,9 +2070,8 @@ START_TEST(test_capability)
         LSM_CAP_VOLUME_MASK,
         LSM_CAP_VOLUME_UNMASK,
         LSM_CAP_ACCESS_GROUPS,
-        LSM_CAP_ACCESS_GROUP_CREATE,
-        LSM_CAP_ACCESS_GROUP_DELETE,
-        LSM_CAP_ACCESS_GROUP_INITIATOR_ADD,
+        LSM_CAP_ACCESS_GROUP_CREATE_WWPN,
+        LSM_CAP_ACCESS_GROUP_INITIATOR_ADD_WWPN,
         LSM_CAP_ACCESS_GROUP_INITIATOR_DELETE,
         LSM_CAP_VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP,
         LSM_CAP_ACCESS_GROUPS_GRANTED_TO_VOLUME,
@@ -2092,8 +2086,8 @@ START_TEST(test_capability)
         LSM_CAP_FS_SNAPSHOTS,
         LSM_CAP_FS_SNAPSHOT_CREATE,
         LSM_CAP_FS_SNAPSHOT_DELETE,
-        LSM_CAP_FS_SNAPSHOT_REVERT,
-        LSM_CAP_FS_SNAPSHOT_REVERT_SPECIFIC_FILES,
+        LSM_CAP_FS_SNAPSHOT_RESTORE,
+        LSM_CAP_FS_SNAPSHOT_RESTORE_SPECIFIC_FILES,
         LSM_CAP_FS_CHILD_DEPENDENCY,
         LSM_CAP_FS_CHILD_DEPENDENCY_RM,
         LSM_CAP_FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES,
@@ -2106,7 +2100,6 @@ START_TEST(test_capability)
         LSM_CAP_EXPORT_CUSTOM_PATH,
         LSM_CAP_POOL_CREATE,
         LSM_CAP_POOL_CREATE_FROM_DISKS,
-        LSM_CAP_POOL_CREATE_FROM_VOLUMES,
         LSM_CAP_POOL_CREATE_FROM_POOL,
 
         LSM_CAP_POOL_CREATE_DISK_RAID_0,
@@ -2132,9 +2125,7 @@ START_TEST(test_capability)
     fail_unless(cap != NULL);
 
     if( cap ) {
-        G(rc, lsm_capability_set_n, cap, LSM_CAPABILITY_SUPPORTED, 46,
-            LSM_CAP_BLOCK_SUPPORT,
-            LSM_CAP_FS_SUPPORT,
+        G(rc, lsm_capability_set_n, cap, LSM_CAPABILITY_SUPPORTED, 44,
             LSM_CAP_VOLUMES,
             LSM_CAP_VOLUME_CREATE,
             LSM_CAP_VOLUME_RESIZE,
@@ -2153,9 +2144,8 @@ START_TEST(test_capability)
             LSM_CAP_VOLUME_MASK,
             LSM_CAP_VOLUME_UNMASK,
             LSM_CAP_ACCESS_GROUPS,
-            LSM_CAP_ACCESS_GROUP_CREATE,
-            LSM_CAP_ACCESS_GROUP_DELETE,
-            LSM_CAP_ACCESS_GROUP_INITIATOR_ADD,
+            LSM_CAP_ACCESS_GROUP_CREATE_WWPN,
+            LSM_CAP_ACCESS_GROUP_INITIATOR_ADD_WWPN,
             LSM_CAP_ACCESS_GROUP_INITIATOR_DELETE,
             LSM_CAP_VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP,
             LSM_CAP_ACCESS_GROUPS_GRANTED_TO_VOLUME,
@@ -2170,8 +2160,8 @@ START_TEST(test_capability)
             LSM_CAP_FS_SNAPSHOTS,
             LSM_CAP_FS_SNAPSHOT_CREATE,
             LSM_CAP_FS_SNAPSHOT_DELETE,
-            LSM_CAP_FS_SNAPSHOT_REVERT,
-            LSM_CAP_FS_SNAPSHOT_REVERT_SPECIFIC_FILES,
+            LSM_CAP_FS_SNAPSHOT_RESTORE,
+            LSM_CAP_FS_SNAPSHOT_RESTORE_SPECIFIC_FILES,
             LSM_CAP_FS_CHILD_DEPENDENCY,
             LSM_CAP_FS_CHILD_DEPENDENCY_RM,
             LSM_CAP_FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES,
