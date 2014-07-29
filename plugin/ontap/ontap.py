@@ -401,8 +401,6 @@ class Ontap(IStorageAreaNetwork, INfs):
     @handle_ontap_errors
     def capabilities(self, system, flags=0):
         cap = Capabilities()
-        cap.set(Capabilities.BLOCK_SUPPORT)
-        cap.set(Capabilities.FS_SUPPORT)
         cap.set(Capabilities.VOLUMES)
         cap.set(Capabilities.VOLUME_CREATE)
         cap.set(Capabilities.VOLUME_RESIZE)
@@ -422,7 +420,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         cap.set(Capabilities.ACCESS_GROUP_CREATE_ISCSI_IQN)
         cap.set(Capabilities.ACCESS_GROUP_DELETE)
         cap.set(Capabilities.ACCESS_GROUP_INITIATOR_ADD_WWPN)
-        cap.set(Capabilities.ACCESS_GROUP_INITIATOR_ADD_IQN)
+        cap.set(Capabilities.ACCESS_GROUP_INITIATOR_ADD_ISCSI_IQN)
         cap.set(Capabilities.ACCESS_GROUP_INITIATOR_DELETE)
         cap.set(Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP)
         cap.set(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME)
