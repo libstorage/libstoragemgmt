@@ -236,10 +236,6 @@ class NexentaStor(INfs, IStorageAreaNetwork):
     def capabilities(self, system, flags=0):
         c = Capabilities()
 
-        #Array wide
-        #        c.set(Capabilities.BLOCK_SUPPORT)
-        c.set(Capabilities.FS_SUPPORT)
-
         #File system
         c.set(Capabilities.FS)
         c.set(Capabilities.FS_DELETE)
