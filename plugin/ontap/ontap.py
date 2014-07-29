@@ -437,7 +437,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         cap.set(Capabilities.FS_SNAPSHOTS)
         cap.set(Capabilities.FS_SNAPSHOT_CREATE)
         cap.set(Capabilities.FS_SNAPSHOT_DELETE)
-        cap.set(Capabilities.FS_SNAPSHOT_REVERT)
+        cap.set(Capabilities.FS_SNAPSHOT_RESTORE)
         cap.set(Capabilities.FS_CHILD_DEPENDENCY)
         cap.set(Capabilities.FS_CHILD_DEPENDENCY_RM)
         cap.set(Capabilities.EXPORT_AUTH)
