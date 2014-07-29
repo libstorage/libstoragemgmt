@@ -1043,13 +1043,21 @@ class SimData(object):
     def ags(self, flags=0):
         return self.ag_dict.values()
 
-    def _check_dup_init(self, init_id):
+    def _sim_ag_of_init(self, init_id):
+        """
+        Return sim_ag which containing this init_id.
+        If not found, return None
+        """
         for sim_ag in self.ag_dict.values():
             if init_id in sim_ag['init_ids']:
-                raise LsmError(ErrorNumber.EXISTS_INITIATOR,
-                               "init_id %s already exist in other "
-                               % init_id +
-                               "access group %s" % sim_ag['ag_id'])
+                return sim_ag
+        return None
+
+    def _sim_ag_of_name(self, ag_name):
+        for sim_ag in self.ag_dict.values():
+            if ag_name == sim_ag['name']:
+                return sim_ag
+        return None
 
     def _check_dup_name(self, sim_list, name, error_num):
         used_names = [x['name'] for x in sim_list]
@@ -1057,9 +1065,27 @@ class SimData(object):
             raise LsmError(error_num, "Name '%s' already in use" % name)
 
     def access_group_create(self, name, init_id, init_type, sys_id, flags=0):
-        self._check_dup_name(
-            self.ag_dict.values(), name, ErrorNumber.EXISTS_ACCESS_GROUP)
-        self._check_dup_init(init_id)
+        exist_sim_ag = self._sim_ag_of_init(init_id)
+        if exist_sim_ag:
+            if exist_sim_ag['name'] == name:
+                return exist_sim_ag
+            else:
+                raise LsmError(ErrorNumber.EXISTS_INITIATOR,
+                               "Initiator %s already exist in other " %
+                               init_id + "access group %s(%s)" %
+                               (exist_sim_ag['name'], exist_sim_ag['ag_id']))
+
+        exist_sim_ag = self._sim_ag_of_name(name)
+        if exist_sim_ag:
+            if init_id in exist_sim_ag['init_ids']:
+                return exist_sim_ag
+            else:
+                raise LsmError(ErrorNumber.EXISTS_ACCESS_GROUP,
+                               "Another access group %s(%s) is using " %
+                               (exist_sim_ag['name'], exist_sim_ag['ag_id']) +
+                               "requested name %s but not contain init_id %s" %
+                               (exist_sim_ag['name'], init_id))
+
         sim_ag = dict()
         sim_ag['init_ids'] = [init_id]
         sim_ag['init_type'] = init_type
@@ -1083,7 +1109,7 @@ class SimData(object):
         if init_id in self.ag_dict[ag_id]['init_ids']:
             return self.ag_dict[ag_id]
 
-        self._check_dup_init(init_id)
+        self._sim_ag_of_init(init_id)
 
         self.ag_dict[ag_id]['init_ids'].extend([init_id])
         return self.ag_dict[ag_id]
