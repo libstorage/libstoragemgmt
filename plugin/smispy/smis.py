@@ -65,6 +65,11 @@ from lsm import (IStorageAreaNetwork, error, uri_parse, LsmError, ErrorNumber,
 #   _cim_xxx_of_id(some_id)
 #       Return CIMInstance for given ID
 
+# Terminology
+#   SPC             CIM_SCSIProtocolController
+#   BSP             SNIA SMI-S 'Block Services Package' profile
+#   Group M&M       SNIA SMI-S 'Group Masking and Mapping' profile
+
 
 def handle_cim_errors(method):
     def cim_wrapper(*args, **kwargs):
@@ -177,6 +182,11 @@ class DMTF(object):
     GMM_CAP_INIT_MG_ALLOW_EMPTY = pywbem.Uint16(4)
     #   Allowing empty DeviceMaskingGroup associated to SPC
     GMM_CAP_INIT_MG_ALLOW_EMPTY_W_SPC = pywbem.Uint16(5)
+
+    # CIM_GroupMaskingMappingCapabilities['SupportedAsynchronousActions']
+    # and 'SupportedSynchronousActions'. They are using the same value map.
+    GMM_CAP_DELETE_SPC = pywbem.Uint16(24)
+    GMM_CAP_DELETE_GROUP = pywbem.Uint16(20)
 
 _INIT_TYPE_CONV = {
     DMTF.ID_TYPE_OTHER: AccessGroup.INIT_TYPE_OTHER,
@@ -730,53 +740,72 @@ class Smis(IStorageAreaNetwork):
     def plugin_unregister(self, flags=0):
         self._c = None
 
-    def _scs_supported_capabilities(self, system, cap):
+    def _bsp_cap_set(self, cim_sys_path, cap):
         """
-        Interrogate the supported features of the Storage Configuration
-        service
+        Set capabilities for these methods:
+            volumes()
+            volume_create()
+            volume_resize()
+            volume_delete()
         """
-        scs = self._get_class_instance('CIM_StorageConfigurationService',
-                                       'SystemName', system.id)
+        if self.fallback_mode:
+            # pools() is mandatory, we will try pools() related methods first
+            try:
+                self._cim_pools_of(cim_sys_path)
+            except CIMError as e:
+                if e[0] == pywbem.CIM_ERR_NOT_SUPPORTED or \
+                   e[0] == pywbem.CIM_ERR_INVALID_CLASS:
+                    raise LsmError(ErrorNumber.NO_SUPPORT,
+                                   "Target SMI-S provider does not support "
+                                   "CIM_StoragePool querying which is "
+                                   "mandatory for pools() method")
+                else:
+                    raise
+        # For fallback mode, if StoragePool is supported, then BSP is
+        # supported.
+        #
+        # For interop, plugin_register() already ensured the support
+        # of 1.4+ Array profile which make 'BSP' mandatory as sub profile.
+        # This is mandatory for BSP profile:
+        cap.set(Capabilities.VOLUMES)
 
-        if scs is not None:
-            scs_cap_inst = self._c.Associators(
-                scs.path,
-                AssocClass='CIM_ElementCapabilities',
-                ResultClass='CIM_StorageConfigurationCapabilities')[0]
+        # CIM_StorageConfigurationService is optional.
+        cim_scs_path = self._get_cim_service_path(
+            cim_sys_path, 'CIM_StorageConfigurationService')
 
-            if scs_cap_inst is not None:
-                # print 'Async', scs_cap_inst['SupportedAsynchronousActions']
-                # print 'Sync', scs_cap_inst['SupportedSynchronousActions']
-                async = None
-                sync = None
+        if cim_scs_path is None:
+            return
 
-                if 'SupportedAsynchronousActions' in scs_cap_inst:
-                    async = scs_cap_inst['SupportedAsynchronousActions']
-                if 'SupportedSynchronousActions' in scs_cap_inst:
-                    sync = scs_cap_inst['SupportedSynchronousActions']
+        # These methods are mandatory for CIM_StorageConfigurationService:
+        #   CreateOrModifyElementFromStoragePool()
+        #   ReturnToStoragePool()
+        cap.set(Capabilities.VOLUME_CREATE)
+        cap.set(Capabilities.VOLUME_DELETE)
+        cap.set(Capabilities.VOLUME_RESIZE)
 
-                if async is None:
-                    async = []
+        return
 
-                if sync is None:
-                    sync = []
+    def _disk_cap_set(self, cim_sys_path, cap):
+        if self.fallback_mode:
+            try:
+                # Assuming provider support disk drive when systems under it
+                # support it.
+                self._enumerate('CIM_DiskDrive')
+            except CIMError as e:
+                if e[0] == pywbem.CIM_ERR_NOT_SUPPORTED or \
+                   e[0] == pywbem.CIM_ERR_INVALID_CLASS:
+                    return
+                else:
+                    raise
+        else:
+            if not self._profile_is_supported(SNIA.DISK_LITE_PROFILE,
+                                              SNIA.SMIS_SPEC_VER_1_4,
+                                              strict=False,
+                                              raise_error=False):
+                return
 
-                combined = async
-                combined.extend(sync)
-
-                #TODO Get rid of magic numbers
-                if 'SupportedStorageElementTypes' in scs_cap_inst:
-                    if 2 in scs_cap_inst['SupportedStorageElementTypes']:
-                        cap.set(Capabilities.VOLUMES)
-
-                if 5 in combined:
-                    cap.set(Capabilities.VOLUME_CREATE)
-
-                if 6 in combined:
-                    cap.set(Capabilities.VOLUME_DELETE)
-
-                if 7 in combined:
-                    cap.set(Capabilities.VOLUME_RESIZE)
+        cap.set(Capabilities.DISKS)
+        return
 
     def _rs_supported_capabilities(self, system, cap):
         """
@@ -827,7 +856,7 @@ class Smis(IStorageAreaNetwork):
                 if rs_cap is not None and 'SupportedCopyTypes' in rs_cap:
                     sct = rs_cap['SupportedCopyTypes']
 
-                    if len(sct):
+                    if sct and len(sct):
                         cap.set(Capabilities.VOLUME_REPLICATE)
 
                     # Mirror support is not working and is not supported at
@@ -845,65 +874,60 @@ class Smis(IStorageAreaNetwork):
                         if Smis.CopyTypes.UNSYNCUNASSOC in sct:
                             cap.set(Capabilities.VOLUME_REPLICATE_COPY)
 
-    def _pcm_supported_capabilities(self, system, cap):
+    def _mask_map_cap_set(self, cim_sys_path, cap):
         """
-        Interrogate the supported features of
-        CIM_ProtocolControllerMaskingCapabilities
-        """
+        In SNIA SMI-S 1.4rev6 'Masking and Mapping' profile:
+        CIM_ControllerConfigurationService is mandatory
+        and it's ExposePaths() and HidePaths() are mandatory
 
-        # Get the cim object that represents the system
-        cim_sys = None
-        cim_pcms = None
-        cim_sys = self._get_cim_instance_by_id('System', system.id)
+        For fallback mode, once we found CIM_ControllerConfigurationService,
+        we assume they are supporting 1.4rev6 'Masking and Mapping' profile.
+        Fallback mode means target provider does not support interop, but
+        they still need to follow at least SNIA SMI-S 1.4rev6
+        """
         if self.fallback_mode:
-
-            # Using 'ExposePathsSupported of
-            # CIM_ProtocolControllerMaskingCapabilities
-            # to check support status of HidePaths() and ExposePaths() is
-            # not documented by SNIA SMI-S 1.4 or 1.6, but only defined in
-            # DMTF CIM MOF files.
-            try:
-                cim_pcms = self._c.Associators(
-                    cim_sys.path,
-                    ResultClass='CIM_ProtocolControllerMaskingCapabilities')
-            except CIMError as e:
-                if e[0] == pywbem.CIM_ERR_NOT_SUPPORTED or \
-                   e[0] == pywbem.CIM_ERR_INVALID_CLASS:
-                    return
-            if cim_pcms is not None and len(cim_pcms) == 1:
-                cap.set(Capabilities.ACCESS_GROUPS)
-                cap.set(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME)
-                cap.set(Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP)
-
-                if cim_pcms[0]['ExposePathsSupported']:
-                    cap.set(Capabilities.VOLUME_MASK)
-                    cap.set(Capabilities.VOLUME_UNMASK)
-                    cap.set(Capabilities.ACCESS_GROUP_INITIATOR_ADD)
-                    cap.set(Capabilities.ACCESS_GROUP_INITIATOR_DELETE)
+            cim_ccs_path = self._get_cim_service_path(
+                cim_sys_path, 'CIM_ControllerConfigurationService')
+            if cim_ccs_path is None:
                 return
-        else:
-            # Since SNIA SMI-S 1.4rev6:
-            # CIM_ControllerConfigurationService is mandatory
-            # and it's ExposePaths() and HidePaths() are mandatory
-            cap.set(Capabilities.ACCESS_GROUPS)
-            cap.set(Capabilities.VOLUME_MASK)
-            cap.set(Capabilities.VOLUME_UNMASK)
-            cap.set(Capabilities.ACCESS_GROUP_INITIATOR_ADD)
-            cap.set(Capabilities.ACCESS_GROUP_INITIATOR_DELETE)
-            cap.set(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME)
-            cap.set(Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP)
+
+        elif not self._profile_is_supported(SNIA.MASK_PROFILE,
+                                            SNIA.SMIS_SPEC_VER_1_4,
+                                            strict=False,
+                                            raise_error=False):
+            return
+
+        cap.set(Capabilities.ACCESS_GROUPS)
+        cap.set(Capabilities.VOLUME_MASK)
+        cap.set(Capabilities.VOLUME_UNMASK)
+        cap.set(Capabilities.ACCESS_GROUP_INITIATOR_DELETE)
+        cap.set(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME)
+        cap.set(Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP)
+
+        # EMC VNX does not support CreateStorageHardwareID for iSCSI
+        # and require WWNN for WWPN. Hence both are not supported.
+        if cim_sys_path.classname == 'Clar_StorageSystem':
+            return
+
+        if self._fc_tgt_is_supported(cim_sys_path):
+            cap.set(Capabilities.ACCESS_GROUP_INITIATOR_ADD_WWPN)
+        if self._iscsi_tgt_is_supported(cim_sys_path):
+            cap.set(Capabilities.ACCESS_GROUP_INITIATOR_ADD_ISCSI_IQN)
+        return
 
     def _common_capabilities(self, system):
         cap = Capabilities()
 
-        # Assume that the SMI-S we are talking to supports blocks
-        cap.set(Capabilities.BLOCK_SUPPORT)
-
-        self._scs_supported_capabilities(system, cap)
         self._rs_supported_capabilities(system, cap)
         return cap
 
-    def _tgt_port_capabilities(self, system, cap):
+    def _tgt_cap_set(self, cim_sys_path, cap):
+
+        # LSI MegaRAID actually not support FC Target and iSCSI target,
+        # They expose empty list of CIM_FCPort
+        if cim_sys_path.classname == 'LSIESG_MegaRAIDHBA':
+            return
+
         flag_fc_support = False
         flag_iscsi_support = False
         if self.fallback_mode:
@@ -911,18 +935,14 @@ class Smis(IStorageAreaNetwork):
             flag_iscsi_support = True
             # CIM_FCPort is the contral class of FC Targets profile
             try:
-                self._enumerate('CIM_FCPort')
+                self._cim_fc_tgt_of(cim_sys_path)
             except CIMError as e:
                 if e[0] == pywbem.CIM_ERR_NOT_SUPPORTED or \
                    e[0] == pywbem.CIM_ERR_INVALID_CLASS:
                     flag_fc_support = False
 
-            # Even CIM_EthernetPort is the contral class of iSCSI Target
-            # Ports profile, but that class is optional. :(
-            # We use CIM_iSCSIProtocolEndpoint as it's a start point we are
-            # using in our code of target_ports().
             try:
-                self._enumerate('CIM_iSCSIProtocolEndpoint')
+                self._cim_iscsi_pg_of(cim_sys_path)
             except CIMError as e:
                 if e[0] == pywbem.CIM_ERR_NOT_SUPPORTED or \
                    e[0] == pywbem.CIM_ERR_INVALID_CLASS:
@@ -953,11 +973,100 @@ class Smis(IStorageAreaNetwork):
             cap.set(Capabilities.TARGET_PORTS)
         return
 
+    def _group_mask_map_cap_set(self, cim_sys_path, cap):
+        """
+        We set caps for these methods recording to 1.5+ Group M&M profile:
+            access_groups()
+            access_groups_granted_to_volume()
+            volumes_accessible_by_access_group()
+            access_group_initiator_add()
+            access_group_initiator_delete()
+            volume_mask()
+            volume_unmask()
+            access_group_create()
+            access_group_delete()
+        """
+        # These are mandatory in SNIA SMI-S.
+        # We are not in the position of SNIA SMI-S certification.
+        cap.set(Capabilities.ACCESS_GROUPS)
+        cap.set(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME)
+        cap.set(Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP)
+        cap.set(Capabilities.VOLUME_MASK)
+        if self._fc_tgt_is_supported(cim_sys_path):
+            cap.set(Capabilities.ACCESS_GROUP_INITIATOR_ADD_WWPN)
+            cap.set(Capabilities.ACCESS_GROUP_CREATE_WWPN)
+        if self._iscsi_tgt_is_supported(cim_sys_path):
+            cap.set(Capabilities.ACCESS_GROUP_INITIATOR_ADD_ISCSI_IQN)
+            cap.set(Capabilities.ACCESS_GROUP_CREATE_ISCSI_IQN)
+
+        # RemoveMembers is also mandatory, but we require target provider
+        # to support empty InitiatorMaskingGroup.
+        cim_gmm_cap_pros = [
+            'SupportedInitiatorGroupFeatures',
+            'SupportedAsynchronousActions',
+            'SupportedSynchronousActions',
+            'SupportedDeviceGroupFeatures']
+
+        cim_gmm_cap = self._c.Associators(
+            cim_sys_path,
+            AssocClass='CIM_ElementCapabilities',
+            ResultClass='CIM_GroupMaskingMappingCapabilities',
+            PropertyList=cim_gmm_cap_pros)[0]
+
+        if DMTF.GMM_CAP_INIT_MG_ALLOW_EMPTY in \
+           cim_gmm_cap['SupportedInitiatorGroupFeatures']:
+            cap.set(Capabilities.ACCESS_GROUP_INITIATOR_DELETE)
+
+        # if empty dev group in spc is allowed, RemoveMembers() is enough
+        # to do volume_unamsk(). RemoveMembers() is mandatory.
+        if DMTF.GMM_CAP_DEV_MG_ALLOW_EMPTY_W_SPC in \
+           cim_gmm_cap['SupportedDeviceGroupFeatures']:
+            cap.set(Capabilities.VOLUME_UNMASK)
+
+        # DeleteMaskingView() is optional, this is required by volume_unmask()
+        # when empty dev group in spc not allowed.
+        elif ((DMTF.GMM_CAP_DELETE_SPC in
+               cim_gmm_cap['SupportedSynchronousActions']) or
+              (DMTF.GMM_CAP_DELETE_SPC in
+               cim_gmm_cap['SupportedAsynchronousActions'])):
+            cap.set(Capabilities.VOLUME_UNMASK)
+
+        # DeleteGroup is optional, this is required by access_group_delete()
+        if ((DMTF.GMM_CAP_DELETE_GROUP in
+             cim_gmm_cap['SupportedSynchronousActions']) or
+            (DMTF.GMM_CAP_DELETE_GROUP in
+             cim_gmm_cap['SupportedAsynchronousActions'])):
+            cap.set(Capabilities.ACCESS_GROUP_DELETE)
+        return None
+
     @handle_cim_errors
     def capabilities(self, system, flags=0):
-        cap = self._common_capabilities(system)
-        self._pcm_supported_capabilities(system, cap)
-        self._tgt_port_capabilities(system, cap)
+
+        cim_sys = self._get_cim_instance_by_id(
+            'System', system.id, raise_error=True)
+
+        cap = Capabilities()
+
+        # 'Block Services Package' profile
+        self._bsp_cap_set(cim_sys.path, cap)
+
+        # 'Disk Drive Lite' profile
+        self._disk_cap_set(cim_sys.path, cap)
+
+        # 'Masking and Mapping' and 'Group Masking and Mapping' profiles
+        mask_type = self._mask_type()
+        if cim_sys.path.classname == 'Clar_StorageSystem':
+            mask_type = Smis.MASK_TYPE_MASK
+
+        if mask_type == Smis.MASK_TYPE_GROUP:
+            self._group_mask_map_cap_set(cim_sys.path, cap)
+        else:
+            self._mask_map_cap_set(cim_sys.path, cap)
+
+        # 'FC Target Ports' and 'iSCSI Target Ports' profiles
+        self._tgt_cap_set(cim_sys.path, cap)
+
+        self._rs_supported_capabilities(system, cap)
         return cap
 
     @handle_cim_errors
@@ -2250,13 +2359,27 @@ class Smis(IStorageAreaNetwork):
             cim_sys.path,
             AssocClass='CIM_ElementCapabilities',
             ResultClass='CIM_GroupMaskingMappingCapabilities',
-            PropertyList=['SupportedDeviceGroupFeatures'])[0]
+            PropertyList=['SupportedDeviceGroupFeatures',
+                          'SupportedSynchronousActions',
+                          'SupportedAsynchronousActions'])[0]
 
         flag_empty_dev_in_spc = False
 
         if DMTF.GMM_CAP_DEV_MG_ALLOW_EMPTY_W_SPC in \
            cim_gmm_cap['SupportedDeviceGroupFeatures']:
             flag_empty_dev_in_spc = True
+
+        if flag_empty_dev_in_spc is False:
+            if ((DMTF.GMM_CAP_DELETE_SPC not in
+                 cim_gmm_cap['SupportedSynchronousActions']) and
+                (DMTF.GMM_CAP_DELETE_SPC not in
+                 cim_gmm_cap['SupportedAsynchronousActions'])):
+                raise LsmError(
+                    ErrorNumber.NO_SUPPORT,
+                    "volume_unmask() not supported. It requires one of these "
+                    "1. support of DeleteMaskingView(). 2. allowing empty "
+                    "DeviceMaskingGroup in SPC. But target SMI-S provider "
+                    "does not support any of these")
 
         cim_gmm_path = self._get_cim_service_path(
             cim_sys.path, 'CIM_GroupMaskingMappingService')
@@ -2419,7 +2542,7 @@ class Smis(IStorageAreaNetwork):
         except CIMError as ce:
             error_code = tuple(ce)[0]
             if error_code == pywbem.CIM_ERR_INVALID_CLASS or \
-                    error_code == pywbem.CIM_ERR_INVALID_PARAMETER:
+               error_code == pywbem.CIM_ERR_INVALID_PARAMETER:
                 raise LsmError(ErrorNumber.NO_SUPPORT,
                                'AccessGroup is not supported ' +
                                'by this array')
@@ -2829,7 +2952,8 @@ class Smis(IStorageAreaNetwork):
             raise LsmError(ErrorNumber.NO_SUPPORT,
                            "EMC VNX/CX require WWNN defined when adding "
                            "new initiator which is not supported by LSM yet. "
-                           "Please do it via EMC vendor specific tools.")
+                           "Please do it via EMC vendor specific tools. "
+                           "EMC VNX does not support adding iSCSI IQN neither")
 
         cim_spc = self._cim_spc_of_id(access_group.id, raise_error=True)
 
@@ -4120,14 +4244,20 @@ class Smis(IStorageAreaNetwork):
         else:
             return cim_syss
 
-    def _fc_tgt_is_supported(self):
+    def _fc_tgt_is_supported(self, cim_sys_path):
         """
         Return True if FC Target Port 1.4+ profile is supported.
-        For fallback_mode, always return True.
-        Return False else.
+        For fallback_mode, we call self._cim_fc_tgt_of() and do try-except
         """
         if self.fallback_mode:
+            try:
+                self._cim_fc_tgt_of(cim_sys_path)
+            except CIMError as e:
+                if e[0] == pywbem.CIM_ERR_NOT_SUPPORTED or \
+                   e[0] == pywbem.CIM_ERR_INVALID_CLASS:
+                    return False
             return True
+
         flag_fc_support = self._profile_is_supported(
             SNIA.FC_TGT_PORT_PROFILE,
             SNIA.SMIS_SPEC_VER_1_4,
@@ -4148,23 +4278,31 @@ class Smis(IStorageAreaNetwork):
         else:
             return False
 
-    def _iscsi_tgt_is_supported(self):
+    def _iscsi_tgt_is_supported(self, cim_sys_path):
         """
         Return True if FC Target Port 1.4+ profile is supported.
-        For fallback_mode, always return True.
-        Return False else.
+        For fallback_mode, we call self._cim_iscsi_pg_of() and do try-except
+        For fallback_mode:
+        Even CIM_EthernetPort is the contral class of iSCSI Target
+        Ports profile, but that class is optional. :(
+        We use CIM_iSCSIProtocolEndpoint as it's a start point we are
+        using in our code of target_ports().
         """
         if self.fallback_mode:
+            try:
+                self._cim_iscsi_pg_of(cim_sys_path)
+            except CIMError as e:
+                if e[0] == pywbem.CIM_ERR_NOT_SUPPORTED or \
+                   e[0] == pywbem.CIM_ERR_INVALID_CLASS:
+                    return False
             return True
-        flag_iscsi_support = self._profile_is_supported(
-            SNIA.ISCSI_TGT_PORT_PROFILE,
-            SNIA.SMIS_SPEC_VER_1_4,
-            strict=False,
-            raise_error=False)
-        if flag_iscsi_support:
+
+        if self._profile_is_supported(SNIA.ISCSI_TGT_PORT_PROFILE,
+                                      SNIA.SMIS_SPEC_VER_1_4,
+                                      strict=False,
+                                      raise_error=False):
             return True
-        else:
-            return False
+        return False
 
     def _multi_sys_is_supported(self):
         """
@@ -4466,17 +4604,6 @@ class Smis(IStorageAreaNetwork):
     @handle_cim_errors
     def target_ports(self, search_key=None, search_value=None, flags=0):
         rc = []
-        flag_fc_support = self._fc_tgt_is_supported()
-        flag_iscsi_support = self._iscsi_tgt_is_supported()
-
-        if flag_fc_support is False and flag_iscsi_support is False:
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "Target SMI-S provider does not support any of"
-                           "these profiles: '%s %s', '%s %s'"
-                           % (SNIA.SMIS_SPEC_VER_1_4,
-                              SNIA.FC_TGT_PORT_PROFILE,
-                              SNIA.SMIS_SPEC_VER_1_4,
-                              SNIA.ISCSI_TGT_PORT_PROFILE))
 
         cim_fc_tgt_pros = ['UsageRestriction', 'ElementName', 'SystemName',
                            'PermanentAddress', 'PortDiscriminator',
@@ -4486,6 +4613,21 @@ class Smis(IStorageAreaNetwork):
             property_list=self._property_list_of_id('System'))
         for cim_sys in cim_syss:
             system_id = self._sys_id(cim_sys)
+            flag_fc_support = self._fc_tgt_is_supported(cim_sys.path)
+            flag_iscsi_support = self._iscsi_tgt_is_supported(cim_sys.path)
+
+            # Assuming: if one system does not support target_ports(),
+            # all systems from the same provider will not support
+            # target_ports().
+            if flag_fc_support is False and flag_iscsi_support is False:
+                raise LsmError(ErrorNumber.NO_SUPPORT,
+                               "Target SMI-S provider does not support any of"
+                               "these profiles: '%s %s', '%s %s'"
+                               % (SNIA.SMIS_SPEC_VER_1_4,
+                                  SNIA.FC_TGT_PORT_PROFILE,
+                                  SNIA.SMIS_SPEC_VER_1_4,
+                                  SNIA.ISCSI_TGT_PORT_PROFILE))
+
             if flag_fc_support:
                 # CIM_FCPort might be not belong to root cim_sys
                 # In that case, CIM_FCPort['SystemName'] will not be
@@ -4564,7 +4706,7 @@ class Smis(IStorageAreaNetwork):
             cim_job_path = out['Job']
             loop_counter = 0
             job_pros = ['JobState', 'PercentComplete', 'ErrorDescription',
-                         'OperationalStatus']
+                        'OperationalStatus']
             cim_xxxs_path = []
             while(loop_counter <= Smis._INVOKE_MAX_LOOP_COUNT):
                 cim_job = self._c.GetInstance(cim_job_path,
@@ -4572,7 +4714,7 @@ class Smis(IStorageAreaNetwork):
                                               LocalOnly=False)
                 job_state = cim_job['JobState']
                 if job_state in (Smis.JS_NEW, Smis.JS_STARTING,
-                                  Smis.JS_RUNNING):
+                                 Smis.JS_RUNNING):
                     loop_counter += 1
                     time.sleep(Smis._INVOKE_CHECK_INTERVAL)
                     continue
@@ -4696,8 +4838,18 @@ class Smis(IStorageAreaNetwork):
                            "SMI-S plugin only support creating FC/FCoE WWPN "
                            "and iSCSI AccessGroup")
 
-        flag_fc_support = self._fc_tgt_is_supported()
-        flag_iscsi_support = self._iscsi_tgt_is_supported()
+        cim_sys = self._get_cim_instance_by_id(
+            'System', system.id, raise_error=True)
+        if cim_sys.path.classname == 'Clar_StorageSystem':
+            # EMC VNX/CX does not support Group M&M, which incorrectly exposed
+            # in CIM_RegisteredProfile
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                           "access_group_create() is not supported by "
+                           "EMC VNX/CX which lacks the support of SNIA 1.5+ "
+                           "Group Masking and Mapping profile")
+
+        flag_fc_support = self._fc_tgt_is_supported(cim_sys.path)
+        flag_iscsi_support = self._iscsi_tgt_is_supported(cim_sys.path)
 
         if init_type == AccessGroup.INIT_TYPE_WWPN and not flag_fc_support:
             raise LsmError(ErrorNumber.NO_SUPPORT,
@@ -4711,15 +4863,6 @@ class Smis(IStorageAreaNetwork):
                            "Target SMI-S provider does not support "
                            "iSCSI target port, which not allow creating "
                            "iSCSI IQN access group")
-
-        cim_sys = self._get_cim_instance_by_id('System', system.id)
-        if cim_sys.path.classname == 'Clar_StorageSystem':
-            # EMC VNX/CX does not support Group M&M, which incorrectly exposed
-            # in CIM_RegisteredProfile
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "access_group_create() is not supported by "
-                           "EMC VNX/CX which lacks the support of SNIA 1.5+ "
-                           "Group Masking and Mapping profile")
 
         cim_init = self._cim_init_check_or_create(
             cim_sys.path, init_id, init_type)
