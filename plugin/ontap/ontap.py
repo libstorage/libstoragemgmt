@@ -418,9 +418,11 @@ class Ontap(IStorageAreaNetwork, INfs):
         cap.set(Capabilities.VOLUME_MASK)
         cap.set(Capabilities.VOLUME_UNMASK)
         cap.set(Capabilities.ACCESS_GROUPS)
-        cap.set(Capabilities.ACCESS_GROUP_CREATE)
+        cap.set(Capabilities.ACCESS_GROUP_CREATE_WWPN)
+        cap.set(Capabilities.ACCESS_GROUP_CREATE_ISCSI_IQN)
         cap.set(Capabilities.ACCESS_GROUP_DELETE)
-        cap.set(Capabilities.ACCESS_GROUP_INITIATOR_ADD)
+        cap.set(Capabilities.ACCESS_GROUP_INITIATOR_ADD_WWPN)
+        cap.set(Capabilities.ACCESS_GROUP_INITIATOR_ADD_IQN)
         cap.set(Capabilities.ACCESS_GROUP_INITIATOR_DELETE)
         cap.set(Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP)
         cap.set(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME)
@@ -783,7 +785,6 @@ class Ontap(IStorageAreaNetwork, INfs):
                            "(not 1) count of na_ag: %s" % na_ags)
 
         return self._access_group(na_ags[0])
-
 
     @handle_ontap_errors
     def volumes_accessible_by_access_group(self, access_group, flags=0):
