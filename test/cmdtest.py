@@ -110,12 +110,13 @@ def parse(out):
     rc = []
     for line in out.split('\n'):
         elem = line.split(sep)
-
+        cleaned_elem = []
         for e in elem:
             e = e.strip()
+            cleaned_elem.append(e)
 
-        if len(elem) > 1:
-            rc.append(elem)
+        if len(cleaned_elem) > 1:
+            rc.append(cleaned_elem)
     return rc
 
 
@@ -439,12 +440,12 @@ def test_display(cap, system_id):
     status for each of them
     """
     to_test = ['SYSTEMS']
+    to_test.append('POOLS')
 
-    if cap['BLOCK_SUPPORT']:
-        to_test.append('POOLS')
+    if cap['VOLUMES']:
         to_test.append('VOLUMES')
 
-    if cap['FS_SUPPORT'] and cap['FS']:
+    if cap['FS']:
         to_test.append("FS")
 
     if cap['EXPORTS']:
@@ -589,10 +590,10 @@ def test_mapping(cap, system_id):
     iqn1 = random_iqn()
     iqn2 = random_iqn()
 
-    if cap['ACCESS_GROUP_CREATE']:
+    if cap['ACCESS_GROUP_CREATE_ISCSI_IQN']:
         ag_id = access_group_create(iqn1, system_id)
 
-        if cap['ACCESS_GROUP_ADD_INITIATOR']:
+        if cap['ACCESS_GROUP_INITIATOR_ADD_ISCSI_IQN']:
             access_group_initiator_add(ag_id, iqn2)
 
         if cap['VOLUME_MASK'] and cap['VOLUME_UNMASK']:
@@ -613,7 +614,7 @@ def test_mapping(cap, system_id):
             if cap['VOLUME_DELETE']:
                 volume_delete(vol_id)
 
-            if cap['ACCESS_GROUP_DEL_INITIATOR']:
+            if cap['ACCESS_GROUP_INITIATOR_DELETE']:
                 access_group_remove_init(ag_id, iqn1)
                 access_group_remove_init(ag_id, iqn2)
 
@@ -648,6 +649,7 @@ def create_all(cap, system_id):
     test_fs_creation(cap, system_id)
     test_nfs(cap, system_id)
 
+
 def search_test(cap, system_id):
     print "\nTesting query with search ID\n"
     sys_id_filter = "--sys='%s'" % system_id
@@ -662,7 +664,7 @@ def search_test(cap, system_id):
 
     disk_id_filter = "--disk='%s'" % test_disk_id
 
-    ag_id = access_group_create(iqn[0], system_id)
+    ag_id = access_group_create(random_iqn(), system_id)
     ag_id_filter = "--ag='%s'" % ag_id
 
     fs_id = fs_create(pool_id)

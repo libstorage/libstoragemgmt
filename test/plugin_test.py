@@ -614,7 +614,14 @@ class TestPlugin(unittest.TestCase):
                 if len(ag_list):
                     vol = self._volume_create(s.id)[0]
                     self.assertTrue(vol is not None)
-                    ag = ag_list[0]
+                    chose_ag = None
+                    for ag in ag_list:
+                        if len(ag.init_ids) >= 1:
+                            chose_ag = ag
+                            break
+                    if chose_ag is None:
+                        raise Exception("No access group with 1+ member "
+                                        "found, cannot do volume mask test")
 
                     if vol is not None:
                         self.c.volume_mask(ag, vol)
@@ -623,31 +630,22 @@ class TestPlugin(unittest.TestCase):
                         self._masking_state(cap, ag, vol, False)
                         self._volume_delete(vol)
 
-    def _create_access_group(self, cap, s):
+    def _create_access_group(self, cap, s, init_type):
         ag_created = None
 
-        # Without this information we would need to systematically go through
-        # different port types trying to create an access group, which we
-        # can do, but not until we need too.
-        if not supported(cap, [lsm.Capabilities.TARGET_PORTS]):
-            return None
+        if init_type == lsm.AccessGroup.INIT_TYPE_ISCSI_IQN:
+            ag_created = self.c.access_group_create(
+                rs('access_group'),
+                'iqn.1994-05.com.domain:01.89bd01',
+                lsm.AccessGroup.INIT_TYPE_ISCSI_IQN, s)
 
-        tps = self.c.target_ports('system_id', s.id)
-        if len(tps):
-            tp = tps[0]
+        elif init_type == lsm.AccessGroup.INIT_TYPE_WWPN:
+            ag_created = self.c.access_group_create(
+                rs('access_group'),
+                '500A0986994B8DC5',
+                lsm.AccessGroup.INIT_TYPE_WWPN, s)
 
-            if tp.port_type == lsm.TargetPort.PORT_TYPE_FC:
-                ag_created = self.c.access_group_create(
-                    rs('access_group'),
-                    '500A0986994B8DC5',
-                    lsm.AccessGroup.INIT_TYPE_WWPN, s.id)
-            if tp.port_type == lsm.TargetPort.PORT_TYPE_ISCSI:
-                ag_created = self.c.access_group_create(
-                    rs('access_group'),
-                    'iqn.1994-05.com.domain:01.89bd01',
-                    lsm.AccessGroup.INIT_TYPE_ISCSI_IQN, s.id)
-
-            self.assertTrue(ag_created is not None)
+        self.assertTrue(ag_created is not None)
 
         if ag_created is not None:
             ag_list = self.c.access_groups()
@@ -667,11 +665,21 @@ class TestPlugin(unittest.TestCase):
                                          "access group list!")
 
     def _test_ag_create_delete(self, cap, s):
+        ag = None
         if supported(cap, [lsm.Capabilities.ACCESS_GROUPS,
-                           lsm.Capabilities.ACCESS_GROUP_CREATE]):
-            ag = self._create_access_group(cap, s)
+                           lsm.Capabilities.ACCESS_GROUP_CREATE_ISCSI_IQN]):
+            ag = self._create_access_group(
+                cap, s, lsm.AccessGroup.INIT_TYPE_ISCSI_IQN)
             if ag is not None and \
-                    supported(cap, [lsm.Capabilities.ACCESS_GROUP_DELETE]):
+               supported(cap, [lsm.Capabilities.ACCESS_GROUP_DELETE]):
+                self._delete_access_group(ag)
+
+        if supported(cap, [lsm.Capabilities.ACCESS_GROUPS,
+                            lsm.Capabilities.ACCESS_GROUP_CREATE_WWPN]):
+            ag = self._create_access_group(
+                cap, s, lsm.AccessGroup.INIT_TYPE_WWPN)
+            if ag is not None and \
+               supported(cap, [lsm.Capabilities.ACCESS_GROUP_DELETE]):
                 self._delete_access_group(ag)
 
     def test_access_group_create_delete(self):
@@ -729,11 +737,19 @@ class TestPlugin(unittest.TestCase):
             if supported(cap, [lsm.Capabilities.ACCESS_GROUPS]):
                 ag_list = self.c.access_groups('system_id', s.id)
 
-                if len(ag_list) == 0 and \
-                        supported(cap, [lsm.Capabilities.ACCESS_GROUP_CREATE,
-                                        lsm.Capabilities.ACCESS_GROUP_DELETE]):
-                    ag_to_delete = self._create_access_group(cap, s)
-                    ag_list = self.c.access_groups('system_id', s.id)
+                if len(ag_list) == 0:
+                    if supported(
+                        cap, [lsm.Capabilities.ACCESS_GROUP_CREATE_ISCSI_IQN,
+                              lsm.Capabilities.ACCESS_GROUP_DELETE]):
+                        ag_to_delete = self._create_access_group(
+                            cap, s, lsm.AccessGroup.INIT_TYPE_ISCSI_IQN)
+                        ag_list = self.c.access_groups('system_id', s.id)
+                    if supported(
+                        cap, [lsm.Capabilities.ACCESS_GROUP_CREATE_WWPN,
+                              lsm.Capabilities.ACCESS_GROUP_DELETE]):
+                        ag_to_delete = self._create_access_group(
+                            cap, s, lsm.AccessGroup.INIT_TYPE_WWPN)
+                        ag_list = self.c.access_groups('system_id', s.id)
 
                 if len(ag_list):
                     # Try and find an initiator group that has a usable access
@@ -745,7 +761,14 @@ class TestPlugin(unittest.TestCase):
                             break
 
                     if supported(cap, [lsm.Capabilities.
-                                       ACCESS_GROUP_INITIATOR_ADD]):
+                                       ACCESS_GROUP_INITIATOR_ADD_WWPN]):
+                        init_id = self._ag_init_add(ag)
+                        if supported(cap, [lsm.Capabilities.
+                                            ACCESS_GROUP_INITIATOR_DELETE]):
+                            self._ag_init_delete(ag, init_id)
+
+                    if supported(cap, [lsm.Capabilities.
+                                       ACCESS_GROUP_INITIATOR_ADD_ISCSI_IQN]):
                         init_id = self._ag_init_add(ag)
                         if supported(cap, [lsm.Capabilities.
                                             ACCESS_GROUP_INITIATOR_DELETE]):
