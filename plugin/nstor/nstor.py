@@ -281,9 +281,9 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         c.set(Capabilities.VOLUME_MASK)
         c.set(Capabilities.VOLUME_UNMASK)
         c.set(Capabilities.ACCESS_GROUPS)
-        c.set(Capabilities.ACCESS_GROUP_CREATE)
+        c.set(Capabilities.ACCESS_GROUP_CREATE_ISCSI_IQN)
         c.set(Capabilities.ACCESS_GROUP_DELETE)
-        c.set(Capabilities.ACCESS_GROUP_INITIATOR_ADD)
+        c.set(Capabilities.ACCESS_GROUP_INITIATOR_ADD_ISCSI_IQN)
         c.set(Capabilities.ACCESS_GROUP_INITIATOR_DELETE)
         c.set(Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP)
         c.set(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME)
@@ -743,7 +743,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                            (access_group.name, access_group.id))
 
         return self._request("list_hostgroup_members", "stmf",
-                                 [access_group.name])
+                             [access_group.name])
 
     @handle_nstor_errors
     def access_group_initiator_add(self, access_group, init_id, init_type,
