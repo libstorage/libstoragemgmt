@@ -743,11 +743,9 @@ class Capabilities(IData):
         SUPPORTED           # Supported
     ) = (0, 1)
 
-    _NUM = 512
+    _NUM = 512              # Indicate the maximum capability integer
 
-    #Array wide
-    BLOCK_SUPPORT = 0       # Array handles block operations
-    FS_SUPPORT = 1          # Array handles file system
+    _CAP_NUM_BEGIN = 20     # Indicate the first capability integer
 
     #Block operations
     VOLUMES = 20
@@ -773,9 +771,10 @@ class Capabilities(IData):
     VOLUME_MASK = 36
     VOLUME_UNMASK = 37
     ACCESS_GROUPS = 38
-    ACCESS_GROUP_CREATE = 39
+    ACCESS_GROUP_CREATE_WWPN = 39
     ACCESS_GROUP_DELETE = 40
-    ACCESS_GROUP_INITIATOR_ADD = 41
+    ACCESS_GROUP_INITIATOR_ADD_WWPN = 41
+    # For empty access group, this indicate it can add WWPN into it.
     ACCESS_GROUP_INITIATOR_DELETE = 42
 
     VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP = 43
@@ -783,6 +782,13 @@ class Capabilities(IData):
 
     VOLUME_CHILD_DEPENDENCY = 45
     VOLUME_CHILD_DEPENDENCY_RM = 46
+
+    ACCESS_GROUP_CREATE_ISCSI_IQN = 47
+    ACCESS_GROUP_INITIATOR_ADD_ISCSI_IQN = 48
+    # For empty access group, this indicate it can add iSCSI IQN into it.
+
+    ACCESS_GROUP_INITIATOR_ADD_MIX = 49
+    # Allowing add different initiator type than existing one
 
     VOLUME_ISCSI_CHAP_AUTHENTICATION = 53
 
@@ -798,8 +804,8 @@ class Capabilities(IData):
     FS_SNAPSHOTS = 106
     FS_SNAPSHOT_CREATE = 107
     FS_SNAPSHOT_DELETE = 109
-    FS_SNAPSHOT_REVERT = 110
-    FS_SNAPSHOT_REVERT_SPECIFIC_FILES = 111
+    FS_SNAPSHOT_RESTORE = 110
+    FS_SNAPSHOT_RESTORE_SPECIFIC_FILES = 111
     FS_CHILD_DEPENDENCY = 112
     FS_CHILD_DEPENDENCY_RM = 113
     FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES = 114
@@ -840,8 +846,10 @@ class Capabilities(IData):
     ACCESS_GROUPS_QUICK_SEARCH = 213
     FS_QUICK_SEARCH = 214
     NFS_EXPORTS_QUICK_SEARCH = 215
-    TARGET_PORTS = 215
+    TARGET_PORTS = 216
     TARGET_PORTS_QUICK_SEARCH = 217
+
+    DISKS = 220
 
     def _to_dict(self):
         rc = {'class': self.__class__.__name__,
@@ -860,9 +868,39 @@ class Capabilities(IData):
         return False
 
     def get(self, capability):
-        if capability > len(self._cap):
+        if capability >= len(self._cap):
             return Capabilities.UNSUPPORTED
         return self._cap[capability]
+
+    @staticmethod
+    def _lsm_cap_to_str_dict():
+        """
+        Return a dict containing all valid capability:
+            integer => string name
+        """
+        lsm_cap_to_str_conv = dict()
+        for cap_str, cap_int in Capabilities.__dict__.items():
+            if type(cap_str) == str and type(cap_int) == int and \
+                    cap_str[0] != '_' and \
+                    Capabilities._CAP_NUM_BEGIN <= cap_int <= Capabilities._NUM:
+                lsm_cap_to_str_conv[cap_int] = cap_str
+        return lsm_cap_to_str_conv
+
+    def get_supported(self, all_cap=False):
+        """
+        Returns a hash of the supported capabilities in the form
+        constant, name
+        """
+        all_caps = Capabilities._lsm_cap_to_str_dict()
+
+        if all_cap:
+            return all_caps
+
+        rc = {}
+        for i in range(0, len(self._cap)):
+            if self._cap[i] == Capabilities.SUPPORTED:
+                rc[i] = all_caps[i]
+        return rc
 
     def set(self, capability, value=SUPPORTED):
         self._cap[capability] = value
