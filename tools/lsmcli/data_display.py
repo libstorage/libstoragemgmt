@@ -679,14 +679,14 @@ class DisplayData(object):
         else:
             return None
         if display_way == DisplayData.DISPLAY_WAY_SCRIPT:
-            DisplayData._display_data_script_way(data_dict_list, splitter)
+            DisplayData.display_data_script_way(data_dict_list, splitter)
         elif display_way == DisplayData.DISPLAY_WAY_COLUMN:
             DisplayData._display_data_column_way(
                 data_dict_list, splitter, flag_with_header)
         return True
 
     @staticmethod
-    def _display_data_script_way(data_dict_list, splitter):
+    def display_data_script_way(data_dict_list, splitter):
         key_column_width = 1
         value_column_width = 1
 

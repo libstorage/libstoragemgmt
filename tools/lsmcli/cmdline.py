@@ -22,6 +22,7 @@ import getpass
 import time
 import tty
 import termios
+from collections import OrderedDict
 
 from argparse import ArgumentParser
 from argparse import RawTextHelpFormatter
@@ -914,8 +915,8 @@ class CmdLine:
                         self.c.access_groups_granted_to_volume(lsm_vol))
                 else:
                     return self.display_data([])
-            elif search_key and \
-               search_key not in AccessGroup.SUPPORTED_SEARCH_KEYS:
+            elif (search_key and
+                  search_key not in AccessGroup.SUPPORTED_SEARCH_KEYS):
                 raise ArgError("Search key '%s' is not supported by "
                                "Access Group listing" % search_key)
             self.display_data(
@@ -1076,102 +1077,23 @@ class CmdLine:
         s = _get_item(self.c.systems(), args.sys, "system id")
 
         cap = self.c.capabilities(s)
-        self._cp("BLOCK_SUPPORT", cap.supported(Capabilities.BLOCK_SUPPORT))
-        self._cp("FS_SUPPORT", cap.supported(Capabilities.FS_SUPPORT))
-        self._cp("VOLUMES", cap.supported(Capabilities.VOLUMES))
-        self._cp("VOLUME_CREATE", cap.supported(Capabilities.VOLUME_CREATE))
-        self._cp("VOLUME_RESIZE", cap.supported(Capabilities.VOLUME_RESIZE))
-        self._cp("VOLUME_REPLICATE",
-                 cap.supported(Capabilities.VOLUME_REPLICATE))
-        self._cp("VOLUME_REPLICATE_CLONE",
-                 cap.supported(Capabilities.VOLUME_REPLICATE_CLONE))
-        self._cp("VOLUME_REPLICATE_COPY",
-                 cap.supported(Capabilities.VOLUME_REPLICATE_COPY))
-        self._cp("VOLUME_REPLICATE_MIRROR_ASYNC",
-                 cap.supported(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC))
-        self._cp("VOLUME_REPLICATE_MIRROR_SYNC",
-                 cap.supported(Capabilities.VOLUME_REPLICATE_MIRROR_SYNC))
-        self._cp("VOLUME_COPY_RANGE_BLOCK_SIZE",
-                 cap.supported(Capabilities.VOLUME_COPY_RANGE_BLOCK_SIZE))
-        self._cp("VOLUME_COPY_RANGE",
-                 cap.supported(Capabilities.VOLUME_COPY_RANGE))
-        self._cp("VOLUME_COPY_RANGE_CLONE",
-                 cap.supported(Capabilities.VOLUME_COPY_RANGE_CLONE))
-        self._cp("VOLUME_COPY_RANGE_COPY",
-                 cap.supported(Capabilities.VOLUME_COPY_RANGE_COPY))
-        self._cp("VOLUME_DELETE", cap.supported(Capabilities.VOLUME_DELETE))
-        self._cp("VOLUME_ONLINE", cap.supported(Capabilities.VOLUME_ONLINE))
-        self._cp("VOLUME_OFFLINE", cap.supported(Capabilities.VOLUME_OFFLINE))
-        self._cp("VOLUME_THIN",
-                 cap.supported(Capabilities.VOLUME_THIN))
-        self._cp("VOLUME_ISCSI_CHAP_AUTHENTICATION",
-                 cap.supported(Capabilities.VOLUME_ISCSI_CHAP_AUTHENTICATION))
-        self._cp("VOLUME_MASK",
-                 cap.supported(Capabilities.VOLUME_MASK))
-        self._cp("VOLUME_UNMASK",
-                 cap.supported(Capabilities.VOLUME_UNMASK))
-        self._cp("ACCESS_GROUPS",
-                 cap.supported(Capabilities.ACCESS_GROUPS))
-        self._cp("ACCESS_GROUP_CREATE",
-                 cap.supported(Capabilities.ACCESS_GROUP_CREATE))
-        self._cp("ACCESS_GROUP_DELETE",
-                 cap.supported(Capabilities.ACCESS_GROUP_DELETE))
-        self._cp("ACCESS_GROUP_ADD_INITIATOR",
-                 cap.supported(Capabilities.ACCESS_GROUP_INITIATOR_ADD))
-        self._cp("ACCESS_GROUP_DEL_INITIATOR",
-                 cap.supported(Capabilities.ACCESS_GROUP_INITIATOR_DELETE))
-        self._cp("VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP",
-                 cap.supported(
-                     Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP))
-        self._cp("ACCESS_GROUPS_GRANTED_TO_VOLUME",
-                 cap.supported(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME))
-        self._cp("VOLUME_CHILD_DEPENDENCY",
-                 cap.supported(Capabilities.VOLUME_CHILD_DEPENDENCY))
-        self._cp("VOLUME_CHILD_DEPENDENCY_RM",
-                 cap.supported(Capabilities.VOLUME_CHILD_DEPENDENCY_RM))
-        self._cp("FS", cap.supported(Capabilities.FS))
-        self._cp("FS_DELETE", cap.supported(Capabilities.FS_DELETE))
-        self._cp("FS_RESIZE", cap.supported(Capabilities.FS_RESIZE))
-        self._cp("FS_CREATE", cap.supported(Capabilities.FS_CREATE))
-        self._cp("FS_CLONE", cap.supported(Capabilities.FS_CLONE))
-        self._cp("FILE_CLONE", cap.supported(Capabilities.FILE_CLONE))
-        self._cp("FS_SNAPSHOTS", cap.supported(Capabilities.FS_SNAPSHOTS))
-        self._cp("FS_SNAPSHOT_CREATE",
-                 cap.supported(Capabilities.FS_SNAPSHOT_CREATE))
-        self._cp("FS_SNAPSHOT_DELETE",
-                 cap.supported(Capabilities.FS_SNAPSHOT_DELETE))
-        self._cp("FS_SNAPSHOT_REVERT",
-                 cap.supported(Capabilities.FS_SNAPSHOT_REVERT))
-        self._cp("FS_SNAPSHOT_REVERT_SPECIFIC_FILES",
-                 cap.supported(Capabilities.FS_SNAPSHOT_REVERT_SPECIFIC_FILES))
-        self._cp("FS_CHILD_DEPENDENCY",
-                 cap.supported(Capabilities.FS_CHILD_DEPENDENCY))
-        self._cp("FS_CHILD_DEPENDENCY_RM",
-                 cap.supported(Capabilities.FS_CHILD_DEPENDENCY_RM))
-        self._cp("FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES", cap.supported(
-                 Capabilities.FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES))
-        self._cp("EXPORT_AUTH", cap.supported(Capabilities.EXPORT_AUTH))
-        self._cp("EXPORTS", cap.supported(Capabilities.EXPORTS))
-        self._cp("EXPORT_FS", cap.supported(Capabilities.EXPORT_FS))
-        self._cp("EXPORT_REMOVE", cap.supported(Capabilities.EXPORT_REMOVE))
-        self._cp("EXPORT_CUSTOM_PATH",
-                 cap.supported(Capabilities.EXPORT_CUSTOM_PATH))
-        self._cp("POOLS_QUICK_SEARCH",
-                 cap.supported(Capabilities.POOLS_QUICK_SEARCH))
-        self._cp("VOLUMES_QUICK_SEARCH",
-                 cap.supported(Capabilities.VOLUMES_QUICK_SEARCH))
-        self._cp("DISKS_QUICK_SEARCH",
-                 cap.supported(Capabilities.DISKS_QUICK_SEARCH))
-        self._cp("FS_QUICK_SEARCH",
-                 cap.supported(Capabilities.FS_QUICK_SEARCH))
-        self._cp("ACCESS_GROUPS_QUICK_SEARCH",
-                 cap.supported(Capabilities.ACCESS_GROUPS_QUICK_SEARCH))
-        self._cp("NFS_EXPORTS_QUICK_SEARCH",
-                 cap.supported(Capabilities.NFS_EXPORTS_QUICK_SEARCH))
-        self._cp("TARGET_PORTS",
-                 cap.supported(Capabilities.TARGET_PORTS))
-        self._cp("TARGET_PORTS_QUICK_SEARCH",
-                 cap.supported(Capabilities.TARGET_PORTS_QUICK_SEARCH))
+        sup_caps = sorted(cap.get_supported().values())
+        all_caps = sorted(cap.get_supported(True).values())
+
+        sep = DisplayData.DEFAULT_SPLITTER
+        if self.args.sep is not None:
+            sep = self.args.sep
+
+        cap_data = OrderedDict()
+        # Show support capabilities first
+        for v in sup_caps:
+            cap_data[v] = 'SUPPORTED'
+
+        for v in all_caps:
+            if v not in sup_caps:
+                cap_data[v] = 'UNSUPPORTED'
+
+        DisplayData.display_data_script_way([cap_data], sep)
 
     def plugin_info(self, args):
         desc, version = self.c.plugin_info()
