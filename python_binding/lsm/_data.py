@@ -27,13 +27,6 @@ from json.decoder import WHITESPACE
 from _common import get_class, default_property
 
 
-def get_key(dictionary, value):
-    keys = [k for k, v in dictionary.items() if v == value]
-    if len(keys) > 0:
-        return keys[0]
-    return None
-
-
 class DataEncoder(json.JSONEncoder):
     """
     Custom json encoder for objects derived form ILsmData
@@ -463,10 +456,9 @@ class Pool(IData):
         Convert disk_type to Pool.MEMBER_TYPE_DISK_XXXX
         Will return Pool.MEMBER_TYPE_DISK as failback.
         """
-        key = get_key(Pool._MEMBER_TYPE_2_DISK_TYPE, disk_type)
-        if key or key == 0:
-            return key
-        return Pool.MEMBER_TYPE_DISK
+        # Invert dict. Assumes values are unique.
+        inv_dict = dict((v,k) for k, v in Pool._MEMBER_TYPE_2_DISK_TYPE.iteritems())
+        return inv_dict.get(disk_type, Pool.MEMBER_TYPE_DISK)
 
     THINP_TYPE_UNKNOWN = 0
     THINP_TYPE_THIN = 1

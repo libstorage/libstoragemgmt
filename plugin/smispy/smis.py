@@ -205,13 +205,6 @@ def _dmtf_init_type_to_lsm(cim_init):
     return AccessGroup.INIT_TYPE_UNKNOWN
 
 
-def _get_key(dictionary, value):
-    keys = [k for k, v in dictionary.items() if v == value]
-    if len(keys) > 0:
-        return keys[0]
-    return None
-
-
 def _lsm_tgt_port_type_of_cim_fc_tgt(cim_fc_tgt):
     """
     We are assuming we got CIM_FCPort. Caller should make sure of that.
@@ -230,12 +223,13 @@ def _lsm_tgt_port_type_of_cim_fc_tgt(cim_fc_tgt):
 
 
 def _lsm_init_type_to_dmtf(init_type):
-    key = _get_key(_INIT_TYPE_CONV, init_type)
-    if key is None:
+    # Invert dict. Assumes values are unique.
+    try:
+        inv_dict = dict((v,k) for k, v in _INIT_TYPE_CONV.iteritems())
+        return inv_dict[init_type]
+    except KeyError:
         raise LsmError(ErrorNumber.NO_SUPPORT,
                        "Does not support provided init_type: %d" % init_type)
-    else:
-        return key
 
 
 class SNIA(object):
