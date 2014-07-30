@@ -40,22 +40,15 @@ def out(msg):
         sys.exit(1)
 
 
-def _txt_a(txt, append):
-    if len(txt):
-        return txt + BIT_MAP_STRING_SPLITTER + append
-    else:
-        return append
-
-
 def _bit_map_to_str(bit_map, conv_dict):
-    rc = ''
+    rc = []
     bit_map = int(bit_map)
     for cur_enum in conv_dict.keys():
         if cur_enum & bit_map:
-            rc = _txt_a(rc, conv_dict[cur_enum])
-    if rc == '':
+            rc.append(conv_dict[cur_enum])
+    if len(rc) == 0:
         return 'Unknown(%s)' % hex(bit_map)
-    return rc
+    return BIT_MAP_STRING_SPLITTER.join(rc)
 
 
 def _enum_type_to_str(int_type, conv_dict):
