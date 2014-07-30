@@ -7,7 +7,7 @@ from _common import error, info, LsmError, ErrorLevel, ErrorNumber, \
     common_urllib2_error_handler, size_human_2_size_bytes
 from _data import (Disk, Volume, Pool, System, FileSystem, FsSnapshot,
                    NfsExport, BlockRange, AccessGroup, TargetPort,
-                   Capabilities, txt_a)
+                   Capabilities)
 from _iplugin import IPlugin, IStorageAreaNetwork, INetworkAttachedStorage, \
     INfs
 

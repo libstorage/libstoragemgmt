@@ -27,7 +27,7 @@ from pywbem import CIMError
 
 from lsm import (IStorageAreaNetwork, error, uri_parse, LsmError, ErrorNumber,
                  JobStatus, md5, Pool, Volume, AccessGroup, System,
-                 Capabilities, Disk, txt_a, VERSION, TargetPort,
+                 Capabilities, Disk, VERSION, TargetPort,
                  search_property)
 
 ## Variable Naming scheme:
@@ -3190,7 +3190,7 @@ class Smis(IStorageAreaNetwork):
         Return (status, status_info)
         """
         status = Disk.STATUS_UNKNOWN
-        status_info = ''
+        status_info = []
         dmtf_statuses = cim_disk['OperationalStatus']
         for dmtf_status in dmtf_statuses:
             if dmtf_status in Smis._DMTF_STAUTS_TO_DISK_STATUS.keys():
@@ -3200,10 +3200,8 @@ class Smis(IStorageAreaNetwork):
                 else:
                     status |= lsm_status
             if dmtf_status in Smis._DMTF_STAUTS_TO_DISK_STATUS_INFO.keys():
-                status_info = txt_a(
-                    status_info,
-                    Smis._DMTF_STAUTS_TO_DISK_STATUS_INFO[dmtf_status])
-        return (status, status_info)
+                status_info.append(Smis._DMTF_STAUTS_TO_DISK_STATUS_INFO[dmtf_status])
+        return (status, ", ".join(status_info))
 
     def _new_disk(self, cim_disk, cim_ext):
         """
@@ -3315,7 +3313,7 @@ class Smis(IStorageAreaNetwork):
         Return (status, status_info)
         """
         status = Pool.STATUS_UNKNOWN
-        status_info = ''
+        status_info = []
         dmtf_statuses = cim_pool['OperationalStatus']
         for dmtf_status in dmtf_statuses:
             if dmtf_status in Smis._DMTF_STAUTS_TO_POOL_STATUS.keys():
@@ -3326,10 +3324,8 @@ class Smis(IStorageAreaNetwork):
                 else:
                     status |= lsm_status
             if dmtf_status in Smis._DMTF_STAUTS_TO_POOL_STATUS_INFO.keys():
-                status_info = txt_a(
-                    status_info,
-                    Smis._DMTF_STAUTS_TO_POOL_STATUS_INFO[dmtf_status])
-        return (status, status_info)
+                status_info.append(Smis._DMTF_STAUTS_TO_POOL_STATUS_INFO[dmtf_status])
+        return (status, ", ".join(status_info))
 
     def _find_out_bottom_cexts(self, cim_pool_path, pros_list=None):
         """

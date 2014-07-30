@@ -27,13 +27,6 @@ from json.decoder import WHITESPACE
 from _common import get_class, default_property
 
 
-def txt_a(txt, append):
-    if len(txt):
-        return txt + ',' + append
-    else:
-        return append
-
-
 def get_key(dictionary, value):
     keys = [k for k, v in dictionary.items() if v == value]
     if len(keys) > 0:
