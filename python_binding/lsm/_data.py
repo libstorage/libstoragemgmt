@@ -897,7 +897,7 @@ class Capabilities(IData):
             return all_caps
 
         rc = {}
-        for i in range(0, len(self._cap)):
+        for i in all_caps.keys():
             if self._cap[i] == Capabilities.SUPPORTED:
                 if i in all_caps:
                     rc[i] = all_caps[i]
