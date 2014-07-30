@@ -87,9 +87,7 @@ class DataDecoder(json.JSONDecoder):
             return e
 
     def decode(self, json_string, _w=WHITESPACE.match):
-        decoded = json.loads(json_string)
-        decoded = DataDecoder.__decode(decoded)
-        return decoded
+        return DataDecoder.__decode(json.loads(json_string))
 
 
 class IData(object):
@@ -133,8 +131,7 @@ class IData(object):
                 else:
                     d['_' + k] = d.pop(k)
 
-            i = c(**d)
-            return i
+            return c(**d)
 
     def __str__(self):
         """
@@ -436,9 +433,7 @@ class Pool(IData):
         Returns True if defined 'member_type' is disk.
         False when else.
         """
-        if member_type in Pool._MEMBER_TYPE_2_DISK_TYPE.keys():
-            return True
-        return False
+        return member_type in Pool._MEMBER_TYPE_2_DISK_TYPE
 
     @staticmethod
     def member_type_to_disk_type(member_type):
@@ -446,9 +441,8 @@ class Pool(IData):
         Convert member_type to disk_type.
         For non-disk member, we return Disk.DISK_TYPE_NOT_APPLICABLE
         """
-        if member_type in Pool._MEMBER_TYPE_2_DISK_TYPE.keys():
-            return Pool._MEMBER_TYPE_2_DISK_TYPE[member_type]
-        return Disk.DISK_TYPE_NOT_APPLICABLE
+        return Pool._MEMBER_TYPE_2_DISK_TYPE.get(member_type,
+                                                 Disk.DISK_TYPE_NOT_APPLICABLE)
 
     @staticmethod
     def disk_type_to_member_type(disk_type):
@@ -837,9 +831,8 @@ class Capabilities(IData):
     DISKS = 220
 
     def _to_dict(self):
-        rc = {'class': self.__class__.__name__,
-              'cap': ''.join(['%02x' % b for b in self._cap])}
-        return rc
+        return {'class': self.__class__.__name__,
+                'cap': ''.join(['%02x' % b for b in self._cap])}
 
     def __init__(self, _cap=None):
         if _cap is not None:
@@ -848,9 +841,7 @@ class Capabilities(IData):
             self._cap = bytearray(Capabilities._NUM)
 
     def supported(self, capability):
-        if self.get(capability) == Capabilities.SUPPORTED:
-            return True
-        return False
+        return self.get(capability) == Capabilities.SUPPORTED
 
     def get(self, capability):
         if capability >= len(self._cap):
@@ -890,7 +881,6 @@ class Capabilities(IData):
 
     def set(self, capability, value=SUPPORTED):
         self._cap[capability] = value
-        return None
 
     def enable_all(self):
         for i in range(len(self._cap)):
