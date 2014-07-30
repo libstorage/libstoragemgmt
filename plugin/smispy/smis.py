@@ -367,7 +367,7 @@ class Smis(IStorageAreaNetwork):
     DMTF_STATUS_POWER_MODE = 18
 
     # We will rework this once SNIA documented these out.
-    _DMTF_STAUTS_TO_POOL_STATUS = {
+    _DMTF_STATUS_TO_POOL_STATUS = {
         DMTF_STATUS_UNKNOWN: Pool.STATUS_UNKNOWN,
         DMTF_STATUS_OTHER: Pool.STATUS_OTHER,
         DMTF_STATUS_OK: Pool.STATUS_OK,
@@ -388,7 +388,7 @@ class Smis(IStorageAreaNetwork):
         DMTF_STATUS_POWER_MODE: Pool.STATUS_OTHER,
     }
 
-    _DMTF_STAUTS_TO_POOL_STATUS_INFO = {
+    _DMTF_STATUS_TO_POOL_STATUS_INFO = {
         # TODO: Use CIM_RelatedElementCausingError
         #       to find out the error info.
         DMTF_STATUS_PREDICTIVE_FAILURE: 'Predictive failure',
@@ -400,7 +400,7 @@ class Smis(IStorageAreaNetwork):
         DMTF_STATUS_POWER_MODE: 'Power mode',
     }
 
-    _DMTF_STAUTS_TO_DISK_STATUS = {
+    _DMTF_STATUS_TO_DISK_STATUS = {
         DMTF_STATUS_UNKNOWN: Disk.STATUS_UNKNOWN,
         DMTF_STATUS_OTHER: Disk.STATUS_OTHER,
         DMTF_STATUS_OK: Disk.STATUS_OK,
@@ -421,7 +421,7 @@ class Smis(IStorageAreaNetwork):
         DMTF_STATUS_POWER_MODE: Disk.STATUS_OTHER,
     }
 
-    _DMTF_STAUTS_TO_DISK_STATUS_INFO = {
+    _DMTF_STATUS_TO_DISK_STATUS_INFO = {
         DMTF_STATUS_DORMANT: 'Dormant',
         DMTF_STATUS_IN_SERVICE: 'In service',
         DMTF_STATUS_NO_CONTACT: 'No contact',
@@ -3187,14 +3187,14 @@ class Smis(IStorageAreaNetwork):
         status_info = []
         dmtf_statuses = cim_disk['OperationalStatus']
         for dmtf_status in dmtf_statuses:
-            if dmtf_status in Smis._DMTF_STAUTS_TO_DISK_STATUS.keys():
-                lsm_status = Smis._DMTF_STAUTS_TO_DISK_STATUS[dmtf_status]
+            if dmtf_status in Smis._DMTF_STATUS_TO_DISK_STATUS.keys():
+                lsm_status = Smis._DMTF_STATUS_TO_DISK_STATUS[dmtf_status]
                 if status == Disk.STATUS_UNKNOWN:
                     status = lsm_status
                 else:
                     status |= lsm_status
-            if dmtf_status in Smis._DMTF_STAUTS_TO_DISK_STATUS_INFO.keys():
-                status_info.append(Smis._DMTF_STAUTS_TO_DISK_STATUS_INFO[dmtf_status])
+            if dmtf_status in Smis._DMTF_STATUS_TO_DISK_STATUS_INFO.keys():
+                status_info.append(Smis._DMTF_STATUS_TO_DISK_STATUS_INFO[dmtf_status])
         return (status, ", ".join(status_info))
 
     def _new_disk(self, cim_disk, cim_ext):
@@ -3310,15 +3310,15 @@ class Smis(IStorageAreaNetwork):
         status_info = []
         dmtf_statuses = cim_pool['OperationalStatus']
         for dmtf_status in dmtf_statuses:
-            if dmtf_status in Smis._DMTF_STAUTS_TO_POOL_STATUS.keys():
+            if dmtf_status in Smis._DMTF_STATUS_TO_POOL_STATUS.keys():
 
-                lsm_status = Smis._DMTF_STAUTS_TO_POOL_STATUS[dmtf_status]
+                lsm_status = Smis._DMTF_STATUS_TO_POOL_STATUS[dmtf_status]
                 if status == Pool.STATUS_UNKNOWN:
                     status = lsm_status
                 else:
                     status |= lsm_status
-            if dmtf_status in Smis._DMTF_STAUTS_TO_POOL_STATUS_INFO.keys():
-                status_info.append(Smis._DMTF_STAUTS_TO_POOL_STATUS_INFO[dmtf_status])
+            if dmtf_status in Smis._DMTF_STATUS_TO_POOL_STATUS_INFO.keys():
+                status_info.append(Smis._DMTF_STATUS_TO_POOL_STATUS_INFO[dmtf_status])
         return (status, ", ".join(status_info))
 
     def _find_out_bottom_cexts(self, cim_pool_path, pros_list=None):
