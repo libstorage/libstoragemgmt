@@ -66,7 +66,7 @@ def update_stats(method_name, duration, number_results):
         stats[method_name]["number_items"] += number_results
 
 
-def rs(component, l=8):
+def rs(component, l=4):
     """
     Generate a random string
     """
@@ -329,7 +329,7 @@ class TestPlugin(unittest.TestCase):
             if p:
                 vol_size = self._object_size(p)
 
-                vol = self.c.volume_create(p, rs('volume'), vol_size,
+                vol = self.c.volume_create(p, rs('v'), vol_size,
                                            lsm.Volume.PROVISION_DEFAULT)[1]
 
                 self.assertTrue(self._volume_exists(vol.id))
@@ -436,7 +436,7 @@ class TestPlugin(unittest.TestCase):
                     if supported(cap, [capability]):
                         volume_clone = self.c.volume_replicate(
                             None, replication_type, vol,
-                            rs('volume_clone'))[1]
+                            rs('v_c_'))[1]
 
                         self.assertTrue(volume_clone is not None)
                         self.assertTrue(self._volume_exists(volume_clone.id))
@@ -541,7 +541,7 @@ class TestPlugin(unittest.TestCase):
             if supported(cap, [lsm.Capabilities.FS_CREATE,
                                lsm.Capabilities.FS_CLONE]):
                 fs = self._fs_create(s.id)[0]
-                fs_clone = self.c.fs_clone(fs, rs('fs_clone'))[1]
+                fs_clone = self.c.fs_clone(fs, rs('fs_c'))[1]
 
                 if supported(cap, [lsm.Capabilities.FS_DELETE]):
                     self._fs_delete(fs_clone)
@@ -556,7 +556,7 @@ class TestPlugin(unittest.TestCase):
 
                 fs = self._fs_create(s.id)[0]
 
-                ss = self.c.fs_snapshot_create(fs, rs('fs_snapshot'))[1]
+                ss = self.c.fs_snapshot_create(fs, rs('ss'))[1]
                 self.assertTrue(self._fs_snapshot_exists(fs, ss.id))
 
                 # Delete snapshot
@@ -643,7 +643,7 @@ class TestPlugin(unittest.TestCase):
 
         if init_type == lsm.AccessGroup.INIT_TYPE_ISCSI_IQN:
             ag_created = self.c.access_group_create(
-                rs('access_group'),
+                rs('ag'),
                 'iqn.1994-05.com.domain:01.89bd01',
                 lsm.AccessGroup.INIT_TYPE_ISCSI_IQN, s)
 
