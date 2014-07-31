@@ -287,7 +287,6 @@ class IbmV7k(IStorageAreaNetwork):
     # NOTE: Add more capabilities as more cli's are supported
     def capabilities(self, system, flags=0):
         cap = Capabilities()
-        cap.set(Capabilities.BLOCK_SUPPORT)
         cap.set(Capabilities.VOLUMES)
         cap.set(Capabilities.VOLUME_CREATE)
         cap.set(Capabilities.VOLUME_DELETE)
