@@ -98,8 +98,6 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
     @handle_errors
     def capabilities(self, system, flags=0):
         cap = Capabilities()
-        cap.set(Capabilities.BLOCK_SUPPORT)
-        cap.set(Capabilities.FS_SUPPORT)
         cap.set(Capabilities.VOLUMES)
         cap.set(Capabilities.VOLUME_CREATE)
         cap.set(Capabilities.VOLUME_REPLICATE)
