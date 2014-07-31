@@ -74,6 +74,13 @@ def rs(component, l=4):
         random.choice(string.ascii_uppercase) for x in range(l))
 
 
+def r_fcpn():
+    """
+    Generate a random 16 character hex number
+    """
+    return '%016X' % random.randrange(2 ** 64)
+
+
 class Duration(object):
     def __init__(self):
         self.start = 0
@@ -649,8 +656,8 @@ class TestPlugin(unittest.TestCase):
 
         elif init_type == lsm.AccessGroup.INIT_TYPE_WWPN:
             ag_created = self.c.access_group_create(
-                rs('access_group'),
-                '500A0986994B8DC5',
+                rs('ag'),
+                r_fcpn(),
                 lsm.AccessGroup.INIT_TYPE_WWPN, s)
 
         self.assertTrue(ag_created is not None)
@@ -718,7 +725,7 @@ class TestPlugin(unittest.TestCase):
             t = lsm.AccessGroup.INIT_TYPE_ISCSI_IQN
         else:
             # We will try FC PN
-            t_id = '500A0986994B8DC5'
+            t_id = r_fcpn()
             t = lsm.AccessGroup.INIT_TYPE_WWPN
 
         self.c.access_group_initiator_add(ag, t_id, t)
