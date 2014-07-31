@@ -27,7 +27,7 @@ from collections import OrderedDict
 from argparse import ArgumentParser
 from argparse import RawTextHelpFormatter
 
-from lsm import (Client, Pool, VERSION, LsmError, Capabilities, Disk,
+from lsm import (Client, Pool, VERSION, LsmError, Disk,
                  Volume, JobStatus, ErrorNumber, BlockRange,
                  uri_parse, Proxy, size_human_2_size_bytes,
                  AccessGroup, FileSystem, NfsExport, TargetPort)
