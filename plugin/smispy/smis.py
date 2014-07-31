@@ -21,6 +21,8 @@ from string import split
 import time
 import traceback
 import copy
+import os
+import datetime
 
 import pywbem
 from pywbem import CIMError
@@ -536,6 +538,7 @@ class Smis(IStorageAreaNetwork):
         self.cim_root_profile_dict = dict()
         self.fallback_mode = True    # Means we cannot use profile register
         self.all_vendor_namespaces = []
+        self.debug_path = None
 
     def _get_cim_instance_by_id(self, class_type, requested_id,
                                 property_list=None, raise_error=True):
@@ -622,6 +625,29 @@ class Smis(IStorageAreaNetwork):
                 ErrorNumber.NO_SUPPORT,
                 'SMI-S error code indicates operation not supported')
         else:
+            # When debugging issues with providers it's helpful to have the
+            # xml request/reply to give to provider developers.
+            try:
+                if self.debug_path is not None:
+                    if not os.path.exists(self.debug_path):
+                        os.makedirs(self.debug_path)
+
+                    if os.path.isdir(self.debug_path):
+                        debug_fn = "%s_%s" % \
+                                   (msg, datetime.datetime.now().isoformat())
+                        debug_full = os.path.join(self.debug_path, debug_fn)
+
+                        # Dump the request & reply to a file
+                        with open(debug_full, 'w') as d:
+                            d.write("REQ:\n%s\n\nREPLY:\n%s\n" %
+                                    (self._c.last_request, self._c.last_reply))
+
+            except Exception:
+                tb = traceback.format_exc()
+                raise LsmError(ErrorNumber.PLUGIN_ERROR,
+                               'Error: ' + msg + " rc= " + str(rc) +
+                               ' Debug data exception: ' + str(tb))
+
             raise LsmError(ErrorNumber.PLUGIN_ERROR,
                            'Error: ' + msg + " rc= " + str(rc))
 
@@ -679,6 +705,10 @@ class Smis(IStorageAreaNetwork):
                     pass
 
         self.tmo = timeout
+
+        if 'debug_path' in u['parameters']:
+            self.debug_path = u['parameters']['debug_path']
+            self._c.debug = True
 
         if 'force_fallback_mode' in u['parameters'] and \
            u['parameters']['force_fallback_mode'] == 'yes':
@@ -1769,17 +1799,17 @@ class Smis(IStorageAreaNetwork):
         status = System.STATUS_UNKNOWN
 
         if 'OperationalStatus' in cim_sys:
-            for os in cim_sys['OperationalStatus']:
-                if os == Smis.SystemOperationalStatus.OK:
+            for op_st in cim_sys['OperationalStatus']:
+                if op_st == Smis.SystemOperationalStatus.OK:
                     status |= System.STATUS_OK
-                elif os == Smis.SystemOperationalStatus.DEGRADED:
+                elif op_st == Smis.SystemOperationalStatus.DEGRADED:
                     status |= System.STATUS_DEGRADED
-                elif (os == Smis.SystemOperationalStatus.ERROR or
-                      os == Smis.SystemOperationalStatus.STRESSED or
-                      os ==
+                elif (op_st == Smis.SystemOperationalStatus.ERROR or
+                      op_st == Smis.SystemOperationalStatus.STRESSED or
+                      op_st ==
                         Smis.SystemOperationalStatus.NON_RECOVERABLE_ERROR):
                     status |= System.STATUS_ERROR
-                elif os == Smis.SystemOperationalStatus.PREDICTIVE_FAILURE:
+                elif op_st == Smis.SystemOperationalStatus.PREDICTIVE_FAILURE:
                     status |= System.STATUS_PREDICTIVE_FAILURE
 
         return System(cim_sys['Name'], cim_sys['ElementName'], status, '')
