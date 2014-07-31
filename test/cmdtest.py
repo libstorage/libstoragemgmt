@@ -439,8 +439,7 @@ def test_display(cap, system_id):
     Crank through supported display operations making sure we get good
     status for each of them
     """
-    to_test = ['SYSTEMS']
-    to_test.append('POOLS')
+    to_test = ['SYSTEMS', 'POOLS']
 
     if cap['VOLUMES']:
         to_test.append('VOLUMES')
