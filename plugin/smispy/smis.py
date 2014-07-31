@@ -225,7 +225,7 @@ def _lsm_tgt_port_type_of_cim_fc_tgt(cim_fc_tgt):
 def _lsm_init_type_to_dmtf(init_type):
     # Invert dict. Assumes values are unique.
     try:
-        inv_dict = dict((v,k) for k, v in _INIT_TYPE_CONV.iteritems())
+        inv_dict = dict((v, k) for k, v in _INIT_TYPE_CONV.iteritems())
         return inv_dict[init_type]
     except KeyError:
         raise LsmError(ErrorNumber.NO_SUPPORT,
@@ -3194,7 +3194,8 @@ class Smis(IStorageAreaNetwork):
                 else:
                     status |= lsm_status
             if dmtf_status in Smis._DMTF_STATUS_TO_DISK_STATUS_INFO.keys():
-                status_info.append(Smis._DMTF_STATUS_TO_DISK_STATUS_INFO[dmtf_status])
+                status_info.append(
+                    Smis._DMTF_STATUS_TO_DISK_STATUS_INFO[dmtf_status])
         return (status, ", ".join(status_info))
 
     def _new_disk(self, cim_disk, cim_ext):
@@ -3318,7 +3319,8 @@ class Smis(IStorageAreaNetwork):
                 else:
                     status |= lsm_status
             if dmtf_status in Smis._DMTF_STATUS_TO_POOL_STATUS_INFO.keys():
-                status_info.append(Smis._DMTF_STATUS_TO_POOL_STATUS_INFO[dmtf_status])
+                status_info.append(
+                    Smis._DMTF_STATUS_TO_POOL_STATUS_INFO[dmtf_status])
         return (status, ", ".join(status_info))
 
     def _find_out_bottom_cexts(self, cim_pool_path, pros_list=None):
