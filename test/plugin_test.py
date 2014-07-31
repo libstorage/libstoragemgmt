@@ -33,8 +33,8 @@ results = {}
 stats = {}
 
 
-MIN_POOL_SIZE = 2048
-MIN_OBJECT_SIZE = 128
+MIN_POOL_SIZE = 4096
+MIN_OBJECT_SIZE = 512
 
 
 def mb_in_bytes(mib):
@@ -257,11 +257,19 @@ class TestPlugin(unittest.TestCase):
         # TODO Store what exists, so that we don't remove it
 
     def _get_pool_by_usage(self, system_id, element_type):
+        largest_free = 0
+        rc = None
+
         for p in self.pool_by_sys_id[system_id]:
+            # If the pool matches our criteria and min size we will consider
+            # it, but we will select the one with the most free space for
+            # testing.
             if p.element_type & element_type and \
                     p.free_space > mb_in_bytes(MIN_POOL_SIZE):
-                return p
-        return None
+                if p.free_space > largest_free:
+                    largest_free = p.free_space
+                    rc = p
+        return rc
 
     def tearDown(self):
         # TODO Walk the array looking for stuff we have created and remove it
