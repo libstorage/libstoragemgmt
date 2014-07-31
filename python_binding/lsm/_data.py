@@ -451,7 +451,8 @@ class Pool(IData):
         Will return Pool.MEMBER_TYPE_DISK as failback.
         """
         # Invert dict. Assumes values are unique.
-        inv_dict = dict((v,k) for k, v in Pool._MEMBER_TYPE_2_DISK_TYPE.iteritems())
+        inv_dict = dict((v, k)
+                        for k, v in Pool._MEMBER_TYPE_2_DISK_TYPE.iteritems())
         return inv_dict.get(disk_type, Pool.MEMBER_TYPE_DISK)
 
     THINP_TYPE_UNKNOWN = 0
@@ -855,11 +856,11 @@ class Capabilities(IData):
             integer => string name
         """
         lsm_cap_to_str_conv = dict()
-        for cap_str, cap_int in Capabilities.__dict__.items():
-            if type(cap_str) == str and type(cap_int) == int and \
-                    cap_str[0] != '_' and \
-                    Capabilities._CAP_NUM_BEGIN <= cap_int <= Capabilities._NUM:
-                lsm_cap_to_str_conv[cap_int] = cap_str
+        for c_str, c_int in Capabilities.__dict__.items():
+            if type(c_str) == str and type(c_int) == int and \
+                    c_str[0] != '_' and \
+                    Capabilities._CAP_NUM_BEGIN <= c_int <= Capabilities._NUM:
+                lsm_cap_to_str_conv[c_int] = c_str
         return lsm_cap_to_str_conv
 
     def get_supported(self, all_cap=False):
