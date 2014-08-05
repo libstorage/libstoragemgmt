@@ -66,7 +66,6 @@ typedef enum {
     LSM_ERR_INVALID_CONN = 102,         /**< Connection structure is invalid */
     LSM_ERR_INVALID_ERR = 103,          /**< Invalid error structure */
     LSM_ERR_INVALID_FS = 104,           /**< invalid fs */
-    LSM_ERR_INVALID_INIT = 105,         /**< Invalid initiator structure */
     LSM_ERR_INVALID_JOB = 106,          /**< Invalid job number */
     LSM_ERR_INVALID_NAME = 107,         /**< Name specified is invalid */
     LSM_ERR_INVALID_NFS = 108,          /**< invalid nfs export record */
@@ -79,7 +78,7 @@ typedef enum {
     LSM_ERR_INVALID_VOL = 115,          /**< Invalid volume pointer */
     LSM_ERR_INVALID_CAPABILITY = 116,   /**< Invalid capability pointer */
     LSM_ERR_INVALID_SYSTEM = 117,       /**< Invalid system pointer */
-    LSM_ERR_INVALID_IQN = 118,          /**< Invalid IQN */
+    LSM_ERR_INVALID_INIT = 118,         /**< Invalid Initiator ID */
     LSM_ERR_INVALID_DISK = 119,         /**< Invalid disk */
     LSM_ERR_INVALID_HASH = 120,         /**< Invalid optional data */
     LSM_ERR_INVALID_BLOCK_RANGE = 121,  /**< Invalud block range */
