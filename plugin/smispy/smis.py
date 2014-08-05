@@ -199,12 +199,6 @@ class DMTF(object):
     GMM_CAP_DELETE_SPC = pywbem.Uint16(24)
     GMM_CAP_DELETE_GROUP = pywbem.Uint16(20)
 
-_INIT_TYPE_CONV = {
-    DMTF.ID_TYPE_OTHER: AccessGroup.INIT_TYPE_OTHER,
-    DMTF.ID_TYPE_WWPN: AccessGroup.INIT_TYPE_WWPN,
-    DMTF.ID_TYPE_ISCSI: AccessGroup.INIT_TYPE_ISCSI_IQN,
-}
-
 
 def _dmtf_init_type_to_lsm(cim_init):
     if 'IDType' in cim_init:
