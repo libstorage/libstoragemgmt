@@ -1,19 +1,9 @@
 %bcond_without rest_api
 
-%if 0%{?rhel} <= 6
-%global with_rest_api 0
-# RHEL 6 does not have libmicrohttpd in main repo, but in EPEL repo
-# Hence we disable REST API daemon compiling.
-# If EPEL6 is enabled, please use:
-#   rpmbuild -ba libstoragemgmt.spec --with rest_api
-%endif
-
-%{?_with_rest_api:
-%global with_rest_api 1
-}
-%{?_without_rest_api:
-%global with_rest_api 0
-}
+# Use one-line macro for OBS workaround:
+#   https://bugzilla.novell.com/show_bug.cgi?id=864323
+%{?_with_rest_api: %global with_rest_api 1 }
+%{?_without_rest_api: %global with_rest_api 0 }
 
 Name:           libstoragemgmt
 Version:        @VERSION@
@@ -25,18 +15,21 @@ URL:            http://sourceforge.net/projects/libstoragemgmt/
 Source0:        http://sourceforge.net/projects/libstoragemgmt/files/libstoragemgmt-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires:       %{name}-python
-BuildRequires:  autoconf automake libtool yajl-devel libxml2-devel check-devel openssl-devel
+BuildRequires:  autoconf automake libtool yajl-devel libxml2-devel check-devel
+BuildRequires:  openssl-devel
+BuildRequires:  python-argparse
 BuildRequires:  glib2-devel
 # Explicitly require gcc-c++ is for OBS
 BuildRequires:  gcc-c++
 
-# These buggy extra conditional BuildRequires is for OBS only,
-# Please refer to OBS bug:
-#   https://bugzilla.novell.com/show_bug.cgi?id=864323
-%if 0%{?fedora} || 0%{?rhel} >= 7
-BuildRequires:  libmicrohttpd-devel json-c-devel
+# For OBS only. OBS is still using RHEL/Centos 6.2 which does not have
+# OrderedDict from python collection. Use EPEL6 python-ordereddict.
+# These line is only for OBS SPEC parser, not for rpmbuild.
+%if 0%{?centos_version} == 600  || 0%{?rhel_version} == 600
+BuildRequires:  python-ordereddict
+# redhat-release was not included in OBS. It provides %{rhel} macro.
+BuildRequires:  redhat-release
 %endif
-
 
 %if 0%{?fedora} >= 15 || 0%{?rhel} >= 7
 BuildRequires:  systemd-units
@@ -67,9 +60,11 @@ Summary:        Python client libraries and plug-in support for %{name}
 Group:          System Environment/Libraries
 Requires:       %{name} = %{version}-%{release}
 BuildArch:      noarch
-%if 0%{?rhel} <= 6
 Requires:       python-argparse
-BuildRequires:  python-argparse
+%if 0%{?rhel} == 6
+# No way to detect 6.2 yet. Just forcing all RHEL 6 to install
+# python-ordereddict just in case.
+Requires:       python-ordereddict
 %endif
 
 %description    python
@@ -195,7 +190,11 @@ install -m 755 tools/udev/scan-scsi-target \
 rm -rf %{buildroot}
 
 %check
-make check
+if ! make check
+then
+  cat test/test-suite.log || true
+  exit 1
+fi
 
 %pre
 getent group libstoragemgmt >/dev/null || groupadd -r libstoragemgmt
