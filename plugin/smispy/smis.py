@@ -199,6 +199,16 @@ class DMTF(object):
     GMM_CAP_DELETE_SPC = pywbem.Uint16(24)
     GMM_CAP_DELETE_GROUP = pywbem.Uint16(20)
 
+    # CIM_StorageConfigurationCapabilities['SupportedStorageElementTypes']
+    SCS_CAP_SUP_ST_VOLUME = pywbem.Uint16(2)
+    SCS_CAP_SUP_THIN_ST_VOLUME = pywbem.Uint16(5)
+
+    # CIM_StorageConfigurationCapabilities['SupportedAsynchronousActions']
+    # and also for 'SupportedSynchronousActions'
+    SCS_CAP_VOLUME_CREATE = pywbem.Uint16(5)
+    SCS_CAP_VOLUME_DELETE = pywbem.Uint16(6)
+    SCS_CAP_VOLUME_MODIFY = pywbem.Uint16(7)
+
 
 def _dmtf_init_type_to_lsm(cim_init):
     if 'IDType' in cim_init:
@@ -786,13 +796,6 @@ class Smis(IStorageAreaNetwork):
                                    "mandatory for pools() method")
                 else:
                     raise
-        # For fallback mode, if StoragePool is supported, then BSP is
-        # supported.
-        #
-        # For interop, plugin_register() already ensured the support
-        # of 1.4+ Array profile which make 'BSP' mandatory as sub profile.
-        # This is mandatory for BSP profile:
-        cap.set(Capabilities.VOLUMES)
 
         # CIM_StorageConfigurationService is optional.
         cim_scs_path = self._get_cim_service_path(
@@ -804,9 +807,37 @@ class Smis(IStorageAreaNetwork):
         # These methods are mandatory for CIM_StorageConfigurationService:
         #   CreateOrModifyElementFromStoragePool()
         #   ReturnToStoragePool()
-        cap.set(Capabilities.VOLUME_CREATE)
-        cap.set(Capabilities.VOLUME_DELETE)
-        cap.set(Capabilities.VOLUME_RESIZE)
+        # But SNIA never defined which function of
+        # CreateOrModifyElementFromStoragePool() is mandatory.
+        # Hence we check CIM_StorageConfigurationCapabilities
+        # which is mandatory if CIM_StorageConfigurationService is supported.
+        cim_scs_cap = self._c.Associators(
+            cim_scs_path,
+            AssocClass='CIM_ElementCapabilities',
+            ResultClass='CIM_StorageConfigurationCapabilities',
+            PropertyList=['SupportedAsynchronousActions',
+                          'SupportedSynchronousActions',
+                          'SupportedStorageElementTypes'])[0]
+
+        element_types = cim_scs_cap['SupportedStorageElementTypes']
+        sup_actions = []
+        if cim_scs_cap['SupportedSynchronousActions']:
+            sup_actions.extend(cim_scs_cap['SupportedSynchronousActions'])
+        if cim_scs_cap['SupportedAsynchronousActions']:
+            sup_actions.extend(cim_scs_cap['SupportedAsynchronousActions'])
+
+        if DMTF.SCS_CAP_SUP_ST_VOLUME in element_types or \
+           DMTF.SCS_CAP_SUP_THIN_ST_VOLUME in element_types:
+            cap.set(Capabilities.VOLUMES)
+
+        if DMTF.SCS_CAP_VOLUME_CREATE in sup_actions:
+            cap.set(Capabilities.VOLUME_CREATE)
+
+        if DMTF.SCS_CAP_VOLUME_DELETE in sup_actions:
+            cap.set(Capabilities.VOLUME_DELETE)
+
+        if DMTF.SCS_CAP_VOLUME_MODIFY in sup_actions:
+            cap.set(Capabilities.VOLUME_RESIZE)
 
         return
 
