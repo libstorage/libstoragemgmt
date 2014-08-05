@@ -148,6 +148,7 @@ def _lsm_init_id_to_snia(lsm_init_id):
         return lsm_init_id.replace(':', '').upper()
     return lsm_init_id
 
+
 class DMTF(object):
     # CIM_StorageHardwareID['IDType']
     ID_TYPE_OTHER = pywbem.Uint16(1)
@@ -2865,23 +2866,15 @@ class Smis(IStorageAreaNetwork):
 
         return search_property(rc, search_key, search_value)
 
-    def _cim_init_check_or_create(self, cim_sys_path, init_id, init_type):
+    def _cim_init_path_check_or_create(self, cim_sys_path, init_id, init_type):
         """
         Check whether CIM_StorageHardwareID exists, if not, create new one.
         """
         cim_init = self._get_cim_instance_by_id(
-            'Initiator', init_id, raise_error=False, property_list=['IDType'])
+            'Initiator', init_id, raise_error=False)
 
-        # In rare chance, cim_init might holding different init_type
-        # As ExposePaths is using init_id, hence we raise error instead of
-        # creating new one
         if cim_init:
-            if _dmtf_init_type_to_lsm(cim_init) != init_type:
-                raise LsmError(ErrorNumber.EXISTS_INITIATOR,
-                               "Another initiator exists with the same ID "
-                               "%s, but different init_type %d:" %
-                               (init_id, _dmtf_init_type_to_lsm(cim_init)))
-            return cim_init
+            return cim_init.path
 
         # Create new one
         dmtf_id_type = _lsm_init_type_to_dmtf(init_type)
@@ -2890,14 +2883,13 @@ class Smis(IStorageAreaNetwork):
                            "SMI-S Plugin does not support init_type %d" %
                            init_type)
 
-        cim_init = self._cim_init_create(
+        return self._cim_init_path_create(
             cim_sys_path, init_id, dmtf_id_type)
 
-        return cim_init
-
-    def _cim_init_create(self, cim_sys_path, init_id, dmtf_id_type):
+    def _cim_init_path_create(self, cim_sys_path, init_id, dmtf_id_type):
         """
         Create a CIM_StorageHardwareID.
+        Return CIMInstanceName
         Raise error if failed. Return if pass.
         """
         cim_hw_srv_path = self._get_cim_service_path(
@@ -2932,11 +2924,10 @@ class Smis(IStorageAreaNetwork):
 
         # Check whether already added.
         for exist_cim_init in exist_cim_inits:
-            if self._init_id(exist_cim_init) == init_id and \
-               _dmtf_init_type_to_lsm(exist_cim_init) == init_type:
-                    return copy.deepcopy(access_group)
+            if self._init_id(exist_cim_init) == init_id:
+                return copy.deepcopy(access_group)
 
-        cim_init = self._cim_init_check_or_create(
+        cim_init_path = self._cim_init_path_check_or_create(
             cim_sys.path, init_id, init_type)
 
         cim_gmm_path = self._get_cim_service_path(
@@ -2944,7 +2935,7 @@ class Smis(IStorageAreaNetwork):
 
         in_params = {
             'MaskingGroup': cim_init_mg.path,
-            'Members': [cim_init.path],
+            'Members': [cim_init_path],
         }
         (rc, out) = self._c.InvokeMethod('AddMembers',
                                          cim_gmm_path, **in_params)
@@ -2991,19 +2982,12 @@ class Smis(IStorageAreaNetwork):
 
         for exist_cim_init in exist_cim_inits:
             if self._init_id(exist_cim_init) == init_id:
-                if _dmtf_init_type_to_lsm(exist_cim_init) != init_type:
-                    raise LsmError(ErrorNumber.EXISTS_INITIATOR,
-                                   "Another initiator exists with the same ID "
-                                   "%s, but different init_type %d:" %
-                                   (init_id,
-                                    _dmtf_init_type_to_lsm(exist_cim_init)))
-
                 return copy.deepcopy(access_group)
 
         # Check to see if we have this initiator already, if not we
         # create it and then add to the view.
 
-        self._cim_init_check_or_create(cim_sys.path, init_id, init_type)
+        self._cim_init_path_check_or_create(cim_sys.path, init_id, init_type)
 
         cim_ccs_path = self._get_cim_service_path(
             cim_sys.path, 'CIM_ControllerConfigurationService')
@@ -4892,44 +4876,63 @@ class Smis(IStorageAreaNetwork):
                            "iSCSI target port, which not allow creating "
                            "iSCSI IQN access group")
 
-        cim_init = self._cim_init_check_or_create(
+        cim_init_path = self._cim_init_path_check_or_create(
             cim_sys.path, init_id, init_type)
-
-        cim_init_mg_pros = self._cim_init_mg_pros()
-        exist_cim_init_mgs = self._c.Associators(
-            cim_init.path,
-            AssocClass='CIM_MemberOfCollection',
-            ResultClass='CIM_InitiatorMaskingGroup',
-            PropertyList=cim_init_mg_pros)
-
-        if len(exist_cim_init_mgs) != 0:
-            for exist_cim_init_mg in exist_cim_init_mgs:
-                if exist_cim_init_mg['ElementName'] == name:
-                    return self._cim_init_mg_to_lsm(
-                        exist_cim_init_mg, system.id)
-
-            # Name does not match.
-            raise LsmError(ErrorNumber.EXISTS_INITIATOR,
-                           "Initiator %s already exist in other access group "
-                           % org_init_id +
-                           "with name %s and ID: %s" %
-                           (exist_cim_init_mgs[0]['ElementName'],
-                            md5(exist_cim_init_mgs[0]['DeviceID'])))
 
         # Create CIM_InitiatorMaskingGroup
         cim_gmm_path = self._get_cim_service_path(
             cim_sys.path, 'CIM_GroupMaskingMappingService')
 
         in_params = {'GroupName': name,
-                     'Members': [cim_init.path],
+                     'Members': [cim_init_path],
                      'Type': DMTF.MASK_GROUP_TYPE_INIT}
 
-        (rc, out) = self._c.InvokeMethod(
-            'CreateGroup', cim_gmm_path, **in_params)
+        cim_init_mg_pros = self._cim_init_mg_pros()
 
-        cim_init_mg_path = self._wait_invoke(
-            rc, out, out_key='MaskingGroup',
-            expect_class='CIM_InitiatorMaskingGroup')
+        try:
+            (rc, out) = self._c.InvokeMethod(
+                'CreateGroup', cim_gmm_path, **in_params)
+
+            cim_init_mg_path = self._wait_invoke(
+                rc, out, out_key='MaskingGroup',
+                expect_class='CIM_InitiatorMaskingGroup')
+
+        except (LsmError, CIMError):
+            # Check possible failure
+            # 1. Initiator already exist in other group.
+            #    If that group hold the same name as requested.
+            #    We consider as a duplicate call, return the exist one.
+            exist_cim_init_mgs = self._c.Associators(
+                cim_init_path,
+                AssocClass='CIM_MemberOfCollection',
+                ResultClass='CIM_InitiatorMaskingGroup',
+                PropertyList=cim_init_mg_pros)
+
+            if len(exist_cim_init_mgs) != 0:
+                for exist_cim_init_mg in exist_cim_init_mgs:
+                    if exist_cim_init_mg['ElementName'] == name:
+                        return self._cim_init_mg_to_lsm(
+                            exist_cim_init_mg, system.id)
+
+                # Name does not match.
+                raise LsmError(ErrorNumber.EXISTS_INITIATOR,
+                               "Initiator %s " % org_init_id +
+                               "already exist in other access group "
+                               "with name %s and ID: %s" %
+                               (exist_cim_init_mgs[0]['ElementName'],
+                                md5(exist_cim_init_mgs[0]['InstanceID'])))
+            # 2. Requested name used by other group.
+            #    Since 1) already checked whether any group containing
+            #    requested init_id, now, it's surelly a confliction.
+            exist_cim_init_mgs = self._cim_init_mg_of(
+                cim_sys.path, property_list=['ElementName'])
+            for exist_cim_init_mg in exist_cim_init_mgs:
+                if exist_cim_init_mg['ElementName'] == name:
+                    raise LsmError(ErrorNumber.EXISTS_ACCESS_GROUP,
+                                   "Requested name %s is used by " % name +
+                                   "another access group, but not containing "
+                                   "requested initiator %s" % org_init_id)
+            raise
 
         cim_init_mg = self._c.GetInstance(
             cim_init_mg_path, PropertyList=cim_init_mg_pros, LocalOnly=False)
