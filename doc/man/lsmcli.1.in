@@ -357,11 +357,7 @@ Create an access group.
 Required. The human friendly name for new access group.
 .TP
 \fB--init\fR \fI<INIT_ID>\fR
-Required. The first initiator ID of new access group.
-.TP
-\fB--init-type\fR \fI<INIT_TYPE>\fR
-Required. The initiator type. Valid values are: \fBWWPN\fR, \fBWWNN\fR,
-\fBISCSI\fR, \fBHOSTNAME\fR, \fBSAS\fR.
+Required. The first initiator ID of new access group. WWPN or iSCSI IQN.
 .TP
 \fB--sys\fR \fI<SYS_ID>\fR
 Required. The ID of system where this access group should reside on.
@@ -373,11 +369,7 @@ Adds an initiator to an access group.
 Required. ID of access group.
 .TP
 \fB--init\fR \fI<INIT_ID>\fR
-Required. ID of initiator to add.
-.TP
-\fB--init-type\fR \fI<INIT_TYPE>\fR
-Required. The initiator type. Valid values are: \fBWWPN\fR, \fBWWNN\fR,
-\fBISCSI\fR, \fBHOSTNAME\fR, \fBSAS\fR.
+Required. ID of initiator to add. WWPN or iSCSI IQN.
 
 .SS access-group-remove
 Removes an initiator from an access group.

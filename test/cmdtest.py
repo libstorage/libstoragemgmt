@@ -194,15 +194,13 @@ def delete_fs(fs_id):
 
 def access_group_create(init_id, system_id):
     out = call([cmd, '-t' + sep, 'access-group-create', '--name', rs(8),
-                '--init', init_id, '--init-type', 'ISCSI',
-                '--sys', system_id])[1]
+                '--init', init_id, '--sys', system_id])[1]
     r = parse(out)
     return r[0][ID]
 
 
 def access_group_initiator_add(group, initiator):
-    call([cmd, 'access-group-add', '--ag', group, '--init', initiator,
-          '--init-type', 'ISCSI'])
+    call([cmd, 'access-group-add', '--ag', group, '--init', initiator])
 
 
 def access_group_remove_init(group, initiator):
@@ -363,7 +361,6 @@ def initiator_grant(initiator_id, vol_id):
     call([cmd,
           'access-grant',
           '--init', initiator_id,
-          '--init-type', 'ISCSI',
           '--vol', vol_id,
           '--access', 'RW'])
 

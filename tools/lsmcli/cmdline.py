@@ -77,6 +77,22 @@ def getch():
         termios.tcsetattr(fd, termios.TCSADRAIN, prev)
     return ch
 
+def parse_convert_init(init_id):
+    """
+    If init_id is a WWPN, convert it into LSM standard version:
+        (?:[0-9a-f]{2}:){7}[0-9a-f]{2}
+
+    Return (converted_init_id, lsm_init_type)
+    """
+    init_type = AccessGroup.INIT_TYPE_ISCSI_IQN
+    if AccessGroup.init_id_validate(init_id, init_type, raise_error=False):
+        return (init_id, init_type)
+
+    wwpn = AccessGroup.wwpn_to_lsm_type(init_id, raise_error=False)
+    if wwpn:
+        return (wwpn, AccessGroup.INIT_TYPE_WWPN)
+
+    raise ArgError("--init-id %s is not a valid WWPN or iSCSI IQN" % init_id)
 
 ## This class represents a command line argument error
 class ArgError(Exception):
@@ -108,10 +124,6 @@ def _get_item(l, the_id, friendly_name='item', raise_error=True):
 list_choices = ['VOLUMES', 'POOLS', 'FS', 'SNAPSHOTS',
                 'EXPORTS', "NFS_CLIENT_AUTH", 'ACCESS_GROUPS',
                 'SYSTEMS', 'DISKS', 'PLUGINS', 'TARGET_PORTS']
-
-init_types = ('WWPN', 'ISCSI')
-init_id_help = "Access Group Initiator type: " + \
-               ", ".join(init_types)
 
 provision_types = ('DEFAULT', 'THIN', 'FULL')
 provision_help = "provisioning type: " + ", ".join(provision_types)
@@ -176,9 +188,6 @@ disk_id_filter_opt = dict(name='--disk', metavar='<DISK_ID>',
 
 size_opt = dict(name='--size', metavar='<SIZE>', help=size_help)
 
-init_type_opt = dict(name="--init-type", help=init_id_help,
-                     metavar='<INIT_TYPE>', choices=init_types,
-                     type=str.upper)
 tgt_id_opt = dict(name="--tgt", help="Search by target port ID",
                   metavar='<TGT_ID>')
 
@@ -348,10 +357,6 @@ cmds = (
             dict(name='--init', metavar='<INIT_ID>', action='append',
                  help='Initiator ID, only used when access-group-create is '
                       'not supported'),
-            dict(name="--init-type", type=str.upper,
-                 metavar='<INIT_TYPE>', choices=init_types,
-                 help="%s only used when access-group-create is not supported"
-                      % init_id_help),
         ],
     ),
 
@@ -373,7 +378,6 @@ cmds = (
             # TODO: _client.py access_group_create should support multiple
             #       initiators when creating.
             dict(init_id_opt),
-            dict(init_type_opt),
             dict(sys_id_opt),
         ],
     ),
@@ -384,7 +388,6 @@ cmds = (
         args=[
             dict(ag_id_opt),
             dict(init_id_opt),
-            dict(init_type_opt),
         ],
     ),
     dict(
@@ -954,21 +957,21 @@ class CmdLine:
 
     ## Creates an access group.
     def access_group_create(self, args):
-        init_type = ag_init_type_str_to_lsm(args.init_type)
         system = _get_item(self.c.systems(), args.sys, "system id")
-        access_group = self.c.access_group_create(args.name, args.init,
+        (init_id, init_type) = parse_convert_init(args.init)
+        access_group = self.c.access_group_create(args.name, init_id,
                                                   init_type, system)
         self.display_data([access_group])
 
     def _add_rm_access_grp_init(self, args, op):
         lsm_ag = _get_item(self.c.access_groups(), args.ag, "access group id")
+        (init_id, init_type) = parse_convert_init(args.init)
 
         if op:
-            init_type = ag_init_type_str_to_lsm(args.init_type)
-            return self.c.access_group_initiator_add(lsm_ag, args.init,
+            return self.c.access_group_initiator_add(lsm_ag, init_id,
                                                      init_type)
         else:
-            return self.c.access_group_initiator_delete(lsm_ag, args.init)
+            return self.c.access_group_initiator_delete(lsm_ag, init_id)
 
     ## Adds an initiator from an access group
     def access_group_add(self, args):
@@ -985,7 +988,11 @@ class CmdLine:
         self.display_data(vols)
 
     def iscsi_chap(self, args):
-        self.c.iscsi_chap_auth(args.init, args.in_user,
+        (init_id, init_type) = parse_convert_init(args.init)
+        if init_type != AccessGroup.INIT_TYPE_ISCSI_IQN:
+            raise ArgError("--init-id %s is not a valid iSCSI IQN" % args.init)
+
+        self.c.iscsi_chap_auth(init_id, args.in_user,
                                self.args.in_pass,
                                self.args.out_user,
                                self.args.out_pass)
@@ -1266,9 +1273,6 @@ class CmdLine:
         if not args.ag and not args.init:
             raise ArgError('Neither --ag nor --init is defined. '
                            'Please specify at lease one')
-        if args.init and not args.init_type:
-            raise ArgError('In volume-mask command, --init and '
-                           '--init-type should be defined at the same time')
         if args.ag and args.init:
             raise ArgError('In volume-mask command, --init is '
                            'conflicting with --ag')
@@ -1278,8 +1282,8 @@ class CmdLine:
             ag = _get_item(self.c.access_groups(), args.ag, 'Access Group ID')
 
         if args.init:
-            init_type = ag_init_type_str_to_lsm(args.init_type)
-            ag = AccessGroup(0, '', args.init, init_type, vol.system_id)
+            (init_id, init_type) = parse_convert_init(args.init)
+            ag = AccessGroup(0, '', [init_id], init_type, vol.system_id)
         self.c.volume_mask(ag, vol)
 
     def volume_unmask(self, args):
