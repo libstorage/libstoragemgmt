@@ -22,7 +22,12 @@ import getpass
 import time
 import tty
 import termios
-from collections import OrderedDict
+
+try:
+    from collections import OrderedDict
+except ImportError:
+    # python 2.6 or earlier, use backport
+    from ordereddict import OrderedDict
 
 from argparse import ArgumentParser
 from argparse import RawTextHelpFormatter

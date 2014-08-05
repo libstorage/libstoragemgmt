@@ -16,7 +16,13 @@
 #
 # Author: Gris Ge <fge@redhat.com>
 import sys
-from collections import OrderedDict
+
+try:
+    from collections import OrderedDict
+except ImportError:
+    # python 2.6 or earlier, use backport
+    from ordereddict import OrderedDict
+
 from datetime import datetime
 
 from lsm import (size_bytes_2_size_human, LsmError, ErrorNumber,
