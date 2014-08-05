@@ -44,7 +44,7 @@ e_map = {
     na.Filer.ESERVICENOTLICENSED: ErrorNumber.NOT_LICENSED,
     na.Filer.ECLONE_LICENSE_EXPIRED: ErrorNumber.NOT_LICENSED,
     na.Filer.ECLONE_NOT_LICENSED: ErrorNumber.NOT_LICENSED,
-    na.Filer.EINVALID_ISCSI_NAME: ErrorNumber.INVALID_IQN,
+    na.Filer.EINVALID_ISCSI_NAME: ErrorNumber.INVALID_INIT,
     na.Filer.ETIMEOUT: ErrorNumber.PLUGIN_TIMEOUT,
     na.Filer.EUNKNOWN: ErrorNumber.PLUGIN_ERROR
 }
