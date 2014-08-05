@@ -17,6 +17,7 @@
 #         Gris Ge <fge@redhat.com>
 
 from abc import ABCMeta as _ABCMeta
+import re
 
 try:
     import simplejson as json
@@ -24,7 +25,7 @@ except ImportError:
     import json
 
 from json.decoder import WHITESPACE
-from _common import get_class, default_property
+from _common import get_class, default_property, ErrorNumber, LsmError
 
 
 class DataEncoder(json.JSONEncoder):
@@ -657,10 +658,101 @@ class AccessGroup(IData):
                  _plugin_data=None):
         self._id = _id
         self._name = _name                # AccessGroup name
-        self._init_ids = _init_ids        # List of initiator IDs
+        self._init_ids = _init_ids        # A list of Initiator ID strings.
         self._init_type = _init_type
         self._system_id = _system_id      # System id this group belongs
         self._plugin_data = _plugin_data
+
+    # Regex for LSM format of WWPN, example:
+    #       10:00:00:00:c9:95:2f:de
+    _regex_lsm_wwpn = re.compile(r"""
+        ^
+        (?:[0-9a-f]{2}:){7}
+        [0-9a-f]{2}
+        $
+    """, re.X)
+
+    _regex_iscsi_iqn = re.compile(r"""
+        ^
+        iqn                                     # iqn
+        \.                                      # .
+        [0-9]{4}-[0-9]{2}                       # 1995-02
+        \.                                      # .
+        [A-Za-z](?:[A-Za-z0-9\-]*[A-Za-z0-9])?  # com
+        \.                                      # .
+        [A-Za-z](?:[A-Za-z0-9\-]*[A-Za-z0-9])?  # redhat
+        :                                       # :
+        [\.A-Za-z\-0-9]+                        # gris-01
+        $
+        """, re.X)
+
+    @staticmethod
+    def init_id_validate(init_id, init_type, raise_error=True):
+        if init_type == AccessGroup.INIT_TYPE_ISCSI_IQN:
+            if AccessGroup._regex_iscsi_iqn.match(str(init_id)):
+                return True
+            if raise_error:
+                raise LsmError(ErrorNumber.INVALID_INIT,
+                               "Invalid iSCSI IQN Initiator: %s" % init_id)
+            return False
+        elif init_type == AccessGroup.INIT_TYPE_WWPN:
+            if AccessGroup._regex_lsm_wwpn.match(str(init_id)):
+                return True
+            if raise_error:
+                raise LsmError(ErrorNumber.INVALID_INIT,
+                               "Invalid WWPN Initiator: %s" % init_id)
+            return False
+        elif raise_error:
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                           "Initiator type %d not supported" % init_type)
+        return False
+
+    _regex_wwpn = re.compile(r"""
+        ^
+        [0x|0X]{0,1}
+        (:?[0-9A-Fa-f]{2}
+        [\.\-:]{0,1}){7}
+        [0-9A-Fa-f]{2}
+        $
+        """, re.X)
+
+    @staticmethod
+    def wwpn_to_lsm_type(wwpn, raise_error=True):
+        """
+        Conver provided WWPN string into LSM standarded one:
+
+        LSM WWPN format:
+            ^(?:[0-9a-f]{2}:){7}[0-9a-f]{2}$
+        LSM WWPN Example:
+           10:00:00:00:c9:95:2f:de
+
+        Acceptable WWPN format is:
+            ^[0x|0X]{0,1}(:?[0-9A-Fa-f]{2}[\.\-:]{0,1}){7}[0-9A-Fa-f]{2}$
+        Acceptable WWPN example:
+           10:00:00:00:c9:95:2f:de
+           10:00:00:00:C9:95:2F:DE
+           10-00-00-00-C9-95-2F-DE
+           10-00-00-00-c9-95-2f-de
+           10.00.00.00.C9.95.2F.DE
+           10.00.00.00.c9.95.2f.de
+           0x10000000c9952fde
+           0X10000000C9952FDE
+           10000000c9952fde
+           10000000C9952FDE
+        Return the LSM WWPN
+        Return None if raise_error is False and not a valid WWPN.
+        """
+        if AccessGroup._regex_wwpn.match(str(wwpn)):
+            s = str(wwpn)
+            s = s.lower()
+            s = re.sub(r'0x', '', s)
+            s = re.sub(r'[^0-9a-f]', '', s)
+            s = ":".join(re.findall(r'..', s))
+            return s
+        if raise_error:
+            raise LsmError(ErrorNumber.INVALID_INIT,
+                           "Invalid WWPN Initiator: %s" % wwpn)
+        return None
 
 
 @default_property('id', doc="Unique instance identifier")

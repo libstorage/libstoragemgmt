@@ -427,6 +427,8 @@ class Client(INetworkAttachedStorage):
         Register a user/password for the specified initiator for CHAP
         authentication.
         """
+        AccessGroup.init_id_validate(
+            init_id, AccessGroup.INIT_TYPE_ISCSI_IQN, raise_error=True)
         return self._tp.rpc('iscsi_chap_auth', _del_self(locals()))
 
     ## Returns an array of volume objects
@@ -652,6 +654,7 @@ class Client(INetworkAttachedStorage):
         Creates an access group and add the specified initiator id,
         init_type and desired access.
         """
+        AccessGroup.init_id_validate(init_id, init_type, raise_error=True)
         return self._tp.rpc('access_group_create', _del_self(locals()))
 
     ## Deletes an access group.
@@ -679,6 +682,7 @@ class Client(INetworkAttachedStorage):
         """
         Adds an initiator to an access group
         """
+        AccessGroup.init_id_validate(init_id, init_type, raise_error=True)
         return self._tp.rpc('access_group_initiator_add', _del_self(locals()))
 
     ## Deletes an initiator from an access group
