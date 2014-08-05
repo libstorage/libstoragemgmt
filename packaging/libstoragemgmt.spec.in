@@ -1,5 +1,4 @@
 %bcond_without rest_api
-%bcond_without ibm_v7k
 
 %if 0%{?rhel} <= 6
 %global with_rest_api 0
@@ -9,21 +8,11 @@
 #   rpmbuild -ba libstoragemgmt.spec --with rest_api
 %endif
 
-%if 0%{?rhel} >= 7
-%global with_ibm_v7k 0
-%endif
-
 %{?_with_rest_api:
 %global with_rest_api 1
 }
 %{?_without_rest_api:
 %global with_rest_api 0
-}
-%{?_with_ibm_v7k:
-%global with_ibm_v7k 1
-}
-%{?_without_ibm_v7k:
-%global with_ibm_v7k 0
 }
 
 Name:           libstoragemgmt
@@ -44,9 +33,6 @@ BuildRequires:  gcc-c++
 # These buggy extra conditional BuildRequires is for OBS only,
 # Please refer to OBS bug:
 #   https://bugzilla.novell.com/show_bug.cgi?id=864323
-%if 0%{?fedora} || 0%{?rhel} <= 6
-BuildRequires:  python-paramiko
-%endif
 %if 0%{?fedora} || 0%{?rhel} >= 7
 BuildRequires:  libmicrohttpd-devel json-c-devel
 %endif
@@ -129,21 +115,6 @@ The %{name}-targetd-plugin package contains plug-in for targetd array
 support.
 
 
-%if 0%{?with_ibm_v7k}
-%package        ibm-v7k-plugin
-Summary:        Files for IBM v7k array support for %{name}
-Group:          System Environment/Libraries
-Requires:       python-paramiko %{name}-python
-Requires:       libstoragemgmt-python = %{version}-%{release}
-BuildRequires:  python-paramiko
-BuildArch:      noarch
-
-%description    ibm-v7k-plugin
-The %{name}-ibm-v7k-plugin package contains plug-in for IBM v7k array
-support.
-%endif
-
-
 %package        nstor-plugin
 Summary:        Files for NexentaStor array support for %{name}
 Group:          System Environment/Libraries
@@ -183,9 +154,6 @@ the %{name}-rest package contains the http daemon for %{name} rest api.
 
 #Tell the install program to preserve file date/timestamps
 %configure \
-%if 0%{?with_ibm_v7k} != 1
-    --without-paramiko \
-%endif
 %if 0%{?with_rest_api} != 1
     --without-rest-api \
 %endif
@@ -361,15 +329,6 @@ fi
 %{python_sitelib}/lsm/plugin/targetd/__init__.*
 %{python_sitelib}/lsm/plugin/targetd/targetd.*
 %{_bindir}/targetd_lsmplugin
-
-
-%if 0%{?with_ibm_v7k}
-%files ibm-v7k-plugin
-%defattr(-,root,root,-)
-%{python_sitelib}/lsm/plugin/v7k/__init__.*
-%{python_sitelib}/lsm/plugin/v7k/ibmv7k.*
-%{_bindir}/v7k_lsmplugin
-%endif
 
 %files nstor-plugin
 %defattr(-,root,root,-)

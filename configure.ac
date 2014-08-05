@@ -136,16 +136,6 @@ fi
 AM_CONDITIONAL([BUILD_C_UNIT], [test "x${want_c_unit}" = "xyes"])
 
 dnl ==========================================================================
-dnl Check to see if user wants to exclude code that depends on python-paramiko
-dnl ==========================================================================
-
-AC_ARG_WITH([paramiko],
-    [AS_HELP_STRING([--without-paramiko], [Remove paramiko requirement and disables code which uses it, eg. IBM7K Plugin])],
-        [], [with_paramiko="yes"])
-
-AM_CONDITIONAL([HAVE_PARAMIKO], [test "x${with_paramiko}" = "xyes"])
-
-dnl ==========================================================================
 dnl Check for python as it is needed for the base cmd line function
 dnl ==========================================================================
 
@@ -153,11 +143,6 @@ AM_PATH_PYTHON([2.6], [], AC_MSG_ERROR([Python interpreter 2.6 or later required
 AC_PYTHON_MODULE([pywbem], [Required])
 AC_PYTHON_MODULE([M2Crypto], [Required])
 AC_PYTHON_MODULE([argparse], [Required])
-
-
-if test "x${with_paramiko}" = "xyes"; then
-    AC_PYTHON_MODULE([paramiko], [Required])
-fi
 
 dnl ==========================================================================
 dnl Check for libmicrohttpd and json-c as it is needed for REST API daemon

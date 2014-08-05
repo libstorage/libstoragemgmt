@@ -39,12 +39,3 @@ dist_bin_SCRIPTS= \
 	nstor/nstor_lsmplugin \
 	ontap/ontap_lsmplugin \
 	targetd/targetd_lsmplugin
-
-if HAVE_PARAMIKO
-v7kdir = $(plugindir)/v7k
-v7k_PYTHON = \
-	v7k/__init__.py \
-	v7k/ibmv7k.py
-
-dist_bin_SCRIPTS += v7k/v7k_lsmplugin
-endif
