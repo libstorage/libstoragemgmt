@@ -57,9 +57,9 @@ static const char * const TARGET_PORT_SEARCH_KEYS[] = {"id", "system_id"};
  */
 #define CONN_SETUP(c)   do {            \
     if(!LSM_IS_CONNECT(c)) {            \
-        return LSM_ERR_INVALID_CONN;    \
+        return LSM_ERR_INVALID_ARGUMENT;\
     }                                   \
-    lsm_error_free(c->error);             \
+    lsm_error_free(c->error);           \
     c->error = NULL;                    \
     } while (0)
 
@@ -116,7 +116,7 @@ int lsm_connect_password(const char *uri, const char *password,
                 rc = LSM_ERR_NO_MEMORY;
             }
         } else {
-            rc = LSM_ERR_INVALID_URI;
+            rc = LSM_ERR_INVALID_ARGUMENT;
         }
 
         /*If we fail for any reason free resources associated with connection*/
@@ -131,12 +131,8 @@ int lsm_connect_password(const char *uri, const char *password,
 
 static int lsmErrorLog(lsm_connect *c, lsm_error_ptr error)
 {
-    if (!LSM_IS_CONNECT(c)) {
-        return LSM_ERR_INVALID_CONN;
-    }
-
-    if (!LSM_IS_ERROR(error)) {
-        return LSM_ERR_INVALID_ERR;
+    if ( !LSM_IS_CONNECT(c) || !LSM_IS_ERROR(error) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
     }
 
     if (c->error) {
@@ -649,11 +645,8 @@ int lsm_capabilities(lsm_connect *c, lsm_system *system,
     int rc = LSM_ERR_OK;
     CONN_SETUP(c);
 
-    if( !LSM_IS_SYSTEM(system) ) {
-        return LSM_ERR_INVALID_SYSTEM;
-    }
-
-    if( CHECK_RP(cap) || LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( !LSM_IS_SYSTEM(system) || CHECK_RP(cap) ||
+        LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -954,11 +947,7 @@ int lsm_pool_create(lsm_connect *c, lsm_system *system,
 {
     CONN_SETUP(c);
 
-    if( !LSM_IS_SYSTEM(system) ) {
-        return LSM_ERR_INVALID_SYSTEM;
-    }
-
-    if( CHECK_STR(pool_name) || !size_bytes ||
+    if( !LSM_IS_SYSTEM(system) || CHECK_STR(pool_name) || !size_bytes ||
         CHECK_RP(pool)|| CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ||
         !valid_pool_raid_type(raid_type) ||
         !valid_pool_member_type(member_type)) {
@@ -993,16 +982,11 @@ static int lsm_pool_create_from(lsm_connect *c,
 {
     CONN_SETUP(c);
 
-    if( !LSM_IS_SYSTEM(system) ) {
-        return LSM_ERR_INVALID_SYSTEM;
-    }
-
-    if( CHECK_STR(pool_name) ||
+    if( !LSM_IS_SYSTEM(system) || CHECK_STR(pool_name) ||
         CHECK_RP(pool)|| CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ||
         !valid_pool_raid_type(raid_type) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
-
 
     std::map<std::string, Value> p;
     p["system"] = system_to_value(system);
@@ -1055,15 +1039,7 @@ int LSM_DLL_EXPORT lsm_pool_create_from_disks(lsm_connect *c,
  {
     CONN_SETUP(c);
 
-    if( !LSM_IS_SYSTEM(system) ) {
-        return LSM_ERR_INVALID_SYSTEM;
-    }
-
-    if( !LSM_IS_POOL(pool) ) {
-        return LSM_ERR_INVALID_POOL;
-    }
-
-    if( CHECK_STR(pool_name) ||
+    if( !LSM_IS_SYSTEM(system) || !LSM_IS_POOL(pool) || CHECK_STR(pool_name) ||
         !size_bytes || CHECK_RP(created_pool)|| CHECK_RP(job) ||
         LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
@@ -1093,7 +1069,7 @@ int lsm_pool_delete(lsm_connect *c, lsm_pool *pool, char **job, lsm_flag flags)
     CONN_SETUP(c);
 
     if( !LSM_IS_POOL(pool) ) {
-        return LSM_ERR_INVALID_POOL;
+        return LSM_ERR_INVALID_ARGUMENT;
     }
 
     if (CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
@@ -1136,7 +1112,7 @@ int lsm_volume_create(lsm_connect *c, lsm_pool *pool, const char *volumeName,
     CONN_SETUP(c);
 
     if( !LSM_IS_POOL(pool)) {
-        return LSM_ERR_INVALID_POOL;
+        return LSM_ERR_INVALID_ARGUMENT;
     }
 
     if( CHECK_STR(volumeName) || !size || CHECK_RP(newVolume) ||
@@ -1168,12 +1144,8 @@ int lsm_volume_resize(lsm_connect *c, lsm_volume *volume,
 {
     CONN_SETUP(c);
 
-    if( !LSM_IS_VOL(volume)) {
-        return LSM_ERR_INVALID_VOL;
-    }
-
-    if( !newSize || CHECK_RP(resizedVolume) || CHECK_RP(job)
-        || newSize == 0 || LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( !LSM_IS_VOL(volume) || !newSize || CHECK_RP(resizedVolume) ||
+        CHECK_RP(job) || newSize == 0 || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1205,12 +1177,8 @@ int lsm_volume_replicate(lsm_connect *c, lsm_pool *pool,
 {
     CONN_SETUP(c);
 
-    if( pool && !LSM_IS_POOL(pool) ) {
-        return LSM_ERR_INVALID_POOL;
-    }
-
-    if( !LSM_IS_VOL(volumeSrc) ) {
-        return LSM_ERR_INVALID_VOL;
+    if( pool && !LSM_IS_POOL(pool) || !LSM_IS_VOL(volumeSrc) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
     }
 
     if(CHECK_STR(name) || CHECK_RP(newReplicant) || CHECK_RP(job) ||
@@ -1243,12 +1211,8 @@ int lsm_volume_replicate_range_block_size(lsm_connect *c, lsm_system *system,
     int rc = LSM_ERR_OK;
     CONN_SETUP(c);
 
-    if( !bs || LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( !bs || LSM_FLAG_UNUSED_CHECK(flags) || !LSM_IS_SYSTEM(system) ) {
         return LSM_ERR_INVALID_ARGUMENT;
-    }
-
-    if( !LSM_IS_SYSTEM(system) ) {
-        return LSM_ERR_INVALID_SYSTEM;
     }
 
     try {
@@ -1283,7 +1247,7 @@ int lsm_volume_replicate_range(lsm_connect *c,
     CONN_SETUP(c);
 
     if( !LSM_IS_VOL(source) || !LSM_IS_VOL(dest) ) {
-        return LSM_ERR_INVALID_VOL;
+        return LSM_ERR_INVALID_ARGUMENT;
     }
 
     if( !ranges || !num_ranges || CHECK_RP(job) ||
@@ -1312,7 +1276,7 @@ int lsm_volume_delete(lsm_connect *c, lsm_volume *volume, char **job,
     CONN_SETUP(c);
 
     if( !LSM_IS_VOL(volume) ) {
-        return LSM_ERR_INVALID_VOL;
+        return LSM_ERR_INVALID_ARGUMENT;
     }
 
     if( CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
@@ -1381,7 +1345,7 @@ static int online_offline(lsm_connect *c, lsm_volume *v,
     CONN_SETUP(c);
 
     if( !LSM_IS_VOL(v)) {
-        return LSM_ERR_INVALID_VOL;
+        return LSM_ERR_INVALID_ARGUMENT;
     }
 
     if ( LSM_FLAG_UNUSED_CHECK(flags) ) {
@@ -1442,12 +1406,8 @@ int lsm_access_group_create(lsm_connect *c, const char *name,
 {
     CONN_SETUP(c);
 
-    if( !LSM_IS_SYSTEM(system) ) {
-        return LSM_ERR_INVALID_SYSTEM;
-    }
-
-    if( CHECK_STR(name) || CHECK_STR(init_id) || CHECK_RP(access_group) ||
-        LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( !LSM_IS_SYSTEM(system) || CHECK_STR(name) || CHECK_STR(init_id) ||
+        CHECK_RP(access_group) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1478,11 +1438,7 @@ int lsm_access_group_delete(lsm_connect *c, lsm_access_group *access_group,
 {
     CONN_SETUP(c);
 
-    if( !LSM_IS_ACCESS_GROUP(access_group) ){
-        return LSM_ERR_INVALID_ACCESS_GROUP;
-    }
-
-    if( LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( !LSM_IS_ACCESS_GROUP(access_group) || LSM_FLAG_UNUSED_CHECK(flags) ){
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1505,12 +1461,8 @@ int lsm_access_group_initiator_add(lsm_connect *c,
 {
     CONN_SETUP(c);
 
-    if( !LSM_IS_ACCESS_GROUP(access_group) ) {
-        return LSM_ERR_INVALID_ACCESS_GROUP;
-    }
-
-    if( CHECK_STR(init_id) || LSM_FLAG_UNUSED_CHECK(flags) ||
-        CHECK_RP(updated_access_group)) {
+    if( !LSM_IS_ACCESS_GROUP(access_group) || CHECK_STR(init_id) ||
+        LSM_FLAG_UNUSED_CHECK(flags) || CHECK_RP(updated_access_group)) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1542,12 +1494,8 @@ int lsm_access_group_initiator_delete(lsm_connect *c,
 {
     CONN_SETUP(c);
 
-    if( !LSM_IS_ACCESS_GROUP(access_group)) {
-        return LSM_ERR_INVALID_ACCESS_GROUP;
-    }
-
-    if( CHECK_STR(initiator_id) || LSM_FLAG_UNUSED_CHECK(flags) ||
-        CHECK_RP(updated_access_group)) {
+    if( !LSM_IS_ACCESS_GROUP(access_group) || CHECK_STR(initiator_id) ||
+        LSM_FLAG_UNUSED_CHECK(flags) || CHECK_RP(updated_access_group)) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1576,15 +1524,8 @@ int lsm_volume_mask(lsm_connect *c, lsm_access_group *access_group,
 {
     CONN_SETUP(c);
 
-    if( !LSM_IS_ACCESS_GROUP(access_group)) {
-        return LSM_ERR_INVALID_ACCESS_GROUP;
-    }
-
-    if( !LSM_IS_VOL(volume) ) {
-        return LSM_ERR_INVALID_VOL;
-    }
-
-    if( LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( !LSM_IS_ACCESS_GROUP(access_group) || !LSM_IS_VOL(volume) ||
+        LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1606,15 +1547,8 @@ int lsm_volume_unmask(lsm_connect *c, lsm_access_group *group,
 {
     CONN_SETUP(c);
 
-    if( !LSM_IS_ACCESS_GROUP(group)) {
-        return LSM_ERR_INVALID_ACCESS_GROUP;
-    }
-
-    if( !LSM_IS_VOL(volume)) {
-        return LSM_ERR_INVALID_VOL;
-    }
-
-    if( LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( !LSM_IS_ACCESS_GROUP(group) || !LSM_IS_VOL(volume) ||
+        LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1637,11 +1571,8 @@ int lsm_volumes_accessible_by_access_group(lsm_connect *c,
     int rc = LSM_ERR_OK;
     CONN_SETUP(c);
 
-    if( !LSM_IS_ACCESS_GROUP(group)) {
-        return LSM_ERR_INVALID_ACCESS_GROUP;
-    }
-
-    if( !volumes || !count || LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( !LSM_IS_ACCESS_GROUP(group) ||
+        !volumes || !count || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1687,7 +1618,7 @@ int lsm_access_groups_granted_to_volume(lsm_connect *c,
     CONN_SETUP(c);
 
     if( !LSM_IS_VOL(volume)) {
-        return LSM_ERR_INVALID_VOL;
+        return LSM_ERR_INVALID_ARGUMENT;
     }
 
     if( !groups || !groupCount || LSM_FLAG_UNUSED_CHECK(flags) ) {
@@ -1712,7 +1643,7 @@ int lsm_volume_child_dependency(lsm_connect *c, lsm_volume *volume,
     CONN_SETUP(c);
 
     if( !LSM_IS_VOL(volume)) {
-        return LSM_ERR_INVALID_VOL;
+        return LSM_ERR_INVALID_ARGUMENT;
     }
 
     if( !yes || LSM_FLAG_UNUSED_CHECK(flags) ) {
@@ -1752,11 +1683,7 @@ int lsm_volume_child_dependency_delete(lsm_connect *c, lsm_volume *volume,
 {
     CONN_SETUP(c);
 
-    if( !LSM_IS_VOL(volume)) {
-        return LSM_ERR_INVALID_VOL;
-    }
-
-    if( CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( !LSM_IS_VOL(volume) || CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1884,7 +1811,7 @@ int lsm_fs_create(lsm_connect *c, lsm_pool *pool, const char *name,
     CONN_SETUP(c);
 
     if( !LSM_IS_POOL(pool)) {
-        return LSM_ERR_INVALID_POOL;
+        return LSM_ERR_INVALID_ARGUMENT;
     }
 
     if( CHECK_STR(name) || !size_bytes || CHECK_RP(fs) || CHECK_RP(job)
@@ -1913,11 +1840,7 @@ int lsm_fs_delete(lsm_connect *c, lsm_fs *fs, char **job, lsm_flag flags)
 {
     CONN_SETUP(c);
 
-    if( !LSM_IS_FS(fs) ) {
-        return LSM_ERR_INVALID_FS;
-    }
-
-    if( CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( !LSM_IS_FS(fs) || CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1939,11 +1862,8 @@ int lsm_fs_resize(lsm_connect *c, lsm_fs *fs,
 {
     CONN_SETUP(c);
 
-    if( !LSM_IS_FS(fs)) {
-        return LSM_ERR_INVALID_FS;
-    }
-
-    if( !new_size_bytes || CHECK_RP(rfs) || CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( !LSM_IS_FS(fs) || !new_size_bytes || CHECK_RP(rfs) || CHECK_RP(job) ||
+        LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1970,11 +1890,8 @@ int lsm_fs_clone(lsm_connect *c, lsm_fs *src_fs,
 {
     CONN_SETUP(c);
 
-    if( !LSM_IS_FS(src_fs)) {
-        return LSM_ERR_INVALID_FS;
-    }
-
-    if( CHECK_STR(name) || CHECK_RP(cloned_fs) || CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( !LSM_IS_FS(src_fs) || CHECK_STR(name) || CHECK_RP(cloned_fs) ||
+        CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -2001,11 +1918,7 @@ int lsm_fs_file_clone(lsm_connect *c, lsm_fs *fs, const char *src_file_name,
 {
     CONN_SETUP(c);
 
-    if( !LSM_IS_FS(fs)) {
-        return LSM_ERR_INVALID_FS;
-    }
-
-    if( CHECK_STR(src_file_name) || CHECK_STR(dest_file_name)
+    if( !LSM_IS_FS(fs) || CHECK_STR(src_file_name) || CHECK_STR(dest_file_name)
         || CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
@@ -2031,12 +1944,12 @@ int lsm_fs_child_dependency( lsm_connect *c, lsm_fs *fs, lsm_string_list *files,
     CONN_SETUP(c);
 
     if( !LSM_IS_FS(fs) ) {
-        return LSM_ERR_INVALID_FS;
+        return LSM_ERR_INVALID_ARGUMENT;
     }
 
     if( files ) {
         if( !LSM_IS_STRING_LIST(files) ) {
-            return LSM_ERR_INVALID_SL;
+            return LSM_ERR_INVALID_ARGUMENT;
         }
     }
 
@@ -2079,12 +1992,12 @@ int lsm_fs_child_dependency_delete( lsm_connect *c, lsm_fs *fs, lsm_string_list 
     CONN_SETUP(c);
 
     if( !LSM_IS_FS(fs)) {
-        return LSM_ERR_INVALID_FS;
+        return LSM_ERR_INVALID_ARGUMENT;
     }
 
     if( files ) {
         if( !LSM_IS_STRING_LIST(files) ) {
-            return LSM_ERR_INVALID_SL;
+            return LSM_ERR_INVALID_ARGUMENT;
         }
     }
 
@@ -2111,7 +2024,7 @@ int lsm_fs_ss_list(lsm_connect *c, lsm_fs *fs, lsm_fs_ss **ss[],
     CONN_SETUP(c);
 
     if( !LSM_IS_FS(fs) ) {
-        return LSM_ERR_INVALID_FS;
+        return LSM_ERR_INVALID_ARGUMENT;
     }
 
     if( CHECK_RP(ss) || !ssCount ) {
@@ -2163,7 +2076,7 @@ int lsm_fs_ss_create(lsm_connect *c, lsm_fs *fs, const char *name, lsm_fs_ss **s
     CONN_SETUP(c);
 
     if( !LSM_IS_FS(fs)) {
-        return LSM_ERR_INVALID_FS;
+        return LSM_ERR_INVALID_ARGUMENT;
     }
 
     if( CHECK_STR(name) || CHECK_RP(snapshot) || CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
@@ -2192,11 +2105,11 @@ int lsm_fs_ss_delete(lsm_connect *c, lsm_fs *fs, lsm_fs_ss *ss, char **job,
     CONN_SETUP(c);
 
     if( !LSM_IS_FS(fs) ) {
-        return LSM_ERR_INVALID_FS;
+        return LSM_ERR_INVALID_ARGUMENT;
     }
 
     if( !LSM_IS_SS(ss) ) {
-        return LSM_ERR_INVALID_SS;
+        return LSM_ERR_INVALID_ARGUMENT;
     }
 
     if( CHECK_RP(job) || LSM_FLAG_UNUSED_CHECK(flags) ) {
@@ -2223,22 +2136,22 @@ int lsm_fs_ss_restore(lsm_connect *c, lsm_fs *fs, lsm_fs_ss *ss,
     CONN_SETUP(c);
 
     if( !LSM_IS_FS(fs) ) {
-        return LSM_ERR_INVALID_FS;
+        return LSM_ERR_INVALID_ARGUMENT;
     }
 
     if( !LSM_IS_SS(ss) ) {
-        return LSM_ERR_INVALID_SS;
+        return LSM_ERR_INVALID_ARGUMENT;
     }
 
     if( files ) {
         if( !LSM_IS_STRING_LIST(files) ) {
-            return LSM_ERR_INVALID_SL;
+            return LSM_ERR_INVALID_ARGUMENT;
         }
     }
 
     if( restore_files ) {
         if( !LSM_IS_STRING_LIST(restore_files) ) {
-            return LSM_ERR_INVALID_SL;
+            return LSM_ERR_INVALID_ARGUMENT;
         }
     }
 
@@ -2335,19 +2248,19 @@ int lsm_nfs_export_fs( lsm_connect *c,
 
     if( root_list ) {
         if( !LSM_IS_STRING_LIST(root_list) ) {
-            return LSM_ERR_INVALID_SL;
+            return LSM_ERR_INVALID_ARGUMENT;
         }
     }
 
     if( rw_list ) {
         if( !LSM_IS_STRING_LIST(rw_list) ) {
-            return LSM_ERR_INVALID_SL;
+            return LSM_ERR_INVALID_ARGUMENT;
         }
     }
 
      if( ro_list ) {
         if( !LSM_IS_STRING_LIST(ro_list) ) {
-            return LSM_ERR_INVALID_SL;
+            return LSM_ERR_INVALID_ARGUMENT;
         }
     }
 
@@ -2383,11 +2296,7 @@ int lsm_nfs_export_delete( lsm_connect *c, lsm_nfs_export *e, lsm_flag flags)
 {
     CONN_SETUP(c);
 
-    if( !LSM_IS_NFS_EXPORT(e) ) {
-        return LSM_ERR_INVALID_NFS;
-    }
-
-    if( LSM_FLAG_UNUSED_CHECK(flags) ) {
+    if( !LSM_IS_NFS_EXPORT(e) || LSM_FLAG_UNUSED_CHECK(flags) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 

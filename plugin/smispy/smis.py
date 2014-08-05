@@ -99,14 +99,14 @@ def handle_cim_errors(method):
                 elif 'HTTP error' in desc:
                     raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
                                    desc)
-            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG, desc)
+            raise LsmError(ErrorNumber.PLUGIN_BUG, desc)
         except pywbem.cim_http.AuthError as ae:
             raise LsmError(ErrorNumber.PLUGIN_AUTH_FAILED, "Unauthorized user")
         except pywbem.cim_http.Error as te:
             raise LsmError(ErrorNumber.NETWORK_ERROR, str(te))
         except Exception as e:
             error("Unexpected exception:\n" + traceback.format_exc())
-            raise LsmError(ErrorNumber.PLUGIN_ERROR, str(e),
+            raise LsmError(ErrorNumber.PLUGIN_BUG, str(e),
                            traceback.format_exc())
     return cim_wrapper
 
@@ -608,7 +608,7 @@ class Smis(IStorageAreaNetwork):
                 return cim_xxx
 
         if raise_error:
-            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
                            "Unable to find class instance %s " % class_name +
                            "with property %s " % prop_name +
                            "with value %s" % prop_value)
@@ -655,11 +655,11 @@ class Smis(IStorageAreaNetwork):
 
             except Exception:
                 tb = traceback.format_exc()
-                raise LsmError(ErrorNumber.PLUGIN_ERROR,
+                raise LsmError(ErrorNumber.PLUGIN_BUG,
                                'Error: ' + msg + " rc= " + str(rc) +
                                ' Debug data exception: ' + str(tb))
 
-            raise LsmError(ErrorNumber.PLUGIN_ERROR,
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
                            'Error: ' + msg + " rc= " + str(rc))
 
     @handle_cim_errors
@@ -1185,7 +1185,7 @@ class Smis(IStorageAreaNetwork):
                 status = JobStatus.ERROR
 
         else:
-            raise LsmError(ErrorNumber.PLUGIN_ERROR,
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
                            str(cim_job['ErrorDescription']))
 
         return status, percent_complete, completed_item
@@ -1206,7 +1206,7 @@ class Smis(IStorageAreaNetwork):
             return 'CIM_SCSIProtocolController'
         if class_type == 'Initiator':
             return 'CIM_StorageHardwareID'
-        raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
+        raise LsmError(ErrorNumber.PLUGIN_BUG,
                        "Smis._cim_class_name_of() got unknown " +
                        "class_type %s" % class_type)
 
@@ -1226,7 +1226,7 @@ class Smis(IStorageAreaNetwork):
             return ErrorNumber.NOT_FOUND_ACCESS_GROUP
         if class_type == 'Initiator':
             return ErrorNumber.INVALID_ARGUMENT
-        raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
+        raise LsmError(ErrorNumber.PLUGIN_BUG,
                        "Smis._cim_class_name_of() got unknown " +
                        "class_type %s" % class_type)
 
@@ -1251,7 +1251,7 @@ class Smis(IStorageAreaNetwork):
         elif class_type == 'Initiator':
             rc = ['StorageID']
         else:
-            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
                            "Smis._property_list_of_id() got unknown " +
                            "class_type %s" % class_type)
 
@@ -1571,7 +1571,7 @@ class Smis(IStorageAreaNetwork):
                 PropertyList=pool_pros, LocalOnly=False)
             return self._new_pool(cim_new_pool)
         else:
-            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
                            "Got not new Pool from out of InvokeMethod" +
                            "when CreateOrModifyElementFromStoragePool")
 
@@ -1773,7 +1773,7 @@ class Smis(IStorageAreaNetwork):
                 if pool:
                     rc.extend([pool])
                 else:
-                    raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
+                    raise LsmError(ErrorNumber.PLUGIN_BUG,
                                    "Failed to retrieve pool information " +
                                    "from CIM_StoragePool: %s" % cim_pool.path)
         return search_property(rc, search_key, search_value)
@@ -1873,7 +1873,7 @@ class Smis(IStorageAreaNetwork):
         Create a volume.
         """
         if provisioning != Volume.PROVISION_DEFAULT:
-            raise LsmError(ErrorNumber.UNSUPPORTED_PROVISIONING,
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                            "Unsupported provisioning")
 
         # Get the Configuration service for the system we are interested in.
@@ -1903,7 +1903,7 @@ class Smis(IStorageAreaNetwork):
                     return i
                 else:
                     raise LsmError(
-                        ErrorNumber.PLUGIN_ERROR,
+                        ErrorNumber.PLUGIN_BUG,
                         msg + ", job error code= " + str(s))
 
     def _detach(self, vol, sync):
@@ -2162,7 +2162,7 @@ class Smis(IStorageAreaNetwork):
         elif len(cim_srvs) == 0:
             return None
         else:
-            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
                            "_get_cim_service_path(): Got unexpected(not 1) "
                            "count of %s from cim_sys %s: %s" %
                            (class_name, cim_sys_path, cim_srvs))
@@ -2606,7 +2606,7 @@ class Smis(IStorageAreaNetwork):
             raise LsmError(ErrorNumber.NO_SUPPORT,
                            'AccessGroup is not supported by this array')
         else:
-            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
                            "Got %d instance of " % len(cim_ccss_path) +
                            "ControllerConfigurationService from %s" %
                            cim_sys_path + " in _cim_spc_of()")
@@ -2885,7 +2885,7 @@ class Smis(IStorageAreaNetwork):
                     list(self._cim_spc_to_lsm(cim_spc, system_id)
                          for cim_spc in cim_spcs))
             else:
-                raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
+                raise LsmError(ErrorNumber.PLUGIN_BUG,
                                "_get_cim_spc_by_id(): Got invalid mask_type: "
                                "%s" % mask_type)
 
@@ -3086,7 +3086,7 @@ class Smis(IStorageAreaNetwork):
                         cim_spc_path,
                         AssocClass='CIM_ProtocolControllerForUnit',
                         ResultClass='CIM_StorageVolume')) >= 1:
-                    raise LsmError(ErrorNumber.ACCESS_GROUP_BUSY,
+                    raise LsmError(ErrorNumber.ACCESS_GROUP_MASKED,
                                    "Refuse to remove last initiator member "
                                    "from access group which have volume "
                                    "masked to")
@@ -3338,7 +3338,7 @@ class Smis(IStorageAreaNetwork):
             # each CIM_DiskDrive
             return cim_exts[0]
         else:
-            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
                            "Failed to find out Primordial " +
                            "CIM_StorageExtent for CIM_DiskDrive %s " %
                            cim_disk_path)
@@ -3555,7 +3555,7 @@ class Smis(IStorageAreaNetwork):
         elif len(cim_disks) == 2:
             return None
         else:
-            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
                            "Found two or more CIM_DiskDrive associated to " +
                            "requested CIM_StorageExtent %s" %
                            cim_pri_ext_path)
@@ -4437,12 +4437,12 @@ class Smis(IStorageAreaNetwork):
                 cim_iscsi_nodes.extend([cim_spc])
 
         if len(cim_iscsi_nodes) == 0:
-            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
                            "_iscsi_node_of(): No iSCSI node "
                            "CIM_SCSIProtocolController associated to %s"
                            % cim_iscsi_pg_path)
         if len(cim_iscsi_nodes) > 1:
-            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
                            "_iscsi_node_of(): Got two or more iSCSI node "
                            "CIM_SCSIProtocolController associated to %s: %s"
                            % (cim_iscsi_pg_path, cim_iscsi_nodes))
@@ -4507,7 +4507,7 @@ class Smis(IStorageAreaNetwork):
             AssocClass='CIM_BindsTo',
             PropertyList=['PortNumber'])
         if len(cim_tcps) == 0:
-            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
                            "_cim_iscsi_pg_to_lsm():  "
                            "No CIM_TCPProtocolEndpoint associated to %s"
                            % cim_iscsi_pg.path)
@@ -4728,13 +4728,13 @@ class Smis(IStorageAreaNetwork):
             if out_key in out:
                 if flag_out_array:
                     if len(out[out_key]) != 1:
-                        raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
+                        raise LsmError(ErrorNumber.PLUGIN_BUG,
                                        "_wait_invoke(), %s is not length 1: %s"
                                        % (out_key, out.items()))
                     return out[out_key][0]
                 return out[out_key]
             else:
-                raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
+                raise LsmError(ErrorNumber.PLUGIN_BUG,
                                "_wait_invoke(), %s not exist in out %s" %
                                (out_key, out.items()))
         elif rc == Smis.INVOKE_ASYNC:
@@ -4761,11 +4761,11 @@ class Smis(IStorageAreaNetwork):
                         AssocClass='CIM_AffectedJobElement',
                         ResultClass=expect_class)
                 else:
-                    raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
+                    raise LsmError(ErrorNumber.PLUGIN_BUG,
                                    "_wait_invoke(): Got unknown job state "
                                    "%d: %s" % (job_state, cim_job.items()))
                 if len(cim_xxxs_path) != 1:
-                    raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
+                    raise LsmError(ErrorNumber.PLUGIN_BUG,
                                    "_wait_invoke(): got unexpect(not 1) "
                                    "return from CIM_AffectedJobElement: "
                                    "%s, out: %s, job: %s" %
@@ -4773,7 +4773,7 @@ class Smis(IStorageAreaNetwork):
                                     cim_job.items()))
                 return cim_xxxs_path[0]
         else:
-            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
                            "_wait_invoke(): Got unexpected rc code "
                            "%d, out: %s" % (rc, out.items()))
 
@@ -4988,7 +4988,7 @@ class Smis(IStorageAreaNetwork):
                     cim_spc_path,
                     AssocClass='CIM_ProtocolControllerForUnit',
                     ResultClass='CIM_StorageVolume')) >= 1:
-                raise LsmError(ErrorNumber.MASKED_ACCESS_GROUP,
+                raise LsmError(ErrorNumber.ACCESS_GROUP_MASKED,
                                "Access Group %s has volume masked" %
                                access_group.id)
 

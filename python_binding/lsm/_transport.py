@@ -101,7 +101,7 @@ class TransPort(object):
             s.connect(path)
         except socket.error:
             #self, code, message, data=None, *args, **kwargs
-            raise LsmError(ErrorNumber.NO_CONNECT,
+            raise LsmError(ErrorNumber.NETWORK_ERROR,
                            "Unable to connect to lsmd, daemon started?")
         return s
 

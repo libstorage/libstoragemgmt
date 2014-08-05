@@ -138,7 +138,7 @@ class PluginRunner(object):
             error("Unhandled exception in plug-in!\n" + traceback.format_exc())
 
             try:
-                self.tp.send_error(msg_id, ErrorNumber.PLUGIN_ERROR,
+                self.tp.send_error(msg_id, ErrorNumber.PLUGIN_BUG,
                                    "Unhandled exception in plug-in",
                                    str(traceback.format_exc()))
             except Exception:

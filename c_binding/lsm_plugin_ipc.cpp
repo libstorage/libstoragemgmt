@@ -110,7 +110,7 @@ int lsm_register_plugin_v1(lsm_plugin_ptr plug,
                         struct lsm_san_ops_v1 *san_op, struct lsm_fs_ops_v1 *fs_op,
                         struct lsm_nas_ops_v1 *nas_op)
 {
-    int rc = LSM_ERR_INVALID_PLUGIN;
+    int rc = LSM_ERR_INVALID_ARGUMENT;
 
     if(LSM_IS_PLUGIN(plug)) {
         plug->private_data = private_data;
@@ -402,7 +402,7 @@ static int handle_job_status( lsm_plugin_ptr p, Value &params, Value &response)
                         result.push_back(pool_to_value((lsm_pool *)value));
                         lsm_pool_record_free((lsm_pool *)value);
                     } else {
-                        rc = LSM_ERR_PLUGIN_ERROR;
+                        rc = LSM_ERR_PLUGIN_BUG;
                     }
                 }
                 response = Value(result);
@@ -2382,7 +2382,7 @@ static int lsm_plugin_run(lsm_plugin_ptr p)
         lsm_plugin_free(p, flags);
         p = NULL;
     } else {
-        rc = LSM_ERR_INVALID_PLUGIN;
+        rc = LSM_ERR_INVALID_ARGUMENT;
     }
 
     return rc;
@@ -2391,7 +2391,7 @@ static int lsm_plugin_run(lsm_plugin_ptr p)
 int lsm_log_error_basic( lsm_plugin_ptr plug, lsm_error_number code, const char* msg )
 {
     if( !LSM_IS_PLUGIN(plug) ) {
-        return LSM_ERR_INVALID_PLUGIN;
+        return LSM_ERR_INVALID_ARGUMENT;
     }
 
     lsm_error_ptr e = LSM_ERROR_CREATE_PLUGIN_MSG(code, msg);
@@ -2409,12 +2409,8 @@ int lsm_log_error_basic( lsm_plugin_ptr plug, lsm_error_number code, const char*
 
 int lsm_plugin_error_log( lsm_plugin_ptr plug, lsm_error_ptr error)
 {
-    if( !LSM_IS_PLUGIN(plug) ) {
-        return LSM_ERR_INVALID_PLUGIN;
-    }
-
-    if(!LSM_IS_ERROR(error) ) {
-        return LSM_ERR_INVALID_ERR;
+    if( !LSM_IS_PLUGIN(plug) || !LSM_IS_ERROR(error) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
     }
 
     if( plug->error ) {
@@ -2442,7 +2438,7 @@ int LSM_DLL_EXPORT lsm_uri_parse(const char *uri, char **scheme, char **user,
                                 char **server, int *port, char **path,
                                 lsm_hash **query_params)
 {
-    int rc = LSM_ERR_INVALID_URI;
+    int rc = LSM_ERR_INVALID_ARGUMENT;
     xmlURIPtr u = NULL;
 
     if( uri && strlen(uri) > 0 ) {

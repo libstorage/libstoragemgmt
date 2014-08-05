@@ -759,7 +759,7 @@ class SimData(object):
                 member_sizes.extend([pool_each_size])
 
         else:
-            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
                            "Got unsupported member_type in _size_of_raid()" +
                            ": %d" % member_type)
         all_size = 0
@@ -805,7 +805,7 @@ class SimData(object):
             print "%s" % size_bytes_2_size_human(all_size)
             print "%s" % size_bytes_2_size_human(member_size)
             return int(all_size / 2 - member_size * 2)
-        raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
+        raise LsmError(ErrorNumber.PLUGIN_BUG,
                        "_size_of_raid() got invalid raid type: " +
                        "%s(%d)" % (Pool.raid_type_to_str(raid_type),
                                    raid_type))
@@ -881,7 +881,7 @@ class SimData(object):
         # check free size
         free_space = self.pool_free_space(pool_id)
         if (free_space < size_bytes):
-            raise LsmError(ErrorNumber.SIZE_INSUFFICIENT_SPACE,
+            raise LsmError(ErrorNumber.NOT_ENOUGH_SPACE,
                            "Insufficient space in pool")
         sim_vol = dict()
         sim_vol['vol_id'] = self._next_vol_id()
@@ -899,7 +899,7 @@ class SimData(object):
         if vol_id in self.vol_dict.keys():
             del(self.vol_dict[vol_id])
             return
-        raise LsmError(ErrorNumber.INVALID_VOLUME,
+        raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
                        "No such volume: %s" % vol_id)
 
     def volume_resize(self, vol_id, new_size_bytes, flags=0):
@@ -908,26 +908,26 @@ class SimData(object):
             pool_id = self.vol_dict[vol_id]['pool_id']
             free_space = self.pool_free_space(pool_id)
             if (free_space < new_size_bytes):
-                raise LsmError(ErrorNumber.SIZE_INSUFFICIENT_SPACE,
+                raise LsmError(ErrorNumber.NOT_ENOUGH_SPACE,
                                "Insufficient space in pool")
 
             self.vol_dict[vol_id]['total_space'] = new_size_bytes
             self.vol_dict[vol_id]['consume_size'] = new_size_bytes
             return self.vol_dict[vol_id]
-        raise LsmError(ErrorNumber.INVALID_VOLUME,
+        raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                        "No such volume: %s" % vol_id)
 
     def volume_replicate(self, dst_pool_id, rep_type, src_vol_id, new_vol_name,
                          flags=0):
         if src_vol_id not in self.vol_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_VOLUME,
+            raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
                            "No such volume: %s" % src_vol_id)
         size_bytes = self.vol_dict[src_vol_id]['total_space']
         size_bytes = SimData._block_rounding(size_bytes)
         # check free size
         free_space = self.pool_free_space(dst_pool_id)
         if (free_space < size_bytes):
-            raise LsmError(ErrorNumber.SIZE_INSUFFICIENT_SPACE,
+            raise LsmError(ErrorNumber.NOT_ENOUGH_SPACE,
                            "Insufficient space in pool")
         sim_vol = dict()
         sim_vol['vol_id'] = self._next_vol_id()
@@ -963,11 +963,11 @@ class SimData(object):
     def volume_replicate_range(self, rep_type, src_vol_id, dst_vol_id, ranges,
                                flags=0):
         if src_vol_id not in self.vol_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_VOLUME,
+            raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
                            "No such Volume: %s" % src_vol_id)
 
         if dst_vol_id not in self.vol_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_VOLUME,
+            raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
                            "No such Volume: %s" % dst_vol_id)
 
         sim_reps = []
@@ -992,7 +992,7 @@ class SimData(object):
 
     def volume_online(self, vol_id, flags=0):
         if vol_id not in self.vol_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_VOLUME,
+            raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
                            "No such Volume: %s" % vol_id)
         # TODO: Volume.STATUS_XXX does have indication about volume offline
         #       or online, meanwhile, cmdline does not support volume_online()
@@ -1001,7 +1001,7 @@ class SimData(object):
 
     def volume_offline(self, vol_id, flags=0):
         if vol_id not in self.vol_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_VOLUME,
+            raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
                            "No such Volume: %s" % vol_id)
         # TODO: Volume.STATUS_XXX does have indication about volume offline
         #       or online, meanwhile, cmdline does not support volume_online()
@@ -1013,7 +1013,7 @@ class SimData(object):
         If volume is a src or dst of a replication, we return True.
         """
         if vol_id not in self.vol_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_VOLUME,
+            raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
                            "No such Volume: %s" % vol_id)
         if 'replicate' in self.vol_dict[vol_id].keys() and \
            self.vol_dict[vol_id]['replicate']:
@@ -1026,7 +1026,7 @@ class SimData(object):
 
     def volume_child_dependency_rm(self, vol_id, flags=0):
         if vol_id not in self.vol_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_VOLUME,
+            raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
                            "No such Volume: %s" % vol_id)
         if 'replicate' in self.vol_dict[vol_id].keys() and \
            self.vol_dict[vol_id]['replicate']:
@@ -1131,7 +1131,7 @@ class SimData(object):
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
                            "Access group not found: %s" % ag_id)
         if vol_id not in self.vol_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_VOLUME,
+            raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
                            "No such Volume: %s" % vol_id)
         if 'mask' not in self.vol_dict[vol_id].keys():
             self.vol_dict[vol_id]['mask'] = dict()
@@ -1144,7 +1144,7 @@ class SimData(object):
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
                            "Access group not found: %s" % ag_id)
         if vol_id not in self.vol_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_VOLUME,
+            raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
                            "No such Volume: %s" % vol_id)
         if 'mask' not in self.vol_dict[vol_id].keys():
             return None
@@ -1198,7 +1198,7 @@ class SimData(object):
         # check free size
         free_space = self.pool_free_space(pool_id)
         if (free_space < size_bytes):
-            raise LsmError(ErrorNumber.SIZE_INSUFFICIENT_SPACE,
+            raise LsmError(ErrorNumber.NOT_ENOUGH_SPACE,
                            "Insufficient space in pool")
         sim_fs = dict()
         fs_id = self._next_fs_id()
@@ -1216,7 +1216,7 @@ class SimData(object):
         if fs_id in self.fs_dict.keys():
             del(self.fs_dict[fs_id])
             return
-        raise LsmError(ErrorNumber.INVALID_FS,
+        raise LsmError(ErrorNumber.NOT_FOUND_FS,
                        "No such File System: %s" % fs_id)
 
     def fs_resize(self, fs_id, new_size_bytes, flags=0):
@@ -1225,14 +1225,14 @@ class SimData(object):
             pool_id = self.fs_dict[fs_id]['pool_id']
             free_space = self.pool_free_space(pool_id)
             if (free_space < new_size_bytes):
-                raise LsmError(ErrorNumber.SIZE_INSUFFICIENT_SPACE,
+                raise LsmError(ErrorNumber.NOT_ENOUGH_SPACE,
                                "Insufficient space in pool")
 
             self.fs_dict[fs_id]['total_space'] = new_size_bytes
             self.fs_dict[fs_id]['free_space'] = new_size_bytes
             self.fs_dict[fs_id]['consume_size'] = new_size_bytes
             return self.fs_dict[fs_id]
-        raise LsmError(ErrorNumber.INVALID_VOLUME,
+        raise LsmError(ErrorNumber.NOT_FOUND_FS,
                        "No such File System: %s" % fs_id)
 
     def fs_clone(self, src_fs_id, dst_fs_name, snap_id, flags=0):
@@ -1240,7 +1240,7 @@ class SimData(object):
             raise LsmError(ErrorNumber.NOT_FOUND_FS,
                            "File System: %s not found" % src_fs_id)
         if snap_id and snap_id not in self.snap_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_SS,
+            raise LsmError(ErrorNumber.NOT_FOUND_FS_SS,
                            "No such Snapshot: %s" % snap_id)
         src_sim_fs = self.fs_dict[src_fs_id]
         dst_sim_fs = self.fs_create(
@@ -1257,7 +1257,7 @@ class SimData(object):
             raise LsmError(ErrorNumber.NOT_FOUND_FS,
                            "File System: %s not found" % fs_id)
         if snap_id and snap_id not in self.snap_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_SS,
+            raise LsmError(ErrorNumber.NOT_FOUND_FS_SS,
                            "No such Snapshot: %s" % snap_id)
         # TODO: No file clone query API yet, no need to do anything internally
         return None
@@ -1295,7 +1295,7 @@ class SimData(object):
             raise LsmError(ErrorNumber.NOT_FOUND_FS,
                            "File System: %s not found" % fs_id)
         if snap_id not in self.snap_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_SS,
+            raise LsmError(ErrorNumber.NOT_FOUND_FS_SS,
                            "No such Snapshot: %s" % snap_id)
         del self.snap_dict[snap_id]
         new_snap_ids = []
@@ -1311,7 +1311,7 @@ class SimData(object):
             raise LsmError(ErrorNumber.NOT_FOUND_FS,
                            "File System: %s not found" % fs_id)
         if snap_id not in self.snap_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_SS,
+            raise LsmError(ErrorNumber.NOT_FOUND_FS_SS,
                            "No such Snapshot: %s" % snap_id)
         # Nothing need to done internally for restore.
         return None
@@ -1407,7 +1407,7 @@ class SimData(object):
 
     def fs_unexport(self, exp_id, flags=0):
         if exp_id not in self.exp_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_NFS,
+            raise LsmError(ErrorNumber.NOT_FOUND_NFS_EXPORT,
                            "No such NFS Export: %s" % exp_id)
         del self.exp_dict[exp_id]
         return None
@@ -1487,7 +1487,7 @@ class SimData(object):
         #   4. All disks' total space is the same.
         if len(member_ids) <= 0:
             if raise_error:
-                raise LsmError(ErrorNumber.INVALID_DISK,
+                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                                "No disk ID defined")
             else:
                 return None
@@ -1507,7 +1507,7 @@ class SimData(object):
         for disk_id in member_ids:
             if disk_id not in self.disk_dict.keys():
                 if raise_error:
-                    raise LsmError(ErrorNumber.INVALID_DISK,
+                    raise LsmError(ErrorNumber.NOT_FOUND_DISK,
                                    "The disk ID %s does not exist" % disk_id)
                 else:
                     return None
@@ -1586,7 +1586,7 @@ class SimData(object):
         return newly create sim_pool or None.
         """
         if sys_id != SimData.SIM_DATA_SYS_ID:
-            raise LsmError(ErrorNumber.INVALID_SYSTEM,
+            raise LsmError(ErrorNumber.NOT_FOUND_SYSTEM,
                            "No such system: %s" % sys_id)
 
         return self._pool_create_from_disks(pool_name, member_ids, raid_type,
@@ -1601,7 +1601,7 @@ class SimData(object):
         if len(free_sim_pool_ids) == 0 or \
            member_id not in free_sim_pool_ids:
             if raise_error:
-                raise LsmError(ErrorNumber.SIZE_INSUFFICIENT_SPACE,
+                raise LsmError(ErrorNumber.NOT_ENOUGH_SPACE,
                                "Pool %s " % member_id +
                                "is full, no space to create new pool")
             else:
@@ -1609,7 +1609,7 @@ class SimData(object):
 
         free_size = self.pool_free_space(member_id)
         if free_size < size_bytes:
-            raise LsmError(ErrorNumber.SIZE_INSUFFICIENT_SPACE,
+            raise LsmError(ErrorNumber.NOT_ENOUGH_SPACE,
                            "Pool %s does not have requested free" %
                            member_id + "to create new pool")
 
@@ -1633,7 +1633,7 @@ class SimData(object):
     def pool_create_from_pool(self, sys_id, pool_name, member_id, size_bytes,
                               flags=0):
         if sys_id != SimData.SIM_DATA_SYS_ID:
-            raise LsmError(ErrorNumber.INVALID_SYSTEM,
+            raise LsmError(ErrorNumber.NOT_FOUND_SYSTEM,
                            "No such system: %s" % sys_id)
         return self._pool_create_from_pool(pool_name, member_id, size_bytes,
                                            raise_error=True)
@@ -1664,7 +1664,7 @@ class SimData(object):
                 if sim_disk['total_space'] >= size_bytes:
                     return [sim_disk]
             if raise_error:
-                raise LsmError(ErrorNumber.SIZE_INSUFFICIENT_SPACE,
+                raise LsmError(ErrorNumber.NOT_ENOUGH_SPACE,
                                "No %s is bigger than " % disk_type_str +
                                "expected size: %s(%d)" %
                                (size_bytes_2_size_human(size_bytes),
@@ -1690,7 +1690,7 @@ class SimData(object):
                 if all_free_size >= size_bytes:
                     return chose_sim_disks
             if raise_error:
-                raise LsmError(ErrorNumber.SIZE_INSUFFICIENT_SPACE,
+                raise LsmError(ErrorNumber.NOT_ENOUGH_SPACE,
                                "No enough %s to provide size %s(%d)" %
                                (disk_type_str,
                                 size_bytes_2_size_human(size_bytes),
@@ -1716,7 +1716,7 @@ class SimData(object):
                         return cur_sim_disks[0:member_count]
 
         if raise_error:
-            raise LsmError(ErrorNumber.SIZE_INSUFFICIENT_SPACE,
+            raise LsmError(ErrorNumber.NOT_ENOUGH_SPACE,
                            "No enough %s " % disk_type_str +
                            "to create %s providing size: %s(%d)" %
                            (Pool.raid_type_to_str(raid_type),
@@ -1739,7 +1739,7 @@ class SimData(object):
                     return sim_pool
 
         if raise_error:
-            raise LsmError(ErrorNumber.SIZE_INSUFFICIENT_SPACE,
+            raise LsmError(ErrorNumber.NOT_ENOUGH_SPACE,
                            "No pool is bigger than expected size: " +
                            "%s(%d)" %
                            (size_bytes_2_size_human(size_bytes),
@@ -1751,7 +1751,7 @@ class SimData(object):
                     raid_type=Pool.RAID_TYPE_UNKNOWN,
                     member_type=Pool.MEMBER_TYPE_UNKNOWN, flags=0):
         if sys_id != SimData.SIM_DATA_SYS_ID:
-            raise LsmError(ErrorNumber.INVALID_SYSTEM,
+            raise LsmError(ErrorNumber.NOT_FOUND_SYSTEM,
                            "No such system: %s" % sys_id)
 
         size_bytes = SimData._block_rounding(size_bytes)
@@ -1806,12 +1806,12 @@ class SimData(object):
                 return sim_pool
 
         # only member_type == Pool.MEMBER_TYPE_UNKNOWN can reach here.
-        raise LsmError(ErrorNumber.SIZE_INSUFFICIENT_SPACE,
+        raise LsmError(ErrorNumber.NOT_ENOUGH_SPACE,
                        "No enough free spaces to create new pool")
 
     def pool_delete(self, pool_id, flags=0):
         if pool_id not in self.pool_dict.keys():
-            raise LsmError(ErrorNumber.INVALID_POOL,
+            raise LsmError(ErrorNumber.NOT_FOUND_POOL,
                            "Pool not found: %s" % pool_id)
 
         volumes = self.volumes()

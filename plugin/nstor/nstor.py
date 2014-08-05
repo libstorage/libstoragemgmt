@@ -44,7 +44,7 @@ def handle_nstor_errors(method):
             raise
         except Exception as e:
             error("Unexpected exception:\n" + traceback.format_exc())
-            raise LsmError(ErrorNumber.PLUGIN_ERROR, str(e),
+            raise LsmError(ErrorNumber.PLUGIN_BUG, str(e),
                            traceback.format_exc())
     return nstor_wrapper
 
@@ -83,7 +83,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         resp_json = response.read()
         resp = json.loads(resp_json)
         if resp['error']:
-            raise LsmError(ErrorNumber.PLUGIN_ERROR, resp['error'])
+            raise LsmError(ErrorNumber.PLUGIN_BUG, resp['error'])
         return resp['result']
 
     def _request(self, method, obj, params):
@@ -297,7 +297,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
     @handle_nstor_errors
     def fs_resize(self, fs, new_size_bytes, flags=0):
-        raise LsmError(ErrorNumber.NOT_IMPLEMENTED, "Not implemented")
+        raise LsmError(ErrorNumber.NO_SUPPORT, "Not implemented")
 
     @staticmethod
     def _get_pool_id(fs_name):
@@ -563,7 +563,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         Note: Tuple return values are mutually exclusive, when one
         is None the other must be valid.
         """
-        raise LsmError(ErrorNumber.NOT_IMPLEMENTED,
+        raise LsmError(ErrorNumber.NO_SUPPORT,
                        "volume_replicate not implemented")
 
     #    if rep_type == Volume.REPLICATE_SNAPSHOT:

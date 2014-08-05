@@ -32,21 +32,21 @@ from lsm import (Volume, FileSystem, FsSnapshot, NfsExport,
 
 #Maps na to lsm, this is expected to expand over time.
 e_map = {
-    na.Filer.ENOSPC: ErrorNumber.SIZE_INSUFFICIENT_SPACE,
+    na.Filer.ENOSPC: ErrorNumber.NOT_ENOUGH_SPACE,
     na.Filer.ENO_SUCH_VOLUME: ErrorNumber.NOT_FOUND_VOLUME,
-    na.Filer.ESIZE_TOO_LARGE: ErrorNumber.SIZE_TOO_LARGE,
+    na.Filer.ESIZE_TOO_LARGE: ErrorNumber.NOT_ENOUGH_SPACE,
     na.Filer.ENO_SUCH_FS: ErrorNumber.NOT_FOUND_FS,
     na.Filer.EVOLUME_TOO_SMALL: ErrorNumber.SIZE_TOO_SMALL,
     na.Filer.EAPILICENSE: ErrorNumber.NOT_LICENSED,
     na.Filer.EFSDOESNOTEXIST: ErrorNumber.NOT_FOUND_FS,
-    na.Filer.EFSOFFLINE: ErrorNumber.OFF_LINE,
-    na.Filer.EFSNAMEINVALID: ErrorNumber.INVALID_NAME,
+    na.Filer.EFSOFFLINE: ErrorNumber.NO_SUPPORT_ONLINE_CHANGE,
+    na.Filer.EFSNAMEINVALID: ErrorNumber.INVALID_ARGUMENT,
     na.Filer.ESERVICENOTLICENSED: ErrorNumber.NOT_LICENSED,
     na.Filer.ECLONE_LICENSE_EXPIRED: ErrorNumber.NOT_LICENSED,
     na.Filer.ECLONE_NOT_LICENSED: ErrorNumber.NOT_LICENSED,
-    na.Filer.EINVALID_ISCSI_NAME: ErrorNumber.INVALID_INIT,
-    na.Filer.ETIMEOUT: ErrorNumber.PLUGIN_TIMEOUT,
-    na.Filer.EUNKNOWN: ErrorNumber.PLUGIN_ERROR
+    na.Filer.EINVALID_ISCSI_NAME: ErrorNumber.INVALID_ARGUMENT,
+    na.Filer.ETIMEOUT: ErrorNumber.TIMEOUT,
+    na.Filer.EUNKNOWN: ErrorNumber.PLUGIN_BUG
 }
 
 
@@ -58,7 +58,7 @@ def error_map(oe):
     if oe.errno in e_map:
         return e_map[oe.errno], oe.reason
     else:
-        return ErrorNumber.PLUGIN_ERROR, \
+        return ErrorNumber.PLUGIN_BUG, \
             oe.reason + " (vendor error code= " + str(oe.errno) + ")"
 
 
@@ -519,7 +519,7 @@ class Ontap(IStorageAreaNetwork, INfs):
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
                       flags=0):
         if provisioning != Volume.PROVISION_DEFAULT:
-            raise LsmError(ErrorNumber.UNSUPPORTED_PROVISIONING,
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                            "Unsupported provisioning")
         na_aggrs = self.f.aggregates()
         na_aggr_names = [x['name'] for x in na_aggrs]
@@ -732,7 +732,7 @@ class Ontap(IStorageAreaNetwork, INfs):
             if g.name == name:
                 return g
 
-        raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
+        raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
                        "access_group_create(): Unable to find access group "
                        "%s just created!" % name)
 
@@ -756,7 +756,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                 raise
         na_ags = self.f.igroups(access_group.name)
         if len(na_ags) != 1:
-            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
                            "access_group_initiator_add(): Got unexpected"
                            "(not 1) count of na_ag: %s" % na_ags)
 
@@ -778,7 +778,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                 raise
         na_ags = self.f.igroups(access_group.name)
         if len(na_ags) != 1:
-            raise LsmError(ErrorNumber.LSM_PLUGIN_BUG,
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
                            "access_group_initiator_add(): Got unexpected"
                            "(not 1) count of na_ag: %s" % na_ags)
 
@@ -848,7 +848,7 @@ class Ontap(IStorageAreaNetwork, INfs):
     @handle_ontap_errors
     def job_status(self, job_id, flags=0):
         if job_id is None and '@' not in job_id:
-            raise LsmError(ErrorNumber.INVALID_JOB, "Invalid job, missing @")
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT, "Invalid job, missing @")
 
         job = job_id.split('@', 2)
 
@@ -857,7 +857,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         elif job[0] == Ontap.SPLIT_JOB:
             return self._clone_split_status(job[1])
 
-        raise LsmError(ErrorNumber.INVALID_JOB, "Invalid job")
+        raise LsmError(ErrorNumber.INVALID_ARGUMENT, "Invalid job")
 
     @handle_ontap_errors
     def job_free(self, job_id, flags=0):
@@ -1073,7 +1073,7 @@ class Ontap(IStorageAreaNetwork, INfs):
             if e.fs_id == fs_id and e.export_path == export_path:
                 return e
 
-        raise LsmError(ErrorNumber.PLUGIN_ERROR,
+        raise LsmError(ErrorNumber.PLUGIN_BUG,
                        "export not created successfully!")
 
     @handle_ontap_errors

@@ -73,7 +73,7 @@ def common_urllib2_error_handler(exp):
 
     stack_trace = traceback.format_exc()
     error("Unexpected exception:\n" + stack_trace)
-    raise LsmError(ErrorNumber.PLUGIN_ERROR, "Unexpected exception",
+    raise LsmError(ErrorNumber.PLUGIN_BUG, "Unexpected exception",
                    stack_trace)
 
 
@@ -275,13 +275,13 @@ def uri_parse(uri, requires=None, required_params=None):
     if requires:
         for r in requires:
             if r not in rc:
-                raise LsmError(ErrorNumber.PLUGIN_ERROR,
+                raise LsmError(ErrorNumber.PLUGIN_BUG,
                                'uri missing \"%s\" or is in invalid form' % r)
 
     if required_params:
         for r in required_params:
             if r not in rc['parameters']:
-                raise LsmError(ErrorNumber.PLUGIN_ERROR,
+                raise LsmError(ErrorNumber.PLUGIN_BUG,
                                'uri missing query parameter %s' % r)
     return rc
 
@@ -422,11 +422,10 @@ class ErrorLevel(object):
 #using them.
 class ErrorNumber(object):
     OK = 0
-    LSM_LIB_BUG = 1
-    LSM_PLUGIN_BUG = 2
-    LSM_STORAGE_SDK_BUG = 3
+    LIB_BUG = 1
+    PLUGIN_BUG = 2
+    STORAGE_SDK_BUG = 3
     JOB_STARTED = 7
-    INDEX_BOUNDS = 10
     TIMEOUT = 11
     DAEMON_NOT_RUNNING = 12
 
@@ -438,26 +437,7 @@ class ErrorNumber(object):
     EXISTS_POOL = 56
     EXISTS_VOLUME = 57
 
-    INVALID_ACCESS_GROUP = 100
     INVALID_ARGUMENT = 101
-    INVALID_CONN = 102
-    INVALID_ERR = 103
-    INVALID_FS = 104
-    INVALID_JOB = 106
-    INVALID_NAME = 107
-    INVALID_NFS = 108
-    INVALID_PLUGIN = 109
-    INVALID_POOL = 110
-    INVALID_SL = 111
-    INVALID_SS = 112
-    INVALID_URI = 113
-    INVALID_VALUE = 114
-    INVALID_VOLUME = 115
-    INVALID_CAPABILITY = 116
-    INVALID_SYSTEM = 117
-    INVALID_INIT = 118
-    INVALID_DISK = 119
-    INVALID_BLOCK_RANGE = 121
 
     IS_MAPPED = 125
 
@@ -465,7 +445,6 @@ class ErrorNumber(object):
     NETWORK_HOSTDOWN = 141      # Host unreachable on network
     NETWORK_ERROR = 142         # Generic network error
 
-    NO_CONNECT = 150
     NO_MAPPING = 151
     NO_MEMORY = 152
     NO_SUPPORT = 153
@@ -474,34 +453,26 @@ class ErrorNumber(object):
     NOT_FOUND_FS = 201
     NOT_FOUND_JOB = 202
     NOT_FOUND_POOL = 203
-    NOT_FOUND_SS = 204
+    NOT_FOUND_FS_SS = 204
     NOT_FOUND_VOLUME = 205
     NOT_FOUND_NFS_EXPORT = 206
     NOT_FOUND_SYSTEM = 208
     NOT_FOUND_DISK = 209
 
-    NOT_IMPLEMENTED = 225
     NOT_LICENSED = 226
 
-    OFF_LINE = 250
-    ON_LINE = 251
+    NO_SUPPORT_ONLINE_CHANGE = 250
+    NO_SUPPORT_OFFLINE_CHANGE = 251
 
     PLUGIN_AUTH_FAILED = 300
-    PLUGIN_DLOPEN = 301
-    PLUGIN_DLSYM = 302
-    PLUGIN_ERROR = 303
-    PLUGIN_MISSING_HOST = 304
-    PLUGIN_MISSING_NS = 305
-    PLUGIN_MISSING_PORT = 306
-    PLUGIN_PERMISSION = 307
+    PLUGIN_IPC_FAIL = 301
+
+    PLUGIN_SOCKET_PERMISSION = 307
     PLUGIN_REGISTRATION = 308
-    PLUGIN_UNKNOWN_HOST = 309
-    PLUGIN_TIMEOUT = 310
     PLUGIN_NOT_EXIST = 311
 
-    SIZE_INSUFFICIENT_SPACE = 350
+    NOT_ENOUGH_SPACE = 350
     SIZE_SAME = 351
-    SIZE_TOO_LARGE = 352
     SIZE_TOO_SMALL = 353
     SIZE_LIMIT_REACHED = 354
 
@@ -509,21 +480,16 @@ class ErrorNumber(object):
     TRANSPORT_SERIALIZATION = 401
     TRANSPORT_INVALID_ARG = 402
 
-    UNSUPPORTED_PROVISIONING = 451
-    UNSUPPORTED_REPLICATION_TYPE = 452
-
     DISK_BUSY = 500
     VOLUME_BUSY = 501
-    ACCESS_GROUP_BUSY = 502     # refuse to remove the last initiator from
-                                # access group which have volume masked.
+    ACCESS_GROUP_MASKED = 502   # refuse to remove the last initiator from
+                                # access group which have volume masked or
+                                # allow an access group to be deleted
 
     UNSUPPORTED_SEARCH_KEY = 510
 
     EMPTY_ACCESS_GROUP = 511    # volume_mask() will fail if access group
                                 # has no member/initiator.
-
-    MASKED_ACCESS_GROUP = 512   # access_group_delete() will fail if
-                                # have volume masked.
 
     _LOCALS = locals()
 

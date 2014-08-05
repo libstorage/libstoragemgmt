@@ -420,7 +420,7 @@ class Filer(object):
             params['destination-path'] = dest_path
 
         if backing_snapshot:
-            raise FilerError(ErrorNumber.NOT_IMPLEMENTED,
+            raise FilerError(ErrorNumber.NO_SUPPORT,
                              "Support for backing luns not implemented "
                              "for this API version")
             #params['snapshot-name']= backing_snapshot
@@ -460,7 +460,7 @@ class Filer(object):
                 elif progress['clone-state'] == 'completed':
                     return
                 else:
-                    raise FilerError(ErrorNumber.NOT_IMPLEMENTED,
+                    raise FilerError(ErrorNumber.NO_SUPPORT,
                                      'Unexpected state=' +
                                      progress['clone-state'])
             else:

@@ -692,14 +692,14 @@ class AccessGroup(IData):
             if AccessGroup._regex_iscsi_iqn.match(str(init_id)):
                 return True
             if raise_error:
-                raise LsmError(ErrorNumber.INVALID_INIT,
+                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                                "Invalid iSCSI IQN Initiator: %s" % init_id)
             return False
         elif init_type == AccessGroup.INIT_TYPE_WWPN:
             if AccessGroup._regex_lsm_wwpn.match(str(init_id)):
                 return True
             if raise_error:
-                raise LsmError(ErrorNumber.INVALID_INIT,
+                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                                "Invalid WWPN Initiator: %s" % init_id)
             return False
         elif raise_error:
@@ -750,7 +750,7 @@ class AccessGroup(IData):
             s = ":".join(re.findall(r'..', s))
             return s
         if raise_error:
-            raise LsmError(ErrorNumber.INVALID_INIT,
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                            "Invalid WWPN Initiator: %s" % wwpn)
         return None
 

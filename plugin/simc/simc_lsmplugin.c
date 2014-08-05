@@ -313,7 +313,7 @@ static int tmo_set(lsm_plugin_ptr c, uint32_t timeout, lsm_flag flags )
         pd->tmo = timeout;
         return LSM_ERR_OK;
     }
-    return LSM_ERR_INVALID_PLUGIN;
+    return LSM_ERR_INVALID_ARGUMENT;
 }
 
 static int tmo_get(lsm_plugin_ptr c, uint32_t *timeout, lsm_flag flags)
@@ -324,7 +324,7 @@ static int tmo_get(lsm_plugin_ptr c, uint32_t *timeout, lsm_flag flags)
         *timeout = pd->tmo;
         return LSM_ERR_OK;
     }
-    return LSM_ERR_INVALID_PLUGIN;
+    return LSM_ERR_INVALID_ARGUMENT;
 }
 
 static int cap(lsm_plugin_ptr c, lsm_system *system,
@@ -419,7 +419,7 @@ static int job_status(lsm_plugin_ptr c, const char *job_id,
             rc = LSM_ERR_NOT_FOUND_JOB;
         }
     } else {
-        rc = LSM_ERR_INVALID_PLUGIN;
+        rc = LSM_ERR_INVALID_ARGUMENT;
     }
 
     return rc;
@@ -484,7 +484,7 @@ static int list_systems(lsm_plugin_ptr c, lsm_system **systems[],
         }
         return LSM_ERR_NO_MEMORY;
     } else {
-        return LSM_ERR_INVALID_PLUGIN;
+        return LSM_ERR_INVALID_ARGUMENT;
     }
 }
 
@@ -498,7 +498,7 @@ static int job_free(lsm_plugin_ptr c, char *job_id, lsm_flag flags)
             rc = LSM_ERR_NOT_FOUND_JOB;
         }
     } else {
-        rc = LSM_ERR_INVALID_PLUGIN;
+        rc = LSM_ERR_INVALID_ARGUMENT;
     }
 
     return rc;
@@ -776,7 +776,7 @@ static int volume_create(lsm_plugin_ptr c, lsm_pool *pool,
                 }
 
             } else {
-                rc = lsm_log_error_basic(c, LSM_ERR_SIZE_INSUFFICIENT_SPACE,
+                rc = lsm_log_error_basic(c, LSM_ERR_NOT_ENOUGH_SPACE,
                                             "Insufficient space in pool");
             }
 
@@ -892,7 +892,7 @@ static int volume_resize(lsm_plugin_ptr c, lsm_volume *volume,
         } else {
             /*Could not accommodate re-sized, go back */
             pool_allocate(p, curr_size);
-            rc = lsm_log_error_basic(c, LSM_ERR_SIZE_INSUFFICIENT_SPACE,
+            rc = lsm_log_error_basic(c, LSM_ERR_NOT_ENOUGH_SPACE,
                                                 "Insufficient space in pool");
         }
 
@@ -1262,7 +1262,7 @@ static int access_group_initiator_delete(  lsm_plugin_ptr c,
                                         lsm_access_group **updated_access_group,
                                         lsm_flag flags)
 {
-    int rc = LSM_ERR_INITIATOR_NOT_IN_ACCESS_GROUP;
+    int rc = LSM_ERR_INVALID_ARGUMENT;
     struct plugin_data *pd = (struct plugin_data*)lsm_private_data_get(c);
 
     struct allocated_ag *find = (struct allocated_ag *)
@@ -1681,7 +1681,7 @@ static int fs_create(lsm_plugin_ptr c, lsm_pool *pool, const char *name,
                 rc = lsm_log_error_basic(c, LSM_ERR_NO_MEMORY, "ENOMEM");
             }
         } else {
-            rc = lsm_log_error_basic(c, LSM_ERR_SIZE_INSUFFICIENT_SPACE,
+            rc = lsm_log_error_basic(c, LSM_ERR_NOT_ENOUGH_SPACE,
                                                 "Insufficient space in pool");
         }
     } else {
@@ -1756,7 +1756,7 @@ static int fs_resize(lsm_plugin_ptr c, lsm_fs *fs,
         } else {
             /*Could not accommodate re-sized, go back */
             pool_allocate(p, lsm_fs_total_space_get(tfs));
-            rc = lsm_log_error_basic(c, LSM_ERR_SIZE_INSUFFICIENT_SPACE,
+            rc = lsm_log_error_basic(c, LSM_ERR_NOT_ENOUGH_SPACE,
                                                 "Insufficient space in pool");
         }
 
@@ -1931,7 +1931,7 @@ static int ss_delete(lsm_plugin_ptr c, lsm_fs *fs, lsm_fs_ss *ss,
 
     if( find ) {
         if( !g_hash_table_remove(find->ss, lsm_fs_ss_id_get(ss)) ) {
-            rc = lsm_log_error_basic(c, LSM_ERR_NOT_FOUND_SS,
+            rc = lsm_log_error_basic(c, LSM_ERR_NOT_FOUND_FS_SS,
                                     "snapshot not found");
         } else {
             rc = create_job(pd, job, LSM_DATA_TYPE_NONE, NULL, NULL);
@@ -1955,7 +1955,7 @@ static int ss_restore(lsm_plugin_ptr c, lsm_fs *fs, lsm_fs_ss *ss,
 
     if( find ) {
         if(!g_hash_table_lookup(find->ss, lsm_fs_ss_id_get(ss))) {
-            rc = lsm_log_error_basic(c, LSM_ERR_NOT_FOUND_SS,
+            rc = lsm_log_error_basic(c, LSM_ERR_NOT_FOUND_FS_SS,
                                     "snapshot not found");
         } else {
             rc = create_job(pd, job, LSM_DATA_TYPE_NONE, NULL, NULL);
@@ -2327,7 +2327,7 @@ int unload( lsm_plugin_ptr c, lsm_flag flags)
         _unload(pd);
         return LSM_ERR_OK;
     } else {
-        return LSM_ERR_INVALID_PLUGIN;
+        return LSM_ERR_INVALID_ARGUMENT;
     }
 }
 

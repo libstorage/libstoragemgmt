@@ -290,7 +290,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
                       flags=0):
         if provisioning != Volume.PROVISION_DEFAULT:
-            raise LsmError(ErrorNumber.UNSUPPORTED_PROVISIONING,
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                            "Unsupported provisioning")
 
         self._jsonrequest("vol_create", dict(pool=pool.id,
@@ -537,7 +537,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
 
         fs_path = self._get_fs_path(fs_id)
         if fs_path is None:
-            raise LsmError(ErrorNumber.INVALID_FS, "File system not found")
+            raise LsmError(ErrorNumber.NOT_FOUND_FS, "File system not found")
 
         for host in rw_list:
             tmp_opts = copy.copy(base_opts)
@@ -578,7 +578,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                     if host_entry in l:
                         return host
 
-        raise LsmError(ErrorNumber.PLUGIN_ERROR, "Failed to create export")
+        raise LsmError(ErrorNumber.PLUGIN_BUG, "Failed to create export")
 
     @handle_errors
     def export_remove(self, export, flags=0):
@@ -600,7 +600,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
             request = urllib2.Request(self.url, data, self.headers)
             response_obj = urllib2.urlopen(request)
         except socket.error:
-            raise LsmError(ErrorNumber.NO_CONNECT,
+            raise LsmError(ErrorNumber.NETWORK_ERROR,
                            "Unable to connect to targetd, uri right?")
 
         response_data = response_obj.read()
@@ -624,5 +624,5 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                     if status:
                         if status[0]:
                             raise LsmError(
-                                ErrorNumber.LSM_PLUGIN_BUG,
+                                ErrorNumber.PLUGIN_BUG,
                                 "%d has error %d" % (async_code, status[0]))
