@@ -1483,7 +1483,7 @@ class CmdLine:
             # the same in all cases, even though it isn't technically
             # required for the client library (static method)
             # TODO: Make this not necessary.
-            if (self.args.type == "PLUGINS"):
+            if ('type' in self.args and self.args.type == "PLUGINS"):
                 self.uri = "sim://"
                 self.password = None
             else:
