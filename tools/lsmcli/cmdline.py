@@ -665,6 +665,26 @@ cmds = (
     ),
 )
 
+aliases = (
+    ['ls', 'list --type systems'],
+    ['lp', 'list --type pools'],
+    ['lv', 'list --type volumes'],
+    ['ld', 'list --type disks'],
+    ['la', 'list --type access_groups'],
+    ['lf', 'list --type fs'],
+    ['c',  'capabilities'],
+    ['p',  'plugin-info'],
+    ['vc', 'volume-create'],
+    ['vd', 'volume-delete'],
+    ['vr', 'volume-resize'],
+    ['vm', 'volume-mask'],
+    ['vu', 'volume-unmask'],
+    ['ac', 'access-group-create'],
+    ['aa', 'access-group-add'],
+    ['ar', 'access-group-remove'],
+    ['ad', 'access-group-delete'],
+)
+
 
 ## Class that encapsulates the command line arguments for lsmcli
 # Note: This class is used by lsmcli and any python plug-ins.
@@ -734,6 +754,12 @@ class CmdLine:
             d.append(PlugData(desc, version))
 
         self.display_data(d)
+
+    def handle_alias(self, args):
+        cmd_arguments = args.cmd
+        cmd_arguments.extend(self.unknown_args)
+        new_args = self.parser.parse_args(cmd_arguments)
+        new_args.func(new_args)
 
     ## All the command line arguments and options are created in this method
     def cli(self):
@@ -823,7 +849,17 @@ class CmdLine:
             sub_parser.set_defaults(
                 func=getattr(self, cmd['name'].replace("-", "_")))
 
-        return parser.parse_args()
+        for alias in aliases:
+            sub_parser = subparsers.add_parser(
+                alias[0], help="Alias of '%s'"% alias[1],
+                parents=[parent_parser],
+                formatter_class=RawTextHelpFormatter, add_help=False)
+            sub_parser.set_defaults(
+                cmd=alias[1].split(" "), func=self.handle_alias)
+
+        self.parser = parser
+        known_agrs, self.unknown_args = parser.parse_known_args()
+        return known_agrs
 
     ## Display the types of nfs client authentication that are supported.
     # @return None

@@ -658,6 +658,43 @@ Deletes a storage pool.
 Required. The ID of pool to delete.
 
 .IP
+.SH ALIAS
+.SS ls
+Alias of 'list --type systems'
+.SS lp
+Alias of 'list --type pools'
+.SS lv
+Alias of 'list --type volumes'
+.SS ld
+Alias of 'list --type disks'
+.SS la
+Alias of 'list --type access_groups'
+.SS lf
+Alias of 'list --type fs'
+.SS c
+ Alias of 'capabilities'
+.SS p
+ Alias of 'plugin-info'
+.SS vc
+Alias of 'volume-create'
+.SS vd
+Alias of 'volume-delete'
+.SS vr
+Alias of 'volume-resize'
+.SS vm
+Alias of 'volume-mask'
+.SS vu
+Alias of 'volume-unmask'
+.SS ac
+Alias of 'access-group-create'
+.SS aa
+Alias of 'access-group-add'
+.SS ar
+Alias of 'access-group-remove'
+.SS ad
+Alias of 'access-group-delete'
+
+.IP
 .SH SIZE OPTION
 .SS \fB--size\fR \fI\fI<SIZE>\fR\fR
 Storage space size. Format is '\fI<number>\fR' + '\fI<prefix>\fR'. Example:
