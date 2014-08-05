@@ -613,7 +613,8 @@ START_TEST(test_access_groups)
     fail_unless(groups == NULL);
 
     G(rc, lsm_access_group_create, c, "test_access_groups",
-            "iqn.1994-05.com.domain:01.89bd01", LSM_INITIATOR_ISCSI, system,
+            "iqn.1994-05.com.domain:01.89bd01",
+            LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN, system,
             &group, LSM_FLAG_RSVD);
 
     if( LSM_ERR_OK == rc ) {
@@ -655,7 +656,9 @@ START_TEST(test_access_groups)
     char *job = NULL;
     lsm_access_group *updated = NULL;
 
-    rc = lsm_access_group_initiator_add(c, group, "iqn.1994-05.com.domain:01.89bd02", LSM_INITIATOR_ISCSI, &updated, LSM_FLAG_RSVD);
+    rc = lsm_access_group_initiator_add(c, group, "iqn.1994-05.com.domain:01.89bd02",
+                                        LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN,
+                                        &updated, LSM_FLAG_RSVD);
     fail_unless(LSM_ERR_OK == rc, "Expected success on lsmAccessGroupInitiatorAdd %d %d", rc, which_plugin);
 
     G(rc, lsm_access_group_list, c, NULL, NULL, &groups, &count, LSM_FLAG_RSVD);
@@ -744,9 +747,10 @@ START_TEST(test_access_groups_grant_revoke)
     system = get_system(c);
 
     G(rc, lsm_access_group_create, c, "test_access_groups_grant_revoke",
-                                   ISCSI_HOST[0], LSM_INITIATOR_ISCSI,
-                                    system,
-                                    &group, LSM_FLAG_RSVD);
+                                   ISCSI_HOST[0],
+                                   LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN,
+                                   system,
+                                   &group, LSM_FLAG_RSVD);
 
 
     int vc = lsm_volume_create(c, pool, "volume_grant_test", 20000000,
@@ -1528,12 +1532,12 @@ START_TEST(test_invalid_input)
     rc = lsm_access_group_create(c, NULL, NULL, 0, system, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_access_group_create(c, "my_group", ISCSI_HOST[0], LSM_INITIATOR_OTHER,
+    rc = lsm_access_group_create(c, "my_group", ISCSI_HOST[0], LSM_ACCESS_GROUP_INIT_TYPE_OTHER,
                                 NULL, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_SYSTEM, "rc = %d", rc);
 
 
-    rc = lsm_access_group_create(c, "my_group", ISCSI_HOST[0], LSM_INITIATOR_OTHER,
+    rc = lsm_access_group_create(c, "my_group", ISCSI_HOST[0], LSM_ACCESS_GROUP_INIT_TYPE_OTHER,
                                 system, &ag, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_OK, "rc = %d", rc);
     fail_unless(ag != NULL);
@@ -1925,45 +1929,35 @@ START_TEST(test_iscsi_auth_in)
 {
     lsm_access_group *group = NULL;
     lsm_system *system = NULL;
-    //char *job = NULL;
-    int rc;
+    int rc = 0;
 
     system = get_system(c);
+    printf("get_system() OK\n");
 
     G(rc, lsm_access_group_create, c, "ISCSI_AUTH", ISCSI_HOST[0],
-                    LSM_INITIATOR_ISCSI, system, &group, LSM_FLAG_RSVD);
+        LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN, system, &group, LSM_FLAG_RSVD);
+    printf("lsm_access_group_create() OK\n");
 
-    fail_unless(LSM_ERR_OK == rc, "rc = %d");
+    fail_unless(LSM_ERR_OK == rc, "rc = %d", rc);
     G(rc, lsm_system_record_free, system);
+    printf("lsm_system_record_free() OK\n");
+
     system = NULL;
 
     if( LSM_ERR_OK == rc ) {
-        /* TODO FIX THIS UP after we take out the C initiator support.
-        lsm_initiator **inits = NULL;
-        uint32_t init_count = 0;
 
+        rc = lsm_iscsi_chap_auth(
+            c, ISCSI_HOST[0], "username", "secret", NULL, NULL,
+            LSM_FLAG_RSVD);
 
-        rc = lsm_initiator_list(c, &inits, &init_count, LSM_FLAG_RSVD );
-         fail_unless(LSM_ERR_OK == rc );
+        fail_unless(LSM_ERR_OK == rc, "rc = %d", rc);
 
-         if( LSM_ERR_OK == rc && init_count ) {
-             rc = lsm_iscsi_chap_auth(c, inits[0], "username", "secret",
-                                            NULL, NULL, LSM_FLAG_RSVD);
+        rc = lsm_access_group_delete(c, group, LSM_FLAG_RSVD);
 
-             fail_unless(LSM_ERR_OK == rc, "rc = %d", rc) ;
-         }
+        fail_unless(LSM_ERR_OK == rc );
 
-         rc = lsm_access_group_delete(c, group, LSM_FLAG_RSVD);
-
-         if(LSM_ERR_JOB_STARTED == rc ) {
-             wait_for_job(c, &job);
-         } else {
-             fail_unless(LSM_ERR_OK == rc );
-         }
-         */
-
-         lsm_access_group_record_free(group);
-         group = NULL;
+        lsm_access_group_record_free(group);
+        group = NULL;
     }
 }
 END_TEST
@@ -2666,7 +2660,8 @@ START_TEST(test_search_access_groups)
         snprintf(ag_name, sizeof(ag_name), "test_access_group_%d", i);
 
         G(rc, lsm_access_group_create, c, ag_name, ISCSI_HOST[i],
-                    LSM_INITIATOR_ISCSI, system, &group, LSM_FLAG_RSVD);
+                    LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN,
+                    system, &group, LSM_FLAG_RSVD);
 
         if( LSM_ERR_OK == rc ) {
             G(rc, lsm_access_group_record_free, group);

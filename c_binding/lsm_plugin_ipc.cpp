@@ -1236,8 +1236,8 @@ static int ag_initiator_add(lsm_plugin_ptr p, Value &params, Value &response)
             if( ag ) {
                 lsm_access_group *updated_access_group = NULL;
                 const char *id = v_init_id.asC_str();
-                lsm_initiator_type id_type = (lsm_initiator_type)
-                                            v_init_type.asInt32_t();
+                lsm_access_group_init_type id_type =
+                    (lsm_access_group_init_type) v_init_type.asInt32_t();
 
                 rc = p->san_ops->ag_add_initiator(p, ag, id, id_type,
                                                     &updated_access_group,
@@ -2222,7 +2222,7 @@ static int iscsi_chap(lsm_plugin_ptr p, Value &params, Value &response)
     int rc = LSM_ERR_NO_SUPPORT;
 
     if( p && p->san_ops && p->san_ops->iscsi_chap_auth ) {
-        Value v_init = params["initiator"];
+        Value v_init = params["init_id"];
         Value v_in_user = params["in_user"];
         Value v_in_password = params["in_password"];
         Value v_out_user = params["out_user"];

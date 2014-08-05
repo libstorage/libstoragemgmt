@@ -141,11 +141,8 @@ class DMTF(object):
     # CIM_StorageHardwareID['IDType']
     ID_TYPE_OTHER = pywbem.Uint16(1)
     ID_TYPE_WWPN = pywbem.Uint16(2)
-    ID_TYPE_WWNN = pywbem.Uint16(3)
-    ID_TYPE_HOSTNAME = pywbem.Uint16(4)
     ID_TYPE_ISCSI = pywbem.Uint16(5)
-    ID_TYPE_SW_WWN = pywbem.Uint16(6)
-    ID_TYPE_SAS = pywbem.Uint16(7)
+
     TGT_PORT_USAGE_FRONTEND_ONLY = pywbem.Uint16(2)
     TGT_PORT_USAGE_UNRESTRICTED = pywbem.Uint16(4)
     # CIM_FCPort['PortDiscriminator']
@@ -193,17 +190,16 @@ class DMTF(object):
 _INIT_TYPE_CONV = {
     DMTF.ID_TYPE_OTHER: AccessGroup.INIT_TYPE_OTHER,
     DMTF.ID_TYPE_WWPN: AccessGroup.INIT_TYPE_WWPN,
-    DMTF.ID_TYPE_WWNN: AccessGroup.INIT_TYPE_WWNN,
-    DMTF.ID_TYPE_HOSTNAME: AccessGroup.INIT_TYPE_HOSTNAME,
     DMTF.ID_TYPE_ISCSI: AccessGroup.INIT_TYPE_ISCSI_IQN,
-    DMTF.ID_TYPE_SW_WWN: AccessGroup.INIT_TYPE_OTHER,
-    DMTF.ID_TYPE_SAS: AccessGroup.INIT_TYPE_SAS,
 }
 
 
 def _dmtf_init_type_to_lsm(cim_init):
-    if 'IDType' in cim_init and cim_init['IDType'] in _INIT_TYPE_CONV.keys():
-        return _INIT_TYPE_CONV[cim_init['IDType']]
+    if 'IDType' in cim_init:
+        if cim_init['IDType'] == DMTF.ID_TYPE_WWPN:
+            return AccessGroup.INIT_TYPE_WWPN
+        elif cim_init['IDType'] == DMTF.ID_TYPE_ISCSI:
+            return AccessGroup.INIT_TYPE_ISCSI_IQN
     return AccessGroup.INIT_TYPE_UNKNOWN
 
 
@@ -225,13 +221,12 @@ def _lsm_tgt_port_type_of_cim_fc_tgt(cim_fc_tgt):
 
 
 def _lsm_init_type_to_dmtf(init_type):
-    # Invert dict. Assumes values are unique.
-    try:
-        inv_dict = dict((v, k) for k, v in _INIT_TYPE_CONV.iteritems())
-        return inv_dict[init_type]
-    except KeyError:
-        raise LsmError(ErrorNumber.NO_SUPPORT,
-                       "Does not support provided init_type: %d" % init_type)
+    if init_type == AccessGroup.INIT_TYPE_WWPN:
+        return DMTF.ID_TYPE_WWPN
+    if init_type == AccessGroup.INIT_TYPE_ISCSI_IQN:
+        return DMTF.ID_TYPE_ISCSI
+    raise LsmError(ErrorNumber.NO_SUPPORT,
+                   "Does not support provided init_type: %d" % init_type)
 
 
 class SNIA(object):

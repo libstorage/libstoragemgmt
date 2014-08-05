@@ -417,22 +417,6 @@ typedef int (*lsm_plug_volume_offline)(lsm_plugin_ptr c, lsm_volume *v,
                                     lsm_flag flags);
 
 /**
- * Grants access to an initiator for a specified volume, callback function signature
- * @param[in]   c                   Valid lsm plug-in pointer
- * @param[in]   initiator_id        Initiator ID
- * @param[in]   initiator_type      Type of initiator
- * @param[in]   volume              Volume of interest
- * @param[in]   access              Desired access to volume
- * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
- */
-typedef int (*lsm_plug_initiator_grant)(lsm_plugin_ptr c, const char *initiator_id,
-                                        lsm_initiator_type initiator_type,
-                                        lsm_volume *volume,
-                                        lsm_access_type access,
-                                        lsm_flag flags);
-
-/**
  * Setup the cap authentication for the specified initiator, callback
  * function signature
  * @param[in]   c                   Valid lsm plug-in pointer
@@ -509,7 +493,7 @@ typedef int (*lsm_plug_access_group_delete)(lsm_plugin_ptr c,
 typedef int (*lsm_plug_access_group_initiator_add)(lsm_plugin_ptr c,
                                 lsm_access_group *access_group,
                                 const char *initiator_id,
-                                lsm_initiator_type id_type,
+                                lsm_access_group_init_type id_type,
                                 lsm_access_group **updated_access_group,
                                 lsm_flag flags);
 

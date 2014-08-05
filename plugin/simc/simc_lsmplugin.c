@@ -113,7 +113,7 @@ struct allocated_fs {
 
 struct allocated_ag {
     lsm_access_group *ag;
-    lsm_initiator_type ag_type;
+    lsm_access_group_init_type ag_type;
 };
 
 struct plugin_data {
@@ -189,7 +189,7 @@ void free_allocated_job(void *j)
 }
 
 struct allocated_ag *alloc_allocated_ag( lsm_access_group *ag,
-                                            lsm_initiator_type i)
+                                            lsm_access_group_init_type i)
 {
     struct allocated_ag *aag =
                     (struct allocated_ag *)malloc(sizeof(struct allocated_ag));
@@ -1228,7 +1228,7 @@ static int access_group_delete( lsm_plugin_ptr c,
 static int access_group_initiator_add(  lsm_plugin_ptr c,
                                         lsm_access_group *group,
                                         const char *initiator_id,
-                                        lsm_initiator_type id_type,
+                                        lsm_access_group_init_type id_type,
                                         lsm_access_group **updated_access_group,
                                         lsm_flag flags)
 {

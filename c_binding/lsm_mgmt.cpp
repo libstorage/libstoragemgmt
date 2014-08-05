@@ -1361,7 +1361,7 @@ int lsm_iscsi_chap_auth(lsm_connect *c, const char *init_id,
     }
 
     std::map<std::string, Value> p;
-    p["initiator"] = Value(init_id);
+    p["init_id"] = Value(init_id);
     p["in_user"] = Value(username);
     p["in_password"] = Value(password);
     p["out_user"] = Value(out_user);
@@ -1436,7 +1436,7 @@ int lsm_access_group_list(lsm_connect *c, const char *search_key,
 }
 
 int lsm_access_group_create(lsm_connect *c, const char *name,
-                            const char *init_id, lsm_initiator_type init_type,
+                            const char *init_id, lsm_access_group_init_type init_type,
                             lsm_system *system,
                             lsm_access_group **access_group, lsm_flag flags)
 {
@@ -1499,7 +1499,7 @@ int lsm_access_group_delete(lsm_connect *c, lsm_access_group *access_group,
 int lsm_access_group_initiator_add(lsm_connect *c,
                                 lsm_access_group *access_group,
                                 const char *init_id,
-                                lsm_initiator_type init_type,
+                                lsm_access_group_init_type init_type,
                                 lsm_access_group **updated_access_group,
                                 lsm_flag flags)
 {

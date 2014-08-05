@@ -523,7 +523,7 @@ extern "C" {
     int LSM_DLL_EXPORT lsm_access_group_create(lsm_connect *conn,
                                                 const char *name,
                                                 const char *init_id,
-                                                lsm_initiator_type init_type,
+                                                lsm_access_group_init_type init_type,
                                                 lsm_system *system,
                                                 lsm_access_group **access_group,
                                                 lsm_flag flags);
@@ -552,7 +552,7 @@ extern "C" {
     int LSM_DLL_EXPORT lsm_access_group_initiator_add(lsm_connect *conn,
                                 lsm_access_group *access_group,
                                 const char *init_id,
-                                lsm_initiator_type init_type,
+                                lsm_access_group_init_type init_type,
                                 lsm_access_group **updated_access_group,
                                 lsm_flag flags);
 

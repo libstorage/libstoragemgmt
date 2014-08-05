@@ -640,8 +640,6 @@ class SimData(object):
 
         self.ag_dict = {
         }
-        self.init_dict = {
-        }
         # Create some volumes, fs and etc
         self.volume_create(
             'POO1', 'Volume 000', size_human_2_size_bytes('200GiB'),
@@ -1189,12 +1187,7 @@ class SimData(object):
 
     def iscsi_chap_auth(self, init_id, in_user, in_pass, out_user, out_pass,
                         flags=0):
-        # to_code
-        if self.init_dict[init_id]['init_type'] != \
-                AccessGroup.INIT_TYPE_ISCSI_IQN:
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "Initiator %s is not an iSCSI IQN" % init_id)
-        # No iscsi chap query API yet
+        # No iscsi chap query API yet, not need to setup anything
         return None
 
     def fs(self):

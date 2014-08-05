@@ -289,10 +289,7 @@ _AG_INIT_TYPE_CONV = {
     AccessGroup.INIT_TYPE_UNKNOWN: 'Unknown',
     AccessGroup.INIT_TYPE_OTHER: 'Other',
     AccessGroup.INIT_TYPE_WWPN: 'WWPN',
-    AccessGroup.INIT_TYPE_WWNN: 'WWNN',
-    AccessGroup.INIT_TYPE_HOSTNAME: 'Hostname',
     AccessGroup.INIT_TYPE_ISCSI_IQN: 'iSCSI',
-    AccessGroup.INIT_TYPE_SAS: 'SAS',
     AccessGroup.INIT_TYPE_ISCSI_WWPN_MIXED: 'iSCSI/WWPN Mixed',
 }
 

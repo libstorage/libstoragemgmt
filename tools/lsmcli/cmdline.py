@@ -109,7 +109,7 @@ list_choices = ['VOLUMES', 'POOLS', 'FS', 'SNAPSHOTS',
                 'EXPORTS', "NFS_CLIENT_AUTH", 'ACCESS_GROUPS',
                 'SYSTEMS', 'DISKS', 'PLUGINS', 'TARGET_PORTS']
 
-init_types = ('WWPN', 'WWNN', 'ISCSI', 'HOSTNAME', 'SAS')
+init_types = ('WWPN', 'ISCSI')
 init_id_help = "Access Group Initiator type: " + \
                ", ".join(init_types)
 

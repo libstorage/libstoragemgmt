@@ -650,10 +650,7 @@ class AccessGroup(IData):
     INIT_TYPE_UNKNOWN = 0
     INIT_TYPE_OTHER = 1
     INIT_TYPE_WWPN = 2
-    INIT_TYPE_WWNN = 3
-    INIT_TYPE_HOSTNAME = 4
     INIT_TYPE_ISCSI_IQN = 5
-    INIT_TYPE_SAS = 6
     INIT_TYPE_ISCSI_WWPN_MIXED = 7
 
     def __init__(self, _id, _name, _init_ids, _init_type, _system_id,

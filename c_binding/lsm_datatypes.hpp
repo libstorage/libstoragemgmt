@@ -90,18 +90,6 @@ struct LSM_DLL_LOCAL _lsm_pool {
 };
 
 
-#define LSM_INIT_MAGIC       0xAA7A0002
-#define LSM_IS_INIT(obj)     MAGIC_CHECK(obj, LSM_INIT_MAGIC)
-/**
- * Information about an initiator.
- */
-struct LSM_DLL_LOCAL _lsm_initiator {
-    uint32_t magic;             /**< Used for verification */
-    lsm_initiator_type   id_type;  /**< Type of id */
-    char *id;                   /**< Identifier */
-    char *name;                 /**< Initiator name */
-};
-
 #define LSM_ACCESS_GROUP_MAGIC  0xAA7A0003
 #define LSM_IS_ACCESS_GROUP(obj)    MAGIC_CHECK(obj, LSM_ACCESS_GROUP_MAGIC)
 

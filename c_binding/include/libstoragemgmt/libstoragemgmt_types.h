@@ -172,25 +172,12 @@ typedef enum {
 #define LSM_SYSTEM_STATUS_OTHER                 0x00000200  /**< Vendor specific */
 
 
-/**< \enum lsm_initiator_type Different types of initiator IDs */
-typedef enum {
-    LSM_INITIATOR_OTHER = 1,                    /**< Other or unspecified */
-    LSM_INITIATOR_PORT_WWN = 2,                 /**< World wide port name */
-    LSM_INITIATOR_NODE_WWN = 3,                 /**< World wide node name */
-    LSM_INITIATOR_HOSTNAME = 4,                 /**< Host name */
-    LSM_INITIATOR_ISCSI = 5,                    /**< iSCSI IQN */
-    LSM_INITIATOR_SAS = 7                       /**< SAS ID */
-} lsm_initiator_type;
-
 typedef enum {
     LSM_ACCESS_GROUP_INIT_TYPE_UNKNOWN = 0,     /**< Unknown */
     LSM_ACCESS_GROUP_INIT_TYPE_OTHER = 1,       /**< Something not seen before */
     LSM_ACCESS_GROUP_INIT_TYPE_WWPN = 2,        /**< Port name */
-    LSM_ACCESS_GROUP_INIT_TYPE_WWNN = 3,        /**< Node name */
-    LSM_ACCESS_GROUP_INIT_TYPE_HOSTNAME = 4,    /**< Host name */
     LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN = 5,   /**< ISCSI IQN */
-    LSM_ACCESS_GROUP_INIT_TYPE_SAS = 6,         /**< SAS */
-    INIT_TYPE_ISCSI_WWPN_MIXED = 7              /**< More than 1 type */
+    LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_WWPN_MIXED = 7 /**< More than 1 type */
 } lsm_access_group_init_type;
 
 
