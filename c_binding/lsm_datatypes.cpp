@@ -1571,35 +1571,29 @@ int lsm_capability_set(lsm_storage_capabilities *cap, lsm_capability_type t,
 }
 
 int lsm_capability_set_n( lsm_storage_capabilities *cap,
-                                lsm_capability_value_type v, uint32_t number,
+                                lsm_capability_value_type v,
                                 ... )
 {
-    uint32_t i = 0;
     int rc = LSM_ERR_OK;
+    int index = 0;
 
     if( !LSM_IS_CAPABILITIY(cap) ) {
         return LSM_ERR_INVALID_CAPABILITY;
     }
 
-    if( number ) {
-        va_list var_arg;
+    va_list var_arg;
+    va_start(var_arg, v);
 
-        va_start(var_arg, number);
-
-        for( i = 0; i < number; ++i ) {
-            int index = va_arg(var_arg, int);
-
-            if( index < (int)cap->len ) {
-                cap->cap[index] = v;
-            } else {
-                rc = LSM_ERR_INVALID_ARGUMENT;
-                break;
-            }
+    while( (index = va_arg(var_arg, int)) != -1 ) {
+        if( index < (int)cap->len ) {
+            cap->cap[index] = v;
+        } else {
+            rc = LSM_ERR_INVALID_ARGUMENT;
+            break;
         }
-
-        va_end(var_arg);
     }
 
+    va_end(var_arg);
     return rc;
 }
 

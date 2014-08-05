@@ -334,7 +334,7 @@ static int cap(lsm_plugin_ptr c, lsm_system *system,
     *cap = lsm_capability_record_alloc(NULL);
 
     if( *cap ) {
-        rc = lsm_capability_set_n(*cap, LSM_CAPABILITY_SUPPORTED, 44,
+        rc = lsm_capability_set_n(*cap, LSM_CAPABILITY_SUPPORTED,
             LSM_CAP_VOLUMES,
             LSM_CAP_VOLUME_CREATE,
             LSM_CAP_VOLUME_RESIZE,
@@ -378,7 +378,8 @@ static int cap(lsm_plugin_ptr c, lsm_system *system,
             LSM_CAP_EXPORT_AUTH,
             LSM_CAP_EXPORTS,
             LSM_CAP_EXPORT_FS,
-            LSM_CAP_EXPORT_REMOVE
+            LSM_CAP_EXPORT_REMOVE,
+            -1
             );
 
         if( LSM_ERR_OK != rc ) {

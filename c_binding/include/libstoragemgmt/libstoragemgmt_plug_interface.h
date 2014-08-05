@@ -1226,13 +1226,12 @@ int LSM_DLL_EXPORT lsm_capability_set(lsm_storage_capabilities *cap, lsm_capabil
  * Sets 1 or more capabilities with the same value v
  * @param cap           Valid capability pointer
  * @param v             The value to set capabilities to
- * @param number        Number of Capabilities to set
- * @param ...           Which capabilites to set
+ * @param ...           Which capabilites to set (Make sure to terminate list
+ *                      with a -1)
  * @return LSM_ERR_OK on success, else error reason
  */
 int LSM_DLL_EXPORT lsm_capability_set_n( lsm_storage_capabilities *cap,
-                                        lsm_capability_value_type v,
-                                        uint32_t number, ... );
+                                        lsm_capability_value_type v, ... );
 
 /**
  * Allocated storage for capabilities

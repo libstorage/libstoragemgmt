@@ -2125,7 +2125,7 @@ START_TEST(test_capability)
     fail_unless(cap != NULL);
 
     if( cap ) {
-        G(rc, lsm_capability_set_n, cap, LSM_CAPABILITY_SUPPORTED, 44,
+        G(rc, lsm_capability_set_n, cap, LSM_CAPABILITY_SUPPORTED,
             LSM_CAP_VOLUMES,
             LSM_CAP_VOLUME_CREATE,
             LSM_CAP_VOLUME_RESIZE,
@@ -2168,7 +2168,8 @@ START_TEST(test_capability)
             LSM_CAP_EXPORT_AUTH,
             LSM_CAP_EXPORTS,
             LSM_CAP_EXPORT_FS,
-            LSM_CAP_EXPORT_REMOVE
+            LSM_CAP_EXPORT_REMOVE,
+            -1
             );
 
         G(rc, lsm_capability_set, cap, LSM_CAP_EXPORTS,
