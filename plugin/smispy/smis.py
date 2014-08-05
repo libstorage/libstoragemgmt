@@ -137,6 +137,17 @@ def _hex_string_format(hex_str, length, every):
     return ':'.join(hex_str[i:i + every] for i in range(0, length, every))
 
 
+def _lsm_init_id_to_snia(lsm_init_id):
+    """
+    If lsm_init_id is a WWPN, convert it to SNIA format:
+        [0-9A-F]{16}
+    If not, return directly.
+    """
+    if AccessGroup.init_id_validate(lsm_init_id,
+                                    AccessGroup.INIT_TYPE_WWPN):
+        return lsm_init_id.replace(':', '').upper()
+    return lsm_init_id
+
 class DMTF(object):
     # CIM_StorageHardwareID['IDType']
     ID_TYPE_OTHER = pywbem.Uint16(1)
@@ -1549,23 +1560,35 @@ class Smis(IStorageAreaNetwork):
                                                  # filter out the mapping SPC.
         return cim_spc_pros
 
-    @staticmethod
-    def _init_type_of_cim_inits(cim_inits):
-        ag_init_types = [_dmtf_init_type_to_lsm(i) for i in cim_inits]
+    def _cim_inits_to_lsm(self, cim_inits):
+        """
+        Retrive AccessGroup.init_ids and AccessGroup.init_type from
+        a list of CIM_StorageHardwareID.
+        """
+        init_ids = []
         init_type = AccessGroup.INIT_TYPE_UNKNOWN
-        ag_init_type_dict = {}
-        for ag_init_type in ag_init_types:
-            ag_init_type_dict[ag_init_type] = 1
-        if len(ag_init_type_dict) == 1:
-            init_type = ag_init_types[0]
-        elif (len(ag_init_type_dict) == 2 and
-              AccessGroup.INIT_TYPE_ISCSI_IQN in ag_init_type_dict.keys() and
-              AccessGroup.INIT_TYPE_WWPN in ag_init_type_dict.keys()):
+        init_types = []
+        for cim_init in cim_inits:
+            init_type = _dmtf_init_type_to_lsm(cim_init)
+            if init_type == AccessGroup.INIT_TYPE_WWPN:
+                init_ids.append(
+                    AccessGroup.wwpn_to_lsm_type(self._init_id(cim_init)))
+                init_types.append(init_type)
+            elif init_type == AccessGroup.INIT_TYPE_ISCSI_IQN:
+                init_ids.append(self._init_id(cim_init))
+                init_types.append(init_type)
+            # Skip if not a iscsi initiator IQN or WWPN.
+            continue
+
+        init_type_dict = {}
+        for cur_init_type in init_types:
+            init_type_dict[cur_init_type] = 1
+
+        if len(init_type_dict) == 1:
+            init_type = init_types[0]
+        elif len(init_type_dict) == 2:
             init_type = AccessGroup.INIT_TYPE_ISCSI_WWPN_MIXED
-        else:
-            # We have unknown mixed initiator type
-            init_type = AccessGroup.INIT_TYPE_OTHER
-        return init_type
+        return (init_ids, init_type)
 
     def _cim_spc_to_lsm(self, cim_spc, system_id=None):
         if system_id is None:
@@ -1576,24 +1599,9 @@ class Smis(IStorageAreaNetwork):
         cim_init_pros = self._property_list_of_id('Initiator')
         cim_init_pros.extend(['IDType'])
         cim_inits = self._cim_init_of_spc(cim_spc.path, cim_init_pros)
-        ag_init_ids = [self._init_id(i) for i in cim_inits]
-        ag_init_types = [_dmtf_init_type_to_lsm(i) for i in cim_inits]
-        init_type = AccessGroup.INIT_TYPE_UNKNOWN
-        ag_init_type_dict = {}
-        for ag_init_type in ag_init_types:
-            ag_init_type_dict[ag_init_type] = 1
-        if len(ag_init_type_dict) == 1:
-            init_type = ag_init_types[0]
-        elif (len(ag_init_type_dict) == 2 and
-              AccessGroup.INIT_TYPE_ISCSI_IQN in ag_init_type_dict.keys() and
-              AccessGroup.INIT_TYPE_WWPN in ag_init_type_dict.keys()):
-            init_type = AccessGroup.INIT_TYPE_ISCSI_WWPN_MIXED
-        else:
-            # We have unknown mixed initiator type
-            init_type = AccessGroup.INIT_TYPE_OTHER
-
+        (init_ids, init_type) = self._cim_inits_to_lsm(cim_inits)
         sys_id = self._sys_id_child(cim_spc)
-        return AccessGroup(ag_id, ag_name, ag_init_ids, init_type, sys_id)
+        return AccessGroup(ag_id, ag_name, init_ids, init_type, sys_id)
 
     def _new_vol_from_job(self, job):
         """
@@ -2954,6 +2962,7 @@ class Smis(IStorageAreaNetwork):
     @handle_cim_errors
     def access_group_initiator_add(self, access_group, init_id, init_type,
                                    flags=0):
+        init_id = _lsm_init_id_to_snia(init_id)
         mask_type = self._mask_type(raise_error=True)
 
         if mask_type == Smis.MASK_TYPE_GROUP:
@@ -3088,6 +3097,7 @@ class Smis(IStorageAreaNetwork):
 
     @handle_cim_errors
     def access_group_initiator_delete(self, access_group, init_id, flags=0):
+        init_id = _lsm_init_id_to_snia(init_id)
         mask_type = self._mask_type(raise_error=True)
 
         if mask_type == Smis.MASK_TYPE_GROUP:
@@ -4691,9 +4701,8 @@ class Smis(IStorageAreaNetwork):
         cim_init_pros = self._property_list_of_id('Initiator')
         cim_init_pros.extend(['IDType'])
         cim_inits = self._cim_init_of_init_mg(cim_init_mg.path, cim_init_pros)
-        ag_init_ids = [self._init_id(i) for i in cim_inits]
-        init_type = Smis._init_type_of_cim_inits(cim_inits)
-        return AccessGroup(ag_id, ag_name, ag_init_ids, init_type, system_id)
+        (init_ids, init_type) = self._cim_inits_to_lsm(cim_inits)
+        return AccessGroup(ag_id, ag_name, init_ids, init_type, system_id)
 
     def _wait_invoke(self, rc, out, out_key=None, expect_class=None,
                      flag_out_array=False,):
@@ -4839,6 +4848,8 @@ class Smis(IStorageAreaNetwork):
                confliction.
             1. Create CIM_InitiatorMaskingGroup
         """
+        org_init_id = init_id
+        init_id = _lsm_init_id_to_snia(init_id)
         if self.fallback_mode:
             raise LsmError(ErrorNumber.NO_SUPPORT,
                            "access_group_create() is not supported in "
@@ -4900,7 +4911,7 @@ class Smis(IStorageAreaNetwork):
             # Name does not match.
             raise LsmError(ErrorNumber.EXISTS_INITIATOR,
                            "Initiator %s already exist in other access group "
-                           % init_id +
+                           % org_init_id +
                            "with name %s and ID: %s" %
                            (exist_cim_init_mgs[0]['ElementName'],
                             md5(exist_cim_init_mgs[0]['DeviceID'])))
