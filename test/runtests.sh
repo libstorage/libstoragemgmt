@@ -23,7 +23,7 @@
 export G_SLICE=always-malloc
 export G_DEBUG=gc-friendly
 export CK_DEFAULT_TIMEOUT=600
-export CK_export CK_FORK=no
+export CK_FORK=no
 
 rundir=$RANDOM
 base=/tmp/$rundir
@@ -33,35 +33,38 @@ LSMD_PID=65535
 export LSM_TEST_RUNDIR=$rundir
 export LSM_UDS_PATH=$base/lsm/ipc/
 
+LSMD_TMP_LOG_FILE="$base/lsmd.log"
+
 cleanup() {
-	#Clean up the daemon if it is running
-	if [ $LSMD_PID -ne 65535 ]
-	then
-		kill -s INT $LSMD_PID
-	fi
+    #Clean up the daemon if it is running
+    if [ $LSMD_PID -ne 65535 ]
+    then
+        kill -s KILL $LSMD_PID
+    fi
 
-	if [ -e $LSM_UDS_PATH ]
-	then
-		rm -rf 	$base
-	fi
+    cat $LSMD_TMP_LOG_FILE
+    if [ -e $LSM_UDS_PATH ]
+    then
+        rm -rf     $base
+    fi
 
-	if [ -e $rootdir/_build ]
-	then
-		rm $lsm_py_folder/lsm/plugin
-		rm $lsm_py_folder/lsm/lsmcli
-		chmod -w $lsm_py_folder/lsm
-	fi
+    if [ -e $rootdir/_build ]
+    then
+        rm $lsm_py_folder/lsm/plugin
+        rm $lsm_py_folder/lsm/lsmcli
+        chmod -w $lsm_py_folder/lsm
+    fi
 }
 
 good() {
-	echo "executing: $1"
-	eval $1
-	ec=$?
-	if [ $ec -ne 0 ]; then
-		echo "Fail exit[$ec]: $1"
-		cleanup
-		exit 1
-	fi
+    echo "executing: $1"
+    eval $1
+    ec=$?
+    if [ $ec -ne 0 ]; then
+        echo "Fail exit[$ec]: $1"
+        cleanup
+        exit 1
+    fi
 }
 
 # Add a signal handler to clean-up
@@ -85,10 +88,10 @@ lsmcli_py_folder=$rootdir/tools/lsmcli
 
 if [ -e $rootdir/_build ]
 then
-	c_unit=$rootdir/_build/test/tester
-	LSMD_DAEMON=$rootdir/_build/daemon/lsmd
-	shared_libs=$rootdir/_build/c_binding/.libs/
-	bin_plugin=$rootdir/_build/plugin/simc/.libs/
+    c_unit=$rootdir/_build/test/tester
+    LSMD_DAEMON=$rootdir/_build/daemon/lsmd
+    shared_libs=$rootdir/_build/c_binding/.libs/
+    bin_plugin=$rootdir/_build/plugin/simc/.libs/
     # In distcheck, all folder is read only(except _build and _inst).
     # which prevent us from linking plugin and lsmcli into python/lsm folder.
     chmod +w $rootdir/python_binding/lsm
@@ -133,17 +136,19 @@ good "find $rootdir/ \( ! -regex '.*/\..*' \) -type f -name \*_lsmplugin -exec c
 good "cp $bin_plugin/*_lsmplugin $plugins"
 good "ls -lh $plugins"
 
-
 #Start daemon
-good "$LSMD_DAEMON --plugindir $plugins --socketdir $LSM_UDS_PATH" -v
+$LSMD_DAEMON \
+    --plugindir $plugins \
+    --socketdir $LSM_UDS_PATH \
+    -d >$LSMD_TMP_LOG_FILE &
 
 LSMD_PID=$(ps aux | grep $LSM_UDS_PATH | grep -v grep |  awk '{print $2}')
 
 #Run C unit test
 if [ -z "$LSM_VALGRIND" ]; then
-	good "$c_unit"
+    good "$c_unit"
 else
-	good "valgrind --leak-check=full --show-reachable=no --log-file=/tmp/leaking_client $rootdir/test/.libs/tester"
+    good "valgrind --leak-check=full --show-reachable=no --log-file=/tmp/leaking_client $rootdir/test/.libs/tester"
 fi
 
 #Run cmdline against the simulator if we are not checking for leaks

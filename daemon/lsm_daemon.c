@@ -107,6 +107,7 @@ void logger(int severity, const char *fmt, ...)
             syslog(LOG_ERR, "%s", buf);
         } else {
             fprintf(stdout, "%s", buf);
+            fflush(stdout);
         }
 
         if( LOG_ERR == severity) {
