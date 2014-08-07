@@ -161,11 +161,14 @@ void dump_error(lsm_error_ptr e)
 
 void setup(void)
 {
+    /*
+     * Note: Do not use any error reporting functions in this function
+     */
+
     lsm_error_ptr e = NULL;
 
-    int rc = 0;
-
-    G(rc, lsm_connect_password, plugin_to_use(), NULL, &c, 30000, &e, LSM_FLAG_RSVD);
+    int rc = lsm_connect_password(plugin_to_use(), NULL, &c, 30000, &e,
+                LSM_FLAG_RSVD);
 
     if( LSM_ERR_OK == rc ) {
         if( getenv("LSM_DEBUG_PLUGIN") ) {
@@ -177,9 +180,14 @@ void setup(void)
 
 void teardown(void)
 {
-    int rc = 0;
-    G(rc, lsm_connect_close, c, LSM_FLAG_RSVD);
-    c = NULL;
+    /*
+     * Note: Do not use any error reporting functions in this function
+     */
+
+    if( c ) {
+        lsm_connect_close(c, LSM_FLAG_RSVD);
+        c = NULL;
+    }
 }
 
 void wait_for_job(lsm_connect *c, char **job_id)
