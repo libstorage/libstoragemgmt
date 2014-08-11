@@ -129,40 +129,6 @@ class IPlugin(object):
 
 class IStorageAreaNetwork(IPlugin):
 
-    def pool_create(self, system_id, pool_name, size_bytes,
-                    raid_type=Pool.RAID_TYPE_UNKNOWN,
-                    member_type=Pool.MEMBER_TYPE_UNKNOWN, flags=0):
-        """
-        Creates a pool letting the array pick the specifics
-
-        Returns a tuple (job_id, re-sized_volume)
-        Note: Tuple return values are mutually exclusive, when one
-        is None the other must be valid.
-        """
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    def pool_create_from_disks(self, system_id, pool_name, member_ids,
-                               raid_type, flags=0):
-        """
-        Creates a pool letting the user select the disks
-
-        Returns a tuple (job_id, re-sized_volume)
-        Note: Tuple return values are mutually exclusive, when one
-        is None the other must be valid.
-        """
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
-    def pool_create_from_pool(self, system_id, pool_name, member_id,
-                              size_bytes, flags=0):
-        """
-        Creates a pool from existing volumes
-
-        Returns a tuple (job_id, re-sized_volume)
-        Note: Tuple return values are mutually exclusive, when one
-        is None the other must be valid.
-        """
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
-
     def volumes(self, search_key=None, search_value=None, flags=0):
         """
         Returns an array of volume objects

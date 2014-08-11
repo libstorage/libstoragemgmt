@@ -131,81 +131,6 @@ def pool_element_type_to_str(element_type):
     return _bit_map_to_str(element_type, _POOL_ELEMENT_TYPE_CONV)
 
 
-_POOL_RAID_TYPE_CONV = {
-    Pool.RAID_TYPE_RAID0: 'RAID0',  # stripe
-    Pool.RAID_TYPE_RAID1: 'RAID1',  # mirror
-    Pool.RAID_TYPE_RAID3: 'RAID3',  # byte-level striping with dedicated
-                                    # parity
-    Pool.RAID_TYPE_RAID4: 'RAID4',  # block-level striping with dedicated
-                                    # parity
-    Pool.RAID_TYPE_RAID5: 'RAID5',  # block-level striping with distributed
-                                    # parity
-    Pool.RAID_TYPE_RAID6: 'RAID6',  # AKA, RAID-DP.
-    Pool.RAID_TYPE_RAID10: 'RAID10',  # stripe of mirrors
-    Pool.RAID_TYPE_RAID15: 'RAID15',  # parity of mirrors
-    Pool.RAID_TYPE_RAID16: 'RAID16',  # dual parity of mirrors
-    Pool.RAID_TYPE_RAID50: 'RAID50',  # stripe of parities
-    Pool.RAID_TYPE_RAID60: 'RAID60',  # stripe of dual parities
-    Pool.RAID_TYPE_RAID51: 'RAID51',  # mirror of parities
-    Pool.RAID_TYPE_RAID61: 'RAID61',  # mirror of dual parities
-    Pool.RAID_TYPE_JBOD: 'JBOD',      # Just Bunch of Disks
-    Pool.RAID_TYPE_UNKNOWN: 'UNKNOWN',
-    Pool.RAID_TYPE_NOT_APPLICABLE: 'NOT_APPLICABLE',
-    Pool.RAID_TYPE_MIXED: 'MIXED',  # a Pool are having 2+ RAID groups with
-                                    # different RAID type
-}
-
-
-def pool_raid_type_to_str(raid_type):
-    return _enum_type_to_str(raid_type, _POOL_RAID_TYPE_CONV)
-
-
-def pool_raid_type_str_to_type(raid_type_str):
-    return _str_to_enum(raid_type_str, _POOL_RAID_TYPE_CONV)
-
-
-_POOL_MEMBER_TYPE_CONV = {
-    Pool.MEMBER_TYPE_UNKNOWN: 'UNKNOWN',
-    Pool.MEMBER_TYPE_DISK: 'DISK',       # Pool was created from Disk(s).
-    Pool.MEMBER_TYPE_DISK_MIX: 'DISK_MIX',   # Has two or more types of disks.
-    Pool.MEMBER_TYPE_DISK_ATA: 'DISK_ATA',
-    Pool.MEMBER_TYPE_DISK_SATA: 'DISK_SATA',
-    Pool.MEMBER_TYPE_DISK_SAS: 'DISK_SAS',
-    Pool.MEMBER_TYPE_DISK_FC: 'DISK_FC',
-    Pool.MEMBER_TYPE_DISK_SOP: 'DISK_SOP',
-    Pool.MEMBER_TYPE_DISK_SCSI: 'DISK_SCSI',
-    Pool.MEMBER_TYPE_DISK_NL_SAS: 'DISK_NL_SAS',
-    Pool.MEMBER_TYPE_DISK_HDD: 'DISK_HDD',
-    Pool.MEMBER_TYPE_DISK_SSD: 'DISK_SSD',
-    Pool.MEMBER_TYPE_DISK_HYBRID: 'DISK_HYBRID',
-    Pool.MEMBER_TYPE_POOL: 'POOL',       # Pool was created from other Pool(s).
-}
-
-
-def pool_member_type_to_str(member_type):
-    return _enum_type_to_str(member_type, _POOL_MEMBER_TYPE_CONV)
-
-
-def pool_member_type_str_to_type(member_type_str):
-    return _str_to_enum(member_type_str, _POOL_MEMBER_TYPE_CONV)
-
-
-_POOL_THINP_TYPE_CONV = {
-    Pool.THINP_TYPE_UNKNOWN: 'UNKNOWN',
-    Pool.THINP_TYPE_THIN: 'THIN',
-    Pool.THINP_TYPE_THICK: 'THICK',
-    Pool.THINP_TYPE_NOT_APPLICABLE: 'NOT_APPLICABLE',
-}
-
-
-def pool_thinp_type_to_str(thinp_type):
-    return _enum_type_to_str(thinp_type, _POOL_THINP_TYPE_CONV)
-
-
-def pool_thinp_type_str_to_type(thinp_type_str):
-    return _str_to_enum(thinp_type_str, _POOL_THINP_TYPE_CONV)
-
-
 _VOL_STATUS_CONV = {
     Volume.STATUS_UNKNOWN: 'Unknown',
     Volume.STATUS_OK: 'OK',
@@ -393,9 +318,6 @@ class DisplayData(object):
 
     POOL_VALUE_CONV_ENUM = {
         'status': pool_status_to_str,
-        'raid_type': pool_raid_type_to_str,
-        'member_type': pool_member_type_to_str,
-        'thinp_type': pool_thinp_type_to_str,
         'element_type': pool_element_type_to_str,
     }
 

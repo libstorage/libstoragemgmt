@@ -457,7 +457,6 @@ class ErrorNumber(object):
     NOT_FOUND_VOLUME = 205
     NOT_FOUND_NFS_EXPORT = 206
     NOT_FOUND_SYSTEM = 208
-    NOT_FOUND_DISK = 209
 
     NOT_LICENSED = 226
 
@@ -483,7 +482,6 @@ class ErrorNumber(object):
     TRANSPORT_SERIALIZATION = 401
     TRANSPORT_INVALID_ARG = 402
 
-    DISK_BUSY = 500
     VOLUME_BUSY = 501
     ACCESS_GROUP_MASKED = 502   # refuse to remove the last initiator from
                                 # access group which have volume masked or

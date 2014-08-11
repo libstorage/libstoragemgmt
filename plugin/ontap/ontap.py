@@ -312,18 +312,18 @@ class Ontap(IStorageAreaNetwork, INfs):
         """
         return na_xxx['uuid']
 
-    @staticmethod
-    def _raid_type_of_na_aggr(na_aggr):
-        na_raid_statuses = na_aggr['raid-status'].split(',')
-        if 'raid0' in na_raid_statuses:
-            return Pool.RAID_TYPE_RAID0
-        if 'raid4' in na_raid_statuses:
-            return Pool.RAID_TYPE_RAID4
-        if 'raid_dp' in na_raid_statuses:
-            return Pool.RAID_TYPE_RAID6
-        if 'mixed_raid_type' in na_raid_statuses:
-            return Pool.RAID_TYPE_MIXED
-        return Pool.RAID_TYPE_UNKNOWN
+#    @staticmethod
+#    def _raid_type_of_na_aggr(na_aggr):
+#        na_raid_statuses = na_aggr['raid-status'].split(',')
+#        if 'raid0' in na_raid_statuses:
+#            return Pool.RAID_TYPE_RAID0
+#        if 'raid4' in na_raid_statuses:
+#            return Pool.RAID_TYPE_RAID4
+#        if 'raid_dp' in na_raid_statuses:
+#            return Pool.RAID_TYPE_RAID6
+#        if 'mixed_raid_type' in na_raid_statuses:
+#            return Pool.RAID_TYPE_MIXED
+#        return Pool.RAID_TYPE_UNKNOWN
 
     @staticmethod
     def _status_of_na_aggr(na_aggr):

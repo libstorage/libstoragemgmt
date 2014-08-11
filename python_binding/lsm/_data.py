@@ -371,97 +371,6 @@ class Pool(IData):
 
     TOTAL_SPACE_NOT_FOUND = -1
     FREE_SPACE_NOT_FOUND = -1
-    STRIPE_SIZE_NOT_FOUND = -1
-
-    # RAID_xx name was following SNIA SMI-S 1.4 rev6 Block Book,
-    # section '14.1.5.3', Table 255 - Supported Common RAID Levels
-    RAID_TYPE_RAID0 = 0
-    RAID_TYPE_RAID1 = 1
-    RAID_TYPE_RAID3 = 3
-    RAID_TYPE_RAID4 = 4
-    RAID_TYPE_RAID5 = 5
-    RAID_TYPE_RAID6 = 6
-    RAID_TYPE_RAID10 = 10
-    RAID_TYPE_RAID15 = 15
-    RAID_TYPE_RAID16 = 16
-    RAID_TYPE_RAID50 = 50
-    RAID_TYPE_RAID60 = 60
-    RAID_TYPE_RAID51 = 51
-    RAID_TYPE_RAID61 = 61
-    # number 2x is reserved for non-numbered RAID.
-    RAID_TYPE_JBOD = 20
-    RAID_TYPE_UNKNOWN = 21
-    RAID_TYPE_NOT_APPLICABLE = 22
-    # NOT_APPLICABLE indicate current pool only has one member.
-    RAID_TYPE_MIXED = 23
-
-    MEMBER_TYPE_UNKNOWN = 0
-    MEMBER_TYPE_DISK = 1
-    MEMBER_TYPE_DISK_MIX = 10
-    MEMBER_TYPE_DISK_ATA = 11
-    MEMBER_TYPE_DISK_SATA = 12
-    MEMBER_TYPE_DISK_SAS = 13
-    MEMBER_TYPE_DISK_FC = 14
-    MEMBER_TYPE_DISK_SOP = 15
-    MEMBER_TYPE_DISK_SCSI = 16
-    MEMBER_TYPE_DISK_NL_SAS = 17
-    MEMBER_TYPE_DISK_HDD = 18
-    MEMBER_TYPE_DISK_SSD = 19
-    MEMBER_TYPE_DISK_HYBRID = 110
-    MEMBER_TYPE_DISK_LUN = 111
-
-    MEMBER_TYPE_POOL = 2
-
-    _MEMBER_TYPE_2_DISK_TYPE = {
-        MEMBER_TYPE_DISK: Disk.DISK_TYPE_UNKNOWN,
-        MEMBER_TYPE_DISK_MIX: Disk.DISK_TYPE_UNKNOWN,
-        MEMBER_TYPE_DISK_ATA: Disk.DISK_TYPE_ATA,
-        MEMBER_TYPE_DISK_SATA: Disk.DISK_TYPE_SATA,
-        MEMBER_TYPE_DISK_SAS: Disk.DISK_TYPE_SAS,
-        MEMBER_TYPE_DISK_FC: Disk.DISK_TYPE_FC,
-        MEMBER_TYPE_DISK_SOP: Disk.DISK_TYPE_SOP,
-        MEMBER_TYPE_DISK_SCSI: Disk.DISK_TYPE_SCSI,
-        MEMBER_TYPE_DISK_NL_SAS: Disk.DISK_TYPE_NL_SAS,
-        MEMBER_TYPE_DISK_HDD: Disk.DISK_TYPE_HDD,
-        MEMBER_TYPE_DISK_SSD: Disk.DISK_TYPE_SSD,
-        MEMBER_TYPE_DISK_HYBRID: Disk.DISK_TYPE_HYBRID,
-        MEMBER_TYPE_DISK_LUN: Disk.DISK_TYPE_LUN,
-    }
-
-    @staticmethod
-    def member_type_is_disk(member_type):
-        """
-        Returns True if defined 'member_type' is disk.
-        False when else.
-        """
-        return member_type in Pool._MEMBER_TYPE_2_DISK_TYPE
-
-    @staticmethod
-    def member_type_to_disk_type(member_type):
-        """
-        Convert member_type to disk_type.
-        For non-disk member, we return Disk.DISK_TYPE_NOT_APPLICABLE
-        """
-        return Pool._MEMBER_TYPE_2_DISK_TYPE.get(member_type,
-                                                 Disk.DISK_TYPE_NOT_APPLICABLE)
-
-    @staticmethod
-    def disk_type_to_member_type(disk_type):
-        """
-        Convert disk_type to Pool.MEMBER_TYPE_DISK_XXXX
-        Will return Pool.MEMBER_TYPE_DISK as failback.
-        """
-        # Invert dict. Assumes values are unique.
-        inv_dict = dict((v, k)
-                        for k, v in Pool._MEMBER_TYPE_2_DISK_TYPE.iteritems())
-        return inv_dict.get(disk_type, Pool.MEMBER_TYPE_DISK)
-
-    THINP_TYPE_UNKNOWN = 0
-    THINP_TYPE_THIN = 1
-    THINP_TYPE_THICK = 5
-    THINP_TYPE_NOT_APPLICABLE = 6
-    # NOT_APPLICABLE means current pool is not implementing Thin Provisioning,
-    # but can create thin or thick pool from it.
 
     # Element Type indicate what kind of element could this pool create:
     #   * Another Pool
@@ -474,79 +383,24 @@ class Pool(IData):
     ELEMENT_TYPE_DELTA = 1 << 4
     ELEMENT_TYPE_SYS_RESERVED = 1 << 10     # Reserved for system use
 
-    MAX_POOL_STATUS_BITS = 64
     # Pool status could be any combination of these status.
     STATUS_UNKNOWN = 1 << 0
-    # UNKNOWN:
-    #   Failed to query out the status of Pool.
     STATUS_OK = 1 << 1
-    # OK:
-    #   Pool is accessible with no issue.
     STATUS_OTHER = 1 << 2
-    # OTHER:
-    #   Should explain in Pool.status_info for detail.
     STATUS_STRESSED = 1 < 3
-    # STRESSED:
-    #   Pool is under heavy workload which cause bad I/O performance.
     STATUS_DEGRADED = 1 << 4
-    # DEGRADED:
-    #   Pool is accessible but lost full RAID protection due to
-    #   I/O error or offline of one or more RAID member.
-    #   Example:
-    #    * RAID 6 pool lost access to 1 disk or 2 disks.
-    #    * RAID 5 pool lost access to 1 disk.
-    #   May explain detail in Pool.status_info.
-    #   Example:
-    #    * Pool.status = 'Disk 0_0_1 offline'
     STATUS_ERROR = 1 << 5
-    # OFFLINE:
-    #   Pool is not accessible for internal issue.
-    #   Should explain in Pool.status_info for reason.
     STATUS_STARTING = 1 << 7
-    # STARTING:
-    #   Pool is reviving from STOPPED status. Pool is not accessible.
     STATUS_STOPPING = 1 << 8
-    # STOPPING:
-    #   Pool is stopping by administrator. Pool is not accessible.
     STATUS_STOPPED = 1 << 9
-    # STOPPING:
-    #   Pool is stopped by administrator. Pool is not accessible.
     STATUS_READ_ONLY = 1 << 10
-    # READ_ONLY:
-    #   Pool is read only.
-    #   Pool.status_info should explain why.
     STATUS_DORMANT = 1 << 11
-    # DORMANT:
-    #   Pool is not accessible.
-    #   It's not stopped by administrator, but stopped for some mechanism.
-    #   For example, The DR pool acting as the SYNC replication target will be
-    #   in DORMANT state, As long as the PR(production) pool alive.
-    #   Another example could relocating.
     STATUS_RECONSTRUCTING = 1 << 12
-    # RECONSTRUCTING:
-    #   Pool is reconstructing the hash data or mirror data.
-    #   Mostly happen when disk revive from offline or disk replaced.
-    #   Pool.status_info can contain progress of this reconstruction job.
     STATUS_VERIFYING = 1 << 13
-    # VERIFYING:
-    #   Array is running integrity check on data of current pool.
-    #   It might be started by administrator or array itself.
-    #   Pool.status_info can contain progress of this verification job.
     STATUS_INITIALIZING = 1 << 14
-    # INITIALIZING:
-    #   Pool is in initialing state.
-    #   Mostly shown when new pool created or array boot up.
     STATUS_GROWING = 1 << 15
-    # GROWING:
-    #   Pool is growing its size and doing internal jobs.
-    #   Pool.status_info can contain progress of this growing job.
     STATUS_SHRINKING = 1 << 16
-    # SHRINKING:
-    #   Pool is shrinking its size and doing internal jobs.
-    #   Pool.status_info can contain progress of this shrinking job.
     STATUS_DESTROYING = 1 << 17
-    # DESTROYING:
-    #   Array is removing current pool.
 
     def __init__(self, _id, _name, _element_type, _total_space, _free_space,
                  _status, _status_info, _system_id, _plugin_data=None):
@@ -880,29 +734,6 @@ class Capabilities(IData):
     EXPORT_FS = 122
     EXPORT_REMOVE = 123
     EXPORT_CUSTOM_PATH = 124
-
-    #Pool
-    POOL_CREATE = 130
-    POOL_CREATE_FROM_DISKS = 131
-    POOL_CREATE_FROM_POOL = 133
-
-    POOL_CREATE_DISK_RAID_0 = 140
-    POOL_CREATE_DISK_RAID_1 = 141
-    POOL_CREATE_DISK_RAID_JBOD = 142
-    POOL_CREATE_DISK_RAID_3 = 143
-    POOL_CREATE_DISK_RAID_4 = 144
-    POOL_CREATE_DISK_RAID_5 = 145
-    POOL_CREATE_DISK_RAID_6 = 146
-    POOL_CREATE_DISK_RAID_10 = 147
-    POOL_CREATE_DISK_RAID_50 = 148
-    POOL_CREATE_DISK_RAID_51 = 149
-    POOL_CREATE_DISK_RAID_60 = 150
-    POOL_CREATE_DISK_RAID_61 = 151
-    POOL_CREATE_DISK_RAID_15 = 152
-    POOL_CREATE_DISK_RAID_16 = 153
-    POOL_CREATE_DISK_RAID_NOT_APPLICABLE = 154
-
-    POOL_DELETE = 200
 
     POOLS_QUICK_SEARCH = 210
     VOLUMES_QUICK_SEARCH = 211

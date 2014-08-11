@@ -80,7 +80,6 @@ typedef enum {
     LSM_ERR_NOT_FOUND_NFS_EXPORT = 206, /**< NFS export not found */
     LSM_ERR_NOT_FOUND_INITIATOR = 207,  /**< Initiator not found */
     LSM_ERR_NOT_FOUND_SYSTEM = 208,     /**< System not found */
-    LSM_ERR_NOT_FOUND_DISK = 209,       /**< Disk not found */
 
     LSM_ERR_NOT_LICENSED = 226,         /**< Need license for feature */
 
@@ -104,7 +103,6 @@ typedef enum {
     LSM_ERR_TRANSPORT_SERIALIZATION = 401,      /**< Transport serialization error */
     LSM_ERR_TRANSPORT_INVALID_ARG = 402,        /**< Parameter transported over IPC is invalid */
 
-    LSM_ERR_DISK_BUSY = 500,        /* Disk already in use */
     LSM_ERR_VOLUME_BUSY = 501,      /* Volume already in use */
     ACCESS_GROUP_MASKED = 502,
 

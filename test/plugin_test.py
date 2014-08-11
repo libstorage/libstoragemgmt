@@ -107,12 +107,7 @@ def supported(cap, capability):
 class TestProxy(object):
 
     # Hash of all calls that can be async
-    async_calls = {'pool_create': (unicode, lsm.Pool),
-                   'pool_create_from_disks': (unicode, lsm.Pool),
-                   'pool_create_from_volumes': (unicode, lsm.Pool),
-                   'pool_create_from_pool': (unicode, lsm.Pool),
-                   'pool_delete': (unicode,),
-                   'volume_create': (unicode, lsm.Volume),
+    async_calls = {'volume_create': (unicode, lsm.Volume),
                    'volume_resize': (unicode, lsm.Volume),
                    'volume_replicate': (unicode, lsm.Volume),
                    'volume_replicate_range': (unicode,),
@@ -324,9 +319,6 @@ class TestPlugin(unittest.TestCase):
     def test_disks_list(self):
         disks = self.c.disks()
         self.assertTrue(len(disks) > 0, "We need at least 1 disk to test")
-
-    def test_pool_create(self):
-        pass
 
     def _volume_create(self, system_id):
         if system_id in self.pool_by_sys_id:

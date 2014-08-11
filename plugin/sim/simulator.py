@@ -101,26 +101,6 @@ class SimPlugin(INfs, IStorageAreaNetwork):
             [SimPlugin._sim_data_2_lsm(p) for p in sim_pools],
             search_key, search_value)
 
-    def pool_create(self, system, pool_name, size_bytes,
-                    raid_type=Pool.RAID_TYPE_UNKNOWN,
-                    member_type=Pool.MEMBER_TYPE_UNKNOWN, flags=0):
-        return self.sim_array.pool_create(
-            system.id, pool_name, size_bytes, raid_type, member_type, flags)
-
-    def pool_create_from_disks(self, system, pool_name, disks,
-                               raid_type, flags=0):
-        member_ids = [x.id for x in disks]
-        return self.sim_array.pool_create_from_disks(
-            system.id, pool_name, member_ids, raid_type, flags)
-
-    def pool_create_from_pool(self, system, pool_name, pool,
-                              size_bytes, flags=0):
-        return self.sim_array.pool_create_from_pool(
-            system.id, pool_name, pool.id, size_bytes, flags)
-
-    def pool_delete(self, pool, flags=0):
-        return self.sim_array.pool_delete(pool.id, flags)
-
     def volumes(self, search_key=None, search_value=None, flags=0):
         sim_vols = self.sim_array.volumes()
         return search_property(
