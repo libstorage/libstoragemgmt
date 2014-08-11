@@ -661,7 +661,7 @@ START_TEST(test_access_groups)
     G(rc, lsm_access_group_record_array_free, groups, count);
     groups = NULL;
     count = 0;
-    char *job = NULL;
+    //char *job = NULL;
     lsm_access_group *updated = NULL;
 
     rc = lsm_access_group_initiator_add(c, group, "iqn.1994-05.com.domain:01.89bd02",
@@ -2871,6 +2871,148 @@ START_TEST(test_target_ports)
 }
 END_TEST
 
+START_TEST(test_initiator_id_verification)
+{
+    int rc = 0;
+    lsm_access_group *group = NULL;
+    lsm_access_group *updated_group = NULL;
+    lsm_access_group **groups = NULL;
+    uint32_t count = 0;
+    lsm_system *system = get_system(c);
+
+    G(rc, lsm_access_group_list, c, NULL, NULL, &groups, &count, LSM_FLAG_RSVD);
+    fail_unless(count == 0, "Expect 0 access groups, got %"PRIu32, count);
+    fail_unless(groups == NULL);
+
+    /* Test valid iqns first, then invalid */
+
+    G(rc, lsm_access_group_create, c, "test_ag_iscsi",
+            "iqn.1994-05.com.domain.sub:whatever-the.users_wants",
+            LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN, system,
+            &group, LSM_FLAG_RSVD);
+
+    G(rc, lsm_access_group_initiator_add, c, group,
+            "iqn.2001-04.com.example:storage:diskarrays-sn-a8675309",
+            LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN, &updated_group,
+            LSM_FLAG_RSVD);
+
+    G(rc, lsm_access_group_record_free, group);
+    group = updated_group;
+    updated_group = NULL;
+
+    G(rc, lsm_access_group_initiator_add, c, group,
+            "iqn.2001-04.com.example",
+            LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN, &updated_group,
+            LSM_FLAG_RSVD);
+
+    G(rc, lsm_access_group_record_free, group);
+    group = updated_group;
+    updated_group = NULL;
+
+    G(rc, lsm_access_group_initiator_add, c, group,
+            "iqn.2001-04.com.example:storage.tape1.sys1.xyz",
+            LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN, &updated_group,
+            LSM_FLAG_RSVD);
+
+    G(rc, lsm_access_group_record_free, group);
+    group = updated_group;
+    updated_group = NULL;
+
+    G(rc, lsm_access_group_initiator_add, c, group,
+            "iqn.2001-04.com.example:storage.disk2.sys1.xyz",
+            LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN, &updated_group,
+            LSM_FLAG_RSVD);
+
+    G(rc, lsm_access_group_record_free, group);
+    group = updated_group;
+    updated_group = NULL;
+
+    G(rc, lsm_access_group_initiator_add, c, group,
+            "0x0011223344556677",
+            LSM_ACCESS_GROUP_INIT_TYPE_WWPN, &updated_group,
+            LSM_FLAG_RSVD);
+
+    G(rc, lsm_access_group_record_free, group);
+    group = updated_group;
+    updated_group = NULL;
+
+    G(rc, lsm_access_group_initiator_add, c, group,
+            "00:11:22:33:44:55:66:77",
+            LSM_ACCESS_GROUP_INIT_TYPE_WWPN, &updated_group,
+            LSM_FLAG_RSVD);
+
+    G(rc, lsm_access_group_record_free, group);
+    group = updated_group;
+    updated_group = NULL;
+
+    G(rc, lsm_access_group_initiator_add, c, group,
+            "00-11-22-33-44-55-66-77",
+            LSM_ACCESS_GROUP_INIT_TYPE_WWPN, &updated_group,
+            LSM_FLAG_RSVD);
+
+    G(rc, lsm_access_group_record_free, group);
+    group = updated_group;
+    updated_group = NULL;
+
+    G(rc, lsm_access_group_initiator_add, c, group,
+            "0x00-11-22-33-44-55-66-77",
+            LSM_ACCESS_GROUP_INIT_TYPE_WWPN, &updated_group,
+            LSM_FLAG_RSVD);
+
+    G(rc, lsm_access_group_record_free, group);
+    group = updated_group;
+    updated_group = NULL;
+
+    /* Test invalid */
+    rc = lsm_access_group_initiator_add(c, group, "0x:0011223344556677",
+            LSM_ACCESS_GROUP_INIT_TYPE_WWPN, &updated_group,
+            LSM_FLAG_RSVD);
+
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "Expected initiator id with invalid form to fail! %d", rc);
+
+    /* Test invalid iqn */
+    rc = lsm_access_group_initiator_add(c, group, "0011223344556677:",
+            LSM_ACCESS_GROUP_INIT_TYPE_WWPN, &updated_group,
+            LSM_FLAG_RSVD);
+
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "Expected initiator id with invalid form to fail! %d", rc);
+
+    /* Test invalid iqn */
+    rc = lsm_access_group_initiator_add(c, group, "001122334455667788",
+            LSM_ACCESS_GROUP_INIT_TYPE_WWPN, &updated_group,
+            LSM_FLAG_RSVD);
+
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "Expected initiator id with invalid form to fail! %d", rc);
+
+    /* Test invalid iqn */
+    rc = lsm_access_group_initiator_add(c, group, "0x001122334455",
+            LSM_ACCESS_GROUP_INIT_TYPE_WWPN, &updated_group,
+            LSM_FLAG_RSVD);
+
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "Expected initiator id with invalid form to fail! %d", rc);
+
+    /* Test invalid iqn */
+    rc = lsm_access_group_initiator_add(c, group, "0x00+11:22:33:44:55:66:77",
+            LSM_ACCESS_GROUP_INIT_TYPE_WWPN, &updated_group,
+            LSM_FLAG_RSVD);
+
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "Expected initiator id with invalid form to fail! %d", rc);
+
+    /* Delete group */
+    G(rc, lsm_access_group_delete, c, group, LSM_FLAG_RSVD);
+    G(rc, lsm_access_group_record_free, group);
+    group = NULL;
+
+    G(rc, lsm_system_record_free, system);
+    system = NULL;
+}
+END_TEST
+
 Suite * lsm_suite(void)
 {
     Suite *s = suite_create("libStorageMgmt");
@@ -2878,6 +3020,7 @@ Suite * lsm_suite(void)
     TCase *basic = tcase_create("Basic");
     tcase_add_checked_fixture (basic, setup, teardown);
 
+    tcase_add_test(basic, test_initiator_id_verification);
     tcase_add_test(basic, test_target_ports);
     tcase_add_test(basic, test_search_fs);
     tcase_add_test(basic, test_search_access_groups);
