@@ -76,6 +76,65 @@ static int check_search_key(const char *search_key,
     return 0;
 }
 
+int lsm_initiator_id_verify(const char *init_id,
+                            lsm_access_group_init_type *init_type)
+{
+    int rc = LSM_ERR_INVALID_ARGUMENT;
+
+    if( init_id != NULL && strlen(init_id) > 3 ) {
+
+        switch( *init_type ) {
+            case( LSM_ACCESS_GROUP_INIT_TYPE_UNKNOWN ):
+                if( 0 == iqn_validate(init_id) ) {
+                    *init_type = LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN;
+                    rc = LSM_ERR_OK;
+                }
+                if( 0 == wwpn_validate(init_id) ) {
+                    *init_type = LSM_ACCESS_GROUP_INIT_TYPE_WWPN;
+                    rc = LSM_ERR_OK;
+                }
+                break;
+            case( LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN ):
+                if( 0 == iqn_validate(init_id) ) {
+                    *init_type = LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN;
+                    rc = LSM_ERR_OK;
+                }
+                break;
+            case( LSM_ACCESS_GROUP_INIT_TYPE_WWPN ):
+                if( 0 == wwpn_validate(init_id) ) {
+                    *init_type = LSM_ACCESS_GROUP_INIT_TYPE_WWPN;
+                    rc = LSM_ERR_OK;
+                }
+                break;
+            default:
+                break;
+        }
+    }
+    return rc;
+}
+
+static int verify_initiator_id(const char *id, lsm_access_group_init_type t,
+                                Value &initiator)
+{
+    initiator = Value(id);
+
+    if( t == LSM_ACCESS_GROUP_INIT_TYPE_WWPN ) {
+        char *wwpn = wwpn_convert(id);
+        if( wwpn ) {
+            initiator = Value(wwpn);
+            free(wwpn);
+            wwpn = NULL;
+        } else {
+            return LSM_ERR_INVALID_ARGUMENT;
+        }
+    } else if( t == LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN ) {
+        if( iqn_validate(id) ) {
+            return LSM_ERR_INVALID_ARGUMENT;
+        }
+    }
+    return LSM_ERR_OK;
+}
+
 /**
  * Strings are non null with a len >= 1
  */
@@ -1177,7 +1236,7 @@ int lsm_volume_replicate(lsm_connect *c, lsm_pool *pool,
 {
     CONN_SETUP(c);
 
-    if( pool && !LSM_IS_POOL(pool) || !LSM_IS_VOL(volumeSrc) ) {
+    if( (pool && !LSM_IS_POOL(pool)) || !LSM_IS_VOL(volumeSrc) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1319,8 +1378,7 @@ int lsm_iscsi_chap_auth(lsm_connect *c, const char *init_id,
 {
     CONN_SETUP(c);
 
-    if( NULL == init_id || strlen(init_id) == 0 ||
-        LSM_FLAG_UNUSED_CHECK(flags)) {
+    if( iqn_validate(init_id) || LSM_FLAG_UNUSED_CHECK(flags)) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1411,9 +1469,15 @@ int lsm_access_group_create(lsm_connect *c, const char *name,
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
+    Value id;
+
+    if( LSM_ERR_OK != verify_initiator_id(init_id, init_type, id) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
     std::map<std::string, Value> p;
     p["name"] = Value(name);
-    p["init_id"] = Value(init_id);
+    p["init_id"] = id;
     p["init_type"] = Value((int32_t)init_type);
     p["system"] = system_to_value(system);
     p["flags"] = Value(flags);
@@ -1466,9 +1530,15 @@ int lsm_access_group_initiator_add(lsm_connect *c,
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
+    Value id;
+
+    if( LSM_ERR_OK != verify_initiator_id(init_id, init_type, id) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
     std::map<std::string, Value> p;
     p["access_group"] = access_group_to_value(access_group);
-    p["init_id"] = init_id;
+    p["init_id"] = id;
     p["init_type"] = Value((int32_t)init_type);
     p["flags"] = Value(flags);
 

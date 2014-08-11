@@ -111,7 +111,15 @@ int LSM_DLL_EXPORT lsm_string_list_append(lsm_string_list *sl, const char* add);
  */
 int LSM_DLL_EXPORT lsm_string_list_delete(lsm_string_list *sl, uint32_t index);
 
-
+/**
+ * Checks to see if initiator id is valid
+ * @param init_id       Initiator value
+ * @param init_type     Type of initiator id, will get modified
+ *                      to determined if type passed in is UNKNOWN
+ * @return LSM_ERR_OK if initiator id is OK, else LSM_INVALID_ARGUMENT
+ */
+int LSM_DLL_EXPORT lsm_initiator_id_verify( const char *init_id,
+                                        lsm_access_group_init_type *init_type);
 
 #ifdef  __cplusplus
 }

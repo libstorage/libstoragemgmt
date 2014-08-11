@@ -658,66 +658,61 @@ class AccessGroup(IData):
                  _plugin_data=None):
         self._id = _id
         self._name = _name                # AccessGroup name
-        self._init_ids = _init_ids        # A list of Initiator ID strings.
+        self._init_ids = AccessGroup._standardize_init_list(_init_ids)
+                                          # A list of Initiator ID strings.
         self._init_type = _init_type
         self._system_id = _system_id      # System id this group belongs
         self._plugin_data = _plugin_data
 
-    # Regex for LSM format of WWPN, example:
-    #       10:00:00:00:c9:95:2f:de
-    _regex_lsm_wwpn = re.compile(r"""
-        ^
-        (?:[0-9a-f]{2}:){7}
-        [0-9a-f]{2}
-        $
-    """, re.X)
-
-    _regex_iscsi_iqn = re.compile(r"""
-        ^
-        iqn                                     # iqn
-        \.                                      # .
-        [0-9]{4}-[0-9]{2}                       # 1995-02
-        \.                                      # .
-        [A-Za-z](?:[A-Za-z0-9\-]*[A-Za-z0-9])?  # com
-        \.                                      # .
-        [A-Za-z](?:[A-Za-z0-9\-]*[A-Za-z0-9])?  # redhat
-        :                                       # :
-        [\.A-Za-z\-0-9]+                        # gris-01
-        $
-        """, re.X)
-
     @staticmethod
-    def init_id_validate(init_id, init_type, raise_error=True):
-        if init_type == AccessGroup.INIT_TYPE_ISCSI_IQN:
-            if AccessGroup._regex_iscsi_iqn.match(str(init_id)):
-                return True
-            if raise_error:
-                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                               "Invalid iSCSI IQN Initiator: %s" % init_id)
-            return False
-        elif init_type == AccessGroup.INIT_TYPE_WWPN:
-            if AccessGroup._regex_lsm_wwpn.match(str(init_id)):
-                return True
-            if raise_error:
-                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                               "Invalid WWPN Initiator: %s" % init_id)
-            return False
-        elif raise_error:
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "Initiator type %d not supported" % init_type)
-        return False
+    def _standardize_init_list(init_ids):
+        rc = []
+        for i in init_ids:
+            valid, init_type, init_id = AccessGroup.initiator_id_verify(i)
+
+            if valid:
+                rc.append(init_id)
+            else:
+                raise LsmError(LsmError.ErrorNumber.INVALID_ARGUMENT,
+                               "Invalid initiator ID %s" % i)
+        return rc
 
     _regex_wwpn = re.compile(r"""
-        ^
-        [0x|0X]{0,1}
-        (:?[0-9A-Fa-f]{2}
-        [\.\-:]{0,1}){7}
-        [0-9A-Fa-f]{2}
-        $
+        ^(0x|0X)?([0-9A-Fa-f]{2})
+        (([\.:\-])?[0-9A-Fa-f]{2}){7}$
         """, re.X)
 
     @staticmethod
-    def wwpn_to_lsm_type(wwpn, raise_error=True):
+    def initiator_id_verify(init_id, init_type=None, raise_exception=False):
+        """
+        Public method which can be used to verify an initiator id
+        :param init_id:
+        :param init_type:
+        :param raise_exception: Will throw a LsmError INVALID_ARGUMENT if
+                                not a valid initiator address
+        :return:(Bool, init_type, init_id)  Note: init_id will be returned in
+                normalized format if it's a WWPN
+        """
+        if init_id.startswith('iqn') or init_id.startswith('eui') or\
+                init_id.startswith('naa'):
+
+            if init_type is None or \
+                    init_type == AccessGroup.INIT_TYPE_ISCSI_IQN:
+                return True, AccessGroup.INIT_TYPE_ISCSI_IQN, init_id
+        if AccessGroup._regex_wwpn.match(str(init_id)):
+            if init_type is None or \
+                    init_type == AccessGroup.INIT_TYPE_WWPN:
+                return True, AccessGroup.INIT_TYPE_WWPN, \
+                   AccessGroup._wwpn_to_lsm_type(init_id)
+
+        if raise_exception:
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           "Initiator id '%s' is invalid" % init_id)
+
+        return False, None, None
+
+    @staticmethod
+    def _wwpn_to_lsm_type(wwpn, raise_error=True):
         """
         Conver provided WWPN string into LSM standarded one:
 

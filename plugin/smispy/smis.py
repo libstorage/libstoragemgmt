@@ -143,8 +143,8 @@ def _lsm_init_id_to_snia(lsm_init_id):
         [0-9A-F]{16}
     If not, return directly.
     """
-    if AccessGroup.init_id_validate(lsm_init_id,
-                                    AccessGroup.INIT_TYPE_WWPN):
+    val, init_type, init_id = AccessGroup.initiator_id_verify(lsm_init_id)
+    if val and init_type == AccessGroup.INIT_TYPE_WWPN:
         return lsm_init_id.replace(':', '').upper()
     return lsm_init_id
 
@@ -1597,8 +1597,7 @@ class Smis(IStorageAreaNetwork):
         for cim_init in cim_inits:
             init_type = _dmtf_init_type_to_lsm(cim_init)
             if init_type == AccessGroup.INIT_TYPE_WWPN:
-                init_ids.append(
-                    AccessGroup.wwpn_to_lsm_type(self._init_id(cim_init)))
+                init_ids.append(self._init_id(cim_init))
                 init_types.append(init_type)
             elif init_type == AccessGroup.INIT_TYPE_ISCSI_IQN:
                 init_ids.append(self._init_id(cim_init))

@@ -350,6 +350,28 @@ LSM_DLL_LOCAL const char *uds_path(void);
 int LSM_DLL_LOCAL number_convert(const char *str_num, int64_t *si, uint64_t *ui,
                                 long double *d);
 
+
+/**
+ * Validates an iSCSI IQN
+ * @param iqn   iSCSI iqn to check
+ * @return LSM_ERR_OK on success, else LSM_ERR_INVALID_ARGUMENT
+ */
+int LSM_DLL_LOCAL iqn_validate(const char *iqn);
+
+/**
+ * Validates an WWPN
+ * @param wwpn   wwpn to check
+ * @return LSM_ERR_OK on success, else LSM_ERR_INVALID_ARGUMENT
+ */
+int LSM_DLL_LOCAL wwpn_validate(const char *wwpn);
+
+/**
+ * Given a WWPN validate it and then convert to internal representation.
+ * @param wwpn      World wide port name to validate
+ * @return NULL if not patch, else string with common lsm format
+ */
+char LSM_DLL_LOCAL *wwpn_convert(const char *wwpn);
+
 #ifdef  __cplusplus
 }
 #endif

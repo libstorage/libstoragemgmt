@@ -77,6 +77,7 @@ def getch():
         termios.tcsetattr(fd, termios.TCSADRAIN, prev)
     return ch
 
+
 def parse_convert_init(init_id):
     """
     If init_id is a WWPN, convert it into LSM standard version:
@@ -84,13 +85,10 @@ def parse_convert_init(init_id):
 
     Return (converted_init_id, lsm_init_type)
     """
-    init_type = AccessGroup.INIT_TYPE_ISCSI_IQN
-    if AccessGroup.init_id_validate(init_id, init_type, raise_error=False):
-        return (init_id, init_type)
+    valid, init_type, init_id = AccessGroup.initiator_id_verify(init_id)
 
-    wwpn = AccessGroup.wwpn_to_lsm_type(init_id, raise_error=False)
-    if wwpn:
-        return (wwpn, AccessGroup.INIT_TYPE_WWPN)
+    if valid:
+        return (init_id, init_type)
 
     raise ArgError("--init-id %s is not a valid WWPN or iSCSI IQN" % init_id)
 

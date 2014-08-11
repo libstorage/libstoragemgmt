@@ -44,6 +44,7 @@
 #include <unistd.h>
 #include <dlfcn.h>
 #include <glib.h>
+#include <regex.h>
 
 #ifdef  __cplusplus
 extern "C" {
@@ -994,6 +995,34 @@ const char *lsm_disk_system_id_get( lsm_disk *d)
 
 CREATE_ALLOC_ARRAY_FUNC(lsm_access_group_record_array_alloc, lsm_access_group *)
 
+static lsm_string_list *standardize_init_list(lsm_string_list *initiators)
+{
+    uint32_t i = 0;
+    lsm_string_list *rc = lsm_string_list_copy(initiators);
+    char *wwpn = NULL;
+
+    if( rc ) {
+        for( i = 0; i < lsm_string_list_size(rc); ++i ) {
+            if( LSM_ERR_OK == wwpn_validate(lsm_string_list_elem_get(rc, i)) ) {
+                /* We have a wwpn, switch to internal representation */
+                wwpn = wwpn_convert(lsm_string_list_elem_get(rc, i));
+                if( !wwpn  ||
+                    LSM_ERR_OK != lsm_string_list_elem_set(rc, i, wwpn) ) {
+                    free(wwpn);
+                    lsm_string_list_free(rc);
+                    rc = NULL;
+                    break;
+                }
+                free(wwpn);
+                wwpn = NULL;
+            }
+        }
+    }
+
+    return rc;
+}
+
+
 lsm_access_group *lsm_access_group_record_alloc(const char *id,
                                         const char *name,
                                         lsm_string_list *initiators,
@@ -1009,7 +1038,7 @@ lsm_access_group *lsm_access_group_record_alloc(const char *id,
             rc->id = strdup(id);
             rc->name = strdup(name);
             rc->system_id = strdup(system_id);
-            rc->initiators = lsm_string_list_copy(initiators);
+            rc->initiators = standardize_init_list(initiators);
             rc->init_type = init_type;
 
             if( plugin_data ) {
@@ -1019,7 +1048,8 @@ lsm_access_group *lsm_access_group_record_alloc(const char *id,
             }
 
             if( !rc->id || !rc->name || !rc->system_id  ||
-                (plugin_data && !rc->plugin_data)) {
+                (plugin_data && !rc->plugin_data) ||
+                (initiators && !rc->initiators) ) {
                 lsm_access_group_record_free(rc);
                 rc = NULL;
             }
@@ -1885,8 +1915,67 @@ CREATE_FREE_ARRAY_FUNC(lsm_target_port_record_array_free,
                         lsm_target_port_record_free, lsm_target_port *,
                         LSM_ERR_INVALID_ARGUMENT)
 
+static int reg_ex_match(const char *pattern, const char *str)
+{
+    regex_t start_state;
+    int status = 0;
+    int rc = regcomp(&start_state, pattern, REG_EXTENDED);
 
+    if (rc) {
+        // Development only when changing regular expression
+        //fprintf(stderr, "%s: bad pattern: '%s' %d\n", str, pattern, rc);
+        return -1;
+    }
 
+    status = regexec(&start_state, str, 0, NULL, 0);
+    regfree(&start_state);
+
+    return status;
+}
+
+int iqn_validate(const char *iqn)
+{
+    if( (iqn && strlen(iqn) > 4) && ( 0 == strncmp(iqn, "iqn", 3) ||
+            0 == strncmp(iqn, "naa", 3) || 0 == strncmp(iqn, "eui", 3)) ) {
+        return LSM_ERR_OK;
+    }
+    return LSM_ERR_INVALID_ARGUMENT;
+}
+
+int wwpn_validate(const char *wwpn)
+{
+    const char *pattern =   "^(0x|0X)?([0-9A-Fa-f]{2})"
+                            "(([\\.\\:\\-])?[0-9A-Fa-f]{2}){7}$";
+    if( 0 == reg_ex_match(pattern, wwpn) ) {
+        return LSM_ERR_OK;
+    }
+    return LSM_ERR_INVALID_ARGUMENT;
+}
+
+char *wwpn_convert(const char *wwpn)
+{
+    size_t i = 0;
+    size_t out = 0;
+    char *rc = NULL;
+
+    if( LSM_ERR_OK == wwpn_validate(wwpn) ) {
+        rc = (char*)calloc(24,1);
+        size_t len = strlen(wwpn);
+
+        if (wwpn[1] == 'x' || wwpn[1] == 'X') {
+            i = 2;
+        }
+
+        for( ; i < len; ++i ) {
+            if( wwpn[i] != ':' && wwpn[i] != '-' && wwpn[i] != '.') {
+                rc[out++] = tolower(wwpn[i]);
+            } else {
+                rc[out++] = ':';
+            }
+        }
+    }
+    return rc;
+}
 #ifdef  __cplusplus
 }
 #endif

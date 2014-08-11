@@ -654,7 +654,8 @@ class Client(INetworkAttachedStorage):
         Creates an access group and add the specified initiator id,
         init_type and desired access.
         """
-        AccessGroup.init_id_validate(init_id, init_type, raise_error=True)
+        init_type, init_id = AccessGroup.initiator_id_verify(
+            init_id, init_type, raise_exception=True)[1:]
         return self._tp.rpc('access_group_create', _del_self(locals()))
 
     ## Deletes an access group.
@@ -682,7 +683,8 @@ class Client(INetworkAttachedStorage):
         """
         Adds an initiator to an access group
         """
-        AccessGroup.init_id_validate(init_id, init_type, raise_error=True)
+        init_type, init_id = AccessGroup.initiator_id_verify(
+            init_id, init_type, raise_exception=True)[1:]
         return self._tp.rpc('access_group_initiator_add', _del_self(locals()))
 
     ## Deletes an initiator from an access group
@@ -696,6 +698,8 @@ class Client(INetworkAttachedStorage):
         """
         Deletes an initiator from an access group
         """
+        init_id = AccessGroup.initiator_id_verify(init_id, None,
+                                                  raise_exception=True)[2:]
         return self._tp.rpc('access_group_initiator_delete',
                             _del_self(locals()))
 
