@@ -18,6 +18,7 @@
 import json
 import socket
 import string
+import os
 from _common import SocketEOF as _SocketEOF
 from _common import LsmError, ErrorNumber
 from _data import DataDecoder as _DataDecoder, DataEncoder as _DataEncoder
@@ -98,10 +99,20 @@ class TransPort(object):
         """
         try:
             s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            s.connect(path)
+
+            if os.path.exists(path):
+                if os.access(path, os.R_OK | os.W_OK):
+                    s.connect(path)
+                else:
+                    raise LsmError(ErrorNumber.PLUGIN_SOCKET_PERMISSION,
+                                   "Permissions are incorrect for IPC "
+                                   "socket file")
+            else:
+                raise LsmError(ErrorNumber.PLUGIN_NOT_EXIST,
+                               "Plug-in appears to not exist")
         except socket.error:
             #self, code, message, data=None, *args, **kwargs
-            raise LsmError(ErrorNumber.NETWORK_ERROR,
+            raise LsmError(ErrorNumber.PLUGIN_IPC_FAIL,
                            "Unable to connect to lsmd, daemon started?")
         return s
 

@@ -464,10 +464,13 @@ class ErrorNumber(object):
     NO_SUPPORT_ONLINE_CHANGE = 250
     NO_SUPPORT_OFFLINE_CHANGE = 251
 
-    PLUGIN_AUTH_FAILED = 300
-    PLUGIN_IPC_FAIL = 301
+    PLUGIN_AUTH_FAILED = 300    # Client supplied credential are incorrect
+    PLUGIN_IPC_FAIL = 301       # Inter-process communication between client &
+                                # out of process plug-in encountered connection
+                                # errors.
 
-    PLUGIN_SOCKET_PERMISSION = 307
+    PLUGIN_SOCKET_PERMISSION = 307  # Incorrect permission on UNIX domain
+                                    # socket used for IPC
     PLUGIN_REGISTRATION = 308
     PLUGIN_NOT_EXIST = 311
 

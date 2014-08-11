@@ -302,32 +302,36 @@ int driver_load(lsm_connect *c, const char *plugin_name, const char *password,
         return LSM_ERR_NO_MEMORY;
     }
 
-    if (access(plugin_file, R_OK) == 0) {
-        int ec;
-        int sd = Transport::socket_get(std::string(plugin_file), ec);
+    if (access(plugin_file, F_OK) != 0) {
+        rc = LSM_ERR_PLUGIN_NOT_EXIST;
+    } else {
+        if (access(plugin_file, R_OK|W_OK) == 0) {
+            int ec;
+            int sd = Transport::socket_get(std::string(plugin_file), ec);
 
-        if( sd >= 0 ) {
-            c->tp = new Ipc(sd);
-            if( startup ) {
-                if( connection_establish(c, password, timeout, e, flags)) {
-                    rc = LSM_ERR_PLUGIN_IPC_FAIL;
+            if( sd >= 0 ) {
+                c->tp = new Ipc(sd);
+                if( startup ) {
+                    if( connection_establish(c, password, timeout, e, flags)) {
+                        rc = LSM_ERR_PLUGIN_IPC_FAIL;
+                    }
                 }
+            } else {
+                 *e = lsm_error_create(LSM_ERR_PLUGIN_IPC_FAIL,
+                                    LSM_ERR_DOMAIN_FRAME_WORK,
+                                    LSM_ERR_LEVEL_ERROR, "Unable to connect to plugin",
+                                    NULL, dlerror(), NULL, 0 );
+
+                rc = LSM_ERR_PLUGIN_IPC_FAIL;
             }
         } else {
-             *e = lsm_error_create(LSM_ERR_PLUGIN_IPC_FAIL,
+            *e = lsm_error_create(LSM_ERR_PLUGIN_SOCKET_PERMISSION,
                                 LSM_ERR_DOMAIN_FRAME_WORK,
-                                LSM_ERR_LEVEL_ERROR, "Unable to connect to plugin",
-                                NULL, dlerror(), NULL, 0 );
+                                LSM_ERR_LEVEL_ERROR, "Unable to access plugin",
+                                NULL, NULL, NULL, 0 );
 
-            rc = LSM_ERR_PLUGIN_IPC_FAIL;
+            rc = LSM_ERR_PLUGIN_SOCKET_PERMISSION;
         }
-    } else {
-        *e = lsm_error_create(LSM_ERR_PLUGIN_SOCKET_PERMISSION,
-                            LSM_ERR_DOMAIN_FRAME_WORK,
-                            LSM_ERR_LEVEL_ERROR, "Unable to access plugin",
-                            NULL, NULL, NULL, 0 );
-
-        rc = LSM_ERR_PLUGIN_SOCKET_PERMISSION;
     }
 
     free(plugin_file);

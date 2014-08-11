@@ -88,10 +88,11 @@ typedef enum {
     LSM_ERR_NO_SUPPORT_OFFLINE_CHANGE = 251,    /**< Needs to be online to perform operation */
 
     LSM_ERR_PLUGIN_AUTH_FAILED = 300,   /**< Authorization failed */
-    LSM_ERR_PLUGIN_IPC_FAIL = 301,      /**< dlopen on plugin failed */
+    LSM_ERR_PLUGIN_IPC_FAIL = 301,      /**< Inter-process communication between client &
+                                             out of process plug-in encountered connection
+                                             errors.**/
 
-    LSM_ERR_PLUGIN_SOCKET_PERMISSION = 307,   /**< Unable to access plugin */
-    LSM_ERR_PLUGIN_REGISTRATION = 308,  /**< Error during plug-in registration */
+    LSM_ERR_PLUGIN_SOCKET_PERMISSION = 307,   /**< Incorrect permission on UNIX domain socket used for IPC */
     LSM_ERR_PLUGIN_NOT_EXIST = 311,     /**< Plug-in does not appear to exist */
 
     LSM_ERR_NOT_ENOUGH_SPACE = 350,         /**< Insufficient space */
