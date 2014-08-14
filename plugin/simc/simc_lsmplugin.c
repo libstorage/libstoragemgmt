@@ -1120,7 +1120,8 @@ static int access_group_initiator_add(  lsm_plugin_ptr c,
 
 static int access_group_initiator_delete(  lsm_plugin_ptr c,
                                         lsm_access_group *group,
-                                        const char *init,
+                                        const char *initiator_id,
+                                        lsm_access_group_init_type id_type,
                                         lsm_access_group **updated_access_group,
                                         lsm_flag flags)
 {
@@ -1136,7 +1137,7 @@ static int access_group_initiator_delete(  lsm_plugin_ptr c,
         lsm_string_list *inits = lsm_access_group_initiator_id_get(find->ag);
 
         for(i = 0; i < lsm_string_list_size(inits); ++i) {
-            if( strcmp(init, lsm_string_list_elem_get(inits, i)) == 0 ) {
+            if( strcmp(initiator_id, lsm_string_list_elem_get(inits, i)) == 0 ) {
                 lsm_string_list_delete(inits, i);
                 rc = LSM_ERR_OK;
                 break;

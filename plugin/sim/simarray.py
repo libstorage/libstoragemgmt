@@ -393,8 +393,10 @@ class SimArray(object):
             ag_id, init_id, init_type, flags)
         return SimArray._sim_ag_2_lsm(sim_ag)
 
-    def access_group_initiator_delete(self, ag_id, init_id, flags=0):
-        sim_ag = self.data.access_group_initiator_delete(ag_id, init_id, flags)
+    def access_group_initiator_delete(self, ag_id, init_id, init_type,
+                                      flags=0):
+        sim_ag = self.data.access_group_initiator_delete(ag_id, init_id,
+                                                         init_type, flags)
         return SimArray._sim_ag_2_lsm(sim_ag)
 
     def volume_mask(self, ag_id, vol_id, flags=0):
@@ -1148,7 +1150,8 @@ class SimData(object):
         self.ag_dict[ag_id]['init_ids'].extend([init_id])
         return self.ag_dict[ag_id]
 
-    def access_group_initiator_delete(self, ag_id, init_id, flags=0):
+    def access_group_initiator_delete(self, ag_id, init_id, init_type,
+                                      flags=0):
         if ag_id not in self.ag_dict.keys():
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
                            "Access group not found: %s" % ag_id)

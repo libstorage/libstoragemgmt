@@ -688,7 +688,8 @@ START_TEST(test_access_groups)
                     lsm_string_list_elem_get(init_list, i));
 
             G(rc, lsm_access_group_initiator_delete, c, groups[0],
-                    lsm_string_list_elem_get(init_list, i), &updated,
+                    lsm_string_list_elem_get(init_list, i),
+                    LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN, &updated,
                     LSM_FLAG_RSVD)
 
             fail_unless(updated != NULL);
@@ -697,20 +698,6 @@ START_TEST(test_access_groups)
         }
         init_list = NULL;
     }
-
-    /* TODO Need to fix this
-    for( i = 0; i < init_list_count; ++i ) {
-        printf("Deleting initiator %s from group!\n", lsm_initiator_id_get(inits[i]));
-        rc = lsm_access_group_initiator_delete(c, groups[0],
-                                            lsm_initiator_id_get(inits[i]), LSM_FLAG_RSVD);
-
-        if( LSM_ERR_JOB_STARTED == rc ) {
-            wait_for_job_fs(c, &job);
-        } else {
-            fail_unless(LSM_ERR_OK == rc);
-        }
-    }
-    */
 
     if( group ) {
         G(rc, lsm_access_group_record_free, group);
@@ -1560,10 +1547,11 @@ START_TEST(test_invalid_input)
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 
-    rc = lsm_access_group_initiator_delete(c, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_access_group_initiator_delete(c, NULL, NULL, 0, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_access_group_initiator_delete(c, ag, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_access_group_initiator_delete(c, ag, NULL,
+                        LSM_ACCESS_GROUP_INIT_TYPE_OTHER, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 

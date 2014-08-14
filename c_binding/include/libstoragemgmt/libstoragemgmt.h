@@ -474,6 +474,7 @@ extern "C" {
      * @param[in] conn                  Valid connection @see lsm_connect_password
      * @param[in] access_group          Group to modify
      * @param[in] initiator_id          Initiator to delete from group
+     * @param[in] init_type             Type of initiator, enumerated type
      * @param[out] updated_access_group Updated access group
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return[in] LSM_ERR_OK on success, else error reason.
@@ -481,6 +482,7 @@ extern "C" {
     int LSM_DLL_EXPORT lsm_access_group_initiator_delete(lsm_connect *conn,
                                         lsm_access_group *access_group,
                                         const char *initiator_id,
+                                        lsm_access_group_init_type init_type,
                                         lsm_access_group **updated_access_group,
                                         lsm_flag flags);
 

@@ -593,10 +593,12 @@ class Client(INetworkAttachedStorage):
     # @param    self            The this pointer
     # @param    access_group    The access group to remove initiator from
     # @param    init_id         The initiator to remove from the group
+    # @param    init_type       Initiator id type (enumeration)
     # @param    flags           Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     @_return_requires(AccessGroup)
-    def access_group_initiator_delete(self, access_group, init_id, flags=0):
+    def access_group_initiator_delete(self, access_group, init_id, init_type,
+                                      flags=0):
         """
         Deletes an initiator from an access group
         """

@@ -727,8 +727,8 @@ class TestPlugin(unittest.TestCase):
         self.assertTrue(len(match) == 1)
         return t_id
 
-    def _ag_init_delete(self, ag, init_id):
-        self.c.access_group_initiator_delete(ag, init_id)
+    def _ag_init_delete(self, ag, init_id, init_type):
+        self.c.access_group_initiator_delete(ag, init_id, init_type)
         ag_after = self.c.access_groups('id', ag.id)[0]
         match = [x for x in ag_after.init_ids if x == init_id]
         self.assertTrue(len(match) == 0)
@@ -772,14 +772,17 @@ class TestPlugin(unittest.TestCase):
                         init_id = self._ag_init_add(ag)
                         if supported(cap, [lsm.Capabilities.
                                             ACCESS_GROUP_INITIATOR_DELETE]):
-                            self._ag_init_delete(ag, init_id)
+                            self._ag_init_delete(
+                                ag, init_id, lsm.AccessGroup.INIT_TYPE_WWPN)
 
                     if supported(cap, [lsm.Capabilities.
                                        ACCESS_GROUP_INITIATOR_ADD_ISCSI_IQN]):
                         init_id = self._ag_init_add(ag)
                         if supported(cap, [lsm.Capabilities.
                                             ACCESS_GROUP_INITIATOR_DELETE]):
-                            self._ag_init_delete(ag, init_id)
+                            self._ag_init_delete(
+                                ag, init_id,
+                                lsm.AccessGroup.INIT_TYPE_ISCSI_IQN)
 
                 if ag_to_delete is not None:
                     self._delete_access_group(ag_to_delete)

@@ -764,7 +764,8 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                            access_group.id)
 
     @handle_nstor_errors
-    def access_group_initiator_delete(self, access_group, init_id, flags=0):
+    def access_group_initiator_delete(self, access_group, init_id, init_type,
+                                      flags=0):
         """
         Deletes an initiator from an access group
         """

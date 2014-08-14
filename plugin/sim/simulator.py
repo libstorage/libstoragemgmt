@@ -16,7 +16,7 @@
 # Author: tasleson
 #         Gris Ge <fge@redhat.com>
 
-from lsm import (uri_parse, VERSION, Capabilities, Pool, INfs,
+from lsm import (uri_parse, VERSION, Capabilities, INfs,
                  IStorageAreaNetwork, search_property)
 
 from simarray import SimArray
@@ -173,10 +173,10 @@ class SimPlugin(INfs, IStorageAreaNetwork):
             access_group.id, init_id, init_type, flags)
         return SimPlugin._sim_data_2_lsm(sim_ag)
 
-    def access_group_initiator_delete(self, access_group, init_id,
+    def access_group_initiator_delete(self, access_group, init_id, init_type,
                                       flags=0):
         sim_ag = self.sim_array.access_group_initiator_delete(
-            access_group.id, init_id, flags)
+            access_group.id, init_id, init_type, flags)
         return SimPlugin._sim_data_2_lsm(sim_ag)
 
     def volume_mask(self, access_group, volume, flags=0):

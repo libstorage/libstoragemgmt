@@ -1106,17 +1106,21 @@ static int ag_initiator_del(lsm_plugin_ptr p, Value &params, Value &response)
 
         Value v_group = params["access_group"];
         Value v_init_id = params["init_id"];
+        Value v_init_type = params["init_type"];
 
         if( Value::object_t == v_group.valueType() &&
             Value::string_t == v_init_id.valueType() &&
+            Value::numeric_t == v_init_type.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
 
             lsm_access_group *ag = value_to_access_group(v_group);
 
             if( ag ) {
                 lsm_access_group *updated_access_group = NULL;
-                const char *init = v_init_id.asC_str();
-                rc = p->san_ops->ag_del_initiator(p, ag, init,
+                const char *id = v_init_id.asC_str();
+                lsm_access_group_init_type id_type =
+                    (lsm_access_group_init_type) v_init_type.asInt32_t();
+                rc = p->san_ops->ag_del_initiator(p, ag, id, id_type,
                                                 &updated_access_group,
                                                 LSM_FLAG_GET_VALUE(params));
 

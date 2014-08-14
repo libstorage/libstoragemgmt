@@ -438,6 +438,7 @@ typedef int (*lsm_plug_access_group_initiator_add)(lsm_plugin_ptr c,
  * @param[in]   c                       Valid lsm plug-in pointer
  * @param[in]   access_group            Group to remove initiator from
  * @param[in]   initiator_id            Initiator to remove
+ * @param[in]   id_type                 Initiator type
  * @param[out]  updated_access_group    Updated access group
  * @param[in]   flags                   Reserved
  * @return LSM_ERR_OK, else error reason
@@ -445,6 +446,7 @@ typedef int (*lsm_plug_access_group_initiator_add)(lsm_plugin_ptr c,
 typedef int (*lsm_plug_access_group_initiator_delete)(lsm_plugin_ptr c,
                                         lsm_access_group *access_group,
                                         const char *initiator_id,
+                                        lsm_access_group_init_type id_type,
                                         lsm_access_group **updated_access_group,
                                         lsm_flag flags);
 

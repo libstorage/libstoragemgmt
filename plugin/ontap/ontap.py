@@ -763,7 +763,8 @@ class Ontap(IStorageAreaNetwork, INfs):
         return self._access_group(na_ags[0])
 
     @handle_ontap_errors
-    def access_group_initiator_delete(self, access_group, init_id, flags=0):
+    def access_group_initiator_delete(self, access_group, init_id, init_type,
+                                      flags=0):
         try:
             self.f.igroup_del_initiator(access_group.name, init_id)
         except na.FilerError as oe:

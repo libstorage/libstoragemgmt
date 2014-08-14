@@ -920,7 +920,8 @@ class CmdLine:
             return self.c.access_group_initiator_add(lsm_ag, init_id,
                                                      init_type)
         else:
-            return self.c.access_group_initiator_delete(lsm_ag, init_id)
+            return self.c.access_group_initiator_delete(lsm_ag, init_id,
+                                                        init_type)
 
     ## Adds an initiator from an access group
     def access_group_add(self, args):

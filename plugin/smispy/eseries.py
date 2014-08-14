@@ -152,7 +152,8 @@ class ESeries(Smis):
             pass
 
     @handle_cim_errors
-    def access_group_initiator_delete(self, access_group, init_id, flags=0):
+    def access_group_initiator_delete(self, access_group, init_id, init_type,
+                                      flags=0):
         """
         When using HidePaths to remove initiator, the whole SPC will be
         removed. Before we find a workaround for this, I would like to have

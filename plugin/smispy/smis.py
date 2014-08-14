@@ -3102,7 +3102,8 @@ class Smis(IStorageAreaNetwork):
             cim_init_mg, access_group.system_id)
 
     @handle_cim_errors
-    def access_group_initiator_delete(self, access_group, init_id, flags=0):
+    def access_group_initiator_delete(self, access_group, init_id, init_type,
+                                      flags=0):
         init_id = _lsm_init_id_to_snia(init_id)
         mask_type = self._mask_type(raise_error=True)
 

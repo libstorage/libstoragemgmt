@@ -1341,20 +1341,28 @@ int lsm_access_group_initiator_add(lsm_connect *c,
 
 int lsm_access_group_initiator_delete(lsm_connect *c,
                                 lsm_access_group *access_group,
-                                const char* initiator_id,
+                                const char* init_id,
+                                lsm_access_group_init_type init_type,
                                 lsm_access_group **updated_access_group,
                                 lsm_flag flags)
 {
     CONN_SETUP(c);
 
-    if( !LSM_IS_ACCESS_GROUP(access_group) || CHECK_STR(initiator_id) ||
+    if( !LSM_IS_ACCESS_GROUP(access_group) || CHECK_STR(init_id) ||
         LSM_FLAG_UNUSED_CHECK(flags) || CHECK_RP(updated_access_group)) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    Value id;
+
+    if( LSM_ERR_OK != verify_initiator_id(init_id, init_type, id) ) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
     std::map<std::string, Value> p;
     p["access_group"] = access_group_to_value(access_group);
-    p["init_id"] = Value(initiator_id);
+    p["init_id"] = id;
+    p["init_type"] = Value((int32_t)init_type);
     p["flags"] = Value(flags);
 
     Value parameters(p);

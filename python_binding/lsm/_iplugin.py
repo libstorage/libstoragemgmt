@@ -272,7 +272,7 @@ class IStorageAreaNetwork(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def access_group_initiator_delete(self, access_group, init_id,
+    def access_group_initiator_delete(self, access_group, init_id, init_type,
                                       flags=0):
         """
         Deletes an initiator from an access group, Raises LsmError on error
