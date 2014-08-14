@@ -2251,6 +2251,7 @@ END_TEST
 START_TEST(test_uri_parse)
 {
     const char uri_g[] = "sim://user@host:123/path/?namespace=root/uber";
+    const char uri_no_path[] = "smis://user@host?namespace=root/emc";
     char *scheme = NULL;
     char *user = NULL;
     char *server = NULL;
@@ -2276,10 +2277,44 @@ START_TEST(test_uri_parse)
         }
 
         free(scheme);
+        scheme = NULL;
         free(user);
+        user = NULL;
         free(server);
+        server = NULL;
         free(path);
+        path = NULL;
         G(rc, lsm_hash_free, qp);
+        qp = NULL;
+    }
+
+    port = 0;
+
+    G(rc, lsm_uri_parse, uri_no_path, &scheme, &user, &server, &port, &path,
+            &qp);
+
+    if( LSM_ERR_OK == rc ) {
+        fail_unless(strcmp(scheme, "smis") == 0, "%s", scheme);
+        fail_unless(strcmp(user, "user") == 0, "%s", user);
+        fail_unless(strcmp(server, "host") == 0, "%s", server);
+        fail_unless(path == NULL, "%s", path);
+        fail_unless(port == 0, "%d", port);
+
+        fail_unless(qp != NULL);
+        if( qp ) {
+            fail_unless(strcmp("root/emc",
+                        lsm_hash_string_get(qp, "namespace")) == 0,
+                        "%s", lsm_hash_string_get(qp, "namespace"));
+        }
+
+        free(scheme);
+        scheme = NULL;
+        free(user);
+        user = NULL;
+        free(server);
+        server = NULL;
+        G(rc, lsm_hash_free, qp);
+        qp = NULL;
     }
 }
 END_TEST
