@@ -179,6 +179,8 @@ class Filer(object):
     ECLONE_LICENSE_EXPIRED = 14955  # Not licensed
     ECLONE_NOT_LICENSED = 14956     # Not licensed
 
+    (LSM_VOL_PREFIX, LSM_INIT_PREFIX) = ('lsm_lun_container', 'lsm_init_')
+
     def _invoke(self, command, parameters=None):
 
         rc = netapp_filer(self.host, self.username, self.password,
@@ -274,9 +276,17 @@ class Filer(object):
     def luns_get_all(self):
         """
         More efficient approach to retrieving all the luns
+
+        Note: A NetApp lun is a file on a NetApp volume (file system)
+              so to do this correctly we need to return the NetApp volume
+              that a logical unit file resides on, not the base aggregate
+              that the file on the fs lies on.
+
+
         """
         rc = []
         lookup = {}
+        na_volume_to_uuid = {}
         aggr_list = self._get_aggr_info()
 
         #Build volume name to uuid lookup
@@ -285,14 +295,24 @@ class Filer(object):
             for v in volumes:
                 lookup[v['name']] = p['uuid']
 
+        # Get a list of NetApp volumes
+        na_volumes = self.volumes()
+        for p in na_volumes:
+            vol_name = p['name']
+
+            if vol_name.startswith(Filer.LSM_VOL_PREFIX):
+                na_volume_to_uuid[vol_name] = lookup[vol_name]
+            else:
+                na_volume_to_uuid[vol_name] = p['uuid']
+
         luns = self._invoke('lun-list-info')['luns']
 
         if luns is not None:
             rc = to_list(luns['lun-info'])
             if len(rc):
                 for i in range(len(rc)):
-                    aggr_name = rc[i]['path'].split('/')[2]
-                    rc[i]['aggr'] = lookup[aggr_name]
+                    volume_name = rc[i]['path'].split('/')[2]
+                    rc[i]['aggr'] = na_volume_to_uuid[volume_name]
         return rc
 
     def lun_create(self, full_path_name, size_bytes):

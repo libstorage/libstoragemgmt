@@ -96,8 +96,6 @@ def _na_init_type_to_lsm(na_ag):
 class Ontap(IStorageAreaNetwork, INfs):
     TMO_CONV = 1000.0
 
-    (LSM_VOL_PREFIX, LSM_INIT_PREFIX) = ('lsm_lun_container', 'lsm_init_')
-
     (SS_JOB, SPLIT_JOB) = ('ontap-ss-file-restore', 'ontap-clone-split')
 
     VOLUME_PREFIX = '/vol'
@@ -196,15 +194,19 @@ class Ontap(IStorageAreaNetwork, INfs):
         """
         return "60a98000" + ''.join(["%02x" % ord(x) for x in sn])
 
+    @staticmethod
+    def _lsm_lun_name(path_name):
+        return os.path.basename(path_name)
+
     def _lun(self, l):
         #Info('_lun=' + str(l))
         block_size = int(l['block-size'])
         num_blocks = int(l['size']) / block_size
         #TODO: Need to retrieve actual volume status
-        return Volume(l['serial-number'], l['path'],
+        return Volume(md5(l['serial-number']), self._lsm_lun_name(l['path']),
                       Ontap._create_vpd(l['serial-number']), block_size,
                       num_blocks, Volume.STATUS_OK, self.sys_info.id,
-                      l['aggr'])
+                      l['aggr'], l['path'])
 
     def _vol(self, v, pools=None):
         pool_name = v['containing-aggregate']
@@ -467,7 +469,8 @@ class Ontap(IStorageAreaNetwork, INfs):
             pools.extend([self._pool_from_na_aggr(na_aggr, na_disks, flags)])
         na_vols = self.f.volumes()
         for na_vol in na_vols:
-            pools.extend([self._pool_from_na_vol(na_vol, na_aggrs, flags)])
+            if na.Filer.LSM_VOL_PREFIX not in na_vol['name']:
+                pools.extend([self._pool_from_na_vol(na_vol, na_aggrs, flags)])
         return search_property(pools, search_key, search_value)
 
     @handle_ontap_errors
@@ -530,7 +533,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         else:
             # user defined a NetApp Aggregate
             v = self.f.volume_names()
-            na_vol_name = Ontap.LSM_VOL_PREFIX + '_' + pool.name
+            na_vol_name = na.Filer.LSM_VOL_PREFIX + '_' + pool.name
             if na_vol_name not in v:
                 self.f.volume_create(pool.name, na_vol_name, size_bytes)
 
@@ -559,7 +562,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @staticmethod
     def _vol_to_na_volume_name(volume):
-        return os.path.dirname(volume.name)[5:]
+        return os.path.dirname(volume.plugin_data)[5:]
 
     @handle_ontap_errors
     def volume_delete(self, volume, flags=0):
@@ -568,10 +571,10 @@ class Ontap(IStorageAreaNetwork, INfs):
         luns = self.f.luns_get_specific(aggr=volume.pool_id,
                                         na_volume_name=vol)
 
-        if len(luns) == 1 and Ontap.LSM_VOL_PREFIX in vol:
-            self.f.volume_delete(vol)
+        if len(luns) == 1 and na.Filer.LSM_VOL_PREFIX in vol:
+            self.f.volume_delete(volume.plugin_data)
         else:
-            self.f.lun_delete(volume.name)
+            self.f.lun_delete(volume.plugin_data)
 
         return None
 
@@ -597,7 +600,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
             try:
                 #if this raises an exception we need to restore the volume
-                self.f.lun_resize(volume.name, new_size_bytes)
+                self.f.lun_resize(volume.plugin_data, new_size_bytes)
             except Exception as e:
                 exception_info = sys.exc_info()
 
@@ -605,10 +608,10 @@ class Ontap(IStorageAreaNetwork, INfs):
                 self._na_resize_recovery(na_vol, -diff)
                 raise exception_info[1], None, exception_info[2]
         else:
-            self.f.lun_resize(volume.name, new_size_bytes)
+            self.f.lun_resize(volume.plugin_data, new_size_bytes)
             self.f.volume_resize(na_vol, diff)
 
-        return None, self._get_volume(volume.name, volume.pool_id)
+        return None, self._get_volume(volume.plugin_data, volume.pool_id)
 
     def _volume_on_aggr(self, pool, volume):
         search = Ontap._vol_to_na_volume_name(volume)
@@ -632,10 +635,10 @@ class Ontap(IStorageAreaNetwork, INfs):
                 Ontap._vol_to_na_volume_name(volume_src), size)
 
             #Thin provision copy the logical unit
-            dest = os.path.dirname(volume_src.name) + '/' + name
+            dest = os.path.dirname(volume_src.plugin_data) + '/' + name
 
             try:
-                self.f.clone(volume_src.name, dest)
+                self.f.clone(volume_src.plugin_data, dest)
             except Exception as e:
                 #Put volume back to previous size
                 self._na_resize_recovery(
@@ -657,24 +660,25 @@ class Ontap(IStorageAreaNetwork, INfs):
                                flags=0):
         if rep_type != Volume.REPLICATE_CLONE:
             raise LsmError(ErrorNumber.NO_SUPPORT, "rep_type not supported")
-        self.f.clone(volume_src.name, volume_dest.name, None, ranges)
+        self.f.clone(volume_src.plugin_data, volume_dest.plugin_data, None,
+                     ranges)
 
     @handle_ontap_errors
     def volume_online(self, volume, flags=0):
-        return self.f.lun_online(volume.name)
+        return self.f.lun_online(volume.plugin_data)
 
     @handle_ontap_errors
     def volume_offline(self, volume, flags=0):
-        return self.f.lun_offline(volume.name)
+        return self.f.lun_offline(volume.plugin_data)
 
     @handle_ontap_errors
     def volume_mask(self, access_group, volume, flags=0):
-        self.f.lun_map(access_group.name, volume.name)
+        self.f.lun_map(access_group.name, volume.plugin_data)
         return None
 
     @handle_ontap_errors
     def volume_unmask(self, access_group, volume, flags=0):
-        self.f.lun_unmap(access_group.name, volume.name)
+        self.f.lun_unmap(access_group.name, volume.plugin_data)
         return None
 
     @staticmethod
@@ -798,7 +802,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def access_groups_granted_to_volume(self, volume, flags=0):
-        groups = self.f.lun_map_list_info(volume.name)
+        groups = self.f.lun_map_list_info(volume.plugin_data)
         return [self._access_group(g) for g in groups]
 
     @handle_ontap_errors
@@ -849,7 +853,8 @@ class Ontap(IStorageAreaNetwork, INfs):
     @handle_ontap_errors
     def job_status(self, job_id, flags=0):
         if job_id is None and '@' not in job_id:
-            raise LsmError(ErrorNumber.INVALID_ARGUMENT, "Invalid job, missing @")
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           "Invalid job, missing @")
 
         job = job_id.split('@', 2)
 
