@@ -684,25 +684,6 @@ static lsm_pool *find_pool(struct plugin_data *pd, const char* pool_id)
     return (lsm_pool*) g_hash_table_lookup(pd->pools, pool_id);
 }
 
-static lsm_pool * find_pool_name(struct plugin_data *pd, const char *name)
-{
-    char *k = NULL;
-    GHashTableIter iter;
-    lsm_pool *pool = NULL;
-    g_hash_table_iter_init(&iter, pd->pools);
-    while(g_hash_table_iter_next(&iter,(gpointer) &k,(gpointer)&pool)) {
-        if( strcmp(lsm_pool_name_get(pool), name) == 0 ) {
-            return pool;
-        }
-    }
-    return NULL;
-}
-
-static lsm_disk * find_disk(struct plugin_data *pd, const char* disk_id)
-{
-    return (lsm_disk*) g_hash_table_lookup(pd->disks, disk_id);
-}
-
 static struct allocated_volume *find_volume(struct plugin_data *pd,
         const char* vol_id)
 {
