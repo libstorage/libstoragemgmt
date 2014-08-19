@@ -603,7 +603,7 @@ class Client(INetworkAttachedStorage):
         Deletes an initiator from an access group
         """
         init_id = AccessGroup.initiator_id_verify(init_id, None,
-                                                  raise_exception=True)[2:]
+                                                  raise_exception=True)[2]
         return self._tp.rpc('access_group_initiator_delete',
                             _del_self(locals()))
 

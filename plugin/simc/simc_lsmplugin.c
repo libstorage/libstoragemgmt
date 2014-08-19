@@ -762,7 +762,7 @@ static int volume_create(lsm_plugin_ptr c, lsm_pool *pool,
             }
 
         } else {
-            rc = lsm_log_error_basic(c, LSM_ERR_EXISTS_NAME, "Existing volume "
+            rc = lsm_log_error_basic(c, LSM_ERR_NAME_CONFLICT, "Existing volume "
                                                             "with name");
         }
     } else {
@@ -867,7 +867,7 @@ static int volume_resize(lsm_plugin_ptr c, lsm_volume *volume,
             } else {
                 pool_deallocate(p, resized_size);
                 pool_allocate(p, curr_size);
-                rc = lsm_log_error_basic(c, LSM_ERR_NO_MAPPING, "ENOMEM");
+                rc = lsm_log_error_basic(c, LSM_ERR_NO_MEMORY, "ENOMEM");
             }
 
         } else {
@@ -1028,7 +1028,7 @@ static int access_group_create(lsm_plugin_ptr c,
         lsm_string_list_free(initiators);
 
     } else {
-        rc = lsm_log_error_basic(c, LSM_ERR_EXISTS_ACCESS_GROUP,
+        rc = lsm_log_error_basic(c, LSM_ERR_NAME_CONFLICT,
                                     "access group with same id found");
     }
 
@@ -1200,7 +1200,7 @@ static int volume_mask(lsm_plugin_ptr c,
                 }
 
             } else {
-                rc = LSM_ERR_IS_MAPPED;
+                rc = LSM_ERR_NO_STATE_CHANGE;
             }
         }
     } else {
@@ -1528,7 +1528,7 @@ static int fs_create(lsm_plugin_ptr c, lsm_pool *pool, const char *name,
         if( p == NULL ) {
             rc = lsm_log_error_basic(c, LSM_ERR_NOT_FOUND_POOL, "Pool not found!");
         } else {
-            rc = lsm_log_error_basic(c, LSM_ERR_EXISTS_NAME,
+            rc = lsm_log_error_basic(c, LSM_ERR_NAME_CONFLICT,
                                         "File system with name exists");
         }
     }
@@ -1751,7 +1751,7 @@ static int ss_create(lsm_plugin_ptr c, lsm_fs *fs,
                 }
             }
         } else {
-            rc = lsm_log_error_basic(c, LSM_ERR_EXISTS_NAME,
+            rc = lsm_log_error_basic(c, LSM_ERR_NAME_CONFLICT,
                                         "snapshot name exists");
         }
     } else {

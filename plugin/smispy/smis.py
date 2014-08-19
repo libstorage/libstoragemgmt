@@ -4259,7 +4259,7 @@ class Smis(IStorageAreaNetwork):
                 cim_sys.path, property_list=['ElementName'])
             for exist_cim_init_mg in exist_cim_init_mgs:
                 if exist_cim_init_mg['ElementName'] == name:
-                    raise LsmError(ErrorNumber.EXISTS_ACCESS_GROUP,
+                    raise LsmError(ErrorNumber.NAME_CONFLICT,
                                    "Requested name %s is used by " % name +
                                    "another access group, but not containing "
                                    "requested initiator %s" % org_init_id)

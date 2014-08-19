@@ -35,6 +35,7 @@ e_map = {
     na.Filer.ENOSPC: ErrorNumber.NOT_ENOUGH_SPACE,
     na.Filer.ENO_SUCH_VOLUME: ErrorNumber.NOT_FOUND_VOLUME,
     na.Filer.ESIZE_TOO_LARGE: ErrorNumber.NOT_ENOUGH_SPACE,
+    na.Filer.ENOSPACE: ErrorNumber.NOT_ENOUGH_SPACE,
     na.Filer.ENO_SUCH_FS: ErrorNumber.NOT_FOUND_FS,
     na.Filer.EVOLUME_TOO_SMALL: ErrorNumber.SIZE_TOO_SMALL,
     na.Filer.EAPILICENSE: ErrorNumber.NOT_LICENSED,
@@ -46,7 +47,10 @@ e_map = {
     na.Filer.ECLONE_NOT_LICENSED: ErrorNumber.NOT_LICENSED,
     na.Filer.EINVALID_ISCSI_NAME: ErrorNumber.INVALID_ARGUMENT,
     na.Filer.ETIMEOUT: ErrorNumber.TIMEOUT,
-    na.Filer.EUNKNOWN: ErrorNumber.PLUGIN_BUG
+    na.Filer.EUNKNOWN: ErrorNumber.PLUGIN_BUG,
+    na.Filer.EDUPE_VOLUME_PATH: ErrorNumber.NAME_CONFLICT,
+    na.Filer.ENAVOL_NAME_DUPE: ErrorNumber.NAME_CONFLICT,
+    na.Filer.ECLONE_NAME_EXISTS: ErrorNumber.NAME_CONFLICT
 }
 
 
@@ -717,7 +721,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         cur_groups = self.access_groups()
         for cg in cur_groups:
             if cg.name == name:
-                raise LsmError(ErrorNumber.EXISTS_ACCESS_GROUP,
+                raise LsmError(ErrorNumber.NAME_CONFLICT,
                                "Access group with the same name exists!")
 
         if init_type == AccessGroup.INIT_TYPE_ISCSI_IQN:

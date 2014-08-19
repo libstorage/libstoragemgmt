@@ -993,7 +993,7 @@ int lsm_volume_resize(lsm_connect *c, lsm_volume *volume,
 
     //If you try to resize to same size, we will return error.
     if( ( newSize/volume->block_size) == volume->number_of_blocks ) {
-        return LSM_ERR_VOLUME_SAME_SIZE;
+        return LSM_ERR_NO_STATE_CHANGE;
     }
 
     std::map<std::string, Value> p;

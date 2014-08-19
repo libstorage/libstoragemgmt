@@ -28,6 +28,7 @@ import atexit
 import sys
 import yaml
 import re
+from lsm import LsmError, ErrorNumber
 
 results = {}
 stats = {}
@@ -78,7 +79,8 @@ def r_fcpn():
     """
     Generate a random 16 character hex number
     """
-    return '%016X' % random.randrange(2 ** 64)
+    rnd_fcpn = '%016x' % random.randrange(2 ** 64)
+    return ':'.join(rnd_fcpn[i:i + 2] for i in range(0, len(rnd_fcpn), 2))
 
 
 class Duration(object):
@@ -179,7 +181,8 @@ class TestProxy(object):
                 TestProxy.log_result(_proxy_method_name,
                                      dict(rc=True, stack_trace=None, msg=None))
             except lsm.LsmError as le:
-                if le.code != lsm.ErrorNumber.NO_SUPPORT:
+                if le.code != lsm.ErrorNumber.NO_SUPPORT and \
+                        le.code != lsm.ErrorNumber.NAME_CONFLICT:
                     TestProxy.log_result(
                         _proxy_method_name,
                         dict(rc=False,
@@ -331,7 +334,8 @@ class TestPlugin(unittest.TestCase):
                 vol = self.c.volume_create(p, rs('v'), vol_size,
                                            lsm.Volume.PROVISION_DEFAULT)[1]
 
-                self.assertTrue(self._volume_exists(vol.id))
+                self.assertTrue(self._volume_exists(vol.id), p.id)
+                self.assertTrue(vol.pool_id == p.id)
                 return vol, p
 
     def _fs_create(self, system_id):
@@ -359,11 +363,17 @@ class TestPlugin(unittest.TestCase):
         self.c.fs_snapshot_delete(fs, ss)
         self.assertFalse(self._fs_snapshot_exists(fs, ss.id))
 
-    def _volume_exists(self, volume_id):
+    def _volume_exists(self, volume_id, pool_id=None):
         volumes = self.c.volumes()
 
         for v in volumes:
             if v.id == volume_id:
+                if pool_id is not None:
+                    if v.pool_id == pool_id:
+                        return True
+                    else:
+                        return False
+
                 return True
 
         return False
@@ -439,6 +449,19 @@ class TestPlugin(unittest.TestCase):
 
                         self.assertTrue(volume_clone is not None)
                         self.assertTrue(self._volume_exists(volume_clone.id))
+
+                        if volume_clone is not None:
+                            # Lets test for creating a clone with an
+                            # existing name
+                            try:
+                                volume_clone_dupe_name = \
+                                    self.c.volume_replicate(
+                                        None, replication_type, vol,
+                                        volume_clone.name)[1]
+                            except LsmError as le:
+                                self.assertTrue(le.code ==
+                                                ErrorNumber.NAME_CONFLICT)
+
                         self._volume_delete(volume_clone)
 
                     self._volume_delete(vol)
@@ -630,11 +653,13 @@ class TestPlugin(unittest.TestCase):
                         raise Exception("No access group with 1+ member "
                                         "found, cannot do volume mask test")
 
-                    if vol is not None:
-                        self.c.volume_mask(ag, vol)
-                        self._masking_state(cap, ag, vol, True)
-                        self.c.volume_unmask(ag, vol)
-                        self._masking_state(cap, ag, vol, False)
+                    if vol is not None and chose_ag is not None:
+                        self.c.volume_mask(chose_ag, vol)
+                        self._masking_state(cap, chose_ag, vol, True)
+                        self.c.volume_unmask(chose_ag, vol)
+                        self._masking_state(cap, chose_ag, vol, False)
+
+                    if vol:
                         self._volume_delete(vol)
 
     def _create_access_group(self, cap, s, init_type):
@@ -786,6 +811,28 @@ class TestPlugin(unittest.TestCase):
 
                 if ag_to_delete is not None:
                     self._delete_access_group(ag_to_delete)
+
+    def test_duplicate_volume_name(self):
+        if self.pool_by_sys_id:
+            for s in self.systems:
+                vol = None
+                cap = self.c.capabilities(s)
+                if supported(cap, [lsm.Capabilities.VOLUME_CREATE]):
+                    vol, pool = self._volume_create(s.id)
+                    self.assertTrue(vol is not None)
+
+                    # Try to create another with same name
+                    try:
+                        vol_dupe = self.c.volume_create(
+                            pool, vol.name, vol.size_bytes,
+                            lsm.Volume.PROVISION_DEFAULT)[1]
+                    except LsmError as le:
+                        self.assertTrue(le.code == ErrorNumber.NAME_CONFLICT)
+
+                    if vol is not None and \
+                            supported(cap, [lsm.Capabilities.VOLUME_DELETE]):
+                        self._volume_delete(vol)
+
 
 def dump_results():
     """

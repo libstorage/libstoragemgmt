@@ -51,17 +51,12 @@ typedef enum {
     LSM_ERR_TIMEOUT = 11,               /**< Plug-in is un-responsive */
     LSM_ERR_DAEMON_NOT_RUNNING = 12,    /**< Daemon is not running */
 
-    LSM_ERR_EXISTS_ACCESS_GROUP = 50,   /**< Access group exists */
-    LSM_ERR_EXISTS_FS = 51,             /**< FS exists */
-    LSM_ERR_EXISTS_INITIATOR = 52,      /**< Initiator exists */
-    LSM_ERR_EXISTS_NAME = 53,           /**< Named item already exists */
-    LSM_ERR_FS_NOT_EXPORTED = 54,       /**< FS not nfs exported */
-    LSM_ERR_EXISTS_POOL = 56,           /**< Pool exists */
-    LSM_ERR_EXISTS_VOLUME = 57,         /**< Volume exists */
+    LSM_ERR_NAME_CONFLICT = 50,         /**< Name exists */
+    LSM_ERR_EXISTS_INITIATOR = 52,      /**< Initiator exists in another access group */
 
     LSM_ERR_INVALID_ARGUMENT = 101,     /**< Precondition checks failed */
 
-    LSM_ERR_IS_MAPPED = 125,            /**< Mapping already exists */
+    LSM_ERR_NO_STATE_CHANGE = 125,      /**< Operation completed with no change in array state */
 
     LSM_ERR_CONNREFUSED = 140,          /**< Host on network, but not allowing connection */
     LSM_ERR_HOSTDOWN = 141,             /**< Host unreachable on network */
@@ -95,7 +90,7 @@ typedef enum {
     LSM_ERR_PLUGIN_NOT_EXIST = 311,     /**< Plug-in does not appear to exist */
 
     LSM_ERR_NOT_ENOUGH_SPACE = 350,         /**< Insufficient space */
-    LSM_ERR_VOLUME_SAME_SIZE = 351,         /**< Trying to resize to same size */
+
     LSM_ERR_SIZE_TOO_SMALL = 353,           /**< Size specified is too small */
     LSM_ERR_SIZE_LIMIT_REACHED = 354,       /**< Limit has been reached */
 

@@ -164,9 +164,11 @@ class Filer(object):
     Note: These are using lsm terminology.
     """
     EUNKNOWN = 10                   # Non-specific error
+    ENAVOL_NAME_DUPE = 17           # Volume name collision
     ENOSPC = 28                     # Out of space
     ETIMEOUT = 60                   # Time-out
     EINVALID_ISCSI_NAME = 9006      # Invalid ISCSI IQN
+    EDUPE_VOLUME_PATH = 9012        # Duplicate volume name
     ENO_SUCH_VOLUME = 9017          # lun not found
     ESIZE_TOO_LARGE = 9034          # Specified too large a size
     ENO_SUCH_FS = 9036              # FS not found
@@ -175,7 +177,9 @@ class Filer(object):
     EFSDOESNOTEXIST = 13040         # FS does not exist
     EFSOFFLINE = 13042              # FS is offline.
     EFSNAMEINVALID = 13044          # FS Name invalid
+    ENOSPACE = 13062                # Not enough space
     ESERVICENOTLICENSED = 13902     # Not licensed
+    ECLONE_NAME_EXISTS = 14952      # Clone with same name exists
     ECLONE_LICENSE_EXPIRED = 14955  # Not licensed
     ECLONE_NOT_LICENSED = 14956     # Not licensed
 

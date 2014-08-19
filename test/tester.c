@@ -1430,7 +1430,7 @@ START_TEST(test_invalid_input)
     rc = lsm_volume_resize(c, new_vol,    lsm_volume_number_of_blocks_get(new_vol) *
                                         lsm_volume_block_size_get(new_vol),
                                         &resized, &job, LSM_FLAG_RSVD);
-    fail_unless(LSM_ERR_VOLUME_SAME_SIZE == rc, "rc = %d", rc);
+    fail_unless(LSM_ERR_NO_STATE_CHANGE == rc, "rc = %d", rc);
 
     rc = lsm_volume_resize(c, new_vol, 20000000, &resized, &job, LSM_FLAG_RSVD);
 
@@ -2752,7 +2752,7 @@ START_TEST(test_initiator_id_verification)
     updated_group = NULL;
 
     G(rc, lsm_access_group_initiator_add, c, group,
-            "00:11:22:33:44:55:66:77",
+            "00:11:22:33:44:55:66:78",
             LSM_ACCESS_GROUP_INIT_TYPE_WWPN, &updated_group,
             LSM_FLAG_RSVD);
 
@@ -2761,7 +2761,7 @@ START_TEST(test_initiator_id_verification)
     updated_group = NULL;
 
     G(rc, lsm_access_group_initiator_add, c, group,
-            "00-11-22-33-44-55-66-77",
+            "00-11-22-33-44-55-66-79",
             LSM_ACCESS_GROUP_INIT_TYPE_WWPN, &updated_group,
             LSM_FLAG_RSVD);
 
@@ -2770,7 +2770,7 @@ START_TEST(test_initiator_id_verification)
     updated_group = NULL;
 
     G(rc, lsm_access_group_initiator_add, c, group,
-            "0x00-11-22-33-44-55-66-77",
+            "0x00-11-22-33-44-55-66-80",
             LSM_ACCESS_GROUP_INIT_TYPE_WWPN, &updated_group,
             LSM_FLAG_RSVD);
 

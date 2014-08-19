@@ -914,7 +914,7 @@ class SimData(object):
 
     def volume_create(self, pool_id, vol_name, size_bytes, thinp, flags=0):
         self._check_dup_name(
-            self.vol_dict.values(), vol_name, ErrorNumber.EXISTS_VOLUME)
+            self.vol_dict.values(), vol_name, ErrorNumber.NAME_CONFLICT)
         size_bytes = SimData._block_rounding(size_bytes)
         # check free size
         free_space = self.pool_free_space(pool_id)
@@ -949,10 +949,14 @@ class SimData(object):
                 raise LsmError(ErrorNumber.NOT_ENOUGH_SPACE,
                                "Insufficient space in pool")
 
+            if self.vol_dict[vol_id]['total_space'] == new_size_bytes:
+                raise LsmError(ErrorNumber.NO_STATE_CHANGE, "New size same "
+                                                            "as current")
+
             self.vol_dict[vol_id]['total_space'] = new_size_bytes
             self.vol_dict[vol_id]['consume_size'] = new_size_bytes
             return self.vol_dict[vol_id]
-        raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+        raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
                        "No such volume: %s" % vol_id)
 
     def volume_replicate(self, dst_pool_id, rep_type, src_vol_id, new_vol_name,
@@ -960,6 +964,10 @@ class SimData(object):
         if src_vol_id not in self.vol_dict.keys():
             raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
                            "No such volume: %s" % src_vol_id)
+
+        self._check_dup_name(self.vol_dict.values(), new_vol_name,
+                             ErrorNumber.NAME_CONFLICT)
+
         size_bytes = self.vol_dict[src_vol_id]['total_space']
         size_bytes = SimData._block_rounding(size_bytes)
         # check free size
@@ -1101,6 +1109,11 @@ class SimData(object):
             raise LsmError(error_num, "Name '%s' already in use" % name)
 
     def access_group_create(self, name, init_id, init_type, sys_id, flags=0):
+
+        # Check to see if we have an access group with this name
+        self._check_dup_name(self.ag_dict.values(), name,
+                             ErrorNumber.NAME_CONFLICT)
+
         exist_sim_ag = self._sim_ag_of_init(init_id)
         if exist_sim_ag:
             if exist_sim_ag['name'] == name:
@@ -1116,7 +1129,7 @@ class SimData(object):
             if init_id in exist_sim_ag['init_ids']:
                 return exist_sim_ag
             else:
-                raise LsmError(ErrorNumber.EXISTS_ACCESS_GROUP,
+                raise LsmError(ErrorNumber.NAME_CONFLICT,
                                "Another access group %s(%s) is using " %
                                (exist_sim_ag['name'], exist_sim_ag['ag_id']) +
                                "requested name %s but not contain init_id %s" %
@@ -1143,7 +1156,8 @@ class SimData(object):
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
                            "Access group not found")
         if init_id in self.ag_dict[ag_id]['init_ids']:
-            return self.ag_dict[ag_id]
+            raise LsmError(ErrorNumber.NO_STATE_CHANGE, "Initiator already "
+                                                        "in access group")
 
         self._sim_ag_of_init(init_id)
 
@@ -1163,6 +1177,11 @@ class SimData(object):
                     new_init_ids.extend([cur_init_id])
             del(self.ag_dict[ag_id]['init_ids'])
             self.ag_dict[ag_id]['init_ids'] = new_init_ids
+        else:
+            raise LsmError(ErrorNumber.NO_STATE_CHANGE,
+                           "Initiator %s type %s not in access group %s"
+                           % (init_id, str(type(init_id)),
+                              str(self.ag_dict[ag_id]['init_ids'])))
         return self.ag_dict[ag_id]
 
     def volume_mask(self, ag_id, vol_id, flags=0):
@@ -1174,6 +1193,11 @@ class SimData(object):
                            "No such Volume: %s" % vol_id)
         if 'mask' not in self.vol_dict[vol_id].keys():
             self.vol_dict[vol_id]['mask'] = dict()
+
+        if ag_id in self.vol_dict[vol_id]['mask']:
+            raise LsmError(ErrorNumber.NO_STATE_CHANGE, "Volume already "
+                                                        "masked to access "
+                                                        "group")
 
         self.vol_dict[vol_id]['mask'][ag_id] = 2
         return None
@@ -1189,7 +1213,9 @@ class SimData(object):
             return None
 
         if ag_id not in self.vol_dict[vol_id]['mask'].keys():
-            return None
+            raise LsmError(ErrorNumber.NO_STATE_CHANGE, "Volume not "
+                                                        "masked to access "
+                                                        "group")
 
         del(self.vol_dict[vol_id]['mask'][ag_id])
         return None
@@ -1233,6 +1259,10 @@ class SimData(object):
         return self.fs_dict.values()
 
     def fs_create(self, pool_id, fs_name, size_bytes, flags=0):
+
+        self._check_dup_name(self.fs_dict.values(), fs_name,
+                             ErrorNumber.NAME_CONFLICT)
+
         size_bytes = SimData._block_rounding(size_bytes)
         # check free size
         free_space = self.pool_free_space(pool_id)
@@ -1267,6 +1297,10 @@ class SimData(object):
                 raise LsmError(ErrorNumber.NOT_ENOUGH_SPACE,
                                "Insufficient space in pool")
 
+            if self.fs_dict[fs_id]['total_space'] == new_size_bytes:
+                raise LsmError(ErrorNumber.NO_STATE_CHANGE,
+                               "New size same as current")
+
             self.fs_dict[fs_id]['total_space'] = new_size_bytes
             self.fs_dict[fs_id]['free_space'] = new_size_bytes
             self.fs_dict[fs_id]['consume_size'] = new_size_bytes
@@ -1281,11 +1315,18 @@ class SimData(object):
         if snap_id and snap_id not in self.snap_dict.keys():
             raise LsmError(ErrorNumber.NOT_FOUND_FS_SS,
                            "No such Snapshot: %s" % snap_id)
+
         src_sim_fs = self.fs_dict[src_fs_id]
-        dst_sim_fs = self.fs_create(
-            src_sim_fs['pool_id'], dst_fs_name, src_sim_fs['total_space'], 0)
         if 'clone' not in src_sim_fs.keys():
             src_sim_fs['clone'] = dict()
+
+        # Make sure we don't have a duplicate name
+        self._check_dup_name(self.fs_dict.values(), dst_fs_name,
+                             ErrorNumber.NAME_CONFLICT)
+
+        dst_sim_fs = self.fs_create(
+            src_sim_fs['pool_id'], dst_fs_name, src_sim_fs['total_space'], 0)
+
         src_sim_fs['clone'][dst_sim_fs['fs_id']] = {
             'snap_id': snap_id,
         }
@@ -1317,6 +1358,9 @@ class SimData(object):
                            "File System: %s not found" % fs_id)
         if 'snaps' not in self.fs_dict[fs_id].keys():
             self.fs_dict[fs_id]['snaps'] = []
+        else:
+            self._check_dup_name(self.fs_dict[fs_id]['snaps'], snap_name,
+                                 ErrorNumber.NAME_CONFLICT)
 
         snap_id = self._next_snap_id()
         sim_snap = dict()

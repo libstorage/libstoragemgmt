@@ -429,17 +429,12 @@ class ErrorNumber(object):
     TIMEOUT = 11
     DAEMON_NOT_RUNNING = 12
 
-    EXISTS_ACCESS_GROUP = 50
-    EXISTS_FS = 51
+    NAME_CONFLICT = 50
     EXISTS_INITIATOR = 52
-    EXISTS_NAME = 53
-    FS_NOT_EXPORTED = 54
-    EXISTS_POOL = 56
-    EXISTS_VOLUME = 57
 
     INVALID_ARGUMENT = 101
 
-    IS_MAPPED = 125
+    NO_STATE_CHANGE = 125
 
     NETWORK_CONNREFUSED = 140   # Host on network, but connection refused
     NETWORK_HOSTDOWN = 141      # Host unreachable on network
@@ -474,7 +469,6 @@ class ErrorNumber(object):
     PLUGIN_NOT_EXIST = 311
 
     NOT_ENOUGH_SPACE = 350
-    SIZE_SAME = 351
     SIZE_TOO_SMALL = 353
     SIZE_LIMIT_REACHED = 354
 
