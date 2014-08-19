@@ -136,10 +136,22 @@ fi
 AM_CONDITIONAL([BUILD_C_UNIT], [test "x${want_c_unit}" = "xyes"])
 
 dnl ==========================================================================
-dnl Check for python as it is needed for the base cmd line function
+dnl Check for python2 as it is needed for the base cmd line function
 dnl ==========================================================================
 
-AM_PATH_PYTHON([2.6], [], AC_MSG_ERROR([Python interpreter 2.6 or later required]) )
+AC_PATH_PROGS(PYTHON, python2.7 python2.6 python, [Python is required])
+AC_MSG_CHECKING([Check for Python major version])
+PYTHON_MAJOR_VERSION=`$PYTHON -c "import sys; print(sys.version_info[[0]])"`
+case "$PYTHON_MAJOR_VERSION" in
+    2)
+        ;;
+    *)
+        AC_MSG_ERROR(
+            [we need Python version 2.x but found $PYTHON_MAJOR_VERSION.x]) ;;
+esac
+AC_MSG_RESULT([$PYTHON_MAJOR_VERSION])
+AM_PATH_PYTHON([2.6], [], AC_MSG_ERROR([Python interpreter 2.6 or 2.7 required]) )
+
 AC_PYTHON_MODULE([pywbem], [Required])
 AC_PYTHON_MODULE([M2Crypto], [Required])
 AC_PYTHON_MODULE([argparse], [Required])
@@ -155,7 +167,11 @@ AC_ARG_WITH([rest-api],
     [with_rest_api=yes])
 if test "x$with_rest_api" = "xyes"; then
     PKG_CHECK_MODULES([LIBMICROHTTPD], [libmicrohttpd >= 0.9])
-   PKG_CHECK_MODULES([JSON], [json >= 0.10], [], AC_MSG_ERROR([json-c development libraries 0.10 or later required]))
+    PKG_CHECK_MODULES([JSON], [json >= 0.10], [], [
+        PKG_CHECK_MODULES([JSON], [json-c], [], [
+            AC_MSG_ERROR([json-c development libraries 0.10 or later required])
+        ])
+    ])
 fi
 AM_CONDITIONAL([WITH_REST_API], [test "x$with_rest_api" = "xyes"])
 
