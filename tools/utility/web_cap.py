@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 # Copyright (C) 2011-2013 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
