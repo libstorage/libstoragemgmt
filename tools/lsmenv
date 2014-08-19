@@ -17,7 +17,6 @@
 # Author: Gris Ge <fge@redhat.com>
 
 use strict;
-require 5.10.0;    # For smart match ~~
 use Config::IniFiles;
 use File::Basename;
 use Cwd 'abs_path';
@@ -25,7 +24,7 @@ use Cwd 'abs_path';
 $|++;
 
 my $LSM_UDS_PATH = '/tmp/lsm/ipc/';
-my $BASE_DIR;      # Used to store the path of libstoragemgmt-code path.
+my $BASE_DIR;    # Used to store the path of libstoragemgmt-code path.
 my $LSM_URI_FILE = "$ENV{HOME}/.lsm_uri";
 my $URI_CFG = Config::IniFiles->new( -file => $LSM_URI_FILE );
 
@@ -71,6 +70,13 @@ END
     exit 1;
 }
 
+sub is_in_array($$) {
+    my $ref_array = shift;
+    my $item      = shift;
+    return 1 if grep { $_ eq $item } @{$ref_array};
+    return undef;
+}
+
 sub lsm_env_setup() {
     $BASE_DIR = dirname( dirname( abs_path($0) ) );
     my $py_binding_dir = "$BASE_DIR/python_binding";
@@ -110,7 +116,7 @@ sub call_out($) {
         help();
     }
 
-    if ( $dev_alias ~~ [ keys( %{$REF_PRE_BUILD_URI} ) ] ) {
+    if ( is_in_array( [ keys( %{$REF_PRE_BUILD_URI} ) ], $dev_alias ) ) {
         $ENV{LSMCLI_URI} = $REF_PRE_BUILD_URI->{$dev_alias};
     }
     else {
@@ -183,8 +189,8 @@ sub main() {
     elsif ( $ARGV[0] =~ /^-h$|^--help$/ ) {
         help();
     }
-    elsif (( $ARGV[0] ~~ [ keys( %{$REF_PRE_BUILD_URI} ) ] )
-        || ( $ARGV[0] ~~ @{ $URI_CFG->{sects} } ) )
+    elsif (( is_in_array( [ keys( %{$REF_PRE_BUILD_URI} ) ], $ARGV[0] ) )
+        || ( is_in_array( $URI_CFG->{sects}, $ARGV[0] ) ) )
     {
         call_out( $ARGV[0] );
         exit 0;
