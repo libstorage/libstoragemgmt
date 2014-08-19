@@ -25,7 +25,7 @@
 #include <sys/un.h>
 #include <string.h>
 #include <microhttpd.h>
-#include <json/json.h>
+#include <json.h>
 #include <libxml/uri.h>
 #include <stdio.h>
 #include <unistd.h>
