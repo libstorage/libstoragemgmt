@@ -664,18 +664,18 @@ class TestPlugin(unittest.TestCase):
                     if vol:
                         self._volume_delete(vol)
 
-    def _create_access_group(self, cap, s, init_type):
+    def _create_access_group(self, cap, name, s, init_type):
         ag_created = None
 
         if init_type == lsm.AccessGroup.INIT_TYPE_ISCSI_IQN:
             ag_created = self.c.access_group_create(
-                rs('ag'),
+                name,
                 'iqn.1994-05.com.domain:01.89bd01',
                 lsm.AccessGroup.INIT_TYPE_ISCSI_IQN, s)
 
         elif init_type == lsm.AccessGroup.INIT_TYPE_WWPN:
             ag_created = self.c.access_group_create(
-                rs('ag'),
+                name,
                 r_fcpn(),
                 lsm.AccessGroup.INIT_TYPE_WWPN, s)
 
@@ -703,7 +703,7 @@ class TestPlugin(unittest.TestCase):
         if supported(cap, [lsm.Capabilities.ACCESS_GROUPS,
                            lsm.Capabilities.ACCESS_GROUP_CREATE_ISCSI_IQN]):
             ag = self._create_access_group(
-                cap, s, lsm.AccessGroup.INIT_TYPE_ISCSI_IQN)
+                cap, rs('ag'), s, lsm.AccessGroup.INIT_TYPE_ISCSI_IQN)
             if ag is not None and \
                supported(cap, [lsm.Capabilities.ACCESS_GROUP_DELETE]):
                 self._delete_access_group(ag)
@@ -711,7 +711,7 @@ class TestPlugin(unittest.TestCase):
         if supported(cap, [lsm.Capabilities.ACCESS_GROUPS,
                             lsm.Capabilities.ACCESS_GROUP_CREATE_WWPN]):
             ag = self._create_access_group(
-                cap, s, lsm.AccessGroup.INIT_TYPE_WWPN)
+                cap, rs('ag'), s, lsm.AccessGroup.INIT_TYPE_WWPN)
             if ag is not None and \
                supported(cap, [lsm.Capabilities.ACCESS_GROUP_DELETE]):
                 self._delete_access_group(ag)
@@ -776,13 +776,14 @@ class TestPlugin(unittest.TestCase):
                         cap, [lsm.Capabilities.ACCESS_GROUP_CREATE_ISCSI_IQN,
                               lsm.Capabilities.ACCESS_GROUP_DELETE]):
                         ag_to_delete = self._create_access_group(
-                            cap, s, lsm.AccessGroup.INIT_TYPE_ISCSI_IQN)
+                            cap, rs('ag'), s,
+                            lsm.AccessGroup.INIT_TYPE_ISCSI_IQN)
                         ag_list = self.c.access_groups('system_id', s.id)
                     if supported(
                         cap, [lsm.Capabilities.ACCESS_GROUP_CREATE_WWPN,
                               lsm.Capabilities.ACCESS_GROUP_DELETE]):
                         ag_to_delete = self._create_access_group(
-                            cap, s, lsm.AccessGroup.INIT_TYPE_WWPN)
+                            cap, rs('ag'), s, lsm.AccessGroup.INIT_TYPE_WWPN)
                         ag_list = self.c.access_groups('system_id', s.id)
 
                 if len(ag_list):
@@ -834,6 +835,42 @@ class TestPlugin(unittest.TestCase):
                     if vol is not None and \
                             supported(cap, [lsm.Capabilities.VOLUME_DELETE]):
                         self._volume_delete(vol)
+
+    def test_duplicate_access_group_name(self):
+        for s in self.systems:
+            ag_to_delete = None
+
+            ag_type = None
+            ag_name = rs('ag_dupe')
+
+            cap = self.c.capabilities(s)
+            if supported(cap, [lsm.Capabilities.ACCESS_GROUPS]):
+                ag_list = self.c.access_groups('system_id', s.id)
+
+                if supported(
+                    cap, [lsm.Capabilities.ACCESS_GROUP_CREATE_ISCSI_IQN,
+                          lsm.Capabilities.ACCESS_GROUP_DELETE]):
+                    ag_type = lsm.AccessGroup.INIT_TYPE_ISCSI_IQN
+
+                elif supported(cap, [lsm.Capabilities.ACCESS_GROUP_CREATE_WWPN,
+                                     lsm.Capabilities.ACCESS_GROUP_DELETE]):
+                    ag_type = lsm.AccessGroup.INIT_TYPE_WWPN
+
+                ag_created = self._create_access_group(
+                    cap, ag_name, s, ag_type)
+
+                # Try to create a duplicate
+                got_exception = False
+                try:
+                    ag_dupe = self._create_access_group(
+                        cap, ag_name, s, ag_type)
+                except LsmError as le:
+                    got_exception = True
+                    self.assertTrue(le.code == ErrorNumber.NAME_CONFLICT)
+
+                self.assertTrue(got_exception)
+
+                self._delete_access_group(ag_created)
 
 
 def dump_results():
