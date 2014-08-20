@@ -18,16 +18,14 @@
 #         Gris Ge <fge@redhat.com>
 
 import os
-import traceback
 import urlparse
-import sys
 import copy
 
 import na
 from lsm import (Volume, FileSystem, FsSnapshot, NfsExport,
                  AccessGroup, System, Capabilities, Disk, Pool,
                  IStorageAreaNetwork, INfs, LsmError, ErrorNumber, JobStatus,
-                 md5, error, VERSION, common_urllib2_error_handler,
+                 md5, VERSION, common_urllib2_error_handler,
                  search_property, TargetPort)
 
 #Maps na to lsm, this is expected to expand over time.
@@ -359,8 +357,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         system_id = self.sys_info.id
         status = self._status_of_na_aggr(na_aggr)
 
-        element_type = (Pool.ELEMENT_TYPE_POOL | Pool.ELEMENT_TYPE_FS |
-                        Pool.ELEMENT_TYPE_VOLUME)
+        element_type = (Pool.ELEMENT_TYPE_POOL | Pool.ELEMENT_TYPE_FS)
 
         # The system aggregate can be used to create both FS and volumes, but
         # you can't take it offline or delete it.
@@ -393,6 +390,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         return pool.name.split('/')[-1]
 
     def _pool_from_na_vol(self, na_vol, na_aggrs, flags):
+        element_type = Pool.ELEMENT_TYPE_VOLUME
         pool_id = self._pool_id(na_vol)
         pool_name = self._pool_name_of_na_vol(na_vol)
         total_space = int(na_vol['size-total'])
@@ -400,7 +398,12 @@ class Ontap(IStorageAreaNetwork, INfs):
         system_id = self.sys_info.id
         status = self._status_of_na_vol(na_vol)
 
-        return Pool(pool_id, pool_name, Pool.ELEMENT_TYPE_VOLUME,
+        # This volume should be noted that it is reserved for system
+        # and thus cannot be removed.
+        if pool_name == '/vol/vol0':
+            element_type |= Pool.ELEMENT_TYPE_SYS_RESERVED
+
+        return Pool(pool_id, pool_name, element_type,
                     total_space, free_space, status,
                     self._status_info_of_na_vol(na_vol), system_id)
 
@@ -473,8 +476,7 @@ class Ontap(IStorageAreaNetwork, INfs):
             pools.extend([self._pool_from_na_aggr(na_aggr, na_disks, flags)])
         na_vols = self.f.volumes()
         for na_vol in na_vols:
-            if na.Filer.LSM_VOL_PREFIX not in na_vol['name']:
-                pools.extend([self._pool_from_na_vol(na_vol, na_aggrs, flags)])
+            pools.extend([self._pool_from_na_vol(na_vol, na_aggrs, flags)])
         return search_property(pools, search_key, search_value)
 
     @handle_ontap_errors
@@ -484,82 +486,25 @@ class Ontap(IStorageAreaNetwork, INfs):
     def _get_volume(self, vol_name, pool_id):
         return self._lun(self.f.luns_get_specific(pool_id, vol_name, None)[0])
 
-    def _na_resize_recovery(self, vol, size_diff_kb):
-        """
-        We are have entered a failing state and have been asked to
-        put a NetApp volume back.  To make sure this occurs we will
-        interrogate the timeout value and increase if it is quite low or
-        double if it's reasonable to try and get this operation to happen
-        """
-
-        current_tmo = self.time_out_get()
-        try:
-            #If the user selects a short timeout we may not be able
-            #to restore the array back, so lets give the array
-            #a chance to recover.
-            if current_tmo < 30000:
-                self.time_out_set(60000)
-            else:
-                self.time_out_set(current_tmo * 2)
-
-            self.f.volume_resize(vol, size_diff_kb)
-        except:
-            #Anything happens here we are only going to report the
-            #primary error through the API and log the secondary
-            #error to syslog.
-            error("Exception on trying to restore NA volume size:"
-                  + traceback.format_exc())
-        finally:
-            #Restore timeout.
-            self.time_out_set(current_tmo)
-
-    def _na_volume_resize_restore(self, vol, size_diff):
-        try:
-            self.f.volume_resize(vol, size_diff)
-        except na.FilerError as fe:
-            if fe.errno == na.Filer.ETIMEOUT:
-                exc_info = sys.exc_info()
-                self._na_resize_recovery(vol, -size_diff)
-                raise exc_info[0], exc_info[1], exc_info[2]
-
     @handle_ontap_errors
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
                       flags=0):
         if provisioning != Volume.PROVISION_DEFAULT:
             raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                            "Unsupported provisioning")
-        na_aggrs = self.f.aggregates()
-        na_aggr_names = [x['name'] for x in na_aggrs]
-        na_vol_name = ''
-        if pool.name not in na_aggr_names:
-            # user defined a NetApp volume.
-            na_vol_name = self._na_vol_name_of_pool(pool)
-        else:
-            # user defined a NetApp Aggregate
-            v = self.f.volume_names()
-            na_vol_name = na.Filer.LSM_VOL_PREFIX + '_' + pool.name
-            if na_vol_name not in v:
-                self.f.volume_create(pool.name, na_vol_name, size_bytes)
 
-        #re-size volume to accommodate new logical unit
-        flag_resize = False
-        if size_bytes > pool.free_space:
-            flag_resize = True
-            self._na_volume_resize_restore(
-                na_vol_name,
-                Ontap._size_kb_padded(size_bytes))
+        if not pool.element_type & Pool.ELEMENT_TYPE_VOLUME:
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           "Pool not suitable for creating volumes")
+
+        na_vol_name = self._na_vol_name_of_pool(pool)
+        v = self.f.volume_names()
+        if na_vol_name not in v:
+            raise LsmError(ErrorNumber.NOT_FOUND_POOL, "Pool not found")
 
         lun_name = self.f.lun_build_name(na_vol_name, volume_name)
 
-        try:
-            self.f.lun_create(lun_name, size_bytes)
-        except Exception as e:
-            exception_info = sys.exc_info()
-
-            if flag_resize:
-                self._na_resize_recovery(na_vol_name,
-                                         -Ontap._size_kb_padded(size_bytes))
-            raise exception_info[1], None, exception_info[2]
+        self.f.lun_create(lun_name, size_bytes)
 
         #Get the information about the newly created LUN
         return None, self._get_volume(lun_name, pool.id)
@@ -588,33 +533,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def volume_resize(self, volume, new_size_bytes, flags=0):
-        na_vol = Ontap._vol_to_na_volume_name(volume)
-        diff = new_size_bytes - volume.size_bytes
-
-        #Convert to KB and pad for snapshots
-        diff = Ontap._size_kb_padded(diff)
-
-        #If the new size is > than old -> re-size volume then lun
-        #If the new size is < than old -> re-size lun then volume
-        if diff > 0:
-            #if this raises an exception we are fine, except when we timeout
-            #and the operation actually completes!  Anytime we get an
-            #exception we will try to put the volume back to original size.
-            self._na_volume_resize_restore(na_vol, diff)
-
-            try:
-                #if this raises an exception we need to restore the volume
-                self.f.lun_resize(volume.plugin_data, new_size_bytes)
-            except Exception as e:
-                exception_info = sys.exc_info()
-
-                #Put the volume back to previous size
-                self._na_resize_recovery(na_vol, -diff)
-                raise exception_info[1], None, exception_info[2]
-        else:
-            self.f.lun_resize(volume.plugin_data, new_size_bytes)
-            self.f.volume_resize(na_vol, diff)
-
+        self.f.lun_resize(volume.plugin_data, new_size_bytes)
         return None, self._get_volume(volume.plugin_data, volume.pool_id)
 
     def _volume_on_aggr(self, pool, volume):
@@ -632,22 +551,9 @@ class Ontap(IStorageAreaNetwork, INfs):
         #Check to see if our volume is on a pool that was passed in or that
         #the pool itself is None
         if pool is None or self._volume_on_aggr(pool, volume_src):
-            #re-size the NetApp volume to accommodate the new lun
-            size = Ontap._size_kb_padded(volume_src.size_bytes)
-
-            self._na_volume_resize_restore(
-                Ontap._vol_to_na_volume_name(volume_src), size)
-
             #Thin provision copy the logical unit
             dest = os.path.dirname(volume_src.plugin_data) + '/' + name
-
-            try:
-                self.f.clone(volume_src.plugin_data, dest)
-            except Exception as e:
-                #Put volume back to previous size
-                self._na_resize_recovery(
-                    Ontap._vol_to_na_volume_name(volume_src), -size)
-                raise
+            self.f.clone(volume_src.plugin_data, dest)
             return None, self._get_volume(dest, volume_src.pool_id)
         else:
             #TODO Need to get instructions on how to provide this
