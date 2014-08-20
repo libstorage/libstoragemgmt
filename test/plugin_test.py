@@ -328,6 +328,8 @@ class TestPlugin(unittest.TestCase):
             p = self._get_pool_by_usage(system_id,
                                         lsm.Pool.ELEMENT_TYPE_VOLUME)
 
+            self.assertTrue(p is not None, "Unable to find a suitable pool")
+
             if p:
                 vol_size = self._object_size(p)
 
@@ -340,16 +342,16 @@ class TestPlugin(unittest.TestCase):
 
     def _fs_create(self, system_id):
         if system_id in self.pool_by_sys_id:
-            pools = self.pool_by_sys_id[system_id]
+            pool = self._get_pool_by_usage(system_id,
+                                            lsm.Pool.ELEMENT_TYPE_FS)
 
-            for p in pools:
-                if p.free_space > mb_in_bytes(MIN_POOL_SIZE) and \
-                        p.element_type & lsm.Pool.ELEMENT_TYPE_FS:
-                    fs_size = self._object_size(p)
-                    fs = self.c.fs_create(p, rs('fs'), fs_size)[1]
-                    self.assertTrue(self._fs_exists(fs.id))
-                    return fs, p
-            return None, None
+            fs_size = self._object_size(pool)
+            fs = self.c.fs_create(pool, rs('fs'), fs_size)[1]
+            self.assertTrue(self._fs_exists(fs.id))
+
+            self.assertTrue(fs is not None)
+            self.assertTrue(pool is not None)
+            return fs, pool
 
     def _volume_delete(self, volume):
         self.c.volume_delete(volume)
