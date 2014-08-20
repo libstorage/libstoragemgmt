@@ -95,6 +95,10 @@ def _na_init_type_to_lsm(na_ag):
     return AccessGroup.INIT_TYPE_UNKNOWN
 
 
+def _lsm_vol_to_na_vol_path(vol):
+    return vol.id
+
+
 class Ontap(IStorageAreaNetwork, INfs):
     TMO_CONV = 1000.0
 
@@ -205,10 +209,10 @@ class Ontap(IStorageAreaNetwork, INfs):
         block_size = int(l['block-size'])
         num_blocks = int(l['size']) / block_size
         #TODO: Need to retrieve actual volume status
-        return Volume(md5(l['serial-number']), self._lsm_lun_name(l['path']),
+        return Volume(l['path'], self._lsm_lun_name(l['path']),
                       Ontap._create_vpd(l['serial-number']), block_size,
                       num_blocks, Volume.STATUS_OK, self.sys_info.id,
-                      l['aggr'], l['path'])
+                      l['aggr'])
 
     def _vol(self, v, pools=None):
         pool_name = v['containing-aggregate']
@@ -511,7 +515,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @staticmethod
     def _vol_to_na_volume_name(volume):
-        return os.path.dirname(volume.plugin_data)[5:]
+        return os.path.dirname(_lsm_vol_to_na_vol_path(volume))[5:]
 
     @handle_ontap_errors
     def volume_delete(self, volume, flags=0):
@@ -521,9 +525,9 @@ class Ontap(IStorageAreaNetwork, INfs):
                                         na_volume_name=vol)
 
         if len(luns) == 1 and na.Filer.LSM_VOL_PREFIX in vol:
-            self.f.volume_delete(volume.plugin_data)
+            self.f.volume_delete(_lsm_vol_to_na_vol_path(volume))
         else:
-            self.f.lun_delete(volume.plugin_data)
+            self.f.lun_delete(_lsm_vol_to_na_vol_path(volume))
 
         return None
 
@@ -533,8 +537,9 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def volume_resize(self, volume, new_size_bytes, flags=0):
-        self.f.lun_resize(volume.plugin_data, new_size_bytes)
-        return None, self._get_volume(volume.plugin_data, volume.pool_id)
+        self.f.lun_resize(_lsm_vol_to_na_vol_path(volume), new_size_bytes)
+        return None, self._get_volume(_lsm_vol_to_na_vol_path(volume),
+                                      volume.pool_id)
 
     def _volume_on_aggr(self, pool, volume):
         search = Ontap._vol_to_na_volume_name(volume)
@@ -552,8 +557,9 @@ class Ontap(IStorageAreaNetwork, INfs):
         #the pool itself is None
         if pool is None or self._volume_on_aggr(pool, volume_src):
             #Thin provision copy the logical unit
-            dest = os.path.dirname(volume_src.plugin_data) + '/' + name
-            self.f.clone(volume_src.plugin_data, dest)
+            dest = os.path.dirname(_lsm_vol_to_na_vol_path(volume_src)) + '/' \
+                   + name
+            self.f.clone(_lsm_vol_to_na_vol_path(volume_src), dest)
             return None, self._get_volume(dest, volume_src.pool_id)
         else:
             #TODO Need to get instructions on how to provide this
@@ -570,25 +576,25 @@ class Ontap(IStorageAreaNetwork, INfs):
                                flags=0):
         if rep_type != Volume.REPLICATE_CLONE:
             raise LsmError(ErrorNumber.NO_SUPPORT, "rep_type not supported")
-        self.f.clone(volume_src.plugin_data, volume_dest.plugin_data, None,
-                     ranges)
+        self.f.clone(_lsm_vol_to_na_vol_path(volume_src),
+                     _lsm_vol_to_na_vol_path(volume_dest), None, ranges)
 
     @handle_ontap_errors
     def volume_online(self, volume, flags=0):
-        return self.f.lun_online(volume.plugin_data)
+        return self.f.lun_online(_lsm_vol_to_na_vol_path(volume))
 
     @handle_ontap_errors
     def volume_offline(self, volume, flags=0):
-        return self.f.lun_offline(volume.plugin_data)
+        return self.f.lun_offline(_lsm_vol_to_na_vol_path(volume))
 
     @handle_ontap_errors
     def volume_mask(self, access_group, volume, flags=0):
-        self.f.lun_map(access_group.name, volume.plugin_data)
+        self.f.lun_map(access_group.name, _lsm_vol_to_na_vol_path(volume))
         return None
 
     @handle_ontap_errors
     def volume_unmask(self, access_group, volume, flags=0):
-        self.f.lun_unmap(access_group.name, volume.plugin_data)
+        self.f.lun_unmap(access_group.name, _lsm_vol_to_na_vol_path(volume))
         return None
 
     @staticmethod
@@ -712,7 +718,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def access_groups_granted_to_volume(self, volume, flags=0):
-        groups = self.f.lun_map_list_info(volume.plugin_data)
+        groups = self.f.lun_map_list_info(_lsm_vol_to_na_vol_path(volume))
         return [self._access_group(g) for g in groups]
 
     @handle_ontap_errors
