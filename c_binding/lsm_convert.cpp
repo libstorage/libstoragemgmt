@@ -22,7 +22,7 @@
 #include "libstoragemgmt/libstoragemgmt_blockrange.h"
 #include "libstoragemgmt/libstoragemgmt_nfsexport.h"
 
-static bool is_expected_object(Value &obj, std::string class_name)
+bool is_expected_object(Value &obj, std::string class_name)
 {
     if (obj.valueType() == Value::object_t) {
         std::map<std::string, Value> i = obj.asObject();
@@ -38,7 +38,7 @@ lsm_volume *value_to_volume(Value &vol)
 {
     lsm_volume *rc = NULL;
 
-    if (is_expected_object(vol, "Volume")) {
+    if (is_expected_object(vol, CLASS_NAME_VOLUME)) {
         std::map<std::string, Value> v = vol.asObject();
 
         rc = lsm_volume_record_alloc(v["id"].asString().c_str(),
@@ -59,7 +59,7 @@ Value volume_to_value(lsm_volume *vol)
 {
     if( LSM_IS_VOL(vol) ) {
         std::map<std::string, Value> v;
-        v["class"] = Value("Volume");
+        v["class"] = Value(CLASS_NAME_VOLUME);
         v["id"] = Value(vol->id);
         v["name"] = Value(vol->name);
         v["vpd83"] = Value(vol->vpd83);
@@ -113,7 +113,7 @@ int value_array_to_volumes(Value &volume_values, lsm_volume **volumes[],
 lsm_disk *value_to_disk(Value &disk)
 {
     lsm_disk *rc = NULL;
-    if (is_expected_object(disk, "Disk")) {
+    if (is_expected_object(disk, CLASS_NAME_DISK)) {
         std::map<std::string, Value> d = disk.asObject();
 
         rc = lsm_disk_record_alloc(d["id"].asString().c_str(),
@@ -133,7 +133,7 @@ Value disk_to_value(lsm_disk *disk)
 {
     if ( LSM_IS_DISK(disk) ) {
         std::map<std::string, Value> d;
-        d["class"] = Value("Disk");
+        d["class"] = Value(CLASS_NAME_DISK);
         d["id"] = Value(disk->id);
         d["name"] = Value(disk->name);
         d["disk_type"] = Value(disk->disk_type);
@@ -185,7 +185,7 @@ lsm_pool *value_to_pool(Value &pool)
 {
     lsm_pool *rc = NULL;
 
-    if (is_expected_object(pool, "Pool")) {
+    if (is_expected_object(pool, CLASS_NAME_POOL)) {
         std::map<std::string, Value> i = pool.asObject();
 
         rc = lsm_pool_record_alloc(i["id"].asString().c_str(),
@@ -205,7 +205,7 @@ Value pool_to_value(lsm_pool *pool)
 {
     if( LSM_IS_POOL(pool) ) {
         std::map<std::string, Value> p;
-        p["class"] = Value("Pool");
+        p["class"] = Value(CLASS_NAME_POOL);
         p["id"] = Value(pool->id);
         p["name"] = Value(pool->name);
         p["element_type"] = Value(pool->element_type);
@@ -223,7 +223,7 @@ Value pool_to_value(lsm_pool *pool)
 lsm_system *value_to_system(Value &system)
 {
     lsm_system *rc = NULL;
-    if (is_expected_object(system, "System")) {
+    if (is_expected_object(system, CLASS_NAME_SYSTEM)) {
         std::map<std::string, Value> i = system.asObject();
 
         rc = lsm_system_record_alloc(i["id"].asString().c_str(),
@@ -239,7 +239,7 @@ Value system_to_value(lsm_system *system)
 {
     if( LSM_IS_SYSTEM(system)) {
         std::map<std::string, Value> s;
-        s["class"] = Value("System");
+        s["class"] = Value(CLASS_NAME_SYSTEM);
         s["id"] = Value(system->id);
         s["name"] = Value(system->name);
         s["status"] = Value(system->status);
@@ -290,7 +290,7 @@ lsm_access_group *value_to_access_group( Value &group )
     lsm_string_list *il = NULL;
     lsm_access_group *ag = NULL;
 
-    if( is_expected_object(group, "AccessGroup")) {
+    if( is_expected_object(group, CLASS_NAME_ACCESS_GROUP)) {
         std::map<std::string, Value> vAg = group.asObject();
         il = value_to_string_list(vAg["init_ids"]);
 
@@ -312,7 +312,7 @@ Value access_group_to_value( lsm_access_group *group )
 {
     if( LSM_IS_ACCESS_GROUP(group) ) {
         std::map<std::string, Value> ag;
-        ag["class"] = Value("AccessGroup");
+        ag["class"] = Value(CLASS_NAME_ACCESS_GROUP);
         ag["id"] = Value(group->id);
         ag["name"] = Value(group->name);
         ag["init_ids"] = Value(string_list_to_value(group->initiators));
@@ -364,7 +364,7 @@ Value access_group_list_to_value( lsm_access_group **group, uint32_t count)
 lsm_block_range *value_to_block_range(Value &br)
 {
     lsm_block_range *rc = NULL;
-    if( is_expected_object(br, "BlockRange") ) {
+    if( is_expected_object(br, CLASS_NAME_BLOCK_RANGE) ) {
         std::map<std::string, Value> range = br.asObject();
 
         rc = lsm_block_range_record_alloc(range["src_block"].asUint64_t(),
@@ -378,7 +378,7 @@ Value block_range_to_value(lsm_block_range *br)
 {
     if( LSM_IS_BLOCK_RANGE(br) ) {
         std::map<std::string, Value> r;
-        r["class"] = Value("BlockRange");
+        r["class"] = Value(CLASS_NAME_BLOCK_RANGE);
         r["src_block"] = Value(br->source_start);
         r["dest_block"] = Value(br->dest_start);
         r["block_count"] = Value(br->block_count);
@@ -423,7 +423,7 @@ Value block_range_list_to_value( lsm_block_range **brl, uint32_t count )
 lsm_fs *value_to_fs(Value &fs)
 {
     lsm_fs *rc = NULL;
-    if( is_expected_object(fs, "FileSystem") ) {
+    if( is_expected_object(fs, CLASS_NAME_FILE_SYSTEM) ) {
         std::map<std::string, Value> f = fs.asObject();
 
         rc = lsm_fs_record_alloc(f["id"].asString().c_str(),
@@ -441,7 +441,7 @@ Value fs_to_value(lsm_fs *fs)
 {
     if( LSM_IS_FS(fs) ) {
         std::map<std::string, Value> f;
-        f["class"] = Value("FileSystem");
+        f["class"] = Value(CLASS_NAME_FILE_SYSTEM);
         f["id"] = Value(fs->id);
         f["name"] = Value(fs->name);
         f["total_space"] = Value(fs->total_space);
@@ -458,7 +458,7 @@ Value fs_to_value(lsm_fs *fs)
 lsm_fs_ss *value_to_ss(Value &ss)
 {
     lsm_fs_ss *rc = NULL;
-    if( is_expected_object(ss, "FsSnapshot") ) {
+    if( is_expected_object(ss, CLASS_NAME_FS_SNAPSHOT) ) {
         std::map<std::string, Value> f = ss.asObject();
 
         rc = lsm_fs_ss_record_alloc(f["id"].asString().c_str(),
@@ -473,7 +473,7 @@ Value ss_to_value(lsm_fs_ss *ss)
 {
     if( LSM_IS_SS(ss) ) {
         std::map<std::string, Value> f;
-        f["class"] = Value("FsSnapshot");
+        f["class"] = Value(CLASS_NAME_FS_SNAPSHOT);
         f["id"] = Value(ss->id);
         f["name"] = Value(ss->name);
         f["ts"] = Value(ss->ts);
@@ -486,7 +486,7 @@ Value ss_to_value(lsm_fs_ss *ss)
 lsm_nfs_export *value_to_nfs_export(Value &exp)
 {
     lsm_nfs_export *rc = NULL;
-    if( is_expected_object(exp, "NfsExport") ) {
+    if( is_expected_object(exp, CLASS_NAME_FS_EXPORT) ) {
         int ok = 0;
         lsm_string_list *root = NULL;
         lsm_string_list *rw = NULL;
@@ -539,7 +539,7 @@ Value nfs_export_to_value(lsm_nfs_export *exp)
 {
     if( LSM_IS_NFS_EXPORT(exp) ) {
         std::map<std::string, Value> f;
-        f["class"] = Value("NfsExport");
+        f["class"] = Value(CLASS_NAME_FS_EXPORT);
         f["id"] = Value(exp->id);
         f["fs_id"] = Value(exp->fs_id);
         f["export_path"] = Value(exp->export_path);
@@ -560,7 +560,7 @@ Value nfs_export_to_value(lsm_nfs_export *exp)
 lsm_storage_capabilities *value_to_capabilities(Value &exp)
 {
     lsm_storage_capabilities *rc = NULL;
-    if( is_expected_object(exp, "Capabilities") ) {
+    if( is_expected_object(exp, CLASS_NAME_CAPABILITIES) ) {
         const char *val = exp["cap"].asC_str();
         rc = lsm_capability_record_alloc(val);
     }
@@ -572,7 +572,7 @@ Value capabilities_to_value(lsm_storage_capabilities *cap)
     if( LSM_IS_CAPABILITIY(cap) ) {
         std::map<std::string, Value> c;
         char *t = capability_string(cap);
-        c["class"] = Value("Capabilities");
+        c["class"] = Value(CLASS_NAME_CAPABILITIES);
         c["cap"] = Value(t);
         free(t);
         return Value(c);
@@ -584,7 +584,7 @@ Value capabilities_to_value(lsm_storage_capabilities *cap)
 lsm_target_port *value_to_target_port(Value &tp)
 {
    lsm_target_port *rc = NULL;
-    if( is_expected_object(tp, "TargetPort") ) {
+    if( is_expected_object(tp, CLASS_NAME_TARGET_PORT) ) {
         rc = lsm_target_port_record_alloc(
                             tp["id"].asC_str(),
                             (lsm_target_port_type)tp["port_type"].asInt32_t(),
@@ -602,7 +602,7 @@ Value target_port_to_value(lsm_target_port *tp)
 {
     if( LSM_IS_TARGET_PORT(tp) ) {
         std::map<std::string, Value> p;
-        p["class"] = Value("TargetPort");
+        p["class"] = Value(CLASS_NAME_TARGET_PORT);
         p["id"] = Value(tp->id);
         p["port_type"] = Value(tp->port_type);
         p["service_address"] = Value(tp->service_address);

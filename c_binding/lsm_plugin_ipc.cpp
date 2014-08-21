@@ -552,7 +552,7 @@ static int capabilities(lsm_plugin_ptr p, Value &params, Value &response)
 
         Value v_s = params["system"];
 
-        if( Value::object_t == v_s.valueType() &&
+        if( IS_CLASS_SYSTEM(v_s) &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
             lsm_system *sys = value_to_system(v_s);
 
@@ -670,7 +670,7 @@ static int handle_volume_create(lsm_plugin_ptr p, Value &params, Value &response
         Value v_size = params["size_bytes"];
         Value v_prov = params["provisioning"];
 
-        if( Value::object_t == v_p.valueType() &&
+        if( IS_CLASS_POOL(v_p) &&
             Value::string_t == v_name.valueType() &&
             Value::numeric_t == v_size.valueType() &&
             Value::numeric_t == v_prov.valueType() &&
@@ -713,7 +713,7 @@ static int handle_volume_resize(lsm_plugin_ptr p, Value &params, Value &response
         Value v_vol = params["volume"];
         Value v_size = params["new_size_bytes"];
 
-        if( Value::object_t == v_vol.valueType() &&
+        if( IS_CLASS_VOLUME(v_vol) &&
             Value::numeric_t == v_size.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
 
@@ -755,8 +755,10 @@ static int handle_volume_replicate(lsm_plugin_ptr p, Value &params, Value &respo
         Value v_rep = params["rep_type"];
         Value v_name = params["name"];
 
-        if( (Value::object_t == v_pool.valueType() || Value::null_t == v_pool.valueType()) &&
-            Value::object_t == v_vol_src.valueType() &&
+        if( ((Value::object_t == v_pool.valueType() &&
+            IS_CLASS_POOL(v_pool)) ||
+            Value::null_t == v_pool.valueType()) &&
+            IS_CLASS_VOLUME(v_vol_src) &&
             Value::numeric_t == v_rep.valueType() &&
             Value::string_t == v_name.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
@@ -802,7 +804,7 @@ static int handle_volume_replicate_range_block_size( lsm_plugin_ptr p,
     if( p && p->san_ops && p->san_ops->vol_rep_range_bs ) {
         Value v_s = params["system"];
 
-        if( Value::object_t == v_s.valueType() &&
+        if( IS_CLASS_SYSTEM(v_s) &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
             lsm_system *sys = value_to_system(v_s);
 
@@ -838,8 +840,8 @@ static int handle_volume_replicate_range(lsm_plugin_ptr p, Value &params,
         Value v_ranges = params["ranges"];
 
         if( Value::numeric_t == v_rep.valueType() &&
-            Value::object_t == v_vol_src.valueType() &&
-            Value::object_t == v_vol_dest.valueType() &&
+            IS_CLASS_VOLUME(v_vol_src) &&
+            IS_CLASS_VOLUME(v_vol_dest) &&
             Value::array_t == v_ranges.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
 
@@ -883,9 +885,9 @@ static int handle_volume_delete(lsm_plugin_ptr p, Value &params, Value &response
     if( p && p->san_ops && p->san_ops->vol_delete ) {
         Value v_vol = params["volume"];
 
-        if(Value::object_t == v_vol.valueType() &&
+        if(IS_CLASS_VOLUME(v_vol) &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
-            lsm_volume *vol = value_to_volume(params["volume"]);
+            lsm_volume *vol = value_to_volume(v_vol);
 
             if( vol ) {
                 char *job = NULL;
@@ -920,7 +922,7 @@ static int handle_vol_online_offline( lsm_plugin_ptr p, Value &params,
 
         Value v_vol = params["volume"];
 
-        if( Value::object_t == v_vol.valueType() &&
+        if( IS_CLASS_VOLUME(v_vol) &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
             lsm_volume *vol = value_to_volume(v_vol);
             if( vol ) {
@@ -998,7 +1000,7 @@ static int ag_create(lsm_plugin_ptr p, Value &params, Value &response)
         if( Value::string_t == v_name.valueType() &&
             Value::string_t == v_init_id.valueType() &&
             Value::numeric_t == v_init_type.valueType() &&
-            Value::object_t == v_system.valueType() &&
+            IS_CLASS_SYSTEM(v_system) &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
 
             lsm_access_group *ag = NULL;
@@ -1034,7 +1036,7 @@ static int ag_delete(lsm_plugin_ptr p, Value &params, Value &response)
     if( p && p->san_ops && p->san_ops->ag_delete ) {
         Value v_access_group = params["access_group"];
 
-        if( Value::object_t == v_access_group.valueType() &&
+        if( IS_CLASS_ACCESS_GROUP(v_access_group) &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
 
             lsm_access_group *ag = value_to_access_group(v_access_group);
@@ -1064,7 +1066,7 @@ static int ag_initiator_add(lsm_plugin_ptr p, Value &params, Value &response)
         Value v_init_type = params["init_type"];
 
 
-        if( Value::object_t == v_group.valueType() &&
+        if( IS_CLASS_ACCESS_GROUP(v_group) &&
             Value::string_t == v_init_id.valueType() &&
             Value::numeric_t == v_init_type.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
@@ -1108,7 +1110,7 @@ static int ag_initiator_del(lsm_plugin_ptr p, Value &params, Value &response)
         Value v_init_id = params["init_id"];
         Value v_init_type = params["init_type"];
 
-        if( Value::object_t == v_group.valueType() &&
+        if( IS_CLASS_ACCESS_GROUP(v_group) &&
             Value::string_t == v_init_id.valueType() &&
             Value::numeric_t == v_init_type.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
@@ -1150,8 +1152,8 @@ static int volume_mask(lsm_plugin_ptr p, Value &params, Value &response)
         Value v_group = params["access_group"];
         Value v_vol = params["volume"];
 
-        if( Value::object_t == v_group.valueType() &&
-            Value::object_t == v_vol.valueType() &&
+        if( IS_CLASS_ACCESS_GROUP(v_group) &&
+            IS_CLASS_VOLUME(v_vol) &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
 
             lsm_access_group *ag = value_to_access_group(v_group);
@@ -1184,8 +1186,8 @@ static int volume_unmask(lsm_plugin_ptr p, Value &params, Value &response)
         Value v_group = params["access_group"];
         Value v_vol = params["volume"];
 
-        if( Value::object_t == v_group.valueType() &&
-            Value::object_t == v_vol.valueType() &&
+        if( IS_CLASS_ACCESS_GROUP(v_group) &&
+            IS_CLASS_VOLUME(v_vol) &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
 
             lsm_access_group *ag = value_to_access_group(v_group);
@@ -1216,7 +1218,7 @@ static int vol_accessible_by_ag(lsm_plugin_ptr p, Value &params, Value &response
     if( p && p->san_ops && p->san_ops->vol_accessible_by_ag ) {
         Value v_access_group = params["access_group"];
 
-        if( Value::object_t == v_access_group.valueType() &&
+        if( IS_CLASS_ACCESS_GROUP(v_access_group) &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
             lsm_access_group *ag = value_to_access_group(v_access_group);
 
@@ -1258,7 +1260,7 @@ static int ag_granted_to_volume(lsm_plugin_ptr p, Value &params, Value &response
 
         Value v_vol = params["volume"];
 
-        if( Value::object_t == v_vol.valueType() &&
+        if( IS_CLASS_VOLUME(v_vol) &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
             lsm_volume *volume = value_to_volume(v_vol);
 
@@ -1299,7 +1301,7 @@ static int volume_dependency(lsm_plugin_ptr p, Value &params, Value &response)
 
         Value v_vol = params["volume"];
 
-        if( Value::object_t == v_vol.valueType() &&
+        if( IS_CLASS_VOLUME(v_vol) &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
             lsm_volume *volume = value_to_volume(v_vol);
 
@@ -1334,7 +1336,7 @@ static int volume_dependency_rm(lsm_plugin_ptr p, Value &params, Value &response
 
         Value v_vol = params["volume"];
 
-        if( Value::object_t == v_vol.valueType() &&
+        if( IS_CLASS_VOLUME(v_vol) &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
             lsm_volume *volume = value_to_volume(v_vol);
 
@@ -1410,7 +1412,7 @@ static int fs_create(lsm_plugin_ptr p, Value &params, Value &response)
         Value v_name = params["name"];
         Value v_size = params["size_bytes"];
 
-        if( Value::object_t == v_pool.valueType() &&
+        if( IS_CLASS_POOL(v_pool) &&
             Value::string_t == v_name.valueType() &&
             Value::numeric_t == v_size.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
@@ -1460,8 +1462,7 @@ static int fs_delete(lsm_plugin_ptr p, Value &params, Value &response)
 
         Value v_fs = params["fs"];
 
-        if( Value::object_t == v_fs.valueType() &&
-            LSM_FLAG_EXPECTED_TYPE(params)) {
+        if( IS_CLASS_FILE_SYSTEM(v_fs) && LSM_FLAG_EXPECTED_TYPE(params)) {
 
             lsm_fs *fs = value_to_fs(v_fs);
 

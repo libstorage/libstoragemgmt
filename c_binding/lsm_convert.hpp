@@ -24,6 +24,41 @@
 #include "lsm_ipc.hpp"
 
 /**
+ * Class names for serialized json
+ */
+const char CLASS_NAME_SYSTEM[] = "System";
+const char CLASS_NAME_POOL[] = "Pool";
+const char CLASS_NAME_VOLUME[] = "Volume";
+const char CLASS_NAME_BLOCK_RANGE[] = "BlockRange";
+const char CLASS_NAME_ACCESS_GROUP[] = "AccessGroup";
+const char CLASS_NAME_FILE_SYSTEM[] = "FileSystem";
+const char CLASS_NAME_DISK[] = "Disk";
+const char CLASS_NAME_FS_SNAPSHOT[] = "FsSnapshot";
+const char CLASS_NAME_FS_EXPORT[] = "NfsExport";
+const char CLASS_NAME_CAPABILITIES[] = "Capabilities";
+const char CLASS_NAME_TARGET_PORT[] = "TargetPort";
+
+
+#define IS_CLASS(x, name)   is_expected_object(x, name)
+
+#define IS_CLASS_SYSTEM(x)  IS_CLASS(x, CLASS_NAME_SYSTEM)
+#define IS_CLASS_POOL(x) IS_CLASS(x, CLASS_NAME_POOL)
+#define IS_CLASS_VOLUME(x) IS_CLASS(x, CLASS_NAME_VOLUME)
+#define IS_CLASS_BLOCK_RANGE(x) IS_CLASS(x, CLASS_NAME_BLOCK_RANGE)
+#define IS_CLASS_ACCESS_GROUP(x) IS_CLASS(x, CLASS_NAME_ACCESS_GROUP)
+#define IS_CLASS_FILE_SYSTEM(x) IS_CLASS(x, CLASS_NAME_FILE_SYSTEM)
+
+
+
+/**
+ * Checks to see if a value is an expected object instance
+ * @param obj           Value to check
+ * @param class_name    Class name to check
+ * @return boolean, true if matches
+ */
+bool LSM_DLL_LOCAL is_expected_object(Value &obj, std::string class_name);
+
+/**
  * Converts an array of Values to a lsm_string_list
  * @param list      List represented as an vector of strings.
  * @return lsm_string_list pointer, NULL on error.
