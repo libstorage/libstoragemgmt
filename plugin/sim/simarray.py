@@ -1210,7 +1210,9 @@ class SimData(object):
             raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
                            "No such Volume: %s" % vol_id)
         if 'mask' not in self.vol_dict[vol_id].keys():
-            return None
+            raise LsmError(ErrorNumber.NO_STATE_CHANGE, "Volume not "
+                                                        "masked to access "
+                                                        "group")
 
         if ag_id not in self.vol_dict[vol_id]['mask'].keys():
             raise LsmError(ErrorNumber.NO_STATE_CHANGE, "Volume not "

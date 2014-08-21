@@ -668,9 +668,9 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             if view['host_group'] == access_group.name:
                 view_number = view['entry_number']
         if view_number == -1:
-            raise LsmError(ErrorNumber.NO_MAPPING, "There is no such mapping "
-                                                   "for volume %s" %
-                                                   volume.name)
+            raise LsmError(ErrorNumber.NO_STATE_CHANGE,
+                           "There is no such mapping for volume %s" %
+                           volume.name)
 
         self._request("remove_lun_mapping_entry", "scsidisk",
                       [volume.name, view_number])

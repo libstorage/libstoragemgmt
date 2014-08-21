@@ -440,7 +440,6 @@ class ErrorNumber(object):
     NETWORK_HOSTDOWN = 141      # Host unreachable on network
     NETWORK_ERROR = 142         # Generic network error
 
-    NO_MAPPING = 151
     NO_MEMORY = 152
     NO_SUPPORT = 153
 

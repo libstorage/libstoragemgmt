@@ -62,7 +62,6 @@ typedef enum {
     LSM_ERR_HOSTDOWN = 141,             /**< Host unreachable on network */
     LSM_ERR_NETWORK_ERROR = 142,        /**< Generic network error */
 
-    LSM_ERR_NO_MAPPING = 151,           /**< There is no access for initiator and volume */
     LSM_ERR_NO_MEMORY = 152,            /**< Memory allocation failure */
     LSM_ERR_NO_SUPPORT = 153,           /**< Feature not supported */
 

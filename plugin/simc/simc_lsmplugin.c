@@ -1220,7 +1220,7 @@ static int volume_unmask(lsm_plugin_ptr c,
                                 lsm_volume *volume,
                                 lsm_flag flags)
 {
-    int rc = LSM_ERR_NO_MAPPING;
+    int rc = LSM_ERR_NO_STATE_CHANGE;
     struct plugin_data *pd = (struct plugin_data*)lsm_private_data_get(c);
 
     struct allocated_ag *find = (struct allocated_ag *)

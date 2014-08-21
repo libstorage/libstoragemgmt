@@ -1477,7 +1477,7 @@ static int fs_delete(lsm_plugin_ptr p, Value &params, Value &response)
                 }
                 lsm_fs_record_free(fs);
             } else {
-                rc = LSM_ERR_NO_MAPPING;
+                rc = LSM_ERR_NO_MEMORY;
             }
 
         } else {
