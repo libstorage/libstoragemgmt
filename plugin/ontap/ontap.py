@@ -519,16 +519,15 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def volume_delete(self, volume, flags=0):
-        vol = Ontap._vol_to_na_volume_name(volume)
-
-        luns = self.f.luns_get_specific(aggr=volume.pool_id,
-                                        na_volume_name=vol)
-
-        if len(luns) == 1 and na.Filer.LSM_VOL_PREFIX in vol:
-            self.f.volume_delete(_lsm_vol_to_na_vol_path(volume))
-        else:
+        try:
             self.f.lun_delete(_lsm_vol_to_na_vol_path(volume))
-
+        except na.FilerError as f_error:
+            # We don't use handle_ontap_errors which use netapp
+            # error message which is not suitable for LSM user.
+            if f_error.errno == na.FilerError.EVDISK_ERROR_VDISK_EXPORTED:
+                raise LsmError(ErrorNumber.IS_MASKED,
+                               "Volume is masked to access group")
+            raise
         return None
 
     @staticmethod
@@ -658,7 +657,14 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def access_group_delete(self, access_group, flags=0):
-        return self.f.igroup_delete(access_group.name)
+        try:
+            return self.f.igroup_delete(access_group.name)
+        except na.FilerError as f_error:
+            if f_error.errno == \
+               na.FilerError.EVDISK_ERROR_INITGROUP_MAPS_EXIST:
+                raise LsmError(ErrorNumber.IS_MASKED,
+                               "Access Group has volume masked")
+            raise
 
     @handle_ontap_errors
     def access_group_initiator_add(self, access_group, init_id, init_type,

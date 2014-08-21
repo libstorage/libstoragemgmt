@@ -137,6 +137,9 @@ class FilerError(Exception):
     IGROUP_NOT_CONTAIN_GIVEN_INIT = 9007
     IGROUP_ALREADY_HAS_INIT = 9008
     NO_SUCH_IGROUP = 9003
+    EVDISK_ERROR_VDISK_EXPORTED = 9013  # LUN is currently mapped
+    EVDISK_ERROR_INITGROUP_MAPS_EXIST = 9029    # LUN maps for this initiator
+                                                # group exist
 
     def __init__(self, errno, reason, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)

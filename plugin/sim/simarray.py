@@ -935,8 +935,12 @@ class SimData(object):
 
     def volume_delete(self, vol_id, flags=0):
         if vol_id in self.vol_dict.keys():
+            if 'mask' in self.vol_dict[vol_id].keys() and \
+               self.vol_dict[vol_id]['mask']:
+                raise LsmError(ErrorNumber.IS_MASKED,
+                               "Volume is masked to access group")
             del(self.vol_dict[vol_id])
-            return
+            return None
         raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
                        "No such volume: %s" % vol_id)
 
@@ -1148,6 +1152,11 @@ class SimData(object):
         if ag_id not in self.ag_dict.keys():
             raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
                            "Access group not found")
+        # Check whether any volume masked to.
+        for sim_vol in self.vol_dict.values():
+            if 'mask' in sim_vol.keys() and ag_id in sim_vol['mask']:
+                raise LsmError(ErrorNumber.IS_MASKED,
+                               "Access group is masked to volume")
         del(self.ag_dict[ag_id])
         return None
 

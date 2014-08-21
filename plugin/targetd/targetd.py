@@ -39,10 +39,25 @@ def handle_errors(method):
     def target_wrapper(*args, **kwargs):
         try:
             return method(*args, **kwargs)
+        except TargetdError as te:
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
+                           "Got error %d from targetd: %s"
+                           % te.errno, te.reason)
+        except LsmError:
+            raise
         except Exception as e:
             common_urllib2_error_handler(e)
 
     return target_wrapper
+
+
+class TargetdError(Exception):
+    VOLUME_MASKED = 303
+
+    def __init__(self, errno, reason, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)
+        self.errno = int(errno)
+        self.reason = reason
 
 
 class TargetdStorage(IStorageAreaNetwork, INfs):
@@ -299,8 +314,14 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
 
     @handle_errors
     def volume_delete(self, volume, flags=0):
-        self._jsonrequest("vol_destroy",
-                          dict(pool=volume.pool_id, name=volume.name))
+        try:
+            self._jsonrequest("vol_destroy",
+                              dict(pool=volume.pool_id, name=volume.name))
+        except TargetdError as te:
+            if te.errno == TargetdError.VOLUME_MASKED:
+                raise LsmError(ErrorNumber.IS_MASKED,
+                               "Volume is masked to access group")
+            raise
 
     @handle_errors
     def volume_replicate(self, pool, rep_type, volume_src, name, flags=0):
@@ -610,8 +631,8 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                 #error_text = "%s:%s" % (str(response['error']['code']),
                 #                     response['error'].get('message', ''))
 
-                raise LsmError(abs(int(response['error']['code'])),
-                               response['error'].get('message', ''))
+                raise TargetdError(abs(int(response['error']['code'])),
+                                   response['error'].get('message', ''))
             else:  # +code is async execution id
                 #Async completion, polling for results
                 async_code = response['error']['code']
