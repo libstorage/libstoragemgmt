@@ -443,6 +443,9 @@ class ErrorNumber(object):
     NO_MEMORY = 152
     NO_SUPPORT = 153
 
+    # Deletion related errors
+    IS_MASKED = 160             # Volume is masked to access group.
+
     NOT_FOUND_ACCESS_GROUP = 200
     NOT_FOUND_FS = 201
     NOT_FOUND_JOB = 202
