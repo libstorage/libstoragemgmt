@@ -65,6 +65,8 @@ typedef enum {
     LSM_ERR_NO_MEMORY = 152,            /**< Memory allocation failure */
     LSM_ERR_NO_SUPPORT = 153,           /**< Feature not supported */
 
+    LSM_ERR_IS_MASKED = 160,            /**< Volume masked to Access Group*/
+
     LSM_ERR_NOT_FOUND_ACCESS_GROUP = 200,   /**< Specified access group not found */
     LSM_ERR_NOT_FOUND_FS = 201,         /**< Specified FS not found */
     LSM_ERR_NOT_FOUND_JOB = 202,        /**< Specified JOB not found */
