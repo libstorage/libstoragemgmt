@@ -516,9 +516,9 @@ START_TEST(test_smoke_test)
         G(rc, lsm_block_range_record_array_free, range, 3);
 
         int online = 0;
-        G(online, lsm_volume_offline, c, n, LSM_FLAG_RSVD);
+        G(online, lsm_volume_disable, c, n, LSM_FLAG_RSVD);
 
-        G(online, lsm_volume_online, c, n, LSM_FLAG_RSVD);
+        G(online, lsm_volume_enable, c, n, LSM_FLAG_RSVD);
 
         char *jobDel = NULL;
         int delRc = lsm_volume_delete(c, n, &jobDel, LSM_FLAG_RSVD);
@@ -548,7 +548,7 @@ START_TEST(test_smoke_test)
             lsm_volume_vpd83_get(volumes[i]),
             lsm_volume_block_size_get(volumes[i]),
             lsm_volume_number_of_blocks_get(volumes[i]),
-            lsm_volume_op_status_get(volumes[i]));
+            lsm_volume_admin_state_get(volumes[i]));
     }
 
     if( count ) {
@@ -1512,10 +1512,10 @@ START_TEST(test_invalid_input)
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 
-    rc = lsm_volume_online(c, NULL, LSM_FLAG_RSVD);
+    rc = lsm_volume_enable(c, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_volume_offline(c, NULL, LSM_FLAG_RSVD);
+    rc = lsm_volume_disable(c, NULL, LSM_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 

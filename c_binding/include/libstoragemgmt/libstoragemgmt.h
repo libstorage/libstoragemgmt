@@ -373,7 +373,7 @@ extern "C" {
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error code
      */
-    int LSM_DLL_EXPORT lsm_volume_online(lsm_connect *conn, lsm_volume *volume,
+    int LSM_DLL_EXPORT lsm_volume_enable(lsm_connect *conn, lsm_volume *volume,
                                         lsm_flag flags);
 
     /**
@@ -383,7 +383,7 @@ extern "C" {
      * @param[in] flags                 Reserved for future use, must be zero.
      * @return LSM_ERR_OK on success, else error code
      */
-    int LSM_DLL_EXPORT lsm_volume_offline(lsm_connect *conn,
+    int LSM_DLL_EXPORT lsm_volume_disable(lsm_connect *conn,
                                         lsm_volume *volume, lsm_flag flags);
 
     /**

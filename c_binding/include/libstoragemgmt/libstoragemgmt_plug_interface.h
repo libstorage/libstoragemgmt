@@ -339,7 +339,7 @@ typedef int (*lsm_plug_volume_status)(lsm_plugin_ptr c, lsm_volume *v,
  * @param[in]   flags               Reserved
  * @return LSM_ERR_OK, else error reason
  */
-typedef int (*lsm_plug_volume_online)(lsm_plugin_ptr c, lsm_volume *v,
+typedef int (*lsm_plug_volume_enable)(lsm_plugin_ptr c, lsm_volume *v,
                                     lsm_flag flags);
 
 /**
@@ -349,7 +349,7 @@ typedef int (*lsm_plug_volume_online)(lsm_plugin_ptr c, lsm_volume *v,
  * @param flags
  * @return LSM_ERR_OK, else error reason
  */
-typedef int (*lsm_plug_volume_offline)(lsm_plugin_ptr c, lsm_volume *v,
+typedef int (*lsm_plug_volume_disable)(lsm_plugin_ptr c, lsm_volume *v,
                                     lsm_flag flags);
 
 /**
@@ -766,8 +766,8 @@ struct lsm_san_ops_v1 {
     lsm_plug_volume_replicate_range vol_rep_range;              /**<  volume replication range */
     lsm_plug_volume_resize vol_resize;         /**<  resizing a volume */
     lsm_plug_volume_delete vol_delete;         /**<  deleting a volume */
-    lsm_plug_volume_online vol_online;         /**<  bringing volume online */
-    lsm_plug_volume_offline vol_offline;       /**<  bringing volume offline */
+    lsm_plug_volume_enable vol_enable;         /**<  volume is accessible */
+    lsm_plug_volume_disable vol_disable;       /**<  volume is unaccessible */
     lsm_plug_iscsi_chap_auth iscsi_chap_auth;            /**<  iscsi chap authentication */
     lsm_plug_access_group_list ag_list;     /**<  access groups */
     lsm_plug_access_group_create ag_create; /**<  access group create */

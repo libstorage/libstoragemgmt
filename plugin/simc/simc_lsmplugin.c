@@ -925,7 +925,7 @@ static int volume_delete(lsm_plugin_ptr c, lsm_volume *volume,
     return rc;
 }
 
-static int volume_online_offline(lsm_plugin_ptr c, lsm_volume *v,
+static int volume_enable_disable(lsm_plugin_ptr c, lsm_volume *v,
                                     lsm_flag flags)
 {
     int rc = LSM_ERR_OK;
@@ -1424,8 +1424,8 @@ static struct lsm_san_ops_v1 san_ops = {
     volume_replicate_range,
     volume_resize,
     volume_delete,
-    volume_online_offline,
-    volume_online_offline,
+    volume_enable_disable,
+    volume_enable_disable,
     iscsi_chap_auth,
     access_group_list,
     access_group_create,

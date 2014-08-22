@@ -912,13 +912,13 @@ static int handle_volume_delete(lsm_plugin_ptr p, Value &params, Value &response
     return rc;
 }
 
-static int handle_vol_online_offline( lsm_plugin_ptr p, Value &params,
+static int handle_vol_enable_disable( lsm_plugin_ptr p, Value &params,
                                         Value &response, int online)
 {
     int rc = LSM_ERR_NO_SUPPORT;
 
     if( p && p->san_ops &&
-        ((online)? p->san_ops->vol_online : p->san_ops->vol_offline)) {
+        ((online)? p->san_ops->vol_enable : p->san_ops->vol_disable)) {
 
         Value v_vol = params["volume"];
 
@@ -927,10 +927,10 @@ static int handle_vol_online_offline( lsm_plugin_ptr p, Value &params,
             lsm_volume *vol = value_to_volume(v_vol);
             if( vol ) {
                 if( online ) {
-                    rc = p->san_ops->vol_online(p, vol,
+                    rc = p->san_ops->vol_enable(p, vol,
                                                 LSM_FLAG_GET_VALUE(params));
                 } else {
-                    rc = p->san_ops->vol_offline(p, vol,
+                    rc = p->san_ops->vol_disable(p, vol,
                                                 LSM_FLAG_GET_VALUE(params));
                 }
 
@@ -945,14 +945,14 @@ static int handle_vol_online_offline( lsm_plugin_ptr p, Value &params,
     return rc;
 }
 
-static int handle_volume_online(lsm_plugin_ptr p, Value &params, Value &response)
+static int handle_volume_enable(lsm_plugin_ptr p, Value &params, Value &response)
 {
-    return handle_vol_online_offline(p, params, response, 1);
+    return handle_vol_enable_disable(p, params, response, 1);
 }
 
-static int handle_volume_offline(lsm_plugin_ptr p, Value &params, Value &response)
+static int handle_volume_disable(lsm_plugin_ptr p, Value &params, Value &response)
 {
-    return handle_vol_online_offline(p, params, response, 0);
+    return handle_vol_enable_disable(p, params, response, 0);
 }
 
 static int ag_list(lsm_plugin_ptr p, Value &params, Value &response)
@@ -2140,8 +2140,8 @@ static std::map<std::string,handler> dispatch = static_map<std::string,handler>
     ("volume_child_dependency", volume_dependency)
     ("volume_create", handle_volume_create)
     ("volume_delete", handle_volume_delete)
-    ("volume_offline", handle_volume_offline)
-    ("volume_online", handle_volume_online)
+    ("volume_disable", handle_volume_disable)
+    ("volume_enable", handle_volume_enable)
     ("volume_replicate", handle_volume_replicate)
     ("volume_replicate_range_block_size", handle_volume_replicate_range_block_size)
     ("volume_replicate_range", handle_volume_replicate_range)

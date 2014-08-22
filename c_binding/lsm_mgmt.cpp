@@ -1202,14 +1202,14 @@ static int online_offline(lsm_connect *c, lsm_volume *v,
     return rpc(c, operation, parameters, response);
 }
 
-int lsm_volume_online(lsm_connect *c, lsm_volume *volume, lsm_flag flags)
+int lsm_volume_enable(lsm_connect *c, lsm_volume *volume, lsm_flag flags)
 {
-    return online_offline(c, volume, "volume_online", flags);
+    return online_offline(c, volume, "volume_enable", flags);
 }
 
-int lsm_volume_offline(lsm_connect *c, lsm_volume *volume, lsm_flag flags)
+int lsm_volume_disable(lsm_connect *c, lsm_volume *volume, lsm_flag flags)
 {
-    return online_offline(c, volume, "volume_offline", flags);
+    return online_offline(c, volume, "volume_disable", flags);
 }
 
 int lsm_access_group_list(lsm_connect *c, const char *search_key,
