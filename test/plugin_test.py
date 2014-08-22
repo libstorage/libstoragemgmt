@@ -71,8 +71,11 @@ def rs(component, l=4):
     """
     Generate a random string
     """
-    return 'lsm_%s_' % component + ''.join(
-        random.choice(string.ascii_uppercase) for x in range(l))
+    rp = ''.join(random.choice(string.ascii_uppercase) for x in range(l))
+
+    if component is not None:
+        return 'lsm_%s_' % component + rp
+    return rp
 
 
 def r_fcpn():
@@ -692,7 +695,7 @@ class TestPlugin(unittest.TestCase):
         if init_type == lsm.AccessGroup.INIT_TYPE_ISCSI_IQN:
             ag_created = self.c.access_group_create(
                 name,
-                'iqn.1994-05.com.domain:01.' + rs('', 6),
+                'iqn.1994-05.com.domain:01.' + rs(None, 6),
                 lsm.AccessGroup.INIT_TYPE_ISCSI_IQN, s)
 
         elif init_type == lsm.AccessGroup.INIT_TYPE_WWPN:
