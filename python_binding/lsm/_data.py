@@ -320,19 +320,15 @@ class Pool(IData):
     STATUS_UNKNOWN = 1 << 0
     STATUS_OK = 1 << 1
     STATUS_OTHER = 1 << 2
-    STATUS_STRESSED = 1 < 3
     STATUS_DEGRADED = 1 << 4
     STATUS_ERROR = 1 << 5
     STATUS_STARTING = 1 << 7
     STATUS_STOPPING = 1 << 8
     STATUS_STOPPED = 1 << 9
-    STATUS_READ_ONLY = 1 << 10
-    STATUS_DORMANT = 1 << 11
     STATUS_RECONSTRUCTING = 1 << 12
     STATUS_VERIFYING = 1 << 13
     STATUS_INITIALIZING = 1 << 14
     STATUS_GROWING = 1 << 15
-    STATUS_SHRINKING = 1 << 16
     STATUS_DESTROYING = 1 << 17
 
     def __init__(self, _id, _name, _element_type, _total_space, _free_space,

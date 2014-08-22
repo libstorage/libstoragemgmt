@@ -89,23 +89,19 @@ def system_status_to_str(system_status):
 
 
 _POOL_STATUS_CONV = {
-    Pool.STATUS_UNKNOWN: 'UNKNOWN',
+    Pool.STATUS_UNKNOWN: 'Unknown',
     Pool.STATUS_OK: 'OK',
-    Pool.STATUS_OTHER: 'OTHER',
-    Pool.STATUS_STRESSED: 'STRESSED',
-    Pool.STATUS_DEGRADED: 'DEGRADED',
-    Pool.STATUS_ERROR: 'ERROR',
-    Pool.STATUS_STARTING: 'STARTING',
-    Pool.STATUS_STOPPING: 'STOPPING',
-    Pool.STATUS_STOPPED: 'STOPPED',
-    Pool.STATUS_READ_ONLY: 'READ_ONLY',
-    Pool.STATUS_DORMANT: 'DORMANT',
-    Pool.STATUS_RECONSTRUCTING: 'RECONSTRUCTING',
-    Pool.STATUS_VERIFYING: 'VERIFYING',
-    Pool.STATUS_INITIALIZING: 'INITIALIZING',
-    Pool.STATUS_GROWING: 'GROWING',
-    Pool.STATUS_SHRINKING: 'SHRINKING',
-    Pool.STATUS_DESTROYING: 'DESTROYING',
+    Pool.STATUS_OTHER: 'Other',
+    Pool.STATUS_DEGRADED: 'Degraded',
+    Pool.STATUS_ERROR: 'Error',
+    Pool.STATUS_STARTING: 'Starting',
+    Pool.STATUS_STOPPING: 'Stopping',
+    Pool.STATUS_STOPPED: 'Stopped',
+    Pool.STATUS_RECONSTRUCTING: 'Reconstructing',
+    Pool.STATUS_VERIFYING: 'Verifying',
+    Pool.STATUS_INITIALIZING: 'Initializing',
+    Pool.STATUS_GROWING: 'Growing',
+    Pool.STATUS_DESTROYING: 'Destroying',
 }
 
 
