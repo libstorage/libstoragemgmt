@@ -220,7 +220,7 @@ class Disk(IData):
 @default_property('vpd83', doc="Vital product page 0x83 identifier")
 @default_property('block_size', doc="Volume block size")
 @default_property('num_of_blocks', doc="Number of blocks")
-@default_property('status', doc="Enumerated volume status")
+@default_property('admin_state', doc="Enabled or disabled by administrator")
 @default_property('system_id', doc="System identifier")
 @default_property('pool_id', doc="Pool identifier")
 @default_property("plugin_data", doc="Private plugin data")
@@ -229,10 +229,6 @@ class Volume(IData):
     Represents a volume.
     """
     SUPPORTED_SEARCH_KEYS = ['id', 'system_id', 'pool_id']
-    # Volume status Note: Volumes can have multiple status bits set at same
-    # time.
-    (STATUS_UNKNOWN, STATUS_OK, STATUS_DEGRADED, STATUS_ERR, STATUS_STARTING,
-     STATUS_DORMANT) = (0x0, 0x1, 0x2, 0x4, 0x8, 0x10)
 
     #Replication types
     (REPLICATE_UNKNOWN, REPLICATE_SNAPSHOT, REPLICATE_CLONE, REPLICATE_COPY,
@@ -243,14 +239,17 @@ class Volume(IData):
     (PROVISION_UNKNOWN, PROVISION_THIN, PROVISION_FULL, PROVISION_DEFAULT) = \
         (-1, 1, 2, 3)
 
+    ADMIN_STATE_DISABLED = 0
+    ADMIN_STATE_ENABLED = 1
+
     def __init__(self, _id, _name, _vpd83, _block_size, _num_of_blocks,
-                 _status, _system_id, _pool_id, _plugin_data=None):
+                 _admin_state, _system_id, _pool_id, _plugin_data=None):
         self._id = _id                        # Identifier
         self._name = _name                    # Human recognisable name
         self._vpd83 = _vpd83                  # SCSI page 83 unique ID
         self._block_size = _block_size        # Block size
         self._num_of_blocks = _num_of_blocks  # Number of blocks
-        self._status = _status                # Status
+        self._admin_state = _admin_state      # enable or disabled by admin
         self._system_id = _system_id          # System id this volume belongs
         self._pool_id = _pool_id              # Pool id this volume belongs
         self._plugin_data = _plugin_data
