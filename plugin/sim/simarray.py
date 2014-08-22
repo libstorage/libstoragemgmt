@@ -990,6 +990,7 @@ class SimData(object):
         sim_vol['sys_id'] = SimData.SIM_DATA_SYS_ID
         sim_vol['pool_id'] = dst_pool_id
         sim_vol['consume_size'] = size_bytes
+        sim_vol['admin_state'] = Volume.ADMIN_STATE_ENABLED
         self.vol_dict[sim_vol['vol_id']] = sim_vol
 
         dst_vol_id = sim_vol['vol_id']
