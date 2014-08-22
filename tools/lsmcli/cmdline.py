@@ -343,6 +343,22 @@ cmds = (
     ),
 
     dict(
+        name='volume-enable',
+        help='Enable block access of a volume',
+        args=[
+            dict(vol_id_opt),
+        ],
+    ),
+
+    dict(
+        name='volume-disable',
+        help='Disable block access of a volume',
+        args=[
+            dict(vol_id_opt),
+        ],
+    ),
+
+    dict(
         name='access-group-create',
         help='Create an access group',
         args=[
@@ -592,6 +608,8 @@ aliases = (
     ['vr', 'volume-resize'],
     ['vm', 'volume-mask'],
     ['vu', 'volume-unmask'],
+    ['ve', 'volume-enable'],
+    ['vi', 'volume-disable'],
     ['ac', 'access-group-create'],
     ['aa', 'access-group-add'],
     ['ar', 'access-group-remove'],
@@ -1250,6 +1268,16 @@ class CmdLine:
             vol = self._wait_for_it("resize",
                                     *self.c.volume_resize(v, size))
             self.display_data([vol])
+
+    ## Enable a volume
+    def volume_enable(self, args):
+        v = _get_item(self.c.volumes(), args.vol, "volume id")
+        self.c.volume_enable(v)
+
+    ## Disable a volume
+    def volume_disable(self, args):
+        v = _get_item(self.c.volumes(), args.vol, "volume id")
+        self.c.volume_disable(v)
 
     ## Removes a nfs export
     def fs_unexport(self, args):
