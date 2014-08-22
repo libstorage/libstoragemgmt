@@ -87,11 +87,13 @@ uint64_t LSM_DLL_EXPORT lsm_volume_block_size_get(lsm_volume *v);
 uint64_t LSM_DLL_EXPORT lsm_volume_number_of_blocks_get(lsm_volume *v);
 
 /**
- * Retrieves the operational status of the volume.
+ * Retrieves the admin state of the volume.
  * @param v     Volume ptr.
- * @return Operational status of the volume, @see lsm_volume_op_status
+ * @return Admin state of volume, see LSM_VOLUME_ADMIN_STATE_ENABLED and
+ *         LSM_VOLUME_ADMIN_STATE_DISABLED
+ *
  */
-uint32_t LSM_DLL_EXPORT lsm_volume_op_status_get(lsm_volume *v);
+uint32_t LSM_DLL_EXPORT lsm_volume_admin_state_get(lsm_volume *v);
 
 /**
  * Retrieves the system id of the volume.

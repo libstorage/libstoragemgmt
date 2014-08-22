@@ -64,7 +64,7 @@ struct LSM_DLL_LOCAL _lsm_volume {
     char *vpd83;                        /**< SCSI page 83 unique ID */
     uint64_t    block_size;             /**< Block size */
     uint64_t    number_of_blocks;       /**< Number of blocks */
-    uint32_t    status;                 /**< Status */
+    uint32_t    admin_state;            /**< Status */
     char *system_id;                    /**< System this volume belongs */
     char *pool_id;                      /**< Pool this volume is derived from */
     char *plugin_data;                  /**< Private data for plugin */

@@ -46,7 +46,7 @@ lsm_volume *value_to_volume(Value &vol)
             v["vpd83"].asString().c_str(),
             v["block_size"].asUint64_t(),
             v["num_of_blocks"].asUint64_t(),
-            v["status"].asUint32_t(),
+            v["admin_state"].asUint32_t(),
             v["system_id"].asString().c_str(),
             v["pool_id"].asString().c_str(),
             v["plugin_data"].asC_str());
@@ -65,7 +65,7 @@ Value volume_to_value(lsm_volume *vol)
         v["vpd83"] = Value(vol->vpd83);
         v["block_size"] = Value(vol->block_size);
         v["num_of_blocks"] = Value(vol->number_of_blocks);
-        v["status"] = Value(vol->status);
+        v["admin_state"] = Value(vol->admin_state);
         v["system_id"] = Value(vol->system_id);
         v["pool_id"] = Value(vol->pool_id);
         v["plugin_data"] = Value(vol->plugin_data);

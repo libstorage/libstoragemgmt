@@ -146,15 +146,10 @@ typedef enum {
 } lsm_volume_status_type;
 
 /**
- * Different states for a volume to be in.
- * Bit field, can be in multiple states at the same time.
+ * Admin state for volume, enabled or disabled
  */
-#define LSM_VOLUME_OP_STATUS_UNKNOWN    0x0     /**< Unknown status */
-#define LSM_VOLUME_OP_STATUS_OK         0x1     /**< Volume is functioning properly */
-#define LSM_VOLUME_OP_STATUS_DEGRADED   0x2     /**< Volume is functioning but not optimal */
-#define LSM_VOLUME_OP_STATUS_ERROR      0x4     /**< Volume is non-functional */
-#define LSM_VOLUME_OP_STATUS_STARTING   0x8     /**< Volume in the process of becomming ready */
-#define LSM_VOLUME_OP_STATUS_DORMANT    0x10    /**< Volume is inactive or quiesced */
+#define LSM_VOLUME_ADMIN_STATE_ENABLED    0x1     /**< Volume accessible */
+#define LSM_VOLUME_ADMIN_STATE_DISABLE    0x0     /**< Volume unaccessible */
 
 /**
  * Different states a system status can be in.

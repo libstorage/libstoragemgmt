@@ -671,7 +671,7 @@ lsm_volume * lsm_volume_record_alloc(const char *id, const char *name,
         rc->vpd83 = strdup(vpd83);
         rc->block_size = blockSize;
         rc->number_of_blocks = numberOfBlocks;
-        rc->status = status;
+        rc->admin_state = status;
         rc->system_id = strdup(system_id);
         rc->pool_id = strdup(pool_id);
 
@@ -814,7 +814,7 @@ lsm_volume *lsm_volume_record_copy(lsm_volume *vol)
     if( LSM_IS_VOL(vol) ) {
         rc = lsm_volume_record_alloc(vol->id, vol->name, vol->vpd83,
                                   vol->block_size, vol->number_of_blocks,
-                                  vol->status, vol->system_id, vol->pool_id, vol->plugin_data);
+                                  vol->admin_state, vol->system_id, vol->pool_id, vol->plugin_data);
     }
     return rc;
 }
@@ -945,9 +945,9 @@ uint64_t lsm_volume_number_of_blocks_get(lsm_volume *v)
     MEMBER_GET(v, LSM_IS_VOL, number_of_blocks, 0);
 }
 
-uint32_t lsm_volume_op_status_get(lsm_volume *v)
+uint32_t lsm_volume_admin_state_get(lsm_volume *v)
 {
-    MEMBER_GET(v, LSM_IS_VOL, status, 0);
+    MEMBER_GET(v, LSM_IS_VOL, admin_state, 0);
 }
 
 char *lsm_volume_system_id_get( lsm_volume *v)
