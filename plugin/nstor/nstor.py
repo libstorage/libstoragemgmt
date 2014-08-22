@@ -462,27 +462,12 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             block_size = NexentaStor._to_bytes(zvol_props['volblocksize'])
             size_bytes = int(zvol_props['size_bytes'])
             num_of_blocks = size_bytes / block_size
-
-            # Not sure what all the different status are...
-            # Api doc shows, but I may be looking at the wrong thing:
-            # "ONLINE", "DEGRADED", "FAULTED", "OFFLINE", "REMOVED", "UNAVAIL"
-            states_conv = {"ONLINE": Volume.STATUS_OK,
-                           "DEGRADED": Volume.STATUS_DEGRADED,
-                           "FAULTED": Volume.STATUS_ERR,
-                           "OFFLINE": Volume.STATUS_DORMANT,
-                           "REMOVED": Volume.STATUS_ERR,
-                           "UNAVAIL": Volume.STATUS_ERR}
-
-            vol_state = str(lu_props['state']).upper()
-
-            if vol_state in states_conv:
-                state = states_conv[vol_state]
-            else:
-                state = Volume.STATUS_UNKNOWN
+            admin_state = Volume.ADMIN_STATE_ENABLED
 
             vol_list.append(
                 Volume(lu, lu, lu_props['guid'], block_size, num_of_blocks,
-                       state, 'N/A', NexentaStor._get_pool_id(lu)))
+                       admin_state, self._system.id,
+                       NexentaStor._get_pool_id(lu)))
 
         return search_property(vol_list, search_key, search_value)
 
