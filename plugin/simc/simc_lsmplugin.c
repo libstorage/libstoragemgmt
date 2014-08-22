@@ -353,10 +353,11 @@ static int cap(lsm_plugin_ptr c, lsm_system *system,
             LSM_CAP_VOLUME_MASK,
             LSM_CAP_VOLUME_UNMASK,
             LSM_CAP_ACCESS_GROUPS,
-            LSM_CAP_ACCESS_GROUP_CREATE_WWPN,
+            LSM_CAP_ACCESS_GROUP_CREATE_ISCSI_IQN,
             LSM_CAP_ACCESS_GROUP_CREATE_WWPN,
             LSM_CAP_ACCESS_GROUP_INITIATOR_ADD_WWPN,
             LSM_CAP_ACCESS_GROUP_INITIATOR_DELETE,
+            LSM_CAP_ACCESS_GROUP_DELETE,
             LSM_CAP_VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP,
             LSM_CAP_ACCESS_GROUPS_GRANTED_TO_VOLUME,
             LSM_CAP_VOLUME_CHILD_DEPENDENCY,
@@ -727,7 +728,8 @@ static int volume_create(lsm_plugin_ptr c, lsm_pool *pool,
                 /* We create one to return and a copy to store in memory */
 
                 lsm_volume *v = lsm_volume_record_alloc(id, volume_name,
-                                   "VPD", BS, allocated_size/BS, 0, sys_id,
+                                   "60a980003246694a412b45673342616e",
+                                    BS, allocated_size/BS, 0, sys_id,
                                     lsm_pool_id_get(pool), NULL);
 
                 lsm_volume *to_store = lsm_volume_record_copy(v);
@@ -2071,7 +2073,9 @@ int load( lsm_plugin_ptr c, const char *uri, const char *password,
                                                 "LSM simulated storage plug-in",
                                                 LSM_SYSTEM_STATUS_OK, "", NULL);
 
-        p = lsm_pool_record_alloc("POOL_3", "lsm_test_aggr", 0,
+        p = lsm_pool_record_alloc("POOL_3", "lsm_test_aggr",
+                                    LSM_POOL_ELEMENT_TYPE_FS|
+                                    LSM_POOL_ELEMENT_TYPE_VOLUME,
                                             UINT64_MAX, UINT64_MAX,
                                             LSM_POOL_STATUS_OK, "",
                                             sys_id, NULL);
@@ -2085,7 +2089,8 @@ int load( lsm_plugin_ptr c, const char *uri, const char *password,
                 char name[32];
                 snprintf(name, sizeof(name), "POOL_%d", i);
 
-                p = lsm_pool_record_alloc(name, name, 0, UINT64_MAX,
+                p = lsm_pool_record_alloc(name, name, LSM_POOL_ELEMENT_TYPE_FS|
+                                    LSM_POOL_ELEMENT_TYPE_VOLUME, UINT64_MAX,
                                             UINT64_MAX, LSM_POOL_STATUS_OK, "",
                                             sys_id, NULL);
 

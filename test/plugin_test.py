@@ -310,14 +310,28 @@ class TestPlugin(unittest.TestCase):
         return False
 
     def test_volume_list(self):
+        vol = None
+        volumes = self.c.volumes()
+        if len(volumes) == 0:
+            for s in self.systems:
+                cap = self.c.capabilities(s)
+
+                if supported(cap, [lsm.Capabilities.VOLUME_CREATE,
+                                   lsm.Capabilities.VOLUME_DELETE]):
+                    vol, pool = self._volume_create(s.id)
+                    break
+
         volumes = self.c.volumes()
 
         for v in volumes:
             self.assertTrue(TestPlugin._vpd_correct(v.vpd83),
-                            "VPD is not as expected %s for volume id: %s" %
+                            "VPD is not as expected '%s' for volume id: '%s'" %
                             (v.vpd83, v.id))
 
         self.assertTrue(len(volumes) > 0, "We need at least 1 volume to test")
+
+        if vol is not None:
+            self._volume_delete(vol)
 
     def test_disks_list(self):
         disks = self.c.disks()
@@ -342,15 +356,18 @@ class TestPlugin(unittest.TestCase):
 
     def _fs_create(self, system_id):
         if system_id in self.pool_by_sys_id:
+            fs = None
             pool = self._get_pool_by_usage(system_id,
                                             lsm.Pool.ELEMENT_TYPE_FS)
 
-            fs_size = self._object_size(pool)
-            fs = self.c.fs_create(pool, rs('fs'), fs_size)[1]
-            self.assertTrue(self._fs_exists(fs.id))
+            if pool is not None:
+                fs_size = self._object_size(pool)
+                fs = self.c.fs_create(pool, rs('fs'), fs_size)[1]
+                self.assertTrue(self._fs_exists(fs.id))
 
-            self.assertTrue(fs is not None)
-            self.assertTrue(pool is not None)
+                self.assertTrue(fs is not None)
+                self.assertTrue(pool is not None)
+
             return fs, pool
 
     def _volume_delete(self, volume):
@@ -538,25 +555,27 @@ class TestPlugin(unittest.TestCase):
             cap = self.c.capabilities(s)
 
             if supported(cap, [lsm.Capabilities.FS_CREATE]):
-                fs = self._fs_create(s.id)[0]
+                fs, pool = self._fs_create(s.id)
 
-                if supported(cap, [lsm.Capabilities.FS_DELETE]):
-                    self._fs_delete(fs)
+                if fs is not None:
+                    if supported(cap, [lsm.Capabilities.FS_DELETE]):
+                        self._fs_delete(fs)
 
     def test_fs_resize(self):
         for s in self.systems:
             cap = self.c.capabilities(s)
 
             if supported(cap, [lsm.Capabilities.FS_CREATE]):
-                fs = self._fs_create(s.id)[0]
+                fs, pool = self._fs_create(s.id)
 
-                if supported(cap, [lsm.Capabilities.FS_RESIZE]):
-                    fs_size = fs.total_space * 1.10
-                    fs_resized = self.c.fs_resize(fs, fs_size)[1]
-                    self.assertTrue(fs_resized.total_space)
+                if fs is not None:
+                    if supported(cap, [lsm.Capabilities.FS_RESIZE]):
+                        fs_size = fs.total_space * 1.10
+                        fs_resized = self.c.fs_resize(fs, fs_size)[1]
+                        self.assertTrue(fs_resized.total_space)
 
-                if supported(cap, [lsm.Capabilities.FS_DELETE]):
-                    self._fs_delete(fs)
+                    if supported(cap, [lsm.Capabilities.FS_DELETE]):
+                        self._fs_delete(fs)
 
     def test_fs_clone(self):
         for s in self.systems:
@@ -564,12 +583,14 @@ class TestPlugin(unittest.TestCase):
 
             if supported(cap, [lsm.Capabilities.FS_CREATE,
                                lsm.Capabilities.FS_CLONE]):
-                fs = self._fs_create(s.id)[0]
-                fs_clone = self.c.fs_clone(fs, rs('fs_c'))[1]
+                fs, pool = self._fs_create(s.id)
 
-                if supported(cap, [lsm.Capabilities.FS_DELETE]):
-                    self._fs_delete(fs_clone)
-                    self._fs_delete(fs)
+                if fs is not None:
+                    fs_clone = self.c.fs_clone(fs, rs('fs_c'))[1]
+
+                    if supported(cap, [lsm.Capabilities.FS_DELETE]):
+                        self._fs_delete(fs_clone)
+                        self._fs_delete(fs)
 
     def test_fs_snapshot(self):
         for s in self.systems:
@@ -578,14 +599,15 @@ class TestPlugin(unittest.TestCase):
             if supported(cap, [lsm.Capabilities.FS_CREATE,
                                lsm.Capabilities.FS_SNAPSHOT_CREATE]):
 
-                fs = self._fs_create(s.id)[0]
+                fs, pool = self._fs_create(s.id)
 
-                ss = self.c.fs_snapshot_create(fs, rs('ss'))[1]
-                self.assertTrue(self._fs_snapshot_exists(fs, ss.id))
+                if fs is not None:
+                    ss = self.c.fs_snapshot_create(fs, rs('ss'))[1]
+                    self.assertTrue(self._fs_snapshot_exists(fs, ss.id))
 
-                # Delete snapshot
-                if supported(cap, [lsm.Capabilities.FS_SNAPSHOT_DELETE]):
-                    self._fs_snapshot_delete(fs, ss)
+                    # Delete snapshot
+                    if supported(cap, [lsm.Capabilities.FS_SNAPSHOT_DELETE]):
+                        self._fs_snapshot_delete(fs, ss)
 
     def test_target_ports(self):
         for s in self.systems:
@@ -670,7 +692,7 @@ class TestPlugin(unittest.TestCase):
         if init_type == lsm.AccessGroup.INIT_TYPE_ISCSI_IQN:
             ag_created = self.c.access_group_create(
                 name,
-                'iqn.1994-05.com.domain:01.89bd01',
+                'iqn.1994-05.com.domain:01.' + rs('', 6),
                 lsm.AccessGroup.INIT_TYPE_ISCSI_IQN, s)
 
         elif init_type == lsm.AccessGroup.INIT_TYPE_WWPN:
@@ -844,33 +866,37 @@ class TestPlugin(unittest.TestCase):
             ag_name = rs('ag_dupe')
 
             cap = self.c.capabilities(s)
-            if supported(cap, [lsm.Capabilities.ACCESS_GROUPS]):
+            if supported(cap, [lsm.Capabilities.ACCESS_GROUPS,
+                               lsm.Capabilities.ACCESS_GROUP_DELETE]):
                 ag_list = self.c.access_groups('system_id', s.id)
 
                 if supported(
-                    cap, [lsm.Capabilities.ACCESS_GROUP_CREATE_ISCSI_IQN,
-                          lsm.Capabilities.ACCESS_GROUP_DELETE]):
+                        cap, [lsm.Capabilities.ACCESS_GROUP_CREATE_ISCSI_IQN]):
                     ag_type = lsm.AccessGroup.INIT_TYPE_ISCSI_IQN
 
-                elif supported(cap, [lsm.Capabilities.ACCESS_GROUP_CREATE_WWPN,
-                                     lsm.Capabilities.ACCESS_GROUP_DELETE]):
+                elif supported(cap,
+                               [lsm.Capabilities.ACCESS_GROUP_CREATE_WWPN]):
                     ag_type = lsm.AccessGroup.INIT_TYPE_WWPN
+
+                else:
+                    return
 
                 ag_created = self._create_access_group(
                     cap, ag_name, s, ag_type)
 
-                # Try to create a duplicate
-                got_exception = False
-                try:
-                    ag_dupe = self._create_access_group(
-                        cap, ag_name, s, ag_type)
-                except LsmError as le:
-                    got_exception = True
-                    self.assertTrue(le.code == ErrorNumber.NAME_CONFLICT)
+                if ag_created is not None:
+                    # Try to create a duplicate
+                    got_exception = False
+                    try:
+                        ag_dupe = self._create_access_group(
+                            cap, ag_name, s, ag_type)
+                    except LsmError as le:
+                        got_exception = True
+                        self.assertTrue(le.code == ErrorNumber.NAME_CONFLICT)
 
-                self.assertTrue(got_exception)
+                    self.assertTrue(got_exception)
 
-                self._delete_access_group(ag_created)
+                    self._delete_access_group(ag_created)
 
 
 def dump_results():
