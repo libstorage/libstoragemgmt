@@ -106,47 +106,6 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     VOLUME_PREFIX = '/vol'
 
-    NA_AGGR_STATUS_TO_LSM = {
-        'creating': Pool.STATUS_STARTING,
-        'destroying': Pool.STATUS_DESTROYING,
-        'failed': Pool.STATUS_ERROR,
-        'frozen': Pool.STATUS_OTHER,
-        'inconsistent': Pool.STATUS_DEGRADED,
-        'iron_restricted': Pool.STATUS_OTHER,
-        'mounting': Pool.STATUS_STARTING,
-        'offline': Pool.STATUS_STOPPED,
-        'online': Pool.STATUS_OK,
-        'partial': Pool.STATUS_ERROR,
-        'quiesced': Pool.STATUS_DORMANT,
-        'quiescing': Pool.STATUS_DORMANT,
-        'restricted': Pool.STATUS_DORMANT,
-        'reverted': Pool.STATUS_OTHER,
-        'unknown': Pool.STATUS_UNKNOWN,
-        'unmounted': Pool.STATUS_STOPPED,
-        'unmounting': Pool.STATUS_STOPPING,
-    }
-
-    # Use information in https://communities.netapp.com/thread/9052
-    # (Also found similar documents in ONTAP 7.3 command Manual Page
-    # Reference, Volume 1, PDF Page 18.
-    NA_AGGR_STATUS_TO_LSM_STATUS_INFO = {
-        'frozen': 'aggregate is temporarily not accepting requests ' +
-                  'and is queueing the requests.',
-        'iron_restricted': 'aggregate access is restricted due to ' +
-                           'running wafl_iron.',
-        'partial': 'all the disks in the aggregate are not available.',
-        'quiesced': 'aggregate is temporaily not accepting requests and ' +
-                    'returns an error for the request.',
-        'quiescing': 'aggregate is in the process on quiescing and not ' +
-                     'accessible.',
-        'restricted': 'aggregate is offline for WAFL',
-        'reverted': 'final state of revert before shutting down ONTAP ' +
-                    'and is not accessible.',
-        'unmounted': 'aggregate is unmounted and is not accessible.',
-        'unmounting': 'aggregate is in the process of unmounting and is' +
-                      'not accessible.'
-    }
-
     NA_VOL_STATUS_TO_LSM = {
         'offline': Pool.STATUS_STOPPED,
         'online': Pool.STATUS_OK,
@@ -313,13 +272,6 @@ class Ontap(IStorageAreaNetwork, INfs):
         return search_property(
             [self._lun(l) for l in luns], search_key, search_value)
 
-    @staticmethod
-    def _pool_id(na_xxx):
-        """
-        Return na_aggr['uuid'] or na_vol['uuid']
-        """
-        return na_xxx['uuid']
-
 #    @staticmethod
 #    def _raid_type_of_na_aggr(na_aggr):
 #        na_raid_statuses = na_aggr['raid-status'].split(',')
@@ -333,33 +285,88 @@ class Ontap(IStorageAreaNetwork, INfs):
 #            return Pool.RAID_TYPE_MIXED
 #        return Pool.RAID_TYPE_UNKNOWN
 
+    # This is based on NetApp ONTAP Manual pages:
+    # https://library.netapp.com/ecmdocs/ECMP1196890/html/man1/na_aggr.1.html
+    _AGGR_RAID_STATUS_CONV = {
+        'normal': Pool.STATUS_OK,
+        'verifying': Pool.STATUS_VERIFYING,
+        'copying': Pool.STATUS_INITIALIZING,
+        'ironing': Pool.STATUS_VERIFYING,
+        'resyncing': Pool.STATUS_RECONSTRUCTING,
+        'mirror degraded': Pool.STATUS_DEGRADED,
+        'needs check': Pool.STATUS_ERROR,
+        'initializing': Pool.STATUS_INITIALIZING,
+        'growing': Pool.STATUS_GROWING,
+        'partial': Pool.STATUS_ERROR,
+        'noparity': Pool.STATUS_OTHER,
+        'degraded': Pool.STATUS_DEGRADED,
+        'reconstruct': Pool.STATUS_RECONSTRUCTING,
+        'out-of-date': Pool.STATUS_OTHER,
+        'foreign': Pool.STATUS_OTHER,
+    }
+
+    _AGGR_RAID_ST_INFO_CONV = {
+        'copying': 'The aggregate is currently the target aggregate of an'
+                   'active aggr copy operation. ',
+        'invalid': 'The aggregate does not contain any volume and no volume'
+                   'can be added to it. Typically this happens after an '
+                   'aborted aggregate copy operation. ',
+        'needs check': 'A WAFL consistency check needs to be performed on '
+                       'the aggregate. ',
+        'partial': 'Two or more disks are missing.',
+        # noparity, no document found.
+        'noparity': 'NetApp ONTAP mark this aggregate as "noparity". ',
+        # out-of-data: no document found.
+        'out-of-date': 'NetApp ONTAP mark this aggregate as "out-of-date". ',
+        'foreign': "The disks that the aggregate contains were moved to the"
+                   "current node from another node. "
+    }
+
+
     @staticmethod
     def _status_of_na_aggr(na_aggr):
         """
-        Use aggr-info['state'] for Pool.status
+        Use aggr-info['state'] and ['raid-status'] for Pool.status and
+        status_info.
+        Return (status, status_info)
         """
-        na_aggr_state = na_aggr['state']
-        if na_aggr_state in Ontap.NA_AGGR_STATUS_TO_LSM.keys():
-            return Ontap.NA_AGGR_STATUS_TO_LSM[na_aggr_state]
-        return Pool.STATUS_UNKNOWN
+        status = 0
+        status_info = ''
+        na_aggr_raid_status_list = list(
+            x.strip() for x in na_aggr['raid-status'].split(',') )
+        for na_aggr_raid_status in na_aggr_raid_status_list:
+            if na_aggr_raid_status in Ontap._AGGR_RAID_STATUS_CONV.keys():
+                status |= Ontap._AGGR_RAID_STATUS_CONV[na_aggr_raid_status]
+            if na_aggr_raid_status in Ontap._AGGR_RAID_ST_INFO_CONV.keys():
+                status_info += \
+                    Ontap._AGGR_RAID_ST_INFO_CONV[na_aggr_raid_status]
 
-    @staticmethod
-    def _status_info_of_na_aggr(na_aggr):
-        """
-        TODO: provides more information on disk failed.
-        """
-        na_aggr_state = na_aggr['state']
-        if na_aggr_state in Ontap.NA_AGGR_STATUS_TO_LSM_STATUS_INFO.keys():
-            return Ontap.NA_AGGR_STATUS_TO_LSM_STATUS_INFO[na_aggr_state]
-        return ''
+        # Now check na_aggr['state']
+        na_aggr_state = na_aggr['state'].strip()
+
+        if na_aggr_state == 'online' or na_aggr_state == 'creating':
+            pass
+        elif na_aggr_state == 'offline':
+            # When aggr is marked as offline, the restruction is stoped.
+            if status & Pool.STATUS_RECONSTRUCTING:
+                status -= Pool.STATUS_RECONSTRUCTING
+                status |= Pool.STATUS_DEGRADED
+            status |= Pool.STATUS_STOPPED
+        else:
+            status_info += "%s " % na_aggr_state
+
+        if status == 0:
+            status = Pool.STATUS_OK
+
+        return status, status_info
 
     def _pool_from_na_aggr(self, na_aggr, na_disks, flags):
-        pool_id = self._pool_id(na_aggr)
+        pool_id = na_aggr['name']
         pool_name = na_aggr['name']
         total_space = int(na_aggr['size-total'])
         free_space = int(na_aggr['size-available'])
         system_id = self.sys_info.id
-        status = self._status_of_na_aggr(na_aggr)
+        (status, status_info) = self._status_of_na_aggr(na_aggr)
 
         element_type = (Pool.ELEMENT_TYPE_POOL | Pool.ELEMENT_TYPE_FS)
 
@@ -369,14 +376,7 @@ class Ontap(IStorageAreaNetwork, INfs):
             element_type = element_type | Pool.ELEMENT_TYPE_SYS_RESERVED
 
         return Pool(pool_id, pool_name, element_type, total_space, free_space,
-                    status, self._status_info_of_na_aggr(na_aggr), system_id)
-
-    @staticmethod
-    def _status_of_na_vol(na_vol):
-        na_vol_state = na_vol['state']
-        if na_vol_state in Ontap.NA_VOL_STATUS_TO_LSM.keys():
-            return Ontap.NA_VOL_STATUS_TO_LSM[na_vol_state]
-        return Pool.STATUS_UNKNOWN
+                    status, status_info, system_id)
 
     @staticmethod
     def _status_info_of_na_vol(na_vol):
@@ -395,21 +395,28 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     def _pool_from_na_vol(self, na_vol, na_aggrs, flags):
         element_type = Pool.ELEMENT_TYPE_VOLUME
-        pool_id = self._pool_id(na_vol)
-        pool_name = self._pool_name_of_na_vol(na_vol)
+        pool_name = na_vol['name']
+        pool_id = self._pool_name_of_na_vol(na_vol)
         total_space = int(na_vol['size-total'])
         free_space = int(na_vol['size-available'])
         system_id = self.sys_info.id
-        status = self._status_of_na_vol(na_vol)
+        status = Pool.STATUS_UNKNOWN
+        status_info = ''
+        if 'containing-aggregate' in na_vol:
+            for na_aggr in na_aggrs:
+                if na_aggr['name'] == na_vol['containing-aggregate']:
+                    status = self._status_of_na_aggr(na_aggr)[0]
+                    if not (status & Pool.STATUS_OK):
+                        status_info = "Parrent pool '%s'" \
+                                      % na_aggr['name']
 
         # This volume should be noted that it is reserved for system
         # and thus cannot be removed.
         if pool_name == '/vol/vol0':
             element_type |= Pool.ELEMENT_TYPE_SYS_RESERVED
 
-        return Pool(pool_id, pool_name, element_type,
-                    total_space, free_space, status,
-                    self._status_info_of_na_vol(na_vol), system_id)
+        return Pool(pool_id, pool_name, element_type, total_space, free_space,
+                    status, status_info, system_id)
 
     @handle_ontap_errors
     def capabilities(self, system, flags=0):

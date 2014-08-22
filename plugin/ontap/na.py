@@ -226,7 +226,7 @@ class Filer(object):
         """
         pools = self._invoke('aggr-list-info')
         tmp = pools['aggregates']['aggr-info']
-        return [p for p in to_list(tmp) if p['mount-state'] == 'online']
+        return to_list(tmp)
 
     def aggregate_volume_names(self, aggr_name):
         """
