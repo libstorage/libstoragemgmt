@@ -146,11 +146,11 @@ class SimPlugin(INfs, IStorageAreaNetwork):
         return self.sim_array.volume_replicate_range(
             rep_type, volume_src.id, volume_dest.id, ranges, flags)
 
-    def volume_online(self, volume, flags=0):
-        return self.sim_array.volume_online(volume.id, flags)
+    def volume_enable(self, volume, flags=0):
+        return self.sim_array.volume_enable(volume.id, flags)
 
-    def volume_offline(self, volume, flags=0):
-        return self.sim_array.volume_online(volume.id, flags)
+    def volume_disable(self, volume, flags=0):
+        return self.sim_array.volume_disable(volume.id, flags)
 
     def access_groups(self, search_key=None, search_value=None, flags=0):
         sim_ags = self.sim_array.ags()

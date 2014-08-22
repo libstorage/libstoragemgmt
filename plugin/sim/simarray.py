@@ -205,7 +205,8 @@ class SimArray(object):
         return Volume(sim_vol['vol_id'], sim_vol['name'], sim_vol['vpd83'],
                       SimData.SIM_DATA_BLK_SIZE,
                       int(sim_vol['total_space'] / SimData.SIM_DATA_BLK_SIZE),
-                      Volume.STATUS_OK, sim_vol['sys_id'], sim_vol['pool_id'])
+                      sim_vol['admin_state'], sim_vol['sys_id'],
+                      sim_vol['pool_id'])
 
     def volumes(self):
         sim_vols = self.data.volumes()
@@ -272,11 +273,11 @@ class SimArray(object):
             self.data.volume_replicate_range(
                 rep_type, src_vol_id, dst_vol_id, ranges, flags))[0]
 
-    def volume_online(self, vol_id, flags=0):
-        return self.data.volume_online(vol_id, flags)
+    def volume_enable(self, vol_id, flags=0):
+        return self.data.volume_enable(vol_id, flags)
 
-    def volume_offline(self, vol_id, flags=0):
-        return self.data.volume_offline(vol_id, flags)
+    def volume_disable(self, vol_id, flags=0):
+        return self.data.volume_disable(vol_id, flags)
 
     def volume_child_dependency(self, vol_id, flags=0):
         return self.data.volume_child_dependency(vol_id, flags)
@@ -449,6 +450,7 @@ class SimData(object):
             'sys_id': SimData.SIM_DATA_SYS_ID,
             'pool_id': owner_pool_id,
             'consume_size': size_bytes,
+            'admin_state': Volume.ADMIN_STATE_ENABLED,
             'replicate': {
                 dst_vol_id = [
                     {
@@ -540,7 +542,7 @@ class SimData(object):
         }
     """
     SIM_DATA_BLK_SIZE = 512
-    SIM_DATA_VERSION = "2.7"
+    SIM_DATA_VERSION = "2.8"
     SIM_DATA_SYS_ID = 'sim-01'
     SIM_DATA_INIT_NAME = 'NULL'
     SIM_DATA_TMO = 30000    # ms
@@ -930,6 +932,7 @@ class SimData(object):
         sim_vol['sys_id'] = SimData.SIM_DATA_SYS_ID
         sim_vol['pool_id'] = pool_id
         sim_vol['consume_size'] = size_bytes
+        sim_vol['admin_state'] = Volume.ADMIN_STATE_ENABLED
         self.vol_dict[sim_vol['vol_id']] = sim_vol
         return sim_vol
 
@@ -1040,22 +1043,30 @@ class SimData(object):
 
         return None
 
-    def volume_online(self, vol_id, flags=0):
-        if vol_id not in self.vol_dict.keys():
+    def volume_enable(self, vol_id, flags=0):
+        try:
+            if self.vol_dict[vol_id]['admin_state'] == \
+               Volume.ADMIN_STATE_ENABLED:
+                raise LsmError(ErrorNumber.NO_STATE_CHANGE,
+                               "Volume is already enabled")
+        except KeyError:
             raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
                            "No such Volume: %s" % vol_id)
-        # TODO: Volume.STATUS_XXX does have indication about volume offline
-        #       or online, meanwhile, cmdline does not support volume_online()
-        #       yet
+
+        self.vol_dict[vol_id]['admin_state'] = Volume.ADMIN_STATE_ENABLED
         return None
 
-    def volume_offline(self, vol_id, flags=0):
-        if vol_id not in self.vol_dict.keys():
+    def volume_disable(self, vol_id, flags=0):
+        try:
+            if self.vol_dict[vol_id]['admin_state'] == \
+               Volume.ADMIN_STATE_DISABLED:
+                raise LsmError(ErrorNumber.NO_STATE_CHANGE,
+                               "Volume is already disabled")
+        except KeyError:
             raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
                            "No such Volume: %s" % vol_id)
-        # TODO: Volume.STATUS_XXX does have indication about volume offline
-        #       or online, meanwhile, cmdline does not support volume_online()
-        #       yet
+
+        self.vol_dict[vol_id]['admin_state'] = Volume.ADMIN_STATE_DISABLED
         return None
 
     def volume_child_dependency(self, vol_id, flags=0):
