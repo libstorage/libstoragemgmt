@@ -165,11 +165,7 @@ typedef enum {
 #define LSM_SYSTEM_STATUS_ERROR                 0x00000004  /**< Error(s) exist */
 #define LSM_SYSTEM_STATUS_DEGRADED              0x00000008  /**< Degraded */
 #define LSM_SYSTEM_STATUS_PREDICTIVE_FAILURE    0x00000010  /**< System has predictive failure(s) */
-#define LSM_SYSTEM_STATUS_STRESSED              0x00000020  /**< Temp or excessive IO */
-#define LSM_SYSTEM_STATUS_STARTING              0x00000040  /**< Booting */
-#define LSM_SYSTEM_STATUS_STOPPING              0x00000080  /**< Shutting down */
-#define LSM_SYSTEM_STATUS_STOPPED               0x00000100  /**< Stopped by admin */
-#define LSM_SYSTEM_STATUS_OTHER                 0x00000200  /**< Vendor specific */
+#define LSM_SYSTEM_STATUS_OTHER                 0x00000020  /**< Vendor specific */
 
 
 typedef enum {

@@ -26,7 +26,8 @@ smispy_PYTHON = \
 	smispy/__init__.py \
 	smispy/smis.py \
 	smispy/smisproxy.py \
-	smispy/eseries.py
+	smispy/eseries.py \
+	smispy/dmtf.py
 
 nstordir = $(plugindir)/nstor
 nstor_PYTHON = \

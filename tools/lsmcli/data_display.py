@@ -80,10 +80,6 @@ _SYSTEM_STATUS_CONV = {
     System.STATUS_ERROR: 'Error',
     System.STATUS_DEGRADED: 'Degraded',
     System.STATUS_PREDICTIVE_FAILURE: 'Predictive failure',
-    System.STATUS_STRESSED: 'Stressed',
-    System.STATUS_STARTING: 'Starting',
-    System.STATUS_STOPPING: 'Stopping',
-    System.STATUS_STOPPED: 'Stopped',
     System.STATUS_OTHER: 'Other',
 }
 

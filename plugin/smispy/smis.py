@@ -32,6 +32,8 @@ from lsm import (IStorageAreaNetwork, error, uri_parse, LsmError, ErrorNumber,
                  Capabilities, Disk, VERSION, TargetPort,
                  search_property)
 
+from dmtf import DMTF
+
 ## Variable Naming scheme:
 #   cim_xxx         CIMInstance
 #   cim_xxx_path    CIMInstanceName
@@ -148,68 +150,6 @@ def _lsm_init_id_to_snia(lsm_init_id):
         return lsm_init_id.replace(':', '').upper()
     return lsm_init_id
 
-
-class DMTF(object):
-    # CIM_StorageHardwareID['IDType']
-    ID_TYPE_OTHER = pywbem.Uint16(1)
-    ID_TYPE_WWPN = pywbem.Uint16(2)
-    ID_TYPE_ISCSI = pywbem.Uint16(5)
-
-    TGT_PORT_USAGE_FRONTEND_ONLY = pywbem.Uint16(2)
-    TGT_PORT_USAGE_UNRESTRICTED = pywbem.Uint16(4)
-    # CIM_FCPort['PortDiscriminator']
-    FC_PORT_PORT_DISCRIMINATOR_FCOE = pywbem.Uint16(10)
-    # CIM_NetworkPort['LinkTechnology']
-    NET_PORT_LINK_TECH_ETHERNET = pywbem.Uint16(2)
-    # CIM_iSCSIProtocolEndpoint['Role']
-    ISCSI_TGT_ROLE_TARGET = pywbem.Uint16(3)
-    # CIM_SCSIProtocolController['NameFormat']
-    SPC_NAME_FORMAT_ISCSI = pywbem.Uint16(3)
-    # CIM_IPProtocolEndpoint['IPv6AddressType']
-    IPV6_ADDR_TYPE_GUA = pywbem.Uint16(6)
-    # GUA: Global Unicast Address.
-    #      2000::/3
-    IPV6_ADDR_TYPE_6TO4 = pywbem.Uint16(7)
-    # IPv6 to IPv4 transition
-    #      ::ffff:0:0/96
-    #      ::ffff:0:0:0/96
-    #      64:ff9b::/96     # well-known prefix
-    #      2002::/16        # 6to4
-    IPV6_ADDR_TYPE_ULA = pywbem.Uint16(8)
-    # ULA: Unique Local Address, aka Site Local Unicast.
-    #      fc00::/7
-
-    # CIM_GroupMaskingMappingService.CreateGroup('Type')
-    MASK_GROUP_TYPE_INIT = pywbem.Uint16(2)
-    MASK_GROUP_TYPE_TGT = pywbem.Uint16(3)
-    MASK_GROUP_TYPE_DEV = pywbem.Uint16(4)
-
-    # CIM_GroupMaskingMappingCapabilities['SupportedDeviceGroupFeatures']
-    #   Allowing empty DeviceMaskingGroup associated to SPC
-    GMM_CAP_DEV_MG_ALLOW_EMPTY_W_SPC = pywbem.Uint16(5)
-
-    # CIM_GroupMaskingMappingCapabilities['SupportedInitiatorGroupFeatures']
-    #   Allowing empty DeviceMaskingGroup
-    GMM_CAP_INIT_MG_ALLOW_EMPTY = pywbem.Uint16(4)
-    #   Allowing empty DeviceMaskingGroup associated to SPC
-    GMM_CAP_INIT_MG_ALLOW_EMPTY_W_SPC = pywbem.Uint16(5)
-
-    # CIM_GroupMaskingMappingCapabilities['SupportedAsynchronousActions']
-    # and 'SupportedSynchronousActions'. They are using the same value map.
-    GMM_CAP_DELETE_SPC = pywbem.Uint16(24)
-    GMM_CAP_DELETE_GROUP = pywbem.Uint16(20)
-
-    # CIM_StorageConfigurationCapabilities['SupportedStorageElementTypes']
-    SCS_CAP_SUP_ST_VOLUME = pywbem.Uint16(2)
-    SCS_CAP_SUP_THIN_ST_VOLUME = pywbem.Uint16(5)
-
-    # CIM_StorageConfigurationCapabilities['SupportedAsynchronousActions']
-    # and also for 'SupportedSynchronousActions'
-    SCS_CAP_VOLUME_CREATE = pywbem.Uint16(5)
-    SCS_CAP_VOLUME_DELETE = pywbem.Uint16(6)
-    SCS_CAP_VOLUME_MODIFY = pywbem.Uint16(7)
-
-
 def _dmtf_init_type_to_lsm(cim_init):
     if 'IDType' in cim_init:
         if cim_init['IDType'] == DMTF.ID_TYPE_WWPN:
@@ -243,7 +183,6 @@ def _lsm_init_type_to_dmtf(init_type):
         return DMTF.ID_TYPE_ISCSI
     raise LsmError(ErrorNumber.NO_SUPPORT,
                    "Does not support provided init_type: %d" % init_type)
-
 
 class SNIA(object):
     BLK_ROOT_PROFILE = 'Array'
@@ -515,28 +454,6 @@ class Smis(IStorageAreaNetwork):
     (VOL_OP_STATUS_OK, VOL_OP_STATUS_DEGRADED, VOL_OP_STATUS_ERR,
      VOL_OP_STATUS_STARTING,
      VOL_OP_STATUS_DORMANT) = (2, 3, 6, 8, 15)
-
-    # SMI-S CIM_ComputerSystem OperationalStatus for system
-    class SystemOperationalStatus(object):
-        UNKNOWN = 0
-        OTHER = 1
-        OK = 2
-        DEGRADED = 3
-        STRESSED = 4
-        PREDICTIVE_FAILURE = 5
-        ERROR = 6
-        NON_RECOVERABLE_ERROR = 7
-        STARTING = 8
-        STOPPING = 9
-        STOPPED = 10
-        IN_SERVICE = 11
-        NO_CONTACT = 12
-        LOST_COMMUNICATION = 13
-        ABORTED = 14
-        DORMANT = 15
-        SUPPORTING_ENTITY_IN_ERROR = 16
-        COMPLETED = 17
-        POWER_MODE = 18
 
     # SMI-S ExposePaths device access enumerations
     (EXPOSE_PATHS_DA_READ_WRITE, EXPOSE_PATHS_DA_READ_ONLY) = (2, 3)
@@ -1819,26 +1736,18 @@ class Smis(IStorageAreaNetwork):
                     status, status_info, system_id)
 
     @staticmethod
-    def _cim_sys_2_lsm_sys(cim_sys):
+    def _cim_sys_to_lsm(cim_sys):
         # In the case of systems we are assuming that the System Name is
         # unique.
         status = System.STATUS_UNKNOWN
+        status_info = ''
 
         if 'OperationalStatus' in cim_sys:
-            for op_st in cim_sys['OperationalStatus']:
-                if op_st == Smis.SystemOperationalStatus.OK:
-                    status |= System.STATUS_OK
-                elif op_st == Smis.SystemOperationalStatus.DEGRADED:
-                    status |= System.STATUS_DEGRADED
-                elif (op_st == Smis.SystemOperationalStatus.ERROR or
-                      op_st == Smis.SystemOperationalStatus.STRESSED or
-                      op_st ==
-                        Smis.SystemOperationalStatus.NON_RECOVERABLE_ERROR):
-                    status |= System.STATUS_ERROR
-                elif op_st == Smis.SystemOperationalStatus.PREDICTIVE_FAILURE:
-                    status |= System.STATUS_PREDICTIVE_FAILURE
+            (status, status_info) = \
+                DMTF.cim_sys_status_of(cim_sys['OperationalStatus'])
 
-        return System(cim_sys['Name'], cim_sys['ElementName'], status, '')
+        return System(cim_sys['Name'], cim_sys['ElementName'], status,
+                      status_info)
 
     def _cim_sys_pros(self):
         """
@@ -1861,7 +1770,7 @@ class Smis(IStorageAreaNetwork):
         cim_sys_pros = self._cim_sys_pros()
         cim_syss = self._root_cim_syss(cim_sys_pros)
 
-        return [Smis._cim_sys_2_lsm_sys(s) for s in cim_syss]
+        return [Smis._cim_sys_to_lsm(s) for s in cim_syss]
 
     @handle_cim_errors
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
