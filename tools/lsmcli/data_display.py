@@ -123,16 +123,6 @@ def pool_element_type_to_str(element_type):
     return _bit_map_to_str(element_type, _POOL_ELEMENT_TYPE_CONV)
 
 
-_VOL_STATUS_CONV = {
-    Volume.STATUS_UNKNOWN: 'Unknown',
-    Volume.STATUS_OK: 'OK',
-    Volume.STATUS_DEGRADED: 'Degraded',
-    Volume.STATUS_DORMANT: 'Dormant',
-    Volume.STATUS_ERR: 'Error',
-    Volume.STATUS_STARTING: 'Starting',
-}
-
-
 _VOL_PROVISION_CONV = {
     Volume.PROVISION_DEFAULT: 'DEFAULT',
     Volume.PROVISION_FULL: 'FULL',
@@ -143,6 +133,16 @@ _VOL_PROVISION_CONV = {
 
 def vol_provision_str_to_type(vol_provision_str):
     return _str_to_enum(vol_provision_str, _VOL_PROVISION_CONV)
+
+
+_VOL_ADMIN_STATE_CONV = {
+    Volume.ADMIN_STATE_DISABLED: 'Yes',
+    Volume.ADMIN_STATE_ENABLED: 'No',
+}
+
+
+def vol_admin_state_to_str(vol_admin_state):
+    return _enum_type_to_str(vol_admin_state, _VOL_ADMIN_STATE_CONV)
 
 
 _VOL_REP_TYPE_CONV = {
@@ -157,10 +157,6 @@ _VOL_REP_TYPE_CONV = {
 
 def vol_rep_type_str_to_type(vol_rep_type_str):
     return _str_to_enum(vol_rep_type_str, _VOL_REP_TYPE_CONV)
-
-
-def vol_status_to_str(vol_status):
-    return _bit_map_to_str(vol_status, _VOL_STATUS_CONV)
 
 
 _DISK_TYPE_CONV = {
@@ -330,7 +326,7 @@ class DisplayData(object):
     VOL_MAN_HEADER['block_size'] = 'Block Size'
     VOL_MAN_HEADER['num_of_blocks'] = '#blocks'
     VOL_MAN_HEADER['size_bytes'] = 'Size'
-    VOL_MAN_HEADER['status'] = 'Status'
+    VOL_MAN_HEADER['admin_state'] = 'Disabled'
     VOL_MAN_HEADER['pool_id'] = 'Pool ID'
     VOL_MAN_HEADER['system_id'] = 'System ID'
 
@@ -341,7 +337,7 @@ class DisplayData(object):
             VOL_COLUMN_KEYS.extend([key_name])
 
     VOL_VALUE_CONV_ENUM = {
-        'status': vol_status_to_str,
+        'admin_state': vol_admin_state_to_str
     }
 
     VOL_VALUE_CONV_HUMAN = ['size_bytes', 'block_size']
