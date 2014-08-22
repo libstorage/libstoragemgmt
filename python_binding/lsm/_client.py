@@ -461,14 +461,14 @@ class Client(INetworkAttachedStorage):
     # @param    volume  The volume to place online
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, else raises LsmError
-    @_return_requires(unicode)
-    def volume_online(self, volume, flags=0):
+    @_return_requires(None)
+    def volume_enable(self, volume, flags=0):
         """
         Makes a volume available to the host
 
         returns None on success, else raises LsmError on errors.
         """
-        return self._tp.rpc('volume_online', _del_self(locals()))
+        return self._tp.rpc('volume_enable', _del_self(locals()))
 
     ## Takes a volume offline
     # @param    self    The this pointer
@@ -476,13 +476,13 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, else raises LsmError on errors.
     @_return_requires(None)
-    def volume_offline(self, volume, flags=0):
+    def volume_disable(self, volume, flags=0):
         """
         Makes a volume unavailable to the host
 
         returns None on success, else raises LsmError on errors.
         """
-        return self._tp.rpc('volume_offline', _del_self(locals()))
+        return self._tp.rpc('volume_disable', _del_self(locals()))
 
     ## Returns an array of disk objects
     # @param    self    The this pointer
@@ -1055,8 +1055,8 @@ class _TestClient(unittest.TestCase):
 
         self.assertTrue(vol.size_bytes == re_sized.size_bytes / 2)
 
-        self.c.volume_offline(re_sized)
-        self.c.volume_online(re_sized)
+        self.c.volume_disable(re_sized)
+        self.c.volume_enable(re_sized)
 
     def tearDown(self):
         self.c.close()

@@ -200,7 +200,7 @@ class IStorageAreaNetwork(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def volume_online(self, volume, flags=0):
+    def volume_enable(self, volume, flags=0):
         """
         Makes a volume available to the host
 
@@ -208,7 +208,7 @@ class IStorageAreaNetwork(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def volume_offline(self, volume, flags=0):
+    def volume_disable(self, volume, flags=0):
         """
         Makes a volume unavailable to the host
 
