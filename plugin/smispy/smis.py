@@ -318,40 +318,6 @@ class Smis(IStorageAreaNetwork):
     DMTF_STATUS_COMPLETED = 17
     DMTF_STATUS_POWER_MODE = 18
 
-    # We will rework this once SNIA documented these out.
-    _DMTF_STATUS_TO_POOL_STATUS = {
-        DMTF_STATUS_UNKNOWN: Pool.STATUS_UNKNOWN,
-        DMTF_STATUS_OTHER: Pool.STATUS_OTHER,
-        DMTF_STATUS_OK: Pool.STATUS_OK,
-        DMTF_STATUS_DEGRADED: Pool.STATUS_DEGRADED,
-        DMTF_STATUS_STRESSED: Pool.STATUS_STRESSED,
-        DMTF_STATUS_PREDICTIVE_FAILURE: Pool.STATUS_OTHER,
-        DMTF_STATUS_ERROR: Pool.STATUS_ERROR,
-        DMTF_STATUS_NON_RECOVERABLE_ERROR: Pool.STATUS_ERROR,
-        DMTF_STATUS_STARTING: Pool.STATUS_STARTING,
-        DMTF_STATUS_STOPPING: Pool.STATUS_STOPPING,
-        DMTF_STATUS_STOPPED: Pool.STATUS_STOPPED,
-        DMTF_STATUS_IN_SERVICE: Pool.STATUS_OTHER,
-        DMTF_STATUS_NO_CONTACT: Pool.STATUS_OTHER,
-        DMTF_STATUS_LOST_COMMUNICATION: Pool.STATUS_OTHER,
-        DMTF_STATUS_DORMANT: Pool.STATUS_DORMANT,
-        DMTF_STATUS_SUPPORTING_ENTITY_IN_ERROR: Pool.STATUS_OTHER,
-        DMTF_STATUS_COMPLETED: Pool.STATUS_OTHER,
-        DMTF_STATUS_POWER_MODE: Pool.STATUS_OTHER,
-    }
-
-    _DMTF_STATUS_TO_POOL_STATUS_INFO = {
-        # TODO: Use CIM_RelatedElementCausingError
-        #       to find out the error info.
-        DMTF_STATUS_PREDICTIVE_FAILURE: 'Predictive failure',
-        DMTF_STATUS_IN_SERVICE: 'In service',
-        DMTF_STATUS_NO_CONTACT: 'No contact',
-        DMTF_STATUS_LOST_COMMUNICATION: 'Lost communication',
-        DMTF_STATUS_SUPPORTING_ENTITY_IN_ERROR: 'Supporting entity in error',
-        DMTF_STATUS_COMPLETED: 'Completed',
-        DMTF_STATUS_POWER_MODE: 'Power mode',
-    }
-
     _DMTF_STATUS_TO_DISK_STATUS = {
         DMTF_STATUS_UNKNOWN: Disk.STATUS_UNKNOWN,
         DMTF_STATUS_OTHER: Disk.STATUS_OTHER,
@@ -1727,8 +1693,8 @@ class Smis(IStorageAreaNetwork):
         if 'RemainingManagedSpace' in cim_pool:
             free_space = cim_pool['RemainingManagedSpace']
         if 'OperationalStatus' in cim_pool:
-            status = Smis._pool_status_of(cim_pool)[0]
-            status_info = Smis._pool_status_of(cim_pool)[1]
+            (status, status_info) = DMTF.cim_pool_status_of(
+                cim_pool['OperationalStatus'])
 
         element_type = self._pool_element_type(cim_pool)
 
@@ -3249,30 +3215,6 @@ class Smis(IStorageAreaNetwork):
                            "Failed to find out Primordial " +
                            "CIM_StorageExtent for CIM_DiskDrive %s " %
                            cim_disk_path)
-
-    @staticmethod
-    def _pool_status_of(cim_pool):
-        """
-        Converting CIM_StoragePool['OperationalStatus'] LSM Pool.status.
-        This might change since OperationalStatus does not provide enough
-        information.
-        Return (status, status_info)
-        """
-        status = Pool.STATUS_UNKNOWN
-        status_info = []
-        dmtf_statuses = cim_pool['OperationalStatus']
-        for dmtf_status in dmtf_statuses:
-            if dmtf_status in Smis._DMTF_STATUS_TO_POOL_STATUS.keys():
-
-                lsm_status = Smis._DMTF_STATUS_TO_POOL_STATUS[dmtf_status]
-                if status == Pool.STATUS_UNKNOWN:
-                    status = lsm_status
-                else:
-                    status |= lsm_status
-            if dmtf_status in Smis._DMTF_STATUS_TO_POOL_STATUS_INFO.keys():
-                status_info.append(
-                    Smis._DMTF_STATUS_TO_POOL_STATUS_INFO[dmtf_status])
-        return (status, ", ".join(status_info))
 
     def _cim_disk_of_pri_ext(self, cim_pri_ext_path, pros_list=None):
         """
