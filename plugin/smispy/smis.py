@@ -1268,7 +1268,7 @@ class Smis(IStorageAreaNetwork):
         """
         Retrun the PropertyList required for creating new LSM Volume.
         """
-        props = ['OperationalStatus', 'ElementName', 'NameFormat',
+        props = ['ElementName', 'NameFormat',
                  'NameNamespace', 'BlockSize', 'NumberOfBlocks', 'Name',
                  'OtherIdentifyingInfo', 'IdentifyingDescriptions', 'Usage']
         cim_vol_pros = self._property_list_of_id("Volume", props)
@@ -1278,23 +1278,6 @@ class Smis(IStorageAreaNetwork):
         """
         Takes a CIMInstance that represents a volume and returns a lsm Volume
         """
-
-        # Reference page 134 in 1.5 spec.
-        status = Volume.STATUS_UNKNOWN
-
-        # OperationalStatus is mandatory
-        if 'OperationalStatus' in cv:
-            for s in cv["OperationalStatus"]:
-                if s == Smis.VOL_OP_STATUS_OK:
-                    status |= Volume.STATUS_OK
-                elif s == Smis.VOL_OP_STATUS_DEGRADED:
-                    status |= Volume.STATUS_DEGRADED
-                elif s == Smis.VOL_OP_STATUS_ERR:
-                    status |= Volume.STATUS_ERR
-                elif s == Smis.VOL_OP_STATUS_STARTING:
-                    status |= Volume.STATUS_STARTING
-                elif s == Smis.VOL_OP_STATUS_DORMANT:
-                    status |= Volume.STATUS_DORMANT
 
         # This is optional (User friendly name)
         if 'ElementName' in cv:
@@ -1322,8 +1305,10 @@ class Smis(IStorageAreaNetwork):
         if sys_id is None:
             sys_id = cv['SystemName']
 
+        admin_state = Volume.ADMIN_STATE_ENABLED
+
         return Volume(self._vol_id(cv), user_name, vpd_83, cv["BlockSize"],
-                      cv["NumberOfBlocks"], status, sys_id, pool_id)
+                      cv["NumberOfBlocks"], admin_state, sys_id, pool_id)
 
     @staticmethod
     def _vpd83_in_cv_name(cv):
@@ -2006,14 +1991,6 @@ class Smis(IStorageAreaNetwork):
 
         raise LsmError(ErrorNumber.NO_SUPPORT,
                        "volume-replicate not supported")
-
-    @handle_cim_errors
-    def volume_online(self, volume, flags=0):
-        return None
-
-    @handle_cim_errors
-    def volume_offline(self, volume, flags=0):
-        return None
 
     def _get_cim_service_path(self, cim_sys_path, class_name):
         """
