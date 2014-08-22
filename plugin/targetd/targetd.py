@@ -165,8 +165,9 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
             for vol in self._jsonrequest("vol_list", dict(pool=p_name)):
                 volumes.append(
                     Volume(vol['uuid'], vol['name'], vol['uuid'], 512,
-                           vol['size'] / 512, Volume.STATUS_OK, self.system.id,
-                           p_name))
+                           long(vol['size'] / 512),
+                           Volume.ADMIN_STATE_ENABLED,
+                           self.system.id, p_name))
         return search_property(volumes, search_key, search_value)
 
     @handle_errors
@@ -338,16 +339,6 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                                vol_new=name))
 
         return None, self._get_volume(pool_id, name)
-
-    @handle_errors
-    def volume_online(self, volume, flags=0):
-        vol_list = self._jsonrequest("vol_list", dict(pool=volume.pool_id))
-
-        return volume.name in [vol['name'] for vol in vol_list]
-
-    @handle_errors
-    def volume_offline(self, volume, flags=0):
-        return not self.volume_online(volume)
 
     @handle_errors
     def iscsi_chap_auth(self, init_id, in_user, in_password, out_user,
