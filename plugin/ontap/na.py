@@ -137,9 +137,13 @@ class FilerError(Exception):
     IGROUP_NOT_CONTAIN_GIVEN_INIT = 9007
     IGROUP_ALREADY_HAS_INIT = 9008
     NO_SUCH_IGROUP = 9003
+
+    # Using the name from NetApp SDK netapp_errno.h
     EVDISK_ERROR_VDISK_EXPORTED = 9013  # LUN is currently mapped
     EVDISK_ERROR_INITGROUP_MAPS_EXIST = 9029    # LUN maps for this initiator
                                                 # group exist
+    EVDISK_ERROR_VDISK_NOT_ENABLED = 9014   # LUN is not online
+    EVDISK_ERROR_VDISK_NOT_DISABLED = 9015  # LUN is not offline
 
     def __init__(self, errno, reason, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
@@ -263,17 +267,7 @@ class Filer(object):
         else:
             luns = self._invoke('lun-list-info')
 
-        tmp = luns['luns']
-
-        if tmp is not None:
-            rc = to_list(tmp['lun-info'])
-
-            if len(rc):
-                #Add a key/value for aggr to hash so upper layers have it.
-                for i in range(len(rc)):
-                    rc[i]['aggr'] = aggr
-
-        return rc
+        return to_list(luns['luns']['lun-info'])
 
     def _get_aggr_info(self):
         aggrs = self._invoke('aggr-list-info')
@@ -282,45 +276,9 @@ class Filer(object):
 
     def luns_get_all(self):
         """
-        More efficient approach to retrieving all the luns
-
-        Note: A NetApp lun is a file on a NetApp volume (file system)
-              so to do this correctly we need to return the NetApp volume
-              that a logical unit file resides on, not the base aggregate
-              that the file on the fs lies on.
-
-
+        Return all lun-info
         """
-        rc = []
-        lookup = {}
-        na_volume_to_uuid = {}
-        aggr_list = self._get_aggr_info()
-
-        #Build volume name to uuid lookup
-        for p in aggr_list:
-            volumes = to_list(p['volumes']['contained-volume-info'])
-            for v in volumes:
-                lookup[v['name']] = p['uuid']
-
-        # Get a list of NetApp volumes
-        na_volumes = self.volumes()
-        for p in na_volumes:
-            vol_name = p['name']
-
-            if vol_name.startswith(Filer.LSM_VOL_PREFIX):
-                na_volume_to_uuid[vol_name] = lookup[vol_name]
-            else:
-                na_volume_to_uuid[vol_name] = p['uuid']
-
-        luns = self._invoke('lun-list-info')['luns']
-
-        if luns is not None:
-            rc = to_list(luns['lun-info'])
-            if len(rc):
-                for i in range(len(rc)):
-                    volume_name = rc[i]['path'].split('/')[2]
-                    rc[i]['aggr'] = na_volume_to_uuid[volume_name]
-        return rc
+        return to_list(self._invoke('lun-list-info')['luns']['lun-info'])
 
     def lun_create(self, full_path_name, size_bytes):
         """

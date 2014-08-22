@@ -164,14 +164,19 @@ class Ontap(IStorageAreaNetwork, INfs):
         return os.path.basename(path_name)
 
     def _lun(self, l):
-        #Info('_lun=' + str(l))
         block_size = int(l['block-size'])
         num_blocks = int(l['size']) / block_size
+        pool_id = "/".join(l['path'].split('/')[0:3])
+        vol_id = l['path']
+        vol_name = os.path.basename(vol_id)
+        admin_state = Volume.ADMIN_STATE_ENABLED
+        if l['online'] == 'false':
+            admin_state = Volume.ADMIN_STATE_DISABLED
+
         #TODO: Need to retrieve actual volume status
-        return Volume(l['path'], self._lsm_lun_name(l['path']),
+        return Volume(vol_id, vol_name,
                       Ontap._create_vpd(l['serial-number']), block_size,
-                      num_blocks, Volume.STATUS_OK, self.sys_info.id,
-                      l['aggr'])
+                      num_blocks, admin_state, self.sys_info.id, pool_id)
 
     def _vol(self, v, pools=None):
         pool_name = v['containing-aggregate']
@@ -386,17 +391,13 @@ class Ontap(IStorageAreaNetwork, INfs):
         return ''
 
     @staticmethod
-    def _pool_name_of_na_vol(na_vol):
-        return "%s/%s" % (Ontap.VOLUME_PREFIX, na_vol['name'])
-
-    @staticmethod
-    def _na_vol_name_of_pool(pool):
-        return pool.name.split('/')[-1]
+    def _pool_id_of_na_vol_name(na_vol_name):
+        return "%s/%s" % (Ontap.VOLUME_PREFIX, na_vol_name)
 
     def _pool_from_na_vol(self, na_vol, na_aggrs, flags):
         element_type = Pool.ELEMENT_TYPE_VOLUME
         pool_name = na_vol['name']
-        pool_id = self._pool_name_of_na_vol(na_vol)
+        pool_id = self._pool_id_of_na_vol_name(na_vol['name'])
         total_space = int(na_vol['size-total'])
         free_space = int(na_vol['size-available'])
         system_id = self.sys_info.id
@@ -409,6 +410,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                     if not (status & Pool.STATUS_OK):
                         status_info = "Parrent pool '%s'" \
                                       % na_aggr['name']
+                    break
 
         # This volume should be noted that it is reserved for system
         # and thus cannot be removed.
@@ -508,7 +510,7 @@ class Ontap(IStorageAreaNetwork, INfs):
             raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                            "Pool not suitable for creating volumes")
 
-        na_vol_name = self._na_vol_name_of_pool(pool)
+        na_vol_name = pool.name
         v = self.f.volume_names()
         if na_vol_name not in v:
             raise LsmError(ErrorNumber.NOT_FOUND_POOL, "Pool not found")
@@ -586,12 +588,24 @@ class Ontap(IStorageAreaNetwork, INfs):
                      _lsm_vol_to_na_vol_path(volume_dest), None, ranges)
 
     @handle_ontap_errors
-    def volume_online(self, volume, flags=0):
-        return self.f.lun_online(_lsm_vol_to_na_vol_path(volume))
+    def volume_enable(self, volume, flags=0):
+        try:
+            return self.f.lun_online(_lsm_vol_to_na_vol_path(volume))
+        except na.FilerError as fe:
+            if fe.errno == na.FilerError.EVDISK_ERROR_VDISK_NOT_DISABLED:
+                raise LsmError(ErrorNumber.NO_STATE_CHANGE,
+                               "Volume is already enabled")
+            raise
 
     @handle_ontap_errors
-    def volume_offline(self, volume, flags=0):
-        return self.f.lun_offline(_lsm_vol_to_na_vol_path(volume))
+    def volume_disable(self, volume, flags=0):
+        try:
+            return self.f.lun_offline(_lsm_vol_to_na_vol_path(volume))
+        except na.FilerError as fe:
+            if fe.errno == na.FilerError.EVDISK_ERROR_VDISK_NOT_ENABLED:
+                raise LsmError(ErrorNumber.NO_STATE_CHANGE,
+                               "Volume is already disabled")
+            raise
 
     @handle_ontap_errors
     def volume_mask(self, access_group, volume, flags=0):
