@@ -327,6 +327,11 @@ static int tmo_get(lsm_plugin_ptr c, uint32_t *timeout, lsm_flag flags)
     return LSM_ERR_INVALID_ARGUMENT;
 }
 
+static int vol_accessible_by_ag(lsm_plugin_ptr c,
+                                lsm_access_group *group,
+                                lsm_volume **volumes[],
+                                uint32_t *count, lsm_flag flags);
+
 static int cap(lsm_plugin_ptr c, lsm_system *system,
                 lsm_storage_capabilities **cap, lsm_flag flags)
 {
@@ -1050,21 +1055,37 @@ static int access_group_delete( lsm_plugin_ptr c,
                                 lsm_flag flags)
 {
     int rc = LSM_ERR_OK;
+    lsm_volume **volumes = NULL;
+    uint32_t count = 0;
 
     struct plugin_data *pd = (struct plugin_data*)lsm_private_data_get(c);
     const char *id = lsm_access_group_id_get(group);
 
-    gboolean r = g_hash_table_remove(pd->access_groups, (gpointer)id);
+    rc = vol_accessible_by_ag(c, group, &volumes, &count, LSM_FLAG_RSVD);
 
-    if( !r ) {
-        rc = lsm_log_error_basic(c, LSM_ERR_NOT_FOUND_ACCESS_GROUP,
-                                    "access group not found");
-    } else {
-        g_hash_table_remove(pd->group_grant, id);
+    if( rc == LSM_ERR_OK && count ) {
+        lsm_volume_record_array_free(volumes, count);
     }
 
-    if( !g_hash_table_size(pd->access_groups) ) {
-        assert( g_hash_table_size(pd->group_grant ) == 0);
+    if( LSM_ERR_OK == rc ) {
+
+        if( count ) {
+            rc = lsm_log_error_basic(c, LSM_ERR_IS_MASKED,
+                                        "access group has masked volumes!");
+        } else {
+            gboolean r = g_hash_table_remove(pd->access_groups, (gpointer)id);
+
+            if( !r ) {
+                rc = lsm_log_error_basic(c, LSM_ERR_NOT_FOUND_ACCESS_GROUP,
+                                            "access group not found");
+            } else {
+                g_hash_table_remove(pd->group_grant, id);
+            }
+
+            if( !g_hash_table_size(pd->access_groups) ) {
+                assert( g_hash_table_size(pd->group_grant ) == 0);
+            }
+        }
     }
 
     return rc;

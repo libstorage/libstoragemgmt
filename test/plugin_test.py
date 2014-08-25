@@ -74,7 +74,7 @@ def rs(component, l=4):
     rp = ''.join(random.choice(string.ascii_uppercase) for x in range(l))
 
     if component is not None:
-        return 'lsm_%s_' % component + rp
+        return 'lsm_%s_' % (component + rp)
     return rp
 
 
@@ -657,6 +657,7 @@ class TestPlugin(unittest.TestCase):
 
     def test_mask_unmask(self):
         for s in self.systems:
+            ag = None
             cap = self.c.capabilities(s)
 
             if supported(cap, [lsm.Capabilities.ACCESS_GROUPS,
@@ -664,6 +665,14 @@ class TestPlugin(unittest.TestCase):
                                lsm.Capabilities.VOLUME_UNMASK,
                                lsm.Capabilities.VOLUME_CREATE,
                                lsm.Capabilities.VOLUME_DELETE]):
+
+                if supported(cap, [lsm.Capabilities.ACCESS_GROUP_CREATE_WWPN]):
+                    ag_name = rs("ag")
+                    ag_iqn = 'iqn.1994-05.com.domain:01.' + rs(None, 6)
+
+                    ag = self.c.access_group_create(
+                        ag_name, ag_iqn, lsm.AccessGroup.INIT_TYPE_ISCSI_IQN,
+                        s)
 
                 # Make sure we have an access group to test with, many
                 # smi-s providers don't provide functionality to create them!
@@ -688,6 +697,10 @@ class TestPlugin(unittest.TestCase):
 
                     if vol:
                         self._volume_delete(vol)
+
+                if ag:
+                    self.c.access_group_delete(ag)
+                    ag = None
 
     def _create_access_group(self, cap, name, s, init_type):
         ag_created = None
@@ -900,6 +913,52 @@ class TestPlugin(unittest.TestCase):
                     self.assertTrue(got_exception)
 
                     self._delete_access_group(ag_created)
+
+    def test_ag_delete_with_vol_masked(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            if supported(cap, [lsm.Capabilities.ACCESS_GROUPS,
+                               lsm.Capabilities.ACCESS_GROUP_CREATE_ISCSI_IQN,
+                               lsm.Capabilities.ACCESS_GROUP_DELETE,
+                               lsm.Capabilities.VOLUME_UNMASK,
+                               lsm.Capabilities.VOLUME_CREATE,
+                               lsm.Capabilities.VOLUME_DELETE,
+                               lsm.Capabilities.VOLUME_MASK,
+                               lsm.Capabilities.VOLUME_UNMASK]):
+
+                ag_name = rs("ag")
+                ag_iqn = 'iqn.1994-05.com.domain:01.' + rs(None, 6)
+
+                ag = self.c.access_group_create(
+                    ag_name, ag_iqn, lsm.AccessGroup.INIT_TYPE_ISCSI_IQN, s)
+
+                pool = self._get_pool_by_usage(s.id,
+                                               lsm.Pool.ELEMENT_TYPE_VOLUME)
+                if ag and pool:
+                    vol_size = self._object_size(pool)
+
+                    vol = self.c.volume_create(
+                        pool, rs('v'), vol_size,
+                        lsm.Volume.PROVISION_DEFAULT)[1]
+
+                    if vol:
+                        got_exception = False
+                        self.c.volume_mask(ag, vol)
+
+                        try:
+                            self.c.access_group_delete(ag)
+                        except LsmError as le:
+                            if le.code == lsm.ErrorNumber.IS_MASKED:
+                                got_exception = True
+                            self.assertTrue(le.code ==
+                                            lsm.ErrorNumber.IS_MASKED)
+
+                        self.assertTrue(got_exception)
+                        self.c.volume_unmask(ag, vol)
+                        self.c.volume_delete(vol)
+
+                    self.c.access_group_delete(ag)
+
 
 
 def dump_results():
