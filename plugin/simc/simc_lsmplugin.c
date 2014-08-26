@@ -332,6 +332,11 @@ static int vol_accessible_by_ag(lsm_plugin_ptr c,
                                 lsm_volume **volumes[],
                                 uint32_t *count, lsm_flag flags);
 
+static int ag_granted_to_volume( lsm_plugin_ptr c,
+                                    lsm_volume *volume,
+                                    lsm_access_group **groups[],
+                                    uint32_t *count, lsm_flag flags);
+
 static int cap(lsm_plugin_ptr c, lsm_system *system,
                 lsm_storage_capabilities **cap, lsm_flag flags)
 {
@@ -923,11 +928,29 @@ static int _volume_delete(lsm_plugin_ptr c, const char *volume_id)
 static int volume_delete(lsm_plugin_ptr c, lsm_volume *volume,
                                     char **job, lsm_flag flags)
 {
+    lsm_access_group **groups = NULL;
+    uint32_t count = 0;
+
     struct plugin_data *pd = (struct plugin_data*)lsm_private_data_get(c);
-    int rc = _volume_delete(c, lsm_volume_id_get(volume));
+
+    // Check to see if this volume is masked to any access groups, if it is we
+    // will return an IS_MASKED error code.
+    int rc = ag_granted_to_volume(c, volume, &groups, &count, LSM_FLAG_RSVD);
 
     if( LSM_ERR_OK == rc ) {
-        rc = create_job(pd, job, LSM_DATA_TYPE_NONE, NULL, NULL);
+        lsm_access_group_record_array_free(groups, count);
+        groups = NULL;
+
+        if( !count ) {
+
+            rc = _volume_delete(c, lsm_volume_id_get(volume));
+
+            if( LSM_ERR_OK == rc ) {
+                rc = create_job(pd, job, LSM_DATA_TYPE_NONE, NULL, NULL);
+            }
+        } else {
+            rc = lsm_log_error_basic(c, LSM_ERR_IS_MASKED, "Volume is masked!");
+        }
     }
     return rc;
 }

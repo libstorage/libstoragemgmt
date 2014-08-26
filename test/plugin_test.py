@@ -914,7 +914,7 @@ class TestPlugin(unittest.TestCase):
 
                     self._delete_access_group(ag_created)
 
-    def test_ag_delete_with_vol_masked(self):
+    def test_ag_vol_delete_with_vol_masked(self):
         for s in self.systems:
             cap = self.c.capabilities(s)
             if supported(cap, [lsm.Capabilities.ACCESS_GROUPS,
@@ -945,6 +945,8 @@ class TestPlugin(unittest.TestCase):
                         got_exception = False
                         self.c.volume_mask(ag, vol)
 
+                        # Try to delete the access group
+
                         try:
                             self.c.access_group_delete(ag)
                         except LsmError as le:
@@ -954,6 +956,20 @@ class TestPlugin(unittest.TestCase):
                                             lsm.ErrorNumber.IS_MASKED)
 
                         self.assertTrue(got_exception)
+
+                        # Try to delete the volume
+                        got_exception = False
+                        try:
+                            self.c.volume_delete(vol)
+                        except LsmError as le:
+                            if le.code == lsm.ErrorNumber.IS_MASKED:
+                                got_exception = True
+                            self.assertTrue(le.code ==
+                                            lsm.ErrorNumber.IS_MASKED)
+
+                        self.assertTrue(got_exception)
+
+                        # Clean up
                         self.c.volume_unmask(ag, vol)
                         self.c.volume_delete(vol)
 
