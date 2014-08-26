@@ -197,18 +197,31 @@ class Ontap(IStorageAreaNetwork, INfs):
         return FsSnapshot(md5(s['name'] + s['access-time']), s['name'],
                           s['access-time'])
 
-    @staticmethod
-    def _disk_type(netapp_disk_type):
-        conv = {'ATA': Disk.DISK_TYPE_ATA, 'BSAS': Disk.DISK_TYPE_SAS,
-                'EATA': Disk.DISK_TYPE_ATA, 'FCAL': Disk.DISK_TYPE_FC,
-                'FSAS': Disk.DISK_TYPE_SAS, 'LUN': Disk.DISK_TYPE_LUN,
-                'SAS': Disk.DISK_TYPE_SAS, 'SATA': Disk.DISK_TYPE_SATA,
-                'SCSI': Disk.DISK_TYPE_SCSI, 'SSD': Disk.DISK_TYPE_SSD,
-                'XATA': Disk.DISK_TYPE_ATA, 'XSAS': Disk.DISK_TYPE_SAS,
-                'unknown': Disk.DISK_TYPE_UNKNOWN}
+    _NA_DISK_TYPE_TO_LSM = {
+        'ATA': Disk.DISK_TYPE_ATA,
+        'BSAS': Disk.DISK_TYPE_SATA,
+        'EATA': Disk.DISK_TYPE_ATA,
+        'FCAL': Disk.DISK_TYPE_FC,
+        'FSAS': Disk.DISK_TYPE_NL_SAS,
+        'LUN':  Disk.DISK_TYPE_OTHER,
+        'MSATA': Disk.DISK_TYPE_SATA,
+        'SAS': Disk.DISK_TYPE_SAS,
+        'SATA': Disk.DISK_TYPE_SATA,
+        'SCSI': Disk.DISK_TYPE_SCSI,
+        'SSD': Disk.DISK_TYPE_SSD,
+        'XATA': Disk.DISK_TYPE_ATA,
+        'XSAS': Disk.DISK_TYPE_SAS,
+        'unknown': Disk.DISK_TYPE_UNKNOWN,
+    }
 
-        if netapp_disk_type in conv:
-            return conv[netapp_disk_type]
+    @staticmethod
+    def _disk_type_of(na_disk):
+        """
+        Convert na_disk['effective-disk-type'] to LSM disk type.
+        """
+        na_disk_type = na_disk['effective-disk-type']
+        if na_disk_type in Ontap._NA_DISK_TYPE_TO_LSM.keys():
+            return Ontap._NA_DISK_TYPE_TO_LSM[na_disk_type]
         return Disk.DISK_TYPE_UNKNOWN
 
     @staticmethod
@@ -225,26 +238,48 @@ class Ontap(IStorageAreaNetwork, INfs):
         TODO: API document does not provide enough explaination.
               Need lab test to verify.
         """
-        status = Disk.STATUS_OK
+        status = 0
 
         if 'raid-state' in na_disk:
             rs = na_disk['raid-state']
             if rs == "broken":
-                status = Disk.STATUS_ERROR
+                if na_disk['broken-details'] == 'admin removed' or \
+                   na_disk['broken-details'] == 'admin failed':
+                    status |= Disk.STATUS_REMOVED
+                elif na_disk['broken-details'] == 'admin testing':
+                    status |= Disk.STATUS_STOPPED | \
+                        Disk.STATUS_MAINTENANCE_MODE
+                else:
+                    status |= Disk.STATUS_ERROR
             elif rs == "unknown":
-                status = Disk.STATUS_UNKNOWN
+                status |= Disk.STATUS_UNKNOWN
             elif rs == 'zeroing':
-                status = Disk.STATUS_INITIALIZING
-            elif rs == 'reconstructing':
+                status |= Disk.STATUS_INITIALIZING | Disk.STATUS_SPARE_DISK
+            elif rs == 'reconstructing' or rs == 'copy':
                 # "reconstructing' should be a pool status, not disk status.
                 # disk under reconstructing should be considered as OK.
-                status = Disk.STATUS_OK
+                status |= Disk.STATUS_OK | Disk.STATUS_RECONSTRUCT
+            elif rs == 'spare':
+                if 'is-zeroed' in na_disk and na_disk['is-zeroed'] == 'true':
+                    status |= Disk.STATUS_OK | Disk.STATUS_SPARE_DISK
+                else:
+                    status |= Disk.STATUS_STOPPED | Disk.STATUS_SPARE_DISK
+            elif rs == 'present':
+                status |= Disk.STATUS_OK
+            elif rs == 'partner':
+                # Before we have good way to connect two controller,
+                # we have to mark partner disk as OTHER
+                status |= Disk.STATUS_OTHER
 
         if 'is-prefailed' in na_disk and na_disk['is-prefailed'] == 'true':
-            status = Disk.STATUS_PREDICTIVE_FAILURE
+            status |= Disk.STATUS_STOPPING
 
         if 'is-offline' in na_disk and na_disk['is-offline'] == 'true':
-            status = Disk.STATUS_ERROR
+            status |= Disk.STATUS_ERROR
+
+        if status == 0:
+            status = Disk.STATUS_UNKNOWN
+
         return status
 
     @staticmethod
@@ -267,7 +302,7 @@ class Ontap(IStorageAreaNetwork, INfs):
     def _disk(self, d, flag):
         status = Ontap._status_of_na_disk(d)
         return Disk(self._disk_id(d), d['name'],
-                    Ontap._disk_type(d['disk-type']),
+                    Ontap._disk_type_of(d),
                     int(d['bytes-per-sector']), int(d['physical-blocks']),
                     status, self.sys_info.id)
 
@@ -327,7 +362,6 @@ class Ontap(IStorageAreaNetwork, INfs):
                    "current node from another node. "
     }
 
-
     @staticmethod
     def _status_of_na_aggr(na_aggr):
         """
@@ -338,7 +372,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         status = 0
         status_info = ''
         na_aggr_raid_status_list = list(
-            x.strip() for x in na_aggr['raid-status'].split(',') )
+            x.strip() for x in na_aggr['raid-status'].split(','))
         for na_aggr_raid_status in na_aggr_raid_status_list:
             if na_aggr_raid_status in Ontap._AGGR_RAID_STATUS_CONV.keys():
                 status |= Ontap._AGGR_RAID_STATUS_CONV[na_aggr_raid_status]
@@ -566,7 +600,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         if pool is None or self._volume_on_aggr(pool, volume_src):
             #Thin provision copy the logical unit
             dest = os.path.dirname(_lsm_vol_to_na_vol_path(volume_src)) + '/' \
-                   + name
+                + name
             self.f.clone(_lsm_vol_to_na_vol_path(volume_src), dest)
             return None, self._get_volume(dest, volume_src.pool_id)
         else:

@@ -278,7 +278,11 @@ class Filer(object):
         """
         Return all lun-info
         """
-        return to_list(self._invoke('lun-list-info')['luns']['lun-info'])
+        try:
+            return to_list(self._invoke('lun-list-info')['luns']['lun-info'])
+        except TypeError:
+            # No LUN found.
+            return []
 
     def lun_create(self, full_path_name, size_bytes):
         """
