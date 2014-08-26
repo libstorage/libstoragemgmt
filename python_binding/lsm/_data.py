@@ -187,11 +187,19 @@ class Disk(IData):
     STATUS_OTHER = 1 << 2
     STATUS_PREDICTIVE_FAILURE = 1 << 3
     STATUS_ERROR = 1 << 4
-    STATUS_OFFLINE = 1 << 5
+    STATUS_REMOVED = 1 << 5
     STATUS_STARTING = 1 << 6
     STATUS_STOPPING = 1 << 7
     STATUS_STOPPED = 1 << 8
     STATUS_INITIALIZING = 1 << 9
+    STATUS_MAINTENANCE_MODE = 1 << 10
+    # In maintenance for bad sector scan, integerity check and etc
+    # It might be combined with STATUS_OK or
+    # STATUS_STOPPED for online maintenance or offline maintenance.
+    STATUS_SPARE_DISK = 1 << 11
+    # Indicate disk is a spare disk.
+    STATUS_RECONSTRUCT = 1 << 12
+    # Indicate disk is reconstructing data.
 
     def __init__(self, _id, _name, _disk_type, _block_size, _num_of_blocks,
                  _status, _system_id, _plugin_data=None):

@@ -161,8 +161,8 @@ def vol_rep_type_str_to_type(vol_rep_type_str):
 
 _DISK_TYPE_CONV = {
     Disk.DISK_TYPE_UNKNOWN: 'UNKNOWN',
-    Disk.DISK_TYPE_OTHER: 'OTHER',
-    Disk.DISK_TYPE_NOT_APPLICABLE: 'NOT_APPLICABLE',
+    Disk.DISK_TYPE_OTHER: 'Other',
+    Disk.DISK_TYPE_NOT_APPLICABLE: 'Not applicable',
     Disk.DISK_TYPE_ATA: 'ATA',
     Disk.DISK_TYPE_SATA: 'SATA',
     Disk.DISK_TYPE_SAS: 'SAS',
@@ -171,7 +171,7 @@ _DISK_TYPE_CONV = {
     Disk.DISK_TYPE_NL_SAS: 'NL_SAS',
     Disk.DISK_TYPE_HDD: 'HDD',
     Disk.DISK_TYPE_SSD: 'SSD',
-    Disk.DISK_TYPE_HYBRID: 'HYBRID',
+    Disk.DISK_TYPE_HYBRID: 'Hybrid',
     Disk.DISK_TYPE_LUN: 'Remote LUN',
 }
 
@@ -181,16 +181,19 @@ def disk_type_to_str(disk_type):
 
 
 _DISK_STATUS_CONV = {
-    Disk.STATUS_UNKNOWN: 'UNKNOWN',
+    Disk.STATUS_UNKNOWN: 'Unknown',
     Disk.STATUS_OK: 'OK',
-    Disk.STATUS_OTHER: 'OTHER',
-    Disk.STATUS_PREDICTIVE_FAILURE: 'PREDICTIVE_FAILURE',
-    Disk.STATUS_ERROR: 'ERROR',
-    Disk.STATUS_OFFLINE: 'OFFLINE',
-    Disk.STATUS_STARTING: 'STARTING',
-    Disk.STATUS_STOPPING: 'STOPPING',
-    Disk.STATUS_STOPPED: 'STOPPED',
-    Disk.STATUS_INITIALIZING: 'INITIALIZING',
+    Disk.STATUS_OTHER: 'Other',
+    Disk.STATUS_PREDICTIVE_FAILURE: 'Predictive failure',
+    Disk.STATUS_ERROR: 'Error',
+    Disk.STATUS_REMOVED: 'Removed',
+    Disk.STATUS_STARTING: 'Starting',
+    Disk.STATUS_STOPPING: 'Stopping',
+    Disk.STATUS_STOPPED: 'Stopped',
+    Disk.STATUS_INITIALIZING: 'Initializing',
+    Disk.STATUS_MAINTENANCE_MODE: 'Maintenance',
+    Disk.STATUS_SPARE_DISK: 'Spare',
+    Disk.STATUS_RECONSTRUCT: 'Reconstruct',
 }
 
 
