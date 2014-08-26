@@ -318,37 +318,6 @@ class Smis(IStorageAreaNetwork):
     DMTF_STATUS_COMPLETED = 17
     DMTF_STATUS_POWER_MODE = 18
 
-    _DMTF_STATUS_TO_DISK_STATUS = {
-        DMTF_STATUS_UNKNOWN: Disk.STATUS_UNKNOWN,
-        DMTF_STATUS_OTHER: Disk.STATUS_OTHER,
-        DMTF_STATUS_OK: Disk.STATUS_OK,
-        DMTF_STATUS_DEGRADED: Disk.STATUS_OTHER,
-        DMTF_STATUS_STRESSED: Disk.STATUS_OTHER,
-        DMTF_STATUS_PREDICTIVE_FAILURE: Disk.STATUS_PREDICTIVE_FAILURE,
-        DMTF_STATUS_ERROR: Disk.STATUS_ERROR,
-        DMTF_STATUS_NON_RECOVERABLE_ERROR: Disk.STATUS_ERROR,
-        DMTF_STATUS_STARTING: Disk.STATUS_STARTING,
-        DMTF_STATUS_STOPPING: Disk.STATUS_STOPPING,
-        DMTF_STATUS_STOPPED: Disk.STATUS_STOPPED,
-        DMTF_STATUS_IN_SERVICE: Disk.STATUS_OTHER,
-        DMTF_STATUS_NO_CONTACT: Disk.STATUS_OTHER,
-        DMTF_STATUS_LOST_COMMUNICATION: Disk.STATUS_OTHER,
-        DMTF_STATUS_DORMANT: Disk.STATUS_OFFLINE,
-        DMTF_STATUS_SUPPORTING_ENTITY_IN_ERROR: Disk.STATUS_OTHER,
-        DMTF_STATUS_COMPLETED: Disk.STATUS_OTHER,
-        DMTF_STATUS_POWER_MODE: Disk.STATUS_OTHER,
-    }
-
-    _DMTF_STATUS_TO_DISK_STATUS_INFO = {
-        DMTF_STATUS_DORMANT: 'Dormant',
-        DMTF_STATUS_IN_SERVICE: 'In service',
-        DMTF_STATUS_NO_CONTACT: 'No contact',
-        DMTF_STATUS_LOST_COMMUNICATION: 'Lost communication',
-        DMTF_STATUS_SUPPORTING_ENTITY_IN_ERROR: 'Supporting entity in error',
-        DMTF_STATUS_COMPLETED: 'Completed',
-        DMTF_STATUS_POWER_MODE: 'Power mode',
-    }
-
     # DSP 1033  Profile Registration
     DMTF_INTEROP_NAMESPACES = ['interop', 'root/interop']
     SMIS_DEFAULT_NAMESPACE = 'interop'
@@ -3069,29 +3038,6 @@ class Smis(IStorageAreaNetwork):
         """
         return ['BlockSize', 'NumberOfBlocks']
 
-    @staticmethod
-    def _disk_status_of(cim_disk):
-        """
-        Converting CIM_StorageDisk['OperationalStatus'] LSM Disk.status.
-        This might change since OperationalStatus does not provide enough
-        information.
-        Return (status, status_info)
-        """
-        status = Disk.STATUS_UNKNOWN
-        status_info = []
-        dmtf_statuses = cim_disk['OperationalStatus']
-        for dmtf_status in dmtf_statuses:
-            if dmtf_status in Smis._DMTF_STATUS_TO_DISK_STATUS.keys():
-                lsm_status = Smis._DMTF_STATUS_TO_DISK_STATUS[dmtf_status]
-                if status == Disk.STATUS_UNKNOWN:
-                    status = lsm_status
-                else:
-                    status |= lsm_status
-            if dmtf_status in Smis._DMTF_STATUS_TO_DISK_STATUS_INFO.keys():
-                status_info.append(
-                    Smis._DMTF_STATUS_TO_DISK_STATUS_INFO[dmtf_status])
-        return (status, ", ".join(status_info))
-
     def _new_disk(self, cim_disk, cim_ext):
         """
         Takes a CIM_DiskDrive and CIM_StorageExtent, returns a lsm Disk
@@ -3109,7 +3055,7 @@ class Smis(IStorageAreaNetwork):
         # These are mandatory
         # we do not check whether they follow the SNIA standard.
         if 'OperationalStatus' in cim_disk:
-            (status, status_info) = Smis._disk_status_of(cim_disk)
+            status = DMTF.cim_disk_status_of(cim_disk['OperationalStatus'])
         if 'Name' in cim_disk:
             name = cim_disk["Name"]
         if 'BlockSize' in cim_ext:
