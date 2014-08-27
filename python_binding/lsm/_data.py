@@ -239,13 +239,18 @@ class Volume(IData):
     SUPPORTED_SEARCH_KEYS = ['id', 'system_id', 'pool_id']
 
     #Replication types
-    (REPLICATE_UNKNOWN, REPLICATE_SNAPSHOT, REPLICATE_CLONE, REPLICATE_COPY,
-     REPLICATE_MIRROR_SYNC, REPLICATE_MIRROR_ASYNC) = \
-        (-1, 1, 2, 3, 4, 5)
+    REPLICATE_UNKNOWN = -1
+    REPLICATE_SNAPSHOT = 1
+    REPLICATE_CLONE = 2
+    REPLICATE_COPY = 3
+    REPLICATE_MIRROR_SYNC = 4
+    REPLICATE_MIRROR_ASYNC =5
 
     #Provisioning types
-    (PROVISION_UNKNOWN, PROVISION_THIN, PROVISION_FULL, PROVISION_DEFAULT) = \
-        (-1, 1, 2, 3)
+    PROVISION_UNKNOWN = -1
+    PROVISION_THIN = 1
+    PROVISION_FULL = 2
+    PROVISION_DEFAULT = 3
 
     ADMIN_STATE_DISABLED = 0
     ADMIN_STATE_ENABLED = 1
@@ -399,7 +404,7 @@ class FsSnapshot(IData):
 class NfsExport(IData):
     SUPPORTED_SEARCH_KEYS = ['id', 'fs_id']
     ANON_UID_GID_NA = -1
-    ANON_UID_GID_ERROR = (ANON_UID_GID_NA - 1)
+    ANON_UID_GID_ERROR = -2
 
     def __init__(self, _id, _fs_id, _export_path, _auth, _root, _rw, _ro,
                  _anonuid, _anongid, _options, _plugin_data=None):
@@ -592,10 +597,8 @@ class TargetPort(IData):
 
 
 class Capabilities(IData):
-    (
-        UNSUPPORTED,        # Not supported
-        SUPPORTED           # Supported
-    ) = (0, 1)
+    UNSUPPORTED = 0
+    SUPPORTED = 1
 
     _NUM = 512              # Indicate the maximum capability integer
 
