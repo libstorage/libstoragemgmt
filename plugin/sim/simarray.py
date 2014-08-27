@@ -73,19 +73,19 @@ class PoolRAID(object):
     MEMBER_TYPE_POOL = 2
 
     _MEMBER_TYPE_2_DISK_TYPE = {
-        MEMBER_TYPE_DISK: Disk.DISK_TYPE_UNKNOWN,
-        MEMBER_TYPE_DISK_MIX: Disk.DISK_TYPE_UNKNOWN,
-        MEMBER_TYPE_DISK_ATA: Disk.DISK_TYPE_ATA,
-        MEMBER_TYPE_DISK_SATA: Disk.DISK_TYPE_SATA,
-        MEMBER_TYPE_DISK_SAS: Disk.DISK_TYPE_SAS,
-        MEMBER_TYPE_DISK_FC: Disk.DISK_TYPE_FC,
-        MEMBER_TYPE_DISK_SOP: Disk.DISK_TYPE_SOP,
-        MEMBER_TYPE_DISK_SCSI: Disk.DISK_TYPE_SCSI,
-        MEMBER_TYPE_DISK_NL_SAS: Disk.DISK_TYPE_NL_SAS,
-        MEMBER_TYPE_DISK_HDD: Disk.DISK_TYPE_HDD,
-        MEMBER_TYPE_DISK_SSD: Disk.DISK_TYPE_SSD,
-        MEMBER_TYPE_DISK_HYBRID: Disk.DISK_TYPE_HYBRID,
-        MEMBER_TYPE_DISK_LUN: Disk.DISK_TYPE_LUN,
+        MEMBER_TYPE_DISK: Disk.TYPE_UNKNOWN,
+        MEMBER_TYPE_DISK_MIX: Disk.TYPE_UNKNOWN,
+        MEMBER_TYPE_DISK_ATA: Disk.TYPE_ATA,
+        MEMBER_TYPE_DISK_SATA: Disk.TYPE_SATA,
+        MEMBER_TYPE_DISK_SAS: Disk.TYPE_SAS,
+        MEMBER_TYPE_DISK_FC: Disk.TYPE_FC,
+        MEMBER_TYPE_DISK_SOP: Disk.TYPE_SOP,
+        MEMBER_TYPE_DISK_SCSI: Disk.TYPE_SCSI,
+        MEMBER_TYPE_DISK_NL_SAS: Disk.TYPE_NL_SAS,
+        MEMBER_TYPE_DISK_HDD: Disk.TYPE_HDD,
+        MEMBER_TYPE_DISK_SSD: Disk.TYPE_SSD,
+        MEMBER_TYPE_DISK_HYBRID: Disk.TYPE_HYBRID,
+        MEMBER_TYPE_DISK_LUN: Disk.TYPE_LUN,
     }
 
     @staticmethod
@@ -662,14 +662,14 @@ class SimData(object):
             d_id = SimData._disk_id(i)
             d_size = disk_size_2t
             d_name = "SATA Disk %0*d" % (D_FMT, i)
-            d_type = Disk.DISK_TYPE_SATA
+            d_type = Disk.TYPE_SATA
 
             if 2 <= i <= 8:
                 d_name = "SAS  Disk %0*d" % (D_FMT, i)
-                d_type = Disk.DISK_TYPE_SAS
+                d_type = Disk.TYPE_SAS
             elif 9 <= i:
                 d_name = "SSD  Disk %0*d" % (D_FMT, i)
-                d_type = Disk.DISK_TYPE_SSD
+                d_type = Disk.TYPE_SSD
                 if i <= 13:
                     d_size = disk_size_512g
 

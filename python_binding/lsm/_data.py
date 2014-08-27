@@ -161,26 +161,26 @@ class Disk(IData):
     BLOCK_COUNT_NOT_FOUND = -1
     BLOCK_SIZE_NOT_FOUND = -1
 
-    DISK_TYPE_UNKNOWN = 0
-    DISK_TYPE_OTHER = 1
-    DISK_TYPE_NOT_APPLICABLE = 2
-    DISK_TYPE_ATA = 3     # IDE disk which is seldomly used.
-    DISK_TYPE_SATA = 4
-    DISK_TYPE_SAS = 5
-    DISK_TYPE_FC = 6
-    DISK_TYPE_SOP = 7     # SCSI over PCIe(SSD)
-    DISK_TYPE_SCSI = 8
-    DISK_TYPE_LUN = 9   # Remote LUN was treated as a disk.
+    TYPE_UNKNOWN = 0
+    TYPE_OTHER = 1
+    TYPE_NOT_APPLICABLE = 2
+    TYPE_ATA = 3     # IDE disk which is seldomly used.
+    TYPE_SATA = 4
+    TYPE_SAS = 5
+    TYPE_FC = 6
+    TYPE_SOP = 7     # SCSI over PCIe(SSD)
+    TYPE_SCSI = 8
+    TYPE_LUN = 9   # Remote LUN was treated as a disk.
 
     # Due to complesity of disk types, we are defining these beside DMTF
     # standards:
-    DISK_TYPE_NL_SAS = 51    # Near-Line SAS==SATA disk + SAS port.
+    TYPE_NL_SAS = 51    # Near-Line SAS==SATA disk + SAS port.
 
     # in DMTF CIM 2.34.0+ CIM_DiskDrive['DiskType'], they also defined
     # SSD and HYBRID disk type. We use it as faillback.
-    DISK_TYPE_HDD = 52    # Normal HDD
-    DISK_TYPE_SSD = 53    # Solid State Drive
-    DISK_TYPE_HYBRID = 54    # uses a combination of HDD and SSD
+    TYPE_HDD = 52    # Normal HDD
+    TYPE_SSD = 53    # Solid State Drive
+    TYPE_HYBRID = 54    # uses a combination of HDD and SSD
 
     STATUS_UNKNOWN = 1 << 0
     STATUS_OK = 1 << 1

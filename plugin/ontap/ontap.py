@@ -198,20 +198,20 @@ class Ontap(IStorageAreaNetwork, INfs):
                           s['access-time'])
 
     _NA_DISK_TYPE_TO_LSM = {
-        'ATA': Disk.DISK_TYPE_ATA,
-        'BSAS': Disk.DISK_TYPE_SATA,
-        'EATA': Disk.DISK_TYPE_ATA,
-        'FCAL': Disk.DISK_TYPE_FC,
-        'FSAS': Disk.DISK_TYPE_NL_SAS,
-        'LUN':  Disk.DISK_TYPE_OTHER,
-        'MSATA': Disk.DISK_TYPE_SATA,
-        'SAS': Disk.DISK_TYPE_SAS,
-        'SATA': Disk.DISK_TYPE_SATA,
-        'SCSI': Disk.DISK_TYPE_SCSI,
-        'SSD': Disk.DISK_TYPE_SSD,
-        'XATA': Disk.DISK_TYPE_ATA,
-        'XSAS': Disk.DISK_TYPE_SAS,
-        'unknown': Disk.DISK_TYPE_UNKNOWN,
+        'ATA': Disk.TYPE_ATA,
+        'BSAS': Disk.TYPE_SATA,
+        'EATA': Disk.TYPE_ATA,
+        'FCAL': Disk.TYPE_FC,
+        'FSAS': Disk.TYPE_NL_SAS,
+        'LUN':  Disk.TYPE_OTHER,
+        'MSATA': Disk.TYPE_SATA,
+        'SAS': Disk.TYPE_SAS,
+        'SATA': Disk.TYPE_SATA,
+        'SCSI': Disk.TYPE_SCSI,
+        'SSD': Disk.TYPE_SSD,
+        'XATA': Disk.TYPE_ATA,
+        'XSAS': Disk.TYPE_SAS,
+        'unknown': Disk.TYPE_UNKNOWN,
     }
 
     @staticmethod
@@ -222,7 +222,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         na_disk_type = na_disk['effective-disk-type']
         if na_disk_type in Ontap._NA_DISK_TYPE_TO_LSM.keys():
             return Ontap._NA_DISK_TYPE_TO_LSM[na_disk_type]
-        return Disk.DISK_TYPE_UNKNOWN
+        return Disk.TYPE_UNKNOWN
 
     @staticmethod
     def _disk_id(na_disk):

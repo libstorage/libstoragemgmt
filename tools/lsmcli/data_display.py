@@ -160,19 +160,19 @@ def vol_rep_type_str_to_type(vol_rep_type_str):
 
 
 _DISK_TYPE_CONV = {
-    Disk.DISK_TYPE_UNKNOWN: 'UNKNOWN',
-    Disk.DISK_TYPE_OTHER: 'Other',
-    Disk.DISK_TYPE_NOT_APPLICABLE: 'Not applicable',
-    Disk.DISK_TYPE_ATA: 'ATA',
-    Disk.DISK_TYPE_SATA: 'SATA',
-    Disk.DISK_TYPE_SAS: 'SAS',
-    Disk.DISK_TYPE_FC: 'FC',
-    Disk.DISK_TYPE_SOP: 'SCSI Over PCI-E(SSD)',
-    Disk.DISK_TYPE_NL_SAS: 'NL_SAS',
-    Disk.DISK_TYPE_HDD: 'HDD',
-    Disk.DISK_TYPE_SSD: 'SSD',
-    Disk.DISK_TYPE_HYBRID: 'Hybrid',
-    Disk.DISK_TYPE_LUN: 'Remote LUN',
+    Disk.TYPE_UNKNOWN: 'UNKNOWN',
+    Disk.TYPE_OTHER: 'Other',
+    Disk.TYPE_NOT_APPLICABLE: 'Not applicable',
+    Disk.TYPE_ATA: 'ATA',
+    Disk.TYPE_SATA: 'SATA',
+    Disk.TYPE_SAS: 'SAS',
+    Disk.TYPE_FC: 'FC',
+    Disk.TYPE_SOP: 'SCSI Over PCI-E(SSD)',
+    Disk.TYPE_NL_SAS: 'NL_SAS',
+    Disk.TYPE_HDD: 'HDD',
+    Disk.TYPE_SSD: 'SSD',
+    Disk.TYPE_HYBRID: 'Hybrid',
+    Disk.TYPE_LUN: 'Remote LUN',
 }
 
 

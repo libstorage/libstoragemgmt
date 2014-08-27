@@ -284,11 +284,11 @@ class Smis(IStorageAreaNetwork):
     DMTF_DISK_TYPE_HYBRID = 4
 
     _DMTF_DISK_TYPE_2_LSM = {
-        DMTF_DISK_TYPE_UNKNOWN: Disk.DISK_TYPE_UNKNOWN,
-        DMTF_DISK_TYPE_OTHER: Disk.DISK_TYPE_OTHER,
-        DMTF_DISK_TYPE_HDD: Disk.DISK_TYPE_HDD,
-        DMTF_DISK_TYPE_SSD: Disk.DISK_TYPE_SSD,
-        DMTF_DISK_TYPE_HYBRID: Disk.DISK_TYPE_HYBRID,
+        DMTF_DISK_TYPE_UNKNOWN: Disk.TYPE_UNKNOWN,
+        DMTF_DISK_TYPE_OTHER: Disk.TYPE_OTHER,
+        DMTF_DISK_TYPE_HDD: Disk.TYPE_HDD,
+        DMTF_DISK_TYPE_SSD: Disk.TYPE_SSD,
+        DMTF_DISK_TYPE_HYBRID: Disk.TYPE_HYBRID,
     }
 
     @staticmethod
@@ -296,7 +296,7 @@ class Smis(IStorageAreaNetwork):
         if dmtf_disk_type in Smis._DMTF_DISK_TYPE_2_LSM.keys():
             return Smis._DMTF_DISK_TYPE_2_LSM[dmtf_disk_type]
         else:
-            return Disk.DISK_TYPE_UNKNOWN
+            return Disk.TYPE_UNKNOWN
 
     DMTF_STATUS_UNKNOWN = 0
     DMTF_STATUS_OTHER = 1
@@ -3048,7 +3048,7 @@ class Smis(IStorageAreaNetwork):
         name = ''
         block_size = Disk.BLOCK_SIZE_NOT_FOUND
         num_of_block = Disk.BLOCK_COUNT_NOT_FOUND
-        disk_type = Disk.DISK_TYPE_UNKNOWN
+        disk_type = Disk.TYPE_UNKNOWN
         status_info = ''
         sys_id = self._sys_id_child(cim_disk)
 
@@ -3071,9 +3071,9 @@ class Smis(IStorageAreaNetwork):
             if 'Caption' in cim_disk:
                 # EMC VNX introduced NL_SAS disk.
                 if cim_disk['Caption'] == 'NL_SAS':
-                    disk_type = Disk.DISK_TYPE_NL_SAS
+                    disk_type = Disk.TYPE_NL_SAS
 
-        if disk_type == Disk.DISK_TYPE_UNKNOWN and 'DiskType' in cim_disk:
+        if disk_type == Disk.TYPE_UNKNOWN and 'DiskType' in cim_disk:
             disk_type = \
                 Smis.dmtf_disk_type_2_lsm_disk_type(cim_disk['DiskType'])
 
@@ -3088,9 +3088,9 @@ class Smis(IStorageAreaNetwork):
                 if 'CreationClassName' in cim_pes[0]:
                     ccn = cim_pes[0]['CreationClassName']
                     if ccn == 'LSIESG_TargetSATAProtocolEndpoint':
-                        disk_type = Disk.DISK_TYPE_SATA
+                        disk_type = Disk.TYPE_SATA
                     if ccn == 'LSIESG_TargetSASProtocolEndpoint':
-                        disk_type = Disk.DISK_TYPE_SAS
+                        disk_type = Disk.TYPE_SAS
 
         new_disk = Disk(self._disk_id(cim_disk), name, disk_type, block_size,
                         num_of_block, status, sys_id)
