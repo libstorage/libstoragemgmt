@@ -1569,7 +1569,7 @@ MEMBER_FUNC_GET(const char *, lsm_nfs_export_plugin_data_get,
 lsm_capability_value_type lsm_capability_get(lsm_storage_capabilities *cap,
                                         lsm_capability_type t)
 {
-    lsm_capability_value_type rc = LSM_CAPABILITY_UNSUPPORTED;
+    lsm_capability_value_type rc = LSM_CAP_UNSUPPORTED;
 
     if( LSM_IS_CAPABILITIY(cap) && (uint32_t)t < cap->len ) {
         rc = (lsm_capability_value_type)cap->cap[t];
@@ -1580,7 +1580,7 @@ lsm_capability_value_type lsm_capability_get(lsm_storage_capabilities *cap,
 int LSM_DLL_EXPORT lsm_capability_supported(lsm_storage_capabilities *cap,
                                         lsm_capability_type t)
 {
-    if( lsm_capability_get(cap, t) == LSM_CAPABILITY_SUPPORTED ) {
+    if( lsm_capability_get(cap, t) == LSM_CAP_SUPPORTED ) {
         return 1;
     }
     return 0;

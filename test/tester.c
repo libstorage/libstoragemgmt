@@ -1807,7 +1807,7 @@ static void cap_test( lsm_storage_capabilities *cap,  lsm_capability_type t)
 
     fail_unless ( lsm_capability_supported(cap, t) != 0,
             "lsm_capability_supported returned unsupported");
-    fail_unless( supported == LSM_CAPABILITY_SUPPORTED,
+    fail_unless( supported == LSM_CAP_SUPPORTED,
                     "supported = %d for %d", supported, t);
 }
 
@@ -2054,7 +2054,7 @@ START_TEST(test_capability)
     fail_unless(cap != NULL);
 
     if( cap ) {
-        G(rc, lsm_capability_set_n, cap, LSM_CAPABILITY_SUPPORTED,
+        G(rc, lsm_capability_set_n, cap, LSM_CAP_SUPPORTED,
             LSM_CAP_VOLUMES,
             LSM_CAP_VOLUME_CREATE,
             LSM_CAP_VOLUME_RESIZE,
@@ -2102,14 +2102,14 @@ START_TEST(test_capability)
             );
 
         G(rc, lsm_capability_set, cap, LSM_CAP_EXPORTS,
-                LSM_CAPABILITY_SUPPORTED);
+                LSM_CAP_SUPPORTED);
 
         for( i = 0;
             i < sizeof(expected_present)/sizeof(expected_present[0]);
             ++i) {
 
             fail_unless( lsm_capability_get(cap, expected_present[i]) ==
-                            LSM_CAPABILITY_SUPPORTED);
+                            LSM_CAP_SUPPORTED);
         }
 
         for( i = 0;
@@ -2117,7 +2117,7 @@ START_TEST(test_capability)
             ++i) {
 
             fail_unless( lsm_capability_get(cap, expected_absent[i]) ==
-                            LSM_CAPABILITY_UNSUPPORTED);
+                            LSM_CAP_UNSUPPORTED);
         }
 
 

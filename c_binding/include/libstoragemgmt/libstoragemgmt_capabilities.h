@@ -31,8 +31,8 @@ extern "C" {
 /*Note: Domain is 0..255 */
 /** \enum lsm_capability_value_type Possible values for supported feature*/
 typedef enum {
-    LSM_CAPABILITY_UNSUPPORTED          = 0,        /**< Feature is not supported */
-    LSM_CAPABILITY_SUPPORTED            = 1         /**< Feature is supported */
+    LSM_CAP_UNSUPPORTED          = 0,        /**< Feature is not supported */
+    LSM_CAP_SUPPORTED            = 1         /**< Feature is supported */
 } lsm_capability_value_type;
 
 /** \enum lsm_capability_value_type Capabilities supported by array */
