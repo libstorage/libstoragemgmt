@@ -451,7 +451,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         if pool_name == '/vol/vol0':
             element_type |= Pool.ELEMENT_TYPE_SYS_RESERVED
 
-        return Pool(pool_id, pool_name, element_type, total_space, free_space,
+        return Pool(pool_id, pool_name, element_type, 0, total_space, free_space,
                     status, status_info, system_id)
 
     @handle_ontap_errors

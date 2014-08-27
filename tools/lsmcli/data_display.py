@@ -52,7 +52,8 @@ def _bit_map_to_str(bit_map, conv_dict):
     for cur_enum in conv_dict.keys():
         if cur_enum & bit_map:
             rc.append(conv_dict[cur_enum])
-    if len(rc) == 0:
+    # If there are no bits set we really don't need a string
+    if bit_map != 0 and len(rc) == 0:
         return 'Unknown(%s)' % hex(bit_map)
     return BIT_MAP_STRING_SPLITTER.join(rc)
 
@@ -118,9 +119,18 @@ _POOL_ELEMENT_TYPE_CONV = {
     Pool.ELEMENT_TYPE_DELTA: "DELTA",
 }
 
+_POOL_UNSUPPORTED_ACTION_CONV = {
+    Pool.UNSUPPORTED_VOLUME_EXPAND: "Volume expand",
+    Pool.UNSUPPORTED_VOLUME_SHRINK: "Volume shrink"
+}
+
 
 def pool_element_type_to_str(element_type):
     return _bit_map_to_str(element_type, _POOL_ELEMENT_TYPE_CONV)
+
+
+def pool_unsupported_actions_to_str(unsupported_action):
+    return _bit_map_to_str(unsupported_action, _POOL_UNSUPPORTED_ACTION_CONV)
 
 
 _VOL_PROVISION_CONV = {
@@ -299,6 +309,7 @@ class DisplayData(object):
     POOL_MAN_HEADER['id'] = 'ID'
     POOL_MAN_HEADER['name'] = 'Name'
     POOL_MAN_HEADER['element_type'] = 'Element type'
+    POOL_MAN_HEADER['unsupported_actions'] = 'Does not support'
     POOL_MAN_HEADER['total_space'] = 'Total Space'
     POOL_MAN_HEADER['free_space'] = 'Free Space'
     POOL_MAN_HEADER['status'] = 'Status'
@@ -310,6 +321,7 @@ class DisplayData(object):
     POOL_VALUE_CONV_ENUM = {
         'status': pool_status_to_str,
         'element_type': pool_element_type_to_str,
+        'unsupported_actions': pool_unsupported_actions_to_str
     }
 
     POOL_VALUE_CONV_HUMAN = ['total_space', 'free_space']

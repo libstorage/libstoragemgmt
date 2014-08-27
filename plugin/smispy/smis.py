@@ -255,12 +255,16 @@ class Smis(IStorageAreaNetwork):
     JOB_RETRIEVE_POOL = 2
 
     # DMTF CIM 2.37.0 experimental CIM_StoragePool['Usage']
-    DMTF_POOL_USAGE_SPARE = 8
+    DMTF_POOL_USAGE_UNRESTRICTED = 2
+    DMTF_POOL_USAGE_RESERVED_FOR_SYSTEM = 3
     DMTF_POOL_USAGE_DELTA = 4
+    DMTF_POOL_USAGE_SPARE = 8
 
     # DMTF CIM 2.29.1 CIM_StorageConfigurationCapabilities
     # ['SupportedStorageElementFeatures']
     DMTF_SUPPORT_VOL_CREATE = 3
+    DMTF_SUPPORT_ELEMENT_EXPAND = 12
+    DMTF_SUPPORT_ELEMENT_REDUCE = 13
 
     # DMTF CIM 2.37.0 experimental CIM_StorageConfigurationCapabilities
     # ['SupportedStorageElementTypes']
@@ -1650,9 +1654,10 @@ class Smis(IStorageAreaNetwork):
             (status, status_info) = DMTF.cim_pool_status_of(
                 cim_pool['OperationalStatus'])
 
-        element_type = self._pool_element_type(cim_pool)
+        element_type, unsupported = self._pool_element_type(cim_pool)
 
-        return Pool(pool_id, name, element_type, total_space, free_space,
+        return Pool(pool_id, name, element_type, unsupported,
+                    total_space, free_space,
                     status, status_info, system_id)
 
     @staticmethod
@@ -3171,6 +3176,7 @@ class Smis(IStorageAreaNetwork):
     def _pool_element_type(self, cim_pool):
 
         element_type = 0
+        unsupported = 0
 
         # check whether current pool support create volume or not.
         cim_sccs = self._c.Associators(
@@ -3185,10 +3191,16 @@ class Smis(IStorageAreaNetwork):
         # Manipulation, Figure 9 - Capabilities Specific to a StoragePool
         if len(cim_sccs) == 1:
             cim_scc = cim_sccs[0]
-            if 'SupportedStorageElementFeatures' in cim_scc and \
-                Smis.DMTF_SUPPORT_VOL_CREATE in \
-                    cim_scc['SupportedStorageElementFeatures']:
-                element_type = Pool.ELEMENT_TYPE_VOLUME
+            if 'SupportedStorageElementFeatures' in cim_scc:
+                supported_features = cim_scc['SupportedStorageElementFeatures']
+
+                if Smis.DMTF_SUPPORT_VOL_CREATE in supported_features:
+                    element_type |= Pool.ELEMENT_TYPE_VOLUME
+                if Smis.DMTF_SUPPORT_ELEMENT_EXPAND not in supported_features:
+                    unsupported |= Pool.UNSUPPORTED_VOLUME_EXPAND
+                if Smis.DMTF_SUPPORT_ELEMENT_REDUCE not in supported_features:
+                    unsupported |= Pool.UNSUPPORTED_VOLUME_SHRINK
+
         else:
             # IBM DS 8000 does not support StorageConfigurationCapabilities
             # per pool yet. They has been informed. Before fix, use a quick
@@ -3205,12 +3217,18 @@ class Smis(IStorageAreaNetwork):
                 element_type = Pool.ELEMENT_TYPE_VOLUME
 
         if 'Usage' in cim_pool:
-            if cim_pool['Usage'] == Smis.DMTF_POOL_USAGE_DELTA:
-                element_type = Pool.ELEMENT_TYPE_DELTA
-            if cim_pool['Usage'] == 2:
-                element_type = Pool.ELEMENT_TYPE_VOLUME
+            usage = cim_pool['Usage']
 
-        return element_type
+            if usage == Smis.DMTF_POOL_USAGE_UNRESTRICTED:
+                element_type |= Pool.ELEMENT_TYPE_VOLUME
+            if usage == Smis.DMTF_POOL_USAGE_RESERVED_FOR_SYSTEM or \
+                    usage > Smis.DMTF_POOL_USAGE_DELTA:
+                element_type |= Pool.ELEMENT_TYPE_SYS_RESERVED
+            if usage == Smis.DMTF_POOL_USAGE_DELTA:
+                # We blitz all the other elements types for this designation
+                element_type = Pool.ELEMENT_TYPE_DELTA
+
+        return element_type, unsupported
 
     def _profile_is_supported(self, profile_name, spec_ver, strict=False,
                               raise_error=False):

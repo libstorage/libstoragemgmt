@@ -2119,10 +2119,10 @@ int load( lsm_plugin_ptr c, const char *uri, const char *password,
 
         p = lsm_pool_record_alloc("POOL_3", "lsm_test_aggr",
                                     LSM_POOL_ELEMENT_TYPE_FS|
-                                    LSM_POOL_ELEMENT_TYPE_VOLUME,
+                                    LSM_POOL_ELEMENT_TYPE_VOLUME, 0,
                                             UINT64_MAX, UINT64_MAX,
                                             LSM_POOL_STATUS_OK, "",
-                                            sys_id, NULL);
+                                            sys_id, 0);
         if( p ) {
             pd->pools = g_hash_table_new_full(g_str_hash, g_str_equal, free,
                         free_pool_record);
@@ -2134,7 +2134,7 @@ int load( lsm_plugin_ptr c, const char *uri, const char *password,
                 snprintf(name, sizeof(name), "POOL_%d", i);
 
                 p = lsm_pool_record_alloc(name, name, LSM_POOL_ELEMENT_TYPE_FS|
-                                    LSM_POOL_ELEMENT_TYPE_VOLUME, UINT64_MAX,
+                                    LSM_POOL_ELEMENT_TYPE_VOLUME, 0, UINT64_MAX,
                                             UINT64_MAX, LSM_POOL_STATUS_OK, "",
                                             sys_id, NULL);
 

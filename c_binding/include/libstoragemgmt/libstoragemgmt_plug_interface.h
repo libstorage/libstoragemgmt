@@ -910,6 +910,7 @@ void LSM_DLL_EXPORT lsm_pool_free_space_set(lsm_pool *p, uint64_t free_space);
  * @param name          Human readable name
  * @param element_type  A bit field which states what the pool can be used to
  *                      create
+ * @param unsupported_actions   Things you cannot do with this pool
  * @param total_space   Total space
  * @param free_space    Space available
  * @param status        Pool status, bit field (See LSM_POOL_STATUS_XXXX constants)
@@ -920,6 +921,7 @@ void LSM_DLL_EXPORT lsm_pool_free_space_set(lsm_pool *p, uint64_t free_space);
  */
 lsm_pool LSM_DLL_EXPORT *lsm_pool_record_alloc(const char *id, const char *name,
                                 uint64_t element_type,
+                                uint64_t unsupported_actions,
                                 uint64_t total_space,
                                 uint64_t free_space,
                                 uint64_t status, const char* status_info,

@@ -308,6 +308,7 @@ class System(IData):
 @default_property('system_id', doc="System identifier")
 @default_property("plugin_data", doc="Plug-in private data")
 @default_property("element_type", doc="What pool can be used for")
+@default_property("unsupported_actions", doc="What cannot be done with this pool")
 class Pool(IData):
     """
     Pool specific information
@@ -328,6 +329,10 @@ class Pool(IData):
     ELEMENT_TYPE_DELTA = 1 << 4
     ELEMENT_TYPE_SYS_RESERVED = 1 << 10     # Reserved for system use
 
+    # Unsupported actions, what pool cannot be used for
+    UNSUPPORTED_VOLUME_EXPAND = 1 << 0
+    UNSUPPORTED_VOLUME_SHRINK = 1 << 1
+
     # Pool status could be any combination of these status.
     STATUS_UNKNOWN = 1 << 0
     STATUS_OK = 1 << 1
@@ -343,11 +348,14 @@ class Pool(IData):
     STATUS_GROWING = 1 << 15
     STATUS_DESTROYING = 1 << 17
 
-    def __init__(self, _id, _name, _element_type, _total_space, _free_space,
+    def __init__(self, _id, _name, _element_type, _unsupported_actions,
+                 _total_space, _free_space,
                  _status, _status_info, _system_id, _plugin_data=None):
         self._id = _id                      # Identifier
         self._name = _name                  # Human recognisable name
         self._element_type = _element_type  # What pool can be used to create
+        self._unsupported_actions = _unsupported_actions # What pool cannot be
+                                            # used for
         self._total_space = _total_space    # Total size
         self._free_space = _free_space      # Free space available
         self._status = _status              # Status of pool.

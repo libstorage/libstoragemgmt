@@ -107,6 +107,13 @@ char LSM_DLL_EXPORT *lsm_pool_system_id_get( lsm_pool *p );
  */
 uint64_t LSM_DLL_EXPORT lsm_pool_element_type_get( lsm_pool *p );
 
+/**
+ * Retrieve what the pool cannot be used for.
+ * @param p     Pool pointer
+ * @return bitmap of actions not supported.
+ */
+uint64_t LSM_DLL_EXPORT lsm_pool_unsupported_actions_get( lsm_pool *p);
+
 #ifdef  __cplusplus
 }
 #endif

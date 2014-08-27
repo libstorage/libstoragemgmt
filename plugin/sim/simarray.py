@@ -221,9 +221,10 @@ class SimArray(object):
         status = sim_pool['status']
         status_info = sim_pool['status_info']
         sys_id = sim_pool['sys_id']
+        unsupported_actions = sim_pool['unsupported_actions']
         return Pool(pool_id, name,
                     Pool.ELEMENT_TYPE_VOLUME | Pool.ELEMENT_TYPE_FS,
-                    total_space, free_space, status,
+                    unsupported_actions, total_space, free_space, status,
                     status_info, sys_id)
 
     def pools(self, flags=0):
@@ -552,6 +553,8 @@ class SimData(object):
         | Pool.ELEMENT_TYPE_POOL \
         | Pool.ELEMENT_TYPE_VOLUME
 
+    SIM_DATA_POOL_UNSUPPORTED_ACTIONS = 0
+
     SIM_DATA_SYS_POOL_ELEMENT_TYPE = SIM_DATA_POOL_ELEMENT_TYPE \
         | Pool.ELEMENT_TYPE_SYS_RESERVED
 
@@ -617,6 +620,8 @@ class SimData(object):
                 'status_info': SimData.SIM_DATA_POOL_STATUS_INFO,
                 'sys_id': SimData.SIM_DATA_SYS_ID,
                 'element_type': SimData.SIM_DATA_SYS_POOL_ELEMENT_TYPE,
+                'unsupported_actions': Pool.UNSUPPORTED_VOLUME_EXPAND | \
+                                       Pool.UNSUPPORTED_VOLUME_SHRINK
             },
             'POO2': {
                 'pool_id': 'POO2',
@@ -629,6 +634,7 @@ class SimData(object):
                 'status_info': SimData.SIM_DATA_POOL_STATUS_INFO,
                 'sys_id': SimData.SIM_DATA_SYS_ID,
                 'element_type': SimData.SIM_DATA_POOL_ELEMENT_TYPE,
+                'unsupported_actions': SimData.SIM_DATA_POOL_UNSUPPORTED_ACTIONS
             },
             # lsm_test_aggr pool is required by test/runtest.sh
             'lsm_test_aggr': {
@@ -641,6 +647,7 @@ class SimData(object):
                 'status_info': SimData.SIM_DATA_POOL_STATUS_INFO,
                 'sys_id': SimData.SIM_DATA_SYS_ID,
                 'element_type': SimData.SIM_DATA_POOL_ELEMENT_TYPE,
+                'unsupported_actions': SimData.SIM_DATA_POOL_UNSUPPORTED_ACTIONS
             },
         }
         self.vol_dict = {
@@ -701,6 +708,7 @@ class SimData(object):
             'status_info': SimData.SIM_DATA_POOL_STATUS_INFO,
             'sys_id': SimData.SIM_DATA_SYS_ID,
             'element_type': SimData.SIM_DATA_POOL_ELEMENT_TYPE,
+            'unsupported_actions': SimData.SIM_DATA_POOL_UNSUPPORTED_ACTIONS
         }
 
         self.tgt_dict = {

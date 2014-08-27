@@ -271,9 +271,11 @@ class TestPlugin(unittest.TestCase):
         for p in self.pool_by_sys_id[system_id]:
             # If the pool matches our criteria and min size we will consider
             # it, but we will select the one with the most free space for
-            # testing.
+            # testing and one that support volume expansion
             if p.element_type & element_type and \
-                    p.free_space > mb_in_bytes(MIN_POOL_SIZE):
+                    p.free_space > mb_in_bytes(MIN_POOL_SIZE) and \
+                    (not p.unsupported_actions &
+                     lsm.Pool.UNSUPPORTED_VOLUME_EXPAND):
                 if p.free_space > largest_free:
                     largest_free = p.free_space
                     rc = p
@@ -340,10 +342,10 @@ class TestPlugin(unittest.TestCase):
         disks = self.c.disks()
         self.assertTrue(len(disks) > 0, "We need at least 1 disk to test")
 
-    def _volume_create(self, system_id):
+    def _volume_create(self, system_id,
+                       element_type=lsm.Pool.ELEMENT_TYPE_VOLUME):
         if system_id in self.pool_by_sys_id:
-            p = self._get_pool_by_usage(system_id,
-                                        lsm.Pool.ELEMENT_TYPE_VOLUME)
+            p = self._get_pool_by_usage(system_id, element_type)
 
             self.assertTrue(p is not None, "Unable to find a suitable pool")
 

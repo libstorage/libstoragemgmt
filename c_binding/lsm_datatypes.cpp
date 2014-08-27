@@ -484,6 +484,7 @@ CREATE_ALLOC_ARRAY_FUNC(lsm_pool_record_array_alloc, lsm_pool *)
 
 lsm_pool *lsm_pool_record_alloc(const char *id, const char *name,
             uint64_t element_type,
+            uint64_t unsupported_actions,
             uint64_t totalSpace, uint64_t freeSpace, uint64_t status,
             const char* status_info,
             const char *system_id, const char * plugin_data)
@@ -494,6 +495,7 @@ lsm_pool *lsm_pool_record_alloc(const char *id, const char *name,
         rc->id = strdup(id);
         rc->name = strdup(name);
         rc->element_type = element_type;
+        rc->unsupported_actions = unsupported_actions;
         rc->total_space = totalSpace;
         rc->free_space = freeSpace;
         rc->status = status;
@@ -525,6 +527,7 @@ lsm_pool * lsm_pool_record_copy( lsm_pool *toBeCopied)
     if( LSM_IS_POOL(toBeCopied) ) {
         return lsm_pool_record_alloc(toBeCopied->id, toBeCopied->name,
                                     toBeCopied->element_type,
+                                    toBeCopied->unsupported_actions,
                                     toBeCopied->total_space,
                                     toBeCopied->free_space,
                                     toBeCopied->status,
@@ -632,6 +635,9 @@ MEMBER_FUNC_GET(const char *, lsm_pool_plugin_data_get, lsm_pool *p,
 
 MEMBER_FUNC_GET( uint64_t, lsm_pool_element_type_get, lsm_pool *p, p, LSM_IS_POOL,
                     element_type, 0)
+
+MEMBER_FUNC_GET( uint64_t, lsm_pool_unsupported_actions_get, lsm_pool *p, p,
+                    LSM_IS_POOL, element_type, 0)
 
 CREATE_ALLOC_ARRAY_FUNC(lsm_volume_record_array_alloc, lsm_volume *)
 

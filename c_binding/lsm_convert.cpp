@@ -191,6 +191,7 @@ lsm_pool *value_to_pool(Value &pool)
         rc = lsm_pool_record_alloc(i["id"].asString().c_str(),
             i["name"].asString().c_str(),
             i["element_type"].asUint64_t(),
+            i["unsupported_actions"].asUint64_t(),
             i["total_space"].asUint64_t(),
             i["free_space"].asUint64_t(),
             i["status"].asUint64_t(),
@@ -209,6 +210,7 @@ Value pool_to_value(lsm_pool *pool)
         p["id"] = Value(pool->id);
         p["name"] = Value(pool->name);
         p["element_type"] = Value(pool->element_type);
+        p["unsupported_actions"] = Value(pool->unsupported_actions);
         p["total_space"] = Value(pool->total_space);
         p["free_space"] = Value(pool->free_space);
         p["status"] = Value(pool->status);

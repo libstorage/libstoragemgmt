@@ -180,7 +180,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                 et = Pool.ELEMENT_TYPE_VOLUME
 
             pools.append(Pool(pool['name'],
-                              pool['name'], et, pool['size'],
+                              pool['name'], et, 0, pool['size'],
                               pool['free_size'], Pool.STATUS_UNKNOWN, '',
                               'targetd'))
         return search_property(pools, search_key, search_value)
