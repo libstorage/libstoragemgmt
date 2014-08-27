@@ -136,6 +136,9 @@ good "find $rootdir/ \( ! -regex '.*/\..*' \) -type f -name \*_lsmplugin -exec c
 good "cp $bin_plugin/*_lsmplugin $plugins"
 good "ls -lh $plugins"
 
+#Check to make sure that constants are correct
+good "perl ../tools/utility/check_const.pl"
+
 #Start daemon
 $LSMD_DAEMON \
     --plugindir $plugins \

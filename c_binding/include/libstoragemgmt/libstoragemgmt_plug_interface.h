@@ -243,7 +243,7 @@ typedef int (*lsm_plug_target_port_list)( lsm_plugin_ptr c,
  */
 typedef int (*lsm_plug_volume_create)(lsm_plugin_ptr c, lsm_pool *pool,
                         const char *volume_name, uint64_t size,
-                        lsm_provision_type provisioning, lsm_volume **new_volume,
+                        lsm_volume_provision_type provisioning, lsm_volume **new_volume,
                         char **job, lsm_flag flags);
 
 /**
@@ -319,19 +319,6 @@ typedef int (*lsm_plug_volume_resize)(lsm_plugin_ptr c, lsm_volume *volume,
  */
 typedef int (*lsm_plug_volume_delete)(lsm_plugin_ptr c, lsm_volume *volume,
                                     char **job, lsm_flag flags);
-
-/**
- * Check on the status of a volume
- * @param[in]   c                   Valid lsm plug-in pointer
- * @param[in]   v                   Volume to retrieve status for
- * @param[out]  status              Status of volume
- * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
- */
-typedef int (*lsm_plug_volume_status)(lsm_plugin_ptr c, lsm_volume *v,
-                                                lsm_volume_status_type *status,
-                                                lsm_flag flags);
-
 /**
  * Place a volume online, callback function signature.
  * @param[in]   c                   Valid lsm plug-in pointer
@@ -886,9 +873,7 @@ int LSM_DLL_EXPORT lsm_plugin_error_log( lsm_plugin_ptr plug, lsm_error_ptr erro
  * @param debug_data_size
  * @return Null on error, else valid error error record.
  */
-lsm_error_ptr LSM_DLL_EXPORT lsm_error_create( lsm_error_number code,
-                                lsm_error_domain domain,
-                                lsm_error_level level, const char* msg,
+lsm_error_ptr LSM_DLL_EXPORT lsm_error_create(lsm_error_number code, const char* msg,
                                 const char *exception, const char *debug,
                                 const void *debug_data, uint32_t debug_data_size);
 
@@ -897,13 +882,13 @@ lsm_error_ptr LSM_DLL_EXPORT lsm_error_create( lsm_error_number code,
  * Plug-in macros for creating errors
  */
 #define LSM_ERROR_CREATE_PLUGIN_MSG( code, msg )        \
-        lsm_error_create(code, LSM_ERR_DOMAIN_PLUG_IN, LSM_ERR_LEVEL_ERROR, msg, NULL, NULL, NULL, 0)
+        lsm_error_create(code, msg, NULL, NULL, NULL, 0)
 
 #define LSM_ERROR_CREATE_PLUGIN_EXCEPTION( code, msg, exception) \
-        lsm_error_create((code), LSM_ERR_DOMAIN_PLUG_IN, LSM_ERR_LEVEL_ERROR, (msg), (exception), NULL, NULL, 0)
+        lsm_error_create((code), (msg), (exception), NULL, NULL, 0)
 
 #define LSM_ERROR_CREATE_PLUGIN_DEBUG( code, msg, exception, debug, debug_data, debug_len) \
-        lsm_error_create((code), LSM_ERR_DOMAIN_PLUG_IN, LSM_ERR_LEVEL_ERROR, (msg), (exception), (debug), (debug_data), debug_len))
+        lsm_error_create((code), (msg), (exception), (debug), (debug_data), debug_len))
 
 /**
  * Helper function to create an array of lsm_pool *

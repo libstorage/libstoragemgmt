@@ -135,6 +135,11 @@ fi
 
 AM_CONDITIONAL([BUILD_C_UNIT], [test "x${want_c_unit}" = "xyes"])
 
+dnl =========================================================================
+dnl Check for perl, used for code constants checking
+dnl =========================================================================
+AC_PATH_PROGS(PERL, perl)
+
 dnl ==========================================================================
 dnl Check for python2 as it is needed for the base cmd line function
 dnl ==========================================================================
@@ -203,6 +208,7 @@ AC_OUTPUT(libstoragemgmt.pc \
           tools/Makefile \
           tools/udev/Makefile \
           tools/lsmcli/Makefile \
+          tools/utility/Makefile \
           packaging/Makefile \
           packaging/daemon/Makefile \
           packaging/libstoragemgmt.spec \

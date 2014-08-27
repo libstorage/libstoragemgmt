@@ -206,8 +206,7 @@ static int lsmErrorLog(lsm_connect *c, lsm_error_ptr error)
 static lsm_error_number logException(lsm_connect *c, lsm_error_number error,
                                 const char *message, const char *exception_msg)
 {
-    lsm_error_ptr err = lsm_error_create(error, LSM_ERR_DOMAIN_FRAME_WORK,
-                                        LSM_ERR_LEVEL_ERROR, message,
+    lsm_error_ptr err = lsm_error_create(error, message,
                                         exception_msg, NULL,
                                         NULL, 0);
     if( err ) {
@@ -948,7 +947,7 @@ static void* parse_job_response(lsm_connect *c, Value response, int &rc,
 }
 
 int lsm_volume_create(lsm_connect *c, lsm_pool *pool, const char *volumeName,
-                        uint64_t size, lsm_provision_type provisioning,
+                        uint64_t size, lsm_volume_provision_type provisioning,
                         lsm_volume **newVolume, char **job, lsm_flag flags)
 {
     CONN_SETUP(c);

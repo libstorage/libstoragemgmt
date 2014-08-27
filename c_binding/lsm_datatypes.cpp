@@ -259,21 +259,15 @@ static int connection_establish( lsm_connect *c, const char * password,
 
         c->tp->rpc("plugin_register", p);
     } catch (const ValueException &ve) {
-        *e = lsm_error_create(LSM_ERR_TRANSPORT_SERIALIZATION,
-                                LSM_ERR_DOMAIN_FRAME_WORK,
-                                LSM_ERR_LEVEL_ERROR, "Error in serialization",
+        *e = lsm_error_create(LSM_ERR_TRANSPORT_SERIALIZATION, "Error in serialization",
                                 ve.what(), NULL, NULL, 0 );
         rc = LSM_ERR_TRANSPORT_SERIALIZATION;
     } catch (const LsmException &le) {
-        *e = lsm_error_create(LSM_ERR_TRANSPORT_COMMUNICATION,
-                                LSM_ERR_DOMAIN_FRAME_WORK,
-                                LSM_ERR_LEVEL_ERROR, "Error in communication",
+        *e = lsm_error_create(LSM_ERR_TRANSPORT_COMMUNICATION, "Error in communication",
                                 le.what(), NULL, NULL, 0 );
         rc = LSM_ERR_TRANSPORT_COMMUNICATION;
     } catch (...) {
-        *e = lsm_error_create(LSM_ERR_LIB_BUG,
-                                LSM_ERR_DOMAIN_FRAME_WORK,
-                                LSM_ERR_LEVEL_ERROR, "Undefined exception",
+        *e = lsm_error_create(LSM_ERR_LIB_BUG, "Undefined exception",
                                 NULL, NULL, NULL, 0 );
         rc = LSM_ERR_LIB_BUG;
     }
@@ -317,17 +311,13 @@ int driver_load(lsm_connect *c, const char *plugin_name, const char *password,
                     }
                 }
             } else {
-                 *e = lsm_error_create(LSM_ERR_PLUGIN_IPC_FAIL,
-                                    LSM_ERR_DOMAIN_FRAME_WORK,
-                                    LSM_ERR_LEVEL_ERROR, "Unable to connect to plugin",
+                 *e = lsm_error_create(LSM_ERR_PLUGIN_IPC_FAIL, "Unable to connect to plugin",
                                     NULL, dlerror(), NULL, 0 );
 
                 rc = LSM_ERR_PLUGIN_IPC_FAIL;
             }
         } else {
-            *e = lsm_error_create(LSM_ERR_PLUGIN_SOCKET_PERMISSION,
-                                LSM_ERR_DOMAIN_FRAME_WORK,
-                                LSM_ERR_LEVEL_ERROR, "Unable to access plugin",
+            *e = lsm_error_create(LSM_ERR_PLUGIN_SOCKET_PERMISSION, "Unable to access plugin",
                                 NULL, NULL, NULL, 0 );
 
             rc = LSM_ERR_PLUGIN_SOCKET_PERMISSION;
@@ -338,8 +328,7 @@ int driver_load(lsm_connect *c, const char *plugin_name, const char *password,
     return rc;
 }
 
-lsm_error_ptr lsm_error_create(lsm_error_number code, lsm_error_domain domain,
-    lsm_error_level level, const char* msg,
+lsm_error_ptr lsm_error_create(lsm_error_number code, const char* msg,
     const char *exception, const char *debug,
     const void *debug_data, uint32_t debug_data_size)
 {
@@ -348,8 +337,6 @@ lsm_error_ptr lsm_error_create(lsm_error_number code, lsm_error_domain domain,
     if (err) {
         err->magic = LSM_ERROR_MAGIC;
         err->code = code;
-        err->domain = domain;
-        err->level = level;
 
         /* Any of these strdup calls could fail, but we will continue*/
         if (msg) {
@@ -422,16 +409,6 @@ int lsm_error_free(lsm_error_ptr e)
 lsm_error_number lsm_error_number_get(lsm_error_ptr e)
 {
     LSM_RETURN_ERR_VAL(lsm_error_number, e, code, -1);
-}
-
-lsm_error_domain lsm_error_domain_get(lsm_error_ptr e)
-{
-    LSM_RETURN_ERR_VAL(lsm_error_domain, e, domain, -1);
-}
-
-lsm_error_level lsm_error_level_get(lsm_error_ptr e)
-{
-    LSM_RETURN_ERR_VAL(lsm_error_level, e, level, -1);
 }
 
 char* lsm_error_message_get( lsm_error_ptr e)
@@ -1907,7 +1884,7 @@ lsm_target_port LSM_DLL_EXPORT *lsm_target_port_copy(lsm_target_port *tp)
 }
 
 MEMBER_FUNC_GET(const char *, lsm_target_port_id_get, lsm_target_port *tp, tp, LSM_IS_TARGET_PORT, id, NULL)
-MEMBER_FUNC_GET(lsm_target_port_type, lsm_target_port_type_get, lsm_target_port *tp, tp, LSM_IS_TARGET_PORT, port_type, LSM_PORT_TYPE_UNKNOWN)
+MEMBER_FUNC_GET(lsm_target_port_type, lsm_target_port_type_get, lsm_target_port *tp, tp, LSM_IS_TARGET_PORT, port_type, LSM_TARGET_PORT_TYPE_UNKNOWN)
 MEMBER_FUNC_GET(const char *, lsm_target_port_service_address_get, lsm_target_port *tp, tp, LSM_IS_TARGET_PORT, service_address, NULL)
 MEMBER_FUNC_GET(const char *, lsm_target_port_network_address_get, lsm_target_port *tp, tp, LSM_IS_TARGET_PORT, network_address, NULL)
 MEMBER_FUNC_GET(const char *, lsm_target_port_physical_address_get, lsm_target_port *tp, tp, LSM_IS_TARGET_PORT, physical_address, NULL)

@@ -556,11 +556,11 @@ class AccessGroup(IData):
 class TargetPort(IData):
     SUPPORTED_SEARCH_KEYS = ['id', 'system_id']
 
-    PORT_TYPE_UNKNOWN = 0
-    PORT_TYPE_OTHER = 1
-    PORT_TYPE_FC = 2
-    PORT_TYPE_FCOE = 3
-    PORT_TYPE_ISCSI = 4
+    TYPE_UNKNOWN = 0
+    TYPE_OTHER = 1
+    TYPE_FC = 2
+    TYPE_FCOE = 3
+    TYPE_ISCSI = 4
 
     def __init__(self, _id, _port_type, _service_address,
                  _network_address, _physical_address, _physical_name,

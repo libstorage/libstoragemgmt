@@ -1105,7 +1105,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         for f in fcp:
             a = f['addr']
             adapter = f['adapter']
-            tp.append(TargetPort(md5(a), TargetPort.PORT_TYPE_FC, a, a, a,
+            tp.append(TargetPort(md5(a), TargetPort.TYPE_FC, a, a, a,
                                  adapter, self.sys_info.id))
 
         node_name = self.f.iscsi_node_name()
@@ -1118,7 +1118,7 @@ class Ontap(IStorageAreaNetwork, INfs):
             physical_name = i['interface']
             tid = md5(service_address + network_address + physical_address +
                       physical_name)
-            tp.append(TargetPort(tid, TargetPort.PORT_TYPE_ISCSI,
+            tp.append(TargetPort(tid, TargetPort.TYPE_ISCSI,
                                  service_address,
                                  network_address,
                                  physical_address,

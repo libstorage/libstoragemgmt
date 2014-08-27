@@ -217,9 +217,7 @@ struct LSM_DLL_LOCAL _lsm_connect {
  */
 struct LSM_DLL_LOCAL _lsm_error {
     uint32_t    magic;          /**< Magic, used for struct validation */
-    lsm_error_number code;        /**< Error code */
-    lsm_error_domain domain;      /**< Where the error occured */
-    lsm_error_level level;        /**< Severity of the error */
+    lsm_error_number code;      /**< Error code */
     uint32_t    reserved;       /**< Reserved */
     char *message;              /**< Human readable error message */
     char *exception;            /**< Exception message if present */

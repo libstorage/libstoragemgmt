@@ -411,12 +411,6 @@ def get_class(class_name):
     return m
 
 
-class ErrorLevel(object):
-    NONE = 0
-    WARNING = 1
-    ERROR = 2
-
-
 #Note: Some of these don't make sense for python, but they do for other
 #Languages so we will be keeping them consistent even though we won't be
 #using them.
@@ -467,7 +461,6 @@ class ErrorNumber(object):
 
     PLUGIN_SOCKET_PERMISSION = 307  # Incorrect permission on UNIX domain
                                     # socket used for IPC
-    PLUGIN_REGISTRATION = 308
     PLUGIN_NOT_EXIST = 311
 
     NOT_ENOUGH_SPACE = 350

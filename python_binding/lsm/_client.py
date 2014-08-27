@@ -63,6 +63,12 @@ def _raise_no_daemon():
 # parameter names.  Makes the code compact, but you will break things if the
 # IPlugin class does not match the method names and parameters here!
 class Client(INetworkAttachedStorage):
+
+    ##
+    # Used for default flag value
+    #
+    FLAG_RSVD = 0
+
     """
     Client side class used for managing storage that utilises RPC mechanism.
     """

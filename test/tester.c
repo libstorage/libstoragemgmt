@@ -129,7 +129,7 @@ lsm_pool *get_test_pool(lsm_connect *c)
     lsm_pool *test_pool = NULL;
     int rc = 0;
 
-    G(rc, lsm_pool_list, c, NULL, NULL, &pools, &count, LSM_FLAG_RSVD);
+    G(rc, lsm_pool_list, c, NULL, NULL, &pools, &count, LSM_CLIENT_FLAG_RSVD);
 
     if( LSM_ERR_OK == rc ) {
         uint32_t i = 0;
@@ -168,7 +168,7 @@ void setup(void)
     lsm_error_ptr e = NULL;
 
     int rc = lsm_connect_password(plugin_to_use(), NULL, &c, 30000, &e,
-                LSM_FLAG_RSVD);
+                LSM_CLIENT_FLAG_RSVD);
 
     if( LSM_ERR_OK == rc ) {
         if( getenv("LSM_DEBUG_PLUGIN") ) {
@@ -185,7 +185,7 @@ void teardown(void)
      */
 
     if( c ) {
-        lsm_connect_close(c, LSM_FLAG_RSVD);
+        lsm_connect_close(c, LSM_CLIENT_FLAG_RSVD);
         c = NULL;
     }
 }
@@ -197,14 +197,14 @@ void wait_for_job(lsm_connect *c, char **job_id)
     int rc = 0;
 
     do {
-        G(rc, lsm_job_status_get, c, *job_id, &status, &pc, LSM_FLAG_RSVD);
+        G(rc, lsm_job_status_get, c, *job_id, &status, &pc, LSM_CLIENT_FLAG_RSVD);
         printf("GENERIC: Job %s in progress, %d done, status = %d\n", *job_id,
                 pc, status);
         usleep(POLL_SLEEP);
 
     } while( status == LSM_JOB_INPROGRESS );
 
-    G(rc, lsm_job_free, c, job_id, LSM_FLAG_RSVD);
+    G(rc, lsm_job_free, c, job_id, LSM_CLIENT_FLAG_RSVD);
 
     fail_unless( LSM_JOB_COMPLETE == status);
     fail_unless( 100 == pc);
@@ -220,7 +220,7 @@ lsm_volume *wait_for_job_vol(lsm_connect *c, char **job_id)
 
     do {
         G(rc, lsm_job_status_volume_get, c, *job_id, &status, &pc, &vol,
-            LSM_FLAG_RSVD);
+            LSM_CLIENT_FLAG_RSVD);
         printf("VOLUME: Job %s in progress, %d done, status = %d\n",
                 *job_id, pc, status);
         usleep(POLL_SLEEP);
@@ -230,7 +230,7 @@ lsm_volume *wait_for_job_vol(lsm_connect *c, char **job_id)
     printf("Volume complete: Job %s percent %d done, status = %d, rc=%d\n",
             *job_id, pc, status, rc);
 
-    G(rc, lsm_job_free, c, job_id, LSM_FLAG_RSVD);
+    G(rc, lsm_job_free, c, job_id, LSM_CLIENT_FLAG_RSVD);
 
     fail_unless( LSM_JOB_COMPLETE == status);
     fail_unless( 100 == pc);
@@ -247,14 +247,14 @@ lsm_pool *wait_for_job_pool(lsm_connect *c, char **job_id)
 
     do {
         G(rc, lsm_job_status_pool_get, c, *job_id, &status, &pc, &pool,
-                LSM_FLAG_RSVD);
+                LSM_CLIENT_FLAG_RSVD);
         printf("POOL: Job %s in progress, %d done, status = %d\n", *job_id, pc,
                 status);
         usleep(POLL_SLEEP);
 
     } while( status == LSM_JOB_INPROGRESS );
 
-    G(rc, lsm_job_free, c, job_id, LSM_FLAG_RSVD);
+    G(rc, lsm_job_free, c, job_id, LSM_CLIENT_FLAG_RSVD);
 
     fail_unless( LSM_JOB_COMPLETE == status);
     fail_unless( 100 == pc);
@@ -271,14 +271,14 @@ lsm_fs *wait_for_job_fs(lsm_connect *c, char **job_id)
 
     do {
         G(rc, lsm_job_status_fs_get, c, *job_id, &status, &pc, &fs,
-                LSM_FLAG_RSVD);
+                LSM_CLIENT_FLAG_RSVD);
         printf("FS: Job %s in progress, %d done, status = %d\n", *job_id, pc,
                 status);
         usleep(POLL_SLEEP);
 
     } while( status == LSM_JOB_INPROGRESS );
 
-    G(rc, lsm_job_free, c, job_id, LSM_FLAG_RSVD);
+    G(rc, lsm_job_free, c, job_id, LSM_CLIENT_FLAG_RSVD);
     fail_unless( LSM_JOB_COMPLETE == status);
     fail_unless( 100 == pc);
 
@@ -294,14 +294,14 @@ lsm_fs_ss *wait_for_job_ss(lsm_connect *c, char **job_id)
 
     do {
         G(rc, lsm_job_status_ss_get, c, *job_id, &status, &pc, &ss,
-                LSM_FLAG_RSVD);
+                LSM_CLIENT_FLAG_RSVD);
         printf("SS: Job %s in progress, %d done, status = %d\n",
                 *job_id, pc, status);
         usleep(POLL_SLEEP);
 
     } while( status == LSM_JOB_INPROGRESS );
 
-    G(rc, lsm_job_free, c, job_id, LSM_FLAG_RSVD);
+    G(rc, lsm_job_free, c, job_id, LSM_CLIENT_FLAG_RSVD);
 
     fail_unless( LSM_JOB_COMPLETE == status);
     fail_unless( 100 == pc);
@@ -346,7 +346,7 @@ void create_volumes(lsm_connect *c, lsm_pool *p, int num)
         snprintf(name, sizeof(name), "test %d", i);
 
         int vc = lsm_volume_create(c, p, name, 20000000,
-                                    LSM_PROVISION_DEFAULT, &n, &job, LSM_FLAG_RSVD);
+                                    LSM_VOLUME_PROVISION_DEFAULT, &n, &job, LSM_CLIENT_FLAG_RSVD);
 
         fail_unless( vc == LSM_ERR_OK || vc == LSM_ERR_JOB_STARTED,
                 "lsmVolumeCreate %d (%s)", vc, error(lsm_error_last_get(c)));
@@ -369,7 +369,7 @@ lsm_system *get_system(lsm_connect *c)
     uint32_t count = 0;
     int rc = 0;
 
-    G(rc, lsm_system_list, c, &sys, &count, LSM_FLAG_RSVD);
+    G(rc, lsm_system_list, c, &sys, &count, LSM_CLIENT_FLAG_RSVD);
 
     if( LSM_ERR_OK == rc && count) {
         rc_sys = lsm_system_record_copy(sys[0]);
@@ -390,10 +390,10 @@ START_TEST(test_smoke_test)
     uint32_t tmo = 0;
 
     //Set timeout.
-    G(rc, lsm_connect_timeout_set, c, set_tmo, LSM_FLAG_RSVD);
+    G(rc, lsm_connect_timeout_set, c, set_tmo, LSM_CLIENT_FLAG_RSVD);
 
     //Get time-out.
-    G(rc, lsm_connect_timeout_get, c, &tmo, LSM_FLAG_RSVD);
+    G(rc, lsm_connect_timeout_get, c, &tmo, LSM_CLIENT_FLAG_RSVD);
 
     fail_unless( set_tmo == tmo, " %u != %u", set_tmo, tmo );
 
@@ -402,7 +402,7 @@ START_TEST(test_smoke_test)
     int poolToUse = -1;
 
     //Get pool list
-    G(rc, lsm_pool_list, c, NULL, NULL, &pools, &poolCount, LSM_FLAG_RSVD);
+    G(rc, lsm_pool_list, c, NULL, NULL, &pools, &poolCount, LSM_CLIENT_FLAG_RSVD);
 
     //Check pool count
     count = poolCount;
@@ -437,7 +437,7 @@ START_TEST(test_smoke_test)
         selectedPool = pools[poolToUse];
 
         int vc = lsm_volume_create(c, pools[poolToUse], "test", 20000000,
-                                    LSM_PROVISION_DEFAULT, &n, &job, LSM_FLAG_RSVD);
+                                    LSM_VOLUME_PROVISION_DEFAULT, &n, &job, LSM_CLIENT_FLAG_RSVD);
 
         fail_unless( vc == LSM_ERR_OK || vc == LSM_ERR_JOB_STARTED,
                     "lsmVolumeCreate %d (%s)", vc, error(lsm_error_last_get(c)));
@@ -451,10 +451,10 @@ START_TEST(test_smoke_test)
         uint8_t dependants = 10;
         int child_depends = 0;
         G(child_depends, lsm_volume_child_dependency, c, n, &dependants,
-                LSM_FLAG_RSVD);
+                LSM_CLIENT_FLAG_RSVD);
         fail_unless(dependants == 0);
 
-        child_depends = lsm_volume_child_dependency_delete(c, n, &job, LSM_FLAG_RSVD);
+        child_depends = lsm_volume_child_dependency_delete(c, n, &job, LSM_CLIENT_FLAG_RSVD);
         if( LSM_ERR_JOB_STARTED == child_depends ) {
             wait_for_job(c, &job);
         } else {
@@ -472,7 +472,7 @@ START_TEST(test_smoke_test)
 
         int rep_bs = 0;
         G(rep_bs, lsm_volume_replicate_range_block_size, c, system, &bs,
-                LSM_FLAG_RSVD);
+                LSM_CLIENT_FLAG_RSVD);
         fail_unless(512 == bs);
 
         lsm_system_record_free(system);
@@ -500,7 +500,7 @@ START_TEST(test_smoke_test)
         }
 
         int rep_range =  lsm_volume_replicate_range(c, LSM_VOLUME_REPLICATE_CLONE,
-                                                    n, n, range, 3, &job, LSM_FLAG_RSVD);
+                                                    n, n, range, 3, &job, LSM_CLIENT_FLAG_RSVD);
 
         if( LSM_ERR_JOB_STARTED == rep_range ) {
             wait_for_job(c, &job);
@@ -516,12 +516,12 @@ START_TEST(test_smoke_test)
         G(rc, lsm_block_range_record_array_free, range, 3);
 
         int online = 0;
-        G(online, lsm_volume_disable, c, n, LSM_FLAG_RSVD);
+        G(online, lsm_volume_disable, c, n, LSM_CLIENT_FLAG_RSVD);
 
-        G(online, lsm_volume_enable, c, n, LSM_FLAG_RSVD);
+        G(online, lsm_volume_enable, c, n, LSM_CLIENT_FLAG_RSVD);
 
         char *jobDel = NULL;
-        int delRc = lsm_volume_delete(c, n, &jobDel, LSM_FLAG_RSVD);
+        int delRc = lsm_volume_delete(c, n, &jobDel, LSM_CLIENT_FLAG_RSVD);
 
         fail_unless( delRc == LSM_ERR_OK || delRc == LSM_ERR_JOB_STARTED,
                     "lsm_volume_delete %d (%s)", rc, error(lsm_error_last_get(c)));
@@ -539,7 +539,7 @@ START_TEST(test_smoke_test)
     lsm_volume **volumes = NULL;
     count = 0;
     /* Get a list of volumes */
-    G(rc, lsm_volume_list, c, NULL, NULL, &volumes, &count, LSM_FLAG_RSVD);
+    G(rc, lsm_volume_list, c, NULL, NULL, &volumes, &count, LSM_CLIENT_FLAG_RSVD);
 
     for (i = 0; i < count; ++i) {
         printf("%s - %s - %s - %"PRIu64" - %"PRIu64" - %x\n",
@@ -562,7 +562,7 @@ START_TEST(test_smoke_test)
 
         int resizeRc = lsm_volume_resize(c, volumes[0],
             ((lsm_volume_number_of_blocks_get(volumes[0]) *
-            lsm_volume_block_size_get(volumes[0])) * 2), &resized, &resizeJob, LSM_FLAG_RSVD);
+            lsm_volume_block_size_get(volumes[0])) * 2), &resized, &resizeJob, LSM_CLIENT_FLAG_RSVD);
 
         fail_unless(resizeRc == LSM_ERR_OK || resizeRc == LSM_ERR_JOB_STARTED,
                         "lsmVolumeResize %d (%s)", resizeRc,
@@ -578,7 +578,7 @@ START_TEST(test_smoke_test)
         int repRc = lsm_volume_replicate(c, NULL,             //Pool is optional
             LSM_VOLUME_REPLICATE_SNAPSHOT,
             volumes[0], "SNAPSHOT1",
-            &rep, &job, LSM_FLAG_RSVD);
+            &rep, &job, LSM_CLIENT_FLAG_RSVD);
 
         fail_unless(repRc == LSM_ERR_OK || repRc == LSM_ERR_JOB_STARTED,
                         "lsmVolumeReplicate %d (%s)", repRc,
@@ -616,14 +616,14 @@ START_TEST(test_access_groups)
 
     system = get_system(c);
 
-    G(rc, lsm_access_group_list, c, NULL, NULL, &groups, &count, LSM_FLAG_RSVD);
+    G(rc, lsm_access_group_list, c, NULL, NULL, &groups, &count, LSM_CLIENT_FLAG_RSVD);
     fail_unless(count == 0, "Expect 0 access groups, got %"PRIu32, count);
     fail_unless(groups == NULL);
 
     G(rc, lsm_access_group_create, c, "test_access_groups",
             "iqn.1994-05.com.domain:01.89bd01",
             LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN, system,
-            &group, LSM_FLAG_RSVD);
+            &group, LSM_CLIENT_FLAG_RSVD);
 
     if( LSM_ERR_OK == rc ) {
         lsm_string_list *init_list = lsm_access_group_initiator_id_get(group);
@@ -656,7 +656,7 @@ START_TEST(test_access_groups)
         init_copy = NULL;
     }
 
-    G(rc, lsm_access_group_list, c, NULL, NULL, &groups, &count, LSM_FLAG_RSVD);
+    G(rc, lsm_access_group_list, c, NULL, NULL, &groups, &count, LSM_CLIENT_FLAG_RSVD);
     fail_unless( 1 == count );
     G(rc, lsm_access_group_record_array_free, groups, count);
     groups = NULL;
@@ -666,10 +666,10 @@ START_TEST(test_access_groups)
 
     rc = lsm_access_group_initiator_add(c, group, "iqn.1994-05.com.domain:01.89bd02",
                                         LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN,
-                                        &updated, LSM_FLAG_RSVD);
+                                        &updated, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_OK == rc, "Expected success on lsmAccessGroupInitiatorAdd %d %d", rc, which_plugin);
 
-    G(rc, lsm_access_group_list, c, NULL, NULL, &groups, &count, LSM_FLAG_RSVD);
+    G(rc, lsm_access_group_list, c, NULL, NULL, &groups, &count, LSM_CLIENT_FLAG_RSVD);
     fail_unless( 1 == count );
 
     fail_unless( updated != NULL );
@@ -690,7 +690,7 @@ START_TEST(test_access_groups)
             G(rc, lsm_access_group_initiator_delete, c, groups[0],
                     lsm_string_list_elem_get(init_list, i),
                     LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN, &updated,
-                    LSM_FLAG_RSVD)
+                    LSM_CLIENT_FLAG_RSVD)
 
             fail_unless(updated != NULL);
             lsm_access_group_record_free(updated);
@@ -708,7 +708,7 @@ START_TEST(test_access_groups)
     groups = NULL;
     count = 0;
 
-    G(rc, lsm_access_group_list, c, NULL, NULL, &groups, &count, LSM_FLAG_RSVD);
+    G(rc, lsm_access_group_list, c, NULL, NULL, &groups, &count, LSM_CLIENT_FLAG_RSVD);
     fail_unless( LSM_ERR_OK == rc);
     fail_unless( 1 == count );
 
@@ -745,11 +745,11 @@ START_TEST(test_access_groups_grant_revoke)
                                    ISCSI_HOST[0],
                                    LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN,
                                    system,
-                                   &group, LSM_FLAG_RSVD);
+                                   &group, LSM_CLIENT_FLAG_RSVD);
 
 
     int vc = lsm_volume_create(c, pool, "volume_grant_test", 20000000,
-                                    LSM_PROVISION_DEFAULT, &n, &job, LSM_FLAG_RSVD);
+                                    LSM_VOLUME_PROVISION_DEFAULT, &n, &job, LSM_CLIENT_FLAG_RSVD);
 
     fail_unless( vc == LSM_ERR_OK || vc == LSM_ERR_JOB_STARTED,
             "lsmVolumeCreate %d (%s)", vc, error(lsm_error_last_get(c)));
@@ -760,7 +760,7 @@ START_TEST(test_access_groups_grant_revoke)
 
     fail_unless(n != NULL);
 
-    rc = lsm_volume_mask(c, group, n, LSM_FLAG_RSVD);
+    rc = lsm_volume_mask(c, group, n, LSM_CLIENT_FLAG_RSVD);
     if( LSM_ERR_JOB_STARTED == rc ) {
         wait_for_job(c, &job);
     } else {
@@ -770,7 +770,7 @@ START_TEST(test_access_groups_grant_revoke)
     lsm_volume **volumes = NULL;
     uint32_t v_count = 0;
     G(rc, lsm_volumes_accessible_by_access_group, c, group, &volumes, &v_count,
-            LSM_FLAG_RSVD);
+            LSM_CLIENT_FLAG_RSVD);
     fail_unless(v_count == 1);
 
     if( v_count >= 1 ) {
@@ -781,7 +781,7 @@ START_TEST(test_access_groups_grant_revoke)
     lsm_access_group **groups;
     uint32_t g_count = 0;
     G(rc, lsm_access_groups_granted_to_volume, c, n, &groups, &g_count,
-            LSM_FLAG_RSVD);
+            LSM_CLIENT_FLAG_RSVD);
     fail_unless(g_count == 1);
 
 
@@ -790,7 +790,7 @@ START_TEST(test_access_groups_grant_revoke)
         G(rc, lsm_access_group_record_array_free, groups, g_count);
     }
 
-    rc = lsm_volume_unmask(c, group, n, LSM_FLAG_RSVD);
+    rc = lsm_volume_unmask(c, group, n, LSM_CLIENT_FLAG_RSVD);
     if( LSM_ERR_JOB_STARTED == rc ) {
         wait_for_job(c, &job);
     } else {
@@ -798,7 +798,7 @@ START_TEST(test_access_groups_grant_revoke)
                     rc, which_plugin);
     }
 
-    G(rc, lsm_access_group_delete, c, group, LSM_FLAG_RSVD);
+    G(rc, lsm_access_group_delete, c, group, LSM_CLIENT_FLAG_RSVD);
     G(rc, lsm_access_group_record_free, group);
 
     G(rc, lsm_volume_record_free, n);
@@ -822,10 +822,10 @@ START_TEST(test_fs)
 
     lsm_pool *test_pool = get_test_pool(c);
 
-    G(rc, lsm_fs_list, c, NULL, NULL, &fs_list, &fs_count, LSM_FLAG_RSVD);
+    G(rc, lsm_fs_list, c, NULL, NULL, &fs_list, &fs_count, LSM_CLIENT_FLAG_RSVD);
     fail_unless(0 == fs_count);
 
-    rc = lsm_fs_create(c, test_pool, "C_unit_test", 50000000, &nfs, &job, LSM_FLAG_RSVD);
+    rc = lsm_fs_create(c, test_pool, "C_unit_test", 50000000, &nfs, &job, LSM_CLIENT_FLAG_RSVD);
 
     if( LSM_ERR_JOB_STARTED == rc ) {
         fail_unless(NULL == nfs);
@@ -841,7 +841,7 @@ START_TEST(test_fs)
     fail_unless(fs_free_space != 0);
 
     lsm_fs *cloned_fs = NULL;
-    rc = lsm_fs_clone(c, nfs, "cloned_fs", NULL, &cloned_fs, &job, LSM_FLAG_RSVD);
+    rc = lsm_fs_clone(c, nfs, "cloned_fs", NULL, &cloned_fs, &job, LSM_CLIENT_FLAG_RSVD);
     if( LSM_ERR_JOB_STARTED == rc ) {
         fail_unless(NULL == cloned_fs);
         cloned_fs = wait_for_job_fs(c, &job);
@@ -853,7 +853,7 @@ START_TEST(test_fs)
         fail_unless(LSM_ERR_OK == rc, "rc= %d", rc);
     }
 
-    rc = lsm_fs_file_clone(c, nfs, "src/file.txt", "dest/file.txt", NULL, &job, LSM_FLAG_RSVD);
+    rc = lsm_fs_file_clone(c, nfs, "src/file.txt", "dest/file.txt", NULL, &job, LSM_CLIENT_FLAG_RSVD);
     if( LSM_ERR_JOB_STARTED == rc ) {
         wait_for_job(c, &job);
     } else {
@@ -861,13 +861,13 @@ START_TEST(test_fs)
     }
 
 
-    G(rc, lsm_fs_list, c, NULL, NULL, &fs_list, &fs_count, LSM_FLAG_RSVD);
+    G(rc, lsm_fs_list, c, NULL, NULL, &fs_list, &fs_count, LSM_CLIENT_FLAG_RSVD);
     fail_unless(2 == fs_count, "fs_count = %d", fs_count);
     G(rc, lsm_fs_record_array_free, fs_list, fs_count);
     fs_list = NULL;
     fs_count = 0;
 
-    rc = lsm_fs_resize(c,nfs, 100000000, &resized_fs, &job, LSM_FLAG_RSVD);
+    rc = lsm_fs_resize(c,nfs, 100000000, &resized_fs, &job, LSM_CLIENT_FLAG_RSVD);
 
     if( LSM_ERR_JOB_STARTED == rc ) {
         fail_unless(NULL == resized_fs);
@@ -875,10 +875,10 @@ START_TEST(test_fs)
     }
 
     uint8_t yes_no = 10;
-    G(rc, lsm_fs_child_dependency, c, nfs, NULL, &yes_no, LSM_FLAG_RSVD);
+    G(rc, lsm_fs_child_dependency, c, nfs, NULL, &yes_no, LSM_CLIENT_FLAG_RSVD);
     fail_unless( yes_no == 0);
 
-    rc = lsm_fs_child_dependency_delete(c, nfs, NULL, &job, LSM_FLAG_RSVD);
+    rc = lsm_fs_child_dependency_delete(c, nfs, NULL, &job, LSM_CLIENT_FLAG_RSVD);
     if( LSM_ERR_JOB_STARTED == rc ) {
         fail_unless(NULL != job);
         wait_for_job(c, &job);
@@ -886,7 +886,7 @@ START_TEST(test_fs)
         fail_unless( LSM_ERR_OK == rc);
     }
 
-    rc = lsm_fs_delete(c, resized_fs, &job, LSM_FLAG_RSVD);
+    rc = lsm_fs_delete(c, resized_fs, &job, LSM_CLIENT_FLAG_RSVD);
 
     if( LSM_ERR_JOB_STARTED == rc ) {
         wait_for_job(c, &job);
@@ -913,7 +913,7 @@ START_TEST(test_ss)
     lsm_pool *test_pool = get_test_pool(c);
 
     int rc = lsm_fs_create(c, test_pool, "test_fs", 100000000, &fs, &job,
-                LSM_FLAG_RSVD);
+                LSM_CLIENT_FLAG_RSVD);
 
     if( LSM_ERR_JOB_STARTED == rc ) {
         fs = wait_for_job_fs(c, &job);
@@ -925,12 +925,12 @@ START_TEST(test_ss)
     test_pool = NULL;
 
 
-    G(rc, lsm_fs_ss_list, c, fs, &ss_list, &ss_count, LSM_FLAG_RSVD);
+    G(rc, lsm_fs_ss_list, c, fs, &ss_list, &ss_count, LSM_CLIENT_FLAG_RSVD);
     fail_unless( NULL == ss_list);
     fail_unless( 0 == ss_count );
 
 
-    rc = lsm_fs_ss_create(c, fs, "test_snap", &ss, &job, LSM_FLAG_RSVD);
+    rc = lsm_fs_ss_create(c, fs, "test_snap", &ss, &job, LSM_CLIENT_FLAG_RSVD);
     if( LSM_ERR_JOB_STARTED == rc ) {
         printf("Waiting for snap to create!\n");
         ss = wait_for_job_ss(c, &job);
@@ -940,7 +940,7 @@ START_TEST(test_ss)
 
     fail_unless( NULL != ss);
 
-    G(rc, lsm_fs_ss_list, c, fs, &ss_list, &ss_count, LSM_FLAG_RSVD);
+    G(rc, lsm_fs_ss_list, c, fs, &ss_list, &ss_count, LSM_CLIENT_FLAG_RSVD);
     fail_unless( NULL != ss_list);
     fail_unless( 1 == ss_count );
 
@@ -949,7 +949,7 @@ START_TEST(test_ss)
         G(rc, lsm_string_list_elem_set, files, 0, "some/file/name.txt");
     }
 
-    rc = lsm_fs_ss_restore(c, fs, ss, files, files, 0, &job, LSM_FLAG_RSVD);
+    rc = lsm_fs_ss_restore(c, fs, ss, files, files, 0, &job, LSM_CLIENT_FLAG_RSVD);
     if( LSM_ERR_JOB_STARTED == rc ) {
         printf("Waiting for  lsm_fs_ss_restore!\n");
         wait_for_job(c, &job);
@@ -959,7 +959,7 @@ START_TEST(test_ss)
 
     G(rc, lsm_string_list_free, files);
 
-    rc = lsm_fs_ss_delete(c, fs, ss, &job, LSM_FLAG_RSVD);
+    rc = lsm_fs_ss_delete(c, fs, ss, &job, LSM_CLIENT_FLAG_RSVD);
     if( LSM_ERR_JOB_STARTED == rc ) {
         wait_for_job(c, &job);
     }
@@ -982,7 +982,7 @@ START_TEST(test_systems)
 
     fail_unless(c!=NULL);
 
-    G(rc, lsm_system_list, c, &sys, &count, LSM_FLAG_RSVD);
+    G(rc, lsm_system_list, c, &sys, &count, LSM_CLIENT_FLAG_RSVD);
     fail_unless(count == 1);
 
     id = lsm_system_id_get(sys[0]);
@@ -1089,7 +1089,7 @@ START_TEST(test_nfs_exports)
 
     if( test_pool ) {
         rc = lsm_fs_create(c, test_pool, "C_unit_test_nfs_export", 50000000,
-                            &nfs, &job, LSM_FLAG_RSVD);
+                            &nfs, &job, LSM_CLIENT_FLAG_RSVD);
 
         if( LSM_ERR_JOB_STARTED == rc ) {
             nfs = wait_for_job_fs(c, &job);
@@ -1106,7 +1106,7 @@ START_TEST(test_nfs_exports)
 
 
         if( nfs ) {
-            G(rc, lsm_nfs_list, c, NULL, NULL, &exports, &count, LSM_FLAG_RSVD);
+            G(rc, lsm_nfs_list, c, NULL, NULL, &exports, &count, LSM_CLIENT_FLAG_RSVD);
             fail_unless(count == 0);
             fail_unless(NULL == exports);
 
@@ -1121,7 +1121,7 @@ START_TEST(test_nfs_exports)
             G(rc, lsm_nfs_export_fs, c, lsm_fs_id_get(nfs), NULL, access,
                                     access, NULL, ANON_UID_GID_NA,
                                     ANON_UID_GID_NA, NULL, NULL, &e,
-                                    LSM_FLAG_RSVD);
+                                    LSM_CLIENT_FLAG_RSVD);
 
             G(rc, lsm_nfs_export_record_free, e);
             e=NULL;
@@ -1129,17 +1129,17 @@ START_TEST(test_nfs_exports)
             G(rc, lsm_string_list_free, access);
             access = NULL;
 
-            G(rc, lsm_nfs_list, c, NULL, NULL, &exports, &count, LSM_FLAG_RSVD);
+            G(rc, lsm_nfs_list, c, NULL, NULL, &exports, &count, LSM_CLIENT_FLAG_RSVD);
             fail_unless( exports != NULL);
             fail_unless( count == 1 );
 
             if( count ) {
-                G(rc, lsm_nfs_export_delete, c, exports[0], LSM_FLAG_RSVD);
+                G(rc, lsm_nfs_export_delete, c, exports[0], LSM_CLIENT_FLAG_RSVD);
                 G(rc, lsm_nfs_export_record_array_free, exports, count);
                 exports = NULL;
 
                 G(rc, lsm_nfs_list, c, NULL, NULL, &exports, &count,
-                    LSM_FLAG_RSVD);
+                    LSM_CLIENT_FLAG_RSVD);
 
                 fail_unless(count == 0);
                 fail_unless(NULL == exports);
@@ -1173,8 +1173,8 @@ START_TEST(test_volume_methods)
 
     if( test_pool ) {
         rc = lsm_volume_create(c, test_pool, "lsm_volume_method_test",
-                                    10000000, LSM_PROVISION_DEFAULT,
-                                    &v, &job, LSM_FLAG_RSVD);
+                                    10000000, LSM_VOLUME_PROVISION_DEFAULT,
+                                    &v, &job, LSM_CLIENT_FLAG_RSVD);
 
         if( LSM_ERR_JOB_STARTED == rc ) {
             v = wait_for_job_vol(c, &job);
@@ -1186,7 +1186,7 @@ START_TEST(test_volume_methods)
             fail_unless( strcmp(lsm_volume_pool_id_get(v),
                             lsm_pool_id_get(test_pool)) == 0 );
 
-            rc = lsm_volume_delete(c, v, &job, LSM_FLAG_RSVD);
+            rc = lsm_volume_delete(c, v, &job, LSM_CLIENT_FLAG_RSVD);
             if( LSM_ERR_JOB_STARTED == rc ) {
                 wait_for_job(c, &job);
             } else {
@@ -1218,101 +1218,101 @@ START_TEST(test_invalid_input)
     lsm_connect *test_connect = NULL;
     lsm_error_ptr test_error = NULL;
 
-    rc = lsm_connect_password(NULL, NULL, NULL, 20000, NULL, LSM_FLAG_RSVD);
+    rc = lsm_connect_password(NULL, NULL, NULL, 20000, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc %d", rc);
 
     rc = lsm_connect_password("INVALID_URI:\\yep", NULL, &test_connect, 20000,
-                                &test_error, LSM_FLAG_RSVD);
+                                &test_error, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc %d", rc);
 
 
-    rc = lsm_connect_close((lsm_connect *)&bad, LSM_FLAG_RSVD);
+    rc = lsm_connect_close((lsm_connect *)&bad, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    rc = lsm_connect_close((lsm_connect *)NULL, LSM_FLAG_RSVD);
+    rc = lsm_connect_close((lsm_connect *)NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
 
 
-    rc = lsm_job_status_get(c, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_job_status_get(c, NULL, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
     char *job = NULL;
-    rc = lsm_job_status_get(c, job, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_job_status_get(c, job, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
     lsm_job_status status;
 
 
-    rc = lsm_job_status_get(c, job, &status, NULL, LSM_FLAG_RSVD);
+    rc = lsm_job_status_get(c, job, &status, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
     uint8_t percent_complete;
-    rc = lsm_job_status_get(c, "NO_SUCH_JOB", &status, &percent_complete, LSM_FLAG_RSVD);
+    rc = lsm_job_status_get(c, "NO_SUCH_JOB", &status, &percent_complete, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_NOT_FOUND_JOB == rc, "rc %d", rc);
 
     /* lsmJobStatusVolumeGet */
     lsm_volume *vol = NULL;
-    rc = lsm_job_status_volume_get(c, NULL, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_job_status_volume_get(c, NULL, NULL, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    rc = lsm_job_status_volume_get(c, NULL, NULL, NULL, &vol, LSM_FLAG_RSVD);
+    rc = lsm_job_status_volume_get(c, NULL, NULL, NULL, &vol, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    rc = lsm_job_status_volume_get(c, job, NULL, NULL, &vol, LSM_FLAG_RSVD);
+    rc = lsm_job_status_volume_get(c, job, NULL, NULL, &vol, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    rc = lsm_job_status_volume_get(c, job, &status, NULL, &vol, LSM_FLAG_RSVD);
+    rc = lsm_job_status_volume_get(c, job, &status, NULL, &vol, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    rc = lsm_job_status_volume_get(c, "NO_SUCH_JOB", &status, &percent_complete, &vol, LSM_FLAG_RSVD);
+    rc = lsm_job_status_volume_get(c, "NO_SUCH_JOB", &status, &percent_complete, &vol, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_NOT_FOUND_JOB == rc, "rc %d", rc);
 
     /* lsmJobStatusFsGet */
     lsm_fs *fs = NULL;
 
-    rc = lsm_job_status_fs_get(c, NULL, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_job_status_fs_get(c, NULL, NULL, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    rc = lsm_job_status_fs_get(c, NULL, NULL, NULL, &fs, LSM_FLAG_RSVD);
+    rc = lsm_job_status_fs_get(c, NULL, NULL, NULL, &fs, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    rc = lsm_job_status_fs_get(c, job, NULL, NULL, &fs, LSM_FLAG_RSVD);
+    rc = lsm_job_status_fs_get(c, job, NULL, NULL, &fs, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    rc = lsm_job_status_fs_get(c, job, &status, NULL, &fs, LSM_FLAG_RSVD);
+    rc = lsm_job_status_fs_get(c, job, &status, NULL, &fs, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    rc = lsm_job_status_fs_get(c, "NO_SUCH_JOB", &status, &percent_complete, &fs, LSM_FLAG_RSVD);
+    rc = lsm_job_status_fs_get(c, "NO_SUCH_JOB", &status, &percent_complete, &fs, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_NOT_FOUND_JOB == rc, "rc %d", rc);
 
     /* lsmJobStatusFsGet */
     lsm_fs_ss *ss = (lsm_fs_ss *)&bad;
 
-    rc = lsm_job_status_ss_get(c, NULL, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_job_status_ss_get(c, NULL, NULL, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    rc = lsm_job_status_ss_get(c, NULL, NULL, NULL, &ss, LSM_FLAG_RSVD);
+    rc = lsm_job_status_ss_get(c, NULL, NULL, NULL, &ss, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
     ss = NULL;
 
-    rc = lsm_job_status_ss_get(c, job, NULL, NULL, &ss, LSM_FLAG_RSVD);
+    rc = lsm_job_status_ss_get(c, job, NULL, NULL, &ss, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    rc = lsm_job_status_ss_get(c, job, &status, NULL, &ss, LSM_FLAG_RSVD);
+    rc = lsm_job_status_ss_get(c, job, &status, NULL, &ss, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    rc = lsm_job_status_ss_get(c, "NO_SUCH_JOB", &status, &percent_complete, &ss, LSM_FLAG_RSVD);
+    rc = lsm_job_status_ss_get(c, "NO_SUCH_JOB", &status, &percent_complete, &ss, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_NOT_FOUND_JOB == rc, "rc %d", rc);
 
 
     /* lsmJobFree */
     char *bogus_job = strdup("NO_SUCH_JOB");
-    rc = lsm_job_free(c, NULL, LSM_FLAG_RSVD);
+    rc = lsm_job_free(c, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    rc = lsm_job_free(c, &bogus_job, LSM_FLAG_RSVD);
+    rc = lsm_job_free(c, &bogus_job, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_NOT_FOUND_JOB == rc, "rc %d", rc);
 
     fail_unless(bogus_job != NULL, "Expected bogus job to != NULL!");
@@ -1323,90 +1323,90 @@ START_TEST(test_invalid_input)
     uint32_t count = 0;
     lsm_disk **disks = NULL;
 
-    rc = lsm_disk_list(c, NULL, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_disk_list(c, NULL, NULL, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d, rc");
 
-    rc = lsm_disk_list(c, "bogus_key", NULL, &disks, &count, LSM_FLAG_RSVD);
+    rc = lsm_disk_list(c, "bogus_key", NULL, &disks, &count, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d, rc");
 
-    rc = lsm_disk_list(c, "bogus_key", "nope", &disks, &count, LSM_FLAG_RSVD);
+    rc = lsm_disk_list(c, "bogus_key", "nope", &disks, &count, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_UNSUPPORTED_SEARCH_KEY == rc, "rc %d, rc");
 
     /* lsmPoolList */
-    rc = lsm_pool_list(c, NULL, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_pool_list(c, NULL, NULL, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
     lsm_pool **pools = NULL;
-    rc = lsm_pool_list(c, NULL, NULL, &pools, NULL, LSM_FLAG_RSVD);
+    rc = lsm_pool_list(c, NULL, NULL, &pools, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    rc = lsm_pool_list(c, NULL, NULL, NULL, &count, LSM_FLAG_RSVD);
+    rc = lsm_pool_list(c, NULL, NULL, NULL, &count, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
     pools = (lsm_pool **)&bad;
-    rc = lsm_pool_list(c, NULL, NULL, &pools, &count, LSM_FLAG_RSVD);
+    rc = lsm_pool_list(c, NULL, NULL, &pools, &count, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
     pools = NULL;
-    rc = lsm_pool_list(c, "bogus_key", "nope", &pools, &count, LSM_FLAG_RSVD);
+    rc = lsm_pool_list(c, "bogus_key", "nope", &pools, &count, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_UNSUPPORTED_SEARCH_KEY == rc, "rc %d", rc);
 
-    rc = lsm_pool_list(c, "bogus_key", NULL, &pools, &count, LSM_FLAG_RSVD);
+    rc = lsm_pool_list(c, "bogus_key", NULL, &pools, &count, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
     /* lsmVolumeList */
-     rc = lsm_volume_list(c, NULL, NULL, NULL, NULL, LSM_FLAG_RSVD);
+     rc = lsm_volume_list(c, NULL, NULL, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
     lsm_volume **vols = NULL;
-    rc = lsm_volume_list(c, NULL, NULL, &vols, NULL, LSM_FLAG_RSVD);
+    rc = lsm_volume_list(c, NULL, NULL, &vols, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    rc = lsm_volume_list(c, NULL, NULL, NULL, &count, LSM_FLAG_RSVD);
+    rc = lsm_volume_list(c, NULL, NULL, NULL, &count, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
     vols = (lsm_volume **)&bad;
-    rc = lsm_volume_list(c, NULL, NULL, &vols, &count, LSM_FLAG_RSVD);
+    rc = lsm_volume_list(c, NULL, NULL, &vols, &count, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
     vols = NULL;
-    rc = lsm_volume_list(c, "bogus_key", "nope", &vols, &count, LSM_FLAG_RSVD);
+    rc = lsm_volume_list(c, "bogus_key", "nope", &vols, &count, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_UNSUPPORTED_SEARCH_KEY == rc, "rc %d", rc);
 
-    rc = lsm_volume_list(c, "bogus_key", NULL, &vols, &count, LSM_FLAG_RSVD);
+    rc = lsm_volume_list(c, "bogus_key", NULL, &vols, &count, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
     /* lsmVolumeCreate */
     lsm_volume *new_vol = NULL;
     job = NULL;
 
-    rc = lsm_volume_create(c, NULL, NULL, 0, 0, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_volume_create(c, NULL, NULL, 0, 0, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
     rc = lsm_volume_create(c, (lsm_pool *)&bad, "BAD_POOL", 10000000,
-                            LSM_PROVISION_DEFAULT, &new_vol, &job, LSM_FLAG_RSVD);
+                            LSM_VOLUME_PROVISION_DEFAULT, &new_vol, &job, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    rc = lsm_volume_create(c, test_pool, "", 10000000, LSM_PROVISION_DEFAULT,
-                            &new_vol, &job, LSM_FLAG_RSVD);
+    rc = lsm_volume_create(c, test_pool, "", 10000000, LSM_VOLUME_PROVISION_DEFAULT,
+                            &new_vol, &job, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    rc = lsm_volume_create(c, test_pool, "ARG_TESTING", 10000000, LSM_PROVISION_DEFAULT,
-                            NULL, &job, LSM_FLAG_RSVD);
+    rc = lsm_volume_create(c, test_pool, "ARG_TESTING", 10000000, LSM_VOLUME_PROVISION_DEFAULT,
+                            NULL, &job, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    rc = lsm_volume_create(c, test_pool, "ARG_TESTING", 10000000, LSM_PROVISION_DEFAULT,
-                            &new_vol, NULL, LSM_FLAG_RSVD);
+    rc = lsm_volume_create(c, test_pool, "ARG_TESTING", 10000000, LSM_VOLUME_PROVISION_DEFAULT,
+                            &new_vol, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
     job = "NOT_NULL";
-    rc = lsm_volume_create(c, test_pool, "ARG_TESTING", 10000000, LSM_PROVISION_DEFAULT,
-                            &new_vol, &job, LSM_FLAG_RSVD);
+    rc = lsm_volume_create(c, test_pool, "ARG_TESTING", 10000000, LSM_VOLUME_PROVISION_DEFAULT,
+                            &new_vol, &job, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
     job = NULL;
-    rc = lsm_volume_create(c, test_pool, "ARG_TESTING", 10000000, LSM_PROVISION_DEFAULT,
-                            &new_vol, &job, LSM_FLAG_RSVD);
+    rc = lsm_volume_create(c, test_pool, "ARG_TESTING", 10000000, LSM_VOLUME_PROVISION_DEFAULT,
+                            &new_vol, &job, LSM_CLIENT_FLAG_RSVD);
 
     if( LSM_ERR_JOB_STARTED == rc ) {
         new_vol = wait_for_job_vol(c, &job);
@@ -1415,24 +1415,24 @@ START_TEST(test_invalid_input)
     }
 
     /* lsmVolumeResize */
-    rc = lsm_volume_resize(c, NULL, 0, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_volume_resize(c, NULL, 0, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
 
     lsm_volume *resized = (lsm_volume *)&bad;
-    rc = lsm_volume_resize(c, new_vol, 20000000, &resized, NULL, LSM_FLAG_RSVD);
+    rc = lsm_volume_resize(c, new_vol, 20000000, &resized, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
     resized = NULL;
-    rc = lsm_volume_resize(c, new_vol, 20000000, &resized, NULL, LSM_FLAG_RSVD);
+    rc = lsm_volume_resize(c, new_vol, 20000000, &resized, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
     rc = lsm_volume_resize(c, new_vol,    lsm_volume_number_of_blocks_get(new_vol) *
                                         lsm_volume_block_size_get(new_vol),
-                                        &resized, &job, LSM_FLAG_RSVD);
+                                        &resized, &job, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_NO_STATE_CHANGE == rc, "rc = %d", rc);
 
-    rc = lsm_volume_resize(c, new_vol, 20000000, &resized, &job, LSM_FLAG_RSVD);
+    rc = lsm_volume_resize(c, new_vol, 20000000, &resized, &job, LSM_CLIENT_FLAG_RSVD);
 
     if( LSM_ERR_JOB_STARTED == rc ) {
         resized = wait_for_job_vol(c, &job);
@@ -1441,13 +1441,13 @@ START_TEST(test_invalid_input)
     }
 
     /* lsmVolumeDelete */
-    rc = lsm_volume_delete(c, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_volume_delete(c, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    rc = lsm_volume_delete(c, resized, NULL, LSM_FLAG_RSVD);
+    rc = lsm_volume_delete(c, resized, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    rc = lsm_volume_delete(c, resized, &job, LSM_FLAG_RSVD);
+    rc = lsm_volume_delete(c, resized, &job, LSM_CLIENT_FLAG_RSVD);
     if( LSM_ERR_JOB_STARTED == rc ) {
         wait_for_job(c, &job);
     } else {
@@ -1457,65 +1457,65 @@ START_TEST(test_invalid_input)
     /* lsmStorageCapabilities * */
     lsm_system **sys = NULL;
     uint32_t num_systems = 0;
-    rc = lsm_system_list(c, &sys, &num_systems, LSM_FLAG_RSVD );
+    rc = lsm_system_list(c, &sys, &num_systems, LSM_CLIENT_FLAG_RSVD );
 
     fail_unless(LSM_ERR_OK == rc, "rc %d", rc);
     fail_unless( sys != NULL);
     fail_unless( num_systems >= 1, "num_systems %d", num_systems);
 
 
-    rc = lsm_capabilities(c, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_capabilities(c, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT, "rc %d", rc);
 
     if( num_systems ) {
-        rc = lsm_capabilities(c, sys[0], NULL, LSM_FLAG_RSVD);
+        rc = lsm_capabilities(c, sys[0], NULL, LSM_CLIENT_FLAG_RSVD);
         fail_unless(LSM_ERR_INVALID_ARGUMENT, "rc %d", rc);
     }
 
     /* lsmVolumeReplicate */
     lsm_volume *cloned = NULL;
-    rc = lsm_volume_replicate(c, (lsm_pool *)&bad, 0, NULL, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_volume_replicate(c, (lsm_pool *)&bad, 0, NULL, NULL, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     rc = lsm_volume_replicate(c, test_pool, LSM_VOLUME_REPLICATE_CLONE, NULL,
-                            "cloned", &cloned, &job, LSM_FLAG_RSVD);
+                            "cloned", &cloned, &job, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     rc = lsm_volume_replicate(c, test_pool, LSM_VOLUME_REPLICATE_CLONE, new_vol,
-                            "", &cloned, &job, LSM_FLAG_RSVD);
+                            "", &cloned, &job, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     rc = lsm_volume_replicate(c, test_pool, LSM_VOLUME_REPLICATE_CLONE, new_vol,
-                            "cloned", NULL, &job, LSM_FLAG_RSVD);
+                            "cloned", NULL, &job, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     rc = lsm_volume_replicate(c, test_pool, LSM_VOLUME_REPLICATE_CLONE, new_vol,
-                            "cloned", &cloned, NULL, LSM_FLAG_RSVD);
+                            "cloned", &cloned, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 
     /* lsmVolumeReplicateRangeBlockSize */
-    rc = lsm_volume_replicate_range_block_size(c, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_volume_replicate_range_block_size(c, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     /* lsmVolumeReplicateRange */
     rc = lsm_volume_replicate_range(c, LSM_VOLUME_REPLICATE_CLONE, NULL, NULL,
-                                    NULL, 0, NULL, LSM_FLAG_RSVD);
+                                    NULL, 0, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     rc = lsm_volume_replicate_range(c, LSM_VOLUME_REPLICATE_CLONE, new_vol,
-                                    NULL, NULL, 0, NULL, LSM_FLAG_RSVD);
+                                    NULL, NULL, 0, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     rc = lsm_volume_replicate_range(c, LSM_VOLUME_REPLICATE_CLONE, new_vol, new_vol,
-                                    NULL, 1, &job, LSM_FLAG_RSVD);
+                                    NULL, 1, &job, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 
-    rc = lsm_volume_enable(c, NULL, LSM_FLAG_RSVD);
+    rc = lsm_volume_enable(c, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_volume_disable(c, NULL, LSM_FLAG_RSVD);
+    rc = lsm_volume_disable(c, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 
@@ -1524,109 +1524,109 @@ START_TEST(test_invalid_input)
     lsm_system *system = NULL;
     system = get_system(c);
 
-    rc = lsm_access_group_create(c, NULL, NULL, 0, system, NULL, LSM_FLAG_RSVD);
+    rc = lsm_access_group_create(c, NULL, NULL, 0, system, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     rc = lsm_access_group_create(c, "my_group", ISCSI_HOST[0], LSM_ACCESS_GROUP_INIT_TYPE_OTHER,
-                                NULL, NULL, LSM_FLAG_RSVD);
+                                NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 
     rc = lsm_access_group_create(c, "my_group", ISCSI_HOST[0], LSM_ACCESS_GROUP_INIT_TYPE_OTHER,
-                                system, &ag, LSM_FLAG_RSVD);
+                                system, &ag, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_OK, "rc = %d", rc);
     fail_unless(ag != NULL);
 
 
     /* lsmAccessGroupDel */
-    rc = lsm_access_group_delete(c, NULL, LSM_FLAG_RSVD);
+    rc = lsm_access_group_delete(c, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     /* lsmAccessGroupInitiatorAdd */
-    rc = lsm_access_group_initiator_add(c, NULL, NULL, 0, NULL, LSM_FLAG_RSVD);
+    rc = lsm_access_group_initiator_add(c, NULL, NULL, 0, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 
-    rc = lsm_access_group_initiator_delete(c, NULL, NULL, 0, NULL, LSM_FLAG_RSVD);
+    rc = lsm_access_group_initiator_delete(c, NULL, NULL, 0, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     rc = lsm_access_group_initiator_delete(c, ag, NULL,
-                        LSM_ACCESS_GROUP_INIT_TYPE_OTHER, NULL, LSM_FLAG_RSVD);
+                        LSM_ACCESS_GROUP_INIT_TYPE_OTHER, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 
 
-    rc = lsm_volume_mask(c, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_volume_mask(c, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_volume_mask(c, ag, NULL, LSM_FLAG_RSVD);
+    rc = lsm_volume_mask(c, ag, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_volume_unmask(c, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_volume_unmask(c, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_volume_unmask(c, ag, NULL, LSM_FLAG_RSVD);
+    rc = lsm_volume_unmask(c, ag, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 
     /* lsmVolumesAccessibleByAccessGroup */
-    rc = lsm_volumes_accessible_by_access_group(c, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_volumes_accessible_by_access_group(c, NULL, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_volumes_accessible_by_access_group(c, ag, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_volumes_accessible_by_access_group(c, ag, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     /* lsmAccessGroupsGrantedToVolume */
-    rc = lsm_access_groups_granted_to_volume(c, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_access_groups_granted_to_volume(c, NULL, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_access_groups_granted_to_volume(c, new_vol, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_access_groups_granted_to_volume(c, new_vol, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     /* lsmVolumeChildDependency */
-    rc = lsm_volume_child_dependency(c, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_volume_child_dependency(c, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_volume_child_dependency(c, new_vol, NULL, LSM_FLAG_RSVD);
+    rc = lsm_volume_child_dependency(c, new_vol, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     /*lsmVolumeChildDependencyDelete*/
-    rc = lsm_volume_child_dependency_delete(c, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_volume_child_dependency_delete(c, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_volume_child_dependency_delete(c, new_vol, NULL, LSM_FLAG_RSVD);
+    rc = lsm_volume_child_dependency_delete(c, new_vol, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     /* lsmSystemList */
     lsm_system **systems = NULL;
-    rc = lsm_system_list(c, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_system_list(c, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 
-    rc = lsm_system_list(c, &systems, NULL, LSM_FLAG_RSVD);
+    rc = lsm_system_list(c, &systems, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     /* lsmFsList */
-    rc = lsm_fs_list(c, NULL, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_list(c, NULL, NULL, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     lsm_fs **fsl = NULL;
-    rc = lsm_fs_list(c, NULL, NULL, &fsl, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_list(c, NULL, NULL, &fsl, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_fs_list(c, "bogus_key", "nope", &fsl, &count, LSM_FLAG_RSVD);
+    rc = lsm_fs_list(c, "bogus_key", "nope", &fsl, &count, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_UNSUPPORTED_SEARCH_KEY, "rc = %d", rc);
 
     /*lsmFsCreate*/
-    rc = lsm_fs_create(c, NULL, NULL, 0, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_create(c, NULL, NULL, 0, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_fs_create(c, test_pool, NULL, 0, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_create(c, test_pool, NULL, 0, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     lsm_fs *arg_fs = NULL;
     rc = lsm_fs_create(c, test_pool, "argument_fs", 10000000, &arg_fs, &job,
-                        LSM_FLAG_RSVD);
+                        LSM_CLIENT_FLAG_RSVD);
 
     if( LSM_ERR_JOB_STARTED == rc ) {
         arg_fs = wait_for_job_fs(c, &job);
@@ -1635,76 +1635,76 @@ START_TEST(test_invalid_input)
     }
 
     /* lsmFsDelete */
-    rc = lsm_fs_delete(c, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_delete(c, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_fs_delete(c, arg_fs, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_delete(c, arg_fs, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     /* lsmFsResize */
-    rc = lsm_fs_resize(c, NULL, 0, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_resize(c, NULL, 0, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_fs_resize(c, arg_fs, 0, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_resize(c, arg_fs, 0, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     /* lsmFsClone */
-    rc = lsm_fs_clone(c, NULL, NULL, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_clone(c, NULL, NULL, NULL, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_fs_clone(c, arg_fs, NULL, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_clone(c, arg_fs, NULL, NULL, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 
     /*lsmFsFileClone*/
-    rc = lsm_fs_file_clone(c, NULL, NULL, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_file_clone(c, NULL, NULL, NULL, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_fs_file_clone(c, arg_fs, NULL, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_file_clone(c, arg_fs, NULL, NULL, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 
-    rc = lsm_fs_child_dependency(c, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_child_dependency(c, NULL, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     lsm_string_list *badf = (lsm_string_list *)&bad;
-    rc = lsm_fs_child_dependency(c, arg_fs, badf, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_child_dependency(c, arg_fs, badf, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     lsm_string_list *f = lsm_string_list_alloc(1);
-    rc = lsm_fs_child_dependency(c, arg_fs, f, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_child_dependency(c, arg_fs, f, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     /*lsmFsChildDependencyDelete*/
-    rc = lsm_fs_child_dependency_delete(c, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_child_dependency_delete(c, NULL, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_fs_child_dependency_delete(c, arg_fs, badf, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_child_dependency_delete(c, arg_fs, badf, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_fs_child_dependency_delete(c, arg_fs, f, NULL, LSM_FLAG_RSVD);
-    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
-
-
-
-    rc = lsm_fs_ss_list(c, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_child_dependency_delete(c, arg_fs, f, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 
-    rc = lsm_fs_ss_list(c, arg_fs, NULL, NULL, LSM_FLAG_RSVD);
+
+    rc = lsm_fs_ss_list(c, NULL, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 
-    rc = lsm_fs_ss_create(c, NULL, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_ss_list(c, arg_fs, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_fs_ss_create(c, arg_fs, NULL, NULL, NULL, LSM_FLAG_RSVD);
+
+    rc = lsm_fs_ss_create(c, NULL, NULL, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
+
+    rc = lsm_fs_ss_create(c, arg_fs, NULL, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     lsm_fs_ss *arg_ss = NULL;
 
     rc = lsm_fs_ss_create(c, arg_fs, "arg_snapshot", &arg_ss, &job,
-                        LSM_FLAG_RSVD);
+                        LSM_CLIENT_FLAG_RSVD);
 
     if( LSM_ERR_JOB_STARTED == rc ) {
         arg_ss = wait_for_job_ss(c, &job);
@@ -1712,32 +1712,32 @@ START_TEST(test_invalid_input)
         fail_unless(rc == LSM_ERR_OK, "rc = %d", rc);
     }
 
-    rc = lsm_fs_ss_delete(c, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_ss_delete(c, NULL, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_fs_ss_delete(c, arg_fs, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_ss_delete(c, arg_fs, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_fs_ss_delete(c, arg_fs, arg_ss, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_ss_delete(c, arg_fs, arg_ss, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 
-    rc = lsm_fs_ss_restore(c, NULL, NULL, NULL, NULL, 0, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_ss_restore(c, NULL, NULL, NULL, NULL, 0, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_fs_ss_restore(c, arg_fs, NULL, NULL, NULL, 0, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_ss_restore(c, arg_fs, NULL, NULL, NULL, 0, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_fs_ss_restore(c, arg_fs, arg_ss, badf, NULL, 0, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_ss_restore(c, arg_fs, arg_ss, badf, NULL, 0, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_fs_ss_restore(c, arg_fs, arg_ss, badf, badf, 0, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_ss_restore(c, arg_fs, arg_ss, badf, badf, 0, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_fs_ss_restore(c, arg_fs, arg_ss, f, f, 0, NULL, LSM_FLAG_RSVD);
+    rc = lsm_fs_ss_restore(c, arg_fs, arg_ss, f, f, 0, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_nfs_list(c, NULL, NULL, NULL, NULL, LSM_FLAG_RSVD);
+    rc = lsm_nfs_list(c, NULL, NULL, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 
@@ -1754,27 +1754,27 @@ START_TEST(test_invalid_input)
     arg_fs = NULL;
 
     rc = lsm_nfs_export_fs(c, NULL, NULL, NULL, NULL, NULL, 0,0,NULL, NULL, NULL,
-                        LSM_FLAG_RSVD);
+                        LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     rc = lsm_nfs_export_fs(c, NULL, NULL, badf, NULL, NULL, 0,0,NULL, NULL, NULL,
-                        LSM_FLAG_RSVD);
+                        LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     rc = lsm_nfs_export_fs(c, NULL, NULL, f, badf, NULL, 0,0,NULL, NULL, NULL,
-                        LSM_FLAG_RSVD);
+                        LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
     rc = lsm_nfs_export_fs(c, NULL, NULL, f, f, badf, 0,0,NULL, NULL, NULL,
-                        LSM_FLAG_RSVD);
+                        LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 
     rc = lsm_nfs_export_fs(c, NULL, NULL, f, f, f, 0,0, NULL, NULL, NULL,
-                        LSM_FLAG_RSVD);
+                        LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    rc = lsm_nfs_export_delete(c, NULL, LSM_FLAG_RSVD);
+    rc = lsm_nfs_export_delete(c, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
 
@@ -1819,11 +1819,11 @@ START_TEST(test_capabilities)
     uint32_t sys_count = 0;
     lsm_storage_capabilities *cap = NULL;
 
-    G(rc, lsm_system_list, c, &sys, &sys_count, LSM_FLAG_RSVD);
+    G(rc, lsm_system_list, c, &sys, &sys_count, LSM_CLIENT_FLAG_RSVD);
     fail_unless( sys_count >= 1, "count = %d", sys_count);
 
     if( sys_count > 0 ) {
-        G(rc, lsm_capabilities, c, sys[0], &cap, LSM_FLAG_RSVD);
+        G(rc, lsm_capabilities, c, sys[0], &cap, LSM_CLIENT_FLAG_RSVD);
 
         if( LSM_ERR_OK == rc ) {
             cap_test(cap, LSM_CAP_VOLUMES);
@@ -1890,7 +1890,8 @@ START_TEST(test_iscsi_auth_in)
     printf("get_system() OK\n");
 
     G(rc, lsm_access_group_create, c, "ISCSI_AUTH", ISCSI_HOST[0],
-        LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN, system, &group, LSM_FLAG_RSVD);
+        LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN, system, &group,
+            LSM_CLIENT_FLAG_RSVD);
     printf("lsm_access_group_create() OK\n");
 
     fail_unless(LSM_ERR_OK == rc, "rc = %d", rc);
@@ -1903,11 +1904,11 @@ START_TEST(test_iscsi_auth_in)
 
         rc = lsm_iscsi_chap_auth(
             c, ISCSI_HOST[0], "username", "secret", NULL, NULL,
-            LSM_FLAG_RSVD);
+            LSM_CLIENT_FLAG_RSVD);
 
         fail_unless(LSM_ERR_OK == rc, "rc = %d", rc);
 
-        rc = lsm_access_group_delete(c, group, LSM_FLAG_RSVD);
+        rc = lsm_access_group_delete(c, group, LSM_CLIENT_FLAG_RSVD);
 
         fail_unless(LSM_ERR_OK == rc );
 
@@ -1923,7 +1924,7 @@ START_TEST(test_plugin_info)
     char *version = NULL;
     int rc = 0;
 
-    G(rc, lsm_plugin_info_get, c, &desc, &version, LSM_FLAG_RSVD);
+    G(rc, lsm_plugin_info_get, c, &desc, &version, LSM_CLIENT_FLAG_RSVD);
 
     if( LSM_ERR_OK == rc ) {
         printf("Desc: (%s), Version: (%s)\n", desc, version);
@@ -1931,13 +1932,13 @@ START_TEST(test_plugin_info)
         free(version);
     }
 
-    rc = lsm_plugin_info_get(NULL, &desc, &version, LSM_FLAG_RSVD);
+    rc = lsm_plugin_info_get(NULL, &desc, &version, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
 
-    rc = lsm_plugin_info_get(c, NULL, &version, LSM_FLAG_RSVD);
+    rc = lsm_plugin_info_get(c, NULL, &version, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
 
-    rc = lsm_plugin_info_get(c, &desc, NULL, LSM_FLAG_RSVD);
+    rc = lsm_plugin_info_get(c, &desc, NULL, LSM_CLIENT_FLAG_RSVD);
     fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
 }
 END_TEST
@@ -1972,9 +1973,7 @@ START_TEST(test_error_reporting)
     void *debug_data = NULL;
     uint32_t debug_size = 0;
 
-    lsm_error_ptr e = lsm_error_create(   LSM_ERR_LIB_BUG,
-                                        LSM_ERR_DOMAIN_PLUG_IN,
-                                        LSM_ERR_LEVEL_ERROR, msg,
+    lsm_error_ptr e = lsm_error_create(LSM_ERR_LIB_BUG, msg,
                                         exception, debug_msg,
                                         d, sizeof(d));
 
@@ -1982,8 +1981,6 @@ START_TEST(test_error_reporting)
 
     if( e ) {
         fail_unless(LSM_ERR_LIB_BUG == lsm_error_number_get(e));
-        fail_unless(LSM_ERR_DOMAIN_PLUG_IN == lsm_error_domain_get(e));
-        fail_unless(LSM_ERR_LEVEL_ERROR == lsm_error_level_get(e));
         fail_unless(strcmp(msg, lsm_error_message_get(e)) == 0);
         fail_unless(strcmp(exception, lsm_error_exception_get(e)) == 0);
         fail_unless(strcmp(debug_msg, lsm_error_debug_get(e)) == 0);
@@ -2313,14 +2310,14 @@ START_TEST(test_search_pools)
     lsm_pool **pools = NULL;
     uint32_t poolCount = 0;
 
-    G(rc, lsm_pool_list, c, NULL, NULL, &pools, &poolCount, LSM_FLAG_RSVD);
+    G(rc, lsm_pool_list, c, NULL, NULL, &pools, &poolCount, LSM_CLIENT_FLAG_RSVD);
 
     if( LSM_ERR_OK == rc && poolCount ) {
         lsm_pool **search_pools = NULL;
         uint32_t search_count = 0;
 
         G(rc, lsm_pool_list, c, "id", lsm_pool_id_get(pools[0]), &search_pools,
-                    &search_count, LSM_FLAG_RSVD);
+                    &search_count, LSM_CLIENT_FLAG_RSVD);
 
         fail_unless(search_count == 1, "Expecting 1 pool, got %d", search_count);
 
@@ -2331,13 +2328,13 @@ START_TEST(test_search_pools)
         search_count = 0;
 
         G(rc, lsm_pool_list, c, "id", "non-existent-id", &search_pools,
-                    &search_count, LSM_FLAG_RSVD);
+                    &search_count, LSM_CLIENT_FLAG_RSVD);
         fail_unless(search_count == 0, "Expecting no pools! %d", search_count);
 
         /* Search which results in all pools */
         G(rc, lsm_pool_list, c, "system_id", lsm_pool_system_id_get(pools[0]),
                     &search_pools,
-                    &search_count, LSM_FLAG_RSVD);
+                    &search_count, LSM_CLIENT_FLAG_RSVD);
 
         fail_unless(search_count == poolCount, "Expecting %d pools, got %d",
                                 poolCount, search_count);
@@ -2367,7 +2364,7 @@ START_TEST(test_search_volumes)
     create_volumes(c, pool, 10);
 
     G(rc, lsm_volume_list, c, NULL, NULL, &volumes, &volume_count,
-            LSM_FLAG_RSVD);
+            LSM_CLIENT_FLAG_RSVD);
 
     fail_unless(volume_count > 0, "We are expecting some volumes!");
 
@@ -2377,7 +2374,7 @@ START_TEST(test_search_volumes)
 
         G(rc, lsm_volume_list, c, "id", lsm_volume_id_get(volumes[0]),
                     &search_volume,
-                    &search_count, LSM_FLAG_RSVD);
+                    &search_count, LSM_CLIENT_FLAG_RSVD);
 
         fail_unless(search_count == 1, "Expecting 1 pool, got %d", search_count);
 
@@ -2387,14 +2384,14 @@ START_TEST(test_search_volumes)
 
         /* Search for non-existent */
         G(rc, lsm_volume_list, c, "id", "non-existent-id", &search_volume,
-                    &search_count, LSM_FLAG_RSVD);
+                    &search_count, LSM_CLIENT_FLAG_RSVD);
         fail_unless(search_count == 0, "Expecting no volumes! %d", search_count);
 
         /* Search which results in all volumes */
         G(rc, lsm_volume_list, c, "system_id",
                     lsm_volume_system_id_get(volumes[0]),
                     &search_volume,
-                    &search_count, LSM_FLAG_RSVD);
+                    &search_count, LSM_CLIENT_FLAG_RSVD);
 
         fail_unless(search_count == volume_count, "Expecting %d volumes, got %d",
                                 volume_count, search_count);
@@ -2422,7 +2419,7 @@ START_TEST(test_search_disks)
     lsm_pool *pool = get_test_pool(c);
 
 
-    G(rc, lsm_disk_list, c, NULL, NULL, &disks, &disk_count, LSM_FLAG_RSVD);
+    G(rc, lsm_disk_list, c, NULL, NULL, &disks, &disk_count, LSM_CLIENT_FLAG_RSVD);
     fail_unless(disk_count > 0, "We are expecting some disks!");
 
     if( LSM_ERR_OK == rc && disk_count ) {
@@ -2432,7 +2429,7 @@ START_TEST(test_search_disks)
 
         G(rc, lsm_disk_list, c, "id", lsm_disk_id_get(disks[0]),
                     &search_disks,
-                    &search_count, LSM_FLAG_RSVD);
+                    &search_count, LSM_CLIENT_FLAG_RSVD);
         fail_unless(search_count == 1, "Expecting 1 disk, got %d", search_count);
 
         G(rc, lsm_disk_record_array_free, search_disks, search_count);
@@ -2441,14 +2438,14 @@ START_TEST(test_search_disks)
 
         /* Search for non-existent */
         G(rc, lsm_disk_list, c, "id", "non-existent-id", &search_disks,
-                    &search_count, LSM_FLAG_RSVD);
+                    &search_count, LSM_CLIENT_FLAG_RSVD);
 
         fail_unless(search_count == 0, "Expecting no disks! %d", search_count);
 
         /* Search which results in all disks */
         G(rc, lsm_disk_list, c, "system_id", lsm_disk_system_id_get(disks[0]),
                     &search_disks,
-                    &search_count, LSM_FLAG_RSVD);
+                    &search_count, LSM_CLIENT_FLAG_RSVD);
 
         fail_unless(search_count == disk_count, "Expecting %d disks, got %d",
                                 disk_count, search_count);
@@ -2484,7 +2481,7 @@ START_TEST(test_search_access_groups)
 
         G(rc, lsm_access_group_create, c, ag_name, ISCSI_HOST[i],
                     LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN,
-                    system, &group, LSM_FLAG_RSVD);
+                    system, &group, LSM_CLIENT_FLAG_RSVD);
 
         if( LSM_ERR_OK == rc ) {
             G(rc, lsm_access_group_record_free, group);
@@ -2495,7 +2492,7 @@ START_TEST(test_search_access_groups)
     G(rc, lsm_system_record_free, system);
     system = NULL;
 
-    G(rc, lsm_access_group_list, c, NULL, NULL, &ag, &count, LSM_FLAG_RSVD);
+    G(rc, lsm_access_group_list, c, NULL, NULL, &ag, &count, LSM_CLIENT_FLAG_RSVD);
     fail_unless(count > 0, "We are expecting some access_groups!");
 
     if( LSM_ERR_OK == rc && count ) {
@@ -2505,7 +2502,7 @@ START_TEST(test_search_access_groups)
 
         G(rc, lsm_access_group_list, c, "id", lsm_access_group_id_get(ag[0]),
                     &search_ag,
-                    &search_count, LSM_FLAG_RSVD);
+                    &search_count, LSM_CLIENT_FLAG_RSVD);
         fail_unless(search_count == 1, "Expecting 1 access group, got %d",
                     search_count);
 
@@ -2516,7 +2513,7 @@ START_TEST(test_search_access_groups)
         search_count = 0;
 
         G(rc, lsm_access_group_list, c, "id", "non-existent-id", &search_ag,
-                                    &search_count, LSM_FLAG_RSVD);
+                                    &search_count, LSM_CLIENT_FLAG_RSVD);
         fail_unless(search_count == 0, "Expecting no access groups! %d",
                     search_count);
 
@@ -2524,7 +2521,7 @@ START_TEST(test_search_access_groups)
         G(rc, lsm_access_group_list, c, "system_id",
                                     lsm_access_group_system_id_get(ag[0]),
                                     &search_ag,
-                                    &search_count, LSM_FLAG_RSVD);
+                                    &search_count, LSM_CLIENT_FLAG_RSVD);
 
         fail_unless(search_count == count, "Expecting %d access groups, got %d",
                     count, search_count);
@@ -2560,7 +2557,7 @@ START_TEST(test_search_fs)
 
         snprintf(fs_name, sizeof(fs_name), "test_fs_%d", i);
 
-        rc = lsm_fs_create(c, pool, fs_name, 50000000, &fs, &job, LSM_FLAG_RSVD);
+        rc = lsm_fs_create(c, pool, fs_name, 50000000, &fs, &job, LSM_CLIENT_FLAG_RSVD);
 
         if( LSM_ERR_JOB_STARTED == rc ) {
             fail_unless(NULL == fs);
@@ -2573,7 +2570,7 @@ START_TEST(test_search_fs)
         fs = NULL;
     }
 
-    G(rc, lsm_fs_list, c, NULL, NULL, &fsl, &count, LSM_FLAG_RSVD);
+    G(rc, lsm_fs_list, c, NULL, NULL, &fsl, &count, LSM_CLIENT_FLAG_RSVD);
     fail_unless(count > 0, "We are expecting some file systems!");
 
     if( LSM_ERR_OK == rc && count ) {
@@ -2583,7 +2580,7 @@ START_TEST(test_search_fs)
 
         G(rc, lsm_fs_list, c, "id", lsm_fs_id_get(fsl[0]),
                     &search_fs,
-                    &search_count, LSM_FLAG_RSVD);
+                    &search_count, LSM_CLIENT_FLAG_RSVD);
 
         fail_unless(search_count == 1, "Expecting 1 fs, got %d",
                     search_count);
@@ -2594,7 +2591,7 @@ START_TEST(test_search_fs)
 
         /* Search for non-existent */
         G(rc, lsm_fs_list, c, "id", "non-existent-id", &search_fs,
-                                    &search_count, LSM_FLAG_RSVD);
+                                    &search_count, LSM_CLIENT_FLAG_RSVD);
 
         fail_unless(search_count == 0, "Expecting no fs! %d", search_count);
 
@@ -2602,7 +2599,7 @@ START_TEST(test_search_fs)
         G(rc, lsm_fs_list, c, "system_id",
                                     lsm_fs_system_id_get(fsl[0]),
                                     &search_fs,
-                                    &search_count, LSM_FLAG_RSVD);
+                                    &search_count, LSM_CLIENT_FLAG_RSVD);
 
         fail_unless(search_count == count, "Expecting %d fs, got %d",
                     count, search_count);
@@ -2634,7 +2631,7 @@ START_TEST(test_target_ports)
     int rc = 0;
 
 
-    G(rc, lsm_target_port_list, c, NULL, NULL, &tp, &count, LSM_FLAG_RSVD);
+    G(rc, lsm_target_port_list, c, NULL, NULL, &tp, &count, LSM_CLIENT_FLAG_RSVD);
 
     if( LSM_ERR_OK == rc ) {
         for( i = 0; i < count; ++i ) {
@@ -2667,12 +2664,12 @@ START_TEST(test_target_ports)
 
             G(rc, lsm_target_port_list, c, "id", "does_not_exist",
                                         &search, &search_count,
-                                        LSM_FLAG_RSVD);
+                                        LSM_CLIENT_FLAG_RSVD);
             fail_unless(search_count == 0, "%d", search_count);
 
             G(rc, lsm_target_port_list, c, "system_id", "sim-01",
                                         &search, &search_count,
-                                        LSM_FLAG_RSVD);
+                                        LSM_CLIENT_FLAG_RSVD);
 
             fail_unless(search_count == 5, "%d", search_count);
             if( search_count ) {
@@ -2695,7 +2692,7 @@ START_TEST(test_initiator_id_verification)
     uint32_t count = 0;
     lsm_system *system = get_system(c);
 
-    G(rc, lsm_access_group_list, c, NULL, NULL, &groups, &count, LSM_FLAG_RSVD);
+    G(rc, lsm_access_group_list, c, NULL, NULL, &groups, &count, LSM_CLIENT_FLAG_RSVD);
     fail_unless(count == 0, "Expect 0 access groups, got %"PRIu32, count);
     fail_unless(groups == NULL);
 
@@ -2704,12 +2701,12 @@ START_TEST(test_initiator_id_verification)
     G(rc, lsm_access_group_create, c, "test_ag_iscsi",
             "iqn.1994-05.com.domain.sub:whatever-the.users_wants",
             LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN, system,
-            &group, LSM_FLAG_RSVD);
+            &group, LSM_CLIENT_FLAG_RSVD);
 
     G(rc, lsm_access_group_initiator_add, c, group,
             "iqn.2001-04.com.example:storage:diskarrays-sn-a8675309",
             LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN, &updated_group,
-            LSM_FLAG_RSVD);
+            LSM_CLIENT_FLAG_RSVD);
 
     G(rc, lsm_access_group_record_free, group);
     group = updated_group;
@@ -2718,7 +2715,7 @@ START_TEST(test_initiator_id_verification)
     G(rc, lsm_access_group_initiator_add, c, group,
             "iqn.2001-04.com.example",
             LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN, &updated_group,
-            LSM_FLAG_RSVD);
+            LSM_CLIENT_FLAG_RSVD);
 
     G(rc, lsm_access_group_record_free, group);
     group = updated_group;
@@ -2727,7 +2724,7 @@ START_TEST(test_initiator_id_verification)
     G(rc, lsm_access_group_initiator_add, c, group,
             "iqn.2001-04.com.example:storage.tape1.sys1.xyz",
             LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN, &updated_group,
-            LSM_FLAG_RSVD);
+            LSM_CLIENT_FLAG_RSVD);
 
     G(rc, lsm_access_group_record_free, group);
     group = updated_group;
@@ -2736,7 +2733,7 @@ START_TEST(test_initiator_id_verification)
     G(rc, lsm_access_group_initiator_add, c, group,
             "iqn.2001-04.com.example:storage.disk2.sys1.xyz",
             LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN, &updated_group,
-            LSM_FLAG_RSVD);
+            LSM_CLIENT_FLAG_RSVD);
 
     G(rc, lsm_access_group_record_free, group);
     group = updated_group;
@@ -2745,7 +2742,7 @@ START_TEST(test_initiator_id_verification)
     G(rc, lsm_access_group_initiator_add, c, group,
             "0x0011223344556677",
             LSM_ACCESS_GROUP_INIT_TYPE_WWPN, &updated_group,
-            LSM_FLAG_RSVD);
+            LSM_CLIENT_FLAG_RSVD);
 
     G(rc, lsm_access_group_record_free, group);
     group = updated_group;
@@ -2754,7 +2751,7 @@ START_TEST(test_initiator_id_verification)
     G(rc, lsm_access_group_initiator_add, c, group,
             "00:11:22:33:44:55:66:78",
             LSM_ACCESS_GROUP_INIT_TYPE_WWPN, &updated_group,
-            LSM_FLAG_RSVD);
+            LSM_CLIENT_FLAG_RSVD);
 
     G(rc, lsm_access_group_record_free, group);
     group = updated_group;
@@ -2763,7 +2760,7 @@ START_TEST(test_initiator_id_verification)
     G(rc, lsm_access_group_initiator_add, c, group,
             "00-11-22-33-44-55-66-79",
             LSM_ACCESS_GROUP_INIT_TYPE_WWPN, &updated_group,
-            LSM_FLAG_RSVD);
+            LSM_CLIENT_FLAG_RSVD);
 
     G(rc, lsm_access_group_record_free, group);
     group = updated_group;
@@ -2772,7 +2769,7 @@ START_TEST(test_initiator_id_verification)
     G(rc, lsm_access_group_initiator_add, c, group,
             "0x00-11-22-33-44-55-66-80",
             LSM_ACCESS_GROUP_INIT_TYPE_WWPN, &updated_group,
-            LSM_FLAG_RSVD);
+            LSM_CLIENT_FLAG_RSVD);
 
     G(rc, lsm_access_group_record_free, group);
     group = updated_group;
@@ -2781,7 +2778,7 @@ START_TEST(test_initiator_id_verification)
     /* Test invalid */
     rc = lsm_access_group_initiator_add(c, group, "0x:0011223344556677",
             LSM_ACCESS_GROUP_INIT_TYPE_WWPN, &updated_group,
-            LSM_FLAG_RSVD);
+            LSM_CLIENT_FLAG_RSVD);
 
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
                 "Expected initiator id with invalid form to fail! %d", rc);
@@ -2789,7 +2786,7 @@ START_TEST(test_initiator_id_verification)
     /* Test invalid iqn */
     rc = lsm_access_group_initiator_add(c, group, "0011223344556677:",
             LSM_ACCESS_GROUP_INIT_TYPE_WWPN, &updated_group,
-            LSM_FLAG_RSVD);
+            LSM_CLIENT_FLAG_RSVD);
 
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
                 "Expected initiator id with invalid form to fail! %d", rc);
@@ -2797,7 +2794,7 @@ START_TEST(test_initiator_id_verification)
     /* Test invalid iqn */
     rc = lsm_access_group_initiator_add(c, group, "001122334455667788",
             LSM_ACCESS_GROUP_INIT_TYPE_WWPN, &updated_group,
-            LSM_FLAG_RSVD);
+            LSM_CLIENT_FLAG_RSVD);
 
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
                 "Expected initiator id with invalid form to fail! %d", rc);
@@ -2805,7 +2802,7 @@ START_TEST(test_initiator_id_verification)
     /* Test invalid iqn */
     rc = lsm_access_group_initiator_add(c, group, "0x001122334455",
             LSM_ACCESS_GROUP_INIT_TYPE_WWPN, &updated_group,
-            LSM_FLAG_RSVD);
+            LSM_CLIENT_FLAG_RSVD);
 
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
                 "Expected initiator id with invalid form to fail! %d", rc);
@@ -2813,13 +2810,13 @@ START_TEST(test_initiator_id_verification)
     /* Test invalid iqn */
     rc = lsm_access_group_initiator_add(c, group, "0x00+11:22:33:44:55:66:77",
             LSM_ACCESS_GROUP_INIT_TYPE_WWPN, &updated_group,
-            LSM_FLAG_RSVD);
+            LSM_CLIENT_FLAG_RSVD);
 
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
                 "Expected initiator id with invalid form to fail! %d", rc);
 
     /* Delete group */
-    G(rc, lsm_access_group_delete, c, group, LSM_FLAG_RSVD);
+    G(rc, lsm_access_group_delete, c, group, LSM_CLIENT_FLAG_RSVD);
     G(rc, lsm_access_group_record_free, group);
     group = NULL;
 

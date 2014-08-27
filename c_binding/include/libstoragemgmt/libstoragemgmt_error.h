@@ -28,18 +28,7 @@ extern "C" {
 
 /** @file libstoragemgmt_error.h */
 
-/**< \enum  lsm_error_level Severity of the error. */
-typedef enum  {
-    LSM_ERR_LEVEL_NONE = 0,
-    LSM_ERR_LEVEL_WARNING = 1,
-    LSM_ERR_LEVEL_ERROR = 2
-} lsm_error_level;
 
-/**< \enum lsm_error_domain Where the error took place */
-typedef enum  {
-    LSM_ERR_DOMAIN_FRAME_WORK = 0,      /**< Frame work */
-    LSM_ERR_DOMAIN_PLUG_IN = 1          /**< Plug-in */
-} lsm_error_domain;
 
 /**< \enum lsm_error_number Possible enumerated return codes from library */
 typedef enum {
@@ -58,8 +47,8 @@ typedef enum {
 
     LSM_ERR_NO_STATE_CHANGE = 125,      /**< Operation completed with no change in array state */
 
-    LSM_ERR_CONNREFUSED = 140,          /**< Host on network, but not allowing connection */
-    LSM_ERR_HOSTDOWN = 141,             /**< Host unreachable on network */
+    LSM_ERR_NETWORK_CONNREFUSED = 140,  /**< Host on network, but not allowing connection */
+    LSM_ERR_NETWORK_HOSTDOWN = 141,     /**< Host unreachable on network */
     LSM_ERR_NETWORK_ERROR = 142,        /**< Generic network error */
 
     LSM_ERR_NO_MEMORY = 152,            /**< Memory allocation failure */
@@ -74,7 +63,6 @@ typedef enum {
     LSM_ERR_NOT_FOUND_FS_SS = 204,      /**< Specified snap shot not found */
     LSM_ERR_NOT_FOUND_VOLUME = 205,     /**< Specified volume not found */
     LSM_ERR_NOT_FOUND_NFS_EXPORT = 206, /**< NFS export not found */
-    LSM_ERR_NOT_FOUND_INITIATOR = 207,  /**< Initiator not found */
     LSM_ERR_NOT_FOUND_SYSTEM = 208,     /**< System not found */
 
     LSM_ERR_NOT_LICENSED = 226,         /**< Need license for feature */
@@ -100,12 +88,12 @@ typedef enum {
     LSM_ERR_TRANSPORT_INVALID_ARG = 402,        /**< Parameter transported over IPC is invalid */
 
     LSM_ERR_VOLUME_BUSY = 501,      /* Volume already in use */
-    ACCESS_GROUP_MASKED = 502,
+    LSM_ERR_ACCESS_GROUP_MASKED = 502,
 
 
     LSM_ERR_UNSUPPORTED_SEARCH_KEY = 510,    /**< Unsupport search key */
 
-    EMPTY_ACCESS_GROUP = 511
+    LSM_ERR_EMPTY_ACCESS_GROUP = 511
 
 } lsm_error_number;
 
@@ -133,20 +121,6 @@ int LSM_DLL_EXPORT lsm_error_free(lsm_error_ptr err);
  * @return -1 if e is not a valid error pointer, else error number.
  */
 lsm_error_number LSM_DLL_EXPORT lsm_error_number_get(lsm_error_ptr e);
-
-/**
- * Retrieves the domain from the error.
- * @param e     The lsm_error_ptr
- * @return -1 if e is not a valid error pointer, else error domain value.
- */
-lsm_error_domain LSM_DLL_EXPORT lsm_error_domain_get(lsm_error_ptr e);
-
-/**
- * Retrieves the error level from the error.
- * @param e     The lsm_error_ptr
- * @return -1 if e is not a valid error pointer, else error level.
- */
-lsm_error_level LSM_DLL_EXPORT lsm_error_level_get(lsm_error_ptr e);
 
 /**
  * Retrieves the error message from the error.

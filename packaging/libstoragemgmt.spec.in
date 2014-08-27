@@ -15,7 +15,7 @@ URL:            http://sourceforge.net/projects/libstoragemgmt/
 Source0:        http://sourceforge.net/projects/libstoragemgmt/files/libstoragemgmt-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires:       %{name}-python
-BuildRequires:  autoconf automake libtool yajl-devel libxml2-devel check-devel
+BuildRequires:  autoconf automake libtool yajl-devel libxml2-devel check-devel perl
 BuildRequires:  openssl-devel
 BuildRequires:  python-argparse
 BuildRequires:  glib2-devel

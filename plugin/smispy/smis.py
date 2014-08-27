@@ -169,11 +169,11 @@ def _lsm_tgt_port_type_of_cim_fc_tgt(cim_fc_tgt):
     if 'PortDiscriminator' in cim_fc_tgt and \
        cim_fc_tgt['PortDiscriminator'] and \
        DMTF.FC_PORT_PORT_DISCRIMINATOR_FCOE in cim_fc_tgt['PortDiscriminator']:
-        return TargetPort.PORT_TYPE_FCOE
+        return TargetPort.TYPE_FCOE
     if 'LinkTechnology' in cim_fc_tgt and \
        cim_fc_tgt['LinkTechnology'] == DMTF.NET_PORT_LINK_TECH_ETHERNET:
-        return TargetPort.PORT_TYPE_FCOE
-    return TargetPort.PORT_TYPE_FC
+        return TargetPort.TYPE_FCOE
+    return TargetPort.TYPE_FC
 
 
 def _lsm_init_type_to_dmtf(init_type):
@@ -3579,7 +3579,7 @@ class Smis(IStorageAreaNetwork):
         this method is only for iSCSI over TCP.
         """
         rc = []
-        port_type = TargetPort.PORT_TYPE_ISCSI
+        port_type = TargetPort.TYPE_ISCSI
         plugin_data = None
         cim_tcps = self._c.Associators(
             cim_iscsi_pg.path,

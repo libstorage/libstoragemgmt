@@ -36,7 +36,7 @@ extern "C" {
 /* Just incase we want to change the flag to a different type */
 typedef uint64_t lsm_flag;
 
-#define LSM_FLAG_RSVD 0
+#define LSM_CLIENT_FLAG_RSVD 0
 
 /**
  * Opaque data type for a connection.
@@ -126,30 +126,17 @@ typedef enum {
 
 /**< \enum lsm_provision_type Different types of provisioning */
 typedef enum {
-    LSM_PROVISION_UNKNOWN = -1,     /**< Unknown */
-    LSM_PROVISION_THIN = 1,         /**< Thin provisioning */
-    LSM_PROVISION_FULL = 2,         /**< Thick provisioning */
-    LSM_PROVISION_DEFAULT = 3       /**< Default provisioning */
-} lsm_provision_type;
-
-/**< \enum lsm_access_type Different types of Volume access */
-typedef enum {
-    LSM_VOLUME_ACCESS_READ_ONLY = 1,    /**< Read only access */
-    LSM_VOLUME_ACCESS_READ_WRITE = 2,   /**< Read write access */
-    LSM_VOLUME_ACCESS_NONE = 3          /**< No access */
-} lsm_access_type;
-
-/**< \enum lsm_volume_status_type Different states that a volume can be in */
-typedef enum {
-    LSM_VOLUME_STATUS_ONLINE = 1,   /**< Volume is ready to be used */
-    LSM_VOLUME_STATUS_OFFLINE = 2   /**< Volume is offline, no access */
-} lsm_volume_status_type;
+    LSM_VOLUME_PROVISION_UNKNOWN = -1,     /**< Unknown */
+    LSM_VOLUME_PROVISION_THIN = 1,         /**< Thin provisioning */
+    LSM_VOLUME_PROVISION_FULL = 2,         /**< Thick provisioning */
+    LSM_VOLUME_PROVISION_DEFAULT = 3       /**< Default provisioning */
+} lsm_volume_provision_type;
 
 /**
  * Admin state for volume, enabled or disabled
  */
-#define LSM_VOLUME_ADMIN_STATE_ENABLED    0x1     /**< Volume accessible */
-#define LSM_VOLUME_ADMIN_STATE_DISABLE    0x0     /**< Volume unaccessible */
+#define LSM_VOLUME_ADMIN_STATE_ENABLED      0x1     /**< Volume accessible */
+#define LSM_VOLUME_ADMIN_STATE_DISABLED     0x0     /**< Volume unaccessible */
 
 /**
  * Different states a system status can be in.
@@ -171,14 +158,6 @@ typedef enum {
     LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_WWPN_MIXED = 7 /**< More than 1 type */
 } lsm_access_group_init_type;
 
-
-/**< \enum lsm_job_type Different types of jobs */
-typedef enum {
-    LSM_JOB_VOL_CREATE  = 1,                    /**< Volume create */
-    LSM_JOB_VOL_RESIZE = 2,                     /**< Volume re-size */
-    LSM_JOB_VOL_REPLICATE = 3                   /**< Volume replicate */
-} lsm_job_type;
-
 /**< \enum lsm_job_status Job states */
 typedef enum {
     LSM_JOB_INPROGRESS = 1,                     /**< Job is in progress */
@@ -190,7 +169,7 @@ typedef enum {
 typedef enum {
     LSM_DISK_TYPE_UNKNOWN = 0,
     LSM_DISK_TYPE_OTHER = 1,
-    LSM_DISL_TYPE_NOT_APPLICABLE = 2,
+    LSM_DISK_TYPE_NOT_APPLICABLE = 2,
     LSM_DISK_TYPE_ATA = 3,
     LSM_DISK_TYPE_SATA = 4,
     LSM_DISK_TYPE_SAS = 5,
@@ -210,7 +189,7 @@ typedef enum {
 #define LSM_DISK_STATUS_OTHER                       0x0000000000000004
 #define LSM_DISK_STATUS_PREDICTIVE_FAILURE          0x0000000000000008
 #define LSM_DISK_STATUS_ERROR                       0x0000000000000010
-#define LSM_DISK_STATUS_STATUS_REMOVED              0x0000000000000020
+#define LSM_DISK_STATUS_REMOVED                     0x0000000000000020
 #define LSM_DISK_STATUS_STARTING                    0x0000000000000040
 #define LSM_DISK_STATUS_STOPPING                    0x0000000000000080
 #define LSM_DISK_STATUS_STOPPED                     0x0000000000000100
@@ -245,11 +224,11 @@ typedef enum {
 #define LSM_POOL_ELEMENT_TYPE_SYS_RESERVED          0x0000000000000400
 
 typedef enum {
-    LSM_PORT_TYPE_UNKNOWN = 0,
-    LSM_PORT_TYPE_OTHER = 1,
-    LSM_PORT_TYPE_FC = 2,
-    LSM_PORT_TYPE_FCOE = 3,
-    LSM_PORT_TYPE_ISCSI = 4
+    LSM_TARGET_PORT_TYPE_UNKNOWN = 0,
+    LSM_TARGET_PORT_TYPE_OTHER = 1,
+    LSM_TARGET_PORT_TYPE_FC = 2,
+    LSM_TARGET_PORT_TYPE_FCOE = 3,
+    LSM_TARGET_PORT_TYPE_ISCSI = 4
 } lsm_target_port_type;
 
 #ifdef  __cplusplus

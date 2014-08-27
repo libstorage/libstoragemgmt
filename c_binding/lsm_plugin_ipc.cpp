@@ -175,7 +175,7 @@ static lsm_plugin_ptr lsm_plugin_alloc(lsm_plugin_register reg,
         rc->version = strdup(version);
 
         if (!rc->desc || !rc->version) {
-            lsm_plugin_free(rc, LSM_FLAG_RSVD);
+            lsm_plugin_free(rc, LSM_CLIENT_FLAG_RSVD);
             rc = NULL;
         }
     }
@@ -264,7 +264,7 @@ int lsm_plugin_init_v1( int argc, char *argv[], lsm_plugin_register reg,
             if (plug->tp) {
                 rc = lsm_plugin_run(plug);
             } else {
-                lsm_plugin_free(plug, LSM_FLAG_RSVD);
+                lsm_plugin_free(plug, LSM_CLIENT_FLAG_RSVD);
                 rc = LSM_ERR_NO_MEMORY;
             }
         } else {
@@ -682,7 +682,7 @@ static int handle_volume_create(lsm_plugin_ptr p, Value &params, Value &response
                 char *job = NULL;
                 const char *name = v_name.asC_str();
                 uint64_t size = v_size.asUint64_t();
-                lsm_provision_type pro = (lsm_provision_type)v_prov.asInt32_t();
+                lsm_volume_provision_type pro = (lsm_volume_provision_type)v_prov.asInt32_t();
 
                 rc = p->san_ops->vol_create(p, pool, name, size, pro, &vol, &job,
                                             LSM_FLAG_GET_VALUE(params));

@@ -219,11 +219,11 @@ def ag_init_type_str_to_lsm(init_type_str):
 
 
 _TGT_PORT_TYPE_CONV = {
-    TargetPort.PORT_TYPE_UNKNOWN: 'Unknown',
-    TargetPort.PORT_TYPE_OTHER: 'Other',
-    TargetPort.PORT_TYPE_FC: 'FC',
-    TargetPort.PORT_TYPE_FCOE: 'FCoE',
-    TargetPort.PORT_TYPE_ISCSI: 'iSCSI',
+    TargetPort.TYPE_UNKNOWN: 'Unknown',
+    TargetPort.TYPE_OTHER: 'Other',
+    TargetPort.TYPE_FC: 'FC',
+    TargetPort.TYPE_FCOE: 'FCoE',
+    TargetPort.TYPE_ISCSI: 'iSCSI',
 }
 
 

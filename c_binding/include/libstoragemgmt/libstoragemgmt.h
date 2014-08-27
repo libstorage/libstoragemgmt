@@ -287,7 +287,7 @@ extern "C" {
      */
     int LSM_DLL_EXPORT lsm_volume_create(lsm_connect *conn, lsm_pool *pool,
                                         const char *volume_name, uint64_t size,
-                                        lsm_provision_type provisioning,
+                                        lsm_volume_provision_type provisioning,
                                         lsm_volume **new_volume, char **job,
                                         lsm_flag flags);
 

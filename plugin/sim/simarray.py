@@ -706,7 +706,7 @@ class SimData(object):
         self.tgt_dict = {
             'TGT_PORT_ID_01': {
                 'tgt_id': 'TGT_PORT_ID_01',
-                'port_type': TargetPort.PORT_TYPE_FC,
+                'port_type': TargetPort.TYPE_FC,
                 'service_address': '50:0a:09:86:99:4b:8d:c5',
                 'network_address': '50:0a:09:86:99:4b:8d:c5',
                 'physical_address': '50:0a:09:86:99:4b:8d:c5',
@@ -715,7 +715,7 @@ class SimData(object):
             },
             'TGT_PORT_ID_02': {
                 'tgt_id': 'TGT_PORT_ID_02',
-                'port_type': TargetPort.PORT_TYPE_FCOE,
+                'port_type': TargetPort.TYPE_FCOE,
                 'service_address': '50:0a:09:86:99:4b:8d:c6',
                 'network_address': '50:0a:09:86:99:4b:8d:c6',
                 'physical_address': '50:0a:09:86:99:4b:8d:c6',
@@ -724,7 +724,7 @@ class SimData(object):
             },
             'TGT_PORT_ID_03': {
                 'tgt_id': 'TGT_PORT_ID_03',
-                'port_type': TargetPort.PORT_TYPE_ISCSI,
+                'port_type': TargetPort.TYPE_ISCSI,
                 'service_address': 'iqn.1986-05.com.example:sim-tgt-03',
                 'network_address': 'sim-iscsi-tgt-3.example.com:3260',
                 'physical_address': 'a4:4e:31:47:f4:e0',
@@ -733,7 +733,7 @@ class SimData(object):
             },
             'TGT_PORT_ID_04': {
                 'tgt_id': 'TGT_PORT_ID_04',
-                'port_type': TargetPort.PORT_TYPE_ISCSI,
+                'port_type': TargetPort.TYPE_ISCSI,
                 'service_address': 'iqn.1986-05.com.example:sim-tgt-03',
                 'network_address': '10.0.0.1:3260',
                 'physical_address': 'a4:4e:31:47:f4:e1',
@@ -742,7 +742,7 @@ class SimData(object):
             },
             'TGT_PORT_ID_05': {
                 'tgt_id': 'TGT_PORT_ID_05',
-                'port_type': TargetPort.PORT_TYPE_ISCSI,
+                'port_type': TargetPort.TYPE_ISCSI,
                 'service_address': 'iqn.1986-05.com.example:sim-tgt-03',
                 'network_address': '[2001:470:1f09:efe:a64e:31ff::1]:3260',
                 'physical_address': 'a4:4e:31:47:f4:e1',

@@ -344,7 +344,7 @@ static int cap(lsm_plugin_ptr c, lsm_system *system,
     *cap = lsm_capability_record_alloc(NULL);
 
     if( *cap ) {
-        rc = lsm_capability_set_n(*cap, LSM_CAPABILITY_SUPPORTED,
+        rc = lsm_capability_set_n(*cap, LSM_CAP_SUPPORTED,
             LSM_CAP_VOLUMES,
             LSM_CAP_VOLUME_CREATE,
             LSM_CAP_VOLUME_RESIZE,
@@ -618,29 +618,29 @@ static int list_targets(lsm_plugin_ptr c, const char *search_key,
 
     if( *tp ) {
         (*tp)[0] = lsm_target_port_record_alloc("TGT_PORT_ID_01",
-                                                LSM_PORT_TYPE_FC, p0, p0, p0,
+                                                LSM_TARGET_PORT_TYPE_FC, p0, p0, p0,
                                                 "FC_a_0b", sys_id, NULL);
 
         (*tp)[1] = lsm_target_port_record_alloc("TGT_PORT_ID_02",
-                                                LSM_PORT_TYPE_FCOE, p1, p1, p1,
+                                                LSM_TARGET_PORT_TYPE_FCOE, p1, p1, p1,
                                                 "FC_a_0c", sys_id, NULL);
 
         (*tp)[2] = lsm_target_port_record_alloc("TGT_PORT_ID_03",
-                                        LSM_PORT_TYPE_ISCSI,
+                                        LSM_TARGET_PORT_TYPE_ISCSI,
                                         "iqn.1986-05.com.example:sim-tgt-03",
                                         "sim-iscsi-tgt-3.example.com:3260",
                                         "a4:4e:31:47:f4:e0",
                                         "iSCSI_c_0d", sys_id, NULL);
 
         (*tp)[3] = lsm_target_port_record_alloc("TGT_PORT_ID_04",
-                                        LSM_PORT_TYPE_ISCSI,
+                                        LSM_TARGET_PORT_TYPE_ISCSI,
                                         "iqn.1986-05.com.example:sim-tgt-03",
                                         "10.0.0.1:3260",
                                         "a4:4e:31:47:f4:e1",
                                         "iSCSI_c_0e", sys_id, NULL);
 
         (*tp)[4] = lsm_target_port_record_alloc("TGT_PORT_ID_05",
-                                        LSM_PORT_TYPE_ISCSI,
+                                        LSM_TARGET_PORT_TYPE_ISCSI,
                                         "iqn.1986-05.com.example:sim-tgt-03",
                                         "[2001:470:1f09:efe:a64e:31ff::1]:3260",
                                         "a4:4e:31:47:f4:e1",
@@ -721,7 +721,7 @@ static struct allocated_volume * find_volume_name(struct plugin_data *pd,
 
 static int volume_create(lsm_plugin_ptr c, lsm_pool *pool,
                         const char *volume_name, uint64_t size,
-                        lsm_provision_type provisioning, lsm_volume **new_volume,
+                        lsm_volume_provision_type provisioning, lsm_volume **new_volume,
                         char **job, lsm_flag flags)
 {
     int rc = LSM_ERR_OK;
@@ -806,7 +806,7 @@ static int volume_replicate(lsm_plugin_ptr c, lsm_pool *pool,
         if( find_volume(pd, lsm_volume_id_get(volume_src) )) {
             rc = volume_create(c, pool_to_use, name,
                                 lsm_volume_number_of_blocks_get(volume_src)*BS,
-                                LSM_PROVISION_DEFAULT, new_replicant, job, flags);
+                                LSM_VOLUME_PROVISION_DEFAULT, new_replicant, job, flags);
         } else {
             rc = lsm_log_error_basic(c, LSM_ERR_NOT_FOUND_VOLUME,
                                     "Volume not found!");
@@ -935,7 +935,7 @@ static int volume_delete(lsm_plugin_ptr c, lsm_volume *volume,
 
     // Check to see if this volume is masked to any access groups, if it is we
     // will return an IS_MASKED error code.
-    int rc = ag_granted_to_volume(c, volume, &groups, &count, LSM_FLAG_RSVD);
+    int rc = ag_granted_to_volume(c, volume, &groups, &count, LSM_CLIENT_FLAG_RSVD);
 
     if( LSM_ERR_OK == rc ) {
         lsm_access_group_record_array_free(groups, count);
@@ -1084,7 +1084,7 @@ static int access_group_delete( lsm_plugin_ptr c,
     struct plugin_data *pd = (struct plugin_data*)lsm_private_data_get(c);
     const char *id = lsm_access_group_id_get(group);
 
-    rc = vol_accessible_by_ag(c, group, &volumes, &count, LSM_FLAG_RSVD);
+    rc = vol_accessible_by_ag(c, group, &volumes, &count, LSM_CLIENT_FLAG_RSVD);
 
     if( rc == LSM_ERR_OK && count ) {
         lsm_volume_record_array_free(volumes, count);
@@ -1208,10 +1208,10 @@ static int volume_mask(lsm_plugin_ptr c,
                                                         free, free);
             char *key = strdup(lsm_access_group_id_get(find->ag));
             char *vol_id = strdup(lsm_volume_id_get(volume));
-            lsm_access_type *val = (lsm_access_type*) malloc(sizeof(lsm_access_type));
+            int *val = (int*) malloc(sizeof(int));
 
             if( grant && key && val && vol_id ) {
-                *val = LSM_VOLUME_ACCESS_READ_WRITE;
+                *val = 1;
 
                 /* Create the association for volume id and access value */
                 g_hash_table_insert(grant, vol_id, val);
@@ -1235,8 +1235,8 @@ static int volume_mask(lsm_plugin_ptr c,
             char *vol_id = g_hash_table_lookup(grants, lsm_volume_id_get(volume));
             if( !vol_id ) {
                 vol_id = strdup(lsm_volume_id_get(volume));
-                lsm_access_type *val =
-                                (lsm_access_type*) malloc(sizeof(lsm_access_type));
+                int *val = (int*) malloc(sizeof(int));
+                *val = 1;
                 if( vol_id && val ) {
                     g_hash_table_insert(grants, vol_id, val);
                 } else {
