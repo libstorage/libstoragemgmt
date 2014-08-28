@@ -17,7 +17,7 @@
 
 from abc import ABCMeta as _ABCMeta
 from abc import abstractmethod as _abstractmethod
-from lsm import LsmError, ErrorNumber, Pool
+from lsm import LsmError, ErrorNumber
 
 
 class IPlugin(object):

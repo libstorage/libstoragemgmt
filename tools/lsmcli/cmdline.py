@@ -39,8 +39,7 @@ from lsm import (Client, Pool, VERSION, LsmError, Disk,
 
 from lsm.lsmcli.data_display import (
     DisplayData, PlugData, out,
-    vol_provision_str_to_type, vol_rep_type_str_to_type,
-    ag_init_type_str_to_lsm)
+    vol_provision_str_to_type, vol_rep_type_str_to_type)
 
 
 ## Wraps the invocation to the command line
