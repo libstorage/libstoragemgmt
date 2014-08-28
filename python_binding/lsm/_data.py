@@ -244,7 +244,7 @@ class Volume(IData):
     REPLICATE_CLONE = 2
     REPLICATE_COPY = 3
     REPLICATE_MIRROR_SYNC = 4
-    REPLICATE_MIRROR_ASYNC =5
+    REPLICATE_MIRROR_ASYNC = 5
 
     #Provisioning types
     PROVISION_UNKNOWN = -1
@@ -308,7 +308,8 @@ class System(IData):
 @default_property('system_id', doc="System identifier")
 @default_property("plugin_data", doc="Plug-in private data")
 @default_property("element_type", doc="What pool can be used for")
-@default_property("unsupported_actions", doc="What cannot be done with this pool")
+@default_property("unsupported_actions",
+                  doc="What cannot be done with this pool")
 class Pool(IData):
     """
     Pool specific information
@@ -354,7 +355,7 @@ class Pool(IData):
         self._id = _id                      # Identifier
         self._name = _name                  # Human recognisable name
         self._element_type = _element_type  # What pool can be used to create
-        self._unsupported_actions = _unsupported_actions # What pool cannot be
+        self._unsupported_actions = _unsupported_actions  # What pool cannot be
                                             # used for
         self._total_space = _total_space    # Total size
         self._free_space = _free_space      # Free space available

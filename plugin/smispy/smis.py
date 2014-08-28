@@ -150,6 +150,7 @@ def _lsm_init_id_to_snia(lsm_init_id):
         return lsm_init_id.replace(':', '').upper()
     return lsm_init_id
 
+
 def _dmtf_init_type_to_lsm(cim_init):
     if 'IDType' in cim_init:
         if cim_init['IDType'] == DMTF.ID_TYPE_WWPN:
@@ -183,6 +184,7 @@ def _lsm_init_type_to_dmtf(init_type):
         return DMTF.ID_TYPE_ISCSI
     raise LsmError(ErrorNumber.NO_SUPPORT,
                    "Does not support provided init_type: %d" % init_type)
+
 
 class SNIA(object):
     BLK_ROOT_PROFILE = 'Array'

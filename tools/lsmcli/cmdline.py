@@ -91,6 +91,7 @@ def parse_convert_init(init_id):
 
     raise ArgError("--init-id %s is not a valid WWPN or iSCSI IQN" % init_id)
 
+
 ## This class represents a command line argument error
 class ArgError(Exception):
     def __init__(self, message, *args, **kwargs):
@@ -601,8 +602,8 @@ aliases = (
     ['ld', 'list --type disks'],
     ['la', 'list --type access_groups'],
     ['lf', 'list --type fs'],
-    ['c',  'capabilities'],
-    ['p',  'plugin-info'],
+    ['c', 'capabilities'],
+    ['p', 'plugin-info'],
     ['vc', 'volume-create'],
     ['vd', 'volume-delete'],
     ['vr', 'volume-resize'],
@@ -782,7 +783,7 @@ class CmdLine:
 
         for alias in aliases:
             sub_parser = subparsers.add_parser(
-                alias[0], help="Alias of '%s'"% alias[1],
+                alias[0], help="Alias of '%s'" % alias[1],
                 parents=[parent_parser],
                 formatter_class=RawTextHelpFormatter, add_help=False)
             sub_parser.set_defaults(

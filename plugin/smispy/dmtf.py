@@ -104,7 +104,6 @@ class DMTF(object):
             status = unknown_value
         return status, " ".join(status_info_list)
 
-
     @staticmethod
     def cim_sys_status_of(dmtf_op_status_list):
         """
@@ -153,7 +152,6 @@ class DMTF(object):
         return DMTF._dmtf_op_status_list_conv(
             DMTF._LSM_DISK_OP_STATUS_CONV, dmtf_op_status_list,
             Disk.STATUS_UNKNOWN, Disk.STATUS_OTHER)[0]
-
 
     # CIM_StorageHardwareID['IDType']
     ID_TYPE_OTHER = Uint16(1)

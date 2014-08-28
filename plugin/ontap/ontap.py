@@ -203,7 +203,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         'EATA': Disk.TYPE_ATA,
         'FCAL': Disk.TYPE_FC,
         'FSAS': Disk.TYPE_NL_SAS,
-        'LUN':  Disk.TYPE_OTHER,
+        'LUN': Disk.TYPE_OTHER,
         'MSATA': Disk.TYPE_SATA,
         'SAS': Disk.TYPE_SAS,
         'SATA': Disk.TYPE_SATA,

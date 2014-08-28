@@ -610,45 +610,39 @@ class SimData(object):
                    System.STATUS_OK, '')]
         pool_size_200g = size_human_2_size_bytes('200GiB')
         self.pool_dict = {
-            'POO1': {
-                'pool_id': 'POO1',
-                'name': 'Pool 1',
-                'member_type': PoolRAID.MEMBER_TYPE_DISK_SATA,
-                'member_ids': [SimData._disk_id(0), SimData._disk_id(1)],
-                'raid_type': PoolRAID.RAID_TYPE_RAID1,
-                'status': SimData.SIM_DATA_POOL_STATUS,
-                'status_info': SimData.SIM_DATA_POOL_STATUS_INFO,
-                'sys_id': SimData.SIM_DATA_SYS_ID,
-                'element_type': SimData.SIM_DATA_SYS_POOL_ELEMENT_TYPE,
-                'unsupported_actions': Pool.UNSUPPORTED_VOLUME_EXPAND | \
-                                       Pool.UNSUPPORTED_VOLUME_SHRINK
-            },
-            'POO2': {
-                'pool_id': 'POO2',
-                'name': 'Pool 2',
-                'member_type': PoolRAID.MEMBER_TYPE_POOL,
-                'member_ids': ['POO1'],
-                'member_size': pool_size_200g,
-                'raid_type': PoolRAID.RAID_TYPE_NOT_APPLICABLE,
-                'status': Pool.STATUS_OK,
-                'status_info': SimData.SIM_DATA_POOL_STATUS_INFO,
-                'sys_id': SimData.SIM_DATA_SYS_ID,
-                'element_type': SimData.SIM_DATA_POOL_ELEMENT_TYPE,
-                'unsupported_actions': SimData.SIM_DATA_POOL_UNSUPPORTED_ACTIONS
-            },
+            'POO1': dict(
+                pool_id='POO1', name='Pool 1',
+                member_type=PoolRAID.MEMBER_TYPE_DISK_SATA,
+                member_ids=[SimData._disk_id(0), SimData._disk_id(1)],
+                raid_type=PoolRAID.RAID_TYPE_RAID1,
+                status=SimData.SIM_DATA_POOL_STATUS,
+                status_info=SimData.SIM_DATA_POOL_STATUS_INFO,
+                sys_id=SimData.SIM_DATA_SYS_ID,
+                element_type=SimData.SIM_DATA_SYS_POOL_ELEMENT_TYPE,
+                unsupported_actions=Pool.UNSUPPORTED_VOLUME_EXPAND |
+                                 Pool.UNSUPPORTED_VOLUME_SHRINK),
+            'POO2': dict(
+                pool_id='POO2', name='Pool 2',
+                member_type=PoolRAID.MEMBER_TYPE_POOL,
+                member_ids=['POO1'], member_size=pool_size_200g,
+                raid_type=PoolRAID.RAID_TYPE_NOT_APPLICABLE,
+                status=Pool.STATUS_OK,
+                status_info=SimData.SIM_DATA_POOL_STATUS_INFO,
+                sys_id=SimData.SIM_DATA_SYS_ID,
+                element_type=SimData.SIM_DATA_POOL_ELEMENT_TYPE,
+                unsupported_actions=SimData.SIM_DATA_POOL_UNSUPPORTED_ACTIONS),
             # lsm_test_aggr pool is required by test/runtest.sh
-            'lsm_test_aggr': {
-                'pool_id': 'lsm_test_aggr',
-                'name': 'lsm_test_aggr',
-                'member_type': PoolRAID.MEMBER_TYPE_DISK_SAS,
-                'member_ids': [SimData._disk_id(2), SimData._disk_id(3)],
-                'raid_type': PoolRAID.RAID_TYPE_RAID0,
-                'status': Pool.STATUS_OK,
-                'status_info': SimData.SIM_DATA_POOL_STATUS_INFO,
-                'sys_id': SimData.SIM_DATA_SYS_ID,
-                'element_type': SimData.SIM_DATA_POOL_ELEMENT_TYPE,
-                'unsupported_actions': SimData.SIM_DATA_POOL_UNSUPPORTED_ACTIONS
-            },
+            'lsm_test_aggr': dict(
+                pool_id='lsm_test_aggr',
+                name='lsm_test_aggr',
+                member_type=PoolRAID.MEMBER_TYPE_DISK_SAS,
+                member_ids=[SimData._disk_id(2), SimData._disk_id(3)],
+                raid_type=PoolRAID.RAID_TYPE_RAID0,
+                status=Pool.STATUS_OK,
+                status_info=SimData.SIM_DATA_POOL_STATUS_INFO,
+                sys_id=SimData.SIM_DATA_SYS_ID,
+                element_type=SimData.SIM_DATA_POOL_ELEMENT_TYPE,
+                unsupported_actions=SimData.SIM_DATA_POOL_UNSUPPORTED_ACTIONS),
         }
         self.vol_dict = {
         }
