@@ -1360,6 +1360,8 @@ class CmdLine:
     def __init__(self):
         self.uri = None
         self.c = None
+        self.parser = None
+        self.unknown_args = None
         self.args = self.cli()
 
         self.cleanup = None
