@@ -414,8 +414,8 @@ class Ontap(IStorageAreaNetwork, INfs):
         if pool_name == 'aggr0':
             element_type = element_type | Pool.ELEMENT_TYPE_SYS_RESERVED
 
-        return Pool(pool_id, pool_name, element_type, total_space, free_space,
-                    status, status_info, system_id)
+        return Pool(pool_id, pool_name, element_type, 0, total_space,
+                    free_space, status, status_info, system_id)
 
     @staticmethod
     def _status_info_of_na_vol(na_vol):
@@ -451,8 +451,8 @@ class Ontap(IStorageAreaNetwork, INfs):
         if pool_name == '/vol/vol0':
             element_type |= Pool.ELEMENT_TYPE_SYS_RESERVED
 
-        return Pool(pool_id, pool_name, element_type, 0, total_space, free_space,
-                    status, status_info, system_id)
+        return Pool(pool_id, pool_name, element_type, 0, total_space,
+                    free_space, status, status_info, system_id)
 
     @handle_ontap_errors
     def capabilities(self, system, flags=0):
