@@ -1085,13 +1085,10 @@ static int access_group_delete( lsm_plugin_ptr c,
     const char *id = lsm_access_group_id_get(group);
 
     rc = vol_accessible_by_ag(c, group, &volumes, &count, LSM_CLIENT_FLAG_RSVD);
+    lsm_volume_record_array_free(volumes, count);
+    volumes = NULL;
 
-    if( rc == LSM_ERR_OK && count ) {
-        lsm_volume_record_array_free(volumes, count);
-    }
-
-    if( LSM_ERR_OK == rc ) {
-
+    if( rc == LSM_ERR_OK ) {
         if( count ) {
             rc = lsm_log_error_basic(c, LSM_ERR_IS_MASKED,
                                         "access group has masked volumes!");
@@ -1236,8 +1233,8 @@ static int volume_mask(lsm_plugin_ptr c,
             if( !vol_id ) {
                 vol_id = strdup(lsm_volume_id_get(volume));
                 int *val = (int*) malloc(sizeof(int));
-                *val = 1;
                 if( vol_id && val ) {
+                    *val = 1;
                     g_hash_table_insert(grants, vol_id, val);
                 } else {
                     rc = LSM_ERR_NO_MEMORY;
@@ -1873,7 +1870,7 @@ static int nfs_auth_types(lsm_plugin_ptr c, lsm_string_list **types,
     int rc = LSM_ERR_OK;
     *types = lsm_string_list_alloc(1);
     if( *types ) {
-        lsm_string_list_elem_set(*types, 0, "standard");
+        rc = lsm_string_list_elem_set(*types, 0, "standard");
     } else {
         rc = LSM_ERR_NO_MEMORY;
     }
