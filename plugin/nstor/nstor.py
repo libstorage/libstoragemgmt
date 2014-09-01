@@ -466,8 +466,9 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             admin_state = Volume.ADMIN_STATE_ENABLED
 
             vol_list.append(
-                Volume(lu, lu, lu_props['guid'], block_size, num_of_blocks,
-                       admin_state, self._system.id,
+                Volume(lu, lu, lu_props['guid'].lower(),
+                       block_size, num_of_blocks,
+                       admin_state, self.system.id,
                        NexentaStor._get_pool_id(lu)))
 
         return search_property(vol_list, search_key, search_value)

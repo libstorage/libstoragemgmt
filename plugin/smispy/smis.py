@@ -24,6 +24,7 @@ import copy
 import os
 import datetime
 import sys
+import re
 
 import pywbem
 from pywbem import CIMError
@@ -1267,7 +1268,9 @@ class Smis(IStorageAreaNetwork):
         if vpd_83 is None:
             vpd_83 = Smis._vpd83_in_cv_ibm_xiv(cv)
 
-        if vpd_83 is None:
+        if vpd_83 and re.match('^[a-fA-F0-9]{32}$', vpd_83):
+            vpd_83 = vpd_83.lower()
+        else:
             vpd_83 = ''
 
         #This is a fairly expensive operation, so it's in our best interest

@@ -543,7 +543,7 @@ class SimData(object):
         }
     """
     SIM_DATA_BLK_SIZE = 512
-    SIM_DATA_VERSION = "2.8"
+    SIM_DATA_VERSION = "2.9"
     SIM_DATA_SYS_ID = 'sim-01'
     SIM_DATA_INIT_NAME = 'NULL'
     SIM_DATA_TMO = 30000    # ms
@@ -786,7 +786,7 @@ class SimData(object):
         """
         vpd = []
         for i in range(0, l):
-            vpd.append(str('%02X' % (random.randint(0, 255))))
+            vpd.append(str('%02x' % (random.randint(0, 255))))
         return "".join(vpd)
 
     def _size_of_raid(self, member_type, member_ids, raid_type,
