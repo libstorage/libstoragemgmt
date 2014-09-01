@@ -254,10 +254,16 @@ class Volume(IData):
     ADMIN_STATE_DISABLED = 0
     ADMIN_STATE_ENABLED = 1
 
+    _regex_vpd83_str = re.compile(r"""^[0-9a-f]{32}$""")
+
     def __init__(self, _id, _name, _vpd83, _block_size, _num_of_blocks,
                  _admin_state, _system_id, _pool_id, _plugin_data=None):
         self._id = _id                        # Identifier
         self._name = _name                    # Human recognisable name
+        if _vpd83 and not Volume._regex_vpd83_str.match(_vpd83):
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           "Incorrect format of VPD 0x83 string: '%s'" %
+                           _vpd83)
         self._vpd83 = _vpd83                  # SCSI page 83 unique ID
         self._block_size = _block_size        # Block size
         self._num_of_blocks = _num_of_blocks  # Number of blocks
