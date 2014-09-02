@@ -985,16 +985,18 @@ START_TEST(test_systems)
     G(rc, lsm_system_list, c, &sys, &count, LSM_CLIENT_FLAG_RSVD);
     fail_unless(count == 1);
 
-    id = lsm_system_id_get(sys[0]);
-    fail_unless(id != NULL);
-    fail_unless(strcmp(id, SYSTEM_ID) == 0, "%s", id);
+    if( count ) {
+        id = lsm_system_id_get(sys[0]);
+        fail_unless(id != NULL);
+        fail_unless(strcmp(id, SYSTEM_ID) == 0, "%s", id);
 
-    name = lsm_system_name_get(sys[0]);
-    fail_unless(name != NULL);
-    fail_unless(strcmp(name, SYSTEM_NAME) == 0);
+        name = lsm_system_name_get(sys[0]);
+        fail_unless(name != NULL);
+        fail_unless(strcmp(name, SYSTEM_NAME) == 0);
 
-    status = lsm_system_status_get(sys[0]);
-    fail_unless(status == LSM_SYSTEM_STATUS_OK, "status = %x", status);
+        status = lsm_system_status_get(sys[0]);
+        fail_unless(status == LSM_SYSTEM_STATUS_OK, "status = %x", status);
+    }
 
     G(rc, lsm_system_record_array_free, sys, count);
 }
