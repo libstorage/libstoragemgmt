@@ -23,6 +23,7 @@ import traceback
 import copy
 import os
 import datetime
+import sys
 
 import pywbem
 from pywbem import CIMError
@@ -1721,10 +1722,37 @@ class Smis(IStorageAreaNetwork):
                      'InPool': sp.path,
                      'Size': pywbem.Uint64(size_bytes)}
 
-        return self._pi("volume_create", Smis.JOB_RETRIEVE_VOLUME,
-                        *(self._c.InvokeMethod(
-                            'CreateOrModifyElementFromStoragePool',
-                            scs.path, **in_params)))
+        try:
+            return self._pi("volume_create", Smis.JOB_RETRIEVE_VOLUME,
+                            *(self._c.InvokeMethod(
+                                'CreateOrModifyElementFromStoragePool',
+                                scs.path, **in_params)))
+        except CIMError:
+            report_original = True
+            # Save off exception so we can re-raise original if needed
+            exception_info = sys.exc_info()
+
+            # Check to see if we already have a volume with this name.  If we
+            # do we will assume that this is the cause of it.  We will hide
+            # any errors that happen during this check and just report the
+            # original error if we can't determine if we have a duplicate
+            # name.
+            try:
+                # TODO: Add ability to search by volume name to 'volumes'
+                volumes = self.volumes()
+                for v in volumes:
+                    if v.name == volume_name:
+                        report_original = False
+                        break
+            except Exception:
+                # Don't report anything here on a failing
+                pass
+
+            if report_original:
+                raise exception_info[1], None, exception_info[2]
+            else:
+                raise LsmError(ErrorNumber.NAME_CONFLICT,
+                                        "Volume with name exists!")
 
     def _poll(self, msg, job):
         if job:
