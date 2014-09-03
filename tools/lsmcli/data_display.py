@@ -95,14 +95,11 @@ _POOL_STATUS_CONV = {
     Pool.STATUS_OTHER: 'Other',
     Pool.STATUS_DEGRADED: 'Degraded',
     Pool.STATUS_ERROR: 'Error',
-    Pool.STATUS_STARTING: 'Starting',
-    Pool.STATUS_STOPPING: 'Stopping',
     Pool.STATUS_STOPPED: 'Stopped',
     Pool.STATUS_RECONSTRUCTING: 'Reconstructing',
     Pool.STATUS_VERIFYING: 'Verifying',
     Pool.STATUS_INITIALIZING: 'Initializing',
     Pool.STATUS_GROWING: 'Growing',
-    Pool.STATUS_DESTROYING: 'Destroying',
 }
 
 
@@ -111,7 +108,6 @@ def pool_status_to_str(pool_status):
 
 
 _POOL_ELEMENT_TYPE_CONV = {
-    Pool.ELEMENT_TYPE_UNKNOWN: 'UNKNOWN',
     Pool.ELEMENT_TYPE_POOL: 'POOL',
     Pool.ELEMENT_TYPE_VOLUME: 'VOLUME',
     Pool.ELEMENT_TYPE_FS: 'FILE_SYSTEM',
@@ -172,7 +168,6 @@ def vol_rep_type_str_to_type(vol_rep_type_str):
 _DISK_TYPE_CONV = {
     Disk.TYPE_UNKNOWN: 'UNKNOWN',
     Disk.TYPE_OTHER: 'Other',
-    Disk.TYPE_NOT_APPLICABLE: 'Not applicable',
     Disk.TYPE_ATA: 'ATA',
     Disk.TYPE_SATA: 'SATA',
     Disk.TYPE_SAS: 'SAS',
@@ -229,7 +224,6 @@ def ag_init_type_str_to_lsm(init_type_str):
 
 
 _TGT_PORT_TYPE_CONV = {
-    TargetPort.TYPE_UNKNOWN: 'Unknown',
     TargetPort.TYPE_OTHER: 'Other',
     TargetPort.TYPE_FC: 'FC',
     TargetPort.TYPE_FCOE: 'FCoE',

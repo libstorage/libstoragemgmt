@@ -163,7 +163,6 @@ class Disk(IData):
 
     TYPE_UNKNOWN = 0
     TYPE_OTHER = 1
-    TYPE_NOT_APPLICABLE = 2
     TYPE_ATA = 3     # IDE disk which is seldomly used.
     TYPE_SATA = 4
     TYPE_SAS = 5
@@ -323,7 +322,6 @@ class Pool(IData):
     #   * Another Pool
     #   * Volume (aka, LUN)
     #   * System Reserved Pool.
-    ELEMENT_TYPE_UNKNOWN = 1 << 0
     ELEMENT_TYPE_POOL = 1 << 1
     ELEMENT_TYPE_VOLUME = 1 << 2
     ELEMENT_TYPE_FS = 1 << 3
@@ -340,14 +338,11 @@ class Pool(IData):
     STATUS_OTHER = 1 << 2
     STATUS_DEGRADED = 1 << 4
     STATUS_ERROR = 1 << 5
-    STATUS_STARTING = 1 << 7
-    STATUS_STOPPING = 1 << 8
     STATUS_STOPPED = 1 << 9
     STATUS_RECONSTRUCTING = 1 << 12
     STATUS_VERIFYING = 1 << 13
     STATUS_INITIALIZING = 1 << 14
     STATUS_GROWING = 1 << 15
-    STATUS_DESTROYING = 1 << 17
 
     def __init__(self, _id, _name, _element_type, _unsupported_actions,
                  _total_space, _free_space,
@@ -565,7 +560,6 @@ class AccessGroup(IData):
 class TargetPort(IData):
     SUPPORTED_SEARCH_KEYS = ['id', 'system_id']
 
-    TYPE_UNKNOWN = 0
     TYPE_OTHER = 1
     TYPE_FC = 2
     TYPE_FCOE = 3
@@ -652,9 +646,6 @@ class Capabilities(IData):
     ACCESS_GROUP_CREATE_ISCSI_IQN = 47
     ACCESS_GROUP_INITIATOR_ADD_ISCSI_IQN = 48
     # For empty access group, this indicate it can add iSCSI IQN into it.
-
-    ACCESS_GROUP_INITIATOR_ADD_MIX = 49
-    # Allowing add different initiator type than existing one
 
     VOLUME_ISCSI_CHAP_AUTHENTICATION = 53
 

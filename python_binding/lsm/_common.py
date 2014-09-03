@@ -418,7 +418,6 @@ class ErrorNumber(object):
     OK = 0
     LIB_BUG = 1
     PLUGIN_BUG = 2
-    STORAGE_SDK_BUG = 3
     JOB_STARTED = 7
     TIMEOUT = 11
     DAEMON_NOT_RUNNING = 12
@@ -465,13 +464,11 @@ class ErrorNumber(object):
 
     NOT_ENOUGH_SPACE = 350
     SIZE_TOO_SMALL = 353
-    SIZE_LIMIT_REACHED = 354
 
     TRANSPORT_COMMUNICATION = 400
     TRANSPORT_SERIALIZATION = 401
     TRANSPORT_INVALID_ARG = 402
 
-    VOLUME_BUSY = 501
     ACCESS_GROUP_MASKED = 502   # refuse to remove the last initiator from
                                 # access group which have volume masked or
                                 # allow an access group to be deleted
@@ -494,8 +491,7 @@ class ErrorNumber(object):
 class JobStatus(object):
     INPROGRESS = 1
     COMPLETE = 2
-    STOPPED = 3
-    ERROR = 4
+    ERROR = 3
 
 
 def type_compare(method_name, exp_type, act_val):

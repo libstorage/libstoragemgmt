@@ -35,7 +35,6 @@ typedef enum {
     LSM_ERR_OK = 0,                     /**< OK */
     LSM_ERR_LIB_BUG = 1,                /**< Library BUG */
     LSM_ERR_PLUGIN_BUG = 2,             /**< Plugin BUG */
-    LSM_ERR_STORAGE_SDK_BUG = 3,        /**< Storage SDK BUG */
     LSM_ERR_JOB_STARTED = 7,            /**< Operation has started */
     LSM_ERR_TIMEOUT = 11,               /**< Plug-in is un-responsive */
     LSM_ERR_DAEMON_NOT_RUNNING = 12,    /**< Daemon is not running */
@@ -81,13 +80,11 @@ typedef enum {
     LSM_ERR_NOT_ENOUGH_SPACE = 350,         /**< Insufficient space */
 
     LSM_ERR_SIZE_TOO_SMALL = 353,           /**< Size specified is too small */
-    LSM_ERR_SIZE_LIMIT_REACHED = 354,       /**< Limit has been reached */
 
     LSM_ERR_TRANSPORT_COMMUNICATION = 400,      /**< Error comunicating with plug-in */
     LSM_ERR_TRANSPORT_SERIALIZATION = 401,      /**< Transport serialization error */
     LSM_ERR_TRANSPORT_INVALID_ARG = 402,        /**< Parameter transported over IPC is invalid */
 
-    LSM_ERR_VOLUME_BUSY = 501,      /* Volume already in use */
     LSM_ERR_ACCESS_GROUP_MASKED = 502,
 
 

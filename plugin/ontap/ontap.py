@@ -111,7 +111,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         'online': Pool.STATUS_OK,
         'restricted': Pool.STATUS_OTHER,
         'unknown': Pool.STATUS_UNKNOWN,
-        'creating': Pool.STATUS_STOPPING,
+        'creating': Pool.STATUS_INITIALIZING,
         'failed': Pool.STATUS_ERROR,
         'partial': Pool.STATUS_ERROR,
 

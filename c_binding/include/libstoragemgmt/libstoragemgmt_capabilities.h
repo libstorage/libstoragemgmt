@@ -74,7 +74,6 @@ typedef enum {
 
     LSM_CAP_ACCESS_GROUP_CREATE_ISCSI_IQN           = 47,       /**< Create iSCSI access group */
     LSM_CAP_ACCESS_GROUP_INITIATOR_ADD_ISCSI_IQN    = 48,       /**< For empty access group, this indicates it can add iSCSI IQN to it */
-    LSM_CAP_ACCESS_GROUP_INITIATOR_ADD_MIX          = 49,       /**< Allowing add different initiator type that existing one */
 
     LSM_CAP_VOLUME_ISCSI_CHAP_AUTHENTICATION        = 53,       /**< If you can configure iSCSI chap authentication */
 

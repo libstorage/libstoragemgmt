@@ -687,6 +687,8 @@ class Smis(IStorageAreaNetwork):
         if DMTF.SCS_CAP_SUP_ST_VOLUME in element_types or \
            DMTF.SCS_CAP_SUP_THIN_ST_VOLUME in element_types:
             cap.set(Capabilities.VOLUMES)
+            if DMTF.SCS_CAP_SUP_THIN_ST_VOLUME in element_types:
+                cap.set(Capabilities.VOLUME_THIN)
 
         if DMTF.SCS_CAP_VOLUME_CREATE in sup_actions:
             cap.set(Capabilities.VOLUME_CREATE)

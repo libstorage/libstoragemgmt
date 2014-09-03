@@ -162,14 +162,12 @@ typedef enum {
 typedef enum {
     LSM_JOB_INPROGRESS = 1,                     /**< Job is in progress */
     LSM_JOB_COMPLETE = 2,                       /**< Job is complete */
-    LSM_JOB_STOPPED = 3,                        /**< Job is stopped */
-    LSM_JOB_ERROR = 4                           /**< Job has errored */
+    LSM_JOB_ERROR = 3                           /**< Job has errored */
 } lsm_job_status;
 
 typedef enum {
     LSM_DISK_TYPE_UNKNOWN = 0,
     LSM_DISK_TYPE_OTHER = 1,
-    LSM_DISK_TYPE_NOT_APPLICABLE = 2,
     LSM_DISK_TYPE_ATA = 3,
     LSM_DISK_TYPE_SATA = 4,
     LSM_DISK_TYPE_SAS = 5,
@@ -206,17 +204,12 @@ typedef enum {
 #define LSM_POOL_STATUS_OTHER                       0x0000000000000004
 #define LSM_POOL_STATUS_DEGRADED                    0x0000000000000010
 #define LSM_POOL_STATUS_ERROR                       0x0000000000000020
-/*#define LSM_POOL_AVAILABLE                        0x0000000000000040 */
-#define LSM_POOL_STATUS_STARTING                    0x0000000000000080
-#define LSM_POOL_STATUS_STOPPING                    0x0000000000000100
 #define LSM_POOL_STATUS_STOPPED                     0x0000000000000200
 #define LSM_POOL_STATUS_RECONSTRUCTING              0x0000000000001000
 #define LSM_POOL_STATUS_VERIFYING                   0x0000000000002000
 #define LSM_POOL_STATUS_INITIALIZING                0x0000000000004000
 #define LSM_POOL_STATUS_GROWING                     0x0000000000008000
-#define LSM_POOL_STATUS_DESTROYING                  0x0000000000020000
 
-#define LSM_POOL_ELEMENT_TYPE_UNKNOWN               0x0000000000000001
 #define LSM_POOL_ELEMENT_TYPE_POOL                  0x0000000000000002
 #define LSM_POOL_ELEMENT_TYPE_VOLUME                0x0000000000000004
 #define LSM_POOL_ELEMENT_TYPE_FS                    0x0000000000000008
@@ -227,7 +220,6 @@ typedef enum {
 #define LSM_POOL_UNSUPPORTED_VOLUME_SHRINK			0x0000000000000002
 
 typedef enum {
-    LSM_TARGET_PORT_TYPE_UNKNOWN = 0,
     LSM_TARGET_PORT_TYPE_OTHER = 1,
     LSM_TARGET_PORT_TYPE_FC = 2,
     LSM_TARGET_PORT_TYPE_FCOE = 3,

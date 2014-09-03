@@ -1890,7 +1890,7 @@ lsm_target_port LSM_DLL_EXPORT *lsm_target_port_copy(lsm_target_port *tp)
 }
 
 MEMBER_FUNC_GET(const char *, lsm_target_port_id_get, lsm_target_port *tp, tp, LSM_IS_TARGET_PORT, id, NULL)
-MEMBER_FUNC_GET(lsm_target_port_type, lsm_target_port_type_get, lsm_target_port *tp, tp, LSM_IS_TARGET_PORT, port_type, LSM_TARGET_PORT_TYPE_UNKNOWN)
+MEMBER_FUNC_GET(lsm_target_port_type, lsm_target_port_type_get, lsm_target_port *tp, tp, LSM_IS_TARGET_PORT, port_type, LSM_TARGET_PORT_TYPE_OTHER)
 MEMBER_FUNC_GET(const char *, lsm_target_port_service_address_get, lsm_target_port *tp, tp, LSM_IS_TARGET_PORT, service_address, NULL)
 MEMBER_FUNC_GET(const char *, lsm_target_port_network_address_get, lsm_target_port *tp, tp, LSM_IS_TARGET_PORT, network_address, NULL)
 MEMBER_FUNC_GET(const char *, lsm_target_port_physical_address_get, lsm_target_port *tp, tp, LSM_IS_TARGET_PORT, physical_address, NULL)
