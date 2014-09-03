@@ -29,6 +29,7 @@ import json
 import time
 import urlparse
 import socket
+import re
 
 DEFAULT_USER = "admin"
 DEFAULT_PORT = 18700
@@ -157,14 +158,40 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
     def job_free(self, job_id, flags=0):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
+    @staticmethod
+    def _uuid_to_vpd83(uuid):
+        """
+        Convert LVM UUID to VPD 83 Device ID.
+        LIO kernel module(target_core_mod.ko) does not expose VPD83 via
+        ConfigFs.
+        Targetd does not expose VPD83 via its API.
+        Hence we have to do the convention here base on kernel code.
+        """
+        # NAA IEEE Registered Extended Identifier/Designator.
+        # SPC-4 rev37a 7.8.6.6.5
+        vpd83 = '6'
+        # Use OpenFabrics IEEE Company ID: 00 14 05
+        # https://standards.ieee.org/develop/regauth/oui/oui.txt
+        vpd83 += '001405'
+
+        # Take all [a-f0-9] digits from UUID for VENDOR_SPECIFIC_IDENTIFIER
+        # and VENDOR_SPECIFIC_IDENTIFIER_EXTENTION
+        vpd83 += re.sub('[^a-f0-9]', '', uuid.lower())[:25]
+
+        # Fill up with zero.
+        vpd83 += '0' * (32 - len(vpd83))
+
+        return vpd83
+
     @handle_errors
     def volumes(self, search_key=None, search_value=None, flags=0):
         volumes = []
         for p_name in (p['name'] for p in self._jsonrequest("pool_list") if
                        p['type'] == 'block'):
             for vol in self._jsonrequest("vol_list", dict(pool=p_name)):
+                vpd83 = TargetdStorage._uuid_to_vpd83(vol['uuid'])
                 volumes.append(
-                    Volume(vol['uuid'], vol['name'], vol['uuid'], 512,
+                    Volume(vol['uuid'], vol['name'], vpd83, 512,
                            long(vol['size'] / 512),
                            Volume.ADMIN_STATE_ENABLED,
                            self.system.id, p_name))
