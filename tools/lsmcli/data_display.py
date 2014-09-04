@@ -110,7 +110,7 @@ def pool_status_to_str(pool_status):
 _POOL_ELEMENT_TYPE_CONV = {
     Pool.ELEMENT_TYPE_POOL: 'POOL',
     Pool.ELEMENT_TYPE_VOLUME: 'VOLUME',
-    Pool.ELEMENT_TYPE_FS: 'FILE_SYSTEM',
+    Pool.ELEMENT_TYPE_FS: 'FS',
     Pool.ELEMENT_TYPE_SYS_RESERVED: 'SYSTEM_RESERVED',
     Pool.ELEMENT_TYPE_DELTA: "DELTA",
 }
@@ -125,8 +125,8 @@ def pool_element_type_to_str(element_type):
     return _bit_map_to_str(element_type, _POOL_ELEMENT_TYPE_CONV)
 
 
-def pool_unsupported_actions_to_str(unsupported_action):
-    return _bit_map_to_str(unsupported_action, _POOL_UNSUPPORTED_ACTION_CONV)
+def pool_unsupported_actions_to_str(unsupported_actions):
+    return _bit_map_to_str(unsupported_actions, _POOL_UNSUPPORTED_ACTION_CONV)
 
 
 _VOL_PROVISION_CONV = {
@@ -260,7 +260,7 @@ class DisplayData(object):
     SYSTEM_HEADER['id'] = 'ID'
     SYSTEM_HEADER['name'] = 'Name'
     SYSTEM_HEADER['status'] = 'Status'
-    SYSTEM_HEADER['status_info'] = 'Status Info'
+    SYSTEM_HEADER['status_info'] = 'Info'
 
     SYSTEM_COLUMN_SKIP_KEYS = []
     # XXX_COLUMN_SKIP_KEYS contain a list of property should be skipped when
@@ -299,15 +299,15 @@ class DisplayData(object):
     POOL_HEADER = OrderedDict()
     POOL_HEADER['id'] = 'ID'
     POOL_HEADER['name'] = 'Name'
-    POOL_HEADER['element_type'] = 'Element type'
+    POOL_HEADER['element_type'] = 'Element Type'
     POOL_HEADER['unsupported_actions'] = 'Does not support'
     POOL_HEADER['total_space'] = 'Total Space'
     POOL_HEADER['free_space'] = 'Free Space'
     POOL_HEADER['status'] = 'Status'
-    POOL_HEADER['status_info'] = 'Status Info'
+    POOL_HEADER['status_info'] = 'Info'
     POOL_HEADER['system_id'] = 'System ID'
 
-    POOL_COLUMN_SKIP_KEYS = []
+    POOL_COLUMN_SKIP_KEYS = ['unsupported_actions']
 
     POOL_VALUE_CONV_ENUM = {
         'status': pool_status_to_str,
@@ -330,7 +330,7 @@ class DisplayData(object):
     VOL_HEADER['name'] = 'Name'
     VOL_HEADER['vpd83'] = 'SCSI VPD 0x83'
     VOL_HEADER['block_size'] = 'Block Size'
-    VOL_HEADER['num_of_blocks'] = '#blocks'
+    VOL_HEADER['num_of_blocks'] = 'Block Count'
     VOL_HEADER['size_bytes'] = 'Size'
     VOL_HEADER['admin_state'] = 'Disabled'
     VOL_HEADER['pool_id'] = 'Pool ID'
@@ -357,7 +357,7 @@ class DisplayData(object):
     DISK_HEADER['name'] = 'Name'
     DISK_HEADER['disk_type'] = 'Type'
     DISK_HEADER['block_size'] = 'Block Size'
-    DISK_HEADER['num_of_blocks'] = '#blocks'
+    DISK_HEADER['num_of_blocks'] = 'Block Count'
     DISK_HEADER['size_bytes'] = 'Size'
     DISK_HEADER['status'] = 'Status'
     DISK_HEADER['system_id'] = 'System ID'
@@ -386,7 +386,7 @@ class DisplayData(object):
     AG_HEADER['init_type'] = 'Type'
     AG_HEADER['system_id'] = 'System ID'
 
-    AG_COLUMN_SKIP_KEYS = []
+    AG_COLUMN_SKIP_KEYS = ['init_type']
 
     AG_VALUE_CONV_ENUM = {
         'init_type': ag_init_type_to_str,
