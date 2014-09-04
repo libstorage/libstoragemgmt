@@ -307,7 +307,8 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         vol = [v for v in self._jsonrequest("vol_list", dict(pool=pool_id))
                if v['name'] == volume_name][0]
 
-        return Volume(vol['uuid'], vol['name'], vol['uuid'], 512,
+        vpd83 = TargetdStorage._uuid_to_vpd83(vol['uuid'])
+        return Volume(vol['uuid'], vol['name'], vpd83, 512,
                       vol['size'] / 512,
                       Volume.ADMIN_STATE_ENABLED,
                       self.system.id,
