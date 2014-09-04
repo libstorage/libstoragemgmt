@@ -43,7 +43,7 @@ def handle_errors(method):
         except TargetdError as te:
             raise LsmError(ErrorNumber.PLUGIN_BUG,
                            "Got error %d from targetd: %s"
-                           % te.errno, te.reason)
+                           % (te.errno, te.reason))
         except LsmError:
             raise
         except Exception as e:
@@ -308,7 +308,9 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                if v['name'] == volume_name][0]
 
         return Volume(vol['uuid'], vol['name'], vol['uuid'], 512,
-                      vol['size'] / 512, Volume.STATUS_OK, self.system.id,
+                      vol['size'] / 512,
+                      Volume.ADMIN_STATE_ENABLED,
+                      self.system.id,
                       pool_id)
 
     def _get_fs(self, pool_id, fs_name):
