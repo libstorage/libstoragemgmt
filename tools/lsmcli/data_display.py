@@ -256,18 +256,15 @@ class DisplayData(object):
     VALUE_CONVERT = {}
 
     # lsm.System
-    SYSTEM_MAN_HEADER = OrderedDict()
-    SYSTEM_MAN_HEADER['id'] = 'ID'
-    SYSTEM_MAN_HEADER['name'] = 'Name'
-    SYSTEM_MAN_HEADER['status'] = 'Status'
-    SYSTEM_MAN_HEADER['status_info'] = 'Status Info'
+    SYSTEM_HEADER = OrderedDict()
+    SYSTEM_HEADER['id'] = 'ID'
+    SYSTEM_HEADER['name'] = 'Name'
+    SYSTEM_HEADER['status'] = 'Status'
+    SYSTEM_HEADER['status_info'] = 'Status Info'
 
-    SYSTEM_COLUMN_KEYS = SYSTEM_MAN_HEADER.keys()
-    # SYSTEM_COLUMN_KEYS should be subset of SYSTEM_MAN_HEADER.keys()
-    # XXX_COLUMN_KEYS contain a list of mandatory properties which will be
-    # displayed in column way. It was used to limit the output of properties
-    # in sure the column display way does not exceeded the column width 78.
-    # All mandatory_headers will be displayed in script way.
+    SYSTEM_COLUMN_SKIP_KEYS = []
+    # XXX_COLUMN_SKIP_KEYS contain a list of property should be skipped when
+    # displaying in column way.
 
     SYSTEM_VALUE_CONV_ENUM = {
         'status': system_status_to_str,
@@ -276,41 +273,41 @@ class DisplayData(object):
     SYSTEM_VALUE_CONV_HUMAN = []
 
     VALUE_CONVERT[System] = {
-        'mandatory_headers': SYSTEM_MAN_HEADER,
-        'column_keys': SYSTEM_COLUMN_KEYS,
+        'headers': SYSTEM_HEADER,
+        'column_skip_keys': SYSTEM_COLUMN_SKIP_KEYS,
         'value_conv_enum': SYSTEM_VALUE_CONV_ENUM,
         'value_conv_human': SYSTEM_VALUE_CONV_HUMAN,
     }
 
-    PLUG_DATA_MAN_HEADER = OrderedDict()
-    PLUG_DATA_MAN_HEADER['desc'] = 'Description'
-    PLUG_DATA_MAN_HEADER['version'] = 'Version'
+    PLUG_DATA_HEADER = OrderedDict()
+    PLUG_DATA_HEADER['desc'] = 'Description'
+    PLUG_DATA_HEADER['version'] = 'Version'
 
-    PLUG_DATA_COLUMN_KEYS = PLUG_DATA_MAN_HEADER.keys()
+    PLUG_DATA_COLUMN_SKIP_KEYS = []
 
     PLUG_DATA_VALUE_CONV_ENUM = {}
     PLUG_DATA_VALUE_CONV_HUMAN = []
 
     VALUE_CONVERT[PlugData] = {
-        'mandatory_headers': PLUG_DATA_MAN_HEADER,
-        'column_keys': PLUG_DATA_COLUMN_KEYS,
+        'headers': PLUG_DATA_HEADER,
+        'column_skip_keys': PLUG_DATA_COLUMN_SKIP_KEYS,
         'value_conv_enum': PLUG_DATA_VALUE_CONV_ENUM,
         'value_conv_human': PLUG_DATA_VALUE_CONV_HUMAN,
     }
 
     # lsm.Pool
-    POOL_MAN_HEADER = OrderedDict()
-    POOL_MAN_HEADER['id'] = 'ID'
-    POOL_MAN_HEADER['name'] = 'Name'
-    POOL_MAN_HEADER['element_type'] = 'Element type'
-    POOL_MAN_HEADER['unsupported_actions'] = 'Does not support'
-    POOL_MAN_HEADER['total_space'] = 'Total Space'
-    POOL_MAN_HEADER['free_space'] = 'Free Space'
-    POOL_MAN_HEADER['status'] = 'Status'
-    POOL_MAN_HEADER['status_info'] = 'Status Info'
-    POOL_MAN_HEADER['system_id'] = 'System ID'
+    POOL_HEADER = OrderedDict()
+    POOL_HEADER['id'] = 'ID'
+    POOL_HEADER['name'] = 'Name'
+    POOL_HEADER['element_type'] = 'Element type'
+    POOL_HEADER['unsupported_actions'] = 'Does not support'
+    POOL_HEADER['total_space'] = 'Total Space'
+    POOL_HEADER['free_space'] = 'Free Space'
+    POOL_HEADER['status'] = 'Status'
+    POOL_HEADER['status_info'] = 'Status Info'
+    POOL_HEADER['system_id'] = 'System ID'
 
-    POOL_COLUMN_KEYS = POOL_MAN_HEADER.keys()
+    POOL_COLUMN_SKIP_KEYS = []
 
     POOL_VALUE_CONV_ENUM = {
         'status': pool_status_to_str,
@@ -321,29 +318,25 @@ class DisplayData(object):
     POOL_VALUE_CONV_HUMAN = ['total_space', 'free_space']
 
     VALUE_CONVERT[Pool] = {
-        'mandatory_headers': POOL_MAN_HEADER,
-        'column_keys': POOL_COLUMN_KEYS,
+        'headers': POOL_HEADER,
+        'column_skip_keys': POOL_COLUMN_SKIP_KEYS,
         'value_conv_enum': POOL_VALUE_CONV_ENUM,
         'value_conv_human': POOL_VALUE_CONV_HUMAN,
     }
 
     # lsm.Volume
-    VOL_MAN_HEADER = OrderedDict()
-    VOL_MAN_HEADER['id'] = 'ID'
-    VOL_MAN_HEADER['name'] = 'Name'
-    VOL_MAN_HEADER['vpd83'] = 'SCSI VPD 0x83'
-    VOL_MAN_HEADER['block_size'] = 'Block Size'
-    VOL_MAN_HEADER['num_of_blocks'] = '#blocks'
-    VOL_MAN_HEADER['size_bytes'] = 'Size'
-    VOL_MAN_HEADER['admin_state'] = 'Disabled'
-    VOL_MAN_HEADER['pool_id'] = 'Pool ID'
-    VOL_MAN_HEADER['system_id'] = 'System ID'
+    VOL_HEADER = OrderedDict()
+    VOL_HEADER['id'] = 'ID'
+    VOL_HEADER['name'] = 'Name'
+    VOL_HEADER['vpd83'] = 'SCSI VPD 0x83'
+    VOL_HEADER['block_size'] = 'Block Size'
+    VOL_HEADER['num_of_blocks'] = '#blocks'
+    VOL_HEADER['size_bytes'] = 'Size'
+    VOL_HEADER['admin_state'] = 'Disabled'
+    VOL_HEADER['pool_id'] = 'Pool ID'
+    VOL_HEADER['system_id'] = 'System ID'
 
-    VOL_COLUMN_KEYS = []
-    for key_name in VOL_MAN_HEADER.keys():
-        # Skip these keys for column display
-        if key_name not in ['block_size', 'num_of_blocks', 'system_id']:
-            VOL_COLUMN_KEYS.extend([key_name])
+    VOL_COLUMN_SKIP_KEYS = ['block_size', 'num_of_blocks']
 
     VOL_VALUE_CONV_ENUM = {
         'admin_state': vol_admin_state_to_str
@@ -352,28 +345,24 @@ class DisplayData(object):
     VOL_VALUE_CONV_HUMAN = ['size_bytes', 'block_size']
 
     VALUE_CONVERT[Volume] = {
-        'mandatory_headers': VOL_MAN_HEADER,
-        'column_keys': VOL_COLUMN_KEYS,
+        'headers': VOL_HEADER,
+        'column_skip_keys': VOL_COLUMN_SKIP_KEYS,
         'value_conv_enum': VOL_VALUE_CONV_ENUM,
         'value_conv_human': VOL_VALUE_CONV_HUMAN,
     }
 
     # lsm.Disk
-    DISK_MAN_HEADER = OrderedDict()
-    DISK_MAN_HEADER['id'] = 'ID'
-    DISK_MAN_HEADER['name'] = 'Name'
-    DISK_MAN_HEADER['disk_type'] = 'Type'
-    DISK_MAN_HEADER['block_size'] = 'Block Size'
-    DISK_MAN_HEADER['num_of_blocks'] = '#blocks'
-    DISK_MAN_HEADER['size_bytes'] = 'Size'
-    DISK_MAN_HEADER['status'] = 'Status'
-    DISK_MAN_HEADER['system_id'] = 'System ID'
+    DISK_HEADER = OrderedDict()
+    DISK_HEADER['id'] = 'ID'
+    DISK_HEADER['name'] = 'Name'
+    DISK_HEADER['disk_type'] = 'Type'
+    DISK_HEADER['block_size'] = 'Block Size'
+    DISK_HEADER['num_of_blocks'] = '#blocks'
+    DISK_HEADER['size_bytes'] = 'Size'
+    DISK_HEADER['status'] = 'Status'
+    DISK_HEADER['system_id'] = 'System ID'
 
-    DISK_COLUMN_KEYS = []
-    for key_name in DISK_MAN_HEADER.keys():
-        # Skip these keys for column display
-        if key_name not in ['block_size', 'num_of_blocks']:
-            DISK_COLUMN_KEYS.extend([key_name])
+    DISK_COLUMN_SKIP_KEYS = ['block_size', 'num_of_blocks']
 
     DISK_VALUE_CONV_ENUM = {
         'status': disk_status_to_str,
@@ -383,21 +372,21 @@ class DisplayData(object):
     DISK_VALUE_CONV_HUMAN = ['size_bytes', 'block_size']
 
     VALUE_CONVERT[Disk] = {
-        'mandatory_headers': DISK_MAN_HEADER,
-        'column_keys': DISK_COLUMN_KEYS,
+        'headers': DISK_HEADER,
+        'column_skip_keys': DISK_COLUMN_SKIP_KEYS,
         'value_conv_enum': DISK_VALUE_CONV_ENUM,
         'value_conv_human': DISK_VALUE_CONV_HUMAN,
     }
 
     # lsm.AccessGroup
-    AG_MAN_HEADER = OrderedDict()
-    AG_MAN_HEADER['id'] = 'ID'
-    AG_MAN_HEADER['name'] = 'Name'
-    AG_MAN_HEADER['init_ids'] = 'Initiator IDs'
-    AG_MAN_HEADER['init_type'] = 'Type'
-    AG_MAN_HEADER['system_id'] = 'System ID'
+    AG_HEADER = OrderedDict()
+    AG_HEADER['id'] = 'ID'
+    AG_HEADER['name'] = 'Name'
+    AG_HEADER['init_ids'] = 'Initiator IDs'
+    AG_HEADER['init_type'] = 'Type'
+    AG_HEADER['system_id'] = 'System ID'
 
-    AG_COLUMN_KEYS = AG_MAN_HEADER.keys()
+    AG_COLUMN_SKIP_KEYS = []
 
     AG_VALUE_CONV_ENUM = {
         'init_type': ag_init_type_to_str,
@@ -406,26 +395,22 @@ class DisplayData(object):
     AG_VALUE_CONV_HUMAN = []
 
     VALUE_CONVERT[AccessGroup] = {
-        'mandatory_headers': AG_MAN_HEADER,
-        'column_keys': AG_COLUMN_KEYS,
+        'headers': AG_HEADER,
+        'column_skip_keys': AG_COLUMN_SKIP_KEYS,
         'value_conv_enum': AG_VALUE_CONV_ENUM,
         'value_conv_human': AG_VALUE_CONV_HUMAN,
     }
 
     # lsm.FileSystem
-    FS_MAN_HEADER = OrderedDict()
-    FS_MAN_HEADER['id'] = 'ID'
-    FS_MAN_HEADER['name'] = 'Name'
-    FS_MAN_HEADER['total_space'] = 'Total Space'
-    FS_MAN_HEADER['free_space'] = 'Free Space'
-    FS_MAN_HEADER['pool_id'] = 'Pool ID'
-    FS_MAN_HEADER['system_id'] = 'System ID'
+    FS_HEADER = OrderedDict()
+    FS_HEADER['id'] = 'ID'
+    FS_HEADER['name'] = 'Name'
+    FS_HEADER['total_space'] = 'Total Space'
+    FS_HEADER['free_space'] = 'Free Space'
+    FS_HEADER['pool_id'] = 'Pool ID'
+    FS_HEADER['system_id'] = 'System ID'
 
-    FS_COLUMN_KEYS = []
-    for key_name in FS_MAN_HEADER.keys():
-        # Skip these keys for column display
-        if key_name not in ['system_id']:
-            FS_COLUMN_KEYS.extend([key_name])
+    FS_COLUMN_SKIP_KEYS = []
 
     FS_VALUE_CONV_ENUM = {
     }
@@ -433,19 +418,19 @@ class DisplayData(object):
     FS_VALUE_CONV_HUMAN = ['total_space', 'free_space']
 
     VALUE_CONVERT[FileSystem] = {
-        'mandatory_headers': FS_MAN_HEADER,
-        'column_keys': FS_COLUMN_KEYS,
+        'headers': FS_HEADER,
+        'column_skip_keys': FS_COLUMN_SKIP_KEYS,
         'value_conv_enum': FS_VALUE_CONV_ENUM,
         'value_conv_human': FS_VALUE_CONV_HUMAN,
     }
 
     # lsm.FsSnapshot
-    FS_SNAP_MAN_HEADER = OrderedDict()
-    FS_SNAP_MAN_HEADER['id'] = 'ID'
-    FS_SNAP_MAN_HEADER['name'] = 'Name'
-    FS_SNAP_MAN_HEADER['ts'] = 'Time Stamp'
+    FS_SNAP_HEADER = OrderedDict()
+    FS_SNAP_HEADER['id'] = 'ID'
+    FS_SNAP_HEADER['name'] = 'Name'
+    FS_SNAP_HEADER['ts'] = 'Time Stamp'
 
-    FS_SNAP_COLUMN_KEYS = FS_SNAP_MAN_HEADER.keys()
+    FS_SNAP_COLUMN_SKIP_KEYS = []
 
     FS_SNAP_VALUE_CONV_ENUM = {
         'ts': datetime.fromtimestamp
@@ -454,57 +439,49 @@ class DisplayData(object):
     FS_SNAP_VALUE_CONV_HUMAN = []
 
     VALUE_CONVERT[FsSnapshot] = {
-        'mandatory_headers': FS_SNAP_MAN_HEADER,
-        'column_keys': FS_SNAP_COLUMN_KEYS,
+        'headers': FS_SNAP_HEADER,
+        'column_skip_keys': FS_SNAP_COLUMN_SKIP_KEYS,
         'value_conv_enum': FS_SNAP_VALUE_CONV_ENUM,
         'value_conv_human': FS_SNAP_VALUE_CONV_HUMAN,
     }
 
     # lsm.NfsExport
-    NFS_EXPORT_MAN_HEADER = OrderedDict()
-    NFS_EXPORT_MAN_HEADER['id'] = 'ID'
-    NFS_EXPORT_MAN_HEADER['fs_id'] = 'FileSystem ID'
-    NFS_EXPORT_MAN_HEADER['export_path'] = 'Export Path'
-    NFS_EXPORT_MAN_HEADER['auth'] = 'Auth Type'
-    NFS_EXPORT_MAN_HEADER['root'] = 'Root Hosts'
-    NFS_EXPORT_MAN_HEADER['rw'] = 'RW Hosts'
-    NFS_EXPORT_MAN_HEADER['ro'] = 'RO Hosts'
-    NFS_EXPORT_MAN_HEADER['anonuid'] = 'Anonymous UID'
-    NFS_EXPORT_MAN_HEADER['anongid'] = 'Anonymous GID'
-    NFS_EXPORT_MAN_HEADER['options'] = 'Options'
+    NFS_EXPORT_HEADER = OrderedDict()
+    NFS_EXPORT_HEADER['id'] = 'ID'
+    NFS_EXPORT_HEADER['fs_id'] = 'FileSystem ID'
+    NFS_EXPORT_HEADER['export_path'] = 'Export Path'
+    NFS_EXPORT_HEADER['auth'] = 'Auth Type'
+    NFS_EXPORT_HEADER['root'] = 'Root Hosts'
+    NFS_EXPORT_HEADER['rw'] = 'RW Hosts'
+    NFS_EXPORT_HEADER['ro'] = 'RO Hosts'
+    NFS_EXPORT_HEADER['anonuid'] = 'Anonymous UID'
+    NFS_EXPORT_HEADER['anongid'] = 'Anonymous GID'
+    NFS_EXPORT_HEADER['options'] = 'Options'
 
-    NFS_EXPORT_COLUMN_KEYS = []
-    for key_name in NFS_EXPORT_MAN_HEADER.keys():
-        # Skip these keys for column display
-        if key_name not in ['root', 'anonuid', 'anongid', 'auth']:
-            NFS_EXPORT_COLUMN_KEYS.extend([key_name])
+    NFS_EXPORT_COLUMN_SKIP_KEYS = ['anonuid', 'anongid', 'auth']
 
     NFS_EXPORT_VALUE_CONV_ENUM = {}
 
     NFS_EXPORT_VALUE_CONV_HUMAN = []
 
     VALUE_CONVERT[NfsExport] = {
-        'mandatory_headers': NFS_EXPORT_MAN_HEADER,
-        'column_keys': NFS_EXPORT_COLUMN_KEYS,
+        'headers': NFS_EXPORT_HEADER,
+        'column_skip_keys': NFS_EXPORT_COLUMN_SKIP_KEYS,
         'value_conv_enum': NFS_EXPORT_VALUE_CONV_ENUM,
         'value_conv_human': NFS_EXPORT_VALUE_CONV_HUMAN,
     }
 
     # lsm.TargetPort
-    TGT_PORT_MAN_HEADER = OrderedDict()
-    TGT_PORT_MAN_HEADER['id'] = 'ID'
-    TGT_PORT_MAN_HEADER['port_type'] = 'Type'
-    TGT_PORT_MAN_HEADER['physical_name'] = 'Physical Name'
-    TGT_PORT_MAN_HEADER['service_address'] = 'Address'
-    TGT_PORT_MAN_HEADER['network_address'] = 'Network Address'
-    TGT_PORT_MAN_HEADER['physical_address'] = 'Physical Address'
-    TGT_PORT_MAN_HEADER['system_id'] = 'System ID'
+    TGT_PORT_HEADER = OrderedDict()
+    TGT_PORT_HEADER['id'] = 'ID'
+    TGT_PORT_HEADER['port_type'] = 'Type'
+    TGT_PORT_HEADER['physical_name'] = 'Physical Name'
+    TGT_PORT_HEADER['service_address'] = 'Address'
+    TGT_PORT_HEADER['network_address'] = 'Network Address'
+    TGT_PORT_HEADER['physical_address'] = 'Physical Address'
+    TGT_PORT_HEADER['system_id'] = 'System ID'
 
-    TGT_PORT_COLUMN_KEYS = []
-    for key_name in TGT_PORT_MAN_HEADER.keys():
-        # Skip these keys for column display
-        if key_name not in ['physical_address', 'physical_name']:
-            TGT_PORT_COLUMN_KEYS.extend([key_name])
+    TGT_PORT_COLUMN_SKIP_KEYS = ['physical_address', 'physical_name']
 
     TGT_PORT_VALUE_CONV_ENUM = {
         'port_type': tgt_port_type_to_str,
@@ -513,8 +490,8 @@ class DisplayData(object):
     TGT_PORT_VALUE_CONV_HUMAN = []
 
     VALUE_CONVERT[TargetPort] = {
-        'mandatory_headers': TGT_PORT_MAN_HEADER,
-        'column_keys': TGT_PORT_COLUMN_KEYS,
+        'headers': TGT_PORT_HEADER,
+        'column_skip_keys': TGT_PORT_COLUMN_SKIP_KEYS,
         'value_conv_enum': TGT_PORT_VALUE_CONV_ENUM,
         'value_conv_human': TGT_PORT_VALUE_CONV_HUMAN,
     }
@@ -545,7 +522,7 @@ class DisplayData(object):
                        extra_properties=None, flag_dsp_all_data=False):
         data_dict = OrderedDict()
         value_convert = DisplayData.VALUE_CONVERT[type(obj)]
-        mandatory_headers = value_convert['mandatory_headers']
+        headers = value_convert['headers']
         value_conv_enum = value_convert['value_conv_enum']
         value_conv_human = value_convert['value_conv_human']
 
@@ -555,12 +532,19 @@ class DisplayData(object):
         display_keys = []
 
         if display_way == DisplayData.DISPLAY_WAY_COLUMN:
-            display_keys = value_convert['column_keys']
+            for key_name in headers.keys():
+                if key_name not in value_convert['column_skip_keys']:
+                    display_keys.append(key_name)
         elif display_way == DisplayData.DISPLAY_WAY_SCRIPT:
-            display_keys = mandatory_headers.keys()
+            display_keys = headers.keys()
+
+        if extra_properties:
+            for extra_key_name in extra_properties:
+                if extra_key_name not in display_keys:
+                    display_keys.append(extra_key_name)
 
         for key in display_keys:
-            key_str = mandatory_headers[key]
+            key_str = headers[key]
             value = DisplayData._get_man_pro_value(
                 obj, key, value_conv_enum, value_conv_human, flag_human,
                 flag_enum)
