@@ -222,6 +222,11 @@ class Disk(IData):
         return self.name
 
 
+# Lets do this once outside of the class to minimize the number of
+# times it needs to be compiled.
+_vol_regex_vpd83 = re.compile('^[0-9a-f]{32}$')
+
+
 @default_property('id', doc="Unique identifier")
 @default_property('name', doc="User given name")
 @default_property('vpd83', doc="Vital product page 0x83 identifier")
@@ -254,15 +259,14 @@ class Volume(IData):
     ADMIN_STATE_DISABLED = 0
     ADMIN_STATE_ENABLED = 1
 
-    _regex_vpd83_str = re.compile(r"""^[0-9a-f]{32}$""")
-
     def __init__(self, _id, _name, _vpd83, _block_size, _num_of_blocks,
                  _admin_state, _system_id, _pool_id, _plugin_data=None):
         self._id = _id                        # Identifier
         self._name = _name                    # Human recognisable name
-        if _vpd83 and not Volume._regex_vpd83_str.match(_vpd83):
+        if _vpd83 and not Volume.vpd83_verify(_vpd83):
             raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           "Incorrect format of VPD 0x83 string: '%s'" %
+                           "Incorrect format of VPD 0x83 string: '%s', "
+                           "expecting 32 lower case hex characters" %
                            _vpd83)
         self._vpd83 = _vpd83                  # SCSI page 83 unique ID
         self._block_size = _block_size        # Block size
@@ -281,6 +285,15 @@ class Volume(IData):
 
     def __str__(self):
         return self.name
+
+    @staticmethod
+    def vpd83_verify(vpd):
+        """
+        Returns True if string is valid vpd 0x83 representation
+        """
+        if vpd and _vol_regex_vpd83.match(vpd):
+            return True
+        return False
 
 
 @default_property('id', doc="Unique identifier")

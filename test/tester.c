@@ -66,6 +66,17 @@ fail_unless( LSM_ERR_OK == variable, "call:%s rc = %d %s (which %d)", #func, \
                     variable, error(lsm_error_last_get(c)), which_plugin);
 
 /**
+ * Macro for calls which we expect failure.
+ * @param variable  Where the result of the call is placed
+ * @param func      Name of function
+ * @param ...       Function parameters
+ */
+#define F(variable, func, ...)     \
+variable = func(__VA_ARGS__);               \
+fail_unless( LSM_ERR_OK != variable, "call:%s rc = %d %s (which %d)", #func, \
+                    variable, error(lsm_error_last_get(c)), which_plugin);
+
+/**
 * Generates a random string in the buffer with specified length.
 * Note: This function should not produce repeating sequences or duplicates
 * regardless if it's used repeatedly in the same function in the same process
@@ -2827,6 +2838,21 @@ START_TEST(test_initiator_id_verification)
 }
 END_TEST
 
+START_TEST(test_volume_vpd_check)
+{
+    int rc;
+
+    F(rc, lsm_volume_vpd83_verify, NULL );
+    F(rc, lsm_volume_vpd83_verify, "012345678901234567890123456789AB");
+    F(rc, lsm_volume_vpd83_verify, "012345678901234567890123456789ax");
+    F(rc, lsm_volume_vpd83_verify, "012345678901234567890123456789ag");
+    F(rc, lsm_volume_vpd83_verify, "1234567890123456789012345abcdef");
+    F(rc, lsm_volume_vpd83_verify, "01234567890123456789012345abcdefa");
+
+    G(rc, lsm_volume_vpd83_verify, "01234567890123456789012345abcdef");
+}
+END_TEST
+
 Suite * lsm_suite(void)
 {
     Suite *s = suite_create("libStorageMgmt");
@@ -2834,6 +2860,7 @@ Suite * lsm_suite(void)
     TCase *basic = tcase_create("Basic");
     tcase_add_checked_fixture (basic, setup, teardown);
 
+    tcase_add_test(basic, test_volume_vpd_check);
     tcase_add_test(basic, test_initiator_id_verification);
     tcase_add_test(basic, test_target_ports);
     tcase_add_test(basic, test_search_fs);

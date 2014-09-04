@@ -975,6 +975,20 @@ class TestPlugin(unittest.TestCase):
 
                     self.c.access_group_delete(ag)
 
+    def test_volume_vpd83_verify(self):
+
+        failing = [None,
+                   "012345678901234567890123456789AB",
+                   "012345678901234567890123456789ax",
+                   "012345678901234567890123456789ag",
+                   "1234567890123456789012345abcdef",
+                   "01234567890123456789012345abcdefa"]
+
+        for f in failing:
+            self.assertFalse(lsm.Volume.vpd83_verify(f))
+
+        self.assertTrue(
+            lsm.Volume.vpd83_verify("01234567890123456789012345abcdef"))
 
 
 def dump_results():

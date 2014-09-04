@@ -121,6 +121,14 @@ int LSM_DLL_EXPORT lsm_string_list_delete(lsm_string_list *sl, uint32_t index);
 int LSM_DLL_EXPORT lsm_initiator_id_verify( const char *init_id,
                                         lsm_access_group_init_type *init_type);
 
+
+/**
+ * Checks to see if volume vpd83 is valid
+ * @param vpd83         VPD string to check
+ * @return LSM_ERR_OK if vpd is OK, else LSM_INVALID_ARGUMENT
+ */
+int LSM_DLL_EXPORT lsm_volume_vpd83_verify( const char *vpd83 );
+
 #ifdef  __cplusplus
 }
 #endif

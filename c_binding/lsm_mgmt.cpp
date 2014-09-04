@@ -113,6 +113,24 @@ int lsm_initiator_id_verify(const char *init_id,
     return rc;
 }
 
+int lsm_volume_vpd83_verify( const char *vpd83 )
+{
+    int rc = LSM_ERR_INVALID_ARGUMENT;
+    int i;
+
+    if( vpd83 && strlen(vpd83) == 32 ) {
+        for(i = 0; i < 32; ++i) {
+            char v = vpd83[i];
+            //  0-9 || a-f is OK
+            if( !((v >= 48 && v <= 57) || (v >= 97 && v <= 102)) ) {
+                return rc;
+            }
+        }
+        rc = LSM_ERR_OK;
+    }
+    return rc;
+}
+
 static int verify_initiator_id(const char *id, lsm_access_group_init_type t,
                                 Value &initiator)
 {

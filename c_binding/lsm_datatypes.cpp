@@ -644,14 +644,23 @@ CREATE_ALLOC_ARRAY_FUNC(lsm_volume_record_array_alloc, lsm_volume *)
 lsm_volume * lsm_volume_record_alloc(const char *id, const char *name,
     const char *vpd83, uint64_t blockSize,
     uint64_t numberOfBlocks,
-    uint32_t status, const char *system_id, const char *pool_id, const char* plugin_data)
+    uint32_t status, const char *system_id, const char *pool_id,
+    const char* plugin_data)
 {
+    if( vpd83 && (LSM_ERR_OK != lsm_volume_vpd83_verify(vpd83)) ) {
+         return NULL;
+    }
+
     lsm_volume *rc = (lsm_volume *)calloc(1, sizeof(lsm_volume));
     if (rc) {
         rc->magic = LSM_VOL_MAGIC;
         rc->id = strdup(id);
         rc->name = strdup(name);
-        rc->vpd83 = strdup(vpd83);
+
+        if( vpd83 ) {
+            rc->vpd83 = strdup(vpd83);
+        }
+
         rc->block_size = blockSize;
         rc->number_of_blocks = numberOfBlocks;
         rc->admin_state = status;
@@ -662,7 +671,7 @@ lsm_volume * lsm_volume_record_alloc(const char *id, const char *name,
             rc->plugin_data = strdup(plugin_data);
         }
 
-        if( !rc->id || !rc->name || !rc->vpd83 || !rc->system_id ||
+        if( !rc->id || !rc->name || (vpd83 && !rc->vpd83) || !rc->system_id ||
             !rc->pool_id ||
             (plugin_data && !rc->plugin_data)) {
             lsm_volume_record_free(rc);
