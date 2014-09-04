@@ -3,7 +3,7 @@ AM_CPPFLAGS = \
 	-I@srcdir@/c_binding/include \
 	$(LIBXML_CFLAGS)
 
-EXTRA_DIST=cmdtest.py runtests.sh
+EXTRA_DIST=cmdtest.py runtests.sh plugin_test.py
 
 TESTS = runtests.sh
 

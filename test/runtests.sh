@@ -159,7 +159,13 @@ if [ -z "$LSM_VALGRIND" ]; then
     export LSMCLI_URI='sim://'
     good "$rootdir/test/cmdtest.py -c $plugins/sim_lsmplugin"
     good "$rootdir/test/cmdtest.py -c $rootdir/tools/lsmcli/lsmcli"
+
+    #Run the plug-in test against the python simulator
+    good "$rootdir/test/plugin_test.py -v --uri sim://"
 fi
+
+#Run the plug-in test against the C simulator"
+good "$rootdir/test/plugin_test.py -v --uri simc://"
 
 #Pretend we were never here
 cleanup
