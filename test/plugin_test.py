@@ -308,9 +308,7 @@ class TestPlugin(unittest.TestCase):
 
     @staticmethod
     def _vpd_correct(vpd):
-        p = re.compile('^[a-fA-F0-9]+$')
-
-        if vpd is not None and len(vpd) > 0 and p.match(vpd) is not None:
+        if vpd and re.match('^[a-f0-9]{32}$', vpd):
             return True
         return False
 
