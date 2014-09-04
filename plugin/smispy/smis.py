@@ -3229,7 +3229,7 @@ class Smis(IStorageAreaNetwork):
                 if Smis.DMTF_SUPPORT_VOL_CREATE in supported_features:
                     element_type |= Pool.ELEMENT_TYPE_VOLUME
                 if Smis.DMTF_SUPPORT_ELEMENT_EXPAND not in supported_features:
-                    unsupported |= Pool.UNSUPPORTED_VOLUME_EXPAND
+                    unsupported |= Pool.UNSUPPORTED_VOLUME_GROW
                 if Smis.DMTF_SUPPORT_ELEMENT_REDUCE not in supported_features:
                     unsupported |= Pool.UNSUPPORTED_VOLUME_SHRINK
 

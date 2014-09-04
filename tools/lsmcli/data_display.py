@@ -116,8 +116,8 @@ _POOL_ELEMENT_TYPE_CONV = {
 }
 
 _POOL_UNSUPPORTED_ACTION_CONV = {
-    Pool.UNSUPPORTED_VOLUME_EXPAND: "Volume expand",
-    Pool.UNSUPPORTED_VOLUME_SHRINK: "Volume shrink"
+    Pool.UNSUPPORTED_VOLUME_GROW: "Volume Grow",
+    Pool.UNSUPPORTED_VOLUME_SHRINK: "Volume Shrink"
 }
 
 

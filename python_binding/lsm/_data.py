@@ -329,7 +329,7 @@ class Pool(IData):
     ELEMENT_TYPE_SYS_RESERVED = 1 << 10     # Reserved for system use
 
     # Unsupported actions, what pool cannot be used for
-    UNSUPPORTED_VOLUME_EXPAND = 1 << 0
+    UNSUPPORTED_VOLUME_GROW = 1 << 0
     UNSUPPORTED_VOLUME_SHRINK = 1 << 1
 
     # Pool status could be any combination of these status.

@@ -619,7 +619,7 @@ class SimData(object):
                 status_info=SimData.SIM_DATA_POOL_STATUS_INFO,
                 sys_id=SimData.SIM_DATA_SYS_ID,
                 element_type=SimData.SIM_DATA_SYS_POOL_ELEMENT_TYPE,
-                unsupported_actions=Pool.UNSUPPORTED_VOLUME_EXPAND |
+                unsupported_actions=Pool.UNSUPPORTED_VOLUME_GROW |
                                  Pool.UNSUPPORTED_VOLUME_SHRINK),
             'POO2': dict(
                 pool_id='POO2', name='Pool 2',

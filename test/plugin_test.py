@@ -275,7 +275,7 @@ class TestPlugin(unittest.TestCase):
             if p.element_type & element_type and \
                     p.free_space > mb_in_bytes(MIN_POOL_SIZE) and \
                     (not p.unsupported_actions &
-                     lsm.Pool.UNSUPPORTED_VOLUME_EXPAND):
+                     lsm.Pool.UNSUPPORTED_VOLUME_GROW):
                 if p.free_space > largest_free:
                     largest_free = p.free_space
                     rc = p
