@@ -506,7 +506,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         self._request("create_lu", "scsidisk", [name, []])
 
         new_volume = Volume(name, name, '', 8192, size_bytes / 8192,
-                            Volume.STATUS_OK, '',
+                            Volume.ADMIN_STATE_ENABLED, '',
                             pool.id)  # FIXhttp://192.168.0.1/st_wlan.phpME
                                         # replace with list request
         return None, new_volume
