@@ -74,7 +74,7 @@ def rs(component, l=4):
     rp = ''.join(random.choice(string.ascii_uppercase) for x in range(l))
 
     if component is not None:
-        return 'lsm_%s_' % (component + rp)
+        return 'lsm_%s_%s' % (component, rp)
     return rp
 
 
