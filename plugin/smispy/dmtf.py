@@ -191,12 +191,6 @@ class DMTF(object):
     #   Allowing empty DeviceMaskingGroup associated to SPC
     GMM_CAP_DEV_MG_ALLOW_EMPTY_W_SPC = Uint16(5)
 
-    # CIM_GroupMaskingMappingCapabilities['SupportedInitiatorGroupFeatures']
-    #   Allowing empty DeviceMaskingGroup
-    GMM_CAP_INIT_MG_ALLOW_EMPTY = Uint16(4)
-    #   Allowing empty DeviceMaskingGroup associated to SPC
-    GMM_CAP_INIT_MG_ALLOW_EMPTY_W_SPC = Uint16(5)
-
     # CIM_GroupMaskingMappingCapabilities['SupportedAsynchronousActions']
     # and 'SupportedSynchronousActions'. They are using the same value map.
     GMM_CAP_DELETE_SPC = Uint16(24)

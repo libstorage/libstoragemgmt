@@ -916,10 +916,10 @@ class Smis(IStorageAreaNetwork):
             cap.set(Capabilities.ACCESS_GROUP_INITIATOR_ADD_ISCSI_IQN)
             cap.set(Capabilities.ACCESS_GROUP_CREATE_ISCSI_IQN)
 
-        # RemoveMembers is also mandatory, but we require target provider
-        # to support empty InitiatorMaskingGroup.
+        # RemoveMembers is also mandatory
+        cap.set(Capabilities.ACCESS_GROUP_INITIATOR_DELETE)
+
         cim_gmm_cap_pros = [
-            'SupportedInitiatorGroupFeatures',
             'SupportedAsynchronousActions',
             'SupportedSynchronousActions',
             'SupportedDeviceGroupFeatures']
@@ -929,10 +929,6 @@ class Smis(IStorageAreaNetwork):
             AssocClass='CIM_ElementCapabilities',
             ResultClass='CIM_GroupMaskingMappingCapabilities',
             PropertyList=cim_gmm_cap_pros)[0]
-
-        if DMTF.GMM_CAP_INIT_MG_ALLOW_EMPTY in \
-           cim_gmm_cap['SupportedInitiatorGroupFeatures']:
-            cap.set(Capabilities.ACCESS_GROUP_INITIATOR_DELETE)
 
         # if empty dev group in spc is allowed, RemoveMembers() is enough
         # to do volume_unamsk(). RemoveMembers() is mandatory.
@@ -2888,26 +2884,11 @@ class Smis(IStorageAreaNetwork):
 
     def _ag_init_del_group(self, access_group, init_id):
         """
-        LSM Require support of empty access group.
-        So GMM_CAP_INIT_MG_ALLOW_EMPTY should be support by target SMI-S
-        provider. To make thing simple, even current access_group has 2+
-        init_id, we still raise NO_SUPPORT error if empty access group not
-        supported.
+        Call CIM_GroupMaskingMappingService.RemoveMembers() against
+        CIM_InitiatorMaskingGroup.
         """
         cim_sys = self._get_cim_instance_by_id(
             'System', access_group.system_id, raise_error=True)
-
-        cim_gmm_cap = self._c.Associators(
-            cim_sys.path,
-            AssocClass='CIM_ElementCapabilities',
-            ResultClass='CIM_GroupMaskingMappingCapabilities',
-            PropertyList=['SupportedInitiatorGroupFeatures'])[0]
-        if DMTF.GMM_CAP_INIT_MG_ALLOW_EMPTY not in \
-           cim_gmm_cap['SupportedInitiatorGroupFeatures']:
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "Target SMI-S provider does not support empty "
-                           "CIM_InitiatorMaskingGroup which is required by "
-                           "LSM for access_group_initiator_delete()")
 
         cim_init_mg_pros = self._cim_init_mg_pros()
         cim_init_mg = self._cim_init_mg_of_id(
@@ -2924,27 +2905,16 @@ class Smis(IStorageAreaNetwork):
                 break
 
         if cim_init is None:
-            return self._cim_init_mg_to_lsm(
-                cim_init_mg, access_group.system_id)
+            raise LsmError(ErrorNumber.NO_STATE_CHANGE,
+                "Initiator %s does not exist in defined access group %s" %
+                (init_id, access_group.id))
+
+        if len(cur_cim_inits) == 1:
+            raise LsmError(ErrorNumber.LAST_INIT_IN_ACCESS_GROUP,
+                "Refuse to remove last initiator from access group")
 
         cim_gmm_path = self._get_cim_service_path(
             cim_sys.path, 'CIM_GroupMaskingMappingService')
-
-        if len(cur_cim_inits) == 1:
-            # Check whether we have any volume masked.
-            cim_spcs_path = self._c.AssociatorNames(
-                cim_init_mg.path,
-                AssocClass='CIM_AssociatedInitiatorMaskingGroup',
-                ResultClass='CIM_SCSIProtocolController')
-            for cim_spc_path in cim_spcs_path:
-                if len(self._c.AssociatorNames(
-                        cim_spc_path,
-                        AssocClass='CIM_ProtocolControllerForUnit',
-                        ResultClass='CIM_StorageVolume')) >= 1:
-                    raise LsmError(ErrorNumber.ACCESS_GROUP_MASKED,
-                                   "Refuse to remove last initiator member "
-                                   "from access group which have volume "
-                                   "masked to")
 
         # RemoveMembers from InitiatorMaskingGroup
         in_params = {
@@ -4118,7 +4088,7 @@ class Smis(IStorageAreaNetwork):
                     cim_spc_path,
                     AssocClass='CIM_ProtocolControllerForUnit',
                     ResultClass='CIM_StorageVolume')) >= 1:
-                raise LsmError(ErrorNumber.ACCESS_GROUP_MASKED,
+                raise LsmError(ErrorNumber.IS_MASKED,
                                "Access Group %s has volume masked" %
                                access_group.id)
 
