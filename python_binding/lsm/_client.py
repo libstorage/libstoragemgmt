@@ -162,7 +162,7 @@ class Client(INetworkAttachedStorage):
 
     ## Synonym for close.
     @_return_requires(None)
-    def plugin_unregister(self, flags=0):
+    def plugin_unregister(self, flags=FLAG_RSVD):
         """
         Synonym for close.
         """
@@ -172,7 +172,7 @@ class Client(INetworkAttachedStorage):
     # @param    self    The this pointer
     # @param    flags   Reserved for future use, must be zero.
     @_return_requires(None)
-    def close(self, flags=0):
+    def close(self, flags=FLAG_RSVD):
         """
         Does an orderly plugin_unregister of the plug-in
         """
@@ -183,7 +183,7 @@ class Client(INetworkAttachedStorage):
     ## Retrieves all the available plug-ins
     @staticmethod
     @_return_requires([unicode])
-    def available_plugins(field_sep=':', flags=0):
+    def available_plugins(field_sep=':', flags=FLAG_RSVD):
         """
         Retrieves all the available plug-ins
 
@@ -201,7 +201,7 @@ class Client(INetworkAttachedStorage):
             for filename in files:
                 uds = os.path.join(root, filename)
                 tp = _TransPort(_TransPort.get_socket(uds))
-                i, v = tp.rpc('plugin_info', dict(flags=0))
+                i, v = tp.rpc('plugin_info', dict(flags=Client.FLAG_RSVD))
                 rc.append("%s%s%s" % (i, field_sep, v))
                 tp.close()
 
@@ -212,7 +212,7 @@ class Client(INetworkAttachedStorage):
     # @param    ms      Time-out in ms
     # @param    flags   Reserved for future use, must be zero.
     @_return_requires(None)
-    def time_out_set(self, ms, flags=0):
+    def time_out_set(self, ms, flags=FLAG_RSVD):
         """
         Sets any time-outs for the plug-in (ms)
 
@@ -225,7 +225,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns  Time-out value
     @_return_requires(int)
-    def time_out_get(self, flags=0):
+    def time_out_get(self, flags=FLAG_RSVD):
         """
         Retrieves the current time-out
 
@@ -240,7 +240,7 @@ class Client(INetworkAttachedStorage):
     # @returns A tuple ( status (enumeration), percent_complete,
     # completed item)
     @_return_requires(int, int, _IData)
-    def job_status(self, job_id, flags=0):
+    def job_status(self, job_id, flags=FLAG_RSVD):
         """
         Returns the stats of the given job.
 
@@ -255,7 +255,7 @@ class Client(INetworkAttachedStorage):
     # @param    job_id  Job id in which to release resource for
     # @param    flags   Reserved for future use, must be zero.
     @_return_requires(None)
-    def job_free(self, job_id, flags=0):
+    def job_free(self, job_id, flags=FLAG_RSVD):
         """
         Frees resources for a given job number.
 
@@ -269,7 +269,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns  Capability object
     @_return_requires(Capabilities)
-    def capabilities(self, system, flags=0):
+    def capabilities(self, system, flags=FLAG_RSVD):
         """
         Fetches the capabilities of the array
 
@@ -282,7 +282,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use
     # @returns  Tuple (description, version)
     @_return_requires(unicode, unicode)
-    def plugin_info(self, flags=0):
+    def plugin_info(self, flags=FLAG_RSVD):
         """
         Returns a description and version of plug-in
         """
@@ -295,7 +295,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns An array of pool objects.
     @_return_requires([Pool])
-    def pools(self, search_key=None, search_value=None, flags=0):
+    def pools(self, search_key=None, search_value=None, flags=FLAG_RSVD):
         """
         Returns an array of pool objects.  Pools are used in both block and
         file system interfaces, thus the reason they are in the base class.
@@ -308,7 +308,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns An array of system objects.
     @_return_requires([System])
-    def systems(self, flags=0):
+    def systems(self, flags=FLAG_RSVD):
         """
         Returns an array of system objects.  System information is used to
         distinguish resources from on storage array to another when the plug=in
@@ -330,7 +330,7 @@ class Client(INetworkAttachedStorage):
     # @returns None on success, throws LsmError on errors.
     @_return_requires(None)
     def iscsi_chap_auth(self, init_id, in_user, in_password,
-                        out_user, out_password, flags=0):
+                        out_user, out_password, flags=FLAG_RSVD):
         """
         Register a user/password for the specified initiator for CHAP
         authentication.
@@ -346,7 +346,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns An array of volume objects.
     @_return_requires([Volume])
-    def volumes(self, search_key=None, search_value=None, flags=0):
+    def volumes(self, search_key=None, search_value=None, flags=FLAG_RSVD):
         """
         Returns an array of volume objects
         """
@@ -364,7 +364,7 @@ class Client(INetworkAttachedStorage):
     #           valid.
     @_return_requires(unicode, Volume)
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
-                      flags=0):
+                      flags=FLAG_RSVD):
         """
         Creates a volume, given a pool, volume name, size and provisioning
 
@@ -382,7 +382,7 @@ class Client(INetworkAttachedStorage):
     # @returns  A tuple (job_id, new re-sized volume), when one is
     #           None the other is valid.
     @_return_requires(unicode, Volume)
-    def volume_resize(self, volume, new_size_bytes, flags=0):
+    def volume_resize(self, volume, new_size_bytes, flags=FLAG_RSVD):
         """
         Re-sizes a volume.
 
@@ -403,7 +403,8 @@ class Client(INetworkAttachedStorage):
     # @returns  A tuple (job_id, new replicated volume), when one is
     #           None the other is valid.
     @_return_requires(unicode, Volume)
-    def volume_replicate(self, pool, rep_type, volume_src, name, flags=0):
+    def volume_replicate(self, pool, rep_type, volume_src, name,
+                         flags=FLAG_RSVD):
         """
         Replicates a volume from the specified pool.
 
@@ -419,7 +420,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero
     # @returns  Size of the replicated block in bytes
     @_return_requires(int)
-    def volume_replicate_range_block_size(self, system, flags=0):
+    def volume_replicate_range_block_size(self, system, flags=FLAG_RSVD):
         """
         Returns the size of a replicated block in bytes.
         """
@@ -438,7 +439,7 @@ class Client(INetworkAttachedStorage):
     # @returns Job id or None when completed, else raises LsmError on errors.
     @_return_requires(unicode)
     def volume_replicate_range(self, rep_type, volume_src, volume_dest, ranges,
-                               flags=0):
+                               flags=FLAG_RSVD):
         """
         Replicates a portion of a volume to itself or another volume.  The src,
         dest and number of blocks values change with vendor, call
@@ -454,7 +455,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, else job id.  Raises LsmError on errors.
     @_return_requires(unicode)
-    def volume_delete(self, volume, flags=0):
+    def volume_delete(self, volume, flags=FLAG_RSVD):
         """
         Deletes a volume.
 
@@ -468,7 +469,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, else raises LsmError
     @_return_requires(None)
-    def volume_enable(self, volume, flags=0):
+    def volume_enable(self, volume, flags=FLAG_RSVD):
         """
         Makes a volume available to the host
 
@@ -482,7 +483,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, else raises LsmError on errors.
     @_return_requires(None)
-    def volume_disable(self, volume, flags=0):
+    def volume_disable(self, volume, flags=FLAG_RSVD):
         """
         Makes a volume unavailable to the host
 
@@ -500,7 +501,7 @@ class Client(INetworkAttachedStorage):
     #                   be returned.
     # @returns An array of disk objects.
     @_return_requires([Disk])
-    def disks(self, search_key=None, search_value=None, flags=0):
+    def disks(self, search_key=None, search_value=None, flags=FLAG_RSVD):
         """
         Returns an array of disk objects
         """
@@ -514,7 +515,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     @_return_requires(None)
-    def volume_mask(self, access_group, volume, flags=0):
+    def volume_mask(self, access_group, volume, flags=FLAG_RSVD):
         """
         Allows an access group to access a volume.
         """
@@ -527,7 +528,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     @_return_requires(None)
-    def volume_unmask(self, access_group, volume, flags=0):
+    def volume_unmask(self, access_group, volume, flags=FLAG_RSVD):
         """
         Revokes access for an access group for a volume
         """
@@ -540,7 +541,8 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns  List of access groups
     @_return_requires([AccessGroup])
-    def access_groups(self, search_key=None, search_value=None, flags=0):
+    def access_groups(self, search_key=None, search_value=None,
+                      flags=FLAG_RSVD):
         """
         Returns a list of access groups
         """
@@ -557,7 +559,7 @@ class Client(INetworkAttachedStorage):
     # @returns AccessGroup on success, else raises LsmError
     @_return_requires(AccessGroup)
     def access_group_create(self, name, init_id, init_type, system,
-                            flags=0):
+                            flags=FLAG_RSVD):
         """
         Creates an access group and add the specified initiator id,
         init_type and desired access.
@@ -572,7 +574,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     @_return_requires(None)
-    def access_group_delete(self, access_group, flags=0):
+    def access_group_delete(self, access_group, flags=FLAG_RSVD):
         """
         Deletes an access group
         """
@@ -587,7 +589,7 @@ class Client(INetworkAttachedStorage):
     # @returns None on success, throws LsmError on errors.
     @_return_requires(AccessGroup)
     def access_group_initiator_add(self, access_group, init_id, init_type,
-                                   flags=0):
+                                   flags=FLAG_RSVD):
         """
         Adds an initiator to an access group
         """
@@ -604,7 +606,7 @@ class Client(INetworkAttachedStorage):
     # @returns None on success, throws LsmError on errors.
     @_return_requires(AccessGroup)
     def access_group_initiator_delete(self, access_group, init_id, init_type,
-                                      flags=0):
+                                      flags=FLAG_RSVD):
         """
         Deletes an initiator from an access group
         """
@@ -619,7 +621,8 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns list of volumes
     @_return_requires([Volume])
-    def volumes_accessible_by_access_group(self, access_group, flags=0):
+    def volumes_accessible_by_access_group(self, access_group,
+                                           flags=FLAG_RSVD):
         """
         Returns the list of volumes that access group has access to.
         """
@@ -633,7 +636,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags       Reserved for future use, must be zero.
     # @returns  list of access groups
     @_return_requires([AccessGroup])
-    def access_groups_granted_to_volume(self, volume, flags=0):
+    def access_groups_granted_to_volume(self, volume, flags=FLAG_RSVD):
         """
         Returns the list of access groups that have access to the specified
         volume.
@@ -647,7 +650,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns True or False
     @_return_requires(bool)
-    def volume_child_dependency(self, volume, flags=0):
+    def volume_child_dependency(self, volume, flags=FLAG_RSVD):
         """
         Returns True if this volume has other volumes which are dependant on
         it. Implies that this volume cannot be deleted or possibly modified
@@ -661,7 +664,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns None if complete, else job id.
     @_return_requires(unicode)
-    def volume_child_dependency_rm(self, volume, flags=0):
+    def volume_child_dependency_rm(self, volume, flags=FLAG_RSVD):
         """
         If this volume has child dependency, this method call will fully
         replicate the blocks removing the relationship between them.  This
@@ -682,7 +685,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns A list of FS objects.
     @_return_requires([FileSystem])
-    def fs(self, search_key=None, search_value=None, flags=0):
+    def fs(self, search_key=None, search_value=None, flags=FLAG_RSVD):
         """
         Returns a list of file systems on the controller.
         """
@@ -695,7 +698,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns  None on success, else job id
     @_return_requires(unicode)
-    def fs_delete(self, fs, flags=0):
+    def fs_delete(self, fs, flags=FLAG_RSVD):
         """
         WARNING: Destructive
 
@@ -712,7 +715,7 @@ class Client(INetworkAttachedStorage):
     # @returns tuple (job_id, re-sized file system),
     # When one is None the other is valid
     @_return_requires(unicode, FileSystem)
-    def fs_resize(self, fs, new_size_bytes, flags=0):
+    def fs_resize(self, fs, new_size_bytes, flags=FLAG_RSVD):
         """
         Re-size a file system
 
@@ -731,7 +734,7 @@ class Client(INetworkAttachedStorage):
     # @returns  tuple (job_id, file system),
     # When one is None the other is valid
     @_return_requires(unicode, FileSystem)
-    def fs_create(self, pool, name, size_bytes, flags=0):
+    def fs_create(self, pool, name, size_bytes, flags=FLAG_RSVD):
         """
         Creates a file system given a pool, name and size.
         Note: size is limited to 2**64 bytes
@@ -750,7 +753,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns tuple (job_id, file system)
     @_return_requires(unicode, FileSystem)
-    def fs_clone(self, src_fs, dest_fs_name, snapshot=None, flags=0):
+    def fs_clone(self, src_fs, dest_fs_name, snapshot=None, flags=FLAG_RSVD):
         """
         Creates a thin, point in time read/writable copy of src to dest.
         Optionally uses snapshot as backing of src_fs
@@ -772,7 +775,7 @@ class Client(INetworkAttachedStorage):
     # @returns  None on success, else job id
     @_return_requires(unicode)
     def fs_file_clone(self, fs, src_file_name, dest_file_name, snapshot=None,
-                      flags=0):
+                      flags=FLAG_RSVD):
         """
         Creates a thinly provisioned clone of src to dest.
         Note: Source and Destination are required to be on same filesystem and
@@ -788,7 +791,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns  a list of snapshot objects.
     @_return_requires([FsSnapshot])
-    def fs_snapshots(self, fs, flags=0):
+    def fs_snapshots(self, fs, flags=FLAG_RSVD):
         """
         Returns a list of snapshot names for the supplied file system
         """
@@ -801,7 +804,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns tuple (job_id, snapshot)
     @_return_requires(unicode, FsSnapshot)
-    def fs_snapshot_create(self, fs, snapshot_name, flags=0):
+    def fs_snapshot_create(self, fs, snapshot_name, flags=FLAG_RSVD):
         """
         Snapshot is a point in time read-only copy
 
@@ -823,7 +826,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags       Reserved for future use, must be zero.
     # @returns  None on success, else job id
     @_return_requires(unicode)
-    def fs_snapshot_delete(self, fs, snapshot, flags=0):
+    def fs_snapshot_delete(self, fs, snapshot, flags=FLAG_RSVD):
         """
         Frees the re-sources for the given snapshot on the supplied filesystem.
 
@@ -843,7 +846,7 @@ class Client(INetworkAttachedStorage):
     # @return None on success, else job id
     @_return_requires(unicode)
     def fs_snapshot_restore(self, fs, snapshot, files, restore_files,
-                            all_files=False, flags=0):
+                            all_files=False, flags=FLAG_RSVD):
         """
         WARNING: Destructive!
 
@@ -865,7 +868,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns True or False
     @_return_requires(bool)
-    def fs_child_dependency(self, fs, files, flags=0):
+    def fs_child_dependency(self, fs, files, flags=FLAG_RSVD):
         """
         Returns True if the specified filesystem or specified file on this
         file system has child dependencies.  This implies that this filesystem
@@ -881,7 +884,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns None if complete, else job id.
     @_return_requires(unicode)
-    def fs_child_dependency_rm(self, fs, files, flags=0):
+    def fs_child_dependency_rm(self, fs, files, flags=FLAG_RSVD):
         """
         If this filesystem or specified file on this filesystem has child
         dependency this method will fully replicate the blocks removing the
@@ -900,7 +903,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns  An array of client authentication types.
     @_return_requires([unicode])
-    def export_auth(self, flags=0):
+    def export_auth(self, flags=FLAG_RSVD):
         """
         What types of NFS client authentication are supported.
         """
@@ -913,7 +916,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns An array of export objects
     @_return_requires([NfsExport])
-    def exports(self, search_key=None, search_value=None, flags=0):
+    def exports(self, search_key=None, search_value=None, flags=FLAG_RSVD):
         """
         Get a list of all exported file systems on the controller.
         """
@@ -937,7 +940,7 @@ class Client(INetworkAttachedStorage):
     def export_fs(self, fs_id, export_path, root_list, rw_list, ro_list,
                   anon_uid=NfsExport.ANON_UID_GID_NA,
                   anon_gid=NfsExport.ANON_UID_GID_NA,
-                  auth_type=None, options=None, flags=0):
+                  auth_type=None, options=None, flags=FLAG_RSVD):
         """
         Exports a filesystem as specified in the arguments
         """
@@ -949,7 +952,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, else raises LsmError
     @_return_requires(None)
-    def export_remove(self, export, flags=0):
+    def export_remove(self, export, flags=FLAG_RSVD):
         """
         Removes the specified export
         """
@@ -962,7 +965,8 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero
     # @returns List of target ports, else raises LsmError
     @_return_requires([TargetPort])
-    def target_ports(self, search_key=None, search_value=None, flags=0):
+    def target_ports(self, search_key=None, search_value=None,
+                     flags=FLAG_RSVD):
         """
         Returns a list of target ports
         """
