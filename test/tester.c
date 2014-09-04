@@ -1841,8 +1841,8 @@ START_TEST(test_capabilities)
             cap_test(cap, LSM_CAP_VOLUME_COPY_RANGE_CLONE);
             cap_test(cap, LSM_CAP_VOLUME_COPY_RANGE_COPY);
             cap_test(cap, LSM_CAP_VOLUME_DELETE);
-            cap_test(cap, LSM_CAP_VOLUME_ONLINE);
-            cap_test(cap, LSM_CAP_VOLUME_OFFLINE);
+            cap_test(cap, LSM_CAP_VOLUME_ENABLE);
+            cap_test(cap, LSM_CAP_VOLUME_DISABLE);
             cap_test(cap, LSM_CAP_VOLUME_MASK);
             cap_test(cap, LSM_CAP_VOLUME_UNMASK);
             cap_test(cap, LSM_CAP_ACCESS_GROUPS);
@@ -2013,8 +2013,8 @@ START_TEST(test_capability)
         LSM_CAP_VOLUME_COPY_RANGE_CLONE,
         LSM_CAP_VOLUME_COPY_RANGE_COPY,
         LSM_CAP_VOLUME_DELETE,
-        LSM_CAP_VOLUME_ONLINE,
-        LSM_CAP_VOLUME_OFFLINE,
+        LSM_CAP_VOLUME_ENABLE,
+        LSM_CAP_VOLUME_DISABLE,
         LSM_CAP_VOLUME_MASK,
         LSM_CAP_VOLUME_UNMASK,
         LSM_CAP_ACCESS_GROUPS,
@@ -2067,8 +2067,8 @@ START_TEST(test_capability)
             LSM_CAP_VOLUME_COPY_RANGE_CLONE,
             LSM_CAP_VOLUME_COPY_RANGE_COPY,
             LSM_CAP_VOLUME_DELETE,
-            LSM_CAP_VOLUME_ONLINE,
-            LSM_CAP_VOLUME_OFFLINE,
+            LSM_CAP_VOLUME_ENABLE,
+            LSM_CAP_VOLUME_DISABLE,
             LSM_CAP_VOLUME_MASK,
             LSM_CAP_VOLUME_UNMASK,
             LSM_CAP_ACCESS_GROUPS,

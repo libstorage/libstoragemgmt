@@ -625,8 +625,8 @@ class Capabilities(IData):
 
     VOLUME_DELETE = 33
 
-    VOLUME_ONLINE = 34
-    VOLUME_OFFLINE = 35
+    VOLUME_ENABLE = 34
+    VOLUME_DISABLE = 35
 
     VOLUME_MASK = 36
     VOLUME_UNMASK = 37

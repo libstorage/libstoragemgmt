@@ -55,8 +55,8 @@ typedef enum {
 
     LSM_CAP_VOLUME_DELETE                           = 33,       /**< Can delete a volume */
 
-    LSM_CAP_VOLUME_ONLINE                           = 34,       /**< Put volume online */
-    LSM_CAP_VOLUME_OFFLINE                          = 35,       /**< Take volume offline */
+    LSM_CAP_VOLUME_ENABLE                           = 34,       /**< Enable volume*/
+    LSM_CAP_VOLUME_DISABLE                          = 35,       /**< Disable volume*/
 
     LSM_CAP_VOLUME_MASK                             = 36,       /**< Grant an access group to a volume */
     LSM_CAP_VOLUME_UNMASK                           = 37,       /**< Revoke access for an access group */

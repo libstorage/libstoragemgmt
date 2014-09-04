@@ -117,8 +117,6 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         cap.set(Capabilities.VOLUME_REPLICATE)
         cap.set(Capabilities.VOLUME_REPLICATE_COPY)
         cap.set(Capabilities.VOLUME_DELETE)
-        cap.set(Capabilities.VOLUME_OFFLINE)
-        cap.set(Capabilities.VOLUME_ONLINE)
         cap.set(Capabilities.VOLUME_MASK)
         cap.set(Capabilities.VOLUME_UNMASK)
         cap.set(Capabilities.FS)
