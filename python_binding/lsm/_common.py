@@ -463,7 +463,6 @@ class ErrorNumber(object):
     PLUGIN_NOT_EXIST = 311
 
     NOT_ENOUGH_SPACE = 350
-    SIZE_TOO_SMALL = 353
 
     TRANSPORT_COMMUNICATION = 400
     TRANSPORT_SERIALIZATION = 401
@@ -476,6 +475,8 @@ class ErrorNumber(object):
 
     EMPTY_ACCESS_GROUP = 511    # volume_mask() will fail if access group
                                 # has no member/initiator.
+
+    POOL_NOT_READY = 512        # Pool is not ready for create/resize/etc
 
     _LOCALS = locals()
 

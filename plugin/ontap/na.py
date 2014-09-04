@@ -139,12 +139,17 @@ class FilerError(Exception):
     NO_SUCH_IGROUP = 9003
 
     # Using the name from NetApp SDK netapp_errno.h
+    EVDISK_ERROR_VDISK_EXISTS = 9012        # LUN name already in use
     EVDISK_ERROR_VDISK_EXPORTED = 9013  # LUN is currently mapped
-    EVDISK_ERROR_INITGROUP_MAPS_EXIST = 9029    # LUN maps for this initiator
-                                                # group exist
     EVDISK_ERROR_VDISK_NOT_ENABLED = 9014   # LUN is not online
     EVDISK_ERROR_VDISK_NOT_DISABLED = 9015  # LUN is not offline
-    EVDISK_ERROR_INITGROUP_HAS_VDISK = 9023 # Already masked
+    EVDISK_ERROR_INITGROUP_MAPS_EXIST = 9029    # LUN maps for this initiator
+                                                # group exist
+    EVDISK_ERROR_SIZE_TOO_LARGE = 9034      # LUN size too large.
+    EVDISK_ERROR_NO_SUCH_VOLUME = 9036      # NetApp Volume not exists.
+    EVDISK_ERROR_SIZE_TOO_SMALL = 9041      # Specified too small a size
+    EVDISK_ERROR_SIZE_UNCHANGED = 9042      # requested size is the same.
+    EVDISK_ERROR_INITGROUP_HAS_VDISK = 9023     # Already masked
 
     def __init__(self, errno, reason, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
@@ -284,6 +289,9 @@ class Filer(object):
         except TypeError:
             # No LUN found.
             return []
+
+    def lun_min_size(self):
+        return self._invoke('lun-get-minsize', {'type': 'image'})['min-size']
 
     def lun_create(self, full_path_name, size_bytes):
         """

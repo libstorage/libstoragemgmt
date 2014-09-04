@@ -79,8 +79,6 @@ typedef enum {
 
     LSM_ERR_NOT_ENOUGH_SPACE = 350,         /**< Insufficient space */
 
-    LSM_ERR_SIZE_TOO_SMALL = 353,           /**< Size specified is too small */
-
     LSM_ERR_TRANSPORT_COMMUNICATION = 400,      /**< Error comunicating with plug-in */
     LSM_ERR_TRANSPORT_SERIALIZATION = 401,      /**< Transport serialization error */
     LSM_ERR_TRANSPORT_INVALID_ARG = 402,        /**< Parameter transported over IPC is invalid */
@@ -90,7 +88,8 @@ typedef enum {
 
     LSM_ERR_UNSUPPORTED_SEARCH_KEY = 510,    /**< Unsupport search key */
 
-    LSM_ERR_EMPTY_ACCESS_GROUP = 511
+    LSM_ERR_EMPTY_ACCESS_GROUP = 511,
+    LSM_ERR_POOL_NOT_READY = 512,
 
 } lsm_error_number;
 

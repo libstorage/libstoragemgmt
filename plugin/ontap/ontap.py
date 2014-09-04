@@ -35,7 +35,6 @@ e_map = {
     na.Filer.ESIZE_TOO_LARGE: ErrorNumber.NOT_ENOUGH_SPACE,
     na.Filer.ENOSPACE: ErrorNumber.NOT_ENOUGH_SPACE,
     na.Filer.ENO_SUCH_FS: ErrorNumber.NOT_FOUND_FS,
-    na.Filer.EVOLUME_TOO_SMALL: ErrorNumber.SIZE_TOO_SMALL,
     na.Filer.EAPILICENSE: ErrorNumber.NOT_LICENSED,
     na.Filer.EFSDOESNOTEXIST: ErrorNumber.NOT_FOUND_FS,
     na.Filer.EFSOFFLINE: ErrorNumber.NO_SUPPORT_ONLINE_CHANGE,
@@ -446,6 +445,10 @@ class Ontap(IStorageAreaNetwork, INfs):
                                       % na_aggr['name']
                     break
 
+        if status & Pool.STATUS_OK and na_vol['state'] == 'offline':
+            status = Pool.STATUS_STOPPED
+            status_info = 'Disabled by admin'
+
         # This volume should be noted that it is reserved for system
         # and thus cannot be removed.
         if pool_name == '/vol/vol0':
@@ -545,13 +548,31 @@ class Ontap(IStorageAreaNetwork, INfs):
                            "Pool not suitable for creating volumes")
 
         na_vol_name = pool.name
-        v = self.f.volume_names()
-        if na_vol_name not in v:
-            raise LsmError(ErrorNumber.NOT_FOUND_POOL, "Pool not found")
 
         lun_name = self.f.lun_build_name(na_vol_name, volume_name)
 
-        self.f.lun_create(lun_name, size_bytes)
+        try:
+            self.f.lun_create(lun_name, size_bytes)
+        except na.FilerError as fe:
+            if fe.errno == na.FilerError.EVDISK_ERROR_SIZE_TOO_LARGE:
+                raise LsmError(
+                    ErrorNumber.NOT_ENOUGH_SPACE,
+                    "No enough requested free size in pool")
+            elif fe.errno == na.FilerError.EVDISK_ERROR_VDISK_EXISTS:
+                raise LsmError(
+                    ErrorNumber.NAME_CONFLICT,
+                    "Requested volume name is already used by other volume")
+            elif fe.errno == na.FilerError.EVDISK_ERROR_SIZE_TOO_SMALL:
+                # Size too small should not be raised. By API defination,
+                # we should create a LUN with mimun size.
+                min_size = self.f.lun_min_size()
+                return self.volume_create(
+                    pool, volume_name, min_size, provisioning, flags)
+            elif fe.errno == na.FilerError.EVDISK_ERROR_NO_SUCH_VOLUME:
+                # When NetApp volume is offline, we will get this error also.
+                self._check_na_volume(na_vol_name)
+            else:
+                raise
 
         #Get the information about the newly created LUN
         return None, self._get_volume(lun_name, pool.id)
@@ -579,9 +600,44 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def volume_resize(self, volume, new_size_bytes, flags=0):
-        self.f.lun_resize(_lsm_vol_to_na_vol_path(volume), new_size_bytes)
+        try:
+            self.f.lun_resize(_lsm_vol_to_na_vol_path(volume), new_size_bytes)
+        except na.FilerError as fe:
+            if fe.errno == na.FilerError.EVDISK_ERROR_SIZE_TOO_SMALL:
+                min_size = self.f.lun_min_size()
+                try:
+                    self.f.lun_resize(_lsm_vol_to_na_vol_path(volume),
+                                      min_size)
+                except na.FilerError as fe:
+                    if fe.errno == na.FilerError.EVDISK_ERROR_SIZE_UNCHANGED:
+                        # As requested size is not the one we are send to
+                        # self.f.lun_resize(), we should silently pass.
+                        pass
+                    else:
+                        raise
+            elif fe.errno == na.FilerError.EVDISK_ERROR_SIZE_UNCHANGED:
+                raise LsmError(ErrorNumber.NO_STATE_CHANGE,
+                               "Requested size is the same as current "
+                               "volume size")
+            else:
+                raise
         return None, self._get_volume(_lsm_vol_to_na_vol_path(volume),
                                       volume.pool_id)
+
+    def _check_na_volume(self, na_vol_name):
+        na_vols = self.f.volumes(volume_name=na_vol_name)
+        if len(na_vols) == 0:
+            raise LsmError(ErrorNumber.NOT_FOUND_POOL,
+                           "Pool not found")
+        elif len(na_vols) == 1:
+            # NetApp Volume is disabled.
+            if na_vols[0]['state'] == 'offline':
+                raise LsmError(ErrorNumber.POOL_NOT_READY,
+                               "Pool not ready for volume creation")
+        else:
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
+                           "volume_create(): "
+                           "Got 2 or more na_vols: %s" % na_vols)
 
     def _volume_on_aggr(self, pool, volume):
         search = Ontap._vol_to_na_volume_name(volume)
