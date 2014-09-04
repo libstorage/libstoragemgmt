@@ -144,6 +144,7 @@ class FilerError(Exception):
                                                 # group exist
     EVDISK_ERROR_VDISK_NOT_ENABLED = 9014   # LUN is not online
     EVDISK_ERROR_VDISK_NOT_DISABLED = 9015  # LUN is not offline
+    EVDISK_ERROR_INITGROUP_HAS_VDISK = 9023 # Already masked
 
     def __init__(self, errno, reason, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)

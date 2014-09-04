@@ -643,7 +643,25 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def volume_mask(self, access_group, volume, flags=0):
-        self.f.lun_map(access_group.name, _lsm_vol_to_na_vol_path(volume))
+        igroups = self.f.igroups(group_name=access_group.name)
+        if len(igroups) != 1:
+            raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
+                           "AccessGroup %s(%d) not found" %
+                           (access_group.name, access_group.id))
+
+        cur_init_ids = Ontap._initiators_in_group(igroups[0])
+        if len(cur_init_ids) == 0:
+            raise LsmError(ErrorNumber.EMPTY_ACCESS_GROUP,
+                "Refuse to do volume masking against empty access group")
+        try:
+            self.f.lun_map(access_group.name, _lsm_vol_to_na_vol_path(volume))
+        except na.FilerError as fe:
+            if fe.errno == na.FilerError.EVDISK_ERROR_INITGROUP_HAS_VDISK:
+                raise LsmError(
+                    ErrorNumber.NO_STATE_CHANGE,
+                    "Volume already masked to defined access group")
+            else:
+                raise
         return None
 
     @handle_ontap_errors
@@ -746,18 +764,25 @@ class Ontap(IStorageAreaNetwork, INfs):
     @handle_ontap_errors
     def access_group_initiator_delete(self, access_group, init_id, init_type,
                                       flags=0):
-        try:
-            self.f.igroup_del_initiator(access_group.name, init_id)
-        except na.FilerError as oe:
-            error_code, error_msg = error_map(oe)
-            if oe.errno == na.FilerError.IGROUP_NOT_CONTAIN_GIVEN_INIT:
-                return copy.deepcopy(access_group)
-            elif oe.errno == na.FilerError.NO_SUCH_IGROUP:
-                raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
-                               "AccessGroup %s(%d) not found" %
-                               (access_group.name, access_group.id))
-            else:
-                raise
+        igroups = self.f.igroups(group_name=access_group.name)
+        if len(igroups) != 1:
+            raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
+                           "AccessGroup %s(%d) not found" %
+                           (access_group.name, access_group.id))
+
+        cur_init_ids = Ontap._initiators_in_group(igroups[0])
+        if init_id not in cur_init_ids:
+            raise LsmError(
+                ErrorNumber.NO_STATE_CHANGE,
+                "Initiator %s does not exist in access group %s" %
+                (init_id, access_group.name))
+
+        if len(cur_init_ids) == 1:
+            raise LsmError(ErrorNumber.LAST_INIT_IN_ACCESS_GROUP,
+                "Refuse to remove last initiator from access group")
+
+        self.f.igroup_del_initiator(access_group.name, init_id)
+
         na_ags = self.f.igroups(access_group.name)
         if len(na_ags) != 1:
             raise LsmError(ErrorNumber.PLUGIN_BUG,
