@@ -85,7 +85,7 @@ typedef enum {
     LSM_ERR_TRANSPORT_SERIALIZATION = 401,      /**< Transport serialization error */
     LSM_ERR_TRANSPORT_INVALID_ARG = 402,        /**< Parameter transported over IPC is invalid */
 
-    LSM_ERR_ACCESS_GROUP_MASKED = 502,
+    LSM_ERR_LAST_INIT_IN_ACCESS_GROUP = 502,
 
 
     LSM_ERR_UNSUPPORTED_SEARCH_KEY = 510,    /**< Unsupport search key */

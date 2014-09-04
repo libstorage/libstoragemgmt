@@ -469,9 +469,8 @@ class ErrorNumber(object):
     TRANSPORT_SERIALIZATION = 401
     TRANSPORT_INVALID_ARG = 402
 
-    ACCESS_GROUP_MASKED = 502   # refuse to remove the last initiator from
-                                # access group which have volume masked or
-                                # allow an access group to be deleted
+    LAST_INIT_IN_ACCESS_GROUP = 502
+    # refuse to remove the last initiator from access group
 
     UNSUPPORTED_SEARCH_KEY = 510
 
