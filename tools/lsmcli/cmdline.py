@@ -461,9 +461,9 @@ cmds = (
         optional=[
             dict(name="--exportpath", metavar='<EXPORT_PATH>',
                  help="NFS server export path. e.g. '/foo/bar'."),
-            dict(name="--anonuid", metavar='<ANONY_UID>',
+            dict(name="--anonuid", metavar='<ANON_UID>',
                  help='UID(User ID) to map to anonymous user'),
-            dict(name="--anongid", metavar='<ANONY_GID>',
+            dict(name="--anongid", metavar='<ANON_GID>',
                  help='GID(Group ID) to map to anonymous user'),
             dict(name="--auth-type", metavar='<AUTH_TYPE>',
                  help='NFS client authentication type'),
@@ -485,7 +485,7 @@ cmds = (
 
     dict(
         name='fs-unexport',
-        help='Delete an NFS export',
+        help='Remove an NFS export',
         args=[
             dict(export_id_opt),
         ],
@@ -584,8 +584,8 @@ cmds = (
                  help='source file to clone (relative path)\n'
                       "This is a repeatable argument.",),
             dict(name="--dst", metavar="<DST_FILE_PATH>",
-                 help='destination file (relative path)'
-                      "This is a repeatable argument."),
+                 help='Destination file (relative path)'
+                      ", this is a repeatable argument."),
         ],
         optional=[
             dict(name="--backing-snapshot", help='backing snapshot id'),
