@@ -809,7 +809,9 @@ class TestPlugin(unittest.TestCase):
             if supported(cap, [lsm.Capabilities.ACCESS_GROUPS]):
                 ag_list = self.c.access_groups('system_id', s.id)
 
-                if len(ag_list) == 0:
+                if supported(cap, [lsm.Capabilities.ACCESS_GROUP_CREATE_WWPN])\
+                        or supported(cap, [lsm.Capabilities.ACCESS_GROUP_CREATE_ISCSI_IQN]):
+
                     if supported(
                         cap, [lsm.Capabilities.ACCESS_GROUP_CREATE_ISCSI_IQN,
                               lsm.Capabilities.ACCESS_GROUP_DELETE]):
@@ -824,34 +826,34 @@ class TestPlugin(unittest.TestCase):
                             cap, rs('ag'), s, lsm.AccessGroup.INIT_TYPE_WWPN)
                         ag_list = self.c.access_groups('system_id', s.id)
 
-                if len(ag_list):
-                    # Try and find an initiator group that has a usable access
-                    # group type instead of unknown or other...
-                    ag = ag_list[0]
-                    for a_tmp in ag_list:
-                        if a_tmp.init_type in usable_ag_types:
-                            ag = a_tmp
-                            break
+                    if ag_to_delete is not None:
+                        self._delete_access_group(ag_to_delete)
+                else:
+                    if len(ag_list):
+                        # Try and find an initiator group that has a usable access
+                        # group type instead of unknown or other...
+                        ag = ag_list[0]
+                        for a_tmp in ag_list:
+                            if a_tmp.init_type in usable_ag_types:
+                                ag = a_tmp
+                                break
 
-                    if supported(cap, [lsm.Capabilities.
-                                       ACCESS_GROUP_INITIATOR_ADD_WWPN]):
-                        init_id = self._ag_init_add(ag)
                         if supported(cap, [lsm.Capabilities.
-                                            ACCESS_GROUP_INITIATOR_DELETE]):
-                            self._ag_init_delete(
-                                ag, init_id, lsm.AccessGroup.INIT_TYPE_WWPN)
+                                           ACCESS_GROUP_INITIATOR_ADD_WWPN]):
+                            init_id = self._ag_init_add(ag)
+                            if supported(cap, [lsm.Capabilities.
+                                                ACCESS_GROUP_INITIATOR_DELETE]):
+                                self._ag_init_delete(
+                                    ag, init_id, lsm.AccessGroup.INIT_TYPE_WWPN)
 
-                    if supported(cap, [lsm.Capabilities.
-                                       ACCESS_GROUP_INITIATOR_ADD_ISCSI_IQN]):
-                        init_id = self._ag_init_add(ag)
                         if supported(cap, [lsm.Capabilities.
-                                            ACCESS_GROUP_INITIATOR_DELETE]):
-                            self._ag_init_delete(
-                                ag, init_id,
-                                lsm.AccessGroup.INIT_TYPE_ISCSI_IQN)
-
-                if ag_to_delete is not None:
-                    self._delete_access_group(ag_to_delete)
+                                           ACCESS_GROUP_INITIATOR_ADD_ISCSI_IQN]):
+                            init_id = self._ag_init_add(ag)
+                            if supported(cap, [lsm.Capabilities.
+                                                ACCESS_GROUP_INITIATOR_DELETE]):
+                                self._ag_init_delete(
+                                    ag, init_id,
+                                    lsm.AccessGroup.INIT_TYPE_ISCSI_IQN)
 
     def test_duplicate_volume_name(self):
         if self.pool_by_sys_id:
