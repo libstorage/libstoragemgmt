@@ -21,6 +21,7 @@ BuildRequires:  python-argparse
 BuildRequires:  glib2-devel
 # Explicitly require gcc-c++ is for OBS
 BuildRequires:  gcc-c++
+BuildRequires:  PyYAML
 
 # For OBS only. OBS is still using RHEL/Centos 6.2 which does not have
 # OrderedDict from python collection. Use EPEL6 python-ordereddict.
