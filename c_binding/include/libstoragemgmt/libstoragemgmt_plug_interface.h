@@ -864,8 +864,6 @@ int LSM_DLL_EXPORT lsm_plugin_error_log( lsm_plugin_ptr plug, lsm_error_ptr erro
 /**
  * Creates an error record.
  * @param code
- * @param domain
- * @param level
  * @param msg
  * @param exception
  * @param debug

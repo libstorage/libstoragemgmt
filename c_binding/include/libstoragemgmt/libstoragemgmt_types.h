@@ -123,7 +123,7 @@ typedef enum {
     LSM_VOLUME_REPLICATE_MIRROR_ASYNC   = 5         /**< Mirror partner updated with delay */
 } lsm_replication_type;
 
-/**< \enum lsm_provision_type Different types of provisioning */
+/**< \enum lsm_volume_provision_type Different types of provisioning */
 typedef enum {
     LSM_VOLUME_PROVISION_UNKNOWN = -1,     /**< Unknown */
     LSM_VOLUME_PROVISION_THIN = 1,         /**< Thin provisioning */
