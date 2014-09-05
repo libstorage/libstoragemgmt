@@ -585,10 +585,10 @@ START_TEST(test_smoke_test)
 
         G(rc, lsm_volume_record_free, resized);
 
-        //Lets create a snapshot of one.
+        //Lets create a clone of one.
         int repRc = lsm_volume_replicate(c, NULL,             //Pool is optional
-            LSM_VOLUME_REPLICATE_SNAPSHOT,
-            volumes[0], "SNAPSHOT1",
+            LSM_VOLUME_REPLICATE_CLONE,
+            volumes[0], "CLONE1",
             &rep, &job, LSM_CLIENT_FLAG_RSVD);
 
         fail_unless(repRc == LSM_ERR_OK || repRc == LSM_ERR_JOB_STARTED,

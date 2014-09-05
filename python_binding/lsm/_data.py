@@ -244,7 +244,6 @@ class Volume(IData):
 
     #Replication types
     REPLICATE_UNKNOWN = -1
-    REPLICATE_SNAPSHOT = 1
     REPLICATE_CLONE = 2
     REPLICATE_COPY = 3
     REPLICATE_MIRROR_SYNC = 4

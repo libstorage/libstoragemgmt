@@ -553,9 +553,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         raise LsmError(ErrorNumber.NO_SUPPORT,
                        "volume_replicate not implemented")
 
-    #    if rep_type == Volume.REPLICATE_SNAPSHOT:
-    #        return
-    #    elif rep_type == Volume.REPLICATE_CLONE:
+    #    if rep_type == Volume.REPLICATE_CLONE:
     #        return
     #    elif rep_type == Volume.REPLICATE_COPY:
     #        return

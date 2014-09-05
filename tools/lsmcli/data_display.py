@@ -152,7 +152,6 @@ def vol_admin_state_to_str(vol_admin_state):
 
 
 _VOL_REP_TYPE_CONV = {
-    Volume.REPLICATE_SNAPSHOT: 'SNAPSHOT',
     Volume.REPLICATE_CLONE: 'CLONE',
     Volume.REPLICATE_COPY: 'COPY',
     Volume.REPLICATE_MIRROR_SYNC: 'MIRROR_SYNC',

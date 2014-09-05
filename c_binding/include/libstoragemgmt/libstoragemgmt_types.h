@@ -117,7 +117,6 @@ typedef struct _lsm_target_port lsm_target_port;
 /**< \enum lsm_replication_type Different types of replications that can be created */
 typedef enum {
     LSM_VOLUME_REPLICATE_UNKNOWN        = -1,       /**< Unknown replicate */
-    LSM_VOLUME_REPLICATE_SNAPSHOT       = 1,        /**< Space efficient read only copy*/
     LSM_VOLUME_REPLICATE_CLONE          = 2,        /**< Space efficient copy */
     LSM_VOLUME_REPLICATE_COPY           = 3,        /**< Full bitwise copy */
     LSM_VOLUME_REPLICATE_MIRROR_SYNC    = 4,        /**< Mirrors always in sync */

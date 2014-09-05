@@ -1915,8 +1915,7 @@ class Smis(IStorageAreaNetwork):
                     rc[0] = Smis.SYNC_TYPE_MIRROR
                     rc[1] = Smis.CREATE_ELEMENT_REPLICA_MODE_SYNC
 
-            elif rep_type == Volume.REPLICATE_CLONE \
-                    or rep_type == Volume.REPLICATE_SNAPSHOT:
+            elif rep_type == Volume.REPLICATE_CLONE:
                 if self.RepSvc.RepTypes.SYNC_CLONE_LOCAL in s_rt:
                     rc[0] = Smis.SYNC_TYPE_SNAPSHOT
                     rc[1] = Smis.CREATE_ELEMENT_REPLICA_MODE_SYNC

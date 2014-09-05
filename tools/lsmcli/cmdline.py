@@ -125,7 +125,7 @@ list_choices = ['VOLUMES', 'POOLS', 'FS', 'SNAPSHOTS',
 provision_types = ('DEFAULT', 'THIN', 'FULL')
 provision_help = "provisioning type: " + ", ".join(provision_types)
 
-replicate_types = ('SNAPSHOT', 'CLONE', 'COPY', 'MIRROR_ASYNC', 'MIRROR_SYNC')
+replicate_types = ('CLONE', 'COPY', 'MIRROR_ASYNC', 'MIRROR_SYNC')
 replicate_help = "replication type: " + ", ".join(replicate_types)
 
 size_help = 'Can use B, KiB, MiB, GiB, TiB, PiB postfix (IEC sizing)'
@@ -276,7 +276,7 @@ cmds = (
                       'This is repeatable argument.',
                  action='append'),
             dict(name="--dst-start", metavar='<DST_START_BLK>',
-                 help='destination volume start block number.\n'
+                 help='Destination volume start block number.\n'
                       'This is repeatable argument.',
                  action='append'),
             dict(name="--count", metavar='<BLK_COUNT>',
