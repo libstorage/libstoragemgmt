@@ -337,8 +337,12 @@ class TestPlugin(unittest.TestCase):
             self._volume_delete(vol)
 
     def test_disks_list(self):
-        disks = self.c.disks()
-        self.assertTrue(len(disks) > 0, "We need at least 1 disk to test")
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            if supported(cap, [lsm.Capabilities.DISKS]):
+                disks = self.c.disks()
+                self.assertTrue(len(disks) > 0,
+                                "We need at least 1 disk to test")
 
     def _volume_create(self, system_id,
                        element_type=lsm.Pool.ELEMENT_TYPE_VOLUME):
@@ -441,7 +445,7 @@ class TestPlugin(unittest.TestCase):
                                    lsm.Capabilities.VOLUME_RESIZE]):
                     vol = self._volume_create(s.id)[0]
                     vol_resize = self.c.volume_resize(
-                        vol, int(vol.size_bytes * 1.10))[1]
+                        vol, vol.size_bytes + mb_in_bytes(16))[1]
                     self.assertTrue(vol.size_bytes < vol_resize.size_bytes)
                     self.assertTrue(vol.id == vol_resize.id,
                                     "Expecting re-sized volume to refer to "
@@ -573,7 +577,7 @@ class TestPlugin(unittest.TestCase):
 
                 if fs is not None:
                     if supported(cap, [lsm.Capabilities.FS_RESIZE]):
-                        fs_size = fs.total_space * 1.10
+                        fs_size = fs.total_space + mb_in_bytes(16)
                         fs_resized = self.c.fs_resize(fs, fs_size)[1]
                         self.assertTrue(fs_resized.total_space)
 
