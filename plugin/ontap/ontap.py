@@ -172,7 +172,6 @@ class Ontap(IStorageAreaNetwork, INfs):
         if l['online'] == 'false':
             admin_state = Volume.ADMIN_STATE_DISABLED
 
-        #TODO: Need to retrieve actual volume status
         return Volume(vol_id, vol_name,
                       Ontap._create_vpd(l['serial-number']), block_size,
                       num_blocks, admin_state, self.sys_info.id, pool_id)
@@ -707,7 +706,8 @@ class Ontap(IStorageAreaNetwork, INfs):
 
         cur_init_ids = Ontap._initiators_in_group(igroups[0])
         if len(cur_init_ids) == 0:
-            raise LsmError(ErrorNumber.EMPTY_ACCESS_GROUP,
+            raise LsmError(
+                ErrorNumber.EMPTY_ACCESS_GROUP,
                 "Refuse to do volume masking against empty access group")
         try:
             self.f.lun_map(access_group.name, _lsm_vol_to_na_vol_path(volume))
@@ -834,7 +834,8 @@ class Ontap(IStorageAreaNetwork, INfs):
                 (init_id, access_group.name))
 
         if len(cur_init_ids) == 1:
-            raise LsmError(ErrorNumber.LAST_INIT_IN_ACCESS_GROUP,
+            raise LsmError(
+                ErrorNumber.LAST_INIT_IN_ACCESS_GROUP,
                 "Refuse to remove last initiator from access group")
 
         self.f.igroup_del_initiator(access_group.name, init_id)
