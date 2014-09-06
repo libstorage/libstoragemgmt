@@ -1701,6 +1701,38 @@ class Smis(IStorageAreaNetwork):
 
         return [Smis._cim_sys_to_lsm(s) for s in cim_syss]
 
+    def _check_for_dupe_vol(self, volume_name, original_exception):
+        """
+        Throw original exception or NAME_CONFLICT if volume name found
+        :param volume_name: Volume to check for
+        :original_exception Info grabbed from sys.exec_info
+        :return:
+        """
+        report_original = True
+
+        # Check to see if we already have a volume with this name.  If we
+        # do we will assume that this is the cause of it.  We will hide
+        # any errors that happen during this check and just report the
+        # original error if we can't determine if we have a duplicate
+        # name.
+
+        try:
+            # TODO: Add ability to search by volume name to 'volumes'
+            volumes = self.volumes()
+            for v in volumes:
+                if v.name == volume_name:
+                    report_original = False
+        except Exception:
+            # Don't report anything here on a failing
+            pass
+
+        if report_original:
+            raise original_exception[1], None, original_exception[2]
+        else:
+            raise LsmError(ErrorNumber.NAME_CONFLICT,
+                           "Volume with name '%s' already exists!" %
+                           volume_name)
+
     @handle_cim_errors
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
                       flags=0):
@@ -1727,31 +1759,7 @@ class Smis(IStorageAreaNetwork):
                                 'CreateOrModifyElementFromStoragePool',
                                 scs.path, **in_params)))
         except CIMError:
-            report_original = True
-            # Save off exception so we can re-raise original if needed
-            exception_info = sys.exc_info()
-
-            # Check to see if we already have a volume with this name.  If we
-            # do we will assume that this is the cause of it.  We will hide
-            # any errors that happen during this check and just report the
-            # original error if we can't determine if we have a duplicate
-            # name.
-            try:
-                # TODO: Add ability to search by volume name to 'volumes'
-                volumes = self.volumes()
-                for v in volumes:
-                    if v.name == volume_name:
-                        report_original = False
-                        break
-            except Exception:
-                # Don't report anything here on a failing
-                pass
-
-            if report_original:
-                raise exception_info[1], None, exception_info[2]
-            else:
-                raise LsmError(ErrorNumber.NAME_CONFLICT,
-                                        "Volume with name exists!")
+            self._check_for_dupe_vol(volume_name, sys.exc_info())
 
     def _poll(self, msg, job):
         if job:
@@ -1989,9 +1997,13 @@ class Smis(IStorageAreaNetwork):
             if cim_pool is not None:
                 in_params['TargetPool'] = cim_pool.path
 
-            return self._pi("volume_replicate", Smis.JOB_RETRIEVE_VOLUME,
-                            *(self._c.InvokeMethod(method,
-                                                   rs.path, **in_params)))
+            try:
+
+                return self._pi("volume_replicate", Smis.JOB_RETRIEVE_VOLUME,
+                                *(self._c.InvokeMethod(method,
+                                rs.path, **in_params)))
+            except CIMError:
+                self._check_for_dupe_vol(name, sys.exc_info())
 
         raise LsmError(ErrorNumber.NO_SUPPORT,
                        "volume-replicate not supported")
