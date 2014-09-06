@@ -661,7 +661,7 @@ class TestPlugin(unittest.TestCase):
 
     def test_mask_unmask(self):
         for s in self.systems:
-            ag = None
+            ag_created = None
             cap = self.c.capabilities(s)
 
             if supported(cap, [lsm.Capabilities.ACCESS_GROUPS,
@@ -674,7 +674,7 @@ class TestPlugin(unittest.TestCase):
                     ag_name = rs("ag")
                     ag_iqn = 'iqn.1994-05.com.domain:01.' + rs(None, 6)
 
-                    ag = self.c.access_group_create(
+                    ag_created = self.c.access_group_create(
                         ag_name, ag_iqn, lsm.AccessGroup.INIT_TYPE_ISCSI_IQN,
                         s)
 
@@ -684,11 +684,15 @@ class TestPlugin(unittest.TestCase):
                 if len(ag_list):
                     vol = self._volume_create(s.id)[0]
                     self.assertTrue(vol is not None)
-                    chose_ag = None
-                    for ag in ag_list:
-                        if len(ag.init_ids) >= 1:
-                            chose_ag = ag
-                            break
+
+                    chose_ag = ag_created
+
+                    if chose_ag is None:
+                        for ag in ag_list:
+                            if len(ag.init_ids) >= 1:
+                                chose_ag = ag
+                                break
+
                     if chose_ag is None:
                         raise Exception("No access group with 1+ member "
                                         "found, cannot do volume mask test")
@@ -702,9 +706,9 @@ class TestPlugin(unittest.TestCase):
                     if vol:
                         self._volume_delete(vol)
 
-                if ag:
-                    self.c.access_group_delete(ag)
-                    ag = None
+                if ag_created:
+                    self.c.access_group_delete(ag_created)
+                    ag_created = None
 
     def _create_access_group(self, cap, name, s, init_type):
         ag_created = None
