@@ -2367,7 +2367,8 @@ static void name(void *i)       \
     method((method_type *)i);   \
 }                               \
 
-int filter(void *a[], size_t size, array_cmp cmp, void *cmp_data, free_item fo)
+static int filter(void *a[], size_t size, array_cmp cmp, void *cmp_data,
+                    free_item fo)
 {
     int remaining = 0;
     size_t i = 0;
