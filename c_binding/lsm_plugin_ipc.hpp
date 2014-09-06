@@ -21,9 +21,10 @@
 #define LSM_PLUGIN_IPC_HPP
 
 #include <map>
+#include "libstoragemgmt/libstoragemgmt_common.h"
 
 template <typename K, typename V>
-class static_map
+class LSM_DLL_LOCAL static_map
 {
 private:
     std::map<K, V> _m;

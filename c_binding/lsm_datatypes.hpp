@@ -303,13 +303,13 @@ struct LSM_DLL_LOCAL _lsm_target_port {
  * Returns a pointer to a newly created connection structure.
  * @return NULL on memory exhaustion, else new connection.
  */
-LSM_DLL_LOCAL lsm_connect *connection_get();
+lsm_connect LSM_DLL_LOCAL *connection_get();
 
 /**
  * De-allocates the connection.
  * @param c     Connection to free.
  */
-LSM_DLL_LOCAL void connection_free(lsm_connect *c);
+void LSM_DLL_LOCAL connection_free(lsm_connect *c);
 
 /**
  * Loads the requester driver specified in the uri.
@@ -322,15 +322,15 @@ LSM_DLL_LOCAL void connection_free(lsm_connect *c);
  * @param flags         Reserved flag for future use
  * @return LSM_ERR_OK on success, else error code.
  */
-LSM_DLL_LOCAL int driver_load(lsm_connect *c, const char *plugin,
+int LSM_DLL_LOCAL driver_load(lsm_connect *c, const char *plugin,
                                 const char *password, uint32_t timeout,
                                 lsm_error_ptr *e,
                                 int startup,
                                 lsm_flag flags);
 
-LSM_DLL_LOCAL char* capability_string(lsm_storage_capabilities *c);
+char LSM_DLL_LOCAL *capability_string(lsm_storage_capabilities *c);
 
-LSM_DLL_LOCAL const char *uds_path(void);
+const char LSM_DLL_LOCAL *uds_path(void);
 
 /**
  * Take a character string and tries to convert to a number.
