@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2013 Nexenta Systems, Inc.
+# Copyright (C) 2013-2014 Nexenta Systems, Inc.
 # All rights reserved.
 #
 # This library is free software; you can redistribute it and/or
@@ -83,6 +83,16 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         resp_json = response.read()
         resp = json.loads(resp_json)
         if resp['error']:
+
+            if 'message' in resp['error']:
+                msg = resp['error']['message']
+                # Check to see if there is a better way to do this...
+                if 'dataset already exists' in msg:
+                    raise LsmError(ErrorNumber.NAME_CONFLICT, msg)
+
+                if 'Unable to destroy hostgroup' in msg:
+                    raise LsmError(ErrorNumber.IS_MASKED, msg)
+
             raise LsmError(ErrorNumber.PLUGIN_BUG, resp['error'])
         return resp['result']
 
@@ -174,7 +184,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         if name.startswith(pool.name + '/'):
             chunks = name.split('/')[1:]
             name = '/'.join(chunks)
-        fs_name = self._request("create", "folder", [pool.name, name])
+        fs_name = self._request("create", "folder", [pool.name, name])[0]
         filesystem = FileSystem(fs_name, fs_name, pool.total_space,
                                 pool.free_space, pool.id, fs_name)
         return None, filesystem
@@ -456,7 +466,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             try:
                 lu_props = self._request("get_lu_props", "scsidisk", [lu])
             except:
-                lu_props = {'guid': 'N/A', 'state': 'N/A'}
+                lu_props = {'guid': '', 'state': 'N/A'}
 
             zvol_props = self._request("get_child_props", "zvol", [lu, ""])
 
@@ -505,12 +515,8 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                       [name, 'logbias', 'throughput'])
 
         self._request("create_lu", "scsidisk", [name, []])
-
-        new_volume = Volume(name, name, '', 8192, size_bytes / 8192,
-                            Volume.ADMIN_STATE_ENABLED, '',
-                            pool.id)  # FIXhttp://192.168.0.1/st_wlan.phpME
-                                        # replace with list request
-        return None, new_volume
+        vols = self.volumes('id', name)
+        return None, vols[0]
 
     @handle_nstor_errors
     def volume_delete(self, volume, flags=0):
@@ -519,6 +525,12 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
         Returns None on success, else raises an LsmError
         """
+        ag = self.access_groups_granted_to_volume(volume)
+
+        if len(ag):
+            raise LsmError(ErrorNumber.IS_MASKED,
+                           "Volume is masked to access group")
+
         self._request("delete_lu", "scsidisk", [volume.id])
         self._request("destroy", "zvol", [volume.id, ''])
         return
@@ -538,7 +550,8 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         new_num_of_blocks = new_size_bytes / volume.block_size
         return None, Volume(volume.id, volume.name, volume.vpd83,
                             volume.block_size, new_num_of_blocks,
-                            volume.status, volume.system_id, volume.pool_id)
+                            volume.admin_state, volume.system_id,
+                            volume.pool_id)
 
     @handle_nstor_errors
     def volume_replicate(self, pool, rep_type, volume_src, name, flags=0):
@@ -626,8 +639,13 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         return
 
     def _get_views(self, volume_name):
-        return self._request("list_lun_mapping_entries", "scsidisk",
-                             [volume_name])
+        results = []
+        try:
+            results = self._request("list_lun_mapping_entries", "scsidisk",
+                                    [volume_name])
+        except Exception:
+            pass
+        return results
 
     def _volume_mask(self, group_name, volume_name):
         self._request("add_lun_mapping_entry", "scsidisk",
@@ -694,6 +712,10 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                 raise LsmError(ErrorNumber.EXISTS_INITIATOR,
                                "%s is already part of %s access group" %
                                (init_id, ag.name))
+
+            if name == ag.name:
+                raise LsmError(ErrorNumber.NAME_CONFLICT,
+                               "Access group with name exists!")
         self._request("create_hostgroup", "stmf", [name])
         self._add_initiator(name, init_id)
 
@@ -704,6 +726,11 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         """
         Deletes an access group
         """
+        vols = self.volumes_accessible_by_access_group(access_group)
+        if len(vols):
+            raise LsmError(ErrorNumber.IS_MASKED,
+                               "Access Group has volume(s) masked")
+
         self._request("destroy_hostgroup", "stmf", [access_group.name])
         return
 
