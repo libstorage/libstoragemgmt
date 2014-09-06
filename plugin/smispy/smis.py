@@ -61,13 +61,13 @@ from dmtf import DMTF
 #   pool            Object of LSM Pool
 #   vol             Object of LSM Volume
 
-## Method Naming schme:
+## Method Naming scheme:
 #   _cim_xxx()
-#       Return CIMInstance without any Associators() call.
+#       Return CIMInstance without any Associations() call.
 #   _cim_xxx_of(cim_yyy)
 #       Return CIMInstance associated to cim_yyy
 #   _adj_cim_xxx()
-#       Retrun CIMInstance with 'adj' only
+#       Return CIMInstance with 'adj' only
 #   _cim_xxx_of_id(some_id)
 #       Return CIMInstance for given ID
 
@@ -167,7 +167,7 @@ def _lsm_tgt_port_type_of_cim_fc_tgt(cim_fc_tgt):
     We are assuming we got CIM_FCPort. Caller should make sure of that.
     Return TargetPool.PORT_TYPE_FC as fallback
     """
-    # In SNIA SMI-S 1.6.1 public draft 2, 'PortDiscriminator' is mandatroy
+    # In SNIA SMI-S 1.6.1 public draft 2, 'PortDiscriminator' is mandatory
     # for FCoE target port.
     if 'PortDiscriminator' in cim_fc_tgt and \
        cim_fc_tgt['PortDiscriminator'] and \
@@ -851,7 +851,7 @@ class Smis(IStorageAreaNetwork):
         if self.fallback_mode:
             flag_fc_support = True
             flag_iscsi_support = True
-            # CIM_FCPort is the contral class of FC Targets profile
+            # CIM_FCPort is the control class of FC Targets profile
             try:
                 self._cim_fc_tgt_of(cim_sys_path)
             except CIMError as e:
@@ -932,7 +932,7 @@ class Smis(IStorageAreaNetwork):
             PropertyList=cim_gmm_cap_pros)[0]
 
         # if empty dev group in spc is allowed, RemoveMembers() is enough
-        # to do volume_unamsk(). RemoveMembers() is mandatory.
+        # to do volume_unmask(). RemoveMembers() is mandatory.
         if DMTF.GMM_CAP_DEV_MG_ALLOW_EMPTY_W_SPC in \
            cim_gmm_cap['SupportedDeviceGroupFeatures']:
             cap.set(Capabilities.VOLUME_UNMASK)
@@ -1157,7 +1157,7 @@ class Smis(IStorageAreaNetwork):
 
     def _init_id(self, cim_init):
         """
-        Retrive Initiator ID from CIM_StorageHardwareID
+        Retrieve Initiator ID from CIM_StorageHardwareID
         """
         return self._id('Initiator', cim_init)
 
@@ -1241,7 +1241,7 @@ class Smis(IStorageAreaNetwork):
 
     def _cim_vol_pros(self):
         """
-        Retrun the PropertyList required for creating new LSM Volume.
+        Return the PropertyList required for creating new LSM Volume.
         """
         props = ['ElementName', 'NameFormat',
                  'NameNamespace', 'BlockSize', 'NumberOfBlocks', 'Name',
@@ -1319,7 +1319,7 @@ class Smis(IStorageAreaNetwork):
         name = cv['Name']
         if not (nf and nn and name):
             return None
-        # SNIA might missly said VPD83Type3(1), it should be
+        # SNIA might have miss documented VPD83Type3(1), it should be
         # VOL_NAME_FORMAT_OTHER(1) based on DMTF.
         # Will remove the Smis.VOL_NAME_FORMAT_OTHER condition if confirmed as
         # SNIA document fault.
@@ -1431,7 +1431,7 @@ class Smis(IStorageAreaNetwork):
 
     def _cim_inits_to_lsm(self, cim_inits):
         """
-        Retrive AccessGroup.init_ids and AccessGroup.init_type from
+        Retrieve AccessGroup.init_ids and AccessGroup.init_type from
         a list of CIM_StorageHardwareID.
         """
         init_ids = []
@@ -2087,7 +2087,7 @@ class Smis(IStorageAreaNetwork):
             cim_iscsi_pgs = self._cim_iscsi_pg_of(cim_sys_path)
             in_params['Members'] = [x.path for x in cim_iscsi_pgs]
         else:
-            # Already checked at the begining of this method
+            # Already checked at the beginning of this method
             pass
 
         cim_tgt_mg_path = None
@@ -2312,7 +2312,7 @@ class Smis(IStorageAreaNetwork):
 
         flag_init_mg_found = False
         cur_cim_init_mg = None
-        # Seaching for CIM_DeviceMaskingGroup
+        # Searching for CIM_DeviceMaskingGroup
         for cim_spc_path in cim_spcs_path:
             cim_init_mgs = self._c.Associators(
                 cim_spc_path,
@@ -2920,12 +2920,13 @@ class Smis(IStorageAreaNetwork):
 
         if cim_init is None:
             raise LsmError(ErrorNumber.NO_STATE_CHANGE,
-                "Initiator %s does not exist in defined access group %s" %
-                (init_id, access_group.id))
+                           "Initiator %s does not exist in defined "
+                           "access group %s" %
+                           (init_id, access_group.id))
 
         if len(cur_cim_inits) == 1:
             raise LsmError(ErrorNumber.LAST_INIT_IN_ACCESS_GROUP,
-                "Refuse to remove last initiator from access group")
+                           "Refuse to remove last initiator from access group")
 
         cim_gmm_path = self._get_cim_service_path(
             cim_sys.path, 'CIM_GroupMaskingMappingService')
@@ -2988,7 +2989,7 @@ class Smis(IStorageAreaNetwork):
 
     def _enumerate(self, class_name, property_list=None):
         """
-        Please do the filter of "sytems=" in URI by yourself.
+        Please do the filter of "systems=" in URI by yourself.
         """
         if len(self.all_vendor_namespaces) == 0:
             # We need to find out the vendor spaces.
@@ -3018,10 +3019,10 @@ class Smis(IStorageAreaNetwork):
             CIM_PhysicalPackage
             CIM_DiskDrive
             CIM_StorageExtent (Primordial)
-        Due to 'Multiple Computer System' profile, disks might assocated to
-        sub ComputerSystem. To improve profromance of listing disks, we will
+        Due to 'Multiple Computer System' profile, disks might associated to
+        sub ComputerSystem. To improve performance of listing disks, we will
         use EnumerateInstances(). Which means we have to filter the results
-        by ourself in case URI contain 'system=xxx'.
+        by ourselves in case URI contain 'system=xxx'.
         """
         rc = []
         if not self.fallback_mode:
@@ -3433,7 +3434,7 @@ class Smis(IStorageAreaNetwork):
         Return True if FC Target Port 1.4+ profile is supported.
         For fallback_mode, we call self._cim_iscsi_pg_of() and do try-except
         For fallback_mode:
-        Even CIM_EthernetPort is the contral class of iSCSI Target
+        Even CIM_EthernetPort is the control class of iSCSI Target
         Ports profile, but that class is optional. :(
         We use CIM_iSCSIProtocolEndpoint as it's a start point we are
         using in our code of target_ports().
@@ -3515,7 +3516,7 @@ class Smis(IStorageAreaNetwork):
         """
         port_id = md5(cim_fc_tgt['DeviceID'])
         port_type = _lsm_tgt_port_type_of_cim_fc_tgt(cim_fc_tgt)
-        # SNIA define WWPN string as upper, no spliter, 16 digits.
+        # SNIA define WWPN string as upper, no splitter, 16 digits.
         # No need to check.
         wwpn = _hex_string_format(cim_fc_tgt['PermanentAddress'], 16, 2)
         port_name = cim_fc_tgt['ElementName']
@@ -3672,7 +3673,7 @@ class Smis(IStorageAreaNetwork):
                 nics = []
                 # NetApp ONTAP cluster-mode show one IP bonded to multiple
                 # ethernet,
-                # Not suer it's their BUG or real ethernet channel bonding.
+                # Not sure it's their BUG or real ethernet channel bonding.
                 # Waiting reply.
                 if len(cim_eths) == 0:
                     nics = [('', '')]
@@ -3832,7 +3833,7 @@ class Smis(IStorageAreaNetwork):
         """
         Return out[out_key] if found rc == INVOKE_OK.
         For rc == INVOKE_ASYNC, we check every Smis.INVOKE_CHECK_INTERVAL
-        seconds until done. Then return assocition via CIM_AffectedJobElement
+        seconds until done. Then return association via CIM_AffectedJobElement
         Return CIM_InstanceName
         Assuming only one CIM_InstanceName will get.
         """
@@ -3880,7 +3881,7 @@ class Smis(IStorageAreaNetwork):
                                    "%d: %s" % (job_state, cim_job.items()))
                 if len(cim_xxxs_path) != 1:
                     raise LsmError(ErrorNumber.PLUGIN_BUG,
-                                   "_wait_invoke(): got unexpect(not 1) "
+                                   "_wait_invoke(): got unexpected(not 1) "
                                    "return from CIM_AffectedJobElement: "
                                    "%s, out: %s, job: %s" %
                                    (cim_xxxs_path, out.items(),
@@ -3968,7 +3969,7 @@ class Smis(IStorageAreaNetwork):
         Actually, only EMC VMAX/DMX support this now(July 2014).
         Steps:
             0. Check exist SPC of init_id for duplication call and
-               confliction.
+               conflict.
             1. Create CIM_InitiatorMaskingGroup
         """
         org_init_id = init_id
@@ -4062,7 +4063,7 @@ class Smis(IStorageAreaNetwork):
                                 md5(exist_cim_init_mgs[0]['InstanceID'])))
             # 2. Requested name used by other group.
             #    Since 1) already checked whether any group containing
-            #    requested init_id, now, it's surelly a confliction.
+            #    requested init_id, now, it's surly a conflict.
             exist_cim_init_mgs = self._cim_init_mg_of(
                 cim_sys.path, property_list=['ElementName'])
             for exist_cim_init_mg in exist_cim_init_mgs:
