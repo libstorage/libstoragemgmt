@@ -681,10 +681,14 @@ class Smis(IStorageAreaNetwork):
 
         element_types = cim_scs_cap['SupportedStorageElementTypes']
         sup_actions = []
-        if cim_scs_cap['SupportedSynchronousActions']:
-            sup_actions.extend(cim_scs_cap['SupportedSynchronousActions'])
-        if cim_scs_cap['SupportedAsynchronousActions']:
-            sup_actions.extend(cim_scs_cap['SupportedAsynchronousActions'])
+
+        if 'SupportedSynchronousActions' in cim_scs_cap:
+            if cim_scs_cap['SupportedSynchronousActions']:
+                sup_actions.extend(cim_scs_cap['SupportedSynchronousActions'])
+
+        if 'SupportedAsynchronousActions' in cim_scs_cap:
+            if cim_scs_cap['SupportedAsynchronousActions']:
+                sup_actions.extend(cim_scs_cap['SupportedAsynchronousActions'])
 
         if DMTF.SCS_CAP_SUP_ST_VOLUME in element_types or \
            DMTF.SCS_CAP_SUP_THIN_ST_VOLUME in element_types:
