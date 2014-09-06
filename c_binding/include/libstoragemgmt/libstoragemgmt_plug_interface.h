@@ -931,7 +931,7 @@ lsm_pool LSM_DLL_EXPORT *lsm_pool_record_alloc(const char *id, const char *name,
  * @param p     Pool to retrieve plugin private data for
  * @return NULL if donesn't exists, else data.
  */
-const char *lsm_pool_plugin_data_get(lsm_pool *p);
+const char LSM_DLL_EXPORT *lsm_pool_plugin_data_get(lsm_pool *p);
 
 /**
  * Allocate the storage needed for and array of Volume records.
@@ -1086,7 +1086,7 @@ lsm_fs LSM_DLL_EXPORT **lsm_fs_record_array_alloc( uint32_t size );
  * @param fs     FS to retrieve plug-in private data for
  * @return NULL if doesn't exist, else data.
  */
-const char *lsm_fs_plugin_data_get(lsm_fs *fs);
+const char LSM_DLL_EXPORT *lsm_fs_plugin_data_get(lsm_fs *fs);
 
 /**
  * Allocates the memory for single snap shot record.

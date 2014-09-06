@@ -75,21 +75,21 @@ int LSM_DLL_EXPORT lsm_block_range_record_array_free( lsm_block_range *br[],
  * @param br        Valid block range pointer
  * @return value of source start.
  */
-uint64_t lsm_block_range_source_start_get(lsm_block_range *br);
+uint64_t LSM_DLL_EXPORT lsm_block_range_source_start_get(lsm_block_range *br);
 
 /**
  * Retrieves the dest block address.
  * @param br        Valid block range pointer
  * @return value of dest start.
  */
-uint64_t lsm_block_range_dest_start_get(lsm_block_range *br);
+uint64_t LSM_DLL_EXPORT lsm_block_range_dest_start_get(lsm_block_range *br);
 
 /**
  * Retrieves the number of blocks to replicate.
  * @param br        Valid block range pointer
  * @return value of number of blocks
  */
-uint64_t lsm_block_range_block_count_get(lsm_block_range *br);
+uint64_t LSM_DLL_EXPORT lsm_block_range_block_count_get(lsm_block_range *br);
 
 #ifdef  __cplusplus
 }

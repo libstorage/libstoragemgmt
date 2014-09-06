@@ -31,7 +31,7 @@ extern "C" {
  * @param s     Record to duplicate
  * @return NULL on memory allocation failure, else duplicated record.
  */
-lsm_system *lsm_system_record_copy(lsm_system *s);
+lsm_system LSM_DLL_EXPORT *lsm_system_record_copy(lsm_system *s);
 
 
 /**
