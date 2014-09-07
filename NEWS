@@ -1,5 +1,26 @@
 News for libStorageMgmt
 
+1.0.0: Sep 7 2014
+    - Release version 1
+    - Numerous constants re-naming & removing
+    - Removed the pool create/delete until things work better,
+      esp. WRT SMI-S
+    - Added checks for initiator ID verification
+    - Added checks for vpd 0x83 verification
+    - Simplified error logging (removed domain & level)
+    - Re-named functions for online,offline -> enable,disable
+    - Always use objects instead of object ID in function
+      params
+    - Removed individual files from fs snapshot creation
+    - Add unsupported actions for pools
+    - lsm_capability_set_n uses a -1 to terminate list
+    - Volume status removed, replaced with admin state
+    - Removed ibmiv7k plugin
+    - Explicitly specify python2
+    - Error path consistency changes (same error for same condition
+      across plug-ins)
+    - Numerous bug fixes
+
 0.1.0: Jul 3 2014
     - Release candidate for a 1.0.0 release
     - Optional data removed
