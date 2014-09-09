@@ -264,7 +264,8 @@ class TestPlugin(unittest.TestCase):
 
         # TODO Store what exists, so that we don't remove it
 
-    def _get_pool_by_usage(self, system_id, element_type):
+    def _get_pool_by_usage(self, system_id, element_type,
+                           unsupported_features=0):
         largest_free = 0
         rc = None
 
@@ -274,8 +275,7 @@ class TestPlugin(unittest.TestCase):
             # testing and one that support volume expansion
             if p.element_type & element_type and \
                     p.free_space > mb_in_bytes(MIN_POOL_SIZE) and \
-                    (not p.unsupported_actions &
-                     lsm.Pool.UNSUPPORTED_VOLUME_GROW):
+                    (not p.unsupported_actions & unsupported_features):
                 if p.free_space > largest_free:
                     largest_free = p.free_space
                     rc = p
@@ -345,9 +345,11 @@ class TestPlugin(unittest.TestCase):
                                 "We need at least 1 disk to test")
 
     def _volume_create(self, system_id,
-                       element_type=lsm.Pool.ELEMENT_TYPE_VOLUME):
+                       element_type=lsm.Pool.ELEMENT_TYPE_VOLUME,
+                       unsupported_features=0):
         if system_id in self.pool_by_sys_id:
-            p = self._get_pool_by_usage(system_id, element_type)
+            p = self._get_pool_by_usage(system_id, element_type,
+                                        unsupported_features)
 
             self.assertTrue(p is not None, "Unable to find a suitable pool")
 
@@ -440,10 +442,15 @@ class TestPlugin(unittest.TestCase):
             for s in self.systems:
                 cap = self.c.capabilities(s)
 
+                # We need to make sure that the pool supports volume grow.
+                unsupported = lsm.Pool.UNSUPPORTED_VOLUME_GROW
+
                 if supported(cap, [lsm.Capabilities.VOLUME_CREATE,
                                    lsm.Capabilities.VOLUME_DELETE,
                                    lsm.Capabilities.VOLUME_RESIZE]):
-                    vol = self._volume_create(s.id)[0]
+                    vol = self._volume_create(
+                        s.id,
+                        unsupported_features=unsupported)[0]
                     vol_resize = self.c.volume_resize(
                         vol, vol.size_bytes + mb_in_bytes(16))[1]
                     self.assertTrue(vol.size_bytes < vol_resize.size_bytes)
