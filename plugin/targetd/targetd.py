@@ -35,6 +35,8 @@ DEFAULT_USER = "admin"
 DEFAULT_PORT = 18700
 PATH = "/targetrpc"
 
+# Current sector size in liblvm
+_LVM_SECTOR_SIZE = 512
 
 def handle_errors(method):
     def target_wrapper(*args, **kwargs):
@@ -334,6 +336,14 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         if provisioning != Volume.PROVISION_DEFAULT:
             raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                            "Unsupported provisioning")
+
+        # Make sure size_bytes round up with _LVM_SECTOR_SIZE
+        if size_bytes:
+            remainder = size_bytes % _LVM_SECTOR_SIZE
+            if remainder:
+                size_bytes = size_bytes + _LVM_SECTOR_SIZE - remainder
+        else:
+            size_bytes = _LVM_SECTOR_SIZE
 
         self._jsonrequest("vol_create", dict(pool=pool.id,
                                              name=volume_name,
