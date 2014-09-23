@@ -205,3 +205,7 @@ class DMTF(object):
     SCS_CAP_VOLUME_CREATE = Uint16(5)
     SCS_CAP_VOLUME_DELETE = Uint16(6)
     SCS_CAP_VOLUME_MODIFY = Uint16(7)
+
+    # DSP 1033  Profile Registration
+    INTEROP_NAMESPACES = ['interop', 'root/interop', 'root/PG_Interop']
+    DEFAULT_NAMESPACE = 'interop'

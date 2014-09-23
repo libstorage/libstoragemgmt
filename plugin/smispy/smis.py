@@ -35,6 +35,8 @@ from lsm import (IStorageAreaNetwork, error, uri_parse, LsmError, ErrorNumber,
                  search_property)
 
 from dmtf import DMTF
+from utils import merge_list
+from smis_common import SmisCommon
 
 ## Variable Naming scheme:
 #   cim_xxx         CIMInstance
@@ -132,10 +134,6 @@ def _spec_ver_str_to_num(spec_ver_str):
     return None
 
 
-def _merge_list(list_a, list_b):
-    return list(set(list_a + list_b))
-
-
 def _hex_string_format(hex_str, length, every):
     hex_str = hex_str.lower()
     return ':'.join(hex_str[i:i + every] for i in range(0, length, every))
@@ -186,22 +184,6 @@ def _lsm_init_type_to_dmtf(init_type):
         return DMTF.ID_TYPE_ISCSI
     raise LsmError(ErrorNumber.NO_SUPPORT,
                    "Does not support provided init_type: %d" % init_type)
-
-
-class SNIA(object):
-    BLK_ROOT_PROFILE = 'Array'
-    BLK_SRVS_PROFILE = 'Block Services'
-    DISK_LITE_PROFILE = 'Disk Drive Lite'
-    MULTI_SYS_PROFILE = 'Multiple Computer System'
-    MASK_PROFILE = 'Masking and Mapping'
-    GROUP_MASK_PROFILE = 'Group Masking and Mapping'
-    FC_TGT_PORT_PROFILE = 'FC Target Ports'
-    ISCSI_TGT_PORT_PROFILE = 'iSCSI Target Ports'
-    SMIS_SPEC_VER_1_4 = '1.4'
-    SMIS_SPEC_VER_1_5 = '1.5'
-    SMIS_SPEC_VER_1_6 = '1.6'
-    REG_ORG_CODE = pywbem.Uint16(11)
-
 
 class Smis(IStorageAreaNetwork):
     """
@@ -326,9 +308,6 @@ class Smis(IStorageAreaNetwork):
     DMTF_STATUS_COMPLETED = 17
     DMTF_STATUS_POWER_MODE = 18
 
-    # DSP 1033  Profile Registration
-    DMTF_INTEROP_NAMESPACES = ['interop', 'root/interop']
-    SMIS_DEFAULT_NAMESPACE = 'interop'
 
     IAAN_WBEM_HTTP_PORT = 5988
     IAAN_WBEM_HTTPS_PORT = 5989
@@ -405,10 +384,7 @@ class Smis(IStorageAreaNetwork):
         self._c = None
         self.tmo = 0
         self.system_list = None
-        self.cim_rps = []
-        self.cim_root_profile_dict = dict()
         self.fallback_mode = True    # Means we cannot use profile register
-        self.all_vendor_namespaces = []
         self.debug_path = None
 
     def _get_cim_instance_by_id(self, class_type, requested_id,
@@ -424,9 +400,10 @@ class Smis(IStorageAreaNetwork):
         if property_list is None:
             property_list = id_pros
         else:
-            property_list = _merge_list(property_list, id_pros)
+            property_list = merge_list(property_list, id_pros)
 
-        cim_xxxs = self._enumerate(class_name, property_list)
+        cim_xxxs = self._c.EnumerateInstances(
+            class_name, PropertyList=property_list)
         org_requested_id = requested_id
         if class_type == 'Job':
             (requested_id, ignore) = self._parse_job_id(requested_id)
@@ -450,10 +427,11 @@ class Smis(IStorageAreaNetwork):
         if property_list is None:
             property_list = [prop_name]
         else:
-            property_list = _merge_list(property_list, [prop_name])
+            property_list = merge_list(property_list, [prop_name])
 
         try:
-            cim_xxxs = self._enumerate(class_name, property_list)
+            cim_xxxs = self._c.EnumerateInstances(
+                class_name, PropertyList=property_list)
         except CIMError as ce:
             error_code = tuple(ce)[0]
 
@@ -549,82 +527,27 @@ class Smis(IStorageAreaNetwork):
         # System filtering
         self.system_list = None
 
-        namespace = None
-        if 'namespace' in u['parameters']:
-            namespace = u['parameters']['namespace']
-            self.all_vendor_namespaces = [namespace]
-        else:
-            namespace = Smis.SMIS_DEFAULT_NAMESPACE
-
         if 'systems' in u['parameters']:
             self.system_list = split(u['parameters']["systems"], ":")
 
-        if namespace is not None:
-            self._c = pywbem.WBEMConnection(url, (u['username'], password),
-                                            namespace)
-            if "no_ssl_verify" in u["parameters"] \
-               and u["parameters"]["no_ssl_verify"] == 'yes':
-                try:
-                    self._c = pywbem.WBEMConnection(
-                        url,
-                        (u['username'], password),
-                        namespace,
-                        no_verification=True)
-                except TypeError:
-                    # pywbem is not holding fix from
-                    # https://bugzilla.redhat.com/show_bug.cgi?id=1039801
-                    pass
+        namespace = None
+        if 'namespace' in u['parameters']:
+            namespace = u['parameters']['namespace']
 
-        self.tmo = timeout
+        no_ssl_verify = False
+        if "no_ssl_verify" in u["parameters"] \
+           and u["parameters"]["no_ssl_verify"] == 'yes':
+            no_ssl_verify = True
 
+        debug = False
         if 'debug_path' in u['parameters']:
             self.debug_path = u['parameters']['debug_path']
-            self._c.debug = True
+            debug = True
 
-        if 'force_fallback_mode' in u['parameters'] and \
-           u['parameters']['force_fallback_mode'] == 'yes':
-            return
+        self._c = SmisCommon(
+            url, u['username'], password, namespace, no_ssl_verify, debug)
 
-        # Checking profile registration support status unless
-        # force_fallback_mode is enabled in URI.
-        namespace_check_list = Smis.DMTF_INTEROP_NAMESPACES
-        if 'namespace' in u['parameters'] and \
-           u['parameters']['namespace'] not in namespace_check_list:
-            namespace_check_list.extend([u['parameters']['namespace']])
-
-        for interop_namespace in Smis.DMTF_INTEROP_NAMESPACES:
-            try:
-                self.cim_rps = self._c.EnumerateInstances(
-                    'CIM_RegisteredProfile',
-                    namespace=interop_namespace,
-                    PropertyList=['RegisteredName', 'RegisteredVersion',
-                                  'RegisteredOrganization'],
-                    LocalOnly=False)
-            except CIMError as e:
-                if e[0] == pywbem.CIM_ERR_NOT_SUPPORTED or \
-                   e[0] == pywbem.CIM_ERR_INVALID_NAMESPACE or \
-                   e[0] == pywbem.CIM_ERR_INVALID_CLASS:
-                    pass
-                else:
-                    raise
-            if len(self.cim_rps) != 0:
-                break
-
-        if len(self.cim_rps) >= 1:
-            self.fallback_mode = False
-            self.all_vendor_namespaces = []
-            # Support 'Array' profile is step 0 for this whole plugin.
-            # We find out all 'Array' CIM_RegisteredProfile and stored
-            # them into self.cim_root_profile_dict
-            if not self._profile_is_supported(
-                    SNIA.BLK_ROOT_PROFILE,
-                    SNIA.SMIS_SPEC_VER_1_4,
-                    strict=False):
-                raise LsmError(ErrorNumber.NO_SUPPORT,
-                               "Target SMI-S provider does not support "
-                               "SNIA SMI-S SPEC %s '%s' profile" %
-                               (SNIA.SMIS_SPEC_VER_1_4,
-                                SNIA.BLK_ROOT_PROFILE))
+        self.tmo = timeout
 
     def time_out_set(self, ms, flags=0):
         self.tmo = ms
@@ -712,7 +635,7 @@ class Smis(IStorageAreaNetwork):
             try:
                 # Assuming provider support disk drive when systems under it
                 # support it.
-                self._enumerate('CIM_DiskDrive')
+                self._c.EnumerateInstanceNames('CIM_DiskDrive')
             except CIMError as e:
                 if e[0] == pywbem.CIM_ERR_NOT_SUPPORTED or \
                    e[0] == pywbem.CIM_ERR_INVALID_CLASS:
@@ -720,10 +643,9 @@ class Smis(IStorageAreaNetwork):
                 else:
                     raise
         else:
-            if not self._profile_is_supported(SNIA.DISK_LITE_PROFILE,
-                                              SNIA.SMIS_SPEC_VER_1_4,
-                                              strict=False,
-                                              raise_error=False):
+            if not self._c.profile_check(SmisCommon.SNIA_DISK_LITE_PROFILE,
+                                         SmisCommon.SMIS_SPEC_VER_1_4,
+                                         raise_error=False):
                 return
 
         cap.set(Capabilities.DISKS)
@@ -813,10 +735,9 @@ class Smis(IStorageAreaNetwork):
             if cim_ccs_path is None:
                 return
 
-        elif not self._profile_is_supported(SNIA.MASK_PROFILE,
-                                            SNIA.SMIS_SPEC_VER_1_4,
-                                            strict=False,
-                                            raise_error=False):
+        elif not self._c.profile_check(SmisCommon.SNIA_MASK_PROFILE,
+                                       SmisCommon.SMIS_SPEC_VER_1_4,
+                                       raise_error=False):
             return
 
         cap.set(Capabilities.ACCESS_GROUPS)
@@ -870,25 +791,22 @@ class Smis(IStorageAreaNetwork):
                    e[0] == pywbem.CIM_ERR_INVALID_CLASS:
                     flag_iscsi_support = False
         else:
-            flag_fc_support = self._profile_is_supported(
-                SNIA.FC_TGT_PORT_PROFILE,
-                SNIA.SMIS_SPEC_VER_1_4,
-                strict=False,
+            flag_fc_support = self._c.profile_check(
+                SmisCommon.SNIA_FC_TGT_PORT_PROFILE,
+                SmisCommon.SMIS_SPEC_VER_1_4,
                 raise_error=False)
             # One more check for NetApp Typo:
             #   NetApp:     'FC Target Port'
             #   SMI-S:      'FC Target Ports'
             # Bug reported.
             if not flag_fc_support:
-                flag_fc_support = self._profile_is_supported(
+                flag_fc_support = self._c.profile_check(
                     'FC Target Port',
-                    SNIA.SMIS_SPEC_VER_1_4,
-                    strict=False,
+                    SmisCommon.SMIS_SPEC_VER_1_4,
                     raise_error=False)
-            flag_iscsi_support = self._profile_is_supported(
-                SNIA.ISCSI_TGT_PORT_PROFILE,
-                SNIA.SMIS_SPEC_VER_1_4,
-                strict=False,
+            flag_iscsi_support = self._c.profile_check(
+                SmisCommon.SNIA_ISCSI_TGT_PORT_PROFILE,
+                SmisCommon.SMIS_SPEC_VER_1_4,
                 raise_error=False)
 
         if flag_fc_support or flag_iscsi_support:
@@ -1116,7 +1034,7 @@ class Smis(IStorageAreaNetwork):
                            "class_type %s" % class_type)
 
         if extra_properties:
-            rc = _merge_list(rc, extra_properties)
+            rc = merge_list(rc, extra_properties)
         return rc
 
     def _sys_id_child(self, cim_xxx):
@@ -1546,7 +1464,7 @@ class Smis(IStorageAreaNetwork):
         if property_list is None:
             property_list = ['Primordial']
         else:
-            property_list = _merge_list(property_list, ['Primordial'])
+            property_list = merge_list(property_list, ['Primordial'])
 
         cim_pools = self._c.Associators(cim_sys_path,
                                         AssocClass='CIM_HostedStoragePool',
@@ -2423,9 +2341,10 @@ class Smis(IStorageAreaNetwork):
         if property_list is None:
             property_list = ['DeviceID']
         else:
-            property_list = _merge_list(property_list, ['DeviceID'])
+            property_list = merge_list(property_list, ['DeviceID'])
 
-        cim_spcs = self._enumerate('CIM_SCSIProtocolController', property_list)
+        cim_spcs = self._c.EnumerateInstances(
+            'CIM_SCSIProtocolController', PropertyList=property_list)
 
         for cim_spc in cim_spcs:
             if md5(cim_spc['DeviceID']) == access_group_id:
@@ -2523,10 +2442,9 @@ class Smis(IStorageAreaNetwork):
             property_list = []
 
         if (not self.fallback_mode and
-            self._profile_is_supported(SNIA.MASK_PROFILE,
-                                       SNIA.SMIS_SPEC_VER_1_6,
-                                       strict=False,
-                                       raise_error=False)):
+            self._c.profile_check(SmisCommon.SNIA_MASK_PROFILE,
+                                  SmisCommon.SMIS_SPEC_VER_1_6,
+                                  raise_error=False)):
             return self._c.Associators(
                 cim_spc_path,
                 AssocClass='CIM_AssociatedPrivilege',
@@ -2655,10 +2573,10 @@ class Smis(IStorageAreaNetwork):
         if property_list is None:
             property_list = ['InstanceID']
         else:
-            property_list = _merge_list(property_list, ['InstanceID'])
+            property_list = merge_list(property_list, ['InstanceID'])
 
-        cim_init_mgs = self._enumerate(
-            'CIM_InitiatorMaskingGroup', property_list)
+        cim_init_mgs = self._c.EnumerateInstances(
+            'CIM_InitiatorMaskingGroup', PropertyList=property_list)
 
         for cim_init_mg in cim_init_mgs:
             if md5(cim_init_mg['InstanceID']) == access_group_id:
@@ -2707,22 +2625,20 @@ class Smis(IStorageAreaNetwork):
         """
         if self.fallback_mode:
             return Smis.MASK_TYPE_MASK
-        if self._profile_is_supported(SNIA.GROUP_MASK_PROFILE,
-                                      SNIA.SMIS_SPEC_VER_1_5,
-                                      strict=False,
-                                      raise_error=False):
+        if self._c.profile_check(SmisCommon.SNIA_GROUP_MASK_PROFILE,
+                                 SmisCommon.SMIS_SPEC_VER_1_5,
+                                 raise_error=False):
             return Smis.MASK_TYPE_GROUP
-        if self._profile_is_supported(SNIA.MASK_PROFILE,
-                                      SNIA.SMIS_SPEC_VER_1_4,
-                                      strict=False,
-                                      raise_error=False):
+        if self._c.profile_check(SmisCommon.SNIA_MASK_PROFILE,
+                                 SmisCommon.SMIS_SPEC_VER_1_4,
+                                 raise_error=False):
             return Smis.MASK_TYPE_MASK
         if raise_error:
             raise LsmError(ErrorNumber.NO_SUPPORT,
                            "Target SMI-S provider does not support "
                            "%s version %s or %s version %s" %
-                           (SNIA.MASK_PROFILE, SNIA.SMIS_SPEC_VER_1_4,
-                            SNIA.GROUP_MASK_PROFILE, SNIA.SMIS_SPEC_VER_1_5))
+                           (SmisCommon.SNIA_MASK_PROFILE, SmisCommon.SMIS_SPEC_VER_1_4,
+                            SmisCommon.SNIA_GROUP_MASK_PROFILE, SmisCommon.SMIS_SPEC_VER_1_5))
         return Smis.MASK_TYPE_NO_SUPPORT
 
     @handle_cim_errors
@@ -2991,29 +2907,6 @@ class Smis(IStorageAreaNetwork):
             except CIMError:
                 pass
 
-    def _enumerate(self, class_name, property_list=None):
-        """
-        Please do the filter of "systems=" in URI by yourself.
-        """
-        if len(self.all_vendor_namespaces) == 0:
-            # We need to find out the vendor spaces.
-            # We do it here to save plugin_register() time.
-            # Only non-fallback mode can goes there.
-            cim_syss = self._root_cim_syss()
-            all_vendor_namespaces = []
-            for cim_sys in cim_syss:
-                if cim_sys.path.namespace not in all_vendor_namespaces:
-                    all_vendor_namespaces.extend([cim_sys.path.namespace])
-            self.all_vendor_namespaces = all_vendor_namespaces
-        rc = []
-        e_args = dict(LocalOnly=False)
-        if property_list is not None:
-            e_args['PropertyList'] = property_list
-        for vendor_namespace in self.all_vendor_namespaces:
-            rc.extend(self._c.EnumerateInstances(class_name, vendor_namespace,
-                                                 **e_args))
-        return rc
-
     @handle_cim_errors
     def disks(self, search_key=None, search_value=None, flags=0):
         """
@@ -3030,12 +2923,12 @@ class Smis(IStorageAreaNetwork):
         """
         rc = []
         if not self.fallback_mode:
-            self._profile_is_supported(SNIA.DISK_LITE_PROFILE,
-                                       SNIA.SMIS_SPEC_VER_1_4,
-                                       strict=False,
-                                       raise_error=True)
+            self._c.profile_check(SmisCommon.SNIA_DISK_LITE_PROFILE,
+                                  SmisCommon.SMIS_SPEC_VER_1_4,
+                                  raise_error=True)
         cim_disk_pros = Smis._new_disk_cim_disk_pros(flags)
-        cim_disks = self._enumerate('CIM_DiskDrive', cim_disk_pros)
+        cim_disks = self._c.EnumerateInstances(
+            'CIM_DiskDrive', PropertyList=cim_disk_pros)
         for cim_disk in cim_disks:
             if self.system_list:
                 if self._sys_id_child(cim_disk) not in self.system_list:
@@ -3147,7 +3040,7 @@ class Smis(IStorageAreaNetwork):
         if property_list is None:
             property_list = ['Primordial']
         else:
-            property_list = _merge_list(property_list, ['Primordial'])
+            property_list = merge_list(property_list, ['Primordial'])
 
         cim_exts = self._c.Associators(
             cim_disk_path,
@@ -3251,143 +3144,40 @@ class Smis(IStorageAreaNetwork):
 
         return element_type, unsupported
 
-    def _profile_is_supported(self, profile_name, spec_ver, strict=False,
-                              raise_error=False):
-        """
-        Usage:
-            Check whether we support certain profile at certain SNIA
-            specification version.
-            When strict == False(default), profile spec version later or equal
-            than  require spec_ver will also be consider as found.
-            When strict == True, only defined spec_version is allowed.
-            Require self.cim_rps containing all CIM_RegisteredProfile
-            Will raise LsmError(ErrorNumber.NO_SUPPORT, 'xxx') if raise_error
-            is True when nothing found.
-        Parameter:
-            profile_name    # SNIA.XXXX_PROFILE
-            spec_ver        # SNIA.SMIS_SPEC_VER_XXX
-            strict          # False or True. If True, only defined
-                            # spec_version is consider as supported
-                            # If false, will return the maximum version of
-                            # spec.
-            raise_error     # Raise LsmError if not found
-        Returns:
-            None            # Not supported.
-                or
-            spec_int        # Integer. Converted by _spec_ver_str_to_num()
-        """
-        req_ver = _spec_ver_str_to_num(spec_ver)
-
-        max_spec_ver_str = None
-        max_spec_ver = None
-        for cim_rp in self.cim_rps:
-            if 'RegisteredName' not in cim_rp or \
-               'RegisteredVersion' not in cim_rp:
-                continue
-            if cim_rp['RegisteredName'] == profile_name:
-                # check spec version
-                cur_ver = _spec_ver_str_to_num(cim_rp['RegisteredVersion'])
-
-                if strict and cur_ver == req_ver:
-                    return cur_ver
-                elif cur_ver >= req_ver:
-                    if max_spec_ver is None or \
-                       cur_ver > max_spec_ver:
-                        max_spec_ver = cur_ver
-                        max_spec_ver_str = cim_rp['RegisteredVersion']
-        if (strict or max_spec_ver is None) and raise_error:
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "SNIA SMI-S %s '%s' profile is not supported" %
-                           (spec_ver, profile_name))
-
-        return max_spec_ver
-
     def _root_cim_syss(self, property_list=None):
         """
-        For fallback mode, this just enumerate CIM_ComputerSystem.
-        We require vendor to implement profile registration when using
-        "Multiple System Profile".
-        For normal mode, this just find out the root CIM_ComputerSystem
-        via:
+        Use this association to find out the root CIM_ComputerSystem
 
                 CIM_RegisteredProfile       # Root Profile('Array') in interop
                       |
                       | CIM_ElementConformsToProfile
                       v
                 CIM_ComputerSystem          # vendor namespace
-
-        We also assume no matter which version of root profile can lead to
-        the same CIM_ComputerSystem instance.
-        As CIM_ComputerSystem has no property indicate SNIA SMI-S version,
-        this is assumption should work. Tested on EMC SMI-S provider which
-        provide 1.4, 1.5, 1.6 root profile.
+        For LSI MegaRAID, we just EnumerateInstances CIM_ComputerSystem.
         """
         cim_scss_path = []
         id_pros = self._property_list_of_id('System', property_list)
         if property_list is None:
             property_list = id_pros
         else:
-            property_list = _merge_list(property_list, id_pros)
+            property_list = merge_list(property_list, id_pros)
 
         cim_syss = []
-        if self.fallback_mode:
-        # Fallback mode:
-        # Find out the root CIM_ComputerSystem using the fallback method:
-        #       CIM_StorageConfigurationService     # Enumerate
-        #               |
-        #               |   CIM_HostedService
-        #               v
-        #       CIM_ComputerSystem
-        # If CIM_StorageConfigurationService is not support neither,
-        # we enumerate CIM_ComputerSystem.
-            try:
-                cim_scss_path = self._c.EnumerateInstanceNames(
-                    'CIM_StorageConfigurationService')
-            except CIMError as e:
-                # If array does not support CIM_StorageConfigurationService
-                # we use CIM_ComputerSystem which is mandatory.
-                # We might get some non-storage array listed as system.
-                # but we would like to take that risk instead of
-                # skipping basic support of old SMIS provider.
-                if e[0] == pywbem.CIM_ERR_INVALID_CLASS:
-                    cim_syss = self._c.EnumerateInstances(
-                        'CIM_ComputerSystem',
-                        PropertyList=property_list,
-                        LocalOnly=False)
-                else:
-                    raise
+        if self._c.is_megaraid():
+            cim_syss = self._c.EnumerateInstances(
+                'CIM_ComputerSystem', PropertyList=property_list)
 
-            if not cim_syss:
-                for cim_scs_path in cim_scss_path:
-                    cim_tmp = None
-                    # CIM_ComputerSystem is one-one map to
-                    # CIM_StorageConfigurationService
-                    cim_tmp = self._c.Associators(
-                        cim_scs_path,
-                        AssocClass='CIM_HostedService',
-                        ResultClass='CIM_ComputerSystem',
-                        PropertyList=property_list)
-                    if cim_tmp and cim_tmp[0]:
-                        cim_syss.extend([cim_tmp[0]])
         else:
-            for cim_rp in self.cim_rps:
-                if cim_rp['RegisteredName'] == SNIA.BLK_ROOT_PROFILE and\
-                   cim_rp['RegisteredOrganization'] == SNIA.REG_ORG_CODE:
-                    cim_syss = self._c.Associators(
-                        cim_rp.path,
-                        ResultClass='CIM_ComputerSystem',
-                        AssocClass='CIM_ElementConformsToProfile',
-                        PropertyList=property_list)
-                    # Any version of 'Array' profile can get us to root
-                    # CIM_ComputerSystem. startup() already has checked the
-                    # 1.4 version
-                    break
+            cim_syss = self._c.Associators(
+                self._c.root_blk_cim_rp.path,
+                ResultClass='CIM_ComputerSystem',
+                AssocClass='CIM_ElementConformsToProfile',
+                PropertyList=property_list)
             if len(cim_syss) == 0:
                 raise LsmError(ErrorNumber.NO_SUPPORT,
                                "Current SMI-S provider does not provide "
                                "the root CIM_ComputerSystem associated "
-                               "to 'Array' CIM_RegisteredProfile. Try "
-                               "add 'force_fallback_mode=yes' into URI")
+                               "to 'Array' CIM_RegisteredProfile.")
 
         # System URI Filtering
         if self.system_list:
@@ -3413,20 +3203,18 @@ class Smis(IStorageAreaNetwork):
                     return False
             return True
 
-        flag_fc_support = self._profile_is_supported(
-            SNIA.FC_TGT_PORT_PROFILE,
-            SNIA.SMIS_SPEC_VER_1_4,
-            strict=False,
+        flag_fc_support = self._c.profile_check(
+            SmisCommon.SNIA_FC_TGT_PORT_PROFILE,
+            SmisCommon.SMIS_SPEC_VER_1_4,
             raise_error=False)
         # One more check for NetApp Typo:
         #   NetApp:     'FC Target Port'
         #   SMI-S:      'FC Target Ports'
         # Bug reported.
         if not flag_fc_support:
-            flag_fc_support = self._profile_is_supported(
+            flag_fc_support = self._c.profile_check(
                 'FC Target Port',
-                SNIA.SMIS_SPEC_VER_1_4,
-                strict=False,
+                SmisCommon.SMIS_SPEC_VER_1_4,
                 raise_error=False)
         if flag_fc_support:
             return True
@@ -3452,10 +3240,9 @@ class Smis(IStorageAreaNetwork):
                     return False
             return True
 
-        if self._profile_is_supported(SNIA.ISCSI_TGT_PORT_PROFILE,
-                                      SNIA.SMIS_SPEC_VER_1_4,
-                                      strict=False,
-                                      raise_error=False):
+        if self._c.profile_check(SmisCommon.SNIA_ISCSI_TGT_PORT_PROFILE,
+                                 SmisCommon.SMIS_SPEC_VER_1_4,
+                                 raise_error=False):
             return True
         return False
 
@@ -3467,10 +3254,9 @@ class Smis(IStorageAreaNetwork):
         """
         if self.fallback_mode:
             return True
-        flag_multi_sys_support = self._profile_is_supported(
-            SNIA.MULTI_SYS_PROFILE,
-            SNIA.SMIS_SPEC_VER_1_4,
-            strict=False,
+        flag_multi_sys_support = self._c.profile_check(
+            SmisCommon.SNIA_MULTI_SYS_PROFILE,
+            SmisCommon.SMIS_SPEC_VER_1_4,
             raise_error=False)
         if flag_multi_sys_support:
             return True
@@ -3497,7 +3283,7 @@ class Smis(IStorageAreaNetwork):
         if property_list is None:
             property_list = ['UsageRestriction']
         else:
-            property_list = _merge_list(property_list, ['UsageRestriction'])
+            property_list = merge_list(property_list, ['UsageRestriction'])
         all_cim_syss_path = [cim_sys_path]
         if self._multi_sys_is_supported():
             all_cim_syss_path.extend(
@@ -3576,7 +3362,7 @@ class Smis(IStorageAreaNetwork):
         if property_list is None:
             property_list = ['Role']
         else:
-            property_list = _merge_list(property_list, ['Role'])
+            property_list = merge_list(property_list, ['Role'])
         all_cim_syss_path = [cim_sys_path]
         if self._multi_sys_is_supported():
             all_cim_syss_path.extend(
@@ -3778,10 +3564,10 @@ class Smis(IStorageAreaNetwork):
                 raise LsmError(ErrorNumber.NO_SUPPORT,
                                "Target SMI-S provider does not support any of"
                                "these profiles: '%s %s', '%s %s'"
-                               % (SNIA.SMIS_SPEC_VER_1_4,
-                                  SNIA.FC_TGT_PORT_PROFILE,
-                                  SNIA.SMIS_SPEC_VER_1_4,
-                                  SNIA.ISCSI_TGT_PORT_PROFILE))
+                               % (SmisCommon.SMIS_SPEC_VER_1_4,
+                                  SmisCommon.SNIA_FC_TGT_PORT_PROFILE,
+                             SmisCommon.SMIS_SPEC_VER_1_4,
+                                  SmisCommon.SNIA_ISCSI_TGT_PORT_PROFILE))
 
             if flag_fc_support:
                 # CIM_FCPort might be not belong to root cim_sys
@@ -3916,9 +3702,9 @@ class Smis(IStorageAreaNetwork):
         [1] At least check whether CIM_TargetMaskingGroup is already used
             by other SPC.
         """
-        cim_tgt_mgs = self._enumerate(
-            class_name='CIM_TargetMaskingGroup',
-            property_list=['ElementName'])
+        cim_tgt_mgs = self._c.EnumerateInstances(
+            'CIM_TargetMaskingGroup',
+            PropertyList=['ElementName'])
         for cim_tgt_mg in cim_tgt_mgs:
             if cim_tgt_mg['ElementName'] == name:
                 return cim_tgt_mg.path
@@ -3932,9 +3718,9 @@ class Smis(IStorageAreaNetwork):
         platform of Group Masking and Mapping.
         When found CIM_DeviceMaskingGroup, make sure cim_vol is included.
         """
-        cim_dev_mgs = self._enumerate(
-            class_name='CIM_DeviceMaskingGroup',
-            property_list=['ElementName'])
+        cim_dev_mgs = self._c.EnumerateInstances(
+            'CIM_DeviceMaskingGroup',
+            PropertyList=['ElementName'])
         cim_dev_mg = None
         for tmp_cim_dev_mg in cim_dev_mgs:
             if tmp_cim_dev_mg['ElementName'] == name:
@@ -3983,10 +3769,9 @@ class Smis(IStorageAreaNetwork):
                            "access_group_create() is not supported in "
                            "fallback mode")
 
-        self._profile_is_supported(SNIA.GROUP_MASK_PROFILE,
-                                   SNIA.SMIS_SPEC_VER_1_5,
-                                   strict=False,
-                                   raise_error=True)
+        self._c.profile_check(SmisCommon.SNIA_GROUP_MASK_PROFILE,
+                              SmisCommon.SMIS_SPEC_VER_1_5,
+                              raise_error=True)
 
         if init_type != AccessGroup.INIT_TYPE_WWPN and \
            init_type != AccessGroup.INIT_TYPE_ISCSI_IQN:
@@ -4088,10 +3873,9 @@ class Smis(IStorageAreaNetwork):
                            "access_group_create() is not supported in "
                            "fallback mode")
 
-        self._profile_is_supported(SNIA.GROUP_MASK_PROFILE,
-                                   SNIA.SMIS_SPEC_VER_1_5,
-                                   strict=False,
-                                   raise_error=True)
+        self._c.profile_check(
+            SmisCommon.SNIA_GROUP_MASK_PROFILE, SmisCommon.SMIS_SPEC_VER_1_5,
+            raise_error=True)
 
         cim_init_mg = self._cim_init_mg_of_id(
             access_group.id, raise_error=True)
