@@ -384,7 +384,6 @@ class Smis(IStorageAreaNetwork):
         self._c = None
         self.tmo = 0
         self.system_list = None
-        self.fallback_mode = True    # Means we cannot use profile register
         self.debug_path = None
 
     def _get_cim_instance_by_id(self, class_type, requested_id,
@@ -566,20 +565,6 @@ class Smis(IStorageAreaNetwork):
             volume_resize()
             volume_delete()
         """
-        if self.fallback_mode:
-            # pools() is mandatory, we will try pools() related methods first
-            try:
-                self._cim_pools_of(cim_sys_path)
-            except CIMError as e:
-                if e[0] == pywbem.CIM_ERR_NOT_SUPPORTED or \
-                   e[0] == pywbem.CIM_ERR_INVALID_CLASS:
-                    raise LsmError(ErrorNumber.NO_SUPPORT,
-                                   "Target SMI-S provider does not support "
-                                   "CIM_StoragePool querying which is "
-                                   "mandatory for pools() method")
-                else:
-                    raise
-
         # CIM_StorageConfigurationService is optional.
         cim_scs_path = self._get_cim_service_path(
             cim_sys_path, 'CIM_StorageConfigurationService')
@@ -631,22 +616,10 @@ class Smis(IStorageAreaNetwork):
         return
 
     def _disk_cap_set(self, cim_sys_path, cap):
-        if self.fallback_mode:
-            try:
-                # Assuming provider support disk drive when systems under it
-                # support it.
-                self._c.EnumerateInstanceNames('CIM_DiskDrive')
-            except CIMError as e:
-                if e[0] == pywbem.CIM_ERR_NOT_SUPPORTED or \
-                   e[0] == pywbem.CIM_ERR_INVALID_CLASS:
-                    return
-                else:
-                    raise
-        else:
-            if not self._c.profile_check(SmisCommon.SNIA_DISK_LITE_PROFILE,
-                                         SmisCommon.SMIS_SPEC_VER_1_4,
-                                         raise_error=False):
-                return
+        if not self._c.profile_check(SmisCommon.SNIA_DISK_LITE_PROFILE,
+                                     SmisCommon.SMIS_SPEC_VER_1_4,
+                                     raise_error=False):
+            return
 
         cap.set(Capabilities.DISKS)
         return
@@ -723,21 +696,10 @@ class Smis(IStorageAreaNetwork):
         In SNIA SMI-S 1.4rev6 'Masking and Mapping' profile:
         CIM_ControllerConfigurationService is mandatory
         and it's ExposePaths() and HidePaths() are mandatory
-
-        For fallback mode, once we found CIM_ControllerConfigurationService,
-        we assume they are supporting 1.4rev6 'Masking and Mapping' profile.
-        Fallback mode means target provider does not support interop, but
-        they still need to follow at least SNIA SMI-S 1.4rev6
         """
-        if self.fallback_mode:
-            cim_ccs_path = self._get_cim_service_path(
-                cim_sys_path, 'CIM_ControllerConfigurationService')
-            if cim_ccs_path is None:
-                return
-
-        elif not self._c.profile_check(SmisCommon.SNIA_MASK_PROFILE,
-                                       SmisCommon.SMIS_SPEC_VER_1_4,
-                                       raise_error=False):
+        if not self._c.profile_check(SmisCommon.SNIA_MASK_PROFILE,
+                                     SmisCommon.SMIS_SPEC_VER_1_4,
+                                     raise_error=False):
             return
 
         cap.set(Capabilities.ACCESS_GROUPS)
@@ -771,43 +733,23 @@ class Smis(IStorageAreaNetwork):
         if cim_sys_path.classname == 'LSIESG_MegaRAIDHBA':
             return
 
-        flag_fc_support = False
-        flag_iscsi_support = False
-        if self.fallback_mode:
-            flag_fc_support = True
-            flag_iscsi_support = True
-            # CIM_FCPort is the control class of FC Targets profile
-            try:
-                self._cim_fc_tgt_of(cim_sys_path)
-            except CIMError as e:
-                if e[0] == pywbem.CIM_ERR_NOT_SUPPORTED or \
-                   e[0] == pywbem.CIM_ERR_INVALID_CLASS:
-                    flag_fc_support = False
-
-            try:
-                self._cim_iscsi_pg_of(cim_sys_path)
-            except CIMError as e:
-                if e[0] == pywbem.CIM_ERR_NOT_SUPPORTED or \
-                   e[0] == pywbem.CIM_ERR_INVALID_CLASS:
-                    flag_iscsi_support = False
-        else:
+        flag_fc_support = self._c.profile_check(
+            SmisCommon.SNIA_FC_TGT_PORT_PROFILE,
+            SmisCommon.SMIS_SPEC_VER_1_4,
+            raise_error=False)
+        # One more check for NetApp Typo:
+        #   NetApp:     'FC Target Port'
+        #   SMI-S:      'FC Target Ports'
+        # Bug reported.
+        if not flag_fc_support:
             flag_fc_support = self._c.profile_check(
-                SmisCommon.SNIA_FC_TGT_PORT_PROFILE,
+                'FC Target Port',
                 SmisCommon.SMIS_SPEC_VER_1_4,
                 raise_error=False)
-            # One more check for NetApp Typo:
-            #   NetApp:     'FC Target Port'
-            #   SMI-S:      'FC Target Ports'
-            # Bug reported.
-            if not flag_fc_support:
-                flag_fc_support = self._c.profile_check(
-                    'FC Target Port',
-                    SmisCommon.SMIS_SPEC_VER_1_4,
-                    raise_error=False)
-            flag_iscsi_support = self._c.profile_check(
-                SmisCommon.SNIA_ISCSI_TGT_PORT_PROFILE,
-                SmisCommon.SMIS_SPEC_VER_1_4,
-                raise_error=False)
+        flag_iscsi_support = self._c.profile_check(
+            SmisCommon.SNIA_ISCSI_TGT_PORT_PROFILE,
+            SmisCommon.SMIS_SPEC_VER_1_4,
+            raise_error=False)
 
         if flag_fc_support or flag_iscsi_support:
             cap.set(Capabilities.TARGET_PORTS)
@@ -877,6 +819,14 @@ class Smis(IStorageAreaNetwork):
 
     @handle_cim_errors
     def capabilities(self, system, flags=0):
+        if self._c.is_netappe():
+            cap = self._common_capabilities(system)
+
+            #TODO We need to investigate why our interrogation code doesn't
+            #work.
+            #The array is telling us one thing, but when we try to use it, it
+            #doesn't work
+            return cap
 
         cim_sys = self._get_cim_instance_by_id(
             'System', system.id, raise_error=True)
@@ -1698,7 +1648,25 @@ class Smis(IStorageAreaNetwork):
                         ErrorNumber.PLUGIN_BUG,
                         msg + ", job error code= " + str(s))
 
+    def _detach_netapp_e(self, vol, sync):
+        #Get the Configuration service for the system we are interested in.
+        scs = self._get_class_instance('CIM_StorageConfigurationService',
+                                       'SystemName', vol.system_id)
+
+        in_params = {'Operation': pywbem.Uint16(2),
+                     'Synchronization': sync.path}
+
+        job_id = self._pi("_detach", Smis.JOB_RETRIEVE_NONE,
+                          *(self._c.InvokeMethod(
+                              'ModifySynchronization', scs.path,
+                              **in_params)))[0]
+
+        self._poll("ModifySynchronization, detach", job_id)
+
     def _detach(self, vol, sync):
+        if self._c.is_netappe():
+            return self._detach_netapp_e(vol, sync)
+
         rs = self._get_class_instance("CIM_ReplicationService", 'SystemName',
                                       vol.system_id, raise_error=False)
 
@@ -1723,11 +1691,43 @@ class Smis(IStorageAreaNetwork):
         else:
             return False
 
+    def _deal_volume_associations_netappe(self, vol, lun):
+        """
+        Check a volume to see if it has any associations with other
+        volumes.
+        """
+        rc = False
+        lun_path = lun.path
+
+        ss = self._c.References(lun_path,
+                                ResultClass='CIM_StorageSynchronized')
+
+        if len(ss):
+            for s in ss:
+                if 'SyncedElement' in s:
+                    item = s['SyncedElement']
+
+                    if Smis._cim_name_match(item, lun_path):
+                        self._detach(vol, s)
+                        rc = True
+
+                if 'SystemElement' in s:
+                    item = s['SystemElement']
+
+                    if Smis._cim_name_match(item, lun_path):
+                        self._detach(vol, s)
+                        rc = True
+
+        return rc
+
     def _deal_volume_associations(self, vol, lun):
         """
         Check a volume to see if it has any associations with other
         volumes and deal with them.
         """
+        if self._c.is_netappe():
+            return self._deal_volume_associations_netappe(vol, lun)
+
         lun_path = lun.path
 
         try:
@@ -1770,6 +1770,30 @@ class Smis(IStorageAreaNetwork):
 
                             if Smis._cim_name_match(item, lun_path):
                                 self._detach(vol, s)
+
+    def _volume_delete_netapp_e(self, volume, flags=0):
+        scs = self._get_class_instance('CIM_StorageConfigurationService',
+                                       'SystemName', volume.system_id)
+        lun = self._get_cim_instance_by_id('Volume', volume.id)
+
+        #If we actually have an association to delete, the volume will be
+        #deleted with the association, no need to call ReturnToStoragePool
+        if not self._deal_volume_associations(volume, lun):
+            in_params = {'TheElement': lun.path}
+
+            #Delete returns None or Job number
+            return self._pi("volume_delete", Smis.JOB_RETRIEVE_NONE,
+                            *(self._c.InvokeMethod('ReturnToStoragePool',
+                                                   scs.path, **in_params)))[0]
+
+        #Loop to check to see if volume is actually gone yet!
+        try:
+            lun = self._get_cim_instance_by_id('Volume', volume.id)
+            while lun is not None:
+                lun = self._get_cim_instance_by_id('Volume', volume.id)
+                time.sleep(0.125)
+        except LsmError as e:
+            pass
 
     @handle_cim_errors
     def volume_delete(self, volume, flags=0):
@@ -2318,6 +2342,9 @@ class Smis(IStorageAreaNetwork):
         return None
 
     def _is_access_group(self, cim_spc):
+        if self._c.is_netappe:
+            return True
+
         rc = True
         _SMIS_EMC_ADAPTER_ROLE_MASKING = 'MASK_VIEW'
 
@@ -2441,10 +2468,9 @@ class Smis(IStorageAreaNetwork):
         if property_list is None:
             property_list = []
 
-        if (not self.fallback_mode and
-            self._c.profile_check(SmisCommon.SNIA_MASK_PROFILE,
-                                  SmisCommon.SMIS_SPEC_VER_1_6,
-                                  raise_error=False)):
+        if self._c.profile_check(SmisCommon.SNIA_MASK_PROFILE,
+                                 SmisCommon.SMIS_SPEC_VER_1_6,
+                                 raise_error=False):
             return self._c.Associators(
                 cim_spc_path,
                 AssocClass='CIM_AssociatedPrivilege',
@@ -2616,15 +2642,12 @@ class Smis(IStorageAreaNetwork):
     def _mask_type(self, raise_error=False):
         """
         Return Smis.MASK_TYPE_NO_SUPPORT, MASK_TYPE_MASK or MASK_TYPE_GROUP
-        For fallback_mode, return MASK_TYPE_MASK
         if 'Group Masking and Mapping' profile is supported, return
         MASK_TYPE_GROUP
 
         If raise_error == False, just return Smis.MASK_TYPE_NO_SUPPORT
         or, raise NO_SUPPORT error.
         """
-        if self.fallback_mode:
-            return Smis.MASK_TYPE_MASK
         if self._c.profile_check(SmisCommon.SNIA_GROUP_MASK_PROFILE,
                                  SmisCommon.SMIS_SPEC_VER_1_5,
                                  raise_error=False):
@@ -2867,6 +2890,13 @@ class Smis(IStorageAreaNetwork):
     @handle_cim_errors
     def access_group_initiator_delete(self, access_group, init_id, init_type,
                                       flags=0):
+        if self._c.is_netappe():
+            # When using HidePaths to remove initiator, the whole SPC will be
+            # removed. Before we find a workaround for this, I would like to
+            # have this method disabled as NO_SUPPORT.
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                           "SMI-S plugin does not support "
+                           "access_group_initiator_delete() against NetApp-E")
         init_id = _lsm_init_id_to_snia(init_id)
         mask_type = self._mask_type(raise_error=True)
 
@@ -2922,10 +2952,9 @@ class Smis(IStorageAreaNetwork):
         by ourselves in case URI contain 'system=xxx'.
         """
         rc = []
-        if not self.fallback_mode:
-            self._c.profile_check(SmisCommon.SNIA_DISK_LITE_PROFILE,
-                                  SmisCommon.SMIS_SPEC_VER_1_4,
-                                  raise_error=True)
+        self._c.profile_check(SmisCommon.SNIA_DISK_LITE_PROFILE,
+                              SmisCommon.SMIS_SPEC_VER_1_4,
+                              raise_error=True)
         cim_disk_pros = Smis._new_disk_cim_disk_pros(flags)
         cim_disks = self._c.EnumerateInstances(
             'CIM_DiskDrive', PropertyList=cim_disk_pros)
@@ -3192,17 +3221,7 @@ class Smis(IStorageAreaNetwork):
     def _fc_tgt_is_supported(self, cim_sys_path):
         """
         Return True if FC Target Port 1.4+ profile is supported.
-        For fallback_mode, we call self._cim_fc_tgt_of() and do try-except
         """
-        if self.fallback_mode:
-            try:
-                self._cim_fc_tgt_of(cim_sys_path)
-            except CIMError as e:
-                if e[0] == pywbem.CIM_ERR_NOT_SUPPORTED or \
-                   e[0] == pywbem.CIM_ERR_INVALID_CLASS:
-                    return False
-            return True
-
         flag_fc_support = self._c.profile_check(
             SmisCommon.SNIA_FC_TGT_PORT_PROFILE,
             SmisCommon.SMIS_SPEC_VER_1_4,
@@ -3224,22 +3243,9 @@ class Smis(IStorageAreaNetwork):
     def _iscsi_tgt_is_supported(self, cim_sys_path):
         """
         Return True if FC Target Port 1.4+ profile is supported.
-        For fallback_mode, we call self._cim_iscsi_pg_of() and do try-except
-        For fallback_mode:
-        Even CIM_EthernetPort is the control class of iSCSI Target
-        Ports profile, but that class is optional. :(
         We use CIM_iSCSIProtocolEndpoint as it's a start point we are
         using in our code of target_ports().
         """
-        if self.fallback_mode:
-            try:
-                self._cim_iscsi_pg_of(cim_sys_path)
-            except CIMError as e:
-                if e[0] == pywbem.CIM_ERR_NOT_SUPPORTED or \
-                   e[0] == pywbem.CIM_ERR_INVALID_CLASS:
-                    return False
-            return True
-
         if self._c.profile_check(SmisCommon.SNIA_ISCSI_TGT_PORT_PROFILE,
                                  SmisCommon.SMIS_SPEC_VER_1_4,
                                  raise_error=False):
@@ -3249,11 +3255,8 @@ class Smis(IStorageAreaNetwork):
     def _multi_sys_is_supported(self):
         """
         Return True if Multiple ComputerSystem 1.4+ profile is supported.
-        For fallback_mode, always return True.
         Return False else.
         """
-        if self.fallback_mode:
-            return True
         flag_multi_sys_support = self._c.profile_check(
             SmisCommon.SNIA_MULTI_SYS_PROFILE,
             SmisCommon.SMIS_SPEC_VER_1_4,
@@ -3566,7 +3569,7 @@ class Smis(IStorageAreaNetwork):
                                "these profiles: '%s %s', '%s %s'"
                                % (SmisCommon.SMIS_SPEC_VER_1_4,
                                   SmisCommon.SNIA_FC_TGT_PORT_PROFILE,
-                             SmisCommon.SMIS_SPEC_VER_1_4,
+                                  SmisCommon.SMIS_SPEC_VER_1_4,
                                   SmisCommon.SNIA_ISCSI_TGT_PORT_PROFILE))
 
             if flag_fc_support:
@@ -3764,10 +3767,6 @@ class Smis(IStorageAreaNetwork):
         """
         org_init_id = init_id
         init_id = _lsm_init_id_to_snia(init_id)
-        if self.fallback_mode:
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "access_group_create() is not supported in "
-                           "fallback mode")
 
         self._c.profile_check(SmisCommon.SNIA_GROUP_MASK_PROFILE,
                               SmisCommon.SMIS_SPEC_VER_1_5,
@@ -3868,11 +3867,6 @@ class Smis(IStorageAreaNetwork):
         return self._cim_init_mg_to_lsm(cim_init_mg, system.id)
 
     def access_group_delete(self, access_group, flags=0):
-        if self.fallback_mode:
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "access_group_create() is not supported in "
-                           "fallback mode")
-
         self._c.profile_check(
             SmisCommon.SNIA_GROUP_MASK_PROFILE, SmisCommon.SMIS_SPEC_VER_1_5,
             raise_error=True)

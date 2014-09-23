@@ -25,8 +25,6 @@ smispydir = $(plugindir)/smispy
 smispy_PYTHON = \
 	smispy/__init__.py \
 	smispy/smis.py \
-	smispy/smisproxy.py \
-	smispy/eseries.py \
 	smispy/utils.py \
 	smispy/smis_common.py \
 	smispy/dmtf.py

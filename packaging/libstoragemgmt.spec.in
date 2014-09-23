@@ -312,9 +312,7 @@ fi
 %files smis-plugin
 %defattr(-,root,root,-)
 %{python_sitelib}/lsm/plugin/smispy/__init__.*
-%{python_sitelib}/lsm/plugin/smispy/eseries.*
 %{python_sitelib}/lsm/plugin/smispy/smis.*
-%{python_sitelib}/lsm/plugin/smispy/smisproxy.*
 %{python_sitelib}/lsm/plugin/smispy/dmtf.*
 %{python_sitelib}/lsm/plugin/smispy/utils.*
 %{python_sitelib}/lsm/plugin/smispy/smis_common.*

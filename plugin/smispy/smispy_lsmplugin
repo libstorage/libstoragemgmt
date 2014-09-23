@@ -23,10 +23,10 @@ import traceback
 
 try:
     from lsm import PluginRunner
-    from lsm.plugin.smispy.smisproxy import SmisProxy
+    from lsm.plugin.smispy.smis import Smis
 
     if __name__ == '__main__':
-        PluginRunner(SmisProxy, sys.argv).run()
+        PluginRunner(Smis, sys.argv).run()
 except Exception:
     #This should be quite rare, but when it does happen this is pretty
     #key in understanding what happened, especially when it happens when

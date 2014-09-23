@@ -153,7 +153,9 @@ class SmisCommon(object):
     SMIS_SPEC_VER_1_6 = '1.6'
     SNIA_REG_ORG_CODE = Uint16(11)
     _MEGARAID_NAMESPACE = 'root/LsiMr13'
+    _NETAPP_E_NAMESPACE = 'root/LsiArray13'
     _PRODUCT_MEGARAID = 'LSI MegaRAID'
+    _PRODUCT_NETAPP_E = 'NetApp-E'
 
     def __init__(self, url, username, password,
                  namespace=DMTF.DEFAULT_NAMESPACE,
@@ -196,6 +198,9 @@ class SmisCommon(object):
         else:
             (self._profile_dict, self.root_blk_cim_rp) = \
                 _profile_register_load(self._wbem_conn)
+
+        if namespace.lower() == SmisCommon._NETAPP_E_NAMESPACE.lower():
+            self._vendor_product = SmisCommon._PRODUCT_NETAPP_E
 
         # Check 'Array' 1.4 support status.
         _profile_check(
@@ -284,3 +289,6 @@ class SmisCommon(object):
 
     def is_megaraid(self):
         return self._vendor_product == SmisCommon._PRODUCT_MEGARAID
+
+    def is_netappe(self):
+        return self._vendor_product == SmisCommon._PRODUCT_NETAPP_E
