@@ -315,7 +315,9 @@ fi
 %{python_sitelib}/lsm/plugin/smispy/smis.*
 %{python_sitelib}/lsm/plugin/smispy/dmtf.*
 %{python_sitelib}/lsm/plugin/smispy/utils.*
+%{python_sitelib}/lsm/plugin/smispy/smis_constants.*
 %{python_sitelib}/lsm/plugin/smispy/smis_common.*
+%{python_sitelib}/lsm/plugin/smispy/smis_cap.*
 %{_bindir}/smispy_lsmplugin
 
 %files netapp-plugin

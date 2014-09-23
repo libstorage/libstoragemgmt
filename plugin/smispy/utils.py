@@ -15,5 +15,54 @@
 #
 # Author: Gris Ge <fge@redhat.com>
 
+import traceback
+from lsm import (LsmError, ErrorNumber, error)
+from pywbem import (CIMError)
+import pywbem
+
+
 def merge_list(list_a, list_b):
     return list(set(list_a + list_b))
+
+
+def handle_cim_errors(method):
+    def cim_wrapper(*args, **kwargs):
+        try:
+            return method(*args, **kwargs)
+        except LsmError as lsm:
+            raise
+        except CIMError as ce:
+            error_code, desc = ce
+
+            if error_code == 0:
+                if 'Socket error' in desc:
+                    if 'Errno 111' in desc:
+                        raise LsmError(ErrorNumber.NETWORK_CONNREFUSED,
+                                       'Connection refused')
+                    if 'Errno 113' in desc:
+                        raise LsmError(ErrorNumber.NETWORK_HOSTDOWN,
+                                       'Host is down')
+                elif 'SSL error' in desc:
+                    raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
+                                   desc)
+                elif 'The web server returned a bad status line':
+                    raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
+                                   desc)
+                elif 'HTTP error' in desc:
+                    raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
+                                   desc)
+            raise LsmError(ErrorNumber.PLUGIN_BUG, desc)
+        except pywbem.cim_http.AuthError as ae:
+            raise LsmError(ErrorNumber.PLUGIN_AUTH_FAILED, "Unauthorized user")
+        except pywbem.cim_http.Error as te:
+            raise LsmError(ErrorNumber.NETWORK_ERROR, str(te))
+        except Exception as e:
+            error("Unexpected exception:\n" + traceback.format_exc())
+            raise LsmError(ErrorNumber.PLUGIN_BUG, str(e),
+                           traceback.format_exc())
+    return cim_wrapper
+
+
+def hex_string_format(hex_str, length, every):
+    hex_str = hex_str.lower()
+    return ':'.join(hex_str[i:i + every] for i in range(0, length, every))

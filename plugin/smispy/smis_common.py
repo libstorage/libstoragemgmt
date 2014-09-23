@@ -27,6 +27,7 @@ import pywbem
 
 from dmtf import DMTF
 from lsm import LsmError, ErrorNumber
+from utils import (merge_list)
 
 
 def _profile_register_load(wbem_conn):
@@ -139,6 +140,7 @@ def _profile_spec_ver_to_num(spec_ver_str):
                 int(tmp_list[2]))
     return None
 
+
 class SmisCommon(object):
     SNIA_BLK_ROOT_PROFILE = 'Array'
     SNIA_BLK_SRVS_PROFILE = 'Block Services'
@@ -225,6 +227,65 @@ class SmisCommon(object):
         """
         return _profile_check(
             self._profile_dict, profile_name, spec_ver, raise_error)
+
+    def get_class_instance(self, class_name, prop_name, prop_value,
+                            raise_error=True, property_list=None):
+        """
+        Gets an instance of a class that optionally matches a specific
+        property name and value
+        """
+        instances = None
+        if property_list is None:
+            property_list = [prop_name]
+        else:
+            property_list = merge_list(property_list, [prop_name])
+
+        try:
+            cim_xxxs = self.EnumerateInstances(
+                class_name, PropertyList=property_list)
+        except CIMError as ce:
+            error_code = tuple(ce)[0]
+
+            if error_code == pywbem.CIM_ERR_INVALID_CLASS and \
+               raise_error is False:
+                return None
+            else:
+                raise
+
+        for cim_xxx in cim_xxxs:
+            if prop_name in cim_xxx and cim_xxx[prop_name] == prop_value:
+                return cim_xxx
+
+        if raise_error:
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
+                           "Unable to find class instance %s " % class_name +
+                           "with property %s " % prop_name +
+                           "with value %s" % prop_value)
+        return None
+
+    def get_cim_service_path(self, cim_sys_path, class_name):
+        """
+        Return None if not supported
+        """
+        try:
+            cim_srvs = self.AssociatorNames(
+                cim_sys_path,
+                AssocClass='CIM_HostedService',
+                ResultClass=class_name)
+        except CIMError as ce:
+            if ce[0] == pywbem.CIM_ERR_NOT_SUPPORTED:
+                return None
+            else:
+                raise
+        if len(cim_srvs) == 1:
+            return cim_srvs[0]
+        elif len(cim_srvs) == 0:
+            return None
+        else:
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
+                           "_get_cim_service_path(): Got unexpected(not 1) "
+                           "count of %s from cim_sys %s: %s" %
+                           (class_name, cim_sys_path, cim_srvs))
 
     def _vendor_namespace(self):
         if self.root_blk_cim_rp:
