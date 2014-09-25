@@ -77,17 +77,8 @@ class DMTF(object):
         except KeyError:
             return ''
 
-    _LSM_SYS_OP_STATUS_CONV = {
-        OP_STATUS_OK: System.STATUS_OK,
-        OP_STATUS_ERROR: System.STATUS_ERROR,
-        OP_STATUS_DEGRADED: System.STATUS_DEGRADED,
-        OP_STATUS_NON_RECOVERABLE_ERROR: System.STATUS_ERROR,
-        OP_STATUS_PREDICTIVE_FAILURE: System.STATUS_PREDICTIVE_FAILURE,
-        OP_STATUS_SUPPORTING_ENTITY_IN_ERROR: System.STATUS_ERROR,
-    }
-
     @staticmethod
-    def _dmtf_op_status_list_conv(conv_dict, dmtf_op_status_list,
+    def dmtf_op_status_list_conv(conv_dict, dmtf_op_status_list,
                                   unknown_value, other_value):
         status = 0
         status_info_list = []
@@ -104,14 +95,6 @@ class DMTF(object):
             status = unknown_value
         return status, " ".join(status_info_list)
 
-    @staticmethod
-    def cim_sys_status_of(dmtf_op_status_list):
-        """
-        Convert CIM_ComputerSystem['OperationalStatus']
-        """
-        return DMTF._dmtf_op_status_list_conv(
-            DMTF._LSM_SYS_OP_STATUS_CONV, dmtf_op_status_list,
-            System.STATUS_UNKNOWN, System.STATUS_OTHER)
 
     _LSM_POOL_OP_STATUS_CONV = {
         OP_STATUS_OK: Pool.STATUS_OK,
@@ -126,7 +109,7 @@ class DMTF(object):
         """
         Convert CIM_StoragePool['OperationalStatus'] to LSM
         """
-        return DMTF._dmtf_op_status_list_conv(
+        return DMTF.dmtf_op_status_list_conv(
             DMTF._LSM_POOL_OP_STATUS_CONV, dmtf_op_status_list,
             Pool.STATUS_UNKNOWN, Pool.STATUS_OTHER)
 
@@ -149,7 +132,7 @@ class DMTF(object):
         Convert CIM_DiskDrive['OperationalStatus'] to LSM
         Only return status, no status_info
         """
-        return DMTF._dmtf_op_status_list_conv(
+        return DMTF.dmtf_op_status_list_conv(
             DMTF._LSM_DISK_OP_STATUS_CONV, dmtf_op_status_list,
             Disk.STATUS_UNKNOWN, Disk.STATUS_OTHER)[0]
 

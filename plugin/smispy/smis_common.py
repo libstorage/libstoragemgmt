@@ -161,11 +161,12 @@ class SmisCommon(object):
 
     def __init__(self, url, username, password,
                  namespace=DMTF.DEFAULT_NAMESPACE,
-                 no_ssl_verify=False, debug=False):
+                 no_ssl_verify=False, debug=False, system_list=None):
         self._wbem_conn = None
         self._profile_dict = {}
         self.root_blk_cim_rp = None    # For root_cim_
         self._vendor_product = None     # For vendor workaround codes.
+        self.system_list = system_list
 
         if namespace is None:
             namespace = DMTF.DEFAULT_NAMESPACE

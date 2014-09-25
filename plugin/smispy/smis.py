@@ -30,6 +30,7 @@ import pywbem
 from pywbem import CIMError
 from smis_constants import *
 import smis_cap
+import smis_sys
 
 from lsm import (IStorageAreaNetwork, uri_parse, LsmError, ErrorNumber,
                  JobStatus, md5, Volume, AccessGroup,
@@ -140,7 +141,6 @@ class Smis(IStorageAreaNetwork):
     def __init__(self):
         self._c = None
         self.tmo = 0
-        self.system_list = None
         self.debug_path = None
 
     def _get_cim_instance_by_id(self, class_type, requested_id,
@@ -246,10 +246,10 @@ class Smis(IStorageAreaNetwork):
         url = "%s://%s:%s" % (protocol, u['host'], port)
 
         # System filtering
-        self.system_list = None
+        system_list = None
 
         if 'systems' in u['parameters']:
-            self.system_list = split(u['parameters']["systems"], ":")
+            system_list = split(u['parameters']["systems"], ":")
 
         namespace = None
         if 'namespace' in u['parameters']:
@@ -266,7 +266,8 @@ class Smis(IStorageAreaNetwork):
             debug = True
 
         self._c = SmisCommon(
-            url, u['username'], password, namespace, no_ssl_verify, debug)
+            url, u['username'], password, namespace, no_ssl_verify, debug,
+            system_list)
 
         self.tmo = timeout
 
@@ -284,8 +285,7 @@ class Smis(IStorageAreaNetwork):
 
     @handle_cim_errors
     def capabilities(self, system, flags=0):
-        cim_sys = self._get_cim_instance_by_id(
-            'System', system.id, raise_error=True)
+        cim_sys = smis_sys.cim_sys_of_sys_id(self._c, system.id)
         return smis_cap.get(self._c, cim_sys, system)
 
     @handle_cim_errors
@@ -357,8 +357,6 @@ class Smis(IStorageAreaNetwork):
     def _cim_class_name_of(class_type):
         if class_type == 'Volume':
             return 'CIM_StorageVolume'
-        if class_type == 'System':
-            return 'CIM_ComputerSystem'
         if class_type == 'Pool':
             return 'CIM_StoragePool'
         if class_type == 'Disk':
@@ -377,8 +375,6 @@ class Smis(IStorageAreaNetwork):
     def _not_found_error_of_class(class_type):
         if class_type == 'Volume':
             return ErrorNumber.NOT_FOUND_VOLUME
-        if class_type == 'System':
-            return ErrorNumber.NOT_FOUND_SYSTEM
         if class_type == 'Pool':
             return ErrorNumber.NOT_FOUND_POOL
         if class_type == 'Job':
@@ -399,8 +395,6 @@ class Smis(IStorageAreaNetwork):
         rc = []
         if class_type == 'Volume':
             rc = ['SystemName', 'DeviceID']
-        elif class_type == 'System':
-            rc = ['Name']
         elif class_type == 'Pool':
             rc = ['InstanceID']
         elif class_type == 'SystemChild':
@@ -426,12 +420,6 @@ class Smis(IStorageAreaNetwork):
         Currently, we just use SystemName of cim_xxx
         """
         return self._id('SystemChild', cim_xxx)
-
-    def _sys_id(self, cim_sys):
-        """
-        Return CIM_ComputerSystem['Name']
-        """
-        return self._id('System', cim_sys)
 
     def _pool_id(self, cim_pool):
         """
@@ -819,11 +807,11 @@ class Smis(IStorageAreaNetwork):
         profile.
         """
         rc = []
-        cim_sys_pros = self._property_list_of_id("System")
-        cim_syss = self._root_cim_syss(cim_sys_pros)
+        cim_sys_pros = smis_sys.cim_sys_id_pros()
+        cim_syss = smis_sys.root_cim_sys(self._c, cim_sys_pros)
         cim_vol_pros = self._cim_vol_pros()
         for cim_sys in cim_syss:
-            sys_id = self._sys_id(cim_sys)
+            sys_id = smis_sys.sys_id_of_cim_sys(cim_sys)
             pool_pros = self._property_list_of_id('Pool')
             for cim_pool in self._cim_pools_of(cim_sys.path, pool_pros):
                 pool_id = self._pool_id(cim_pool)
@@ -884,11 +872,11 @@ class Smis(IStorageAreaNetwork):
         rc = []
         cim_pool_pros = self._new_pool_cim_pool_pros()
 
-        cim_sys_pros = self._property_list_of_id("System")
-        cim_syss = self._root_cim_syss(cim_sys_pros)
+        cim_sys_pros = smis_sys.cim_sys_id_pros()
+        cim_syss = smis_sys.root_cim_sys(self._c, cim_sys_pros)
 
         for cim_sys in cim_syss:
-            system_id = self._sys_id(cim_sys)
+            system_id = smis_sys.sys_id_of_cim_sys(cim_sys)
             for cim_pool in self._cim_pools_of(cim_sys.path, cim_pool_pros):
                 # Skip spare storage pool.
                 if 'Usage' in cim_pool and \
@@ -930,12 +918,12 @@ class Smis(IStorageAreaNetwork):
         Find out the system ID for certain CIM_StoragePool.
         Will return '' if failed.
         """
-        sys_pros = self._property_list_of_id('System')
+        sys_pros = smis_sys.cim_sys_id_pros()
         cim_syss = self._c.Associators(cim_pool.path,
                                        ResultClass='CIM_ComputerSystem',
                                        PropertyList=sys_pros)
         if len(cim_syss) == 1:
-            return self._sys_id(cim_syss[0])
+            return smis_sys.sys_id_of_cim_sys(cim_syss[0])
         return ''
 
     @handle_cim_errors
@@ -969,29 +957,6 @@ class Smis(IStorageAreaNetwork):
                     total_space, free_space,
                     status, status_info, system_id)
 
-    @staticmethod
-    def _cim_sys_to_lsm(cim_sys):
-        # In the case of systems we are assuming that the System Name is
-        # unique.
-        status = System.STATUS_UNKNOWN
-        status_info = ''
-
-        if 'OperationalStatus' in cim_sys:
-            (status, status_info) = \
-                DMTF.cim_sys_status_of(cim_sys['OperationalStatus'])
-
-        return System(cim_sys['Name'], cim_sys['ElementName'], status,
-                      status_info)
-
-    def _cim_sys_pros(self):
-        """
-        Return a list of properties required to create a LSM System
-        """
-        cim_sys_pros = self._property_list_of_id('System',
-                                                 ['ElementName',
-                                                  'OperationalStatus'])
-        return cim_sys_pros
-
     @handle_cim_errors
     def systems(self, flags=0):
         """
@@ -1001,10 +966,10 @@ class Smis(IStorageAreaNetwork):
         don't check support status here as startup() already checked 'Array'
         profile.
         """
-        cim_sys_pros = self._cim_sys_pros()
-        cim_syss = self._root_cim_syss(cim_sys_pros)
+        cim_sys_pros = smis_sys.cim_sys_pros()
+        cim_syss = smis_sys.root_cim_sys(self._c, cim_sys_pros)
 
-        return [Smis._cim_sys_to_lsm(s) for s in cim_syss]
+        return [smis_sys.cim_sys_to_lsm_sys(s) for s in cim_syss]
 
     def _check_for_dupe_vol(self, volume_name, original_exception):
         """
@@ -1494,8 +1459,7 @@ class Smis(IStorageAreaNetwork):
         target ports(all FC and FCoE port for access_group.init_type == WWPN,
         and the same to iSCSI)
         """
-        cim_sys = self._get_cim_instance_by_id(
-            'System', access_group.system_id, raise_error=True)
+        cim_sys = smis_sys.cim_sys_of_sys_id(self._c, access_group.system_id)
 
         cim_init_mg = self._cim_init_mg_of_id(access_group.id,
                                               raise_error=True)
@@ -1577,8 +1541,7 @@ class Smis(IStorageAreaNetwork):
         mask_type = smis_cap.mask_type(self._c, raise_error=True)
         # Workaround for EMC VNX/CX
         if mask_type == smis_cap.MASK_TYPE_GROUP:
-            cim_sys = self._get_cim_instance_by_id(
-                'System', volume.system_id, raise_error=True)
+            cim_sys = smis_sys.cim_sys_of_sys_id(self._c, volume.system_id)
             if cim_sys.path.classname == 'Clar_StorageSystem':
                 mask_type = smis_cap.MASK_TYPE_MASK
 
@@ -1597,8 +1560,7 @@ class Smis(IStorageAreaNetwork):
                            access_group.id +
                            "will not do volume_mask()")
 
-        cim_sys = self._get_cim_instance_by_id(
-            'System', volume.system_id, raise_error=True)
+        cim_sys = smis_sys.cim_sys_of_sys_id(self._c, volume.system_id)
         cim_css_path = self._c.get_cim_service_path(
             cim_sys.path, 'CIM_ControllerConfigurationService')
 
@@ -1626,8 +1588,7 @@ class Smis(IStorageAreaNetwork):
         """
         cim_vol = self._get_cim_instance_by_id(
             'Volume', volume.id, raise_error=True)
-        cim_sys = self._get_cim_instance_by_id(
-            'System', volume.system_id, raise_error=True)
+        cim_sys = smis_sys.cim_sys_of_sys_id(self._c, volume.system_id)
 
         cim_gmm_cap = self._c.Associators(
             cim_sys.path,
@@ -1721,8 +1682,7 @@ class Smis(IStorageAreaNetwork):
         mask_type = smis_cap.mask_type(self._c, raise_error=True)
         # Workaround for EMC VNX/CX
         if mask_type == smis_cap.MASK_TYPE_GROUP:
-            cim_sys = self._get_cim_instance_by_id(
-                'System', volume.system_id, raise_error=True)
+            cim_sys = smis_sys.cim_sys_of_sys_id(self._c, volume.system_id)
             if cim_sys.path.classname == 'Clar_StorageSystem':
                 mask_type = smis_cap.MASK_TYPE_MASK
 
@@ -1731,8 +1691,7 @@ class Smis(IStorageAreaNetwork):
         return self._volume_unmask_old(access_group, volume)
 
     def _volume_unmask_old(self, access_group, volume):
-        cim_sys = self._get_cim_instance_by_id(
-            'System', access_group.system_id, raise_error=True)
+        cim_sys = smis_sys.cim_sys_of_sys_id(self._c, access_group.system_id)
         cim_ccs_path = self._c.get_cim_service_path(
             cim_sys.path, 'CIM_ControllerConfigurationService')
 
@@ -1924,8 +1883,8 @@ class Smis(IStorageAreaNetwork):
 
         # Workaround for EMC VNX/CX
         if mask_type == smis_cap.MASK_TYPE_GROUP:
-            cim_sys = self._get_cim_instance_by_id(
-                'System', access_group.system_id, raise_error=True)
+            cim_sys = smis_sys.cim_sys_of_sys_id(
+                self._c, access_group.system_id)
             if cim_sys.path.classname == 'Clar_StorageSystem':
                 mask_type = smis_cap.MASK_TYPE_MASK
 
@@ -1964,8 +1923,7 @@ class Smis(IStorageAreaNetwork):
 
         # Workaround for EMC VNX/CX
         if mask_type == smis_cap.MASK_TYPE_GROUP:
-            cim_sys = self._get_cim_instance_by_id(
-                'System', volume.system_id, raise_error=True)
+            cim_sys = smis_sys.cim_sys_of_sys_id(self._c, volume.system_id)
             if cim_sys.path.classname == 'Clar_StorageSystem':
                 mask_type = smis_cap.MASK_TYPE_MASK
 
@@ -2054,8 +2012,8 @@ class Smis(IStorageAreaNetwork):
         rc = []
         mask_type = smis_cap.mask_type(self._c, raise_error=True)
 
-        cim_sys_pros = self._property_list_of_id('System')
-        cim_syss = self._root_cim_syss(cim_sys_pros)
+        cim_sys_pros = smis_sys.cim_sys_id_pros()
+        cim_syss = smis_sys.root_cim_sys(self._c, cim_sys_pros)
 
         cim_spc_pros = self._cim_spc_pros()
         for cim_sys in cim_syss:
@@ -2065,7 +2023,7 @@ class Smis(IStorageAreaNetwork):
                 # CIM_RegisteredProfile, but actually they don't support it.
                 mask_type = smis_cap.MASK_TYPE_MASK
 
-            system_id = self._sys_id(cim_sys)
+            system_id = smis_sys.sys_id_of_cim_sys(cim_sys)
             if mask_type == smis_cap.MASK_TYPE_GROUP:
                 cim_init_mg_pros = self._cim_init_mg_pros()
                 cim_init_mgs = self._cim_init_mg_of(cim_sys.path,
@@ -2124,8 +2082,7 @@ class Smis(IStorageAreaNetwork):
             expect_class='CIM_StorageHardwareID')
 
     def _ag_init_add_group(self, access_group, init_id, init_type):
-        cim_sys = self._get_cim_instance_by_id(
-            'System', access_group.system_id, raise_error=True)
+        cim_sys = smis_sys.cim_sys_of_sys_id(self._c, access_group.system_id)
 
         if cim_sys.path.classname == 'Clar_StorageSystem':
             raise LsmError(ErrorNumber.NO_SUPPORT,
@@ -2182,8 +2139,7 @@ class Smis(IStorageAreaNetwork):
     def _ag_init_add_old(self, access_group, init_id, init_type):
         # CIM_StorageHardwareIDManagementService.CreateStorageHardwareID()
         # is mandatory since 1.4rev6
-        cim_sys = self._get_cim_instance_by_id(
-            'System', access_group.system_id, raise_error=True)
+        cim_sys = smis_sys.cim_sys_of_sys_id(self._c, access_group.system_id)
 
         if cim_sys.path.classname == 'Clar_StorageSystem':
             raise LsmError(ErrorNumber.NO_SUPPORT,
@@ -2229,8 +2185,7 @@ class Smis(IStorageAreaNetwork):
         Call CIM_GroupMaskingMappingService.RemoveMembers() against
         CIM_InitiatorMaskingGroup.
         """
-        cim_sys = self._get_cim_instance_by_id(
-            'System', access_group.system_id, raise_error=True)
+        cim_sys = smis_sys.cim_sys_of_sys_id(self._c, access_group.system_id)
 
         cim_init_mg_pros = self._cim_init_mg_pros()
         cim_init_mg = self._cim_init_mg_of_id(
@@ -2291,8 +2246,7 @@ class Smis(IStorageAreaNetwork):
             return self._ag_init_del_old(access_group, init_id)
 
     def _ag_init_del_old(self, access_group, init_id):
-        cim_sys = self._get_cim_instance_by_id(
-            'System', access_group.system_id, raise_error=True)
+        cim_sys = smis_sys.cim_sys_of_sys_id(self._c, access_group.system_id)
 
         cim_spc = self._cim_spc_of_id(access_group.id, raise_error=True)
 
@@ -2344,8 +2298,8 @@ class Smis(IStorageAreaNetwork):
         cim_disks = self._c.EnumerateInstances(
             'CIM_DiskDrive', PropertyList=cim_disk_pros)
         for cim_disk in cim_disks:
-            if self.system_list:
-                if self._sys_id_child(cim_disk) not in self.system_list:
+            if self._c.system_list:
+                if self._sys_id_child(cim_disk) not in self._c.system_list:
                     continue
             cim_ext_pros = Smis._new_disk_cim_ext_pros(flags)
             cim_ext = self._pri_cim_ext_of_cim_disk(cim_disk.path,
@@ -2557,51 +2511,6 @@ class Smis(IStorageAreaNetwork):
                 element_type = Pool.ELEMENT_TYPE_DELTA
 
         return element_type, unsupported
-
-    def _root_cim_syss(self, property_list=None):
-        """
-        Use this association to find out the root CIM_ComputerSystem
-
-                CIM_RegisteredProfile       # Root Profile('Array') in interop
-                      |
-                      | CIM_ElementConformsToProfile
-                      v
-                CIM_ComputerSystem          # vendor namespace
-        For LSI MegaRAID, we just EnumerateInstances CIM_ComputerSystem.
-        """
-        cim_scss_path = []
-        id_pros = self._property_list_of_id('System', property_list)
-        if property_list is None:
-            property_list = id_pros
-        else:
-            property_list = merge_list(property_list, id_pros)
-
-        cim_syss = []
-        if self._c.is_megaraid():
-            cim_syss = self._c.EnumerateInstances(
-                'CIM_ComputerSystem', PropertyList=property_list)
-
-        else:
-            cim_syss = self._c.Associators(
-                self._c.root_blk_cim_rp.path,
-                ResultClass='CIM_ComputerSystem',
-                AssocClass='CIM_ElementConformsToProfile',
-                PropertyList=property_list)
-            if len(cim_syss) == 0:
-                raise LsmError(ErrorNumber.NO_SUPPORT,
-                               "Current SMI-S provider does not provide "
-                               "the root CIM_ComputerSystem associated "
-                               "to 'Array' CIM_RegisteredProfile.")
-
-        # System URI Filtering
-        if self.system_list:
-            needed_cim_syss = []
-            for cim_sys in cim_syss:
-                if self._sys_id(cim_sys) in self.system_list:
-                    needed_cim_syss.extend([cim_sys])
-            return needed_cim_syss
-        else:
-            return cim_syss
 
     @staticmethod
     def _is_frontend_fc_tgt(cim_fc_tgt):
@@ -2890,10 +2799,10 @@ class Smis(IStorageAreaNetwork):
                            'PermanentAddress', 'PortDiscriminator',
                            'LinkTechnology', 'DeviceID']
 
-        cim_syss = self._root_cim_syss(
-            property_list=self._property_list_of_id('System'))
+        cim_syss = smis_sys.root_cim_sys(
+            self._c, property_list=smis_sys.cim_sys_id_pros())
         for cim_sys in cim_syss:
-            system_id = self._sys_id(cim_sys)
+            system_id = smis_sys.sys_id_of_cim_sys(cim_sys)
             flag_fc_support = smis_cap.fc_tgt_is_supported(self._c)
             flag_iscsi_support = smis_cap.iscsi_tgt_is_supported(self._c)
 
@@ -3115,8 +3024,7 @@ class Smis(IStorageAreaNetwork):
                            "SMI-S plugin only support creating FC/FCoE WWPN "
                            "and iSCSI AccessGroup")
 
-        cim_sys = self._get_cim_instance_by_id(
-            'System', system.id, raise_error=True)
+        cim_sys = smis_sys.cim_sys_of_sys_id(self._c, system.id)
         if cim_sys.path.classname == 'Clar_StorageSystem':
             # EMC VNX/CX does not support Group M&M, which incorrectly exposed
             # in CIM_RegisteredProfile

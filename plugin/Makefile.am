@@ -29,7 +29,8 @@ smispy_PYTHON = \
 	smispy/smis_constants.py \
 	smispy/smis_common.py \
 	smispy/dmtf.py \
-	smispy/smis_cap.py
+	smispy/smis_cap.py \
+	smispy/smis_sys.py
 
 nstordir = $(plugindir)/nstor
 nstor_PYTHON = \
