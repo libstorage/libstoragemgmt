@@ -96,29 +96,6 @@ class DMTF(object):
         return status, " ".join(status_info_list)
 
 
-    EMC_DISK_STATUS_REMOVED = 32768
-
-    _LSM_DISK_OP_STATUS_CONV = {
-        OP_STATUS_UNKNOWN: Disk.STATUS_UNKNOWN,
-        OP_STATUS_OK: Disk.STATUS_OK,
-        OP_STATUS_PREDICTIVE_FAILURE: Disk.STATUS_PREDICTIVE_FAILURE,
-        OP_STATUS_ERROR: Disk.STATUS_ERROR,
-        OP_STATUS_NON_RECOVERABLE_ERROR: Disk.STATUS_ERROR,
-        OP_STATUS_STARTING: Disk.STATUS_STARTING,
-        OP_STATUS_STOPPING: Disk.STATUS_STOPPING,
-        OP_STATUS_STOPPED: Disk.STATUS_STOPPED,
-    }
-
-    @staticmethod
-    def cim_disk_status_of(dmtf_op_status_list):
-        """
-        Convert CIM_DiskDrive['OperationalStatus'] to LSM
-        Only return status, no status_info
-        """
-        return DMTF.dmtf_op_status_list_conv(
-            DMTF._LSM_DISK_OP_STATUS_CONV, dmtf_op_status_list,
-            Disk.STATUS_UNKNOWN, Disk.STATUS_OTHER)[0]
-
     # CIM_StorageHardwareID['IDType']
     ID_TYPE_OTHER = Uint16(1)
     ID_TYPE_WWPN = Uint16(2)
@@ -209,22 +186,6 @@ DMTF_DISK_TYPE_OTHER = 1
 DMTF_DISK_TYPE_HDD = 2
 DMTF_DISK_TYPE_SSD = 3
 DMTF_DISK_TYPE_HYBRID = 4
-
-_DMTF_DISK_TYPE_2_LSM = {
-    DMTF_DISK_TYPE_UNKNOWN: Disk.TYPE_UNKNOWN,
-    DMTF_DISK_TYPE_OTHER: Disk.TYPE_OTHER,
-    DMTF_DISK_TYPE_HDD: Disk.TYPE_HDD,
-    DMTF_DISK_TYPE_SSD: Disk.TYPE_SSD,
-    DMTF_DISK_TYPE_HYBRID: Disk.TYPE_HYBRID,
-}
-
-
-def dmtf_disk_type_2_lsm_disk_type(dmtf_disk_type):
-    if dmtf_disk_type in _DMTF_DISK_TYPE_2_LSM.keys():
-        return _DMTF_DISK_TYPE_2_LSM[dmtf_disk_type]
-    else:
-        return Disk.TYPE_UNKNOWN
-
 
 DMTF_STATUS_UNKNOWN = 0
 DMTF_STATUS_OTHER = 1

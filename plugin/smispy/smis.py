@@ -32,6 +32,7 @@ from smis_constants import *
 import smis_cap
 import smis_sys
 import smis_pool
+import smis_disk
 
 from lsm import (IStorageAreaNetwork, uri_parse, LsmError, ErrorNumber,
                  JobStatus, md5, Volume, AccessGroup,
@@ -422,12 +423,6 @@ class Smis(IStorageAreaNetwork):
         ['DeviceID']
         """
         return self._id('Volume', cim_vol)
-
-    def _disk_id(self, cim_disk):
-        """
-        Return the MD5 hash of CIM_DiskDrive['SystemName'] and ['DeviceID']
-        """
-        return self._id('Disk', cim_disk)
 
     def _job_id(self, cim_job, retrieve_data):
         """
@@ -2130,7 +2125,6 @@ class Smis(IStorageAreaNetwork):
         return all object of data.Disk.
         We are using "Disk Drive Lite Subprofile" v1.4 of SNIA SMI-S for these
         classes to create LSM Disk:
-            CIM_PhysicalPackage
             CIM_DiskDrive
             CIM_StorageExtent (Primordial)
         Due to 'Multiple Computer System' profile, disks might associated to
@@ -2142,166 +2136,17 @@ class Smis(IStorageAreaNetwork):
         self._c.profile_check(SmisCommon.SNIA_DISK_LITE_PROFILE,
                               SmisCommon.SMIS_SPEC_VER_1_4,
                               raise_error=True)
-        cim_disk_pros = Smis._new_disk_cim_disk_pros(flags)
+        cim_disk_pros = smis_disk.cim_disk_pros()
         cim_disks = self._c.EnumerateInstances(
             'CIM_DiskDrive', PropertyList=cim_disk_pros)
         for cim_disk in cim_disks:
-            if self._c.system_list:
-                if self._sys_id_child(cim_disk) not in self._c.system_list:
-                    continue
-            cim_ext_pros = Smis._new_disk_cim_ext_pros(flags)
-            cim_ext = self._pri_cim_ext_of_cim_disk(cim_disk.path,
-                                                    cim_ext_pros)
+            if self._c.system_list and \
+               smis_disk.sys_id_of_cim_disk(cim_disk) not in \
+               self._c.system_list:
+                continue
 
-            rc.extend([self._new_disk(cim_disk, cim_ext)])
+            rc.extend([smis_disk.cim_disk_to_lsm_disk(self._c, cim_disk)])
         return search_property(rc, search_key, search_value)
-
-    @staticmethod
-    def _new_disk_cim_disk_pros(flag=0):
-        """
-        Return all CIM_DiskDrive Properties needed to create a Disk object.
-        """
-        pros = ['OperationalStatus', 'Name', 'SystemName',
-                'Caption', 'InterconnectType', 'DiskType']
-        return pros
-
-    @staticmethod
-    def _new_disk_cim_ext_pros(flag=0):
-        """
-        Return all CIM_StorageExtent Properties needed to create a Disk
-        object.
-        """
-        return ['BlockSize', 'NumberOfBlocks']
-
-    def _new_disk(self, cim_disk, cim_ext):
-        """
-        Takes a CIM_DiskDrive and CIM_StorageExtent, returns a lsm Disk
-        Assuming cim_disk and cim_ext already contained the correct
-        properties.
-        """
-        status = Disk.STATUS_UNKNOWN
-        name = ''
-        block_size = Disk.BLOCK_SIZE_NOT_FOUND
-        num_of_block = Disk.BLOCK_COUNT_NOT_FOUND
-        disk_type = Disk.TYPE_UNKNOWN
-        status_info = ''
-        sys_id = self._sys_id_child(cim_disk)
-
-        # These are mandatory
-        # we do not check whether they follow the SNIA standard.
-        if 'OperationalStatus' in cim_disk:
-            status = DMTF.cim_disk_status_of(cim_disk['OperationalStatus'])
-        if 'Name' in cim_disk:
-            name = cim_disk["Name"]
-        if 'BlockSize' in cim_ext:
-            block_size = cim_ext['BlockSize']
-        if 'NumberOfBlocks' in cim_ext:
-            num_of_block = cim_ext['NumberOfBlocks']
-
-        # SNIA SMI-S 1.4 or even 1.6 does not define anyway to find out disk
-        # type.
-        # Currently, EMC is following DMTF define to do so.
-        if 'InterconnectType' in cim_disk:  # DMTF 2.31 CIM_DiskDrive
-            disk_type = cim_disk['InterconnectType']
-            if 'Caption' in cim_disk:
-                # EMC VNX introduced NL_SAS disk.
-                if cim_disk['Caption'] == 'NL_SAS':
-                    disk_type = Disk.TYPE_NL_SAS
-
-        if disk_type == Disk.TYPE_UNKNOWN and 'DiskType' in cim_disk:
-            disk_type = \
-                dmtf_disk_type_2_lsm_disk_type(cim_disk['DiskType'])
-
-        # LSI way for checking disk type
-        if not disk_type and cim_disk.classname == 'LSIESG_DiskDrive':
-            cim_pes = self._c.Associators(
-                cim_disk.path,
-                AssocClass='CIM_SAPAvailableForElement',
-                ResultClass='CIM_ProtocolEndpoint',
-                PropertyList=['CreationClassName'])
-            if cim_pes and cim_pes[0]:
-                if 'CreationClassName' in cim_pes[0]:
-                    ccn = cim_pes[0]['CreationClassName']
-                    if ccn == 'LSIESG_TargetSATAProtocolEndpoint':
-                        disk_type = Disk.TYPE_SATA
-                    if ccn == 'LSIESG_TargetSASProtocolEndpoint':
-                        disk_type = Disk.TYPE_SAS
-
-        new_disk = Disk(self._disk_id(cim_disk), name, disk_type, block_size,
-                        num_of_block, status, sys_id)
-
-        return new_disk
-
-    def _pri_cim_ext_of_cim_disk(self, cim_disk_path, property_list=None):
-        """
-        Usage:
-            Find out the Primordial CIM_StorageExtent of CIM_DiskDrive
-            In SNIA SMI-S 1.4 rev.6 Block book, section 11.1.1 'Base Model'
-            quote:
-            A disk drive is modeled as a single MediaAccessDevice (DiskDrive)
-            That shall be linked to a single StorageExtent (representing the
-            storage in the drive) by a MediaPresent association. The
-            StorageExtent class represents the storage of the drive and
-            contains its size.
-        Parameter:
-            cim_disk_path   # CIM_InstanceName of CIM_DiskDrive
-            property_list   # a List of properties needed on returned
-                            # CIM_StorageExtent
-        Returns:
-            cim_pri_ext     # The CIM_Instance of Primordial CIM_StorageExtent
-        Exceptions:
-            LsmError
-                ErrorNumber.LSM_PLUGIN_BUG  # Failed to find out pri cim_ext
-        """
-        if property_list is None:
-            property_list = ['Primordial']
-        else:
-            property_list = merge_list(property_list, ['Primordial'])
-
-        cim_exts = self._c.Associators(
-            cim_disk_path,
-            AssocClass='CIM_MediaPresent',
-            ResultClass='CIM_StorageExtent',
-            PropertyList=property_list)
-        cim_exts = [p for p in cim_exts if p["Primordial"]]
-        if cim_exts and cim_exts[0]:
-            # As SNIA commanded, only _ONE_ Primordial CIM_StorageExtent for
-            # each CIM_DiskDrive
-            return cim_exts[0]
-        else:
-            raise LsmError(ErrorNumber.PLUGIN_BUG,
-                           "Failed to find out Primordial " +
-                           "CIM_StorageExtent for CIM_DiskDrive %s " %
-                           cim_disk_path)
-
-    def _cim_disk_of_pri_ext(self, cim_pri_ext_path, pros_list=None):
-        """
-        Follow this procedure to find out CIM_DiskDrive from Primordial
-        CIM_StorageExtent:
-                CIM_StorageExtent (Primordial)
-                      ^
-                      |
-                      | CIM_MediaPresent
-                      |
-                      v
-                CIM_DiskDrive
-        """
-        if pros_list is None:
-            pros_list = []
-        cim_disks = self._c.Associators(
-            cim_pri_ext_path,
-            AssocClass='CIM_MediaPresent',
-            ResultClass='CIM_DiskDrive',
-            PropertyList=pros_list)
-        if len(cim_disks) == 1:
-            return cim_disks[0]
-        elif len(cim_disks) == 2:
-            return None
-        else:
-            raise LsmError(ErrorNumber.PLUGIN_BUG,
-                           "Found two or more CIM_DiskDrive associated to " +
-                           "requested CIM_StorageExtent %s" %
-                           cim_pri_ext_path)
 
     @staticmethod
     def _is_frontend_fc_tgt(cim_fc_tgt):
