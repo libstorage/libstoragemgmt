@@ -31,6 +31,7 @@ from pywbem import CIMError
 from smis_constants import *
 import smis_cap
 import smis_sys
+import smis_pool
 
 from lsm import (IStorageAreaNetwork, uri_parse, LsmError, ErrorNumber,
                  JobStatus, md5, Volume, AccessGroup,
@@ -181,8 +182,6 @@ class Smis(IStorageAreaNetwork):
         if rc == INVOKE_OK:
             if retrieve_data == JOB_RETRIEVE_VOLUME:
                 return None, self._new_vol_from_name(out)
-            elif retrieve_data == JOB_RETRIEVE_POOL:
-                return None, self._new_pool_from_name(out)
             else:
                 return None, None
 
@@ -342,8 +341,6 @@ class Smis(IStorageAreaNetwork):
                 (ignore, retrieve_data) = self._parse_job_id(job_id)
                 if retrieve_data == JOB_RETRIEVE_VOLUME:
                     completed_item = self._new_vol_from_job(cim_job)
-                elif retrieve_data == JOB_RETRIEVE_POOL:
-                    completed_item = self._new_pool_from_job(cim_job)
             else:
                 status = JobStatus.ERROR
 
@@ -395,8 +392,6 @@ class Smis(IStorageAreaNetwork):
         rc = []
         if class_type == 'Volume':
             rc = ['SystemName', 'DeviceID']
-        elif class_type == 'Pool':
-            rc = ['InstanceID']
         elif class_type == 'SystemChild':
             rc = ['SystemName']
         elif class_type == 'Disk':
@@ -420,12 +415,6 @@ class Smis(IStorageAreaNetwork):
         Currently, we just use SystemName of cim_xxx
         """
         return self._id('SystemChild', cim_xxx)
-
-    def _pool_id(self, cim_pool):
-        """
-        Return CIM_StoragePool['InstanceID']
-        """
-        return self._id('Pool', cim_pool)
 
     def _vol_id(self, cim_vol):
         """
@@ -500,19 +489,6 @@ class Smis(IStorageAreaNetwork):
             retrieve_data = int(tmp_list[1])
         return (md5_str, retrieve_data)
 
-    def _get_pool_from_vol(self, cim_vol):
-        """
-         Takes a CIMInstance that represents a volume and returns the pool
-         id for that volume.
-        """
-        property_list = Smis._property_list_of_id('Pool')
-        cim_pool = self._c.Associators(
-            cim_vol.path,
-            AssocClass='CIM_AllocatedFromStoragePool',
-            ResultClass='CIM_StoragePool',
-            PropertyList=property_list)[0]
-        return self._pool_id(cim_pool)
-
     @staticmethod
     def _get_vol_other_id_info(cv):
         other_id = None
@@ -570,7 +546,7 @@ class Smis(IStorageAreaNetwork):
         #to not call this very often.
         if pool_id is None:
             #Go an retrieve the pool id
-            pool_id = self._get_pool_from_vol(cv)
+            pool_id = smis_pool.pool_id_of_cim_vol(self._c, cv.path)
 
         if sys_id is None:
             sys_id = cv['SystemName']
@@ -694,23 +670,6 @@ class Smis(IStorageAreaNetwork):
 
         return self._new_vol(instance)
 
-    def _new_pool_from_name(self, out):
-        """
-        For SYNC CreateOrModifyElementFromStoragePool action.
-        The new CIM_StoragePool is stored in out['Pool']
-        """
-        pool_pros = self._new_pool_cim_pool_pros()
-
-        if 'Pool' in out:
-            cim_new_pool = self._c.GetInstance(
-                out['Pool'],
-                PropertyList=pool_pros, LocalOnly=False)
-            return self._new_pool(cim_new_pool)
-        else:
-            raise LsmError(ErrorNumber.PLUGIN_BUG,
-                           "Got not new Pool from out of InvokeMethod" +
-                           "when CreateOrModifyElementFromStoragePool")
-
     def _cim_spc_pros(self):
         """
         Return a list of properties required to build new AccessGroup.
@@ -774,17 +733,6 @@ class Smis(IStorageAreaNetwork):
             return self._new_vol(self._c.GetInstance(a.path, LocalOnly=False))
         return None
 
-    def _new_pool_from_job(self, cim_job):
-        """
-        Given a CIMInstance of CIM_ConcreteJob, return a LSM Pool
-        """
-        pool_pros = self._new_pool_cim_pool_pros()
-        cim_pools = self._c.Associators(cim_job.path,
-                                        AssocClass='CIM_AffectedJobElement',
-                                        ResultClass='CIM_StoragePool',
-                                        PropertyList=pool_pros)
-        return self._new_pool(cim_pools[0])
-
     @handle_cim_errors
     def volumes(self, search_key=None, search_value=None, flags=0):
         """
@@ -812,9 +760,11 @@ class Smis(IStorageAreaNetwork):
         cim_vol_pros = self._cim_vol_pros()
         for cim_sys in cim_syss:
             sys_id = smis_sys.sys_id_of_cim_sys(cim_sys)
-            pool_pros = self._property_list_of_id('Pool')
-            for cim_pool in self._cim_pools_of(cim_sys.path, pool_pros):
-                pool_id = self._pool_id(cim_pool)
+            pool_pros = smis_pool.cim_pool_id_pros()
+            cim_pools = smis_pool.cim_pools_of_cim_sys_path(
+                self._c, cim_sys.path, pool_pros)
+            for cim_pool in cim_pools:
+                pool_id = smis_pool.pool_id_of_cim_pool(cim_pool)
                 cim_vols = self._c.Associators(
                     cim_pool.path,
                     AssocClass='CIM_AllocatedFromStoragePool',
@@ -831,131 +781,30 @@ class Smis(IStorageAreaNetwork):
                         rc.extend([vol])
         return search_property(rc, search_key, search_value)
 
-    def _cim_pools_of(self, cim_sys_path, property_list=None):
-        if property_list is None:
-            property_list = ['Primordial']
-        else:
-            property_list = merge_list(property_list, ['Primordial'])
-
-        cim_pools = self._c.Associators(cim_sys_path,
-                                        AssocClass='CIM_HostedStoragePool',
-                                        ResultClass='CIM_StoragePool',
-                                        PropertyList=property_list)
-
-        return [p for p in cim_pools if not p["Primordial"]]
-
-    def _new_pool_cim_pool_pros(self):
-        """
-        Return a list of properties for creating new pool.
-        """
-        pool_pros = self._property_list_of_id('Pool')
-        pool_pros.extend(['ElementName', 'TotalManagedSpace',
-                          'RemainingManagedSpace', 'Usage',
-                          'OperationalStatus'])
-        return pool_pros
-
     @handle_cim_errors
     def pools(self, search_key=None, search_value=None, flags=0):
         """
-        We are basing on "Block Services Package" profile version 1.4 or
-        later:
-            CIM_ComputerSystem
-                 |
-                 | (CIM_HostedStoragePool)
-                 |
-                 v
-            CIM_StoragePool
-        As 'Block Services Package' is mandatory for 'Array' profile, we
-        don't check support status here as startup() already checked 'Array'
-        profile.
+        Convert CIM_StoragePool to lsm.Pool.
+        To list all CIM_StoragePool:
+            1. List all root CIM_ComputerSystem.
+            2. List all CIM_StoragePool associated to CIM_ComputerSystem.
         """
         rc = []
-        cim_pool_pros = self._new_pool_cim_pool_pros()
+        cim_pool_pros = smis_pool.cim_pool_pros()
 
         cim_sys_pros = smis_sys.cim_sys_id_pros()
         cim_syss = smis_sys.root_cim_sys(self._c, cim_sys_pros)
 
         for cim_sys in cim_syss:
             system_id = smis_sys.sys_id_of_cim_sys(cim_sys)
-            for cim_pool in self._cim_pools_of(cim_sys.path, cim_pool_pros):
-                # Skip spare storage pool.
-                if 'Usage' in cim_pool and \
-                   cim_pool['Usage'] == DMTF_POOL_USAGE_SPARE:
-                    continue
-                # Skip IBM ArrayPool and ArraySitePool
-                # ArrayPool is holding RAID info.
-                # ArraySitePool is holding 8 disks. Predefined by array.
-                # ArraySite --(1to1 map) --> Array --(1to1 map)--> Rank
+            cim_pools = smis_pool.cim_pools_of_cim_sys_path(
+                self._c, cim_sys.path, cim_pool_pros)
+            for cim_pool in cim_pools:
+                rc.append(
+                    smis_pool.cim_pool_to_lsm_pool(
+                        self._c, cim_pool, system_id))
 
-                # By design when user get a ELEMENT_TYPE_POOL only pool,
-                # user can assume he/she can allocate spaces from that pool
-                # to create a new pool with ELEMENT_TYPE_VOLUME or
-                # ELEMENT_TYPE_FS ability.
-
-                # If we expose them out, we will have two kind of pools
-                # (ArrayPool and ArraySitePool) having element_type &
-                # ELEMENT_TYPE_POOL, but none of them can create a
-                # ELEMENT_TYPE_VOLUME pool.
-                # Only RankPool can create a ELEMENT_TYPE_VOLUME pool.
-
-                # We are trying to hide the detail to provide a simple
-                # abstraction.
-                if cim_pool.classname == 'IBMTSDS_ArrayPool' or \
-                   cim_pool.classname == 'IBMTSDS_ArraySitePool':
-                    continue
-
-                pool = self._new_pool(cim_pool, system_id)
-                if pool:
-                    rc.extend([pool])
-                else:
-                    raise LsmError(ErrorNumber.PLUGIN_BUG,
-                                   "Failed to retrieve pool information " +
-                                   "from CIM_StoragePool: %s" % cim_pool.path)
         return search_property(rc, search_key, search_value)
-
-    def _sys_id_of_cim_pool(self, cim_pool):
-        """
-        Find out the system ID for certain CIM_StoragePool.
-        Will return '' if failed.
-        """
-        sys_pros = smis_sys.cim_sys_id_pros()
-        cim_syss = self._c.Associators(cim_pool.path,
-                                       ResultClass='CIM_ComputerSystem',
-                                       PropertyList=sys_pros)
-        if len(cim_syss) == 1:
-            return smis_sys.sys_id_of_cim_sys(cim_syss[0])
-        return ''
-
-    @handle_cim_errors
-    def _new_pool(self, cim_pool, system_id=''):
-        """
-        Return a Pool object base on information of cim_pool.
-        Assuming cim_pool already holding correct properties.
-        """
-        if not system_id:
-            system_id = self._sys_id_of_cim_pool(cim_pool)
-
-        status_info = ''
-        pool_id = self._pool_id(cim_pool)
-        name = ''
-        total_space = Pool.TOTAL_SPACE_NOT_FOUND
-        free_space = Pool.FREE_SPACE_NOT_FOUND
-        status = Pool.STATUS_OK
-        if 'ElementName' in cim_pool:
-            name = cim_pool['ElementName']
-        if 'TotalManagedSpace' in cim_pool:
-            total_space = cim_pool['TotalManagedSpace']
-        if 'RemainingManagedSpace' in cim_pool:
-            free_space = cim_pool['RemainingManagedSpace']
-        if 'OperationalStatus' in cim_pool:
-            (status, status_info) = DMTF.cim_pool_status_of(
-                cim_pool['OperationalStatus'])
-
-        element_type, unsupported = self._pool_element_type(cim_pool)
-
-        return Pool(pool_id, name, element_type, unsupported,
-                    total_space, free_space,
-                    status, status_info, system_id)
 
     @handle_cim_errors
     def systems(self, flags=0):
@@ -1016,11 +865,12 @@ class Smis(IStorageAreaNetwork):
         # Get the Configuration service for the system we are interested in.
         scs = self._c.get_class_instance('CIM_StorageConfigurationService',
                                          'SystemName', pool.system_id)
-        sp = self._get_cim_instance_by_id('Pool', pool.id)
+        cim_pool_path = smis_pool.lsm_pool_to_cim_pool_path(
+            self._c, pool)
 
         in_params = {'ElementName': volume_name,
                      'ElementType': pywbem.Uint16(2),
-                     'InPool': sp.path,
+                     'InPool': cim_pool_path,
                      'Size': pywbem.Uint64(size_bytes)}
 
         try:
@@ -1293,11 +1143,9 @@ class Smis(IStorageAreaNetwork):
         rs = self._c.get_class_instance("CIM_ReplicationService", 'SystemName',
                                         volume_src.system_id,
                                         raise_error=False)
-
+        cim_pool_path = None
         if pool is not None:
-            cim_pool = self._get_cim_instance_by_id('Pool', pool.id)
-        else:
-            cim_pool = None
+            cim_pool_path = smis_pool.lsm_pool_to_cim_pool_path(self._c, pool)
 
         lun = self._get_cim_instance_by_id('Volume', volume_src.id)
 
@@ -1339,8 +1187,8 @@ class Smis(IStorageAreaNetwork):
                          'SourceElement': lun.path}
         if rs:
 
-            if cim_pool is not None:
-                in_params['TargetPool'] = cim_pool.path
+            if cim_pool_path is not None:
+                in_params['TargetPool'] = cim_pool_path
 
             try:
 
@@ -2454,63 +2302,6 @@ class Smis(IStorageAreaNetwork):
                            "Found two or more CIM_DiskDrive associated to " +
                            "requested CIM_StorageExtent %s" %
                            cim_pri_ext_path)
-
-    def _pool_element_type(self, cim_pool):
-
-        element_type = 0
-        unsupported = 0
-
-        # check whether current pool support create volume or not.
-        cim_sccs = self._c.Associators(
-            cim_pool.path,
-            AssocClass='CIM_ElementCapabilities',
-            ResultClass='CIM_StorageConfigurationCapabilities',
-            PropertyList=['SupportedStorageElementFeatures',
-                          'SupportedStorageElementTypes'])
-        # Associate StorageConfigurationCapabilities to StoragePool
-        # is experimental in SNIA 1.6rev4, Block Book PDF Page 68.
-        # Section 5.1.6 StoragePool, StorageVolume and LogicalDisk
-        # Manipulation, Figure 9 - Capabilities Specific to a StoragePool
-        if len(cim_sccs) == 1:
-            cim_scc = cim_sccs[0]
-            if 'SupportedStorageElementFeatures' in cim_scc:
-                supported_features = cim_scc['SupportedStorageElementFeatures']
-
-                if DMTF_SUPPORT_VOL_CREATE in supported_features:
-                    element_type |= Pool.ELEMENT_TYPE_VOLUME
-                if DMTF_SUPPORT_ELEMENT_EXPAND not in supported_features:
-                    unsupported |= Pool.UNSUPPORTED_VOLUME_GROW
-                if DMTF_SUPPORT_ELEMENT_REDUCE not in supported_features:
-                    unsupported |= Pool.UNSUPPORTED_VOLUME_SHRINK
-
-        else:
-            # IBM DS 8000 does not support StorageConfigurationCapabilities
-            # per pool yet. They has been informed. Before fix, use a quick
-            # workaround.
-            # TODO: Currently, we don't have a way to detect
-            #       Pool.ELEMENT_TYPE_POOL
-            #       but based on knowing definition of each vendor.
-            if cim_pool.classname == 'IBMTSDS_VirtualPool' or \
-               cim_pool.classname == 'IBMTSDS_ExtentPool':
-                element_type = Pool.ELEMENT_TYPE_VOLUME
-            elif cim_pool.classname == 'IBMTSDS_RankPool':
-                element_type = Pool.ELEMENT_TYPE_POOL
-            elif cim_pool.classname == 'LSIESG_StoragePool':
-                element_type = Pool.ELEMENT_TYPE_VOLUME
-
-        if 'Usage' in cim_pool:
-            usage = cim_pool['Usage']
-
-            if usage == DMTF_POOL_USAGE_UNRESTRICTED:
-                element_type |= Pool.ELEMENT_TYPE_VOLUME
-            if usage == DMTF_POOL_USAGE_RESERVED_FOR_SYSTEM or \
-                    usage > DMTF_POOL_USAGE_DELTA:
-                element_type |= Pool.ELEMENT_TYPE_SYS_RESERVED
-            if usage == DMTF_POOL_USAGE_DELTA:
-                # We blitz all the other elements types for this designation
-                element_type = Pool.ELEMENT_TYPE_DELTA
-
-        return element_type, unsupported
 
     @staticmethod
     def _is_frontend_fc_tgt(cim_fc_tgt):

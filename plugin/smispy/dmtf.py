@@ -96,23 +96,6 @@ class DMTF(object):
         return status, " ".join(status_info_list)
 
 
-    _LSM_POOL_OP_STATUS_CONV = {
-        OP_STATUS_OK: Pool.STATUS_OK,
-        OP_STATUS_ERROR: Pool.STATUS_ERROR,
-        OP_STATUS_DEGRADED: Pool.STATUS_DEGRADED,
-        OP_STATUS_NON_RECOVERABLE_ERROR: Pool.STATUS_ERROR,
-        OP_STATUS_SUPPORTING_ENTITY_IN_ERROR: Pool.STATUS_ERROR,
-    }
-
-    @staticmethod
-    def cim_pool_status_of(dmtf_op_status_list):
-        """
-        Convert CIM_StoragePool['OperationalStatus'] to LSM
-        """
-        return DMTF.dmtf_op_status_list_conv(
-            DMTF._LSM_POOL_OP_STATUS_CONV, dmtf_op_status_list,
-            Pool.STATUS_UNKNOWN, Pool.STATUS_OTHER)
-
     EMC_DISK_STATUS_REMOVED = 32768
 
     _LSM_DISK_OP_STATUS_CONV = {
