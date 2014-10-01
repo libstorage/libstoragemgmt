@@ -24,6 +24,7 @@ import pickle
 import tempfile
 import os
 import time
+import fcntl
 
 from lsm import (size_human_2_size_bytes, size_bytes_2_size_human)
 from lsm import (System, Volume, Disk, Pool, FileSystem, AccessGroup,
@@ -162,10 +163,15 @@ class SimArray(object):
         else:
             self.dump_file = dump_file
 
-        if os.path.exists(self.dump_file):
+        self.state_fd = os.open(self.dump_file, os.O_RDWR | os.O_CREAT)
+        fcntl.lockf(self.state_fd, fcntl.LOCK_EX)
+        self.state_fo = os.fdopen(self.state_fd, "r+b")
+
+        current = self.state_fo.read()
+
+        if current:
             try:
-                with open(self.dump_file, 'rb') as f:
-                    self.data = pickle.load(f)
+                self.data = pickle.loads(current)
 
             # Going forward we could get smarter about handling this for
             # changes that aren't invasive, but we at least need to check
@@ -176,14 +182,16 @@ class SimArray(object):
                     SimArray._version_error(self.dump_file)
             except AttributeError:
                 SimArray._version_error(self.dump_file)
-
         else:
             self.data = SimData()
 
     def save_state(self):
-        fh_dump_file = open(self.dump_file, 'wb')
-        pickle.dump(self.data, fh_dump_file)
-        fh_dump_file.close()
+        # Make sure we are at the beginning of the stream
+        self.state_fo.seek(0)
+        pickle.dump(self.data, self.state_fo)
+        self.state_fo.flush()
+        self.state_fo.close()
+        self.state_fo = None
 
     def job_status(self, job_id, flags=0):
         return self.data.job_status(job_id, flags=0)
