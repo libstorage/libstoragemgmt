@@ -33,13 +33,13 @@ import smis_cap
 import smis_sys
 import smis_pool
 import smis_disk
+import dmtf
 
 from lsm import (IStorageAreaNetwork, uri_parse, LsmError, ErrorNumber,
                  JobStatus, md5, Volume, AccessGroup,
                  VERSION, TargetPort,
                  search_property)
 
-from dmtf import *
 from utils import (merge_list, handle_cim_errors, hex_string_format)
 
 from smis_common import SmisCommon
@@ -99,9 +99,9 @@ def _lsm_init_id_to_snia(lsm_init_id):
 
 def _dmtf_init_type_to_lsm(cim_init):
     if 'IDType' in cim_init:
-        if cim_init['IDType'] == DMTF.ID_TYPE_WWPN:
+        if cim_init['IDType'] == dmtf.ID_TYPE_WWPN:
             return AccessGroup.INIT_TYPE_WWPN
-        elif cim_init['IDType'] == DMTF.ID_TYPE_ISCSI:
+        elif cim_init['IDType'] == dmtf.ID_TYPE_ISCSI:
             return AccessGroup.INIT_TYPE_ISCSI_IQN
     return AccessGroup.INIT_TYPE_UNKNOWN
 
@@ -115,19 +115,19 @@ def _lsm_tgt_port_type_of_cim_fc_tgt(cim_fc_tgt):
     # for FCoE target port.
     if 'PortDiscriminator' in cim_fc_tgt and \
        cim_fc_tgt['PortDiscriminator'] and \
-       DMTF.FC_PORT_PORT_DISCRIMINATOR_FCOE in cim_fc_tgt['PortDiscriminator']:
+       dmtf.FC_PORT_PORT_DISCRIMINATOR_FCOE in cim_fc_tgt['PortDiscriminator']:
         return TargetPort.TYPE_FCOE
     if 'LinkTechnology' in cim_fc_tgt and \
-       cim_fc_tgt['LinkTechnology'] == DMTF.NET_PORT_LINK_TECH_ETHERNET:
+       cim_fc_tgt['LinkTechnology'] == dmtf.NET_PORT_LINK_TECH_ETHERNET:
         return TargetPort.TYPE_FCOE
     return TargetPort.TYPE_FC
 
 
 def _lsm_init_type_to_dmtf(init_type):
     if init_type == AccessGroup.INIT_TYPE_WWPN:
-        return DMTF.ID_TYPE_WWPN
+        return dmtf.ID_TYPE_WWPN
     if init_type == AccessGroup.INIT_TYPE_ISCSI_IQN:
-        return DMTF.ID_TYPE_ISCSI
+        return dmtf.ID_TYPE_ISCSI
     raise LsmError(ErrorNumber.NO_SUPPORT,
                    "Does not support provided init_type: %d" % init_type)
 
@@ -584,7 +584,7 @@ class Smis(IStorageAreaNetwork):
         if not (nf and nn and name):
             return None
         # SNIA might have miss documented VPD83Type3(1), it should be
-        # VOL_NAME_FORMAT_OTHER(1) based on DMTF.
+        # VOL_NAME_FORMAT_OTHER(1) based on dmtf.
         # Will remove the Smis.VOL_NAME_FORMAT_OTHER condition if confirmed as
         # SNIA document fault.
         if (nf == VOL_NAME_FORMAT_NNA and
@@ -1204,7 +1204,7 @@ class Smis(IStorageAreaNetwork):
         in_params = {
             'GroupName': name,
             'Members': [cim_vol_path],
-            'Type': DMTF.MASK_GROUP_TYPE_DEV}
+            'Type': dmtf.MASK_GROUP_TYPE_DEV}
 
         cim_dev_mg_path = None
         try:
@@ -1238,7 +1238,7 @@ class Smis(IStorageAreaNetwork):
 
         in_params = {
             'GroupName': name,
-            'Type': DMTF.MASK_GROUP_TYPE_TGT}
+            'Type': dmtf.MASK_GROUP_TYPE_TGT}
 
         if init_type == AccessGroup.INIT_TYPE_WWPN:
             cim_fc_tgts = self._cim_fc_tgt_of(cim_sys_path)
@@ -1443,14 +1443,14 @@ class Smis(IStorageAreaNetwork):
 
         flag_empty_dev_in_spc = False
 
-        if DMTF.GMM_CAP_DEV_MG_ALLOW_EMPTY_W_SPC in \
+        if dmtf.GMM_CAP_DEV_MG_ALLOW_EMPTY_W_SPC in \
            cim_gmm_cap['SupportedDeviceGroupFeatures']:
             flag_empty_dev_in_spc = True
 
         if flag_empty_dev_in_spc is False:
-            if ((DMTF.GMM_CAP_DELETE_SPC not in
+            if ((dmtf.GMM_CAP_DELETE_SPC not in
                  cim_gmm_cap['SupportedSynchronousActions']) and
-                (DMTF.GMM_CAP_DELETE_SPC not in
+                (dmtf.GMM_CAP_DELETE_SPC not in
                  cim_gmm_cap['SupportedAsynchronousActions'])):
                 raise LsmError(
                     ErrorNumber.NO_SUPPORT,
@@ -2154,8 +2154,8 @@ class Smis(IStorageAreaNetwork):
         Check CIM_FCPort['UsageRestriction'] for frontend port.
         """
         dmtf_usage = cim_fc_tgt['UsageRestriction']
-        if dmtf_usage == DMTF.TGT_PORT_USAGE_FRONTEND_ONLY or \
-           dmtf_usage == DMTF.TGT_PORT_USAGE_UNRESTRICTED:
+        if dmtf_usage == dmtf.TGT_PORT_USAGE_FRONTEND_ONLY or \
+           dmtf_usage == dmtf.TGT_PORT_USAGE_UNRESTRICTED:
             return True
         return False
 
@@ -2223,7 +2223,7 @@ class Smis(IStorageAreaNetwork):
                 # EMC has vendor specific class which contain identical
                 # properties of SPC for iSCSI node.
                 continue
-            if cim_spc['NameFormat'] == DMTF.SPC_NAME_FORMAT_ISCSI:
+            if cim_spc['NameFormat'] == dmtf.SPC_NAME_FORMAT_ISCSI:
                 cim_iscsi_nodes.extend([cim_spc])
 
         if len(cim_iscsi_nodes) == 0:
@@ -2259,7 +2259,7 @@ class Smis(IStorageAreaNetwork):
                 ResultClass='CIM_iSCSIProtocolEndpoint',
                 PropertyList=property_list)
             for cim_iscsi_pg in cur_cim_iscsi_pgs:
-                if cim_iscsi_pg['Role'] == DMTF.ISCSI_TGT_ROLE_TARGET:
+                if cim_iscsi_pg['Role'] == dmtf.ISCSI_TGT_ROLE_TARGET:
                     rc.extend([cim_iscsi_pg])
         return rc
 
@@ -2325,9 +2325,9 @@ class Smis(IStorageAreaNetwork):
                 # Local Address.
                 if 'IPv6AddressType' in cim_ip and cim_ip['IPv6AddressType']:
                     ipv6_addr_type = cim_ip['IPv6AddressType']
-                    if ipv6_addr_type != DMTF.IPV6_ADDR_TYPE_GUA and \
-                       ipv6_addr_type != DMTF.IPV6_ADDR_TYPE_6TO4 and \
-                       ipv6_addr_type != DMTF.IPV6_ADDR_TYPE_ULA:
+                    if ipv6_addr_type != dmtf.IPV6_ADDR_TYPE_GUA and \
+                       ipv6_addr_type != dmtf.IPV6_ADDR_TYPE_6TO4 and \
+                       ipv6_addr_type != dmtf.IPV6_ADDR_TYPE_ULA:
                         ipv6_addr = ''
 
                 # NetApp is using this kind of IPv6 address
@@ -2694,7 +2694,7 @@ class Smis(IStorageAreaNetwork):
 
         in_params = {'GroupName': name,
                      'Members': [cim_init_path],
-                     'Type': DMTF.MASK_GROUP_TYPE_INIT}
+                     'Type': dmtf.MASK_GROUP_TYPE_INIT}
 
         cim_init_mg_pros = self._cim_init_mg_pros()
 

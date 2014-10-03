@@ -16,7 +16,7 @@
 
 from lsm import Capabilities, LsmError, ErrorNumber
 from smis_constants import *
-from dmtf import *
+import dmtf
 from smis_common import SmisCommon
 
 MASK_TYPE_NO_SUPPORT = 0
@@ -133,19 +133,19 @@ def _bsp_cap_set(smis_common, cim_sys_path, cap):
         if cim_scs_cap['SupportedAsynchronousActions']:
             sup_actions.extend(cim_scs_cap['SupportedAsynchronousActions'])
 
-    if DMTF.SCS_CAP_SUP_ST_VOLUME in element_types or \
-       DMTF.SCS_CAP_SUP_THIN_ST_VOLUME in element_types:
+    if dmtf.SCS_CAP_SUP_ST_VOLUME in element_types or \
+       dmtf.SCS_CAP_SUP_THIN_ST_VOLUME in element_types:
         cap.set(Capabilities.VOLUMES)
-        if DMTF.SCS_CAP_SUP_THIN_ST_VOLUME in element_types:
+        if dmtf.SCS_CAP_SUP_THIN_ST_VOLUME in element_types:
             cap.set(Capabilities.VOLUME_THIN)
 
-    if DMTF.SCS_CAP_VOLUME_CREATE in sup_actions:
+    if dmtf.SCS_CAP_VOLUME_CREATE in sup_actions:
         cap.set(Capabilities.VOLUME_CREATE)
 
-    if DMTF.SCS_CAP_VOLUME_DELETE in sup_actions:
+    if dmtf.SCS_CAP_VOLUME_DELETE in sup_actions:
         cap.set(Capabilities.VOLUME_DELETE)
 
-    if DMTF.SCS_CAP_VOLUME_MODIFY in sup_actions:
+    if dmtf.SCS_CAP_VOLUME_MODIFY in sup_actions:
         cap.set(Capabilities.VOLUME_RESIZE)
 
     return
@@ -203,22 +203,22 @@ def _group_mask_map_cap_set(smis_common, cim_sys_path, cap):
 
     # if empty dev group in spc is allowed, RemoveMembers() is enough
     # to do volume_unmask(). RemoveMembers() is mandatory.
-    if DMTF.GMM_CAP_DEV_MG_ALLOW_EMPTY_W_SPC in \
+    if dmtf.GMM_CAP_DEV_MG_ALLOW_EMPTY_W_SPC in \
        cim_gmm_cap['SupportedDeviceGroupFeatures']:
         cap.set(Capabilities.VOLUME_UNMASK)
 
     # DeleteMaskingView() is optional, this is required by volume_unmask()
     # when empty dev group in spc not allowed.
-    elif ((DMTF.GMM_CAP_DELETE_SPC in
+    elif ((dmtf.GMM_CAP_DELETE_SPC in
            cim_gmm_cap['SupportedSynchronousActions']) or
-          (DMTF.GMM_CAP_DELETE_SPC in
+          (dmtf.GMM_CAP_DELETE_SPC in
            cim_gmm_cap['SupportedAsynchronousActions'])):
         cap.set(Capabilities.VOLUME_UNMASK)
 
     # DeleteGroup is optional, this is required by access_group_delete()
-    if ((DMTF.GMM_CAP_DELETE_GROUP in
+    if ((dmtf.GMM_CAP_DELETE_GROUP in
          cim_gmm_cap['SupportedSynchronousActions']) or
-        (DMTF.GMM_CAP_DELETE_GROUP in
+        (dmtf.GMM_CAP_DELETE_GROUP in
          cim_gmm_cap['SupportedAsynchronousActions'])):
         cap.set(Capabilities.ACCESS_GROUP_DELETE)
     return None

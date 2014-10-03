@@ -16,7 +16,7 @@
 # Author: Gris Ge <fge@redhat.com>
 
 from utils import merge_list
-from dmtf import *
+import dmtf
 from lsm import LsmError, ErrorNumber, Pool
 import json
 from pywbem import CIMInstanceName
@@ -35,7 +35,7 @@ def cim_pools_of_cim_sys_path(smis_common, cim_sys_path, property_list=None):
     checked by plugin_register(), we don't do any profile check here.
     Primordial pool will be eliminated from return list.
     These pools will be eliminated also:
-        * Spare pool with CIM_StoragePool['Usage'] == DMTF_POOL_USAGE_SPARE
+        * Spare pool with CIM_StoragePool['Usage'] == dmtf.POOL_USAGE_SPARE
         * IBM ArrayPool(IBMTSDS_ArrayPool)
         * IBM ArraySitePool(IBMTSDS_ArraySitePool)
     """
@@ -56,7 +56,7 @@ def cim_pools_of_cim_sys_path(smis_common, cim_sys_path, property_list=None):
     for cim_pool in cim_pools:
         if 'Primordial' in cim_pool and cim_pool['Primordial']:
             continue
-        if 'Usage' in cim_pool and cim_pool['Usage'] == DMTF_POOL_USAGE_SPARE:
+        if 'Usage' in cim_pool and cim_pool['Usage'] == dmtf.POOL_USAGE_SPARE:
             continue
         # Skip IBM ArrayPool and ArraySitePool
         # ArrayPool is holding RAID info.
@@ -143,11 +143,11 @@ def _pool_element_type(smis_common, cim_pool):
         if 'SupportedStorageElementFeatures' in cim_scc:
             supported_features = cim_scc['SupportedStorageElementFeatures']
 
-            if DMTF_SUPPORT_VOL_CREATE in supported_features:
+            if dmtf.SUPPORT_VOL_CREATE in supported_features:
                 element_type |= Pool.ELEMENT_TYPE_VOLUME
-            if DMTF_SUPPORT_ELEMENT_EXPAND not in supported_features:
+            if dmtf.SUPPORT_ELEMENT_EXPAND not in supported_features:
                 unsupported |= Pool.UNSUPPORTED_VOLUME_GROW
-            if DMTF_SUPPORT_ELEMENT_REDUCE not in supported_features:
+            if dmtf.SUPPORT_ELEMENT_REDUCE not in supported_features:
                 unsupported |= Pool.UNSUPPORTED_VOLUME_SHRINK
 
     else:
@@ -168,12 +168,12 @@ def _pool_element_type(smis_common, cim_pool):
     if 'Usage' in cim_pool:
         usage = cim_pool['Usage']
 
-        if usage == DMTF_POOL_USAGE_UNRESTRICTED:
+        if usage == dmtf.POOL_USAGE_UNRESTRICTED:
             element_type |= Pool.ELEMENT_TYPE_VOLUME
-        if usage == DMTF_POOL_USAGE_RESERVED_FOR_SYSTEM or \
-                usage > DMTF_POOL_USAGE_DELTA:
+        if usage == dmtf.POOL_USAGE_RESERVED_FOR_SYSTEM or \
+                usage > dmtf.POOL_USAGE_DELTA:
             element_type |= Pool.ELEMENT_TYPE_SYS_RESERVED
-        if usage == DMTF_POOL_USAGE_DELTA:
+        if usage == dmtf.POOL_USAGE_DELTA:
             # We blitz all the other elements types for this designation
             element_type = Pool.ELEMENT_TYPE_DELTA
 
@@ -181,11 +181,11 @@ def _pool_element_type(smis_common, cim_pool):
 
 
 _LSM_POOL_OP_STATUS_CONV = {
-    DMTF.OP_STATUS_OK: Pool.STATUS_OK,
-    DMTF.OP_STATUS_ERROR: Pool.STATUS_ERROR,
-    DMTF.OP_STATUS_DEGRADED: Pool.STATUS_DEGRADED,
-    DMTF.OP_STATUS_NON_RECOVERABLE_ERROR: Pool.STATUS_ERROR,
-    DMTF.OP_STATUS_SUPPORTING_ENTITY_IN_ERROR: Pool.STATUS_ERROR,
+    dmtf.OP_STATUS_OK: Pool.STATUS_OK,
+    dmtf.OP_STATUS_ERROR: Pool.STATUS_ERROR,
+    dmtf.OP_STATUS_DEGRADED: Pool.STATUS_DEGRADED,
+    dmtf.OP_STATUS_NON_RECOVERABLE_ERROR: Pool.STATUS_ERROR,
+    dmtf.OP_STATUS_SUPPORTING_ENTITY_IN_ERROR: Pool.STATUS_ERROR,
 }
 
 
@@ -193,7 +193,7 @@ def _pool_status_of_cim_pool(dmtf_op_status_list):
     """
     Convert CIM_StoragePool['OperationalStatus'] to LSM
     """
-    return DMTF.dmtf_op_status_list_conv(
+    return dmtf.op_status_list_conv(
         _LSM_POOL_OP_STATUS_CONV, dmtf_op_status_list,
         Pool.STATUS_UNKNOWN, Pool.STATUS_OTHER)
 

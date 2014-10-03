@@ -16,7 +16,7 @@
 # Author: Gris Ge <fge@redhat.com>
 
 from utils import merge_list
-from dmtf import DMTF
+import dmtf
 from lsm import System, LsmError, ErrorNumber
 
 
@@ -91,13 +91,13 @@ def cim_sys_pros():
 
 
 _LSM_SYS_OP_STATUS_CONV = {
-    DMTF.OP_STATUS_UNKNOWN: System.STATUS_UNKNOWN,
-    DMTF.OP_STATUS_OK: System.STATUS_OK,
-    DMTF.OP_STATUS_ERROR: System.STATUS_ERROR,
-    DMTF.OP_STATUS_DEGRADED: System.STATUS_DEGRADED,
-    DMTF.OP_STATUS_NON_RECOVERABLE_ERROR: System.STATUS_ERROR,
-    DMTF.OP_STATUS_PREDICTIVE_FAILURE: System.STATUS_PREDICTIVE_FAILURE,
-    DMTF.OP_STATUS_SUPPORTING_ENTITY_IN_ERROR: System.STATUS_ERROR,
+    dmtf.OP_STATUS_UNKNOWN: System.STATUS_UNKNOWN,
+    dmtf.OP_STATUS_OK: System.STATUS_OK,
+    dmtf.OP_STATUS_ERROR: System.STATUS_ERROR,
+    dmtf.OP_STATUS_DEGRADED: System.STATUS_DEGRADED,
+    dmtf.OP_STATUS_NON_RECOVERABLE_ERROR: System.STATUS_ERROR,
+    dmtf.OP_STATUS_PREDICTIVE_FAILURE: System.STATUS_PREDICTIVE_FAILURE,
+    dmtf.OP_STATUS_SUPPORTING_ENTITY_IN_ERROR: System.STATUS_ERROR,
 }
 
 
@@ -111,7 +111,7 @@ def _sys_status_of_cim_sys(cim_sys):
             "sys_status_of_cim_sys(): Got a CIM_ComputerSystem with no "
             "OperationalStatus: %s, %s" % (cim_sys.items(), cim_sys.path))
 
-    return DMTF.dmtf_op_status_list_conv(
+    return dmtf.op_status_list_conv(
         _LSM_SYS_OP_STATUS_CONV, cim_sys['OperationalStatus'],
         System.STATUS_UNKNOWN, System.STATUS_OTHER)
 

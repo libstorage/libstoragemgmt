@@ -25,7 +25,7 @@
 from pywbem import Uint16, CIMError
 import pywbem
 
-from dmtf import DMTF
+import dmtf
 from lsm import LsmError, ErrorNumber
 from utils import (merge_list)
 
@@ -45,7 +45,7 @@ def _profile_register_load(wbem_conn):
     """
     profile_dict = {}
     root_blk_cim_rp = None
-    namespace_check_list = DMTF.INTEROP_NAMESPACES
+    namespace_check_list = dmtf.INTEROP_NAMESPACES
 
     cim_rps = []
     for namespace in namespace_check_list:
@@ -160,7 +160,7 @@ class SmisCommon(object):
     _PRODUCT_NETAPP_E = 'NetApp-E'
 
     def __init__(self, url, username, password,
-                 namespace=DMTF.DEFAULT_NAMESPACE,
+                 namespace=dmtf.DEFAULT_NAMESPACE,
                  no_ssl_verify=False, debug=False, system_list=None):
         self._wbem_conn = None
         self._profile_dict = {}
@@ -169,7 +169,7 @@ class SmisCommon(object):
         self.system_list = system_list
 
         if namespace is None:
-            namespace = DMTF.DEFAULT_NAMESPACE
+            namespace = dmtf.DEFAULT_NAMESPACE
 
         self._wbem_conn = pywbem.WBEMConnection(
             url, (username, password), namespace)
@@ -307,7 +307,7 @@ class SmisCommon(object):
                 "_vendor_namespace(): self.root_blk_cim_rp not set yet")
 
     def EnumerateInstances(self, ClassName, namespace=None, **params):
-        if self._wbem_conn.default_namespace in DMTF.INTEROP_NAMESPACES:
+        if self._wbem_conn.default_namespace in dmtf.INTEROP_NAMESPACES:
             # We have to enumerate in vendor namespace
             self._wbem_conn.default_namespace = self._vendor_namespace()
         params['LocalOnly']=False
@@ -315,7 +315,7 @@ class SmisCommon(object):
             ClassName, namespace, **params)
 
     def EnumerateInstanceNames(self, ClassName, namespace=None, **params):
-        if self._wbem_conn.default_namespace in DMTF.INTEROP_NAMESPACES:
+        if self._wbem_conn.default_namespace in dmtf.INTEROP_NAMESPACES:
             # We have to enumerate in vendor namespace
             self._wbem_conn.default_namespace = self._vendor_namespace()
         params['LocalOnly']=False

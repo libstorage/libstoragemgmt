@@ -16,21 +16,19 @@
 # Author: Gris Ge <fge@redhat.com>
 
 from lsm import Disk, md5, LsmError, ErrorNumber
-from dmtf import (
-    DMTF, DMTF_DISK_TYPE_UNKNOWN, DMTF_DISK_TYPE_OTHER,
-    DMTF_DISK_TYPE_HDD, DMTF_DISK_TYPE_SSD, DMTF_DISK_TYPE_HYBRID)
+import dmtf
 from utils import merge_list
 
 
 _LSM_DISK_OP_STATUS_CONV = {
-    DMTF.OP_STATUS_UNKNOWN: Disk.STATUS_UNKNOWN,
-    DMTF.OP_STATUS_OK: Disk.STATUS_OK,
-    DMTF.OP_STATUS_PREDICTIVE_FAILURE: Disk.STATUS_PREDICTIVE_FAILURE,
-    DMTF.OP_STATUS_ERROR: Disk.STATUS_ERROR,
-    DMTF.OP_STATUS_NON_RECOVERABLE_ERROR: Disk.STATUS_ERROR,
-    DMTF.OP_STATUS_STARTING: Disk.STATUS_STARTING,
-    DMTF.OP_STATUS_STOPPING: Disk.STATUS_STOPPING,
-    DMTF.OP_STATUS_STOPPED: Disk.STATUS_STOPPED,
+    dmtf.OP_STATUS_UNKNOWN: Disk.STATUS_UNKNOWN,
+    dmtf.OP_STATUS_OK: Disk.STATUS_OK,
+    dmtf.OP_STATUS_PREDICTIVE_FAILURE: Disk.STATUS_PREDICTIVE_FAILURE,
+    dmtf.OP_STATUS_ERROR: Disk.STATUS_ERROR,
+    dmtf.OP_STATUS_NON_RECOVERABLE_ERROR: Disk.STATUS_ERROR,
+    dmtf.OP_STATUS_STARTING: Disk.STATUS_STARTING,
+    dmtf.OP_STATUS_STOPPING: Disk.STATUS_STOPPING,
+    dmtf.OP_STATUS_STOPPED: Disk.STATUS_STOPPED,
 }
 
 
@@ -42,17 +40,17 @@ def _disk_status_of_cim_disk(cim_disk):
     if 'OperationalStatus' not in cim_disk:
         return Disk.STATUS_UNKNOWN
 
-    return DMTF.dmtf_op_status_list_conv(
+    return dmtf.op_status_list_conv(
         _LSM_DISK_OP_STATUS_CONV, cim_disk['OperationalStatus'],
         Disk.STATUS_UNKNOWN, Disk.STATUS_OTHER)[0]
 
 
 _DMTF_DISK_TYPE_2_LSM = {
-    DMTF_DISK_TYPE_UNKNOWN: Disk.TYPE_UNKNOWN,
-    DMTF_DISK_TYPE_OTHER: Disk.TYPE_OTHER,
-    DMTF_DISK_TYPE_HDD: Disk.TYPE_HDD,
-    DMTF_DISK_TYPE_SSD: Disk.TYPE_SSD,
-    DMTF_DISK_TYPE_HYBRID: Disk.TYPE_HYBRID,
+    dmtf.DISK_TYPE_UNKNOWN: Disk.TYPE_UNKNOWN,
+    dmtf.DISK_TYPE_OTHER: Disk.TYPE_OTHER,
+    dmtf.DISK_TYPE_HDD: Disk.TYPE_HDD,
+    dmtf.DISK_TYPE_SSD: Disk.TYPE_SSD,
+    dmtf.DISK_TYPE_HYBRID: Disk.TYPE_HYBRID,
 }
 
 
