@@ -2184,6 +2184,9 @@ int load( lsm_plugin_ptr c, const char *uri, const char *password,
                 lsm_disk_record_free(d);
                 d = NULL;
 
+                free(key);
+                key = NULL;
+
                 break;
             }
 

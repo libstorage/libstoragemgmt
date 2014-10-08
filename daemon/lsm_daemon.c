@@ -367,7 +367,7 @@ int setup_socket(char *full_name)
 
     } else {
         err = errno;
-        loud("Error on unlinking file %s: %s\n",
+        loud("Error on socket create %s: %s\n",
                         socket_file, strerror(err));
     }
 
@@ -425,6 +425,10 @@ int process_plugin(void *p, char *full_name)
                         LIST_INSERT_HEAD((struct plugin_list*)p, item, pointers);
                         info("Plugin %s added\n", full_name);
                     } else {
+                        /* The only real way to get here is failed strdup as
+                           setup_socket will exit on error. */
+                        free(item);
+                        item = NULL;
                         loud("strdup failed %s\n", full_name);
                     }
                 } else {
