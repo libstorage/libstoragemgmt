@@ -40,6 +40,13 @@ Requires(preun): systemd-units
 Requires(postun): systemd-units
 %endif
 
+# Later versions moved /lib to /usr/lib
+%if 0%{?fedora} >= 18 || 0%{?rhel} >= 7
+%define udev_dir /usr/lib
+%else
+%define udev_dir /lib
+%endif
+
 %description
 The libStorageMgmt library will provide a vendor agnostic open source storage
 application programming interface (API) that will allow management of storage
@@ -180,11 +187,12 @@ install packaging/daemon/libstoragemgmtd \
 #Need these to exist at install so we can start the daemon
 mkdir -p %{buildroot}%{_localstatedir}/run/lsm/ipc
 
-mkdir -p %{buildroot}/lib/udev/rules.d
+#Files for udev handling
+mkdir -p %{buildroot}/%{udev_dir}/udev/rules.d
 install -m 644 tools/udev/90-scsi-ua.rules \
-    %{buildroot}/lib/udev/rules.d/90-scsi-ua.rules
+    %{buildroot}/%{udev_dir}/udev/rules.d/90-scsi-ua.rules
 install -m 755 tools/udev/scan-scsi-target \
-    %{buildroot}/lib/udev/scan-scsi-target
+    %{buildroot}/%{udev_dir}/udev/scan-scsi-target
 
 %clean
 rm -rf %{buildroot}
@@ -342,8 +350,8 @@ fi
 
 %files udev
 %defattr(-,root,root,-)
-/lib/udev/scan-scsi-target
-/lib/udev/rules.d/90-scsi-ua.rules
+%{udev_dir}/udev/scan-scsi-target
+%{udev_dir}/udev/rules.d/90-scsi-ua.rules
 
 %if 0%{?with_rest_api}
 %files rest
