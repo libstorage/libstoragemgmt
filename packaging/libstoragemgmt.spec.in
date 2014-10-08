@@ -267,9 +267,6 @@ fi
 %{_bindir}/lsmcli
 %{_bindir}/lsmd
 %{_bindir}/simc_lsmplugin
-%{python_sitelib}/lsm/lsmcli/__init__.*
-%{python_sitelib}/lsm/lsmcli/data_display.*
-%{python_sitelib}/lsm/lsmcli/cmdline.*
 
 %if 0%{?fedora} >= 15 || 0%{?rhel} >= 7
 %{_unitdir}/*
@@ -306,6 +303,9 @@ fi
 %{python_sitelib}/lsm/plugin/sim/__init__.*
 %{python_sitelib}/lsm/plugin/sim/simulator.*
 %{python_sitelib}/lsm/plugin/sim/simarray.*
+%{python_sitelib}/lsm/lsmcli/__init__.*
+%{python_sitelib}/lsm/lsmcli/data_display.*
+%{python_sitelib}/lsm/lsmcli/cmdline.*
 %{_bindir}/sim_lsmplugin
 
 %files smis-plugin
