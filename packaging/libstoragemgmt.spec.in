@@ -148,7 +148,6 @@ the %{name}-rest package contains the http daemon for %{name} rest api.
 %build
 ./autogen.sh
 
-#Tell the install program to preserve file date/timestamps
 %configure \
 %if 0%{?with_rest_api} != 1
     --without-rest-api \
@@ -168,9 +167,9 @@ install -m644 packaging/daemon/libstoragemgmt.service \
     %{buildroot}/%{_unitdir}/libstoragemgmt.service
 
 #tempfiles.d configuration for /var/run
-mkdir -p %{buildroot}%{_sysconfdir}/tmpfiles.d
+mkdir -p %{buildroot}/%{_tmpfilesdir}
 install -m 0644 packaging/daemon/lsm-tmpfiles.conf \
-    %{buildroot}%{_sysconfdir}/tmpfiles.d/%{name}.conf
+    %{buildroot}/%{_tmpfilesdir}/%{name}.conf
 %else
 #Need these to exist at install so we can start the daemon
 mkdir -p %{buildroot}/etc/rc.d/init.d
@@ -280,7 +279,7 @@ fi
 %dir %attr(0755, libstoragemgmt, libstoragemgmt) %{_localstatedir}/run/lsm/ipc
 
 %if 0%{?fedora} >= 15 || 0%{?rhel} >= 7
-%attr(0644, root, root)  %{_sysconfdir}/tmpfiles.d/%{name}.conf
+%attr(0644, root, root)  %{_tmpfilesdir}/%{name}.conf
 %else
 %attr(0755, root, root) /etc/rc.d/init.d/libstoragemgmtd
 %endif
