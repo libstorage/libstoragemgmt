@@ -163,7 +163,7 @@ class Smis(IStorageAreaNetwork):
             class_name, PropertyList=property_list)
         org_requested_id = requested_id
         if class_type == 'Job':
-            (requested_id, ignore) = self._parse_job_id(requested_id)
+            (requested_id, ignore, ignore) = Smis._parse_job_id(requested_id)
         for cim_xxx in cim_xxxs:
             if self._id(class_type, cim_xxx) == requested_id:
                 return cim_xxx
@@ -174,20 +174,21 @@ class Smis(IStorageAreaNetwork):
                        "Cannot find %s Instance with " % class_name +
                        "%s ID '%s'" % (class_type, org_requested_id))
 
-    def _pi(self, msg, retrieve_data, rc, out):
+    def _pi(self, msg, retrieve_data, method_data, rc, out):
         """
         Handle the the process of invoking an operation.
         """
         # Check to see if operation is done
         if rc == SmisCommon.SNIA_INVOKE_OK:
-            if retrieve_data == SmisCommon.JOB_RETRIEVE_VOLUME:
+            if retrieve_data == SmisCommon.JOB_RETRIEVE_VOLUME or \
+               retrieve_data == SmisCommon.JOB_RETRIEVE_VOLUME_CREATE:
                 return None, self._new_vol_from_name(out)
             else:
                 return None, None
 
         elif rc == SmisCommon.SNIA_INVOKE_ASYNC:
             # We have an async operation
-            job_id = self._job_id(out['Job'], retrieve_data)
+            job_id = self._job_id(out['Job'], retrieve_data, method_data)
             return job_id, None
         elif rc == SmisCommon.SNIA_INVOKE_NOT_SUPPORTED:
             raise LsmError(
@@ -325,6 +326,7 @@ class Smis(IStorageAreaNetwork):
         cim_job = self._get_cim_instance_by_id('Job', job_id, cim_job_pros)
 
         job_state = cim_job['JobState']
+        (ignore, retrieve_data, method_data) = self._parse_job_id(job_id)
 
         if job_state in (dmtf.JOB_STATE_NEW, dmtf.JOB_STATE_STARTING,
                          dmtf.JOB_STATE_RUNNING):
@@ -341,13 +343,15 @@ class Smis(IStorageAreaNetwork):
             percent_complete = 100
 
             if Smis._job_completed_ok(cim_job):
-                (ignore, retrieve_data) = self._parse_job_id(job_id)
-                if retrieve_data == SmisCommon.JOB_RETRIEVE_VOLUME:
+                if retrieve_data == SmisCommon.JOB_RETRIEVE_VOLUME or \
+                   retrieve_data == SmisCommon.JOB_RETRIEVE_VOLUME_CREATE:
                     completed_item = self._new_vol_from_job(cim_job)
             else:
                 status = JobStatus.ERROR
 
         else:
+            if retrieve_data == SmisCommon.JOB_RETRIEVE_VOLUME_CREATE:
+                self._check_for_dupe_vol(method_data, None)
             raise LsmError(ErrorNumber.PLUGIN_BUG,
                            str(cim_job['ErrorDescription']))
 
@@ -426,14 +430,17 @@ class Smis(IStorageAreaNetwork):
         """
         return self._id('Volume', cim_vol)
 
-    def _job_id(self, cim_job, retrieve_data):
+    def _job_id(self, cim_job, retrieve_data, method_data):
         """
         Return the MD5 has of CIM_ConcreteJob['InstanceID'] in conjunction
         with '@%s' % retrieve_data
         retrieve_data should be SmisCommon.JOB_RETRIEVE_NONE or
         SmisCommon.JOB_RETRIEVE_VOLUME or etc
+        method_data is any string a method would like store for error
+        handling by job_status().
         """
-        return "%s@%d" % (self._id('Job', cim_job), int(retrieve_data))
+        return "%s@%d@%s" % (
+            self._id('Job', cim_job), int(retrieve_data), str(method_data))
 
     def _init_id(self, cim_init):
         """
@@ -477,15 +484,18 @@ class Smis(IStorageAreaNetwork):
     @staticmethod
     def _parse_job_id(job_id):
         """
-        job_id is assembled by a md5 string and retrieve_data
-        This method will split it and return (md5_str, retrieve_data)
+        job_id is assembled by a md5 string, retrieve_data and method_data
+        This method will split it and return
+        (md5_str, retrieve_data, method_data)
         """
-        tmp_list = job_id.split('@', 2)
+        tmp_list = job_id.split('@', 3)
         md5_str = tmp_list[0]
         retrieve_data = SmisCommon.JOB_RETRIEVE_NONE
-        if len(tmp_list) == 2:
+        method_data = None
+        if len(tmp_list) == 3:
             retrieve_data = int(tmp_list[1])
-        return (md5_str, retrieve_data)
+            method_data = tmp_list[2]
+        return (md5_str, retrieve_data, method_data)
 
     @staticmethod
     def _get_vol_other_id_info(cv):
@@ -824,6 +834,8 @@ class Smis(IStorageAreaNetwork):
         :param volume_name: Volume to check for
         :original_exception Info grabbed from sys.exec_info
         :return:
+        if original_exception == None, will not raise any error if not
+        NAME_CONFLICT, just return None.
         """
         report_original = True
 
@@ -844,6 +856,8 @@ class Smis(IStorageAreaNetwork):
             pass
 
         if report_original:
+            if original_exception is None:
+                return
             raise original_exception[1], None, original_exception[2]
         else:
             raise LsmError(ErrorNumber.NAME_CONFLICT,
@@ -873,7 +887,8 @@ class Smis(IStorageAreaNetwork):
 
         try:
             return self._pi("volume_create",
-                            SmisCommon.JOB_RETRIEVE_VOLUME,
+                            SmisCommon.JOB_RETRIEVE_VOLUME_CREATE,
+                            volume_name,
                             *(self._c.InvokeMethod(
                                 'CreateOrModifyElementFromStoragePool',
                                 scs.path, **in_params)))
@@ -905,6 +920,7 @@ class Smis(IStorageAreaNetwork):
 
         job_id = self._pi("_detach",
                           SmisCommon.JOB_RETRIEVE_NONE,
+                          None,
                           *(self._c.InvokeMethod(
                               'ModifySynchronization', scs.path,
                               **in_params)))[0]
@@ -922,7 +938,7 @@ class Smis(IStorageAreaNetwork):
             in_params = {'Operation': pywbem.Uint16(8),
                          'Synchronization': sync.path}
 
-            job_id = self._pi("_detach", SmisCommon.JOB_RETRIEVE_NONE,
+            job_id = self._pi("_detach", SmisCommon.JOB_RETRIEVE_NONE, None,
                               *(self._c.InvokeMethod(
                                   'ModifyReplicaSynchronization', rs.path,
                                   **in_params)))[0]
@@ -1031,6 +1047,7 @@ class Smis(IStorageAreaNetwork):
 
             #Delete returns None or Job number
             return self._pi("volume_delete", SmisCommon.JOB_RETRIEVE_NONE,
+                            None,
                             *(self._c.InvokeMethod('ReturnToStoragePool',
                                                    scs.path, **in_params)))[0]
 
@@ -1057,7 +1074,7 @@ class Smis(IStorageAreaNetwork):
         in_params = {'TheElement': lun.path}
 
         # Delete returns None or Job number
-        return self._pi("volume_delete", SmisCommon.JOB_RETRIEVE_NONE,
+        return self._pi("volume_delete", SmisCommon.JOB_RETRIEVE_NONE, None,
                         *(self._c.InvokeMethod('ReturnToStoragePool',
                                                scs.path,
                                                **in_params)))[0]
@@ -1075,7 +1092,7 @@ class Smis(IStorageAreaNetwork):
                      'TheElement': lun.path,
                      'Size': pywbem.Uint64(new_size_bytes)}
 
-        return self._pi("volume_resize", SmisCommon.JOB_RETRIEVE_VOLUME,
+        return self._pi("volume_resize", SmisCommon.JOB_RETRIEVE_VOLUME, None,
                         *(self._c.InvokeMethod(
                             'CreateOrModifyElementFromStoragePool',
                             scs.path, **in_params)))
@@ -1192,7 +1209,7 @@ class Smis(IStorageAreaNetwork):
             try:
 
                 return self._pi("volume_replicate",
-                                SmisCommon.JOB_RETRIEVE_VOLUME,
+                                SmisCommon.JOB_RETRIEVE_VOLUME, None,
                                 *(self._c.InvokeMethod(method,
                                 rs.path, **in_params)))
             except CIMError:
