@@ -28,6 +28,7 @@ import atexit
 import sys
 import yaml
 import re
+import os
 from lsm import LsmError, ErrorNumber
 
 results = {}
@@ -1042,13 +1043,20 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('--password', default=None)
-    parser.add_argument('--uri', default='sim://')
+    parser.add_argument('--uri')
     options, other_args = parser.parse_known_args()
 
     if options.uri:
         TestPlugin.URI = options.uri
+    elif os.getenv('LSM_TEST_URI'):
+        TestPlugin.URI = os.getenv('LSM_TEST_URI')
+    else:
+        TestPlugin.URI = 'sim://'
+
 
     if options.password:
         TestPlugin.PASSWORD = options.password
+    elif os.getenv('LSM_TEST_PASSWORD'):
+        TestPlugin.PASSWORD = os.getenv('LSM_TEST_PASSWORD')
 
     unittest.main(argv=sys.argv[:1] + other_args)

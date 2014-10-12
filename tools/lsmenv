@@ -105,6 +105,24 @@ sub lsm_env_setup() {
     $ENV{LD_LIBRARY_PATH} .= ":$c_binding_dir";
 }
 
+sub set_uri($) {
+    my $uri = shift;
+    $ENV{LSMCLI_URI}   = $uri;
+    $ENV{LSM_TEST_URI} = $uri;
+}
+
+sub set_pass($) {
+    my $pass = shift;
+    if ( defined $pass ) {
+        $ENV{LSMCLI_PASSWORD}   = $pass;
+        $ENV{LSM_TEST_PASSWORD} = $pass;
+    }
+    else {
+        delete $ENV{LSMCLI_PASSWORD};
+        delete $ENV{LSM_TEST_PASSWORD};
+    }
+}
+
 sub call_out($) {
 
     # take section name as $1 and global $cfg
@@ -116,32 +134,34 @@ sub call_out($) {
         help();
     }
 
+    my $uri;
+    my $pass = undef;
     if ( is_in_array( [ keys( %{$REF_PRE_BUILD_URI} ) ], $dev_alias ) ) {
-        $ENV{LSMCLI_URI} = $REF_PRE_BUILD_URI->{$dev_alias};
+        $uri = $REF_PRE_BUILD_URI->{$dev_alias};
     }
     else {
-        my $uri = $URI_CFG->val( $dev_alias, 'uri' );
+        $uri = $URI_CFG->val( $dev_alias, 'uri' );
         if ( $uri =~ /\n/m ) {
             print "Duplicate settings for \"$dev_alias\"\n";
             exit 1;
         }
-        $ENV{LSMCLI_URI} = $uri;
-        unless ( $URI_CFG->val( $dev_alias, 'passwd' ) ) {
-            delete $ENV{LSMCLI_PASSWORD};
-        }
-        else {
-            $ENV{LSMCLI_PASSWORD} = $URI_CFG->val( $dev_alias, 'passwd' );
-        }
+        $pass = $URI_CFG->val( $dev_alias, 'passwd' )
+          if $URI_CFG->val( $dev_alias, 'passwd' );
     }
 
     print "Device alias: $dev_alias\n";
-    print "LSMCLI_URI: $ENV{LSMCLI_URI}\n";
+    print "URI: $uri\n";
+    set_uri($uri);
+    set_pass($pass);
 
     my @cmd = @ARGV;
     shift @cmd;
     print "@cmd", "\n";
     if ( $cmd[0] eq "lsmcli" ) {
         $cmd[0] = "$BASE_DIR/tools/lsmcli/lsmcli";
+    }
+    elsif ( $cmd[0] eq 'plugin_test' ) {
+        $cmd[0] = "$BASE_DIR/test/plugin_test.py";
     }
     system( "time", "-f", '\nTime: %E\n', @cmd );
     my $rc = $? >> 8;
