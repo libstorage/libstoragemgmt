@@ -601,6 +601,7 @@ aliases = (
     ['ld', 'list --type disks'],
     ['la', 'list --type access_groups'],
     ['lf', 'list --type fs'],
+    ['lt', 'list --type target_ports'],
     ['c', 'capabilities'],
     ['p', 'plugin-info'],
     ['vc', 'volume-create'],

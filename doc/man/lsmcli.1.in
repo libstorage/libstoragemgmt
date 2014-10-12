@@ -564,6 +564,8 @@ Alias of 'list --type disks'
 Alias of 'list --type access_groups'
 .SS lf
 Alias of 'list --type fs'
+.SS lt
+Alias of 'list --type target_ports'
 .SS c
  Alias of 'capabilities'
 .SS p
