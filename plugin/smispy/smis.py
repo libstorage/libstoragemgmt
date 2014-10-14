@@ -598,8 +598,8 @@ class Smis(IStorageAreaNetwork):
             return None
         # SNIA might have miss documented VPD83Type3(1), it should be
         # dmtf.VOL_NAME_FORMAT_OTHER(1) based on dmtf.
-        # Will remove the Smis.dmtf.VOL_NAME_FORMAT_OTHER condition if confirmed as
-        # SNIA document fault.
+        # Will remove the Smis.dmtf.VOL_NAME_FORMAT_OTHER condition if
+        # confirmed as SNIA document fault.
         if (nf == dmtf.VOL_NAME_FORMAT_NNA and
                 nn == dmtf.VOL_NAME_FORMAT_OTHER) or \
            (nf == dmtf.VOL_NAME_FORMAT_NNA and
@@ -828,6 +828,19 @@ class Smis(IStorageAreaNetwork):
 
         return [smis_sys.cim_sys_to_lsm_sys(s) for s in cim_syss]
 
+    def _volume_exists(self, name):
+        """
+        Try to minimize time to search.
+        :param name:    Volume ElementName
+        :return: True if volume exists with 'name', else False
+        """
+        all_cim_vols = self._c.EnumerateInstances(
+            'CIM_StorageVolume', PropertyList=['ElementName'])
+        for exist_cim_vol in all_cim_vols:
+            if name == exist_cim_vol['ElementName']:
+                return True
+        return False
+
     def _check_for_dupe_vol(self, volume_name, original_exception):
         """
         Throw original exception or NAME_CONFLICT if volume name found
@@ -846,11 +859,7 @@ class Smis(IStorageAreaNetwork):
         # name.
 
         try:
-            # TODO: Add ability to search by volume name to 'volumes'
-            volumes = self.volumes()
-            for v in volumes:
-                if v.name == volume_name:
-                    report_original = False
+            report_original = not self._volume_exists(volume_name)
         except Exception:
             # Don't report anything here on a failing
             pass
@@ -1160,6 +1169,13 @@ class Smis(IStorageAreaNetwork):
         rs = self._c.get_class_instance("CIM_ReplicationService", 'SystemName',
                                         volume_src.system_id,
                                         raise_error=False)
+
+        # Some (EMC VMAX, Dot hill) SMI-S Provider allow duplicated
+        # ElementName, we have to do pre-check here.
+        if self._volume_exists(name):
+            raise LsmError(ErrorNumber.NAME_CONFLICT,
+                           "Volume with name '%s' already exists!" % name)
+
         cim_pool_path = None
         if pool is not None:
             cim_pool_path = smis_pool.lsm_pool_to_cim_pool_path(self._c, pool)
@@ -1206,14 +1222,10 @@ class Smis(IStorageAreaNetwork):
             if cim_pool_path is not None:
                 in_params['TargetPool'] = cim_pool_path
 
-            try:
-
-                return self._pi("volume_replicate",
-                                SmisCommon.JOB_RETRIEVE_VOLUME, None,
-                                *(self._c.InvokeMethod(method,
-                                rs.path, **in_params)))
-            except CIMError:
-                self._check_for_dupe_vol(name, sys.exc_info())
+            return self._pi("volume_replicate",
+                            SmisCommon.JOB_RETRIEVE_VOLUME, None,
+                            *(self._c.InvokeMethod(method,
+                            rs.path, **in_params)))
 
         raise LsmError(ErrorNumber.NO_SUPPORT,
                        "volume-replicate not supported")
