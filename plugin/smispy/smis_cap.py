@@ -15,7 +15,6 @@
 # USA
 
 from lsm import Capabilities, LsmError, ErrorNumber
-from smis_constants import *
 import dmtf
 from smis_common import SmisCommon
 
@@ -37,25 +36,21 @@ def _rs_supported_capabilities(smis_common, system, cap):
             ResultClass='CIM_ReplicationServiceCapabilities')[0]
 
         s_rt = rs_cap['SupportedReplicationTypes']
+        async_actions = rs_cap['SupportedAsynchronousActions']
+        sync_actions = rs_cap['SupportedSynchronousActions']
 
-        if RepSvc.Action.CREATE_ELEMENT_REPLICA in s_rt or \
-                RepSvc.Action.CREATE_ELEMENT_REPLICA in s_rt:
+        if dmtf.REPLICA_CAP_ACTION_CREATE_ELEMENT in async_actions or \
+           dmtf.REPLICA_CAP_ACTION_CREATE_ELEMENT in sync_actions :
             cap.set(Capabilities.VOLUME_REPLICATE)
+        else:
+            return
 
-        # Mirror support is not working and is not supported at this time.
-        # if RepSvc.RepTypes.SYNC_MIRROR_LOCAL in s_rt:
-        #    cap.set(Capabilities.DeviceID)
-
-        # if RepSvc.RepTypes.ASYNC_MIRROR_LOCAL \
-        #    in s_rt:
-        #    cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC)
-
-        if RepSvc.RepTypes.SYNC_SNAPSHOT_LOCAL in s_rt or \
-                RepSvc.RepTypes.ASYNC_SNAPSHOT_LOCAL in s_rt:
+        if dmtf.REPLICA_CAP_TYPE_SYNC_SNAPSHOT_LOCAL in s_rt or \
+           dmtf.REPLICA_CAP_TYPE_ASYNC_SNAPSHOT_LOCAL in s_rt:
             cap.set(Capabilities.VOLUME_REPLICATE_CLONE)
 
-        if RepSvc.RepTypes.SYNC_CLONE_LOCAL in s_rt or \
-           RepSvc.RepTypes.ASYNC_CLONE_LOCAL in s_rt:
+        if dmtf.REPLICA_CAP_TYPE_SYNC_CLONE_LOCAL in s_rt or \
+           dmtf.REPLICA_CAP_TYPE_ASYNC_CLONE_LOCAL in s_rt:
             cap.set(Capabilities.VOLUME_REPLICATE_COPY)
     else:
         # Try older storage configuration service
@@ -76,19 +71,10 @@ def _rs_supported_capabilities(smis_common, system, cap):
                 if sct and len(sct):
                     cap.set(Capabilities.VOLUME_REPLICATE)
 
-                # Mirror support is not working and is not supported at
-                # this time.
-
-                # if CopyTypes.ASYNC in sct:
-                #    cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_ASYNC)
-
-                # if CopyTypes.SYNC in sct:
-                #    cap.set(Capabilities.VOLUME_REPLICATE_MIRROR_SYNC)
-
-                    if CopyTypes.UNSYNCASSOC in sct:
+                    if dmtf.ST_CONF_CAP_COPY_TYPE_UNSYNC_ASSOC in sct:
                         cap.set(Capabilities.VOLUME_REPLICATE_CLONE)
 
-                    if CopyTypes.UNSYNCUNASSOC in sct:
+                    if dmtf.ST_CONF_CAP_COPY_TYPE_UNSYNC_UNASSOC in sct:
                         cap.set(Capabilities.VOLUME_REPLICATE_COPY)
 
 

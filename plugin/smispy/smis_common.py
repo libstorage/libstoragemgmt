@@ -142,6 +142,17 @@ def _profile_spec_ver_to_num(spec_ver_str):
 
 
 class SmisCommon(object):
+    # Even many CIM_XXX_Service in DMTF shared the same return value
+    # defination as SNIA do, but there is no DMTF standard metioned
+    # InvokeMethod() should follow that list of return value.
+    # We use SNIA defination here.
+    # SNIA 1.6 rev4 Block book, BSP 5.5.3.12 Return Values section.
+    SNIA_INVOKE_OK = 0
+    SNIA_INVOKE_NOT_SUPPORTED = 1
+    SNIA_INVOKE_FAILED = 4
+    SNIA_INVOKE_ASYNC = 4096
+
+
     SNIA_BLK_ROOT_PROFILE = 'Array'
     SNIA_BLK_SRVS_PROFILE = 'Block Services'
     SNIA_DISK_LITE_PROFILE = 'Disk Drive Lite'
@@ -158,6 +169,12 @@ class SmisCommon(object):
     _NETAPP_E_NAMESPACE = 'root/LsiArray13'
     _PRODUCT_MEGARAID = 'LSI MegaRAID'
     _PRODUCT_NETAPP_E = 'NetApp-E'
+
+    JOB_RETRIEVE_NONE = 0
+    JOB_RETRIEVE_VOLUME = 1
+
+    IAAN_WBEM_HTTP_PORT = 5988
+    IAAN_WBEM_HTTPS_PORT = 5989
 
     def __init__(self, url, username, password,
                  namespace=dmtf.DEFAULT_NAMESPACE,

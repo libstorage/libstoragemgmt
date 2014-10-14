@@ -155,6 +155,7 @@ _OP_STATUS_STR_CONV = {
     OP_STATUS_POWER_MODE: "POWER_MODE",
 }
 
+
 def _op_status_to_str(dmtf_op_status):
     """
     Just convert integer to string. NOT ALLOWING provide a list.
@@ -164,6 +165,7 @@ def _op_status_to_str(dmtf_op_status):
         return _OP_STATUS_STR_CONV[dmtf_op_status]
     except KeyError:
         return ''
+
 
 def op_status_list_conv(conv_dict, dmtf_op_status_list,
                         unknown_value, other_value):
@@ -180,3 +182,61 @@ def op_status_list_conv(conv_dict, dmtf_op_status_list,
     if status == 0:
         status = unknown_value
     return status, " ".join(status_info_list)
+
+# CIM_ConcreteJob['JobState']
+JOB_STATE_NEW = 2
+JOB_STATE_STARTING = 3
+JOB_STATE_RUNNING = 4
+JOB_STATE_COMPLETED = 7
+
+# CIM_Synchronized['SyncType'] also used by
+# CIM_ReplicationService.CreateElementReplica() 'SyncType' parameter.
+SYNC_TYPE_MIRROR = Uint16(6)
+SYNC_TYPE_SNAPSHOT = Uint16(7)
+SYNC_TYPE_CLONE = Uint16(8)
+
+# CIM_Synchronized['Mode'] also used by
+# CIM_ReplicationService.CreateElementReplica() 'Mode' parameter.
+REPLICA_MODE_SYNC = Uint16(2)
+REPLICA_MODE_ASYNC = Uint16(3)
+
+# CIM_StorageVolume['NameFormat']
+VOL_NAME_FORMAT_OTHER = 1
+VOL_NAME_FORMAT_NNA = 9
+VOL_NAME_FORMAT_EUI64 = 10
+VOL_NAME_FORMAT_T10VID = 11
+
+# CIM_StorageVolume['NameNamespace']
+VOL_NAME_SPACE_OTHER = 1
+VOL_NAME_SPACE_VPD83_TYPE3 = 2
+VOL_NAME_SPACE_VPD83_TYPE2 = 3
+VOL_NAME_SPACE_VPD83_TYPE1 = 4
+
+# CIM_ReplicationServiceCapabilities['SupportedAsynchronousActions']
+# or CIM_ReplicationServiceCapabilities['SupportedSynchronousActions']
+REPLICA_CAP_ACTION_CREATE_ELEMENT = 2
+
+# CIM_ReplicationServiceCapabilities['SupportedReplicationTypes']
+REPLICA_CAP_TYPE_SYNC_MIRROR_LOCAL = 2
+REPLICA_CAP_TYPE_ASYNC_MIRROR_LOCAL = 3
+
+REPLICA_CAP_TYPE_SYNC_SNAPSHOT_LOCAL = 6
+REPLICA_CAP_TYPE_ASYNC_SNAPSHOT_LOCAL = 7
+
+REPLICA_CAP_TYPE_SYNC_CLONE_LOCAL = 10
+REPLICA_CAP_TYPE_ASYNC_CLONE_LOCAL = 11
+
+# CIM_Synchronized['CopyState']
+COPY_STATE_SYNC = Uint16(4)
+
+# CIM_StorageConfigurationCapabilities['SupportedCopyTypes']
+ST_CONF_CAP_COPY_TYPE_ASYNC = Uint16(2)
+ST_CONF_CAP_COPY_TYPE_SYNC = Uint16(3)
+ST_CONF_CAP_COPY_TYPE_UNSYNC_ASSOC = Uint16(4)
+ST_CONF_CAP_COPY_TYPE_UNSYNC_UNASSOC = Uint16(5)
+
+# CIM_StorageSynchronized['SyncState']
+ST_SYNC_STATE_SYNCHRONIZED = 6
+
+# CIM_ControllerConfigurationService.ExposePaths(DeviceAccesses)
+CTRL_CONF_SRV_DA_RW = Uint16(2)

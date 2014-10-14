@@ -28,7 +28,6 @@ import re
 
 import pywbem
 from pywbem import CIMError
-from smis_constants import *
 import smis_cap
 import smis_sys
 import smis_pool
@@ -180,17 +179,17 @@ class Smis(IStorageAreaNetwork):
         Handle the the process of invoking an operation.
         """
         # Check to see if operation is done
-        if rc == INVOKE_OK:
-            if retrieve_data == JOB_RETRIEVE_VOLUME:
+        if rc == SmisCommon.SNIA_INVOKE_OK:
+            if retrieve_data == SmisCommon.JOB_RETRIEVE_VOLUME:
                 return None, self._new_vol_from_name(out)
             else:
                 return None, None
 
-        elif rc == INVOKE_ASYNC:
+        elif rc == SmisCommon.SNIA_INVOKE_ASYNC:
             # We have an async operation
             job_id = self._job_id(out['Job'], retrieve_data)
             return job_id, None
-        elif rc == INVOKE_NOT_SUPPORTED:
+        elif rc == SmisCommon.SNIA_INVOKE_NOT_SUPPORTED:
             raise LsmError(
                 ErrorNumber.NO_SUPPORT,
                 'SMI-S error code indicates operation not supported')
@@ -233,12 +232,12 @@ class Smis(IStorageAreaNetwork):
                Enumerate CIM_RegisteredProfile in userdefined namespace.
         """
         protocol = 'http'
-        port = IAAN_WBEM_HTTP_PORT
+        port = SmisCommon.IAAN_WBEM_HTTP_PORT
         u = uri_parse(uri, ['scheme', 'netloc', 'host'], None)
 
         if u['scheme'].lower() == 'smispy+ssl':
             protocol = 'https'
-            port = IAAN_WBEM_HTTPS_PORT
+            port = SmisCommon.IAAN_WBEM_HTTPS_PORT
 
         if 'port' in u:
             port = u['port']
@@ -303,8 +302,10 @@ class Smis(IStorageAreaNetwork):
         op = status['OperationalStatus']
 
         if (len(op) > 1 and
-            ((op[0] == JOB_OK and op[1] == JOB_COMPLETE) or
-             (op[0] == JOB_COMPLETE and op[1] == JOB_OK))):
+            ((op[0] == dmtf.OP_STATUS_OK and
+              op[1] == dmtf.OP_STATUS_COMPLETED) or
+             (op[0] == dmtf.OP_STATUS_COMPLETED and
+              op[1] == dmtf.OP_STATUS_OK))):
             rc = True
 
         return rc
@@ -325,7 +326,8 @@ class Smis(IStorageAreaNetwork):
 
         job_state = cim_job['JobState']
 
-        if job_state in (JS_NEW, JS_STARTING, JS_RUNNING):
+        if job_state in (dmtf.JOB_STATE_NEW, dmtf.JOB_STATE_STARTING,
+                         dmtf.JOB_STATE_RUNNING):
             status = JobStatus.INPROGRESS
 
             pc = cim_job['PercentComplete']
@@ -334,13 +336,13 @@ class Smis(IStorageAreaNetwork):
             else:
                 percent_complete = pc
 
-        elif job_state == JS_COMPLETED:
+        elif job_state == dmtf.JOB_STATE_COMPLETED:
             status = JobStatus.COMPLETE
             percent_complete = 100
 
             if Smis._job_completed_ok(cim_job):
                 (ignore, retrieve_data) = self._parse_job_id(job_id)
-                if retrieve_data == JOB_RETRIEVE_VOLUME:
+                if retrieve_data == SmisCommon.JOB_RETRIEVE_VOLUME:
                     completed_item = self._new_vol_from_job(cim_job)
             else:
                 status = JobStatus.ERROR
@@ -428,7 +430,8 @@ class Smis(IStorageAreaNetwork):
         """
         Return the MD5 has of CIM_ConcreteJob['InstanceID'] in conjunction
         with '@%s' % retrieve_data
-        retrieve_data should be JOB_RETRIEVE_NONE or JOB_RETRIEVE_VOLUME or etc
+        retrieve_data should be SmisCommon.JOB_RETRIEVE_NONE or
+        SmisCommon.JOB_RETRIEVE_VOLUME or etc
         """
         return "%s@%d" % (self._id('Job', cim_job), int(retrieve_data))
 
@@ -479,7 +482,7 @@ class Smis(IStorageAreaNetwork):
         """
         tmp_list = job_id.split('@', 2)
         md5_str = tmp_list[0]
-        retrieve_data = JOB_RETRIEVE_NONE
+        retrieve_data = SmisCommon.JOB_RETRIEVE_NONE
         if len(tmp_list) == 2:
             retrieve_data = int(tmp_list[1])
         return (md5_str, retrieve_data)
@@ -584,17 +587,17 @@ class Smis(IStorageAreaNetwork):
         if not (nf and nn and name):
             return None
         # SNIA might have miss documented VPD83Type3(1), it should be
-        # VOL_NAME_FORMAT_OTHER(1) based on dmtf.
-        # Will remove the Smis.VOL_NAME_FORMAT_OTHER condition if confirmed as
+        # dmtf.VOL_NAME_FORMAT_OTHER(1) based on dmtf.
+        # Will remove the Smis.dmtf.VOL_NAME_FORMAT_OTHER condition if confirmed as
         # SNIA document fault.
-        if (nf == VOL_NAME_FORMAT_NNA and
-                nn == VOL_NAME_FORMAT_OTHER) or \
-           (nf == VOL_NAME_FORMAT_NNA and
-                nn == VOL_NAME_SPACE_VPD83_TYPE3) or \
-           (nf == VOL_NAME_FORMAT_EUI64 and
-                nn == VOL_NAME_SPACE_VPD83_TYPE2) or \
-           (nf == VOL_NAME_FORMAT_T10VID and
-                nn == VOL_NAME_SPACE_VPD83_TYPE1):
+        if (nf == dmtf.VOL_NAME_FORMAT_NNA and
+                nn == dmtf.VOL_NAME_FORMAT_OTHER) or \
+           (nf == dmtf.VOL_NAME_FORMAT_NNA and
+                nn == dmtf.VOL_NAME_SPACE_VPD83_TYPE3) or \
+           (nf == dmtf.VOL_NAME_FORMAT_EUI64 and
+                nn == dmtf.VOL_NAME_SPACE_VPD83_TYPE2) or \
+           (nf == dmtf.VOL_NAME_FORMAT_T10VID and
+                nn == dmtf.VOL_NAME_SPACE_VPD83_TYPE1):
             return name
 
     @staticmethod
@@ -869,7 +872,8 @@ class Smis(IStorageAreaNetwork):
                      'Size': pywbem.Uint64(size_bytes)}
 
         try:
-            return self._pi("volume_create", JOB_RETRIEVE_VOLUME,
+            return self._pi("volume_create",
+                            SmisCommon.JOB_RETRIEVE_VOLUME,
                             *(self._c.InvokeMethod(
                                 'CreateOrModifyElementFromStoragePool',
                                 scs.path, **in_params)))
@@ -899,7 +903,8 @@ class Smis(IStorageAreaNetwork):
         in_params = {'Operation': pywbem.Uint16(2),
                      'Synchronization': sync.path}
 
-        job_id = self._pi("_detach", JOB_RETRIEVE_NONE,
+        job_id = self._pi("_detach",
+                          SmisCommon.JOB_RETRIEVE_NONE,
                           *(self._c.InvokeMethod(
                               'ModifySynchronization', scs.path,
                               **in_params)))[0]
@@ -917,7 +922,7 @@ class Smis(IStorageAreaNetwork):
             in_params = {'Operation': pywbem.Uint16(8),
                          'Synchronization': sync.path}
 
-            job_id = self._pi("_detach", JOB_RETRIEVE_NONE,
+            job_id = self._pi("_detach", SmisCommon.JOB_RETRIEVE_NONE,
                               *(self._c.InvokeMethod(
                                   'ModifyReplicaSynchronization', rs.path,
                                   **in_params)))[0]
@@ -999,9 +1004,9 @@ class Smis(IStorageAreaNetwork):
                 # range of array vendors.
 
                 if 'SyncState' in s and 'CopyType' in s:
-                    if s['SyncState'] == \
-                            Synchronized.SyncState.SYNCHRONIZED and \
-                            (s['CopyType'] != CopyTypes.UNSYNCASSOC):
+                    if s['SyncState'] == dmtf.ST_SYNC_STATE_SYNCHRONIZED and \
+                       s['CopyType'] != \
+                       dmtf.ST_CONF_CAP_COPY_TYPE_UNSYNC_ASSOC:
                         if 'SyncedElement' in s:
                             item = s['SyncedElement']
 
@@ -1025,7 +1030,7 @@ class Smis(IStorageAreaNetwork):
             in_params = {'TheElement': lun.path}
 
             #Delete returns None or Job number
-            return self._pi("volume_delete", JOB_RETRIEVE_NONE,
+            return self._pi("volume_delete", SmisCommon.JOB_RETRIEVE_NONE,
                             *(self._c.InvokeMethod('ReturnToStoragePool',
                                                    scs.path, **in_params)))[0]
 
@@ -1052,7 +1057,7 @@ class Smis(IStorageAreaNetwork):
         in_params = {'TheElement': lun.path}
 
         # Delete returns None or Job number
-        return self._pi("volume_delete", JOB_RETRIEVE_NONE,
+        return self._pi("volume_delete", SmisCommon.JOB_RETRIEVE_NONE,
                         *(self._c.InvokeMethod('ReturnToStoragePool',
                                                scs.path,
                                                **in_params)))[0]
@@ -1070,7 +1075,7 @@ class Smis(IStorageAreaNetwork):
                      'TheElement': lun.path,
                      'Size': pywbem.Uint64(new_size_bytes)}
 
-        return self._pi("volume_resize", JOB_RETRIEVE_VOLUME,
+        return self._pi("volume_resize", SmisCommon.JOB_RETRIEVE_VOLUME,
                         *(self._c.InvokeMethod(
                             'CreateOrModifyElementFromStoragePool',
                             scs.path, **in_params)))
@@ -1095,30 +1100,30 @@ class Smis(IStorageAreaNetwork):
             s_rt = rs_cap['SupportedReplicationTypes']
 
             if rep_type == Volume.REPLICATE_COPY:
-                if RepSvc.RepTypes.SYNC_CLONE_LOCAL in s_rt:
-                    rc[0] = SYNC_TYPE_CLONE
-                    rc[1] = CREATE_ELEMENT_REPLICA_MODE_SYNC
-                elif RepSvc.RepTypes.ASYNC_CLONE_LOCAL in s_rt:
-                    rc[0] = SYNC_TYPE_CLONE
-                    rc[1] = CREATE_ELEMENT_REPLICA_MODE_ASYNC
+                if dmtf.REPLICA_CAP_TYPE_SYNC_CLONE_LOCAL in s_rt:
+                    rc[0] = dmtf.SYNC_TYPE_CLONE
+                    rc[1] = dmtf.REPLICA_MODE_SYNC
+                elif dmtf.REPLICA_CAP_TYPE_ASYNC_CLONE_LOCAL in s_rt:
+                    rc[0] = dmtf.SYNC_TYPE_CLONE
+                    rc[1] = dmtf.REPLICA_MODE_ASYNC
 
             elif rep_type == Volume.REPLICATE_MIRROR_ASYNC:
-                if RepSvc.RepTypes.ASYNC_MIRROR_LOCAL in s_rt:
-                    rc[0] = SYNC_TYPE_MIRROR
-                    rc[1] = CREATE_ELEMENT_REPLICA_MODE_ASYNC
+                if dmtf.REPLICA_CAP_TYPE_ASYNC_MIRROR_LOCAL in s_rt:
+                    rc[0] = dmtf.SYNC_TYPE_MIRROR
+                    rc[1] = dmtf.REPLICA_MODE_ASYNC
 
             elif rep_type == Volume.REPLICATE_MIRROR_SYNC:
-                if RepSvc.RepTypes.SYNC_MIRROR_LOCAL in s_rt:
-                    rc[0] = SYNC_TYPE_MIRROR
-                    rc[1] = CREATE_ELEMENT_REPLICA_MODE_SYNC
+                if dmtf.REPLICA_CAP_TYPE_SYNC_MIRROR_LOCAL in s_rt:
+                    rc[0] = dmtf.SYNC_TYPE_MIRROR
+                    rc[1] = dmtf.REPLICA_MODE_SYNC
 
             elif rep_type == Volume.REPLICATE_CLONE:
-                if RepSvc.RepTypes.SYNC_CLONE_LOCAL in s_rt:
-                    rc[0] = SYNC_TYPE_SNAPSHOT
-                    rc[1] = CREATE_ELEMENT_REPLICA_MODE_SYNC
-                elif RepSvc.RepTypes.ASYNC_CLONE_LOCAL in s_rt:
-                    rc[0] = SYNC_TYPE_SNAPSHOT
-                    rc[1] = CREATE_ELEMENT_REPLICA_MODE_ASYNC
+                if dmtf.REPLICA_CAP_TYPE_SYNC_CLONE_LOCAL in s_rt:
+                    rc[0] = dmtf.SYNC_TYPE_SNAPSHOT
+                    rc[1] = dmtf.REPLICA_MODE_SYNC
+                elif dmtf.REPLICA_CAP_TYPE_ASYNC_CLONE_LOCAL in s_rt:
+                    rc[0] = dmtf.SYNC_TYPE_SNAPSHOT
+                    rc[1] = dmtf.REPLICA_MODE_ASYNC
 
         if rc[0] is None:
             raise LsmError(ErrorNumber.NO_SUPPORT,
@@ -1151,11 +1156,10 @@ class Smis(IStorageAreaNetwork):
                 volume_src.system_id, rep_type)
 
             in_params = {'ElementName': name,
-                         'SyncType': pywbem.Uint16(sync),
-                         #'Mode': pywbem.Uint16(mode),
+                         'SyncType': sync,
+                         #'Mode': mode,
                          'SourceElement': lun.path,
-                         'WaitForCopyState':
-                         pywbem.Uint16(CopyStates.SYNCHRONIZED)}
+                         'WaitForCopyState': dmtf.COPY_STATE_SYNC}
 
         else:
             # Check for older support via storage configuration service
@@ -1169,16 +1173,16 @@ class Smis(IStorageAreaNetwork):
 
             ct = Volume.REPLICATE_CLONE
             if rep_type == Volume.REPLICATE_CLONE:
-                ct = CopyTypes.UNSYNCASSOC
+                ct = dmtf.ST_CONF_CAP_COPY_TYPE_UNSYNC_ASSOC
             elif rep_type == Volume.REPLICATE_COPY:
-                ct = CopyTypes.UNSYNCUNASSOC
+                ct = dmtf.ST_CONF_CAP_COPY_TYPE_UNSYNC_UNASSOC
             elif rep_type == Volume.REPLICATE_MIRROR_ASYNC:
-                ct = CopyTypes.ASYNC
+                ct = dmtf.ST_CONF_CAP_COPY_TYPE_ASYNC
             elif rep_type == Volume.REPLICATE_MIRROR_SYNC:
-                ct = CopyTypes.SYNC
+                ct = dmtf.ST_CONF_CAP_COPY_TYPE_SYNC
 
             in_params = {'ElementName': name,
-                         'CopyType': pywbem.Uint16(ct),
+                         'CopyType': ct,
                          'SourceElement': lun.path}
         if rs:
 
@@ -1187,7 +1191,8 @@ class Smis(IStorageAreaNetwork):
 
             try:
 
-                return self._pi("volume_replicate", JOB_RETRIEVE_VOLUME,
+                return self._pi("volume_replicate",
+                                SmisCommon.JOB_RETRIEVE_VOLUME,
                                 *(self._c.InvokeMethod(method,
                                 rs.path, **in_params)))
             except CIMError:
@@ -1198,7 +1203,7 @@ class Smis(IStorageAreaNetwork):
 
     def _cim_dev_mg_path_create(self, cim_gmm_path, name, cim_vol_path,
                                 vol_id):
-        rc = INVOKE_FAILED
+        rc = SmisCommon.SNIA_INVOKE_FAILED
         out = None
 
         in_params = {
@@ -1233,7 +1238,7 @@ class Smis(IStorageAreaNetwork):
         we will mask to all target ports.
         Return CIMInstanceName of CIM_TargetMaskingGroup
         """
-        rc = INVOKE_FAILED
+        rc = SmisCommon.SNIA_INVOKE_FAILED
         out = None
 
         in_params = {
@@ -1410,11 +1415,9 @@ class Smis(IStorageAreaNetwork):
         cim_vol = self._get_cim_instance_by_id(
             'Volume', volume.id, ['Name'], raise_error=True)
 
-        da = EXPOSE_PATHS_DA_READ_WRITE
-
         in_params = {'LUNames': [cim_vol['Name']],
                      'ProtocolControllers': [cim_spc.path],
-                     'DeviceAccesses': [pywbem.Uint16(da)]}
+                     'DeviceAccesses': [dmtf.CTRL_CONF_SRV_DA_RW]}
 
         (rc, out) = self._c.InvokeMethod(
             'ExposePaths',
@@ -2506,13 +2509,14 @@ class Smis(IStorageAreaNetwork):
     def _wait_invoke(self, rc, out, out_key=None, expect_class=None,
                      flag_out_array=False,):
         """
-        Return out[out_key] if found rc == INVOKE_OK.
-        For rc == INVOKE_ASYNC, we check every Smis.INVOKE_CHECK_INTERVAL
+        Return out[out_key] if found rc == SmisCommon.SNIA_INVOKE_OK.
+        For rc == SmisCommon.SNIA_INVOKE_ASYNC, we check every
+        Smis._INVOKE_CHECK_INTERVAL
         seconds until done. Then return association via CIM_AffectedJobElement
         Return CIM_InstanceName
         Assuming only one CIM_InstanceName will get.
         """
-        if rc == INVOKE_OK:
+        if rc == SmisCommon.SNIA_INVOKE_OK:
             if out_key is None:
                 return None
             if out_key in out:
@@ -2527,7 +2531,7 @@ class Smis(IStorageAreaNetwork):
                 raise LsmError(ErrorNumber.PLUGIN_BUG,
                                "_wait_invoke(), %s not exist in out %s" %
                                (out_key, out.items()))
-        elif rc == INVOKE_ASYNC:
+        elif rc == SmisCommon.SNIA_INVOKE_ASYNC:
             cim_job_path = out['Job']
             loop_counter = 0
             job_pros = ['JobState', 'PercentComplete', 'ErrorDescription',
@@ -2538,12 +2542,12 @@ class Smis(IStorageAreaNetwork):
                                               PropertyList=job_pros,
                                               LocalOnly=False)
                 job_state = cim_job['JobState']
-                if job_state in (JS_NEW, JS_STARTING,
-                                 JS_RUNNING):
+                if job_state in (dmtf.JOB_STATE_NEW, dmtf.JOB_STATE_STARTING,
+                                 dmtf.JOB_STATE_RUNNING):
                     loop_counter += 1
                     time.sleep(Smis._INVOKE_CHECK_INTERVAL)
                     continue
-                elif job_state == JS_COMPLETED:
+                elif job_state == dmtf.JOB_STATE_COMPLETED:
                     if expect_class is None:
                         return None
                     cim_xxxs_path = self._c.AssociatorNames(
