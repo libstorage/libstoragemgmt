@@ -486,14 +486,17 @@ class TestPlugin(unittest.TestCase):
                         if volume_clone is not None:
                             # Lets test for creating a clone with an
                             # existing name
+                            error_num = None
                             try:
                                 volume_clone_dupe_name = \
                                     self.c.volume_replicate(
                                         None, replication_type, vol,
                                         volume_clone.name)[1]
                             except LsmError as le:
-                                self.assertTrue(le.code ==
-                                                ErrorNumber.NAME_CONFLICT)
+                                error_num = le.code
+
+                            self.assertTrue(error_num ==
+                                            ErrorNumber.NAME_CONFLICT)
 
                         self._volume_delete(volume_clone)
 
