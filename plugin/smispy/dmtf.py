@@ -93,8 +93,8 @@ SUPPORT_ELEMENT_REDUCE = 13
 
 # DMTF CIM 2.37.0 experimental CIM_StorageConfigurationCapabilities
 # ['SupportedStorageElementTypes']
-ELEMENT_THICK_VOLUME = 2
-ELEMENT_THIN_VOLUME = 5
+ELEMENT_THICK_VOLUME = Uint16(2)
+ELEMENT_THIN_VOLUME = Uint16(5)
 
 # DMTF CIM 2.29.1 CIM_StorageConfigurationCapabilities
 # ['SupportedStoragePoolFeatures']

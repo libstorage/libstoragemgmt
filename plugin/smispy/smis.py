@@ -35,7 +35,7 @@ import smis_disk
 import dmtf
 
 from lsm import (IStorageAreaNetwork, uri_parse, LsmError, ErrorNumber,
-                 JobStatus, md5, Volume, AccessGroup,
+                 JobStatus, md5, Volume, AccessGroup, Pool,
                  VERSION, TargetPort,
                  search_property)
 
@@ -879,9 +879,34 @@ class Smis(IStorageAreaNetwork):
         """
         Create a volume.
         """
-        if provisioning != Volume.PROVISION_DEFAULT:
-            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           "Unsupported provisioning")
+        # Use user provide lsm.Pool.element_type to speed thing up.
+        if not Pool.ELEMENT_TYPE_VOLUME & pool.element_type:
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "Pool not suitable for creating volumes")
+
+        # Use THICK volume by default unless unsupported or user requested.
+        dmtf_element_type = dmtf.ELEMENT_THICK_VOLUME
+
+        if provisioning == Volume.PROVISION_DEFAULT:
+            # Prefer thick/full volume unless only thin volume supported.
+            # HDS AMS only support thin volume in their thin pool.
+            if not Pool.ELEMENT_TYPE_VOLUME_FULL & pool.element_type and \
+               Pool.ELEMENT_TYPE_VOLUME_THIN & pool.element_type:
+                dmtf_element_type = dmtf.ELEMENT_THIN_VOLUME
+        else:
+            # User is requesting certain type of volume
+            if provisioning == Volume.PROVISION_FULL and \
+               Pool.ELEMENT_TYPE_VOLUME_FULL & pool.element_type:
+                dmtf_element_type = dmtf.ELEMENT_THICK_VOLUME
+            elif provisioning == Volume.PROVISION_THIN and \
+               Pool.ELEMENT_TYPE_VOLUME_THIN & pool.element_type:
+                dmtf_element_type = dmtf.ELEMENT_THIN_VOLUME
+            else:
+                raise LsmError(
+                    ErrorNumber.NO_SUPPORT,
+                    "Pool not suitable for creating volume with "
+                    "requested provisioning type")
 
         # Get the Configuration service for the system we are interested in.
         scs = self._c.get_class_instance('CIM_StorageConfigurationService',
@@ -890,7 +915,7 @@ class Smis(IStorageAreaNetwork):
             self._c, pool)
 
         in_params = {'ElementName': volume_name,
-                     'ElementType': pywbem.Uint16(2),
+                     'ElementType': dmtf_element_type,
                      'InPool': cim_pool_path,
                      'Size': pywbem.Uint64(size_bytes)}
 
