@@ -122,7 +122,7 @@ def _pool_element_type(smis_common, cim_pool):
     For MegaRAID, just return (Pool.ELEMENT_TYPE_VOLUME, 0)
     """
     if smis_common.is_megaraid():
-        return Pool.ELEMENT_TYPE_VOLUME, 0
+        return Pool.ELEMENT_TYPE_VOLUME|Pool.ELEMENT_THIN_VOLUME_FULL, 0
 
     element_type = 0
     unsupported = 0
@@ -142,9 +142,14 @@ def _pool_element_type(smis_common, cim_pool):
         cim_scc = cim_sccs[0]
         if 'SupportedStorageElementFeatures' in cim_scc:
             supported_features = cim_scc['SupportedStorageElementFeatures']
+            supported_types = cim_scc['SupportedStorageElementTypes']
 
             if dmtf.SUPPORT_VOL_CREATE in supported_features:
-                element_type |= Pool.ELEMENT_TYPE_VOLUME
+                element_type = Pool.ELEMENT_TYPE_VOLUME
+                if dmtf.ELEMENT_THIN_VOLUME in supported_types:
+                    element_type |= Pool.ELEMENT_TYPE_VOLUME_THIN
+                if dmtf.ELEMENT_THICK_VOLUME in supported_types:
+                    element_type |= Pool.ELEMENT_TYPE_VOLUME_FULL
             if dmtf.SUPPORT_ELEMENT_EXPAND not in supported_features:
                 unsupported |= Pool.UNSUPPORTED_VOLUME_GROW
             if dmtf.SUPPORT_ELEMENT_REDUCE not in supported_features:
