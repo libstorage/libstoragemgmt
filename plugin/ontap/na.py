@@ -293,12 +293,16 @@ class Filer(object):
     def lun_min_size(self):
         return self._invoke('lun-get-minsize', {'type': 'image'})['min-size']
 
-    def lun_create(self, full_path_name, size_bytes):
+    def lun_create(self, full_path_name, size_bytes, flag_thin=False):
         """
         Creates a lun
+        If flag_thin set to True, will set 'space-reservation-enabled' as
+        'false' which means "create a LUN without any space being reserved".
         """
         params = {'path': full_path_name,
                   'size': size_bytes}
+        if flag_thin is True:
+            params['space-reservation-enabled'] = 'false'
 
         self._invoke('lun-create-by-size', params)
 

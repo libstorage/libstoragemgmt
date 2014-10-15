@@ -428,6 +428,46 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     def _pool_from_na_vol(self, na_vol, na_aggrs, flags):
         element_type = Pool.ELEMENT_TYPE_VOLUME
+        # Thin provisioning is controled by:
+        #   1. NetApp Volume level:
+        #      'guarantee' option and 'fractional_reserve' option.
+        #      If 'guarantee' is 'file', 'fractional_reserve' is forced to
+        #      be 100, we can create Thin LUN and full allocated LUN.
+        #      If 'guarantee' is 'volume' and 'fractional_reserve' is 100, we
+        #      can create full LUN.
+        #      If 'guarantee' is 'volume' and 'fractional_reserve' is less
+        #      than 100, we can only create thin LUN.
+        #      If 'guarantee' is 'none', we can only create thin LUN.
+        #   2. NetApp LUN level:
+        #      If option 'reservation' is enabled, it's a full allocated LUN
+        #      when parent NetApp volume allowed.
+        #      If option 'reservation' is disabled, it's a thin LUN if
+        #      parent NetApp volume allowed.
+
+        if 'space-reserve' in na_vol and \
+           'space-reserve-enabled' in na_vol and \
+           'reserve' in na_vol and \
+           na_vol['space-reserve-enabled'] == 'true':
+            # 'space-reserve' and  'space-reserve-enabled' might not appear if
+            # the flexible volume is restricted or offline.
+            if na_vol['space-reserve'] == 'file':
+                # space-reserve: 'file' means only LUN or file marked as
+                # 'Space Reservation: enabled' will be reserve all space.
+                element_type |= Pool.ELEMENT_TYPE_VOLUME_THIN
+                element_type |= Pool.ELEMENT_TYPE_VOLUME_FULL
+            elif na_vol['space-reserve'] == 'volume':
+                # space-reserve: 'volume' means only LUN or file marked as
+                # 'Space Reservation: enabled' will be reserve all space.
+                if na_vol['reserve'] == na_vol['reserve-required']:
+                    # When 'reserve' == 'reserve-required' it means option
+                    # 'fractional_reserve' is set to 100, only with that we
+                    # can create full alocated LUN.
+                    element_type |= Pool.ELEMENT_TYPE_VOLUME_FULL
+                else:
+                    element_type |= Pool.ELEMENT_TYPE_VOLUME_THIN
+            elif na_vol['space-reserve'] == 'none':
+                element_type |= Pool.ELEMENT_TYPE_VOLUME_THIN
+
         pool_name = na_vol['name']
         pool_id = self._pool_id_of_na_vol_name(na_vol['name'])
         total_space = int(na_vol['size-total'])
@@ -538,20 +578,29 @@ class Ontap(IStorageAreaNetwork, INfs):
     @handle_ontap_errors
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
                       flags=0):
-        if provisioning != Volume.PROVISION_DEFAULT:
-            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           "Unsupported provisioning")
 
         if not pool.element_type & Pool.ELEMENT_TYPE_VOLUME:
             raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                            "Pool not suitable for creating volumes")
+
+        # Even pool is full or thin only pool, we still allow user to
+        # create full or thin LUN in case that's what they intend to do so.
+        # TODO: allow user to query provising status of certain LUN. We can
+        #       use THIN(not effective) or FULL(not effective) to indicate
+        #       pool setting not allow thin/full LUN yet, user can change pool
+        #       setting.
+        # Wise user can check pool.element_type before creating full or thin
+        # volume.
+        flag_thin = False
+        if provisioning == Volume.PROVISION_THIN:
+            flag_thin = True
 
         na_vol_name = pool.name
 
         lun_name = self.f.lun_build_name(na_vol_name, volume_name)
 
         try:
-            self.f.lun_create(lun_name, size_bytes)
+            self.f.lun_create(lun_name, size_bytes, flag_thin)
         except na.FilerError as fe:
             if fe.errno == na.FilerError.EVDISK_ERROR_SIZE_TOO_LARGE:
                 raise LsmError(
