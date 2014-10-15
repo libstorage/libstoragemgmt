@@ -344,6 +344,8 @@ class Pool(IData):
     ELEMENT_TYPE_VOLUME = 1 << 2
     ELEMENT_TYPE_FS = 1 << 3
     ELEMENT_TYPE_DELTA = 1 << 4
+    ELEMENT_TYPE_VOLUME_FULL = 1 << 5
+    ELEMENT_TYPE_VOLUME_THIN = 1 << 6
     ELEMENT_TYPE_SYS_RESERVED = 1 << 10     # Reserved for system use
 
     # Unsupported actions, what pool cannot be used for
