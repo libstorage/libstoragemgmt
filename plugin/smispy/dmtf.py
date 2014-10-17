@@ -240,3 +240,5 @@ ST_SYNC_STATE_SYNCHRONIZED = 6
 
 # CIM_ControllerConfigurationService.ExposePaths(DeviceAccesses)
 CTRL_CONF_SRV_DA_RW = Uint16(2)
+
+VOL_OTHER_INFO_NAA_VPD83_TYPE3H = 'NAA;VPD83Type3'

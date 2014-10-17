@@ -522,7 +522,8 @@ class Smis(IStorageAreaNetwork):
         """
         props = ['ElementName', 'NameFormat',
                  'NameNamespace', 'BlockSize', 'NumberOfBlocks', 'Name',
-                 'OtherIdentifyingInfo', 'IdentifyingDescriptions', 'Usage']
+                 'OtherIdentifyingInfo', 'IdentifyingDescriptions', 'Usage',
+                 'OtherNameFormat', 'OtherNameNamespace']
         cim_vol_pros = self._property_list_of_id("Volume", props)
         return cim_vol_pros
 
@@ -541,11 +542,11 @@ class Smis(IStorageAreaNetwork):
         vpd_83 = Smis._vpd83_in_cv_name(cv)
         if vpd_83 is None:
             vpd_83 = Smis._vpd83_in_cv_otherinfo(cv)
-
         if vpd_83 is None:
-            vpd_83 = Smis._vpd83_in_cv_ibm_xiv(cv)
+            vpd_83 = Smis._vpd83_in_cv_otherinfo_netapp(cv)
 
-        if vpd_83 and re.match('^[a-fA-F0-9]{32}$', vpd_83):
+        if vpd_83 and re.match('^[a-fA-F0-9]{32}$', vpd_83) and \
+           vpd_83[0] == '6':
             vpd_83 = vpd_83.lower()
         else:
             vpd_83 = ''
@@ -567,25 +568,9 @@ class Smis(IStorageAreaNetwork):
     @staticmethod
     def _vpd83_in_cv_name(cv):
         """
-        Explanation of these Format is in:
-          SMI-S 1.6 r4 SPEC part1 7.6.2 Table 2 Page 38, PDF Page 60:
-              Table 2 - Standard Formats for StorageVolume Names
-        Only these combinations is allowed when storing VPD83 in cv["Name"]:
-         * NameFormat = NAA(9), NameNamespace = VPD83Type3(1)
-            SCSI VPD page 83, type 3h, Association=0, NAA 0101b/0110b/0010b
-            NAA name with first nibble of 2/5/6.
-            Formatted as 16 or 32 un-separated upper case hex digits
+        We require NAA Type 3 VPD83 address:
+        Only this is allowed when storing VPD83 in cv["Name"]:
          * NameFormat = NAA(9), NameNamespace = VPD83Type3(2)
-            SCSI VPD page 83, type 3h, Association=0, NAA 0001b
-            NAA name with first nibble of 1. Formatted as 16 un-separated
-            upper case hex digits
-         * NameFormat = EUI64(10), NameNamespace = VPD83Type2(3)
-            SCSI VPD page 83, type 2h, Association=0
-            Formatted as 16, 24, or 32 un-separated upper case hex digits
-         * NameFormat = T10VID(11), NameNamespace = VPD83Type1(4)
-            SCSI VPD page 83, type 1h, Association=0
-            Formatted as 1 to 252 bytes of ASCII.
-        Will return vpd_83 if found.
         """
         if not ('NameFormat' in cv and
                 'NameNamespace' in cv and
@@ -596,43 +581,21 @@ class Smis(IStorageAreaNetwork):
         name = cv['Name']
         if not (nf and nn and name):
             return None
-        # SNIA might have miss documented VPD83Type3(1), it should be
-        # dmtf.VOL_NAME_FORMAT_OTHER(1) based on dmtf.
-        # Will remove the Smis.dmtf.VOL_NAME_FORMAT_OTHER condition if
-        # confirmed as SNIA document fault.
-        if (nf == dmtf.VOL_NAME_FORMAT_NNA and
-                nn == dmtf.VOL_NAME_FORMAT_OTHER) or \
-           (nf == dmtf.VOL_NAME_FORMAT_NNA and
-                nn == dmtf.VOL_NAME_SPACE_VPD83_TYPE3) or \
-           (nf == dmtf.VOL_NAME_FORMAT_EUI64 and
-                nn == dmtf.VOL_NAME_SPACE_VPD83_TYPE2) or \
-           (nf == dmtf.VOL_NAME_FORMAT_T10VID and
-                nn == dmtf.VOL_NAME_SPACE_VPD83_TYPE1):
+
+        if nf == dmtf.VOL_NAME_FORMAT_NNA and \
+           nn == dmtf.VOL_NAME_SPACE_VPD83_TYPE3:
             return name
 
     @staticmethod
     def _vpd83_in_cv_otherinfo(cv):
         """
-        In SNIA SMI-S 1.6 r4 part 1 section 7.6.2: "Standard Formats for
-        Logical Unit Names" it allow VPD83 stored in 'OtherIdentifyingInfo'
-        Quote:
-            Storage volumes may have multiple standard names. A page 83
-            logical unit identifier shall be placed in the Name property with
-            NameFormat and Namespace set as specified in Table 2. Each
-            additional name should be placed in an element of
-            OtherIdentifyingInfo. The corresponding element in
-            IdentifyingDescriptions shall contain a string from the Values
-            lists from NameFormat and NameNamespace, separated by a
-            semi-colon. For example, an identifier from SCSI VPD page 83 with
-            type 3, association 0, and NAA 0101b - the corresponding entry in
-            IdentifyingDescriptions[] shall be "NAA;VPD83Type3".
+        IdentifyingDescriptions[] shall contain "NAA;VPD83Type3".
         Will return the vpd_83 value if found
         """
-        vpd83_namespaces = ['NAA;VPD83Type1', 'NAA;VPD83Type3',
-                            'EUI64;VPD83Type2', 'T10VID;VPD83Type1']
         if not ("IdentifyingDescriptions" in cv and
                 "OtherIdentifyingInfo" in cv):
             return None
+
         id_des = cv["IdentifyingDescriptions"]
         other_info = cv["OtherIdentifyingInfo"]
         if not (isinstance(cv["IdentifyingDescriptions"], list) and
@@ -643,25 +606,23 @@ class Smis(IStorageAreaNetwork):
         len_id_des = len(id_des)
         len_other_info = len(other_info)
         while index < min(len_id_des, len_other_info):
-            if [1 for x in vpd83_namespaces if x == id_des[index]]:
+            if dmtf.VOL_OTHER_INFO_NAA_VPD83_TYPE3H == id_des[index]:
                 return other_info[index]
             index += 1
         return None
 
     @staticmethod
-    def _vpd83_in_cv_ibm_xiv(cv):
-        """
-        IBM XIV IBM.2810-MX90014 is not following SNIA standard.
-        They are using NameFormat=NodeWWN(8) and
-        NameNamespace=NodeWWN(6) and no otherinfo indicated the
-        VPD 83 info.
-        Its cv["Name"] is equal to VPD 83, will use it.
-        """
-        if not "CreationClassName" in cv:
-            return None
-        if cv["CreationClassName"] == "IBMTSDS_SEVolume":
-            if "Name" in cv and cv["Name"]:
-                return cv["Name"]
+    def _vpd83_in_cv_otherinfo_netapp(cv):
+        # workaround for NetApp, they use OtherNameNamespace and
+        # OtherNameFormat.
+        if 'OtherNameFormat' in cv and \
+           cv['OtherNameFormat'] == 'NAA' and \
+           'OtherNameNamespace' in cv and \
+           cv['OtherNameNamespace'] == 'VPD83Type3' and \
+           'OtherIdentifyingInfo' in cv and \
+           isinstance(cv["OtherIdentifyingInfo"], list) and \
+           len(cv['OtherIdentifyingInfo']) == 1:
+            return cv['OtherIdentifyingInfo'][0]
 
     def _new_vol_from_name(self, out):
         """
