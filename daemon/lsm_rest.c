@@ -130,7 +130,7 @@ json_object *para_list_to_json(ParaList_t *para_list)
 	return jobj;
 }
 
-int connect_socket(const char *uri_str, const char *plugin_dir,
+static int connect_socket(const char *uri_str, const char *plugin_dir,
 	int *error_no)
 {
 	int socket_fd = -1;
@@ -178,7 +178,7 @@ int connect_socket(const char *uri_str, const char *plugin_dir,
 }
 
 
-int send_msg(int socket_fd, const char *msg, int *error_no)
+static int send_msg(int socket_fd, const char *msg, int *error_no)
 {
 	int rc = -1;
 	size_t len = strlen(msg);
@@ -204,7 +204,7 @@ int send_msg(int socket_fd, const char *msg, int *error_no)
 	return rc;
 }
 
-const char *_recv_msg(int socket_fd, size_t count, int *error_no)
+static const char *_recv_msg(int socket_fd, size_t count, int *error_no)
 {
 	char buff[LSM_SOCK_BUFF_LEN];
 	size_t amount_read = 0;
@@ -238,7 +238,7 @@ const char *_recv_msg(int socket_fd, size_t count, int *error_no)
 	}
 }
 
-const char *recv_msg(int socket_fd, int *error_no)
+static const char *recv_msg(int socket_fd, int *error_no)
 {
 	*error_no = 0;
 	const char *msg_len_str = _recv_msg(socket_fd, LSM_HEADER_LEN,
@@ -269,7 +269,7 @@ const char *recv_msg(int socket_fd, int *error_no)
 	return msg;
 }
 
-const char *rpc(int socket_fd, const char *method, ParaList_t *para_list,
+static const char *rpc(int socket_fd, const char *method, ParaList_t *para_list,
 	int *error_no)
 {
 	*error_no = 0;
@@ -313,7 +313,7 @@ const char *rpc(int socket_fd, const char *method, ParaList_t *para_list,
 	return result_str;
 }
 
-int plugin_startup(int socket_fd, const char *uri, const char *pass, int tmo)
+static int plugin_startup(int socket_fd, const char *uri, const char *pass, int tmo)
 {
 	printf("Starting the plugin\n");
 	int error_no = 0;
@@ -330,7 +330,7 @@ int plugin_startup(int socket_fd, const char *uri, const char *pass, int tmo)
 	return error_no;
 }
 
-int plugin_shutdown(int socket_fd)
+static int plugin_shutdown(int socket_fd)
 {
 	printf("Shutting down the plugin\n");
 	int error_no = 0;
@@ -342,7 +342,7 @@ int plugin_shutdown(int socket_fd)
 	return error_no;
 }
 
-const char *v01_query(int socket_fd, const char* method, ParaList_t *para_list,
+static const char *v01_query(int socket_fd, const char* method, ParaList_t *para_list,
 	int *error_no)
 {
 	*error_no = 0;
@@ -355,7 +355,7 @@ const char *v01_query(int socket_fd, const char* method, ParaList_t *para_list,
 	return rpc(socket_fd, method, para_list, error_no);
 }
 
-const char *lsm_api_0_1(struct MHD_Connection *connection,
+static const char *lsm_api_0_1(struct MHD_Connection *connection,
 	const char *uri, const char * pass,
 	const char *url, const char *method,
 	const char *upload_data)
@@ -410,7 +410,7 @@ const char *lsm_api_0_1(struct MHD_Connection *connection,
 	return json_msg;
 }
 
-int answer_to_connection(void *cls, struct MHD_Connection *connection,
+static int answer_to_connection(void *cls, struct MHD_Connection *connection,
 	const char *url,
 	const char *method, const char *version,
 	const char *upload_data,
