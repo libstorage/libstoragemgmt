@@ -595,7 +595,7 @@ extern "C" {
                                     uint32_t *fs_count, lsm_flag flags);
 
     /**
-     * Creates a new fils system from the specified pool
+     * Creates a new file system from the specified pool
      * @param[in] conn              Valid connection
      * @param[in] pool              Valid pool
      * @param[in] name              File system name
