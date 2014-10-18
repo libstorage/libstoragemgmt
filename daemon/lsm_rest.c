@@ -41,11 +41,6 @@
  TODO: MHD_get_connection_values() with MHD_GET_ARGUMENT_KIND to
        get all query argument
  TODO: Check malloc() return code
-
- gcc lsm_rest.c -o lsm_restd \
-    `pkg-config --cflags --libs libmicrohttpd xml2` \
-    `xml2-config --libs` `xml2-config --cflags` \
-    `pkd-config --cflags --libs json`
 */
 
 void para_list_init(ParaList_t *para_list)
