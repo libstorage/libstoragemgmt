@@ -35,9 +35,7 @@
 
 #include "lsm_rest.h"
 
-#define MHD_PLATFORM_H
-/* prevent 'microhttpd.h' to include other platform headers
-
+/*
  TODO: MHD_get_connection_values() with MHD_GET_ARGUMENT_KIND to
        get all query argument
  TODO: Check malloc() return code
