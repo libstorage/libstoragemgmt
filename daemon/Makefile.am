@@ -1,13 +1,8 @@
 AM_CPPFLAGS = \
-	-I$(top_srcdir)/c_binding/include \
-	-I$(top_builddir)/c_binding/include \
-	-I@srcdir@/c_binding/include \
 	$(LIBXML_CFLAGS) $(LIBGLIB_CFLAGS) \
 	$(JSON_CFLAGS) $(LIBMICROHTTPD_CFLAGS)
 
 bin_PROGRAMS = lsmd
-
-DEPS = $(top_builddir)/c_binding/libstoragemgmt.la
 
 EXTRA_DIST=lsm_rest.c lsm_rest.h
 
