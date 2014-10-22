@@ -309,9 +309,14 @@ const char *rpc(int socket_fd, const char *method, ParaList_t *para_list,
 		return NULL;
 	}
 	json_object *recv_json = json_tokener_parse(recv_json_string);
-	const char *result_str = json_object_to_json_string_ext(
-		json_object_object_get(recv_json, "result"),
-		JSON_C_TO_STRING_PRETTY);
+	json_object *result_json;
+	if (!json_object_object_get_ex(recv_json, "result", &result_json)){
+		printf("No 'result' node in received JSON data");
+		return NULL;
+	}
+	const char *result_str;
+	result_str = json_object_to_json_string_ext(result_json,
+						    JSON_C_TO_STRING_PRETTY);
 	return result_str;
 }
 
