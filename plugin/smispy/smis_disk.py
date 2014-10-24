@@ -76,9 +76,11 @@ def _disk_id_of_cim_disk(cim_disk):
 def cim_disk_pros():
     """
     Return all CIM_DiskDrive Properties needed to create a Disk object.
+    The 'Type' and 'MediaType' is only for MegaRAID.
     """
     return ['OperationalStatus', 'Name', 'SystemName',
-            'Caption', 'InterconnectType', 'DiskType', 'DeviceID']
+            'Caption', 'InterconnectType', 'DiskType', 'DeviceID',
+            'Type', 'MediaType']
 
 
 def sys_id_of_cim_disk(cim_disk):
@@ -135,6 +137,36 @@ def _pri_cim_ext_of_cim_disk(smis_common, cim_disk_path, property_list=None):
                        (cim_disk_path, cim_exts))
 
 
+# LSIESG_DiskDrive['MediaType']
+# Value was retrived from MOF file of MegaRAID SMI-S provider.
+_MEGARAID_DISK_MEDIA_TYPE_SSD = 1
+_MEGARAID_DISK_MEDIA_TYPE_SSD_FLASH = 2
+
+# LSIESG_DiskDrive['Type']
+# Value was retrived from LSI engineer with content of LGPL2.1+ license.
+_MEGARAID_DISK_TYPE_SCSI = 1
+_MEGARAID_DISK_TYPE_SAS = 2
+_MEGARAID_DISK_TYPE_SATA = 3
+_MEGARAID_DISK_TYPE_FC = 4
+
+
+def _disk_type_megaraid(cim_disk):
+    if cim_disk['MediaType'] == _MEGARAID_DISK_MEDIA_TYPE_SSD or \
+       cim_disk['MediaType'] == _MEGARAID_DISK_MEDIA_TYPE_SSD_FLASH:
+        return Disk.TYPE_SSD
+    else:
+        if int(cim_disk['Type']) == _MEGARAID_DISK_TYPE_SCSI:
+            return Disk.TYPE_SCSI
+        elif int(cim_disk['Type']) == _MEGARAID_DISK_TYPE_SAS:
+            return Disk.TYPE_SAS
+        elif int(cim_disk['Type']) == _MEGARAID_DISK_TYPE_SATA:
+            return Disk.TYPE_SATA
+        elif int(cim_disk['Type']) == _MEGARAID_DISK_TYPE_FC:
+            return Disk.TYPE_FC
+
+    return Disk.TYPE_UNKNOWN
+
+
 def cim_disk_to_lsm_disk(smis_common, cim_disk):
     """
     Convert CIM_DiskDrive to lsm.Disk.
@@ -161,33 +193,21 @@ def cim_disk_to_lsm_disk(smis_common, cim_disk):
     if 'NumberOfBlocks' in cim_ext:
         num_of_block = cim_ext['NumberOfBlocks']
 
-    # SNIA SMI-S 1.4 or even 1.6 does not define anyway to find out disk
-    # type.
-    # Currently, EMC is following DMTF define to do so.
-    if 'InterconnectType' in cim_disk:  # DMTF 2.31 CIM_DiskDrive
-        disk_type = cim_disk['InterconnectType']
-        if 'Caption' in cim_disk:
-            # EMC VNX introduced NL_SAS disk.
-            if cim_disk['Caption'] == 'NL_SAS':
-                disk_type = Disk.TYPE_NL_SAS
+    if smis_common.is_megaraid():
+        disk_type = _disk_type_megaraid(cim_disk)
+    else:
+        # SNIA SMI-S 1.4 or even 1.6 does not define anyway to find out disk
+        # type.
+        # Currently, EMC is following DMTF define to do so.
+        if 'InterconnectType' in cim_disk:  # DMTF 2.31 CIM_DiskDrive
+            disk_type = cim_disk['InterconnectType']
+            if 'Caption' in cim_disk:
+                # EMC VNX introduced NL_SAS disk.
+                if cim_disk['Caption'] == 'NL_SAS':
+                    disk_type = Disk.TYPE_NL_SAS
 
-    if disk_type == Disk.TYPE_UNKNOWN and 'DiskType' in cim_disk:
-        disk_type = _dmtf_disk_type_2_lsm_disk_type(cim_disk['DiskType'])
-
-    # LSI way for checking disk type
-    if not disk_type and cim_disk.classname == 'LSIESG_DiskDrive':
-        cim_pes = smis_common.Associators(
-            cim_disk.path,
-            AssocClass='CIM_SAPAvailableForElement',
-            ResultClass='CIM_ProtocolEndpoint',
-            PropertyList=['CreationClassName'])
-        if cim_pes and cim_pes[0]:
-            if 'CreationClassName' in cim_pes[0]:
-                ccn = cim_pes[0]['CreationClassName']
-                if ccn == 'LSIESG_TargetSATAProtocolEndpoint':
-                    disk_type = Disk.TYPE_SATA
-                if ccn == 'LSIESG_TargetSASProtocolEndpoint':
-                    disk_type = Disk.TYPE_SAS
+        if disk_type == Disk.TYPE_UNKNOWN and 'DiskType' in cim_disk:
+            disk_type = _dmtf_disk_type_2_lsm_disk_type(cim_disk['DiskType'])
 
     disk_id = _disk_id_of_cim_disk(cim_disk)
 
