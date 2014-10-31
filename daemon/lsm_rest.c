@@ -50,6 +50,7 @@ int para_list_add(ParaList_t *para_list, const char *key_name,
 	const void *value, const enum lsm_json_type value_type,
 	const ssize_t array_len)
 {
+	if (para_list == NULL) return -1;
 	Parameter_t *new_para_node =
 		(Parameter_t *)malloc(sizeof(Parameter_t));
 	new_para_node->key_name = key_name;
@@ -57,7 +58,6 @@ int para_list_add(ParaList_t *para_list, const char *key_name,
 	new_para_node->value_type = value_type;
 	new_para_node->array_len = array_len;
 	new_para_node->next = NULL;
-	if (para_list == NULL) return -1;
 	if (para_list->head == NULL){
 		para_list->head = new_para_node;
 	}else{
@@ -68,6 +68,25 @@ int para_list_add(ParaList_t *para_list, const char *key_name,
 		current->next = new_para_node;
 	}
 	return 0;
+}
+
+void para_list_free(ParaList_t *para_list)
+{
+	if (para_list == NULL) return;
+	if (para_list->head == NULL){
+		free(para_list);
+	}else{
+		Parameter_t *current = para_list->head;
+		Parameter_t *next = current->next;
+		free(current);
+		while (next != NULL){
+			current = next;
+			next = current->next;
+			free(current);
+		}
+		free(para_list);
+	}
+	return;
 }
 
 json_object *para_to_json(const enum lsm_json_type value_type,
@@ -138,10 +157,8 @@ static int connect_socket(const char *uri_str, const char *plugin_dir,
 	uri_obj = xmlParseURI(uri_str);
 	char *uri_scheme = NULL;
 	if (uri_obj != NULL){
-		ssize_t uri_scheme_len = strlen((*uri_obj).scheme);
-		uri_scheme = malloc(uri_scheme_len + 1);
-		memset(uri_scheme, 0, uri_scheme_len + 1);
-		memcpy(uri_scheme, (*uri_obj).scheme, uri_scheme_len);
+		uri_scheme = (char *)malloc(strlen((*uri_obj).scheme)+ 1);
+		strcpy(uri_scheme, (*uri_obj).scheme);
 		xmlFreeURI(uri_obj);
 		uri_obj = NULL;
 	}else{
@@ -150,9 +167,11 @@ static int connect_socket(const char *uri_str, const char *plugin_dir,
 	}
 	char *plugin_file = NULL;
 	if (asprintf(&plugin_file, "%s/%s", plugin_dir, uri_scheme) == -1){
+		free(uri_scheme);
 		*error_no = ENOMEM;
 		return socket_fd;
 	}
+	free(uri_scheme);
 
 	socket_fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (socket_fd != -1){
@@ -166,6 +185,7 @@ static int connect_socket(const char *uri_str, const char *plugin_dir,
 				sizeof(addr.sun_path) - 1);
 		}
 		strcpy(addr.sun_path, plugin_file);
+		free(plugin_file);
 		if (connect(socket_fd, (struct sockaddr *) &addr,
 			sizeof(addr)) != 0){
 			*error_no = errno;
@@ -182,14 +202,15 @@ static int send_msg(int socket_fd, const char *msg, int *error_no)
 {
 	int rc = -1;
 	size_t len = strlen(msg);
-	char * msg_with_header = malloc(strlen(msg) + LSM_HEADER_LEN + 1);
+	size_t new_msg_len = strlen(msg) + LSM_HEADER_LEN + 1;
+	char *msg_with_header = (char *)malloc(new_msg_len);
 	sprintf(msg_with_header, "%0*zu%s", LSM_HEADER_LEN, len, msg);
 	ssize_t written = 0;
-	msg = msg_with_header;
-	len = strlen(msg_with_header);
-	while (written < len) {
-		ssize_t wrote = send(socket_fd, msg + written,
-			(strlen(msg) - written),
+	new_msg_len -= 1;
+	while (written < new_msg_len) {
+		ssize_t wrote = send(
+			socket_fd, msg_with_header + written,
+			(new_msg_len - written),
 			MSG_NOSIGNAL);
 		if (wrote != -1){
 			written += wrote;
@@ -198,13 +219,14 @@ static int send_msg(int socket_fd, const char *msg, int *error_no)
 			break;
 		}
 	}
-	if ((written == strlen(msg)) && *error_no == 0){
+	if ((written == new_msg_len) && *error_no == 0){
 		rc = 0;
 	}
+	free(msg_with_header);
 	return rc;
 }
 
-static const char *_recv_msg(int socket_fd, size_t count, int *error_no)
+static char *_recv_msg(int socket_fd, size_t count, int *error_no)
 {
 	char buff[LSM_SOCK_BUFF_LEN];
 	size_t amount_read = 0;
@@ -234,15 +256,15 @@ static const char *_recv_msg(int socket_fd, size_t count, int *error_no)
 	}
 	else{
 		fprintf(stderr, "recv() got error_no, : %d\n", *error_no);
+		free(msg);
 		return NULL;
 	}
 }
 
-static const char *recv_msg(int socket_fd, int *error_no)
+static char *recv_msg(int socket_fd, int *error_no)
 {
 	*error_no = 0;
-	const char *msg_len_str = _recv_msg(socket_fd, LSM_HEADER_LEN,
-		error_no);
+	char *msg_len_str = _recv_msg(socket_fd, LSM_HEADER_LEN, error_no);
 	if (msg_len_str == NULL){
 		fprintf(stderr, "Failed to read the JSON length "
 			"with error_no%d\n", *error_no);
@@ -250,6 +272,7 @@ static const char *recv_msg(int socket_fd, int *error_no)
 	}
 	errno = 0;
 	size_t msg_len = (size_t)strtoul(msg_len_str, NULL, 10);
+	free(msg_len_str);
 	if ((errno == ERANGE && (msg_len == LONG_MAX || msg_len == LONG_MIN))
 		|| (errno != 0 && msg_len == 0))
 	{
@@ -260,7 +283,7 @@ static const char *recv_msg(int socket_fd, int *error_no)
 		fprintf(stderr, "No data needed to retrieve\n");
 		return NULL;
 	}
-	const char *msg = _recv_msg(socket_fd, msg_len, error_no);
+	char *msg = _recv_msg(socket_fd, msg_len, error_no);
 	if (msg == NULL){
 		fprintf(stderr, "Failed to retrieve data from socket "
 			"with error_no %d\n", *error_no);
@@ -269,7 +292,7 @@ static const char *recv_msg(int socket_fd, int *error_no)
 	return msg;
 }
 
-static const char *rpc(int socket_fd, const char *method, ParaList_t *para_list,
+static char *rpc(int socket_fd, const char *method, ParaList_t *para_list,
 	int *error_no)
 {
 	*error_no = 0;
@@ -285,16 +308,18 @@ static const char *rpc(int socket_fd, const char *method, ParaList_t *para_list,
 	printf ("Sending JSON to plugin:\n%s\n", json_string); // code_debug
 	*error_no = 0;
 	int rc = send_msg(socket_fd, json_string, error_no);
+	json_object_put(jobj);
 	if (rc != 0){
 		fprintf(stderr, "Got error when sending message to socket, "
 			"rc=%d, error_no=%d\n", rc, *error_no);
 		return NULL;
 	}
-	const char *recv_json_string = NULL;
+	char *recv_json_string = NULL;
 	recv_json_string = recv_msg(socket_fd, error_no);
 	if (*error_no != 0){
 		printf("Got error when receiving message to socket,"
 			"error_no=%d\n", *error_no);
+		free(recv_json_string);
 		return NULL;
 	}
 	if (recv_json_string == NULL){
@@ -302,18 +327,28 @@ static const char *rpc(int socket_fd, const char *method, ParaList_t *para_list,
 		return NULL;
 	}
 	json_object *recv_json = json_tokener_parse(recv_json_string);
+	free(recv_json_string);
 	json_object *result_json;
 	if (!json_object_object_get_ex(recv_json, "result", &result_json)){
 		printf("No 'result' node in received JSON data");
+		json_object_put(recv_json);
 		return NULL;
 	}
-	const char *result_str;
-	result_str = json_object_to_json_string_ext(result_json,
-						    JSON_C_TO_STRING_PRETTY);
-	return result_str;
+	char *result_str;
+	result_str = (char*) json_object_to_json_string_ext(
+		result_json,
+		JSON_C_TO_STRING_PRETTY);
+	char *rc_msg = NULL;
+	if (strlen(result_str) > 0){
+		rc_msg = (char *)malloc(strlen(result_str) + 1);
+		strcpy(rc_msg, result_str);
+	}
+	json_object_put(recv_json);
+	return rc_msg;
 }
 
-static int plugin_startup(int socket_fd, const char *uri, const char *pass, int tmo)
+static int plugin_startup(int socket_fd, const char *uri, const char *pass,
+	int tmo)
 {
 	printf("Starting the plugin\n");
 	int error_no = 0;
@@ -326,7 +361,9 @@ static int plugin_startup(int socket_fd, const char *uri, const char *pass, int 
 	para_list_add(para_list, "uri", uri, lsm_json_type_string, 0);
 	para_list_add(para_list, "password", pass, pass_type, 0);
 	para_list_add(para_list, "timeout", &tmo, lsm_json_type_int, 0);
-	rpc(socket_fd, "plugin_register", para_list, &error_no);
+	char *msg = rpc(socket_fd, "plugin_register", para_list, &error_no);
+	free(msg);
+	para_list_free(para_list);
 	return error_no;
 }
 
@@ -336,14 +373,16 @@ static int plugin_shutdown(int socket_fd)
 	int error_no = 0;
 	ParaList_t *para_list = (ParaList_t *)malloc(sizeof(ParaList_t));
 	para_list_init(para_list);
-	int lsm_flags = 0;
+	static int lsm_flags = 0;
 	para_list_add(para_list, "flags", &lsm_flags, lsm_json_type_int, 0);
-	rpc(socket_fd, "plugin_unregister", para_list, &error_no);
+	char *msg = rpc(socket_fd, "plugin_unregister", para_list, &error_no);
+	free(msg);
+	para_list_free(para_list);
 	return error_no;
 }
 
-static const char *v01_query(int socket_fd, const char* method, ParaList_t *para_list,
-	int *error_no)
+static char *v01_query(int socket_fd, const char* method,
+	ParaList_t *para_list, int *error_no)
 {
 	*error_no = 0;
 	if (para_list == NULL){
@@ -352,10 +391,12 @@ static const char *v01_query(int socket_fd, const char* method, ParaList_t *para
 	}
 	int lsm_flags = 0;
 	para_list_add(para_list, "flags", &lsm_flags, lsm_json_type_int, 0);
-	return rpc(socket_fd, method, para_list, error_no);
+	char *json_str = rpc(socket_fd, method, para_list, error_no);
+	para_list_free(para_list);
+	return json_str;
 }
 
-static const char *lsm_api_0_1(struct MHD_Connection *connection,
+static char *lsm_api_0_1(struct MHD_Connection *connection,
 	const char *uri, const char * pass,
 	const char *url, const char *method,
 	const char *upload_data)
@@ -382,7 +423,7 @@ static const char *lsm_api_0_1(struct MHD_Connection *connection,
 		return NULL;
 	}
 	error_no = 0;
-	const char *json_msg = NULL;
+	char *json_msg = NULL;
 	int i;
 	int flag_found=0;
 	for(i=0; i < sizeof(lsm_query_strs)/sizeof(char*); i++){
@@ -438,27 +479,27 @@ static int answer_to_connection(void *cls, struct MHD_Connection *connection,
 	memcpy(api_version, url + 1 , LSM_API_VER_LEN);
 	// url + 1 is used to get rid of leading '/'
 	api_version[LSM_API_VER_LEN] = '\0';
-	const char *json_str = NULL;
+	char *json_str = NULL;
 	size_t url_no_api_ver_len = strlen(url) - strlen(api_version) - 1 - 1;
 	// -1 -1 means remove two leading /
 	// example: /v0.1/systems  --change to--> systems
 	char *url_no_api_ver = malloc(url_no_api_ver_len + 1);
-	memset(url_no_api_ver, 0, url_no_api_ver_len + 1);
-	memcpy(url_no_api_ver, (url + strlen(api_version) + 1 + 1),
-		url_no_api_ver_len);
+	strcpy(url_no_api_ver, url+strlen(api_version) + 1 + 1);
 	if ( 0 == strcmp(api_version, "v0.1" )){
 		printf("v0.1 API request found\n"); // code_debug
 		json_str = lsm_api_0_1(connection, uri, pass, url_no_api_ver,
 			method, upload_data);
+		free(url_no_api_ver);
 		if(json_str == NULL){
 			return MHD_NO;
 		}
 	}else{
+		free(url_no_api_ver);
 		return MHD_NO;
 	}
 	response = MHD_create_response_from_buffer(
 		strlen(json_str),
-		(void*) json_str, MHD_RESPMEM_PERSISTENT);
+		(void*) json_str, MHD_RESPMEM_MUST_FREE);
 
 	MHD_add_response_header(response, "Content-Type", LSM_JSON_MIME);
 

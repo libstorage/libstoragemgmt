@@ -65,6 +65,8 @@ void para_list_init(ParaList_t *);
 int para_list_add(ParaList_t *, const char *, const void *,
 	const enum lsm_json_type, const ssize_t);
 
+void para_list_free(ParaList_t *);
+
 json_object *para_to_json(const enum lsm_json_type, const void *,
 	const ssize_t);
 
