@@ -57,7 +57,7 @@ int LSM_DLL_EXPORT lsm_volume_record_array_free( lsm_volume *init[], uint32_t si
 const char LSM_DLL_EXPORT *lsm_volume_id_get(lsm_volume *v);
 
 /**
- * Retrieves the volume name (human recognizable
+ * Retrieves the volume name (human recognizable)
  * Note: returned value only valid when v is valid!
  * @param v     Volume ptr.
  * @return Volume name
