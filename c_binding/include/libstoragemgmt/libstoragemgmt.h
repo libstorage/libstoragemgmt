@@ -201,7 +201,7 @@ extern "C" {
      * @param[in] conn          Valid connection pointer
      * @param[in] job_id        Job ID
      * @param[in] flags         Reserved for future use, must be zero.
-     * @return LSM_ERROR_OK, else error reason.
+     * @return LSM_ERR_OK, else error reason.
      */
     int LSM_DLL_EXPORT lsm_job_free(lsm_connect *conn, char **job_id,
                                     lsm_flag flags);
