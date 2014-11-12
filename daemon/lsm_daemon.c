@@ -336,7 +336,7 @@ int setup_socket(char *full_name)
     memset(name, 0, sizeof(name));
 
     char *base_nm = basename(full_name);
-    strncpy(name, base_nm, min(abs(strlen(base_nm) - 10), (sizeof(name)-1)));
+    strncpy(name, base_nm, min(abs(strlen(base_nm) - strlen(plugin_extension)), (sizeof(name)-1)));
 
     char *socket_file = path_form(socket_dir, name);
     delete_socket(NULL, socket_file);
