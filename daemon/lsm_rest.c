@@ -157,8 +157,7 @@ static int connect_socket(const char *uri_str, const char *plugin_dir,
 	uri_obj = xmlParseURI(uri_str);
 	char *uri_scheme = NULL;
 	if (uri_obj != NULL){
-		uri_scheme = (char *)malloc(strlen((*uri_obj).scheme)+ 1);
-		strcpy(uri_scheme, (*uri_obj).scheme);
+		uri_scheme = strdup(uri_obj->scheme);
 		xmlFreeURI(uri_obj);
 		uri_obj = NULL;
 	}else{
@@ -338,11 +337,7 @@ static char *rpc(int socket_fd, const char *method, ParaList_t *para_list,
 	result_str = (char*) json_object_to_json_string_ext(
 		result_json,
 		JSON_C_TO_STRING_PRETTY);
-	char *rc_msg = NULL;
-	if (strlen(result_str) > 0){
-		rc_msg = (char *)malloc(strlen(result_str) + 1);
-		strcpy(rc_msg, result_str);
-	}
+	char *rc_msg = strdup(result_str);
 	json_object_put(recv_json);
 	return rc_msg;
 }
