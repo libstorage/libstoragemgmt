@@ -138,12 +138,12 @@ def _pri_cim_ext_of_cim_disk(smis_common, cim_disk_path, property_list=None):
 
 
 # LSIESG_DiskDrive['MediaType']
-# Value was retrived from MOF file of MegaRAID SMI-S provider.
+# Value was retrieved from MOF file of MegaRAID SMI-S provider.
 _MEGARAID_DISK_MEDIA_TYPE_SSD = 1
 _MEGARAID_DISK_MEDIA_TYPE_SSD_FLASH = 2
 
 # LSIESG_DiskDrive['Type']
-# Value was retrived from LSI engineer with content of LGPL2.1+ license.
+# Value was retrieved from LSI engineer with content of LGPL2.1+ license.
 _MEGARAID_DISK_TYPE_SCSI = 1
 _MEGARAID_DISK_TYPE_SAS = 2
 _MEGARAID_DISK_TYPE_SATA = 3
@@ -172,7 +172,7 @@ def cim_disk_to_lsm_disk(smis_common, cim_disk):
     Convert CIM_DiskDrive to lsm.Disk.
     """
     # CIM_DiskDrive does not have disk size information.
-    # We have to find out the Primodial CIM_StorageExtent for that.
+    # We have to find out the Primordial CIM_StorageExtent for that.
     cim_ext = _pri_cim_ext_of_cim_disk(
         smis_common, cim_disk.path,
         property_list=['BlockSize', 'NumberOfBlocks'])

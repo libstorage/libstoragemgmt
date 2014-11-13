@@ -22,7 +22,7 @@ from lsm import System, LsmError, ErrorNumber
 
 def cim_sys_id_pros():
     """
-    Return the property of CIM_ComputerSystem required to gernarate
+    Return the property of CIM_ComputerSystem required to generate
     lsm.System.id
     """
     return ['Name']

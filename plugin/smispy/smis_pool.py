@@ -264,5 +264,5 @@ def pool_id_of_cim_vol(smis_common, cim_vol_path):
             ErrorNumber.PLUGIN_BUG,
             "pool_id_of_cim_vol(): Got unexpected count(%d) of cim_pool " %
             len(cim_pools) +
-            "assocated to cim_vol: %s, %s" % (cim_vol_path, cim_pools))
+            "associated to cim_vol: %s, %s" % (cim_vol_path, cim_pools))
     return pool_id_of_cim_pool(cim_pools[0])

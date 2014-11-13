@@ -62,7 +62,7 @@ def _init_id_and_type_of(cim_inits):
 
 def cim_spc_pros():
     """
-    Return the property of CIM_SCSIProtocolController required to gernarate
+    Return the property of CIM_SCSIProtocolController required to generate
     lsm.AccessGroup
     'EMCAdapterRole' is for EMC VNX only.
     """
@@ -72,7 +72,7 @@ def cim_spc_pros():
 
 def cim_init_mg_pros():
     """
-    Return the property of CIM_InitiatorMaskingGroup required to gernarate
+    Return the property of CIM_InitiatorMaskingGroup required to generate
     lsm.AccessGroup
     """
     return ['ElementName', 'InstanceID']

@@ -147,7 +147,7 @@ class Smis(IStorageAreaNetwork):
         Return None when error and raise_error is False
         """
         class_name = Smis._cim_class_name_of(class_type)
-        error_numer = Smis._not_found_error_of_class(class_type)
+        error_number = Smis._not_found_error_of_class(class_type)
         id_pros = Smis._property_list_of_id(class_type, property_list)
 
         if property_list is None:
@@ -167,7 +167,7 @@ class Smis(IStorageAreaNetwork):
         if raise_error is False:
             return None
 
-        raise LsmError(error_numer,
+        raise LsmError(error_number,
                        "Cannot find %s Instance with " % class_name +
                        "%s ID '%s'" % (class_type, org_requested_id))
 
@@ -180,7 +180,7 @@ class Smis(IStorageAreaNetwork):
             2. if nothing found, then
                Enumerate CIM_RegisteredProfile in 'root/interop' namespace.
             3. if nothing found, then
-               Enumerate CIM_RegisteredProfile in userdefined namespace.
+               Enumerate CIM_RegisteredProfile in user defined namespace.
         """
         protocol = 'http'
         port = SmisCommon.IAAN_WBEM_HTTP_PORT

@@ -44,7 +44,7 @@ def _profile_register_load(wbem_conn):
             'Block Service Profile': 1.4,
         }
     The 'root_blk_cim_rp' is the 'Array' profile of CIM_RegisteredProfile
-    with hightest version number.
+    with highest version number.
     """
     profile_dict = {}
     root_blk_cim_rp = None
@@ -473,7 +473,7 @@ class SmisCommon(object):
         if raise_error:
             raise LsmError(
                 ErrorNumber.NO_SUPPORT,
-                "Cannot find any '%s' for requested systemd ID" % srv_name)
+                "Cannot find any '%s' for requested system ID" % srv_name)
         return None
 
     def cim_scs_of_sys_id(self, sys_id, raise_error=True):
