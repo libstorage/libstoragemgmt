@@ -95,9 +95,9 @@ def cim_sys_pros():
     """
     Return a list of properties required to create a LSM System
     """
-    cim_sys_pros = cim_sys_id_pros()
-    cim_sys_pros.extend(['ElementName', 'OperationalStatus'])
-    return cim_sys_pros
+    cim_sys_properties = cim_sys_id_pros()
+    cim_sys_properties.extend(['ElementName', 'OperationalStatus'])
+    return cim_sys_properties
 
 
 _LSM_SYS_OP_STATUS_CONV = {
