@@ -24,9 +24,12 @@
 
 from pywbem import Uint16, CIMError
 import pywbem
+import traceback
+import os
+import datetime
 
 import dmtf
-from lsm import LsmError, ErrorNumber
+from lsm import LsmError, ErrorNumber, md5
 from utils import (merge_list)
 
 
@@ -143,9 +146,9 @@ def _profile_spec_ver_to_num(spec_ver_str):
 
 class SmisCommon(object):
     # Even many CIM_XXX_Service in DMTF shared the same return value
-    # defination as SNIA do, but there is no DMTF standard metioned
+    # definition as SNIA do, but there is no DMTF standard motioned
     # InvokeMethod() should follow that list of return value.
-    # We use SNIA defination here.
+    # We use SNIA definition here.
     # SNIA 1.6 rev4 Block book, BSP 5.5.3.12 Return Values section.
     SNIA_INVOKE_OK = 0
     SNIA_INVOKE_NOT_SUPPORTED = 1
@@ -179,12 +182,13 @@ class SmisCommon(object):
 
     def __init__(self, url, username, password,
                  namespace=dmtf.DEFAULT_NAMESPACE,
-                 no_ssl_verify=False, debug=False, system_list=None):
+                 no_ssl_verify=False, debug_path=None, system_list=None):
         self._wbem_conn = None
         self._profile_dict = {}
         self.root_blk_cim_rp = None    # For root_cim_
         self._vendor_product = None     # For vendor workaround codes.
         self.system_list = system_list
+        self._debug_path = debug_path
 
         if namespace is None:
             namespace = dmtf.DEFAULT_NAMESPACE
@@ -201,7 +205,8 @@ class SmisCommon(object):
                 # https://bugzilla.redhat.com/show_bug.cgi?id=1039801
                 pass
 
-        self._wbem_conn.debug = debug
+        if debug_path is not None:
+            self._wbem_conn.debug = True
 
         if namespace.lower() == SmisCommon._MEGARAID_NAMESPACE.lower():
         # Skip profile register check on MegaRAID for better performance.
@@ -246,65 +251,6 @@ class SmisCommon(object):
         """
         return _profile_check(
             self._profile_dict, profile_name, spec_ver, raise_error)
-
-    def get_class_instance(self, class_name, prop_name, prop_value,
-                            raise_error=True, property_list=None):
-        """
-        Gets an instance of a class that optionally matches a specific
-        property name and value
-        """
-        instances = None
-        if property_list is None:
-            property_list = [prop_name]
-        else:
-            property_list = merge_list(property_list, [prop_name])
-
-        try:
-            cim_xxxs = self.EnumerateInstances(
-                class_name, PropertyList=property_list)
-        except CIMError as ce:
-            error_code = tuple(ce)[0]
-
-            if error_code == pywbem.CIM_ERR_INVALID_CLASS and \
-               raise_error is False:
-                return None
-            else:
-                raise
-
-        for cim_xxx in cim_xxxs:
-            if prop_name in cim_xxx and cim_xxx[prop_name] == prop_value:
-                return cim_xxx
-
-        if raise_error:
-            raise LsmError(ErrorNumber.PLUGIN_BUG,
-                           "Unable to find class instance %s " % class_name +
-                           "with property %s " % prop_name +
-                           "with value %s" % prop_value)
-        return None
-
-    def get_cim_service_path(self, cim_sys_path, class_name):
-        """
-        Return None if not supported
-        """
-        try:
-            cim_srvs = self.AssociatorNames(
-                cim_sys_path,
-                AssocClass='CIM_HostedService',
-                ResultClass=class_name)
-        except CIMError as ce:
-            if ce[0] == pywbem.CIM_ERR_NOT_SUPPORTED:
-                return None
-            else:
-                raise
-        if len(cim_srvs) == 1:
-            return cim_srvs[0]
-        elif len(cim_srvs) == 0:
-            return None
-        else:
-            raise LsmError(ErrorNumber.PLUGIN_BUG,
-                           "_get_cim_service_path(): Got unexpected(not 1) "
-                           "count of %s from cim_sys %s: %s" %
-                           (class_name, cim_sys_path, cim_srvs))
 
     def _vendor_namespace(self):
         if self.root_blk_cim_rp:
@@ -372,3 +318,216 @@ class SmisCommon(object):
 
     def is_netappe(self):
         return self._vendor_product == SmisCommon._PRODUCT_NETAPP_E
+
+    @staticmethod
+    def cim_job_pros():
+        return ['InstanceID']
+
+    def cim_job_of_job_id(self, job_id, property_list=None):
+        """
+        Return CIM_ConcreteJob for given job_id.
+        """
+        if property_list is None:
+            property_list = SmisCommon.cim_job_pros()
+        else:
+            property_list = merge_list(
+                property_list, SmisCommon.cim_job_pros())
+
+        cim_jobs = self.EnumerateInstances(
+            'CIM_ConcreteJob',
+            PropertyList=property_list)
+        real_job_id = SmisCommon.parse_job_id(job_id)[0]
+        for cim_job in cim_jobs:
+            if md5(cim_job['InstanceID']) == real_job_id:
+                return cim_job
+
+        raise LsmError(
+            ErrorNumber.NOT_FOUND_JOB,
+            "Job %s not found" % job_id)
+
+    @staticmethod
+    def _job_id_of_cim_job(cim_job, retrieve_data, method_data):
+        """
+        Return the MD5 has of CIM_ConcreteJob['InstanceID'] in conjunction
+        with '@%s' % retrieve_data
+        retrieve_data should be SmisCommon.JOB_RETRIEVE_NONE or
+        SmisCommon.JOB_RETRIEVE_VOLUME or etc
+        method_data is any string a method would like store for error
+        handling by job_status().
+        """
+        return "%s@%d@%s" % (
+            md5(cim_job['InstanceID']), int(retrieve_data), str(method_data))
+
+    @staticmethod
+    def parse_job_id(job_id):
+        """
+        job_id is assembled by a md5 string, retrieve_data and method_data
+        This method will split it and return
+        (md5_str, retrieve_data, method_data)
+        """
+        tmp_list = job_id.split('@', 3)
+        md5_str = tmp_list[0]
+        retrieve_data = SmisCommon.JOB_RETRIEVE_NONE
+        method_data = None
+        if len(tmp_list) == 3:
+            retrieve_data = int(tmp_list[1])
+            method_data = tmp_list[2]
+        return (md5_str, retrieve_data, method_data)
+
+    def invoke_method(self, cmd, cim_path, in_params, out_handler=None,
+                      error_handler=None, retrieve_data=None,
+                      method_data=None):
+        """
+        cmd
+            A string of command, example:
+                'CreateOrModifyElementFromStoragePool'
+        cim_path
+            the CIMInstanceName, example:
+                CIM_StorageConfigurationService.path
+        in_params
+            A dictionary of input parameter, example:
+                {'ElementName': volume_name,
+                 'ElementType': dmtf_element_type,
+                 'InPool': cim_pool_path,
+                 'Size': pywbem.Uint64(size_bytes)}
+        out_handler
+            A reference to a method to parse output, example:
+                self._new_vol_from_name
+        error_handler
+            A reference to a method to handle all exceptions.
+        retrieve_data
+            SmisCommon.JOB_RETRIEVE_XXX, it will be used only
+            when a ASYNC job has been created.
+        method_data
+            A string which will be stored in job_id, it could be used by
+            job_status() to do error checking.
+        """
+        if retrieve_data is None:
+            retrieve_data = SmisCommon.JOB_RETRIEVE_NONE
+        try:
+            (rc, out) = self.InvokeMethod(cmd, cim_path, **in_params)
+
+            # Check to see if operation is done
+            if rc == SmisCommon.SNIA_INVOKE_OK:
+                if out_handler is None:
+                    return None, None
+                else:
+                    return None, out_handler(out)
+
+            elif rc == SmisCommon.SNIA_INVOKE_ASYNC:
+                # We have an async operation
+                job_id = SmisCommon._job_id_of_cim_job(
+                    out['Job'], retrieve_data, method_data)
+                return job_id, None
+            elif rc == SmisCommon.SNIA_INVOKE_NOT_SUPPORTED:
+                raise LsmError(
+                    ErrorNumber.NO_SUPPORT,
+                    'SMI-S error code indicates operation not supported')
+            else:
+                # When debugging issues with providers it's helpful to have
+                # the xml request/reply to give to provider developers.
+                try:
+                    if self._debug_path is not None:
+                        if not os.path.exists(self._debug_path):
+                            os.makedirs(self._debug_path)
+
+                        if os.path.isdir(self._debug_path):
+                            debug_fn = "%s_%s" % (
+                                cmd, datetime.datetime.now().isoformat())
+                            debug_full = os.path.join(
+                                self._debug_path, debug_fn)
+
+                            # Dump the request & reply to a file
+                            with open(debug_full, 'w') as d:
+                                d.write("REQ:\n%s\n\nREPLY:\n%s\n" %
+                                        (self.last_request, self.last_reply))
+
+                except Exception:
+                    tb = traceback.format_exc()
+                    raise LsmError(ErrorNumber.PLUGIN_BUG,
+                                   "Error: %s rc= %s" % (cmd, str(rc))+
+                                   " Debug data exception: %s" % str(tb))
+
+                raise LsmError(ErrorNumber.PLUGIN_BUG,
+                               "Error: %s rc= %s" % (cmd, str(rc)))
+
+        except Exception:
+            if error_handler is not None:
+                error_handler(self, method_data)
+            else:
+                raise
+
+    def _cim_srv_of_sys_id(self, srv_name, sys_id, raise_error):
+        property_list = ['SystemName']
+
+        try:
+            cim_srvs = self.EnumerateInstances(
+                srv_name,
+                PropertyList=property_list)
+            for cim_srv in cim_srvs:
+                if cim_srv['SystemName'] == sys_id:
+                    return cim_srv
+        except CIMError:
+            if raise_error:
+                raise
+            else:
+                return None
+
+        if raise_error:
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "Cannot find any '%s' for requested systemd ID" % srv_name)
+        return None
+
+
+    def cim_scs_of_sys_id(self, sys_id, raise_error=True):
+        """
+        Return a CIMInstance of CIM_StorageConfigurationService for given system
+        id.
+        Using 'SystemName' property as system id of a service which is defined
+        by DMTF CIM_Service.
+        """
+        return self._cim_srv_of_sys_id(
+            'CIM_StorageConfigurationService', sys_id, raise_error)
+
+
+    def cim_rs_of_sys_id(self, sys_id, raise_error=True):
+        """
+        Return a CIMInstance of CIM_ReplicationService for given system id.
+        Using 'SystemName' property as system id of a service which is defined
+        by DMTF CIM_Service.
+        """
+        return self._cim_srv_of_sys_id(
+            'CIM_ReplicationService', sys_id, raise_error)
+
+
+    def cim_gmms_of_sys_id(self, sys_id, raise_error=True):
+        """
+        Return a CIMInstance of CIM_GroupMaskingMappingService for given system
+        id.
+        Using 'SystemName' property as system id of a service which is defined
+        by DMTF CIM_Service.
+        """
+        return self._cim_srv_of_sys_id(
+            'CIM_GroupMaskingMappingService', sys_id, raise_error)
+
+
+    def cim_ccs_of_sys_id(self, sys_id, raise_error=True):
+        """
+        Return a CIMInstance of CIM_ControllerConfigurationService for given
+        system id.
+        Using 'SystemName' property as system id of a service which is defined
+        by DMTF CIM_Service.
+        """
+        return self._cim_srv_of_sys_id(
+            'CIM_ControllerConfigurationService', sys_id, raise_error)
+
+    def cim_hwms_of_sys_id(self, sys_id, raise_error=True):
+        """
+        Return a CIMInstance of CIM_StorageHardwareIDManagementService for
+        given system id.
+        Using 'SystemName' property as system id of a service which is defined
+        by DMTF CIM_Service.
+        """
+        return self._cim_srv_of_sys_id(
+            'CIM_StorageHardwareIDManagementService', sys_id, raise_error)

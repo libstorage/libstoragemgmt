@@ -17,8 +17,9 @@
 
 import traceback
 from lsm import (LsmError, ErrorNumber, error)
-from pywbem import (CIMError)
+from pywbem import (CIMError, CIMInstanceName)
 import pywbem
+import json
 
 
 def merge_list(list_a, list_b):
@@ -66,3 +67,23 @@ def handle_cim_errors(method):
 def hex_string_format(hex_str, length, every):
     hex_str = hex_str.lower()
     return ':'.join(hex_str[i:i + every] for i in range(0, length, every))
+
+
+def cim_path_to_path_str(cim_path):
+    """
+    Convert CIMInstanceName to a string which could save in plugin_data
+    """
+    return json.dumps({
+        'classname': cim_path.classname,
+        'keybindings': dict(cim_path.keybindings),
+        'host': cim_path.host,
+        'namespace': cim_path.namespace,
+    })
+
+
+def path_str_to_cim_path(path_str):
+    """
+    Convert a string into CIMInstanceName.
+    """
+    path_dict = json.loads(path_str)
+    return CIMInstanceName(**path_dict)

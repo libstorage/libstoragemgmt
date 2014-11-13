@@ -478,6 +478,8 @@ fi
 %{python_sitelib}/lsm/plugin/smispy/smis_sys.*
 %{python_sitelib}/lsm/plugin/smispy/smis_pool.*
 %{python_sitelib}/lsm/plugin/smispy/smis_disk.*
+%{python_sitelib}/lsm/plugin/smispy/smis_vol.*
+%{python_sitelib}/lsm/plugin/smispy/smis_ag.*
 %{_bindir}/smispy_lsmplugin
 
 %files -n %{libstoragemgmt}-netapp-plugin

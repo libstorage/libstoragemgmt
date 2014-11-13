@@ -23,17 +23,19 @@ MASK_TYPE_MASK = 1
 MASK_TYPE_GROUP = 2
 
 
-def _rs_supported_capabilities(smis_common, system, cap):
+def _rs_supported_capabilities(smis_common, system_id, cap):
     """
     Interrogate the supported features of the replication service
     """
-    rs = smis_common.get_class_instance("CIM_ReplicationService", 'SystemName',
-                                        system.id, raise_error=False)
-    if rs:
+    cim_rs = smis_common.cim_rs_of_sys_id(system_id, raise_error=False)
+    if cim_rs:
         rs_cap = smis_common.Associators(
-            rs.path,
+            cim_rs.path,
             AssocClass='CIM_ElementCapabilities',
-            ResultClass='CIM_ReplicationServiceCapabilities')[0]
+            ResultClass='CIM_ReplicationServiceCapabilities',
+            PropertyList=['SupportedReplicationTypes',
+                          'SupportedAsynchronousActions',
+                          'SupportedSynchronousActions'])[0]
 
         s_rt = rs_cap['SupportedReplicationTypes']
         async_actions = rs_cap['SupportedAsynchronousActions']
@@ -55,18 +57,17 @@ def _rs_supported_capabilities(smis_common, system, cap):
     else:
         # Try older storage configuration service
 
-        rs = smis_common.get_class_instance("CIM_StorageConfigurationService",
-                                            'SystemName', system.id,
-                                            raise_error=False)
+        cim_scs = smis_common.cim_scs_of_sys_id(system_id, raise_error=False)
 
-        if rs:
-            rs_cap = smis_common.Associators(
-                rs.path,
+        if cim_scs:
+            cim_sc_cap = smis_common.Associators(
+                cim_scs.path,
                 AssocClass='CIM_ElementCapabilities',
-                ResultClass='CIM_StorageConfigurationCapabilities')[0]
+                ResultClass='CIM_StorageConfigurationCapabilities',
+                PropertyList=['SupportedCopyTypes'])[0]
 
-            if rs_cap is not None and 'SupportedCopyTypes' in rs_cap:
-                sct = rs_cap['SupportedCopyTypes']
+            if cim_sc_cap is not None and 'SupportedCopyTypes' in cim_sc_cap:
+                sct = cim_sc_cap['SupportedCopyTypes']
 
                 if sct and len(sct):
                     cap.set(Capabilities.VOLUME_REPLICATE)
@@ -78,7 +79,7 @@ def _rs_supported_capabilities(smis_common, system, cap):
                         cap.set(Capabilities.VOLUME_REPLICATE_COPY)
 
 
-def _bsp_cap_set(smis_common, cim_sys_path, cap):
+def _bsp_cap_set(smis_common, system_id, cap):
     """
     Set capabilities for these methods:
         volumes()
@@ -87,10 +88,9 @@ def _bsp_cap_set(smis_common, cim_sys_path, cap):
         volume_delete()
     """
     # CIM_StorageConfigurationService is optional.
-    cim_scs_path = smis_common.get_cim_service_path(
-        cim_sys_path, 'CIM_StorageConfigurationService')
+    cim_scs = smis_common.cim_scs_of_sys_id(system_id, raise_error=False)
 
-    if cim_scs_path is None:
+    if cim_scs is None:
         return
 
     # These methods are mandatory for CIM_StorageConfigurationService:
@@ -101,7 +101,7 @@ def _bsp_cap_set(smis_common, cim_sys_path, cap):
     # Hence we check CIM_StorageConfigurationCapabilities
     # which is mandatory if CIM_StorageConfigurationService is supported.
     cim_scs_cap = smis_common.Associators(
-        cim_scs_path,
+        cim_scs.path,
         AssocClass='CIM_ElementCapabilities',
         ResultClass='CIM_StorageConfigurationCapabilities',
         PropertyList=['SupportedAsynchronousActions',
@@ -353,7 +353,7 @@ def get(smis_common, cim_sys, system):
     cap = Capabilities()
 
     if smis_common.is_netappe():
-        _rs_supported_capabilities(smis_common, system, cap)
+        _rs_supported_capabilities(smis_common, system.id, cap)
 
         #TODO We need to investigate why our interrogation code doesn't
         #work.
@@ -362,7 +362,7 @@ def get(smis_common, cim_sys, system):
         return cap
 
      # 'Block Services Package' profile
-    _bsp_cap_set(smis_common, cim_sys.path, cap)
+    _bsp_cap_set(smis_common, system.id, cap)
 
     # 'Disk Drive Lite' profile
     _disk_cap_set(smis_common, cim_sys.path, cap)
@@ -380,5 +380,5 @@ def get(smis_common, cim_sys, system):
     # 'FC Target Ports' and 'iSCSI Target Ports' profiles
     _tgt_cap_set(smis_common, cim_sys.path, cap)
 
-    _rs_supported_capabilities(smis_common, system, cap)
+    _rs_supported_capabilities(smis_common, system.id, cap)
     return cap

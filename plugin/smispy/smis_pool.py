@@ -15,11 +15,9 @@
 #
 # Author: Gris Ge <fge@redhat.com>
 
-from utils import merge_list
+from utils import merge_list, path_str_to_cim_path, cim_path_to_path_str
 import dmtf
 from lsm import LsmError, ErrorNumber, Pool
-import json
-from pywbem import CIMInstanceName
 
 
 def cim_pools_of_cim_sys_path(smis_common, cim_sys_path, property_list=None):
@@ -226,7 +224,7 @@ def cim_pool_to_lsm_pool(smis_common, cim_pool, system_id):
 
     element_type, unsupported = _pool_element_type(smis_common, cim_pool)
 
-    plugin_data = _cim_path_to_path_str(cim_pool.path)
+    plugin_data = cim_path_to_path_str(cim_pool.path)
 
     return Pool(pool_id, name, element_type, unsupported,
                 total_space, free_space,
@@ -248,27 +246,7 @@ def lsm_pool_to_cim_pool_path(smis_common, lsm_pool):
             ErrorNumber.NOT_FOUND_SYSTEM,
             "System filtered in URI")
 
-    return _path_str_to_cim_path(lsm_pool.plugin_data)
-
-
-def _cim_path_to_path_str(cim_path):
-    """
-    Convert CIMInstanceName to a string which could save in plugin_data
-    """
-    return json.dumps({
-        'classname': cim_path.classname,
-        'keybindings': dict(cim_path.keybindings),
-        'host': cim_path.host,
-        'namespace': cim_path.namespace,
-    })
-
-
-def _path_str_to_cim_path(path_str):
-    """
-    Convert a string into CIMInstanceName.
-    """
-    path_dict = json.loads(path_str)
-    return CIMInstanceName(**path_dict)
+    return path_str_to_cim_path(lsm_pool.plugin_data)
 
 
 def pool_id_of_cim_vol(smis_common, cim_vol_path):

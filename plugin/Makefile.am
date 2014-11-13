@@ -31,7 +31,9 @@ smispy_PYTHON = \
 	smispy/smis_cap.py \
 	smispy/smis_sys.py \
 	smispy/smis_pool.py \
-	smispy/smis_disk.py
+	smispy/smis_disk.py \
+	smispy/smis_ag.py \
+	smispy/smis_vol.py
 
 nstordir = $(plugindir)/nstor
 nstor_PYTHON = \

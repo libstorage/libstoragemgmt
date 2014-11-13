@@ -38,6 +38,16 @@ def sys_id_of_cim_sys(cim_sys):
             "'Name' property: %s, %s" % (cim_sys.items(), cim_sys.path))
 
 
+def sys_id_of_cim_vol(cim_vol):
+    if 'SystemName' in cim_vol:
+        return cim_vol['SystemName']
+    else:
+        raise LsmError(
+            ErrorNumber.PLUGIN_BUG,
+            "sys_id_of_cim_vol(): Got a CIM_StorageVolume does not have "
+            "'SystemName' property: %s, %s" % (cim_vol.items(), cim_vol.path))
+
+
 def root_cim_sys(smis_common, property_list=None):
     """
     Use this association to find out the root CIM_ComputerSystem:
