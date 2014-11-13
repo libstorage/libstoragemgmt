@@ -155,7 +155,6 @@ class SmisCommon(object):
     SNIA_INVOKE_FAILED = 4
     SNIA_INVOKE_ASYNC = 4096
 
-
     SNIA_BLK_ROOT_PROFILE = 'Array'
     SNIA_BLK_SRVS_PROFILE = 'Block Services'
     SNIA_DISK_LITE_PROFILE = 'Disk Drive Lite'
@@ -213,12 +212,10 @@ class SmisCommon(object):
         # MegaRAID SMI-S profile support status will not change for a while.
             self._profile_dict = {
                 # Provide a fake profile support status to pass the check.
-                SmisCommon.SNIA_BLK_ROOT_PROFILE: \
-                    SmisCommon.SMIS_SPEC_VER_1_4,
-                SmisCommon.SNIA_BLK_SRVS_PROFILE: \
-                    SmisCommon.SMIS_SPEC_VER_1_4,
-                SmisCommon.SNIA_DISK_LITE_PROFILE: \
-                    SmisCommon.SMIS_SPEC_VER_1_4,
+                SmisCommon.SNIA_BLK_ROOT_PROFILE: SmisCommon.SMIS_SPEC_VER_1_4,
+                SmisCommon.SNIA_BLK_SRVS_PROFILE: SmisCommon.SMIS_SPEC_VER_1_4,
+                SmisCommon.SNIA_DISK_LITE_PROFILE:
+                  SmisCommon.SMIS_SPEC_VER_1_4,
             }
             self._vendor_product = SmisCommon._PRODUCT_MEGARAID
         else:
@@ -274,7 +271,7 @@ class SmisCommon(object):
         if self._wbem_conn.default_namespace in dmtf.INTEROP_NAMESPACES:
             # We have to enumerate in vendor namespace
             self._wbem_conn.default_namespace = self._vendor_namespace()
-        params['LocalOnly']=False
+        params['LocalOnly'] = False
         return self._wbem_conn.EnumerateInstances(
             ClassName, namespace, **params)
 
@@ -282,7 +279,7 @@ class SmisCommon(object):
         if self._wbem_conn.default_namespace in dmtf.INTEROP_NAMESPACES:
             # We have to enumerate in vendor namespace
             self._wbem_conn.default_namespace = self._vendor_namespace()
-        params['LocalOnly']=False
+        params['LocalOnly'] = False
         return self._wbem_conn.EnumerateInstanceNames(
             ClassName, namespace, **params)
 
@@ -293,7 +290,7 @@ class SmisCommon(object):
         return self._wbem_conn.AssociatorNames(ObjectName, **params)
 
     def GetInstance(self, InstanceName, **params):
-        params['LocalOnly']=False
+        params['LocalOnly'] = False
         return self._wbem_conn.GetInstance(InstanceName, **params)
 
     def InvokeMethod(self, MethodName, ObjectName, **params):
@@ -445,7 +442,7 @@ class SmisCommon(object):
                 except Exception:
                     tb = traceback.format_exc()
                     raise LsmError(ErrorNumber.PLUGIN_BUG,
-                                   "Error: %s rc= %s" % (cmd, str(rc))+
+                                   "Error: %s rc= %s" % (cmd, str(rc)) +
                                    " Debug data exception: %s" % str(tb))
 
                 raise LsmError(ErrorNumber.PLUGIN_BUG,
@@ -479,17 +476,15 @@ class SmisCommon(object):
                 "Cannot find any '%s' for requested systemd ID" % srv_name)
         return None
 
-
     def cim_scs_of_sys_id(self, sys_id, raise_error=True):
         """
-        Return a CIMInstance of CIM_StorageConfigurationService for given system
-        id.
+        Return a CIMInstance of CIM_StorageConfigurationService for given
+        system id.
         Using 'SystemName' property as system id of a service which is defined
         by DMTF CIM_Service.
         """
         return self._cim_srv_of_sys_id(
             'CIM_StorageConfigurationService', sys_id, raise_error)
-
 
     def cim_rs_of_sys_id(self, sys_id, raise_error=True):
         """
@@ -500,7 +495,6 @@ class SmisCommon(object):
         return self._cim_srv_of_sys_id(
             'CIM_ReplicationService', sys_id, raise_error)
 
-
     def cim_gmms_of_sys_id(self, sys_id, raise_error=True):
         """
         Return a CIMInstance of CIM_GroupMaskingMappingService for given system
@@ -510,7 +504,6 @@ class SmisCommon(object):
         """
         return self._cim_srv_of_sys_id(
             'CIM_GroupMaskingMappingService', sys_id, raise_error)
-
 
     def cim_ccs_of_sys_id(self, sys_id, raise_error=True):
         """

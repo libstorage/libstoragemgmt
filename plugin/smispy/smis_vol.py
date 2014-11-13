@@ -28,6 +28,7 @@ from lsm.plugin.smispy.utils import (
     merge_list, cim_path_to_path_str, path_str_to_cim_path)
 from lsm.plugin.smispy import dmtf
 
+
 def cim_vol_id_pros():
     """
     Return the property of CIM_StorageVolume required to generate

@@ -120,7 +120,7 @@ def _pool_element_type(smis_common, cim_pool):
     For MegaRAID, just return (Pool.ELEMENT_TYPE_VOLUME, 0)
     """
     if smis_common.is_megaraid():
-        return Pool.ELEMENT_TYPE_VOLUME|Pool.ELEMENT_TYPE_VOLUME_FULL, 0
+        return Pool.ELEMENT_TYPE_VOLUME | Pool.ELEMENT_TYPE_VOLUME_FULL, 0
 
     element_type = 0
     unsupported = 0

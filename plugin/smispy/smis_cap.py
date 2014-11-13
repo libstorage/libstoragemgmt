@@ -42,7 +42,7 @@ def _rs_supported_capabilities(smis_common, system_id, cap):
         sync_actions = rs_cap['SupportedSynchronousActions']
 
         if dmtf.REPLICA_CAP_ACTION_CREATE_ELEMENT in async_actions or \
-           dmtf.REPLICA_CAP_ACTION_CREATE_ELEMENT in sync_actions :
+           dmtf.REPLICA_CAP_ACTION_CREATE_ELEMENT in sync_actions:
             cap.set(Capabilities.VOLUME_REPLICATE)
         else:
             return
