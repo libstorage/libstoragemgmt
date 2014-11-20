@@ -215,3 +215,38 @@ def init_id_of_cim_init(cim_init):
         ErrorNumber.PLUGIN_BUG,
         "init_id_of_cim_init() got cim_init without 'StorageID' %s: %s" %
         (cim_init.path, cim_init.items()))
+
+
+def cim_init_path_check_or_create(smis_common, system_id, init_id, init_type):
+    """
+    Check whether CIM_StorageHardwareID exists, if not, create new one.
+    """
+    cim_inits = smis_common.EnumerateInstances(
+        'CIM_StorageHardwareID',
+        PropertyList=_CIM_INIT_PROS)
+
+    if len(cim_inits):
+        for cim_init in cim_inits:
+            if init_id_of_cim_init(cim_init) == init_id:
+                return cim_init.path
+
+    # Create new one
+    dmtf_id_type = None
+    if init_type == AccessGroup.INIT_TYPE_WWPN:
+        dmtf_id_type = dmtf.ID_TYPE_WWPN
+    elif init_type == AccessGroup.INIT_TYPE_ISCSI_IQN:
+        dmtf_id_type = dmtf.ID_TYPE_ISCSI
+    else:
+        raise LsmError(
+            ErrorNumber.PLUGIN_BUG,
+            "cim_init_path_check_or_create(): Got invalid init_type: %d" %
+            init_type)
+
+    cim_hwms = smis_common.cim_hwms_of_sys_id(system_id)
+    in_params = {
+        'StorageID': init_id,
+        'IDType': dmtf_id_type,
+    }
+    return smis_common.invoke_method_wait(
+        'CreateStorageHardwareID', cim_hwms.path, in_params,
+        out_key='HardwareID', expect_class='CIM_StorageHardwareID')

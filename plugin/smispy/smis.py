@@ -1390,41 +1390,6 @@ class Smis(IStorageAreaNetwork):
 
         return search_property(rc, search_key, search_value)
 
-    def _cim_init_path_check_or_create(self, system_id, init_id, init_type):
-        """
-        Check whether CIM_StorageHardwareID exists, if not, create new one.
-        """
-        cim_init = self._get_cim_instance_by_id(
-            'Initiator', init_id, raise_error=False)
-
-        if cim_init:
-            return cim_init.path
-
-        # Create new one
-        dmtf_id_type = _lsm_init_type_to_dmtf(init_type)
-        if dmtf_id_type is None:
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "SMI-S Plugin does not support init_type %d" %
-                           init_type)
-
-        return self._cim_init_path_create(system_id, init_id, dmtf_id_type)
-
-    def _cim_init_path_create(self, system_id, init_id, dmtf_id_type):
-        """
-        Create a CIM_StorageHardwareID.
-        Return CIMInstanceName
-        Raise error if failed. Return if pass.
-        """
-        cim_hwms = self._c.cim_hwms_of_sys_id(system_id)
-
-        in_params = {'StorageID': init_id,
-                     'IDType': pywbem.Uint16(dmtf_id_type)}
-
-        # CreateStorageHardwareID does not allow ASYNC
-        return self._c.invoke_method_wait(
-            'CreateStorageHardwareID', cim_hwms.path, in_params,
-            out_key='HardwareID', expect_class='CIM_StorageHardwareID')
-
     def _ag_init_add_group(self, access_group, init_id, init_type):
         cim_sys = smis_sys.cim_sys_of_sys_id(self._c, access_group.system_id)
 
@@ -1445,8 +1410,8 @@ class Smis(IStorageAreaNetwork):
             if smis_ag.init_id_of_cim_init(exist_cim_init) == init_id:
                 return copy.deepcopy(access_group)
 
-        cim_init_path = self._cim_init_path_check_or_create(
-            access_group.system_id, init_id, init_type)
+        cim_init_path = smis_ag.cim_init_path_check_or_create(
+            self._c, access_group.system_id, init_id, init_type)
 
         cim_gmms = self._c.cim_gmms_of_sys_id(access_group.system_id)
 
@@ -1501,8 +1466,8 @@ class Smis(IStorageAreaNetwork):
         # Check to see if we have this initiator already, if not we
         # create it and then add to the view.
 
-        self._cim_init_path_check_or_create(
-            access_group.system_id, init_id, init_type)
+        smis_ag.cim_init_path_check_or_create(
+            self._c, access_group.system_id, init_id, init_type)
 
         cim_ccs = self._c.cim_ccs_of_sys_id(access_group.system_id)
 
@@ -2093,8 +2058,8 @@ class Smis(IStorageAreaNetwork):
                            "iSCSI target port, which not allow creating "
                            "iSCSI IQN access group")
 
-        cim_init_path = self._cim_init_path_check_or_create(
-            system.id, init_id, init_type)
+        cim_init_path = smis_ag.cim_init_path_check_or_create(
+            self._c, system.id, init_id, init_type)
 
         # Create CIM_InitiatorMaskingGroup
         cim_gmms = self._c.cim_gmms_of_sys_id(system.id)
