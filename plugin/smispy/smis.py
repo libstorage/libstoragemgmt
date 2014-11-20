@@ -128,9 +128,6 @@ class Smis(IStorageAreaNetwork):
     SMI-S plug-ing which exposes a small subset of the overall provided
     functionality of SMI-S
     """
-    _INVOKE_MAX_LOOP_COUNT = 60
-    _INVOKE_CHECK_INTERVAL = 5
-
     _JOB_ERROR_HANDLER = {
         SmisCommon.JOB_RETRIEVE_VOLUME_CREATE:
         smis_vol.volume_create_error_handler,
@@ -586,21 +583,6 @@ class Smis(IStorageAreaNetwork):
             retrieve_data=SmisCommon.JOB_RETRIEVE_VOLUME_CREATE,
             method_data=volume_name)
 
-    def _poll(self, msg, job):
-        if job:
-            while True:
-                (s, percent, i) = self.job_status(job)
-
-                if s == JobStatus.INPROGRESS:
-                    time.sleep(0.25)
-                elif s == JobStatus.COMPLETE:
-                    self.job_free(job)
-                    return i
-                else:
-                    raise LsmError(
-                        ErrorNumber.PLUGIN_BUG,
-                        msg + ", job error code= " + str(s))
-
     def _detach_netapp_e(self, vol, sync):
         #Get the Configuration service for the system we are interested in.
         cim_scs = self._c.cim_scs_of_sys_id(vol.system_id)
@@ -608,10 +590,8 @@ class Smis(IStorageAreaNetwork):
         in_params = {'Operation': pywbem.Uint16(2),
                      'Synchronization': sync.path}
 
-        job_id = self._c.invoke_method(
-            'ModifySynchronization', cim_scs.path, in_params)[0]
-
-        self._poll("ModifySynchronization, detach", job_id)
+        self._c.invoke_method_wait(
+            'ModifySynchronization', cim_scs.path, in_params)
 
     def _detach(self, vol, sync):
         if self._c.is_netappe():
@@ -623,10 +603,8 @@ class Smis(IStorageAreaNetwork):
             in_params = {'Operation': pywbem.Uint16(8),
                          'Synchronization': sync.path}
 
-            job_id = self._c.invoke_method(
-                'ModifyReplicaSynchronization', cim_rs.path, in_params)[0]
-
-            self._poll("ModifyReplicaSynchronization, detach", job_id)
+            self._c.invoke_method_wait(
+                'ModifyReplicaSynchronization', cim_rs.path, in_params)
 
     @staticmethod
     def _cim_name_match(a, b):
@@ -906,20 +884,15 @@ class Smis(IStorageAreaNetwork):
 
         cim_dev_mg_path = None
         try:
-            (rc, out) = self._c.InvokeMethod('CreateGroup', cim_gmms_path,
-                                             **in_params)
-        except CIMError as ce:
-            if ce[0] == pywbem.CIM_ERR_FAILED:
-                cim_dev_mg_path = self._check_exist_cim_dev_mg(
-                    name, cim_gmms_path, cim_vol_path, vol_id)
-                if cim_dev_mg_path is None:
-                    raise
-            else:
-                raise
-        if cim_dev_mg_path is None:
-            cim_dev_mg_path = self._wait_invoke(
-                rc, out, out_key='MaskingGroup',
+            cim_dev_mg_path = self._c.invoke_method_wait(
+                'CreateGroup', cim_gmms_path, in_params,
+                out_key='MaskingGroup',
                 expect_class='CIM_TargetMaskingGroup')
+        except (LsmError, CIMError):
+            cim_dev_mg_path = self._check_exist_cim_dev_mg(
+                name, cim_gmms_path, cim_vol_path, vol_id)
+            if cim_dev_mg_path is None:
+                raise
 
         return cim_dev_mg_path
 
@@ -954,20 +927,13 @@ class Smis(IStorageAreaNetwork):
 
         cim_tgt_mg_path = None
         try:
-            (rc, out) = self._c.InvokeMethod('CreateGroup', cim_gmms_path,
-                                             **in_params)
-        except CIMError as ce:
-            if ce[0] == pywbem.CIM_ERR_FAILED:
-                cim_tgt_mg_path = self._check_exist_cim_tgt_mg(name)
-                if cim_tgt_mg_path is None:
-                    raise
-            else:
+            cim_tgt_mg_path = self._c.invoke_method_wait(
+                'CreateGroup', cim_gmms_path, in_params,
+                out_key='MaskingGroup', expect_class='CIM_TargetMaskingGroup')
+        except (LsmError, CIMError):
+            cim_tgt_mg_path = self._check_exist_cim_tgt_mg(name)
+            if cim_tgt_mg_path is None:
                 raise
-
-        if cim_tgt_mg_path is None:
-            cim_tgt_mg_path = self._wait_invoke(
-                rc, out, out_key='MaskingGroup',
-                expect_class='CIM_TargetMaskingGroup')
 
         return cim_tgt_mg_path
 
@@ -980,11 +946,9 @@ class Smis(IStorageAreaNetwork):
             'DeviceMaskingGroup': cim_dev_mg_path,
         }
 
-        (rc, out) = self._c.InvokeMethod('CreateMaskingView', cim_gmms_path,
-                                         **in_params)
-
-        return self._wait_invoke(
-            rc, out, out_key='ProtocolController',
+        return self._c.invoke_method_wait(
+            'CreateMaskingView', cim_gmms_path, in_params,
+            out_key='ProtocolController',
             expect_class='CIM_SCSIProtocolController')
 
     def _volume_mask_group(self, access_group, volume, flags=0):
@@ -1066,10 +1030,8 @@ class Smis(IStorageAreaNetwork):
                     'MaskingGroup': cim_dev_mg_path,
                     'Members': [cim_vol_path],
                 }
-                (rc, out) = self._c.InvokeMethod(
-                    'AddMembers',
-                    cim_gmms.path, **in_params)
-                self._wait_invoke(rc, out)
+                self._c.invoke_method_wait(
+                    'AddMembers', cim_gmms.path, in_params)
         return None
 
     @handle_cim_errors
@@ -1107,10 +1069,7 @@ class Smis(IStorageAreaNetwork):
                      'ProtocolControllers': [cim_spc_path],
                      'DeviceAccesses': [dmtf.CTRL_CONF_SRV_DA_RW]}
 
-        (rc, out) = self._c.InvokeMethod(
-            'ExposePaths',
-            cim_ccs.path, **in_params)
-        self._wait_invoke(rc, out)
+        self._c.invoke_method_wait('ExposePaths', cim_ccs.path, in_params)
         return None
 
     def _volume_unmask_group(self, access_group, volume):
@@ -1193,19 +1152,15 @@ class Smis(IStorageAreaNetwork):
                             in_params = {
                                 'ProtocolController': cim_spc_path,
                             }
-                            (rc, out) = self._c.InvokeMethod(
-                                'DeleteMaskingView',
-                                cim_gmms.path, **in_params)
-                            self._wait_invoke(rc, out)
+                            self._c.invoke_method_wait(
+                                'DeleteMaskingView', cim_gmms.path, in_params)
 
                     in_params = {
                         'MaskingGroup': cim_dev_mg_path,
                         'Members': [cim_vol_path],
                     }
-                    (rc, out) = self._c.InvokeMethod(
-                        'RemoveMembers',
-                        cim_gmms.path, **in_params)
-                    self._wait_invoke(rc, out)
+                    self._c.invoke_method_wait(
+                        'RemoveMembers', cim_gmms.path, in_params)
 
         return None
 
@@ -1233,10 +1188,7 @@ class Smis(IStorageAreaNetwork):
         hide_params = {'LUNames': [cim_vol['Name']],
                        'ProtocolControllers': [cim_spc_path]}
 
-        (rc, out) = self._c.InvokeMethod('HidePaths', cim_ccs.path,
-                                         **hide_params)
-        self._wait_invoke(rc, out)
-
+        self._c.invoke_method_wait('HidePaths', cim_ccs.path, hide_params)
         return None
 
     def _is_access_group(self, cim_spc):
@@ -1474,12 +1426,10 @@ class Smis(IStorageAreaNetwork):
         in_params = {'StorageID': init_id,
                      'IDType': pywbem.Uint16(dmtf_id_type)}
 
-        (rc, out) = self._c.InvokeMethod('CreateStorageHardwareID',
-                                         cim_hwms.path, **in_params)
         # CreateStorageHardwareID does not allow ASYNC
-        return self._wait_invoke(
-            rc, out, out_key='HardwareID',
-            expect_class='CIM_StorageHardwareID')
+        return self._c.invoke_method_wait(
+            'CreateStorageHardwareID', cim_hwms.path, in_params,
+            out_key='HardwareID', expect_class='CIM_StorageHardwareID')
 
     def _ag_init_add_group(self, access_group, init_id, init_type):
         cim_sys = smis_sys.cim_sys_of_sys_id(self._c, access_group.system_id)
@@ -1510,12 +1460,10 @@ class Smis(IStorageAreaNetwork):
             'MaskingGroup': cim_init_mg_path,
             'Members': [cim_init_path],
         }
-        (rc, out) = self._c.InvokeMethod('AddMembers',
-                                         cim_gmms.path, **in_params)
 
-        new_cim_init_mg_path = self._wait_invoke(
-            rc, out, out_key='MaskingGroup',
-            expect_class='CIM_InitiatorMaskingGroup')
+        new_cim_init_mg_path = self._c.invoke_method_wait(
+            'AddMembers', cim_gmms.path, in_params,
+            out_key='MaskingGroup', expect_class='CIM_InitiatorMaskingGroup')
         cim_init_mg_pros = smis_ag.cim_init_mg_pros()
         new_cim_init_mg = self._c.GetInstance(
             new_cim_init_mg_path, PropertyList=cim_init_mg_pros,
@@ -1567,10 +1515,9 @@ class Smis(IStorageAreaNetwork):
         in_params = {'InitiatorPortIDs': [init_id],
                      'ProtocolControllers': [cim_spc_path]}
 
-        (rc, out) = self._c.InvokeMethod('ExposePaths',
-                                         cim_ccs.path, **in_params)
-        cim_spc_path = self._wait_invoke(
-            rc, out, out_key='ProtocolControllers', flag_out_array=True,
+        cim_spc_path = self._c.invoke_method_wait(
+            'ExposePaths', cim_ccs.path, in_params,
+            out_key='ProtocolControllers', flag_out_array=True,
             expect_class='CIM_SCSIProtocolController')
 
         cim_spc_pros = smis_ag.cim_spc_pros()
@@ -1613,10 +1560,7 @@ class Smis(IStorageAreaNetwork):
             'Members': [cim_init.path],
         }
 
-        (rc, out) = self._c.InvokeMethod(
-            'RemoveMembers',
-            cim_gmms.path, **in_params)
-        self._wait_invoke(rc, out)
+        self._c.invoke_method_wait('RemoveMembers', cim_gmms.path, in_params)
 
         cim_init_mg_pros = smis_ag.cim_init_mg_pros()
         cim_init_mg = self._c.GetInstance(
@@ -1650,10 +1594,8 @@ class Smis(IStorageAreaNetwork):
 
         hide_params = {'InitiatorPortIDs': [init_id],
                        'ProtocolControllers': [cim_spc_path]}
-        (rc, out) = self._c.InvokeMethod(
-            'HidePaths', cim_ccs.path, **hide_params)
+        self._c.invoke_method_wait('HidePaths', cim_ccs.path, hide_params)
 
-        self._wait_invoke(rc, out)
         return None
 
     @handle_cim_errors
@@ -2042,71 +1984,6 @@ class Smis(IStorageAreaNetwork):
 
         return search_property(rc, search_key, search_value)
 
-    def _wait_invoke(self, rc, out, out_key=None, expect_class=None,
-                     flag_out_array=False,):
-        """
-        Return out[out_key] if found rc == SmisCommon.SNIA_INVOKE_OK.
-        For rc == SmisCommon.SNIA_INVOKE_ASYNC, we check every
-        Smis._INVOKE_CHECK_INTERVAL
-        seconds until done. Then return association via CIM_AffectedJobElement
-        Return CIM_InstanceName
-        Assuming only one CIM_InstanceName will get.
-        """
-        if rc == SmisCommon.SNIA_INVOKE_OK:
-            if out_key is None:
-                return None
-            if out_key in out:
-                if flag_out_array:
-                    if len(out[out_key]) != 1:
-                        raise LsmError(ErrorNumber.PLUGIN_BUG,
-                                       "_wait_invoke(), %s is not length 1: %s"
-                                       % (out_key, out.items()))
-                    return out[out_key][0]
-                return out[out_key]
-            else:
-                raise LsmError(ErrorNumber.PLUGIN_BUG,
-                               "_wait_invoke(), %s not exist in out %s" %
-                               (out_key, out.items()))
-        elif rc == SmisCommon.SNIA_INVOKE_ASYNC:
-            cim_job_path = out['Job']
-            loop_counter = 0
-            job_pros = ['JobState', 'PercentComplete', 'ErrorDescription',
-                        'OperationalStatus']
-            cim_xxxs_path = []
-            while(loop_counter <= Smis._INVOKE_MAX_LOOP_COUNT):
-                cim_job = self._c.GetInstance(cim_job_path,
-                                              PropertyList=job_pros,
-                                              LocalOnly=False)
-                job_state = cim_job['JobState']
-                if job_state in (dmtf.JOB_STATE_NEW, dmtf.JOB_STATE_STARTING,
-                                 dmtf.JOB_STATE_RUNNING):
-                    loop_counter += 1
-                    time.sleep(Smis._INVOKE_CHECK_INTERVAL)
-                    continue
-                elif job_state == dmtf.JOB_STATE_COMPLETED:
-                    if expect_class is None:
-                        return None
-                    cim_xxxs_path = self._c.AssociatorNames(
-                        cim_job.path,
-                        AssocClass='CIM_AffectedJobElement',
-                        ResultClass=expect_class)
-                else:
-                    raise LsmError(ErrorNumber.PLUGIN_BUG,
-                                   "_wait_invoke(): Got unknown job state "
-                                   "%d: %s" % (job_state, cim_job.items()))
-                if len(cim_xxxs_path) != 1:
-                    raise LsmError(ErrorNumber.PLUGIN_BUG,
-                                   "_wait_invoke(): got unexpected(not 1) "
-                                   "return from CIM_AffectedJobElement: "
-                                   "%s, out: %s, job: %s" %
-                                   (cim_xxxs_path, out.items(),
-                                    cim_job.items()))
-                return cim_xxxs_path[0]
-        else:
-            raise LsmError(ErrorNumber.PLUGIN_BUG,
-                           "_wait_invoke(): Got unexpected rc code "
-                           "%d, out: %s" % (rc, out.items()))
-
     def _cim_pep_path_of_fc_tgt(self, cim_fc_tgt_path):
         """
         Return CIMInstanceName of CIM_SCSIProtocolEndpoint of CIM_FCPort
@@ -2168,10 +2045,7 @@ class Smis(IStorageAreaNetwork):
                 'MaskingGroup': cim_dev_mg.path,
                 'Members': [cim_vol_path],
             }
-            (rc, out) = self._c.InvokeMethod(
-                'AddMembers',
-                cim_gmms_path, **in_params)
-            self._wait_invoke(rc, out)
+            self._c.invoke_method_wait('AddMembers', cim_gmms_path, in_params)
             return cim_dev_mg.path
 
         return None
@@ -2238,13 +2112,10 @@ class Smis(IStorageAreaNetwork):
         cim_init_mg_pros = smis_ag.cim_init_mg_pros()
 
         try:
-            (rc, out) = self._c.InvokeMethod(
-                'CreateGroup', cim_gmms.path, **in_params)
-
-            cim_init_mg_path = self._wait_invoke(
-                rc, out, out_key='MaskingGroup',
+            cim_init_mg_path = self._c.invoke_method_wait(
+                'CreateGroup', cim_gmms.path, in_params,
+                out_key='MaskingGroup',
                 expect_class='CIM_InitiatorMaskingGroup')
-
         except (LsmError, CIMError):
             # Check possible failure
             # 1. Initiator already exist in other group.
@@ -2317,8 +2188,5 @@ class Smis(IStorageAreaNetwork):
             'Force': True,
         }
 
-        (rc, out) = self._c.InvokeMethod('DeleteGroup', cim_gmms.path,
-                                         **in_params)
-
-        self._wait_invoke(rc, out)
+        self._c.invoke_method_wait('DeleteGroup', cim_gmms.path, in_params)
         return None
