@@ -219,7 +219,7 @@ class SmisCommon(object):
                 SmisCommon.SNIA_BLK_ROOT_PROFILE: SmisCommon.SMIS_SPEC_VER_1_4,
                 SmisCommon.SNIA_BLK_SRVS_PROFILE: SmisCommon.SMIS_SPEC_VER_1_4,
                 SmisCommon.SNIA_DISK_LITE_PROFILE:
-                  SmisCommon.SMIS_SPEC_VER_1_4,
+                SmisCommon.SMIS_SPEC_VER_1_4,
             }
             self._vendor_product = SmisCommon._PRODUCT_MEGARAID
         else:
@@ -384,7 +384,6 @@ class SmisCommon(object):
                     d.write("REQ:\n%s\n\nREPLY:\n%s\n" %
                             (self._wbem_conn.last_request,
                              self._wbem_conn.last_reply))
-
 
     def invoke_method(self, cmd, cim_path, in_params, out_handler=None,
                       error_handler=None, retrieve_data=None,
