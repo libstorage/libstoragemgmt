@@ -371,6 +371,27 @@ class SmisCommon(object):
             method_data = tmp_list[2]
         return (md5_str, retrieve_data, method_data)
 
+    def _dump_wbem_xml(self, file_prefix):
+        """
+        When debugging issues with providers it's helpful to have
+        the xml request/reply to give to provider developers.
+        """
+        if self._debug_path is not None:
+            if not os.path.exists(self._debug_path):
+                os.makedirs(self._debug_path)
+
+            if os.path.isdir(self._debug_path):
+                debug_fn = "%s_%s" % (
+                    file_prefix, datetime.datetime.now().isoformat())
+                debug_full = os.path.join(
+                    self._debug_path, debug_fn)
+
+                # Dump the request & reply to a file
+                with open(debug_full, 'w') as d:
+                    d.write("REQ:\n%s\n\nREPLY:\n%s\n" %
+                            (self.last_request, self.last_reply))
+
+
     def invoke_method(self, cmd, cim_path, in_params, out_handler=None,
                       error_handler=None, retrieve_data=None,
                       method_data=None):
@@ -421,24 +442,8 @@ class SmisCommon(object):
                     ErrorNumber.NO_SUPPORT,
                     'SMI-S error code indicates operation not supported')
             else:
-                # When debugging issues with providers it's helpful to have
-                # the xml request/reply to give to provider developers.
                 try:
-                    if self._debug_path is not None:
-                        if not os.path.exists(self._debug_path):
-                            os.makedirs(self._debug_path)
-
-                        if os.path.isdir(self._debug_path):
-                            debug_fn = "%s_%s" % (
-                                cmd, datetime.datetime.now().isoformat())
-                            debug_full = os.path.join(
-                                self._debug_path, debug_fn)
-
-                            # Dump the request & reply to a file
-                            with open(debug_full, 'w') as d:
-                                d.write("REQ:\n%s\n\nREPLY:\n%s\n" %
-                                        (self.last_request, self.last_reply))
-
+                    self._dump_wbem_xml(cmd)
                 except Exception:
                     tb = traceback.format_exc()
                     raise LsmError(ErrorNumber.PLUGIN_BUG,
