@@ -217,6 +217,18 @@ def init_id_of_cim_init(cim_init):
         (cim_init.path, cim_init.items()))
 
 
+def lsm_init_id_to_snia(lsm_init_id):
+    """
+    If lsm_init_id is a WWPN, convert it to SNIA format:
+        [0-9A-F]{16}
+    If not, return original directly.
+    """
+    val, init_type, init_id = AccessGroup.initiator_id_verify(lsm_init_id)
+    if val and init_type == AccessGroup.INIT_TYPE_WWPN:
+        return lsm_init_id.replace(':', '').upper()
+    return lsm_init_id
+
+
 def cim_init_path_check_or_create(smis_common, system_id, init_id, init_type):
     """
     Check whether CIM_StorageHardwareID exists, if not, create new one.

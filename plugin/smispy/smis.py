@@ -85,18 +85,6 @@ from smis_common import SmisCommon
 #   Group M&M       SNIA SMI-S 'Group Masking and Mapping' profile
 
 
-def _lsm_init_id_to_snia(lsm_init_id):
-    """
-    If lsm_init_id is a WWPN, convert it to SNIA format:
-        [0-9A-F]{16}
-    If not, return directly.
-    """
-    val, init_type, init_id = AccessGroup.initiator_id_verify(lsm_init_id)
-    if val and init_type == AccessGroup.INIT_TYPE_WWPN:
-        return lsm_init_id.replace(':', '').upper()
-    return lsm_init_id
-
-
 def _lsm_tgt_port_type_of_cim_fc_tgt(cim_fc_tgt):
     """
     We are assuming we got CIM_FCPort. Caller should make sure of that.
@@ -1294,7 +1282,7 @@ class Smis(IStorageAreaNetwork):
     @handle_cim_errors
     def access_group_initiator_add(self, access_group, init_id, init_type,
                                    flags=0):
-        init_id = _lsm_init_id_to_snia(init_id)
+        init_id = smis_ag.lsm_init_id_to_snia(init_id)
         mask_type = smis_cap.mask_type(self._c, raise_error=True)
 
         if mask_type == smis_cap.MASK_TYPE_GROUP:
@@ -1399,7 +1387,7 @@ class Smis(IStorageAreaNetwork):
             raise LsmError(ErrorNumber.NO_SUPPORT,
                            "SMI-S plugin does not support "
                            "access_group_initiator_delete() against NetApp-E")
-        init_id = _lsm_init_id_to_snia(init_id)
+        init_id = smis_ag.lsm_init_id_to_snia(init_id)
         mask_type = smis_cap.mask_type(self._c, raise_error=True)
 
         if mask_type == smis_cap.MASK_TYPE_GROUP:
@@ -1882,7 +1870,7 @@ class Smis(IStorageAreaNetwork):
             1. Create CIM_InitiatorMaskingGroup
         """
         org_init_id = init_id
-        init_id = _lsm_init_id_to_snia(init_id)
+        init_id = smis_ag.lsm_init_id_to_snia(init_id)
 
         self._c.profile_check(SmisCommon.SNIA_GROUP_MASK_PROFILE,
                               SmisCommon.SMIS_SPEC_VER_1_5,
