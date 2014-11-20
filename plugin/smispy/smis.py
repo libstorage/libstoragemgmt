@@ -114,15 +114,6 @@ def _lsm_tgt_port_type_of_cim_fc_tgt(cim_fc_tgt):
     return TargetPort.TYPE_FC
 
 
-def _lsm_init_type_to_dmtf(init_type):
-    if init_type == AccessGroup.INIT_TYPE_WWPN:
-        return dmtf.ID_TYPE_WWPN
-    if init_type == AccessGroup.INIT_TYPE_ISCSI_IQN:
-        return dmtf.ID_TYPE_ISCSI
-    raise LsmError(ErrorNumber.NO_SUPPORT,
-                   "Does not support provided init_type: %d" % init_type)
-
-
 class Smis(IStorageAreaNetwork):
     """
     SMI-S plug-ing which exposes a small subset of the overall provided
@@ -136,37 +127,6 @@ class Smis(IStorageAreaNetwork):
     def __init__(self):
         self._c = None
         self.tmo = 0
-
-    def _get_cim_instance_by_id(self, class_type, requested_id,
-                                property_list=None, raise_error=True):
-        """
-        Find out the CIM_XXXX Instance which holding the requested_id
-        Return None when error and raise_error is False
-        """
-        class_name = Smis._cim_class_name_of(class_type)
-        error_number = Smis._not_found_error_of_class(class_type)
-        id_pros = Smis._property_list_of_id(class_type, property_list)
-
-        if property_list is None:
-            property_list = id_pros
-        else:
-            property_list = merge_list(property_list, id_pros)
-
-        cim_xxxs = self._c.EnumerateInstances(
-            class_name, PropertyList=property_list)
-        org_requested_id = requested_id
-        if class_type == 'Job':
-            (requested_id, ignore, ignore) = SmisCommon.parse_job_id(
-                requested_id)
-        for cim_xxx in cim_xxxs:
-            if self._id(class_type, cim_xxx) == requested_id:
-                return cim_xxx
-        if raise_error is False:
-            return None
-
-        raise LsmError(error_number,
-                       "Cannot find %s Instance with " % class_name +
-                       "%s ID '%s'" % (class_type, org_requested_id))
 
     @handle_cim_errors
     def plugin_register(self, uri, password, timeout, flags=0):
@@ -294,105 +254,6 @@ class Smis(IStorageAreaNetwork):
             else:
                 raise
         return status, percent_complete, completed_item
-
-    @staticmethod
-    def _cim_class_name_of(class_type):
-        if class_type == 'Volume':
-            return 'CIM_StorageVolume'
-        if class_type == 'Pool':
-            return 'CIM_StoragePool'
-        if class_type == 'Disk':
-            return 'CIM_DiskDrive'
-        if class_type == 'Job':
-            return 'CIM_ConcreteJob'
-        if class_type == 'AccessGroup':
-            return 'CIM_SCSIProtocolController'
-        if class_type == 'Initiator':
-            return 'CIM_StorageHardwareID'
-        raise LsmError(ErrorNumber.PLUGIN_BUG,
-                       "Smis._cim_class_name_of() got unknown " +
-                       "class_type %s" % class_type)
-
-    @staticmethod
-    def _not_found_error_of_class(class_type):
-        if class_type == 'Volume':
-            return ErrorNumber.NOT_FOUND_VOLUME
-        if class_type == 'Pool':
-            return ErrorNumber.NOT_FOUND_POOL
-        if class_type == 'Job':
-            return ErrorNumber.NOT_FOUND_JOB
-        if class_type == 'AccessGroup':
-            return ErrorNumber.NOT_FOUND_ACCESS_GROUP
-        if class_type == 'Initiator':
-            return ErrorNumber.INVALID_ARGUMENT
-        raise LsmError(ErrorNumber.PLUGIN_BUG,
-                       "Smis._cim_class_name_of() got unknown " +
-                       "class_type %s" % class_type)
-
-    @staticmethod
-    def _property_list_of_id(class_type, extra_properties=None):
-        """
-        Return a PropertyList which the ID of current class is basing on
-        """
-        rc = []
-        if class_type == 'Volume':
-            rc = ['SystemName', 'DeviceID']
-        elif class_type == 'SystemChild':
-            rc = ['SystemName']
-        elif class_type == 'Disk':
-            rc = ['SystemName', 'DeviceID']
-        elif class_type == 'Job':
-            rc = ['InstanceID']
-        elif class_type == 'Initiator':
-            rc = ['StorageID']
-        else:
-            raise LsmError(ErrorNumber.PLUGIN_BUG,
-                           "Smis._property_list_of_id() got unknown " +
-                           "class_type %s" % class_type)
-
-        if extra_properties:
-            rc = merge_list(rc, extra_properties)
-        return rc
-
-    def _sys_id_child(self, cim_xxx):
-        """
-        Find out the system id of Pool/Volume/Disk/AccessGroup/Initiator
-        Currently, we just use SystemName of cim_xxx
-        """
-        return self._id('SystemChild', cim_xxx)
-
-    def _id(self, class_type, cim_xxx):
-        """
-        Return the ID of certain class.
-        When ID is based on two or more properties, we use MD5 hash of them.
-        If not, return the property value.
-        """
-        property_list = Smis._property_list_of_id(class_type)
-        for key in property_list:
-            if key not in cim_xxx:
-                cim_xxx = self._c.GetInstance(cim_xxx.path,
-                                              PropertyList=property_list,
-                                              LocalOnly=False)
-                break
-
-        id_str = ''
-        for key in property_list:
-            if key not in cim_xxx:
-                cim_class_name = ''
-                if class_type == 'SystemChild':
-                    cim_class_name = str(cim_xxx.classname)
-                else:
-                    cim_class_name = Smis._cim_class_name_of(class_type)
-                raise LsmError(ErrorNumber.NO_SUPPORT,
-                               "%s %s " % (cim_class_name, cim_xxx.path) +
-                               "does not have property %s " % str(key) +
-                               "calculate out %s id" % class_type)
-            else:
-                id_str += cim_xxx[key]
-        if len(property_list) == 1 and class_type != 'Job':
-            return id_str
-        else:
-            return md5(id_str)
 
     def _new_vol_from_name(self, out):
         """
