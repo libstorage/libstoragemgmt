@@ -361,12 +361,6 @@ class Smis(IStorageAreaNetwork):
         """
         return self._id('SystemChild', cim_xxx)
 
-    def _init_id(self, cim_init):
-        """
-        Retrieve Initiator ID from CIM_StorageHardwareID
-        """
-        return self._id('Initiator', cim_init)
-
     def _id(self, class_type, cim_xxx):
         """
         Return the ID of certain class.
@@ -1448,7 +1442,7 @@ class Smis(IStorageAreaNetwork):
 
         # Check whether already added.
         for exist_cim_init in exist_cim_inits:
-            if self._init_id(exist_cim_init) == init_id:
+            if smis_ag.init_id_of_cim_init(exist_cim_init) == init_id:
                 return copy.deepcopy(access_group)
 
         cim_init_path = self._cim_init_path_check_or_create(
@@ -1501,7 +1495,7 @@ class Smis(IStorageAreaNetwork):
             self._c, cim_spc_path)
 
         for exist_cim_init in exist_cim_inits:
-            if self._init_id(exist_cim_init) == init_id:
+            if smis_ag.init_id_of_cim_init(exist_cim_init) == init_id:
                 return copy.deepcopy(access_group)
 
         # Check to see if we have this initiator already, if not we
@@ -1538,7 +1532,7 @@ class Smis(IStorageAreaNetwork):
 
         cim_init = None
         for cur_cim_init in cur_cim_inits:
-            if self._init_id(cur_cim_init) == init_id:
+            if smis_ag.init_id_of_cim_init(cur_cim_init) == init_id:
                 cim_init = cur_cim_init
                 break
 

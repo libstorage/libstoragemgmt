@@ -41,10 +41,10 @@ def _init_id_and_type_of(cim_inits):
     init_types = []
     for cim_init in cim_inits:
         if cim_init['IDType'] == dmtf.ID_TYPE_WWPN:
-            init_ids.append(cim_init['StorageID'])
+            init_ids.append(init_id_of_cim_init(cim_init))
             init_types.append(AccessGroup.INIT_TYPE_WWPN)
         if cim_init['IDType'] == dmtf.ID_TYPE_ISCSI:
-            init_ids.append(cim_init['StorageID'])
+            init_ids.append(init_id_of_cim_init(cim_init))
             init_types.append(AccessGroup.INIT_TYPE_ISCSI_IQN)
         # Skip if not a iscsi initiator IQN or WWPN.
         continue
@@ -203,3 +203,15 @@ def lsm_ag_to_cim_init_mg_path(smis_common, lsm_ag):
     caller should make sure that.
     """
     return lsm_ag_to_cim_spc_path(smis_common, lsm_ag)
+
+
+def init_id_of_cim_init(cim_init):
+    """
+    Return CIM_StorageHardwareID['StorageID']
+    """
+    if 'StorageID' in cim_init:
+        return cim_init['StorageID']
+    raise LsmError(
+        ErrorNumber.PLUGIN_BUG,
+        "init_id_of_cim_init() got cim_init without 'StorageID' %s: %s" %
+        (cim_init.path, cim_init.items()))
