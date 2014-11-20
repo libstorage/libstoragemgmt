@@ -297,22 +297,11 @@ class SmisCommon(object):
         params['LocalOnly'] = False
         return self._wbem_conn.GetInstance(InstanceName, **params)
 
-    def InvokeMethod(self, MethodName, ObjectName, **params):
-        return self._wbem_conn.InvokeMethod(MethodName, ObjectName, **params)
-
     def DeleteInstance(self, InstanceName, **params):
         return self._wbem_conn.DeleteInstance(InstanceName, **params)
 
     def References(self, ObjectName, **params):
         return self._wbem_conn.References(ObjectName, **params)
-
-    @property
-    def last_request(self):
-        return self._wbem_conn.last_request
-
-    @property
-    def last_reply(self):
-        return self._wbem_conn.last_reply
 
     def is_megaraid(self):
         return self._vendor_product == SmisCommon._PRODUCT_MEGARAID
@@ -393,7 +382,8 @@ class SmisCommon(object):
                 # Dump the request & reply to a file
                 with open(debug_full, 'w') as d:
                     d.write("REQ:\n%s\n\nREPLY:\n%s\n" %
-                            (self.last_request, self.last_reply))
+                            (self._wbem_conn.last_request,
+                             self._wbem_conn.last_reply))
 
 
     def invoke_method(self, cmd, cim_path, in_params, out_handler=None,
@@ -427,7 +417,8 @@ class SmisCommon(object):
         if retrieve_data is None:
             retrieve_data = SmisCommon.JOB_RETRIEVE_NONE
         try:
-            (rc, out) = self.InvokeMethod(cmd, cim_path, **in_params)
+            (rc, out) = self._wbem_conn.InvokeMethod(
+                cmd, cim_path, **in_params)
 
             # Check to see if operation is done
             if rc == SmisCommon.SNIA_INVOKE_OK:
@@ -476,7 +467,7 @@ class SmisCommon(object):
             CIMInstanceName # expect_class
         If flag_out_array is True, return the first element of out[out_key].
         """
-        (rc, out) = self.InvokeMethod(cmd, cim_path, **in_params)
+        (rc, out) = self._wbem_conn.InvokeMethod(cmd, cim_path, **in_params)
 
         if rc == SmisCommon.SNIA_INVOKE_OK:
             if out_key is None:
