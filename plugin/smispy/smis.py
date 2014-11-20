@@ -241,25 +241,6 @@ class Smis(IStorageAreaNetwork):
     def plugin_info(self, flags=0):
         return "Generic SMI-S support", VERSION
 
-    @staticmethod
-    def _job_completed_ok(status):
-        """
-        Given a concrete job instance, check the operational status.  This
-        is a little convoluted as different SMI-S proxies return the values in
-        different positions in list :-)
-        """
-        rc = False
-        op = status['OperationalStatus']
-
-        if (len(op) > 1 and
-            ((op[0] == dmtf.OP_STATUS_OK and
-              op[1] == dmtf.OP_STATUS_COMPLETED) or
-             (op[0] == dmtf.OP_STATUS_COMPLETED and
-              op[1] == dmtf.OP_STATUS_OK))):
-            rc = True
-
-        return rc
-
     @handle_cim_errors
     def job_status(self, job_id, flags=0):
         """
@@ -298,7 +279,7 @@ class Smis(IStorageAreaNetwork):
                 status = JobStatus.COMPLETE
                 percent_complete = 100
 
-                if Smis._job_completed_ok(cim_job):
+                if SmisCommon.cim_job_completed_ok(cim_job):
                     if retrieve_data == SmisCommon.JOB_RETRIEVE_VOLUME or \
                        retrieve_data == SmisCommon.JOB_RETRIEVE_VOLUME_CREATE:
                         completed_item = self._new_vol_from_job(cim_job)

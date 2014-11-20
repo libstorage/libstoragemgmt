@@ -524,3 +524,22 @@ class SmisCommon(object):
         """
         return self._cim_srv_of_sys_id(
             'CIM_StorageHardwareIDManagementService', sys_id, raise_error)
+
+    @staticmethod
+    def cim_job_completed_ok(status):
+        """
+        Given a concrete job instance, check the operational status.  This
+        is a little convoluted as different SMI-S proxies return the values in
+        different positions in list :-)
+        """
+        rc = False
+        op = status['OperationalStatus']
+
+        if (len(op) > 1 and
+            ((op[0] == dmtf.OP_STATUS_OK and
+              op[1] == dmtf.OP_STATUS_COMPLETED) or
+             (op[0] == dmtf.OP_STATUS_COMPLETED and
+              op[1] == dmtf.OP_STATUS_OK))):
+            rc = True
+
+        return rc
