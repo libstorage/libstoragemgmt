@@ -1015,6 +1015,37 @@ static int access_group_list(lsm_plugin_ptr c,
     return rc;
 }
 
+static int _find_dup_init(struct plugin_data *pd, const char *initiator_id)
+{
+    GList *all_aags = g_hash_table_get_values(pd->access_groups);
+    guint y;
+    int rc = 1;
+    for(y = 0; y < g_list_length(all_aags); ++y) {
+        struct allocated_ag *cur_aag =
+            (struct allocated_ag *) g_list_nth_data(all_aags, y);
+        if (cur_aag){
+            lsm_string_list *inits =
+                lsm_access_group_initiator_id_get(cur_aag->ag);
+            int i;
+            for(i = 0; i < lsm_string_list_size(inits); ++i) {
+                const char *cur_init_id = lsm_string_list_elem_get(
+                    inits, i);
+                if(strcmp(initiator_id, cur_init_id) == 0 ) {
+                    rc = 0;
+                    break;
+                }
+            }
+            if (rc == 0){
+                break;
+            }else{
+                cur_aag = (struct allocated_ag *) g_list_next(all_aags);
+            }
+        }
+    }
+    g_list_free(all_aags);
+    return rc;
+}
+
 static int access_group_create(lsm_plugin_ptr c,
                                 const char *name,
                                 const char *initiator_id,
@@ -1033,30 +1064,35 @@ static int access_group_create(lsm_plugin_ptr c,
                         g_hash_table_lookup(pd->access_groups, id);
 
     if( !find ) {
-        lsm_string_list *initiators = lsm_string_list_alloc(1);
-        if( initiators && id &&
-            (LSM_ERR_OK == lsm_string_list_elem_set(initiators, 0, initiator_id))) {
-            ag = lsm_access_group_record_alloc(id, name, initiators, id_type,
-                                                lsm_system_id_get(system),
-                                                NULL);
-            aag = alloc_allocated_ag(ag, id_type);
-            if( ag && aag ) {
-                g_hash_table_insert(pd->access_groups, (gpointer)id,
-                                        (gpointer)aag);
-                *access_group = lsm_access_group_record_copy(ag);
+        // check initiator conflict
+        if ( _find_dup_init(pd, initiator_id) == 0 ){
+            rc = lsm_log_error_basic(
+                c, LSM_ERR_EXISTS_INITIATOR,
+                "Requested initiator is used by other access group");
+        }else{
+            lsm_string_list *initiators = lsm_string_list_alloc(1);
+            if( initiators && id &&
+                (LSM_ERR_OK ==
+                 lsm_string_list_elem_set(initiators, 0, initiator_id))) {
+                ag = lsm_access_group_record_alloc(
+                    id, name, initiators, id_type, lsm_system_id_get(system),
+                    NULL);
+                aag = alloc_allocated_ag(ag, id_type);
+                if( ag && aag ) {
+                    g_hash_table_insert(pd->access_groups, (gpointer)id,
+                                (gpointer)aag);
+                    *access_group = lsm_access_group_record_copy(ag);
+                } else {
+                    free_allocated_ag(aag);
+                    lsm_access_group_record_free(ag);
+                    rc = lsm_log_error_basic(c, LSM_ERR_NO_MEMORY, "ENOMEM");
+                }
             } else {
-                free_allocated_ag(aag);
-                lsm_access_group_record_free(ag);
                 rc = lsm_log_error_basic(c, LSM_ERR_NO_MEMORY, "ENOMEM");
             }
-        } else {
-            rc = lsm_log_error_basic(c, LSM_ERR_NO_MEMORY,
-                                    "ENOMEM");
+            /* Initiators is copied when allocating a group record */
+            lsm_string_list_free(initiators);
         }
-
-        /* Initiators is copied when allocating a group record */
-        lsm_string_list_free(initiators);
-
     } else {
         rc = lsm_log_error_basic(c, LSM_ERR_NAME_CONFLICT,
                                     "access group with same id found");
