@@ -816,11 +816,23 @@ class Ontap(IStorageAreaNetwork, INfs):
         if self.sys_info.id != system.id:
             raise LsmError(ErrorNumber.NOT_FOUND_SYSTEM,
                            "System %s not found" % system.id)
-        cur_groups = self.access_groups()
-        for cg in cur_groups:
-            if cg.name == name:
-                raise LsmError(ErrorNumber.NAME_CONFLICT,
-                               "Access group with the same name exists!")
+
+        # NetApp sometimes(real hardware 8.0.2 and simulator 8.1.1) does not
+        # raise error for initiator conflict.
+        #
+        # Precheck for initiator conflict
+        cur_lsm_groups = self.access_groups()
+        for cur_lsm_group in cur_lsm_groups:
+            if cur_lsm_group.name == name:
+                raise LsmError(
+                    ErrorNumber.NAME_CONFLICT,
+                    "Requested access group name is already used by other "
+                    "access group")
+            if init_id in cur_lsm_group.init_ids:
+                raise LsmError(
+                    ErrorNumber.EXISTS_INITIATOR,
+                    "Requested initiator is already used by other "
+                    "access group")
 
         if init_type == AccessGroup.INIT_TYPE_ISCSI_IQN:
             self.f.igroup_create(name, 'iscsi')
@@ -838,7 +850,7 @@ class Ontap(IStorageAreaNetwork, INfs):
             if g.name == name:
                 return g
 
-        raise LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
+        raise LsmError(ErrorNumber.PLUGIN_BUG,
                        "access_group_create(): Unable to find access group "
                        "%s just created!" % name)
 
