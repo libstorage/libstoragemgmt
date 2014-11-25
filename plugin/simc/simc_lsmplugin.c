@@ -1277,8 +1277,14 @@ static int volume_unmask(lsm_plugin_ptr c,
                                     lsm_access_group_id_get(find->ag));
 
         if( grants ) {
-            g_hash_table_remove(grants, lsm_volume_id_get(volume));
-            rc = LSM_ERR_OK;
+            char *vol_id = g_hash_table_lookup(
+                grants, lsm_volume_id_get(volume));
+            if( vol_id ) {
+                g_hash_table_remove(grants, lsm_volume_id_get(volume));
+                rc = LSM_ERR_OK;
+            }else{
+                rc = LSM_ERR_NO_STATE_CHANGE;
+            }
         }
 
     } else {
