@@ -807,8 +807,6 @@ class Smis(IStorageAreaNetwork):
         target ports(all FC and FCoE port for access_group.init_type == WWPN,
         and the same to iSCSI)
         """
-        cim_sys = smis_sys.cim_sys_of_sys_id(self._c, access_group.system_id)
-
         cim_init_mg_path = smis_ag.lsm_ag_to_cim_init_mg_path(
             self._c, access_group)
 
@@ -839,6 +837,9 @@ class Smis(IStorageAreaNetwork):
 
         if len(cim_spcs_path) == 0:
             # We have to create the SPC and dev_mg now.
+            cim_sys = smis_sys.cim_sys_of_sys_id(
+                self._c, access_group.system_id)
+
             cim_tgt_mg_path = self._cim_tgt_mg_path_create(
                 cim_sys.path, cim_gmms.path, access_group.name,
                 access_group.init_type)
@@ -853,18 +854,16 @@ class Smis(IStorageAreaNetwork):
             # many tgt_mg. It's seldom use, but possible.
             for cim_spc_path in cim_spcs_path:
                 # Check whether already masked
-                cim_vol_pros = smis_vol.cim_vol_id_pros()
-                cim_vols = self._c.Associators(
-                    cim_spc_path,
-                    AssocClass='CIM_ProtocolControllerForUnit',
-                    ResultClass='CIM_StorageVolume',
-                    PropertyList=cim_vol_pros)
+                cim_vols = smis_ag.cim_vols_masked_to_cim_spc_path(
+                    self._c, cim_spc_path, smis_vol.cim_vol_id_pros())
                 for cur_cim_vol in cim_vols:
                     if smis_vol.vol_id_of_cim_vol(cur_cim_vol) == volume.id:
-                        # Masked.
-                        return None
+                        raise LsmError(
+                            ErrorNumber.NO_STATE_CHANGE,
+                            "Volume already masked to requested access group")
 
-                # spc one-one map to dev_mg is mandatory in 1.5r6
+                # SNIA require each cim_spc only have one cim_dev_mg
+                # associated
                 cim_dev_mg_path = self._c.AssociatorNames(
                     cim_spc_path,
                     AssocClass='CIM_AssociatedDeviceMaskingGroup',
@@ -893,6 +892,25 @@ class Smis(IStorageAreaNetwork):
             return self._volume_mask_group(access_group, volume, flags)
         return self._volume_mask_old(access_group, volume, flags)
 
+    def _cim_vol_masked_to_spc(self, cim_spc_path, vol_id, property_list=None):
+        """
+        Check whether provided volume id is masked to cim_spc_path.
+        If so, return cim_vol, or return None
+        """
+        if property_list is None:
+            property_list = smis_vol.cim_vol_id_pros()
+        else:
+            property_list = merge_list(
+                property_list, smis_vol.cim_vol_id_pros())
+
+        masked_cim_vols = smis_ag.cim_vols_masked_to_cim_spc_path(
+            self._c, cim_spc_path, property_list)
+        for masked_cim_vol in masked_cim_vols:
+            if smis_vol.vol_id_of_cim_vol(masked_cim_vol) == vol_id:
+                return masked_cim_vol
+
+        return None
+
     def _volume_mask_old(self, access_group, volume, flags):
         cim_spc_path = smis_ag.lsm_ag_to_cim_spc_path(self._c, access_group)
 
@@ -902,6 +920,12 @@ class Smis(IStorageAreaNetwork):
                            "Access group %s is empty(no member), " %
                            access_group.id +
                            "will not do volume_mask()")
+
+        # Pre-Check: Already masked
+        if self._cim_vol_masked_to_spc(cim_spc_path, volume.id):
+            raise LsmError(
+                ErrorNumber.NO_STATE_CHANGE,
+                "Volume already masked to requested access group")
 
         cim_ccs = self._c.cim_ccs_of_sys_id(volume.system_id)
 
@@ -922,7 +946,6 @@ class Smis(IStorageAreaNetwork):
         If SupportedDeviceGroupFeatures does not allow empty
         DeviceMaskingGroup in SPC, we remove SPC and DeviceMaskingGroup.
         """
-        cim_vol_path = smis_vol.lsm_vol_to_cim_vol_path(self._c, volume)
         cim_sys = smis_sys.cim_sys_of_sys_id(self._c, volume.system_id)
 
         cim_gmms_cap = self._c.Associators(
@@ -951,59 +974,68 @@ class Smis(IStorageAreaNetwork):
                     "DeviceMaskingGroup in SPC. But target SMI-S provider "
                     "does not support any of these")
 
-        cim_gmms = self._c.cim_gmms_of_sys_id(volume.system_id)
-
-        cim_spcs_path = self._c.AssociatorNames(
+        cim_vol_path = smis_vol.lsm_vol_to_cim_vol_path(self._c, volume)
+        vol_cim_spcs_path = self._c.AssociatorNames(
             cim_vol_path,
             AssocClass='CIM_ProtocolControllerForUnit',
             ResultClass='CIM_SCSIProtocolController')
-        if len(cim_spcs_path) == 0:
-            # Already unmasked
-            return None
 
-        flag_init_mg_found = False
-        cur_cim_init_mg = None
-        # Searching for CIM_DeviceMaskingGroup
-        for cim_spc_path in cim_spcs_path:
-            cim_init_mgs = self._c.Associators(
-                cim_spc_path,
-                AssocClass='CIM_AssociatedInitiatorMaskingGroup',
-                ResultClass='CIM_InitiatorMaskingGroup',
-                PropertyList=['InstanceID'])
-            for cim_init_mg in cim_init_mgs:
-                if md5(cim_init_mg['InstanceID']) == access_group.id:
-                    flag_init_mg_found = True
+        if len(vol_cim_spcs_path) == 0:
+            # Already unmasked
+            raise LsmError(
+                ErrorNumber.NO_STATE_CHANGE,
+                "Volume is not masked to requested access group")
+
+        cim_init_mg_path = smis_ag.lsm_ag_to_cim_init_mg_path(
+            self._c, access_group)
+        ag_cim_spcs_path = self._c.AssociatorNames(
+            cim_init_mg_path,
+            AssocClass='CIM_AssociatedInitiatorMaskingGroup',
+            ResultClass='CIM_SCSIProtocolController')
+
+        found_cim_spc_path = None
+        for ag_cim_spc_path in ag_cim_spcs_path:
+            for vol_cim_spc_path in vol_cim_spcs_path:
+                if vol_cim_spc_path == ag_cim_spc_path:
+                    found_cim_spc_path = vol_cim_spc_path
                     break
 
-            if flag_init_mg_found:
-                cim_dev_mgs_path = self._c.AssociatorNames(
-                    cim_spc_path,
-                    AssocClass='CIM_AssociatedDeviceMaskingGroup',
-                    ResultClass='CIM_DeviceMaskingGroup')
+        if found_cim_spc_path is None:
+            # Already unmasked
+            raise LsmError(
+                ErrorNumber.NO_STATE_CHANGE,
+                "Volume is not masked to requested access group")
 
-                for cim_dev_mg_path in cim_dev_mgs_path:
-                    if flag_empty_dev_in_spc is False:
-                        # We have to check whether this volume is the last
-                        # one in the DeviceMaskingGroup, if so, we have to
-                        # delete the SPC
-                        cur_cim_vols_path = self._c.AssociatorNames(
-                            cim_dev_mg_path,
-                            AssocClass='CIM_OrderedMemberOfCollection',
-                            ResultClass='CIM_StorageVolume')
-                        if len(cur_cim_vols_path) == 1:
-                            # Now, delete SPC
-                            in_params = {
-                                'ProtocolController': cim_spc_path,
-                            }
-                            self._c.invoke_method_wait(
-                                'DeleteMaskingView', cim_gmms.path, in_params)
+        # SNIA require each cim_spc only have one cim_dev_mg associated.
+        cim_dev_mg_path = self._c.AssociatorNames(
+            found_cim_spc_path,
+            AssocClass='CIM_AssociatedDeviceMaskingGroup',
+            ResultClass='CIM_DeviceMaskingGroup')[0]
 
-                    in_params = {
-                        'MaskingGroup': cim_dev_mg_path,
-                        'Members': [cim_vol_path],
-                    }
-                    self._c.invoke_method_wait(
-                        'RemoveMembers', cim_gmms.path, in_params)
+        cim_gmms = self._c.cim_gmms_of_sys_id(volume.system_id)
+
+        if flag_empty_dev_in_spc is False:
+            # We have to check whether this volume is the last
+            # one in the DeviceMaskingGroup, if so, we have to
+            # delete the SPC
+            cur_cim_vols_path = self._c.AssociatorNames(
+                cim_dev_mg_path,
+                AssocClass='CIM_OrderedMemberOfCollection',
+                ResultClass='CIM_StorageVolume')
+            if len(cur_cim_vols_path) == 1:
+                # last volume, should delete SPC
+                in_params = {
+                    'ProtocolController': found_cim_spc_path,
+                }
+                self._c.invoke_method_wait(
+                    'DeleteMaskingView', cim_gmms.path, in_params)
+
+        in_params = {
+            'MaskingGroup': cim_dev_mg_path,
+            'Members': [cim_vol_path],
+        }
+        self._c.invoke_method_wait(
+            'RemoveMembers', cim_gmms.path, in_params)
 
         return None
 
@@ -1022,11 +1054,16 @@ class Smis(IStorageAreaNetwork):
 
     def _volume_unmask_old(self, access_group, volume):
         cim_ccs = self._c.cim_ccs_of_sys_id(volume.system_id)
-
-        cim_vol_path = smis_vol.lsm_vol_to_cim_vol_path(self._c, volume)
-        cim_vol = self._c.GetInstance(cim_vol_path, PropertyList=['Name'])
-
         cim_spc_path = smis_ag.lsm_ag_to_cim_spc_path(self._c, access_group)
+
+        # Pre-check: not masked
+        cim_vol = self._cim_vol_masked_to_spc(
+            cim_spc_path, volume.id, ['Name'])
+
+        if cim_vol is None:
+            raise LsmError(
+                ErrorNumber.NO_STATE_CHANGE,
+                "Volume is not masked to requested access group")
 
         hide_params = {'LUNames': [cim_vol['Name']],
                        'ProtocolControllers': [cim_spc_path]}
@@ -1114,19 +1151,13 @@ class Smis(IStorageAreaNetwork):
 
             for cim_spc_path in cim_spcs_path:
                 cim_vols.extend(
-                    self._c.Associators(
-                        cim_spc_path,
-                        AssocClass='CIM_ProtocolControllerForUnit',
-                        ResultClass='CIM_StorageVolume',
-                        PropertyList=cim_vol_pros))
+                    smis_ag.cim_vols_masked_to_cim_spc_path(
+                        self._c, cim_spc_path, cim_vol_pros))
         else:
             cim_spc_path = smis_ag.lsm_ag_to_cim_spc_path(
                 self._c, access_group)
-            cim_vols = self._c.Associators(
-                cim_spc_path,
-                AssocClass='CIM_ProtocolControllerForUnit',
-                ResultClass='CIM_StorageVolume',
-                PropertyList=cim_vol_pros)
+            cim_vols = smis_ag.cim_vols_masked_to_cim_spc_path(
+                self._c, cim_spc_path, cim_vol_pros)
         rc = []
         for cim_vol in cim_vols:
             pool_id = smis_pool.pool_id_of_cim_vol(self._c, cim_vol.path)

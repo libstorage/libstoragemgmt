@@ -262,3 +262,24 @@ def cim_init_path_check_or_create(smis_common, system_id, init_id, init_type):
     return smis_common.invoke_method_wait(
         'CreateStorageHardwareID', cim_hwms.path, in_params,
         out_key='HardwareID', expect_class='CIM_StorageHardwareID')
+
+
+def cim_vols_masked_to_cim_spc_path(smis_common, cim_spc_path,
+                                   property_list=None):
+    """
+    Use this association to find out masked volume for certain cim_spc:
+        CIM_SCSIProtocolController
+                |
+                |   CIM_ProtocolControllerForUnit
+                v
+        CIM_StorageVolume
+    Return a list of CIMInstance
+    """
+    if property_list is None:
+        property_list = []
+
+    return smis_common.Associators(
+        cim_spc_path,
+        AssocClass='CIM_ProtocolControllerForUnit',
+        ResultClass='CIM_StorageVolume',
+        PropertyList=property_list)
