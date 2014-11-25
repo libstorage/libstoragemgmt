@@ -243,6 +243,18 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
             }])
         return tgt_masks
 
+    def _is_masked(self, init_id, vol_id):
+        """
+        Check whether volume is masked to certain initiator.
+        Return Tuple (True,_mask_infos)  or (False, _mask_infos)
+        """
+        ag_id = md5(init_id)
+        tgt_mask_infos = self._mask_infos()
+        for tgt_mask in tgt_mask_infos:
+            if tgt_mask['vol_id'] == vol_id and tgt_mask['ag_id'] == ag_id:
+                return True, tgt_mask_infos
+        return False, tgt_mask_infos
+
     def volume_mask(self, access_group, volume, flags=0):
         if len(access_group.init_ids) == 0:
             raise LsmError(ErrorNumber.INVALID_ARGUMENT,
@@ -257,13 +269,13 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
             raise LsmError(ErrorNumber.NO_SUPPORT,
                            "Targetd only support ISCSI initiator group type")
 
-        ag_id = md5(access_group.init_ids[0])
-        vol_id = volume.id
-        # Return when found already masked.
-        tgt_masks = self._mask_infos()
-        if list(x for x in tgt_masks
-                if x['vol_id'] == vol_id and x['ag_id'] == ag_id):
-            return None
+        (is_masked, tgt_masks) = self._is_masked(
+            access_group.init_ids[0], volume.id)
+
+        if is_masked:
+            raise LsmError(
+                ErrorNumber.NO_STATE_CHANGE,
+                "Volume is already masked to requested access group")
 
         # find lowest unused lun ID
         used_lun_ids = [x['lun_id'] for x in tgt_masks]
@@ -283,10 +295,15 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
 
     @handle_errors
     def volume_unmask(self, volume, access_group, flags=0):
-        self._jsonrequest("export_destroy",
-                          dict(pool=volume.pool_id,
-                               vol=volume.name,
-                               initiator_wwn=access_group.init_ids[0]))
+        # Pre-check if already unmasked
+        if not self._is_masked(access_group.init_ids[0], volume.id)[0]:
+            raise LsmError(ErrorNumber.NO_STATE_CHANGE,
+                           "Volume is not masked to requested access group")
+        else:
+            self._jsonrequest("export_destroy",
+                              dict(pool=volume.pool_id,
+                                   vol=volume.name,
+                                   initiator_wwn=access_group.init_ids[0]))
         return None
 
     @handle_errors
