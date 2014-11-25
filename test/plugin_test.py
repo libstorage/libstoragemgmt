@@ -711,8 +711,29 @@ class TestPlugin(unittest.TestCase):
                     if vol is not None and chose_ag is not None:
                         self.c.volume_mask(chose_ag, vol)
                         self._masking_state(cap, chose_ag, vol, True)
+
+                        # Test duplicate call for NO_STATE_CHANGE error
+                        flag_dup_error_found = False
+                        try:
+                            self.c.volume_mask(chose_ag, vol)
+                        except LsmError as lsm_error:
+                            self.assertTrue(
+                                lsm_error.code == ErrorNumber.NO_STATE_CHANGE)
+                            flag_dup_error_found = True
+                        self.assertTrue(flag_dup_error_found == True)
+
                         self.c.volume_unmask(chose_ag, vol)
                         self._masking_state(cap, chose_ag, vol, False)
+
+                        # Test duplicate call for NO_STATE_CHANGE error
+                        flag_dup_error_found = False
+                        try:
+                            self.c.volume_unmask(chose_ag, vol)
+                        except LsmError as lsm_error:
+                            self.assertTrue(
+                                lsm_error.code == ErrorNumber.NO_STATE_CHANGE)
+                            flag_dup_error_found = True
+                        self.assertTrue(flag_dup_error_found == True)
 
                     if vol:
                         self._volume_delete(vol)
