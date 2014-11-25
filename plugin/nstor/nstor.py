@@ -659,6 +659,14 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         """
         Allows an access group to access a volume.
         """
+        # Pre-check for already masked.
+        if list(v.id for v in
+                self.volumes_accessible_by_access_group(access_group)
+                if v.id == volume.id):
+            raise LsmError(
+                ErrorNumber.NO_STATE_CHANGE,
+                "Volume is already masked to requested access group")
+
         self._volume_mask(access_group.name, volume.name)
         return
 
