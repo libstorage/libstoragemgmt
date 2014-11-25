@@ -112,6 +112,13 @@ def supported(cap, capability):
 
 class TestProxy(object):
 
+    # Errors that we are forcing to occur
+    not_logging = [lsm.ErrorNumber.NO_SUPPORT,
+                   lsm.ErrorNumber.NAME_CONFLICT,
+                   lsm.ErrorNumber.NO_STATE_CHANGE,
+                   lsm.ErrorNumber.IS_MASKED,
+                   lsm.ErrorNumber.EXISTS_INITIATOR]
+
     # Hash of all calls that can be async
     async_calls = {'volume_create': (unicode, lsm.Volume),
                    'volume_resize': (unicode, lsm.Volume),
@@ -185,8 +192,10 @@ class TestProxy(object):
                 TestProxy.log_result(_proxy_method_name,
                                      dict(rc=True, stack_trace=None, msg=None))
             except lsm.LsmError as le:
-                if le.code != lsm.ErrorNumber.NO_SUPPORT and \
-                        le.code != lsm.ErrorNumber.NAME_CONFLICT:
+                # We are forcing some types of error, for these we won't log
+                # but will allow the test case asserts to check to make sure
+                # we actually got them.
+                if le.code not in self.not_logging:
                     TestProxy.log_result(
                         _proxy_method_name,
                         dict(rc=False,
