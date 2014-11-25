@@ -143,6 +143,7 @@ class FilerError(Exception):
     EVDISK_ERROR_VDISK_EXPORTED = 9013  # LUN is currently mapped
     EVDISK_ERROR_VDISK_NOT_ENABLED = 9014   # LUN is not online
     EVDISK_ERROR_VDISK_NOT_DISABLED = 9015  # LUN is not offline
+    EVDISK_ERROR_NO_SUCH_LUNMAP = 9016      # LUN is already unmapped
     EVDISK_ERROR_INITGROUP_MAPS_EXIST = 9029    # LUN maps for this initiator
                                                 # group exist
     EVDISK_ERROR_SIZE_TOO_LARGE = 9034      # LUN size too large.

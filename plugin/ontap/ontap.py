@@ -764,14 +764,23 @@ class Ontap(IStorageAreaNetwork, INfs):
             if fe.errno == na.FilerError.EVDISK_ERROR_INITGROUP_HAS_VDISK:
                 raise LsmError(
                     ErrorNumber.NO_STATE_CHANGE,
-                    "Volume already masked to defined access group")
+                    "Volume is already masked to requested access group")
             else:
                 raise
         return None
 
     @handle_ontap_errors
     def volume_unmask(self, access_group, volume, flags=0):
-        self.f.lun_unmap(access_group.name, _lsm_vol_to_na_vol_path(volume))
+        try:
+            self.f.lun_unmap(
+                access_group.name, _lsm_vol_to_na_vol_path(volume))
+        except na.FilerError as filer_error:
+            if filer_error.errno == na.FilerError.EVDISK_ERROR_NO_SUCH_LUNMAP:
+                raise LsmError(
+                    ErrorNumber.NO_STATE_CHANGE,
+                    "Volume is not masked to requested access group")
+            else:
+                raise
         return None
 
     @staticmethod
