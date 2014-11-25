@@ -776,6 +776,36 @@ class TestPlugin(unittest.TestCase):
                                          "deleted to not show up in the "
                                          "access group list!")
 
+    def _test_ag_create_dup(self, lsm_ag, lsm_system):
+        """
+        Test NAME_CONFLICT and EXISTS_INITIATOR of access_group_create().
+        """
+        flag_got_expected_error = False
+        new_init_id = None
+        if lsm_ag.init_type == lsm.AccessGroup.INIT_TYPE_ISCSI_IQN:
+            new_init_id = 'iqn.1994-05.com.domain:01.' + rs(None, 6)
+        else:
+            new_init_id = r_fcpn()
+        try:
+            self.c.access_group_create(
+                lsm_ag.name, new_init_id, lsm_ag.init_type, lsm_system)
+        except LsmError as lsm_error:
+            self.assertTrue(lsm_error.code == ErrorNumber.NAME_CONFLICT)
+            flag_got_expected_error = True
+
+        self.assertTrue(flag_got_expected_error)
+
+        flag_got_expected_error = False
+        try:
+            self.c.access_group_create(
+                rs('ag'), lsm_ag.init_ids[0], lsm_ag.init_type, lsm_system)
+        except LsmError as lsm_error:
+            self.assertTrue(lsm_error.code == ErrorNumber.EXISTS_INITIATOR)
+            flag_got_expected_error = True
+
+        self.assertTrue(flag_got_expected_error)
+
+
     def _test_ag_create_delete(self, cap, s):
         ag = None
         if supported(cap, [lsm.Capabilities.ACCESS_GROUPS,
@@ -784,6 +814,7 @@ class TestPlugin(unittest.TestCase):
                 cap, rs('ag'), s, lsm.AccessGroup.INIT_TYPE_ISCSI_IQN)
             if ag is not None and \
                supported(cap, [lsm.Capabilities.ACCESS_GROUP_DELETE]):
+                self._test_ag_create_dup(ag, s)
                 self._delete_access_group(ag)
 
         if supported(cap, [lsm.Capabilities.ACCESS_GROUPS,
@@ -792,6 +823,7 @@ class TestPlugin(unittest.TestCase):
                 cap, rs('ag'), s, lsm.AccessGroup.INIT_TYPE_WWPN)
             if ag is not None and \
                supported(cap, [lsm.Capabilities.ACCESS_GROUP_DELETE]):
+                self._test_ag_create_dup(ag, s)
                 self._delete_access_group(ag)
 
     def test_access_group_create_delete(self):
