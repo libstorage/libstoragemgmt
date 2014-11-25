@@ -1958,42 +1958,28 @@ class Smis(IStorageAreaNetwork):
         except (LsmError, CIMError):
             # Check possible failure
             # 1. Initiator already exist in other group.
-            #    If that group hold the same name as requested.
-            #    We consider as a duplicate call, return the exist one.
-            exist_cim_init_mgs = self._c.Associators(
+            exist_cim_init_mg_paths = self._c.AssociatorNames(
                 cim_init_path,
                 AssocClass='CIM_MemberOfCollection',
-                ResultClass='CIM_InitiatorMaskingGroup',
-                PropertyList=cim_init_mg_pros)
+                ResultClass='CIM_InitiatorMaskingGroup')
 
-            if len(exist_cim_init_mgs) != 0:
-                for exist_cim_init_mg in exist_cim_init_mgs:
-                    if exist_cim_init_mg['ElementName'] == name:
-                        return smis_ag.cim_init_mg_to_lsm_ag(
-                            self._c, exist_cim_init_mg, system.id)
-
-                # Name does not match.
+            if len(exist_cim_init_mg_paths) != 0:
                 raise LsmError(ErrorNumber.EXISTS_INITIATOR,
                                "Initiator %s " % org_init_id +
-                               "already exist in other access group "
-                               "with name %s and ID: %s" %
-                               (exist_cim_init_mgs[0]['ElementName'],
-                                md5(exist_cim_init_mgs[0]['InstanceID'])))
+                               "already exist in other access group")
+
             # 2. Requested name used by other group.
-            #    Since 1) already checked whether any group containing
-            #    requested init_id, now, it's surly a conflict.
             exist_cim_init_mgs = self._cim_init_mg_of(
                 system.id, property_list=['ElementName'])
             for exist_cim_init_mg in exist_cim_init_mgs:
                 if exist_cim_init_mg['ElementName'] == name:
                     raise LsmError(ErrorNumber.NAME_CONFLICT,
                                    "Requested name %s is used by " % name +
-                                   "another access group, but not containing "
-                                   "requested initiator %s" % org_init_id)
+                                   "another access group")
             raise
 
         cim_init_mg = self._c.GetInstance(
-            cim_init_mg_path, PropertyList=cim_init_mg_pros, LocalOnly=False)
+            cim_init_mg_path, PropertyList=cim_init_mg_pros)
         return smis_ag.cim_init_mg_to_lsm_ag(self._c, cim_init_mg, system.id)
 
     @handle_cim_errors
