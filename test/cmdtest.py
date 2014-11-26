@@ -223,14 +223,6 @@ def volumes_accessible_by_access_group(ag_id):
     call([cmd, 'list', '--type', 'volumes', '--ag', ag_id])
 
 
-def volume_accessible_by_initiator(iqn2):
-    call([cmd, 'volumes-accessible-initiator', '--init', iqn2])
-
-
-def initiators_granted_to_volume(vol):
-    call([cmd, 'initiators-granted-volume', '--vol', vol])
-
-
 def access_groups_granted_to_volume(vol_id):
     call([cmd, 'list', '--type', 'access_groups', '--vol', vol_id])
 
@@ -355,16 +347,6 @@ def get_systems():
     return system_list
 
 
-def initiator_grant(initiator_id, vol_id):
-#initiator_grant(self, initiator_id, initiator_type, volume, access,
-#   flags = 0):
-    call([cmd,
-          'access-grant',
-          '--init', initiator_id,
-          '--vol', vol_id,
-          '--access', 'RW'])
-
-
 def initiator_chap(initiator):
     call([cmd, 'iscsi-chap',
           '--init', initiator])
@@ -376,10 +358,6 @@ def initiator_chap(initiator):
           '--init', initiator, '--in-user', "foo",
           '--in-pass', "bar", '--out-user', "foo",
           '--out-pass', "bar"])
-
-
-def initiator_revoke(initiator_id, vol_id):
-    call([cmd, 'access-revoke', '--init', initiator_id, '--vol', vol_id])
 
 
 def capabilities(system_id):
