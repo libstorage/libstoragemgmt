@@ -299,8 +299,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         c.set(Capabilities.VOLUME_CHILD_DEPENDENCY)
         c.set(Capabilities.VOLUME_CHILD_DEPENDENCY_RM)
 
-        #tasleson, not working at the moment for me.
-        #c.set(Capabilities.VOLUME_ISCSI_CHAP_AUTHENTICATION)
+        c.set(Capabilities.VOLUME_ISCSI_CHAP_AUTHENTICATION)
 
         return c
 
