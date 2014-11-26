@@ -834,6 +834,26 @@ class TestPlugin(unittest.TestCase):
                 self._test_ag_create_dup(ag, s)
                 self._delete_access_group(ag)
 
+    def test_iscsi_chap(self):
+        ag = None
+
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+
+            if supported(cap, [Cap.ACCESS_GROUPS,
+                               Cap.ACCESS_GROUP_CREATE_ISCSI_IQN,
+                               Cap.VOLUME_ISCSI_CHAP_AUTHENTICATION]):
+                ag = self._create_access_group(
+                    cap, rs('ag'), s, lsm.AccessGroup.INIT_TYPE_ISCSI_IQN)
+
+                self.c.iscsi_chap_auth(ag.init_ids[0], 'foo', rs(None, 12),
+                                       None, None)
+
+                if ag is not None and \
+                   supported(cap, [Cap.ACCESS_GROUP_DELETE]):
+                    self._test_ag_create_dup(ag, s)
+                    self._delete_access_group(ag)
+
     def test_access_group_create_delete(self):
         for s in self.systems:
             cap = self.c.capabilities(s)
