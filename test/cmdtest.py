@@ -567,6 +567,9 @@ def test_mapping(cap, system_id):
     if cap['ACCESS_GROUP_CREATE_ISCSI_IQN']:
         ag_id = access_group_create(iqn1, system_id)
 
+        if cap['VOLUME_ISCSI_CHAP_AUTHENTICATION']:
+            initiator_chap(iqn1)
+
         if cap['ACCESS_GROUP_INITIATOR_ADD_ISCSI_IQN']:
             access_group_initiator_add(ag_id, iqn2)
 
