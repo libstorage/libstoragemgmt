@@ -143,8 +143,8 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                                       [str(pool), ""])
 
             pools.append(Pool(pool_info['name'], pool_info['name'],
-                              Pool.ELEMENT_TYPE_VOLUME | \
-                              Pool.ELEMENT_TYPE_VOLUME_THIN | \
+                              Pool.ELEMENT_TYPE_VOLUME |
+                              Pool.ELEMENT_TYPE_VOLUME_THIN |
                               Pool.ELEMENT_TYPE_FS,
                               0,
                               NexentaStor._to_bytes(pool_info['size']),
@@ -163,7 +163,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             pool_name = NexentaStor._get_pool_id(fs)
             if pool_name == 'syspool':
                 continue
-            if not pool_name in pools:
+            if pool_name not in pools:
                 pool_info = self._request("get_child_props", "volume",
                                           [str(fs), ""])
                 pools[pool_name] = pool_info
