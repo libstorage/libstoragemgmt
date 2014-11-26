@@ -324,12 +324,7 @@ cmds = (
              'like LUN Masking',
         args=[
             dict(vol_id_opt),
-        ],
-        optional=[
             dict(ag_id_opt),
-            dict(name='--init', metavar='<INIT_ID>', action='append',
-                 help='Initiator ID, only used when access-group-create is '
-                      'not supported'),
         ],
     ),
 
@@ -1239,20 +1234,8 @@ class CmdLine:
         out(self.c.volume_replicate_range_block_size(s))
 
     def volume_mask(self, args):
-        if not args.ag and not args.init:
-            raise ArgError('Neither --ag nor --init is defined. '
-                           'Please specify at lease one')
-        if args.ag and args.init:
-            raise ArgError('In volume-mask command, --init is '
-                           'conflicting with --ag')
         vol = _get_item(self.c.volumes(), args.vol, 'Volume ID')
-        ag = None
-        if args.ag:
-            ag = _get_item(self.c.access_groups(), args.ag, 'Access Group ID')
-
-        if args.init:
-            (init_id, init_type) = parse_convert_init(args.init)
-            ag = AccessGroup(0, '', [init_id], init_type, vol.system_id)
+        ag = _get_item(self.c.access_groups(), args.ag, 'Access Group ID')
         self.c.volume_mask(ag, vol)
 
     def volume_unmask(self, args):
