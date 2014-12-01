@@ -1174,6 +1174,10 @@ class TestPlugin(unittest.TestCase):
 
         self.assertTrue(got_exception)
 
+    def test_close(self):
+        tmp_c = lsm.Client(TestPlugin.URI, TestPlugin.PASSWORD)
+        tmp_c.close()
+
 def dump_results():
     """
     unittest.main exits when done so we need to register this handler to
