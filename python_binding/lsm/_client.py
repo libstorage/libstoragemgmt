@@ -15,12 +15,10 @@
 #
 # Author: tasleson
 
-import time
 import os
-import unittest
 from lsm import (Volume, NfsExport, Capabilities, Pool, System,
                  Disk, AccessGroup, FileSystem, FsSnapshot,
-                 uri_parse, LsmError, JobStatus, ErrorNumber,
+                 uri_parse, LsmError, ErrorNumber,
                  INetworkAttachedStorage, TargetPort)
 
 from _common import return_requires as _return_requires
@@ -973,104 +971,3 @@ class Client(INetworkAttachedStorage):
         """
         _check_search_key(search_key, TargetPort.SUPPORTED_SEARCH_KEYS)
         return self._tp.rpc('target_ports', _del_self(locals()))
-
-
-class _TestClient(unittest.TestCase):
-    def wait_to_finish(self, job, vol):
-
-        if vol is not None:
-            return vol
-        else:
-            (status, percent, volume) = self.c.job_status(job)
-            print 'Job status:', status, ' percent complete=', percent
-
-            while status == JobStatus.INPROGRESS:
-                time.sleep(1)
-                (status, percent, volume) = self.c.job_status(job)
-                print 'Job status:', status, ' percent complete=', percent
-
-            self.c.job_free(job)
-
-            if status == JobStatus.COMPLETE:
-                self.assertTrue(volume is not None)
-
-        return volume
-
-    def setUp(self):
-        #Most of the uri is not needed for the simulator
-        #Remember that the setup and teardown methods are run for each test
-        #case!
-        self.c = Client('sim://username@host:5988/?namespace=root/foo')
-
-    def test_tmo(self):
-        expected = 40000
-
-        self.c.time_out_set(expected)
-        tmo = self.c.time_out_get()
-        self.assertTrue(tmo == expected)
-
-    def test_job_errors(self):
-        self.assertRaises(LsmError, self.c.job_free, 0)
-        self.assertRaises(LsmError, self.c.job_status, 0)
-
-    def test_pools(self):
-        self.pools = self.c.pools()
-
-        self.assertTrue(len(self.pools) == 4)
-
-        for p in self.pools:
-            print p
-
-    def test_volumes(self):
-        volumes = self.c.volumes()
-        self.assertTrue(len(volumes) == 0)
-
-        pools = self.c.pools()
-
-        #create a volume
-        p = pools[0]
-
-        #Create volumes
-        num_volumes = 10
-        for i in range(num_volumes):
-            vol = self.wait_to_finish(
-                *(self.c.volume_create(p, "TestVol" + str(i), 1024 * 1024 * 10,
-                                       Volume.PROVISION_DEFAULT)))
-            print str(vol)
-
-        volumes = self.c.volumes()
-        self.assertTrue(len(volumes) == num_volumes)
-
-        #delete volumes
-        for i in volumes:
-            self.c.volume_delete(i)
-
-        volumes = self.c.volumes()
-        self.assertTrue(len(volumes) == 0)
-
-        #Create a volume and replicate it
-        vol = self.wait_to_finish(
-            *(self.c.volume_create(p, "To be replicated", 1024 * 1024 * 10,
-                                   Volume.PROVISION_DEFAULT)))
-        rep = self.wait_to_finish(
-            *(self.c.volume_replicate(p, Volume.REPLICATE_CLONE, vol,
-                                      'Replicated')))
-
-        volumes = self.c.volumes()
-        self.assertTrue(len(volumes) == 2)
-
-        self.c.volume_delete(rep)
-
-        re_sized = self.wait_to_finish(
-            *(self.c.volume_resize(vol, vol.size_bytes * 2)))
-
-        self.assertTrue(vol.size_bytes == re_sized.size_bytes / 2)
-
-        self.c.volume_disable(re_sized)
-        self.c.volume_enable(re_sized)
-
-    def tearDown(self):
-        self.c.close()
-
-if __name__ == "__main__":
-    unittest.main()
