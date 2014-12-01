@@ -1119,6 +1119,19 @@ class TestPlugin(unittest.TestCase):
         self.assertTrue(len(plugins) > 0)
         self.assertTrue(':' in plugins[0])
 
+    def test_volume_enable_disable(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+
+            if supported(cap, [Cap.VOLUME_CREATE, Cap.VOLUME_DELETE,
+                               Cap.VOLUME_ENABLE, Cap.VOLUME_DISABLE]):
+                vol, pool = self._volume_create(s.id)
+
+                self.c.volume_disable(vol)
+                self.c.volume_enable(vol)
+
+                self._volume_delete(vol)
+
 def dump_results():
     """
     unittest.main exits when done so we need to register this handler to
