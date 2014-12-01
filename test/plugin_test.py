@@ -1178,6 +1178,43 @@ class TestPlugin(unittest.TestCase):
         tmp_c = lsm.Client(TestPlugin.URI, TestPlugin.PASSWORD)
         tmp_c.close()
 
+    def test_volume_depends(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+
+            if supported(cap, [Cap.VOLUME_CREATE, Cap.VOLUME_DELETE,
+                               Cap.VOLUME_CHILD_DEPENDENCY,
+                               Cap.VOLUME_CHILD_DEPENDENCY_RM]) and \
+                    (supported(cap, [Cap.VOLUME_REPLICATE_COPY]) or
+                     supported(cap, [Cap.VOLUME_REPLICATE_CLONE])):
+                vol, pol = self._volume_create(s.id)
+
+                if supported(cap, [Cap.VOLUME_REPLICATE_CLONE]):
+                    vol_child = self.c.volume_replicate(
+                        None,
+                        lsm.Volume.REPLICATE_CLONE,
+                        vol,
+                        rs('v_tc_'))[1]
+                else:
+                    vol_child = self.c.volume_replicate(
+                        None,
+                        lsm.Volume.REPLICATE_COPY,
+                        vol,
+                        rs('v_fc_'))[1]
+
+                self.assertTrue(vol_child is not None)
+
+                if self.c.volume_child_dependency(vol):
+                    self.c.volume_child_dependency_rm(vol)
+                else:
+                    self.assertTrue(self.c.volume_child_dependency_rm(vol)
+                                    is None)
+
+                self._volume_delete(vol)
+
+                if vol_child:
+                    self._volume_delete(vol_child)
+
 def dump_results():
     """
     unittest.main exits when done so we need to register this handler to
