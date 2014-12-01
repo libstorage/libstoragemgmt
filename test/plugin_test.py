@@ -29,6 +29,7 @@ import sys
 import yaml
 import re
 import os
+import tempfile
 from lsm import LsmError, ErrorNumber
 from lsm import Capabilities as Cap
 
@@ -1131,6 +1132,33 @@ class TestPlugin(unittest.TestCase):
                 self.c.volume_enable(vol)
 
                 self._volume_delete(vol)
+
+    def test_daemon_not_running(self):
+        current = None
+        got_exception = False
+        # Force a ErrorNumber.DAEMON_NOT_RUNNING
+        if 'LSM_UDS_PATH' in os.environ:
+            current = os.environ['LSM_UDS_PATH']
+
+        tmp_dir = tempfile.mkdtemp()
+        os.environ['LSM_UDS_PATH'] = tmp_dir
+
+        try:
+            tmp_c = lsm.Client(TestPlugin.URI, TestPlugin.PASSWORD)
+        except LsmError as expected_error:
+            got_exception = True
+            self.assertTrue(expected_error.code ==
+                            ErrorNumber.DAEMON_NOT_RUNNING,
+                            'Actual error %d' % (expected_error.code))
+
+        self.assertTrue(got_exception)
+
+        os.rmdir(tmp_dir)
+
+        if current:
+            os.environ['LSM_UDS_PATH'] = current
+        else:
+            del os.environ['LSM_UDS_PATH']
 
 def dump_results():
     """
