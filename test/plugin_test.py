@@ -379,6 +379,9 @@ class TestPlugin(unittest.TestCase):
             pool = self._get_pool_by_usage(system_id,
                                             lsm.Pool.ELEMENT_TYPE_FS)
 
+            self.assertTrue(pool is not None, "Unable to find a suitable pool "
+                                              "for fs creation")
+
             if pool is not None:
                 fs_size = self._object_size(pool)
                 fs = self.c.fs_create(pool, rs('fs'), fs_size)[1]
