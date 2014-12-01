@@ -1189,6 +1189,11 @@ class Ontap(IStorageAreaNetwork, INfs):
         #Get the volume info from the fs_id
         vol = self._get_volume_from_id(fs_id)
 
+        # API states that if export path is None the plug-in will select
+        # export path
+        if export_path is None:
+            export_path = '/vol/' + vol.name
+
         #If the export already exists we need to update the existing export
         #not create a new one.
         if self._current_export(export_path):
