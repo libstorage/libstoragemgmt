@@ -1186,6 +1186,11 @@ class Ontap(IStorageAreaNetwork, INfs):
         """
         Creates or modifies the specified export
         """
+        # NetApp does not support anon_gid setting.
+        if not (anon_gid == -1 or anon_gid == 0xFFFFFFFFFFFFFFFF):
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           "ontap plugin does not support "
+                           "anon_gid setting")
 
         #Get the volume info from the fs_id
         vol = self._get_volume_from_id(fs_id)
