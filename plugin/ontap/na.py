@@ -672,7 +672,9 @@ class Filer(object):
             r['root'] = Filer._build_export_fs_list(root_list)
 
         if anonuid:
-            r['anon'] = anonuid
+            uid = long(anonuid)
+            if uid != -1 or uid != 0xFFFFFFFFFFFFFFFF:
+                r['anon'] = str(uid)
 
         if sec_flavor:
             r['sec-flavor'] = Filer._build_list(

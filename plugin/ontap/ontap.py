@@ -1150,7 +1150,8 @@ class Ontap(IStorageAreaNetwork, INfs):
                          Ontap._get_group('root', e),
                          Ontap._get_group('read-write', e),
                          Ontap._get_group('read-only', e),
-                         Ontap._get_value('anon', e), None, None)
+                         NfsExport.ANON_UID_GID_NA, NfsExport.ANON_UID_GID_NA,
+                         None)
 
     @handle_ontap_errors
     def exports(self, search_key=None, search_value=None, flags=0):

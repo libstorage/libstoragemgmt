@@ -27,6 +27,10 @@
 extern "C" {
 #endif
 
+/**
+ * Because the nfs export functions use an unsigned data type these values
+ * will be represented as (2**64-1 and 2**64-2 respectively)
+ */
 #define ANON_UID_GID_NA     -1
 #define ANON_UID_GID_ERROR (ANON_UID_GID_NA - 1)
 
