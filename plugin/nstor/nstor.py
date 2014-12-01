@@ -270,6 +270,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         c.set(Capabilities.EXPORTS)
         c.set(Capabilities.EXPORT_FS)
         c.set(Capabilities.EXPORT_REMOVE)
+        c.set(Capabilities.EXPORT_CUSTOM_PATH)
         #
         #        #Block operations
         c.set(Capabilities.VOLUMES)
