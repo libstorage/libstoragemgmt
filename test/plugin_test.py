@@ -635,6 +635,9 @@ class TestPlugin(unittest.TestCase):
                     ss = self.c.fs_snapshot_create(fs, rs('ss'))[1]
                     self.assertTrue(self._fs_snapshot_exists(fs, ss.id))
 
+                    if supported(cap, [Cap.FS_SNAPSHOT_RESTORE]):
+                        self.c.fs_snapshot_restore(fs, ss, None, None, True)
+
                     # Delete snapshot
                     if supported(cap, [Cap.FS_SNAPSHOT_DELETE]):
                         self._fs_snapshot_delete(fs, ss)
