@@ -126,7 +126,7 @@ class TestProxy(object):
                    'volume_replicate': (unicode, lsm.Volume),
                    'volume_replicate_range': (unicode,),
                    'volume_delete': (unicode,),
-                   'volume_child_dependency_rm': (unicode),
+                   'volume_child_dependency_rm': (unicode,),
                    'fs_delete': (unicode,),
                    'fs_resize': (unicode, lsm.FileSystem),
                    'fs_create': (unicode, lsm.FileSystem),
