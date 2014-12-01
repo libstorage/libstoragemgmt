@@ -925,6 +925,19 @@ class TestPlugin(unittest.TestCase):
                             cap, rs('ag'), s,
                             lsm.AccessGroup.INIT_TYPE_ISCSI_IQN)
                         ag_list = self.c.access_groups('system_id', s.id)
+
+                        if supported(cap,
+                                     [Cap.
+                                      ACCESS_GROUP_INITIATOR_ADD_ISCSI_IQN]):
+
+                            init_id = self._ag_init_add(ag_to_delete)
+
+                            if supported(
+                                    cap, [Cap.ACCESS_GROUP_INITIATOR_DELETE]):
+                                self._ag_init_delete(
+                                    ag_to_delete, init_id,
+                                    lsm.AccessGroup.INIT_TYPE_ISCSI_IQN)
+
                     if supported(
                         cap, [Cap.ACCESS_GROUP_CREATE_WWPN,
                               Cap.ACCESS_GROUP_DELETE]):
