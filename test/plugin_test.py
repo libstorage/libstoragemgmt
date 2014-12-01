@@ -1113,6 +1113,11 @@ class TestPlugin(unittest.TestCase):
         self.assertTrue(
             lsm.Volume.vpd83_verify("01234567890123456789012345abcdef"))
 
+    def test_available_plugins(self):
+        plugins = self.c.available_plugins(':')
+        self.assertTrue(plugins is not None)
+        self.assertTrue(len(plugins) > 0)
+        self.assertTrue(':' in plugins[0])
 
 def dump_results():
     """
