@@ -1234,6 +1234,41 @@ class TestPlugin(unittest.TestCase):
                 if fs_child:
                     self._fs_delete(fs_child)
 
+    def test_nfs_auth_types(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+
+            if supported(cap, [Cap.EXPORT_AUTH]):
+                auth_types = self.c.export_auth()
+                self.assertTrue(auth_types is not None)
+
+    def test_export_list(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+
+            if supported(cap, [Cap.EXPORTS]):
+                exports = self.c.exports()
+                # TODO verify export values
+
+    def test_create_delete_exports(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+
+            if supported(cap, [Cap.FS_CREATE, Cap.EXPORTS, Cap.EXPORT_FS,
+                               Cap.EXPORT_REMOVE]):
+                fs, pool = self._fs_create(s.id)
+
+                if supported(cap, [Cap.EXPORT_CUSTOM_PATH]):
+                    path = "/mnt/%s" % rs(None, 6)
+                    exp = self.c.export_fs(fs.id, path, [], [],
+                                           ['192.168.2.1'])
+                else:
+                    exp = self.c.export_fs(fs.id, None, [], [],
+                                           ['192.168.2.1'])
+                self.c.export_remove(exp)
+                self._fs_delete(fs)
+
+
 def dump_results():
     """
     unittest.main exits when done so we need to register this handler to
