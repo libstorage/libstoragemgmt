@@ -1160,6 +1160,20 @@ class TestPlugin(unittest.TestCase):
         else:
             del os.environ['LSM_UDS_PATH']
 
+    def test_non_existent_plugin(self):
+        got_exception = False
+        try:
+            uri = "%s://user@host" % rs(None, 6)
+
+            tmp_c = lsm.Client(uri, TestPlugin.PASSWORD)
+        except LsmError as expected_error:
+            got_exception = True
+            self.assertTrue(expected_error.code ==
+                            ErrorNumber.PLUGIN_NOT_EXIST,
+                            'Actual error %d' % (expected_error.code))
+
+        self.assertTrue(got_exception)
+
 def dump_results():
     """
     unittest.main exits when done so we need to register this handler to
