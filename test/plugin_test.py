@@ -1215,6 +1215,25 @@ class TestPlugin(unittest.TestCase):
                 if vol_child:
                     self._volume_delete(vol_child)
 
+    def test_fs_depends(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+
+            if supported(cap, [Cap.FS_CREATE, Cap.FS_DELETE,
+                               Cap.FS_CHILD_DEPENDENCY,
+                               Cap.FS_CHILD_DEPENDENCY_RM,
+                               Cap.FS_CLONE]):
+                fs, pol = self._fs_create(s.id)
+                fs_child = self.c.fs_clone(fs, rs('fs_c_'))[1]
+                self.assertTrue(fs_child is not None)
+
+                if self.c.fs_child_dependency(fs, None):
+                    self.c.fs_child_dependency_rm(fs, None)
+
+                self._fs_delete(fs)
+                if fs_child:
+                    self._fs_delete(fs_child)
+
 def dump_results():
     """
     unittest.main exits when done so we need to register this handler to
