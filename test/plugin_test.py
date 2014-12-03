@@ -1225,6 +1225,9 @@ class TestPlugin(unittest.TestCase):
 
                 if self.c.fs_child_dependency(fs, None):
                     self.c.fs_child_dependency_rm(fs, None)
+                else:
+                    self.assertTrue(self.c.fs_child_dependency_rm(fs, None)
+                                    is None)
 
                 self._fs_delete(fs)
                 if fs_child:
