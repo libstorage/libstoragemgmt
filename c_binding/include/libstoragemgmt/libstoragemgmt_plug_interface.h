@@ -573,6 +573,7 @@ typedef int (*lsm_plug_fs_clone)(lsm_plugin_ptr c, lsm_fs *src_fs,
  * Determine if a file system has child dependencies, callback function signature
  * @param[in]   c                   Valid lsm plug-in pointer
  * @param[in]   fs                  File system to check
+ * @param[in]   files               Specific files to check
  * @param[out]  yes                 Boolean
  * @return LSM_ERR_OK, else error reason
  */
@@ -584,6 +585,7 @@ typedef int (*lsm_plug_fs_child_dependency)(lsm_plugin_ptr c, lsm_fs *fs,
  * Remove dependencies from a file system, callback function signature
  * @param[in]   c                   Valid lsm plug-in pointer
  * @param[in]   fs                  File system to remove dependencies for
+ * @param[in]   files               Specific files to remove dependencies for
  * @param[out]  job                 Job ID
  * @param[out]  flags               Reserved
  * @return LSM_ERR_OK, else error reason

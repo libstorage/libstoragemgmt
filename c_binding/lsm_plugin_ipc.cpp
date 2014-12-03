@@ -1653,12 +1653,14 @@ static int fs_child_dependency(lsm_plugin_ptr p, Value &params, Value &response)
         Value v_files = params["files"];
 
         if( Value::object_t == v_fs.valueType() &&
-            Value::array_t == v_files.valueType() ) {
+            (Value::array_t == v_files.valueType() ||
+             Value::null_t == v_files.valueType()) &&
+             LSM_FLAG_EXPECTED_TYPE(params)) {
 
             lsm_fs *fs = value_to_fs(v_fs);
             lsm_string_list *files = value_to_string_list(v_files);
 
-            if( fs && files ) {
+            if( fs ) {
                 uint8_t yes = 0;
 
                 rc = p->fs_ops->fs_child_dependency(p, fs, files, &yes);
@@ -1689,13 +1691,14 @@ static int fs_child_dependency_rm(lsm_plugin_ptr p, Value &params, Value &respon
         Value v_files = params["files"];
 
         if( Value::object_t == v_fs.valueType() &&
-            Value::array_t == v_files.valueType() &&
-            LSM_FLAG_EXPECTED_TYPE(params) ) {
+            (Value::array_t == v_files.valueType() ||
+             Value::null_t == v_files.valueType()) &&
+             LSM_FLAG_EXPECTED_TYPE(params) ) {
 
             lsm_fs *fs = value_to_fs(v_fs);
             lsm_string_list *files = value_to_string_list(v_files);
 
-            if( fs && files ) {
+            if( fs ) {
                 char *job = NULL;
 
                 rc = p->fs_ops->fs_child_dependency_rm(p, fs, files, &job,
@@ -1857,8 +1860,10 @@ static int ss_restore(lsm_plugin_ptr p, Value &params, Value &response)
 
         if( Value::object_t == v_fs.valueType() &&
             Value::object_t == v_ss.valueType() &&
-            Value::array_t == v_files.valueType() &&
-            Value::array_t == v_files.valueType() &&
+            (Value::array_t == v_files.valueType() ||
+            Value::null_t ==  v_files.valueType() ) &&
+            (Value::array_t == v_restore_files.valueType() ||
+            Value::null_t == v_restore_files.valueType()) &&
             Value::boolean_t == v_all_files.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
 
@@ -1870,7 +1875,7 @@ static int ss_restore(lsm_plugin_ptr p, Value &params, Value &response)
                     value_to_string_list(v_restore_files);
             int all_files = (v_all_files.asBool()) ? 1 : 0;
 
-            if( fs && ss && files && restore_files ) {
+            if( fs && ss ) {
                 rc = p->fs_ops->fs_ss_restore(p, fs, ss, files, restore_files,
                                             all_files, &job,
                                             LSM_FLAG_GET_VALUE(params));
