@@ -1174,10 +1174,6 @@ class TestPlugin(unittest.TestCase):
 
         self.assertTrue(got_exception)
 
-    def test_close(self):
-        tmp_c = lsm.Client(TestPlugin.URI, TestPlugin.PASSWORD)
-        tmp_c.close()
-
     def test_volume_depends(self):
         for s in self.systems:
             cap = self.c.capabilities(s)
