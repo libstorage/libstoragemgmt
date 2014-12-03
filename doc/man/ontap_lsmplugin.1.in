@@ -1,0 +1,67 @@
+.TH ontap_lsmplugin "1" "June 2015" "ontap_lsmplugin @VERSION@" "libStorageMgmt"
+.SH NAME
+ontap_lsmplugin -- LibstorageMgmt ONTAP Plugin
+
+.SH DESCRIPTION
+LibstorageMgmt ontap plugin allows user to manage NetApp ONTAP storage arrays.
+The 'ontap_lsmplugin' executable file is for libStorageMgmt daemon to execute
+when client specifies ontap plugin in the URI
+
+This plugin requires NetApp ONTAP storage array to enable these options:
+
+    \fBoptions httpd.enable on\fR
+    \fBoptions httpd.admin.enable on\fR
+
+This options is required for HTTPS connection:
+
+    \fBoptions httpd.admin.ssl.enable on\fR
+
+.SH URI
+To use this plugin, users should set their URI to this format:
+.nf
+
+    # HTTP connection
+    \fBontap://<username>@<ontap_filer>\fR
+
+    # HTTPS connection
+    \fBontap+ssl://<username>@<ontap_filer>\fR
+
+.fi
+.TP
+\fBusername\fR
+
+The \fBusername\fR is the user account with administration privilege.
+
+.TP
+\fBontap_filer_ip\fR
+
+The \fBontap_filer_ip\fR is the NetApp ONTAP filer IP address or DNS name.
+
+.TP
+\fBURI parameters\fR
+
+No additional URI parameters are supported by this plugin.
+
+.SH Supported Hardware
+NetApp ONTAP 8.x is supported.
+Detailed support status can be queried via:
+
+ * \fBlsm.Client.capabilities()\fR  (Python API)
+ * \fBlsm_capabilities()\fR         (C API)
+ * \fBlsmcli capabilities\fR        (lsmcli command line).
+
+.SH FIREWALL RULES
+This plugin requires the access to the NetApp ONTAP Filer's TCP 80 port for
+HTTP connection and TCP 443 port for HTTPS connection.
+
+.SH SEE ALSO
+\fBlsmcli\fR(1), \fBlsmd\fR(1)
+
+.SH BUGS
+Please report bugs to
+\fI<libstoragemgmt-devel@lists.sourceforge.net>\fR
+
+.SH AUTHOR
+Gris Ge \fI<fge@redhat.com>\fR
+.br
+Tony Asleson \fI<tasleson@redhat.com>\fR

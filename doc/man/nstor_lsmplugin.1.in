@@ -1,0 +1,68 @@
+.TH nstor_lsmplugin "1" "June 2015" "nstor_lsmplugin @VERSION@" "libStorageMgmt"
+.SH NAME
+nstor_lsmplugin -- LibstorageMgmt nstor plugin
+
+.SH DESCRIPTION
+LibstorageMgmt nstor plugin allows user to manage NexentaStor 3.x
+storage software [1]. The 'nstor_lsmplugin' executable file is for libStorageMgmt
+daemon to execute when client user specifies nstor plugin in the URI.
+
+.SH URI
+To use this plugin, users should set their URI to this format:
+.nf
+
+    # HTTP connection
+    \fBnstor://<username>@<nstor_server>:<port>\fR
+
+    # HTTPS connection
+    \fBnstor+ssl://<username>@<nstor_server>:<port>\fR
+
+.fi
+
+.TP
+\fBusername\fR
+
+The \fBusername\fR is the user account with 'Can_use_restapi' permission.
+
+.TP
+\fBnstor_server\fR
+
+The \fBnstor_server\fR is IP address or DNS name of
+NexentaStor server.
+
+.TP
+\fBport number\fR
+
+The \fBport number\fR is the listening port of the nexenta server REST API.
+The default port of 2000 is used if none is supplied on the URI.
+
+For non-default ports, SELinux will likely prevent the SMI-S plugin from making
+a network connection.
+
+.TP
+\fBURI parameters\fR
+No additional URI parameters are supported by this plugin.
+
+
+.SH SUPPORTED SOFTWARE
+NexentaStor 3.x is supported.
+Detailed support status can be queried via:
+
+ * \fBlsm.Client.capabilities()\fR  (Python API)
+ * \fBlsm_capabilities()\fR         (C API)
+ * \fBlsmcli capabilities\fR        (lsmcli command line).
+
+.SH FIREWALL RULES
+By default, this plugin requires the access to the nstor array's TCP 2000 port.
+
+.SH SEE ALSO
+\fBlsmcli\fR(1), \fBlsmd\fR(1), [1] http://nexentastor.org
+
+.SH BUGS
+Please report bugs to
+\fI<libstoragemgmt-devel@lists.sourceforge.net>\fR
+
+.SH AUTHOR
+Gris Ge \fI<fge@redhat.com>\fR
+.br
+Tony Asleson \fI<tasleson@redhat.com>\fR

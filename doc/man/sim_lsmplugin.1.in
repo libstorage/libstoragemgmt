@@ -1,0 +1,55 @@
+.TH sim_lsmplugin "1" "June 2015" "sim_lsmplugin @VERSION@" "libStorageMgmt"
+.SH NAME
+sim_lsmplugin -- LibStorageMgmt simulator python plugin
+
+.SH DESCRIPTION
+LibstorageMgmt simulator plugin is for development or test use only.  The plugin
+simulates an array which supports most features of the library.  State is stored
+in a file, default is '/tmp/lsm_sim_data'.  The 'sim_lsmplugin' executable file is
+for libStorageMgmt daemon to execute when client user specifies sim plugin in
+the URI.
+
+This plugin is written in pure Python and is intended to be an example of a
+python plugin for the library.
+
+.SH URI
+To use this plugin, users should set their URI to this format:
+.nf
+
+    # All that is required
+    sim://
+
+    # Optional statefile
+    sim://?statefile=<file path and name>
+
+.fi
+No password is required for this plugin.
+
+.TP
+\fBURI parameters\fR
+
+.RS 7
+.TP
+\fBstatefile\fR
+
+Use specified file to store simulator state data. Example URI:
+.nf
+    \fBsim://?statefile=/tmp/other_lsm_sim_data\fR
+.fi
+
+The statefile is a sqlite3 data base file.
+
+.SH FIREWALL RULES
+This plugin requires not network access.
+
+.SH SEE ALSO
+\fBlsmcli\fR(1), \fBlsmd\fR(1)
+
+.SH BUGS
+Please report bugs to
+\fI<libstoragemgmt-devel@lists.sourceforge.net>\fR
+
+.SH AUTHOR
+Gris Ge \fI<fge@redhat.com>\fR
+.br
+Tony Asleson \fI<tasleson@redhat.com>\fR

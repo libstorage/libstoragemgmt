@@ -1,0 +1,91 @@
+.TH smispy_lsmplugin "1" "June 2015" "smispy_lsmplugin @VERSION@" "libStorageMgmt"
+.SH NAME
+smispy_lsmplugin -- LibstorageMgmt SMI-S Plugin
+
+.SH DESCRIPTION
+LibstorageMgmt SMI-S Plugin allows LibstorageMgmt user to manage storage
+arrays like: EMC VNX/VMAX, HDS AMS and LSI MegaRAID etc. via
+SNIA SMI-S standard. The 'smispy_lsmplugin' executable file is for
+LibstorageMgmt daemon to execute when client user requests SMI-S plugin.
+
+.SH URI
+To use this plugin, users should set their URI to this format:
+.nf
+
+    # HTTP connection
+    \fBsmispy://<username>@<smis_provder_host>:<port>?<uri_parameters>\fR
+
+    # HTTPS connection
+    \fBsmispy+ssl://<username>@<smis_provder_host>:<port>?<uri_parameters>\fR
+
+.fi
+
+.TP
+\fBusername\fR
+
+The \fBusername\fR is the SMI-S provider user account.
+
+.TP
+\fBsmis_provder_host\fR
+
+The \fBsmis_provder_host\fR is the SMI-S provider's IP address or DNS name.
+
+.TP
+\fBport\fR
+
+By default, SMI-S plugin will use port \fB5988\fR for HTTP connection and
+port \fB5989\fR for HTTPS connection. You can skip this in URI if your
+SMI-S provider is using default ports.
+
+For non-default ports, SELinux will likely prevent the SMI-S plugin from making
+a network connection.
+
+.TP
+\fBURI parameters\fR
+These URI parameters are supported by this plugin:
+
+.RS 7
+.TP
+\fBnamespace=<name_space>\fR
+This URI parameter is for LSI MegaRAID and NetApp E-Series only.
+
+.TP
+\fBsystem=<system_id>\fR
+For those SMI-S providers which support multi-systems(Example EMC ECIM),
+this URI parameter can be used to limit network communication for
+specified system only. The \fBsystem_id\fR is the ID of the system:
+ * \fBlsm.System.id\fR              (Python API)
+ * \fBlsm_system_id_get()\fR        (C API)
+ * \fBlsmcli list --systems\fR      (lsmcli command line)
+
+.TP
+\fBno_ssl_verify=yes\fR
+This URI parameter is for HTTPS connections only. With this URI parameter,
+the SMI-S plugin will not validate SMI-S provider's server SSL certificate.
+It's often used for self-signed CA environment, but it's strongly suggested to
+remove this URI parameter and install self-signed CA properly.
+
+.SH Supported Hardware
+The LibstorageMgmt SMI-S plugin is based on 'Block Services Package' profile
+, SNIA SMI-S 1.4 or later. Any storage system which implements that profile
+may be supported. Detailed support status can be queried via:
+
+ * \fBlsm.Client.capabilities()\fR  (Python API)
+ * \fBlsm_capabilities()\fR         (C API)
+ * \fBlsmcli capabilities\fR        (lsmcli command line).
+
+.SH FIREWALL RULES
+By default, this plugin requires access to the SMI-S provider's TCP 5988 port
+for HTTP conenction and TCP 5989 port for HTTPS connection.
+
+.SH SEE ALSO
+\fBlsmcli\fR(1), \fBlsmd\fR(1)
+
+.SH BUGS
+Please report bugs to
+\fI<libstoragemgmt-devel@lists.sourceforge.net>\fR
+
+.SH AUTHOR
+Gris Ge \fI<fge@redhat.com>\fR
+.br
+Tony Asleson \fI<tasleson@redhat.com>\fR
