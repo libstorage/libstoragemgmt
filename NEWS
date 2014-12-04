@@ -1,5 +1,40 @@
 News for libStorageMgmt
 
+1.1.1: Dec 4 2014
+    - Library adds:
+
+      API Constants for new pool element types and plugin changes to support it
+      * C constants:
+         LSM_POOL_ELEMENT_TYPE_VOLUME_FULL, LSM_POOL_ELEMENT_TYPE_VOLUME_THIN
+      * Py constants:
+         Pool.ELEMENT_TYPE_VOLUME_FULL, Poll.ELEMENT_TYPE_THIN
+
+      lsmcli:
+      * lt - Alias for 'list --type target_ports'
+      * Removed --init for volume-mask, it was broken for targetd (the only
+        user) and instead of fixing we are going to improve targetd to support
+        access groups in the next release
+
+    - Numerous code improvements, including a big SMI-S plugin refactor,
+      source code documentation corrections
+
+    - Bug fix: Use correct default values for anonymous uid/gid in lsmcli
+    - Bug fix: simc simulator not working for allowable NULL parameters for:
+      *  fs_child_dependency
+      *  fs_child_dependency_rm
+      *  fs_snapshot_restore
+    - Bug fix: lsm_restd memory leak corrections
+    - Bug fix: NetApp plugin, correctly set export path when caller specifies
+      default in API
+    - Bug fix: Add file locking to sim plugin to prevent concurrent modification
+    - Bug fix: Consistently report common error conditions for NO_STATE_CHANGE,
+      EXISTS_INITIATOR for all plugins
+    - Bug fix: Number of bugs addressed in SMI-S plugin including:
+      * EMC: Correct error path when replicating a volume with a duplicate
+        volume name
+      * HDS: Correctly create thinly provisioned volume on thinly provisioned
+        pool
+
 1.0.0: Sep 7 2014
     - Release version 1
     - Numerous constants re-naming & removing
