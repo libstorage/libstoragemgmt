@@ -673,7 +673,7 @@ class Filer(object):
 
         if anonuid:
             uid = long(anonuid)
-            if uid != -1 or uid != 0xFFFFFFFFFFFFFFFF:
+            if uid != -1 and uid != 0xFFFFFFFFFFFFFFFF:
                 r['anon'] = str(uid)
 
         if sec_flavor:
