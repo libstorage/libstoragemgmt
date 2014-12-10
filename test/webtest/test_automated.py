@@ -27,6 +27,7 @@ from subprocess import Popen, PIPE
 from multiprocessing import Process
 import yaml
 import time
+import os
 
 
 def call(command):
@@ -67,6 +68,8 @@ def run_test(cmdline, output_dir, sys_id, uri, password ):
 
 
 if __name__ == '__main__':
+    time_limit_seconds = long(os.getenv('LSM_TEST_TMO_SECS', 90 * 60))  # 90 minutes
+
     if len(sys.argv) != 4:
         print('Syntax: %s <cimon_file> <plugin unit test> <output directory>'
               % (sys.argv[0]))
@@ -90,20 +93,23 @@ if __name__ == '__main__':
             process_list.append(p)
 
         start = time.time()
-        print 'Test run started at: %s' % time.strftime("%c")
+        print 'Test run started at: %s, time limit is %s minutes' % \
+              (time.strftime("%c"), str(time_limit_seconds / 60.0))
         sys.stdout.flush()
 
         while len(process_list) > 0:
             for p in process_list:
                 p.join(1)
                 if not p.is_alive():
-                    print '%s exited with %s' % (p.name, str(p.exitcode))
+                    print '%s exited with %s at %s (runtime %s seconds)' % \
+                          (p.name, str(p.exitcode), time.strftime("%c"),
+                           str(time.time() - start))
                     sys.stdout.flush()
                     process_list.remove(p)
                     break
 
             current = time.time()
-            if current - start > 3600:
+            if (current - start) >= time_limit_seconds:
                 print 'Test taking too long...'
                 sys.stdout.flush()
                 for p in process_list:
