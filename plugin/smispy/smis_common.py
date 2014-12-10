@@ -28,6 +28,7 @@ import traceback
 import os
 import datetime
 import time
+import sys
 
 import dmtf
 from lsm import LsmError, ErrorNumber, md5
@@ -369,21 +370,26 @@ class SmisCommon(object):
         When debugging issues with providers it's helpful to have
         the xml request/reply to give to provider developers.
         """
-        if self._debug_path is not None:
-            if not os.path.exists(self._debug_path):
-                os.makedirs(self._debug_path)
+        try:
+            if self._debug_path is not None:
+                if not os.path.exists(self._debug_path):
+                    os.makedirs(self._debug_path)
 
-            if os.path.isdir(self._debug_path):
-                debug_fn = "%s_%s" % (
-                    file_prefix, datetime.datetime.now().isoformat())
-                debug_full = os.path.join(
-                    self._debug_path, debug_fn)
+                if os.path.isdir(self._debug_path):
+                    debug_fn = "%s_%s" % (
+                        file_prefix, datetime.datetime.now().isoformat())
+                    debug_full = os.path.join(
+                        self._debug_path, debug_fn)
 
-                # Dump the request & reply to a file
-                with open(debug_full, 'w') as d:
-                    d.write("REQ:\n%s\n\nREPLY:\n%s\n" %
-                            (self._wbem_conn.last_request,
-                             self._wbem_conn.last_reply))
+                    # Dump the request & reply to a file
+                    with open(debug_full, 'w') as d:
+                        d.write("REQUEST:\n%s\n\nREPLY:\n%s\n" %
+                                (self._wbem_conn.last_request,
+                                 self._wbem_conn.last_reply))
+        except Exception:
+            # Lets not bother to try and report that we couldn't log the debug
+            # data when we are most likely already in a bad spot
+            pass
 
     def invoke_method(self, cmd, cim_path, in_params, out_handler=None,
                       error_handler=None, retrieve_data=None,
@@ -436,20 +442,17 @@ class SmisCommon(object):
                     ErrorNumber.NO_SUPPORT,
                     'SMI-S error code indicates operation not supported')
             else:
-                try:
-                    self._dump_wbem_xml(cmd)
-                except Exception:
-                    tb = traceback.format_exc()
-                    raise LsmError(ErrorNumber.PLUGIN_BUG,
-                                   "Error: %s rc= %s" % (cmd, str(rc)) +
-                                   " Debug data exception: %s" % str(tb))
-
+                self._dump_wbem_xml(cmd)
                 raise LsmError(ErrorNumber.PLUGIN_BUG,
                                "Error: %s rc= %s" % (cmd, str(rc)))
 
         except Exception:
+            exc_info = sys.exc_info()
+            # Make sure to save off current exception as we could cause
+            # another when trying to dump debug data.
+            self._dump_wbem_xml(cmd)
             if error_handler is not None:
-                error_handler(self, method_data)
+                error_handler(self, method_data, exc_info)
             else:
                 raise
 
@@ -468,88 +471,88 @@ class SmisCommon(object):
         """
         (rc, out) = self._wbem_conn.InvokeMethod(cmd, cim_path, **in_params)
 
-        if rc == SmisCommon.SNIA_INVOKE_OK:
-            if out_key is None:
-                return None
-            if out_key in out:
-                if flag_out_array:
-                    if len(out[out_key]) == 1:
-                        return out[out_key][0]
+        try:
+            if rc == SmisCommon.SNIA_INVOKE_OK:
+                if out_key is None:
+                    return None
+                if out_key in out:
+                    if flag_out_array:
+                        if len(out[out_key]) == 1:
+                            return out[out_key][0]
+                        else:
+                            raise LsmError(
+                                ErrorNumber.PLUGIN_BUG,
+                                "invoke_method_wait(), output contains %d " %
+                                len(out[out_key]) +
+                                "elements: %s" % out[out_key])
+                    return out[out_key]
+                else:
+                    raise LsmError(ErrorNumber.PLUGIN_BUG,
+                                   "invoke_method_wait(), %s not exist in out %s" %
+                                   (out_key, out.items()))
+
+            elif rc == SmisCommon.SNIA_INVOKE_ASYNC:
+                cim_job_path = out['Job']
+                loop_counter = 0
+                job_pros = ['JobState', 'ErrorDescription',
+                            'OperationalStatus']
+                cim_xxxs_path = []
+                while(loop_counter <= SmisCommon._INVOKE_MAX_LOOP_COUNT):
+                    cim_job = self.GetInstance(cim_job_path,
+                                               PropertyList=job_pros)
+                    job_state = cim_job['JobState']
+                    if job_state in (dmtf.JOB_STATE_NEW, dmtf.JOB_STATE_STARTING,
+                                     dmtf.JOB_STATE_RUNNING):
+                        loop_counter += 1
+                        time.sleep(SmisCommon._INVOKE_CHECK_INTERVAL)
+                        continue
+                    elif job_state == dmtf.JOB_STATE_COMPLETED:
+                        if not SmisCommon.cim_job_completed_ok(cim_job):
+                            raise LsmError(
+                                ErrorNumber.PLUGIN_BUG,
+                                str(cim_job['ErrorDescription']))
+                        if expect_class is None:
+                            return None
+                        cim_xxxs_path = self.AssociatorNames(
+                            cim_job.path,
+                            AssocClass='CIM_AffectedJobElement',
+                            ResultClass=expect_class)
+                        break
                     else:
                         raise LsmError(
                             ErrorNumber.PLUGIN_BUG,
-                            "invoke_method_wait(), output contains %d " %
-                            len(out[out_key]) +
-                            "elements: %s" % out[out_key])
-                return out[out_key]
-            else:
-                raise LsmError(ErrorNumber.PLUGIN_BUG,
-                               "invoke_method_wait(), %s not exist in out %s" %
-                               (out_key, out.items()))
+                            "invoke_method_wait(): Got unknown job state "
+                            "%d: %s" % (job_state, cim_job.items()))
 
-        elif rc == SmisCommon.SNIA_INVOKE_ASYNC:
-            cim_job_path = out['Job']
-            loop_counter = 0
-            job_pros = ['JobState', 'ErrorDescription',
-                        'OperationalStatus']
-            cim_xxxs_path = []
-            while(loop_counter <= SmisCommon._INVOKE_MAX_LOOP_COUNT):
-                cim_job = self.GetInstance(cim_job_path,
-                                           PropertyList=job_pros)
-                job_state = cim_job['JobState']
-                if job_state in (dmtf.JOB_STATE_NEW, dmtf.JOB_STATE_STARTING,
-                                 dmtf.JOB_STATE_RUNNING):
-                    loop_counter += 1
-                    time.sleep(SmisCommon._INVOKE_CHECK_INTERVAL)
-                    continue
-                elif job_state == dmtf.JOB_STATE_COMPLETED:
-                    if not SmisCommon.cim_job_completed_ok(cim_job):
-                        raise LsmError(
-                            ErrorNumber.PLUGIN_BUG,
-                            str(cim_job['ErrorDescription']))
-                    if expect_class is None:
-                        return None
-                    cim_xxxs_path = self.AssociatorNames(
-                        cim_job.path,
-                        AssocClass='CIM_AffectedJobElement',
-                        ResultClass=expect_class)
-                    break
+                if loop_counter > SmisCommon._INVOKE_MAX_LOOP_COUNT:
+                    raise LsmError(
+                        ErrorNumber.TIMEOUT,
+                        "The job generated by %s() failed to finish in %ds" %
+                        (cmd,
+                         SmisCommon._INVOKE_CHECK_INTERVAL *
+                         SmisCommon._INVOKE_MAX_LOOP_COUNT))
+
+                if len(cim_xxxs_path) == 1:
+                    return cim_xxxs_path[0]
                 else:
                     raise LsmError(
                         ErrorNumber.PLUGIN_BUG,
-                        "invoke_method_wait(): Got unknown job state "
-                        "%d: %s" % (job_state, cim_job.items()))
-
-            if loop_counter > SmisCommon._INVOKE_MAX_LOOP_COUNT:
-                raise LsmError(
-                    ErrorNumber.TIMEOUT,
-                    "The job generated by %s() failed to finish in %ds" %
-                    (cmd,
-                     SmisCommon._INVOKE_CHECK_INTERVAL *
-                     SmisCommon._INVOKE_MAX_LOOP_COUNT))
-
-            if len(cim_xxxs_path) == 1:
-                return cim_xxxs_path[0]
+                        "invoke_method_wait(): got unexpected(not 1) "
+                        "return from CIM_AffectedJobElement: "
+                        "%s, out: %s, job: %s" %
+                        (cim_xxxs_path, out.items(), cim_job.items()))
             else:
+                self._dump_wbem_xml(cmd)
                 raise LsmError(
                     ErrorNumber.PLUGIN_BUG,
-                    "invoke_method_wait(): got unexpected(not 1) "
-                    "return from CIM_AffectedJobElement: "
-                    "%s, out: %s, job: %s" %
-                    (cim_xxxs_path, out.items(), cim_job.items()))
-        else:
-            try:
-                self._dump_wbem_xml(cmd)
-            except Exception:
-                tb = traceback.format_exc()
-                raise LsmError(ErrorNumber.PLUGIN_BUG,
-                               "Error: %s rc= %s" % (cmd, str(rc)) +
-                               " Debug data exception: %s" % str(tb))
-
-            raise LsmError(
-                ErrorNumber.PLUGIN_BUG,
-                "invoke_method_wait(): Got unexpected rc code "
-                "%d, out: %s" % (rc, out.items()))
+                    "invoke_method_wait(): Got unexpected rc code "
+                    "%d, out: %s" % (rc, out.items()))
+        except Exception:
+            exc_info = sys.exc_info()
+            # Make sure to save off current exception as we could cause
+            # another when trying to dump debug data.
+            self._dump_wbem_xml(cmd)
+            raise exc_info[0], exc_info[1], exc_info[2]
 
     def _cim_srv_of_sys_id(self, srv_name, sys_id, raise_error):
         property_list = ['SystemName']

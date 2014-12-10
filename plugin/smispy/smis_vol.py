@@ -229,7 +229,7 @@ def volume_name_exists(smis_common, volume_name):
     return False
 
 
-def volume_create_error_handler(smis_common, method_data):
+def volume_create_error_handler(smis_common, method_data, exec_info=None):
     """
     When we got CIMError, we check whether we got a duplicate volume name.
     The method_data is the requested volume name.
@@ -238,5 +238,8 @@ def volume_create_error_handler(smis_common, method_data):
         raise LsmError(ErrorNumber.NAME_CONFLICT,
                        "Volume with name '%s' already exists!" % method_data)
 
-    (error_type, error_msg, error_trace) = sys.exc_info()
+    if exec_info is None:
+        (error_type, error_msg, error_trace) = sys.exc_info()
+    else:
+        (error_type, error_msg, error_trace) = exec_info
     raise error_type, error_msg, error_trace
