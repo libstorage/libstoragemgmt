@@ -52,11 +52,9 @@ BuildRequires:  glib2-devel
 BuildRequires:  gcc-c++
 %if 0%{?suse_version}
 BuildRequires:  libyajl-devel
-BuildRequires:  python-PyYAML
 %else
 # Fedora RHEL
 BuildRequires:  yajl-devel
-BuildRequires:  PyYAML
 %endif
 
 %if 0%{?do_fdupes}
