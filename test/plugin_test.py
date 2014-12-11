@@ -26,7 +26,6 @@ import argparse
 import collections
 import atexit
 import sys
-import yaml
 import re
 import os
 import tempfile
@@ -1273,10 +1272,15 @@ def dump_results():
     unittest.main exits when done so we need to register this handler to
     get our results out.
 
-    output details (yaml) results of what we called, how it finished and how
-    long it took.
+    If PyYAML is available we will output detailed results, else we will
+    output nothing.  The detailed output results of what we called,
+    how it finished and how long it took.
     """
-    sys.stdout.write(yaml.dump(dict(methods_called=results, stats=stats)))
+    try:
+        import yaml
+        sys.stdout.write(yaml.dump(dict(methods_called=results, stats=stats)))
+    except ImportError:
+        sys.stdout.write("NOTICE: Install PyYAML for detailed test results\n")
 
 
 def add_our_params():
