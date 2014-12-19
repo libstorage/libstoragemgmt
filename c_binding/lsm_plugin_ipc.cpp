@@ -282,6 +282,7 @@ typedef int (*handler)(lsm_plugin_ptr p, Value &params, Value &response);
 
 static int handle_unregister(lsm_plugin_ptr p, Value &params, Value &response)
 {
+    /* This is handled in the event loop */
     return LSM_ERR_OK;
 }
 
@@ -2198,7 +2199,7 @@ static int lsm_plugin_run(lsm_plugin_ptr p)
                         error_send(p, rc);
                     }
 
-                    if( method == "shutdown" ) {
+                    if( method == "plugin_unregister" ) {
                         flags = LSM_FLAG_GET_VALUE(req["params"]);
                         break;
                     }
