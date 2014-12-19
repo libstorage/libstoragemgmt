@@ -48,19 +48,33 @@ def cmd_line_wrapper(c=None):
     """
     Common command line code, called.
     """
+    err_exit = 0
+    cli = None
+
     try:
         cli = CmdLine()
         cli.process(c)
     except ArgError as ae:
         sys.stderr.write(str(ae))
         sys.stderr.flush()
-        sys.exit(2)
+        err_exit = 2
     except LsmError as le:
         sys.stderr.write(str(le) + "\n")
         sys.stderr.flush()
-        sys.exit(4)
+        err_exit = 4
     except KeyboardInterrupt:
-        sys.exit(1)
+        err_exit = 1
+    finally:
+        # We got here because of an exception, but we still may have a valid
+        # connection to do an orderly shutdown with, lets try it before we
+        # just exit closing the connection.
+        if cli:
+            try:
+                # This will exit if are successful
+                cli.shutdown(err_exit)
+            except Exception:
+                pass
+        sys.exit(err_exit)
 
 
 ## Get a character from stdin without needing a return key pressed.
