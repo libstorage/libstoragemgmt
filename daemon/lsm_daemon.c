@@ -137,8 +137,13 @@ void signal_handler(int s)
  */
 void install_sh(void)
 {
-    signal(SIGTERM, signal_handler);
-    signal(SIGHUP, signal_handler);
+    if(signal(SIGTERM, signal_handler) == SIG_ERR) {
+        loud("Can't catch signal SIGTERM\n");
+    }
+
+    if(signal(SIGHUP, signal_handler) == SIG_ERR) {
+        loud("Can't catch signal SIGHUP\n");
+    }
 }
 
 /**
