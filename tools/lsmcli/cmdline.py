@@ -128,7 +128,7 @@ def _get_item(l, the_id, friendly_name='item', raise_error=True):
         if item.id == the_id:
             return item
     if raise_error:
-        raise ArgError('%s with id %s not found!' % (friendly_name, the_id))
+        raise ArgError('%s with ID %s not found!' % (friendly_name, the_id))
     else:
         return None
 
@@ -852,7 +852,7 @@ class CmdLine:
                 search_key = 'id'
             if search_key == 'access_group_id':
                 lsm_ag = _get_item(self.c.access_groups(), args.ag,
-                                   "Access Group ID", raise_error=False)
+                                   "Access Group", raise_error=False)
                 if lsm_ag:
                     return self.display_data(
                         self.c.volumes_accessible_by_access_group(lsm_ag))
@@ -881,7 +881,7 @@ class CmdLine:
         elif args.type == 'SNAPSHOTS':
             if args.fs is None:
                 raise ArgError("--fs <file system id> required")
-            fs = _get_item(self.c.fs(), args.fs, 'filesystem')
+            fs = _get_item(self.c.fs(), args.fs, 'File System')
             self.display_data(self.c.fs_snapshots(fs))
         elif args.type == 'EXPORTS':
             if search_key == 'nfs_export_id':
@@ -898,7 +898,7 @@ class CmdLine:
                 search_key = 'id'
             if search_key == 'volume_id':
                 lsm_vol = _get_item(self.c.volumes(), args.vol,
-                                    "Volume ID", raise_error=False)
+                                    "Volume", raise_error=False)
                 if lsm_vol:
                     return self.display_data(
                         self.c.access_groups_granted_to_volume(lsm_vol))
@@ -938,14 +938,14 @@ class CmdLine:
 
     ## Creates an access group.
     def access_group_create(self, args):
-        system = _get_item(self.c.systems(), args.sys, "system id")
+        system = _get_item(self.c.systems(), args.sys, "System")
         (init_id, init_type) = parse_convert_init(args.init)
         access_group = self.c.access_group_create(args.name, init_id,
                                                   init_type, system)
         self.display_data([access_group])
 
     def _add_rm_access_grp_init(self, args, op):
-        lsm_ag = _get_item(self.c.access_groups(), args.ag, "access group id")
+        lsm_ag = _get_item(self.c.access_groups(), args.ag, "Access Group")
         (init_id, init_type) = parse_convert_init(args.init)
 
         if op:
@@ -965,7 +965,7 @@ class CmdLine:
 
     def access_group_volumes(self, args):
         agl = self.c.access_groups()
-        group = _get_item(agl, args.ag, "access group id")
+        group = _get_item(agl, args.ag, "Access Group")
         vols = self.c.volumes_accessible_by_access_group(group)
         self.display_data(vols)
 
@@ -980,25 +980,25 @@ class CmdLine:
                                self.args.out_pass)
 
     def volume_access_group(self, args):
-        vol = _get_item(self.c.volumes(), args.vol, "volume id")
+        vol = _get_item(self.c.volumes(), args.vol, "Volume")
         groups = self.c.access_groups_granted_to_volume(vol)
         self.display_data(groups)
 
     ## Used to delete access group
     def access_group_delete(self, args):
         agl = self.c.access_groups()
-        group = _get_item(agl, args.ag, "access group id")
+        group = _get_item(agl, args.ag, "Access Group")
         return self.c.access_group_delete(group)
 
     ## Used to delete a file system
     def fs_delete(self, args):
-        fs = _get_item(self.c.fs(), args.fs, "filesystem id")
+        fs = _get_item(self.c.fs(), args.fs, "File System")
         if self.confirm_prompt(True):
             self._wait_for_it("fs-delete", self.c.fs_delete(fs), None)
 
     ## Used to create a file system
     def fs_create(self, args):
-        p = _get_item(self.c.pools(), args.pool, "pool id")
+        p = _get_item(self.c.pools(), args.pool, "Pool")
         fs = self._wait_for_it("fs-create",
                                *self.c.fs_create(p, args.name,
                                                  self._size(args.size)))
@@ -1006,7 +1006,7 @@ class CmdLine:
 
     ## Used to resize a file system
     def fs_resize(self, args):
-        fs = _get_item(self.c.fs(), args.fs, "filesystem id")
+        fs = _get_item(self.c.fs(), args.fs, "File System")
         size = self._size(args.size)
 
         if self.confirm_prompt(False):
@@ -1017,13 +1017,13 @@ class CmdLine:
     ## Used to clone a file system
     def fs_clone(self, args):
         src_fs = _get_item(
-            self.c.fs(), args.src_fs, "source file system id")
+            self.c.fs(), args.src_fs, "Source File System")
 
         ss = None
         if args.backing_snapshot:
             #go get the snapshot
             ss = _get_item(self.c.fs_snapshots(src_fs),
-                           args.backing_snapshot, "snapshot id")
+                           args.backing_snapshot, "Snapshot")
 
         fs = self._wait_for_it(
             "fs_clone", *self.c.fs_clone(src_fs, args.dst_name, ss))
@@ -1031,12 +1031,11 @@ class CmdLine:
 
     ## Used to clone a file(s)
     def file_clone(self, args):
-        fs = _get_item(self.c.fs(), args.fs, "filesystem id")
-
+        fs = _get_item(self.c.fs(), args.fs, "File System")
         if self.args.backing_snapshot:
             #go get the snapshot
             ss = _get_item(self.c.fs_snapshots(fs),
-                           args.backing_snapshot, "snapshot id")
+                           args.backing_snapshot, "Snapshot")
         else:
             ss = None
 
@@ -1068,7 +1067,7 @@ class CmdLine:
         out("%s%s%s" % (cap, s, v))
 
     def capabilities(self, args):
-        s = _get_item(self.c.systems(), args.sys, "system id")
+        s = _get_item(self.c.systems(), args.sys, "System")
 
         cap = self.c.capabilities(s)
         sup_caps = sorted(cap.get_supported().values())
@@ -1100,7 +1099,7 @@ class CmdLine:
     ## Creates a volume
     def volume_create(self, args):
         #Get pool
-        p = _get_item(self.c.pools(), args.pool, "pool id")
+        p = _get_item(self.c.pools(), args.pool, "Pool")
         vol = self._wait_for_it(
             "volume-create",
             *self.c.volume_create(
@@ -1113,7 +1112,7 @@ class CmdLine:
     ## Creates a snapshot
     def fs_snap_create(self, args):
         #Get fs
-        fs = _get_item(self.c.fs(), args.fs, "fs id")
+        fs = _get_item(self.c.fs(), args.fs, "File System")
         ss = self._wait_for_it("snapshot-create",
                                *self.c.fs_snapshot_create(
                                    fs,
@@ -1124,8 +1123,8 @@ class CmdLine:
     ## Restores a snap shot
     def fs_snap_restore(self, args):
         #Get snapshot
-        fs = _get_item(self.c.fs(), args.fs, "fs id")
-        ss = _get_item(self.c.fs_snapshots(fs), args.snap, "snapshot id")
+        fs = _get_item(self.c.fs(), args.fs, "File System")
+        ss = _get_item(self.c.fs_snapshots(fs), args.snap, "Snapshot")
 
         flag_all_files = True
 
@@ -1145,15 +1144,15 @@ class CmdLine:
 
     ## Deletes a volume
     def volume_delete(self, args):
-        v = _get_item(self.c.volumes(), args.vol, "volume id")
+        v = _get_item(self.c.volumes(), args.vol, "Volume")
         if self.confirm_prompt(True):
             self._wait_for_it("volume-delete", self.c.volume_delete(v),
                               None)
 
     ## Deletes a snap shot
     def fs_snap_delete(self, args):
-        fs = _get_item(self.c.fs(), args.fs, "filesystem id")
-        ss = _get_item(self.c.fs_snapshots(fs), args.snap, "snapshot id")
+        fs = _get_item(self.c.fs(), args.fs, "File System")
+        ss = _get_item(self.c.fs_snapshots(fs), args.snap, "Snapshot")
 
         if self.confirm_prompt(True):
             self._wait_for_it("fs_snap_delete",
@@ -1205,9 +1204,9 @@ class CmdLine:
     def volume_replicate(self, args):
         p = None
         if args.pool:
-            p = _get_item(self.c.pools(), args.pool, "pool id")
+            p = _get_item(self.c.pools(), args.pool, "Pool")
 
-        v = _get_item(self.c.volumes(), args.vol, "volume id")
+        v = _get_item(self.c.volumes(), args.vol, "Volume")
 
         rep_type = vol_rep_type_str_to_type(args.rep_type)
         if rep_type == Volume.REPLICATE_UNKNOWN:
@@ -1220,9 +1219,9 @@ class CmdLine:
 
     ## Replicates a range of a volume
     def volume_replicate_range(self, args):
-        src = _get_item(self.c.volumes(), args.src_vol, "source volume id")
+        src = _get_item(self.c.volumes(), args.src_vol, "Source Volume")
         dst = _get_item(self.c.volumes(), args.dst_vol,
-                        "destination volume id")
+                        "Destination Volume")
 
         rep_type = vol_rep_type_str_to_type(args.rep_type)
         if rep_type == Volume.REPLICATE_UNKNOWN:
@@ -1248,22 +1247,22 @@ class CmdLine:
     # Returns the block size in bytes for each block represented in
     # volume_replicate_range
     def volume_replicate_range_block_size(self, args):
-        s = _get_item(self.c.systems(), args.sys, "system id")
+        s = _get_item(self.c.systems(), args.sys, "System")
         out(self.c.volume_replicate_range_block_size(s))
 
     def volume_mask(self, args):
-        vol = _get_item(self.c.volumes(), args.vol, 'Volume ID')
-        ag = _get_item(self.c.access_groups(), args.ag, 'Access Group ID')
+        vol = _get_item(self.c.volumes(), args.vol, 'Volume')
+        ag = _get_item(self.c.access_groups(), args.ag, 'Access Group')
         self.c.volume_mask(ag, vol)
 
     def volume_unmask(self, args):
-        ag = _get_item(self.c.access_groups(), args.ag, "Access Group ID")
-        vol = _get_item(self.c.volumes(), args.vol, "volume id")
+        ag = _get_item(self.c.access_groups(), args.ag, "Access Group")
+        vol = _get_item(self.c.volumes(), args.vol, "Volume")
         return self.c.volume_unmask(ag, vol)
 
     ## Re-sizes a volume
     def volume_resize(self, args):
-        v = _get_item(self.c.volumes(), args.vol, "volume id")
+        v = _get_item(self.c.volumes(), args.vol, "Volume")
         size = self._size(args.size)
 
         if self.confirm_prompt(False):
@@ -1273,22 +1272,22 @@ class CmdLine:
 
     ## Enable a volume
     def volume_enable(self, args):
-        v = _get_item(self.c.volumes(), args.vol, "volume id")
+        v = _get_item(self.c.volumes(), args.vol, "Volume")
         self.c.volume_enable(v)
 
     ## Disable a volume
     def volume_disable(self, args):
-        v = _get_item(self.c.volumes(), args.vol, "volume id")
+        v = _get_item(self.c.volumes(), args.vol, "Volume")
         self.c.volume_disable(v)
 
     ## Removes a nfs export
     def fs_unexport(self, args):
-        export = _get_item(self.c.exports(), args.export, "nfs export id")
+        export = _get_item(self.c.exports(), args.export, "NFS Export")
         self.c.export_remove(export)
 
     ## Exports a file system as a NFS export
     def fs_export(self, args):
-        fs = _get_item(self.c.fs(), args.fs, "file system id")
+        fs = _get_item(self.c.fs(), args.fs, "File System")
 
         # Check to see if we have some type of access specified
         if len(args.rw_host) == 0 \
@@ -1309,25 +1308,25 @@ class CmdLine:
 
     ## Displays volume dependants.
     def volume_dependants(self, args):
-        v = _get_item(self.c.volumes(), args.vol, "volume id")
+        v = _get_item(self.c.volumes(), args.vol, "Volume")
         rc = self.c.volume_child_dependency(v)
         out(rc)
 
     ## Removes volume dependants.
     def volume_dependants_rm(self, args):
-        v = _get_item(self.c.volumes(), args.vol, "volume id")
+        v = _get_item(self.c.volumes(), args.vol, "Volume")
         self._wait_for_it("volume-dependant-rm",
                           self.c.volume_child_dependency_rm(v), None)
 
     ## Displays file system dependants
     def fs_dependants(self, args):
-        fs = _get_item(self.c.fs(), args.fs, "file system id")
+        fs = _get_item(self.c.fs(), args.fs, "File System")
         rc = self.c.fs_child_dependency(fs, args.file)
         out(rc)
 
     ## Removes file system dependants
     def fs_dependants_rm(self, args):
-        fs = _get_item(self.c.fs(), args.fs, "file system id")
+        fs = _get_item(self.c.fs(), args.fs, "File System")
         self._wait_for_it("fs-dependants-rm",
                           self.c.fs_child_dependency_rm(fs,
                                                         args.file),
