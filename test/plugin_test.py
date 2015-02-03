@@ -696,7 +696,7 @@ class TestPlugin(unittest.TestCase):
                                Cap.VOLUME_CREATE,
                                Cap.VOLUME_DELETE]):
 
-                if supported(cap, [Cap.ACCESS_GROUP_CREATE_WWPN]):
+                if supported(cap, [Cap.ACCESS_GROUP_CREATE_ISCSI_IQN]):
                     ag_name = rs("ag")
                     ag_iqn = 'iqn.1994-05.com.domain:01.' + rs(None, 6)
 
