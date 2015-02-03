@@ -154,6 +154,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         if self._flag_ag_support:
             cap.set(Capabilities.ACCESS_GROUP_CREATE_ISCSI_IQN)
             cap.set(Capabilities.ACCESS_GROUP_INITIATOR_ADD_ISCSI_IQN)
+            cap.set(Capabilities.ACCESS_GROUP_INITIATOR_DELETE)
 
         return cap
 
@@ -366,6 +367,45 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
             LsmError(
                 ErrorNumber.PLUGIN_BUG,
                 "access_group_initiator_add(): "
+                "Failed to find the updated access group"))
+
+    @handle_errors
+    def access_group_initiator_delete(self, access_group, init_id, init_type,
+                                      flags=0):
+        if init_type != AccessGroup.INIT_TYPE_ISCSI_IQN:
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "Targetd only support iscsi")
+
+        # Pre-check for NO_STATE_CHANGE as targetd sliently return
+        # when init_id not in requested access_group.
+        lsm_ag = self._search_lsm_ag_by_name(
+            access_group.name,
+            LsmError(
+                ErrorNumber.NOT_FOUND_ACCESS_GROUP, "Access group not found"))
+
+        if init_id not in lsm_ag.init_ids:
+            raise LsmError(
+                ErrorNumber.NO_STATE_CHANGE,
+                "Requested initiator is not in defined access group")
+
+        if len(lsm_ag.init_ids) == 1:
+            raise LsmError(
+                ErrorNumber.LAST_INIT_IN_ACCESS_GROUP,
+                "Refused to remove the last initiator from access group")
+
+        self._jsonrequest(
+            "access_group_init_del",
+            dict(
+                ag_name=access_group.name,
+                init_id=init_id,
+                init_type='iscsi'))
+
+        return self._search_lsm_ag_by_name(
+            access_group.name,
+            LsmError(
+                ErrorNumber.PLUGIN_BUG,
+                "access_group_initiator_delete(): "
                 "Failed to find the updated access group"))
 
     def _mask_infos(self):
