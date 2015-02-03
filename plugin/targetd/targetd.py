@@ -56,6 +56,7 @@ def handle_errors(method):
 
 class TargetdError(Exception):
     VOLUME_MASKED = 303
+    INVALID_METHOD = 32601
 
     def __init__(self, errno, reason, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
@@ -64,6 +65,7 @@ class TargetdError(Exception):
 
 
 class TargetdStorage(IStorageAreaNetwork, INfs):
+    _FAKE_AG_PREFIX = 'init.'
 
     def __init__(self):
         self.uri = None
@@ -82,6 +84,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         self.uri = uri_parse(uri)
         self.password = password
         self.tmo = timeout
+        self._flag_ag_support = True
 
         user = self.uri.get('username', DEFAULT_USER)
         port = self.uri.get('port', DEFAULT_PORT)
@@ -98,6 +101,14 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         auth = ('%s:%s' % (user, self.password)).encode('base64')[:-1]
         self.headers = {'Content-Type': 'application/json',
                         'Authorization': 'Basic %s' % (auth,)}
+
+        try:
+            self._jsonrequest('access_group_list')
+        except TargetdError as te:
+            if te.errno == TargetdError.INVALID_METHOD:
+                self._flag_ag_support = False
+            else:
+                raise
 
     @handle_errors
     def time_out_set(self, ms, flags=0):
@@ -212,19 +223,47 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                               'targetd'))
         return search_property(pools, search_key, search_value)
 
+    @staticmethod
+    def _tgt_ag_to_lsm(tgt_ag, sys_id):
+        return AccessGroup(
+            tgt_ag['name'], tgt_ag['name'], tgt_ag['init_ids'],
+            AccessGroup.INIT_TYPE_ISCSI_IQN, sys_id)
+
+    @staticmethod
+    def _tgt_init_to_lsm(tgt_init, sys_id):
+        return AccessGroup(
+            "%s%s" % (
+                TargetdStorage._FAKE_AG_PREFIX, md5(tgt_init['init_id'])),
+            'N/A', [tgt_init['init_id']], AccessGroup.INIT_TYPE_ISCSI_IQN,
+            sys_id)
+
     @handle_errors
     def access_groups(self, search_key=None, search_value=None, flags=0):
-        rc = []
-        for init_id in set(i['initiator_wwn']
-                           for i in self._jsonrequest("export_list")):
-            ag_id = md5(init_id)
-            init_type = AccessGroup.INIT_TYPE_ISCSI_IQN
-            ag_name = 'N/A'
-            init_ids = [init_id]
-            rc.extend(
-                [AccessGroup(ag_id, ag_name, init_ids, init_type,
-                             self.system.id)])
-        return search_property(rc, search_key, search_value)
+        rc_lsm_ags = []
+
+        # For backward compatibility
+        if self._flag_ag_support is True:
+            tgt_inits = self._jsonrequest(
+                'initiator_list', {'standalone_only': True})
+        else:
+            tgt_inits = list(
+                {'init_id': x}
+                for x in set(
+                    i['initiator_wwn']
+                    for i in self._jsonrequest("export_list")))
+
+        rc_lsm_ags.extend(
+            list(
+                TargetdStorage._tgt_init_to_lsm(i, self.system.id)
+                for i in tgt_inits))
+
+        if self._flag_ag_support is True:
+            for tgt_ag in self._jsonrequest('access_group_list'):
+                rc_lsm_ags.append(
+                    TargetdStorage._tgt_ag_to_lsm(
+                        tgt_ag, self.system.id))
+
+        return search_property(rc_lsm_ags, search_key, search_value)
 
     def _mask_infos(self):
         """
