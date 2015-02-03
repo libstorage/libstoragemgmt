@@ -158,6 +158,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
             cap.set(Capabilities.ACCESS_GROUP_CREATE_ISCSI_IQN)
             cap.set(Capabilities.ACCESS_GROUP_INITIATOR_ADD_ISCSI_IQN)
             cap.set(Capabilities.ACCESS_GROUP_INITIATOR_DELETE)
+            cap.set(Capabilities.ACCESS_GROUP_DELETE)
 
         return cap
 
@@ -410,6 +411,35 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                 ErrorNumber.PLUGIN_BUG,
                 "access_group_initiator_delete(): "
                 "Failed to find the updated access group"))
+
+    @handle_errors
+    def access_group_delete(self, access_group, flags=0):
+        if access_group.id.startswith(TargetdStorage._FAKE_AG_PREFIX):
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "Cannot delete old initiator simulated access group, "
+                "they will be automatically deleted when no volume masked to")
+
+        if self._flag_ag_support is False:
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "Please upgrade your targetd package to support "
+                "access_group_delete()")
+
+        self._lsm_ag_of_id(
+            access_group.id,
+            LsmError(
+                ErrorNumber.NOT_FOUND_ACCESS_GROUP,
+                "Access group not found"))
+
+        if list(m for m in self._tgt_masks() if m['ag_id'] == access_group.id):
+            raise LsmError(
+                ErrorNumber.IS_MASKED,
+                "Cannot delete access group which has volume masked to")
+
+        self._jsonrequest(
+            "access_group_destroy", {'ag_name': access_group.name})
+        return None
 
     def _tgt_masks(self):
         """
