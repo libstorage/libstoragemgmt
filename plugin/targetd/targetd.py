@@ -60,6 +60,8 @@ class TargetdError(Exception):
     INVALID_ARGUMENT = 32602
     NAME_CONFLICT = 50
     EXISTS_INITIATOR = 52
+    NO_FREE_HOST_LUN_ID = 1000
+    EMPTY_ACCESS_GROUP = 511
 
     def __init__(self, errno, reason, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
@@ -69,6 +71,7 @@ class TargetdError(Exception):
 
 class TargetdStorage(IStorageAreaNetwork, INfs):
     _FAKE_AG_PREFIX = 'init.'
+    _MAX_H_LUN_ID = 255
 
     def __init__(self):
         self.uri = None
@@ -273,14 +276,14 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
 
         return search_property(rc_lsm_ags, search_key, search_value)
 
-    def _search_lsm_ag_by_name(self, ag_name, lsm_error_obj=None):
+    def _lsm_ag_of_id(self, ag_id, lsm_error_obj=None):
         """
         Raise provided error if defined when not found.
         Return lsm.AccessGroup if found.
         """
         lsm_ags = self.access_groups()
         for lsm_ag in lsm_ags:
-            if lsm_ag.name == ag_name:
+            if lsm_ag.id == ag_id:
                 return lsm_ag
 
         if lsm_error_obj:
@@ -322,7 +325,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
             else:
                 raise
 
-        return self._search_lsm_ag_by_name(
+        return self._lsm_ag_of_id(
             name,
             LsmError(
                 ErrorNumber.PLUGIN_BUG,
@@ -336,7 +339,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
             raise LsmError(
                 ErrorNumber.NO_SUPPORT, "Targetd only support iscsi")
 
-        lsm_ag = self._search_lsm_ag_by_name(
+        lsm_ag = self._lsm_ag_of_id(
             access_group.name,
             LsmError(
                 ErrorNumber.NOT_FOUND_ACCESS_GROUP, "Access group not found"))
@@ -362,7 +365,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
             else:
                 raise
 
-        return self._search_lsm_ag_by_name(
+        return self._lsm_ag_of_id(
             access_group.name,
             LsmError(
                 ErrorNumber.PLUGIN_BUG,
@@ -379,7 +382,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
 
         # Pre-check for NO_STATE_CHANGE as targetd sliently return
         # when init_id not in requested access_group.
-        lsm_ag = self._search_lsm_ag_by_name(
+        lsm_ag = self._lsm_ag_of_id(
             access_group.name,
             LsmError(
                 ErrorNumber.NOT_FOUND_ACCESS_GROUP, "Access group not found"))
@@ -401,106 +404,193 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                 init_id=init_id,
                 init_type='iscsi'))
 
-        return self._search_lsm_ag_by_name(
+        return self._lsm_ag_of_id(
             access_group.name,
             LsmError(
                 ErrorNumber.PLUGIN_BUG,
                 "access_group_initiator_delete(): "
                 "Failed to find the updated access group"))
 
-    def _mask_infos(self):
+    def _tgt_masks(self):
         """
         Return a list of tgt_mask:
-            'vol_id': volume.id
-            'ag_id': ag.id
-            'lun_id': lun_id
+            {
+                'pool_name': pool_name,
+                'vol_name': vol_name,
+                'ag_id': lsm_ag.id,
+                'h_lun_id': h_lun_id,
+            }
         """
         tgt_masks = []
-        tgt_exps = self._jsonrequest("export_list")
-        for tgt_exp in tgt_exps:
-            tgt_masks.extend([{
-                'vol_id': tgt_exp['vol_uuid'],
-                'ag_id': md5(tgt_exp['initiator_wwn']),
-                'lun_id': tgt_exp['lun'],
-            }])
+        for tgt_exp in self._jsonrequest("export_list"):
+            tgt_masks.append({
+                'ag_id': "%s%s" % (
+                    TargetdStorage._FAKE_AG_PREFIX,
+                    md5(tgt_exp['initiator_wwn'])),
+                'vol_name': tgt_exp['vol_name'],
+                'pool_name': tgt_exp['pool'],
+                'h_lun_id': tgt_exp['lun'],
+            })
+        if self._flag_ag_support:
+            for tgt_ag_map in self._jsonrequest("access_group_map_list"):
+                tgt_masks.append({
+                    'ag_id': tgt_ag_map['ag_name'],
+                    'vol_name': tgt_ag_map['vol_name'],
+                    'pool_name': tgt_ag_map['pool_name'],
+                    'h_lun_id': tgt_ag_map['h_lun_id'],
+                })
+
         return tgt_masks
 
-    def _is_masked(self, init_id, vol_id):
+    def _is_masked(self, ag_id, pool_name, vol_name, tgt_masks=None):
         """
-        Check whether volume is masked to certain initiator.
-        Return Tuple (True,_mask_infos)  or (False, _mask_infos)
+        Check whether volume is masked to certain access group.
+        Return True or False
         """
-        ag_id = md5(init_id)
-        tgt_mask_infos = self._mask_infos()
-        for tgt_mask in tgt_mask_infos:
-            if tgt_mask['vol_id'] == vol_id and tgt_mask['ag_id'] == ag_id:
-                return True, tgt_mask_infos
-        return False, tgt_mask_infos
+        if tgt_masks is None:
+            tgt_masks = self._tgt_masks()
+        return list(
+            m for m in tgt_masks
+            if (m['vol_name'] == vol_name and
+                m['pool_name'] == pool_name and
+                m['ag_id'] == ag_id)
+            ) != []
 
+    def _lsm_vol_of_id(self, vol_id, error=None):
+        try:
+            return list(v for v in self.volumes() if v.id == vol_id)[0]
+        except IndexError:
+            if error:
+                raise error
+            else:
+                return None
+
+    @handle_errors
     def volume_mask(self, access_group, volume, flags=0):
-        if len(access_group.init_ids) == 0:
-            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           "No member belong to defined access group: %s"
-                           % access_group.id)
-        if len(access_group.init_ids) != 1:
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "Targetd does not allowing masking two or more "
-                           "initiators to volume")
+        self._lsm_ag_of_id(
+            access_group.id,
+            LsmError(
+                ErrorNumber.NOT_FOUND_ACCESS_GROUP, "Access group not found"))
 
-        if access_group.init_type != AccessGroup.INIT_TYPE_ISCSI_IQN:
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "Targetd only support ISCSI initiator group type")
+        self._lsm_vol_of_id(
+            volume.id,
+            LsmError(
+                ErrorNumber.NOT_FOUND_VOLUME, "Volume not found"))
 
-        (is_masked, tgt_masks) = self._is_masked(
-            access_group.init_ids[0], volume.id)
-
-        if is_masked:
+        tgt_masks = self._tgt_masks()
+        if self._is_masked(
+                access_group.id, volume.pool_id, volume.name, tgt_masks):
             raise LsmError(
                 ErrorNumber.NO_STATE_CHANGE,
                 "Volume is already masked to requested access group")
 
-        # find lowest unused lun ID
-        used_lun_ids = [x['lun_id'] for x in tgt_masks]
-        lun_id = 0
-        while True:
-            if lun_id in used_lun_ids:
-                lun_id += 1
-            else:
-                break
+        if access_group.id.startswith(TargetdStorage._FAKE_AG_PREFIX):
+            free_h_lun_ids = (
+                set(range(TargetdStorage._MAX_H_LUN_ID + 1)) -
+                set([m['h_lun_id'] for m in tgt_masks]))
 
-        self._jsonrequest("export_create",
-                          dict(pool=volume.pool_id,
-                               vol=volume.name,
-                               initiator_wwn=access_group.init_ids[0],
-                               lun=lun_id))
+            if len(free_h_lun_ids) == 0:
+                # TODO(Gris Ge): Add SYSTEM_LIMIT error into API
+                raise LsmError(
+                    ErrorNumber.PLUGIN_BUG,
+                    "System limit: targetd only allows %s LUN masked" %
+                    TargetdStorage._MAX_H_LUN_ID)
+
+            h_lun_id = free_h_lun_ids.pop()
+
+            self._jsonrequest(
+                "export_create",
+                {
+                    'pool': volume.pool_id,
+                    'vol': volume.name,
+                    'initiator_wwn': access_group.init_ids[0],
+                    'lun': h_lun_id
+                })
+        else:
+            try:
+                self._jsonrequest(
+                    'access_group_map_create',
+                    {
+                        'pool_name': volume.pool_id,
+                        'vol_name': volume.name,
+                        'ag_name': access_group.id,
+                    })
+            except TargetdError as tgt_error:
+                if tgt_error.errno == TargetdError.NO_FREE_HOST_LUN_ID:
+                    # TODO(Gris Ge): Add SYSTEM_LIMIT error into API
+                    raise LsmError(
+                        ErrorNumber.PLUGIN_BUG,
+                        "System limit: targetd only allows %s LUN masked" %
+                        TargetdStorage._MAX_H_LUN_ID)
+                elif tgt_error.errno == TargetdError.EMPTY_ACCESS_GROUP:
+                    raise LsmError(
+                        ErrorNumber.NOT_FOUND_ACCESS_GROUP,
+                        "Access group not found")
+                else:
+                    raise
+
         return None
 
     @handle_errors
     def volume_unmask(self, volume, access_group, flags=0):
+        self._lsm_ag_of_id(
+            access_group.id,
+            LsmError(
+                ErrorNumber.NOT_FOUND_ACCESS_GROUP, "Access group not found"))
+
+        self._lsm_vol_of_id(
+            volume.id,
+            LsmError(
+                ErrorNumber.NOT_FOUND_VOLUME, "Volume not found"))
+
         # Pre-check if already unmasked
-        if not self._is_masked(access_group.init_ids[0], volume.id)[0]:
+        if not self._is_masked(access_group.id, volume.pool_id, volume.name):
             raise LsmError(ErrorNumber.NO_STATE_CHANGE,
                            "Volume is not masked to requested access group")
-        else:
+
+        if access_group.id.startswith(TargetdStorage._FAKE_AG_PREFIX):
             self._jsonrequest("export_destroy",
                               dict(pool=volume.pool_id,
                                    vol=volume.name,
                                    initiator_wwn=access_group.init_ids[0]))
+        else:
+            self._jsonrequest(
+                "access_group_map_destroy",
+                {
+                    'pool_name': volume.pool_id,
+                    'vol_name': volume.name,
+                    'ag_name': access_group.id,
+                })
+
         return None
 
     @handle_errors
     def volumes_accessible_by_access_group(self, access_group, flags=0):
-        tgt_masks = self._mask_infos()
-        vol_ids = list(x['vol_id'] for x in tgt_masks
-                       if x['ag_id'] == access_group.id)
-        lsm_vols = self.volumes(flags=flags)
-        return [x for x in lsm_vols if x.id in vol_ids]
+        tgt_masks = self._tgt_masks()
+
+        vol_infos = list(
+            [m['vol_name'], m['pool_name']]
+            for m in tgt_masks
+            if m['ag_id'] == access_group.id)
+
+        if len(vol_infos) == 0:
+            return []
+
+        rc_lsm_vols = []
+        return list(
+            lsm_vol
+            for lsm_vol in self.volumes(flags=flags)
+            if [lsm_vol.name, lsm_vol.pool_id] in vol_infos)
 
     @handle_errors
     def access_groups_granted_to_volume(self, volume, flags=0):
-        tgt_masks = self._mask_infos()
-        ag_ids = list(x['ag_id'] for x in tgt_masks
-                      if x['vol_id'] == volume.id)
+        tgt_masks = self._tgt_masks()
+        ag_ids = list(
+            m['ag_id']
+            for m in tgt_masks
+            if (m['vol_name'] == volume.name and
+                m['pool_name'] == volume.pool_id))
+
         lsm_ags = self.access_groups(flags=flags)
         return [x for x in lsm_ags if x.id in ag_ids]
 
