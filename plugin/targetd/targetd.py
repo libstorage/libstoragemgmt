@@ -57,6 +57,9 @@ def handle_errors(method):
 class TargetdError(Exception):
     VOLUME_MASKED = 303
     INVALID_METHOD = 32601
+    INVALID_ARGUMENT = 32602
+    NAME_CONFLICT = 50
+    EXISTS_INITIATOR = 52
 
     def __init__(self, errno, reason, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
@@ -147,6 +150,9 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         cap.set(Capabilities.ACCESS_GROUPS_GRANTED_TO_VOLUME)
         cap.set(Capabilities.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP)
         cap.set(Capabilities.VOLUME_ISCSI_CHAP_AUTHENTICATION)
+
+        if self._flag_ag_support:
+            cap.set(Capabilities.ACCESS_GROUP_CREATE_ISCSI_IQN)
 
         return cap
 
@@ -264,6 +270,62 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                         tgt_ag, self.system.id))
 
         return search_property(rc_lsm_ags, search_key, search_value)
+
+    def _search_lsm_ag_by_name(self, ag_name, lsm_error_obj=None):
+        """
+        Raise provided error if defined when not found.
+        Return lsm.AccessGroup if found.
+        """
+        lsm_ags = self.access_groups()
+        for lsm_ag in lsm_ags:
+            if lsm_ag.name == ag_name:
+                return lsm_ag
+
+        if lsm_error_obj:
+            raise lsm_error_obj
+
+    @handle_errors
+    def access_group_create(self, name, init_id, init_type, system, flags=0):
+        if system.id != self.system.id:
+            raise LsmError(
+                ErrorNumber.NOT_FOUND_SYSTEM,
+                "System %s not found" % system.id)
+        if self._flag_ag_support is False:
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "Please upgrade your targetd package to support "
+                "access_group_create()")
+
+        if init_type != AccessGroup.INIT_TYPE_ISCSI_IQN:
+            raise LsmError(ErrorNumber.NO_SUPPORT, "Only iSCSI yet")
+
+        try:
+            self._jsonrequest(
+                "access_group_create",
+                dict(ag_name=name, init_id=init_id, init_type='iscsi'))
+        except TargetdError as tgt_error:
+            if tgt_error.errno == TargetdError.EXISTS_INITIATOR:
+                raise LsmError(
+                    ErrorNumber.EXISTS_INITIATOR,
+                    "Initiator is already used by other access group")
+            elif tgt_error.errno == TargetdError.NAME_CONFLICT:
+                raise LsmError(
+                    ErrorNumber.NAME_CONFLICT,
+                    "Requested access group name is already used by other "
+                    "access group")
+            elif tgt_error.errno == TargetdError.INVALID_ARGUMENT:
+                raise LsmError(
+                    ErrorNumber.INVALID_ARGUMENT,
+                    str(tgt_error))
+            else:
+                raise
+
+        return self._search_lsm_ag_by_name(
+            name,
+            LsmError(
+                ErrorNumber.PLUGIN_BUG,
+                "access_group_create(): Failed to find the newly created "
+                "access group"))
 
     def _mask_infos(self):
         """
