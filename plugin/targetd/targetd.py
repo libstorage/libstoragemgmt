@@ -38,6 +38,7 @@ PATH = "/targetrpc"
 # Current sector size in liblvm
 _LVM_SECTOR_SIZE = 512
 
+
 def handle_errors(method):
     def target_wrapper(*args, **kwargs):
         try:
