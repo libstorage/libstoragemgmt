@@ -6,7 +6,7 @@ After=syslog.target
 ExecStart=/usr/bin/lsmd -d
 ExecReload=/bin/kill -HUP $MAINPID
 StandardError=syslog
-User=libstoragemgmt
+User=root
 
 [Install]
 WantedBy=multi-user.target

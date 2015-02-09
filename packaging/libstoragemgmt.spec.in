@@ -50,6 +50,7 @@ BuildRequires:  python-argparse
 BuildRequires:  glib2-devel
 # Explicitly require gcc-c++ is for OBS
 BuildRequires:  gcc-c++
+BuildRequires:  libconfig-devel
 %if 0%{?suse_version}
 BuildRequires:  libyajl-devel
 %else
@@ -417,10 +418,13 @@ fi
 %doc README COPYING.LIB
 %{_mandir}/man1/lsmcli.1*
 %{_mandir}/man1/lsmd.1*
+%{_mandir}/man5/lsmd.conf.5*
 %{_libdir}/*.so.*
 %{_bindir}/lsmcli
 %{_bindir}/lsmd
 %{_bindir}/simc_lsmplugin
+%{_sysconfdir}/lsm/lsmd.conf
+%dir %{_sysconfdir}/lsm/pluginconf.d
 
 %if 0%{?with_systemd}
 %{_unitdir}/libstoragemgmt.service
@@ -463,6 +467,7 @@ fi
 %{python_sitelib}/lsm/lsmcli/data_display.*
 %{python_sitelib}/lsm/lsmcli/cmdline.*
 %{_bindir}/sim_lsmplugin
+%{_sysconfdir}/lsm/pluginconf.d/sim.conf
 
 %files -n %{libstoragemgmt}-smis-plugin
 %defattr(-,root,root,-)

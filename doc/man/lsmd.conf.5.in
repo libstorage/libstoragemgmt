@@ -1,0 +1,57 @@
+.TH lsmd.conf "5" "January 2015" "lsmd.conf @VERSION@" "libStorageMgmt daemon config"
+.SH NAME
+lsmd.conf - libStorageMgmt daemon lsmd configuration file.
+
+.SH DESCRIPTION
+The libStorageMgmt plugin-in daemon(\fBlsmd\fR) will read \fBlsmd.conf\fR
+file in the folder defined via \fB--confdir\fR(default is \fB/etc/lsm/\fR).
+
+The \fBlsmd\fR also read plugin configuration files from sub-folder
+\fBpluginconf.d\fR. The plugin configuration file should be named as
+<uri_scheme>.conf. For example:
+
+    * Linux plugin(\fBlinux\fR://):         \fBlinux.conf\fR
+    * MegaRAID plugin(\fBmegaraid\fR://):   \fBmegaraid.conf\fR
+
+The \fBlsmd.conf\fR controls the global settings for \fBlsmd\fR while
+plugin configuration file controls plugin behaviour.
+
+Each option line of configuration file should contain tailing
+semicolon(\fB;\fR).
+
+.SH lsmd.conf OPTIONS
+.TP
+\fBallow-plugin-root-privilege = true;\fR
+
+Indicate whether \fBlsmd\fR daemon should keep running in root mode and invoke
+plugin as root user when needed.
+
+Without this option or set as \fBfalse\fR means never run lsmd and its plugins
+as root user.
+
+Only when all the following requirements meet, will the \fBlsmd\fR run certain
+plugin as root user:
+
+    1. "allow-plugin-root-privilege = true;" in lsmd.conf
+    2. "require-root-privilege = true;" in plugin config.
+    3. API connection(or lsmcli) is ran by root user.
+
+.SH Plugin OPTIONS
+.TP
+\fBrequire-root-privilege = true;\fR
+
+Indicate plugin requires root privilege.
+Without this line or set as \fBfalse\fR, the plugin will never invoked as root
+user by \fBlsmd\fR.
+
+Please check \fBlsmd.conf\fR option \fBallow-plugin-root-privilege\fR for
+detail.
+
+.SH SEE ALSO
+\fIlsmd (1)\fR
+
+.SH BUGS
+Please report bugs to
+<libstoragemgmt\-devel@lists.sourceforge.net>
+.SH AUTHOR
+Gris Ge <fge@redhat.com>

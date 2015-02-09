@@ -4,7 +4,7 @@ ACLOCAL_AMFLAGS = -I m4
 
 DISTCHECK_CONFIGURE_FLAGS = --with-systemdsystemunitdir=$$dc_install_base/$(systemdsystemunitdir)
 
-SUBDIRS= c_binding python_binding plugin doc tools daemon packaging
+SUBDIRS= c_binding python_binding plugin doc tools daemon packaging config
 
 if BUILD_C_UNIT
 SUBDIRS += test

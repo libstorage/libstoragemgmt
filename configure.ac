@@ -180,6 +180,14 @@ if test "x$with_rest_api" = "xyes"; then
 fi
 AM_CONDITIONAL([WITH_REST_API], [test "x$with_rest_api" = "xyes"])
 
+dnl ==========================================================================
+dnl Check for libconfig as it is needed for lsmd daemon
+dnl ==========================================================================
+PKG_CHECK_MODULES(
+    [LIBCONFIG], [libconfig >= 1.3.2],,
+    AC_MSG_ERROR([libconfig 1.3.2 or newer not found.])
+)
+
 #Setup the unit directory for systemd stuff
 PKG_PROG_PKG_CONFIG
 AC_ARG_WITH([systemdsystemunitdir],
@@ -201,10 +209,12 @@ AC_OUTPUT(libstoragemgmt.pc \
           plugin/Makefile \
           plugin/simc/Makefile \
           daemon/Makefile \
+          config/Makefile \
           doc/Makefile \
           doc/man/lsmcli.1 \
           doc/man/lsmd.1 \
           doc/doxygen.conf \
+          doc/man/lsmd.conf.5 \
           tools/Makefile \
           tools/udev/Makefile \
           tools/lsmcli/Makefile \

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2014 Red Hat, Inc.
+ * Copyright (C) 2011-2015 Red Hat, Inc.
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -17,10 +17,10 @@
  * Author: tasleson
  */
 
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
-#define _GNU_SOURCE
 #include <string.h>
 #include <ctype.h>
 #include <signal.h>
@@ -43,11 +43,17 @@
 #include <assert.h>
 #include <grp.h>
 #include <limits.h>
+#include <libconfig.h>
 
 #define BASE_DIR  "/var/run/lsm"
 #define SOCKET_DIR BASE_DIR"/ipc"
 #define PLUGIN_DIR "/usr/bin"
 #define LSM_USER "libstoragemgmt"
+#define LSM_CONF_DIR "/etc/lsm/"
+#define LSM_PLUGIN_CONF_DIR_NAME "pluginconf.d"
+#define LSMD_CONF_FILE "lsmd.conf"
+#define LSM_CONF_ALLOW_ROOT_OPT_NAME "allow-plugin-root-privilege"
+#define LSM_CONF_REQUIRE_ROOT_OPT_NAME "require-root-privilege"
 
 #define min(a,b) \
    ({ __typeof__ (a) _a = (a); \
@@ -64,19 +70,26 @@ int systemd = 0;
 
 char *socket_dir = SOCKET_DIR;
 char *plugin_dir = PLUGIN_DIR;
+char *conf_dir = LSM_CONF_DIR;
 
 char plugin_extension[] = "_lsmplugin";
+
+char plugin_conf_extension[] = ".conf";
 
 typedef enum { RUNNING, RESTART, EXIT } serve_type;
 serve_type serve_state = RUNNING;
 
 int plugin_mem_debug = 0;
 
+int allow_root_plugin = 0;
+int has_root_plugin = 0;
+
 /**
  * Each item in plugin list contains this information
  */
 struct plugin {
     char *file_path;
+    int require_root;
     int fd;
     LIST_ENTRY(plugin) pointers;
 };
@@ -158,35 +171,33 @@ void drop_privileges(void)
     int err = 0;
     struct passwd *pw = NULL;
 
-    if( !systemd ) {
-        pw = getpwnam(LSM_USER);
-        if( pw ) {
-            if ( !geteuid() ) {
+    pw = getpwnam(LSM_USER);
+    if( pw ) {
+        if ( !geteuid() ) {
 
-                if( -1 == setgid(pw->pw_gid) ) {
-                    err = errno;
-                    log_and_exit(
-                        "Unexpected error on setgid(errno %d)\n", err);
-                }
-
-                if( -1 == setgroups(1, &pw->pw_gid) ) {
-                    err = errno;
-                    log_and_exit(
-                        "Unexpected error on setgroups(errno %d)\n", err);
-                }
-
-                if( -1 == setuid(pw->pw_uid) ) {
-                    err = errno;
-                    log_and_exit(
-                        "Unexpected error on setuid(errno %d)\n", err);
-                }
-            } else if ( pw->pw_uid != getuid() ) {
-                warn("Daemon not running as correct user\n");
+            if( -1 == setgid(pw->pw_gid) ) {
+                err = errno;
+                log_and_exit(
+                    "Unexpected error on setgid(errno %d)\n", err);
             }
-        } else {
-            info("Warn: Missing %s user, running as existing user!\n",
-                LSM_USER);
+
+            if( -1 == setgroups(1, &pw->pw_gid) ) {
+                err = errno;
+                log_and_exit(
+                    "Unexpected error on setgroups(errno %d)\n", err);
+            }
+
+            if( -1 == setuid(pw->pw_uid) ) {
+                err = errno;
+                log_and_exit(
+                    "Unexpected error on setuid(errno %d)\n", err);
+            }
+        } else if ( pw->pw_uid != getuid() ) {
+            warn("Daemon not running as correct user\n");
         }
+    } else {
+        info("Warn: Missing %s user, running as existing user!\n",
+            LSM_USER);
     }
 }
 
@@ -219,6 +230,8 @@ void usage(void)
     printf("     --plugindir = The directory where the plugins are located\n");
     printf("     --socketdir = The directory where the Unix domain sockets will "
                                 "be created\n");
+    printf("     --confdir   = The directory where the config files are "
+                               "located\n");
     printf("     -v          = Verbose logging\n");
     printf("     -d          = new style daemon (systemd)\n");
 }
@@ -415,6 +428,95 @@ void empty_plugin_list(struct plugin_list *list)
 }
 
 /**
+ * Parse config and seeking provided key name bool
+ *  1. Keep value untouched if file not exist
+ *  2. If file is not readable, abort via log_and_exit()
+ *  3. Keep value untouched if provided key not found
+ *  4. Abort via log_and_exit() if no enough memory.
+ * @param conf_path     config file path
+ * @param key_name      string, searching key
+ * @param value         int, output, value of this config key
+ */
+
+void parse_conf_bool(char * conf_path, char *key_name, int *value)
+{
+    if( access(conf_path, F_OK) == -1 ) {
+        /* file not exist. */
+        return;
+    }
+    config_t *cfg = (config_t *)malloc(sizeof(config_t));
+    if (cfg){
+        config_init(cfg);
+        if (CONFIG_TRUE == config_read_file(cfg, conf_path)){
+            config_lookup_bool(cfg, key_name, value);
+        }else{
+            log_and_exit(
+                "configure %s parsing failed: %s at line %d\n",
+                conf_path, config_error_text(cfg), config_error_line(cfg));
+        }
+    } else{
+        log_and_exit(
+            "malloc failure while trying to allocate memory for config_t\n");
+    }
+
+    config_destroy(cfg);
+    free(cfg);
+}
+
+/**
+ * Load plugin config for root privilege setting.
+ * If config not found, return 0 for no root privilege required.
+ * @param plugin_path Full path of plugin
+ * @return 1 for require root privilege, 0 or not.
+ */
+
+int chk_pconf_root_pri(char *plugin_path)
+{
+    int require_root = 0;
+    char *base_name = basename(plugin_path);
+    ssize_t plugin_name_len =
+        strlen(base_name) - strlen(plugin_extension);
+    if ( plugin_name_len <= 0 ){
+        log_and_exit(
+            "Got invalid plugin full path %s\n", plugin_path);
+    }
+    ssize_t conf_file_name_len = plugin_name_len +
+        strlen(plugin_conf_extension) + 1;
+    char *plugin_conf_filename =
+        (char *)malloc(conf_file_name_len);
+    if (plugin_conf_filename){
+        strncpy(
+            plugin_conf_filename, base_name, plugin_name_len);
+        strncpy(
+            plugin_conf_filename+plugin_name_len,
+            plugin_conf_extension, strlen(plugin_conf_extension));
+        plugin_conf_filename[conf_file_name_len-1] = '\0';
+    }else{
+        log_and_exit(
+            "malloc failure while trying to allocate %d "
+            "bytes\n", conf_file_name_len);
+    }
+    char *plugin_conf_dir_path =
+        path_form(conf_dir, LSM_PLUGIN_CONF_DIR_NAME);
+
+    char *plugin_conf_path = path_form(
+        plugin_conf_dir_path, plugin_conf_filename);
+    parse_conf_bool(
+        plugin_conf_path, LSM_CONF_REQUIRE_ROOT_OPT_NAME,
+        &require_root);
+
+    if (require_root == 1 && allow_root_plugin == 0){
+        warn(
+            "Plugin %s require root privilege while %s disable globally\n",
+            base_name, LSMD_CONF_FILE);
+    }
+    free(plugin_conf_dir_path);
+    free(plugin_conf_filename);
+    free(plugin_conf_path);
+    return require_root;
+}
+
+/**
  * Call back for plug-in processing.
  * @param p             Private data
  * @param full_name     Full path and file name
@@ -432,6 +534,8 @@ int process_plugin(void *p, char *full_name)
                 if( item ) {
                     item->file_path = strdup(full_name);
                     item->fd = setup_socket(full_name);
+                    item->require_root = chk_pconf_root_pri(full_name);
+                    has_root_plugin |= item->require_root;
 
                     if( item->file_path && item->fd >= 0 ) {
                         LIST_INSERT_HEAD((struct plugin_list*)p, item, pointers);
@@ -503,20 +607,25 @@ int process_plugins(void)
     clean_up();
     info("Scanning plug-in directory %s\n", plugin_dir);
     process_directory(plugin_dir, &head, process_plugin);
+    if ( allow_root_plugin == 1 && has_root_plugin == 0 ){
+        info("No plugin requires root privilege, dropping root privilege\n");
+        flight_check();
+        drop_privileges();
+    }
     return 0;
 }
 
 /**
  * Given a socket descriptor looks it up and returns the plug-in
  * @param fd        Socket descriptor to lookup
- * @return Character string
+ * @return struct plugin
  */
-char *plugin_lookup(int fd)
+struct plugin *plugin_lookup(int fd)
 {
     struct plugin *plug = NULL;
     LIST_FOREACH(plug, &head, pointers) {
         if( plug->fd == fd ) {
-            return plug->file_path;
+            return plug;
         }
     }
     return NULL;
@@ -526,8 +635,10 @@ char *plugin_lookup(int fd)
  * Does the actual fork and exec of the plug-in
  * @param plugin        Full filename and path of plug-in to exec.
  * @param client_fd     Client connected file descriptor
+ * @param require_root  int, indicate whether this plugin require root
+ *                      privilege or not
  */
-void exec_plugin( char *plugin, int client_fd )
+void exec_plugin( char *plugin, int client_fd, int require_root)
 {
     int err = 0;
 
@@ -549,6 +660,45 @@ void exec_plugin( char *plugin, int client_fd )
         char fd_str[12];
         char *plugin_argv[7];
         extern char **environ;
+        struct ucred cli_user_cred;
+        socklen_t cli_user_cred_len = sizeof(cli_user_cred);
+
+        /*
+         * The plugin will still run no matter with root privilege or not.
+         * so that client could get detailed error message.
+         */
+        if ( require_root == 0 ){
+            drop_privileges();
+        }else{
+            if (getuid()){
+                warn("Plugin %s require root privilege, but lsmd daemon "
+                     "is not run as root user\n", plugin);
+            }else if(allow_root_plugin == 0){
+                warn("Plugin %s require root privilege, but %s disabled "
+                     "it globally\n", LSMD_CONF_FILE);
+                drop_privileges();
+            }else{
+                /* Check socket client uid */
+                int rc_get_cli_uid = getsockopt(
+                    client_fd, SOL_SOCKET, SO_PEERCRED,
+                    &cli_user_cred, &cli_user_cred_len);
+                if( 0 == rc_get_cli_uid){
+                    if (cli_user_cred.uid != 0){
+                        warn("Plugin %s require root privilege, but "
+                             "client is not run as root user\n", plugin);
+                        drop_privileges();
+                    }else{
+                        info("Plugin %s is running as root privilege\n",
+                             plugin);
+                    }
+                }else{
+                    warn("Failed to get client socket uid, getsockopt() "
+                         "error: %d\n", errno);
+                    drop_privileges();
+                }
+            }
+
+        }
 
         /* Make copy of plug-in string as once we call empty_plugin_list it
          * will be deleted :-) */
@@ -631,8 +781,8 @@ void _serving(void)
                 if( FD_ISSET(fd, &readfds) ) {
                     int cfd = accept(fd, NULL, NULL);
                     if( -1 != cfd ) {
-                        char *p = plugin_lookup(fd);
-                        exec_plugin(p, cfd);
+                        struct plugin *p = plugin_lookup(fd);
+                        exec_plugin(p->file_path, cfd, p->require_root);
                     } else {
                         err = errno;
                         info("Error on accepting request: %s", strerror(err));
@@ -673,6 +823,7 @@ int main(int argc, char *argv[])
             {"help", no_argument, 0, 'h'},                  //Index 0
             {"plugindir", required_argument, 0, 0},         //Index 1
             {"socketdir", required_argument, 0, 0},         //Index 2
+            {"confdir", required_argument, 0, 0},           //Index 3
             {0, 0, 0, 0}
         };
 
@@ -691,6 +842,9 @@ int main(int argc, char *argv[])
                    break;
                case 2:
                    socket_dir = optarg;
+                   break;
+               case 3:
+                   conf_dir = optarg;
                    break;
                }
                break;
@@ -730,13 +884,21 @@ int main(int argc, char *argv[])
         openlog("lsmd", LOG_ODELAY, LOG_USER);
     }
 
+    /* Check lsmd.conf */
+    char *lsmd_conf_path = path_form(conf_dir, LSMD_CONF_FILE);
+    parse_conf_bool(
+        lsmd_conf_path, LSM_CONF_ALLOW_ROOT_OPT_NAME, &allow_root_plugin);
+    free(lsmd_conf_path);
+
     /* Check to see if we want to check plugin for memory errors */
     if( getenv("LSM_VALGRIND") ) {
         plugin_mem_debug = 1;
     }
 
     install_sh();
-    drop_privileges();
+    if (allow_root_plugin == 0){
+        drop_privileges();
+    }
     flight_check();
 
     /* Become a daemon if told we are not using systemd */

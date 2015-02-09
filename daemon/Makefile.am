@@ -2,8 +2,8 @@ bin_PROGRAMS = lsmd
 
 EXTRA_DIST=lsm_rest.c lsm_rest.h
 
-lsmd_LDFLAGS=-Wl,-z,relro,-z,now -pie
-lsmd_CFLAGS=-fPIE -DPIE
+lsmd_LDFLAGS=-Wl,-z,relro,-z,now -pie $(LIBCONFIG_LIBS)
+lsmd_CFLAGS=-fPIE -DPIE $(LIBCONFIG_CFLAGS)
 
 lsmd_SOURCES = lsm_daemon.c
 
