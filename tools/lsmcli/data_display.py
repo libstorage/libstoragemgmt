@@ -174,6 +174,7 @@ _DISK_TYPE_CONV = {
     Disk.TYPE_SAS: 'SAS',
     Disk.TYPE_FC: 'FC',
     Disk.TYPE_SOP: 'SCSI Over PCI-E(SSD)',
+    Disk.TYPE_SCSI: 'SCSI',
     Disk.TYPE_NL_SAS: 'NL_SAS',
     Disk.TYPE_HDD: 'HDD',
     Disk.TYPE_SSD: 'SSD',
