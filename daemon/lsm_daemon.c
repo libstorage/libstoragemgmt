@@ -468,7 +468,9 @@ void child_cleanup(void)
 
         if( -1 == rc ) {
             err = errno;
-            info("waitid %d - %s\n", err, strerror(err));
+            if (err != ECHILD){
+                info("waitid %d - %s\n", err, strerror(err));
+            }
             break;
         } else {
             if( 0 == rc && si.si_pid == 0 ) {
