@@ -20,13 +20,16 @@ use strict;
 use Config::IniFiles;
 use File::Basename;
 use Cwd 'abs_path';
+use Fcntl ':mode';
 
 $|++;
 
-my $LSM_UDS_PATH = '/tmp/lsm/ipc/';
-my $BASE_DIR;    # Used to store the path of libstoragemgmt-code path.
+my $LSM_UDS_PATH = '/var/run/lsm/ipc/';
+my $BASE_DIR = dirname( dirname( abs_path($0) ) );
 my $LSM_URI_FILE = "$ENV{HOME}/.lsm_uri";
 my $URI_CFG = Config::IniFiles->new( -file => $LSM_URI_FILE );
+my $LSM_USER = 'libstoragemgmt';
+my $LSM_GROUP = 'libstoragemgmt';
 
 my $REF_PRE_BUILD_URI = {
     "sim"  => "sim://",
@@ -77,8 +80,51 @@ sub is_in_array($$) {
     return undef;
 }
 
+sub chk_lsm_user(){
+    my $code_gid = (stat $BASE_DIR)[5];
+    my $code_group_name = getgrgid($code_gid);
+    my $lsm_gid = (getpwnam("libstoragemgmt"))[3];
+    if ($lsm_gid and $lsm_gid != $code_gid){
+        print "FAIL: Existing $LSM_USER account is not sharing gid of " .
+              "curren code tree which might cause plugin permission problem" .
+              "\n";
+        print "      Please delete that user $LSM_USER " .
+              "and rerun lsmenv as root user\n";
+        exit 1;
+    }
+    unless($lsm_gid){
+        # LSM_USER not exist.
+        if ($> != 0){
+            print "FAIL: Please run lsmenv as root user to create a proper " .
+                  "$LSM_USER account\n";
+            exit 1;
+        }
+        print "WARN: Creating libstoragemgmt account and add it into " .
+              "the group '$code_group_name($code_gid)' of code tree owner. \n";
+
+        system("useradd -r -g $code_gid -d $LSM_UDS_PATH " .
+               "-s /sbin/nologin " .
+               "-c 'daemon account for libstoragemgmt' libstoragemgmt");
+        # Check whether code tree $BASE_DIR is read and executable by LSM_USER
+        # User are on their own if they changed file permission inside git
+        # tree.
+        my $cur_path = "$BASE_DIR/a";
+        while(1){
+            $cur_path = dirname($cur_path);
+            print $cur_path, "\n";
+            my $mod = (stat $cur_path)[2];
+            unless(( $mod & S_IRGRP) and ( $mod & S_IXGRP )){
+                print "WARN: Adding $cur_path with group read and " .
+                      "excute permision\n";
+                system("chmod g+rx $cur_path");
+            }
+            last if ($cur_path eq '/');
+        }
+    }
+    return 1;
+}
+
 sub lsm_env_setup() {
-    $BASE_DIR = dirname( dirname( abs_path($0) ) );
     my $py_binding_dir = "$BASE_DIR/python_binding";
     my $c_binding_dir  = "$BASE_DIR/c_binding";
     unless ( ( -e $py_binding_dir ) && ( -e $c_binding_dir ) ) {
@@ -98,6 +144,7 @@ sub lsm_env_setup() {
     unless ( -d "$LSM_UDS_PATH" ) {
         print "INFO: Creating socket folder $LSM_UDS_PATH\n";
         system("mkdir -pv $LSM_UDS_PATH");
+        system("chown $LSM_USER $LSM_UDS_PATH");
     }
 
     $ENV{LSM_UDS_PATH} = $LSM_UDS_PATH;
@@ -170,7 +217,12 @@ sub call_out($) {
     }
 }
 
-sub start_lsmd() {
+sub start_lsmd($) {
+    my $flag_valgrind = shift;
+    if ($> != 0){
+        print "FAIL: Please run lsmenv as root to start lsmd\n";
+        exit 1;
+    }
     my $lsmd_exec_file = "$BASE_DIR/daemon/lsmd";
     unless ( -f $lsmd_exec_file ) {
         print "FAIL: $lsmd_exec_file not exist, "
@@ -182,9 +234,17 @@ sub start_lsmd() {
           . "please run 'make' in '$BASE_DIR' folder again\n";
         exit 1;
     }
+    my $cmd = '';
+    if ($flag_valgrind){
+        $cmd .= "valgrind --trace-children=no ";
+        $cmd .= "--leak-check=full --show-reachable=no ";
+        $cmd .= '--log-file=/tmp/lsmd_leaking_%p ';
+    }
+    $cmd .= $lsmd_exec_file;
     my $plugin_dir = "$BASE_DIR/plugin";
-    system( "$lsmd_exec_file --plugindir $plugin_dir "
-          . "--socketdir $LSM_UDS_PATH -v -d" );
+    my $conf_dir = "$BASE_DIR/config";
+    system( "$cmd --plugindir $plugin_dir "
+          . "--socketdir $LSM_UDS_PATH -v -d --confdir $conf_dir" );
 }
 
 sub main() {
@@ -192,9 +252,14 @@ sub main() {
         help();
     }
 
+    chk_lsm_user();
     lsm_env_setup();
     if ( $ARGV[0] eq 'lsmd' ) {
-        start_lsmd();
+        start_lsmd(0);
+        exit 0;
+    }
+    elsif ( $ARGV[0] eq 'lsmdv' ) {
+        start_lsmd(1);
         exit 0;
     }
     elsif ( $ARGV[0] eq '-l' ) {
