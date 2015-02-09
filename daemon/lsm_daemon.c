@@ -96,15 +96,18 @@ void logger(int severity, const char *fmt, ...)
 {
     char buf[2048];
 
-    if( (LOG_INFO == severity && verbose_flag) || LOG_ERR == LOG_WARNING
-            || LOG_ERR == severity) {
+    if( verbose_flag || LOG_WARNING == severity || LOG_ERR == severity) {
         va_list arg;
         va_start(arg, fmt);
         vsnprintf(buf, sizeof(buf), fmt, arg);
         va_end(arg);
 
         if( !systemd ) {
-            syslog(LOG_ERR, "%s", buf);
+            if( verbose_flag ) {
+                syslog(LOG_ERR, "%s", buf);
+            } else {
+                syslog(severity, "%s", buf);
+            }
         } else {
             fprintf(stdout, "%s", buf);
             fflush(stdout);
@@ -115,7 +118,7 @@ void logger(int severity, const char *fmt, ...)
         }
     }
 }
-#define loud(fmt, ...)  logger(LOG_ERR, fmt, ##__VA_ARGS__)
+#define log_and_exit(fmt, ...)  logger(LOG_ERR, fmt, ##__VA_ARGS__)
 #define warn(fmt, ...)  logger(LOG_WARNING, fmt, ##__VA_ARGS__)
 #define info(fmt, ...)  logger(LOG_INFO, fmt, ##__VA_ARGS__)
 
@@ -138,11 +141,11 @@ void signal_handler(int s)
 void install_sh(void)
 {
     if(signal(SIGTERM, signal_handler) == SIG_ERR) {
-        loud("Can't catch signal SIGTERM\n");
+        log_and_exit("Can't catch signal SIGTERM\n");
     }
 
     if(signal(SIGHUP, signal_handler) == SIG_ERR) {
-        loud("Can't catch signal SIGHUP\n");
+        log_and_exit("Can't catch signal SIGHUP\n");
     }
 }
 
@@ -162,17 +165,20 @@ void drop_privileges(void)
 
                 if( -1 == setgid(pw->pw_gid) ) {
                     err = errno;
-                    loud("Unexpected error on setgid(errno %d)\n", err);
+                    log_and_exit(
+                        "Unexpected error on setgid(errno %d)\n", err);
                 }
 
                 if( -1 == setgroups(1, &pw->pw_gid) ) {
                     err = errno;
-                    loud("Unexpected error on setgroups(errno %d)\n", err);
+                    log_and_exit(
+                        "Unexpected error on setgroups(errno %d)\n", err);
                 }
 
                 if( -1 == setuid(pw->pw_uid) ) {
                     err = errno;
-                    loud("Unexpected error on setuid(errno %d)\n", err);
+                    log_and_exit(
+                        "Unexpected error on setuid(errno %d)\n", err);
                 }
             } else if ( pw->pw_uid != getuid() ) {
                 warn("Daemon not running as correct user\n");
@@ -192,14 +198,14 @@ void flight_check(void)
     int err = 0;
     if( -1 == access(socket_dir, R_OK|W_OK )) {
         err = errno;
-        loud("Unable to access socket directory %s, errno= %d\n",
-                socket_dir, err);
+        log_and_exit("Unable to access socket directory %s, errno= %d\n",
+                     socket_dir, err);
     }
 
     if( -1 == access(plugin_dir, R_OK|X_OK)) {
         err = errno;
-        loud("Unable to access plug-in directory %s, errno= %d\n",
-                plugin_dir, err);
+        log_and_exit("Unable to access plug-in directory %s, errno= %d\n",
+                     plugin_dir, err);
     }
 }
 
@@ -230,7 +236,7 @@ char *path_form(const char* path, const char *name)
     if( full ) {
         snprintf(full, s, "%s/%s", path, name);
     } else {
-        loud("malloc failure while trying to allocate %d bytes\n", s);
+        log_and_exit("malloc failure while trying to allocate %d bytes\n", s);
     }
     return full;
 }
@@ -282,12 +288,13 @@ void process_directory( char *dir, void *p, file_op call_back)
 
             if( closedir(dp) ) {
                 err = errno;
-                loud("Error on closing dir %s: %s\n", dir, strerror(err));
+                log_and_exit("Error on closing dir %s: %s\n", dir,
+                             strerror(err));
             }
         } else {
             err = errno;
-            loud("Error on processing directory %s: %s\n", dir,
-                    strerror(err));
+            log_and_exit("Error on processing directory %s: %s\n", dir,
+                         strerror(err));
         }
     }
 }
@@ -309,7 +316,7 @@ int delete_socket(void *p, char *full_name)
         if( S_ISSOCK(statbuf.st_mode)) {
             if( unlink(full_name) ) {
                 err = errno;
-                loud("Error on unlinking file %s: %s\n",
+                log_and_exit("Error on unlinking file %s: %s\n",
                         full_name, strerror(err));
             }
         }
@@ -356,23 +363,23 @@ int setup_socket(char *full_name)
 
         if( -1 == bind(fd, (struct sockaddr *)&addr, sizeof(struct sockaddr_un))) {
             err = errno;
-            loud("Error on binding socket %s: %s\n", socket_file, strerror(err));
+            log_and_exit("Error on binding socket %s: %s\n", socket_file, strerror(err));
         }
 
         if( -1 == chmod(socket_file, S_IREAD|S_IWRITE|S_IRGRP|S_IWGRP
                                     |S_IROTH|S_IWOTH)) {
             err = errno;
-            loud("Error on chmod socket file %s: %s\n", socket_file, strerror(err));
+            log_and_exit("Error on chmod socket file %s: %s\n", socket_file, strerror(err));
         }
 
         if( -1 == listen(fd, 5)) {
             err = errno;
-            loud("Error on listening %s: %s\n", socket_file, strerror(err));
+            log_and_exit("Error on listening %s: %s\n", socket_file, strerror(err));
         }
 
     } else {
         err = errno;
-        loud("Error on socket create %s: %s\n",
+        log_and_exit("Error on socket create %s: %s\n",
                         socket_file, strerror(err));
     }
 
@@ -434,10 +441,10 @@ int process_plugin(void *p, char *full_name)
                            setup_socket will exit on error. */
                         free(item);
                         item = NULL;
-                        loud("strdup failed %s\n", full_name);
+                        log_and_exit("strdup failed %s\n", full_name);
                     }
                 } else {
-                    loud("Memory allocation failure!\n");
+                    log_and_exit("Memory allocation failure!\n");
                 }
             }
         }
@@ -461,7 +468,7 @@ void child_cleanup(void)
 
         if( -1 == rc ) {
             err = errno;
-            warn("Error: waitid %d - %s\n", err, strerror(err));
+            info("waitid %d - %s\n", err, strerror(err));
             break;
         } else {
             if( 0 == rc && si.si_pid == 0 ) {
@@ -571,7 +578,7 @@ void exec_plugin( char *plugin, int client_fd )
 
         if( -1 == exec_rc ) {
             int err = errno;
-            loud("Error on exec'ing Plugin %s: %s\n",
+            log_and_exit("Error on exec'ing Plugin %s: %s\n",
                     p_copy, strerror(err));
         }
     }
@@ -603,7 +610,7 @@ void _serving(void)
         }
 
         if( !nfds ) {
-            loud("No plugins found in directory %s\n", plugin_dir);
+            log_and_exit("No plugins found in directory %s\n", plugin_dir);
         }
 
         nfds += 1;
@@ -614,7 +621,7 @@ void _serving(void)
                 return;
             } else {
                 err = errno;
-                loud("Error on selecting Plugin: %s", strerror(err));
+                log_and_exit("Error on selecting Plugin: %s", strerror(err));
             }
         } else if( ready > 0 ) {
             int fd = 0;
@@ -734,7 +741,7 @@ int main(int argc, char *argv[])
     if( !systemd ) {
         if ( -1 == daemon(0, 0) ) {
             int err = errno;
-            loud("Error on calling daemon: %s\n", strerror(err));
+            log_and_exit("Error on calling daemon: %s\n", strerror(err));
         }
     }
 
