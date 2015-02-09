@@ -3,45 +3,44 @@
 lsmd.conf - libStorageMgmt daemon lsmd configuration file.
 
 .SH DESCRIPTION
-The libStorageMgmt plugin-in daemon(\fBlsmd\fR) will read \fBlsmd.conf\fR
-file in the folder defined via \fB--confdir\fR(default is \fB/etc/lsm/\fR).
+The libStorageMgmt plugin daemon (\fBlsmd\fR) will read the \fBlsmd.conf\fR
+file in the folder defined via \fB--confdir\fR (default is \fB/etc/lsm/\fR).
 
-The \fBlsmd\fR also read plugin configuration files from sub-folder
+The daemon reads the plugin configuration files from the sub-folder
 \fBpluginconf.d\fR. The plugin configuration file should be named as
-<uri_scheme>.conf. For example:
+<uri_scheme>.conf, for example:
 
-    * Linux plugin(\fBlinux\fR://):         \fBlinux.conf\fR
-    * MegaRAID plugin(\fBmegaraid\fR://):   \fBmegaraid.conf\fR
+    * MegaRAID plugin (\fBmegaraid\fR://):   \fBmegaraid.conf\fR
 
-The \fBlsmd.conf\fR controls the global settings for \fBlsmd\fR while
-plugin configuration file controls plugin behaviour.
+The \fBlsmd.conf\fR file controls the global settings for \fBlsmd\fR while
+the plugin configuration file for each plugin controls individual plugin behavior.
 
-Each option line of configuration file should contain tailing
+Each option line of the configuration file should contain a trailing
 semicolon(\fB;\fR).
 
 .SH lsmd.conf OPTIONS
 .TP
 \fBallow-plugin-root-privilege = true;\fR
 
-Indicate whether \fBlsmd\fR daemon should keep running in root mode and invoke
+Indicates whether the \fBlsmd\fR daemon should keep running as root mode and invoke
 plugin as root user when needed.
 
-Without this option or set as \fBfalse\fR means never run lsmd and its plugins
-as root user.
+Without this option or with option set as \fBfalse\fR means that the daemon and
+the plugins will never run as root.
 
-Only when all the following requirements meet, will the \fBlsmd\fR run certain
-plugin as root user:
+Only when all the following requirements are met, will \fBlsmd\fR run specified
+plugins as root user:
 
     1. "allow-plugin-root-privilege = true;" in lsmd.conf
-    2. "require-root-privilege = true;" in plugin config.
-    3. API connection(or lsmcli) is ran by root user.
+    2. "require-root-privilege = true;" in plugin config
+    3. API connection (or lsmcli) has root privileges
 
 .SH Plugin OPTIONS
 .TP
 \fBrequire-root-privilege = true;\fR
 
-Indicate plugin requires root privilege.
-Without this line or set as \fBfalse\fR, the plugin will never invoked as root
+Indicates plugin requires root privilege.
+Without this line or set as \fBfalse\fR, the plugin will never be invoked as root
 user by \fBlsmd\fR.
 
 Please check \fBlsmd.conf\fR option \fBallow-plugin-root-privilege\fR for
