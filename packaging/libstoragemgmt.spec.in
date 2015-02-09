@@ -1,9 +1,13 @@
 %bcond_with rest_api
+%bcond_without megaraid
 
 # Use one-line macro for OBS workaround:
 #   https://bugzilla.novell.com/show_bug.cgi?id=864323
 %{?_with_rest_api: %global with_rest_api 1 }
 %{?_without_rest_api: %global with_rest_api 0 }
+
+%{?_with_megaraid: %global with_megaraid 1 }
+%{?_without_megaraid: %global with_megaraid 0 }
 
 %define libsoname libstoragemgmt
 
@@ -207,6 +211,20 @@ the %{libstoragemgmt}-rest package contains the http daemon for
 %{libstoragemgmt} rest api.
 %endif
 
+
+%if 0%{?with_megaraid}
+%package        -n %{libstoragemgmt}-megaraid-plugin
+Summary:        Files for LSI MegaRAID support for %{libstoragemgmt}
+Group:          System Environment/Libraries
+Requires:       %{libstoragemgmt}%{?_isa} = %{version}-%{release}
+BuildArch:      noarch
+
+%description    -n %{libstoragemgmt}-megaraid-plugin
+The %{libstoragemgmt}-megaraid-plugin package contains the plugin for LSI
+MegaRAID storage management via storcli.
+%endif
+
+
 %prep
 %setup -q
 
@@ -216,6 +234,9 @@ the %{libstoragemgmt}-rest package contains the http daemon for
 %configure \
 %if 0%{?with_rest_api} != 1
     --without-rest-api \
+%endif
+%if 0%{?with_megaraid} != 1
+    --without-megaraid \
 %endif
     --disable-static
 
@@ -413,6 +434,15 @@ if [ $1 -eq 0 ]; then
         >/dev/null 2>&1 || :
 fi
 
+%if 0%{?with_megaraid}
+%postun -n %{libstoragemgmt}-megaraid-plugin
+if [ $1 -eq 0 ]; then
+    # Remove
+    /usr/bin/systemctl try-restart libstoragemgmt.service \
+        >/dev/null 2>&1 || :
+fi
+%endif
+
 %files -n %{libstoragemgmt}
 %defattr(-,root,root,-)
 %doc README COPYING.LIB
@@ -506,6 +536,18 @@ fi
 %{python_sitelib}/lsm/plugin/nstor/__init__.*
 %{python_sitelib}/lsm/plugin/nstor/nstor.*
 %{_bindir}/nstor_lsmplugin
+
+%if 0%{?with_megaraid}
+%files -n %{libstoragemgmt}-megaraid-plugin
+%defattr(-,root,root,-)
+%dir %{python_sitelib}/lsm/plugin/megaraid
+%{python_sitelib}/lsm/plugin/megaraid/__init__.*
+%{python_sitelib}/lsm/plugin/megaraid/megaraid.*
+%{python_sitelib}/lsm/plugin/megaraid/utils.*
+%{_bindir}/megaraid_lsmplugin
+%{_sysconfdir}/lsm/pluginconf.d/megaraid.conf
+%{_mandir}/man1/megaraid_lsmplugin.1*
+%endif
 
 %files udev
 %defattr(-,root,root,-)

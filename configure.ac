@@ -181,6 +181,18 @@ fi
 AM_CONDITIONAL([WITH_REST_API], [test "x$with_rest_api" = "xyes"])
 
 dnl ==========================================================================
+dnl Add option '--without-megaraid' to exclude megaraid plugin.
+dnl ==========================================================================
+
+AC_ARG_WITH([megaraid],
+    [AS_HELP_STRING([--without-megaraid],
+        [Do not build the MegaRAID plugin])],
+    [],
+    [with_megaraid=yes])
+
+AM_CONDITIONAL([WITH_MEGARAID], [test "x$with_megaraid" = "xyes"])
+
+dnl ==========================================================================
 dnl Check for libconfig as it is needed for lsmd daemon
 dnl ==========================================================================
 PKG_CHECK_MODULES(
@@ -208,6 +220,7 @@ AC_OUTPUT(libstoragemgmt.pc \
           python_binding/lsm/version.py \
           plugin/Makefile \
           plugin/simc/Makefile \
+          plugin/megaraid/Makefile \
           daemon/Makefile \
           config/Makefile \
           doc/Makefile \
@@ -215,6 +228,7 @@ AC_OUTPUT(libstoragemgmt.pc \
           doc/man/lsmd.1 \
           doc/doxygen.conf \
           doc/man/lsmd.conf.5 \
+          doc/man/megaraid_lsmplugin.1 \
           tools/Makefile \
           tools/udev/Makefile \
           tools/lsmcli/Makefile \

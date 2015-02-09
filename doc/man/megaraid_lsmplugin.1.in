@@ -1,0 +1,52 @@
+.TH megaraid_lsmplugin "1" "Januray 2015" "megaraid_lsmplugin @VERSION@" "libStorageMgmt"
+.SH NAME
+megaraid_lsmplugin -- LibstorageMgmt MegaRAID plugin
+
+.SH DESCRIPTION
+LibstorageMgmt megaraid plugin allows user to manage LSI MegaRAID via vendor
+tool \fBstorcli\fR[1].
+The 'megaraid_lsmplugin' executable file is for libStorageMgmt
+daemon to execute when client user specifies megaraid plugin in the URI.
+
+Extra SELinux actions are required to allowing plugin access the hardware.
+
+.SH URI
+To use this plugin, users should set their URI to this format:
+.nf
+
+    \fBmegaraid://\fR
+        or
+    \fBmegaraid://?storcli=<path_of_storcli>\fR
+
+.fi
+
+.TP storcli
+The 'storcli' URI parameter is used to specified the path of storcli tool.
+By default, this plugin will try these paths used by storcli rpm:
+\fB/opt/MegaRAID/storcli/storcli64\fR and \fB/opt/MegaRAID/storcli/storcli\fR.
+
+.SH ROOT PRIVILEGE
+This plugin requires both \fBlsmd\fR daemon and API client running as root
+user. Please check manpage \fIlsmd.conf (5)\fR for detail.
+
+.SH SUPPORTED HARDWARES
+Please refer to LSI website for hardware support status of storcli.
+Detailed support status can be queried via:
+
+ * \fBlsm.Client.capabilities()\fR  (Python API)
+ * \fBlsm_capabilities()\fR         (C API)
+ * \fBlsmcli capabilities\fR        (lsmcli command line).
+
+.SH FIREWALL RULES
+This plugin only execute \fBstorcli\fR on localhost. No network connection
+required.
+
+.SH SEE ALSO
+\fIlsmcli\fR(1), \fIlsmd\fR(1), [1] http://www.lsi.com
+
+.SH BUGS
+Please report bugs to
+\fI<libstoragemgmt-devel@lists.sourceforge.net>\fR
+
+.SH AUTHOR
+Gris Ge \fI<fge@redhat.com>\fR

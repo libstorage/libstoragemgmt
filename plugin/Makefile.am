@@ -1,4 +1,4 @@
-SUBDIRS=simc
+SUBDIRS=simc megaraid
 
 plugindir = $(pythondir)/lsm/plugin
 

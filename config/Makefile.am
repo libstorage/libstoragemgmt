@@ -6,3 +6,8 @@ EXTRA_DIST= lsmd.conf pluginconf.d/sim.conf
 pluginconfdir=$(sysconfdir)/lsm/pluginconf.d
 
 pluginconf_DATA=pluginconf.d/sim.conf
+
+if WITH_MEGARAID
+pluginconf_DATA += pluginconf.d/megaraid.conf
+EXTRA_DIST += pluginconf.d/megaraid.conf
+endif
