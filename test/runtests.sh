@@ -145,6 +145,9 @@ $LSMD_DAEMON \
     --socketdir $LSM_UDS_PATH \
     -d >$LSMD_TMP_LOG_FILE &
 
+# Let the daemon get settled before running the tests
+sleep 2
+
 LSMD_PID=$(ps aux | grep $LSM_UDS_PATH | grep -v grep |  awk '{print $2}')
 
 #Run C unit test
