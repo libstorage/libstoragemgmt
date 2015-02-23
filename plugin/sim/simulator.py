@@ -29,7 +29,6 @@ class SimPlugin(INfs, IStorageAreaNetwork):
     def __init__(self):
         self.uri = None
         self.password = None
-        self.tmo = 0
         self.sim_array = None
 
     def plugin_register(self, uri, password, timeout, flags=0):
@@ -41,14 +40,14 @@ class SimPlugin(INfs, IStorageAreaNetwork):
         qp = uri_parse(uri)
         if 'parameters' in qp and 'statefile' in qp['parameters'] \
                 and qp['parameters']['statefile'] is not None:
-            self.sim_array = SimArray(qp['parameters']['statefile'])
+            self.sim_array = SimArray(qp['parameters']['statefile'], timeout)
         else:
-            self.sim_array = SimArray()
+            self.sim_array = SimArray(None, timeout)
 
         return None
 
     def plugin_unregister(self, flags=0):
-        self.sim_array.save_state()
+        pass
 
     def job_status(self, job_id, flags=0):
         return self.sim_array.job_status(job_id, flags)
