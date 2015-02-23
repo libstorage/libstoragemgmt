@@ -692,7 +692,7 @@ START_TEST(test_access_groups)
         fail_unless( lsm_string_list_size(init_list) == 2,
                 "Expecting 2 initiators, current num = %d\n",
                 lsm_string_list_size(init_list) );
-        for( i = 0; i < lsm_string_list_size(init_list); ++i) {
+        for( i = 0; i < lsm_string_list_size(init_list) - 1; ++i) {
             printf("%d = %s\n", i, lsm_string_list_elem_get(init_list, i));
 
             printf("Deleting initiator %s from group!\n",
@@ -726,7 +726,7 @@ START_TEST(test_access_groups)
     if( count ) {
         init_list = lsm_access_group_initiator_id_get(groups[0]);
         fail_unless( init_list != NULL);
-        fail_unless( lsm_string_list_size(init_list) == 0, "%d",
+        fail_unless( lsm_string_list_size(init_list) == 1, "%d",
                         lsm_string_list_size(init_list));
         init_list = NULL;
         G(rc, lsm_access_group_record_array_free, groups, count);
