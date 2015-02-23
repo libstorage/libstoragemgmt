@@ -142,7 +142,7 @@ def parse_display(op):
     for line in out.split('\n'):
         elem = line.split(sep)
         if len(elem) > 1:
-            rc.append(elem)
+            rc.append(list(d.strip() for d in elem))
     return rc
 
 
