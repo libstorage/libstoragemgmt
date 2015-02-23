@@ -2183,6 +2183,7 @@ class SimArray(object):
         self.bs_obj.trans_commit()
         return None
 
+    @_handle_errors
     def volume_unmask(self, ag_id, vol_id, flags=0):
         self.bs_obj.trans_begin()
         self.bs_obj.sim_vol_unmask(
@@ -2191,6 +2192,7 @@ class SimArray(object):
         self.bs_obj.trans_commit()
         return None
 
+    @_handle_errors
     def volumes_accessible_by_access_group(self, ag_id, flags=0):
         self.bs_obj.trans_begin()
 
@@ -2200,6 +2202,7 @@ class SimArray(object):
         self.bs_obj.trans_rollback()
         return [SimArray._sim_vol_2_lsm(v) for v in sim_vols]
 
+    @_handle_errors
     def access_groups_granted_to_volume(self, vol_id, flags=0):
         self.bs_obj.trans_begin()
         sim_ags = self.bs_obj.sim_ags(
@@ -2207,6 +2210,7 @@ class SimArray(object):
         self.bs_obj.trans_rollback()
         return [SimArray._sim_ag_2_lsm(a) for a in sim_ags]
 
+    @_handle_errors
     def iscsi_chap_auth(self, init_id, in_user, in_pass, out_user, out_pass,
                         flags=0):
         self.bs_obj.trans_begin()
@@ -2224,5 +2228,6 @@ class SimArray(object):
             sim_tgt['physical_name'],
             BackStore.SYS_ID)
 
+    @_handle_errors
     def target_ports(self):
         return list(SimArray._sim_tgt_2_lsm(t) for t in self.bs_obj.sim_tgts())
