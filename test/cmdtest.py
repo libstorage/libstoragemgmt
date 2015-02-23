@@ -541,6 +541,7 @@ def test_fs_creation(cap, system_id):
 
     if cap['FS_CHILD_DEPENDENCY_RM']:
         fs_id = fs_create(pool_id)
+        clone_fs(fs_id)
         fs_child_dependancy_rm(fs_id)
         delete_fs(fs_id)
 
