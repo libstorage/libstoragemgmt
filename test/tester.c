@@ -468,7 +468,7 @@ START_TEST(test_smoke_test)
         child_depends = lsm_volume_child_dependency_delete(c, n, &job, LSM_CLIENT_FLAG_RSVD);
         if( LSM_ERR_JOB_STARTED == child_depends ) {
             wait_for_job(c, &job);
-        } else {
+        } else if ( LSM_ERR_NO_STATE_CHANGE != child_depends) {
             fail_unless(LSM_ERR_OK == child_depends, "rc = %d", child_depends);
             fail_unless(NULL == job);
         }
