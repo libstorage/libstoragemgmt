@@ -841,25 +841,12 @@ class BackStore(object):
 
     def _data_add(self, table_name, data_dict):
         keys = data_dict.keys()
-        values = data_dict.values()
+        values = ['' if v is None else str(v) for v in data_dict.values()]
 
-        sql_cmd = "INSERT INTO %s (" % table_name
-        for key in keys:
-            sql_cmd += "'%s', " % key
-
-        # Remove tailing ', '
-        sql_cmd = sql_cmd[:-2]
-
-        sql_cmd += ") VALUES ( "
-        for value in values:
-            if value is None:
-                value = ''
-            sql_cmd += "'%s', " % value
-
-        # Remove tailing ', '
-        sql_cmd = sql_cmd[:-2]
-
-        sql_cmd += ");"
+        sql_cmd = "INSERT INTO %s (%s) VALUES (%s);" % \
+                  (table_name,
+                    "'%s'" % ("', '".join(keys)),
+                    "'%s'" % ("', '".join(values)))
         self._sql_exec(sql_cmd)
 
     def _data_find(self, table, condition, key_list, flag_unique=False):
