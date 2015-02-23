@@ -594,7 +594,6 @@ def test_mapping(cap, system_id):
 
             if cap['ACCESS_GROUP_INITIATOR_DELETE']:
                 access_group_remove_init(ag_id, iqn1)
-                access_group_remove_init(ag_id, iqn2)
 
             if cap['ACCESS_GROUP_DELETE']:
                 access_group_delete(ag_id)
