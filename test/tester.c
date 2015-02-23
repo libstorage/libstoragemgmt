@@ -885,16 +885,21 @@ START_TEST(test_fs)
         resized_fs = wait_for_job_fs(c, &job);
     }
 
-    uint8_t yes_no = 10;
-    G(rc, lsm_fs_child_dependency, c, nfs, NULL, &yes_no, LSM_CLIENT_FLAG_RSVD);
-    fail_unless( yes_no == 0);
+    if ( which_plugin == 0 ){
 
-    rc = lsm_fs_child_dependency_delete(c, nfs, NULL, &job, LSM_CLIENT_FLAG_RSVD);
-    if( LSM_ERR_JOB_STARTED == rc ) {
-        fail_unless(NULL != job);
-        wait_for_job(c, &job);
-    } else {
-        fail_unless( LSM_ERR_OK == rc);
+        uint8_t yes_no = 10;
+        G(rc, lsm_fs_child_dependency, c, nfs, NULL, &yes_no,
+          LSM_CLIENT_FLAG_RSVD);
+        fail_unless( yes_no != 0);
+
+        rc = lsm_fs_child_dependency_delete(
+            c, nfs, NULL, &job, LSM_CLIENT_FLAG_RSVD);
+        if( LSM_ERR_JOB_STARTED == rc ) {
+            fail_unless(NULL != job);
+            wait_for_job(c, &job);
+        } else {
+            fail_unless( LSM_ERR_OK == rc);
+        }
     }
 
     rc = lsm_fs_delete(c, resized_fs, &job, LSM_CLIENT_FLAG_RSVD);
