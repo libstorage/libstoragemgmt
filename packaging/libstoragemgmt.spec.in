@@ -454,6 +454,7 @@ fi
 %{_bindir}/lsmd
 %{_bindir}/simc_lsmplugin
 %{_sysconfdir}/lsm/lsmd.conf
+%dir %{_sysconfdir}/lsm
 %dir %{_sysconfdir}/lsm/pluginconf.d
 
 %if 0%{?with_systemd}
