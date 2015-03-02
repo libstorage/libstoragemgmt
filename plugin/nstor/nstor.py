@@ -103,8 +103,8 @@ class NexentaStor(INfs, IStorageAreaNetwork):
     @property
     def system(self):
         if self._system is None:
-            license_info = self._request("get_license_info", "appliance", [""])
-            fqdn = self._request("get_fqdn", "appliance", [""])
+            license_info = self._request("get_license_info", "appliance", [])
+            fqdn = self._request("get_fqdn", "appliance", [])
             self._system = System(license_info['machine_sig'], fqdn,
                                   System.STATUS_OK, '')
         return self._system
