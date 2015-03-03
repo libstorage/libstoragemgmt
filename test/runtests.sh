@@ -70,6 +70,11 @@ good() {
 # Add a signal handler to clean-up
 trap "cleanup; exit 1" INT
 
+# Unset these as they can cause the test case to fail
+# specifically the password one, but remove both.
+unset LSMCLI_PASSWORD
+unset LSMCLI_URI
+
 #Put us in a consistent spot
 cd "$(dirname "$0")"
 
