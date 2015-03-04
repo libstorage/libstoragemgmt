@@ -95,7 +95,7 @@ def has_errors(run_list):
 
 def get_result(r, method):
 
-    if r['RESULTS']['methods_called']:
+    if 'RESULTS' in r and 'methods_called' in r['RESULTS']:
         if method in r['RESULTS']['methods_called']:
             if has_errors(r['RESULTS']['methods_called'][method]):
                 return 'F'
@@ -112,12 +112,40 @@ def to_html(results):
     preamble = ""
     methods = ['capabilities',
                'systems', 'plugin_info', 'pools', 'job_status', 'job_free',
+               'iscsi_chap_auth',
                'volumes', 'volume_create', 'volume_delete', 'volume_resize',
-               'volume_replicate', 'disks', 'target_ports', 'volume_mask',
-               'volume_unmask', 'access_groups_granted_to_volume',
-               'volumes_accessible_by_access_group', 'access_group_create',
-               'access_group_delete', 'access_group_initiator_add',
-               'access_group_initiator_delete']
+               'volume_replicate', 'volume_replicate_range_block_size',
+               'volume_replicate_range', 'volume_enable', 'volume_disable',
+               'disks', 'target_ports',
+               'volume_mask',
+               'volume_unmask',
+               'volume_child_dependency',
+               'volume_child_dependency_rm',
+               'access_groups',
+               'access_groups_granted_to_volume',
+               'access_group_create',
+               'access_group_delete',
+               'volumes_accessible_by_access_group',
+               'access_groups_granted_to_volume',
+               'access_group_initiator_add',
+               'access_group_initiator_delete',
+               'fs',
+               'fs_create',
+               'fs_delete',
+               'fs_resize',
+               'fs_clone',
+               'fs_file_clone',
+               'fs_snapshots',
+               'fs_snapshot_create',
+               'fs_snapshot_delete',
+               'fs_snapshot_restore',
+               'fs_child_dependency',
+               'fs_child_dependency_rm',
+               'export_auth',
+               'exports',
+               'export_fs',
+               'export_remove'
+               ]
 
     ch = []
     row_data = []

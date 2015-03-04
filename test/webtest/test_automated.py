@@ -71,7 +71,7 @@ if __name__ == '__main__':
     time_limit_seconds = long(os.getenv('LSM_TEST_TMO_SECS', 90 * 60))  # 90 minutes
 
     if len(sys.argv) != 4:
-        print('Syntax: %s <cimon_file> <plugin unit test> <output directory>'
+        print('Syntax: %s <array_file> <plugin unit test> <output directory>'
               % (sys.argv[0]))
         sys.exit(1)
     else:

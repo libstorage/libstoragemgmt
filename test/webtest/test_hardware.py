@@ -37,6 +37,10 @@ class TestArrays(object):
 
     @staticmethod
     def uri_password_get(d):
+
+        if 'URI' in d:
+            return d['URI'], d['PASSWORD']
+
         uri = 'smispy'
         port = "5988"
 
@@ -96,15 +100,36 @@ class TestArrays(object):
             rc.append(d)
         return rc
 
+    def parse_yaml_file(self, filename):
+        with open(filename, 'r') as array_data:
+            r = yaml.safe_load(array_data.read())
+        return r
+
     def providers(self, filename):
         rc = []
+        need_convert = True
 
         file_name, extension = os.path.splitext(filename)
 
         if extension.lower() == '.csv':
             rc = self.parse_csv_file(filename)
-        else:
+        elif extension.lower() == '.xls' or extension.lower() == '.xlsx':
             rc = self.parse_xls_file(filename)
+        else:
+            rc = self.parse_yaml_file(filename)
+            need_convert = False
+
+        if need_convert:
+            converted = []
+            for r in rc:
+                (uri, password) = self.uri_password_get(r)
+                t = dict(COMPANY=r["COMPANY"], IP=r["IP"],
+                         PASSWORD=password, URI=uri)
+                converted.append(t.copy())
+                t = None
+
+            rc = converted
+
         return rc
 
 
@@ -112,7 +137,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) != 2:
         print 'Syntax: %s <file>' % (sys.argv[0])
-        print 'File is a cimon xls/xlsx/csv file'
+        print 'File is an array file in xls/xlsx/csv/yaml format'
         sys.exit(1)
 
     sys.stdout.write(yaml.dump(TestArrays().providers(sys.argv[1])))
