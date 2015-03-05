@@ -157,6 +157,33 @@ def _pool_id_of(dg_id, sys_id):
     return "%s:DG%s" % (sys_id, dg_id)
 
 
+_RAID_TYPE_MAP = {
+    'RAID0': Volume.RAID_TYPE_RAID0,
+    'RAID1': Volume.RAID_TYPE_RAID1,
+    'RAID5': Volume.RAID_TYPE_RAID5,
+    'RAID6': Volume.RAID_TYPE_RAID6,
+    'RAID00': Volume.RAID_TYPE_RAID0,
+    # Some MegaRAID only support max 16 disks in each span.
+    # To support 16+ disks in on group, MegaRAI has RAID00 or even RAID000.
+    # All of them are considered as RAID0
+    'RAID10': Volume.RAID_TYPE_RAID10,
+    'RAID50': Volume.RAID_TYPE_RAID50,
+    'RAID60': Volume.RAID_TYPE_RAID60,
+}
+
+
+def _mega_raid_type_to_lsm(vd_basic_info, vd_prop_info):
+    raid_type = _RAID_TYPE_MAP.get(
+        vd_basic_info['TYPE'], Volume.RAID_TYPE_UNKNOWN)
+
+    # In LSI, four disks or more RAID1 is actually a RAID10.
+    if raid_type == Volume.RAID_TYPE_RAID1 and \
+       int(vd_prop_info['Number of Drives Per Span']) >= 4:
+        raid_type = Volume.RAID_TYPE_RAID10
+
+    return raid_type
+
+
 class MegaRAID(IPlugin):
     _DEFAULT_MDADM_BIN_PATHS = [
         "/opt/MegaRAID/storcli/storcli64", "/opt/MegaRAID/storcli/storcli"]
@@ -459,3 +486,52 @@ class MegaRAID(IPlugin):
                             vd_pd_info_list, vd_prop_info, key_name))
 
         return search_property(lsm_vols, search_key, search_value)
+
+    @_handle_errors
+    def volume_raid_info(self, volume, flags=Client.FLAG_RSVD):
+        if not volume.plugin_data:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Ilegal input volume argument: missing plugin_data property")
+
+        vd_path = volume.plugin_data
+        vol_show_output = self._storcli_exec([vd_path, "show", "all"])
+        vd_basic_info = vol_show_output[vd_path][0]
+        vd_id = int(vd_basic_info['DG/VD'].split('/')[-1])
+        vd_prop_info = vol_show_output['VD%d Properties' % vd_id]
+
+        raid_type = _mega_raid_type_to_lsm(vd_basic_info, vd_prop_info)
+        strip_size = _mega_size_to_lsm(vd_prop_info['Strip Size'])
+        disk_count = (
+            int(vd_prop_info['Number of Drives Per Span']) *
+            int(vd_prop_info['Span Depth']))
+        if raid_type == Volume.RAID_TYPE_RAID0:
+            strip_count = disk_count
+        elif raid_type == Volume.RAID_TYPE_RAID1:
+            strip_count = 1
+        elif raid_type == Volume.RAID_TYPE_RAID5:
+            strip_count = disk_count - 1
+        elif raid_type == Volume.RAID_TYPE_RAID6:
+            strip_count = disk_count - 2
+        elif raid_type == Volume.RAID_TYPE_RAID50:
+            strip_count = (
+                (int(vd_prop_info['Number of Drives Per Span']) - 1) *
+                int(vd_prop_info['Span Depth']))
+        elif raid_type == Volume.RAID_TYPE_RAID60:
+            strip_count = (
+                (int(vd_prop_info['Number of Drives Per Span']) - 2) *
+                int(vd_prop_info['Span Depth']))
+        elif raid_type == Volume.RAID_TYPE_RAID10:
+            strip_count = (
+                int(vd_prop_info['Number of Drives Per Span']) / 2 *
+                int(vd_prop_info['Span Depth']))
+        else:
+            # MegaRAID does not support 15 or 16 yet.
+            raise LsmError(
+                ErrorNumber.PLUGIN_BUG,
+                "volume_raid_info(): Got unexpected RAID type: %s" %
+                vd_basic_info['TYPE'])
+
+        return [
+            raid_type, strip_size, disk_count, strip_size,
+            strip_size * strip_count]
