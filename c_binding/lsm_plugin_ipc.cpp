@@ -1371,7 +1371,7 @@ static int fs(lsm_plugin_ptr p, Value &params, Value &response)
     char *key = NULL;
     char *val = NULL;
 
-    if( p && p->san_ops && p->fs_ops->fs_list ) {
+    if( p && p->fs_ops && p->fs_ops->fs_list ) {
         if( LSM_FLAG_EXPECTED_TYPE(params) &&
             ((rc = get_search_params(params, &key, &val)) == LSM_ERR_OK )) {
 
@@ -1407,7 +1407,7 @@ static int fs_create(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
 
-    if( p && p->san_ops && p->fs_ops->fs_create ) {
+    if( p && p->fs_ops && p->fs_ops->fs_create ) {
 
         Value v_pool = params["pool"];
         Value v_name = params["name"];
@@ -1459,7 +1459,7 @@ static int fs_delete(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
 
-    if( p && p->san_ops && p->fs_ops->fs_delete ) {
+    if( p && p->fs_ops && p->fs_ops->fs_delete ) {
 
         Value v_fs = params["fs"];
 
@@ -1493,7 +1493,7 @@ static int fs_resize(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
 
-    if( p && p->san_ops && p->fs_ops->fs_resize ) {
+    if( p && p->fs_ops && p->fs_ops->fs_resize ) {
 
         Value v_fs = params["fs"];
         Value v_size = params["new_size_bytes"];
@@ -1541,7 +1541,7 @@ static int fs_clone(lsm_plugin_ptr p, Value &params, Value &response)
 {
    int rc = LSM_ERR_NO_SUPPORT;
 
-    if( p && p->san_ops && p->fs_ops->fs_clone ) {
+    if( p && p->fs_ops && p->fs_ops->fs_clone ) {
 
         Value v_src_fs = params["src_fs"];
         Value v_name = params["dest_fs_name"];
@@ -1597,7 +1597,7 @@ static int fs_file_clone(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_OK;
 
-    if( p && p->san_ops && p->fs_ops->fs_file_clone ) {
+    if( p && p->fs_ops && p->fs_ops->fs_file_clone ) {
 
         Value v_fs = params["fs"];
         Value v_src_name = params["src_file_name"];
@@ -1648,7 +1648,7 @@ static int fs_file_clone(lsm_plugin_ptr p, Value &params, Value &response)
 static int fs_child_dependency(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
-    if( p && p->san_ops && p->fs_ops->fs_child_dependency ) {
+    if( p && p->fs_ops && p->fs_ops->fs_child_dependency ) {
 
         Value v_fs = params["fs"];
         Value v_files = params["files"];
@@ -1686,7 +1686,7 @@ static int fs_child_dependency(lsm_plugin_ptr p, Value &params, Value &response)
 static int fs_child_dependency_rm(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
-    if( p && p->san_ops && p->fs_ops->fs_child_dependency_rm ) {
+    if( p && p->fs_ops && p->fs_ops->fs_child_dependency_rm ) {
 
         Value v_fs = params["fs"];
         Value v_files = params["files"];
@@ -1725,7 +1725,7 @@ static int fs_child_dependency_rm(lsm_plugin_ptr p, Value &params, Value &respon
 static int ss_list(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
-    if( p && p->san_ops && p->fs_ops->fs_ss_list ) {
+    if( p && p->fs_ops && p->fs_ops->fs_ss_list ) {
 
         Value v_fs = params["fs"];
 
@@ -1766,7 +1766,7 @@ static int ss_list(lsm_plugin_ptr p, Value &params, Value &response)
 static int ss_create(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
-    if( p && p->san_ops && p->fs_ops->fs_ss_create ) {
+    if( p && p->fs_ops && p->fs_ops->fs_ss_create ) {
 
         Value v_fs = params["fs"];
         Value v_ss_name = params["snapshot_name"];
@@ -1814,7 +1814,7 @@ static int ss_create(lsm_plugin_ptr p, Value &params, Value &response)
 static int ss_delete(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
-    if( p && p->san_ops && p->fs_ops->fs_ss_delete ) {
+    if( p && p->fs_ops && p->fs_ops->fs_ss_delete ) {
 
         Value v_fs = params["fs"];
         Value v_ss = params["snapshot"];
@@ -1851,7 +1851,7 @@ static int ss_delete(lsm_plugin_ptr p, Value &params, Value &response)
 static int ss_restore(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
-    if( p && p->san_ops && p->fs_ops->fs_ss_restore ) {
+    if( p && p->fs_ops && p->fs_ops->fs_ss_restore ) {
 
         Value v_fs = params["fs"];
         Value v_ss = params["snapshot"];
