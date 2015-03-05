@@ -533,6 +533,7 @@ def return_requires(*types):
     is quite important.
     """
     def outer(func):
+        @functools.wraps(func)
         def inner(*args, **kwargs):
             r = func(*args, **kwargs)
 
