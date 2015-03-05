@@ -2858,6 +2858,35 @@ START_TEST(test_volume_vpd_check)
 }
 END_TEST
 
+START_TEST(test_volume_raid_info)
+{
+    lsm_volume *volume = NULL;
+    char *job = NULL;
+    lsm_pool *pool = get_test_pool(c);
+
+    int rc = lsm_volume_create(
+        c, pool, "volume_raid_info_test", 20000000,
+        LSM_VOLUME_PROVISION_DEFAULT, &volume, &job, LSM_CLIENT_FLAG_RSVD);
+
+    fail_unless( rc == LSM_ERR_OK || rc == LSM_ERR_JOB_STARTED,
+            "lsmVolumeCreate %d (%s)", rc, error(lsm_error_last_get(c)));
+
+    if( LSM_ERR_JOB_STARTED == rc ) {
+        volume = wait_for_job_vol(c, &job);
+    }
+
+    lsm_volume_raid_type raid_type;
+    uint32_t strip_size, disk_count, min_io_size, opt_io_size;
+
+    G(
+        rc, lsm_volume_raid_info, c, volume, &raid_type, &strip_size,
+        &disk_count, &min_io_size, &opt_io_size, LSM_CLIENT_FLAG_RSVD);
+
+    G(rc, lsm_volume_record_free, volume);
+    volume = NULL;
+}
+END_TEST
+
 Suite * lsm_suite(void)
 {
     Suite *s = suite_create("libStorageMgmt");
@@ -2893,6 +2922,7 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_ss);
     tcase_add_test(basic, test_nfs_exports);
     tcase_add_test(basic, test_invalid_input);
+    tcase_add_test(basic, test_volume_raid_info);
 
     suite_add_tcase(s, basic);
     return s;
