@@ -231,11 +231,15 @@ class Filer(object):
         disks = self._invoke('disk-list-info')
         return disks['disk-details']['disk-detail-info']
 
-    def aggregates(self):
+    def aggregates(self, aggr_name=None):
         """
         Return a list of aggregates
+        If aggr_name provided, return [na_aggr]
         """
-        pools = self._invoke('aggr-list-info')
+        if aggr_name:
+            pools = self._invoke('aggr-list-info', {'aggregate': aggr_name})
+        else:
+            pools = self._invoke('aggr-list-info')
         tmp = pools['aggregates']['aggr-info']
         return to_list(tmp)
 

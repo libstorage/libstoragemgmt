@@ -121,6 +121,10 @@ class Ontap(IStorageAreaNetwork, INfs):
         'restricted': 'volume is restricted to protocol accesses',
     }
 
+    # strip size: http://www.netapp.com/us/media/tr-3001.pdf
+    _STRIP_SIZE = 4096
+    _OPT_IO_SIZE = 65536
+
     def __init__(self):
         self.f = None
         self.sys_info = None
@@ -309,19 +313,6 @@ class Ontap(IStorageAreaNetwork, INfs):
         luns = self.f.luns_get_all()
         return search_property(
             [self._lun(l) for l in luns], search_key, search_value)
-
-#    @staticmethod
-#    def _raid_type_of_na_aggr(na_aggr):
-#        na_raid_statuses = na_aggr['raid-status'].split(',')
-#        if 'raid0' in na_raid_statuses:
-#            return Pool.RAID_TYPE_RAID0
-#        if 'raid4' in na_raid_statuses:
-#            return Pool.RAID_TYPE_RAID4
-#        if 'raid_dp' in na_raid_statuses:
-#            return Pool.RAID_TYPE_RAID6
-#        if 'mixed_raid_type' in na_raid_statuses:
-#            return Pool.RAID_TYPE_MIXED
-#        return Pool.RAID_TYPE_UNKNOWN
 
     # This is based on NetApp ONTAP Manual pages:
     # https://library.netapp.com/ecmdocs/ECMP1196890/html/man1/na_aggr.1.html
@@ -1290,3 +1281,41 @@ class Ontap(IStorageAreaNetwork, INfs):
                                  self.sys_info.id))
 
         return search_property(tp, search_key, search_value)
+
+    @staticmethod
+    def _raid_type_of_na_aggr(na_aggr):
+        na_raid_statuses = na_aggr['raid-status'].split(',')
+        if 'mixed_raid_type' in na_raid_statuses:
+            return Volume.RAID_TYPE_MIXED
+        elif 'raid0' in na_raid_statuses:
+            return Volume.RAID_TYPE_RAID0
+        elif 'raid4' in na_raid_statuses:
+            return Volume.RAID_TYPE_RAID4
+        elif 'raid_dp' in na_raid_statuses:
+            return Volume.RAID_TYPE_RAID6
+        return Pool.RAID_TYPE_UNKNOWN
+
+    @handle_ontap_errors
+    def volume_raid_info(self, volume, flags=0):
+        na_vol_name = Ontap._get_volume_from_path(volume.pool_id)
+        na_vol = self.f.volumes(volume_name=na_vol_name)
+        if len(na_vol) == 0:
+            # If parent pool not found, then this LSM volume should not exist.
+            raise LsmError(
+                ErrorNumber.NOT_FOUND_VOLUME,
+                "Volume not found")
+        if len(na_vol) != 1:
+            raise LsmError(
+                ErrorNumber.PLUGIN_BUG,
+                "volume_raid_info(): Got 2+ na_vols from self.f.volumes() "
+                "%s" % na_vol)
+
+        na_vol = na_vol[0]
+        na_aggr_name = na_vol['containing-aggregate']
+        na_aggr = self.f.aggregates(aggr_name=na_aggr_name)[0]
+        raid_type = Ontap._raid_type_of_na_aggr(na_aggr)
+        disk_count = int(na_aggr['disk-count'])
+
+        return [
+            raid_type, Ontap._STRIP_SIZE, disk_count, Ontap._STRIP_SIZE,
+            Ontap._OPT_IO_SIZE]
