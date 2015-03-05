@@ -23,7 +23,7 @@ import errno
 
 from lsm import (uri_parse, search_property, size_human_2_size_bytes,
                  Capabilities, LsmError, ErrorNumber, System, Client,
-                 Disk, VERSION, search_property, IPlugin)
+                 Disk, VERSION, search_property, IPlugin, Pool)
 
 from lsm.plugin.megaraid.utils import cmd_exec, ExecError
 
@@ -113,6 +113,47 @@ def _disk_status_of(disk_show_basic_dict, disk_show_stat_dict):
 
     return _DISK_STATE_MAP.get(
         disk_show_basic_dict['State'], Disk.STATUS_UNKNOWN)
+
+
+def _mega_size_to_lsm(mega_size):
+    """
+    LSI Using 'TB, GB, MB, KB' and etc, for LSM, they are 'TiB' and etc.
+    Return int of block bytes
+    """
+    re_regex = re.compile("^([0-9\.]+) ([EPTGMK])B$")
+    re_match = re_regex.match(mega_size)
+    if re_match:
+        return size_human_2_size_bytes(
+            "%s%siB" % (re_match.group(1), re_match.group(2)))
+
+    raise LsmError(
+        ErrorNumber.PLUGIN_BUG,
+        "_mega_size_to_lsm(): Got unexpected LSI size string %s" %
+        mega_size)
+
+
+_POOL_STATUS_MAP = {
+    'Onln': Pool.STATUS_OK,
+    'Dgrd': Pool.STATUS_DEGRADED,
+    'Pdgd': Pool.STATUS_DEGRADED,
+    'Offln': Pool.STATUS_ERROR,
+    'Rbld': Pool.STATUS_RECONSTRUCTING,
+    'Optl': Pool.STATUS_OK,
+    # TODO(Gris Ge): The 'Optl' is undocumented, check with LSI.
+}
+
+
+def _pool_status_of(dg_top):
+    """
+    Return status
+    """
+    if dg_top['State'] in _POOL_STATUS_MAP.keys():
+        return _POOL_STATUS_MAP[dg_top['State']]
+    return Pool.STATUS_UNKNOWN
+
+
+def _pool_id_of(dg_id, sys_id):
+    return "%s:DG%s" % (sys_id, dg_id)
 
 
 class MegaRAID(IPlugin):
@@ -217,7 +258,11 @@ class MegaRAID(IPlugin):
                     ErrorNumber.PLUGIN_BUG,
                     "MegaRAID storcli failed with error %d: %s" %
                     (rc_status['Status Code'], rc_status['Description']))
-            return ctrl_output[0].get('Response Data')
+            real_data = ctrl_output[0].get('Response Data')
+            if real_data and 'Response Data' in real_data.keys():
+                return real_data['Response Data']
+
+            return real_data
         else:
             return output
 
@@ -317,7 +362,55 @@ class MegaRAID(IPlugin):
 
         return search_property(rc_lsm_disks, search_key, search_value)
 
+    @staticmethod
+    def _dg_free_size(dg_num, free_space_list):
+        """
+        Get information from 'FREE SPACE DETAILS' of /c0/dall show all.
+        """
+        for free_space in free_space_list:
+            if int(free_space['DG']) == int(dg_num):
+                return _mega_size_to_lsm(free_space['Size'])
+
+        return 0
+
+    def _dg_top_to_lsm_pool(self, dg_top, free_space_list, ctrl_num):
+        sys_id = self._sys_id_of_ctrl_num(ctrl_num)
+        pool_id = _pool_id_of(dg_top['DG'], sys_id)
+        name = '%s Disk Group %s' % (dg_top['Type'], dg_top['DG'])
+        elem_type = Pool.ELEMENT_TYPE_VOLUME | Pool.ELEMENT_TYPE_VOLUME_FULL
+        unsupported_actions = 0
+        # TODO(Gris Ge): contact LSI to get accurate total space and free
+        #                space. The size we are using here is not what host
+        #                got.
+        total_space = _mega_size_to_lsm(dg_top['Size'])
+        free_space = MegaRAID._dg_free_size(dg_top['DG'], free_space_list)
+        status = _pool_status_of(dg_top)
+        status_info = ''
+        if status == Pool.STATUS_UNKNOWN:
+            status_info = dg_top['State']
+
+        plugin_data = "/c%d/d%s" % (ctrl_num, dg_top['DG'])
+
+        return Pool(
+            pool_id, name, elem_type, unsupported_actions,
+            total_space, free_space, status, status_info,
+            sys_id, plugin_data)
+
     @_handle_errors
     def pools(self, search_key=None, search_value=None,
               flags=Client.FLAG_RSVD):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported yet")
+        lsm_pools = []
+        for ctrl_num in range(self._ctrl_count()):
+            dg_show_output = self._storcli_exec(
+                ["/c%d/dall" % ctrl_num, "show", "all"])
+            free_space_list = dg_show_output.get('FREE SPACE DETAILS', [])
+            for dg_top in dg_show_output['TOPOLOGY']:
+                if dg_top['Arr'] != '-':
+                    continue
+                if dg_top['DG'] == '-':
+                    continue
+                lsm_pools.append(
+                    self._dg_top_to_lsm_pool(
+                        dg_top, free_space_list, ctrl_num))
+
+        return search_property(lsm_pools, search_key, search_value)
