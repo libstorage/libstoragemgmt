@@ -745,6 +745,8 @@ typedef int (*lsm_plug_nfs_export_remove)( lsm_plugin_ptr c, lsm_nfs_export *e,
                                         lsm_flag flags);
 /** \struct lsm_san_ops_v1
  *  \brief Block array oriented functions (callback functions)
+ * NOTE: This structure cannot change as we need to maintain backwards
+ *       compatibility
  */
 struct lsm_san_ops_v1 {
     lsm_plug_volume_list vol_get;             /**<  retrieving volumes */
@@ -774,6 +776,8 @@ struct lsm_san_ops_v1 {
 
 /** \struct  lsm_fs_ops_v1
  *  \brief File system oriented functionality
+ * NOTE: This structure cannot change as we need to maintain backwards
+ *       compatibility
  */
 struct lsm_fs_ops_v1 {
     lsm_plug_fs_list   fs_list;        /**< list file systems */
@@ -792,12 +796,45 @@ struct lsm_fs_ops_v1 {
 
 /** \struct lsm_nas_ops_v1
  * \brief NAS system oriented functionality call back functions
+ * NOTE: This structure cannot change as we need to maintain backwards
+ *       compatibility
  */
 struct lsm_nas_ops_v1 {
     lsm_plug_nfs_auth_types nfs_auth_types;     /**< List nfs authentication types */
     lsm_plug_nfs_list nfs_list;                /**< List nfs exports */
     lsm_plug_nfs_export_fs nfs_export;          /**< Export a file system */
     lsm_plug_nfs_export_remove nfs_export_remove;   /**< Remove a file export */
+};
+
+/**
+ * Query the RAID information of a volume
+ * @param[in]   c               Valid lsm plug-in pointer
+ * @param[in]   volume          Volume to be deleted
+ * @param[out]  raid_type       Enum of lsm_volume_raid_type
+ * @param[out]  strip_size      Size of the strip on each disk or other
+ *                              storage extent.
+ * @param[out]  disk_count      Count of of disks of RAID group(s) where this
+ *                              volume allocated from.
+ * @param[out]  min_io_size     Minimum I/O size, also the preferred I/O size
+ *                              of random I/O.
+ * @param[out]  opt_io_size     Optimal I/O size, also the preferred I/O size
+ *                              of sequential I/O.
+ * @param[in]   flags           Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
+typedef int (*lsm_plug_volume_raid_info)(lsm_plugin_ptr c, lsm_volume *volume,
+    lsm_volume_raid_type *raid_type, uint32_t *strip_size,
+    uint32_t *disk_count, uint32_t *min_io_size, uint32_t *opt_io_size,
+    lsm_flag flags);
+
+/** \struct lsm_ops_v1_2
+ * \brief Functions added in version 1.2
+ * NOTE: This structure will change during the developement util version 1.2
+ *       released.
+ */
+struct lsm_ops_v1_2 {
+    lsm_plug_volume_raid_info vol_raid_info;
+    /**^ Query volume RAID information*/
 };
 
 /**
@@ -837,6 +874,24 @@ int LSM_DLL_EXPORT lsm_register_plugin_v1( lsm_plugin_ptr plug,
                         void * private_data, struct lsm_mgmt_ops_v1 *mgm_ops,
                         struct lsm_san_ops_v1 *san_ops, struct lsm_fs_ops_v1 *fs_ops,
                         struct lsm_nas_ops_v1 *nas_ops );
+
+/**
+ * Used to register version 1.2 APIs plug-in operation.
+ * @param plug              Pointer provided by the framework
+ * @param private_data      Private data to be used for whatever the plug-in
+ *                          needs
+ * @param mgm_ops           Function pointers for struct lsm_mgmt_ops_v1
+ * @param san_ops           Function pointers for struct lsm_san_ops_v1
+ * @param fs_ops            Function pointers for struct lsm_fs_ops_v1
+ * @param nas_ops           Function pointers for struct lsm_nas_ops_v1
+ * @param ops_v1_2          Function pointers for struct lsm_ops_v1_2
+ * @return LSM_ERR_OK on success, else error reason.
+ */
+int LSM_DLL_EXPORT lsm_register_plugin_v1_2(
+    lsm_plugin_ptr plug,
+    void * private_data, struct lsm_mgmt_ops_v1 *mgm_ops,
+    struct lsm_san_ops_v1 *san_ops, struct lsm_fs_ops_v1 *fs_ops,
+    struct lsm_nas_ops_v1 *nas_ops, struct lsm_ops_v1_2 *ops_v1_2);
 
 /**
  * Used to retrieve private data for plug-in operation.

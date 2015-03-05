@@ -844,6 +844,26 @@ extern "C" {
                                             uint32_t *count,
                                             lsm_flag flags);
 
+/**
+ * Retrieves the pool id that the volume is derived from. New in version 1.2.
+ * @param[in] c             Valid connection
+ * @param[in] v             Volume ptr.
+ * @param[out] raid_type    Enum of lsm_volume_raid_type
+ * @param[out] strip_size   Size of the strip on disk or other storage extent.
+ * @param[out] disk_count   Count of disks of RAID group(s) where this volume
+ *                          allocated from.
+ * @param[out] min_io_size  Minimum I/O size, also the preferred I/O size
+ *                          of random I/O.
+ * @param[out] opt_io_size  Optimal I/O size, also the preferred I/O size
+ *                          of sequential I/O.
+ * @param[in] flags         Reserved, set to 0
+ * @return LSM_ERR_OK on success else error reason.
+ */
+int LSM_DLL_EXPORT lsm_volume_raid_info(
+    lsm_connect *c, lsm_volume *volume, lsm_volume_raid_type *raid_type,
+    uint32_t *strip_size, uint32_t *disk_count,
+    uint32_t *min_io_size, uint32_t *opt_io_size, lsm_flag flags);
+
 #ifdef  __cplusplus
 }
 #endif

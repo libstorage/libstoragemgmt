@@ -123,6 +123,21 @@ int lsm_register_plugin_v1(lsm_plugin_ptr plug,
     return rc;
 }
 
+int lsm_register_plugin_v1_2(
+    lsm_plugin_ptr plug, void *private_data, struct lsm_mgmt_ops_v1 *mgm_op,
+    struct lsm_san_ops_v1 *san_op, struct lsm_fs_ops_v1 *fs_op,
+    struct lsm_nas_ops_v1 *nas_op, struct lsm_ops_v1_2 *ops_v1_2)
+{
+    int rc = lsm_register_plugin_v1(
+        plug, private_data, mgm_op, san_op, fs_op, nas_op);
+
+    if (rc != LSM_ERR_OK){
+        return rc;
+    }
+    plug->ops_v1_2 = ops_v1_2;
+    return rc;
+}
+
 void *lsm_private_data_get(lsm_plugin_ptr plug)
 {
     if (!LSM_IS_PLUGIN(plug)) {
@@ -954,6 +969,50 @@ static int handle_volume_enable(lsm_plugin_ptr p, Value &params, Value &response
 static int handle_volume_disable(lsm_plugin_ptr p, Value &params, Value &response)
 {
     return handle_vol_enable_disable(p, params, response, 0);
+}
+
+static int handle_volume_raid_info(lsm_plugin_ptr p, Value &params,
+                                   Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    if( p && p->ops_v1_2 && p->ops_v1_2->vol_raid_info) {
+        Value v_vol = params["volume"];
+
+        if(IS_CLASS_VOLUME(v_vol) &&
+            LSM_FLAG_EXPECTED_TYPE(params) ) {
+            lsm_volume *vol = value_to_volume(v_vol);
+            std::vector<Value> result;
+
+            if( vol ) {
+                lsm_volume_raid_type raid_type;
+                uint32_t strip_size;
+                uint32_t disk_count;
+                uint32_t min_io_size;
+                uint32_t opt_io_size;
+
+                rc = p->ops_v1_2->vol_raid_info(
+                    p, vol, &raid_type, &strip_size, &disk_count,
+                    &min_io_size, &opt_io_size, LSM_FLAG_GET_VALUE(params));
+
+                if( LSM_ERR_OK == rc ) {
+                    result.push_back(Value((int32_t)raid_type));
+                    result.push_back(Value(strip_size));
+                    result.push_back(Value(disk_count));
+                    result.push_back(Value(min_io_size));
+                    result.push_back(Value(opt_io_size));
+                    response = Value(result);
+                }
+
+                lsm_volume_record_free(vol);
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
+
+        } else {
+            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+        }
+    }
+    return rc;
 }
 
 static int ag_list(lsm_plugin_ptr p, Value &params, Value &response)
@@ -2153,7 +2212,8 @@ static std::map<std::string,handler> dispatch = static_map<std::string,handler>
     ("volume_replicate_range", handle_volume_replicate_range)
     ("volume_resize", handle_volume_resize)
     ("volumes_accessible_by_access_group", vol_accessible_by_ag)
-    ("volumes", handle_volumes);
+    ("volumes", handle_volumes)
+    ("volume_raid_info", handle_volume_raid_info);
 
 static int process_request(lsm_plugin_ptr p, const std::string &method, Value &request,
                     Value &response)

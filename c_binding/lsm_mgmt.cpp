@@ -1171,6 +1171,54 @@ int lsm_volume_delete(lsm_connect *c, lsm_volume *volume, char **job,
 
 }
 
+int lsm_volume_raid_info(lsm_connect *c, lsm_volume *volume,
+                         lsm_volume_raid_type * raid_type,
+                         uint32_t *strip_size, uint32_t *disk_count,
+                         uint32_t *min_io_size, uint32_t *opt_io_size,
+                         lsm_flag flags)
+{
+    if( LSM_FLAG_UNUSED_CHECK(flags) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    int rc = LSM_ERR_OK;
+    CONN_SETUP(c);
+
+    if( !LSM_IS_VOL(volume) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    if( !raid_type || !strip_size || !disk_count || !min_io_size ||
+        !opt_io_size) {
+         return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+     try {
+        std::map<std::string, Value> p;
+        p["volume"] = volume_to_value(volume);
+        p["flags"] = Value(flags);
+
+        Value parameters(p);
+        Value response;
+
+        rc = rpc(c, "volume_raid_info", parameters, response);
+        if( LSM_ERR_OK == rc ) {
+            //We get a value back, either null or job id.
+            std::vector<Value> j = response.asArray();
+            *raid_type = (lsm_volume_raid_type) j[0].asInt32_t();
+            *strip_size = j[1].asUint32_t();
+            *disk_count = j[2].asUint32_t();
+            *min_io_size = j[3].asUint32_t();
+            *opt_io_size = j[4].asUint32_t();
+        }
+    } catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
+                            ve.what());
+    }
+    return rc;
+
+}
+
 int lsm_iscsi_chap_auth(lsm_connect *c, const char *init_id,
                                 const char *username, const char *password,
                                 const char *out_user, const char *out_password,

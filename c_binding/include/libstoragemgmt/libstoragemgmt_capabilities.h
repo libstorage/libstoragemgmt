@@ -77,6 +77,9 @@ typedef enum {
 
     LSM_CAP_VOLUME_ISCSI_CHAP_AUTHENTICATION        = 53,       /**< If you can configure iSCSI chap authentication */
 
+    LSM_CAP_VOLUME_RAID_INFO                        = 54,
+    /** ^ If you can query RAID information from volume */
+
     LSM_CAP_VOLUME_THIN                             = 55,       /**< Thin provisioned volumes are supported */
 
     LSM_CAP_FS                                      = 100,      /**< List file systems */
