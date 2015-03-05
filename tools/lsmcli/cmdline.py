@@ -39,7 +39,7 @@ from lsm import (Client, Pool, VERSION, LsmError, Disk,
 
 from lsm.lsmcli.data_display import (
     DisplayData, PlugData, out,
-    vol_provision_str_to_type, vol_rep_type_str_to_type)
+    vol_provision_str_to_type, vol_rep_type_str_to_type, VolumeRAIDInfo)
 
 
 ## Wraps the invocation to the command line
@@ -368,6 +368,14 @@ cmds = (
     ),
 
     dict(
+        name='volume-raid-info',
+        help='Query volume RAID infomation',
+        args=[
+            dict(vol_id_opt),
+        ],
+    ),
+
+    dict(
         name='access-group-create',
         help='Create an access group',
         args=[
@@ -628,6 +636,7 @@ aliases = (
     ['aa', 'access-group-add'],
     ['ar', 'access-group-remove'],
     ['ad', 'access-group-delete'],
+    ['vri', 'volume-raid-info'],
 )
 
 
@@ -1317,6 +1326,13 @@ class CmdLine:
         v = _get_item(self.c.volumes(), args.vol, "Volume")
         self._wait_for_it("volume-dependant-rm",
                           self.c.volume_child_dependency_rm(v), None)
+
+    def volume_raid_info(self, args):
+        lsm_vol = _get_item(self.c.volumes(), args.vol, "Volume")
+        self.display_data(
+            [
+                VolumeRAIDInfo(
+                    lsm_vol.id, *self.c.volume_raid_info(lsm_vol))])
 
     ## Displays file system dependants
     def fs_dependants(self, args):

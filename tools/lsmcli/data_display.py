@@ -243,6 +243,41 @@ class PlugData(object):
             self.version = plugin_version
 
 
+class VolumeRAIDInfo(object):
+    _RAID_TYPE_MAP = {
+        Volume.RAID_TYPE_RAID0: 'RAID0',
+        Volume.RAID_TYPE_RAID1: 'RAID1',
+        Volume.RAID_TYPE_RAID3: 'RAID3',
+        Volume.RAID_TYPE_RAID4: 'RAID4',
+        Volume.RAID_TYPE_RAID5: 'RAID5',
+        Volume.RAID_TYPE_RAID6: 'RAID6',
+        Volume.RAID_TYPE_RAID10: 'RAID10',
+        Volume.RAID_TYPE_RAID15: 'RAID15',
+        Volume.RAID_TYPE_RAID16: 'RAID16',
+        Volume.RAID_TYPE_RAID50: 'RAID50',
+        Volume.RAID_TYPE_RAID60: 'RAID60',
+        Volume.RAID_TYPE_RAID51: 'RAID51',
+        Volume.RAID_TYPE_RAID61: 'RAID61',
+        Volume.RAID_TYPE_JBOD: 'JBOD',
+        Volume.RAID_TYPE_MIXED: 'MIXED',
+        Volume.RAID_TYPE_OTHER: 'OTHER',
+        Volume.RAID_TYPE_UNKNOWN: 'UNKNOWN',
+    }
+
+    def __init__(self, vol_id, raid_type, strip_size, disk_count,
+                 min_io_size, opt_io_size):
+        self.vol_id = vol_id
+        self.raid_type = raid_type
+        self.strip_size = strip_size
+        self.disk_count = disk_count
+        self.min_io_size = min_io_size
+        self.opt_io_size = opt_io_size
+
+    @staticmethod
+    def raid_type_to_str(raid_type):
+        return _enum_type_to_str(raid_type, VolumeRAIDInfo._RAID_TYPE_MAP)
+
+
 class DisplayData(object):
 
     def __init__(self):
@@ -496,6 +531,29 @@ class DisplayData(object):
         'column_skip_keys': TGT_PORT_COLUMN_SKIP_KEYS,
         'value_conv_enum': TGT_PORT_VALUE_CONV_ENUM,
         'value_conv_human': TGT_PORT_VALUE_CONV_HUMAN,
+    }
+
+    VOL_RAID_INFO_HEADER = OrderedDict()
+    VOL_RAID_INFO_HEADER['vol_id'] = 'Volume ID'
+    VOL_RAID_INFO_HEADER['raid_type'] = 'RAID Type'
+    VOL_RAID_INFO_HEADER['strip_size'] = 'Strip Size'
+    VOL_RAID_INFO_HEADER['disk_count'] = 'Disk Count'
+    VOL_RAID_INFO_HEADER['min_io_size'] = 'Minimum I/O Size'
+    VOL_RAID_INFO_HEADER['opt_io_size'] = 'Optimal I/O Size'
+
+    VOL_RAID_INFO_COLUMN_SKIP_KEYS = []
+
+    VOL_RAID_INFO_VALUE_CONV_ENUM = {
+        'raid_type': VolumeRAIDInfo.raid_type_to_str,
+        }
+    VOL_RAID_INFO_VALUE_CONV_HUMAN = [
+        'strip_size', 'min_io_size', 'opt_io_size']
+
+    VALUE_CONVERT[VolumeRAIDInfo] = {
+        'headers': VOL_RAID_INFO_HEADER,
+        'column_skip_keys': VOL_RAID_INFO_COLUMN_SKIP_KEYS,
+        'value_conv_enum': VOL_RAID_INFO_VALUE_CONV_ENUM,
+        'value_conv_human': VOL_RAID_INFO_VALUE_CONV_HUMAN,
     }
 
     @staticmethod
