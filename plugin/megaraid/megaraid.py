@@ -93,6 +93,7 @@ _DISK_STATE_MAP = {
     'DHS': Disk.STATUS_SPARE_DISK | Disk.STATUS_OK,
     'UGood': Disk.STATUS_STOPPED | Disk.STATUS_OK,
     'UBad': Disk.STATUS_STOPPED | Disk.STATUS_ERROR,
+    'Rbld': Disk.STATUS_RECONSTRUCT,
 }
 
 
