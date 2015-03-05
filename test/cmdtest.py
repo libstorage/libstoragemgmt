@@ -676,6 +676,25 @@ def search_test(cap, system_id):
     volume_delete(vol_id)
     return
 
+def volume_raid_info_test(cap, system_id):
+    if cap['VOLUME_RAID_INFO'] and cap['VOLUME_CREATE']:
+        test_pool_id = name_to_id(OP_POOL, test_pool_name)
+
+        if test_pool_id is None:
+            print 'Pool %s is not available!' % test_pool_name
+            exit(10)
+
+        vol_id = create_volume(test_pool_id)
+        out = call([cmd, '-t' + sep, 'volume-raid-info', '--vol', vol_id])[1]
+        r = parse(out)
+        if len(r[0]) != 6:
+            print "volume-raid-info got expected output: %s" % out
+            exit(10)
+        if r[0][0] != vol_id:
+            print "volume-raid-info output volume ID is not requested " \
+                  "volume ID %s" % out
+            exit(10)
+    return
 
 def run_all_tests(cap, system_id):
     test_display(cap, system_id)
@@ -687,6 +706,8 @@ def run_all_tests(cap, system_id):
     test_mapping(cap, system_id)
 
     search_test(cap, system_id)
+
+    volume_raid_info_test(cap, system_id)
 
 if __name__ == "__main__":
     parser = OptionParser()
