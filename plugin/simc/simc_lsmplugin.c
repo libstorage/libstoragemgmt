@@ -391,6 +391,7 @@ static int cap(lsm_plugin_ptr c, lsm_system *system,
             LSM_CAP_EXPORTS,
             LSM_CAP_EXPORT_FS,
             LSM_CAP_EXPORT_REMOVE,
+            LSM_CAP_VOLUME_RAID_INFO,
             -1
             );
 
@@ -955,6 +956,33 @@ static int volume_delete(lsm_plugin_ptr c, lsm_volume *volume,
     }
     return rc;
 }
+
+static int volume_raid_info(lsm_plugin_ptr c, lsm_volume *volume,
+                            lsm_volume_raid_type *raid_type,
+                            uint32_t *strip_size, uint32_t *disk_count,
+                            uint32_t *min_io_size, uint32_t *opt_io_size,
+                            lsm_flag flags)
+{
+    int rc = LSM_ERR_OK;
+    struct plugin_data *pd = (struct plugin_data*)lsm_private_data_get(c);
+    struct allocated_volume *av = find_volume(pd, lsm_volume_id_get(volume));
+
+    if( !av) {
+        rc = lsm_log_error_basic(c, LSM_ERR_NOT_FOUND_VOLUME,
+                                    "volume not found!");
+    }
+
+    *raid_type = LSM_VOLUME_RAID_TYPE_UNKNOWN;
+    *strip_size = LSM_VOLUME_STRIP_SIZE_UNKNOWN;
+    *disk_count = LSM_VOLUME_DISK_COUNT_UNKNOWN;
+    *min_io_size = LSM_VOLUME_MIN_IO_SIZE_UNKNOWN;
+    *opt_io_size = LSM_VOLUME_OPT_IO_SIZE_UNKNOWN;
+    return rc;
+}
+
+static struct lsm_ops_v1_2 ops_v1_2 = {
+    volume_raid_info
+};
 
 static int volume_enable_disable(lsm_plugin_ptr c, lsm_volume *v,
                                     lsm_flag flags)
@@ -1526,7 +1554,6 @@ static struct lsm_san_ops_v1 san_ops = {
     volume_dependency_rm,
     list_targets
 };
-
 
 static int fs_list(lsm_plugin_ptr c, const char *search_key,
                     const char *search_value, lsm_fs **fs[], uint32_t *count,
@@ -2243,8 +2270,8 @@ int load( lsm_plugin_ptr c, const char *uri, const char *password,
             _unload(pd);
             pd = NULL;
         } else {
-            rc = lsm_register_plugin_v1( c, pd, &mgm_ops,
-                                    &san_ops, &fs_ops, &nfs_ops);
+            rc = lsm_register_plugin_v1_2(
+                c, pd, &mgm_ops, &san_ops, &fs_ops, &nfs_ops, &ops_v1_2);
         }
     }
     return rc;
