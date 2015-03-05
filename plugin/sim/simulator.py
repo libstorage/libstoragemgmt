@@ -289,3 +289,6 @@ class SimPlugin(INfs, IStorageAreaNetwork):
         return search_property(
             [SimPlugin._sim_data_2_lsm(t) for t in sim_tgts],
             search_key, search_value)
+
+    def volume_raid_info(self, volume, flags=0):
+        return self.sim_array.volume_raid_info(volume)

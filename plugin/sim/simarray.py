@@ -67,26 +67,6 @@ def _random_vpd():
 
 
 class PoolRAID(object):
-    RAID_TYPE_RAID0 = 0
-    RAID_TYPE_RAID1 = 1
-    RAID_TYPE_RAID3 = 3
-    RAID_TYPE_RAID4 = 4
-    RAID_TYPE_RAID5 = 5
-    RAID_TYPE_RAID6 = 6
-    RAID_TYPE_RAID10 = 10
-    RAID_TYPE_RAID15 = 15
-    RAID_TYPE_RAID16 = 16
-    RAID_TYPE_RAID50 = 50
-    RAID_TYPE_RAID60 = 60
-    RAID_TYPE_RAID51 = 51
-    RAID_TYPE_RAID61 = 61
-    # number 2x is reserved for non-numbered RAID.
-    RAID_TYPE_JBOD = 20
-    RAID_TYPE_UNKNOWN = 21
-    RAID_TYPE_NOT_APPLICABLE = 22
-    # NOT_APPLICABLE indicate current pool only has one member.
-    RAID_TYPE_MIXED = 23
-
     MEMBER_TYPE_UNKNOWN = 0
     MEMBER_TYPE_DISK = 1
     MEMBER_TYPE_DISK_MIX = 10
@@ -136,37 +116,37 @@ class PoolRAID(object):
         return PoolRAID.MEMBER_TYPE_UNKNOWN
 
     _RAID_DISK_CHK = {
-        RAID_TYPE_JBOD: lambda x: x > 0,
-        RAID_TYPE_RAID0: lambda x: x > 0,
-        RAID_TYPE_RAID1: lambda x: x == 2,
-        RAID_TYPE_RAID3: lambda x: x >= 3,
-        RAID_TYPE_RAID4: lambda x: x >= 3,
-        RAID_TYPE_RAID5: lambda x: x >= 3,
-        RAID_TYPE_RAID6: lambda x: x >= 4,
-        RAID_TYPE_RAID10: lambda x: x >= 4 and x % 2 == 0,
-        RAID_TYPE_RAID15: lambda x: x >= 6 and x % 2 == 0,
-        RAID_TYPE_RAID16: lambda x: x >= 8 and x % 2 == 0,
-        RAID_TYPE_RAID50: lambda x: x >= 6 and x % 2 == 0,
-        RAID_TYPE_RAID60: lambda x: x >= 8 and x % 2 == 0,
-        RAID_TYPE_RAID51: lambda x: x >= 6 and x % 2 == 0,
-        RAID_TYPE_RAID61: lambda x: x >= 8 and x % 2 == 0,
+        Volume.RAID_TYPE_JBOD: lambda x: x > 0,
+        Volume.RAID_TYPE_RAID0: lambda x: x > 0,
+        Volume.RAID_TYPE_RAID1: lambda x: x == 2,
+        Volume.RAID_TYPE_RAID3: lambda x: x >= 3,
+        Volume.RAID_TYPE_RAID4: lambda x: x >= 3,
+        Volume.RAID_TYPE_RAID5: lambda x: x >= 3,
+        Volume.RAID_TYPE_RAID6: lambda x: x >= 4,
+        Volume.RAID_TYPE_RAID10: lambda x: x >= 4 and x % 2 == 0,
+        Volume.RAID_TYPE_RAID15: lambda x: x >= 6 and x % 2 == 0,
+        Volume.RAID_TYPE_RAID16: lambda x: x >= 8 and x % 2 == 0,
+        Volume.RAID_TYPE_RAID50: lambda x: x >= 6 and x % 2 == 0,
+        Volume.RAID_TYPE_RAID60: lambda x: x >= 8 and x % 2 == 0,
+        Volume.RAID_TYPE_RAID51: lambda x: x >= 6 and x % 2 == 0,
+        Volume.RAID_TYPE_RAID61: lambda x: x >= 8 and x % 2 == 0,
     }
 
     _RAID_PARITY_DISK_COUNT_FUNC = {
-        RAID_TYPE_JBOD: lambda x: x,
-        RAID_TYPE_RAID0: lambda x: x,
-        RAID_TYPE_RAID1: lambda x: 1,
-        RAID_TYPE_RAID3: lambda x: x - 1,
-        RAID_TYPE_RAID4: lambda x: x - 1,
-        RAID_TYPE_RAID5: lambda x: x - 1,
-        RAID_TYPE_RAID6: lambda x: x - 2,
-        RAID_TYPE_RAID10: lambda x: x / 2,
-        RAID_TYPE_RAID15: lambda x: x / 2 - 1,
-        RAID_TYPE_RAID16: lambda x: x / 2 - 2,
-        RAID_TYPE_RAID50: lambda x: x - 2,
-        RAID_TYPE_RAID60: lambda x: x - 4,
-        RAID_TYPE_RAID51: lambda x: x / 2 - 1,
-        RAID_TYPE_RAID61: lambda x: x / 2 - 2,
+        Volume.RAID_TYPE_JBOD: lambda x: x,
+        Volume.RAID_TYPE_RAID0: lambda x: x,
+        Volume.RAID_TYPE_RAID1: lambda x: 1,
+        Volume.RAID_TYPE_RAID3: lambda x: x - 1,
+        Volume.RAID_TYPE_RAID4: lambda x: x - 1,
+        Volume.RAID_TYPE_RAID5: lambda x: x - 1,
+        Volume.RAID_TYPE_RAID6: lambda x: x - 2,
+        Volume.RAID_TYPE_RAID10: lambda x: x / 2,
+        Volume.RAID_TYPE_RAID15: lambda x: x / 2 - 1,
+        Volume.RAID_TYPE_RAID16: lambda x: x / 2 - 2,
+        Volume.RAID_TYPE_RAID50: lambda x: x - 2,
+        Volume.RAID_TYPE_RAID60: lambda x: x - 4,
+        Volume.RAID_TYPE_RAID51: lambda x: x / 2 - 1,
+        Volume.RAID_TYPE_RAID61: lambda x: x / 2 - 2,
     }
 
     @staticmethod
@@ -191,7 +171,7 @@ class PoolRAID(object):
 
 
 class BackStore(object):
-    VERSION = "3.0"
+    VERSION = "3.1"
     VERSION_SIGNATURE = 'LSM_SIMULATOR_DATA_%s_%s' % (VERSION, md5(VERSION))
     JOB_DEFAULT_DURATION = 1
     JOB_DATA_TYPE_VOL = 1
@@ -201,6 +181,7 @@ class BackStore(object):
     SYS_ID = "sim-01"
     SYS_NAME = "LSM simulated storage plug-in"
     BLK_SIZE = 512
+    STRIP_SIZE = 131072     # 128 KiB
 
     _LIST_SPLITTER = '#'
 
@@ -724,7 +705,7 @@ class BackStore(object):
 
             pool_1_id = self.sim_pool_create_from_disk(
                 name='Pool 1',
-                raid_type=PoolRAID.RAID_TYPE_RAID1,
+                raid_type=Volume.RAID_TYPE_RAID1,
                 sim_disk_ids=pool_1_disks,
                 element_type=Pool.ELEMENT_TYPE_POOL |
                 Pool.ELEMENT_TYPE_FS |
@@ -744,7 +725,7 @@ class BackStore(object):
 
             self.sim_pool_create_from_disk(
                 name='Pool 3',
-                raid_type=PoolRAID.RAID_TYPE_RAID1,
+                raid_type=Volume.RAID_TYPE_RAID1,
                 sim_disk_ids=ssd_pool_disks,
                 element_type=Pool.ELEMENT_TYPE_FS |
                 Pool.ELEMENT_TYPE_VOLUME |
@@ -755,7 +736,7 @@ class BackStore(object):
                 element_type=Pool.ELEMENT_TYPE_FS |
                 Pool.ELEMENT_TYPE_VOLUME |
                 Pool.ELEMENT_TYPE_DELTA,
-                raid_type=PoolRAID.RAID_TYPE_RAID0,
+                raid_type=Volume.RAID_TYPE_RAID0,
                 sim_disk_ids=test_pool_disks)
 
             self._data_add(
@@ -1009,12 +990,22 @@ class BackStore(object):
                 'status_info': '',
                 'element_type': element_type,
                 'unsupported_actions': unsupported_actions,
-                'raid_type': PoolRAID.RAID_TYPE_NOT_APPLICABLE,
+                'raid_type': Volume.RAID_TYPE_OTHER,
                 'member_type': PoolRAID.MEMBER_TYPE_POOL,
                 'parent_pool_id': parent_pool_id,
                 'total_space': size,
             })
         return self.lastrowid
+
+    def sim_pool_disks_count(self, sim_pool_id):
+        return self._sql_exec(
+            "SELECT COUNT(id) FROM disks WHERE owner_pool_id=%s;" %
+            sim_pool_id)[0][0]
+
+    def sim_pool_data_disks_count(self, sim_pool_id=None):
+        return self._sql_exec(
+            "SELECT COUNT(id) FROM disks WHERE "
+            "owner_pool_id=%s and role='DATA';" % sim_pool_id)[0][0]
 
     def sim_vols(self, sim_ag_id=None):
         """
@@ -2231,3 +2222,55 @@ class SimArray(object):
     @_handle_errors
     def target_ports(self):
         return list(SimArray._sim_tgt_2_lsm(t) for t in self.bs_obj.sim_tgts())
+
+    @_handle_errors
+    def volume_raid_info(self, lsm_vol):
+        sim_pool = self.bs_obj.sim_pool_of_id(
+            SimArray._lsm_id_to_sim_id(
+                lsm_vol.pool_id,
+                LsmError(ErrorNumber.NOT_FOUND_POOL, "Pool not found")))
+
+        raid_type = sim_pool['raid_type']
+        strip_size = Volume.STRIP_SIZE_UNKNOWN
+        min_io_size = BackStore.BLK_SIZE
+        opt_io_size = Volume.OPT_IO_SIZE_UNKNOWN
+        disk_count = Volume.DISK_COUNT_UNKNOWN
+
+        if sim_pool['member_type'] == PoolRAID.MEMBER_TYPE_POOL:
+            parent_sim_pool = self.bs_obj.sim_pool_of_id(
+                sim_pool['parent_pool_id'])
+            raid_type = parent_sim_pool['raid_type']
+
+            disk_count = self.bs_obj.sim_pool_disks_count(
+                parent_sim_pool['id'])
+            data_disk_count = self.bs_obj.sim_pool_data_disks_count(
+                parent_sim_pool['id'])
+        else:
+            disk_count = self.bs_obj.sim_pool_disks_count(
+                sim_pool['id'])
+            data_disk_count = self.bs_obj.sim_pool_data_disks_count(
+                sim_pool['id'])
+
+        if raid_type == Volume.RAID_TYPE_UNKNOWN or \
+           raid_type == Volume.RAID_TYPE_OTHER:
+            return [
+                raid_type, strip_size, disk_count, min_io_size,
+                opt_io_size]
+
+        if raid_type == Volume.RAID_TYPE_MIXED:
+            raise LsmError(
+                ErrorNumber.PLUGIN_BUG,
+                "volume_raid_info(): Got unsupported RAID_TYPE_MIXED pool "
+                "%s" % sim_pool['id'])
+
+        if raid_type == Volume.RAID_TYPE_RAID1 or \
+           raid_type == Volume.RAID_TYPE_JBOD:
+            strip_size = BackStore.BLK_SIZE
+            min_io_size = BackStore.BLK_SIZE
+            opt_io_size = BackStore.BLK_SIZE
+        else:
+            strip_size = BackStore.STRIP_SIZE
+            min_io_size = BackStore.STRIP_SIZE
+            opt_io_size = int(data_disk_count * BackStore.STRIP_SIZE)
+
+        return [raid_type, strip_size, disk_count, min_io_size, opt_io_size]
