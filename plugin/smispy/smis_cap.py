@@ -247,19 +247,7 @@ def _tgt_cap_set(smis_common, cim_sys_path, cap):
     if cim_sys_path.classname == 'LSIESG_MegaRAIDHBA':
         return
 
-    flag_fc_support = smis_common.profile_check(
-        SmisCommon.SNIA_FC_TGT_PORT_PROFILE,
-        SmisCommon.SMIS_SPEC_VER_1_4,
-        raise_error=False)
-    # One more check for NetApp Typo:
-    #   NetApp:     'FC Target Port'
-    #   SMI-S:      'FC Target Ports'
-    # Bug reported.
-    if not flag_fc_support:
-        flag_fc_support = smis_common.profile_check(
-            'FC Target Port',
-            SmisCommon.SMIS_SPEC_VER_1_4,
-            raise_error=False)
+    flag_fc_support = fc_tgt_is_supported(smis_common)
     flag_iscsi_support = smis_common.profile_check(
         SmisCommon.SNIA_ISCSI_TGT_PORT_PROFILE,
         SmisCommon.SMIS_SPEC_VER_1_4,
