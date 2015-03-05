@@ -23,7 +23,7 @@ import errno
 
 from lsm import (uri_parse, search_property, size_human_2_size_bytes,
                  Capabilities, LsmError, ErrorNumber, System, Client,
-                 Disk, VERSION, search_property, IPlugin, Pool)
+                 Disk, VERSION, search_property, IPlugin, Pool, Volume)
 
 from lsm.plugin.megaraid.utils import cmd_exec, ExecError
 
@@ -226,6 +226,7 @@ class MegaRAID(IPlugin):
                 "System not found")
         cap = Capabilities()
         cap.set(Capabilities.DISKS)
+        cap.set(Capabilities.VOLUMES)
         return cap
 
     def _storcli_exec(self, storcli_cmds, flag_json=True):
@@ -414,3 +415,46 @@ class MegaRAID(IPlugin):
                         dg_top, free_space_list, ctrl_num))
 
         return search_property(lsm_pools, search_key, search_value)
+
+    @staticmethod
+    def _vd_to_lsm_vol(vd_id, dg_id, sys_id, vd_basic_info, vd_pd_info_list,
+                       vd_prop_info, vd_path):
+
+        vol_id = "%s:VD%d" % (sys_id, vd_id)
+        name = "VD %d" % vd_id
+        vpd83 = ''  # TODO(Gris Ge): Beg LSI to provide this information.
+        block_size = size_human_2_size_bytes(vd_pd_info_list[0]['SeSz'])
+        num_of_blocks = vd_prop_info['Number of Blocks']
+        admin_state = Volume.ADMIN_STATE_ENABLED
+        if vd_prop_info['Exposed to OS'] != 'Yes' or \
+           vd_basic_info['Access'] != 'RW':
+            admin_state = Volume.ADMIN_STATE_DISABLED
+        pool_id = _pool_id_of(dg_id, sys_id)
+        plugin_data = vd_path
+        return Volume(
+            vol_id, name, vpd83, block_size, num_of_blocks, admin_state,
+            sys_id, pool_id, plugin_data)
+
+    @_handle_errors
+    def volumes(self, search_key=None, search_value=None, flags=0):
+        lsm_vols = []
+        for ctrl_num in range(self._ctrl_count()):
+            vol_show_output = self._storcli_exec(
+                ["/c%d/vall" % ctrl_num, "show", "all"])
+            sys_id = self._sys_id_of_ctrl_num(ctrl_num)
+            for key_name in vol_show_output.keys():
+                if key_name.startswith('/c'):
+                    vd_basic_info = vol_show_output[key_name][0]
+                    (dg_id, vd_id) = vd_basic_info['DG/VD'].split('/')
+                    dg_id = int(dg_id)
+                    vd_id = int(vd_id)
+                    vd_pd_info_list = vol_show_output['PDs for VD %d' % vd_id]
+
+                    vd_prop_info = vol_show_output['VD%d Properties' % vd_id]
+
+                    lsm_vols.append(
+                        MegaRAID._vd_to_lsm_vol(
+                            vd_id, dg_id, sys_id, vd_basic_info,
+                            vd_pd_info_list, vd_prop_info, key_name))
+
+        return search_property(lsm_vols, search_key, search_value)
