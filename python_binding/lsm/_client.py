@@ -971,3 +971,106 @@ class Client(INetworkAttachedStorage):
         """
         _check_search_key(search_key, TargetPort.SUPPORTED_SEARCH_KEYS)
         return self._tp.rpc('target_ports', _del_self(locals()))
+
+    ## Returns the RAID information of certain volume
+    # @param    self    The this pointer
+    # @param    raid_type       The RAID type of this volume
+    # @param    strip_size      The size of strip of disk or other storage
+    #                           extent.
+    # @param    disk_count      The count of disks of RAID group(s) where
+    #                           this volume allocated from.
+    # @param    min_io_size     The preferred I/O size of random I/O.
+    # @param    opt_io_size     The preferred I/O size of sequential I/O.
+    # @returns List of target ports, else raises LsmError
+    @_return_requires([int, int, int, int, int])
+    def volume_raid_info(self, volume, flags=FLAG_RSVD):
+        """Query the RAID information of certain volume.
+
+        New in version 1.2.
+
+        Query the RAID type, strip size, extents count, minimum I/O size,
+        optimal I/O size of given volume.
+
+        This method requires this capability:
+            lsm.Capabilities.VOLUME_RAID_INFO
+
+        Args:
+            volume (Volume object): Volume to query
+            flags (int): Reserved for future use. Should be set as
+                lsm.Client.FLAG_RSVD
+        Returns:
+            [raid_type, strip_size, disk_count, min_io_size, opt_io_size]
+
+            raid_type (int): RAID Type of requested volume.
+                Could be one of these values:
+                    Volume.RAID_TYPE_RAID0
+                        Stripe
+                    Volume.RAID_TYPE_RAID1
+                        Two disks Mirror
+                    Volume.RAID_TYPE_RAID3
+                        Byte-level striping with dedicated parity
+                    Volume.RAID_TYPE_RAID4
+                        Block-level striping with dedicated parity
+                    Volume.RAID_TYPE_RAID5
+                        Block-level striping with distributed parity
+                    Volume.RAID_TYPE_RAID6
+                        Block-level striping with two distributed parities,
+                        aka, RAID-DP
+                    Volume.RAID_TYPE_RAID10
+                        Stripe of mirrors
+                    Volume.RAID_TYPE_RAID15
+                        Parity of mirrors
+                    Volume.RAID_TYPE_RAID16
+                        Dual parity of mirrors
+                    Volume.RAID_TYPE_RAID50
+                        Stripe of parities
+                    Volume.RAID_TYPE_RAID60
+                        Stripe of dual parities
+                    Volume.RAID_TYPE_RAID51
+                        Mirror of parities
+                    Volume.RAID_TYPE_RAID61
+                        Mirror of dual parities
+                    Volume.RAID_TYPE_JBOD
+                        Just bunch of disks, no parity, no striping.
+                    Volume.RAID_TYPE_UNKNOWN
+                        The plugin failed to detect the volume's RAID type.
+                    Volume.RAID_TYPE_MIXED
+                        This volume contains multiple RAID settings.
+                    Volume.RAID_TYPE_OTHER
+                        Vendor specific RAID type
+            strip_size(int): The size of strip on each disk or other storage
+                extent.
+                For RAID1/JBOD, it should be set as sector size.
+                If plugin failed to detect strip size, it should be set
+                as Volume.STRIP_SIZE_UNKNOWN(0).
+            disk_count(int): The count of disks used for assembling the RAID
+                group(s) where this volume allocated from.
+                For any RAID system using the slice of disk, this value
+                indicate how many disk slices are used for the RAID.
+                For exmaple, on LVM RAID, the 'disk_count' here indicate the
+                count of PVs used for certain volume.
+                Another example, on EMC VMAX, the 'disk_count' here indicate
+                how many hyper volumes are used for this volume.
+                For any RAID system using remote LUN for data storing, each
+                remote LUN should be count as a disk.
+                If the plugin failed to detect disk_count, it should be set
+                as Volume.DISK_COUNT_UNKNOWN(0).
+            min_io_size(int): The minimum I/O size, device preferred I/O
+                size for random I/O. Any I/O size not equal to a multiple
+                of this value may get significant speed penalty.
+                Normally it refers to strip size of each disk(extent).
+                If plugin failed to detect min_io_size, it should try these
+                values in the sequence of:
+                logical sector size -> physical sector size ->
+                Volume.MIN_IO_SIZE_UNKNOWN(0).
+            opt_io_size(int): The optimal I/O size, device preferred I/O
+                size for sequential I/O. Normally it refers to RAID group
+                stripe size.
+                If plugin failed to detect opt_io_size, it should be set
+                to Volume.OPT_IO_SIZE_UNKNOWN(0).
+        Raises:
+            LsmError:
+                ErrorNumber.NO_SUPPORT
+                    No support.
+        """
+        return self._tp.rpc('volume_raid_info', _del_self(locals()))

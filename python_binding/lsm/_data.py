@@ -258,6 +258,46 @@ class Volume(IData):
     ADMIN_STATE_DISABLED = 0
     ADMIN_STATE_ENABLED = 1
 
+    RAID_TYPE_UNKNOWN = -1
+    # The plugin failed to detect the volume's RAID type.
+    RAID_TYPE_RAID0 = 0
+    # Stripe
+    RAID_TYPE_RAID1 = 1
+    # Mirror for two disks. For 4 disks or more, they are RAID10.
+    RAID_TYPE_RAID3 = 3
+    # Byte-level striping with dedicated parity
+    RAID_TYPE_RAID4 = 4
+    # Block-level striping with dedicated parity
+    RAID_TYPE_RAID5 = 5
+    # Block-level striping with distributed parity
+    RAID_TYPE_RAID6 = 6
+    # Block-level striping with two distributed parities, aka, RAID-DP
+    RAID_TYPE_RAID10 = 10
+    # Stripe of mirrors
+    RAID_TYPE_RAID15 = 15
+    # Parity of mirrors
+    RAID_TYPE_RAID16 = 16
+    # Dual parity of mirrors
+    RAID_TYPE_RAID50 = 50
+    # Stripe of parities
+    RAID_TYPE_RAID60 = 60
+    # Stripe of dual parities
+    RAID_TYPE_RAID51 = 51
+    # Mirror of parities
+    RAID_TYPE_RAID61 = 61
+    # Mirror of dual parities
+    RAID_TYPE_JBOD = 20
+    # Just bunch of disks, no parity, no striping.
+    RAID_TYPE_MIXED = 21
+    # This volume contains multiple RAID settings.
+    RAID_TYPE_OTHER = 22
+    # Vendor specific RAID type
+
+    STRIP_SIZE_UNKNOWN = 0
+    DISK_COUNT_UNKNOWN = 0
+    MIN_IO_SIZE_UNKNOWN = 0
+    OPT_IO_SIZE_UNKNOWN = 0
+
     def __init__(self, _id, _name, _vpd83, _block_size, _num_of_blocks,
                  _admin_state, _system_id, _pool_id, _plugin_data=None):
         self._id = _id                        # Identifier
@@ -668,6 +708,8 @@ class Capabilities(IData):
     # For empty access group, this indicate it can add iSCSI IQN into it.
 
     VOLUME_ISCSI_CHAP_AUTHENTICATION = 53
+
+    VOLUME_RAID_INFO = 54
 
     VOLUME_THIN = 55
 
