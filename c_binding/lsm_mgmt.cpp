@@ -331,6 +331,13 @@ int lsm_connect_close(lsm_connect *c, lsm_flag flags)
     return rc;
 }
 
+static Value _create_flag_param(lsm_flag flags)
+{
+    std::map<std::string, Value> p;
+    p["flags"] = Value(flags);
+    return Value(p);
+}
+
 int lsm_plugin_info_get(lsm_connect *c, char **desc,
                                         char **version, lsm_flag flags)
 {
@@ -346,9 +353,8 @@ int lsm_plugin_info_get(lsm_connect *c, char **desc,
     }
 
     try {
-        std::map<std::string, Value> p;
-        p["flags"] = Value(flags);
-        Value parameters(p);
+
+        Value parameters = _create_flag_param(flags);
         Value response;
 
         rc = rpc(c, "plugin_info", parameters, response);
@@ -505,9 +511,8 @@ int lsm_connect_timeout_get(lsm_connect *c, uint32_t *timeout, lsm_flag flags)
     }
 
     try {
-        std::map<std::string, Value> p;
-        p["flags"] = Value(flags);
-        Value parameters(p);
+
+        Value parameters = _create_flag_param(flags);
         Value response;
 
         rc = rpc(c, "time_out_get", parameters, response);
