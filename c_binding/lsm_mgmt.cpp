@@ -1546,6 +1546,25 @@ int lsm_access_groups_granted_to_volume(lsm_connect *c,
     return getAccessGroups(c, rc, response, groups, groupCount);
 }
 
+static int _retrieve_bool(int rc, Value &response, uint8_t *yes)
+{
+    int rc_out = rc;
+
+    *yes = 0;
+
+    if( LSM_ERR_OK == rc ) {
+        //We should be getting a boolean value back.
+        if( Value::boolean_t == response.valueType() ) {
+            if( response.asBool() ) {
+                *yes = 1;
+            }
+        } else {
+            rc_out = LSM_ERR_LIB_BUG;
+        }
+    }
+    return rc_out;
+}
+
 int lsm_volume_child_dependency(lsm_connect *c, lsm_volume *volume,
                                 uint8_t *yes, lsm_flag flags)
 {
@@ -1568,19 +1587,8 @@ int lsm_volume_child_dependency(lsm_connect *c, lsm_volume *volume,
         Value parameters(p);
         Value response;
 
-        *yes = 0;
-
         rc = rpc(c, "volume_child_dependency", parameters, response);
-        if( LSM_ERR_OK == rc ) {
-            //We should be getting a boolean value back.
-            if( Value::boolean_t == response.valueType() ) {
-                if( response.asBool() ) {
-                    *yes = 1;
-                }
-            } else {
-                rc = LSM_ERR_LIB_BUG;
-            }
-        }
+        rc = _retrieve_bool(rc, response, yes);
     } catch( const ValueException &ve ) {
         rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
@@ -1876,19 +1884,8 @@ int lsm_fs_child_dependency( lsm_connect *c, lsm_fs *fs, lsm_string_list *files,
         Value parameters(p);
         Value response;
 
-        *yes = 0;
-
         rc = rpc(c, "fs_child_dependency", parameters, response);
-        if( LSM_ERR_OK == rc ) {
-            //We should be getting a boolean value back.
-            if( Value::boolean_t == response.valueType() ) {
-                if( response.asBool() ) {
-                    *yes = 1;
-                }
-            } else {
-                rc = LSM_ERR_LIB_BUG;
-            }
-        }
+        rc = _retrieve_bool(rc, response, yes);
     } catch( const ValueException &ve ) {
         rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
