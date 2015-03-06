@@ -1849,6 +1849,16 @@ int lsm_fs_file_clone(lsm_connect *c, lsm_fs *fs, const char *src_file_name,
     return jobCheck(c, rc, response, job);
 }
 
+static Value _create_fs_file_flag_params(lsm_fs *fs, lsm_string_list *files,
+                                            lsm_flag flags)
+{
+    std::map<std::string, Value> p;
+    p["fs"] = fs_to_value(fs);
+    p["files"] = string_list_to_value(files);
+    p["flags"] = Value(flags);
+    return Value(p);
+}
+
 int lsm_fs_child_dependency( lsm_connect *c, lsm_fs *fs, lsm_string_list *files,
                             uint8_t *yes, lsm_flag flags)
 {
@@ -1870,12 +1880,8 @@ int lsm_fs_child_dependency( lsm_connect *c, lsm_fs *fs, lsm_string_list *files,
     }
 
     try {
-        std::map<std::string, Value> p;
-        p["fs"] = fs_to_value(fs);
-        p["files"] = string_list_to_value(files);
-        p["flags"] = Value(flags);
 
-        Value parameters(p);
+        Value parameters = _create_fs_file_flag_params(fs, files, flags);
         Value response;
 
         rc = rpc(c, "fs_child_dependency", parameters, response);
@@ -1906,12 +1912,7 @@ int lsm_fs_child_dependency_delete( lsm_connect *c, lsm_fs *fs, lsm_string_list 
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
-    std::map<std::string, Value> p;
-    p["fs"] = fs_to_value(fs);
-    p["files"] = string_list_to_value(files);
-    p["flags"] = Value(flags);
-
-    Value parameters(p);
+    Value parameters = _create_fs_file_flag_params(fs, files, flags);
     Value response;
 
     int rc = rpc(c, "fs_child_dependency_rm", parameters, response);
