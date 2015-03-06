@@ -1133,6 +1133,15 @@ int lsm_volume_replicate_range(lsm_connect *c,
     return jobCheck(c, rc, response, job);
 }
 
+static Value _create_volume_flag_param(lsm_volume *volume, lsm_flag flags)
+{
+    std::map<std::string, Value> p;
+    p["volume"] = volume_to_value(volume);
+    p["flags"] = Value(flags);
+
+    return Value(p);
+}
+
 int lsm_volume_delete(lsm_connect *c, lsm_volume *volume, char **job,
                     lsm_flag flags)
 {
@@ -1148,11 +1157,8 @@ int lsm_volume_delete(lsm_connect *c, lsm_volume *volume, char **job,
     }
 
     try {
-        std::map<std::string, Value> p;
-        p["volume"] = volume_to_value(volume);
-        p["flags"] = Value(flags);
 
-        Value parameters(p);
+        Value parameters = _create_volume_flag_param(volume, flags);
         Value response;
 
         rc = rpc(c, "volume_delete", parameters, response);
@@ -1199,11 +1205,8 @@ int lsm_volume_raid_info(lsm_connect *c, lsm_volume *volume,
     }
 
      try {
-        std::map<std::string, Value> p;
-        p["volume"] = volume_to_value(volume);
-        p["flags"] = Value(flags);
 
-        Value parameters(p);
+        Value parameters = _create_volume_flag_param(volume, flags);
         Value response;
 
         rc = rpc(c, "volume_raid_info", parameters, response);
@@ -1585,11 +1588,8 @@ int lsm_volume_child_dependency(lsm_connect *c, lsm_volume *volume,
     }
 
     try {
-        std::map<std::string, Value> p;
-        p["volume"] = volume_to_value(volume);
-        p["flags"] = Value(flags);
 
-        Value parameters(p);
+        Value parameters = _create_volume_flag_param(volume, flags);
         Value response;
 
         rc = rpc(c, "volume_child_dependency", parameters, response);
@@ -1610,11 +1610,7 @@ int lsm_volume_child_dependency_delete(lsm_connect *c, lsm_volume *volume,
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
-    std::map<std::string, Value> p;
-    p["volume"] = volume_to_value(volume);
-    p["flags"] = Value(flags);
-
-    Value parameters(p);
+    Value parameters = _create_volume_flag_param(volume, flags);
     Value response;
 
     int rc = rpc(c, "volume_child_dependency_rm", parameters, response);
