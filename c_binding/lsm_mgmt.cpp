@@ -1744,6 +1744,14 @@ int lsm_fs_create(lsm_connect *c, lsm_pool *pool, const char *name,
     return rc;
 }
 
+static Value _create_fs_flag_param(lsm_fs *fs, lsm_flag flags)
+{
+    std::map<std::string, Value> p;
+    p["fs"] = fs_to_value(fs);
+    p["flags"] = Value(flags);
+    return Value(p);
+}
+
 int lsm_fs_delete(lsm_connect *c, lsm_fs *fs, char **job, lsm_flag flags)
 {
     CONN_SETUP(c);
@@ -1752,11 +1760,7 @@ int lsm_fs_delete(lsm_connect *c, lsm_fs *fs, char **job, lsm_flag flags)
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
-    std::map<std::string, Value> p;
-    p["fs"] = fs_to_value(fs);
-    p["flags"] = Value(flags);
-
-    Value parameters(p);
+    Value parameters = _create_fs_flag_param(fs, flags);
     Value response;
 
     int rc = rpc(c, "fs_delete", parameters, response);
@@ -1928,11 +1932,7 @@ int lsm_fs_ss_list(lsm_connect *c, lsm_fs *fs, lsm_fs_ss **ss[],
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
-    std::map<std::string, Value> p;
-    p["fs"] = fs_to_value(fs);
-    p["flags"] = Value(flags);
-
-    Value parameters(p);
+    Value parameters = _create_fs_flag_param(fs, flags);
     Value response;
 
     try {
