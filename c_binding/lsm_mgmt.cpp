@@ -1162,18 +1162,7 @@ int lsm_volume_delete(lsm_connect *c, lsm_volume *volume, char **job,
         Value response;
 
         rc = rpc(c, "volume_delete", parameters, response);
-        if( LSM_ERR_OK == rc ) {
-            //We get a value back, either null or job id.
-            if( Value::string_t == response.valueType() ) {
-                *job = strdup(response.asString().c_str());
-
-                if( *job ) {
-                    rc = LSM_ERR_JOB_STARTED;
-                } else {
-                    rc = LSM_ERR_NO_MEMORY;
-                }
-            }
-        }
+        rc = jobCheck(c, rc, response, job);
     } catch( const ValueException &ve ) {
         rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
