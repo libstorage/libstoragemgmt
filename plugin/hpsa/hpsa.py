@@ -189,6 +189,28 @@ def _disk_status_of(hp_disk, flag_free):
     return disk_status
 
 
+def _hp_raid_type_to_lsm(hp_ld):
+    """
+    Based on this property:
+        Fault Tolerance: 0/1/5/6/1+0
+    """
+    hp_raid_level = hp_ld['Fault Tolerance']
+    if hp_raid_level == '0':
+        return Volume.RAID_TYPE_RAID0
+    elif hp_raid_level == '1':
+        # TODO(Gris Ge): Investigate whether HP has 4 disks RAID 1.
+        #                In LSM, that's RAID10.
+        return Volume.RAID_TYPE_RAID1
+    elif hp_raid_level == '5':
+        return Volume.RAID_TYPE_RAID5
+    elif hp_raid_level == '6':
+        return Volume.RAID_TYPE_RAID6
+    elif hp_raid_level == '1+0':
+        return Volume.RAID_TYPE_RAID10
+
+    return Volume.RAID_TYPE_UNKNOWN
+
+
 class SmartArray(IPlugin):
     _DEFAULT_BIN_PATHS = [
         "/usr/sbin/hpssacli", "/opt/hp/hpssacli/bld/hpssacli"]
@@ -256,6 +278,7 @@ class SmartArray(IPlugin):
         cap = Capabilities()
         cap.set(Capabilities.VOLUMES)
         cap.set(Capabilities.DISKS)
+        cap.set(Capabilities.VOLUME_RAID_INFO)
         return cap
 
     def _sacli_exec(self, sacli_cmds, flag_convert=True):
@@ -455,3 +478,51 @@ class SmartArray(IPlugin):
                                     flag_free=False))
 
         return search_property(rc_lsm_disks, search_key, search_value)
+
+    @_handle_errors
+    def volume_raid_info(self, volume, flags=Client.FLAG_RSVD):
+        """
+        Depend on command:
+            hpssacli ctrl slot=0 show config detail
+        """
+        if not volume.plugin_data:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Ilegal input volume argument: missing plugin_data property")
+
+        (ctrl_num, array_num, ld_num) = volume.plugin_data.split(":")
+        ctrl_data = self._sacli_exec(
+            ["ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
+            ).values()[0]
+
+        disk_count = 0
+        strip_size = Volume.STRIP_SIZE_UNKNOWN
+        stripe_size = Volume.OPT_IO_SIZE_UNKNOWN
+        raid_type = Volume.RAID_TYPE_UNKNOWN
+        for key_name in ctrl_data.keys():
+            if key_name != "Array: %s" % array_num:
+                continue
+            for array_key_name in ctrl_data[key_name].keys():
+                if array_key_name == "Logical Drive: %s" % ld_num:
+                    hp_ld = ctrl_data[key_name][array_key_name]
+                    raid_type = _hp_raid_type_to_lsm(hp_ld)
+                    strip_size = _hp_size_to_lsm(hp_ld['Strip Size'])
+                    stripe_size = _hp_size_to_lsm(hp_ld['Full Stripe Size'])
+                elif array_key_name.startswith("physicaldrive"):
+                    hp_disk = ctrl_data[key_name][array_key_name]
+                    if hp_disk['Drive Type'] == 'Data Drive':
+                        disk_count += 1
+
+        if disk_count == 0:
+            if strip_size == Volume.STRIP_SIZE_UNKNOWN:
+                raise LsmError(
+                    ErrorNumber.PLUGIN_BUG,
+                    "volume_raid_info(): Got logical drive %s entry, " %
+                    ld_num + "but no physicaldrive entry: %s" %
+                    ctrl_data.items())
+
+            raise LsmError(
+                ErrorNumber.NOT_FOUND_VOLUME,
+                "Volume not found")
+
+        return [raid_type, strip_size, disk_count, strip_size, stripe_size]
