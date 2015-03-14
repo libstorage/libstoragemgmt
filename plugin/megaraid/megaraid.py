@@ -300,43 +300,48 @@ class MegaRAID(IPlugin):
         return self._storcli_exec(
             ["show", "ctrlcount"]).get("Controller Count")
 
-    def _lsm_status_of_ctrl(self, ctrl_num):
-        ctrl_health_output = self._storcli_exec(
-            ["/c%d" % ctrl_num, 'show', 'health', 'all'])
-        health_info = ctrl_health_output['Controller Health Info']
-        # TODO(Gris Ge): Try pull a disk off to check whether this change.
-        if health_info['Overall Health'] == 'GOOD':
-            return System.STATUS_OK, ''
-
-        return System.STATUS_UNKNOWN, "%s reason code %s" % (
-            health_info['Overall Health'],
-            health_info['Reason Code'])
-
-    def _sys_id_of_ctrl_num(self, ctrl_num, ctrl_show_output=None):
-        if ctrl_show_output is None:
-            ctrl_show_output = self._storcli_exec(["/c%d" % ctrl_num, "show"])
-        sys_id = ctrl_show_output['Serial Number']
-        if not sys_id:
-            raise LsmError(
-                ErrorNumber.PLUGIN_BUG,
-                "_sys_id_of_ctrl_num(): Fail to get system id: %s" %
-                ctrl_show_output.items())
+    def _lsm_status_of_ctrl(self, ctrl_show_all_output):
+        lsi_status_info = ctrl_show_all_output['Status']
+        status_info = ''
+        status = System.STATUS_UNKNOWN
+        if lsi_status_info['Controller Status'] == 'Optimal':
+            status = System.STATUS_OK
         else:
-            return sys_id
+        # TODO(Gris Ge): Try pull a disk off to check whether this change.
+            status_info = "%s: " % lsi_status_info['Controller Status']
+            for key_name in lsi_status_info.keys():
+                if key_name == 'Controller Status':
+                    continue
+                if lsi_status_info[key_name] != 0 and \
+                   lsi_status_info[key_name] != 'No' and \
+                   lsi_status_info[key_name] != 'NA':
+                    status_info += " %s:%s" % (
+                        key_name, lsi_status_info[key_name])
+
+        return status, status_info
+
+    def _sys_id_of_ctrl_num(self, ctrl_num, ctrl_show_all_output=None):
+        if ctrl_show_all_output is None:
+            return self._storcli_exec(
+                ["/c%d" % ctrl_num, "show"])['Serial Number']
+        else:
+            return ctrl_show_all_output['Basics']['Serial Number']
 
     @_handle_errors
     def systems(self, flags=0):
         rc_lsm_syss = []
         for ctrl_num in range(self._ctrl_count()):
-            ctrl_show_output = self._storcli_exec(["/c%d" % ctrl_num, "show"])
-            sys_id = self._sys_id_of_ctrl_num(ctrl_num, ctrl_show_output)
-            sys_name = "%s %s %s:%s:%s" % (
-                ctrl_show_output['Product Name'],
-                ctrl_show_output['Host Interface'],
-                format(ctrl_show_output['Bus Number'], '02x'),
-                format(ctrl_show_output['Device Number'], '02x'),
-                format(ctrl_show_output['Function Number'], '02x'))
-            (status, status_info) = self._lsm_status_of_ctrl(ctrl_num)
+            ctrl_show_all_output = self._storcli_exec(
+                ["/c%d" % ctrl_num, "show", "all"])
+            sys_id = self._sys_id_of_ctrl_num(ctrl_num, ctrl_show_all_output)
+            sys_name = "%s %s %s ver: %s" % (
+                ctrl_show_all_output['Basics']['Model'],
+                ctrl_show_all_output['Bus']['Host Interface'],
+                ctrl_show_all_output['Basics']['PCI Address'],
+                ctrl_show_all_output['Version']['Firmware Package Build'],
+                )
+            (status, status_info) = self._lsm_status_of_ctrl(
+                ctrl_show_all_output)
             plugin_data = "/c%d"
             # Since PCI slot sequence might change.
             # This string just stored for quick system verification.
