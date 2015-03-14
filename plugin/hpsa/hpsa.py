@@ -21,7 +21,7 @@ import re
 
 from lsm import (
     IPlugin, Client, Capabilities, VERSION, LsmError, ErrorNumber, uri_parse,
-    System, Pool, size_human_2_size_bytes, search_property, Volume)
+    System, Pool, size_human_2_size_bytes, search_property, Volume, Disk)
 
 from lsm.plugin.hpsa.utils import cmd_exec, ExecError, file_read
 
@@ -164,6 +164,31 @@ def _pool_id_of(sys_id, array_name):
     return "%s:%s" % (sys_id, array_name.replace(' ', ''))
 
 
+def _disk_type_of(hp_disk):
+    disk_interface = hp_disk['Interface Type']
+    if disk_interface == 'SATA':
+        return Disk.TYPE_SATA
+    elif disk_interface == 'Solid State SATA':
+        return Disk.TYPE_SSD
+    elif disk_interface == 'SAS':
+        return Disk.TYPE_SAS
+
+    return Disk.TYPE_UNKNOWN
+
+
+def _disk_status_of(hp_disk, flag_free):
+    # TODO(Gris Ge): Need more document or test for non-OK disks.
+    if hp_disk['Status'] == 'OK':
+        disk_status = Disk.STATUS_OK
+    else:
+        disk_status = Disk.STATUS_OTHER
+
+    if flag_free:
+        disk_status |= Disk.STATUS_FREE
+
+    return disk_status
+
+
 class SmartArray(IPlugin):
     _DEFAULT_BIN_PATHS = [
         "/usr/sbin/hpssacli", "/opt/hp/hpssacli/bld/hpssacli"]
@@ -230,6 +255,7 @@ class SmartArray(IPlugin):
                 "System not found")
         cap = Capabilities()
         cap.set(Capabilities.VOLUMES)
+        cap.set(Capabilities.DISKS)
         return cap
 
     def _sacli_exec(self, sacli_cmds, flag_convert=True):
@@ -377,3 +403,55 @@ class SmartArray(IPlugin):
                             array_key_name))
 
         return search_property(lsm_vols, search_key, search_value)
+
+    @staticmethod
+    def _hp_disk_to_lsm_disk(hp_disk, sys_id, ctrl_num, key_name,
+                             flag_free=False):
+        disk_id = hp_disk['Serial Number']
+        disk_num = key_name[len("physicaldrive "):]
+        disk_name = "%s %s" % (hp_disk['Model'], disk_num)
+        disk_type = _disk_type_of(hp_disk)
+        blk_size = int(hp_disk['Native Block Size'])
+        blk_count = int(_hp_size_to_lsm(hp_disk['Size']) / blk_size)
+        status = _disk_status_of(hp_disk, flag_free)
+        plugin_data = "%s:%s" % (ctrl_num, disk_num)
+
+        return Disk(
+            disk_id, disk_name, disk_type, blk_size, blk_count,
+            status, sys_id, plugin_data)
+
+    @_handle_errors
+    def disks(self, search_key=None, search_value=None,
+              flags=Client.FLAG_RSVD):
+        """
+        Depend on command:
+            hpssacli ctrl all show config detail
+        """
+        # TODO(Gris Ge): Need real test on spare disk and free disk.
+        #                The free disks is purely base on HP document.
+        rc_lsm_disks = []
+        ctrl_all_conf = self._sacli_exec(
+            ["ctrl", "all", "show", "config", "detail"])
+        for ctrl_data in ctrl_all_conf.values():
+            sys_id = ctrl_data['Serial Number']
+            ctrl_num = ctrl_data['Slot']
+            for key_name in ctrl_data.keys():
+                if key_name.startswith("Array:"):
+                    for array_key_name in ctrl_data[key_name].keys():
+                        if array_key_name.startswith("physicaldrive"):
+                            rc_lsm_disks.append(
+                                SmartArray._hp_disk_to_lsm_disk(
+                                    ctrl_data[key_name][array_key_name],
+                                    sys_id, ctrl_num, array_key_name,
+                                    flag_free=False))
+
+                if key_name == 'unassigned':
+                    for array_key_name in ctrl_data[key_name].keys():
+                        if array_key_name.startswith("physicaldrive"):
+                            rc_lsm_disks.append(
+                                SmartArray._hp_disk_to_lsm_disk(
+                                    ctrl_data[key_name][array_key_name],
+                                    sys_id, ctrl_num, array_key_name,
+                                    flag_free=False))
+
+        return search_property(rc_lsm_disks, search_key, search_value)
