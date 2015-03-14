@@ -194,7 +194,7 @@ class BackStore(object):
 
     DISK_KEY_LIST = [
         'id', 'name', 'total_space', 'disk_type', 'status',
-        'owner_pool_id']
+        'owner_pool_id', 'role']
 
     VOL_KEY_LIST = [
         'id', 'vpd83', 'name', 'total_space', 'consumed_size',
@@ -1762,12 +1762,16 @@ class SimArray(object):
 
     @staticmethod
     def _sim_disk_2_lsm(sim_disk):
+        disk_status = Disk.STATUS_OK
+        if sim_disk['role'] is None:
+            disk_status |= Disk.STATUS_FREE
+
         return Disk(
             SimArray._sim_id_to_lsm_id(sim_disk['id'], 'DISK'),
             sim_disk['name'],
             sim_disk['disk_type'], BackStore.BLK_SIZE,
             int(sim_disk['total_space'] / BackStore.BLK_SIZE),
-            Disk.STATUS_OK, BackStore.SYS_ID)
+            disk_status, BackStore.SYS_ID)
 
     @_handle_errors
     def disks(self):
