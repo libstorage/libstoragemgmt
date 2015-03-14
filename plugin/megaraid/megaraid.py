@@ -255,6 +255,7 @@ class MegaRAID(IPlugin):
         cap = Capabilities()
         cap.set(Capabilities.DISKS)
         cap.set(Capabilities.VOLUMES)
+        cap.set(Capabilities.VOLUME_RAID_INFO)
         return cap
 
     def _storcli_exec(self, storcli_cmds, flag_json=True):
