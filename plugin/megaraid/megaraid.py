@@ -87,29 +87,36 @@ _DISK_STATE_MAP = {
     'Offln': Disk.STATUS_ERROR,
     'GHS': Disk.STATUS_SPARE_DISK | Disk.STATUS_OK,
     'DHS': Disk.STATUS_SPARE_DISK | Disk.STATUS_OK,
-    'UGood': Disk.STATUS_STOPPED | Disk.STATUS_OK,
-    'UBad': Disk.STATUS_STOPPED | Disk.STATUS_ERROR,
+    'UGood': Disk.STATUS_FREE | Disk.STATUS_OK,
+    'UBad': Disk.STATUS_FREE | Disk.STATUS_ERROR,
     'Rbld': Disk.STATUS_RECONSTRUCT,
 }
 
 
 def _disk_status_of(disk_show_basic_dict, disk_show_stat_dict):
+    disk_status = _DISK_STATE_MAP.get(
+        disk_show_basic_dict['State'], 0)
+
     if disk_show_stat_dict['Media Error Count'] or \
        disk_show_stat_dict['Other Error Count'] or \
        disk_show_stat_dict['S.M.A.R.T alert flagged by drive'] != 'No':
-        return Disk.STATUS_ERROR
+        disk_status -= Disk.STATUS_OK
+        disk_status |= Disk.STATUS_ERROR
 
-    if disk_show_stat_dict['Predictive Failure Count']:
-        return Disk.STATUS_PREDICTIVE_FAILURE
+    elif disk_show_stat_dict['Predictive Failure Count']:
+        disk_status -= Disk.STATUS_OK
+        disk_status |= Disk.STATUS_PREDICTIVE_FAILURE
 
     if disk_show_basic_dict['Sp'] == 'D':
-        return Disk.STATUS_STOPPED
+        disk_status |= Disk.STATUS_STOPPED
 
     if disk_show_basic_dict['Sp'] == 'F':
-        return Disk.STATUS_OTHER
+        disk_status |= Disk.STATUS_OTHER
 
-    return _DISK_STATE_MAP.get(
-        disk_show_basic_dict['State'], Disk.STATUS_UNKNOWN)
+    if disk_status == 0:
+        disk_status = Disk.STATUS_UNKNOWN
+
+    return disk_status
 
 
 def _mega_size_to_lsm(mega_size):
