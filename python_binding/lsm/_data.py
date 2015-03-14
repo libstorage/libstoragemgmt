@@ -199,6 +199,14 @@ class Disk(IData):
     # Indicate disk is a spare disk.
     STATUS_RECONSTRUCT = 1 << 12
     # Indicate disk is reconstructing data.
+    STATUS_FREE = 1 << 13
+    # New in version 1.2, indicate the whole disk is not holding any data or
+    # acting as a dedicate spare disk.
+    # This disk could be assigned as a dedicated spare disk or used for
+    # creating pool.
+    # If any spare disk(like those on NetApp ONTAP) does not require
+    # any explicit action when assigning to pool, it should be treated as
+    # free disk and marked as STATUS_FREE|STATUS_SPARE_DISK.
 
     def __init__(self, _id, _name, _disk_type, _block_size, _num_of_blocks,
                  _status, _system_id, _plugin_data=None):

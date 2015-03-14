@@ -237,6 +237,16 @@ typedef enum {
 #define LSM_DISK_STATUS_MAINTENANCE_MODE            0x0000000000000400
 #define LSM_DISK_STATUS_SPARE_DISK                  0x0000000000000800
 #define LSM_DISK_STATUS_RECONSTRUCT                 0x0000000000001000
+#define LSM_DISK_STATUS_FREE                        0x0000000000002000
+/**^
+ * New in version 1.2, New in version 1.2, indicate the whole disk is not
+ * holding any data or acting as a dedicate spare disk.
+ * This disk could be assigned as a dedicated spare disk or used for creating
+ * pool.
+ * If any spare disk(like those on NetApp ONTAP) does not require any explicit
+ * action when assigning to pool, it should be treated as free disk and marked
+ * as LSM_DISK_STATUS_FREE|LSM_DISK_STATUS_SPARE_DISK.
+ * */
 
 #define LSM_DISK_BLOCK_SIZE_NOT_FOUND               -1
 #define LSM_DISK_BLOCK_COUNT_NOT_FOUND              -1
