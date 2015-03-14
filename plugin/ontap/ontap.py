@@ -265,19 +265,29 @@ class Ontap(IStorageAreaNetwork, INfs):
                 if 'is-zeroed' in na_disk and na_disk['is-zeroed'] == 'true':
                     status |= Disk.STATUS_OK | Disk.STATUS_SPARE_DISK
                 else:
+                    # If spare disk is not zerored, it will be automaticlly
+                    # zeroed before assigned to aggregate.
+                    # Hence we consider non-zeroed spare disks as stopped
+                    # spare disks.
                     status |= Disk.STATUS_STOPPED | Disk.STATUS_SPARE_DISK
             elif rs == 'present':
                 status |= Disk.STATUS_OK
             elif rs == 'partner':
                 # Before we have good way to connect two controller,
                 # we have to mark partner disk as OTHER
-                status |= Disk.STATUS_OTHER
+                return Disk.STATUS_OTHER
 
         if 'is-prefailed' in na_disk and na_disk['is-prefailed'] == 'true':
             status |= Disk.STATUS_STOPPING
 
         if 'is-offline' in na_disk and na_disk['is-offline'] == 'true':
             status |= Disk.STATUS_ERROR
+
+        if 'aggregate' not in na_disk:
+            # All free disks are automatically marked as spare disks. They
+            # could easily convert to data or parity disk without any
+            # explicit command.
+            status |= Disk.STATUS_FREE
 
         if status == 0:
             status = Disk.STATUS_UNKNOWN
