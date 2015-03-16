@@ -344,6 +344,13 @@ Required. The ID of volume to revoke.
 \fB--ag\fR \fI<AG_ID>\fR
 Required. The ID of access group to revoke.
 
+.SS volume-raid-info
+.TP 15
+Query RAID information for given volume.
+.TP
+\fB--vol\fR \fI<VOL_ID>\fR
+Required. The ID of volume to query.
+
 .SS access-group-create
 .TP 15
 Create an access group.
@@ -580,6 +587,8 @@ Alias of 'volume-resize'
 Alias of 'volume-mask'
 .SS vu
 Alias of 'volume-unmask'
+.SS vri
+Alias of 'volume-raid-info'
 .SS ac
 Alias of 'access-group-create'
 .SS aa
