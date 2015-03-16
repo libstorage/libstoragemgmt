@@ -323,28 +323,41 @@ class TestPlugin(unittest.TestCase):
             return True
         return False
 
-    def test_volume_list(self):
-        vol = None
+    def _find_or_create_volumes(self):
+        """
+        Find existing volumes, if not found, try to create one.
+        Return (volumes, flag_created)
+        If 'flag_created' is True, then returned volumes is newly created.
+        """
         volumes = self.c.volumes()
-        if len(volumes) == 0:
+        flag_created = False
+        if len(self.c.volumes()) == 0:
             for s in self.systems:
                 cap = self.c.capabilities(s)
-
                 if supported(cap, [Cap.VOLUME_CREATE, Cap.VOLUME_DELETE]):
-                    vol, pool = self._volume_create(s.id)
+                    self._volume_create(s.id)
+                    flag_created = True
                     break
+            volumes = self.c.volumes()
 
-        volumes = self.c.volumes()
+        return volumes, flag_created
 
+    def test_volume_list(self):
+        (volumes, flag_created) = self._find_or_create_volumes()
+        self.assertTrue(len(volumes) > 0, "We need at least 1 volume to test")
+
+        if flag_created:
+            self._volume_delete(volumes[0])
+
+    def test_volume_vpd83(self):
+        (volumes, flag_created) = self._find_or_create_volumes()
+        self.assertTrue(len(volumes) > 0, "We need at least 1 volume to test")
         for v in volumes:
             self.assertTrue(TestPlugin._vpd_correct(v.vpd83),
                             "VPD is not as expected '%s' for volume id: '%s'" %
                             (v.vpd83, v.id))
-
-        self.assertTrue(len(volumes) > 0, "We need at least 1 volume to test")
-
-        if vol is not None:
-            self._volume_delete(vol)
+        if flag_created:
+            self._volume_delete(volumes[0])
 
     def test_disks_list(self):
         for s in self.systems:
