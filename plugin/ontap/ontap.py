@@ -534,6 +534,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         cap.set(Capabilities.EXPORT_CUSTOM_PATH)
         cap.set(Capabilities.TARGET_PORTS)
         cap.set(Capabilities.DISKS)
+        cap.set(Capabilities.VOLUME_RAID_INFO)
         return cap
 
     @handle_ontap_errors
