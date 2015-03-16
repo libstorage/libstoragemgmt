@@ -262,6 +262,10 @@ class TestPlugin(unittest.TestCase):
         return mb_in_bytes(MIN_OBJECT_SIZE)
 
     def setUp(self):
+        for skip_test_case in TestPlugin.SKIP_TEST_CASES:
+            if self.id().endswith(skip_test_case):
+                self.skipTest("Tested has been skiped as requested")
+
         self.c = TestProxy(lsm.Client(TestPlugin.URI, TestPlugin.PASSWORD))
 
         self.systems = self.c.systems()
@@ -1307,6 +1311,7 @@ def add_our_params():
 Options libStorageMgmt:
  --password  'Array password'
  --uri       'Array URI'
+ --skip      'Test case to skip. Repeatable argument'
  """
 
 
@@ -1317,6 +1322,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('--password', default=None)
     parser.add_argument('--uri')
+    parser.add_argument('--skip', action='append')
     options, other_args = parser.parse_known_args()
 
     if options.uri:
@@ -1330,5 +1336,13 @@ if __name__ == "__main__":
         TestPlugin.PASSWORD = options.password
     elif os.getenv('LSM_TEST_PASSWORD'):
         TestPlugin.PASSWORD = os.getenv('LSM_TEST_PASSWORD')
+
+    if options.skip:
+        if hasattr(unittest.TestCase, 'skipTest') is False:
+            raise Exception(
+                "Current python version is too old to support 'skipTest'")
+        TestPlugin.SKIP_TEST_CASES = options.skip
+    else:
+        TestPlugin.SKIP_TEST_CASES = []
 
     unittest.main(argv=sys.argv[:1] + other_args)
