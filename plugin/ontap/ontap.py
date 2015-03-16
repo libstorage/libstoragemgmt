@@ -1294,7 +1294,7 @@ class Ontap(IStorageAreaNetwork, INfs):
             return Volume.RAID_TYPE_RAID4
         elif 'raid_dp' in na_raid_statuses:
             return Volume.RAID_TYPE_RAID6
-        return Pool.RAID_TYPE_UNKNOWN
+        return Volume.RAID_TYPE_UNKNOWN
 
     @handle_ontap_errors
     def volume_raid_info(self, volume, flags=0):
