@@ -182,7 +182,7 @@ def _mega_raid_type_to_lsm(vd_basic_info, vd_prop_info):
 
 
 class MegaRAID(IPlugin):
-    _DEFAULT_MDADM_BIN_PATHS = [
+    _DEFAULT_BIN_PATHS = [
         "/opt/MegaRAID/storcli/storcli64", "/opt/MegaRAID/storcli/storcli"]
     _CMD_JSON_OUTPUT_SWITCH = 'J'
 
@@ -191,9 +191,9 @@ class MegaRAID(IPlugin):
 
     def _find_storcli(self):
         """
-        Try _DEFAULT_MDADM_BIN_PATHS
+        Try _DEFAULT_BIN_PATHS
         """
-        for cur_path in MegaRAID._DEFAULT_MDADM_BIN_PATHS:
+        for cur_path in MegaRAID._DEFAULT_BIN_PATHS:
             if os.path.lexists(cur_path):
                 self._storcli_bin = cur_path
 
