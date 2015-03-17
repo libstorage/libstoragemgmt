@@ -17,7 +17,6 @@
 
 import os
 import json
-from string import strip
 import re
 import errno
 
