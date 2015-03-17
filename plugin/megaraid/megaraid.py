@@ -27,9 +27,6 @@ from lsm import (uri_parse, search_property, size_human_2_size_bytes,
 
 from lsm.plugin.megaraid.utils import cmd_exec, ExecError
 
-_FLAG_RSVD = Client.FLAG_RSVD
-
-
 # Naming scheme
 #   mega_sys_path   /c0
 #   mega_disk_path  /c0/e64/s0
@@ -246,7 +243,7 @@ class MegaRAID(IPlugin):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported yet")
 
     @_handle_errors
-    def capabilities(self, system, flags=_FLAG_RSVD):
+    def capabilities(self, system, flags=Client.FLAG_RSVD):
         cur_lsm_syss = self.systems()
         if system.id not in list(s.id for s in cur_lsm_syss):
             raise LsmError(
@@ -328,7 +325,7 @@ class MegaRAID(IPlugin):
             return ctrl_show_all_output['Basics']['Serial Number']
 
     @_handle_errors
-    def systems(self, flags=0):
+    def systems(self, flags=Client.FLAG_RSVD):
         rc_lsm_syss = []
         for ctrl_num in range(self._ctrl_count()):
             ctrl_show_all_output = self._storcli_exec(
@@ -352,7 +349,8 @@ class MegaRAID(IPlugin):
         return rc_lsm_syss
 
     @_handle_errors
-    def disks(self, search_key=None, search_value=None, flags=_FLAG_RSVD):
+    def disks(self, search_key=None, search_value=None,
+              flags=Client.FLAG_RSVD):
         rc_lsm_disks = []
         mega_disk_path_regex = re.compile(
             r"^Drive (\/c[0-9]+\/e[0-9]+\/s[0-9]+) - Detailed Information$")
@@ -470,7 +468,8 @@ class MegaRAID(IPlugin):
             sys_id, pool_id, plugin_data)
 
     @_handle_errors
-    def volumes(self, search_key=None, search_value=None, flags=0):
+    def volumes(self, search_key=None, search_value=None,
+                flags=Client.FLAG_RSVD):
         lsm_vols = []
         for ctrl_num in range(self._ctrl_count()):
             vol_show_output = self._storcli_exec(
