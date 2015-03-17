@@ -117,7 +117,7 @@ def _mega_size_to_lsm(mega_size):
     LSI Using 'TB, GB, MB, KB' and etc, for LSM, they are 'TiB' and etc.
     Return int of block bytes
     """
-    re_regex = re.compile("^([0-9\.]+) ([EPTGMK])B$")
+    re_regex = re.compile("^([0-9.]+) ([EPTGMK])B$")
     re_match = re_regex.match(mega_size)
     if re_match:
         return size_human_2_size_bytes(
