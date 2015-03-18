@@ -22,7 +22,7 @@ import errno
 
 from lsm import (uri_parse, search_property, size_human_2_size_bytes,
                  Capabilities, LsmError, ErrorNumber, System, Client,
-                 Disk, VERSION, search_property, IPlugin, Pool, Volume)
+                 Disk, VERSION, IPlugin, Pool, Volume)
 
 from lsm.plugin.megaraid.utils import cmd_exec, ExecError
 
