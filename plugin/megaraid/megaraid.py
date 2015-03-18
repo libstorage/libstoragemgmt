@@ -17,18 +17,14 @@
 
 import os
 import json
-from string import strip
 import re
 import errno
 
 from lsm import (uri_parse, search_property, size_human_2_size_bytes,
                  Capabilities, LsmError, ErrorNumber, System, Client,
-                 Disk, VERSION, search_property, IPlugin, Pool, Volume)
+                 Disk, VERSION, IPlugin, Pool, Volume)
 
 from lsm.plugin.megaraid.utils import cmd_exec, ExecError
-
-_FLAG_RSVD = Client.FLAG_RSVD
-
 
 # Naming scheme
 #   mega_sys_path   /c0
@@ -121,7 +117,7 @@ def _mega_size_to_lsm(mega_size):
     LSI Using 'TB, GB, MB, KB' and etc, for LSM, they are 'TiB' and etc.
     Return int of block bytes
     """
-    re_regex = re.compile("^([0-9\.]+) ([EPTGMK])B$")
+    re_regex = re.compile("^([0-9.]+) ([EPTGMK])B$")
     re_match = re_regex.match(mega_size)
     if re_match:
         return size_human_2_size_bytes(
@@ -185,7 +181,7 @@ def _mega_raid_type_to_lsm(vd_basic_info, vd_prop_info):
 
 
 class MegaRAID(IPlugin):
-    _DEFAULT_MDADM_BIN_PATHS = [
+    _DEFAULT_BIN_PATHS = [
         "/opt/MegaRAID/storcli/storcli64", "/opt/MegaRAID/storcli/storcli"]
     _CMD_JSON_OUTPUT_SWITCH = 'J'
 
@@ -194,9 +190,9 @@ class MegaRAID(IPlugin):
 
     def _find_storcli(self):
         """
-        Try _DEFAULT_MDADM_BIN_PATHS
+        Try _DEFAULT_BIN_PATHS
         """
-        for cur_path in MegaRAID._DEFAULT_MDADM_BIN_PATHS:
+        for cur_path in MegaRAID._DEFAULT_BIN_PATHS:
             if os.path.lexists(cur_path):
                 self._storcli_bin = cur_path
 
@@ -246,7 +242,7 @@ class MegaRAID(IPlugin):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported yet")
 
     @_handle_errors
-    def capabilities(self, system, flags=_FLAG_RSVD):
+    def capabilities(self, system, flags=Client.FLAG_RSVD):
         cur_lsm_syss = self.systems()
         if system.id not in list(s.id for s in cur_lsm_syss):
             raise LsmError(
@@ -255,6 +251,7 @@ class MegaRAID(IPlugin):
         cap = Capabilities()
         cap.set(Capabilities.DISKS)
         cap.set(Capabilities.VOLUMES)
+        cap.set(Capabilities.VOLUME_RAID_INFO)
         return cap
 
     def _storcli_exec(self, storcli_cmds, flag_json=True):
@@ -299,43 +296,48 @@ class MegaRAID(IPlugin):
         return self._storcli_exec(
             ["show", "ctrlcount"]).get("Controller Count")
 
-    def _lsm_status_of_ctrl(self, ctrl_num):
-        ctrl_health_output = self._storcli_exec(
-            ["/c%d" % ctrl_num, 'show', 'health', 'all'])
-        health_info = ctrl_health_output['Controller Health Info']
-        # TODO(Gris Ge): Try pull a disk off to check whether this change.
-        if health_info['Overall Health'] == 'GOOD':
-            return System.STATUS_OK, ''
-
-        return System.STATUS_UNKNOWN, "%s reason code %s" % (
-            health_info['Overall Health'],
-            health_info['Reason Code'])
-
-    def _sys_id_of_ctrl_num(self, ctrl_num, ctrl_show_output=None):
-        if ctrl_show_output is None:
-            ctrl_show_output = self._storcli_exec(["/c%d" % ctrl_num, "show"])
-        sys_id = ctrl_show_output['Serial Number']
-        if not sys_id:
-            raise LsmError(
-                ErrorNumber.PLUGIN_BUG,
-                "_sys_id_of_ctrl_num(): Fail to get system id: %s" %
-                ctrl_show_output.items())
+    def _lsm_status_of_ctrl(self, ctrl_show_all_output):
+        lsi_status_info = ctrl_show_all_output['Status']
+        status_info = ''
+        status = System.STATUS_UNKNOWN
+        if lsi_status_info['Controller Status'] == 'Optimal':
+            status = System.STATUS_OK
         else:
-            return sys_id
+        # TODO(Gris Ge): Try pull a disk off to check whether this change.
+            status_info = "%s: " % lsi_status_info['Controller Status']
+            for key_name in lsi_status_info.keys():
+                if key_name == 'Controller Status':
+                    continue
+                if lsi_status_info[key_name] != 0 and \
+                   lsi_status_info[key_name] != 'No' and \
+                   lsi_status_info[key_name] != 'NA':
+                    status_info += " %s:%s" % (
+                        key_name, lsi_status_info[key_name])
+
+        return status, status_info
+
+    def _sys_id_of_ctrl_num(self, ctrl_num, ctrl_show_all_output=None):
+        if ctrl_show_all_output is None:
+            return self._storcli_exec(
+                ["/c%d" % ctrl_num, "show"])['Serial Number']
+        else:
+            return ctrl_show_all_output['Basics']['Serial Number']
 
     @_handle_errors
-    def systems(self, flags=0):
+    def systems(self, flags=Client.FLAG_RSVD):
         rc_lsm_syss = []
         for ctrl_num in range(self._ctrl_count()):
-            ctrl_show_output = self._storcli_exec(["/c%d" % ctrl_num, "show"])
-            sys_id = self._sys_id_of_ctrl_num(ctrl_num, ctrl_show_output)
-            sys_name = "%s %s %s:%s:%s" % (
-                ctrl_show_output['Product Name'],
-                ctrl_show_output['Host Interface'],
-                format(ctrl_show_output['Bus Number'], '02x'),
-                format(ctrl_show_output['Device Number'], '02x'),
-                format(ctrl_show_output['Function Number'], '02x'))
-            (status, status_info) = self._lsm_status_of_ctrl(ctrl_num)
+            ctrl_show_all_output = self._storcli_exec(
+                ["/c%d" % ctrl_num, "show", "all"])
+            sys_id = self._sys_id_of_ctrl_num(ctrl_num, ctrl_show_all_output)
+            sys_name = "%s %s %s ver: %s" % (
+                ctrl_show_all_output['Basics']['Model'],
+                ctrl_show_all_output['Bus']['Host Interface'],
+                ctrl_show_all_output['Basics']['PCI Address'],
+                ctrl_show_all_output['Version']['Firmware Package Build'],
+                )
+            (status, status_info) = self._lsm_status_of_ctrl(
+                ctrl_show_all_output)
             plugin_data = "/c%d"
             # Since PCI slot sequence might change.
             # This string just stored for quick system verification.
@@ -346,7 +348,8 @@ class MegaRAID(IPlugin):
         return rc_lsm_syss
 
     @_handle_errors
-    def disks(self, search_key=None, search_value=None, flags=_FLAG_RSVD):
+    def disks(self, search_key=None, search_value=None,
+              flags=Client.FLAG_RSVD):
         rc_lsm_disks = []
         mega_disk_path_regex = re.compile(
             r"^Drive (\/c[0-9]+\/e[0-9]+\/s[0-9]+) - Detailed Information$")
@@ -464,7 +467,8 @@ class MegaRAID(IPlugin):
             sys_id, pool_id, plugin_data)
 
     @_handle_errors
-    def volumes(self, search_key=None, search_value=None, flags=0):
+    def volumes(self, search_key=None, search_value=None,
+                flags=Client.FLAG_RSVD):
         lsm_vols = []
         for ctrl_num in range(self._ctrl_count()):
             vol_show_output = self._storcli_exec(
