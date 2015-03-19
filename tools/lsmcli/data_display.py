@@ -201,6 +201,7 @@ _DISK_STATUS_CONV = {
     Disk.STATUS_MAINTENANCE_MODE: 'Maintenance',
     Disk.STATUS_SPARE_DISK: 'Spare',
     Disk.STATUS_RECONSTRUCT: 'Reconstruct',
+    Disk.STATUS_FREE: 'Free',
 }
 
 
