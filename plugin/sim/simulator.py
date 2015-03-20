@@ -292,3 +292,6 @@ class SimPlugin(INfs, IStorageAreaNetwork):
 
     def volume_raid_info(self, volume, flags=0):
         return self.sim_array.volume_raid_info(volume)
+
+    def pool_member_info(self, pool, flags=0):
+        return self.sim_array.pool_member_info(pool)

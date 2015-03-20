@@ -67,54 +67,6 @@ def _random_vpd():
 
 
 class PoolRAID(object):
-    MEMBER_TYPE_UNKNOWN = 0
-    MEMBER_TYPE_DISK = 1
-    MEMBER_TYPE_DISK_MIX = 10
-    MEMBER_TYPE_DISK_ATA = 11
-    MEMBER_TYPE_DISK_SATA = 12
-    MEMBER_TYPE_DISK_SAS = 13
-    MEMBER_TYPE_DISK_FC = 14
-    MEMBER_TYPE_DISK_SOP = 15
-    MEMBER_TYPE_DISK_SCSI = 16
-    MEMBER_TYPE_DISK_NL_SAS = 17
-    MEMBER_TYPE_DISK_HDD = 18
-    MEMBER_TYPE_DISK_SSD = 19
-    MEMBER_TYPE_DISK_HYBRID = 110
-    MEMBER_TYPE_DISK_LUN = 111
-
-    MEMBER_TYPE_POOL = 2
-
-    _MEMBER_TYPE_2_DISK_TYPE = {
-        MEMBER_TYPE_DISK: Disk.TYPE_UNKNOWN,
-        MEMBER_TYPE_DISK_MIX: Disk.TYPE_UNKNOWN,
-        MEMBER_TYPE_DISK_ATA: Disk.TYPE_ATA,
-        MEMBER_TYPE_DISK_SATA: Disk.TYPE_SATA,
-        MEMBER_TYPE_DISK_SAS: Disk.TYPE_SAS,
-        MEMBER_TYPE_DISK_FC: Disk.TYPE_FC,
-        MEMBER_TYPE_DISK_SOP: Disk.TYPE_SOP,
-        MEMBER_TYPE_DISK_SCSI: Disk.TYPE_SCSI,
-        MEMBER_TYPE_DISK_NL_SAS: Disk.TYPE_NL_SAS,
-        MEMBER_TYPE_DISK_HDD: Disk.TYPE_HDD,
-        MEMBER_TYPE_DISK_SSD: Disk.TYPE_SSD,
-        MEMBER_TYPE_DISK_HYBRID: Disk.TYPE_HYBRID,
-        MEMBER_TYPE_DISK_LUN: Disk.TYPE_LUN,
-    }
-
-    @staticmethod
-    def member_type_is_disk(member_type):
-        """
-        Returns True if defined 'member_type' is disk.
-        False when else.
-        """
-        return member_type in PoolRAID._MEMBER_TYPE_2_DISK_TYPE
-
-    @staticmethod
-    def disk_type_to_member_type(disk_type):
-        for m_type, d_type in PoolRAID._MEMBER_TYPE_2_DISK_TYPE.items():
-            if disk_type == d_type:
-                return m_type
-        return PoolRAID.MEMBER_TYPE_UNKNOWN
-
     _RAID_DISK_CHK = {
         Volume.RAID_TYPE_JBOD: lambda x: x > 0,
         Volume.RAID_TYPE_RAID0: lambda x: x > 0,
@@ -171,7 +123,7 @@ class PoolRAID(object):
 
 
 class BackStore(object):
-    VERSION = "3.1"
+    VERSION = "3.2"
     VERSION_SIGNATURE = 'LSM_SIMULATOR_DATA_%s_%s' % (VERSION, md5(VERSION))
     JOB_DEFAULT_DURATION = 1
     JOB_DATA_TYPE_VOL = 1
@@ -916,6 +868,12 @@ class BackStore(object):
         """
         return self._get_table('systems', BackStore.SYS_KEY_LIST)
 
+    def sim_disk_ids_of_pool(self, sim_pool_id):
+        return list(
+            d['id']
+            for d in self._data_find(
+                'disks', 'owner_pool_id="%s"' % sim_pool_id, ['id']))
+
     def sim_disks(self):
         """
         Return a list of sim_disk dict.
@@ -935,20 +893,6 @@ class BackStore(object):
 
     def sim_pool_create_from_disk(self, name, sim_disk_ids, raid_type,
                                   element_type, unsupported_actions=0):
-        # Detect disk type
-        disk_type = None
-        for sim_disk in self.sim_disks():
-            if sim_disk['id'] not in sim_disk_ids:
-                continue
-            if disk_type is None:
-                disk_type = sim_disk['disk_type']
-            elif disk_type != sim_disk['disk_type']:
-                disk_type = None
-                break
-        member_type = PoolRAID.MEMBER_TYPE_DISK
-        if disk_type is not None:
-            member_type = PoolRAID.disk_type_to_member_type(disk_type)
-
         self._data_add(
             'pools',
             {
@@ -958,7 +902,7 @@ class BackStore(object):
                 'element_type': element_type,
                 'unsupported_actions': unsupported_actions,
                 'raid_type': raid_type,
-                'member_type': member_type,
+                'member_type': Pool.MEMBER_TYPE_DISK,
             })
 
         data_disk_count = PoolRAID.data_disk_count(
@@ -991,7 +935,7 @@ class BackStore(object):
                 'element_type': element_type,
                 'unsupported_actions': unsupported_actions,
                 'raid_type': Volume.RAID_TYPE_OTHER,
-                'member_type': PoolRAID.MEMBER_TYPE_POOL,
+                'member_type': Pool.MEMBER_TYPE_POOL,
                 'parent_pool_id': parent_pool_id,
                 'total_space': size,
             })
@@ -2240,7 +2184,7 @@ class SimArray(object):
         opt_io_size = Volume.OPT_IO_SIZE_UNKNOWN
         disk_count = Volume.DISK_COUNT_UNKNOWN
 
-        if sim_pool['member_type'] == PoolRAID.MEMBER_TYPE_POOL:
+        if sim_pool['member_type'] == Pool.MEMBER_TYPE_POOL:
             parent_sim_pool = self.bs_obj.sim_pool_of_id(
                 sim_pool['parent_pool_id'])
             raid_type = parent_sim_pool['raid_type']
@@ -2278,3 +2222,25 @@ class SimArray(object):
             opt_io_size = int(data_disk_count * BackStore.STRIP_SIZE)
 
         return [raid_type, strip_size, disk_count, min_io_size, opt_io_size]
+
+    @_handle_errors
+    def pool_member_info(self, lsm_pool):
+        sim_pool = self.bs_obj.sim_pool_of_id(
+            SimArray._lsm_id_to_sim_id(
+                lsm_pool.id,
+                LsmError(ErrorNumber.NOT_FOUND_POOL, "Pool not found")))
+        member_type = sim_pool['member_type']
+        member_ids = []
+        if member_type == Pool.MEMBER_TYPE_POOL:
+            member_ids = [
+                SimArray._sim_id_to_lsm_id(
+                    sim_pool['parent_pool_id'], 'POOL')]
+        elif member_type == Pool.MEMBER_TYPE_DISK:
+            member_ids = list(
+                SimArray._sim_id_to_lsm_id(sim_disk_id, 'DISK')
+                for sim_disk_id in self.bs_obj.sim_disk_ids_of_pool(
+                    sim_pool['id']))
+        else:
+            member_type = Pool.MEMBER_TYPE_UNKNOWN
+
+        return sim_pool['raid_type'], member_type, member_ids
