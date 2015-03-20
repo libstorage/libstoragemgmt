@@ -392,6 +392,7 @@ static int cap(lsm_plugin_ptr c, lsm_system *system,
             LSM_CAP_EXPORT_FS,
             LSM_CAP_EXPORT_REMOVE,
             LSM_CAP_VOLUME_RAID_INFO,
+            LSM_CAP_POOL_MEMBER_INFO,
             -1
             );
 
@@ -980,8 +981,29 @@ static int volume_raid_info(lsm_plugin_ptr c, lsm_volume *volume,
     return rc;
 }
 
+static int pool_member_info(
+    lsm_plugin_ptr c, lsm_pool *pool,
+    lsm_volume_raid_type *raid_type, lsm_pool_member_type *member_type,
+    lsm_string_list **member_ids, lsm_flag flags)
+{
+    int rc = LSM_ERR_OK;
+    struct plugin_data *pd = (struct plugin_data*)lsm_private_data_get(c);
+    lsm_pool *p = find_pool(pd, lsm_pool_id_get(pool));
+
+    if( !p) {
+        rc = lsm_log_error_basic(c, LSM_ERR_NOT_FOUND_POOL,
+                                    "Pool not found!");
+    }
+
+    *raid_type = LSM_VOLUME_RAID_TYPE_UNKNOWN;
+    *member_type = LSM_POOL_MEMBER_TYPE_UNKNOWN;
+    *member_ids = NULL;
+    return rc;
+}
+
 static struct lsm_ops_v1_2 ops_v1_2 = {
-    volume_raid_info
+    volume_raid_info,
+    pool_member_info,
 };
 
 static int volume_enable_disable(lsm_plugin_ptr c, lsm_volume *v,
