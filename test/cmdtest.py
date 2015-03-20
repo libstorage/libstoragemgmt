@@ -696,6 +696,24 @@ def volume_raid_info_test(cap, system_id):
             exit(10)
     return
 
+def pool_member_info_test(cap, system_id):
+    if cap['POOL_MEMBER_INFO']:
+        out = call([cmd, '-t' + sep, 'list', '--type', 'POOLS'])[1]
+        pool_list = parse(out)
+        for pool in pool_list:
+            out = call(
+                [cmd, '-t' + sep, 'pool-member-info', '--pool', pool[0]])[1]
+            r = parse(out)
+            if len(r[0]) != 4:
+                print "pool-member-info got expected output: %s" % out
+                exit(10)
+            if r[0][0] != pool[0]:
+                print "pool-member-info output pool ID is not requested " \
+                      "pool ID %s" % out
+                exit(10)
+    return
+
+
 def run_all_tests(cap, system_id):
     test_display(cap, system_id)
     test_plugin_list(cap, system_id)
@@ -708,6 +726,8 @@ def run_all_tests(cap, system_id):
     search_test(cap, system_id)
 
     volume_raid_info_test(cap, system_id)
+
+    pool_member_info_test(cap,system_id)
 
 if __name__ == "__main__":
     parser = OptionParser()

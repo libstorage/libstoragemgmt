@@ -2887,6 +2887,36 @@ START_TEST(test_volume_raid_info)
 }
 END_TEST
 
+START_TEST(test_pool_member_info)
+{
+    int rc;
+    lsm_pool **pools = NULL;
+    uint32_t poolCount = 0;
+    G(rc, lsm_pool_list, c, NULL, NULL, &pools, &poolCount,
+      LSM_CLIENT_FLAG_RSVD);
+
+    lsm_volume_raid_type raid_type;
+    lsm_pool_member_type member_type;
+    lsm_string_list *member_ids = NULL;
+
+    int i;
+    uint32_t y;
+    for (i = 0; i < poolCount; i++) {
+        G(
+            rc, lsm_pool_member_info, c, pools[i], &raid_type, &member_type,
+            &member_ids, LSM_CLIENT_FLAG_RSVD);
+        for(y = 0; y < lsm_string_list_size(member_ids); y++){
+            // Simulator user reading the member id.
+            const char *cur_member_id = lsm_string_list_elem_get(
+                member_ids, y);
+            fail_unless( strlen(cur_member_id) );
+        }
+        lsm_string_list_free(member_ids);
+    }
+    G(rc, lsm_pool_record_array_free, pools, poolCount);
+}
+END_TEST
+
 Suite * lsm_suite(void)
 {
     Suite *s = suite_create("libStorageMgmt");
@@ -2923,6 +2953,7 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_nfs_exports);
     tcase_add_test(basic, test_invalid_input);
     tcase_add_test(basic, test_volume_raid_info);
+    tcase_add_test(basic, test_pool_member_info);
 
     suite_add_tcase(s, basic);
     return s;

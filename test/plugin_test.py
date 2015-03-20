@@ -1283,6 +1283,16 @@ class TestPlugin(unittest.TestCase):
                 self.c.export_remove(exp)
                 self._fs_delete(fs)
 
+    def test_pool_member_info(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            if supported(cap, [Cap.POOL_MEMBER_INFO]):
+                for pool in self.c.pools():
+                    (raid_type, member_type, member_ids) = \
+                        self.c.pool_member_info(pool)
+                    self.assertTrue(type(raid_type) is int)
+                    self.assertTrue(type(member_type) is int)
+                    self.assertTrue(type(member_ids) is list)
 
 def dump_results():
     """
