@@ -259,6 +259,7 @@ class MegaRAID(IPlugin):
         cap.set(Capabilities.DISKS)
         cap.set(Capabilities.VOLUMES)
         cap.set(Capabilities.VOLUME_RAID_INFO)
+        cap.set(Capabilities.POOL_MEMBER_INFO)
         return cap
 
     def _storcli_exec(self, storcli_cmds, flag_json=True):
@@ -546,3 +547,56 @@ class MegaRAID(IPlugin):
         return [
             raid_type, strip_size, disk_count, strip_size,
             strip_size * strip_count]
+
+    @_handle_errors
+    def pool_member_info(self, pool, flags=Client.FLAG_RSVD):
+        lsi_dg_path = pool.plugin_data
+        # Check whether pool exists.
+        try:
+            dg_show_all_output = self._storcli_exec(
+                [lsi_dg_path , "show", "all"])
+        except ExecError as exec_error:
+            try:
+                json_output = json.loads(exec_error.stdout)
+                detail_error = json_output[
+                    'Controllers'][0]['Command Status']['Detailed Status']
+            except Exception:
+                raise exec_error
+
+            if detail_error and detail_error[0]['Status'] == 'Not found':
+                raise LsmError(
+                    ErrorNumber.NOT_FOUND_POOL,
+                    "Pool not found")
+            raise
+
+        ctrl_num = lsi_dg_path.split('/')[1][1:]
+        lsm_disk_map = {}
+        disk_ids = []
+        for lsm_disk in self.disks():
+            lsm_disk_map[lsm_disk.plugin_data] = lsm_disk.id
+
+        for dg_disk_info in dg_show_all_output['DG Drive LIST']:
+            cur_lsi_disk_path = "/c%s" % ctrl_num + "/e%s/s%s" % tuple(
+                dg_disk_info['EID:Slt'].split(':'))
+            if cur_lsi_disk_path in lsm_disk_map.keys():
+                disk_ids.append(lsm_disk_map[cur_lsi_disk_path])
+            else:
+                raise LsmError(
+                    ErrorNumber.PLUGIN_BUG,
+                    "pool_member_info(): Failed to find disk id of %s" %
+                    cur_lsi_disk_path)
+
+        raid_type = Volume.RAID_TYPE_UNKNOWN
+        dg_num = lsi_dg_path.split('/')[2][1:]
+        for dg_top in dg_show_all_output['TOPOLOGY']:
+            if dg_top['Arr'] == '-' and \
+               dg_top['Row'] == '-' and \
+               int(dg_top['DG']) == int(dg_num):
+                raid_type = _RAID_TYPE_MAP.get(
+                    dg_top['Type'], Volume.RAID_TYPE_UNKNOWN)
+                break
+
+        if raid_type == Volume.RAID_TYPE_RAID1 and len(disk_ids) >= 4:
+            raid_type = Volume.RAID_TYPE_RAID10
+
+        return raid_type, Pool.MEMBER_TYPE_DISK, disk_ids
