@@ -351,6 +351,13 @@ Query RAID information for given volume.
 \fB--vol\fR \fI<VOL_ID>\fR
 Required. The ID of volume to query.
 
+.SS pool-member-info
+.TP 15
+Query RAID information for given pool.
+.TP
+\fB--pool\fR \fI<POOL_ID>\fR
+Required. The ID of pool to query.
+
 .SS access-group-create
 .TP 15
 Create an access group.
@@ -589,6 +596,8 @@ Alias of 'volume-mask'
 Alias of 'volume-unmask'
 .SS vri
 Alias of 'volume-raid-info'
+.SS pmi
+Alias of 'pool-member-info'
 .SS ac
 Alias of 'access-group-create'
 .SS aa

@@ -39,7 +39,8 @@ from lsm import (Client, Pool, VERSION, LsmError, Disk,
 
 from lsm.lsmcli.data_display import (
     DisplayData, PlugData, out,
-    vol_provision_str_to_type, vol_rep_type_str_to_type, VolumeRAIDInfo)
+    vol_provision_str_to_type, vol_rep_type_str_to_type, VolumeRAIDInfo,
+    PoolRAIDInfo)
 
 
 ## Wraps the invocation to the command line
@@ -376,6 +377,14 @@ cmds = (
     ),
 
     dict(
+        name='pool-member-info',
+        help='Query Pool membership infomation',
+        args=[
+            dict(pool_id_opt),
+        ],
+    ),
+
+    dict(
         name='access-group-create',
         help='Create an access group',
         args=[
@@ -637,6 +646,7 @@ aliases = (
     ['ar', 'access-group-remove'],
     ['ad', 'access-group-delete'],
     ['vri', 'volume-raid-info'],
+    ['pmi', 'pool-member-info'],
 )
 
 
@@ -1333,6 +1343,13 @@ class CmdLine:
             [
                 VolumeRAIDInfo(
                     lsm_vol.id, *self.c.volume_raid_info(lsm_vol))])
+
+    def pool_member_info(self, args):
+        lsm_pool = _get_item(self.c.pools(), args.pool, "Pool")
+        self.display_data(
+            [
+                PoolRAIDInfo(
+                    lsm_pool.id, *self.c.pool_member_info(lsm_pool))])
 
     ## Displays file system dependants
     def fs_dependants(self, args):

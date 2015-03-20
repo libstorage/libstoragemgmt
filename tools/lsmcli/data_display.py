@@ -279,6 +279,26 @@ class VolumeRAIDInfo(object):
         return _enum_type_to_str(raid_type, VolumeRAIDInfo._RAID_TYPE_MAP)
 
 
+class PoolRAIDInfo(object):
+    _MEMBER_TYPE_MAP = {
+        Pool.MEMBER_TYPE_UNKNOWN: 'Unknown',
+        Pool.MEMBER_TYPE_OTHER: 'Unknown',
+        Pool.MEMBER_TYPE_POOL: 'Pool',
+        Pool.MEMBER_TYPE_DISK: 'Disk',
+    }
+
+    def __init__(self, pool_id, raid_type, member_type, member_ids):
+        self.pool_id = pool_id
+        self.raid_type = raid_type
+        self.member_type = member_type
+        self.member_ids = member_ids
+
+    @staticmethod
+    def member_type_to_str(member_type):
+        return _enum_type_to_str(
+            member_type, PoolRAIDInfo._MEMBER_TYPE_MAP)
+
+
 class DisplayData(object):
 
     def __init__(self):
@@ -555,6 +575,27 @@ class DisplayData(object):
         'column_skip_keys': VOL_RAID_INFO_COLUMN_SKIP_KEYS,
         'value_conv_enum': VOL_RAID_INFO_VALUE_CONV_ENUM,
         'value_conv_human': VOL_RAID_INFO_VALUE_CONV_HUMAN,
+    }
+
+    POOL_RAID_INFO_HEADER = OrderedDict()
+    POOL_RAID_INFO_HEADER['pool_id'] = 'Pool ID'
+    POOL_RAID_INFO_HEADER['raid_type'] = 'RAID Type'
+    POOL_RAID_INFO_HEADER['member_type'] = 'Member Type'
+    POOL_RAID_INFO_HEADER['member_ids'] = 'Member IDs'
+
+    POOL_RAID_INFO_COLUMN_SKIP_KEYS = []
+
+    POOL_RAID_INFO_VALUE_CONV_ENUM = {
+        'raid_type': VolumeRAIDInfo.raid_type_to_str,
+        'member_type': PoolRAIDInfo.member_type_to_str,
+        }
+    POOL_RAID_INFO_VALUE_CONV_HUMAN = []
+
+    VALUE_CONVERT[PoolRAIDInfo] = {
+        'headers': POOL_RAID_INFO_HEADER,
+        'column_skip_keys': POOL_RAID_INFO_COLUMN_SKIP_KEYS,
+        'value_conv_enum': POOL_RAID_INFO_VALUE_CONV_ENUM,
+        'value_conv_human': POOL_RAID_INFO_VALUE_CONV_HUMAN,
     }
 
     @staticmethod
