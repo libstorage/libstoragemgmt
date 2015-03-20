@@ -1,5 +1,6 @@
 %bcond_with rest_api
 %bcond_without megaraid
+%bcond_without hpsa
 
 # Use one-line macro for OBS workaround:
 #   https://bugzilla.novell.com/show_bug.cgi?id=864323
@@ -8,6 +9,9 @@
 
 %{?_with_megaraid: %global with_megaraid 1 }
 %{?_without_megaraid: %global with_megaraid 0 }
+
+%{?_with_hpsa: %global with_hpsa 1 }
+%{?_without_hpsa: %global with_hpsa 0 }
 
 %define libsoname libstoragemgmt
 
@@ -224,6 +228,17 @@ The %{libstoragemgmt}-megaraid-plugin package contains the plugin for LSI
 MegaRAID storage management via storcli.
 %endif
 
+%if 0%{?with_hpsa}
+%package        -n %{libstoragemgmt}-hpsa-plugin
+Summary:        Files for HP SmartArray support for %{libstoragemgmt}
+Group:          System Environment/Libraries
+Requires:       %{libstoragemgmt}%{?_isa} = %{version}-%{release}
+BuildArch:      noarch
+
+%description    -n %{libstoragemgmt}-hpsa-plugin
+The %{libstoragemgmt}-hpsa-plugin package contains the plugin for HP
+SmartArray storage management via hpssacli.
+%endif
 
 %prep
 %setup -q
@@ -237,6 +252,9 @@ MegaRAID storage management via storcli.
 %endif
 %if 0%{?with_megaraid} != 1
     --without-megaraid \
+%endif
+%if 0%{?with_hpsa} != 1
+    --without-hpsa \
 %endif
     --disable-static
 
@@ -450,6 +468,22 @@ if [ $1 -eq 0 ]; then
 fi
 %endif
 
+%if 0%{?with_hpsa}
+# Need to restart lsmd if plugin is new installed or removed.
+%post -n %{libstoragemgmt}-hpsa-plugin
+if [ $1 -eq 1 ]; then
+    # New install.
+    /usr/bin/systemctl try-restart libstoragemgmt.service \
+        >/dev/null 2>&1 || :
+fi
+%postun -n %{libstoragemgmt}-hpsa-plugin
+if [ $1 -eq 0 ]; then
+    # Remove
+    /usr/bin/systemctl try-restart libstoragemgmt.service \
+        >/dev/null 2>&1 || :
+fi
+%endif
+
 %files -n %{libstoragemgmt}
 %defattr(-,root,root,-)
 %doc README COPYING.LIB
@@ -555,6 +589,17 @@ fi
 %{_bindir}/megaraid_lsmplugin
 %{_sysconfdir}/lsm/pluginconf.d/megaraid.conf
 %{_mandir}/man1/megaraid_lsmplugin.1*
+%endif
+
+%if 0%{?with_hpsa}
+%files -n %{libstoragemgmt}-hpsa-plugin
+%defattr(-,root,root,-)
+%dir %{python_sitelib}/lsm/plugin/hpsa
+%{python_sitelib}/lsm/plugin/hpsa/__init__.*
+%{python_sitelib}/lsm/plugin/hpsa/hpsa.*
+%{_bindir}/hpsa_lsmplugin
+%{_sysconfdir}/lsm/pluginconf.d/hpsa.conf
+%{_mandir}/man1/hpsa_lsmplugin.1*
 %endif
 
 %files udev

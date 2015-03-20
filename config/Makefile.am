@@ -11,3 +11,8 @@ if WITH_MEGARAID
 pluginconf_DATA += pluginconf.d/megaraid.conf
 EXTRA_DIST += pluginconf.d/megaraid.conf
 endif
+
+if WITH_HPSA
+pluginconf_DATA += pluginconf.d/hpsa.conf
+EXTRA_DIST += pluginconf.d/hpsa.conf
+endif
