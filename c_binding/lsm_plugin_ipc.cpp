@@ -1015,6 +1015,50 @@ static int handle_volume_raid_info(lsm_plugin_ptr p, Value &params,
     return rc;
 }
 
+static int handle_pool_member_info(lsm_plugin_ptr p, Value &params,
+                                 Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    if( p && p->ops_v1_2 && p->ops_v1_2->pool_member_info) {
+        Value v_pool = params["pool"];
+
+        if(IS_CLASS_POOL(v_pool) &&
+            LSM_FLAG_EXPECTED_TYPE(params) ) {
+            lsm_pool *pool = value_to_pool(v_pool);
+            std::vector<Value> result;
+
+            if( pool ) {
+                lsm_volume_raid_type raid_type = LSM_VOLUME_RAID_TYPE_UNKNOWN;
+                lsm_pool_member_type member_type =
+                    LSM_POOL_MEMBER_TYPE_UNKNOWN;
+                lsm_string_list *member_ids = NULL;
+
+                rc = p->ops_v1_2->pool_member_info(
+                    p, pool, &raid_type, &member_type,
+                    &member_ids, LSM_FLAG_GET_VALUE(params));
+
+                if( LSM_ERR_OK == rc ) {
+                    result.push_back(Value((int32_t)raid_type));
+                    result.push_back(Value((int32_t)member_type));
+                    result.push_back(string_list_to_value(member_ids));
+                    if ( member_ids != NULL ) {
+                        lsm_string_list_free(member_ids);
+                    }
+                    response = Value(result);
+                }
+
+                lsm_pool_record_free(pool);
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
+
+        } else {
+            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+        }
+    }
+    return rc;
+}
+
 static int ag_list(lsm_plugin_ptr p, Value &params, Value &response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
@@ -2213,7 +2257,8 @@ static std::map<std::string,handler> dispatch = static_map<std::string,handler>
     ("volume_resize", handle_volume_resize)
     ("volumes_accessible_by_access_group", vol_accessible_by_ag)
     ("volumes", handle_volumes)
-    ("volume_raid_info", handle_volume_raid_info);
+    ("volume_raid_info", handle_volume_raid_info)
+    ("pool_member_info", handle_pool_member_info);
 
 static int process_request(lsm_plugin_ptr p, const std::string &method, Value &request,
                     Value &response)

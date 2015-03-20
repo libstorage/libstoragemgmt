@@ -1074,3 +1074,101 @@ class Client(INetworkAttachedStorage):
                     No support.
         """
         return self._tp.rpc('volume_raid_info', _del_self(locals()))
+
+    @_return_requires([int, int, [unicode]])
+    def pool_member_info(self, pool, flags=FLAG_RSVD):
+        """
+        lsm.Client.pool_member_info(self, pool, flags=lsm.Client.FLAG_RSVD)
+
+        Version:
+            1.2
+        Usage:
+            Query the membership information of certain pool:
+                RAID type, member type and member ids.
+            Currently, LibStorageMgmt supports two types of pool:
+                * Sub-pool -- Pool.MEMBER_TYPE_POOL
+                    Pool space is allocated from parent pool.
+                    Example:
+                        * NetApp ONTAP volume
+
+                * Disk RAID pool -- Pool.MEMBER_TYPE_DISK
+                    Pool is a RAID group assembled by disks.
+                    Example:
+                        * LSI MegaRAID disk group
+                        * EMC VNX pool
+                        * NetApp ONTAP aggregate
+        Parameters:
+            pool (lsm.Pool object)
+                Pool to query
+            flags (int)
+                Optional. Reserved for future use.
+                Should be set as lsm.Client.FLAG_RSVD.
+        Returns:
+            [raid_type, member_type, member_ids]
+
+            raid_type (int)
+                RAID Type of requested pool.
+                    Could be one of these values:
+                        Volume.RAID_TYPE_RAID0
+                            Stripe
+                        Volume.RAID_TYPE_RAID1
+                            Two disks Mirror
+                        Volume.RAID_TYPE_RAID3
+                            Byte-level striping with dedicated parity
+                        Volume.RAID_TYPE_RAID4
+                            Block-level striping with dedicated parity
+                        Volume.RAID_TYPE_RAID5
+                            Block-level striping with distributed parity
+                        Volume.RAID_TYPE_RAID6
+                            Block-level striping with two distributed parities,
+                            aka, RAID-DP
+                        Volume.RAID_TYPE_RAID10
+                            Stripe of mirrors
+                        Volume.RAID_TYPE_RAID15
+                            Parity of mirrors
+                        Volume.RAID_TYPE_RAID16
+                            Dual parity of mirrors
+                        Volume.RAID_TYPE_RAID50
+                            Stripe of parities Volume.RAID_TYPE_RAID60
+                            Stripe of dual parities
+                        Volume.RAID_TYPE_RAID51
+                            Mirror of parities
+                        Volume.RAID_TYPE_RAID61
+                            Mirror of dual parities
+                        Volume.RAID_TYPE_JBOD
+                            Just bunch of disks, no parity, no striping.
+                        Volume.RAID_TYPE_UNKNOWN
+                            The plugin failed to detect the volume's RAID type.
+                        Volume.RAID_TYPE_MIXED
+                            This pool contains multiple RAID settings.
+                        Volume.RAID_TYPE_OTHER
+                            Vendor specific RAID type
+            member_type (int)
+                Could be one of these values:
+                    Pool.MEMBER_TYPE_POOL
+                        Current pool(also known as sub-pool) is allocated from
+                        other pool(parent pool). The 'raid_type' will set to
+                        RAID_TYPE_OTHER unless certain RAID system support RAID
+                        using space of parent pools.
+                    Pool.MEMBER_TYPE_DISK
+                        Pool is created from RAID group using whole disks.
+                    Pool.MEMBER_TYPE_OTHER
+                        Vendor specific RAID member type.
+                    Pool.MEMBER_TYPE_UNKNOWN
+                        Plugin failed to detect the RAID member type.
+            member_ids (list of strings)
+                When 'member_type' is Pool.MEMBER_TYPE_POOL,
+                the 'member_ids' will contain a list of parent Pool IDs.
+                When 'member_type' is Pool.MEMBER_TYPE_DISK,
+                the 'member_ids' will contain a list of disk IDs.
+                When 'member_type' is Pool.MEMBER_TYPE_OTHER or
+                Pool.MEMBER_TYPE_UNKNOWN, the member_ids should be an empty
+                list.
+        SpecialExceptions:
+            LsmError
+                ErrorNumber.NO_SUPPORT
+                ErrorNumber.NOT_FOUND_POOL
+        Capability:
+            lsm.Capabilities.POOL_MEMBER_INFO
+        """
+        return self._tp.rpc('pool_member_info', _del_self(locals()))

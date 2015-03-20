@@ -802,6 +802,66 @@ int lsm_pool_list(lsm_connect *c, char *search_key, char *search_value,
     return rc;
 }
 
+int lsm_pool_member_info(lsm_connect *c, lsm_pool *pool,
+                       lsm_volume_raid_type * raid_type,
+                       lsm_pool_member_type *member_type,
+                       lsm_string_list **member_ids, lsm_flag flags)
+{
+    if( LSM_FLAG_UNUSED_CHECK(flags) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    int rc = LSM_ERR_OK;
+    CONN_SETUP(c);
+
+    if( !LSM_IS_POOL(pool) ) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    if( !raid_type || !member_type || !member_ids) {
+         return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["pool"] = pool_to_value(pool);
+    p["flags"] = Value(flags);
+    Value parameters(p);
+    try {
+
+        Value response;
+
+        rc = rpc(c, "pool_member_info", parameters, response);
+        if( LSM_ERR_OK == rc ) {
+            std::vector<Value> j = response.asArray();
+            *raid_type = (lsm_volume_raid_type) j[0].asInt32_t();
+            *member_type = (lsm_pool_member_type) j[1].asInt32_t();
+            *member_ids = NULL;
+            if (Value::array_t == j[2].valueType()){
+                if (j[2].asArray().size()){
+                    *member_ids = value_to_string_list(j[2]);
+                    if ( *member_ids == NULL ){
+                        return LSM_ERR_NO_MEMORY;
+                    }else if( lsm_string_list_size(*member_ids) !=
+                              j[2].asArray().size() ){
+
+                        lsm_string_list_free(*member_ids);
+                        return LSM_ERR_NO_MEMORY;
+                    }
+                }
+            }else{
+                rc = logException(
+                    c, LSM_ERR_LIB_BUG, "member_ids data is not an array",
+                    "member_ids data is not an array");
+            }
+        }
+    } catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
+                            ve.what());
+    }
+    return rc;
+
+}
+
 int lsm_target_port_list(lsm_connect *c, const char *search_key,
                             const char *search_value,
                             lsm_target_port **target_ports[],

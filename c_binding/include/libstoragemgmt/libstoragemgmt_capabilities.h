@@ -113,7 +113,9 @@ typedef enum {
     LSM_CAP_TARGET_PORTS                            = 216,      /**< List target ports */
     LSM_CAP_TARGET_PORTS_QUICK_SEARCH               = 217,      /**< Filtering occurs on array */
 
-    LSM_CAP_DISKS                                   = 220       /**< List disk drives */
+    LSM_CAP_DISKS                                   = 220,      /**< List disk drives */
+    LSM_CAP_POOL_MEMBER_INFO                        = 221,
+    /**^ Query pool member information */
 
 } lsm_capability_type;
 

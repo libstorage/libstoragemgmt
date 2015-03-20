@@ -169,6 +169,23 @@ typedef enum {
     /**^ Vendor specific RAID type */
 } lsm_volume_raid_type;
 
+/**< \enum lsm_pool_member_type Different types of Pool member*/
+typedef enum {
+    LSM_POOL_MEMBER_TYPE_UNKNOWN = 0,
+    /**^ Plugin failed to detect the RAID member type. */
+    LSM_POOL_MEMBER_TYPE_OTHER = 1,
+    /**^ Vendor specific RAID member type. */
+    LSM_POOL_MEMBER_TYPE_DISK = 2,
+    /**^ Pool is created from RAID group using whole disks. */
+    LSM_POOL_MEMBER_TYPE_POOL = 3,
+    /**^
+     * Current pool(also known as sub-pool) is allocated from other
+     * pool(parent pool).
+     * The 'raid_type' will set to RAID_TYPE_OTHER unless certain RAID system
+     * support RAID using space of parent pools.
+     */
+} lsm_pool_member_type;
+
 #define LSM_VOLUME_STRIP_SIZE_UNKNOWN       0
 #define LSM_VOLUME_DISK_COUNT_UNKNOWN       0
 #define LSM_VOLUME_MIN_IO_SIZE_UNKNOWN      0

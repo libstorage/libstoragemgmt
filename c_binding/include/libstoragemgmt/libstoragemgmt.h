@@ -864,6 +864,33 @@ int LSM_DLL_EXPORT lsm_volume_raid_info(
     uint32_t *strip_size, uint32_t *disk_count,
     uint32_t *min_io_size, uint32_t *opt_io_size, lsm_flag flags);
 
+/**
+ * Retrieves the membership of given pool. New in version 1.2.
+ * @param[in] c     Valid connection
+ * @param[in] pool  The lsm_pool ptr.
+ * @param[out] raid_type
+ *                  Enum of lsm_volume_raid_type.
+ * @param[out] member_type
+ *                  Enum of lsm_pool_member_type.
+ * @param[out] member_ids
+ *                  The pointer to lsm_string_list pointer.
+ *                  When 'member_type' is LSM_POOL_MEMBER_TYPE_POOL,
+ *                  the 'member_ids' will contain a list of parent Pool
+ *                  IDs.
+ *                  When 'member_type' is LSM_POOL_MEMBER_TYPE_DISK,
+ *                  the 'member_ids' will contain a list of disk IDs.
+ *                  When 'member_type' is LSM_POOL_MEMBER_TYPE_OTHER or
+ *                  LSM_POOL_MEMBER_TYPE_UNKNOWN, the member_ids should
+ *                  be NULL.
+ *                  Need to use lsm_string_list_free() to free this memory.
+ * @param[in] flags         Reserved, set to 0
+ * @return LSM_ERR_OK on success else error reason.
+ */
+int LSM_DLL_EXPORT lsm_pool_member_info(
+    lsm_connect *c, lsm_pool *pool, lsm_volume_raid_type *raid_type,
+    lsm_pool_member_type *member_type, lsm_string_list **member_ids,
+    lsm_flag flags);
+
 #ifdef  __cplusplus
 }
 #endif
