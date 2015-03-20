@@ -17,10 +17,11 @@
 
 import os
 import errno
+import re
 
 from lsm import (
     IPlugin, Client, Capabilities, VERSION, LsmError, ErrorNumber, uri_parse,
-    System)
+    System, Pool, size_human_2_size_bytes, search_property)
 
 from lsm.plugin.hpsa.utils import cmd_exec, ExecError
 
@@ -131,6 +132,38 @@ def _parse_hpssacli_output(output):
     return data
 
 
+def _hp_size_to_lsm(hp_size):
+    """
+    HP Using 'TB, GB, MB, KB' and etc, for LSM, they are 'TiB' and etc.
+    Return int of block bytes
+    """
+    re_regex = re.compile("^([0-9.]+) +([EPTGMK])B$")
+    re_match = re_regex.match(hp_size)
+    if re_match:
+        return size_human_2_size_bytes(
+            "%s%siB" % (re_match.group(1), re_match.group(2)))
+
+    raise LsmError(
+        ErrorNumber.PLUGIN_BUG,
+        "_hp_size_to_lsm(): Got unexpected HP size string %s" %
+        hp_size)
+
+
+def _pool_status_of(hp_array):
+    """
+    Return (status, status_info)
+    """
+    if hp_array['Status'] == 'OK':
+        return Pool.STATUS_OK, ''
+    else:
+        # TODO(Gris Ge): Try degrade a RAID or fail a RAID.
+        return Pool.STATUS_OTHER, hp_array['Status']
+
+
+def _pool_id_of(sys_id, array_name):
+    return "%s:%s" % (sys_id, array_name.replace(' ', ''))
+
+
 class SmartArray(IPlugin):
     _DEFAULT_BIN_PATHS = [
         "/usr/sbin/hpssacli", "/opt/hp/hpssacli/bld/hpssacli"]
@@ -238,7 +271,46 @@ class SmartArray(IPlugin):
 
         return rc_lsm_syss
 
+    @staticmethod
+    def _hp_array_to_lsm_pool(hp_array, array_name, sys_id, ctrl_num):
+        pool_id = _pool_id_of(sys_id, array_name)
+        name = array_name
+        elem_type = Pool.ELEMENT_TYPE_VOLUME | Pool.ELEMENT_TYPE_VOLUME_FULL
+        unsupported_actions = 0
+        # TODO(Gris Ge): HP does not provide a precise number of bytes.
+        free_space = _hp_size_to_lsm(hp_array['Unused Space'])
+        total_space = free_space
+        for key_name in hp_array.keys():
+            if key_name.startswith('Logical Drive'):
+                total_space += _hp_size_to_lsm(hp_array[key_name]['Size'])
+
+        (status, status_info) = _pool_status_of(hp_array)
+
+        plugin_data = "%s:%s" % (
+            ctrl_num, array_name[len("Array: "):])
+
+        return Pool(
+            pool_id, name, elem_type, unsupported_actions,
+            total_space, free_space, status, status_info,
+            sys_id, plugin_data)
+
     @_handle_errors
     def pools(self, search_key=None, search_value=None,
               flags=Client.FLAG_RSVD):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported yet")
+        """
+        Depend on command:
+            hpssacli ctrl all show config detail
+        """
+        lsm_pools = []
+        ctrl_all_conf = self._sacli_exec(
+            ["ctrl", "all", "show", "config", "detail"])
+        for ctrl_data in ctrl_all_conf.values():
+            sys_id = ctrl_data['Serial Number']
+            ctrl_num = ctrl_data['Slot']
+            for key_name in ctrl_data.keys():
+                if key_name.startswith("Array:"):
+                    lsm_pools.append(
+                        SmartArray._hp_array_to_lsm_pool(
+                            ctrl_data[key_name], key_name, sys_id, ctrl_num))
+
+        return search_property(lsm_pools, search_key, search_value)
