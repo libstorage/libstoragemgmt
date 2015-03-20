@@ -597,6 +597,7 @@ fi
 %dir %{python_sitelib}/lsm/plugin/hpsa
 %{python_sitelib}/lsm/plugin/hpsa/__init__.*
 %{python_sitelib}/lsm/plugin/hpsa/hpsa.*
+%{python_sitelib}/lsm/plugin/hpsa/utils.*
 %{_bindir}/hpsa_lsmplugin
 %{_sysconfdir}/lsm/pluginconf.d/hpsa.conf
 %{_mandir}/man1/hpsa_lsmplugin.1*
