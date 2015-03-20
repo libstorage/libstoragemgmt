@@ -285,6 +285,7 @@ class SmartArray(IPlugin):
         cap.set(Capabilities.VOLUMES)
         cap.set(Capabilities.DISKS)
         cap.set(Capabilities.VOLUME_RAID_INFO)
+        cap.set(Capabilities.POOL_MEMBER_INFO)
         return cap
 
     def _sacli_exec(self, sacli_cmds, flag_convert=True):
@@ -531,3 +532,41 @@ class SmartArray(IPlugin):
                 "Volume not found")
 
         return [raid_type, strip_size, disk_count, strip_size, stripe_size]
+
+    @_handle_errors
+    def pool_member_info(self, pool, flags=Client.FLAG_RSVD):
+        """
+        Depend on command:
+            hpssacli ctrl slot=0 show config detail
+        """
+        if not pool.plugin_data:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Ilegal input volume argument: missing plugin_data property")
+
+        (ctrl_num, array_num) = pool.plugin_data.split(":")
+        ctrl_data = self._sacli_exec(
+            ["ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
+            ).values()[0]
+
+        disk_ids = []
+        raid_type = Volume.RAID_TYPE_UNKNOWN
+        for key_name in ctrl_data.keys():
+            if key_name == "Array: %s" % array_num:
+                for array_key_name in ctrl_data[key_name].keys():
+                    if array_key_name.startswith("Logical Drive: ") and \
+                       raid_type == Volume.RAID_TYPE_UNKNOWN:
+                        raid_type = _hp_raid_type_to_lsm(
+                            ctrl_data[key_name][array_key_name])
+                    elif array_key_name.startswith("physicaldrive"):
+                        hp_disk = ctrl_data[key_name][array_key_name]
+                        if hp_disk['Drive Type'] == 'Data Drive':
+                            disk_ids.append(hp_disk['Serial Number'])
+                break
+
+        if len(disk_ids) == 0:
+            raise LsmError(
+                ErrorNumber.NOT_FOUND_POOL,
+                "Pool not found")
+
+        return raid_type, Pool.MEMBER_TYPE_DISK, disk_ids
