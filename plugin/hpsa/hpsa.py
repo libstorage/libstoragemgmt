@@ -21,9 +21,9 @@ import re
 
 from lsm import (
     IPlugin, Client, Capabilities, VERSION, LsmError, ErrorNumber, uri_parse,
-    System, Pool, size_human_2_size_bytes, search_property)
+    System, Pool, size_human_2_size_bytes, search_property, Volume)
 
-from lsm.plugin.hpsa.utils import cmd_exec, ExecError
+from lsm.plugin.hpsa.utils import cmd_exec, ExecError, file_read
 
 
 def _handle_errors(method):
@@ -223,7 +223,14 @@ class SmartArray(IPlugin):
 
     @_handle_errors
     def capabilities(self, system, flags=Client.FLAG_RSVD):
-        return Capabilities()
+        cur_lsm_syss = self.systems()
+        if system.id not in list(s.id for s in cur_lsm_syss):
+            raise LsmError(
+                ErrorNumber.NOT_FOUND_SYSTEM,
+                "System not found")
+        cap = Capabilities()
+        cap.set(Capabilities.VOLUMES)
+        return cap
 
     def _sacli_exec(self, sacli_cmds, flag_convert=True):
         """
@@ -314,3 +321,59 @@ class SmartArray(IPlugin):
                             ctrl_data[key_name], key_name, sys_id, ctrl_num))
 
         return search_property(lsm_pools, search_key, search_value)
+
+    @staticmethod
+    def _hp_ld_to_lsm_vol(hp_ld, pool_id, sys_id, ctrl_num, array_num,
+                          hp_ld_name):
+        ld_num = hp_ld_name[len("Logical Drive: "):]
+        vpd83 = hp_ld['Unique Identifier'].lower()
+        # No document or command output indicate block size
+        # of volume. So we try to read from linux kernel, if failed
+        # try 512 and roughly calculate the sector count.
+        regex_match = re.compile("/dev/(sd[a-z]+)").search(hp_ld['Disk Name'])
+        vol_name = hp_ld_name
+        if regex_match:
+            sd_name = regex_match.group(1)
+            block_size = int(file_read(
+                "/sys/block/%s/queue/logical_block_size" % sd_name))
+            num_of_blocks = int(file_read("/sys/block/%s/size" % sd_name))
+            vol_name += ": /dev/%s" % sd_name
+        else:
+            block_size = 512
+            num_of_blocks = int(_hp_size_to_lsm(hp_ld['Size']) / block_size)
+
+        plugin_data = "%s:%s:%s" % (ctrl_num, array_num, ld_num)
+
+        # HP SmartArray does not allow disabling volume.
+        return Volume(
+            vpd83, vol_name, vpd83, block_size, num_of_blocks,
+            Volume.ADMIN_STATE_ENABLED, sys_id, pool_id, plugin_data)
+
+    @_handle_errors
+    def volumes(self, search_key=None, search_value=None,
+                flags=Client.FLAG_RSVD):
+        """
+        Depend on command:
+            hpssacli ctrl all show config detail
+        """
+        lsm_vols = []
+        ctrl_all_conf = self._sacli_exec(
+            ["ctrl", "all", "show", "config", "detail"])
+        for ctrl_data in ctrl_all_conf.values():
+            ctrl_num = ctrl_data['Slot']
+            sys_id = ctrl_data['Serial Number']
+            for key_name in ctrl_data.keys():
+                if not key_name.startswith("Array:"):
+                    continue
+                pool_id = _pool_id_of(sys_id, key_name)
+                array_num = key_name[len('Array: '):]
+                for array_key_name in ctrl_data[key_name].keys():
+                    if not array_key_name.startswith("Logical Drive"):
+                        continue
+                    lsm_vols.append(
+                        SmartArray._hp_ld_to_lsm_vol(
+                            ctrl_data[key_name][array_key_name],
+                            pool_id, sys_id, ctrl_num, array_num,
+                            array_key_name))
+
+        return search_property(lsm_vols, search_key, search_value)
