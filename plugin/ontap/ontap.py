@@ -545,6 +545,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         cap.set(Capabilities.TARGET_PORTS)
         cap.set(Capabilities.DISKS)
         cap.set(Capabilities.VOLUME_RAID_INFO)
+        cap.set(Capabilities.POOL_MEMBER_INFO)
         return cap
 
     @handle_ontap_errors
@@ -1330,3 +1331,23 @@ class Ontap(IStorageAreaNetwork, INfs):
         return [
             raid_type, Ontap._STRIP_SIZE, disk_count, Ontap._STRIP_SIZE,
             Ontap._OPT_IO_SIZE]
+
+    @handle_ontap_errors
+    def pool_member_info(self, pool, flags=0):
+        if pool.element_type & Pool.ELEMENT_TYPE_VOLUME:
+            # We got a NetApp volume
+            raid_type = Volume.RAID_TYPE_OTHER
+            member_type = Pool.MEMBER_TYPE_POOL
+            na_vol = self.f.volumes(volume_name=pool.name)[0]
+            disk_ids = [na_vol['containing-aggregate']]
+        else:
+            # We got a NetApp aggregate
+            member_type = Pool.MEMBER_TYPE_DISK
+            na_aggr = self.f.aggregates(aggr_name=pool.name)[0]
+            raid_type = Ontap._raid_type_of_na_aggr(na_aggr)
+            disk_ids = list(
+                Ontap._disk_id(d)
+                for d in self.f.disks()
+                if 'aggregate' in d and d['aggregate'] == pool.name)
+
+        return raid_type, member_type, disk_ids
