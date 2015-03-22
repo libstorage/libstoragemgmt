@@ -435,6 +435,13 @@ if [ $1 -eq 0 ]; then
 fi
 
 %if 0%{?with_megaraid}
+# Need to restart lsmd if plugin is new installed or removed.
+%post -n %{libstoragemgmt}-megaraid-plugin
+if [ $1 -eq 1 ]; then
+    # New install.
+    /usr/bin/systemctl try-restart libstoragemgmt.service \
+        >/dev/null 2>&1 || :
+fi
 %postun -n %{libstoragemgmt}-megaraid-plugin
 if [ $1 -eq 0 ]; then
     # Remove
