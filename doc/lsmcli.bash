@@ -55,7 +55,8 @@ _lsm()
                 volume-replicate-range volume-replicate-range-block-size \
                 volume-dependants volume-dependants-rm volume-access-group \
                 volume-mask volume-unmask access-group-create \
-                access-group-delete access-group-add access-group-remove"
+                access-group-delete access-group-add access-group-remove \
+                volume-enable volume-disable"
 
     list_args="--type"
     list_type_args="volumes pools fs snapshots exports nfs_client_auth \
@@ -85,6 +86,8 @@ _lsm()
     access_group_delete_args="--ag"
 
     access_group_add_remove_args="--ag --init"
+
+    volume_enable_disable_args="--vol"
 
     # Check if we have somthing present that we can help the user with
     case "${prev}" in
@@ -235,6 +238,11 @@ _lsm()
             ;;
         access-group-add|access-group-remove)
             possible_args "${access_group_add_remove_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        volume-enable|volume-disable)
+            possible_args "${volume_enable_disable_args}"
             COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
             ;;
