@@ -51,7 +51,8 @@ _lsm()
     opts_long=" --help --version --uri --prompt --human --terse --enum \
               --force --wait --header --script "
     opts_cmds="list job-status capabilities plugin-info volume-create \
-                volume-delete, volume-resize volume-replicate"
+                volume-delete, volume-resize volume-replicate \
+                volume-replicate-range"
 
     list_args="--type"
     list_type_args="volumes pools fs snapshots exports nfs_client_auth \
@@ -66,58 +67,61 @@ _lsm()
 
     volume_replicate_args="--vol --name --rep-type"
     # Hmmm, this looks like a bug with CLI, should support lower and upper case?
-    volume_rep_types="CLONE COPY MIRROR_ASYNC MIRROR_SYNC" 
+    volume_rep_types="CLONE COPY MIRROR_ASYNC MIRROR_SYNC"
+
+    volume_replicate_range_args="--src-vol --dst-vol --rep-type --src-start \
+                                --dst-start --count --force" # Force ?
 
     # Check if we have somthing present that we can help the user with
     case "${prev}" in
-        '--sys')
+        --sys)
             # Is there a better way todo this?
             local items=`lsmcli list --type systems -t${sep} | awk -F '#' '{print $1}'`
             COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
             return 0
             ;;
-        '--pool')
+        --pool)
             # Is there a better way todo this?
             local items=`lsmcli list --type pools -t${sep} | awk -F '#' '{print $1}'`
             COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
             return 0
             ;;
-        '--vol')
+        --vol|--src-vol|--dst-vol)
             # Is there a better way todo this?
             local items=`lsmcli list --type volumes -t${sep} | awk -F '#' '{print $1}'`
             COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
             return 0
             ;;
-        '--disk')
+        --disk)
             # Is there a better way todo this?
             local items=`lsmcli list --type disks -t${sep} | awk -F '#' '{print $1}'`
             COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
             return 0
             ;;
-        '--ag')
+        --ag)
             # Is there a better way todo this?
             local items=`lsmcli list --type access_groups -t${sep} | awk -F '#' '{print $1}'`
             COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
             return 0
             ;;
-        '--nfs-export')
+        --nfs-export)
             # Is there a better way todo this?
             local items=`lsmcli list --type exports  -t${sep} | awk -F '#' '{print $1}'`
             COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
             return 0
             ;;
-        '--tgt')
+        --tgt)
             # Is there a better way todo this?
             local items=`lsmcli list --type target_ports  -t${sep} | awk -F '#' '{print $1}'`
             COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
             return 0
             ;;         
-        '--fs')
+        --fs)
             local items=`lsmcli list --type fs -t${sep} | awk -F '#' '{print $1}'`
             COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
             return 0
             ;;
-        'snapshots')
+        snapshots)
             # Specific listing case where you need a fs too            
             if [[ ${COMP_WORDS[COMP_CWORD-2]} == '--type' && \
                   ${COMP_WORDS[COMP_CWORD-3]} == 'list' ]] ; then
@@ -125,15 +129,15 @@ _lsm()
                 return 0
             fi
             ;;
-        '--type')
+        --type)
             COMPREPLY=( $(compgen -W "${list_type_args}" -- ${cur}) )
             return 0
             ;;
-        '--size')
+        --size|--count|--src-start|--dst-start)
             COMPREPLY=( $(compgen -W "" -- ${cur}) )
             return 0
             ;;
-        '--rep-type')
+        --rep-type)
             COMPREPLY=( $(compgen -W "${volume_rep_types}" -- ${cur}) )
             return 0
             ;;
@@ -169,6 +173,11 @@ _lsm()
             ;;
         volume-replicate)
             possible_args "${volume_replicate_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        volume-replicate-range)
+            possible_args "${volume_replicate_range_args}"
             COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
             ;;
