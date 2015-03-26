@@ -5,6 +5,41 @@
 # Bash completion for lsmcli. This may be far from ideal, 
 # suggestions & improvements appreciated!
 
+potential_args=''
+
+
+function join { local IFS="$1"; shift; echo "$*"; }
+
+# Linear search of an array of strings for the specified string
+listcontains() {
+    declare -a the_list=("${!1}")
+
+    for word in "${the_list[@]}" ; do
+        [[ $word == $2 ]] && return 0
+    done
+    return 1
+}
+
+# Given a list of what is possible and what is on the command line return
+# what is left.
+# $1 What is possible
+# Retults are returned in global string $potential_args
+possible_args()
+{
+    local l=()
+
+    for i in $1
+    do
+        listcontains COMP_WORDS[@] "$i"
+        if [[ $? -eq 1 ]] ; then     
+            l+=("$i")
+        fi
+    done
+
+    potential_args=$( join ' ', "${l[@]}" )
+}
+
+
 _lsm() 
 {
     local cur prev opts
@@ -15,7 +50,7 @@ _lsm()
     opts_short="-b -v -u -P -H -t -e -f -w -b"
     opts_long=" --help --version --uri --prompt --human --terse --enum \
               --force --wait --header --script "
-    opts_cmds="list job-status capabilities plugin-info"
+    opts_cmds="list job-status capabilities plugin-info volume-create"
 
     list_args="--type"
     list_type_args="volumes pools fs snapshots exports nfs_client_auth \
@@ -24,8 +59,9 @@ _lsm()
     opts_filter="--sys --pool --vol --disk --ag --fs --nfs"
 
     cap_args="--sys"
+    volume_create_args="--name --size --pool"
 
-    # Check if we have a previous
+    # Check if we have somthing present that we can help the user with
     case "${prev}" in
         '--sys')
             # Is there a better way todo this?
@@ -86,16 +122,33 @@ _lsm()
             COMPREPLY=( $(compgen -W "${list_type_args}" -- ${cur}) )
             return 0
             ;;
+        '--size')
+            COMPREPLY=( $(compgen -W "" -- ${cur}) )
+            return 0
+            ;;
+        *)
+        ;;
+    esac
+
+    case "${COMP_WORDS[1]}" in
         job-status)
-            COMPREPLY=( $(compgen -W "--job" -- ${cur}) )
+            possible_args "--job"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
             ;;
         list)
-            COMPREPLY=( $(compgen -W "${list_args}" -- ${cur}) )
+            possible_args ${list_args}
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        volume-create)
+            possible_args "${volume_create_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
             ;;
         capabilities)
-            COMPREPLY=( $(compgen -W "${cap_args}" -- ${cur}) )
+            possible_args "${cap_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
             ;;
         *)
