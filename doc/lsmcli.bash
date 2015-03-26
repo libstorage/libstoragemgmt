@@ -43,7 +43,7 @@ possible_args()
 _lsm() 
 {
     local cur prev opts
-    sep='#|#'
+    sep='#'
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
@@ -53,7 +53,9 @@ _lsm()
     opts_cmds="list job-status capabilities plugin-info volume-create \
                 volume-delete, volume-resize volume-replicate \
                 volume-replicate-range volume-replicate-range-block-size \
-                volume-dependants volume-dependants-rm"
+                volume-dependants volume-dependants-rm volume-access-group \
+                volume-mask volume-unmask access-group-create \
+                access-group-delete access-group-add access-group-remove"
 
     list_args="--type"
     list_type_args="volumes pools fs snapshots exports nfs_client_auth \
@@ -76,52 +78,67 @@ _lsm()
     volume_replication_range_bs="--sys"
     volume_dependants="--vol"
 
+    volume_access_group_args="--vol"
+    volume_masking_args="--vol --ag"
+
+    access_group_create_args="--name --init --sys"
+    access_group_delete_args="--ag"
+
+    access_group_add_remove_args="--ag --init"
+
     # Check if we have somthing present that we can help the user with
     case "${prev}" in
         --sys)
             # Is there a better way todo this?
-            local items=`lsmcli list --type systems -t${sep} | awk -F '#' '{print $1}'`
+            local items=`lsmcli list --type systems -t${sep} | awk -F ${sep} '{print $1}'`
             COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
             return 0
             ;;
         --pool)
             # Is there a better way todo this?
-            local items=`lsmcli list --type pools -t${sep} | awk -F '#' '{print $1}'`
+            local items=`lsmcli list --type pools -t${sep} | awk -F ${sep} '{print $1}'`
             COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
             return 0
             ;;
         --vol|--src-vol|--dst-vol)
             # Is there a better way todo this?
-            local items=`lsmcli list --type volumes -t${sep} | awk -F '#' '{print $1}'`
+            local items=`lsmcli list --type volumes -t${sep} | awk -F ${sep} '{print $1}'`
             COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
             return 0
             ;;
         --disk)
             # Is there a better way todo this?
-            local items=`lsmcli list --type disks -t${sep} | awk -F '#' '{print $1}'`
+            local items=`lsmcli list --type disks -t${sep} | awk -F ${sep} '{print $1}'`
             COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
             return 0
             ;;
         --ag)
             # Is there a better way todo this?
-            local items=`lsmcli list --type access_groups -t${sep} | awk -F '#' '{print $1}'`
+            local items=`lsmcli list --type access_groups -t${sep} | awk -F ${sep} '{print $1}'`
+            COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+            return 0
+            ;;
+        --init)
+            # It would be better if we filtered the result with the access group
+            # if it's present on the command line already.
+            local items=`lsmcli list --type access_groups -t${sep} | awk -F "${sep}" '{print $3}'`
             COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
             return 0
             ;;
         --nfs-export)
             # Is there a better way todo this?
-            local items=`lsmcli list --type exports  -t${sep} | awk -F '#' '{print $1}'`
+            local items=`lsmcli list --type exports  -t${sep} | awk -F ${sep} '{print $1}'`
             COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
             return 0
             ;;
         --tgt)
             # Is there a better way todo this?
-            local items=`lsmcli list --type target_ports  -t${sep} | awk -F '#' '{print $1}'`
+            local items=`lsmcli list --type target_ports  -t${sep} | awk -F ${sep} '{print $1}'`
             COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
             return 0
             ;;         
         --fs)
-            local items=`lsmcli list --type fs -t${sep} | awk -F '#' '{print $1}'`
+            local items=`lsmcli list --type fs -t${sep} | awk -F ${sep} '{print $1}'`
             COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
             return 0
             ;;
@@ -137,7 +154,8 @@ _lsm()
             COMPREPLY=( $(compgen -W "${list_type_args}" -- ${cur}) )
             return 0
             ;;
-        --size|--count|--src-start|--dst-start)
+        --size|--count|--src-start|--dst-start|--name)
+            # These we cannot lookup, so don't offer any values
             COMPREPLY=( $(compgen -W "" -- ${cur}) )
             return 0
             ;;
@@ -192,6 +210,31 @@ _lsm()
             ;;
         volume-dependants|volume-dependants-rm)
             possible_args "${volume_dependants}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        volume-access-group)
+            possible_args "${volume_access_group_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        volume-mask|volume-unmask)
+            possible_args "${volume_masking_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        access-group-create)
+            possible_args "${access_group_create_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        access-group-delete)
+            possible_args "${access_group_delete_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        access-group-add|access-group-remove)
+            possible_args "${access_group_add_remove_args}"
             COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
             ;;
