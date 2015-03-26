@@ -51,7 +51,7 @@ _lsm()
     opts_long=" --help --version --uri --prompt --human --terse --enum \
               --force --wait --header --script "
     opts_cmds="list job-status capabilities plugin-info volume-create \
-                volume-delete, volume-resize"
+                volume-delete, volume-resize volume-replicate"
 
     list_args="--type"
     list_type_args="volumes pools fs snapshots exports nfs_client_auth \
@@ -63,6 +63,10 @@ _lsm()
     volume_create_args="--name --size --pool"
     volume_delete_args="--vol --force"  # Should force be here, to easy to tab through?"
     volume_resize_args="--vol --size --force" # Should force be here, to easy to tab through?"
+
+    volume_replicate_args="--vol --name --rep-type"
+    # Hmmm, this looks like a bug with CLI, should support lower and upper case?
+    volume_rep_types="CLONE COPY MIRROR_ASYNC MIRROR_SYNC" 
 
     # Check if we have somthing present that we can help the user with
     case "${prev}" in
@@ -129,6 +133,10 @@ _lsm()
             COMPREPLY=( $(compgen -W "" -- ${cur}) )
             return 0
             ;;
+        '--rep-type')
+            COMPREPLY=( $(compgen -W "${volume_rep_types}" -- ${cur}) )
+            return 0
+            ;;
         *)
         ;;
     esac
@@ -156,6 +164,11 @@ _lsm()
             ;;
         volume-resize)
             possible_args "${volume_resize_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        volume-replicate)
+            possible_args "${volume_replicate_args}"
             COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
             ;;
