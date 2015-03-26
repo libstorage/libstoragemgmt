@@ -56,7 +56,7 @@ _lsm()
                 volume-dependants volume-dependants-rm volume-access-group \
                 volume-mask volume-unmask access-group-create \
                 access-group-delete access-group-add access-group-remove \
-                volume-enable volume-disable"
+                volume-enable volume-disable iscsi-chap"
 
     list_args="--type"
     list_type_args="volumes pools fs snapshots exports nfs_client_auth \
@@ -88,6 +88,8 @@ _lsm()
     access_group_add_remove_args="--ag --init"
 
     volume_enable_disable_args="--vol"
+
+    iscsi_chap_args="--in-user --in-pass --out-user --out-pass"
 
     # Check if we have somthing present that we can help the user with
     case "${prev}" in
@@ -157,7 +159,8 @@ _lsm()
             COMPREPLY=( $(compgen -W "${list_type_args}" -- ${cur}) )
             return 0
             ;;
-        --size|--count|--src-start|--dst-start|--name)
+        --size|--count|--src-start|--dst-start|--name|--in-user|--in-pass|\
+            --out-user|--out-pass)
             # These we cannot lookup, so don't offer any values
             COMPREPLY=( $(compgen -W "" -- ${cur}) )
             return 0
@@ -243,6 +246,11 @@ _lsm()
             ;;
         volume-enable|volume-disable)
             possible_args "${volume_enable_disable_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        iscsi-chap)
+            possible_args "${iscsi_chap_args}"
             COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
             ;;
