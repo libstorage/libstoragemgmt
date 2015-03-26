@@ -52,7 +52,7 @@ _lsm()
               --force --wait --header --script "
     opts_cmds="list job-status capabilities plugin-info volume-create \
                 volume-delete, volume-resize volume-replicate \
-                volume-replicate-range"
+                volume-replicate-range volume-replicate-range-block-size"
 
     list_args="--type"
     list_type_args="volumes pools fs snapshots exports nfs_client_auth \
@@ -71,6 +71,8 @@ _lsm()
 
     volume_replicate_range_args="--src-vol --dst-vol --rep-type --src-start \
                                 --dst-start --count --force" # Force ?
+
+    volume_replication_range_bs="--sys"
 
     # Check if we have somthing present that we can help the user with
     case "${prev}" in
@@ -178,6 +180,11 @@ _lsm()
             ;;
         volume-replicate-range)
             possible_args "${volume_replicate_range_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        volume-replicate-range-block-size)
+            possible_args "${volume_replication_range_bs}"
             COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
             ;;
