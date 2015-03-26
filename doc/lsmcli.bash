@@ -51,7 +51,7 @@ _lsm()
     opts_long=" --help --version --uri --prompt --human --terse --enum \
               --force --wait --header --script "
     opts_cmds="list job-status capabilities plugin-info volume-create \
-                volume-delete"
+                volume-delete, volume-resize"
 
     list_args="--type"
     list_type_args="volumes pools fs snapshots exports nfs_client_auth \
@@ -62,6 +62,7 @@ _lsm()
     cap_args="--sys"
     volume_create_args="--name --size --pool"
     volume_delete_args="--vol --force"  # Should force be here, to easy to tab through?"
+    volume_resize_args="--vol --size --force" # Should force be here, to easy to tab through?"
 
     # Check if we have somthing present that we can help the user with
     case "${prev}" in
@@ -150,6 +151,11 @@ _lsm()
             ;;
         volume-delete)
             possible_args "${volume_delete_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        volume-resize)
+            possible_args "${volume_resize_args}"
             COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
             ;;
