@@ -56,7 +56,10 @@ _lsm()
                 volume-dependants volume-dependants-rm volume-access-group \
                 volume-mask volume-unmask access-group-create \
                 access-group-delete access-group-add access-group-remove \
-                volume-enable volume-disable iscsi-chap"
+                volume-enable volume-disable iscsi-chap fs-create fs-delete \
+                fs-resize fs-export fs-unexport fs-clone fs-snap-create \
+                fs-snap-delete fs-snap-restore fs-dependants fs-dependants-rm
+                file-clone"
 
     list_args="--type"
     list_type_args="volumes pools fs snapshots exports nfs_client_auth \
@@ -90,6 +93,18 @@ _lsm()
     volume_enable_disable_args="--vol"
 
     iscsi_chap_args="--in-user --in-pass --out-user --out-pass"
+
+    fs_create_args="--name --size --pool"
+    fs_delete_args="--fs --force" # Force ?
+    fs_resize_args="--fs --size --force" # Force ?
+    fs_export_args="--fs --exportpath --anonuid --auth-type --root-host --ro-host --rw-host"
+    fs_unexport_args="--export"
+    fs_clone_args="--src-fs --dst-name"
+    fs_snap_create_args="--name --fs"
+    fs_snap_delete_args="--snap --fs"
+    fs_snap_restore_args="--snap --fs --file --fileas --force"
+    fs_dependants_args="--fs"
+    file_clone_args="--fs --src --dst --backing-snapshot"
 
     # Check if we have somthing present that we can help the user with
     case "${prev}" in
@@ -142,8 +157,13 @@ _lsm()
             COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
             return 0
             ;;         
-        --fs)
+        --fs|--src-fs)
             local items=`lsmcli list --type fs -t${sep} | awk -F ${sep} '{print $1}'`
+            COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+            return 0
+            ;;
+        --export)
+            local items=`lsmcli list --type exports -t${sep} | awk -F ${sep} '{print $1}'`
             COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
             return 0
             ;;
@@ -160,13 +180,19 @@ _lsm()
             return 0
             ;;
         --size|--count|--src-start|--dst-start|--name|--in-user|--in-pass|\
-            --out-user|--out-pass)
+            --out-user|--out-pass|--exportpath|--anonuid|--root-host|--ro-host|\
+            --rw-host|--dest-name|--snap|--file|--fileas|--src|--dst)
             # These we cannot lookup, so don't offer any values
             COMPREPLY=( $(compgen -W "" -- ${cur}) )
             return 0
             ;;
         --rep-type)
             COMPREPLY=( $(compgen -W "${volume_rep_types}" -- ${cur}) )
+            return 0
+            ;;
+        --auth-type)
+            local items=`lsmcli list --type nfs_client_auth -t ' '`
+            COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
             return 0
             ;;
         *)
@@ -251,6 +277,61 @@ _lsm()
             ;;
         iscsi-chap)
             possible_args "${iscsi_chap_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        fs-create)
+            possible_args "${fs_create_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        fs-delete)
+            possible_args "${fs_delete_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        fs-resize)
+            possible_args "${fs_resize_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        fs-export)
+            possible_args "${fs_export_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        fs-unexport)
+            possible_args "${fs_unexport_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        fs-clone)
+            possible_args "${fs_clone_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        fs-snap-create)
+            possible_args "${fs_snap_create_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        fs-snap-delete)
+            possible_args "${fs_snap_delete_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        fs-snap-restore)
+            possible_args "${fs_snap_restore_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        fs-dependants|fs-dependants-rm)
+            possible_args "${fs_dependants_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        file-clone)
+            possible_args "${file_clone_args}"
             COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
             ;;
