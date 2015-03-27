@@ -2,7 +2,7 @@
 # Distributed under the GNU General Public License, version 2.0.
 # See: https://www.gnu.org/licenses/gpl-2.0.html
 #
-# Bash completion for lsmcli. This may be far from ideal, 
+# Bash completion for lsmcli. This may be far from ideal,
 # suggestions & improvements appreciated!
 
 potential_args=''
@@ -31,7 +31,7 @@ function possible_args()
     for i in $1
     do
         listcontains COMP_WORDS[@] "$i"
-        if [[ $? -eq 1 ]] ; then     
+        if [[ $? -eq 1 ]] ; then
             l+=("$i")
         fi
     done
@@ -170,7 +170,7 @@ function _lsm()
             local items=`lsmcli list --type target_ports  -t${sep} | awk -F ${sep} '{print $1}'`
             COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
             return 0
-            ;;         
+            ;;
         --fs|--src-fs)
             local items=`lsmcli list --type fs -t${sep} | awk -F ${sep} '{print $1}'`
             COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
@@ -196,7 +196,7 @@ function _lsm()
             fi
             ;;
         snapshots)
-            # Specific listing case where you need a fs too            
+            # Specific listing case where you need a fs too
             if [[ ${COMP_WORDS[COMP_CWORD-2]} == '--type' && \
                   ${COMP_WORDS[COMP_CWORD-3]} == 'list' ]] ; then
                 COMPREPLY=( $(compgen -W "--fs" -- ${cur}) )
@@ -387,7 +387,7 @@ function _lsm()
         if [[ ${cur} == * ]] ; then
             COMPREPLY=( $(compgen -W "${opts_short}${opts_long}${opts_cmds}"  -- ${cur}) )
             return 0
-        fi        
+        fi
     fi
 }
 complete -F _lsm lsmcli
