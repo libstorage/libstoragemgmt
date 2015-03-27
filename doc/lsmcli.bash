@@ -11,11 +11,11 @@ potential_args=''
 function join { local IFS="$1"; shift; echo "$*"; }
 
 # Linear search of an array of strings for the specified string
-listcontains() {
+function listcontains() {
     declare -a the_list=("${!1}")
 
     for word in "${the_list[@]}" ; do
-        [[ $word == $2 ]] && return 0
+        [[ ${word} == $2 ]] && return 0
     done
     return 1
 }
@@ -24,7 +24,7 @@ listcontains() {
 # what is left.
 # $1 What is possible
 # Retults are returned in global string $potential_args
-possible_args()
+function possible_args()
 {
     local l=()
 
@@ -39,8 +39,22 @@ possible_args()
     potential_args=$( join ' ', "${l[@]}" )
 }
 
+# Returns the position of the value in the COMP_WORDS that contains $1, or
+# 255 if it doesn't exist
+function arg_index()
+{
+    count=0
+	for i in "${COMP_WORDS[@]}"
+	do
+		if [[ "$i" == "$1" ]] ; then
+			return ${count}
+		fi
+		let count+=1
+	done
+	return 255
+}
 
-_lsm() 
+function _lsm()
 {
     local cur prev opts
     sep='#'
@@ -167,6 +181,20 @@ _lsm()
             COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
             return 0
             ;;
+        --snap)
+            arg_index "--fs"
+            i=$?
+            # We have an access group present on the command line so filter the intiators to it
+            if [[ ${i} -ne 255 ]]; then
+                local items=`lsmcli list --type snapshots \
+                    --fs ${COMP_WORDS[${i}+1]} -t${sep} | awk -F ${sep} '{print $1}'`
+                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                return 0
+            else
+                COMPREPLY=( $(compgen -W "" -- ${cur}) )
+                return 0
+            fi
+            ;;
         snapshots)
             # Specific listing case where you need a fs too            
             if [[ ${COMP_WORDS[COMP_CWORD-2]} == '--type' && \
@@ -181,7 +209,7 @@ _lsm()
             ;;
         --size|--count|--src-start|--dst-start|--name|--in-user|--in-pass|\
             --out-user|--out-pass|--exportpath|--anonuid|--root-host|--ro-host|\
-            --rw-host|--dest-name|--snap|--file|--fileas|--src|--dst)
+            --rw-host|--dest-name|--file|--fileas|--src|--dst)
             # These we cannot lookup, so don't offer any values
             COMPREPLY=( $(compgen -W "" -- ${cur}) )
             return 0
