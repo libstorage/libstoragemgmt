@@ -123,7 +123,7 @@ class PoolRAID(object):
 
 
 class BackStore(object):
-    VERSION = "3.2"
+    VERSION = "3.3"
     VERSION_SIGNATURE = 'LSM_SIMULATOR_DATA_%s_%s' % (VERSION, md5(VERSION))
     JOB_DEFAULT_DURATION = 1
     JOB_DATA_TYPE_VOL = 1
@@ -353,40 +353,74 @@ class BackStore(object):
             """
             CREATE VIEW pools_view AS
                 SELECT
-                    pool.id,
-                    pool.name,
-                    pool.status,
-                    pool.status_info,
-                    pool.element_type,
-                    pool.unsupported_actions,
-                    pool.raid_type,
-                    pool.member_type,
-                    pool.parent_pool_id,
-                        ifnull(pool.total_space,
-                            ifnull(SUM(disk.total_space), 0))
-                    total_space,
-                        ifnull(pool.total_space,
-                            ifnull(SUM(disk.total_space), 0)) -
-                        ifnull(SUM(volume.consumed_size), 0) -
-                        ifnull(SUM(fs.consumed_size), 0) -
-                        ifnull(SUM(pool2.total_space), 0)
-                    free_space
-
+                    pool0.id,
+                    pool0.name,
+                    pool0.status,
+                    pool0.status_info,
+                    pool0.element_type,
+                    pool0.unsupported_actions,
+                    pool0.raid_type,
+                    pool0.member_type,
+                    pool0.parent_pool_id,
+                    pool1.total_space total_space,
+                    pool1.total_space -
+                    pool2.vol_consumed_size  -
+                    pool3.fs_consumed_size -
+                    pool4.sub_pool_consumed_size free_space
                 FROM
-                    pools pool
-                        LEFT JOIN disks disk
-                            ON pool.id = disk.owner_pool_id AND
-                               disk.role = 'DATA'
-                        LEFT JOIN volumes volume
-                            ON volume.pool_id = pool.id
-                        LEFT JOIN fss fs
-                            ON fs.pool_id = pool.id
-                        LEFT JOIN pools pool2
-                            ON pool2.parent_pool_id = pool.id
+                    pools pool0
+                        LEFT JOIN (
+                            SELECT
+                                pool.id,
+                                    ifnull(pool.total_space,
+                                        ifnull(SUM(disk.total_space), 0))
+                                total_space
+                            FROM pools pool
+                                LEFT JOIN disks disk
+                                    ON pool.id = disk.owner_pool_id AND
+                                       disk.role = 'DATA'
+                            GROUP BY
+                                pool.id
+                        ) pool1 ON pool0.id = pool1.id
+
+                        LEFT JOIN (
+                            SELECT
+                                pool.id,
+                                ifnull(SUM(volume.consumed_size), 0)
+                                vol_consumed_size
+                            FROM pools pool
+                                LEFT JOIN volumes volume
+                                    ON volume.pool_id = pool.id
+                            GROUP BY
+                                pool.id
+                        ) pool2 ON pool0.id = pool2.id
+
+                        LEFT JOIN (
+                            SELECT
+                                pool.id,
+                                ifnull(SUM(fs.consumed_size), 0)
+                                fs_consumed_size
+                            FROM pools pool
+                                LEFT JOIN fss fs
+                                    ON fs.pool_id = pool.id
+                            GROUP BY
+                                pool.id
+                        ) pool3 ON pool0.id = pool3.id
+
+                        LEFT JOIN (
+                            SELECT
+                                pool.id,
+                                ifnull(SUM(sub_pool.total_space), 0)
+                                sub_pool_consumed_size
+                            FROM pools pool
+                                LEFT JOIN pools sub_pool
+                                    ON sub_pool.parent_pool_id = pool.id
+                            GROUP BY
+                                pool.id
+                        ) pool4 ON pool0.id = pool4.id
 
                 GROUP BY
-                    pool.id
-            ;
+                    pool0.id;
             """)
         sql_cmd += (
             """
