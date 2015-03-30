@@ -158,11 +158,20 @@ function _lsm()
                 return 0
                 ;;
             --init)
-                # It would be better if we filtered the result with the access group
-                # if it's present on the command line already.
-                local items=`lsmcli list --type access_groups -t${sep} | awk -F "${sep}" '{print $3}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
-                return 0
+                arg_index "--ag"
+                i=$?
+                # We have an access group present on the command line so filter the intiators to it
+                if [[ ${i} -ne 255 ]]; then
+                    # It would be better if we filtered the result with the access group
+                    # if it's present on the command line already.
+                    local items=`lsmcli list --type access_groups -t${sep} --ag ${COMP_WORDS[${i}+1]} | awk -F ${sep} '{print $3}'`
+                    COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                    return 0
+                else
+                    local items=`lsmcli list --type access_groups -t${sep} | awk -F ${sep} '{print $3}'`
+                    COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                    return 0
+                fi
                 ;;
             --nfs-export)
                 # Is there a better way todo this?
