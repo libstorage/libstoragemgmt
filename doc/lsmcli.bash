@@ -7,6 +7,8 @@
 
 potential_args=''
 
+# Skip value lookups by default
+NO_VALUE_LOOKUP=${LSMCLI_AUTO_COMPLETE_VALUE:=0}
 
 function join { local IFS="$1"; shift; echo "$*"; }
 
@@ -120,89 +122,96 @@ function _lsm()
     fs_dependants_args="--fs"
     file_clone_args="--fs --src --dst --backing-snapshot"
 
-    # Check if we have somthing present that we can help the user with
-    case "${prev}" in
-        --sys)
-            # Is there a better way todo this?
-            local items=`lsmcli list --type systems -t${sep} | awk -F ${sep} '{print $1}'`
-            COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
-            return 0
-            ;;
-        --pool)
-            # Is there a better way todo this?
-            local items=`lsmcli list --type pools -t${sep} | awk -F ${sep} '{print $1}'`
-            COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
-            return 0
-            ;;
-        --vol|--src-vol|--dst-vol)
-            # Is there a better way todo this?
-            local items=`lsmcli list --type volumes -t${sep} | awk -F ${sep} '{print $1}'`
-            COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
-            return 0
-            ;;
-        --disk)
-            # Is there a better way todo this?
-            local items=`lsmcli list --type disks -t${sep} | awk -F ${sep} '{print $1}'`
-            COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
-            return 0
-            ;;
-        --ag)
-            # Is there a better way todo this?
-            local items=`lsmcli list --type access_groups -t${sep} | awk -F ${sep} '{print $1}'`
-            COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
-            return 0
-            ;;
-        --init)
-            # It would be better if we filtered the result with the access group
-            # if it's present on the command line already.
-            local items=`lsmcli list --type access_groups -t${sep} | awk -F "${sep}" '{print $3}'`
-            COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
-            return 0
-            ;;
-        --nfs-export)
-            # Is there a better way todo this?
-            local items=`lsmcli list --type exports  -t${sep} | awk -F ${sep} '{print $1}'`
-            COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
-            return 0
-            ;;
-        --tgt)
-            # Is there a better way todo this?
-            local items=`lsmcli list --type target_ports  -t${sep} | awk -F ${sep} '{print $1}'`
-            COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
-            return 0
-            ;;
-        --fs|--src-fs)
-            local items=`lsmcli list --type fs -t${sep} | awk -F ${sep} '{print $1}'`
-            COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
-            return 0
-            ;;
-        --export)
-            local items=`lsmcli list --type exports -t${sep} | awk -F ${sep} '{print $1}'`
-            COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
-            return 0
-            ;;
-        --snap)
-            arg_index "--fs"
-            i=$?
-            # We have an access group present on the command line so filter the intiators to it
-            if [[ ${i} -ne 255 ]]; then
-                local items=`lsmcli list --type snapshots \
-                    --fs ${COMP_WORDS[${i}+1]} -t${sep} | awk -F ${sep} '{print $1}'`
+    # These operations can potentially be slow and cause hangs depending on plugin and configuration
+    if [[ ${NO_VALUE_LOOKUP} -ne 0 ]] ; then
+
+        # Check if we have somthing present that we can help the user with
+        case "${prev}" in
+            --sys)
+                # Is there a better way todo this?
+                local items=`lsmcli list --type systems -t${sep} | awk -F ${sep} '{print $1}'`
                 COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
                 return 0
-            else
-                COMPREPLY=( $(compgen -W "" -- ${cur}) )
+                ;;
+            --pool)
+                # Is there a better way todo this?
+                local items=`lsmcli list --type pools -t${sep} | awk -F ${sep} '{print $1}'`
+                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
                 return 0
-            fi
-            ;;
-        snapshots)
-            # Specific listing case where you need a fs too
-            if [[ ${COMP_WORDS[COMP_CWORD-2]} == '--type' && \
-                  ${COMP_WORDS[COMP_CWORD-3]} == 'list' ]] ; then
-                COMPREPLY=( $(compgen -W "--fs" -- ${cur}) )
+                ;;
+            --vol|--src-vol|--dst-vol)
+                # Is there a better way todo this?
+                local items=`lsmcli list --type volumes -t${sep} | awk -F ${sep} '{print $1}'`
+                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
                 return 0
-            fi
+                ;;
+            --disk)
+                # Is there a better way todo this?
+                local items=`lsmcli list --type disks -t${sep} | awk -F ${sep} '{print $1}'`
+                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                return 0
+                ;;
+            --ag)
+                # Is there a better way todo this?
+                local items=`lsmcli list --type access_groups -t${sep} | awk -F ${sep} '{print $1}'`
+                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                return 0
+                ;;
+            --init)
+                # It would be better if we filtered the result with the access group
+                # if it's present on the command line already.
+                local items=`lsmcli list --type access_groups -t${sep} | awk -F "${sep}" '{print $3}'`
+                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                return 0
+                ;;
+            --nfs-export)
+                # Is there a better way todo this?
+                local items=`lsmcli list --type exports  -t${sep} | awk -F ${sep} '{print $1}'`
+                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                return 0
+                ;;
+            --tgt)
+                # Is there a better way todo this?
+                local items=`lsmcli list --type target_ports  -t${sep} | awk -F ${sep} '{print $1}'`
+                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                return 0
+                ;;
+            --fs|--src-fs)
+                local items=`lsmcli list --type fs -t${sep} | awk -F ${sep} '{print $1}'`
+                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                return 0
+                ;;
+            --export)
+                local items=`lsmcli list --type exports -t${sep} | awk -F ${sep} '{print $1}'`
+                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                return 0
+                ;;
+            --snap)
+                arg_index "--fs"
+                i=$?
+                # We have an access group present on the command line so filter the snapshots to it
+                if [[ ${i} -ne 255 ]]; then
+                    local items=`lsmcli list --type snapshots \
+                        --fs ${COMP_WORDS[${i}+1]} -t${sep} | awk -F ${sep} '{print $1}'`
+                    COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                    return 0
+                else
+                    COMPREPLY=( $(compgen -W "" -- ${cur}) )
+                    return 0
+                fi
+                ;;
+            --auth-type)
+                local items=`lsmcli list --type nfs_client_auth -t ' '`
+                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                return 0
+                ;;
+            *)
             ;;
+        esac
+    fi
+
+    # Cases where we don't have to worry about look-up time
+    case "${prev}" in
         --type)
             COMPREPLY=( $(compgen -W "${list_type_args}" -- ${cur}) )
             return 0
@@ -218,13 +227,15 @@ function _lsm()
             COMPREPLY=( $(compgen -W "${volume_rep_types}" -- ${cur}) )
             return 0
             ;;
-        --auth-type)
-            local items=`lsmcli list --type nfs_client_auth -t ' '`
-            COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
-            return 0
+        snapshots)
+            # Specific listing case where you need a fs too
+            if [[ ${COMP_WORDS[COMP_CWORD-2]} == '--type' && \
+                  ${COMP_WORDS[COMP_CWORD-3]} == 'list' ]] ; then
+                COMPREPLY=( $(compgen -W "--fs" -- ${cur}) )
+                return 0
+            fi
             ;;
         *)
-        ;;
     esac
 
     case "${COMP_WORDS[1]}" in
