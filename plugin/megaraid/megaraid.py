@@ -29,6 +29,7 @@ from lsm.plugin.megaraid.utils import cmd_exec, ExecError
 # Naming scheme
 #   mega_sys_path   /c0
 #   mega_disk_path  /c0/e64/s0
+#   lsi_disk_id    0:64:0
 
 
 def _handle_errors(method):
@@ -393,7 +394,8 @@ class MegaRAID(IPlugin):
                 status = _disk_status_of(
                     disk_show_basic_dict, disk_show_stat_dict)
 
-                plugin_data = mega_disk_path
+                plugin_data = "%s:%s" % (
+                    ctrl_num, disk_show_basic_dict['EID:Slt'])
 
                 rc_lsm_disks.append(
                     Disk(
@@ -576,15 +578,14 @@ class MegaRAID(IPlugin):
             lsm_disk_map[lsm_disk.plugin_data] = lsm_disk.id
 
         for dg_disk_info in dg_show_all_output['DG Drive LIST']:
-            cur_lsi_disk_path = "/c%s" % ctrl_num + "/e%s/s%s" % tuple(
-                dg_disk_info['EID:Slt'].split(':'))
-            if cur_lsi_disk_path in lsm_disk_map.keys():
-                disk_ids.append(lsm_disk_map[cur_lsi_disk_path])
+            cur_lsi_disk_id = "%s:%s" % (ctrl_num, dg_disk_info['EID:Slt'])
+            if cur_lsi_disk_id in lsm_disk_map.keys():
+                disk_ids.append(lsm_disk_map[cur_lsi_disk_id])
             else:
                 raise LsmError(
                     ErrorNumber.PLUGIN_BUG,
                     "pool_member_info(): Failed to find disk id of %s" %
-                    cur_lsi_disk_path)
+                    cur_lsi_disk_id)
 
         raid_type = Volume.RAID_TYPE_UNKNOWN
         dg_num = lsi_dg_path.split('/')[2][1:]
