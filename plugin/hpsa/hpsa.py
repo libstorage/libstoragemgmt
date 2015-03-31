@@ -75,9 +75,20 @@ def _sys_status_of(hp_ctrl_status):
 def _parse_hpssacli_output(output):
     """
     Got a output string of hpssacli to dictionary(nested).
+    Skipped these line:
+        1. Starts with 'Note:'
+           This is just a message right after controller. We don't neet it
+           yet.
+        2. The 'Physical Drives' line.
+           It should indented after 'Internal Drive Cage' like.
+           If not ignored, we might got duplication line error.
+           After ignored, it's phsycial disks will directly stored as
+           key of 'Internal Drive Cage' dictionary.
     """
     output_lines = [
-        l for l in output.split("\n") if l and not l.startswith('Note:')]
+        l for l in output.split("\n")
+        if l and not l.startswith('Note:') and
+           not l.strip() == 'Physical Drives']
 
     data = {}
 
@@ -108,24 +119,19 @@ def _parse_hpssacli_output(output):
 
         if nxt_indent_count > cur_indent_count:
             nxt_line_splitted = nxt_line.split(": ")
-            if len(nxt_line_splitted) == 1:
-                new_data = []
-            else:
-                new_data = {}
+            new_data = {}
 
             if cur_line.lstrip() not in cur_data_pointer:
                 cur_data_pointer[cur_line.lstrip()] = new_data
                 indent_2_data[nxt_indent_count] = new_data
-            elif type(cur_data_pointer[cur_line.lstrip()]) != type(new_data):
+            else:
                 raise LsmError(
                     ErrorNumber.PLUGIN_BUG,
-                    "_parse_hpssacli_output(): Unexpected line '%s%s\n'" %
-                    (cur_line, nxt_line))
+                    "_parse_hpssacli_output(): Found duplicate line %s" %
+                    cur_line)
         else:
             if len(cur_line_splitted) == 1:
-                if type(indent_2_data[cur_indent_count]) != list:
-                    raise Exception("not a list: '%s'" % cur_line)
-                cur_data_pointer.append(cur_line.lstrip())
+                cur_data_pointer[cur_line.lstrip()] = None
             else:
                 cur_data_pointer[cur_line_splitted[0].lstrip()] = \
                     ": ".join(cur_line_splitted[1:]).strip()
@@ -450,8 +456,7 @@ class SmartArray(IPlugin):
         Depend on command:
             hpssacli ctrl all show config detail
         """
-        # TODO(Gris Ge): Need real test on spare disk and free disk.
-        #                The free disks is purely base on HP document.
+        # TODO(Gris Ge): Need real test on spare disk.
         rc_lsm_disks = []
         ctrl_all_conf = self._sacli_exec(
             ["ctrl", "all", "show", "config", "detail"])
@@ -475,7 +480,7 @@ class SmartArray(IPlugin):
                                 SmartArray._hp_disk_to_lsm_disk(
                                     ctrl_data[key_name][array_key_name],
                                     sys_id, ctrl_num, array_key_name,
-                                    flag_free=False))
+                                    flag_free=True))
 
         return search_property(rc_lsm_disks, search_key, search_value)
 
