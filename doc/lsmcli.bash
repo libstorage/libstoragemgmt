@@ -74,8 +74,9 @@ function _lsm()
                 access-group-delete access-group-add access-group-remove \
                 volume-enable volume-disable iscsi-chap fs-create fs-delete \
                 fs-resize fs-export fs-unexport fs-clone fs-snap-create \
-                fs-snap-delete fs-snap-restore fs-dependants fs-dependants-rm
-                file-clone"
+                fs-snap-delete fs-snap-restore fs-dependants fs-dependants-rm \
+                file-clone ls lp lv ld la lf lt c p vc vd vr vm vi ve vi ac \
+                aa ar ad vri"
 
     list_args="--type"
     list_type_args="volumes pools fs snapshots exports nfs_client_auth \
@@ -107,6 +108,8 @@ function _lsm()
     access_group_add_remove_args="--ag --init"
 
     volume_enable_disable_args="--vol"
+
+    volume_raidinfo_args="--vol"
 
     iscsi_chap_args="--in-user --in-pass --out-user --out-pass"
 
@@ -258,17 +261,22 @@ function _lsm()
             COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
             ;;
-        volume-create)
+        volume-create|vc)
             possible_args "${volume_create_args}"
             COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
             ;;
-        volume-delete)
+        volume-delete|vd)
             possible_args "${volume_delete_args}"
             COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
             ;;
-        volume-resize)
+        volume-raid-info|vri)
+            possible_args "${volume_raidinfo_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        volume-resize|vr)
             possible_args "${volume_resize_args}"
             COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
@@ -298,27 +306,27 @@ function _lsm()
             COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
             ;;
-        volume-mask|volume-unmask)
+        volume-mask|volume-unmask|vm|vu)
             possible_args "${volume_masking_args}"
             COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
             ;;
-        access-group-create)
+        access-group-create|ac)
             possible_args "${access_group_create_args}"
             COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
             ;;
-        access-group-delete)
+        access-group-delete|ad)
             possible_args "${access_group_delete_args}"
             COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
             ;;
-        access-group-add|access-group-remove)
+        access-group-add|access-group-remove|aa|ar)
             possible_args "${access_group_add_remove_args}"
             COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
             ;;
-        volume-enable|volume-disable)
+        volume-enable|volume-disable|ve|vi)
             possible_args "${volume_enable_disable_args}"
             COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
@@ -383,7 +391,7 @@ function _lsm()
             COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
             ;;
-        capabilities)
+        capabilities|c)
             possible_args "${cap_args}"
             COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
