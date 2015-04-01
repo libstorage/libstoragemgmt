@@ -200,6 +200,41 @@ PKG_CHECK_MODULES(
     AC_MSG_ERROR([libconfig 1.3.2 or newer not found.])
 )
 
+dnl ==========================================================================
+dnl Add option '--without-bash-completion' to exclude bash completion script.
+dnl ==========================================================================
+
+AC_ARG_WITH([bash-completion],
+    [AS_HELP_STRING([--without-bash-completion],
+        [Do not install the bash auto-completion script])],
+    [],
+    [with_bash_completion=yes])
+
+AM_CONDITIONAL(
+    [WITH_BASH_COMPLETION], [test "x$with_bash_completion" = "xyes"])
+
+dnl ==========================================================================
+dnl Add option '--with-bash-completion-dir' to specific bash completion dir,
+dnl if not defined, if pkg-config file for bash-completion found, use its
+dnl 'completionsdir', else use /etc/bash_completion.d
+dnl ==========================================================================
+AC_ARG_WITH([bash-completion-dir],
+    AS_HELP_STRING(
+        [--with-bash-completion-dir=DIR], 
+        [Bash completions directory]),
+        [],
+        [AS_IF(
+            [$($PKG_CONFIG --exists bash-completion)],
+            [with_bash_completion_dir=$(
+                $PKG_CONFIG --variable=completionsdir bash-completion)], 
+            # EPEL 6 is still shipping bash-completion version 1.x
+            # which does not provide pkg-config support.
+            # So, for EPEL 6 or anyone not installed bash-compeltion, we
+            # use fallback folder '/etc/bash_completion.d'
+            [with_bash_completion_dir=$sysconfdir/bash_completion.d])])
+
+AC_SUBST([bashcompletiondir], [$with_bash_completion_dir])
+
 #Setup the unit directory for systemd stuff
 PKG_PROG_PKG_CONFIG
 AC_ARG_WITH([systemdsystemunitdir],
@@ -233,6 +268,7 @@ AC_OUTPUT(libstoragemgmt.pc \
           tools/udev/Makefile \
           tools/lsmcli/Makefile \
           tools/utility/Makefile \
+          tools/bash_completion/Makefile \
           packaging/Makefile \
           packaging/daemon/Makefile \
           packaging/libstoragemgmt.spec \

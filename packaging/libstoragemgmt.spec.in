@@ -68,6 +68,9 @@ BuildRequires:  fdupes
 
 %if 0%{?rhel} == 6
 BuildRequires:  python-ordereddict
+%else
+# Require bash-completion > 2.0
+BuildRequires:  bash-completion >= 2.0
 %endif
 
 %if 0%{?with_systemd}
@@ -463,6 +466,13 @@ fi
 %{_sysconfdir}/lsm/lsmd.conf
 %dir %{_sysconfdir}/lsm
 %dir %{_sysconfdir}/lsm/pluginconf.d
+
+%if 0%{?rhel} == 6
+%{_sysconfdir}/bash_completion.d/lsmcli
+%else
+%{_datadir}/bash-completion/completions/lsmcli
+%endif
+
 
 %if 0%{?with_systemd}
 %{_unitdir}/libstoragemgmt.service
