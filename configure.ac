@@ -193,6 +193,18 @@ AC_ARG_WITH([megaraid],
 AM_CONDITIONAL([WITH_MEGARAID], [test "x$with_megaraid" = "xyes"])
 
 dnl ==========================================================================
+dnl Add option '--without-hpsa' to exclude hpsa plugin.
+dnl ==========================================================================
+
+AC_ARG_WITH([hpsa],
+    [AS_HELP_STRING([--without-hpsa],
+        [Do not build the HP SmartArray plugin])],
+    [],
+    [with_hpsa=yes])
+
+AM_CONDITIONAL([WITH_HPSA], [test "x$with_hpsa" = "xyes"])
+
+dnl ==========================================================================
 dnl Check for libconfig as it is needed for lsmd daemon
 dnl ==========================================================================
 PKG_CHECK_MODULES(
@@ -221,6 +233,7 @@ AC_OUTPUT(libstoragemgmt.pc \
           plugin/Makefile \
           plugin/simc/Makefile \
           plugin/megaraid/Makefile \
+          plugin/hpsa/Makefile \
           daemon/Makefile \
           config/Makefile \
           doc/Makefile \
@@ -229,6 +242,7 @@ AC_OUTPUT(libstoragemgmt.pc \
           doc/doxygen.conf \
           doc/man/lsmd.conf.5 \
           doc/man/megaraid_lsmplugin.1 \
+          doc/man/hpsa_lsmplugin.1 \
           tools/Makefile \
           tools/udev/Makefile \
           tools/lsmcli/Makefile \

@@ -1,0 +1,50 @@
+.TH hpsa_lsmplugin "1" "March 2015" "hpsa_lsmplugin @VERSION@" "libStorageMgmt"
+.SH NAME
+hpsa_lsmplugin -- LibstorageMgmt HP SmartArray plugin
+
+.SH DESCRIPTION
+LibstorageMgmt hpsa plugin allows user to manage HP SmartArray via vendor
+tool \fBhpssacli\fR[1].
+The 'hpsa_lsmplugin' executable file is for libStorageMgmt
+daemon to execute when client user specifies hpsa plugin in the URI.
+
+.SH URI
+To use this plugin, users should set their URI to this format:
+.nf
+
+    \fBhpsa://\fR
+        or
+    \fBhpsa://?hpssacli=<path_of_hpssacli>\fR
+
+.fi
+
+.TP hpssacli
+The 'hpssacli' URI parameter is used to specified the path of hpssacli tool.
+By default, this plugin will try these paths used by hpssacli rpm:
+\fB/usr/sbin/hpssacli\fR and \fB/opt/hp/hpssacli/bld/hpssacli\fR.
+
+.SH ROOT PRIVILEGE
+This plugin requires both \fBlsmd\fR daemon and API client running as root
+user. Please check manpage \fIlsmd.conf (5)\fR for detail.
+
+.SH SUPPORTED HARDWARES
+Please refer to HP website for hardware support status of hpssacli.
+Detailed support status can be queried via:
+
+ * \fBlsm.Client.capabilities()\fR  (Python API)
+ * \fBlsm_capabilities()\fR         (C API)
+ * \fBlsmcli capabilities\fR        (lsmcli command line).
+
+.SH FIREWALL RULES
+This plugin only execute \fBhpssacli\fR on localhost. No network connection
+required.
+
+.SH SEE ALSO
+\fIlsmcli\fR(1), \fIlsmd\fR(1), [1]http://downloads.linux.hp.com/SDR/project/spp/
+
+.SH BUGS
+Please report bugs to
+\fI<libstoragemgmt-devel@lists.sourceforge.net>\fR
+
+.SH AUTHOR
+Gris Ge \fI<fge@redhat.com>\fR
