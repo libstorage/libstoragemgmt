@@ -1,5 +1,6 @@
 %bcond_with rest_api
 %bcond_without megaraid
+%bcond_without test
 
 # Use one-line macro for OBS workaround:
 #   https://bugzilla.novell.com/show_bug.cgi?id=864323
@@ -8,6 +9,9 @@
 
 %{?_with_megaraid: %global with_megaraid 1 }
 %{?_without_megaraid: %global with_megaraid 0 }
+
+%{?_with_test: %global with_test 1 }
+%{?_without_test: %global with_test 0 }
 
 %define libsoname libstoragemgmt
 
@@ -288,12 +292,14 @@ install -m 755 tools/udev/scan-scsi-target \
 %clean
 rm -rf %{buildroot}
 
+%if 0%{?with_test}
 %check
 if ! make check
 then
   cat test/test-suite.log || true
   exit 1
 fi
+%endif
 
 %pre -n %{libstoragemgmt}
 if [ $1 -eq 1 ]; then
