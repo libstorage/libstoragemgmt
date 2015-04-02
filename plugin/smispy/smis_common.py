@@ -126,6 +126,8 @@ def _profile_check(profile_dict, profile_name, spec_ver,
                 (profile_name, spec_ver) +
                 "target SMI-S provider. Only version %s is supported" %
                 profile_dict[profile_name])
+        else:
+            return False
     return True
 
 
