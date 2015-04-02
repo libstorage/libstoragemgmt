@@ -168,6 +168,7 @@ class SmisCommon(object):
     SNIA_FC_TGT_PORT_PROFILE = 'FC Target Ports'
     SNIA_ISCSI_TGT_PORT_PROFILE = 'iSCSI Target Ports'
     SNIA_SPARE_DISK_PROFILE = 'Disk Sparing'
+    SMIS_SPEC_VER_1_1 = '1.1'
     SMIS_SPEC_VER_1_4 = '1.4'
     SMIS_SPEC_VER_1_5 = '1.5'
     SMIS_SPEC_VER_1_6 = '1.6'
@@ -232,6 +233,17 @@ class SmisCommon(object):
 
         if namespace.lower() == SmisCommon._NETAPP_E_NAMESPACE.lower():
             self._vendor_product = SmisCommon._PRODUCT_NETAPP_E
+            # NetApp-E indicates they support 1.0 version of FC/iSCSI target
+            # But 1.0 does not define thoese profiles. Forcly change
+            # support version to 1.4
+            self._profile_dict[SmisCommon.SNIA_FC_TGT_PORT_PROFILE] = \
+                SmisCommon.SMIS_SPEC_VER_1_4
+            self._profile_dict[SmisCommon.SNIA_ISCSI_TGT_PORT_PROFILE] = \
+                SmisCommon.SMIS_SPEC_VER_1_4
+            # NetApp-E indicates support of Mask and Mapping 1.2. But
+            # SNIA website link for 1.2 broken. Change it to 1.4.
+            self._profile_dict[SmisCommon.SNIA_MASK_PROFILE] = \
+                SmisCommon.SMIS_SPEC_VER_1_4
 
         # Check 'Array' 1.4 support status.
         _profile_check(
