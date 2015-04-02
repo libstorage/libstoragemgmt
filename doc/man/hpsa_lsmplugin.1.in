@@ -44,7 +44,7 @@ required.
 
 .SH BUGS
 Please report bugs to
-\fI<libstoragemgmt-devel@lists.sourceforge.net>\fR
+\fI<libstoragemgmt-devel@lists.fedorahosted.org>\fR
 
 .SH AUTHOR
 Gris Ge \fI<fge@redhat.com>\fR

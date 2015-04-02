@@ -52,8 +52,8 @@ License:        LGPL-2.1+
 %else
 License:        LGPLv2+
 %endif
-URL:            http://sourceforge.net/projects/libstoragemgmt/
-Source0:        http://sourceforge.net/projects/libstoragemgmt/files/libstoragemgmt-%{version}.tar.gz
+URL:            https://github.com/libstorage/libstoragemgmt/
+Source0:        https://github.com/libstorage/libstoragemgmt/releases/download/%{version}/libstoragemgmt-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires:       %{libstoragemgmt}-python
 BuildRequires:  autoconf automake libtool libxml2-devel check-devel perl

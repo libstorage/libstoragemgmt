@@ -720,7 +720,7 @@ at the end of URI, for example:
 
 .SH BUGS
 Please report bugs to
-\fI<libstoragemgmt-devel@lists.sourceforge.net>\fR
+\fI<libstoragemgmt-devel@lists.fedorahosted.org>\fR
 .SH AUTHOR
 Tony Asleson \fI<tasleson@redhat.com>\fR
 .br

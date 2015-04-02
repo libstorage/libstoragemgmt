@@ -51,6 +51,6 @@ detail.
 
 .SH BUGS
 Please report bugs to
-<libstoragemgmt\-devel@lists.sourceforge.net>
+<libstoragemgmt-devel@lists.fedorahosted.org>
 .SH AUTHOR
 Gris Ge <fge@redhat.com>
