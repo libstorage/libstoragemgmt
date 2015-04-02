@@ -165,6 +165,7 @@ class SmisCommon(object):
     SNIA_GROUP_MASK_PROFILE = 'Group Masking and Mapping'
     SNIA_FC_TGT_PORT_PROFILE = 'FC Target Ports'
     SNIA_ISCSI_TGT_PORT_PROFILE = 'iSCSI Target Ports'
+    SNIA_SPARE_DISK_PROFILE = 'Disk Sparing'
     SMIS_SPEC_VER_1_4 = '1.4'
     SMIS_SPEC_VER_1_5 = '1.5'
     SMIS_SPEC_VER_1_6 = '1.6'
