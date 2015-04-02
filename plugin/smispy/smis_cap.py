@@ -248,10 +248,7 @@ def _tgt_cap_set(smis_common, cim_sys_path, cap):
         return
 
     flag_fc_support = fc_tgt_is_supported(smis_common)
-    flag_iscsi_support = smis_common.profile_check(
-        SmisCommon.SNIA_ISCSI_TGT_PORT_PROFILE,
-        SmisCommon.SMIS_SPEC_VER_1_4,
-        raise_error=False)
+    flag_iscsi_support = iscsi_tgt_is_supported(smis_common)
 
     if flag_fc_support or flag_iscsi_support:
         cap.set(Capabilities.TARGET_PORTS)
@@ -311,12 +308,12 @@ def fc_tgt_is_supported(smis_common):
 
 def iscsi_tgt_is_supported(smis_common):
     """
-    Return True if FC Target Port 1.4+ profile is supported.
+    Return True if FC Target Port 1.1+ profile is supported.
     We use CIM_iSCSIProtocolEndpoint as it's a start point we are
     using in our code of target_ports().
     """
     if smis_common.profile_check(SmisCommon.SNIA_ISCSI_TGT_PORT_PROFILE,
-                                 SmisCommon.SMIS_SPEC_VER_1_4,
+                                 SmisCommon.SMIS_SPEC_VER_1_1,
                                  raise_error=False):
         return True
     return False
@@ -324,12 +321,12 @@ def iscsi_tgt_is_supported(smis_common):
 
 def multi_sys_is_supported(smis_common):
     """
-    Return True if Multiple ComputerSystem 1.4+ profile is supported.
+    Return True if Multiple ComputerSystem 1.1+ profile is supported.
     Return False else.
     """
     flag_multi_sys_support = smis_common.profile_check(
         SmisCommon.SNIA_MULTI_SYS_PROFILE,
-        SmisCommon.SMIS_SPEC_VER_1_4,
+        SmisCommon.SMIS_SPEC_VER_1_1,
         raise_error=False)
     if flag_multi_sys_support:
         return True

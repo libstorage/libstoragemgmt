@@ -1531,7 +1531,7 @@ class Smis(IStorageAreaNetwork):
         return TargetPort(port_id, port_type, wwpn, wwpn, wwpn, port_name,
                           system_id, plugin_data)
 
-    def _iscsi_node_name_of(self, cim_iscsi_pg_path):
+    def _iscsi_node_names_of(self, cim_iscsi_pg_path):
         """
             CIM_iSCSIProtocolEndpoint
                     |
@@ -1542,7 +1542,6 @@ class Smis(IStorageAreaNetwork):
                     |
                     v
             CIM_SCSIProtocolController  # iSCSI Node
-
         """
         cim_spcs = self._c.Associators(
             cim_iscsi_pg_path,
@@ -1559,16 +1558,8 @@ class Smis(IStorageAreaNetwork):
                 cim_iscsi_nodes.extend([cim_spc])
 
         if len(cim_iscsi_nodes) == 0:
-            raise LsmError(ErrorNumber.PLUGIN_BUG,
-                           "_iscsi_node_of(): No iSCSI node "
-                           "CIM_SCSIProtocolController associated to %s"
-                           % cim_iscsi_pg_path)
-        if len(cim_iscsi_nodes) > 1:
-            raise LsmError(ErrorNumber.PLUGIN_BUG,
-                           "_iscsi_node_of(): Got two or more iSCSI node "
-                           "CIM_SCSIProtocolController associated to %s: %s"
-                           % (cim_iscsi_pg_path, cim_iscsi_nodes))
-        return cim_iscsi_nodes[0]['Name']
+            return []
+        return [n['Name'] for n in  cim_iscsi_nodes]
 
     def _cim_iscsi_pg_of(self, cim_sys_path, property_list=None):
         """
@@ -1633,7 +1624,10 @@ class Smis(IStorageAreaNetwork):
                            "_cim_iscsi_pg_to_lsm():  "
                            "No CIM_TCPProtocolEndpoint associated to %s"
                            % cim_iscsi_pg.path)
-        iscsi_node_name = self._iscsi_node_name_of(cim_iscsi_pg.path)
+        iscsi_node_names = self._iscsi_node_names_of(cim_iscsi_pg.path)
+
+        if len(iscsi_node_names) == 0:
+            return []
 
         for cim_tcp in cim_tcps:
             tcp_port = cim_tcp['PortNumber']
@@ -1704,13 +1698,17 @@ class Smis(IStorageAreaNetwork):
 
                     if ipv4_addr:
                         network_address = "%s:%s" % (ipv4_addr, tcp_port)
-                        port_id = md5("%s:%s:%s" % (mac_address,
-                                                    network_address,
-                                                    iscsi_node_name))
+
                         rc.extend(
-                            [TargetPort(port_id, port_type, iscsi_node_name,
-                                        network_address, mac_address,
-                                        port_name, system_id, plugin_data)])
+                            [TargetPort(
+                                md5(
+                                    "%s:%s:%s" % (
+                                        mac_address, network_address,
+                                        iscsi_node_name)),
+                                port_type, iscsi_node_name,
+                                network_address, mac_address, port_name,
+                                system_id, plugin_data)
+                             for iscsi_node_name in iscsi_node_names])
                     if ipv6_addr:
                         # DMTF or SNIA did defined the IPv6 string format.
                         # we just guess here.
@@ -1721,13 +1719,16 @@ class Smis(IStorageAreaNetwork):
                                     ipv6_addr, 32, 4)
 
                         network_address = "[%s]:%s" % (ipv6_addr, tcp_port)
-                        port_id = md5("%s:%s:%s" % (mac_address,
-                                                    network_address,
-                                                    iscsi_node_name))
-                        rc.extend(
-                            [TargetPort(port_id, port_type, iscsi_node_name,
-                                        network_address, mac_address,
-                                        port_name, system_id, plugin_data)])
+                        rc.extend([
+                            TargetPort(
+                                md5(
+                                    "%s:%s:%s" % (
+                                        mac_address, network_address,
+                                        iscsi_node_name)),
+                                port_type, iscsi_node_name,
+                                network_address, mac_address, port_name,
+                                system_id, plugin_data)
+                            for iscsi_node_name in iscsi_node_names])
         return rc
 
     def _leaf_cim_syss_path_of(self, cim_sys_path):
@@ -1783,7 +1784,7 @@ class Smis(IStorageAreaNetwork):
                                "these profiles: '%s %s', '%s %s'"
                                % (SmisCommon.SMIS_SPEC_VER_1_4,
                                   SmisCommon.SNIA_FC_TGT_PORT_PROFILE,
-                                  SmisCommon.SMIS_SPEC_VER_1_4,
+                                  SmisCommon.SMIS_SPEC_VER_1_1,
                                   SmisCommon.SNIA_ISCSI_TGT_PORT_PROFILE))
 
             if flag_fc_support:
