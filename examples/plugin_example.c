@@ -1,6 +1,6 @@
 /*
  * Web example.
- * https://sourceforge.net/p/libstoragemgmt/wiki/WritingPlugins/
+ * http://libstorage.github.io/libstoragemgmt-doc/doc/c_plugin_dev_guide.html
  *
  *
   gcc -Wall -g -O0 plugin_example.c -I../include/ -L../src/.libs \

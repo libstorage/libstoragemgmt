@@ -49,7 +49,7 @@
  *  \section additional Additional documentation
  *
  * Full documentation can be found at:
- * http://sourceforge.net/p/libstoragemgmt/wiki/Home/
+ * http://libstorage.github.io/libstoragemgmt-doc/
  *
  */
 

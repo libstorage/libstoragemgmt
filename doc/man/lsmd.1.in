@@ -3,7 +3,7 @@
 Daemon \- lsmd
 .SH DESCRIPTION
 libStorageMgmt plug\-in daemon.  Plug-ins execute in their own process space
-for fault isolation and to accommodate different plug\-in licensing 
+for fault isolation and to accommodate different plug\-in licensing
 requirements.  Runs as an unprivileged user.
 
 .SH OPTIONS
@@ -20,7 +20,7 @@ requirements.  Runs as an unprivileged user.
 
 .SH BUGS
 Please report bugs to
-<libstoragemgmt\-devel@lists.sourceforge.net>
+<libstoragemgmt-devel@lists.fedorahosted.org>
 .SH AUTHOR
 Tony Asleson <tasleson@redhat.com>
 

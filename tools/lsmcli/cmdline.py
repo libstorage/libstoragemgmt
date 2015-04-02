@@ -772,9 +772,9 @@ class CmdLine:
         parser = ArgumentParser(
             description='The libStorageMgmt command line interface.'
                         ' Run %(prog)s <command> -h for more on each command.',
-            epilog='Copyright 2012-2014 Red Hat, Inc.\n'
+            epilog='Copyright 2012-2015 Red Hat, Inc.\n'
                    'Please report bugs to '
-                   '<libstoragemgmt-devel@lists.sourceforge.net>\n',
+                   '<libstoragemgmt-devel@lists.fedorahosted.org>\n',
             formatter_class=RawTextHelpFormatter,
             parents=[parent_parser])
 
