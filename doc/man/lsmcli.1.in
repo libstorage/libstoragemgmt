@@ -232,6 +232,34 @@ Optional. Provisioning type. Valid values are: DEFAULT, THIN, FULL.
 Provisioning enabled volume. \fBFULL\fR means requiring a fully allocated
 volume.
 
+.SS volume-raid-create
+Creates a volume on hardware RAID on given disks.
+.TP 15
+\fB--name\fR \fI<NAME>\fR
+Required. Volume name. Might be altered or ignored due to hardware RAID card
+vendor limitation.
+.TP
+\fB--raid-type\fR \fI<RAID_TYPE>\fR
+Required. Could be one of these values: \fBRAID0\fR, \fBRAID1\fR, \fBRAID5\fR,
+\fBRAID6\fR, \fBRAID10\fR, \fBRAID50\fR, \fBRAID60\fR. The supported RAID
+types of current RAID card could be queried via command
+"\fBvolume-raid-create-cap\fR".
+.TP
+\fB--disk\fR \fI<DISK_ID>\fR
+Required. Repeatable. The disk ID for new RAID group.
+.TP
+\fB--strip-size\fR \fI<STRIP_SIZE>\fR
+Optional. The size in bytes of strip on each disks. If not defined, will let
+hardware card to use the vendor default value. The supported stripe size of
+current RAID card could be queried via command "\fBvolume-raid-create-cap\fR".
+
+.SS volume-raid-create-cap
+Query support status of volume-raid-create command for current hardware RAID
+card.
+.TP 15
+\fB--sys\fR \fI<SYS_ID>\fR
+Required. ID of the system to query for capabilities.
+
 .SS volume-delete
 .TP 15
 Delete a volume given its ID
@@ -586,6 +614,10 @@ Alias of 'list --type target_ports'
  Alias of 'plugin-info'
 .SS vc
 Alias of 'volume-create'
+.SS vrc
+Alias of 'volume-raid-create'
+.SS vrcc
+Alias of 'volume-raid-create-cap'
 .SS vd
 Alias of 'volume-delete'
 .SS vr

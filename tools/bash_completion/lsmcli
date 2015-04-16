@@ -125,6 +125,8 @@ function _lsm()
     fs_dependants_args="--fs"
     file_clone_args="--fs --src --dst --backing-snapshot"
     pool_member_info_args="--pool"
+    volume_raid_create_args="--name --disk --raid-type --strip-size"
+    volume_raid_create_cap_args="--sys"
 
     # These operations can potentially be slow and cause hangs depending on plugin and configuration
     if [[ ${NO_VALUE_LOOKUP} -ne 0 ]] ; then
@@ -399,6 +401,17 @@ function _lsm()
             ;;
         pool-member-info|pmi)
             possible_args "${pool_member_info_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        *)
+        volume-raid-create|vrc)
+            possible_args "${volume_raid_create_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        volume-raid-create-cap|vrcc)
+            possible_args "${volume_raid_create_cap_args}"
             COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
             ;;

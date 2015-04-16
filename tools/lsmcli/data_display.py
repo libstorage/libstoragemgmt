@@ -265,6 +265,9 @@ class VolumeRAIDInfo(object):
         Volume.RAID_TYPE_UNKNOWN: 'UNKNOWN',
     }
 
+    VOL_CREATE_RAID_TYPES_STR = [
+        'RAID0', 'RAID1', 'RAID5', 'RAID6', 'RAID10', 'RAID50', 'RAID60']
+
     def __init__(self, vol_id, raid_type, strip_size, disk_count,
                  min_io_size, opt_io_size):
         self.vol_id = vol_id
@@ -277,6 +280,10 @@ class VolumeRAIDInfo(object):
     @staticmethod
     def raid_type_to_str(raid_type):
         return _enum_type_to_str(raid_type, VolumeRAIDInfo._RAID_TYPE_MAP)
+
+    @staticmethod
+    def raid_type_str_to_lsm(raid_type_str):
+        return _str_to_enum(raid_type_str, VolumeRAIDInfo._RAID_TYPE_MAP)
 
 
 class PoolRAIDInfo(object):
@@ -298,6 +305,11 @@ class PoolRAIDInfo(object):
         return _enum_type_to_str(
             member_type, PoolRAIDInfo._MEMBER_TYPE_MAP)
 
+class VcrCap(object):
+    def __init__(self, system_id, raid_types, strip_sizes):
+        self.system_id = system_id
+        self.raid_types = raid_types
+        self.strip_sizes = strip_sizes
 
 class DisplayData(object):
 
@@ -598,6 +610,25 @@ class DisplayData(object):
         'value_conv_human': POOL_RAID_INFO_VALUE_CONV_HUMAN,
     }
 
+    VCR_CAP_HEADER = OrderedDict()
+    VCR_CAP_HEADER['system_id'] = 'System ID'
+    VCR_CAP_HEADER['raid_types'] = 'Supported RAID Types'
+    VCR_CAP_HEADER['strip_sizes'] = 'Supported Strip Sizes'
+
+    VCR_CAP_COLUMN_SKIP_KEYS = []
+
+    VCR_CAP_VALUE_CONV_ENUM = {
+        'raid_types': lambda i: [VolumeRAIDInfo.raid_type_to_str(x) for x in i]
+    }
+    VCR_CAP_VALUE_CONV_HUMAN = ['strip_sizes']
+
+    VALUE_CONVERT[VcrCap] = {
+        'headers': VCR_CAP_HEADER,
+        'column_skip_keys': VCR_CAP_COLUMN_SKIP_KEYS,
+        'value_conv_enum': VCR_CAP_VALUE_CONV_ENUM,
+        'value_conv_human': VCR_CAP_VALUE_CONV_HUMAN,
+    }
+
     @staticmethod
     def _get_man_pro_value(obj, key, value_conv_enum, value_conv_human,
                            flag_human, flag_enum):
@@ -607,7 +638,10 @@ class DisplayData(object):
                 value = value_conv_enum[key](value)
         if flag_human:
             if key in value_conv_human:
-                value = size_bytes_2_size_human(value)
+                if type(value) is list:
+                    value = list(size_bytes_2_size_human(s) for s in value)
+                else:
+                    value = size_bytes_2_size_human(value)
         return value
 
     @staticmethod
