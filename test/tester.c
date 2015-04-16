@@ -2917,6 +2917,103 @@ START_TEST(test_pool_member_info)
 }
 END_TEST
 
+START_TEST(test_volume_raid_create_cap_get)
+{
+    if (which_plugin == 1){
+        // silently skip on simc which does not support this method yet.
+        return;
+    }
+    int rc;
+    lsm_system **sys = NULL;
+    uint32_t sys_count = 0;
+
+    G(rc, lsm_system_list, c, &sys, &sys_count, LSM_CLIENT_FLAG_RSVD);
+    fail_unless( sys_count >= 1, "count = %d", sys_count);
+
+    if( sys_count > 0 ) {
+        uint32_t *supported_raid_types = NULL;
+        uint32_t supported_raid_type_count = 0;
+        uint32_t *supported_strip_sizes = NULL;
+        uint32_t supported_strip_size_count = 0;
+
+        G(
+            rc, lsm_volume_raid_create_cap_get, c, sys[0],
+            &supported_raid_types, &supported_raid_type_count,
+            &supported_strip_sizes, &supported_strip_size_count,
+            0);
+
+        free(supported_raid_types);
+        free(supported_strip_sizes);
+
+    }
+    G(rc, lsm_system_record_array_free, sys, sys_count);
+}
+END_TEST
+
+START_TEST(test_volume_raid_create)
+{
+    if (which_plugin == 1){
+        // silently skip on simc which does not support this method yet.
+        return;
+    }
+    int rc;
+
+    lsm_disk **disks = NULL;
+    uint32_t disk_count = 0;
+
+    G(rc, lsm_disk_list, c, NULL, NULL, &disks, &disk_count, 0);
+
+    // Try to create two disks RAID 1.
+    uint32_t free_disk_count = 0;
+    lsm_disk *free_disks[2];
+    int i;
+    for (i = 0; i< disk_count; i++){
+        if (lsm_disk_status_get(disks[i]) & LSM_DISK_STATUS_FREE){
+            free_disks[free_disk_count++] = disks[i];
+            if (free_disk_count == 2){
+                break;
+            }
+        }
+    }
+    fail_unless(free_disk_count == 2, "Failed to find two free disks");
+
+    lsm_volume *new_volume = NULL;
+
+    G(rc, lsm_volume_raid_create, c, "test_volume_raid_create",
+      LSM_VOLUME_RAID_TYPE_RAID1, free_disks, free_disk_count,
+      LSM_VOLUME_VCR_STRIP_SIZE_DEFAULT, &new_volume, LSM_CLIENT_FLAG_RSVD);
+
+    char *job_del = NULL;
+    int del_rc = lsm_volume_delete(
+        c, new_volume, &job_del, LSM_CLIENT_FLAG_RSVD);
+
+    fail_unless( del_rc == LSM_ERR_OK || del_rc == LSM_ERR_JOB_STARTED,
+                "lsm_volume_delete %d (%s)", rc, error(lsm_error_last_get(c)));
+
+    if( LSM_ERR_JOB_STARTED == del_rc ) {
+        wait_for_job_vol(c, &job_del);
+    }
+
+    G(rc, lsm_disk_record_array_free, disks, disk_count);
+    // The new pool should be automatically be deleted when volume got
+    // deleted.
+    lsm_pool **pools = NULL;
+    uint32_t count = 0;
+    G(
+        rc, lsm_pool_list, c, "id", lsm_volume_pool_id_get(new_volume),
+        &pools, &count, LSM_CLIENT_FLAG_RSVD);
+
+    fail_unless(
+        count == 0,
+        "New HW RAID pool still exists, it should be deleted along with "
+        "lsm_volume_delete()");
+
+    lsm_pool_record_array_free(pools, count);
+
+    G(rc, lsm_volume_record_free, new_volume);
+}
+END_TEST
+
 Suite * lsm_suite(void)
 {
     Suite *s = suite_create("libStorageMgmt");
@@ -2954,6 +3051,8 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_invalid_input);
     tcase_add_test(basic, test_volume_raid_info);
     tcase_add_test(basic, test_pool_member_info);
+    tcase_add_test(basic, test_volume_raid_create_cap_get);
+    tcase_add_test(basic, test_volume_raid_create);
 
     suite_add_tcase(s, basic);
     return s;

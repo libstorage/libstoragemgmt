@@ -1294,6 +1294,56 @@ class TestPlugin(unittest.TestCase):
                     self.assertTrue(type(member_type) is int)
                     self.assertTrue(type(member_ids) is list)
 
+    def _skip_current_test(self, messsage):
+        """
+        If skipTest is supported, skip this test with provided message.
+        Sliently return if not supported.
+        """
+        if hasattr(unittest.TestCase, 'skipTest') is True:
+            self.skipTest(messsage)
+        return
+
+    def test_volume_raid_create(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            # TODO(Gris Ge): Add test code for other RAID type and strip size
+            if supported(cap, [Cap.VOLUME_RAID_CREATE]):
+                supported_raid_types, supported_strip_sizes = \
+                    self.c.volume_raid_create_cap_get(s)
+                if lsm.Volume.RAID_TYPE_RAID1 not in supported_raid_types:
+                    self._skip_current_test(
+                        "Skip test: current system does not support "
+                        "creating RAID1 volume")
+
+                # Find two free disks
+                free_disks = []
+                for disk in self.c.disks():
+                    if len(free_disks) == 2:
+                        break
+                    if disk.status & lsm.Disk.STATUS_FREE:
+                        free_disks.append(disk)
+
+                if len(free_disks) != 2:
+                    self._skip_current_test(
+                        "Skip test: Failed to find two free disks for RAID 1")
+                    return
+
+                new_vol = self.c.volume_raid_create(
+                    rs('v'), lsm.Volume.RAID_TYPE_RAID1, free_disks,
+                    lsm.Volume.VCR_STRIP_SIZE_DEFAULT)
+
+                self.assertTrue(new_vol is not None)
+
+                # TODO(Gris Ge): Use volume_raid_info() and pool_member_info()
+                # to verify size, raid_type, member type, member ids.
+
+                if supported(cap, [Cap.VOLUME_DELETE]):
+                    self._volume_delete(new_vol)
+
+            else:
+                self._skip_current_test(
+                    "Skip test: not support of VOLUME_RAID_CREATE")
+
 def dump_results():
     """
     unittest.main exits when done so we need to register this handler to
