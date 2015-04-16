@@ -295,3 +295,11 @@ class SimPlugin(INfs, IStorageAreaNetwork):
 
     def pool_member_info(self, pool, flags=0):
         return self.sim_array.pool_member_info(pool)
+
+    def volume_raid_create_cap_get(self, system, flags=0):
+        return self.sim_array.volume_raid_create_cap_get(system)
+
+    def volume_raid_create(self, name, raid_type, disks, strip_size,
+                           flags=0):
+        return self.sim_array.volume_raid_create(
+            name, raid_type, disks, strip_size)
