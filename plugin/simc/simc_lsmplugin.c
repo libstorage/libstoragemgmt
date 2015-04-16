@@ -1001,9 +1001,29 @@ static int pool_member_info(
     return rc;
 }
 
+static int volume_raid_create_cap_get(
+    lsm_plugin_ptr c, lsm_system *system,
+    uint32_t **supported_raid_types, uint32_t *supported_raid_type_count,
+    uint32_t **supported_strip_sizes, uint32_t *supported_strip_size_count,
+    lsm_flag flags)
+{
+    return LSM_ERR_NO_SUPPORT;
+}
+
+static int volume_raid_create(
+    lsm_plugin_ptr c, const char *name, lsm_volume_raid_type raid_type,
+    lsm_disk *disks[], uint32_t disk_count,
+    uint32_t strip_size, lsm_volume **new_volume,
+    lsm_flag flags)
+{
+    return LSM_ERR_NO_SUPPORT;
+}
+
 static struct lsm_ops_v1_2 ops_v1_2 = {
     volume_raid_info,
     pool_member_info,
+    volume_raid_create_cap_get,
+    volume_raid_create,
 };
 
 static int volume_enable_disable(lsm_plugin_ptr c, lsm_volume *v,
