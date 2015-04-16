@@ -2203,6 +2203,98 @@ static int iscsi_chap(lsm_plugin_ptr p, Value &params, Value &response)
     }
     return rc;
 }
+static int handle_volume_raid_create_cap_get(
+    lsm_plugin_ptr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    if( p && p->ops_v1_2 && p->ops_v1_2->vol_create_raid_cap_get ) {
+        Value v_system = params["system"];
+
+        if( IS_CLASS_SYSTEM(v_system) &&
+            LSM_FLAG_EXPECTED_TYPE(params) ) {
+            lsm_system *sys = value_to_system(v_system);
+
+            uint32_t *supported_raid_types = NULL;
+            uint32_t supported_raid_type_count = 0;
+
+            uint32_t *supported_strip_sizes = NULL;
+            uint32_t supported_strip_size_count = 0;
+
+            rc = p->ops_v1_2->vol_create_raid_cap_get(
+                p, sys, &supported_raid_types, &supported_raid_type_count,
+                &supported_strip_sizes, &supported_strip_size_count,
+                LSM_FLAG_GET_VALUE(params));
+
+            if( LSM_ERR_OK == rc ) {
+                std::vector<Value> result;
+                result.push_back(
+                    uint32_array_to_value(
+                        supported_raid_types, supported_raid_type_count));
+                result.push_back(
+                    uint32_array_to_value(
+                        supported_strip_sizes, supported_strip_size_count));
+                response = Value(result);
+                free(supported_raid_types);
+                free(supported_strip_sizes);
+            }
+
+            lsm_system_record_free(sys);
+
+        } else {
+            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+        }
+    }
+    return rc;
+
+}
+
+static int handle_volume_raid_create(
+    lsm_plugin_ptr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    if( p && p->ops_v1_2 && p->ops_v1_2->vol_create_raid ) {
+        Value v_name = params["name"];
+        Value v_raid_type = params["raid_type"];
+        Value v_strip_size = params["strip_size"];
+        Value v_disks = params["disks"];
+
+        if( Value::string_t == v_name.valueType() &&
+            Value::numeric_t == v_raid_type.valueType() &&
+            Value::numeric_t == v_strip_size.valueType() &&
+            Value::array_t == v_disks.valueType() &&
+            LSM_FLAG_EXPECTED_TYPE(params) ) {
+
+            lsm_disk **disks = NULL;
+            uint32_t disk_count = 0;
+            rc = value_array_to_disks(v_disks, &disks, &disk_count);
+            if( LSM_ERR_OK != rc ) {
+                return rc;
+            }
+
+            const char *name = v_name.asC_str();
+            lsm_volume_raid_type raid_type =
+                (lsm_volume_raid_type) v_raid_type.asInt32_t();
+            uint32_t strip_size = v_strip_size.asUint32_t();
+
+            lsm_volume *new_vol = NULL;
+
+            rc = p->ops_v1_2->vol_create_raid(
+                p, name, raid_type, disks, disk_count, strip_size,
+                &new_vol, LSM_FLAG_GET_VALUE(params));
+
+            if( LSM_ERR_OK == rc ) {
+                response = volume_to_value(new_vol);
+                lsm_volume_record_free(new_vol);
+            }
+
+            lsm_disk_record_array_free(disks, disk_count);
+
+        } else {
+            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+        }
+    }
+    return rc;
+}
 
 /**
  * map of function pointers
@@ -2258,7 +2350,9 @@ static std::map<std::string,handler> dispatch = static_map<std::string,handler>
     ("volumes_accessible_by_access_group", vol_accessible_by_ag)
     ("volumes", handle_volumes)
     ("volume_raid_info", handle_volume_raid_info)
-    ("pool_member_info", handle_pool_member_info);
+    ("pool_member_info", handle_pool_member_info)
+    ("volume_raid_create", handle_volume_raid_create)
+    ("volume_raid_create_cap_get", handle_volume_raid_create_cap_get);
 
 static int process_request(lsm_plugin_ptr p, const std::string &method, Value &request,
                     Value &response)

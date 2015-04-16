@@ -891,6 +891,68 @@ int LSM_DLL_EXPORT lsm_pool_member_info(
     lsm_pool_member_type *member_type, lsm_string_list **member_ids,
     lsm_flag flags);
 
+/**
+ * Query all supported RAID types and strip sizes which could be used
+ * in lsm_volume_raid_create() functions.
+ * New in version 1.2, only available for hardware RAID cards.
+ * @param[in] c     Valid connection
+ * @param[in] system
+ *                  The lsm_sys type.
+ * @param[out] supported_raid_types
+ *                  The pointer of uint32_t array. Containing
+ *                  lsm_volume_raid_type values.
+ *                  You need to free this memory by yourself.
+ * @param[out] supported_raid_type_count
+ *                  The pointer of uint32_t. Indicate the item count of
+ *                  supported_raid_types array.
+ * @param[out] supported_strip_sizes
+ *                  The pointer of uint32_t array. Containing
+ *                  all supported strip sizes.
+ *                  You need to free this memory by yourself.
+ * @param[out] supported_strip_size_count
+ *                  The pointer of uint32_t. Indicate the item count of
+ *                  supported_strip_sizes array.
+ * @param[in] flags         Reserved, set to 0
+ * @return LSM_ERR_OK on success else error reason.
+ */
+int LSM_DLL_EXPORT lsm_volume_raid_create_cap_get(
+    lsm_connect *c, lsm_system *system,
+    uint32_t **supported_raid_types, uint32_t *supported_raid_type_count,
+    uint32_t **supported_strip_sizes, uint32_t *supported_strip_size_count,
+    lsm_flag flags);
+
+/**
+ * Create a disk RAID pool and allocate entire full space to new volume.
+ * New in version 1.2, only available for hardware RAID cards.
+ * @param[in] c     Valid connection
+ * @param[in] name  String. Name for the new volume. It might be ignored or
+ *                  altered on some hardwardware raid cards in order to fit
+ *                  their limitation.
+ * @param[in] raid_type
+ *                  Enum of lsm_volume_raid_type. Please refer to the returns
+ *                  of lsm_volume_raid_create_cap_get() function for
+ *                  supported strip sizes.
+ * @param[in] disks
+ *                  An array of lsm_disk types
+ * @param[in] disk_count
+ *                  The count of lsm_disk in 'disks' argument.
+ *                  Count starts with 1.
+ * @param[in] strip_size
+ *                  uint32_t. The strip size in bytes. Please refer to
+ *                  the returns of lsm_volume_raid_create_cap_get() function
+ *                  for supported strip sizes.
+ * @param[out] new_volume
+ *                  Newly created volume, Pointer to the lsm_volume type
+ *                  pointer.
+ * @param[in] flags         Reserved, set to 0
+ * @return LSM_ERR_OK on success else error reason.
+ */
+int LSM_DLL_EXPORT lsm_volume_raid_create(
+    lsm_connect *c, const char *name, lsm_volume_raid_type raid_type,
+    lsm_disk *disks[], uint32_t disk_count,
+    uint32_t strip_size, lsm_volume **new_volume,
+    lsm_flag flags);
+
 #ifdef  __cplusplus
 }
 #endif

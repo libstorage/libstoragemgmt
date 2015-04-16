@@ -117,6 +117,7 @@ typedef enum {
     LSM_CAP_POOL_MEMBER_INFO                        = 221,
     /**^ Query pool member information */
 
+    LSM_CAP_VOLUME_RAID_CREATE                      = 222,
 } lsm_capability_type;
 
 /**

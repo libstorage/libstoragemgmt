@@ -284,4 +284,16 @@ lsm_target_port LSM_DLL_LOCAL *value_to_target_port(Value &tp);
  */
 Value LSM_DLL_LOCAL target_port_to_value(lsm_target_port *tp);
 
+/**
+ * Converts a value to array of uint32.
+ */
+int LSM_DLL_LOCAL values_to_uint32_array(
+    Value &value, uint32_t **uint32_array, uint32_t *count);
+
+/**
+ * Converts an array of uint32 to a value.
+ */
+Value LSM_DLL_LOCAL uint32_array_to_value(
+    uint32_t *uint32_array, uint32_t count);
+
 #endif

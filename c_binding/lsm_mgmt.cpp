@@ -2268,3 +2268,131 @@ int lsm_nfs_export_delete( lsm_connect *c, lsm_nfs_export *e, lsm_flag flags)
     int rc = rpc(c, "export_remove", parameters, response);
     return rc;
 }
+
+int lsm_volume_raid_create_cap_get(
+    lsm_connect *c, lsm_system *system,
+    uint32_t **supported_raid_types, uint32_t *supported_raid_type_count,
+    uint32_t **supported_strip_sizes, uint32_t *supported_strip_size_count,
+    lsm_flag flags)
+{
+    CONN_SETUP(c);
+
+    if( !supported_raid_types || !supported_raid_type_count ||
+        !supported_strip_sizes || !supported_strip_size_count) {
+         return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["system"] = system_to_value(system);
+    p["flags"] = Value(flags);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "volume_raid_create_cap_get", parameters, response);
+    try {
+        std::vector<Value> j = response.asArray();
+
+        rc = values_to_uint32_array(
+            j[0], supported_raid_types, supported_raid_type_count);
+
+        if( rc != LSM_ERR_OK ){
+            *supported_raid_types = NULL;
+            *supported_raid_type_count = 0;
+            *supported_strip_sizes = NULL;
+            *supported_strip_size_count = 0;
+            return rc;
+        }
+
+        rc = values_to_uint32_array(
+            j[1], supported_strip_sizes, supported_strip_size_count);
+        if( rc != LSM_ERR_OK ){
+            free(*supported_raid_types);
+            *supported_raid_types = NULL;
+            *supported_raid_type_count = 0;
+            *supported_strip_sizes = NULL;
+            *supported_strip_size_count = 0;
+        }
+    } catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
+                            ve.what());
+    }
+    return rc;
+}
+
+int lsm_volume_raid_create(
+    lsm_connect *c, const char *name, lsm_volume_raid_type raid_type,
+    lsm_disk *disks[], uint32_t disk_count,
+    uint32_t strip_size, lsm_volume **new_volume,
+    lsm_flag flags)
+{
+    CONN_SETUP(c);
+
+    if (disk_count == 0){
+        return logException(
+            c, LSM_ERR_INVALID_ARGUMENT, "Require at least one disks", NULL);
+    }
+
+    if (raid_type == LSM_VOLUME_RAID_TYPE_RAID1 && disk_count != 2){
+        return logException(
+            c, LSM_ERR_INVALID_ARGUMENT, "RAID 1 only allows two disks", NULL);
+    }
+
+    if (raid_type == LSM_VOLUME_RAID_TYPE_RAID5 && disk_count < 3){
+        return logException(
+            c, LSM_ERR_INVALID_ARGUMENT, "RAID 5 require 3 or more disks",
+            NULL);
+    }
+
+    if (raid_type == LSM_VOLUME_RAID_TYPE_RAID6 && disk_count < 4){
+        return logException(
+            c, LSM_ERR_INVALID_ARGUMENT, "RAID 5 require 4 or more disks",
+            NULL);
+    }
+
+    if ( disk_count % 2 ){
+        if (raid_type == LSM_VOLUME_RAID_TYPE_RAID10 && disk_count < 4){
+            return logException(
+                c, LSM_ERR_INVALID_ARGUMENT,
+                "RAID 10 require even disks count and 4 or more disks",
+                NULL);
+        }
+        if (raid_type == LSM_VOLUME_RAID_TYPE_RAID50 && disk_count < 6){
+            return logException(
+                c, LSM_ERR_INVALID_ARGUMENT,
+                "RAID 50 require even disks count and 6 or more disks",
+                NULL);
+        }
+        if (raid_type == LSM_VOLUME_RAID_TYPE_RAID60 && disk_count < 8){
+            return logException(
+                c, LSM_ERR_INVALID_ARGUMENT,
+                "RAID 60 require even disks count and 8 or more disks",
+                NULL);
+        }
+    }
+
+    if (CHECK_RP(new_volume)){
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map<std::string, Value> p;
+    p["name"] = Value(name);
+    p["raid_type"] = Value((int32_t)raid_type);
+    p["strip_size"] = Value((int32_t)strip_size);
+    p["flags"] = Value(flags);
+    std::vector<Value> disks_value;
+    for (uint32_t i = 0; i < disk_count; i++){
+        disks_value.push_back(disk_to_value(disks[i]));
+    }
+    p["disks"] = disks_value;
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "volume_raid_create", parameters, response);
+    if( LSM_ERR_OK == rc ) {
+        *new_volume = value_to_volume(response);
+    }
+    return rc;
+
+}

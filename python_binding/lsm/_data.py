@@ -306,6 +306,8 @@ class Volume(IData):
     MIN_IO_SIZE_UNKNOWN = 0
     OPT_IO_SIZE_UNKNOWN = 0
 
+    VCR_STRIP_SIZE_DEFAULT = 0
+
     def __init__(self, _id, _name, _vpd83, _block_size, _num_of_blocks,
                  _admin_state, _system_id, _pool_id, _plugin_data=None):
         self._id = _id                        # Identifier
@@ -760,6 +762,7 @@ class Capabilities(IData):
 
     DISKS = 220
     POOL_MEMBER_INFO = 221
+    VOLUME_RAID_CREATE = 222
 
     def _to_dict(self):
         return {'class': self.__class__.__name__,

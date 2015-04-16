@@ -297,6 +297,9 @@ typedef enum {
     LSM_TARGET_PORT_TYPE_ISCSI = 4
 } lsm_target_port_type;
 
+#define LSM_VOLUME_VCR_STRIP_SIZE_DEFAULT           0
+/** ^ Plugin and hardware RAID will use their default strip size */
+
 #ifdef  __cplusplus
 }
 #endif

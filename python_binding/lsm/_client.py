@@ -1172,3 +1172,190 @@ class Client(INetworkAttachedStorage):
             lsm.Capabilities.POOL_MEMBER_INFO
         """
         return self._tp.rpc('pool_member_info', _del_self(locals()))
+
+    @_return_requires([[int], [int]])
+    def volume_raid_create_cap_get(self, system, flags=FLAG_RSVD):
+        """
+        lsm.Client.volume_raid_create_cap_get(
+            self, system, flags=lsm.Client.FLAG_RSVD)
+
+        Version:
+            1.2
+        Usage:
+            This method is dedicated to local hardware RAID cards.
+            Query out all supported RAID types and strip sizes which could
+            be used by lsm.Client.volume_raid_create() method.
+        Parameters:
+            system (lsm.System)
+                Instance of lsm.System
+            flags (int)
+                Optional. Reserved for future use.
+                Should be set as lsm.Client.FLAG_RSVD.
+        Returns:
+            [raid_types, strip_sizes]
+                raid_types ([int])
+                    List of integer, possible values are:
+                        Volume.RAID_TYPE_RAID0
+                        Volume.RAID_TYPE_RAID1
+                        Volume.RAID_TYPE_RAID5
+                        Volume.RAID_TYPE_RAID6
+                        Volume.RAID_TYPE_RAID10
+                        Volume.RAID_TYPE_RAID50
+                        Volume.RAID_TYPE_RAID60
+                strip_sizes ([int])
+                    List of integer. Stripe size in bytes.
+        SpecialExceptions:
+            LsmError
+                lsm.ErrorNumber.NO_SUPPORT
+                    Method not supported.
+        Sample:
+            lsm_client = lsm.Client('sim://')
+            lsm_sys = lsm_client.systems()[0]
+            disks = lsm_client.disks(
+                search_key='system_id', search_value=lsm_sys.id)
+
+            free_disks = [d for d in disks if d.status == Disk.STATUS_FREE]
+            supported_raid_types, supported_strip_sizes = \
+                lsm_client.volume_raid_create_cap_get(lsm_sys)
+            new_vol = lsm_client.volume_raid_create(
+                'test_volume_raid_create', supported_raid_types[0],
+                free_disks, supported_strip_sizes[0])
+
+        Capability:
+            lsm.Capabilities.VOLUME_CREATE_RAID
+                This method is mandatory when volume_raid_create() is
+                supported.
+        """
+        return self._tp.rpc('volume_raid_create_cap_get', _del_self(locals()))
+
+    @_return_requires(Volume)
+    def volume_raid_create(self, name, raid_type, disks, strip_size,
+                           flags=FLAG_RSVD):
+        """
+        lsm.Client.volume_raid_create(self, name, raid_type, disks,
+                                      strip_size, flags=lsm.Client.FLAG_RSVD)
+
+        Version:
+            1.2
+        Usage:
+            This method is dedicated to local hardware RAID cards.
+            Create a disk RAID pool and allocate entire storage space to
+            new volume using requested volume name.
+            When dealing with RAID10, 50 or 60, the first half part of
+            'disks' will be located in one bottom layer RAID group.
+            The new volume and new pool will created within the same system
+            of provided disks.
+            This method does not allow duplicate call, when duplicate call
+            was issued, LsmError with ErrorNumber.DISK_NOT_FREE will be raise.
+            User should check disk.status for Disk.STATUS_FREE before
+            invoking this method.
+        Parameters:
+            name (string)
+                The name for new volume.
+                The requested volume name might be ignored due to restriction
+                of hardware RAID vendors.
+                The pool name will be automatically choosed by plugin.
+            raid_type (int)
+                The RAID type for the RAID group, possible values are:
+                    Volume.RAID_TYPE_RAID0
+                    Volume.RAID_TYPE_RAID1
+                    Volume.RAID_TYPE_RAID5
+                    Volume.RAID_TYPE_RAID6
+                    Volume.RAID_TYPE_RAID10
+                    Volume.RAID_TYPE_RAID15
+                    Volume.RAID_TYPE_RAID16
+                    Volume.RAID_TYPE_RAID50
+                Please check volume_raid_create_cap_get() returns to get
+                supported all raid types of current hardware RAID card.
+            disks ([lsm.Disks,])
+                A list of lsm.Disk objects. Free disks used for new RAID group.
+            strip_size (int)
+                The size in bytes of strip.
+                When setting strip_size to Volume.VCR_STRIP_SIZE_DEFAULT, it
+                allow hardware RAID cards to choose their default value.
+                Please use volume_raid_create_cap_get() method to get all
+                supported strip size of current hardware RAID card.
+                The Volume.VCR_STRIP_SIZE_DEFAULT is always supported when
+                lsm.Capabilities.VOLUME_CREATE_RAID is supported.
+            flags (int)
+                Optional. Reserved for future use.
+                Should be set as lsm.Client.FLAG_RSVD.
+        Returns:
+            lsm.Volume
+                The lsm.Volume object for newly created volume.
+        SpecialExceptions:
+            LsmError
+                lsm.ErrorNumber.NO_SUPPORT
+                    Method not supported or RAID type not supported.
+                lsm.ErrorNumber.DISK_NOT_FREE
+                    Disk is not in Disk.STATUS_FREE status.
+                lsm.ErrorNumber.NOT_FOUND_DISK
+                    Disk not found
+                lsm.ErrorNumber.INVALID_ARGUMENT
+                    1. Invalid input argument data.
+                    2. Disks are not from the same system.
+                    3. Disks are not from the same enclosure.
+                    4. Invalid strip_size.
+                    5. Disk count are meet the minimum requirement:
+                        RAID1: len(disks) == 2
+                        RAID5: len(disks) >= 3
+                        RAID6: len(disks) >= 4
+                        RAID10: len(disks) % 2 == 0 and len(disks) >= 4
+                        RAID50: len(disks) % 2 == 0 and len(disks) >= 6
+                        RAID60: len(disks) % 2 == 0 and len(disks) >= 8
+                lsm.ErrorNumber.NAME_CONFLICT
+                    Requested name is already be used by other volume.
+        Sample:
+            lsm_client = lsm.Client('sim://')
+            disks = lsm_client.disks()
+            free_disks = [d for d in disks if d.status == Disk.STATUS_FREE]
+            new_vol = lsm_client.volume_raid_create(
+                'raid0_vol1', Volume.RAID_TYPE_RAID0, free_disks)
+        Capability:
+            lsm.Capabilities.VOLUME_CREATE_RAID
+                Indicate current system support volume_raid_create() method.
+                At least one RAID type should be supported.
+                The strip_size == Volume.VCR_STRIP_SIZE_DEFAULT is supported.
+        """
+        if len(disks) == 0:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Illegal input disks argument: no disk included")
+
+        if raid_type == Volume.RAID_TYPE_RAID1 and len(disks) != 2:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Illegal input disks argument: RAID 1 only allow 2 disks")
+
+        if raid_type == Volume.RAID_TYPE_RAID5 and len(disks) < 3:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Illegal input disks argument: RAID 5 require 3 or more disks")
+
+        if raid_type == Volume.RAID_TYPE_RAID6 and len(disks) < 4:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Illegal input disks argument: RAID 6 require 4 or more disks")
+
+        if raid_type == Volume.RAID_TYPE_RAID10:
+            if len(disks) % 2 or len(disks) < 4:
+                raise LsmError(
+                    ErrorNumber.INVALID_ARGUMENT,
+                    "Illegal input disks argument: "
+                    "RAID 10 require even disks count and 4 or more disks")
+
+        if raid_type == Volume.RAID_TYPE_RAID50:
+            if len(disks) % 2 or len(disks) < 6:
+                raise LsmError(
+                    ErrorNumber.INVALID_ARGUMENT,
+                    "Illegal input disks argument: "
+                    "RAID 50 require even disks count and 6 or more disks")
+
+        if raid_type == Volume.RAID_TYPE_RAID60:
+            if len(disks) % 2 or len(disks) < 8:
+                raise LsmError(
+                    ErrorNumber.INVALID_ARGUMENT,
+                    "Illegal input disks argument: "
+                    "RAID 60 require even disks count and 8 or more disks")
+
+        return self._tp.rpc('volume_raid_create', _del_self(locals()))
