@@ -11,6 +11,21 @@
  *
  *  $ gcc -Wall -g -O0 client_example.c -I../c_binding/include/ \
  *          -L../c_binding/.libs -lstoragemgmt -o client_example
+ *
+ * If using autotools:
+ *  * configure.ac
+ *
+ *      PKG_CHECK_MODULES(
+ *          [LSM], [libstoragemgmt >= 1.0.0],,
+ *          AC_MSG_ERROR([libstoragemgmt 1.0.0 or newer not found.]))
+ *
+ *  * Makefile.am
+ *
+ *      bin_PROGRAMS = lsm_client_example
+ *      lsm_client_example_SOURCES = client_example.c
+ *      lsm_client_example_CFLAGS = $(LSM_CFLAGS)
+ *      lsm_client_example_LDADD = $(LSM_LIBS)
+ *
  */
 
 void error(char *msg, int rc, lsm_error *e)
@@ -31,7 +46,7 @@ void list_pools(lsm_connect *c)
     int rc = 0;
     uint32_t count = 0;
 
-    rc = lsm_pool_list(c, NULL, NULL, &pools, &count, LSM_FLAG_RSVD);
+    rc = lsm_pool_list(c, NULL, NULL, &pools, &count, LSM_CLIENT_FLAG_RSVD);
     if( LSM_ERR_OK == rc ) {
         uint32_t i;
         for( i = 0; i < count; ++i) {
@@ -54,14 +69,14 @@ int main()
 
     const char *uri = "sim://";
 
-    rc = lsm_connect_password(uri, NULL, &c, 30000, &e, LSM_FLAG_RSVD);
+    rc = lsm_connect_password(uri, NULL, &c, 30000, &e, LSM_CLIENT_FLAG_RSVD);
 
     if( LSM_ERR_OK == rc ) {
         printf("We connected...\n");
 
         list_pools(c);
 
-        rc = lsm_connect_close(c, LSM_FLAG_RSVD);
+        rc = lsm_connect_close(c, LSM_CLIENT_FLAG_RSVD);
         if( LSM_ERR_OK != rc ) {
             error("Close", rc, lsm_error_last_get(c));
         } else {
