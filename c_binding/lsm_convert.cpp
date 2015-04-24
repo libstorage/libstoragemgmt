@@ -622,6 +622,7 @@ int values_to_uint32_array(
     Value &value, uint32_t **uint32_array, uint32_t *count)
 {
     int rc = LSM_ERR_OK;
+    *count = 0;
     try {
         std::vector<Value> data = value.asArray();
         *count = data.size();
