@@ -759,6 +759,9 @@ int lsm_capabilities(lsm_connect *c, lsm_system *system,
 
         if( LSM_ERR_OK == rc && Value::object_t == response.valueType() ) {
             *cap = value_to_capabilities(response);
+            if( !(*cap) ) {
+                rc = LSM_ERR_NO_MEMORY;
+            }
         }
     } catch( const ValueException &ve ) {
         rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
