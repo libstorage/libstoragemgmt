@@ -1772,7 +1772,8 @@ static int fs_child_dependency(lsm_plugin_ptr p, Value &params, Value &response)
             lsm_fs *fs = value_to_fs(v_fs);
             lsm_string_list *files = value_to_string_list(v_files);
 
-            if( fs ) {
+            if( fs && ( files ||
+                (!files && Value::null_t == v_files.valueType()) )) {
                 uint8_t yes = 0;
 
                 rc = p->fs_ops->fs_child_dependency(p, fs, files, &yes);
@@ -1810,7 +1811,8 @@ static int fs_child_dependency_rm(lsm_plugin_ptr p, Value &params, Value &respon
             lsm_fs *fs = value_to_fs(v_fs);
             lsm_string_list *files = value_to_string_list(v_files);
 
-            if( fs ) {
+            if( fs &&
+                (files || (!files && Value::null_t == v_files.valueType())) ) {
                 char *job = NULL;
 
                 rc = p->fs_ops->fs_child_dependency_rm(p, fs, files, &job,
@@ -1988,7 +1990,10 @@ static int ss_restore(lsm_plugin_ptr p, Value &params, Value &response)
                     value_to_string_list(v_restore_files);
             int all_files = (v_all_files.asBool()) ? 1 : 0;
 
-            if( fs && ss ) {
+            if( fs && ss &&
+                (files || (!files && Value::null_t ==  v_files.valueType())) &&
+                (restore_files || (!restore_files &&
+                Value::null_t == v_restore_files.valueType())) ) {
                 rc = p->fs_ops->fs_ss_restore(p, fs, ss, files, restore_files,
                                             all_files, &job,
                                             LSM_FLAG_GET_VALUE(params));
