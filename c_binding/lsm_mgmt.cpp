@@ -2390,6 +2390,8 @@ int lsm_volume_raid_create_cap_get(
          return LSM_ERR_INVALID_ARGUMENT;
     }
 
+    *supported_raid_types = NULL;
+
     std::map<std::string, Value> p;
     p["system"] = system_to_value(system);
     p["flags"] = Value(flags);
@@ -2405,27 +2407,29 @@ int lsm_volume_raid_create_cap_get(
             j[0], supported_raid_types, supported_raid_type_count);
 
         if( rc != LSM_ERR_OK ){
-            *supported_raid_types = NULL;
-            *supported_raid_type_count = 0;
-            *supported_strip_sizes = NULL;
-            *supported_strip_size_count = 0;
-            return rc;
+            goto error;
         }
 
         rc = values_to_uint32_array(
             j[1], supported_strip_sizes, supported_strip_size_count);
         if( rc != LSM_ERR_OK ){
-            free(*supported_raid_types);
-            *supported_raid_types = NULL;
-            *supported_raid_type_count = 0;
-            *supported_strip_sizes = NULL;
-            *supported_strip_size_count = 0;
+            goto error;
         }
     } catch( const ValueException &ve ) {
         rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
     }
+
+out:
     return rc;
+
+error:
+    free(*supported_raid_types);
+    *supported_raid_types = NULL;
+    *supported_raid_type_count = 0;
+    *supported_strip_sizes = NULL;
+    *supported_strip_size_count = 0;
+    goto out;
 }
 
 int lsm_volume_raid_create(
