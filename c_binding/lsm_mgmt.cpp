@@ -284,6 +284,9 @@ static int getAccessGroups( lsm_connect *c, int rc, Value &response,
     try {
         if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
             *groups = value_to_access_group_list(response, count);
+            if( *count && !(*groups) ) {
+                rc = LSM_ERR_NO_MEMORY;
+            }
         }
     } catch( const ValueException &ve ) {
         rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
