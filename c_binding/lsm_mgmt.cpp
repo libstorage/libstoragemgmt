@@ -697,6 +697,9 @@ int lsm_job_status_ss_get(lsm_connect *c, const char *job,
         if( LSM_ERR_OK == rc ) {
             if( Value::object_t ==  rv.valueType() ) {
                 *ss = value_to_ss(rv);
+                if( !(*ss) ) {
+                    rc = LSM_ERR_NO_MEMORY;
+                }
             } else {
                 *ss = NULL;
             }
@@ -2078,6 +2081,10 @@ int lsm_fs_ss_list(lsm_connect *c, lsm_fs *fs, lsm_fs_ss **ss[],
                 if( *ss ) {
                     for( size_t i = 0; i < sys.size(); ++i ) {
                         (*ss)[i] = value_to_ss(sys[i]);
+                        if( !((*ss)[i]) ) {
+                            rc = LSM_ERR_NO_MEMORY;
+                            goto error;
+                        }
                     }
                 } else {
                     rc = LSM_ERR_NO_MEMORY;
@@ -2087,14 +2094,19 @@ int lsm_fs_ss_list(lsm_connect *c, lsm_fs *fs, lsm_fs_ss **ss[],
     } catch( const ValueException &ve ) {
         rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
-        if( *ss && *ssCount ) {
-            lsm_fs_ss_record_array_free(*ss, *ssCount);
-            *ss = NULL;
-            *ssCount = 0;
-        }
+        goto error;
     }
+out:
     return rc;
 
+error:
+    if( *ss && *ssCount ) {
+        lsm_fs_ss_record_array_free(*ss, *ssCount);
+        *ss = NULL;
+        *ssCount = 0;
+    }
+
+    goto out;
 }
 
 int lsm_fs_ss_create(lsm_connect *c, lsm_fs *fs, const char *name, lsm_fs_ss **snapshot, char **job,
