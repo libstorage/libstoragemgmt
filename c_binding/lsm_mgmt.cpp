@@ -1738,9 +1738,8 @@ int lsm_system_list(lsm_connect *c, lsm_system **systems[],
                     for( size_t i = 0; i < sys.size(); ++i ) {
                         (*systems)[i] = value_to_system(sys[i]);
                         if( !(*systems)[i] ) {
-                            lsm_system_record_array_free(*systems, i);
                             rc = LSM_ERR_NO_MEMORY;
-                            break;
+                            goto error;
                         }
                     }
                 } else {
@@ -1751,13 +1750,19 @@ int lsm_system_list(lsm_connect *c, lsm_system **systems[],
     } catch( const ValueException &ve ) {
         rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
-        if( *systems ) {
-            lsm_system_record_array_free( *systems, *systemCount);
-            *systems = NULL;
-            *systemCount = 0;
-        }
+        goto error;
+
     }
+out:
     return rc;
+
+error:
+    if( *systems ) {
+        lsm_system_record_array_free( *systems, *systemCount);
+        *systems = NULL;
+        *systemCount = 0;
+    }
+    goto out;
 }
 
 int lsm_fs_list(lsm_connect *c, const char *search_key,

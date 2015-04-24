@@ -2228,7 +2228,6 @@ static int handle_volume_raid_create_cap_get(
 
         if( IS_CLASS_SYSTEM(v_system) &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
-            lsm_system *sys = value_to_system(v_system);
 
             uint32_t *supported_raid_types = NULL;
             uint32_t supported_raid_type_count = 0;
@@ -2236,22 +2235,29 @@ static int handle_volume_raid_create_cap_get(
             uint32_t *supported_strip_sizes = NULL;
             uint32_t supported_strip_size_count = 0;
 
-            rc = p->ops_v1_2->vol_create_raid_cap_get(
-                p, sys, &supported_raid_types, &supported_raid_type_count,
-                &supported_strip_sizes, &supported_strip_size_count,
-                LSM_FLAG_GET_VALUE(params));
+            lsm_system *sys = value_to_system(v_system);
 
-            if( LSM_ERR_OK == rc ) {
-                std::vector<Value> result;
-                result.push_back(
-                    uint32_array_to_value(
-                        supported_raid_types, supported_raid_type_count));
-                result.push_back(
-                    uint32_array_to_value(
-                        supported_strip_sizes, supported_strip_size_count));
-                response = Value(result);
-                free(supported_raid_types);
-                free(supported_strip_sizes);
+            if( sys ) {
+
+                rc = p->ops_v1_2->vol_create_raid_cap_get(
+                    p, sys, &supported_raid_types, &supported_raid_type_count,
+                    &supported_strip_sizes, &supported_strip_size_count,
+                    LSM_FLAG_GET_VALUE(params));
+
+                if( LSM_ERR_OK == rc ) {
+                    std::vector<Value> result;
+                    result.push_back(
+                        uint32_array_to_value(
+                            supported_raid_types, supported_raid_type_count));
+                    result.push_back(
+                        uint32_array_to_value(
+                            supported_strip_sizes, supported_strip_size_count));
+                    response = Value(result);
+                    free(supported_raid_types);
+                    free(supported_strip_sizes);
+                }
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
             }
 
             lsm_system_record_free(sys);
@@ -2261,7 +2267,6 @@ static int handle_volume_raid_create_cap_get(
         }
     }
     return rc;
-
 }
 
 static int handle_volume_raid_create(
