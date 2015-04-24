@@ -931,19 +931,28 @@ int lsm_target_port_list(lsm_connect *c, const char *search_key,
 
                 for( size_t i = 0; i < tp.size(); ++i ) {
                     (*target_ports)[i] = value_to_target_port(tp[i]);
+                    if( !((*target_ports)[i]) ) {
+                        rc = LSM_ERR_NO_MEMORY;
+                        goto error;
+                    }
                 }
             }
         }
     } catch( const ValueException &ve ) {
         rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
-        if( *target_ports && *count ) {
-            lsm_target_port_record_array_free(*target_ports, *count);
-            *target_ports = NULL;
-            *count = 0;
-        }
+        goto error;
     }
+out:
     return rc;
+
+error:
+    if( *target_ports && *count ) {
+        lsm_target_port_record_array_free(*target_ports, *count);
+        *target_ports = NULL;
+        *count = 0;
+    }
+    goto out;
 }
 
 static int get_volume_array(lsm_connect *c, int rc, Value &response,
