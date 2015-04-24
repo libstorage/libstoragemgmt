@@ -2381,6 +2381,7 @@ int lsm_volume_raid_create(
     p["strip_size"] = Value((int32_t)strip_size);
     p["flags"] = Value(flags);
     std::vector<Value> disks_value;
+    disks_value.reserve(disk_count);
     for (uint32_t i = 0; i < disk_count; i++){
         disks_value.push_back(disk_to_value(disks[i]));
     }

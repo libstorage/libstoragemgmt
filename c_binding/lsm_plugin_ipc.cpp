@@ -472,6 +472,7 @@ static int handle_system_list(lsm_plugin_ptr p, Value &params,
                                                 LSM_FLAG_GET_VALUE(params));
             if( LSM_ERR_OK == rc ) {
                 std::vector<Value> result;
+                result.reserve(count);
 
                 for( uint32_t i = 0; i < count; ++i ) {
                     result.push_back(system_to_value(systems[i]));
@@ -503,6 +504,7 @@ static int handle_pools(lsm_plugin_ptr p, Value &params, Value &response)
                                         LSM_FLAG_GET_VALUE(params));
             if( LSM_ERR_OK == rc) {
                 std::vector<Value> result;
+                result.reserve(count);
 
                 for( uint32_t i = 0; i < count; ++i ) {
                     result.push_back(pool_to_value(pools[i]));
@@ -539,6 +541,7 @@ static int handle_target_ports(lsm_plugin_ptr p, Value &params, Value &response)
                                         LSM_FLAG_GET_VALUE(params));
             if( LSM_ERR_OK == rc) {
                 std::vector<Value> result;
+                result.reserve(count);
 
                 for( uint32_t i = 0; i < count; ++i ) {
                     result.push_back(target_port_to_value(target_ports[i]));
@@ -596,6 +599,7 @@ static void get_volumes(int rc, lsm_volume **vols, uint32_t count,
 {
     if( LSM_ERR_OK == rc ) {
         std::vector<Value> result;
+        result.reserve(count);
 
         for( uint32_t i = 0; i < count; ++i ) {
             result.push_back(volume_to_value(vols[i]));
@@ -639,6 +643,7 @@ static void get_disks(int rc, lsm_disk **disks, uint32_t count, Value &response)
 {
      if( LSM_ERR_OK == rc ) {
         std::vector<Value> result;
+        result.reserve(count);
 
         for( uint32_t i = 0; i < count; ++i ) {
             result.push_back(disk_to_value(disks[i]));
@@ -1335,6 +1340,7 @@ static int vol_accessible_by_ag(lsm_plugin_ptr p, Value &params, Value &response
 
                 if( LSM_ERR_OK == rc ) {
                     std::vector<Value> result;
+                    result.reserve(count);
 
                     for( uint32_t i = 0; i < count; ++i ) {
                         result.push_back(volume_to_value(vols[i]));
@@ -1377,6 +1383,7 @@ static int ag_granted_to_volume(lsm_plugin_ptr p, Value &params, Value &response
 
                 if( LSM_ERR_OK == rc ) {
                     std::vector<Value> result;
+                    result.reserve(count);
 
                     for( uint32_t i = 0; i < count; ++i ) {
                         result.push_back(access_group_to_value(groups[i]));
@@ -1486,6 +1493,7 @@ static int fs(lsm_plugin_ptr p, Value &params, Value &response)
 
             if( LSM_ERR_OK == rc ) {
                 std::vector<Value> result;
+                result.reserve(count);
 
                 for( uint32_t i = 0; i < count; ++i ) {
                     result.push_back(fs_to_value(fs[i]));
@@ -1846,6 +1854,7 @@ static int ss_list(lsm_plugin_ptr p, Value &params, Value &response)
 
                 if( LSM_ERR_OK == rc ) {
                     std::vector<Value> result;
+                    result.reserve(count);
 
                     for( uint32_t i = 0; i < count; ++i ) {
                         result.push_back(ss_to_value(ss[i]));
@@ -2042,6 +2051,7 @@ static int exports(lsm_plugin_ptr p, Value &params, Value &response)
 
             if( LSM_ERR_OK == rc ) {
                 std::vector<Value> result;
+                result.reserve(count);
 
                 for( uint32_t i = 0; i < count; ++i ) {
                     result.push_back(nfs_export_to_value(exports[i]));

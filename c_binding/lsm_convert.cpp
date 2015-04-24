@@ -279,6 +279,7 @@ Value string_list_to_value( lsm_string_list *sl)
     std::vector<Value> rc;
     if( LSM_IS_STRING_LIST(sl) ) {
         uint32_t size = lsm_string_list_size(sl);
+        rc.reserve(size);
 
         for(uint32_t i = 0; i < size; ++i ) {
             rc.push_back(Value(lsm_string_list_elem_get(sl, i)));
@@ -356,6 +357,7 @@ Value access_group_list_to_value( lsm_access_group **group, uint32_t count)
 
     if( group && count ) {
         uint32_t i;
+        rc.reserve(count);
         for( i = 0; i < count; ++i ) {
             rc.push_back(access_group_to_value(group[i]));
         }
@@ -415,6 +417,7 @@ Value block_range_list_to_value( lsm_block_range **brl, uint32_t count )
     std::vector<Value> r;
     if( brl && count) {
         uint32_t i = 0;
+        r.reserve(count);
         for( i = 0; i < count; ++i ) {
             r.push_back(block_range_to_value(brl[i]));
         }
@@ -653,6 +656,7 @@ Value uint32_array_to_value(uint32_t *uint32_array, uint32_t count)
     std::vector<Value> rc;
     if( uint32_array && count ) {
         uint32_t i;
+        rc.reserve(count);
         for( i = 0; i < count; i++ ) {
             rc.push_back(uint32_array[i]);
         }
