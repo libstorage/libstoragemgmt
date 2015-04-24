@@ -173,6 +173,10 @@ int value_array_to_disks(Value &disk_values, lsm_disk **disks[], uint32_t *count
                 if( *disks ){
                     for( size_t i = 0; i < d.size(); ++i ) {
                         (*disks)[i] = value_to_disk(d[i]);
+                        if( !((*disks)[i]) ) {
+                            rc = LSM_ERR_NO_MEMORY;
+                            goto error;
+                        }
                     }
                 } else {
                     rc = LSM_ERR_NO_MEMORY;
@@ -181,13 +185,19 @@ int value_array_to_disks(Value &disk_values, lsm_disk **disks[], uint32_t *count
         }
     } catch( const ValueException &ve ) {
         rc = LSM_ERR_LIB_BUG;
-        if( *disks && *count ) {
-            lsm_disk_record_array_free(*disks, *count);
-            *disks = NULL;
-            *count = 0;
-        }
+        goto error;
     }
+
+out:
     return rc;
+
+error:
+    if( *disks && *count ) {
+        lsm_disk_record_array_free(*disks, *count);
+        *disks = NULL;
+        *count = 0;
+    }
+    goto out;
 }
 
 lsm_pool *value_to_pool(Value &pool)
