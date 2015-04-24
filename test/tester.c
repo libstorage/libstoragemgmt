@@ -2883,6 +2883,7 @@ START_TEST(test_volume_raid_info)
         &disk_count, &min_io_size, &opt_io_size, LSM_CLIENT_FLAG_RSVD);
 
     G(rc, lsm_volume_record_free, volume);
+    G(rc, lsm_pool_record_free, pool);
     volume = NULL;
 }
 END_TEST
