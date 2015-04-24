@@ -791,7 +791,8 @@ static int handle_volume_replicate(lsm_plugin_ptr p, Value &params, Value &respo
             const char *name = v_name.asC_str();
             char *job = NULL;
 
-            if( vol ) {
+            if( vol && (pool ||
+                (!pool && Value::null_t == v_pool.valueType())) ) {
                 rc = p->san_ops->vol_replicate(p, pool, rep, vol, name,
                                                 &newVolume, &job,
                                                 LSM_FLAG_GET_VALUE(params));

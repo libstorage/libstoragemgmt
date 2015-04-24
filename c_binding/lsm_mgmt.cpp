@@ -627,6 +627,9 @@ int lsm_job_status_volume_get( lsm_connect *c, const char *job,
         if( LSM_ERR_OK == rc ) {
             if( Value::object_t ==  rv.valueType() ) {
                 *vol = value_to_volume(rv);
+                if( !(*vol) ) {
+                    rc = LSM_ERR_NO_MEMORY;
+                }
             } else {
                 *vol = NULL;
             }
@@ -1001,6 +1004,7 @@ static void* parse_job_response(lsm_connect *c, Value response, int &rc,
                                 char **job, convert conv)
 {
     void *val = NULL;
+    *job = NULL;
 
     try {
         //We get an array back. first value is job, second is data of interest.
@@ -1008,25 +1012,34 @@ static void* parse_job_response(lsm_connect *c, Value response, int &rc,
             std::vector<Value> r = response.asArray();
             if( Value::string_t == r[0].valueType()) {
                 *job = strdup((r[0].asString()).c_str());
-                if( *job ) {
-                    rc = LSM_ERR_JOB_STARTED;
-                } else {
+                if( !(*job) ) {
                     rc = LSM_ERR_NO_MEMORY;
+                    goto error;
                 }
 
                 rc = LSM_ERR_JOB_STARTED;
             }
             if( Value::object_t == r[1].valueType() ) {
                 val = conv(r[1]);
+                if( !val ) {
+                    rc = LSM_ERR_NO_MEMORY;
+                    goto error;
+                }
             }
         }
     } catch( const ValueException &ve ) {
         rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
-        free(*job);
-        *job = NULL;
+        goto error;
     }
+
+out:
     return val;
+
+error:
+    free(*job);
+    *job = NULL;
+    goto out;
 }
 
 int lsm_volume_create(lsm_connect *c, lsm_pool *pool, const char *volumeName,
@@ -1560,21 +1573,35 @@ int lsm_volumes_accessible_by_access_group(lsm_connect *c,
             if( vol.size() ) {
                 *volumes = lsm_volume_record_array_alloc(vol.size());
 
-                for( size_t i = 0; i < vol.size(); ++i ) {
-                    (*volumes)[i] = value_to_volume(vol[i]);
+                if( *volumes ) {
+                    for( size_t i = 0; i < vol.size(); ++i ) {
+                        (*volumes)[i] = value_to_volume(vol[i]);
+                        if( !((*volumes)[i]) ) {
+                            rc = LSM_ERR_NO_MEMORY;
+                            goto error;
+                        }
+                    }
+                } else {
+                    rc = LSM_ERR_NO_MEMORY;
                 }
             }
         }
     } catch( const ValueException &ve ) {
         rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
-        if( *volumes && *count ) {
-            lsm_volume_record_array_free(*volumes, *count);
-            *volumes = NULL;
-            *count = 0;
-        }
+        goto error;
+
     }
+
+out:
     return rc;
+
+error:
+    if( *volumes && *count ) {
+        lsm_volume_record_array_free(*volumes, *count);
+        *volumes = NULL;
+        *count = 0;
+    }
 }
 
 int lsm_access_groups_granted_to_volume(lsm_connect *c,
@@ -2393,6 +2420,9 @@ int lsm_volume_raid_create(
     int rc = rpc(c, "volume_raid_create", parameters, response);
     if( LSM_ERR_OK == rc ) {
         *new_volume = value_to_volume(response);
+        if( ! (*new_volume) ) {
+            rc = LSM_ERR_NO_MEMORY;
+        }
     }
     return rc;
 

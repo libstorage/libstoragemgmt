@@ -92,6 +92,10 @@ int value_array_to_volumes(Value &volume_values, lsm_volume **volumes[],
                 if( *volumes ){
                     for( size_t i = 0; i < vol.size(); ++i ) {
                         (*volumes)[i] = value_to_volume(vol[i]);
+                        if( !((*volumes)[i]) ) {
+                            rc = LSM_ERR_NO_MEMORY;
+                            goto error;
+                        }
                     }
                 } else {
                     rc = LSM_ERR_NO_MEMORY;
@@ -99,15 +103,20 @@ int value_array_to_volumes(Value &volume_values, lsm_volume **volumes[],
             }
         }
     } catch( const ValueException &ve) {
-        if( *volumes && *count ) {
-            lsm_volume_record_array_free(*volumes, *count);
-            *volumes = NULL;
-            *count = 0;
-        }
-
         rc = LSM_ERR_LIB_BUG;
+        goto error;
     }
+
+out:
     return rc;
+
+error:
+    if( *volumes && *count ) {
+        lsm_volume_record_array_free(*volumes, *count);
+        *volumes = NULL;
+        *count = 0;
+    }
+    goto out;
 }
 
 lsm_disk *value_to_disk(Value &disk)
