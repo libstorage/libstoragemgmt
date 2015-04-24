@@ -1426,6 +1426,9 @@ int lsm_access_group_create(lsm_connect *c, const char *name,
         //We should be getting a value back.
         if( Value::object_t == response.valueType() ) {
             *access_group = value_to_access_group(response);
+            if( !(*access_group) ) {
+                rc = LSM_ERR_NO_MEMORY;
+            }
         }
     }
     return rc;
@@ -1484,6 +1487,9 @@ static int _lsm_ag_add_delete(lsm_connect *c,
         //We should be getting a value back.
         if( Value::object_t == response.valueType() ) {
             *updated_access_group = value_to_access_group(response);
+            if( !(*updated_access_group) ) {
+                rc = LSM_ERR_NO_MEMORY;
+            }
         }
     }
 
