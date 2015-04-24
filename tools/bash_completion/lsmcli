@@ -76,7 +76,7 @@ function _lsm()
                 fs-resize fs-export fs-unexport fs-clone fs-snap-create \
                 fs-snap-delete fs-snap-restore fs-dependants fs-dependants-rm \
                 file-clone ls lp lv ld la lf lt c p vc vd vr vm vi ve vi ac \
-                aa ar ad vri"
+                aa ar ad vri pool-member-info pmi"
 
     list_args="--type"
     list_type_args="volumes pools fs snapshots exports nfs_client_auth \
@@ -124,6 +124,9 @@ function _lsm()
     fs_snap_restore_args="--snap --fs --file --fileas --force"
     fs_dependants_args="--fs"
     file_clone_args="--fs --src --dst --backing-snapshot"
+    pool_member_info_args="--pool"
+    volume_raid_create_args="--name --disk --raid-type --strip-size"
+    volume_raid_create_cap_args="--sys"
 
     # These operations can potentially be slow and cause hangs depending on plugin and configuration
     if [[ ${NO_VALUE_LOOKUP} -ne 0 ]] ; then
@@ -393,6 +396,22 @@ function _lsm()
             ;;
         capabilities|c)
             possible_args "${cap_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        pool-member-info|pmi)
+            possible_args "${pool_member_info_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        *)
+        volume-raid-create|vrc)
+            possible_args "${volume_raid_create_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        volume-raid-create-cap|vrcc)
+            possible_args "${volume_raid_create_cap_args}"
             COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
             ;;

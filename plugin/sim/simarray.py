@@ -67,54 +67,6 @@ def _random_vpd():
 
 
 class PoolRAID(object):
-    MEMBER_TYPE_UNKNOWN = 0
-    MEMBER_TYPE_DISK = 1
-    MEMBER_TYPE_DISK_MIX = 10
-    MEMBER_TYPE_DISK_ATA = 11
-    MEMBER_TYPE_DISK_SATA = 12
-    MEMBER_TYPE_DISK_SAS = 13
-    MEMBER_TYPE_DISK_FC = 14
-    MEMBER_TYPE_DISK_SOP = 15
-    MEMBER_TYPE_DISK_SCSI = 16
-    MEMBER_TYPE_DISK_NL_SAS = 17
-    MEMBER_TYPE_DISK_HDD = 18
-    MEMBER_TYPE_DISK_SSD = 19
-    MEMBER_TYPE_DISK_HYBRID = 110
-    MEMBER_TYPE_DISK_LUN = 111
-
-    MEMBER_TYPE_POOL = 2
-
-    _MEMBER_TYPE_2_DISK_TYPE = {
-        MEMBER_TYPE_DISK: Disk.TYPE_UNKNOWN,
-        MEMBER_TYPE_DISK_MIX: Disk.TYPE_UNKNOWN,
-        MEMBER_TYPE_DISK_ATA: Disk.TYPE_ATA,
-        MEMBER_TYPE_DISK_SATA: Disk.TYPE_SATA,
-        MEMBER_TYPE_DISK_SAS: Disk.TYPE_SAS,
-        MEMBER_TYPE_DISK_FC: Disk.TYPE_FC,
-        MEMBER_TYPE_DISK_SOP: Disk.TYPE_SOP,
-        MEMBER_TYPE_DISK_SCSI: Disk.TYPE_SCSI,
-        MEMBER_TYPE_DISK_NL_SAS: Disk.TYPE_NL_SAS,
-        MEMBER_TYPE_DISK_HDD: Disk.TYPE_HDD,
-        MEMBER_TYPE_DISK_SSD: Disk.TYPE_SSD,
-        MEMBER_TYPE_DISK_HYBRID: Disk.TYPE_HYBRID,
-        MEMBER_TYPE_DISK_LUN: Disk.TYPE_LUN,
-    }
-
-    @staticmethod
-    def member_type_is_disk(member_type):
-        """
-        Returns True if defined 'member_type' is disk.
-        False when else.
-        """
-        return member_type in PoolRAID._MEMBER_TYPE_2_DISK_TYPE
-
-    @staticmethod
-    def disk_type_to_member_type(disk_type):
-        for m_type, d_type in PoolRAID._MEMBER_TYPE_2_DISK_TYPE.items():
-            if disk_type == d_type:
-                return m_type
-        return PoolRAID.MEMBER_TYPE_UNKNOWN
-
     _RAID_DISK_CHK = {
         Volume.RAID_TYPE_JBOD: lambda x: x > 0,
         Volume.RAID_TYPE_RAID0: lambda x: x > 0,
@@ -171,7 +123,7 @@ class PoolRAID(object):
 
 
 class BackStore(object):
-    VERSION = "3.1"
+    VERSION = "3.4"
     VERSION_SIGNATURE = 'LSM_SIMULATOR_DATA_%s_%s' % (VERSION, md5(VERSION))
     JOB_DEFAULT_DURATION = 1
     JOB_DATA_TYPE_VOL = 1
@@ -181,7 +133,7 @@ class BackStore(object):
     SYS_ID = "sim-01"
     SYS_NAME = "LSM simulated storage plug-in"
     BLK_SIZE = 512
-    STRIP_SIZE = 131072     # 128 KiB
+    DEFAULT_STRIP_SIZE = 128 * 1024 # 128 KiB
 
     _LIST_SPLITTER = '#'
 
@@ -190,7 +142,8 @@ class BackStore(object):
     POOL_KEY_LIST = [
         'id', 'name', 'status', 'status_info',
         'element_type', 'unsupported_actions', 'raid_type',
-        'member_type', 'parent_pool_id', 'total_space', 'free_space']
+        'member_type', 'parent_pool_id', 'total_space', 'free_space',
+        'strip_size']
 
     DISK_KEY_LIST = [
         'id', 'name', 'total_space', 'disk_type', 'status',
@@ -198,7 +151,7 @@ class BackStore(object):
 
     VOL_KEY_LIST = [
         'id', 'vpd83', 'name', 'total_space', 'consumed_size',
-        'pool_id', 'admin_state', 'thinp']
+        'pool_id', 'admin_state', 'thinp', 'is_hw_raid_vol']
 
     TGT_KEY_LIST = [
         'id', 'port_type', 'service_address', 'network_address',
@@ -219,6 +172,16 @@ class BackStore(object):
         'id', 'fs_id', 'exp_path', 'auth_type', 'anon_uid', 'anon_gid',
         'options', 'exp_root_hosts_str', 'exp_rw_hosts_str',
         'exp_ro_hosts_str']
+
+    SUPPORTED_VCR_RAID_TYPES = [
+        Volume.RAID_TYPE_RAID0, Volume.RAID_TYPE_RAID1,
+        Volume.RAID_TYPE_RAID5, Volume.RAID_TYPE_RAID6,
+        Volume.RAID_TYPE_RAID10, Volume.RAID_TYPE_RAID50,
+        Volume.RAID_TYPE_RAID60]
+
+    SUPPORTED_VCR_STRIP_SIZES = [
+        8 * 1024, 16 * 1024, 32 * 1024, 64 * 1024, 128 * 1024, 256 * 1024,
+        512 * 1024, 1024 * 1024]
 
     def __init__(self, statefile, timeout):
         if not os.path.exists(statefile):
@@ -266,6 +229,7 @@ class BackStore(object):
             "parent_pool_id INTEGER, "  # Indicate this pool is allocated from
                                         # other pool
             "member_type INTEGER, "
+            "strip_size INTEGER, "
             "total_space LONG);\n")     # total_space here is only for
                                         # sub-pool (pool from pool)
 
@@ -292,6 +256,10 @@ class BackStore(object):
                                                 # support.
             "admin_state INTEGER, "
             "thinp INTEGER NOT NULL, "
+            "is_hw_raid_vol INTEGER, " # Once its volume deleted, pool will
+                                        # be delete also. For HW RAID
+                                        # simulation only.
+
             "pool_id INTEGER NOT NULL, "
             "FOREIGN KEY(pool_id) "
             "REFERENCES pools(id) ON DELETE CASCADE);\n")
@@ -401,40 +369,75 @@ class BackStore(object):
             """
             CREATE VIEW pools_view AS
                 SELECT
-                    pool.id,
-                    pool.name,
-                    pool.status,
-                    pool.status_info,
-                    pool.element_type,
-                    pool.unsupported_actions,
-                    pool.raid_type,
-                    pool.member_type,
-                    pool.parent_pool_id,
-                        ifnull(pool.total_space,
-                            ifnull(SUM(disk.total_space), 0))
-                    total_space,
-                        ifnull(pool.total_space,
-                            ifnull(SUM(disk.total_space), 0)) -
-                        ifnull(SUM(volume.consumed_size), 0) -
-                        ifnull(SUM(fs.consumed_size), 0) -
-                        ifnull(SUM(pool2.total_space), 0)
-                    free_space
-
+                    pool0.id,
+                    pool0.name,
+                    pool0.status,
+                    pool0.status_info,
+                    pool0.element_type,
+                    pool0.unsupported_actions,
+                    pool0.raid_type,
+                    pool0.member_type,
+                    pool0.parent_pool_id,
+                    pool0.strip_size,
+                    pool1.total_space total_space,
+                    pool1.total_space -
+                    pool2.vol_consumed_size  -
+                    pool3.fs_consumed_size -
+                    pool4.sub_pool_consumed_size free_space
                 FROM
-                    pools pool
-                        LEFT JOIN disks disk
-                            ON pool.id = disk.owner_pool_id AND
-                               disk.role = 'DATA'
-                        LEFT JOIN volumes volume
-                            ON volume.pool_id = pool.id
-                        LEFT JOIN fss fs
-                            ON fs.pool_id = pool.id
-                        LEFT JOIN pools pool2
-                            ON pool2.parent_pool_id = pool.id
+                    pools pool0
+                        LEFT JOIN (
+                            SELECT
+                                pool.id,
+                                    ifnull(pool.total_space,
+                                        ifnull(SUM(disk.total_space), 0))
+                                total_space
+                            FROM pools pool
+                                LEFT JOIN disks disk
+                                    ON pool.id = disk.owner_pool_id AND
+                                       disk.role = 'DATA'
+                            GROUP BY
+                                pool.id
+                        ) pool1 ON pool0.id = pool1.id
+
+                        LEFT JOIN (
+                            SELECT
+                                pool.id,
+                                ifnull(SUM(volume.consumed_size), 0)
+                                vol_consumed_size
+                            FROM pools pool
+                                LEFT JOIN volumes volume
+                                    ON volume.pool_id = pool.id
+                            GROUP BY
+                                pool.id
+                        ) pool2 ON pool0.id = pool2.id
+
+                        LEFT JOIN (
+                            SELECT
+                                pool.id,
+                                ifnull(SUM(fs.consumed_size), 0)
+                                fs_consumed_size
+                            FROM pools pool
+                                LEFT JOIN fss fs
+                                    ON fs.pool_id = pool.id
+                            GROUP BY
+                                pool.id
+                        ) pool3 ON pool0.id = pool3.id
+
+                        LEFT JOIN (
+                            SELECT
+                                pool.id,
+                                ifnull(SUM(sub_pool.total_space), 0)
+                                sub_pool_consumed_size
+                            FROM pools pool
+                                LEFT JOIN pools sub_pool
+                                    ON sub_pool.parent_pool_id = pool.id
+                            GROUP BY
+                                pool.id
+                        ) pool4 ON pool0.id = pool4.id
 
                 GROUP BY
-                    pool.id
-            ;
+                    pool0.id;
             """)
         sql_cmd += (
             """
@@ -464,6 +467,7 @@ class BackStore(object):
                     vol.pool_id,
                     vol.admin_state,
                     vol.thinp,
+                    vol.is_hw_raid_vol,
                     vol_mask.ag_id ag_id
                 FROM
                     volumes vol
@@ -916,6 +920,12 @@ class BackStore(object):
         """
         return self._get_table('systems', BackStore.SYS_KEY_LIST)
 
+    def sim_disk_ids_of_pool(self, sim_pool_id):
+        return list(
+            d['id']
+            for d in self._data_find(
+                'disks', 'owner_pool_id="%s"' % sim_pool_id, ['id']))
+
     def sim_disks(self):
         """
         Return a list of sim_disk dict.
@@ -934,20 +944,10 @@ class BackStore(object):
             ErrorNumber.NOT_FOUND_POOL, "Pool")
 
     def sim_pool_create_from_disk(self, name, sim_disk_ids, raid_type,
-                                  element_type, unsupported_actions=0):
-        # Detect disk type
-        disk_type = None
-        for sim_disk in self.sim_disks():
-            if sim_disk['id'] not in sim_disk_ids:
-                continue
-            if disk_type is None:
-                disk_type = sim_disk['disk_type']
-            elif disk_type != sim_disk['disk_type']:
-                disk_type = None
-                break
-        member_type = PoolRAID.MEMBER_TYPE_DISK
-        if disk_type is not None:
-            member_type = PoolRAID.disk_type_to_member_type(disk_type)
+                                  element_type, unsupported_actions=0,
+                                  strip_size=0):
+        if strip_size == 0:
+            strip_size = BackStore.DEFAULT_STRIP_SIZE
 
         self._data_add(
             'pools',
@@ -958,7 +958,8 @@ class BackStore(object):
                 'element_type': element_type,
                 'unsupported_actions': unsupported_actions,
                 'raid_type': raid_type,
-                'member_type': member_type,
+                'member_type': Pool.MEMBER_TYPE_DISK,
+                'strip_size': strip_size,
             })
 
         data_disk_count = PoolRAID.data_disk_count(
@@ -991,7 +992,7 @@ class BackStore(object):
                 'element_type': element_type,
                 'unsupported_actions': unsupported_actions,
                 'raid_type': Volume.RAID_TYPE_OTHER,
-                'member_type': PoolRAID.MEMBER_TYPE_POOL,
+                'member_type': Pool.MEMBER_TYPE_POOL,
                 'parent_pool_id': parent_pool_id,
                 'total_space': size,
             })
@@ -1051,7 +1052,9 @@ class BackStore(object):
         return (size_bytes + BackStore.BLK_SIZE - 1) / \
             BackStore.BLK_SIZE * BackStore.BLK_SIZE
 
-    def sim_vol_create(self, name, size_bytes, sim_pool_id, thinp):
+    def sim_vol_create(self, name, size_bytes, sim_pool_id, thinp,
+                       is_hw_raid_vol=0):
+
         size_bytes = BackStore._block_rounding(size_bytes)
         self._check_pool_free_space(sim_pool_id, size_bytes)
         sim_vol = dict()
@@ -1062,6 +1065,7 @@ class BackStore(object):
         sim_vol['total_space'] = size_bytes
         sim_vol['consumed_size'] = size_bytes
         sim_vol['admin_state'] = Volume.ADMIN_STATE_ENABLED
+        sim_vol['is_hw_raid_vol'] = is_hw_raid_vol
 
         try:
             self._data_add("volumes", sim_vol)
@@ -1077,7 +1081,7 @@ class BackStore(object):
         This does not check whether volume exist or not.
         """
         # Check existence.
-        self.sim_vol_of_id(sim_vol_id)
+        sim_vol = self.sim_vol_of_id(sim_vol_id)
 
         if self._sim_ag_ids_of_masked_vol(sim_vol_id):
             raise LsmError(
@@ -1092,8 +1096,11 @@ class BackStore(object):
                     raise LsmError(
                         ErrorNumber.PLUGIN_BUG,
                         "Requested volume is a replication source")
-
-        self._data_delete("volumes", 'id="%s"' % sim_vol_id)
+        if sim_vol['is_hw_raid_vol']:
+            # Delete the parent pool instead if found a HW RAID volume.
+            self._data_delete("pools", 'id="%s"' % sim_vol['pool_id'])
+        else:
+            self._data_delete("volumes", 'id="%s"' % sim_vol_id)
 
     def sim_vol_mask(self, sim_vol_id, sim_ag_id):
         self.sim_vol_of_id(sim_vol_id)
@@ -1781,7 +1788,7 @@ class SimArray(object):
 
     @_handle_errors
     def volume_create(self, pool_id, vol_name, size_bytes, thinp, flags=0,
-                      _internal_use=False):
+                      _internal_use=False, _is_hw_raid_vol=0):
         """
         The '_internal_use' parameter is only for SimArray internal use.
         This method will return the new sim_vol id instead of job_id when
@@ -1791,7 +1798,8 @@ class SimArray(object):
             self.bs_obj.trans_begin()
 
         new_sim_vol_id = self.bs_obj.sim_vol_create(
-            vol_name, size_bytes, SimArray._sim_pool_id_of(pool_id), thinp)
+            vol_name, size_bytes, SimArray._sim_pool_id_of(pool_id),
+            thinp, is_hw_raid_vol=_is_hw_raid_vol)
 
         if _internal_use:
             return new_sim_vol_id
@@ -2240,7 +2248,7 @@ class SimArray(object):
         opt_io_size = Volume.OPT_IO_SIZE_UNKNOWN
         disk_count = Volume.DISK_COUNT_UNKNOWN
 
-        if sim_pool['member_type'] == PoolRAID.MEMBER_TYPE_POOL:
+        if sim_pool['member_type'] == Pool.MEMBER_TYPE_POOL:
             parent_sim_pool = self.bs_obj.sim_pool_of_id(
                 sim_pool['parent_pool_id'])
             raid_type = parent_sim_pool['raid_type']
@@ -2273,8 +2281,91 @@ class SimArray(object):
             min_io_size = BackStore.BLK_SIZE
             opt_io_size = BackStore.BLK_SIZE
         else:
-            strip_size = BackStore.STRIP_SIZE
-            min_io_size = BackStore.STRIP_SIZE
-            opt_io_size = int(data_disk_count * BackStore.STRIP_SIZE)
+            strip_size = sim_pool['strip_size']
+            min_io_size = strip_size
+            opt_io_size = int(data_disk_count * strip_size)
 
         return [raid_type, strip_size, disk_count, min_io_size, opt_io_size]
+
+    @_handle_errors
+    def pool_member_info(self, lsm_pool):
+        sim_pool = self.bs_obj.sim_pool_of_id(
+            SimArray._lsm_id_to_sim_id(
+                lsm_pool.id,
+                LsmError(ErrorNumber.NOT_FOUND_POOL, "Pool not found")))
+        member_type = sim_pool['member_type']
+        member_ids = []
+        if member_type == Pool.MEMBER_TYPE_POOL:
+            member_ids = [
+                SimArray._sim_id_to_lsm_id(
+                    sim_pool['parent_pool_id'], 'POOL')]
+        elif member_type == Pool.MEMBER_TYPE_DISK:
+            member_ids = list(
+                SimArray._sim_id_to_lsm_id(sim_disk_id, 'DISK')
+                for sim_disk_id in self.bs_obj.sim_disk_ids_of_pool(
+                    sim_pool['id']))
+        else:
+            member_type = Pool.MEMBER_TYPE_UNKNOWN
+
+        return sim_pool['raid_type'], member_type, member_ids
+
+    @_handle_errors
+    def volume_raid_create_cap_get(self, system):
+        if system.id != BackStore.SYS_ID:
+            raise LsmError(
+                ErrorNumber.NOT_FOUND_SYSTEM,
+                "System not found")
+        return (
+            BackStore.SUPPORTED_VCR_RAID_TYPES,
+            BackStore.SUPPORTED_VCR_STRIP_SIZES)
+
+    @_handle_errors
+    def volume_raid_create(self, name, raid_type, disks, strip_size):
+        if raid_type not in BackStore.SUPPORTED_VCR_RAID_TYPES:
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "Provided 'raid_type' is not supported")
+
+        if strip_size == Volume.VCR_STRIP_SIZE_DEFAULT:
+            strip_size = BackStore.DEFAULT_STRIP_SIZE
+        elif strip_size not in BackStore.SUPPORTED_VCR_STRIP_SIZES:
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "Provided 'strip_size' is not supported")
+
+        self.bs_obj.trans_begin()
+        pool_name =  "Pool for volume %s" % name
+        sim_disk_ids = [
+            SimArray._lsm_id_to_sim_id(
+                d.id,
+                LsmError(ErrorNumber.NOT_FOUND_DISK, "Disk not found"))
+            for d in disks]
+
+        for disk in disks:
+            if not disk.status & Disk.STATUS_FREE:
+                raise LsmError(
+                    ErrorNumber.DISK_NOT_FREE,
+                    "Disk %s is not in DISK.STATUS_FREE mode" % disk.id)
+        try:
+            sim_pool_id = self.bs_obj.sim_pool_create_from_disk(
+                    name=pool_name,
+                    raid_type=raid_type,
+                    sim_disk_ids=sim_disk_ids,
+                    element_type=Pool.ELEMENT_TYPE_VOLUME,
+                    unsupported_actions=Pool.UNSUPPORTED_VOLUME_GROW |
+                    Pool.UNSUPPORTED_VOLUME_SHRINK,
+                    strip_size=strip_size)
+        except sqlite3.IntegrityError as sql_error:
+            raise LsmError(
+                ErrorNumber.NAME_CONFLICT,
+                "Name '%s' is already in use by other volume" % name)
+
+
+        sim_pool = self.bs_obj.sim_pool_of_id(sim_pool_id)
+        sim_vol_id = self.volume_create(
+            SimArray._sim_id_to_lsm_id(sim_pool_id, 'POOL'), name,
+            sim_pool['free_space'], Volume.PROVISION_FULL,
+            _internal_use=True, _is_hw_raid_vol=1)
+        sim_vol = self.bs_obj.sim_vol_of_id(sim_vol_id)
+        self.bs_obj.trans_commit()
+        return SimArray._sim_vol_2_lsm(sim_vol)

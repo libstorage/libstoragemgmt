@@ -63,6 +63,7 @@ typedef enum {
     LSM_ERR_NOT_FOUND_VOLUME = 205,     /**< Specified volume not found */
     LSM_ERR_NOT_FOUND_NFS_EXPORT = 206, /**< NFS export not found */
     LSM_ERR_NOT_FOUND_SYSTEM = 208,     /**< System not found */
+    LSM_ERR_NOT_FOUND_DISK = 209,
 
     LSM_ERR_NOT_LICENSED = 226,         /**< Need license for feature */
 
@@ -90,6 +91,7 @@ typedef enum {
 
     LSM_ERR_EMPTY_ACCESS_GROUP = 511,
     LSM_ERR_POOL_NOT_READY = 512,
+    LSM_ERR_DISK_NOT_FREE = 513,
 
 } lsm_error_number;
 
