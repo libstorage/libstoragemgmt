@@ -2225,6 +2225,9 @@ int lsm_nfs_list( lsm_connect *c, const char *search_key,
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
+    *count = 0;
+    *exports = NULL;
+
     try {
         std::map<std::string, Value> p;
 
@@ -2251,6 +2254,10 @@ int lsm_nfs_list( lsm_connect *c, const char *search_key,
                 if( *exports ) {
                     for( size_t i = 0; i < *count; ++i ) {
                         (*exports)[i] = value_to_nfs_export(exps[i]);
+                        if( !((*exports)[i]) ) {
+                            rc = LSM_ERR_NO_MEMORY;
+                            goto error;
+                        }
                     }
                 } else {
                     rc = LSM_ERR_NO_MEMORY;
@@ -2260,13 +2267,18 @@ int lsm_nfs_list( lsm_connect *c, const char *search_key,
     } catch( const ValueException &ve ) {
         rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
-        if( *exports && *count ) {
+        goto error;
+    }
+out:
+    return rc;
+
+error:
+    if( *exports && *count ) {
             lsm_nfs_export_record_array_free( *exports, *count );
             *exports = NULL;
             *count = 0;
-        }
     }
-    return rc;
+    goto out;
 }
 
 int lsm_nfs_export_fs( lsm_connect *c,
@@ -2327,6 +2339,9 @@ int lsm_nfs_export_fs( lsm_connect *c,
     int rc = rpc(c, "export_fs", parameters, response);
     if( LSM_ERR_OK == rc && Value::object_t == response.valueType()) {
         *exported = value_to_nfs_export(response);
+        if( !(*exported) ) {
+            rc = LSM_ERR_NO_MEMORY;
+        }
     }
     return rc;
 }
