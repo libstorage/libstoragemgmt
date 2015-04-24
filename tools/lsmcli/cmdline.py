@@ -39,7 +39,8 @@ from lsm import (Client, Pool, VERSION, LsmError, Disk,
 
 from lsm.lsmcli.data_display import (
     DisplayData, PlugData, out,
-    vol_provision_str_to_type, vol_rep_type_str_to_type, VolumeRAIDInfo)
+    vol_provision_str_to_type, vol_rep_type_str_to_type, VolumeRAIDInfo,
+    PoolRAIDInfo, VcrCap)
 
 
 ## Wraps the invocation to the command line
@@ -241,6 +242,37 @@ cmds = (
     ),
 
     dict(
+        name='volume-raid-create',
+        help='Creates a RAIDed volume on hardware RAID',
+        args=[
+            dict(name="--name", help='volume name', metavar='<NAME>'),
+            dict(name="--disk", metavar='<DISK>',
+                 help='Free disks for new RAIDed volume.\n'
+                      'This is repeatable argument.',
+                 action='append'),
+            dict(name="--raid-type",
+                 help="RAID type for the new RAID group. "
+                      "Should be one of these:\n    %s" %
+                      "\n    ".join(
+                        VolumeRAIDInfo.VOL_CREATE_RAID_TYPES_STR),
+                 choices=VolumeRAIDInfo.VOL_CREATE_RAID_TYPES_STR,
+                 type=str.upper),
+        ],
+        optional=[
+            dict(name="--strip-size",
+                 help="Strip size. " + size_help),
+        ],
+    ),
+
+    dict(
+        name='volume-raid-create-cap',
+        help='Query capablity of creating a RAIDed volume on hardware RAID',
+        args=[
+            dict(sys_id_opt),
+        ],
+    ),
+
+    dict(
         name='volume-delete',
         help='Deletes a volume given its id',
         args=[
@@ -372,6 +404,14 @@ cmds = (
         help='Query volume RAID infomation',
         args=[
             dict(vol_id_opt),
+        ],
+    ),
+
+    dict(
+        name='pool-member-info',
+        help='Query Pool membership infomation',
+        args=[
+            dict(pool_id_opt),
         ],
     ),
 
@@ -626,6 +666,8 @@ aliases = (
     ['c', 'capabilities'],
     ['p', 'plugin-info'],
     ['vc', 'volume-create'],
+    ['vrc', 'volume-raid-create'],
+    ['vrcc', 'volume-raid-create-cap'],
     ['vd', 'volume-delete'],
     ['vr', 'volume-resize'],
     ['vm', 'volume-mask'],
@@ -637,6 +679,7 @@ aliases = (
     ['ar', 'access-group-remove'],
     ['ad', 'access-group-delete'],
     ['vri', 'volume-raid-info'],
+    ['pmi', 'pool-member-info'],
 )
 
 
@@ -1333,6 +1376,45 @@ class CmdLine:
             [
                 VolumeRAIDInfo(
                     lsm_vol.id, *self.c.volume_raid_info(lsm_vol))])
+
+    def pool_member_info(self, args):
+        lsm_pool = _get_item(self.c.pools(), args.pool, "Pool")
+        self.display_data(
+            [
+                PoolRAIDInfo(
+                    lsm_pool.id, *self.c.pool_member_info(lsm_pool))])
+
+    def volume_raid_create(self, args):
+        raid_type = VolumeRAIDInfo.raid_type_str_to_lsm(args.raid_type)
+
+        all_lsm_disks = self.c.disks()
+        lsm_disks = [d for d in all_lsm_disks if d.id in args.disk]
+        if len(lsm_disks) != len(args.disk):
+            raise LsmError(
+                ErrorNumber.NOT_FOUND_DISK,
+                "Disk ID %s not found" %
+                ', '.join(set(args.disk) - set(d.id for d in all_lsm_disks)))
+
+        busy_disks = [d.id for d in lsm_disks if not d.status & Disk.STATUS_FREE]
+
+        if len(busy_disks) >= 1:
+            raise LsmError(
+                ErrorNumber.DISK_NOT_FREE,
+                "Disk %s is not free" % ", ".join(busy_disks))
+
+        if args.strip_size:
+            strip_size = size_human_2_size_bytes(args.strip_size)
+        else:
+            strip_size = Volume.VCR_STRIP_SIZE_DEFAULT
+
+        self.display_data([
+            self.c.volume_raid_create(
+                args.name, raid_type, lsm_disks, strip_size)])
+
+    def volume_raid_create_cap(self, args):
+        lsm_sys = _get_item(self.c.systems(), args.sys, "System")
+        self.display_data([
+            VcrCap(lsm_sys.id, *self.c.volume_raid_create_cap_get(lsm_sys))])
 
     ## Displays file system dependants
     def fs_dependants(self, args):

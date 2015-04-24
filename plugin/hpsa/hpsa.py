@@ -195,26 +195,46 @@ def _disk_status_of(hp_disk, flag_free):
     return disk_status
 
 
-def _hp_raid_type_to_lsm(hp_ld):
+_HP_RAID_LEVEL_CONV = {
+    '0': Volume.RAID_TYPE_RAID0,
+    # TODO(Gris Ge): Investigate whether HP has 4 disks RAID 1.
+    #                In LSM, that's RAID10.
+    '1': Volume.RAID_TYPE_RAID1,
+    '5': Volume.RAID_TYPE_RAID5,
+    '6': Volume.RAID_TYPE_RAID6,
+    '1+0': Volume.RAID_TYPE_RAID10,
+    '50': Volume.RAID_TYPE_RAID50,
+    '60': Volume.RAID_TYPE_RAID60,
+}
+
+
+_HP_VENDOR_RAID_LEVELS = ['1adm', '1+0adm']
+
+
+_LSM_RAID_TYPE_CONV = dict(
+    zip(_HP_RAID_LEVEL_CONV.values(), _HP_RAID_LEVEL_CONV.keys()))
+
+
+def _hp_raid_level_to_lsm(hp_ld):
     """
     Based on this property:
         Fault Tolerance: 0/1/5/6/1+0
     """
     hp_raid_level = hp_ld['Fault Tolerance']
-    if hp_raid_level == '0':
-        return Volume.RAID_TYPE_RAID0
-    elif hp_raid_level == '1':
-        # TODO(Gris Ge): Investigate whether HP has 4 disks RAID 1.
-        #                In LSM, that's RAID10.
-        return Volume.RAID_TYPE_RAID1
-    elif hp_raid_level == '5':
-        return Volume.RAID_TYPE_RAID5
-    elif hp_raid_level == '6':
-        return Volume.RAID_TYPE_RAID6
-    elif hp_raid_level == '1+0':
-        return Volume.RAID_TYPE_RAID10
 
-    return Volume.RAID_TYPE_UNKNOWN
+    if hp_raid_level in _HP_VENDOR_RAID_LEVELS:
+        return Volume.RAID_TYPE_OTHER
+
+    return _HP_RAID_LEVEL_CONV.get(hp_raid_level, Volume.RAID_TYPE_UNKNOWN)
+
+
+def _lsm_raid_type_to_hp(raid_type):
+    try:
+        return _LSM_RAID_TYPE_CONV[raid_type]
+    except KeyError:
+        raise LsmError(
+            ErrorNumber.NO_SUPPORT,
+            "Not supported raid type %d" % raid_type)
 
 
 class SmartArray(IPlugin):
@@ -285,6 +305,8 @@ class SmartArray(IPlugin):
         cap.set(Capabilities.VOLUMES)
         cap.set(Capabilities.DISKS)
         cap.set(Capabilities.VOLUME_RAID_INFO)
+        cap.set(Capabilities.POOL_MEMBER_INFO)
+        cap.set(Capabilities.VOLUME_RAID_CREATE)
         return cap
 
     def _sacli_exec(self, sacli_cmds, flag_convert=True):
@@ -510,7 +532,7 @@ class SmartArray(IPlugin):
             for array_key_name in ctrl_data[key_name].keys():
                 if array_key_name == "Logical Drive: %s" % ld_num:
                     hp_ld = ctrl_data[key_name][array_key_name]
-                    raid_type = _hp_raid_type_to_lsm(hp_ld)
+                    raid_type = _hp_raid_level_to_lsm(hp_ld)
                     strip_size = _hp_size_to_lsm(hp_ld['Strip Size'])
                     stripe_size = _hp_size_to_lsm(hp_ld['Full Stripe Size'])
                 elif array_key_name.startswith("physicaldrive"):
@@ -531,3 +553,188 @@ class SmartArray(IPlugin):
                 "Volume not found")
 
         return [raid_type, strip_size, disk_count, strip_size, stripe_size]
+
+    @_handle_errors
+    def pool_member_info(self, pool, flags=Client.FLAG_RSVD):
+        """
+        Depend on command:
+            hpssacli ctrl slot=0 show config detail
+        """
+        if not pool.plugin_data:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Ilegal input volume argument: missing plugin_data property")
+
+        (ctrl_num, array_num) = pool.plugin_data.split(":")
+        ctrl_data = self._sacli_exec(
+            ["ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
+            ).values()[0]
+
+        disk_ids = []
+        raid_type = Volume.RAID_TYPE_UNKNOWN
+        for key_name in ctrl_data.keys():
+            if key_name == "Array: %s" % array_num:
+                for array_key_name in ctrl_data[key_name].keys():
+                    if array_key_name.startswith("Logical Drive: ") and \
+                       raid_type == Volume.RAID_TYPE_UNKNOWN:
+                        raid_type = _hp_raid_level_to_lsm(
+                            ctrl_data[key_name][array_key_name])
+                    elif array_key_name.startswith("physicaldrive"):
+                        hp_disk = ctrl_data[key_name][array_key_name]
+                        if hp_disk['Drive Type'] == 'Data Drive':
+                            disk_ids.append(hp_disk['Serial Number'])
+                break
+
+        if len(disk_ids) == 0:
+            raise LsmError(
+                ErrorNumber.NOT_FOUND_POOL,
+                "Pool not found")
+
+        return raid_type, Pool.MEMBER_TYPE_DISK, disk_ids
+
+    def _vrc_cap_get(self, ctrl_num):
+        supported_raid_types = [
+            Volume.RAID_TYPE_RAID0, Volume.RAID_TYPE_RAID1,
+            Volume.RAID_TYPE_RAID5, Volume.RAID_TYPE_RAID50,
+            Volume.RAID_TYPE_RAID10]
+
+        supported_strip_sizes = [
+            8 * 1024, 16 * 1024, 32 * 1024, 64 * 1024,
+            128 * 1024, 256 * 1024, 512 * 1024, 1024 * 1024]
+
+        ctrl_conf = self._sacli_exec([
+            "ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
+            ).values()[0]
+
+        if 'RAID 6 (ADG) Status' in ctrl_conf and \
+           ctrl_conf['RAID 6 (ADG) Status'] == 'Enabled':
+            supported_raid_types.extend(
+                [Volume.RAID_TYPE_RAID6, Volume.RAID_TYPE_RAID60])
+
+        return supported_raid_types, supported_strip_sizes
+
+    @_handle_errors
+    def volume_raid_create_cap_get(self, system, flags=Client.FLAG_RSVD):
+        """
+        Depends on this command:
+            hpssacli ctrl slot=0 show config detail
+        All hpsa support RAID 1, 10, 5, 50.
+        If "RAID 6 (ADG) Status: Enabled", it will support RAID 6 and 60.
+        For HP tribile mirror(RAID 1adm and RAID10adm), LSM does support
+        that yet.
+        No command output or document indication special or exceptional
+        support of strip size, assuming all hpsa cards support documented
+        strip sizes.
+        """
+        if not system.plugin_data:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Ilegal input system argument: missing plugin_data property")
+        return self._vrc_cap_get(system.plugin_data)
+
+    @_handle_errors
+    def volume_raid_create(self, name, raid_type, disks, strip_size,
+                           flags=Client.FLAG_RSVD):
+        """
+        Depends on these commands:
+            1. Create LD
+                hpssacli ctrl slot=0 create type=ld \
+                    drives=1i:1:13,1i:1:14 size=max raid=1+0 ss=64
+
+            2. Find out the system ID.
+
+            3. Find out the pool fist disk belong.
+                hpssacli ctrl slot=0 pd 1i:1:13 show
+
+            4. List all volumes for this new pool.
+                self.volumes(search_key='pool_id', search_value=pool_id)
+
+        The 'name' argument will be ignored.
+        TODO(Gris Ge): These code only tested for creating 1 disk RAID 0.
+        """
+        hp_raid_level = _lsm_raid_type_to_hp(raid_type)
+        hp_disk_ids = []
+        ctrl_num = None
+        for disk in disks:
+            if not disk.plugin_data:
+                raise LsmError(
+                    ErrorNumber.INVALID_ARGUMENT,
+                    "Illegal input disks argument: missing plugin_data "
+                    "property")
+            (cur_ctrl_num, hp_disk_id) = disk.plugin_data.split(':', 1)
+            if ctrl_num and cur_ctrl_num != ctrl_num:
+                raise LsmError(
+                    ErrorNumber.INVALID_ARGUMENT,
+                    "Illegal input disks argument: disks are not from the "
+                    "same controller/system.")
+
+            ctrl_num = cur_ctrl_num
+            hp_disk_ids.append(hp_disk_id)
+
+        cmds = [
+            "ctrl", "slot=%s" % ctrl_num, "create", "type=ld",
+            "drives=%s" % ','.join(hp_disk_ids), 'size=max',
+            'raid=%s' % hp_raid_level]
+
+        if strip_size != Volume.VCR_STRIP_SIZE_DEFAULT:
+            cmds.append("ss=%d" % int(strip_size / 1024))
+
+        try:
+            self._sacli_exec(cmds, flag_convert=False)
+        except ExecError:
+            # Check whether disk is free
+            requested_disk_ids = [d.id for d in disks]
+            for cur_disk in self.disks():
+                if cur_disk.id in requested_disk_ids and \
+                   not cur_disk.status & Disk.STATUS_FREE:
+                    raise LsmError(
+                        ErrorNumber.DISK_NOT_FREE,
+                        "Disk %s is not in STATUS_FREE state" % cur_disk.id)
+
+            # Check whether got unsupported raid type or strip size
+            supported_raid_types, supported_strip_sizes = \
+                self._vrc_cap_get(ctrl_num)
+
+            if raid_type not in supported_raid_types:
+                raise LsmError(
+                    ErrorNumber.NO_SUPPORT,
+                    "Provided raid_type is not supported")
+
+            if strip_size != Volume.VCR_STRIP_SIZE_DEFAULT and \
+               strip_size not in supported_strip_sizes:
+                raise LsmError(
+                    ErrorNumber.NO_SUPPORT,
+                    "Provided strip_size is not supported")
+
+            raise
+
+        # Find out the system id to gernerate pool_id
+        sys_output = self._sacli_exec(
+            ['ctrl', "slot=%s" % ctrl_num, 'show'])
+
+        sys_id = sys_output.values()[0]['Serial Number']
+        # API code already checked empty 'disks', we will for sure get
+        # valid 'ctrl_num' and 'hp_disk_ids'.
+
+        pd_output = self._sacli_exec(
+            ['ctrl', "slot=%s" % ctrl_num, 'pd', hp_disk_ids[0], 'show'])
+
+        if pd_output.values()[0].keys()[0].lower().startswith("array "):
+            hp_array_id = pd_output.values()[0].keys()[0][len("array "):]
+            hp_array_id = "Array:%s" % hp_array_id
+        else:
+            raise LsmError(
+                ErrorNumber.PLUGIN_BUG,
+                "volume_raid_create(): Failed to find out the array ID of "
+                "new array: %s" % pd_output.items())
+
+        pool_id = _pool_id_of(sys_id, hp_array_id)
+
+        lsm_vols = self.volumes(search_key='pool_id', search_value=pool_id)
+
+        if len(lsm_vols) != 1:
+            raise LsmError(
+                ErrorNumber.PLUGIN_BUG,
+                "volume_raid_create(): Got unexpected count(not 1) of new "
+                "volumes: %s" % lsm_vols)
+        return lsm_vols[0]

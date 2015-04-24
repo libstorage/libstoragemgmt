@@ -306,6 +306,8 @@ class Volume(IData):
     MIN_IO_SIZE_UNKNOWN = 0
     OPT_IO_SIZE_UNKNOWN = 0
 
+    VCR_STRIP_SIZE_DEFAULT = 0
+
     def __init__(self, _id, _name, _vpd83, _block_size, _num_of_blocks,
                  _admin_state, _system_id, _pool_id, _plugin_data=None):
         self._id = _id                        # Identifier
@@ -411,6 +413,11 @@ class Pool(IData):
     STATUS_VERIFYING = 1 << 13
     STATUS_INITIALIZING = 1 << 14
     STATUS_GROWING = 1 << 15
+
+    MEMBER_TYPE_UNKNOWN = 0
+    MEMBER_TYPE_OTHER = 1
+    MEMBER_TYPE_DISK = 2
+    MEMBER_TYPE_POOL = 3
 
     def __init__(self, _id, _name, _element_type, _unsupported_actions,
                  _total_space, _free_space,
@@ -754,6 +761,8 @@ class Capabilities(IData):
     TARGET_PORTS_QUICK_SEARCH = 217
 
     DISKS = 220
+    POOL_MEMBER_INFO = 221
+    VOLUME_RAID_CREATE = 222
 
     def _to_dict(self):
         return {'class': self.__class__.__name__,

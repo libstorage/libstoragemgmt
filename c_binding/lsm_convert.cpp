@@ -617,3 +617,44 @@ Value target_port_to_value(lsm_target_port *tp)
     }
     return Value();
 }
+
+int values_to_uint32_array(
+    Value &value, uint32_t **uint32_array, uint32_t *count)
+{
+    int rc = LSM_ERR_OK;
+    try {
+        std::vector<Value> data = value.asArray();
+        *count = data.size();
+        if (*count){
+            *uint32_array = (uint32_t *)malloc(sizeof(uint32_t) * *count);
+            if (*uint32_array){
+                uint32_t i;
+                for( i = 0; i < *count; i++ ){
+                    (*uint32_array)[i] = data[i].asUint32_t();
+                }
+            }else{
+                rc = LSM_ERR_NO_MEMORY;
+            }
+        }
+    } catch( const ValueException &ve) {
+        if( *count ) {
+            free(*uint32_array);
+            *uint32_array = NULL;
+            *count = 0;
+        }
+        rc = LSM_ERR_LIB_BUG;
+    }
+    return rc;
+}
+
+Value uint32_array_to_value(uint32_t *uint32_array, uint32_t count)
+{
+    std::vector<Value> rc;
+    if( uint32_array && count ) {
+        uint32_t i;
+        for( i = 0; i < count; i++ ) {
+            rc.push_back(uint32_array[i]);
+        }
+    }
+    return rc;
+}

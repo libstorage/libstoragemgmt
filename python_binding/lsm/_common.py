@@ -447,6 +447,7 @@ class ErrorNumber(object):
     NOT_FOUND_VOLUME = 205
     NOT_FOUND_NFS_EXPORT = 206
     NOT_FOUND_SYSTEM = 208
+    NOT_FOUND_DISK = 209
 
     NOT_LICENSED = 226
 
@@ -477,6 +478,8 @@ class ErrorNumber(object):
                                 # has no member/initiator.
 
     POOL_NOT_READY = 512        # Pool is not ready for create/resize/etc
+
+    DISK_NOT_FREE = 513     # Disk is not in DISK.STATUS_FREE status.
 
     _LOCALS = locals()
 

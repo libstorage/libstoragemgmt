@@ -19,6 +19,7 @@ import os
 import json
 import re
 import errno
+import math
 
 from lsm import (uri_parse, search_property, size_human_2_size_bytes,
                  Capabilities, LsmError, ErrorNumber, System, Client,
@@ -29,6 +30,7 @@ from lsm.plugin.megaraid.utils import cmd_exec, ExecError
 # Naming scheme
 #   mega_sys_path   /c0
 #   mega_disk_path  /c0/e64/s0
+#   lsi_disk_id    0:64:0
 
 
 def _handle_errors(method):
@@ -174,6 +176,16 @@ _RAID_TYPE_MAP = {
     'RAID60': Volume.RAID_TYPE_RAID60,
 }
 
+_LSM_RAID_TYPE_CONV = {
+    Volume.RAID_TYPE_RAID0: 'RAID0',
+    Volume.RAID_TYPE_RAID1: 'RAID1',
+    Volume.RAID_TYPE_RAID5: 'RAID5',
+    Volume.RAID_TYPE_RAID6: 'RAID6',
+    Volume.RAID_TYPE_RAID50: 'RAID50',
+    Volume.RAID_TYPE_RAID60: 'RAID60',
+    Volume.RAID_TYPE_RAID10: 'RAID10',
+}
+
 
 def _mega_raid_type_to_lsm(vd_basic_info, vd_prop_info):
     raid_type = _RAID_TYPE_MAP.get(
@@ -185,6 +197,15 @@ def _mega_raid_type_to_lsm(vd_basic_info, vd_prop_info):
         raid_type = Volume.RAID_TYPE_RAID10
 
     return raid_type
+
+
+def _lsm_raid_type_to_mega(lsm_raid_type):
+    try:
+        return _LSM_RAID_TYPE_CONV[lsm_raid_type]
+    except KeyError:
+        raise LsmError(
+            ErrorNumber.NO_SUPPORT,
+            "RAID type %d not supported" % lsm_raid_type)
 
 
 class MegaRAID(IPlugin):
@@ -259,6 +280,8 @@ class MegaRAID(IPlugin):
         cap.set(Capabilities.DISKS)
         cap.set(Capabilities.VOLUMES)
         cap.set(Capabilities.VOLUME_RAID_INFO)
+        cap.set(Capabilities.POOL_MEMBER_INFO)
+        cap.set(Capabilities.VOLUME_RAID_CREATE)
         return cap
 
     def _storcli_exec(self, storcli_cmds, flag_json=True):
@@ -345,7 +368,7 @@ class MegaRAID(IPlugin):
                 )
             (status, status_info) = self._lsm_status_of_ctrl(
                 ctrl_show_all_output)
-            plugin_data = "/c%d"
+            plugin_data = "/c%d" % ctrl_num
             # Since PCI slot sequence might change.
             # This string just stored for quick system verification.
 
@@ -392,7 +415,8 @@ class MegaRAID(IPlugin):
                 status = _disk_status_of(
                     disk_show_basic_dict, disk_show_stat_dict)
 
-                plugin_data = mega_disk_path
+                plugin_data = "%s:%s" % (
+                    ctrl_num, disk_show_basic_dict['EID:Slt'])
 
                 rc_lsm_disks.append(
                     Disk(
@@ -546,3 +570,207 @@ class MegaRAID(IPlugin):
         return [
             raid_type, strip_size, disk_count, strip_size,
             strip_size * strip_count]
+
+    @_handle_errors
+    def pool_member_info(self, pool, flags=Client.FLAG_RSVD):
+        lsi_dg_path = pool.plugin_data
+        # Check whether pool exists.
+        try:
+            dg_show_all_output = self._storcli_exec(
+                [lsi_dg_path , "show", "all"])
+        except ExecError as exec_error:
+            try:
+                json_output = json.loads(exec_error.stdout)
+                detail_error = json_output[
+                    'Controllers'][0]['Command Status']['Detailed Status']
+            except Exception:
+                raise exec_error
+
+            if detail_error and detail_error[0]['Status'] == 'Not found':
+                raise LsmError(
+                    ErrorNumber.NOT_FOUND_POOL,
+                    "Pool not found")
+            raise
+
+        ctrl_num = lsi_dg_path.split('/')[1][1:]
+        lsm_disk_map = {}
+        disk_ids = []
+        for lsm_disk in self.disks():
+            lsm_disk_map[lsm_disk.plugin_data] = lsm_disk.id
+
+        for dg_disk_info in dg_show_all_output['DG Drive LIST']:
+            cur_lsi_disk_id = "%s:%s" % (ctrl_num, dg_disk_info['EID:Slt'])
+            if cur_lsi_disk_id in lsm_disk_map.keys():
+                disk_ids.append(lsm_disk_map[cur_lsi_disk_id])
+            else:
+                raise LsmError(
+                    ErrorNumber.PLUGIN_BUG,
+                    "pool_member_info(): Failed to find disk id of %s" %
+                    cur_lsi_disk_id)
+
+        raid_type = Volume.RAID_TYPE_UNKNOWN
+        dg_num = lsi_dg_path.split('/')[2][1:]
+        for dg_top in dg_show_all_output['TOPOLOGY']:
+            if dg_top['Arr'] == '-' and \
+               dg_top['Row'] == '-' and \
+               int(dg_top['DG']) == int(dg_num):
+                raid_type = _RAID_TYPE_MAP.get(
+                    dg_top['Type'], Volume.RAID_TYPE_UNKNOWN)
+                break
+
+        if raid_type == Volume.RAID_TYPE_RAID1 and len(disk_ids) >= 4:
+            raid_type = Volume.RAID_TYPE_RAID10
+
+        return raid_type, Pool.MEMBER_TYPE_DISK, disk_ids
+
+    def _vcr_cap_get(self, mega_sys_path):
+        cap_output = self._storcli_exec(
+            [mega_sys_path, "show", "all"])['Capabilities']
+
+        mega_raid_types = \
+            cap_output['RAID Level Supported'].replace(', \n', '').split(', ')
+
+        supported_raid_types = []
+        for cur_mega_raid_type in _RAID_TYPE_MAP.keys():
+            if cur_mega_raid_type in mega_raid_types:
+                supported_raid_types.append(
+                    _RAID_TYPE_MAP[cur_mega_raid_type])
+
+        supported_raid_types = sorted(list(set(supported_raid_types)))
+
+        min_strip_size = _mega_size_to_lsm(cap_output['Min Strip Size'])
+        max_strip_size = _mega_size_to_lsm(cap_output['Max Strip Size'])
+
+        supported_strip_sizes = list(
+            min_strip_size * (2 ** i)
+            for i in range(
+                0, int(math.log(max_strip_size / min_strip_size, 2) + 1)))
+
+        # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        # The math above is to generate a list like:
+        #   min_strip_size, ... n^2 , max_strip_size
+
+        return supported_raid_types, supported_strip_sizes
+
+    @_handle_errors
+    def volume_raid_create_cap_get(self, system, flags=Client.FLAG_RSVD):
+        """
+        Depend on the 'Capabilities' section of "storcli /c0 show all" output.
+        """
+        cur_lsm_syss = list(s for s in self.systems() if s.id == system.id)
+        if len(cur_lsm_syss) != 1:
+            raise LsmError(
+                ErrorNumber.NOT_FOUND_SYSTEM,
+                "System not found")
+
+        lsm_sys = cur_lsm_syss[0]
+        return self._vcr_cap_get(lsm_sys.plugin_data)
+
+    @_handle_errors
+    def volume_raid_create(self, name, raid_type, disks, strip_size,
+                           flags=Client.FLAG_RSVD):
+        """
+        Work flow:
+            1. Create RAID volume
+                storcli /c0 add vd RAID10 drives=252:1-4 pdperarray=2 J
+            2. Find out pool/DG base on one disk.
+                storcli /c0/e252/s1 show J
+            3. Find out the volume/VD base on pool/DG using self.volumes()
+        """
+        mega_raid_type = _lsm_raid_type_to_mega(raid_type)
+        ctrl_num = None
+        slot_nums = []
+        enclosure_num = None
+
+        for disk in disks:
+            if not disk.plugin_data:
+                raise LsmError(
+                    ErrorNumber.INVALID_ARGUMENT,
+                    "Illegal input disks argument: missing plugin_data "
+                    "property")
+            # Disk should from the same controller.
+            (cur_ctrl_num, cur_enclosure_num, slot_num) = \
+                disk.plugin_data.split(':')
+
+            if ctrl_num and cur_ctrl_num != ctrl_num:
+                raise LsmError(
+                    ErrorNumber.INVALID_ARGUMENT,
+                    "Illegal input disks argument: disks are not from the "
+                    "same controller/system.")
+
+            if enclosure_num and cur_enclosure_num != enclosure_num:
+                raise LsmError(
+                    ErrorNumber.INVALID_ARGUMENT,
+                    "Illegal input disks argument: disks are not from the "
+                    "same disk enclosure.")
+
+            ctrl_num = int(cur_ctrl_num)
+            enclosure_num = cur_enclosure_num
+            slot_nums.append(slot_num)
+
+        # Handle request volume name, LSI only allow 15 characters.
+        name = re.sub('[^0-9a-zA-Z_\-]+', '', name)[:15]
+
+        cmds = [
+            "/c%s" % ctrl_num, "add", "vd", mega_raid_type,
+            'size=all', "name=%s" % name,
+            "drives=%s:%s" % (enclosure_num, ','.join(slot_nums))]
+
+        if raid_type == Volume.RAID_TYPE_RAID10 or \
+           raid_type == Volume.RAID_TYPE_RAID50 or \
+           raid_type == Volume.RAID_TYPE_RAID60:
+            cmds.append("pdperarray=%d" % int(len(disks) / 2))
+
+        if strip_size != Volume.VCR_STRIP_SIZE_DEFAULT:
+            cmds.append("strip=%d" % int(strip_size / 1024))
+
+        try:
+            self._storcli_exec(cmds)
+        except ExecError:
+            req_disk_ids = [d.id for d in disks]
+            for cur_disk in self.disks():
+                if cur_disk.id in req_disk_ids and \
+                   not cur_disk.status & Disk.STATUS_FREE:
+                    raise LsmError(
+                        ErrorNumber.DISK_NOT_FREE,
+                        "Disk %s is not in STATUS_FREE state" % cur_disk.id)
+            # Check whether got unsupported RAID type or stripe size
+            supported_raid_types, supported_strip_sizes = \
+                self._vcr_cap_get("/c%s" % ctrl_num)
+
+            if raid_type not in supported_raid_types:
+                raise LsmError(
+                    ErrorNumber.NO_SUPPORT,
+                    "Provided 'raid_type' is not supported")
+
+            if strip_size != Volume.VCR_STRIP_SIZE_DEFAULT and \
+               strip_size not in supported_strip_sizes:
+                raise LsmError(
+                    ErrorNumber.NO_SUPPORT,
+                    "Provided 'strip_size' is not supported")
+
+            raise
+
+        # Find out the DG ID from one disk.
+        dg_show_output = self._storcli_exec(
+            ["/c%s/e%s/s%s" % tuple(disks[0].plugin_data.split(":")), "show"])
+
+        dg_id = dg_show_output['Drive Information'][0]['DG']
+        if dg_id == '-':
+            raise LsmError(
+                ErrorNumber.PLUGIN_BUG,
+                "volume_raid_create(): No error found in output, "
+                "but RAID is not created: %s" % dg_show_output.items())
+        else:
+            dg_id = int(dg_id)
+
+        pool_id = _pool_id_of(dg_id, self._sys_id_of_ctrl_num(ctrl_num))
+
+        lsm_vols = self.volumes(search_key='pool_id', search_value=pool_id)
+        if len(lsm_vols) != 1:
+            raise LsmError(
+                ErrorNumber.PLUGIN_BUG,
+                "volume_raid_create(): Got unexpected volume count(not 1) "
+                "when creating RAID volume")
+
+        return lsm_vols[0]
