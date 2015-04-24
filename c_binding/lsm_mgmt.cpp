@@ -596,6 +596,9 @@ int lsm_job_status_pool_get(lsm_connect *c,
         if( LSM_ERR_OK == rc ) {
             if( Value::object_t ==  rv.valueType() ) {
                 *pool = value_to_pool(rv);
+                if( !(*pool) ) {
+                    rc = LSM_ERR_NO_MEMORY;
+                }
             } else {
                 *pool = NULL;
             }
@@ -766,6 +769,9 @@ int lsm_pool_list(lsm_connect *c, char *search_key, char *search_value,
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
+    *count = 0;
+    *poolArray = NULL;
+
     try {
         std::map<std::string, Value> p;
 
@@ -790,19 +796,29 @@ int lsm_pool_list(lsm_connect *c, char *search_key, char *search_value,
 
                 for( size_t i = 0; i < pools.size(); ++i ) {
                     (*poolArray)[i] = value_to_pool(pools[i]);
+                    if( !(*poolArray)[i] ) {
+                        rc = LSM_ERR_NO_MEMORY;
+                        goto error;
+                    }
                 }
             }
         }
     } catch( const ValueException &ve ) {
         rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
                             ve.what());
-        if( *poolArray && *count ) {
-            lsm_pool_record_array_free(*poolArray, *count);
-            *poolArray = NULL;
-            *count = 0;
-        }
+        goto error;
     }
+
+out:
     return rc;
+
+error:
+    if( *poolArray && *count ) {
+        lsm_pool_record_array_free(*poolArray, *count);
+        *poolArray = NULL;
+        *count = 0;
+    }
+    goto out;
 }
 
 int lsm_pool_member_info(lsm_connect *c, lsm_pool *pool,
