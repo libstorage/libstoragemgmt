@@ -166,12 +166,13 @@ Value LSM_DLL_LOCAL access_group_to_value(lsm_access_group *group);
 /**
  * Converts an access group list to an array of access group pointers
  * @param[in] group         Value representing a std::vector of access groups
+ * @param[out]
  * @param[out] count         Number of items in the returned array.
- * @return NULL on memory allocation failure, else pointer to access group
- *          array.
+ * @return LSM_ERR_OK on success, else error reason
  */
-lsm_access_group LSM_DLL_LOCAL **value_to_access_group_list( Value &group,
-                                                            uint32_t *count );
+int LSM_DLL_LOCAL value_array_to_access_groups( Value &group,
+                                              lsm_access_group **ag_list[],
+                                              uint32_t *count );
 
 /**
  * Converts an array of lsm_access_group to Value(s)

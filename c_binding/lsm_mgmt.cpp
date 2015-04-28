@@ -283,10 +283,7 @@ static int getAccessGroups( lsm_connect *c, int rc, Value &response,
 {
     try {
         if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
-            *groups = value_to_access_group_list(response, count);
-            if( *count && !(*groups) ) {
-                rc = LSM_ERR_NO_MEMORY;
-            }
+            rc = value_array_to_access_groups(response, groups, count);
         }
     } catch( const ValueException &ve ) {
         rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
@@ -959,10 +956,11 @@ static int get_volume_array(lsm_connect *c, int rc, Value &response,
                             lsm_volume **volumes[], uint32_t *count)
 {
     if( LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
-        rc = value_array_to_volumes(response, volumes, count);
-
-        if( LSM_ERR_OK != rc ) {
-            rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type", NULL);
+        try {
+            rc = value_array_to_volumes(response, volumes, count);
+        } catch( const ValueException &ve ) {
+            rc = logException(c, LSM_ERR_LIB_BUG, "Wrong type",
+                            ve.what());
         }
     }
     return rc;
@@ -1443,14 +1441,19 @@ int lsm_access_group_create(lsm_connect *c, const char *name,
     *access_group = NULL;
 
     int rc = rpc(c, "access_group_create", parameters, response);
-    if( LSM_ERR_OK == rc ) {
-        //We should be getting a value back.
-        if( Value::object_t == response.valueType() ) {
-            *access_group = value_to_access_group(response);
-            if( !(*access_group) ) {
-                rc = LSM_ERR_NO_MEMORY;
+    try {
+        if( LSM_ERR_OK == rc ) {
+            //We should be getting a value back.
+            if( Value::object_t == response.valueType() ) {
+                *access_group = value_to_access_group(response);
+                if( !(*access_group) ) {
+                    rc = LSM_ERR_NO_MEMORY;
+                }
             }
         }
+    } catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
+                            ve.what());
     }
     return rc;
 }
@@ -1504,14 +1507,19 @@ static int _lsm_ag_add_delete(lsm_connect *c,
     Value response;
 
     int rc = rpc(c, message, parameters, response);
-    if( LSM_ERR_OK == rc ) {
-        //We should be getting a value back.
-        if( Value::object_t == response.valueType() ) {
-            *updated_access_group = value_to_access_group(response);
-            if( !(*updated_access_group) ) {
-                rc = LSM_ERR_NO_MEMORY;
+    try {
+        if( LSM_ERR_OK == rc ) {
+            //We should be getting a value back.
+            if( Value::object_t == response.valueType() ) {
+                *updated_access_group = value_to_access_group(response);
+                if( !(*updated_access_group) ) {
+                    rc = LSM_ERR_NO_MEMORY;
+                }
             }
         }
+    } catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
+                            ve.what());
     }
 
     return rc;
@@ -2349,11 +2357,16 @@ int lsm_nfs_export_fs( lsm_connect *c,
     Value response;
 
     int rc = rpc(c, "export_fs", parameters, response);
-    if( LSM_ERR_OK == rc && Value::object_t == response.valueType()) {
-        *exported = value_to_nfs_export(response);
-        if( !(*exported) ) {
-            rc = LSM_ERR_NO_MEMORY;
+    try {
+        if( LSM_ERR_OK == rc && Value::object_t == response.valueType()) {
+            *exported = value_to_nfs_export(response);
+            if( !(*exported) ) {
+                rc = LSM_ERR_NO_MEMORY;
+            }
         }
+    } catch ( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
+                            ve.what());
     }
     return rc;
 }
@@ -2503,12 +2516,16 @@ int lsm_volume_raid_create(
     Value response;
 
     int rc = rpc(c, "volume_raid_create", parameters, response);
-    if( LSM_ERR_OK == rc ) {
-        *new_volume = value_to_volume(response);
-        if( ! (*new_volume) ) {
-            rc = LSM_ERR_NO_MEMORY;
+    try {
+        if( LSM_ERR_OK == rc ) {
+            *new_volume = value_to_volume(response);
+            if( ! (*new_volume) ) {
+                rc = LSM_ERR_NO_MEMORY;
+            }
         }
+    } catch( const ValueException &ve ) {
+        rc = logException(c, LSM_ERR_LIB_BUG, "Unexpected type",
+                            ve.what());
     }
     return rc;
-
 }

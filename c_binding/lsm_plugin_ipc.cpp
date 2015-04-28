@@ -784,7 +784,8 @@ static int handle_volume_replicate(lsm_plugin_ptr p, Value &params, Value &respo
             Value::string_t == v_name.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
 
-            lsm_pool *pool = value_to_pool(v_pool);
+            lsm_pool *pool = (Value::null_t == v_pool.valueType()) ? NULL :
+                                value_to_pool(v_pool);
             lsm_volume *vol = value_to_volume(v_vol_src);
             lsm_volume *newVolume = NULL;
             lsm_replication_type rep = (lsm_replication_type)v_rep.asInt32_t();
@@ -1669,7 +1670,8 @@ static int fs_clone(lsm_plugin_ptr p, Value &params, Value &response)
             char *job = NULL;
             lsm_fs *fs = value_to_fs(v_src_fs);
             const char* name = v_name.asC_str();
-            lsm_fs_ss *ss = value_to_ss(v_ss);
+            lsm_fs_ss *ss = (Value::null_t == v_ss.valueType()) ?
+                                NULL : value_to_ss(v_ss);
 
             if( fs &&
                 (( ss && v_ss.valueType() == Value::object_t) ||
@@ -1724,7 +1726,8 @@ static int fs_file_clone(lsm_plugin_ptr p, Value &params, Value &response)
 
 
             lsm_fs *fs = value_to_fs(v_fs);
-            lsm_fs_ss *ss = value_to_ss(v_ss);
+            lsm_fs_ss *ss = (Value::null_t == v_ss.valueType()) ?
+                                NULL : value_to_ss(v_ss);
 
             if( fs &&
                 (( ss && v_ss.valueType() == Value::object_t) ||
@@ -1771,7 +1774,8 @@ static int fs_child_dependency(lsm_plugin_ptr p, Value &params, Value &response)
              LSM_FLAG_EXPECTED_TYPE(params)) {
 
             lsm_fs *fs = value_to_fs(v_fs);
-            lsm_string_list *files = value_to_string_list(v_files);
+            lsm_string_list *files = (Value::null_t == v_files.valueType()) ?
+                                        NULL : value_to_string_list(v_files);
 
             if( fs && ( files ||
                 (!files && Value::null_t == v_files.valueType()) )) {
@@ -1810,7 +1814,8 @@ static int fs_child_dependency_rm(lsm_plugin_ptr p, Value &params, Value &respon
              LSM_FLAG_EXPECTED_TYPE(params) ) {
 
             lsm_fs *fs = value_to_fs(v_fs);
-            lsm_string_list *files = value_to_string_list(v_files);
+            lsm_string_list *files = (Value::null_t == v_files.valueType()) ?
+                                        NULL: value_to_string_list(v_files);
 
             if( fs &&
                 (files || (!files && Value::null_t == v_files.valueType())) ) {
@@ -1986,9 +1991,11 @@ static int ss_restore(lsm_plugin_ptr p, Value &params, Value &response)
             char *job = NULL;
             lsm_fs *fs = value_to_fs(v_fs);
             lsm_fs_ss *ss = value_to_ss(v_ss);
-            lsm_string_list *files = value_to_string_list(v_files);
-            lsm_string_list *restore_files =
-                    value_to_string_list(v_restore_files);
+            lsm_string_list *files = (Value::null_t ==  v_files.valueType()) ?
+                                        NULL : value_to_string_list(v_files);
+            lsm_string_list *restore_files = (Value::null_t ==
+                                v_restore_files.valueType()) ?
+                                NULL : value_to_string_list(v_restore_files);
             int all_files = (v_all_files.asBool()) ? 1 : 0;
 
             if( fs && ss &&
