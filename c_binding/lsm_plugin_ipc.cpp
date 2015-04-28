@@ -1720,7 +1720,8 @@ static int fs_file_clone(lsm_plugin_ptr p, Value &params, Value &response)
 
         if( IS_CLASS_FILE_SYSTEM(v_fs) &&
             Value::string_t == v_src_name.valueType() &&
-            (Value::string_t == v_dest_name.valueType() ||
+            Value::string_t == v_dest_name.valueType() &&
+            (Value::null_t == v_ss.valueType() ||
             Value::object_t == v_ss.valueType()) &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
 
