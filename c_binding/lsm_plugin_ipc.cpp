@@ -1611,7 +1611,7 @@ static int fs_resize(lsm_plugin_ptr p, Value &params, Value &response)
         Value v_fs = params["fs"];
         Value v_size = params["new_size_bytes"];
 
-        if( Value::object_t == v_fs.valueType() &&
+        if( IS_CLASS_FILE_SYSTEM(v_fs) &&
             Value::numeric_t == v_size.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
 
@@ -1660,7 +1660,7 @@ static int fs_clone(lsm_plugin_ptr p, Value &params, Value &response)
         Value v_name = params["dest_fs_name"];
         Value v_ss = params["snapshot"];  /* This is optional */
 
-        if( Value::object_t == v_src_fs.valueType() &&
+        if( IS_CLASS_FILE_SYSTEM(v_src_fs) &&
             Value::string_t == v_name.valueType() &&
             (Value::null_t == v_ss.valueType() ||
             Value::object_t == v_ss.valueType()) &&
@@ -1718,7 +1718,7 @@ static int fs_file_clone(lsm_plugin_ptr p, Value &params, Value &response)
         Value v_dest_name = params["dest_file_name"];
         Value v_ss = params["snapshot"];    /* This is optional */
 
-        if( Value::object_t == v_fs.valueType() &&
+        if( IS_CLASS_FILE_SYSTEM(v_fs) &&
             Value::string_t == v_src_name.valueType() &&
             (Value::string_t == v_dest_name.valueType() ||
             Value::object_t == v_ss.valueType()) &&
@@ -1768,7 +1768,7 @@ static int fs_child_dependency(lsm_plugin_ptr p, Value &params, Value &response)
         Value v_fs = params["fs"];
         Value v_files = params["files"];
 
-        if( Value::object_t == v_fs.valueType() &&
+        if( IS_CLASS_FILE_SYSTEM(v_fs) &&
             (Value::array_t == v_files.valueType() ||
              Value::null_t == v_files.valueType()) &&
              LSM_FLAG_EXPECTED_TYPE(params)) {
@@ -1808,7 +1808,7 @@ static int fs_child_dependency_rm(lsm_plugin_ptr p, Value &params, Value &respon
         Value v_fs = params["fs"];
         Value v_files = params["files"];
 
-        if( Value::object_t == v_fs.valueType() &&
+        if( IS_CLASS_FILE_SYSTEM(v_fs) &&
             (Value::array_t == v_files.valueType() ||
              Value::null_t == v_files.valueType()) &&
              LSM_FLAG_EXPECTED_TYPE(params) ) {
@@ -1848,7 +1848,7 @@ static int ss_list(lsm_plugin_ptr p, Value &params, Value &response)
 
         Value v_fs = params["fs"];
 
-        if( Value::object_t == v_fs.valueType() &&
+        if( IS_CLASS_FILE_SYSTEM(v_fs) &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
 
             lsm_fs *fs = value_to_fs(v_fs);
@@ -1891,7 +1891,7 @@ static int ss_create(lsm_plugin_ptr p, Value &params, Value &response)
         Value v_fs = params["fs"];
         Value v_ss_name = params["snapshot_name"];
 
-        if( Value::object_t == v_fs.valueType() &&
+        if( IS_CLASS_FILE_SYSTEM(v_fs) &&
             Value::string_t == v_ss_name.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
             lsm_fs *fs = value_to_fs(v_fs);
@@ -1939,8 +1939,8 @@ static int ss_delete(lsm_plugin_ptr p, Value &params, Value &response)
         Value v_fs = params["fs"];
         Value v_ss = params["snapshot"];
 
-        if( Value::object_t == v_fs.valueType() &&
-            Value::object_t == v_ss.valueType() &&
+        if( IS_CLASS_FILE_SYSTEM(v_fs) &&
+            IS_CLASS_FS_SNAPSHOT(v_ss) &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
 
             lsm_fs *fs = value_to_fs(v_fs);
@@ -1979,8 +1979,8 @@ static int ss_restore(lsm_plugin_ptr p, Value &params, Value &response)
         Value v_restore_files = params["restore_files"];
         Value v_all_files = params["all_files"];
 
-        if( Value::object_t == v_fs.valueType() &&
-            Value::object_t == v_ss.valueType() &&
+        if( IS_CLASS_FILE_SYSTEM(v_fs) &&
+            IS_CLASS_FS_SNAPSHOT(v_ss) &&
             (Value::array_t == v_files.valueType() ||
             Value::null_t ==  v_files.valueType() ) &&
             (Value::array_t == v_restore_files.valueType() ||
@@ -2172,7 +2172,7 @@ static int export_remove(lsm_plugin_ptr p, Value &params, Value &response)
     if( p && p->nas_ops && p->nas_ops->nfs_export_remove ) {
         Value v_export = params["export"];
 
-        if( Value::object_t == v_export.valueType() &&
+        if( IS_CLASS_FS_EXPORT(v_export) &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
             lsm_nfs_export *exp = value_to_nfs_export(v_export);
 
