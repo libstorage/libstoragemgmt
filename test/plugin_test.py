@@ -321,12 +321,6 @@ class TestPlugin(unittest.TestCase):
         pools_list = self.c.pools()
         self.assertTrue(len(pools_list) > 0, "We need at least 1 pool to test")
 
-    @staticmethod
-    def _vpd_correct(vpd):
-        if vpd and re.match('^[a-f0-9]{32}$', vpd):
-            return True
-        return False
-
     def _find_or_create_volumes(self):
         """
         Find existing volumes, if not found, try to create one.
@@ -357,7 +351,7 @@ class TestPlugin(unittest.TestCase):
         (volumes, flag_created) = self._find_or_create_volumes()
         self.assertTrue(len(volumes) > 0, "We need at least 1 volume to test")
         for v in volumes:
-            self.assertTrue(TestPlugin._vpd_correct(v.vpd83),
+            self.assertTrue(lsm.Volume.vpd83_verify(v.vpd83),
                             "VPD is not as expected '%s' for volume id: '%s'" %
                             (v.vpd83, v.id))
         if flag_created:
@@ -1122,13 +1116,21 @@ class TestPlugin(unittest.TestCase):
                    "012345678901234567890123456789ax",
                    "012345678901234567890123456789ag",
                    "1234567890123456789012345abcdef",
-                   "01234567890123456789012345abcdefa"]
+                   "01234567890123456789012345abcdefa",
+                   "55cd2e404beec32e0", "55cd2e404beec32ex",
+                   "35cd2e404beec32A"]
 
         for f in failing:
             self.assertFalse(lsm.Volume.vpd83_verify(f))
 
         self.assertTrue(
-            lsm.Volume.vpd83_verify("01234567890123456789012345abcdef"))
+            lsm.Volume.vpd83_verify("61234567890123456789012345abcdef"))
+        self.assertTrue(
+            lsm.Volume.vpd83_verify("55cd2e404beec32e"))
+        self.assertTrue(
+            lsm.Volume.vpd83_verify("35cd2e404beec32e"))
+        self.assertTrue(
+            lsm.Volume.vpd83_verify("25cd2e404beec32e"))
 
     def test_available_plugins(self):
         plugins = self.c.available_plugins(':')
