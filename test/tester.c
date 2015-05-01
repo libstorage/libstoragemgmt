@@ -2853,8 +2853,16 @@ START_TEST(test_volume_vpd_check)
     F(rc, lsm_volume_vpd83_verify, "012345678901234567890123456789ag");
     F(rc, lsm_volume_vpd83_verify, "1234567890123456789012345abcdef");
     F(rc, lsm_volume_vpd83_verify, "01234567890123456789012345abcdefa");
+    F(rc, lsm_volume_vpd83_verify, "01234567890123456789012345abcdef");
+    F(rc, lsm_volume_vpd83_verify, "55cd2e404beec32e0");
+    F(rc, lsm_volume_vpd83_verify, "55cd2e404beec32ex");
+    F(rc, lsm_volume_vpd83_verify, "55cd2e404beec32A");
+    F(rc, lsm_volume_vpd83_verify, "35cd2e404beec32A");
 
-    G(rc, lsm_volume_vpd83_verify, "01234567890123456789012345abcdef");
+    G(rc, lsm_volume_vpd83_verify, "61234567890123456789012345abcdef");
+    G(rc, lsm_volume_vpd83_verify, "55cd2e404beec32e");
+    G(rc, lsm_volume_vpd83_verify, "35cd2e404beec32e");
+    G(rc, lsm_volume_vpd83_verify, "25cd2e404beec32e");
 }
 END_TEST
 
