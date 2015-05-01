@@ -158,8 +158,7 @@ def _vpd83_netapp(cim_vol):
 
 def _vpd83_of_cim_vol(cim_vol):
     """
-    Extract VPD83 string from CIMInstanceName and convert to LSM format:
-        ^6[a-f0-9]{31}$
+    Extract VPD83 NAA string from CIMInstanceName and convert to LSM format.
     """
     vpd_83 = _vpd83_in_cim_vol_name(cim_vol)
     if vpd_83 is None:
@@ -167,8 +166,11 @@ def _vpd83_of_cim_vol(cim_vol):
     if vpd_83 is None:
         vpd_83 = _vpd83_netapp(cim_vol)
 
-    if vpd_83 and re.match('^6[a-fA-F0-9]{31}$', vpd_83):
-        return vpd_83.lower()
+    if vpd_83:
+        vpd_83 = vpd_83.lower()
+
+    if vpd_83 and Volume.vpd83_verify(vpd_83):
+        return vpd_83
     else:
         return ''
 
