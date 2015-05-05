@@ -50,6 +50,8 @@ lsm_volume *value_to_volume(Value &vol)
             v["system_id"].asString().c_str(),
             v["pool_id"].asString().c_str(),
             v["plugin_data"].asC_str());
+    } else {
+        throw ValueException("value_to_volume: Not correct type");
     }
 
     return rc;
@@ -92,6 +94,10 @@ int value_array_to_volumes(Value &volume_values, lsm_volume **volumes[],
                 if( *volumes ){
                     for( size_t i = 0; i < vol.size(); ++i ) {
                         (*volumes)[i] = value_to_volume(vol[i]);
+                        if( !((*volumes)[i]) ) {
+                            rc = LSM_ERR_NO_MEMORY;
+                            goto error;
+                        }
                     }
                 } else {
                     rc = LSM_ERR_NO_MEMORY;
@@ -99,15 +105,20 @@ int value_array_to_volumes(Value &volume_values, lsm_volume **volumes[],
             }
         }
     } catch( const ValueException &ve) {
-        if( *volumes && *count ) {
-            lsm_volume_record_array_free(*volumes, *count);
-            *volumes = NULL;
-            *count = 0;
-        }
-
         rc = LSM_ERR_LIB_BUG;
+        goto error;
     }
+
+out:
     return rc;
+
+error:
+    if( *volumes && *count ) {
+        lsm_volume_record_array_free(*volumes, *count);
+        *volumes = NULL;
+        *count = 0;
+    }
+    goto out;
 }
 
 lsm_disk *value_to_disk(Value &disk)
@@ -124,6 +135,8 @@ lsm_disk *value_to_disk(Value &disk)
             d["status"].asUint64_t(),
             d["system_id"].asString().c_str()
             );
+    } else {
+        throw ValueException("value_to_disk: Not correct type");
     }
     return rc;
 }
@@ -164,6 +177,10 @@ int value_array_to_disks(Value &disk_values, lsm_disk **disks[], uint32_t *count
                 if( *disks ){
                     for( size_t i = 0; i < d.size(); ++i ) {
                         (*disks)[i] = value_to_disk(d[i]);
+                        if( !((*disks)[i]) ) {
+                            rc = LSM_ERR_NO_MEMORY;
+                            goto error;
+                        }
                     }
                 } else {
                     rc = LSM_ERR_NO_MEMORY;
@@ -172,13 +189,19 @@ int value_array_to_disks(Value &disk_values, lsm_disk **disks[], uint32_t *count
         }
     } catch( const ValueException &ve ) {
         rc = LSM_ERR_LIB_BUG;
-        if( *disks && *count ) {
-            lsm_disk_record_array_free(*disks, *count);
-            *disks = NULL;
-            *count = 0;
-        }
+        goto error;
     }
+
+out:
     return rc;
+
+error:
+    if( *disks && *count ) {
+        lsm_disk_record_array_free(*disks, *count);
+        *disks = NULL;
+        *count = 0;
+    }
+    goto out;
 }
 
 lsm_pool *value_to_pool(Value &pool)
@@ -198,6 +221,8 @@ lsm_pool *value_to_pool(Value &pool)
 			i["status_info"].asString().c_str(),
             i["system_id"].asString().c_str(),
             i["plugin_data"].asC_str());
+    } else {
+        throw ValueException("value_to_pool: Not correct type");
     }
     return rc;
 }
@@ -233,6 +258,8 @@ lsm_system *value_to_system(Value &system)
                                     i["status"].asUint32_t(),
                                     i["status_info"].asString().c_str(),
                                     i["plugin_data"].asC_str());
+    } else {
+        throw ValueException("value_to_system: Not correct type");
     }
     return rc;
 }
@@ -270,6 +297,8 @@ lsm_string_list *value_to_string_list(Value &v)
                 }
             }
         }
+    } else {
+        throw ValueException("value_to_string_list: Not correct type");
     }
     return il;
 }
@@ -307,6 +336,8 @@ lsm_access_group *value_to_access_group( Value &group )
         }
         /* This stuff is copied in lsm_access_group_record_alloc */
         lsm_string_list_free(il);
+    } else {
+        throw ValueException("value_to_access_group: Not correct type");
     }
     return ag;
 }
@@ -327,28 +358,46 @@ Value access_group_to_value( lsm_access_group *group )
     return Value();
 }
 
-lsm_access_group **value_to_access_group_list( Value &group, uint32_t *count )
+int value_array_to_access_groups( Value &group,
+                                lsm_access_group **ag_list[],
+                                uint32_t *count )
 {
-    lsm_access_group **rc = NULL;
-    std::vector<Value> ag = group.asArray();
+    int rc = LSM_ERR_OK;
 
-    *count = ag.size();
+    try {
+        std::vector<Value> ag = group.asArray();
+        *count = ag.size();
 
-    if( *count ) {
-        rc = lsm_access_group_record_array_alloc(*count);
-        if( rc ) {
-            uint32_t i;
-            for(i = 0; i < *count; ++i ) {
-                rc[i] = value_to_access_group(ag[i]);
-                if( !rc[i] ) {
-                    lsm_access_group_record_array_free(rc, i);
-                    rc = NULL;
-                    break;
+        if( *count ) {
+            *ag_list = lsm_access_group_record_array_alloc(*count);
+            if( *ag_list ) {
+                uint32_t i;
+                for(i = 0; i < *count; ++i ) {
+                    (*ag_list)[i] = value_to_access_group(ag[i]);
+                    if( !((*ag_list)[i]) ) {
+                        rc = LSM_ERR_NO_MEMORY;
+                        goto error;
+                    }
                 }
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
             }
         }
+    } catch( const ValueException &ve) {
+        rc = LSM_ERR_LIB_BUG;
+        goto error;
     }
+
+ out:
     return rc;
+
+error:
+    if( *ag_list && *count ) {
+        lsm_access_group_record_array_free(*ag_list, *count);
+        *ag_list = NULL;
+        *count = 0;
+    }
+    goto out;
 }
 
 Value access_group_list_to_value( lsm_access_group **group, uint32_t count)
@@ -374,6 +423,8 @@ lsm_block_range *value_to_block_range(Value &br)
         rc = lsm_block_range_record_alloc(range["src_block"].asUint64_t(),
                                         range["dest_block"].asUint64_t(),
                                         range["block_count"].asUint64_t());
+    } else {
+        throw ValueException("value_to_block_range: Not correct type");
     }
     return rc;
 }
@@ -438,6 +489,8 @@ lsm_fs *value_to_fs(Value &fs)
                                 f["pool_id"].asString().c_str(),
                                 f["system_id"].asString().c_str(),
                                 f["plugin_data"].asC_str());
+    } else {
+        throw ValueException("value_to_fs: Not correct type");
     }
     return rc;
 }
@@ -470,6 +523,8 @@ lsm_fs_ss *value_to_ss(Value &ss)
                                 f["name"].asString().c_str(),
                                 f["ts"].asUint64_t(),
                                 f["plugin_data"].asC_str());
+    } else {
+        throw ValueException("value_to_ss: Not correct type");
     }
     return rc;
 }
@@ -536,6 +591,8 @@ lsm_nfs_export *value_to_nfs_export(Value &exp)
             lsm_string_list_free(rw);
             lsm_string_list_free(ro);
         }
+    } else {
+        throw ValueException("value_to_nfs_export: Not correct type");
     }
     return rc;
 }
@@ -568,6 +625,8 @@ lsm_storage_capabilities *value_to_capabilities(Value &exp)
     if( is_expected_object(exp, CLASS_NAME_CAPABILITIES) ) {
         const char *val = exp["cap"].asC_str();
         rc = lsm_capability_record_alloc(val);
+    } else {
+        throw ValueException("value_to_capabilities: Not correct type");
     }
     return rc;
 }
@@ -599,6 +658,8 @@ lsm_target_port *value_to_target_port(Value &tp)
                             tp["physical_name"].asC_str(),
                             tp["system_id"].asC_str(),
                             tp["plugin_data"].asC_str());
+    } else {
+        throw ValueException("value_to_target_port: Not correct type");
     }
     return rc;
 }

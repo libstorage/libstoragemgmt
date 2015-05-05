@@ -784,14 +784,16 @@ static int handle_volume_replicate(lsm_plugin_ptr p, Value &params, Value &respo
             Value::string_t == v_name.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
 
-            lsm_pool *pool = value_to_pool(v_pool);
+            lsm_pool *pool = (Value::null_t == v_pool.valueType()) ? NULL :
+                                value_to_pool(v_pool);
             lsm_volume *vol = value_to_volume(v_vol_src);
             lsm_volume *newVolume = NULL;
             lsm_replication_type rep = (lsm_replication_type)v_rep.asInt32_t();
             const char *name = v_name.asC_str();
             char *job = NULL;
 
-            if( vol ) {
+            if( vol && (pool ||
+                (!pool && Value::null_t == v_pool.valueType())) ) {
                 rc = p->san_ops->vol_replicate(p, pool, rep, vol, name,
                                                 &newVolume, &job,
                                                 LSM_FLAG_GET_VALUE(params));
@@ -1609,7 +1611,7 @@ static int fs_resize(lsm_plugin_ptr p, Value &params, Value &response)
         Value v_fs = params["fs"];
         Value v_size = params["new_size_bytes"];
 
-        if( Value::object_t == v_fs.valueType() &&
+        if( IS_CLASS_FILE_SYSTEM(v_fs) &&
             Value::numeric_t == v_size.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
 
@@ -1658,7 +1660,7 @@ static int fs_clone(lsm_plugin_ptr p, Value &params, Value &response)
         Value v_name = params["dest_fs_name"];
         Value v_ss = params["snapshot"];  /* This is optional */
 
-        if( Value::object_t == v_src_fs.valueType() &&
+        if( IS_CLASS_FILE_SYSTEM(v_src_fs) &&
             Value::string_t == v_name.valueType() &&
             (Value::null_t == v_ss.valueType() ||
             Value::object_t == v_ss.valueType()) &&
@@ -1668,7 +1670,8 @@ static int fs_clone(lsm_plugin_ptr p, Value &params, Value &response)
             char *job = NULL;
             lsm_fs *fs = value_to_fs(v_src_fs);
             const char* name = v_name.asC_str();
-            lsm_fs_ss *ss = value_to_ss(v_ss);
+            lsm_fs_ss *ss = (Value::null_t == v_ss.valueType()) ?
+                                NULL : value_to_ss(v_ss);
 
             if( fs &&
                 (( ss && v_ss.valueType() == Value::object_t) ||
@@ -1715,15 +1718,17 @@ static int fs_file_clone(lsm_plugin_ptr p, Value &params, Value &response)
         Value v_dest_name = params["dest_file_name"];
         Value v_ss = params["snapshot"];    /* This is optional */
 
-        if( Value::object_t == v_fs.valueType() &&
+        if( IS_CLASS_FILE_SYSTEM(v_fs) &&
             Value::string_t == v_src_name.valueType() &&
-            (Value::string_t == v_dest_name.valueType() ||
+            Value::string_t == v_dest_name.valueType() &&
+            (Value::null_t == v_ss.valueType() ||
             Value::object_t == v_ss.valueType()) &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
 
 
             lsm_fs *fs = value_to_fs(v_fs);
-            lsm_fs_ss *ss = value_to_ss(v_ss);
+            lsm_fs_ss *ss = (Value::null_t == v_ss.valueType()) ?
+                                NULL : value_to_ss(v_ss);
 
             if( fs &&
                 (( ss && v_ss.valueType() == Value::object_t) ||
@@ -1764,15 +1769,17 @@ static int fs_child_dependency(lsm_plugin_ptr p, Value &params, Value &response)
         Value v_fs = params["fs"];
         Value v_files = params["files"];
 
-        if( Value::object_t == v_fs.valueType() &&
+        if( IS_CLASS_FILE_SYSTEM(v_fs) &&
             (Value::array_t == v_files.valueType() ||
              Value::null_t == v_files.valueType()) &&
              LSM_FLAG_EXPECTED_TYPE(params)) {
 
             lsm_fs *fs = value_to_fs(v_fs);
-            lsm_string_list *files = value_to_string_list(v_files);
+            lsm_string_list *files = (Value::null_t == v_files.valueType()) ?
+                                        NULL : value_to_string_list(v_files);
 
-            if( fs ) {
+            if( fs && ( files ||
+                (!files && Value::null_t == v_files.valueType()) )) {
                 uint8_t yes = 0;
 
                 rc = p->fs_ops->fs_child_dependency(p, fs, files, &yes);
@@ -1802,15 +1809,17 @@ static int fs_child_dependency_rm(lsm_plugin_ptr p, Value &params, Value &respon
         Value v_fs = params["fs"];
         Value v_files = params["files"];
 
-        if( Value::object_t == v_fs.valueType() &&
+        if( IS_CLASS_FILE_SYSTEM(v_fs) &&
             (Value::array_t == v_files.valueType() ||
              Value::null_t == v_files.valueType()) &&
              LSM_FLAG_EXPECTED_TYPE(params) ) {
 
             lsm_fs *fs = value_to_fs(v_fs);
-            lsm_string_list *files = value_to_string_list(v_files);
+            lsm_string_list *files = (Value::null_t == v_files.valueType()) ?
+                                        NULL: value_to_string_list(v_files);
 
-            if( fs ) {
+            if( fs &&
+                (files || (!files && Value::null_t == v_files.valueType())) ) {
                 char *job = NULL;
 
                 rc = p->fs_ops->fs_child_dependency_rm(p, fs, files, &job,
@@ -1840,7 +1849,7 @@ static int ss_list(lsm_plugin_ptr p, Value &params, Value &response)
 
         Value v_fs = params["fs"];
 
-        if( Value::object_t == v_fs.valueType() &&
+        if( IS_CLASS_FILE_SYSTEM(v_fs) &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
 
             lsm_fs *fs = value_to_fs(v_fs);
@@ -1883,7 +1892,7 @@ static int ss_create(lsm_plugin_ptr p, Value &params, Value &response)
         Value v_fs = params["fs"];
         Value v_ss_name = params["snapshot_name"];
 
-        if( Value::object_t == v_fs.valueType() &&
+        if( IS_CLASS_FILE_SYSTEM(v_fs) &&
             Value::string_t == v_ss_name.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
             lsm_fs *fs = value_to_fs(v_fs);
@@ -1931,8 +1940,8 @@ static int ss_delete(lsm_plugin_ptr p, Value &params, Value &response)
         Value v_fs = params["fs"];
         Value v_ss = params["snapshot"];
 
-        if( Value::object_t == v_fs.valueType() &&
-            Value::object_t == v_ss.valueType() &&
+        if( IS_CLASS_FILE_SYSTEM(v_fs) &&
+            IS_CLASS_FS_SNAPSHOT(v_ss) &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
 
             lsm_fs *fs = value_to_fs(v_fs);
@@ -1971,8 +1980,8 @@ static int ss_restore(lsm_plugin_ptr p, Value &params, Value &response)
         Value v_restore_files = params["restore_files"];
         Value v_all_files = params["all_files"];
 
-        if( Value::object_t == v_fs.valueType() &&
-            Value::object_t == v_ss.valueType() &&
+        if( IS_CLASS_FILE_SYSTEM(v_fs) &&
+            IS_CLASS_FS_SNAPSHOT(v_ss) &&
             (Value::array_t == v_files.valueType() ||
             Value::null_t ==  v_files.valueType() ) &&
             (Value::array_t == v_restore_files.valueType() ||
@@ -1983,12 +1992,17 @@ static int ss_restore(lsm_plugin_ptr p, Value &params, Value &response)
             char *job = NULL;
             lsm_fs *fs = value_to_fs(v_fs);
             lsm_fs_ss *ss = value_to_ss(v_ss);
-            lsm_string_list *files = value_to_string_list(v_files);
-            lsm_string_list *restore_files =
-                    value_to_string_list(v_restore_files);
+            lsm_string_list *files = (Value::null_t ==  v_files.valueType()) ?
+                                        NULL : value_to_string_list(v_files);
+            lsm_string_list *restore_files = (Value::null_t ==
+                                v_restore_files.valueType()) ?
+                                NULL : value_to_string_list(v_restore_files);
             int all_files = (v_all_files.asBool()) ? 1 : 0;
 
-            if( fs && ss ) {
+            if( fs && ss &&
+                (files || (!files && Value::null_t ==  v_files.valueType())) &&
+                (restore_files || (!restore_files &&
+                Value::null_t == v_restore_files.valueType())) ) {
                 rc = p->fs_ops->fs_ss_restore(p, fs, ss, files, restore_files,
                                             all_files, &job,
                                             LSM_FLAG_GET_VALUE(params));
@@ -2159,7 +2173,7 @@ static int export_remove(lsm_plugin_ptr p, Value &params, Value &response)
     if( p && p->nas_ops && p->nas_ops->nfs_export_remove ) {
         Value v_export = params["export"];
 
-        if( Value::object_t == v_export.valueType() &&
+        if( IS_CLASS_FS_EXPORT(v_export) &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
             lsm_nfs_export *exp = value_to_nfs_export(v_export);
 
@@ -2222,7 +2236,6 @@ static int handle_volume_raid_create_cap_get(
 
         if( IS_CLASS_SYSTEM(v_system) &&
             LSM_FLAG_EXPECTED_TYPE(params) ) {
-            lsm_system *sys = value_to_system(v_system);
 
             uint32_t *supported_raid_types = NULL;
             uint32_t supported_raid_type_count = 0;
@@ -2230,22 +2243,29 @@ static int handle_volume_raid_create_cap_get(
             uint32_t *supported_strip_sizes = NULL;
             uint32_t supported_strip_size_count = 0;
 
-            rc = p->ops_v1_2->vol_create_raid_cap_get(
-                p, sys, &supported_raid_types, &supported_raid_type_count,
-                &supported_strip_sizes, &supported_strip_size_count,
-                LSM_FLAG_GET_VALUE(params));
+            lsm_system *sys = value_to_system(v_system);
 
-            if( LSM_ERR_OK == rc ) {
-                std::vector<Value> result;
-                result.push_back(
-                    uint32_array_to_value(
-                        supported_raid_types, supported_raid_type_count));
-                result.push_back(
-                    uint32_array_to_value(
-                        supported_strip_sizes, supported_strip_size_count));
-                response = Value(result);
-                free(supported_raid_types);
-                free(supported_strip_sizes);
+            if( sys ) {
+
+                rc = p->ops_v1_2->vol_create_raid_cap_get(
+                    p, sys, &supported_raid_types, &supported_raid_type_count,
+                    &supported_strip_sizes, &supported_strip_size_count,
+                    LSM_FLAG_GET_VALUE(params));
+
+                if( LSM_ERR_OK == rc ) {
+                    std::vector<Value> result;
+                    result.push_back(
+                        uint32_array_to_value(
+                            supported_raid_types, supported_raid_type_count));
+                    result.push_back(
+                        uint32_array_to_value(
+                            supported_strip_sizes, supported_strip_size_count));
+                    response = Value(result);
+                    free(supported_raid_types);
+                    free(supported_strip_sizes);
+                }
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
             }
 
             lsm_system_record_free(sys);
@@ -2255,7 +2275,6 @@ static int handle_volume_raid_create_cap_get(
         }
     }
     return rc;
-
 }
 
 static int handle_volume_raid_create(
