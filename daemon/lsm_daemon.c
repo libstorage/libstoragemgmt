@@ -281,7 +281,7 @@ void process_directory( char *dir, void *p, file_op call_back)
                 free(full_name);
                 full_name = path_form(dir, entry->d_name);
 
-                if( stat(full_name, &entry_st ) != 0 ) {
+                if( lstat(full_name, &entry_st ) != 0 ) {
                     continue;
                 }
 
