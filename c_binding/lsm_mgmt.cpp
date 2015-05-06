@@ -1653,6 +1653,7 @@ error:
         *volumes = NULL;
         *count = 0;
     }
+    goto out;
 }
 
 int lsm_access_groups_granted_to_volume(lsm_connect *c,
