@@ -232,7 +232,7 @@ class Disk(IData):
 
 # Lets do this once outside of the class to minimize the number of
 # times it needs to be compiled.
-_vol_regex_vpd83 = re.compile('^[0-9a-f]{32}$')
+_vol_regex_vpd83 = re.compile('(?:^6[0-9a-f]{31})|(?:^[235][0-9a-f]{15})$')
 
 
 @default_property('id', doc="Unique identifier")
@@ -314,8 +314,8 @@ class Volume(IData):
         self._name = _name                    # Human recognisable name
         if _vpd83 and not Volume.vpd83_verify(_vpd83):
             raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           "Incorrect format of VPD 0x83 string: '%s', "
-                           "expecting 32 lower case hex characters" %
+                           "Incorrect format of VPD 0x83 NAA(3) string: '%s', "
+                           "expecting 32 or 16 lower case hex characters" %
                            _vpd83)
         self._vpd83 = _vpd83                  # SCSI page 83 unique ID
         self._block_size = _block_size        # Block size
