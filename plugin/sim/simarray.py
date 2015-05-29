@@ -133,7 +133,7 @@ class BackStore(object):
     SYS_ID = "sim-01"
     SYS_NAME = "LSM simulated storage plug-in"
     BLK_SIZE = 512
-    DEFAULT_STRIP_SIZE = 128 * 1024 # 128 KiB
+    DEFAULT_STRIP_SIZE = 128 * 1024  # 128 KiB
 
     _LIST_SPLITTER = '#'
 
@@ -206,7 +206,7 @@ class BackStore(object):
             status_info TEXT,
             version TEXT NOT NULL);
             """)
-            # version hold the signature of data
+            # ^ version hold the signature of data
 
         sql_cmd += (
             "CREATE TABLE tgts ("
@@ -226,12 +226,12 @@ class BackStore(object):
             "element_type INTEGER NOT NULL, "
             "unsupported_actions INTEGER, "
             "raid_type INTEGER NOT NULL, "
-            "parent_pool_id INTEGER, "  # Indicate this pool is allocated from
-                                        # other pool
+            "parent_pool_id INTEGER, "
+            # ^ Indicate this pool is allocated from # other pool
             "member_type INTEGER, "
             "strip_size INTEGER, "
-            "total_space LONG);\n")     # total_space here is only for
-                                        # sub-pool (pool from pool)
+            "total_space LONG);\n")
+            # ^ total_space here is only for sub-pool (pool from pool)
 
         sql_cmd += (
             "CREATE TABLE disks ("
@@ -240,8 +240,8 @@ class BackStore(object):
             "disk_type INTEGER NOT NULL, "
             "status INTEGER NOT NULL, "
             "disk_prefix TEXT NOT NULL, "
-            "owner_pool_id INTEGER, "   # Indicate this disk is used to
-                                        # assemble a pool
+            "owner_pool_id INTEGER, "
+            # ^ Indicate this disk is used to assemble a pool
             "role TEXT,"
             "FOREIGN KEY(owner_pool_id) "
             "REFERENCES pools(id) ON DELETE CASCADE );\n")
@@ -252,13 +252,13 @@ class BackStore(object):
             "vpd83 TEXT NOT NULL, "
             "name TEXT UNIQUE NOT NULL, "
             "total_space LONG NOT NULL, "
-            "consumed_size LONG NOT NULL, "     # Reserved for future thinp
-                                                # support.
+            "consumed_size LONG NOT NULL, "
+            # ^ Reserved for future thinp support.
             "admin_state INTEGER, "
             "thinp INTEGER NOT NULL, "
-            "is_hw_raid_vol INTEGER, " # Once its volume deleted, pool will
-                                        # be delete also. For HW RAID
-                                        # simulation only.
+            "is_hw_raid_vol INTEGER, "
+            # ^ Once its volume deleted, pool will be delete also.
+            # For HW RAID simulation only.
 
             "pool_id INTEGER NOT NULL, "
             "FOREIGN KEY(pool_id) "
@@ -835,8 +835,8 @@ class BackStore(object):
 
         sql_cmd = "INSERT INTO %s (%s) VALUES (%s);" % \
                   (table_name,
-                    "'%s'" % ("', '".join(keys)),
-                    "'%s'" % ("', '".join(values)))
+                   "'%s'" % ("', '".join(keys)),
+                   "'%s'" % ("', '".join(values)))
         self._sql_exec(sql_cmd)
 
     def _data_find(self, table, condition, key_list, flag_unique=False):
@@ -2339,7 +2339,7 @@ class SimArray(object):
                 "Provided 'strip_size' is not supported")
 
         self.bs_obj.trans_begin()
-        pool_name =  "Pool for volume %s" % name
+        pool_name = "Pool for volume %s" % name
         sim_disk_ids = [
             SimArray._lsm_id_to_sim_id(
                 d.id,
@@ -2353,18 +2353,17 @@ class SimArray(object):
                     "Disk %s is not in DISK.STATUS_FREE mode" % disk.id)
         try:
             sim_pool_id = self.bs_obj.sim_pool_create_from_disk(
-                    name=pool_name,
-                    raid_type=raid_type,
-                    sim_disk_ids=sim_disk_ids,
-                    element_type=Pool.ELEMENT_TYPE_VOLUME,
-                    unsupported_actions=Pool.UNSUPPORTED_VOLUME_GROW |
-                    Pool.UNSUPPORTED_VOLUME_SHRINK,
-                    strip_size=strip_size)
+                name=pool_name,
+                raid_type=raid_type,
+                sim_disk_ids=sim_disk_ids,
+                element_type=Pool.ELEMENT_TYPE_VOLUME,
+                unsupported_actions=Pool.UNSUPPORTED_VOLUME_GROW |
+                Pool.UNSUPPORTED_VOLUME_SHRINK,
+                strip_size=strip_size)
         except sqlite3.IntegrityError as sql_error:
             raise LsmError(
                 ErrorNumber.NAME_CONFLICT,
                 "Name '%s' is already in use by other volume" % name)
-
 
         sim_pool = self.bs_obj.sim_pool_of_id(sim_pool_id)
         sim_vol_id = self.volume_create(

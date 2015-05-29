@@ -187,19 +187,20 @@ def to_html(results):
     text += str(html(
                 head(link(rel="stylesheet", type="text/css",
                           href="../../test.css"),
-                title("libStorageMgmt test results"), ),
+                     title("libStorageMgmt test results"), ),
                 body(
-                    HTML(h1("%s Results generated @ %s") % (preamble, time.strftime("%c"))),
+                    HTML(h1("%s Results generated @ %s") %
+                         (preamble, time.strftime("%c"))),
                     div(table(_table_header(ch), _table_body(row_data)),
-                         _class="angled_table"),
+                        _class="angled_table"),
                     div(pre(
-                           "                  Legend\n"
-                           "                  P = Pass (Method called and returned without error)\n"
-                           "                  F = Fail (Method call returned an error)\n"
-                           "                  U = Unsupported or unable to test due to other errors\n"
-                           "                  * = Unable to connect to array or provider totally unsupported\n"
-                           "                  + = hyper link to error log\n\n\n",
-                           HTML('                  Source code for plug-in for this test run <a href=./smis.py.html>is here. </a>'))))
+                        "                  Legend\n"
+                        "                  P = Pass (Method called and returned without error)\n"
+                        "                  F = Fail (Method call returned an error)\n"
+                        "                  U = Unsupported or unable to test due to other errors\n"
+                        "                  * = Unable to connect to array or provider totally unsupported\n"
+                        "                  + = hyper link to error log\n\n\n",
+                        HTML('                  Source code for plug-in for this test run <a href=./smis.py.html>is here. </a>'))))
                 ))
 
     return bs(text).prettify()

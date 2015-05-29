@@ -265,7 +265,7 @@ def cim_init_path_check_or_create(smis_common, system_id, init_id, init_type):
 
 
 def cim_vols_masked_to_cim_spc_path(smis_common, cim_spc_path,
-                                   property_list=None):
+                                    property_list=None):
     """
     Use this association to find out masked volume for certain cim_spc:
         CIM_SCSIProtocolController

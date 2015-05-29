@@ -51,8 +51,7 @@ class TestArrays(object):
             uri += "://%s@%s:%s/?no_ssl_verify=yes" % \
                    (d["PRINCIPAL"], d["IP"], port)
         else:
-            uri += "://%s@%s:%s" % (d["PRINCIPAL"], d["IP"],
-                                                  port)
+            uri += "://%s@%s:%s" % (d["PRINCIPAL"], d["IP"], port)
 
         return uri, d['PASSWORD']
 

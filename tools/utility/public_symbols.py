@@ -88,13 +88,13 @@ def h_module(mod):
         visited_module[str(mod.__name__)] = True
 
     class_list = [x for x in inspect.getmembers(mod, inspect.isclass)
-                    if not x[0].startswith('_')]
+                  if not x[0].startswith('_')]
 
     function_list = [x for x in inspect.getmembers(mod, inspect.isfunction)
-                        if not x[0].startswith('_')]
+                     if not x[0].startswith('_')]
 
     module_list = [x for x in inspect.getmembers(mod, inspect.ismodule)
-                    if not x[0].startswith('_')]
+                   if not x[0].startswith('_')]
 
     print '%sModule: %s' % (' ' * nesting, str(mod.__name__))
     nesting += 4

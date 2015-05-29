@@ -577,7 +577,7 @@ class MegaRAID(IPlugin):
         # Check whether pool exists.
         try:
             dg_show_all_output = self._storcli_exec(
-                [lsi_dg_path , "show", "all"])
+                [lsi_dg_path, "show", "all"])
         except ExecError as exec_error:
             try:
                 json_output = json.loads(exec_error.stdout)

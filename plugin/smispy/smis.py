@@ -1559,7 +1559,7 @@ class Smis(IStorageAreaNetwork):
 
         if len(cim_iscsi_nodes) == 0:
             return []
-        return [n['Name'] for n in  cim_iscsi_nodes]
+        return [n['Name'] for n in cim_iscsi_nodes]
 
     def _cim_iscsi_pg_of(self, cim_sys_path, property_list=None):
         """
