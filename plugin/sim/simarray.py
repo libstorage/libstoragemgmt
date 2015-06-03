@@ -616,6 +616,11 @@ class BackStore(object):
                 pass
             else:
                 raise sql_error
+        except sqlite3.DatabaseError as sql_error:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Stored simulator state incompatible with "
+                "simulator, please move or delete %s" % self.statefile)
 
     def _check_version(self):
         sim_syss = self.sim_syss()
