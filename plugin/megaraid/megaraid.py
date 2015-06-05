@@ -210,7 +210,8 @@ def _lsm_raid_type_to_mega(lsm_raid_type):
 
 class MegaRAID(IPlugin):
     _DEFAULT_BIN_PATHS = [
-        "/opt/MegaRAID/storcli/storcli64", "/opt/MegaRAID/storcli/storcli"]
+        "/opt/MegaRAID/storcli/storcli64", "/opt/MegaRAID/storcli/storcli",
+        "/opt/MegaRAID/perccli/perccli64", "/opt/MegaRAID/perccli/perccli"]
     _CMD_JSON_OUTPUT_SWITCH = 'J'
 
     def __init__(self):
