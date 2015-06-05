@@ -379,7 +379,7 @@ class LsmError(Exception):
 
     def __str__(self):
         error_no_str = ErrorNumber.error_number_to_str(self.code)
-        if self.data is not None:
+        if self.data is not None and self.data:
             return "%s: %s Data: %s" % \
                    (error_no_str, self.msg, self.data)
         else:
