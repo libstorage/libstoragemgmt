@@ -211,7 +211,8 @@ static void error_send(lsm_plugin_ptr p, int error_code)
             p->error = NULL;
         }
     } else {
-        p->tp->errorSend(error_code, "UNA", "UNA");
+        p->tp->errorSend(error_code, "Plugin didn't provide error message",
+                         "");
     }
 }
 
