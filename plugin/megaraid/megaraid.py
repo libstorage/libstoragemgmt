@@ -300,6 +300,8 @@ class MegaRAID(IPlugin):
             else:
                 raise
 
+        output = re.sub("[^\x20-\x7e]", " ", output)
+
         if flag_json:
             output_dict = json.loads(output)
             ctrl_output = output_dict.get('Controllers')
