@@ -1,14 +1,21 @@
-.TH megaraid_lsmplugin "1" "Januray 2015" "megaraid_lsmplugin @VERSION@" "libStorageMgmt"
+.TH megaraid_lsmplugin "1" "June 2015" "megaraid_lsmplugin @VERSION@" "libStorageMgmt"
 .SH NAME
 megaraid_lsmplugin -- LibstorageMgmt MegaRAID plugin
 
 .SH DESCRIPTION
 LibstorageMgmt megaraid plugin allows user to manage LSI MegaRAID via vendor
-tool \fBstorcli\fR[1].
+tool \fBstorcli\fR[1] or Dell PERC via \fBperccli\fR[2].
 The 'megaraid_lsmplugin' executable file is for libStorageMgmt
 daemon to execute when client user specifies megaraid plugin in the URI.
 
 Extra SELinux actions are required to allowing plugin access the hardware.
+
+When both storcli and percli is installed, the plugin will use storcli
+by default even that will result in no system found on Dell PERC server.
+In this case, please remove storcli.
+
+Please be noted, current volume ID is just for temperate use, we will change
+to use volume VPD83 as volume ID once vendor provide so.
 
 .SH URI
 To use this plugin, users should set their URI to this format:
@@ -20,17 +27,28 @@ To use this plugin, users should set their URI to this format:
 
 .fi
 
-.TP storcli
+
+.TP
+\fBURI paramerter -- 'storcli'\fR
+
 The 'storcli' URI parameter is used to specified the path of storcli tool.
-By default, this plugin will try these paths used by storcli rpm:
-\fB/opt/MegaRAID/storcli/storcli64\fR and \fB/opt/MegaRAID/storcli/storcli\fR.
+By default, this plugin will try these paths:
+
+storcli rpm:
+
+\fB/opt/MegaRAID/storcli/storcli64\fR, \fB/opt/MegaRAID/storcli/storcli\fR
+
+perccli rpm:
+
+\fB/opt/MegaRAID/perccli/perccli64\fR, \fB/opt/MegaRAID/perccli/perccli\fR
 
 .SH ROOT PRIVILEGE
 This plugin requires both \fBlsmd\fR daemon and API client running as root
 user. Please check manpage \fIlsmd.conf (5)\fR for detail.
 
 .SH SUPPORTED HARDWARES
-Please refer to LSI website for hardware support status of storcli.
+Please refer to LSI or Dell website for hardware support status of
+storcli/perccli.
 Detailed support status can be queried via:
 
  * \fBlsm.Client.capabilities()\fR  (Python API)
@@ -42,7 +60,8 @@ This plugin only execute \fBstorcli\fR on localhost. No network connection
 required.
 
 .SH SEE ALSO
-\fIlsmcli\fR(1), \fIlsmd\fR(1), [1] http://www.lsi.com
+\fIlsmcli\fR(1), \fIlsmd\fR(1), [1] http://www.lsi.com,
+[2] http://www.dell.com
 
 .SH BUGS
 Please report bugs to
