@@ -326,8 +326,13 @@ class MegaRAID(IPlugin):
             return output
 
     def _ctrl_count(self):
-        return self._storcli_exec(
+        ctrl_count = self._storcli_exec(
             ["show", "ctrlcount"]).get("Controller Count")
+        if ctrl_count < 1:
+            raise LsmError(
+                ErrorNumber.NOT_FOUND_SYSTEM,
+                "No MegaRAID controller detected by %s" % self._storcli_bin)
+        return ctrl_count
 
     def _lsm_status_of_ctrl(self, ctrl_show_all_output):
         lsi_status_info = ctrl_show_all_output['Status']
