@@ -12,7 +12,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+ * USA
  *
  * Author: tasleson
  */
@@ -38,7 +39,7 @@
  * more threads.
  */
 class LSM_DLL_LOCAL Transport {
-public:
+  public:
 
     /**
      * Size of the header which immediately proceeds the payload.
@@ -49,13 +50,13 @@ public:
      * Empty ctor.
      * @return
      */
-    Transport();
+     Transport();
 
     /**
      * Class ctor
      * @param socket_desc   Connected socket descriptor.
      */
-    Transport(int socket_desc);
+     Transport(int socket_desc);
 
     /**
      * Class dtor
@@ -68,7 +69,7 @@ public:
      * @param[out]  error_code  Errno (only valid if we return -1)
      * @return 0 on success, else -1
      */
-    int msg_send(const std::string &msg, int &error_code);
+    int msg_send(const std::string & msg, int &error_code);
 
     /**
      * Received a message over the transport.
@@ -77,7 +78,7 @@ public:
      * @param error_code    (0 on success, else errno)
      * @return Message on success else 0 size with error_code set (not if EOF)
      */
-    std::string msg_recv(int &error_code);
+     std::string msg_recv(int &error_code);
 
     /**
      * Creates a connected socket (AF_UNIX) to the specified path
@@ -85,7 +86,7 @@ public:
      * @param error_code    Error reason for the failure (errno)
      * @return -1 on error, else connected socket.
      */
-    static int socket_get(const std::string &path, int &error_code);
+    static int socket_get(const std::string & path, int &error_code);
 
     /**
      * Closes the transport, called in the destructor if not done in advance.
@@ -93,8 +94,8 @@ public:
      */
     int close();
 
-private:
-    int s; //Socket descriptor
+  private:
+    int s;                      //Socket descriptor
 };
 
 /**
@@ -102,7 +103,8 @@ private:
  * @param v Template type T
  * @return string representation
  */
-template <class Type> static std::string to_string(Type v) {
+template < class Type > static std::string to_string(Type v)
+{
     std::stringstream out;
     out << v;
     return out.str();
@@ -112,8 +114,8 @@ template <class Type> static std::string to_string(Type v) {
  * Class that represents an EOF condition
  * @param m     Message
  */
-class LSM_DLL_LOCAL EOFException : public std::runtime_error {
-public:
+class LSM_DLL_LOCAL EOFException:public std::runtime_error {
+  public:
     EOFException(std::string m);
 };
 
@@ -121,8 +123,8 @@ public:
 /**
  * User defined class for Value errors during serialize / de-serialize.
  */
-class LSM_DLL_LOCAL ValueException : public std::runtime_error {
-public:
+class LSM_DLL_LOCAL ValueException:public std::runtime_error {
+  public:
     /**
      * Constructor
      * @param m Exception message
@@ -133,15 +135,15 @@ public:
 /**
  * User defined class for errors
  */
-class LSM_DLL_LOCAL LsmException : public std::runtime_error {
-public:
+class LSM_DLL_LOCAL LsmException:public std::runtime_error {
+  public:
 
     /**
      * Constructor
      * @param code      Error code
      * @param msg       Error message
      */
-    LsmException(int code, std::string &msg);
+    LsmException(int code, std::string & msg);
 
     /**
      * Constructor
@@ -149,7 +151,7 @@ public:
      * @param msg           Error message
      * @param debug_addl    Additional debug data
      */
-    LsmException(int code, std::string &msg, const std::string &debug_addl);
+    LsmException(int code, std::string & msg, const std::string & debug_addl);
 
     /**
      * Constructor
@@ -158,13 +160,14 @@ public:
      * @param debug_addl        Additional debug
      * @param debug_data_addl   Additional debug data
      */
-    LsmException(int code, std::string &msg, const std::string &debug_addl,
-        const std::string &debug_data_addl);
+    LsmException(int code, std::string & msg,
+                 const std::string & debug_addl,
+                 const std::string & debug_data_addl);
 
     /**
      * Destructor
      */
-    ~LsmException() throw ();
+    ~LsmException() throw();
 
     int error_code;
     std::string debug;
@@ -175,7 +178,7 @@ public:
  * Represents a value in the serialization.
  */
 class LSM_DLL_LOCAL Value {
-public:
+  public:
 
     /**
      * Different types this class can hold.
@@ -231,7 +234,7 @@ public:
      * @param type  Type this object will hold.
      * @param v value
      */
-    Value(value_type type, const std::string &v);
+    Value(value_type type, const std::string & v);
 
     /**
      * Constructor for char * i.e. string.
@@ -243,19 +246,19 @@ public:
      * Constructor for std::string
      * @param v value
      */
-    Value(const std::string &v);
+    Value(const std::string & v);
 
     /**
      * Constructor for object type
      * @param v values
      */
-    Value(const std::map<std::string, Value> &v);
+    Value(const std::map < std::string, Value > &v);
 
     /**
      * Constructor for array type
      * @param v array values
      */
-    Value(const std::vector<Value> &v);
+    Value(const std::vector < Value > &v);
 
     /**
      * Serialize Value to json
@@ -274,20 +277,20 @@ public:
      * @param key
      * @return Value
      */
-    Value& operator[](const std::string &key);
+    Value & operator[] (const std::string & key);
 
     /**
      * Overloaded operator for vector(array) access
      * @param i
      * @return Value
      */
-    Value& operator[](uint32_t i);
+    Value & operator[] (uint32_t i);
 
     /**
      * Returns true if value has a key in key/value pair
      * @return true if key exists, else false.
      */
-    bool hasKey(const std::string &k);
+    bool hasKey(const std::string & k);
 
     /**
      * Checks to see if a Value contains a valid request
@@ -300,18 +303,18 @@ public:
      * @param key
      * @return Value
      */
-    Value getValue(const char* key);
+    Value getValue(const char *key);
 
     /**
      * Returns a numeric as the string holding it.
      */
-    const char* asNumString();
+    const char *asNumString();
 
     /**
      * Returns NULL if void type, else ValueException
      * @return NULL
      */
-    void * asVoid();
+    void *asVoid();
 
     /**
      * Boolean value represented by object.
@@ -366,19 +369,19 @@ public:
      * key/value represented by object.
      * @return map of key and values else ValueException on error
      */
-    std::map<std::string, Value> asObject();
+    std::map < std::string, Value > asObject();
 
     /**
      * vector of values represented by object.
      * @return vector of array values else ValueException on error
      */
-    std::vector<Value> asArray();
+    std::vector < Value > asArray();
 
-private:
+  private:
     value_type t;
     std::string s;
-    std::map<std::string, Value> obj;
-    std::vector<Value> array;
+    std::map < std::string, Value > obj;
+    std::vector < Value > array;
 
     void marshal(yajl_gen g);
 };
@@ -387,24 +390,24 @@ private:
  * Serialize, de-serialize methods.
  */
 class LSM_DLL_LOCAL Payload {
-public:
+  public:
     /**
      * Given a Value returns json representation.
      * @param v Value to serialize
      * @return String representation
      */
-    static std::string serialize(Value &v);
+    static std::string serialize(Value & v);
 
     /**
      * Given a json string return a Value
      * @param json  String to de-serialize
      * @return Value
      */
-    static Value deserialize(const std::string &json);
+    static Value deserialize(const std::string & json);
 };
 
 class LSM_DLL_LOCAL Ipc {
-public:
+  public:
     /**
      * Constructor
      */
@@ -433,8 +436,8 @@ public:
      * @param params        Parameters
      * @param id            Request ID
      */
-    void requestSend(const std::string request, const Value &params,
-                        int32_t id = 100);
+    void requestSend(const std::string request, const Value & params,
+                     int32_t id = 100);
     /**
      * Reads a request
      * @returns Value
@@ -446,7 +449,7 @@ public:
      * @param response      Response value
      * @param id            Id that matches request
      */
-    void responseSend(const Value &response, uint32_t id = 100);
+    void responseSend(const Value & response, uint32_t id = 100);
 
     /**
      * Read a response
@@ -462,7 +465,7 @@ public:
      * @param id                Id that matches request
      */
     void errorSend(int error_code, std::string msg, std::string debug,
-                    uint32_t id = 100);
+                   uint32_t id = 100);
 
     /**
      * Do a remote procedure call (Request with a returned response
@@ -471,10 +474,11 @@ public:
      * @param id                Id of request
      * @return Result of the operation.
      */
-    Value rpc(const std::string &request, const Value &params, int32_t id = 100);
+    Value rpc(const std::string & request, const Value & params,
+              int32_t id = 100);
 
 
-private:
+  private:
     Transport t;
 };
 

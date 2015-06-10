@@ -28,19 +28,19 @@ extern "C" {
 #endif
 
 #if defined _WIN32 || defined __CYGWIN__
-    #define LSM_DLL_IMPORT __declspec(dllimport)
-    #define LSM_DLL_EXPORT __declspec(dllexport)
-    #define LSM_DLL_LOCAL
+#define LSM_DLL_IMPORT __declspec(dllimport)
+#define LSM_DLL_EXPORT __declspec(dllexport)
+#define LSM_DLL_LOCAL
 #else
-    #if __GNUC__ >= 4
-        #define LSM_DLL_IMPORT __attribute__ ((visibility ("default")))
-        #define LSM_DLL_EXPORT __attribute__ ((visibility ("default")))
-        #define LSM_DLL_LOCAL  __attribute__ ((visibility ("hidden")))
-    #else
-        #define LSM_DLL_IMPORT
-        #define LSM_DLL_EXPORT
-        #define LSM_DLL_LOCAL
-    #endif
+#if __GNUC__ >= 4
+#define LSM_DLL_IMPORT __attribute__ ((visibility ("default")))
+#define LSM_DLL_EXPORT __attribute__ ((visibility ("default")))
+#define LSM_DLL_LOCAL  __attribute__ ((visibility ("hidden")))
+#else
+#define LSM_DLL_IMPORT
+#define LSM_DLL_EXPORT
+#define LSM_DLL_LOCAL
+#endif
 #endif
 
 /**
@@ -71,8 +71,9 @@ lsm_string_list LSM_DLL_EXPORT *lsm_string_list_copy(lsm_string_list *src);
  * @param value     Value to use for assignment
  * @return LSM_ERR_OK on success, else error reason
  */
-int LSM_DLL_EXPORT lsm_string_list_elem_set(lsm_string_list *sl, uint32_t index,
-                                        const char* value);
+int LSM_DLL_EXPORT lsm_string_list_elem_set(lsm_string_list *sl,
+                                            uint32_t index,
+                                            const char *value);
 
 /**
  * Returns the value at the specified elem index
@@ -81,7 +82,7 @@ int LSM_DLL_EXPORT lsm_string_list_elem_set(lsm_string_list *sl, uint32_t index,
  * @return Value at that index position.
  */
 const char LSM_DLL_EXPORT *lsm_string_list_elem_get(lsm_string_list *sl,
-                                                uint32_t index);
+                                                    uint32_t index);
 
 /**
  * Returns the size of the list
@@ -98,7 +99,8 @@ uint32_t LSM_DLL_EXPORT lsm_string_list_size(lsm_string_list *sl);
  * @param add   Character string to add
  * @return LSM_ERR_OK on success, else error reason
  */
-int LSM_DLL_EXPORT lsm_string_list_append(lsm_string_list *sl, const char* add);
+int LSM_DLL_EXPORT lsm_string_list_append(lsm_string_list *sl,
+                                          const char *add);
 
 /**
  * Deletes the string at the specified index.
@@ -109,7 +111,8 @@ int LSM_DLL_EXPORT lsm_string_list_append(lsm_string_list *sl, const char* add);
  * @param index         Specified index
  * @return LSM_ERR_OK on success, else error reason
  */
-int LSM_DLL_EXPORT lsm_string_list_delete(lsm_string_list *sl, uint32_t index);
+int LSM_DLL_EXPORT lsm_string_list_delete(lsm_string_list *sl,
+                                          uint32_t index);
 
 /**
  * Checks to see if initiator id is valid
@@ -118,8 +121,9 @@ int LSM_DLL_EXPORT lsm_string_list_delete(lsm_string_list *sl, uint32_t index);
  *                      to determined if type passed in is UNKNOWN
  * @return LSM_ERR_OK if initiator id is OK, else LSM_INVALID_ARGUMENT
  */
-int LSM_DLL_EXPORT lsm_initiator_id_verify( const char *init_id,
-                                        lsm_access_group_init_type *init_type);
+int LSM_DLL_EXPORT
+    lsm_initiator_id_verify(const char *init_id,
+                            lsm_access_group_init_type *init_type);
 
 
 /**
@@ -127,10 +131,9 @@ int LSM_DLL_EXPORT lsm_initiator_id_verify( const char *init_id,
  * @param vpd83         VPD string to check
  * @return LSM_ERR_OK if vpd is OK, else LSM_INVALID_ARGUMENT
  */
-int LSM_DLL_EXPORT lsm_volume_vpd83_verify( const char *vpd83 );
+int LSM_DLL_EXPORT lsm_volume_vpd83_verify(const char *vpd83);
 
 #ifdef  __cplusplus
 }
 #endif
-
-#endif  /* LSM_COMMON_H */
+#endif                          /* LSM_COMMON_H */

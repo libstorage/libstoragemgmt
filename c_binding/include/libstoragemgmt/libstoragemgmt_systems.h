@@ -47,7 +47,7 @@ int LSM_DLL_EXPORT lsm_system_record_free(lsm_system *s);
  * @param size  Number of elements.
  * @return LSM_ERR_OK on success, else error reason.
  *  */
-int LSM_DLL_EXPORT lsm_system_record_array_free(lsm_system *s[], uint32_t size );
+int LSM_DLL_EXPORT lsm_system_record_array_free(lsm_system *s[], uint32_t size);
 
 /**
  * Retrieve the Id for the system.
@@ -79,5 +79,4 @@ uint32_t LSM_DLL_EXPORT lsm_system_status_get(lsm_system *s);
 #ifdef  __cplusplus
 }
 #endif
-
 #endif

@@ -12,7 +12,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+ * USA
  *
  * Author: tasleson
  *
@@ -47,7 +48,8 @@ lsm_disk LSM_DLL_EXPORT *lsm_disk_record_copy(lsm_disk *d);
  * @param size      Size of disk array
  * @return LSM_ERR_OK on success, else error reason.
  */
-int LSM_DLL_EXPORT lsm_disk_record_array_free( lsm_disk *disk[], uint32_t size);
+int LSM_DLL_EXPORT lsm_disk_record_array_free(lsm_disk *disk[],
+                                              uint32_t size);
 
 /**
  * Returns the disk id
@@ -115,5 +117,4 @@ const char LSM_DLL_EXPORT *lsm_disk_system_id_get(lsm_disk *d);
 #ifdef __cplusplus
 }
 #endif
-
-#endif  /* LIBSTORAGEMGMT_DISK_H */
+#endif                          /* LIBSTORAGEMGMT_DISK_H */
