@@ -19,11 +19,11 @@
  */
 
 #ifndef LIBSTORAGEMGMT_DISK_H
-#define	LIBSTORAGEMGMT_DISK_H
+#define LIBSTORAGEMGMT_DISK_H
 
 #include "libstoragemgmt_common.h"
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -112,8 +112,8 @@ uint64_t LSM_DLL_EXPORT lsm_disk_status_get(lsm_disk *d);
  */
 const char LSM_DLL_EXPORT *lsm_disk_system_id_get(lsm_disk *d);
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* LIBSTORAGEMGMT_DISK_H */
+#endif  /* LIBSTORAGEMGMT_DISK_H */

@@ -89,15 +89,15 @@ extern "C" {
     int LSM_DLL_EXPORT lsm_plugin_info_get(lsm_connect *conn, char **desc,
                                         char **version, lsm_flag flags);
 
-	/**
-	 * Retrieve a list of available plug-ins.
-	 * @param[in] sep		Return data separator
-	 * @param[out] plugins	String list of plug-ins with the form
-	 *						desc<sep>version
+    /**
+     * Retrieve a list of available plug-ins.
+     * @param[in] sep        Return data separator
+     * @param[out] plugins    String list of plug-ins with the form
+     *                        desc<sep>version
      * @param[in] flags     Reserved for future use, must be zero.
-	 * @return LSM_ERR_OK on success, else error code @see lsm_error_number
-	 */
-	int LSM_DLL_EXPORT lsm_available_plugins_list(const char *sep,
+     * @return LSM_ERR_OK on success, else error code @see lsm_error_number
+     */
+    int LSM_DLL_EXPORT lsm_available_plugins_list(const char *sep,
                                                 lsm_string_list **plugins,
                                                 lsm_flag flags);
 

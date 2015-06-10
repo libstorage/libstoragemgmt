@@ -218,7 +218,7 @@ lsm_pool *value_to_pool(Value &pool)
             i["total_space"].asUint64_t(),
             i["free_space"].asUint64_t(),
             i["status"].asUint64_t(),
-			i["status_info"].asString().c_str(),
+            i["status_info"].asString().c_str(),
             i["system_id"].asString().c_str(),
             i["plugin_data"].asC_str());
     } else {
@@ -239,7 +239,7 @@ Value pool_to_value(lsm_pool *pool)
         p["total_space"] = Value(pool->total_space);
         p["free_space"] = Value(pool->free_space);
         p["status"] = Value(pool->status);
-		p["status_info"] = Value(pool->status_info);
+        p["status_info"] = Value(pool->status_info);
         p["system_id"] = Value(pool->system_id);
         p["plugin_data"] = Value(pool->plugin_data);
         return Value(p);
