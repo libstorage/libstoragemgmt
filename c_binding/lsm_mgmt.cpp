@@ -124,7 +124,7 @@ int lsm_initiator_id_verify(const char *init_id,
 int lsm_volume_vpd83_verify(const char *vpd83)
 {
     int rc = LSM_ERR_INVALID_ARGUMENT;
-    int i;
+    size_t i;
     size_t vpd83_len;
 
     if (vpd83) {
