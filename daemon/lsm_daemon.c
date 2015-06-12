@@ -488,24 +488,26 @@ int chk_pconf_root_pri(char *plugin_path)
         strncpy(plugin_conf_filename + plugin_name_len,
                 plugin_conf_extension, strlen(plugin_conf_extension));
         plugin_conf_filename[conf_file_name_len - 1] = '\0';
+
+        char *plugin_conf_dir_path = path_form(conf_dir,
+                                               LSM_PLUGIN_CONF_DIR_NAME);
+
+        char *plugin_conf_path = path_form(plugin_conf_dir_path,
+                                           plugin_conf_filename);
+        parse_conf_bool(plugin_conf_path, LSM_CONF_REQUIRE_ROOT_OPT_NAME,
+                        &require_root);
+
+        if (require_root == 1 && allow_root_plugin == 0) {
+            warn("Plugin %s require root privilege while %s disable globally\n",
+                 base_name, LSMD_CONF_FILE);
+        }
+        free(plugin_conf_dir_path);
+        free(plugin_conf_filename);
+        free(plugin_conf_path);
     } else {
         log_and_exit("malloc failure while trying to allocate %d "
                      "bytes\n", conf_file_name_len);
     }
-    char *plugin_conf_dir_path = path_form(conf_dir, LSM_PLUGIN_CONF_DIR_NAME);
-
-    char *plugin_conf_path =
-        path_form(plugin_conf_dir_path, plugin_conf_filename);
-    parse_conf_bool(plugin_conf_path, LSM_CONF_REQUIRE_ROOT_OPT_NAME,
-                    &require_root);
-
-    if (require_root == 1 && allow_root_plugin == 0) {
-        warn("Plugin %s require root privilege while %s disable globally\n",
-             base_name, LSMD_CONF_FILE);
-    }
-    free(plugin_conf_dir_path);
-    free(plugin_conf_filename);
-    free(plugin_conf_path);
     return require_root;
 }
 
