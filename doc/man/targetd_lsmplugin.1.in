@@ -1,0 +1,67 @@
+.TH targetd_lsmplugin "1" "June 2015" "targetd_lsmplugin @VERSION@" "libStorageMgmt"
+.SH NAME
+targetd_lsmplugin -- libStorageMgmt targetd plugin
+
+.SH DESCRIPTION
+LibStorageMgmt targetd plugin allows user to manage storage using
+the targetd storage API [1]. The 'targetd_lsmplugin' executable file is for
+libStorageMgmt daemon to execute when client user specifies targetd plugin in
+the URI.
+
+.SH URI
+To use this plugin, users should set their URI to this format:
+.nf
+
+    # HTTP connection
+    \fBtargetd://<username>@<targetd_server>:<port number>\fR
+
+    # HTTPS connection
+    \fBtargetd+ssl://<username>@<targetd_server>:<port number>\fR
+
+.fi
+
+.TP
+\fBusername\fR
+
+The \fBusername\fR is the user account configured in targetd configuration
+file.
+
+.TP
+\fBtargetd_server\fR
+
+The \fBtargetd_server\fR is the IP address or DNS name of server running
+targetd daemon.
+
+.TP
+\fBport number\fR
+
+The \fBport number\fR is the listening port of the targetd daemon.  The default
+port of 18700 is used if none is supplied on the URI.
+
+.TP
+\fBURI parameters\fR
+No additional URI parameters are supported by this plugin.
+
+.SH SUPPORTED SOFTWARE
+Linux targetd 0.7.1 or later version.
+Detailed support status can be queried via:
+
+ * \fBlsm.Client.capabilities()\fR  (Python API)
+ * \fBlsm_capabilities()\fR         (C API)
+ * \fBlsmcli capabilities\fR        (lsmcli command line).
+
+.SH FIREWALL RULES
+By default, this plugin requires access to the targetd server's TCP 18700
+port.
+
+.SH SEE ALSO
+\fBlsmcli\fR(1), \fBlsmd\fR(1), [1] https://github.com/agrover/targetd
+
+.SH BUGS
+Please report bugs to
+\fI<libstoragemgmt-devel@lists.sourceforge.net>\fR
+
+.SH AUTHOR
+Gris Ge \fI<fge@redhat.com>\fR
+.br
+Tony Asleson \fI<tasleson@redhat.com>\fR

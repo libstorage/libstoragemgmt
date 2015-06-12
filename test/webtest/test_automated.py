@@ -39,10 +39,9 @@ def call(command):
     return process.returncode, out[0], out[1]
 
 
-def run_test(cmdline, output_dir, sys_id, uri, password ):
+def run_test(cmdline, output_dir, sys_id, uri, password):
 
-    exec_array = [cmdline, '-q', '--uri', uri,
-                                     '--password', password]
+    exec_array = [cmdline, '-q', '--uri', uri, '--password', password]
 
     (ec, out, error) = call(exec_array)
 
@@ -68,7 +67,8 @@ def run_test(cmdline, output_dir, sys_id, uri, password ):
 
 
 if __name__ == '__main__':
-    time_limit_seconds = long(os.getenv('LSM_TEST_TMO_SECS', 90 * 60))  # 90 minutes
+    time_limit_seconds = long(
+        os.getenv('LSM_TEST_TMO_SECS', 90 * 60))  # 90 minutes
 
     if len(sys.argv) != 4:
         print('Syntax: %s <array_file> <plugin unit test> <output directory>'

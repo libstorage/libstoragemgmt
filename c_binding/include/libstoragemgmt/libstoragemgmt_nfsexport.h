@@ -51,24 +51,21 @@ extern "C" {
  * @param plugin_data   Reserved for plug-in use
  * @return Valid export pointer, else NULL on error.
  */
-lsm_nfs_export LSM_DLL_EXPORT * lsm_nfs_export_record_alloc(const char *id,
-                                            const char *fs_id,
-                                            const char *export_path,
-                                            const char *auth,
-                                            lsm_string_list *root,
-                                            lsm_string_list *rw,
-                                            lsm_string_list *ro,
-                                            uint64_t anonuid,
-                                            uint64_t anongid,
-                                            const char *options,
-                                            const char * plugin_data);
+lsm_nfs_export LSM_DLL_EXPORT *
+    lsm_nfs_export_record_alloc(const char *id, const char *fs_id,
+                                const char *export_path, const char *auth,
+                                lsm_string_list *root, lsm_string_list *rw,
+                                lsm_string_list *ro, uint64_t anonuid,
+                                uint64_t anongid, const char *options,
+                                const char *plugin_data);
 
 /**
  * Allocated the memory for an array of NFS export records.
  * @param size          Number of elements
  * @return Allocated memory, NULL on error
  */
-lsm_nfs_export LSM_DLL_EXPORT **lsm_nfs_export_record_array_alloc( uint32_t size );
+lsm_nfs_export LSM_DLL_EXPORT **
+    lsm_nfs_export_record_array_alloc(uint32_t size);
 
 
 /**
@@ -76,7 +73,7 @@ lsm_nfs_export LSM_DLL_EXPORT **lsm_nfs_export_record_array_alloc( uint32_t size
  * @param exp
  * @return LSM_ERR_OK on success, else error reason.
  */
-int LSM_DLL_EXPORT lsm_nfs_export_record_free( lsm_nfs_export *exp );
+int LSM_DLL_EXPORT lsm_nfs_export_record_free(lsm_nfs_export *exp);
 
 /**
  * Frees the memory for the NFS export array and the memory for each entry
@@ -84,7 +81,7 @@ int LSM_DLL_EXPORT lsm_nfs_export_record_free( lsm_nfs_export *exp );
  * @param size          Number of entries
  * @return LSM_ERR_OK on success, else error reason.
  *  */
-int LSM_DLL_EXPORT lsm_nfs_export_record_array_free( lsm_nfs_export *exps[],
+int LSM_DLL_EXPORT lsm_nfs_export_record_array_free(lsm_nfs_export * exps[],
                                                     uint32_t size);
 
 /**
@@ -92,68 +89,80 @@ int LSM_DLL_EXPORT lsm_nfs_export_record_array_free( lsm_nfs_export *exps[],
  * @param source            Source record to copy
  * @return Copy of source, else NULL one error.
  */
-lsm_nfs_export LSM_DLL_EXPORT *lsm_nfs_export_record_copy( lsm_nfs_export *source );
+lsm_nfs_export LSM_DLL_EXPORT *
+    lsm_nfs_export_record_copy(lsm_nfs_export *source);
 
 /**
  * Returns the ID
  * @param exp       Valid nfs export record
  * @return Pointer to ID
  */
-const char LSM_DLL_EXPORT *lsm_nfs_export_id_get( lsm_nfs_export *exp );
-int LSM_DLL_EXPORT lsm_nfs_export_id_set(lsm_nfs_export *exp, const char *ep );
+const char LSM_DLL_EXPORT *lsm_nfs_export_id_get(lsm_nfs_export *exp);
+int LSM_DLL_EXPORT lsm_nfs_export_id_set(lsm_nfs_export *exp,
+                                         const char *ep);
 
 /**
  * Returns the file system id
  * @param exp       Valid nfs export record
  * @return Pointer to file system id
  */
-const char LSM_DLL_EXPORT *lsm_nfs_export_fs_id_get( lsm_nfs_export *exp );
-int LSM_DLL_EXPORT lsm_nfs_export_fs_id_set(lsm_nfs_export *exp, const char *fs_id);
+const char LSM_DLL_EXPORT *lsm_nfs_export_fs_id_get(lsm_nfs_export *exp);
+int LSM_DLL_EXPORT lsm_nfs_export_fs_id_set(lsm_nfs_export *exp,
+                                            const char *fs_id);
 
 /**
  * Returns the export path
  * @param exp       Valid nfs export record
  * @return Pointer to export path
  */
-const char LSM_DLL_EXPORT *lsm_nfs_export_export_path_get( lsm_nfs_export *exp );
-int LSM_DLL_EXPORT lsm_nfs_export_export_path_set( lsm_nfs_export *exp,
-                                                const char *export_path);
+const char LSM_DLL_EXPORT *
+    lsm_nfs_export_export_path_get(lsm_nfs_export *exp);
+
+int LSM_DLL_EXPORT lsm_nfs_export_export_path_set(lsm_nfs_export *exp,
+                                                  const char *export_path);
 
 /**
  * Returns the client authentication type
  * @param exp       Valid nfs export record
  * @return Pointer to authentication type
  */
-const char LSM_DLL_EXPORT *lsm_nfs_export_auth_type_get( lsm_nfs_export * exp );
-int LSM_DLL_EXPORT lsm_nfs_export_auth_type_set( lsm_nfs_export * exp,
-                                            const char *value );
+const char LSM_DLL_EXPORT *lsm_nfs_export_auth_type_get(lsm_nfs_export
+                                                        * exp);
+int LSM_DLL_EXPORT lsm_nfs_export_auth_type_set(lsm_nfs_export *exp,
+                                                const char *value);
 
 /**
  * Returns the list of hosts that have root access
  * @param exp       Valid nfs export record
  * @return list of hosts.
  */
-lsm_string_list LSM_DLL_EXPORT * lsm_nfs_export_root_get( lsm_nfs_export * exp);
-int LSM_DLL_EXPORT lsm_nfs_export_root_set(lsm_nfs_export * exp,
-                                        lsm_string_list * value);
+lsm_string_list LSM_DLL_EXPORT *
+    lsm_nfs_export_root_get(lsm_nfs_export * exp);
+
+int LSM_DLL_EXPORT lsm_nfs_export_root_set(lsm_nfs_export *exp,
+                                           lsm_string_list *value);
 
 /**
  * Returns the list of hosts that have read/write access to export.
  * @param exp       Valid nfs export record
  * @return list of hosts.
  */
-lsm_string_list LSM_DLL_EXPORT *lsm_nfs_export_read_write_get( lsm_nfs_export *exp);
-int LSM_DLL_EXPORT lsm_nfs_export_read_write_set( lsm_nfs_export *exp,
-                                                lsm_string_list *value);
+lsm_string_list LSM_DLL_EXPORT *
+    lsm_nfs_export_read_write_get(lsm_nfs_export *exp);
+
+int LSM_DLL_EXPORT lsm_nfs_export_read_write_set(lsm_nfs_export *exp,
+                                                 lsm_string_list *value);
 
 /**
  * Returns the list of hosts that have read only access to export.
  * @param exp       Valid nfs export record
  * @return list of hosts
  */
-lsm_string_list LSM_DLL_EXPORT *lsm_nfs_export_read_only_get( lsm_nfs_export *exp );
-int LSM_DLL_EXPORT lsm_nfs_export_read_only_set( lsm_nfs_export *exp,
-                                            lsm_string_list *value);
+lsm_string_list LSM_DLL_EXPORT *
+    lsm_nfs_export_read_only_get(lsm_nfs_export *exp);
+
+int LSM_DLL_EXPORT lsm_nfs_export_read_only_set(lsm_nfs_export *exp,
+                                                lsm_string_list *value);
 
 /**
  * Returns the id which is to be mapped to anonymous id
@@ -161,8 +170,10 @@ int LSM_DLL_EXPORT lsm_nfs_export_read_only_set( lsm_nfs_export *exp,
  * @return ANON_UID_GID_NA value is returned when this isn't set, else value
  * mapped to anonymous group id.  For errors ANON_UID_GID_ERROR is returned.
  */
-uint64_t LSM_DLL_EXPORT lsm_nfs_export_anon_uid_get( lsm_nfs_export * exp );
-int LSM_DLL_EXPORT lsm_nfs_export_anon_uid_set( lsm_nfs_export * exp, uint64_t value);
+uint64_t LSM_DLL_EXPORT lsm_nfs_export_anon_uid_get(lsm_nfs_export *exp);
+
+int LSM_DLL_EXPORT lsm_nfs_export_anon_uid_set(lsm_nfs_export *exp,
+                                               uint64_t value);
 
 /**
  * Returns the group id which is to be mapped to anonymous group
@@ -170,20 +181,22 @@ int LSM_DLL_EXPORT lsm_nfs_export_anon_uid_set( lsm_nfs_export * exp, uint64_t v
  * @return ANON_UID_GID_NA value is returned when this isn't set, else value
  * mapped to anonymous group id.  For errors ANON_UID_GID_ERROR is returned.
  */
-uint64_t LSM_DLL_EXPORT lsm_nfs_export_anon_gid_get( lsm_nfs_export *exp );
-int LSM_DLL_EXPORT lsm_nfs_export_anon_gid_set( lsm_nfs_export *exp, uint64_t value);
+uint64_t LSM_DLL_EXPORT lsm_nfs_export_anon_gid_get(lsm_nfs_export *exp);
+
+int LSM_DLL_EXPORT lsm_nfs_export_anon_gid_set(lsm_nfs_export *exp,
+                                               uint64_t value);
 
 /**
  * Returns the options for this export.
  * @param exp       Valid nfs export record
  * @return Options value, NULL if not applicable.
  */
-const char LSM_DLL_EXPORT *lsm_nfs_export_options_get( lsm_nfs_export *exp);
-int LSM_DLL_EXPORT lsm_nfs_export_options_set( lsm_nfs_export *exp,
-                                            const char *value);
+const char LSM_DLL_EXPORT *lsm_nfs_export_options_get(lsm_nfs_export *exp);
+
+int LSM_DLL_EXPORT lsm_nfs_export_options_set(lsm_nfs_export *exp,
+                                              const char *value);
 
 #ifdef  __cplusplus
 }
 #endif
-
 #endif

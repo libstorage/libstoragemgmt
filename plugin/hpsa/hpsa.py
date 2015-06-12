@@ -88,7 +88,7 @@ def _parse_hpssacli_output(output):
     output_lines = [
         l for l in output.split("\n")
         if l and not l.startswith('Note:') and
-           not l.strip() == 'Physical Drives']
+        not l.strip() == 'Physical Drives']
 
     data = {}
 

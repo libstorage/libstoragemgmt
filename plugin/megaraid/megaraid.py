@@ -210,7 +210,8 @@ def _lsm_raid_type_to_mega(lsm_raid_type):
 
 class MegaRAID(IPlugin):
     _DEFAULT_BIN_PATHS = [
-        "/opt/MegaRAID/storcli/storcli64", "/opt/MegaRAID/storcli/storcli"]
+        "/opt/MegaRAID/storcli/storcli64", "/opt/MegaRAID/storcli/storcli",
+        "/opt/MegaRAID/perccli/perccli64", "/opt/MegaRAID/perccli/perccli"]
     _CMD_JSON_OUTPUT_SWITCH = 'J'
 
     def __init__(self):
@@ -299,6 +300,8 @@ class MegaRAID(IPlugin):
             else:
                 raise
 
+        output = re.sub("[^\x20-\x7e]", " ", output)
+
         if flag_json:
             output_dict = json.loads(output)
             ctrl_output = output_dict.get('Controllers')
@@ -323,8 +326,13 @@ class MegaRAID(IPlugin):
             return output
 
     def _ctrl_count(self):
-        return self._storcli_exec(
+        ctrl_count = self._storcli_exec(
             ["show", "ctrlcount"]).get("Controller Count")
+        if ctrl_count < 1:
+            raise LsmError(
+                ErrorNumber.NOT_FOUND_SYSTEM,
+                "No MegaRAID controller detected by %s" % self._storcli_bin)
+        return ctrl_count
 
     def _lsm_status_of_ctrl(self, ctrl_show_all_output):
         lsi_status_info = ctrl_show_all_output['Status']
@@ -577,7 +585,7 @@ class MegaRAID(IPlugin):
         # Check whether pool exists.
         try:
             dg_show_all_output = self._storcli_exec(
-                [lsi_dg_path , "show", "all"])
+                [lsi_dg_path, "show", "all"])
         except ExecError as exec_error:
             try:
                 json_output = json.loads(exec_error.stdout)

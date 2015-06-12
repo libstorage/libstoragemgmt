@@ -22,8 +22,8 @@
 
 
 #ifdef __cplusplus
-    #define __STDC_FORMAT_MACROS
-    #define __STDC_LIMIT_MACROS
+#define __STDC_FORMAT_MACROS
+#define __STDC_LIMIT_MACROS
 #endif
 #include <inttypes.h>
 
@@ -114,24 +114,35 @@ typedef struct _lsm_hash lsm_hash;
  */
 typedef struct _lsm_target_port lsm_target_port;
 
-/**< \enum lsm_replication_type Different types of replications that can be created */
+/**< \enum lsm_replication_type Different types of replications that can be
+ * created */
 typedef enum {
-    LSM_VOLUME_REPLICATE_UNKNOWN        = -1,       /**< Unknown replicate */
-    LSM_VOLUME_REPLICATE_CLONE          = 2,        /**< Space efficient copy */
-    LSM_VOLUME_REPLICATE_COPY           = 3,        /**< Full bitwise copy */
-    LSM_VOLUME_REPLICATE_MIRROR_SYNC    = 4,        /**< Mirrors always in sync */
-    LSM_VOLUME_REPLICATE_MIRROR_ASYNC   = 5         /**< Mirror partner updated with delay */
+    LSM_VOLUME_REPLICATE_UNKNOWN = -1,
+    /**^ Unknown replicate */
+    LSM_VOLUME_REPLICATE_CLONE = 2,
+    /**^ Space efficient copy */
+    LSM_VOLUME_REPLICATE_COPY = 3,
+    /**^ Full bitwise copy */
+    LSM_VOLUME_REPLICATE_MIRROR_SYNC = 4,
+    /**^ Mirrors always in sync */
+    LSM_VOLUME_REPLICATE_MIRROR_ASYNC = 5
+    /**^ Mirror partner updated with delay */
 } lsm_replication_type;
 
 /**< \enum lsm_volume_provision_type Different types of provisioning */
 typedef enum {
-    LSM_VOLUME_PROVISION_UNKNOWN = -1,     /**< Unknown */
-    LSM_VOLUME_PROVISION_THIN = 1,         /**< Thin provisioning */
-    LSM_VOLUME_PROVISION_FULL = 2,         /**< Thick provisioning */
-    LSM_VOLUME_PROVISION_DEFAULT = 3       /**< Default provisioning */
+    LSM_VOLUME_PROVISION_UNKNOWN = -1,
+    /**^ Unknown */
+    LSM_VOLUME_PROVISION_THIN = 1,
+    /**^ Thin provisioning */
+    LSM_VOLUME_PROVISION_FULL = 2,
+    /**^ Thick provisioning */
+    LSM_VOLUME_PROVISION_DEFAULT = 3
+    /**^ Default provisioning */
 } lsm_volume_provision_type;
 
-/**< \enum lsm_volume_raid_type Different types of RAID */
+
+    /**^ \enum lsm_volume_raid_type Different types of RAID */
 typedef enum {
     LSM_VOLUME_RAID_TYPE_UNKNOWN = -1,
     /**^ Unknown */
@@ -169,7 +180,8 @@ typedef enum {
     /**^ Vendor specific RAID type */
 } lsm_volume_raid_type;
 
-/**< \enum lsm_pool_member_type Different types of Pool member*/
+
+    /**^ \enum lsm_pool_member_type Different types of Pool member*/
 typedef enum {
     LSM_POOL_MEMBER_TYPE_UNKNOWN = 0,
     /**^ Plugin failed to detect the RAID member type. */
@@ -194,34 +206,51 @@ typedef enum {
 /**
  * Admin state for volume, enabled or disabled
  */
-#define LSM_VOLUME_ADMIN_STATE_ENABLED      0x1     /**< Volume accessible */
-#define LSM_VOLUME_ADMIN_STATE_DISABLED     0x0     /**< Volume unaccessible */
+#define LSM_VOLUME_ADMIN_STATE_ENABLED      0x1
+    /**^ Volume accessible */
+#define LSM_VOLUME_ADMIN_STATE_DISABLED     0x0
+    /**^ Volume unaccessible */
 
 /**
  * Different states a system status can be in.
  * Bit field, can be in multiple states at the same time.
  */
-#define LSM_SYSTEM_STATUS_UNKNOWN               0x00000001  /**< Unknown */
-#define LSM_SYSTEM_STATUS_OK                    0x00000002  /**< OK */
-#define LSM_SYSTEM_STATUS_ERROR                 0x00000004  /**< Error(s) exist */
-#define LSM_SYSTEM_STATUS_DEGRADED              0x00000008  /**< Degraded */
-#define LSM_SYSTEM_STATUS_PREDICTIVE_FAILURE    0x00000010  /**< System has predictive failure(s) */
-#define LSM_SYSTEM_STATUS_OTHER                 0x00000020  /**< Vendor specific */
+#define LSM_SYSTEM_STATUS_UNKNOWN               0x00000001
+    /**^ Unknown */
+#define LSM_SYSTEM_STATUS_OK                    0x00000002
+    /**^ OK */
+#define LSM_SYSTEM_STATUS_ERROR                 0x00000004
+    /**^ Error(s) exist */
+#define LSM_SYSTEM_STATUS_DEGRADED              0x00000008
+    /**^ Degraded */
+#define LSM_SYSTEM_STATUS_PREDICTIVE_FAILURE    0x00000010
+    /**^ System has predictive failure(s) */
+#define LSM_SYSTEM_STATUS_OTHER                 0x00000020
+    /**^ Vendor specific */
 
 
 typedef enum {
-    LSM_ACCESS_GROUP_INIT_TYPE_UNKNOWN = 0,     /**< Unknown */
-    LSM_ACCESS_GROUP_INIT_TYPE_OTHER = 1,       /**< Something not seen before */
-    LSM_ACCESS_GROUP_INIT_TYPE_WWPN = 2,        /**< Port name */
-    LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN = 5,   /**< ISCSI IQN */
-    LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_WWPN_MIXED = 7 /**< More than 1 type */
+    LSM_ACCESS_GROUP_INIT_TYPE_UNKNOWN = 0,
+    /**^ Unknown */
+    LSM_ACCESS_GROUP_INIT_TYPE_OTHER = 1,
+    /**^ Something not seen before */
+    LSM_ACCESS_GROUP_INIT_TYPE_WWPN = 2,
+    /**^ Port name */
+    LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN = 5,
+    /**^ ISCSI IQN */
+    LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_WWPN_MIXED = 7
+    /**^ More than 1 type */
 } lsm_access_group_init_type;
 
-/**< \enum lsm_job_status Job states */
+
+    /**^ \enum lsm_job_status Job states */
 typedef enum {
-    LSM_JOB_INPROGRESS = 1,                     /**< Job is in progress */
-    LSM_JOB_COMPLETE = 2,                       /**< Job is complete */
-    LSM_JOB_ERROR = 3                           /**< Job has errored */
+    LSM_JOB_INPROGRESS = 1,
+    /**^ Job is in progress */
+    LSM_JOB_COMPLETE = 2,
+    /**^ Job is complete */
+    LSM_JOB_ERROR = 3
+    /**^ Job has errored */
 } lsm_job_status;
 
 typedef enum {
@@ -287,8 +316,8 @@ typedef enum {
 #define LSM_POOL_ELEMENT_TYPE_VOLUME_THIN           0x0000000000000040
 #define LSM_POOL_ELEMENT_TYPE_SYS_RESERVED          0x0000000000000400
 
-#define LSM_POOL_UNSUPPORTED_VOLUME_GROW			0x0000000000000001
-#define LSM_POOL_UNSUPPORTED_VOLUME_SHRINK			0x0000000000000002
+#define LSM_POOL_UNSUPPORTED_VOLUME_GROW            0x0000000000000001
+#define LSM_POOL_UNSUPPORTED_VOLUME_SHRINK          0x0000000000000002
 
 typedef enum {
     LSM_TARGET_PORT_TYPE_OTHER = 1,
@@ -303,5 +332,4 @@ typedef enum {
 #ifdef  __cplusplus
 }
 #endif
-
-#endif  /* LIBSTORAGEMGMT_TYPES_H */
+#endif                          /* LIBSTORAGEMGMT_TYPES_H */

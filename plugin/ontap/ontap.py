@@ -398,7 +398,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
         return status, status_info
 
-    def _pool_from_na_aggr(self, na_aggr, na_disks, flags):
+    def _pool_from_na_aggr(self, na_aggr, flags):
         pool_id = na_aggr['name']
         pool_name = na_aggr['name']
         total_space = int(na_aggr['size-total'])
@@ -562,11 +562,8 @@ class Ontap(IStorageAreaNetwork, INfs):
     def pools(self, search_key=None, search_value=None, flags=0):
         pools = []
         na_aggrs = self.f.aggregates()
-        na_disks = []
-        # We do extra flags check in order to save self.f.disks() calls
-        # in case we have multiple aggregates.
         for na_aggr in na_aggrs:
-            pools.extend([self._pool_from_na_aggr(na_aggr, na_disks, flags)])
+            pools.extend([self._pool_from_na_aggr(na_aggr, flags)])
         na_vols = self.f.volumes()
         for na_vol in na_vols:
             pools.extend([self._pool_from_na_vol(na_vol, na_aggrs, flags)])

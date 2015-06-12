@@ -253,8 +253,8 @@ cmds = (
             dict(name="--raid-type",
                  help="RAID type for the new RAID group. "
                       "Should be one of these:\n    %s" %
-                      "\n    ".join(
-                        VolumeRAIDInfo.VOL_CREATE_RAID_TYPES_STR),
+                      "\n    ".
+                      join(VolumeRAIDInfo.VOL_CREATE_RAID_TYPES_STR),
                  choices=VolumeRAIDInfo.VOL_CREATE_RAID_TYPES_STR,
                  type=str.upper),
         ],
@@ -1395,7 +1395,8 @@ class CmdLine:
                 "Disk ID %s not found" %
                 ', '.join(set(args.disk) - set(d.id for d in all_lsm_disks)))
 
-        busy_disks = [d.id for d in lsm_disks if not d.status & Disk.STATUS_FREE]
+        busy_disks = [d.id for d in lsm_disks
+                      if not d.status & Disk.STATUS_FREE]
 
         if len(busy_disks) >= 1:
             raise LsmError(

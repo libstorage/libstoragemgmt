@@ -38,7 +38,7 @@ int LSM_DLL_EXPORT lsm_fs_record_free(lsm_fs *fs);
  * @param source        File system record to copy.
  * @return Pointer to copy of file system record
  */
-lsm_fs LSM_DLL_EXPORT *lsm_fs_record_copy(lsm_fs *source);
+lsm_fs LSM_DLL_EXPORT *lsm_fs_record_copy(lsm_fs * source);
 
 /**
  * Frees an array of file system records
@@ -46,7 +46,7 @@ lsm_fs LSM_DLL_EXPORT *lsm_fs_record_copy(lsm_fs *source);
  * @param size      Number in array to free
  * @return LSM_ERR_OK on success, else error reason.
  */
-int LSM_DLL_EXPORT lsm_fs_record_array_free(lsm_fs * fs[], uint32_t size);
+int LSM_DLL_EXPORT lsm_fs_record_array_free(lsm_fs *fs[], uint32_t size);
 
 /**
  * Returns the id of the file system.
@@ -93,5 +93,4 @@ uint64_t LSM_DLL_EXPORT lsm_fs_free_space_get(lsm_fs *fs);
 #ifdef  __cplusplus
 }
 #endif
-
 #endif

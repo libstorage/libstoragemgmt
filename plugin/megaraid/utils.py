@@ -18,6 +18,7 @@
 import subprocess
 import os
 
+
 def cmd_exec(cmds):
     """
     Execute provided command and return the STDOUT as string.

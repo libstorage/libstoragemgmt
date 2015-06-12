@@ -1,0 +1,42 @@
+.TH simc_lsmplugin "1" "June 2015" "simc_lsmplugin @VERSION@" "libStorageMgmt"
+.SH NAME
+simc_lsmplugin -- LibstorageMgmt Simulator C Plugin
+
+.SH DESCRIPTION
+LibStorageMgmt simulator C plugin is for development use. The plugin simulates
+an array which supports most features of the library. The simulator is memory
+based, state will be discarded once the plugin exits. The 'simc_lsmplugin'
+executable file is for the libStorageMgmt daemon to execute when client user
+specifies simc plugin in the URI.
+
+Since every command of lsmcli is a standalone libStorageMgmt session, this
+plugin is essentially useless for this purpose. In this use case, the
+libStorageMgmt simulator plugin \fBsim_lsmplugin(1)\fR is suggested.
+
+This plugin is written in pure C and is intended to be an example of a
+C plugin for the library.
+
+.SH URI
+To use this plugin, users should set their URI to this format:
+.nf
+
+    simc://
+
+.fi
+No password is required for this plugin.
+No URI parameters are supported by this plugin.
+
+.SH FIREWALL RULES
+This plugin requires not network access.
+
+.SH SEE ALSO
+\fBlsmcli\fR(1), \fBlsmd\fR(1), \fBsim_lsmplugin\fR(1)
+
+.SH BUGS
+Please report bugs to
+\fI<libstoragemgmt-devel@lists.sourceforge.net>\fR
+
+.SH AUTHOR
+Gris Ge \fI<fge@redhat.com>\fR
+.br
+Tony Asleson \fI<tasleson@redhat.com>\fR

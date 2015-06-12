@@ -276,6 +276,12 @@ AC_OUTPUT(libstoragemgmt.pc \
           doc/Makefile \
           doc/man/lsmcli.1 \
           doc/man/lsmd.1 \
+          doc/man/sim_lsmplugin.1 \
+          doc/man/simc_lsmplugin.1 \
+          doc/man/smispy_lsmplugin.1 \
+          doc/man/ontap_lsmplugin.1 \
+          doc/man/targetd_lsmplugin.1 \
+          doc/man/nstor_lsmplugin.1 \
           doc/doxygen.conf \
           doc/man/lsmd.conf.5 \
           doc/man/megaraid_lsmplugin.1 \

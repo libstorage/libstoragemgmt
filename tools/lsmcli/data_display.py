@@ -305,11 +305,13 @@ class PoolRAIDInfo(object):
         return _enum_type_to_str(
             member_type, PoolRAIDInfo._MEMBER_TYPE_MAP)
 
+
 class VcrCap(object):
     def __init__(self, system_id, raid_types, strip_sizes):
         self.system_id = system_id
         self.raid_types = raid_types
         self.strip_sizes = strip_sizes
+
 
 class DisplayData(object):
 

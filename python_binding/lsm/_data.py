@@ -576,8 +576,8 @@ class AccessGroup(IData):
         if AccessGroup._regex_wwpn.match(str(init_id)):
             if init_type is None or \
                     init_type == AccessGroup.INIT_TYPE_WWPN:
-                return True, AccessGroup.INIT_TYPE_WWPN, \
-                   AccessGroup._wwpn_to_lsm_type(init_id)
+                return (True, AccessGroup.INIT_TYPE_WWPN,
+                        AccessGroup._wwpn_to_lsm_type(init_id))
 
         if raise_exception:
             raise LsmError(ErrorNumber.INVALID_ARGUMENT,

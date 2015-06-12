@@ -760,7 +760,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         vols = self.volumes_accessible_by_access_group(access_group)
         if len(vols):
             raise LsmError(ErrorNumber.IS_MASKED,
-                               "Access Group has volume(s) masked")
+                           "Access Group has volume(s) masked")
 
         self._request("destroy_hostgroup", "stmf", [access_group.name])
         return

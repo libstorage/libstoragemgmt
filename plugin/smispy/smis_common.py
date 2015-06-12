@@ -503,8 +503,8 @@ class SmisCommon(object):
                     return out[out_key]
                 else:
                     raise LsmError(ErrorNumber.PLUGIN_BUG,
-                                   "invoke_method_wait(), %s not exist in out %s" %
-                                   (out_key, out.items()))
+                                   "invoke_method_wait(), %s not exist "
+                                   "in out %s" % (out_key, out.items()))
 
             elif rc == SmisCommon.SNIA_INVOKE_ASYNC:
                 cim_job_path = out['Job']
@@ -516,7 +516,8 @@ class SmisCommon(object):
                     cim_job = self.GetInstance(cim_job_path,
                                                PropertyList=job_pros)
                     job_state = cim_job['JobState']
-                    if job_state in (dmtf.JOB_STATE_NEW, dmtf.JOB_STATE_STARTING,
+                    if job_state in (dmtf.JOB_STATE_NEW,
+                                     dmtf.JOB_STATE_STARTING,
                                      dmtf.JOB_STATE_RUNNING):
                         loop_counter += 1
                         time.sleep(SmisCommon._INVOKE_CHECK_INTERVAL)

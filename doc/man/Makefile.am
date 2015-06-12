@@ -1,5 +1,10 @@
-notrans_dist_man1_MANS = lsmcli.1 lsmd.1
-
+notrans_dist_man1_MANS = lsmcli.1 lsmd.1 \
+	sim_lsmplugin.1 \
+	simc_lsmplugin.1 \
+	smispy_lsmplugin.1 \
+	ontap_lsmplugin.1 \
+	targetd_lsmplugin.1 \
+	nstor_lsmplugin.1
 if WITH_MEGARAID
 notrans_dist_man1_MANS += megaraid_lsmplugin.1
 endif

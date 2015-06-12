@@ -676,6 +676,7 @@ def search_test(cap, system_id):
     volume_delete(vol_id)
     return
 
+
 def volume_raid_info_test(cap, system_id):
     if cap['VOLUME_RAID_INFO'] and cap['VOLUME_CREATE']:
         test_pool_id = name_to_id(OP_POOL, test_pool_name)
@@ -696,6 +697,7 @@ def volume_raid_info_test(cap, system_id):
             exit(10)
     return
 
+
 def pool_member_info_test(cap, system_id):
     if cap['POOL_MEMBER_INFO']:
         out = call([cmd, '-t' + sep, 'list', '--type', 'POOLS'])[1]
@@ -712,6 +714,7 @@ def pool_member_info_test(cap, system_id):
                       "pool ID %s" % out
                 exit(10)
     return
+
 
 def volume_raid_create_test(cap, system_id):
     if cap['VOLUME_RAID_CREATE']:
@@ -780,7 +783,7 @@ def run_all_tests(cap, system_id):
 
     volume_raid_info_test(cap, system_id)
 
-    pool_member_info_test(cap,system_id)
+    pool_member_info_test(cap, system_id)
 
     volume_raid_create_test(cap, system_id)
 

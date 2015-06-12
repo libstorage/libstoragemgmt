@@ -388,7 +388,7 @@ class TestPlugin(unittest.TestCase):
         if system_id in self.pool_by_sys_id:
             fs = None
             pool = self._get_pool_by_usage(system_id,
-                                            lsm.Pool.ELEMENT_TYPE_FS)
+                                           lsm.Pool.ELEMENT_TYPE_FS)
 
             self.assertTrue(pool is not None, "Unable to find a suitable pool "
                                               "for fs creation")
@@ -842,8 +842,7 @@ class TestPlugin(unittest.TestCase):
                 self._test_ag_create_dup(ag, s)
                 self._delete_access_group(ag)
 
-        if supported(cap, [Cap.ACCESS_GROUPS,
-                            Cap.ACCESS_GROUP_CREATE_WWPN]):
+        if supported(cap, [Cap.ACCESS_GROUPS, Cap.ACCESS_GROUP_CREATE_WWPN]):
             ag = self._create_access_group(
                 cap, rs('ag'), s, lsm.AccessGroup.INIT_TYPE_WWPN)
             if ag is not None and \
@@ -1345,6 +1344,7 @@ class TestPlugin(unittest.TestCase):
             else:
                 self._skip_current_test(
                     "Skip test: not support of VOLUME_RAID_CREATE")
+
 
 def dump_results():
     """

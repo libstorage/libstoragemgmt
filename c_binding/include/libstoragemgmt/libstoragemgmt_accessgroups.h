@@ -12,7 +12,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+ * USA
  *
  * Author: tasleson
  */
@@ -33,7 +34,7 @@ extern "C" {
  * @param group     Group to free
  * @return LSM_ERR_OK on success, else error reason.
  */
-int LSM_DLL_EXPORT lsm_access_group_record_free( lsm_access_group *group );
+int LSM_DLL_EXPORT lsm_access_group_record_free(lsm_access_group * group);
 
 /**
  * Frees the resources for an array of access groups.
@@ -41,14 +42,16 @@ int LSM_DLL_EXPORT lsm_access_group_record_free( lsm_access_group *group );
  * @param size      Number of elements in the array.
  * @return LSM_ERR_OK on success, else error reason.
  */
-int LSM_DLL_EXPORT lsm_access_group_record_array_free( lsm_access_group *ag[], uint32_t size );
+int LSM_DLL_EXPORT lsm_access_group_record_array_free(lsm_access_group *ag[],
+                                                      uint32_t size);
 
 /**
  * Copies an access group.
  * @param ag    Access group to copy
  * @return NULL on error, else copied access group.
  */
-lsm_access_group LSM_DLL_EXPORT *lsm_access_group_record_copy( lsm_access_group *ag );
+lsm_access_group LSM_DLL_EXPORT *
+    lsm_access_group_record_copy(lsm_access_group * ag);
 
 /**
  * Returns a pointer to the id.
@@ -57,7 +60,7 @@ lsm_access_group LSM_DLL_EXPORT *lsm_access_group_record_copy( lsm_access_group 
  * @param group     Access group to retrieve id for.
  * @return Null on error (not an access group), else value of group.
  */
-const char LSM_DLL_EXPORT *lsm_access_group_id_get( lsm_access_group *group );
+const char LSM_DLL_EXPORT *lsm_access_group_id_get(lsm_access_group *group);
 
 /**
  * Returns a pointer to the name.
@@ -66,7 +69,7 @@ const char LSM_DLL_EXPORT *lsm_access_group_id_get( lsm_access_group *group );
  * @param group     Access group to retrieve id for.
  * @return Null on error (not an access group), else value of name.
  */
-const char LSM_DLL_EXPORT *lsm_access_group_name_get( lsm_access_group *group );
+const char LSM_DLL_EXPORT *lsm_access_group_name_get(lsm_access_group *group);
 
 /**
  * Returns a pointer to the system id.
@@ -75,7 +78,8 @@ const char LSM_DLL_EXPORT *lsm_access_group_name_get( lsm_access_group *group );
  * @param group     Access group to retrieve id for.
  * @return Null on error (not an access group), else value of system id.
  */
-const char LSM_DLL_EXPORT *lsm_access_group_system_id_get( lsm_access_group *group );
+const char LSM_DLL_EXPORT *
+    lsm_access_group_system_id_get(lsm_access_group *group);
 
 /**
  * Returns a pointer to the initiator list.
@@ -84,11 +88,11 @@ const char LSM_DLL_EXPORT *lsm_access_group_system_id_get( lsm_access_group *gro
  * @param group     Access group to retrieve id for.
  * @return Null on error (not an access group), else value of initiator list.
  */
-lsm_string_list LSM_DLL_EXPORT *lsm_access_group_initiator_id_get( lsm_access_group *group );
+lsm_string_list LSM_DLL_EXPORT *
+    lsm_access_group_initiator_id_get(lsm_access_group * group);
 
 
 #ifdef  __cplusplus
 }
 #endif
-
 #endif

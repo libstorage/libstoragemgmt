@@ -19,11 +19,11 @@
  */
 
 #ifndef LIBSTORAGEMGMT_HASH_H
-#define	LIBSTORAGEMGMT_HASH_H
+#define LIBSTORAGEMGMT_HASH_H
 
 #include "libstoragemgmt_common.h"
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -50,8 +50,7 @@ int LSM_DLL_EXPORT lsm_hash_free(lsm_hash *op);
  * @param [out] l       String list pointer
  * @return LSM_ERR_OK on success, else error reason
  */
-int LSM_DLL_EXPORT lsm_hash_keys(lsm_hash *op,
-                                            lsm_string_list **l);
+int LSM_DLL_EXPORT lsm_hash_keys(lsm_hash *op, lsm_string_list **l);
 
 /**
  * Get the value of a key (string)
@@ -61,7 +60,7 @@ int LSM_DLL_EXPORT lsm_hash_keys(lsm_hash *op,
  *          gets released.
  */
 const char LSM_DLL_EXPORT *lsm_hash_string_get(lsm_hash *op,
-                                                    const char *key);
+                                               const char *key);
 
 /**
  * Set the value of a key.
@@ -72,8 +71,7 @@ const char LSM_DLL_EXPORT *lsm_hash_string_get(lsm_hash *op,
  * @return LSM_ERR_OK on success, else error reason
  */
 int LSM_DLL_EXPORT lsm_hash_string_set(lsm_hash *op,
-                                                const char *key,
-                                                const char *value);
+                                       const char *key, const char *value);
 
 /**
  * Does a copy of an lsm_hash
@@ -82,8 +80,7 @@ int LSM_DLL_EXPORT lsm_hash_string_set(lsm_hash *op,
  */
 lsm_hash LSM_DLL_EXPORT *lsm_hash_copy(lsm_hash *src);
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
-
-#endif	/* LIBSTORAGEMGMT_HASH_H */
+#endif                          /* LIBSTORAGEMGMT_HASH_H */

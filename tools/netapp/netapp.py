@@ -64,9 +64,9 @@ if __name__ == '__main__':
                 lsm.plugin.ontap.na.xml_debug = options.xmlfile
 
             result = netapp_filer(options.host, user, password, 30,
-                                         options.command,
-                                         process_params(options.params),
-                                         options.ssl)
+                                  options.command,
+                                  process_params(options.params),
+                                  options.ssl)
             pp.pprint(result)
         else:
             parser.error("host and command are required")

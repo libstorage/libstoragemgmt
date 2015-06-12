@@ -12,7 +12,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+ * USA
  *
  * Author: tasleson
  */
@@ -22,11 +23,11 @@
 #include "libstoragemgmt/libstoragemgmt_blockrange.h"
 #include "libstoragemgmt/libstoragemgmt_nfsexport.h"
 
-bool is_expected_object(Value &obj, std::string class_name)
+bool is_expected_object(Value & obj, std::string class_name)
 {
     if (obj.valueType() == Value::object_t) {
-        std::map<std::string, Value> i = obj.asObject();
-        std::map<std::string, Value>::iterator iter = i.find("class");
+        std::map < std::string, Value > i = obj.asObject();
+        std::map < std::string, Value >::iterator iter = i.find("class");
         if (iter != i.end() && iter->second.asString() == class_name) {
             return true;
         }
@@ -34,22 +35,22 @@ bool is_expected_object(Value &obj, std::string class_name)
     return false;
 }
 
-lsm_volume *value_to_volume(Value &vol)
+lsm_volume *value_to_volume(Value & vol)
 {
     lsm_volume *rc = NULL;
 
     if (is_expected_object(vol, CLASS_NAME_VOLUME)) {
-        std::map<std::string, Value> v = vol.asObject();
+        std::map < std::string, Value > v = vol.asObject();
 
         rc = lsm_volume_record_alloc(v["id"].asString().c_str(),
-            v["name"].asString().c_str(),
-            v["vpd83"].asString().c_str(),
-            v["block_size"].asUint64_t(),
-            v["num_of_blocks"].asUint64_t(),
-            v["admin_state"].asUint32_t(),
-            v["system_id"].asString().c_str(),
-            v["pool_id"].asString().c_str(),
-            v["plugin_data"].asC_str());
+                                     v["name"].asString().c_str(),
+                                     v["vpd83"].asString().c_str(),
+                                     v["block_size"].asUint64_t(),
+                                     v["num_of_blocks"].asUint64_t(),
+                                     v["admin_state"].asUint32_t(),
+                                     v["system_id"].asString().c_str(),
+                                     v["pool_id"].asString().c_str(),
+                                     v["plugin_data"].asC_str());
     } else {
         throw ValueException("value_to_volume: Not correct type");
     }
@@ -57,10 +58,10 @@ lsm_volume *value_to_volume(Value &vol)
     return rc;
 }
 
-Value volume_to_value(lsm_volume *vol)
+Value volume_to_value(lsm_volume * vol)
 {
-    if( LSM_IS_VOL(vol) ) {
-        std::map<std::string, Value> v;
+    if (LSM_IS_VOL(vol)) {
+        std::map < std::string, Value > v;
         v["class"] = Value(CLASS_NAME_VOLUME);
         v["id"] = Value(vol->id);
         v["name"] = Value(vol->name);
@@ -76,25 +77,25 @@ Value volume_to_value(lsm_volume *vol)
     return Value();
 }
 
-int value_array_to_volumes(Value &volume_values, lsm_volume **volumes[],
-                            uint32_t *count)
+int value_array_to_volumes(Value & volume_values, lsm_volume ** volumes[],
+                           uint32_t * count)
 {
     int rc = LSM_ERR_OK;
     try {
         *count = 0;
 
-        if( Value::array_t == volume_values.valueType()) {
-            std::vector<Value> vol = volume_values.asArray();
+        if (Value::array_t == volume_values.valueType()) {
+            std::vector < Value > vol = volume_values.asArray();
 
             *count = vol.size();
 
-            if( vol.size() ) {
+            if (vol.size()) {
                 *volumes = lsm_volume_record_array_alloc(vol.size());
 
-                if( *volumes ){
-                    for( size_t i = 0; i < vol.size(); ++i ) {
+                if (*volumes) {
+                    for (size_t i = 0; i < vol.size(); ++i) {
                         (*volumes)[i] = value_to_volume(vol[i]);
-                        if( !((*volumes)[i]) ) {
+                        if (!((*volumes)[i])) {
                             rc = LSM_ERR_NO_MEMORY;
                             goto error;
                         }
@@ -104,16 +105,17 @@ int value_array_to_volumes(Value &volume_values, lsm_volume **volumes[],
                 }
             }
         }
-    } catch( const ValueException &ve) {
+    }
+    catch(const ValueException & ve) {
         rc = LSM_ERR_LIB_BUG;
         goto error;
     }
 
-out:
+  out:
     return rc;
 
-error:
-    if( *volumes && *count ) {
+  error:
+    if (*volumes && *count) {
         lsm_volume_record_array_free(*volumes, *count);
         *volumes = NULL;
         *count = 0;
@@ -121,19 +123,19 @@ error:
     goto out;
 }
 
-lsm_disk *value_to_disk(Value &disk)
+lsm_disk *value_to_disk(Value & disk)
 {
     lsm_disk *rc = NULL;
     if (is_expected_object(disk, CLASS_NAME_DISK)) {
-        std::map<std::string, Value> d = disk.asObject();
+        std::map < std::string, Value > d = disk.asObject();
 
         rc = lsm_disk_record_alloc(d["id"].asString().c_str(),
-            d["name"].asString().c_str(),
-            (lsm_disk_type)d["disk_type"].asInt32_t(),
-            d["block_size"].asUint64_t(),
-            d["num_of_blocks"].asUint64_t(),
-            d["status"].asUint64_t(),
-            d["system_id"].asString().c_str()
+                                   d["name"].asString().c_str(),
+                                   (lsm_disk_type) d["disk_type"].asInt32_t(),
+                                   d["block_size"].asUint64_t(),
+                                   d["num_of_blocks"].asUint64_t(),
+                                   d["status"].asUint64_t(),
+                                   d["system_id"].asString().c_str()
             );
     } else {
         throw ValueException("value_to_disk: Not correct type");
@@ -142,10 +144,10 @@ lsm_disk *value_to_disk(Value &disk)
 }
 
 
-Value disk_to_value(lsm_disk *disk)
+Value disk_to_value(lsm_disk * disk)
 {
-    if ( LSM_IS_DISK(disk) ) {
-        std::map<std::string, Value> d;
+    if (LSM_IS_DISK(disk)) {
+        std::map < std::string, Value > d;
         d["class"] = Value(CLASS_NAME_DISK);
         d["id"] = Value(disk->id);
         d["name"] = Value(disk->name);
@@ -160,24 +162,25 @@ Value disk_to_value(lsm_disk *disk)
     return Value();
 }
 
-int value_array_to_disks(Value &disk_values, lsm_disk **disks[], uint32_t *count)
+int value_array_to_disks(Value & disk_values, lsm_disk ** disks[],
+                         uint32_t * count)
 {
     int rc = LSM_ERR_OK;
     try {
         *count = 0;
 
-        if( Value::array_t == disk_values.valueType()) {
-            std::vector<Value> d = disk_values.asArray();
+        if (Value::array_t == disk_values.valueType()) {
+            std::vector < Value > d = disk_values.asArray();
 
             *count = d.size();
 
-            if( d.size() ) {
+            if (d.size()) {
                 *disks = lsm_disk_record_array_alloc(d.size());
 
-                if( *disks ){
-                    for( size_t i = 0; i < d.size(); ++i ) {
+                if (*disks) {
+                    for (size_t i = 0; i < d.size(); ++i) {
                         (*disks)[i] = value_to_disk(d[i]);
-                        if( !((*disks)[i]) ) {
+                        if (!((*disks)[i])) {
                             rc = LSM_ERR_NO_MEMORY;
                             goto error;
                         }
@@ -187,16 +190,17 @@ int value_array_to_disks(Value &disk_values, lsm_disk **disks[], uint32_t *count
                 }
             }
         }
-    } catch( const ValueException &ve ) {
+    }
+    catch(const ValueException & ve) {
         rc = LSM_ERR_LIB_BUG;
         goto error;
     }
 
-out:
+  out:
     return rc;
 
-error:
-    if( *disks && *count ) {
+  error:
+    if (*disks && *count) {
         lsm_disk_record_array_free(*disks, *count);
         *disks = NULL;
         *count = 0;
@@ -204,33 +208,33 @@ error:
     goto out;
 }
 
-lsm_pool *value_to_pool(Value &pool)
+lsm_pool *value_to_pool(Value & pool)
 {
     lsm_pool *rc = NULL;
 
     if (is_expected_object(pool, CLASS_NAME_POOL)) {
-        std::map<std::string, Value> i = pool.asObject();
+        std::map < std::string, Value > i = pool.asObject();
 
         rc = lsm_pool_record_alloc(i["id"].asString().c_str(),
-            i["name"].asString().c_str(),
-            i["element_type"].asUint64_t(),
-            i["unsupported_actions"].asUint64_t(),
-            i["total_space"].asUint64_t(),
-            i["free_space"].asUint64_t(),
-            i["status"].asUint64_t(),
-			i["status_info"].asString().c_str(),
-            i["system_id"].asString().c_str(),
-            i["plugin_data"].asC_str());
+                                   i["name"].asString().c_str(),
+                                   i["element_type"].asUint64_t(),
+                                   i["unsupported_actions"].asUint64_t(),
+                                   i["total_space"].asUint64_t(),
+                                   i["free_space"].asUint64_t(),
+                                   i["status"].asUint64_t(),
+                                   i["status_info"].asString().c_str(),
+                                   i["system_id"].asString().c_str(),
+                                   i["plugin_data"].asC_str());
     } else {
         throw ValueException("value_to_pool: Not correct type");
     }
     return rc;
 }
 
-Value pool_to_value(lsm_pool *pool)
+Value pool_to_value(lsm_pool * pool)
 {
-    if( LSM_IS_POOL(pool) ) {
-        std::map<std::string, Value> p;
+    if (LSM_IS_POOL(pool)) {
+        std::map < std::string, Value > p;
         p["class"] = Value(CLASS_NAME_POOL);
         p["id"] = Value(pool->id);
         p["name"] = Value(pool->name);
@@ -239,7 +243,7 @@ Value pool_to_value(lsm_pool *pool)
         p["total_space"] = Value(pool->total_space);
         p["free_space"] = Value(pool->free_space);
         p["status"] = Value(pool->status);
-		p["status_info"] = Value(pool->status_info);
+        p["status_info"] = Value(pool->status_info);
         p["system_id"] = Value(pool->system_id);
         p["plugin_data"] = Value(pool->plugin_data);
         return Value(p);
@@ -247,27 +251,27 @@ Value pool_to_value(lsm_pool *pool)
     return Value();
 }
 
-lsm_system *value_to_system(Value &system)
+lsm_system *value_to_system(Value & system)
 {
     lsm_system *rc = NULL;
     if (is_expected_object(system, CLASS_NAME_SYSTEM)) {
-        std::map<std::string, Value> i = system.asObject();
+        std::map < std::string, Value > i = system.asObject();
 
         rc = lsm_system_record_alloc(i["id"].asString().c_str(),
-                                    i["name"].asString().c_str(),
-                                    i["status"].asUint32_t(),
-                                    i["status_info"].asString().c_str(),
-                                    i["plugin_data"].asC_str());
+                                     i["name"].asString().c_str(),
+                                     i["status"].asUint32_t(),
+                                     i["status_info"].asString().c_str(),
+                                     i["plugin_data"].asC_str());
     } else {
         throw ValueException("value_to_system: Not correct type");
     }
     return rc;
 }
 
-Value system_to_value(lsm_system *system)
+Value system_to_value(lsm_system * system)
 {
-    if( LSM_IS_SYSTEM(system)) {
-        std::map<std::string, Value> s;
+    if (LSM_IS_SYSTEM(system)) {
+        std::map < std::string, Value > s;
         s["class"] = Value(CLASS_NAME_SYSTEM);
         s["id"] = Value(system->id);
         s["name"] = Value(system->name);
@@ -279,18 +283,19 @@ Value system_to_value(lsm_system *system)
     return Value();
 }
 
-lsm_string_list *value_to_string_list(Value &v)
+lsm_string_list *value_to_string_list(Value & v)
 {
     lsm_string_list *il = NULL;
 
-    if( Value::array_t == v.valueType() ) {
-        std::vector<Value> vl = v.asArray();
+    if (Value::array_t == v.valueType()) {
+        std::vector < Value > vl = v.asArray();
         uint32_t size = vl.size();
         il = lsm_string_list_alloc(size);
 
-        if( il ) {
-            for( uint32_t i = 0; i < size; ++i ) {
-                if(LSM_ERR_OK != lsm_string_list_elem_set(il, i, vl[i].asC_str())){
+        if (il) {
+            for (uint32_t i = 0; i < size; ++i) {
+                if (LSM_ERR_OK !=
+                    lsm_string_list_elem_set(il, i, vl[i].asC_str())) {
                     lsm_string_list_free(il);
                     il = NULL;
                     break;
@@ -303,36 +308,37 @@ lsm_string_list *value_to_string_list(Value &v)
     return il;
 }
 
-Value string_list_to_value( lsm_string_list *sl)
+Value string_list_to_value(lsm_string_list * sl)
 {
-    std::vector<Value> rc;
-    if( LSM_IS_STRING_LIST(sl) ) {
+    std::vector < Value > rc;
+    if (LSM_IS_STRING_LIST(sl)) {
         uint32_t size = lsm_string_list_size(sl);
         rc.reserve(size);
 
-        for(uint32_t i = 0; i < size; ++i ) {
+        for (uint32_t i = 0; i < size; ++i) {
             rc.push_back(Value(lsm_string_list_elem_get(sl, i)));
         }
     }
     return Value(rc);
 }
 
-lsm_access_group *value_to_access_group( Value &group )
+lsm_access_group *value_to_access_group(Value & group)
 {
     lsm_string_list *il = NULL;
     lsm_access_group *ag = NULL;
 
-    if( is_expected_object(group, CLASS_NAME_ACCESS_GROUP)) {
-        std::map<std::string, Value> vAg = group.asObject();
+    if (is_expected_object(group, CLASS_NAME_ACCESS_GROUP)) {
+        std::map < std::string, Value > vAg = group.asObject();
         il = value_to_string_list(vAg["init_ids"]);
 
-        if( il ) {
+        if (il) {
             ag = lsm_access_group_record_alloc(vAg["id"].asString().c_str(),
-                    vAg["name"].asString().c_str(),
-                    il,
-                    (lsm_access_group_init_type)vAg["init_type"].asInt32_t(),
-                    vAg["system_id"].asString().c_str(),
-                    vAg["plugin_data"].asC_str());
+                                               vAg["name"].asString().c_str(),
+                                               il, (lsm_access_group_init_type)
+                                               vAg["init_type"].asInt32_t(),
+                                               vAg["system_id"].
+                                               asString().c_str(),
+                                               vAg["plugin_data"].asC_str());
         }
         /* This stuff is copied in lsm_access_group_record_alloc */
         lsm_string_list_free(il);
@@ -342,10 +348,10 @@ lsm_access_group *value_to_access_group( Value &group )
     return ag;
 }
 
-Value access_group_to_value( lsm_access_group *group )
+Value access_group_to_value(lsm_access_group * group)
 {
-    if( LSM_IS_ACCESS_GROUP(group) ) {
-        std::map<std::string, Value> ag;
+    if (LSM_IS_ACCESS_GROUP(group)) {
+        std::map < std::string, Value > ag;
         ag["class"] = Value(CLASS_NAME_ACCESS_GROUP);
         ag["id"] = Value(group->id);
         ag["name"] = Value(group->name);
@@ -358,23 +364,23 @@ Value access_group_to_value( lsm_access_group *group )
     return Value();
 }
 
-int value_array_to_access_groups( Value &group,
-                                lsm_access_group **ag_list[],
-                                uint32_t *count )
+int value_array_to_access_groups(Value & group,
+                                 lsm_access_group ** ag_list[],
+                                 uint32_t * count)
 {
     int rc = LSM_ERR_OK;
 
     try {
-        std::vector<Value> ag = group.asArray();
+        std::vector < Value > ag = group.asArray();
         *count = ag.size();
 
-        if( *count ) {
+        if (*count) {
             *ag_list = lsm_access_group_record_array_alloc(*count);
-            if( *ag_list ) {
+            if (*ag_list) {
                 uint32_t i;
-                for(i = 0; i < *count; ++i ) {
+                for (i = 0; i < *count; ++i) {
                     (*ag_list)[i] = value_to_access_group(ag[i]);
-                    if( !((*ag_list)[i]) ) {
+                    if (!((*ag_list)[i])) {
                         rc = LSM_ERR_NO_MEMORY;
                         goto error;
                     }
@@ -383,16 +389,17 @@ int value_array_to_access_groups( Value &group,
                 rc = LSM_ERR_NO_MEMORY;
             }
         }
-    } catch( const ValueException &ve) {
+    }
+    catch(const ValueException & ve) {
         rc = LSM_ERR_LIB_BUG;
         goto error;
     }
 
- out:
+  out:
     return rc;
 
-error:
-    if( *ag_list && *count ) {
+  error:
+    if (*ag_list && *count) {
         lsm_access_group_record_array_free(*ag_list, *count);
         *ag_list = NULL;
         *count = 0;
@@ -400,39 +407,39 @@ error:
     goto out;
 }
 
-Value access_group_list_to_value( lsm_access_group **group, uint32_t count)
+Value access_group_list_to_value(lsm_access_group ** group, uint32_t count)
 {
-    std::vector<Value> rc;
+    std::vector < Value > rc;
 
-    if( group && count ) {
+    if (group && count) {
         uint32_t i;
         rc.reserve(count);
-        for( i = 0; i < count; ++i ) {
+        for (i = 0; i < count; ++i) {
             rc.push_back(access_group_to_value(group[i]));
         }
     }
     return Value(rc);
 }
 
-lsm_block_range *value_to_block_range(Value &br)
+lsm_block_range *value_to_block_range(Value & br)
 {
     lsm_block_range *rc = NULL;
-    if( is_expected_object(br, CLASS_NAME_BLOCK_RANGE) ) {
-        std::map<std::string, Value> range = br.asObject();
+    if (is_expected_object(br, CLASS_NAME_BLOCK_RANGE)) {
+        std::map < std::string, Value > range = br.asObject();
 
         rc = lsm_block_range_record_alloc(range["src_block"].asUint64_t(),
-                                        range["dest_block"].asUint64_t(),
-                                        range["block_count"].asUint64_t());
+                                          range["dest_block"].asUint64_t(),
+                                          range["block_count"].asUint64_t());
     } else {
         throw ValueException("value_to_block_range: Not correct type");
     }
     return rc;
 }
 
-Value block_range_to_value(lsm_block_range *br)
+Value block_range_to_value(lsm_block_range * br)
 {
-    if( LSM_IS_BLOCK_RANGE(br) ) {
-        std::map<std::string, Value> r;
+    if (LSM_IS_BLOCK_RANGE(br)) {
+        std::map < std::string, Value > r;
         r["class"] = Value(CLASS_NAME_BLOCK_RANGE);
         r["src_block"] = Value(br->source_start);
         r["dest_block"] = Value(br->dest_start);
@@ -442,17 +449,17 @@ Value block_range_to_value(lsm_block_range *br)
     return Value();
 }
 
-lsm_block_range **value_to_block_range_list(Value &brl, uint32_t *count)
+lsm_block_range **value_to_block_range_list(Value & brl, uint32_t * count)
 {
     lsm_block_range **rc = NULL;
-    std::vector<Value> r = brl.asArray();
+    std::vector < Value > r = brl.asArray();
     *count = r.size();
-    if( *count ) {
+    if (*count) {
         rc = lsm_block_range_record_array_alloc(*count);
-        if( rc ) {
-            for( uint32_t i = 0; i < *count; ++i ) {
+        if (rc) {
+            for (uint32_t i = 0; i < *count; ++i) {
                 rc[i] = value_to_block_range(r[i]);
-                if( !rc[i] ) {
+                if (!rc[i]) {
                     lsm_block_range_record_array_free(rc, i);
                     rc = NULL;
                     break;
@@ -463,42 +470,42 @@ lsm_block_range **value_to_block_range_list(Value &brl, uint32_t *count)
     return rc;
 }
 
-Value block_range_list_to_value( lsm_block_range **brl, uint32_t count )
+Value block_range_list_to_value(lsm_block_range ** brl, uint32_t count)
 {
-    std::vector<Value> r;
-    if( brl && count) {
+    std::vector < Value > r;
+    if (brl && count) {
         uint32_t i = 0;
         r.reserve(count);
-        for( i = 0; i < count; ++i ) {
+        for (i = 0; i < count; ++i) {
             r.push_back(block_range_to_value(brl[i]));
         }
     }
     return Value(r);
 }
 
-lsm_fs *value_to_fs(Value &fs)
+lsm_fs *value_to_fs(Value & fs)
 {
     lsm_fs *rc = NULL;
-    if( is_expected_object(fs, CLASS_NAME_FILE_SYSTEM) ) {
-        std::map<std::string, Value> f = fs.asObject();
+    if (is_expected_object(fs, CLASS_NAME_FILE_SYSTEM)) {
+        std::map < std::string, Value > f = fs.asObject();
 
         rc = lsm_fs_record_alloc(f["id"].asString().c_str(),
-                                f["name"].asString().c_str(),
-                                f["total_space"].asUint64_t(),
-                                f["free_space"].asUint64_t(),
-                                f["pool_id"].asString().c_str(),
-                                f["system_id"].asString().c_str(),
-                                f["plugin_data"].asC_str());
+                                 f["name"].asString().c_str(),
+                                 f["total_space"].asUint64_t(),
+                                 f["free_space"].asUint64_t(),
+                                 f["pool_id"].asString().c_str(),
+                                 f["system_id"].asString().c_str(),
+                                 f["plugin_data"].asC_str());
     } else {
         throw ValueException("value_to_fs: Not correct type");
     }
     return rc;
 }
 
-Value fs_to_value(lsm_fs *fs)
+Value fs_to_value(lsm_fs * fs)
 {
-    if( LSM_IS_FS(fs) ) {
-        std::map<std::string, Value> f;
+    if (LSM_IS_FS(fs)) {
+        std::map < std::string, Value > f;
         f["class"] = Value(CLASS_NAME_FILE_SYSTEM);
         f["id"] = Value(fs->id);
         f["name"] = Value(fs->name);
@@ -513,26 +520,26 @@ Value fs_to_value(lsm_fs *fs)
 }
 
 
-lsm_fs_ss *value_to_ss(Value &ss)
+lsm_fs_ss *value_to_ss(Value & ss)
 {
     lsm_fs_ss *rc = NULL;
-    if( is_expected_object(ss, CLASS_NAME_FS_SNAPSHOT) ) {
-        std::map<std::string, Value> f = ss.asObject();
+    if (is_expected_object(ss, CLASS_NAME_FS_SNAPSHOT)) {
+        std::map < std::string, Value > f = ss.asObject();
 
         rc = lsm_fs_ss_record_alloc(f["id"].asString().c_str(),
-                                f["name"].asString().c_str(),
-                                f["ts"].asUint64_t(),
-                                f["plugin_data"].asC_str());
+                                    f["name"].asString().c_str(),
+                                    f["ts"].asUint64_t(),
+                                    f["plugin_data"].asC_str());
     } else {
         throw ValueException("value_to_ss: Not correct type");
     }
     return rc;
 }
 
-Value ss_to_value(lsm_fs_ss *ss)
+Value ss_to_value(lsm_fs_ss * ss)
 {
-    if( LSM_IS_SS(ss) ) {
-        std::map<std::string, Value> f;
+    if (LSM_IS_SS(ss)) {
+        std::map < std::string, Value > f;
         f["class"] = Value(CLASS_NAME_FS_SNAPSHOT);
         f["id"] = Value(ss->id);
         f["name"] = Value(ss->name);
@@ -543,24 +550,24 @@ Value ss_to_value(lsm_fs_ss *ss)
     return Value();
 }
 
-lsm_nfs_export *value_to_nfs_export(Value &exp)
+lsm_nfs_export *value_to_nfs_export(Value & exp)
 {
     lsm_nfs_export *rc = NULL;
-    if( is_expected_object(exp, CLASS_NAME_FS_EXPORT) ) {
+    if (is_expected_object(exp, CLASS_NAME_FS_EXPORT)) {
         int ok = 0;
         lsm_string_list *root = NULL;
         lsm_string_list *rw = NULL;
         lsm_string_list *ro = NULL;
 
-        std::map<std::string, Value> i = exp.asObject();
+        std::map < std::string, Value > i = exp.asObject();
 
         /* Check all the arrays for successful allocation */
         root = value_to_string_list(i["root"]);
-        if( root ) {
+        if (root) {
             rw = value_to_string_list(i["rw"]);
-            if( rw ) {
+            if (rw) {
                 ro = value_to_string_list(i["ro"]);
-                if( !ro ) {
+                if (!ro) {
                     lsm_string_list_free(rw);
                     lsm_string_list_free(root);
                     rw = NULL;
@@ -574,18 +581,18 @@ lsm_nfs_export *value_to_nfs_export(Value &exp)
             }
         }
 
-        if( ok ) {
+        if (ok) {
             rc = lsm_nfs_export_record_alloc(i["id"].asC_str(),
-                i["fs_id"].asC_str(),
-                i["export_path"].asC_str(),
-                i["auth"].asC_str(),
-                root,
-                rw,
-                ro,
-                i["anonuid"].asUint64_t(),
-                i["anongid"].asUint64_t(),
-                i["options"].asC_str(),
-                i["plugin_data"].asC_str());
+                                             i["fs_id"].asC_str(),
+                                             i["export_path"].asC_str(),
+                                             i["auth"].asC_str(),
+                                             root,
+                                             rw,
+                                             ro,
+                                             i["anonuid"].asUint64_t(),
+                                             i["anongid"].asUint64_t(),
+                                             i["options"].asC_str(),
+                                             i["plugin_data"].asC_str());
 
             lsm_string_list_free(root);
             lsm_string_list_free(rw);
@@ -597,10 +604,10 @@ lsm_nfs_export *value_to_nfs_export(Value &exp)
     return rc;
 }
 
-Value nfs_export_to_value(lsm_nfs_export *exp)
+Value nfs_export_to_value(lsm_nfs_export * exp)
 {
-    if( LSM_IS_NFS_EXPORT(exp) ) {
-        std::map<std::string, Value> f;
+    if (LSM_IS_NFS_EXPORT(exp)) {
+        std::map < std::string, Value > f;
         f["class"] = Value(CLASS_NAME_FS_EXPORT);
         f["id"] = Value(exp->id);
         f["fs_id"] = Value(exp->fs_id);
@@ -619,10 +626,10 @@ Value nfs_export_to_value(lsm_nfs_export *exp)
 
 }
 
-lsm_storage_capabilities *value_to_capabilities(Value &exp)
+lsm_storage_capabilities *value_to_capabilities(Value & exp)
 {
     lsm_storage_capabilities *rc = NULL;
-    if( is_expected_object(exp, CLASS_NAME_CAPABILITIES) ) {
+    if (is_expected_object(exp, CLASS_NAME_CAPABILITIES)) {
         const char *val = exp["cap"].asC_str();
         rc = lsm_capability_record_alloc(val);
     } else {
@@ -631,10 +638,10 @@ lsm_storage_capabilities *value_to_capabilities(Value &exp)
     return rc;
 }
 
-Value capabilities_to_value(lsm_storage_capabilities *cap)
+Value capabilities_to_value(lsm_storage_capabilities * cap)
 {
-    if( LSM_IS_CAPABILITIY(cap) ) {
-        std::map<std::string, Value> c;
+    if (LSM_IS_CAPABILITIY(cap)) {
+        std::map < std::string, Value > c;
         char *t = capability_string(cap);
         c["class"] = Value(CLASS_NAME_CAPABILITIES);
         c["cap"] = Value(t);
@@ -645,29 +652,29 @@ Value capabilities_to_value(lsm_storage_capabilities *cap)
 }
 
 
-lsm_target_port *value_to_target_port(Value &tp)
+lsm_target_port *value_to_target_port(Value & tp)
 {
-   lsm_target_port *rc = NULL;
-    if( is_expected_object(tp, CLASS_NAME_TARGET_PORT) ) {
-        rc = lsm_target_port_record_alloc(
-                            tp["id"].asC_str(),
-                            (lsm_target_port_type)tp["port_type"].asInt32_t(),
-                            tp["service_address"].asC_str(),
-                            tp["network_address"].asC_str(),
-                            tp["physical_address"].asC_str(),
-                            tp["physical_name"].asC_str(),
-                            tp["system_id"].asC_str(),
-                            tp["plugin_data"].asC_str());
+    lsm_target_port *rc = NULL;
+    if (is_expected_object(tp, CLASS_NAME_TARGET_PORT)) {
+        rc = lsm_target_port_record_alloc(tp["id"].asC_str(),
+                                          (lsm_target_port_type)
+                                          tp["port_type"].asInt32_t(),
+                                          tp["service_address"].asC_str(),
+                                          tp["network_address"].asC_str(),
+                                          tp["physical_address"].asC_str(),
+                                          tp["physical_name"].asC_str(),
+                                          tp["system_id"].asC_str(),
+                                          tp["plugin_data"].asC_str());
     } else {
         throw ValueException("value_to_target_port: Not correct type");
     }
     return rc;
 }
 
-Value target_port_to_value(lsm_target_port *tp)
+Value target_port_to_value(lsm_target_port * tp)
 {
-    if( LSM_IS_TARGET_PORT(tp) ) {
-        std::map<std::string, Value> p;
+    if (LSM_IS_TARGET_PORT(tp)) {
+        std::map < std::string, Value > p;
         p["class"] = Value(CLASS_NAME_TARGET_PORT);
         p["id"] = Value(tp->id);
         p["port_type"] = Value(tp->port_type);
@@ -682,27 +689,28 @@ Value target_port_to_value(lsm_target_port *tp)
     return Value();
 }
 
-int values_to_uint32_array(
-    Value &value, uint32_t **uint32_array, uint32_t *count)
+int values_to_uint32_array(Value & value, uint32_t ** uint32_array,
+                           uint32_t * count)
 {
     int rc = LSM_ERR_OK;
     *count = 0;
     try {
-        std::vector<Value> data = value.asArray();
+        std::vector < Value > data = value.asArray();
         *count = data.size();
-        if (*count){
-            *uint32_array = (uint32_t *)malloc(sizeof(uint32_t) * *count);
-            if (*uint32_array){
+        if (*count) {
+            *uint32_array = (uint32_t *) malloc(sizeof(uint32_t) * *count);
+            if (*uint32_array) {
                 uint32_t i;
-                for( i = 0; i < *count; i++ ){
+                for (i = 0; i < *count; i++) {
                     (*uint32_array)[i] = data[i].asUint32_t();
                 }
-            }else{
+            } else {
                 rc = LSM_ERR_NO_MEMORY;
             }
         }
-    } catch( const ValueException &ve) {
-        if( *count ) {
+    }
+    catch(const ValueException & ve) {
+        if (*count) {
             free(*uint32_array);
             *uint32_array = NULL;
             *count = 0;
@@ -712,13 +720,13 @@ int values_to_uint32_array(
     return rc;
 }
 
-Value uint32_array_to_value(uint32_t *uint32_array, uint32_t count)
+Value uint32_array_to_value(uint32_t * uint32_array, uint32_t count)
 {
-    std::vector<Value> rc;
-    if( uint32_array && count ) {
+    std::vector < Value > rc;
+    if (uint32_array && count) {
         uint32_t i;
         rc.reserve(count);
-        for( i = 0; i < count; i++ ) {
+        for (i = 0; i < count; i++) {
             rc.push_back(uint32_array[i]);
         }
     }

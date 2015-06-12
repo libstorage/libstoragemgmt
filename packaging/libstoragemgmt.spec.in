@@ -506,6 +506,7 @@ fi
 %{_sysconfdir}/lsm/lsmd.conf
 %dir %{_sysconfdir}/lsm
 %dir %{_sysconfdir}/lsm/pluginconf.d
+%{_mandir}/man1/simc_lsmplugin.1*
 
 %if 0%{?rhel} == 6
 %{_sysconfdir}/bash_completion.d/lsmcli
@@ -556,6 +557,7 @@ fi
 %{python_sitelib}/lsm/lsmcli/cmdline.*
 %{_bindir}/sim_lsmplugin
 %{_sysconfdir}/lsm/pluginconf.d/sim.conf
+%{_mandir}/man1/sim_lsmplugin.1*
 
 %files -n %{libstoragemgmt}-smis-plugin
 %defattr(-,root,root,-)
@@ -572,6 +574,7 @@ fi
 %{python_sitelib}/lsm/plugin/smispy/smis_vol.*
 %{python_sitelib}/lsm/plugin/smispy/smis_ag.*
 %{_bindir}/smispy_lsmplugin
+%{_mandir}/man1/smispy_lsmplugin.1*
 
 %files -n %{libstoragemgmt}-netapp-plugin
 %defattr(-,root,root,-)
@@ -580,6 +583,7 @@ fi
 %{python_sitelib}/lsm/plugin/ontap/na.*
 %{python_sitelib}/lsm/plugin/ontap/ontap.*
 %{_bindir}/ontap_lsmplugin
+%{_mandir}/man1/ontap_lsmplugin.1*
 
 %files -n %{libstoragemgmt}-targetd-plugin
 %defattr(-,root,root,-)
@@ -587,6 +591,7 @@ fi
 %{python_sitelib}/lsm/plugin/targetd/__init__.*
 %{python_sitelib}/lsm/plugin/targetd/targetd.*
 %{_bindir}/targetd_lsmplugin
+%{_mandir}/man1/targetd_lsmplugin.1*
 
 %files -n %{libstoragemgmt}-nstor-plugin
 %defattr(-,root,root,-)
@@ -594,6 +599,7 @@ fi
 %{python_sitelib}/lsm/plugin/nstor/__init__.*
 %{python_sitelib}/lsm/plugin/nstor/nstor.*
 %{_bindir}/nstor_lsmplugin
+%{_mandir}/man1/nstor_lsmplugin.1*
 
 %if 0%{?with_megaraid}
 %files -n %{libstoragemgmt}-megaraid-plugin
