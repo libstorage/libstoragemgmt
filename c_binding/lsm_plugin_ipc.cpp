@@ -2314,6 +2314,7 @@ static int handle_volume_raid_create(lsm_plugin_ptr p, Value & params,
             uint32_t disk_count = 0;
             rc = value_array_to_disks(v_disks, &disks, &disk_count);
             if (LSM_ERR_OK != rc) {
+                lsm_disk_record_array_free(disks, disk_count);
                 return rc;
             }
 
