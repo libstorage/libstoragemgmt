@@ -140,12 +140,11 @@ def _mega_size_to_lsm(mega_size):
 
 _POOL_STATUS_MAP = {
     'Onln': Pool.STATUS_OK,
-    'Dgrd': Pool.STATUS_DEGRADED,
-    'Pdgd': Pool.STATUS_DEGRADED,
+    'Dgrd': Pool.STATUS_DEGRADED | Pool.STATUS_OK,
+    'Pdgd': Pool.STATUS_DEGRADED | Pool.STATUS_OK,
     'Offln': Pool.STATUS_ERROR,
-    'Rbld': Pool.STATUS_RECONSTRUCTING,
+    'Rbld': Pool.STATUS_RECONSTRUCTING | Pool.STATUS_DEGRADED | Pool.STATUS_OK,
     'Optl': Pool.STATUS_OK,
-    # TODO(Gris Ge): The 'Optl' is undocumented, check with LSI.
 }
 
 

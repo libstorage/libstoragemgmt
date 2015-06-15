@@ -328,18 +328,20 @@ class Ontap(IStorageAreaNetwork, INfs):
     # https://library.netapp.com/ecmdocs/ECMP1196890/html/man1/na_aggr.1.html
     _AGGR_RAID_STATUS_CONV = {
         'normal': Pool.STATUS_OK,
-        'verifying': Pool.STATUS_VERIFYING,
+        'verifying': Pool.STATUS_OK | Pool.STATUS_VERIFYING,
         'copying': Pool.STATUS_INITIALIZING,
-        'ironing': Pool.STATUS_VERIFYING,
-        'resyncing': Pool.STATUS_RECONSTRUCTING,
-        'mirror degraded': Pool.STATUS_DEGRADED,
+        'ironing': Pool.STATUS_OK | Pool.STATUS_VERIFYING,
+        'resyncing': Pool.STATUS_OK | Pool.STATUS_DEGRADED |
+        Pool.STATUS_RECONSTRUCTING,
+        'mirror degraded': Pool.STATUS_OK | Pool.STATUS_DEGRADED,
         'needs check': Pool.STATUS_ERROR,
         'initializing': Pool.STATUS_INITIALIZING,
-        'growing': Pool.STATUS_GROWING,
+        'growing': Pool.STATUS_OK | Pool.STATUS_GROWING,
         'partial': Pool.STATUS_ERROR,
         'noparity': Pool.STATUS_OTHER,
-        'degraded': Pool.STATUS_DEGRADED,
-        'reconstruct': Pool.STATUS_RECONSTRUCTING,
+        'degraded': Pool.STATUS_OK | Pool.STATUS_DEGRADED,
+        'reconstruct': Pool.STATUS_OK | Pool.STATUS_DEGRADED |
+        Pool.STATUS_RECONSTRUCTING,
         'out-of-date': Pool.STATUS_OTHER,
         'foreign': Pool.STATUS_OTHER,
     }
