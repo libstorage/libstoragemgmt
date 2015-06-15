@@ -11,8 +11,7 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+ * License along with this library; If not, see <http://www.gnu.org/licenses/>.
  *
  * Author: tasleson
  */
@@ -2314,6 +2313,7 @@ static int handle_volume_raid_create(lsm_plugin_ptr p, Value & params,
             uint32_t disk_count = 0;
             rc = value_array_to_disks(v_disks, &disks, &disk_count);
             if (LSM_ERR_OK != rc) {
+                lsm_disk_record_array_free(disks, disk_count);
                 return rc;
             }
 

@@ -10,8 +10,7 @@
 # Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public
-# License along with this library; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+# License along with this library; If not, see <http://www.gnu.org/licenses/>.
 #
 # Author: Gris Ge <fge@redhat.com>
 
@@ -186,7 +185,7 @@ def _pool_element_type(smis_common, cim_pool):
 _LSM_POOL_OP_STATUS_CONV = {
     dmtf.OP_STATUS_OK: Pool.STATUS_OK,
     dmtf.OP_STATUS_ERROR: Pool.STATUS_ERROR,
-    dmtf.OP_STATUS_DEGRADED: Pool.STATUS_DEGRADED,
+    dmtf.OP_STATUS_DEGRADED: Pool.STATUS_OK | Pool.STATUS_DEGRADED,
     dmtf.OP_STATUS_NON_RECOVERABLE_ERROR: Pool.STATUS_ERROR,
     dmtf.OP_STATUS_SUPPORTING_ENTITY_IN_ERROR: Pool.STATUS_ERROR,
 }
