@@ -109,14 +109,14 @@ void logger(int severity, const char *fmt, ...)
 {
     char buf[2048];
 
-    if( verbose_flag || LOG_WARNING == severity || LOG_ERR == severity) {
+    if (verbose_flag || LOG_WARNING == severity || LOG_ERR == severity) {
         va_list arg;
         va_start(arg, fmt);
         vsnprintf(buf, sizeof(buf), fmt, arg);
         va_end(arg);
 
-        if( !systemd ) {
-            if( verbose_flag ) {
+        if (!systemd) {
+            if (verbose_flag) {
                 syslog(LOG_ERR, "%s", buf);
             } else {
                 syslog(severity, "%s", buf);
@@ -126,11 +126,12 @@ void logger(int severity, const char *fmt, ...)
             fflush(stdout);
         }
 
-        if( LOG_ERR == severity) {
+        if (LOG_ERR == severity) {
             exit(1);
         }
     }
 }
+
 #define log_and_exit(fmt, ...)  logger(LOG_ERR, fmt, ##__VA_ARGS__)
 #define warn(fmt, ...)  logger(LOG_WARNING, fmt, ##__VA_ARGS__)
 #define info(fmt, ...)  logger(LOG_INFO, fmt, ##__VA_ARGS__)
@@ -141,9 +142,9 @@ void logger(int severity, const char *fmt, ...)
  */
 void signal_handler(int s)
 {
-    if( SIGTERM == s) {
+    if (SIGTERM == s) {
         serve_state = EXIT;
-    } else if( SIGHUP == s ) {
+    } else if (SIGHUP == s) {
         serve_state = RESTART;
     }
 }
@@ -153,11 +154,11 @@ void signal_handler(int s)
  */
 void install_sh(void)
 {
-    if(signal(SIGTERM, signal_handler) == SIG_ERR) {
+    if (signal(SIGTERM, signal_handler) == SIG_ERR) {
         log_and_exit("Can't catch signal SIGTERM\n");
     }
 
-    if(signal(SIGHUP, signal_handler) == SIG_ERR) {
+    if (signal(SIGHUP, signal_handler) == SIG_ERR) {
         log_and_exit("Can't catch signal SIGHUP\n");
     }
 }
@@ -172,32 +173,28 @@ void drop_privileges(void)
     struct passwd *pw = NULL;
 
     pw = getpwnam(LSM_USER);
-    if( pw ) {
-        if ( !geteuid() ) {
+    if (pw) {
+        if (!geteuid()) {
 
-            if( -1 == setgid(pw->pw_gid) ) {
+            if (-1 == setgid(pw->pw_gid)) {
                 err = errno;
-                log_and_exit(
-                    "Unexpected error on setgid(errno %d)\n", err);
+                log_and_exit("Unexpected error on setgid(errno %d)\n", err);
             }
 
-            if( -1 == setgroups(1, &pw->pw_gid) ) {
+            if (-1 == setgroups(1, &pw->pw_gid)) {
                 err = errno;
-                log_and_exit(
-                    "Unexpected error on setgroups(errno %d)\n", err);
+                log_and_exit("Unexpected error on setgroups(errno %d)\n", err);
             }
 
-            if( -1 == setuid(pw->pw_uid) ) {
+            if (-1 == setuid(pw->pw_uid)) {
                 err = errno;
-                log_and_exit(
-                    "Unexpected error on setuid(errno %d)\n", err);
+                log_and_exit("Unexpected error on setuid(errno %d)\n", err);
             }
-        } else if ( pw->pw_uid != getuid() ) {
+        } else if (pw->pw_uid != getuid()) {
             warn("Daemon not running as correct user\n");
         }
     } else {
-        info("Warn: Missing %s user, running as existing user!\n",
-            LSM_USER);
+        info("Warn: Missing %s user, running as existing user!\n", LSM_USER);
     }
 }
 
@@ -207,13 +204,13 @@ void drop_privileges(void)
 void flight_check(void)
 {
     int err = 0;
-    if( -1 == access(socket_dir, R_OK|W_OK )) {
+    if (-1 == access(socket_dir, R_OK | W_OK)) {
         err = errno;
         log_and_exit("Unable to access socket directory %s, errno= %d\n",
                      socket_dir, err);
     }
 
-    if( -1 == access(plugin_dir, R_OK|X_OK)) {
+    if (-1 == access(plugin_dir, R_OK | X_OK)) {
         err = errno;
         log_and_exit("Unable to access plug-in directory %s, errno= %d\n",
                      plugin_dir, err);
@@ -242,11 +239,11 @@ void usage(void)
  * @param name      File name
  * @return Concatenated string, caller must call free when done
  */
-char *path_form(const char* path, const char *name)
+char *path_form(const char *path, const char *name)
 {
     size_t s = strlen(path) + strlen(name) + 2;
     char *full = calloc(1, s);
-    if( full ) {
+    if (full) {
         snprintf(full, s, "%s/%s", path, name);
     } else {
         log_and_exit("malloc failure while trying to allocate %d bytes\n", s);
@@ -255,7 +252,7 @@ char *path_form(const char* path, const char *name)
 }
 
 /* Call back signature */
-typedef int (*file_op)(void *p, char *full_file_path);
+typedef int (*file_op) (void *p, char *full_file_path);
 
 /**
  * For a given directory iterate through each directory item and exec the
@@ -265,33 +262,33 @@ typedef int (*file_op)(void *p, char *full_file_path);
  * @param   call_back   Function to call against file
  * @return
  */
-void process_directory( char *dir, void *p, file_op call_back)
+void process_directory(char *dir, void *p, file_op call_back)
 {
     int err = 0;
 
-    if( call_back && dir && strlen(dir) ) {
+    if (call_back && dir && strlen(dir)) {
         DIR *dp = NULL;
         struct dirent *entry = NULL;
         char *full_name = NULL;
         dp = opendir(dir);
 
-        if( dp ) {
-            while(( entry = readdir(dp)) != NULL) {
+        if (dp) {
+            while ((entry = readdir(dp)) != NULL) {
                 struct stat entry_st;
                 free(full_name);
                 full_name = path_form(dir, entry->d_name);
 
-                if( lstat(full_name, &entry_st ) != 0 ) {
+                if (lstat(full_name, &entry_st) != 0) {
                     continue;
                 }
 
-                if( S_ISDIR(entry_st.st_mode) ) {
-                    if (strncmp(entry->d_name, ".", 1) == 0){
+                if (S_ISDIR(entry_st.st_mode)) {
+                    if (strncmp(entry->d_name, ".", 1) == 0) {
                         continue;
                     }
                     process_directory(full_name, p, call_back);
                 } else {
-                    if( call_back(p, full_name) ) {
+                    if (call_back(p, full_name)) {
                         break;
                     }
                 }
@@ -299,7 +296,7 @@ void process_directory( char *dir, void *p, file_op call_back)
 
             free(full_name);
 
-            if( closedir(dp) ) {
+            if (closedir(dp)) {
                 err = errno;
                 log_and_exit("Error on closing dir %s: %s\n", dir,
                              strerror(err));
@@ -323,14 +320,14 @@ int delete_socket(void *p, char *full_name)
     struct stat statbuf;
     int err;
 
-    assert(p==NULL);
+    assert(p == NULL);
 
-    if( !lstat(full_name, &statbuf) ) {
-        if( S_ISSOCK(statbuf.st_mode)) {
-            if( unlink(full_name) ) {
+    if (!lstat(full_name, &statbuf)) {
+        if (S_ISSOCK(statbuf.st_mode)) {
+            if (unlink(full_name)) {
                 err = errno;
                 log_and_exit("Error on unlinking file %s: %s\n",
-                        full_name, strerror(err));
+                             full_name, strerror(err));
             }
         }
     }
@@ -361,39 +358,45 @@ int setup_socket(char *full_name)
     memset(name, 0, sizeof(name));
 
     char *base_nm = basename(full_name);
-    strncpy(name, base_nm, min(abs(strlen(base_nm) - strlen(plugin_extension)), (sizeof(name)-1)));
+    strncpy(name, base_nm,
+            min(abs(strlen(base_nm) - strlen(plugin_extension)),
+                (sizeof(name) - 1)));
 
     char *socket_file = path_form(socket_dir, name);
     delete_socket(NULL, socket_file);
 
     int fd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if( -1 != fd ) {
+    if (-1 != fd) {
         struct sockaddr_un addr;
         memset(&addr, 0, sizeof(addr));
         addr.sun_family = AF_UNIX;
 
         strncpy(addr.sun_path, socket_file, sizeof(addr.sun_path) - 1);
 
-        if( -1 == bind(fd, (struct sockaddr *)&addr, sizeof(struct sockaddr_un))) {
+        if (-1 ==
+            bind(fd, (struct sockaddr *) &addr, sizeof(struct sockaddr_un))) {
             err = errno;
-            log_and_exit("Error on binding socket %s: %s\n", socket_file, strerror(err));
+            log_and_exit("Error on binding socket %s: %s\n", socket_file,
+                         strerror(err));
         }
 
-        if( -1 == chmod(socket_file, S_IREAD|S_IWRITE|S_IRGRP|S_IWGRP
-                                    |S_IROTH|S_IWOTH)) {
+        if (-1 == chmod(socket_file, S_IREAD | S_IWRITE | S_IRGRP | S_IWGRP
+                        | S_IROTH | S_IWOTH)) {
             err = errno;
-            log_and_exit("Error on chmod socket file %s: %s\n", socket_file, strerror(err));
+            log_and_exit("Error on chmod socket file %s: %s\n", socket_file,
+                         strerror(err));
         }
 
-        if( -1 == listen(fd, 5)) {
+        if (-1 == listen(fd, 5)) {
             err = errno;
-            log_and_exit("Error on listening %s: %s\n", socket_file, strerror(err));
+            log_and_exit("Error on listening %s: %s\n", socket_file,
+                         strerror(err));
         }
 
     } else {
         err = errno;
         log_and_exit("Error on socket create %s: %s\n",
-                        socket_file, strerror(err));
+                     socket_file, strerror(err));
     }
 
     free(socket_file);
@@ -409,15 +412,14 @@ void empty_plugin_list(struct plugin_list *list)
     int err;
     struct plugin *item = NULL;
 
-    while(!LIST_EMPTY(list))
-    {
+    while (!LIST_EMPTY(list)) {
         item = LIST_FIRST(list);
         LIST_REMOVE(item, pointers);
 
-        if( -1 == close(item->fd) ) {
+        if (-1 == close(item->fd)) {
             err = errno;
             info("Error on closing fd %d for file %s: %s\n", item->fd,
-                    item->file_path, strerror(err));
+                 item->file_path, strerror(err));
         }
 
         free(item->file_path);
@@ -438,25 +440,25 @@ void empty_plugin_list(struct plugin_list *list)
  * @param value         int, output, value of this config key
  */
 
-void parse_conf_bool(char * conf_path, char *key_name, int *value)
+void parse_conf_bool(char *conf_path, char *key_name, int *value)
 {
-    if( access(conf_path, F_OK) == -1 ) {
+    if (access(conf_path, F_OK) == -1) {
         /* file not exist. */
         return;
     }
-    config_t *cfg = (config_t *)malloc(sizeof(config_t));
-    if (cfg){
+    config_t *cfg = (config_t *) malloc(sizeof(config_t));
+    if (cfg) {
         config_init(cfg);
-        if (CONFIG_TRUE == config_read_file(cfg, conf_path)){
+        if (CONFIG_TRUE == config_read_file(cfg, conf_path)) {
             config_lookup_bool(cfg, key_name, value);
-        }else{
-            log_and_exit(
-                "configure %s parsing failed: %s at line %d\n",
-                conf_path, config_error_text(cfg), config_error_line(cfg));
+        } else {
+            log_and_exit("configure %s parsing failed: %s at line %d\n",
+                         conf_path, config_error_text(cfg),
+                         config_error_line(cfg));
         }
-    } else{
-        log_and_exit(
-            "malloc failure while trying to allocate memory for config_t\n");
+    } else {
+        log_and_exit
+            ("malloc failure while trying to allocate memory for config_t\n");
     }
 
     config_destroy(cfg);
@@ -474,45 +476,38 @@ int chk_pconf_root_pri(char *plugin_path)
 {
     int require_root = 0;
     char *base_name = basename(plugin_path);
-    ssize_t plugin_name_len =
-        strlen(base_name) - strlen(plugin_extension);
-    if ( plugin_name_len <= 0 ){
-        log_and_exit(
-            "Got invalid plugin full path %s\n", plugin_path);
+    ssize_t plugin_name_len = strlen(base_name) - strlen(plugin_extension);
+    if (plugin_name_len <= 0) {
+        log_and_exit("Got invalid plugin full path %s\n", plugin_path);
     }
     ssize_t conf_file_name_len = plugin_name_len +
         strlen(plugin_conf_extension) + 1;
-    char *plugin_conf_filename =
-        (char *)malloc(conf_file_name_len);
-    if (plugin_conf_filename){
-        strncpy(
-            plugin_conf_filename, base_name, plugin_name_len);
-        strncpy(
-            plugin_conf_filename+plugin_name_len,
-            plugin_conf_extension, strlen(plugin_conf_extension));
-        plugin_conf_filename[conf_file_name_len-1] = '\0';
-    }else{
-        log_and_exit(
-            "malloc failure while trying to allocate %d "
-            "bytes\n", conf_file_name_len);
-    }
-    char *plugin_conf_dir_path =
-        path_form(conf_dir, LSM_PLUGIN_CONF_DIR_NAME);
+    char *plugin_conf_filename = (char *) malloc(conf_file_name_len);
+    if (plugin_conf_filename) {
+        strncpy(plugin_conf_filename, base_name, plugin_name_len);
+        strncpy(plugin_conf_filename + plugin_name_len,
+                plugin_conf_extension, strlen(plugin_conf_extension));
+        plugin_conf_filename[conf_file_name_len - 1] = '\0';
 
-    char *plugin_conf_path = path_form(
-        plugin_conf_dir_path, plugin_conf_filename);
-    parse_conf_bool(
-        plugin_conf_path, LSM_CONF_REQUIRE_ROOT_OPT_NAME,
-        &require_root);
+        char *plugin_conf_dir_path = path_form(conf_dir,
+                                               LSM_PLUGIN_CONF_DIR_NAME);
 
-    if (require_root == 1 && allow_root_plugin == 0){
-        warn(
-            "Plugin %s require root privilege while %s disable globally\n",
-            base_name, LSMD_CONF_FILE);
+        char *plugin_conf_path = path_form(plugin_conf_dir_path,
+                                           plugin_conf_filename);
+        parse_conf_bool(plugin_conf_path, LSM_CONF_REQUIRE_ROOT_OPT_NAME,
+                        &require_root);
+
+        if (require_root == 1 && allow_root_plugin == 0) {
+            warn("Plugin %s require root privilege while %s disable globally\n",
+                 base_name, LSMD_CONF_FILE);
+        }
+        free(plugin_conf_dir_path);
+        free(plugin_conf_filename);
+        free(plugin_conf_path);
+    } else {
+        log_and_exit("malloc failure while trying to allocate %d "
+                     "bytes\n", conf_file_name_len);
     }
-    free(plugin_conf_dir_path);
-    free(plugin_conf_filename);
-    free(plugin_conf_path);
     return require_root;
 }
 
@@ -524,21 +519,24 @@ int chk_pconf_root_pri(char *plugin_path)
  */
 int process_plugin(void *p, char *full_name)
 {
-    if( full_name ) {
+    if (full_name) {
         size_t ext_len = strlen(plugin_extension);
         size_t full_len = strlen(full_name);
 
-        if( full_len > ext_len) {
-            if( strncmp(full_name + full_len - ext_len, plugin_extension, ext_len) == 0) {
+        if (full_len > ext_len) {
+            if (strncmp
+                (full_name + full_len - ext_len, plugin_extension,
+                 ext_len) == 0) {
                 struct plugin *item = calloc(1, sizeof(struct plugin));
-                if( item ) {
+                if (item) {
                     item->file_path = strdup(full_name);
                     item->fd = setup_socket(full_name);
                     item->require_root = chk_pconf_root_pri(full_name);
                     has_root_plugin |= item->require_root;
 
-                    if( item->file_path && item->fd >= 0 ) {
-                        LIST_INSERT_HEAD((struct plugin_list*)p, item, pointers);
+                    if (item->file_path && item->fd >= 0) {
+                        LIST_INSERT_HEAD((struct plugin_list *) p, item,
+                                         pointers);
                         info("Plugin %s added\n", full_name);
                     } else {
                         /* The only real way to get here is failed strdup as
@@ -568,31 +566,31 @@ void child_cleanup(void)
         siginfo_t si;
         memset(&si, 0, sizeof(siginfo_t));
 
-        rc = waitid(P_ALL, 0, &si, WNOHANG|WEXITED);
+        rc = waitid(P_ALL, 0, &si, WNOHANG | WEXITED);
 
-        if( -1 == rc ) {
+        if (-1 == rc) {
             err = errno;
-            if (err != ECHILD){
+            if (err != ECHILD) {
                 info("waitid %d - %s\n", err, strerror(err));
             }
             break;
         } else {
-            if( 0 == rc && si.si_pid == 0 ) {
+            if (0 == rc && si.si_pid == 0) {
                 break;
             } else {
-                if( si.si_code == CLD_EXITED && si.si_status != 0 ) {
+                if (si.si_code == CLD_EXITED && si.si_status != 0) {
                     info("Plug-in process %d exited with %d\n", si.si_pid,
-                            si.si_status);
+                         si.si_status);
                 }
             }
         }
-    } while(1);
+    } while (1);
 }
 
 /**
  * Closes and frees memory and removes Unix domain sockets.
  */
-void clean_up(void )
+void clean_up(void)
 {
     empty_plugin_list(&head);
     clean_sockets();
@@ -607,7 +605,7 @@ int process_plugins(void)
     clean_up();
     info("Scanning plug-in directory %s\n", plugin_dir);
     process_directory(plugin_dir, &head, process_plugin);
-    if ( allow_root_plugin == 1 && has_root_plugin == 0 ){
+    if (allow_root_plugin == 1 && has_root_plugin == 0) {
         info("No plugin requires root privilege, dropping root privilege\n");
         flight_check();
         drop_privileges();
@@ -624,7 +622,7 @@ struct plugin *plugin_lookup(int fd)
 {
     struct plugin *plug = NULL;
     LIST_FOREACH(plug, &head, pointers) {
-        if( plug->fd == fd ) {
+        if (plug->fd == fd) {
             return plug;
         }
     }
@@ -638,20 +636,20 @@ struct plugin *plugin_lookup(int fd)
  * @param require_root  int, indicate whether this plugin require root
  *                      privilege or not
  */
-void exec_plugin( char *plugin, int client_fd, int require_root)
+void exec_plugin(char *plugin, int client_fd, int require_root)
 {
     int err = 0;
 
     info("Exec'ing plug-in = %s\n", plugin);
 
     pid_t process = fork();
-    if( process ) {
+    if (process) {
         /* Parent */
         int rc = close(client_fd);
-        if( -1 == rc ) {
+        if (-1 == rc) {
             err = errno;
             info("Error on closing accepted socket in parent: %s\n",
-                     strerror(err));
+                 strerror(err));
         }
 
     } else {
@@ -667,31 +665,31 @@ void exec_plugin( char *plugin, int client_fd, int require_root)
          * The plugin will still run no matter with root privilege or not.
          * so that client could get detailed error message.
          */
-        if ( require_root == 0 ){
+        if (require_root == 0) {
             drop_privileges();
-        }else{
-            if (getuid()){
+        } else {
+            if (getuid()) {
                 warn("Plugin %s require root privilege, but lsmd daemon "
                      "is not run as root user\n", plugin);
-            }else if(allow_root_plugin == 0){
+            } else if (allow_root_plugin == 0) {
                 warn("Plugin %s require root privilege, but %s disabled "
                      "it globally\n", LSMD_CONF_FILE);
                 drop_privileges();
-            }else{
+            } else {
                 /* Check socket client uid */
-                int rc_get_cli_uid = getsockopt(
-                    client_fd, SOL_SOCKET, SO_PEERCRED,
-                    &cli_user_cred, &cli_user_cred_len);
-                if( 0 == rc_get_cli_uid){
-                    if (cli_user_cred.uid != 0){
+                int rc_get_cli_uid =
+                    getsockopt(client_fd, SOL_SOCKET, SO_PEERCRED,
+                               &cli_user_cred, &cli_user_cred_len);
+                if (0 == rc_get_cli_uid) {
+                    if (cli_user_cred.uid != 0) {
                         warn("Plugin %s require root privilege, but "
                              "client is not run as root user\n", plugin);
                         drop_privileges();
-                    }else{
+                    } else {
                         info("Plugin %s is running as root privilege\n",
                              plugin);
                     }
-                }else{
+                } else {
                     warn("Failed to get client socket uid, getsockopt() "
                          "error: %d\n", errno);
                     drop_privileges();
@@ -707,10 +705,10 @@ void exec_plugin( char *plugin, int client_fd, int require_root)
         empty_plugin_list(&head);
         sprintf(fd_str, "%d", client_fd);
 
-        if( plugin_mem_debug  ) {
+        if (plugin_mem_debug) {
             char debug_out[64];
             snprintf(debug_out, (sizeof(debug_out) - 1),
-                    "--log-file=/tmp/leaking_%d-%d", getppid(), getpid());
+                     "--log-file=/tmp/leaking_%d-%d", getppid(), getpid());
 
             plugin_argv[0] = "valgrind";
             plugin_argv[1] = "--leak-check=full";
@@ -728,10 +726,10 @@ void exec_plugin( char *plugin, int client_fd, int require_root)
             exec_rc = execve(p_copy, plugin_argv, environ);
         }
 
-        if( -1 == exec_rc ) {
+        if (-1 == exec_rc) {
             int err = errno;
             log_and_exit("Error on exec'ing Plugin %s: %s\n",
-                    p_copy, strerror(err));
+                         p_copy, strerror(err));
         }
     }
 }
@@ -749,7 +747,7 @@ void _serving(void)
 
     process_plugins();
 
-    while( serve_state == RUNNING ) {
+    while (serve_state == RUNNING) {
         FD_ZERO(&readfds);
         nfds = 0;
 
@@ -761,26 +759,26 @@ void _serving(void)
             FD_SET(plug->fd, &readfds);
         }
 
-        if( !nfds ) {
+        if (!nfds) {
             log_and_exit("No plugins found in directory %s\n", plugin_dir);
         }
 
         nfds += 1;
         int ready = select(nfds, &readfds, NULL, NULL, &tmo);
 
-        if( -1 == ready ) {
-            if( serve_state != RUNNING ) {
+        if (-1 == ready) {
+            if (serve_state != RUNNING) {
                 return;
             } else {
                 err = errno;
                 log_and_exit("Error on selecting Plugin: %s", strerror(err));
             }
-        } else if( ready > 0 ) {
+        } else if (ready > 0) {
             int fd = 0;
-            for( fd = 0; fd < nfds; fd++ ) {
-                if( FD_ISSET(fd, &readfds) ) {
+            for (fd = 0; fd < nfds; fd++) {
+                if (FD_ISSET(fd, &readfds)) {
                     int cfd = accept(fd, NULL, NULL);
-                    if( -1 != cfd ) {
+                    if (-1 != cfd) {
                         struct plugin *p = plugin_lookup(fd);
                         exec_plugin(p->file_path, cfd, p->require_root);
                     } else {
@@ -800,8 +798,8 @@ void _serving(void)
  */
 void serve(void)
 {
-    while( serve_state != EXIT ) {
-        if( serve_state == RESTART ) {
+    while (serve_state != EXIT) {
+        if (serve_state == RESTART) {
             info("Reloading plug-ins\n");
             serve_state = RUNNING;
         }
@@ -817,93 +815,92 @@ int main(int argc, char *argv[])
     LIST_INIT(&head);
 
     /* Process command line arguments */
-    while(1) {
-        static struct option l_options[] =
-        {
-            {"help", no_argument, 0, 'h'},                  //Index 0
-            {"plugindir", required_argument, 0, 0},         //Index 1
-            {"socketdir", required_argument, 0, 0},         //Index 2
-            {"confdir", required_argument, 0, 0},           //Index 3
+    while (1) {
+        static struct option l_options[] = {
+            {"help", no_argument, 0, 'h'},  //Index 0
+            {"plugindir", required_argument, 0, 0}, //Index 1
+            {"socketdir", required_argument, 0, 0}, //Index 2
+            {"confdir", required_argument, 0, 0},   //Index 3
             {0, 0, 0, 0}
         };
 
         int option_index = 0;
         c = getopt_long(argc, argv, "hvd", l_options, &option_index);
 
-        if ( c == -1 ) {
+        if (c == -1) {
             break;
         }
 
         switch (c) {
-             case 0:
-               switch (option_index) {
-               case 1:
-                   plugin_dir = optarg;
-                   break;
-               case 2:
-                   socket_dir = optarg;
-                   break;
-               case 3:
-                   conf_dir = optarg;
-                   break;
-               }
-               break;
-
-             case 'h':
-                usage();
+        case 0:
+            switch (option_index) {
+            case 1:
+                plugin_dir = optarg;
                 break;
-
-             case 'v':
-                verbose_flag = 1;
+            case 2:
+                socket_dir = optarg;
                 break;
-
-             case 'd':
-                systemd = 1;
+            case 3:
+                conf_dir = optarg;
                 break;
+            }
+            break;
 
-             case '?':
-               break;
+        case 'h':
+            usage();
+            break;
 
-             default:
-               abort ();
-             }
-         }
+        case 'v':
+            verbose_flag = 1;
+            break;
+
+        case 'd':
+            systemd = 1;
+            break;
+
+        case '?':
+            break;
+
+        default:
+            abort();
+        }
+    }
 
     /* Print any remaining command line arguments (not options). */
     if (optind < argc) {
-        printf ("non-option ARGV-elements: ");
+        printf("non-option ARGV-elements: ");
         while (optind < argc) {
-            printf ("%s \n", argv[optind++]);
+            printf("%s \n", argv[optind++]);
         }
         printf("\n");
         exit(1);
     }
 
     /* Setup syslog if needed */
-    if( !systemd ) {
+    if (!systemd) {
         openlog("lsmd", LOG_ODELAY, LOG_USER);
     }
 
     /* Check lsmd.conf */
     char *lsmd_conf_path = path_form(conf_dir, LSMD_CONF_FILE);
-    parse_conf_bool(
-        lsmd_conf_path, LSM_CONF_ALLOW_ROOT_OPT_NAME, &allow_root_plugin);
+    parse_conf_bool(lsmd_conf_path, LSM_CONF_ALLOW_ROOT_OPT_NAME,
+                    &allow_root_plugin);
     free(lsmd_conf_path);
 
     /* Check to see if we want to check plugin for memory errors */
-    if( getenv("LSM_VALGRIND") ) {
+    if (getenv("LSM_VALGRIND")) {
         plugin_mem_debug = 1;
     }
 
     install_sh();
-    if (allow_root_plugin == 0){
+    if (allow_root_plugin == 0) {
         drop_privileges();
     }
     flight_check();
 
     /* Become a daemon if told we are not using systemd */
-    if( !systemd ) {
-        if ( -1 == daemon(0, 0) ) {
+    if (!systemd) {
+        if (-1 == daemon(0, 0)) {
             int err = errno;
             log_and_exit("Error on calling daemon: %s\n", strerror(err));
         }
