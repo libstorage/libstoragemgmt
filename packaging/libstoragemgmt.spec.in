@@ -640,6 +640,56 @@ fi
 %endif
 
 %changelog
+* Thu Jun 16 2015 Gris Ge <fge@redhat.com> 1.2.0-1
+- New features:
+    * The lsmd daemon now allows plugin to run as root using configure
+      file.
+    * Targetd plugin got full access group support.
+    * The simulator plugin switched from risky pickle to sqlite3 for state
+      saving.
+    * Introduced bash auto completion support for lsmcli command.
+    * Two new plugins for hardware RAID cards:
+        * LSI MegaRAID plugin -- megaraid://
+            Dell PERC and other OEM rebanded MegaRAID cards are also
+            supported.
+        * HP SmartArray plugin -- hpsa://
+- Library adds:
+    * New method to query RAID information of volume:
+        Python: lsm.Client.volume_raid_info().
+        C: lsm_volume_raid_info().
+    * New method to query pool membership:
+        Python: lsm.Client.pool_member_info().
+        C: lsm_pool_member_info().
+    * New disk status constant to indicate certain disk could be used as
+      pool disk or dedicate spare disk.
+        Python: DISK.STATUS_FREE.
+        C: LSM_DISK_STATUS_FREE.
+    * New method to create RAID volume on hardware RAID cards:
+        Python: lsm.Client.volume_raid_create_cap_get().
+                lsm.Client.volume_raid_create().
+        C: lsm_volume_raid_create_cap_get().
+           lsm_volume_raid_create().
+    * New C plugin register interface for version 1.2 new methods:
+        lsm_register_plugin_v1_2()
+- Bug fixes and miscellaneous fixes:
+    * lsmd: Fix a possible infinity loop on plugin search.
+    * Fix memory leak in C unit test.
+    * Library: Fix incorrect Volume.vpd83 definition
+    * SMI-S plugin: Fix SMI-S plugin spare disk support.
+    * SMI-S plugin: Fix target_ports() for HP 3PAR and EMC VMAX.
+    * SMI-S plugin: Fix the incorrect profile_check().
+    * Fix C library compile warning.
+    * Fix C library potential memory leak in handle_volume_raid_create().
+    * ONTAP, MegaRAID, SMI-S Plugins: Enforce the definition of Pool.status.
+    * Change license statement by replacing address to URL.
+    * lsmd: add error catch for signal.
+    * lsmcli: fix _get_item error message.
+    * C Library: Fix message loop
+    * C Library: Clean up code for DRY(don't repeat yourself).
+    * SMI-S Plugin: Collect xml during exception.
+    * C Library: Remove ambiguity between wrong type or OOM
+    * C code clean up to use K&R code style.
+    * Add Charles Rose to AUTHORS.
 * Thu Dec 4 2014 Tony Asleson <tasleson@redhat.com> 1.1.0-1
 - Library adds:
 
