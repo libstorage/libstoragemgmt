@@ -1,5 +1,9 @@
 News for libStorageMgmt
 
+1.2.1: Jun 17 2015:
+    - Bug fix:
+        * Fix 'make distcheck' error on bash-completion.
+
 1.2.0: Jun 16 2015
     - New features:
         * The lsmd daemon now allows plugin to run as root using configure

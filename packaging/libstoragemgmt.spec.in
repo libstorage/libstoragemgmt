@@ -640,6 +640,9 @@ fi
 %endif
 
 %changelog
+* Thu Jun 17 2015 Gris Ge <fge@redhat.com> 1.2.1-1
+- Bug fix:
+    * Fix 'make distcheck' error on bash-completion.
 * Thu Jun 16 2015 Gris Ge <fge@redhat.com> 1.2.0-1
 - New features:
     * The lsmd daemon now allows plugin to run as root using configure
