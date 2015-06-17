@@ -3,6 +3,8 @@
 ACLOCAL_AMFLAGS = -I m4
 
 DISTCHECK_CONFIGURE_FLAGS = --with-systemdsystemunitdir=$$dc_install_base/$(systemdsystemunitdir)
+DISTCHECK_CONFIGURE_FLAGS += \
+	--with-bash-completion-dir=$$dc_install_base/$(bashcompletiondir)
 
 SUBDIRS= c_binding python_binding plugin doc tools daemon packaging config
 
