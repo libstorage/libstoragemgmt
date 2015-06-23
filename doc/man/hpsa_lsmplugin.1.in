@@ -18,7 +18,13 @@ To use this plugin, users should set their URI to this format:
 
 .fi
 
-.TP hpssacli
+.TP
+\fBURI parameters\fR
+These URI parameters are supported by this plugin:
+
+.RS 7
+.TP
+\fBhpssacli\fR
 The 'hpssacli' URI parameter is used to specified the path of hpssacli tool.
 By default, this plugin will try these paths used by hpssacli rpm:
 \fB/usr/sbin/hpssacli\fR and \fB/opt/hp/hpssacli/bld/hpssacli\fR.

@@ -29,9 +29,15 @@ To use this plugin, users should set their URI to this format:
 
 
 .TP
-\fBURI paramerter -- 'storcli'\fR
+\fBURI parameters\fR
+These URI parameters are supported by this plugin:
 
-The 'storcli' URI parameter is used to specified the path of storcli tool.
+.RS 7
+.TP
+\fBstorcli\fR
+
+The 'storcli' URI parameter is used to specified the path of storcli/perccli
+tool.
 By default, this plugin will try these paths:
 
 storcli rpm:
