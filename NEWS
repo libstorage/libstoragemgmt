@@ -1,5 +1,12 @@
 News for libStorageMgmt
 
+1.2.2: Jun 23 2015:
+    - Bug fixes:
+        * Fix: selinux dac_override
+        * Manpage: Update hpsa and megaraid plugin manpages.
+        * HP Smart Array Plugin: Fix pool querying on P410i.
+        * MegaRAID Plugin: Fix bug when no volume configured.
+
 1.2.1: Jun 17 2015:
     - Bug fix:
         * Fix 'make distcheck' error on bash-completion.
