@@ -511,6 +511,8 @@ class MegaRAID(IPlugin):
             vol_show_output = self._storcli_exec(
                 ["/c%d/vall" % ctrl_num, "show", "all"])
             sys_id = self._sys_id_of_ctrl_num(ctrl_num)
+            if vol_show_output is None or len(vol_show_output) == 0:
+                continue
             for key_name in vol_show_output.keys():
                 if key_name.startswith('/c'):
                     vd_basic_info = vol_show_output[key_name][0]
