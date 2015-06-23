@@ -404,7 +404,6 @@ function _lsm()
             COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
             ;;
-        *)
         volume-raid-create|vrc)
             possible_args "${volume_raid_create_args}"
             COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
