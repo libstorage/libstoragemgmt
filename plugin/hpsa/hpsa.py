@@ -142,7 +142,7 @@ def _hp_size_to_lsm(hp_size):
     HP Using 'TB, GB, MB, KB' and etc, for LSM, they are 'TiB' and etc.
     Return int of block bytes
     """
-    re_regex = re.compile("^([0-9.]+) +([EPTGMK])B$")
+    re_regex = re.compile("^([0-9.]+) +([EPTGMK])B")
     re_match = re_regex.match(hp_size)
     if re_match:
         return size_human_2_size_bytes(
