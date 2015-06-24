@@ -1,5 +1,11 @@
 News for libStorageMgmt
 
+1.2.3: Jun 24 2015:
+    - Bug fix:
+        * lsmcli bash completion: Fix syntax error.
+        * lsmcli bash completion: Fix volume-delete.
+        * lsmcli bash completion: Add missing completions.
+
 1.2.2: Jun 23 2015:
     - Bug fixes:
         * Fix: selinux dac_override

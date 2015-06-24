@@ -640,6 +640,12 @@ fi
 %endif
 
 %changelog
+* Wed Jun 24 2015 Gris Ge <fge@redhat.com> 1.2.3-1
+- Bug fixes:
+    * lsmcli bash completion: Fix syntax error.
+    * lsmcli bash completion: Fix volume-delete.
+    * lsmcli bash completion: Add missing completions.
+
 * Tue Jun 23 2015 Gris Ge <fge@redhat.com> 1.2.2-1
 - Bug fixes:
     * Fix: selinux dac_override
