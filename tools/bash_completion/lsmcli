@@ -76,7 +76,8 @@ function _lsm()
                 fs-resize fs-export fs-unexport fs-clone fs-snap-create \
                 fs-snap-delete fs-snap-restore fs-dependants fs-dependants-rm \
                 file-clone ls lp lv ld la lf lt c p vc vd vr vm vi ve vi ac \
-                aa ar ad vri pool-member-info pmi"
+                aa ar ad vri volume-raid-info pool-member-info pmi \
+                vrc volume-raid-create vrcc volume-raid-create-cap"
 
     list_args="--type"
     list_type_args="volumes pools fs snapshots exports nfs_client_auth \
