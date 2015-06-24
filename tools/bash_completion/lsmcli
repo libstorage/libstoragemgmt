@@ -67,7 +67,7 @@ function _lsm()
     opts_long=" --help --version --uri --prompt --human --terse --enum \
               --force --wait --header --script "
     opts_cmds="list job-status capabilities plugin-info volume-create \
-                volume-delete, volume-resize volume-replicate \
+                volume-delete volume-resize volume-replicate \
                 volume-replicate-range volume-replicate-range-block-size \
                 volume-dependants volume-dependants-rm volume-access-group \
                 volume-mask volume-unmask access-group-create \
