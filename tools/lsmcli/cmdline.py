@@ -64,10 +64,15 @@ def cmd_line_wrapper(c=None):
         err_exit = 4
     except KeyboardInterrupt:
         err_exit = 1
+    except SystemExit as se:
+        # argparse raises a SystemExit
+        err_exit = se.code
+    except:
+        # We get *any* other exception don't return a successful error code
+        err_exit = 2
     finally:
-        # We got here because of an exception, but we still may have a valid
-        # connection to do an orderly shutdown with, lets try it before we
-        # just exit closing the connection.
+        # Regardless of what happens, we will try to close the connection if
+        # possible to allow the plugin to clean up gracefully.
         if cli:
             try:
                 # This will exit if are successful
