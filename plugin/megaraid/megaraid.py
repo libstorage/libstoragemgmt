@@ -700,19 +700,23 @@ class MegaRAID(IPlugin):
             (cur_ctrl_num, cur_enclosure_num, slot_num) = \
                 disk.plugin_data.split(':')
 
-            if ctrl_num and cur_ctrl_num != ctrl_num:
+            cur_ctrl_num = int(cur_ctrl_num)
+            cur_enclosure_num = int(cur_enclosure_num)
+
+            if ctrl_num is not None and cur_ctrl_num != ctrl_num:
                 raise LsmError(
                     ErrorNumber.INVALID_ARGUMENT,
                     "Illegal input disks argument: disks are not from the "
                     "same controller/system.")
 
-            if enclosure_num and cur_enclosure_num != enclosure_num:
+            if enclosure_num is not None and \
+               cur_enclosure_num != enclosure_num:
                 raise LsmError(
                     ErrorNumber.INVALID_ARGUMENT,
                     "Illegal input disks argument: disks are not from the "
                     "same disk enclosure.")
 
-            ctrl_num = int(cur_ctrl_num)
+            ctrl_num = cur_ctrl_num
             enclosure_num = cur_enclosure_num
             slot_nums.append(slot_num)
 
@@ -722,7 +726,7 @@ class MegaRAID(IPlugin):
         cmds = [
             "/c%s" % ctrl_num, "add", "vd", mega_raid_type,
             'size=all', "name=%s" % name,
-            "drives=%s:%s" % (enclosure_num, ','.join(slot_nums))]
+            "drives=%d:%s" % (enclosure_num, ','.join(slot_nums))]
 
         if raid_type == Volume.RAID_TYPE_RAID10 or \
            raid_type == Volume.RAID_TYPE_RAID50 or \
