@@ -473,6 +473,8 @@ class MegaRAID(IPlugin):
             dg_show_output = self._storcli_exec(
                 ["/c%d/dall" % ctrl_num, "show", "all"])
             free_space_list = dg_show_output.get('FREE SPACE DETAILS', [])
+            if 'TOPOLOGY' not in dg_show_output:
+                continue
             for dg_top in dg_show_output['TOPOLOGY']:
                 if dg_top['Arr'] != '-':
                     continue
@@ -490,6 +492,9 @@ class MegaRAID(IPlugin):
 
         vol_id = "%s:VD%d" % (sys_id, vd_id)
         name = "VD %d" % vd_id
+        if 'Name' in vd_basic_info.keys() and vd_basic_info['Name']:
+            name += ": %s" % vd_basic_info['Name']
+
         vpd83 = ''  # TODO(Gris Ge): Beg LSI to provide this information.
         block_size = size_human_2_size_bytes(vd_pd_info_list[0]['SeSz'])
         num_of_blocks = vd_prop_info['Number of Blocks']
@@ -700,19 +705,23 @@ class MegaRAID(IPlugin):
             (cur_ctrl_num, cur_enclosure_num, slot_num) = \
                 disk.plugin_data.split(':')
 
-            if ctrl_num and cur_ctrl_num != ctrl_num:
+            cur_ctrl_num = int(cur_ctrl_num)
+            cur_enclosure_num = int(cur_enclosure_num)
+
+            if ctrl_num is not None and cur_ctrl_num != ctrl_num:
                 raise LsmError(
                     ErrorNumber.INVALID_ARGUMENT,
                     "Illegal input disks argument: disks are not from the "
                     "same controller/system.")
 
-            if enclosure_num and cur_enclosure_num != enclosure_num:
+            if enclosure_num is not None and \
+               cur_enclosure_num != enclosure_num:
                 raise LsmError(
                     ErrorNumber.INVALID_ARGUMENT,
                     "Illegal input disks argument: disks are not from the "
                     "same disk enclosure.")
 
-            ctrl_num = int(cur_ctrl_num)
+            ctrl_num = cur_ctrl_num
             enclosure_num = cur_enclosure_num
             slot_nums.append(slot_num)
 
@@ -722,7 +731,7 @@ class MegaRAID(IPlugin):
         cmds = [
             "/c%s" % ctrl_num, "add", "vd", mega_raid_type,
             'size=all', "name=%s" % name,
-            "drives=%s:%s" % (enclosure_num, ','.join(slot_nums))]
+            "drives=%d:%s" % (enclosure_num, ','.join(slot_nums))]
 
         if raid_type == Volume.RAID_TYPE_RAID10 or \
            raid_type == Volume.RAID_TYPE_RAID50 or \
