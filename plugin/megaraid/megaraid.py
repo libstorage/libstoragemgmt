@@ -473,6 +473,8 @@ class MegaRAID(IPlugin):
             dg_show_output = self._storcli_exec(
                 ["/c%d/dall" % ctrl_num, "show", "all"])
             free_space_list = dg_show_output.get('FREE SPACE DETAILS', [])
+            if 'TOPOLOGY' not in dg_show_output:
+                continue
             for dg_top in dg_show_output['TOPOLOGY']:
                 if dg_top['Arr'] != '-':
                     continue
