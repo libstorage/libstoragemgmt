@@ -492,6 +492,9 @@ class MegaRAID(IPlugin):
 
         vol_id = "%s:VD%d" % (sys_id, vd_id)
         name = "VD %d" % vd_id
+        if 'Name' in vd_basic_info.keys() and vd_basic_info['Name']:
+            name += ": %s" % vd_basic_info['Name']
+
         vpd83 = ''  # TODO(Gris Ge): Beg LSI to provide this information.
         block_size = size_human_2_size_bytes(vd_pd_info_list[0]['SeSz'])
         num_of_blocks = vd_prop_info['Number of Blocks']
