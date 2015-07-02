@@ -408,6 +408,13 @@ def display_check(display_list, system_id):
         call([cmd, '-H', '-t' + sep, 'list', '--type', 'POOLS'])
 
 
+def test_exit_code(cap, system_id):
+    """
+    Make sure we get the expected exit code when the command syntax is wrong
+    """
+    call([cmd, '-u'], 2)
+
+
 def test_display(cap, system_id):
     """
     Crank through supported display operations making sure we get good
@@ -770,6 +777,8 @@ def volume_raid_create_test(cap, system_id):
 
 
 def run_all_tests(cap, system_id):
+
+    test_exit_code(cap, system_id)
     test_display(cap, system_id)
     test_plugin_list(cap, system_id)
 
