@@ -725,7 +725,7 @@ def pool_member_info_test(cap, system_id):
 def volume_raid_create_test(cap, system_id):
     if cap['VOLUME_RAID_CREATE']:
         out = call(
-            [cmd, '-t' + sep, 'volume-create-raid-cap', '--sys', system_id])[1]
+            [cmd, '-t' + sep, 'volume-raid-create-cap', '--sys', system_id])[1]
 
         if 'RAID1' not in [r[1] for r in parse(out)]:
             return
@@ -744,7 +744,7 @@ def volume_raid_create_test(cap, system_id):
             exit(10)
 
         out = call([
-            cmd, '-t' + sep, 'volume-create-raid', '--disk', free_disk_ids[0],
+            cmd, '-t' + sep, 'volume-raid-create', '--disk', free_disk_ids[0],
             '--disk', free_disk_ids[1], '--name', 'test_volume_raid_create',
             '--raid-type', 'raid1'])[1]
 
