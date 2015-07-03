@@ -74,38 +74,38 @@ def _sys_status_of(hp_ctrl_status):
 def _parse_hpssacli_output(output):
     """
     Got a output string of hpssacli to dictionary(nested).
-    Skipped these line:
-        1. Starts with 'Note:'
-           This is just a message right after controller. We don't neet it
-           yet.
-        2. The 'Physical Drives' line.
-           It should indented after 'Internal Drive Cage' like.
-           If not ignored, we might got duplication line error.
-           After ignored, it's phsycial disks will directly stored as
-           key of 'Internal Drive Cage' dictionary.
+    Workflow:
+    0. Check out top and the second indention level's space count.
+    1. Check current line and next line to determine whether current line is
+       a start of new section.
+    2. Skip all un-required sections and their data and sub-sections.
+    3. If current line is the start of new section, create an empty dictionary
+       where following subsections or data could be stored in.
     """
+    required_sections = ['Array:', 'unassigned']
+
     output_lines = [
         l for l in output.split("\n")
-        if l and not l.startswith('Note:') and
-        not l.strip() == 'Physical Drives']
+        if l and not l.startswith('Note:')]
 
     data = {}
 
-    # Detemine indention level
-    top_indention_level = sorted(
+    # Determine indention level
+    (top_indention_level, second_indention_level) = sorted(
         set(
             len(line) - len(line.lstrip())
-            for line in output_lines))[0]
+            for line in output_lines))[0:2]
 
     indent_2_data = {
         top_indention_level: data
     }
 
+    flag_required_section = False
+
     for line_num in range(len(output_lines)):
         cur_line = output_lines[line_num]
-        if cur_line.strip() == 'None attached':
-            continue
         if line_num + 1 == len(output_lines):
+            # The current line is the last line.
             nxt_line = ''
         else:
             nxt_line = output_lines[line_num + 1]
@@ -113,10 +113,27 @@ def _parse_hpssacli_output(output):
         cur_indent_count = len(cur_line) - len(cur_line.lstrip())
         nxt_indent_count = len(nxt_line) - len(nxt_line.lstrip())
 
+        if cur_indent_count == top_indention_level:
+            flag_required_section = True
+
+        if cur_indent_count == second_indention_level:
+            flag_required_section = False
+
+            if nxt_indent_count == cur_indent_count:
+                flag_required_section = True
+            else:
+                for required_section in required_sections:
+                    if cur_line.lstrip().startswith(required_section):
+                        flag_required_section = True
+
+        if flag_required_section is False:
+            continue
+
         cur_line_splitted = cur_line.split(": ")
         cur_data_pointer = indent_2_data[cur_indent_count]
 
         if nxt_indent_count > cur_indent_count:
+            # Current line is new section title
             nxt_line_splitted = nxt_line.split(": ")
             new_data = {}
 
@@ -134,6 +151,7 @@ def _parse_hpssacli_output(output):
             else:
                 cur_data_pointer[cur_line_splitted[0].lstrip()] = \
                     ": ".join(cur_line_splitted[1:]).strip()
+
     return data
 
 
