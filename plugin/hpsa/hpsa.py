@@ -129,12 +129,12 @@ def _parse_hpssacli_output(output):
         if flag_required_section is False:
             continue
 
-        cur_line_splitted = cur_line.split(": ")
+        cur_line_split = cur_line.split(": ")
         cur_data_pointer = indent_2_data[cur_indent_count]
 
         if nxt_indent_count > cur_indent_count:
             # Current line is new section title
-            nxt_line_splitted = nxt_line.split(": ")
+            nxt_line_split = nxt_line.split(": ")
             new_data = {}
 
             if cur_line.lstrip() not in cur_data_pointer:
@@ -146,11 +146,11 @@ def _parse_hpssacli_output(output):
                     "_parse_hpssacli_output(): Found duplicate line %s" %
                     cur_line)
         else:
-            if len(cur_line_splitted) == 1:
+            if len(cur_line_split) == 1:
                 cur_data_pointer[cur_line.lstrip()] = None
             else:
-                cur_data_pointer[cur_line_splitted[0].lstrip()] = \
-                    ": ".join(cur_line_splitted[1:]).strip()
+                cur_data_pointer[cur_line_split[0].lstrip()] = \
+                    ": ".join(cur_line_split[1:]).strip()
 
     return data
 
