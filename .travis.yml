@@ -1,0 +1,19 @@
+sudo: true
+#  python-pywbem and libconfig-dev is not in whitelist yet which stop us using
+#  "sudo : false" new container way:
+#   https://github.com/travis-ci/travis-ci/issues/4332
+#   https://github.com/travis-ci/travis-ci/issues/4329
+
+language: c
+
+install:
+    - sudo apt-get update -qq
+    - sudo apt-get install -qq gcc tar make g++ libtool autoconf automake
+        libyajl-dev python-pywbem libxml2-dev check
+        libglib2.0-dev python-m2crypto libssl-dev libconfig-dev
+
+
+compiler: gcc
+
+script: ./autogen.sh && ./configure --without-rest-api &&
+        env DISTCHECK_CONFIGURE_FLAGS="--without-rest-api" make distcheck
