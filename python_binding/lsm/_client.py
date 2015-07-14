@@ -973,14 +973,10 @@ class Client(INetworkAttachedStorage):
 
     ## Returns the RAID information of certain volume
     # @param    self    The this pointer
-    # @param    raid_type       The RAID type of this volume
-    # @param    strip_size      The size of strip of disk or other storage
-    #                           extent.
-    # @param    disk_count      The count of disks of RAID group(s) where
-    #                           this volume allocated from.
-    # @param    min_io_size     The preferred I/O size of random I/O.
-    # @param    opt_io_size     The preferred I/O size of sequential I/O.
-    # @returns List of target ports, else raises LsmError
+    # @param    volume  The volume to retrieve RAID information for
+    # @param    flags   Reserved for future use, must be zero
+    # @returns [raid_type, strip_size, disk_count, min_io_size, opt_io_size],
+    #           else raises LsmError
     @_return_requires([int, int, int, int, int])
     def volume_raid_info(self, volume, flags=FLAG_RSVD):
         """Query the RAID information of certain volume.
@@ -1074,6 +1070,11 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('volume_raid_info', _del_self(locals()))
 
+    ## Query the membership information of specified pool
+    # @param    self    The this pointer
+    # @param    pool    The pool to query
+    # @param    flags   Reserved for future use, must be zero
+    # @returns  [raid_type, member_type, [member_ids]], lsmError on error
     @_return_requires([int, int, [unicode]])
     def pool_member_info(self, pool, flags=FLAG_RSVD):
         """
@@ -1172,6 +1173,12 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('pool_member_info', _del_self(locals()))
 
+    ## Queries all the supported RAID types and stripe sizes which could be
+    #  used for input into volume_raid_create
+    # @param    self    The this pointer
+    # @param    system  System (raid) card to query
+    # @param    flags   Reserved for future use, must be zero
+    # @returns  [raid_types, strip_sizes], lsmError on error
     @_return_requires([[int], [int]])
     def volume_raid_create_cap_get(self, system, flags=FLAG_RSVD):
         """
@@ -1227,6 +1234,14 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('volume_raid_create_cap_get', _del_self(locals()))
 
+    ## Create a disk RAID pool and allocate entire storage space to new volume
+    # @param    self            The this pointer
+    # @param    name            Name of the raid to be created
+    # @param    raid_type       The raid type (enumerated) of the raid group
+    # @param    disks           List of disk objects to use
+    # @param    strip_size      Strip size in bytes
+    # @param    flags           Flags
+    # @returns  the newly created volume, lsmError on errors
     @_return_requires(Volume)
     def volume_raid_create(self, name, raid_type, disks, strip_size,
                            flags=FLAG_RSVD):

@@ -888,7 +888,7 @@ int LSM_DLL_EXPORT lsm_target_port_list(lsm_connect *c,
 /**
  * Retrieves the pool id that the volume is derived from. New in version 1.2.
  * @param[in] c             Valid connection
- * @param[in] v             Volume ptr.
+ * @param[in] volume        Volume ptr.
  * @param[out] raid_type    Enum of lsm_volume_raid_type
  * @param[out] strip_size   Size of the strip on disk or other storage extent.
  * @param[out] disk_count   Count of disks of RAID group(s) where this volume
