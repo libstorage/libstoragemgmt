@@ -73,6 +73,35 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
     _FAKE_AG_PREFIX = 'init.'
     _MAX_H_LUN_ID = 255
 
+    _ERROR_MAPPING = {
+        TargetdError.VOLUME_MASKED:
+            dict(ec=ErrorNumber.IS_MASKED,
+                 msg="Volume is masked to access group"),
+
+        TargetdError.EXISTS_INITIATOR:
+            dict(ec=ErrorNumber.EXISTS_INITIATOR,
+                 msg="Initiator is already used by other access group"),
+
+        TargetdError.NAME_CONFLICT:
+            dict(ec=ErrorNumber.NAME_CONFLICT,
+                 msg=None),
+
+        TargetdError.INVALID_ARGUMENT:
+            dict(ec=ErrorNumber.INVALID_ARGUMENT,
+                 msg=None),
+
+        TargetdError.NO_FREE_HOST_LUN_ID:
+            # TODO(Gris Ge): Add SYSTEM_LIMIT error into API
+            dict(ec=ErrorNumber.PLUGIN_BUG,
+                 msg="System limit: targetd only allows %s LUN masked" %
+                     _MAX_H_LUN_ID),
+
+        TargetdError.EMPTY_ACCESS_GROUP:
+            dict(ec=ErrorNumber.NOT_FOUND_ACCESS_GROUP,
+                 msg="Access group not found"),
+    }
+
+
     def __init__(self):
         self.uri = None
         self.password = None
@@ -109,7 +138,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                         'Authorization': 'Basic %s' % (auth,)}
 
         try:
-            self._jsonrequest('access_group_list')
+            self._jsonrequest('access_group_list', default_error_handler=False)
         except TargetdError as te:
             if te.errno == TargetdError.INVALID_METHOD:
                 self._flag_ag_support = False
@@ -305,26 +334,9 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         if init_type != AccessGroup.INIT_TYPE_ISCSI_IQN:
             raise LsmError(ErrorNumber.NO_SUPPORT, "Only iSCSI yet")
 
-        try:
-            self._jsonrequest(
-                "access_group_create",
-                dict(ag_name=name, init_id=init_id, init_type='iscsi'))
-        except TargetdError as tgt_error:
-            if tgt_error.errno == TargetdError.EXISTS_INITIATOR:
-                raise LsmError(
-                    ErrorNumber.EXISTS_INITIATOR,
-                    "Initiator is already used by other access group")
-            elif tgt_error.errno == TargetdError.NAME_CONFLICT:
-                raise LsmError(
-                    ErrorNumber.NAME_CONFLICT,
-                    "Requested access group name is already used by other "
-                    "access group")
-            elif tgt_error.errno == TargetdError.INVALID_ARGUMENT:
-                raise LsmError(
-                    ErrorNumber.INVALID_ARGUMENT,
-                    str(tgt_error))
-            else:
-                raise
+        self._jsonrequest(
+            "access_group_create",
+            dict(ag_name=name, init_id=init_id, init_type='iscsi'))
 
         return self._lsm_ag_of_id(
             name,
@@ -352,19 +364,11 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                 ErrorNumber.NO_STATE_CHANGE,
                 "Requested init_id is already in defined access group")
 
-        try:
-            self._jsonrequest(
-                "access_group_init_add",
-                dict(
-                    ag_name=access_group.name, init_id=init_id,
-                    init_type='iscsi'))
-        except TargetdError as tgt_error:
-            if tgt_error.errno == TargetdError.EXISTS_INITIATOR:
-                raise LsmError(
-                    ErrorNumber.EXISTS_INITIATOR,
-                    "Initiator is already used by other access group")
-            else:
-                raise
+        self._jsonrequest(
+            "access_group_init_add",
+            dict(
+                ag_name=access_group.name, init_id=init_id,
+                init_type='iscsi'))
 
         return self._lsm_ag_of_id(
             access_group.name,
@@ -537,32 +541,19 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                     'lun': h_lun_id
                 })
         else:
-            try:
-                self._jsonrequest(
-                    'access_group_map_create',
-                    {
-                        'pool_name': volume.pool_id,
-                        'vol_name': volume.name,
-                        'ag_name': access_group.id,
-                    })
-            except TargetdError as tgt_error:
-                if tgt_error.errno == TargetdError.NO_FREE_HOST_LUN_ID:
-                    # TODO(Gris Ge): Add SYSTEM_LIMIT error into API
-                    raise LsmError(
-                        ErrorNumber.PLUGIN_BUG,
-                        "System limit: targetd only allows %s LUN masked" %
-                        TargetdStorage._MAX_H_LUN_ID)
-                elif tgt_error.errno == TargetdError.EMPTY_ACCESS_GROUP:
-                    raise LsmError(
-                        ErrorNumber.NOT_FOUND_ACCESS_GROUP,
-                        "Access group not found")
-                else:
-                    raise
+
+            self._jsonrequest(
+                'access_group_map_create',
+                {
+                    'pool_name': volume.pool_id,
+                    'vol_name': volume.name,
+                    'ag_name': access_group.id,
+                })
 
         return None
 
     @handle_errors
-    def volume_unmask(self, volume, access_group, flags=0):
+    def volume_unmask(self, access_group, volume, flags=0):
         self._lsm_ag_of_id(
             access_group.id,
             LsmError(
@@ -672,14 +663,8 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
 
     @handle_errors
     def volume_delete(self, volume, flags=0):
-        try:
-            self._jsonrequest("vol_destroy",
-                              dict(pool=volume.pool_id, name=volume.name))
-        except TargetdError as te:
-            if te.errno == TargetdError.VOLUME_MASKED:
-                raise LsmError(ErrorNumber.IS_MASKED,
-                               "Volume is masked to access group")
-            raise
+        self._jsonrequest("vol_destroy",
+                          dict(pool=volume.pool_id, name=volume.name))
 
     @handle_errors
     def volume_replicate(self, pool, rep_type, volume_src, name, flags=0):
@@ -958,7 +943,16 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
             params = dict(host=host, path=export.export_path)
             self._jsonrequest("nfs_export_remove", params)
 
-    def _jsonrequest(self, method, params=None):
+    @staticmethod
+    def _default_error_handler(error_code, msg):
+        if error_code in TargetdStorage._ERROR_MAPPING:
+            ec = TargetdStorage._ERROR_MAPPING[error_code]['ec']
+            msg_d = TargetdStorage._ERROR_MAPPING[error_code]['msg']
+            if not msg_d:
+                msg_d = msg
+            raise LsmError(ec, msg_d)
+
+    def _jsonrequest(self, method, params=None, default_error_handler=True):
         data = json.dumps(dict(id=self.rpc_id, method=method,
                                params=params, jsonrpc="2.0"))
         self.rpc_id += 1
@@ -979,8 +973,14 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                 #error_text = "%s:%s" % (str(response['error']['code']),
                 #                     response['error'].get('message', ''))
 
-                raise TargetdError(abs(int(response['error']['code'])),
-                                   response['error'].get('message', ''))
+                rc = abs(int(response['error']['code']))
+                msg = response['error'].get('message', '')
+
+                # If the caller wants the standard error handling mapping
+                if default_error_handler:
+                    self._default_error_handler(rc, msg)
+
+                raise TargetdError(rc, msg)
             else:  # +code is async execution id
                 #Async completion, polling for results
                 async_code = response['error']['code']
