@@ -715,6 +715,8 @@ CREATE_ALLOC_ARRAY_FUNC(lsm_system_record_array_alloc, lsm_system *)
 
 lsm_system *lsm_system_record_alloc(const char *id, const char *name,
                                     uint32_t status, const char *status_info,
+                                    const char *ctrl_mode,
+                                    const char*ctrl_fw_ver,
                                     const char *plugin_data)
 {
     lsm_system *rc = (lsm_system *) calloc(1, sizeof(lsm_system));
@@ -724,13 +726,15 @@ lsm_system *lsm_system_record_alloc(const char *id, const char *name,
         rc->name = strdup(name);
         rc->status = status;
         rc->status_info = strdup(status_info);
+        rc->ctrl_mode = strdup(ctrl_mode);
+        rc->ctrl_fw_ver = strdup(ctrl_fw_ver);
 
         if (plugin_data) {
             rc->plugin_data = strdup(plugin_data);
         }
 
-        if (!rc->name || !rc->id || !rc->status_info ||
-            (plugin_data && !rc->plugin_data)) {
+        if (!rc->name || !rc->id || !rc->status_info || !rc->ctrl_mode ||
+            !rc->ctrl_fw_ver || (plugin_data && !rc->plugin_data)) {
             lsm_system_record_free(rc);
             rc = NULL;
         }
@@ -758,6 +762,16 @@ int lsm_system_record_free(lsm_system * s)
             s->status_info = NULL;
         }
 
+        if (s->ctrl_mode) {
+            free(s->ctrl_mode);
+            s->ctrl_mode = NULL;
+        }
+
+        if (s->ctrl_fw_ver) {
+            free(s->ctrl_fw_ver);
+            s->ctrl_fw_ver = NULL;
+        }
+
         free(s->plugin_data);
 
         free(s);
@@ -774,6 +788,7 @@ lsm_system *lsm_system_record_copy(lsm_system * s)
     lsm_system *rc = NULL;
     if (LSM_IS_SYSTEM(s)) {
         rc = lsm_system_record_alloc(s->id, s->name, s->status, s->status_info,
+                                     s->ctrl_mode, s->ctrl_fw_ver,
                                      s->plugin_data);
     }
     return rc;
@@ -801,6 +816,22 @@ uint32_t lsm_system_status_get(lsm_system * s)
         return s->status;
     }
     return UINT32_MAX;
+}
+
+const char *lsm_system_ctrl_mode_get(lsm_system * s)
+{
+    if (LSM_IS_SYSTEM(s)) {
+        return s->ctrl_mode;
+    }
+    return NULL;
+}
+
+const char *lsm_system_ctrl_fw_ver_get(lsm_system * s)
+{
+    if (LSM_IS_SYSTEM(s)) {
+        return s->ctrl_fw_ver;
+    }
+    return NULL;
 }
 
 MEMBER_FUNC_GET(const char *, lsm_system_plugin_data_get, lsm_system * s,

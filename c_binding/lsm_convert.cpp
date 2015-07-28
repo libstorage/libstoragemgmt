@@ -259,6 +259,8 @@ lsm_system *value_to_system(Value & system)
                                      i["name"].asString().c_str(),
                                      i["status"].asUint32_t(),
                                      i["status_info"].asString().c_str(),
+                                     i["ctrl_mode"].asString().c_str(),
+                                     i["ctrl_fw_ver"].asString().c_str(),
                                      i["plugin_data"].asC_str());
     } else {
         throw ValueException("value_to_system: Not correct type");
@@ -275,6 +277,8 @@ Value system_to_value(lsm_system * system)
         s["name"] = Value(system->name);
         s["status"] = Value(system->status);
         s["status_info"] = Value(system->status_info);
+        s["ctrl_mode"] = Value(system->ctrl_mode);
+        s["ctrl_fw_ver"] = Value(system->ctrl_fw_ver);
         s["plugin_data"] = Value(system->plugin_data);
         return Value(s);
     }

@@ -136,7 +136,9 @@ class BackStore(object):
 
     _LIST_SPLITTER = '#'
 
-    SYS_KEY_LIST = ['id', 'name', 'status', 'status_info', 'version']
+    SYS_KEY_LIST = [
+        'id', 'name', 'status', 'status_info', 'ctrl_mode', 'ctrl_fw_ver',
+        'version']
 
     POOL_KEY_LIST = [
         'id', 'name', 'status', 'status_info',
@@ -203,6 +205,8 @@ class BackStore(object):
             name TEXT NOT NULL,
             status INTEGER NOT NULL,
             status_info TEXT,
+            ctrl_mode TEXT,
+            ctrl_fw_ver TEXT,
             version TEXT NOT NULL);
             """)
             # ^ version hold the signature of data
@@ -654,6 +658,8 @@ class BackStore(object):
                     'name': BackStore.SYS_NAME,
                     'status': System.STATUS_OK,
                     'status_info': "",
+                    'ctrl_mode': "RAID",
+                    'ctrl_fw_ver': "1",
                     'version': BackStore.VERSION_SIGNATURE,
                 })
 
@@ -1725,7 +1731,8 @@ class SimArray(object):
     def _sim_sys_2_lsm(sim_sys):
         return System(
             sim_sys['id'], sim_sys['name'], sim_sys['status'],
-            sim_sys['status_info'])
+            sim_sys['status_info'], sim_sys['ctrl_mode'],
+            sim_sys['ctrl_fw_ver'])
 
     @_handle_errors
     def systems(self):

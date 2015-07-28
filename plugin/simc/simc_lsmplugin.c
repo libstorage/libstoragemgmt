@@ -2284,7 +2284,7 @@ int load(lsm_plugin_ptr c, const char *uri, const char *password,
         pd->system[0] = lsm_system_record_alloc(sys_id,
                                                 "LSM simulated storage plug-in",
                                                 LSM_SYSTEM_STATUS_OK, "",
-                                                NULL);
+                                                "RAID", "1", NULL);
 
         p = lsm_pool_record_alloc("POOL_3", "lsm_test_aggr",
                                   LSM_POOL_ELEMENT_TYPE_FS |

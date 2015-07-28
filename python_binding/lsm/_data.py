@@ -348,6 +348,8 @@ class Volume(IData):
 @default_property('name', doc="User defined system name")
 @default_property('status', doc="Enumerated status of system")
 @default_property('status_info', doc="Detail status information of system")
+@default_property('ctrl_mode', doc="RAID or HBA system")
+@default_property('ctrl_fw_ver', doc="Firmware version of system")
 @default_property("plugin_data", doc="Private plugin data")
 class System(IData):
     STATUS_UNKNOWN = 1 << 0
@@ -357,11 +359,14 @@ class System(IData):
     STATUS_PREDICTIVE_FAILURE = 1 << 4
     STATUS_OTHER = 1 << 5
 
-    def __init__(self, _id, _name, _status, _status_info, _plugin_data=None):
+    def __init__(self, _id, _name, _status, _status_info, _ctrl_mode,
+                    _ctrl_fw_ver, _plugin_data=None):
         self._id = _id
         self._name = _name
         self._status = _status
         self._status_info = _status_info
+        self._ctrl_mode = _ctrl_mode
+        self._ctrl_fw_ver = _ctrl_fw_ver
         self._plugin_data = _plugin_data
 
 

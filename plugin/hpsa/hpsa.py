@@ -363,12 +363,20 @@ class SmartArray(IPlugin):
         for ctrl_name in ctrl_all_show.keys():
             ctrl_data = ctrl_all_show[ctrl_name]
             sys_id = ctrl_data['Serial Number']
+            ctrl_mode_text = ctrl_data['HBA Mode Enabled']
+            ctrl_fw_ver = ctrl_data['Firmware Version']
             (status, status_info) = _sys_status_of(ctrl_all_status[ctrl_name])
+
+            if ctrl_mode_text == 'True':
+                ctrl_mode = 'HBA'
+            else:
+                ctrl_mode = 'RAID'
 
             plugin_data = "%s" % ctrl_data['Slot']
 
             rc_lsm_syss.append(
-                System(sys_id, ctrl_name, status, status_info, plugin_data))
+                System(sys_id, ctrl_name, status, status_info, ctrl_mode,
+                ctrl_fw_ver, plugin_data))
 
         return rc_lsm_syss
 

@@ -161,6 +161,8 @@ struct _lsm_system {
     char *name;                 /**< Name */
     uint32_t status;            /**< Enumerated status value */
     char *status_info;          /**< System status text */
+    char *ctrl_mode;		/**< System mode */
+    char *ctrl_fw_ver;		/**< System firmware version */
     char *plugin_data;          /**< Reserved for the plugin to use */
 };
 
