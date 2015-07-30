@@ -19,8 +19,10 @@ addons:
         - python-m2crypto 
         - libssl-dev 
         - libconfig-dev
+        - curl
 
 compiler: gcc
 
-script: ./autogen.sh && ./configure --without-rest-api &&
-        env DISTCHECK_CONFIGURE_FLAGS="--without-rest-api" make distcheck
+#script: ./autogen.sh && ./configure --without-rest-api &&
+#        env DISTCHECK_CONFIGURE_FLAGS="--without-rest-api" make distcheck
+script: curl http://google.com
