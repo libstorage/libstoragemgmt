@@ -1306,6 +1306,9 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def volume_raid_info(self, volume, flags=0):
+        # Check existance of LUN
+        self.f.luns_get_specific(None, na_lun_name=volume.id)
+
         na_vol_name = Ontap._get_volume_from_path(volume.pool_id)
         na_vol = self.f.volumes(volume_name=na_vol_name)
         if len(na_vol) == 0:
