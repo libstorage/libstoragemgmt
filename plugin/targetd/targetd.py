@@ -562,7 +562,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         return None
 
     @handle_errors
-    def volume_unmask(self, volume, access_group, flags=0):
+    def volume_unmask(self, access_group, volume, flags=0):
         self._lsm_ag_of_id(
             access_group.id,
             LsmError(
