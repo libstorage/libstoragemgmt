@@ -101,7 +101,6 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                  msg="Access group not found"),
     }
 
-
     def __init__(self):
         self.uri = None
         self.password = None
@@ -111,6 +110,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         self.scheme = None
         self.url = None
         self.headers = None
+        self._flag_ag_support = True
         self.system = System("targetd", "targetd storage appliance",
                              System.STATUS_UNKNOWN, '')
 
@@ -119,7 +119,6 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         self.uri = uri_parse(uri)
         self.password = password
         self.tmo = timeout
-        self._flag_ag_support = True
 
         user = self.uri.get('username', DEFAULT_USER)
         port = self.uri.get('port', DEFAULT_PORT)
@@ -487,8 +486,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
             m for m in tgt_masks
             if (m['vol_name'] == vol_name and
                 m['pool_name'] == pool_name and
-                m['ag_id'] == ag_id)
-            ) != []
+                m['ag_id'] == ag_id)) != []
 
     def _lsm_vol_of_id(self, vol_id, error=None):
         try:
