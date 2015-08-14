@@ -16,19 +16,18 @@
 #         Gris Ge <fge@redhat.com>
 
 import copy
-
-from lsm import (Pool, Volume, System, Capabilities,
-                 IStorageAreaNetwork, INfs, FileSystem, FsSnapshot, NfsExport,
-                 LsmError, ErrorNumber, uri_parse, md5, VERSION,
-                 common_urllib2_error_handler, search_property,
-                 AccessGroup)
-
 import urllib2
 import json
 import time
 import urlparse
 import socket
 import re
+
+from lsm import (Pool, Volume, System, Capabilities,
+                 IStorageAreaNetwork, INfs, FileSystem, FsSnapshot, NfsExport,
+                 LsmError, ErrorNumber, uri_parse, md5, VERSION,
+                 common_urllib2_error_handler, search_property,
+                 AccessGroup)
 
 DEFAULT_USER = "admin"
 DEFAULT_PORT = 18700
@@ -75,30 +74,30 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
 
     _ERROR_MAPPING = {
         TargetdError.VOLUME_MASKED:
-            dict(ec=ErrorNumber.IS_MASKED,
-                 msg="Volume is masked to access group"),
+        dict(ec=ErrorNumber.IS_MASKED,
+             msg="Volume is masked to access group"),
 
         TargetdError.EXISTS_INITIATOR:
-            dict(ec=ErrorNumber.EXISTS_INITIATOR,
-                 msg="Initiator is already used by other access group"),
+        dict(ec=ErrorNumber.EXISTS_INITIATOR,
+             msg="Initiator is already used by other access group"),
 
         TargetdError.NAME_CONFLICT:
-            dict(ec=ErrorNumber.NAME_CONFLICT,
-                 msg=None),
+        dict(ec=ErrorNumber.NAME_CONFLICT,
+             msg=None),
 
         TargetdError.INVALID_ARGUMENT:
-            dict(ec=ErrorNumber.INVALID_ARGUMENT,
-                 msg=None),
+        dict(ec=ErrorNumber.INVALID_ARGUMENT,
+             msg=None),
 
         TargetdError.NO_FREE_HOST_LUN_ID:
-            # TODO(Gris Ge): Add SYSTEM_LIMIT error into API
-            dict(ec=ErrorNumber.PLUGIN_BUG,
-                 msg="System limit: targetd only allows %s LUN masked" %
-                     _MAX_H_LUN_ID),
+        # TODO(Gris Ge): Add SYSTEM_LIMIT error into API
+        dict(ec=ErrorNumber.PLUGIN_BUG,
+             msg="System limit: targetd only allows %s LUN masked" %
+             _MAX_H_LUN_ID),
 
         TargetdError.EMPTY_ACCESS_GROUP:
-            dict(ec=ErrorNumber.NOT_FOUND_ACCESS_GROUP,
-                 msg="Access group not found"),
+        dict(ec=ErrorNumber.NOT_FOUND_ACCESS_GROUP,
+             msg="Access group not found"),
     }
 
     def __init__(self):
@@ -669,7 +668,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         if rep_type != Volume.REPLICATE_COPY:
             raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-        #pool id is optional, use volume src as default
+        # pool id is optional, use volume src as default
         pool_id = volume_src.pool_id
         if pool:
             pool_id = pool.id
@@ -696,7 +695,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
     def fs(self, search_key=None, search_value=None, flags=0):
         rc = []
         for fs in self._jsonrequest("fs_list"):
-            #self, id, name, total_space, free_space, pool_id, system_id
+            # self, id, name, total_space, free_space, pool_id, system_id
             rc.append(FileSystem(fs['uuid'], fs['name'], fs['total_space'],
                                  fs['free_space'], fs['pool'], self.system.id))
         return search_property(rc, search_key, search_value)
@@ -729,7 +728,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
     def fs_snapshots(self, fs, flags=0):
         rc = []
         for ss in self._jsonrequest("ss_list", dict(fs_uuid=fs.id)):
-            #id, name, timestamp
+            # id, name, timestamp
             rc.append(FsSnapshot(ss['uuid'], ss['name'], ss['timestamp']))
         return rc
 
@@ -789,7 +788,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         all_nfs_exports = self._jsonrequest("nfs_export_list")
         nfs_exports = []
 
-        #Remove those that are not of FS origin
+        # Remove those that are not of FS origin
         fs_list = self._jsonrequest("fs_list")
         for f in fs_list:
             fs_full_paths[f['full_path']] = f
@@ -798,7 +797,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
             if export['path'] in fs_full_paths:
                 nfs_exports.append(export)
 
-        #Collect like exports to minimize results
+        # Collect like exports to minimize results
         for export in nfs_exports:
             key = export['path'] + \
                 TargetdStorage._option_string(export['options'])
@@ -807,7 +806,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
             else:
                 tmp_exports[key] = [export]
 
-        #Walk through the options
+        # Walk through the options
         for le in tmp_exports.values():
             export_id = ""
             root = []
@@ -911,10 +910,10 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                               dict(host=host, path=fs_path,
                                    export_path=None, options=tmp_opts))
 
-        #Kind of a pain to determine which export was newly created as it
-        #could get merged into an existing record, doh!
-        #Make sure fs_id's match and that one of the hosts is in the
-        #record.
+        # Kind of a pain to determine which export was newly created as it
+        # could get merged into an existing record, doh!
+        # Make sure fs_id's match and that one of the hosts is in the
+        # record.
         exports = self.exports()
         h = []
         h.extend(rw_list)
@@ -968,7 +967,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
             return response.get('result')
         else:
             if response['error']['code'] <= 0:
-                #error_text = "%s:%s" % (str(response['error']['code']),
+                # error_text = "%s:%s" % (str(response['error']['code']),
                 #                     response['error'].get('message', ''))
 
                 rc = abs(int(response['error']['code']))
@@ -980,7 +979,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
 
                 raise TargetdError(rc, msg)
             else:  # +code is async execution id
-                #Async completion, polling for results
+                # Async completion, polling for results
                 async_code = response['error']['code']
                 while True:
                     time.sleep(1)
