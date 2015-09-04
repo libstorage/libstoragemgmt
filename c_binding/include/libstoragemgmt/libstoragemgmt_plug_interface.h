@@ -895,6 +895,19 @@ typedef int (*lsm_plug_volume_raid_info) (lsm_plugin_ptr c,
                                           lsm_flag flags);
 
 /**
+ * Query the firmware version of a storage system
+ * @param[in]   c               Valid lsm plug-in pointer
+ * @param[in]   system          System being queried
+ * @param[out]  fw_ver          System firmware version
+ * @param[in]   flags           Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
+typedef int (*lsm_plug_system_fw_version) (lsm_plugin_ptr c,
+                                          lsm_system *system,
+                                          char **fw_ver,
+                                          lsm_flag flags);
+
+/**
  * Retrieves the membership of given pool. New in version 1.2.
  * @param[in] c               Valid lsm plug-in pointer
  * @param[in] pool  The lsm_pool ptr.
@@ -991,6 +1004,15 @@ struct lsm_ops_v1_2 {
     lsm_plug_volume_raid_create vol_create_raid;
 };
 
+/** \struct lsm_ops_v1_3
+ * \brief Functions added in version 1.3
+ * NOTE: This structure will change during the developement util version 1.3
+ *       released.
+ */
+struct lsm_ops_v1_3 {
+    lsm_plug_system_fw_version sys_fw_version;
+};
+
 /**
  * Copies the memory pointed to by item with given type t.
  * @param t         Type of item to copy
@@ -1052,6 +1074,28 @@ int LSM_DLL_EXPORT lsm_register_plugin_v1_2(lsm_plugin_ptr plug,
                                             struct lsm_fs_ops_v1 *fs_ops,
                                             struct lsm_nas_ops_v1 *nas_ops,
                                             struct lsm_ops_v1_2 *ops_v1_2);
+
+/**
+ * Used to register version 1.3 APIs plug-in operation.
+ * @param plug              Pointer provided by the framework
+ * @param private_data      Private data to be used for whatever the plug-in
+ *                          needs
+ * @param mgm_ops           Function pointers for struct lsm_mgmt_ops_v1
+ * @param san_ops           Function pointers for struct lsm_san_ops_v1
+ * @param fs_ops            Function pointers for struct lsm_fs_ops_v1
+ * @param nas_ops           Function pointers for struct lsm_nas_ops_v1
+ * @param ops_v1_2          Function pointers for struct lsm_ops_v1_2
+ * @param ops_v1_3          Function pointers for struct lsm_ops_v1_3
+ * @return LSM_ERR_OK on success, else error reason.
+ */
+int LSM_DLL_EXPORT lsm_register_plugin_v1_3(lsm_plugin_ptr plug,
+                                            void *private_data,
+                                            struct lsm_mgmt_ops_v1 *mgm_ops,
+                                            struct lsm_san_ops_v1 *san_ops,
+                                            struct lsm_fs_ops_v1 *fs_ops,
+                                            struct lsm_nas_ops_v1 *nas_ops,
+                                            struct lsm_ops_v1_2 *ops_v1_2,
+                                            struct lsm_ops_v1_3 *ops_v1_3);
 
 /**
  * Used to retrieve private data for plug-in operation.

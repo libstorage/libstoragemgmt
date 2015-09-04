@@ -1960,6 +1960,38 @@ START_TEST(test_plugin_info)
 }
 END_TEST
 
+START_TEST(test_system_fw_version)
+{
+    char *fw_ver = NULL;
+    int rc = 0;
+    lsm_system **sys = NULL;
+    uint32_t sys_count = 0;
+
+    if (which_plugin == 1)
+        return;
+
+    G(rc, lsm_system_list, c, &sys, &sys_count, LSM_CLIENT_FLAG_RSVD);
+    fail_unless( sys_count >= 1, "count = %d", sys_count);
+
+    if(sys_count > 0) {
+
+        G(rc, lsm_system_fw_version_get, c, sys[0], &fw_ver, LSM_CLIENT_FLAG_RSVD);
+
+        if( LSM_ERR_OK == rc ) {
+            printf("Firmware version: (%s)\n", fw_ver);
+            free(fw_ver);
+        }
+
+        rc = lsm_system_fw_version_get(c, sys[0], NULL, LSM_CLIENT_FLAG_RSVD);
+        fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
+    }
+
+    rc = lsm_system_fw_version_get(c, NULL, &fw_ver, LSM_CLIENT_FLAG_RSVD);
+    fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
+
+}
+END_TEST
+
 START_TEST(test_get_available_plugins)
 {
     int i = 0;
@@ -3045,6 +3077,7 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_nfs_export_funcs);
     tcase_add_test(basic, test_disks);
     tcase_add_test(basic, test_plugin_info);
+    tcase_add_test(basic, test_system_fw_version);
     tcase_add_test(basic, test_get_available_plugins);
     tcase_add_test(basic, test_volume_methods);
     tcase_add_test(basic, test_iscsi_auth_in);

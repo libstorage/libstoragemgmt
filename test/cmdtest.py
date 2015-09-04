@@ -613,6 +613,8 @@ def test_plugin_info(cap, system_id):
     out = call([cmd, 'plugin-info', ])[1]
     out = call([cmd, '-t' + sep, 'plugin-info', ])[1]
 
+def test_system_fw_version_get(cap, system_id):
+    out = call([cmd, 'system_fw_version_get', '--sys', system_id])[1]
 
 def test_plugin_list(cap, system_id):
     out = call([cmd, 'list', '--type', 'PLUGINS'])[1]
@@ -631,6 +633,7 @@ def create_all(cap, system_id):
     test_block_creation(cap, system_id)
     test_fs_creation(cap, system_id)
     test_nfs(cap, system_id)
+    test_system_fw_version_get(cap, system_id)
 
 
 def search_test(cap, system_id):

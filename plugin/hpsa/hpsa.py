@@ -324,6 +324,7 @@ class SmartArray(IPlugin):
         cap.set(Capabilities.VOLUME_RAID_INFO)
         cap.set(Capabilities.POOL_MEMBER_INFO)
         cap.set(Capabilities.VOLUME_RAID_CREATE)
+        cap.set(Capabilities.SYS_FW_VERSION_GET)
         return cap
 
     def _sacli_exec(self, sacli_cmds, flag_convert=True):
@@ -346,6 +347,20 @@ class SmartArray(IPlugin):
             return _parse_hpssacli_output(output)
         else:
             return output
+
+    @_handle_errors
+    def system_fw_version_get(self, system, flags=0):
+        if not system.plugin_data:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Ilegal input system argument: missing plugin_data property")
+
+        sys_output = self._sacli_exec(
+            ['ctrl', "slot=%s" % system.plugin_data, 'show']).values()[0]
+
+        sys_fw_ver = "%s" % sys_output['Firmware Version']
+
+        return sys_fw_ver
 
     @_handle_errors
     def systems(self, flags=0):

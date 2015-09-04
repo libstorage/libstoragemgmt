@@ -223,6 +223,13 @@ cmds = (
             dict(sys_id_opt),
         ],
     ),
+    dict(
+        name='system_fw_version_get',
+        help='Retrieves array firmware version',
+        args=[
+            dict(sys_id_opt),
+        ],
+    ),
 
     dict(
         name='plugin-info',
@@ -668,6 +675,7 @@ aliases = (
     ['lf', 'list --type fs'],
     ['lt', 'list --type target_ports'],
     ['c', 'capabilities'],
+    ['fw', 'system_fw_version_get'],
     ['p', 'plugin-info'],
     ['vc', 'volume-create'],
     ['vrc', 'volume-raid-create'],
@@ -1151,6 +1159,11 @@ class CmdLine:
             out("%s%s%s" % (desc, args.sep, version))
         else:
             out("Description: %s Version: %s" % (desc, version))
+
+    def system_fw_version_get(self, args):
+        s = _get_item(self.c.systems(), args.sys, "System")
+        fw_ver = self.c.system_fw_version_get(s)
+        out("Firmware version: %s" % (fw_ver))
 
     ## Creates a volume
     def volume_create(self, args):

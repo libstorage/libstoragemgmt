@@ -152,6 +152,8 @@ typedef enum {
     LSM_CAP_EXPORT_CUSTOM_PATH = 124,
     /**^ Plug-in allows user to define custome export path */
 
+    LSM_CAP_SYS_FW_VERSION_GET = 160,
+    /**^ Plug-in allows user to retrieve storage firmware version */
     LSM_CAP_POOLS_QUICK_SEARCH = 210,
     /**^ Seach occurs on array */
     LSM_CAP_VOLUMES_QUICK_SEARCH = 211,
