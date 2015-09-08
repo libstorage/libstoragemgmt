@@ -36,7 +36,7 @@ LSMD_TMP_LOG_FILE="$base/lsmd.log"
 
 cleanup() {
     #Clean up the daemon if it is running
-    if [ $LSMD_PID -ne 65535 ]
+    if [ "CHK$LSMD_PID" != "CHK" ] && [ "CHK$LSMD_PID" != "CHK65535" ]
     then
         kill -s KILL $LSMD_PID
     fi
@@ -106,7 +106,7 @@ fi
 plugins=$base/plugins
 
 #Export needed vars
-export PYTHONPATH=$lsm_py_folder
+export PYTHONPATH=$base/python
 export LD_LIBRARY_PATH=$base/lib
 export LSM_SIM_DATA="$base/lsm_sim_data"
 
@@ -118,19 +118,30 @@ echo "c_unit=  $c_unit"
 good "mkdir -p $LSM_UDS_PATH"
 good "mkdir -p $plugins"
 good "mkdir -p $LD_LIBRARY_PATH"
+good "mkdir -p $PYTHONPATH"
+
+good "chmod 777 $base"
+good "chmod 777 $LSM_UDS_PATH"
+good "chmod 777 $plugins"
+good "chmod 777 $LD_LIBRARY_PATH"
+good "chmod 777 $PYTHONPATH"
 
 #Copy shared libraries
 good "cp $shared_libs/*.so.* $LD_LIBRARY_PATH"
 
-#Link plugin folder as python/lsm/plugin folder
-if [ ! -L "$lsm_py_folder/lsm/plugin" ];then
-    good "ln -s $lsm_plugin_py_folder $lsm_py_folder/lsm/"
+# Copy python modules as libstoragemgmt user might not able to access
+# code in other path. This is common when compile as root with libstoragemgmt
+# user account exists.
+good "cp -av $lsm_py_folder/lsm $PYTHONPATH/"
+# In case the plugin and lsmcli link also copyed.
+if [ -e "$PYTHONPATH/lsm/plugin" ];then
+    good "rm $PYTHONPATH/lsm/plugin"
 fi
-
-#Link lsmcli folder as python/lsm/lsmcli folder
-if [ ! -L "$lsm_py_folder/lsm/lsmcli" ];then
-    good "ln -s $lsmcli_py_folder $lsm_py_folder/lsm/"
+good "cp -av $lsm_plugin_py_folder $PYTHONPATH/lsm/"
+if [ -e "$PYTHONPATH/lsm/lsmcli" ];then
+    good "rm $PYTHONPATH/lsm/lsmcli"
 fi
+good "cp -av $lsmcli_py_folder $PYTHONPATH/lsm/"
 
 #Copy plugins to one directory.
 good "find $rootdir/ \( ! -regex '.*/\..*' \) -type f -name \*_lsmplugin -exec cp {} $plugins \;"
