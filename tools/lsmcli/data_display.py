@@ -331,6 +331,8 @@ class DisplayData(object):
     SYSTEM_HEADER['name'] = 'Name'
     SYSTEM_HEADER['status'] = 'Status'
     SYSTEM_HEADER['status_info'] = 'Info'
+    SYSTEM_HEADER['ctrl_mode'] = 'Mode'
+    SYSTEM_HEADER['ctrl_fw_ver'] = 'FW'
 
     SYSTEM_COLUMN_SKIP_KEYS = []
     # XXX_COLUMN_SKIP_KEYS contain a list of property should be skipped when

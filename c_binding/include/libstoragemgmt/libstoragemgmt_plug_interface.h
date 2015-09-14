@@ -1239,6 +1239,8 @@ lsm_system LSM_DLL_EXPORT **lsm_system_record_array_alloc(uint32_t size);
  * @param[in] name          System name (human readable)
  * @param[in] status        Status of the system
  * @param[in] status_info   Additional text for status
+ * @param[in] ctrl_mode     System mode for disk exposure
+ * @param[in] ctrl_fw_ver   System firmware version
  * @param[in] plugin_data   Private plugin data
  * @return  Allocated memory or NULL on error.
  */
@@ -1246,6 +1248,8 @@ lsm_system LSM_DLL_EXPORT *lsm_system_record_alloc(const char *id,
                                                    const char *name,
                                                    uint32_t status,
                                                    const char *status_info,
+                                                   const char *ctrl_mode,
+                                                   const char *ctrl_fw_ver,
                                                    const char *plugin_data);
 
 /**
