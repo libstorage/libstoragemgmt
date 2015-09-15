@@ -609,6 +609,19 @@ int LSM_DLL_EXPORT \
                                        char **job, lsm_flag flags);
 
 /**
+ * Retrieves system mode.
+ * @param[in]  conn                  Valid connection
+ * @param[in]  system                lsm_system
+ * @param[out] hwraid_mode           System mode
+ * @param[in]  flags                 Reserved set to zero
+ * @return     LSM_ERR_OK on success, else error reason
+ */
+int LSM_DLL_EXPORT lsm_system_hwraid_mode_get(lsm_connect *conn,
+                                              lsm_system *system,
+                                              uint32_t  *hwraid_mode,
+                                              lsm_flag flags);
+
+/**
  * Retrieves information about the different arrays accessible.
  * NOTE: Free returned systems by calling to lsm
  * @param[in]  conn                 Valid connection

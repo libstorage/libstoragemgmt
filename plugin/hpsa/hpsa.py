@@ -312,6 +312,25 @@ class SmartArray(IPlugin):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported yet")
 
     @_handle_errors
+    def system_hwraid_mode_get(self, system, flags=Client.FLAG_RSVD):
+        if not system.plugin_data:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Illegal input system argument: missing plugin_data property")
+
+        sys_output = self._sacli_exec(
+            ['ctrl', "slot=%s" % system.plugin_data, 'show']).values()[0]
+
+        sys_hwraid_mode = "%s" % sys_output['HBA Mode Enabled']
+
+        if (sys_hwraid_mode == 'True'):
+            return System.HWRAID_MODE_HBA
+        elif (sys_hwraid_mode == 'False'):
+            return System.HWRAID_MODE_RAID
+        else:
+            return System.HWRAID_MODE_UNKNOWN
+
+    @_handle_errors
     def capabilities(self, system, flags=Client.FLAG_RSVD):
         cur_lsm_syss = self.systems()
         if system.id not in list(s.id for s in cur_lsm_syss):
@@ -324,6 +343,7 @@ class SmartArray(IPlugin):
         cap.set(Capabilities.VOLUME_RAID_INFO)
         cap.set(Capabilities.POOL_MEMBER_INFO)
         cap.set(Capabilities.VOLUME_RAID_CREATE)
+        cap.set(Capabilities.SYS_HWRAID_MODE_GET)
         return cap
 
     def _sacli_exec(self, sacli_cmds, flag_convert=True):

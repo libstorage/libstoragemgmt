@@ -1373,3 +1373,11 @@ class Client(INetworkAttachedStorage):
                     "RAID 60 require even disks count and 8 or more disks")
 
         return self._tp.rpc('volume_raid_create', _del_self(locals()))
+
+    ## Gets the mode of the system.
+    # @param    self
+    # @param    system  The system of interest
+    # @param    flags   Reserved for future use, must be zero.
+    # @returns  hwraid_mode, raises LsmError on error
+    def system_hwraid_mode_get(self, system, flags=FLAG_RSVD):
+        return self._tp.rpc('system_hwraid_mode_get', _del_self(locals()))

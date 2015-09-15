@@ -306,6 +306,14 @@ class TestPlugin(unittest.TestCase):
         self.assertTrue(desc is not None and len(desc) > 0)
         self.assertTrue(version is not None and len(version) > 0)
 
+    def test_hwraid_mode(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            if supported(cap, [Cap.SYS_HWRAID_MODE_GET]):
+                hwraid_mode = self.c.system_hwraid_mode_get(s)
+                self.assertTrue(hwraid_mode is not None,
+                                "hwraid mode retrieval failed")
+
     def test_timeout(self):
         tmo = 40000
         self.c.time_out_set(tmo)
