@@ -357,6 +357,10 @@ class System(IData):
     STATUS_PREDICTIVE_FAILURE = 1 << 4
     STATUS_OTHER = 1 << 5
 
+    HWRAID_MODE_RAID = 1 << 8
+    HWRAID_MODE_HBA = 1 << 9
+    HWRAID_MODE_UNKNOWN = 1 << 10
+
     def __init__(self, _id, _name, _status, _status_info, _plugin_data=None):
         self._id = _id
         self._name = _name
@@ -749,6 +753,8 @@ class Capabilities(IData):
     EXPORT_FS = 122
     EXPORT_REMOVE = 123
     EXPORT_CUSTOM_PATH = 124
+
+    SYS_HWRAID_MODE_GET = 161
 
     POOLS_QUICK_SEARCH = 210
     VOLUMES_QUICK_SEARCH = 211

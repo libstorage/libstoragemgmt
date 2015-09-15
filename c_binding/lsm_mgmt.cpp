@@ -1770,6 +1770,35 @@ int lsm_volume_child_dependency_delete(lsm_connect * c,
     return job_check(c, rc, response, job);
 }
 
+int lsm_system_hwraid_mode_get(lsm_connect *c, lsm_system *system,
+                               uint32_t *hwraid_mode, lsm_flag flags)
+{
+    int rc = LSM_ERR_OK;
+    CONN_SETUP(c);
+
+    if(!system || !hwraid_mode)
+        return LSM_ERR_INVALID_ARGUMENT;
+
+    try {
+        std::map < std::string, Value > p;
+        p["system"] = system_to_value(system);
+        p["flags"] = Value(flags);
+        Value parameters(p);
+        Value response;
+
+        rc = rpc(c, "system_hwraid_mode_get", parameters, response);
+        if (LSM_ERR_OK == rc) {
+            *hwraid_mode = response.asUint32_t();
+        }
+    }
+    catch(const ValueException & ve) {
+        *hwraid_mode = 0;
+        rc = log_exception(c, LSM_ERR_PLUGIN_BUG, "Unexpected type", ve.what());
+    }
+
+    return rc;
+}
+
 int lsm_system_list(lsm_connect * c, lsm_system ** systems[],
                     uint32_t * systemCount, lsm_flag flags)
 {

@@ -16,7 +16,7 @@
 #         Gris Ge <fge@redhat.com>
 
 from lsm import (uri_parse, VERSION, Capabilities, INfs,
-                 IStorageAreaNetwork, search_property)
+                 IStorageAreaNetwork, search_property, System)
 
 from simarray import SimArray
 
@@ -88,6 +88,9 @@ class SimPlugin(INfs, IStorageAreaNetwork):
 
     def plugin_info(self, flags=0):
         return "Storage simulator", VERSION
+
+    def system_hwraid_mode_get(self, system, flags=0):
+        return System.HWRAID_MODE_RAID
 
     def systems(self, flags=0):
         sim_syss = self.sim_array.systems()

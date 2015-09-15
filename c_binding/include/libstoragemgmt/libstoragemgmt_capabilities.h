@@ -152,6 +152,8 @@ typedef enum {
     LSM_CAP_EXPORT_CUSTOM_PATH = 124,
     /**^ Plug-in allows user to define custome export path */
 
+    LSM_CAP_SYS_HWRAID_MODE_GET = 161,
+    /**^ Plug-in exposes system mode */
     LSM_CAP_POOLS_QUICK_SEARCH = 210,
     /**^ Seach occurs on array */
     LSM_CAP_VOLUMES_QUICK_SEARCH = 211,

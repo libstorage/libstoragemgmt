@@ -447,6 +447,35 @@ static int handle_plugin_info(lsm_plugin_ptr p, Value & params,
     return rc;
 }
 
+static int handle_hwraid_mode_get(lsm_plugin_ptr p, Value & params, Value & response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    uint32_t hwraid_mode = 0;
+    if (p && p->ops_v1_2 && p->ops_v1_2->sys_hwraid_mode) {
+        Value v_system = params["system"];
+
+        if(IS_CLASS_SYSTEM(v_system)) {
+            std::vector < Value > result;
+
+            lsm_system *system = value_to_system(v_system);
+            if (system) {
+                rc = p->ops_v1_2->sys_hwraid_mode(p, system, &hwraid_mode,
+                                                 LSM_FLAG_GET_VALUE(params));
+
+                if (LSM_ERR_OK == rc) {
+                    result.push_back(Value(hwraid_mode));
+                    response = Value(result);
+                }
+                lsm_system_record_free(system);
+                system = NULL;
+            }
+        } else {
+            rc = LSM_ERR_NO_MEMORY;
+        }
+    }
+    return rc;
+}
+
 static int handle_job_free(lsm_plugin_ptr p, Value & params, Value & response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
@@ -2401,7 +2430,8 @@ static std::map < std::string, handler > dispatch =
     ("volume_raid_info", handle_volume_raid_info)
     ("pool_member_info", handle_pool_member_info)
     ("volume_raid_create", handle_volume_raid_create)
-    ("volume_raid_create_cap_get", handle_volume_raid_create_cap_get);
+    ("volume_raid_create_cap_get", handle_volume_raid_create_cap_get)
+    ("hwraid_mode_get", handle_hwraid_mode_get);
 
 static int process_request(lsm_plugin_ptr p, const std::string & method,
                            Value & request, Value & response)

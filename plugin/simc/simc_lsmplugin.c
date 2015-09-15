@@ -1047,6 +1047,7 @@ static struct lsm_ops_v1_2 ops_v1_2 = {
     pool_member_info,
     volume_raid_create_cap_get,
     volume_raid_create,
+    NULL,
 };
 
 static int volume_enable_disable(lsm_plugin_ptr c, lsm_volume * v,

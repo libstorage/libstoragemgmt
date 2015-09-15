@@ -226,6 +226,9 @@ typedef enum {
     /**^ System has predictive failure(s) */
 #define LSM_SYSTEM_STATUS_OTHER                 0x00000020
     /**^ Vendor specific */
+#define LSM_SYSTEM_HWRAID_MODE_RAID             0x00000100
+#define LSM_SYSTEM_HWRAID_MODE_HBA              0x00000200
+#define LSM_SYSTEM_HWRAID_MODE_UNKNOWN          0x00000400
 
 
 typedef enum {

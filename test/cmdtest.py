@@ -614,6 +614,9 @@ def test_plugin_info(cap, system_id):
     out = call([cmd, '-t' + sep, 'plugin-info', ])[1]
 
 
+def test_system_hwraid_mode_get(cap, systemid):
+    out = call([cmd, 'hwraid-mode', '--sys', system_id])[1]
+
 def test_plugin_list(cap, system_id):
     out = call([cmd, 'list', '--type', 'PLUGINS'])[1]
     out = call([cmd, '-t' + sep, 'list', '--type', 'PLUGINS'])[1]

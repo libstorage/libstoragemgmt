@@ -978,6 +978,22 @@ typedef int (*lsm_plug_volume_raid_create) (lsm_plugin_ptr c,
                                             lsm_volume ** new_volume,
                                             lsm_flag flags);
 
+
+/**
+ * Query the hardware raid state of a storage system.
+ * @param[in] c     Valid lsm plug-in pointer
+ * @param[in] system
+ *                  System being queried
+ * @param[out] hwraid_mode
+ *                  Pointer to hwraide_mode output location.
+ * @param[in] flags         Reserved, set to 0
+ * @return LSM_ERR_OK on success else error reason.
+ */
+typedef int (*lsm_plug_system_hwraid_mode) (lsm_plugin_ptr c,
+                                            lsm_system *system,
+                                            uint32_t *hwraid_mode,
+                                            lsm_flag flags);
+
 /** \struct lsm_ops_v1_2
  * \brief Functions added in version 1.2
  * NOTE: This structure will change during the developement util version 1.2
@@ -989,6 +1005,7 @@ struct lsm_ops_v1_2 {
     lsm_plug_pool_member_info pool_member_info;
     lsm_plug_volume_raid_create_cap_get vol_create_raid_cap_get;
     lsm_plug_volume_raid_create vol_create_raid;
+    lsm_plug_system_hwraid_mode sys_hwraid_mode;
 };
 
 /**

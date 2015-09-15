@@ -34,7 +34,7 @@ from argparse import RawTextHelpFormatter
 from lsm import (Client, Pool, VERSION, LsmError, Disk,
                  Volume, JobStatus, ErrorNumber, BlockRange,
                  uri_parse, Proxy, size_human_2_size_bytes,
-                 AccessGroup, FileSystem, NfsExport, TargetPort)
+                 AccessGroup, FileSystem, NfsExport, TargetPort, System)
 
 from lsm.lsmcli.data_display import (
     DisplayData, PlugData, out,
@@ -227,6 +227,14 @@ cmds = (
     dict(
         name='plugin-info',
         help='Retrieves plugin description and version',
+    ),
+
+    dict(
+        name='system_hwraid_mode_get',
+        help='Retrieves system mode',
+        args=[
+            dict(sys_id_opt),
+        ],
     ),
 
     dict(
@@ -669,6 +677,7 @@ aliases = (
     ['lt', 'list --type target_ports'],
     ['c', 'capabilities'],
     ['p', 'plugin-info'],
+    ['m', 'system_hwraid_mode_get'],
     ['vc', 'volume-create'],
     ['vrc', 'volume-raid-create'],
     ['vrcc', 'volume-raid-create-cap'],
@@ -1151,6 +1160,16 @@ class CmdLine:
             out("%s%s%s" % (desc, args.sep, version))
         else:
             out("Description: %s Version: %s" % (desc, version))
+
+    def system_hwraid_mode_get(self, args):
+        s = _get_item(self.c.systems(), args.sys, "System")
+        hwraid_mode = self.c.system_hwraid_mode_get(s)
+        if (hwraid_mode == System.HWRAID_MODE_RAID):
+            out("HWRAID mode enabled")
+        elif (hwraid_mode == System.HWRAID_MODE_HBA):
+            out("HBA mode enabled")
+        else:
+            out("System mode is unknown")
 
     ## Creates a volume
     def volume_create(self, args):
