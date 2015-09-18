@@ -259,6 +259,14 @@ if test "x$with_systemdsystemunitdir" != xno; then
 fi
 AM_CONDITIONAL(HAVE_SYSTEMD, [test -n "$with_systemdsystemunitdir" -a "x$with_systemdsystemunitdir" != xno ])
 
+AC_CHECK_HEADERS([scsi/sg_cmds_basic.h scsi/sg_cmds_extra.h], [],
+                 [AC_MSG_ERROR([sg3_utils-devel is required])])
+
+AC_CHECK_LIB([sgutils2], [sg_cmds_open_device], [],
+             [AC_MSG_ERROR([sg3_utils-devel is required])])
+
+PKG_CHECK_MODULES([LIBUDEV], [libudev])
+
 AC_OUTPUT(libstoragemgmt.pc \
           Makefile \
           c_binding/Makefile \
@@ -271,6 +279,7 @@ AC_OUTPUT(libstoragemgmt.pc \
           plugin/simc/Makefile \
           plugin/megaraid/Makefile \
           plugin/hpsa/Makefile \
+          plugin/ses/Makefile \
           daemon/Makefile \
           config/Makefile \
           doc/Makefile \
