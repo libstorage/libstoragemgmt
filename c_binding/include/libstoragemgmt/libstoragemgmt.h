@@ -609,6 +609,17 @@ int LSM_DLL_EXPORT \
                                        char **job, lsm_flag flags);
 
 /**
+ * Retrieves firmware verson of the specified system.
+ * @param[in]  conn                 Valid connection
+ * @param[in]  system		    lsm_system
+ * @param[out] fw_ver		    System firmware version
+ * @param[in]  flags                Reserved set to zero
+ * @return Firmware version string on success, error on anything else
+ */
+int LSM_DLL_EXPORT lsm_system_fw_version_get(lsm_connect *conn,
+                                             lsm_system *system,
+                                             char **fw_ver, lsm_flag flags);
+/**
  * Retrieves information about the different arrays accessible.
  * NOTE: Free returned systems by calling to lsm
  * @param[in]  conn                 Valid connection

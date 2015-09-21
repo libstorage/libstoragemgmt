@@ -141,6 +141,24 @@ int lsm_register_plugin_v1_2(lsm_plugin_ptr plug, void *private_data,
     return rc;
 }
 
+int lsm_register_plugin_v1_3(lsm_plugin_ptr plug, void *private_data,
+                             struct lsm_mgmt_ops_v1 *mgm_op,
+                             struct lsm_san_ops_v1 *san_op,
+                             struct lsm_fs_ops_v1 *fs_op,
+                             struct lsm_nas_ops_v1 *nas_op,
+                             struct lsm_ops_v1_2 *ops_v1_2,
+                             struct lsm_ops_v1_3 *ops_v1_3)
+{
+    int rc = lsm_register_plugin_v1_2(plug, private_data, mgm_op, san_op, fs_op,
+                                    nas_op, ops_v1_2);
+
+    if (rc != LSM_ERR_OK) {
+        return rc;
+    }
+    plug->ops_v1_3 = ops_v1_3;
+    return rc;
+}
+
 void *lsm_private_data_get(lsm_plugin_ptr plug)
 {
     if (!LSM_IS_PLUGIN(plug)) {
@@ -443,6 +461,38 @@ static int handle_plugin_info(lsm_plugin_ptr p, Value & params,
         result.push_back(Value(p->version));
         response = Value(result);
         rc = LSM_ERR_OK;
+    }
+    return rc;
+}
+
+static int handle_system_fw_version(lsm_plugin_ptr p, Value & params,
+                              Value & response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    char *fw_version;
+
+    if (p && p->ops_v1_3 && p->ops_v1_3->sys_fw_version) {
+            Value v_system = params["system"];
+
+            if (IS_CLASS_SYSTEM(v_system)) {
+                std::vector < Value > result;
+
+                lsm_system *system = value_to_system(v_system);
+                if (system) {
+                    rc = p->ops_v1_3->sys_fw_version(p, system,
+                                                     &fw_version,
+                                                     LSM_FLAG_GET_VALUE(params));
+
+                    if (LSM_ERR_OK == rc) {
+                        result.push_back(Value(*fw_version));
+                        response = Value(result);
+                    }
+                    lsm_system_record_free(system);
+                    system = NULL;
+                }
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
     }
     return rc;
 }
@@ -2401,7 +2451,8 @@ static std::map < std::string, handler > dispatch =
     ("volume_raid_info", handle_volume_raid_info)
     ("pool_member_info", handle_pool_member_info)
     ("volume_raid_create", handle_volume_raid_create)
-    ("volume_raid_create_cap_get", handle_volume_raid_create_cap_get);
+    ("volume_raid_create_cap_get", handle_volume_raid_create_cap_get)
+    ("system_fw_version", handle_system_fw_version);
 
 static int process_request(lsm_plugin_ptr p, const std::string & method,
                            Value & request, Value & response)

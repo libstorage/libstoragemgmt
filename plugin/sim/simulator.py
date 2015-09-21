@@ -89,6 +89,9 @@ class SimPlugin(INfs, IStorageAreaNetwork):
     def plugin_info(self, flags=0):
         return "Storage simulator", VERSION
 
+    def system_fw_version_get(self, system, flags=0):
+        return "1.00"
+
     def systems(self, flags=0):
         sim_syss = self.sim_array.systems()
         return [SimPlugin._sim_data_2_lsm(s) for s in sim_syss]

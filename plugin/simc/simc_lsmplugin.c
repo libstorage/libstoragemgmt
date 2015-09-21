@@ -1049,6 +1049,10 @@ static struct lsm_ops_v1_2 ops_v1_2 = {
     volume_raid_create,
 };
 
+static struct lsm_ops_v1_3 ops_v1_3 = {
+    NULL,
+};
+
 static int volume_enable_disable(lsm_plugin_ptr c, lsm_volume * v,
                                  lsm_flag flags)
 {
@@ -2377,8 +2381,8 @@ int load(lsm_plugin_ptr c, const char *uri, const char *password,
             _unload(pd);
             pd = NULL;
         } else {
-            rc = lsm_register_plugin_v1_2(c, pd, &mgm_ops, &san_ops,
-                                          &fs_ops, &nfs_ops, &ops_v1_2);
+            rc = lsm_register_plugin_v1_3(c, pd, &mgm_ops, &san_ops,
+                                          &fs_ops, &nfs_ops, &ops_v1_2, &ops_v1_3);
         }
     }
     return rc;
