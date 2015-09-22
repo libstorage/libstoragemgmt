@@ -82,7 +82,7 @@ def _parse_hpssacli_output(output):
     3. If current line is the start of new section, create an empty dictionary
        where following subsections or data could be stored in.
     """
-    required_sections = ['Array:', 'unassigned']
+    required_sections = ['Array:', 'unassigned', 'HBA Drives']
 
     output_lines = [
         l for l in output.split("\n")
@@ -512,7 +512,7 @@ class SmartArray(IPlugin):
                                     sys_id, ctrl_num, array_key_name,
                                     flag_free=False))
 
-                if key_name == 'unassigned':
+                if key_name == 'unassigned' or key_name == 'HBA Drives':
                     for array_key_name in ctrl_data[key_name].keys():
                         if array_key_name.startswith("physicaldrive"):
                             rc_lsm_disks.append(
