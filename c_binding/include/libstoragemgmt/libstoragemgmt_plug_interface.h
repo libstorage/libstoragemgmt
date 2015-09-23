@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2011-2014 Red Hat, Inc.
+ * Copyright (C) 2011-2015 Red Hat, Inc.
+ * (C) Copyright 2015 Hewlett Packard Enterprise Development LP
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -14,6 +15,8 @@
  * License along with this library; If not, see <http://www.gnu.org/licenses/>.
  *
  * Author: tasleson
+ *         Joe Handzik <joseph.t.handzik@hpe.com>
+ *         Gris Ge <fge@redhat.com>
  */
 
 #ifndef LIBSTORAGEMGMT_PLUG_INTERFACE_H
@@ -980,8 +983,6 @@ typedef int (*lsm_plug_volume_raid_create) (lsm_plugin_ptr c,
 
 /** \struct lsm_ops_v1_2
  * \brief Functions added in version 1.2
- * NOTE: This structure will change during the developement util version 1.2
- *       released.
  */
 struct lsm_ops_v1_2 {
     lsm_plug_volume_raid_info vol_raid_info;
@@ -1247,6 +1248,18 @@ lsm_system LSM_DLL_EXPORT *lsm_system_record_alloc(const char *id,
                                                    uint32_t status,
                                                    const char *status_info,
                                                    const char *plugin_data);
+
+/**
+ * New in version 1.3. Set firmware version.
+ * @param[in] id            Id
+ * @param[in] sys           System to update.
+ * @param[in] fw_ver        Firmware version string.
+ *                          Caller will get LSM_ERR_INVALID_ARGUMENT for
+ *                          empty string('\0').
+ * @return LSM_ERR_OK or LSM_ERR_NO_MEMORY or LSM_ERR_INVALID_ARGUMENT.
+ */
+int LSM_DLL_EXPORT lsm_system_fw_version_set(lsm_system *sys,
+                                             const char *fw_ver);
 
 /**
  * Retrieve plugin private data

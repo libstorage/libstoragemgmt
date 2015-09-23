@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2011-2014 Red Hat, Inc.
+ * Copyright (C) 2011-2015 Red Hat, Inc.
+ * (C) Copyright 2015 Hewlett Packard Enterprise Development LP
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -14,6 +15,8 @@
  * License along with this library; If not, see <http://www.gnu.org/licenses/>.
  *
  * Author: tasleson
+ *         Joe Handzik <joseph.t.handzik@hpe.com>
+ *         Gris Ge <fge@redhat.com>
  */
 
 #ifndef LSM_DATATYPES_H
@@ -162,6 +165,7 @@ struct _lsm_system {
     uint32_t status;            /**< Enumerated status value */
     char *status_info;          /**< System status text */
     char *plugin_data;          /**< Reserved for the plugin to use */
+    const char *fw_version;     /**< Firmware version */
 };
 
 #define LSM_CONNECT_MAGIC       0xAA7A000A

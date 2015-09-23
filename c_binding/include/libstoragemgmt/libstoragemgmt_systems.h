@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2011-2014 Red Hat, Inc.
+ * Copyright (C) 2011-2015 Red Hat, Inc.
+ * (C) Copyright 2015 Hewlett Packard Enterprise Development LP
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -14,6 +15,8 @@
  * License along with this library; If not, see <http://www.gnu.org/licenses/>.
  *
  * Author: tasleson
+ *         Joe Handzik <joseph.t.handzik@hpe.com>
+ *         Gris Ge <fge@redhat.com>
  */
 #ifndef LIBSTORAGEMGMT_SYSTEMS_H
 #define LIBSTORAGEMGMT_SYSTEMS_H
@@ -74,6 +77,17 @@ const char LSM_DLL_EXPORT *lsm_system_name_get(lsm_system *s);
  */
 uint32_t LSM_DLL_EXPORT lsm_system_status_get(lsm_system *s);
 
+/**
+ * New in version 1.3. Retrieves firmware version of the specified system.
+ * Please do not free fw_ver string pointer, resources will get freed when
+ * lsm_system_record_free() or lsm_system_record_array_free() is called.
+ * @param       s       System to retrieve firmware version for.
+ * @param[out]  fw_ver  Firmware version string.
+ * @return LSM_ERR_OK on success, or LSM_ERR_NO_SUPPORT, or
+ *         LSM_ERR_INVALID_ARGUMENT.
+ */
+int LSM_DLL_EXPORT lsm_system_fw_version_get(lsm_system *s,
+                                             const char **fw_ver);
 
 #ifdef  __cplusplus
 }
