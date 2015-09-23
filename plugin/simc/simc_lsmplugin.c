@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2014 Red Hat, Inc.
+ * Copyright (C) 2011-2015 Red Hat, Inc.
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -2285,6 +2285,7 @@ int load(lsm_plugin_ptr c, const char *uri, const char *password,
                                                 "LSM simulated storage plug-in",
                                                 LSM_SYSTEM_STATUS_OK, "",
                                                 NULL);
+        lsm_system_fw_version_set(pd->system[0], version);
 
         p = lsm_pool_record_alloc("POOL_3", "lsm_test_aggr",
                                   LSM_POOL_ELEMENT_TYPE_FS |
