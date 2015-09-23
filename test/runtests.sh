@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (C) 2011-2014 Red Hat, Inc.
+# Copyright (C) 2011-2015 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -15,6 +15,7 @@
 # License along with this library; If not, see <http://www.gnu.org/licenses/>.
 #
 # Author: tasleson
+#         Gris Ge <fge@redhat.com>
 #
 # Unit test case driver
 
@@ -134,11 +135,11 @@ good "cp $shared_libs/*.so.* $LD_LIBRARY_PATH"
 # user account exists.
 good "cp -av $lsm_py_folder/lsm $PYTHONPATH/"
 # In case the plugin and lsmcli link also copyed.
-if [ -e "$PYTHONPATH/lsm/plugin" ];then
+if [ -e "$PYTHONPATH/lsm/plugin" ] || [ -L "$PYTHONPATH/lsm/plugin" ];then
     good "rm $PYTHONPATH/lsm/plugin"
 fi
 good "cp -av $lsm_plugin_py_folder $PYTHONPATH/lsm/"
-if [ -e "$PYTHONPATH/lsm/lsmcli" ];then
+if [ -e "$PYTHONPATH/lsm/lsmcli" ] || [ -L "$PYTHONPATH/lsm/lsmcli" ];then
     good "rm $PYTHONPATH/lsm/lsmcli"
 fi
 good "cp -av $lsmcli_py_folder $PYTHONPATH/lsm/"
