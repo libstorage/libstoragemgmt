@@ -1725,7 +1725,7 @@ class SimArray(object):
     def _sim_sys_2_lsm(sim_sys):
         return System(
             sim_sys['id'], sim_sys['name'], sim_sys['status'],
-            sim_sys['status_info'])
+            sim_sys['status_info'], _fw_version=sim_sys["version"])
 
     @_handle_errors
     def systems(self):
