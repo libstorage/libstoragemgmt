@@ -344,6 +344,7 @@ class SmartArray(IPlugin):
         cap.set(Capabilities.POOL_MEMBER_INFO)
         cap.set(Capabilities.VOLUME_RAID_CREATE)
         cap.set(Capabilities.SYS_FW_VERSION_GET)
+        cap.set(Capabilities.DISK_SD_PATH)
         return cap
 
     def _sacli_exec(self, sacli_cmds, flag_convert=True):
@@ -502,12 +503,18 @@ class SmartArray(IPlugin):
         disk_type = _disk_type_of(hp_disk)
         blk_size = int(hp_disk['Native Block Size'])
         blk_count = int(_hp_size_to_lsm(hp_disk['Size']) / blk_size)
+
+        if 'Disk Name' in hp_disk.keys():
+            disk_sd_path = hp_disk['Disk Name']
+        else:
+            disk_sd_path = "-"
+
         status = _disk_status_of(hp_disk, flag_free)
         plugin_data = "%s:%s" % (ctrl_num, disk_num)
 
         return Disk(
-            disk_id, disk_name, disk_type, blk_size, blk_count,
-            status, sys_id, plugin_data)
+            disk_id, disk_name, disk_type, blk_size, blk_count, status,
+            sys_id, plugin_data, _disk_sd_path=disk_sd_path)
 
     @_handle_errors
     def disks(self, search_key=None, search_value=None,

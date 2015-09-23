@@ -1198,6 +1198,15 @@ lsm_disk LSM_DLL_EXPORT *lsm_disk_record_alloc(const char *id,
                                                const char *system_id);
 
 /**
+ * New in version 1.3. Set a disk's scsi device path.
+ * @param disk		Pointer to the disk of interest.
+ * @param sd_path	Pointer to the disk's scsi device path.
+ * @return LSM_ERR_OK on success, else error reason.
+ */
+int LSM_DLL_EXPORT lsm_disk_sd_path_set(lsm_disk *disk,
+                                        const char *sd_path);
+
+/**
  * Allocated the storage needed for one volume record.
  * @param id                    ID
  * @param name                  Name

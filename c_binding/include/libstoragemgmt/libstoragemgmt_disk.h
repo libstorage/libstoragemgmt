@@ -104,6 +104,16 @@ uint64_t LSM_DLL_EXPORT lsm_disk_block_size_get(lsm_disk *d);
 uint64_t LSM_DLL_EXPORT lsm_disk_status_get(lsm_disk *d);
 
 /**
+ * New in version 1.3. Retrieves a disk's scsi device path.
+ * Do not free returned string, free the struct lsm_disk instead.
+ * @param d		Pointer to the disk of interest.
+ * @param sd_path	Pointer to the disk's scsi device path.
+ * @return LSM_ERR_OK on success, else error reason.
+ */
+int LSM_DLL_EXPORT lsm_disk_sd_path_get(lsm_disk *d,
+                                        const char **sd_path);
+
+/**
  * Returns the system id
  * Note: Return value is valid as long as disk pointer is valid.  It gets
  * freed when record is freed.

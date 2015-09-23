@@ -274,6 +274,7 @@ struct LSM_DLL_LOCAL _lsm_disk {
     uint64_t block_count;
     uint64_t disk_status;       /* Bit field */
     char *system_id;
+    const char *disk_sd_path;
 };
 
 #define LSM_HASH_MAGIC     0xAA7A0011

@@ -706,6 +706,7 @@ lsm_disk *lsm_disk_record_alloc(const char *id, const char *name,
         rc->block_count = block_count;
         rc->disk_status = disk_status;
         rc->system_id = strdup(system_id);
+        rc->disk_sd_path = NULL;
 
         if (!rc->id || !rc->name || !rc->system_id) {
             lsm_disk_record_free(rc);
@@ -905,12 +906,21 @@ CREATE_FREE_ARRAY_FUNC(lsm_volume_record_array_free, lsm_volume_record_free,
 
 lsm_disk *lsm_disk_record_copy(lsm_disk * disk)
 {
+    lsm_disk *rc = NULL;
+
     if (LSM_IS_DISK(disk)) {
-        return lsm_disk_record_alloc(disk->id, disk->name, disk->disk_type,
-                                     disk->block_size, disk->block_count,
-                                     disk->disk_status, disk->system_id);
+        rc = lsm_disk_record_alloc(disk->id, disk->name, disk->disk_type,
+                                   disk->block_size, disk->block_count,
+                                   disk->disk_status, disk->system_id);
     }
-    return NULL;
+
+    if ((disk->disk_sd_path != NULL) &&
+        (lsm_disk_sd_path_set(rc, disk->disk_sd_path) != LSM_ERR_OK)) {
+        lsm_disk_record_free(rc);
+        rc = NULL;
+    }
+
+    return rc;
 }
 
 int lsm_disk_record_free(lsm_disk * d)
@@ -926,6 +936,9 @@ int lsm_disk_record_free(lsm_disk * d)
 
         free(d->system_id);
         d->system_id = NULL;
+
+        if (d->disk_sd_path != NULL)
+            free((char *) d->disk_sd_path);
 
         free(d);
         return LSM_ERR_OK;
@@ -1000,6 +1013,37 @@ char *lsm_volume_system_id_get(lsm_volume * v)
 char *lsm_volume_pool_id_get(lsm_volume * v)
 {
     MEMBER_GET(v, LSM_IS_VOL, pool_id, NULL);
+}
+
+int lsm_disk_sd_path_set(lsm_disk * disk, const char *sd_path)
+{
+    if ((disk == NULL) || (sd_path == NULL) || (sd_path[0] == '\0'))
+        return LSM_ERR_INVALID_ARGUMENT;
+
+    if (disk->disk_sd_path != NULL)
+        free((char *) disk->disk_sd_path);
+    disk->disk_sd_path = strdup(sd_path);
+    if (disk->disk_sd_path == NULL)
+        return LSM_ERR_NO_MEMORY;
+
+    return LSM_ERR_OK;
+}
+
+int lsm_disk_sd_path_get(lsm_disk * disk, const char **sd_path)
+{
+    if ((disk == NULL) || (sd_path == NULL))
+        return LSM_ERR_INVALID_ARGUMENT;
+
+    if (!LSM_IS_DISK(disk)) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    *sd_path = disk->disk_sd_path;
+
+    if (disk->disk_sd_path[0] != '\0')
+        return LSM_ERR_OK;
+    else
+        return LSM_ERR_NO_SUPPORT;
 }
 
 MEMBER_FUNC_GET(const char *, lsm_volume_plugin_data_get, lsm_volume * v, v,

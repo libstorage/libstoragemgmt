@@ -377,6 +377,16 @@ class TestPlugin(unittest.TestCase):
                 self.assertTrue(len(disks) > 0,
                                 "We need at least 1 disk to test")
 
+    def test_disk_sd_path_get(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            if supported(cap, [Cap.DISK_SD_PATH]):
+                for disk in self.c.disks():
+                    disk_sd_path = disk.disk_sd_path
+                    self.assertTrue(disk_sd_path is not None and
+                                    len(disk_sd_path) > 0,
+                                    "Disk scsi device node retrieval failed")
+
     def _volume_create(self, system_id,
                        element_type=lsm.Pool.ELEMENT_TYPE_VOLUME,
                        unsupported_features=0):
