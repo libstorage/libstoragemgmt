@@ -331,6 +331,7 @@ class DisplayData(object):
     SYSTEM_HEADER['name'] = 'Name'
     SYSTEM_HEADER['status'] = 'Status'
     SYSTEM_HEADER['status_info'] = 'Info'
+    SYSTEM_HEADER['fw_version'] = "FW Ver"
 
     SYSTEM_COLUMN_SKIP_KEYS = []
     # XXX_COLUMN_SKIP_KEYS contain a list of property should be skipped when
@@ -632,7 +633,14 @@ class DisplayData(object):
     @staticmethod
     def _get_man_pro_value(obj, key, value_conv_enum, value_conv_human,
                            flag_human, flag_enum):
-        value = getattr(obj, key)
+        try:
+            value = getattr(obj, key)
+        except LsmError as lsm_err:
+            if lsm_err.code == ErrorNumber.NO_SUPPORT:
+                value = ''
+            else:
+                raise lsm_err
+
         if not flag_enum:
             if key in value_conv_enum.keys():
                 value = value_conv_enum[key](value)
