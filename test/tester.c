@@ -1106,6 +1106,43 @@ START_TEST(test_disks)
 }
 END_TEST
 
+START_TEST(test_disk_location)
+{
+    uint32_t count = 0;
+    lsm_disk **d = NULL;
+    const char *location = NULL;
+    int i = 0;
+
+    fail_unless(c!=NULL);
+
+    int rc = lsm_disk_list(c, NULL, NULL, &d, &count, 0);
+
+    if( LSM_ERR_OK == rc ) {
+        fail_unless(LSM_ERR_OK == rc, "%d", rc);
+        fail_unless(count >= 1);
+
+        for( i = 0; i < count; ++i ) {
+            G(rc, lsm_disk_location_get, d[i], &location);
+
+            if (LSM_ERR_OK == rc)
+                printf("Disk location: (%s)\n", location);
+
+            rc = lsm_disk_location_get(d[i], NULL);
+            fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
+
+        }
+
+        rc = lsm_disk_location_get(NULL, &location);
+        fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
+
+        lsm_disk_record_array_free(d, count);
+    } else {
+        fail_unless(d == NULL);
+        fail_unless(count == 0);
+    }
+}
+END_TEST
+
 START_TEST(test_nfs_exports)
 {
     fail_unless(c != NULL);
@@ -3348,6 +3385,7 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_capability);
     tcase_add_test(basic, test_nfs_export_funcs);
     tcase_add_test(basic, test_disks);
+    tcase_add_test(basic, test_disk_location);
     tcase_add_test(basic, test_plugin_info);
     tcase_add_test(basic, test_system_fw_version);
     tcase_add_test(basic, test_system_mode);

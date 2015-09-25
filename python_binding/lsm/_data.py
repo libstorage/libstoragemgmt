@@ -208,7 +208,8 @@ class Disk(IData):
     # free disk and marked as STATUS_FREE|STATUS_SPARE_DISK.
 
     def __init__(self, _id, _name, _disk_type, _block_size, _num_of_blocks,
-                 _status, _system_id, _plugin_data=None, _vpd83=''):
+                 _status, _system_id, _plugin_data=None, _vpd83='',
+                 _disk_location=''):
         self._id = _id
         self._name = _name
         self._disk_type = _disk_type
@@ -223,6 +224,7 @@ class Disk(IData):
                            "expecting 32 or 16 lower case hex characters" %
                            _vpd83)
         self._vpd83 = _vpd83
+        self._disk_location = _disk_location
 
     @property
     def size_bytes(self):
@@ -245,6 +247,17 @@ class Disk(IData):
                 "Disk.vpd83 is not supported by current disk or plugin")
 
         return self._vpd83
+
+    @property
+    def disk_location(self):
+        """
+        String. Disk location in storage topology. New in version 1.3.
+        """
+        if self._disk_location == '':
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                           "Disk.disk_location() is not supported by this "
+                           "plugin yet")
+        return self._disk_location
 
     def __str__(self):
         return self.name
@@ -817,6 +830,7 @@ class Capabilities(IData):
 
     SYS_FW_VERSION_GET = 160
     SYS_MODE_GET = 161
+    DISK_LOCATION = 163
     VOLUME_LED = 171
 
     POOLS_QUICK_SEARCH = 210

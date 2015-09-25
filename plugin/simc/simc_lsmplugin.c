@@ -38,6 +38,7 @@ extern "C" {
 static char name[] = "Compiled plug-in example";
 static char version[] = "0.2.0";
 static char sys_id[] = "sim-01";
+static char disk_location[] = "Port: 2E Box: 3 Bay: 12";
 
 #define BS 512
 #define MAX_SYSTEMS 1
@@ -2370,6 +2371,7 @@ int load(lsm_plugin_ptr c, const char *uri, const char *password,
             d = lsm_disk_record_alloc(md5(name), name, LSM_DISK_TYPE_SOP,
                                       512, 0x8000000000000,
                                       LSM_DISK_STATUS_OK, sys_id);
+            lsm_disk_location_set(d, disk_location);
 
             key = strdup(lsm_disk_id_get(d));
 

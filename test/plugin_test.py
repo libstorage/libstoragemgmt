@@ -391,6 +391,16 @@ class TestPlugin(unittest.TestCase):
                         if lsm_err.code != ErrorNumber.NO_SUPPORT:
                             raise
 
+    def test_disk_location_get(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            if supported(cap, [Cap.DISK_LOCATION]):
+                for disk in self.c.disks():
+                    disk_location = disk.disk_location
+                    self.assertTrue(disk_location is not None and
+                                    len(disk_location) > 0,
+                                    "Disk location retrieval failed")
+ 
     def _volume_create(self, system_id,
                        element_type=lsm.Pool.ELEMENT_TYPE_VOLUME,
                        unsupported_features=0):

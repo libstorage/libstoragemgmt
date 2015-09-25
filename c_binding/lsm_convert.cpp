@@ -153,6 +153,18 @@ lsm_disk *value_to_disk(Value & disk)
             rc= NULL;
             throw ValueException("value_to_disk: failed to update 'vpd83'");
         }
+
+        if ((rc != NULL) && std_map_has_key(d, "disk_location") &&
+            (d["disk_location"].asC_str()[0] != '\0')) {
+            
+            if (lsm_disk_location_set(rc, d["disk_location"].asC_str()) !=
+                LSM_ERR_OK) {
+                lsm_disk_record_free(rc);
+                rc = NULL;
+                throw ValueException("value_to_disk: failed to update "
+                                     "disk_location");
+            }
+        }
     } else {
         throw ValueException("value_to_disk: Not correct type");
     }
@@ -172,6 +184,8 @@ Value disk_to_value(lsm_disk * disk)
         d["num_of_blocks"] = Value(disk->block_count);
         d["status"] = Value(disk->disk_status);
         d["system_id"] = Value(disk->system_id);
+        if (disk->disk_location != NULL)
+            d["disk_location"] = Value(disk->disk_location);
 
         return Value(d);
     }
