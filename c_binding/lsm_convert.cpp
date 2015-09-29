@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2011-2014 Red Hat, Inc.
+ * Copyright (C) 2011-2015 Red Hat, Inc.
+ * (C) Copyright 2015 Hewlett Packard Enterprise Development LP
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -14,12 +15,17 @@
  * License along with this library; If not, see <http://www.gnu.org/licenses/>.
  *
  * Author: tasleson
+ *         Joe Handzik <joseph.t.handzik@hpe.com>
+ *         Gris Ge <fge@redhat.com>
  */
 
 #include "lsm_convert.hpp"
 #include "libstoragemgmt/libstoragemgmt_accessgroups.h"
 #include "libstoragemgmt/libstoragemgmt_blockrange.h"
 #include "libstoragemgmt/libstoragemgmt_nfsexport.h"
+#include "libstoragemgmt/libstoragemgmt_plug_interface.h"
+
+#define _STD_MAP_HAS_KEY(x, y) (x).find((y)) != (x).end()
 
 bool is_expected_object(Value & obj, std::string class_name)
 {
@@ -260,6 +266,17 @@ lsm_system *value_to_system(Value & system)
                                      i["status"].asUint32_t(),
                                      i["status_info"].asString().c_str(),
                                      i["plugin_data"].asC_str());
+        if ((rc != NULL) && (_STD_MAP_HAS_KEY(i, "fw_version") == 1) &&
+            (i["fw_version"].asC_str()[0] != '\0')) {
+
+            if (lsm_system_fw_version_set(rc, i["fw_version"].asC_str()) !=
+                LSM_ERR_OK) {
+                lsm_system_record_free(rc);
+                rc= NULL;
+                throw ValueException("value_to_system: failed to update "
+                                     "fw_version");
+            }
+        }
     } else {
         throw ValueException("value_to_system: Not correct type");
     }
@@ -276,6 +293,8 @@ Value system_to_value(lsm_system * system)
         s["status"] = Value(system->status);
         s["status_info"] = Value(system->status_info);
         s["plugin_data"] = Value(system->plugin_data);
+        if (system->fw_version != NULL)
+            s["fw_version"] = Value(system->fw_version);
         return Value(s);
     }
     return Value();

@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2014 Red Hat, Inc.
+# Copyright (C) 2011-2015 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -357,12 +357,27 @@ class System(IData):
     STATUS_PREDICTIVE_FAILURE = 1 << 4
     STATUS_OTHER = 1 << 5
 
-    def __init__(self, _id, _name, _status, _status_info, _plugin_data=None):
+    def __init__(self, _id, _name, _status, _status_info, _plugin_data=None,
+                 _fw_version=''):
         self._id = _id
         self._name = _name
         self._status = _status
         self._status_info = _status_info
         self._plugin_data = _plugin_data
+        self._fw_version = _fw_version
+
+    @property
+    def fw_version(self):
+        """
+        String. Firmware version string. New in version 1.3.
+        On some system, it might contain multiple version strings, example:
+            "Package: 23.32.0-0009, FW: 3.440.05-3712"
+        """
+        if self._fw_version == '':
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                           "System.fw_version() is not supported by this "
+                           "plugin yet")
+        return self._fw_version
 
 
 @default_property('id', doc="Unique identifier")
@@ -749,6 +764,8 @@ class Capabilities(IData):
     EXPORT_FS = 122
     EXPORT_REMOVE = 123
     EXPORT_CUSTOM_PATH = 124
+
+    SYS_FW_VERSION_GET = 160
 
     POOLS_QUICK_SEARCH = 210
     VOLUMES_QUICK_SEARCH = 211

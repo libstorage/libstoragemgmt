@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2011-2014 Red Hat, Inc.
+ * Copyright (C) 2011-2015 Red Hat, Inc.
+ * (C) Copyright 2015 Hewlett Packard Enterprise Development LP
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -14,6 +15,8 @@
  * License along with this library; If not, see <http://www.gnu.org/licenses/>.
  *
  * Author: tasleson
+ *         Joe Handzik <joseph.t.handzik@hpe.com>
+ *         Gris Ge <fge@redhat.com>
  */
 
 #ifndef  __cplusplus
@@ -37,6 +40,7 @@
 #include "libstoragemgmt/libstoragemgmt_targetport.h"
 #include "libstoragemgmt/libstoragemgmt_types.h"
 #include "libstoragemgmt/libstoragemgmt_volumes.h"
+#include "libstoragemgmt/libstoragemgmt_plug_interface.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -724,6 +728,7 @@ lsm_system *lsm_system_record_alloc(const char *id, const char *name,
         rc->name = strdup(name);
         rc->status = status;
         rc->status_info = strdup(status_info);
+        rc->fw_version = NULL;
 
         if (plugin_data) {
             rc->plugin_data = strdup(plugin_data);
@@ -760,6 +765,9 @@ int lsm_system_record_free(lsm_system * s)
 
         free(s->plugin_data);
 
+        if (s->fw_version != NULL)
+            free((char *) s->fw_version);
+
         free(s);
         return LSM_ERR_OK;
     }
@@ -775,6 +783,12 @@ lsm_system *lsm_system_record_copy(lsm_system * s)
     if (LSM_IS_SYSTEM(s)) {
         rc = lsm_system_record_alloc(s->id, s->name, s->status, s->status_info,
                                      s->plugin_data);
+
+        if ((s->fw_version != NULL) &&
+            (lsm_system_fw_version_set(rc, s->fw_version) != LSM_ERR_OK)) {
+            lsm_system_record_free(rc);
+            rc = NULL;
+        }
     }
     return rc;
 }
@@ -801,6 +815,35 @@ uint32_t lsm_system_status_get(lsm_system * s)
         return s->status;
     }
     return UINT32_MAX;
+}
+
+int lsm_system_fw_version_set(lsm_system *sys, const char *fw_ver)
+{
+    if ((sys == NULL) || (fw_ver == NULL) || (fw_ver[0] == '\0') ||
+        (! LSM_IS_SYSTEM(sys)))
+        return LSM_ERR_INVALID_ARGUMENT;
+
+    if (sys->fw_version != NULL)
+        free((char *) sys->fw_version);
+
+    sys->fw_version = strdup(fw_ver);
+    if (sys->fw_version == NULL)
+        return LSM_ERR_NO_MEMORY;
+
+    return LSM_ERR_OK;
+}
+
+int lsm_system_fw_version_get(lsm_system *s, const char **fw_ver)
+{
+    if ((s == NULL) || (fw_ver == NULL) || (! LSM_IS_SYSTEM(s)))
+        return LSM_ERR_INVALID_ARGUMENT;
+
+    *fw_ver = s->fw_version;
+
+    if (s->fw_version[0] != '\0' )
+        return LSM_ERR_OK;
+    else
+        return LSM_ERR_NO_SUPPORT;
 }
 
 MEMBER_FUNC_GET(const char *, lsm_system_plugin_data_get, lsm_system * s,

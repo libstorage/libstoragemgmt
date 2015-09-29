@@ -366,20 +366,24 @@ class MegaRAID(IPlugin):
             ctrl_show_all_output = self._storcli_exec(
                 ["/c%d" % ctrl_num, "show", "all"])
             sys_id = self._sys_id_of_ctrl_num(ctrl_num, ctrl_show_all_output)
-            sys_name = "%s %s %s ver: %s" % (
+            sys_name = "%s %s %s" % (
                 ctrl_show_all_output['Basics']['Model'],
                 ctrl_show_all_output['Bus']['Host Interface'],
-                ctrl_show_all_output['Basics']['PCI Address'],
-                ctrl_show_all_output['Version']['Firmware Package Build'],
-                )
+                ctrl_show_all_output['Basics']['PCI Address'])
             (status, status_info) = self._lsm_status_of_ctrl(
                 ctrl_show_all_output)
             plugin_data = "/c%d" % ctrl_num
             # Since PCI slot sequence might change.
             # This string just stored for quick system verification.
 
+            fw_ver = "Package: %s, BIOS: %s, FW: %s" % (
+                ctrl_show_all_output["Version"]["Firmware Package Build"],
+                ctrl_show_all_output["Version"]["Bios Version"],
+                ctrl_show_all_output["Version"]["Firmware Version"])
+
             rc_lsm_syss.append(
-                System(sys_id, sys_name, status, status_info, plugin_data))
+                System(sys_id, sys_name, status, status_info, plugin_data,
+                       _fw_version=fw_ver))
 
         return rc_lsm_syss
 

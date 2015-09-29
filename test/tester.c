@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2011-2014 Red Hat, Inc.
+ * Copyright (C) 2011-2015 Red Hat, Inc.
+ * (C) Copyright 2015 Hewlett Packard Enterprise Development LP
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -14,6 +15,8 @@
  * License along with this library; If not, see <http://www.gnu.org/licenses/>.
  *
  * Author: tasleson
+ *         Joe Handzik <joseph.t.handzik@hpe.com>
+ *         Gris Ge <fge@redhat.com>
  */
 
 #include <stdio.h>
@@ -1960,6 +1963,35 @@ START_TEST(test_plugin_info)
 }
 END_TEST
 
+START_TEST(test_system_fw_version)
+{
+    const char *fw_ver = NULL;
+    int rc = 0;
+    lsm_system **sys = NULL;
+    uint32_t sys_count = 0;
+
+    G(rc, lsm_system_list, c, &sys, &sys_count, LSM_CLIENT_FLAG_RSVD);
+    fail_unless( sys_count >= 1, "count = %d", sys_count);
+
+    if(sys_count > 0) {
+
+        G(rc, lsm_system_fw_version_get, sys[0], &fw_ver);
+
+        if( LSM_ERR_OK == rc ) {
+            printf("Firmware version: (%s)\n", fw_ver);
+        }
+
+        rc = lsm_system_fw_version_get(sys[0], NULL);
+        fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
+    }
+
+    rc = lsm_system_fw_version_get(NULL, &fw_ver);
+    fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
+    lsm_system_record_array_free(sys, sys_count);
+
+}
+END_TEST
+
 START_TEST(test_get_available_plugins)
 {
     int i = 0;
@@ -3045,6 +3077,7 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_nfs_export_funcs);
     tcase_add_test(basic, test_disks);
     tcase_add_test(basic, test_plugin_info);
+    tcase_add_test(basic, test_system_fw_version);
     tcase_add_test(basic, test_get_available_plugins);
     tcase_add_test(basic, test_volume_methods);
     tcase_add_test(basic, test_iscsi_auth_in);

@@ -1,4 +1,5 @@
 # Copyright (C) 2015 Red Hat, Inc.
+# (C) Copyright 2015 Hewlett Packard Enterprise Development LP
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -13,6 +14,7 @@
 # License along with this library; If not, see <http://www.gnu.org/licenses/>.
 #
 # Author: Gris Ge <fge@redhat.com>
+#         Joe Handzik <joseph.t.handzik@hpe.com>
 
 import os
 import errno
@@ -324,6 +326,7 @@ class SmartArray(IPlugin):
         cap.set(Capabilities.VOLUME_RAID_INFO)
         cap.set(Capabilities.POOL_MEMBER_INFO)
         cap.set(Capabilities.VOLUME_RAID_CREATE)
+        cap.set(Capabilities.SYS_FW_VERSION_GET)
         return cap
 
     def _sacli_exec(self, sacli_cmds, flag_convert=True):
@@ -366,9 +369,10 @@ class SmartArray(IPlugin):
             (status, status_info) = _sys_status_of(ctrl_all_status[ctrl_name])
 
             plugin_data = "%s" % ctrl_data['Slot']
+            fw_ver = "%s" % ctrl_data['Firmware Version']
 
-            rc_lsm_syss.append(
-                System(sys_id, ctrl_name, status, status_info, plugin_data))
+            rc_lsm_syss.append(System(sys_id, ctrl_name, status, status_info,
+                                      plugin_data, _fw_version=fw_ver))
 
         return rc_lsm_syss
 

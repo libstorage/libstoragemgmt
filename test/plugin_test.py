@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 
-# Copyright (C) 2013-2014 Red Hat, Inc.
+# Copyright (C) 2013-2015 Red Hat, Inc.
+# (C) Copyright 2015 Hewlett Packard Enterprise Development LP
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -13,6 +14,10 @@
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; If not, see <http://www.gnu.org/licenses/>.
+#
+# Author:   tasleson
+#           Joe Handzik <joseph.t.handzik@hpe.com>
+#           Gris Ge <fge@redhat.com>
 
 import lsm
 import functools
@@ -305,6 +310,14 @@ class TestPlugin(unittest.TestCase):
         (desc, version) = self.c.plugin_info()
         self.assertTrue(desc is not None and len(desc) > 0)
         self.assertTrue(version is not None and len(version) > 0)
+
+    def test_fw_version_get(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            if supported(cap, [Cap.SYS_FW_VERSION_GET]):
+                fw_ver = s.fw_version
+                self.assertTrue(fw_ver is not None and len(fw_ver) > 0,
+                                "Firmware version retrieval failed")
 
     def test_timeout(self):
         tmo = 40000
