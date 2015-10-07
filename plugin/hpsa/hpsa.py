@@ -72,6 +72,21 @@ def _sys_status_of(hp_ctrl_status):
 
     return status, status_info
 
+# This fixes an HPSSACLI  bug where "Mirror Group N:" items are not
+# properly indented. This will indent (shunt) them to the appropriate level.
+def _fix_mirror_group_lines(output_lines):
+    mg_indent_level = None
+    for line_num in range(len(output_lines)):
+        cur_line = output_lines[line_num]
+        cur_indent_level = len(cur_line) - len(cur_line.lstrip())
+        if cur_line.lstrip().startswith('Mirror Group '):
+            mg_indent_level = cur_indent_level
+        elif ((mg_indent_level != None) and
+              (cur_indent_level < mg_indent_level)):
+            shunted_line = ' '*2*(mg_indent_level-cur_indent_level) + cur_line
+            output_lines[line_num] = shunted_line
+        elif mg_indent_level != None:
+            mg_indent_level = None
 
 def _parse_hpssacli_output(output):
     """
@@ -89,6 +104,8 @@ def _parse_hpssacli_output(output):
     output_lines = [
         l for l in output.split("\n")
         if l and not l.startswith('Note:')]
+
+    _fix_mirror_group_lines(output_lines)
 
     data = {}
 
