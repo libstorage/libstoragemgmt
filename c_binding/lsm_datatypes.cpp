@@ -675,6 +675,7 @@ lsm_volume *lsm_volume_record_alloc(const char *id, const char *name,
         rc->admin_state = status;
         rc->system_id = strdup(system_id);
         rc->pool_id = strdup(pool_id);
+        rc->vol_sd_path = NULL;
 
         if (plugin_data) {
             rc->plugin_data = strdup(plugin_data);
@@ -858,6 +859,13 @@ lsm_volume *lsm_volume_record_copy(lsm_volume * vol)
                                      vol->admin_state, vol->system_id,
                                      vol->pool_id, vol->plugin_data);
     }
+
+    if ((vol->vol_sd_path != NULL) &&
+        (lsm_volume_sd_path_set(rc, vol->vol_sd_path) != LSM_ERR_OK)) {
+        lsm_volume_record_free(rc);
+        rc = NULL;
+    }
+
     return rc;
 }
 
@@ -893,6 +901,9 @@ int lsm_volume_record_free(lsm_volume * v)
 
         free(v->plugin_data);
         v->plugin_data = NULL;
+
+        if (v->vol_sd_path != NULL)
+            free((char *) v->vol_sd_path);
 
         free(v);
         return LSM_ERR_OK;
@@ -1000,6 +1011,37 @@ char *lsm_volume_system_id_get(lsm_volume * v)
 char *lsm_volume_pool_id_get(lsm_volume * v)
 {
     MEMBER_GET(v, LSM_IS_VOL, pool_id, NULL);
+}
+
+int lsm_volume_sd_path_set(lsm_volume * vol, const char *sd_path)
+{
+    if ((vol == NULL) || (sd_path == NULL) || (sd_path[0] == '\0'))
+        return LSM_ERR_INVALID_ARGUMENT;
+
+    if (vol->vol_sd_path != NULL)
+        free((char *) vol->vol_sd_path);
+    vol->vol_sd_path = strdup(sd_path);
+    if (vol->vol_sd_path == NULL)
+        return LSM_ERR_NO_MEMORY;
+
+    return LSM_ERR_OK;
+}
+
+int lsm_volume_sd_path_get(lsm_volume * vol, const char **sd_path)
+{
+    if ((vol == NULL) || (sd_path == NULL))
+        return LSM_ERR_INVALID_ARGUMENT;
+
+    if (!LSM_IS_VOL(vol)) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    *sd_path = vol->vol_sd_path;
+
+    if (vol->vol_sd_path[0] != '\0')
+        return LSM_ERR_OK;
+    else
+        return LSM_ERR_NO_SUPPORT;
 }
 
 MEMBER_FUNC_GET(const char *, lsm_volume_plugin_data_get, lsm_volume * v, v,

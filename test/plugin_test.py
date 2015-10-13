@@ -500,6 +500,16 @@ class TestPlugin(unittest.TestCase):
                         # Delete the original
                         self._volume_delete(vol)
 
+    def test_volume_sd_path_get(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            if supported(cap, [Cap.VOLUME_SD_PATH]):
+                for volume in self.c.volumes():
+                    vol_sd_path = volume.vol_sd_path
+                    self.assertTrue(vol_sd_path is not None and
+                                    len(vol_sd_path) > 0,
+                                    "Volume scsi device node retrieval failed")
+
     def _replicate_test(self, capability, replication_type):
         if self.pool_by_sys_id:
             for s in self.systems:

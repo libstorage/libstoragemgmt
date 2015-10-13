@@ -55,6 +55,19 @@ lsm_volume *value_to_volume(Value & vol)
                                      v["system_id"].asString().c_str(),
                                      v["pool_id"].asString().c_str(),
                                      v["plugin_data"].asC_str());
+
+        if ((rc != NULL) && (_STD_MAP_HAS_KEY(v, "vol_sd_path") == 1) &&
+            (v["vol_sd_path"].asC_str()[0] != '\0')) {
+            
+            if (lsm_volume_sd_path_set(rc, v["vol_sd_path"].asC_str()) !=
+                LSM_ERR_OK) {
+                lsm_volume_record_free(rc);
+                rc = NULL;
+                throw ValueException("value_to_volume: failed to update "
+                                     "vol_sd_path");
+            }
+        }
+
     } else {
         throw ValueException("value_to_volume: Not correct type");
     }
@@ -76,6 +89,8 @@ Value volume_to_value(lsm_volume * vol)
         v["system_id"] = Value(vol->system_id);
         v["pool_id"] = Value(vol->pool_id);
         v["plugin_data"] = Value(vol->plugin_data);
+        if (vol->vol_sd_path != NULL)
+            v["vol_sd_path"] = Value(vol->vol_sd_path);
         return Value(v);
     }
     return Value();

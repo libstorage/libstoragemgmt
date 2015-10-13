@@ -344,6 +344,7 @@ class SmartArray(IPlugin):
         cap.set(Capabilities.POOL_MEMBER_INFO)
         cap.set(Capabilities.VOLUME_RAID_CREATE)
         cap.set(Capabilities.SYS_FW_VERSION_GET)
+        cap.set(Capabilities.VOLUME_SD_PATH)
         return cap
 
     def _sacli_exec(self, sacli_cmds, flag_convert=True):
@@ -448,6 +449,7 @@ class SmartArray(IPlugin):
         regex_match = re.compile("/dev/(sd[a-z]+)").search(hp_ld['Disk Name'])
         vol_name = hp_ld_name
         if regex_match:
+            vol_sd_path = hd_ld['Disk Name']
             sd_name = regex_match.group(1)
             block_size = int(file_read(
                 "/sys/block/%s/queue/logical_block_size" % sd_name))
@@ -462,7 +464,8 @@ class SmartArray(IPlugin):
         # HP SmartArray does not allow disabling volume.
         return Volume(
             vpd83, vol_name, vpd83, block_size, num_of_blocks,
-            Volume.ADMIN_STATE_ENABLED, sys_id, pool_id, plugin_data)
+            Volume.ADMIN_STATE_ENABLED, sys_id, pool_id, plugin_data,
+            _vol_sd_path = vol_sd_path)
 
     @_handle_errors
     def volumes(self, search_key=None, search_value=None,

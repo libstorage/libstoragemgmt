@@ -150,7 +150,7 @@ class BackStore(object):
 
     VOL_KEY_LIST = [
         'id', 'vpd83', 'name', 'total_space', 'consumed_size',
-        'pool_id', 'admin_state', 'thinp', 'is_hw_raid_vol']
+        'pool_id', 'admin_state', 'thinp', 'is_hw_raid_vol', 'vol_sd_path']
 
     TGT_KEY_LIST = [
         'id', 'port_type', 'service_address', 'network_address',
@@ -258,7 +258,7 @@ class BackStore(object):
             "is_hw_raid_vol INTEGER, "
             # ^ Once its volume deleted, pool will be delete also.
             # For HW RAID simulation only.
-
+            "vol_sd_path TEXT NOT NULL, "
             "pool_id INTEGER NOT NULL, "
             "FOREIGN KEY(pool_id) "
             "REFERENCES pools(id) ON DELETE CASCADE);\n")
@@ -467,6 +467,7 @@ class BackStore(object):
                     vol.admin_state,
                     vol.thinp,
                     vol.is_hw_raid_vol,
+                    vol.vol_sd_path,
                     vol_mask.ag_id ag_id
                 FROM
                     volumes vol
@@ -1057,7 +1058,7 @@ class BackStore(object):
             BackStore.BLK_SIZE * BackStore.BLK_SIZE
 
     def sim_vol_create(self, name, size_bytes, sim_pool_id, thinp,
-                       is_hw_raid_vol=0):
+                       is_hw_raid_vol=0, vol_sd_path=''):
 
         size_bytes = BackStore._block_rounding(size_bytes)
         self._check_pool_free_space(sim_pool_id, size_bytes)
@@ -1070,6 +1071,7 @@ class BackStore(object):
         sim_vol['consumed_size'] = size_bytes
         sim_vol['admin_state'] = Volume.ADMIN_STATE_ENABLED
         sim_vol['is_hw_raid_vol'] = is_hw_raid_vol
+        sim_vol['vol_sd_path'] = vol_sd_path
 
         try:
             self._data_add("volumes", sim_vol)
@@ -1741,7 +1743,7 @@ class SimArray(object):
                       BackStore.BLK_SIZE,
                       int(sim_vol['total_space'] / BackStore.BLK_SIZE),
                       sim_vol['admin_state'], BackStore.SYS_ID,
-                      pool_id)
+                      pool_id, _vol_sd_path='/dev/sda')
 
     @_handle_errors
     def volumes(self):
@@ -1792,7 +1794,7 @@ class SimArray(object):
 
     @_handle_errors
     def volume_create(self, pool_id, vol_name, size_bytes, thinp, flags=0,
-                      _internal_use=False, _is_hw_raid_vol=0):
+                      _internal_use=False, _is_hw_raid_vol=0, _vol_sd_path=''):
         """
         The '_internal_use' parameter is only for SimArray internal use.
         This method will return the new sim_vol id instead of job_id when
@@ -1803,7 +1805,7 @@ class SimArray(object):
 
         new_sim_vol_id = self.bs_obj.sim_vol_create(
             vol_name, size_bytes, SimArray._sim_pool_id_of(pool_id),
-            thinp, is_hw_raid_vol=_is_hw_raid_vol)
+            thinp, is_hw_raid_vol=_is_hw_raid_vol, vol_sd_path=_vol_sd_path)
 
         if _internal_use:
             return new_sim_vol_id
@@ -1845,7 +1847,7 @@ class SimArray(object):
 
         dst_sim_vol_id = self.volume_create(
             dst_pool_id, new_vol_name, src_sim_vol['total_space'],
-            src_sim_vol['thinp'], _internal_use=True)
+            src_sim_vol['thinp'], _internal_use=True, _vol_sd_path='/dev/sda')
 
         self.bs_obj.sim_vol_replica(src_sim_vol_id, dst_sim_vol_id, rep_type)
 
@@ -2368,7 +2370,7 @@ class SimArray(object):
         sim_vol_id = self.volume_create(
             SimArray._sim_id_to_lsm_id(sim_pool_id, 'POOL'), name,
             sim_pool['free_space'], Volume.PROVISION_FULL,
-            _internal_use=True, _is_hw_raid_vol=1)
+            _internal_use=True, _is_hw_raid_vol=1, _vol_sd_path='/dev/sda')
         sim_vol = self.bs_obj.sim_vol_of_id(sim_vol_id)
         self.bs_obj.trans_commit()
         return SimArray._sim_vol_2_lsm(sim_vol)

@@ -38,6 +38,7 @@ extern "C" {
 static char name[] = "Compiled plug-in example";
 static char version[] = "0.2.0";
 static char sys_id[] = "sim-01";
+static char vol_sd_path[] = "/dev/sdq";
 
 #define BS 512
 #define MAX_SYSTEMS 1
@@ -755,6 +756,7 @@ static int volume_create(lsm_plugin_ptr c, lsm_pool * pool,
                                    "60a980003246694a412b45673342616e",
                                     BS, allocated_size/BS, 0, sys_id,
                                     lsm_pool_id_get(pool), NULL);
+                lsm_volume_sd_path_set(v, vol_sd_path);
 
                 lsm_volume *to_store = lsm_volume_record_copy(v);
                 struct allocated_volume *av =
