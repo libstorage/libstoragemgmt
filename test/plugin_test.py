@@ -319,6 +319,14 @@ class TestPlugin(unittest.TestCase):
                 self.assertTrue(fw_ver is not None and len(fw_ver) > 0,
                                 "Firmware version retrieval failed")
 
+    def test_sys_mode_get(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            if supported(cap, [Cap.SYS_MODE_GET]):
+                fw_ver = s.fw_version
+                self.assertTrue(fw_ver is not None and len(fw_ver) > 0,
+                                "Firmware version retrieval failed")
+
     def test_timeout(self):
         tmo = 40000
         self.c.time_out_set(tmo)

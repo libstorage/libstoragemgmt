@@ -1992,6 +1992,35 @@ START_TEST(test_system_fw_version)
 }
 END_TEST
 
+START_TEST(test_system_mode)
+{
+    lsm_system_mode_type mode = LSM_SYSTEM_MODE_NO_SUPPORT;
+    int rc = 0;
+    lsm_system **sys = NULL;
+    uint32_t sys_count = 0;
+
+    G(rc, lsm_system_list, c, &sys, &sys_count, LSM_CLIENT_FLAG_RSVD);
+    fail_unless( sys_count >= 1, "count = %d", sys_count);
+
+    if(sys_count > 0) {
+
+        G(rc, lsm_system_mode_get, sys[0], &mode);
+
+        if( LSM_ERR_OK == rc ) {
+            printf("System mode: (%d)\n", mode);
+        }
+
+        rc = lsm_system_mode_get(sys[0], NULL);
+        fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
+    }
+
+    rc = lsm_system_mode_get(NULL, &mode);
+    fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
+    lsm_system_record_array_free(sys, sys_count);
+
+}
+END_TEST
+
 START_TEST(test_get_available_plugins)
 {
     int i = 0;
@@ -3078,6 +3107,7 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_disks);
     tcase_add_test(basic, test_plugin_info);
     tcase_add_test(basic, test_system_fw_version);
+    tcase_add_test(basic, test_system_mode);
     tcase_add_test(basic, test_get_available_plugins);
     tcase_add_test(basic, test_volume_methods);
     tcase_add_test(basic, test_iscsi_auth_in);
