@@ -381,9 +381,17 @@ class MegaRAID(IPlugin):
                 ctrl_show_all_output["Version"]["Bios Version"],
                 ctrl_show_all_output["Version"]["Firmware Version"])
 
+            if ctrl_show_all_output["Capabilities"]["Enable JBOD"] == "Yes":
+                mode = System.MODE_HBA
+            else:
+                mode = System.MODE_HARDWARE_RAID
+            # Notes for JBOD/HBA mode of MegaRAID:
+            # "storcli /c0/e9/s1 set jbod" require "storcli /c0 set jbod=on"
+            # be excuted first.
+
             rc_lsm_syss.append(
                 System(sys_id, sys_name, status, status_info, plugin_data,
-                       _fw_version=fw_ver))
+                       _fw_version=fw_ver, _mode=mode))
 
         return rc_lsm_syss
 
