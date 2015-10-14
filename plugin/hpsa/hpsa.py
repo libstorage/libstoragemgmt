@@ -387,9 +387,19 @@ class SmartArray(IPlugin):
 
             plugin_data = "%s" % ctrl_data['Slot']
             fw_ver = "%s" % ctrl_data['Firmware Version']
+            hwraid_mode = ctrl_data['Controller Mode']
+            if hwraid_mode == 'RAID':
+                mode = System.MODE_HARDWARE_RAID
+            elif hwraid_mode == 'HBA':
+                mode = System.MODE_HBA
+            else:
+                raise LsmError(
+                    ErrorNumber.PLUGIN_BUG,
+                    "Invalid Controller Mode: '%s'" % hwraid_mode)
 
             rc_lsm_syss.append(System(sys_id, ctrl_name, status, status_info,
-                                      plugin_data, _fw_version=fw_ver))
+                                      plugin_data, _fw_version=fw_ver,
+                                      _mode=mode))
 
         return rc_lsm_syss
 
