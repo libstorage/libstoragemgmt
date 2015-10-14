@@ -166,6 +166,7 @@ struct _lsm_system {
     char *status_info;          /**< System status text */
     char *plugin_data;          /**< Reserved for the plugin to use */
     const char *fw_version;     /**< Firmware version */
+    lsm_system_mode_type mode;  /**< System mode */
 };
 
 #define LSM_CONNECT_MAGIC       0xAA7A000A

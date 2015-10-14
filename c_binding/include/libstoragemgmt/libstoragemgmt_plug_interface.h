@@ -1262,6 +1262,15 @@ int LSM_DLL_EXPORT lsm_system_fw_version_set(lsm_system *sys,
                                              const char *fw_ver);
 
 /**
+ * New in version 1.3. Set system mode.
+ * @param[in] sys           System to update.
+ * @param[in] mode          System mode 'lsm_system_mode_type'.
+ * @return LSM_ERR_OK or LSM_ERR_INVALID_ARGUMENT.
+ */
+int LSM_DLL_EXPORT lsm_system_mode_set(lsm_system *sys,
+                                       lsm_system_mode_type mode);
+
+/**
  * Retrieve plugin private data
  * @param s     System
  * @return Optional data, NULL if none exist

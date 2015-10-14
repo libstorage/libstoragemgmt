@@ -729,6 +729,7 @@ lsm_system *lsm_system_record_alloc(const char *id, const char *name,
         rc->status = status;
         rc->status_info = strdup(status_info);
         rc->fw_version = NULL;
+        rc->mode = LSM_SYSTEM_MODE_NO_SUPPORT;
 
         if (plugin_data) {
             rc->plugin_data = strdup(plugin_data);
@@ -783,6 +784,7 @@ lsm_system *lsm_system_record_copy(lsm_system * s)
     if (LSM_IS_SYSTEM(s)) {
         rc = lsm_system_record_alloc(s->id, s->name, s->status, s->status_info,
                                      s->plugin_data);
+        rc->mode = s->mode;
 
         if ((s->fw_version != NULL) &&
             (lsm_system_fw_version_set(rc, s->fw_version) != LSM_ERR_OK)) {
@@ -841,6 +843,30 @@ int lsm_system_fw_version_get(lsm_system *s, const char **fw_ver)
     *fw_ver = s->fw_version;
 
     if (s->fw_version[0] != '\0' )
+        return LSM_ERR_OK;
+    else
+        return LSM_ERR_NO_SUPPORT;
+}
+
+int lsm_system_mode_set(lsm_system *sys, lsm_system_mode_type mode)
+{
+    if ((sys == NULL) || (! LSM_IS_SYSTEM(sys)) ||
+        (mode == LSM_SYSTEM_MODE_NO_SUPPORT))
+        return LSM_ERR_INVALID_ARGUMENT;
+
+    sys->mode = mode;
+
+    return LSM_ERR_OK;
+}
+
+int lsm_system_mode_get(lsm_system *s, lsm_system_mode_type *mode)
+{
+    if ((s == NULL) || (mode == NULL) || (! LSM_IS_SYSTEM(s)))
+        return LSM_ERR_INVALID_ARGUMENT;
+
+    *mode = s->mode;
+
+    if (s->mode != LSM_SYSTEM_MODE_NO_SUPPORT)
         return LSM_ERR_OK;
     else
         return LSM_ERR_NO_SUPPORT;

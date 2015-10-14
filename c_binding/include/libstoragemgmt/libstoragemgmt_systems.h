@@ -89,6 +89,28 @@ uint32_t LSM_DLL_EXPORT lsm_system_status_get(lsm_system *s);
 int LSM_DLL_EXPORT lsm_system_fw_version_get(lsm_system *s,
                                              const char **fw_ver);
 
+/**
+ * New in version 1.3. Retrieves system mode, currently only supports
+ * retrieving hardware RAID cards system mode:
+ *      LSM_SYSTEM_MODE_NO_SUPPORT
+ *          The value when requested method is not supported.
+ *      LSM_SYSTEM_MODE_HARDWARE_RAID
+ *          The storage system is a hardware RAID card(like HP SmartArray and
+ *          LSI MegaRAID) and could expose the logical volume(aka, RAIDed
+ *          virtual disk) to OS while hardware RAID card is handling the RAID
+ *          algorithm. In this mode, storage system cannot expose physical disk
+ *          directly to OS.
+ *      LSM_SYSTEM_MODE_HBA
+ *          The physical disks can be exposed to OS directly without any
+ *          configurations. SCSI enclosure service might be exposed to OS also.
+ * @param       s       System to retrieve firmware version for.
+ * @param[out]  mode    System mode 'lsm_system_mode_type' pointer.
+ * @return LSM_ERR_OK on success, or LSM_ERR_NO_SUPPORT, or
+ *         LSM_ERR_INVALID_ARGUMENT.
+ */
+int LSM_DLL_EXPORT lsm_system_mode_get(lsm_system *s,
+                                       lsm_system_mode_type *mode);
+
 #ifdef  __cplusplus
 }
 #endif
