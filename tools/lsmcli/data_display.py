@@ -87,6 +87,16 @@ def system_status_to_str(system_status):
     return _bit_map_to_str(system_status, _SYSTEM_STATUS_CONV)
 
 
+_SYSTEM_MODE_CONV = {
+    System.MODE_HARDWARE_RAID: "HW RAID",
+    System.MODE_HBA: "HBA",
+}
+
+
+def system_mode_to_str(system_mode):
+    return _SYSTEM_MODE_CONV.get(system_mode, "");
+
+
 _POOL_STATUS_CONV = {
     Pool.STATUS_UNKNOWN: 'Unknown',
     Pool.STATUS_OK: 'OK',
@@ -332,6 +342,7 @@ class DisplayData(object):
     SYSTEM_HEADER['status'] = 'Status'
     SYSTEM_HEADER['status_info'] = 'Info'
     SYSTEM_HEADER['fw_version'] = "FW Ver"
+    SYSTEM_HEADER['mode'] = "Mode"
 
     SYSTEM_COLUMN_SKIP_KEYS = []
     # XXX_COLUMN_SKIP_KEYS contain a list of property should be skipped when
@@ -339,6 +350,7 @@ class DisplayData(object):
 
     SYSTEM_VALUE_CONV_ENUM = {
         'status': system_status_to_str,
+        'mode': system_mode_to_str,
     }
 
     SYSTEM_VALUE_CONV_HUMAN = []
