@@ -99,7 +99,6 @@ def _disk_status_of(disk_show_basic_dict, disk_show_stat_dict):
     disk_status = _DISK_STATE_MAP.get(disk_show_basic_dict['State'], 0)
 
     if disk_show_stat_dict['Media Error Count'] or \
-       disk_show_stat_dict['Other Error Count'] or \
        disk_show_stat_dict['S.M.A.R.T alert flagged by drive'] != 'No':
         disk_status = (disk_status & ~Disk.STATUS_OK) | Disk.STATUS_ERROR
 
