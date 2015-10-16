@@ -91,6 +91,7 @@ _DISK_STATE_MAP = {
     'UGood': Disk.STATUS_FREE | Disk.STATUS_OK,
     'UBad': Disk.STATUS_FREE | Disk.STATUS_ERROR,
     'Rbld': Disk.STATUS_RECONSTRUCT,
+    'JBOD': Disk.STATUS_OK,
 }
 
 
