@@ -95,18 +95,16 @@ _DISK_STATE_MAP = {
 
 
 def _disk_status_of(disk_show_basic_dict, disk_show_stat_dict):
-    disk_status = _DISK_STATE_MAP.get(
-        disk_show_basic_dict['State'], 0)
+    disk_status = _DISK_STATE_MAP.get(disk_show_basic_dict['State'], 0)
 
     if disk_show_stat_dict['Media Error Count'] or \
        disk_show_stat_dict['Other Error Count'] or \
        disk_show_stat_dict['S.M.A.R.T alert flagged by drive'] != 'No':
-        disk_status -= Disk.STATUS_OK
-        disk_status |= Disk.STATUS_ERROR
+        disk_status = (disk_status & ~Disk.STATUS_OK) | Disk.STATUS_ERROR
 
     elif disk_show_stat_dict['Predictive Failure Count']:
-        disk_status -= Disk.STATUS_OK
-        disk_status |= Disk.STATUS_PREDICTIVE_FAILURE
+        disk_status = (disk_status & ~Disk.STATUS_OK) | \
+            Disk.STATUS_PREDICTIVE_FAILURE
 
     if disk_show_basic_dict['Sp'] == 'D':
         disk_status |= Disk.STATUS_STOPPED
