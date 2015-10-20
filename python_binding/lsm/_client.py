@@ -1400,3 +1400,30 @@ class Client(INetworkAttachedStorage):
         SpecialExceptions:
         """
         return self._tp.rpc('volume_ident_led_set', _del_self(locals()))
+
+    ## Clear the IDENT LED for a volume.
+    # @param    self            The this pointer
+    # @param    volume          Volume object to target
+    # @param    flags           Flags
+    # @returns None on success, else raises LsmError
+    @_return_requires(None)
+    def volume_ident_led_clear(self, volume, flags=FLAG_RSVD):
+        """
+        lsm.Client.volume_ident_led_clear(self, volume,
+                                          flags=lsm.Client.FLAG_RSVD)
+
+        Version:
+            1.3
+        Usage:
+            This method disables the IDENT LED on a volume if supported
+        Parameters:
+            disk (lsm.Volume)
+                An lsm.Volume object.
+            flags (int)
+                Optional. Reserved for future use.
+                Should be set as lsm.Client.FLAG_RSVD.
+        Returns:
+            returns None on success, else raises LsmError on errors.
+        SpecialExceptions:
+        """
+        return self._tp.rpc('volume_ident_led_clear', _del_self(locals()))

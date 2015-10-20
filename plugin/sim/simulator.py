@@ -305,3 +305,6 @@ class SimPlugin(INfs, IStorageAreaNetwork):
 
     def volume_ident_led_set(self, volume, flags=0):
         return self.sim_array.volume_ident_led_set(volume)
+
+    def volume_ident_led_clear(self, volume, flags=0):
+        return self.sim_array.volume_ident_led_clear(volume)

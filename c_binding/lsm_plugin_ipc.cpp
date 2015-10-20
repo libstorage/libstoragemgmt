@@ -2385,6 +2385,30 @@ static int handle_volume_ident_led_set(lsm_plugin_ptr p, Value & params,
     return rc;
 }
 
+static int handle_volume_ident_led_clear(lsm_plugin_ptr p, Value & params,
+                                         Value & response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    if (p && p->ops_v1_3 && p->ops_v1_3->vol_ident_clear) {
+        Value v_vol = params["volume"];
+
+        if (Value::object_t == v_vol.valueType() &&
+            LSM_FLAG_EXPECTED_TYPE(params)) {
+
+            lsm_volume *volume = value_to_volume(v_vol);
+
+            rc = p->ops_v1_3->vol_ident_clear(p, volume,
+                                              LSM_FLAG_GET_VALUE(params));
+
+            lsm_volume_record_free(volume);
+
+        } else {
+            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+        }
+    }
+    return rc;
+}
+
 /**
  * map of function pointers
  */
@@ -2444,7 +2468,8 @@ static std::map < std::string, handler > dispatch =
     ("pool_member_info", handle_pool_member_info)
     ("volume_raid_create", handle_volume_raid_create)
     ("volume_raid_create_cap_get", handle_volume_raid_create_cap_get)
-    ("volume_ident_led_set", handle_volume_ident_led_set);
+    ("volume_ident_led_set", handle_volume_ident_led_set)
+    ("volume_ident_led_clear", handle_volume_ident_led_clear);
 
 static int process_request(lsm_plugin_ptr p, const std::string & method,
                            Value & request, Value & response)

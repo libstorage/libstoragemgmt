@@ -1049,6 +1049,12 @@ static int volume_ident_led_set(lsm_plugin_ptr c, lsm_volume * volume,
     return LSM_ERR_OK;
 }
 
+static int volume_ident_led_clear(lsm_plugin_ptr c, lsm_volume * volume,
+                                  lsm_flag flags)
+{
+    return LSM_ERR_OK;
+}
+
 static struct lsm_ops_v1_2 ops_v1_2 = {
     volume_raid_info,
     pool_member_info,
@@ -1058,6 +1064,7 @@ static struct lsm_ops_v1_2 ops_v1_2 = {
 
 static struct lsm_ops_v1_3 ops_v1_3 = {
     volume_ident_led_set,
+    volume_ident_led_clear,
 };
 
 static int volume_enable_disable(lsm_plugin_ptr c, lsm_volume * v,

@@ -824,3 +824,40 @@ class SmartArray(IPlugin):
                 "Volume not found")
 
         return None
+
+    @_handle_errors
+    def volume_ident_led_clear(self, volume, flags=Client.FLAG_RSVD):
+        """
+        Depend on command:
+            hpssacli ctrl slot=# ld # modify led=off
+            hpssacli ctrl slot=# show config detail
+        """
+        if not volume.plugin_data:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Ilegal input volume argument: missing plugin_data property")
+
+        (ctrl_num, array_num, ld_num) = volume.plugin_data.split(":")
+
+        try:
+            self._sacli_exec(
+                ["ctrl", "slot=%s" % ctrl_num, "ld %s" % ld_num, "modify",
+                "led=off"], flag_convert=False)
+        except ExecError:
+            ctrl_data = self._sacli_exec(
+                ["ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
+                ).values()[0]
+
+            for key_name in ctrl_data.keys():
+                if key_name != "Array: %s" % array_num:
+                    continue
+                for array_key_name in ctrl_data[key_name].keys():
+                    if array_key_name == "Logical Drive: %s" % ld_num:
+                        raise LsmError(
+                            ErrorNumber.PLUGIN_BUG,
+                            "volume_ident_led_clear failed unexpectedly")
+            raise LsmError(
+                ErrorNumber.NOT_FOUND_VOLUME,
+                "Volume not found")
+
+        return None
