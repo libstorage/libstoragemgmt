@@ -796,6 +796,7 @@ class Capabilities(IData):
 
     SYS_FW_VERSION_GET = 160
     SYS_MODE_GET = 161
+    VOLUME_LED = 171
 
     POOLS_QUICK_SEARCH = 210
     VOLUMES_QUICK_SEARCH = 211

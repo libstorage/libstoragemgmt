@@ -141,6 +141,24 @@ int lsm_register_plugin_v1_2(lsm_plugin_ptr plug, void *private_data,
     return rc;
 }
 
+int lsm_register_plugin_v1_3(lsm_plugin_ptr plug, void *private_data,
+                             struct lsm_mgmt_ops_v1 *mgm_op,
+                             struct lsm_san_ops_v1 *san_op,
+                             struct lsm_fs_ops_v1 *fs_op,
+                             struct lsm_nas_ops_v1 *nas_op,
+                             struct lsm_ops_v1_2 *ops_v1_2,
+                             struct lsm_ops_v1_3 *ops_v1_3)
+{
+    int rc = lsm_register_plugin_v1_2(plug, private_data, mgm_op, san_op, fs_op,
+                                      nas_op, ops_v1_2);
+
+    if (rc != LSM_ERR_OK) {
+        return rc;
+    }
+    plug->ops_v1_3 = ops_v1_3;
+    return rc;
+}
+
 void *lsm_private_data_get(lsm_plugin_ptr plug)
 {
     if (!LSM_IS_PLUGIN(plug)) {
@@ -2343,6 +2361,30 @@ static int handle_volume_raid_create(lsm_plugin_ptr p, Value & params,
     return rc;
 }
 
+static int handle_volume_ident_led_set(lsm_plugin_ptr p, Value & params,
+                                       Value & response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    if (p && p->ops_v1_3 && p->ops_v1_3->vol_ident_set) {
+        Value v_vol = params["volume"];
+
+        if (Value::object_t == v_vol.valueType() &&
+            LSM_FLAG_EXPECTED_TYPE(params)) {
+
+            lsm_volume *volume = value_to_volume(v_vol);
+
+            rc = p->ops_v1_3->vol_ident_set(p, volume,
+                                            LSM_FLAG_GET_VALUE(params));
+
+            lsm_volume_record_free(volume);
+
+        } else {
+            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+        }
+    }
+    return rc;
+}
+
 /**
  * map of function pointers
  */
@@ -2401,7 +2443,8 @@ static std::map < std::string, handler > dispatch =
     ("volume_raid_info", handle_volume_raid_info)
     ("pool_member_info", handle_pool_member_info)
     ("volume_raid_create", handle_volume_raid_create)
-    ("volume_raid_create_cap_get", handle_volume_raid_create_cap_get);
+    ("volume_raid_create_cap_get", handle_volume_raid_create_cap_get)
+    ("volume_ident_led_set", handle_volume_ident_led_set);
 
 static int process_request(lsm_plugin_ptr p, const std::string & method,
                            Value & request, Value & response)

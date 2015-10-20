@@ -344,6 +344,7 @@ class SmartArray(IPlugin):
         cap.set(Capabilities.POOL_MEMBER_INFO)
         cap.set(Capabilities.VOLUME_RAID_CREATE)
         cap.set(Capabilities.SYS_FW_VERSION_GET)
+        cap.set(Capabilities.VOLUME_LED)
         return cap
 
     def _sacli_exec(self, sacli_cmds, flag_convert=True):
@@ -786,3 +787,40 @@ class SmartArray(IPlugin):
                 "volume_raid_create(): Got unexpected count(not 1) of new "
                 "volumes: %s" % lsm_vols)
         return lsm_vols[0]
+
+    @_handle_errors
+    def volume_ident_led_set(self, volume, flags=Client.FLAG_RSVD):
+        """
+        Depend on command:
+            hpssacli ctrl slot=# ld # modify led=on
+            hpssacli ctrl slot=# show config detail
+        """
+        if not volume.plugin_data:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Ilegal input volume argument: missing plugin_data property")
+
+        (ctrl_num, array_num, ld_num) = volume.plugin_data.split(":")
+
+        try:
+            self._sacli_exec(
+                ["ctrl", "slot=%s" % ctrl_num, "ld %s" % ld_num, "modify",
+                "led=on"], flag_convert=False)
+        except ExecError:
+            ctrl_data = self._sacli_exec(
+                ["ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
+                ).values()[0]
+
+            for key_name in ctrl_data.keys():
+                if key_name != "Array: %s" % array_num:
+                    continue
+                for array_key_name in ctrl_data[key_name].keys():
+                    if array_key_name == "Logical Drive: %s" % ld_num:
+                        raise LsmError(
+                            ErrorNumber.PLUGIN_BUG,
+                            "volume_ident_led_set failed unexpectedly")
+            raise LsmError(
+                ErrorNumber.NOT_FOUND_VOLUME,
+                "Volume not found")
+
+        return None

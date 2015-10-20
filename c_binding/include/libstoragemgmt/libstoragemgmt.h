@@ -1005,6 +1005,18 @@ int LSM_DLL_EXPORT lsm_volume_raid_create(lsm_connect *c,
                                           lsm_volume **new_volume,
                                           lsm_flag flags);
 
+/**
+ * Enable the IDENT LED for the desired volume.
+ * New in version 1.3, only available for hardware RAID cards.
+ * @param[in] c				Valid connection
+ * @param[in] volume			A single lsm_volume
+ * @param[in] flags			Reserved, set to 0
+ * @return LSM_ERR_OK on success else error reason.
+ */
+int LSM_DLL_EXPORT lsm_volume_ident_led_set(lsm_connect *c,
+                                            lsm_volume *volume,
+                                            lsm_flag flags);
+
 #ifdef  __cplusplus
 }
 #endif

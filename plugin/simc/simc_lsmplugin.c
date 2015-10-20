@@ -395,6 +395,7 @@ static int cap(lsm_plugin_ptr c, lsm_system * system,
                                   LSM_CAP_EXPORT_FS,
                                   LSM_CAP_EXPORT_REMOVE,
                                   LSM_CAP_VOLUME_RAID_INFO,
+                                  LSM_CAP_VOLUME_LED,
                                   LSM_CAP_POOL_MEMBER_INFO, -1);
 
         if (LSM_ERR_OK != rc) {
@@ -1042,11 +1043,21 @@ static int volume_raid_create(lsm_plugin_ptr c, const char *name,
     return LSM_ERR_NO_SUPPORT;
 }
 
+static int volume_ident_led_set(lsm_plugin_ptr c, lsm_volume * volume,
+                                lsm_flag flags)
+{
+    return LSM_ERR_OK;
+}
+
 static struct lsm_ops_v1_2 ops_v1_2 = {
     volume_raid_info,
     pool_member_info,
     volume_raid_create_cap_get,
     volume_raid_create,
+};
+
+static struct lsm_ops_v1_3 ops_v1_3 = {
+    volume_ident_led_set,
 };
 
 static int volume_enable_disable(lsm_plugin_ptr c, lsm_volume * v,
@@ -2379,8 +2390,9 @@ int load(lsm_plugin_ptr c, const char *uri, const char *password,
             _unload(pd);
             pd = NULL;
         } else {
-            rc = lsm_register_plugin_v1_2(c, pd, &mgm_ops, &san_ops,
-                                          &fs_ops, &nfs_ops, &ops_v1_2);
+            rc = lsm_register_plugin_v1_3(c, pd, &mgm_ops, &san_ops,
+                                          &fs_ops, &nfs_ops, &ops_v1_2,
+                                          &ops_v1_3);
         }
     }
     return rc;

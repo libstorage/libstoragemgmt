@@ -302,3 +302,6 @@ class SimPlugin(INfs, IStorageAreaNetwork):
                            flags=0):
         return self.sim_array.volume_raid_create(
             name, raid_type, disks, strip_size)
+
+    def volume_ident_led_set(self, volume, flags=0):
+        return self.sim_array.volume_ident_led_set(volume)

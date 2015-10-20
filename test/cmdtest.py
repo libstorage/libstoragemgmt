@@ -776,6 +776,17 @@ def volume_raid_create_test(cap, system_id):
     return
 
 
+def volume_ident_led_set_test(cap):
+    if cap['VOLUME_LED']:
+        out = call([cmd, '-t' + sep, 'list', '--type', 'volumes'])[1]
+        volume_list = parse(out)
+        for volume in volume_list:
+            out = call([
+                cmd, '-t' + sep, 'volume-ident-led-set', '--volume', volume[0]])[1]
+
+    return
+
+
 def run_all_tests(cap, system_id):
 
     test_exit_code(cap, system_id)
