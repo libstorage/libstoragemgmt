@@ -157,6 +157,8 @@ typedef enum {
 
     LSM_CAP_SYS_FW_VERSION_GET = 160,
     /**^ Plug-in allows user to retrieve storage firmware version */
+    LSM_CAP_DISK_SD_PATH = 162,
+    /**^ Plugin-in allows user to retrieve scsi device path */
     LSM_CAP_POOLS_QUICK_SEARCH = 210,
     /**^ Seach occurs on array */
     LSM_CAP_VOLUMES_QUICK_SEARCH = 211,

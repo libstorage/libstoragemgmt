@@ -141,6 +141,18 @@ lsm_disk *value_to_disk(Value & disk)
                                    d["status"].asUint64_t(),
                                    d["system_id"].asString().c_str()
             );
+
+        if ((rc != NULL) && (_STD_MAP_HAS_KEY(d, "disk_sd_path") == 1) &&
+            (d["disk_sd_path"].asC_str()[0] != '\0')) {
+            
+            if (lsm_disk_sd_path_set(rc, d["disk_sd_path"].asC_str()) !=
+                LSM_ERR_OK) {
+                lsm_disk_record_free(rc);
+                rc = NULL;
+                throw ValueException("value_to_disk: failed to update "
+                                     "disk_sd_path");
+            }
+        }
     } else {
         throw ValueException("value_to_disk: Not correct type");
     }
@@ -160,6 +172,8 @@ Value disk_to_value(lsm_disk * disk)
         d["num_of_blocks"] = Value(disk->block_count);
         d["status"] = Value(disk->disk_status);
         d["system_id"] = Value(disk->system_id);
+        if (disk->disk_sd_path != NULL)
+            d["disk_sd_path"] = Value(disk->disk_sd_path);
 
         return Value(d);
     }
