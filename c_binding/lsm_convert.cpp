@@ -277,6 +277,15 @@ lsm_system *value_to_system(Value & system)
                                      "fw_version");
             }
         }
+        if ((rc != NULL) && (_STD_MAP_HAS_KEY(i, "mode") == 1) &&
+            (i["mode"].asInt32_t() != LSM_SYSTEM_MODE_NO_SUPPORT) &&
+            (lsm_system_mode_set(rc, (lsm_system_mode_type)
+                                 i["mode"].asInt32_t()))) {
+
+            lsm_system_record_free(rc);
+            rc= NULL;
+            throw ValueException("value_to_system: failed to update 'mode'");
+        }
     } else {
         throw ValueException("value_to_system: Not correct type");
     }
@@ -295,6 +304,8 @@ Value system_to_value(lsm_system * system)
         s["plugin_data"] = Value(system->plugin_data);
         if (system->fw_version != NULL)
             s["fw_version"] = Value(system->fw_version);
+        if (system->mode != LSM_SYSTEM_MODE_NO_SUPPORT)
+            s["mode"] = Value(system->mode);
         return Value(s);
     }
     return Value();

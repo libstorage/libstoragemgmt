@@ -133,6 +133,7 @@ class BackStore(object):
     SYS_NAME = "LSM simulated storage plug-in"
     BLK_SIZE = 512
     DEFAULT_STRIP_SIZE = 128 * 1024  # 128 KiB
+    SYS_MODE = System.MODE_HARDWARE_RAID
 
     _LIST_SPLITTER = '#'
 
@@ -1725,7 +1726,8 @@ class SimArray(object):
     def _sim_sys_2_lsm(sim_sys):
         return System(
             sim_sys['id'], sim_sys['name'], sim_sys['status'],
-            sim_sys['status_info'], _fw_version=sim_sys["version"])
+            sim_sys['status_info'], _fw_version=sim_sys["version"],
+            _mode=BackStore.SYS_MODE)
 
     @_handle_errors
     def systems(self):

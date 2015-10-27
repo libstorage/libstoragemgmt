@@ -2286,6 +2286,7 @@ int load(lsm_plugin_ptr c, const char *uri, const char *password,
                                                 LSM_SYSTEM_STATUS_OK, "",
                                                 NULL);
         lsm_system_fw_version_set(pd->system[0], version);
+        lsm_system_mode_set(pd->system[0], LSM_SYSTEM_MODE_HARDWARE_RAID);
 
         p = lsm_pool_record_alloc("POOL_3", "lsm_test_aggr",
                                   LSM_POOL_ELEMENT_TYPE_FS |

@@ -357,14 +357,23 @@ class System(IData):
     STATUS_PREDICTIVE_FAILURE = 1 << 4
     STATUS_OTHER = 1 << 5
 
+    MODE_NO_SUPPORT = 0
+    # ^ Only for internal use.
+    MODE_HARDWARE_RAID = 1
+    MODE_HBA = 2
+
     def __init__(self, _id, _name, _status, _status_info, _plugin_data=None,
-                 _fw_version=''):
+                 _fw_version='', _mode=None):
         self._id = _id
         self._name = _name
         self._status = _status
         self._status_info = _status_info
         self._plugin_data = _plugin_data
         self._fw_version = _fw_version
+        if _mode is None:
+            self._mode = System.MODE_NO_SUPPORT
+        else:
+            self._mode = _mode
 
     @property
     def fw_version(self):
@@ -378,6 +387,26 @@ class System(IData):
                            "System.fw_version() is not supported by this "
                            "plugin yet")
         return self._fw_version
+
+    @property
+    def mode(self):
+        """
+        Integer(enumerated value). System mode. New in version 1.3.
+        Only available for HW RAID systems at this time.
+        Possible values:
+            * lsm.System.MODE_HARDWARE_RAID
+                The logical volume(aka, RAIDed virtual disk) can be exposed
+                to OS  while hardware RAID card is handling the RAID
+                algorithm. Physical disk can not be exposed to OS directly.
+
+            * lsm.System.MODE_HBA
+                The physical disks can be exposed to OS directly.
+                SCSI enclosure service might be exposed to OS also.
+        """
+        if self._mode == System.MODE_NO_SUPPORT:
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                           "System.mode is not supported by this plugin yet")
+        return self._mode
 
 
 @default_property('id', doc="Unique identifier")
@@ -766,6 +795,7 @@ class Capabilities(IData):
     EXPORT_CUSTOM_PATH = 124
 
     SYS_FW_VERSION_GET = 160
+    SYS_MODE_GET = 161
 
     POOLS_QUICK_SEARCH = 210
     VOLUMES_QUICK_SEARCH = 211

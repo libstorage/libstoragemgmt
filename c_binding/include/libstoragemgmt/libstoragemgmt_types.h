@@ -328,6 +328,12 @@ typedef enum {
 #define LSM_VOLUME_VCR_STRIP_SIZE_DEFAULT           0
 /** ^ Plugin and hardware RAID will use their default strip size */
 
+typedef enum {
+    LSM_SYSTEM_MODE_NO_SUPPORT = 0,
+    LSM_SYSTEM_MODE_HARDWARE_RAID = 1,
+    LSM_SYSTEM_MODE_HBA = 2,
+} lsm_system_mode_type;
+
 #ifdef  __cplusplus
 }
 #endif
