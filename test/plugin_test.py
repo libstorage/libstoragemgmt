@@ -402,6 +402,8 @@ class TestPlugin(unittest.TestCase):
 
                 self.assertTrue(self._volume_exists(vol.id), p.id)
                 self.assertTrue(vol.pool_id == p.id)
+                self.assertTrue(vol.system_id == p.system_id)
+
                 return vol, p
 
     def _fs_create(self, system_id):
@@ -417,6 +419,8 @@ class TestPlugin(unittest.TestCase):
                 fs_size = self._object_size(pool)
                 fs = self.c.fs_create(pool, rs('fs'), fs_size)[1]
                 self.assertTrue(self._fs_exists(fs.id))
+                self.assertTrue(self._system_exists(fs.system_id))
+                self.assertTrue(pool.system_id == fs.system_id)
 
                 self.assertTrue(fs is not None)
                 self.assertTrue(pool is not None)
@@ -455,6 +459,15 @@ class TestPlugin(unittest.TestCase):
 
         for f in fs:
             if f.id == fs_id:
+                return True
+
+        return False
+
+    def _system_exists(self, system_id):
+        systems = self.c.systems()
+
+        for s in systems:
+            if s.id == system_id:
                 return True
 
         return False
@@ -785,6 +798,8 @@ class TestPlugin(unittest.TestCase):
                         self._volume_delete(vol)
 
                 if ag_created:
+                    self.assertTrue(s.id == ag_created.system_id)
+
                     self.c.access_group_delete(ag_created)
                     ag_created = None
 
@@ -811,6 +826,8 @@ class TestPlugin(unittest.TestCase):
             self.assertTrue(len(match) == 1, "Newly created access group %s "
                                              "not in the access group listing"
                                              % (ag_created.name))
+
+            self.assertTrue(s.id == ag_created.system_id)
 
         return ag_created
 
@@ -921,7 +938,9 @@ class TestPlugin(unittest.TestCase):
             t_id = r_fcpn()
             t = lsm.AccessGroup.INIT_TYPE_WWPN
 
-        self.c.access_group_initiator_add(ag, t_id, t)
+        ag_add = self.c.access_group_initiator_add(ag, t_id, t)
+
+        self.assertTrue(ag_add.system_id == ag.system_id)
 
         ag_after = self.c.access_groups('id', ag.id)[0]
         match = [x for x in ag_after.init_ids if x == t_id]
