@@ -192,7 +192,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             fss.append(
                 FileSystem(fs, fs, NexentaStor._to_bytes(pool_info['size']),
                            self._to_bytes(pool_info['available']), pool_name,
-                           fs))
+                           self.system.id))
 
         return search_property(fss, search_key, search_value)
 
@@ -208,7 +208,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
             name = '/'.join(chunks)
         fs_name = self._request("create", "folder", [pool.name, name])[0]
         filesystem = FileSystem(fs_name, fs_name, pool.total_space,
-                                pool.free_space, pool.id, fs_name)
+                                pool.free_space, pool.id, self.system.id)
         return None, filesystem
 
     @handle_nstor_errors
@@ -801,9 +801,9 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         self._add_initiator(access_group.name, init_id)
         init_ids = self._request("list_hostgroup_members", "stmf",
                                  [access_group.name])
-        return AccessGroup(access_group.name, access_group.name,
+        return AccessGroup(access_group.id, access_group.name,
                            init_ids, AccessGroup.INIT_TYPE_ISCSI_IQN,
-                           access_group.id)
+                           self.system.id)
 
     @handle_nstor_errors
     def access_group_initiator_delete(self, access_group, init_id, init_type,
@@ -818,9 +818,9 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         self._add_initiator(access_group.name, init_id, True)
         init_ids = self._request("list_hostgroup_members", "stmf",
                                  [access_group.name])
-        return AccessGroup(access_group.name, access_group.name,
+        return AccessGroup(access_group.id, access_group.name,
                            init_ids, AccessGroup.INIT_TYPE_ISCSI_IQN,
-                           access_group.id)
+                           self.system.id)
 
     @handle_nstor_errors
     def volumes_accessible_by_access_group(self, access_group, flags=0):
