@@ -267,7 +267,14 @@ sub _parse_py_init_file($) {
 
     foreach my $line (@lines) {
         if ( $line =~ /from ([^ ]+) import (.+)$/ ) {
-            push @rc1, sprintf "%s/%s.py", $folder_path, $1;
+            my $module_file_name = $1;
+            if ($module_file_name =~ /^lsm\.(.+)$/) {
+                $module_file_name = $1;
+                $module_file_name =~ s|\.|/|g;
+                push @rc1, sprintf "%s/%s.py", $folder_path, $module_file_name;
+            } else {
+                push @rc1, sprintf "%s/%s.py", $folder_path, $module_file_name;
+            }
             my $class_line = $2;
             while ( $class_line =~ /([A-Z][a-zA-Z]+)[, \\]*/g ) {
                 push @rc2, $1;
