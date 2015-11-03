@@ -70,6 +70,13 @@ BuildRequires:  libyajl-devel
 BuildRequires:  yajl-devel
 %endif
 
+%if 0%{?rhel} == 6
+BuildRequires:  libudev-devel
+%else
+BuildRequires:  systemd-devel
+%endif
+BuildRequires:  python-devel
+
 %if 0%{?do_fdupes}
 BuildRequires:  fdupes
 %endif
@@ -134,6 +141,14 @@ Requires:       python-ordereddict
 The %{libstoragemgmt}-python package contains python client libraries as
 well as python framework support and open source plug-ins written in python.
 
+%package        -n %{libstoragemgmt}-python-clibs
+Summary:        Python C extension module for %{libstoragemgmt}
+Group:          System Environment/Libraries
+Requires:       %{libstoragemgmt} = %{version}-%{release}
+
+%description    -n %{libstoragemgmt}-python-clibs
+The %{libstoragemgmt}-python-clibs package contains python client C extension
+libraries.
 
 %package        -n %{libstoragemgmt}-smis-plugin
 Summary:        Files for SMI-S generic array support for %{libstoragemgmt}
@@ -558,6 +573,9 @@ fi
 %{_bindir}/sim_lsmplugin
 %{_sysconfdir}/lsm/pluginconf.d/sim.conf
 %{_mandir}/man1/sim_lsmplugin.1*
+
+%files -n %{libstoragemgmt}-python-clibs
+%{python_sitelib}/lsm/_scsi.*
 
 %files -n %{libstoragemgmt}-smis-plugin
 %defattr(-,root,root,-)
