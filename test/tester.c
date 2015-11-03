@@ -36,6 +36,9 @@ const char *ISCSI_HOST[2] = {   "iqn.1994-05.com.domain:01.89bd01",
 static int which_plugin = 0;
 
 #define POLL_SLEEP 50000
+#define VPD83_TO_SEARCH "600508b1001c79ade5178f0626caaa9c"
+#define INVALID_VPD83 "600508b1001c79ade5178f0626caaa9c1"
+#define VALID_BUT_NOT_EXIST_VPD83 "5000000000000000"
 
 lsm_connect *c = NULL;
 
@@ -3137,6 +3140,105 @@ START_TEST(test_volume_ident_led_clear)
 }
 END_TEST
 
+
+/*
+ * Just check whether LSM_ERR_INVALID_ARGUMENT handle correctly.
+ */
+START_TEST(test_scsi_disk_paths_of_vpd83)
+{
+    int rc = LSM_ERR_OK;
+    lsm_string_list *sd_path_list;
+    /* Not initialized in order to test dangling pointer sd_path_list */
+    lsm_error *lsm_err = NULL;
+
+    if (which_plugin == 1){
+        /* silently skip on simc, no need for duplicate test. */
+        return;
+    }
+
+    rc = lsm_scsi_disk_paths_of_vpd83(NULL, &sd_path_list, &lsm_err);
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting "
+                "LSM_ERR_INVALID_ARGUMENT when vpd83 argument pointer is NULL");
+
+    fail_unless(sd_path_list == NULL,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting "
+                "sd_path_list been set as NULL.");
+
+    fail_unless(lsm_err != NULL,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting "
+                "lsm_err been set as non-NULL.");
+    fail_unless(lsm_error_number_get(lsm_err) == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting "
+                "lsm_err been set with LSM_ERR_INVALID_ARGUMENT");
+    fail_unless(lsm_error_message_get(lsm_err) != NULL,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting "
+                "lsm_err been set with non-NULL error message");
+    lsm_error_free(lsm_err);
+
+
+    rc = lsm_scsi_disk_paths_of_vpd83(VPD83_TO_SEARCH, NULL, &lsm_err);
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting "
+                "LSM_ERR_INVALID_ARGUMENT when sd_path_list argument pointer "
+                "is NULL");
+    lsm_error_free(lsm_err);
+
+    rc = lsm_scsi_disk_paths_of_vpd83(VPD83_TO_SEARCH, &sd_path_list, NULL);
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting "
+                "LSM_ERR_INVALID_ARGUMENT when lsm_err argument pointer "
+                "is NULL");
+
+    rc = lsm_scsi_disk_paths_of_vpd83(INVALID_VPD83, &sd_path_list, &lsm_err);
+    fail_unless(lsm_err != NULL,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting lsm_err "
+                "been set at not NULL when incorrect VPD83 provided");
+    fail_unless(lsm_error_number_get(lsm_err) == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting "
+                "lsm_err been set with LSM_ERR_INVALID_ARGUMENT");
+    fail_unless(lsm_error_message_get(lsm_err) != NULL,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting "
+                "lsm_err been set with non-NULL error message");
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting LSM_ERR_OK "
+                "when no argument is NULL");
+    lsm_error_free(lsm_err);
+
+    rc = lsm_scsi_disk_paths_of_vpd83(VPD83_TO_SEARCH, &sd_path_list, &lsm_err);
+    fail_unless(rc == LSM_ERR_OK,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting LSM_ERR_OK"
+                "when no argument is NULL");
+
+    fail_unless(lsm_err == NULL,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting lsm_err as NULL"
+                "when valid argument provided");
+
+    if (sd_path_list != NULL)
+        lsm_string_list_free(sd_path_list);
+
+    if (lsm_err != NULL)
+        lsm_error_free(lsm_err);
+    /* ^ No need to free lsm_err as programme already quit due to above check,
+     * keeping this line is just for code demonstration.
+     */
+
+    rc = lsm_scsi_disk_paths_of_vpd83(VALID_BUT_NOT_EXIST_VPD83, &sd_path_list,
+                                      &lsm_err);
+    fail_unless(rc == LSM_ERR_OK,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting LSM_ERR_OK"
+                "when no argument is NULL");
+    fail_unless(lsm_err == NULL,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting lsm_err as NULL"
+                "when valid argument provided");
+    fail_unless(sd_path_list == NULL,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting sd_path_list as "
+                "NULL when searching for VALID_BUT_NOT_EXIST_VPD83");
+
+}
+END_TEST
+
+
 Suite * lsm_suite(void)
 {
     Suite *s = suite_create("libStorageMgmt");
@@ -3180,6 +3282,7 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_volume_raid_create);
     tcase_add_test(basic, test_volume_ident_led_set);
     tcase_add_test(basic, test_volume_ident_led_clear);
+    tcase_add_test(basic, test_scsi_disk_paths_of_vpd83);
 
     suite_add_tcase(s, basic);
     return s;
