@@ -1384,6 +1384,44 @@ class TestPlugin(unittest.TestCase):
                 self._skip_current_test(
                     "Skip test: not support of VOLUME_RAID_CREATE")
 
+    def test_volume_raid_info(self):
+        flag_supported = False
+        pool_id_to_lsm_vols = dict()
+        created_lsm_vol = None
+
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            if supported(cap, [Cap.VOLUME_RAID_INFO]):
+                flag_supported = True
+        if flag_supported is False:
+            self._skip_current_test(
+                "Skip test: current system does not support "
+                "query volume raid info(lsm.Capabilities.VOLUME_RAID_INFO)")
+
+        # Try to find a volume per pool.
+        lsm_vols = self.c.volumes()
+        for lsm_vol in lsm_vols:
+            pool_id = lsm_vol.pool_id
+            if len(pool_id) != 0 and \
+               pool_id_to_lsm_vols.get(pool_id) is None:
+                pool_id_to_lsm_vols[pool_id] = lsm_vol
+
+        lsm_vols = pool_id_to_lsm_vols.values()
+        created_lsm_vol = self._volume_create(s.id)[0]
+        lsm_vols.append(created_lsm_vol)
+
+        for lsm_vol in lsm_vols:
+            [raid_type, strip_size, disk_count, min_io_size, opt_io_size] = \
+                self.c.volume_raid_info(lsm_vol)
+
+        # Test NOT_FOUND_VOLUME error.
+        self._volume_delete(created_lsm_vol)
+        try:
+            self.c.volume_raid_info(lsm_vol)
+        except lsm.LsmError as le:
+            if le.code != ErrorNumber.NOT_FOUND_VOLUME:
+                raise
+
 
 def dump_results():
     """
