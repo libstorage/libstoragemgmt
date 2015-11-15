@@ -90,6 +90,7 @@ bin_plugin=$rootdir/plugin/simc/.libs/
 lsm_py_folder=$rootdir/python_binding
 lsm_plugin_py_folder=$rootdir/plugin
 lsmcli_py_folder=$rootdir/tools/lsmcli
+py_scsi_folder=$rootdir/python_binding/lsm/.libs/
 
 if [ -e $rootdir/_build ]
 then
@@ -97,6 +98,7 @@ then
     LSMD_DAEMON=$rootdir/_build/daemon/lsmd
     shared_libs=$rootdir/_build/c_binding/.libs/
     bin_plugin=$rootdir/_build/plugin/simc/.libs/
+    py_scsi_folder=$rootdir/_build/python_binding/lsm/.libs/
     # In distcheck, all folder is read only(except _build and _inst).
     # which prevent us from linking plugin and lsmcli into python/lsm folder.
     chmod +w $rootdir/python_binding/lsm
@@ -143,6 +145,9 @@ if [ -e "$PYTHONPATH/lsm/lsmcli" ] || [ -L "$PYTHONPATH/lsm/lsmcli" ];then
     good "rm $PYTHONPATH/lsm/lsmcli"
 fi
 good "cp -av $lsmcli_py_folder $PYTHONPATH/lsm/"
+
+#Copy Python shared library _scsi.so
+good "cp -av $py_scsi_folder/*.so* $PYTHONPATH/lsm/"
 
 #Copy plugins to one directory.
 good "find $rootdir/ \( ! -regex '.*/\..*' \) -type f -name \*_lsmplugin -exec cp {} $plugins \;"
