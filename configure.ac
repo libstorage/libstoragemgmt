@@ -163,6 +163,18 @@ AC_PYTHON_MODULE([pywbem], [Required])
 AC_PYTHON_MODULE([M2Crypto], [Required])
 AC_PYTHON_MODULE([argparse], [Required])
 PKG_CHECK_MODULES([LIBUDEV], [libudev])
+PKG_CHECK_MODULES([PYTHON2], [python2], [], [not_found_py_pkg=yes])
+
+if test "x$not_found_py_pkg" == "xyes"; then
+    AC_CHECK_PROG([PY_CONFIG_CHECK], [python-config], [yes])
+    if test "x${PY_CONFIG_CHECK}" != "xyes"; then
+        AC_MSG_ERROR([Python2 development libraries required])
+    fi
+    PYTHON2_CFLAGS=`python-config --cflags`
+    PYTHON2_LIBS=`python-config --libs`
+    AC_SUBST(PYTHON2_CFLAGS)
+    AC_SUBST(PYTHON2_LIBS)
+fi
 
 dnl ==========================================================================
 dnl Check for libmicrohttpd and json-c as it is needed for REST API daemon
