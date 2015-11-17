@@ -45,14 +45,8 @@ cleanup() {
     cat $LSMD_TMP_LOG_FILE
     if [ -e $LSM_UDS_PATH ]
     then
+        chmod +w -R $base
         rm -rf     $base
-    fi
-
-    if [ -e $rootdir/_build ]
-    then
-        rm $lsm_py_folder/lsm/plugin
-        rm $lsm_py_folder/lsm/lsmcli
-        chmod -w $lsm_py_folder/lsm
     fi
 }
 
