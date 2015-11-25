@@ -412,6 +412,24 @@ cmds = (
     ),
 
     dict(
+        name='volume-ident-led-set',
+        help='Enable the IDENT LED for a volume',
+        args=[
+            dict(name="--vol", metavar='<VOL_ID>',
+                 help='Targeted volume.\n'),
+        ],
+    ),
+
+    dict(
+        name='volume-ident-led-clear',
+        help='Disable the IDENT LED for a volume',
+        args=[
+            dict(name="--vol", metavar='<VOL_ID>',
+                 help='Targeted volume.\n'),
+        ],
+    ),
+
+    dict(
         name='pool-member-info',
         help='Query Pool membership infomation',
         args=[
@@ -683,6 +701,8 @@ aliases = (
     ['ar', 'access-group-remove'],
     ['ad', 'access-group-delete'],
     ['vri', 'volume-raid-info'],
+    ['vils', 'volume-ident-led-set'],
+    ['vilc', 'volume-ident-led-clear'],
     ['pmi', 'pool-member-info'],
 )
 
@@ -1420,6 +1440,16 @@ class CmdLine:
         lsm_sys = _get_item(self.c.systems(), args.sys, "System")
         self.display_data([
             VcrCap(lsm_sys.id, *self.c.volume_raid_create_cap_get(lsm_sys))])
+
+    def volume_ident_led_set(self, args):
+        lsm_volume = _get_item(self.c.volumes(), args.vol, "Volume")
+
+        self.c.volume_ident_led_set(lsm_volume)
+
+    def volume_ident_led_clear(self, args):
+        lsm_volume = _get_item(self.c.volumes(), args.vol, "Volume")
+
+        self.c.volume_ident_led_clear(lsm_volume)
 
     ## Displays file system dependants
     def fs_dependants(self, args):

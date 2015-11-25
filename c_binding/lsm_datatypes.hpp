@@ -193,6 +193,7 @@ struct LSM_DLL_LOCAL _lsm_plugin {
     struct lsm_nas_ops_v1 *nas_ops;    /**< Callbacks for NAS ops */
     struct lsm_fs_ops_v1 *fs_ops;      /**< Callbacks for fs ops */
     struct lsm_ops_v1_2 *ops_v1_2;     /**< Callbacks for v1.2 ops */
+    struct lsm_ops_v1_3 *ops_v1_3;     /**< Callbacks for v1.3 ops */
 };
 
 

@@ -2374,3 +2374,23 @@ class SimArray(object):
         sim_vol = self.bs_obj.sim_vol_of_id(sim_vol_id)
         self.bs_obj.trans_commit()
         return SimArray._sim_vol_2_lsm(sim_vol)
+
+    @_handle_errors
+    def volume_ident_led_set(self, volume, flags=0):
+        sim_volume_id = SimArray._lsm_id_to_sim_id(
+                            volume.id, LsmError(
+                                           ErrorNumber.NOT_FOUND_VOLUME,
+                                           "Volume not found"))
+        sim_vol = self.bs_obj.sim_vol_of_id(sim_volume_id)
+
+        return None
+
+    @_handle_errors
+    def volume_ident_led_clear(self, volume, flags=0):
+        sim_volume_id = SimArray._lsm_id_to_sim_id(
+                            volume.id, LsmError(
+                                           ErrorNumber.NOT_FOUND_VOLUME,
+                                           "Volume not found"))
+        sim_vol = self.bs_obj.sim_vol_of_id(sim_volume_id)
+
+        return None

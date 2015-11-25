@@ -1423,6 +1423,26 @@ class TestPlugin(unittest.TestCase):
                 raise
 
 
+    def test_volume_ident_led_set(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            if supported(cap, [Cap.VOLUME_LED]):
+                for volume in self.c.volumes():
+                    volume_led_status = self.c.volume_ident_led_set(volume)
+                    self.assertTrue(volume_led_status is None,
+                                    "Volume ident_led_set"
+                                    "failed")
+
+    def test_volume_ident_led_clear(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            if supported(cap, [Cap.VOLUME_LED]):
+                for volume in self.c.volumes():
+                    volume_led_status = self.c.volume_ident_led_clear(volume)
+                    self.assertTrue(volume_led_status is None,
+                                    "Volume ident_led_clear"
+                                    "failed")
+
 def dump_results():
     """
     unittest.main exits when done so we need to register this handler to
