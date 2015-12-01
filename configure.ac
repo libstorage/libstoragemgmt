@@ -141,6 +141,27 @@ dnl =========================================================================
 dnl Check for perl, used for code constants checking
 dnl =========================================================================
 AC_PATH_PROGS(PERL, perl)
+if test -z $PERL ;then
+    AC_MSG_ERROR([Need 'perl' to run test cases])
+fi
+
+dnl =========================================================================
+dnl Check for chrpath, valgrind, wc, used for make check
+dnl =========================================================================
+AC_PATH_PROG([CHRPATH], chrpath)
+if test -z $CHRPATH ;then
+    AC_MSG_ERROR([Need 'chrpath' to run test cases])
+fi
+
+AC_PATH_PROG([VALGRIND], valgrind)
+if test -z $VALGRIND ;then
+    AC_MSG_ERROR([Need 'valgrind' to run memory leak test])
+fi
+
+AC_PATH_PROG([WC], wc)
+if test -z $WC ;then
+    AC_MSG_ERROR([Need 'wc' to run test cases])
+fi
 
 dnl ==========================================================================
 dnl Check for python2 as it is needed for the base cmd line function
@@ -308,4 +329,6 @@ AC_OUTPUT(libstoragemgmt.pc \
           packaging/daemon/Makefile \
           packaging/libstoragemgmt.spec \
           doc/man/Makefile \
+          test/runtests.sh \
           test/Makefile)
+chmod +x test/runtests.sh

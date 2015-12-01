@@ -27,13 +27,13 @@
 #include <libstoragemgmt/libstoragemgmt.h>
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 
-const char URI[] = "sim://localhost/?statefile=/tmp/%d/lsm_sim_%s";
+const char URI[] = "sim://localhost/?statefile=%s/lsm_sim_%s";
 const char SYSTEM_NAME[] = "LSM simulated storage plug-in";
 const char SYSTEM_ID[] = "sim-01";
 const char *ISCSI_HOST[2] = {   "iqn.1994-05.com.domain:01.89bd01",
                                 "iqn.1994-05.com.domain:01.89bd02" };
 
-static int which_plugin = 0;
+static int is_simc_plugin = 0;
 
 #define POLL_SLEEP 50000
 #define VPD83_TO_SEARCH "600508b1001c79ade5178f0626caaa9c"
@@ -68,7 +68,7 @@ char *error(lsm_error_ptr e)
 #define G(variable, func, ...)     \
 variable = func(__VA_ARGS__);               \
 fail_unless( LSM_ERR_OK == variable, "call:%s rc = %d %s (which %d)", #func, \
-                    variable, error(lsm_error_last_get(c)), which_plugin);
+                    variable, error(lsm_error_last_get(c)), is_simc_plugin);
 
 /**
  * Macro for calls which we expect failure.
@@ -79,7 +79,7 @@ fail_unless( LSM_ERR_OK == variable, "call:%s rc = %d %s (which %d)", #func, \
 #define F(variable, func, ...)     \
 variable = func(__VA_ARGS__);               \
 fail_unless( LSM_ERR_OK != variable, "call:%s rc = %d %s (which %d)", #func, \
-                    variable, error(lsm_error_last_get(c)), which_plugin);
+                    variable, error(lsm_error_last_get(c)), is_simc_plugin);
 
 /**
 * Generates a random string in the buffer with specified length.
@@ -114,7 +114,7 @@ char *plugin_to_use()
 {
     char *uri_to_use = "sim://";
 
-    if( which_plugin == 1 ) {
+    if( is_simc_plugin == 1 ) {
         uri_to_use = "simc://";
     } else {
         char *rundir = getenv("LSM_TEST_RUNDIR");
@@ -124,11 +124,10 @@ char *plugin_to_use()
          */
 
         if( rundir ) {
-            int rdir = atoi(rundir);
             static char fn[128];
             static char name[32];
             generate_random(name, sizeof(name));
-            snprintf(fn, sizeof(fn),  URI, rdir, name);
+            snprintf(fn, sizeof(fn),  URI, rundir, name);
             uri_to_use = fn;
         } else {
             printf("Missing LSM_TEST_RUNDIR, expect test failures!\n");
@@ -687,7 +686,7 @@ START_TEST(test_access_groups)
     rc = lsm_access_group_initiator_add(c, group, "iqn.1994-05.com.domain:01.89bd02",
                                         LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN,
                                         &updated, LSM_CLIENT_FLAG_RSVD);
-    fail_unless(LSM_ERR_OK == rc, "Expected success on lsmAccessGroupInitiatorAdd %d %d", rc, which_plugin);
+    fail_unless(LSM_ERR_OK == rc, "Expected success on lsmAccessGroupInitiatorAdd %d %d", rc, is_simc_plugin);
 
     G(rc, lsm_access_group_list, c, NULL, NULL, &groups, &count, LSM_CLIENT_FLAG_RSVD);
     fail_unless( 1 == count );
@@ -784,7 +783,7 @@ START_TEST(test_access_groups_grant_revoke)
     if( LSM_ERR_JOB_STARTED == rc ) {
         wait_for_job(c, &job);
     } else {
-        fail_unless(LSM_ERR_OK == rc, "rc = %d, plug-in = %d", rc, which_plugin);
+        fail_unless(LSM_ERR_OK == rc, "rc = %d, plug-in = %d", rc, is_simc_plugin);
     }
 
     lsm_volume **volumes = NULL;
@@ -814,8 +813,8 @@ START_TEST(test_access_groups_grant_revoke)
     if( LSM_ERR_JOB_STARTED == rc ) {
         wait_for_job(c, &job);
     } else {
-        fail_unless(LSM_ERR_OK == rc, "rc = %d, which_plugin=%d",
-                    rc, which_plugin);
+        fail_unless(LSM_ERR_OK == rc, "rc = %d, is_simc_plugin=%d",
+                    rc, is_simc_plugin);
     }
 
     G(rc, lsm_access_group_delete, c, group, LSM_CLIENT_FLAG_RSVD);
@@ -894,7 +893,7 @@ START_TEST(test_fs)
         resized_fs = wait_for_job_fs(c, &job);
     }
 
-    if ( which_plugin == 0 ){
+    if ( is_simc_plugin == 0 ){
 
         uint8_t yes_no = 10;
         G(rc, lsm_fs_child_dependency, c, nfs, NULL, &yes_no,
@@ -2995,7 +2994,7 @@ END_TEST
 
 START_TEST(test_volume_raid_create_cap_get)
 {
-    if (which_plugin == 1){
+    if (is_simc_plugin == 1){
         // silently skip on simc which does not support this method yet.
         return;
     }
@@ -3028,7 +3027,7 @@ END_TEST
 
 START_TEST(test_volume_raid_create)
 {
-    if (which_plugin == 1){
+    if (is_simc_plugin == 1){
         // silently skip on simc which does not support this method yet.
         return;
     }
@@ -3155,7 +3154,7 @@ START_TEST(test_scsi_disk_paths_of_vpd83)
     /* Not initialized in order to test dangling pointer sd_path_list */
     lsm_error *lsm_err = NULL;
 
-    if (which_plugin == 1){
+    if (is_simc_plugin == 1){
         /* silently skip on simc, no need for duplicate test. */
         return;
     }
@@ -3298,16 +3297,11 @@ int main(int argc, char** argv)
     Suite *s = lsm_suite();
     SRunner *sr = srunner_create(s);
 
-    /*
-     * Don't run python plug-in tests if we are looking for
-     * memory leaks.
+    /* Test against simc:// if got any cli argument
+     * else use sim:// instead
      */
-    if( !getenv("LSM_VALGRIND") ) {
-        srunner_run_all(sr, CK_NORMAL);
-    }
-
-    /* Switch plug-in backend to test C language compat. */
-    which_plugin = 1;
+    if ((argc >= 2) && (argv[1] != NULL))
+        is_simc_plugin = 1;
 
     srunner_run_all(sr, CK_NORMAL);
 

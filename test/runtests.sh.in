@@ -1,0 +1,64 @@
+#!/bin/bash
+
+# Copyright (C) 2011-2015 Red Hat, Inc.
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; If not, see <http://www.gnu.org/licenses/>.
+#
+# Author: tasleson
+#         Gris Ge <fge@redhat.com>
+#
+# Unit test case driver
+
+export G_SLICE=always-malloc
+export G_DEBUG=gc-friendly
+export CK_DEFAULT_TIMEOUT=600
+export CK_FORK=no
+
+#Put us in a consistent spot
+if [ ! -e "./test" ];then
+    echo "We are running from test folder directly."
+    cd ..
+fi
+
+test_base_dir="/tmp/$RANDOM"
+build_dir=$(readlink -f "`pwd`")
+src_dir=$(readlink -f "@abs_top_srcdir@")
+
+source "${src_dir}/test/test_include.sh"
+
+# First round: test against python plugin sim://
+lsm_test_base_install \
+    "$test_base_dir" "$build_dir" "$src_dir" ${LSM_TEST_INSTALL_PY_PLUGINS_ONLY}
+
+lsm_test_lsmd_start $LSM_TEST_WITHOUT_MEM_CHECK
+
+lsm_test_c_unit_test_run $LSM_TEST_WITHOUT_MEM_CHECK $LSM_TEST_SIM_URI
+lsm_test_cmd_test_run $LSM_TEST_SIM_URI
+lsm_test_plugin_test_run $LSM_TEST_SIM_URI
+
+lsm_test_cleanup
+
+# Second round: test against C plugin simc:// including memory leak check.
+lsm_test_base_install \
+    "$test_base_dir" "$build_dir" "$src_dir" ${LSM_TEST_INSTALL_C_PLUGINS_ONLY}
+
+lsm_test_lsmd_start $LSM_TEST_WITH_MEM_CHECK
+
+lsm_test_c_unit_test_run $LSM_TEST_WITH_MEM_CHECK $LSM_TEST_SIMC_URI
+# TODO(Gris Ge): Currently simc:// is stateless, command line test will fail.
+#                Enable this once rewrite simc plugin using sqlite.
+#lsm_test_cmd_test_run $LSM_TEST_SIMC_URI
+lsm_test_plugin_test_run $LSM_TEST_SIMC_URI
+
+lsm_test_check_memory_leak
+lsm_test_cleanup

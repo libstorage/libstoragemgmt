@@ -17,6 +17,7 @@ EXTRA_DIST = \
 	libstoragemgmt.pc.in \
 	libstoragemgmt.pc \
 	autogen.sh
+	test/runtest.sh
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libstoragemgmt.pc
@@ -27,5 +28,7 @@ docs:
 
 rpm: clean
 	@(unset CDPATH ; $(MAKE) dist && rpmbuild -ta $(distdir).tar.gz)
+
+TESTS = test/runtests.sh
 
 MAINTAINERCLEANFILES = .git-module-status
