@@ -192,6 +192,10 @@ void setup(void)
             getchar();
         }
     }
+    if (rc != LSM_ERR_OK) {
+        printf("Failed to create connection: code %d, %s\n", rc, error(e));
+        exit(EXIT_FAILURE);
+    }
 }
 
 void teardown(void)
