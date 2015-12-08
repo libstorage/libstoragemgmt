@@ -139,6 +139,13 @@ sub lsm_env_setup() {
         print "INFO: Creating softlink for lsmcli folder\n";
         system("ln -sv ../../tools/lsmcli $py_lsm_dir");
     }
+    # Link python C extension module.
+    foreach (<$py_lsm_dir/.libs/*>) {
+        next unless /\.so$/;
+        my $c_lib_file = basename($_);
+        system("ln -sfv '.libs/$c_lib_file' '$py_lsm_dir/$c_lib_file'")
+          unless (-l "$py_lsm_dir/$c_lib_file");
+    }
 
     unless ( -d "$LSM_UDS_PATH" ) {
         print "INFO: Creating socket folder $LSM_UDS_PATH\n";
