@@ -21,6 +21,8 @@ addons:
         - libconfig-dev
         - libudev-dev
         - python-dev
+        - valgrind
+        - chrpath
 
 compiler: gcc
 
