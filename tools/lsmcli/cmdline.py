@@ -110,6 +110,77 @@ def parse_convert_init(init_id):
     raise ArgError("--init-id %s is not a valid WWPN or iSCSI IQN" % init_id)
 
 
+_CHILD_OPTION_DST_PREFIX = 'child_'
+
+
+def _add_common_options(arg_parser, is_child=False):
+    """
+    As https://bugs.python.org/issue23058 indicate, argument parser should
+    not have subparser sharing the same argument and destination.
+    For subparser, we add common options as 'child_xxx' destination.
+    For default value, False is the only allowed default value in root.
+    """
+    prefix = ''
+    if is_child:
+        prefix = _CHILD_OPTION_DST_PREFIX
+
+    arg_parser.add_argument(
+        '-v', '--version', action='version',
+        version="%s %s" % (sys.argv[0], VERSION))
+
+    arg_parser.add_argument(
+        '-u', '--uri', action="store", type=str, metavar='<URI>',
+        dest="%suri" % prefix,
+        help='Uniform resource identifier (env LSMCLI_URI)')
+
+    arg_parser.add_argument(
+        '-P', '--prompt', action="store_true", dest="%sprompt" % prefix,
+        help='Prompt for password (env LSMCLI_PASSWORD)')
+
+    arg_parser.add_argument(
+        '-H', '--human', action="store_true", dest="%shuman" % prefix,
+        help='Print sizes in human readable format\n'
+             '(e.g., MiB, GiB, TiB)')
+
+    arg_parser.add_argument(
+        '-t', '--terse', action="store", dest="%ssep" % prefix,
+        metavar='<SEP>',
+        help='Print output in terse form with "SEP" '
+             'as a record separator')
+
+    arg_parser.add_argument(
+        '-e', '--enum', action="store_true", dest="%senum" % prefix,
+        default=False,
+        help='Display enumerated types as numbers instead of text')
+
+    arg_parser.add_argument(
+        '-f', '--force', action="store_true", dest="%sforce" % prefix,
+        default=False,
+        help='Bypass confirmation prompt for data loss operations')
+
+    arg_parser.add_argument(
+        '-w', '--wait', action="store", type=int, dest="%swait" % prefix,
+        help="Command timeout value in ms (default = 30s)")
+
+    arg_parser.add_argument(
+        '--header', action="store_true", dest="%sheader" % prefix,
+        help='Include the header with terse')
+
+    arg_parser.add_argument(
+        '-b', action="store_true", dest="%sasync" % prefix, default=False,
+        help='Run the command async. Instead of waiting for completion.\n '
+             'Command will exit(7) and job id written to stdout.')
+
+    arg_parser.add_argument(
+        '-s', '--script', action="store_true", dest="%sscript" % prefix,
+        default=False, help='Displaying data in script friendly way.')
+
+    if is_child:
+        default_dict = dict()
+        default_dict['%swait' % prefix] = 30000
+        arg_parser.set_defaults(**default_dict)
+
+
 ## This class represents a command line argument error
 class ArgError(Exception):
     def __init__(self, message, *args, **kwargs):
@@ -788,53 +859,7 @@ class CmdLine:
         Command line interface parameters
         """
         parent_parser = ArgumentParser(add_help=False)
-
-        parent_parser.add_argument(
-            '-v', '--version', action='version',
-            version="%s %s" % (sys.argv[0], VERSION))
-
-        parent_parser.add_argument(
-            '-u', '--uri', action="store", type=str, metavar='<URI>',
-            dest="uri", help='Uniform resource identifier (env LSMCLI_URI)')
-
-        parent_parser.add_argument(
-            '-P', '--prompt', action="store_true", dest="prompt",
-            help='Prompt for password (env LSMCLI_PASSWORD)')
-
-        parent_parser.add_argument(
-            '-H', '--human', action="store_true", dest="human",
-            help='Print sizes in human readable format\n'
-                 '(e.g., MiB, GiB, TiB)')
-
-        parent_parser.add_argument(
-            '-t', '--terse', action="store", dest="sep", metavar='<SEP>',
-            help='Print output in terse form with "SEP" '
-                 'as a record separator')
-
-        parent_parser.add_argument(
-            '-e', '--enum', action="store_true", dest="enum", default=False,
-            help='Display enumerated types as numbers instead of text')
-
-        parent_parser.add_argument(
-            '-f', '--force', action="store_true", dest="force", default=False,
-            help='Bypass confirmation prompt for data loss operations')
-
-        parent_parser.add_argument(
-            '-w', '--wait', action="store", type=int, dest="wait",
-            default=30000, help="Command timeout value in ms (default = 30s)")
-
-        parent_parser.add_argument(
-            '--header', action="store_true", dest="header",
-            help='Include the header with terse')
-
-        parent_parser.add_argument(
-            '-b', action="store_true", dest="async", default=False,
-            help='Run the command async. Instead of waiting for completion.\n '
-                 'Command will exit(7) and job id written to stdout.')
-
-        parent_parser.add_argument(
-            '-s', '--script', action="store_true", dest="script",
-            default=False, help='Displaying data in script friendly way.')
+        _add_common_options(parent_parser, is_child=True)
 
         parser = ArgumentParser(
             description='The libStorageMgmt command line interface.'
@@ -842,8 +867,8 @@ class CmdLine:
             epilog='Copyright 2012-2015 Red Hat, Inc.\n'
                    'Please report bugs to '
                    '<libstoragemgmt-devel@lists.fedorahosted.org>\n',
-            formatter_class=RawTextHelpFormatter,
-            parents=[parent_parser])
+            formatter_class=RawTextHelpFormatter)
+        _add_common_options(parser, is_child=False)
 
         subparsers = parser.add_subparsers(metavar="command")
 
@@ -879,8 +904,16 @@ class CmdLine:
                 cmd=alias[1].split(" "), func=self.handle_alias)
 
         self.parser = parser
-        known_agrs, self.unknown_args = parser.parse_known_args()
-        return known_agrs
+        known_args, self.unknown_args = parser.parse_known_args()
+        # Copy child value to root.
+        for k,v in vars(known_args).iteritems():
+            if k.startswith(_CHILD_OPTION_DST_PREFIX):
+                root_k = k[len(_CHILD_OPTION_DST_PREFIX):]
+                if getattr(known_args, root_k) is None or \
+                   getattr(known_args, root_k) is False:
+                    setattr(known_args, root_k, v)
+
+        return known_args
 
     ## Display the types of nfs client authentication that are supported.
     # @return None
