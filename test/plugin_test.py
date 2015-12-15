@@ -384,6 +384,12 @@ class TestPlugin(unittest.TestCase):
                 disks = self.c.disks()
                 self.assertTrue(len(disks) > 0,
                                 "We need at least 1 disk to test")
+                if supported(cap, [Cap.DISK_VPD83_GET]):
+                    try:
+                        list(disk.vpd83 for disk in disks)
+                    except LsmError as lsm_err:
+                        if lsm_err.code != ErrorNumber.NO_SUPPORT:
+                            raise
 
     def _volume_create(self, system_id,
                        element_type=lsm.Pool.ELEMENT_TYPE_VOLUME,

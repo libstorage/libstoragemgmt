@@ -39,6 +39,7 @@ static int is_simc_plugin = 0;
 #define VPD83_TO_SEARCH "600508b1001c79ade5178f0626caaa9c"
 #define INVALID_VPD83 "600508b1001c79ade5178f0626caaa9c1"
 #define VALID_BUT_NOT_EXIST_VPD83 "5000000000000000"
+#define NOT_EXIST_SD_PATH "/dev/qda"
 
 lsm_connect *c = NULL;
 
@@ -1092,7 +1093,10 @@ START_TEST(test_disks)
             fail_unless( lsm_disk_number_of_blocks_get(d[i]) >= 1);
             fail_unless( lsm_disk_block_size_get(d[i]) >= 1);
             fail_unless( lsm_disk_status_get(d[i]) >= 1);
-
+            if (is_simc_plugin == 0) {
+                /* Only sim support lsm_disk_vpd83_get() yet */
+                fail_unless(lsm_disk_vpd83_get(d[i]) != NULL);
+            }
         }
         lsm_disk_record_array_free(d, count);
     } else {
@@ -3241,6 +3245,86 @@ START_TEST(test_scsi_disk_paths_of_vpd83)
 }
 END_TEST
 
+START_TEST(test_scsi_vpd83_of_disk_path)
+{
+    int rc = LSM_ERR_OK;
+    const char *vpd83;
+    /* Not initialized in order to test dangling pointer vpd83 */
+    lsm_error *lsm_err = NULL;
+
+    rc = lsm_scsi_vpd83_of_disk_path(NULL, &vpd83, &lsm_err);
+
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "LSM_ERR_INVALID_ARGUMENT when input is NULL");
+    fail_unless(vpd83 == NULL,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "vpd83 been set as NULL.");
+    fail_unless(lsm_err != NULL,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "lsm_err been set as non-NULL.");
+    fail_unless(lsm_error_number_get(lsm_err) == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "lsm_err been set with LSM_ERR_INVALID_ARGUMENT");
+    fail_unless(lsm_error_message_get(lsm_err) != NULL,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "lsm_err been set with non-NULL error message");
+    lsm_error_free(lsm_err);
+
+    rc = lsm_scsi_vpd83_of_disk_path("/dev/sda", NULL, &lsm_err);
+
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "LSM_ERR_INVALID_ARGUMENT when input is NULL");
+    lsm_error_free(lsm_err);
+
+    rc = lsm_scsi_vpd83_of_disk_path("/dev/sda", &vpd83, NULL);
+
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "LSM_ERR_INVALID_ARGUMENT when lsm_err is NULL");
+
+    rc = lsm_scsi_vpd83_of_disk_path("/dev/", &vpd83, &lsm_err);
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "LSM_ERR_INVALID_ARGUMENT when input is illegal");
+    fail_unless(lsm_err != NULL,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "lsm_err been set as non-NULL.");
+    fail_unless(lsm_error_number_get(lsm_err) == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "lsm_err been set with LSM_ERR_INVALID_ARGUMENT");
+    fail_unless(lsm_error_message_get(lsm_err) != NULL,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "lsm_err been set with non-NULL error message");
+    lsm_error_free(lsm_err);
+
+    /* We cannot make sure /dev/sda exists, but worth trying */
+    lsm_scsi_vpd83_of_disk_path("/dev/sda", &vpd83, &lsm_err);
+    if (lsm_err != NULL)
+        lsm_error_free(lsm_err);
+    free((char *) vpd83);
+
+    /* Test non-exist disk */
+    rc = lsm_scsi_vpd83_of_disk_path(NOT_EXIST_SD_PATH, &vpd83, &lsm_err);
+    fail_unless(rc == LSM_ERR_NOT_FOUND_DISK,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "LSM_ERR_NOT_FOUND_DISK when disk not exist");
+    fail_unless(vpd83 == NULL,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "vpd83 as NULL when disk not exist");
+    fail_unless(lsm_err != NULL,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "lsm_err not NULL when disk not exist");
+    fail_unless(lsm_error_number_get(lsm_err) == LSM_ERR_NOT_FOUND_DISK,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "lsm_err been set with LSM_ERR_NOT_FOUND_DISK");
+    fail_unless(lsm_error_message_get(lsm_err) != NULL,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting lsm_err "
+                "been set with non-NULL error message when disk not exist");
+    lsm_error_free(lsm_err);
+}
+END_TEST
 
 Suite * lsm_suite(void)
 {
@@ -3286,6 +3370,8 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_volume_ident_led_set);
     tcase_add_test(basic, test_volume_ident_led_clear);
     tcase_add_test(basic, test_scsi_disk_paths_of_vpd83);
+    tcase_add_test(basic, test_scsi_vpd83_of_disk_path);
+
 
     suite_add_tcase(s, basic);
     return s;
