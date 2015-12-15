@@ -1617,6 +1617,14 @@ void LSM_DLL_EXPORT
                                        lsm_target_port *tp[],
                                        uint32_t *count);
 
+/**
+ * New in version 1.3. Set disk VPD83 ID.
+ * @param[in] disk          Disk to update.
+ * @param[in] vpd83         VPD83 ID string.
+ * @return LSM_ERR_OK or LSM_ERR_INVALID_ARGUMENT.
+ */
+int LSM_DLL_EXPORT lsm_disk_vpd83_set(lsm_disk *disk, const char *vpd83);
+
 #ifdef  __cplusplus
 }
 #endif

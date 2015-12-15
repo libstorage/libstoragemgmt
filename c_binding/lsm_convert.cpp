@@ -141,6 +141,14 @@ lsm_disk *value_to_disk(Value & disk)
                                    d["status"].asUint64_t(),
                                    d["system_id"].asString().c_str()
             );
+        if ((rc != NULL) && (_STD_MAP_HAS_KEY(d, "vpd83") == 1) &&
+            (d["vpd83"].asC_str()[0] != '\0' ) &&
+            (lsm_disk_vpd83_set(rc, d["vpd83"].asC_str()) != LSM_ERR_OK)) {
+
+            lsm_disk_record_free(rc);
+            rc= NULL;
+            throw ValueException("value_to_disk: failed to update 'vpd83'");
+        }
     } else {
         throw ValueException("value_to_disk: Not correct type");
     }

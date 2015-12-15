@@ -186,6 +186,9 @@ typedef enum {
 
     LSM_CAP_VOLUME_RAID_CREATE = 222,
     /**^ Create RAID volume */
+
+    LSM_CAP_DISK_VPD83_GET = 223,
+    /**^ Query SCSI VPD83 ID of disk */
 } lsm_capability_type;
 
 /**

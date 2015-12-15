@@ -546,3 +546,70 @@ int lsm_scsi_disk_paths_of_vpd83(const char *vpd83,
 
     return rc;
 }
+
+int lsm_scsi_vpd83_of_disk_path(const char *sd_path, const char **vpd83,
+                                lsm_error **lsm_err)
+{
+    char tmp_vpd83[_MAX_VPD83_NAA_ID_LEN];
+    const char *sd_name = NULL;
+    int rc = LSM_ERR_OK;
+    char err_msg[_LSM_ERR_MSG_LEN];
+
+    _lsm_err_msg_clear(err_msg);
+
+    rc = _check_null_ptr(err_msg, 3 /* arg_count */, sd_path, vpd83, lsm_err);
+
+    if (rc != LSM_ERR_OK) {
+        if (vpd83 != NULL)
+            *vpd83 = NULL;
+
+        goto out;
+    }
+
+    if ((strlen(sd_path) <= strlen("/dev/")) ||
+        (strncmp(sd_path, "/dev/", strlen("/dev/")) != 0)) {
+
+        _lsm_err_msg_set(err_msg, "Invalid sd_path, should start with /dev/");
+        rc = LSM_ERR_INVALID_ARGUMENT;
+        goto out;
+    }
+
+    sd_name = sd_path + strlen("/dev/");
+    if (strlen(sd_name) > _MAX_SD_NAME_STR_LEN) {
+        rc = LSM_ERR_INVALID_ARGUMENT;
+        _lsm_err_msg_set(err_msg, "Illegal sd_path string, the SCSI disk name "
+                         "part(sdX) exceeded the max length %d, current %d",
+                         _MAX_SD_NAME_STR_LEN - 1, strlen(sd_name));
+        goto out;
+    }
+
+    *vpd83 = NULL;
+    *lsm_err = NULL;
+
+    rc = _sysfs_vpd83_naa_of_sd_name(err_msg, sd_name, tmp_vpd83);
+    if (rc == LSM_ERR_NO_SUPPORT)
+        /* Try udev if kernel does not expose vpd83 */
+        rc = _udev_vpd83_of_sd_name(err_msg, sd_name, tmp_vpd83);
+
+    if (rc != LSM_ERR_OK)
+        goto out;
+
+    if (tmp_vpd83[0] != '\0') {
+        *vpd83 = strdup(tmp_vpd83);
+        if (*vpd83 == NULL)
+            rc = LSM_ERR_NO_MEMORY;
+    }
+
+ out:
+    if (rc != LSM_ERR_OK) {
+        if (lsm_err != NULL)
+            *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
+
+        if (vpd83 != NULL) {
+            free((char *) *vpd83);
+            *vpd83= NULL;
+        }
+    }
+
+    return rc;
+}

@@ -706,6 +706,7 @@ lsm_disk *lsm_disk_record_alloc(const char *id, const char *name,
         rc->block_count = block_count;
         rc->disk_status = disk_status;
         rc->system_id = strdup(system_id);
+        rc->vpd83 = NULL;
 
         if (!rc->id || !rc->name || !rc->system_id) {
             lsm_disk_record_free(rc);
@@ -931,10 +932,20 @@ CREATE_FREE_ARRAY_FUNC(lsm_volume_record_array_free, lsm_volume_record_free,
 
 lsm_disk *lsm_disk_record_copy(lsm_disk * disk)
 {
+    lsm_disk *new_lsm_disk = NULL;
+
     if (LSM_IS_DISK(disk)) {
-        return lsm_disk_record_alloc(disk->id, disk->name, disk->disk_type,
-                                     disk->block_size, disk->block_count,
-                                     disk->disk_status, disk->system_id);
+        new_lsm_disk = lsm_disk_record_alloc(disk->id, disk->name,
+                                             disk->disk_type, disk->block_size,
+                                             disk->block_count,
+                                             disk->disk_status,
+                                             disk->system_id);
+        if (disk->vpd83 != NULL)
+            if (lsm_disk_vpd83_set(new_lsm_disk, disk->vpd83) != LSM_ERR_OK) {
+                lsm_disk_record_free(new_lsm_disk);
+                return NULL;
+            }
+        return new_lsm_disk;
     }
     return NULL;
 }
@@ -952,6 +963,9 @@ int lsm_disk_record_free(lsm_disk * d)
 
         free(d->system_id);
         d->system_id = NULL;
+
+        free(d->vpd83);
+        d->vpd83 = NULL;
 
         free(d);
         return LSM_ERR_OK;
@@ -1064,6 +1078,25 @@ uint64_t lsm_disk_status_get(lsm_disk * d)
 const char *lsm_disk_system_id_get(lsm_disk * d)
 {
     MEMBER_GET(d, LSM_IS_DISK, system_id, NULL);
+}
+
+int lsm_disk_vpd83_set(lsm_disk *disk, const char *vpd83)
+{
+    if ((disk == NULL) || (! LSM_IS_DISK(disk)) || (vpd83 == NULL))
+        return LSM_ERR_INVALID_ARGUMENT;
+
+    free(disk->vpd83);
+
+    disk->vpd83 = strdup(vpd83);
+    if (disk->vpd83 == NULL)
+        return LSM_ERR_NO_MEMORY;
+
+    return LSM_ERR_OK;
+}
+
+const char *lsm_disk_vpd83_get(lsm_disk *disk)
+{
+    MEMBER_GET(disk, LSM_IS_DISK, vpd83, NULL);
 }
 
 CREATE_ALLOC_ARRAY_FUNC(lsm_access_group_record_array_alloc, lsm_access_group *)
