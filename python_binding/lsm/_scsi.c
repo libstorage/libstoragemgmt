@@ -32,7 +32,7 @@ static const char disk_paths_of_vpd83_docstring[] =
     "    vpd83 (string)\n"
     "        The VPD83 NAA type ID.\n"
     "Returns:\n"
-    "    sd_name (list of string)\n"
+    "    sd_path (list of string)\n"
     "        Empty list is not found. The string format is '/dev/sd[a-z]+'.\n"
     "\n"
     "SpecialExceptions:\n"
@@ -42,8 +42,30 @@ static const char disk_paths_of_vpd83_docstring[] =
     "        No capability required from plugin as this is a library level\n"
     "        method.";
 
+static const char vpd83_of_disk_path_docstring[] =
+    "Version:\n"
+    "    1.3\n"
+    "Usage:\n"
+    "    Query the SCSI VPD83 NAA ID of given scsi disk path\n"
+    "Parameters:\n"
+    "    sd_path (string)\n"
+    "        The SCSI disk path, example '/dev/sdb'. Empty string is failure\n"
+    "Returns:\n"
+    "    vpd83 (string)\n"
+    "        String of VPD83 NAA ID. Empty string if not supported.\n"
+    "         The string format regex is:\n"
+    "        (?:^6[0-9a-f]{31})|(?:^[235][0-9a-f]{15})$\n"
+    "SpecialExceptions:\n"
+    "    N/A\n"
+    "Capability:\n"
+    "    N/A\n"
+    "        No capability required from plugin as this is a library level\n"
+    "        method.";
+
 static PyObject *disk_paths_of_vpd83(PyObject *self, PyObject *args,
                                      PyObject *kwargs);
+static PyObject *vpd83_of_disk_path(PyObject *self, PyObject *args,
+                                    PyObject *kwargs);
 
 /*
  * TODO: Support METH_VARARGS | METH_KEYWORDS
@@ -51,6 +73,8 @@ static PyObject *disk_paths_of_vpd83(PyObject *self, PyObject *args,
 static PyMethodDef _scsi_methods[] = {
     {"disk_paths_of_vpd83",  (PyCFunction) disk_paths_of_vpd83,
      METH_VARARGS | METH_KEYWORDS, disk_paths_of_vpd83_docstring},
+    {"vpd83_of_disk_path",  (PyCFunction) vpd83_of_disk_path,
+     METH_VARARGS | METH_KEYWORDS, vpd83_of_disk_path_docstring},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
@@ -104,6 +128,33 @@ static PyObject *disk_paths_of_vpd83(PyObject *self, PyObject *args,
     lsm_string_list_free(sd_path_list);
 
     return rc_list;
+}
+
+static PyObject *vpd83_of_disk_path(PyObject *self, PyObject *args,
+                                    PyObject *kwargs)
+{
+    static const char *kwlist[] = {"sd_path", NULL};
+    const char *vpd83 = NULL;
+    PyObject *rc_vpd83 = NULL;
+    const char *sd_path = NULL;
+    lsm_error *lsm_err = NULL;
+    int rc = LSM_ERR_OK;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", (char **) kwlist,
+                                     &sd_path))
+        return NULL;
+
+    rc = lsm_scsi_vpd83_of_disk_path(sd_path, &vpd83, &lsm_err);
+    if ((rc != LSM_ERR_OK) || (vpd83 == NULL)) {
+        /* TODO(Gris Ge): Raise exception for error. */
+        lsm_error_free(lsm_err);
+        return PyString_FromString("");
+    }
+
+    rc_vpd83 = PyString_FromString(vpd83);
+
+    free((char *) vpd83);
+    return rc_vpd83;
 }
 
 PyMODINIT_FUNC init_scsi(void)
