@@ -22,7 +22,8 @@ import re
 
 from lsm import (
     IPlugin, Client, Capabilities, VERSION, LsmError, ErrorNumber, uri_parse,
-    System, Pool, size_human_2_size_bytes, search_property, Volume, Disk)
+    System, Pool, size_human_2_size_bytes, search_property, Volume, Disk,
+    SCSI)
 
 from lsm.plugin.hpsa.utils import cmd_exec, ExecError, file_read
 
@@ -515,10 +516,11 @@ class SmartArray(IPlugin):
         blk_count = int(_hp_size_to_lsm(hp_disk['Size']) / blk_size)
         status = _disk_status_of(hp_disk, flag_free)
         plugin_data = "%s:%s" % (ctrl_num, disk_num)
+        vpd83 = SCSI.vpd83_of_disk_path(hp_disk.get('Disk Name', ''))
 
         return Disk(
             disk_id, disk_name, disk_type, blk_size, blk_count,
-            status, sys_id, plugin_data)
+            status, sys_id, _plugin_data=plugin_data, _vpd83=vpd83)
 
     @_handle_errors
     def disks(self, search_key=None, search_value=None,
