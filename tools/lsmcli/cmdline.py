@@ -181,6 +181,17 @@ def _add_common_options(arg_parser, is_child=False):
         arg_parser.set_defaults(**default_dict)
 
 
+def _add_sd_paths(lsm_obj):
+    lsm_obj.sd_paths = []
+    try:
+        if len(lsm_obj.vpd83) > 0:
+            lsm_obj.sd_paths = SCSI.disk_paths_of_vpd83(lsm_obj.vpd83)
+    except LsmError as lsm_err:
+        if lsm_err.code != ErrorNumber.NO_SUPPORT:
+            raise
+    return lsm_obj
+
+
 ## This class represents a command line argument error
 class ArgError(Exception):
     def __init__(self, message, *args, **kwargs):
@@ -972,8 +983,7 @@ class CmdLine:
             else:
                 lsm_vols = self.c.volumes(search_key, search_value)
 
-            self.display_data(
-                list(self._vol_add_sd_paths(v) for v in lsm_vols))
+            self.display_data(list(_add_sd_paths(v) for v in lsm_vols))
 
         elif args.type == 'POOLS':
             if search_key == 'pool_id':
@@ -1034,7 +1044,8 @@ class CmdLine:
                 raise ArgError("Search key '%s' is not supported by "
                                "disk listing" % search_key)
             self.display_data(
-                self.c.disks(search_key, search_value))
+                list(_add_sd_paths(d)
+                     for d in self.c.disks(search_key, search_value)))
         elif args.type == 'TARGET_PORTS':
             if search_key == 'tgt_port_id':
                 search_key = 'id'
@@ -1080,7 +1091,7 @@ class CmdLine:
         agl = self.c.access_groups()
         group = _get_item(agl, args.ag, "Access Group")
         vols = self.c.volumes_accessible_by_access_group(group)
-        self.display_data(list(self._vol_add_sd_paths(v) for v in vols))
+        self.display_data(list(_add_sd_paths(v) for v in vols))
 
     def iscsi_chap(self, args):
         (init_id, init_type) = parse_convert_init(args.init)
@@ -1220,7 +1231,7 @@ class CmdLine:
                 args.name,
                 self._size(args.size),
                 vol_provision_str_to_type(args.provisioning)))
-        self.display_data([self._vol_add_sd_paths(vol)])
+        self.display_data([_add_sd_paths(vol)])
 
     ## Creates a snapshot
     def fs_snap_create(self, args):
@@ -1328,7 +1339,7 @@ class CmdLine:
         vol = self._wait_for_it(
             "replicate volume",
             *self.c.volume_replicate(p, rep_type, v, args.name))
-        self.display_data([self._vol_add_sd_paths(vol)])
+        self.display_data([_add_sd_paths(vol)])
 
     ## Replicates a range of a volume
     def volume_replicate_range(self, args):
@@ -1381,7 +1392,7 @@ class CmdLine:
         if self.confirm_prompt(False):
             vol = self._wait_for_it("resize",
                                     *self.c.volume_resize(v, size))
-            self.display_data([self._vol_add_sd_paths(vol)])
+            self.display_data([_add_sd_paths(vol)])
 
     ## Enable a volume
     def volume_enable(self, args):
@@ -1470,7 +1481,7 @@ class CmdLine:
             strip_size = Volume.VCR_STRIP_SIZE_DEFAULT
 
         self.display_data([
-            self._vol_add_sd_paths(
+            _add_sd_paths(
                 self.c.volume_raid_create(
                     args.name, raid_type, lsm_disks, strip_size))])
 
@@ -1604,9 +1615,3 @@ class CmdLine:
 
         self.args.func(self.args)
         self.shutdown()
-
-    def _vol_add_sd_paths(self, lsm_vol):
-        lsm_vol.sd_paths = []
-        if len(lsm_vol.vpd83) > 0:
-            lsm_vol.sd_paths = SCSI.disk_paths_of_vpd83(lsm_vol.vpd83)
-        return lsm_vol
