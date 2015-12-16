@@ -329,7 +329,7 @@ rm -rf %{buildroot}
 %check
 if ! make check
 then
-  cat test/test-suite.log || true
+  cat test-suite.log || true
   exit 1
 fi
 %endif
