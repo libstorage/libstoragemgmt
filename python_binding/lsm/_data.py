@@ -484,7 +484,7 @@ class Pool(IData):
 @default_property('free_space', doc="Free space available")
 @default_property('pool_id', doc="What pool the file system resides on")
 @default_property('system_id', doc="System ID")
-@default_property("plugin_data", "Private plugin data")
+@default_property("plugin_data", doc="Private plugin data")
 class FileSystem(IData):
     SUPPORTED_SEARCH_KEYS = ['id', 'system_id', 'pool_id']
 
@@ -502,7 +502,7 @@ class FileSystem(IData):
 @default_property('id', doc="Unique identifier")
 @default_property('name', doc="Snapshot name")
 @default_property('ts', doc="Time stamp the snapshot was created")
-@default_property("plugin_data", "Private plugin data")
+@default_property("plugin_data", doc="Private plugin data")
 class FsSnapshot(IData):
 
     def __init__(self, _id, _name, _ts, _plugin_data=None):
