@@ -363,9 +363,9 @@ class SocketEOF(Exception):
     pass
 
 
-@default_property('code', 'Error code')
-@default_property('msg', 'Error message')
-@default_property('data', 'Optional error data')
+@default_property('code', doc='Error code')
+@default_property('msg', doc='Error message')
+@default_property('data', doc='Optional error data')
 class LsmError(Exception):
     def __init__(self, code, message, data=None, *args, **kwargs):
         """
