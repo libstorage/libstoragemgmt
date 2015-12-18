@@ -34,7 +34,7 @@ from argparse import RawTextHelpFormatter
 from lsm import (Client, Pool, VERSION, LsmError, Disk,
                  Volume, JobStatus, ErrorNumber, BlockRange,
                  uri_parse, Proxy, size_human_2_size_bytes,
-                 AccessGroup, FileSystem, NfsExport, TargetPort)
+                 AccessGroup, FileSystem, NfsExport, TargetPort, SCSI)
 
 from lsm.lsmcli.data_display import (
     DisplayData, PlugData, out,
@@ -108,6 +108,88 @@ def parse_convert_init(init_id):
         return (init_id, init_type)
 
     raise ArgError("--init-id %s is not a valid WWPN or iSCSI IQN" % init_id)
+
+
+_CHILD_OPTION_DST_PREFIX = 'child_'
+
+
+def _add_common_options(arg_parser, is_child=False):
+    """
+    As https://bugs.python.org/issue23058 indicate, argument parser should
+    not have subparser sharing the same argument and destination.
+    For subparser, we add common options as 'child_xxx' destination.
+    For default value, False is the only allowed default value in root.
+    """
+    prefix = ''
+    if is_child:
+        prefix = _CHILD_OPTION_DST_PREFIX
+
+    arg_parser.add_argument(
+        '-v', '--version', action='version',
+        version="%s %s" % (sys.argv[0], VERSION))
+
+    arg_parser.add_argument(
+        '-u', '--uri', action="store", type=str, metavar='<URI>',
+        dest="%suri" % prefix,
+        help='Uniform resource identifier (env LSMCLI_URI)')
+
+    arg_parser.add_argument(
+        '-P', '--prompt', action="store_true", dest="%sprompt" % prefix,
+        help='Prompt for password (env LSMCLI_PASSWORD)')
+
+    arg_parser.add_argument(
+        '-H', '--human', action="store_true", dest="%shuman" % prefix,
+        help='Print sizes in human readable format\n'
+             '(e.g., MiB, GiB, TiB)')
+
+    arg_parser.add_argument(
+        '-t', '--terse', action="store", dest="%ssep" % prefix,
+        metavar='<SEP>',
+        help='Print output in terse form with "SEP" '
+             'as a record separator')
+
+    arg_parser.add_argument(
+        '-e', '--enum', action="store_true", dest="%senum" % prefix,
+        default=False,
+        help='Display enumerated types as numbers instead of text')
+
+    arg_parser.add_argument(
+        '-f', '--force', action="store_true", dest="%sforce" % prefix,
+        default=False,
+        help='Bypass confirmation prompt for data loss operations')
+
+    arg_parser.add_argument(
+        '-w', '--wait', action="store", type=int, dest="%swait" % prefix,
+        help="Command timeout value in ms (default = 30s)")
+
+    arg_parser.add_argument(
+        '--header', action="store_true", dest="%sheader" % prefix,
+        help='Include the header with terse')
+
+    arg_parser.add_argument(
+        '-b', action="store_true", dest="%sasync" % prefix, default=False,
+        help='Run the command async. Instead of waiting for completion.\n '
+             'Command will exit(7) and job id written to stdout.')
+
+    arg_parser.add_argument(
+        '-s', '--script', action="store_true", dest="%sscript" % prefix,
+        default=False, help='Displaying data in script friendly way.')
+
+    if is_child:
+        default_dict = dict()
+        default_dict['%swait' % prefix] = 30000
+        arg_parser.set_defaults(**default_dict)
+
+
+def _add_sd_paths(lsm_obj):
+    lsm_obj.sd_paths = []
+    try:
+        if len(lsm_obj.vpd83) > 0:
+            lsm_obj.sd_paths = SCSI.disk_paths_of_vpd83(lsm_obj.vpd83)
+    except LsmError as lsm_err:
+        if lsm_err.code != ErrorNumber.NO_SUPPORT:
+            raise
+    return lsm_obj
 
 
 ## This class represents a command line argument error
@@ -788,53 +870,7 @@ class CmdLine:
         Command line interface parameters
         """
         parent_parser = ArgumentParser(add_help=False)
-
-        parent_parser.add_argument(
-            '-v', '--version', action='version',
-            version="%s %s" % (sys.argv[0], VERSION))
-
-        parent_parser.add_argument(
-            '-u', '--uri', action="store", type=str, metavar='<URI>',
-            dest="uri", help='Uniform resource identifier (env LSMCLI_URI)')
-
-        parent_parser.add_argument(
-            '-P', '--prompt', action="store_true", dest="prompt",
-            help='Prompt for password (env LSMCLI_PASSWORD)')
-
-        parent_parser.add_argument(
-            '-H', '--human', action="store_true", dest="human",
-            help='Print sizes in human readable format\n'
-                 '(e.g., MiB, GiB, TiB)')
-
-        parent_parser.add_argument(
-            '-t', '--terse', action="store", dest="sep", metavar='<SEP>',
-            help='Print output in terse form with "SEP" '
-                 'as a record separator')
-
-        parent_parser.add_argument(
-            '-e', '--enum', action="store_true", dest="enum", default=False,
-            help='Display enumerated types as numbers instead of text')
-
-        parent_parser.add_argument(
-            '-f', '--force', action="store_true", dest="force", default=False,
-            help='Bypass confirmation prompt for data loss operations')
-
-        parent_parser.add_argument(
-            '-w', '--wait', action="store", type=int, dest="wait",
-            default=30000, help="Command timeout value in ms (default = 30s)")
-
-        parent_parser.add_argument(
-            '--header', action="store_true", dest="header",
-            help='Include the header with terse')
-
-        parent_parser.add_argument(
-            '-b', action="store_true", dest="async", default=False,
-            help='Run the command async. Instead of waiting for completion.\n '
-                 'Command will exit(7) and job id written to stdout.')
-
-        parent_parser.add_argument(
-            '-s', '--script', action="store_true", dest="script",
-            default=False, help='Displaying data in script friendly way.')
+        _add_common_options(parent_parser, is_child=True)
 
         parser = ArgumentParser(
             description='The libStorageMgmt command line interface.'
@@ -842,8 +878,8 @@ class CmdLine:
             epilog='Copyright 2012-2015 Red Hat, Inc.\n'
                    'Please report bugs to '
                    '<libstoragemgmt-devel@lists.fedorahosted.org>\n',
-            formatter_class=RawTextHelpFormatter,
-            parents=[parent_parser])
+            formatter_class=RawTextHelpFormatter)
+        _add_common_options(parser, is_child=False)
 
         subparsers = parser.add_subparsers(metavar="command")
 
@@ -879,8 +915,16 @@ class CmdLine:
                 cmd=alias[1].split(" "), func=self.handle_alias)
 
         self.parser = parser
-        known_agrs, self.unknown_args = parser.parse_known_args()
-        return known_agrs
+        known_args, self.unknown_args = parser.parse_known_args()
+        # Copy child value to root.
+        for k,v in vars(known_args).iteritems():
+            if k.startswith(_CHILD_OPTION_DST_PREFIX):
+                root_k = k[len(_CHILD_OPTION_DST_PREFIX):]
+                if getattr(known_args, root_k) is None or \
+                   getattr(known_args, root_k) is False:
+                    setattr(known_args, root_k, v)
+
+        return known_args
 
     ## Display the types of nfs client authentication that are supported.
     # @return None
@@ -924,20 +968,23 @@ class CmdLine:
             search_value = args.tgt
 
         if args.type == 'VOLUMES':
+            lsm_vols = []
             if search_key == 'volume_id':
                 search_key = 'id'
             if search_key == 'access_group_id':
                 lsm_ag = _get_item(self.c.access_groups(), args.ag,
                                    "Access Group", raise_error=False)
                 if lsm_ag:
-                    return self.display_data(
-                        self.c.volumes_accessible_by_access_group(lsm_ag))
-                else:
-                    return self.display_data([])
+                    lsm_vols = self.c.volumes_accessible_by_access_group(
+                        lsm_ag)
             elif search_key and search_key not in Volume.SUPPORTED_SEARCH_KEYS:
                 raise ArgError("Search key '%s' is not supported by "
                                "volume listing." % search_key)
-            self.display_data(self.c.volumes(search_key, search_value))
+            else:
+                lsm_vols = self.c.volumes(search_key, search_value)
+
+            self.display_data(list(_add_sd_paths(v) for v in lsm_vols))
+
         elif args.type == 'POOLS':
             if search_key == 'pool_id':
                 search_key = 'id'
@@ -997,7 +1044,8 @@ class CmdLine:
                 raise ArgError("Search key '%s' is not supported by "
                                "disk listing" % search_key)
             self.display_data(
-                self.c.disks(search_key, search_value))
+                list(_add_sd_paths(d)
+                     for d in self.c.disks(search_key, search_value)))
         elif args.type == 'TARGET_PORTS':
             if search_key == 'tgt_port_id':
                 search_key = 'id'
@@ -1043,7 +1091,7 @@ class CmdLine:
         agl = self.c.access_groups()
         group = _get_item(agl, args.ag, "Access Group")
         vols = self.c.volumes_accessible_by_access_group(group)
-        self.display_data(vols)
+        self.display_data(list(_add_sd_paths(v) for v in vols))
 
     def iscsi_chap(self, args):
         (init_id, init_type) = parse_convert_init(args.init)
@@ -1183,7 +1231,7 @@ class CmdLine:
                 args.name,
                 self._size(args.size),
                 vol_provision_str_to_type(args.provisioning)))
-        self.display_data([vol])
+        self.display_data([_add_sd_paths(vol)])
 
     ## Creates a snapshot
     def fs_snap_create(self, args):
@@ -1291,7 +1339,7 @@ class CmdLine:
         vol = self._wait_for_it(
             "replicate volume",
             *self.c.volume_replicate(p, rep_type, v, args.name))
-        self.display_data([vol])
+        self.display_data([_add_sd_paths(vol)])
 
     ## Replicates a range of a volume
     def volume_replicate_range(self, args):
@@ -1344,7 +1392,7 @@ class CmdLine:
         if self.confirm_prompt(False):
             vol = self._wait_for_it("resize",
                                     *self.c.volume_resize(v, size))
-            self.display_data([vol])
+            self.display_data([_add_sd_paths(vol)])
 
     ## Enable a volume
     def volume_enable(self, args):
@@ -1433,8 +1481,9 @@ class CmdLine:
             strip_size = Volume.VCR_STRIP_SIZE_DEFAULT
 
         self.display_data([
-            self.c.volume_raid_create(
-                args.name, raid_type, lsm_disks, strip_size)])
+            _add_sd_paths(
+                self.c.volume_raid_create(
+                    args.name, raid_type, lsm_disks, strip_size))])
 
     def volume_raid_create_cap(self, args):
         lsm_sys = _get_item(self.c.systems(), args.sys, "System")

@@ -208,7 +208,7 @@ class Disk(IData):
     # free disk and marked as STATUS_FREE|STATUS_SPARE_DISK.
 
     def __init__(self, _id, _name, _disk_type, _block_size, _num_of_blocks,
-                 _status, _system_id, _plugin_data=None):
+                 _status, _system_id, _plugin_data=None, _vpd83=''):
         self._id = _id
         self._name = _name
         self._disk_type = _disk_type
@@ -217,6 +217,12 @@ class Disk(IData):
         self._status = _status
         self._system_id = _system_id
         self._plugin_data = _plugin_data
+        if _vpd83 and not Volume.vpd83_verify(_vpd83):
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           "Incorrect format of VPD 0x83 NAA(3) string: '%s', "
+                           "expecting 32 or 16 lower case hex characters" %
+                           _vpd83)
+        self._vpd83 = _vpd83
 
     @property
     def size_bytes(self):
@@ -224,6 +230,21 @@ class Disk(IData):
         Disk size in bytes.
         """
         return self.block_size * self.num_of_blocks
+
+    @property
+    def vpd83(self):
+        """
+        String. SCSI VPD83 ID. New in version 1.3.
+        Only available for DAS(direct attached storage) systems.
+        The VPD83 ID could be used in 'lsm.SCSI.disk_paths_of_vpd83()'
+        when physical disk is exposed to OS directly.
+        """
+        if self._vpd83 == '':
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "Disk.vpd83 is not supported by current disk or plugin")
+
+        return self._vpd83
 
     def __str__(self):
         return self.name
@@ -810,6 +831,7 @@ class Capabilities(IData):
     DISKS = 220
     POOL_MEMBER_INFO = 221
     VOLUME_RAID_CREATE = 222
+    DISK_VPD83_GET = 223
 
     def _to_dict(self):
         return {'class': self.__class__.__name__,

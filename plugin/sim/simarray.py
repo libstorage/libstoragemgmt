@@ -59,8 +59,8 @@ def _random_vpd():
     """
     Generate a random VPD83 NAA_Type3 ID
     """
-    vpd = ['60']
-    for _ in range(0, 15):
+    vpd = ['50']
+    for _ in range(0, 7):
         vpd.append(str('%02x' % (random.randint(0, 255))))
     return "".join(vpd)
 
@@ -122,7 +122,7 @@ class PoolRAID(object):
 
 
 class BackStore(object):
-    VERSION = "3.4"
+    VERSION = "3.5"
     VERSION_SIGNATURE = 'LSM_SIMULATOR_DATA_%s_%s' % (VERSION, md5(VERSION))
     JOB_DEFAULT_DURATION = 1
     JOB_DATA_TYPE_VOL = 1
@@ -146,7 +146,7 @@ class BackStore(object):
         'strip_size']
 
     DISK_KEY_LIST = [
-        'id', 'name', 'total_space', 'disk_type', 'status',
+        'id', 'name', 'total_space', 'disk_type', 'status', 'vpd83',
         'owner_pool_id', 'role']
 
     VOL_KEY_LIST = [
@@ -243,6 +243,7 @@ class BackStore(object):
             "owner_pool_id INTEGER, "
             # ^ Indicate this disk is used to assemble a pool
             "role TEXT,"
+            "vpd83 TEXT,"
             "FOREIGN KEY(owner_pool_id) "
             "REFERENCES pools(id) ON DELETE CASCADE );\n")
 
@@ -450,6 +451,7 @@ class BackStore(object):
                     disk_type,
                     role,
                     status,
+                    vpd83,
                     owner_pool_id
                 FROM
                     disks
@@ -670,6 +672,7 @@ class BackStore(object):
                         'total_space': size_bytes_2t,
                         'disk_type': Disk.TYPE_SATA,
                         'status': Disk.STATUS_OK,
+                        'vpd83': _random_vpd(),
                     })
                 pool_1_disks.append(self.lastrowid)
 
@@ -683,6 +686,7 @@ class BackStore(object):
                         'total_space': size_bytes_2t,
                         'disk_type': Disk.TYPE_SAS,
                         'status': Disk.STATUS_OK,
+                        'vpd83': _random_vpd(),
                     })
                 if len(test_pool_disks) < 2:
                     test_pool_disks.append(self.lastrowid)
@@ -697,6 +701,7 @@ class BackStore(object):
                         'total_space': size_bytes_512g,
                         'disk_type': Disk.TYPE_SSD,
                         'status': Disk.STATUS_OK,
+                        'vpd83': _random_vpd(),
                     })
                 if len(ssd_pool_disks) < 2:
                     ssd_pool_disks.append(self.lastrowid)
@@ -710,6 +715,7 @@ class BackStore(object):
                         'total_space': size_bytes_2t,
                         'disk_type': Disk.TYPE_SSD,
                         'status': Disk.STATUS_OK,
+                        'vpd83': _random_vpd(),
                     })
 
             pool_1_id = self.sim_pool_create_from_disk(
@@ -1784,7 +1790,7 @@ class SimArray(object):
             sim_disk['name'],
             sim_disk['disk_type'], BackStore.BLK_SIZE,
             int(sim_disk['total_space'] / BackStore.BLK_SIZE),
-            disk_status, BackStore.SYS_ID)
+            disk_status, BackStore.SYS_ID, _vpd83=sim_disk['vpd83'])
 
     @_handle_errors
     def disks(self):

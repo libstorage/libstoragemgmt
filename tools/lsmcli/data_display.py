@@ -418,6 +418,7 @@ class DisplayData(object):
     VOL_HEADER['admin_state'] = 'Disabled'
     VOL_HEADER['pool_id'] = 'Pool ID'
     VOL_HEADER['system_id'] = 'System ID'
+    VOL_HEADER['sd_paths'] = 'Disk Paths'    # This is appended by cmdline.py
 
     VOL_COLUMN_SKIP_KEYS = ['block_size', 'num_of_blocks']
 
@@ -444,6 +445,8 @@ class DisplayData(object):
     DISK_HEADER['size_bytes'] = 'Size'
     DISK_HEADER['status'] = 'Status'
     DISK_HEADER['system_id'] = 'System ID'
+    DISK_HEADER['vpd83'] = 'SCSI VPD 0x83'
+    DISK_HEADER['sd_paths'] = 'Disk Paths'    # This is appended by cmdline.py
 
     DISK_COLUMN_SKIP_KEYS = ['block_size', 'num_of_blocks']
 

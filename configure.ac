@@ -141,6 +141,27 @@ dnl =========================================================================
 dnl Check for perl, used for code constants checking
 dnl =========================================================================
 AC_PATH_PROGS(PERL, perl)
+if test -z $PERL ;then
+    AC_MSG_ERROR([Need 'perl' to run test cases])
+fi
+
+dnl =========================================================================
+dnl Check for chrpath, valgrind, wc, used for make check
+dnl =========================================================================
+AC_PATH_PROG([CHRPATH], chrpath)
+if test -z $CHRPATH ;then
+    AC_MSG_ERROR([Need 'chrpath' to run test cases])
+fi
+
+AC_PATH_PROG([VALGRIND], valgrind)
+if test -z $VALGRIND ;then
+    AC_MSG_ERROR([Need 'valgrind' to run memory leak test])
+fi
+
+AC_PATH_PROG([WC], wc)
+if test -z $WC ;then
+    AC_MSG_ERROR([Need 'wc' to run test cases])
+fi
 
 dnl ==========================================================================
 dnl Check for python2 as it is needed for the base cmd line function
@@ -162,6 +183,19 @@ AM_PATH_PYTHON([2.6], [], AC_MSG_ERROR([Python interpreter 2.6 or 2.7 required])
 AC_PYTHON_MODULE([pywbem], [Required])
 AC_PYTHON_MODULE([M2Crypto], [Required])
 AC_PYTHON_MODULE([argparse], [Required])
+PKG_CHECK_MODULES([LIBUDEV], [libudev])
+PKG_CHECK_MODULES([PYTHON2], [python2], [], [not_found_py_pkg=yes])
+
+if test "x$not_found_py_pkg" == "xyes"; then
+    AC_CHECK_PROG([PY_CONFIG_CHECK], [python-config], [yes])
+    if test "x${PY_CONFIG_CHECK}" != "xyes"; then
+        AC_MSG_ERROR([Python2 development libraries required])
+    fi
+    PYTHON2_CFLAGS=`python-config --cflags`
+    PYTHON2_LIBS=`python-config --libs`
+    AC_SUBST(PYTHON2_CFLAGS)
+    AC_SUBST(PYTHON2_LIBS)
+fi
 
 dnl ==========================================================================
 dnl Check for libmicrohttpd and json-c as it is needed for REST API daemon
@@ -295,4 +329,6 @@ AC_OUTPUT(libstoragemgmt.pc \
           packaging/daemon/Makefile \
           packaging/libstoragemgmt.spec \
           doc/man/Makefile \
+          test/runtests.sh \
           test/Makefile)
+chmod +x test/runtests.sh

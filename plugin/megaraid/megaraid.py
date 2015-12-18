@@ -435,11 +435,12 @@ class MegaRAID(IPlugin):
 
                 plugin_data = "%s:%s" % (
                     ctrl_num, disk_show_basic_dict['EID:Slt'])
+                vpd83 = disk_show_attr_dict["WWN"]
 
                 rc_lsm_disks.append(
                     Disk(
                         disk_id, disk_name, disk_type, blk_size, blk_count,
-                        status, sys_id, plugin_data))
+                        status, sys_id, plugin_data, _vpd83=vpd83))
 
         return search_property(rc_lsm_disks, search_key, search_value)
 

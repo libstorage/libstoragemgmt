@@ -745,12 +745,13 @@ def volume_raid_create_test(cap, system_id):
 
         out = call([
             cmd, '-t' + sep, 'volume-raid-create', '--disk', free_disk_ids[0],
-            '--disk', free_disk_ids[1], '--name', 'test_volume_raid_create',
+            '--disk', free_disk_ids[1], '--name',
+            'test_volume_raid_create_%s' % rs(4),
             '--raid-type', 'raid1'])[1]
 
         volume = parse(out)
         vol_id = volume[0][0]
-        pool_id = volume[0][-2]
+        pool_id = volume[0][5]
 
         if cap['VOLUME_RAID_INFO']:
             out = call(

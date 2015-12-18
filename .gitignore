@@ -33,3 +33,4 @@ daemon/lsmd
 *.pyc
 test/tester
 tools/udev/scan-scsi-target
+test/runtests.sh

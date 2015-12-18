@@ -27,15 +27,19 @@
 #include <libstoragemgmt/libstoragemgmt.h>
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 
-const char URI[] = "sim://localhost/?statefile=/tmp/%d/lsm_sim_%s";
+const char URI[] = "sim://localhost/?statefile=%s/lsm_sim_%s";
 const char SYSTEM_NAME[] = "LSM simulated storage plug-in";
 const char SYSTEM_ID[] = "sim-01";
 const char *ISCSI_HOST[2] = {   "iqn.1994-05.com.domain:01.89bd01",
                                 "iqn.1994-05.com.domain:01.89bd02" };
 
-static int which_plugin = 0;
+static int is_simc_plugin = 0;
 
 #define POLL_SLEEP 50000
+#define VPD83_TO_SEARCH "600508b1001c79ade5178f0626caaa9c"
+#define INVALID_VPD83 "600508b1001c79ade5178f0626caaa9c1"
+#define VALID_BUT_NOT_EXIST_VPD83 "5000000000000000"
+#define NOT_EXIST_SD_PATH "/dev/qda"
 
 lsm_connect *c = NULL;
 
@@ -65,7 +69,7 @@ char *error(lsm_error_ptr e)
 #define G(variable, func, ...)     \
 variable = func(__VA_ARGS__);               \
 fail_unless( LSM_ERR_OK == variable, "call:%s rc = %d %s (which %d)", #func, \
-                    variable, error(lsm_error_last_get(c)), which_plugin);
+                    variable, error(lsm_error_last_get(c)), is_simc_plugin);
 
 /**
  * Macro for calls which we expect failure.
@@ -76,7 +80,7 @@ fail_unless( LSM_ERR_OK == variable, "call:%s rc = %d %s (which %d)", #func, \
 #define F(variable, func, ...)     \
 variable = func(__VA_ARGS__);               \
 fail_unless( LSM_ERR_OK != variable, "call:%s rc = %d %s (which %d)", #func, \
-                    variable, error(lsm_error_last_get(c)), which_plugin);
+                    variable, error(lsm_error_last_get(c)), is_simc_plugin);
 
 /**
 * Generates a random string in the buffer with specified length.
@@ -111,7 +115,7 @@ char *plugin_to_use()
 {
     char *uri_to_use = "sim://";
 
-    if( which_plugin == 1 ) {
+    if( is_simc_plugin == 1 ) {
         uri_to_use = "simc://";
     } else {
         char *rundir = getenv("LSM_TEST_RUNDIR");
@@ -121,11 +125,10 @@ char *plugin_to_use()
          */
 
         if( rundir ) {
-            int rdir = atoi(rundir);
             static char fn[128];
             static char name[32];
             generate_random(name, sizeof(name));
-            snprintf(fn, sizeof(fn),  URI, rdir, name);
+            snprintf(fn, sizeof(fn),  URI, rundir, name);
             uri_to_use = fn;
         } else {
             printf("Missing LSM_TEST_RUNDIR, expect test failures!\n");
@@ -188,6 +191,10 @@ void setup(void)
             printf("Attach debugger to plug-in, press <return> when ready...");
             getchar();
         }
+    }
+    if (rc != LSM_ERR_OK) {
+        printf("Failed to create connection: code %d, %s\n", rc, error(e));
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -680,7 +687,7 @@ START_TEST(test_access_groups)
     rc = lsm_access_group_initiator_add(c, group, "iqn.1994-05.com.domain:01.89bd02",
                                         LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN,
                                         &updated, LSM_CLIENT_FLAG_RSVD);
-    fail_unless(LSM_ERR_OK == rc, "Expected success on lsmAccessGroupInitiatorAdd %d %d", rc, which_plugin);
+    fail_unless(LSM_ERR_OK == rc, "Expected success on lsmAccessGroupInitiatorAdd %d %d", rc, is_simc_plugin);
 
     G(rc, lsm_access_group_list, c, NULL, NULL, &groups, &count, LSM_CLIENT_FLAG_RSVD);
     fail_unless( 1 == count );
@@ -777,7 +784,7 @@ START_TEST(test_access_groups_grant_revoke)
     if( LSM_ERR_JOB_STARTED == rc ) {
         wait_for_job(c, &job);
     } else {
-        fail_unless(LSM_ERR_OK == rc, "rc = %d, plug-in = %d", rc, which_plugin);
+        fail_unless(LSM_ERR_OK == rc, "rc = %d, plug-in = %d", rc, is_simc_plugin);
     }
 
     lsm_volume **volumes = NULL;
@@ -807,8 +814,8 @@ START_TEST(test_access_groups_grant_revoke)
     if( LSM_ERR_JOB_STARTED == rc ) {
         wait_for_job(c, &job);
     } else {
-        fail_unless(LSM_ERR_OK == rc, "rc = %d, which_plugin=%d",
-                    rc, which_plugin);
+        fail_unless(LSM_ERR_OK == rc, "rc = %d, is_simc_plugin=%d",
+                    rc, is_simc_plugin);
     }
 
     G(rc, lsm_access_group_delete, c, group, LSM_CLIENT_FLAG_RSVD);
@@ -887,7 +894,7 @@ START_TEST(test_fs)
         resized_fs = wait_for_job_fs(c, &job);
     }
 
-    if ( which_plugin == 0 ){
+    if ( is_simc_plugin == 0 ){
 
         uint8_t yes_no = 10;
         G(rc, lsm_fs_child_dependency, c, nfs, NULL, &yes_no,
@@ -1086,7 +1093,10 @@ START_TEST(test_disks)
             fail_unless( lsm_disk_number_of_blocks_get(d[i]) >= 1);
             fail_unless( lsm_disk_block_size_get(d[i]) >= 1);
             fail_unless( lsm_disk_status_get(d[i]) >= 1);
-
+            if (is_simc_plugin == 0) {
+                /* Only sim support lsm_disk_vpd83_get() yet */
+                fail_unless(lsm_disk_vpd83_get(d[i]) != NULL);
+            }
         }
         lsm_disk_record_array_free(d, count);
     } else {
@@ -2988,7 +2998,7 @@ END_TEST
 
 START_TEST(test_volume_raid_create_cap_get)
 {
-    if (which_plugin == 1){
+    if (is_simc_plugin == 1){
         // silently skip on simc which does not support this method yet.
         return;
     }
@@ -3021,7 +3031,7 @@ END_TEST
 
 START_TEST(test_volume_raid_create)
 {
-    if (which_plugin == 1){
+    if (is_simc_plugin == 1){
         // silently skip on simc which does not support this method yet.
         return;
     }
@@ -3137,6 +3147,185 @@ START_TEST(test_volume_ident_led_clear)
 }
 END_TEST
 
+
+/*
+ * Just check whether LSM_ERR_INVALID_ARGUMENT handle correctly.
+ */
+START_TEST(test_scsi_disk_paths_of_vpd83)
+{
+    int rc = LSM_ERR_OK;
+    lsm_string_list *sd_path_list;
+    /* Not initialized in order to test dangling pointer sd_path_list */
+    lsm_error *lsm_err = NULL;
+
+    if (is_simc_plugin == 1){
+        /* silently skip on simc, no need for duplicate test. */
+        return;
+    }
+
+    rc = lsm_scsi_disk_paths_of_vpd83(NULL, &sd_path_list, &lsm_err);
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting "
+                "LSM_ERR_INVALID_ARGUMENT when vpd83 argument pointer is NULL");
+
+    fail_unless(sd_path_list == NULL,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting "
+                "sd_path_list been set as NULL.");
+
+    fail_unless(lsm_err != NULL,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting "
+                "lsm_err been set as non-NULL.");
+    fail_unless(lsm_error_number_get(lsm_err) == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting "
+                "lsm_err been set with LSM_ERR_INVALID_ARGUMENT");
+    fail_unless(lsm_error_message_get(lsm_err) != NULL,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting "
+                "lsm_err been set with non-NULL error message");
+    lsm_error_free(lsm_err);
+
+
+    rc = lsm_scsi_disk_paths_of_vpd83(VPD83_TO_SEARCH, NULL, &lsm_err);
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting "
+                "LSM_ERR_INVALID_ARGUMENT when sd_path_list argument pointer "
+                "is NULL");
+    lsm_error_free(lsm_err);
+
+    rc = lsm_scsi_disk_paths_of_vpd83(VPD83_TO_SEARCH, &sd_path_list, NULL);
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting "
+                "LSM_ERR_INVALID_ARGUMENT when lsm_err argument pointer "
+                "is NULL");
+
+    rc = lsm_scsi_disk_paths_of_vpd83(INVALID_VPD83, &sd_path_list, &lsm_err);
+    fail_unless(lsm_err != NULL,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting lsm_err "
+                "been set at not NULL when incorrect VPD83 provided");
+    fail_unless(lsm_error_number_get(lsm_err) == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting "
+                "lsm_err been set with LSM_ERR_INVALID_ARGUMENT");
+    fail_unless(lsm_error_message_get(lsm_err) != NULL,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting "
+                "lsm_err been set with non-NULL error message");
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting LSM_ERR_OK "
+                "when no argument is NULL");
+    lsm_error_free(lsm_err);
+
+    rc = lsm_scsi_disk_paths_of_vpd83(VPD83_TO_SEARCH, &sd_path_list, &lsm_err);
+    fail_unless(rc == LSM_ERR_OK,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting LSM_ERR_OK"
+                "when no argument is NULL");
+
+    fail_unless(lsm_err == NULL,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting lsm_err as NULL"
+                "when valid argument provided");
+
+    if (sd_path_list != NULL)
+        lsm_string_list_free(sd_path_list);
+
+    if (lsm_err != NULL)
+        lsm_error_free(lsm_err);
+    /* ^ No need to free lsm_err as programme already quit due to above check,
+     * keeping this line is just for code demonstration.
+     */
+
+    rc = lsm_scsi_disk_paths_of_vpd83(VALID_BUT_NOT_EXIST_VPD83, &sd_path_list,
+                                      &lsm_err);
+    fail_unless(rc == LSM_ERR_OK,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting LSM_ERR_OK"
+                "when no argument is NULL");
+    fail_unless(lsm_err == NULL,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting lsm_err as NULL"
+                "when valid argument provided");
+    fail_unless(sd_path_list == NULL,
+                "lsm_scsi_disk_paths_of_vpd83(): Expecting sd_path_list as "
+                "NULL when searching for VALID_BUT_NOT_EXIST_VPD83");
+
+}
+END_TEST
+
+START_TEST(test_scsi_vpd83_of_disk_path)
+{
+    int rc = LSM_ERR_OK;
+    const char *vpd83;
+    /* Not initialized in order to test dangling pointer vpd83 */
+    lsm_error *lsm_err = NULL;
+
+    rc = lsm_scsi_vpd83_of_disk_path(NULL, &vpd83, &lsm_err);
+
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "LSM_ERR_INVALID_ARGUMENT when input is NULL");
+    fail_unless(vpd83 == NULL,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "vpd83 been set as NULL.");
+    fail_unless(lsm_err != NULL,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "lsm_err been set as non-NULL.");
+    fail_unless(lsm_error_number_get(lsm_err) == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "lsm_err been set with LSM_ERR_INVALID_ARGUMENT");
+    fail_unless(lsm_error_message_get(lsm_err) != NULL,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "lsm_err been set with non-NULL error message");
+    lsm_error_free(lsm_err);
+
+    rc = lsm_scsi_vpd83_of_disk_path("/dev/sda", NULL, &lsm_err);
+
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "LSM_ERR_INVALID_ARGUMENT when input is NULL");
+    lsm_error_free(lsm_err);
+
+    rc = lsm_scsi_vpd83_of_disk_path("/dev/sda", &vpd83, NULL);
+
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "LSM_ERR_INVALID_ARGUMENT when lsm_err is NULL");
+
+    rc = lsm_scsi_vpd83_of_disk_path("/dev/", &vpd83, &lsm_err);
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "LSM_ERR_INVALID_ARGUMENT when input is illegal");
+    fail_unless(lsm_err != NULL,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "lsm_err been set as non-NULL.");
+    fail_unless(lsm_error_number_get(lsm_err) == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "lsm_err been set with LSM_ERR_INVALID_ARGUMENT");
+    fail_unless(lsm_error_message_get(lsm_err) != NULL,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "lsm_err been set with non-NULL error message");
+    lsm_error_free(lsm_err);
+
+    /* We cannot make sure /dev/sda exists, but worth trying */
+    lsm_scsi_vpd83_of_disk_path("/dev/sda", &vpd83, &lsm_err);
+    if (lsm_err != NULL)
+        lsm_error_free(lsm_err);
+    free((char *) vpd83);
+
+    /* Test non-exist disk */
+    rc = lsm_scsi_vpd83_of_disk_path(NOT_EXIST_SD_PATH, &vpd83, &lsm_err);
+    fail_unless(rc == LSM_ERR_NOT_FOUND_DISK,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "LSM_ERR_NOT_FOUND_DISK when disk not exist");
+    fail_unless(vpd83 == NULL,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "vpd83 as NULL when disk not exist");
+    fail_unless(lsm_err != NULL,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "lsm_err not NULL when disk not exist");
+    fail_unless(lsm_error_number_get(lsm_err) == LSM_ERR_NOT_FOUND_DISK,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting "
+                "lsm_err been set with LSM_ERR_NOT_FOUND_DISK");
+    fail_unless(lsm_error_message_get(lsm_err) != NULL,
+                "lsm_scsi_vpd83_of_disk_path(): Expecting lsm_err "
+                "been set with non-NULL error message when disk not exist");
+    lsm_error_free(lsm_err);
+}
+END_TEST
+
 Suite * lsm_suite(void)
 {
     Suite *s = suite_create("libStorageMgmt");
@@ -3180,6 +3369,9 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_volume_raid_create);
     tcase_add_test(basic, test_volume_ident_led_set);
     tcase_add_test(basic, test_volume_ident_led_clear);
+    tcase_add_test(basic, test_scsi_disk_paths_of_vpd83);
+    tcase_add_test(basic, test_scsi_vpd83_of_disk_path);
+
 
     suite_add_tcase(s, basic);
     return s;
@@ -3191,16 +3383,11 @@ int main(int argc, char** argv)
     Suite *s = lsm_suite();
     SRunner *sr = srunner_create(s);
 
-    /*
-     * Don't run python plug-in tests if we are looking for
-     * memory leaks.
+    /* Test against simc:// if got any cli argument
+     * else use sim:// instead
      */
-    if( !getenv("LSM_VALGRIND") ) {
-        srunner_run_all(sr, CK_NORMAL);
-    }
-
-    /* Switch plug-in backend to test C language compat. */
-    which_plugin = 1;
+    if ((argc >= 2) && (argv[1] != NULL))
+        is_simc_plugin = 1;
 
     srunner_run_all(sr, CK_NORMAL);
 
