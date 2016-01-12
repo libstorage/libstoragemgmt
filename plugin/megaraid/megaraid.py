@@ -508,7 +508,7 @@ class MegaRAID(IPlugin):
         if 'Name' in vd_basic_info.keys() and vd_basic_info['Name']:
             name += ": %s" % vd_basic_info['Name']
 
-        vpd83 = ''  # TODO(Gris Ge): Beg LSI to provide this information.
+        vpd83 = vd_prop_info.get('SCSI NAA Id', '')
         block_size = size_human_2_size_bytes(vd_pd_info_list[0]['SeSz'])
         num_of_blocks = vd_prop_info['Number of Blocks']
         admin_state = Volume.ADMIN_STATE_ENABLED
