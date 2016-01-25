@@ -350,11 +350,8 @@ static int _udev_vpd83_of_sd_name(char *err_msg, const char *sd_name,
     struct udev_device *sd_udev = NULL;
     int rc = LSM_ERR_OK;
     const char *wwn = NULL;
-    char sys_path[_MAX_SYSFS_BLK_PATH_STR_LEN];
 
     memset(vpd83, 0, _MAX_VPD83_NAA_ID_LEN);
-    snprintf(sys_path, _MAX_SYSFS_BLK_PATH_STR_LEN, _SYSFS_BLK_PATH_FORMAT,
-             sd_name);
 
     udev = udev_new();
     if (udev == NULL) {
@@ -362,7 +359,7 @@ static int _udev_vpd83_of_sd_name(char *err_msg, const char *sd_name,
         goto out;
     }
 
-    sd_udev = udev_device_new_from_syspath(udev, sys_path);
+    sd_udev = udev_device_new_from_subsystem_sysname(udev, "block", sd_name);
     if (sd_udev == NULL) {
         _lsm_err_msg_set(err_msg, "Provided disk not found");
         rc = LSM_ERR_NOT_FOUND_DISK;
