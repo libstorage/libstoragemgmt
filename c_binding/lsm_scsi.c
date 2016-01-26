@@ -48,10 +48,8 @@
 #define _MAX_SD_PATH_STR_LEN 128 + _MAX_SD_NAME_STR_LEN
 
 #define _SYSFS_VPD83_PATH_FORMAT "/sys/block/%s/device/vpd_pg83"
-#define _MAX_SYSFS_VPD83_PATH_STR_LEN  128 + _MAX_SD_NAME_STR_LEN
 
 #define _SYSFS_BLK_PATH_FORMAT "/sys/block/%s"
-#define _MAX_SYSFS_BLK_PATH_STR_LEN 128 + _MAX_SD_NAME_STR_LEN
 
 #define _T10_VPD83_NAA_235_ID_LEN 8
 #define _T10_VPD83_NAA_6_ID_LEN 16
@@ -115,8 +113,6 @@ struct t10_vpd83_naa_header {
  * pointer of char[_LSM_ERR_MSG_LEN].
  */
 static void _be_raw_to_hex(uint8_t *raw, size_t len, char *out);
-static int _sysfs_read_file(char *err_msg, const char *sys_fs_path,
-                            uint8_t *buff, ssize_t *size, size_t max_size);
 static int _sysfs_vpd83_naa_of_sd_name(char *err_msg, const char *sd_name,
                                        char *vpd83);
 static int _udev_vpd83_of_sd_name(char *err_msg, const char *sd_name,
@@ -124,26 +120,9 @@ static int _udev_vpd83_of_sd_name(char *err_msg, const char *sd_name,
 static int _sysfs_get_all_sd_names(char *err_msg,
                                    lsm_string_list **sd_name_list);
 static int _check_null_ptr(char *err_msg, int arg_count, ...);
-static bool _file_is_exist(char *err_msg, const char *path);
 
-/*
- * Assume input path is not NULL or empty string.
- * Try to open provided path file or folder, return true if file could be open,
- * or false.
- */
-static bool _file_is_exist(char *err_msg, const char *path)
-{
-    int fd = 0;
+static int _vpd83_of_sd_name(char *err_msg, const char *sd_name, char *vpd83);
 
-    fd = open(path, O_RDONLY);
-    if (fd == -1) {
-        _lsm_err_msg_set(err_msg, "Failed to open %s, error: %d, %s",
-                         path, errno, strerror(errno));
-        return false;
-    }
-    close(fd);
-    return true;
-}
 
 /*
  * Check whether input pointer is NULL.
@@ -188,34 +167,6 @@ static void _be_raw_to_hex(uint8_t *raw, size_t len, char *out)
 
 }
 
-static int _sysfs_read_file(char *err_msg, const char *sys_fs_path,
-                            uint8_t *buff, ssize_t *size, size_t max_size)
-{
-    int fd = -1;
-
-    *size = 0;
-    memset(buff, 0, max_size);
-
-    fd = open(sys_fs_path, O_RDONLY);
-    if (fd < 0) {
-        if (errno == ENOENT)
-            return LSM_ERR_NO_SUPPORT;
-
-        _lsm_err_msg_set(err_msg, "_sysfs_read_file(): Failed to open %s, "
-                         "error: %d, %s", sys_fs_path, errno, strerror(errno));
-        return LSM_ERR_LIB_BUG;
-    }
-    *size = read(fd, buff, max_size);
-    close(fd);
-
-    if (*size < 0) {
-        _lsm_err_msg_set(err_msg, "Failed to read %s, error: %d, %s",
-                         sys_fs_path, errno, strerror(errno));
-        return LSM_ERR_LIB_BUG;
-    }
-    return LSM_ERR_OK;
-}
-
 /*
  * Parse _SYSFS_VPD83_PATH_FORMAT file for VPD83 NAA ID.
  * When no such sysfs file found, return LSM_ERR_NO_SUPPORT.
@@ -232,7 +183,9 @@ static int _sysfs_read_file(char *err_msg, const char *sys_fs_path,
 static int _sysfs_vpd83_naa_of_sd_name(char *err_msg, const char *sd_name,
                                        char *vpd83)
 {
-    ssize_t read_size = 0;
+
+    struct udev *udev = NULL;
+    struct udev_device *sd_udev = NULL;
     uint8_t *end_p = NULL;
     uint8_t *p = NULL;
     struct t10_vpd83_header *vpd83_header = NULL;
@@ -240,9 +193,8 @@ static int _sysfs_vpd83_naa_of_sd_name(char *err_msg, const char *sd_name,
     struct t10_vpd83_id_header *id_header = NULL;
     struct t10_vpd83_naa_header *naa_header = NULL;
     int rc = LSM_ERR_OK;
-    uint8_t buff[_MAX_VPD83_PAGE_LEN];
-    char sysfs_path[_MAX_SYSFS_VPD83_PATH_STR_LEN];
-    char sysfs_blk_path[_MAX_SYSFS_BLK_PATH_STR_LEN];
+    char buff[_MAX_VPD83_PAGE_LEN];
+    const char * value;
 
     memset(vpd83, 0, _MAX_VPD83_NAA_ID_LEN);
 
@@ -253,29 +205,30 @@ static int _sysfs_vpd83_naa_of_sd_name(char *err_msg, const char *sd_name,
         goto out;
     }
 
-    /*
-     * Check the existence of disk vis /sys/block/sdX folder.
-     */
-    snprintf(sysfs_blk_path, _MAX_SYSFS_BLK_PATH_STR_LEN,
-             _SYSFS_BLK_PATH_FORMAT, sd_name);
-    if (_file_is_exist(err_msg, sysfs_blk_path) == false) {
+    udev = udev_new();
+    if (udev == NULL) {
+        rc = LSM_ERR_NO_MEMORY;
+        goto out;
+    }
+
+    sd_udev = udev_device_new_from_subsystem_sysname(udev, "block", sd_name);
+    if (sd_udev == NULL) {
         rc = LSM_ERR_NOT_FOUND_DISK;
         goto out;
     }
 
-    snprintf(sysfs_path, _MAX_SYSFS_VPD83_PATH_STR_LEN,
-             _SYSFS_VPD83_PATH_FORMAT, sd_name);
-
-    rc = _sysfs_read_file(err_msg, sysfs_path, buff, &read_size,
-                          _MAX_VPD83_PAGE_LEN);
-
-    if (rc != LSM_ERR_OK)
+    value = udev_device_get_sysattr_value(sd_udev, "device/vpd_pg83");
+    if (value == NULL) {
+        rc = LSM_ERR_NO_SUPPORT;
         goto out;
+    }
 
     /* Return NULL and LSM_ERR_OK when got invalid sysfs file */
     /* Read size is smaller than VPD83 header */
-    if (read_size < sizeof(struct t10_vpd83_header))
+    if (strlen(value) < sizeof(struct t10_vpd83_header))
         goto out;
+
+    strncpy(buff, value, _MAX_VPD83_PAGE_LEN);
 
     vpd83_header = (struct t10_vpd83_header*) buff;
 
@@ -329,6 +282,12 @@ static int _sysfs_vpd83_naa_of_sd_name(char *err_msg, const char *sd_name,
     }
 
  out:
+    if (udev != NULL)
+        udev_unref(udev);
+
+    if (sd_udev != NULL)
+        udev_device_unref(sd_udev);
+
     return rc;
 }
 
@@ -350,11 +309,8 @@ static int _udev_vpd83_of_sd_name(char *err_msg, const char *sd_name,
     struct udev_device *sd_udev = NULL;
     int rc = LSM_ERR_OK;
     const char *wwn = NULL;
-    char sys_path[_MAX_SYSFS_BLK_PATH_STR_LEN];
 
     memset(vpd83, 0, _MAX_VPD83_NAA_ID_LEN);
-    snprintf(sys_path, _MAX_SYSFS_BLK_PATH_STR_LEN, _SYSFS_BLK_PATH_FORMAT,
-             sd_name);
 
     udev = udev_new();
     if (udev == NULL) {
@@ -362,7 +318,7 @@ static int _udev_vpd83_of_sd_name(char *err_msg, const char *sd_name,
         goto out;
     }
 
-    sd_udev = udev_device_new_from_syspath(udev, sys_path);
+    sd_udev = udev_device_new_from_subsystem_sysname(udev, "block", sd_name);
     if (sd_udev == NULL) {
         _lsm_err_msg_set(err_msg, "Provided disk not found");
         rc = LSM_ERR_NOT_FOUND_DISK;
@@ -376,6 +332,59 @@ static int _udev_vpd83_of_sd_name(char *err_msg, const char *sd_name,
         wwn += strlen("0x");
 
     snprintf(vpd83, _MAX_VPD83_NAA_ID_LEN, wwn);
+
+ out:
+    if (udev != NULL)
+        udev_unref(udev);
+
+    if (sd_udev != NULL)
+        udev_device_unref(sd_udev);
+
+    return rc;
+}
+
+/*
+ * Discover vpd83 id for sd_name.
+ * Try to read device/vpd_pg83 attribute for VPD83 NAA ID first.
+ *
+ * This attribute is missing in some older kernels (like RHEL6).
+ * If it is missing, fall back on udev ID_WWN_WITH_EXTENSION property.
+ *
+ * Input *vpd83 should be char[_MAX_VPD83_NAA_ID_LEN], assuming caller did
+ * the check.
+ * The maximum *sd_name strlen is (_MAX_SD_NAME_STR_LEN - 1), assuming caller
+ * did the check.
+ */
+static int _vpd83_of_sd_name(char *err_msg, const char *sd_name, char *vpd83)
+{
+    struct udev *udev = NULL;
+    struct udev_device *sd_udev = NULL;
+    int rc = LSM_ERR_OK;
+
+    memset(vpd83, 0, _MAX_VPD83_NAA_ID_LEN);
+
+    if (sd_name == NULL) {
+        _lsm_err_msg_set(err_msg, "_vpd83_of_sd_name(): "
+                         "Input sd_name argument is NULL");
+        rc = LSM_ERR_LIB_BUG;
+        goto out;
+    }
+
+    udev = udev_new();
+    if (udev == NULL) {
+        rc = LSM_ERR_NO_MEMORY;
+        goto out;
+    }
+
+    sd_udev = udev_device_new_from_subsystem_sysname(udev, "block", sd_name);
+    if (sd_udev == NULL) {
+        _lsm_err_msg_set(err_msg, "Provided disk not found");
+        rc = LSM_ERR_NOT_FOUND_DISK;
+        goto out;
+    }
+
+    // do the calls to (modified versions of)_udev_vpd83_of_sd_name and
+    // _sysfs_vpd83_naa_of_sd_name here.
 
  out:
     if (udev != NULL)
