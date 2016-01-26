@@ -121,6 +121,8 @@ static int _sysfs_get_all_sd_names(char *err_msg,
                                    lsm_string_list **sd_name_list);
 static int _check_null_ptr(char *err_msg, int arg_count, ...);
 
+static int _vpd83_of_sd_name(char *err_msg, const char *sd_name, char *vpd83);
+
 
 /*
  * Check whether input pointer is NULL.
@@ -330,6 +332,59 @@ static int _udev_vpd83_of_sd_name(char *err_msg, const char *sd_name,
         wwn += strlen("0x");
 
     snprintf(vpd83, _MAX_VPD83_NAA_ID_LEN, wwn);
+
+ out:
+    if (udev != NULL)
+        udev_unref(udev);
+
+    if (sd_udev != NULL)
+        udev_device_unref(sd_udev);
+
+    return rc;
+}
+
+/*
+ * Discover vpd83 id for sd_name.
+ * Try to read device/vpd_pg83 attribute for VPD83 NAA ID first.
+ *
+ * This attribute is missing in some older kernels (like RHEL6).
+ * If it is missing, fall back on udev ID_WWN_WITH_EXTENSION property.
+ *
+ * Input *vpd83 should be char[_MAX_VPD83_NAA_ID_LEN], assuming caller did
+ * the check.
+ * The maximum *sd_name strlen is (_MAX_SD_NAME_STR_LEN - 1), assuming caller
+ * did the check.
+ */
+static int _vpd83_of_sd_name(char *err_msg, const char *sd_name, char *vpd83)
+{
+    struct udev *udev = NULL;
+    struct udev_device *sd_udev = NULL;
+    int rc = LSM_ERR_OK;
+
+    memset(vpd83, 0, _MAX_VPD83_NAA_ID_LEN);
+
+    if (sd_name == NULL) {
+        _lsm_err_msg_set(err_msg, "_vpd83_of_sd_name(): "
+                         "Input sd_name argument is NULL");
+        rc = LSM_ERR_LIB_BUG;
+        goto out;
+    }
+
+    udev = udev_new();
+    if (udev == NULL) {
+        rc = LSM_ERR_NO_MEMORY;
+        goto out;
+    }
+
+    sd_udev = udev_device_new_from_subsystem_sysname(udev, "block", sd_name);
+    if (sd_udev == NULL) {
+        _lsm_err_msg_set(err_msg, "Provided disk not found");
+        rc = LSM_ERR_NOT_FOUND_DISK;
+        goto out;
+    }
+
+    // do the calls to (modified versions of)_udev_vpd83_of_sd_name and
+    // _sysfs_vpd83_naa_of_sd_name here.
 
  out:
     if (udev != NULL)
