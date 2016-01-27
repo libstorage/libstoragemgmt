@@ -41,6 +41,9 @@ my $LSM_CODE_BASE_DIR = dirname( dirname( dirname( abs_path($0) ) ) );
 my $PYTHON_LIB_DIR    = "$LSM_CODE_BASE_DIR/python_binding/lsm";
 my $C_LIB_HEADER = "$LSM_CODE_BASE_DIR"
                    . "/c_binding/include/libstoragemgmt/libstoragemgmt.h";
+my %C_WHITE_LIST = (
+    'ANON_UID_GID_NA'=> 1,
+);
 
 my $REGEX_VALUE_FORMAT = qr/
     (?<NUM>(?&NUM_PAT))
@@ -220,7 +223,8 @@ sub _get_c_constants($){
       or die "FAIL: Failed to open $c_header $!\n";
     my %rc = ();
     map{
-        $rc{$+{'CNAME'}} = $+{'NUM'} if /$REGEX_C_CONST_FORMAT/;
+        $rc{$+{'CNAME'}} = $+{'NUM'}
+          if (/$REGEX_C_CONST_FORMAT/) && ! $C_WHITE_LIST{$+{'CNAME'}};
     }<$c_header_fd>;
     return \%rc;
 }
