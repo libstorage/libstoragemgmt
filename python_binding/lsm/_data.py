@@ -207,6 +207,10 @@ class Disk(IData):
     # any explicit action when assigning to pool, it should be treated as
     # free disk and marked as STATUS_FREE|STATUS_SPARE_DISK.
 
+    RPM_UNKNOWN = -1
+    RPM_NON_ROTATING_MEDIUM = 0
+    RPM_ROTATING_UNKNOWN_SPEED = 1
+
     def __init__(self, _id, _name, _disk_type, _block_size, _num_of_blocks,
                  _status, _system_id, _plugin_data=None, _vpd83='',
                  _disk_location=''):

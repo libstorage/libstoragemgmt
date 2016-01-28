@@ -115,9 +115,28 @@ static const char local_disk_vpd83_get_docstring[] =
     "        err_msg (string)\n"
     "            Error message, empty if no error.\n";
 
+static const char local_disk_rpm_get_docstring[] =
+    "INTERNAL USE ONLY!\n"
+    "\n"
+    "Usage:\n"
+    "    Query the rotation speed of given disk path\n"
+    "Parameters:\n"
+    "    disk_path (string)\n"
+    "        The disk path, example '/dev/sdb'. Empty string is failure\n"
+    "Returns:\n"
+    "    [rpm, rc, err_msg]\n"
+    "        rpm (int)\n"
+    "              revolutions per minute (RPM).\n"
+    "        rc (integer)\n"
+    "            Error code, lsm.ErrorNumber.OK if no error\n"
+    "        err_msg (string)\n"
+    "            Error message, empty if no error.\n";
+
 static PyObject *local_disk_vpd83_search(PyObject *self, PyObject *args,
                                      PyObject *kwargs);
 static PyObject *local_disk_vpd83_get(PyObject *self, PyObject *args,
+                                    PyObject *kwargs);
+static PyObject *local_disk_rpm_get(PyObject *self, PyObject *args,
                                     PyObject *kwargs);
 static PyObject *_lsm_string_list_to_pylist(lsm_string_list *str_list);
 static PyObject *_c_str_to_py_str(const char *str);
@@ -127,6 +146,8 @@ static PyMethodDef _methods[] = {
      METH_VARARGS | METH_KEYWORDS, local_disk_vpd83_search_docstring},
     {"_local_disk_vpd83_get",  (PyCFunction) local_disk_vpd83_get,
      METH_VARARGS | METH_KEYWORDS, local_disk_vpd83_get_docstring},
+    {"_local_disk_rpm_get",  (PyCFunction) local_disk_rpm_get,
+     METH_VARARGS | METH_KEYWORDS, local_disk_rpm_get_docstring},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
@@ -174,6 +195,9 @@ _wrapper(local_disk_vpd83_search, lsm_local_disk_vpd83_search,
 _wrapper(local_disk_vpd83_get, lsm_local_disk_vpd83_get,
          const char *, disk_path, char *, NULL,
          _c_str_to_py_str);
+_wrapper(local_disk_rpm_get, lsm_local_disk_rpm_get,
+         const char *, disk_path, int32_t, LSM_DISK_RPM_UNKNOWN,
+         PyInt_FromLong);
 
 PyMODINIT_FUNC init_clib(void)
 {

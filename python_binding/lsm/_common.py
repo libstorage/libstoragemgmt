@@ -420,6 +420,7 @@ class ErrorNumber(object):
     JOB_STARTED = 7
     TIMEOUT = 11
     DAEMON_NOT_RUNNING = 12
+    PERMISSION_DENIED = 13
 
     NAME_CONFLICT = 50
     EXISTS_INITIATOR = 52
