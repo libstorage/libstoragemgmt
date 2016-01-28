@@ -16,6 +16,9 @@
  * Author: Gris Ge <fge@redhat.com>
  */
 
+#define _GNU_SOURCE
+/* ^ For strerror_r() */
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -29,10 +32,40 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include <arpa/inet.h>
+#include <scsi/sg.h>
+#include <scsi/scsi.h>
+#include <sys/ioctl.h>
+#include <assert.h>
+#include <endian.h>
 
 #include "libstoragemgmt/libstoragemgmt.h"
 #include "libstoragemgmt/libstoragemgmt_error.h"
 #include "libstoragemgmt/libstoragemgmt_plug_interface.h"
+
+#define _T10_SBC_VPD_BLK_DEV_CHA                        0xb1
+/* ^ SBC-4 rev9 Table 236 - Block Device Characteristics VPD page */
+#define _T10_SBC_VPD_BLK_DEV_CHA_MAX_PAGE_LEN            0x3c + 4
+/* ^ SBC-4 rev9 Table 236 Block Device Characteristics VPD page */
+#define _T10_SPC_VPD_SUP_VPD_PGS                         0x00
+/* ^ SPC-5 rev7 7.7.16 Supported VPD Pages VPD page */
+#define _T10_SPC_VPD_SUP_VPD_PGS_MAX_PAGE_LEN            0xff + 1 + 4
+/* ^ There are 256(0xff + 1) page codes, each only take 1 byte, we only
+ *   need 256 bytes to store them. Addition 4 bytes for VPD 0x00 page header.
+ *   Please refer to "SPC-5 rev7 Table 534 - Supported VPD Pages VPD page"
+ *   for detail.
+ */
+#define _T10_SPC_VPD_SUP_VPD_PGS_LIST_OFFSET            4
+/* ^ SPC-5 rev7 Table 534 - Supported VPD Pages VPD page */
+#define _T10_SPC_INQUERY_CMD_LEN                        6
+/* ^ SPC-5 rev7 Table 142 - INQUIRY command */
+#define _T10_SBC_MEDIUM_ROTATION_NO_SUPPORT             0
+/* ^ SPC-5 rev7 Table 237 - MEDIUM ROTATION RATE field */
+#define _T10_SBC_MEDIUM_ROTATION_SSD                    1
+/* ^ SPC-5 rev7 Table 237 - MEDIUM ROTATION RATE field */
+
+#define _VPD_QUERY_TMO                                  1000
+/* ^ VPD timeout: 1 second */
+/*TODO(Gris Ge): Raise LSM_ERR_TIMEOUT error for this */
 
 #define _T10_SPC_VPD_DI                         0x83
 #define _T10_SPC_VPD_DI_MAX_LEN                 0xff + 4
@@ -67,7 +100,7 @@
 
 #pragma pack(push, 1)
 /*
- * Table 589 — Device Identification VPD page
+ * Table 589 - Device Identification VPD page
  */
 struct t10_vpd83_header {
     uint8_t dev_type : 5;
@@ -79,7 +112,7 @@ struct t10_vpd83_header {
 };
 
 /*
- * Table 590 — Designation descriptor
+ * Table 590 - Designation descriptor
  */
 struct t10_vpd83_dp_header {
     uint8_t code_set        : 4;
@@ -96,12 +129,21 @@ struct t10_vpd83_dp {
     struct t10_vpd83_dp_header header;
     uint8_t designator[0xff];
 };
-/* ^ SPC-5 rev7 Table 486 — Designation descriptor. */
+/* ^ SPC-5 rev7 Table 486 - Designation descriptor. */
 
 struct t10_vpd83_naa_header {
     uint8_t data_msb : 4;
     uint8_t naa_type : 4;
 };
+
+struct t10_sbc_vpd_bdc {
+    uint8_t we_dont_care_0;
+    uint8_t pg_code;
+    uint16_t len_be;
+    uint16_t medium_rotation_rate_be;
+    uint8_t we_dont_care_1[58];
+};
+/* ^ SBC-4 rev 09 Table 236 - Block Device Characteristics VPD page */
 
 #pragma pack(pop)
 
@@ -146,6 +188,11 @@ static void _t10_vpd83_dp_array_free(struct t10_vpd83_dp **dps,
                                     uint16_t dp_count);
 static int _sysfs_vpd_pg83_data_get(char *err_msg, const char *sd_name,
                                     uint8_t *vpd_data, ssize_t *read_size);
+static int _sg_io_ioctl_vpd(char *err_msg, int fd, uint8_t page_cde,
+                            uint8_t *vpd_data, uint16_t vpd_data_len);
+static int _sg_io_ioctl_open(char *err_msg, const char *sd_path, int *fd);
+static bool _is_vpd_page_supported(uint8_t *vpd_0_data, uint16_t vpd_0_len,
+                                   uint8_t page_code);
 
 /*
  * Assume input path is not NULL or empty string.
@@ -211,6 +258,7 @@ static int _sysfs_read_file(char *err_msg, const char *sys_fs_path,
                             uint8_t *buff, ssize_t *size, size_t max_size)
 {
     int fd = -1;
+    char strerr_buff[_LSM_ERR_MSG_LEN];
 
     *size = 0;
     memset(buff, 0, max_size);
@@ -221,7 +269,8 @@ static int _sysfs_read_file(char *err_msg, const char *sys_fs_path,
             return LSM_ERR_NO_SUPPORT;
 
         _lsm_err_msg_set(err_msg, "_sysfs_read_file(): Failed to open %s, "
-                         "error: %d, %s", sys_fs_path, errno, strerror(errno));
+                         "error: %d, %s", sys_fs_path, errno,
+                         strerror_r(errno, strerr_buff, _LSM_ERR_MSG_LEN));
         return LSM_ERR_LIB_BUG;
     }
     *size = read(fd, buff, max_size);
@@ -229,7 +278,8 @@ static int _sysfs_read_file(char *err_msg, const char *sys_fs_path,
 
     if (*size < 0) {
         _lsm_err_msg_set(err_msg, "Failed to read %s, error: %d, %s",
-                         sys_fs_path, errno, strerror(errno));
+                         sys_fs_path, errno,
+                         strerror_r(errno, strerr_buff, _LSM_ERR_MSG_LEN));
         return LSM_ERR_LIB_BUG;
     }
     return LSM_ERR_OK;
@@ -401,6 +451,7 @@ static int _sysfs_get_all_sd_names(char *err_msg,
     DIR *dir = NULL;
     struct dirent *dp = NULL;
     int rc = LSM_ERR_OK;
+    char strerr_buff[_LSM_ERR_MSG_LEN];
 
     *sd_name_list = lsm_string_list_alloc(0 /* no pre-allocation */);
     if (*sd_name_list == NULL) {
@@ -410,7 +461,8 @@ static int _sysfs_get_all_sd_names(char *err_msg,
     dir = opendir(_SYS_BLOCK_PATH);
     if (dir == NULL) {
         _lsm_err_msg_set(err_msg, "Cannot open %s: error (%d)%s",
-                         _SYS_BLOCK_PATH, errno, strerror(errno));
+                         _SYS_BLOCK_PATH, errno,
+                         strerror_r(errno, strerr_buff, _LSM_ERR_MSG_LEN));
         rc = LSM_ERR_LIB_BUG;
         goto out;
     }
@@ -437,7 +489,8 @@ static int _sysfs_get_all_sd_names(char *err_msg,
     if (dir != NULL) {
         if (closedir(dir) != 0) {
             _lsm_err_msg_set(err_msg, "Failed to close dir %s: error (%d)%s",
-                             _SYS_BLOCK_PATH, errno, strerror(errno));
+                             _SYS_BLOCK_PATH, errno,
+                             strerror_r(errno, strerr_buff, _LSM_ERR_MSG_LEN));
             rc = LSM_ERR_LIB_BUG;
         }
     }
@@ -747,6 +800,217 @@ int lsm_local_disk_vpd83_get(const char *disk_path, char **vpd83,
             free(*vpd83);
             *vpd83= NULL;
         }
+    }
+
+    return rc;
+}
+
+/*
+ * Preconditions:
+ *  vpd_0_len > 3
+ *  vpd_0_data not NULL
+ */
+static bool _is_vpd_page_supported(uint8_t *vpd_0_data, uint16_t vpd_0_len,
+                                   uint8_t page_code)
+{
+    uint16_t supported_list_len = 0;
+    uint16_t i = 0;
+
+    assert(vpd_0_len > 3);
+    assert(vpd_0_data != NULL);
+
+    supported_list_len = (vpd_0_data[2] << 8) + vpd_0_data[3];
+
+    for (; (i < supported_list_len) &&
+           ((i + _T10_SPC_VPD_SUP_VPD_PGS_LIST_OFFSET) < vpd_0_len); ++i) {
+        if (page_code == vpd_0_data[i + _T10_SPC_VPD_SUP_VPD_PGS_LIST_OFFSET])
+            return true;
+    }
+    return false;
+}
+
+/*
+ * Preconditions:
+ *  err_msg != NULL
+ *  fd >= 0
+ *  vpd_data != NULL
+ *  vpd_data_len > 0
+ */
+static int _sg_io_ioctl_vpd(char *err_msg, int fd, uint8_t page_code,
+                            uint8_t *vpd_data, uint16_t vpd_data_len)
+{
+    int rc = LSM_ERR_OK;
+    uint8_t vpd_00_data[_T10_SPC_VPD_SUP_VPD_PGS_MAX_PAGE_LEN];
+    uint8_t cdb[_T10_SPC_INQUERY_CMD_LEN];
+    struct sg_io_hdr io_hdr;
+    int ioctl_rc = 0;
+    int ioctl_errno = 0;
+    int rc_vpd_00 = 0;
+    char strerr_buff[_LSM_ERR_MSG_LEN];
+
+    assert(err_msg != NULL);
+    assert(fd >= 0);
+    assert(vpd_data != NULL);
+    assert(vpd_data_len > 0);
+
+    /* SPC-5 Table 142 - INQUIRY command */
+    cdb[0] = INQUIRY;
+    /* ^ OPERATION CODE */
+    cdb[1] = 1;
+    /* ^  EVPD, VPD INQUIRY require EVPD == 1 */;
+    cdb[2] = page_code & UINT8_MAX;
+    /* ^ PAGE CODE */
+    cdb[3] = (vpd_data_len >> 8 )& UINT8_MAX;
+    /* ^ ALLOCATION LENGTH, MSB */
+    cdb[4] = vpd_data_len & UINT8_MAX;
+    /* ^ ALLOCATION LENGTH, LSB */
+    cdb[5] = 0;
+    /* ^ CONTROL, no need to handle auto contingent allegiance(ACA) */
+
+    memset(&io_hdr, 0, sizeof(struct sg_io_hdr));
+    memset(vpd_data, 0, (size_t) vpd_data_len);
+    io_hdr.interface_id = 'S'; /* 'S' for SCSI generic */
+    io_hdr.cmd_len = _T10_SPC_INQUERY_CMD_LEN;
+    io_hdr.sbp = NULL; /* No need to parse sense data */
+    io_hdr.mx_sb_len = 0;
+    io_hdr.dxfer_direction = SG_DXFER_FROM_DEV;
+    io_hdr.dxfer_len = vpd_data_len;
+    io_hdr.dxferp = vpd_data;
+    io_hdr.cmdp = cdb;
+    io_hdr.timeout = _VPD_QUERY_TMO;
+
+    ioctl_rc = ioctl(fd, SG_IO, &io_hdr);
+    if (ioctl_rc != 0) {
+        ioctl_errno = errno;
+        if (page_code == _T10_SPC_VPD_SUP_VPD_PGS) {
+            _lsm_err_msg_set(err_msg, "Not a SCSI compatible device");
+            return LSM_ERR_NO_SUPPORT;
+        }
+        /* Check whether provided page is supported */
+        rc_vpd_00 = _sg_io_ioctl_vpd(err_msg, fd, _T10_SPC_VPD_SUP_VPD_PGS,
+                                     vpd_00_data,
+                                     _T10_SPC_VPD_SUP_VPD_PGS_MAX_PAGE_LEN);
+        if (rc_vpd_00 != 0) {
+            rc = LSM_ERR_NO_SUPPORT;
+            goto out;
+        }
+
+        if (_is_vpd_page_supported(vpd_00_data,
+                                   _T10_SPC_VPD_SUP_VPD_PGS_MAX_PAGE_LEN,
+                                   page_code) == true) {
+            /* Current VPD page is supported, then it's a library bug */
+            rc = LSM_ERR_LIB_BUG;
+            _lsm_err_msg_set(err_msg,
+                             "BUG: VPD page 0x%02x is supported, "
+                             "but failed with error %d(%s)", ioctl_rc,
+                             strerror_r(ioctl_errno, strerr_buff, _LSM_ERR_MSG_LEN));
+            goto out;
+
+        }
+
+        rc = LSM_ERR_NO_SUPPORT;
+
+        _lsm_err_msg_set(err_msg, "SCSI VPD 0x%02x page is not supported",
+                         page_code);
+        goto out;
+    }
+
+ out:
+    if (rc != LSM_ERR_OK)
+        memset(vpd_data, 0, (size_t) vpd_data_len);
+
+    return rc;
+}
+
+/*
+ * Preconditions:
+ *  err_msg != NULL
+ *  sd_path != NULL
+ *  fd != NULL
+ */
+static int _sg_io_ioctl_open(char *err_msg, const char *sd_path, int *fd)
+{
+    int rc = LSM_ERR_OK;
+    char strerr_buff[_LSM_ERR_MSG_LEN];
+
+    assert(err_msg != NULL);
+    assert(sd_path != NULL);
+    assert(fd != NULL);
+
+    *fd = open(sd_path, O_RDONLY|O_NONBLOCK);
+    if (*fd < 0) {
+        switch(errno) {
+        case ENOENT:
+            rc = LSM_ERR_NOT_FOUND_DISK;
+            _lsm_err_msg_set(err_msg, "Disk %s not found", sd_path);
+            goto out;
+        case EACCES:
+            rc = LSM_ERR_PERMISSION_DENIED;
+            _lsm_err_msg_set(err_msg, "Permission denied: Cannot open %s "
+                             "with O_RDONLY and O_NONBLOCK flag", sd_path);
+            goto out;
+        default:
+            rc = LSM_ERR_LIB_BUG;
+            _lsm_err_msg_set(err_msg, "BUG: Failed to open %s, error: %d, %s",
+                             sd_path, errno,
+                             strerror_r(errno, strerr_buff, _LSM_ERR_MSG_LEN));
+        }
+    }
+ out:
+    return rc;
+}
+
+int lsm_local_disk_rpm_get(const char *sd_path, int32_t *rpm,
+                           lsm_error **lsm_err)
+{
+    uint8_t vpd_data[_T10_SBC_VPD_BLK_DEV_CHA_MAX_PAGE_LEN];
+    int fd = -1;
+    char err_msg[_LSM_ERR_MSG_LEN];
+    int rc = LSM_ERR_OK;
+    struct t10_sbc_vpd_bdc *bdc = NULL;
+
+    rc = _check_null_ptr(err_msg, 3 /* arg_count */, sd_path, rpm, lsm_err);
+    if (rc != LSM_ERR_OK) {
+        goto out;
+    }
+
+    _lsm_err_msg_clear(err_msg);
+
+    rc = _sg_io_ioctl_open(err_msg, sd_path, &fd);
+    if (rc != LSM_ERR_OK)
+        goto out;
+
+    rc = _sg_io_ioctl_vpd(err_msg, fd, _T10_SBC_VPD_BLK_DEV_CHA,  vpd_data,
+                          _T10_SBC_VPD_BLK_DEV_CHA_MAX_PAGE_LEN);
+    if (rc != LSM_ERR_OK)
+        goto out;
+    bdc = (struct t10_sbc_vpd_bdc *) vpd_data;
+    if (bdc->pg_code != _T10_SBC_VPD_BLK_DEV_CHA) {
+        rc = LSM_ERR_LIB_BUG;
+        _lsm_err_msg_set(err_msg, "Got corrupted SCSI SBC "
+                         "Device Characteristics VPD page, expected page code "
+                         "is %d but got % " PRIu8 "",
+                         _T10_SBC_VPD_BLK_DEV_CHA, bdc->pg_code);
+        goto out;
+    }
+
+    *rpm = be16toh(bdc->medium_rotation_rate_be);
+    if (((*rpm >= 2) && (*rpm <= 0x400)) || (*rpm == 0xffff) ||
+        (*rpm == _T10_SBC_MEDIUM_ROTATION_NO_SUPPORT))
+        *rpm = LSM_DISK_RPM_UNKNOWN;
+
+    if (*rpm == _T10_SBC_MEDIUM_ROTATION_SSD)
+        *rpm = LSM_DISK_RPM_NON_ROTATING_MEDIUM;
+
+ out:
+    if (fd >= 0)
+        close(fd);
+
+    if (rc != LSM_ERR_OK) {
+        if (lsm_err != NULL)
+            *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
+        if (rpm != NULL)
+            *rpm = LSM_DISK_RPM_UNKNOWN;
     }
 
     return rc;

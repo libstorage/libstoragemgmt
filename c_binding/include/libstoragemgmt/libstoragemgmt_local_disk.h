@@ -73,6 +73,38 @@ int LSM_DLL_EXPORT lsm_local_disk_vpd83_get(const char *sd_path,
                                             char **vpd83,
                                             lsm_error **lsm_err);
 
+/**
+ * Query the disk rotation speed - revolutions per minute(RPM) of given disk
+ * path.
+ * Requires permission to open disk path(root user or disk group).
+ * New in version 1.3.
+ * @param[in]  disk_path
+ *                      String. The path of disk block, example: "/dev/sdb",
+ *                      "/dev/nvme0n1".
+ * @param[out] rpm      Output pointer of int32_t.
+ *                          -1 (LSM_DISK_RPM_UNKNOWN):
+ *                              Unknown RPM
+ *                           0 (LSM_DISK_RPM_NON_ROTATING_MEDIUM):
+ *                              Non-rotating medium (e.g., SSD)
+ *                           1 (LSM_DISK_RPM_ROTATING_UNKNOWN_SPEED):
+ *                              Rotational disk with unknown speed
+ *                          >1:
+ *                              Normal rotational disk (e.g., HDD)
+ * @param[out] lsm_err
+ *                      Output pointer of lsm_error. Error message could be
+ *                      retrieved via lsm_error_message_get(). Memory should be
+ *                      freed by lsm_error_free().
+ * @return LSM_ERR_OK                   On success.
+ *         LSM_ERR_INVALID_ARGUMENT     When any argument is NULL.
+ *         LSM_ERR_LIB_BUG              When something unexpected happens.
+ *         LSM_ERR_NOT_FOUND_DISK       When provided disk path not found.
+ *         LSM_ERR_PERMISSION_DENIED    No sufficient permission to access
+ *                                      provided disk path.
+ */
+int LSM_DLL_EXPORT lsm_local_disk_rpm_get(const char *disk_path, int32_t *rpm,
+                                          lsm_error **lsm_err);
+
+
 #ifdef __cplusplus
 }
 #endif

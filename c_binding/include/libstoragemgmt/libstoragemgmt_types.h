@@ -296,6 +296,15 @@ typedef enum {
 #define LSM_DISK_BLOCK_SIZE_NOT_FOUND               -1
 #define LSM_DISK_BLOCK_COUNT_NOT_FOUND              -1
 
+#define LSM_DISK_RPM_UNKNOWN                        -1
+/* ^ New in version 1.3. */
+#define LSM_DISK_RPM_NON_ROTATING_MEDIUM            0
+/* ^ New in version 1.3. */
+#define LSM_DISK_RPM_ROTATING_UNKNOWN_SPEED         1
+/* ^ New in version 1.3. Indicate given disk is a rotating disk, but speed is
+ *   unknown
+ */
+
 #define LSM_POOL_STATUS_UNKNOWN                     0x0000000000000001
 #define LSM_POOL_STATUS_OK                          0x0000000000000002
 #define LSM_POOL_STATUS_OTHER                       0x0000000000000004
