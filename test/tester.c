@@ -3415,6 +3415,42 @@ START_TEST(test_local_disk_vpd83_get)
 }
 END_TEST
 
+START_TEST(test_local_disk_rpm_get)
+{
+    int rc = 0;
+    int32_t rpm = LSM_DISK_RPM_UNKNOWN;
+    lsm_error *lsm_err = NULL;
+
+    rc = lsm_local_disk_rpm_get("/dev/sda", &rpm,  &lsm_err);
+    if (rc == LSM_ERR_OK) {
+        fail_unless(rpm != LSM_DISK_RPM_UNKNOWN,
+                    "lsm_local_disk_rpm_get(): "
+                    "Expecting rpm not been LSM_DISK_RPM_UNKNOWN "
+                    "when rc == LSM_ERR_OK");
+    } else {
+        lsm_error_free(lsm_err);
+    }
+
+    /* Test non-exist disk */
+    rc = lsm_local_disk_rpm_get(NOT_EXIST_SD_PATH, &rpm,  &lsm_err);
+    fail_unless(rc == LSM_ERR_NOT_FOUND_DISK, "lsm_local_disk_rpm_get(): "
+                "Expecting LSM_ERR_NOT_FOUND_DISK error with "
+                "non-exist sd_path");
+    fail_unless(lsm_err != NULL, "lsm_local_disk_rpm_get(): "
+                "Expecting lsm_err not NULL with non-exist sd_path");
+    fail_unless(lsm_error_number_get(lsm_err) == LSM_ERR_NOT_FOUND_DISK,
+                "lsm_local_disk_rpm_get(): "
+                "Expecting error number of lsm_err been set as "
+                "LSM_ERR_NOT_FOUND_DISK with non-exist sd_path");
+    fail_unless(lsm_error_message_get(lsm_err) != NULL,
+                "lsm_local_disk_rpm_get(): "
+                "Expecting error message of lsm_err not NULL "
+                "with non-exist sd_path");
+    lsm_error_free(lsm_err);
+
+}
+END_TEST
+
 Suite * lsm_suite(void)
 {
     Suite *s = suite_create("libStorageMgmt");
@@ -3464,6 +3500,7 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_local_disk_vpd83_get);
     tcase_add_test(basic, test_read_cache_pct_update);
 
+    tcase_add_test(basic, test_local_disk_rpm_get);
 
     suite_add_tcase(s, basic);
     return s;
