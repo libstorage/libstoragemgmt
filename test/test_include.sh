@@ -216,9 +216,9 @@ function lsm_test_base_install
 
     # libtool 'install' mode does not works against python C extension,
     # use manual copy instead
-    _good cp "${build_dir}/python_binding/lsm/.libs/_scsi.so" \
-        "${LSM_TEST_PY_MODULE_DIR}/lsm/_scsi.so"
-    _good chrpath -d "${LSM_TEST_PY_MODULE_DIR}/lsm/_scsi.so"
+    _good cp "${build_dir}/python_binding/lsm/.libs/_scsi_clib.so" \
+        "${LSM_TEST_PY_MODULE_DIR}/lsm/_scsi_clib.so"
+    _good chrpath -d "${LSM_TEST_PY_MODULE_DIR}/lsm/_scsi_clib.so"
 
     _good find "${src_dir}/python_binding/lsm/" -maxdepth 1 \
         -type f -name '*.py' \

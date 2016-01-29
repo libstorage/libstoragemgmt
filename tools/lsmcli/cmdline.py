@@ -1,4 +1,4 @@
-# Copyright (C) 2012-2015 Red Hat, Inc.
+# Copyright (C) 2012-2016 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -875,7 +875,7 @@ class CmdLine:
         parser = ArgumentParser(
             description='The libStorageMgmt command line interface.'
                         ' Run %(prog)s <command> -h for more on each command.',
-            epilog='Copyright 2012-2015 Red Hat, Inc.\n'
+            epilog='Copyright 2012-2016 Red Hat, Inc.\n'
                    'Please report bugs to '
                    '<libstoragemgmt-devel@lists.fedorahosted.org>\n',
             formatter_class=RawTextHelpFormatter)

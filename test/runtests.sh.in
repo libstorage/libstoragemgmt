@@ -36,6 +36,9 @@ src_dir=$(readlink -f "@abs_top_srcdir@")
 
 source "${src_dir}/test/test_include.sh"
 
+# Constant check: check whether python constants matched with C constants.
+perl ${src_dir}/tools/utility/check_const.pl || exit 1
+
 # First round: test against python plugin sim://
 lsm_test_base_install \
     "$test_base_dir" "$build_dir" "$src_dir" ${LSM_TEST_INSTALL_PY_PLUGINS_ONLY}

@@ -6,7 +6,7 @@ from _common import error, info, LsmError, ErrorNumber, \
     JobStatus, uri_parse, md5, Proxy, size_bytes_2_size_human, \
     common_urllib2_error_handler, size_human_2_size_bytes
 
-import lsm._scsi as SCSI
+from lsm._scsi import SCSI
 
 from _data import (Disk, Volume, Pool, System, FileSystem, FsSnapshot,
                    NfsExport, BlockRange, AccessGroup, TargetPort,

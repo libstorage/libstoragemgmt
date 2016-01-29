@@ -131,6 +131,7 @@ Group:          System Environment/Libraries
 Requires:       %{libstoragemgmt} = %{version}-%{release}
 BuildArch:      noarch
 Requires:       python-argparse
+Requires:       %{libstoragemgmt}-python-clibs
 %if 0%{?rhel} == 6
 # No way to detect 6.2 yet. Just forcing all RHEL 6 to install
 # python-ordereddict just in case.
@@ -555,6 +556,7 @@ fi
 %{python_sitelib}/lsm/external/*
 %{python_sitelib}/lsm/_client.*
 %{python_sitelib}/lsm/_common.*
+%{python_sitelib}/lsm/_scsi.*
 %{python_sitelib}/lsm/_data.*
 %{python_sitelib}/lsm/_iplugin.*
 %{python_sitelib}/lsm/_pluginrunner.*
@@ -575,7 +577,7 @@ fi
 %{_mandir}/man1/sim_lsmplugin.1*
 
 %files -n %{libstoragemgmt}-python-clibs
-%{python_sitelib}/lsm/_scsi.*
+%{python_sitelib}/lsm/_scsi_clib.*
 
 %files -n %{libstoragemgmt}-smis-plugin
 %defattr(-,root,root,-)
