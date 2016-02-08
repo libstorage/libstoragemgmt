@@ -23,7 +23,7 @@ use Fcntl ':mode';
 
 $|++;
 
-my $LSM_UDS_PATH = '/var/run/lsm/ipc/';
+my $LSM_UDS_PATH = '/tmp/lsm/ipc/';
 my $BASE_DIR = dirname( dirname( abs_path($0) ) );
 my $LSM_URI_FILE = "$ENV{HOME}/.lsm_uri";
 my $URI_CFG = Config::IniFiles->new( -file => $LSM_URI_FILE );
@@ -101,7 +101,7 @@ sub chk_lsm_user(){
         print "WARN: Creating libstoragemgmt account and add it into " .
               "the group '$code_group_name($code_gid)' of code tree owner. \n";
 
-        system("useradd -r -g $code_gid -d $LSM_UDS_PATH " .
+        system("useradd -r -g $code_gid -d / " .
                "-s /sbin/nologin " .
                "-c 'daemon account for libstoragemgmt' libstoragemgmt");
         # Check whether code tree $BASE_DIR is read and executable by LSM_USER
