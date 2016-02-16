@@ -44,6 +44,7 @@ my $C_LIB_HEADER = "$LSM_CODE_BASE_DIR"
 my %C_WHITE_LIST = (
     'ANON_UID_GID_NA'=> 1,
 );
+my $REGEX_HEX = qr/[0-9a-fA-F]/;
 
 my $REGEX_VALUE_FORMAT = qr/
     (?<NUM>(?&NUM_PAT))
@@ -64,7 +65,7 @@ my $REGEX_VALUE_FORMAT = qr/
         )
         # Hex number
         (?<NUM_HEX>
-            0x[0-9]+
+            0x$REGEX_HEX+
         )
         (?<NUM_PAT>
             (?&NUM_BIT_SHIFT) | (?&NUM_HEX) | (?&NUM_INT)
@@ -96,7 +97,7 @@ my $REGEX_C_CONST_FORMAT = qr/
         # Hex number
         #   0x0000000000000001
         (?<NUM_HEX>
-            0x[0-9]+
+            0x$REGEX_HEX+
         )
         (?<NUM_PAT>
             (?&NUM_BIT_SHIFT) | (?&NUM_HEX) | (?&NUM_INT)
@@ -360,7 +361,7 @@ sub value_str_to_int($) {
     if ( $raw_value =~ /^-?[0-9]+$/ ) {
         return $raw_value;
     }
-    if ( $raw_value =~ /^0x[0-9]+$/ ) {
+    if ( $raw_value =~ /^0x$REGEX_HEX+$/ ) {
         return hex $raw_value;
     }
     if ( $raw_value =~ /^([0-9]+) +<< +([0-9]+)$/ ) {
