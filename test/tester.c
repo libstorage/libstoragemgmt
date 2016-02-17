@@ -3451,6 +3451,45 @@ START_TEST(test_local_disk_rpm_get)
 }
 END_TEST
 
+START_TEST(test_local_disk_link_type)
+{
+    int rc = 0;
+    lsm_disk_link_type link_type = LSM_DISK_LINK_TYPE_UNKNOWN;
+    lsm_error *lsm_err = NULL;
+
+    rc = lsm_local_disk_link_type_get("/dev/sda", &link_type,  &lsm_err);
+    if (lsm_err != NULL)
+        fail_unless(rc != LSM_ERR_LIB_BUG,
+                    "lsm_local_disk_link_type_get() got LSM_ERR_LIB_BUG: %s",
+                    lsm_error_message_get(lsm_err));
+    else
+        fail_unless(rc != LSM_ERR_LIB_BUG,
+                    "lsm_local_disk_link_type_get() got LSM_ERR_LIB_BUG with "
+                    "NULL lsm_err");
+
+    if (rc != LSM_ERR_OK)
+        lsm_error_free(lsm_err);
+
+    /* Test non-exist disk */
+    rc = lsm_local_disk_link_type_get(NOT_EXIST_SD_PATH, &link_type, &lsm_err);
+    fail_unless(rc == LSM_ERR_NOT_FOUND_DISK,
+                "lsm_local_disk_link_type_get(): "
+                "Expecting LSM_ERR_NOT_FOUND_DISK error with "
+                "non-exist disk_path");
+    fail_unless(lsm_err != NULL, "lsm_local_disk_link_type_get(): "
+                "Expecting lsm_err not NULL with non-exist disk_path");
+    fail_unless(lsm_error_number_get(lsm_err) == LSM_ERR_NOT_FOUND_DISK,
+                "lsm_local_disk_link_type_get(): "
+                "Expecting error number of lsm_err been set as "
+                "LSM_ERR_NOT_FOUND_DISK with non-exist disk_path");
+    fail_unless(lsm_error_message_get(lsm_err) != NULL,
+                "lsm_local_disk_link_type_get(): "
+                "Expecting error message of lsm_err not NULL "
+                "with non-exist disk_path");
+    lsm_error_free(lsm_err);
+}
+END_TEST
+
 Suite * lsm_suite(void)
 {
     Suite *s = suite_create("libStorageMgmt");
