@@ -78,6 +78,14 @@
 #define _T10_SPC_VPD_DI_NAA_TYPE_6              0x6
 #define _T10_SPC_VPD_DI_ASSOCIATION_LUN         0
 /* ^ SPC-5 rev7 7.7.6 Device Identification VPD page */
+#define _T10_SPC_VPD_ATA_INFO                   0x89
+/* ^ SAT-4 rev4 12.4.2 ATA Information VPD page */
+#define _T10_SPC_ASSOCIATION_TGT_PORT           1
+/* ^ SPC-5 rev7 Table 487 — ASSOCIATION field */
+#define _T10_SPC_PROTOCOL_ID_OBSOLETE           1
+/* ^ SPC-5 Table 444 — PROTOCOL IDENTIFIER field values */
+#define _T10_SPC_PROTOCOL_ID_RESERVED           0xc
+/* ^ SPC-5 Table 444 — PROTOCOL IDENTIFIER field values */
 
 #define _LSM_MAX_VPD83_ID_LEN                   33
 /* ^ Max one is 6h IEEE Registered Extended ID which it 32 bits hex string. */
@@ -1126,5 +1134,91 @@ int lsm_local_disk_list(lsm_string_list **disk_paths, lsm_error **lsm_err)
         if (lsm_err != NULL)
             *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
     }
+    return rc;
+}
+
+/* Workflow:
+ *  * Query VPD supported pages, if ATA Information page is supported, then
+ *     we got a ATA.
+ *    # We check this first as when SATA disk connected to a SAS enclosure
+ *    # then its VPD device id page will include SAS PROTOCOL IDENTIFIER as
+ *    # target port.
+ *
+ *  * Check VPD device ID page, seeking ASSOCIATION == 01b,
+ *    check PROTOCOL IDENTIFIER
+ */
+int lsm_local_disk_link_type_get(const char *disk_path,
+                                 lsm_disk_link_type *link_type,
+                                 lsm_error **lsm_err)
+{
+    unsigned char vpd_sup_data[_T10_SPC_VPD_SUP_VPD_PGS_MAX_PAGE_LEN];
+    unsigned char vpd_di_data[_T10_SPC_VPD_DI_MAX_LEN];
+    int fd = -1;
+    char err_msg[_LSM_ERR_MSG_LEN];
+    int rc = LSM_ERR_OK;
+    struct t10_vpd83_dp **dps = NULL;
+    uint16_t dp_count = 0;
+    uint8_t protocol_id = _T10_SPC_PROTOCOL_ID_OBSOLETE;
+    uint16_t i = 0;
+
+    _lsm_err_msg_clear(err_msg);
+
+    _good(_check_null_ptr(err_msg, 3 /* arg_count */, disk_path, link_type,
+                         lsm_err),
+          rc, out);
+
+    *link_type = LSM_DISK_LINK_TYPE_UNKNOWN;
+    *lsm_err = NULL;
+
+    _good(_sg_io_ioctl_open(err_msg, disk_path, &fd), rc, out);
+    _good(_sg_io_ioctl_vpd(err_msg, fd, _T10_SPC_VPD_SUP_VPD_PGS,
+                          vpd_sup_data, _T10_SPC_VPD_SUP_VPD_PGS_MAX_PAGE_LEN),
+          rc, out);
+
+    if (_is_vpd_page_supported(vpd_sup_data,
+                               _T10_SPC_VPD_SUP_VPD_PGS_MAX_PAGE_LEN,
+                               _T10_SPC_VPD_ATA_INFO) == true) {
+        *link_type = LSM_DISK_LINK_TYPE_ATA;
+        goto out;
+    }
+
+    _good(_sg_io_ioctl_vpd(err_msg, fd, _T10_SPC_VPD_DI, vpd_di_data,
+                           _T10_SPC_VPD_DI_MAX_LEN),
+          rc, out);
+
+    _good(_parse_vpd_83(err_msg, vpd_di_data, _T10_SPC_VPD_DI_MAX_LEN, &dps,
+                        &dp_count),
+          rc, out);
+
+    for (; i < dp_count; ++i) {
+        if ((dps[i]->header.association != _T10_SPC_ASSOCIATION_TGT_PORT) ||
+            (dps[i]->header.piv != 1))
+            continue;
+        protocol_id = dps[i]->header.protocol_id;
+        if ((protocol_id == _T10_SPC_PROTOCOL_ID_OBSOLETE) ||
+            (protocol_id >= _T10_SPC_PROTOCOL_ID_RESERVED)) {
+            rc = LSM_ERR_LIB_BUG;
+            _lsm_err_msg_set(err_msg, "Got unknown protocol ID: %02x",
+                             protocol_id);
+            goto out;
+        }
+        *link_type = protocol_id;
+        break;
+    }
+
+ out:
+    if (fd >= 0)
+        close(fd);
+
+    if (dps != NULL)
+        _t10_vpd83_dp_array_free(dps, dp_count);
+
+    if (rc != LSM_ERR_OK) {
+        if (lsm_err != NULL)
+            *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
+        if (link_type != NULL)
+            *link_type = LSM_DISK_LINK_TYPE_UNKNOWN;
+    }
+
     return rc;
 }

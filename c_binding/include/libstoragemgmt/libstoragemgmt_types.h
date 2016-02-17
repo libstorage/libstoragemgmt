@@ -268,6 +268,21 @@ typedef enum {
     LSM_DISK_TYPE_HYBRID = 54,
 } lsm_disk_type;
 
+typedef enum {
+    LSM_DISK_LINK_TYPE_UNKNOWN =  -1,
+    LSM_DISK_LINK_TYPE_FC = 0,
+    LSM_DISK_LINK_TYPE_SSA = 2,
+    LSM_DISK_LINK_TYPE_SBP = 3,
+    LSM_DISK_LINK_TYPE_SRP = 4,
+    LSM_DISK_LINK_TYPE_ISCSI = 5,
+    LSM_DISK_LINK_TYPE_SAS = 6,
+    LSM_DISK_LINK_TYPE_ADT = 7,
+    LSM_DISK_LINK_TYPE_ATA = 8,
+    LSM_DISK_LINK_TYPE_USB = 9,
+    LSM_DISK_LINK_TYPE_SOP = 10,
+    LSM_DISK_LINK_TYPE_PCIE = 11,
+} lsm_disk_link_type;
+/* ^ SPC-5 rev7, Table 444 - PROTOCOL IDENTIFIER field values */
 
 #define LSM_DISK_STATUS_UNKNOWN                     0x0000000000000001
 #define LSM_DISK_STATUS_OK                          0x0000000000000002
