@@ -1674,7 +1674,8 @@ class CmdLine:
                 vpd83 = ""
 
             rpm = LocalDisk.rpm_get(disk_path)
+            link_type = LocalDisk.link_type_get(disk_path)
             local_disks.append(
-                LocalDiskInfo(disk_path, vpd83, rpm))
+                LocalDiskInfo(disk_path, vpd83, rpm, link_type))
 
         self.display_data(local_disks)

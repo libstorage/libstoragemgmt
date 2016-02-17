@@ -25,7 +25,7 @@ from datetime import datetime
 
 from lsm import (size_bytes_2_size_human, LsmError, ErrorNumber,
                  System, Pool, Disk, Volume, AccessGroup,
-                 FileSystem, FsSnapshot, NfsExport, TargetPort)
+                 FileSystem, FsSnapshot, NfsExport, TargetPort, LocalDisk)
 
 BIT_MAP_STRING_SPLITTER = ','
 
@@ -258,6 +258,12 @@ def disk_rpm_to_str(rpm):
     return str(rpm)
 
 
+def link_type_to_str(link_type):
+    if link_type == '':
+        return "No Support"
+    return _enum_type_to_str(link_type, LocalDiskInfo._LINK_TYPE_MAP)
+
+
 class PlugData(object):
     def __init__(self, description, plugin_version):
             self.desc = description
@@ -333,10 +339,26 @@ class VcrCap(object):
         self.strip_sizes = strip_sizes
 
 class LocalDiskInfo(object):
-    def __init__(self, sd_path, vpd83, rpm):
+    _LINK_TYPE_MAP = {
+        Disk.LINK_TYPE_UNKNOWN: "Unknown",
+        Disk.LINK_TYPE_FC: "FC",
+        Disk.LINK_TYPE_SSA: "SSA",
+        Disk.LINK_TYPE_SBP: "SBP",
+        Disk.LINK_TYPE_SRP: "SRP",
+        Disk.LINK_TYPE_ISCSI: "iSCSI",
+        Disk.LINK_TYPE_SAS: "SAS",
+        Disk.LINK_TYPE_ADT: "ADT",
+        Disk.LINK_TYPE_ATA: "PATA/SATA",
+        Disk.LINK_TYPE_USB: "USB",
+        Disk.LINK_TYPE_SOP: "SCSI over PCIE",
+        Disk.LINK_TYPE_PCIE: "PCI-E",
+    }
+
+    def __init__(self, sd_path, vpd83, rpm, link_type):
         self.sd_path = sd_path
         self.vpd83 = vpd83
         self.rpm = rpm
+        self.link_type = link_type
 
 
 class DisplayData(object):
@@ -668,11 +690,13 @@ class DisplayData(object):
     LOCAL_DISK_HEADER['sd_path'] = 'Path'
     LOCAL_DISK_HEADER['vpd83'] = 'SCSI VPD 0x83'
     LOCAL_DISK_HEADER['rpm'] = 'Revolutions Per Minute'
+    LOCAL_DISK_HEADER['link_type'] = 'Link Type'
 
     LOCAL_DISK_COLUMN_SKIP_KEYS = []
 
     LOCAL_DISK_VALUE_CONV_ENUM = {
         'rpm': disk_rpm_to_str,
+        'link_type': link_type_to_str,
     }
     LOCAL_DISK_VALUE_CONV_HUMAN = []
 
