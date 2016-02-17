@@ -211,6 +211,19 @@ class Disk(IData):
     RPM_NON_ROTATING_MEDIUM = 0
     RPM_ROTATING_UNKNOWN_SPEED = 1
 
+    LINK_TYPE_UNKNOWN = -1
+    LINK_TYPE_FC = 0
+    LINK_TYPE_SSA = 2
+    LINK_TYPE_SBP = 3
+    LINK_TYPE_SRP = 4
+    LINK_TYPE_ISCSI = 5
+    LINK_TYPE_SAS = 6
+    LINK_TYPE_ADT = 7
+    LINK_TYPE_ATA = 8
+    LINK_TYPE_USB = 9
+    LINK_TYPE_SOP = 10
+    LINK_TYPE_PCIE = 11
+
     def __init__(self, _id, _name, _disk_type, _block_size, _num_of_blocks,
                  _status, _system_id, _plugin_data=None, _vpd83='',
                  _disk_location=''):
