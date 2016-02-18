@@ -14,7 +14,7 @@
 #
 # Author: Gris Ge <fge@redhat.com>
 
-from lsm._scsi_clib import (_vpd83_of_disk_path, _disk_paths_of_vpd83)
+from lsm._clib import (_local_disk_vpd83_search, _local_disk_vpd83_get)
 from lsm import LsmError, ErrorNumber
 
 
@@ -25,16 +25,16 @@ def _use_c_lib_function(func_ref, arg):
     return data
 
 
-class SCSI(object):
+class LocalDisk(object):
     @staticmethod
-    def disk_paths_of_vpd83(vpd83):
+    def vpd83_search(vpd83):
         """
-        lsm.SCSI.disk_paths_of_vpd83(vpd83)
+        lsm.LocalDisk.vpd83_search(vpd83)
 
         Version:
             1.3
         Usage:
-            Find out the /dev/sdX paths for given SCSI VPD page 0x83 NAA type
+            Find out the disk paths for given SCSI VPD page 0x83 NAA type
             ID. Considering multipath, certain VPD83 might have multiple disks
             associated.
         Parameters:
@@ -43,7 +43,8 @@ class SCSI(object):
         Returns:
             [disk_path]
                 List of string. Empty list if not disk found.
-                The disk_path string format is '/dev/sd[a-z]+'.
+                The disk_path string format is '/dev/sd[a-z]+' for SCSI and
+                ATA disks.
         SpecialExceptions:
             LsmError
                 ErrorNumber.LIB_BUG
@@ -52,20 +53,20 @@ class SCSI(object):
             N/A
                 No capability required as this is a library level method.
         """
-        return _use_c_lib_function(_disk_paths_of_vpd83, vpd83)
+        return _use_c_lib_function(_local_disk_vpd83_search, vpd83)
 
     @staticmethod
-    def vpd83_of_disk_path(disk_path):
+    def vpd83_get(disk_path):
         """
-        lsm.SCSI.vpd83_of_disk_path(disk_path)
+        lsm.LocalDisk.vpd83_get(disk_path)
 
         Version:
             1.3
         Usage:
-            Query the SCSI VPD83 NAA ID of given scsi disk path.
+            Query the SCSI VPD83 NAA ID of given disk path.
         Parameters:
-            sd_path (string)
-                The SCSI disk path, example '/dev/sdb'.
+            disk_path (string)
+                The disk path, example '/dev/sdb'.
         Returns:
             vpd83 (string)
                 String of VPD83 NAA ID. Empty string if not supported.
@@ -83,4 +84,4 @@ class SCSI(object):
             N/A
                 No capability required as this is a library level method.
         """
-        return _use_c_lib_function(_vpd83_of_disk_path, disk_path)
+        return _use_c_lib_function(_local_disk_vpd83_get, disk_path)

@@ -77,7 +77,7 @@ static PyObject *func_name(PyObject *self, PyObject *args, PyObject *kwargs) \
     return rc_list; \
 }
 
-static const char disk_paths_of_vpd83_docstring[] =
+static const char local_disk_vpd83_search_docstring[] =
     "INTERNAL USE ONLY!\n"
     "\n"
     "Usage:\n"
@@ -96,11 +96,11 @@ static const char disk_paths_of_vpd83_docstring[] =
     "        err_msg (string)\n"
     "            Error message, empty if no error.\n";
 
-static const char vpd83_of_disk_path_docstring[] =
+static const char local_disk_vpd83_get_docstring[] =
     "INTERNAL USE ONLY!\n"
     "\n"
     "Usage:\n"
-    "    Query the SCSI VPD83 NAA ID of given scsi disk path\n"
+    "    Query the SCSI VPD83 NAA ID of given disk path\n"
     "Parameters:\n"
     "    sd_path (string)\n"
     "        The SCSI disk path, example '/dev/sdb'. Empty string is failure\n"
@@ -115,18 +115,18 @@ static const char vpd83_of_disk_path_docstring[] =
     "        err_msg (string)\n"
     "            Error message, empty if no error.\n";
 
-static PyObject *disk_paths_of_vpd83(PyObject *self, PyObject *args,
+static PyObject *local_disk_vpd83_search(PyObject *self, PyObject *args,
                                      PyObject *kwargs);
-static PyObject *vpd83_of_disk_path(PyObject *self, PyObject *args,
+static PyObject *local_disk_vpd83_get(PyObject *self, PyObject *args,
                                     PyObject *kwargs);
 static PyObject *_lsm_string_list_to_pylist(lsm_string_list *str_list);
 static PyObject *_c_str_to_py_str(const char *str);
 
-static PyMethodDef _scsi_methods[] = {
-    {"_disk_paths_of_vpd83",  (PyCFunction) disk_paths_of_vpd83,
-     METH_VARARGS | METH_KEYWORDS, disk_paths_of_vpd83_docstring},
-    {"_vpd83_of_disk_path",  (PyCFunction) vpd83_of_disk_path,
-     METH_VARARGS | METH_KEYWORDS, vpd83_of_disk_path_docstring},
+static PyMethodDef _methods[] = {
+    {"_local_disk_vpd83_search",  (PyCFunction) local_disk_vpd83_search,
+     METH_VARARGS | METH_KEYWORDS, local_disk_vpd83_search_docstring},
+    {"_local_disk_vpd83_get",  (PyCFunction) local_disk_vpd83_get,
+     METH_VARARGS | METH_KEYWORDS, local_disk_vpd83_get_docstring},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
@@ -168,14 +168,14 @@ static PyObject *_c_str_to_py_str(const char *str)
     return PyString_FromString(str);
 }
 
-_wrapper(disk_paths_of_vpd83, lsm_scsi_disk_paths_of_vpd83,
+_wrapper(local_disk_vpd83_search, lsm_local_disk_vpd83_search,
          const char *, vpd83, lsm_string_list *, NULL,
          _lsm_string_list_to_pylist);
-_wrapper(vpd83_of_disk_path, lsm_scsi_vpd83_of_disk_path,
+_wrapper(local_disk_vpd83_get, lsm_local_disk_vpd83_get,
          const char *, disk_path, const char *, NULL,
          _c_str_to_py_str);
 
-PyMODINIT_FUNC init_scsi_clib(void)
+PyMODINIT_FUNC init_clib(void)
 {
-        (void) Py_InitModule("_scsi_clib", _scsi_methods);
+        (void) Py_InitModule("_clib", _methods);
 }

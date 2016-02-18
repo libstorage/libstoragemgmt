@@ -556,7 +556,7 @@ fi
 %{python_sitelib}/lsm/external/*
 %{python_sitelib}/lsm/_client.*
 %{python_sitelib}/lsm/_common.*
-%{python_sitelib}/lsm/_scsi.*
+%{python_sitelib}/lsm/_local_disk.*
 %{python_sitelib}/lsm/_data.*
 %{python_sitelib}/lsm/_iplugin.*
 %{python_sitelib}/lsm/_pluginrunner.*
@@ -577,7 +577,7 @@ fi
 %{_mandir}/man1/sim_lsmplugin.1*
 
 %files -n %{libstoragemgmt}-python-clibs
-%{python_sitelib}/lsm/_scsi_clib.*
+%{python_sitelib}/lsm/_clib.*
 
 %files -n %{libstoragemgmt}-smis-plugin
 %defattr(-,root,root,-)

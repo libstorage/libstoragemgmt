@@ -581,9 +581,9 @@ static int _parse_vpd_83(char *err_msg, uint8_t *vpd_data,
     return rc;
 }
 
-int lsm_scsi_disk_paths_of_vpd83(const char *vpd83,
-                                 lsm_string_list **sd_path_list,
-                                 lsm_error **lsm_err)
+int lsm_local_disk_vpd83_search(const char *vpd83,
+                                lsm_string_list **disk_path_list,
+                                lsm_error **lsm_err)
 {
     int rc = LSM_ERR_OK;
     lsm_string_list *sd_name_list = NULL;
@@ -596,15 +596,15 @@ int lsm_scsi_disk_paths_of_vpd83(const char *vpd83,
 
     _lsm_err_msg_clear(err_msg);
 
-    rc = _check_null_ptr(err_msg, 3 /* argument count */, vpd83, sd_path_list,
+    rc = _check_null_ptr(err_msg, 3 /* argument count */, vpd83, disk_path_list,
                          lsm_err);
 
     if (rc != LSM_ERR_OK) {
         /* set output pointers to NULL if possible when facing error in case
          * application use output memory.
          */
-        if (sd_path_list != NULL)
-            *sd_path_list = NULL;
+        if (disk_path_list != NULL)
+            *disk_path_list = NULL;
 
         goto out;
     }
@@ -619,8 +619,8 @@ int lsm_scsi_disk_paths_of_vpd83(const char *vpd83,
 
 
     *lsm_err = NULL;
-    *sd_path_list = lsm_string_list_alloc(0 /* no pre-allocation */);
-    if (*sd_path_list == NULL) {
+    *disk_path_list = lsm_string_list_alloc(0 /* no pre-allocation */);
+    if (*disk_path_list == NULL) {
         rc = LSM_ERR_NO_MEMORY;
         goto out;
     }
@@ -653,7 +653,7 @@ int lsm_scsi_disk_paths_of_vpd83(const char *vpd83,
         if (strncmp(vpd83, tmp_vpd83, _LSM_MAX_VPD83_ID_LEN) == 0) {
             snprintf(sd_path, _MAX_SD_PATH_STR_LEN, _SD_PATH_FORMAT, sd_name);
 
-            if (lsm_string_list_append(*sd_path_list, sd_path) != 0) {
+            if (lsm_string_list_append(*disk_path_list, sd_path) != 0) {
                 rc = LSM_ERR_NO_MEMORY;
                 goto out;
             }
@@ -665,10 +665,10 @@ int lsm_scsi_disk_paths_of_vpd83(const char *vpd83,
         lsm_string_list_free(sd_name_list);
 
     if (rc == LSM_ERR_OK) {
-        /* clean sd_path_list if nothing found */
-        if (lsm_string_list_size(*sd_path_list) == 0) {
-            lsm_string_list_free(*sd_path_list);
-            *sd_path_list = NULL;
+        /* clean disk_path_list if nothing found */
+        if (lsm_string_list_size(*disk_path_list) == 0) {
+            lsm_string_list_free(*disk_path_list);
+            *disk_path_list = NULL;
         }
     } else {
         /* Error found, clean up */
@@ -676,17 +676,17 @@ int lsm_scsi_disk_paths_of_vpd83(const char *vpd83,
         if (lsm_err != NULL)
             *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
 
-        if ((sd_path_list != NULL) && (*sd_path_list != NULL)) {
-            lsm_string_list_free(*sd_path_list);
-            *sd_path_list = NULL;
+        if ((disk_path_list != NULL) && (*disk_path_list != NULL)) {
+            lsm_string_list_free(*disk_path_list);
+            *disk_path_list = NULL;
         }
     }
 
     return rc;
 }
 
-int lsm_scsi_vpd83_of_disk_path(const char *sd_path, const char **vpd83,
-                                lsm_error **lsm_err)
+int lsm_local_disk_vpd83_get(const char *disk_path, const char **vpd83,
+                             lsm_error **lsm_err)
 {
     char tmp_vpd83[_LSM_MAX_VPD83_ID_LEN];
     const char *sd_name = NULL;
@@ -695,7 +695,7 @@ int lsm_scsi_vpd83_of_disk_path(const char *sd_path, const char **vpd83,
 
     _lsm_err_msg_clear(err_msg);
 
-    rc = _check_null_ptr(err_msg, 3 /* arg_count */, sd_path, vpd83, lsm_err);
+    rc = _check_null_ptr(err_msg, 3 /* arg_count */, disk_path, vpd83, lsm_err);
 
     if (rc != LSM_ERR_OK) {
         if (vpd83 != NULL)
@@ -704,20 +704,27 @@ int lsm_scsi_vpd83_of_disk_path(const char *sd_path, const char **vpd83,
         goto out;
     }
 
-    if ((strlen(sd_path) <= strlen("/dev/")) ||
-        (strncmp(sd_path, "/dev/", strlen("/dev/")) != 0)) {
+    if ((strlen(disk_path) <= strlen("/dev/")) ||
+        (strncmp(disk_path, "/dev/", strlen("/dev/")) != 0)) {
 
-        _lsm_err_msg_set(err_msg, "Invalid sd_path, should start with /dev/");
+        _lsm_err_msg_set(err_msg, "Invalid disk_path, should start with /dev/");
         rc = LSM_ERR_INVALID_ARGUMENT;
         goto out;
     }
 
-    sd_name = sd_path + strlen("/dev/");
+    sd_name = disk_path + strlen("/dev/");
     if (strlen(sd_name) > _MAX_SD_NAME_STR_LEN) {
         rc = LSM_ERR_INVALID_ARGUMENT;
-        _lsm_err_msg_set(err_msg, "Illegal sd_path string, the SCSI disk name "
+        _lsm_err_msg_set(err_msg, "Illegal disk_path string, the SCSI disk name "
                          "part(sdX) exceeded the max length %d, current %d",
                          _MAX_SD_NAME_STR_LEN - 1, strlen(sd_name));
+        goto out;
+    }
+    if (strncmp(sd_name, "sd", strlen("sd")) != 0) {
+        rc = LSM_ERR_INVALID_ARGUMENT;
+        _lsm_err_msg_set(err_msg, "Illegal disk_path string, should start with "
+                         "'/dev/sd' as we only support SCSI or ATA disk "
+                         "right now");
         goto out;
     }
 

@@ -34,7 +34,7 @@ from argparse import RawTextHelpFormatter
 from lsm import (Client, Pool, VERSION, LsmError, Disk,
                  Volume, JobStatus, ErrorNumber, BlockRange,
                  uri_parse, Proxy, size_human_2_size_bytes,
-                 AccessGroup, FileSystem, NfsExport, TargetPort, SCSI)
+                 AccessGroup, FileSystem, NfsExport, TargetPort, LocalDisk)
 
 from lsm.lsmcli.data_display import (
     DisplayData, PlugData, out,
@@ -185,7 +185,7 @@ def _add_sd_paths(lsm_obj):
     lsm_obj.sd_paths = []
     try:
         if len(lsm_obj.vpd83) > 0:
-            lsm_obj.sd_paths = SCSI.disk_paths_of_vpd83(lsm_obj.vpd83)
+            lsm_obj.sd_paths = LocalDisk.vpd83_search(lsm_obj.vpd83)
     except LsmError as lsm_err:
         if lsm_err.code != ErrorNumber.NO_SUPPORT:
             raise
