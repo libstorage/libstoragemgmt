@@ -18,8 +18,64 @@
 
 #include <Python.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #include <libstoragemgmt/libstoragemgmt.h>
+
+#define _alloc_check(ptr, flag_no_mem, out) \
+    do { \
+        if (ptr == NULL) { \
+            flag_no_mem = true; \
+            goto out; \
+        } \
+    } while(0)
+
+#define _wrapper(func_name, c_func_name, arg_type, arg, c_rt_type, \
+                 c_rt_default, py_rt_conv_func) \
+static PyObject *func_name(PyObject *self, PyObject *args, PyObject *kwargs) \
+{ \
+    static const char *kwlist[] = {# arg, NULL}; \
+    c_rt_type c_rt = c_rt_default; \
+    arg_type arg = NULL; \
+    lsm_error *lsm_err = NULL; \
+    int rc = LSM_ERR_OK; \
+    PyObject *rc_list = NULL; \
+    PyObject *rc_obj = NULL; \
+    PyObject *err_msg_obj = NULL; \
+    PyObject *err_no_obj = NULL; \
+    bool flag_no_mem = false; \
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", (char **) kwlist, \
+                                     &arg)) \
+        return NULL; \
+    rc = c_func_name(arg, &c_rt, &lsm_err); \
+    err_no_obj = PyInt_FromLong(rc); \
+    _alloc_check(err_no_obj, flag_no_mem, out); \
+    rc_list = PyList_New(3 /* rc_obj, errno, err_str*/); \
+    _alloc_check(rc_list, flag_no_mem, out); \
+    rc_obj = py_rt_conv_func(c_rt); \
+    _alloc_check(rc_obj, flag_no_mem, out); \
+    if (rc != LSM_ERR_OK) { \
+        err_msg_obj = PyString_FromString(lsm_error_message_get(lsm_err)); \
+        lsm_error_free(lsm_err); \
+        _alloc_check(err_msg_obj, flag_no_mem, out); \
+        goto out; \
+    } else { \
+        err_msg_obj = PyString_FromString(""); \
+        _alloc_check(err_msg_obj, flag_no_mem, out); \
+    } \
+ out: \
+    if (flag_no_mem == true) { \
+        Py_XDECREF(rc_list); \
+        Py_XDECREF(err_no_obj); \
+        Py_XDECREF(err_msg_obj); \
+        Py_XDECREF(rc_obj); \
+        return PyErr_NoMemory(); \
+    } \
+    PyList_SET_ITEM(rc_list, 0, rc_obj); \
+    PyList_SET_ITEM(rc_list, 1, err_no_obj); \
+    PyList_SET_ITEM(rc_list, 2, err_msg_obj); \
+    return rc_list; \
+}
 
 static const char disk_paths_of_vpd83_docstring[] =
     "INTERNAL USE ONLY!\n"
@@ -63,10 +119,9 @@ static PyObject *disk_paths_of_vpd83(PyObject *self, PyObject *args,
                                      PyObject *kwargs);
 static PyObject *vpd83_of_disk_path(PyObject *self, PyObject *args,
                                     PyObject *kwargs);
+static PyObject *_lsm_string_list_to_pylist(lsm_string_list *str_list);
+static PyObject *_c_str_to_py_str(const char *str);
 
-/*
- * TODO: Support METH_VARARGS | METH_KEYWORDS
- */
 static PyMethodDef _scsi_methods[] = {
     {"_disk_paths_of_vpd83",  (PyCFunction) disk_paths_of_vpd83,
      METH_VARARGS | METH_KEYWORDS, disk_paths_of_vpd83_docstring},
@@ -75,145 +130,50 @@ static PyMethodDef _scsi_methods[] = {
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
-
-static PyObject *disk_paths_of_vpd83(PyObject *self, PyObject *args,
-                                     PyObject *kwargs)
+/*
+ * Provided lsm_string_list will be freed in this function.
+ */
+static PyObject *_lsm_string_list_to_pylist(lsm_string_list *str_list)
 {
-    static const char *kwlist[] = {"vpd83", NULL};
-    const char *vpd83 = NULL;
-    lsm_string_list *sd_path_list = NULL;
-    lsm_error *lsm_err = NULL;
-    int rc = LSM_ERR_OK;
-    uint8_t i = 0;
-    const char *sd_path = NULL;
-    PyObject *sd_path_obj = NULL;
     PyObject *rc_list = NULL;
-    PyObject *sd_paths_obj = NULL;
-    PyObject *err_msg_obj = NULL;
-    PyObject *err_no_obj = NULL;
+    PyObject *str_obj = NULL;
+    uint32_t i = 0;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", (char **) kwlist,
-                                     &vpd83))
-        return NULL;
-
-    rc = lsm_scsi_disk_paths_of_vpd83(vpd83, &sd_path_list, &lsm_err);
-    /* In python API definition, we don't raise error in function, only
-     * return empty list.
-     */
-
-    if ((rc != LSM_ERR_OK)) {
-        sd_paths_obj = PyList_New(0);
-        err_no_obj = PyInt_FromLong(rc);
-        err_msg_obj = PyString_FromString(lsm_error_message_get(lsm_err));
-        lsm_error_free(lsm_err);
-        goto out;
+    rc_list = PyList_New(lsm_string_list_size(str_list));
+    if (rc_list == NULL) {
+        lsm_string_list_free(str_list);
+        return PyErr_NoMemory();
     }
 
-    err_no_obj = PyInt_FromLong(LSM_ERR_OK);
-    err_msg_obj = PyString_FromString("");
-    sd_paths_obj = PyList_New(0 /* no preallocation */);
-    if (sd_paths_obj == NULL) {
-        goto out;
-    }
 
-    if (sd_path_list == NULL) {
-        goto out;
-    }
+    for (; i < lsm_string_list_size(str_list); ++i) {
+        str_obj = _c_str_to_py_str(lsm_string_list_elem_get(str_list, i));
 
-    for (; i < lsm_string_list_size(sd_path_list); ++i) {
-        sd_path = lsm_string_list_elem_get(sd_path_list, i);
-        if (sd_path == NULL)
-            continue;
-        sd_path_obj = PyString_FromString(sd_path);
-        if (sd_path_obj == NULL) {
+        if (str_obj == NULL) {
             /* No memory */
-            Py_XDECREF(sd_paths_obj);
-            Py_XDECREF(err_msg_obj);
-            Py_XDECREF(err_no_obj);
-            lsm_string_list_free(sd_path_list);
+            Py_XDECREF(rc_list);
+            lsm_string_list_free(str_list);
             return PyErr_NoMemory();
         }
-        PyList_Append(sd_paths_obj, sd_path_obj);
-        /* ^ PyList_Append will increase the reference count of sd_path_obj */
-        Py_DECREF(sd_path_obj);
+        PyList_SET_ITEM(rc_list, i, str_obj); \
     }
-
- out:
-    rc_list = PyList_New(3 /* list, errno, err_str*/);
-
-    if ((rc_list == NULL) || (err_no_obj == NULL) || (err_msg_obj == NULL) ||
-        (sd_paths_obj == NULL)) {
-        Py_XDECREF(rc_list);
-        Py_XDECREF(err_no_obj);
-        Py_XDECREF(err_msg_obj);
-        Py_XDECREF(sd_paths_obj);
-        return PyErr_NoMemory();
-    }
-
-    if (sd_path_list != NULL)
-        lsm_string_list_free(sd_path_list);
-
-    PyList_SET_ITEM(rc_list, 0, sd_paths_obj);
-    PyList_SET_ITEM(rc_list, 1, err_no_obj);
-    PyList_SET_ITEM(rc_list, 2, err_msg_obj);
-
+    lsm_string_list_free(str_list);
     return rc_list;
 }
 
-static PyObject *vpd83_of_disk_path(PyObject *self, PyObject *args,
-                                    PyObject *kwargs)
+static PyObject *_c_str_to_py_str(const char *str)
 {
-    static const char *kwlist[] = {"sd_path", NULL};
-    const char *vpd83 = NULL;
-    const char *sd_path = NULL;
-    lsm_error *lsm_err = NULL;
-    int rc = LSM_ERR_OK;
-    PyObject *rc_list = NULL;
-    PyObject *vpd83_obj = NULL;
-    PyObject *err_msg_obj = NULL;
-    PyObject *err_no_obj = NULL;
-
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", (char **) kwlist,
-                                     &sd_path))
-        return NULL;
-
-    rc = lsm_scsi_vpd83_of_disk_path(sd_path, &vpd83, &lsm_err);
-
-    err_no_obj = PyInt_FromLong(rc);
-
-    if (vpd83 == NULL)
-        vpd83_obj = PyString_FromString("");
-    else
-        vpd83_obj = PyString_FromString(vpd83);
-
-    if (rc != LSM_ERR_OK) {
-        err_msg_obj = PyString_FromString(lsm_error_message_get(lsm_err));
-        lsm_error_free(lsm_err);
-        goto out;
-    } else {
-        err_msg_obj = PyString_FromString("");
-    }
-
-    free((char *) vpd83);
-
- out:
-    rc_list = PyList_New(3 /* vpd83, errno, err_str*/);
-
-    if ((rc_list == NULL) || (err_no_obj == NULL) || (err_msg_obj == NULL) ||
-        (vpd83_obj == NULL)) {
-        Py_XDECREF(rc_list);
-        Py_XDECREF(err_no_obj);
-        Py_XDECREF(err_msg_obj);
-        Py_XDECREF(vpd83_obj);
-        return PyErr_NoMemory();
-    }
-
-    PyList_SET_ITEM(rc_list, 0, vpd83_obj);
-    PyList_SET_ITEM(rc_list, 1, err_no_obj);
-    PyList_SET_ITEM(rc_list, 2, err_msg_obj);
-
-    return rc_list;
+    if (str == NULL)
+        return PyString_FromString("");
+    return PyString_FromString(str);
 }
+
+_wrapper(disk_paths_of_vpd83, lsm_scsi_disk_paths_of_vpd83,
+         const char *, vpd83, lsm_string_list *, NULL,
+         _lsm_string_list_to_pylist);
+_wrapper(vpd83_of_disk_path, lsm_scsi_vpd83_of_disk_path,
+         const char *, disk_path, const char *, NULL,
+         _c_str_to_py_str);
 
 PyMODINIT_FUNC init_scsi_clib(void)
 {
