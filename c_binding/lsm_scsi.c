@@ -116,6 +116,13 @@ struct t10_vpd83_naa_header {
         (d = lsm_string_list_elem_get(l, i)); \
         ++i)
 
+#define _good(rc, rc_val, out) \
+        do { \
+                rc_val = rc; \
+                if (rc_val != LSM_ERR_OK) \
+                        goto out; \
+        } while(0)
+
 /*
  * All the 'err_msg' used in these static functions are expected to be
  * pointer of char[_LSM_ERR_MSG_LEN].
@@ -297,13 +304,11 @@ static int _sysfs_vpd83_naa_of_sd_name(char *err_msg, const char *sd_name,
         goto out;
     }
 
-    rc = _sysfs_vpd_pg83_data_get(err_msg, sd_name, vpd_data, &read_size);
-    if (rc != LSM_ERR_OK)
-        goto out;
+    _good(_sysfs_vpd_pg83_data_get(err_msg, sd_name, vpd_data, &read_size),
+          rc, out);
 
-    rc = _parse_vpd_83(err_msg, vpd_data, read_size, &dps, &dp_count);
-    if (rc != LSM_ERR_OK)
-        goto out;
+    _good(_parse_vpd_83(err_msg, vpd_data, read_size, &dps, &dp_count),
+          rc, out);
 
     for (; i < dp_count; ++i) {
         if ((dps[i]->header.designator_type ==
@@ -620,9 +625,7 @@ int lsm_scsi_disk_paths_of_vpd83(const char *vpd83,
         goto out;
     }
 
-    rc = _sysfs_get_all_sd_names(err_msg, &sd_name_list);
-    if (rc != LSM_ERR_OK)
-        goto out;
+    _good(_sysfs_get_all_sd_names(err_msg, &sd_name_list), rc, out);
 
     _lsm_string_list_foreach(sd_name_list, i, sd_name) {
         if (sd_name == NULL)
