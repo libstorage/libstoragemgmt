@@ -384,11 +384,19 @@ class SmartArray(IPlugin):
 
         for ctrl_name in ctrl_all_show.keys():
             ctrl_data = ctrl_all_show[ctrl_name]
-            sys_id = ctrl_data['Serial Number']
+            try: 
+                sys_id = ctrl_data['Serial Number']
+            except KeyError:
+                #Dynamic Smart Array does not expose a serial number
+                sys_id = ctrl_data['Host Serial Number']
             (status, status_info) = _sys_status_of(ctrl_all_status[ctrl_name])
 
             plugin_data = "%s" % ctrl_data['Slot']
-            fw_ver = "%s" % ctrl_data['Firmware Version']
+            try:
+                fw_ver = "%s" % ctrl_data['Firmware Version']
+            except KeyError:
+                #Dynamic Smart Array does not expose a firmware version
+                fw_ver = "%s" % ctrl_data['RAID Stack Version']
             hwraid_mode = ctrl_data['Controller Mode']
             if hwraid_mode == 'RAID':
                 mode = System.MODE_HARDWARE_RAID
@@ -439,7 +447,10 @@ class SmartArray(IPlugin):
         ctrl_all_conf = self._sacli_exec(
             ["ctrl", "all", "show", "config", "detail"])
         for ctrl_data in ctrl_all_conf.values():
-            sys_id = ctrl_data['Serial Number']
+            try:
+                sys_id = ctrl_data['Serial Number']
+            except KeyError:
+                sys_id = ctrl_data['Host Serial Number']
             ctrl_num = ctrl_data['Slot']
             for key_name in ctrl_data.keys():
                 if key_name.startswith("Array:"):
@@ -488,7 +499,10 @@ class SmartArray(IPlugin):
             ["ctrl", "all", "show", "config", "detail"])
         for ctrl_data in ctrl_all_conf.values():
             ctrl_num = ctrl_data['Slot']
-            sys_id = ctrl_data['Serial Number']
+            try:
+                sys_id = ctrl_data['Serial Number']
+            except KeyError:
+                sys_id = ctrl_data['Host Serial Number']
             for key_name in ctrl_data.keys():
                 if not key_name.startswith("Array:"):
                     continue
@@ -534,7 +548,10 @@ class SmartArray(IPlugin):
         ctrl_all_conf = self._sacli_exec(
             ["ctrl", "all", "show", "config", "detail"])
         for ctrl_data in ctrl_all_conf.values():
-            sys_id = ctrl_data['Serial Number']
+            try:
+                sys_id = ctrl_data['Serial Number']
+            except KeyError:
+                sys_id = ctrl_data['Host Serial Number']
             ctrl_num = ctrl_data['Slot']
             for key_name in ctrl_data.keys():
                 if key_name.startswith("Array:"):
@@ -763,7 +780,10 @@ class SmartArray(IPlugin):
         sys_output = self._sacli_exec(
             ['ctrl', "slot=%s" % ctrl_num, 'show'])
 
-        sys_id = sys_output.values()[0]['Serial Number']
+        try:
+            sys_id = sys_output.values()[0]['Serial Number']
+        except KeyError:
+            sys_id = sys_output.values()[0]['Host Serial Number']
         # API code already checked empty 'disks', we will for sure get
         # valid 'ctrl_num' and 'hp_disk_ids'.
 
