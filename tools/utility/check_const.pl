@@ -44,6 +44,7 @@ my $C_LIB_HEADER = "$LSM_CODE_BASE_DIR"
 my %C_WHITE_LIST = (
     'ANON_UID_GID_NA'=> 1,
 );
+my $REGEX_HEX = qr/[0-9a-fA-F]/;
 
 my $REGEX_VALUE_FORMAT = qr/
     (?<NUM>(?&NUM_PAT))
@@ -51,7 +52,7 @@ my $REGEX_VALUE_FORMAT = qr/
     (?(DEFINE)
         # integer number
         (?<NUM_INT>
-            [0-9]+
+            -?[0-9]+
         )
         # Bit shift:
         #   1 << 9
@@ -64,7 +65,7 @@ my $REGEX_VALUE_FORMAT = qr/
         )
         # Hex number
         (?<NUM_HEX>
-            0x[0-9]+
+            0x$REGEX_HEX+
         )
         (?<NUM_PAT>
             (?&NUM_BIT_SHIFT) | (?&NUM_HEX) | (?&NUM_INT)
@@ -82,7 +83,7 @@ my $REGEX_C_CONST_FORMAT = qr/
     (?(DEFINE)
         # integer number
         (?<NUM_INT>
-            [0-9]+
+            -?[0-9]+
         )
         # Bit shift:
         #   1 << 9
@@ -96,7 +97,7 @@ my $REGEX_C_CONST_FORMAT = qr/
         # Hex number
         #   0x0000000000000001
         (?<NUM_HEX>
-            0x[0-9]+
+            0x$REGEX_HEX+
         )
         (?<NUM_PAT>
             (?&NUM_BIT_SHIFT) | (?&NUM_HEX) | (?&NUM_INT)
@@ -189,6 +190,9 @@ sub py_name_2_c_name($) {
             return sprintf "LSM_%s_%s",
                 $PY_CLASS_NAME_CONV{$py_class_name}, $py_var_name;
         }
+        if ( $py_class_name =~ /^[A-Z]+$/ ) {
+            return sprintf "LSM_%s_%s", $py_class_name, $py_var_name;
+        }
         if ( $py_class_name =~ /^[A-Z][a-z]+$/ ) {
             $py_class_name =~ tr/[a-z]/[A-Z]/;
             return sprintf "LSM_%s_%s", $py_class_name, $py_var_name;
@@ -272,6 +276,7 @@ sub _parse_py_init_file($) {
     foreach my $line (@lines) {
         if ( $line =~ /from ([^ ]+) import (.+)$/ ) {
             my $module_file_name = $1;
+            my $class_line = $2;
             if ($module_file_name =~ /^lsm\.(.+)$/) {
                 $module_file_name = $1;
                 $module_file_name =~ s|\.|/|g;
@@ -279,7 +284,6 @@ sub _parse_py_init_file($) {
             } else {
                 push @rc1, sprintf "%s/%s.py", $folder_path, $module_file_name;
             }
-            my $class_line = $2;
             while ( $class_line =~ /([A-Z][a-zA-Z]+)[, \\]*/g ) {
                 push @rc2, $1;
             }
@@ -354,10 +358,10 @@ sub value_str_to_int($) {
     unless ( defined $raw_value ) {
         return undef;
     }
-    if ( $raw_value =~ /^[0-9]+$/ ) {
+    if ( $raw_value =~ /^-?[0-9]+$/ ) {
         return $raw_value;
     }
-    if ( $raw_value =~ /^0x[0-9]+$/ ) {
+    if ( $raw_value =~ /^0x$REGEX_HEX+$/ ) {
         return hex $raw_value;
     }
     if ( $raw_value =~ /^([0-9]+) +<< +([0-9]+)$/ ) {

@@ -209,6 +209,14 @@ function lsm_test_base_install
     _good mkdir "$LSM_TEST_PY_MODULE_DIR/lsm/lsmcli"
     _good mkdir "$LSM_TEST_RUNDIR"
 
+    # Make sure LSM_UDS_PATH is gloable writeable in case 'sudo make check'
+    _good chmod 0777 ${LSM_UDS_PATH}
+    # Make sure LSM_TEST_RUNDIR is gloable writeable in case 'sudo make check'
+    _good chmod 0777 ${LSM_TEST_RUNDIR}
+    # Make suer log folder is gloable writeable in case 'sudo make check'
+    _good chmod 0777 ${LSM_TEST_LOG_DIR}
+
+
     _good $LIBTOOL_CMD_NO_WARN --mode install \
         install "${build_dir}/daemon/lsmd" "$LSM_TEST_BIN_DIR"
     _good $LIBTOOL_CMD_NO_WARN --mode install \
