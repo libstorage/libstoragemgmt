@@ -142,7 +142,7 @@ static int _parse_vpd_83(char *err_msg, uint8_t *vpd_data,
                          uint16_t vpd_data_len, struct t10_vpd83_dp ***dps,
                          uint16_t *dp_count);
 static struct t10_vpd83_dp *_t10_vpd83_dp_new(void);
-static int _t10_vpd83_dp_array_free(struct t10_vpd83_dp **dps,
+static void _t10_vpd83_dp_array_free(struct t10_vpd83_dp **dps,
                                     uint16_t dp_count);
 static int _sysfs_vpd_pg83_data_get(char *err_msg, const char *sd_name,
                                     char *vpd_data, ssize_t *read_size);
@@ -470,7 +470,7 @@ static struct t10_vpd83_dp *_t10_vpd83_dp_new(void)
 /*
  * Assuming input pointer is not NULL, caller should do that.
  */
-static int _t10_vpd83_dp_array_free(struct t10_vpd83_dp **dps,
+static void _t10_vpd83_dp_array_free(struct t10_vpd83_dp **dps,
                                     uint16_t dp_count)
 {
     uint16_t i = 0;
