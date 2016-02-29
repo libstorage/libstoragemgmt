@@ -34,7 +34,7 @@
 #include "libstoragemgmt_systems.h"
 #include "libstoragemgmt_targetport.h"
 #include "libstoragemgmt_volumes.h"
-#include "libstoragemgmt_scsi.h"
+#include "libstoragemgmt_local_disk.h"
 
 
 /*! \mainpage libStorageMgmt

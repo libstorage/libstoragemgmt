@@ -10,18 +10,18 @@ lsm_PYTHON = \
 	lsm/_transport.py \
 	lsm/version.py \
 	lsm/_iplugin.py \
-	lsm/_scsi.py \
+	lsm/_local_disk.py \
 	lsm/_pluginrunner.py
 
-pyexec_LTLIBRARIES = lsm/_scsi_clib.la
+pyexec_LTLIBRARIES = lsm/_clib.la
 pyexecdir = $(pythondir)/lsm
 
-lsm__scsi_clib_la_CFLAGS = $(PYTHON2_CFLAGS) -I$(top_srcdir)/c_binding/include
-lsm__scsi_clib_la_SOURCES = lsm/_scsi_clib.c
-lsm__scsi_clib_la_LDFLAGS = $(PYTHON2_LIBS) \
+lsm__clib_la_CFLAGS = $(PYTHON2_CFLAGS) -I$(top_srcdir)/c_binding/include
+lsm__clib_la_SOURCES = lsm/_clib.c
+lsm__clib_la_LDFLAGS = $(PYTHON2_LIBS) \
 		       -module -avoid-version -export-symbols-regex \
-		       init_scsi_clib
-lsm__scsi_clib_la_LIBADD = $(top_builddir)/c_binding/libstoragemgmt.la
+		       init_clib
+lsm__clib_la_LIBADD = $(top_builddir)/c_binding/libstoragemgmt.la
 
 external_PYTHON = \
 	lsm/external/__init__.py \

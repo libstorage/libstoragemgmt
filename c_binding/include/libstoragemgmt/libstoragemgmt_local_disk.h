@@ -17,8 +17,8 @@
  *
  */
 
-#ifndef LIBSTORAGEMGMT_SCSI_H
-#define LIBSTORAGEMGMT_SCSI_H
+#ifndef LIBSTORAGEMGMT_LOCAL_DISK_H
+#define LIBSTORAGEMGMT_LOCAL_DISK_H
 
 #include "libstoragemgmt_common.h"
 
@@ -27,32 +27,34 @@ extern "C" {
 #endif
 
 /**
- * Find out the scsi disk paths of given SCSI VPD page 0x83 NAA ID.
+ * Search all the disk paths of given SCSI VPD 0x83 page NAA type ID.
+ * For any ATA and other non-SCSI protocol disks supporting VPD 0x83 pages NAA
+ * ID, their disk path will also be included.
  * New in version 1.3.
- * @param[in] vpd83 String. The VPD83 ID retrieved from LSM volume or disk.
- *                  for supported strip sizes.
- * @param[out] sd_path_list
- *                  Output pointer of lsm_string_list. The format of scsi
- *                  disk path will be "/dev/sd[a-z]+".
+ * @param[in] vpd83
+ *                  String. The SCSI VPD 0x83 page NAA type ID.
+ * @param[out] disk_path_list
+ *                  Output pointer of lsm_string_list. The format of
+ *                  disk path will be like "/dev/sdb" for SCSI or ATA disk.
  *                  NULL if no found or got error.
  *                  Memory should be freed by lsm_string_list_free().
  * @param[out] lsm_err
  *                  Output pointer of lsm_error. Error message could be
  *                  retrieved via lsm_error_message_get(). Memory should be
  *                  freed by lsm_error_free().
- * @return LSM_ERR_OK                   on success.
+ * @return LSM_ERR_OK                   on success or not found.
  *         LSM_ERR_INVALID_ARGUMENT     when any argument is NULL.
  *         LSM_ERR_NO_MEMORY            when no memory.
  *         LSM_ERR_LIB_BUG              when something unexpected happens.
  */
-int LSM_DLL_EXPORT lsm_scsi_disk_paths_of_vpd83(const char *vpd83,
-                                                lsm_string_list **sd_path_list,
-                                                lsm_error **lsm_err);
+int LSM_DLL_EXPORT lsm_local_disk_vpd83_search(const char *vpd83,
+                                               lsm_string_list **disk_path_list,
+                                               lsm_error **lsm_err);
 
 /**
- * Query the SCSI VPD83 NAA ID of given SCSI disk path.
+ * Query the SCSI VPD 0x83 page NAA type ID of given disk path.
  * New in version 1.3.
- * @param[in]  sd_path  String. The path of SCSI disk, example "/dev/sdb".
+ * @param[in]  sd_path  String. The path of disk path, example "/dev/sdb".
  * @param[out] vpd83    Output pointer of SCSI VPD83 NAA ID. The format is:
  *                          (?:^6[0-9a-f]{31})|(?:^[235][0-9a-f]{15})$
  *                      NULL when error. Memory should be freed by free().
@@ -67,11 +69,11 @@ int LSM_DLL_EXPORT lsm_scsi_disk_paths_of_vpd83(const char *vpd83,
  *         LSM_ERR_LIB_BUG              when something unexpected happens.
  *         LSM_ERR_NOT_FOUND_DISK       When provided disk path not found.
  */
-int LSM_DLL_EXPORT lsm_scsi_vpd83_of_disk_path(const char *sd_path,
-                                               const char **vpd83,
-                                               lsm_error **lsm_err);
+int LSM_DLL_EXPORT lsm_local_disk_vpd83_get(const char *sd_path,
+                                            const char **vpd83,
+                                            lsm_error **lsm_err);
 
 #ifdef __cplusplus
 }
 #endif
-#endif                          /* LIBSTORAGEMGMT_SCSI_H */
+#endif                          /* LIBSTORAGEMGMT_LOCAL_DISK_H */

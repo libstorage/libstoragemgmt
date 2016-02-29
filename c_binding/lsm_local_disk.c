@@ -33,10 +33,20 @@
 #include "libstoragemgmt/libstoragemgmt_error.h"
 #include "libstoragemgmt/libstoragemgmt_plug_interface.h"
 
-#define _MAX_VPD83_PAGE_LEN 0xff + 4
-#define _MAX_VPD83_NAA_ID_LEN 33
-/* Max one is 6h IEEE Registered Extended ID which it 32 bits hex string.
- */
+#define _T10_SPC_VPD_DI                         0x83
+#define _T10_SPC_VPD_DI_MAX_LEN                 0xff + 4
+#define _T10_SPC_VPD_DI_NAA_235_ID_LEN          8
+#define _T10_SPC_VPD_DI_NAA_6_ID_LEN            16
+#define _T10_SPC_VPD_DI_DESIGNATOR_TYPE_NAA     0x3
+#define _T10_SPC_VPD_DI_NAA_TYPE_2              0x2
+#define _T10_SPC_VPD_DI_NAA_TYPE_3              0x3
+#define _T10_SPC_VPD_DI_NAA_TYPE_5              0x5
+#define _T10_SPC_VPD_DI_NAA_TYPE_6              0x6
+#define _T10_SPC_VPD_DI_ASSOCIATION_LUN         0
+/* ^ SPC-5 rev7 7.7.6 Device Identification VPD page */
+
+#define _LSM_MAX_VPD83_ID_LEN                   33
+/* ^ Max one is 6h IEEE Registered Extended ID which it 32 bits hex string. */
 #define _SYS_BLOCK_PATH "/sys/block"
 #define _MAX_SD_NAME_STR_LEN 128
 /* The linux kernel support INT_MAX(2147483647) scsi disks at most which will
@@ -52,16 +62,6 @@
 
 #define _SYSFS_BLK_PATH_FORMAT "/sys/block/%s"
 #define _MAX_SYSFS_BLK_PATH_STR_LEN 128 + _MAX_SD_NAME_STR_LEN
-
-#define _T10_VPD83_NAA_235_ID_LEN 8
-#define _T10_VPD83_NAA_6_ID_LEN 16
-#define _T10_VPD83_PAGE_CODE 0x83
-#define _T10_VPD83_DESIGNATOR_TYPE_NAA 0x3
-#define _T10_VPD83_NAA_TYPE_2 0x2
-#define _T10_VPD83_NAA_TYPE_3 0x3
-#define _T10_VPD83_NAA_TYPE_5 0x5
-#define _T10_VPD83_NAA_TYPE_6 0x6
-
 #define _LSM_ERR_MSG_LEN 255
 
 #pragma pack(1)
@@ -81,7 +81,7 @@ struct t10_vpd83_header {
 /*
  * Table 590 — Designation descriptor
  */
-struct t10_vpd83_id_header {
+struct t10_vpd83_dp_header {
     uint8_t code_set        : 4;
     uint8_t protocol_id     : 4;
     uint8_t designator_type : 4;
@@ -89,8 +89,14 @@ struct t10_vpd83_id_header {
     uint8_t reserved_1      : 1;
     uint8_t piv             : 1;
     uint8_t reserved_2;
-    uint8_t len;
+    uint8_t designator_len;
 };
+
+struct t10_vpd83_dp {
+    struct t10_vpd83_dp_header header;
+    uint8_t designator[0xff];
+};
+/* ^ SPC-5 rev7 Table 486 — Designation descriptor. */
 
 struct t10_vpd83_naa_header {
     uint8_t data_msb : 4;
@@ -110,6 +116,13 @@ struct t10_vpd83_naa_header {
         (d = lsm_string_list_elem_get(l, i)); \
         ++i)
 
+#define _good(rc, rc_val, out) \
+        do { \
+                rc_val = rc; \
+                if (rc_val != LSM_ERR_OK) \
+                        goto out; \
+        } while(0)
+
 /*
  * All the 'err_msg' used in these static functions are expected to be
  * pointer of char[_LSM_ERR_MSG_LEN].
@@ -125,6 +138,14 @@ static int _sysfs_get_all_sd_names(char *err_msg,
                                    lsm_string_list **sd_name_list);
 static int _check_null_ptr(char *err_msg, int arg_count, ...);
 static bool _file_is_exist(char *err_msg, const char *path);
+static int _parse_vpd_83(char *err_msg, uint8_t *vpd_data,
+                         uint16_t vpd_data_len, struct t10_vpd83_dp ***dps,
+                         uint16_t *dp_count);
+static struct t10_vpd83_dp *_t10_vpd83_dp_new(void);
+static int _t10_vpd83_dp_array_free(struct t10_vpd83_dp **dps,
+                                    uint16_t dp_count);
+static int _sysfs_vpd_pg83_data_get(char *err_msg, const char *sd_name,
+                                    char *vpd_data, ssize_t *read_size);
 
 /*
  * Assume input path is not NULL or empty string.
@@ -137,8 +158,6 @@ static bool _file_is_exist(char *err_msg, const char *path)
 
     fd = open(path, O_RDONLY);
     if (fd == -1) {
-        _lsm_err_msg_set(err_msg, "Failed to open %s, error: %d, %s",
-                         path, errno, strerror(errno));
         return false;
     }
     close(fd);
@@ -217,12 +236,43 @@ static int _sysfs_read_file(char *err_msg, const char *sys_fs_path,
 }
 
 /*
+ * Retrieve the content of /sys/block/sda/device/vpd_pg83 file.
+ * No argument checker here, assume all non-NULL and vpd_data is
+                * char[_T10_SPC_VPD_DI_MAX_LEN]
+ */
+static int _sysfs_vpd_pg83_data_get(char *err_msg, const char *sd_name,
+                                    char *vpd_data, ssize_t *read_size)
+{
+    int rc = LSM_ERR_OK;
+    char sysfs_path[_MAX_SYSFS_VPD83_PATH_STR_LEN];
+    char sysfs_blk_path[_MAX_SYSFS_BLK_PATH_STR_LEN];
+
+    memset(vpd_data, 0, _T10_SPC_VPD_DI_MAX_LEN);
+
+    /*
+     * Check the existence of disk vis /sys/block/sdX folder.
+     */
+    snprintf(sysfs_blk_path, _MAX_SYSFS_BLK_PATH_STR_LEN,
+             _SYSFS_BLK_PATH_FORMAT, sd_name);
+    if (_file_is_exist(err_msg, sysfs_blk_path) == false) {
+        _lsm_err_msg_set(err_msg, "Disk %s not found", sd_name);
+        return LSM_ERR_NOT_FOUND_DISK;
+    }
+
+    snprintf(sysfs_path, _MAX_SYSFS_VPD83_PATH_STR_LEN,
+             _SYSFS_VPD83_PATH_FORMAT, sd_name);
+
+    return _sysfs_read_file(err_msg, sysfs_path, vpd_data, read_size,
+                            _T10_SPC_VPD_DI_MAX_LEN);
+}
+
+/*
  * Parse _SYSFS_VPD83_PATH_FORMAT file for VPD83 NAA ID.
  * When no such sysfs file found, return LSM_ERR_NO_SUPPORT.
  * When VPD83 page does not have NAA ID, return LSM_ERR_OK and vpd83 as empty
  * string.
  *
- * Input *vpd83 should be char[_MAX_VPD83_NAA_ID_LEN], assuming caller did
+ * Input *vpd83 should be char[_LSM_MAX_VPD83_ID_LEN], assuming caller did
  * the check.
  * The maximum *sd_name strlen is (_MAX_SD_NAME_STR_LEN - 1), assuming caller
  * did the check.
@@ -237,14 +287,15 @@ static int _sysfs_vpd83_naa_of_sd_name(char *err_msg, const char *sd_name,
     uint8_t *p = NULL;
     struct t10_vpd83_header *vpd83_header = NULL;
     uint32_t vpd83_len = 0;
-    struct t10_vpd83_id_header *id_header = NULL;
+    struct t10_vpd83_dp_header *dp_header = NULL;
     struct t10_vpd83_naa_header *naa_header = NULL;
     int rc = LSM_ERR_OK;
-    uint8_t buff[_MAX_VPD83_PAGE_LEN];
-    char sysfs_path[_MAX_SYSFS_VPD83_PATH_STR_LEN];
-    char sysfs_blk_path[_MAX_SYSFS_BLK_PATH_STR_LEN];
+    uint8_t vpd_data[_T10_SPC_VPD_DI_MAX_LEN];
+    struct t10_vpd83_dp **dps = NULL;
+    uint16_t dp_count = 0;
+    uint16_t i = 0;
 
-    memset(vpd83, 0, _MAX_VPD83_NAA_ID_LEN);
+    memset(vpd83, 0, _LSM_MAX_VPD83_ID_LEN);
 
     if (sd_name == NULL) {
         _lsm_err_msg_set(err_msg, "_sysfs_vpd83_naa_of_sd_name(): "
@@ -253,82 +304,45 @@ static int _sysfs_vpd83_naa_of_sd_name(char *err_msg, const char *sd_name,
         goto out;
     }
 
-    /*
-     * Check the existence of disk vis /sys/block/sdX folder.
-     */
-    snprintf(sysfs_blk_path, _MAX_SYSFS_BLK_PATH_STR_LEN,
-             _SYSFS_BLK_PATH_FORMAT, sd_name);
-    if (_file_is_exist(err_msg, sysfs_blk_path) == false) {
-        rc = LSM_ERR_NOT_FOUND_DISK;
-        goto out;
-    }
+    _good(_sysfs_vpd_pg83_data_get(err_msg, sd_name, vpd_data, &read_size),
+          rc, out);
 
-    snprintf(sysfs_path, _MAX_SYSFS_VPD83_PATH_STR_LEN,
-             _SYSFS_VPD83_PATH_FORMAT, sd_name);
+    _good(_parse_vpd_83(err_msg, vpd_data, read_size, &dps, &dp_count),
+          rc, out);
 
-    rc = _sysfs_read_file(err_msg, sysfs_path, buff, &read_size,
-                          _MAX_VPD83_PAGE_LEN);
-
-    if (rc != LSM_ERR_OK)
-        goto out;
-
-    /* Return NULL and LSM_ERR_OK when got invalid sysfs file */
-    /* Read size is smaller than VPD83 header */
-    if (read_size < sizeof(struct t10_vpd83_header))
-        goto out;
-
-    vpd83_header = (struct t10_vpd83_header*) buff;
-
-    /* Incorrect page code */
-    if (vpd83_header->page_code != _T10_VPD83_PAGE_CODE)
-        goto out;
-
-    vpd83_len = (((uint32_t) vpd83_header->page_len_msb) << 8) +
-        vpd83_header->page_len_lsb + sizeof(struct t10_vpd83_header);
-
-    end_p = buff + vpd83_len - 1;
-    p = buff + sizeof(struct t10_vpd83_header);
-
-
-    while(p <= end_p) {
-        /* Corrupted data: facing data end */
-        if (p + sizeof(struct t10_vpd83_id_header) > end_p)
-            goto out;
-
-        id_header = (struct t10_vpd83_id_header *) p;
-        /* Skip non-NAA ID */
-        if (id_header->designator_type != _T10_VPD83_DESIGNATOR_TYPE_NAA)
-            goto next_one;
-
-        naa_header = (struct t10_vpd83_naa_header *)
-            ((uint8_t *)id_header + sizeof(struct t10_vpd83_id_header));
-
-        switch(naa_header->naa_type) {
-        case _T10_VPD83_NAA_TYPE_2:
-        case _T10_VPD83_NAA_TYPE_3:
-        case _T10_VPD83_NAA_TYPE_5:
-            _be_raw_to_hex((uint8_t *) naa_header, _T10_VPD83_NAA_235_ID_LEN,
-                           vpd83);
-            break;
-        case _T10_VPD83_NAA_TYPE_6:
-            _be_raw_to_hex((uint8_t *) naa_header, _T10_VPD83_NAA_6_ID_LEN,
-                           vpd83);
-            break;
-        default:
-            /* Skip for Unknown NAA ID type */
-            goto next_one;
+    for (; i < dp_count; ++i) {
+        if ((dps[i]->header.designator_type ==
+             _T10_SPC_VPD_DI_DESIGNATOR_TYPE_NAA)  &&
+            (dps[i]->header.association == _T10_SPC_VPD_DI_ASSOCIATION_LUN)) {
+            naa_header = (struct t10_vpd83_naa_header *) dps[i]->designator;
+            switch(naa_header->naa_type) {
+            case _T10_SPC_VPD_DI_NAA_TYPE_2:
+            case _T10_SPC_VPD_DI_NAA_TYPE_3:
+            case _T10_SPC_VPD_DI_NAA_TYPE_5:
+                _be_raw_to_hex((uint8_t *) naa_header,
+                               _T10_SPC_VPD_DI_NAA_235_ID_LEN, vpd83);
+                break;
+            case _T10_SPC_VPD_DI_NAA_TYPE_6:
+                _be_raw_to_hex((uint8_t *) naa_header,
+                               _T10_SPC_VPD_DI_NAA_6_ID_LEN, vpd83);
+                break;
+            default:
+                rc = LSM_ERR_LIB_BUG;
+                _lsm_err_msg_set(err_msg, "BUG: Got unknown NAA type ID %02x",
+                                 naa_header->naa_type);
+                goto out;
+            }
         }
-        /* Quit when found first NAA ID */
-        if (vpd83[0] != 0)
-            break;
-
-     next_one:
-        p = (uint8_t *) id_header + id_header->len +
-            sizeof(struct t10_vpd83_id_header);
-        continue;
+    }
+    if (vpd83[0] == '\0') {
+        rc = LSM_ERR_NO_SUPPORT;
+        _lsm_err_msg_set(err_msg,
+                         "SCSI VPD 83 NAA logical unit ID is not supported");
     }
 
  out:
+    if (dps != NULL)
+        _t10_vpd83_dp_array_free(dps, dp_count);
     return rc;
 }
 
@@ -338,7 +352,7 @@ static int _sysfs_vpd83_naa_of_sd_name(char *err_msg, const char *sd_name,
  * ID_WWN_WITH_EXTENSION property instead, even through ID_WWN_WITH_EXTENSION
  * does not mean VPD83 NAA ID, this is the only workaround I could found for
  * old system without root privilege.
- * Input *vpd83 should be char[_MAX_VPD83_NAA_ID_LEN], assuming caller did
+ * Input *vpd83 should be char[_LSM_MAX_VPD83_ID_LEN], assuming caller did
  * the check.
  * The maximum *sd_name strlen is (_MAX_SD_NAME_STR_LEN - 1), assuming caller
  * did the check.
@@ -352,7 +366,7 @@ static int _udev_vpd83_of_sd_name(char *err_msg, const char *sd_name,
     const char *wwn = NULL;
     char sys_path[_MAX_SYSFS_BLK_PATH_STR_LEN];
 
-    memset(vpd83, 0, _MAX_VPD83_NAA_ID_LEN);
+    memset(vpd83, 0, _LSM_MAX_VPD83_ID_LEN);
     snprintf(sys_path, _MAX_SYSFS_BLK_PATH_STR_LEN, _SYSFS_BLK_PATH_FORMAT,
              sd_name);
 
@@ -375,7 +389,7 @@ static int _udev_vpd83_of_sd_name(char *err_msg, const char *sd_name,
     if (strncmp(wwn, "0x", strlen("0x")) == 0)
         wwn += strlen("0x");
 
-    snprintf(vpd83, _MAX_VPD83_NAA_ID_LEN, wwn);
+    snprintf(vpd83, _LSM_MAX_VPD83_ID_LEN, wwn);
 
  out:
     if (udev != NULL)
@@ -441,53 +455,177 @@ static int _sysfs_get_all_sd_names(char *err_msg,
     return rc;
 }
 
-int lsm_scsi_disk_paths_of_vpd83(const char *vpd83,
-                                 lsm_string_list **sd_path_list,
-                                 lsm_error **lsm_err)
+static struct t10_vpd83_dp *_t10_vpd83_dp_new(void)
+{
+    struct t10_vpd83_dp *dp = NULL;
+
+    dp = (struct t10_vpd83_dp *) malloc(sizeof(struct t10_vpd83_dp));
+
+    if (dp != NULL) {
+        memset(dp, 0, sizeof(struct t10_vpd83_dp));
+    }
+    return dp;
+}
+
+/*
+ * Assuming input pointer is not NULL, caller should do that.
+ */
+static int _t10_vpd83_dp_array_free(struct t10_vpd83_dp **dps,
+                                    uint16_t dp_count)
+{
+    uint16_t i = 0;
+    for (; i < dp_count; ++i) {
+        free(dps[i]);
+    }
+    free(dps);
+}
+
+/*
+ * Assuming input pointer is not NULL, caller should do that.
+ * The memory of output pointer 'dps' should be manually freed.
+ *
+ */
+static int _parse_vpd_83(char *err_msg, uint8_t *vpd_data,
+                         uint16_t vpd_data_len, struct t10_vpd83_dp ***dps,
+                         uint16_t *dp_count)
+{
+    int rc = LSM_ERR_OK;
+    struct t10_vpd83_header *vpd83_header = NULL;
+    uint8_t *p = NULL;
+    uint8_t *end_p = NULL;
+    struct t10_vpd83_dp_header * dp_header = NULL;
+    struct t10_vpd83_dp *dp = NULL;
+    uint16_t i = 0;
+    uint32_t vpd83_len = 0;
+
+    if (vpd_data_len < sizeof(struct t10_vpd83_header)) {
+        rc = LSM_ERR_LIB_BUG;
+        _lsm_err_msg_set(err_msg, "BUG: VPD 83 data len '%" PRIu16
+                         "' is less than struct t10_vpd83_header size '%zu'",
+                         vpd_data_len, sizeof(struct t10_vpd83_header));
+        goto out;
+    }
+
+    *dps = NULL;
+    *dp_count = 0;
+
+    vpd83_header = (struct t10_vpd83_header*) vpd_data;
+
+    if (vpd83_header->page_code != _T10_SPC_VPD_DI) {
+        rc = LSM_ERR_LIB_BUG;
+        _lsm_err_msg_set(err_msg, "BUG: Got incorrect VPD page code '%02x', "
+                         "should be 0x83", vpd83_header->page_code);
+        goto out;
+    }
+
+    vpd83_len = (((uint32_t) vpd83_header->page_len_msb) << 8) +
+        vpd83_header->page_len_lsb + sizeof(struct t10_vpd83_header);
+
+    end_p = vpd_data + vpd83_len - 1;
+    p = vpd_data + sizeof(struct t10_vpd83_header);
+
+    /* First loop find out how many id we got */
+    while(p <= end_p) {
+        if (p + sizeof(struct t10_vpd83_dp_header) > end_p) {
+            rc = LSM_ERR_LIB_BUG;
+            _lsm_err_msg_set(err_msg, "BUG: Illegal VPD 0x83 page data, "
+                             "got partial designation descriptor.");
+            goto out;
+        }
+        ++i;
+
+        dp_header = (struct t10_vpd83_dp_header *) p;
+
+        p += dp_header->designator_len + sizeof(struct t10_vpd83_dp_header);
+        continue;
+    }
+
+    if (i == 0)
+        goto out;
+
+    *dps = (struct t10_vpd83_dp **) malloc(sizeof(struct t10_vpd83_dp*) * i);
+
+    if (*dps == NULL) {
+        rc = LSM_ERR_NO_MEMORY;
+        goto out;
+    }
+
+    p = vpd_data + sizeof(struct t10_vpd83_header);
+
+    while(*dp_count < i) {
+        dp = _t10_vpd83_dp_new();
+        if (dp == NULL) {
+            rc = LSM_ERR_NO_MEMORY;
+            goto out;
+        }
+        (*dps)[*dp_count] = dp;
+        ++*dp_count;
+
+        dp_header = (struct t10_vpd83_dp_header *) p;
+        memcpy(&dp->header, dp_header, sizeof(struct t10_vpd83_dp_header));
+        memcpy(dp->designator, p + sizeof(struct t10_vpd83_dp_header),
+               dp_header->designator_len);
+
+        p += dp_header->designator_len + sizeof(struct t10_vpd83_dp_header);
+        continue;
+    }
+
+ out:
+    if (rc != LSM_ERR_OK) {
+        if (*dps != NULL) {
+            _t10_vpd83_dp_array_free(*dps, *dp_count);
+            *dps = NULL;
+            *dp_count = 0;
+        }
+    }
+    return rc;
+}
+
+int lsm_local_disk_vpd83_search(const char *vpd83,
+                                lsm_string_list **disk_path_list,
+                                lsm_error **lsm_err)
 {
     int rc = LSM_ERR_OK;
     lsm_string_list *sd_name_list = NULL;
     uint32_t i = 0;
     const char *sd_name = NULL;
-    char tmp_vpd83[_MAX_VPD83_NAA_ID_LEN];
+    char tmp_vpd83[_LSM_MAX_VPD83_ID_LEN];
     char sd_path[_MAX_SD_PATH_STR_LEN];
     bool sysfs_support = true;
     char err_msg[_LSM_ERR_MSG_LEN];
 
     _lsm_err_msg_clear(err_msg);
 
-    rc = _check_null_ptr(err_msg, 3 /* argument count */, vpd83, sd_path_list,
+    rc = _check_null_ptr(err_msg, 3 /* argument count */, vpd83, disk_path_list,
                          lsm_err);
 
     if (rc != LSM_ERR_OK) {
         /* set output pointers to NULL if possible when facing error in case
          * application use output memory.
          */
-        if (sd_path_list != NULL)
-            *sd_path_list = NULL;
+        if (disk_path_list != NULL)
+            *disk_path_list = NULL;
 
         goto out;
     }
 
-    if (strlen(vpd83) >= _MAX_VPD83_NAA_ID_LEN) {
+    if (strlen(vpd83) >= _LSM_MAX_VPD83_ID_LEN) {
         _lsm_err_msg_set(err_msg, "Provided vpd83 string exceeded the maximum "
                          "string length for SCSI VPD83 NAA ID %d, current %zd",
-                         _MAX_VPD83_NAA_ID_LEN - 1, strlen(vpd83));
+                         _LSM_MAX_VPD83_ID_LEN - 1, strlen(vpd83));
         rc = LSM_ERR_INVALID_ARGUMENT;
         goto out;
     }
 
 
     *lsm_err = NULL;
-    *sd_path_list = lsm_string_list_alloc(0 /* no pre-allocation */);
-    if (*sd_path_list == NULL) {
+    *disk_path_list = lsm_string_list_alloc(0 /* no pre-allocation */);
+    if (*disk_path_list == NULL) {
         rc = LSM_ERR_NO_MEMORY;
         goto out;
     }
 
-    rc = _sysfs_get_all_sd_names(err_msg, &sd_name_list);
-    if (rc != LSM_ERR_OK)
-        goto out;
+    _good(_sysfs_get_all_sd_names(err_msg, &sd_name_list), rc, out);
 
     _lsm_string_list_foreach(sd_name_list, i, sd_name) {
         if (sd_name == NULL)
@@ -512,10 +650,10 @@ int lsm_scsi_disk_paths_of_vpd83(const char *vpd83,
             else if (rc != LSM_ERR_OK)
                 break;
         }
-        if (strncmp(vpd83, tmp_vpd83, _MAX_VPD83_NAA_ID_LEN) == 0) {
+        if (strncmp(vpd83, tmp_vpd83, _LSM_MAX_VPD83_ID_LEN) == 0) {
             snprintf(sd_path, _MAX_SD_PATH_STR_LEN, _SD_PATH_FORMAT, sd_name);
 
-            if (lsm_string_list_append(*sd_path_list, sd_path) != 0) {
+            if (lsm_string_list_append(*disk_path_list, sd_path) != 0) {
                 rc = LSM_ERR_NO_MEMORY;
                 goto out;
             }
@@ -527,10 +665,10 @@ int lsm_scsi_disk_paths_of_vpd83(const char *vpd83,
         lsm_string_list_free(sd_name_list);
 
     if (rc == LSM_ERR_OK) {
-        /* clean sd_path_list if nothing found */
-        if (lsm_string_list_size(*sd_path_list) == 0) {
-            lsm_string_list_free(*sd_path_list);
-            *sd_path_list = NULL;
+        /* clean disk_path_list if nothing found */
+        if (lsm_string_list_size(*disk_path_list) == 0) {
+            lsm_string_list_free(*disk_path_list);
+            *disk_path_list = NULL;
         }
     } else {
         /* Error found, clean up */
@@ -538,26 +676,26 @@ int lsm_scsi_disk_paths_of_vpd83(const char *vpd83,
         if (lsm_err != NULL)
             *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
 
-        if ((sd_path_list != NULL) && (*sd_path_list != NULL)) {
-            lsm_string_list_free(*sd_path_list);
-            *sd_path_list = NULL;
+        if ((disk_path_list != NULL) && (*disk_path_list != NULL)) {
+            lsm_string_list_free(*disk_path_list);
+            *disk_path_list = NULL;
         }
     }
 
     return rc;
 }
 
-int lsm_scsi_vpd83_of_disk_path(const char *sd_path, const char **vpd83,
-                                lsm_error **lsm_err)
+int lsm_local_disk_vpd83_get(const char *disk_path, const char **vpd83,
+                             lsm_error **lsm_err)
 {
-    char tmp_vpd83[_MAX_VPD83_NAA_ID_LEN];
+    char tmp_vpd83[_LSM_MAX_VPD83_ID_LEN];
     const char *sd_name = NULL;
     int rc = LSM_ERR_OK;
     char err_msg[_LSM_ERR_MSG_LEN];
 
     _lsm_err_msg_clear(err_msg);
 
-    rc = _check_null_ptr(err_msg, 3 /* arg_count */, sd_path, vpd83, lsm_err);
+    rc = _check_null_ptr(err_msg, 3 /* arg_count */, disk_path, vpd83, lsm_err);
 
     if (rc != LSM_ERR_OK) {
         if (vpd83 != NULL)
@@ -566,20 +704,27 @@ int lsm_scsi_vpd83_of_disk_path(const char *sd_path, const char **vpd83,
         goto out;
     }
 
-    if ((strlen(sd_path) <= strlen("/dev/")) ||
-        (strncmp(sd_path, "/dev/", strlen("/dev/")) != 0)) {
+    if ((strlen(disk_path) <= strlen("/dev/")) ||
+        (strncmp(disk_path, "/dev/", strlen("/dev/")) != 0)) {
 
-        _lsm_err_msg_set(err_msg, "Invalid sd_path, should start with /dev/");
+        _lsm_err_msg_set(err_msg, "Invalid disk_path, should start with /dev/");
         rc = LSM_ERR_INVALID_ARGUMENT;
         goto out;
     }
 
-    sd_name = sd_path + strlen("/dev/");
+    sd_name = disk_path + strlen("/dev/");
     if (strlen(sd_name) > _MAX_SD_NAME_STR_LEN) {
         rc = LSM_ERR_INVALID_ARGUMENT;
-        _lsm_err_msg_set(err_msg, "Illegal sd_path string, the SCSI disk name "
+        _lsm_err_msg_set(err_msg, "Illegal disk_path string, the SCSI disk name "
                          "part(sdX) exceeded the max length %d, current %d",
                          _MAX_SD_NAME_STR_LEN - 1, strlen(sd_name));
+        goto out;
+    }
+    if (strncmp(sd_name, "sd", strlen("sd")) != 0) {
+        rc = LSM_ERR_INVALID_ARGUMENT;
+        _lsm_err_msg_set(err_msg, "Illegal disk_path string, should start with "
+                         "'/dev/sd' as we only support SCSI or ATA disk "
+                         "right now");
         goto out;
     }
 
