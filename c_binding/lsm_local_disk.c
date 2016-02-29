@@ -28,6 +28,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <arpa/inet.h>
 
 #include "libstoragemgmt/libstoragemgmt.h"
 #include "libstoragemgmt/libstoragemgmt_error.h"
@@ -74,8 +75,7 @@ struct t10_vpd83_header {
     uint8_t qualifier : 3;
     /* PERIPHERAL QUALIFIER */
     uint8_t page_code;
-    uint8_t page_len_msb;
-    uint8_t page_len_lsb;
+    uint16_t page_len;
 };
 
 /*
@@ -512,8 +512,7 @@ static int _parse_vpd_83(char *err_msg, uint8_t *vpd_data,
         goto out;
     }
 
-    vpd83_len = (((uint32_t) vpd83_header->page_len_msb) << 8) +
-        vpd83_header->page_len_lsb + sizeof(struct t10_vpd83_header);
+    vpd83_len = ntohs(vpd83_header->page_len) + sizeof(struct t10_vpd83_header);
 
     end_p = vpd_data + vpd83_len - 1;
     p = vpd_data + sizeof(struct t10_vpd83_header);
