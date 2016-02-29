@@ -145,7 +145,7 @@ static struct t10_vpd83_dp *_t10_vpd83_dp_new(void);
 static void _t10_vpd83_dp_array_free(struct t10_vpd83_dp **dps,
                                     uint16_t dp_count);
 static int _sysfs_vpd_pg83_data_get(char *err_msg, const char *sd_name,
-                                    char *vpd_data, ssize_t *read_size);
+                                    uint8_t *vpd_data, ssize_t *read_size);
 
 /*
  * Assume input path is not NULL or empty string.
@@ -241,7 +241,7 @@ static int _sysfs_read_file(char *err_msg, const char *sys_fs_path,
                 * char[_T10_SPC_VPD_DI_MAX_LEN]
  */
 static int _sysfs_vpd_pg83_data_get(char *err_msg, const char *sd_name,
-                                    char *vpd_data, ssize_t *read_size)
+                                    uint8_t *vpd_data, ssize_t *read_size)
 {
     int rc = LSM_ERR_OK;
     char sysfs_path[_MAX_SYSFS_VPD83_PATH_STR_LEN];
