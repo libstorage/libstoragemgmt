@@ -64,7 +64,7 @@
 #define _MAX_SYSFS_BLK_PATH_STR_LEN 128 + _MAX_SD_NAME_STR_LEN
 #define _LSM_ERR_MSG_LEN 255
 
-#pragma pack(1)
+#pragma pack(push, 1)
 /*
  * Table 589 — Device Identification VPD page
  */
@@ -103,7 +103,7 @@ struct t10_vpd83_naa_header {
     uint8_t naa_type : 4;
 };
 
-#pragma pack()
+#pragma pack(pop)
 
 #define _lsm_err_msg_clear(err_msg) memset(err_msg, 0, _LSM_ERR_MSG_LEN)
 
