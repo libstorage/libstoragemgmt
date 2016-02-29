@@ -243,7 +243,6 @@ static int _sysfs_read_file(char *err_msg, const char *sys_fs_path,
 static int _sysfs_vpd_pg83_data_get(char *err_msg, const char *sd_name,
                                     uint8_t *vpd_data, ssize_t *read_size)
 {
-    int rc = LSM_ERR_OK;
     char sysfs_path[_MAX_SYSFS_VPD83_PATH_STR_LEN];
     char sysfs_blk_path[_MAX_SYSFS_BLK_PATH_STR_LEN];
 
@@ -283,11 +282,6 @@ static int _sysfs_vpd83_naa_of_sd_name(char *err_msg, const char *sd_name,
                                        char *vpd83)
 {
     ssize_t read_size = 0;
-    uint8_t *end_p = NULL;
-    uint8_t *p = NULL;
-    struct t10_vpd83_header *vpd83_header = NULL;
-    uint32_t vpd83_len = 0;
-    struct t10_vpd83_dp_header *dp_header = NULL;
     struct t10_vpd83_naa_header *naa_header = NULL;
     int rc = LSM_ERR_OK;
     uint8_t vpd_data[_T10_SPC_VPD_DI_MAX_LEN];
