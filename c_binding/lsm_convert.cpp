@@ -25,7 +25,11 @@
 #include "libstoragemgmt/libstoragemgmt_nfsexport.h"
 #include "libstoragemgmt/libstoragemgmt_plug_interface.h"
 
-#define _STD_MAP_HAS_KEY(x, y) (x).find((y)) != (x).end()
+
+bool std_map_has_key(const std::map < std::string, Value > &x, const char *key)
+{
+    return x.find(key) != x.end();
+}
 
 bool is_expected_object(Value & obj, std::string class_name)
 {
@@ -141,7 +145,7 @@ lsm_disk *value_to_disk(Value & disk)
                                    d["status"].asUint64_t(),
                                    d["system_id"].asString().c_str()
             );
-        if ((rc != NULL) && (_STD_MAP_HAS_KEY(d, "vpd83") == 1) &&
+        if ((rc != NULL) && std_map_has_key(d, "vpd83") &&
             (d["vpd83"].asC_str()[0] != '\0' ) &&
             (lsm_disk_vpd83_set(rc, d["vpd83"].asC_str()) != LSM_ERR_OK)) {
 
@@ -274,7 +278,7 @@ lsm_system *value_to_system(Value & system)
                                      i["status"].asUint32_t(),
                                      i["status_info"].asString().c_str(),
                                      i["plugin_data"].asC_str());
-        if ((rc != NULL) && (_STD_MAP_HAS_KEY(i, "fw_version") == 1) &&
+        if ((rc != NULL) && std_map_has_key(i, "fw_version") &&
             (i["fw_version"].asC_str()[0] != '\0')) {
 
             if (lsm_system_fw_version_set(rc, i["fw_version"].asC_str()) !=
@@ -285,7 +289,7 @@ lsm_system *value_to_system(Value & system)
                                      "fw_version");
             }
         }
-        if ((rc != NULL) && (_STD_MAP_HAS_KEY(i, "mode") == 1) &&
+        if ((rc != NULL) && std_map_has_key(i, "mode") &&
             (i["mode"].asInt32_t() != LSM_SYSTEM_MODE_NO_SUPPORT) &&
             (lsm_system_mode_set(rc, (lsm_system_mode_type)
                                  i["mode"].asInt32_t()))) {
