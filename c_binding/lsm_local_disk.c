@@ -710,7 +710,7 @@ int lsm_local_disk_vpd83_get(const char *disk_path, const char **vpd83,
     if (strlen(sd_name) > _MAX_SD_NAME_STR_LEN) {
         rc = LSM_ERR_INVALID_ARGUMENT;
         _lsm_err_msg_set(err_msg, "Illegal disk_path string, the SCSI disk name "
-                         "part(sdX) exceeded the max length %d, current %d",
+                         "part(sdX) exceeded the max length %d, current %zd",
                          _MAX_SD_NAME_STR_LEN - 1, strlen(sd_name));
         goto out;
     }
