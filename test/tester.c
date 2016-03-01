@@ -3248,7 +3248,7 @@ END_TEST
 START_TEST(test_local_disk_vpd83_get)
 {
     int rc = LSM_ERR_OK;
-    const char *vpd83;
+    char *vpd83;
     /* Not initialized in order to test dangling pointer vpd83 */
     lsm_error *lsm_err = NULL;
 
@@ -3303,7 +3303,7 @@ START_TEST(test_local_disk_vpd83_get)
     lsm_local_disk_vpd83_get("/dev/sda", &vpd83, &lsm_err);
     if (lsm_err != NULL)
         lsm_error_free(lsm_err);
-    free((char *) vpd83);
+    free(vpd83);
 
     /* Test non-exist disk */
     rc = lsm_local_disk_vpd83_get(NOT_EXIST_SD_PATH, &vpd83, &lsm_err);

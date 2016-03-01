@@ -678,7 +678,7 @@ int lsm_local_disk_vpd83_search(const char *vpd83,
     return rc;
 }
 
-int lsm_local_disk_vpd83_get(const char *disk_path, const char **vpd83,
+int lsm_local_disk_vpd83_get(const char *disk_path, char **vpd83,
                              lsm_error **lsm_err)
 {
     char tmp_vpd83[_LSM_MAX_VPD83_ID_LEN];
@@ -744,7 +744,7 @@ int lsm_local_disk_vpd83_get(const char *disk_path, const char **vpd83,
             *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
 
         if (vpd83 != NULL) {
-            free((char *) *vpd83);
+            free(*vpd83);
             *vpd83= NULL;
         }
     }

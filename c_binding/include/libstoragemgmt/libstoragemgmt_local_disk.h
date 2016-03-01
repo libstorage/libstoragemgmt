@@ -70,7 +70,7 @@ int LSM_DLL_EXPORT lsm_local_disk_vpd83_search(const char *vpd83,
  *         LSM_ERR_NOT_FOUND_DISK       When provided disk path not found.
  */
 int LSM_DLL_EXPORT lsm_local_disk_vpd83_get(const char *sd_path,
-                                            const char **vpd83,
+                                            char **vpd83,
                                             lsm_error **lsm_err);
 
 #ifdef __cplusplus

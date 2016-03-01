@@ -172,7 +172,7 @@ _wrapper(local_disk_vpd83_search, lsm_local_disk_vpd83_search,
          const char *, vpd83, lsm_string_list *, NULL,
          _lsm_string_list_to_pylist);
 _wrapper(local_disk_vpd83_get, lsm_local_disk_vpd83_get,
-         const char *, disk_path, const char *, NULL,
+         const char *, disk_path, char *, NULL,
          _c_str_to_py_str);
 
 PyMODINIT_FUNC init_clib(void)
