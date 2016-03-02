@@ -1449,6 +1449,19 @@ class TestPlugin(unittest.TestCase):
                                     "Volume ident_led_clear"
                                     "failed")
 
+    def test_invalid_uri(self):
+
+        # Make sure we are getting an exception
+        with self.assertRaises(lsm.LsmError):
+            lsm.Client("ontap//root@na-sim", "some_password")
+
+        # Make sure exception has the correct error code
+        try:
+            lsm.Client("ontap//root@na-sim", "some_password")
+        except lsm.LsmError as le:
+            self.assertTrue(le.code == lsm.ErrorNumber.INVALID_ARGUMENT)
+
+
 def dump_results():
     """
     unittest.main exits when done so we need to register this handler to

@@ -274,13 +274,13 @@ def uri_parse(uri, requires=None, required_params=None):
     if requires:
         for r in requires:
             if r not in rc:
-                raise LsmError(ErrorNumber.PLUGIN_BUG,
+                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                                'uri missing \"%s\" or is in invalid form' % r)
 
     if required_params:
         for r in required_params:
             if r not in rc['parameters']:
-                raise LsmError(ErrorNumber.PLUGIN_BUG,
+                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                                'uri missing query parameter %s' % r)
     return rc
 
