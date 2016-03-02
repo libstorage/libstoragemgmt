@@ -20,12 +20,16 @@ import os
 import errno
 import re
 
+from pyudev import Context, Device, DeviceNotFoundError
+
 from lsm import (
     IPlugin, Client, Capabilities, VERSION, LsmError, ErrorNumber, uri_parse,
     System, Pool, size_human_2_size_bytes, search_property, Volume, Disk,
     LocalDisk)
 
-from lsm.plugin.hpsa.utils import cmd_exec, ExecError, file_read
+from lsm.plugin.hpsa.utils import cmd_exec, ExecError
+
+_CONTEXT = Context()
 
 
 def _handle_errors(method):
@@ -468,17 +472,21 @@ class SmartArray(IPlugin):
         # No document or command output indicate block size
         # of volume. So we try to read from linux kernel, if failed
         # try 512 and roughly calculate the sector count.
-        regex_match = re.compile("/dev/(sd[a-z]+)").search(hp_ld['Disk Name'])
         vol_name = hp_ld_name
-        if regex_match:
-            sd_name = regex_match.group(1)
-            block_size = int(file_read(
-                "/sys/block/%s/queue/logical_block_size" % sd_name))
-            num_of_blocks = int(file_read("/sys/block/%s/size" % sd_name))
-            vol_name += ": /dev/%s" % sd_name
-        else:
+        try:
+            device = Device.from_device_file(_CONTEXT, hp_ld['Disk Name'])
+        except DeviceNotFoundError:
             block_size = 512
             num_of_blocks = int(_hp_size_to_lsm(hp_ld['Size']) / block_size)
+        else:
+            vol_name += ": /dev/%s" % device.sys_name
+            attributes = device.attributes
+            try:
+                block_size = attributes.asint("queue/logical_block_size")
+                num_of_blocks = attributes.asint("size")
+            except (KeyError, UnicodeDecodeError, ValueError):
+                block_size = 512
+                num_of_blocks = int(_hp_size_to_lsm(hp_ld['Size']) / block_size)
 
         plugin_data = "%s:%s:%s" % (ctrl_num, array_num, ld_num)
 

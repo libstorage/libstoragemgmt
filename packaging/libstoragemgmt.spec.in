@@ -256,6 +256,7 @@ MegaRAID storage management via storcli.
 Summary:        Files for HP SmartArray support for %{libstoragemgmt}
 Group:          System Environment/Libraries
 Requires:       %{libstoragemgmt}%{?_isa} = %{version}-%{release}
+Requires:       python-pyudev
 BuildArch:      noarch
 
 %description    -n %{libstoragemgmt}-hpsa-plugin

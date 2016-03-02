@@ -34,16 +34,6 @@ def cmd_exec(cmds):
     return str_stdout
 
 
-def file_read(file_path):
-    """
-    Read file and return string of file content.
-    """
-    fd = open(file_path, 'r')
-    content = fd.read()
-    fd.close()
-    return content
-
-
 class ExecError(Exception):
     def __init__(self, cmd, errno, stdout, stderr, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)

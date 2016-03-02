@@ -23,6 +23,7 @@ addons:
         - python-dev
         - valgrind
         - chrpath
+        - python-pyudev
 
 compiler: gcc
 
