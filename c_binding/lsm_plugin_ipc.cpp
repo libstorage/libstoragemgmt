@@ -487,7 +487,7 @@ static int handle_system_list(lsm_plugin_ptr p, Value & params,
     int rc = LSM_ERR_NO_SUPPORT;
 
     if (p && p->mgmt_ops && p->mgmt_ops->system_list) {
-        lsm_system **systems;
+        lsm_system **systems = NULL;
         uint32_t count = 0;
 
         if (LSM_FLAG_EXPECTED_TYPE(params)) {
