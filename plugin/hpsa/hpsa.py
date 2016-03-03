@@ -467,26 +467,23 @@ class SmartArray(IPlugin):
     @staticmethod
     def _hp_ld_to_lsm_vol(hp_ld, pool_id, sys_id, ctrl_num, array_num,
                           hp_ld_name):
+        """
+        raises DeviceNotFoundError
+        """
         ld_num = hp_ld_name[len("Logical Drive: "):]
         vpd83 = hp_ld['Unique Identifier'].lower()
         # No document or command output indicate block size
         # of volume. So we try to read from linux kernel, if failed
         # try 512 and roughly calculate the sector count.
-        vol_name = hp_ld_name
+        device = Device.from_device_file(_CONTEXT, hp_ld['Disk Name'])
+        vol_name = "%s: /dev/%s" % (hp_ld_name, device.sys_name)
+        attributes = device.attributes
         try:
-            device = Device.from_device_file(_CONTEXT, hp_ld['Disk Name'])
-        except DeviceNotFoundError:
+            block_size = attributes.asint("queue/logical_block_size")
+            num_of_blocks = attributes.asint("size")
+        except (KeyError, UnicodeDecodeError, ValueError):
             block_size = 512
             num_of_blocks = int(_hp_size_to_lsm(hp_ld['Size']) / block_size)
-        else:
-            vol_name += ": /dev/%s" % device.sys_name
-            attributes = device.attributes
-            try:
-                block_size = attributes.asint("queue/logical_block_size")
-                num_of_blocks = attributes.asint("size")
-            except (KeyError, UnicodeDecodeError, ValueError):
-                block_size = 512
-                num_of_blocks = int(_hp_size_to_lsm(hp_ld['Size']) / block_size)
 
         plugin_data = "%s:%s:%s" % (ctrl_num, array_num, ld_num)
 
@@ -519,11 +516,16 @@ class SmartArray(IPlugin):
                 for array_key_name in ctrl_data[key_name].keys():
                     if not array_key_name.startswith("Logical Drive"):
                         continue
-                    lsm_vols.append(
-                        SmartArray._hp_ld_to_lsm_vol(
-                            ctrl_data[key_name][array_key_name],
-                            pool_id, sys_id, ctrl_num, array_num,
-                            array_key_name))
+
+                    try:
+                        lsm_vol = SmartArray._hp_ld_to_lsm_vol(
+                           ctrl_data[key_name][array_key_name],
+                           pool_id, sys_id, ctrl_num, array_num,
+                           array_key_name)
+                    except DeviceNotFoundError:
+                        pass
+                    else:
+                        lsm_vols.append(lsm_vol)
 
         return search_property(lsm_vols, search_key, search_value)
 
