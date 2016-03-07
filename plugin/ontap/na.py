@@ -22,8 +22,6 @@ import time
 from binascii import hexlify
 from _ssl import SSLError
 
-from M2Crypto import RC4
-
 from lsm.external.xmltodict import convert_xml_to_dict
 from lsm import (ErrorNumber)
 
@@ -170,6 +168,44 @@ def to_list(v):
         else:
             rc.append(v)
     return rc
+
+# RC4 implementation talken from wikipedia article
+# https://en.wikipedia.org/wiki/RC4 pseudo code and
+# implementing it in python
+def _ksa():
+    """
+    Key-scheduling algorithm (KSA)
+    """
+    key = "#u82fyi8S5\017pPemw"
+    S = list(range(256))
+    j = 0
+    for i in list(range(256)):
+        j = (j + S[i] + ord( key[i % len(key)] )) % 256
+        S[i] , S[j] = S[j] , S[i]
+    return S
+
+
+def _prga(k):
+    """
+    Pseudo-random generation algorithm
+    """
+    i = 0
+    j = 0
+    while True:
+        i = (i + 1) % 256
+        j = (j + k[i]) % 256
+        k[i], k[j] = k[j], k[i]
+        yield k[(k[i] + k[j]) % 256]
+
+
+def encode_py(text):
+    k = _ksa()
+    encrypted_bytes = bytearray()
+    r_seq = _prga(k)
+    for char in text:
+        encrypted_bytes.append(int(ord(char) ^ next(r_seq)))
+
+    return hexlify(encrypted_bytes).decode("utf-8")
 
 
 class Filer(object):
@@ -501,15 +537,10 @@ class Filer(object):
     def igroup_delete(self, name):
         self._invoke('igroup-destroy', {'initiator-group-name': name})
 
-    @staticmethod
-    def encode(password):
-        rc4 = RC4.RC4()
-        rc4.set_key("#u82fyi8S5\017pPemw")
-        return hexlify(rc4.update(password))
 
     def iscsi_initiator_add_auth(self, initiator, user_name, password,
                                  out_user, out_password):
-        pw = self.encode(password)
+        pw = encode_py(password)
 
         args = {'initiator': initiator}
 

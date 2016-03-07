@@ -198,7 +198,6 @@ AC_MSG_RESULT([$PYTHON_MAJOR_VERSION])
 AM_PATH_PYTHON([2.6], [], AC_MSG_ERROR([Python interpreter 2.6 or 2.7 required]) )
 
 AC_PYTHON_MODULE([pywbem], [Required])
-AC_PYTHON_MODULE([M2Crypto], [Required])
 AC_PYTHON_MODULE([argparse], [Required])
 AC_PYTHON_MODULE([pyudev], [Required])
 PKG_CHECK_MODULES([LIBUDEV], [libudev])
