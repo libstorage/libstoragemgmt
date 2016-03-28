@@ -1679,7 +1679,7 @@ lsm_capability_value_type lsm_capability_get(lsm_storage_capabilities * cap,
 {
     lsm_capability_value_type rc = LSM_CAP_UNSUPPORTED;
 
-    if (LSM_IS_CAPABILITIY(cap) && (uint32_t) t < cap->len) {
+    if (LSM_IS_CAPABILITY(cap) && (uint32_t) t < cap->len) {
         rc = (lsm_capability_value_type) cap->cap[t];
     }
     return rc;
@@ -1699,7 +1699,7 @@ int lsm_capability_set(lsm_storage_capabilities * cap, lsm_capability_type t,
 {
     int rc = LSM_ERR_INVALID_ARGUMENT;
 
-    if (LSM_IS_CAPABILITIY(cap)) {
+    if (LSM_IS_CAPABILITY(cap)) {
         if ((uint32_t) t < cap->len) {
             cap->cap[t] = v;
             rc = LSM_ERR_OK;
@@ -1715,7 +1715,7 @@ int lsm_capability_set_n(lsm_storage_capabilities * cap,
     int rc = LSM_ERR_OK;
     int index = 0;
 
-    if (!LSM_IS_CAPABILITIY(cap)) {
+    if (!LSM_IS_CAPABILITY(cap)) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1813,7 +1813,7 @@ lsm_storage_capabilities *lsm_capability_record_alloc(const char *value)
 
 int lsm_capability_record_free(lsm_storage_capabilities * cap)
 {
-    if (LSM_IS_CAPABILITIY(cap)) {
+    if (LSM_IS_CAPABILITY(cap)) {
         cap->magic = LSM_DEL_MAGIC(LSM_CAPABILITIES_MAGIC);
         free(cap->cap);
         free(cap);
@@ -1825,7 +1825,7 @@ int lsm_capability_record_free(lsm_storage_capabilities * cap)
 char *capability_string(lsm_storage_capabilities * c)
 {
     char *rc = NULL;
-    if (LSM_IS_CAPABILITIY(c)) {
+    if (LSM_IS_CAPABILITY(c)) {
         rc = bytes_to_string(c->cap, c->len);
     }
     return rc;
