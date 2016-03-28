@@ -680,7 +680,7 @@ lsm_storage_capabilities *value_to_capabilities(Value & exp)
 
 Value capabilities_to_value(lsm_storage_capabilities * cap)
 {
-    if (LSM_IS_CAPABILITIY(cap)) {
+    if (LSM_IS_CAPABILITY(cap)) {
         std::map < std::string, Value > c;
         char *t = capability_string(cap);
         c["class"] = Value(CLASS_NAME_CAPABILITIES);
