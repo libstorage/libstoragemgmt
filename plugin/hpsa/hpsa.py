@@ -345,6 +345,7 @@ class SmartArray(IPlugin):
         cap.set(Capabilities.POOL_MEMBER_INFO)
         cap.set(Capabilities.VOLUME_RAID_CREATE)
         cap.set(Capabilities.SYS_FW_VERSION_GET)
+        cap.set(Capabilities.SYS_MODE_GET)
         cap.set(Capabilities.VOLUME_LED)
         return cap
 
