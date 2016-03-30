@@ -13,13 +13,23 @@
 # License along with this library; If not, see <http://www.gnu.org/licenses/>.
 #
 # Author: Gris Ge <fge@redhat.com>
+from builtins import object
+import six
 
-from lsm._clib import (_local_disk_vpd83_search, _local_disk_vpd83_get,
+from lsm import LsmError, ErrorNumber
+
+if six.PY2:
+    from lsm._clib import (_local_disk_vpd83_search, _local_disk_vpd83_get,
                        _local_disk_rpm_get, _local_disk_list,
                        _local_disk_link_type_get, _local_disk_ident_led_on,
                        _local_disk_ident_led_off, _local_disk_fault_led_on,
                        _local_disk_fault_led_off)
-from lsm import LsmError, ErrorNumber
+else:
+    from lsm._clib3 import (_local_disk_vpd83_search, _local_disk_vpd83_get,
+                       _local_disk_rpm_get, _local_disk_list,
+                       _local_disk_link_type_get, _local_disk_ident_led_on,
+                       _local_disk_ident_led_off, _local_disk_fault_led_on,
+                       _local_disk_fault_led_off)
 
 
 def _use_c_lib_function(func_ref, arg):

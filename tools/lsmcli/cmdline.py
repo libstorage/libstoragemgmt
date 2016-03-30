@@ -15,22 +15,19 @@
 # Author: tasleson
 #         Gris Ge <fge@redhat.com>
 
+from builtins import input
+from builtins import str
+from builtins import range
+from builtins import object
 import os
 import sys
 import getpass
 import time
 import tty
 import termios
-
-try:
-    from collections import OrderedDict
-except ImportError:
-    # python 2.6 or earlier, use backport
-    from ordereddict import OrderedDict
-
 from argparse import ArgumentParser
 from argparse import RawTextHelpFormatter
-
+import six
 from lsm import (Client, Pool, VERSION, LsmError, Disk,
                  Volume, JobStatus, ErrorNumber, BlockRange,
                  uri_parse, Proxy, size_human_2_size_bytes,
@@ -47,6 +44,15 @@ _CONNECTION_FREE_COMMANDS = ['local-disk-list',
                              'local-disk-ident-led-off',
                              'local-disk-fault-led-on',
                              'local-disk-fault-led-off']
+
+if six.PY3:
+    long = int
+
+try:
+    from collections import OrderedDict
+except ImportError:
+    # python 2.6 or earlier, use backport
+    from ordereddict import OrderedDict
 
 
 ## Wraps the invocation to the command line
@@ -294,6 +300,11 @@ tgt_id_opt = dict(name="--tgt", help="Search by target port ID",
 local_disk_path_opt = dict(name='--path', help="Local disk path",
                            metavar='<DISK_PATH>')
 
+
+def _upper(s):
+    return s.upper()
+
+
 cmds = (
     dict(
         name='list',
@@ -305,7 +316,7 @@ cmds = (
                       "\n\nWhen listing SNAPSHOTS, it requires --fs <FS_ID>.",
                  metavar='<TYPE>',
                  choices=list_choices,
-                 type=str.upper),
+                 type=_upper),
         ],
         optional=[
             dict(sys_id_filter_opt),
@@ -352,7 +363,7 @@ cmds = (
             dict(name="--provisioning", help=provision_help,
                  default='DEFAULT',
                  choices=provision_types,
-                 type=str.upper),
+                 type=_upper),
         ],
     ),
 
@@ -371,7 +382,7 @@ cmds = (
                       "\n    ".
                       join(VolumeRAIDInfo.VOL_CREATE_RAID_TYPES_STR),
                  choices=VolumeRAIDInfo.VOL_CREATE_RAID_TYPES_STR,
-                 type=str.upper),
+                 type=_upper),
         ],
         optional=[
             dict(name="--strip-size",
@@ -1049,7 +1060,8 @@ class CmdLine:
 
         known_args = parser.parse_args(args=CmdLine.handle_alias())
         # Copy child value to root.
-        for k, v in vars(known_args).iteritems():
+
+        for k, v in vars(known_args).items():
             if k.startswith(_CHILD_OPTION_DST_PREFIX):
                 root_k = k[len(_CHILD_OPTION_DST_PREFIX):]
                 if getattr(known_args, root_k) is None or \
@@ -1846,8 +1858,14 @@ class CmdLine:
     def local_disk_ident_led_on(self, args):
         LocalDisk.ident_led_on(args.path)
 
+<<<<<<< HEAD
     def local_disk_ident_led_off(self, args):
         LocalDisk.ident_led_off(args.path)
+=======
+            if os.getenv('LSM_DEBUG_PLUGIN'):
+                input(
+                    "Attach debugger to plug-in, press <return> when ready...")
+>>>>>>> python_binding: Changes to support py2 & py3
 
     def local_disk_fault_led_on(self, args):
         LocalDisk.fault_led_on(args.path)

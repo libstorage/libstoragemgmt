@@ -13,21 +13,33 @@
 # License along with this library; If not, see <http://www.gnu.org/licenses/>.
 #
 # Author: tasleson
+
+#from future import standard_library
+#standard_library.install_aliases()
+from builtins import zip
+from builtins import str
+from builtins import object
 import hashlib
 
 import os
 import unittest
-import urlparse
 import re
 
 import sys
 import syslog
 import collections
 import inspect
-import urllib2
 
+try:
+    from urllib.error import (URLError, HTTPError)
+    from urllib.parse import urlparse
+except ImportError:
+    from urllib2 import (URLError,
+                         HTTPError)
+    from urlparse import urlparse
 import functools
 import traceback
+import six
 
 
 def default_property(name, allow_set=True, doc=None):
@@ -56,9 +68,9 @@ def default_property(name, allow_set=True, doc=None):
 
 def common_urllib2_error_handler(exp):
 
-    if isinstance(exp, urllib2.HTTPError):
+    if isinstance(exp, HTTPError):
         raise LsmError(ErrorNumber.PLUGIN_AUTH_FAILED, str(exp))
-    if isinstance(exp, urllib2.URLError):
+    if isinstance(exp, URLError):
         desc = str(exp)
         if 'urlopen error' in desc:
             if 'Errno 111' in desc:
@@ -222,8 +234,6 @@ def size_human_2_size_bytes(size_human):
         $
     """, re.X)
     regex_match = regex_size_human.match(size_human)
-    units = ''
-    number = 0
     size_bytes = 0
     if regex_match:
         number = regex_match.group(1)
@@ -250,7 +260,7 @@ def uri_parse(uri, requires=None, required_params=None):
     """
 
     rc = {}
-    u = urlparse.urlparse(uri)
+    u = urlparse(uri)
 
     if u.scheme:
         rc['scheme'] = u.scheme
@@ -296,11 +306,10 @@ def uri_parameters(uri):
     #       '?namespace=root/emc' is saved in uri.path
     # After patched(RHEL 7 and Fedora 19+):
     #       'namespace=root/emc' is saved in uri.query
-    query = ''
     if uri.query:
         query = uri.query
     elif uri.path:
-        query = urlparse.urlparse('http:' + uri[2]).query
+        query = urlparse('http:' + uri[2]).query
     else:
         return {}
     if query:
@@ -314,7 +323,7 @@ def uri_parameters(uri):
 # @returns  md5 hex digest.
 def md5(t):
     h = hashlib.md5()
-    h.update(t)
+    h.update(t.encode("utf-8"))
     return h.hexdigest()
 
 
@@ -485,7 +494,7 @@ class ErrorNumber(object):
 
     @staticmethod
     def error_number_to_str(error_no):
-        for error_str in ErrorNumber._LOCALS.keys():
+        for error_str in list(ErrorNumber._LOCALS.keys()):
             if ErrorNumber._LOCALS[error_str] == error_no:
                 return "%s(%d)" % (error_str, error_no)
         return "UNKNOWN_ERROR_NUMBER(%d)" % error_no
@@ -517,7 +526,8 @@ def type_compare(method_name, exp_type, act_val):
         # A number of times a method will return None or some valid type,
         # only check on the type if the value is not None
         if exp_type != type(act_val) and act_val is not None:
-            if (exp_type == unicode and type(act_val) == str):
+            if (isinstance(exp_type, six.string_types) and
+                    isinstance(act_val, six.string_types)):
                 return
             if not inspect.isclass(exp_type) or \
                     not issubclass(type(act_val), exp_type):

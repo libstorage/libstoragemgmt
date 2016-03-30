@@ -16,7 +16,6 @@ addons:
         - libxml2-dev
         - check
         - libglib2.0-dev
-        - python-m2crypto
         - libssl-dev
         - libconfig-dev
         - libudev-dev
@@ -25,6 +24,14 @@ addons:
         - chrpath
         - python-pyudev
         - libsqlite3-dev
+        # missing- python2-future
+        - python3-dev
+        - python-requests
+        - python-six
+        # - python-future
+        # - python3-lmiwbem
+        - python3-requests
+        - python3-six
 
 compiler: gcc
 

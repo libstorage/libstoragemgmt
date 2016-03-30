@@ -200,6 +200,7 @@ AM_PATH_PYTHON([2.6], [], AC_MSG_ERROR([Python interpreter 2.6 or 2.7 required])
 AC_PYTHON_MODULE([pywbem], [Required])
 AC_PYTHON_MODULE([argparse], [Required])
 AC_PYTHON_MODULE([pyudev], [Required])
+AC_PYTHON_MODULE([six], [Required])
 PKG_CHECK_MODULES([LIBUDEV], [libudev])
 PKG_CHECK_MODULES([PYTHON2], [python2], [], [not_found_py_pkg=yes])
 
@@ -213,6 +214,38 @@ if test "x$not_found_py_pkg" == "xyes"; then
     AC_SUBST(PYTHON2_CFLAGS)
     AC_SUBST(PYTHON2_LIBS)
 fi
+
+dnl ==========================================================================
+dnl See if the user wants to build python3 support
+dnl ==========================================================================
+
+AC_ARG_WITH([python3],
+    [AS_HELP_STRING([--without-python3],
+        [Do not build with python3 support])],
+    [],
+    [with_python3=yes])
+if test "x$with_python3" = "xyes"; then
+    AC_PATH_PROGS(PYTHON3, python3, [Python3 is required])
+    AC_PYTHON_MODULE([lmiwbem], [Required], [python3])
+    AC_PYTHON_MODULE([six], [Required], [python3])
+
+    PKG_CHECK_MODULES([PYTHON3], [python3], [], [not_found_py_pkg=yes])
+
+    if test "x$not_found_py_pkg" == "xyes"; then
+        AC_CHECK_PROG([PY_CONFIG_CHECK], [python3-config], [yes])
+        if test "x${PY_CONFIG_CHECK}" != "xyes"; then
+            AC_MSG_ERROR([Python3 development libraries required])
+        fi
+        PYTHON3_CFLAGS=`python3-config --cflags`
+        PYTHON3_LIBS=`python3-config --libs`
+        AC_SUBST(PYTHON3_CFLAGS)
+        AC_SUBST(PYTHON3_LIBS)
+    fi
+
+fi
+AM_CONDITIONAL([WITH_PYTHON3], [test "x$with_python3" = "xyes"])
+
+
 
 dnl ==========================================================================
 dnl Add option '--without-megaraid' to exclude megaraid plugin.
