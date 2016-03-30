@@ -70,6 +70,16 @@ const char LSM_DLL_EXPORT *lsm_system_id_get(lsm_system *s);
 const char LSM_DLL_EXPORT *lsm_system_name_get(lsm_system *s);
 
 /**
+ * New in version 1.3. Retrieves read cache percentage of the specified system.
+ * @param       s      		System to retrieve read cache percentage for.
+ * @param[out]  read_pct  	Read cache percentage.
+ * @return LSM_ERR_OK on success, or LSM_ERR_NO_SUPPORT, or
+ *         LSM_ERR_INVALID_ARGUMENT.
+ */
+int LSM_DLL_EXPORT lsm_system_read_cache_pct_get(lsm_system *s,
+                                                 int *read_pct);
+
+/**
  * Retrieve the status for the system.
  * @param s     System to retrieve status for
  * @return System status which is a bit sensitive field, returns UINT32_MAX on

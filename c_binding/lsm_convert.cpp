@@ -312,6 +312,18 @@ lsm_system *value_to_system(Value & system)
             rc= NULL;
             throw ValueException("value_to_system: failed to update 'mode'");
         }
+        if ((rc != NULL) && std_map_has_key(i, "read_cache_pct") &&
+            (i["read_cache_pct"].asInt32_t() !=
+            LSM_SYSTEM_CACHE_PCT_NO_SUPPORT)) {
+
+            if (lsm_system_read_cache_pct_set(rc,
+                i["read_cache_pct"].asInt32_t()) != LSM_ERR_OK) {
+                lsm_system_record_free(rc);
+                rc= NULL;
+                throw ValueException("value_to_system: failed to update "
+                                     "read_cache_pct");
+            }
+        }
     } else {
         throw ValueException("value_to_system: Not correct type");
     }
@@ -332,6 +344,8 @@ Value system_to_value(lsm_system * system)
             s["fw_version"] = Value(system->fw_version);
         if (system->mode != LSM_SYSTEM_MODE_NO_SUPPORT)
             s["mode"] = Value(system->mode);
+        if (system->read_cache_pct != LSM_SYSTEM_CACHE_PCT_NO_SUPPORT)
+            s["read_cache_pct"] = Value(system->read_cache_pct);
         return Value(s);
     }
     return Value();

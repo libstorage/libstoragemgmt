@@ -2068,6 +2068,35 @@ START_TEST(test_system_mode)
 }
 END_TEST
 
+START_TEST(test_read_cache_pct)
+{
+    int read_cache_pct = LSM_SYSTEM_CACHE_PCT_NO_SUPPORT;
+    int rc = 0;
+    lsm_system **sys = NULL;
+    uint32_t sys_count = 0;
+
+    G(rc, lsm_system_list, c, &sys, &sys_count, LSM_CLIENT_FLAG_RSVD);
+    fail_unless( sys_count >= 1, "count = %d", sys_count);
+
+    if(sys_count > 0) {
+
+        G(rc, lsm_read_cache_pct_get, sys[0], &read_cache_pct);
+
+        if( LSM_ERR_OK == rc ) {
+            printf("Read cache pct: (%d)\n", read_cache_pct);
+        }
+
+        rc = lsm_system_read_cache_pct_get(sys[0], NULL);
+        fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
+    }
+
+    rc = lsm_system_read_cache_pct_get(NULL, &read_cache_pct);
+    fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
+    lsm_system_record_array_free(sys, sys_count);
+
+}
+END_TEST
+
 START_TEST(test_get_available_plugins)
 {
     int i = 0;

@@ -337,6 +337,9 @@ typedef enum {
     LSM_SYSTEM_MODE_HBA = 2,
 } lsm_system_mode_type;
 
+#define LSM_SYSTEM_CACHE_PCT_NO_SUPPORT             -2
+#define LSM_SYSTEM_CACHE_PCT_UNKNOWN                -1
+
 #ifdef  __cplusplus
 }
 #endif

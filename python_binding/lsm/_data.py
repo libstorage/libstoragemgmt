@@ -396,14 +396,21 @@ class System(IData):
     MODE_HARDWARE_RAID = 1
     MODE_HBA = 2
 
+    CACHE_PCT_NO_SUPPORT = -2
+    CACHE_PCT_UNKNOWN = -1
+
     def __init__(self, _id, _name, _status, _status_info, _plugin_data=None,
-                 _fw_version='', _mode=None):
+                 _fw_version='', _mode=None, _read_cache_pct=None):
         self._id = _id
         self._name = _name
         self._status = _status
         self._status_info = _status_info
         self._plugin_data = _plugin_data
         self._fw_version = _fw_version
+        if _read_cache_pct is None:
+            self._read_cache_pct = System.CACHE_PCT_NO_SUPPORT
+        else:
+            self._read_cache_pct = _read_cache_pct
         if _mode is None:
             self._mode = System.MODE_NO_SUPPORT
         else:
@@ -442,6 +449,20 @@ class System(IData):
                            "System.mode is not supported by this plugin yet")
         return self._mode
 
+    @property
+    def read_cache_pct(self):
+        """
+        Integer. Read cache percentage. New in version 1.3.
+        Possible values:
+            * 0-100
+                The read cache percentage. The write cache percentage will
+                then be 100 - read_cache_pct
+        """
+        if self._read_cache_pct == System.CACHE_PCT_NO_SUPPORT:
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                           "System.read_cache_pct is not supported by this "
+                           "plugin yet")
+        return self._read_cache_pct
 
 @default_property('id', doc="Unique identifier")
 @default_property('name', doc="User supplied name")
@@ -828,6 +849,7 @@ class Capabilities(IData):
     EXPORT_REMOVE = 123
     EXPORT_CUSTOM_PATH = 124
 
+    SYS_READ_CACHE_PCT_GET = 159
     SYS_FW_VERSION_GET = 160
     SYS_MODE_GET = 161
     DISK_LOCATION = 163

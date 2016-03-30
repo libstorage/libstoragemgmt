@@ -327,6 +327,14 @@ class TestPlugin(unittest.TestCase):
                 self.assertTrue(fw_ver is not None and len(fw_ver) > 0,
                                 "Firmware version retrieval failed")
 
+    def test_sys_read_cache_pct_get(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            if supported(cap, [Cap.SYS_READ_CACHE_PCT_GET]):
+                read_pct = s.read_cache_pct
+                self.assertTrue(read_pct is not None,
+                                "Read cache percentage retrieval failed")
+
     def test_timeout(self):
         tmo = 40000
         self.c.time_out_set(tmo)

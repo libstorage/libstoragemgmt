@@ -38,6 +38,7 @@ extern "C" {
 static char name[] = "Compiled plug-in example";
 static char version[] = "0.2.0";
 static char sys_id[] = "sim-01";
+static int read_cache_pct = 20;
 static char disk_location[] = "Port: 2E Box: 3 Bay: 12";
 
 #define BS 512
@@ -2306,6 +2307,7 @@ int load(lsm_plugin_ptr c, const char *uri, const char *password,
                                                 NULL);
         lsm_system_fw_version_set(pd->system[0], version);
         lsm_system_mode_set(pd->system[0], LSM_SYSTEM_MODE_HARDWARE_RAID);
+        lsm_system_read_cache_pct_set(pd->system[0], read_cache_pct);
 
         p = lsm_pool_record_alloc("POOL_3", "lsm_test_aggr",
                                   LSM_POOL_ELEMENT_TYPE_FS |
