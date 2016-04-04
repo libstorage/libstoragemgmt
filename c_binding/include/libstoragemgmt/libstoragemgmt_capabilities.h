@@ -159,6 +159,8 @@ typedef enum {
     /**^ Plug-in allows user to retrieve storage firmware version */
     LSM_CAP_SYS_MODE_GET = 161,
     /**^ Plug-in allows user to retrieve storage mode*/
+    LSM_CAP_DISK_LOCATION = 163,
+    /**^ Plug-in allows user to retrieve disk location */
     LSM_CAP_VOLUME_LED = 171,
     /**^ Plugin allows user to set and clear volume LEDs */
     LSM_CAP_POOLS_QUICK_SEARCH = 210,

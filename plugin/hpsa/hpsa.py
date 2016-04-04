@@ -346,6 +346,7 @@ class SmartArray(IPlugin):
         cap.set(Capabilities.VOLUME_RAID_CREATE)
         cap.set(Capabilities.SYS_FW_VERSION_GET)
         cap.set(Capabilities.SYS_MODE_GET)
+        cap.set(Capabilities.DISK_LOCATION)
         cap.set(Capabilities.VOLUME_LED)
         return cap
 
@@ -529,13 +530,18 @@ class SmartArray(IPlugin):
         disk_type = _disk_type_of(hp_disk)
         blk_size = int(hp_disk['Native Block Size'])
         blk_count = int(_hp_size_to_lsm(hp_disk['Size']) / blk_size)
+        disk_port, disk_box, disk_bay = disk_num.split(":")
+        disk_location = "Port: %s Box: %s Bay: %s" % (disk_port, disk_box, 
+            disk_bay)
+        
         status = _disk_status_of(hp_disk, flag_free)
         plugin_data = "%s:%s" % (ctrl_num, disk_num)
         vpd83 = LocalDisk.vpd83_get(hp_disk.get('Disk Name', ''))
 
         return Disk(
             disk_id, disk_name, disk_type, blk_size, blk_count,
-            status, sys_id, _plugin_data=plugin_data, _vpd83=vpd83)
+            status, sys_id, _plugin_data=plugin_data, _vpd83=vpd83,
+            _disk_location=disk_location)
 
     @_handle_errors
     def disks(self, search_key=None, search_value=None,

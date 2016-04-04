@@ -707,6 +707,7 @@ lsm_disk *lsm_disk_record_alloc(const char *id, const char *name,
         rc->disk_status = disk_status;
         rc->system_id = strdup(system_id);
         rc->vpd83 = NULL;
+        rc->disk_location = NULL;
 
         if (!rc->id || !rc->name || !rc->system_id) {
             lsm_disk_record_free(rc);
@@ -945,6 +946,11 @@ lsm_disk *lsm_disk_record_copy(lsm_disk * disk)
                 lsm_disk_record_free(new_lsm_disk);
                 return NULL;
             }
+        if ((disk->disk_location != NULL) &&
+            (lsm_disk_location_set(new_lsm_disk, disk->disk_location) != LSM_ERR_OK)) {
+            lsm_disk_record_free(new_lsm_disk);
+            return NULL;
+        }
         return new_lsm_disk;
     }
     return NULL;
@@ -967,6 +973,9 @@ int lsm_disk_record_free(lsm_disk * d)
         free(d->vpd83);
         d->vpd83 = NULL;
 
+        if (d->disk_location != NULL)
+            free((char *) d->disk_location);
+        
         free(d);
         return LSM_ERR_OK;
     }
@@ -1040,6 +1049,37 @@ char *lsm_volume_system_id_get(lsm_volume * v)
 char *lsm_volume_pool_id_get(lsm_volume * v)
 {
     MEMBER_GET(v, LSM_IS_VOL, pool_id, NULL);
+}
+
+int lsm_disk_location_set(lsm_disk * disk, const char *location)
+{
+    if ((disk == NULL) || (location == NULL) || (location[0] == '\0'))
+        return LSM_ERR_INVALID_ARGUMENT;
+
+    if (disk->disk_location != NULL)
+        free((char *) disk->disk_location);
+    disk->disk_location = strdup(location);
+    if (disk->disk_location == NULL)
+        return LSM_ERR_NO_MEMORY;
+
+    return LSM_ERR_OK;
+}
+
+int lsm_disk_location_get(lsm_disk * disk, const char **location)
+{
+    if ((disk == NULL) || (location == NULL))
+        return LSM_ERR_INVALID_ARGUMENT;
+
+    if (!LSM_IS_DISK(disk)) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    *location = disk->disk_location;
+
+    if (disk->disk_location[0] != '\0')
+        return LSM_ERR_OK;
+    else
+        return LSM_ERR_NO_SUPPORT;
 }
 
 MEMBER_FUNC_GET(const char *, lsm_volume_plugin_data_get, lsm_volume * v, v,
