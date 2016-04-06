@@ -323,9 +323,9 @@ class TestPlugin(unittest.TestCase):
         for s in self.systems:
             cap = self.c.capabilities(s)
             if supported(cap, [Cap.SYS_MODE_GET]):
-                fw_ver = s.fw_version
-                self.assertTrue(fw_ver is not None and len(fw_ver) > 0,
-                                "Firmware version retrieval failed")
+                sys_mode = s.mode
+                self.assertTrue(sys_mode is not None,
+                                "System mode retrieval failed")
 
     def test_sys_read_cache_pct_get(self):
         for s in self.systems:
