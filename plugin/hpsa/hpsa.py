@@ -100,7 +100,7 @@ def _parse_hpssacli_output(output):
     3. If current line is the start of new section, create an empty dictionary
        where following subsections or data could be stored in.
     """
-    required_sections = ['Array:', 'unassigned', 'HBA Drives']
+    required_sections = ['Array:', 'unassigned', 'HBA Drives', 'array']
 
     output_lines = [
         l for l in output.split("\n")
@@ -350,11 +350,13 @@ class SmartArray(IPlugin):
         cap.set(Capabilities.VOLUME_LED)
         return cap
 
-    def _sacli_exec(self, sacli_cmds, flag_convert=True):
+    def _sacli_exec(self, sacli_cmds, flag_convert=True, flag_force=False):
         """
         If flag_convert is True, convert data into dict.
         """
         sacli_cmds.insert(0, self._sacli_bin)
+        if flag_force:
+            sacli_cmds.append('forced')
         try:
             output = cmd_exec(sacli_cmds)
         except OSError as os_error:
@@ -759,7 +761,7 @@ class SmartArray(IPlugin):
             cmds.append("ss=%d" % int(strip_size / 1024))
 
         try:
-            self._sacli_exec(cmds, flag_convert=False)
+            self._sacli_exec(cmds, flag_convert=False, flag_force=True)
         except ExecError:
             # Check whether disk is free
             requested_disk_ids = [d.id for d in disks]
