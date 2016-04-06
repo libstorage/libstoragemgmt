@@ -1315,6 +1315,16 @@ lsm_system LSM_DLL_EXPORT *lsm_system_record_alloc(const char *id,
                                                    const char *plugin_data);
 
 /**
+ * New in version 1.3. Set read cache percentage.
+ * @param[in] id            Id
+ * @param[in] sys           System to update.
+ * @param[in] read_pct      Read cache percentage.
+ * @return LSM_ERR_OK or LSM_ERR_INVALID_ARGUMENT.
+ */
+int LSM_DLL_EXPORT lsm_system_read_cache_pct_set(lsm_system *sys,
+                                                 int read_pct);
+
+/**
  * New in version 1.3. Set firmware version.
  * @param[in] id            Id
  * @param[in] sys           System to update.

@@ -346,6 +346,7 @@ class SmartArray(IPlugin):
         cap.set(Capabilities.VOLUME_RAID_CREATE)
         cap.set(Capabilities.SYS_FW_VERSION_GET)
         cap.set(Capabilities.SYS_MODE_GET)
+        cap.set(Capabilities.SYS_READ_CACHE_PCT_GET)
         cap.set(Capabilities.DISK_LOCATION)
         cap.set(Capabilities.VOLUME_LED)
         return cap
@@ -399,6 +400,13 @@ class SmartArray(IPlugin):
             except KeyError:
                 #Dynamic Smart Array does not expose a firmware version
                 fw_ver = "%s" % ctrl_data['RAID Stack Version']
+            try:
+                cache_pct = re.findall(r'\d+', ctrl_data['Accelerator Ratio'])
+                read_cache_pct = int(cache_pct[0])
+            except KeyError:
+                #Some Smart Arrays don't have cache
+                #This entry is also missing until a volume uses cache
+                read_cache_pct = System.CACHE_PCT_UNKNOWN
             hwraid_mode = ctrl_data['Controller Mode']
             if hwraid_mode == 'RAID':
                 mode = System.MODE_HARDWARE_RAID
@@ -411,7 +419,8 @@ class SmartArray(IPlugin):
 
             rc_lsm_syss.append(System(sys_id, ctrl_name, status, status_info,
                                       plugin_data, _fw_version=fw_ver,
-                                      _mode=mode))
+                                      _mode=mode,
+                                      _read_cache_pct=read_cache_pct))
 
         return rc_lsm_syss
 

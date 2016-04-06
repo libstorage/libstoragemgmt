@@ -134,6 +134,7 @@ class BackStore(object):
     BLK_SIZE = 512
     DEFAULT_STRIP_SIZE = 128 * 1024  # 128 KiB
     SYS_MODE = System.MODE_HARDWARE_RAID
+    READ_CACHE_PCT = 10
 
     _LIST_SPLITTER = '#'
 
@@ -1739,7 +1740,7 @@ class SimArray(object):
         return System(
             sim_sys['id'], sim_sys['name'], sim_sys['status'],
             sim_sys['status_info'], _fw_version=sim_sys["version"],
-            _mode=BackStore.SYS_MODE)
+            _mode=BackStore.SYS_MODE, _read_cache_pct=BackStore.READ_CACHE_PCT)
 
     @_handle_errors
     def systems(self):

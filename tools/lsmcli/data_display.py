@@ -343,6 +343,7 @@ class DisplayData(object):
     SYSTEM_HEADER['status_info'] = 'Info'
     SYSTEM_HEADER['fw_version'] = "FW Ver"
     SYSTEM_HEADER['mode'] = "Mode"
+    SYSTEM_HEADER['read_cache_pct'] = "Read Cache Percentage"
 
     SYSTEM_COLUMN_SKIP_KEYS = []
     # XXX_COLUMN_SKIP_KEYS contain a list of property should be skipped when
