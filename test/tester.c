@@ -1106,6 +1106,52 @@ START_TEST(test_disks)
 }
 END_TEST
 
+START_TEST(test_disk_rpm_and_link_type)
+{
+    uint32_t count = 0;
+    lsm_disk **disks = NULL;
+    int i = 0;
+    int rc = LSM_ERR_OK;
+    int32_t rpm = LSM_DISK_RPM_UNKNOWN;
+    lsm_disk_link_type link_type = LSM_DISK_LINK_TYPE_UNKNOWN;
+
+    fail_unless(c != NULL);
+
+    rc = lsm_disk_list(c, NULL, NULL, &disks, &count, 0);
+    fail_unless(LSM_ERR_OK == rc, "rc: %d", rc);
+
+    if (LSM_ERR_OK == rc) {
+        fail_unless(count >= 1);
+
+        for (; i < count; ++i) {
+            rpm = lsm_disk_rpm_get(disks[i]);
+            fail_unless(rpm != LSM_DISK_RPM_UNKNOWN,
+                        "Should not be LSM_DISK_RPM_UNKNOWN when input disk "
+                        "is valid", rc);
+
+            link_type = lsm_disk_link_type_get(disks[i]);
+            fail_unless(link_type != LSM_DISK_LINK_TYPE_UNKNOWN,
+                        "Should not be LSM_DISK_LINK_TYPE_UNKNOWN when input "
+                        "disk is valid", rc);
+        }
+
+        rpm = lsm_disk_rpm_get(NULL);
+        fail_unless(rpm == LSM_DISK_RPM_UNKNOWN,
+                    "Should be LSM_DISK_RPM_UNKNOWN when input disk is NULL",
+                    rc);
+        link_type = lsm_disk_link_type_get(NULL);
+        fail_unless(rpm == LSM_DISK_LINK_TYPE_UNKNOWN,
+                    "Should be LSM_DISK_LINK_TYPE_UNKNOWN when input disk is "
+                    "NULL", rc);
+
+        lsm_disk_record_array_free(disks, count);
+    } else {
+        fail_unless(disks == NULL);
+        fail_unless(count == 0);
+    }
+}
+END_TEST
+
 START_TEST(test_disk_location)
 {
     uint32_t count = 0;
@@ -3513,6 +3559,7 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_nfs_export_funcs);
     tcase_add_test(basic, test_disks);
     tcase_add_test(basic, test_disk_location);
+    tcase_add_test(basic, test_disk_rpm_and_link_type);
     tcase_add_test(basic, test_plugin_info);
     tcase_add_test(basic, test_system_fw_version);
     tcase_add_test(basic, test_system_mode);
