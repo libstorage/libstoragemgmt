@@ -249,6 +249,8 @@ def tgt_port_type_to_str(port_type):
 def disk_rpm_to_str(rpm):
     if rpm == '':
         return "No Support"
+    if rpm == Disk.RPM_NO_SUPPORT:
+        return "No Support"
     if rpm == Disk.RPM_UNKNOWN:
         return "Unknown"
     if rpm == Disk.RPM_NON_ROTATING_MEDIUM:
@@ -258,7 +260,7 @@ def disk_rpm_to_str(rpm):
     return str(rpm)
 
 
-def link_type_to_str(link_type):
+def disk_link_type_to_str(link_type):
     if link_type == '':
         return "No Support"
     return _enum_type_to_str(link_type, LocalDiskInfo._LINK_TYPE_MAP)
@@ -340,6 +342,7 @@ class VcrCap(object):
 
 class LocalDiskInfo(object):
     _LINK_TYPE_MAP = {
+        Disk.LINK_TYPE_NO_SUPPORT: "No Support",
         Disk.LINK_TYPE_UNKNOWN: "Unknown",
         Disk.LINK_TYPE_FC: "FC",
         Disk.LINK_TYPE_SSA: "SSA",
@@ -488,12 +491,16 @@ class DisplayData(object):
     DISK_HEADER['system_id'] = 'System ID'
     DISK_HEADER['vpd83'] = 'SCSI VPD 0x83'
     DISK_HEADER['sd_paths'] = 'Disk Paths'    # This is appended by cmdline.py
+    DISK_HEADER['rpm'] = 'Revolutions Per Minute'
+    DISK_HEADER['link_type'] = 'Link Type'
 
     DISK_COLUMN_SKIP_KEYS = ['block_size', 'num_of_blocks']
 
     DISK_VALUE_CONV_ENUM = {
         'status': disk_status_to_str,
         'disk_type': disk_type_to_str,
+        'rpm': disk_rpm_to_str,
+        'link_type': disk_link_type_to_str,
     }
 
     DISK_VALUE_CONV_HUMAN = ['size_bytes', 'block_size']
@@ -696,7 +703,7 @@ class DisplayData(object):
 
     LOCAL_DISK_VALUE_CONV_ENUM = {
         'rpm': disk_rpm_to_str,
-        'link_type': link_type_to_str,
+        'link_type': disk_link_type_to_str,
     }
     LOCAL_DISK_VALUE_CONV_HUMAN = []
 
