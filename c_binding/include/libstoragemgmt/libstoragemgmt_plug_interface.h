@@ -1659,6 +1659,23 @@ void LSM_DLL_EXPORT
  */
 int LSM_DLL_EXPORT lsm_disk_vpd83_set(lsm_disk *disk, const char *vpd83);
 
+/**
+ * New in version 1.3. Set disk rotation speed - revolutions per minute(RPM)
+ * @param[in] disk          Disk to update.
+ * @param[in] rpm           revolutions per minute(RPM).
+ * @return LSM_ERR_OK or LSM_ERR_INVALID_ARGUMENT.
+ */
+int LSM_DLL_EXPORT lsm_disk_rpm_set(lsm_disk *disk, int32_t rpm);
+
+/**
+ * New in version 1.3. Set disk link type.
+ * @param[in] disk          Disk to update.
+ * @param[in] link_type     lsm_disk_link_type
+ * @return LSM_ERR_OK or LSM_ERR_INVALID_ARGUMENT.
+ */
+int LSM_DLL_EXPORT lsm_disk_link_type_set(lsm_disk *disk,
+                                          lsm_disk_link_type link_type);
+
 #ifdef  __cplusplus
 }
 #endif

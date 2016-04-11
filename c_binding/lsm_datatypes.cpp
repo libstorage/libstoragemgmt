@@ -708,6 +708,8 @@ lsm_disk *lsm_disk_record_alloc(const char *id, const char *name,
         rc->system_id = strdup(system_id);
         rc->vpd83 = NULL;
         rc->disk_location = NULL;
+        rc->rpm = LSM_DISK_RPM_NO_SUPPORT;
+        rc->link_type = LSM_DISK_LINK_TYPE_NO_SUPPORT;
 
         if (!rc->id || !rc->name || !rc->system_id) {
             lsm_disk_record_free(rc);
@@ -977,6 +979,8 @@ lsm_disk *lsm_disk_record_copy(lsm_disk * disk)
             lsm_disk_record_free(new_lsm_disk);
             return NULL;
         }
+        new_lsm_disk->rpm = disk->rpm;
+        new_lsm_disk->link_type = disk->link_type;
         return new_lsm_disk;
     }
     return NULL;
@@ -1001,7 +1005,7 @@ int lsm_disk_record_free(lsm_disk * d)
 
         if (d->disk_location != NULL)
             free((char *) d->disk_location);
-        
+
         free(d);
         return LSM_ERR_OK;
     }
@@ -1157,6 +1161,36 @@ int lsm_disk_vpd83_set(lsm_disk *disk, const char *vpd83)
     if (disk->vpd83 == NULL)
         return LSM_ERR_NO_MEMORY;
 
+    return LSM_ERR_OK;
+}
+
+int32_t lsm_disk_rpm_get(lsm_disk *disk)
+{
+    MEMBER_GET(disk, LSM_IS_DISK, rpm, LSM_DISK_RPM_UNKNOWN);
+}
+
+int lsm_disk_rpm_set(lsm_disk *disk, int32_t rpm)
+{
+    if ((disk == NULL) || (! LSM_IS_DISK(disk)) ||
+        (rpm == LSM_DISK_RPM_NO_SUPPORT))
+        return LSM_ERR_INVALID_ARGUMENT;
+
+    disk->rpm = rpm;
+    return LSM_ERR_OK;
+}
+
+lsm_disk_link_type lsm_disk_link_type_get(lsm_disk *disk)
+{
+    MEMBER_GET(disk, LSM_IS_DISK, link_type, LSM_DISK_LINK_TYPE_UNKNOWN);
+}
+
+int lsm_disk_link_type_set(lsm_disk *disk, lsm_disk_link_type link_type)
+{
+    if ((disk == NULL) || (! LSM_IS_DISK(disk)) ||
+        (link_type == LSM_DISK_LINK_TYPE_NO_SUPPORT))
+        return LSM_ERR_INVALID_ARGUMENT;
+
+    disk->link_type = link_type;
     return LSM_ERR_OK;
 }
 

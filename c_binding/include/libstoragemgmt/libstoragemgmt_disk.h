@@ -115,6 +115,52 @@ int LSM_DLL_EXPORT lsm_disk_location_get(lsm_disk *d,
                                          const char **location);
 
 /**
+ * New in version 1.3. Retrieves a disk's rotation speed(revolutions per minute).
+ * @param d             Pointer to the disk of interest.
+ * @return Disk rotation speed - revolutions per minute(RPM). Special values:
+ *         LSM_DISK_RPM_NO_SUPPORT if not supported by plugin.
+ *         LSM_DISK_RPM_NON_ROTATING_MEDIUM for Non-rotating medium (e.g., SSD).
+ *         LSM_DISK_RPM_ROTATING_UNKNOWN_SPEED for Rotational disk with unknown
+ *         speed.
+ *         LSM_DISK_RPM_UNKNOWN if error or plugin failed to detect rpm.
+ */
+int32_t LSM_DLL_EXPORT lsm_disk_rpm_get(lsm_disk *d);
+
+/**
+ * New in version 1.3. Retrieves a disk link type.
+ * @param d             Pointer to the disk of interest.
+ * @return Disk link type - lsm_disk_link_type
+ *         LSM_DISK_LINK_TYPE_NO_SUPPORT
+ *              Plugin does not support this property.
+ *         LSM_DISK_LINK_TYPE_UNKNOWN
+ *              Given 'd' argument is NULL or plugin failed to detect link type.
+ *         LSM_DISK_LINK_TYPE_FC
+ *              Fibre Channel
+ *         LSM_DISK_LINK_TYPE_SSA
+ *              Serial Storage Architecture, Old IBM tech.
+ *         LSM_DISK_LINK_TYPE_SBP
+ *              Serial Bus Protocol, used by IEEE 1394.
+ *         LSM_DISK_LINK_TYPE_SRP
+ *              SCSI RDMA Protocol
+ *         LSM_DISK_LINK_TYPE_ISCSI
+ *              Internet Small Computer System Interface
+ *         LSM_DISK_LINK_TYPE_SAS
+ *              Serial Attached SCSI
+ *         LSM_DISK_LINK_TYPE_ADT
+ *              Automation/Drive Interface Transport
+ *              Protocol, often used by Tape.
+ *         LSM_DISK_LINK_TYPE_ATA
+ *              PATA/IDE or SATA.
+ *         LSM_DISK_LINK_TYPE_USB
+ *              USB disk
+ *         LSM_DISK_LINK_TYPE_SOP
+ *              SCSI over PCI-E
+ *         LSM_DISK_LINK_TYPE_PCIE
+ *              PCI-E, e.g. NVMe
+ */
+lsm_disk_link_type LSM_DLL_EXPORT lsm_disk_link_type_get(lsm_disk *d);
+
+/**
  * Returns the system id
  * Note: Return value is valid as long as disk pointer is valid.  It gets
  * freed when record is freed.

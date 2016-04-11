@@ -269,6 +269,7 @@ typedef enum {
 } lsm_disk_type;
 
 typedef enum {
+    LSM_DISK_LINK_TYPE_NO_SUPPORT = -2,
     LSM_DISK_LINK_TYPE_UNKNOWN =  -1,
     LSM_DISK_LINK_TYPE_FC = 0,
     LSM_DISK_LINK_TYPE_SSA = 2,
@@ -311,6 +312,8 @@ typedef enum {
 #define LSM_DISK_BLOCK_SIZE_NOT_FOUND               -1
 #define LSM_DISK_BLOCK_COUNT_NOT_FOUND              -1
 
+#define LSM_DISK_RPM_NO_SUPPORT                     -2
+/* ^ New in version 1.3. */
 #define LSM_DISK_RPM_UNKNOWN                        -1
 /* ^ New in version 1.3. */
 #define LSM_DISK_RPM_NON_ROTATING_MEDIUM            0
