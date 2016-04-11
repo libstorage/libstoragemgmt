@@ -219,6 +219,8 @@ def _disk_type_of(hp_disk):
         return Disk.TYPE_SSD
     elif disk_interface == 'SAS':
         return Disk.TYPE_SAS
+    elif disk_interface == 'Solid State SAS':
+        return Disk.TYPE_SSD
 
     return Disk.TYPE_UNKNOWN
 
@@ -234,6 +236,19 @@ def _disk_status_of(hp_disk, flag_free):
         disk_status |= Disk.STATUS_FREE
 
     return disk_status
+
+def _disk_link_type_of(hp_disk):
+    disk_interface = hp_disk['Interface Type']
+    if disk_interface == 'SATA':
+        return Disk.LINK_TYPE_ATA
+    elif disk_interface == 'Solid State SATA':
+        return Disk.LINK_TYPE_ATA
+    elif disk_interface == 'SAS':
+        return Disk.LINK_TYPE_SAS
+    elif disk_interface == 'Solid State SAS':
+        return Disk.LINK_TYPE_SAS
+
+    return Disk.LINK_TYPE_UNKNOWN
 
 
 _HP_RAID_LEVEL_CONV = {
@@ -602,11 +617,13 @@ class SmartArray(IPlugin):
             vpd83 = LocalDisk.vpd83_get(disk_path)
         else:
             vpd83 = ''
+        rpm = int(hp_disk.get('Rotational Speed', Disk.RPM_NON_ROTATING_MEDIUM))
+        link_type = _disk_link_type_of(hp_disk)
 
         return Disk(
             disk_id, disk_name, disk_type, blk_size, blk_count,
             status, sys_id, _plugin_data=plugin_data, _vpd83=vpd83,
-            _disk_location=disk_location)
+            _disk_location=disk_location, _rpm=rpm, _link_type=link_type)
 
     @_handle_errors
     def disks(self, search_key=None, search_value=None,
