@@ -300,10 +300,84 @@ class TestPlugin(unittest.TestCase):
                     rc = p
         return rc
 
+    def _clean_up(self):
+
+        # Note: We make best effort to clean things up, thus we are ignoring
+        # exceptions in this code, depending on what's failing in the plugin
+        # we may not be able to remove something we created
+        try:
+            for s in self.systems:
+                cap = self.c.capabilities(s)
+
+                # Remove any access groups we created, removing any mappings
+                # first.
+                if supported(cap, [Cap.ACCESS_GROUP_DELETE,
+                                   Cap.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP]):
+                    for ag in self.c.access_groups():
+                        if 'lsm_' in ag.name and s.id == ag.system_id:
+                            try:
+                                # Make sure it doesn't have any mappings
+                                mapped_volume = self.c.\
+                                    volumes_accessible_by_access_group(ag)
+
+                                # Remove any mappings
+                                for vol in mapped_volume:
+                                    self.c.volume_unmask(ag, vol)
+
+                                # Lastly, remove the access group
+                                self.c.access_group_delete(ag)
+                            except LsmError as le:
+                                print("[WARNING] error when removing ag %s"
+                                      % str(le))
+                                pass
+
+                # Remove any volumes we created
+                if supported(cap, [Cap.VOLUME_DELETE]):
+                    for v in self.c.volumes():
+                        if 'lsm_' in v.name and s.id == v.system_id:
+                            try:
+                                self.c.volume_delete(v)
+                            except LsmError as le:
+                                print("[WARNING] error when removing volume %s"
+                                      % str(le))
+                                pass
+
+                # Remove any fs exports we created
+                if supported(cap, [Cap.FS, Cap.EXPORTS, Cap.EXPORT_REMOVE]):
+
+                    # Get all the FS
+                    fs_list = self.c.fs()
+
+                    for e_fs in self.c.exports():
+                        # Get the fs object that is exported
+                        fs = [x for x in fs_list if x.id == e_fs.fs_id][0]
+
+                        # Make sure we are un-exporting a FS we created
+                        if 'lsm_' in fs.name and s.id == fs.system_id:
+                            try:
+                                self.c.export_remove(e_fs)
+                            except LsmError as le:
+                                print("[WARNING] error when removing export %s"
+                                      % str(le))
+                                pass
+
+                # Remove any fs we created
+                if supported(cap, [Cap.FS, Cap.FS_DELETE]):
+                    for f in self.c.fs():
+                        if 'lsm_' in f.name and s.id == f.system_id:
+                            try:
+                                self.c.fs_delete(f)
+                            except LsmError as le:
+                                print("[WARNING] error when removing fs %s"
+                                      % str(le))
+                                pass
+
+        except Exception as e:
+            print("[WARNING] exception in _clean_ip %s" % str(e))
+            pass
+
     def tearDown(self):
-        # TODO Walk the array looking for stuff we have created and remove it
-        # What should we do if an array supports a create operation, but not
-        # the corresponding remove?
+        self._clean_up()
         self.c.close()
 
     def test_plugin_info(self):
