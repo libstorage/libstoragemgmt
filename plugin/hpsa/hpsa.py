@@ -100,7 +100,7 @@ def _parse_hpssacli_output(output):
     3. If current line is the start of new section, create an empty dictionary
        where following subsections or data could be stored in.
     """
-    required_sections = ['Array:', 'unassigned', 'HBA Drives']
+    required_sections = ['Array:', 'unassigned', 'HBA Drives', 'array']
 
     output_lines = [
         l for l in output.split("\n")
@@ -351,11 +351,13 @@ class SmartArray(IPlugin):
         cap.set(Capabilities.VOLUME_LED)
         return cap
 
-    def _sacli_exec(self, sacli_cmds, flag_convert=True):
+    def _sacli_exec(self, sacli_cmds, flag_convert=True, flag_force=False):
         """
         If flag_convert is True, convert data into dict.
         """
         sacli_cmds.insert(0, self._sacli_bin)
+        if flag_force:
+            sacli_cmds.append('forced')
         try:
             output = cmd_exec(sacli_cmds)
         except OSError as os_error:
@@ -387,7 +389,7 @@ class SmartArray(IPlugin):
 
         for ctrl_name in ctrl_all_show.keys():
             ctrl_data = ctrl_all_show[ctrl_name]
-            try: 
+            try:
                 sys_id = ctrl_data['Serial Number']
             except KeyError:
                 #Dynamic Smart Array does not expose a serial number
@@ -540,12 +542,16 @@ class SmartArray(IPlugin):
         blk_size = int(hp_disk['Native Block Size'])
         blk_count = int(_hp_size_to_lsm(hp_disk['Size']) / blk_size)
         disk_port, disk_box, disk_bay = disk_num.split(":")
-        disk_location = "Port: %s Box: %s Bay: %s" % (disk_port, disk_box, 
-            disk_bay)
-        
+        disk_location = "Port: %s Box: %s Bay: %s" % (
+            disk_port, disk_box, disk_bay)
+
         status = _disk_status_of(hp_disk, flag_free)
         plugin_data = "%s:%s" % (ctrl_num, disk_num)
-        vpd83 = LocalDisk.vpd83_get(hp_disk.get('Disk Name', ''))
+        disk_path = hp_disk.get('Disk Name')
+        if disk_path:
+            vpd83 = LocalDisk.vpd83_get(disk_path)
+        else:
+            vpd83 = ''
 
         return Disk(
             disk_id, disk_name, disk_type, blk_size, blk_count,
@@ -764,7 +770,7 @@ class SmartArray(IPlugin):
             cmds.append("ss=%d" % int(strip_size / 1024))
 
         try:
-            self._sacli_exec(cmds, flag_convert=False)
+            self._sacli_exec(cmds, flag_convert=False, flag_force=True)
         except ExecError:
             # Check whether disk is free
             requested_disk_ids = [d.id for d in disks]
