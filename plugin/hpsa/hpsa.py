@@ -350,6 +350,7 @@ class SmartArray(IPlugin):
         cap.set(Capabilities.VOLUME_RAID_CREATE)
         cap.set(Capabilities.SYS_FW_VERSION_GET)
         cap.set(Capabilities.SYS_MODE_GET)
+        cap.set(Capabilities.SYS_READ_CACHE_PCT_UPDATE)
         cap.set(Capabilities.SYS_READ_CACHE_PCT_GET)
         cap.set(Capabilities.DISK_LOCATION)
         cap.set(Capabilities.VOLUME_LED)
@@ -432,6 +433,37 @@ class SmartArray(IPlugin):
                                       _read_cache_pct=read_cache_pct))
 
         return rc_lsm_syss
+
+    @_handle_errors
+    def system_read_cache_pct_update(self, system, read_pct,
+                                     flags=Client.FLAG_RSVD):
+        """
+        Depends on command:
+            hpssacli ctrl slot=# modify cacheratio=read_pct/100-read_pct
+        """
+        if not system.plugin_data:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Illegal input system argument: missing plugin_data property")
+
+        slot_num = system.plugin_data
+
+        if (read_pct < 0 or read_pct > 100):
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Illegal input read_pct: Percentage is invalid")
+
+        try:
+            self._sacli_exec(
+                ["ctrl", "slot=%s" % slot_num, "modify",
+                "cacheratio=%s/%s" % (read_pct, 100-read_pct)],
+                flag_convert=False)
+        except ExecError:
+            raise LsmError(
+                ErrorNumber.PLUGIN_BUG,
+                "system_read_cache_pct_update failed unexpectedly,"
+                " the system either does not support this operation"
+                " or no volumes have been configured to use system cache")
 
     @staticmethod
     def _hp_array_to_lsm_pool(hp_array, array_name, sys_id, ctrl_num):

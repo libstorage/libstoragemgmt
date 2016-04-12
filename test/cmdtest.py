@@ -346,6 +346,18 @@ def get_systems():
     return system_list
 
 
+def system_read_cache_pct_update_test(cap):
+    if cap['SYS_READ_CACHE_PCT_UPDATE']:
+        out = call([cmd, '-t' + sep, '--type', 'SYSTEMS'])[1]
+        system_list = parse(out)
+        for system in system_list:
+            out = call([
+                cmd, '-t' + sep, 'system-read-cache-pct-update', '--system',
+                system[0], 50])[1]
+
+    return
+
+
 def initiator_chap(initiator):
     call([cmd, 'iscsi-chap',
           '--init', initiator])

@@ -1748,6 +1748,15 @@ class SimArray(object):
             SimArray._sim_sys_2_lsm(sim_sys)
             for sim_sys in self.bs_obj.sim_syss())
 
+    @_handle_errors
+    def system_read_cache_pct_update(self, system, read_pct, flags=0):
+        if system.id != BackStore.SYS_ID:
+            raise LsmError(
+                ErrorNumber.NOT_FOUND_SYSTEM,
+                "System not found")
+
+        return None
+        
     @staticmethod
     def _sim_vol_2_lsm(sim_vol):
         vol_id = SimArray._sim_id_to_lsm_id(sim_vol['id'], 'VOL')

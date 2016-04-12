@@ -604,6 +604,17 @@ Required. Repeatable. Source file to clone (relative path).
 \fB--dst\fR \fI<DST_FILE_PATH>\fR
 Required. Repeatable. Destination file for clone (relative path).
 
+.SS system-read-cache-pct-update
+Change the read cache percentage for a system.
+.TP 15
+\fB--sys\fR \fI<SYS_ID>\fR
+Required. ID of the system being targeted.
+.TP
+\fB--read-pct\fR \fI<READ_PCT>\fR
+The desired percentage of read cache for the targeted system. Write cache
+will be automatically changed to the remaining percentage available after
+updating the read cache (if supported by the system).
+
 .IP
 .SH ALIAS
 .SS ls
@@ -654,6 +665,8 @@ Alias of 'access-group-add'
 Alias of 'access-group-remove'
 .SS ad
 Alias of 'access-group-delete'
+.SS srcps
+Alias of 'system-read-cache-pct-update'
 
 .IP
 .SH SIZE OPTION

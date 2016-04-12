@@ -409,6 +409,14 @@ class TestPlugin(unittest.TestCase):
                 self.assertTrue(read_pct is not None,
                                 "Read cache percentage retrieval failed")
 
+    def test_system_read_cache_pct_update(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            if supported(cap, [Cap.SYS_READ_CACHE_PCT_UPDATE]):
+                cache_status = self.c.system_read_cache_pct_update(s, 100)
+                self.assertTrue(cache_status is None,
+                                "system_read_cache_pct_update failed")
+
     def test_timeout(self):
         tmo = 40000
         self.c.time_out_set(tmo)

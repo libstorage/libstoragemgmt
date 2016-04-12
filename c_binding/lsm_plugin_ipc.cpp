@@ -2409,6 +2409,34 @@ static int handle_volume_ident_led_clear(lsm_plugin_ptr p, Value & params,
     return rc;
 }
 
+static int handle_system_read_cache_pct_update(lsm_plugin_ptr p, Value & params,
+                                               Value & response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    if (p && p->ops_v1_3 && p->ops_v1_3->sys_read_cache_pct_update) {
+        Value v_sys = params["system"];
+        Value v_read_pct = params["read_pct"];
+ 
+        if (Value::object_t == v_sys.valueType() &&
+            Value::numeric_t == v_read_pct.valueType() &&
+            LSM_FLAG_EXPECTED_TYPE(params)) {
+
+            lsm_system *system = value_to_system(v_sys);
+            uint32_t read_pct = v_read_pct.asUint32_t();
+       
+            rc = p->ops_v1_3->sys_read_cache_pct_update(p, system, read_pct,
+                                                        LSM_FLAG_GET_VALUE(
+                                                        params));
+
+            lsm_system_record_free(system);
+
+        } else {
+            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+        }
+    }
+    return rc;
+}
+
 /**
  * map of function pointers
  */
@@ -2469,7 +2497,8 @@ static std::map < std::string, handler > dispatch =
     ("volume_raid_create", handle_volume_raid_create)
     ("volume_raid_create_cap_get", handle_volume_raid_create_cap_get)
     ("volume_ident_led_set", handle_volume_ident_led_set)
-    ("volume_ident_led_clear", handle_volume_ident_led_clear);
+    ("volume_ident_led_clear", handle_volume_ident_led_clear)
+    ("system_read_cache_pct_update", handle_system_read_cache_pct_update);
 
 static int process_request(lsm_plugin_ptr p, const std::string & method,
                            Value & request, Value & response)

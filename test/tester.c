@@ -2097,6 +2097,29 @@ START_TEST(test_read_cache_pct)
 }
 END_TEST
 
+START_TEST(test_read_cache_pct_update)
+{
+    int rc = 0;
+    lsm_system **sys = NULL;
+    uint32_t sys_count = 0;
+
+    G(rc, lsm_system_list, c, &sys, &sys_count, LSM_CLIENT_FLAG_RSVD);
+    fail_unless( sys_count >= 1, "count = %d", sys_count);
+
+    if(sys_count > 0) {
+
+        G(rc, lsm_system_read_cache_pct_update, c, sys[0], 100,
+          LSM_CLIENT_FLAG_RSVD);
+
+        if (LSM_ERR_OK == rc)
+            printf("Read cache percentage changed\n");
+    }
+
+    lsm_system_record_array_free(sys, sys_count);
+
+}
+END_TEST
+
 START_TEST(test_get_available_plugins)
 {
     int i = 0;
@@ -3438,6 +3461,7 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_volume_ident_led_clear);
     tcase_add_test(basic, test_local_disk_vpd83_search);
     tcase_add_test(basic, test_local_disk_vpd83_get);
+    tcase_add_test(basic, test_read_cache_pct_update);
 
 
     suite_add_tcase(s, basic);
