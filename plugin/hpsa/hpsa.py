@@ -402,10 +402,13 @@ class SmartArray(IPlugin):
             except KeyError:
                 #Dynamic Smart Array does not expose a firmware version
                 fw_ver = "%s" % ctrl_data['RAID Stack Version']
-            try:
+            if 'Cache Ratio' in ctrl_data:
+                cache_pct = re.findall(r'\d+', ctrl_data['Cache Ratio'])
+                read_cache_pct = int(cache_pct[0])
+            elif 'Accelerator Ratio' in ctrl_data:
                 cache_pct = re.findall(r'\d+', ctrl_data['Accelerator Ratio'])
                 read_cache_pct = int(cache_pct[0])
-            except KeyError:
+            else:
                 #Some Smart Arrays don't have cache
                 #This entry is also missing until a volume uses cache
                 read_cache_pct = System.CACHE_PCT_UNKNOWN
