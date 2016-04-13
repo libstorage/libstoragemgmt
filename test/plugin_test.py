@@ -30,7 +30,6 @@ import argparse
 import collections
 import atexit
 import sys
-import re
 import os
 import tempfile
 from lsm import LsmError, ErrorNumber
@@ -42,6 +41,14 @@ stats = {}
 
 MIN_POOL_SIZE = 4096
 MIN_OBJECT_SIZE = 512
+
+
+# If you print anything during execution make sure it's to stderr as the
+# automated tests are making the assumption that test messages go to stderr and
+# execution information gets written to stdout as yaml
+def print_stderr(msg):
+    sys.stderr.write(msg)
+    sys.stderr.flush()
 
 
 def mb_in_bytes(mib):
@@ -327,8 +334,8 @@ class TestPlugin(unittest.TestCase):
                                 # Lastly, remove the access group
                                 self.c.access_group_delete(ag)
                             except LsmError as le:
-                                print("[WARNING] error when removing ag %s"
-                                      % str(le))
+                                print_stderr("[WARNING] error when "
+                                             "removing ag %s\n" % str(le))
                                 pass
 
                 # Remove any volumes we created
@@ -338,8 +345,8 @@ class TestPlugin(unittest.TestCase):
                             try:
                                 self.c.volume_delete(v)
                             except LsmError as le:
-                                print("[WARNING] error when removing volume %s"
-                                      % str(le))
+                                print_stderr("[WARNING] error when removing "
+                                             "volume %s\n" % str(le))
                                 pass
 
                 # Remove any fs exports we created
@@ -357,8 +364,8 @@ class TestPlugin(unittest.TestCase):
                             try:
                                 self.c.export_remove(e_fs)
                             except LsmError as le:
-                                print("[WARNING] error when removing export %s"
-                                      % str(le))
+                                print_stderr("[WARNING] error when removing "
+                                             "export %s\n" % str(le))
                                 pass
 
                 # Remove any fs we created
@@ -368,12 +375,12 @@ class TestPlugin(unittest.TestCase):
                             try:
                                 self.c.fs_delete(f)
                             except LsmError as le:
-                                print("[WARNING] error when removing fs %s"
-                                      % str(le))
+                                print_stderr("[WARNING] error when removing "
+                                             "fs %s\n" % str(le))
                                 pass
 
         except Exception as e:
-            print("[WARNING] exception in _clean_ip %s" % str(e))
+            print_stderr("[WARNING] exception in _clean_ip %s\n" % str(e))
             pass
 
     def tearDown(self):
@@ -482,7 +489,7 @@ class TestPlugin(unittest.TestCase):
                     self.assertTrue(disk_location is not None and
                                     len(disk_location) > 0,
                                     "Disk location retrieval failed")
- 
+
     def _volume_create(self, system_id,
                        element_type=lsm.Pool.ELEMENT_TYPE_VOLUME,
                        unsupported_features=0):
