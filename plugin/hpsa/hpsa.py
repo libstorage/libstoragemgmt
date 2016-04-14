@@ -236,6 +236,22 @@ def _disk_status_of(hp_disk, flag_free):
     return disk_status
 
 
+def _vol_status_of(hp_vol):
+    hpssa_status = hp_vol['Status']
+    if 'OK' in hpssa_status:
+        vol_status = Volume.STATUS_OK
+    elif 'Interim Recovery' in hpssa_status:
+        vol_status = Volume.STATUS_DEGRADED
+    elif 'Recovering' in hpssa_status:
+        vol_status = Volume.STATUS_RECONSTRUCTING
+    elif 'Failed' in hpssa_status:
+        vol_status = Volume.STATUS_ERROR
+    else:
+        vol_status = Volume.STATUS_OTHER
+
+    return vol_status
+
+
 _HP_RAID_LEVEL_CONV = {
     '0': Volume.RAID_TYPE_RAID0,
     # TODO(Gris Ge): Investigate whether HP has 4 disks RAID 1.
@@ -353,6 +369,7 @@ class SmartArray(IPlugin):
         cap.set(Capabilities.SYS_READ_CACHE_PCT_GET)
         cap.set(Capabilities.DISK_LOCATION)
         cap.set(Capabilities.VOLUME_LED)
+        cap.set(Capabilities.VOLUME_STATUS)
         return cap
 
     def _sacli_exec(self, sacli_cmds, flag_convert=True, flag_force=False):
@@ -494,6 +511,7 @@ class SmartArray(IPlugin):
         device = Device.from_device_file(_CONTEXT, hp_ld['Disk Name'])
         vol_name = "%s: /dev/%s" % (hp_ld_name, device.sys_name)
         attributes = device.attributes
+        status = _vol_status_of(hp_ld)
         try:
             block_size = attributes.asint("queue/logical_block_size")
             num_of_blocks = attributes.asint("size")
@@ -506,7 +524,8 @@ class SmartArray(IPlugin):
         # HP SmartArray does not allow disabling volume.
         return Volume(
             vpd83, vol_name, vpd83, block_size, num_of_blocks,
-            Volume.ADMIN_STATE_ENABLED, sys_id, pool_id, plugin_data)
+            Volume.ADMIN_STATE_ENABLED, sys_id, pool_id, plugin_data,
+            _status=status)
 
     @_handle_errors
     def volumes(self, search_key=None, search_value=None,

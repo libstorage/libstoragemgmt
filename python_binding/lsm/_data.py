@@ -334,6 +334,13 @@ class Volume(IData):
     RAID_TYPE_OTHER = 22
     # Vendor specific RAID type
 
+    STATUS_NO_SUPPORT = 0
+    STATUS_OTHER = 1
+    STATUS_OK = 2
+    STATUS_DEGRADED = 3
+    STATUS_RECONSTRUCTING = 4
+    STATUS_ERROR = 5
+
     STRIP_SIZE_UNKNOWN = 0
     DISK_COUNT_UNKNOWN = 0
     MIN_IO_SIZE_UNKNOWN = 0
@@ -342,7 +349,8 @@ class Volume(IData):
     VCR_STRIP_SIZE_DEFAULT = 0
 
     def __init__(self, _id, _name, _vpd83, _block_size, _num_of_blocks,
-                 _admin_state, _system_id, _pool_id, _plugin_data=None):
+                 _admin_state, _system_id, _pool_id, _plugin_data=None,
+                 _status=None):
         self._id = _id                        # Identifier
         self._name = _name                    # Human recognisable name
         if _vpd83 and not Volume.vpd83_verify(_vpd83):
@@ -357,6 +365,10 @@ class Volume(IData):
         self._system_id = _system_id          # System id this volume belongs
         self._pool_id = _pool_id              # Pool id this volume belongs
         self._plugin_data = _plugin_data
+        if _status is None:
+            self._status = Volume.STATUS_NO_SUPPORT
+        else:
+            self._status = _status
 
     @property
     def size_bytes(self):
@@ -377,6 +389,36 @@ class Volume(IData):
             return True
         return False
 
+    @property
+    def status(self):
+        """
+            Integer(enumerated value). Volume health status. New in version 1.3.
+            Possible values:
+                lsm.Volume.STATUS_NO_SUPPORT
+                    The value when the requested method is not supported.
+                lsm.Volume.STATUS_OTHER
+                    The volume's status does not map to any statuses known to
+                    libstoragemgmt.
+               lsm.Volume.STATUS_OK
+                   The volume has no known health problems.
+               lsm.Volume.STATUS_DEGRADED
+                   One or more of the volume's drives has failed,
+                   but the volume can be recovered to full health and
+                   can still execute IO in this state.
+               lsm.Volume.STATUS_RECONSTRUCTING
+                   The volume is rebuilding to a fully healthy
+                   state (a failed device has recovered or has been
+                   replaced). The volume can still execute IO in this
+                   state.
+               lsm.Volume.STATUS_ERROR
+                   Enough drives have failed behind the volume to
+                   prevent the volume from executing IO. The volume
+                   may not be recoverable.
+        """
+        if self._status == Volume.STATUS_NO_SUPPORT:
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                           "Volume.status is not supported by this plugin yet")
+        return self._status
 
 @default_property('id', doc="Unique identifier")
 @default_property('name', doc="User defined system name")
@@ -854,6 +896,7 @@ class Capabilities(IData):
     SYS_MODE_GET = 161
     DISK_LOCATION = 163
     VOLUME_LED = 171
+    VOLUME_STATUS = 172
 
     POOLS_QUICK_SEARCH = 210
     VOLUMES_QUICK_SEARCH = 211

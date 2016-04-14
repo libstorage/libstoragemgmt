@@ -109,6 +109,36 @@ char LSM_DLL_EXPORT *lsm_volume_system_id_get(lsm_volume *v);
  */
 char LSM_DLL_EXPORT *lsm_volume_pool_id_get(lsm_volume *v);
 
+/**
+ * New in version 1.3. Retrieves volume health status:
+ *      LSM_VOLUME_STATUS_NO_SUPPORT
+ *          The value when the requested method is not supported.
+ *      LSM_VOLUME_STATUS_OTHER
+ *          The volume's status does not map to any statuses known to
+ *          libstoragemgmt.
+ *      LSM_VOLUME_STATUS_OK
+ *          The volume has no known health problems.
+ *      LSM_VOLUME_STATUS_DEGRADED
+ *          One or more of the volume's drives has failed,
+ *          but the volume can be recovered to full health and
+ *          can still execute IO in this state.
+ *      LSM_VOLUME_STATUS_RECONSTRUCTING
+ *          The volume is rebuilding to a fully healthy
+ *          state (a failed device has recovered or has been
+ *          replaced). The volume can still execute IO in this
+ *          state.
+ *      LSM_VOLUME_STATUS_ERROR
+ *          Enough drives have failed behind the volume to
+ *          prevent the volume from executing IO. The volume
+ *          may not be recoverable.
+ * @param       v       Volume to retrieve the status for.
+ * @param[out]  status  Volume status 'lsm_volume_status_type' pointer.
+ * @return LSM_ERR_OK on success, or LSM_ERR_NO_SUPPORT, or
+ *         LSM_ERR_INVALID_ARGUMENT.
+ */
+int LSM_DLL_EXPORT lsm_volume_status_get(lsm_volume *v,
+                                         lsm_volume_status_type *status);
+
 #ifdef  __cplusplus
 }
 #endif

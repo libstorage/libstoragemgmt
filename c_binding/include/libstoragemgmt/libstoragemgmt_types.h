@@ -179,6 +179,15 @@ typedef enum {
     /**^ Vendor specific RAID type */
 } lsm_volume_raid_type;
 
+    /** lsm_volume_status_type: Types for volume health */
+typedef enum {
+    LSM_VOLUME_STATUS_NO_SUPPORT = 0,
+    LSM_VOLUME_STATUS_OTHER = 1,
+    LSM_VOLUME_STATUS_OK = 2,
+    LSM_VOLUME_STATUS_DEGRADED = 3,
+    LSM_VOLUME_STATUS_RECONSTRUCTING = 4,
+    LSM_VOLUME_STATUS_ERROR = 5,
+} lsm_volume_status_type; 
 
     /**^ \enum lsm_pool_member_type Different types of Pool member*/
 typedef enum {

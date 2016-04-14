@@ -63,6 +63,7 @@ return_type name( param_sig )  {\
     char *system_id;                    /**< System this volume belongs */
     char *pool_id;                      /**< Pool this volume is derived from */
     char *plugin_data;                  /**< Private data for plugin */
+    lsm_volume_status_type status;	/**< Health status of this volume */
 };
 
 #define LSM_POOL_MAGIC       0xAA7A0001

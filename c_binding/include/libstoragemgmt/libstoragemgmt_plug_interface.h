@@ -1353,6 +1353,14 @@ int LSM_DLL_EXPORT lsm_system_mode_set(lsm_system *sys,
 const char LSM_DLL_EXPORT *lsm_system_plugin_data_get(lsm_system *s);
 
 /**
+ * New in version 1.3. Set volume status.
+ * @param[in] v             Volume to update.
+ * @param[in] status        Volume status 'lsm_volume_status_type'.
+ * @return LSM_ERR_OK or LSM_ERR_INVALID_ARGUMENT.
+ */
+int LSM_DLL_EXPORT lsm_volume_status_set(lsm_volume *v,
+                                         lsm_volume_status_type status);
+/**
  * Allocates storage for Access_group array
  * @param size      Number of elements to store.
  * @return  NULL on error, else pointer to array for use.

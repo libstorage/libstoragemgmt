@@ -59,6 +59,15 @@ lsm_volume *value_to_volume(Value & vol)
                                      v["system_id"].asString().c_str(),
                                      v["pool_id"].asString().c_str(),
                                      v["plugin_data"].asC_str());
+        if ((rc != NULL) && std_map_has_key(v, "status") &&
+            (v["status"].asInt32_t() != LSM_VOLUME_STATUS_NO_SUPPORT) &&
+            (lsm_volume_status_set(rc, (lsm_volume_status_type)
+                                   v["status"].asInt32_t()))) {
+
+            lsm_volume_record_free(rc);
+            rc= NULL;
+            throw ValueException("value_to_volume: failed to update 'status'");
+        }
     } else {
         throw ValueException("value_to_volume: Not correct type");
     }
@@ -80,6 +89,8 @@ Value volume_to_value(lsm_volume * vol)
         v["system_id"] = Value(vol->system_id);
         v["pool_id"] = Value(vol->pool_id);
         v["plugin_data"] = Value(vol->plugin_data);
+        if (vol->status != LSM_VOLUME_STATUS_NO_SUPPORT)
+            v["status"] = Value(vol->status);
         return Value(v);
     }
     return Value();

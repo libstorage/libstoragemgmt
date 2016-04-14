@@ -911,6 +911,7 @@ lsm_volume *lsm_volume_record_copy(lsm_volume * vol)
                                      vol->block_size, vol->number_of_blocks,
                                      vol->admin_state, vol->system_id,
                                      vol->pool_id, vol->plugin_data);
+        rc->status = vol->status;
     }
     return rc;
 }
@@ -1075,6 +1076,30 @@ char *lsm_volume_system_id_get(lsm_volume * v)
 char *lsm_volume_pool_id_get(lsm_volume * v)
 {
     MEMBER_GET(v, LSM_IS_VOL, pool_id, NULL);
+}
+
+int lsm_volume_status_set(lsm_volume *v, lsm_volume_status_type status)
+{
+    if ((v == NULL) || (! LSM_IS_VOL(v)) ||
+        (status == LSM_VOLUME_STATUS_NO_SUPPORT))
+        return LSM_ERR_INVALID_ARGUMENT;
+
+    v->status = status;
+
+    return LSM_ERR_OK;
+}
+
+int lsm_volume_status_get(lsm_volume *v, lsm_volume_status_type *status)
+{
+    if ((v == NULL) || (status == NULL) || (! LSM_IS_VOL(v)))
+        return LSM_ERR_INVALID_ARGUMENT;
+
+    *status = v->status;
+
+    if (v->status != LSM_VOLUME_STATUS_NO_SUPPORT)
+        return LSM_ERR_OK;
+    else
+        return LSM_ERR_NO_SUPPORT;
 }
 
 int lsm_disk_location_set(lsm_disk * disk, const char *location)

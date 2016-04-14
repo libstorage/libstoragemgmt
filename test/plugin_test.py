@@ -466,6 +466,20 @@ class TestPlugin(unittest.TestCase):
         if flag_created:
             self._volume_delete(volumes[0])
 
+    def test_vol_status_get(self):
+        (volumes, flag_created) = self._find_or_create_volumes()
+        self.assertTrue(len(volumes) > 0, "We need at least 1 volume to test")
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            if supported(cap, [Cap.VOLUME_STATUS]):
+                for vol in self.c.volumes():
+                    vol_status = vol.status
+                    self.assertTrue(vol_status is not None,
+                                    "Volume status retrieval failed")
+
+        if flag_created:
+            self._volume_delete(volumes[0])
+
     def test_disks_list(self):
         for s in self.systems:
             cap = self.c.capabilities(s)

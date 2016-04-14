@@ -165,6 +165,8 @@ typedef enum {
     /**^ Plug-in allows user to retrieve disk location */
     LSM_CAP_VOLUME_LED = 171,
     /**^ Plugin allows user to set and clear volume LEDs */
+    LSM_CAP_VOLUME_STATUS = 172,
+    /**^ Plugin allows user to retrieve volume health status */
     LSM_CAP_POOLS_QUICK_SEARCH = 210,
     /**^ Seach occurs on array */
     LSM_CAP_VOLUMES_QUICK_SEARCH = 211,
