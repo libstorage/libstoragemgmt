@@ -1005,7 +1005,7 @@ int lsm_local_disk_rpm_get(const char *sd_path, int32_t *rpm,
     *rpm = be16toh(bdc->medium_rotation_rate_be);
     if (((*rpm >= 2) && (*rpm <= 0x400)) || (*rpm == 0xffff) ||
         (*rpm == _T10_SBC_MEDIUM_ROTATION_NO_SUPPORT))
-        *rpm = LSM_DISK_RPM_UNKNOWN;
+        *rpm = LSM_DISK_RPM_NO_SUPPORT;
 
     if (*rpm == _T10_SBC_MEDIUM_ROTATION_SSD)
         *rpm = LSM_DISK_RPM_NON_ROTATING_MEDIUM;
@@ -1167,7 +1167,7 @@ int lsm_local_disk_link_type_get(const char *disk_path,
                          lsm_err),
           rc, out);
 
-    *link_type = LSM_DISK_LINK_TYPE_UNKNOWN;
+    *link_type = LSM_DISK_LINK_TYPE_NO_SUPPORT;
     *lsm_err = NULL;
 
     _good(_sg_io_ioctl_open(err_msg, disk_path, &fd), rc, out);
