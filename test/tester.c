@@ -3282,6 +3282,28 @@ START_TEST(test_volume_ident_led_clear)
 }
 END_TEST
 
+/*
+ * lsm_local_disk_list() should never fail.
+ */
+START_TEST(test_local_disk_list)
+{
+    int rc = LSM_ERR_OK;
+    lsm_string_list *disk_paths = NULL;
+    /* Not initialized in order to test dangling pointer disk_path_list */
+    lsm_error *lsm_err = NULL;
+
+    if (is_simc_plugin == 1){
+        /* silently skip on simc, no need for duplicate test. */
+        return;
+    }
+
+    rc = lsm_local_disk_list(&disk_paths, &lsm_err);
+    fail_unless(rc == LSM_ERR_OK, "lsm_local_disk_list() failed as %d", rc);
+    fail_unless(disk_paths != NULL, "lsm_local_disk_list() return NULL for "
+                "disk_paths");
+    lsm_string_list_free(disk_paths);
+}
+END_TEST
 
 /*
  * Just check whether LSM_ERR_INVALID_ARGUMENT handle correctly.
@@ -3585,7 +3607,7 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_local_disk_vpd83_search);
     tcase_add_test(basic, test_local_disk_vpd83_get);
     tcase_add_test(basic, test_read_cache_pct_update);
-
+    tcase_add_test(basic, test_local_disk_list);
     tcase_add_test(basic, test_local_disk_rpm_get);
 
     suite_add_tcase(s, basic);
