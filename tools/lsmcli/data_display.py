@@ -246,6 +246,18 @@ def tgt_port_type_to_str(port_type):
     return _enum_type_to_str(port_type, _TGT_PORT_TYPE_CONV)
 
 
+def disk_rpm_to_str(rpm):
+    if rpm == '':
+        return "No Support"
+    if rpm == Disk.RPM_UNKNOWN:
+        return "Unknown"
+    if rpm == Disk.RPM_NON_ROTATING_MEDIUM:
+        return "Non-Rotating Medium"
+    if rpm == Disk.RPM_ROTATING_UNKNOWN_SPEED:
+        return "Rotating Medium Unknown Speed"
+    return str(rpm)
+
+
 class PlugData(object):
     def __init__(self, description, plugin_version):
             self.desc = description
@@ -319,6 +331,12 @@ class VcrCap(object):
         self.system_id = system_id
         self.raid_types = raid_types
         self.strip_sizes = strip_sizes
+
+class LocalDiskInfo(object):
+    def __init__(self, sd_path, vpd83, rpm):
+        self.sd_path = sd_path
+        self.vpd83 = vpd83
+        self.rpm = rpm
 
 
 class DisplayData(object):
@@ -644,6 +662,25 @@ class DisplayData(object):
         'column_skip_keys': VCR_CAP_COLUMN_SKIP_KEYS,
         'value_conv_enum': VCR_CAP_VALUE_CONV_ENUM,
         'value_conv_human': VCR_CAP_VALUE_CONV_HUMAN,
+    }
+
+    LOCAL_DISK_HEADER = OrderedDict()
+    LOCAL_DISK_HEADER['sd_path'] = 'Path'
+    LOCAL_DISK_HEADER['vpd83'] = 'SCSI VPD 0x83'
+    LOCAL_DISK_HEADER['rpm'] = 'Revolutions Per Minute'
+
+    LOCAL_DISK_COLUMN_SKIP_KEYS = []
+
+    LOCAL_DISK_VALUE_CONV_ENUM = {
+        'rpm': disk_rpm_to_str,
+    }
+    LOCAL_DISK_VALUE_CONV_HUMAN = []
+
+    VALUE_CONVERT[LocalDiskInfo] = {
+        'headers': LOCAL_DISK_HEADER,
+        'column_skip_keys': LOCAL_DISK_COLUMN_SKIP_KEYS,
+        'value_conv_enum': LOCAL_DISK_VALUE_CONV_ENUM,
+        'value_conv_human': LOCAL_DISK_VALUE_CONV_HUMAN,
     }
 
     @staticmethod

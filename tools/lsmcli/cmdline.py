@@ -39,8 +39,9 @@ from lsm import (Client, Pool, VERSION, LsmError, Disk,
 from lsm.lsmcli.data_display import (
     DisplayData, PlugData, out,
     vol_provision_str_to_type, vol_rep_type_str_to_type, VolumeRAIDInfo,
-    PoolRAIDInfo, VcrCap)
+    PoolRAIDInfo, VcrCap, LocalDiskInfo)
 
+_CONNECTION_FREE_COMMANDS = ['local-disk-list']
 
 ## Wraps the invocation to the command line
 # @param    c   Object to invoke calls on (optional)
@@ -61,7 +62,10 @@ def cmd_line_wrapper(c=None):
     except LsmError as le:
         sys.stderr.write(str(le) + "\n")
         sys.stderr.flush()
-        err_exit = 4
+        if le.code == ErrorNumber.PERMISSION_DENIED:
+            err_exit = 13   # common error code for EACCES
+        else:
+            err_exit = 4
     except KeyboardInterrupt:
         err_exit = 1
     except SystemExit as se:
@@ -768,6 +772,14 @@ cmds = (
         ],
     ),
 
+    dict(
+        name='local-disk-list',
+        help='Query local disk information',
+        args=[
+        ],
+        optional=[
+        ],
+    ),
 )
 
 aliases = (
@@ -798,6 +810,7 @@ aliases = (
     ['vilc', 'volume-ident-led-clear'],
     ['srcpu', 'system-read-cache-pct-update'],
     ['pmi', 'pool-member-info'],
+    ['ldl', 'local-disk-list'],
 )
 
 
@@ -1557,6 +1570,18 @@ class CmdLine:
                 except ValueError:
                     pass
 
+    def is_connection_free_cmd(self):
+        """
+        Return True if current command is one of _CONNECTION_FREE_COMMANDS.
+        """
+        if self.args.func == self.handle_alias and \
+           self.args.cmd[0] in _CONNECTION_FREE_COMMANDS:
+            return True
+
+        if self.args.func.__name__ in _CONNECTION_FREE_COMMANDS:
+            return True
+        return False
+
     ## Class constructor.
     def __init__(self):
         self.uri = None
@@ -1570,6 +1595,9 @@ class CmdLine:
         self.tmo = int(self.args.wait)
         if not self.tmo or self.tmo < 0:
             raise ArgError("[-w|--wait] requires a non-zero positive integer")
+
+        if self.is_connection_free_cmd():
+            return
 
         self._read_configfile()
         if os.getenv('LSMCLI_URI') is not None:
@@ -1615,21 +1643,38 @@ class CmdLine:
         """
         Process the parsed command.
         """
-        if cli:
-            #Directly invoking code though a wrapper to catch unsupported
-            #operations.
-            self.c = Proxy(cli())
-            self.c.plugin_register(self.uri, self.password, self.tmo)
-            self.cleanup = self.c.plugin_unregister
+        if self.is_connection_free_cmd():
+            self.args.func(self.args)
         else:
-            #Going across the ipc pipe
-            self.c = Proxy(Client(self.uri, self.password, self.tmo))
+            if cli:
+                #Directly invoking code though a wrapper to catch unsupported
+                #operations.
+                self.c = Proxy(cli())
+                self.c.plugin_register(self.uri, self.password, self.tmo)
+                self.cleanup = self.c.plugin_unregister
+            else:
+                #Going across the ipc pipe
+                self.c = Proxy(Client(self.uri, self.password, self.tmo))
 
-            if os.getenv('LSM_DEBUG_PLUGIN'):
-                raw_input(
-                    "Attach debugger to plug-in, press <return> when ready...")
+                if os.getenv('LSM_DEBUG_PLUGIN'):
+                    raw_input("Attach debugger to plug-in, "
+                              "press <return> when ready...")
 
-            self.cleanup = self.c.close
+                self.cleanup = self.c.close
 
-        self.args.func(self.args)
-        self.shutdown()
+            self.args.func(self.args)
+            self.shutdown()
+
+    def local_disk_list(self, args):
+        local_disks = []
+        for disk_path in LocalDisk.list():
+            try:
+                vpd83 = LocalDisk.vpd83_get(disk_path)
+            except LsmError as lsm_err:
+                vpd83 = ""
+
+            rpm = LocalDisk.rpm_get(disk_path)
+            local_disks.append(
+                LocalDiskInfo(disk_path, vpd83, rpm))
+
+        self.display_data(local_disks)
