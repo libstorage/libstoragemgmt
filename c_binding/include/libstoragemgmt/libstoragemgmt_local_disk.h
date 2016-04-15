@@ -104,6 +104,27 @@ int LSM_DLL_EXPORT lsm_local_disk_vpd83_get(const char *sd_path,
 int LSM_DLL_EXPORT lsm_local_disk_rpm_get(const char *disk_path, int32_t *rpm,
                                           lsm_error **lsm_err);
 
+/**
+ * Query local disk paths. Currently, only SCSI, ATA and NVMe disks will be
+ * included.
+ * New in version 1.3.
+ * @param[out]  disk_paths
+ *                      lsm_string_list pointer.
+ *                      The disk_path string format is '/dev/sd[a-z]+' for SCSI
+ *                      and ATA disks, '/dev/nvme[0-9]+n[0-9]+' for NVMe disks.
+ *                      Empty lsm_string_list but not NULL will be returned
+ *                      if no disk found.
+ *                      Memory should be freed by lsm_string_list_free().
+ * @param[out] lsm_err
+ *                      Output pointer of lsm_error. Error message could be
+ *                      retrieved via lsm_error_message_get(). Memory should be
+ *                      freed by lsm_error_free().
+ * @return LSM_ERR_OK                   On success.
+ *         LSM_ERR_INVALID_ARGUMENT     When any argument is NULL.
+ *         LSM_ERR_LIB_BUG              When something unexpected happens.
+ */
+int LSM_DLL_EXPORT lsm_local_disk_list(lsm_string_list **disk_paths,
+                                       lsm_error **lsm_err);
 
 #ifdef __cplusplus
 }

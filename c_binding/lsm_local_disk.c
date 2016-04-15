@@ -1015,3 +1015,116 @@ int lsm_local_disk_rpm_get(const char *sd_path, int32_t *rpm,
 
     return rc;
 }
+
+int lsm_local_disk_list(lsm_string_list **disk_paths, lsm_error **lsm_err)
+{
+    struct udev *udev = NULL;
+    struct udev_enumerate *udev_enum = NULL;
+    struct udev_list_entry *udev_devs = NULL;
+    struct udev_list_entry *udev_list = NULL;
+    struct udev_device *udev_dev = NULL;
+    char err_msg[_LSM_ERR_MSG_LEN];
+    int udev_rc = 0;
+    const char *udev_path = NULL;
+    const char *disk_path = NULL;
+    int rc = LSM_ERR_OK;
+
+    _lsm_err_msg_clear(err_msg);
+
+    rc = _check_null_ptr(err_msg, 2 /* argument count */, disk_paths, lsm_err);
+    if (rc != LSM_ERR_OK) {
+        /* set output pointers to NULL if possible when facing error in case
+         * application use output memory.
+         */
+        if (disk_paths != NULL)
+            *disk_paths = NULL;
+        goto out;
+    }
+
+    *disk_paths = lsm_string_list_alloc(0 /* no pre-allocation */);
+    if (*disk_paths == NULL) {
+        rc = LSM_ERR_NO_MEMORY;
+        goto out;
+    }
+
+    udev = udev_new();
+    if (udev == NULL) {
+        rc = LSM_ERR_NO_MEMORY;
+        goto out;
+    }
+    udev_enum = udev_enumerate_new(udev);
+    if (udev_enum == NULL) {
+        rc = LSM_ERR_NO_MEMORY;
+        goto out;
+    }
+
+    udev_rc = udev_enumerate_add_match_subsystem(udev_enum, "block");
+    if (udev_rc != 0) {
+        rc = LSM_ERR_LIB_BUG;
+        _lsm_err_msg_set(err_msg, "udev_enumerate_scan_subsystems() failed "
+                         "with %d", udev_rc);
+        goto out;
+    }
+    udev_rc = udev_enumerate_add_match_property(udev_enum, "DEVTYPE", "disk");
+    if (udev_rc != 0) {
+        rc = LSM_ERR_LIB_BUG;
+        _lsm_err_msg_set(err_msg, "udev_enumerate_add_match_property() failed "
+                         "with %d", udev_rc);
+        goto out;
+    }
+
+    udev_rc = udev_enumerate_scan_devices(udev_enum);
+    if (udev_rc != 0) {
+        rc = LSM_ERR_LIB_BUG;
+        _lsm_err_msg_set(err_msg, "udev_enumerate_scan_devices() failed "
+                         "with %d", udev_rc);
+        goto out;
+    }
+
+    udev_devs = udev_enumerate_get_list_entry(udev_enum);
+    if (udev_devs == NULL)
+        goto out;
+
+    udev_list_entry_foreach(udev_list, udev_devs) {
+        udev_path = udev_list_entry_get_name(udev_list);
+        if (udev_path == NULL)
+            continue;
+        udev_dev = udev_device_new_from_syspath(udev, udev_path);
+        if (udev_dev == NULL) {
+            rc = LSM_ERR_NO_MEMORY;
+            goto out;
+        }
+        disk_path = udev_device_get_devnode(udev_dev);
+        if (disk_path == NULL) {
+            udev_device_unref(udev_dev);
+            continue;
+        }
+        if ((strncmp(disk_path, "/dev/sd", strlen("/dev/sd")) == 0) ||
+            (strncmp(disk_path, "/dev/nvme", strlen("/dev/nvme")) == 0)) {
+            rc = lsm_string_list_append(*disk_paths, disk_path);
+            if (rc != LSM_ERR_OK) {
+                udev_device_unref(udev_dev);
+                goto out;
+            }
+        }
+        udev_device_unref(udev_dev);
+    }
+
+
+ out:
+    if (udev != NULL)
+        udev_unref(udev);
+
+    if (udev_enum != NULL)
+        udev_enumerate_unref(udev_enum);
+
+    if (rc != LSM_ERR_OK) {
+        if ((disk_paths != NULL) && (*disk_paths != NULL)) {
+            lsm_string_list_free(*disk_paths);
+            *disk_paths = NULL;
+        }
+        if (lsm_err != NULL)
+            *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
+    }
+    return rc;
+}
