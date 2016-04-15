@@ -15,7 +15,7 @@
 # Author: Gris Ge <fge@redhat.com>
 
 from lsm._clib import (_local_disk_vpd83_search, _local_disk_vpd83_get,
-                       _local_disk_rpm_get)
+                       _local_disk_rpm_get, _local_disk_list)
 from lsm import LsmError, ErrorNumber
 
 
@@ -126,3 +126,35 @@ class LocalDisk(object):
                 No capability required as this is a library level method.
         """
         return _use_c_lib_function(_local_disk_rpm_get, disk_path)
+
+    @staticmethod
+    def list():
+        """
+        Version:
+            1.3
+        Usage:
+            Query local disk paths. Currently, only SCSI, ATA and NVMe disks
+            will be included.
+        Parameters:
+            N/A
+        Returns:
+            [disk_path]
+                List of string. Empty list if not disk found.
+                The disk_path string format is '/dev/sd[a-z]+' for SCSI and
+                ATA disks, '/dev/nvme[0-9]+n[0-9]+' for NVMe disks.
+        SpecialExceptions:
+            LsmError
+                ErrorNumber.LIB_BUG
+                    Internal bug.
+                ErrorNumber.INVALID_ARGUMENT
+                    Invalid disk_path. Should be like '/dev/sdb'.
+                ErrorNumber.NOT_FOUND_DISK
+                    Provided disk is not found.
+        Capability:
+            N/A
+                No capability required as this is a library level method.
+        """
+        (disk_paths, err_no, err_msg) = _local_disk_list()
+        if err_no != ErrorNumber.OK:
+            raise LsmError(err_no, err_msg)
+        return disk_paths
