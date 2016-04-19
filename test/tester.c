@@ -2080,7 +2080,7 @@ START_TEST(test_read_cache_pct)
 
     if(sys_count > 0) {
 
-        G(rc, lsm_read_cache_pct_get, sys[0], &read_cache_pct);
+        G(rc, lsm_system_read_cache_pct_get, sys[0], &read_cache_pct);
 
         if( LSM_ERR_OK == rc ) {
             printf("Read cache pct: (%d)\n", read_cache_pct);
@@ -3425,6 +3425,7 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_smoke_test);
     tcase_add_test(basic, test_access_groups);
     tcase_add_test(basic, test_systems);
+    tcase_add_test(basic, test_read_cache_pct);
     tcase_add_test(basic, test_access_groups_grant_revoke);
     tcase_add_test(basic, test_fs);
     tcase_add_test(basic, test_ss);
