@@ -348,6 +348,7 @@ class SmartArray(IPlugin):
         cap.set(Capabilities.VOLUME_RAID_INFO)
         cap.set(Capabilities.POOL_MEMBER_INFO)
         cap.set(Capabilities.VOLUME_RAID_CREATE)
+        cap.set(Capabilities.VOLUME_DELETE)
         cap.set(Capabilities.SYS_FW_VERSION_GET)
         cap.set(Capabilities.SYS_MODE_GET)
         cap.set(Capabilities.SYS_READ_CACHE_PCT_GET)
@@ -844,6 +845,43 @@ class SmartArray(IPlugin):
                 "volume_raid_create(): Got unexpected count(not 1) of new "
                 "volumes: %s" % lsm_vols)
         return lsm_vols[0]
+
+    @_handle_errors
+    def volume_delete(self, volume, flags=0):
+        """
+        Depends on command:
+            hpssacli ctrl slot=# ld # delete forced
+            hpssacli ctrl slot=# show config detail
+        """
+        if not volume.plugin_data:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Illegal input volume argument: missing plugin_data property")
+
+        (ctrl_num, array_num, ld_num) = volume.plugin_data.split(":")
+
+        try:
+            self._sacli_exec(
+                ["ctrl", "slot=%s" % ctrl_num, "ld %s" % ld_num, "delete"],
+                flag_convert=False, flag_force=True)
+        except ExecError:
+            ctrl_data = self._sacli_exec(
+                ["ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
+                ).values()[0]
+
+            for key_name in ctrl_data.keys():
+                if key_name != "Array: %s" % array_num:
+                    continue
+                for array_key_name in ctrl_data[key_name].keys():
+                    if array_key_name == "Logical Drive: %s" % ld_num:
+                        raise LsmError(
+                            ErrorNumber.PLUGIN_BUG,
+                            "volume_delete failed unexpectedly")
+            raise LsmError(
+                ErrorNumber.NOT_FOUND_VOLUME,
+                "Volume not found")
+
+        return None
 
     @_handle_errors
     def volume_ident_led_set(self, volume, flags=Client.FLAG_RSVD):
