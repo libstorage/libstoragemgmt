@@ -416,15 +416,19 @@ class SmartArray(IPlugin):
                 #Some Smart Arrays don't have cache
                 #This entry is also missing until a volume uses cache
                 read_cache_pct = System.CACHE_PCT_UNKNOWN
-            hwraid_mode = ctrl_data['Controller Mode']
-            if hwraid_mode == 'RAID':
-                mode = System.MODE_HARDWARE_RAID
-            elif hwraid_mode == 'HBA':
-                mode = System.MODE_HBA
+            if 'Controller Mode' in ctrl_data:
+                hwraid_mode = ctrl_data['Controller Mode']
+                if hwraid_mode == 'RAID':
+                    mode = System.MODE_HARDWARE_RAID
+                elif hwraid_mode == 'HBA':
+                    mode = System.MODE_HBA
+                else:
+                    raise LsmError(
+                        ErrorNumber.PLUGIN_BUG,
+                        "Invalid Controller Mode: '%s'" % hwraid_mode)
             else:
-                raise LsmError(
-                    ErrorNumber.PLUGIN_BUG,
-                    "Invalid Controller Mode: '%s'" % hwraid_mode)
+                #prior to late Gen8, all Smart Arrays were RAID mode only
+                mode = System.MODE_HARDWARE_RAID
 
             rc_lsm_syss.append(System(sys_id, ctrl_name, status, status_info,
                                       plugin_data, _fw_version=fw_ver,
