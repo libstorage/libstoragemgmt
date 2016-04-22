@@ -38,6 +38,16 @@ typedef uint64_t lsm_flag;
 #define LSM_CLIENT_FLAG_RSVD 0
 
 /**
+ * Options for volume settings at creation time.
+ * Bit field to support multiple settings for systems
+ * that can support them simultaneously.
+ */
+#define LSM_CLIENT_FLAG_VOLUME_CREATE_USE_SYSTEM_CACHE		0x00000001
+#define LSM_CLIENT_FLAG_VOLUME_CREATE_USE_IO_PASSTHROUGH	0x00000002
+#define LSM_CLIENT_FLAG_VOLUME_CREATE_DISABLE_SYSTEM_CACHE	0x00000004
+#define LSM_CLIENT_FLAG_VOLUME_CREATE_DISABLE_IO_PASSTHROUGH	0x00000008
+
+/**
  * Opaque data type for a connection.
  */
 typedef struct _lsm_connect lsm_connect;

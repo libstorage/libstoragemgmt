@@ -780,7 +780,8 @@ class SmartArray(IPlugin):
             1. Create LD
                 hpssacli ctrl slot=0 create type=ld \
                     drives=1i:1:13,1i:1:14 size=max raid=1+0 ss=64
-
+                NOTE: This now optionally appends arguments \
+                if certain Client flags are set.
             2. Find out the system ID.
 
             3. Find out the pool fist disk belong.
@@ -818,6 +819,18 @@ class SmartArray(IPlugin):
 
         if strip_size != Volume.VCR_STRIP_SIZE_DEFAULT:
             cmds.append("ss=%d" % int(strip_size / 1024))
+
+        if flags == Client.FLAG_VOLUME_CREATE_USE_SYSTEM_CACHE:
+            cmds.append("aa=enable")
+
+        if flags == Client.FLAG_VOLUME_CREATE_USE_IO_PASSTHROUGH:
+            cmds.append("ssdsmartpath=enable")
+
+        if flags == Client.FLAG_VOLUME_CREATE_DISABLE_SYSTEM_CACHE:
+            cmds.append("aa=disable")
+
+        if flags == Client.FLAG_VOLUME_CREATE_DISABLE_IO_PASSTHROUGH:
+            cmds.append("ssdsmartpath=disable")
 
         try:
             self._sacli_exec(cmds, flag_convert=False, flag_force=True)
