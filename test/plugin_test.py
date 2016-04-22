@@ -827,9 +827,9 @@ class TestPlugin(unittest.TestCase):
             match = [x for x in vol_masked if x.id == vol.id]
 
             if masked:
-                self.assertTrue(len(match) == 1)
+                self.assertTrue(len(match) == 1, "len = %d" % len(match))
             else:
-                self.assertTrue(len(match) == 0)
+                self.assertTrue(len(match) == 0, "len = %d" % len(match))
 
         if supported(cap,
                      [Cap.
@@ -840,9 +840,9 @@ class TestPlugin(unittest.TestCase):
             match = [x for x in ag_masked if x.id == ag.id]
 
             if masked:
-                self.assertTrue(len(match) == 1)
+                self.assertTrue(len(match) == 1, "len = %d" % len(match))
             else:
-                self.assertTrue(len(match) == 0)
+                self.assertTrue(len(match) == 0, "len = %d" % len(match))
 
     def test_mask_unmask(self):
         for s in self.systems:
@@ -1536,7 +1536,6 @@ class TestPlugin(unittest.TestCase):
         except lsm.LsmError as le:
             if le.code != ErrorNumber.NOT_FOUND_VOLUME:
                 raise
-
 
     def test_volume_ident_led_on(self):
         for s in self.systems:
