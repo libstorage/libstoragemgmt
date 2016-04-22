@@ -2592,3 +2592,21 @@ int lsm_volume_ident_led_clear(lsm_connect * c, lsm_volume * volume,
 
     return rc;
 }
+
+int lsm_system_read_cache_pct_update(lsm_connect * c, lsm_system * system,
+                                     uint32_t read_pct, lsm_flag flags)
+{
+    CONN_SETUP(c);
+
+    std::map < std::string, Value > p;
+    p["flags"] = Value(flags);
+    p["read_pct"] = Value((int32_t) read_pct);
+    p["system"] = system_to_value(system);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "system_read_cache_pct_update", parameters, response);
+
+    return rc;
+}

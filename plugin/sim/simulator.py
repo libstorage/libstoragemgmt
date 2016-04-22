@@ -93,6 +93,9 @@ class SimPlugin(INfs, IStorageAreaNetwork):
         sim_syss = self.sim_array.systems()
         return [SimPlugin._sim_data_2_lsm(s) for s in sim_syss]
 
+    def system_read_cache_pct_update(self, system, read_pct, flags=0):
+        return self.sim_array.system_read_cache_pct_update(system, read_pct)
+
     def pools(self, search_key=None, search_value=None, flags=0):
         sim_pools = self.sim_array.pools(flags)
         return search_property(

@@ -512,6 +512,17 @@ cmds = (
     ),
 
     dict(
+        name='system-read-cache-pct-update',
+        help='Change the read cache percentage of a system',
+        args=[
+            dict(name="--sys", metavar='<SYS_ID>',
+                 help='Targeted system.\n'),
+            dict(name="--read-pct",
+                 help="Read cache percentage.\n"),
+        ],
+    ),
+
+    dict(
         name='pool-member-info',
         help='Query Pool membership infomation',
         args=[
@@ -785,6 +796,7 @@ aliases = (
     ['vri', 'volume-raid-info'],
     ['vils', 'volume-ident-led-set'],
     ['vilc', 'volume-ident-led-clear'],
+    ['srcpu', 'system-read-cache-pct-update'],
     ['pmi', 'pool-member-info'],
 )
 
@@ -1499,6 +1511,12 @@ class CmdLine:
         lsm_volume = _get_item(self.c.volumes(), args.vol, "Volume")
 
         self.c.volume_ident_led_clear(lsm_volume)
+
+    def system_read_cache_pct_update(self, args):
+        lsm_system = _get_item(self.c.systems(), args.sys, "System")
+        read_pct = int(args.read_pct)
+
+        self.c.system_read_cache_pct_update(lsm_system, read_pct)
 
     ## Displays file system dependants
     def fs_dependants(self, args):

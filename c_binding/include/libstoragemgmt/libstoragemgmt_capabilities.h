@@ -155,6 +155,8 @@ typedef enum {
     LSM_CAP_EXPORT_CUSTOM_PATH = 124,
     /**^ Plug-in allows user to define custome export path */
 
+    LSM_CAP_SYS_READ_CACHE_PCT_UPDATE = 158,
+    /**^ Plug-in allows user to change system read cache percentage */
     LSM_CAP_SYS_READ_CACHE_PCT_GET = 159,
     /**^ Plug-in allows user to retrieve system read cache percentage */
     LSM_CAP_SYS_FW_VERSION_GET = 160,

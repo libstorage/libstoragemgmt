@@ -507,6 +507,12 @@ static int list_systems(lsm_plugin_ptr c, lsm_system ** systems[],
     }
 }
 
+static int system_read_cache_pct_update(lsm_plugin_ptr c, lsm_system * system,
+                                        uint32_t read_pct, lsm_flag flags)
+{
+    return LSM_ERR_OK;
+}
+
 static int job_free(lsm_plugin_ptr c, char *job_id, lsm_flag flags)
 {
     int rc = LSM_ERR_OK;
@@ -1067,6 +1073,7 @@ static struct lsm_ops_v1_2 ops_v1_2 = {
 static struct lsm_ops_v1_3 ops_v1_3 = {
     volume_ident_led_set,
     volume_ident_led_clear,
+    system_read_cache_pct_update,
 };
 
 static int volume_enable_disable(lsm_plugin_ptr c, lsm_volume * v,

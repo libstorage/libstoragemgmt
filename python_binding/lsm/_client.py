@@ -313,6 +313,37 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('systems', _del_self(locals()))
 
+    ## Changes the read cache percentage for a system.
+    # @param	self		The this pointer
+    # @param	system		System object to target
+    # @param	read_pct	Desired read cache percentage
+    # @param	flags		Flags
+    # @returns None on success, else raises LsmError
+    @_return_requires(None)
+    def system_read_cache_pct_update(self, system, read_pct, flags=FLAG_RSVD):
+        """
+        lsm.Client.system_read_cache_pct_update(self, system, read_pct,
+                                                flags=lsm.Client.FLAG_RSVD)
+
+        Version:
+            1.3
+        Usage:
+            This method updates the read cache percentage on a system if
+            supported
+        Parameters:
+            system(lsm.System)
+                an lsm.System object.
+            read_pct(int)
+                the desired read cache percentage.
+            flags (int)
+                Optional. Reserved for future use.
+                Should be set as lsm.Client.FLAG_RSVD.
+        Returns:
+            returns None on success, else raises LsmError on errors.
+        SpecialExceptions:
+        """
+        return self._tp.rpc('system_read_cache_pct_update', _del_self(locals()))
+
     ## Register a user/password for the specified initiator for CHAP
     #  authentication.
     # Note: If you pass an empty user and password the expected behavior is to

@@ -1030,6 +1030,21 @@ int LSM_DLL_EXPORT lsm_volume_ident_led_clear(lsm_connect *c,
                                               lsm_volume *volume,
                                               lsm_flag flags);
 
+/**
+ * Change the read cache percentage for the desired system.
+ * New in version 1.3, only available for hardware RAID cards.
+ * @param[in] c				Valid connection
+ * @param[in] system			A single lsm_system
+ * @param[in] read_pct			Desired read cache percentage
+ * @param[in] flags			Reserved, set to 0
+ * @return LSM_ERR_OK on success else error reason.
+ */
+int LSM_DLL_EXPORT lsm_system_read_cache_pct_update(lsm_connect *c,
+                                                    lsm_system *system,
+                                                    uint32_t read_pct,
+                                                    lsm_flag flags);
+
+
 #ifdef  __cplusplus
 }
 #endif

@@ -1005,6 +1005,20 @@ typedef int (*lsm_plug_volume_ident_led_clear) (lsm_plugin_ptr c,
                                                 lsm_volume * volume,
                                                 lsm_flag flags);
 
+/**
+ * Change the read cache percentage for the desired system.
+ * New in version 1.3, only available for hardware RAID cards.
+ * @param[in] c			Valid lsm plug-in pointer
+ * @param[in] system		A single lsm_system
+ * @param[in] read_pct		Desired read cache percentage
+ * @param[in] flags         	Reserved, set to 0
+ * @return LSM_ERR_OK on success else error reason.
+ */
+typedef int (*lsm_plug_system_read_cache_pct_update) (lsm_plugin_ptr c,
+                                                      lsm_system *system,
+                                                      uint32_t read_pct,
+                                                      lsm_flag flags);
+
 /** \struct lsm_ops_v1_2
  * \brief Functions added in version 1.2
  */
@@ -1024,6 +1038,7 @@ struct lsm_ops_v1_2 {
 struct lsm_ops_v1_3 {
     lsm_plug_volume_ident_led_set vol_ident_set;
     lsm_plug_volume_ident_led_clear vol_ident_clear;
+    lsm_plug_system_read_cache_pct_update sys_read_cache_pct_update;
 };
 
 /**
