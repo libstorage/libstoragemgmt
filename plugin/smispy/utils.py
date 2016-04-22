@@ -42,6 +42,13 @@ def handle_cim_errors(method):
                     if 'Errno 113' in desc:
                         raise LsmError(ErrorNumber.NETWORK_HOSTDOWN,
                                        'Host is down')
+                    if 'Errno 104' in desc:
+                        raise LsmError(ErrorNumber.NETWORK_CONNREFUSED,
+                                   'Connection reset by peer')
+                    # We know we have a socket error of some sort, lets
+                    # report a generic network error with the string from the
+                    # library.
+                    raise LsmError(ErrorNumber.NETWORK_ERROR, str(ce))
                 elif 'SSL error' in desc:
                     raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
                                    desc)
