@@ -174,6 +174,19 @@ def vol_rep_type_str_to_type(vol_rep_type_str):
     return _str_to_enum(vol_rep_type_str, _VOL_REP_TYPE_CONV)
 
 
+_VOL_STATUS_CONV = {
+    Volume.STATUS_OTHER: "OTHER",
+    Volume.STATUS_OK: "OK",
+    Volume.STATUS_DEGRADED: "DEGRADED",
+    Volume.STATUS_RECONSTRUCTING: "RECONSTRUCTING",
+    Volume.STATUS_ERROR: "ERROR",
+}
+
+
+def vol_status_to_str(vol_status):
+    return _VOL_STATUS_CONV.get(vol_status, "")
+
+
 _DISK_TYPE_CONV = {
     Disk.TYPE_UNKNOWN: 'UNKNOWN',
     Disk.TYPE_OTHER: 'Other',
@@ -420,11 +433,13 @@ class DisplayData(object):
     VOL_HEADER['pool_id'] = 'Pool ID'
     VOL_HEADER['system_id'] = 'System ID'
     VOL_HEADER['sd_paths'] = 'Disk Paths'    # This is appended by cmdline.py
+    VOL_HEADER['status'] = 'Status'
 
     VOL_COLUMN_SKIP_KEYS = ['block_size', 'num_of_blocks']
 
     VOL_VALUE_CONV_ENUM = {
-        'admin_state': vol_admin_state_to_str
+        'admin_state': vol_admin_state_to_str,
+        'status': vol_status_to_str,
     }
 
     VOL_VALUE_CONV_HUMAN = ['size_bytes', 'block_size']

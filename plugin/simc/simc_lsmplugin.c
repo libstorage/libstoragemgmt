@@ -764,6 +764,7 @@ static int volume_create(lsm_plugin_ptr c, lsm_pool * pool,
                                    "60a980003246694a412b45673342616e",
                                     BS, allocated_size/BS, 0, sys_id,
                                     lsm_pool_id_get(pool), NULL);
+                lsm_volume_status_set(v, LSM_VOLUME_STATUS_OTHER);
 
                 lsm_volume *to_store = lsm_volume_record_copy(v);
                 struct allocated_volume *av =
@@ -899,6 +900,7 @@ static int volume_resize(lsm_plugin_ptr c, lsm_volume * volume,
                                                     resized_size/BS, 0, sys_id,
                                                     lsm_volume_pool_id_get(volume),
                                                     NULL);
+            lsm_volume_status_set(vp, LSM_VOLUME_STATUS_OTHER);
 
             if( vp ) {
                 av->v = vp;

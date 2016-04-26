@@ -135,6 +135,7 @@ class BackStore(object):
     DEFAULT_STRIP_SIZE = 128 * 1024  # 128 KiB
     SYS_MODE = System.MODE_HARDWARE_RAID
     READ_CACHE_PCT = 10
+    VOL_STATUS = Volume.STATUS_OTHER
 
     _LIST_SPLITTER = '#'
 
@@ -1765,7 +1766,7 @@ class SimArray(object):
                       BackStore.BLK_SIZE,
                       int(sim_vol['total_space'] / BackStore.BLK_SIZE),
                       sim_vol['admin_state'], BackStore.SYS_ID,
-                      pool_id)
+                      pool_id, _status=BackStore.VOL_STATUS)
 
     @_handle_errors
     def volumes(self):
