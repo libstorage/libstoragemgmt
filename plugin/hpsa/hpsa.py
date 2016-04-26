@@ -25,7 +25,7 @@ from pyudev import Context, Device, DeviceNotFoundError
 from lsm import (
     IPlugin, Client, Capabilities, VERSION, LsmError, ErrorNumber, uri_parse,
     System, Pool, size_human_2_size_bytes, search_property, Volume, Disk,
-    LocalDisk)
+    LocalDisk, Battery)
 
 from lsm.plugin.hpsa.utils import cmd_exec, ExecError
 
@@ -293,6 +293,28 @@ def _lsm_raid_type_to_hp(raid_type):
             "Not supported raid type %d" % raid_type)
 
 
+_BATTERY_STATUS_CONV = {
+    "Recharging": Battery.STATUS_CHARGING,
+    "Failed (Replace Batteries/Capacitors)": Battery.STATUS_ERROR,
+    "OK": Battery.STATUS_OK,
+}
+
+
+def _hp_battery_status_to_lsm(ctrl_data):
+    try:
+        return _BATTERY_STATUS_CONV[ctrl_data["Battery/Capacitor Status"]]
+    except KeyError:
+        return Battery.STATUS_UNKNOWN
+
+
+def _sys_id_of_ctrl_data(ctrl_data):
+    try:
+        return ctrl_data['Serial Number']
+    except KeyError:
+        #Dynamic Smart Array does not expose a serial number
+        return ctrl_data['Host Serial Number']
+
+
 class SmartArray(IPlugin):
     _DEFAULT_BIN_PATHS = [
         "/usr/sbin/hpssacli", "/opt/hp/hpssacli/bld/hpssacli"]
@@ -371,6 +393,7 @@ class SmartArray(IPlugin):
         cap.set(Capabilities.SYS_READ_CACHE_PCT_GET)
         cap.set(Capabilities.DISK_LOCATION)
         cap.set(Capabilities.VOLUME_LED)
+        cap.set(Capabilities.BATTERIES)
         return cap
 
     def _sacli_exec(self, sacli_cmds, flag_convert=True, flag_force=False):
@@ -411,11 +434,7 @@ class SmartArray(IPlugin):
 
         for ctrl_name in ctrl_all_show.keys():
             ctrl_data = ctrl_all_show[ctrl_name]
-            try:
-                sys_id = ctrl_data['Serial Number']
-            except KeyError:
-                #Dynamic Smart Array does not expose a serial number
-                sys_id = ctrl_data['Host Serial Number']
+            sys_id = _sys_id_of_ctrl_data(ctrl_data)
             (status, status_info) = _sys_status_of(ctrl_all_status[ctrl_name])
 
             plugin_data = "%s" % ctrl_data['Slot']
@@ -520,10 +539,7 @@ class SmartArray(IPlugin):
         ctrl_all_conf = self._sacli_exec(
             ["ctrl", "all", "show", "config", "detail"])
         for ctrl_data in ctrl_all_conf.values():
-            try:
-                sys_id = ctrl_data['Serial Number']
-            except KeyError:
-                sys_id = ctrl_data['Host Serial Number']
+            sys_id = _sys_id_of_ctrl_data(ctrl_data)
             ctrl_num = ctrl_data['Slot']
             for key_name in ctrl_data.keys():
                 if key_name.startswith("Array:"):
@@ -577,10 +593,7 @@ class SmartArray(IPlugin):
             ["ctrl", "all", "show", "config", "detail"])
         for ctrl_data in ctrl_all_conf.values():
             ctrl_num = ctrl_data['Slot']
-            try:
-                sys_id = ctrl_data['Serial Number']
-            except KeyError:
-                sys_id = ctrl_data['Host Serial Number']
+            sys_id = _sys_id_of_ctrl_data(ctrl_data)
             for key_name in ctrl_data.keys():
                 if not key_name.startswith("Array:"):
                     continue
@@ -642,10 +655,7 @@ class SmartArray(IPlugin):
         ctrl_all_conf = self._sacli_exec(
             ["ctrl", "all", "show", "config", "detail"])
         for ctrl_data in ctrl_all_conf.values():
-            try:
-                sys_id = ctrl_data['Serial Number']
-            except KeyError:
-                sys_id = ctrl_data['Host Serial Number']
+            sys_id = _sys_id_of_ctrl_data(ctrl_data)
             ctrl_num = ctrl_data['Slot']
             for key_name in ctrl_data.keys():
                 if key_name.startswith("Array:"):
@@ -887,10 +897,7 @@ class SmartArray(IPlugin):
         sys_output = self._sacli_exec(
             ['ctrl', "slot=%s" % ctrl_num, 'show'])
 
-        try:
-            sys_id = sys_output.values()[0]['Serial Number']
-        except KeyError:
-            sys_id = sys_output.values()[0]['Host Serial Number']
+        sys_id = _sys_id_of_ctrl_data(sys_output.values()[0])
         # API code already checked empty 'disks', we will for sure get
         # valid 'ctrl_num' and 'hp_disk_ids'.
 
@@ -1063,3 +1070,37 @@ class SmartArray(IPlugin):
                 "Volume not found")
 
         return None
+
+    @_handle_errors
+    def batteries(self, search_key=None, search_value=None,
+                  flags=Client.FLAG_RSVD):
+        lsm_bs = []
+        ctrl_all_show = self._sacli_exec(
+            ["ctrl", "all", "show", "config", "detail"])
+
+        for ctrl_name in ctrl_all_show.keys():
+            ctrl_data = ctrl_all_show[ctrl_name]
+            bat_count = int(ctrl_data.get('Battery/Capacitor Count', 0))
+            if bat_count == 0:
+                continue
+
+            sys_id = _sys_id_of_ctrl_data(ctrl_data)
+
+            battery_status = _hp_battery_status_to_lsm(ctrl_data)
+
+            if ctrl_data["Cache Backup Power Source"] == "Capacitors":
+                battery_type = Battery.TYPE_CAPACITOR
+            elif ctrl_data["Cache Backup Power Source"] == "Batteries":
+                battery_type = Battery.TYPE_CHEMICAL
+            else:
+                battery_type = Battery.TYPE_UNKNOWN
+
+            for counter in range(0, bat_count):
+                lsm_bs.append(
+                    Battery(
+                        "%s_BAT_%d" % (sys_id, counter),
+                        "Battery %d of %s" % (counter, ctrl_name),
+                        battery_type, battery_status, sys_id,
+                        _plugin_data=None))
+
+        return search_property(lsm_bs, search_key, search_value)
