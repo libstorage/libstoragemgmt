@@ -342,6 +342,20 @@ class TestPlugin(unittest.TestCase):
                 if supported(cap, [Cap.VOLUME_DELETE]):
                     for v in self.c.volumes():
                         if 'lsm_' in v.name and s.id == v.system_id:
+                            # Check to see if this volume is participating in an
+                            # access group, if it is we will remove the volume
+                            # from it, but we will not delete the access group
+                            # as we likely didn't create it
+                            access_groups = self.c.\
+                                access_groups_granted_to_volume(v)
+                            for ag in access_groups:
+                                try:
+                                    self.c.volume_unmask(ag, v)
+                                except LsmError as le:
+                                    print_stderr(
+                                        "[WARNING] error when unmasking "
+                                        "volume %s\n" % str(le))
+                                    pass
                             try:
                                 self.c.volume_delete(v)
                             except LsmError as le:
