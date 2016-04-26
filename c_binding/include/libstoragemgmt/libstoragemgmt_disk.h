@@ -29,7 +29,8 @@ extern "C" {
 /**
  * Free the memory for a disk record
  * @param d     Disk memory to free
- * @return LSM_ERR_OK on success, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ *         Returns LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_disk_record_free(lsm_disk *d);
 
