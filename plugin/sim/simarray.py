@@ -25,7 +25,7 @@ import sqlite3
 from lsm import (size_human_2_size_bytes)
 from lsm import (System, Volume, Disk, Pool, FileSystem, AccessGroup,
                  FsSnapshot, NfsExport, md5, LsmError, TargetPort,
-                 ErrorNumber, JobStatus)
+                 ErrorNumber, JobStatus, Battery)
 
 
 def _handle_errors(method):
@@ -122,7 +122,7 @@ class PoolRAID(object):
 
 
 class BackStore(object):
-    VERSION = "3.6"
+    VERSION = "3.7"
     VERSION_SIGNATURE = 'LSM_SIMULATOR_DATA_%s_%s' % (VERSION, md5(VERSION))
     JOB_DEFAULT_DURATION = 1
     JOB_DATA_TYPE_VOL = 1
@@ -173,6 +173,8 @@ class BackStore(object):
         'id', 'fs_id', 'exp_path', 'auth_type', 'anon_uid', 'anon_gid',
         'options', 'exp_root_hosts_str', 'exp_rw_hosts_str',
         'exp_ro_hosts_str']
+
+    BAT_KEY_LIST = ['id', 'name', 'type', 'status']
 
     SUPPORTED_VCR_RAID_TYPES = [
         Volume.RAID_TYPE_RAID0, Volume.RAID_TYPE_RAID1,
@@ -368,6 +370,13 @@ class BackStore(object):
             "timestamp TEXT NOT NULL, "
             "data_type INTEGER, "
             "data_id TEXT);\n")
+
+        sql_cmd += (
+            "CREATE TABLE batteries ("
+            "id INTEGER PRIMARY KEY, "
+            "name TEXT NOT NULL, "
+            "type INTEGER NOT NULL, "
+            "status INTEGER NOT NULL);\n")
 
         # Create views
         sql_cmd += (
@@ -818,6 +827,22 @@ class BackStore(object):
                     'network_address': '[2001:470:1f09:efe:a64e:31ff::1]:3260',
                     'physical_address': 'a4:4e:31:47:f4:e1',
                     'physical_name': 'iSCSI_c_0e',
+                })
+
+            self._data_add(
+                'batteries',
+                {
+                    'name': 'Battery SIMB01, 8000 mAh, 05 March 2016',
+                    'type': Battery.TYPE_CHEMICAL,
+                    'status': Battery.STATUS_OK,
+                })
+
+            self._data_add(
+                'batteries',
+                {
+                    'name': 'Capacitor SIMC01, 500 J, 05 March 2016',
+                    'type': Battery.TYPE_CAPACITOR,
+                    'status': Battery.STATUS_OK,
                 })
 
             self.trans_commit()
@@ -1637,6 +1662,12 @@ class BackStore(object):
         """
         return self._get_table('tgts', BackStore.TGT_KEY_LIST)
 
+    def sim_bats(self):
+        """
+        Return a list of sim_bat dict.
+        """
+        return self._get_table('batteries', BackStore.BAT_KEY_LIST)
+
 
 class SimArray(object):
     SIM_DATA_FILE = os.getenv("LSM_SIM_DATA",
@@ -2433,3 +2464,14 @@ class SimArray(object):
         sim_vol = self.bs_obj.sim_vol_of_id(sim_volume_id)
 
         return None
+
+    @staticmethod
+    def _sim_bat_2_lsm(sim_bat):
+        bat_id = "BATTERY_ID_%0*d" % (SimArray.ID_FMT, sim_bat['id'])
+        return Battery(
+            bat_id, sim_bat['name'], sim_bat['type'],
+            sim_bat['status'], BackStore.SYS_ID)
+
+    @_handle_errors
+    def batteries(self):
+        return list(SimArray._sim_bat_2_lsm(t) for t in self.bs_obj.sim_bats())
