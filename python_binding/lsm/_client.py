@@ -15,7 +15,7 @@
 # Author: tasleson
 
 import os
-from lsm import (Volume, NfsExport, Capabilities, Pool, System,
+from lsm import (Volume, NfsExport, Capabilities, Pool, System, Battery,
                  Disk, AccessGroup, FileSystem, FsSnapshot,
                  uri_parse, LsmError, ErrorNumber,
                  INetworkAttachedStorage, TargetPort)
@@ -1463,3 +1463,72 @@ class Client(INetworkAttachedStorage):
         SpecialExceptions:
         """
         return self._tp.rpc('volume_ident_led_off', _del_self(locals()))
+
+    @_return_requires([Battery])
+    def batteries(self, search_key=None, search_value=None, flags=FLAG_RSVD):
+        """
+        lsm.Client.batteries(self, search_key=None, search_value=None,
+                             flags=lsm.Client.FLAG_RSVD)
+        Version:
+            1.3
+        Usage:
+            Query batteries. When present, super capacitors will also be
+            included.
+        Parameters:
+            search_key (string, optional)
+                The key name for the search. Valid search keys are stored in
+                lsm.Battery.SUPPORTED_SEARCH_KEYS
+            search_value (string, optional)
+                The value of search_key to match.
+            flags (int, optional):
+                Reserved for future use. Should be set as lsm.Client.FLAG_RSVD
+        Returns:
+            [lsm.Battery]
+
+            lsm.Battery (object)
+                lsm.Battery.id (string)
+                    Unique ID for this cache hardware.
+                lsm.Battery.name (string)
+                    Human friendly name, might include physical location, model
+                    name and etc.
+                lsm.Battery.type (int)
+                    The hardware type of cache. Could be one of these values:
+                        lsm.Battery.TYPE_CHEMICAL
+                            Chemical battery.
+                        lsm.Battery.TYPE_CAPACITOR
+                            Supper capacitor.
+                        lsm.Battery.TYPE_OTHER
+                            Vendor specific battery type.
+                        lsm.Battery.TYPE_UNKNOWN
+                            Unknown type.
+                lsm.Battery.status (int, bitmap)
+                    Could be any combination of these values:
+                        lsm.Battery.STATUS_OK
+                            Battery is fully charged, health and not in use
+                            currently.
+                        lsm.Battery.STATUS_DISCHARGING
+                            Battery is in use.
+                        lsm.Battery.STATUS_CHARGING
+                            Battery is charging.
+                        lsm.Battery.STATUS_LEARNING
+                            Battery is calibrating itself by discharging
+                            battery and recharging again.
+                        lsm.Battery.STATUS_DEGRADED
+                            Battery is in degraded mode, need attention.
+                            For example, battery is near end of life.
+                        lsm.Battery.STATUS_ERROR
+                            Battery is having hardware error or end of life.
+                        lsm.Battery.STATUS_OTHER
+                            Vendor specific status.
+                        lsm.Battery.STATUS_UNKNOWN
+                            Unknown.
+                lsm.Battery.system_id (string)
+                    The id of system which current battery belong to.
+        SpecialExceptions:
+            LsmError
+                ErrorNumber.NO_SUPPORT
+        Capability:
+            lsm.Capabilities.BATTERIES
+        """
+        _check_search_key(search_key, Battery.SUPPORTED_SEARCH_KEYS)
+        return self._tp.rpc('batteries', _del_self(locals()))

@@ -10,7 +10,7 @@ from lsm._local_disk import LocalDisk
 
 from _data import (Disk, Volume, Pool, System, FileSystem, FsSnapshot,
                    NfsExport, BlockRange, AccessGroup, TargetPort,
-                   Capabilities)
+                   Capabilities, Battery)
 from _iplugin import IPlugin, IStorageAreaNetwork, INetworkAttachedStorage, \
     INfs
 
