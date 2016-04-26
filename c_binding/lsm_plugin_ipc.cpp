@@ -31,6 +31,7 @@
 #include "libstoragemgmt/libstoragemgmt_targetport.h"
 #include "libstoragemgmt/libstoragemgmt_volumes.h"
 #include "libstoragemgmt/libstoragemgmt_pool.h"
+#include "libstoragemgmt/libstoragemgmt_battery.h"
 #include <errno.h>
 #include <string.h>
 #include <libxml/uri.h>
@@ -39,6 +40,9 @@
 
 //Forward decl.
 static int lsm_plugin_run(lsm_plugin_ptr plug);
+static void get_batteries(int rc, lsm_battery *bs[], uint32_t count,
+                          Value &response);
+static int handle_batteries(lsm_plugin_ptr p, Value &params, Value &response);
 
 /**
  * Safe string wrapper
@@ -2416,14 +2420,14 @@ static int handle_system_read_cache_pct_update(lsm_plugin_ptr p, Value & params,
     if (p && p->ops_v1_3 && p->ops_v1_3->sys_read_cache_pct_update) {
         Value v_sys = params["system"];
         Value v_read_pct = params["read_pct"];
- 
+
         if (Value::object_t == v_sys.valueType() &&
             Value::numeric_t == v_read_pct.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
 
             lsm_system *system = value_to_system(v_sys);
             uint32_t read_pct = v_read_pct.asUint32_t();
-       
+
             rc = p->ops_v1_3->sys_read_cache_pct_update(p, system, read_pct,
                                                         LSM_FLAG_GET_VALUE(
                                                         params));
@@ -2498,7 +2502,8 @@ static std::map < std::string, handler > dispatch =
     ("volume_raid_create_cap_get", handle_volume_raid_create_cap_get)
     ("volume_ident_led_on", handle_volume_ident_led_on)
     ("volume_ident_led_off", handle_volume_ident_led_off)
-    ("system_read_cache_pct_update", handle_system_read_cache_pct_update);
+    ("system_read_cache_pct_update", handle_system_read_cache_pct_update)
+    ("batteries", handle_batteries);
 
 static int process_request(lsm_plugin_ptr p, const std::string & method,
                            Value & request, Value & response)
@@ -2931,5 +2936,74 @@ void lsm_plug_target_port_search_filter(const char *search_key,
                 filter((void **) tp, *count, cmp, (void *) search_value,
                        tp_free);
         }
+    }
+}
+
+static void get_batteries(int rc, lsm_battery *bs[], uint32_t count,
+                          Value &response)
+{
+    uint32_t i = 0;
+
+    if (LSM_ERR_OK == rc) {
+        std::vector < Value > result;
+        result.reserve(count);
+
+        for (; i < count; ++i)
+            result.push_back(battery_to_value(bs[i]));
+
+        lsm_battery_record_array_free(bs, count);
+        bs = NULL;
+        response = Value(result);
+    }
+}
+
+static int handle_batteries(lsm_plugin_ptr p, Value &params, Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    char *key = NULL;
+    char *val = NULL;
+    lsm_battery **bs = NULL;
+    uint32_t count = 0;
+
+    if (p && p->ops_v1_3 && p->ops_v1_3->battery_list) {
+
+        if (LSM_FLAG_EXPECTED_TYPE(params) &&
+            (rc = get_search_params(params, &key, &val)) == LSM_ERR_OK) {
+            rc = p->ops_v1_3->battery_list(p, key, val, &bs, &count,
+                                           LSM_FLAG_GET_VALUE(params));
+
+            get_batteries(rc, bs, count, response);
+            free(key);
+            free(val);
+        } else {
+            if (rc == LSM_ERR_NO_SUPPORT) {
+                rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+            }
+        }
+    }
+    return rc;
+}
+
+CMP_FUNCTION(battery_compare_id, lsm_battery_id_get, lsm_battery)
+CMP_FUNCTION(battery_compare_system, lsm_battery_system_id_get, lsm_battery)
+CMP_FREE_FUNCTION(battery_free, lsm_battery_record_free, lsm_battery);
+
+void lsm_plug_battery_search_filter(const char *search_key,
+                                    const char *search_value,
+                                    lsm_battery *bs[], uint32_t *count)
+{
+    array_cmp cmp = NULL;
+
+    if (search_key) {
+
+        if (0 == strcmp("id", search_key)) {
+            cmp = battery_compare_id;
+        } else if (0 == strcmp("system_id", search_key)) {
+            cmp = battery_compare_system;
+        }
+
+        if (cmp)
+            *count = filter((void **) bs, *count, cmp, (void *) search_value,
+                            battery_free);
     }
 }

@@ -41,6 +41,7 @@
 #include "libstoragemgmt/libstoragemgmt_types.h"
 #include "libstoragemgmt/libstoragemgmt_volumes.h"
 #include "libstoragemgmt/libstoragemgmt_plug_interface.h"
+#include "libstoragemgmt/libstoragemgmt_battery.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -1949,6 +1950,83 @@ char *wwpn_convert(const char *wwpn)
     }
     return rc;
 }
+
+CREATE_ALLOC_ARRAY_FUNC(lsm_battery_record_array_alloc, lsm_battery *);
+
+lsm_battery *lsm_battery_record_alloc(const char *id, const char *name,
+                                      lsm_battery_type type, uint64_t status,
+                                      const char *system_id,
+                                      const char *plugin_data)
+{
+    lsm_battery *rc = NULL;
+
+    if ((id == NULL) || (name == NULL) || (system_id == NULL))
+        return NULL;
+
+    rc = (lsm_battery *) malloc(sizeof(lsm_battery));
+    if (rc != NULL) {
+        rc->magic = LSM_BATTERY_MAGIC;
+        rc->id = strdup(id);
+        rc->name = strdup(name);
+        rc->type = type;
+        rc->status = status;
+        rc->system_id = strdup(system_id);
+        rc->plugin_data = NULL;
+
+        if (plugin_data != NULL) {
+            rc->plugin_data = strdup(plugin_data);
+            if (rc->plugin_data == NULL) {
+                lsm_battery_record_free(rc);
+                rc = NULL;
+            }
+        }
+
+        if (rc->id == NULL || rc->name == NULL || rc->system_id == NULL) {
+            lsm_battery_record_free(rc);
+            rc = NULL;
+        }
+    }
+    return rc;
+}
+
+int lsm_battery_record_free(lsm_battery *b)
+{
+    if (LSM_IS_BATTERY(b)) {
+        b->magic = LSM_DEL_MAGIC(LSM_BATTERY_MAGIC);
+        free(b->name);
+        b->name = NULL;
+        free(b->id);
+        b->id = NULL;
+        free(b->system_id);
+        b->system_id = NULL;
+        free(b->plugin_data);
+        b->plugin_data = NULL;
+        free(b);
+        return LSM_ERR_OK;
+    }
+    return LSM_ERR_INVALID_ARGUMENT;
+}
+
+lsm_battery *lsm_battery_record_copy(lsm_battery *b)
+{
+    if (LSM_IS_BATTERY(b))
+        return lsm_battery_record_alloc(b->id, b->name, b->type, b->status,
+                                        b->system_id, b->plugin_data);
+    return NULL;
+}
+
+
+CREATE_FREE_ARRAY_FUNC(lsm_battery_record_array_free, lsm_battery_record_free,
+                       lsm_battery *, LSM_ERR_INVALID_ARGUMENT);
+
+MEMBER_FUNC_GET(const char *, lsm_battery, LSM_IS_BATTERY, id, NULL);
+MEMBER_FUNC_GET(const char *, lsm_battery, LSM_IS_BATTERY, name, NULL);
+MEMBER_FUNC_GET(const char *, lsm_battery, LSM_IS_BATTERY, system_id, NULL);
+MEMBER_FUNC_GET(const char *, lsm_battery, LSM_IS_BATTERY, plugin_data, NULL);
+MEMBER_FUNC_GET(uint64_t, lsm_battery, LSM_IS_BATTERY, status,
+                LSM_BATTERY_STATUS_UNKNOWN);
+MEMBER_FUNC_GET(lsm_battery_type, lsm_battery, LSM_IS_BATTERY, type,
+                LSM_BATTERY_TYPE_UNKNOWN);
 
 #ifdef  __cplusplus
 }

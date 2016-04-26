@@ -36,6 +36,7 @@ const char CLASS_NAME_FS_SNAPSHOT[] = "FsSnapshot";
 const char CLASS_NAME_FS_EXPORT[] = "NfsExport";
 const char CLASS_NAME_CAPABILITIES[] = "Capabilities";
 const char CLASS_NAME_TARGET_PORT[] = "TargetPort";
+const char CLASS_NAME_BATTERY[] = "Battery";
 
 
 #define IS_CLASS(x, name)   is_expected_object(x, name)
@@ -299,5 +300,30 @@ int LSM_DLL_LOCAL values_to_uint32_array(Value & value,
  */
 Value LSM_DLL_LOCAL uint32_array_to_value(uint32_t *uint32_array,
                                           uint32_t count);
+
+/**
+ * Converts a Value to a lsm_battery
+ * @param battery  Value representing a battery
+ * @return lsm_battery pointer, else NULL on error
+ */
+lsm_battery LSM_DLL_LOCAL *value_to_battery(Value &battery);
+
+/**
+ * Converts a lsm_battery to a value
+ * @param battery  lsm_battery to convert to value
+ * @return Value
+ */
+Value LSM_DLL_LOCAL battery_to_value(lsm_battery *battery);
+
+/**
+ * Converts a vector of battery values to an array.
+ * @param[in]  battery_values       Vector of values that represents batteries.
+ * @param[out] bs                   An array of battery pointers
+ * @param[out] count                Number of batteries
+ * @return LSM_ERR_OK on success, else error reason.
+ */
+int LSM_DLL_LOCAL value_array_to_batteries(Value &battery_values,
+                                           lsm_battery **bs[],
+                                           uint32_t * count);
 
 #endif

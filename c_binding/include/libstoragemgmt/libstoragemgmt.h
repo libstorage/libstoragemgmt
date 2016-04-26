@@ -35,6 +35,7 @@
 #include "libstoragemgmt_targetport.h"
 #include "libstoragemgmt_volumes.h"
 #include "libstoragemgmt_local_disk.h"
+#include "libstoragemgmt_battery.h"
 
 
 /*! \mainpage libStorageMgmt
@@ -1097,6 +1098,24 @@ int LSM_DLL_EXPORT lsm_system_read_cache_pct_update(lsm_connect *c,
                                                     uint32_t read_pct,
                                                     lsm_flag flags);
 
+/**
+ * New in version 1.3.
+ * Get a list of batteries for this storage system.
+ * When present, super capacitors will also be included.
+ * @param[in]   conn            Valid connection @see lsm_connect_password
+ * @param[in]   search_key      Search key (NULL for all)
+ * @param[in]   search_value    Search value
+ * @param[out]  bs              An array of lsm_battery types
+ * @param[out]  count           Number of batteries
+ * @param[in]   flags           Reserved set to zero
+ * @return Error code as enumerated by \ref lsm_error_number.
+ *         Returns LSM_ERR_OK on success.*
+ */
+int LSM_DLL_EXPORT lsm_battery_list(lsm_connect *conn,
+                                    const char *search_key,
+                                    const char *search_value,
+                                    lsm_battery **bs[], uint32_t *count,
+                                    lsm_flag flags);
 
 #ifdef  __cplusplus
 }

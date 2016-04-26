@@ -59,6 +59,9 @@ static const char *const TARGET_PORT_SEARCH_KEYS[] = { "id", "system_id" };
 
 #define TARGET_PORT_SEARCH_KEYS_COUNT COUNT_OF(TARGET_PORT_SEARCH_KEYS)
 
+static int get_battery_array(lsm_connect *c, int rc, Value &response,
+                             lsm_battery **bs[], uint32_t *count);
+
 /**
  * Common code to validate and initialize the connection.
  */
@@ -2609,4 +2612,45 @@ int lsm_system_read_cache_pct_update(lsm_connect * c, lsm_system * system,
     int rc = rpc(c, "system_read_cache_pct_update", parameters, response);
 
     return rc;
+}
+
+static int get_battery_array(lsm_connect *c, int rc, Value &response,
+                             lsm_battery **bs[], uint32_t *count)
+{
+    if (LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+        try {
+            rc = value_array_to_batteries(response, bs, count);
+        }
+        catch(const ValueException & ve) {
+            rc = log_exception(c, LSM_ERR_PLUGIN_BUG, "Unexpected type", NULL);
+        }
+    }
+
+    return rc;
+}
+
+int lsm_battery_list(lsm_connect *c, const char *search_key,
+                     const char *search_value, lsm_battery **bs[],
+                     uint32_t *count, lsm_flag flags)
+{
+    CONN_SETUP(c);
+
+    if (CHECK_RP(bs) || !count) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map < std::string, Value > p;
+    p["flags"] = Value(flags);
+
+    int rc = add_search_params(p, search_key, search_value, DISK_SEARCH_KEYS,
+                               DISK_SEARCH_KEYS_COUNT);
+    if (LSM_ERR_OK != rc) {
+        return rc;
+    }
+
+    Value parameters(p);
+    Value response;
+
+    rc = rpc(c, "batteries", parameters, response);
+    return get_battery_array(c, rc, response, bs, count);
 }

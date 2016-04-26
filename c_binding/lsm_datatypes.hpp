@@ -305,6 +305,17 @@ struct LSM_DLL_LOCAL _lsm_target_port {
     char *plugin_data;
 };
 
+#define LSM_BATTERY_MAGIC     0xAA7A0013
+#define LSM_IS_BATTERY(obj)   MAGIC_CHECK(obj, LSM_BATTERY_MAGIC)
+struct LSM_DLL_LOCAL _lsm_battery {
+    uint32_t magic;
+    char *id;
+    char *name;
+    lsm_battery_type type;
+    uint64_t status;
+    char *system_id;
+    char *plugin_data;
+};
 
 /**
  * Returns a pointer to a newly created connection structure.

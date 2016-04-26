@@ -36,6 +36,7 @@
 #include "libstoragemgmt_systems.h"
 #include "libstoragemgmt_volumes.h"
 #include "libstoragemgmt_disk.h"
+#include "libstoragemgmt_battery.h"
 
 #ifdef  __cplusplus
 extern "C" {
@@ -1079,6 +1080,70 @@ struct lsm_ops_v1_2 {
     lsm_plug_volume_raid_create vol_create_raid;
 };
 
+/**
+ * New in version 1.3.
+ * Retrieve a list of batteries.
+ * @param[in]   c               Valid lsm plug-in pointer
+ * @param[in]   search_key      Search key
+ * @param[in]   search_value    Search value
+ * @param[out]  bs              Array of batteries
+ * @param[out]  count           Number of batteries
+ * @param[in]   flags           Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
+typedef int (*lsm_plug_battery_list) (lsm_plugin_ptr c,
+                                      const char *search_key,
+                                      const char *search_val,
+                                      lsm_battery **bs[],
+                                      uint32_t *count, lsm_flag flags);
+
+/**
+ * New in version 1.3.
+ * Allows for battery filtering when a storage system can't support it natively.
+ * Note: Filters in place removing and freeing those that don't match.
+ * @param search_key        Search field
+ * @param search_value      Search value
+ * @param[in,out] bs      Array to filter
+ * @param[in,out] count     Number of batteries to filter, number remain
+ */
+void LSM_DLL_EXPORT lsm_plug_battery_search_filter(const char *search_key,
+                                                   const char *search_value,
+                                                   lsm_battery *bs[],
+                                                   uint32_t *count);
+/**
+ * New in version 1.3.
+ * Allocate the storage needed for an array of lsm_battery records.
+ * @param size      Number of elements
+ * @return Allocated memory or null on error.
+ */
+lsm_battery LSM_DLL_EXPORT **lsm_battery_record_array_alloc(uint32_t size);
+
+/**
+ * New in version 1.3.
+ * Allocate a battery record.
+ * @param id            Identification
+ * @param name          Human readable name
+ * @param type          Enumerated lsm_battery_type
+ * @param status        Status
+ * @param system_id     System id this battery resides in
+ * @param plugin_data   Reserved for plugin writer use
+ * @return Pointer to allocated disk record or NULL on memory error.
+ */
+lsm_battery LSM_DLL_EXPORT *lsm_battery_record_alloc(const char *id,
+                                                     const char *name,
+                                                     lsm_battery_type type,
+                                                     uint64_t status,
+                                                     const char *system_id,
+                                                     const char *plugin_data);
+
+/**
+ * New in version 1.3.
+ * Used to retrieve the plugin-private data for a specific battery.
+ * @param b     Battery to retrieve plugin private data for
+ * @return NULL if doesn't exists, else data.
+ */
+const char LSM_DLL_EXPORT *lsm_battery_plugin_data_get(lsm_battery *b);
+
 /** \struct lsm_ops_v1_3
  * \brief Functions added in version 1.3
  * NOTE: This structure will change during the developement util version 1.3
@@ -1088,6 +1153,7 @@ struct lsm_ops_v1_3 {
     lsm_plug_volume_ident_led_on vol_ident_on;
     lsm_plug_volume_ident_led_off vol_ident_off;
     lsm_plug_system_read_cache_pct_update sys_read_cache_pct_update;
+    lsm_plug_battery_list battery_list;
 };
 
 /**

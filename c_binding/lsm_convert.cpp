@@ -24,6 +24,7 @@
 #include "libstoragemgmt/libstoragemgmt_blockrange.h"
 #include "libstoragemgmt/libstoragemgmt_nfsexport.h"
 #include "libstoragemgmt/libstoragemgmt_plug_interface.h"
+#include "libstoragemgmt/libstoragemgmt_battery.h"
 
 
 bool std_map_has_key(const std::map < std::string, Value > &x, const char *key)
@@ -822,4 +823,85 @@ Value uint32_array_to_value(uint32_t * uint32_array, uint32_t count)
         }
     }
     return rc;
+}
+
+lsm_battery *value_to_battery(Value &battery)
+{
+    lsm_battery *rc = NULL;
+    if (is_expected_object(battery, CLASS_NAME_BATTERY)) {
+        std::map < std::string, Value > b = battery.asObject();
+
+        rc = lsm_battery_record_alloc(b["id"].asString().c_str(),
+                                      b["name"].asString().c_str(),
+                                      (lsm_battery_type) b["type"].asInt32_t(),
+                                      b["status"].asUint64_t(),
+                                      b["system_id"].asString().c_str(),
+                                      b["plugin_data"].asString().c_str());
+    } else {
+        throw ValueException("value_to_battery: Not correct type");
+    }
+    return rc;
+}
+
+Value battery_to_value(lsm_battery *battery)
+{
+    if (LSM_IS_BATTERY(battery)) {
+        std::map < std::string, Value > b;
+        b["class"] = Value(CLASS_NAME_BATTERY);
+        b["id"] = Value(battery->id);
+        b["name"] = Value(battery->name);
+        b["type"] = Value(battery->type);
+        b["status"] = Value(battery->status);
+        b["system_id"] = Value(battery->system_id);
+        if (battery->plugin_data != NULL)
+            b["plugin_data"] = Value(battery->plugin_data);
+        return Value(b);
+    }
+    return Value();
+}
+
+int value_array_to_batteries(Value &battery_values, lsm_battery ***bs,
+                             uint32_t *count)
+{
+    int rc = LSM_ERR_OK;
+    try {
+        *count = 0;
+
+        if (Value::array_t == battery_values.valueType()) {
+            std::vector < Value > d = battery_values.asArray();
+
+            *count = d.size();
+
+            if (d.size()) {
+                *bs = lsm_battery_record_array_alloc(d.size());
+
+                if (*bs) {
+                    for (size_t i = 0; i < d.size(); ++i) {
+                        (*bs)[i] = value_to_battery(d[i]);
+                        if (!((*bs)[i])) {
+                            rc = LSM_ERR_NO_MEMORY;
+                            goto error;
+                        }
+                    }
+                } else {
+                    rc = LSM_ERR_NO_MEMORY;
+                }
+            }
+        }
+    }
+    catch(const ValueException & ve) {
+        rc = LSM_ERR_LIB_BUG;
+        goto error;
+    }
+
+  out:
+    return rc;
+
+  error:
+    if (*bs && *count) {
+        lsm_battery_record_array_free(*bs, *count);
+        *bs = NULL;
+        *count = 0;
+    }
+    goto out;
 }

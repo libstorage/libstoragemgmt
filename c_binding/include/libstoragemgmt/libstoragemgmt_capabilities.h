@@ -115,6 +115,9 @@ typedef enum {
     /** Thin provisioned volumes are supported */
     LSM_CAP_VOLUME_THIN = 55,
 
+    /** Query battery is supported */
+    LSM_CAP_BATTERIES = 56,
+
     /** List file systems */
     LSM_CAP_FS = 100,
     /** Delete a file system */
