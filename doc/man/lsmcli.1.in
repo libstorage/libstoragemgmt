@@ -153,7 +153,7 @@ Required. Valid values are (case insensitive):
 \fBEXPORTS\fR, \fBNFS_CLIENT_AUTH\fR,
 .br
 \fBACCESS_GROUPS\fR, \fBSYSTEMS\fR, \fBDISKS\fR, \fBPLUGINS\fR,
-\fBTARGET_PORTS\fR.
+\fBTARGET_PORTS\fR, \fBBATTERIES\fR.
 
 .TP
 \fB--fs\fR \fI<FS_ID>\fR
@@ -636,6 +636,8 @@ Alias of 'list --type access_groups'
 Alias of 'list --type fs'
 .SS lt
 Alias of 'list --type target_ports'
+.SS lb
+Alias of 'list --type batteries'
 .SS c
  Alias of 'capabilities'
 .SS p

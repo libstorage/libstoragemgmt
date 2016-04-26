@@ -23,7 +23,7 @@ except ImportError:
 
 from datetime import datetime
 
-from lsm import (size_bytes_2_size_human, LsmError, ErrorNumber,
+from lsm import (size_bytes_2_size_human, LsmError, ErrorNumber, Battery,
                  System, Pool, Disk, Volume, AccessGroup,
                  FileSystem, FsSnapshot, NfsExport, TargetPort, LocalDisk)
 
@@ -264,6 +264,34 @@ def disk_link_type_to_str(link_type):
     if link_type == '':
         return "No Support"
     return _enum_type_to_str(link_type, LocalDiskInfo._LINK_TYPE_MAP)
+
+
+_BATTERY_TYPE_CONV = {
+    Battery.TYPE_UNKNOWN: "Unknown",
+    Battery.TYPE_OTHER: "Other",
+    Battery.TYPE_CHEMICAL: "Chemical",
+    Battery.TYPE_CAPACITOR: "Capacitor",
+}
+
+
+def battery_type_to_str(battery_type):
+    return _enum_type_to_str(battery_type, _BATTERY_TYPE_CONV)
+
+
+_BATTERY_STATUS_CONV = {
+    Battery.STATUS_UNKNOWN: "Unknown",
+    Battery.STATUS_OTHER: "Other",
+    Battery.STATUS_OK: "OK",
+    Battery.STATUS_DISCHARGING: "Discharging",
+    Battery.STATUS_CHARGING: "Charging",
+    Battery.STATUS_LEARNING: "Learning",
+    Battery.STATUS_DEGRADED: "Degraded",
+    Battery.STATUS_ERROR: "Error",
+}
+
+
+def battery_status_to_str(battery_status):
+    return _bit_map_to_str(battery_status, _BATTERY_STATUS_CONV)
 
 
 class PlugData(object):
@@ -712,6 +740,28 @@ class DisplayData(object):
         'column_skip_keys': LOCAL_DISK_COLUMN_SKIP_KEYS,
         'value_conv_enum': LOCAL_DISK_VALUE_CONV_ENUM,
         'value_conv_human': LOCAL_DISK_VALUE_CONV_HUMAN,
+    }
+
+    BATTERY_HEADER = OrderedDict()
+    BATTERY_HEADER['id'] = 'ID'
+    BATTERY_HEADER['name'] = 'Name'
+    BATTERY_HEADER['type'] = 'Type'
+    BATTERY_HEADER['status'] = 'Status'
+    BATTERY_HEADER['system_id'] = 'System ID'
+
+    BATTERY_COLUMN_SKIP_KEYS = []
+
+    BATTERY_VALUE_CONV_ENUM = {
+        'type': battery_type_to_str,
+        'status': battery_status_to_str,
+    }
+    BATTERY_VALUE_CONV_HUMAN = ['']
+
+    VALUE_CONVERT[Battery] = {
+        'headers': BATTERY_HEADER,
+        'column_skip_keys': BATTERY_COLUMN_SKIP_KEYS,
+        'value_conv_enum': BATTERY_VALUE_CONV_ENUM,
+        'value_conv_human': BATTERY_VALUE_CONV_HUMAN,
     }
 
     @staticmethod

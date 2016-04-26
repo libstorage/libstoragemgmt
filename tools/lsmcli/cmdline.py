@@ -34,7 +34,8 @@ from argparse import RawTextHelpFormatter
 from lsm import (Client, Pool, VERSION, LsmError, Disk,
                  Volume, JobStatus, ErrorNumber, BlockRange,
                  uri_parse, Proxy, size_human_2_size_bytes,
-                 AccessGroup, FileSystem, NfsExport, TargetPort, LocalDisk)
+                 AccessGroup, FileSystem, NfsExport, TargetPort, LocalDisk,
+                 Battery)
 
 from lsm.lsmcli.data_display import (
     DisplayData, PlugData, out,
@@ -225,7 +226,7 @@ def _get_item(l, the_id, friendly_name='item', raise_error=True):
 
 list_choices = ['VOLUMES', 'POOLS', 'FS', 'SNAPSHOTS',
                 'EXPORTS', "NFS_CLIENT_AUTH", 'ACCESS_GROUPS',
-                'SYSTEMS', 'DISKS', 'PLUGINS', 'TARGET_PORTS']
+                'SYSTEMS', 'DISKS', 'PLUGINS', 'TARGET_PORTS', 'BATTERIES']
 
 provision_types = ('DEFAULT', 'THIN', 'FULL')
 provision_help = "provisioning type: " + ", ".join(provision_types)
@@ -811,6 +812,7 @@ aliases = (
     ['srcpu', 'system-read-cache-pct-update'],
     ['pmi', 'pool-member-info'],
     ['ldl', 'local-disk-list'],
+    ['lb', 'list --type batteries'],
 )
 
 
@@ -1082,6 +1084,13 @@ class CmdLine:
                 self.c.target_ports(search_key, search_value))
         elif args.type == 'PLUGINS':
             self.display_available_plugins()
+        elif args.type == 'BATTERIES':
+            if search_key and \
+               search_key not in Battery.SUPPORTED_SEARCH_KEYS:
+                raise ArgError("Search key '%s' is not supported by "
+                               "battery listing" % search_key)
+            self.display_data(
+                self.c.batteries(search_key, search_value))
         else:
             raise ArgError("unsupported listing type=%s" % args.type)
 
