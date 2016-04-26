@@ -452,8 +452,8 @@ def test_display(cap, system_id):
     if cap['EXPORT_AUTH']:
         to_test.append('NFS_CLIENT_AUTH')
 
-    if cap['EXPORTS']:
-        to_test.append('EXPORTS')
+    if cap['BATTERIES']:
+        to_test.append('BATTERIES')
 
     display_check(to_test, system_id)
 

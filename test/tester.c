@@ -27,6 +27,8 @@
 #include <libstoragemgmt/libstoragemgmt.h>
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 
+static int compare_battery(lsm_battery *l, lsm_battery *r);
+
 const char URI[] = "sim://localhost/?statefile=%s/lsm_sim_%s";
 const char SYSTEM_NAME[] = "LSM simulated storage plug-in";
 const char SYSTEM_ID[] = "sim-01";
@@ -1048,6 +1050,21 @@ static int compare_disks(lsm_disk *l, lsm_disk *r)
         COMPARE_NUMBER_FUNC(lsm_disk_number_of_blocks_get, l, r);
         COMPARE_NUMBER_FUNC(lsm_disk_block_size_get, l, r);
         COMPARE_NUMBER_FUNC(lsm_disk_status_get, l, r);
+        return 0;
+    }
+    return 1;
+}
+
+static int compare_battery(lsm_battery *l, lsm_battery *r)
+{
+    int rc;
+    if( l && r ) {
+        COMPARE_STR_FUNC(lsm_battery_id_get, l, r);
+        COMPARE_STR_FUNC(lsm_battery_name_get, l, r);
+        COMPARE_STR_FUNC(lsm_battery_system_id_get, l, r);
+        COMPARE_STR_FUNC(lsm_battery_plugin_data_get, l, r);
+        COMPARE_NUMBER_FUNC(lsm_battery_type_get, l, r);
+        COMPARE_NUMBER_FUNC(lsm_battery_status_get, l, r);
         return 0;
     }
     return 1;
@@ -3558,6 +3575,48 @@ START_TEST(test_local_disk_link_type)
 }
 END_TEST
 
+START_TEST(test_batteries)
+{
+    uint32_t count = 0;
+    lsm_battery **bs = NULL;
+    const char *id = NULL;
+    const char *name = NULL;
+    const char *system_id = NULL;
+    uint32_t i = 0;
+    lsm_battery *b_copy = NULL;
+
+    fail_unless(c != NULL);
+
+    int rc = lsm_battery_list(c, NULL, NULL, &bs, &count, 0);
+
+    fail_unless(LSM_ERR_OK == rc, "lsm_battery_list(): rc %d", rc);
+    fail_unless(count >= 1, "Got no battery");
+
+    for(; i < count; ++i) {
+        b_copy = lsm_battery_record_copy(bs[i]);
+        fail_unless(b_copy != NULL );
+        fail_unless(compare_battery(bs[i], b_copy) == 0);
+        lsm_battery_record_free(b_copy);
+        b_copy = NULL;
+
+        id = lsm_battery_id_get(bs[i]);
+        fail_unless(id != NULL && strlen(id) > 0);
+
+        name = lsm_battery_name_get(bs[i]);
+        fail_unless(name != NULL && strlen(name) > 0);
+
+        system_id = lsm_battery_system_id_get(bs[i]);
+        fail_unless(system_id != NULL && strlen(system_id) > 0);
+        fail_unless(strcmp(system_id, SYSTEM_ID) == 0,
+                    "Incorrect battery system id: %s", id);
+        fail_unless(lsm_battery_type_get(bs[i]) >= 1 );
+        fail_unless(lsm_battery_status_get(bs[i]) >= 1);
+    }
+    lsm_battery_record_array_free(bs, count);
+}
+END_TEST
+
+
 Suite * lsm_suite(void)
 {
     Suite *s = suite_create("libStorageMgmt");
@@ -3610,6 +3669,7 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_local_disk_list);
     tcase_add_test(basic, test_local_disk_rpm_get);
     tcase_add_test(basic, test_local_disk_link_type);
+    tcase_add_test(basic, test_batteries);
 
     suite_add_tcase(s, basic);
     return s;

@@ -1570,6 +1570,12 @@ class TestPlugin(unittest.TestCase):
         except lsm.LsmError as le:
             self.assertTrue(le.code == lsm.ErrorNumber.INVALID_ARGUMENT)
 
+    def test_battery_list(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            if supported(cap, [Cap.BATTERIES]):
+                self.c.batteries()
+
 
 def dump_results():
     """
