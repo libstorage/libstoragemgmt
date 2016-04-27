@@ -399,6 +399,10 @@ class MegaRAID(IPlugin):
         cap.set(Capabilities.POOL_MEMBER_INFO)
         cap.set(Capabilities.VOLUME_RAID_CREATE)
         cap.set(Capabilities.BATTERIES)
+        cap.set(Capabilities.VOLUME_PHYSICAL_DISK_CACHE_SET)
+        cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_WRITE_BACK)
+        cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_AUTO)
+        cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_WRITE_THROUGH)
         return cap
 
     def _storcli_exec(self, storcli_cmds, flag_json=True):
@@ -1042,3 +1046,58 @@ class MegaRAID(IPlugin):
 
         return [write_cache_policy, write_cache_status,
                 read_cache_policy, read_cache_status, phy_disk_cache]
+
+    @_handle_errors
+    def volume_physical_disk_cache_update(self, volume, pdc,
+                                          flags=Client.FLAG_RSVD):
+        """
+        Depending on "storcli /c0/vX set pdcache=<on|off>" command.
+        """
+        cmd = [_vd_path_of_lsm_vol(volume), "set"]
+        if pdc == Volume.PHYSICAL_DISK_CACHE_ENABLED:
+            cmd.append("pdcache=on")
+        elif pdc == Volume.PHYSICAL_DISK_CACHE_DISABLED:
+            cmd.append("pdcache=off")
+        else:
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
+                           "Got unknown pdc: %d" % pdc)
+        try:
+            self._storcli_exec(cmd)
+            # On SSD disk, the command will return 0 for failure, only
+            # json output will indicate error.
+        except LsmError as lsm_err:
+            if lsm_err.code == ErrorNumber.PLUGIN_BUG and \
+               "SSD Pd is present" in lsm_err.msg:
+                raise LsmError(
+                    ErrorNumber.NO_SUPPORT,
+                    "Changing SSD physical disk cache is not allowed "
+                    "on MegaRAID")
+            raise
+
+    @_handle_errors
+    def volume_write_cache_policy_update(self, volume, wcp,
+                                         flags=Client.FLAG_RSVD):
+        """
+        Depending on "storcli /c0/vX set wrcache=<wt|wb|awb>" command.
+        """
+        cmd = [_vd_path_of_lsm_vol(volume), "set"]
+        if wcp == Volume.WRITE_CACHE_POLICY_WRITE_BACK:
+            cmd.append("wrcache=awb")
+        elif wcp == Volume.WRITE_CACHE_POLICY_AUTO:
+            cmd.append("wrcache=wb")
+        elif wcp == Volume.WRITE_CACHE_POLICY_WRITE_THROUGH:
+            cmd.append("wrcache=wt")
+        else:
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
+                           "Got unknown wcp: %d" % wcp)
+        self._storcli_exec(cmd)
+
+    @_handle_errors
+    def volume_read_cache_policy_update(self, volume, rcp,
+                                        flags=Client.FLAG_RSVD):
+        """
+        storcli always enable read cache and no way to change it
+        """
+        raise LsmError(ErrorNumber.NO_SUPPORT,
+                       "LSI MegaRAID always enable read cache and refused to "
+                       "change that.")
