@@ -620,6 +620,12 @@ List all disks found on current local operating system.
 Require permission to open /dev/sdX as read-only, normally root user or disk
 group would have sufficient permission.
 
+.SS volume-cache-info
+Query RAM cache information for the desired volume.
+.TP 15
+\fB--vol\fR \fI<VOL_ID>\fR
+Required. ID of the volume to query cache information.
+
 .IP
 .SH ALIAS
 .SS ls
@@ -676,6 +682,8 @@ Alias of 'access-group-delete'
 Alias of 'system-read-cache-pct-update'
 .SS ldl
 Alias of 'local-disk-list'
+.SS vci
+Alias of 'volume-cache-info'
 
 .IP
 .SH SIZE OPTION

@@ -392,6 +392,75 @@ class LocalDiskInfo(object):
         self.link_type = link_type
 
 
+class VolumeRAMCacheInfo(object):
+
+    _PHY_DISK_CACHE_STATUS_MAP = {
+        Volume.PHYSICAL_DISK_CACHE_USE_DISK_SETTING: "Use Disk Setting",
+        Volume.PHYSICAL_DISK_CACHE_ENABLED: "Enabled",
+        Volume.PHYSICAL_DISK_CACHE_DISABLED: "Disabled",
+        Volume.PHYSICAL_DISK_CACHE_UNKNOWN: "Unknown",
+    }
+
+    _W_CACHE_POLICY_MAP = {
+        Volume.WRITE_CACHE_POLICY_UNKNOWN: "Unknown",
+        Volume.WRITE_CACHE_POLICY_WRITE_BACK: "Write Back",
+        Volume.WRITE_CACHE_POLICY_AUTO: "Auto",
+        Volume.WRITE_CACHE_POLICY_WRITE_THROUGH: "Write Through",
+    }
+
+    _W_CACHE_STATUS_MAP = {
+        Volume.WRITE_CACHE_STATUS_UNKNOWN: "Unknown",
+        Volume.WRITE_CACHE_STATUS_WRITE_BACK: "Write Back",
+        Volume.WRITE_CACHE_STATUS_WRITE_THROUGH: "Write Through",
+    }
+
+    _R_CACHE_POLICY_MAP = {
+        Volume.READ_CACHE_POLICY_UNKNOWN: "Unknown",
+        Volume.READ_CACHE_POLICY_ENABLED: "Enabled",
+        Volume.READ_CACHE_POLICY_DISABLED: "Disabled",
+    }
+
+    _R_CACHE_STATUS_MAP = {
+        Volume.READ_CACHE_STATUS_UNKNOWN: "Unknown",
+        Volume.READ_CACHE_STATUS_ENABLED: "Enabled",
+        Volume.READ_CACHE_STATUS_DISABLED: "Disabled",
+    }
+
+    def __init__(self, vol_id, write_cache_policy, write_cache_status,
+                 read_cache_policy, read_cache_status, phy_disk_cache):
+        self.vol_id = vol_id
+        self.write_cache_policy = write_cache_policy
+        self.write_cache_status = write_cache_status
+        self.read_cache_policy = read_cache_policy
+        self.read_cache_status = read_cache_status
+        self.phy_disk_cache = phy_disk_cache
+
+    @staticmethod
+    def phy_disk_cache_status_to_str(phy_disk_cache):
+        return _enum_type_to_str(
+            phy_disk_cache, VolumeRAMCacheInfo._PHY_DISK_CACHE_STATUS_MAP)
+
+    @staticmethod
+    def w_cache_policy_to_str(w_cache_p):
+        return _enum_type_to_str(
+            w_cache_p, VolumeRAMCacheInfo._W_CACHE_POLICY_MAP)
+
+    @staticmethod
+    def w_cache_status_to_str(w_cache_status):
+        return _enum_type_to_str(
+            w_cache_status, VolumeRAMCacheInfo._W_CACHE_STATUS_MAP)
+
+    @staticmethod
+    def r_cache_policy_to_str(r_cache_p):
+        return _enum_type_to_str(
+            r_cache_p, VolumeRAMCacheInfo._R_CACHE_POLICY_MAP)
+
+    @staticmethod
+    def r_cache_status_to_str(r_cache_status):
+        return _enum_type_to_str(
+            r_cache_status, VolumeRAMCacheInfo._R_CACHE_STATUS_MAP)
+
+
 class DisplayData(object):
 
     def __init__(self):
@@ -762,6 +831,32 @@ class DisplayData(object):
         'column_skip_keys': BATTERY_COLUMN_SKIP_KEYS,
         'value_conv_enum': BATTERY_VALUE_CONV_ENUM,
         'value_conv_human': BATTERY_VALUE_CONV_HUMAN,
+    }
+
+    VOL_CACHE_INFO_HEADER = OrderedDict()
+    VOL_CACHE_INFO_HEADER['vol_id'] = 'Volume ID'
+    VOL_CACHE_INFO_HEADER['write_cache_policy'] = 'Write Cache Policy'
+    VOL_CACHE_INFO_HEADER['write_cache_status'] = 'Write Cache'
+    VOL_CACHE_INFO_HEADER['read_cache_policy'] = 'Read Cache Policy'
+    VOL_CACHE_INFO_HEADER['read_cache_status'] = 'Read Cache'
+    VOL_CACHE_INFO_HEADER['phy_disk_cache'] = 'Physical Disk Cache'
+
+    VOL_CACHE_INFO_COLUMN_SKIP_KEYS = []
+
+    VOL_CACHE_INFO_VALUE_CONV_ENUM = {
+        'write_cache_policy': VolumeRAMCacheInfo.w_cache_policy_to_str,
+        'write_cache_status': VolumeRAMCacheInfo.w_cache_status_to_str,
+        'read_cache_policy': VolumeRAMCacheInfo.r_cache_policy_to_str,
+        'read_cache_status': VolumeRAMCacheInfo.r_cache_status_to_str,
+        'phy_disk_cache': VolumeRAMCacheInfo.phy_disk_cache_status_to_str,
+    }
+    VOL_CACHE_INFO_VALUE_CONV_HUMAN = []
+
+    VALUE_CONVERT[VolumeRAMCacheInfo] = {
+        'headers': VOL_CACHE_INFO_HEADER,
+        'column_skip_keys': VOL_CACHE_INFO_COLUMN_SKIP_KEYS,
+        'value_conv_enum': VOL_CACHE_INFO_VALUE_CONV_ENUM,
+        'value_conv_human': VOL_CACHE_INFO_VALUE_CONV_HUMAN,
     }
 
     @staticmethod

@@ -40,7 +40,7 @@ from lsm import (Client, Pool, VERSION, LsmError, Disk,
 from lsm.lsmcli.data_display import (
     DisplayData, PlugData, out,
     vol_provision_str_to_type, vol_rep_type_str_to_type, VolumeRAIDInfo,
-    PoolRAIDInfo, VcrCap, LocalDiskInfo)
+    PoolRAIDInfo, VcrCap, LocalDiskInfo, VolumeRAMCacheInfo)
 
 _CONNECTION_FREE_COMMANDS = ['local-disk-list']
 
@@ -781,6 +781,13 @@ cmds = (
         optional=[
         ],
     ),
+    dict(
+        name='volume-cache-info',
+        help='Query volume RAM cache information',
+        args=[
+            dict(vol_id_opt),
+        ],
+    ),
 )
 
 aliases = (
@@ -813,6 +820,7 @@ aliases = (
     ['pmi', 'pool-member-info'],
     ['ldl', 'local-disk-list'],
     ['lb', 'list --type batteries'],
+    ['vci', 'volume-cache-info'],
 )
 
 
@@ -1688,3 +1696,10 @@ class CmdLine:
                 LocalDiskInfo(disk_path, vpd83, rpm, link_type))
 
         self.display_data(local_disks)
+
+    def volume_cache_info(self, args):
+        lsm_vol = _get_item(self.c.volumes(), args.vol, "Volume")
+        self.display_data(
+            [
+                VolumeRAMCacheInfo(
+                    lsm_vol.id, *self.c.volume_cache_info(lsm_vol))])
