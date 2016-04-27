@@ -234,6 +234,22 @@ provision_help = "provisioning type: " + ", ".join(provision_types)
 replicate_types = ('CLONE', 'COPY', 'MIRROR_ASYNC', 'MIRROR_SYNC')
 replicate_help = "replication type: " + ", ".join(replicate_types)
 
+policy_types = ['ENABLE', 'DISABLE']
+policy_help = 'Policy: ' + ', '.join(policy_types)
+policy_opt = dict(name="--policy", metavar='<POLICY>',
+                  help=policy_help, choices=policy_types,
+                  type=str.upper)
+
+write_cache_policy_types = ['WB', 'AUTO', 'WT']
+write_cache_policy_help = 'Write cache policys: ' + \
+                          ', '.join(write_cache_policy_types) + \
+                          'which stand for "write back", "auto", ' + \
+                          '"write through"'
+write_cache_policy_opt = dict(name="--policy", metavar='<POLICY>',
+                              help=write_cache_policy_help,
+                              choices=write_cache_policy_types,
+                              type=str.upper)
+
 size_help = 'Can use B, KiB, MiB, GiB, TiB, PiB postfix (IEC sizing)'
 
 sys_id_opt = dict(name='--sys', metavar='<SYS_ID>', help='System ID')
@@ -788,6 +804,31 @@ cmds = (
             dict(vol_id_opt),
         ],
     ),
+    dict(
+        name='volume-phy-disk-cache-update',
+        help='Update volume physical disk cache setting',
+        args=[
+            dict(vol_id_opt),
+            dict(policy_opt),
+        ],
+    ),
+
+    dict(
+        name='volume-read-cache-policy-update',
+        help='Update volume read cache policy',
+        args=[
+            dict(vol_id_opt),
+            dict(policy_opt),
+        ],
+    ),
+    dict(
+        name='volume-write-cache-policy-update',
+        help='Update volume write cache policy',
+        args=[
+            dict(vol_id_opt),
+            dict(write_cache_policy_opt),
+        ],
+    ),
 )
 
 aliases = (
@@ -821,6 +862,9 @@ aliases = (
     ['ldl', 'local-disk-list'],
     ['lb', 'list --type batteries'],
     ['vci', 'volume-cache-info'],
+    ['vpdcu', 'volume-phy-disk-cache-update'],
+    ['vrcpu', 'volume-read-cache-policy-update'],
+    ['vwcpu', 'volume-write-cache-policy-update'],
 )
 
 
@@ -1699,6 +1743,44 @@ class CmdLine:
 
     def volume_cache_info(self, args):
         lsm_vol = _get_item(self.c.volumes(), args.vol, "Volume")
+        self.display_data(
+            [
+                VolumeRAMCacheInfo(
+                    lsm_vol.id, *self.c.volume_cache_info(lsm_vol))])
+
+    def volume_phy_disk_cache_update(self, args):
+        lsm_vol = _get_item(self.c.volumes(), args.vol, "Volume")
+        if args.policy == "ENABLE":
+            policy = Volume.READ_CACHE_POLICY_ENABLED
+        else:
+            policy = Volume.READ_CACHE_POLICY_DISABLED
+        self.c.volume_physical_disk_cache_update(lsm_vol, policy)
+        self.display_data(
+            [
+                VolumeRAMCacheInfo(
+                    lsm_vol.id, *self.c.volume_cache_info(lsm_vol))])
+
+    def volume_read_cache_policy_update(self, args):
+        lsm_vol = _get_item(self.c.volumes(), args.vol, "Volume")
+        if args.policy == "ENABLE":
+            policy = Volume.PHYSICAL_DISK_CACHE_ENABLED
+        else:
+            policy = Volume.PHYSICAL_DISK_CACHE_DISABLED
+        self.c.volume_read_cache_policy_update(lsm_vol, policy)
+        self.display_data(
+            [
+                VolumeRAMCacheInfo(
+                    lsm_vol.id, *self.c.volume_cache_info(lsm_vol))])
+
+    def volume_write_cache_policy_update(self, args):
+        lsm_vol = _get_item(self.c.volumes(), args.vol, "Volume")
+        if args.policy == 'WB':
+            policy = Volume.WRITE_CACHE_POLICY_WRITE_BACK
+        elif args.policy == 'AUTO':
+            policy = Volume. WRITE_CACHE_POLICY_AUTO
+        else:
+            policy = Volume. WRITE_CACHE_POLICY_WRITE_THROUGH
+        self.c.volume_write_cache_policy_update(lsm_vol, policy)
         self.display_data(
             [
                 VolumeRAMCacheInfo(

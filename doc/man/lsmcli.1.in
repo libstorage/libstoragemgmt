@@ -626,6 +626,35 @@ Query RAM cache information for the desired volume.
 \fB--vol\fR \fI<VOL_ID>\fR
 Required. ID of the volume to query cache information.
 
+.SS volume-phy-disk-cache-update
+Disable or enable RAM physical disk cache of certain volume.
+.TP 15
+\fB--vol\fR \fI<VOL_ID>\fR
+Required. ID of the volume to change.
+.TP
+\fB--policy\fR \fI<POLICY>\fR
+Required. \fBEnable\fR or \fBDisable\fR.
+
+.SS volume-read-cache-policy-update
+Disable or enable RAM read cache of certain volume.
+.TP 15
+\fB--vol\fR \fI<VOL_ID>\fR
+Required. ID of the volume to change.
+.TP
+\fB--policy\fR \fI<POLICY>\fR
+Required. \fBEnable\fR or \fBDisable\fR.
+
+.SS volume-write-cache-policy-update
+Change volume write cache policy.
+.TP 15
+\fB--vol\fR \fI<VOL_ID>\fR
+Required. ID of the volume to change.
+.TP
+\fB--policy\fR \fI<POLICY>\fR
+Required. \fBWB\fR for write back mode, \fBWT\fR for write through mode,
+\fBAUTO\fR for auto mode which use \fBWB\fR mode when any battery is OK and use
+\fBWT\fR mode else.
+
 .IP
 .SH ALIAS
 .SS ls
@@ -684,6 +713,12 @@ Alias of 'system-read-cache-pct-update'
 Alias of 'local-disk-list'
 .SS vci
 Alias of 'volume-cache-info'
+.SS vpdcu
+Alias of 'volume-phy-disk-cache-update'
+.SS vrcpu
+Alias of 'volume-read-cache-policy-update'
+.SS vwcpu
+Alias of 'volume-write-cache-policy-update'
 
 .IP
 .SH SIZE OPTION
