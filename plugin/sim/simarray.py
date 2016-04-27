@@ -1681,6 +1681,18 @@ class BackStore(object):
         """
         return self._get_table('batteries', BackStore.BAT_KEY_LIST)
 
+    def sim_vol_pdc_set(self, sim_vol_id, pdc):
+        self.sim_vol_of_id(sim_vol_id)
+        self._data_update('volumes', sim_vol_id, 'phy_disk_cache', pdc)
+
+    def sim_vol_rcp_set(self, sim_vol_id, rcp):
+        self.sim_vol_of_id(sim_vol_id)
+        self._data_update('volumes', sim_vol_id, 'read_cache_policy', rcp)
+
+    def sim_vol_wcp_set(self, sim_vol_id, wcp):
+        self.sim_vol_of_id(sim_vol_id)
+        self._data_update('volumes', sim_vol_id, 'write_cache_policy', wcp)
+
 
 class SimArray(object):
     SIM_DATA_FILE = os.getenv("LSM_SIM_DATA",
@@ -2521,3 +2533,30 @@ class SimArray(object):
         return [sim_vol['write_cache_policy'], write_cache_status,
                 sim_vol['read_cache_policy'], read_cache_status,
                 sim_vol['phy_disk_cache']]
+
+    @_handle_errors
+    def volume_physical_disk_cache_update(self, volume, pdc, flags=0):
+        self.bs_obj.trans_begin()
+        sim_vol_id = SimArray._lsm_id_to_sim_id(
+            volume.id, LsmError(ErrorNumber.NOT_FOUND_VOLUME,
+                                "Volume not found"))
+        self.bs_obj.sim_vol_pdc_set(sim_vol_id, pdc)
+        self.bs_obj.trans_commit()
+
+    @_handle_errors
+    def volume_write_cache_policy_update(self, volume, wcp, flags=0):
+        self.bs_obj.trans_begin()
+        sim_vol_id = SimArray._lsm_id_to_sim_id(
+            volume.id, LsmError(ErrorNumber.NOT_FOUND_VOLUME,
+                                "Volume not found"))
+        self.bs_obj.sim_vol_wcp_set(sim_vol_id, wcp)
+        self.bs_obj.trans_commit()
+
+    @_handle_errors
+    def volume_read_cache_policy_update(self, volume, rcp, flags=0):
+        self.bs_obj.trans_begin()
+        sim_vol_id = SimArray._lsm_id_to_sim_id(
+            volume.id, LsmError(ErrorNumber.NOT_FOUND_VOLUME,
+                                "Volume not found"))
+        self.bs_obj.sim_vol_rcp_set(sim_vol_id, rcp)
+        self.bs_obj.trans_commit()

@@ -84,6 +84,14 @@ class SimPlugin(INfs, IStorageAreaNetwork):
         rc.set(Capabilities.NFS_EXPORTS_QUICK_SEARCH, Capabilities.UNSUPPORTED)
         rc.set(Capabilities.TARGET_PORTS_QUICK_SEARCH,
                Capabilities.UNSUPPORTED)
+        rc.set(Capabilities.VOLUME_PHYSICAL_DISK_CACHE_UPDATE_SYSTEM_LEVEL,
+               Capabilities.UNSUPPORTED)
+        rc.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_IMPACT_READ,
+               Capabilities.UNSUPPORTED)
+        rc.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_WB_IMPACT_OTHER,
+               Capabilities.UNSUPPORTED)
+        rc.set(Capabilities.VOLUME_READ_CACHE_POLICY_UPDATE_IMPACT_WRITE,
+               Capabilities.UNSUPPORTED)
         return rc
 
     def plugin_info(self, flags=0):
@@ -321,3 +329,15 @@ class SimPlugin(INfs, IStorageAreaNetwork):
 
     def volume_cache_info(self, volume, flags=Client.FLAG_RSVD):
         return self.sim_array.volume_cache_info(volume)
+
+    def volume_physical_disk_cache_update(self, volume, pdc,
+                                          flags=Client.FLAG_RSVD):
+        return self.sim_array.volume_physical_disk_cache_update(volume, pdc)
+
+    def volume_read_cache_policy_update(self, volume, rcp,
+                                        flags=Client.FLAG_RSVD):
+        return self.sim_array.volume_read_cache_policy_update(volume, rcp)
+
+    def volume_write_cache_policy_update(self, volume, wcp,
+                                         flags=Client.FLAG_RSVD):
+        return self.sim_array.volume_write_cache_policy_update(volume, wcp)
