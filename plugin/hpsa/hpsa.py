@@ -394,6 +394,7 @@ class SmartArray(IPlugin):
         cap.set(Capabilities.DISK_LOCATION)
         cap.set(Capabilities.VOLUME_LED)
         cap.set(Capabilities.BATTERIES)
+        cap.set(Capabilities.VOLUME_CACHE_INFO)
         return cap
 
     def _sacli_exec(self, sacli_cmds, flag_convert=True, flag_force=False):
@@ -1104,3 +1105,94 @@ class SmartArray(IPlugin):
                         _plugin_data=None))
 
         return search_property(lsm_bs, search_key, search_value)
+
+    def _cal_of_lsm_vol(self, lsm_vol):
+        """
+        Retrieve controller slot number, array number, logical disk number
+        of given volume. Also validate the existence.
+        Return (ctrl_num, array_num, ld_num)
+        """
+        try:
+            new_lsm_vol = \
+                self.volumes(search_key='id', search_value=lsm_vol.id)[0]
+        except IndexError:
+            raise LsmError(
+                ErrorNumber.NOT_FOUND_VOLUME,
+                "Volume not found")
+
+        return new_lsm_vol.plugin_data.split(":")
+
+    @_handle_errors
+    def volume_cache_info(self, volume, flags=Client.FLAG_RSVD):
+        """
+        Depend on command:
+            hpssacli ctrl slot=0 show config detail
+        """
+        flag_battery_ok = False
+        flag_ram_ok = False
+
+        (ctrl_num, array_num, ld_num) = self._cal_of_lsm_vol(volume)
+        ctrl_data = self._sacli_exec(
+            ["ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
+            ).values()[0]
+
+        lsm_bats = self.batteries()
+        for lsm_bat in lsm_bats:
+            if lsm_bat.status == Battery.STATUS_OK:
+                flag_battery_ok = True
+
+        if 'Total Cache Size' in ctrl_data and \
+           _hp_size_to_lsm(ctrl_data['Total Cache Size']) > 0 and \
+           ctrl_data['Cache Status'] == 'OK':
+            flag_ram_ok = True
+
+        ld_info = ctrl_data.get(
+            "Array: %s" % array_num, {}).get("Logical Drive: %s" % ld_num, {})
+
+        if not ld_info:
+            raise LsmError(ErrorNumber.NOT_FOUND_VOLUME, "Volume not found")
+
+        if ld_info['Caching'] == 'Disabled':
+            write_cache_policy = Volume.WRITE_CACHE_POLICY_WRITE_THROUGH
+            write_cache_status = Volume.WRITE_CACHE_STATUS_WRITE_THROUGH
+            read_cache_policy = Volume.READ_CACHE_POLICY_DISABLED
+            read_cache_status = Volume.READ_CACHE_STATUS_DISABLED
+        elif ld_info['Caching'] == 'Enabled':
+            read_cache_policy = Volume.READ_CACHE_POLICY_ENABLED
+            if ctrl_data.get('No-Battery Write Cache', '') == 'Enabled':
+                write_cache_policy = Volume.WRITE_CACHE_POLICY_WRITE_BACK
+                if flag_ram_ok:
+                    write_cache_status = Volume.WRITE_CACHE_STATUS_WRITE_BACK
+                    read_cache_status = Volume.READ_CACHE_STATUS_ENABLED
+                else:
+                    write_cache_status = Volume.WRITE_CACHE_STATUS_WRITE_THROUGH
+                    read_cache_status = Volume.READ_CACHE_STAUS_DISABLED
+            else:
+                write_cache_policy = Volume.WRITE_CACHE_POLICY_AUTO
+                if flag_ram_ok:
+                    read_cache_status = Volume.READ_CACHE_STATUS_ENABLED
+                    if flag_battery_ok:
+                        write_cache_status = \
+                            Volume.WRITE_CACHE_STATUS_WRITE_BACK
+                    else:
+                        write_cache_status = \
+                            Volume.WRITE_CACHE_POLICY_WRITE_THROUGH
+                else:
+                    read_cache_status = Volume.READ_CACHE_STATUS_DISABLED
+                    write_cache_status = Volume.WRITE_CACHE_STATUS_WRITE_THROUGH
+        else:
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
+                           "Unknown 'Caching' property of logical volume %d" %
+                           ld_num)
+
+        if ctrl_data['Drive Write Cache'] == 'Disabled':
+            phy_disk_cache = Volume.PHYSICAL_DISK_CACHE_DISABLED
+        elif ctrl_data['Drive Write Cache'] == 'Enabled':
+            phy_disk_cache = Volume.PHYSICAL_DISK_CACHE_ENABLED
+        else:
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
+                           "Unknown 'Drive Write Cache' property of "
+                           "logical volume %d" % ld_num)
+
+        return [write_cache_policy, write_cache_status, read_cache_policy,
+                read_cache_status, phy_disk_cache]
