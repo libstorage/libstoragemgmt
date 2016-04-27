@@ -49,6 +49,12 @@ static char disk_location[] = "Port: 2E Box: 3 Bay: 12";
 static int lsm_battery_list(lsm_plugin_ptr c, const char *search_key,
                             const char *search_val, lsm_battery ***bs,
                             uint32_t *count, lsm_flag flags);
+static int lsm_volume_cache_info(lsm_plugin_ptr c, lsm_volume *volume,
+                                 uint32_t *write_cache_policy,
+                                 uint32_t *write_cache_status,
+                                 uint32_t *read_cache_policy,
+                                 uint32_t *read_cache_status,
+                                 uint32_t *physical_disk_cache, lsm_flag flags);
 
 /**
  * Creates a md5 string (DO NOT FREE RETURN VALUE as the string is static)
@@ -403,7 +409,9 @@ static int cap(lsm_plugin_ptr c, lsm_system * system,
                                   LSM_CAP_VOLUME_RAID_INFO,
                                   LSM_CAP_VOLUME_LED,
                                   LSM_CAP_POOL_MEMBER_INFO,
-                                  LSM_CAP_BATTERIES, -1);
+                                  LSM_CAP_BATTERIES,
+                                  LSM_CAP_VOLUME_CACHE_INFO,
+                                  -1);
 
         if (LSM_ERR_OK != rc) {
             lsm_capability_record_free(*cap);
@@ -1080,6 +1088,7 @@ static struct lsm_ops_v1_3 ops_v1_3 = {
     volume_ident_led_off,
     system_read_cache_pct_update,
     lsm_battery_list,
+    lsm_volume_cache_info,
 };
 
 static int volume_enable_disable(lsm_plugin_ptr c, lsm_volume * v,
@@ -2479,6 +2488,31 @@ static int lsm_battery_list(lsm_plugin_ptr c, const char *search_key,
                                        count);
     }
 
+    return rc;
+}
+
+static int lsm_volume_cache_info(lsm_plugin_ptr c, lsm_volume *volume,
+                                 uint32_t *write_cache_policy,
+                                 uint32_t *write_cache_status,
+                                 uint32_t *read_cache_policy,
+                                 uint32_t *read_cache_status,
+                                 uint32_t *physical_disk_cache, lsm_flag flags)
+{
+    int rc = LSM_ERR_OK;
+    struct plugin_data *pd = (struct plugin_data *) lsm_private_data_get(c);
+    struct allocated_volume *av =
+        find_volume(pd, lsm_volume_id_get(volume));
+
+    if (!av) {
+        rc = lsm_log_error_basic(c, LSM_ERR_NOT_FOUND_VOLUME,
+                                 "volume not found!");
+    }
+
+    *write_cache_policy = LSM_VOLUME_WRITE_CACHE_POLICY_AUTO;
+    *write_cache_status = LSM_VOLUME_WRITE_CACHE_STATUS_WRITE_BACK;
+    *read_cache_policy = LSM_VOLUME_READ_CACHE_POLICY_ENABLED;
+    *read_cache_status = LSM_VOLUME_READ_CACHE_STATUS_ENABLED;
+    *physical_disk_cache = LSM_VOLUME_PHYSICAL_DISK_CACHE_ENABLED;
     return rc;
 }
 
