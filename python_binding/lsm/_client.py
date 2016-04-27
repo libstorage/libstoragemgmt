@@ -66,6 +66,11 @@ class Client(INetworkAttachedStorage):
     #
     FLAG_RSVD = 0
 
+    FLAG_VOLUME_CREATE_USE_SYSTEM_CACHE = 1 << 0
+    FLAG_VOLUME_CREATE_USE_IO_PASSTHROUGH = 1 << 1
+    FLAG_VOLUME_CREATE_DISABLE_SYSTEM_CACHE = 1 << 2
+    FLAG_VOLUME_CREATE_DISABLE_IO_PASSTHROUGH = 1 << 3
+
     """
     Client side class used for managing storage that utilises RPC mechanism.
     """
