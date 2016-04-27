@@ -121,6 +121,26 @@ typedef enum {
     /** Query volume ram cache info is supported */
     LSM_CAP_VOLUME_CACHE_INFO = 57,
 
+    /** Change volume physical disk cache setting */
+    LSM_CAP_VOLUME_PHYSICAL_DISK_CACHE_UPDATE = 58,
+    /** Physical disk cache is a system level setting */
+    LSM_CAP_VOLUME_PHYSICAL_DISK_CACHE_UPDATE_SYSTEM_LEVEL = 59,
+    /** Change volume write cache policy to write back */
+    LSM_CAP_VOLUME_WRITE_CACHE_POLICY_UPDATE_WRITE_BACK = 60,
+    /** Change volume write cache policy to auto */
+    LSM_CAP_VOLUME_WRITE_CACHE_POLICY_UPDATE_AUTO = 61,
+    /** Change volume write cache policy to write through */
+    LSM_CAP_VOLUME_WRITE_CACHE_POLICY_UPDATE_WRITE_THROUGH = 62,
+    /** Changing volume write cache policy will also change read cache policy */
+    LSM_CAP_VOLUME_WRITE_CACHE_POLICY_UPDATE_IMPACT_READ = 63,
+    /** Changing volume write cache policy to write back will
+     *  change write cache policy of other volume */
+    LSM_CAP_VOLUME_WRITE_CACHE_POLICY_UPDATE_WB_IMPACT_OTHER = 64,
+    /** Set volume read cache policy */
+    LSM_CAP_VOLUME_READ_CACHE_POLICY_UPDATE = 65,
+    /** Changing volume read cache policy will also change write cache policy */
+    LSM_CAP_VOLUME_READ_CACHE_POLICY_UPDATE_IMPACT_WRITE = 66,
+
     /** List file systems */
     LSM_CAP_FS = 100,
     /** Delete a file system */

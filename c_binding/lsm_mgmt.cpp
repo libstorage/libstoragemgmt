@@ -2704,3 +2704,70 @@ int lsm_volume_cache_info(lsm_connect *c, lsm_volume *volume,
 
     return rc;
 }
+
+int lsm_volume_physical_disk_cache_update(lsm_connect *c, lsm_volume *volume,
+                                          uint32_t pdc, lsm_flag flags)
+{
+    CONN_SETUP(c);
+
+    if (! LSM_IS_VOL(volume) || LSM_FLAG_UNUSED_CHECK(flags) ||
+        ((pdc != LSM_VOLUME_PHYSICAL_DISK_CACHE_DISABLED) &&
+         (pdc != LSM_VOLUME_PHYSICAL_DISK_CACHE_ENABLED))) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map < std::string, Value > p;
+    p["volume"] = volume_to_value(volume);
+    p["pdc"] = Value(pdc);
+    p["flags"] = Value(flags);
+    Value parameters(p);
+    Value response;
+
+    //No response data.
+    return rpc(c, "volume_physical_disk_cache_update", parameters, response);
+}
+
+int lsm_volume_write_cache_policy_update(lsm_connect *c, lsm_volume *volume,
+                                         uint32_t wcp, lsm_flag flags)
+{
+    CONN_SETUP(c);
+
+    if (! LSM_IS_VOL(volume) || LSM_FLAG_UNUSED_CHECK(flags) ||
+        ((wcp != LSM_VOLUME_WRITE_CACHE_POLICY_AUTO) &&
+         (wcp != LSM_VOLUME_WRITE_CACHE_POLICY_WRITE_BACK) &&
+         (wcp!= LSM_VOLUME_WRITE_CACHE_POLICY_WRITE_THROUGH))) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map < std::string, Value > p;
+    p["volume"] = volume_to_value(volume);
+    p["wcp"] = Value(wcp);
+    p["flags"] = Value(flags);
+    Value parameters(p);
+    Value response;
+
+    //No response data.
+    return rpc(c, "volume_write_cache_policy_update", parameters, response);
+}
+
+int lsm_volume_read_cache_policy_update(lsm_connect *c, lsm_volume *volume,
+                                        uint32_t rcp, lsm_flag flags)
+{
+    CONN_SETUP(c);
+
+    if (! LSM_IS_VOL(volume) || LSM_FLAG_UNUSED_CHECK(flags) ||
+        ((rcp != LSM_VOLUME_READ_CACHE_POLICY_DISABLED) &&
+         (rcp != LSM_VOLUME_READ_CACHE_POLICY_ENABLED))) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map < std::string, Value > p;
+    p["volume"] = volume_to_value(volume);
+    p["rcp"] = Value(rcp);
+    p["flags"] = Value(flags);
+    Value parameters(p);
+    Value response;
+
+    //No response data.
+    return rpc(c, "volume_read_cache_policy_update", parameters, response);
+}

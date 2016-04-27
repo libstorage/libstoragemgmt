@@ -45,6 +45,12 @@ static void get_batteries(int rc, lsm_battery *bs[], uint32_t count,
 static int handle_batteries(lsm_plugin_ptr p, Value &params, Value &response);
 static int handle_volume_cache_info(lsm_plugin_ptr p, Value &params,
                                     Value &response);
+static int handle_volume_pdc_update(lsm_plugin_ptr p, Value &params,
+                                    Value &response);
+static int handle_volume_wcp_update(lsm_plugin_ptr p, Value &params,
+                                    Value &response);
+static int handle_volume_rcp_update(lsm_plugin_ptr p, Value &params,
+                                    Value &response);
 
 /**
  * Safe string wrapper
@@ -2507,6 +2513,9 @@ static std::map < std::string, handler > dispatch =
     ("system_read_cache_pct_update", handle_system_read_cache_pct_update)
     ("batteries", handle_batteries)
     ("volume_cache_info", handle_volume_cache_info)
+    ("volume_physical_disk_cache_update", handle_volume_pdc_update)
+    ("volume_write_cache_policy_update", handle_volume_wcp_update)
+    ("volume_read_cache_policy_update", handle_volume_rcp_update)
     ;
 
 
@@ -3050,6 +3059,109 @@ static int handle_volume_cache_info(lsm_plugin_ptr p, Value & params,
                 rc = LSM_ERR_NO_MEMORY;
             }
 
+        } else {
+            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+        }
+    }
+    return rc;
+}
+
+static int handle_volume_pdc_update(lsm_plugin_ptr p, Value &params,
+                                 Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    lsm_volume *lsm_vol = NULL;
+    uint32_t pdc = LSM_VOLUME_PHYSICAL_DISK_CACHE_UNKNOWN;
+
+    if (p && p->ops_v1_3 && p->ops_v1_3->vol_pdc_update) {
+        Value v_vol = params["volume"];
+        Value v_pdc = params["pdc"];
+
+        if (Value::object_t == v_vol.valueType() &&
+            Value::numeric_t == v_pdc.valueType() &&
+            LSM_FLAG_EXPECTED_TYPE(params)) {
+
+            lsm_vol = value_to_volume(v_vol);
+            pdc = v_pdc.asUint32_t();
+            if ((pdc != LSM_VOLUME_PHYSICAL_DISK_CACHE_ENABLED) &&
+                (pdc != LSM_VOLUME_PHYSICAL_DISK_CACHE_DISABLED)) {
+                lsm_volume_record_free(lsm_vol);
+                return LSM_ERR_INVALID_ARGUMENT;
+            }
+
+            rc = p->ops_v1_3->vol_pdc_update(p, lsm_vol, pdc,
+                                             LSM_FLAG_GET_VALUE(params));
+
+            lsm_volume_record_free(lsm_vol);
+        } else {
+            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+        }
+    }
+    return rc;
+}
+
+static int handle_volume_wcp_update(lsm_plugin_ptr p, Value &params,
+                                    Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    lsm_volume *lsm_vol = NULL;
+    uint32_t wcp = LSM_VOLUME_WRITE_CACHE_POLICY_UNKNOWN;
+
+    if (p && p->ops_v1_3 && p->ops_v1_3->vol_wcp_update) {
+        Value v_vol = params["volume"];
+        Value v_wcp = params["wcp"];
+
+        if (Value::object_t == v_vol.valueType() &&
+            Value::numeric_t == v_wcp.valueType() &&
+            LSM_FLAG_EXPECTED_TYPE(params)) {
+
+            lsm_vol = value_to_volume(v_vol);
+            wcp = v_wcp.asUint32_t();
+            if ((wcp != LSM_VOLUME_WRITE_CACHE_POLICY_WRITE_BACK) &&
+                (wcp != LSM_VOLUME_WRITE_CACHE_POLICY_WRITE_THROUGH) &&
+                (wcp != LSM_VOLUME_WRITE_CACHE_POLICY_AUTO)) {
+                lsm_volume_record_free(lsm_vol);
+                return LSM_ERR_INVALID_ARGUMENT;
+            }
+
+            rc = p->ops_v1_3->vol_wcp_update(p, lsm_vol, wcp,
+                                             LSM_FLAG_GET_VALUE(params));
+
+            lsm_volume_record_free(lsm_vol);
+        } else {
+            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+        }
+    }
+    return rc;
+}
+
+static int handle_volume_rcp_update(lsm_plugin_ptr p, Value &params,
+                                    Value &response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    lsm_volume *lsm_vol = NULL;
+    uint32_t rcp = LSM_VOLUME_READ_CACHE_POLICY_UNKNOWN;
+
+    if (p && p->ops_v1_3 && p->ops_v1_3->vol_rcp_update) {
+        Value v_vol = params["volume"];
+        Value v_rcp = params["rcp"];
+
+        if (Value::object_t == v_vol.valueType() &&
+            Value::numeric_t == v_rcp.valueType() &&
+            LSM_FLAG_EXPECTED_TYPE(params)) {
+
+            lsm_vol = value_to_volume(v_vol);
+            rcp = v_rcp.asUint32_t();
+            if ((rcp != LSM_VOLUME_READ_CACHE_POLICY_ENABLED) &&
+                (rcp != LSM_VOLUME_READ_CACHE_POLICY_DISABLED)) {
+                lsm_volume_record_free(lsm_vol);
+                return LSM_ERR_INVALID_ARGUMENT;
+            }
+
+            rc = p->ops_v1_3->vol_rcp_update(p, lsm_vol, rcp,
+                                             LSM_FLAG_GET_VALUE(params));
+
+            lsm_volume_record_free(lsm_vol);
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;
         }

@@ -1192,6 +1192,75 @@ int LSM_DLL_EXPORT lsm_volume_cache_info(lsm_connect *c,
                                          uint32_t *physical_disk_cache,
                                          lsm_flag flags);
 
+/**
+ * New in version 1.3
+ * Change the setting of RAM physical disk cache of specified volume. On some
+ * product(like HPE SmartArray), this action will be effective at system level
+ * which means that even you are requesting a change on a specified volume, this
+ * change will apply to all other volumes on the same controller(system).
+ * @param[in] conn          Valid connection @see lsm_connect_password
+ * @param[in] volume        A single lsm_volume
+ * @param[in] pdc           Physical disk cache setting, valid values are:
+ *                          * LSM_VOLUME_PHYSICAL_DISK_CACHE_ENABLED
+ *                              Enable physical disk cache.
+ *                          * LSM_VOLUME_PHYSICAL_DISK_CACHE_DISABLED
+ *                              Disable physical disk cache
+ * @param[in] flags         Reserved set to zero
+ * @return LSM_ERR_OK on success else error reason
+ */
+int LSM_DLL_EXPORT lsm_volume_physical_disk_cache_update(lsm_connect *c,
+                                                         lsm_volume *volume,
+                                                         uint32_t pdc,
+                                                         lsm_flag flags);
+
+/**
+ * New in version 1.3
+ * Change the RAM write cache policy on specified volume. If
+ * LSM_CAP_VOLUME_WRITE_CACHE_POLICY_SET_IMPACT_READ is supported(e.g. HPE
+ * SmartArray), the changes on write cache policy might also impact read cache
+ * policy. If LSM_CAP_VOLUME_WRITE_CACHE_POLICY_SET_WB_IMPACT_OTHER is
+ * supported(e.g. HPE SmartArray), changing write cache policy to write back
+ * mode might impact other volumes in the same system.
+ * @param[in] conn          Valid connection @see lsm_connect_password
+ * @param[in] volume        A single lsm_volume
+ * @param[in] wcp           Write cache policy. Valid values are:
+ *                          * LSM_VOLUME_WRITE_CACHE_POLICY_WRITE_BACK
+ *                              Change to write back mode.
+ *                          * LSM_VOLUME_WRITE_CACHE_POLICY_AUTO
+ *                              Change to auto mode: use write back mode when
+ *                              battery/capacitor is healthy, otherwise use
+ *                              write through.
+ *                          * LSM_VOLUME_WRITE_CACHE_POLICY_WRITE_THROUGH
+ *                              Change to write through mode.
+ * @param[in] flags         Reserved set to zero
+ * @return LSM_ERR_OK on success else error reason
+ */
+int LSM_DLL_EXPORT lsm_volume_write_cache_policy_update(lsm_connect *c,
+                                                        lsm_volume *volume,
+                                                        uint32_t wcp,
+                                                        lsm_flag flags);
+/**
+ * New in version 1.3
+ * Change the RAM read cache policy of specified volume.
+ * If LSM_CAP_VOLUME_READ_CACHE_POLICY_SET_IMPACT_WRITE is supported(like HPE
+ * SmartArray), the changes on write cache policy might also impact read cache
+ * policy.
+ *
+ * @param[in] conn          Valid connection @see lsm_connect_password
+ * @param[in] volume        A single lsm_volume
+ * @param[in] rcp           Read cache policy. Valid values are:
+ *                          * LSM_VOLUME_READ_CACHE_POLICY_ENABLED
+ *                              Enable read cache.
+ *                          * LSM_VOLUME_READ_CACHE_POLICY_DISABLED
+ *                              Disable read cache.
+ * @param[in] flags         Reserved set to zero
+ * @return LSM_ERR_OK on success else error reason
+ */
+int LSM_DLL_EXPORT lsm_volume_read_cache_policy_update(lsm_connect *c,
+                                                       lsm_volume *volume,
+                                                       uint32_t rcp,
+                                                       lsm_flag flags);
+
 #ifdef  __cplusplus
 }
 #endif
