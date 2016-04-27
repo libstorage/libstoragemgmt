@@ -364,6 +364,7 @@ class SmartArray(IPlugin):
         cap.set(Capabilities.POOL_MEMBER_INFO)
         cap.set(Capabilities.VOLUME_RAID_CREATE)
         cap.set(Capabilities.VOLUME_DELETE)
+        cap.set(Capabilities.VOLUME_ENABLE)
         cap.set(Capabilities.SYS_FW_VERSION_GET)
         cap.set(Capabilities.SYS_MODE_GET)
         cap.set(Capabilities.SYS_READ_CACHE_PCT_UPDATE)
@@ -553,12 +554,16 @@ class SmartArray(IPlugin):
             block_size = 512
             num_of_blocks = int(_hp_size_to_lsm(hp_ld['Size']) / block_size)
 
+        if 'Failed' in hp_ld['Status']:
+            admin_status = Volume.ADMIN_STATE_DISABLED
+        else:
+            admin_status = Volume.ADMIN_STATE_ENABLED
         plugin_data = "%s:%s:%s" % (ctrl_num, array_num, ld_num)
 
         # HP SmartArray does not allow disabling volume.
         return Volume(
             vpd83, vol_name, vpd83, block_size, num_of_blocks,
-            Volume.ADMIN_STATE_ENABLED, sys_id, pool_id, plugin_data)
+            admin_status, sys_id, pool_id, plugin_data)
 
     @_handle_errors
     def volumes(self, search_key=None, search_value=None,
@@ -943,6 +948,42 @@ class SmartArray(IPlugin):
                         raise LsmError(
                             ErrorNumber.PLUGIN_BUG,
                             "volume_delete failed unexpectedly")
+            raise LsmError(
+                ErrorNumber.NOT_FOUND_VOLUME,
+                "Volume not found")
+
+        return None
+
+    def volume_enable(self, volume, flags=Client.FLAG_RSVD):
+        """
+        Depend on command:
+            hpssacli ctrl slot=# ld # modify reenable forced
+            hpssacli ctrl slot=# show config detail
+        """
+        if not volume.plugin_data:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Illegal input volume argument: missing plugin_data property")
+
+        (ctrl_num, array_num, ld_num) = volume.plugin_data.split(":")
+
+        try:
+            self._sacli_exec(
+                ["ctrl", "slot=%s" % ctrl_num, "ld %s" % ld_num, "modify",
+                "reenable"], flag_convert=False, flag_force=True)
+        except ExecError:
+            ctrl_data = self._sacli_exec(
+                ["ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
+                ).values()[0]
+
+            for key_name in ctrl_data.keys():
+                if key_name != "Array: %s" % array_num:
+                    continue
+                for array_key_name in ctrl_data[key_name].keys():
+                    if array_key_name == "Logical Drive: %s" % ld_num:
+                        raise LsmError(
+                            ErrorNumber.PLUGIN_BUG,
+                            "volume_enable failed unexpectedly")
             raise LsmError(
                 ErrorNumber.NOT_FOUND_VOLUME,
                 "Volume not found")
