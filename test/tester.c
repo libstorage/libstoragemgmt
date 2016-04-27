@@ -3616,6 +3616,42 @@ START_TEST(test_batteries)
 }
 END_TEST
 
+START_TEST(test_volume_cache_info)
+{
+    lsm_volume *volume = NULL;
+    char *job = NULL;
+    lsm_pool *pool = NULL;
+
+    uint32_t write_cache_policy = LSM_VOLUME_WRITE_CACHE_POLICY_UNKNOWN;
+    uint32_t write_cache_status = LSM_VOLUME_WRITE_CACHE_STATUS_UNKNOWN;
+    uint32_t read_cache_policy = LSM_VOLUME_READ_CACHE_POLICY_UNKNOWN;
+    uint32_t read_cache_status = LSM_VOLUME_READ_CACHE_STATUS_UNKNOWN;
+    uint32_t physical_disk_cache = LSM_VOLUME_PHYSICAL_DISK_CACHE_UNKNOWN;
+
+    pool = get_test_pool(c);
+
+    fail_unless(pool != NULL, "Failed to find the test pool");
+
+    int rc = lsm_volume_create(
+        c, pool, "volume_cache_info_test", 20000000,
+        LSM_VOLUME_PROVISION_DEFAULT, &volume, &job, LSM_CLIENT_FLAG_RSVD);
+
+    fail_unless( rc == LSM_ERR_OK || rc == LSM_ERR_JOB_STARTED,
+            "lsm_volume_create() %d (%s)", rc, error(lsm_error_last_get(c)));
+
+    if( LSM_ERR_JOB_STARTED == rc ) {
+        volume = wait_for_job_vol(c, &job);
+    }
+
+    G(rc, lsm_volume_cache_info, c, volume, &write_cache_policy,
+      &write_cache_status, &read_cache_policy, &read_cache_status,
+      &physical_disk_cache, LSM_CLIENT_FLAG_RSVD);
+
+    G(rc, lsm_volume_record_free, volume);
+    G(rc, lsm_pool_record_free, pool);
+    volume = NULL;
+}
+END_TEST
 
 Suite * lsm_suite(void)
 {
@@ -3670,6 +3706,7 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_local_disk_rpm_get);
     tcase_add_test(basic, test_local_disk_link_type);
     tcase_add_test(basic, test_batteries);
+    tcase_add_test(basic, test_volume_cache_info);
 
     suite_add_tcase(s, basic);
     return s;

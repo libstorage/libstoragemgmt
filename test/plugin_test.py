@@ -1576,6 +1576,32 @@ class TestPlugin(unittest.TestCase):
             if supported(cap, [Cap.BATTERIES]):
                 self.c.batteries()
 
+    def test_volume_cache_info(self):
+        flag_tested = False
+        flag_created = False
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            if not supported(cap, [Cap.VOLUME_CACHE_INFO]):
+                continue
+
+            lsm_vols = self.c.volumes(search_key='system_id', search_value=s.id)
+            if len(lsm_vols) == 0:
+                if not supported(cap, [Cap.VOLUME_CREATE, Cap.VOLUME_DELETE]):
+                    continue
+                lsm_vol = self._volume_create(s.id)[0]
+                flag_created = True
+            else:
+                lsm_vol = lsm_vols[0]
+            cache_info = self.c.volume_cache_info(lsm_vol)
+            self.assertTrue(len(cache_info) == 5)
+            if flag_created:
+                self._volume_delete(lsm_vol)
+            flag_tested = True
+
+        if flag_tested is False:
+            self._skip_current_test(
+                "Skip test: no storage system support volume cache info query")
+
 
 def dump_results():
     """

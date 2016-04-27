@@ -820,6 +820,18 @@ def local_disk_list_test():
         print("Skipping test of 'local-disk-list' command when not "
               "run by root user")
 
+def test_volume_cache_info():
+    # Since cmdtest is only designed to test against sim://, there is no
+    # need to check capacity or preconditions.
+    pool_id = name_to_id(OP_POOL, test_pool_name)
+    vol_id = create_volume(pool_id)
+    cache_info = parse(
+        call([cmd, '-t' + sep, 'volume-cache-info', '--vol', vol_id])[1])
+    if len(cache_info) != 1 or len(cache_info[0]) != 6:
+        print("Invalid return from volume-cache-info, should has 6 items")
+        exit(10)
+    volume_delete(vol_id)
+
 def run_all_tests(cap, system_id):
 
     test_exit_code(cap, system_id)
@@ -840,6 +852,7 @@ def run_all_tests(cap, system_id):
     volume_raid_create_test(cap, system_id)
 
     local_disk_list_test()
+    test_volume_cache_info()
 
 if __name__ == "__main__":
     parser = OptionParser()
