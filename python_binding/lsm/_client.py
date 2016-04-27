@@ -1616,3 +1616,164 @@ class Client(INetworkAttachedStorage):
             lsm.Capabilities.VOLUME_CACHE_INFO
         """
         return self._tp.rpc('volume_cache_info', _del_self(locals()))
+
+    @_return_requires(None)
+    def volume_physical_disk_cache_update(self, volume, pdc, flags=FLAG_RSVD):
+        """
+        lsm.Client.volume_physical_disk_cache_update(self, volume, pdc,
+                                                     flags=lsm.Client.FLAG_RSVD)
+
+        Version:
+            1.3
+        Usage:
+            Change the setting of RAM physical disk cache of specified volume.
+            On some product(like HPE SmartArray), this action will be effective
+            at system level which means that even you are requesting a change
+            on a specified volume, this change will apply to all other volumes
+            on the same controller(system).
+        Parameters:
+            volume (Lsm.Volume)
+                The lsm.Volume instance.
+            pdc (int)
+                lsm.Volume.PHYSICAL_DISK_CACHE_ENABLED
+                    Enable physical disk cache.
+                lsm.Volume.PHYSICAL_DISK_CACHE_DISABLED
+                    Disable physical disk cache
+            flags (int, optional):
+                Reserved for future use. Should be set as lsm.Client.FLAG_RSVD
+        Returns:
+            N/A
+        SpecialExceptions:
+            LsmError
+                ErrorNumber.NO_SUPPORT
+                    You might also get NO_SUPPORT error when trying
+                    to change SSD physical disk cache on MegaRAID.
+                ErrorNumber.NOT_FOUND_VOLUME
+        Capability:
+            lsm.Capabilities.VOLUME_PHYSICAL_DISK_CACHE_SET
+                Allow changing physical disk cache.
+            lsm.Capabilities.VOLUME_PHYSICAL_DISK_CACHE_SET_SYSTEM_LEVEL
+                Indicate that this action will change system settings which
+                are effective on all volumes in this storage system.
+                For example, on HPE SmartArray, the physical disk cache
+                setting is a controller level setting.
+        """
+        if (pdc != Volume.PHYSICAL_DISK_CACHE_ENABLED) and \
+           (pdc != Volume.PHYSICAL_DISK_CACHE_DISABLED):
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           "Argument pdc should be "
+                           "Volume.PHYSICAL_DISK_CACHE_ENABLED or "
+                           "Volume.PHYSICAL_DISK_CACHE_DISABLED")
+
+        return self._tp.rpc('volume_physical_disk_cache_update',
+                            _del_self(locals()))
+
+    @_return_requires(None)
+    def volume_write_cache_policy_update(self, volume, wcp, flags=FLAG_RSVD):
+        """
+        lsm.Client.volume_write_cache_policy_update(self, volume, wcp,
+                                                    flags=lsm.Client.FLAG_RSVD)
+
+        Version:
+            1.3
+        Usage:
+            Change the RAM write cache policy on specified volume.
+            If lsm.Capabilities.VOLUME_WRITE_CACHE_POLICY_SET_IMPACT_READ
+            is supported(e.g. HPE SmartArray), the changes on write cache policy
+            might also impact read cache policy.
+            If lsm.Capabilities.VOLUME_WRITE_CACHE_POLICY_SET_WB_IMPACT_OTHER
+            is supported(e.g. HPE SmartArray), changing write cache policy
+            to write back mode might impact other volumes in the same system.
+        Parameters:
+            volume (Lsm.Volume)
+                The lsm.Volume instance.
+            wcp (int)
+                Could be one of these value:
+                    * lsm.Volume.WRITE_CACHE_POLICY_WRITE_BACK
+                        Change to write back mode.
+                    * lsm.Volume.WRITE_CACHE_POLICY_AUTO
+                        Change to auto mode: use write back mode when
+                        battery/capacitor is healthy, otherwise use write
+                        through.
+                    * lsm.Volume.WRITE_CACHE_POLICY_WRITE_THROUGH
+                        Change to write through mode.
+            flags (int, optional):
+                Reserved for future use. Should be set as lsm.Client.FLAG_RSVD
+        Returns:
+            N/A
+        SpecialExceptions:
+            LsmError
+                ErrorNumber.NO_SUPPORT
+                ErrorNumber.NOT_FOUND_VOLUME
+        Capability:
+            lsm.Capabilities.VOLUME_WRITE_CACHE_POLICY_SET_WRITE_BACK
+                Allow changing to always mode.
+            lsm.Capabilities.VOLUME_WRITE_CACHE_POLICY_SET_AUTO
+                Allow changing to auto mode.
+            lsm.Capabilities.VOLUME_WRITE_CACHE_POLICY_SET_WRITE_THROUGH
+                Allow changing to disable mode.
+            lsm.Capabilities.VOLUME_WRITE_CACHE_POLICY_SET_IMPACT_READ
+                Indicate this action might impact read cache policy.
+            lsm.Capabilities.VOLUME_WRITE_CACHE_POLICY_SET_WB_IMPACT_OTHER
+                Indicate that changing to write back mode might impact other
+                volumes. For example, on HPE SmartArray, changing to write back
+                mode will change all other volumes with auto write cache policy
+                to write back mode.
+        """
+        if wcp != Volume.WRITE_CACHE_POLICY_WRITE_BACK and \
+           wcp != Volume.WRITE_CACHE_POLICY_AUTO and \
+           wcp != Volume.WRITE_CACHE_POLICY_WRITE_THROUGH:
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           "Argument wcp should be "
+                           "Volume.WRITE_CACHE_POLICY_WRITE_BACK or "
+                           "Volume.WRITE_CACHE_POLICY_AUTO or "
+                           "Volume.WRITE_CACHE_POLICY_WRITE_THROUGH")
+        return self._tp.rpc('volume_write_cache_policy_update',
+                            _del_self(locals()))
+
+    @_return_requires(None)
+    def volume_read_cache_policy_update(self, volume, rcp, flags=FLAG_RSVD):
+        """
+        lsm.Client.volume_read_cache_policy_update(self, volume, rcp,
+                                                   flags=lsm.Client.FLAG_RSVD)
+
+        Version:
+            1.3
+        Usage:
+            Change the RAM read cache policy of specified volume.
+            If lsm.Capabilities.VOLUME_READ_CACHE_POLICY_SET_IMPACT_WRITE
+            is supported(like HPE SmartArray), the change on write cache policy
+            might also impact read cache policy.
+        Parameters:
+            volume (Lsm.Volume)
+                The lsm.Volume instance.
+            rcp (int)
+                Could be one of these value:
+                    * lsm.Volume.READ_CACHE_POLICY_ENABLED
+                        Enable read cache.
+                    * lsm.Volume.READ_CACHE_POLICY_DISABLED
+                        Disable read cache.
+            flags (int, optional):
+                Reserved for future use. Should be set as lsm.Client.FLAG_RSVD
+        Returns:
+            N/A
+        SpecialExceptions:
+            LsmError
+                ErrorNumber.NO_SUPPORT
+                ErrorNumber.NOT_FOUND_VOLUME
+        Capability:
+            lsm.Capabilities.VOLUME_READ_CACHE_POLICY_SET
+                Allow enabling or disabling read cache policy.
+            lsm.Capabilities.VOLUME_READ_CACHE_POLICY_SET_IMPACT_WRITE
+                Indicate that changing read cache policy might impact write
+                cache policy. For example, on HPE SmartArray, disabling read
+                cache will also change write cache policy to write through.
+        """
+        if rcp != Volume.READ_CACHE_POLICY_ENABLED and \
+           rcp != Volume.READ_CACHE_POLICY_DISABLED:
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           "Argument rcp should be "
+                           "Volume.READ_CACHE_POLICY_ENABLED or "
+                           "Volume.READ_CACHE_POLICY_DISABLED")
+        return self._tp.rpc('volume_read_cache_policy_update',
+                            _del_self(locals()))
