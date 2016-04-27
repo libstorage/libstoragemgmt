@@ -122,7 +122,7 @@ class PoolRAID(object):
 
 
 class BackStore(object):
-    VERSION = "3.7"
+    VERSION = "3.8"
     VERSION_SIGNATURE = 'LSM_SIMULATOR_DATA_%s_%s' % (VERSION, md5(VERSION))
     JOB_DEFAULT_DURATION = 1
     JOB_DATA_TYPE_VOL = 1
@@ -135,6 +135,9 @@ class BackStore(object):
     DEFAULT_STRIP_SIZE = 128 * 1024  # 128 KiB
     SYS_MODE = System.MODE_HARDWARE_RAID
     READ_CACHE_PCT = 10
+    DEFAULT_WRITE_CACHE_POLICY = Volume.WRITE_CACHE_POLICY_AUTO
+    DEFAULT_READ_CACHE_POLICY = Volume.READ_CACHE_POLICY_ENABLED
+    DEFAULT_PHYSICAL_DISK_CACHE = Volume.PHYSICAL_DISK_CACHE_DISABLED
 
     _LIST_SPLITTER = '#'
 
@@ -152,7 +155,8 @@ class BackStore(object):
 
     VOL_KEY_LIST = [
         'id', 'vpd83', 'name', 'total_space', 'consumed_size',
-        'pool_id', 'admin_state', 'thinp', 'is_hw_raid_vol']
+        'pool_id', 'admin_state', 'thinp', 'is_hw_raid_vol',
+        'write_cache_policy', 'read_cache_policy', 'phy_disk_cache']
 
     TGT_KEY_LIST = [
         'id', 'port_type', 'service_address', 'network_address',
@@ -266,6 +270,9 @@ class BackStore(object):
             "is_hw_raid_vol INTEGER, "
             # ^ Once its volume deleted, pool will be delete also.
             # For HW RAID simulation only.
+            "write_cache_policy INTEGER NOT NULL, "
+            "read_cache_policy INTEGER NOT NULL, "
+            "phy_disk_cache INTEGER NOT NULL, "
 
             "pool_id INTEGER NOT NULL, "
             "FOREIGN KEY(pool_id) "
@@ -486,7 +493,10 @@ class BackStore(object):
                     vol.admin_state,
                     vol.thinp,
                     vol.is_hw_raid_vol,
-                    vol_mask.ag_id ag_id
+                    vol_mask.ag_id ag_id,
+                    vol.write_cache_policy,
+                    vol.read_cache_policy,
+                    vol.phy_disk_cache
                 FROM
                     volumes vol
                         LEFT JOIN vol_masks vol_mask
@@ -1124,6 +1134,9 @@ class BackStore(object):
         sim_vol['consumed_size'] = size_bytes
         sim_vol['admin_state'] = Volume.ADMIN_STATE_ENABLED
         sim_vol['is_hw_raid_vol'] = is_hw_raid_vol
+        sim_vol['write_cache_policy'] = BackStore.DEFAULT_WRITE_CACHE_POLICY
+        sim_vol['read_cache_policy'] = BackStore.DEFAULT_READ_CACHE_POLICY
+        sim_vol['phy_disk_cache'] = BackStore.DEFAULT_PHYSICAL_DISK_CACHE
 
         try:
             self._data_add("volumes", sim_vol)
@@ -2475,3 +2488,36 @@ class SimArray(object):
     @_handle_errors
     def batteries(self):
         return list(SimArray._sim_bat_2_lsm(t) for t in self.bs_obj.sim_bats())
+
+    @_handle_errors
+    def volume_cache_info(self, lsm_vol):
+        sim_vol = self.bs_obj.sim_vol_of_id(
+            SimArray._lsm_id_to_sim_id(lsm_vol.id,
+            LsmError(ErrorNumber.NOT_FOUND_VOLUME, "Volume not found")))
+        write_cache_status = Volume.WRITE_CACHE_STATUS_WRITE_THROUGH
+        read_cache_status = Volume.READ_CACHE_STATUS_DISABLED
+
+        flag_battery_ok = False
+        for sim_bat in self.bs_obj.sim_bats():
+            if sim_bat['status'] == Battery.STATUS_OK:
+                flag_battery_ok = True
+
+        # Assuming system always has functional RAM
+        if sim_vol['write_cache_policy'] == Volume.WRITE_CACHE_POLICY_AUTO:
+            if flag_battery_ok:
+                write_cache_status = Volume.WRITE_CACHE_STATUS_WRITE_BACK
+
+        elif sim_vol['write_cache_policy'] == \
+             Volume.WRITE_CACHE_POLICY_WRITE_BACK:
+            write_cache_status = Volume.WRITE_CACHE_STATUS_WRITE_BACK
+        elif sim_vol['write_cache_policy'] == Volume.WRITE_CACHE_POLICY_UNKNOWN:
+            write_cache_status = Volume.WRITE_CACHE_STATUS_UNKNOWN
+
+        if sim_vol['read_cache_policy'] == Volume.READ_CACHE_POLICY_ENABLED:
+            read_cache_status = Volume.READ_CACHE_STATUS_ENABLED
+        elif sim_vol['read_cache_policy'] == Volume.READ_CACHE_POLICY_UNKNOWN:
+            read_cache_status = Volume.READ_CACHE_STATUS_UNKNOWN
+
+        return [sim_vol['write_cache_policy'], write_cache_status,
+                sim_vol['read_cache_policy'], read_cache_status,
+                sim_vol['phy_disk_cache']]

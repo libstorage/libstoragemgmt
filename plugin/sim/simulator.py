@@ -318,3 +318,6 @@ class SimPlugin(INfs, IStorageAreaNetwork):
         return search_property(
             [SimPlugin._sim_data_2_lsm(b) for b in sim_batteries],
             search_key, search_value)
+
+    def volume_cache_info(self, volume, flags=Client.FLAG_RSVD):
+        return self.sim_array.volume_cache_info(volume)
