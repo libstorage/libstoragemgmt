@@ -279,6 +279,8 @@ struct LSM_DLL_LOCAL _lsm_disk {
     char *system_id;
     char *vpd83;
     const char *disk_location;
+    int32_t rpm;
+    lsm_disk_link_type link_type;
 };
 
 #define LSM_HASH_MAGIC     0xAA7A0011

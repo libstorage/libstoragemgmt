@@ -1106,6 +1106,52 @@ START_TEST(test_disks)
 }
 END_TEST
 
+START_TEST(test_disk_rpm_and_link_type)
+{
+    uint32_t count = 0;
+    lsm_disk **disks = NULL;
+    int i = 0;
+    int rc = LSM_ERR_OK;
+    int32_t rpm = LSM_DISK_RPM_UNKNOWN;
+    lsm_disk_link_type link_type = LSM_DISK_LINK_TYPE_UNKNOWN;
+
+    fail_unless(c != NULL);
+
+    rc = lsm_disk_list(c, NULL, NULL, &disks, &count, 0);
+    fail_unless(LSM_ERR_OK == rc, "rc: %d", rc);
+
+    if (LSM_ERR_OK == rc) {
+        fail_unless(count >= 1);
+
+        for (; i < count; ++i) {
+            rpm = lsm_disk_rpm_get(disks[i]);
+            fail_unless(rpm != LSM_DISK_RPM_UNKNOWN,
+                        "Should not be LSM_DISK_RPM_UNKNOWN when input disk "
+                        "is valid", rc);
+
+            link_type = lsm_disk_link_type_get(disks[i]);
+            fail_unless(link_type != LSM_DISK_LINK_TYPE_UNKNOWN,
+                        "Should not be LSM_DISK_LINK_TYPE_UNKNOWN when input "
+                        "disk is valid", rc);
+        }
+
+        rpm = lsm_disk_rpm_get(NULL);
+        fail_unless(rpm == LSM_DISK_RPM_UNKNOWN,
+                    "Should be LSM_DISK_RPM_UNKNOWN when input disk is NULL",
+                    rc);
+        link_type = lsm_disk_link_type_get(NULL);
+        fail_unless(rpm == LSM_DISK_LINK_TYPE_UNKNOWN,
+                    "Should be LSM_DISK_LINK_TYPE_UNKNOWN when input disk is "
+                    "NULL", rc);
+
+        lsm_disk_record_array_free(disks, count);
+    } else {
+        fail_unless(disks == NULL);
+        fail_unless(count == 0);
+    }
+}
+END_TEST
+
 START_TEST(test_disk_location)
 {
     uint32_t count = 0;
@@ -3236,6 +3282,28 @@ START_TEST(test_volume_ident_led_clear)
 }
 END_TEST
 
+/*
+ * lsm_local_disk_list() should never fail.
+ */
+START_TEST(test_local_disk_list)
+{
+    int rc = LSM_ERR_OK;
+    lsm_string_list *disk_paths = NULL;
+    /* Not initialized in order to test dangling pointer disk_path_list */
+    lsm_error *lsm_err = NULL;
+
+    if (is_simc_plugin == 1){
+        /* silently skip on simc, no need for duplicate test. */
+        return;
+    }
+
+    rc = lsm_local_disk_list(&disk_paths, &lsm_err);
+    fail_unless(rc == LSM_ERR_OK, "lsm_local_disk_list() failed as %d", rc);
+    fail_unless(disk_paths != NULL, "lsm_local_disk_list() return NULL for "
+                "disk_paths");
+    lsm_string_list_free(disk_paths);
+}
+END_TEST
 
 /*
  * Just check whether LSM_ERR_INVALID_ARGUMENT handle correctly.
@@ -3415,6 +3483,81 @@ START_TEST(test_local_disk_vpd83_get)
 }
 END_TEST
 
+START_TEST(test_local_disk_rpm_get)
+{
+    int rc = 0;
+    int32_t rpm = LSM_DISK_RPM_UNKNOWN;
+    lsm_error *lsm_err = NULL;
+
+    rc = lsm_local_disk_rpm_get("/dev/sda", &rpm,  &lsm_err);
+    if (rc == LSM_ERR_OK) {
+        fail_unless(rpm != LSM_DISK_RPM_UNKNOWN,
+                    "lsm_local_disk_rpm_get(): "
+                    "Expecting rpm not been LSM_DISK_RPM_UNKNOWN "
+                    "when rc == LSM_ERR_OK");
+    } else {
+        lsm_error_free(lsm_err);
+    }
+
+    /* Test non-exist disk */
+    rc = lsm_local_disk_rpm_get(NOT_EXIST_SD_PATH, &rpm,  &lsm_err);
+    fail_unless(rc == LSM_ERR_NOT_FOUND_DISK, "lsm_local_disk_rpm_get(): "
+                "Expecting LSM_ERR_NOT_FOUND_DISK error with "
+                "non-exist sd_path");
+    fail_unless(lsm_err != NULL, "lsm_local_disk_rpm_get(): "
+                "Expecting lsm_err not NULL with non-exist sd_path");
+    fail_unless(lsm_error_number_get(lsm_err) == LSM_ERR_NOT_FOUND_DISK,
+                "lsm_local_disk_rpm_get(): "
+                "Expecting error number of lsm_err been set as "
+                "LSM_ERR_NOT_FOUND_DISK with non-exist sd_path");
+    fail_unless(lsm_error_message_get(lsm_err) != NULL,
+                "lsm_local_disk_rpm_get(): "
+                "Expecting error message of lsm_err not NULL "
+                "with non-exist sd_path");
+    lsm_error_free(lsm_err);
+
+}
+END_TEST
+
+START_TEST(test_local_disk_link_type)
+{
+    int rc = 0;
+    lsm_disk_link_type link_type = LSM_DISK_LINK_TYPE_UNKNOWN;
+    lsm_error *lsm_err = NULL;
+
+    rc = lsm_local_disk_link_type_get("/dev/sda", &link_type,  &lsm_err);
+    if (lsm_err != NULL)
+        fail_unless(rc != LSM_ERR_LIB_BUG,
+                    "lsm_local_disk_link_type_get() got LSM_ERR_LIB_BUG: %s",
+                    lsm_error_message_get(lsm_err));
+    else
+        fail_unless(rc != LSM_ERR_LIB_BUG,
+                    "lsm_local_disk_link_type_get() got LSM_ERR_LIB_BUG with "
+                    "NULL lsm_err");
+
+    if (rc != LSM_ERR_OK)
+        lsm_error_free(lsm_err);
+
+    /* Test non-exist disk */
+    rc = lsm_local_disk_link_type_get(NOT_EXIST_SD_PATH, &link_type, &lsm_err);
+    fail_unless(rc == LSM_ERR_NOT_FOUND_DISK,
+                "lsm_local_disk_link_type_get(): "
+                "Expecting LSM_ERR_NOT_FOUND_DISK error with "
+                "non-exist disk_path");
+    fail_unless(lsm_err != NULL, "lsm_local_disk_link_type_get(): "
+                "Expecting lsm_err not NULL with non-exist disk_path");
+    fail_unless(lsm_error_number_get(lsm_err) == LSM_ERR_NOT_FOUND_DISK,
+                "lsm_local_disk_link_type_get(): "
+                "Expecting error number of lsm_err been set as "
+                "LSM_ERR_NOT_FOUND_DISK with non-exist disk_path");
+    fail_unless(lsm_error_message_get(lsm_err) != NULL,
+                "lsm_local_disk_link_type_get(): "
+                "Expecting error message of lsm_err not NULL "
+                "with non-exist disk_path");
+    lsm_error_free(lsm_err);
+}
+END_TEST
+
 Suite * lsm_suite(void)
 {
     Suite *s = suite_create("libStorageMgmt");
@@ -3438,6 +3581,7 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_nfs_export_funcs);
     tcase_add_test(basic, test_disks);
     tcase_add_test(basic, test_disk_location);
+    tcase_add_test(basic, test_disk_rpm_and_link_type);
     tcase_add_test(basic, test_plugin_info);
     tcase_add_test(basic, test_system_fw_version);
     tcase_add_test(basic, test_system_mode);
@@ -3463,7 +3607,8 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_local_disk_vpd83_search);
     tcase_add_test(basic, test_local_disk_vpd83_get);
     tcase_add_test(basic, test_read_cache_pct_update);
-
+    tcase_add_test(basic, test_local_disk_list);
+    tcase_add_test(basic, test_local_disk_rpm_get);
 
     suite_add_tcase(s, basic);
     return s;

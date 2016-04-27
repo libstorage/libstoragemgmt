@@ -811,6 +811,13 @@ def volume_ident_led_clear_test(cap):
 
     return
 
+def local_disk_list_test():
+    # Only run this by root user.
+    if os.geteuid() == 0:
+        call([cmd, 'local-disk-list'])
+    else:
+        print("Skipping test of 'local-disk-list' command when not "
+              "run by root user")
 
 def run_all_tests(cap, system_id):
 
@@ -830,6 +837,8 @@ def run_all_tests(cap, system_id):
     pool_member_info_test(cap, system_id)
 
     volume_raid_create_test(cap, system_id)
+
+    local_disk_list_test()
 
 if __name__ == "__main__":
     parser = OptionParser()

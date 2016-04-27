@@ -115,10 +115,69 @@ static const char local_disk_vpd83_get_docstring[] =
     "        err_msg (string)\n"
     "            Error message, empty if no error.\n";
 
+static const char local_disk_rpm_get_docstring[] =
+    "INTERNAL USE ONLY!\n"
+    "\n"
+    "Usage:\n"
+    "    Query the rotation speed of given disk path\n"
+    "Parameters:\n"
+    "    disk_path (string)\n"
+    "        The disk path, example '/dev/sdb'. Empty string is failure\n"
+    "Returns:\n"
+    "    [rpm, rc, err_msg]\n"
+    "        rpm (int)\n"
+    "              revolutions per minute (RPM).\n"
+    "        rc (integer)\n"
+    "            Error code, lsm.ErrorNumber.OK if no error\n"
+    "        err_msg (string)\n"
+    "            Error message, empty if no error.\n";
+
+static const char local_disk_list_docstring[] =
+    "INTERNAL USE ONLY!\n"
+    "\n"
+    "Usage:\n"
+    "    Query local disk paths. Currently only SCSI, ATA and NVMe disks will\n"
+    "    be included\n"
+    "Parameters:\n"
+    "    N/A\n"
+    "Returns:\n"
+    "    [disk_paths, rc, err_msg]\n"
+    "        disk_paths (list of string)\n"
+    "            Empty list is not found. The string format: '/dev/sd[a-z]+'\n"
+    "            or '/dev/nvme[0-9]+n[0-9]+'.\n"
+    "        rc (integer)\n"
+    "            Error code, lsm.ErrorNumber.OK if no error\n"
+    "        err_msg (string)\n"
+    "            Error message, empty if no error.\n";
+
+static const char local_disk_link_type_get_docstring[] =
+    "INTERNAL USE ONLY!\n"
+    "\n"
+    "Usage:\n"
+    "    Query the link type of given disk path\n"
+    "Parameters:\n"
+    "    disk_path (string)\n"
+    "        The disk path, example '/dev/sdb'. Empty string is failure\n"
+    "Returns:\n"
+    "    [link_type, rc, err_msg]\n"
+    "        link_type (int)\n"
+    "              Link type.\n"
+    "        rc (integer)\n"
+    "            Error code, lsm.ErrorNumber.OK if no error\n"
+    "        err_msg (string)\n"
+    "            Error message, empty if no error.\n";
+
+
 static PyObject *local_disk_vpd83_search(PyObject *self, PyObject *args,
                                      PyObject *kwargs);
 static PyObject *local_disk_vpd83_get(PyObject *self, PyObject *args,
                                     PyObject *kwargs);
+static PyObject *local_disk_rpm_get(PyObject *self, PyObject *args,
+                                    PyObject *kwargs);
+static PyObject *local_disk_list(PyObject *self, PyObject *args,
+                                 PyObject *kwargs);
+static PyObject *local_disk_link_type_get(PyObject *self, PyObject *args,
+                                          PyObject *kwargs);
 static PyObject *_lsm_string_list_to_pylist(lsm_string_list *str_list);
 static PyObject *_c_str_to_py_str(const char *str);
 
@@ -127,6 +186,12 @@ static PyMethodDef _methods[] = {
      METH_VARARGS | METH_KEYWORDS, local_disk_vpd83_search_docstring},
     {"_local_disk_vpd83_get",  (PyCFunction) local_disk_vpd83_get,
      METH_VARARGS | METH_KEYWORDS, local_disk_vpd83_get_docstring},
+    {"_local_disk_rpm_get",  (PyCFunction) local_disk_rpm_get,
+     METH_VARARGS | METH_KEYWORDS, local_disk_rpm_get_docstring},
+    {"_local_disk_list",  (PyCFunction) local_disk_list,
+     METH_NOARGS, local_disk_list_docstring},
+    {"_local_disk_link_type_get",  (PyCFunction) local_disk_link_type_get,
+     METH_VARARGS | METH_KEYWORDS, local_disk_link_type_get_docstring},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
@@ -174,6 +239,54 @@ _wrapper(local_disk_vpd83_search, lsm_local_disk_vpd83_search,
 _wrapper(local_disk_vpd83_get, lsm_local_disk_vpd83_get,
          const char *, disk_path, char *, NULL,
          _c_str_to_py_str);
+_wrapper(local_disk_rpm_get, lsm_local_disk_rpm_get,
+         const char *, disk_path, int32_t, LSM_DISK_RPM_UNKNOWN,
+         PyInt_FromLong);
+_wrapper(local_disk_link_type_get, lsm_local_disk_link_type_get,
+         const char *, disk_path, lsm_disk_link_type,
+         LSM_DISK_LINK_TYPE_UNKNOWN, PyInt_FromLong);
+
+static PyObject *local_disk_list(PyObject *self, PyObject *args,
+                                 PyObject *kwargs)
+{
+    lsm_error *lsm_err = NULL;
+    int rc = LSM_ERR_OK;
+    lsm_string_list *disk_paths = NULL;
+    PyObject *rc_list = NULL;
+    PyObject *rc_obj = NULL;
+    PyObject *err_msg_obj = NULL;
+    PyObject *err_no_obj = NULL;
+    bool flag_no_mem = false;
+
+    rc = lsm_local_disk_list(&disk_paths, &lsm_err);
+    err_no_obj = PyInt_FromLong(rc);
+    _alloc_check(err_no_obj, flag_no_mem, out);
+    rc_list = PyList_New(3 /* rc_obj, errno, err_str*/);
+    _alloc_check(rc_list, flag_no_mem, out);
+    rc_obj = _lsm_string_list_to_pylist(disk_paths);
+    _alloc_check(rc_obj, flag_no_mem, out);
+    if (rc != LSM_ERR_OK) {
+        err_msg_obj = PyString_FromString(lsm_error_message_get(lsm_err));
+        lsm_error_free(lsm_err);
+        _alloc_check(err_msg_obj, flag_no_mem, out);
+        goto out;
+    } else {
+        err_msg_obj = PyString_FromString("");
+        _alloc_check(err_msg_obj, flag_no_mem, out);
+    }
+ out:
+    if (flag_no_mem == true) {
+        Py_XDECREF(rc_list);
+        Py_XDECREF(err_no_obj);
+        Py_XDECREF(err_msg_obj);
+        Py_XDECREF(rc_obj);
+        return PyErr_NoMemory();
+    }
+    PyList_SET_ITEM(rc_list, 0, rc_obj);
+    PyList_SET_ITEM(rc_list, 1, err_no_obj);
+    PyList_SET_ITEM(rc_list, 2, err_msg_obj);
+    return rc_list;
+}
 
 PyMODINIT_FUNC init_clib(void)
 {

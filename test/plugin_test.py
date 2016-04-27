@@ -484,6 +484,8 @@ class TestPlugin(unittest.TestCase):
                 if supported(cap, [Cap.DISK_VPD83_GET]):
                     try:
                         list(disk.vpd83 for disk in disks)
+                        list(disk.rpm for disk in disks)
+                        list(disk.link_type for disk in disks)
                     except LsmError as lsm_err:
                         if lsm_err.code != ErrorNumber.NO_SUPPORT:
                             raise

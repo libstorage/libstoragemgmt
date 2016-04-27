@@ -204,6 +204,31 @@ def _lsm_raid_type_to_mega(lsm_raid_type):
             "RAID type %d not supported" % lsm_raid_type)
 
 
+def _disk_rpm_of(disk_show_basic_dict):
+    disk_media = disk_show_basic_dict['Med']
+    if disk_media == 'HDD':
+        return Disk.RPM_ROTATING_UNKNOWN_SPEED
+    elif disk_media == 'SSD':
+        return Disk.RPM_NON_ROTATING_MEDIUM
+    return Disk.RPM_UNKNOWN
+
+
+def _disk_link_type_of(disk_show_basic_dict):
+    """
+    Return the 'Drive /c0/e64/s0' entry of '/c0/e64/s0 show all'
+    """
+    disk_interface = disk_show_basic_dict['Intf']
+    if disk_interface == 'SATA':
+        return Disk.LINK_TYPE_ATA
+    elif disk_interface == 'SAS':
+        return Disk.LINK_TYPE_SAS
+    elif disk_interface == 'Parallel SCSI':
+        return Disk.LINK_TYPE_UNKNOWN
+    elif disk_interface == 'FC':
+        return Disk.LINK_TYPE_FC
+
+    return Disk.LINK_TYPE_UNKNOWN
+
 class MegaRAID(IPlugin):
     _DEFAULT_BIN_PATHS = [
         "/opt/MegaRAID/storcli/storcli64", "/opt/MegaRAID/storcli/storcli",
@@ -434,11 +459,14 @@ class MegaRAID(IPlugin):
                 plugin_data = "%s:%s" % (
                     ctrl_num, disk_show_basic_dict['EID:Slt'])
                 vpd83 = disk_show_attr_dict["WWN"]
+                rpm = _disk_rpm_of(disk_show_basic_dict)
+                link_type = _disk_link_type_of(disk_show_basic_dict)
 
                 rc_lsm_disks.append(
                     Disk(
                         disk_id, disk_name, disk_type, blk_size, blk_count,
-                        status, sys_id, plugin_data, _vpd83=vpd83))
+                        status, sys_id, plugin_data, _vpd83=vpd83, _rpm=rpm,
+                        _link_type=link_type))
 
         return search_property(rc_lsm_disks, search_key, search_value)
 

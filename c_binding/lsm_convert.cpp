@@ -156,13 +156,32 @@ lsm_disk *value_to_disk(Value & disk)
 
         if ((rc != NULL) && std_map_has_key(d, "disk_location") &&
             (d["disk_location"].asC_str()[0] != '\0')) {
-            
+
             if (lsm_disk_location_set(rc, d["disk_location"].asC_str()) !=
                 LSM_ERR_OK) {
                 lsm_disk_record_free(rc);
                 rc = NULL;
                 throw ValueException("value_to_disk: failed to update "
                                      "disk_location");
+            }
+        }
+        if ((rc != NULL) && std_map_has_key(d, "rpm") &&
+            (d["rpm"].asInt32_t() != LSM_DISK_RPM_NO_SUPPORT)) {
+            if (lsm_disk_rpm_set(rc, d["rpm"].asInt32_t()) != LSM_ERR_OK) {
+                lsm_disk_record_free(rc);
+                rc = NULL;
+                throw ValueException("value_to_disk: failed to update rpm");
+            }
+        }
+        if ((rc != NULL) && std_map_has_key(d, "link_type") &&
+            (d["link_type"].asInt32_t() != LSM_DISK_LINK_TYPE_NO_SUPPORT)) {
+            if (lsm_disk_link_type_set(rc, (lsm_disk_link_type)
+                                       d["link_type"].asInt32_t()) !=
+                LSM_ERR_OK) {
+                lsm_disk_record_free(rc);
+                rc = NULL;
+                throw ValueException("value_to_disk: failed to update "
+                                     "link_type");
             }
         }
     } else {
@@ -186,6 +205,10 @@ Value disk_to_value(lsm_disk * disk)
         d["system_id"] = Value(disk->system_id);
         if (disk->disk_location != NULL)
             d["disk_location"] = Value(disk->disk_location);
+        if (disk->rpm != LSM_DISK_RPM_NO_SUPPORT)
+            d["rpm"] = Value(disk->rpm);
+        if (disk->link_type != LSM_DISK_LINK_TYPE_NO_SUPPORT)
+            d["link_type"] = Value(disk->link_type);
 
         return Value(d);
     }

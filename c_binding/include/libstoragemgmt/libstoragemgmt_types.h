@@ -268,6 +268,22 @@ typedef enum {
     LSM_DISK_TYPE_HYBRID = 54,
 } lsm_disk_type;
 
+typedef enum {
+    LSM_DISK_LINK_TYPE_NO_SUPPORT = -2,
+    LSM_DISK_LINK_TYPE_UNKNOWN =  -1,
+    LSM_DISK_LINK_TYPE_FC = 0,
+    LSM_DISK_LINK_TYPE_SSA = 2,
+    LSM_DISK_LINK_TYPE_SBP = 3,
+    LSM_DISK_LINK_TYPE_SRP = 4,
+    LSM_DISK_LINK_TYPE_ISCSI = 5,
+    LSM_DISK_LINK_TYPE_SAS = 6,
+    LSM_DISK_LINK_TYPE_ADT = 7,
+    LSM_DISK_LINK_TYPE_ATA = 8,
+    LSM_DISK_LINK_TYPE_USB = 9,
+    LSM_DISK_LINK_TYPE_SOP = 10,
+    LSM_DISK_LINK_TYPE_PCIE = 11,
+} lsm_disk_link_type;
+/* ^ SPC-5 rev7, Table 444 - PROTOCOL IDENTIFIER field values */
 
 #define LSM_DISK_STATUS_UNKNOWN                     0x0000000000000001
 #define LSM_DISK_STATUS_OK                          0x0000000000000002
@@ -295,6 +311,17 @@ typedef enum {
 
 #define LSM_DISK_BLOCK_SIZE_NOT_FOUND               -1
 #define LSM_DISK_BLOCK_COUNT_NOT_FOUND              -1
+
+#define LSM_DISK_RPM_NO_SUPPORT                     -2
+/* ^ New in version 1.3. */
+#define LSM_DISK_RPM_UNKNOWN                        -1
+/* ^ New in version 1.3. */
+#define LSM_DISK_RPM_NON_ROTATING_MEDIUM            0
+/* ^ New in version 1.3. */
+#define LSM_DISK_RPM_ROTATING_UNKNOWN_SPEED         1
+/* ^ New in version 1.3. Indicate given disk is a rotating disk, but speed is
+ *   unknown
+ */
 
 #define LSM_POOL_STATUS_UNKNOWN                     0x0000000000000001
 #define LSM_POOL_STATUS_OK                          0x0000000000000002

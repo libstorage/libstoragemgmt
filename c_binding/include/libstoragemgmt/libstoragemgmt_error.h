@@ -43,6 +43,9 @@ typedef enum {
     /** Daemon is not running */
     LSM_ERR_DAEMON_NOT_RUNNING = 12,
 
+    /** Permission denied. Only for library level function. */
+    LSM_ERR_PERMISSION_DENIED = 13,
+
     /** Name exists */
     LSM_ERR_NAME_CONFLICT = 50,
 

@@ -207,9 +207,29 @@ class Disk(IData):
     # any explicit action when assigning to pool, it should be treated as
     # free disk and marked as STATUS_FREE|STATUS_SPARE_DISK.
 
+    RPM_NO_SUPPORT = -2
+    RPM_UNKNOWN = -1
+    RPM_NON_ROTATING_MEDIUM = 0
+    RPM_ROTATING_UNKNOWN_SPEED = 1
+
+    LINK_TYPE_NO_SUPPORT = -2
+    LINK_TYPE_UNKNOWN = -1
+    LINK_TYPE_FC = 0
+    LINK_TYPE_SSA = 2
+    LINK_TYPE_SBP = 3
+    LINK_TYPE_SRP = 4
+    LINK_TYPE_ISCSI = 5
+    LINK_TYPE_SAS = 6
+    LINK_TYPE_ADT = 7
+    LINK_TYPE_ATA = 8
+    LINK_TYPE_USB = 9
+    LINK_TYPE_SOP = 10
+    LINK_TYPE_PCIE = 11
+
     def __init__(self, _id, _name, _disk_type, _block_size, _num_of_blocks,
                  _status, _system_id, _plugin_data=None, _vpd83='',
-                 _disk_location=''):
+                 _disk_location='', _rpm=RPM_NO_SUPPORT,
+                 _link_type=LINK_TYPE_NO_SUPPORT):
         self._id = _id
         self._name = _name
         self._disk_type = _disk_type
@@ -225,6 +245,8 @@ class Disk(IData):
                            _vpd83)
         self._vpd83 = _vpd83
         self._disk_location = _disk_location
+        self._rpm = _rpm
+        self._link_type = _link_type
 
     @property
     def size_bytes(self):
@@ -258,6 +280,61 @@ class Disk(IData):
                            "Disk.disk_location() is not supported by this "
                            "plugin yet")
         return self._disk_location
+
+    @property
+    def rpm(self):
+        """
+        Integer. New in version 1.3.
+        Disk rotation speed - revolutions per minute(RPM):
+            -1 (LSM_DISK_RPM_UNKNOWN):
+                Unknown RPM
+             0 (LSM_DISK_RPM_NON_ROTATING_MEDIUM):
+                Non-rotating medium (e.g., SSD)
+             1 (LSM_DISK_RPM_ROTATING_UNKNOWN_SPEED):
+                Rotational disk with unknown speed
+            >1:
+                Normal rotational disk (e.g., HDD)
+        """
+        if self._rpm == Disk.RPM_NO_SUPPORT:
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                           "Disk.rpm is not supported by this plugin yet")
+        return self._rpm
+
+    @property
+    def link_type(self):
+        """
+        Integer. New in version 1.3.
+        Link type, possible values are:
+            lsm.Disk.LINK_TYPE_UNKNOWN
+                Failed to detect link type
+            lsm.Disk.LINK_TYPE_FC
+                Fibre Channel
+            lsm.Disk.LINK_TYPE_SSA
+                Serial Storage Architecture, Old IBM tech.
+            lsm.Disk.LINK_TYPE_SBP
+                Serial Bus Protocol, used by IEEE 1394.
+            lsm.Disk.LINK_TYPE_SRP
+                SCSI RDMA Protocol
+            lsm.Disk.LINK_TYPE_ISCSI
+                Internet Small Computer System Interface
+            lsm.Disk.LINK_TYPE_SAS
+                Serial Attached SCSI
+            lsm.Disk.LINK_TYPE_ADT
+                Automation/Drive Interface Transport
+                Protocol, often used by Tape.
+            lsm.Disk.LINK_TYPE_ATA
+                PATA/IDE or SATA.
+            lsm.Disk.LINK_TYPE_USB
+                USB disk.
+            lsm.Disk.LINK_TYPE_SOP
+                SCSI over PCI-E
+            lsm.Disk.LINK_TYPE_PCIE
+                PCI-E, e.g. NVMe
+        """
+        if self._link_type == Disk.LINK_TYPE_NO_SUPPORT:
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                           "Disk.link_type is not supported by this plugin yet")
+        return self._link_type
 
     def __str__(self):
         return self.name
@@ -854,6 +931,8 @@ class Capabilities(IData):
     SYS_FW_VERSION_GET = 160
     SYS_MODE_GET = 161
     DISK_LOCATION = 163
+    DISK_RPM = 164
+    DISK_LINK_TYPE = 165
     VOLUME_LED = 171
 
     POOLS_QUICK_SEARCH = 210

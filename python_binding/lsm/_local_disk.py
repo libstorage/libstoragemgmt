@@ -14,7 +14,9 @@
 #
 # Author: Gris Ge <fge@redhat.com>
 
-from lsm._clib import (_local_disk_vpd83_search, _local_disk_vpd83_get)
+from lsm._clib import (_local_disk_vpd83_search, _local_disk_vpd83_get,
+                       _local_disk_rpm_get, _local_disk_list,
+                       _local_disk_link_type_get)
 from lsm import LsmError, ErrorNumber
 
 
@@ -26,6 +28,7 @@ def _use_c_lib_function(func_ref, arg):
 
 
 class LocalDisk(object):
+
     @staticmethod
     def vpd83_search(vpd83):
         """
@@ -85,3 +88,133 @@ class LocalDisk(object):
                 No capability required as this is a library level method.
         """
         return _use_c_lib_function(_local_disk_vpd83_get, disk_path)
+
+    @staticmethod
+    def rpm_get(disk_path):
+        """
+        Version:
+            1.3
+        Usage:
+            Query the disk rotation speed - revolutions per minute (RPM) of
+            given disk path.
+            Require permission to open disk path as read-only and non-block,
+            normally it's root or disk group privilege.
+        Parameters:
+            disk_path (string)
+                The disk path, example '/dev/sdb', '/dev/nvme0n1'.
+        Returns:
+            rpm (integer)
+                Disk rotation speed:
+                    -1 (lsm.Disk.RPM_UNKNOWN):
+                        Unknown RPM
+                     0 (lsm.Disk.RPM_NON_ROTATING_MEDIUM):
+                        Non-rotating medium (e.g., SSD)
+                     1 (lsm.Disk.RPM_ROTATING_UNKNOWN_SPEED):
+                        Rotational disk with unknown speed
+                    >1:
+                        Normal rotational disk (e.g., HDD)
+
+        SpecialExceptions:
+            LsmError
+                ErrorNumber.LIB_BUG
+                    Internal bug.
+                ErrorNumber.INVALID_ARGUMENT
+                    Invalid disk_path. Should be like '/dev/sdb'.
+                ErrorNumber.NOT_FOUND_DISK
+                    Provided disk is not found.
+        Capability:
+            N/A
+                No capability required as this is a library level method.
+        """
+        return _use_c_lib_function(_local_disk_rpm_get, disk_path)
+
+    @staticmethod
+    def list():
+        """
+        Version:
+            1.3
+        Usage:
+            Query local disk paths. Currently, only SCSI, ATA and NVMe disks
+            will be included.
+        Parameters:
+            N/A
+        Returns:
+            [disk_path]
+                List of string. Empty list if not disk found.
+                The disk_path string format is '/dev/sd[a-z]+' for SCSI and
+                ATA disks, '/dev/nvme[0-9]+n[0-9]+' for NVMe disks.
+        SpecialExceptions:
+            LsmError
+                ErrorNumber.LIB_BUG
+                    Internal bug.
+                ErrorNumber.INVALID_ARGUMENT
+                    Invalid disk_path. Should be like '/dev/sdb'.
+                ErrorNumber.NOT_FOUND_DISK
+                    Provided disk is not found.
+        Capability:
+            N/A
+                No capability required as this is a library level method.
+        """
+        (disk_paths, err_no, err_msg) = _local_disk_list()
+        if err_no != ErrorNumber.OK:
+            raise LsmError(err_no, err_msg)
+        return disk_paths
+
+    @staticmethod
+    def link_type_get(disk_path):
+        """
+        Version:
+            1.3
+        Usage:
+            Query the disk link type of given disk path.
+            For SATA disks connected to SAS enclosure, will return
+            lsm.SCSI.LINK_TYPE_ATA.
+            Require permission to open disk_path(root user or disk group).
+        Parameters:
+            disk_path (string)
+                The disk path, example '/dev/sdb'.
+        Returns:
+            link_type (integer)
+                Link type, possible values are:
+                    lsm.Disk.LINK_TYPE_UNKNOWN
+                        Failed to detect link type
+                    lsm.Disk.LINK_TYPE_FC
+                        Fibre Channel
+                    lsm.Disk.LINK_TYPE_SSA
+                        Serial Storage Architecture, Old IBM tech.
+                    lsm.Disk.LINK_TYPE_SBP
+                        Serial Bus Protocol, used by IEEE 1394.
+                    lsm.Disk.LINK_TYPE_SRP
+                        SCSI RDMA Protocol
+                    lsm.Disk.LINK_TYPE_ISCSI
+                        Internet Small Computer System Interface
+                    lsm.Disk.LINK_TYPE_SAS
+                        Serial Attached SCSI
+                    lsm.Disk.LINK_TYPE_ADT
+                        Automation/Drive Interface Transport
+                        Protocol, often used by Tape.
+                    lsm.Disk.LINK_TYPE_ATA
+                        PATA/IDE or SATA.
+                    lsm.Disk.LINK_TYPE_USB
+                        USB disk.
+                    lsm.Disk.LINK_TYPE_SOP
+                        SCSI over PCI-E
+                    lsm.Disk.LINK_TYPE_PCIE
+                        PCI-E, e.g. NVMe
+        SpecialExceptions:
+            LsmError
+                ErrorNumber.LIB_BUG
+                    Internal bug.
+                ErrorNumber.INVALID_ARGUMENT
+                    Invalid disk_path. Should be like '/dev/sdb'.
+                ErrorNumber.NOT_FOUND_DISK
+                    Provided disk is not found.
+                ErrorNumber.NO_SUPPORT
+                    Provided disk does not support SCSI SPC.
+                ErrorNumber.PERMISSION_DENIED
+                    Insufficient permission to access provided disk path.
+        Capability:
+            N/A
+                No capability required as this is a library level method.
+        """
+        return _use_c_lib_function(_local_disk_link_type_get, disk_path)

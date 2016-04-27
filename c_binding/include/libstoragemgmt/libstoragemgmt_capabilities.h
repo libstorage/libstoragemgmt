@@ -165,6 +165,10 @@ typedef enum {
     /**^ Plug-in allows user to retrieve storage mode*/
     LSM_CAP_DISK_LOCATION = 163,
     /**^ Plug-in allows user to retrieve disk location */
+    LSM_CAP_DISK_RPM = 164,
+    /**^ Plug-in allows user to retrieve disk rotation speed */
+    LSM_CAP_DISK_LINK_TYPE = 165,
+    /**^ Plug-in allows user to retrieve disk link type */
     LSM_CAP_VOLUME_LED = 171,
     /**^ Plugin allows user to set and clear volume LEDs */
     LSM_CAP_POOLS_QUICK_SEARCH = 210,

@@ -2381,6 +2381,8 @@ int load(lsm_plugin_ptr c, const char *uri, const char *password,
                                       512, 0x8000000000000,
                                       LSM_DISK_STATUS_OK, sys_id);
             lsm_disk_location_set(d, disk_location);
+            lsm_disk_rpm_set(d, LSM_DISK_RPM_NON_ROTATING_MEDIUM);
+            lsm_disk_link_type_set(d, LSM_DISK_LINK_TYPE_SAS);
 
             key = strdup(lsm_disk_id_get(d));
 

@@ -615,6 +615,11 @@ The desired percentage of read cache for the targeted system. Write cache
 will be automatically changed to the remaining percentage available after
 updating the read cache (if supported by the system).
 
+.SS local-disk-list
+List all disks found on current local operating system.
+Require permission to open /dev/sdX as read-only, normally root user or disk
+group would have sufficient permission.
+
 .IP
 .SH ALIAS
 .SS ls
@@ -667,6 +672,8 @@ Alias of 'access-group-remove'
 Alias of 'access-group-delete'
 .SS srcps
 Alias of 'system-read-cache-pct-update'
+.SS ldl
+Alias of 'local-disk-list'
 
 .IP
 .SH SIZE OPTION
