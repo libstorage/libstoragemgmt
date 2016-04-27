@@ -123,7 +123,7 @@ def _mega_size_to_lsm(mega_size):
     LSI Using 'TB, GB, MB, KB' and etc, for LSM, they are 'TiB' and etc.
     Return int of block bytes
     """
-    re_regex = re.compile("^([0-9.]+) ([EPTGMK])B$")
+    re_regex = re.compile("^([0-9.]+) *([EPTGMK])B$")
     re_match = re_regex.match(mega_size)
     if re_match:
         return size_human_2_size_bytes(
@@ -961,3 +961,84 @@ class MegaRAID(IPlugin):
                 lsm_bats.append(_mega_cv_to_lsm(sys_id, cv_show_all_output))
 
         return search_property(lsm_bats, search_key, search_value)
+
+    @_handle_errors
+    def volume_cache_info(self, volume, flags=Client.FLAG_RSVD):
+        """
+        Depending on these commands:
+            storcli /c0/v0 show all J
+        """
+        flag_has_ram = False
+        flag_battery_ok = False
+
+        vd_path = _vd_path_of_lsm_vol(volume)
+
+        vol_show_output = self._storcli_exec([vd_path, "show", "all"])
+        vd_basic_info = vol_show_output[vd_path][0]
+        vd_id = int(vd_basic_info['DG/VD'].split('/')[-1])
+        vd_prop_info = vol_show_output['VD%d Properties' % vd_id]
+
+        sys_all_output = self._storcli_exec(
+            ["/%s" % vd_path.split('/')[1], "show", "all"])
+
+        write_cache_status = Volume.WRITE_CACHE_STATUS_WRITE_THROUGH
+        read_cache_status = Volume.READ_CACHE_STATUS_DISABLED
+
+        ram_size = _mega_size_to_lsm(
+            sys_all_output['HwCfg'].get('On Board Memory Size', '0 KB'))
+        if ram_size > 0:
+            flag_has_ram = True
+
+        lsm_bats = self.batteries()
+        for lsm_bat in lsm_bats:
+            if lsm_bat.status == Battery.STATUS_OK:
+                flag_battery_ok = True
+
+        lsi_cache_setting = vd_basic_info['Cache']
+        if lsi_cache_setting[0] == 'R':
+            read_cache_policy = Volume.READ_CACHE_POLICY_ENABLED
+            if flag_has_ram:
+                read_cache_status = Volume.READ_CACHE_STATUS_ENABLED
+        elif lsi_cache_setting[0:2] == 'NR':
+            read_cache_policy = Volume.READ_CACHE_POLICY_DISABLED
+        else:
+            raise LsmError(
+                ErrorNumber.PLUGIN_BUG,
+                "Unknown read cache %s for volume %s" %
+                (lsi_cache_setting, vd_path))
+
+        if 'AWB' in lsi_cache_setting:
+            write_cache_policy = Volume.WRITE_CACHE_POLICY_WRITE_BACK
+            if flag_has_ram:
+                write_cache_status = Volume.WRITE_CACHE_STATUS_WRITE_BACK
+        elif 'WB' in lsi_cache_setting:
+            # This mode means enable write cache when battery or CacheVault
+            # is healthy.
+            write_cache_policy = Volume.WRITE_CACHE_POLICY_AUTO
+            if flag_has_ram and flag_battery_ok:
+                write_cache_status = Volume.WRITE_CACHE_STATUS_WRITE_BACK
+        elif 'WT' in lsi_cache_setting:
+            write_cache_policy = Volume.WRITE_CACHE_POLICY_WRITE_THROUGH
+        else:
+            raise LsmError(
+                ErrorNumber.PLUGIN_BUG,
+                "Unknown write cache %s for volume %s" %
+                (lsi_cache_setting, vd_path))
+
+        # TODO(Gris Ge): When 'Block SSD Write Disk Cache Change' of
+        #                'Supported Adapter Operations' is 'Yes'
+        lsi_disk_cache_setting = vd_prop_info['Disk Cache Policy']
+        if lsi_disk_cache_setting == 'Disabled':
+            phy_disk_cache = Volume.PHYSICAL_DISK_CACHE_DISABLED
+        elif lsi_disk_cache_setting == 'Enabled':
+            phy_disk_cache = Volume.PHYSICAL_DISK_CACHE_ENABLED
+        elif lsi_disk_cache_setting == "Disk's Default":
+            phy_disk_cache = Volume.PHYSICAL_DISK_CACHE_USE_DISK_SETTING
+        else:
+            raise LsmError(
+                ErrorNumber.PLUGIN_BUG,
+                "Unknown disk cache policy '%s' for volume %s" %
+                (lsi_disk_cache_setting, vd_path))
+
+        return [write_cache_policy, write_cache_status,
+                read_cache_policy, read_cache_status, phy_disk_cache]
