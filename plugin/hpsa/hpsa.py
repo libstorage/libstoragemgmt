@@ -395,6 +395,16 @@ class SmartArray(IPlugin):
         cap.set(Capabilities.VOLUME_LED)
         cap.set(Capabilities.BATTERIES)
         cap.set(Capabilities.VOLUME_CACHE_INFO)
+        cap.set(Capabilities.VOLUME_PHYSICAL_DISK_CACHE_UPDATE)
+        cap.set(Capabilities.VOLUME_PHYSICAL_DISK_CACHE_UPDATE_SYSTEM_LEVEL)
+        cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_WRITE_BACK)
+        cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_AUTO)
+        cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_WRITE_THROUGH)
+        cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_WB_IMPACT_OTHER)
+        cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_IMPACT_READ)
+        cap.set(Capabilities.VOLUME_READ_CACHE_POLICY_UPDATE)
+        cap.set(Capabilities.VOLUME_READ_CACHE_POLICY_UPDATE_IMPACT_WRITE)
+
         return cap
 
     def _sacli_exec(self, sacli_cmds, flag_convert=True, flag_force=False):
@@ -1196,3 +1206,99 @@ class SmartArray(IPlugin):
 
         return [write_cache_policy, write_cache_status, read_cache_policy,
                 read_cache_status, phy_disk_cache]
+
+    def _is_ssd_volume(self, volume):
+        ssd_disk_ids = list(d.id for d in self.disks()
+                            if d.disk_type == Disk.TYPE_SSD)
+        pool = self.pools(search_key='id', search_value=volume.pool_id)[0]
+        disk_ids = self.pool_member_info(pool)[2]
+        return len(set(disk_ids) & set(ssd_disk_ids)) != 0
+
+    @_handle_errors
+    def volume_physical_disk_cache_update(self, volume, pdc,
+                                          flags=Client.FLAG_RSVD):
+        """
+        Depending on "hpssacli ctrl slot=3 modify dwc=<disable|enable>"
+        command.
+        This will change all volumes' setting on physical disk cache.
+        """
+        ctrl_num = self._cal_of_lsm_vol(volume)[0]
+
+        cmd = ["ctrl", "slot=%s" % ctrl_num, "modify"]
+
+        if pdc == Volume.PHYSICAL_DISK_CACHE_ENABLED:
+            cmd.append("dwc=enable")
+        elif pdc == Volume.PHYSICAL_DISK_CACHE_DISABLED:
+            cmd.append("dwc=disable")
+        else:
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
+                           "Got unknown pdc: %d" % pdc)
+        self._sacli_exec(cmd, flag_force=True, flag_convert=False)
+
+    @_handle_errors
+    def volume_write_cache_policy_update(self, volume, wcp,
+                                         flags=Client.FLAG_RSVD):
+        """
+        Depending on these commands:
+            To disable both read and write cache:
+                hpssacli ctrl slot=3 ld 1 modify aa=disable
+            To enable no battery write cache:
+                hpssacli ctrl slot=0 modify nbwc=enable
+        """
+        (ctrl_num, array_num, ld_num) = self._cal_of_lsm_vol(volume)
+
+        cmd1 = ['ctrl', 'slot=%s' % ctrl_num, 'ld', ld_num]
+        cmd2 = []
+        if wcp == Volume.WRITE_CACHE_POLICY_WRITE_BACK:
+            cmd1.extend(['modify', 'aa=enable'])
+            cmd2 = ['ctrl', 'slot=%s' % ctrl_num, 'modify', 'nbwc=enable']
+        elif wcp == Volume.WRITE_CACHE_POLICY_AUTO:
+            cmd1.extend(['modify', 'aa=enable'])
+            cmd2 = ['ctrl', 'slot=%s' % ctrl_num, 'modify', 'nbwc=disable']
+        elif wcp == Volume.WRITE_CACHE_POLICY_WRITE_THROUGH:
+            cmd1.extend(['modify', 'aa=disable'])
+        else:
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
+                           "Got unknown wcp: %d" % wcp)
+
+        try:
+            self._sacli_exec(cmd1, flag_force=True, flag_convert=False)
+            if cmd2:
+                self._sacli_exec(cmd2, flag_force=True, flag_convert=False)
+        except ExecError as exec_error:
+            # Check whether we got SSD volume
+            if self._is_ssd_volume(volume):
+                raise LsmError(
+                    ErrorNumber.NO_SUPPORT,
+                    "HP SmartArray does not allow changing SSD volume's "
+                    "cache policy while SmartPath is enabled")
+            raise exec_error
+
+    @_handle_errors
+    def volume_read_cache_policy_update(self, volume, rcp,
+                                        flags=Client.FLAG_RSVD):
+        """
+        Depending on this command:
+            To disable both read and write cache:
+                hpssacli ctrl slot=3 ld 1 modify aa=disable
+        """
+        (ctrl_num, array_num, ld_num) = self._cal_of_lsm_vol(volume)
+
+        cmd = ['ctrl', 'slot=%s' % ctrl_num, 'ld', ld_num, 'modify']
+        if rcp == Volume.READ_CACHE_POLICY_DISABLED:
+            cmd.append('aa=disable')
+        elif rcp == Volume.READ_CACHE_POLICY_ENABLED:
+            cmd.append('aa=enable')
+        else:
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
+                           "Got unknown rcp: %d" % rcp)
+        try:
+            self._sacli_exec(cmd, flag_force=True, flag_convert=False)
+        except ExecError as exec_error:
+            # Check whether we got SSD volume
+            if self._is_ssd_volume(volume):
+                raise LsmError(
+                    ErrorNumber.NO_SUPPORT,
+                    "HP SmartArray does not allow changing SSD volume's "
+                    "cache policy while SmartPath is enabled")
+            raise exec_error
