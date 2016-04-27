@@ -118,6 +118,9 @@ typedef enum {
     /** Query battery is supported */
     LSM_CAP_BATTERIES = 56,
 
+    /** Query volume ram cache info is supported */
+    LSM_CAP_VOLUME_CACHE_INFO = 57,
+
     /** List file systems */
     LSM_CAP_FS = 100,
     /** Delete a file system */

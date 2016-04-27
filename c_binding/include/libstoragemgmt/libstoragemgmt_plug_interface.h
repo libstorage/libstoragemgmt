@@ -1144,6 +1144,32 @@ lsm_battery LSM_DLL_EXPORT *lsm_battery_record_alloc(const char *id,
  */
 const char LSM_DLL_EXPORT *lsm_battery_plugin_data_get(lsm_battery *b);
 
+/**
+ * Query the RAM cache information of a volume
+ * @param[in]   c               Valid lsm plug-in pointer
+ * @param[in]   volume          Volume to be deleted
+ * @param[out]  write_cache_policy
+ *                              The write cache policy.
+ * @param[out] write_cache_status
+ *                              The status of write cache.
+ * @param[out] read_cache_policy
+ *                              The policy for read cache.
+ * @param[out] read_cache_status
+ *                              The status of read cache.
+ * @param[out] physical_disk_cache
+ *                              Whether physical disk's cache is enabled or not.
+ * @param[in]   flags           Reserved
+ * @return LSM_ERR_OK, else error reason
+ */
+typedef int (*lsm_plug_volume_cache_info) (lsm_plugin_ptr c,
+                                           lsm_volume *volume,
+                                           uint32_t *write_cache_policy,
+                                           uint32_t *write_cache_status,
+                                           uint32_t *read_cache_policy,
+                                           uint32_t *read_cache_status,
+                                           uint32_t *physical_disk_cache,
+                                           lsm_flag flags);
+
 /** \struct lsm_ops_v1_3
  * \brief Functions added in version 1.3
  * NOTE: This structure will change during the developement util version 1.3
@@ -1154,6 +1180,7 @@ struct lsm_ops_v1_3 {
     lsm_plug_volume_ident_led_off vol_ident_off;
     lsm_plug_system_read_cache_pct_update sys_read_cache_pct_update;
     lsm_plug_battery_list battery_list;
+    lsm_plug_volume_cache_info vol_cache_info;
 };
 
 /**

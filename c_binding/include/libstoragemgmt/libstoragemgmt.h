@@ -1117,6 +1117,81 @@ int LSM_DLL_EXPORT lsm_battery_list(lsm_connect *conn,
                                     lsm_battery **bs[], uint32_t *count,
                                     lsm_flag flags);
 
+/**
+ * New in version 1.3.
+ * Query RAM cache information for the specified volume.
+ * @param[in] c             Valid connection
+ * @param[in] volume        A single lsm_volume
+ * @param[in] flags         Reserved, set to 0
+ * @param[out] write_cache_policy
+ *                         The write cache policy. Valid values are:
+ *                          * LSM_VOLUME_WRITE_CACHE_POLICY_WRITE_BACK
+ *                            The storage system will use write back mode if
+ *                            cache hardware found.
+ *                          * LSM_VOLUME_WRITE_CACHE_POLICY_AUTO
+ *                            The controller will use write back mode when
+ *                            battery/capacitor is in good health, otherwise,
+ *                            write through mode.
+ *                          * LSM_VOLUME_WRITE_CACHE_POLICY_WRITE_THROUGH
+ *                              The storage system will use write through mode.
+ *                          * LSM_VOLUME_WRITE_CACHE_POLICY_UNKNOWN
+ *                              Plugin failed to detect this setting.
+ * @param[out] write_cache_status
+ *                         The status of write cache. Valid values are:
+ *                          * LSM_VOLUME_WRITE_CACHE_STATUS_WRITE_THROUGH
+ *                          * LSM_VOLUME_WRITE_CACHE_STATUS_WRITE_BACK
+ *                          * LSM_VOLUME_WRITE_CACHE_STATUS_UNKNOWN
+ * @param[out] read_cache_policy
+ *                          The policy for read cache. Valid values are:
+ *                          * LSM_VOLUME_READ_CACHE_POLICY_ENABLED
+ *                              Read cache is enabled, when reading I/O on
+ *                              previous unchanged written I/O or read I/O in
+ *                              cache will be returned to I/O initiator
+ *                              immediately without checking backing
+ *                              store(normally disk).
+ *                          * LSM_VOLUME_READ_CACHE_POLICY_DISABLED
+ *                              Read cache is disabled.
+ *                          * LSM_VOLUME_READ_CACHE_POLICY_UNKNOWN
+ *                              Plugin failed to detect the read cache policy.
+ * @param[out] read_cache_status
+ *                          The status of read cache. Valid values are:
+ *                          * LSM_VOLUME_READ_CACHE_STATUS_ENABLED
+ *                          * LSM_VOLUME_READ_CACHE_STATUS_DISABLED
+ *                          * LSM_VOLUME_READ_CACHE_STATUS_UNKNOWN
+ * @param[out] physical_disk_cache
+ *                          Whether physical disk's cache is enabled or not.
+ *                          Please be advised, HDD's physical disk ram cache
+ *                          might not be protected by storage system's battery
+ *                          or capacitor on sudden power loss, you could lose
+ *                          data if a power failure occurs during a write
+ *                          process. For SSD's physical disk cache, please
+ *                          check with the vendor of your hardware RAID card and
+ *                          SSD disk. Valid values are:
+ *                          * LSM_VOLUME_PHYSICAL_DISK_CACHE_ENABLED
+ *                              Physical disk cache enabled.
+ *                          * LSM_VOLUME_PHYSICAL_DISK_CACHE_DISABLED
+ *                              Physical disk cache disabled.
+ *                          * LSM_VOLUME_PHYSICAL_DISK_CACHE_USE_DISK_SETTING
+ *                              Physical disk cache is determined by the disk
+ *                              vendor via physical disks' SCSI caching mode
+ *                              page(0x08 page). It is strongly suggested to
+ *                              change this value to
+ *                              LSM_VOLUME_PHYSICAL_DISK_CACHE_ENABLED or
+ *                              LSM_VOLUME_PHYSICAL_DISK_CACHE_DISABLED
+ *                          * LSM_VOLUME_PHYSICAL_DISK_CACHE_UNKNOWN
+ *                              Plugin failed to detect the physical disk
+ *                              status.
+ * @return LSM_ERR_OK on success else error reason.
+ */
+int LSM_DLL_EXPORT lsm_volume_cache_info(lsm_connect *c,
+                                         lsm_volume *volume,
+                                         uint32_t *write_cache_policy,
+                                         uint32_t *write_cache_status,
+                                         uint32_t *read_cache_policy,
+                                         uint32_t *read_cache_status,
+                                         uint32_t *physical_disk_cache,
+                                         lsm_flag flags);
+
 #ifdef  __cplusplus
 }
 #endif

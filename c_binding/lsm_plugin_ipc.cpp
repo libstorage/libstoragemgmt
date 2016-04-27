@@ -43,6 +43,8 @@ static int lsm_plugin_run(lsm_plugin_ptr plug);
 static void get_batteries(int rc, lsm_battery *bs[], uint32_t count,
                           Value &response);
 static int handle_batteries(lsm_plugin_ptr p, Value &params, Value &response);
+static int handle_volume_cache_info(lsm_plugin_ptr p, Value &params,
+                                    Value &response);
 
 /**
  * Safe string wrapper
@@ -2503,7 +2505,10 @@ static std::map < std::string, handler > dispatch =
     ("volume_ident_led_on", handle_volume_ident_led_on)
     ("volume_ident_led_off", handle_volume_ident_led_off)
     ("system_read_cache_pct_update", handle_system_read_cache_pct_update)
-    ("batteries", handle_batteries);
+    ("batteries", handle_batteries)
+    ("volume_cache_info", handle_volume_cache_info)
+    ;
+
 
 static int process_request(lsm_plugin_ptr p, const std::string & method,
                            Value & request, Value & response)
@@ -3006,4 +3011,48 @@ void lsm_plug_battery_search_filter(const char *search_key,
             *count = filter((void **) bs, *count, cmp, (void *) search_value,
                             battery_free);
     }
+}
+
+static int handle_volume_cache_info(lsm_plugin_ptr p, Value & params,
+                                    Value & response)
+{
+    int rc = LSM_ERR_NO_SUPPORT;
+    if (p && p->ops_v1_3 && p->ops_v1_3->vol_cache_info) {
+        Value v_vol = params["volume"];
+
+        if (IS_CLASS_VOLUME(v_vol) && LSM_FLAG_EXPECTED_TYPE(params)) {
+            lsm_volume *vol = value_to_volume(v_vol);
+            std::vector < Value > result;
+
+            if (vol) {
+                uint32_t write_cache_policy;
+                uint32_t write_cache_status;
+                uint32_t read_cache_policy;
+                uint32_t read_cache_status;
+                uint32_t physical_disk_cache;
+
+                rc = p->ops_v1_3->vol_cache_info
+                    (p, vol, &write_cache_policy, &write_cache_status,
+                     &read_cache_policy, &read_cache_status,
+                     &physical_disk_cache, LSM_FLAG_GET_VALUE(params));
+
+                if (LSM_ERR_OK == rc) {
+                    result.push_back(Value(write_cache_policy));
+                    result.push_back(Value(write_cache_status));
+                    result.push_back(Value(read_cache_policy));
+                    result.push_back(Value(read_cache_status));
+                    result.push_back(Value(physical_disk_cache));
+                    response = Value(result);
+                }
+
+                lsm_volume_record_free(vol);
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
+
+        } else {
+            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
+        }
+    }
+    return rc;
 }

@@ -2654,3 +2654,53 @@ int lsm_battery_list(lsm_connect *c, const char *search_key,
     rc = rpc(c, "batteries", parameters, response);
     return get_battery_array(c, rc, response, bs, count);
 }
+
+int lsm_volume_cache_info(lsm_connect *c, lsm_volume *volume,
+                          uint32_t *write_cache_policy,
+                          uint32_t *write_cache_status,
+                          uint32_t *read_cache_policy,
+                          uint32_t *read_cache_status,
+                          uint32_t *physical_disk_cache, lsm_flag flags)
+{
+    if (LSM_FLAG_UNUSED_CHECK(flags)) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    int rc = LSM_ERR_OK;
+    CONN_SETUP(c);
+
+    if ((!LSM_IS_VOL(volume)) ||
+        (write_cache_policy == NULL) || (write_cache_status == NULL) ||
+        (read_cache_policy == NULL) || (read_cache_status == NULL) ||
+        (physical_disk_cache == NULL))
+        return LSM_ERR_INVALID_ARGUMENT;
+
+    try {
+
+        Value parameters = _create_volume_flag_param(volume, flags);
+        Value response;
+
+        rc = rpc(c, "volume_cache_info", parameters, response);
+        if (LSM_ERR_OK == rc) {
+            std::vector < Value > j = response.asArray();
+            *write_cache_policy = j[0].asUint32_t();
+            *write_cache_status = j[1].asUint32_t();
+            *read_cache_policy = j[2].asUint32_t();
+            *read_cache_status = j[3].asUint32_t();
+            *physical_disk_cache = j[4].asUint32_t();
+        }
+    }
+    catch(const ValueException & ve) {
+        rc = log_exception(c, LSM_ERR_PLUGIN_BUG, "Unexpected type", ve.what());
+    }
+
+    if (rc != LSM_ERR_OK) {
+        *write_cache_policy = LSM_VOLUME_WRITE_CACHE_POLICY_UNKNOWN;
+        *write_cache_status = LSM_VOLUME_WRITE_CACHE_STATUS_UNKNOWN;
+        *read_cache_policy = LSM_VOLUME_READ_CACHE_POLICY_UNKNOWN;
+        *read_cache_status = LSM_VOLUME_READ_CACHE_STATUS_UNKNOWN;
+        *physical_disk_cache = LSM_VOLUME_PHYSICAL_DISK_CACHE_UNKNOWN;
+    }
+
+    return rc;
+}
