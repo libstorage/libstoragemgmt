@@ -355,7 +355,7 @@ def get(smis_common, cim_sys, system):
     if cim_sys.path.classname == 'Clar_StorageSystem':
         mt = MASK_TYPE_MASK
 
-    if mask_type == MASK_TYPE_GROUP:
+    if mt == MASK_TYPE_GROUP:
         _group_mask_map_cap_set(smis_common, cim_sys.path, cap)
     else:
         _mask_map_cap_set(smis_common, cim_sys.path, cap)
