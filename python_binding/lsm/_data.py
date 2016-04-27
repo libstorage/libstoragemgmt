@@ -418,6 +418,28 @@ class Volume(IData):
 
     VCR_STRIP_SIZE_DEFAULT = 0
 
+    WRITE_CACHE_POLICY_UNKNOWN = 1
+    WRITE_CACHE_POLICY_WRITE_BACK = 2
+    WRITE_CACHE_POLICY_AUTO = 3
+    WRITE_CACHE_POLICY_WRITE_THROUGH = 4
+
+    WRITE_CACHE_STATUS_UNKNOWN = 1
+    WRITE_CACHE_STATUS_WRITE_BACK = 2
+    WRITE_CACHE_STATUS_WRITE_THROUGH = 3
+
+    READ_CACHE_POLICY_UNKNOWN = 1
+    READ_CACHE_POLICY_ENABLED = 2
+    READ_CACHE_POLICY_DISABLED = 3
+
+    READ_CACHE_STATUS_UNKNOWN = 1
+    READ_CACHE_STATUS_ENABLED = 2
+    READ_CACHE_STATUS_DISABLED = 3
+
+    PHYSICAL_DISK_CACHE_UNKNOWN = 1
+    PHYSICAL_DISK_CACHE_ENABLED = 2
+    PHYSICAL_DISK_CACHE_DISABLED = 3
+    PHYSICAL_DISK_CACHE_USE_DISK_SETTING = 4
+
     def __init__(self, _id, _name, _vpd83, _block_size, _num_of_blocks,
                  _admin_state, _system_id, _pool_id, _plugin_data=None):
         self._id = _id                        # Identifier
@@ -904,6 +926,8 @@ class Capabilities(IData):
     VOLUME_THIN = 55
 
     BATTERIES = 56
+
+    VOLUME_CACHE_INFO = 57
 
     #File system
     FS = 100

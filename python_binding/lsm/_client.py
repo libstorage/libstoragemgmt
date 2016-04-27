@@ -1532,3 +1532,87 @@ class Client(INetworkAttachedStorage):
         """
         _check_search_key(search_key, Battery.SUPPORTED_SEARCH_KEYS)
         return self._tp.rpc('batteries', _del_self(locals()))
+
+    @_return_requires([int, int, int, int, int])
+    def volume_cache_info(self, volume, flags=FLAG_RSVD):
+        """
+        lsm.Client.volume_cache_info(self, volume,
+                                     flags=lsm.Client.FLAG_RSVD)
+
+        Version:
+            1.3
+        Usage:
+            Query RAM cache setting and status of specified volume on read
+            and write I/O.
+        Parameters:
+            volume (Lsm.Volume)
+                The lsm.Volume instance.
+            flags (int, optional):
+                Reserved for future use. Should be set as lsm.Client.FLAG_RSVD
+        Returns:
+            [int, int, int, int, int]
+            write_cache_policy (int)
+                The write cache policy. Valid values are:
+                    * lsm.Volume.WRITE_CACHE_POLICY_WRITE_BACK
+                        The storage system will use write back mode if cache
+                        hardware found.
+                    * lsm.Volume.WRITE_CACHE_POLICY_AUTO
+                        The controller will use write back mode when
+                        battery/capacitor is in good health, otherwise,
+                        write through mode.
+                    * lsm.Volume.WRITE_CACHE_POLICY_WRITE_THROUGH
+                        The storage system will use write through mode.
+                    * lsm.Volume.WRITE_CACHE_POLICY_UNKNOWN
+                        Plugin failed to detect this setting.
+
+            write_cache_status (int)
+                The status of write cache. Valid values are:
+                    * lsm.Volume.WRITE_CACHE_STATUS_WRITE_THROUGH
+                    * lsm.Volume.WRITE_CACHE_STATUS_WRITE_BACK
+                    * lsm.Volume.WRITE_CACHE_STATUS_UNKNOWN
+
+            read_cache_policy (int)
+                The policy for read cache. Valid values are:
+                    * lsm.Volume.READ_CACHE_POLICY_ENABLED
+                        Read cache is enabled, when reading I/O on previous
+                        unchanged written I/O or read I/O in cache will be
+                        returned to I/O initiator immediately without checking
+                        backing store(normally disk).
+                    * lsm.Volume.READ_CACHE_POLICY_DISABLED
+                        Read cache is disabled.
+                    * lsm.Volume.READ_CACHE_POLICY_UNKNOWN
+                        Plugin failed to detect the read cache policy.
+            read_cache_status (int)
+                The status of read cache. Valid values are:
+                    * lsm.Volume.READ_CACHE_STATUS_ENABLED
+                    * lsm.Volume.READ_CACHE_STATUS_DISABLED
+                    * lsm.Volume.READ_CACHE_STATUS_UNKNOWN
+            physical_disk_cache (int)
+                Whether physical disk's cache is enabled or not.
+                Please be advised, HDD's physical disk ram cache might be not
+                protected by storage system's battery or capacitor on sudden
+                power loss, you could lose data if a power failure occurs during
+                a write process.
+                For SSD's physical disk cache, please check with the vendor of
+                your hardware RAID card and SSD disk.
+                Valid values are:
+                    * lsm.Volume.PHYSICAL_DISK_CACHE_ENABLED
+                        Physical disk cache enabled.
+                    * lsm.Volume.PHYSICAL_DISK_CACHE_DISABLED
+                        Physical disk cache disabled.
+                    * lsm.Volume.PHYSICAL_DISK_CACHE_USE_DISK_SETTING
+                        Physical disk cache is determined by the disk vendor
+                        via physical disks' SCSI caching mode page(0x08 page).
+                        It is strongly suggested to change this value to
+                        lsm.Volume.PHYSICAL_DISK_CACHE_ENABLED or
+                        lsm.Volume.PHYSICAL_DISK_CACHE_DISABLED
+                    * lsm.Volume.PHYSICAL_DISK_CACHE_UNKNOWN
+                        Plugin failed to detect the physical disk status.
+        SpecialExceptions:
+            LsmError
+                ErrorNumber.NO_SUPPORT
+                ErrorNumber.NOT_FOUND_VOLUME
+        Capability:
+            lsm.Capabilities.VOLUME_CACHE_INFO
+        """
+        return self._tp.rpc('volume_cache_info', _del_self(locals()))
