@@ -152,7 +152,9 @@ lsm_error_ptr LSM_DLL_EXPORT lsm_error_last_get(lsm_connect * c);
 /**
  * Frees the error record!
  * @param err   The error to free!
- * @return LSM_ERR_OK on success, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_error_free(lsm_error_ptr err);
 

@@ -28,7 +28,8 @@ extern "C" {
 /**
  * Frees the memory fro an individual volume
  * @param v     Volume pointer to free.
- * @return LSM_ERR_OK on success, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_volume_record_free(lsm_volume *v);
 
@@ -43,7 +44,8 @@ lsm_volume LSM_DLL_EXPORT *lsm_volume_record_copy(lsm_volume *vol);
  * Frees the memory for each of the volume records and then the array itself.
  * @param init  Array to free.
  * @param size  Size of array.
- * @return LSM_ERR_OK on success, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_volume_record_array_free(lsm_volume *init[],
                                                 uint32_t size);

@@ -28,7 +28,8 @@ extern "C" {
 /**
  * Frees a file system snapshot record.
  * @param ss    Snapshot record
- * @return LSM_ERR_OK on success, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_fs_ss_record_free(lsm_fs_ss *ss);
 
@@ -43,7 +44,8 @@ lsm_fs_ss LSM_DLL_EXPORT *lsm_fs_ss_record_copy(lsm_fs_ss *source);
  * Frees an array of snapshot record.
  * @param ss        An array of snapshot record pointers.
  * @param size      Number of snapshot records.
- * @return LSM_ERR_OK on success, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_fs_ss_record_array_free(lsm_fs_ss *ss[], uint32_t size);
 

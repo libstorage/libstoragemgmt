@@ -29,14 +29,16 @@ extern "C" {
  * Frees the memory for each of the pools and then the pool array itself.
  * @param pa    Pool array to free.
  * @param size  Size of the pool array.
- * @return LSM_ERR_OK on success, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_pool_record_array_free(lsm_pool *pa[], uint32_t size);
 
 /**
  * Frees the memory for an individual pool
  * @param p Valid pool
- * @return LSM_ERR_OK on success, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_pool_record_free(lsm_pool *p);
 
