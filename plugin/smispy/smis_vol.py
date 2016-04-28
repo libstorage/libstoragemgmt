@@ -1,4 +1,4 @@
-## Copyright (C) 2014 Red Hat, Inc.
+# Copyright (C) 2014-2016 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -183,7 +183,7 @@ def cim_vol_to_lsm_vol(cim_vol, pool_id, sys_id):
     if 'ElementName' in cim_vol:
         user_name = cim_vol["ElementName"]
     else:
-        #Better fallback value?
+        # Better fallback value?
         user_name = cim_vol['DeviceID']
 
     vpd_83 = _vpd83_of_cim_vol(cim_vol)
@@ -219,7 +219,8 @@ def lsm_vol_to_cim_vol_path(smis_common, lsm_vol):
 def volume_name_exists(smis_common, volume_name):
     """
     Try to minimize time to search.
-    :param volume_name:    Volume ElementName
+    :param smis_common:     Instance of SmisCommon class
+    :param volume_name:     Volume ElementName
     :return: True if volume exists with 'name', else False
     """
     all_cim_vols = smis_common.EnumerateInstances(

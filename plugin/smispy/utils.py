@@ -1,4 +1,4 @@
-# Copyright (C) 2014 Red Hat, Inc.
+# Copyright (C) 2014-2016 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -44,7 +44,7 @@ def handle_cim_errors(method):
                                        'Host is down')
                     if 'Errno 104' in desc:
                         raise LsmError(ErrorNumber.NETWORK_CONNREFUSED,
-                                   'Connection reset by peer')
+                                       'Connection reset by peer')
                     # We know we have a socket error of some sort, lets
                     # report a generic network error with the string from the
                     # library.

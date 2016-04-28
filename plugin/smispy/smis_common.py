@@ -216,8 +216,9 @@ class SmisCommon(object):
             self._wbem_conn.debug = True
 
         if namespace.lower() == SmisCommon._MEGARAID_NAMESPACE.lower():
-        # Skip profile register check on MegaRAID for better performance.
-        # MegaRAID SMI-S profile support status will not change for a while.
+            # Skip profile register check on MegaRAID for better performance.
+            # MegaRAID SMI-S profile support status will not change for a
+            # while.
             self._profile_dict = {
                 # Provide a fake profile support status to pass the check.
                 SmisCommon.SNIA_BLK_ROOT_PROFILE: SmisCommon.SMIS_SPEC_VER_1_4,
