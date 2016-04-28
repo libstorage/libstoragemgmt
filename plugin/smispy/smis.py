@@ -18,8 +18,6 @@
 from string import split
 import time
 import copy
-import os
-import re
 
 import pywbem
 from pywbem import CIMError

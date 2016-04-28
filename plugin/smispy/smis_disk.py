@@ -17,7 +17,6 @@
 from lsm import Disk, md5, LsmError, ErrorNumber
 import dmtf
 from utils import merge_list
-from pywbem import CIM_ERR_NOT_FOUND, CIM_ERR_INVALID_PARAMETER
 from lsm.plugin.smispy.smis_common import SmisCommon
 
 

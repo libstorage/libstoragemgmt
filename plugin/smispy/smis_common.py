@@ -23,7 +23,6 @@
 
 from pywbem import Uint16, CIMError
 import pywbem
-import traceback
 import os
 import datetime
 import time

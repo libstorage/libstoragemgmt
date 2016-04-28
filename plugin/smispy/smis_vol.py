@@ -19,7 +19,6 @@ This module intends to provide independent methods related to lsm.Volume and
 CIM_StorageVolume.
 """
 
-import re
 import sys
 
 from lsm import md5, Volume, LsmError, ErrorNumber
