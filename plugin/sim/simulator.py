@@ -306,8 +306,8 @@ class SimPlugin(INfs, IStorageAreaNetwork):
         return self.sim_array.volume_raid_create(
             name, raid_type, disks, strip_size)
 
-    def volume_ident_led_set(self, volume, flags=0):
-        return self.sim_array.volume_ident_led_set(volume)
+    def volume_ident_led_on(self, volume, flags=0):
+        return self.sim_array.volume_ident_led_on(volume)
 
-    def volume_ident_led_clear(self, volume, flags=0):
-        return self.sim_array.volume_ident_led_clear(volume)
+    def volume_ident_led_off(self, volume, flags=0):
+        return self.sim_array.volume_ident_led_off(volume)

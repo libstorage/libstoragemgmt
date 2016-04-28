@@ -1410,16 +1410,16 @@ class Client(INetworkAttachedStorage):
 
         return self._tp.rpc('volume_raid_create', _del_self(locals()))
 
-    ## Set the IDENT LED for a volume.
+    ## Enable the IDENT LED for a volume.
     # @param    self            The this pointer
     # @param    volume          Volume object to target
     # @param    flags           Flags
     # @returns None on success, else raises LsmError
     @_return_requires(None)
-    def volume_ident_led_set(self, volume, flags=FLAG_RSVD):
+    def volume_ident_led_on(self, volume, flags=FLAG_RSVD):
         """
-        lsm.Client.volume_ident_led_set(self, volume,
-                                        flags=lsm.Client.FLAG_RSVD)
+        lsm.Client.volume_ident_led_on(self, volume,
+                                       flags=lsm.Client.FLAG_RSVD)
 
         Version:
             1.3
@@ -1435,17 +1435,17 @@ class Client(INetworkAttachedStorage):
             returns None on success, else raises LsmError on errors.
         SpecialExceptions:
         """
-        return self._tp.rpc('volume_ident_led_set', _del_self(locals()))
+        return self._tp.rpc('volume_ident_led_on', _del_self(locals()))
 
-    ## Clear the IDENT LED for a volume.
+    ## Disable the IDENT LED for a volume.
     # @param    self            The this pointer
     # @param    volume          Volume object to target
     # @param    flags           Flags
     # @returns None on success, else raises LsmError
     @_return_requires(None)
-    def volume_ident_led_clear(self, volume, flags=FLAG_RSVD):
+    def volume_ident_led_off(self, volume, flags=FLAG_RSVD):
         """
-        lsm.Client.volume_ident_led_clear(self, volume,
+        lsm.Client.volume_ident_led_off(self, volume,
                                           flags=lsm.Client.FLAG_RSVD)
 
         Version:
@@ -1462,4 +1462,4 @@ class Client(INetworkAttachedStorage):
             returns None on success, else raises LsmError on errors.
         SpecialExceptions:
         """
-        return self._tp.rpc('volume_ident_led_clear', _del_self(locals()))
+        return self._tp.rpc('volume_ident_led_off', _del_self(locals()))

@@ -170,7 +170,7 @@ typedef enum {
     LSM_CAP_DISK_LINK_TYPE = 165,
     /**^ Plug-in allows user to retrieve disk link type */
     LSM_CAP_VOLUME_LED = 171,
-    /**^ Plugin allows user to set and clear volume LEDs */
+    /**^ Plugin allows user to enable and disable volume LEDs */
     LSM_CAP_POOLS_QUICK_SEARCH = 210,
     /**^ Seach occurs on array */
     LSM_CAP_VOLUMES_QUICK_SEARCH = 211,

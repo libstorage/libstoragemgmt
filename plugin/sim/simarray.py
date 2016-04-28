@@ -2412,7 +2412,7 @@ class SimArray(object):
         return SimArray._sim_vol_2_lsm(sim_vol)
 
     @_handle_errors
-    def volume_ident_led_set(self, volume, flags=0):
+    def volume_ident_led_on(self, volume, flags=0):
         sim_volume_id = SimArray._lsm_id_to_sim_id(
                             volume.id, LsmError(
                                            ErrorNumber.NOT_FOUND_VOLUME,
@@ -2422,7 +2422,7 @@ class SimArray(object):
         return None
 
     @_handle_errors
-    def volume_ident_led_clear(self, volume, flags=0):
+    def volume_ident_led_off(self, volume, flags=0):
         sim_volume_id = SimArray._lsm_id_to_sim_id(
                             volume.id, LsmError(
                                            ErrorNumber.NOT_FOUND_VOLUME,

@@ -2361,11 +2361,11 @@ static int handle_volume_raid_create(lsm_plugin_ptr p, Value & params,
     return rc;
 }
 
-static int handle_volume_ident_led_set(lsm_plugin_ptr p, Value & params,
-                                       Value & response)
+static int handle_volume_ident_led_on(lsm_plugin_ptr p, Value & params,
+                                      Value & response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
-    if (p && p->ops_v1_3 && p->ops_v1_3->vol_ident_set) {
+    if (p && p->ops_v1_3 && p->ops_v1_3->vol_ident_on) {
         Value v_vol = params["volume"];
 
         if (Value::object_t == v_vol.valueType() &&
@@ -2373,8 +2373,8 @@ static int handle_volume_ident_led_set(lsm_plugin_ptr p, Value & params,
 
             lsm_volume *volume = value_to_volume(v_vol);
 
-            rc = p->ops_v1_3->vol_ident_set(p, volume,
-                                            LSM_FLAG_GET_VALUE(params));
+            rc = p->ops_v1_3->vol_ident_on(p, volume,
+                                           LSM_FLAG_GET_VALUE(params));
 
             lsm_volume_record_free(volume);
 
@@ -2385,11 +2385,11 @@ static int handle_volume_ident_led_set(lsm_plugin_ptr p, Value & params,
     return rc;
 }
 
-static int handle_volume_ident_led_clear(lsm_plugin_ptr p, Value & params,
-                                         Value & response)
+static int handle_volume_ident_led_off(lsm_plugin_ptr p, Value & params,
+                                       Value & response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
-    if (p && p->ops_v1_3 && p->ops_v1_3->vol_ident_clear) {
+    if (p && p->ops_v1_3 && p->ops_v1_3->vol_ident_off) {
         Value v_vol = params["volume"];
 
         if (Value::object_t == v_vol.valueType() &&
@@ -2397,8 +2397,8 @@ static int handle_volume_ident_led_clear(lsm_plugin_ptr p, Value & params,
 
             lsm_volume *volume = value_to_volume(v_vol);
 
-            rc = p->ops_v1_3->vol_ident_clear(p, volume,
-                                              LSM_FLAG_GET_VALUE(params));
+            rc = p->ops_v1_3->vol_ident_off(p, volume,
+                                            LSM_FLAG_GET_VALUE(params));
 
             lsm_volume_record_free(volume);
 
@@ -2496,8 +2496,8 @@ static std::map < std::string, handler > dispatch =
     ("pool_member_info", handle_pool_member_info)
     ("volume_raid_create", handle_volume_raid_create)
     ("volume_raid_create_cap_get", handle_volume_raid_create_cap_get)
-    ("volume_ident_led_set", handle_volume_ident_led_set)
-    ("volume_ident_led_clear", handle_volume_ident_led_clear)
+    ("volume_ident_led_on", handle_volume_ident_led_on)
+    ("volume_ident_led_off", handle_volume_ident_led_off)
     ("system_read_cache_pct_update", handle_system_read_cache_pct_update);
 
 static int process_request(lsm_plugin_ptr p, const std::string & method,

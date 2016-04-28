@@ -1014,9 +1014,9 @@ int LSM_DLL_EXPORT lsm_volume_raid_create(lsm_connect *c,
  * @param[in] flags			Reserved, set to 0
  * @return LSM_ERR_OK on success else error reason.
  */
-int LSM_DLL_EXPORT lsm_volume_ident_led_set(lsm_connect *c,
-                                            lsm_volume *volume,
-                                            lsm_flag flags);
+int LSM_DLL_EXPORT lsm_volume_ident_led_on(lsm_connect *c,
+                                           lsm_volume *volume,
+                                           lsm_flag flags);
 
 /**
  * Disable the IDENT LED for the desired volume.
@@ -1026,9 +1026,9 @@ int LSM_DLL_EXPORT lsm_volume_ident_led_set(lsm_connect *c,
  * @param[in] flags			Reserved, set to 0
  * @return LSM_ERR_OK on success else error reason.
  */
-int LSM_DLL_EXPORT lsm_volume_ident_led_clear(lsm_connect *c,
-                                              lsm_volume *volume,
-                                              lsm_flag flags);
+int LSM_DLL_EXPORT lsm_volume_ident_led_off(lsm_connect *c,
+                                            lsm_volume *volume,
+                                            lsm_flag flags);
 
 /**
  * Change the read cache percentage for the desired system.

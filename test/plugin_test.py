@@ -1538,24 +1538,24 @@ class TestPlugin(unittest.TestCase):
                 raise
 
 
-    def test_volume_ident_led_set(self):
+    def test_volume_ident_led_on(self):
         for s in self.systems:
             cap = self.c.capabilities(s)
             if supported(cap, [Cap.VOLUME_LED]):
                 for volume in self.c.volumes():
-                    volume_led_status = self.c.volume_ident_led_set(volume)
+                    volume_led_status = self.c.volume_ident_led_on(volume)
                     self.assertTrue(volume_led_status is None,
-                                    "Volume ident_led_set"
+                                    "Volume ident_led_on"
                                     "failed")
 
-    def test_volume_ident_led_clear(self):
+    def test_volume_ident_led_off(self):
         for s in self.systems:
             cap = self.c.capabilities(s)
             if supported(cap, [Cap.VOLUME_LED]):
                 for volume in self.c.volumes():
-                    volume_led_status = self.c.volume_ident_led_clear(volume)
+                    volume_led_status = self.c.volume_ident_led_off(volume)
                     self.assertTrue(volume_led_status is None,
-                                    "Volume ident_led_clear"
+                                    "Volume ident_led_off"
                                     "failed")
 
     def test_invalid_uri(self):

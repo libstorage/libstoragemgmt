@@ -2559,7 +2559,24 @@ int lsm_volume_raid_create(lsm_connect * c, const char *name,
     return rc;
 }
 
-int lsm_volume_ident_led_set(lsm_connect * c, lsm_volume * volume,
+int lsm_volume_ident_led_on(lsm_connect * c, lsm_volume * volume,
+                            lsm_flag flags)
+{
+    CONN_SETUP(c);
+
+    std::map < std::string, Value > p;
+    p["flags"] = Value(flags);
+    p["volume"] = volume_to_value(volume);
+
+    Value parameters(p);
+    Value response;
+
+    int rc = rpc(c, "volume_ident_led_on", parameters, response);
+
+    return rc;
+}
+
+int lsm_volume_ident_led_off(lsm_connect * c, lsm_volume * volume,
                              lsm_flag flags)
 {
     CONN_SETUP(c);
@@ -2571,24 +2588,7 @@ int lsm_volume_ident_led_set(lsm_connect * c, lsm_volume * volume,
     Value parameters(p);
     Value response;
 
-    int rc = rpc(c, "volume_ident_led_set", parameters, response);
-
-    return rc;
-}
-
-int lsm_volume_ident_led_clear(lsm_connect * c, lsm_volume * volume,
-                               lsm_flag flags)
-{
-    CONN_SETUP(c);
-
-    std::map < std::string, Value > p;
-    p["flags"] = Value(flags);
-    p["volume"] = volume_to_value(volume);
-
-    Value parameters(p);
-    Value response;
-
-    int rc = rpc(c, "volume_ident_led_clear", parameters, response);
+    int rc = rpc(c, "volume_ident_led_off", parameters, response);
 
     return rc;
 }
