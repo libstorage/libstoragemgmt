@@ -377,7 +377,7 @@ class SmisCommon(object):
         if len(tmp_list) == 3:
             retrieve_data = int(tmp_list[1])
             method_data = tmp_list[2]
-        return (md5_str, retrieve_data, method_data)
+        return md5_str, retrieve_data, method_data
 
     def _dump_wbem_xml(self, file_prefix):
         """
@@ -512,7 +512,7 @@ class SmisCommon(object):
                 job_pros = ['JobState', 'ErrorDescription',
                             'OperationalStatus']
                 cim_xxxs_path = []
-                while(loop_counter <= SmisCommon._INVOKE_MAX_LOOP_COUNT):
+                while loop_counter <= SmisCommon._INVOKE_MAX_LOOP_COUNT:
                     cim_job = self.GetInstance(cim_job_path,
                                                PropertyList=job_pros)
                     job_state = cim_job['JobState']
