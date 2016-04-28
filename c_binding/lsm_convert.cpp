@@ -198,10 +198,10 @@ Value disk_to_value(lsm_disk * disk)
         d["class"] = Value(CLASS_NAME_DISK);
         d["id"] = Value(disk->id);
         d["name"] = Value(disk->name);
-        d["disk_type"] = Value(disk->disk_type);
+        d["disk_type"] = Value(disk->type);
         d["block_size"] = Value(disk->block_size);
-        d["num_of_blocks"] = Value(disk->block_count);
-        d["status"] = Value(disk->disk_status);
+        d["num_of_blocks"] = Value(disk->number_of_blocks);
+        d["status"] = Value(disk->status);
         d["system_id"] = Value(disk->system_id);
         if (disk->disk_location != NULL)
             d["disk_location"] = Value(disk->disk_location);
@@ -634,7 +634,7 @@ Value ss_to_value(lsm_fs_ss * ss)
         f["class"] = Value(CLASS_NAME_FS_SNAPSHOT);
         f["id"] = Value(ss->id);
         f["name"] = Value(ss->name);
-        f["ts"] = Value(ss->ts);
+        f["ts"] = Value(ss->time_stamp);
         f["plugin_data"] = Value(ss->plugin_data);
         return Value(f);
     }
@@ -705,10 +705,10 @@ Value nfs_export_to_value(lsm_nfs_export * exp)
         f["export_path"] = Value(exp->export_path);
         f["auth"] = Value(exp->auth_type);
         f["root"] = Value(string_list_to_value(exp->root));
-        f["rw"] = Value(string_list_to_value(exp->rw));
-        f["ro"] = Value(string_list_to_value(exp->ro));
-        f["anonuid"] = Value(exp->anonuid);
-        f["anongid"] = Value(exp->anongid);
+        f["rw"] = Value(string_list_to_value(exp->read_write));
+        f["ro"] = Value(string_list_to_value(exp->read_only));
+        f["anonuid"] = Value(exp->anon_uid);
+        f["anongid"] = Value(exp->anon_gid);
         f["options"] = Value(exp->options);
         f["plugin_data"] = Value(exp->plugin_data);
         return Value(f);
@@ -768,7 +768,7 @@ Value target_port_to_value(lsm_target_port * tp)
         std::map < std::string, Value > p;
         p["class"] = Value(CLASS_NAME_TARGET_PORT);
         p["id"] = Value(tp->id);
-        p["port_type"] = Value(tp->port_type);
+        p["port_type"] = Value(tp->type);
         p["service_address"] = Value(tp->service_address);
         p["network_address"] = Value(tp->network_address);
         p["physical_address"] = Value(tp->physical_address);

@@ -32,9 +32,9 @@
 #ifdef  __cplusplus
 extern "C" {
 #endif
-/* Helper macros to ease getter construction *//* Implementation for generic getter */
-#define MEMBER_FUNC_GET(return_type, name, param_sig,  x, validation, member, error)  \
-return_type name( param_sig )  {\
+/* Helper macros to ease getter functions */
+#define MEMBER_FUNC_GET(return_type, arg_type, validation, member, error)  \
+return_type arg_type## _## member## _get(arg_type *x)  {\
     if( validation(x) ) {      \
         return x->member;      \
     } else {                   \
@@ -116,11 +116,11 @@ struct _lsm_nfs_export {
     char *fs_id;                /**< File system id */
     char *export_path;          /**< Export path */
     char *auth_type;            /**< Supported authentication types */
-    lsm_string_list *root;        /**< List of hosts with root access */
-    lsm_string_list *rw;          /**< List of hosts with read & write access */
-    lsm_string_list *ro;          /**< List of hosts with read only access */
-    uint64_t anonuid;           /**< Uid that should map to anonymous */
-    uint64_t anongid;           /**< Gid that should map to anonymous */
+    lsm_string_list *root;      /**< List of hosts with root access */
+    lsm_string_list *read_write; /**< List of hosts with read & write access */
+    lsm_string_list *read_only; /**< List of hosts with read only access */
+    uint64_t anon_uid;          /**< Uid that should map to anonymous */
+    uint64_t anon_gid;          /**< Gid that should map to anonymous */
     char *options;              /**< Options */
     char *plugin_data;                  /**< Reserved for the plugin to use */
 };
@@ -262,7 +262,7 @@ struct LSM_DLL_LOCAL _lsm_fs_ss {
     uint32_t magic;
     char *id;
     char *name;
-    uint64_t ts;
+    uint64_t time_stamp;
     char *plugin_data;                  /**< Reserved for the plugin to use */
 };
 
@@ -272,10 +272,10 @@ struct LSM_DLL_LOCAL _lsm_disk {
     uint32_t magic;
     char *id;
     char *name;
-    lsm_disk_type disk_type;
+    lsm_disk_type type;
     uint64_t block_size;
-    uint64_t block_count;
-    uint64_t disk_status;       /* Bit field */
+    uint64_t number_of_blocks;
+    uint64_t status;                    /* Bit field */
     char *system_id;
     char *vpd83;
     const char *disk_location;
@@ -296,7 +296,7 @@ struct LSM_DLL_LOCAL _lsm_hash {
 struct LSM_DLL_LOCAL _lsm_target_port {
     uint32_t magic;
     char *id;
-    lsm_target_port_type port_type;
+    lsm_target_port_type type;
     char *service_address;
     char *network_address;
     char *physical_address;
