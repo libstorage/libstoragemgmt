@@ -498,7 +498,7 @@ cmds = (
     ),
 
     dict(
-        name='volume-ident-led-set',
+        name='volume-ident-led-on',
         help='Enable the IDENT LED for a volume',
         args=[
             dict(name="--vol", metavar='<VOL_ID>',
@@ -507,7 +507,7 @@ cmds = (
     ),
 
     dict(
-        name='volume-ident-led-clear',
+        name='volume-ident-led-off',
         help='Disable the IDENT LED for a volume',
         args=[
             dict(name="--vol", metavar='<VOL_ID>',
@@ -806,8 +806,8 @@ aliases = (
     ['ar', 'access-group-remove'],
     ['ad', 'access-group-delete'],
     ['vri', 'volume-raid-info'],
-    ['vils', 'volume-ident-led-set'],
-    ['vilc', 'volume-ident-led-clear'],
+    ['vilon', 'volume-ident-led-on'],
+    ['viloff', 'volume-ident-led-off'],
     ['srcpu', 'system-read-cache-pct-update'],
     ['pmi', 'pool-member-info'],
     ['ldl', 'local-disk-list'],
@@ -1515,15 +1515,15 @@ class CmdLine:
         self.display_data([
             VcrCap(lsm_sys.id, *self.c.volume_raid_create_cap_get(lsm_sys))])
 
-    def volume_ident_led_set(self, args):
+    def volume_ident_led_on(self, args):
         lsm_volume = _get_item(self.c.volumes(), args.vol, "Volume")
 
-        self.c.volume_ident_led_set(lsm_volume)
+        self.c.volume_ident_led_on(lsm_volume)
 
-    def volume_ident_led_clear(self, args):
+    def volume_ident_led_off(self, args):
         lsm_volume = _get_item(self.c.volumes(), args.vol, "Volume")
 
-        self.c.volume_ident_led_clear(lsm_volume)
+        self.c.volume_ident_led_off(lsm_volume)
 
     def system_read_cache_pct_update(self, args):
         lsm_system = _get_item(self.c.systems(), args.sys, "System")

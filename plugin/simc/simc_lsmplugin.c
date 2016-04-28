@@ -1051,14 +1051,14 @@ static int volume_raid_create(lsm_plugin_ptr c, const char *name,
     return LSM_ERR_NO_SUPPORT;
 }
 
-static int volume_ident_led_set(lsm_plugin_ptr c, lsm_volume * volume,
-                                lsm_flag flags)
+static int volume_ident_led_on(lsm_plugin_ptr c, lsm_volume * volume,
+                               lsm_flag flags)
 {
     return LSM_ERR_OK;
 }
 
-static int volume_ident_led_clear(lsm_plugin_ptr c, lsm_volume * volume,
-                                  lsm_flag flags)
+static int volume_ident_led_off(lsm_plugin_ptr c, lsm_volume * volume,
+                                lsm_flag flags)
 {
     return LSM_ERR_OK;
 }
@@ -1071,8 +1071,8 @@ static struct lsm_ops_v1_2 ops_v1_2 = {
 };
 
 static struct lsm_ops_v1_3 ops_v1_3 = {
-    volume_ident_led_set,
-    volume_ident_led_clear,
+    volume_ident_led_on,
+    volume_ident_led_off,
     system_read_cache_pct_update,
 };
 

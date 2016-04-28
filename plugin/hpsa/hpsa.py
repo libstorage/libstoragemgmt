@@ -991,7 +991,7 @@ class SmartArray(IPlugin):
         return None
 
     @_handle_errors
-    def volume_ident_led_set(self, volume, flags=Client.FLAG_RSVD):
+    def volume_ident_led_on(self, volume, flags=Client.FLAG_RSVD):
         """
         Depend on command:
             hpssacli ctrl slot=# ld # modify led=on
@@ -1020,7 +1020,7 @@ class SmartArray(IPlugin):
                     if array_key_name == "Logical Drive: %s" % ld_num:
                         raise LsmError(
                             ErrorNumber.PLUGIN_BUG,
-                            "volume_ident_led_set failed unexpectedly")
+                            "volume_ident_led_on failed unexpectedly")
             raise LsmError(
                 ErrorNumber.NOT_FOUND_VOLUME,
                 "Volume not found")
@@ -1028,7 +1028,7 @@ class SmartArray(IPlugin):
         return None
 
     @_handle_errors
-    def volume_ident_led_clear(self, volume, flags=Client.FLAG_RSVD):
+    def volume_ident_led_off(self, volume, flags=Client.FLAG_RSVD):
         """
         Depend on command:
             hpssacli ctrl slot=# ld # modify led=off
@@ -1057,7 +1057,7 @@ class SmartArray(IPlugin):
                     if array_key_name == "Logical Drive: %s" % ld_num:
                         raise LsmError(
                             ErrorNumber.PLUGIN_BUG,
-                            "volume_ident_led_clear failed unexpectedly")
+                            "volume_ident_led_off failed unexpectedly")
             raise LsmError(
                 ErrorNumber.NOT_FOUND_VOLUME,
                 "Volume not found")

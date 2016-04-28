@@ -260,13 +260,13 @@ card.
 \fB--sys\fR \fI<SYS_ID>\fR
 Required. ID of the system to query for capabilities.
 
-.SS volume-ident-led-set
+.SS volume-ident-led-on
 Enable the IDENT LEDs for all physical disks that compose a logical volume.
 .TP 15
 \fB--vol\fR \fI<VOL_ID>\fR
 Required. ID of the volume being targeted.
 
-.SS volume-ident-led-clear
+.SS volume-ident-led-off
 Disable the IDENT LEDs for all physical disks that compose a logical volume.
 .TP 15
 \fB--vol\fR \fI<VOL_ID>\fR
@@ -646,10 +646,10 @@ Alias of 'volume-create'
 Alias of 'volume-raid-create'
 .SS vrcc
 Alias of 'volume-raid-create-cap'
-.SS vils
-Alias of 'volume-ident-led-set'
-.SS vilc
-Alias of 'volume-ident-led-clear'
+.SS vilon
+Alias of 'volume-ident-led-on'
+.SS viloff
+Alias of 'volume-ident-led-off'
 .SS vd
 Alias of 'volume-delete'
 .SS vr

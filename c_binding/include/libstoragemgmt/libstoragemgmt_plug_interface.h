@@ -989,9 +989,9 @@ typedef int (*lsm_plug_volume_raid_create) (lsm_plugin_ptr c,
  * @param[in] flags         	Reserved, set to 0
  * @return LSM_ERR_OK on success else error reason.
  */
-typedef int (*lsm_plug_volume_ident_led_set) (lsm_plugin_ptr c,
-                                              lsm_volume * volume,
-                                              lsm_flag flags);
+typedef int (*lsm_plug_volume_ident_led_on) (lsm_plugin_ptr c,
+                                             lsm_volume * volume,
+                                             lsm_flag flags);
 
 /**
  * Disable the IDENT LED for the desired volume.
@@ -1001,9 +1001,9 @@ typedef int (*lsm_plug_volume_ident_led_set) (lsm_plugin_ptr c,
  * @param[in] flags         	Reserved, set to 0
  * @return LSM_ERR_OK on success else error reason.
  */
-typedef int (*lsm_plug_volume_ident_led_clear) (lsm_plugin_ptr c,
-                                                lsm_volume * volume,
-                                                lsm_flag flags);
+typedef int (*lsm_plug_volume_ident_led_off) (lsm_plugin_ptr c,
+                                              lsm_volume * volume,
+                                              lsm_flag flags);
 
 /**
  * Change the read cache percentage for the desired system.
@@ -1036,8 +1036,8 @@ struct lsm_ops_v1_2 {
  *       released.
  */
 struct lsm_ops_v1_3 {
-    lsm_plug_volume_ident_led_set vol_ident_set;
-    lsm_plug_volume_ident_led_clear vol_ident_clear;
+    lsm_plug_volume_ident_led_on vol_ident_on;
+    lsm_plug_volume_ident_led_off vol_ident_off;
     lsm_plug_system_read_cache_pct_update sys_read_cache_pct_update;
 };
 

@@ -3228,7 +3228,7 @@ START_TEST(test_volume_raid_create)
 }
 END_TEST
 
-START_TEST(test_volume_ident_led_set)
+START_TEST(test_volume_ident_led_on)
 {
     lsm_volume *volume = NULL;
     char *job = NULL;
@@ -3245,7 +3245,7 @@ START_TEST(test_volume_ident_led_set)
         volume = wait_for_job_vol(c, &job);
     }
 
-    G(rc, lsm_volume_ident_led_set, c, volume, LSM_CLIENT_FLAG_RSVD);
+    G(rc, lsm_volume_ident_led_on, c, volume, LSM_CLIENT_FLAG_RSVD);
 
     if (LSM_ERR_OK == rc)
         printf("Volume IDENT LED set\n");
@@ -3255,7 +3255,7 @@ START_TEST(test_volume_ident_led_set)
 }
 END_TEST
 
-START_TEST(test_volume_ident_led_clear)
+START_TEST(test_volume_ident_led_off)
 {
     lsm_volume *volume = NULL;
     char *job = NULL;
@@ -3272,7 +3272,7 @@ START_TEST(test_volume_ident_led_clear)
         volume = wait_for_job_vol(c, &job);
     }
 
-    G(rc, lsm_volume_ident_led_clear, c, volume, LSM_CLIENT_FLAG_RSVD);
+    G(rc, lsm_volume_ident_led_off, c, volume, LSM_CLIENT_FLAG_RSVD);
 
     if (LSM_ERR_OK == rc)
         printf("Volume IDENT LED clear\n");
@@ -3602,8 +3602,8 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_pool_member_info);
     tcase_add_test(basic, test_volume_raid_create_cap_get);
     tcase_add_test(basic, test_volume_raid_create);
-    tcase_add_test(basic, test_volume_ident_led_set);
-    tcase_add_test(basic, test_volume_ident_led_clear);
+    tcase_add_test(basic, test_volume_ident_led_on);
+    tcase_add_test(basic, test_volume_ident_led_off);
     tcase_add_test(basic, test_local_disk_vpd83_search);
     tcase_add_test(basic, test_local_disk_vpd83_get);
     tcase_add_test(basic, test_read_cache_pct_update);
