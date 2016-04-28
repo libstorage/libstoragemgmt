@@ -76,7 +76,8 @@ typedef lsm_plugin *lsm_plugin_ptr;
  * @param   password    Plain text password
  * @param   timeout     Plug-in timeout to array
  * @param   flags       Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plugin_register) (lsm_plugin_ptr c, const char *uri,
                                     const char *password,
@@ -86,7 +87,8 @@ typedef int (*lsm_plugin_register) (lsm_plugin_ptr c, const char *uri,
  * Plug-in unregister callback function signature
  * @param   c           Valid lsm plugin pointer
  * @param   flags       Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plugin_unregister) (lsm_plugin_ptr c, lsm_flag flags);
 
@@ -95,7 +97,8 @@ typedef int (*lsm_plugin_unregister) (lsm_plugin_ptr c, lsm_flag flags);
  * @param   c           Valid lsm plug-in pointer
  * @param   timeout     timeout value in milliseconds
  * @param   flags       Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_tmo_set) (lsm_plugin_ptr c, uint32_t timeout,
                                  lsm_flag flags);
@@ -105,7 +108,8 @@ typedef int (*lsm_plug_tmo_set) (lsm_plugin_ptr c, uint32_t timeout,
  * @param[in]   c           Valid lsm plug-in pointer
  * @param[out]  timeout     Time-out value
  * @param[in]   flags       Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_tmo_get) (lsm_plugin_ptr c, uint32_t *timeout,
                                  lsm_flag flags);
@@ -116,7 +120,8 @@ typedef int (*lsm_plug_tmo_get) (lsm_plugin_ptr c, uint32_t *timeout,
  * @param[in]   sys         System to interrogate
  * @param[out]  cap         Capabilities
  * @param[in]   flags       Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_capabilities) (lsm_plugin_ptr c,
                                       lsm_system *sys,
@@ -131,7 +136,8 @@ typedef int (*lsm_plug_capabilities) (lsm_plugin_ptr c,
  * @param[out]  type            Type of result
  * @param[out]  value           Value of result
  * @param[in]   flags           Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 
 typedef int (*lsm_plug_Job_status) (lsm_plugin_ptr c, const char *job,
@@ -145,7 +151,8 @@ typedef int (*lsm_plug_Job_status) (lsm_plugin_ptr c, const char *job,
  * @param[in]   c               Valid lsm plug-in pointer
  * @param[in]   job_id          Job ID to free memory for
  * @param[in]   flags           Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_job_free) (lsm_plugin_ptr c, char *job_id,
                                   lsm_flag flags);
@@ -158,7 +165,8 @@ typedef int (*lsm_plug_job_free) (lsm_plugin_ptr c, char *job_id,
  * @param[out]  pool_array      List of pools
  * @param[out]  count           Number of items in array
  * @param[in]   flags           Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_pool_list) (lsm_plugin_ptr c,
                                    const char *search_key,
@@ -172,7 +180,8 @@ typedef int (*lsm_plug_pool_list) (lsm_plugin_ptr c,
  * @param[out]  systems         List of systems
  * @param[out]  system_count     Number of systems
  * @param[out]  flags           Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_system_list) (lsm_plugin_ptr c,
                                      lsm_system **systems[],
@@ -199,7 +208,8 @@ struct lsm_mgmt_ops_v1 {
  * @param[out]  vol_array        Array of volumes
  * @param[out]  count           Number of volumes
  * @param[in]   flags           Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_volume_list) (lsm_plugin_ptr c,
                                      const char *search_key,
@@ -215,7 +225,8 @@ typedef int (*lsm_plug_volume_list) (lsm_plugin_ptr c,
  * @param[out]  disk_array       Array of disk pointers
  * @param[out]  count           Number of disks
  * @param[in]   flags           Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_disk_list) (lsm_plugin_ptr c,
                                    const char *search_key,
@@ -231,7 +242,8 @@ typedef int (*lsm_plug_disk_list) (lsm_plugin_ptr c,
  * @param[out]  target_port_array   Array of target port pointers
  * @param[out]  count               Number of target ports
  * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_target_port_list)
     (lsm_plugin_ptr c, const char *search_key, const char *search_value,
@@ -247,7 +259,8 @@ typedef int (*lsm_plug_target_port_list)
  * @param[out] new_volume           Information on newly created volume
  * @param[out]  job                 Job ID
  * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_volume_create) (lsm_plugin_ptr c,
                                        lsm_pool *pool,
@@ -267,7 +280,8 @@ typedef int (*lsm_plug_volume_create) (lsm_plugin_ptr c,
  * @param[out] new_replicant        Newly replicated volume
  * @param job
  * @param flags
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_volume_replicate) (lsm_plugin_ptr c,
                                           lsm_pool *pool,
@@ -283,7 +297,8 @@ typedef int (*lsm_plug_volume_replicate) (lsm_plugin_ptr c,
  * @param[in]   system              System to query against
  * @param[out]  bs                  Block size
  * @param[out]  flags               Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_volume_replicate_range_block_size)
     (lsm_plugin_ptr c, lsm_system * system, uint32_t *bs, lsm_flag flags);
@@ -299,7 +314,8 @@ typedef int (*lsm_plug_volume_replicate_range_block_size)
  * @param[in]   num_ranges          Number of items in array
  * @param[out]  job                 Job ID
  * @param flags
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_volume_replicate_range) (lsm_plugin_ptr c,
                                                 lsm_replication_type rep_type,
@@ -317,7 +333,8 @@ typedef int (*lsm_plug_volume_replicate_range) (lsm_plugin_ptr c,
  * @param[in]   resized_volume      Information about newly re-sized volume
  * @param[out]  job                 The job ID
  * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_volume_resize) (lsm_plugin_ptr c,
                                        lsm_volume *volume,
@@ -331,7 +348,8 @@ typedef int (*lsm_plug_volume_resize) (lsm_plugin_ptr c,
  * @param[in]   volume              Volume to be deleted
  * @param[out]  job                 Job ID
  * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_volume_delete) (lsm_plugin_ptr c,
                                        lsm_volume *volume, char **job,
@@ -341,7 +359,8 @@ typedef int (*lsm_plug_volume_delete) (lsm_plugin_ptr c,
  * @param[in]   c                   Valid lsm plug-in pointer
  * @param[in]   v                   Volume to place online
  * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_volume_enable) (lsm_plugin_ptr c,
                                        lsm_volume *v, lsm_flag flags);
@@ -351,7 +370,8 @@ typedef int (*lsm_plug_volume_enable) (lsm_plugin_ptr c,
  * @param[in]   c                   Valid lsm plug-in pointer
  * @param v
  * @param flags
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_volume_disable) (lsm_plugin_ptr c,
                                         lsm_volume *v, lsm_flag flags);
@@ -366,7 +386,8 @@ typedef int (*lsm_plug_volume_disable) (lsm_plugin_ptr c,
  * @param[in]   out_user            CHAP outbound user name
  * @param[in]   out_password        CHAP outbound user name
  * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_iscsi_chap_auth) (lsm_plugin_ptr c,
                                          const char *init_id,
@@ -384,7 +405,8 @@ typedef int (*lsm_plug_iscsi_chap_auth) (lsm_plugin_ptr c,
  * @param[out]  groups              Array of groups
  * @param[out]  group_count          Number of groups
  * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_access_group_list) (lsm_plugin_ptr c,
                                            const char *search_key,
@@ -401,7 +423,8 @@ typedef int (*lsm_plug_access_group_list) (lsm_plugin_ptr c,
  * @param[in]   system              System to create group for
  * @param[out]  access_group        Newly created access group
  * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_access_group_create)
     (lsm_plugin_ptr c, const char *name, const char *initiator_id,
@@ -413,7 +436,8 @@ typedef int (*lsm_plug_access_group_create)
  * @param[in]   c                   Valid lsm plug-in pointer
  * @param[in]   group               Access group to be deleted
  * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_access_group_delete) (lsm_plugin_ptr c,
                                              lsm_access_group *group,
@@ -427,7 +451,8 @@ typedef int (*lsm_plug_access_group_delete) (lsm_plugin_ptr c,
  * @param[in]   id_type                 Initiator type
  * @param[out]  updated_access_group    Updated access group
  * @param[in]   flags                   Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_access_group_initiator_add)
     (lsm_plugin_ptr c, lsm_access_group *access_group,
@@ -442,7 +467,8 @@ typedef int (*lsm_plug_access_group_initiator_add)
  * @param[in]   id_type                 Initiator type
  * @param[out]  updated_access_group    Updated access group
  * @param[in]   flags                   Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_access_group_initiator_delete)
     (lsm_plugin_ptr c, lsm_access_group *access_group,
@@ -456,7 +482,8 @@ typedef int (*lsm_plug_access_group_initiator_delete)
  * @param[in]   group               Group to be granted access
  * @param[in]   volume              Volume to be given access too
  * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_volume_mask) (lsm_plugin_ptr c,
                                      lsm_access_group *group,
@@ -470,7 +497,8 @@ typedef int (*lsm_plug_volume_mask) (lsm_plugin_ptr c,
  * @param[in]   volume              Volume to which will no longer be
  *                                  accessible by group
  * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_volume_unmask) (lsm_plugin_ptr c,
                                        lsm_access_group * group,
@@ -484,7 +512,8 @@ typedef int (*lsm_plug_volume_unmask) (lsm_plugin_ptr c,
  * @param[out]  volumes             Array of volumes
  * @param[out]  count               Number of volumes
  * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_volumes_accessible_by_access_group)
     (lsm_plugin_ptr c, lsm_access_group *group, lsm_volume **volumes[],
@@ -498,7 +527,8 @@ typedef int (*lsm_plug_volumes_accessible_by_access_group)
  * @param[out]  groups              Array of access groups
  * @param[out]  group_count          Number of access groups
  * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_access_groups_granted_to_volume)
     (lsm_plugin_ptr c, lsm_volume *volume, lsm_access_group **groups[],
@@ -510,7 +540,8 @@ typedef int (*lsm_plug_access_groups_granted_to_volume)
  * @param[in]   volume              Volume to query
  * @param[out]  yes                 Boolean
  * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_volume_child_dependency)
     (lsm_plugin_ptr c, lsm_volume *volume, uint8_t *yes, lsm_flag flags);
@@ -521,7 +552,8 @@ typedef int (*lsm_plug_volume_child_dependency)
  * @param[in]   volume              Volume to remove dependency for
  * @param[out]  job                 Job ID
  * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_volume_child_dependency_delete)
     (lsm_plugin_ptr c, lsm_volume *volume, char **job, lsm_flag flags);
@@ -534,7 +566,8 @@ typedef int (*lsm_plug_volume_child_dependency_delete)
  * @param[out]  fs                  An array of file systems
  * @param[out]  fs_count             Number of file systems
  * @param[in] flags                 Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_fs_list) (lsm_plugin_ptr c,
                                  const char *search_key,
@@ -551,7 +584,8 @@ typedef int (*lsm_plug_fs_list) (lsm_plugin_ptr c,
  * @param[out]  fs                  Newly created file system
  * @param[out]  job                 Job ID
  * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_fs_create) (lsm_plugin_ptr c, lsm_pool *pool,
                                    const char *name,
@@ -564,7 +598,8 @@ typedef int (*lsm_plug_fs_create) (lsm_plugin_ptr c, lsm_pool *pool,
  * @param[in]   fs                  File system to delete
  * @param[out]  job                 Job ID
  * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_fs_delete) (lsm_plugin_ptr c, lsm_fs *fs,
                                    char **job, lsm_flag flags);
@@ -577,7 +612,8 @@ typedef int (*lsm_plug_fs_delete) (lsm_plugin_ptr c, lsm_fs *fs,
  * @param[in]   optional_snapshot   Basis of clone
  * @param[out]  job                 Job ID
  * @param[in]   flags               reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_fs_clone) (lsm_plugin_ptr c, lsm_fs *src_fs,
                                   const char *dest_fs_name,
@@ -590,7 +626,8 @@ typedef int (*lsm_plug_fs_clone) (lsm_plugin_ptr c, lsm_fs *src_fs,
  * @param[in]   fs                  File system to check
  * @param[in]   files               Specific files to check
  * @param[out]  yes                 Boolean
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_fs_child_dependency) (lsm_plugin_ptr c,
                                              lsm_fs *fs,
@@ -604,7 +641,8 @@ typedef int (*lsm_plug_fs_child_dependency) (lsm_plugin_ptr c,
  * @param[in]   files               Specific files to remove dependencies for
  * @param[out]  job                 Job ID
  * @param[out]  flags               Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_fs_child_dependency_delete) (lsm_plugin_ptr c,
                                                     lsm_fs *fs,
@@ -620,7 +658,8 @@ typedef int (*lsm_plug_fs_child_dependency_delete) (lsm_plugin_ptr c,
  * @param[out]  rfs                 Re-sized file system
  * @param[out]  job                 Job ID
  * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_fs_resize) (lsm_plugin_ptr c, lsm_fs *fs,
                                    uint64_t new_size_bytes,
@@ -724,7 +763,8 @@ typedef int (*lsm_plug_nfs_auth_types) (lsm_plugin_ptr c,
  * @param[out]  exports             An array of exported file systems
  * @param[out]  count               Number of exported file systems
  * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_nfs_list) (lsm_plugin_ptr c,
                                   const char *search_key,
@@ -745,7 +785,8 @@ typedef int (*lsm_plug_nfs_list) (lsm_plugin_ptr c,
  * @param[in]   options             Options
  * @param[out]  exported            Newly created export
  * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_nfs_export_fs) (lsm_plugin_ptr c,
                                        const char *fs_id,
@@ -765,7 +806,8 @@ typedef int (*lsm_plug_nfs_export_fs) (lsm_plugin_ptr c,
  * @param[in]   c                   Valid lsm plug-in pointer
  * @param[in]   e                   Export to remove
  * @param[in]   flags               Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_nfs_export_remove) (lsm_plugin_ptr c,
                                            lsm_nfs_export *e,
@@ -776,52 +818,52 @@ typedef int (*lsm_plug_nfs_export_remove) (lsm_plugin_ptr c,
  *       compatibility
  */
 struct lsm_san_ops_v1 {
+    /**  retrieving volumes */
     lsm_plug_volume_list vol_get;
-    /**^  retrieving volumes */
+    /**  retrieve disks */
     lsm_plug_disk_list disk_get;
-    /**^  retrieve disks */
+    /**  creating a lun */
     lsm_plug_volume_create vol_create;
-    /**^  creating a lun */
+    /**  replicating lun */
     lsm_plug_volume_replicate vol_replicate;
-    /**^  replicating lun */
+    /**  volume replication range block size */
     lsm_plug_volume_replicate_range_block_size vol_rep_range_bs;
-    /**^  volume replication range block size */
+    /**  volume replication range */
     lsm_plug_volume_replicate_range vol_rep_range;
-    /**^  volume replication range */
+    /**  resizing a volume */
     lsm_plug_volume_resize vol_resize;
-    /**^  resizing a volume */
+    /**  deleting a volume */
     lsm_plug_volume_delete vol_delete;
-    /**^  deleting a volume */
+    /**  volume is accessible */
     lsm_plug_volume_enable vol_enable;
-    /**^  volume is accessible */
+    /**  volume is unaccessible */
     lsm_plug_volume_disable vol_disable;
-    /**^  volume is unaccessible */
+    /**  iscsi chap authentication */
     lsm_plug_iscsi_chap_auth iscsi_chap_auth;
-    /**^  iscsi chap authentication */
+    /**  access groups */
     lsm_plug_access_group_list ag_list;
-    /**^  access groups */
+    /**  access group create */
     lsm_plug_access_group_create ag_create;
-    /**^  access group create */
+    /**  access group delete */
     lsm_plug_access_group_delete ag_delete;
-    /**^  access group delete */
+    /**  adding an initiator to an access group */
     lsm_plug_access_group_initiator_add ag_add_initiator;
-    /**^  adding an initiator to an access group */
+    /**  deleting an initiator from an access group */
     lsm_plug_access_group_initiator_delete ag_del_initiator;
-    /**^  deleting an initiator from an access group */
+    /**  acess group grant */
     lsm_plug_volume_mask ag_grant;
-    /**^  acess group grant */
+    /**  access group revoke */
     lsm_plug_volume_unmask ag_revoke;
-    /**^  access group revoke */
+    /**  volumes accessible by access group */
     lsm_plug_volumes_accessible_by_access_group vol_accessible_by_ag;
-    /**^  volumes accessible by access group */
+    /**  access groups granted to a volume */
     lsm_plug_access_groups_granted_to_volume ag_granted_to_vol;
-    /**^  access groups granted to a volume */
+    /**  volume child dependencies */
     lsm_plug_volume_child_dependency vol_child_depends;
-    /**^  volume child dependencies */
+    /**Callback to remove volume child dependencies */
     lsm_plug_volume_child_dependency_delete vol_child_depends_rm;
-    /**^Callback to remove volume child dependencies */
+    /** Callback to get list of target ports */
     lsm_plug_target_port_list target_port_list;
-    /**^ Callback to get list of target ports */
 };
 
 /** \struct  lsm_fs_ops_v1
@@ -830,30 +872,30 @@ struct lsm_san_ops_v1 {
  *       compatibility
  */
 struct lsm_fs_ops_v1 {
+    /** list file systems */
     lsm_plug_fs_list fs_list;
-    /**^ list file systems */
+    /** create a file system */
     lsm_plug_fs_create fs_create;
-    /**^ create a file system */
+    /** delete a file system */
     lsm_plug_fs_delete fs_delete;
-    /**^ delete a file system */
+    /** resize a file system */
     lsm_plug_fs_resize fs_resize;
-    /**^ resize a file system */
+    /** clone a file system */
     lsm_plug_fs_clone fs_clone;
-    /**^ clone a file system */
+    /** clone files on a file system */
     lsm_plug_fs_file_clone fs_file_clone;
-    /**^ clone files on a file system */
+    /** check file system child dependencies */
     lsm_plug_fs_child_dependency fs_child_dependency;
-    /**^ check file system child dependencies */
+    /** remove file system child dependencies */
     lsm_plug_fs_child_dependency_delete fs_child_dependency_rm;
-    /**^ remove file system child dependencies */
+    /** list snapshots */
     lsm_plug_fs_ss_list fs_ss_list;
-    /**^ list snapshots */
+    /** create a snapshot */
     lsm_plug_fs_ss_create fs_ss_create;
-    /**^ create a snapshot */
+    /** delete a snapshot */
     lsm_plug_fs_ss_delete fs_ss_delete;
-    /**^ delete a snapshot */
+    /** restore a snapshot */
     lsm_plug_fs_ss_restore fs_ss_restore;
-    /**^ restore a snapshot */
 };
 
 /** \struct lsm_nas_ops_v1
@@ -862,14 +904,14 @@ struct lsm_fs_ops_v1 {
  *       compatibility
  */
 struct lsm_nas_ops_v1 {
+    /** List nfs authentication types */
     lsm_plug_nfs_auth_types nfs_auth_types;
-    /**^ List nfs authentication types */
+    /** List nfs exports */
     lsm_plug_nfs_list nfs_list;
-    /**^ List nfs exports */
+    /** Export a file system */
     lsm_plug_nfs_export_fs nfs_export;
-    /**^ Export a file system */
+    /** Remove a file export */
     lsm_plug_nfs_export_remove nfs_export_remove;
-    /**^ Remove a file export */
 };
 
 /**
@@ -886,7 +928,8 @@ struct lsm_nas_ops_v1 {
  * @param[out]  opt_io_size     Optimal I/O size, also the preferred I/O size
  *                              of sequential I/O.
  * @param[in]   flags           Reserved
- * @return LSM_ERR_OK, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_volume_raid_info) (lsm_plugin_ptr c,
                                           lsm_volume *volume,
@@ -916,7 +959,8 @@ typedef int (*lsm_plug_volume_raid_info) (lsm_plugin_ptr c,
  *                  LSM_POOL_MEMBER_TYPE_UNKNOWN, the member_ids should
  *                  be NULL.
  * @param[in] flags         Reserved, set to 0
- * @return LSM_ERR_OK on success else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_pool_member_info) (lsm_plugin_ptr c, lsm_pool *pool,
                                           lsm_volume_raid_type *raid_type,
@@ -944,7 +988,8 @@ typedef int (*lsm_plug_pool_member_info) (lsm_plugin_ptr c, lsm_pool *pool,
  *                  The pointer of uint32_t. Indicate the item count of
  *                  supported_strip_sizes array.
  * @param[in] flags         Reserved, set to 0
- * @return LSM_ERR_OK on success else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_volume_raid_create_cap_get)
     (lsm_plugin_ptr c, lsm_system *system, uint32_t **supported_raid_types,
@@ -970,7 +1015,8 @@ typedef int (*lsm_plug_volume_raid_create_cap_get)
  *                  Newly created volume, Pointer to the lsm_volume type
  *                  pointer.
  * @param[in] flags         Reserved, set to 0
- * @return LSM_ERR_OK on success else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_volume_raid_create) (lsm_plugin_ptr c,
                                             const char *name,
@@ -987,7 +1033,8 @@ typedef int (*lsm_plug_volume_raid_create) (lsm_plugin_ptr c,
  * @param[in] c			Valid lsm plug-in pointer
  * @param[in] volume		A single lsm_volume
  * @param[in] flags         	Reserved, set to 0
- * @return LSM_ERR_OK on success else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_volume_ident_led_on) (lsm_plugin_ptr c,
                                              lsm_volume * volume,
@@ -999,7 +1046,8 @@ typedef int (*lsm_plug_volume_ident_led_on) (lsm_plugin_ptr c,
  * @param[in] c			Valid lsm plug-in pointer
  * @param[in] volume		A single lsm_volume
  * @param[in] flags         	Reserved, set to 0
- * @return LSM_ERR_OK on success else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_volume_ident_led_off) (lsm_plugin_ptr c,
                                               lsm_volume * volume,
@@ -1012,7 +1060,8 @@ typedef int (*lsm_plug_volume_ident_led_off) (lsm_plugin_ptr c,
  * @param[in] system		A single lsm_system
  * @param[in] read_pct		Desired read cache percentage
  * @param[in] flags         	Reserved, set to 0
- * @return LSM_ERR_OK on success else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 typedef int (*lsm_plug_system_read_cache_pct_update) (lsm_plugin_ptr c,
                                                       lsm_system *system,
@@ -1023,8 +1072,8 @@ typedef int (*lsm_plug_system_read_cache_pct_update) (lsm_plugin_ptr c,
  * \brief Functions added in version 1.2
  */
 struct lsm_ops_v1_2 {
+    /** Query volume RAID information*/
     lsm_plug_volume_raid_info vol_raid_info;
-    /**^ Query volume RAID information*/
     lsm_plug_pool_member_info pool_member_info;
     lsm_plug_volume_raid_create_cap_get vol_create_raid_cap_get;
     lsm_plug_volume_raid_create vol_create_raid;
@@ -1074,7 +1123,8 @@ int LSM_DLL_EXPORT lsm_plugin_init_v1(int argc, char *argv[],
  * @param san_ops           Function pointers for SAN operations
  * @param fs_ops            Function pointers for file system operations
  * @param nas_ops           Function pointers for NAS operations
- * @return LSM_ERR_OK on success, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_register_plugin_v1(lsm_plugin_ptr plug,
                                           void *private_data,
@@ -1093,7 +1143,8 @@ int LSM_DLL_EXPORT lsm_register_plugin_v1(lsm_plugin_ptr plug,
  * @param fs_ops            Function pointers for struct lsm_fs_ops_v1
  * @param nas_ops           Function pointers for struct lsm_nas_ops_v1
  * @param ops_v1_2          Function pointers for struct lsm_ops_v1_2
- * @return LSM_ERR_OK on success, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_register_plugin_v1_2(lsm_plugin_ptr plug,
                                             void *private_data,
@@ -1114,7 +1165,8 @@ int LSM_DLL_EXPORT lsm_register_plugin_v1_2(lsm_plugin_ptr plug,
  * @param nas_ops           Function pointers for struct lsm_nas_ops_v1
  * @param ops_v1_2          Function pointers for struct lsm_ops_v1_2
  * @param ops_v1_3          Function pointers for struct lsm_ops_v1_3
- * @return LSM_ERR_OK on success, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_register_plugin_v1_3(lsm_plugin_ptr plug,
                                             void *private_data,
@@ -1213,7 +1265,8 @@ void LSM_DLL_EXPORT lsm_pool_free_space_set(lsm_pool *p,
  * @param status_info   Additional textual information on status
  * @param system_id     System id
  * @param plugin_data   Reserved for plugin writer use
- * @return LSM_ERR_OK on success, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 lsm_pool LSM_DLL_EXPORT *lsm_pool_record_alloc(const char *id,
                                                const char *name,
@@ -1272,7 +1325,8 @@ lsm_disk LSM_DLL_EXPORT *lsm_disk_record_alloc(const char *id,
  * New in version 1.3. Set a disk's location.
  * @param disk		Pointer to the disk of interest.
  * @param disk_path	Pointer to the disk's location.
- * @return LSM_ERR_OK on success, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_disk_location_set(lsm_disk *disk,
                                          const char *location);
@@ -1334,7 +1388,9 @@ lsm_system LSM_DLL_EXPORT *lsm_system_record_alloc(const char *id,
  * @param[in] id            Id
  * @param[in] sys           System to update.
  * @param[in] read_pct      Read cache percentage.
- * @return LSM_ERR_OK or LSM_ERR_INVALID_ARGUMENT.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
+ * @retval LSM_ERR_INVALID_ARGUMENT otherwise.
  */
 int LSM_DLL_EXPORT lsm_system_read_cache_pct_set(lsm_system *sys,
                                                  int read_pct);
@@ -1346,7 +1402,10 @@ int LSM_DLL_EXPORT lsm_system_read_cache_pct_set(lsm_system *sys,
  * @param[in] fw_ver        Firmware version string.
  *                          Caller will get LSM_ERR_INVALID_ARGUMENT for
  *                          empty string('\0').
- * @return LSM_ERR_OK or LSM_ERR_NO_MEMORY or LSM_ERR_INVALID_ARGUMENT.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
+ * @retval LSM_ERR_NO_MEMORY
+ * @retval LSM_ERR_INVALID_ARGUMENT
  */
 int LSM_DLL_EXPORT lsm_system_fw_version_set(lsm_system *sys,
                                              const char *fw_ver);
@@ -1355,7 +1414,9 @@ int LSM_DLL_EXPORT lsm_system_fw_version_set(lsm_system *sys,
  * New in version 1.3. Set system mode.
  * @param[in] sys           System to update.
  * @param[in] mode          System mode 'lsm_system_mode_type'.
- * @return LSM_ERR_OK or LSM_ERR_INVALID_ARGUMENT.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
+ * @retval LSM_ERR_INVALID_ARGUMENT otherwise.
  */
 int LSM_DLL_EXPORT lsm_system_mode_set(lsm_system *sys,
                                        lsm_system_mode_type mode);
@@ -1467,7 +1528,8 @@ const char LSM_DLL_EXPORT *lsm_fs_ss_plugin_data_get(lsm_fs_ss * fs_ss);
  * @param cap           Valid capability pointer
  * @param t             Which capability to set
  * @param v             Value of the capability
- * @return LSM_ERR_OK on success, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_capability_set(lsm_storage_capabilities * cap,
                                       lsm_capability_type t,
@@ -1479,7 +1541,8 @@ int LSM_DLL_EXPORT lsm_capability_set(lsm_storage_capabilities * cap,
  * @param v             The value to set capabilities to
  * @param ...           Which capabilites to set (Make sure to terminate list
  *                      with a -1)
- * @return LSM_ERR_OK on success, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_capability_set_n(lsm_storage_capabilities * cap,
                                         lsm_capability_value_type v, ...);
@@ -1502,7 +1565,8 @@ lsm_storage_capabilities LSM_DLL_EXPORT
  * @param[out]  port            returned port
  * @param[out]  path            returned path
  * @param[out]  query_params    returned query params
- * @return LSM_ERR_OK on successful parse, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_uri_parse(const char *uri, char **scheme,
                                  char **user, char **server, int *port,
@@ -1655,7 +1719,9 @@ void LSM_DLL_EXPORT
  * New in version 1.3. Set disk VPD83 ID.
  * @param[in] disk          Disk to update.
  * @param[in] vpd83         VPD83 ID string.
- * @return LSM_ERR_OK or LSM_ERR_INVALID_ARGUMENT.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
+ * @retval LSM_ERR_INVALID_ARGUMENT otherwise.
  */
 int LSM_DLL_EXPORT lsm_disk_vpd83_set(lsm_disk *disk, const char *vpd83);
 
@@ -1663,7 +1729,9 @@ int LSM_DLL_EXPORT lsm_disk_vpd83_set(lsm_disk *disk, const char *vpd83);
  * New in version 1.3. Set disk rotation speed - revolutions per minute(RPM)
  * @param[in] disk          Disk to update.
  * @param[in] rpm           revolutions per minute(RPM).
- * @return LSM_ERR_OK or LSM_ERR_INVALID_ARGUMENT.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
+ * @retval LSM_ERR_INVALID_ARGUMENT otherwise.
  */
 int LSM_DLL_EXPORT lsm_disk_rpm_set(lsm_disk *disk, int32_t rpm);
 
@@ -1671,7 +1739,9 @@ int LSM_DLL_EXPORT lsm_disk_rpm_set(lsm_disk *disk, int32_t rpm);
  * New in version 1.3. Set disk link type.
  * @param[in] disk          Disk to update.
  * @param[in] link_type     lsm_disk_link_type
- * @return LSM_ERR_OK or LSM_ERR_INVALID_ARGUMENT.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
+ * @retval LSM_ERR_INVALID_ARGUMENT otherwise.
  */
 int LSM_DLL_EXPORT lsm_disk_link_type_set(lsm_disk *disk,
                                           lsm_disk_link_type link_type);

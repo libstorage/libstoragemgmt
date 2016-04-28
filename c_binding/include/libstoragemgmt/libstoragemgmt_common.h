@@ -52,7 +52,8 @@ lsm_string_list LSM_DLL_EXPORT *lsm_string_list_alloc(uint32_t size);
 /**
  * Frees the memory allocated with the lsmStringListFree
  * @param sl    Record to free
- * @return LSM_ERR_OK on success, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_string_list_free(lsm_string_list *sl);
 
@@ -68,7 +69,8 @@ lsm_string_list LSM_DLL_EXPORT *lsm_string_list_copy(lsm_string_list *src);
  * @param sl        Valid string list pointer
  * @param index      Element position to set value to
  * @param value     Value to use for assignment
- * @return LSM_ERR_OK on success, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_string_list_elem_set(lsm_string_list *sl,
                                             uint32_t index,
@@ -96,7 +98,8 @@ uint32_t LSM_DLL_EXPORT lsm_string_list_size(lsm_string_list *sl);
  * Appends a char * to the string list, will grow container as needed.
  * @param sl    String list to append to
  * @param add   Character string to add
- * @return LSM_ERR_OK on success, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_string_list_append(lsm_string_list *sl,
                                           const char *add);
@@ -108,7 +111,8 @@ int LSM_DLL_EXPORT lsm_string_list_append(lsm_string_list *sl,
  * reverse order.
  * @param sl            String list to remove item from
  * @param index         Specified index
- * @return LSM_ERR_OK on success, else error reason
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_string_list_delete(lsm_string_list *sl,
                                           uint32_t index);
@@ -118,7 +122,9 @@ int LSM_DLL_EXPORT lsm_string_list_delete(lsm_string_list *sl,
  * @param init_id       Initiator value
  * @param init_type     Type of initiator id, will get modified
  *                      to determined if type passed in is UNKNOWN
- * @return LSM_ERR_OK if initiator id is OK, else LSM_INVALID_ARGUMENT
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK if initiator id is OK.
+ * @retval LSM_INVALID_ARUMENT otherwise.
  */
 int LSM_DLL_EXPORT
     lsm_initiator_id_verify(const char *init_id,
@@ -128,7 +134,9 @@ int LSM_DLL_EXPORT
 /**
  * Checks to see if volume vpd83 is valid
  * @param vpd83         VPD string to check
- * @return LSM_ERR_OK if vpd is OK, else LSM_INVALID_ARGUMENT
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK if vpd is OK
+ * @retval LSM_INVALID_ARGUMENT otherwise.
  */
 int LSM_DLL_EXPORT lsm_volume_vpd83_verify(const char *vpd83);
 

@@ -42,10 +42,11 @@ extern "C" {
  *                  Output pointer of lsm_error. Error message could be
  *                  retrieved via lsm_error_message_get(). Memory should be
  *                  freed by lsm_error_free().
- * @return LSM_ERR_OK                   on success or not found.
- *         LSM_ERR_INVALID_ARGUMENT     when any argument is NULL.
- *         LSM_ERR_NO_MEMORY            when no memory.
- *         LSM_ERR_LIB_BUG              when something unexpected happens.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK               on success or not found.
+ * @retval LSM_ERR_INVALID_ARGUMENT when any argument is NULL.
+ * @retval LSM_ERR_NO_MEMORY        when no memory.
+ * @retval LSM_ERR_LIB_BUG          when something unexpected happens.
  */
 int LSM_DLL_EXPORT lsm_local_disk_vpd83_search(const char *vpd83,
                                                lsm_string_list **disk_path_list,
@@ -62,12 +63,13 @@ int LSM_DLL_EXPORT lsm_local_disk_vpd83_search(const char *vpd83,
  *                  Output pointer of lsm_error. Error message could be
  *                  retrieved via lsm_error_message_get(). Memory should be
  *                  freed by lsm_error_free().
- * @return LSM_ERR_OK                   on success.
- *         LSM_ERR_INVALID_ARGUMENT     when any argument is NULL or
- *                                      illegal sd_path.
- *         LSM_ERR_NO_MEMORY            when no memory.
- *         LSM_ERR_LIB_BUG              when something unexpected happens.
- *         LSM_ERR_NOT_FOUND_DISK       When provided disk path not found.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK               on success or not found.
+ * @retval LSM_ERR_INVALID_ARGUMENT when any argument is NULL or 
+ *                                  illegal sd_path.
+ * @retval LSM_ERR_NO_MEMORY        when no memory.
+ * @retval LSM_ERR_LIB_BUG          when something unexpected happens.
+ * @retval LSM_ERR_NOT_FOUND_DISK   when provided disk path not found.
  */
 int LSM_DLL_EXPORT lsm_local_disk_vpd83_get(const char *sd_path,
                                             char **vpd83,
@@ -94,12 +96,13 @@ int LSM_DLL_EXPORT lsm_local_disk_vpd83_get(const char *sd_path,
  *                      Output pointer of lsm_error. Error message could be
  *                      retrieved via lsm_error_message_get(). Memory should be
  *                      freed by lsm_error_free().
- * @return LSM_ERR_OK                   On success.
- *         LSM_ERR_INVALID_ARGUMENT     When any argument is NULL.
- *         LSM_ERR_LIB_BUG              When something unexpected happens.
- *         LSM_ERR_NOT_FOUND_DISK       When provided disk path not found.
- *         LSM_ERR_PERMISSION_DENIED    No sufficient permission to access
- *                                      provided disk path.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK               on success or not found.
+ * @retval LSM_ERR_INVALID_ARGUMENT when any argument is NULL.
+ * @retval LSM_ERR_LIB_BUG          when something unexpected happens.
+ * @retval LSM_ERR_NOT_FOUND_DISK   when provided disk path not found.
+ * @retval LSM_ERR_PERMISSION_DENIED no sufficient permission to access
+ *                                   provided disk path.
  */
 int LSM_DLL_EXPORT lsm_local_disk_rpm_get(const char *disk_path, int32_t *rpm,
                                           lsm_error **lsm_err);
@@ -119,9 +122,10 @@ int LSM_DLL_EXPORT lsm_local_disk_rpm_get(const char *disk_path, int32_t *rpm,
  *                      Output pointer of lsm_error. Error message could be
  *                      retrieved via lsm_error_message_get(). Memory should be
  *                      freed by lsm_error_free().
- * @return LSM_ERR_OK                   On success.
- *         LSM_ERR_INVALID_ARGUMENT     When any argument is NULL.
- *         LSM_ERR_LIB_BUG              When something unexpected happens.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK               on success or not found.
+ * @retval LSM_ERR_INVALID_ARGUMENT when any argument is NULL.
+ * @retval LSM_ERR_LIB_BUG          when something unexpected happens.
  */
 int LSM_DLL_EXPORT lsm_local_disk_list(lsm_string_list **disk_paths,
                                        lsm_error **lsm_err);
@@ -165,12 +169,13 @@ int LSM_DLL_EXPORT lsm_local_disk_list(lsm_string_list **disk_paths,
  * @param[out] lsm_err  Output pointer of lsm_error. Error message could be
  *                      retrieved via lsm_error_message_get(). Memory should
  *                      be freed by lsm_error_free().
- * @return LSM_ERR_OK                   On success.
- *         LSM_ERR_INVALID_ARGUMENT     When any argument is NULL.
- *         LSM_ERR_LIB_BUG              When something unexpected happens.
- *         LSM_ERR_NOT_FOUND_DISK       When provided disk path not found.
- *         LSM_ERR_PERMISSION_DENIED    Insufficient permission to access
- *                                      provided disk path.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK               on success or not found.
+ * @retval LSM_ERR_INVALID_ARGUMENT when any argument is NULL.
+ * @retval LSM_ERR_LIB_BUG          when something unexpected happens.
+ * @retval LSM_ERR_NOT_FOUND_DISK   when provided disk path not found.
+ * @retval LSM_ERR_PERMISSION_DENIED insufficient permission to access
+ *                                   provided disk path.
  */
 int LSM_DLL_EXPORT lsm_local_disk_link_type_get(const char *disk_path,
                                                 lsm_disk_link_type *link_type,

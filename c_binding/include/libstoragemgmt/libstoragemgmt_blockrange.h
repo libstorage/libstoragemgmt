@@ -39,7 +39,8 @@ lsm_block_range LSM_DLL_EXPORT *
 /**
  * Frees a block range record.
  * @param br        Block range to free
- * @return LSM_ERR_OK on success, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_block_range_record_free(lsm_block_range * br);
 
@@ -66,7 +67,8 @@ lsm_block_range LSM_DLL_EXPORT **
  * Frees the memory for the array and all records contained in it.
  * @param br                    Array of block ranges to free
  * @param size                  Number of elements in array.
- * @return LSM_ERR_OK on success, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_block_range_record_array_free(lsm_block_range *br[],
                                                      uint32_t size);

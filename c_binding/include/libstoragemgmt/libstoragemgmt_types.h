@@ -123,88 +123,88 @@ typedef struct _lsm_hash lsm_hash;
  */
 typedef struct _lsm_target_port lsm_target_port;
 
-/**< \enum lsm_replication_type Different types of replications that can be
+/** \enum lsm_replication_type Different types of replications that can be
  * created */
 typedef enum {
+    /** Unknown replicate */
     LSM_VOLUME_REPLICATE_UNKNOWN = -1,
-    /**^ Unknown replicate */
+    /** Space efficient copy */
     LSM_VOLUME_REPLICATE_CLONE = 2,
-    /**^ Space efficient copy */
+    /** Full bitwise copy */
     LSM_VOLUME_REPLICATE_COPY = 3,
-    /**^ Full bitwise copy */
+    /** Mirrors always in sync */
     LSM_VOLUME_REPLICATE_MIRROR_SYNC = 4,
-    /**^ Mirrors always in sync */
+    /** Mirror partner updated with delay */
     LSM_VOLUME_REPLICATE_MIRROR_ASYNC = 5
-    /**^ Mirror partner updated with delay */
 } lsm_replication_type;
 
-/**< \enum lsm_volume_provision_type Different types of provisioning */
+/** \enum lsm_volume_provision_type Different types of provisioning */
 typedef enum {
+    /** Unknown */
     LSM_VOLUME_PROVISION_UNKNOWN = -1,
-    /**^ Unknown */
+    /** Thin provisioning */
     LSM_VOLUME_PROVISION_THIN = 1,
-    /**^ Thin provisioning */
+    /** Thick provisioning */
     LSM_VOLUME_PROVISION_FULL = 2,
-    /**^ Thick provisioning */
+    /** Default provisioning */
     LSM_VOLUME_PROVISION_DEFAULT = 3
-    /**^ Default provisioning */
 } lsm_volume_provision_type;
 
 
-    /**^ \enum lsm_volume_raid_type Different types of RAID */
+/** \enum lsm_volume_raid_type Different types of RAID */
 typedef enum {
+    /** Unknown */
     LSM_VOLUME_RAID_TYPE_UNKNOWN = -1,
-    /**^ Unknown */
+    /** Stripe */
     LSM_VOLUME_RAID_TYPE_RAID0 = 0,
-    /**^ Stripe */
+    /** Mirror between two disks. For 4 disks or more, they are RAID10.*/
     LSM_VOLUME_RAID_TYPE_RAID1 = 1,
-    /**^ Mirror between two disks. For 4 disks or more, they are RAID10.*/
+    /** Byte-level striping with dedicated parity */
     LSM_VOLUME_RAID_TYPE_RAID3 = 3,
-    /**^ Byte-level striping with dedicated parity */
+    /** Block-level striping with dedicated parity */
     LSM_VOLUME_RAID_TYPE_RAID4 = 4,
-    /**^ Block-level striping with dedicated parity */
+    /** Block-level striping with distributed parity */
     LSM_VOLUME_RAID_TYPE_RAID5 = 5,
-    /**^ Block-level striping with distributed parity */
+    /** Block-level striping with two distributed parities, aka, RAID-DP */
     LSM_VOLUME_RAID_TYPE_RAID6 = 6,
-    /**^ Block-level striping with two distributed parities, aka, RAID-DP */
+    /** Stripe of mirrors */
     LSM_VOLUME_RAID_TYPE_RAID10 = 10,
-    /**^ Stripe of mirrors */
+    /** Parity of mirrors */
     LSM_VOLUME_RAID_TYPE_RAID15 = 15,
-    /**^ Parity of mirrors */
+    /** Dual parity of mirrors */
     LSM_VOLUME_RAID_TYPE_RAID16 = 16,
-    /**^ Dual parity of mirrors */
+    /** Stripe of parities */
     LSM_VOLUME_RAID_TYPE_RAID50 = 50,
-    /**^ Stripe of parities */
+    /** Stripe of dual parities */
     LSM_VOLUME_RAID_TYPE_RAID60 = 60,
-    /**^ Stripe of dual parities */
+    /** Mirror of parities */
     LSM_VOLUME_RAID_TYPE_RAID51 = 51,
-    /**^ Mirror of parities */
+    /** Mirror of dual parities */
     LSM_VOLUME_RAID_TYPE_RAID61 = 61,
-    /**^ Mirror of dual parities */
+    /** Just bunch of disks, no parity, no striping. */
     LSM_VOLUME_RAID_TYPE_JBOD = 20,
-    /**^ Just bunch of disks, no parity, no striping. */
+    /** This volume contains multiple RAID settings. */
     LSM_VOLUME_RAID_TYPE_MIXED = 21,
-    /**^ This volume contains multiple RAID settings. */
+    /** Vendor specific RAID type */
     LSM_VOLUME_RAID_TYPE_OTHER = 22,
-    /**^ Vendor specific RAID type */
 } lsm_volume_raid_type;
 
 
-    /**^ \enum lsm_pool_member_type Different types of Pool member*/
+/** \enum lsm_pool_member_type Different types of Pool member*/
 typedef enum {
+    /** Plugin failed to detect the RAID member type. */
     LSM_POOL_MEMBER_TYPE_UNKNOWN = 0,
-    /**^ Plugin failed to detect the RAID member type. */
+    /** Vendor specific RAID member type. */
     LSM_POOL_MEMBER_TYPE_OTHER = 1,
-    /**^ Vendor specific RAID member type. */
+    /** Pool is created from RAID group using whole disks. */
     LSM_POOL_MEMBER_TYPE_DISK = 2,
-    /**^ Pool is created from RAID group using whole disks. */
-    LSM_POOL_MEMBER_TYPE_POOL = 3,
-    /**^
+    /**
      * Current pool(also known as sub-pool) is allocated from other
      * pool(parent pool).
      * The 'raid_type' will set to RAID_TYPE_OTHER unless certain RAID system
      * support RAID using space of parent pools.
      */
+    LSM_POOL_MEMBER_TYPE_POOL = 3,
 } lsm_pool_member_type;
 
 #define LSM_VOLUME_STRIP_SIZE_UNKNOWN       0
@@ -215,51 +215,51 @@ typedef enum {
 /**
  * Admin state for volume, enabled or disabled
  */
+    /** Volume accessible */
 #define LSM_VOLUME_ADMIN_STATE_ENABLED      0x1
-    /**^ Volume accessible */
+    /** Volume unaccessible */
 #define LSM_VOLUME_ADMIN_STATE_DISABLED     0x0
-    /**^ Volume unaccessible */
+
 
 /**
  * Different states a system status can be in.
  * Bit field, can be in multiple states at the same time.
  */
+    /** Unknown */
 #define LSM_SYSTEM_STATUS_UNKNOWN               0x00000001
-    /**^ Unknown */
+    /** OK */
 #define LSM_SYSTEM_STATUS_OK                    0x00000002
-    /**^ OK */
+    /** Error(s) exist */
 #define LSM_SYSTEM_STATUS_ERROR                 0x00000004
-    /**^ Error(s) exist */
+    /** Degraded */
 #define LSM_SYSTEM_STATUS_DEGRADED              0x00000008
-    /**^ Degraded */
+    /** System has predictive failure(s) */
 #define LSM_SYSTEM_STATUS_PREDICTIVE_FAILURE    0x00000010
-    /**^ System has predictive failure(s) */
+    /** Vendor specific */
 #define LSM_SYSTEM_STATUS_OTHER                 0x00000020
-    /**^ Vendor specific */
 
 
 typedef enum {
+    /** Unknown */ 
     LSM_ACCESS_GROUP_INIT_TYPE_UNKNOWN = 0,
-    /**^ Unknown */
+    /** Something not seen before */
     LSM_ACCESS_GROUP_INIT_TYPE_OTHER = 1,
-    /**^ Something not seen before */
+    /** Port name */
     LSM_ACCESS_GROUP_INIT_TYPE_WWPN = 2,
-    /**^ Port name */
+    /** ISCSI IQN */
     LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN = 5,
-    /**^ ISCSI IQN */
+    /** More than 1 type */
     LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_WWPN_MIXED = 7
-    /**^ More than 1 type */
 } lsm_access_group_init_type;
 
-
-    /**^ \enum lsm_job_status Job states */
+/** \enum lsm_job_status Job states */
 typedef enum {
+    /** Job is in progress */
     LSM_JOB_INPROGRESS = 1,
-    /**^ Job is in progress */
+    /** Job is complete */
     LSM_JOB_COMPLETE = 2,
-    /**^ Job is complete */
+    /** Job has errored */
     LSM_JOB_ERROR = 3
-    /**^ Job has errored */
 } lsm_job_status;
 
 typedef enum {
@@ -278,6 +278,7 @@ typedef enum {
     LSM_DISK_TYPE_HYBRID = 54,
 } lsm_disk_type;
 
+/* SPC-5 rev7, Table 444 - PROTOCOL IDENTIFIER field values */
 typedef enum {
     LSM_DISK_LINK_TYPE_NO_SUPPORT = -2,
     LSM_DISK_LINK_TYPE_UNKNOWN =  -1,
@@ -293,7 +294,6 @@ typedef enum {
     LSM_DISK_LINK_TYPE_SOP = 10,
     LSM_DISK_LINK_TYPE_PCIE = 11,
 } lsm_disk_link_type;
-/* ^ SPC-5 rev7, Table 444 - PROTOCOL IDENTIFIER field values */
 
 #define LSM_DISK_STATUS_UNKNOWN                     0x0000000000000001
 #define LSM_DISK_STATUS_OK                          0x0000000000000002
@@ -308,8 +308,7 @@ typedef enum {
 #define LSM_DISK_STATUS_MAINTENANCE_MODE            0x0000000000000400
 #define LSM_DISK_STATUS_SPARE_DISK                  0x0000000000000800
 #define LSM_DISK_STATUS_RECONSTRUCT                 0x0000000000001000
-#define LSM_DISK_STATUS_FREE                        0x0000000000002000
-/**^
+/** <! LSM_DISK_STATUS_FREE >
  * New in version 1.2, New in version 1.2, indicate the whole disk is not
  * holding any data or acting as a dedicate spare disk.
  * This disk could be assigned as a dedicated spare disk or used for creating
@@ -318,20 +317,22 @@ typedef enum {
  * action when assigning to pool, it should be treated as free disk and marked
  * as LSM_DISK_STATUS_FREE|LSM_DISK_STATUS_SPARE_DISK.
  * */
+#define LSM_DISK_STATUS_FREE                        0x0000000000002000
 
 #define LSM_DISK_BLOCK_SIZE_NOT_FOUND               -1
 #define LSM_DISK_BLOCK_COUNT_NOT_FOUND              -1
 
+/* New in version 1.3. */
 #define LSM_DISK_RPM_NO_SUPPORT                     -2
-/* ^ New in version 1.3. */
+/* New in version 1.3. */
 #define LSM_DISK_RPM_UNKNOWN                        -1
-/* ^ New in version 1.3. */
+/* New in version 1.3. */
 #define LSM_DISK_RPM_NON_ROTATING_MEDIUM            0
-/* ^ New in version 1.3. */
-#define LSM_DISK_RPM_ROTATING_UNKNOWN_SPEED         1
-/* ^ New in version 1.3. Indicate given disk is a rotating disk, but speed is
- *   unknown
+/* New in version 1.3. Indicate given disk is a rotating disk, but speed is
+ * unknown
  */
+#define LSM_DISK_RPM_ROTATING_UNKNOWN_SPEED         1
+
 
 #define LSM_POOL_STATUS_UNKNOWN                     0x0000000000000001
 #define LSM_POOL_STATUS_OK                          0x0000000000000002
@@ -365,8 +366,8 @@ typedef enum {
     LSM_TARGET_PORT_TYPE_ISCSI = 4
 } lsm_target_port_type;
 
+/** Plugin and hardware RAID will use their default strip size */
 #define LSM_VOLUME_VCR_STRIP_SIZE_DEFAULT           0
-/** ^ Plugin and hardware RAID will use their default strip size */
 
 typedef enum {
     LSM_SYSTEM_MODE_NO_SUPPORT = 0,

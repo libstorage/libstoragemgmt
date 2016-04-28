@@ -30,7 +30,7 @@ extern "C" {
  * Free the memory for a disk record
  * @param d     Disk memory to free
  * @return Error code as enumerated by \ref lsm_error_number.
- *         Returns LSM_ERR_OK on success.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_disk_record_free(lsm_disk *d);
 
@@ -45,7 +45,8 @@ lsm_disk LSM_DLL_EXPORT *lsm_disk_record_copy(lsm_disk *d);
  * Free an array of disk records
  * @param disk      Array of disk records
  * @param size      Size of disk array
- * @return LSM_ERR_OK on success, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_disk_record_array_free(lsm_disk *disk[],
                                               uint32_t size);
@@ -109,7 +110,8 @@ uint64_t LSM_DLL_EXPORT lsm_disk_status_get(lsm_disk *d);
  * Do not free returned string, free the struct lsm_disk instead.
  * @param d		Pointer to the disk of interest.
  * @param location	Pointer to the disk's location.
- * @return LSM_ERR_OK on success, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_disk_location_get(lsm_disk *d,
                                          const char **location);

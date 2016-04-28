@@ -37,7 +37,8 @@ lsm_target_port LSM_DLL_EXPORT *lsm_target_port_copy(lsm_target_port *tp);
 /**
  * Frees the resources for a lsm_system
  * @param tp        Record to release
- * @return LSM_ERR_OK on success, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_target_port_record_free(lsm_target_port *tp);
 
@@ -45,7 +46,8 @@ int LSM_DLL_EXPORT lsm_target_port_record_free(lsm_target_port *tp);
  * Frees the resources for an array for lsm_target_port
  * @param tp        Array to release memory for
  * @param size      Number of elements.
- * @return LSM_ERR_OK on success, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  *  */
 int LSM_DLL_EXPORT lsm_target_port_record_array_free(lsm_target_port *
                                                      tp[], uint32_t size);

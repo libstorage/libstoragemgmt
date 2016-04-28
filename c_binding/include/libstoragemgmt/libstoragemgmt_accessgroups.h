@@ -30,7 +30,8 @@ extern "C" {
 /**
  * Frees the resources for an access group.
  * @param group     Group to free
- * @return LSM_ERR_OK on success, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_access_group_record_free(lsm_access_group * group);
 
@@ -38,7 +39,8 @@ int LSM_DLL_EXPORT lsm_access_group_record_free(lsm_access_group * group);
  * Frees the resources for an array of access groups.
  * @param ag        Array of access groups to free resources for
  * @param size      Number of elements in the array.
- * @return LSM_ERR_OK on success, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_access_group_record_array_free(lsm_access_group *ag[],
                                                       uint32_t size);

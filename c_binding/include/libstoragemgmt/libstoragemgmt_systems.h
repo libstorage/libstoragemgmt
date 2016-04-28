@@ -39,7 +39,8 @@ lsm_system LSM_DLL_EXPORT *lsm_system_record_copy(lsm_system *s);
 /**
  * Frees the resources for a lsm_system
  * @param s Record to release
- * @return LSM_ERR_OK on success, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_system_record_free(lsm_system *s);
 
@@ -47,8 +48,9 @@ int LSM_DLL_EXPORT lsm_system_record_free(lsm_system *s);
  * Frees the resources for an array for lsm_system
  * @param s     Array to release memory for
  * @param size  Number of elements.
- * @return LSM_ERR_OK on success, else error reason.
- *  */
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
+ */
 int LSM_DLL_EXPORT lsm_system_record_array_free(lsm_system *s[], uint32_t size);
 
 /**
@@ -73,8 +75,10 @@ const char LSM_DLL_EXPORT *lsm_system_name_get(lsm_system *s);
  * New in version 1.3. Retrieves read cache percentage of the specified system.
  * @param       s      		System to retrieve read cache percentage for.
  * @param[out]  read_pct  	Read cache percentage.
- * @return LSM_ERR_OK on success, or LSM_ERR_NO_SUPPORT, or
- *         LSM_ERR_INVALID_ARGUMENT.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
+ * @retval LSM_ERR_NO_SUPPORT
+ * @retval LSM_ERR_INVALID_ARGUMENT
  */
 int LSM_DLL_EXPORT lsm_system_read_cache_pct_get(lsm_system *s,
                                                  int *read_pct);
@@ -93,8 +97,10 @@ uint32_t LSM_DLL_EXPORT lsm_system_status_get(lsm_system *s);
  * lsm_system_record_free() or lsm_system_record_array_free() is called.
  * @param       s       System to retrieve firmware version for.
  * @param[out]  fw_ver  Firmware version string.
- * @return LSM_ERR_OK on success, or LSM_ERR_NO_SUPPORT, or
- *         LSM_ERR_INVALID_ARGUMENT.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
+ * @retval LSM_ERR_NO_SUPPORT
+ * @retval LSM_ERR_INVALID_ARGUMENT
  */
 int LSM_DLL_EXPORT lsm_system_fw_version_get(lsm_system *s,
                                              const char **fw_ver);
@@ -115,8 +121,10 @@ int LSM_DLL_EXPORT lsm_system_fw_version_get(lsm_system *s,
  *          configurations. SCSI enclosure service might be exposed to OS also.
  * @param       s       System to retrieve firmware version for.
  * @param[out]  mode    System mode 'lsm_system_mode_type' pointer.
- * @return LSM_ERR_OK on success, or LSM_ERR_NO_SUPPORT, or
- *         LSM_ERR_INVALID_ARGUMENT.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
+ * @retval LSM_ERR_NO_SUPPORT
+ * @retval LSM_ERR_INVALID_ARGUMENT 
  */
 int LSM_DLL_EXPORT lsm_system_mode_get(lsm_system *s,
                                        lsm_system_mode_type *mode);

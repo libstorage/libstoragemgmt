@@ -28,7 +28,8 @@ extern "C" {
 /**
  * Frees a File system record
  * @param fs    File system to free.
- * @return LSM_ERR_OK on success, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_fs_record_free(lsm_fs *fs);
 
@@ -43,7 +44,8 @@ lsm_fs LSM_DLL_EXPORT *lsm_fs_record_copy(lsm_fs * source);
  * Frees an array of file system records
  * @param fs        Array of file system record pointers
  * @param size      Number in array to free
- * @return LSM_ERR_OK on success, else error reason.
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_fs_record_array_free(lsm_fs *fs[], uint32_t size);
 
