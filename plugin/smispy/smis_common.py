@@ -483,6 +483,7 @@ class SmisCommon(object):
             CIMInstanceName # expect_class
         If flag_out_array is True, return the first element of out[out_key].
         """
+        cim_job = dict()
         (rc, out) = self._wbem_conn.InvokeMethod(cmd, cim_path, **in_params)
 
         try:

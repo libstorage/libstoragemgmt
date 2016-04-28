@@ -189,7 +189,8 @@ class Smis(IStorageAreaNetwork):
         (status (enum), percent_complete(integer), volume (None or Volume))
         """
         completed_item = None
-
+        status = JobStatus.ERROR
+        percent_complete = 0
         error_handler = None
 
         (ignore, retrieve_data, method_data) = SmisCommon.parse_job_id(job_id)
@@ -1761,9 +1762,6 @@ class Smis(IStorageAreaNetwork):
         """
         Return a list of CIMInstanceName of leaf CIM_ComputerSystem
         """
-        max_loop_count = 10   # There is no storage array need 10 layer of
-                              # Computer
-        loop_counter = max_loop_count
         rc = []
         leaf_cim_syss_path = []
         try:
