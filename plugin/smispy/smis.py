@@ -588,6 +588,19 @@ class Smis(IStorageAreaNetwork):
         """
         Delete a volume
         """
+        # We need to ensure that the volume is not masked before we try to
+        # delete it
+        ag = []
+        try:
+            ag = self.access_groups_granted_to_volume(volume)
+        except LsmError:
+            # We will ignore errors here and try the delete anyway
+            pass
+
+        if len(ag):
+            raise LsmError(ErrorNumber.IS_MASKED,
+                           "Volume is masked to access group")
+
         cim_scs = self._c.cim_scs_of_sys_id(volume.system_id)
 
         cim_vol_path = smis_vol.lsm_vol_to_cim_vol_path(self._c, volume)
