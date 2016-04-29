@@ -930,6 +930,9 @@ class BackStore(object):
         data = None
         data_type = None
 
+        if progress < 0:
+            progress = 0
+
         if progress >= 100:
             progress = 100
             if sim_job['data_type'] == BackStore.JOB_DATA_TYPE_VOL:
@@ -1768,7 +1771,7 @@ class SimArray(object):
                 "System not found")
 
         return None
-        
+
     @staticmethod
     def _sim_vol_2_lsm(sim_vol):
         vol_id = SimArray._sim_id_to_lsm_id(sim_vol['id'], 'VOL')
