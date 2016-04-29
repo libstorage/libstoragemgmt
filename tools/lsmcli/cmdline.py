@@ -34,12 +34,13 @@ from argparse import RawTextHelpFormatter
 from lsm import (Client, Pool, VERSION, LsmError, Disk,
                  Volume, JobStatus, ErrorNumber, BlockRange,
                  uri_parse, Proxy, size_human_2_size_bytes,
-                 AccessGroup, FileSystem, NfsExport, TargetPort, LocalDisk)
+                 AccessGroup, FileSystem, NfsExport, TargetPort, LocalDisk,
+                 Battery)
 
 from lsm.lsmcli.data_display import (
     DisplayData, PlugData, out,
     vol_provision_str_to_type, vol_rep_type_str_to_type, VolumeRAIDInfo,
-    PoolRAIDInfo, VcrCap, LocalDiskInfo)
+    PoolRAIDInfo, VcrCap, LocalDiskInfo, VolumeRAMCacheInfo)
 
 _CONNECTION_FREE_COMMANDS = ['local-disk-list']
 
@@ -225,13 +226,29 @@ def _get_item(l, the_id, friendly_name='item', raise_error=True):
 
 list_choices = ['VOLUMES', 'POOLS', 'FS', 'SNAPSHOTS',
                 'EXPORTS', "NFS_CLIENT_AUTH", 'ACCESS_GROUPS',
-                'SYSTEMS', 'DISKS', 'PLUGINS', 'TARGET_PORTS']
+                'SYSTEMS', 'DISKS', 'PLUGINS', 'TARGET_PORTS', 'BATTERIES']
 
 provision_types = ('DEFAULT', 'THIN', 'FULL')
 provision_help = "provisioning type: " + ", ".join(provision_types)
 
 replicate_types = ('CLONE', 'COPY', 'MIRROR_ASYNC', 'MIRROR_SYNC')
 replicate_help = "replication type: " + ", ".join(replicate_types)
+
+policy_types = ['ENABLE', 'DISABLE']
+policy_help = 'Policy: ' + ', '.join(policy_types)
+policy_opt = dict(name="--policy", metavar='<POLICY>',
+                  help=policy_help, choices=policy_types,
+                  type=str.upper)
+
+write_cache_policy_types = ['WB', 'AUTO', 'WT']
+write_cache_policy_help = 'Write cache policys: ' + \
+                          ', '.join(write_cache_policy_types) + \
+                          'which stand for "write back", "auto", ' + \
+                          '"write through"'
+write_cache_policy_opt = dict(name="--policy", metavar='<POLICY>',
+                              help=write_cache_policy_help,
+                              choices=write_cache_policy_types,
+                              type=str.upper)
 
 size_help = 'Can use B, KiB, MiB, GiB, TiB, PiB postfix (IEC sizing)'
 
@@ -780,6 +797,38 @@ cmds = (
         optional=[
         ],
     ),
+    dict(
+        name='volume-cache-info',
+        help='Query volume RAM cache information',
+        args=[
+            dict(vol_id_opt),
+        ],
+    ),
+    dict(
+        name='volume-phy-disk-cache-update',
+        help='Update volume physical disk cache setting',
+        args=[
+            dict(vol_id_opt),
+            dict(policy_opt),
+        ],
+    ),
+
+    dict(
+        name='volume-read-cache-policy-update',
+        help='Update volume read cache policy',
+        args=[
+            dict(vol_id_opt),
+            dict(policy_opt),
+        ],
+    ),
+    dict(
+        name='volume-write-cache-policy-update',
+        help='Update volume write cache policy',
+        args=[
+            dict(vol_id_opt),
+            dict(write_cache_policy_opt),
+        ],
+    ),
 )
 
 aliases = (
@@ -811,6 +860,11 @@ aliases = (
     ['srcpu', 'system-read-cache-pct-update'],
     ['pmi', 'pool-member-info'],
     ['ldl', 'local-disk-list'],
+    ['lb', 'list --type batteries'],
+    ['vci', 'volume-cache-info'],
+    ['vpdcu', 'volume-phy-disk-cache-update'],
+    ['vrcpu', 'volume-read-cache-policy-update'],
+    ['vwcpu', 'volume-write-cache-policy-update'],
 )
 
 
@@ -1082,6 +1136,13 @@ class CmdLine:
                 self.c.target_ports(search_key, search_value))
         elif args.type == 'PLUGINS':
             self.display_available_plugins()
+        elif args.type == 'BATTERIES':
+            if search_key and \
+               search_key not in Battery.SUPPORTED_SEARCH_KEYS:
+                raise ArgError("Search key '%s' is not supported by "
+                               "battery listing" % search_key)
+            self.display_data(
+                self.c.batteries(search_key, search_value))
         else:
             raise ArgError("unsupported listing type=%s" % args.type)
 
@@ -1679,3 +1740,48 @@ class CmdLine:
                 LocalDiskInfo(disk_path, vpd83, rpm, link_type))
 
         self.display_data(local_disks)
+
+    def volume_cache_info(self, args):
+        lsm_vol = _get_item(self.c.volumes(), args.vol, "Volume")
+        self.display_data(
+            [
+                VolumeRAMCacheInfo(
+                    lsm_vol.id, *self.c.volume_cache_info(lsm_vol))])
+
+    def volume_phy_disk_cache_update(self, args):
+        lsm_vol = _get_item(self.c.volumes(), args.vol, "Volume")
+        if args.policy == "ENABLE":
+            policy = Volume.READ_CACHE_POLICY_ENABLED
+        else:
+            policy = Volume.READ_CACHE_POLICY_DISABLED
+        self.c.volume_physical_disk_cache_update(lsm_vol, policy)
+        self.display_data(
+            [
+                VolumeRAMCacheInfo(
+                    lsm_vol.id, *self.c.volume_cache_info(lsm_vol))])
+
+    def volume_read_cache_policy_update(self, args):
+        lsm_vol = _get_item(self.c.volumes(), args.vol, "Volume")
+        if args.policy == "ENABLE":
+            policy = Volume.PHYSICAL_DISK_CACHE_ENABLED
+        else:
+            policy = Volume.PHYSICAL_DISK_CACHE_DISABLED
+        self.c.volume_read_cache_policy_update(lsm_vol, policy)
+        self.display_data(
+            [
+                VolumeRAMCacheInfo(
+                    lsm_vol.id, *self.c.volume_cache_info(lsm_vol))])
+
+    def volume_write_cache_policy_update(self, args):
+        lsm_vol = _get_item(self.c.volumes(), args.vol, "Volume")
+        if args.policy == 'WB':
+            policy = Volume.WRITE_CACHE_POLICY_WRITE_BACK
+        elif args.policy == 'AUTO':
+            policy = Volume. WRITE_CACHE_POLICY_AUTO
+        else:
+            policy = Volume. WRITE_CACHE_POLICY_WRITE_THROUGH
+        self.c.volume_write_cache_policy_update(lsm_vol, policy)
+        self.display_data(
+            [
+                VolumeRAMCacheInfo(
+                    lsm_vol.id, *self.c.volume_cache_info(lsm_vol))])

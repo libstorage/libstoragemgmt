@@ -24,6 +24,7 @@
 #include "libstoragemgmt/libstoragemgmt_blockrange.h"
 #include "libstoragemgmt/libstoragemgmt_nfsexport.h"
 #include "libstoragemgmt/libstoragemgmt_plug_interface.h"
+#include "libstoragemgmt/libstoragemgmt_battery.h"
 
 
 bool std_map_has_key(const std::map < std::string, Value > &x, const char *key)
@@ -198,10 +199,10 @@ Value disk_to_value(lsm_disk * disk)
         d["class"] = Value(CLASS_NAME_DISK);
         d["id"] = Value(disk->id);
         d["name"] = Value(disk->name);
-        d["disk_type"] = Value(disk->disk_type);
+        d["disk_type"] = Value(disk->type);
         d["block_size"] = Value(disk->block_size);
-        d["num_of_blocks"] = Value(disk->block_count);
-        d["status"] = Value(disk->disk_status);
+        d["num_of_blocks"] = Value(disk->number_of_blocks);
+        d["status"] = Value(disk->status);
         d["system_id"] = Value(disk->system_id);
         if (disk->disk_location != NULL)
             d["disk_location"] = Value(disk->disk_location);
@@ -634,7 +635,7 @@ Value ss_to_value(lsm_fs_ss * ss)
         f["class"] = Value(CLASS_NAME_FS_SNAPSHOT);
         f["id"] = Value(ss->id);
         f["name"] = Value(ss->name);
-        f["ts"] = Value(ss->ts);
+        f["ts"] = Value(ss->time_stamp);
         f["plugin_data"] = Value(ss->plugin_data);
         return Value(f);
     }
@@ -705,10 +706,10 @@ Value nfs_export_to_value(lsm_nfs_export * exp)
         f["export_path"] = Value(exp->export_path);
         f["auth"] = Value(exp->auth_type);
         f["root"] = Value(string_list_to_value(exp->root));
-        f["rw"] = Value(string_list_to_value(exp->rw));
-        f["ro"] = Value(string_list_to_value(exp->ro));
-        f["anonuid"] = Value(exp->anonuid);
-        f["anongid"] = Value(exp->anongid);
+        f["rw"] = Value(string_list_to_value(exp->read_write));
+        f["ro"] = Value(string_list_to_value(exp->read_only));
+        f["anonuid"] = Value(exp->anon_uid);
+        f["anongid"] = Value(exp->anon_gid);
         f["options"] = Value(exp->options);
         f["plugin_data"] = Value(exp->plugin_data);
         return Value(f);
@@ -768,7 +769,7 @@ Value target_port_to_value(lsm_target_port * tp)
         std::map < std::string, Value > p;
         p["class"] = Value(CLASS_NAME_TARGET_PORT);
         p["id"] = Value(tp->id);
-        p["port_type"] = Value(tp->port_type);
+        p["port_type"] = Value(tp->type);
         p["service_address"] = Value(tp->service_address);
         p["network_address"] = Value(tp->network_address);
         p["physical_address"] = Value(tp->physical_address);
@@ -822,4 +823,85 @@ Value uint32_array_to_value(uint32_t * uint32_array, uint32_t count)
         }
     }
     return rc;
+}
+
+lsm_battery *value_to_battery(Value &battery)
+{
+    lsm_battery *rc = NULL;
+    if (is_expected_object(battery, CLASS_NAME_BATTERY)) {
+        std::map < std::string, Value > b = battery.asObject();
+
+        rc = lsm_battery_record_alloc(b["id"].asString().c_str(),
+                                      b["name"].asString().c_str(),
+                                      (lsm_battery_type) b["type"].asInt32_t(),
+                                      b["status"].asUint64_t(),
+                                      b["system_id"].asString().c_str(),
+                                      b["plugin_data"].asString().c_str());
+    } else {
+        throw ValueException("value_to_battery: Not correct type");
+    }
+    return rc;
+}
+
+Value battery_to_value(lsm_battery *battery)
+{
+    if (LSM_IS_BATTERY(battery)) {
+        std::map < std::string, Value > b;
+        b["class"] = Value(CLASS_NAME_BATTERY);
+        b["id"] = Value(battery->id);
+        b["name"] = Value(battery->name);
+        b["type"] = Value(battery->type);
+        b["status"] = Value(battery->status);
+        b["system_id"] = Value(battery->system_id);
+        if (battery->plugin_data != NULL)
+            b["plugin_data"] = Value(battery->plugin_data);
+        return Value(b);
+    }
+    return Value();
+}
+
+int value_array_to_batteries(Value &battery_values, lsm_battery ***bs,
+                             uint32_t *count)
+{
+    int rc = LSM_ERR_OK;
+    try {
+        *count = 0;
+
+        if (Value::array_t == battery_values.valueType()) {
+            std::vector < Value > d = battery_values.asArray();
+
+            *count = d.size();
+
+            if (d.size()) {
+                *bs = lsm_battery_record_array_alloc(d.size());
+
+                if (*bs) {
+                    for (size_t i = 0; i < d.size(); ++i) {
+                        (*bs)[i] = value_to_battery(d[i]);
+                        if (!((*bs)[i])) {
+                            rc = LSM_ERR_NO_MEMORY;
+                            goto error;
+                        }
+                    }
+                } else {
+                    rc = LSM_ERR_NO_MEMORY;
+                }
+            }
+        }
+    }
+    catch(const ValueException & ve) {
+        rc = LSM_ERR_LIB_BUG;
+        goto error;
+    }
+
+  out:
+    return rc;
+
+  error:
+    if (*bs && *count) {
+        lsm_battery_record_array_free(*bs, *count);
+        *bs = NULL;
+        *count = 0;
+    }
+    goto out;
 }

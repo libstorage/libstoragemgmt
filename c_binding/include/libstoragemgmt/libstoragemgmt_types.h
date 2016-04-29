@@ -123,6 +123,11 @@ typedef struct _lsm_hash lsm_hash;
  */
 typedef struct _lsm_target_port lsm_target_port;
 
+/**
+ * Opaque data type for battery
+ */
+typedef struct _lsm_battery lsm_battery;
+
 /** \enum lsm_replication_type Different types of replications that can be
  * created */
 typedef enum {
@@ -240,7 +245,7 @@ typedef enum {
 
 
 typedef enum {
-    /** Unknown */ 
+    /** Unknown */
     LSM_ACCESS_GROUP_INIT_TYPE_UNKNOWN = 0,
     /** Something not seen before */
     LSM_ACCESS_GROUP_INIT_TYPE_OTHER = 1,
@@ -377,6 +382,56 @@ typedef enum {
 
 #define LSM_SYSTEM_CACHE_PCT_NO_SUPPORT             -2
 #define LSM_SYSTEM_CACHE_PCT_UNKNOWN                -1
+
+typedef enum {
+    LSM_BATTERY_TYPE_UNKNOWN = 1,
+    LSM_BATTERY_TYPE_OTHER = 2,
+    LSM_BATTERY_TYPE_CHEMICAL = 3,
+    LSM_BATTERY_TYPE_CAPACITOR = 4,
+} lsm_battery_type;
+
+/** Unknown. */
+#define LSM_BATTERY_STATUS_UNKNOWN                  0x0000000000000001
+/** Vendor specific status. */
+#define LSM_BATTERY_STATUS_OTHER                    0x0000000000000002
+/** Battery is fully charged, health and not in use currently. */
+#define LSM_BATTERY_STATUS_OK                       0x0000000000000004
+/** Battery is in use. */
+#define LSM_BATTERY_STATUS_DISCHARGING              0x0000000000000008
+/** Battery is charging. */
+#define LSM_BATTERY_STATUS_CHARGING                 0x0000000000000010
+/** Battery is calibrating itself by discharging battery and
+ *  recharging again.
+ */
+#define LSM_BATTERY_STATUS_LEARNING                 0x0000000000000020
+/** Battery is in degraded mode, needs attention.
+ *  For example, battery is near end of life.
+ */
+#define LSM_BATTERY_STATUS_DEGRADED                 0x0000000000000040
+/** Battery is having hardware error or end of life. */
+#define LSM_BATTERY_STATUS_ERROR                    0x0000000000000080
+
+#define LSM_VOLUME_WRITE_CACHE_POLICY_UNKNOWN       1
+#define LSM_VOLUME_WRITE_CACHE_POLICY_WRITE_BACK    2
+#define LSM_VOLUME_WRITE_CACHE_POLICY_AUTO          3
+#define LSM_VOLUME_WRITE_CACHE_POLICY_WRITE_THROUGH 4
+
+#define LSM_VOLUME_WRITE_CACHE_STATUS_UNKNOWN       1
+#define LSM_VOLUME_WRITE_CACHE_STATUS_WRITE_BACK    2
+#define LSM_VOLUME_WRITE_CACHE_STATUS_WRITE_THROUGH 3
+
+#define LSM_VOLUME_READ_CACHE_POLICY_UNKNOWN        1
+#define LSM_VOLUME_READ_CACHE_POLICY_ENABLED        2
+#define LSM_VOLUME_READ_CACHE_POLICY_DISABLED       3
+
+#define LSM_VOLUME_READ_CACHE_STATUS_UNKNOWN        1
+#define LSM_VOLUME_READ_CACHE_STATUS_ENABLED        2
+#define LSM_VOLUME_READ_CACHE_STATUS_DISABLED       3
+
+#define LSM_VOLUME_PHYSICAL_DISK_CACHE_UNKNOWN      1
+#define LSM_VOLUME_PHYSICAL_DISK_CACHE_ENABLED      2
+#define LSM_VOLUME_PHYSICAL_DISK_CACHE_DISABLED     3
+#define LSM_VOLUME_PHYSICAL_DISK_CACHE_USE_DISK_SETTING     4
 
 #ifdef  __cplusplus
 }

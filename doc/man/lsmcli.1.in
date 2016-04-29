@@ -153,7 +153,7 @@ Required. Valid values are (case insensitive):
 \fBEXPORTS\fR, \fBNFS_CLIENT_AUTH\fR,
 .br
 \fBACCESS_GROUPS\fR, \fBSYSTEMS\fR, \fBDISKS\fR, \fBPLUGINS\fR,
-\fBTARGET_PORTS\fR.
+\fBTARGET_PORTS\fR, \fBBATTERIES\fR.
 
 .TP
 \fB--fs\fR \fI<FS_ID>\fR
@@ -620,6 +620,41 @@ List all disks found on current local operating system.
 Require permission to open /dev/sdX as read-only, normally root user or disk
 group would have sufficient permission.
 
+.SS volume-cache-info
+Query RAM cache information for the desired volume.
+.TP 15
+\fB--vol\fR \fI<VOL_ID>\fR
+Required. ID of the volume to query cache information.
+
+.SS volume-phy-disk-cache-update
+Disable or enable RAM physical disk cache of certain volume.
+.TP 15
+\fB--vol\fR \fI<VOL_ID>\fR
+Required. ID of the volume to change.
+.TP
+\fB--policy\fR \fI<POLICY>\fR
+Required. \fBEnable\fR or \fBDisable\fR.
+
+.SS volume-read-cache-policy-update
+Disable or enable RAM read cache of certain volume.
+.TP 15
+\fB--vol\fR \fI<VOL_ID>\fR
+Required. ID of the volume to change.
+.TP
+\fB--policy\fR \fI<POLICY>\fR
+Required. \fBEnable\fR or \fBDisable\fR.
+
+.SS volume-write-cache-policy-update
+Change volume write cache policy.
+.TP 15
+\fB--vol\fR \fI<VOL_ID>\fR
+Required. ID of the volume to change.
+.TP
+\fB--policy\fR \fI<POLICY>\fR
+Required. \fBWB\fR for write back mode, \fBWT\fR for write through mode,
+\fBAUTO\fR for auto mode which use \fBWB\fR mode when any battery is OK and use
+\fBWT\fR mode else.
+
 .IP
 .SH ALIAS
 .SS ls
@@ -636,6 +671,8 @@ Alias of 'list --type access_groups'
 Alias of 'list --type fs'
 .SS lt
 Alias of 'list --type target_ports'
+.SS lb
+Alias of 'list --type batteries'
 .SS c
  Alias of 'capabilities'
 .SS p
@@ -674,6 +711,14 @@ Alias of 'access-group-delete'
 Alias of 'system-read-cache-pct-update'
 .SS ldl
 Alias of 'local-disk-list'
+.SS vci
+Alias of 'volume-cache-info'
+.SS vpdcu
+Alias of 'volume-phy-disk-cache-update'
+.SS vrcpu
+Alias of 'volume-read-cache-policy-update'
+.SS vwcpu
+Alias of 'volume-write-cache-policy-update'
 
 .IP
 .SH SIZE OPTION

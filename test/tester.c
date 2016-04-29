@@ -27,6 +27,8 @@
 #include <libstoragemgmt/libstoragemgmt.h>
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 
+static int compare_battery(lsm_battery *l, lsm_battery *r);
+
 const char URI[] = "sim://localhost/?statefile=%s/lsm_sim_%s";
 const char SYSTEM_NAME[] = "LSM simulated storage plug-in";
 const char SYSTEM_ID[] = "sim-01";
@@ -1048,6 +1050,21 @@ static int compare_disks(lsm_disk *l, lsm_disk *r)
         COMPARE_NUMBER_FUNC(lsm_disk_number_of_blocks_get, l, r);
         COMPARE_NUMBER_FUNC(lsm_disk_block_size_get, l, r);
         COMPARE_NUMBER_FUNC(lsm_disk_status_get, l, r);
+        return 0;
+    }
+    return 1;
+}
+
+static int compare_battery(lsm_battery *l, lsm_battery *r)
+{
+    int rc;
+    if( l && r ) {
+        COMPARE_STR_FUNC(lsm_battery_id_get, l, r);
+        COMPARE_STR_FUNC(lsm_battery_name_get, l, r);
+        COMPARE_STR_FUNC(lsm_battery_system_id_get, l, r);
+        COMPARE_STR_FUNC(lsm_battery_plugin_data_get, l, r);
+        COMPARE_NUMBER_FUNC(lsm_battery_type_get, l, r);
+        COMPARE_NUMBER_FUNC(lsm_battery_status_get, l, r);
         return 0;
     }
     return 1;
@@ -3558,6 +3575,244 @@ START_TEST(test_local_disk_link_type)
 }
 END_TEST
 
+START_TEST(test_batteries)
+{
+    uint32_t count = 0;
+    lsm_battery **bs = NULL;
+    const char *id = NULL;
+    const char *name = NULL;
+    const char *system_id = NULL;
+    uint32_t i = 0;
+    lsm_battery *b_copy = NULL;
+
+    fail_unless(c != NULL);
+
+    int rc = lsm_battery_list(c, NULL, NULL, &bs, &count, 0);
+
+    fail_unless(LSM_ERR_OK == rc, "lsm_battery_list(): rc %d", rc);
+    fail_unless(count >= 1, "Got no battery");
+
+    for(; i < count; ++i) {
+        b_copy = lsm_battery_record_copy(bs[i]);
+        fail_unless(b_copy != NULL );
+        fail_unless(compare_battery(bs[i], b_copy) == 0);
+        lsm_battery_record_free(b_copy);
+        b_copy = NULL;
+
+        id = lsm_battery_id_get(bs[i]);
+        fail_unless(id != NULL && strlen(id) > 0);
+
+        name = lsm_battery_name_get(bs[i]);
+        fail_unless(name != NULL && strlen(name) > 0);
+
+        system_id = lsm_battery_system_id_get(bs[i]);
+        fail_unless(system_id != NULL && strlen(system_id) > 0);
+        fail_unless(strcmp(system_id, SYSTEM_ID) == 0,
+                    "Incorrect battery system id: %s", id);
+        fail_unless(lsm_battery_type_get(bs[i]) >= 1 );
+        fail_unless(lsm_battery_status_get(bs[i]) >= 1);
+    }
+    lsm_battery_record_array_free(bs, count);
+}
+END_TEST
+
+START_TEST(test_volume_cache_info)
+{
+    lsm_volume *volume = NULL;
+    char *job = NULL;
+    lsm_pool *pool = NULL;
+
+    uint32_t write_cache_policy = LSM_VOLUME_WRITE_CACHE_POLICY_UNKNOWN;
+    uint32_t write_cache_status = LSM_VOLUME_WRITE_CACHE_STATUS_UNKNOWN;
+    uint32_t read_cache_policy = LSM_VOLUME_READ_CACHE_POLICY_UNKNOWN;
+    uint32_t read_cache_status = LSM_VOLUME_READ_CACHE_STATUS_UNKNOWN;
+    uint32_t physical_disk_cache = LSM_VOLUME_PHYSICAL_DISK_CACHE_UNKNOWN;
+
+    pool = get_test_pool(c);
+
+    fail_unless(pool != NULL, "Failed to find the test pool");
+
+    int rc = lsm_volume_create(
+        c, pool, "volume_cache_info_test", 20000000,
+        LSM_VOLUME_PROVISION_DEFAULT, &volume, &job, LSM_CLIENT_FLAG_RSVD);
+
+    fail_unless( rc == LSM_ERR_OK || rc == LSM_ERR_JOB_STARTED,
+            "lsm_volume_create() %d (%s)", rc, error(lsm_error_last_get(c)));
+
+    if( LSM_ERR_JOB_STARTED == rc ) {
+        volume = wait_for_job_vol(c, &job);
+    }
+
+    G(rc, lsm_volume_cache_info, c, volume, &write_cache_policy,
+      &write_cache_status, &read_cache_policy, &read_cache_status,
+      &physical_disk_cache, LSM_CLIENT_FLAG_RSVD);
+
+    G(rc, lsm_volume_record_free, volume);
+    G(rc, lsm_pool_record_free, pool);
+    volume = NULL;
+}
+END_TEST
+
+START_TEST(test_volume_pdc_update)
+{
+    lsm_volume *volume = NULL;
+    char *job = NULL;
+    lsm_pool *pool = NULL;
+    uint32_t write_cache_policy = LSM_VOLUME_WRITE_CACHE_POLICY_UNKNOWN;
+    uint32_t write_cache_status = LSM_VOLUME_WRITE_CACHE_STATUS_UNKNOWN;
+    uint32_t read_cache_policy = LSM_VOLUME_READ_CACHE_POLICY_UNKNOWN;
+    uint32_t read_cache_status = LSM_VOLUME_READ_CACHE_STATUS_UNKNOWN;
+    uint32_t physical_disk_cache = LSM_VOLUME_PHYSICAL_DISK_CACHE_UNKNOWN;
+    uint32_t all_pdcs[] = {
+        LSM_VOLUME_PHYSICAL_DISK_CACHE_DISABLED,
+        LSM_VOLUME_PHYSICAL_DISK_CACHE_ENABLED};
+    int i = 0;
+
+    if ( is_simc_plugin == 1 ){
+        // silently skip on simc which does not support this method yet.
+        return;
+    }
+
+    pool = get_test_pool(c);
+
+    fail_unless(pool != NULL, "Failed to find the test pool");
+
+    int rc = lsm_volume_create(
+        c, pool, "volume_cache_info_test", 20000000,
+        LSM_VOLUME_PROVISION_DEFAULT, &volume, &job, LSM_CLIENT_FLAG_RSVD);
+
+    fail_unless(rc == LSM_ERR_OK || rc == LSM_ERR_JOB_STARTED,
+            "lsm_volume_create() %d (%s)", rc, error(lsm_error_last_get(c)));
+
+    if( LSM_ERR_JOB_STARTED == rc ) {
+        volume = wait_for_job_vol(c, &job);
+    }
+    for (; i < (sizeof(all_pdcs)/sizeof(all_pdcs[0])); ++i) {
+        G(rc, lsm_volume_physical_disk_cache_update, c, volume,
+          all_pdcs[i], LSM_CLIENT_FLAG_RSVD);
+
+        G(rc, lsm_volume_cache_info, c, volume, &write_cache_policy,
+          &write_cache_status, &read_cache_policy, &read_cache_status,
+          &physical_disk_cache, LSM_CLIENT_FLAG_RSVD);
+
+        fail_unless(physical_disk_cache == all_pdcs[i],
+                    "Failed to change physical disk cache to %" PRIu32 "",
+                    all_pdcs[i]);
+    }
+
+    G(rc, lsm_volume_record_free, volume);
+    G(rc, lsm_pool_record_free, pool);
+    volume = NULL;
+}
+END_TEST
+
+START_TEST(test_volume_wcp_update)
+{
+    lsm_volume *volume = NULL;
+    char *job = NULL;
+    lsm_pool *pool = NULL;
+    uint32_t write_cache_policy = LSM_VOLUME_WRITE_CACHE_POLICY_UNKNOWN;
+    uint32_t write_cache_status = LSM_VOLUME_WRITE_CACHE_STATUS_UNKNOWN;
+    uint32_t read_cache_policy = LSM_VOLUME_READ_CACHE_POLICY_UNKNOWN;
+    uint32_t read_cache_status = LSM_VOLUME_READ_CACHE_STATUS_UNKNOWN;
+    uint32_t physical_disk_cache = LSM_VOLUME_PHYSICAL_DISK_CACHE_UNKNOWN;
+    uint32_t all_wcps[] = {
+        LSM_VOLUME_WRITE_CACHE_POLICY_AUTO,
+        LSM_VOLUME_WRITE_CACHE_POLICY_WRITE_BACK,
+        LSM_VOLUME_WRITE_CACHE_POLICY_WRITE_THROUGH};
+    int i = 0;
+
+    if ( is_simc_plugin == 1 ){
+        // silently skip on simc which does not support this method yet.
+        return;
+    }
+
+    pool = get_test_pool(c);
+
+    fail_unless(pool != NULL, "Failed to find the test pool");
+
+    int rc = lsm_volume_create(
+        c, pool, "volume_cache_info_test", 20000000,
+        LSM_VOLUME_PROVISION_DEFAULT, &volume, &job, LSM_CLIENT_FLAG_RSVD);
+
+    fail_unless(rc == LSM_ERR_OK || rc == LSM_ERR_JOB_STARTED,
+            "lsm_volume_create() %d (%s)", rc, error(lsm_error_last_get(c)));
+
+    if( LSM_ERR_JOB_STARTED == rc ) {
+        volume = wait_for_job_vol(c, &job);
+    }
+    for (; i < (sizeof(all_wcps)/sizeof(all_wcps[0])); ++i) {
+        G(rc, lsm_volume_write_cache_policy_update, c, volume,
+          all_wcps[i], LSM_CLIENT_FLAG_RSVD);
+
+        G(rc, lsm_volume_cache_info, c, volume, &write_cache_policy,
+          &write_cache_status, &read_cache_policy, &read_cache_status,
+          &physical_disk_cache, LSM_CLIENT_FLAG_RSVD);
+
+        fail_unless(write_cache_policy == all_wcps[i],
+                    "Failed to change write cache policy to %" PRIu32 "",
+                    all_wcps[i]);
+    }
+
+    G(rc, lsm_volume_record_free, volume);
+    G(rc, lsm_pool_record_free, pool);
+    volume = NULL;
+}
+END_TEST
+
+START_TEST(test_volume_rcp_update)
+{
+    lsm_volume *volume = NULL;
+    char *job = NULL;
+    lsm_pool *pool = NULL;
+    uint32_t write_cache_policy = LSM_VOLUME_WRITE_CACHE_POLICY_UNKNOWN;
+    uint32_t write_cache_status = LSM_VOLUME_WRITE_CACHE_STATUS_UNKNOWN;
+    uint32_t read_cache_policy = LSM_VOLUME_READ_CACHE_POLICY_UNKNOWN;
+    uint32_t read_cache_status = LSM_VOLUME_READ_CACHE_STATUS_UNKNOWN;
+    uint32_t physical_disk_cache = LSM_VOLUME_PHYSICAL_DISK_CACHE_UNKNOWN;
+    uint32_t all_rcps[] = {
+        LSM_VOLUME_READ_CACHE_POLICY_DISABLED,
+        LSM_VOLUME_READ_CACHE_POLICY_ENABLED};
+    int i = 0;
+
+    if ( is_simc_plugin == 1 ){
+        // silently skip on simc which does not support this method yet.
+        return;
+    }
+
+    pool = get_test_pool(c);
+
+    fail_unless(pool != NULL, "Failed to find the test pool");
+
+    int rc = lsm_volume_create(
+        c, pool, "volume_cache_info_test", 20000000,
+        LSM_VOLUME_PROVISION_DEFAULT, &volume, &job, LSM_CLIENT_FLAG_RSVD);
+
+    fail_unless(rc == LSM_ERR_OK || rc == LSM_ERR_JOB_STARTED,
+            "lsm_volume_create() %d (%s)", rc, error(lsm_error_last_get(c)));
+
+    if( LSM_ERR_JOB_STARTED == rc ) {
+        volume = wait_for_job_vol(c, &job);
+    }
+    for (; i < (sizeof(all_rcps)/sizeof(all_rcps[0])); ++i) {
+        G(rc, lsm_volume_read_cache_policy_update, c, volume,
+          all_rcps[i], LSM_CLIENT_FLAG_RSVD);
+
+        G(rc, lsm_volume_cache_info, c, volume, &write_cache_policy,
+          &write_cache_status, &read_cache_policy, &read_cache_status,
+          &physical_disk_cache, LSM_CLIENT_FLAG_RSVD);
+
+        fail_unless(read_cache_policy == all_rcps[i],
+                    "Failed to change write cache policy to %" PRIu32 "",
+                    all_rcps[i]);
+    }
+
+    G(rc, lsm_volume_record_free, volume);
+    G(rc, lsm_pool_record_free, pool);
+    volume = NULL;
+}
+END_TEST
+
 Suite * lsm_suite(void)
 {
     Suite *s = suite_create("libStorageMgmt");
@@ -3610,6 +3865,11 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_local_disk_list);
     tcase_add_test(basic, test_local_disk_rpm_get);
     tcase_add_test(basic, test_local_disk_link_type);
+    tcase_add_test(basic, test_batteries);
+    tcase_add_test(basic, test_volume_cache_info);
+    tcase_add_test(basic, test_volume_pdc_update);
+    tcase_add_test(basic, test_volume_wcp_update);
+    tcase_add_test(basic, test_volume_rcp_update);
 
     suite_add_tcase(s, basic);
     return s;

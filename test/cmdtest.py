@@ -452,8 +452,8 @@ def test_display(cap, system_id):
     if cap['EXPORT_AUTH']:
         to_test.append('NFS_CLIENT_AUTH')
 
-    if cap['EXPORTS']:
-        to_test.append('EXPORTS')
+    if cap['BATTERIES']:
+        to_test.append('BATTERIES')
 
     display_check(to_test, system_id)
 
@@ -820,6 +820,74 @@ def local_disk_list_test():
         print("Skipping test of 'local-disk-list' command when not "
               "run by root user")
 
+def test_volume_cache_info():
+    # Since cmdtest is only designed to test against sim://, there is no
+    # need to check capacity or preconditions.
+    pool_id = name_to_id(OP_POOL, test_pool_name)
+    vol_id = create_volume(pool_id)
+    cache_info = parse(
+        call([cmd, '-t' + sep, 'volume-cache-info', '--vol', vol_id])[1])
+    if len(cache_info) != 1 or len(cache_info[0]) != 6:
+        print("Invalid return from volume-cache-info, should has 6 items")
+        exit(10)
+    volume_delete(vol_id)
+
+
+def test_volume_pdc_update():
+    pool_id = name_to_id(OP_POOL, test_pool_name)
+    vol_id = create_volume(pool_id)
+    for policy, result in dict(ENABLE="Enabled", DISABLE="Disabled").items():
+        cache_info = parse(
+            call([cmd, '-t' + sep, 'volume-phy-disk-cache-update',
+                 '--vol', vol_id, '--policy', policy])[1])
+        if len(cache_info) != 1 or len(cache_info[0]) < 6:
+            print("Invalid return from volume-phy-disk-cache-update, "
+                  "should has 6 or more items")
+            exit(10)
+        if cache_info[0][5] != result:
+            print("Got unexpected return from volume-phy-disk-cache-update, "
+                  "should be %s, but got %s" % (result, cache_info[0][5]))
+            exit(10)
+    volume_delete(vol_id)
+
+
+def test_volume_wcp_update():
+    pool_id = name_to_id(OP_POOL, test_pool_name)
+    vol_id = create_volume(pool_id)
+    for policy, result in dict(WB="Write Back", AUTO="Auto",
+                               WT="Write Through").items():
+        cache_info = parse(
+            call([cmd, '-t' + sep, 'volume-write-cache-policy-update',
+                 '--vol', vol_id, '--policy', policy])[1])
+        if len(cache_info) != 1 or len(cache_info[0]) < 2:
+            print("Invalid return from volume-write-cache-policy-upate, "
+                  "should has 6 or more items")
+            exit(10)
+        if cache_info[0][1] != result:
+            print("Got unexpected return from volume-write-cache-policy-update"
+                  "should be %s, but got %s" % (result, cache_info[0][1]))
+            exit(10)
+    volume_delete(vol_id)
+
+
+def test_volume_rcp_update():
+    pool_id = name_to_id(OP_POOL, test_pool_name)
+    vol_id = create_volume(pool_id)
+    for policy, result in dict(ENABLE="Enabled", DISABLE="Disabled").items():
+        cache_info = parse(
+            call([cmd, '-t' + sep, 'volume-read-cache-policy-update',
+                 '--vol', vol_id, '--policy', policy])[1])
+        if len(cache_info) != 1 or len(cache_info[0]) < 4:
+            print("Invalid return from volume-read-cache-policy-update, "
+                  "should has 6 or more items")
+            exit(10)
+        if cache_info[0][3] != result:
+            print("Got unexpected return from volume-read-cache-policy-update"
+                  "should be %s, but got %s" % (result, cache_info[0][4]))
+            exit(10)
+    volume_delete(vol_id)
+
+
 def run_all_tests(cap, system_id):
 
     test_exit_code(cap, system_id)
@@ -840,6 +908,10 @@ def run_all_tests(cap, system_id):
     volume_raid_create_test(cap, system_id)
 
     local_disk_list_test()
+    test_volume_cache_info()
+    test_volume_pdc_update()
+    test_volume_wcp_update()
+    test_volume_rcp_update()
 
 if __name__ == "__main__":
     parser = OptionParser()

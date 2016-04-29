@@ -59,6 +59,9 @@ static const char *const TARGET_PORT_SEARCH_KEYS[] = { "id", "system_id" };
 
 #define TARGET_PORT_SEARCH_KEYS_COUNT COUNT_OF(TARGET_PORT_SEARCH_KEYS)
 
+static int get_battery_array(lsm_connect *c, int rc, Value &response,
+                             lsm_battery **bs[], uint32_t *count);
+
 /**
  * Common code to validate and initialize the connection.
  */
@@ -2609,4 +2612,162 @@ int lsm_system_read_cache_pct_update(lsm_connect * c, lsm_system * system,
     int rc = rpc(c, "system_read_cache_pct_update", parameters, response);
 
     return rc;
+}
+
+static int get_battery_array(lsm_connect *c, int rc, Value &response,
+                             lsm_battery **bs[], uint32_t *count)
+{
+    if (LSM_ERR_OK == rc && Value::array_t == response.valueType()) {
+        try {
+            rc = value_array_to_batteries(response, bs, count);
+        }
+        catch(const ValueException & ve) {
+            rc = log_exception(c, LSM_ERR_PLUGIN_BUG, "Unexpected type", NULL);
+        }
+    }
+
+    return rc;
+}
+
+int lsm_battery_list(lsm_connect *c, const char *search_key,
+                     const char *search_value, lsm_battery **bs[],
+                     uint32_t *count, lsm_flag flags)
+{
+    CONN_SETUP(c);
+
+    if (CHECK_RP(bs) || !count) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map < std::string, Value > p;
+    p["flags"] = Value(flags);
+
+    int rc = add_search_params(p, search_key, search_value, DISK_SEARCH_KEYS,
+                               DISK_SEARCH_KEYS_COUNT);
+    if (LSM_ERR_OK != rc) {
+        return rc;
+    }
+
+    Value parameters(p);
+    Value response;
+
+    rc = rpc(c, "batteries", parameters, response);
+    return get_battery_array(c, rc, response, bs, count);
+}
+
+int lsm_volume_cache_info(lsm_connect *c, lsm_volume *volume,
+                          uint32_t *write_cache_policy,
+                          uint32_t *write_cache_status,
+                          uint32_t *read_cache_policy,
+                          uint32_t *read_cache_status,
+                          uint32_t *physical_disk_cache, lsm_flag flags)
+{
+    if (LSM_FLAG_UNUSED_CHECK(flags)) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    int rc = LSM_ERR_OK;
+    CONN_SETUP(c);
+
+    if ((!LSM_IS_VOL(volume)) ||
+        (write_cache_policy == NULL) || (write_cache_status == NULL) ||
+        (read_cache_policy == NULL) || (read_cache_status == NULL) ||
+        (physical_disk_cache == NULL))
+        return LSM_ERR_INVALID_ARGUMENT;
+
+    try {
+
+        Value parameters = _create_volume_flag_param(volume, flags);
+        Value response;
+
+        rc = rpc(c, "volume_cache_info", parameters, response);
+        if (LSM_ERR_OK == rc) {
+            std::vector < Value > j = response.asArray();
+            *write_cache_policy = j[0].asUint32_t();
+            *write_cache_status = j[1].asUint32_t();
+            *read_cache_policy = j[2].asUint32_t();
+            *read_cache_status = j[3].asUint32_t();
+            *physical_disk_cache = j[4].asUint32_t();
+        }
+    }
+    catch(const ValueException & ve) {
+        rc = log_exception(c, LSM_ERR_PLUGIN_BUG, "Unexpected type", ve.what());
+    }
+
+    if (rc != LSM_ERR_OK) {
+        *write_cache_policy = LSM_VOLUME_WRITE_CACHE_POLICY_UNKNOWN;
+        *write_cache_status = LSM_VOLUME_WRITE_CACHE_STATUS_UNKNOWN;
+        *read_cache_policy = LSM_VOLUME_READ_CACHE_POLICY_UNKNOWN;
+        *read_cache_status = LSM_VOLUME_READ_CACHE_STATUS_UNKNOWN;
+        *physical_disk_cache = LSM_VOLUME_PHYSICAL_DISK_CACHE_UNKNOWN;
+    }
+
+    return rc;
+}
+
+int lsm_volume_physical_disk_cache_update(lsm_connect *c, lsm_volume *volume,
+                                          uint32_t pdc, lsm_flag flags)
+{
+    CONN_SETUP(c);
+
+    if (! LSM_IS_VOL(volume) || LSM_FLAG_UNUSED_CHECK(flags) ||
+        ((pdc != LSM_VOLUME_PHYSICAL_DISK_CACHE_DISABLED) &&
+         (pdc != LSM_VOLUME_PHYSICAL_DISK_CACHE_ENABLED))) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map < std::string, Value > p;
+    p["volume"] = volume_to_value(volume);
+    p["pdc"] = Value(pdc);
+    p["flags"] = Value(flags);
+    Value parameters(p);
+    Value response;
+
+    //No response data.
+    return rpc(c, "volume_physical_disk_cache_update", parameters, response);
+}
+
+int lsm_volume_write_cache_policy_update(lsm_connect *c, lsm_volume *volume,
+                                         uint32_t wcp, lsm_flag flags)
+{
+    CONN_SETUP(c);
+
+    if (! LSM_IS_VOL(volume) || LSM_FLAG_UNUSED_CHECK(flags) ||
+        ((wcp != LSM_VOLUME_WRITE_CACHE_POLICY_AUTO) &&
+         (wcp != LSM_VOLUME_WRITE_CACHE_POLICY_WRITE_BACK) &&
+         (wcp!= LSM_VOLUME_WRITE_CACHE_POLICY_WRITE_THROUGH))) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map < std::string, Value > p;
+    p["volume"] = volume_to_value(volume);
+    p["wcp"] = Value(wcp);
+    p["flags"] = Value(flags);
+    Value parameters(p);
+    Value response;
+
+    //No response data.
+    return rpc(c, "volume_write_cache_policy_update", parameters, response);
+}
+
+int lsm_volume_read_cache_policy_update(lsm_connect *c, lsm_volume *volume,
+                                        uint32_t rcp, lsm_flag flags)
+{
+    CONN_SETUP(c);
+
+    if (! LSM_IS_VOL(volume) || LSM_FLAG_UNUSED_CHECK(flags) ||
+        ((rcp != LSM_VOLUME_READ_CACHE_POLICY_DISABLED) &&
+         (rcp != LSM_VOLUME_READ_CACHE_POLICY_ENABLED))) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    std::map < std::string, Value > p;
+    p["volume"] = volume_to_value(volume);
+    p["rcp"] = Value(rcp);
+    p["flags"] = Value(flags);
+    Value parameters(p);
+    Value response;
+
+    //No response data.
+    return rpc(c, "volume_read_cache_policy_update", parameters, response);
 }

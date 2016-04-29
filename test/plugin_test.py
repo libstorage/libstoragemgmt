@@ -1570,6 +1570,137 @@ class TestPlugin(unittest.TestCase):
         except lsm.LsmError as le:
             self.assertTrue(le.code == lsm.ErrorNumber.INVALID_ARGUMENT)
 
+    def test_battery_list(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            if supported(cap, [Cap.BATTERIES]):
+                self.c.batteries()
+
+    def test_volume_cache_info(self):
+        flag_tested = False
+        flag_created = False
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            if not supported(cap, [Cap.VOLUME_CACHE_INFO]):
+                continue
+
+            lsm_vols = self.c.volumes(search_key='system_id', search_value=s.id)
+            if len(lsm_vols) == 0:
+                if not supported(cap, [Cap.VOLUME_CREATE, Cap.VOLUME_DELETE]):
+                    continue
+                lsm_vol = self._volume_create(s.id)[0]
+                flag_created = True
+            else:
+                lsm_vol = lsm_vols[0]
+            cache_info = self.c.volume_cache_info(lsm_vol)
+            self.assertTrue(len(cache_info) == 5)
+            if flag_created:
+                self._volume_delete(lsm_vol)
+            flag_tested = True
+
+        if flag_tested is False:
+            self._skip_current_test(
+                "Skip test: no storage system support volume cache info query")
+
+    def test_volume_cache_pdc_update(self):
+        flag_tested = False
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            if not supported(cap,
+                             [Cap.VOLUME_CACHE_INFO, Cap.VOLUME_CREATE,
+                              Cap.VOLUME_DELETE,
+                              Cap.VOLUME_PHYSICAL_DISK_CACHE_UPDATE]):
+                continue
+            lsm_vol = self._volume_create(s.id)[0]
+            self.c.volume_physical_disk_cache_update(
+                lsm_vol, lsm.Volume.PHYSICAL_DISK_CACHE_ENABLED)
+            cache_info = self.c.volume_cache_info(lsm_vol)
+            self.assertTrue(cache_info[4] ==
+                            lsm.Volume.PHYSICAL_DISK_CACHE_ENABLED)
+            self.c.volume_physical_disk_cache_update(
+                lsm_vol, lsm.Volume.PHYSICAL_DISK_CACHE_DISABLED)
+            cache_info = self.c.volume_cache_info(lsm_vol)
+            self.assertTrue(cache_info[4] ==
+                            lsm.Volume.PHYSICAL_DISK_CACHE_DISABLED)
+
+            self._volume_delete(lsm_vol)
+            flag_tested = True
+        if flag_tested is False:
+            self._skip_current_test(
+                "Skip test: current system does not support required "
+                "capabilities for testing volume_physical_disk_cache_update()")
+
+    def test_volume_cache_wcp_update(self):
+        flag_tested = False
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            if not supported(cap,
+                             [Cap.VOLUME_CACHE_INFO, Cap.VOLUME_CREATE,
+                              Cap.VOLUME_DELETE]):
+                continue
+            lsm_vol = self._volume_create(s.id)[0]
+
+            if supported(cap,
+                         [Cap.VOLUME_WRITE_CACHE_POLICY_UPDATE_WRITE_BACK]):
+                self.c.volume_write_cache_policy_update(
+                    lsm_vol, lsm.Volume.WRITE_CACHE_POLICY_WRITE_BACK)
+                cache_info = self.c.volume_cache_info(lsm_vol)
+                self.assertTrue(cache_info[0] ==
+                                lsm.Volume.WRITE_CACHE_POLICY_WRITE_BACK)
+                flag_tested = True
+
+            if supported(cap, [Cap.VOLUME_WRITE_CACHE_POLICY_UPDATE_AUTO]):
+                self.c.volume_write_cache_policy_update(
+                    lsm_vol, lsm.Volume.WRITE_CACHE_POLICY_AUTO)
+                cache_info = self.c.volume_cache_info(lsm_vol)
+                self.assertTrue(cache_info[0] ==
+                                lsm.Volume.WRITE_CACHE_POLICY_AUTO)
+                flag_tested = True
+
+            if supported(cap,
+                         [Cap.VOLUME_WRITE_CACHE_POLICY_UPDATE_WRITE_THROUGH]):
+                self.c.volume_write_cache_policy_update(
+                    lsm_vol, lsm.Volume.WRITE_CACHE_POLICY_WRITE_THROUGH)
+                cache_info = self.c.volume_cache_info(lsm_vol)
+                self.assertTrue(cache_info[0] ==
+                                lsm.Volume.WRITE_CACHE_POLICY_WRITE_THROUGH)
+                flag_tested = True
+
+            self._volume_delete(lsm_vol)
+
+        if flag_tested is False:
+            self._skip_current_test(
+                "Skip test: current system does not support required "
+                "capabilities for testing volume_write_cache_policy_update()")
+
+    def test_volume_cache_rcp_update(self):
+        flag_tested = False
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            if not supported(cap,
+                             [Cap.VOLUME_CACHE_INFO, Cap.VOLUME_CREATE,
+                              Cap.VOLUME_DELETE,
+                              Cap.VOLUME_READ_CACHE_POLICY_UPDATE]):
+                continue
+            lsm_vol = self._volume_create(s.id)[0]
+            self.c.volume_read_cache_policy_update(
+                lsm_vol, lsm.Volume.READ_CACHE_POLICY_ENABLED)
+            cache_info = self.c.volume_cache_info(lsm_vol)
+            self.assertTrue(cache_info[2] ==
+                            lsm.Volume.READ_CACHE_POLICY_ENABLED)
+            self.c.volume_read_cache_policy_update(
+                lsm_vol, lsm.Volume.READ_CACHE_POLICY_DISABLED)
+            cache_info = self.c.volume_cache_info(lsm_vol)
+            self.assertTrue(cache_info[2] ==
+                            lsm.Volume.READ_CACHE_POLICY_DISABLED)
+
+            self._volume_delete(lsm_vol)
+            flag_tested = True
+        if flag_tested is False:
+            self._skip_current_test(
+                "Skip test: current system does not support required "
+                "capabilities for testing volume_read_cache_policy_update()")
+
 
 def dump_results():
     """

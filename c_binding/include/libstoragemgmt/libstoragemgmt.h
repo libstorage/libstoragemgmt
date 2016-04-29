@@ -35,6 +35,7 @@
 #include "libstoragemgmt_targetport.h"
 #include "libstoragemgmt_volumes.h"
 #include "libstoragemgmt_local_disk.h"
+#include "libstoragemgmt_battery.h"
 
 
 /*! \mainpage libStorageMgmt
@@ -1097,6 +1098,168 @@ int LSM_DLL_EXPORT lsm_system_read_cache_pct_update(lsm_connect *c,
                                                     uint32_t read_pct,
                                                     lsm_flag flags);
 
+/**
+ * New in version 1.3.
+ * Get a list of batteries for this storage system.
+ * When present, super capacitors will also be included.
+ * @param[in]   conn            Valid connection @see lsm_connect_password
+ * @param[in]   search_key      Search key (NULL for all)
+ * @param[in]   search_value    Search value
+ * @param[out]  bs              An array of lsm_battery types
+ * @param[out]  count           Number of batteries
+ * @param[in]   flags           Reserved set to zero
+ * @return Error code as enumerated by \ref lsm_error_number.
+ *         Returns LSM_ERR_OK on success.*
+ */
+int LSM_DLL_EXPORT lsm_battery_list(lsm_connect *conn,
+                                    const char *search_key,
+                                    const char *search_value,
+                                    lsm_battery **bs[], uint32_t *count,
+                                    lsm_flag flags);
+
+/**
+ * New in version 1.3.
+ * Query RAM cache information for the specified volume.
+ * @param[in] c             Valid connection
+ * @param[in] volume        A single lsm_volume
+ * @param[in] flags         Reserved, set to 0
+ * @param[out] write_cache_policy
+ *                         The write cache policy. Valid values are:
+ *                          * LSM_VOLUME_WRITE_CACHE_POLICY_WRITE_BACK
+ *                            The storage system will use write back mode if
+ *                            cache hardware found.
+ *                          * LSM_VOLUME_WRITE_CACHE_POLICY_AUTO
+ *                            The controller will use write back mode when
+ *                            battery/capacitor is in good health, otherwise,
+ *                            write through mode.
+ *                          * LSM_VOLUME_WRITE_CACHE_POLICY_WRITE_THROUGH
+ *                              The storage system will use write through mode.
+ *                          * LSM_VOLUME_WRITE_CACHE_POLICY_UNKNOWN
+ *                              Plugin failed to detect this setting.
+ * @param[out] write_cache_status
+ *                         The status of write cache. Valid values are:
+ *                          * LSM_VOLUME_WRITE_CACHE_STATUS_WRITE_THROUGH
+ *                          * LSM_VOLUME_WRITE_CACHE_STATUS_WRITE_BACK
+ *                          * LSM_VOLUME_WRITE_CACHE_STATUS_UNKNOWN
+ * @param[out] read_cache_policy
+ *                          The policy for read cache. Valid values are:
+ *                          * LSM_VOLUME_READ_CACHE_POLICY_ENABLED
+ *                              Read cache is enabled, when reading I/O on
+ *                              previous unchanged written I/O or read I/O in
+ *                              cache will be returned to I/O initiator
+ *                              immediately without checking backing
+ *                              store(normally disk).
+ *                          * LSM_VOLUME_READ_CACHE_POLICY_DISABLED
+ *                              Read cache is disabled.
+ *                          * LSM_VOLUME_READ_CACHE_POLICY_UNKNOWN
+ *                              Plugin failed to detect the read cache policy.
+ * @param[out] read_cache_status
+ *                          The status of read cache. Valid values are:
+ *                          * LSM_VOLUME_READ_CACHE_STATUS_ENABLED
+ *                          * LSM_VOLUME_READ_CACHE_STATUS_DISABLED
+ *                          * LSM_VOLUME_READ_CACHE_STATUS_UNKNOWN
+ * @param[out] physical_disk_cache
+ *                          Whether physical disk's cache is enabled or not.
+ *                          Please be advised, HDD's physical disk ram cache
+ *                          might not be protected by storage system's battery
+ *                          or capacitor on sudden power loss, you could lose
+ *                          data if a power failure occurs during a write
+ *                          process. For SSD's physical disk cache, please
+ *                          check with the vendor of your hardware RAID card and
+ *                          SSD disk. Valid values are:
+ *                          * LSM_VOLUME_PHYSICAL_DISK_CACHE_ENABLED
+ *                              Physical disk cache enabled.
+ *                          * LSM_VOLUME_PHYSICAL_DISK_CACHE_DISABLED
+ *                              Physical disk cache disabled.
+ *                          * LSM_VOLUME_PHYSICAL_DISK_CACHE_USE_DISK_SETTING
+ *                              Physical disk cache is determined by the disk
+ *                              vendor via physical disks' SCSI caching mode
+ *                              page(0x08 page). It is strongly suggested to
+ *                              change this value to
+ *                              LSM_VOLUME_PHYSICAL_DISK_CACHE_ENABLED or
+ *                              LSM_VOLUME_PHYSICAL_DISK_CACHE_DISABLED
+ *                          * LSM_VOLUME_PHYSICAL_DISK_CACHE_UNKNOWN
+ *                              Plugin failed to detect the physical disk
+ *                              status.
+ * @return LSM_ERR_OK on success else error reason.
+ */
+int LSM_DLL_EXPORT lsm_volume_cache_info(lsm_connect *c,
+                                         lsm_volume *volume,
+                                         uint32_t *write_cache_policy,
+                                         uint32_t *write_cache_status,
+                                         uint32_t *read_cache_policy,
+                                         uint32_t *read_cache_status,
+                                         uint32_t *physical_disk_cache,
+                                         lsm_flag flags);
+
+/**
+ * New in version 1.3
+ * Change the setting of RAM physical disk cache of specified volume. On some
+ * product(like HPE SmartArray), this action will be effective at system level
+ * which means that even you are requesting a change on a specified volume, this
+ * change will apply to all other volumes on the same controller(system).
+ * @param[in] conn          Valid connection @see lsm_connect_password
+ * @param[in] volume        A single lsm_volume
+ * @param[in] pdc           Physical disk cache setting, valid values are:
+ *                          * LSM_VOLUME_PHYSICAL_DISK_CACHE_ENABLED
+ *                              Enable physical disk cache.
+ *                          * LSM_VOLUME_PHYSICAL_DISK_CACHE_DISABLED
+ *                              Disable physical disk cache
+ * @param[in] flags         Reserved set to zero
+ * @return LSM_ERR_OK on success else error reason
+ */
+int LSM_DLL_EXPORT lsm_volume_physical_disk_cache_update(lsm_connect *c,
+                                                         lsm_volume *volume,
+                                                         uint32_t pdc,
+                                                         lsm_flag flags);
+
+/**
+ * New in version 1.3
+ * Change the RAM write cache policy on specified volume. If
+ * LSM_CAP_VOLUME_WRITE_CACHE_POLICY_SET_IMPACT_READ is supported(e.g. HPE
+ * SmartArray), the changes on write cache policy might also impact read cache
+ * policy. If LSM_CAP_VOLUME_WRITE_CACHE_POLICY_SET_WB_IMPACT_OTHER is
+ * supported(e.g. HPE SmartArray), changing write cache policy to write back
+ * mode might impact other volumes in the same system.
+ * @param[in] conn          Valid connection @see lsm_connect_password
+ * @param[in] volume        A single lsm_volume
+ * @param[in] wcp           Write cache policy. Valid values are:
+ *                          * LSM_VOLUME_WRITE_CACHE_POLICY_WRITE_BACK
+ *                              Change to write back mode.
+ *                          * LSM_VOLUME_WRITE_CACHE_POLICY_AUTO
+ *                              Change to auto mode: use write back mode when
+ *                              battery/capacitor is healthy, otherwise use
+ *                              write through.
+ *                          * LSM_VOLUME_WRITE_CACHE_POLICY_WRITE_THROUGH
+ *                              Change to write through mode.
+ * @param[in] flags         Reserved set to zero
+ * @return LSM_ERR_OK on success else error reason
+ */
+int LSM_DLL_EXPORT lsm_volume_write_cache_policy_update(lsm_connect *c,
+                                                        lsm_volume *volume,
+                                                        uint32_t wcp,
+                                                        lsm_flag flags);
+/**
+ * New in version 1.3
+ * Change the RAM read cache policy of specified volume.
+ * If LSM_CAP_VOLUME_READ_CACHE_POLICY_SET_IMPACT_WRITE is supported(like HPE
+ * SmartArray), the changes on write cache policy might also impact read cache
+ * policy.
+ *
+ * @param[in] conn          Valid connection @see lsm_connect_password
+ * @param[in] volume        A single lsm_volume
+ * @param[in] rcp           Read cache policy. Valid values are:
+ *                          * LSM_VOLUME_READ_CACHE_POLICY_ENABLED
+ *                              Enable read cache.
+ *                          * LSM_VOLUME_READ_CACHE_POLICY_DISABLED
+ *                              Disable read cache.
+ * @param[in] flags         Reserved set to zero
+ * @return LSM_ERR_OK on success else error reason
+ */
+int LSM_DLL_EXPORT lsm_volume_read_cache_policy_update(lsm_connect *c,
+                                                       lsm_volume *volume,
+                                                       uint32_t rcp,
+                                                       lsm_flag flags);
 
 #ifdef  __cplusplus
 }
