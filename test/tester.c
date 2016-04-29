@@ -3609,6 +3609,7 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_read_cache_pct_update);
     tcase_add_test(basic, test_local_disk_list);
     tcase_add_test(basic, test_local_disk_rpm_get);
+    tcase_add_test(basic, test_local_disk_link_type);
 
     suite_add_tcase(s, basic);
     return s;
