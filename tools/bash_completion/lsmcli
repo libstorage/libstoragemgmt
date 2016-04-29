@@ -75,13 +75,20 @@ function _lsm()
                 volume-enable volume-disable iscsi-chap fs-create fs-delete \
                 fs-resize fs-export fs-unexport fs-clone fs-snap-create \
                 fs-snap-delete fs-snap-restore fs-dependants fs-dependants-rm \
-                file-clone ls lp lv ld la lf lt c p vc vd vr vm vi ve vi ac \
+                file-clone ls lp lv ld la lf lt lb c p vc vd vr vm vi ve vi ac \
                 aa ar ad vri volume-raid-info pool-member-info pmi \
-                vrc volume-raid-create vrcc volume-raid-create-cap"
+                vrc volume-raid-create vrcc volume-raid-create-cap \
+                volume-phy-disk-cache-update vpdcu \
+                volume-read-cache-policy-update vrcpu \
+                volume-write-cache-policy-update vwcpu \
+                volume-cache-info vci volume-ident-led-on vilon \
+                volume-ident-led-off viloff local-disk-list ldl \
+                system-read-cache-pct-update srcpu"
 
     list_args="--type"
     list_type_args="volumes pools fs snapshots exports nfs_client_auth \
-                    access_groups systems disks plugins target_ports"
+                    access_groups systems disks plugins target_ports \
+                    batteries"
 
     opts_filter="--sys --pool --vol --disk --ag --fs --nfs"
 
@@ -128,6 +135,12 @@ function _lsm()
     pool_member_info_args="--pool"
     volume_raid_create_args="--name --disk --raid-type --strip-size"
     volume_raid_create_cap_args="--sys"
+    volume_phy_disk_cache_update_args="--vol --policy"
+    volume_read_cache_policy_update_args="--vol --policy"
+    volume_write_cache_policy_update_args="--vol --policy"
+    volume_cache_info_args="--vol"
+    volume_ident_led_on_off_args="--vol"
+    system_read_cache_pct_update_args="--vol --read-pct"
 
     # These operations can potentially be slow and cause hangs depending on plugin and configuration
     if [[ ${NO_VALUE_LOOKUP} -ne 0 ]] ; then
@@ -412,6 +425,36 @@ function _lsm()
             ;;
         volume-raid-create-cap|vrcc)
             possible_args "${volume_raid_create_cap_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        volume-phy-disk-cache-update|vpdcu)
+            possible_args "${volume_phy_disk_cache_update_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        volume-read-cache-policy-update|vrcpu)
+            possible_args "${volume_read_cache_policy_update_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        volume-write-cache-policy-update|vwcpu)
+            possible_args "${volume_write_cache_policy_update_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        volume-cache-info|vci)
+            possible_args "${volume_cache_info_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        volume-ident-led-on|volume-ident-led-off|vilon|viloff)
+            possible_args "${volume_ident_led_on_off_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        system-read-cache-pct-update|srcpu)
+            possible_args "${system_read_cache_pct_update_args}"
             COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
             ;;
