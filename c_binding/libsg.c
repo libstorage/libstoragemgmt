@@ -33,8 +33,8 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <stdlib.h>
-#include <arpa/inet.h>
 #include <assert.h>
+#include <endian.h>
 
 /* SGIO timeout: 1 second
  * TODO(Gris Ge): Raise LSM_ERR_TIMEOUT error for this
@@ -61,7 +61,14 @@ struct _sg_t10_vpd83_header {
     uint8_t dev_type : 5;
     uint8_t qualifier : 3;
     uint8_t page_code;
-    uint16_t page_len;
+    uint16_t page_len_be;
+};
+
+struct _sg_t10_vpd00 {
+    uint8_t ignore;
+    uint8_t page_code;
+    uint16_t page_len_be;
+    uint8_t supported_vpd_list_begin;
 };
 
 #pragma pack(pop)
@@ -186,10 +193,13 @@ bool _sg_is_vpd_page_supported(uint8_t *vpd_0_data, uint8_t page_code)
 {
     uint16_t supported_list_len = 0;
     uint16_t i = 0;
+    struct _sg_t10_vpd00 *vpd00 = NULL;
 
     assert(vpd_0_data != NULL);
 
-    supported_list_len = (vpd_0_data[2] << 8) + vpd_0_data[3];
+    vpd00 = (struct _sg_t10_vpd00 *) vpd_0_data;
+
+    supported_list_len = be16toh(vpd00->page_len_be);
 
     for (; i < supported_list_len; ++i) {
         if (i + _T10_SPC_VPD_SUP_VPD_PGS_LIST_OFFSET >= _SG_T10_SPC_VPD_MAX_LEN)
@@ -229,7 +239,7 @@ int _sg_parse_vpd_83(char *err_msg, uint8_t *vpd_data,
         goto out;
     }
 
-    vpd83_len = ntohs(vpd83_header->page_len) +
+    vpd83_len = be16toh(vpd83_header->page_len_be) +
         sizeof(struct _sg_t10_vpd83_header);
 
     end_p = vpd_data + vpd83_len - 1;
