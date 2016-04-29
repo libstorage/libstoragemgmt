@@ -514,7 +514,7 @@ int lsm_local_disk_rpm_get(const char *sd_path, int32_t *rpm,
         rc = LSM_ERR_LIB_BUG;
         _lsm_err_msg_set(err_msg, "Got corrupted SCSI SBC "
                          "Device Characteristics VPD page, expected page code "
-                         "is %d but got % " PRIu8 "",
+                         "is %d but got %" PRIu8 "",
                          _SG_T10_SBC_VPD_BLK_DEV_CHA, bdc->pg_code);
         goto out;
     }
