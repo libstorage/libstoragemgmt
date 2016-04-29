@@ -16,7 +16,9 @@
 
 from lsm._clib import (_local_disk_vpd83_search, _local_disk_vpd83_get,
                        _local_disk_rpm_get, _local_disk_list,
-                       _local_disk_link_type_get)
+                       _local_disk_link_type_get, _local_disk_ident_led_on,
+                       _local_disk_ident_led_off, _local_disk_fault_led_on,
+                       _local_disk_fault_led_off)
 from lsm import LsmError, ErrorNumber
 
 
@@ -218,3 +220,117 @@ class LocalDisk(object):
                 No capability required as this is a library level method.
         """
         return _use_c_lib_function(_local_disk_link_type_get, disk_path)
+
+    @staticmethod
+    def ident_led_on(disk_path):
+        """
+        Version:
+            1.3
+        Usage:
+            Turn on the identification LED for specified disk.
+        Parameters:
+            disk_path (string)
+                The disk path, example '/dev/sdb'.
+        Returns:
+            None
+        SpecialExceptions:
+            LsmError
+                ErrorNumber.LIB_BUG
+                    Internal bug.
+                ErrorNumber.NOT_FOUND_DISK
+                    Provided disk is not found.
+                ErrorNumber.NO_SUPPORT
+                    Provided disk does not support SCSI SPC.
+                ErrorNumber.PERMISSION_DENIED
+                    No sufficient permission to access provided disk path.
+        Capability:
+            N/A
+                No capability required as this is a library level method.
+        """
+        return _use_c_lib_function(_local_disk_ident_led_on, disk_path)
+
+    @staticmethod
+    def ident_led_off(disk_path):
+        """
+        Version:
+            1.3
+        Usage:
+            Turn off the identification LED for specified disk.
+        Parameters:
+            disk_path (string)
+                The disk path, example '/dev/sdb'.
+        Returns:
+            None
+        SpecialExceptions:
+            LsmError
+                ErrorNumber.LIB_BUG
+                    Internal bug.
+                ErrorNumber.NOT_FOUND_DISK
+                    Provided disk is not found.
+                ErrorNumber.NO_SUPPORT
+                    Provided disk does not support SCSI SPC.
+                ErrorNumber.PERMISSION_DENIED
+                    No sufficient permission to access provided disk path.
+        Capability:
+            N/A
+                No capability required as this is a library level method.
+        """
+        return _use_c_lib_function(_local_disk_ident_led_off, disk_path)
+
+    @staticmethod
+    def fault_led_on(disk_path):
+        """
+        Version:
+            1.3
+        Usage:
+            Turn on the fault LED for specified disk.
+        Parameters:
+            disk_path (string)
+                The disk path, example '/dev/sdb'.
+        Returns:
+            None
+        SpecialExceptions:
+            LsmError
+                ErrorNumber.LIB_BUG
+                    Internal bug.
+                ErrorNumber.NOT_FOUND_DISK
+                    Provided disk is not found.
+                ErrorNumber.NO_SUPPORT
+                    Provided disk does not support SCSI SPC.
+                ErrorNumber.PERMISSION_DENIED
+                    No sufficient permission to access provided disk path.
+        Capability:
+            N/A
+                No capability required as this is a library level method.
+        """
+        return _use_c_lib_function(_local_disk_fault_led_on, disk_path)
+
+    @staticmethod
+    def fault_led_off(disk_path):
+        """
+        Version:
+            1.3
+        Usage:
+            Turn off the fault LED for specified disk.
+        Parameters:
+            disk_path (string)
+                The disk path, example '/dev/sdb'.
+        Returns:
+            None
+        SpecialExceptions:
+            LsmError
+                ErrorNumber.LIB_BUG
+                    Internal bug.
+                ErrorNumber.INVALID_ARGUMENT
+                    Invalid disk_path. Should be like '/dev/sdb'.
+                ErrorNumber.NOT_FOUND_DISK
+                    Provided disk is not found.
+                ErrorNumber.NO_SUPPORT
+                    Provided disk does not support SCSI SPC.
+                ErrorNumber.PERMISSION_DENIED
+                    No sufficient permission to access provided disk path.
+        Capability:
+            N/A
+                No capability required as this is a library level method.
+        """
+        return _use_c_lib_function(_local_disk_fault_led_off, disk_path)

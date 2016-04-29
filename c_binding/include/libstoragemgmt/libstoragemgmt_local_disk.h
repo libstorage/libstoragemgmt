@@ -65,7 +65,7 @@ int LSM_DLL_EXPORT lsm_local_disk_vpd83_search(const char *vpd83,
  *                  freed by lsm_error_free().
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK               on success or not found.
- * @retval LSM_ERR_INVALID_ARGUMENT when any argument is NULL or 
+ * @retval LSM_ERR_INVALID_ARGUMENT when any argument is NULL or
  *                                  illegal sd_path.
  * @retval LSM_ERR_NO_MEMORY        when no memory.
  * @retval LSM_ERR_LIB_BUG          when something unexpected happens.
@@ -179,6 +179,87 @@ int LSM_DLL_EXPORT lsm_local_disk_list(lsm_string_list **disk_paths,
  */
 int LSM_DLL_EXPORT lsm_local_disk_link_type_get(const char *disk_path,
                                                 lsm_disk_link_type *link_type,
+                                                lsm_error **lsm_err);
+
+/**
+ * New in version 1.3.
+ * Turn on the identification LED for specified disk.
+ * Require read and write access to specified disk path.
+ * @param[in]  disk_path    String. The path of disk path, example "/dev/sdb".
+ * @param[out] lsm_err      Output pointer of lsm_error. Error message could be
+ *                          retrieved via lsm_error_message_get(). Memory should
+ *                          be freed by lsm_error_free().
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK                   On success.
+ * @retval LSM_ERR_INVALID_ARGUMENT     When any argument is NULL.
+ * @retval LSM_ERR_NO_MEMORY            When no memory.
+ * @retval LSM_ERR_LIB_BUG              When something unexpected happens.
+ * @retval LSM_ERR_NOT_FOUND_DISK       When provided disk path not found.
+ * @retval LSM_ERR_NO_SUPPORT           Action is not supported.
+ * @retval LSM_ERR_PERMISSION_DENIED    Insufficient permission to access
+ *                                      provided disk path.
+ */
+int LSM_DLL_EXPORT lsm_local_disk_ident_led_on(const char *disk_path,
+                                               lsm_error **lsm_err);
+/**
+ * New in version 1.3.
+ * Turn off the identification LED for specified disk.
+ * Require read and write access to specified disk path.
+ * @param[in]  disk_path    String. The path of disk path, example "/dev/sdb".
+ * @param[out] lsm_err      Output pointer of lsm_error. Error message could be
+ *                          retrieved via lsm_error_message_get().
+ *                          Memory should be freed by lsm_error_free().
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK                   On success.
+ * @retval LSM_ERR_INVALID_ARGUMENT     When any argument is NULL.
+ * @retval LSM_ERR_NO_MEMORY            When no memory.
+ * @retval LSM_ERR_LIB_BUG              When something unexpected happens.
+ * @retval LSM_ERR_NOT_FOUND_DISK       When provided disk path not found.
+ * @retval LSM_ERR_NO_SUPPORT           Action is not supported.
+ * @retval LSM_ERR_PERMISSION_DENIED    Insufficient permission to access
+ *                                      provided disk path.
+ */
+int LSM_DLL_EXPORT lsm_local_disk_ident_led_off(const char *disk_path,
+                                                  lsm_error **lsm_err);
+
+/**
+ * New in version 1.3.
+ * Turn on the fault LED for specified disk.
+ * Require read and write access to specified disk path.
+ * @param[in]  disk_path    String. The path of disk path, example "/dev/sdb".
+ * @param[out] lsm_err      Output pointer of lsm_error. Error message could be
+ *                          retrieved via lsm_error_message_get(). Memory should
+ *                          be freed by lsm_error_free().
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK                   On success.
+ * @retval LSM_ERR_INVALID_ARGUMENT     When any argument is NULL.
+ * @retval LSM_ERR_NO_MEMORY            When no memory.
+ * @retval LSM_ERR_LIB_BUG              When something unexpected happens.
+ * @retval LSM_ERR_NOT_FOUND_DISK       When provided disk path not found.
+ * @retval LSM_ERR_NO_SUPPORT           Action is not supported.
+ * @retval LSM_ERR_PERMISSION_DENIED    Insufficient permission to access
+ *                                      provided disk path.
+ */
+int LSM_DLL_EXPORT lsm_local_disk_fault_led_on(const char *disk_path,
+                                               lsm_error **lsm_err);
+/**
+ * New in version 1.3.
+ * Turn off the fault LED for specified disk.
+ * Require read and write access to specified disk path.
+ * @param[in]  disk_path    String. The path of disk path, example "/dev/sdb".
+ * @param[out] lsm_err      Output pointer of lsm_error. Error message could be
+ *                          retrieved via lsm_error_message_get(). Memory should
+ *                          be freed by lsm_error_free().
+ * @retval LSM_ERR_OK                   On success.
+ * @retval LSM_ERR_INVALID_ARGUMENT     When any argument is NULL.
+ * @retval LSM_ERR_NO_MEMORY            When no memory.
+ * @retval LSM_ERR_LIB_BUG              When something unexpected happens.
+ * @retval LSM_ERR_NOT_FOUND_DISK       When provided disk path not found.
+ * @retval LSM_ERR_NO_SUPPORT           Action is not supported.
+ * @retval LSM_ERR_PERMISSION_DENIED    Insufficient permission to access
+ *                                      provided disk path.
+ */
+int LSM_DLL_EXPORT lsm_local_disk_fault_led_off(const char *disk_path,
                                                 lsm_error **lsm_err);
 
 #ifdef __cplusplus

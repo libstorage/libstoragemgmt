@@ -371,3 +371,149 @@ void _sg_t10_vpd83_dp_array_free(struct _sg_t10_vpd83_dp **dps,
     }
     free(dps);
 }
+
+int _sg_io_open_rw(char *err_msg, const char *disk_path, int *fd)
+{
+    return _sg_io_open(err_msg, disk_path, fd, O_RDWR|O_NONBLOCK);
+}
+
+int _sg_io_recv_diag(char *err_msg, int fd, uint8_t page_code, uint8_t *data)
+{
+    int rc = LSM_ERR_OK;
+    uint8_t cdb[_T10_SPC_RECV_DIAG_CMD_LEN];
+    int ioctl_errno = 0;
+    char strerr_buff[_LSM_ERR_MSG_LEN];
+
+    assert(err_msg != NULL);
+    assert(fd >= 0);
+    assert(data != NULL);
+
+    /* SPC-5 rev7, Table 219 - RECEIVE DIAGNOSTIC RESULTS command */
+    cdb[0] = RECEIVE_DIAGNOSTIC;                /* OPERATION CODE */
+    cdb[1] = 1;                                 /* PCV */
+    /* We have no use case for PCV = 0 yet.
+     * When PCV == 0, it means page code is invalid, just retrieve the result
+     * of recent SEND DIAGNOSTIC.
+     */
+    cdb[2] = page_code & UINT8_MAX;             /* PAGE CODE */
+    cdb[3] = (_SG_T10_SPC_RECV_DIAG_MAX_LEN >> 8 ) & UINT8_MAX;
+                                                /* ALLOCATION LENGTH, MSB */
+    cdb[4] = _SG_T10_SPC_RECV_DIAG_MAX_LEN & UINT8_MAX;
+                                                /* ALLOCATION LENGTH, LSB */
+    cdb[5] = 0;                                 /* CONTROL */
+    /* We have no use case need for handling auto contingent allegiance(ACA)
+     * yet.
+     */
+
+    ioctl_errno = _sg_io(fd, cdb, _T10_SPC_RECV_DIAG_CMD_LEN, data,
+                         _SG_T10_SPC_RECV_DIAG_MAX_LEN, _SG_IO_RECV_DATA);
+    if (ioctl_errno != 0) {
+        rc = LSM_ERR_LIB_BUG;
+        /* TODO(Gris Ge): Check 'Supported Diagnostic Pages diagnostic page' */
+
+        _lsm_err_msg_set(err_msg, "Got error from SGIO RECEIVE_DIAGNOSTIC "
+                         "for page code 0x%02x: %d(%s)", page_code, ioctl_errno,
+                         strerror_r(ioctl_errno, strerr_buff,
+                                    _LSM_ERR_MSG_LEN));
+        goto out;
+    }
+
+ out:
+
+    return rc;
+}
+
+int _sg_io_send_diag(char *err_msg, int fd, uint8_t *data, uint16_t data_len)
+{
+    int rc = LSM_ERR_OK;
+    uint8_t cdb[_T10_SPC_SEND_DIAG_CMD_LEN];
+    int ioctl_errno = 0;
+    char strerr_buff[_LSM_ERR_MSG_LEN];
+
+    assert(err_msg != NULL);
+    assert(fd >= 0);
+    assert(data != NULL);
+    assert(data_len > 0);
+
+    /* SPC-5 rev7, Table 219 - RECEIVE DIAGNOSTIC RESULTS command */
+    cdb[0] = SEND_DIAGNOSTIC;                   /* OPERATION CODE */
+    cdb[1] = 0x10;                              /* SELF-TEST, PF, DEVOFFL,
+                                                   UNITOFFL */
+    /* Only set PF(Page format) bit and leave others as 0
+     * Check SPC-5 rev 7 Table 271 - The meanings of the SELF - TEST CODE
+     * field, the PF bit, the SELF TEST bit, and the PARAMETER LIST LENGTH
+     * field.
+     */
+    cdb[2] = 0;                                 /* Reserved */
+    cdb[3] = data_len >> 8;                     /* PARAMETER LIST LENGTH, MSB */
+    cdb[4] = data_len & UINT8_MAX;              /* PARAMETER LIST LENGTH, LSB */
+    cdb[5] = 0;                                 /* CONTROL */
+    /* We have no use case need for handling auto contingent allegiance(ACA)
+     * yet.
+     */
+
+    ioctl_errno = _sg_io(fd, cdb, _T10_SPC_SEND_DIAG_CMD_LEN, data,
+                         data_len, _SG_IO_SEND_DATA);
+    if (ioctl_errno != 0) {
+        rc = LSM_ERR_LIB_BUG;
+        /* TODO(Gris Ge): No idea why this could fail */
+
+        _lsm_err_msg_set(err_msg, "Got error from SGIO SEND_DIAGNOSTIC "
+                         "for %d(%s)", ioctl_errno,
+                         strerror_r(ioctl_errno, strerr_buff,
+                                    _LSM_ERR_MSG_LEN));
+    }
+
+    return rc;
+}
+
+/* Find out the target port address via SCSI VPD device Identification
+ * page:
+ *  SPC-5 rev7 Table 487 - ASSOCIATION field
+ */
+int _sg_tp_sas_addr_of_disk(char *err_msg, int fd, char *tp_sas_addr)
+{
+    int rc = LSM_ERR_OK;
+    struct _sg_t10_vpd83_dp **dps = NULL;
+    uint8_t vpd_di_data[_SG_T10_SPC_VPD_MAX_LEN];
+    uint16_t dp_count = 0;
+    uint16_t i = 0;
+    struct _sg_t10_vpd83_naa_header *naa_header = NULL;
+
+    assert(err_msg != NULL);
+    assert(fd >= 0);
+    assert(tp_sas_addr != NULL);
+
+    _good(_sg_io_vpd(err_msg, fd, _SG_T10_SPC_VPD_DI, vpd_di_data), rc, out);
+    _good(_sg_parse_vpd_83(err_msg, vpd_di_data, &dps, &dp_count), rc, out);
+
+    memset(tp_sas_addr, 0, _SG_T10_SPL_SAS_ADDR_LEN);
+
+    for (; i < dp_count; ++i) {
+        if ((dps[i]->header.association != _SG_T10_SPC_ASSOCIATION_TGT_PORT) ||
+            (dps[i]->header.piv != 1) ||
+            (dps[i]->header.designator_type !=
+             _SG_T10_SPC_VPD_DI_DESIGNATOR_TYPE_NAA) ||
+            (dps[i]->header.protocol_id != _SG_T10_SPC_PROTOCOL_ID_SAS))
+            continue;
+
+        naa_header = (struct _sg_t10_vpd83_naa_header *) dps[i]->designator;
+        _be_raw_to_hex((uint8_t *) naa_header,
+                       _SG_T10_SPL_SAS_ADDR_LEN_BITS, tp_sas_addr);
+
+        break;
+    }
+
+    if (tp_sas_addr[0] == '\0') {
+        rc = LSM_ERR_NO_SUPPORT;
+        _lsm_err_msg_set(err_msg,
+                         "Given disk does not expose SCSI target port "
+                         "SAS address via SCSI Device Identification VPD page");
+    }
+
+ out:
+    if (dps != NULL)
+        _sg_t10_vpd83_dp_array_free(dps, dp_count);
+
+    return rc;
+}

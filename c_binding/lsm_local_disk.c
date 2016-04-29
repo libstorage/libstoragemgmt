@@ -39,6 +39,7 @@
 #include "libstoragemgmt/libstoragemgmt_plug_interface.h"
 #include "utils.h"
 #include "libsg.h"
+#include "libses.h"
 
 #define _LSM_MAX_VPD83_ID_LEN                   33
 /* ^ Max one is 6h IEEE Registered Extended ID which it 32 bits hex string. */
@@ -58,6 +59,10 @@
 #define _SYSFS_BLK_PATH_FORMAT "/sys/block/%s"
 #define _MAX_SYSFS_BLK_PATH_STR_LEN 128 + _MAX_SD_NAME_STR_LEN
 #define _LSM_ERR_MSG_LEN 255
+#define _SYSFS_SAS_ADDR_LEN                     _SG_T10_SPL_SAS_ADDR_LEN + 2
+/* ^ Only Linux sysfs entry /sys/block/sdx/device/sas_address which
+ *   format is '0x<hex_addr>\0'
+ */
 
 #pragma pack(push, 1)
 struct t10_sbc_vpd_bdc {
@@ -79,6 +84,20 @@ static int _sysfs_get_all_sd_names(char *err_msg,
                                    lsm_string_list **sd_name_list);
 static int _sysfs_vpd_pg83_data_get(char *err_msg, const char *sd_name,
                                     uint8_t *vpd_data, ssize_t *read_size);
+/*
+ * Use /sys/block/sdx/device/sas_address to retrieve sas address of certain
+ * disk.
+ * 'tp_sas_addr' should be char[_SG_T10_SPL_SAS_ADDR_LEN].
+ * Return 0 if file exists and the SAS address is legal, return -1 otherwise.
+ * Legal here means:
+ *  * sysfs file content has strlen as _SYSFS_SAS_ADDR_LEN
+ *  * sysfs file content start with '0x'.
+ */
+static int _sysfs_sas_addr_get(const char *blk_name, char *tp_sas_addr);
+
+static int _ses_ctrl(const char *disk_path, lsm_error **lsm_err,
+                     int action, int action_type);
+
 /*
  * Retrieve the content of /sys/block/sda/device/vpd_pg83 file.
  * No argument checker here, assume all non-NULL and vpd_data is
@@ -730,6 +749,113 @@ int lsm_local_disk_link_type_get(const char *disk_path,
         if (link_type != NULL)
             *link_type = LSM_DISK_LINK_TYPE_UNKNOWN;
     }
+
+    return rc;
+}
+
+int lsm_local_disk_ident_led_on(const char *disk_path, lsm_error **lsm_err)
+{
+    return _ses_ctrl(disk_path, lsm_err, _SES_DEV_CTRL_RQST_IDENT,
+                     _SES_CTRL_SET);
+}
+
+int lsm_local_disk_ident_led_off(const char *disk_path, lsm_error **lsm_err)
+{
+    return _ses_ctrl(disk_path, lsm_err, _SES_DEV_CTRL_RQST_IDENT,
+                     _SES_CTRL_CLEAR);
+}
+
+int lsm_local_disk_fault_led_on(const char *disk_path, lsm_error **lsm_err)
+{
+    return _ses_ctrl(disk_path, lsm_err, _SES_DEV_CTRL_RQST_FAULT,
+                     _SES_CTRL_SET);
+}
+
+int lsm_local_disk_fault_led_off(const char *disk_path, lsm_error **lsm_err)
+{
+    return _ses_ctrl(disk_path, lsm_err, _SES_DEV_CTRL_RQST_FAULT,
+                     _SES_CTRL_CLEAR);
+}
+
+static int _ses_ctrl(const char *disk_path, lsm_error **lsm_err,
+                     int action, int action_type)
+{
+    int rc = LSM_ERR_OK;
+    char err_msg[_LSM_ERR_MSG_LEN];
+    char tp_sas_addr[_SG_T10_SPL_SAS_ADDR_LEN];
+    int fd = -1;
+
+    _lsm_err_msg_clear(err_msg);
+
+    _good(_check_null_ptr(err_msg, 2 /* arg_count */, disk_path, lsm_err),
+          rc, out);
+
+    _good(_sg_io_open_ro(err_msg, disk_path, &fd), rc, out);
+
+    /* TODO(Gris Ge): Add support of NVMe enclosure */
+
+    /* Try use sysfs first to get SAS address. */
+    if ((strlen(disk_path) > strlen("/dev/")) &&
+        (strncmp(disk_path, "/dev/", strlen("/dev/")) == 0) &&
+        (strncmp(disk_path + strlen("/dev/"), "sd", strlen("sd")) == 0))
+        _sysfs_sas_addr_get(disk_path + strlen("/dev/"), tp_sas_addr);
+
+    if (tp_sas_addr[0] == '\0')
+        _good(_sg_tp_sas_addr_of_disk(err_msg, fd, tp_sas_addr), rc, out);
+
+    /* SEND DIAGNOSTIC
+     * SES-3, 6.1.3 Enclosure Control diagnostic page
+     * SES-3, Table 78 — Device Slot control element
+     */
+    _good(_ses_dev_slot_ctrl(err_msg, tp_sas_addr, action, action_type),
+          rc, out);
+
+ out:
+    if (rc != LSM_ERR_OK) {
+        if (lsm_err != NULL)
+            *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
+    }
+    return rc;
+}
+
+static int _sysfs_sas_addr_get(const char *blk_name, char *tp_sas_addr)
+{
+    int rc = -1;
+    char sysfs_sas_addr[_SYSFS_SAS_ADDR_LEN];
+    char *sysfs_sas_path = NULL;
+    ssize_t read_size = -1;
+
+    assert(blk_name != NULL);
+    assert(tp_sas_addr != NULL);
+
+    memset(sysfs_sas_addr, 0, _SYSFS_SAS_ADDR_LEN);
+    memset(tp_sas_addr, 0, _SG_T10_SPL_SAS_ADDR_LEN);
+
+    sysfs_sas_path = (char *)
+        malloc(sizeof(char) * (strlen("/sys/block//device/sas_address") +
+                               strlen(blk_name) + 1 /* trailing \0 */));
+    if (sysfs_sas_path == NULL)
+        goto out;
+
+    sprintf(sysfs_sas_path, "/sys/block/%s/device/sas_address", blk_name);
+
+    if (! _file_exists(sysfs_sas_path) ||
+        (_read_file(sysfs_sas_path, (uint8_t *) sysfs_sas_addr, &read_size,
+                    _SYSFS_SAS_ADDR_LEN) != 0) ||
+        (read_size != _SYSFS_SAS_ADDR_LEN) ||
+        (strlen(sysfs_sas_addr) != _SYSFS_SAS_ADDR_LEN) ||
+        (strncmp(sysfs_sas_addr, "0x", strlen("0x")) != 0))
+        goto out;
+
+    memcpy(tp_sas_addr, sysfs_sas_addr + strlen("0x"),
+           _SG_T10_SPL_SAS_ADDR_LEN);
+    tp_sas_addr[_SG_T10_SPL_SAS_ADDR_LEN - 1] = '\0';
+    /* ^ Replace trailing \n as \0 */
+
+    rc = 0;
+
+ out:
+    free(sysfs_sas_path);
 
     return rc;
 }

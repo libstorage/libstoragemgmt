@@ -67,6 +67,13 @@
 /* SPC-5 Table 444 - PROTOCOL IDENTIFIER field values */
 #define _SG_T10_SPC_PROTOCOL_ID_RESERVED           0xc
 
+#define _SG_T10_SPC_RECV_DIAG_MAX_LEN               0xffff
+/* ^ SPC-5 rev 7, Table 219 - RECEIVE DIAGNOSTIC RESULTS command */
+#define _SG_T10_SPC_SEND_DIAG_MAX_LEN               0xffff
+/* ^ SPC-5 rev 7, Table 269 - SEND DIAGNOSTIC command */
+#define _SG_T10_SPC_PROTOCOL_ID_SAS                 6
+/* ^ SPC-5 rev 7, Table 444 - PROTOCOL IDENTIFIER field values */
+
 #pragma pack(push, 1)
 
 /*
@@ -139,5 +146,44 @@ LSM_DLL_LOCAL int _sg_parse_vpd_83(char *err_msg, uint8_t *vpd_data,
  */
 LSM_DLL_LOCAL bool _sg_is_vpd_page_supported(uint8_t *vpd_0_data,
                                              uint8_t page_code);
+
+/*
+ * Preconditions:
+ *  err_msg != NULL
+ *  disk_path != NULL
+ *  fd != NULL
+ */
+LSM_DLL_LOCAL int _sg_io_open_rw(char *err_msg, const char *disk_path, int *fd);
+
+
+/*
+ * Preconditions:
+ *  err_msg != NULL
+ *  fd >= 0
+ *  tp_sas_addr != NULL
+ *  tp_sas_addr is char[_SG_T10_SPL_SAS_ADDR_LEN]
+ */
+LSM_DLL_LOCAL int _sg_tp_sas_addr_of_disk(char *err_msg, int fd,
+                                          char *tp_sas_addr);
+
+/*
+ * Preconditions:
+ *  err_msg != NULL
+ *  fd >= 0
+ *  data != NULL
+ *  data is uint8_t[_SG_T10_SPC_RECV_DIAG_MAX_LEN]
+ */
+LSM_DLL_LOCAL int _sg_io_recv_diag(char *err_msg, int fd, uint8_t page_code,
+                                   uint8_t *data);
+
+/*
+ * Preconditions:
+ *  err_msg != NULL
+ *  fd >= 0
+ *  data != NULL
+ *  data is uint8_t[_SG_T10_SPC_SEND_DIAG_MAX_LEN]
+ */
+LSM_DLL_LOCAL int _sg_io_send_diag(char *err_msg, int fd, uint8_t *data,
+                                   uint16_t data_len);
 
 #endif  /* End of _LIBSG_H_ */

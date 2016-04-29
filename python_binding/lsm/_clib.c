@@ -77,6 +77,51 @@ static PyObject *func_name(PyObject *self, PyObject *args, PyObject *kwargs) \
     return rc_list; \
 }
 
+#define _wrapper_no_output(func_name, c_func_name, arg_type, arg) \
+static PyObject *func_name(PyObject *self, PyObject *args, PyObject *kwargs); \
+static PyObject *func_name(PyObject *self, PyObject *args, PyObject *kwargs) \
+{ \
+    static const char *kwlist[] = {# arg, NULL}; \
+    arg_type arg = NULL; \
+    lsm_error *lsm_err = NULL; \
+    int rc = LSM_ERR_OK; \
+    PyObject *rc_list = NULL; \
+    PyObject *rc_obj = Py_None; \
+    PyObject *err_msg_obj = NULL; \
+    PyObject *err_no_obj = NULL; \
+    bool flag_no_mem = false; \
+    _alloc_check(rc_obj, flag_no_mem, out); \
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", (char **) kwlist, \
+                                     &disk_path)) \
+        return NULL; \
+    rc = c_func_name(arg, &lsm_err); \
+    err_no_obj = PyInt_FromLong(rc); \
+    _alloc_check(err_no_obj, flag_no_mem, out); \
+    rc_list = PyList_New(3 /* rc_obj, errno, err_str*/); \
+    _alloc_check(rc_list, flag_no_mem, out); \
+    if (rc != LSM_ERR_OK) { \
+        err_msg_obj = PyString_FromString(lsm_error_message_get(lsm_err)); \
+        lsm_error_free(lsm_err); \
+        _alloc_check(err_msg_obj, flag_no_mem, out); \
+        goto out; \
+    } else { \
+        err_msg_obj = PyString_FromString(""); \
+        _alloc_check(err_msg_obj, flag_no_mem, out); \
+    } \
+ out: \
+    if (flag_no_mem == true) { \
+        Py_XDECREF(rc_list); \
+        Py_XDECREF(err_no_obj); \
+        Py_XDECREF(err_msg_obj); \
+        Py_XDECREF(rc_obj); \
+        return PyErr_NoMemory(); \
+    } \
+    PyList_SET_ITEM(rc_list, 0, rc_obj); \
+    PyList_SET_ITEM(rc_list, 1, err_no_obj); \
+    PyList_SET_ITEM(rc_list, 2, err_msg_obj); \
+    return rc_list; \
+}
+
 static const char local_disk_vpd83_search_docstring[] =
     "INTERNAL USE ONLY!\n"
     "\n"
@@ -168,6 +213,70 @@ static const char local_disk_link_type_get_docstring[] =
     "            Error message, empty if no error.\n";
 
 
+static const char local_disk_ident_led_on_docstring[] =
+    "INTERNAL USE ONLY!\n"
+    "\n"
+    "Usage:\n"
+    "    Enable the identification LED for given disk.\n"
+    "Parameters:\n"
+    "    disk_path (string)\n"
+    "        The disk path, example '/dev/sdb'. Empty string is failure\n"
+    "Returns:\n"
+    "    [None, rc, err_msg]\n"
+    "        None \n"
+    "        rc (integer)\n"
+    "            Error code, lsm.ErrorNumber.OK if no error\n"
+    "        err_msg (string)\n"
+    "            Error message, empty if no error.\n";
+
+static const char local_disk_ident_led_off_docstring[] =
+    "INTERNAL USE ONLY!\n"
+    "\n"
+    "Usage:\n"
+    "    Clear the identification LED for given disk.\n"
+    "Parameters:\n"
+    "    disk_path (string)\n"
+    "        The disk path, example '/dev/sdb'. Empty string is failure\n"
+    "Returns:\n"
+    "    [None, rc, err_msg]\n"
+    "        None \n"
+    "        rc (integer)\n"
+    "            Error code, lsm.ErrorNumber.OK if no error\n"
+    "        err_msg (string)\n"
+    "            Error message, empty if no error.\n";
+
+static const char local_disk_fault_led_on_docstring[] =
+    "INTERNAL USE ONLY!\n"
+    "\n"
+    "Usage:\n"
+    "    Enable the fault LED for given disk.\n"
+    "Parameters:\n"
+    "    disk_path (string)\n"
+    "        The disk path, example '/dev/sdb'. Empty string is failure\n"
+    "Returns:\n"
+    "    [None, rc, err_msg]\n"
+    "        None \n"
+    "        rc (integer)\n"
+    "            Error code, lsm.ErrorNumber.OK if no error\n"
+    "        err_msg (string)\n"
+    "            Error message, empty if no error.\n";
+
+static const char local_disk_fault_led_off_docstring[] =
+    "INTERNAL USE ONLY!\n"
+    "\n"
+    "Usage:\n"
+    "    Clear the fault LED for given disk.\n"
+    "Parameters:\n"
+    "    disk_path (string)\n"
+    "        The disk path, example '/dev/sdb'. Empty string is failure\n"
+    "Returns:\n"
+    "    [None, rc, err_msg]\n"
+    "        None \n"
+    "        rc (integer)\n"
+    "            Error code, lsm.ErrorNumber.OK if no error\n"
+    "        err_msg (string)\n"
+    "            Error message, empty if no error.\n";
+
 static PyObject *local_disk_vpd83_search(PyObject *self, PyObject *args,
                                      PyObject *kwargs);
 static PyObject *local_disk_vpd83_get(PyObject *self, PyObject *args,
@@ -181,6 +290,15 @@ static PyObject *local_disk_link_type_get(PyObject *self, PyObject *args,
 static PyObject *_lsm_string_list_to_pylist(lsm_string_list *str_list);
 static PyObject *_c_str_to_py_str(const char *str);
 
+_wrapper_no_output(local_disk_ident_led_on, lsm_local_disk_ident_led_on,
+                   const char *, disk_path);
+_wrapper_no_output(local_disk_ident_led_off, lsm_local_disk_ident_led_off,
+                   const char *, disk_path);
+_wrapper_no_output(local_disk_fault_led_on, lsm_local_disk_fault_led_on,
+                   const char *, disk_path);
+_wrapper_no_output(local_disk_fault_led_off, lsm_local_disk_fault_led_off,
+                   const char *, disk_path);
+
 static PyMethodDef _methods[] = {
     {"_local_disk_vpd83_search",  (PyCFunction) local_disk_vpd83_search,
      METH_VARARGS | METH_KEYWORDS, local_disk_vpd83_search_docstring},
@@ -192,6 +310,14 @@ static PyMethodDef _methods[] = {
      METH_NOARGS, local_disk_list_docstring},
     {"_local_disk_link_type_get",  (PyCFunction) local_disk_link_type_get,
      METH_VARARGS | METH_KEYWORDS, local_disk_link_type_get_docstring},
+    {"_local_disk_ident_led_on",  (PyCFunction) local_disk_ident_led_on,
+     METH_VARARGS | METH_KEYWORDS, local_disk_ident_led_on_docstring},
+    {"_local_disk_ident_led_off",  (PyCFunction) local_disk_ident_led_off,
+     METH_VARARGS | METH_KEYWORDS, local_disk_ident_led_off_docstring},
+    {"_local_disk_fault_led_on",  (PyCFunction) local_disk_fault_led_on,
+     METH_VARARGS | METH_KEYWORDS, local_disk_fault_led_on_docstring},
+    {"_local_disk_fault_led_off",  (PyCFunction) local_disk_fault_led_off,
+     METH_VARARGS | METH_KEYWORDS, local_disk_fault_led_off_docstring},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
