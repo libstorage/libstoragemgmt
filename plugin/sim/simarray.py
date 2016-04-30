@@ -122,7 +122,7 @@ class PoolRAID(object):
 
 
 class BackStore(object):
-    VERSION = "3.8"
+    VERSION = "3.9"
     VERSION_SIGNATURE = 'LSM_SIMULATOR_DATA_%s_%s' % (VERSION, md5(VERSION))
     JOB_DEFAULT_DURATION = 1
     JOB_DATA_TYPE_VOL = 1
@@ -151,7 +151,7 @@ class BackStore(object):
 
     DISK_KEY_LIST = [
         'id', 'name', 'total_space', 'disk_type', 'status', 'vpd83',
-        'disk_location', 'owner_pool_id', 'role', 'rpm', 'link_type']
+        'location', 'owner_pool_id', 'role', 'rpm', 'link_type']
 
     VOL_KEY_LIST = [
         'id', 'vpd83', 'name', 'total_space', 'consumed_size',
@@ -247,7 +247,7 @@ class BackStore(object):
             "disk_type INTEGER NOT NULL, "
             "status INTEGER NOT NULL, "
             "disk_prefix TEXT NOT NULL, "
-            "disk_location TEXT NOT NULL, "
+            "location TEXT NOT NULL, "
             "owner_pool_id INTEGER, "
             # ^ Indicate this disk is used to assemble a pool
             "role TEXT,"
@@ -474,7 +474,7 @@ class BackStore(object):
                     vpd83,
                     rpm,
                     link_type,
-                    disk_location,
+                    location,
                     owner_pool_id
                 FROM
                     disks
@@ -701,7 +701,7 @@ class BackStore(object):
                         'vpd83': _random_vpd(),
                         'rpm': 7200,
                         'link_type': Disk.LINK_TYPE_ATA,
-                        'disk_location': "Port: 1I Box: 1 Bay: 1",
+                        'location': "Port: 1I Box: 1 Bay: 1",
                     })
                 pool_1_disks.append(self.lastrowid)
 
@@ -718,7 +718,7 @@ class BackStore(object):
                         'vpd83': _random_vpd(),
                         'rpm': 15000,
                         'link_type': Disk.LINK_TYPE_SAS,
-                        'disk_location': "Port: 1I Box: 1 Bay: 2",
+                        'location': "Port: 1I Box: 1 Bay: 2",
                     })
                 if len(test_pool_disks) < 2:
                     test_pool_disks.append(self.lastrowid)
@@ -736,7 +736,7 @@ class BackStore(object):
                         'vpd83': _random_vpd(),
                         'rpm': Disk.RPM_NON_ROTATING_MEDIUM,
                         'link_type': Disk.LINK_TYPE_ATA,
-                        'disk_location': "Port: 1I Box: 1 Bay: 3",
+                        'location': "Port: 1I Box: 1 Bay: 3",
                     })
                 if len(ssd_pool_disks) < 2:
                     ssd_pool_disks.append(self.lastrowid)
@@ -753,7 +753,7 @@ class BackStore(object):
                         'vpd83': _random_vpd(),
                         'rpm': Disk.RPM_NON_ROTATING_MEDIUM,
                         'link_type': Disk.LINK_TYPE_SAS,
-                        'disk_location': "Port: 1I Box: 1 Bay: 4",
+                        'location': "Port: 1I Box: 1 Bay: 4",
                     })
 
             pool_1_id = self.sim_pool_create_from_disk(
@@ -1878,7 +1878,7 @@ class SimArray(object):
             sim_disk['disk_type'], BackStore.BLK_SIZE,
             int(sim_disk['total_space'] / BackStore.BLK_SIZE),
             disk_status, BackStore.SYS_ID, _vpd83=sim_disk['vpd83'],
-            _location=sim_disk['disk_location'],
+            _location=sim_disk['location'],
             _rpm=sim_disk['rpm'], _link_type=sim_disk['link_type'])
 
     @_handle_errors

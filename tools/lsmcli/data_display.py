@@ -590,9 +590,9 @@ class DisplayData(object):
     DISK_HEADER['sd_paths'] = 'Disk Paths'    # This is appended by cmdline.py
     DISK_HEADER['rpm'] = 'Revolutions Per Minute'
     DISK_HEADER['link_type'] = 'Link Type'
-    DISK_HEADER['disk_location'] = 'Location'
+    DISK_HEADER['location'] = 'Location'
 
-    DISK_COLUMN_SKIP_KEYS = ['block_size', 'num_of_blocks', 'disk_location']
+    DISK_COLUMN_SKIP_KEYS = ['block_size', 'num_of_blocks', 'location']
 
     DISK_VALUE_CONV_ENUM = {
         'status': disk_status_to_str,
