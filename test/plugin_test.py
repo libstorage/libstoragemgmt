@@ -342,6 +342,20 @@ class TestPlugin(unittest.TestCase):
                 if supported(cap, [Cap.VOLUME_DELETE]):
                     for v in self.c.volumes():
                         if 'lsm_' in v.name and s.id == v.system_id:
+                            # Check to see if this volume is participating in an
+                            # access group, if it is we will remove the volume
+                            # from it, but we will not delete the access group
+                            # as we likely didn't create it
+                            access_groups = self.c.\
+                                access_groups_granted_to_volume(v)
+                            for ag in access_groups:
+                                try:
+                                    self.c.volume_unmask(ag, v)
+                                except LsmError as le:
+                                    print_stderr(
+                                        "[WARNING] error when unmasking "
+                                        "volume %s\n" % str(le))
+                                    pass
                             try:
                                 self.c.volume_delete(v)
                             except LsmError as le:
@@ -827,9 +841,9 @@ class TestPlugin(unittest.TestCase):
             match = [x for x in vol_masked if x.id == vol.id]
 
             if masked:
-                self.assertTrue(len(match) == 1)
+                self.assertTrue(len(match) == 1, "len = %d" % len(match))
             else:
-                self.assertTrue(len(match) == 0)
+                self.assertTrue(len(match) == 0, "len = %d" % len(match))
 
         if supported(cap,
                      [Cap.
@@ -840,9 +854,9 @@ class TestPlugin(unittest.TestCase):
             match = [x for x in ag_masked if x.id == ag.id]
 
             if masked:
-                self.assertTrue(len(match) == 1)
+                self.assertTrue(len(match) == 1, "len = %d" % len(match))
             else:
-                self.assertTrue(len(match) == 0)
+                self.assertTrue(len(match) == 0, "len = %d" % len(match))
 
     def test_mask_unmask(self):
         for s in self.systems:
@@ -1536,7 +1550,6 @@ class TestPlugin(unittest.TestCase):
         except lsm.LsmError as le:
             if le.code != ErrorNumber.NOT_FOUND_VOLUME:
                 raise
-
 
     def test_volume_ident_led_on(self):
         for s in self.systems:

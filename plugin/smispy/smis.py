@@ -1,4 +1,4 @@
-# Copyright (C) 2011-2014 Red Hat, Inc.
+# Copyright (C) 2011-2016 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -18,8 +18,6 @@
 from string import split
 import time
 import copy
-import os
-import re
 
 import pywbem
 from pywbem import CIMError
@@ -40,7 +38,7 @@ from utils import (merge_list, handle_cim_errors, hex_string_format)
 
 from smis_common import SmisCommon
 
-## Variable Naming scheme:
+# Variable Naming scheme:
 #   cim_xxx         CIMInstance
 #   cim_xxx_path    CIMInstanceName
 #   cim_sys         CIM_ComputerSystem  (root or leaf)
@@ -67,7 +65,7 @@ from smis_common import SmisCommon
 #   pool            Object of LSM Pool
 #   vol             Object of LSM Volume
 
-## Method Naming scheme:
+# Method Naming scheme:
 #   _cim_xxx()
 #       Return CIMInstance without any Associations() call.
 #   _cim_xxx_of(cim_yyy)
@@ -191,7 +189,8 @@ class Smis(IStorageAreaNetwork):
         (status (enum), percent_complete(integer), volume (None or Volume))
         """
         completed_item = None
-
+        status = JobStatus.ERROR
+        percent_complete = 0
         error_handler = None
 
         (ignore, retrieve_data, method_data) = SmisCommon.parse_job_id(job_id)
@@ -425,7 +424,7 @@ class Smis(IStorageAreaNetwork):
             method_data=volume_name)
 
     def _detach_netapp_e(self, vol, sync):
-        #Get the Configuration service for the system we are interested in.
+        # Get the Configuration service for the system we are interested in.
         cim_scs = self._c.cim_scs_of_sys_id(vol.system_id)
 
         in_params = {'Operation': pywbem.Uint16(2),
@@ -444,6 +443,15 @@ class Smis(IStorageAreaNetwork):
             in_params = {'Operation': pywbem.Uint16(8),
                          'Synchronization': sync.path}
 
+            self._c.invoke_method_wait(
+                'ModifyReplicaSynchronization', cim_rs.path, in_params)
+
+    def _return_to_storage_pool(self, vol, sync):
+        cim_rs = self._c.cim_rs_of_sys_id(vol.system_id, raise_error=False)
+
+        if cim_rs:
+            in_params = {'Operation': pywbem.Uint16(19),
+                         'Synchronization': sync.path}
             self._c.invoke_method_wait(
                 'ModifyReplicaSynchronization', cim_rs.path, in_params)
 
@@ -490,6 +498,8 @@ class Smis(IStorageAreaNetwork):
         Check a volume to see if it has any associations with other
         volumes and deal with them.
         """
+        rc = True
+
         if self._c.is_netappe():
             return self._deal_volume_associations_netappe(vol, cim_vol_path)
 
@@ -534,20 +544,37 @@ class Smis(IStorageAreaNetwork):
                             if Smis._cim_name_match(item, cim_vol_path):
                                 self._detach(vol, s)
 
+                    elif s['SyncState'] == dmtf.ST_SYNC_STATE_SYNCHRONIZED \
+                            and s['CopyType'] == \
+                            dmtf.ST_CONF_CAP_COPY_TYPE_UNSYNC_ASSOC:
+
+                        if 'SyncedElement' in s:
+                            item = s['SyncedElement']
+                            if Smis._cim_name_match(item, cim_vol_path):
+                                self._return_to_storage_pool(vol, s)
+                                rc = False
+
+                        if 'SystemElement' in s:
+                            item = s['SystemElement']
+                            if Smis._cim_name_match(item, cim_vol_path):
+                                self._return_to_storage_pool(vol, s)
+                                rc = False
+        return rc
+
     def _volume_delete_netapp_e(self, volume, flags=0):
         cim_scs = self._c.cim_scs_of_sys_id(volume.system_id)
         cim_vol_path = smis_vol.lsm_vol_to_cim_vol_path(self._c, volume)
 
-        #If we actually have an association to delete, the volume will be
-        #deleted with the association, no need to call ReturnToStoragePool
+        # If we actually have an association to delete, the volume will be
+        # deleted with the association, no need to call ReturnToStoragePool
         if not self._deal_volume_associations(volume, cim_vol_path):
             in_params = {'TheElement': cim_vol_path}
 
-            #Delete returns None or Job number
+            # Delete returns None or Job number
             return self._c.invoke_method(
                 'ReturnToStoragePool', cim_scs.path, in_params)[0]
 
-        #Loop to check to see if volume is actually gone yet!
+        # Loop to check to see if volume is actually gone yet!
         try:
             cim_vol = self._c.GetInstance(cim_vol_path, PropertyList=[])
             while cim_vol is not None:
@@ -561,17 +588,32 @@ class Smis(IStorageAreaNetwork):
         """
         Delete a volume
         """
+        # We need to ensure that the volume is not masked before we try to
+        # delete it
+        ag = []
+        try:
+            ag = self.access_groups_granted_to_volume(volume)
+        except LsmError:
+            # We will ignore errors here and try the delete anyway
+            pass
+
+        if len(ag):
+            raise LsmError(ErrorNumber.IS_MASKED,
+                           "Volume is masked to access group")
+
         cim_scs = self._c.cim_scs_of_sys_id(volume.system_id)
 
         cim_vol_path = smis_vol.lsm_vol_to_cim_vol_path(self._c, volume)
 
-        self._deal_volume_associations(volume, cim_vol_path)
+        # The volume may get deleted when we deal with associations
+        need_return = self._deal_volume_associations(volume, cim_vol_path)
 
         in_params = {'TheElement': cim_vol_path}
 
         # Delete returns None or Job number
-        return self._c.invoke_method(
-            'ReturnToStoragePool', cim_scs.path, in_params)[0]
+        if need_return:
+            return self._c.invoke_method(
+                'ReturnToStoragePool', cim_scs.path, in_params)[0]
 
     @handle_cim_errors
     def volume_resize(self, volume, new_size_bytes, flags=0):
@@ -674,7 +716,7 @@ class Smis(IStorageAreaNetwork):
 
             in_params = {'ElementName': name,
                          'SyncType': sync,
-                         #'Mode': mode,
+                         # 'Mode': mode,
                          'SourceElement': src_cim_vol_path,
                          'WaitForCopyState': dmtf.COPY_STATE_SYNC}
 
@@ -1733,9 +1775,6 @@ class Smis(IStorageAreaNetwork):
         """
         Return a list of CIMInstanceName of leaf CIM_ComputerSystem
         """
-        max_loop_count = 10   # There is no storage array need 10 layer of
-                              # Computer
-        loop_counter = max_loop_count
         rc = []
         leaf_cim_syss_path = []
         try:

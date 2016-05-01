@@ -1,4 +1,4 @@
-## Copyright (C) 2014 Red Hat, Inc.
+# Copyright (C) 2014-2016 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -56,7 +56,7 @@ def _init_id_and_type_of(cim_inits):
         init_type = init_types[0]
     elif len(init_type_dict) == 2:
         init_type = AccessGroup.INIT_TYPE_ISCSI_WWPN_MIXED
-    return (init_ids, init_type)
+    return init_ids, init_type
 
 
 def cim_spc_pros():

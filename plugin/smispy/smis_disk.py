@@ -1,4 +1,4 @@
-## Copyright (C) 2014 Red Hat, Inc.
+# Copyright (C) 2014-2016 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -17,7 +17,6 @@
 from lsm import Disk, md5, LsmError, ErrorNumber
 import dmtf
 from utils import merge_list
-from pywbem import CIM_ERR_NOT_FOUND, CIM_ERR_INVALID_PARAMETER
 from lsm.plugin.smispy.smis_common import SmisCommon
 
 

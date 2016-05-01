@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 
-# Copyright (C) 2011-2013 Red Hat, Inc.
+# Copyright (C) 2011-2016 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -27,9 +27,9 @@ try:
     if __name__ == '__main__':
         PluginRunner(Smis, sys.argv).run()
 except Exception:
-    #This should be quite rare, but when it does happen this is pretty
-    #key in understanding what happened, especially when it happens when
-    #running from the daemon.
+    # This should be quite rare, but when it does happen this is pretty
+    # key in understanding what happened, especially when it happens when
+    # running from the daemon.
     msg = str(traceback.format_exc())
     syslog.syslog(syslog.LOG_ERR, msg)
     sys.stderr.write(msg)

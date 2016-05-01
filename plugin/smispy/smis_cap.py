@@ -1,4 +1,4 @@
-# Copyright (C) 2014 Red Hat, Inc.
+# Copyright (C) 2014-2016 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -338,13 +338,12 @@ def get(smis_common, cim_sys, system):
     if smis_common.is_netappe():
         _rs_supported_capabilities(smis_common, system.id, cap)
 
-        #TODO We need to investigate why our interrogation code doesn't
-        #work.
-        #The array is telling us one thing, but when we try to use it, it
-        #doesn't work
+        # TODO We need to investigate why our interrogation code doesn't
+        # work. The array is telling us one thing, but when we try to use it,
+        # it doesn't work
         return cap
 
-     # 'Block Services Package' profile
+    # 'Block Services Package' profile
     _bsp_cap_set(smis_common, system.id, cap)
 
     # 'Disk Drive Lite' profile
@@ -355,7 +354,7 @@ def get(smis_common, cim_sys, system):
     if cim_sys.path.classname == 'Clar_StorageSystem':
         mt = MASK_TYPE_MASK
 
-    if mask_type == MASK_TYPE_GROUP:
+    if mt == MASK_TYPE_GROUP:
         _group_mask_map_cap_set(smis_common, cim_sys.path, cap)
     else:
         _mask_map_cap_set(smis_common, cim_sys.path, cap)
