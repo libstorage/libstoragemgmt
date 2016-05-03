@@ -495,8 +495,8 @@ class System(IData):
     MODE_HARDWARE_RAID = 1
     MODE_HBA = 2
 
-    CACHE_PCT_NO_SUPPORT = -2
-    CACHE_PCT_UNKNOWN = -1
+    READ_CACHE_PCT_NO_SUPPORT = -2
+    READ_CACHE_PCT_UNKNOWN = -1
 
     def __init__(self, _id, _name, _status, _status_info, _plugin_data=None,
                  _fw_version='', _mode=None, _read_cache_pct=None):
@@ -507,7 +507,7 @@ class System(IData):
         self._plugin_data = _plugin_data
         self._fw_version = _fw_version
         if _read_cache_pct is None:
-            self._read_cache_pct = System.CACHE_PCT_NO_SUPPORT
+            self._read_cache_pct = System.READ_CACHE_PCT_NO_SUPPORT
         else:
             self._read_cache_pct = _read_cache_pct
         if _mode is None:
@@ -557,7 +557,7 @@ class System(IData):
                 The read cache percentage. The write cache percentage will
                 then be 100 - read_cache_pct
         """
-        if self._read_cache_pct == System.CACHE_PCT_NO_SUPPORT:
+        if self._read_cache_pct == System.READ_CACHE_PCT_NO_SUPPORT:
             raise LsmError(ErrorNumber.NO_SUPPORT,
                            "System.read_cache_pct is not supported by this "
                            "plugin yet")

@@ -2133,30 +2133,27 @@ END_TEST
 
 START_TEST(test_read_cache_pct)
 {
-    int read_cache_pct = LSM_SYSTEM_CACHE_PCT_NO_SUPPORT;
+    int read_cache_pct = LSM_SYSTEM_READ_CACHE_PCT_NO_SUPPORT;
     int rc = 0;
     lsm_system **sys = NULL;
     uint32_t sys_count = 0;
 
     G(rc, lsm_system_list, c, &sys, &sys_count, LSM_CLIENT_FLAG_RSVD);
-    fail_unless( sys_count >= 1, "count = %d", sys_count);
+    fail_unless(sys_count >= 1, "count = %d", sys_count);
 
-    if(sys_count > 0) {
+    read_cache_pct = lsm_system_read_cache_pct_get(sys[0]);
 
-        G(rc, lsm_system_read_cache_pct_get, sys[0], &read_cache_pct);
+    fail_unless(read_cache_pct >= 0,
+                "Read cache should bigger that 0, but got %d", read_cache_pct);
 
-        if( LSM_ERR_OK == rc ) {
-            printf("Read cache pct: (%d)\n", read_cache_pct);
-        }
+    read_cache_pct = lsm_system_read_cache_pct_get(NULL);
+    fail_unless(LSM_SYSTEM_READ_CACHE_PCT_UNKNOWN == read_cache_pct,
+                "When input system pointer is NULL, "
+                "lsm_system_read_cache_pct_get() should return "
+                "LSM_SYSTEM_READ_CACHE_PCT_UNKNOWN, but got %d",
+                read_cache_pct);
 
-        rc = lsm_system_read_cache_pct_get(sys[0], NULL);
-        fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
-    }
-
-    rc = lsm_system_read_cache_pct_get(NULL, &read_cache_pct);
-    fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
     lsm_system_record_array_free(sys, sys_count);
-
 }
 END_TEST
 

@@ -380,9 +380,6 @@ typedef enum {
     LSM_SYSTEM_MODE_HBA = 2,
 } lsm_system_mode_type;
 
-#define LSM_SYSTEM_CACHE_PCT_NO_SUPPORT             -2
-#define LSM_SYSTEM_CACHE_PCT_UNKNOWN                -1
-
 typedef enum {
     LSM_BATTERY_TYPE_UNKNOWN = 1,
     LSM_BATTERY_TYPE_OTHER = 2,
@@ -432,6 +429,9 @@ typedef enum {
 #define LSM_VOLUME_PHYSICAL_DISK_CACHE_ENABLED      2
 #define LSM_VOLUME_PHYSICAL_DISK_CACHE_DISABLED     3
 #define LSM_VOLUME_PHYSICAL_DISK_CACHE_USE_DISK_SETTING     4
+
+#define LSM_SYSTEM_READ_CACHE_PCT_NO_SUPPORT        -2
+#define LSM_SYSTEM_READ_CACHE_PCT_UNKNOWN           -1
 
 #ifdef  __cplusplus
 }
