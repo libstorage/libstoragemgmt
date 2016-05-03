@@ -63,7 +63,7 @@ static int lsm_volume_cache_info(lsm_plugin_ptr c, lsm_volume *volume,
  */
 char *md5(const char *data)
 {
-    int i = 0;
+    size_t i = 0;
     MD5_CTX c;
     unsigned char digest[16];
     static char digest_str[33];
@@ -72,7 +72,7 @@ char *md5(const char *data)
     MD5_Update(&c, data, strlen(data));
     MD5_Final(digest, &c);
 
-    for (i = 0; i < sizeof(digest); ++i) {
+    for (; i < sizeof(digest); ++i) {
         sprintf(&digest_str[i * 2], "%02x", (unsigned int) digest[i]);
     } return digest_str;
 }
