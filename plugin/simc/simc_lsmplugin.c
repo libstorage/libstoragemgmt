@@ -35,7 +35,7 @@
 extern "C" {
 #endif
 
-static char name[] = "Compiled plug-in example";
+static char PLUGIN_NAME[] = "Compiled plug-in example";
 static char version[] = "0.2.0";
 static char sys_id[] = "sim-01";
 static int read_cache_pct = 20;
@@ -2521,7 +2521,7 @@ static int lsm_volume_cache_info(lsm_plugin_ptr c, lsm_volume *volume,
 
 int main(int argc, char *argv[])
 {
-    return lsm_plugin_init_v1(argc, argv, load, unload, name, version);
+    return lsm_plugin_init_v1(argc, argv, load, unload, PLUGIN_NAME, version);
 }
 
 
