@@ -365,6 +365,10 @@ static int _ses_sg_paths_get(char *err_msg, char ***sg_paths,
     *sg_paths = (char **) malloc(sizeof(char *) * (*sg_count));
     _alloc_null_check(err_msg, sg_name_list, rc, out);
 
+    /* Initialize *sg_paths */
+    for (i = 0; i < *sg_count; ++i)
+        (*sg_paths)[i] = NULL;
+
     _lsm_string_list_foreach(sg_name_list, i, sg_name) {
         (*sg_paths)[i] = (char *)
             malloc(sizeof(char) * (strlen(sg_name) + strlen("/dev/") +
