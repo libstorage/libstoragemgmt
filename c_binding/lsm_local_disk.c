@@ -261,7 +261,7 @@ static int _udev_vpd83_of_sd_name(char *err_msg, const char *sd_name,
     if (strncmp(wwn, "0x", strlen("0x")) == 0)
         wwn += strlen("0x");
 
-    snprintf(vpd83, _LSM_MAX_VPD83_ID_LEN, wwn);
+    snprintf(vpd83, _LSM_MAX_VPD83_ID_LEN, "%s", wwn);
 
  out:
     if (udev != NULL)
