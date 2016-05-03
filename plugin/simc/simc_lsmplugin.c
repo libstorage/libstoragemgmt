@@ -2270,7 +2270,7 @@ void free_allocated_volume(void *v)
 
 static void _unload(struct plugin_data *pd)
 {
-    int i;
+    uint32_t i = 0;
 
     if (pd) {
 
@@ -2309,7 +2309,7 @@ static void _unload(struct plugin_data *pd)
             pd->pools = NULL;
         }
 
-        for (i = 0; i < pd->num_systems; ++i) {
+        for (; i < pd->num_systems; ++i) {
             lsm_system_record_free(pd->system[i]);
             pd->system[i] = NULL;
         }
