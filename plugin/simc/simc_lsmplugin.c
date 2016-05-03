@@ -1162,14 +1162,15 @@ static int _find_dup_init(struct plugin_data *pd, const char *initiator_id)
     GList *all_aags = g_hash_table_get_values(pd->access_groups);
     guint y;
     int rc = 1;
+    uint32_t i = 0;
+
     for (y = 0; y < g_list_length(all_aags); ++y) {
         struct allocated_ag *cur_aag =
             (struct allocated_ag *) g_list_nth_data(all_aags, y);
         if (cur_aag) {
             lsm_string_list *inits =
                 lsm_access_group_initiator_id_get(cur_aag->ag);
-            int i;
-            for (i = 0; i < lsm_string_list_size(inits); ++i) {
+            for (; i < lsm_string_list_size(inits); ++i) {
                 const char *cur_init_id =
                     lsm_string_list_elem_get(inits, i);
                 if (strcmp(initiator_id, cur_init_id) == 0) {
