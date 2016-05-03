@@ -1925,13 +1925,13 @@ lsm_battery *lsm_battery_record_alloc(const char *id, const char *name,
             rc->plugin_data = strdup(plugin_data);
             if (rc->plugin_data == NULL) {
                 lsm_battery_record_free(rc);
-                rc = NULL;
+                return NULL;
             }
         }
 
         if (rc->id == NULL || rc->name == NULL || rc->system_id == NULL) {
             lsm_battery_record_free(rc);
-            rc = NULL;
+            return NULL;
         }
     }
     return rc;
