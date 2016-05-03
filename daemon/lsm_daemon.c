@@ -67,9 +67,9 @@
 int verbose_flag = 0;
 int systemd = 0;
 
-char *socket_dir = SOCKET_DIR;
-char *plugin_dir = PLUGIN_DIR;
-char *conf_dir = LSM_CONF_DIR;
+const char *socket_dir = SOCKET_DIR;
+const char *plugin_dir = PLUGIN_DIR;
+const char *conf_dir = LSM_CONF_DIR;
 
 char plugin_extension[] = "_lsmplugin";
 
@@ -261,7 +261,7 @@ typedef int (*file_op) (void *p, char *full_file_path);
  * @param   call_back   Function to call against file
  * @return
  */
-void process_directory(char *dir, void *p, file_op call_back)
+void process_directory(const char *dir, void *p, file_op call_back)
 {
     int err = 0;
 
@@ -336,7 +336,7 @@ int delete_socket(void *p, char *full_name)
 /**
  * Walk the IPC socket directory and remove the socket files.
  */
-void clean_sockets()
+void clean_sockets(void)
 {
     process_directory(socket_dir, NULL, delete_socket);
 }
@@ -358,7 +358,7 @@ int setup_socket(char *full_name)
 
     char *base_nm = basename(full_name);
     strncpy(name, base_nm,
-            min(abs(strlen(base_nm) - strlen(plugin_extension)),
+            min((size_t) abs(strlen(base_nm) - strlen(plugin_extension)),
                 (sizeof(name) - 1)));
 
     char *socket_file = path_form(socket_dir, name);
@@ -439,7 +439,7 @@ void empty_plugin_list(struct plugin_list *list)
  * @param value         int, output, value of this config key
  */
 
-void parse_conf_bool(char *conf_path, char *key_name, int *value)
+void parse_conf_bool(const char *conf_path, const char *key_name, int *value)
 {
     if (access(conf_path, F_OK) == -1) {
         /* file not exist. */
@@ -655,7 +655,7 @@ void exec_plugin(char *plugin, int client_fd, int require_root)
         /* Child */
         int exec_rc = 0;
         char fd_str[12];
-        char *plugin_argv[7];
+        const char *plugin_argv[7];
         extern char **environ;
         struct ucred cli_user_cred;
         socklen_t cli_user_cred_len = sizeof(cli_user_cred);
@@ -717,16 +717,17 @@ void exec_plugin(char *plugin, int client_fd, int require_root)
             plugin_argv[5] = fd_str;
             plugin_argv[6] = NULL;
 
-            exec_rc = execve("/usr/bin/valgrind", plugin_argv, environ);
+            exec_rc = execve("/usr/bin/valgrind", (char * const*) plugin_argv,
+                             environ);
         } else {
             plugin_argv[0] = basename(p_copy);
             plugin_argv[1] = fd_str;
             plugin_argv[2] = NULL;
-            exec_rc = execve(p_copy, plugin_argv, environ);
+            exec_rc = execve(p_copy, (char * const*) plugin_argv, environ);
         }
 
         if (-1 == exec_rc) {
-            int err = errno;
+            err = errno;
             log_and_exit("Error on exec'ing Plugin %s: %s\n",
                          p_copy, strerror(err));
         }
@@ -882,7 +883,7 @@ int main(int argc, char *argv[])
 
     /* Check lsmd.conf */
     char *lsmd_conf_path = path_form(conf_dir, LSMD_CONF_FILE);
-    parse_conf_bool(lsmd_conf_path, LSM_CONF_ALLOW_ROOT_OPT_NAME,
+    parse_conf_bool(lsmd_conf_path, (char *) LSM_CONF_ALLOW_ROOT_OPT_NAME,
                     &allow_root_plugin);
     free(lsmd_conf_path);
 
