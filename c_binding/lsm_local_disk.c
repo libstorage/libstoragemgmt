@@ -783,6 +783,8 @@ static int _ses_ctrl(const char *disk_path, lsm_error **lsm_err,
 
     _good(_sg_io_open_ro(err_msg, disk_path, &fd), rc, out);
 
+    memset(tp_sas_addr, 0, _SG_T10_SPL_SAS_ADDR_LEN);
+
     /* TODO(Gris Ge): Add support of NVMe enclosure */
 
     /* Try use sysfs first to get SAS address. */
