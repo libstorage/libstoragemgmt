@@ -1178,11 +1178,8 @@ static int _find_dup_init(struct plugin_data *pd, const char *initiator_id)
                     break;
                 }
             }
-            if (rc == 0) {
+            if (rc == 0)
                 break;
-            } else {
-                cur_aag = (struct allocated_ag *) g_list_next(all_aags);
-            }
         }
     }
     g_list_free(all_aags);
