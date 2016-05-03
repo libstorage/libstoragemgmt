@@ -91,15 +91,18 @@ void remove_item(void *array, int remove_index, int num_elems,
     if (array && (num_elems > 0) && (remove_index < num_elems) && elem_size) {
         /*Are we at the end?, clear that which is at the end */
         if (remove_index + 1 == num_elems) {
-            memset(array + (elem_size * (num_elems - 1)), 0, elem_size);
+            memset((uint8_t *)array + (elem_size * (num_elems - 1)), 0,
+                   elem_size);
             return;
         }
 
         /* Calculate the position of the one after that we want to remove */
-        void *src_addr = (void *) (array + ((remove_index + 1) * elem_size));
+        void *src_addr = (void *) ((uint8_t *) array +
+                                   ((remove_index + 1) * elem_size));
 
         /* Calculate the destination */
-        void *dest_addr = (void *) (array + (remove_index * elem_size));
+        void *dest_addr = (void *) ((uint8_t *) array +
+                                    (remove_index * elem_size));
 
         /* Shift the memory */
         memmove(dest_addr, src_addr, ((num_elems - 1) - remove_index) *
