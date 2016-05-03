@@ -1092,6 +1092,9 @@ static struct lsm_ops_v1_3 ops_v1_3 = {
     system_read_cache_pct_update,
     lsm_battery_list,
     lsm_volume_cache_info,
+    NULL, /* lsm_plug_volume_physical_disk_cache_update */
+    NULL, /* lsm_plug_volume_write_cache_policy_update */
+    NULL, /* lsm_plug_volume_read_cache_policy_update */
 };
 
 static int volume_enable_disable(lsm_plugin_ptr c, lsm_volume * v,
