@@ -2081,24 +2081,17 @@ START_TEST(test_system_fw_version)
     uint32_t sys_count = 0;
 
     G(rc, lsm_system_list, c, &sys, &sys_count, LSM_CLIENT_FLAG_RSVD);
-    fail_unless( sys_count >= 1, "count = %d", sys_count);
+    fail_unless(sys_count >= 1, "count = %d", sys_count);
 
-    if(sys_count > 0) {
+    fw_ver = lsm_system_fw_version_get(sys[0]);
+    fail_unless(fw_ver != NULL, "Got unexpected NULL return from "
+                "lsm_system_fw_version_get()");
 
-        G(rc, lsm_system_fw_version_get, sys[0], &fw_ver);
+    fw_ver = lsm_system_fw_version_get(NULL);
+    fail_unless(fw_ver == NULL, "Got unexpected non-NULL return from "
+                "lsm_system_fw_version_get(NULL)");
 
-        if( LSM_ERR_OK == rc ) {
-            printf("Firmware version: (%s)\n", fw_ver);
-        }
-
-        rc = lsm_system_fw_version_get(sys[0], NULL);
-        fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
-    }
-
-    rc = lsm_system_fw_version_get(NULL, &fw_ver);
-    fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
     lsm_system_record_array_free(sys, sys_count);
-
 }
 END_TEST
 

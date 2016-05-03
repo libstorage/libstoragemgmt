@@ -748,6 +748,7 @@ MEMBER_FUNC_GET(uint32_t,lsm_system, LSM_IS_SYSTEM, status, UINT32_MAX);
 MEMBER_FUNC_GET(const char *,lsm_system, LSM_IS_SYSTEM, plugin_data, NULL);
 MEMBER_FUNC_GET(int, lsm_system, LSM_IS_SYSTEM, read_cache_pct,
                 LSM_SYSTEM_READ_CACHE_PCT_UNKNOWN);
+MEMBER_FUNC_GET(const char *, lsm_system, LSM_IS_SYSTEM, fw_version, NULL);
 
 int lsm_system_fw_version_set(lsm_system *sys, const char *fw_ver)
 {
@@ -763,19 +764,6 @@ int lsm_system_fw_version_set(lsm_system *sys, const char *fw_ver)
         return LSM_ERR_NO_MEMORY;
 
     return LSM_ERR_OK;
-}
-
-int lsm_system_fw_version_get(lsm_system *s, const char **fw_ver)
-{
-    if ((s == NULL) || (fw_ver == NULL) || (! LSM_IS_SYSTEM(s)))
-        return LSM_ERR_INVALID_ARGUMENT;
-
-    *fw_ver = s->fw_version;
-
-    if (s->fw_version[0] != '\0' )
-        return LSM_ERR_OK;
-    else
-        return LSM_ERR_NO_SUPPORT;
 }
 
 int lsm_system_mode_set(lsm_system *sys, lsm_system_mode_type mode)

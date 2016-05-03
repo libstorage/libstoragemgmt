@@ -90,18 +90,15 @@ int LSM_DLL_EXPORT lsm_system_read_cache_pct_get(lsm_system *s);
 uint32_t LSM_DLL_EXPORT lsm_system_status_get(lsm_system *s);
 
 /**
- * New in version 1.3. Retrieves firmware version of the specified system.
- * Please do not free fw_ver string pointer, resources will get freed when
+ * New in version 1.3.
+ * Retrieves firmware version of the specified system.
+ * Please do not free returned string pointer, resources will get freed when
  * lsm_system_record_free() or lsm_system_record_array_free() is called.
  * @param       s       System to retrieve firmware version for.
- * @param[out]  fw_ver  Firmware version string.
- * @return Error code as enumerated by \ref lsm_error_number.
- * @retval LSM_ERR_OK on success.
- * @retval LSM_ERR_NO_SUPPORT
- * @retval LSM_ERR_INVALID_ARGUMENT
+ * @return System firmware version. NULL if bad system pointer or no support or
+ * bug.
  */
-int LSM_DLL_EXPORT lsm_system_fw_version_get(lsm_system *s,
-                                             const char **fw_ver);
+LSM_DLL_EXPORT const char *lsm_system_fw_version_get(lsm_system *s);
 
 /**
  * New in version 1.3. Retrieves system mode, currently only supports
