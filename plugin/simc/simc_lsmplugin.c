@@ -252,7 +252,7 @@ static void free_export(void *exp)
     lsm_nfs_export_record_free((lsm_nfs_export *) exp);
 }
 
-static struct allocated_fs *alloc_fs_record()
+static struct allocated_fs *alloc_fs_record(void)
 {
     struct allocated_fs *rc = (struct allocated_fs *)
         malloc(sizeof(struct allocated_fs));
