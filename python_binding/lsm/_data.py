@@ -490,10 +490,10 @@ class System(IData):
     STATUS_PREDICTIVE_FAILURE = 1 << 4
     STATUS_OTHER = 1 << 5
 
-    MODE_NO_SUPPORT = 0
-    # ^ Only for internal use.
-    MODE_HARDWARE_RAID = 1
-    MODE_HBA = 2
+    MODE_NO_SUPPORT = -2
+    MODE_UNKNOWN = -1
+    MODE_HARDWARE_RAID = 0
+    MODE_HBA = 1
 
     READ_CACHE_PCT_NO_SUPPORT = -2
     READ_CACHE_PCT_UNKNOWN = -1

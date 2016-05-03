@@ -2103,24 +2103,20 @@ START_TEST(test_system_mode)
     uint32_t sys_count = 0;
 
     G(rc, lsm_system_list, c, &sys, &sys_count, LSM_CLIENT_FLAG_RSVD);
-    fail_unless( sys_count >= 1, "count = %d", sys_count);
+    fail_unless(sys_count >= 1, "count = %d", sys_count);
 
-    if(sys_count > 0) {
+    mode = lsm_system_mode_get(sys[0]);
 
-        G(rc, lsm_system_mode_get, sys[0], &mode);
+    fail_unless(mode != LSM_SYSTEM_MODE_UNKNOWN,
+                "Got unexpected LSM_SYSTEM_MODE_UNKNOWN from "
+                "lsm_system_mode_get()");
 
-        if( LSM_ERR_OK == rc ) {
-            printf("System mode: (%d)\n", mode);
-        }
+    mode = lsm_system_mode_get(NULL);
+    fail_unless(mode == LSM_SYSTEM_MODE_UNKNOWN,
+                "Got unexpected return %d from "
+                "lsm_system_mode_get(NULL)", mode);
 
-        rc = lsm_system_mode_get(sys[0], NULL);
-        fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
-    }
-
-    rc = lsm_system_mode_get(NULL, &mode);
-    fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
     lsm_system_record_array_free(sys, sys_count);
-
 }
 END_TEST
 

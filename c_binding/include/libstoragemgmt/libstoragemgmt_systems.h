@@ -101,28 +101,26 @@ uint32_t LSM_DLL_EXPORT lsm_system_status_get(lsm_system *s);
 LSM_DLL_EXPORT const char *lsm_system_fw_version_get(lsm_system *s);
 
 /**
- * New in version 1.3. Retrieves system mode, currently only supports
- * retrieving hardware RAID cards system mode:
- *      LSM_SYSTEM_MODE_NO_SUPPORT
+ * New in version 1.3.
+ * Retrieves system mode, currently only supports retrieving hardware RAID cards
+ * system mode.
+ * @param   s       System to retrieve firmware version for.
+ * @return Hardware RAID card system mode.
+ * @retval LSM_SYSTEM_MODE_UNKNOWN
+ *          The value when invalid argument or bug.
+ * @retval LSM_SYSTEM_MODE_NO_SUPPORT
  *          The value when requested method is not supported.
- *      LSM_SYSTEM_MODE_HARDWARE_RAID
+ * @retval LSM_SYSTEM_MODE_HARDWARE_RAID
  *          The storage system is a hardware RAID card(like HP SmartArray and
  *          LSI MegaRAID) and could expose the logical volume(aka, RAIDed
  *          virtual disk) to OS while hardware RAID card is handling the RAID
  *          algorithm. In this mode, storage system cannot expose physical disk
  *          directly to OS.
- *      LSM_SYSTEM_MODE_HBA
+ * @retval LSM_SYSTEM_MODE_HBA
  *          The physical disks can be exposed to OS directly without any
  *          configurations. SCSI enclosure service might be exposed to OS also.
- * @param       s       System to retrieve firmware version for.
- * @param[out]  mode    System mode 'lsm_system_mode_type' pointer.
- * @return Error code as enumerated by \ref lsm_error_number.
- * @retval LSM_ERR_OK on success.
- * @retval LSM_ERR_NO_SUPPORT
- * @retval LSM_ERR_INVALID_ARGUMENT
  */
-int LSM_DLL_EXPORT lsm_system_mode_get(lsm_system *s,
-                                       lsm_system_mode_type *mode);
+LSM_DLL_EXPORT lsm_system_mode_type lsm_system_mode_get(lsm_system *s);
 
 #ifdef  __cplusplus
 }

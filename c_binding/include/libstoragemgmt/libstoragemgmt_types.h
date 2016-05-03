@@ -375,9 +375,10 @@ typedef enum {
 #define LSM_VOLUME_VCR_STRIP_SIZE_DEFAULT           0
 
 typedef enum {
-    LSM_SYSTEM_MODE_NO_SUPPORT = 0,
-    LSM_SYSTEM_MODE_HARDWARE_RAID = 1,
-    LSM_SYSTEM_MODE_HBA = 2,
+    LSM_SYSTEM_MODE_NO_SUPPORT = -2,
+    LSM_SYSTEM_MODE_UNKNOWN = -1,
+    LSM_SYSTEM_MODE_HARDWARE_RAID = 0,
+    LSM_SYSTEM_MODE_HBA = 1,
 } lsm_system_mode_type;
 
 typedef enum {
