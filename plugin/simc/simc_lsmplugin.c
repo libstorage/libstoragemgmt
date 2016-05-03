@@ -1616,7 +1616,7 @@ static int ag_granted_to_volume(lsm_plugin_ptr c,
     return rc;
 }
 
-int static volume_dependency(lsm_plugin_ptr c,
+static int volume_dependency(lsm_plugin_ptr c,
                              lsm_volume * volume,
                              uint8_t * yes, lsm_flag flags)
 {
