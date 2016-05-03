@@ -459,6 +459,7 @@ int lsm_local_disk_vpd83_get(const char *disk_path, char **vpd83,
     if (! _file_exists(disk_path)) {
         rc = LSM_ERR_NOT_FOUND_DISK;
         _lsm_err_msg_set(err_msg, "Disk %s not found", disk_path);
+        goto out;
     }
 
     if (strncmp(disk_path, "/dev/sd", strlen("/dev/sd")) != 0) {
