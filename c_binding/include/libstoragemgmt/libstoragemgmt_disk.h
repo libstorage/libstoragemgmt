@@ -106,15 +106,14 @@ uint64_t LSM_DLL_EXPORT lsm_disk_block_size_get(lsm_disk *d);
 uint64_t LSM_DLL_EXPORT lsm_disk_status_get(lsm_disk *d);
 
 /**
- * New in version 1.3. Retrieves a disk's location.
+ * New in version 1.3.
+ * Retrieves a disk's location.
  * Do not free returned string, free the struct lsm_disk instead.
- * @param d		Pointer to the disk of interest.
- * @param location	Pointer to the disk's location.
- * @return Error code as enumerated by \ref lsm_error_number.
- * @retval LSM_ERR_OK on success.
+ * @param d     Pointer to the disk of interest.
+ * @return Disk location string. Return NULL if invalid argument, no support or
+ * bug.
  */
-int LSM_DLL_EXPORT lsm_disk_location_get(lsm_disk *d,
-                                         const char **location);
+LSM_DLL_EXPORT const char *lsm_disk_location_get(lsm_disk *d);
 
 /**
  * New in version 1.3. Retrieves a disk's rotation speed(revolutions per minute).

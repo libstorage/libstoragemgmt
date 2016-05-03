@@ -652,7 +652,7 @@ class SmartArray(IPlugin):
         return Disk(
             disk_id, disk_name, disk_type, blk_size, blk_count,
             status, sys_id, _plugin_data=plugin_data, _vpd83=vpd83,
-            _disk_location=disk_location, _rpm=rpm, _link_type=link_type)
+            _location=disk_location, _rpm=rpm, _link_type=link_type)
 
     @_handle_errors
     def disks(self, search_key=None, search_value=None,

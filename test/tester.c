@@ -1175,34 +1175,25 @@ START_TEST(test_disk_location)
     lsm_disk **d = NULL;
     const char *location = NULL;
     int i = 0;
+    int rc = LSM_ERR_OK;
 
     fail_unless(c!=NULL);
 
-    int rc = lsm_disk_list(c, NULL, NULL, &d, &count, 0);
+    G(rc, lsm_disk_list, c, NULL, NULL, &d, &count, 0);
+    fail_unless(count >= 1);
 
-    if( LSM_ERR_OK == rc ) {
-        fail_unless(LSM_ERR_OK == rc, "%d", rc);
-        fail_unless(count >= 1);
+    for(; i < count; ++i ) {
+        location = lsm_disk_location_get(d[i]);
+        fail_unless(location != NULL,
+                    "Got NULL return from lsm_disk_location_get()");
 
-        for( i = 0; i < count; ++i ) {
-            G(rc, lsm_disk_location_get, d[i], &location);
-
-            if (LSM_ERR_OK == rc)
-                printf("Disk location: (%s)\n", location);
-
-            rc = lsm_disk_location_get(d[i], NULL);
-            fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
-
-        }
-
-        rc = lsm_disk_location_get(NULL, &location);
-        fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
-
-        lsm_disk_record_array_free(d, count);
-    } else {
-        fail_unless(d == NULL);
-        fail_unless(count == 0);
+        printf("Disk location: (%s)\n", location);
     }
+    location = lsm_disk_location_get(NULL);
+    fail_unless(location == NULL,
+                "Got non-NULL return from lsm_disk_location_get(NULL)");
+
+    lsm_disk_record_array_free(d, count);
 }
 END_TEST
 
