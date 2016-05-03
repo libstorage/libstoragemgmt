@@ -168,7 +168,7 @@ int Transport::close()
     int rc = EBADF;
 
     if (s >= 0) {
-        int rc =::close(s);
+        rc =::close(s);
         if (rc != 0) {
             rc = errno;
         }
