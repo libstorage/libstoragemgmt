@@ -453,32 +453,22 @@ int lsm_local_disk_vpd83_get(const char *disk_path, char **vpd83,
         goto out;
     }
 
-    if ((strlen(disk_path) <= strlen("/dev/")) ||
-        (strncmp(disk_path, "/dev/", strlen("/dev/")) != 0)) {
+    *vpd83 = NULL;
+    *lsm_err = NULL;
 
-        _lsm_err_msg_set(err_msg, "Invalid disk_path, should start with /dev/");
-        rc = LSM_ERR_INVALID_ARGUMENT;
+    if (! _file_exists(disk_path)) {
+        rc = LSM_ERR_NOT_FOUND_DISK;
+        _lsm_err_msg_set(err_msg, "Disk %s not found", disk_path);
+    }
+
+    if (strncmp(disk_path, "/dev/sd", strlen("/dev/sd")) != 0) {
+        rc = LSM_ERR_NO_SUPPORT;
+        _lsm_err_msg_set(err_msg, "Only support disk path start with "
+                         "'/dev/sd' yet");
         goto out;
     }
 
     sd_name = disk_path + strlen("/dev/");
-    if (strlen(sd_name) > _MAX_SD_NAME_STR_LEN) {
-        rc = LSM_ERR_INVALID_ARGUMENT;
-        _lsm_err_msg_set(err_msg, "Illegal disk_path string, the SCSI disk name "
-                         "part(sdX) exceeded the max length %d, current %zd",
-                         _MAX_SD_NAME_STR_LEN - 1, strlen(sd_name));
-        goto out;
-    }
-    if (strncmp(sd_name, "sd", strlen("sd")) != 0) {
-        rc = LSM_ERR_INVALID_ARGUMENT;
-        _lsm_err_msg_set(err_msg, "Illegal disk_path string, should start with "
-                         "'/dev/sd' as we only support SCSI or ATA disk "
-                         "right now");
-        goto out;
-    }
-
-    *vpd83 = NULL;
-    *lsm_err = NULL;
 
     rc = _sysfs_vpd83_naa_of_sd_name(err_msg, sd_name, tmp_vpd83);
     if (rc == LSM_ERR_NO_SUPPORT)
@@ -508,7 +498,7 @@ int lsm_local_disk_vpd83_get(const char *disk_path, char **vpd83,
     return rc;
 }
 
-int lsm_local_disk_rpm_get(const char *sd_path, int32_t *rpm,
+int lsm_local_disk_rpm_get(const char *disk_path, int32_t *rpm,
                            lsm_error **lsm_err)
 {
     uint8_t vpd_data[_SG_T10_SPC_VPD_MAX_LEN];
@@ -517,14 +507,14 @@ int lsm_local_disk_rpm_get(const char *sd_path, int32_t *rpm,
     int rc = LSM_ERR_OK;
     struct t10_sbc_vpd_bdc *bdc = NULL;
 
-    rc = _check_null_ptr(err_msg, 3 /* arg_count */, sd_path, rpm, lsm_err);
+    rc = _check_null_ptr(err_msg, 3 /* arg_count */, disk_path, rpm, lsm_err);
     if (rc != LSM_ERR_OK) {
         goto out;
     }
 
     _lsm_err_msg_clear(err_msg);
 
-    _good(_sg_io_open_ro(err_msg, sd_path, &fd), rc, out);
+    _good(_sg_io_open_ro(err_msg, disk_path, &fd), rc, out);
     _good(_sg_io_vpd(err_msg, fd, _SG_T10_SBC_VPD_BLK_DEV_CHA,  vpd_data),
           rc, out);
 

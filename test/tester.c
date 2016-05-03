@@ -3458,21 +3458,6 @@ START_TEST(test_local_disk_vpd83_get)
                 "lsm_local_disk_vpd83_get(): Expecting "
                 "LSM_ERR_INVALID_ARGUMENT when lsm_err is NULL");
 
-    rc = lsm_local_disk_vpd83_get("/dev/", &vpd83, &lsm_err);
-    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
-                "lsm_local_disk_vpd83_get(): Expecting "
-                "LSM_ERR_INVALID_ARGUMENT when input is illegal");
-    fail_unless(lsm_err != NULL,
-                "lsm_local_disk_vpd83_get(): Expecting "
-                "lsm_err been set as non-NULL.");
-    fail_unless(lsm_error_number_get(lsm_err) == LSM_ERR_INVALID_ARGUMENT,
-                "lsm_local_disk_vpd83_get(): Expecting "
-                "lsm_err been set with LSM_ERR_INVALID_ARGUMENT");
-    fail_unless(lsm_error_message_get(lsm_err) != NULL,
-                "lsm_local_disk_vpd83_get(): Expecting "
-                "lsm_err been set with non-NULL error message");
-    lsm_error_free(lsm_err);
-
     /* We cannot make sure /dev/sda exists, but worth trying */
     lsm_local_disk_vpd83_get("/dev/sda", &vpd83, &lsm_err);
     if (lsm_err != NULL)
