@@ -1843,8 +1843,8 @@ int lsm_fs_list(lsm_connect * c, const char *search_key,
     try {
         std::map < std::string, Value > p;
 
-        int rc = add_search_params(p, search_key, search_value, FS_SEARCH_KEYS,
-                                   FS_SEARCH_KEYS_COUNT);
+        rc = add_search_params(p, search_key, search_value, FS_SEARCH_KEYS,
+                               FS_SEARCH_KEYS_COUNT);
         if (LSM_ERR_OK != rc) {
             return rc;
         }
