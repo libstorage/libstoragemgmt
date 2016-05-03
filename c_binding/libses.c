@@ -356,8 +356,8 @@ static int _ses_sg_paths_get(char *err_msg, char ***sg_paths,
                     rc = LSM_ERR_NO_MEMORY;
                     goto out;
                 }
-                free(sysfs_sg_type_path);
             }
+            free(sysfs_sg_type_path);
         }
     } while(dp != NULL);
 
