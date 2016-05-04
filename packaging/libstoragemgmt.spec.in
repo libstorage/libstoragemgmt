@@ -95,6 +95,10 @@ Requires(preun): systemd
 Requires(postun): systemd
 %endif
 
+BuildRequires:  chrpath
+BuildRequires:  valgrind
+BuildRequires:  python-pyudev
+
 %description
 The libStorageMgmt library will provide a vendor agnostic open source storage
 application programming interface (API) that will allow management of storage
