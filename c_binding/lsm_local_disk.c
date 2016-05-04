@@ -779,8 +779,6 @@ static int _ses_ctrl(const char *disk_path, lsm_error **lsm_err,
     _good(_check_null_ptr(err_msg, 2 /* arg_count */, disk_path, lsm_err),
           rc, out);
 
-    _good(_sg_io_open_ro(err_msg, disk_path, &fd), rc, out);
-
     memset(tp_sas_addr, 0, _SG_T10_SPL_SAS_ADDR_LEN);
 
     /* TODO(Gris Ge): Add support of NVMe enclosure */
@@ -791,8 +789,10 @@ static int _ses_ctrl(const char *disk_path, lsm_error **lsm_err,
         (strncmp(disk_path + strlen("/dev/"), "sd", strlen("sd")) == 0))
         _sysfs_sas_addr_get(disk_path + strlen("/dev/"), tp_sas_addr);
 
-    if (tp_sas_addr[0] == '\0')
+    if (tp_sas_addr[0] == '\0') {
+        _good(_sg_io_open_ro(err_msg, disk_path, &fd), rc, out);
         _good(_sg_tp_sas_addr_of_disk(err_msg, fd, tp_sas_addr), rc, out);
+    }
 
     /* SEND DIAGNOSTIC
      * SES-3, 6.1.3 Enclosure Control diagnostic page
@@ -806,6 +806,8 @@ static int _ses_ctrl(const char *disk_path, lsm_error **lsm_err,
         if (lsm_err != NULL)
             *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
     }
+    if (fd >= 0)
+        close(fd);
     return rc;
 }
 
