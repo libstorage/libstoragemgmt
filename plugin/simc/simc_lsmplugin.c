@@ -2481,6 +2481,8 @@ static int lsm_battery_list(lsm_plugin_ptr c, const char *search_key,
     *bs = lsm_battery_record_array_alloc(2);
     if (*bs == NULL) {
         *count = 0;
+        lsm_battery_record_free(bat1);
+        lsm_battery_record_free(bat2);
         return LSM_ERR_NO_MEMORY;
     }
 
