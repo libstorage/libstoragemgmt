@@ -377,8 +377,6 @@ int lsm_local_disk_vpd83_search(const char *vpd83,
     _good(_sysfs_get_all_sd_names(err_msg, &sd_name_list), rc, out);
 
     _lsm_string_list_foreach(sd_name_list, i, sd_name) {
-        if (sd_name == NULL)
-            continue;
         if (sysfs_support == true) {
             rc = _sysfs_vpd83_naa_of_sd_name(err_msg, sd_name, tmp_vpd83);
             if (rc == LSM_ERR_NO_SUPPORT) {
