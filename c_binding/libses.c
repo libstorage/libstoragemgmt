@@ -447,7 +447,8 @@ static int16_t _ses_find_sas_addr(const char *sas_addr, uint8_t *add_st_data,
             goto out;
         for (i = 0; i < dp_sas->phy_count; ++i) {
             phy = (struct _ses_add_st_sas_phy *)
-                (&dp_sas->phy_list) + sizeof(struct _ses_add_st_sas_phy) * i;
+                ((uint8_t *) (&dp_sas->phy_list) +
+                 sizeof(struct _ses_add_st_sas_phy) * i);
             _be_raw_to_hex((uint8_t *) &phy->sas_addr,
                            _SG_T10_SPL_SAS_ADDR_LEN_BITS, tmp_sas_addr);
             if (strncmp(tmp_sas_addr, sas_addr,
