@@ -83,7 +83,11 @@ function _lsm()
                 volume-write-cache-policy-update vwcpu \
                 volume-cache-info vci volume-ident-led-on vilon \
                 volume-ident-led-off viloff local-disk-list ldl \
-                system-read-cache-pct-update srcpu"
+                system-read-cache-pct-update srcpu \
+                local-disk-ident-led-on ldilon \
+                local-disk-ident-led-off ldiloff \
+                local-disk-fault-led-on ldflon \
+                local-disk-fault-led-off ldfloff"
 
     list_args="--type"
     list_type_args="volumes pools fs snapshots exports nfs_client_auth \
@@ -141,6 +145,7 @@ function _lsm()
     volume_cache_info_args="--vol"
     volume_ident_led_on_off_args="--vol"
     system_read_cache_pct_update_args="--vol --read-pct"
+    local_disk_led_args="--path"
 
     # These operations can potentially be slow and cause hangs depending on plugin and configuration
     if [[ ${NO_VALUE_LOOKUP} -ne 0 ]] ; then
@@ -455,6 +460,14 @@ function _lsm()
             ;;
         system-read-cache-pct-update|srcpu)
             possible_args "${system_read_cache_pct_update_args}"
+            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            return 0
+            ;;
+        local-disk-ident-led-on|ldilon| \
+        local-disk-ident-led-off|ldiloff| \
+        local-disk-fault-led-on|ldflon| \
+        local-disk-fault-led-off|ldfloff)
+            possible_args "${local_disk_led_args}"
             COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
             return 0
             ;;
