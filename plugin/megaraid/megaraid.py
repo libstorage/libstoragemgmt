@@ -403,6 +403,7 @@ class MegaRAID(IPlugin):
         cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_WRITE_BACK)
         cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_AUTO)
         cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_WRITE_THROUGH)
+        cap.set(Capabilities.VOLUME_DELETE)
         return cap
 
     def _storcli_exec(self, storcli_cmds, flag_json=True):
@@ -1103,3 +1104,18 @@ class MegaRAID(IPlugin):
         raise LsmError(ErrorNumber.NO_SUPPORT,
                        "LSI MegaRAID always enable read cache and refused to "
                        "change that.")
+
+    @_handle_errors
+    def volume_delete(self, volume, flags=Client.FLAG_RSVD):
+        """
+        Depending on this command:
+            storcli /cx/vx del force
+        """
+        lsm_vols = self.volumes(search_key='id', search_value=volume.id)
+        if len(lsm_vols) == 0:
+            raise LsmError(
+                ErrorNumber.NOT_FOUND_VOLUME,
+                "Volume not found")
+
+        cmd = [lsm_vols[0].plugin_data, 'del', 'force']
+        self._storcli_exec(cmd)
