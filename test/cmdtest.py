@@ -82,7 +82,7 @@ def rs(l):
         random.choice(string.ascii_uppercase) for x in range(l))
 
 
-def call(command, expected_rc=0):
+def call(command, expected_rc=0, expected_rcs=None):
     """
     Call an executable and return a tuple of exitcode, stdout, stderr
     """
@@ -93,15 +93,28 @@ def call(command, expected_rc=0):
     else:
         actual_command = command
 
-    print actual_command, 'EXPECTED Exit [%d]' % expected_rc
+    expected_rcs_str = ""
+
+    if expected_rcs is None:
+        print actual_command, 'EXPECTED Exit [%d]' % expected_rc
+    else:
+        expected_rcs_str = " ".join(str(x) for x in expected_rcs)
+        print(actual_command, 'EXPECTED Exit codes [%s]' % expected_rcs)
 
     process = Popen(actual_command, stdout=PIPE, stderr=PIPE)
     out = process.communicate()
 
-    if process.returncode != expected_rc:
-        raise RuntimeError("exit code != %s, actual= %s, stdout= %s, "
-                           "stderr= %s" % (expected_rc, process.returncode,
-                                           out[0], out[1]))
+    if process.returncode != expected_rc and \
+       expected_rcs is not None and \
+       process.returncode not in expected_rcs:
+        if expected_rcs is None:
+            raise RuntimeError("exit code != %s, actual= %s, stdout= %s, "
+                               "stderr= %s" % (expected_rc, process.returncode,
+                                               out[0], out[1]))
+        raise RuntimeError("exit code not in one of '%s', "
+                           "actual= %s, stdout= %s, stderr= %s" %
+                           (expected_rcs_str, process.returncode, out[0],
+                            out[1]))
     return process.returncode, out[0], out[1]
 
 
@@ -888,8 +901,42 @@ def test_volume_rcp_update():
     volume_delete(vol_id)
 
 
-def run_all_tests(cap, system_id):
+def test_local_disk_led():
+    expected_rcs = [0, 4]
+    flag_disk_found = False
 
+    if (os.geteuid() != 0):
+        print("Skipping test of 'local-disk-ident-led-on' and etc commands "
+              "when not run by root user")
+        return
+
+    disk_paths = list(x[0] for x in
+                      parse(call([cmd, '-t' + sep, 'local-disk-list'])[1]))
+
+    if len(disk_paths) == 0:
+        print("Skipping test of 'local-disk-ident-led-on' and etc commands "
+              "when no local disk found")
+        return
+
+    # Only test against maximum 4 disks
+    for disk_path in disk_paths[:4]:
+        if os.path.exists(disk_path):
+            flag_disk_found = True
+            call([cmd, 'local-disk-ident-led-on', '--path', disk_path],
+                 expected_rcs=expected_rcs)
+            call([cmd, 'local-disk-ident-led-off', '--path', disk_path],
+                 expected_rcs=expected_rcs)
+            call([cmd, 'local-disk-fault-led-on', '--path', disk_path],
+                 expected_rcs=expected_rcs)
+            call([cmd, 'local-disk-fault-led-off', '--path', disk_path],
+                 expected_rcs=expected_rcs)
+
+    if flag_disk_found is False:
+        print("Skipping test of 'local-disk-ident-led-on' and etc command "
+              "when none of these disks exists: %s" % ", ".join(disk_paths))
+
+
+def run_all_tests(cap, system_id):
     test_exit_code(cap, system_id)
     test_display(cap, system_id)
     test_plugin_list(cap, system_id)
@@ -912,6 +959,7 @@ def run_all_tests(cap, system_id):
     test_volume_pdc_update()
     test_volume_wcp_update()
     test_volume_rcp_update()
+    test_local_disk_led()
 
 if __name__ == "__main__":
     parser = OptionParser()

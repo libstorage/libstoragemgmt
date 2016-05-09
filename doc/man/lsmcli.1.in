@@ -655,6 +655,38 @@ Required. \fBWB\fR for write back mode, \fBWT\fR for write through mode,
 \fBAUTO\fR for auto mode which use \fBWB\fR mode when any battery is OK and use
 \fBWT\fR mode else.
 
+.SS local-disk-ident-led-on
+Turn on the identification LED for specified disk path.
+Require permission to open disk path as read-write, normally root user or disk
+group would have sufficient permission.
+.TP 15
+\fB--path\fR \fI<DISK_PATH>\fR
+Required. Disk path, like \fB/dev/sdb\fR.
+
+.SS local-disk-ident-led-off
+Turn off the identification LED for specified disk path.
+Require permission to open disk path as read-write, normally root user or disk
+group would have sufficient permission.
+.TP 15
+\fB--path\fR \fI<DISK_PATH>\fR
+Required. Disk path, like \fB/dev/sdb\fR.
+
+.SS local-disk-fault-led-on
+Turn on the fault LED for specified disk path.
+Require permission to open disk path as read-write, normally root user or disk
+group would have sufficient permission.
+.TP 15
+\fB--path\fR \fI<DISK_PATH>\fR
+Required. Disk path, like \fB/dev/sdb\fR.
+
+.SS local-disk-fault-led-off
+Turn off the fault LED for specified disk path.
+Require permission to open disk path as read-write, normally root user or disk
+group would have sufficient permission.
+.TP 15
+\fB--path\fR \fI<DISK_PATH>\fR
+Required. Disk path, like \fB/dev/sdb\fR.
+
 .IP
 .SH ALIAS
 .SS ls
@@ -719,6 +751,14 @@ Alias of 'volume-phy-disk-cache-update'
 Alias of 'volume-read-cache-policy-update'
 .SS vwcpu
 Alias of 'volume-write-cache-policy-update'
+.SS ldilon
+Alias of 'local-disk-ident-led-on'
+.SS ldiloff
+Alias of 'local-disk-ident-led-off'
+.SS ldflon
+Alias of 'local-disk-fault-led-on'
+.SS ldfloff
+Alias of 'local-disk-fault-led-off'
 
 .IP
 .SH SIZE OPTION

@@ -42,7 +42,11 @@ from lsm.lsmcli.data_display import (
     vol_provision_str_to_type, vol_rep_type_str_to_type, VolumeRAIDInfo,
     PoolRAIDInfo, VcrCap, LocalDiskInfo, VolumeRAMCacheInfo)
 
-_CONNECTION_FREE_COMMANDS = ['local-disk-list']
+_CONNECTION_FREE_COMMANDS = ['local-disk-list',
+                             'local-disk-ident-led-on',
+                             'local-disk-ident-led-off',
+                             'local-disk-fault-led-on',
+                             'local-disk-fault-led-off']
 
 ## Wraps the invocation to the command line
 # @param    c   Object to invoke calls on (optional)
@@ -285,6 +289,9 @@ size_opt = dict(name='--size', metavar='<SIZE>', help=size_help)
 
 tgt_id_opt = dict(name="--tgt", help="Search by target port ID",
                   metavar='<TGT_ID>')
+
+local_disk_path_opt = dict(name='--path', help="Local disk path",
+                           metavar='<DISK_PATH>')
 
 cmds = (
     dict(
@@ -829,6 +836,34 @@ cmds = (
             dict(write_cache_policy_opt),
         ],
     ),
+    dict(
+        name='local-disk-ident-led-on',
+        help='Turn on the identification LED for a local disk',
+        args=[
+            dict(local_disk_path_opt),
+        ],
+    ),
+    dict(
+        name='local-disk-ident-led-off',
+        help='Turn off the identification LED for a local disk',
+        args=[
+            dict(local_disk_path_opt),
+        ],
+    ),
+    dict(
+        name='local-disk-fault-led-on',
+        help='Turn on the fault LED for a local disk',
+        args=[
+            dict(local_disk_path_opt),
+        ],
+    ),
+    dict(
+        name='local-disk-fault-led-off',
+        help='Turn off the fault LED for a local disk',
+        args=[
+            dict(local_disk_path_opt),
+        ],
+    ),
 )
 
 aliases = (
@@ -865,6 +900,10 @@ aliases = (
     ['vpdcu', 'volume-phy-disk-cache-update'],
     ['vrcpu', 'volume-read-cache-policy-update'],
     ['vwcpu', 'volume-write-cache-policy-update'],
+    ['ldilon', 'local-disk-ident-led-on'],
+    ['ldiloff', 'local-disk-ident-led-off'],
+    ['ldflon', 'local-disk-fault-led-on'],
+    ['ldfloff', 'local-disk-fault-led-off'],
 )
 
 
@@ -1785,3 +1824,15 @@ class CmdLine:
             [
                 VolumeRAMCacheInfo(
                     lsm_vol.id, *self.c.volume_cache_info(lsm_vol))])
+
+    def local_disk_ident_led_on(self, args):
+        LocalDisk.ident_led_on(args.path)
+
+    def local_disk_ident_led_off(self, args):
+        LocalDisk.ident_led_off(args.path)
+
+    def local_disk_fault_led_on(self, args):
+        LocalDisk.fault_led_on(args.path)
+
+    def local_disk_fault_led_off(self, args):
+        LocalDisk.fault_led_off(args.path)

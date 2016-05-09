@@ -3813,6 +3813,73 @@ START_TEST(test_volume_rcp_update)
 }
 END_TEST
 
+#define _TEST_LOCAL_DISK_LED(on_func, off_func) \
+do { \
+    int rc = LSM_ERR_OK; \
+    lsm_string_list *disk_paths = NULL; \
+    lsm_error *lsm_err = NULL; \
+    uint32_t i = 0; \
+    const char *disk_path = NULL; \
+    if (is_simc_plugin == 1) { \
+        /* silently skip on simc, no need for duplicate test. */ \
+        return; \
+    } \
+    rc = lsm_local_disk_list(&disk_paths, &lsm_err); \
+    fail_unless(rc == LSM_ERR_OK, "lsm_local_disk_list() failed as %d", rc); \
+    /* Only try maximum 4 disks */ \
+    for (; i < lsm_string_list_size(disk_paths) && i < 4; ++i) { \
+        disk_path = lsm_string_list_elem_get(disk_paths, i); \
+        fail_unless (disk_path != NULL, "Got NULL disk path"); \
+        rc = on_func(disk_path, &lsm_err); \
+        fail_unless(rc == LSM_ERR_OK || rc == LSM_ERR_NO_SUPPORT || \
+                    rc == LSM_ERR_PERMISSION_DENIED, \
+                    # on_func "(): Got unexpected return: %d", rc); \
+        if (rc != LSM_ERR_OK) { \
+            fail_unless(lsm_err != NULL, \
+                        # on_func "(): Got NULL lsm_err while " \
+                        "rc(%d) != LSM_ERR_OK", rc); \
+            lsm_error_free(lsm_err); \
+        } \
+        if (rc == LSM_ERR_OK) { \
+            printf(# on_func "(): success on disk %s\n", disk_path); \
+        } \
+        if (rc == LSM_ERR_NO_SUPPORT) { \
+            printf(# on_func "(): not supported disk %s\n", disk_path); \
+        } \
+        rc = off_func(disk_path, &lsm_err); \
+        fail_unless(rc == LSM_ERR_OK || rc == LSM_ERR_NO_SUPPORT || \
+                    rc == LSM_ERR_PERMISSION_DENIED, \
+                    # off_func "(): Got unexpected return: %d", rc); \
+        if (rc != LSM_ERR_OK) { \
+            fail_unless(lsm_err != NULL, \
+                        # off_func "(): Got NULL lsm_err " \
+                        "while rc(%d) != LSM_ERR_OK", rc); \
+            lsm_error_free(lsm_err); \
+        } \
+        if (rc == LSM_ERR_OK) { \
+            printf(# off_func "(): success on disk %s\n", disk_path); \
+        } \
+        if (rc == LSM_ERR_NO_SUPPORT) { \
+            printf(# off_func "(): not supported disk %s\n", disk_path); \
+        } \
+    } \
+    lsm_string_list_free(disk_paths); \
+} while(0)
+
+START_TEST(test_local_disk_ident_led)
+{
+    _TEST_LOCAL_DISK_LED(lsm_local_disk_ident_led_on,
+                         lsm_local_disk_ident_led_off);
+}
+END_TEST
+
+START_TEST(test_local_disk_fault_led)
+{
+    _TEST_LOCAL_DISK_LED(lsm_local_disk_fault_led_on,
+                         lsm_local_disk_fault_led_off);
+}
+END_TEST
+
 Suite * lsm_suite(void)
 {
     Suite *s = suite_create("libStorageMgmt");
@@ -3870,6 +3937,8 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_volume_pdc_update);
     tcase_add_test(basic, test_volume_wcp_update);
     tcase_add_test(basic, test_volume_rcp_update);
+    tcase_add_test(basic, test_local_disk_ident_led);
+    tcase_add_test(basic, test_local_disk_fault_led);
 
     suite_add_tcase(s, basic);
     return s;
