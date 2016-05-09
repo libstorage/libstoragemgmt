@@ -1,0 +1,26 @@
+gcc
+tar
+make
+gcc
+gcc-c++
+libtool
+autoconf
+procps
+automake
+valgrind
+chrpath
+libyajl-devel
+libconfig-devel
+python-M2Crypto
+python-devel
+python-pywbem
+python-pyudev
+'pkgconfig(libxml-2.0)'
+'pkgconfig(check)'
+'pkgconfig(glib-2.0)'
+'pkgconfig(openssl)'
+'pkgconfig(bash-completion) >= 2.0'
+'pkgconfig(systemd)'
+'pkgconfig(udev)'
+'pkgconfig(libudev)'
+libyajl-devel
