@@ -30,8 +30,10 @@
         } \
     } while(0)
 
+#define _NO_NEED_TO_FREE(x)
+
 #define _wrapper(func_name, c_func_name, arg_type, arg, c_rt_type, \
-                 c_rt_default, py_rt_conv_func) \
+                 c_rt_default, py_rt_conv_func, c_rt_free_func) \
 static PyObject *func_name(PyObject *self, PyObject *args, PyObject *kwargs) \
 { \
     static const char *kwlist[] = {# arg, NULL}; \
@@ -57,6 +59,7 @@ static PyObject *func_name(PyObject *self, PyObject *args, PyObject *kwargs) \
     if (rc != LSM_ERR_OK) { \
         err_msg_obj = PyString_FromString(lsm_error_message_get(lsm_err)); \
         lsm_error_free(lsm_err); \
+        lsm_err = NULL; \
         _alloc_check(err_msg_obj, flag_no_mem, out); \
         goto out; \
     } else { \
@@ -64,6 +67,9 @@ static PyObject *func_name(PyObject *self, PyObject *args, PyObject *kwargs) \
         _alloc_check(err_msg_obj, flag_no_mem, out); \
     } \
  out: \
+    if (lsm_err != NULL) \
+        lsm_error_free(lsm_err); \
+    c_rt_free_func(c_rt); \
     if (flag_no_mem == true) { \
         Py_XDECREF(rc_list); \
         Py_XDECREF(err_no_obj); \
@@ -102,6 +108,7 @@ static PyObject *func_name(PyObject *self, PyObject *args, PyObject *kwargs) \
     if (rc != LSM_ERR_OK) { \
         err_msg_obj = PyString_FromString(lsm_error_message_get(lsm_err)); \
         lsm_error_free(lsm_err); \
+        lsm_err = NULL; \
         _alloc_check(err_msg_obj, flag_no_mem, out); \
         goto out; \
     } else { \
@@ -109,6 +116,8 @@ static PyObject *func_name(PyObject *self, PyObject *args, PyObject *kwargs) \
         _alloc_check(err_msg_obj, flag_no_mem, out); \
     } \
  out: \
+    if (lsm_err != NULL) \
+        lsm_error_free(lsm_err); \
     if (flag_no_mem == true) { \
         Py_XDECREF(rc_list); \
         Py_XDECREF(err_no_obj); \
@@ -133,8 +142,8 @@ static const char local_disk_vpd83_search_docstring[] =
     "    vpd83 (string)\n"
     "        The VPD83 NAA type ID.\n"
     "Returns:\n"
-    "    [sd_paths, rc, err_msg]\n"
-    "        sd_paths (list of string)\n"
+    "    [disk_paths, rc, err_msg]\n"
+    "        disk_paths (list of string)\n"
     "            Empty list is not found. The string format: '/dev/sd[a-z]+'.\n"
     "        rc (integer)\n"
     "            Error code, lsm.ErrorNumber.OK if no error\n"
@@ -147,7 +156,7 @@ static const char local_disk_vpd83_get_docstring[] =
     "Usage:\n"
     "    Query the SCSI VPD83 NAA ID of given disk path\n"
     "Parameters:\n"
-    "    sd_path (string)\n"
+    "    disk_path (string)\n"
     "        The SCSI disk path, example '/dev/sdb'. Empty string is failure\n"
     "Returns:\n"
     "    [vpd83, rc, err_msg]\n"
@@ -321,9 +330,6 @@ static PyMethodDef _methods[] = {
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
-/*
- * Provided lsm_string_list will be freed in this function.
- */
 static PyObject *_lsm_string_list_to_pylist(lsm_string_list *str_list)
 {
     PyObject *rc_list = NULL;
@@ -331,24 +337,18 @@ static PyObject *_lsm_string_list_to_pylist(lsm_string_list *str_list)
     uint32_t i = 0;
 
     rc_list = PyList_New(lsm_string_list_size(str_list));
-    if (rc_list == NULL) {
-        lsm_string_list_free(str_list);
-        return PyErr_NoMemory();
-    }
-
+    if (rc_list == NULL)
+        return NULL;
 
     for (; i < lsm_string_list_size(str_list); ++i) {
         str_obj = _c_str_to_py_str(lsm_string_list_elem_get(str_list, i));
 
         if (str_obj == NULL) {
-            /* No memory */
             Py_XDECREF(rc_list);
-            lsm_string_list_free(str_list);
-            return PyErr_NoMemory();
+            return NULL;
         }
         PyList_SET_ITEM(rc_list, i, str_obj); \
     }
-    lsm_string_list_free(str_list);
     return rc_list;
 }
 
@@ -356,21 +356,22 @@ static PyObject *_c_str_to_py_str(const char *str)
 {
     if (str == NULL)
         return PyString_FromString("");
-    return PyString_FromString(str);
+    else
+        return PyString_FromString(str);
 }
 
 _wrapper(local_disk_vpd83_search, lsm_local_disk_vpd83_search,
          const char *, vpd83, lsm_string_list *, NULL,
-         _lsm_string_list_to_pylist);
+         _lsm_string_list_to_pylist, lsm_string_list_free);
 _wrapper(local_disk_vpd83_get, lsm_local_disk_vpd83_get,
          const char *, disk_path, char *, NULL,
-         _c_str_to_py_str);
+         _c_str_to_py_str, free);
 _wrapper(local_disk_rpm_get, lsm_local_disk_rpm_get,
          const char *, disk_path, int32_t, LSM_DISK_RPM_UNKNOWN,
-         PyInt_FromLong);
+         PyInt_FromLong, _NO_NEED_TO_FREE);
 _wrapper(local_disk_link_type_get, lsm_local_disk_link_type_get,
          const char *, disk_path, lsm_disk_link_type,
-         LSM_DISK_LINK_TYPE_UNKNOWN, PyInt_FromLong);
+         LSM_DISK_LINK_TYPE_UNKNOWN, PyInt_FromLong, _NO_NEED_TO_FREE);
 
 static PyObject *local_disk_list(PyObject *self, PyObject *args,
                                  PyObject *kwargs)
@@ -394,6 +395,7 @@ static PyObject *local_disk_list(PyObject *self, PyObject *args,
     if (rc != LSM_ERR_OK) {
         err_msg_obj = PyString_FromString(lsm_error_message_get(lsm_err));
         lsm_error_free(lsm_err);
+        lsm_err = NULL;
         _alloc_check(err_msg_obj, flag_no_mem, out);
         goto out;
     } else {
@@ -401,6 +403,10 @@ static PyObject *local_disk_list(PyObject *self, PyObject *args,
         _alloc_check(err_msg_obj, flag_no_mem, out);
     }
  out:
+    if (lsm_err != NULL)
+        lsm_error_free(lsm_err);
+    if (disk_paths != NULL)
+        lsm_string_list_free(disk_paths);
     if (flag_no_mem == true) {
         Py_XDECREF(rc_list);
         Py_XDECREF(err_no_obj);

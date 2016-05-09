@@ -155,15 +155,15 @@ lsm_disk *value_to_disk(Value & disk)
             throw ValueException("value_to_disk: failed to update 'vpd83'");
         }
 
-        if ((rc != NULL) && std_map_has_key(d, "disk_location") &&
-            (d["disk_location"].asC_str()[0] != '\0')) {
+        if ((rc != NULL) && std_map_has_key(d, "location") &&
+            (d["location"].asC_str()[0] != '\0')) {
 
-            if (lsm_disk_location_set(rc, d["disk_location"].asC_str()) !=
+            if (lsm_disk_location_set(rc, d["location"].asC_str()) !=
                 LSM_ERR_OK) {
                 lsm_disk_record_free(rc);
                 rc = NULL;
                 throw ValueException("value_to_disk: failed to update "
-                                     "disk_location");
+                                     "location");
             }
         }
         if ((rc != NULL) && std_map_has_key(d, "rpm") &&
@@ -204,8 +204,8 @@ Value disk_to_value(lsm_disk * disk)
         d["num_of_blocks"] = Value(disk->number_of_blocks);
         d["status"] = Value(disk->status);
         d["system_id"] = Value(disk->system_id);
-        if (disk->disk_location != NULL)
-            d["disk_location"] = Value(disk->disk_location);
+        if (disk->location != NULL)
+            d["location"] = Value(disk->location);
         if (disk->rpm != LSM_DISK_RPM_NO_SUPPORT)
             d["rpm"] = Value(disk->rpm);
         if (disk->link_type != LSM_DISK_LINK_TYPE_NO_SUPPORT)
@@ -338,7 +338,7 @@ lsm_system *value_to_system(Value & system)
         }
         if ((rc != NULL) && std_map_has_key(i, "read_cache_pct") &&
             (i["read_cache_pct"].asInt32_t() !=
-            LSM_SYSTEM_CACHE_PCT_NO_SUPPORT)) {
+            LSM_SYSTEM_READ_CACHE_PCT_NO_SUPPORT)) {
 
             if (lsm_system_read_cache_pct_set(rc,
                 i["read_cache_pct"].asInt32_t()) != LSM_ERR_OK) {
@@ -368,7 +368,7 @@ Value system_to_value(lsm_system * system)
             s["fw_version"] = Value(system->fw_version);
         if (system->mode != LSM_SYSTEM_MODE_NO_SUPPORT)
             s["mode"] = Value(system->mode);
-        if (system->read_cache_pct != LSM_SYSTEM_CACHE_PCT_NO_SUPPORT)
+        if (system->read_cache_pct != LSM_SYSTEM_READ_CACHE_PCT_NO_SUPPORT)
             s["read_cache_pct"] = Value(system->read_cache_pct);
         return Value(s);
     }

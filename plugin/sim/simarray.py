@@ -1878,7 +1878,7 @@ class SimArray(object):
             sim_disk['disk_type'], BackStore.BLK_SIZE,
             int(sim_disk['total_space'] / BackStore.BLK_SIZE),
             disk_status, BackStore.SYS_ID, _vpd83=sim_disk['vpd83'],
-            _disk_location=sim_disk['disk_location'],
+            _location=sim_disk['disk_location'],
             _rpm=sim_disk['rpm'], _link_type=sim_disk['link_type'])
 
     @_handle_errors

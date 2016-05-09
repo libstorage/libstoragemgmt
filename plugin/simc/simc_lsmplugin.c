@@ -35,7 +35,7 @@
 extern "C" {
 #endif
 
-static char name[] = "Compiled plug-in example";
+static char PLUGIN_NAME[] = "Compiled plug-in example";
 static char version[] = "0.2.0";
 static char sys_id[] = "sim-01";
 static int read_cache_pct = 20;
@@ -63,7 +63,7 @@ static int lsm_volume_cache_info(lsm_plugin_ptr c, lsm_volume *volume,
  */
 char *md5(const char *data)
 {
-    int i = 0;
+    size_t i = 0;
     MD5_CTX c;
     unsigned char digest[16];
     static char digest_str[33];
@@ -72,7 +72,7 @@ char *md5(const char *data)
     MD5_Update(&c, data, strlen(data));
     MD5_Final(digest, &c);
 
-    for (i = 0; i < sizeof(digest); ++i) {
+    for (; i < sizeof(digest); ++i) {
         sprintf(&digest_str[i * 2], "%02x", (unsigned int) digest[i]);
     } return digest_str;
 }
@@ -91,15 +91,18 @@ void remove_item(void *array, int remove_index, int num_elems,
     if (array && (num_elems > 0) && (remove_index < num_elems) && elem_size) {
         /*Are we at the end?, clear that which is at the end */
         if (remove_index + 1 == num_elems) {
-            memset(array + (elem_size * (num_elems - 1)), 0, elem_size);
+            memset((uint8_t *)array + (elem_size * (num_elems - 1)), 0,
+                   elem_size);
             return;
         }
 
         /* Calculate the position of the one after that we want to remove */
-        void *src_addr = (void *) (array + ((remove_index + 1) * elem_size));
+        void *src_addr = (void *) ((uint8_t *) array +
+                                   ((remove_index + 1) * elem_size));
 
         /* Calculate the destination */
-        void *dest_addr = (void *) (array + (remove_index * elem_size));
+        void *dest_addr = (void *) ((uint8_t *) array +
+                                    (remove_index * elem_size));
 
         /* Shift the memory */
         memmove(dest_addr, src_addr, ((num_elems - 1) - remove_index) *
@@ -249,7 +252,7 @@ static void free_export(void *exp)
     lsm_nfs_export_record_free((lsm_nfs_export *) exp);
 }
 
-static struct allocated_fs *alloc_fs_record()
+static struct allocated_fs *alloc_fs_record(void)
 {
     struct allocated_fs *rc = (struct allocated_fs *)
         malloc(sizeof(struct allocated_fs));
@@ -1089,6 +1092,9 @@ static struct lsm_ops_v1_3 ops_v1_3 = {
     system_read_cache_pct_update,
     lsm_battery_list,
     lsm_volume_cache_info,
+    NULL, /* lsm_plug_volume_physical_disk_cache_update */
+    NULL, /* lsm_plug_volume_write_cache_policy_update */
+    NULL, /* lsm_plug_volume_read_cache_policy_update */
 };
 
 static int volume_enable_disable(lsm_plugin_ptr c, lsm_volume * v,
@@ -1156,14 +1162,15 @@ static int _find_dup_init(struct plugin_data *pd, const char *initiator_id)
     GList *all_aags = g_hash_table_get_values(pd->access_groups);
     guint y;
     int rc = 1;
+    uint32_t i = 0;
+
     for (y = 0; y < g_list_length(all_aags); ++y) {
         struct allocated_ag *cur_aag =
             (struct allocated_ag *) g_list_nth_data(all_aags, y);
         if (cur_aag) {
             lsm_string_list *inits =
                 lsm_access_group_initiator_id_get(cur_aag->ag);
-            int i;
-            for (i = 0; i < lsm_string_list_size(inits); ++i) {
+            for (; i < lsm_string_list_size(inits); ++i) {
                 const char *cur_init_id =
                     lsm_string_list_elem_get(inits, i);
                 if (strcmp(initiator_id, cur_init_id) == 0) {
@@ -1171,11 +1178,8 @@ static int _find_dup_init(struct plugin_data *pd, const char *initiator_id)
                     break;
                 }
             }
-            if (rc == 0) {
+            if (rc == 0)
                 break;
-            } else {
-                cur_aag = (struct allocated_ag *) g_list_next(all_aags);
-            }
         }
     }
     g_list_free(all_aags);
@@ -1609,7 +1613,7 @@ static int ag_granted_to_volume(lsm_plugin_ptr c,
     return rc;
 }
 
-int static volume_dependency(lsm_plugin_ptr c,
+static int volume_dependency(lsm_plugin_ptr c,
                              lsm_volume * volume,
                              uint8_t * yes, lsm_flag flags)
 {
@@ -2263,7 +2267,7 @@ void free_allocated_volume(void *v)
 
 static void _unload(struct plugin_data *pd)
 {
-    int i;
+    uint32_t i = 0;
 
     if (pd) {
 
@@ -2302,7 +2306,7 @@ static void _unload(struct plugin_data *pd)
             pd->pools = NULL;
         }
 
-        for (i = 0; i < pd->num_systems; ++i) {
+        for (; i < pd->num_systems; ++i) {
             lsm_system_record_free(pd->system[i]);
             pd->system[i] = NULL;
         }
@@ -2477,6 +2481,8 @@ static int lsm_battery_list(lsm_plugin_ptr c, const char *search_key,
     *bs = lsm_battery_record_array_alloc(2);
     if (*bs == NULL) {
         *count = 0;
+        lsm_battery_record_free(bat1);
+        lsm_battery_record_free(bat2);
         return LSM_ERR_NO_MEMORY;
     }
 
@@ -2518,7 +2524,7 @@ static int lsm_volume_cache_info(lsm_plugin_ptr c, lsm_volume *volume,
 
 int main(int argc, char *argv[])
 {
-    return lsm_plugin_init_v1(argc, argv, load, unload, name, version);
+    return lsm_plugin_init_v1(argc, argv, load, unload, PLUGIN_NAME, version);
 }
 
 

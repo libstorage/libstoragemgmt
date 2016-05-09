@@ -163,19 +163,13 @@ Transport::~Transport()
     close();
 }
 
-int Transport::close()
+void Transport::close()
 {
-    int rc = EBADF;
-
     if (s >= 0) {
-        int rc =::close(s);
-        if (rc != 0) {
-            rc = errno;
-        }
+        ::close(s);
         // Regardless, clear out socket
         s = -1;
     }
-    return rc;
 }
 
 EOFException::EOFException(std::string m):std::runtime_error(m)

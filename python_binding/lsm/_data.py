@@ -228,7 +228,7 @@ class Disk(IData):
 
     def __init__(self, _id, _name, _disk_type, _block_size, _num_of_blocks,
                  _status, _system_id, _plugin_data=None, _vpd83='',
-                 _disk_location='', _rpm=RPM_NO_SUPPORT,
+                 _location='', _rpm=RPM_NO_SUPPORT,
                  _link_type=LINK_TYPE_NO_SUPPORT):
         self._id = _id
         self._name = _name
@@ -244,7 +244,7 @@ class Disk(IData):
                            "expecting 32 or 16 lower case hex characters" %
                            _vpd83)
         self._vpd83 = _vpd83
-        self._disk_location = _disk_location
+        self._location = _location
         self._rpm = _rpm
         self._link_type = _link_type
 
@@ -271,15 +271,15 @@ class Disk(IData):
         return self._vpd83
 
     @property
-    def disk_location(self):
+    def location(self):
         """
         String. Disk location in storage topology. New in version 1.3.
         """
-        if self._disk_location == '':
+        if self._location == '':
             raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "Disk.disk_location() is not supported by this "
+                           "Disk.location property is not supported by this "
                            "plugin yet")
-        return self._disk_location
+        return self._location
 
     @property
     def rpm(self):
@@ -490,13 +490,13 @@ class System(IData):
     STATUS_PREDICTIVE_FAILURE = 1 << 4
     STATUS_OTHER = 1 << 5
 
-    MODE_NO_SUPPORT = 0
-    # ^ Only for internal use.
-    MODE_HARDWARE_RAID = 1
-    MODE_HBA = 2
+    MODE_NO_SUPPORT = -2
+    MODE_UNKNOWN = -1
+    MODE_HARDWARE_RAID = 0
+    MODE_HBA = 1
 
-    CACHE_PCT_NO_SUPPORT = -2
-    CACHE_PCT_UNKNOWN = -1
+    READ_CACHE_PCT_NO_SUPPORT = -2
+    READ_CACHE_PCT_UNKNOWN = -1
 
     def __init__(self, _id, _name, _status, _status_info, _plugin_data=None,
                  _fw_version='', _mode=None, _read_cache_pct=None):
@@ -507,7 +507,7 @@ class System(IData):
         self._plugin_data = _plugin_data
         self._fw_version = _fw_version
         if _read_cache_pct is None:
-            self._read_cache_pct = System.CACHE_PCT_NO_SUPPORT
+            self._read_cache_pct = System.READ_CACHE_PCT_NO_SUPPORT
         else:
             self._read_cache_pct = _read_cache_pct
         if _mode is None:
@@ -557,7 +557,7 @@ class System(IData):
                 The read cache percentage. The write cache percentage will
                 then be 100 - read_cache_pct
         """
-        if self._read_cache_pct == System.CACHE_PCT_NO_SUPPORT:
+        if self._read_cache_pct == System.READ_CACHE_PCT_NO_SUPPORT:
             raise LsmError(ErrorNumber.NO_SUPPORT,
                            "System.read_cache_pct is not supported by this "
                            "plugin yet")

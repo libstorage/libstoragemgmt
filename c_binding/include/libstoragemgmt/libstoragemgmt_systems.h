@@ -73,15 +73,13 @@ const char LSM_DLL_EXPORT *lsm_system_name_get(lsm_system *s);
 
 /**
  * New in version 1.3. Retrieves read cache percentage of the specified system.
- * @param       s      		System to retrieve read cache percentage for.
- * @param[out]  read_pct  	Read cache percentage.
- * @return Error code as enumerated by \ref lsm_error_number.
- * @retval LSM_ERR_OK on success.
- * @retval LSM_ERR_NO_SUPPORT
- * @retval LSM_ERR_INVALID_ARGUMENT
+ * @param       s   System to retrieve read cache percentage for.
+ * @return Read cache percentage.
+ * @retval >= 0 and <= 100 Success
+ * @retval LSM_SYSTEM_READ_CACHE_PCT_NO_SUPPORT No support.
+ * @retval LSM_SYSTEM_READ_CACHE_PCT_UNKNOWN system pointer is NULL or bug.
  */
-int LSM_DLL_EXPORT lsm_system_read_cache_pct_get(lsm_system *s,
-                                                 int *read_pct);
+int LSM_DLL_EXPORT lsm_system_read_cache_pct_get(lsm_system *s);
 
 /**
  * Retrieve the status for the system.
@@ -92,42 +90,37 @@ int LSM_DLL_EXPORT lsm_system_read_cache_pct_get(lsm_system *s,
 uint32_t LSM_DLL_EXPORT lsm_system_status_get(lsm_system *s);
 
 /**
- * New in version 1.3. Retrieves firmware version of the specified system.
- * Please do not free fw_ver string pointer, resources will get freed when
+ * New in version 1.3.
+ * Retrieves firmware version of the specified system.
+ * Please do not free returned string pointer, resources will get freed when
  * lsm_system_record_free() or lsm_system_record_array_free() is called.
  * @param       s       System to retrieve firmware version for.
- * @param[out]  fw_ver  Firmware version string.
- * @return Error code as enumerated by \ref lsm_error_number.
- * @retval LSM_ERR_OK on success.
- * @retval LSM_ERR_NO_SUPPORT
- * @retval LSM_ERR_INVALID_ARGUMENT
+ * @return System firmware version. NULL if bad system pointer or no support or
+ * bug.
  */
-int LSM_DLL_EXPORT lsm_system_fw_version_get(lsm_system *s,
-                                             const char **fw_ver);
+LSM_DLL_EXPORT const char *lsm_system_fw_version_get(lsm_system *s);
 
 /**
- * New in version 1.3. Retrieves system mode, currently only supports
- * retrieving hardware RAID cards system mode:
- *      LSM_SYSTEM_MODE_NO_SUPPORT
+ * New in version 1.3.
+ * Retrieves system mode, currently only supports retrieving hardware RAID cards
+ * system mode.
+ * @param   s       System to retrieve firmware version for.
+ * @return Hardware RAID card system mode.
+ * @retval LSM_SYSTEM_MODE_UNKNOWN
+ *          The value when invalid argument or bug.
+ * @retval LSM_SYSTEM_MODE_NO_SUPPORT
  *          The value when requested method is not supported.
- *      LSM_SYSTEM_MODE_HARDWARE_RAID
+ * @retval LSM_SYSTEM_MODE_HARDWARE_RAID
  *          The storage system is a hardware RAID card(like HP SmartArray and
  *          LSI MegaRAID) and could expose the logical volume(aka, RAIDed
  *          virtual disk) to OS while hardware RAID card is handling the RAID
  *          algorithm. In this mode, storage system cannot expose physical disk
  *          directly to OS.
- *      LSM_SYSTEM_MODE_HBA
+ * @retval LSM_SYSTEM_MODE_HBA
  *          The physical disks can be exposed to OS directly without any
  *          configurations. SCSI enclosure service might be exposed to OS also.
- * @param       s       System to retrieve firmware version for.
- * @param[out]  mode    System mode 'lsm_system_mode_type' pointer.
- * @return Error code as enumerated by \ref lsm_error_number.
- * @retval LSM_ERR_OK on success.
- * @retval LSM_ERR_NO_SUPPORT
- * @retval LSM_ERR_INVALID_ARGUMENT 
  */
-int LSM_DLL_EXPORT lsm_system_mode_get(lsm_system *s,
-                                       lsm_system_mode_type *mode);
+LSM_DLL_EXPORT lsm_system_mode_type lsm_system_mode_get(lsm_system *s);
 
 #ifdef  __cplusplus
 }

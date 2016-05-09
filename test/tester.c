@@ -1175,34 +1175,25 @@ START_TEST(test_disk_location)
     lsm_disk **d = NULL;
     const char *location = NULL;
     int i = 0;
+    int rc = LSM_ERR_OK;
 
     fail_unless(c!=NULL);
 
-    int rc = lsm_disk_list(c, NULL, NULL, &d, &count, 0);
+    G(rc, lsm_disk_list, c, NULL, NULL, &d, &count, 0);
+    fail_unless(count >= 1);
 
-    if( LSM_ERR_OK == rc ) {
-        fail_unless(LSM_ERR_OK == rc, "%d", rc);
-        fail_unless(count >= 1);
+    for(; i < count; ++i ) {
+        location = lsm_disk_location_get(d[i]);
+        fail_unless(location != NULL,
+                    "Got NULL return from lsm_disk_location_get()");
 
-        for( i = 0; i < count; ++i ) {
-            G(rc, lsm_disk_location_get, d[i], &location);
-
-            if (LSM_ERR_OK == rc)
-                printf("Disk location: (%s)\n", location);
-
-            rc = lsm_disk_location_get(d[i], NULL);
-            fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
-
-        }
-
-        rc = lsm_disk_location_get(NULL, &location);
-        fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
-
-        lsm_disk_record_array_free(d, count);
-    } else {
-        fail_unless(d == NULL);
-        fail_unless(count == 0);
+        printf("Disk location: (%s)\n", location);
     }
+    location = lsm_disk_location_get(NULL);
+    fail_unless(location == NULL,
+                "Got non-NULL return from lsm_disk_location_get(NULL)");
+
+    lsm_disk_record_array_free(d, count);
 }
 END_TEST
 
@@ -2081,24 +2072,17 @@ START_TEST(test_system_fw_version)
     uint32_t sys_count = 0;
 
     G(rc, lsm_system_list, c, &sys, &sys_count, LSM_CLIENT_FLAG_RSVD);
-    fail_unless( sys_count >= 1, "count = %d", sys_count);
+    fail_unless(sys_count >= 1, "count = %d", sys_count);
 
-    if(sys_count > 0) {
+    fw_ver = lsm_system_fw_version_get(sys[0]);
+    fail_unless(fw_ver != NULL, "Got unexpected NULL return from "
+                "lsm_system_fw_version_get()");
 
-        G(rc, lsm_system_fw_version_get, sys[0], &fw_ver);
+    fw_ver = lsm_system_fw_version_get(NULL);
+    fail_unless(fw_ver == NULL, "Got unexpected non-NULL return from "
+                "lsm_system_fw_version_get(NULL)");
 
-        if( LSM_ERR_OK == rc ) {
-            printf("Firmware version: (%s)\n", fw_ver);
-        }
-
-        rc = lsm_system_fw_version_get(sys[0], NULL);
-        fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
-    }
-
-    rc = lsm_system_fw_version_get(NULL, &fw_ver);
-    fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
     lsm_system_record_array_free(sys, sys_count);
-
 }
 END_TEST
 
@@ -2110,53 +2094,46 @@ START_TEST(test_system_mode)
     uint32_t sys_count = 0;
 
     G(rc, lsm_system_list, c, &sys, &sys_count, LSM_CLIENT_FLAG_RSVD);
-    fail_unless( sys_count >= 1, "count = %d", sys_count);
+    fail_unless(sys_count >= 1, "count = %d", sys_count);
 
-    if(sys_count > 0) {
+    mode = lsm_system_mode_get(sys[0]);
 
-        G(rc, lsm_system_mode_get, sys[0], &mode);
+    fail_unless(mode != LSM_SYSTEM_MODE_UNKNOWN,
+                "Got unexpected LSM_SYSTEM_MODE_UNKNOWN from "
+                "lsm_system_mode_get()");
 
-        if( LSM_ERR_OK == rc ) {
-            printf("System mode: (%d)\n", mode);
-        }
+    mode = lsm_system_mode_get(NULL);
+    fail_unless(mode == LSM_SYSTEM_MODE_UNKNOWN,
+                "Got unexpected return %d from "
+                "lsm_system_mode_get(NULL)", mode);
 
-        rc = lsm_system_mode_get(sys[0], NULL);
-        fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
-    }
-
-    rc = lsm_system_mode_get(NULL, &mode);
-    fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
     lsm_system_record_array_free(sys, sys_count);
-
 }
 END_TEST
 
 START_TEST(test_read_cache_pct)
 {
-    int read_cache_pct = LSM_SYSTEM_CACHE_PCT_NO_SUPPORT;
+    int read_cache_pct = LSM_SYSTEM_READ_CACHE_PCT_NO_SUPPORT;
     int rc = 0;
     lsm_system **sys = NULL;
     uint32_t sys_count = 0;
 
     G(rc, lsm_system_list, c, &sys, &sys_count, LSM_CLIENT_FLAG_RSVD);
-    fail_unless( sys_count >= 1, "count = %d", sys_count);
+    fail_unless(sys_count >= 1, "count = %d", sys_count);
 
-    if(sys_count > 0) {
+    read_cache_pct = lsm_system_read_cache_pct_get(sys[0]);
 
-        G(rc, lsm_system_read_cache_pct_get, sys[0], &read_cache_pct);
+    fail_unless(read_cache_pct >= 0,
+                "Read cache should bigger that 0, but got %d", read_cache_pct);
 
-        if( LSM_ERR_OK == rc ) {
-            printf("Read cache pct: (%d)\n", read_cache_pct);
-        }
+    read_cache_pct = lsm_system_read_cache_pct_get(NULL);
+    fail_unless(LSM_SYSTEM_READ_CACHE_PCT_UNKNOWN == read_cache_pct,
+                "When input system pointer is NULL, "
+                "lsm_system_read_cache_pct_get() should return "
+                "LSM_SYSTEM_READ_CACHE_PCT_UNKNOWN, but got %d",
+                read_cache_pct);
 
-        rc = lsm_system_read_cache_pct_get(sys[0], NULL);
-        fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
-    }
-
-    rc = lsm_system_read_cache_pct_get(NULL, &read_cache_pct);
-    fail_unless(LSM_ERR_INVALID_ARGUMENT == rc, "rc = %d", rc);
     lsm_system_record_array_free(sys, sys_count);
-
 }
 END_TEST
 
@@ -3457,21 +3434,6 @@ START_TEST(test_local_disk_vpd83_get)
     fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
                 "lsm_local_disk_vpd83_get(): Expecting "
                 "LSM_ERR_INVALID_ARGUMENT when lsm_err is NULL");
-
-    rc = lsm_local_disk_vpd83_get("/dev/", &vpd83, &lsm_err);
-    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
-                "lsm_local_disk_vpd83_get(): Expecting "
-                "LSM_ERR_INVALID_ARGUMENT when input is illegal");
-    fail_unless(lsm_err != NULL,
-                "lsm_local_disk_vpd83_get(): Expecting "
-                "lsm_err been set as non-NULL.");
-    fail_unless(lsm_error_number_get(lsm_err) == LSM_ERR_INVALID_ARGUMENT,
-                "lsm_local_disk_vpd83_get(): Expecting "
-                "lsm_err been set with LSM_ERR_INVALID_ARGUMENT");
-    fail_unless(lsm_error_message_get(lsm_err) != NULL,
-                "lsm_local_disk_vpd83_get(): Expecting "
-                "lsm_err been set with non-NULL error message");
-    lsm_error_free(lsm_err);
 
     /* We cannot make sure /dev/sda exists, but worth trying */
     lsm_local_disk_vpd83_get("/dev/sda", &vpd83, &lsm_err);

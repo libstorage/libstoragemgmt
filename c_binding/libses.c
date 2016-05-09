@@ -356,14 +356,18 @@ static int _ses_sg_paths_get(char *err_msg, char ***sg_paths,
                     rc = LSM_ERR_NO_MEMORY;
                     goto out;
                 }
-                free(sysfs_sg_type_path);
             }
+            free(sysfs_sg_type_path);
         }
     } while(dp != NULL);
 
     *sg_count = lsm_string_list_size(sg_name_list);
     *sg_paths = (char **) malloc(sizeof(char *) * (*sg_count));
     _alloc_null_check(err_msg, sg_name_list, rc, out);
+
+    /* Initialize *sg_paths */
+    for (i = 0; i < *sg_count; ++i)
+        (*sg_paths)[i] = NULL;
 
     _lsm_string_list_foreach(sg_name_list, i, sg_name) {
         (*sg_paths)[i] = (char *)
@@ -443,7 +447,8 @@ static int16_t _ses_find_sas_addr(const char *sas_addr, uint8_t *add_st_data,
             goto out;
         for (i = 0; i < dp_sas->phy_count; ++i) {
             phy = (struct _ses_add_st_sas_phy *)
-                (&dp_sas->phy_list) + sizeof(struct _ses_add_st_sas_phy) * i;
+                ((uint8_t *) (&dp_sas->phy_list) +
+                 sizeof(struct _ses_add_st_sas_phy) * i);
             _be_raw_to_hex((uint8_t *) &phy->sas_addr,
                            _SG_T10_SPL_SAS_ADDR_LEN_BITS, tmp_sas_addr);
             if (strncmp(tmp_sas_addr, sas_addr,

@@ -648,7 +648,7 @@ lsm_disk *lsm_disk_record_alloc(const char *id, const char *name,
         rc->status = disk_status;
         rc->system_id = strdup(system_id);
         rc->vpd83 = NULL;
-        rc->disk_location = NULL;
+        rc->location = NULL;
         rc->rpm = LSM_DISK_RPM_NO_SUPPORT;
         rc->link_type = LSM_DISK_LINK_TYPE_NO_SUPPORT;
 
@@ -675,7 +675,7 @@ lsm_system *lsm_system_record_alloc(const char *id, const char *name,
         rc->status_info = strdup(status_info);
         rc->fw_version = NULL;
         rc->mode = LSM_SYSTEM_MODE_NO_SUPPORT;
-        rc->read_cache_pct = LSM_SYSTEM_CACHE_PCT_NO_SUPPORT;
+        rc->read_cache_pct = LSM_SYSTEM_READ_CACHE_PCT_NO_SUPPORT;
 
         if (plugin_data) {
             rc->plugin_data = strdup(plugin_data);
@@ -731,7 +731,7 @@ lsm_system *lsm_system_record_copy(lsm_system * s)
         rc = lsm_system_record_alloc(s->id, s->name, s->status, s->status_info,
                                      s->plugin_data);
         rc->mode = s->mode;
-	rc->read_cache_pct = s->read_cache_pct;
+        rc->read_cache_pct = s->read_cache_pct;
 
         if ((s->fw_version != NULL) &&
             (lsm_system_fw_version_set(rc, s->fw_version) != LSM_ERR_OK)) {
@@ -746,6 +746,11 @@ MEMBER_FUNC_GET(const char *,lsm_system, LSM_IS_SYSTEM, id, NULL);
 MEMBER_FUNC_GET(const char *,lsm_system, LSM_IS_SYSTEM, name, NULL);
 MEMBER_FUNC_GET(uint32_t,lsm_system, LSM_IS_SYSTEM, status, UINT32_MAX);
 MEMBER_FUNC_GET(const char *,lsm_system, LSM_IS_SYSTEM, plugin_data, NULL);
+MEMBER_FUNC_GET(int, lsm_system, LSM_IS_SYSTEM, read_cache_pct,
+                LSM_SYSTEM_READ_CACHE_PCT_UNKNOWN);
+MEMBER_FUNC_GET(const char *, lsm_system, LSM_IS_SYSTEM, fw_version, NULL);
+MEMBER_FUNC_GET(lsm_system_mode_type, lsm_system, LSM_IS_SYSTEM, mode,
+                LSM_SYSTEM_MODE_UNKNOWN);
 
 int lsm_system_fw_version_set(lsm_system *sys, const char *fw_ver)
 {
@@ -763,19 +768,6 @@ int lsm_system_fw_version_set(lsm_system *sys, const char *fw_ver)
     return LSM_ERR_OK;
 }
 
-int lsm_system_fw_version_get(lsm_system *s, const char **fw_ver)
-{
-    if ((s == NULL) || (fw_ver == NULL) || (! LSM_IS_SYSTEM(s)))
-        return LSM_ERR_INVALID_ARGUMENT;
-
-    *fw_ver = s->fw_version;
-
-    if (s->fw_version[0] != '\0' )
-        return LSM_ERR_OK;
-    else
-        return LSM_ERR_NO_SUPPORT;
-}
-
 int lsm_system_mode_set(lsm_system *sys, lsm_system_mode_type mode)
 {
     if ((sys == NULL) || (! LSM_IS_SYSTEM(sys)) ||
@@ -787,41 +779,15 @@ int lsm_system_mode_set(lsm_system *sys, lsm_system_mode_type mode)
     return LSM_ERR_OK;
 }
 
-int lsm_system_mode_get(lsm_system *s, lsm_system_mode_type *mode)
-{
-    if ((s == NULL) || (mode == NULL) || (! LSM_IS_SYSTEM(s)))
-        return LSM_ERR_INVALID_ARGUMENT;
-
-    *mode = s->mode;
-
-    if (s->mode != LSM_SYSTEM_MODE_NO_SUPPORT)
-        return LSM_ERR_OK;
-    else
-        return LSM_ERR_NO_SUPPORT;
-}
-
 int lsm_system_read_cache_pct_set(lsm_system *sys, int read_pct)
 {
     if ((sys == NULL) || (! LSM_IS_SYSTEM(sys)) ||
-        (read_pct == LSM_SYSTEM_CACHE_PCT_NO_SUPPORT))
+        (read_pct == LSM_SYSTEM_READ_CACHE_PCT_NO_SUPPORT))
         return LSM_ERR_INVALID_ARGUMENT;
 
     sys->read_cache_pct = read_pct;
 
     return LSM_ERR_OK;
-}
-
-int lsm_system_read_cache_pct_get(lsm_system *s, int *read_pct)
-{
-    if ((s == NULL) || (read_pct == NULL) || (! LSM_IS_SYSTEM(s)))
-        return LSM_ERR_INVALID_ARGUMENT;
-
-    *read_pct = s->read_cache_pct;
-
-    if (s->read_cache_pct != LSM_SYSTEM_CACHE_PCT_NO_SUPPORT)
-        return LSM_ERR_OK;
-    else
-        return LSM_ERR_NO_SUPPORT;
 }
 
 lsm_volume *lsm_volume_record_copy(lsm_volume * vol)
@@ -893,8 +859,8 @@ lsm_disk *lsm_disk_record_copy(lsm_disk * disk)
                 lsm_disk_record_free(new_lsm_disk);
                 return NULL;
             }
-        if ((disk->disk_location != NULL) &&
-            (lsm_disk_location_set(new_lsm_disk, disk->disk_location) != LSM_ERR_OK)) {
+        if ((disk->location != NULL) &&
+            (lsm_disk_location_set(new_lsm_disk, disk->location) != LSM_ERR_OK)) {
             lsm_disk_record_free(new_lsm_disk);
             return NULL;
         }
@@ -922,8 +888,7 @@ int lsm_disk_record_free(lsm_disk * d)
         free(d->vpd83);
         d->vpd83 = NULL;
 
-        if (d->disk_location != NULL)
-            free((char *) d->disk_location);
+        free((char *) d->location);
 
         free(d);
         return LSM_ERR_OK;
@@ -977,36 +942,19 @@ int lsm_disk_location_set(lsm_disk * disk, const char *location)
     if ((disk == NULL) || (location == NULL) || (location[0] == '\0'))
         return LSM_ERR_INVALID_ARGUMENT;
 
-    if (disk->disk_location != NULL)
-        free((char *) disk->disk_location);
-    disk->disk_location = strdup(location);
-    if (disk->disk_location == NULL)
+    free((char *) disk->location);
+    disk->location = strdup(location);
+    if (disk->location == NULL)
         return LSM_ERR_NO_MEMORY;
 
     return LSM_ERR_OK;
-}
-
-int lsm_disk_location_get(lsm_disk * disk, const char **location)
-{
-    if ((disk == NULL) || (location == NULL))
-        return LSM_ERR_INVALID_ARGUMENT;
-
-    if (!LSM_IS_DISK(disk)) {
-        return LSM_ERR_INVALID_ARGUMENT;
-    }
-
-    *location = disk->disk_location;
-
-    if (disk->disk_location[0] != '\0')
-        return LSM_ERR_OK;
-    else
-        return LSM_ERR_NO_SUPPORT;
 }
 
 MEMBER_FUNC_GET(const char *, lsm_disk, LSM_IS_DISK, id, NULL);
 MEMBER_FUNC_GET(const char *, lsm_disk, LSM_IS_DISK, name, NULL);
 MEMBER_FUNC_GET(const char *, lsm_disk, LSM_IS_DISK, system_id, NULL);
 MEMBER_FUNC_GET(const char *, lsm_disk, LSM_IS_DISK, vpd83, NULL);
+MEMBER_FUNC_GET(const char *, lsm_disk, LSM_IS_DISK, location, NULL);
 MEMBER_FUNC_GET(lsm_disk_type, lsm_disk, LSM_IS_DISK, type,
                 LSM_DISK_TYPE_UNKNOWN);
 MEMBER_FUNC_GET(uint64_t, lsm_disk, LSM_IS_DISK, block_size, 0);
@@ -1977,13 +1925,13 @@ lsm_battery *lsm_battery_record_alloc(const char *id, const char *name,
             rc->plugin_data = strdup(plugin_data);
             if (rc->plugin_data == NULL) {
                 lsm_battery_record_free(rc);
-                rc = NULL;
+                return NULL;
             }
         }
 
         if (rc->id == NULL || rc->name == NULL || rc->system_id == NULL) {
             lsm_battery_record_free(rc);
-            rc = NULL;
+            return NULL;
         }
     }
     return rc;

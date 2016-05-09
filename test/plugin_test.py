@@ -509,7 +509,7 @@ class TestPlugin(unittest.TestCase):
             cap = self.c.capabilities(s)
             if supported(cap, [Cap.DISK_LOCATION]):
                 for disk in self.c.disks():
-                    disk_location = disk.disk_location
+                    disk_location = disk.location
                     self.assertTrue(disk_location is not None and
                                     len(disk_location) > 0,
                                     "Disk location retrieval failed")

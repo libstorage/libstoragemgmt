@@ -199,25 +199,6 @@ if test "x$not_found_py_pkg" == "xyes"; then
 fi
 
 dnl ==========================================================================
-dnl Check for libmicrohttpd and json-c as it is needed for REST API daemon
-dnl ==========================================================================
-
-AC_ARG_WITH([rest-api],
-    [AS_HELP_STRING([--without-rest-api],
-        [Do not build the REST API daemon])],
-    [],
-    [with_rest_api=yes])
-if test "x$with_rest_api" = "xyes"; then
-    PKG_CHECK_MODULES([LIBMICROHTTPD], [libmicrohttpd >= 0.9])
-    PKG_CHECK_MODULES([JSON], [json >= 0.10], [], [
-        PKG_CHECK_MODULES([JSON], [json-c], [], [
-            AC_MSG_ERROR([json-c development libraries 0.10 or later required])
-        ])
-    ])
-fi
-AM_CONDITIONAL([WITH_REST_API], [test "x$with_rest_api" = "xyes"])
-
-dnl ==========================================================================
 dnl Add option '--without-megaraid' to exclude megaraid plugin.
 dnl ==========================================================================
 

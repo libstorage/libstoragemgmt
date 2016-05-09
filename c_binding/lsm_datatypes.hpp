@@ -278,7 +278,7 @@ struct LSM_DLL_LOCAL _lsm_disk {
     uint64_t status;                    /* Bit field */
     char *system_id;
     char *vpd83;
-    const char *disk_location;
+    const char *location;
     int32_t rpm;
     lsm_disk_link_type link_type;
 };

@@ -90,7 +90,7 @@ class LSM_DLL_LOCAL Transport {
      * Closes the transport, called in the destructor if not done in advance.
      * @return 0 on success, else EBADF, EINTR, EIO.
      */
-    int close();
+    void close();
 
   private:
     int s;                      //Socket descriptor
