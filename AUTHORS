@@ -11,6 +11,7 @@ The primary maintainer(s) and people with commit access rights:
    Andy Grover          <agrover@redhat.com>
    Gris Ge              <fge@redhat.com>
    Ma Shimiao           <mashimiao.fnst@cn.fujitsu.com>
+   Joe Handzik          <joseph.t.handzik@hpe.com>
 
 Patches have also been contributed by:
 
@@ -23,7 +24,6 @@ Patches have also been contributed by:
    Deepak C Shetty          <deepakcs@linux.vnet.ibm.com>
    Ewan Milne               <emilne@redhat.com>
    Charles Rose             <charles.e.rose@gmail.com>
-   Joe Handzik              <joseph.t.handzik@hpe.com>
    Blaine Gardner           <blaine.gardner@hpe.com>
 
 [....send patches to get your name here....]
