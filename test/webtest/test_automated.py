@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 
-# Copyright (C) 2014 Red Hat, Inc.
+# Copyright (C) 2014-2016 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -26,6 +26,7 @@ from multiprocessing import Process
 import yaml
 import time
 import os
+import signal
 
 
 def call(command):
@@ -65,8 +66,8 @@ def run_test(cmdline, output_dir, sys_id, uri, password):
 
 
 if __name__ == '__main__':
-    time_limit_seconds = long(
-        os.getenv('LSM_TEST_TMO_SECS', 90 * 60))  # 90 minutes
+    # We will wait up to 90 minutes or whatever the env variable is
+    time_limit_seconds = int(os.getenv('LSM_TEST_TMO_SECS', 90 * 60))
 
     if len(sys.argv) != 4:
         print('Syntax: %s <array_file> <plugin unit test> <output directory>'
@@ -76,46 +77,46 @@ if __name__ == '__main__':
         run = True
         process_list = []
         results = []
-        array_cimons = test_hardware.TestArrays().providers(sys.argv[1])
+        arrays_to_test = test_hardware.TestArrays().providers(sys.argv[1])
 
-        for system in array_cimons:
-            (uri, password) = test_hardware.TestArrays.uri_password_get(system)
+        for system in arrays_to_test:
+            (u, credentials) = test_hardware.TestArrays.uri_password_get(system)
             name = system['COMPANY']
             ip = system['IP']
             system_id = "%s-%s" % (name, ip)
 
             p = Process(target=run_test, args=(sys.argv[2], sys.argv[3],
-                                               system_id, uri, password))
+                                               system_id, u, credentials))
             p.name = system_id
             p.start()
             process_list.append(p)
 
         start = time.time()
-        print 'Test run started at: %s, time limit is %s minutes' % \
-              (time.strftime("%c"), str(time_limit_seconds / 60.0))
+        print('Test run started at: %s, time limit is %s minutes' %
+              (time.strftime("%c"), str(time_limit_seconds / 60.0)))
         sys.stdout.flush()
 
         while len(process_list) > 0:
             for p in process_list:
                 p.join(1)
                 if not p.is_alive():
-                    print '%s exited with %s at %s (runtime %s seconds)' % \
+                    print('%s exited with %s at %s (runtime %s seconds)' %
                           (p.name, str(p.exitcode), time.strftime("%c"),
-                           str(time.time() - start))
+                           str(time.time() - start)))
                     sys.stdout.flush()
                     process_list.remove(p)
                     break
 
             current = time.time()
             if (current - start) >= time_limit_seconds:
-                print 'Test taking too long...'
+                print('Test taking too long...')
                 sys.stdout.flush()
                 for p in process_list:
-                    print 'Terminating process %s, name %s' % \
-                          (str(p.pid), p.name)
+                    print('Terminating process %s, name %s' %
+                          (str(p.pid), p.name))
                     sys.stdout.flush()
-                    p.terminate()
+                    os.kill(p.pid, signal.SIGKILL)
                 break
 
-        print 'Test run exiting at: %s' % time.strftime("%c")
+        print('Test run exiting at: %s' % time.strftime("%c"))
         sys.stdout.flush()
