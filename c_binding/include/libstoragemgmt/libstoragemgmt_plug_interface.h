@@ -1031,9 +1031,9 @@ typedef int (*lsm_plug_volume_raid_create) (lsm_plugin_ptr c,
 /**
  * Enable the IDENT LED for the desired volume.
  * New in version 1.3, only available for hardware RAID cards.
- * @param[in] c			Valid lsm plug-in pointer
- * @param[in] volume		A single lsm_volume
- * @param[in] flags         	Reserved, set to 0
+ * @param[in] c         Valid lsm plug-in pointer
+ * @param[in] volume    A single lsm_volume
+ * @param[in] flags     Reserved, set to 0
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
@@ -1044,9 +1044,9 @@ typedef int (*lsm_plug_volume_ident_led_on) (lsm_plugin_ptr c,
 /**
  * Disable the IDENT LED for the desired volume.
  * New in version 1.3, only available for hardware RAID cards.
- * @param[in] c			Valid lsm plug-in pointer
- * @param[in] volume		A single lsm_volume
- * @param[in] flags         	Reserved, set to 0
+ * @param[in] c         Valid lsm plug-in pointer
+ * @param[in] volume    A single lsm_volume
+ * @param[in] flags     Reserved, set to 0
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
@@ -1057,10 +1057,10 @@ typedef int (*lsm_plug_volume_ident_led_off) (lsm_plugin_ptr c,
 /**
  * Change the read cache percentage for the desired system.
  * New in version 1.3, only available for hardware RAID cards.
- * @param[in] c			Valid lsm plug-in pointer
- * @param[in] system		A single lsm_system
- * @param[in] read_pct		Desired read cache percentage
- * @param[in] flags         	Reserved, set to 0
+ * @param[in] c             Valid lsm plug-in pointer
+ * @param[in] system        A single lsm_system
+ * @param[in] read_pct      Desired read cache percentage
+ * @param[in] flags         Reserved, set to 0
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
@@ -1460,8 +1460,8 @@ lsm_disk LSM_DLL_EXPORT *lsm_disk_record_alloc(const char *id,
 
 /**
  * New in version 1.3. Set a disk's location.
- * @param disk		Pointer to the disk of interest.
- * @param disk_path	Pointer to the disk's location.
+ * @param disk          Pointer to the disk of interest.
+ * @param disk_path     Pointer to the disk's location.
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */

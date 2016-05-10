@@ -91,7 +91,7 @@ int LSM_DLL_EXPORT lsm_connect_close(lsm_connect *conn, lsm_flag flags);
  * @param[out] version  Plug-in version
  * @param [in] flags    Reserved for future use, must be zero.
  * @return Error code as enumerated by \ref lsm_error_number.
- * @retval LSM_ERR_OK on success. 
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_plugin_info_get(lsm_connect *conn, char **desc,
                                        char **version, lsm_flag flags);
@@ -341,7 +341,7 @@ int LSM_DLL_EXPORT lsm_volume_create(lsm_connect *conn,
  * @param[in] flags             Reserved for future use, must be zero.
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
- * @retval LSM_ERR_JOB_STARTED if async. 
+ * @retval LSM_ERR_JOB_STARTED if async.
  */
 int LSM_DLL_EXPORT lsm_volume_resize(lsm_connect *conn,
                                      lsm_volume * volume,
@@ -429,7 +429,7 @@ int LSM_DLL_EXPORT lsm_volume_delete(lsm_connect *conn,
  * @param[in] volume                Volume that is to be placed online
  * @param[in] flags                 Reserved for future use, must be zero.
  * @return Error code as enumerated by \ref lsm_error_number.
- * @retval LSM_ERR_OK on success. 
+ * @retval LSM_ERR_OK on success.
  */
 int LSM_DLL_EXPORT lsm_volume_enable(lsm_connect *conn, lsm_volume *volume,
                                      lsm_flag flags);
@@ -692,7 +692,7 @@ int LSM_DLL_EXPORT lsm_fs_create(lsm_connect *conn, lsm_pool * pool,
  * @param[in] flags             Reserved for future use, must be zero.
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
- * @retval LSM_ERR_JOB_STARTED if async. 
+ * @retval LSM_ERR_JOB_STARTED if async.
  */
 int LSM_DLL_EXPORT lsm_fs_delete(lsm_connect *conn, lsm_fs *fs,
                                  char **job, lsm_flag flags);
@@ -1060,9 +1060,9 @@ int LSM_DLL_EXPORT lsm_volume_raid_create(lsm_connect *c,
 /**
  * Enable the IDENT LED for the desired volume.
  * New in version 1.3, only available for hardware RAID cards.
- * @param[in] c				Valid connection
- * @param[in] volume			A single lsm_volume
- * @param[in] flags			Reserved, set to 0
+ * @param[in] c             Valid connection
+ * @param[in] volume        A single lsm_volume
+ * @param[in] flags         Reserved, set to 0
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
@@ -1073,9 +1073,9 @@ int LSM_DLL_EXPORT lsm_volume_ident_led_on(lsm_connect *c,
 /**
  * Disable the IDENT LED for the desired volume.
  * New in version 1.3, only available for hardware RAID cards.
- * @param[in] c				Valid connection
- * @param[in] volume			A single lsm_volume
- * @param[in] flags			Reserved, set to 0
+ * @param[in] c             Valid connection
+ * @param[in] volume        A single lsm_volume
+ * @param[in] flags         Reserved, set to 0
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
@@ -1086,10 +1086,10 @@ int LSM_DLL_EXPORT lsm_volume_ident_led_off(lsm_connect *c,
 /**
  * Change the read cache percentage for the desired system.
  * New in version 1.3, only available for hardware RAID cards.
- * @param[in] c				Valid connection
- * @param[in] system			A single lsm_system
- * @param[in] read_pct			Desired read cache percentage
- * @param[in] flags			Reserved, set to 0
+ * @param[in] c             Valid connection
+ * @param[in] system        A single lsm_system
+ * @param[in] read_pct      Desired read cache percentage
+ * @param[in] flags         Reserved, set to 0
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
