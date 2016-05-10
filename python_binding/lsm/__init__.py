@@ -1,5 +1,3 @@
-__all__ = []
-
 from version import VERSION
 
 from _common import error, info, LsmError, ErrorNumber, \
@@ -16,3 +14,5 @@ from _iplugin import IPlugin, IStorageAreaNetwork, INetworkAttachedStorage, \
 
 from _client import Client
 from _pluginrunner import PluginRunner, search_property
+
+__all__ = []

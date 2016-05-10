@@ -124,10 +124,10 @@ class Proxy(object):
 # variable in client and specified on the command line for the daemon
 UDS_PATH = '/var/run/lsm/ipc'
 
-#Set to True for verbose logging
+# Set to True for verbose logging
 LOG_VERBOSE = True
 
-##Constant for byte size
+## Constant for byte size
 SIZE_CONS = {
     'B': 1,
     'KiB': 2 ** 10,
@@ -158,7 +158,7 @@ SIZE_CONS = {
 SIZE_CONS_CHK_LST = ['EiB', 'PiB', 'TiB', 'GiB', 'MiB', 'KiB']
 
 
-##Converts the size into human format.
+## Converts the size into human format.
 # @param    size    Size in bytes
 # @param    human   True|False
 # @return Human representation of size
@@ -184,7 +184,7 @@ def sh(size, human=False):
         return size
 
 
-##Converts the size into human format.
+## Converts the size into human format.
 # @param  size    Size in bytes
 # @return Human representation of size in IEC binary size prefixes.
 def size_bytes_2_size_human(size):
@@ -198,7 +198,7 @@ def size_bytes_2_size_human(size):
     return sh(size, True)
 
 
-##Converts the size into human format.
+## Converts the size into human format.
 # @param size_human Human readable size string, e.g. '1.9 KiB'
 # @return Size in bytes
 def size_human_2_size_bytes(size_human):
@@ -410,9 +410,9 @@ def get_class(class_name):
     return m
 
 
-#Note: Some of these don't make sense for python, but they do for other
-#Languages so we will be keeping them consistent even though we won't be
-#using them.
+# Note: Some of these don't make sense for python, but they do for other
+# Languages so we will be keeping them consistent even though we won't be
+# using them.
 class ErrorNumber(object):
     OK = 0
     LIB_BUG = 1
@@ -455,12 +455,12 @@ class ErrorNumber(object):
     NO_SUPPORT_OFFLINE_CHANGE = 251
 
     PLUGIN_AUTH_FAILED = 300    # Client supplied credential are incorrect
-    PLUGIN_IPC_FAIL = 301       # Inter-process communication between client &
-                                # out of process plug-in encountered connection
-                                # errors.
+    PLUGIN_IPC_FAIL = 301
+    # Inter-process communication between client & out of process plug-in
+    # encountered connection errors.
 
-    PLUGIN_SOCKET_PERMISSION = 307  # Incorrect permission on UNIX domain
-                                    # socket used for IPC
+    PLUGIN_SOCKET_PERMISSION = 307
+    # Incorrect permission on UNIX domain socket used for IPC
     PLUGIN_NOT_EXIST = 311
 
     NOT_ENOUGH_SPACE = 350
@@ -474,8 +474,8 @@ class ErrorNumber(object):
 
     UNSUPPORTED_SEARCH_KEY = 510
 
-    EMPTY_ACCESS_GROUP = 511    # volume_mask() will fail if access group
-                                # has no member/initiator.
+    EMPTY_ACCESS_GROUP = 511
+    # volume_mask() will fail if access group has no member/initiator.
 
     POOL_NOT_READY = 512        # Pool is not ready for create/resize/etc
 
@@ -578,10 +578,11 @@ class TestCommon(unittest.TestCase):
 
         ed = addl_error_data('domain', 'level', 'exception', 'debug',
                              'debug_data')
-        self.assertTrue(ed['domain'] == 'domain' and ed['level'] == 'level'
-                        and ed['debug'] == 'debug'
-                        and ed['exception'] == 'exception'
-                        and ed['debug_data'] == 'debug_data')
+        self.assertTrue(ed['domain'] == 'domain' and
+                        ed['level'] == 'level' and
+                        ed['debug'] == 'debug' and
+                        ed['exception'] == 'exception' and
+                        ed['debug_data'] == 'debug_data')
 
     def tearDown(self):
         pass

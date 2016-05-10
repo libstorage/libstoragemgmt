@@ -104,8 +104,8 @@ def _convert_xml_to_dict_recurse(node, dictclass):
         else:
             nodedict['attrib'] = {}
             nodedict['attrib'].update(dict(node.items()))
-            #We get a collision so attributes get their own hash!
-            #nodedict.update(dict(node.items()))
+            # We get a collision so attributes get their own hash!
+            # nodedict.update(dict(node.items()))
 
     for child in node:
         # recursively add the element's children
@@ -128,8 +128,8 @@ def _convert_xml_to_dict_recurse(node, dictclass):
         text = node.text.strip()
 
     if len(nodedict) > 0:
-    # if we have a dictionary add the text as a dictionary value
-    # (if there is any)
+        # if we have a dictionary add the text as a dictionary value
+        # (if there is any)
         if text is not None and len(text) > 0:
             nodedict['_text'] = text
     else:

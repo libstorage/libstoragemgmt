@@ -103,8 +103,8 @@ class IData(object):
         """
         rc = {'class': self.__class__.__name__}
 
-        #If one of the attributes is another IData we will
-        #process that too, is there a better way to handle this?
+        # If one of the attributes is another IData we will
+        # process that too, is there a better way to handle this?
         for (k, v) in self.__dict__.items():
             if isinstance(v, IData):
                 rc[k[1:]] = v._to_dict()
@@ -124,7 +124,7 @@ class IData(object):
             del d['class']
             c = get_class(__name__ + '.' + class_name)
 
-            #If any of the parameters are themselves an IData process them
+            # If any of the parameters are themselves an IData process them
             for k, v in d.items():
                 if isinstance(v, dict) and 'class' in v:
                     d['_' + k] = IData._factory(d.pop(k))
@@ -333,7 +333,8 @@ class Disk(IData):
         """
         if self._link_type == Disk.LINK_TYPE_NO_SUPPORT:
             raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "Disk.link_type is not supported by this plugin yet")
+                           "Disk.link_type is not supported by this plugin "
+                           "yet")
         return self._link_type
 
     def __str__(self):
@@ -360,14 +361,14 @@ class Volume(IData):
     """
     SUPPORTED_SEARCH_KEYS = ['id', 'system_id', 'pool_id']
 
-    #Replication types
+    # Replication types
     REPLICATE_UNKNOWN = -1
     REPLICATE_CLONE = 2
     REPLICATE_COPY = 3
     REPLICATE_MIRROR_SYNC = 4
     REPLICATE_MIRROR_ASYNC = 5
 
-    #Provisioning types
+    # Provisioning types
     PROVISION_UNKNOWN = -1
     PROVISION_THIN = 1
     PROVISION_FULL = 2
@@ -563,6 +564,7 @@ class System(IData):
                            "plugin yet")
         return self._read_cache_pct
 
+
 @default_property('id', doc="Unique identifier")
 @default_property('name', doc="User supplied name")
 @default_property('total_space', doc="Total space in bytes")
@@ -622,8 +624,8 @@ class Pool(IData):
         self._id = _id                      # Identifier
         self._name = _name                  # Human recognisable name
         self._element_type = _element_type  # What pool can be used to create
-        self._unsupported_actions = _unsupported_actions  # What pool cannot be
-                                            # used for
+        self._unsupported_actions = _unsupported_actions
+        # What pool cannot be used for
         self._total_space = _total_space    # Total size
         self._free_space = _free_space      # Free space available
         self._status = _status              # Status of pool.
@@ -730,7 +732,7 @@ class AccessGroup(IData):
         self._id = _id
         self._name = _name                # AccessGroup name
         self._init_ids = AccessGroup._standardize_init_list(_init_ids)
-                                          # A list of Initiator ID strings.
+        # A list of Initiator ID strings.
         self._init_type = _init_type
         self._system_id = _system_id      # System id this group belongs
         self._plugin_data = _plugin_data
@@ -879,7 +881,7 @@ class Capabilities(IData):
 
     _CAP_NUM_BEGIN = 20     # Indicate the first capability integer
 
-    #Block operations
+    # Block operations
     VOLUMES = 20
     VOLUME_CREATE = 21
     VOLUME_RESIZE = 22
@@ -938,7 +940,7 @@ class Capabilities(IData):
     VOLUME_READ_CACHE_POLICY_UPDATE = 65
     VOLUME_READ_CACHE_POLICY_UPDATE_IMPACT_WRITE = 66
 
-    #File system
+    # File system
     FS = 100
     FS_DELETE = 101
     FS_RESIZE = 102
@@ -954,7 +956,7 @@ class Capabilities(IData):
     FS_CHILD_DEPENDENCY_RM = 113
     FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES = 114
 
-    #NFS
+    # NFS
     EXPORT_AUTH = 120
     EXPORTS = 121
     EXPORT_FS = 122
@@ -1075,5 +1077,5 @@ class Battery(IData):
 
 
 if __name__ == '__main__':
-    #TODO Need some unit tests that encode/decode all the types with nested
+    # TODO Need some unit tests that encode/decode all the types with nested
     pass

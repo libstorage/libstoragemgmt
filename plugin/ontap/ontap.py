@@ -26,7 +26,7 @@ from lsm import (Volume, FileSystem, FsSnapshot, NfsExport,
                  md5, VERSION, common_urllib2_error_handler,
                  search_property, TargetPort)
 
-#Maps na to lsm, this is expected to expand over time.
+# Maps na to lsm, this is expected to expand over time.
 e_map = {
     na.Filer.ENOSPC: ErrorNumber.NOT_ENOUGH_SPACE,
     na.Filer.ENO_SUCH_VOLUME: ErrorNumber.NOT_FOUND_VOLUME,
@@ -137,9 +137,9 @@ class Ontap(IStorageAreaNetwork, INfs):
 
         self.f = na.Filer(u.hostname, u.username, password,
                           timeout / Ontap.TMO_CONV, ssl)
-        #Smoke test
+        # Smoke test
         i = self.f.system_info()
-        #TODO Get real filer status
+        # TODO Get real filer status
         self.sys_info = System(i['system-id'], i['system-name'],
                                System.STATUS_OK, '')
         return self.f.validate()
@@ -192,8 +192,8 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @staticmethod
     def _ss(s):
-        #If we use the newer API we can use the uuid instead of this fake
-        #md5 one
+        # If we use the newer API we can use the uuid instead of this fake
+        # md5 one
         return FsSnapshot(md5(s['name'] + s['access-time']), s['name'],
                           s['access-time'])
 
@@ -623,7 +623,7 @@ class Ontap(IStorageAreaNetwork, INfs):
             else:
                 raise
 
-        #Get the information about the newly created LUN
+        # Get the information about the newly created LUN
         return None, self._get_volume(lun_name, pool.id)
 
     @staticmethod
@@ -695,22 +695,22 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def volume_replicate(self, pool, rep_type, volume_src, name, flags=0):
-        #At the moment we are only supporting space efficient writeable
-        #logical units.  Add support for the others later.
+        # At the moment we are only supporting space efficient writeable
+        # logical units.  Add support for the others later.
         if rep_type != Volume.REPLICATE_CLONE:
             raise LsmError(ErrorNumber.NO_SUPPORT, "rep_type not supported")
 
-        #Check to see if our volume is on a pool that was passed in or that
-        #the pool itself is None
+        # Check to see if our volume is on a pool that was passed in or that
+        # the pool itself is None
         if pool is None or self._volume_on_aggr(pool, volume_src):
-            #Thin provision copy the logical unit
+            # Thin provision copy the logical unit
             dest = os.path.dirname(_lsm_vol_to_na_vol_path(volume_src)) + '/' \
                 + name
             self.f.clone(_lsm_vol_to_na_vol_path(volume_src), dest)
             return None, self._get_volume(dest, volume_src.pool_id)
         else:
-            #TODO Need to get instructions on how to provide this
-            #functionality
+            # TODO Need to get instructions on how to provide this
+            # functionality
             raise LsmError(ErrorNumber.NO_SUPPORT,
                            "Unable to replicate volume to different pool")
 
@@ -966,8 +966,8 @@ class Ontap(IStorageAreaNetwork, INfs):
         vols = volumes.split(',')
         current = len(vols)
 
-        #It doesn't appear that we have a good percentage
-        #indicator from the clone split status...
+        # It doesn't appear that we have a good percentage
+        # indicator from the clone split status...
         running = self.f.volume_split_status()
 
         for v in vols:
@@ -1052,7 +1052,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def fs_snapshot_create(self, fs, snapshot_name, flags=0):
-        #We can't do files, so we will do them all
+        # We can't do files, so we will do them all
         snap = self.f.snapshot_create(fs.name, snapshot_name)
         return None, Ontap._ss(snap)
 
@@ -1130,7 +1130,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @staticmethod
     def _get_volume_from_path(path):
-        #Volume paths have the form /vol/<volume name>/<rest of path>
+        # Volume paths have the form /vol/<volume name>/<rest of path>
         return path[5:].split('/')[0]
 
     @staticmethod
@@ -1155,8 +1155,8 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def exports(self, search_key=None, search_value=None, flags=0):
-        #Get the file systems once and pass to _export which needs to lookup
-        #the file system id by name.
+        # Get the file systems once and pass to _export which needs to lookup
+        # the file system id by name.
         v = self.fs()
         return search_property(
             [Ontap._export(v, e) for e in self.f.nfs_exports()],
@@ -1192,7 +1192,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                            "ontap plugin does not support "
                            "anon_gid setting")
 
-        #Get the volume info from the fs_id
+        # Get the volume info from the fs_id
         vol = self._get_volume_from_id(fs_id)
 
         # API states that if export path is None the plug-in will select
@@ -1200,8 +1200,8 @@ class Ontap(IStorageAreaNetwork, INfs):
         if export_path is None:
             export_path = '/vol/' + vol.name
 
-        #If the export already exists we need to update the existing export
-        #not create a new one.
+        # If the export already exists we need to update the existing export
+        # not create a new one.
         if self._current_export(export_path):
             method = self.f.nfs_export_fs_modify2
         else:
@@ -1239,7 +1239,7 @@ class Ontap(IStorageAreaNetwork, INfs):
     def fs_child_dependency(self, fs, files=None, flags=0):
         rc = False
 
-        #TODO: Make sure file actually exists if specified
+        # TODO: Make sure file actually exists if specified
 
         if not files:
             children = self.f.volume_children(fs.name)
@@ -1263,7 +1263,7 @@ class Ontap(IStorageAreaNetwork, INfs):
     def target_ports(self, search_key=None, search_value=None, flags=0):
         tp = []
 
-        #Get all FC
+        # Get all FC
         fcp = self.f.fcp_list()
 
         for f in fcp:
@@ -1275,7 +1275,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         node_name = self.f.iscsi_node_name()
         iscsi = self.f.iscsi_list()
         for i in iscsi:
-            #Get all iSCSI
+            # Get all iSCSI
             service_address = node_name
             network_address = "%s:%s" % (i['ip'], i['port'])
             physical_address = i['mac']

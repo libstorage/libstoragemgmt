@@ -48,6 +48,7 @@ _CONNECTION_FREE_COMMANDS = ['local-disk-list',
                              'local-disk-fault-led-on',
                              'local-disk-fault-led-off']
 
+
 ## Wraps the invocation to the command line
 # @param    c   Object to invoke calls on (optional)
 def cmd_line_wrapper(c=None):
@@ -1035,7 +1036,7 @@ class CmdLine:
         self.parser = parser
         known_args, self.unknown_args = parser.parse_known_args()
         # Copy child value to root.
-        for k,v in vars(known_args).iteritems():
+        for k, v in vars(known_args).iteritems():
             if k.startswith(_CHILD_OPTION_DST_PREFIX):
                 root_k = k[len(_CHILD_OPTION_DST_PREFIX):]
                 if getattr(known_args, root_k) is None or \
@@ -1270,7 +1271,7 @@ class CmdLine:
 
         ss = None
         if args.backing_snapshot:
-            #go get the snapshot
+            # go get the snapshot
             ss = _get_item(self.c.fs_snapshots(src_fs),
                            args.backing_snapshot, "Snapshot")
 
@@ -1282,7 +1283,7 @@ class CmdLine:
     def file_clone(self, args):
         fs = _get_item(self.c.fs(), args.fs, "File System")
         if self.args.backing_snapshot:
-            #go get the snapshot
+            # go get the snapshot
             ss = _get_item(self.c.fs_snapshots(fs),
                            args.backing_snapshot, "Snapshot")
         else:
@@ -1292,7 +1293,7 @@ class CmdLine:
             "fs_file_clone", self.c.fs_file_clone(fs, args.src, args.dst, ss),
             None)
 
-    ##Converts a size parameter into the appropriate number of bytes
+    ## Converts a size parameter into the appropriate number of bytes
     # @param    s   Size to convert to bytes handles B, K, M, G, T, P postfix
     # @return Size in bytes
     @staticmethod
@@ -1347,7 +1348,7 @@ class CmdLine:
 
     ## Creates a volume
     def volume_create(self, args):
-        #Get pool
+        # Get pool
         p = _get_item(self.c.pools(), args.pool, "Pool")
         vol = self._wait_for_it(
             "volume-create",
@@ -1360,7 +1361,7 @@ class CmdLine:
 
     ## Creates a snapshot
     def fs_snap_create(self, args):
-        #Get fs
+        # Get fs
         fs = _get_item(self.c.fs(), args.fs, "File System")
         ss = self._wait_for_it("snapshot-create",
                                *self.c.fs_snapshot_create(
@@ -1371,7 +1372,7 @@ class CmdLine:
 
     ## Restores a snap shot
     def fs_snap_restore(self, args):
-        #Get snapshot
+        # Get snapshot
         fs = _get_item(self.c.fs(), args.fs, "File System")
         ss = _get_item(self.c.fs_snapshots(fs), args.snap, "Snapshot")
 
@@ -1416,8 +1417,8 @@ class CmdLine:
         if not job:
             return item
         else:
-            #If a user doesn't want to wait, return the job id to stdout
-            #and exit with job in progress
+            # If a user doesn't want to wait, return the job id to stdout
+            # and exit with job in progress
             if self.args.async:
                 out(job)
                 self.shutdown(ErrorNumber.JOB_STARTED)
@@ -1426,14 +1427,14 @@ class CmdLine:
                 (s, percent, item) = self.c.job_status(job)
 
                 if s == JobStatus.INPROGRESS:
-                    #Add an option to spit out progress?
-                    #print "%s - Percent %s complete" % (job, percent)
+                    # Add an option to spit out progress?
+                    # print "%s - Percent %s complete" % (job, percent)
                     time.sleep(0.25)
                 elif s == JobStatus.COMPLETE:
                     self.c.job_free(job)
                     return item
                 else:
-                    #Something better to do here?
+                    # Something better to do here?
                     raise ArgError(msg + " job error code= " + str(s))
 
     ## Retrieves the status of the specified job
@@ -1723,7 +1724,7 @@ class CmdLine:
             self.password = getpass.getpass()
 
         if self.password is not None:
-            #Check for username
+            # Check for username
             u = uri_parse(self.uri)
             if u['username'] is None:
                 raise ArgError("password specified with no user name in uri")
@@ -1747,13 +1748,13 @@ class CmdLine:
             self.args.func(self.args)
         else:
             if cli:
-                #Directly invoking code though a wrapper to catch unsupported
-                #operations.
+                # Directly invoking code though a wrapper to catch unsupported
+                # operations.
                 self.c = Proxy(cli())
                 self.c.plugin_register(self.uri, self.password, self.tmo)
                 self.cleanup = self.c.plugin_unregister
             else:
-                #Going across the ipc pipe
+                # Going across the ipc pipe
                 self.c = Proxy(Client(self.uri, self.password, self.tmo))
 
                 if os.getenv('LSM_DEBUG_PLUGIN'):

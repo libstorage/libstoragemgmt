@@ -94,7 +94,7 @@ _SYSTEM_MODE_CONV = {
 
 
 def system_mode_to_str(system_mode):
-    return _SYSTEM_MODE_CONV.get(system_mode, "");
+    return _SYSTEM_MODE_CONV.get(system_mode, "")
 
 
 _POOL_STATUS_CONV = {
@@ -367,6 +367,7 @@ class VcrCap(object):
         self.system_id = system_id
         self.raid_types = raid_types
         self.strip_sizes = strip_sizes
+
 
 class LocalDiskInfo(object):
     _LINK_TYPE_MAP = {

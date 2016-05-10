@@ -105,14 +105,14 @@ class Client(INetworkAttachedStorage):
                     uds = os.path.join(root, filename)
 
                     try:
-                        #This operation will work if the daemon is available
+                        # This operation will work if the daemon is available
                         s = _TransPort.get_socket(uds)
                         s.close()
                         return True
                     except LsmError:
                         pass
         else:
-            #Base directory is not present?
+            # Base directory is not present?
             pass
         return False
 
@@ -151,9 +151,9 @@ class Client(INetworkAttachedStorage):
         if os.path.exists(self.plugin_path):
             self._tp = _TransPort(_TransPort.get_socket(self.plugin_path))
         else:
-            #At this point we don't know if the user specified an incorrect
-            #plug-in in the URI or the daemon isn't started.  We will check
-            #the directory for other unix domain sockets.
+            # At this point we don't know if the user specified an incorrect
+            # plug-in in the URI or the daemon isn't started.  We will check
+            # the directory for other unix domain sockets.
             if Client._check_daemon_exists():
                 raise LsmError(ErrorNumber.PLUGIN_NOT_EXIST,
                                "Plug-in %s not found!" % self.plugin_path)
@@ -319,10 +319,10 @@ class Client(INetworkAttachedStorage):
         return self._tp.rpc('systems', _del_self(locals()))
 
     ## Changes the read cache percentage for a system.
-    # @param	self		The this pointer
-    # @param	system		System object to target
-    # @param	read_pct	Desired read cache percentage
-    # @param	flags		Flags
+    # @param    self            The this pointer
+    # @param    system          System object to target
+    # @param    read_pct        Desired read cache percentage
+    # @param    flags           Flags
     # @returns None on success, else raises LsmError
     @_return_requires(None)
     def system_read_cache_pct_update(self, system, read_pct, flags=FLAG_RSVD):
@@ -347,7 +347,8 @@ class Client(INetworkAttachedStorage):
             returns None on success, else raises LsmError on errors.
         SpecialExceptions:
         """
-        return self._tp.rpc('system_read_cache_pct_update', _del_self(locals()))
+        return self._tp.rpc('system_read_cache_pct_update',
+                            _del_self(locals()))
 
     ## Register a user/password for the specified initiator for CHAP
     #  authentication.
@@ -663,8 +664,8 @@ class Client(INetworkAttachedStorage):
         return self._tp.rpc('volumes_accessible_by_access_group',
                             _del_self(locals()))
 
-    ##Returns the list of access groups that have access to the specified
-    #volume.
+    ## Returns the list of access groups that have access to the specified
+    #  volume.
     # @param    self        The this pointer
     # @param    volume      The volume to list access groups for
     # @param    flags       Reserved for future use, must be zero.
@@ -1591,8 +1592,8 @@ class Client(INetworkAttachedStorage):
                 Whether physical disk's cache is enabled or not.
                 Please be advised, HDD's physical disk ram cache might be not
                 protected by storage system's battery or capacitor on sudden
-                power loss, you could lose data if a power failure occurs during
-                a write process.
+                power loss, you could lose data if a power failure occurs
+                during a write process.
                 For SSD's physical disk cache, please check with the vendor of
                 your hardware RAID card and SSD disk.
                 Valid values are:
@@ -1679,8 +1680,8 @@ class Client(INetworkAttachedStorage):
         Usage:
             Change the RAM write cache policy on specified volume.
             If lsm.Capabilities.VOLUME_WRITE_CACHE_POLICY_SET_IMPACT_READ
-            is supported(e.g. HPE SmartArray), the changes on write cache policy
-            might also impact read cache policy.
+            is supported(e.g. HPE SmartArray), the changes on write cache
+            policy might also impact read cache policy.
             If lsm.Capabilities.VOLUME_WRITE_CACHE_POLICY_SET_WB_IMPACT_OTHER
             is supported(e.g. HPE SmartArray), changing write cache policy
             to write back mode might impact other volumes in the same system.

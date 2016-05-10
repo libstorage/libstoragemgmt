@@ -342,10 +342,10 @@ class TestPlugin(unittest.TestCase):
                 if supported(cap, [Cap.VOLUME_DELETE]):
                     for v in self.c.volumes():
                         if 'lsm_' in v.name and s.id == v.system_id:
-                            # Check to see if this volume is participating in an
-                            # access group, if it is we will remove the volume
-                            # from it, but we will not delete the access group
-                            # as we likely didn't create it
+                            # Check to see if this volume is participating in
+                            # an access group, if it is we will remove the
+                            # volume from it, but we will not delete the access
+                            # group as we likely didn't create it
                             access_groups = self.c.\
                                 access_groups_granted_to_volume(v)
                             for ag in access_groups:
@@ -1597,7 +1597,8 @@ class TestPlugin(unittest.TestCase):
             if not supported(cap, [Cap.VOLUME_CACHE_INFO]):
                 continue
 
-            lsm_vols = self.c.volumes(search_key='system_id', search_value=s.id)
+            lsm_vols = self.c.volumes(search_key='system_id',
+                                      search_value=s.id)
             if len(lsm_vols) == 0:
                 if not supported(cap, [Cap.VOLUME_CREATE, Cap.VOLUME_DELETE]):
                     continue

@@ -230,7 +230,7 @@ def _disk_link_type_of(disk_show_basic_dict):
     return Disk.LINK_TYPE_UNKNOWN
 
 
-def  _fix_bbu_cv_output(output):
+def _fix_bbu_cv_output(output):
     """
     Command 'storcli /c0/bbu show all' and 'storcli /c0/cv show all' provide
     output like these list:
@@ -270,7 +270,8 @@ def _bbu_status_to_lsm(bbu_status):
 
 _CV_STATUS_MAP = {
     "Optimal": Battery.STATUS_OK,
-    # TODO(Gris Ge): Need document for all possible values of CacheVault status.
+    # TODO(Gris Ge): Need document for all possible values of CacheVault
+    # status.
 }
 
 
@@ -298,7 +299,7 @@ def _mega_bbu_to_lsm(sys_id, bbu_show_all_output):
     return Battery(battery_id, name, battery_type, status, sys_id, plugin_data)
 
 
-def  _mega_cv_to_lsm(sys_id, cv_show_all_output):
+def _mega_cv_to_lsm(sys_id, cv_show_all_output):
     design_info = _fix_bbu_cv_output(cv_show_all_output['Design_Info'])
     cv_info = _fix_bbu_cv_output(cv_show_all_output['Cachevault_Info'])
 
@@ -463,7 +464,7 @@ class MegaRAID(IPlugin):
         if lsi_status_info['Controller Status'] == 'Optimal':
             status = System.STATUS_OK
         else:
-        # TODO(Gris Ge): Try pull a disk off to check whether this change.
+            # TODO(Gris Ge): Try pull a disk off to check whether this change.
             status_info = "%s: " % lsi_status_info['Controller Status']
             for key_name in lsi_status_info.keys():
                 if key_name == 'Controller Status':

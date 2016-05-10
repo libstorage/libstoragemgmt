@@ -34,8 +34,8 @@ class SimPlugin(INfs, IStorageAreaNetwork):
         self.uri = uri
         self.password = password
 
-        #The caller may want to start clean, so we allow the caller to specify
-        #a file to store and retrieve individual state.
+        # The caller may want to start clean, so we allow the caller to specify
+        # a file to store and retrieve individual state.
         qp = uri_parse(uri)
         if 'parameters' in qp and 'statefile' in qp['parameters'] \
                 and qp['parameters']['statefile'] is not None:

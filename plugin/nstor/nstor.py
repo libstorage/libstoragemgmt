@@ -269,10 +269,10 @@ class NexentaStor(INfs, IStorageAreaNetwork):
     def capabilities(self, system, flags=0):
         c = Capabilities()
 
-        #File system
+        # File system
         c.set(Capabilities.FS)
         c.set(Capabilities.FS_DELETE)
-        #c.set(Capabilities.FS_RESIZE)
+        # c.set(Capabilities.FS_RESIZE)
         c.set(Capabilities.FS_CREATE)
         c.set(Capabilities.FS_CLONE)
         #        c.set(Capabilities.FILE_CLONE)

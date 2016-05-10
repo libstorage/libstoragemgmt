@@ -68,9 +68,9 @@ class TransPort(object):
         if msg is None or len(msg) < 1:
             raise ValueError("Msg argument empty")
 
-        #Note: Don't catch io exceptions at this level!
+        # Note: Don't catch io exceptions at this level!
         s = string.zfill(len(msg), self.HDR_LEN) + msg
-        #common.Info("SEND: ", msg)
+        # common.Info("SEND: ", msg)
         self.s.sendall(s)
 
     def _recv_msg(self):
@@ -81,7 +81,7 @@ class TransPort(object):
         try:
             l = self._read_all(self.HDR_LEN)
             msg = self._read_all(int(l))
-            #common.Info("RECV: ", msg)
+            # common.Info("RECV: ", msg)
         except socket.error as e:
             raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
                            "Error while reading a message from the plug-in",
@@ -110,7 +110,7 @@ class TransPort(object):
                 raise LsmError(ErrorNumber.PLUGIN_NOT_EXIST,
                                "Plug-in appears to not exist")
         except socket.error:
-            #self, code, message, data=None, *args, **kwargs
+            # self, code, message, data=None, *args, **kwargs
             raise LsmError(ErrorNumber.PLUGIN_IPC_FAIL,
                            "Unable to connect to lsmd, daemon started?")
         return s
@@ -142,7 +142,7 @@ class TransPort(object):
         """
         data = self._recv_msg()
         if len(data):
-            #common.Info(str(data))
+            # common.Info(str(data))
             return json.loads(data, cls=_DataDecoder)
 
     def rpc(self, method, args):
@@ -241,8 +241,8 @@ class _TestTransport(unittest.TestCase):
 
     def test_slow(self):
 
-        #Try to test the receiver getting small chunks to read
-        #in a loop
+        # Try to test the receiver getting small chunks to read
+        # in a loop
         for l in range(1, 4096, 10):
 
             payload = "x" * l

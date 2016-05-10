@@ -77,6 +77,7 @@ def _sys_status_of(hp_ctrl_status):
 
     return status, status_info
 
+
 # This fixes an HPSSACLI  bug where "Mirror Group N:" items are not
 # properly indented. This will indent (shunt) them to the appropriate level.
 def _fix_mirror_group_lines(output_lines):
@@ -86,12 +87,13 @@ def _fix_mirror_group_lines(output_lines):
         cur_indent_level = len(cur_line) - len(cur_line.lstrip())
         if cur_line.lstrip().startswith('Mirror Group '):
             mg_indent_level = cur_indent_level
-        elif ((mg_indent_level != None) and
+        elif ((mg_indent_level is not None) and
               (cur_indent_level < mg_indent_level)):
             shunted_line = ' '*2*(mg_indent_level-cur_indent_level) + cur_line
             output_lines[line_num] = shunted_line
-        elif mg_indent_level != None:
+        elif mg_indent_level is not None:
             mg_indent_level = None
+
 
 def _parse_hpssacli_output(output):
     """
@@ -237,6 +239,7 @@ def _disk_status_of(hp_disk, flag_free):
 
     return disk_status
 
+
 def _disk_link_type_of(hp_disk):
     disk_interface = hp_disk['Interface Type']
     if disk_interface == 'SATA':
@@ -311,7 +314,7 @@ def _sys_id_of_ctrl_data(ctrl_data):
     try:
         return ctrl_data['Serial Number']
     except KeyError:
-        #Dynamic Smart Array does not expose a serial number
+        # Dynamic Smart Array does not expose a serial number
         return ctrl_data['Host Serial Number']
 
 
@@ -452,7 +455,7 @@ class SmartArray(IPlugin):
             try:
                 fw_ver = "%s" % ctrl_data['Firmware Version']
             except KeyError:
-                #Dynamic Smart Array does not expose a firmware version
+                # Dynamic Smart Array does not expose a firmware version
                 fw_ver = "%s" % ctrl_data['RAID Stack Version']
             if 'Cache Ratio' in ctrl_data:
                 cache_pct = re.findall(r'\d+', ctrl_data['Cache Ratio'])
@@ -461,8 +464,8 @@ class SmartArray(IPlugin):
                 cache_pct = re.findall(r'\d+', ctrl_data['Accelerator Ratio'])
                 read_cache_pct = int(cache_pct[0])
             else:
-                #Some Smart Arrays don't have cache
-                #This entry is also missing until a volume uses cache
+                # Some Smart Arrays don't have cache
+                # This entry is also missing until a volume uses cache
                 read_cache_pct = System.CACHE_PCT_UNKNOWN
             if 'Controller Mode' in ctrl_data:
                 hwraid_mode = ctrl_data['Controller Mode']
@@ -475,7 +478,7 @@ class SmartArray(IPlugin):
                         ErrorNumber.PLUGIN_BUG,
                         "Invalid Controller Mode: '%s'" % hwraid_mode)
             else:
-                #prior to late Gen8, all Smart Arrays were RAID mode only
+                # prior to late Gen8, all Smart Arrays were RAID mode only
                 mode = System.MODE_HARDWARE_RAID
 
             rc_lsm_syss.append(System(sys_id, ctrl_name, status, status_info,
@@ -507,7 +510,7 @@ class SmartArray(IPlugin):
         try:
             self._sacli_exec(
                 ["ctrl", "slot=%s" % slot_num, "modify",
-                "cacheratio=%s/%s" % (read_pct, 100-read_pct)],
+                 "cacheratio=%s/%s" % (read_pct, 100-read_pct)],
                 flag_convert=False)
         except ExecError:
             raise LsmError(
@@ -646,7 +649,8 @@ class SmartArray(IPlugin):
             vpd83 = LocalDisk.vpd83_get(disk_path)
         else:
             vpd83 = ''
-        rpm = int(hp_disk.get('Rotational Speed', Disk.RPM_NON_ROTATING_MEDIUM))
+        rpm = int(hp_disk.get('Rotational Speed',
+                              Disk.RPM_NON_ROTATING_MEDIUM))
         link_type = _disk_link_type_of(hp_disk)
 
         return Disk(
@@ -988,7 +992,7 @@ class SmartArray(IPlugin):
         try:
             self._sacli_exec(
                 ["ctrl", "slot=%s" % ctrl_num, "ld %s" % ld_num, "modify",
-                "reenable"], flag_convert=False, flag_force=True)
+                 "reenable"], flag_convert=False, flag_force=True)
         except ExecError:
             ctrl_data = self._sacli_exec(
                 ["ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
@@ -1025,7 +1029,7 @@ class SmartArray(IPlugin):
         try:
             self._sacli_exec(
                 ["ctrl", "slot=%s" % ctrl_num, "ld %s" % ld_num, "modify",
-                "led=on"], flag_convert=False)
+                 "led=on"], flag_convert=False)
         except ExecError:
             ctrl_data = self._sacli_exec(
                 ["ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
@@ -1062,7 +1066,7 @@ class SmartArray(IPlugin):
         try:
             self._sacli_exec(
                 ["ctrl", "slot=%s" % ctrl_num, "ld %s" % ld_num, "modify",
-                "led=off"], flag_convert=False)
+                 "led=off"], flag_convert=False)
         except ExecError:
             ctrl_data = self._sacli_exec(
                 ["ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
@@ -1175,7 +1179,8 @@ class SmartArray(IPlugin):
                     write_cache_status = Volume.WRITE_CACHE_STATUS_WRITE_BACK
                     read_cache_status = Volume.READ_CACHE_STATUS_ENABLED
                 else:
-                    write_cache_status = Volume.WRITE_CACHE_STATUS_WRITE_THROUGH
+                    write_cache_status = \
+                        Volume.WRITE_CACHE_STATUS_WRITE_THROUGH
                     read_cache_status = Volume.READ_CACHE_STAUS_DISABLED
             else:
                 write_cache_policy = Volume.WRITE_CACHE_POLICY_AUTO
@@ -1189,7 +1194,8 @@ class SmartArray(IPlugin):
                             Volume.WRITE_CACHE_POLICY_WRITE_THROUGH
                 else:
                     read_cache_status = Volume.READ_CACHE_STATUS_DISABLED
-                    write_cache_status = Volume.WRITE_CACHE_STATUS_WRITE_THROUGH
+                    write_cache_status = \
+                        Volume.WRITE_CACHE_STATUS_WRITE_THROUGH
         else:
             raise LsmError(ErrorNumber.PLUGIN_BUG,
                            "Unknown 'Caching' property of logical volume %d" %

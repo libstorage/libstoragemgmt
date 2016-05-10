@@ -28,7 +28,7 @@ from lsm.external.xmltodict import convert_xml_to_dict
 from lsm import (ErrorNumber)
 
 
-#Set to an appropriate directory and file to dump the raw response.
+# Set to an appropriate directory and file to dump the raw response.
 xml_debug = None
 
 
@@ -80,7 +80,7 @@ def netapp_filer(host, username, password, timeout, command, parameters=None,
     opener = urllib2.build_opener(auth_manager)
     urllib2.install_opener(opener)
 
-    #build the command and the arguments for it
+    # build the command and the arguments for it
     p = ""
 
     if parameters:
@@ -143,8 +143,8 @@ class FilerError(Exception):
     EVDISK_ERROR_VDISK_NOT_ENABLED = 9014   # LUN is not online
     EVDISK_ERROR_VDISK_NOT_DISABLED = 9015  # LUN is not offline
     EVDISK_ERROR_NO_SUCH_LUNMAP = 9016      # LUN is already unmapped
-    EVDISK_ERROR_INITGROUP_MAPS_EXIST = 9029    # LUN maps for this initiator
-                                                # group exist
+    EVDISK_ERROR_INITGROUP_MAPS_EXIST = 9029
+    # LUN maps for this initiator group exist
     EVDISK_ERROR_SIZE_TOO_LARGE = 9034      # LUN size too large.
     EVDISK_ERROR_NO_SUCH_VOLUME = 9036      # NetApp Volume not exists.
     EVDISK_ERROR_SIZE_TOO_SMALL = 9041      # Specified too small a size
@@ -222,7 +222,7 @@ class Filer(object):
         return rc['system-info']
 
     def validate(self):
-        #TODO: Validate that everything we need to function is available?
+        # TODO: Validate that everything we need to function is available?
         self._invoke('system-api-list')
         return None
 
@@ -357,17 +357,17 @@ class Filer(object):
         """
         params = {'containing-aggr-name': aggr_name,
                   'size': int(size_in_bytes * 1.30),
-                  #There must be a better way to account for this
+                  # There must be a better way to account for this
                   'volume': vol_name}
 
         self._invoke('volume-create', params)
 
-        #Turn off scheduled snapshots
+        # Turn off scheduled snapshots
         self._invoke('volume-set-option', {'volume': vol_name,
                                            'option-name': 'nosnap',
                                            'option-value': 'on', })
 
-        #Turn off auto export!
+        # Turn off auto export!
         self.nfs_export_remove(['/vol/' + vol_name])
 
     def volume_clone(self, src_volume, dest_volume, snapshot=None):
@@ -396,7 +396,7 @@ class Filer(object):
         try:
             self._invoke('volume-destroy', {'name': vol_name})
         except FilerError as f_error:
-            #If the volume was online, we will return it to same status
+            # If the volume was online, we will return it to same status
             # Store the original exception information
             exception_info = sys.exc_info()
 
@@ -421,7 +421,8 @@ class Filer(object):
         """
         params = {'source-path': source_path}
 
-        #You can have source == dest, but if you do you can only specify source
+        # You can have source == dest, but if you do you can only specify
+        # source
         if source_path != dest_path:
             params['destination-path'] = dest_path
 
@@ -429,7 +430,7 @@ class Filer(object):
             raise FilerError(ErrorNumber.NO_SUPPORT,
                              "Support for backing luns not implemented "
                              "for this API version")
-            #params['snapshot-name']= backing_snapshot
+            # params['snapshot-name']= backing_snapshot
 
         if ranges:
             block_ranges = []
@@ -566,7 +567,7 @@ class Filer(object):
 
             lun_name_list = to_list(rc['lun-maps']['lun-map-info'])
 
-            #Get all the lun with information about aggr
+            # Get all the lun with information about aggr
             all_luns = self.luns_get_all()
 
             for l in lun_name_list:
@@ -653,8 +654,8 @@ class Filer(object):
         Common logic to build up the rules for nfs
         """
 
-        #One of the more complicated data structures to push down to the
-        #controller
+        # One of the more complicated data structures to push down to the
+        # controller
         rule = {'pathname': volume_path}
         if volume_path != export_path:
             rule['actual-pathname'] = volume_path
@@ -832,7 +833,7 @@ class Filer(object):
 
 if __name__ == '__main__':
     try:
-        #TODO: Need some unit test code
+        # TODO: Need some unit test code
         pass
 
     except FilerError as fe:

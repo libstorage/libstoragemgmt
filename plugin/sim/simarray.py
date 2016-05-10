@@ -212,8 +212,7 @@ class BackStore(object):
             status INTEGER NOT NULL,
             status_info TEXT,
             version TEXT NOT NULL);
-            """)
-            # ^ version hold the signature of data
+            """)    # version hold the signature of data
 
         sql_cmd += (
             "CREATE TABLE tgts ("
@@ -237,8 +236,9 @@ class BackStore(object):
             # ^ Indicate this pool is allocated from # other pool
             "member_type INTEGER, "
             "strip_size INTEGER, "
-            "total_space LONG);\n")
+            "total_space LONG);\n"
             # ^ total_space here is only for sub-pool (pool from pool)
+            )
 
         sql_cmd += (
             "CREATE TABLE disks ("
@@ -528,9 +528,8 @@ class BackStore(object):
                 ORDER BY
                     init.init_type
             ;
-            """ % (
-            AccessGroup.INIT_TYPE_ISCSI_WWPN_MIXED,
-            AccessGroup.INIT_TYPE_UNKNOWN, BackStore._LIST_SPLITTER))
+            """ % (AccessGroup.INIT_TYPE_ISCSI_WWPN_MIXED,
+                   AccessGroup.INIT_TYPE_UNKNOWN, BackStore._LIST_SPLITTER))
 
         sql_cmd += (
             """
@@ -567,9 +566,8 @@ class BackStore(object):
                         LEFT JOIN vol_masks vol_mask
                             ON vol_mask.ag_id = ag_new.id
             ;
-            """ % (
-            AccessGroup.INIT_TYPE_ISCSI_WWPN_MIXED,
-            AccessGroup.INIT_TYPE_UNKNOWN, BackStore._LIST_SPLITTER))
+            """ % (AccessGroup.INIT_TYPE_ISCSI_WWPN_MIXED,
+                   AccessGroup.INIT_TYPE_UNKNOWN, BackStore._LIST_SPLITTER))
 
         sql_cmd += (
             """
@@ -632,9 +630,8 @@ class BackStore(object):
                 GROUP BY
                     exp.id;
             ;
-            """ % (
-            BackStore._LIST_SPLITTER, BackStore._LIST_SPLITTER,
-            BackStore._LIST_SPLITTER))
+            """ % (BackStore._LIST_SPLITTER, BackStore._LIST_SPLITTER,
+                   BackStore._LIST_SPLITTER))
 
         sql_cur = self.sql_conn.cursor()
         try:
@@ -2503,9 +2500,9 @@ class SimArray(object):
 
     @_handle_errors
     def volume_cache_info(self, lsm_vol):
-        sim_vol = self.bs_obj.sim_vol_of_id(
-            SimArray._lsm_id_to_sim_id(lsm_vol.id,
-            LsmError(ErrorNumber.NOT_FOUND_VOLUME, "Volume not found")))
+        sim_vol = self.bs_obj.sim_vol_of_id(SimArray._lsm_id_to_sim_id(
+            lsm_vol.id, LsmError(ErrorNumber.NOT_FOUND_VOLUME,
+                                 "Volume not found")))
         write_cache_status = Volume.WRITE_CACHE_STATUS_WRITE_THROUGH
         read_cache_status = Volume.READ_CACHE_STATUS_DISABLED
 
@@ -2519,10 +2516,11 @@ class SimArray(object):
             if flag_battery_ok:
                 write_cache_status = Volume.WRITE_CACHE_STATUS_WRITE_BACK
 
-        elif sim_vol['write_cache_policy'] == \
-             Volume.WRITE_CACHE_POLICY_WRITE_BACK:
+        elif (sim_vol['write_cache_policy'] ==
+              Volume.WRITE_CACHE_POLICY_WRITE_BACK):
             write_cache_status = Volume.WRITE_CACHE_STATUS_WRITE_BACK
-        elif sim_vol['write_cache_policy'] == Volume.WRITE_CACHE_POLICY_UNKNOWN:
+        elif (sim_vol['write_cache_policy'] ==
+              Volume.WRITE_CACHE_POLICY_UNKNOWN):
             write_cache_status = Volume.WRITE_CACHE_STATUS_UNKNOWN
 
         if sim_vol['read_cache_policy'] == Volume.READ_CACHE_POLICY_ENABLED:

@@ -18,7 +18,7 @@
 #
 # Author: tasleson
 
-#Description:   Query array capabilities and run very basic operational tests.
+# Description:   Query array capabilities and run very basic operational tests.
 #
 # Note: This file is GPL copyright and not LGPL because:
 # 1. It is used to test the library, not provide functionality for it.
@@ -248,8 +248,8 @@ def resize_vol(vol_id):
           'volume-resize',
           '--vol', vol_id,
           '--size', '100M'])
-    #Some devices cannot re-size down...
-    #call([cmd, '--volume-resize', id, '--size', '30M' , '-t'+sep ])
+    # Some devices cannot re-size down...
+    # call([cmd, '--volume-resize', id, '--size', '30M' , '-t'+sep ])
 
 
 def resize_fs(fs_id):
@@ -557,7 +557,7 @@ def test_fs_creation(cap, system_id):
 
     if cap['FS_SNAPSHOT_CREATE'] and cap['FS_CREATE'] and cap['FS_DELETE'] \
             and cap['FS_SNAPSHOT_DELETE']:
-        #Snapshot create/delete
+        # Snapshot create/delete
         fs_id = fs_create(pool_id)
         ss = create_ss(fs_id)
         test_display(cap, system_id)
@@ -825,6 +825,7 @@ def volume_ident_led_off_test(cap):
 
     return
 
+
 def local_disk_list_test():
     # Only run this by root user.
     if os.geteuid() == 0:
@@ -832,6 +833,7 @@ def local_disk_list_test():
     else:
         print("Skipping test of 'local-disk-list' command when not "
               "run by root user")
+
 
 def test_volume_cache_info():
     # Since cmdtest is only designed to test against sim://, there is no
@@ -987,7 +989,7 @@ if __name__ == "__main__":
         if options.fs_pool_id:
             test_fs_pool_id = options.fs_pool_id
 
-    #Theory of testing.
+    # Theory of testing.
     # For each system that is available to us:
     #   Query capabilities
     #       Query all supported query operations (should have more to query)

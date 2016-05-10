@@ -59,8 +59,8 @@ class PluginRunner(object):
                 self.tp = _transport.TransPort(
                     socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM))
 
-                #At this point we can return errors to the client, so we can
-                #inform the client if the plug-in fails to create itself
+                # At this point we can return errors to the client, so we can
+                # inform the client if the plug-in fails to create itself
                 try:
                     self.plugin = plugin()
                 except Exception as e:
@@ -80,7 +80,7 @@ class PluginRunner(object):
             cmd_line_wrapper(plugin)
 
     def run(self):
-        #Don't need to invoke this when running stand alone as a cmdline
+        # Don't need to invoke this when running stand alone as a cmdline
         if self.cmdline:
             return
 
@@ -90,7 +90,7 @@ class PluginRunner(object):
         try:
             while True:
                 try:
-                    #result = None
+                    # result = None
 
                     msg = self.tp.read_req()
 
@@ -98,8 +98,8 @@ class PluginRunner(object):
                     msg_id = msg['id']
                     params = msg['params']
 
-                    #Check to see if this plug-in implements this operation
-                    #if not return the expected error.
+                    # Check to see if this plug-in implements this operation
+                    # if not return the expected error.
                     if hasattr(self.plugin, method):
                         if params is None:
                             result = getattr(self.plugin, method)()
@@ -116,7 +116,7 @@ class PluginRunner(object):
                         need_shutdown = True
 
                     if method == 'plugin_unregister':
-                        #This is a graceful plugin_unregister
+                        # This is a graceful plugin_unregister
                         need_shutdown = False
                         self.tp.close()
                         break
@@ -131,8 +131,9 @@ class PluginRunner(object):
                     self.tp.send_error(msg_id, lsm_err.code, lsm_err.msg,
                                        lsm_err.data)
         except _SocketEOF:
-            #Client went away and didn't meet our expectations for protocol,
-            #this error message should not be seen as it shouldn't be occuring.
+            # Client went away and didn't meet our expectations for protocol,
+            # this error message should not be seen as it shouldn't be
+            # occurring.
             if need_shutdown:
                 error('Client went away, exiting plug-in')
         except Exception:
@@ -147,6 +148,6 @@ class PluginRunner(object):
 
         finally:
             if need_shutdown:
-                #Client wasn't nice, we will allow plug-in to cleanup
+                # Client wasn't nice, we will allow plug-in to cleanup
                 self.plugin.plugin_unregister()
                 sys.exit(2)
