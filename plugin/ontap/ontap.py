@@ -982,7 +982,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def job_status(self, job_id, flags=0):
-        if job_id is None and '@' not in job_id:
+        if '@' not in job_id:
             raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                            "Invalid job, missing @")
 
@@ -1137,10 +1137,10 @@ class Ontap(IStorageAreaNetwork, INfs):
     def _export(volumes, e):
         if 'actual-pathname' in e:
             path = e['actual-pathname']
-            export = e['pathname']
         else:
             path = e['pathname']
-            export = e['pathname']
+
+        export = e['pathname']
 
         vol_name = Ontap._get_volume_from_path(path)
         fs_id = Ontap._get_volume_id(volumes, vol_name)
