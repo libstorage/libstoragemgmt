@@ -668,9 +668,11 @@ class TestPlugin(unittest.TestCase):
                             rs('v_c_'))[1]
 
                         self.assertTrue(volume_clone is not None)
-                        self.assertTrue(self._volume_exists(volume_clone.id))
 
-                        if volume_clone is not None:
+                        if volume_clone:
+                            self.assertTrue(
+                                self._volume_exists(volume_clone.id))
+
                             # Lets test for creating a clone with an
                             # existing name
                             error_num = None
