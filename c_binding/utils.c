@@ -83,21 +83,32 @@ bool _file_exists(const char *path)
 int _read_file(const char *path, uint8_t *buff, ssize_t *size, size_t max_size)
 {
     int fd = -1;
+    int rc = 0;
+    int errno_copy = 0;
 
     assert(path != NULL);
     assert(buff != NULL);
     assert(size != NULL);
 
     *size = 0;
-    memset(buff, 0, max_size);
 
     fd = open(path, O_RDONLY);
     if (fd < 0)
         return errno;
     *size = read(fd, buff, max_size);
+    errno_copy = errno;
     close(fd);
 
-    if (*size < 0)
-        return errno;
-    return 0;
+    if (*size < 0) {
+        rc = errno_copy;
+        buff[0] = '\0';
+    } else {
+        if (*size >= (max_size - 1)) {
+            rc = EFBIG;
+            buff[max_size - 1] = '\0';
+        } else {
+            buff[*size] = '\0';
+        }
+    }
+    return rc;
 }
