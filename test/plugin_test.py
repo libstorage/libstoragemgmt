@@ -547,12 +547,13 @@ class TestPlugin(unittest.TestCase):
             if pool is not None:
                 fs_size = self._object_size(pool)
                 fs = self.c.fs_create(pool, rs('fs'), fs_size)[1]
-                self.assertTrue(self._fs_exists(fs.id))
-                self.assertTrue(self._system_exists(fs.system_id))
-                self.assertTrue(pool.system_id == fs.system_id)
 
                 self.assertTrue(fs is not None)
-                self.assertTrue(pool is not None)
+
+                if fs:
+                    self.assertTrue(self._fs_exists(fs.id))
+                    self.assertTrue(self._system_exists(fs.system_id))
+                    self.assertTrue(pool.system_id == fs.system_id)
 
             return fs, pool
 
