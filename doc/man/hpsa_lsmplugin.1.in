@@ -46,7 +46,7 @@ This plugin only execute \fBhpssacli\fR on localhost. No network connection
 required.
 
 .SH SEE ALSO
-\fIlsmcli\fR(1), \fIlsmd\fR(1), [1]http://downloads.linux.hp.com/SDR/project/spp/
+\fIlsmcli\fR(1), \fIlsmd\fR(1), [1]http://downloads.linux.hpe.com/SDR/project/spp/
 
 .SH BUGS
 Please report bugs to
