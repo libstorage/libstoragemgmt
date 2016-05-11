@@ -67,13 +67,14 @@ def _sys_status_of(hp_ctrl_status):
     check_list = [
         'Controller Status', 'Cache Status', 'Battery/Capacitor Status']
     for key_name in check_list:
-        if key_name in hp_ctrl_status and hp_ctrl_status[key_name] != 'OK':
-            # TODO(Gris Ge): Beg HP for possible values
-            status = System.STATUS_OTHER
+        if key_name in hp_ctrl_status:
+            if hp_ctrl_status[key_name] == 'Not Configured':
+                status = System.STATUS_OK
+            elif hp_ctrl_status[key_name] == 'OK':
+                status = System.STATUS_OK
+            else:
+                status = System.STATUS_OTHER
             status_info += hp_ctrl_status[key_name]
-
-    if status != System.STATUS_OTHER:
-        status = System.STATUS_OK
 
     return status, status_info
 
