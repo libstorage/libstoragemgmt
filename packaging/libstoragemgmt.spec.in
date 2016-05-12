@@ -590,15 +590,6 @@ fi
 %{udev_dir}/udev/scan-scsi-target
 %{udev_dir}/udev/rules.d/90-scsi-ua.rules
 
-%if 0%{?with_rest_api}
-%files -n %{libstoragemgmt}-rest
-%defattr(-,root,root,-)
-%{_bindir}/lsm_restd
-%if 0%{?with_systemd}
-%{_unitdir}/libstoragemgmt-rest.service
-%endif
-%endif
-
 %changelog
 * Wed Jun 24 2015 Gris Ge <fge@redhat.com> 1.2.3-1
 - Bug fixes:
