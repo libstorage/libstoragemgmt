@@ -525,13 +525,29 @@ class MegaRAID(IPlugin):
               flags=Client.FLAG_RSVD):
         rc_lsm_disks = []
         mega_disk_path_regex = re.compile(
-            r"^Drive (\/c[0-9]+\/e[0-9]+\/s[0-9]+) - Detailed Information$")
+            r"""
+                ^Drive \ (
+                \/c[0-9]+\/             # Controller ID
+                (:?e[0-9]+\/){0,1}      # Enclosure ID(optional)
+                s[0-9]+                 # Slot ID
+                )\ -\ Detailed\ Information$""", re.X)
 
         for ctrl_num in range(self._ctrl_count()):
             sys_id = self._sys_id_of_ctrl_num(ctrl_num)
 
-            disk_show_output = self._storcli_exec(
-                ["/c%d/eall/sall" % ctrl_num, "show", "all"])
+            try:
+                disk_show_output = self._storcli_exec(
+                    ["/c%d/eall/sall" % ctrl_num, "show", "all"])
+            except ExecError:
+                disk_show_output = {}
+
+            try:
+                disk_show_output.update(
+                    self._storcli_exec(
+                        ["/c%d/sall" % ctrl_num, "show", "all"]))
+            except ExecError:
+                pass
+
             for drive_name in disk_show_output.keys():
                 re_match = mega_disk_path_regex.match(drive_name)
                 if not re_match:
@@ -836,7 +852,7 @@ class MegaRAID(IPlugin):
         mega_raid_type = _lsm_raid_type_to_mega(raid_type)
         ctrl_num = None
         slot_nums = []
-        enclosure_num = None
+        enclosure_str = None
 
         for disk in disks:
             if not disk.plugin_data:
@@ -845,11 +861,11 @@ class MegaRAID(IPlugin):
                     "Illegal input disks argument: missing plugin_data "
                     "property")
             # Disk should from the same controller.
-            (cur_ctrl_num, cur_enclosure_num, slot_num) = \
+            # Please be informed, the enclosure_str could be a empty(space).
+            (cur_ctrl_num, cur_enclosure_str, slot_num) = \
                 disk.plugin_data.split(':')
 
             cur_ctrl_num = int(cur_ctrl_num)
-            cur_enclosure_num = int(cur_enclosure_num)
 
             if ctrl_num is not None and cur_ctrl_num != ctrl_num:
                 raise LsmError(
@@ -857,24 +873,28 @@ class MegaRAID(IPlugin):
                     "Illegal input disks argument: disks are not from the "
                     "same controller/system.")
 
-            if enclosure_num is not None and \
-               cur_enclosure_num != enclosure_num:
+            if enclosure_str is not None and \
+               cur_enclosure_str != enclosure_str:
                 raise LsmError(
                     ErrorNumber.INVALID_ARGUMENT,
                     "Illegal input disks argument: disks are not from the "
                     "same disk enclosure.")
 
             ctrl_num = cur_ctrl_num
-            enclosure_num = cur_enclosure_num
+            enclosure_str = cur_enclosure_str
             slot_nums.append(slot_num)
 
         # Handle request volume name, LSI only allow 15 characters.
         name = re.sub('[^0-9a-zA-Z_\-]+', '', name)[:15]
 
+        if enclosure_str == ' ':
+            drives_str = "drives=%s" % ','.join(slot_nums)
+        else:
+            drives_str = "drives=%s:%s" % (enclosure_str, ','.join(slot_nums))
+
         cmds = [
             "/c%s" % ctrl_num, "add", "vd", mega_raid_type,
-            'size=all', "name=%s" % name,
-            "drives=%d:%s" % (enclosure_num, ','.join(slot_nums))]
+            'size=all', "name=%s" % name, drives_str]
 
         if raid_type == Volume.RAID_TYPE_RAID10 or \
            raid_type == Volume.RAID_TYPE_RAID50 or \
