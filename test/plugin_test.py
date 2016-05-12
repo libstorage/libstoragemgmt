@@ -547,12 +547,13 @@ class TestPlugin(unittest.TestCase):
             if pool is not None:
                 fs_size = self._object_size(pool)
                 fs = self.c.fs_create(pool, rs('fs'), fs_size)[1]
-                self.assertTrue(self._fs_exists(fs.id))
-                self.assertTrue(self._system_exists(fs.system_id))
-                self.assertTrue(pool.system_id == fs.system_id)
 
                 self.assertTrue(fs is not None)
-                self.assertTrue(pool is not None)
+
+                if fs:
+                    self.assertTrue(self._fs_exists(fs.id))
+                    self.assertTrue(self._system_exists(fs.system_id))
+                    self.assertTrue(pool.system_id == fs.system_id)
 
             return fs, pool
 
@@ -667,9 +668,11 @@ class TestPlugin(unittest.TestCase):
                             rs('v_c_'))[1]
 
                         self.assertTrue(volume_clone is not None)
-                        self.assertTrue(self._volume_exists(volume_clone.id))
 
-                        if volume_clone is not None:
+                        if volume_clone:
+                            self.assertTrue(
+                                self._volume_exists(volume_clone.id))
+
                             # Lets test for creating a clone with an
                             # existing name
                             error_num = None
@@ -1028,13 +1031,15 @@ class TestPlugin(unittest.TestCase):
                 ag = self._create_access_group(
                     cap, rs('ag'), s, lsm.AccessGroup.INIT_TYPE_ISCSI_IQN)
 
-                self.c.iscsi_chap_auth(ag.init_ids[0], 'foo', rs(None, 12),
-                                       None, None)
+                self.assertTrue(ag is not None)
 
-                if ag is not None and \
-                   supported(cap, [Cap.ACCESS_GROUP_DELETE]):
-                    self._test_ag_create_dup(ag, s)
-                    self._delete_access_group(ag)
+                if ag:
+                    self.c.iscsi_chap_auth(ag.init_ids[0], 'foo', rs(None, 12),
+                                           None, None)
+
+                    if supported(cap, [Cap.ACCESS_GROUP_DELETE]):
+                        self._test_ag_create_dup(ag, s)
+                        self._delete_access_group(ag)
 
     def test_access_group_create_delete(self):
         for s in self.systems:

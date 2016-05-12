@@ -1182,7 +1182,7 @@ class SmartArray(IPlugin):
                 else:
                     write_cache_status = \
                         Volume.WRITE_CACHE_STATUS_WRITE_THROUGH
-                    read_cache_status = Volume.READ_CACHE_STAUS_DISABLED
+                    read_cache_status = Volume.READ_CACHE_STATUS_DISABLED
             else:
                 write_cache_policy = Volume.WRITE_CACHE_POLICY_AUTO
                 if flag_ram_ok:

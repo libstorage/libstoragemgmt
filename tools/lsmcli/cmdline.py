@@ -1078,7 +1078,7 @@ class CmdLine:
             search_value = args.ag
         if args.fs:
             search_key = 'fs_id'
-            search_value = args.ag
+            search_value = args.fs
         if args.nfs_export:
             search_key = 'nfs_export_id'
             search_value = args.nfs_export

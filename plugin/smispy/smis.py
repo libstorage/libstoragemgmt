@@ -1704,8 +1704,6 @@ class Smis(IStorageAreaNetwork):
                 if ipv6_addr[0:29] == '0000:0000:0000:0000:0000:0000':
                     ipv6_addr = ''
 
-                if ipv4_addr is None and ipv6_addr is None:
-                    continue
                 cim_eths = self._c.Associators(
                     cim_ip.path,
                     ResultClass='CIM_EthernetPort',
