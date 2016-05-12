@@ -400,7 +400,7 @@ class MegaRAID(IPlugin):
         cap.set(Capabilities.POOL_MEMBER_INFO)
         cap.set(Capabilities.VOLUME_RAID_CREATE)
         cap.set(Capabilities.BATTERIES)
-        cap.set(Capabilities.VOLUME_PHYSICAL_DISK_CACHE_SET)
+        cap.set(Capabilities.VOLUME_PHYSICAL_DISK_CACHE_UPDATE)
         cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_WRITE_BACK)
         cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_AUTO)
         cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_WRITE_THROUGH)
