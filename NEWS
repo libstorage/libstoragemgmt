@@ -1,5 +1,22 @@
 News for libStorageMgmt
 
+1.3.0: May 12 2016:
+    - Library adds:
+        * Change the raid card cache split (%read, %write)
+        * Retrieve/update cache information of both the card and physical disks
+          (enable/disable caching etc.)
+        * Turn on/off identify and fault LEDs
+        * Retrieve information on batteries
+        * Retrieve a physical disk RPM, link type and location string for a disk
+        * Retrieve the vpd 0x83 for directly attached disk(s)
+        * Given a vpd 0x83 return list of local disk paths
+        * Given a disk path return the vpd 0x83 value
+        * Retrieve list of local disks
+    - Bug fixes:
+        * https://github.com/libstorage/libstoragemgmt/issues/118
+        * https://bugzilla.redhat.com/show_bug.cgi?id=1323789
+        * https://github.com/libstorage/libstoragemgmt/issues/144
+
 1.2.3: Jun 24 2015:
     - Bug fix:
         * lsmcli bash completion: Fix syntax error.
