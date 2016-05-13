@@ -95,6 +95,7 @@ Requires(postun): systemd
 BuildRequires:  chrpath
 BuildRequires:  valgrind
 BuildRequires:  python-pyudev
+BuildRequires:  procps
 
 %description
 The libStorageMgmt library will provide a vendor agnostic open source storage

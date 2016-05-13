@@ -1213,8 +1213,6 @@ typedef int (*lsm_plug_volume_read_cache_policy_update) (lsm_plugin_ptr c,
 
 /** \struct lsm_ops_v1_3
  * \brief Functions added in version 1.3
- * NOTE: This structure will change during the developement util version 1.3
- *       released.
  */
 struct lsm_ops_v1_3 {
     lsm_plug_volume_ident_led_on vol_ident_on;

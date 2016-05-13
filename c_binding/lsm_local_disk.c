@@ -634,10 +634,13 @@ int lsm_local_disk_list(lsm_string_list **disk_paths, lsm_error **lsm_err)
         }
         if ((strncmp(disk_path, "/dev/sd", strlen("/dev/sd")) == 0) ||
             (strncmp(disk_path, "/dev/nvme", strlen("/dev/nvme")) == 0)) {
-            rc = lsm_string_list_append(*disk_paths, disk_path);
-            if (rc != LSM_ERR_OK) {
-                udev_device_unref(udev_dev);
-                goto out;
+
+            if (_file_exists(disk_path)) {
+                rc = lsm_string_list_append(*disk_paths, disk_path);
+                if (rc != LSM_ERR_OK) {
+                    udev_device_unref(udev_dev);
+                    goto out;
+                }
             }
         }
         udev_device_unref(udev_dev);
