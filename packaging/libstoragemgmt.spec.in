@@ -592,6 +592,9 @@ fi
 %{udev_dir}/udev/rules.d/90-scsi-ua.rules
 
 %changelog
+* Fri May 13 2016 Tony Asleson <tasleson@redhat.com> 1.3.1-1
+- Bug fix for https://github.com/libstorage/libstoragemgmt/pull/150
+
 * Thu May 12 2016 Tony Asleson <tasleson@redhat.com> 1.3.0-1
 - Library adds
   * Change the raid card cache split (read, write)
