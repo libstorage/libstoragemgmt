@@ -33,6 +33,7 @@ fi
 test_base_dir="/tmp/$RANDOM"
 build_dir=$(readlink -f "`pwd`")
 src_dir=$(readlink -f "@abs_top_srcdir@")
+with_mem_leak_test="@WITH_MEM_LEAK_TEST@"
 
 source "${src_dir}/test/test_include.sh"
 
@@ -55,13 +56,19 @@ lsm_test_cleanup
 lsm_test_base_install \
     "$test_base_dir" "$build_dir" "$src_dir" ${LSM_TEST_INSTALL_C_PLUGINS_ONLY}
 
-lsm_test_lsmd_start $LSM_TEST_WITH_MEM_CHECK
-
-lsm_test_c_unit_test_run $LSM_TEST_WITH_MEM_CHECK $LSM_TEST_SIMC_URI
+if [ "CHK$with_mem_leak_test" == "CHKyes" ];then
+    lsm_test_lsmd_start $LSM_TEST_WITH_MEM_CHECK
+    lsm_test_c_unit_test_run $LSM_TEST_WITH_MEM_CHECK $LSM_TEST_SIMC_URI
+else
+    lsm_test_lsmd_start $LSM_TEST_WITHOUT_MEM_CHECK
+    lsm_test_c_unit_test_run $LSM_TEST_WITHOUT_MEM_CHECK $LSM_TEST_SIMC_URI
+fi
 # TODO(Gris Ge): Currently simc:// is stateless, command line test will fail.
 #                Enable this once rewrite simc plugin using sqlite.
 #lsm_test_cmd_test_run $LSM_TEST_SIMC_URI
 lsm_test_plugin_test_run $LSM_TEST_SIMC_URI
 
-lsm_test_check_memory_leak
+if [ "CHK$with_mem_leak_test" == "CHKyes" ];then
+    lsm_test_check_memory_leak
+fi
 lsm_test_cleanup

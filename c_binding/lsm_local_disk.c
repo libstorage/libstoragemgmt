@@ -80,8 +80,6 @@ static int _sysfs_vpd83_naa_of_sd_name(char *err_msg, const char *sd_name,
                                        char *vpd83);
 static int _udev_vpd83_of_sd_name(char *err_msg, const char *sd_name,
                                   char *vpd83);
-static int _sysfs_get_all_sd_names(char *err_msg,
-                                   lsm_string_list **sd_name_list);
 static int _sysfs_vpd_pg83_data_get(char *err_msg, const char *sd_name,
                                     uint8_t *vpd_data, ssize_t *read_size);
 /*
@@ -97,6 +95,8 @@ static int _sysfs_sas_addr_get(const char *blk_name, char *tp_sas_addr);
 
 static int _ses_ctrl(const char *disk_path, lsm_error **lsm_err,
                      int action, int action_type);
+
+static const char *_sd_name_of(const char *disk_path);
 
 /*
  * Retrieve the content of /sys/block/sda/device/vpd_pg83 file.
@@ -273,75 +273,19 @@ static int _udev_vpd83_of_sd_name(char *err_msg, const char *sd_name,
     return rc;
 }
 
-static int _sysfs_get_all_sd_names(char *err_msg,
-                                   lsm_string_list **sd_name_list)
-{
-    DIR *dir = NULL;
-    struct dirent *dp = NULL;
-    int rc = LSM_ERR_OK;
-    char strerr_buff[_LSM_ERR_MSG_LEN];
-
-    *sd_name_list = lsm_string_list_alloc(0 /* no pre-allocation */);
-    if (*sd_name_list == NULL) {
-        return LSM_ERR_NO_MEMORY;
-    }
-
-    dir = opendir(_SYS_BLOCK_PATH);
-    if (dir == NULL) {
-        _lsm_err_msg_set(err_msg, "Cannot open %s: error (%d)%s",
-                         _SYS_BLOCK_PATH, errno,
-                         strerror_r(errno, strerr_buff, _LSM_ERR_MSG_LEN));
-        rc = LSM_ERR_LIB_BUG;
-        goto out;
-    }
-
-    do {
-        if ((dp = readdir(dir)) != NULL) {
-            if (strncmp(dp->d_name, "sd", strlen("sd")) != 0)
-                continue;
-            if (strlen(dp->d_name) >= _MAX_SD_NAME_STR_LEN) {
-                _lsm_err_msg_set(err_msg, "BUG: Got a SCSI disk name exceeded "
-                                 "the maximum string length %d, current %zd",
-                                 _MAX_SD_PATH_STR_LEN, strlen(dp->d_name));
-                rc = LSM_ERR_LIB_BUG;
-                goto out;
-            }
-            if (lsm_string_list_append(*sd_name_list, dp->d_name) != 0) {
-                rc = LSM_ERR_NO_MEMORY;
-                goto out;
-            }
-        }
-    } while(dp != NULL);
-
- out:
-    if (dir != NULL) {
-        if (closedir(dir) != 0) {
-            _lsm_err_msg_set(err_msg, "Failed to close dir %s: error (%d)%s",
-                             _SYS_BLOCK_PATH, errno,
-                             strerror_r(errno, strerr_buff, _LSM_ERR_MSG_LEN));
-            rc = LSM_ERR_LIB_BUG;
-        }
-    }
-
-    if (rc != LSM_ERR_OK) {
-        lsm_string_list_free(*sd_name_list);
-        *sd_name_list = NULL;
-    }
-    return rc;
-}
-
 int lsm_local_disk_vpd83_search(const char *vpd83,
                                 lsm_string_list **disk_path_list,
                                 lsm_error **lsm_err)
 {
     int rc = LSM_ERR_OK;
-    lsm_string_list *sd_name_list = NULL;
     uint32_t i = 0;
     const char *sd_name = NULL;
+    const char *disk_path = NULL;
     char tmp_vpd83[_LSM_MAX_VPD83_ID_LEN];
-    char sd_path[_MAX_SD_PATH_STR_LEN];
     bool sysfs_support = true;
     char err_msg[_LSM_ERR_MSG_LEN];
+    lsm_string_list *disk_paths = NULL;
+    lsm_error *tmp_lsm_err = NULL;
 
     _lsm_err_msg_clear(err_msg);
 
@@ -374,15 +318,25 @@ int lsm_local_disk_vpd83_search(const char *vpd83,
         goto out;
     }
 
-    _good(_sysfs_get_all_sd_names(err_msg, &sd_name_list), rc, out);
+    rc = lsm_local_disk_list(&disk_paths, &tmp_lsm_err);
+    if (rc != LSM_ERR_OK) {
+        snprintf(err_msg, _LSM_ERR_MSG_LEN, "%s",
+                 lsm_error_message_get(tmp_lsm_err));
+        lsm_error_free(tmp_lsm_err);
+        goto out;
+    }
 
-    _lsm_string_list_foreach(sd_name_list, i, sd_name) {
+    _lsm_string_list_foreach(disk_paths, i, disk_path) {
+        sd_name = _sd_name_of(disk_path);
+        if (sd_name == NULL)
+            continue;
+
         if (sysfs_support == true) {
             rc = _sysfs_vpd83_naa_of_sd_name(err_msg, sd_name, tmp_vpd83);
             if (rc == LSM_ERR_NO_SUPPORT) {
                 sysfs_support = false;
             } else if (rc == LSM_ERR_NOT_FOUND_DISK) {
-                /* In case disk got removed after _sysfs_get_all_sd_names() */
+                /* In case disk got removed after lsm_local_disk_list() */
                 continue;
             }
             else if (rc != LSM_ERR_OK)
@@ -392,15 +346,13 @@ int lsm_local_disk_vpd83_search(const char *vpd83,
         if (sysfs_support == false) {
             rc = _udev_vpd83_of_sd_name(err_msg, sd_name, tmp_vpd83);
             if (rc == LSM_ERR_NOT_FOUND_DISK)
-                /* In case disk got removed after _sysfs_get_all_sd_names() */
+                /* In case disk got removed after lsm_local_disk_list() */
                 continue;
             else if (rc != LSM_ERR_OK)
                 break;
         }
         if (strncmp(vpd83, tmp_vpd83, _LSM_MAX_VPD83_ID_LEN) == 0) {
-            snprintf(sd_path, _MAX_SD_PATH_STR_LEN, _SD_PATH_FORMAT, sd_name);
-
-            if (lsm_string_list_append(*disk_path_list, sd_path) != 0) {
+            if (lsm_string_list_append(*disk_path_list, disk_path) != 0) {
                 rc = LSM_ERR_NO_MEMORY;
                 goto out;
             }
@@ -408,8 +360,8 @@ int lsm_local_disk_vpd83_search(const char *vpd83,
     }
 
  out:
-    if (sd_name_list != NULL)
-        lsm_string_list_free(sd_name_list);
+    if (disk_paths != NULL)
+        lsm_string_list_free(disk_paths);
 
     if (rc == LSM_ERR_OK) {
         /* clean disk_path_list if nothing found */
@@ -430,6 +382,15 @@ int lsm_local_disk_vpd83_search(const char *vpd83,
     }
 
     return rc;
+}
+
+static const char *_sd_name_of(const char *disk_path)
+{
+    assert(disk_path != NULL);
+
+    if (strncmp(disk_path, "/dev/sd", strlen("/dev/sd")) == 0)
+        return disk_path + strlen("/dev/");
+    return NULL;
 }
 
 int lsm_local_disk_vpd83_get(const char *disk_path, char **vpd83,

@@ -153,9 +153,20 @@ if test -z $CHRPATH ;then
     AC_MSG_ERROR([Need 'chrpath' to run test cases])
 fi
 
-AC_PATH_PROG([VALGRIND], valgrind)
-if test -z $VALGRIND ;then
-    AC_MSG_ERROR([Need 'valgrind' to run memory leak test])
+AC_ARG_WITH([mem-leak-test],
+    [AS_HELP_STRING([--without-mem-leak-test],
+        [Do not run memory leak test])],
+    [],
+    [with_mem_leak_test=yes])
+
+if test "x$with_mem_leak_test" == "xyes"; then
+    AC_PATH_PROG([VALGRIND], valgrind)
+    AC_SUBST(WITH_MEM_LEAK_TEST, yes)
+    if test -z $VALGRIND ;then
+        AC_MSG_ERROR([Need 'valgrind' to run memory leak test])
+    fi
+else
+    AC_SUBST(WITH_MEM_LEAK_TEST, no)
 fi
 
 AC_PATH_PROG([WC], wc)
