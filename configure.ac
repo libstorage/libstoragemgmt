@@ -126,52 +126,56 @@ dnl ==========================================================================
 PKG_CHECK_MODULES([LIBXML], [libxml-2.0])
 PKG_CHECK_MODULES([LIBGLIB], [glib-2.0 >= 2.22.5])
 
-want_c_unit="yes"
-AC_ARG_ENABLE([build-c-unit],
-    [AC_HELP_STRING([--disable-build-c-unit], [disable building C unit test case.])],
-    [want_c_unit=${enableval}], [])
+AC_ARG_WITH([test],
+    [AC_HELP_STRING([--without-test],
+                    [disable all test case])],
+    [], [with_test=yes])
 
-if test "x${want_c_unit}" = "xyes"; then
+AM_CONDITIONAL([WITH_TEST], [test "x$with_test" = "xyes"])
+
+if test "x${with_test}" = "xyes"; then
     PKG_CHECK_MODULES([LIBCHECK], [check >= 0.9.8 ])
-fi
 
-AM_CONDITIONAL([BUILD_C_UNIT], [test "x${want_c_unit}" = "xyes"])
-
-dnl =========================================================================
-dnl Check for perl, used for code constants checking
-dnl =========================================================================
-AC_PATH_PROGS(PERL, perl)
-if test -z $PERL ;then
-    AC_MSG_ERROR([Need 'perl' to run test cases])
-fi
-
-dnl =========================================================================
-dnl Check for chrpath, valgrind, wc, used for make check
-dnl =========================================================================
-AC_PATH_PROG([CHRPATH], chrpath)
-if test -z $CHRPATH ;then
-    AC_MSG_ERROR([Need 'chrpath' to run test cases])
-fi
-
-AC_ARG_WITH([mem-leak-test],
-    [AS_HELP_STRING([--without-mem-leak-test],
-        [Do not run memory leak test])],
-    [],
-    [with_mem_leak_test=yes])
-
-if test "x$with_mem_leak_test" == "xyes"; then
-    AC_PATH_PROG([VALGRIND], valgrind)
-    AC_SUBST(WITH_MEM_LEAK_TEST, yes)
-    if test -z $VALGRIND ;then
-        AC_MSG_ERROR([Need 'valgrind' to run memory leak test])
+    dnl =====================================================================
+    dnl Check for perl, used for code constants checking
+    dnl =====================================================================
+    AC_PATH_PROGS(PERL, perl)
+    if test -z $PERL ;then
+        AC_MSG_ERROR([Need 'perl' to run test cases])
     fi
-else
-    AC_SUBST(WITH_MEM_LEAK_TEST, no)
-fi
 
-AC_PATH_PROG([WC], wc)
-if test -z $WC ;then
-    AC_MSG_ERROR([Need 'wc' to run test cases])
+    dnl =====================================================================
+    dnl Check for chrpath, valgrind, wc, used for make check
+    dnl =====================================================================
+    AC_PATH_PROG([CHRPATH], chrpath)
+    if test -z $CHRPATH ;then
+        AC_MSG_ERROR([Need 'chrpath' to run test cases])
+    fi
+
+    AC_ARG_WITH([mem-leak-test],
+        [AS_HELP_STRING([--without-mem-leak-test],
+            [Do not run memory leak test])],
+        [],
+        [with_mem_leak_test=yes])
+
+    if test "x$with_mem_leak_test" == "xyes"; then
+        AC_PATH_PROG([VALGRIND], valgrind)
+        AC_SUBST(WITH_MEM_LEAK_TEST, yes)
+        if test -z $VALGRIND ;then
+            AC_MSG_ERROR([Need 'valgrind' to run memory leak test])
+        fi
+    else
+        AC_SUBST(WITH_MEM_LEAK_TEST, no)
+    fi
+
+    AC_PATH_PROG([WC], wc)
+    if test -z $WC ;then
+        AC_MSG_ERROR([Need 'wc' to run test cases])
+    fi
+    AC_PATH_PROG([PS], ps)
+    if test -z $PS ;then
+        AC_MSG_ERROR([Need 'ps' to run test cases])
+    fi
 fi
 
 dnl ==========================================================================
@@ -322,6 +326,9 @@ AC_OUTPUT(libstoragemgmt.pc \
           packaging/daemon/Makefile \
           packaging/libstoragemgmt.spec \
           doc/man/Makefile \
-          test/runtests.sh \
           test/Makefile)
-chmod +x test/runtests.sh
+
+if test "x${with_test}" = "xyes"; then
+    AC_OUTPUT(test/runtests.sh)
+    chmod +x test/runtests.sh
+fi

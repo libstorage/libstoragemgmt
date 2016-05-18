@@ -5,7 +5,9 @@ AM_CPPFLAGS = \
 
 EXTRA_DIST=cmdtest.py plugin_test.py test_include.sh runtests.sh.in
 
-check_PROGRAMS = tester
-tester_CFLAGS = $(LIBCHECK_CFLAGS)
-tester_LDADD = ../c_binding/libstoragemgmt.la $(LIBCHECK_LIBS)
-tester_SOURCES = tester.c
+if WITH_TEST
+	check_PROGRAMS = tester
+	tester_CFLAGS = $(LIBCHECK_CFLAGS)
+	tester_LDADD = ../c_binding/libstoragemgmt.la $(LIBCHECK_LIBS)
+	tester_SOURCES = tester.c
+endif
