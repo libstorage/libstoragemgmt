@@ -592,6 +592,11 @@ fi
 %{udev_dir}/udev/rules.d/90-scsi-ua.rules
 
 %changelog
+* Wed May 18 2016 Tony Asleson <tasleson@redhat.com> 1.3.2-1
+- Bug fixes:
+  * https://github.com/libstorage/libstoragemgmt/pull/152
+  * https://github.com/libstorage/libstoragemgmt/pull/154
+
 * Fri May 13 2016 Tony Asleson <tasleson@redhat.com> 1.3.1-1
 - Bug fix for https://github.com/libstorage/libstoragemgmt/pull/150
 
