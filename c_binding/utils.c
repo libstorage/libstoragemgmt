@@ -75,7 +75,10 @@ bool _file_exists(const char *path)
     fd = open(path, O_RDONLY);
     if ((fd == -1) && (errno == ENOENT))
         return false;
-    close(fd);
+
+    if (fd >= 0) {
+        close(fd);
+    }
     return true;
 }
 
