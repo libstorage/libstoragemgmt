@@ -26,7 +26,7 @@ rpm: clean
 	@(unset CDPATH ; $(MAKE) dist && rpmbuild -ta $(distdir).tar.gz)
 
 if WITH_TEST
-	TESTS = test/runtests.sh
+TESTS = test/runtests.sh
 endif
 
 MAINTAINERCLEANFILES = .git-module-status
