@@ -184,6 +184,7 @@ class Filer(object):
     EDUPE_VOLUME_PATH = 9012        # Duplicate volume name
     ENO_SUCH_VOLUME = 9017          # lun not found
     ESIZE_TOO_LARGE = 9034          # Specified too large a size
+    ERESIZE_TOO_LARGE = 9035        # Re-size size is too large
     ENO_SUCH_FS = 9036              # FS not found
     EVOLUME_TOO_SMALL = 9041        # Specified too small a size
     EAPILICENSE = 13008             # Unlicensed API
