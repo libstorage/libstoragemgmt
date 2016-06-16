@@ -668,6 +668,10 @@ class Ontap(IStorageAreaNetwork, INfs):
                 raise LsmError(ErrorNumber.NO_STATE_CHANGE,
                                "Requested size is the same as current "
                                "volume size")
+            elif fe.errno == na.FilerError.EVDISK_ERROR_RESIZE_TOO_LARGE:
+                raise LsmError(ErrorNumber.NO_SUPPORT,
+                               "Manual change of lun geometry is required "
+                               "to support re-size change amount")
             else:
                 raise
         return None, self._get_volume(_lsm_vol_to_na_vol_path(volume),
