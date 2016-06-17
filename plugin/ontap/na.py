@@ -146,6 +146,7 @@ class FilerError(Exception):
     EVDISK_ERROR_INITGROUP_MAPS_EXIST = 9029
     # LUN maps for this initiator group exist
     EVDISK_ERROR_SIZE_TOO_LARGE = 9034      # LUN size too large.
+    EVDISK_ERROR_RESIZE_TOO_LARGE = 9035    # Re-size amount is too large
     EVDISK_ERROR_NO_SUCH_VOLUME = 9036      # NetApp Volume not exists.
     EVDISK_ERROR_SIZE_TOO_SMALL = 9041      # Specified too small a size
     EVDISK_ERROR_SIZE_UNCHANGED = 9042      # requested size is the same.
