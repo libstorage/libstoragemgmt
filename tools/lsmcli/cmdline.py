@@ -1443,7 +1443,7 @@ class CmdLine:
 
         if s == JobStatus.COMPLETE:
             if item:
-                self.display_data([item])
+                self.display_data([_add_sd_paths(item)])
 
             self.c.job_free(args.job)
         else:
