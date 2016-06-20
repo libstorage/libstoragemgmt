@@ -132,6 +132,10 @@ static int _sysfs_vpd_pg83_data_get(char *err_msg, const char *sd_name,
         if (errno == ENOENT) {
             _lsm_err_msg_set(err_msg, "File '%s' not exist", sysfs_path);
             return LSM_ERR_NO_SUPPORT;
+        } else if (errno == EINVAL) {
+            _lsm_err_msg_set(err_msg, "Read error on File '%s': "
+                             "invalid argument", sysfs_path);
+            return LSM_ERR_NO_SUPPORT;
         } else {
             _lsm_err_msg_set(err_msg, "BUG: Unknown error %d(%s) from "
                              "_read_file().", file_rc,
@@ -279,12 +283,10 @@ int lsm_local_disk_vpd83_search(const char *vpd83,
 {
     int rc = LSM_ERR_OK;
     uint32_t i = 0;
-    const char *sd_name = NULL;
     const char *disk_path = NULL;
-    char tmp_vpd83[_LSM_MAX_VPD83_ID_LEN];
-    bool sysfs_support = true;
     char err_msg[_LSM_ERR_MSG_LEN];
     lsm_string_list *disk_paths = NULL;
+    char *tmp_vpd83 = NULL;
     lsm_error *tmp_lsm_err = NULL;
 
     _lsm_err_msg_clear(err_msg);
@@ -327,29 +329,10 @@ int lsm_local_disk_vpd83_search(const char *vpd83,
     }
 
     _lsm_string_list_foreach(disk_paths, i, disk_path) {
-        sd_name = _sd_name_of(disk_path);
-        if (sd_name == NULL)
+        if (lsm_local_disk_vpd83_get(disk_path, &tmp_vpd83, &tmp_lsm_err) !=
+            LSM_ERR_OK) {
+            lsm_error_free(tmp_lsm_err);
             continue;
-
-        if (sysfs_support == true) {
-            rc = _sysfs_vpd83_naa_of_sd_name(err_msg, sd_name, tmp_vpd83);
-            if (rc == LSM_ERR_NO_SUPPORT) {
-                sysfs_support = false;
-            } else if (rc == LSM_ERR_NOT_FOUND_DISK) {
-                /* In case disk got removed after lsm_local_disk_list() */
-                continue;
-            }
-            else if (rc != LSM_ERR_OK)
-                break;
-        }
-        /* Try udev way if got NO_SUPPORT from sysfs way. */
-        if (sysfs_support == false) {
-            rc = _udev_vpd83_of_sd_name(err_msg, sd_name, tmp_vpd83);
-            if (rc == LSM_ERR_NOT_FOUND_DISK)
-                /* In case disk got removed after lsm_local_disk_list() */
-                continue;
-            else if (rc != LSM_ERR_OK)
-                break;
         }
         if (strncmp(vpd83, tmp_vpd83, _LSM_MAX_VPD83_ID_LEN) == 0) {
             if (lsm_string_list_append(*disk_path_list, disk_path) != 0) {
@@ -357,11 +340,15 @@ int lsm_local_disk_vpd83_search(const char *vpd83,
                 goto out;
             }
         }
+        free(tmp_vpd83);
+        tmp_vpd83 = NULL;
     }
 
  out:
     if (disk_paths != NULL)
         lsm_string_list_free(disk_paths);
+
+    free(tmp_vpd83);
 
     if (rc == LSM_ERR_OK) {
         /* clean disk_path_list if nothing found */
