@@ -132,6 +132,10 @@ static int _sysfs_vpd_pg83_data_get(char *err_msg, const char *sd_name,
         if (errno == ENOENT) {
             _lsm_err_msg_set(err_msg, "File '%s' not exist", sysfs_path);
             return LSM_ERR_NO_SUPPORT;
+        } else if (errno == EINVAL) {
+            _lsm_err_msg_set(err_msg, "Read error on File '%s': "
+                             "invalid argument", sysfs_path);
+            return LSM_ERR_NO_SUPPORT;
         } else {
             _lsm_err_msg_set(err_msg, "BUG: Unknown error %d(%s) from "
                              "_read_file().", file_rc,
