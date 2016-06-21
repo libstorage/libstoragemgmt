@@ -259,8 +259,12 @@ static int _udev_vpd83_of_sd_name(char *err_msg, const char *sd_name,
         goto out;
     }
     wwn = udev_device_get_property_value(sd_udev, "ID_WWN_WITH_EXTENSION");
-    if (wwn == NULL)
+    if (wwn == NULL) {
+        rc = LSM_ERR_NO_SUPPORT;
+        _lsm_err_msg_set(err_msg,
+                         "SCSI VPD 83 NAA logical unit ID is not supported");
         goto out;
+    }
 
     if (strncmp(wwn, "0x", strlen("0x")) == 0)
         wwn += strlen("0x");
@@ -333,6 +337,13 @@ int lsm_local_disk_vpd83_search(const char *vpd83,
             LSM_ERR_OK) {
             lsm_error_free(tmp_lsm_err);
             continue;
+        }
+        if (tmp_vpd83 == NULL) {
+            rc = LSM_ERR_LIB_BUG;
+            _lsm_err_msg_set(err_msg, "BUG: lsm_local_disk_vpd83_get() on "
+                             "'%s',return NULL for vpd83 and LSM_ERR_OK",
+                             disk_path);
+            goto out;
         }
         if (strncmp(vpd83, tmp_vpd83, _LSM_MAX_VPD83_ID_LEN) == 0) {
             if (lsm_string_list_append(*disk_path_list, disk_path) != 0) {
