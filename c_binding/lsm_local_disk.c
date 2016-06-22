@@ -96,8 +96,6 @@ static int _sysfs_sas_addr_get(const char *blk_name, char *tp_sas_addr);
 static int _ses_ctrl(const char *disk_path, lsm_error **lsm_err,
                      int action, int action_type);
 
-static const char *_sd_name_of(const char *disk_path);
-
 /*
  * Retrieve the content of /sys/block/sda/device/vpd_pg83 file.
  * No argument checker here, assume all non-NULL and vpd_data is
@@ -380,15 +378,6 @@ int lsm_local_disk_vpd83_search(const char *vpd83,
     }
 
     return rc;
-}
-
-static const char *_sd_name_of(const char *disk_path)
-{
-    assert(disk_path != NULL);
-
-    if (strncmp(disk_path, "/dev/sd", strlen("/dev/sd")) == 0)
-        return disk_path + strlen("/dev/");
-    return NULL;
 }
 
 int lsm_local_disk_vpd83_get(const char *disk_path, char **vpd83,
