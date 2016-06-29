@@ -1579,8 +1579,8 @@ class TestPlugin(unittest.TestCase):
     def test_invalid_uri(self):
 
         # Make sure we are getting an exception
-        with self.assertRaises(lsm.LsmError):
-            lsm.Client("ontap//root@na-sim", "some_password")
+        self.assertRaises(lsm.LsmError, lsm.Client,
+                          "ontap//root@na-sim", "some_password")
 
         # Make sure exception has the correct error code
         try:
