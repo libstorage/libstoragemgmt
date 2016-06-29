@@ -1488,7 +1488,8 @@ class CmdLine:
 
         ranges = []
         for b in range(len(src_starts)):
-            ranges.append(BlockRange(src_starts[b], dst_starts[b], counts[b]))
+            ranges.append(BlockRange(long(src_starts[b]), long(dst_starts[b]),
+                                     long(counts[b])))
 
         if self.confirm_prompt(False):
             self.c.volume_replicate_range(rep_type, src, dst, ranges)
