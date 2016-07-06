@@ -867,44 +867,44 @@ cmds = (
     ),
 )
 
-aliases = (
-    ['ls', 'list --type systems'],
-    ['lp', 'list --type pools'],
-    ['lv', 'list --type volumes'],
-    ['ld', 'list --type disks'],
-    ['la', 'list --type access_groups'],
-    ['lf', 'list --type fs'],
-    ['lt', 'list --type target_ports'],
-    ['c', 'capabilities'],
-    ['p', 'plugin-info'],
-    ['vc', 'volume-create'],
-    ['vrc', 'volume-raid-create'],
-    ['vrcc', 'volume-raid-create-cap'],
-    ['vd', 'volume-delete'],
-    ['vr', 'volume-resize'],
-    ['vm', 'volume-mask'],
-    ['vu', 'volume-unmask'],
-    ['ve', 'volume-enable'],
-    ['vi', 'volume-disable'],
-    ['ac', 'access-group-create'],
-    ['aa', 'access-group-add'],
-    ['ar', 'access-group-remove'],
-    ['ad', 'access-group-delete'],
-    ['vri', 'volume-raid-info'],
-    ['vilon', 'volume-ident-led-on'],
-    ['viloff', 'volume-ident-led-off'],
-    ['srcpu', 'system-read-cache-pct-update'],
-    ['pmi', 'pool-member-info'],
-    ['ldl', 'local-disk-list'],
-    ['lb', 'list --type batteries'],
-    ['vci', 'volume-cache-info'],
-    ['vpdcu', 'volume-phy-disk-cache-update'],
-    ['vrcpu', 'volume-read-cache-policy-update'],
-    ['vwcpu', 'volume-write-cache-policy-update'],
-    ['ldilon', 'local-disk-ident-led-on'],
-    ['ldiloff', 'local-disk-ident-led-off'],
-    ['ldflon', 'local-disk-fault-led-on'],
-    ['ldfloff', 'local-disk-fault-led-off'],
+aliases = dict(
+    ls='list --type systems',
+    lp='list --type pools',
+    lv='list --type volumes',
+    ld='list --type disks',
+    la='list --type access_groups',
+    lf='list --type fs',
+    lt='list --type target_ports',
+    c='capabilities',
+    p='plugin-info',
+    vc='volume-create',
+    vrc='volume-raid-create',
+    vrcc='volume-raid-create-cap',
+    vd='volume-delete',
+    vr='volume-resize',
+    vm='volume-mask',
+    vu='volume-unmask',
+    ve='volume-enable',
+    vi='volume-disable',
+    ac='access-group-create',
+    aa='access-group-add',
+    ar='access-group-remove',
+    ad='access-group-delete',
+    vri='volume-raid-info',
+    vilon='volume-ident-led-on',
+    viloff='volume-ident-led-off',
+    srcpu='system-read-cache-pct-update',
+    pmi='pool-member-info',
+    ldl='local-disk-list',
+    lb='list --type batteries',
+    vci='volume-cache-info',
+    vpdcu='volume-phy-disk-cache-update',
+    vrcpu='volume-read-cache-policy-update',
+    vwcpu='volume-write-cache-policy-update',
+    ldilon='local-disk-ident-led-on',
+    ldiloff='local-disk-ident-led-off',
+    ldflon='local-disk-fault-led-on',
+    ldfloff='local-disk-fault-led-off',
 )
 
 
@@ -977,11 +977,30 @@ class CmdLine:
 
         self.display_data(d)
 
-    def handle_alias(self, args):
-        cmd_arguments = args.cmd
-        cmd_arguments.extend(self.unknown_args)
-        new_args = self.parser.parse_args(cmd_arguments)
-        new_args.func(new_args)
+    @staticmethod
+    def handle_alias():
+        """
+        Walk the command line argument list and build up a new command line
+        with the appropriate substitutions which is then passed to argparse, so
+        that we can avoid adding more sub parsers and do all argument parsing
+        before the need to talk to the library
+        :return copy of command line args with alias expansion:
+        """
+        rc = []
+        for i in sys.argv[1:]:
+            if i in aliases:
+                rc.extend(aliases[i].split(" "))
+            else:
+                rc.append(i)
+        return rc
+
+    @staticmethod
+    def alias_help_text():
+        rc = "command aliases:\n"
+        for k, v in sorted(aliases.items()):
+            rc += "   {:<18}   Alias of '{}'\n".format(k, v)
+        return rc
+
 
     ## All the command line arguments and options are created in this method
     def cli(self):
@@ -994,7 +1013,8 @@ class CmdLine:
         parser = ArgumentParser(
             description='The libStorageMgmt command line interface.'
                         ' Run %(prog)s <command> -h for more on each command.',
-            epilog='Copyright 2012-2016 Red Hat, Inc.\n'
+            epilog=CmdLine.alias_help_text() +
+                   '\n\nCopyright 2012-2016 Red Hat, Inc.\n'
                    'Please report bugs to '
                    '<libstoragemgmt-devel@lists.fedorahosted.org>\n',
             formatter_class=RawTextHelpFormatter)
@@ -1025,16 +1045,9 @@ class CmdLine:
             sub_parser.set_defaults(
                 func=getattr(self, cmd['name'].replace("-", "_")))
 
-        for alias in aliases:
-            sub_parser = subparsers.add_parser(
-                alias[0], help="Alias of '%s'" % alias[1],
-                parents=[parent_parser],
-                formatter_class=RawTextHelpFormatter, add_help=False)
-            sub_parser.set_defaults(
-                cmd=alias[1].split(" "), func=self.handle_alias)
-
         self.parser = parser
-        known_args, self.unknown_args = parser.parse_known_args()
+
+        known_args = parser.parse_args(args=CmdLine.handle_alias())
         # Copy child value to root.
         for k, v in vars(known_args).iteritems():
             if k.startswith(_CHILD_OPTION_DST_PREFIX):
