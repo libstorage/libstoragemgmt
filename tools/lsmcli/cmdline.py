@@ -1689,11 +1689,8 @@ class CmdLine:
         """
         Return True if current command is one of _CONNECTION_FREE_COMMANDS.
         """
-        if self.args.func == self.handle_alias and \
-           self.args.cmd[0] in _CONNECTION_FREE_COMMANDS:
-            return True
-
-        if self.args.func.__name__ in _CONNECTION_FREE_COMMANDS:
+        if self.args.func.__name__.replace("_", "-") in \
+           _CONNECTION_FREE_COMMANDS:
             return True
         return False
 
