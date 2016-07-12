@@ -408,6 +408,7 @@ class SmartArray(IPlugin):
         cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_IMPACT_READ)
         cap.set(Capabilities.VOLUME_READ_CACHE_POLICY_UPDATE)
         cap.set(Capabilities.VOLUME_READ_CACHE_POLICY_UPDATE_IMPACT_WRITE)
+        cap.set(Capabilities.DISK_VPD83_GET)
 
         return cap
 
