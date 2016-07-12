@@ -395,6 +395,7 @@ class MegaRAID(IPlugin):
                 "System not found")
         cap = Capabilities()
         cap.set(Capabilities.DISKS)
+        cap.set(Capabilities.DISK_VPD83_GET)
         cap.set(Capabilities.VOLUMES)
         cap.set(Capabilities.VOLUME_RAID_INFO)
         cap.set(Capabilities.POOL_MEMBER_INFO)
