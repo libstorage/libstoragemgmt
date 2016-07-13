@@ -440,7 +440,7 @@ static PyObject *local_disk_list(PyObject *self, PyObject *args,
 #endif
 
 #if PY_MAJOR_VERSION >= 3
-PyMODINIT_FUNC PyInit__clib3(void)
+PyMODINIT_FUNC PyInit__clib(void)
 #else
 PyMODINIT_FUNC init_clib(void)
 #endif
