@@ -197,7 +197,13 @@ esac
 AC_MSG_RESULT([$PYTHON_MAJOR_VERSION])
 AM_PATH_PYTHON([2.6], [], AC_MSG_ERROR([Python interpreter 2.6 or 2.7 required]) )
 
-AC_PYTHON_MODULE([pywbem], [Required])
+AC_PYTHON_MODULE([lmiwbem])
+AC_PYTHON_MODULE([pywbem])
+if test "x$HAVE_PYMOD_LMIWBEM" == "xno" && \
+   test "x$HAVE_PYMOD_PYWBEM" == "xno" ;then
+    AC_MSG_ERROR([Neither python2 module 'lmiwbem' nor 'pywbem' found, \
+please install any of them.])
+fi
 AC_PYTHON_MODULE([argparse], [Required])
 AC_PYTHON_MODULE([pyudev], [Required])
 AC_PYTHON_MODULE([six], [Required])
@@ -226,7 +232,14 @@ AC_ARG_WITH([python3],
     [with_python3=yes])
 if test "x$with_python3" = "xyes"; then
     AC_PATH_PROGS(PYTHON3, python3, [Python3 is required])
-    AC_PYTHON_MODULE([lmiwbem], [Required], [python3])
+    AC_PYTHON_MODULE([lmiwbem], [], [python3])
+    AC_PYTHON_MODULE([pywbem], [], [python3])
+    if test "x$HAVE_PYMOD_LMIWBEM" == "xno" && \
+       test "x$HAVE_PYMOD_PYWBEM" == "xno" ;then
+        AC_MSG_ERROR([Neither python3 module 'lmiwbem' nor 'pywbem' found, \
+please install any of them.])
+    fi
+
     AC_PYTHON_MODULE([six], [Required], [python3])
 
     PKG_CHECK_MODULES([PYTHON3], [python3], [], [not_found_py_pkg=yes])
@@ -241,7 +254,6 @@ if test "x$with_python3" = "xyes"; then
         AC_SUBST(PYTHON3_CFLAGS)
         AC_SUBST(PYTHON3_LIBS)
     fi
-
 fi
 AM_CONDITIONAL([WITH_PYTHON3], [test "x$with_python3" = "xyes"])
 
