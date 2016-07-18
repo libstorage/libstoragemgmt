@@ -573,18 +573,28 @@ class SmartArray(IPlugin):
         """
         ld_num = hp_ld_name[len("Logical Drive: "):]
         vpd83 = hp_ld['Unique Identifier'].lower()
-        # No document or command output indicate block size
-        # of volume. So we try to read from linux kernel, if failed
-        # try 512 and roughly calculate the sector count.
-        device = Device.from_device_file(_CONTEXT, hp_ld['Disk Name'])
-        vol_name = "%s: /dev/%s" % (hp_ld_name, device.sys_name)
-        attributes = device.attributes
-        try:
-            block_size = attributes.asint("queue/logical_block_size")
-            num_of_blocks = attributes.asint("size")
-        except (KeyError, UnicodeDecodeError, ValueError):
-            block_size = 512
-            num_of_blocks = int(_hp_size_to_lsm(hp_ld['Size']) / block_size)
+        hp_ld_path = ''
+        if 'Disk Name' in hp_ld:
+            hp_ld_path = hp_ld['Disk Name']
+        else:
+            hp_ld_path_list = LocalDisk.vpd83_search(vpd83)
+            if len(hp_ld_path_list) > 0:
+                hp_ld_path = hp_ld_path_list[0]
+
+        if hp_ld_path != '':
+            device = Device.from_device_file(_CONTEXT, hp_ld_path)
+            vol_name = "%s: /dev/%s" % (hp_ld_name, device.sys_name)
+            attributes = device.attributes
+            # No document or command output indicate block size
+            # of volume. So we try to read from linux kernel, if failed
+            # try 512 and roughly calculate the sector count.
+            try:
+                block_size = attributes.asint("queue/logical_block_size")
+                num_of_blocks = attributes.asint("size")
+            except (KeyError, UnicodeDecodeError, ValueError):
+                block_size = 512
+                num_of_blocks = int(
+                    _hp_size_to_lsm(hp_ld['Size']) / block_size)
 
         if 'Failed' in hp_ld['Status']:
             admin_status = Volume.ADMIN_STATE_DISABLED
