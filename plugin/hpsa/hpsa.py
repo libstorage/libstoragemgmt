@@ -577,15 +577,22 @@ class SmartArray(IPlugin):
         # No document or command output indicate block size
         # of volume. So we try to read from linux kernel, if failed
         # try 512 and roughly calculate the sector count.
-        device = Device.from_device_file(_CONTEXT, hp_ld['Disk Name'])
-        vol_name = "%s: /dev/%s" % (hp_ld_name, device.sys_name)
-        attributes = device.attributes
-        try:
-            block_size = attributes.asint("queue/logical_block_size")
-            num_of_blocks = attributes.asint("size")
-        except (KeyError, UnicodeDecodeError, ValueError):
-            block_size = 512
-            num_of_blocks = int(_hp_size_to_lsm(hp_ld['Size']) / block_size)
+        block_size = 512
+        num_of_blocks = int(_hp_size_to_lsm(hp_ld['Size']) / block_size)
+        vol_name = hp_ld_name
+
+        if len(vpd83) > 0:
+            blk_paths = LocalDisk.vpd83_search(vpd83)
+            if len(blk_paths) > 0:
+                blk_path = blk_paths[0]
+                vol_name += ": %s" % " ".join(blk_paths)
+                device = Device.from_device_file(_CONTEXT, blk_path)
+                attributes = device.attributes
+                try:
+                    block_size = attributes.asint("queue/logical_block_size")
+                    num_of_blocks = attributes.asint("size")
+                except (KeyError, UnicodeDecodeError, ValueError):
+                    pass
 
         if 'Failed' in hp_ld['Status']:
             admin_status = Volume.ADMIN_STATE_DISABLED
