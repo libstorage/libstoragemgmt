@@ -321,7 +321,8 @@ def _sys_id_of_ctrl_data(ctrl_data):
 
 class SmartArray(IPlugin):
     _DEFAULT_BIN_PATHS = [
-        "/usr/sbin/hpssacli", "/opt/hp/hpssacli/bld/hpssacli"]
+        "/usr/sbin/hpssacli", "/opt/hp/hpssacli/bld/hpssacli",
+        "/usr/sbin/ssacli", "/opt/hp/hpssacli/bld/ssacli"]
 
     def __init__(self):
         self._sacli_bin = None
@@ -344,7 +345,7 @@ class SmartArray(IPlugin):
         if os.geteuid() != 0:
             raise LsmError(
                 ErrorNumber.INVALID_ARGUMENT,
-                "This plugin requires root privilege both daemon and client")
+                "This plugin requires root privilege both daemon and client %d" % os.geteuid())
         uri_parsed = uri_parse(uri)
         self._sacli_bin = uri_parsed.get('parameters', {}).get('hpssacli')
         if not self._sacli_bin:
