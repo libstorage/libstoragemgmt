@@ -321,7 +321,8 @@ def _sys_id_of_ctrl_data(ctrl_data):
 
 class SmartArray(IPlugin):
     _DEFAULT_BIN_PATHS = [
-        "/usr/sbin/hpssacli", "/opt/hp/hpssacli/bld/hpssacli"]
+        "/usr/sbin/hpssacli", "/opt/hp/hpssacli/bld/hpssacli",
+        "/usr/sbin/ssacli", "/opt/hp/hpssacli/bld/ssacli"]
 
     def __init__(self):
         self._sacli_bin = None
