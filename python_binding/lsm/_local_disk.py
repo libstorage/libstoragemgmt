@@ -124,6 +124,8 @@ class LocalDisk(object):
                     Invalid disk_path. Should be like '/dev/sdb'.
                 ErrorNumber.NOT_FOUND_DISK
                     Provided disk is not found.
+                ErrorNumber.NO_SUPPORT
+                    Not supported.
         Capability:
             N/A
                 No capability required as this is a library level method.
