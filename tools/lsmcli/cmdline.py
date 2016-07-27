@@ -1780,13 +1780,17 @@ class CmdLine:
     def local_disk_list(self, args):
         local_disks = []
         for disk_path in LocalDisk.list():
+            vpd83 = ""
+            rpm = Disk.RPM_NO_SUPPORT
+            link_type = Disk.LINK_TYPE_NO_SUPPORT
             try:
                 vpd83 = LocalDisk.vpd83_get(disk_path)
+                rpm = LocalDisk.rpm_get(disk_path)
+                link_type = LocalDisk.link_type_get(disk_path)
             except LsmError as lsm_err:
-                vpd83 = ""
+                if lsm_err.code != ErrorNumber.NO_SUPPORT:
+                    raise
 
-            rpm = LocalDisk.rpm_get(disk_path)
-            link_type = LocalDisk.link_type_get(disk_path)
             local_disks.append(
                 LocalDiskInfo(disk_path, vpd83, rpm, link_type))
 
