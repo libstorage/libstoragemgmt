@@ -638,11 +638,14 @@ int _sg_io_send_diag(char *err_msg, int fd, uint8_t *data, uint16_t data_len)
     char strerr_buff[_LSM_ERR_MSG_LEN];
     uint8_t sense_data[_T10_SPC_SENSE_DATA_MAX_LENGTH];
     uint8_t sense_key = _T10_SPC_SENSE_KEY_NO_SENSE;
+    char sense_err_msg[_LSM_ERR_MSG_LEN];
 
     assert(err_msg != NULL);
     assert(fd >= 0);
     assert(data != NULL);
     assert(data_len > 0);
+
+    memset(sense_err_msg, 0, _LSM_ERR_MSG_LEN);
 
     /* SPC-5 rev7, Table 219 - RECEIVE DIAGNOSTIC RESULTS command */
     cdb[0] = SEND_DIAGNOSTIC;                   /* OPERATION CODE */
@@ -666,12 +669,12 @@ int _sg_io_send_diag(char *err_msg, int fd, uint8_t *data, uint16_t data_len)
     if (ioctl_errno != 0) {
         rc = LSM_ERR_LIB_BUG;
         /* TODO(Gris Ge): No idea why this could fail */
-        _check_sense_data(err_msg, sense_data, &sense_key);
+        _check_sense_data(sense_err_msg, sense_data, &sense_key);
 
         _lsm_err_msg_set(err_msg, "Got error from SGIO SEND_DIAGNOSTIC "
                          "for error %d(%s), %s", ioctl_errno,
                          strerror_r(ioctl_errno, strerr_buff, _LSM_ERR_MSG_LEN),
-                         err_msg);
+                         sense_err_msg);
     }
 
     return rc;
