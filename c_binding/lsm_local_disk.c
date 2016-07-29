@@ -58,7 +58,6 @@
 
 #define _SYSFS_BLK_PATH_FORMAT "/sys/block/%s"
 #define _MAX_SYSFS_BLK_PATH_STR_LEN 128 + _MAX_SD_NAME_STR_LEN
-#define _LSM_ERR_MSG_LEN 255
 #define _SYSFS_SAS_ADDR_LEN                     _SG_T10_SPL_SAS_ADDR_LEN + 2
 /* ^ Only Linux sysfs entry /sys/block/sdx/device/sas_address which
  *   format is '0x<hex_addr>\0'
@@ -127,10 +126,10 @@ static int _sysfs_vpd_pg83_data_get(char *err_msg, const char *sd_name,
     file_rc = _read_file(sysfs_path, vpd_data, read_size,
                          _SG_T10_SPC_VPD_MAX_LEN);
     if (file_rc != 0) {
-        if (errno == ENOENT) {
+        if (file_rc == ENOENT) {
             _lsm_err_msg_set(err_msg, "File '%s' not exist", sysfs_path);
             return LSM_ERR_NO_SUPPORT;
-        } else if (errno == EINVAL) {
+        } else if (file_rc == EINVAL) {
             _lsm_err_msg_set(err_msg, "Read error on File '%s': "
                              "invalid argument", sysfs_path);
             return LSM_ERR_NO_SUPPORT;
@@ -768,6 +767,7 @@ static int _sysfs_sas_addr_get(const char *blk_name, char *tp_sas_addr)
     char sysfs_sas_addr[_SYSFS_SAS_ADDR_LEN];
     char *sysfs_sas_path = NULL;
     ssize_t read_size = -1;
+    int tmp_rc = 0;
 
     assert(blk_name != NULL);
     assert(tp_sas_addr != NULL);
@@ -782,19 +782,20 @@ static int _sysfs_sas_addr_get(const char *blk_name, char *tp_sas_addr)
         goto out;
 
     sprintf(sysfs_sas_path, "/sys/block/%s/device/sas_address", blk_name);
+    if (! _file_exists(sysfs_sas_path))
+        goto out;
 
-    if (! _file_exists(sysfs_sas_path) ||
-        (_read_file(sysfs_sas_path, (uint8_t *) sysfs_sas_addr, &read_size,
-                    _SYSFS_SAS_ADDR_LEN) != 0) ||
-        (read_size != _SYSFS_SAS_ADDR_LEN) ||
-        (strlen(sysfs_sas_addr) != _SYSFS_SAS_ADDR_LEN) ||
-        (strncmp(sysfs_sas_addr, "0x", strlen("0x")) != 0))
+    tmp_rc = _read_file(sysfs_sas_path, (uint8_t *) sysfs_sas_addr, &read_size,
+                        _SYSFS_SAS_ADDR_LEN);
+    /* As sysfs entry has trailing '\n', we should get EFBIG here */
+    if (tmp_rc != EFBIG)
+        goto out;
+
+    if (strncmp(sysfs_sas_addr, "0x", strlen("0x")) != 0)
         goto out;
 
     memcpy(tp_sas_addr, sysfs_sas_addr + strlen("0x"),
            _SG_T10_SPL_SAS_ADDR_LEN);
-    tp_sas_addr[_SG_T10_SPL_SAS_ADDR_LEN - 1] = '\0';
-    /* ^ Replace trailing \n as \0 */
 
     rc = 0;
 

@@ -50,6 +50,56 @@
 /* SPC-5 rev7 Table 534 - Supported VPD Pages VPD page */
 #define _T10_SPC_VPD_SUP_VPD_PGS_LIST_OFFSET            4
 
+/* SPC-5 rev7 4.4.2.1 Descriptor format sense data overview
+ * Quote:
+ * The ADDITIONAL SENSE LENGTH field indicates the number of additional sense
+ * bytes that follow. The additional sense length shall be less than or equal to
+ * 244 (i.e., limiting the total length of the sense data to 252 bytes).
+ */
+#define _T10_SPC_SENSE_DATA_MAX_LENGTH                       252
+
+/* The max length of char[] required to hold hex dump of sense data */
+#define _T10_SPC_SENSE_DATA_STR_MAX_LENGTH  \
+    _T10_SPC_SENSE_DATA_MAX_LENGTH * 2 + 1
+
+/*
+ * SPC-5 rev7 Table 27 - Sense data response codes
+ */
+#define _T10_SPC_SENSE_REPORT_TYPE_CUR_INFO_FIXED       0x70
+#define _T10_SPC_SENSE_REPORT_TYPE_DEF_ERR_FIXED        0x71
+#define _T10_SPC_SENSE_REPORT_TYPE_CUR_INFO_DP          0x72
+#define _T10_SPC_SENSE_REPORT_TYPE_DEF_ERR_DP           0x73
+
+/*
+ * SPC-5 rev7 Table 48 - Sense key descriptions
+ */
+#define _T10_SPC_SENSE_KEY_NO_SENSE                     0x0
+#define _T10_SPC_SENSE_KEY_RECOVERED_ERROR              0x1
+#define _T10_SPC_SENSE_KEY_ILLEGAL_REQUEST              0x5
+#define _T10_SPC_SENSE_KEY_COMPLETED                    0xf
+
+const char * const _T10_SPC_SENSE_KEY_STR[] = {
+    "NO SENSE",
+    "RECOVERED ERROR",
+    "NOT READY",
+    "MEDIUM ERROR",
+    "HARDWARE ERROR",
+    "ILLEGAL REQUEST",
+    "UNIT ATTENTION",
+    "DATA PROTECT",
+    "BLANK CHECK",
+    "VENDOR SPECIFIC",
+    "COPY ABORTED",
+    "ABORTED COMMAND",
+    "RESERVED",
+    "VOLUME OVERFLOW",
+    "MISCOMPARE",
+    "COMPLETED",
+};
+
+/* The offset of ADDITIONAL SENSE LENGTH */
+#define _T10_SPC_SENSE_DATA_LEN_OFFSET                  8
+
 #define _SG_IO_SEND_DATA                                1
 #define _SG_IO_RECV_DATA                                2
 
@@ -71,22 +121,69 @@ struct _sg_t10_vpd00 {
     uint8_t supported_vpd_list_begin;
 };
 
+
+struct _sg_t10_sense_header {
+    uint8_t response_code : 7;
+    uint8_t we_dont_care_0 : 1;
+};
+
+/*
+ * SPC-5 rev 7 Table 47 - Fixed format sense data
+ */
+struct _sg_t10_sense_fixed {
+    uint8_t response_code : 7;
+    uint8_t valid : 1;
+    uint8_t obsolete;
+    uint8_t sense_key : 4;
+    uint8_t we_dont_care_0 : 4;
+    uint8_t we_dont_care_1[3];
+    uint8_t len;
+    uint8_t we_dont_care_2[4];
+    uint8_t asc;        /* ADDITIONAL SENSE CODE */
+    uint8_t ascq;       /* ADDITIONAL SENSE CODE QUALIFIER */
+    /* We don't care the rest of data */
+};
+
+/*
+ * SPC-5 rev 7 Table 28 - Descriptor format sense data
+ */
+struct _sg_t10_sense_dp {
+    uint8_t response_code : 7;
+    uint8_t reserved : 1;
+    uint8_t sense_key : 4;
+    uint8_t we_dont_care_0 : 4;
+    uint8_t asc;        /* ADDITIONAL SENSE CODE */
+    uint8_t ascq;       /* ADDITIONAL SENSE CODE QUALIFIER */
+    uint8_t we_dont_care_1[3];
+    uint8_t len;
+    /* We don't care the rest of data */
+};
+
 #pragma pack(pop)
 
 /*
- * Return 0 if pass, return errno if failure.
- *
+ * Return 0 if pass, return -1 means got sense_data, return errno of ioctl
+ * error if ioctl failed.
+ * The 'sense_data' should be uint8_t[_T10_SPC_SENSE_DATA_MAX_LENGTH].
  */
 static int _sg_io(int fd, uint8_t *cdb, uint8_t cdb_len, uint8_t *data,
-                  ssize_t data_len, int direction);
+                  ssize_t data_len, uint8_t *sense_data, int direction);
 
 static struct _sg_t10_vpd83_dp *_sg_t10_vpd83_dp_new(void);
 
 static int _sg_io_open(char *err_msg, const char *disk_path, int *fd,
                        int oflag);
 
+/*
+ * The 'sense_key' is the output pointer.
+ * Return 0 if sense_key is _T10_SPC_SENSE_KEY_NO_SENSE or
+ * _T10_SPC_SENSE_KEY_RECOVERED_ERROR, return -1 otherwise.
+ */
+static int _check_sense_data(char *err_msg, uint8_t *sense_data,
+                                 uint8_t *sense_key);
+
 static int _sg_io(int fd, uint8_t *cdb, uint8_t cdb_len, uint8_t *data,
-                  ssize_t data_len, int direction)
+                  ssize_t data_len, uint8_t *sense_data, int direction)
 {
     int rc = 0;
     struct sg_io_hdr io_hdr;
@@ -97,13 +194,14 @@ static int _sg_io(int fd, uint8_t *cdb, uint8_t cdb_len, uint8_t *data,
     assert(data_len != 0);
 
     memset(&io_hdr, 0, sizeof(struct sg_io_hdr));
+    memset(sense_data, 0, _T10_SPC_SENSE_DATA_MAX_LENGTH);
     if (direction == _SG_IO_RECV_DATA)
         memset(data, 0, (size_t) data_len);
     io_hdr.interface_id = 'S';  /* 'S' for SCSI generic */
     io_hdr.cmdp = cdb;
     io_hdr.cmd_len = cdb_len;
-    io_hdr.sbp = NULL;  /* TODO(Gris Ge): Handle sense data for error message */
-    io_hdr.mx_sb_len = 0;
+    io_hdr.sbp = sense_data;
+    io_hdr.mx_sb_len = _T10_SPC_SENSE_DATA_MAX_LENGTH;
     if (direction == _SG_IO_RECV_DATA)
         io_hdr.dxfer_direction = SG_DXFER_FROM_DEV;
     else
@@ -116,6 +214,10 @@ static int _sg_io(int fd, uint8_t *cdb, uint8_t cdb_len, uint8_t *data,
     if (ioctl(fd, SG_IO, &io_hdr) != 0)
         rc = errno;
 
+    if (io_hdr.sb_len_wr != 0)
+        /* It might possible we got "NO SENSE", so we does not zero the data */
+        return -1;
+
     if (rc != 0)
         memset(data, 0, (size_t) data_len);
 
@@ -127,13 +229,18 @@ int _sg_io_vpd(char *err_msg, int fd, uint8_t page_code, uint8_t *data)
     int rc = LSM_ERR_OK;
     uint8_t vpd_00_data[_SG_T10_SPC_VPD_MAX_LEN];
     uint8_t cdb[_T10_SPC_INQUIRY_CMD_LEN];
+    uint8_t sense_data[_T10_SPC_SENSE_DATA_MAX_LENGTH];
     int ioctl_errno = 0;
     int rc_vpd_00 = 0;
     char strerr_buff[_LSM_ERR_MSG_LEN];
+    uint8_t sense_key = _T10_SPC_SENSE_KEY_NO_SENSE;
+    char sense_err_msg[_LSM_ERR_MSG_LEN];
 
     assert(err_msg != NULL);
     assert(fd >= 0);
     assert(data != NULL);
+
+    memset(sense_err_msg, 0, _LSM_ERR_MSG_LEN);
 
     /* SPC-5 Table 142 - INQUIRY command */
     cdb[0] = INQUIRY;                           /* OPERATION CODE */
@@ -150,38 +257,52 @@ int _sg_io_vpd(char *err_msg, int fd, uint8_t page_code, uint8_t *data)
      */
 
     ioctl_errno = _sg_io(fd, cdb, _T10_SPC_INQUIRY_CMD_LEN, data,
-                         _SG_T10_SPC_VPD_MAX_LEN, _SG_IO_RECV_DATA);
+                         _SG_T10_SPC_VPD_MAX_LEN, sense_data, _SG_IO_RECV_DATA);
+
     if (ioctl_errno != 0) {
         if (page_code == _SG_T10_SPC_VPD_SUP_VPD_PGS) {
             _lsm_err_msg_set(err_msg, "Not a SCSI compatible device");
             return LSM_ERR_NO_SUPPORT;
         }
-        /* Check whether provided page is supported */
-        rc_vpd_00 = _sg_io_vpd(err_msg, fd, _SG_T10_SPC_VPD_SUP_VPD_PGS,
-                               vpd_00_data);
-        if (rc_vpd_00 != 0) {
-            rc = LSM_ERR_NO_SUPPORT;
-            goto out;
+        if (_check_sense_data(sense_err_msg, sense_data, &sense_key) != 0) {
+            if (sense_key == _T10_SPC_SENSE_KEY_ILLEGAL_REQUEST) {
+                /* Check whether provided page is supported */
+                rc_vpd_00 = _sg_io_vpd(err_msg, fd, _SG_T10_SPC_VPD_SUP_VPD_PGS,
+                                       vpd_00_data);
+                if (rc_vpd_00 != 0) {
+                    rc = LSM_ERR_NO_SUPPORT;
+                    goto out;
+                }
+                if (_sg_is_vpd_page_supported(vpd_00_data, page_code) == true) {
+                    /* Current VPD page is supported, then it's a library bug */
+                    rc = LSM_ERR_LIB_BUG;
+                    _lsm_err_msg_set(err_msg,
+                                     "BUG: VPD page 0x%02x is supported, "
+                                     "but failed with error %d(%s), %s",
+                                     page_code, ioctl_errno,
+                                     strerror_r(ioctl_errno, strerr_buff,
+                                                _LSM_ERR_MSG_LEN),
+                                                sense_err_msg);
+                    goto out;
+                } else {
+                    rc = LSM_ERR_NO_SUPPORT;
+                    _lsm_err_msg_set(err_msg, "SCSI VPD 0x%02x page is "
+                                     "not supported", page_code);
+                    goto out;
+                }
+            } else {
+                rc = LSM_ERR_LIB_BUG;
+                _lsm_err_msg_set(err_msg,
+                                 "BUG: Unexpected failure of _sg_io_vpd(): %s",
+                                 sense_err_msg);
+            }
         }
-
-        if (_sg_is_vpd_page_supported(vpd_00_data, page_code) == true) {
-            /* Current VPD page is supported, then it's a library bug */
-            rc = LSM_ERR_LIB_BUG;
-            _lsm_err_msg_set(err_msg,
-                             "BUG: VPD page 0x%02x is supported, "
-                             "but failed with error %d(%s)",
-                             page_code, ioctl_errno,
-                             strerror_r(ioctl_errno, strerr_buff,
-                                        _LSM_ERR_MSG_LEN));
-            goto out;
-
-        }
-
-        rc = LSM_ERR_NO_SUPPORT;
-
-        _lsm_err_msg_set(err_msg, "SCSI VPD 0x%02x page is not supported",
-                         page_code);
-        goto out;
+        rc = LSM_ERR_LIB_BUG;
+        _lsm_err_msg_set(err_msg, "BUG: Unexpected failure of _sg_io_vpd(): "
+                         "error %d(%s), with no error in SCSI sense data",
+                         ioctl_errno,
+                         strerror_r(ioctl_errno, strerr_buff, _LSM_ERR_MSG_LEN)
+                         );
     }
 
  out:
@@ -354,6 +475,84 @@ static int _sg_io_open(char *err_msg, const char *disk_path, int *fd, int oflag)
     return rc;
 }
 
+static int _check_sense_data(char *err_msg, uint8_t *sense_data,
+                             uint8_t *sense_key)
+{
+    int rc = -1;
+    struct _sg_t10_sense_header *sense_hdr = NULL;
+    struct _sg_t10_sense_fixed *sense_fixed = NULL;
+    struct _sg_t10_sense_dp *sense_dp = NULL;
+    uint8_t len = 0;
+    char sense_data_str[_T10_SPC_SENSE_DATA_STR_MAX_LENGTH];
+    uint8_t i = 0;
+    uint8_t asc = 0;
+    uint8_t ascq = 0;
+
+    assert(sense_data != NULL);
+    assert(sense_key != NULL);
+
+    memset(sense_data_str, 0, _T10_SPC_SENSE_DATA_STR_MAX_LENGTH);
+
+    *sense_key = _T10_SPC_SENSE_KEY_NO_SENSE;
+
+    sense_hdr = (struct _sg_t10_sense_header*) sense_data;
+
+    switch(sense_hdr->response_code) {
+    case _T10_SPC_SENSE_REPORT_TYPE_CUR_INFO_FIXED:
+    case _T10_SPC_SENSE_REPORT_TYPE_DEF_ERR_FIXED:
+        sense_fixed = (struct _sg_t10_sense_fixed *) sense_data;
+        *sense_key = sense_fixed->sense_key;
+        len = sense_fixed->len + _T10_SPC_SENSE_DATA_LEN_OFFSET;
+        asc = sense_fixed->asc;
+        ascq = sense_fixed->ascq;
+        break;
+    case _T10_SPC_SENSE_REPORT_TYPE_CUR_INFO_DP:
+    case _T10_SPC_SENSE_REPORT_TYPE_DEF_ERR_DP:
+        sense_dp = (struct _sg_t10_sense_dp *) sense_data;
+        *sense_key = sense_dp->sense_key;
+        len = sense_dp->len + _T10_SPC_SENSE_DATA_LEN_OFFSET;
+        asc = sense_dp->asc;
+        ascq = sense_dp->ascq;
+        break;
+    case 0:
+        /* In case we got all zero sense data */
+        rc = 0;
+        goto out;
+    default:
+        _lsm_err_msg_set(err_msg, "Got unknown sense data response code %02x",
+                         sense_hdr->response_code);
+        goto out;
+    }
+    /* TODO(Gris Ge): Handle ADDITIONAL SENSE CODE field and ADDITIONAL SENSE
+     * CODE QUALIFIER which is quit a large work(19 pages of PDF):
+     *  SPC-5 rev7 Table 49 - ASC and ASCQ assignments
+     */
+
+    for (; i < len; ++i)
+        sprintf(&sense_data_str[i * 2], "%02x", sense_data[i]);
+
+    switch(*sense_key) {
+    case _T10_SPC_SENSE_KEY_NO_SENSE:
+    case _T10_SPC_SENSE_KEY_RECOVERED_ERROR:
+    case _T10_SPC_SENSE_KEY_COMPLETED:
+        /* No error */
+        rc = 0;
+        goto out;
+    default:
+    /* As sense_key is 4 bytes and we covered all 16 values in
+     * _T10_SPC_SENSE_KEY_STR, there will be no out of index error.
+     */
+        _lsm_err_msg_set(err_msg, "Got SCSI sense data, key %s(0x%02x), "
+                         "ADDITIONAL SENSE CODE 0x%02x, ADDITIONAL SENSE CODE "
+                         "QUALIFIER 0x%02x, all sense data in hex: %s",
+                         _T10_SPC_SENSE_KEY_STR[*sense_key], *sense_key,
+                         asc, ascq, sense_data_str);
+    }
+
+ out:
+    return rc;
+}
+
 int _sg_io_open_ro(char *err_msg, const char *disk_path, int *fd)
 {
     return _sg_io_open(err_msg, disk_path, fd, O_RDONLY|O_NONBLOCK);
@@ -383,10 +582,15 @@ int _sg_io_recv_diag(char *err_msg, int fd, uint8_t page_code, uint8_t *data)
     uint8_t cdb[_T10_SPC_RECV_DIAG_CMD_LEN];
     int ioctl_errno = 0;
     char strerr_buff[_LSM_ERR_MSG_LEN];
+    uint8_t sense_data[_T10_SPC_SENSE_DATA_MAX_LENGTH];
+    uint8_t sense_key = _T10_SPC_SENSE_KEY_NO_SENSE;
+    char sense_err_msg[_LSM_ERR_MSG_LEN];
 
     assert(err_msg != NULL);
     assert(fd >= 0);
     assert(data != NULL);
+
+    memset(sense_err_msg, 0, _LSM_ERR_MSG_LEN);
 
     /* SPC-5 rev7, Table 219 - RECEIVE DIAGNOSTIC RESULTS command */
     cdb[0] = RECEIVE_DIAGNOSTIC;                /* OPERATION CODE */
@@ -406,15 +610,18 @@ int _sg_io_recv_diag(char *err_msg, int fd, uint8_t page_code, uint8_t *data)
      */
 
     ioctl_errno = _sg_io(fd, cdb, _T10_SPC_RECV_DIAG_CMD_LEN, data,
-                         _SG_T10_SPC_RECV_DIAG_MAX_LEN, _SG_IO_RECV_DATA);
+                         _SG_T10_SPC_RECV_DIAG_MAX_LEN, sense_data,
+                         _SG_IO_RECV_DATA);
     if (ioctl_errno != 0) {
         rc = LSM_ERR_LIB_BUG;
         /* TODO(Gris Ge): Check 'Supported Diagnostic Pages diagnostic page' */
+        _check_sense_data(sense_err_msg, sense_data, &sense_key);
 
         _lsm_err_msg_set(err_msg, "Got error from SGIO RECEIVE_DIAGNOSTIC "
-                         "for page code 0x%02x: %d(%s)", page_code, ioctl_errno,
-                         strerror_r(ioctl_errno, strerr_buff,
-                                    _LSM_ERR_MSG_LEN));
+                         "for page code 0x%02x: error %d(%s), %s", page_code,
+                         ioctl_errno,
+                         strerror_r(ioctl_errno, strerr_buff, _LSM_ERR_MSG_LEN),
+                         sense_err_msg);
         goto out;
     }
 
@@ -429,11 +636,16 @@ int _sg_io_send_diag(char *err_msg, int fd, uint8_t *data, uint16_t data_len)
     uint8_t cdb[_T10_SPC_SEND_DIAG_CMD_LEN];
     int ioctl_errno = 0;
     char strerr_buff[_LSM_ERR_MSG_LEN];
+    uint8_t sense_data[_T10_SPC_SENSE_DATA_MAX_LENGTH];
+    uint8_t sense_key = _T10_SPC_SENSE_KEY_NO_SENSE;
+    char sense_err_msg[_LSM_ERR_MSG_LEN];
 
     assert(err_msg != NULL);
     assert(fd >= 0);
     assert(data != NULL);
     assert(data_len > 0);
+
+    memset(sense_err_msg, 0, _LSM_ERR_MSG_LEN);
 
     /* SPC-5 rev7, Table 219 - RECEIVE DIAGNOSTIC RESULTS command */
     cdb[0] = SEND_DIAGNOSTIC;                   /* OPERATION CODE */
@@ -453,15 +665,16 @@ int _sg_io_send_diag(char *err_msg, int fd, uint8_t *data, uint16_t data_len)
      */
 
     ioctl_errno = _sg_io(fd, cdb, _T10_SPC_SEND_DIAG_CMD_LEN, data,
-                         data_len, _SG_IO_SEND_DATA);
+                         data_len, sense_data, _SG_IO_SEND_DATA);
     if (ioctl_errno != 0) {
         rc = LSM_ERR_LIB_BUG;
         /* TODO(Gris Ge): No idea why this could fail */
+        _check_sense_data(sense_err_msg, sense_data, &sense_key);
 
         _lsm_err_msg_set(err_msg, "Got error from SGIO SEND_DIAGNOSTIC "
-                         "for %d(%s)", ioctl_errno,
-                         strerror_r(ioctl_errno, strerr_buff,
-                                    _LSM_ERR_MSG_LEN));
+                         "for error %d(%s), %s", ioctl_errno,
+                         strerror_r(ioctl_errno, strerr_buff, _LSM_ERR_MSG_LEN),
+                         sense_err_msg);
     }
 
     return rc;

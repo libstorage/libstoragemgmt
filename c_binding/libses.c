@@ -294,9 +294,10 @@ static int _ses_sg_paths_get(char *err_msg, char ***sg_paths,
     lsm_string_list *sg_name_list = NULL;
     const char *sg_name = NULL;
     char *sysfs_sg_type_path = NULL;
-    char sg_dev_type[_LINUX_SG_DEV_TYPE_SES_LEN];
+    char sg_dev_type[_LINUX_SG_DEV_TYPE_SES_LEN + 1];
     ssize_t sg_dev_type_size = 0;
     char strerr_buff[_LSM_ERR_MSG_LEN];
+    int tmp_rc = 0;
 
     assert(err_msg != NULL);
     assert(sg_paths != NULL);
@@ -342,9 +343,10 @@ static int _ses_sg_paths_get(char *err_msg, char ***sg_paths,
             _alloc_null_check(err_msg, sysfs_sg_type_path, rc, out);
             sprintf(sysfs_sg_type_path, "%s/%s/device/type",
                     _SYSFS_SG_ROOT_PATH, sg_name);
-            if (_read_file(sysfs_sg_type_path, (uint8_t *) sg_dev_type,
-                           &sg_dev_type_size,
-                           _LINUX_SG_DEV_TYPE_SES_LEN) != 0) {
+            tmp_rc = _read_file(sysfs_sg_type_path, (uint8_t *) sg_dev_type,
+                                &sg_dev_type_size,
+                                _LINUX_SG_DEV_TYPE_SES_LEN + 1);
+            if ((tmp_rc != 0) && (tmp_rc != EFBIG)) {
                 free(sysfs_sg_type_path);
                 continue;
             }
