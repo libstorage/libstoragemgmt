@@ -592,6 +592,17 @@ fi
 %{udev_dir}/udev/rules.d/90-scsi-ua.rules
 
 %changelog
+* Fri Jul 29 2016 Tony Asleson <tasleson@redhat.com> 1.3.3-1
+- Bug fixes:
+  * https://bugzilla.redhat.com/show_bug.cgi?id=1346901
+  * https://bugzilla.redhat.com/show_bug.cgi?id=1346898
+  * https://bugzilla.redhat.com/show_bug.cgi?id=1360177
+  * https://github.com/libstorage/libstoragemgmt/issues/167
+  * Seg. fault on qemu simulated disk
+  * Fix make check on EL6 (python 2.6)
+  * Misc. code improvements & corrections
+  * Fix regression introduced by coverity scan correction
+
 * Wed May 18 2016 Tony Asleson <tasleson@redhat.com> 1.3.2-1
 - Bug fixes:
   * https://github.com/libstorage/libstoragemgmt/pull/152
