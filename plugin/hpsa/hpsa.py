@@ -469,7 +469,7 @@ class SmartArray(IPlugin):
             else:
                 # Some Smart Arrays don't have cache
                 # This entry is also missing until a volume uses cache
-                read_cache_pct = System.CACHE_PCT_UNKNOWN
+                read_cache_pct = System.READ_CACHE_PCT_UNKNOWN
             if 'Controller Mode' in ctrl_data:
                 hwraid_mode = ctrl_data['Controller Mode']
                 if hwraid_mode == 'RAID':
