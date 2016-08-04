@@ -210,6 +210,8 @@ Value disk_to_value(lsm_disk * disk)
             d["rpm"] = Value(disk->rpm);
         if (disk->link_type != LSM_DISK_LINK_TYPE_NO_SUPPORT)
             d["link_type"] = Value(disk->link_type);
+        if (disk->vpd83 != NULL)
+            d["vpd83"] = Value(disk->vpd83);
 
         return Value(d);
     }
