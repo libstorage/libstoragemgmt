@@ -11,6 +11,8 @@ requirements.  Runs as an unprivileged user.
 .HP
 \fB\-\-socketdir\fR = The directory for IPC sockets
 .HP
+\fB\-\-confdir\fR = The directory where the config file are located
+.HP
 \fB\-v\fR
 = Verbose logging
 .TP

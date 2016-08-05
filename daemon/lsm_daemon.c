@@ -229,7 +229,7 @@ void usage(void)
     printf("     --confdir   = The directory where the config files are "
                                "located\n");
     printf("     -v          = Verbose logging\n");
-    printf("     -d          = new style daemon (systemd)\n");
+    printf("     -d          = New style daemon (systemd)\n");
 }
 
 /**
