@@ -710,8 +710,14 @@ Value nfs_export_to_value(lsm_nfs_export * exp)
         f["root"] = Value(string_list_to_value(exp->root));
         f["rw"] = Value(string_list_to_value(exp->read_write));
         f["ro"] = Value(string_list_to_value(exp->read_only));
-        f["anonuid"] = Value(exp->anon_uid);
-        f["anongid"] = Value(exp->anon_gid);
+        if (exp->anon_uid == UINT64_MAX)
+            f["anonuid"] = Value(-1);
+        else
+            f["anonuid"] = Value(exp->anon_uid);
+        if (exp->anon_gid == UINT64_MAX)
+            f["anongid"] = Value(-1);
+        else
+            f["anongid"] = Value(exp->anon_gid);
         f["options"] = Value(exp->options);
         f["plugin_data"] = Value(exp->plugin_data);
         return Value(f);
