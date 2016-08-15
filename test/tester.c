@@ -2142,21 +2142,35 @@ START_TEST(test_read_cache_pct_update)
     int rc = 0;
     lsm_system **sys = NULL;
     uint32_t sys_count = 0;
+    int pct = 0;
 
     G(rc, lsm_system_list, c, &sys, &sys_count, LSM_CLIENT_FLAG_RSVD);
     fail_unless( sys_count >= 1, "count = %d", sys_count);
 
-    if(sys_count > 0) {
+    G(rc, lsm_system_read_cache_pct_update, c, sys[0], 100,
+      LSM_CLIENT_FLAG_RSVD);
+    G(rc, lsm_system_list, c, &sys, &sys_count, LSM_CLIENT_FLAG_RSVD);
+    fail_unless( sys_count >= 1, "count = %d", sys_count);
 
-        G(rc, lsm_system_read_cache_pct_update, c, sys[0], 100,
-          LSM_CLIENT_FLAG_RSVD);
+    pct = lsm_system_read_cache_pct_get(sys[0]);
+    printf("Got pct %d\n", pct);
+    fail_unless(pct == 100, "Failed to set system read cache to 100, got %d, "
+                "but got error message.", pct);
 
-        if (LSM_ERR_OK == rc)
-            printf("Read cache percentage changed\n");
-    }
+    printf("Read cache percentage changed\n");
+
+    /* Test INVALID argument */
+    rc = lsm_system_read_cache_pct_update(c, sys[0], -1, LSM_CLIENT_FLAG_RSVD);
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "Expecting LSM_ERR_INVALID_ARGUMENT, but got %d", rc);
+    rc = lsm_system_read_cache_pct_update(c, sys[0], 101, LSM_CLIENT_FLAG_RSVD);
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "Expecting LSM_ERR_INVALID_ARGUMENT, but got %d", rc);
+    rc = lsm_system_read_cache_pct_update(c, NULL, 10, LSM_CLIENT_FLAG_RSVD);
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "Expecting LSM_ERR_INVALID_ARGUMENT, but got %d", rc);
 
     lsm_system_record_array_free(sys, sys_count);
-
 }
 END_TEST
 
