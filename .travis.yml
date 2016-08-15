@@ -24,6 +24,7 @@ addons:
         - valgrind
         - chrpath
         - python-pyudev
+        - libsqlite3-dev
 
 compiler: gcc
 
