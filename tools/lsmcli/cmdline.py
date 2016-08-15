@@ -1645,6 +1645,8 @@ class CmdLine:
         read_pct = int(args.read_pct)
 
         self.c.system_read_cache_pct_update(lsm_system, read_pct)
+        lsm_system = _get_item(self.c.systems(), args.sys, "System")
+        self.display_data([lsm_system])
 
     ## Displays file system dependants
     def fs_dependants(self, args):
