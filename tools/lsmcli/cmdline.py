@@ -998,7 +998,7 @@ class CmdLine:
     def alias_help_text():
         rc = "command aliases:\n"
         for k, v in sorted(aliases.items()):
-            rc += "   {:<18}   Alias of '{}'\n".format(k, v)
+            rc += "   {0:<18}   Alias of '{1}'\n".format(k, v)
         return rc
 
 
