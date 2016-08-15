@@ -62,9 +62,11 @@ BuildRequires:  gcc-c++
 BuildRequires:  libconfig-devel
 %if 0%{?suse_version}
 BuildRequires:  libyajl-devel
+BuildRequires:  sqlite3-devel
 %else
 # Fedora RHEL
 BuildRequires:  yajl-devel
+BuildRequires:  sqlite-devel
 %endif
 
 %if 0%{?rhel} == 6

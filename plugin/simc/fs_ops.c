@@ -154,7 +154,6 @@ int fs_create(lsm_plugin_ptr c, lsm_pool *pool, const char *name,
     _good(_check_null_ptr(err_msg, 4 /* argument count */, pool, name, fs, job),
           rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
     _good(_fs_create_internal(err_msg, db, name, size_bytes,
                               _db_lsm_id_to_sim_id(lsm_pool_id_get(pool))),
@@ -190,7 +189,6 @@ int fs_delete(lsm_plugin_ptr c, lsm_fs *fs, char **job, lsm_flag flags)
 
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 2 /* argument count */, fs, job), rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
 
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
@@ -264,7 +262,6 @@ int fs_clone(lsm_plugin_ptr c, lsm_fs *src_fs, const char *dest_fs_name,
                           dest_fs_name, cloned_fs, job),
           rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
 
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
     sim_fs_id = _db_lsm_id_to_sim_id(lsm_fs_id_get(src_fs));
@@ -336,7 +333,6 @@ int fs_child_dependency(lsm_plugin_ptr c, lsm_fs *fs, lsm_string_list *files,
     _good(_check_null_ptr(err_msg, 2 /* argument count */, fs, yes), rc, out);
 
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
 
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
 
@@ -401,7 +397,6 @@ int fs_child_dependency_rm(lsm_plugin_ptr c, lsm_fs *fs,
     }
 
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
 
     /*
@@ -455,7 +450,6 @@ int fs_resize(lsm_plugin_ptr c, lsm_fs *fs, uint64_t new_size,
     _good(_check_null_ptr(err_msg, 3 /* argument count */, fs,
                           rfs, job),
           rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
 
@@ -531,7 +525,6 @@ int fs_file_clone(lsm_plugin_ptr c, lsm_fs *fs, const char *src_file_name,
           rc, out);
 
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
     /* Check fs existence */
     _good(_db_sim_fs_of_sim_id(err_msg, db,
@@ -581,7 +574,6 @@ int fs_snapshot_list(lsm_plugin_ptr c, lsm_fs *fs, lsm_fs_ss **ss[],
     _good(_check_null_ptr(err_msg, 2 /* argument count */, ss, ss_count),
           rc, out);
 
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
     /* Check fs existence */
@@ -638,7 +630,6 @@ int fs_snapshot_create(lsm_plugin_ptr c, lsm_fs *fs, const char *name,
                           job),
           rc, out);
 
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
     /* Check fs existence */
@@ -699,7 +690,6 @@ int fs_snapshot_delete(lsm_plugin_ptr c, lsm_fs *fs, lsm_fs_ss *ss, char **job,
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 3 /* argument count */, fs, ss, job),
           rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
 
     _good(_db_sql_trans_begin(err_msg, db), rc, out);

@@ -263,7 +263,6 @@ int volume_create(lsm_plugin_ptr c, lsm_pool *pool, const char *volume_name,
                           new_volume, job),
           rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
     _good(_volume_create_internal(err_msg, db, volume_name, size,
                                   _db_lsm_id_to_sim_id(lsm_pool_id_get(pool))),
@@ -301,7 +300,6 @@ int volume_delete(lsm_plugin_ptr c, lsm_volume *volume, char **job,
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 2 /* argument count */, volume, job),
           rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
 
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
@@ -381,8 +379,6 @@ int volume_replicate(lsm_plugin_ptr c, lsm_pool *pool,
     _good(_check_null_ptr(err_msg, 4 /* argument count */, volume_src,
                           name, new_replicant, job),
           rc, out);
-
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
     if (pool != NULL)
@@ -444,7 +440,6 @@ int volume_replicate_range(lsm_plugin_ptr c, lsm_replication_type rep_type,
     _good(_check_null_ptr(err_msg, 4 /* argument count */, src_vol, dst_vol,
                           ranges, job),
           rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
 
@@ -550,7 +545,6 @@ int volume_resize(lsm_plugin_ptr c, lsm_volume *volume, uint64_t new_size,
                           resized_volume, job),
           rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
 
     sim_vol_id = _db_lsm_id_to_sim_id(lsm_volume_id_get(volume));
@@ -622,7 +616,6 @@ static int _volume_admin_state_change(lsm_plugin_ptr c, lsm_volume *v,
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 1 /* argument count */, v), rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
 
     sim_vol_id = _db_lsm_id_to_sim_id(lsm_volume_id_get(v));
@@ -686,7 +679,6 @@ int access_group_create(lsm_plugin_ptr c, const char *name,
     _good(_check_null_ptr(err_msg, 4 /* argument count */, name, initiator_id,
                           system, access_group),
           rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
 
@@ -773,8 +765,6 @@ int access_group_delete(lsm_plugin_ptr c, lsm_access_group *group,
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 1 /* argument count */, group), rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
-
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
     sim_ag_id = _db_lsm_id_to_sim_id(lsm_access_group_id_get(group));
     /* Check access group existence */
@@ -827,7 +817,6 @@ int access_group_initiator_add(lsm_plugin_ptr c, lsm_access_group *access_group,
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 3 /* argument count */, access_group,
                           initiator_id, updated_access_group), rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
 
@@ -929,7 +918,6 @@ int access_group_initiator_delete(lsm_plugin_ptr c,
                           initiator_id, updated_access_group),
           rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
 
     if (strlen(initiator_id) == 0) {
@@ -1020,10 +1008,7 @@ int volume_mask(lsm_plugin_ptr c, lsm_access_group *group, lsm_volume *volume,
 
     _good(_check_null_ptr(err_msg, 2 /* argument count */, group, volume),
           rc, out);
-
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
-
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
 
     sim_vol_id = _db_lsm_id_to_sim_id(lsm_volume_id_get(volume));
@@ -1091,10 +1076,7 @@ int volume_unmask(lsm_plugin_ptr c, lsm_access_group *group, lsm_volume *volume,
 
     _good(_check_null_ptr(err_msg, 2 /* argument count */, group, volume),
           rc, out);
-
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
-
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
 
     sim_vol_id = _db_lsm_id_to_sim_id(lsm_volume_id_get(volume));
@@ -1158,10 +1140,7 @@ int volumes_accessible_by_access_group(lsm_plugin_ptr c,
     _good(_check_null_ptr(err_msg, 3 /* argument count */, group, volumes,
                           count),
           rc, out);
-
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
-
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
 
     sim_ag_id = _db_lsm_id_to_sim_id(lsm_access_group_id_get(group));
@@ -1220,10 +1199,7 @@ int access_groups_granted_to_volume(lsm_plugin_ptr c, lsm_volume *volume,
     _good(_check_null_ptr(err_msg, 3 /* argument count */, volume, groups,
                           count),
           rc, out);
-
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
-
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
 
     sim_vol_id = _db_lsm_id_to_sim_id(lsm_volume_id_get(volume));
@@ -1280,10 +1256,7 @@ int vol_child_depends(lsm_plugin_ptr c, lsm_volume *volume, uint8_t *yes,
 
     _good(_check_null_ptr(err_msg, 2 /* argument count */, volume, yes),
           rc, out);
-
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
-
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
 
     sim_vol_id = _db_lsm_id_to_sim_id(lsm_volume_id_get(volume));
@@ -1330,8 +1303,6 @@ int vol_child_depends_rm(lsm_plugin_ptr c, lsm_volume *volume, char **job,
 
     _good(_check_null_ptr(err_msg, 2 /* argument count */, volume, job),
           rc, out);
-
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
 
     *job = NULL;

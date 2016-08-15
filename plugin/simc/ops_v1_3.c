@@ -78,7 +78,6 @@ static int _vol_cache_update(lsm_plugin_ptr c, lsm_volume *volume,
     _good(_check_null_ptr(err_msg, 1 /* argument count */, volume),
           rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
 
     sim_vol_id = _db_lsm_id_to_sim_id(lsm_volume_id_get(volume));
@@ -115,7 +114,6 @@ int volume_ident_led_on(lsm_plugin_ptr c, lsm_volume * volume, lsm_flag flags)
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 1 /* argument count */, volume), rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
 
     /* Do nothing but check the existence of volume */
@@ -146,7 +144,6 @@ int system_read_cache_pct_update(lsm_plugin_ptr c, lsm_system *system,
 
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 1 /* argument count */, system), rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
 
@@ -196,7 +193,6 @@ int volume_cache_info(lsm_plugin_ptr c, lsm_volume *volume,
                           read_cache_policy, read_cache_status,
                           physical_disk_cache),
           rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
 

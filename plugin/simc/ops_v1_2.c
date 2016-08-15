@@ -52,7 +52,6 @@ int volume_raid_info(lsm_plugin_ptr c, lsm_volume *volume,
                           opt_io_size),
           rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
 
     sim_vol_id = _db_lsm_id_to_sim_id(lsm_volume_id_get(volume));
@@ -136,7 +135,6 @@ int pool_member_info(lsm_plugin_ptr c, lsm_pool *pool,
     _good(_check_null_ptr(err_msg, 4 /* argument count */, pool, raid_type,
                           member_type, member_ids),
           rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
 
@@ -262,7 +260,6 @@ int volume_raid_create(lsm_plugin_ptr c, const char *name,
     _good(_check_null_ptr(err_msg, 3 /* argument count */, name, disks,
                           new_volume),
           rc, out);
-    _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
 
