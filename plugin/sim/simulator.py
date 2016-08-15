@@ -276,7 +276,7 @@ class SimPlugin(INfs, IStorageAreaNetwork):
 
     def export_auth(self, flags=0):
         # The API should change some day
-        return ["simple"]
+        return ["standard"]
 
     def exports(self, search_key=None, search_value=None, flags=0):
         sim_exps = self.sim_array.exports(flags)
