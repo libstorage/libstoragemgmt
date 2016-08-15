@@ -156,7 +156,7 @@ sub lsm_env_setup() {
     $ENV{LSM_UDS_PATH} = $LSM_UDS_PATH;
     $ENV{PYTHONPATH}      .= ":$py_binding_dir";
     $ENV{LD_LIBRARY_PATH} .= ":$c_binding_dir";
-    $ENV{LSM_SIM_TIME} = "0.1";
+    $ENV{LSM_SIM_TIME} = "0.1" unless defined $ENV{LSM_SIM_TIME};
 }
 
 sub set_uri($) {
