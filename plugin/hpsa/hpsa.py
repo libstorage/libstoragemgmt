@@ -477,9 +477,8 @@ class SmartArray(IPlugin):
                 elif 'HBA' in hwraid_mode:
                     mode = System.MODE_HBA
                 else:
-                    raise LsmError(
-                        ErrorNumber.PLUGIN_BUG,
-                        "Invalid Controller Mode: '%s'" % hwraid_mode)
+                    mode = System.MODE_UNKNOWN
+                    status_info += ' mode=[%s]' % str(hwraid_mode)
             else:
                 # prior to late Gen8, all Smart Arrays were RAID mode only
                 mode = System.MODE_HARDWARE_RAID
