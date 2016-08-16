@@ -472,9 +472,9 @@ class SmartArray(IPlugin):
                 read_cache_pct = System.READ_CACHE_PCT_UNKNOWN
             if 'Controller Mode' in ctrl_data:
                 hwraid_mode = ctrl_data['Controller Mode']
-                if hwraid_mode == 'RAID':
+                if 'RAID' in hwraid_mode:
                     mode = System.MODE_HARDWARE_RAID
-                elif hwraid_mode == 'HBA':
+                elif 'HBA' in hwraid_mode:
                     mode = System.MODE_HBA
                 else:
                     raise LsmError(
