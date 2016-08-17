@@ -2380,8 +2380,18 @@ int lsm_nfs_export_fs(lsm_connect * c,
     p["root_list"] = string_list_to_value(root_list);
     p["rw_list"] = string_list_to_value(rw_list);
     p["ro_list"] = string_list_to_value(ro_list);
-    p["anon_uid"] = Value(anon_uid);
-    p["anon_gid"] = Value(anon_gid);
+    if ((int64_t) anon_uid == LSM_NFS_EXPORT_ANON_UID_GID_NA)
+        p["anon_uid"] = Value(LSM_NFS_EXPORT_ANON_UID_GID_NA);
+    else if ((int64_t) anon_uid == LSM_NFS_EXPORT_ANON_UID_GID_ERROR)
+        p["anon_uid"] = Value(LSM_NFS_EXPORT_ANON_UID_GID_ERROR);
+    else
+        p["anon_uid"] = Value(anon_uid);
+    if ((int64_t) anon_gid == LSM_NFS_EXPORT_ANON_UID_GID_NA)
+        p["anon_gid"] = Value(LSM_NFS_EXPORT_ANON_UID_GID_NA);
+    else if ((int64_t) anon_gid == LSM_NFS_EXPORT_ANON_UID_GID_ERROR)
+        p["anon_gid"] = Value(LSM_NFS_EXPORT_ANON_UID_GID_ERROR);
+    else
+        p["anon_gid"] = Value(anon_gid);
     p["auth_type"] = Value(auth_type);
     p["options"] = Value(options);
     p["flags"] = Value(flags);
