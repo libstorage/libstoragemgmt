@@ -347,6 +347,9 @@ class Client(INetworkAttachedStorage):
             returns None on success, else raises LsmError on errors.
         SpecialExceptions:
         """
+        if read_pct > 100 or read_pct < 0:
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           "Invalid read_pct, should be in range 0 - 100")
         return self._tp.rpc('system_read_cache_pct_update',
                             _del_self(locals()))
 

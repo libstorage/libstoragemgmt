@@ -315,7 +315,6 @@ class TestPlugin(unittest.TestCase):
         try:
             for s in self.systems:
                 cap = self.c.capabilities(s)
-
                 # Remove any access groups we created, removing any mappings
                 # first.
                 if supported(cap, [Cap.ACCESS_GROUP_DELETE,
@@ -385,6 +384,8 @@ class TestPlugin(unittest.TestCase):
                 # Remove any fs we created
                 if supported(cap, [Cap.FS, Cap.FS_DELETE]):
                     for f in self.c.fs():
+                        if self.c.fs_child_dependency(f, None):
+                            self.c.fs_child_dependency_rm(f, None)
                         if 'lsm_' in f.name and s.id == f.system_id:
                             try:
                                 self.c.fs_delete(f)
@@ -394,7 +395,7 @@ class TestPlugin(unittest.TestCase):
                                 pass
 
         except Exception as e:
-            print_stderr("[WARNING] exception in _clean_ip %s\n" % str(e))
+            print_stderr("[WARNING] exception in _clean_up %s\n" % str(e))
             pass
 
     def tearDown(self):

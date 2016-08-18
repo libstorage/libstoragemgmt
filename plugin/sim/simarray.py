@@ -65,6 +65,13 @@ def _random_vpd():
     return "".join(vpd)
 
 
+def _dict_factory(cursor, row):
+    d = {}
+    for idx, col in enumerate(cursor.description):
+        d[col[0]] = row[idx]
+    return d
+
+
 class PoolRAID(object):
     _RAID_DISK_CHK = {
         Volume.RAID_TYPE_JBOD: lambda x: x > 0,
@@ -122,7 +129,7 @@ class PoolRAID(object):
 
 
 class BackStore(object):
-    VERSION = "3.9"
+    VERSION = "4.0"
     VERSION_SIGNATURE = 'LSM_SIMULATOR_DATA_%s_%s' % (VERSION, md5(VERSION))
     JOB_DEFAULT_DURATION = 1
     JOB_DATA_TYPE_VOL = 1
@@ -134,51 +141,13 @@ class BackStore(object):
     BLK_SIZE = 512
     DEFAULT_STRIP_SIZE = 128 * 1024  # 128 KiB
     SYS_MODE = System.MODE_HARDWARE_RAID
-    READ_CACHE_PCT = 10
     DEFAULT_WRITE_CACHE_POLICY = Volume.WRITE_CACHE_POLICY_AUTO
     DEFAULT_READ_CACHE_POLICY = Volume.READ_CACHE_POLICY_ENABLED
     DEFAULT_PHYSICAL_DISK_CACHE = Volume.PHYSICAL_DISK_CACHE_DISABLED
 
+    _DEFAULT_READ_CACHE_PCT = 10
     _LIST_SPLITTER = '#'
-
-    SYS_KEY_LIST = ['id', 'name', 'status', 'status_info', 'version']
-
-    POOL_KEY_LIST = [
-        'id', 'name', 'status', 'status_info',
-        'element_type', 'unsupported_actions', 'raid_type',
-        'member_type', 'parent_pool_id', 'total_space', 'free_space',
-        'strip_size']
-
-    DISK_KEY_LIST = [
-        'id', 'name', 'total_space', 'disk_type', 'status', 'vpd83',
-        'location', 'owner_pool_id', 'role', 'rpm', 'link_type']
-
-    VOL_KEY_LIST = [
-        'id', 'vpd83', 'name', 'total_space', 'consumed_size',
-        'pool_id', 'admin_state', 'thinp', 'is_hw_raid_vol',
-        'write_cache_policy', 'read_cache_policy', 'phy_disk_cache']
-
-    TGT_KEY_LIST = [
-        'id', 'port_type', 'service_address', 'network_address',
-        'physical_address', 'physical_name']
-
-    AG_KEY_LIST = ['id', 'name', 'init_type', 'init_ids_str']
-
-    JOB_KEY_LIST = ['id', 'duration', 'timestamp', 'data_type', 'data_id']
-
-    FS_KEY_LIST = [
-        'id', 'name', 'total_space', 'free_space', 'consumed_size',
-        'pool_id']
-
-    FS_SNAP_KEY_LIST = [
-        'id', 'fs_id', 'name', 'timestamp']
-
-    EXP_KEY_LIST = [
-        'id', 'fs_id', 'exp_path', 'auth_type', 'anon_uid', 'anon_gid',
-        'options', 'exp_root_hosts_str', 'exp_rw_hosts_str',
-        'exp_ro_hosts_str']
-
-    BAT_KEY_LIST = ['id', 'name', 'type', 'status']
+    _ID_FMT_LEN = 5
 
     SUPPORTED_VCR_RAID_TYPES = [
         Volume.RAID_TYPE_RAID0, Volume.RAID_TYPE_RAID1,
@@ -200,197 +169,242 @@ class BackStore(object):
         self.lastrowid = None
         self.sql_conn = sqlite3.connect(
             statefile, timeout=int(timeout/1000), isolation_level="IMMEDIATE")
+        self.sql_conn.row_factory = _dict_factory
         # Create tables no matter exist or not. No lock required.
 
         sql_cmd = "PRAGMA foreign_keys = ON;\n"
 
-        sql_cmd += (
+        sql_cmd += \
             """
             CREATE TABLE systems (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             status INTEGER NOT NULL,
             status_info TEXT,
+            read_cache_pct INTEGER,
             version TEXT NOT NULL);
-            """)    # version hold the signature of data
+            """
+        # version: hold the signature of data
 
-        sql_cmd += (
-            "CREATE TABLE tgts ("
-            "id INTEGER PRIMARY KEY, "
-            "port_type INTEGER NOT NULL, "
-            "service_address TEXT NOT NULL, "
-            "network_address TEXT NOT NULL, "
-            "physical_address TEXT NOT NULL, "
-            "physical_name TEXT NOT NULL);\n")
+        sql_cmd += \
+            """
+            CREATE TABLE tgts (
+            id INTEGER PRIMARY KEY,
+            port_type INTEGER NOT NULL,
+            service_address TEXT NOT NULL,
+            network_address TEXT NOT NULL,
+            physical_address TEXT NOT NULL,
+            physical_name TEXT NOT NULL);
+            """
 
-        sql_cmd += (
-            "CREATE TABLE pools ("
-            "id INTEGER PRIMARY KEY, "
-            "name TEXT UNIQUE NOT NULL, "
-            "status INTEGER NOT NULL, "
-            "status_info TEXT, "
-            "element_type INTEGER NOT NULL, "
-            "unsupported_actions INTEGER, "
-            "raid_type INTEGER NOT NULL, "
-            "parent_pool_id INTEGER, "
-            # ^ Indicate this pool is allocated from # other pool
-            "member_type INTEGER, "
-            "strip_size INTEGER, "
-            "total_space LONG);\n"
-            # ^ total_space here is only for sub-pool (pool from pool)
-            )
+        sql_cmd += \
+            """
+            CREATE TABLE pools (
+            id INTEGER PRIMARY KEY,
+            name TEXT UNIQUE NOT NULL,
+            status INTEGER NOT NULL,
+            status_info TEXT,
+            element_type INTEGER NOT NULL,
+            unsupported_actions INTEGER,
+            raid_type INTEGER NOT NULL,
+            parent_pool_id INTEGER,
+            member_type INTEGER,
+            strip_size INTEGER,
+            total_space LONG);
+            """
+        # parent_pool_id:
+        #   Indicate this pool is allocated from # other pool
+        # total_space:
+        #   is only for sub-pool \pool from pool)
 
-        sql_cmd += (
-            "CREATE TABLE disks ("
-            "id INTEGER PRIMARY KEY, "
-            "total_space LONG NOT NULL, "
-            "disk_type INTEGER NOT NULL, "
-            "status INTEGER NOT NULL, "
-            "disk_prefix TEXT NOT NULL, "
-            "location TEXT NOT NULL, "
-            "owner_pool_id INTEGER, "
-            # ^ Indicate this disk is used to assemble a pool
-            "role TEXT,"
-            "vpd83 TEXT,"
-            "rpm INTEGER, "
-            "link_type INTEGER, "
-            "FOREIGN KEY(owner_pool_id) "
-            "REFERENCES pools(id) ON DELETE CASCADE );\n")
+        sql_cmd += \
+            """
+            CREATE TABLE disks (
+            id INTEGER PRIMARY KEY,
+            total_space LONG NOT NULL,
+            disk_type INTEGER NOT NULL,
+            status INTEGER NOT NULL,
+            disk_prefix TEXT NOT NULL,
+            location TEXT NOT NULL,
+            owner_pool_id INTEGER,
+            role TEXT,
+            vpd83 TEXT,
+            rpm INTEGER,
+            link_type INTEGER,
+            FOREIGN KEY(owner_pool_id)
+            REFERENCES pools(id) ON DELETE CASCADE );
+            """
+        # owner_pool_id:
+        #   Indicate this disk is used to assemble a pool
 
-        sql_cmd += (
-            "CREATE TABLE volumes ("
-            "id INTEGER PRIMARY KEY, "
-            "vpd83 TEXT NOT NULL, "
-            "name TEXT UNIQUE NOT NULL, "
-            "total_space LONG NOT NULL, "
-            "consumed_size LONG NOT NULL, "
-            # ^ Reserved for future thinp support.
-            "admin_state INTEGER, "
-            "thinp INTEGER NOT NULL, "
-            "is_hw_raid_vol INTEGER, "
-            # ^ Once its volume deleted, pool will be delete also.
-            # For HW RAID simulation only.
-            "write_cache_policy INTEGER NOT NULL, "
-            "read_cache_policy INTEGER NOT NULL, "
-            "phy_disk_cache INTEGER NOT NULL, "
+        sql_cmd += \
+            """
+            CREATE TABLE volumes (
+            id INTEGER PRIMARY KEY,
+            vpd83 TEXT NOT NULL,
+            name TEXT UNIQUE NOT NULL,
+            total_space LONG NOT NULL,
+            consumed_size LONG NOT NULL,
+            admin_state INTEGER,
+            is_hw_raid_vol INTEGER,
+            write_cache_policy INTEGER NOT NULL,
+            read_cache_policy INTEGER NOT NULL,
+            phy_disk_cache INTEGER NOT NULL,
+            pool_id INTEGER NOT NULL,
+            FOREIGN KEY(pool_id)
+            REFERENCES pools(id) ON DELETE CASCADE);
+            """
+        # consumed_size:
+        #   Reserved for future thinp support.
+        # is_hw_raid_vol:
+        #   Once its volume deleted, pool will be delete also.
+        #   For HW RAID simulation only.
 
-            "pool_id INTEGER NOT NULL, "
-            "FOREIGN KEY(pool_id) "
-            "REFERENCES pools(id) ON DELETE CASCADE);\n")
+        sql_cmd += \
+            """
+            CREATE TABLE ags (
+            id INTEGER PRIMARY KEY,
+            name TEXT UNIQUE NOT NULL);
+            """
 
-        sql_cmd += (
-            "CREATE TABLE ags ("
-            "id INTEGER PRIMARY KEY, "
-            "name TEXT UNIQUE NOT NULL);\n")
+        sql_cmd += \
+            """
+            CREATE TABLE inits (
+            id TEXT UNIQUE NOT NULL,
+            init_type INTEGER NOT NULL,
+            owner_ag_id INTEGER NOT NULL,
+            FOREIGN KEY(owner_ag_id)
+            REFERENCES ags(id) ON DELETE CASCADE);
+            """
 
-        sql_cmd += (
-            "CREATE TABLE inits ("
-            "id TEXT UNIQUE NOT NULL, "
-            "init_type INTEGER NOT NULL, "
-            "owner_ag_id INTEGER NOT NULL, "
-            "FOREIGN KEY(owner_ag_id) "
-            "REFERENCES ags(id) ON DELETE CASCADE);\n")
+        sql_cmd += \
+            """
+            CREATE TABLE vol_masks (
+            vol_id INTEGER NOT NULL,
+            ag_id INTEGER NOT NULL,
+            FOREIGN KEY(vol_id) REFERENCES volumes(id) ON DELETE CASCADE,
+            FOREIGN KEY(ag_id) REFERENCES ags(id) ON DELETE CASCADE);
+            """
 
-        sql_cmd += (
-            "CREATE TABLE vol_masks ("
-            "vol_id INTEGER NOT NULL, "
-            "ag_id INTEGER NOT NULL, "
-            "FOREIGN KEY(vol_id) REFERENCES volumes(id) ON DELETE CASCADE, "
-            "FOREIGN KEY(ag_id) REFERENCES ags(id) ON DELETE CASCADE);\n")
+        sql_cmd += \
+            """
+            CREATE TABLE vol_reps (
+            rep_type INTEGER,
+            src_vol_id INTEGER NOT NULL,
+            dst_vol_id INTEGER NOT NULL,
+            FOREIGN KEY(src_vol_id)
+            REFERENCES volumes(id) ON DELETE CASCADE,
+            FOREIGN KEY(dst_vol_id)
+            REFERENCES volumes(id) ON DELETE CASCADE);
+            """
 
-        sql_cmd += (
-            "CREATE TABLE vol_reps ("
-            "rep_type INTEGER, "
-            "src_vol_id INTEGER NOT NULL, "
-            "dst_vol_id INTEGER NOT NULL, "
-            "FOREIGN KEY(src_vol_id) "
-            "REFERENCES volumes(id) ON DELETE CASCADE, "
-            "FOREIGN KEY(dst_vol_id) "
-            "REFERENCES volumes(id) ON DELETE CASCADE);\n")
+        sql_cmd += \
+            """
+            CREATE TABLE fss (
+            id INTEGER PRIMARY KEY,
+            name TEXT UNIQUE NOT NULL,
+            total_space LONG NOT NULL,
+            consumed_size LONG NOT NULL,
+            free_space LONG,
+            pool_id INTEGER NOT NULL,
+            FOREIGN KEY(pool_id)
+            REFERENCES pools(id) ON DELETE CASCADE);
+            """
 
-        sql_cmd += (
-            "CREATE TABLE fss ("
-            "id INTEGER PRIMARY KEY, "
-            "name TEXT UNIQUE NOT NULL, "
-            "total_space LONG NOT NULL, "
-            "consumed_size LONG NOT NULL, "
-            "free_space LONG, "
-            "pool_id INTEGER NOT NULL, "
-            "FOREIGN KEY(pool_id) "
-            "REFERENCES pools(id) ON DELETE CASCADE);\n")
+        sql_cmd += \
+            """
+            CREATE TABLE fs_snaps (
+            id INTEGER PRIMARY KEY,
+            name TEXT UNIQUE NOT NULL,
+            fs_id INTEGER NOT NULL,
+            timestamp LONG NOT NULL,
+            FOREIGN KEY(fs_id)
+            REFERENCES fss(id) ON DELETE CASCADE);
+            """
 
-        sql_cmd += (
-            "CREATE TABLE fs_snaps ("
-            "id INTEGER PRIMARY KEY, "
-            "name TEXT UNIQUE NOT NULL, "
-            "fs_id INTEGER NOT NULL, "
-            "timestamp LONG NOT NULL, "
-            "FOREIGN KEY(fs_id) "
-            "REFERENCES fss(id) ON DELETE CASCADE);\n")
+        sql_cmd += \
+            """
+            CREATE TABLE fs_clones (
+            src_fs_id INTEGER NOT NULL,
+            dst_fs_id INTEGER NOT NULL,
+            FOREIGN KEY(src_fs_id)
+            REFERENCES fss(id) ON DELETE CASCADE,
+            FOREIGN KEY(dst_fs_id)
+            REFERENCES fss(id) ON DELETE CASCADE);
+            """
 
-        sql_cmd += (
-            "CREATE TABLE fs_clones ("
-            "src_fs_id INTEGER NOT NULL, "
-            "dst_fs_id INTEGER NOT NULL, "
-            "FOREIGN KEY(src_fs_id) "
-            "REFERENCES fss(id) ON DELETE CASCADE, "
-            "FOREIGN KEY(dst_fs_id) "
-            "REFERENCES fss(id) ON DELETE CASCADE);\n")
+        sql_cmd += \
+            """
+            CREATE TABLE exps (
+            id INTEGER PRIMARY KEY,
+            fs_id INTEGER NOT NULL,
+            exp_path TEXT UNIQUE NOT NULL,
+            auth_type TEXT,
+            anon_uid INTEGER,
+            anon_gid INTEGER,
+            options TEXT,
+            FOREIGN KEY(fs_id)
+            REFERENCES fss(id) ON DELETE CASCADE);
+            """
 
-        sql_cmd += (
-            "CREATE TABLE exps ("
-            "id INTEGER PRIMARY KEY, "
-            "fs_id INTEGER NOT NULL, "
-            "exp_path TEXT UNIQUE NOT NULL, "
-            "auth_type TEXT, "
-            "anon_uid INTEGER, "
-            "anon_gid INTEGER, "
-            "options TEXT, "
-            "FOREIGN KEY(fs_id) "
-            "REFERENCES fss(id) ON DELETE CASCADE);\n")
+        sql_cmd += \
+            """
+            CREATE TABLE exp_root_hosts (
+            host TEXT NOT NULL,
+            exp_id INTEGER NOT NULL,
+            FOREIGN KEY(exp_id)
+            REFERENCES exps(id) ON DELETE CASCADE);
+            """
 
-        sql_cmd += (
-            "CREATE TABLE exp_root_hosts("
-            "host TEXT NOT NULL, "
-            "exp_id INTEGER NOT NULL, "
-            "FOREIGN KEY(exp_id) "
-            "REFERENCES exps(id) ON DELETE CASCADE);\n")
+        sql_cmd += \
+            """
+            CREATE TABLE exp_rw_hosts (
+            host TEXT NOT NULL,
+            exp_id INTEGER NOT NULL,
+            FOREIGN KEY(exp_id)
+            REFERENCES exps(id) ON DELETE CASCADE);
+            """
 
-        sql_cmd += (
-            "CREATE TABLE exp_rw_hosts("
-            "host TEXT NOT NULL, "
-            "exp_id INTEGER NOT NULL, "
-            "FOREIGN KEY(exp_id) "
-            "REFERENCES exps(id) ON DELETE CASCADE);\n")
+        sql_cmd += \
+            """
+            CREATE TABLE exp_ro_hosts (
+            host TEXT NOT NULL,
+            exp_id INTEGER NOT NULL,
+            FOREIGN KEY(exp_id)
+            REFERENCES exps(id) ON DELETE CASCADE);
+            """
 
-        sql_cmd += (
-            "CREATE TABLE exp_ro_hosts("
-            "host TEXT NOT NULL, "
-            "exp_id INTEGER NOT NULL, "
-            "FOREIGN KEY(exp_id) "
-            "REFERENCES exps(id) ON DELETE CASCADE);\n")
+        sql_cmd += \
+            """
+            CREATE TABLE jobs (
+            id INTEGER PRIMARY KEY,
+            duration REAL NOT NULL,
+            timestamp TEXT NOT NULL,
+            data_type INTEGER,
+            data_id INTEGER);
+            """
 
-        sql_cmd += (
-            "CREATE TABLE jobs ("
-            "id INTEGER PRIMARY KEY, "
-            "duration INTEGER NOT NULL, "
-            "timestamp TEXT NOT NULL, "
-            "data_type INTEGER, "
-            "data_id TEXT);\n")
+        sql_cmd += \
+            """
+            CREATE TABLE batteries (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            type INTEGER NOT NULL,
+            status INTEGER NOT NULL);
+            """
 
-        sql_cmd += (
-            "CREATE TABLE batteries ("
-            "id INTEGER PRIMARY KEY, "
-            "name TEXT NOT NULL, "
-            "type INTEGER NOT NULL, "
-            "status INTEGER NOT NULL);\n")
-
-        # Create views
-        sql_cmd += (
+        # Create views, SUBSTR() used below is alternative way of PRINTF()
+        # which only exists on sqlite 3.8+ while RHEL6 or Ubuntu 12.04 ships
+        # older version.
+        sql_cmd += \
             """
             CREATE VIEW pools_view AS
                 SELECT
                     pool0.id,
+                        'POOL_ID_' ||
+                            SUBSTR('{ID_PADDING}' || pool0.id,
+                                   -{ID_FMT_LEN}, {ID_FMT_LEN})
+                    lsm_pool_id,
                     pool0.name,
                     pool0.status,
                     pool0.status_info,
@@ -399,12 +413,18 @@ class BackStore(object):
                     pool0.raid_type,
                     pool0.member_type,
                     pool0.parent_pool_id,
+                        'POOL_ID_' ||
+                            SUBSTR('{ID_PADDING}' || pool0.parent_pool_id,
+                                   -{ID_FMT_LEN}, {ID_FMT_LEN})
+                    parent_lsm_pool_id,
                     pool0.strip_size,
                     pool1.total_space total_space,
                     pool1.total_space -
                     pool2.vol_consumed_size  -
                     pool3.fs_consumed_size -
-                    pool4.sub_pool_consumed_size free_space
+                    pool4.sub_pool_consumed_size free_space,
+                    pool1.data_disk_count,
+                    pool5.disk_count
                 FROM
                     pools pool0
                         LEFT JOIN (
@@ -412,7 +432,8 @@ class BackStore(object):
                                 pool.id,
                                     ifnull(pool.total_space,
                                         ifnull(SUM(disk.total_space), 0))
-                                total_space
+                                total_space,
+                                COUNT(disk.id) data_disk_count
                             FROM pools pool
                                 LEFT JOIN disks disk
                                     ON pool.id = disk.owner_pool_id AND
@@ -456,15 +477,47 @@ class BackStore(object):
                             GROUP BY
                                 pool.id
                         ) pool4 ON pool0.id = pool4.id
-
+                        LEFT JOIN (
+                            SELECT
+                                pool.id,
+                                COUNT(disk.id) disk_count
+                            FROM pools pool
+                                LEFT JOIN disks disk
+                                    ON pool.id = disk.owner_pool_id
+                            GROUP BY
+                                pool.id
+                        ) pool5 ON pool0.id = pool5.id
                 GROUP BY
                     pool0.id;
-            """)
-        sql_cmd += (
+            """
+
+        sql_cmd += \
+            """
+            CREATE VIEW tgts_view AS
+                SELECT
+                    id,
+                        'TGT_PORT_ID_' ||
+                            SUBSTR('{ID_PADDING}' || id,
+                                   -{ID_FMT_LEN}, {ID_FMT_LEN})
+                    lsm_tgt_id,
+                    port_type,
+                    service_address,
+                    network_address,
+                    physical_address,
+                    physical_name
+                FROM
+                    tgts;
+            """
+
+        sql_cmd += \
             """
             CREATE VIEW disks_view AS
                 SELECT
                     id,
+                        'DISK_ID_' ||
+                            SUBSTR('{ID_PADDING}' || id,
+                                   -{ID_FMT_LEN}, {ID_FMT_LEN})
+                    lsm_disk_id,
                         disk_prefix || '_' || id
                     name,
                     total_space,
@@ -477,21 +530,112 @@ class BackStore(object):
                     location,
                     owner_pool_id
                 FROM
-                    disks
-            ;
-            """)
-        sql_cmd += (
+                    disks;
+            """
+
+        sql_cmd += \
+            """
+            CREATE VIEW volumes_view AS
+                SELECT
+                    id,
+                        'VOL_ID_' ||
+                            SUBSTR('{ID_PADDING}' || id,
+                                   -{ID_FMT_LEN}, {ID_FMT_LEN})
+                    lsm_vol_id,
+                    vpd83,
+                    name,
+                    total_space,
+                    consumed_size,
+                    admin_state,
+                    is_hw_raid_vol,
+                    write_cache_policy,
+                    read_cache_policy,
+                    phy_disk_cache,
+                    pool_id,
+                        'POOL_ID_' ||
+                            SUBSTR('{ID_PADDING}' || pool_id,
+                                   -{ID_FMT_LEN}, {ID_FMT_LEN})
+                    lsm_pool_id
+                FROM
+                    volumes;
+            """
+
+        sql_cmd += \
+            """
+            CREATE VIEW fss_view AS
+                SELECT
+                    id,
+                        'FS_ID_' ||
+                            SUBSTR('{ID_PADDING}' || id,
+                                   -{ID_FMT_LEN}, {ID_FMT_LEN})
+                    lsm_fs_id,
+                    name,
+                    total_space,
+                    consumed_size,
+                    free_space,
+                    pool_id,
+                        'POOL_ID_' ||
+                            SUBSTR('{ID_PADDING}' || pool_id,
+                                   -{ID_FMT_LEN}, {ID_FMT_LEN})
+                    lsm_pool_id
+                FROM
+                    fss;
+            """
+
+        sql_cmd += \
+            """
+            CREATE VIEW bats_view AS
+                SELECT
+                    id,
+                        'BAT_ID_' ||
+                            SUBSTR('{ID_PADDING}' || id,
+                                   -{ID_FMT_LEN}, {ID_FMT_LEN})
+                    lsm_bat_id,
+                    name,
+                    type,
+                    status
+                FROM
+                    batteries;
+            """
+        sql_cmd += \
+            """
+            CREATE VIEW fs_snaps_view AS
+                SELECT
+                    id,
+                        'FS_SNAP_ID_' ||
+                            SUBSTR('{ID_PADDING}' || id,
+                                   -{ID_FMT_LEN}, {ID_FMT_LEN})
+                    lsm_fs_snap_id,
+                    name,
+                    timestamp,
+                    fs_id,
+                        'FS_ID_' ||
+                            SUBSTR('{ID_PADDING}' || fs_id,
+                                   -{ID_FMT_LEN}, {ID_FMT_LEN})
+                    lsm_fs_id
+                FROM
+                    fs_snaps;
+            """
+
+        sql_cmd += \
             """
             CREATE VIEW volumes_by_ag_view AS
                 SELECT
                     vol.id,
+                        'VOL_ID_' ||
+                            SUBSTR('{ID_PADDING}' || vol.id,
+                                   -{ID_FMT_LEN}, {ID_FMT_LEN})
+                    lsm_vol_id,
                     vol.vpd83,
                     vol.name,
                     vol.total_space,
                     vol.consumed_size,
                     vol.pool_id,
+                        'POOL_ID_' ||
+                            SUBSTR('{ID_PADDING}' || vol.pool_id,
+                                   -{ID_FMT_LEN}, {ID_FMT_LEN})
+                    lsm_pool_id,
                     vol.admin_state,
-                    vol.thinp,
                     vol.is_hw_raid_vol,
                     vol_mask.ag_id ag_id,
                     vol.write_cache_policy,
@@ -500,25 +644,28 @@ class BackStore(object):
                 FROM
                     volumes vol
                         LEFT JOIN vol_masks vol_mask
-                            ON vol_mask.vol_id = vol.id
-            ;
-            """)
+                            ON vol_mask.vol_id = vol.id;
+            """
 
-        sql_cmd += (
+        sql_cmd += \
             """
             CREATE VIEW ags_view AS
                 SELECT
                     ag.id,
+                        'AG_ID_' ||
+                            SUBSTR('{ID_PADDING}' || ag.id,
+                                   -{ID_FMT_LEN}, {ID_FMT_LEN})
+                    lsm_ag_id,
                     ag.name,
                         CASE
                             WHEN count(DISTINCT init.init_type) = 1
                                 THEN init.init_type
                             WHEN count(DISTINCT init.init_type) = 2
-                                THEN %s
-                            ELSE %s
+                                THEN {AG_INIT_TYPE_MIXED}
+                            ELSE {AG_INIT_TYPE_UNKNOWN}
                         END
                     init_type,
-                    group_concat(init.id, '%s') init_ids_str
+                    group_concat(init.id, '{SPLITTER}') init_ids_str
                 FROM
                     ags ag
                         LEFT JOIN inits init
@@ -526,16 +673,18 @@ class BackStore(object):
                 GROUP BY
                     ag.id
                 ORDER BY
-                    init.init_type
-            ;
-            """ % (AccessGroup.INIT_TYPE_ISCSI_WWPN_MIXED,
-                   AccessGroup.INIT_TYPE_UNKNOWN, BackStore._LIST_SPLITTER))
+                    init.init_type;
+            """
 
-        sql_cmd += (
+        sql_cmd += \
             """
             CREATE VIEW ags_by_vol_view AS
                 SELECT
                     ag_new.id,
+                        'AG_ID_' ||
+                            SUBSTR('{ID_PADDING}' || ag_new.id,
+                                   -{ID_FMT_LEN}, {ID_FMT_LEN})
+                    lsm_ag_id,
                     ag_new.name,
                     ag_new.init_type,
                     ag_new.init_ids_str,
@@ -549,11 +698,11 @@ class BackStore(object):
                                     WHEN count(DISTINCT init.init_type) = 1
                                         THEN init.init_type
                                     WHEN count(DISTINCT init.init_type) = 2
-                                        THEN %s
-                                    ELSE %s
+                                        THEN {AG_INIT_TYPE_MIXED}
+                                    ELSE {AG_INIT_TYPE_UNKNOWN}
                                 END
                             init_type,
-                            group_concat(init.id, '%s') init_ids_str
+                            group_concat(init.id, '{SPLITTER}') init_ids_str
                         FROM
                             ags ag
                                 LEFT JOIN inits init
@@ -566,15 +715,22 @@ class BackStore(object):
                         LEFT JOIN vol_masks vol_mask
                             ON vol_mask.ag_id = ag_new.id
             ;
-            """ % (AccessGroup.INIT_TYPE_ISCSI_WWPN_MIXED,
-                   AccessGroup.INIT_TYPE_UNKNOWN, BackStore._LIST_SPLITTER))
+            """
 
-        sql_cmd += (
+        sql_cmd += \
             """
             CREATE VIEW exps_view AS
                 SELECT
                     exp.id,
+                        'EXP_ID_' ||
+                            SUBSTR('{ID_PADDING}' || exp.id,
+                                   -{ID_FMT_LEN}, {ID_FMT_LEN})
+                    lsm_exp_id,
                     exp.fs_id,
+                        'FS_ID_' ||
+                            SUBSTR('{ID_PADDING}' || exp.fs_id,
+                                   -{ID_FMT_LEN}, {ID_FMT_LEN})
+                    lsm_fs_id,
                     exp.exp_path,
                     exp.auth_type,
                     exp.anon_uid,
@@ -589,7 +745,7 @@ class BackStore(object):
                             SELECT
                                 exp_t2.id,
                                     group_concat(
-                                        exp_root_host.host, '%s')
+                                        exp_root_host.host, '{SPLITTER}')
                                 exp_root_hosts_str
                             FROM
                                 exps exp_t2
@@ -603,7 +759,7 @@ class BackStore(object):
                             SELECT
                                 exp_t3.id,
                                     group_concat(
-                                        exp_rw_host.host, '%s')
+                                        exp_rw_host.host, '{SPLITTER}')
                                 exp_rw_hosts_str
                             FROM
                                 exps exp_t3
@@ -617,7 +773,7 @@ class BackStore(object):
                             SELECT
                                 exp_t4.id,
                                     group_concat(
-                                        exp_ro_host.host, '%s')
+                                        exp_ro_host.host, '{SPLITTER}')
                                 exp_ro_hosts_str
                             FROM
                                 exps exp_t4
@@ -630,8 +786,15 @@ class BackStore(object):
                 GROUP BY
                     exp.id;
             ;
-            """ % (BackStore._LIST_SPLITTER, BackStore._LIST_SPLITTER,
-                   BackStore._LIST_SPLITTER))
+            """
+
+        sql_cmd = sql_cmd.format(**{
+            'ID_PADDING': '0' * BackStore._ID_FMT_LEN,
+            'ID_FMT_LEN': BackStore._ID_FMT_LEN,
+            'AG_INIT_TYPE_MIXED': AccessGroup.INIT_TYPE_ISCSI_WWPN_MIXED,
+            'AG_INIT_TYPE_UNKNOWN': AccessGroup.INIT_TYPE_UNKNOWN,
+            'SPLITTER': BackStore._LIST_SPLITTER,
+        })
 
         sql_cur = self.sql_conn.cursor()
         try:
@@ -652,7 +815,7 @@ class BackStore(object):
         if len(sim_syss) == 0 or not sim_syss[0]:
             return False
         else:
-            if 'version' in sim_syss[0] and \
+            if 'version' in sim_syss[0].keys() and \
                sim_syss[0]['version'] == BackStore.VERSION_SIGNATURE:
                 return True
 
@@ -681,13 +844,14 @@ class BackStore(object):
                     'status': System.STATUS_OK,
                     'status_info': "",
                     'version': BackStore.VERSION_SIGNATURE,
+                    'read_cache_pct': BackStore._DEFAULT_READ_CACHE_PCT
                 })
 
             size_bytes_2t = size_human_2_size_bytes('2TiB')
             size_bytes_512g = size_human_2_size_bytes('512GiB')
             # Add 2 SATA disks(2TiB)
             pool_1_disks = []
-            for _ in range(0, 2):
+            for i in range(0, 2):
                 self._data_add(
                     'disks',
                     {
@@ -698,13 +862,13 @@ class BackStore(object):
                         'vpd83': _random_vpd(),
                         'rpm': 7200,
                         'link_type': Disk.LINK_TYPE_ATA,
-                        'location': "Port: 1I Box: 1 Bay: 1",
+                        'location': "Port: %d Box: 1 Bay: 1" % i,
                     })
                 pool_1_disks.append(self.lastrowid)
 
             test_pool_disks = []
             # Add 6 SAS disks(2TiB)
-            for _ in range(0, 6):
+            for i in range(0, 6):
                 self._data_add(
                     'disks',
                     {
@@ -715,14 +879,14 @@ class BackStore(object):
                         'vpd83': _random_vpd(),
                         'rpm': 15000,
                         'link_type': Disk.LINK_TYPE_SAS,
-                        'location': "Port: 1I Box: 1 Bay: 2",
+                        'location': "Port: %d Box: 1 Bay: 2" % i,
                     })
                 if len(test_pool_disks) < 2:
                     test_pool_disks.append(self.lastrowid)
 
             ssd_pool_disks = []
             # Add 5 SATA SSD disks(512GiB)
-            for _ in range(0, 5):
+            for i in range(0, 5):
                 self._data_add(
                     'disks',
                     {
@@ -733,13 +897,13 @@ class BackStore(object):
                         'vpd83': _random_vpd(),
                         'rpm': Disk.RPM_NON_ROTATING_MEDIUM,
                         'link_type': Disk.LINK_TYPE_ATA,
-                        'location': "Port: 1I Box: 1 Bay: 3",
+                        'location': "Port: %d Box: 1 Bay: 3" % i,
                     })
                 if len(ssd_pool_disks) < 2:
                     ssd_pool_disks.append(self.lastrowid)
 
             # Add 7 SAS SSD disks(2TiB)
-            for _ in range(0, 7):
+            for i in range(0, 7):
                 self._data_add(
                     'disks',
                     {
@@ -750,7 +914,7 @@ class BackStore(object):
                         'vpd83': _random_vpd(),
                         'rpm': Disk.RPM_NON_ROTATING_MEDIUM,
                         'link_type': Disk.LINK_TYPE_SAS,
-                        'location': "Port: 1I Box: 1 Bay: 4",
+                        'location': "Port: %d Box: 1 Bay: 4" % i,
                     })
 
             pool_1_id = self.sim_pool_create_from_disk(
@@ -855,27 +1019,18 @@ class BackStore(object):
             self.trans_commit()
             return
 
-    def _sql_exec(self, sql_cmd, key_list=None):
+    def _sql_exec(self, sql_cmd):
         """
         Execute sql command and get all output.
-        If key_list is not None, will convert returned sql data to a list of
-        dictionaries.
         """
         sql_cur = self.sql_conn.cursor()
         sql_cur.execute(sql_cmd)
         self.lastrowid = sql_cur.lastrowid
-        sql_output = sql_cur.fetchall()
-        if key_list and sql_output:
-            return list(
-                dict(zip(key_list, value_list))
-                for value_list in sql_output
-                if value_list)
-        else:
-            return sql_output
+        return sql_cur.fetchall()
 
-    def _get_table(self, table_name, key_list):
-        sql_cmd = "SELECT %s FROM %s" % (",".join(key_list), table_name)
-        return self._sql_exec(sql_cmd, key_list)
+    def _get_table(self, table_name):
+        sql_cmd = "SELECT * FROM %s" % table_name
+        return self._sql_exec(sql_cmd)
 
     def trans_begin(self):
         self.sql_conn.execute("BEGIN IMMEDIATE TRANSACTION;")
@@ -896,10 +1051,9 @@ class BackStore(object):
                    "'%s'" % ("', '".join(values)))
         self._sql_exec(sql_cmd)
 
-    def _data_find(self, table, condition, key_list, flag_unique=False):
-        sql_cmd = "SELECT %s FROM %s WHERE %s" % (
-            ",".join(key_list), table, condition)
-        sim_datas = self._sql_exec(sql_cmd, key_list)
+    def _data_find(self, table, condition, flag_unique=False):
+        sql_cmd = "SELECT * FROM %s WHERE %s" % (table, condition)
+        sim_datas = self._sql_exec(sql_cmd)
         if flag_unique:
             if len(sim_datas) == 0:
                 return None
@@ -948,9 +1102,8 @@ class BackStore(object):
         Return (progress, data_type, data) tuple.
         progress is the integer of percent.
         """
-        sim_job = self._data_find(
-            'jobs', 'id=%s' % sim_job_id, BackStore.JOB_KEY_LIST,
-            flag_unique=True)
+        sim_job = self._data_find('jobs', 'id=%s' % sim_job_id,
+                                  flag_unique=True)
         if sim_job is None:
             raise LsmError(
                 ErrorNumber.NOT_FOUND_JOB, "Job not found")
@@ -983,36 +1136,39 @@ class BackStore(object):
         """
         Return a list of sim_sys dict.
         """
-        return self._get_table('systems', BackStore.SYS_KEY_LIST)
+        return self._get_table('systems')
 
-    def sim_disk_ids_of_pool(self, sim_pool_id):
+    def lsm_disk_ids_of_pool(self, sim_pool_id):
         return list(
-            d['id']
+            d['lsm_disk_id']
             for d in self._data_find(
-                'disks', 'owner_pool_id="%s"' % sim_pool_id, ['id']))
+                'disks_view', 'owner_pool_id="%s"' % sim_pool_id))
 
     def sim_disks(self):
         """
         Return a list of sim_disk dict.
         """
-        return self._get_table('disks_view', BackStore.DISK_KEY_LIST)
+        return self._get_table('disks_view')
 
     def sim_pools(self):
         """
         Return a list of sim_pool dict.
         """
-        return self._get_table('pools_view', BackStore.POOL_KEY_LIST)
+        return self._get_table('pools_view')
 
     def sim_pool_of_id(self, sim_pool_id):
         return self._sim_data_of_id(
-            "pools_view", sim_pool_id, BackStore.POOL_KEY_LIST,
-            ErrorNumber.NOT_FOUND_POOL, "Pool")
+            "pools_view", sim_pool_id, ErrorNumber.NOT_FOUND_POOL, "Pool")
 
     def sim_pool_create_from_disk(self, name, sim_disk_ids, raid_type,
                                   element_type, unsupported_actions=0,
                                   strip_size=0):
         if strip_size == 0:
             strip_size = BackStore.DEFAULT_STRIP_SIZE
+
+        if raid_type == Volume.RAID_TYPE_RAID1 or \
+           raid_type == Volume.RAID_TYPE_JBOD:
+            strip_size = BackStore.BLK_SIZE
 
         self._data_add(
             'pools',
@@ -1079,15 +1235,13 @@ class BackStore(object):
         """
         if sim_ag_id:
             return self._data_find(
-                'volumes_by_ag_view', 'ag_id=%s' % sim_ag_id,
-                BackStore.VOL_KEY_LIST)
+                'volumes_by_ag_view', 'ag_id=%s' % sim_ag_id)
         else:
-            return self._get_table('volumes', BackStore.VOL_KEY_LIST)
+            return self._get_table('volumes_view')
 
-    def _sim_data_of_id(self, table_name, data_id, key_list, lsm_error_no,
-                        data_name):
+    def _sim_data_of_id(self, table_name, data_id, lsm_error_no, data_name):
         sim_data = self._data_find(
-            table_name, 'id=%s' % data_id, key_list, flag_unique=True)
+            table_name, 'id=%s' % data_id, flag_unique=True)
         if sim_data is None:
             if lsm_error_no:
                 raise LsmError(
@@ -1101,8 +1255,7 @@ class BackStore(object):
         Return sim_vol if found. Raise error if not found.
         """
         return self._sim_data_of_id(
-            "volumes", sim_vol_id, BackStore.VOL_KEY_LIST,
-            ErrorNumber.NOT_FOUND_VOLUME,
+            "volumes_view", sim_vol_id, ErrorNumber.NOT_FOUND_VOLUME,
             "Volume")
 
     def _check_pool_free_space(self, sim_pool_id, size_bytes):
@@ -1117,15 +1270,13 @@ class BackStore(object):
         return (size_bytes + BackStore.BLK_SIZE - 1) / \
             BackStore.BLK_SIZE * BackStore.BLK_SIZE
 
-    def sim_vol_create(self, name, size_bytes, sim_pool_id, thinp,
-                       is_hw_raid_vol=0):
+    def sim_vol_create(self, name, size_bytes, sim_pool_id, is_hw_raid_vol=0):
 
         size_bytes = BackStore._block_rounding(size_bytes)
         self._check_pool_free_space(sim_pool_id, size_bytes)
         sim_vol = dict()
         sim_vol['vpd83'] = _random_vpd()
         sim_vol['name'] = name
-        sim_vol['thinp'] = thinp
         sim_vol['pool_id'] = sim_pool_id
         sim_vol['total_space'] = size_bytes
         sim_vol['consumed_size'] = size_bytes
@@ -1175,7 +1326,7 @@ class BackStore(object):
         self.sim_ag_of_id(sim_ag_id)
         exist_mask = self._data_find(
             'vol_masks', 'ag_id="%s" AND vol_id="%s"' %
-            (sim_ag_id, sim_vol_id), ['vol_id'])
+            (sim_ag_id, sim_vol_id))
         if exist_mask:
             raise LsmError(
                 ErrorNumber.NO_STATE_CHANGE,
@@ -1190,7 +1341,7 @@ class BackStore(object):
         self.sim_vol_of_id(sim_vol_id)
         self.sim_ag_of_id(sim_ag_id)
         condition = 'ag_id="%s" AND vol_id="%s"' % (sim_ag_id, sim_vol_id)
-        exist_mask = self._data_find('vol_masks', condition, ['vol_id'])
+        exist_mask = self._data_find('vol_masks', condition)
         if exist_mask:
             self._data_delete('vol_masks', condition)
         else:
@@ -1202,12 +1353,12 @@ class BackStore(object):
     def _sim_vol_ids_of_masked_ag(self, sim_ag_id):
         return list(
             m['vol_id'] for m in self._data_find(
-                'vol_masks', 'ag_id="%s"' % sim_ag_id, ['vol_id']))
+                'vol_masks', 'ag_id="%s"' % sim_ag_id))
 
     def _sim_ag_ids_of_masked_vol(self, sim_vol_id):
         return list(
             m['ag_id'] for m in self._data_find(
-                'vol_masks', 'vol_id="%s"' % sim_vol_id, ['ag_id']))
+                'vol_masks', 'vol_id="%s"' % sim_vol_id))
 
     def sim_vol_resize(self, sim_vol_id, new_size_bytes):
         org_new_size_bytes = new_size_bytes
@@ -1257,8 +1408,7 @@ class BackStore(object):
         self.sim_vol_of_id(src_sim_vol_id)
         return list(
             d['dst_vol_id'] for d in self._data_find(
-                'vol_reps', 'src_vol_id="%s"' % src_sim_vol_id,
-                ['dst_vol_id']))
+                'vol_reps', 'src_vol_id="%s"' % src_sim_vol_id))
 
     def sim_vol_replica(self, src_sim_vol_id, dst_sim_vol_id, rep_type,
                         blk_ranges=None):
@@ -1269,8 +1419,7 @@ class BackStore(object):
         #                type.
         cur_src_sim_vol_ids = list(
             r['src_vol_id'] for r in self._data_find(
-                'vol_reps', 'dst_vol_id="%s"' % dst_sim_vol_id,
-                ['src_vol_id']))
+                'vol_reps', 'dst_vol_id="%s"' % dst_sim_vol_id))
         if len(cur_src_sim_vol_ids) == 1 and \
            cur_src_sim_vol_ids[0] == src_sim_vol_id:
             # src and dst match. Maybe user are overriding old setting.
@@ -1327,10 +1476,9 @@ class BackStore(object):
     def sim_ags(self, sim_vol_id=None):
         if sim_vol_id:
             sim_ags = self._data_find(
-                'ags_by_vol_view', 'vol_id=%s' % sim_vol_id,
-                BackStore.AG_KEY_LIST)
+                'ags_by_vol_view', 'vol_id=%s' % sim_vol_id)
         else:
-            sim_ags = self._get_table('ags_view', BackStore.AG_KEY_LIST)
+            sim_ags = self._get_table('ags_view')
 
         return [BackStore._sim_ag_format(a) for a in sim_ags]
 
@@ -1408,8 +1556,7 @@ class BackStore(object):
 
     def sim_ag_of_id(self, sim_ag_id):
         sim_ag = self._sim_data_of_id(
-            "ags_view", sim_ag_id, BackStore.AG_KEY_LIST,
-            ErrorNumber.NOT_FOUND_ACCESS_GROUP,
+            "ags_view", sim_ag_id, ErrorNumber.NOT_FOUND_ACCESS_GROUP,
             "Access Group")
         BackStore._sim_ag_format(sim_ag)
         return sim_ag
@@ -1418,7 +1565,7 @@ class BackStore(object):
         """
         Return a list of sim_fs dict.
         """
-        return self._get_table('fss', BackStore.FS_KEY_LIST)
+        return self._get_table('fss_view')
 
     def sim_fs_of_id(self, sim_fs_id, raise_error=True):
         lsm_error_no = ErrorNumber.NOT_FOUND_FS
@@ -1426,8 +1573,7 @@ class BackStore(object):
             lsm_error_no = None
 
         return self._sim_data_of_id(
-            "fss", sim_fs_id, BackStore.FS_KEY_LIST, lsm_error_no,
-            "File System")
+            "fss_view", sim_fs_id, lsm_error_no, "File System")
 
     def sim_fs_create(self, name, size_bytes, sim_pool_id):
         size_bytes = BackStore._block_rounding(size_bytes)
@@ -1462,7 +1608,7 @@ class BackStore(object):
                 ErrorNumber.PLUGIN_BUG,
                 "Requested file system has snapshot attached")
 
-        if self._data_find('exps', 'fs_id="%s"' % sim_fs_id, ['id']):
+        if self._data_find('exps', 'fs_id="%s"' % sim_fs_id):
             # TODO(Gris Ge): API does not have dedicate error for this
             #                scenario
             raise LsmError(
@@ -1503,13 +1649,12 @@ class BackStore(object):
 
     def sim_fs_snaps(self, sim_fs_id):
         self.sim_fs_of_id(sim_fs_id)
-        return self._data_find(
-            'fs_snaps', 'fs_id="%s"' % sim_fs_id, BackStore.FS_SNAP_KEY_LIST)
+        return self._data_find('fs_snaps_view', 'fs_id="%s"' % sim_fs_id)
 
     def sim_fs_snap_of_id(self, sim_fs_snap_id, sim_fs_id=None):
         sim_fs_snap = self._sim_data_of_id(
-            'fs_snaps', sim_fs_snap_id, BackStore.FS_SNAP_KEY_LIST,
-            ErrorNumber.NOT_FOUND_FS_SS, 'File system snapshot')
+            'fs_snaps_view', sim_fs_snap_id, ErrorNumber.NOT_FOUND_FS_SS,
+            'File system snapshot')
         if sim_fs_id and sim_fs_snap['fs_id'] != sim_fs_id:
             raise LsmError(
                 ErrorNumber.NOT_FOUND_FS_SS,
@@ -1584,8 +1729,7 @@ class BackStore(object):
         self.sim_fs_of_id(src_sim_fs_id)
         return list(
             d['dst_fs_id'] for d in self._data_find(
-                'fs_clones', 'src_fs_id="%s"' % src_sim_fs_id,
-                ['dst_fs_id']))
+                'fs_clones', 'src_fs_id="%s"' % src_sim_fs_id))
 
     def sim_fs_src_clone_break(self, src_sim_fs_id):
         self._data_delete('fs_clones', 'src_fs_id="%s"' % src_sim_fs_id)
@@ -1602,15 +1746,14 @@ class BackStore(object):
         return sim_exp
 
     def sim_exps(self):
-        return list(
-            self._sim_exp_format(e)
-            for e in self._get_table('exps_view', BackStore.EXP_KEY_LIST))
+        return list(self._sim_exp_format(e)
+                    for e in self._get_table('exps_view'))
 
     def sim_exp_of_id(self, sim_exp_id):
         return self._sim_exp_format(
-            self._sim_data_of_id(
-                'exps_view', sim_exp_id, BackStore.EXP_KEY_LIST,
-                ErrorNumber.NOT_FOUND_NFS_EXPORT, 'NFS Export'))
+            self._sim_data_of_id('exps_view', sim_exp_id,
+                                 ErrorNumber.NOT_FOUND_NFS_EXPORT,
+                                 'NFS Export'))
 
     def sim_exp_create(self, sim_fs_id, exp_path, root_hosts, rw_hosts,
                        ro_hosts, anon_uid, anon_gid, auth_type, options):
@@ -1670,13 +1813,13 @@ class BackStore(object):
         """
         Return a list of sim_tgt dict.
         """
-        return self._get_table('tgts', BackStore.TGT_KEY_LIST)
+        return self._get_table('tgts_view')
 
     def sim_bats(self):
         """
         Return a list of sim_bat dict.
         """
-        return self._get_table('batteries', BackStore.BAT_KEY_LIST)
+        return self._get_table('bats_view')
 
     def sim_vol_pdc_set(self, sim_vol_id, pdc):
         self.sim_vol_of_id(sim_vol_id)
@@ -1695,16 +1838,10 @@ class SimArray(object):
     SIM_DATA_FILE = os.getenv("LSM_SIM_DATA",
                               tempfile.gettempdir() + '/lsm_sim_data')
 
-    ID_FMT = 5
-
-    @staticmethod
-    def _sim_id_to_lsm_id(sim_id, prefix):
-        return "%s_ID_%0*d" % (prefix, SimArray.ID_FMT, sim_id)
-
     @staticmethod
     def _lsm_id_to_sim_id(lsm_id, lsm_error):
         try:
-            return int(lsm_id[-SimArray.ID_FMT:])
+            return int(lsm_id[-BackStore._ID_FMT_LEN:])
         except ValueError:
             raise lsm_error
 
@@ -1764,7 +1901,7 @@ class SimArray(object):
     def _job_create(self, data_type=None, sim_data_id=None):
         sim_job_id = self.bs_obj.sim_job_create(
             data_type, sim_data_id)
-        return SimArray._sim_id_to_lsm_id(sim_job_id, 'JOB')
+        return "JOB_ID_%0*d" % (BackStore._ID_FMT_LEN, sim_job_id)
 
     @_handle_errors
     def job_status(self, job_id, flags=0):
@@ -1808,7 +1945,8 @@ class SimArray(object):
         return System(
             sim_sys['id'], sim_sys['name'], sim_sys['status'],
             sim_sys['status_info'], _fw_version=sim_sys["version"],
-            _mode=BackStore.SYS_MODE, _read_cache_pct=BackStore.READ_CACHE_PCT)
+            _mode=BackStore.SYS_MODE,
+            _read_cache_pct=sim_sys['read_cache_pct'])
 
     @_handle_errors
     def systems(self):
@@ -1823,17 +1961,20 @@ class SimArray(object):
                 ErrorNumber.NOT_FOUND_SYSTEM,
                 "System not found")
 
+        self.bs_obj.trans_begin()
+        self.bs_obj._data_update("systems", BackStore.SYS_ID,
+                                 "read_cache_pct", read_pct);
+        self.bs_obj.trans_commit()
+
         return None
 
     @staticmethod
     def _sim_vol_2_lsm(sim_vol):
-        vol_id = SimArray._sim_id_to_lsm_id(sim_vol['id'], 'VOL')
-        pool_id = SimArray._sim_id_to_lsm_id(sim_vol['pool_id'], 'POOL')
-        return Volume(vol_id, sim_vol['name'], sim_vol['vpd83'],
+        return Volume(sim_vol['lsm_vol_id'], sim_vol['name'], sim_vol['vpd83'],
                       BackStore.BLK_SIZE,
                       int(sim_vol['total_space'] / BackStore.BLK_SIZE),
                       sim_vol['admin_state'], BackStore.SYS_ID,
-                      pool_id)
+                      sim_vol['lsm_pool_id'])
 
     @_handle_errors
     def volumes(self):
@@ -1842,7 +1983,7 @@ class SimArray(object):
 
     @staticmethod
     def _sim_pool_2_lsm(sim_pool):
-        pool_id = SimArray._sim_id_to_lsm_id(sim_pool['id'], 'POOL')
+        pool_id = sim_pool['lsm_pool_id']
         name = sim_pool['name']
         total_space = sim_pool['total_space']
         free_space = sim_pool['free_space']
@@ -1870,7 +2011,7 @@ class SimArray(object):
             disk_status |= Disk.STATUS_FREE
 
         return Disk(
-            SimArray._sim_id_to_lsm_id(sim_disk['id'], 'DISK'),
+            sim_disk['lsm_disk_id'],
             sim_disk['name'],
             sim_disk['disk_type'], BackStore.BLK_SIZE,
             int(sim_disk['total_space'] / BackStore.BLK_SIZE),
@@ -1897,7 +2038,7 @@ class SimArray(object):
 
         new_sim_vol_id = self.bs_obj.sim_vol_create(
             vol_name, size_bytes, SimArray._sim_pool_id_of(pool_id),
-            thinp, is_hw_raid_vol=_is_hw_raid_vol)
+            is_hw_raid_vol=_is_hw_raid_vol)
 
         if _internal_use:
             return new_sim_vol_id
@@ -1939,7 +2080,7 @@ class SimArray(object):
 
         dst_sim_vol_id = self.volume_create(
             dst_pool_id, new_vol_name, src_sim_vol['total_space'],
-            src_sim_vol['thinp'], _internal_use=True)
+            Volume.PROVISION_FULL, _internal_use=True)
 
         self.bs_obj.sim_vol_replica(src_sim_vol_id, dst_sim_vol_id, rep_type)
 
@@ -2031,11 +2172,9 @@ class SimArray(object):
 
     @staticmethod
     def _sim_fs_2_lsm(sim_fs):
-        fs_id = SimArray._sim_id_to_lsm_id(sim_fs['id'], 'FS')
-        pool_id = SimArray._sim_id_to_lsm_id(sim_fs['id'], 'POOL')
-        return FileSystem(fs_id, sim_fs['name'],
+        return FileSystem(sim_fs['lsm_fs_id'], sim_fs['name'],
                           sim_fs['total_space'], sim_fs['free_space'],
-                          pool_id, BackStore.SYS_ID)
+                          sim_fs['lsm_pool_id'], BackStore.SYS_ID)
 
     @_handle_errors
     def fs(self):
@@ -2087,7 +2226,7 @@ class SimArray(object):
 
         src_sim_fs_id = SimArray._sim_fs_id_of(src_fs_id)
         src_sim_fs = self.bs_obj.sim_fs_of_id(src_sim_fs_id)
-        pool_id = SimArray._sim_id_to_lsm_id(src_sim_fs['pool_id'], 'POOL')
+        pool_id = src_sim_fs['lsm_pool_id']
 
         dst_sim_fs_id = self.fs_create(
             pool_id, dst_fs_name, src_sim_fs['total_space'],
@@ -2118,9 +2257,8 @@ class SimArray(object):
 
     @staticmethod
     def _sim_fs_snap_2_lsm(sim_fs_snap):
-        snap_id = SimArray._sim_id_to_lsm_id(sim_fs_snap['id'], 'FS_SNAP')
-        return FsSnapshot(
-            snap_id, sim_fs_snap['name'], sim_fs_snap['timestamp'])
+        return FsSnapshot(sim_fs_snap['lsm_fs_snap_id'],
+                          sim_fs_snap['name'], sim_fs_snap['timestamp'])
 
     @_handle_errors
     def fs_snapshots(self, fs_id, flags=0):
@@ -2197,13 +2335,11 @@ class SimArray(object):
 
     @staticmethod
     def _sim_exp_2_lsm(sim_exp):
-        exp_id = SimArray._sim_id_to_lsm_id(sim_exp['id'], 'EXP')
-        fs_id = SimArray._sim_id_to_lsm_id(sim_exp['fs_id'], 'FS')
-        return NfsExport(exp_id, fs_id, sim_exp['exp_path'],
-                         sim_exp['auth_type'], sim_exp['root_hosts'],
-                         sim_exp['rw_hosts'], sim_exp['ro_hosts'],
-                         sim_exp['anon_uid'], sim_exp['anon_gid'],
-                         sim_exp['options'])
+        return NfsExport(sim_exp['lsm_exp_id'], sim_exp['lsm_fs_id'],
+                         sim_exp['exp_path'], sim_exp['auth_type'],
+                         sim_exp['root_hosts'], sim_exp['rw_hosts'],
+                         sim_exp['ro_hosts'], sim_exp['anon_uid'],
+                         sim_exp['anon_gid'], sim_exp['options'])
 
     @_handle_errors
     def exports(self, flags=0):
@@ -2229,9 +2365,9 @@ class SimArray(object):
 
     @staticmethod
     def _sim_ag_2_lsm(sim_ag):
-        ag_id = SimArray._sim_id_to_lsm_id(sim_ag['id'], 'AG')
-        return AccessGroup(ag_id, sim_ag['name'], sim_ag['init_ids'],
-                           sim_ag['init_type'], BackStore.SYS_ID)
+        return AccessGroup(sim_ag['lsm_ag_id'], sim_ag['name'],
+                           sim_ag['init_ids'], sim_ag['init_type'],
+                           BackStore.SYS_ID)
 
     @_handle_errors
     def ags(self):
@@ -2322,11 +2458,10 @@ class SimArray(object):
 
     @staticmethod
     def _sim_tgt_2_lsm(sim_tgt):
-        tgt_id = "TGT_PORT_ID_%0*d" % (SimArray.ID_FMT, sim_tgt['id'])
         return TargetPort(
-            tgt_id, sim_tgt['port_type'], sim_tgt['service_address'],
-            sim_tgt['network_address'], sim_tgt['physical_address'],
-            sim_tgt['physical_name'],
+            sim_tgt['lsm_tgt_id'], sim_tgt['port_type'],
+            sim_tgt['service_address'], sim_tgt['network_address'],
+            sim_tgt['physical_address'], sim_tgt['physical_name'],
             BackStore.SYS_ID)
 
     @_handle_errors
@@ -2340,26 +2475,16 @@ class SimArray(object):
                 lsm_vol.pool_id,
                 LsmError(ErrorNumber.NOT_FOUND_POOL, "Pool not found")))
 
-        raid_type = sim_pool['raid_type']
-        strip_size = Volume.STRIP_SIZE_UNKNOWN
         min_io_size = BackStore.BLK_SIZE
         opt_io_size = Volume.OPT_IO_SIZE_UNKNOWN
-        disk_count = Volume.DISK_COUNT_UNKNOWN
 
         if sim_pool['member_type'] == Pool.MEMBER_TYPE_POOL:
-            parent_sim_pool = self.bs_obj.sim_pool_of_id(
-                sim_pool['parent_pool_id'])
-            raid_type = parent_sim_pool['raid_type']
+            sim_pool = self.bs_obj.sim_pool_of_id(sim_pool['parent_pool_id'])
 
-            disk_count = self.bs_obj.sim_pool_disks_count(
-                parent_sim_pool['id'])
-            data_disk_count = self.bs_obj.sim_pool_data_disks_count(
-                parent_sim_pool['id'])
-        else:
-            disk_count = self.bs_obj.sim_pool_disks_count(
-                sim_pool['id'])
-            data_disk_count = self.bs_obj.sim_pool_data_disks_count(
-                sim_pool['id'])
+        raid_type = sim_pool['raid_type']
+        disk_count = sim_pool['disk_count']
+        strip_size = sim_pool['strip_size']
+        min_io_size = strip_size
 
         if raid_type == Volume.RAID_TYPE_UNKNOWN or \
            raid_type == Volume.RAID_TYPE_OTHER:
@@ -2371,17 +2496,13 @@ class SimArray(object):
             raise LsmError(
                 ErrorNumber.PLUGIN_BUG,
                 "volume_raid_info(): Got unsupported RAID_TYPE_MIXED pool "
-                "%s" % sim_pool['id'])
+                "%s" % sim_pool['lsm_pool_id'])
 
         if raid_type == Volume.RAID_TYPE_RAID1 or \
            raid_type == Volume.RAID_TYPE_JBOD:
-            strip_size = BackStore.BLK_SIZE
-            min_io_size = BackStore.BLK_SIZE
             opt_io_size = BackStore.BLK_SIZE
         else:
-            strip_size = sim_pool['strip_size']
-            min_io_size = strip_size
-            opt_io_size = int(data_disk_count * strip_size)
+            opt_io_size = int(sim_pool['data_disk_count'] * strip_size)
 
         return [raid_type, strip_size, disk_count, min_io_size, opt_io_size]
 
@@ -2394,14 +2515,9 @@ class SimArray(object):
         member_type = sim_pool['member_type']
         member_ids = []
         if member_type == Pool.MEMBER_TYPE_POOL:
-            member_ids = [
-                SimArray._sim_id_to_lsm_id(
-                    sim_pool['parent_pool_id'], 'POOL')]
+            member_ids = [sim_pool['parent_lsm_pool_id']]
         elif member_type == Pool.MEMBER_TYPE_DISK:
-            member_ids = list(
-                SimArray._sim_id_to_lsm_id(sim_disk_id, 'DISK')
-                for sim_disk_id in self.bs_obj.sim_disk_ids_of_pool(
-                    sim_pool['id']))
+            member_ids = self.bs_obj.lsm_disk_ids_of_pool(sim_pool['id'])
         else:
             member_type = Pool.MEMBER_TYPE_UNKNOWN
 
@@ -2460,7 +2576,7 @@ class SimArray(object):
 
         sim_pool = self.bs_obj.sim_pool_of_id(sim_pool_id)
         sim_vol_id = self.volume_create(
-            SimArray._sim_id_to_lsm_id(sim_pool_id, 'POOL'), name,
+            sim_pool['lsm_pool_id'], name,
             sim_pool['free_space'], Volume.PROVISION_FULL,
             _internal_use=True, _is_hw_raid_vol=1)
         sim_vol = self.bs_obj.sim_vol_of_id(sim_vol_id)
@@ -2489,10 +2605,8 @@ class SimArray(object):
 
     @staticmethod
     def _sim_bat_2_lsm(sim_bat):
-        bat_id = "BATTERY_ID_%0*d" % (SimArray.ID_FMT, sim_bat['id'])
-        return Battery(
-            bat_id, sim_bat['name'], sim_bat['type'],
-            sim_bat['status'], BackStore.SYS_ID)
+        return Battery(sim_bat['lsm_bat_id'], sim_bat['name'], sim_bat['type'],
+                       sim_bat['status'], BackStore.SYS_ID)
 
     @_handle_errors
     def batteries(self):

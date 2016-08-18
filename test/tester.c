@@ -29,12 +29,10 @@
 
 static int compare_battery(lsm_battery *l, lsm_battery *r);
 
-const char URI[] = "sim://localhost/?statefile=%s/lsm_sim_%s";
 const char SYSTEM_NAME[] = "LSM simulated storage plug-in";
 const char SYSTEM_ID[] = "sim-01";
 const char *ISCSI_HOST[2] = {   "iqn.1994-05.com.domain:01.89bd01",
                                 "iqn.1994-05.com.domain:01.89bd02" };
-
 static int is_simc_plugin = 0;
 
 #define POLL_SLEEP 50000
@@ -42,6 +40,7 @@ static int is_simc_plugin = 0;
 #define INVALID_VPD83 "600508b1001c79ade5178f0626caaa9c1"
 #define VALID_BUT_NOT_EXIST_VPD83 "5000000000000000"
 #define NOT_EXIST_SD_PATH "/dev/sdazzzzzzzzzzz"
+#define _URI_BUFF_SIZE 128
 
 lsm_connect *c = NULL;
 
@@ -113,31 +112,25 @@ void generate_random(char *buff, uint32_t len)
     }
 }
 
-char *plugin_to_use()
+const char *plugin_to_use(char *uri_buff)
 {
-    char *uri_to_use = "sim://";
+    const char *rundir = NULL;
+    char name[32];
 
-    if( is_simc_plugin == 1 ) {
-        uri_to_use = "simc://";
+    rundir = getenv("LSM_TEST_RUNDIR");
+
+    if( rundir ) {
+        generate_random(name, sizeof(name)/sizeof(name[0]));
+        snprintf(uri_buff, _URI_BUFF_SIZE,
+                 "%s://localhost/?statefile=%s/lsm_sim_%s",
+                 is_simc_plugin == 1 ? "simc" : "sim", rundir, name);
     } else {
-        char *rundir = getenv("LSM_TEST_RUNDIR");
-
-        /* The python plug-in keeps state, but the unit tests don't expect this
-         * create a new random file for the state to keep things new.
-         */
-
-        if( rundir ) {
-            static char fn[128];
-            static char name[32];
-            generate_random(name, sizeof(name));
-            snprintf(fn, sizeof(fn),  URI, rundir, name);
-            uri_to_use = fn;
-        } else {
-            printf("Missing LSM_TEST_RUNDIR, expect test failures!\n");
-        }
+        printf("Missing LSM_TEST_RUNDIR, expect test failures!\n");
+        exit(1);
     }
-    printf("URI = %s\n", uri_to_use);
-    return uri_to_use;
+
+    printf("URI = %s\n", uri_buff);
+    return uri_buff;
 }
 
 lsm_pool *get_test_pool(lsm_connect *c)
@@ -182,11 +175,12 @@ void setup(void)
     /*
      * Note: Do not use any error reporting functions in this function
      */
+    char uri[_URI_BUFF_SIZE];
 
     lsm_error_ptr e = NULL;
 
-    int rc = lsm_connect_password(plugin_to_use(), NULL, &c, 30000, &e,
-                LSM_CLIENT_FLAG_RSVD);
+    int rc = lsm_connect_password(plugin_to_use(uri), NULL, &c, 30000, &e,
+                                  LSM_CLIENT_FLAG_RSVD);
 
     if( LSM_ERR_OK == rc ) {
         if( getenv("LSM_DEBUG_PLUGIN") ) {
@@ -896,21 +890,18 @@ START_TEST(test_fs)
         resized_fs = wait_for_job_fs(c, &job);
     }
 
-    if ( is_simc_plugin == 0 ){
+    uint8_t yes_no = 10;
+    G(rc, lsm_fs_child_dependency, c, nfs, NULL, &yes_no,
+      LSM_CLIENT_FLAG_RSVD);
+    fail_unless( yes_no != 0);
 
-        uint8_t yes_no = 10;
-        G(rc, lsm_fs_child_dependency, c, nfs, NULL, &yes_no,
-          LSM_CLIENT_FLAG_RSVD);
-        fail_unless( yes_no != 0);
-
-        rc = lsm_fs_child_dependency_delete(
-            c, nfs, NULL, &job, LSM_CLIENT_FLAG_RSVD);
-        if( LSM_ERR_JOB_STARTED == rc ) {
-            fail_unless(NULL != job);
-            wait_for_job(c, &job);
-        } else {
-            fail_unless( LSM_ERR_OK == rc);
-        }
+    rc = lsm_fs_child_dependency_delete(
+        c, nfs, NULL, &job, LSM_CLIENT_FLAG_RSVD);
+    if( LSM_ERR_JOB_STARTED == rc ) {
+        fail_unless(NULL != job);
+        wait_for_job(c, &job);
+    } else {
+        fail_unless( LSM_ERR_OK == rc);
     }
 
     rc = lsm_fs_delete(c, resized_fs, &job, LSM_CLIENT_FLAG_RSVD);
@@ -918,7 +909,8 @@ START_TEST(test_fs)
     if( LSM_ERR_JOB_STARTED == rc ) {
         wait_for_job(c, &job);
     } else {
-        fail_unless(LSM_ERR_OK == rc);
+        fail_unless(LSM_ERR_OK == rc, "lsm_fs_delete() failed: %d (%s)",
+                    rc, error(lsm_error_last_get(c)));
     }
 
     G(rc, lsm_fs_record_free, resized_fs);
@@ -1110,10 +1102,7 @@ START_TEST(test_disks)
             fail_unless( lsm_disk_number_of_blocks_get(d[i]) >= 1);
             fail_unless( lsm_disk_block_size_get(d[i]) >= 1);
             fail_unless( lsm_disk_status_get(d[i]) >= 1);
-            if (is_simc_plugin == 0) {
-                /* Only sim support lsm_disk_vpd83_get() yet */
-                fail_unless(lsm_disk_vpd83_get(d[i]) != NULL);
-            }
+            fail_unless(lsm_disk_vpd83_get(d[i]) != NULL);
         }
         lsm_disk_record_array_free(d, count);
     } else {
@@ -2142,18 +2131,34 @@ START_TEST(test_read_cache_pct_update)
     int rc = 0;
     lsm_system **sys = NULL;
     uint32_t sys_count = 0;
+    int pct = 0;
 
     G(rc, lsm_system_list, c, &sys, &sys_count, LSM_CLIENT_FLAG_RSVD);
     fail_unless( sys_count >= 1, "count = %d", sys_count);
 
-    if(sys_count > 0) {
+    G(rc, lsm_system_read_cache_pct_update, c, sys[0], 100,
+      LSM_CLIENT_FLAG_RSVD);
+    lsm_system_record_array_free(sys, sys_count);
+    G(rc, lsm_system_list, c, &sys, &sys_count, LSM_CLIENT_FLAG_RSVD);
+    fail_unless( sys_count >= 1, "count = %d", sys_count);
 
-        G(rc, lsm_system_read_cache_pct_update, c, sys[0], 100,
-          LSM_CLIENT_FLAG_RSVD);
+    pct = lsm_system_read_cache_pct_get(sys[0]);
+    printf("Got pct %d\n", pct);
+    fail_unless(pct == 100, "Failed to set system read cache to 100, got %d, "
+                "but got error message.", pct);
 
-        if (LSM_ERR_OK == rc)
-            printf("Read cache percentage changed\n");
-    }
+    printf("Read cache percentage changed\n");
+
+    /* Test INVALID argument */
+    rc = lsm_system_read_cache_pct_update(c, sys[0], -1, LSM_CLIENT_FLAG_RSVD);
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "Expecting LSM_ERR_INVALID_ARGUMENT, but got %d", rc);
+    rc = lsm_system_read_cache_pct_update(c, sys[0], 101, LSM_CLIENT_FLAG_RSVD);
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "Expecting LSM_ERR_INVALID_ARGUMENT, but got %d", rc);
+    rc = lsm_system_read_cache_pct_update(c, NULL, 10, LSM_CLIENT_FLAG_RSVD);
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "Expecting LSM_ERR_INVALID_ARGUMENT, but got %d", rc);
 
     lsm_system_record_array_free(sys, sys_count);
 
@@ -3127,10 +3132,6 @@ END_TEST
 
 START_TEST(test_volume_raid_create_cap_get)
 {
-    if (is_simc_plugin == 1){
-        // silently skip on simc which does not support this method yet.
-        return;
-    }
     int rc;
     lsm_system **sys = NULL;
     uint32_t sys_count = 0;
@@ -3160,10 +3161,6 @@ END_TEST
 
 START_TEST(test_volume_raid_create)
 {
-    if (is_simc_plugin == 1){
-        // silently skip on simc which does not support this method yet.
-        return;
-    }
     int rc;
 
     lsm_disk **disks = NULL;
@@ -3630,11 +3627,6 @@ START_TEST(test_volume_pdc_update)
         LSM_VOLUME_PHYSICAL_DISK_CACHE_ENABLED};
     int i = 0;
 
-    if ( is_simc_plugin == 1 ){
-        // silently skip on simc which does not support this method yet.
-        return;
-    }
-
     pool = get_test_pool(c);
 
     fail_unless(pool != NULL, "Failed to find the test pool");
@@ -3684,11 +3676,6 @@ START_TEST(test_volume_wcp_update)
         LSM_VOLUME_WRITE_CACHE_POLICY_WRITE_THROUGH};
     int i = 0;
 
-    if ( is_simc_plugin == 1 ){
-        // silently skip on simc which does not support this method yet.
-        return;
-    }
-
     pool = get_test_pool(c);
 
     fail_unless(pool != NULL, "Failed to find the test pool");
@@ -3737,11 +3724,6 @@ START_TEST(test_volume_rcp_update)
         LSM_VOLUME_READ_CACHE_POLICY_ENABLED};
     int i = 0;
 
-    if ( is_simc_plugin == 1 ){
-        // silently skip on simc which does not support this method yet.
-        return;
-    }
-
     pool = get_test_pool(c);
 
     fail_unless(pool != NULL, "Failed to find the test pool");
@@ -3782,10 +3764,6 @@ do { \
     lsm_error *lsm_err = NULL; \
     uint32_t i = 0; \
     const char *disk_path = NULL; \
-    if (is_simc_plugin == 1) { \
-        /* silently skip on simc, no need for duplicate test. */ \
-        return; \
-    } \
     rc = lsm_local_disk_list(&disk_paths, &lsm_err); \
     fail_unless(rc == LSM_ERR_OK, "lsm_local_disk_list() failed as %d", rc); \
     /* Only try maximum 4 disks */ \

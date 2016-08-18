@@ -19,3 +19,4 @@ python-devel
 libudev-devel
 valgrind
 chrpath
+sqlite-devel

@@ -2611,6 +2611,19 @@ int lsm_system_read_cache_pct_update(lsm_connect * c, lsm_system * system,
 {
     CONN_SETUP(c);
 
+    if (!LSM_IS_SYSTEM(system))
+        return log_exception(c, LSM_ERR_INVALID_ARGUMENT,
+                             "Invalid argument: system", NULL);
+
+    if (LSM_FLAG_UNUSED_CHECK(flags))
+        return log_exception(c, LSM_ERR_INVALID_ARGUMENT,
+                             "Invalid argument: flags", NULL);
+
+    if (read_pct > 100)
+        return log_exception(c, LSM_ERR_INVALID_ARGUMENT,
+                             "Invalid argument: read_pct, "
+                             "should >=0 and <= 100", NULL);
+
     std::map < std::string, Value > p;
     p["flags"] = Value(flags);
     p["read_pct"] = Value((int32_t) read_pct);

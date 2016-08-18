@@ -24,3 +24,4 @@ python-pyudev
 'pkgconfig(udev)'
 'pkgconfig(libudev)'
 libyajl-devel
+sqlite3-devel
