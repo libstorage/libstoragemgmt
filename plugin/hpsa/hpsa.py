@@ -74,7 +74,7 @@ def _sys_status_of(hp_ctrl_status):
                 status = System.STATUS_OK
             else:
                 status = System.STATUS_OTHER
-            status_info += hp_ctrl_status[key_name]
+            status_info += 'status=[%s]' % str(hp_ctrl_status[key_name])
 
     return status, status_info
 
