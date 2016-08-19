@@ -66,8 +66,8 @@ def run_test(cmdline, output_dir, sys_id, uri, password):
 
 
 if __name__ == '__main__':
-    # We will wait up to 90 minutes or whatever the env variable is
-    time_limit_seconds = int(os.getenv('LSM_TEST_TMO_SECS', 90 * 60))
+    time_limit_seconds = int(
+        os.getenv('LSM_TEST_TMO_SECS', 90 * 60))  # 90 minutes
 
     if len(sys.argv) != 4:
         print('Syntax: %s <array_file> <plugin unit test> <output directory>'
