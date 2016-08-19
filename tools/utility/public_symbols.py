@@ -95,12 +95,12 @@ def h_module(mod):
     module_list = [x for x in inspect.getmembers(mod, inspect.ismodule)
                    if not x[0].startswith('_')]
 
-    print '%sModule: %s' % (' ' * nesting, str(mod.__name__))
+    print('%sModule: %s' % (' ' * nesting, str(mod.__name__)))
     nesting += 4
     for m in function_list:
         if not m[0] in visited_function:
             visited_function[m[0]] = True
-            print '%sf: %s' % (' ' * nesting, m[0])
+            print('%sf: %s' % (' ' * nesting, m[0]))
 
     nesting -= 4
 
@@ -108,7 +108,7 @@ def h_module(mod):
         if not c[0] in visited_class:
             visited_class[c[0]] = True
             nesting += 4
-            print '%sClass: %s' % (' ' * nesting, c[0])
+            print('%sClass: %s' % (' ' * nesting, c[0]))
             h_class(c[1])
             nesting -= 4
 
