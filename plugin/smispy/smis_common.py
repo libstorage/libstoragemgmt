@@ -21,16 +21,22 @@
 #   * Profile register
 #   * WBEM actions: enumerate, associations, getinstance and etc.
 
-from pywbem import Uint16, CIMError
-import pywbem
 import os
 import datetime
 import time
 import sys
 
-import dmtf
+try:
+    from . WBEM import wbem
+    from . import dmtf
+    from .utils import (merge_list)
+except ImportError:
+    from WBEM import wbem
+    import dmtf
+    from utils import (merge_list)
+
+
 from lsm import LsmError, ErrorNumber, md5
-from utils import (merge_list)
 
 
 def _profile_register_load(wbem_conn):
@@ -59,10 +65,10 @@ def _profile_register_load(wbem_conn):
                 PropertyList=['RegisteredName', 'RegisteredVersion',
                               'RegisteredOrganization'],
                 LocalOnly=False)
-        except CIMError as e:
-            if e[0] == pywbem.CIM_ERR_NOT_SUPPORTED or \
-               e[0] == pywbem.CIM_ERR_INVALID_NAMESPACE or \
-               e[0] == pywbem.CIM_ERR_INVALID_CLASS:
+        except wbem.CIMError as e:
+            if e[0] == wbem.CIM_ERR_NOT_SUPPORTED or \
+               e[0] == wbem.CIM_ERR_INVALID_NAMESPACE or \
+               e[0] == wbem.CIM_ERR_INVALID_CLASS:
                 pass
             else:
                 raise
@@ -77,7 +83,7 @@ def _profile_register_load(wbem_conn):
             profile_name = cim_rp['RegisteredName']
             profile_ver = cim_rp['RegisteredVersion']
             profile_ver_num = _profile_spec_ver_to_num(profile_ver)
-            if profile_name in profile_dict.keys():
+            if profile_name in list(profile_dict.keys()):
                 exist_ver_num = _profile_spec_ver_to_num(
                     profile_dict[profile_name])
                 if exist_ver_num >= profile_ver_num:
@@ -106,7 +112,7 @@ def _profile_check(profile_dict, profile_name, spec_ver,
     is True when nothing found.
     """
     request_ver_num = _profile_spec_ver_to_num(spec_ver)
-    if profile_name not in profile_dict.keys():
+    if profile_name not in list(profile_dict.keys()):
         if raise_error:
             raise LsmError(
                 ErrorNumber.NO_SUPPORT,
@@ -135,7 +141,6 @@ def _profile_spec_ver_to_num(spec_ver_str):
     Example:
         "1.5.1" -> 1,005,001
     """
-    tmp_list = [0, 0, 0]
     tmp_list = spec_ver_str.split(".")
     if len(tmp_list) == 2:
         tmp_list.extend([0])
@@ -170,7 +175,7 @@ class SmisCommon(object):
     SMIS_SPEC_VER_1_4 = '1.4'
     SMIS_SPEC_VER_1_5 = '1.5'
     SMIS_SPEC_VER_1_6 = '1.6'
-    SNIA_REG_ORG_CODE = Uint16(11)
+    SNIA_REG_ORG_CODE = wbem.Uint16(11)
     _MEGARAID_NAMESPACE = 'root/LsiMr13'
     _NETAPP_E_NAMESPACE = 'root/LsiArray13'
     _PRODUCT_MEGARAID = 'LSI MegaRAID'
@@ -199,11 +204,11 @@ class SmisCommon(object):
         if namespace is None:
             namespace = dmtf.DEFAULT_NAMESPACE
 
-        self._wbem_conn = pywbem.WBEMConnection(
+        self._wbem_conn = wbem.WBEMConnection(
             url, (username, password), namespace)
         if no_ssl_verify:
             try:
-                self._wbem_conn = pywbem.WBEMConnection(
+                self._wbem_conn = wbem.WBEMConnection(
                     url, (username, password), namespace,
                     no_verification=True)
             except TypeError:
@@ -420,7 +425,7 @@ class SmisCommon(object):
                 {'ElementName': volume_name,
                  'ElementType': dmtf_element_type,
                  'InPool': cim_pool_path,
-                 'Size': pywbem.Uint64(size_bytes)}
+                 'Size': wbem.Uint64(size_bytes)}
         out_handler
             A reference to a method to parse output, example:
                 self._new_vol_from_name
@@ -504,9 +509,10 @@ class SmisCommon(object):
                 else:
                     raise LsmError(ErrorNumber.PLUGIN_BUG,
                                    "invoke_method_wait(), %s not exist "
-                                   "in out %s" % (out_key, out.items()))
+                                   "in out %s" % (out_key, list(out.items())))
 
             elif rc == SmisCommon.SNIA_INVOKE_ASYNC:
+                cim_job = {}
                 cim_job_path = out['Job']
                 loop_counter = 0
                 job_pros = ['JobState', 'ErrorDescription',
@@ -538,7 +544,7 @@ class SmisCommon(object):
                         raise LsmError(
                             ErrorNumber.PLUGIN_BUG,
                             "invoke_method_wait(): Got unknown job state "
-                            "%d: %s" % (job_state, cim_job.items()))
+                            "%d: %s" % (job_state, list(cim_job.items())))
 
                 if loop_counter > SmisCommon._INVOKE_MAX_LOOP_COUNT:
                     raise LsmError(
@@ -556,19 +562,20 @@ class SmisCommon(object):
                         "invoke_method_wait(): got unexpected(not 1) "
                         "return from CIM_AffectedJobElement: "
                         "%s, out: %s, job: %s" %
-                        (cim_xxxs_path, out.items(), cim_job.items()))
+                        (cim_xxxs_path, list(out.items()),
+                         list(cim_job.items())))
             else:
                 self._dump_wbem_xml(cmd)
                 raise LsmError(
                     ErrorNumber.PLUGIN_BUG,
                     "invoke_method_wait(): Got unexpected rc code "
-                    "%d, out: %s" % (rc, out.items()))
+                    "%d, out: %s" % (rc, list(out.items())))
         except Exception:
             exc_info = sys.exc_info()
             # Make sure to save off current exception as we could cause
             # another when trying to dump debug data.
             self._dump_wbem_xml(cmd)
-            raise exc_info[0], exc_info[1], exc_info[2]
+            six.reraise(*exc_info)
 
     def _cim_srv_of_sys_id(self, srv_name, sys_id, raise_error):
         property_list = ['SystemName']
@@ -580,7 +587,7 @@ class SmisCommon(object):
             for cim_srv in cim_srvs:
                 if cim_srv['SystemName'] == sys_id:
                     return cim_srv
-        except CIMError:
+        except wbem.CIMError:
             if raise_error:
                 raise
             else:
@@ -589,7 +596,8 @@ class SmisCommon(object):
         if raise_error:
             raise LsmError(
                 ErrorNumber.NO_SUPPORT,
-                "Cannot find any '%s' for requested system ID" % srv_name)
+                "Cannot find any '%s' for requested system ID %s" %
+                (srv_name, sys_id))
         return None
 
     def cim_scs_of_sys_id(self, sys_id, raise_error=True):

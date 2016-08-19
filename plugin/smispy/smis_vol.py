@@ -20,6 +20,7 @@ CIM_StorageVolume.
 """
 
 import sys
+import six
 
 from lsm import md5, Volume, LsmError, ErrorNumber
 from lsm.plugin.smispy.utils import (
@@ -44,7 +45,7 @@ def vol_id_of_cim_vol(cim_vol):
             ErrorNumber.PLUGIN_BUG,
             "vol_id_of_cim_vol(): Got cim_vol with no "
             "SystemName or DeviceID property: %s, %s" %
-            (cim_vol.path, cim_vol.items()))
+            (cim_vol.path, list(cim_vol.items())))
 
     return md5("%s%s" % (cim_vol['SystemName'], cim_vol['DeviceID']))
 
@@ -243,4 +244,4 @@ def volume_create_error_handler(smis_common, method_data, exec_info=None):
         (error_type, error_msg, error_trace) = sys.exc_info()
     else:
         (error_type, error_msg, error_trace) = exec_info
-    raise error_type, error_msg, error_trace
+    six.reraise(error_type, error_msg, error_trace)

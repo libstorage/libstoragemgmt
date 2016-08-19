@@ -14,8 +14,14 @@
 #
 # Author: Gris Ge <fge@redhat.com>
 
-from utils import merge_list, path_str_to_cim_path, cim_path_to_path_str
-import dmtf
+try:
+    from .utils import merge_list, path_str_to_cim_path, cim_path_to_path_str
+    from . import dmtf
+except ImportError:
+    from utils import merge_list, path_str_to_cim_path, cim_path_to_path_str
+    import dmtf
+
+
 from lsm import LsmError, ErrorNumber, Pool
 
 
@@ -36,8 +42,6 @@ def cim_pools_of_cim_sys_path(smis_common, cim_sys_path, property_list=None):
         * IBM ArrayPool(IBMTSDS_ArrayPool)
         * IBM ArraySitePool(IBMTSDS_ArraySitePool)
     """
-    cim_pools = []
-
     if property_list is None:
         property_list = ['Primordial', 'Usage']
     else:
@@ -96,7 +100,7 @@ def pool_id_of_cim_pool(cim_pool):
         raise LsmError(
             ErrorNumber.PLUGIN_BUG,
             "pool_id_of_cim_pool(): Got CIM_StoragePool with no 'InstanceID' "
-            "property: %s, %s" % (cim_pool.items(), cim_pool.path))
+            "property: %s, %s" % (list(cim_pool.items()), cim_pool.path))
 
 
 def cim_pool_pros():
