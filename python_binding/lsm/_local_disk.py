@@ -13,7 +13,7 @@
 # License along with this library; If not, see <http://www.gnu.org/licenses/>.
 #
 # Author: Gris Ge <fge@redhat.com>
-from builtins import object
+
 import six
 
 from lsm import LsmError, ErrorNumber

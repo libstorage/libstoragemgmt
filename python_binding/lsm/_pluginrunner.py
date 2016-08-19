@@ -14,17 +14,19 @@
 #
 # Author: tasleson
 
-from __future__ import absolute_import
-from builtins import str
-from builtins import object
 import socket
 import traceback
 import sys
-from ._common import SocketEOF as _SocketEOF
 from lsm import LsmError, error, ErrorNumber
-from . import _transport
 from lsm.lsmcli import cmd_line_wrapper
 import six
+
+try:
+    from ._common import SocketEOF as _SocketEOF
+    from . import _transport
+except ImportError:
+    from _common import SocketEOF as _SocketEOF
+    import _transport
 
 
 def search_property(lsm_objs, search_key, search_value):

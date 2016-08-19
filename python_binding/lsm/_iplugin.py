@@ -14,11 +14,10 @@
 #
 # Author: tasleson
 
-from builtins import object
 from abc import ABCMeta as _ABCMeta
 from abc import abstractmethod as _abstractmethod
 from lsm import LsmError, ErrorNumber
-from future.utils import with_metaclass
+from six import with_metaclass
 
 
 class IPlugin(with_metaclass(_ABCMeta, object)):
