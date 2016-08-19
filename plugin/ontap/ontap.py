@@ -16,15 +16,23 @@
 #         Gris Ge <fge@redhat.com>
 
 import os
-import urlparse
 import copy
 
-import na
 from lsm import (Volume, FileSystem, FsSnapshot, NfsExport,
                  AccessGroup, System, Capabilities, Disk, Pool,
                  IStorageAreaNetwork, INfs, LsmError, ErrorNumber, JobStatus,
                  md5, VERSION, common_urllib2_error_handler,
-                 search_property, TargetPort)
+                 search_property, TargetPort, int_div)
+try:
+    from . import na
+except ImportError:
+    import na
+
+
+try:
+    from urllib.parse import urlparse
+except ImportError:
+    from urlparse import urlparse
 
 # Maps na to lsm, this is expected to expand over time.
 e_map = {
@@ -85,7 +93,7 @@ _INIT_TYPE_CONV = {
 
 def _na_init_type_to_lsm(na_ag):
     if 'initiator-group-type' in na_ag:
-        if na_ag['initiator-group-type'] in _INIT_TYPE_CONV.keys():
+        if na_ag['initiator-group-type'] in list(_INIT_TYPE_CONV.keys()):
             return _INIT_TYPE_CONV[na_ag['initiator-group-type']]
         else:
             return AccessGroup.INIT_TYPE_OTHER
@@ -130,13 +138,13 @@ class Ontap(IStorageAreaNetwork, INfs):
     @handle_ontap_errors
     def plugin_register(self, uri, password, timeout, flags=0):
         ssl = False
-        u = urlparse.urlparse(uri)
+        u = urlparse(uri)
 
         if u.scheme.lower() == 'ontap+ssl':
             ssl = True
 
         self.f = na.Filer(u.hostname, u.username, password,
-                          timeout / Ontap.TMO_CONV, ssl)
+                          int_div(timeout, Ontap.TMO_CONV), ssl)
         # Smoke test
         i = self.f.system_info()
         # TODO Get real filer status
@@ -145,7 +153,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         return self.f.validate()
 
     def time_out_set(self, ms, flags=0):
-        self.f.timeout = int(ms / Ontap.TMO_CONV)
+        self.f.timeout = int(int_div(ms, Ontap.TMO_CONV))
 
     def time_out_get(self, flags=0):
         return int(self.f.timeout * Ontap.TMO_CONV)
@@ -166,7 +174,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     def _lun(self, l):
         block_size = int(l['block-size'])
-        num_blocks = int(l['size']) / block_size
+        num_blocks = int_div(int(l['size']), block_size)
         pool_id = "/".join(l['path'].split('/')[0:3])
         vol_id = l['path']
         vol_name = os.path.basename(vol_id)
@@ -220,7 +228,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         Convert na_disk['effective-disk-type'] to LSM disk type.
         """
         na_disk_type = na_disk['effective-disk-type']
-        if na_disk_type in Ontap._NA_DISK_TYPE_TO_LSM.keys():
+        if na_disk_type in list(Ontap._NA_DISK_TYPE_TO_LSM.keys()):
             return Ontap._NA_DISK_TYPE_TO_LSM[na_disk_type]
         return Disk.TYPE_UNKNOWN
 
@@ -309,7 +317,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                 status_info = na_disk['broken-details']
         return status_info
 
-    def _disk(self, d, flag):
+    def _disk(self, d, flags=0):
         status = Ontap._status_of_na_disk(d)
         return Disk(self._disk_id(d), d['name'],
                     Ontap._disk_type_of(d),
@@ -373,9 +381,10 @@ class Ontap(IStorageAreaNetwork, INfs):
         na_aggr_raid_status_list = list(
             x.strip() for x in na_aggr['raid-status'].split(','))
         for na_aggr_raid_status in na_aggr_raid_status_list:
-            if na_aggr_raid_status in Ontap._AGGR_RAID_STATUS_CONV.keys():
+            if na_aggr_raid_status in list(Ontap._AGGR_RAID_STATUS_CONV.keys()):
                 status |= Ontap._AGGR_RAID_STATUS_CONV[na_aggr_raid_status]
-            if na_aggr_raid_status in Ontap._AGGR_RAID_ST_INFO_CONV.keys():
+            if na_aggr_raid_status in \
+                    list(Ontap._AGGR_RAID_ST_INFO_CONV.keys()):
                 status_info += \
                     Ontap._AGGR_RAID_ST_INFO_CONV[na_aggr_raid_status]
 
@@ -385,7 +394,7 @@ class Ontap(IStorageAreaNetwork, INfs):
         if na_aggr_state == 'online' or na_aggr_state == 'creating':
             pass
         elif na_aggr_state == 'offline':
-            # When aggr is marked as offline, the restruction is stoped.
+            # When aggr is marked as offline, the reconstruction is stopped.
             if status & Pool.STATUS_RECONSTRUCTING:
                 status -= Pool.STATUS_RECONSTRUCTING
                 status |= Pool.STATUS_DEGRADED
@@ -419,7 +428,7 @@ class Ontap(IStorageAreaNetwork, INfs):
     @staticmethod
     def _status_info_of_na_vol(na_vol):
         na_vol_state = na_vol['state']
-        if na_vol_state in Ontap.NA_VOL_STATUS_TO_LSM_STATUS_INFO.keys():
+        if na_vol_state in list(Ontap.NA_VOL_STATUS_TO_LSM_STATUS_INFO.keys()):
             return Ontap.NA_VOL_STATUS_TO_LSM_STATUS_INFO[na_vol_state]
         return ''
 
@@ -429,7 +438,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     def _pool_from_na_vol(self, na_vol, na_aggrs, flags):
         element_type = Pool.ELEMENT_TYPE_VOLUME
-        # Thin provisioning is controled by:
+        # Thin provisioning is controlled by:
         #   1. NetApp Volume level:
         #      'guarantee' option and 'fractional_reserve' option.
         #      If 'guarantee' is 'file', 'fractional_reserve' is forced to
@@ -462,7 +471,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                 if na_vol['reserve'] == na_vol['reserve-required']:
                     # When 'reserve' == 'reserve-required' it means option
                     # 'fractional_reserve' is set to 100, only with that we
-                    # can create full alocated LUN.
+                    # can create full allocated LUN.
                     element_type |= Pool.ELEMENT_TYPE_VOLUME_FULL
                 else:
                     element_type |= Pool.ELEMENT_TYPE_VOLUME_THIN
@@ -573,8 +582,8 @@ class Ontap(IStorageAreaNetwork, INfs):
     def systems(self, flags=0):
         return [self.sys_info]
 
-    def _get_volume(self, vol_name, pool_id):
-        return self._lun(self.f.luns_get_specific(pool_id, vol_name, None)[0])
+    def _get_volume(self, vol_name):
+        return self._lun(self.f.luns_get_specific(vol_name, None)[0])
 
     @handle_ontap_errors
     def volume_create(self, pool, volume_name, size_bytes, provisioning,
@@ -613,7 +622,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                     "Requested volume name is already used by other volume")
             elif fe.errno == na.FilerError.EVDISK_ERROR_SIZE_TOO_SMALL:
                 # Size too small should not be raised. By API defination,
-                # we should create a LUN with mimun size.
+                # we should create a LUN with minimum size.
                 min_size = self.f.lun_min_size()
                 return self.volume_create(
                     pool, volume_name, min_size, provisioning, flags)
@@ -624,7 +633,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                 raise
 
         # Get the information about the newly created LUN
-        return None, self._get_volume(lun_name, pool.id)
+        return None, self._get_volume(lun_name)
 
     @staticmethod
     def _vol_to_na_volume_name(volume):
@@ -645,7 +654,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @staticmethod
     def _size_kb_padded(size_bytes):
-        return int((size_bytes / 1024) * 1.3)
+        return int((int_div(size_bytes, 1024)) * 1.3)
 
     @handle_ontap_errors
     def volume_resize(self, volume, new_size_bytes, flags=0):
@@ -674,8 +683,7 @@ class Ontap(IStorageAreaNetwork, INfs):
                                "to support re-size change amount")
             else:
                 raise
-        return None, self._get_volume(_lsm_vol_to_na_vol_path(volume),
-                                      volume.pool_id)
+        return None, self._get_volume(_lsm_vol_to_na_vol_path(volume))
 
     def _check_na_volume(self, na_vol_name):
         na_vols = self.f.volumes(volume_name=na_vol_name)
@@ -711,7 +719,7 @@ class Ontap(IStorageAreaNetwork, INfs):
             dest = os.path.dirname(_lsm_vol_to_na_vol_path(volume_src)) + '/' \
                 + name
             self.f.clone(_lsm_vol_to_na_vol_path(volume_src), dest)
-            return None, self._get_volume(dest, volume_src.pool_id)
+            return None, self._get_volume(dest)
         else:
             # TODO Need to get instructions on how to provide this
             # functionality
@@ -953,7 +961,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @staticmethod
     def _rpercent(total, current):
-        p = 1 - (current / float(total))
+        p = 1 - (int_div(current, float(total)))
         p = min(int(100 * p), 100)
         return p
 
@@ -1310,8 +1318,8 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def volume_raid_info(self, volume, flags=0):
-        # Check existance of LUN
-        self.f.luns_get_specific(None, na_lun_name=volume.id)
+        # Check existence of LUN
+        self.f.luns_get_specific(na_lun_name=volume.id)
 
         na_vol_name = Ontap._get_volume_from_path(volume.pool_id)
         na_vol = self.f.volumes(volume_name=na_vol_name)
