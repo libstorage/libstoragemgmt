@@ -14,10 +14,6 @@
 #
 # Author: Gris Ge <fge@redhat.com>
 import sys
-from builtins import hex
-from builtins import str
-from builtins import range
-from builtins import object
 from datetime import datetime
 
 from lsm import (size_bytes_2_size_human, LsmError, ErrorNumber, Battery,
@@ -34,7 +30,7 @@ except ImportError:
 BIT_MAP_STRING_SPLITTER = ','
 
 
-## Users are reporting errors with broken pipe when piping output
+# Users are reporting errors with broken pipe when piping output
 # to another program.  This appears to be related to this issue:
 # http://bugs.python.org/issue11380
 # Unable to reproduce, but hopefully this will address it.

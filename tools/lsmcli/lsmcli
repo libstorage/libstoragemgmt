@@ -17,7 +17,7 @@
 # Author: tasleson
 from lsm.lsmcli import cmd_line_wrapper
 
-## Command line interface for libStorageMgmt.
+# Command line interface for libStorageMgmt.
 # This is contained in a separate class which can be shared across all the py
 # plug-ins.
 if __name__ == '__main__':
