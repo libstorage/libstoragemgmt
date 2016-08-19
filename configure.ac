@@ -207,6 +207,7 @@ fi
 AC_PYTHON_MODULE([argparse], [Required])
 AC_PYTHON_MODULE([pyudev], [Required])
 AC_PYTHON_MODULE([six], [Required])
+AC_PYTHON_MODULE([requests], [Required])
 PKG_CHECK_MODULES([LIBUDEV], [libudev])
 PKG_CHECK_MODULES([PYTHON2], [python2], [], [not_found_py_pkg=yes])
 
@@ -241,6 +242,7 @@ please install any of them.])
     fi
 
     AC_PYTHON_MODULE([six], [Required], [python3])
+    AC_PYTHON_MODULE([requests], [Required], [python3])
 
     PKG_CHECK_MODULES([PYTHON3], [python3], [], [not_found_py_pkg=yes])
 
