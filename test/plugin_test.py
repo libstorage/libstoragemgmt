@@ -1,5 +1,4 @@
 #!/usr/bin/env python2
-
 # Copyright (C) 2013-2016 Red Hat, Inc.
 # (C) Copyright 2015-2016 Hewlett Packard Enterprise Development LP
 # This library is free software; you can redistribute it and/or
@@ -18,9 +17,6 @@
 # Author:   tasleson
 #           Joe Handzik <joseph.t.handzik@hpe.com>
 #           Gris Ge <fge@redhat.com>
-from builtins import str
-from builtins import range
-from builtins import object
 
 import lsm
 import functools
@@ -136,21 +132,21 @@ class TestProxy(object):
                    lsm.ErrorNumber.EXISTS_INITIATOR]
 
     # Hash of all calls that can be async
-    async_calls = {'volume_create': (unicode, lsm.Volume),
-                   'volume_resize': (unicode, lsm.Volume),
-                   'volume_replicate': (unicode, lsm.Volume),
-                   'volume_replicate_range': (unicode,),
-                   'volume_delete': (unicode,),
-                   'volume_child_dependency_rm': (unicode,),
-                   'fs_delete': (unicode,),
-                   'fs_resize': (unicode, lsm.FileSystem),
-                   'fs_create': (unicode, lsm.FileSystem),
-                   'fs_clone': (unicode, lsm.FileSystem),
-                   'fs_file_clone': (unicode,),
-                   'fs_snapshot_create': (unicode, lsm.FsSnapshot),
-                   'fs_snapshot_delete': (unicode,),
-                   'fs_snapshot_restore': (unicode,),
-                   'fs_child_dependency_rm': (unicode,)}
+    async_calls = {'volume_create': (str, lsm.Volume),
+                   'volume_resize': (str, lsm.Volume),
+                   'volume_replicate': (str, lsm.Volume),
+                   'volume_replicate_range': (str,),
+                   'volume_delete': (str,),
+                   'volume_child_dependency_rm': (str,),
+                   'fs_delete': (str,),
+                   'fs_resize': (str, lsm.FileSystem),
+                   'fs_create': (str, lsm.FileSystem),
+                   'fs_clone': (str, lsm.FileSystem),
+                   'fs_file_clone': (str,),
+                   'fs_snapshot_create': (str, lsm.FsSnapshot),
+                   'fs_snapshot_delete': (str,),
+                   'fs_snapshot_restore': (str,),
+                   'fs_child_dependency_rm': (str,)}
 
     ## The constructor.
     # @param    self    The object self
@@ -960,9 +956,10 @@ class TestPlugin(unittest.TestCase):
         if ag_created is not None:
             ag_list = self.c.access_groups()
             match = [x for x in ag_list if x.id == ag_created.id]
-            self.assertTrue(len(match) == 1, "Newly created access group %s "
-                                             "not in the access group listing"
-                                             % (ag_created.name))
+            self.assertTrue(
+                len(match) == 1,
+                "Newly created access group %s not in the access group listing"
+                % ag_created.name)
 
             self.assertTrue(s.id == ag_created.system_id)
 

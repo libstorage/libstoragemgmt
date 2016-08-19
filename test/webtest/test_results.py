@@ -223,12 +223,12 @@ def process_result_files(path, ext):
 
     #Sort the list by ID and then generate the html
     sorted_results = sorted(results, key=lambda k: k['SYSTEM']['ID'])
-    print to_html(sorted_results)
+    print(to_html(sorted_results))
 
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
-        print 'Syntax: %s <directory>' % (sys.argv[0])
+        print('Syntax: %s <directory>' % (sys.argv[0]))
         sys.exit(1)
 
     process_result_files(sys.argv[1], '.out')
