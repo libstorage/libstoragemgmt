@@ -30,7 +30,7 @@ from lsm import LsmError, ErrorNumber, md5
 
 from lsm.plugin.smispy.WBEM import wbem
 from lsm.plugin.smispy.utils import merge_list
-from lsm.plugin.smispy as dmtf
+from lsm.plugin.smispy import dmtf
 
 
 def _profile_register_load(wbem_conn):
