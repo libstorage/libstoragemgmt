@@ -27,11 +27,7 @@ except ImportError:
 
 from json.decoder import WHITESPACE
 
-try:
-    from ._common import get_class, default_property, ErrorNumber, LsmError
-except ImportError:
-    from _common import get_class, default_property, ErrorNumber, LsmError
-
+from lsm._common import get_class, default_property, ErrorNumber, LsmError
 
 import six
 

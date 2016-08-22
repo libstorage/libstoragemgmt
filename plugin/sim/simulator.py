@@ -18,10 +18,7 @@
 from lsm import (uri_parse, VERSION, Capabilities, INfs,
                  IStorageAreaNetwork, search_property, Client)
 
-try:
-    from .simarray import SimArray
-except ImportError:
-    from simarray import SimArray
+from lsm.plugin.sim.simarray import SimArray
 
 
 class SimPlugin(INfs, IStorageAreaNetwork):

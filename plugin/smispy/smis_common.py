@@ -26,17 +26,11 @@ import datetime
 import time
 import sys
 
-try:
-    from . WBEM import wbem
-    from . import dmtf
-    from .utils import (merge_list)
-except ImportError:
-    from WBEM import wbem
-    import dmtf
-    from utils import (merge_list)
-
-
 from lsm import LsmError, ErrorNumber, md5
+
+from lsm.plugin.smispy.WBEM import wbem
+from lsm.plugin.smispy.utils import merge_list
+from lsm.plugin.smispy as dmtf
 
 
 def _profile_register_load(wbem_conn):

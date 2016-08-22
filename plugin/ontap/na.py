@@ -20,7 +20,7 @@ import six
 from xml.etree import ElementTree
 import time
 from binascii import hexlify
-from _ssl import SSLError
+from ssl import SSLError
 from lsm.external.xmltodict import convert_xml_to_dict
 from lsm import (ErrorNumber)
 

@@ -21,15 +21,10 @@ import os
 import unittest
 import threading
 
-try:
-    from ._common import SocketEOF as _SocketEOF
-    from ._common import LsmError, ErrorNumber
-    from ._data import DataDecoder as _DataDecoder, DataEncoder as _DataEncoder
-except ImportError:
-    from _common import SocketEOF as _SocketEOF
-    from _common import LsmError, ErrorNumber
-    from _data import DataDecoder as _DataDecoder, DataEncoder as _DataEncoder
-
+from lsm._common import LsmError, ErrorNumber
+from lsm._common import SocketEOF as _SocketEOF
+from lsm._data import DataDecoder as _DataDecoder
+from lsm._data import DataEncoder as _DataEncoder
 
 class TransPort(object):
     """

@@ -23,11 +23,8 @@ from lsm import (Volume, FileSystem, FsSnapshot, NfsExport,
                  IStorageAreaNetwork, INfs, LsmError, ErrorNumber, JobStatus,
                  md5, VERSION, common_urllib2_error_handler,
                  search_property, TargetPort, int_div)
-try:
-    from . import na
-except ImportError:
-    import na
 
+import lsm.plugin.ontap.na as na
 
 try:
     from urllib.parse import urlparse

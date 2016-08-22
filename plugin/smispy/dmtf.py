@@ -15,7 +15,7 @@
 # Author: Gris Ge <fge@redhat.com>
 
 # This class handle DMTF CIM constants and convert to LSM type.
-from . WBEM import wbem
+from lsm.plugin.smispy.WBEM import wbem
 
 # CIM_StorageHardwareID['IDType']
 ID_TYPE_OTHER = wbem.Uint16(1)

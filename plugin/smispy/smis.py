@@ -18,31 +18,22 @@
 import time
 import copy
 
-try:
-    from . WBEM import wbem
-    from . import smis_cap
-    from . import smis_sys
-    from . import smis_pool
-    from . import smis_disk
-    from . import dmtf
-    from .utils import (merge_list, handle_cim_errors, hex_string_format)
-    from .smis_common import SmisCommon
-except ImportError:
-    from WBEM import wbem
-    import smis_cap
-    import smis_sys
-    import smis_pool
-    import smis_disk
-    import dmtf
-    from utils import (merge_list, handle_cim_errors, hex_string_format)
-    from smis_common import SmisCommon
-
 from lsm import (IStorageAreaNetwork, uri_parse, LsmError, ErrorNumber,
                  JobStatus, md5, Volume, AccessGroup, Pool,
                  VERSION, TargetPort,
                  search_property)
+from lsm.plugin.smispy.WBEM import wbem
+from lsm.plugin.smispy.smis_common import SmisCommon
+from lsm.plugin.smispy import smis_cap
+from lsm.plugin.smispy import smis_sys
+from lsm.plugin.smispy import smis_pool
+from lsm.plugin.smispy import smis_disk
 from lsm.plugin.smispy import smis_vol
 from lsm.plugin.smispy import smis_ag
+from lsm.plugin.smispy import dmtf
+from lsm.plugin.smispy.utils import (merge_list, handle_cim_errors,
+                                     hex_string_format)
+
 
 # Variable Naming scheme:
 #   cim_xxx         CIMInstance

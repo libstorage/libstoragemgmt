@@ -18,4 +18,4 @@
 try:
     import pywbem as wbem
 except ImportError:
-    from . lmiwbem_wrap import wbem
+    from lsm.plugin.smispy.lmiwbem_wrap import wbem

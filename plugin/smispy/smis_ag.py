@@ -18,10 +18,9 @@
 This module intend to provide independent methods for lsm.AccessGroup and
 volume masking/unmasking.
 """
-from . WBEM import wbem
-
 from lsm import AccessGroup, md5, LsmError, ErrorNumber
 
+from lsm.plugin.smispy.WBEM import wbem
 from lsm.plugin.smispy.smis_common import SmisCommon
 from lsm.plugin.smispy import dmtf
 from lsm.plugin.smispy.utils import cim_path_to_path_str, path_str_to_cim_path

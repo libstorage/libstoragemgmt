@@ -19,17 +19,10 @@ from lsm import (Volume, NfsExport, Capabilities, Pool, System, Battery,
                  uri_parse, LsmError, ErrorNumber,
                  INetworkAttachedStorage, TargetPort)
 
-try:
-    from ._common import return_requires as _return_requires
-    from ._common import UDS_PATH as _UDS_PATH
-    from ._transport import TransPort as _TransPort
-    from ._data import IData as _IData
-except ImportError:
-    from _common import return_requires as _return_requires
-    from _common import UDS_PATH as _UDS_PATH
-    from _transport import TransPort as _TransPort
-    from _data import IData as _IData
-
+from lsm._common import return_requires as _return_requires
+from lsm._common import UDS_PATH as _UDS_PATH
+from lsm._transport import TransPort as _TransPort
+from lsm._data import IData as _IData
 
 import six
 

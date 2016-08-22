@@ -14,12 +14,9 @@
 #
 # Author: Gris Ge <fge@redhat.com>
 
-try:
-    from .utils import merge_list, path_str_to_cim_path, cim_path_to_path_str
-    from . import dmtf
-except ImportError:
-    from utils import merge_list, path_str_to_cim_path, cim_path_to_path_str
-    import dmtf
+from lsm.plugin.smispy.utils import (merge_list, path_str_to_cim_path,
+                                     cim_path_to_path_str)
+import lsm.plugin.smispy import dmtf
 
 
 from lsm import LsmError, ErrorNumber, Pool

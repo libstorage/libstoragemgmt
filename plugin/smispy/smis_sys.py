@@ -14,14 +14,9 @@
 #
 # Author: Gris Ge <fge@redhat.com>
 
-try:
-    from .utils import merge_list
-    from . import dmtf
-except ImportError:
-    from utils import merge_list
-    import dmtf
-
 from lsm import System, LsmError, ErrorNumber
+from lsm.plugin.smispy.utils import merge_list
+from lsm.plugin.smispy import dmtf
 
 
 def cim_sys_id_pros():

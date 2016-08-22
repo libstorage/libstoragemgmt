@@ -15,10 +15,9 @@
 # Author: Gris Ge <fge@redhat.com>
 
 import traceback
-from lsm import (LsmError, ErrorNumber, error)
-
-from . WBEM import wbem
 import json
+from lsm import (LsmError, ErrorNumber, error)
+from lsm.plugin.smispy.WBEM import wbem
 
 
 def merge_list(list_a, list_b):
