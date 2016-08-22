@@ -1753,7 +1753,7 @@ Options libStorageMgmt:
  --skip      'Test case to skip. Repeatable argument'
  """
 
-    if six.PY2:
+    if sys.version_info[0] == 2:
         unittest.TestProgram.USAGE += additional
 
 if __name__ == "__main__":
