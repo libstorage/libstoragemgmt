@@ -25,3 +25,5 @@ python-pyudev
 'pkgconfig(libudev)'
 libyajl-devel
 sqlite3-devel
+python-requests
+python-six
