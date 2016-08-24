@@ -1,10 +1,8 @@
-#!/usr/bin/env python2
-
-# Copyright (C) 2012 Red Hat, Inc.
+# Copyright (C) 2016 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
-# version 2.1 of the License, or any later version.
+# version 2.1 of the License, or (at your option) any later version.
 #
 # This library is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,12 +11,11 @@
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; If not, see <http://www.gnu.org/licenses/>.
-#
-# Author: tasleson
-from lsm.lsmcli import cmd_line_wrapper
 
-## Command line interface for libStorageMgmt.
-# This is contained in a separate class which can be shared across all the py
-# plug-ins.
-if __name__ == '__main__':
-    cmd_line_wrapper()
+# Try to make lmiwbem look like and toss errors like pywbem to prevent changing
+# all kinds of code that depends on pywbem behavior
+
+try:
+    import pywbem as wbem
+except ImportError:
+    from lsm.plugin.smispy.lmiwbem_wrap import wbem

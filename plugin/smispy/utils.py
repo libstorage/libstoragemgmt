@@ -15,10 +15,9 @@
 # Author: Gris Ge <fge@redhat.com>
 
 import traceback
-from lsm import (LsmError, ErrorNumber, error)
-from pywbem import (CIMError, CIMInstanceName)
-import pywbem
 import json
+from lsm import (LsmError, ErrorNumber, error)
+from lsm.plugin.smispy.WBEM import wbem
 
 
 def merge_list(list_a, list_b):
@@ -29,9 +28,9 @@ def handle_cim_errors(method):
     def cim_wrapper(*args, **kwargs):
         try:
             return method(*args, **kwargs)
-        except LsmError as lsm:
+        except LsmError:
             raise
-        except CIMError as ce:
+        except wbem.CIMError as ce:
             error_code, desc = ce
 
             if error_code == 0:
@@ -59,9 +58,9 @@ def handle_cim_errors(method):
                     raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
                                    desc)
             raise LsmError(ErrorNumber.PLUGIN_BUG, desc)
-        except pywbem.cim_http.AuthError as ae:
+        except wbem.cim_http.AuthError:
             raise LsmError(ErrorNumber.PLUGIN_AUTH_FAILED, "Unauthorized user")
-        except pywbem.cim_http.Error as te:
+        except wbem.cim_http.Error as te:
             raise LsmError(ErrorNumber.NETWORK_ERROR, str(te))
         except Exception as e:
             error("Unexpected exception:\n" + traceback.format_exc())
@@ -78,6 +77,8 @@ def hex_string_format(hex_str, length, every):
 def cim_path_to_path_str(cim_path):
     """
     Convert CIMInstanceName to a string which could save in plugin_data
+    Args:
+        cim_path: CIM path
     """
     return json.dumps({
         'classname': cim_path.classname,
@@ -90,6 +91,8 @@ def cim_path_to_path_str(cim_path):
 def path_str_to_cim_path(path_str):
     """
     Convert a string into CIMInstanceName.
+    Args:
+        path_str: String to convert into a CIMInstanceName
     """
     path_dict = json.loads(path_str)
-    return CIMInstanceName(**path_dict)
+    return wbem.CIMInstanceName(**path_dict)

@@ -38,7 +38,7 @@ with_mem_leak_test="@WITH_MEM_LEAK_TEST@"
 source "${src_dir}/test/test_include.sh"
 
 # Constant check: check whether python constants matched with C constants.
-perl ${src_dir}/tools/utility/check_const.pl || exit 1
+# perl ${src_dir}/tools/utility/check_const.pl || exit 1
 
 # First round: test against python plugin sim://
 lsm_test_base_install \

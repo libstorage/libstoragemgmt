@@ -38,8 +38,7 @@ def process_file(cap_file):
 
 
 def create_html(data):
-    print \
-'''
+    print('''
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
@@ -51,21 +50,21 @@ def create_html(data):
 google.load('visualization', '1', {packages:['table']});
 google.setOnLoadCallback(drawTable);
 function drawTable() {
-    var data = new google.visualization.DataTable(); '''
+    var data = new google.visualization.DataTable(); ''')
 
     array_vendors = [x for x, v in data]
 
-    cap_keys = data[0][1].keys()
+    cap_keys = list(data[0][1].keys())
     cap_keys.sort()
 
-    print '''data.addColumn('string', 'Capability/Feature');'''
+    print('''data.addColumn('string', 'Capability/Feature');''')
 
     #Create vendor columns
     for a in array_vendors:
-        print "data.addColumn('boolean', '" + a + "');"
+        print("data.addColumn('boolean', '" + a + "');")
 
     #Create plugin column
-    print "data.addRows(["
+    print("data.addRows([")
 
     #Output the rows
     for c in cap_keys:
@@ -75,11 +74,10 @@ function drawTable() {
             line += ",%s" % str(d[c]).lower()
 
         line += "],"
-        print line
-    print "]);"
+        print(line)
+    print("]);")
 
-    print \
-'''
+    print('''
     var table = new google.visualization.Table(document.getElementById('table_div'));
         table.draw(data, {showRowNumber: false});
       }
@@ -100,19 +98,19 @@ function drawTable() {
     <div id='table_div'></div>
   </body>
 </html>
-'''
+''')
 
 if __name__ == '__main__':
     arrays = []
 
     if len(sys.argv) < 2:
-        print 'syntax: web_cap.py <array_cap_1.txt> <array_cap_N.txt>\n\n'
-        print 'HOWTO: \n' \
+        print('syntax: web_cap.py <array_cap_1.txt> <array_cap_N.txt>\n\n')
+        print('HOWTO: \n' \
             '1. Take the output of lsmcli --capabilities <system>\n' \
             '2. Dump to a file for 1 or more arrays.  \n' \
             '3. Then supply each file name on the command line for this \n' \
-            '   utility and the html output will be dumped to STDOUT\n\n'
-        print 'Note: The file name is used as the column header for output.'
+            '   utility and the html output will be dumped to STDOUT\n\n')
+        print('Note: The file name is used as the column header for output.')
     for f in sys.argv[1:]:
         arrays.append(process_file(f))
 

@@ -14,13 +14,15 @@
 #
 # Author: Gris Ge <fge@redhat.com>
 
+import six
+
+from lsm import LsmError, ErrorNumber
+
 from lsm._clib import (_local_disk_vpd83_search, _local_disk_vpd83_get,
                        _local_disk_rpm_get, _local_disk_list,
                        _local_disk_link_type_get, _local_disk_ident_led_on,
                        _local_disk_ident_led_off, _local_disk_fault_led_on,
                        _local_disk_fault_led_off)
-from lsm import LsmError, ErrorNumber
-
 
 def _use_c_lib_function(func_ref, arg):
     (data, err_no, err_msg) = func_ref(arg)

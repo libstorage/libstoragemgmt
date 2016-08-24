@@ -22,6 +22,16 @@
 
 #include <libstoragemgmt/libstoragemgmt.h>
 
+/*
+ *  Following directions from here: http://python3porting.com/cextensions.html
+ * https://docs.python.org/3/howto/cporting.html
+ */
+
+
+#if PY_MAJOR_VERSION > 2
+    #define PyInt_FromLong PyLong_FromLong
+#endif
+
 #define _alloc_check(ptr, flag_no_mem, out) \
     do { \
         if (ptr == NULL) { \
@@ -57,13 +67,13 @@ static PyObject *func_name(PyObject *self, PyObject *args, PyObject *kwargs) \
     rc_obj = py_rt_conv_func(c_rt); \
     _alloc_check(rc_obj, flag_no_mem, out); \
     if (rc != LSM_ERR_OK) { \
-        err_msg_obj = PyString_FromString(lsm_error_message_get(lsm_err)); \
+        err_msg_obj = PyUnicode_FromString(lsm_error_message_get(lsm_err)); \
         lsm_error_free(lsm_err); \
         lsm_err = NULL; \
         _alloc_check(err_msg_obj, flag_no_mem, out); \
         goto out; \
     } else { \
-        err_msg_obj = PyString_FromString(""); \
+        err_msg_obj = PyUnicode_FromString(""); \
         _alloc_check(err_msg_obj, flag_no_mem, out); \
     } \
  out: \
@@ -106,13 +116,13 @@ static PyObject *func_name(PyObject *self, PyObject *args, PyObject *kwargs) \
     rc_list = PyList_New(3 /* rc_obj, errno, err_str*/); \
     _alloc_check(rc_list, flag_no_mem, out); \
     if (rc != LSM_ERR_OK) { \
-        err_msg_obj = PyString_FromString(lsm_error_message_get(lsm_err)); \
+        err_msg_obj = PyUnicode_FromString(lsm_error_message_get(lsm_err)); \
         lsm_error_free(lsm_err); \
         lsm_err = NULL; \
         _alloc_check(err_msg_obj, flag_no_mem, out); \
         goto out; \
     } else { \
-        err_msg_obj = PyString_FromString(""); \
+        err_msg_obj = PyUnicode_FromString(""); \
         _alloc_check(err_msg_obj, flag_no_mem, out); \
     } \
  out: \
@@ -355,9 +365,8 @@ static PyObject *_lsm_string_list_to_pylist(lsm_string_list *str_list)
 static PyObject *_c_str_to_py_str(const char *str)
 {
     if (str == NULL)
-        return PyString_FromString("");
-    else
-        return PyString_FromString(str);
+        return PyUnicode_FromString("");
+    return PyUnicode_FromString(str);
 }
 
 _wrapper(local_disk_vpd83_search, lsm_local_disk_vpd83_search,
@@ -393,13 +402,13 @@ static PyObject *local_disk_list(PyObject *self, PyObject *args,
     rc_obj = _lsm_string_list_to_pylist(disk_paths);
     _alloc_check(rc_obj, flag_no_mem, out);
     if (rc != LSM_ERR_OK) {
-        err_msg_obj = PyString_FromString(lsm_error_message_get(lsm_err));
+        err_msg_obj = PyUnicode_FromString(lsm_error_message_get(lsm_err));
         lsm_error_free(lsm_err);
         lsm_err = NULL;
         _alloc_check(err_msg_obj, flag_no_mem, out);
         goto out;
     } else {
-        err_msg_obj = PyString_FromString("");
+        err_msg_obj = PyUnicode_FromString("");
         _alloc_check(err_msg_obj, flag_no_mem, out);
     }
  out:
@@ -420,7 +429,21 @@ static PyObject *local_disk_list(PyObject *self, PyObject *args,
     return rc_list;
 }
 
+#if PY_MAJOR_VERSION >= 3
+    #define MOD_DEF(name, methods) \
+        static struct PyModuleDef moduledef = { \
+            PyModuleDef_HEAD_INIT, name, NULL, -1, methods, }; \
+        return PyModule_Create(&moduledef);
+#else
+    #define MOD_DEF(name, methods) \
+        Py_InitModule(name, methods);
+#endif
+
+#if PY_MAJOR_VERSION >= 3
+PyMODINIT_FUNC PyInit__clib(void)
+#else
 PyMODINIT_FUNC init_clib(void)
+#endif
 {
-        (void) Py_InitModule("_clib", _methods);
+    MOD_DEF("_clib", _methods);
 }

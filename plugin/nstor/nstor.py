@@ -18,29 +18,31 @@
 # Author: legkodymov
 #         Gris Ge <fge@redhat.com>
 
-import urllib2
-import sys
-import urlparse
+try:
+    from urllib.parse import urlparse
+except ImportError:
+    from urlparse import urlparse
+
 try:
     import simplejson as json
 except ImportError:
     import json
-import base64
 import time
 import traceback
 import copy
+import requests
 
 from lsm import (AccessGroup, Capabilities, ErrorNumber, FileSystem, INfs,
                  IStorageAreaNetwork, LsmError, NfsExport, Pool,
                  FsSnapshot, System, VERSION, Volume, md5, error,
-                 common_urllib2_error_handler, search_property)
+                 search_property, int_div)
 
 
 def handle_nstor_errors(method):
     def nstor_wrapper(*args, **kwargs):
         try:
             return method(*args, **kwargs)
-        except LsmError as lsm:
+        except LsmError:
             raise
         except Exception as e:
             error("Unexpected exception:\n" + traceback.format_exc())
@@ -61,54 +63,49 @@ class NexentaStor(INfs, IStorageAreaNetwork):
     def __init__(self):
         self.uparse = None
         self.password = None
-        self.timeout = None
+        self.timeout = 30000
         self._system = None
         self._port = NexentaStor._V3_PORT
         self._scheme = 'http'
 
     def _ns_request(self, path, data):
-        response = None
         parms = json.dumps(data)
 
         url = '%s://%s:%s/%s' % \
               (self._scheme, self.uparse.hostname, self._port, path)
-        request = urllib2.Request(url, parms)
 
         username = self.uparse.username or 'admin'
-        base64string = base64.encodestring('%s:%s' %
-                                           (username, self.password))[:-1]
-        request.add_header('Authorization', 'Basic %s' % base64string)
-        request.add_header('Content-Type', 'application/json')
+
         try:
-            response = urllib2.urlopen(request, timeout=self.timeout / 1000)
-        except Exception as e:
-            try:
-                common_urllib2_error_handler(e)
-            except LsmError as lsm_e:
-                exc_info = sys.exc_info()
-                if lsm_e.code == ErrorNumber.NETWORK_CONNREFUSED:
-                    if not self.uparse.port and \
-                            self._port == NexentaStor._V3_PORT:
-                        self._port = NexentaStor._V4_PORT
-                        return self._ns_request(path, data)
+            r = requests.post(
+                url, parms, auth=(username, self.password),
+                timeout=int_div(self.timeout, 1000))
 
-                raise exc_info[0], exc_info[1], exc_info[2]
+            if r.status_code == 200:
+                resp = r.json()
+                if resp['error']:
+                    if 'message' in resp['error']:
+                        msg = resp['error']['message']
+                        # Check to see if there is a better way to do this...
+                        if 'dataset already exists' in msg:
+                            raise LsmError(ErrorNumber.NAME_CONFLICT, msg)
 
-        resp_json = response.read()
-        resp = json.loads(resp_json)
-        if resp['error']:
+                        if 'Unable to destroy hostgroup' in msg:
+                            raise LsmError(ErrorNumber.IS_MASKED, msg)
 
-            if 'message' in resp['error']:
-                msg = resp['error']['message']
-                # Check to see if there is a better way to do this...
-                if 'dataset already exists' in msg:
-                    raise LsmError(ErrorNumber.NAME_CONFLICT, msg)
-
-                if 'Unable to destroy hostgroup' in msg:
-                    raise LsmError(ErrorNumber.IS_MASKED, msg)
-
-            raise LsmError(ErrorNumber.PLUGIN_BUG, resp['error'])
-        return resp['result']
+                    raise LsmError(ErrorNumber.PLUGIN_BUG, resp['error'])
+                return resp['result']
+            else:
+                if r.status_code == 403:
+                    raise LsmError(ErrorNumber.PLUGIN_AUTH_FAILED,
+                                   "Username or password incorrect")
+        except requests.exceptions.ReadTimeout:
+            raise LsmError(ErrorNumber.TIMEOUT,
+                           "Timeout = %d ms" % self.timeout)
+        except requests.exceptions.ConnectTimeout as e:
+            raise LsmError(ErrorNumber.TIMEOUT, str(e))
+        except requests.exceptions.ConnectionError as ce:
+            raise LsmError(ErrorNumber.NETWORK_CONNREFUSED, str(ce))
 
     def _request(self, method, obj, params):
         return self._ns_request('rest/nms', {"method": method, "object": obj,
@@ -124,7 +121,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         return self._system
 
     def plugin_register(self, uri, password, timeout, flags=0):
-        self.uparse = urlparse.urlparse(uri)
+        self.uparse = urlparse(uri)
         self.password = password or 'nexenta'
         self.timeout = timeout
 
@@ -213,7 +210,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
     @handle_nstor_errors
     def fs_delete(self, fs, flags=0):
-        result = self._request("destroy", "folder", [fs.name, "-r"])
+        self._request("destroy", "folder", [fs.name, "-r"])
         return
 
     @handle_nstor_errors
@@ -450,9 +447,8 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         if options:
             fs_dict['extra_options'] = str(options)
 
-        result = self._request("share_folder", "netstorsvc",
-                               ['svc:/network/nfs/server:default',
-                                fs_id, fs_dict])
+        self._request("share_folder", "netstorsvc",
+                      ['svc:/network/nfs/server:default', fs_id, fs_dict])
         return NfsExport(md5_id, fs_id, export_path, auth_type, root_list,
                          rw_list, ro_list, anon_uid, anon_gid, options)
 
@@ -465,7 +461,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
                       ['svc:/network/nfs/server:default', export.fs_id, '0'])
         return
 
-    ###########  SAN
+    # SAN Operations
 
     @staticmethod
     def _calc_group(name):
@@ -494,7 +490,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
             block_size = NexentaStor._to_bytes(zvol_props['volblocksize'])
             size_bytes = int(zvol_props['size_bytes'])
-            num_of_blocks = size_bytes / block_size
+            num_of_blocks = int_div(size_bytes, block_size)
             admin_state = Volume.ADMIN_STATE_ENABLED
 
             vol_list.append(
@@ -569,7 +565,7 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         self._request("set_child_prop", "zvol",
                       [volume.name, 'volsize', str(new_size_bytes)])
         self._request("realign_size", "scsidisk", [volume.name])
-        new_num_of_blocks = new_size_bytes / volume.block_size
+        new_num_of_blocks = int_div(new_size_bytes, volume.block_size)
         return None, Volume(volume.id, volume.name, volume.vpd83,
                             volume.block_size, new_num_of_blocks,
                             volume.admin_state, volume.system_id,

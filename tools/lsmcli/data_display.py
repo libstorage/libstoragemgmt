@@ -14,6 +14,11 @@
 #
 # Author: Gris Ge <fge@redhat.com>
 import sys
+from datetime import datetime
+
+from lsm import (size_bytes_2_size_human, LsmError, ErrorNumber, Battery,
+                 System, Pool, Disk, Volume, AccessGroup,
+                 FileSystem, FsSnapshot, NfsExport, TargetPort, LocalDisk)
 
 try:
     from collections import OrderedDict
@@ -21,16 +26,11 @@ except ImportError:
     # python 2.6 or earlier, use backport
     from ordereddict import OrderedDict
 
-from datetime import datetime
-
-from lsm import (size_bytes_2_size_human, LsmError, ErrorNumber, Battery,
-                 System, Pool, Disk, Volume, AccessGroup,
-                 FileSystem, FsSnapshot, NfsExport, TargetPort, LocalDisk)
 
 BIT_MAP_STRING_SPLITTER = ','
 
 
-## Users are reporting errors with broken pipe when piping output
+# Users are reporting errors with broken pipe when piping output
 # to another program.  This appears to be related to this issue:
 # http://bugs.python.org/issue11380
 # Unable to reproduce, but hopefully this will address it.
@@ -47,7 +47,7 @@ def out(msg):
 def _bit_map_to_str(bit_map, conv_dict):
     rc = []
     bit_map = int(bit_map)
-    for cur_enum in conv_dict.keys():
+    for cur_enum in list(conv_dict.keys()):
         if cur_enum & bit_map:
             rc.append(conv_dict[cur_enum])
     # If there are no bits set we really don't need a string
@@ -57,16 +57,16 @@ def _bit_map_to_str(bit_map, conv_dict):
 
 
 def _enum_type_to_str(int_type, conv_dict):
-    rc = ''
     int_type = int(int_type)
 
-    if int_type in conv_dict.keys():
+    if int_type in list(conv_dict.keys()):
         return conv_dict[int_type]
     return 'Unknown(%d)' % int_type
 
 
 def _str_to_enum(type_str, conv_dict):
-    keys = [k for k, v in conv_dict.items() if v.lower() == type_str.lower()]
+    keys = [k for k, v in list(conv_dict.items())
+            if v.lower() == type_str.lower()]
     if len(keys) > 0:
         return keys[0]
     raise LsmError(ErrorNumber.INVALID_ARGUMENT,
@@ -873,7 +873,7 @@ class DisplayData(object):
                 raise lsm_err
 
         if not flag_enum:
-            if key in value_conv_enum.keys():
+            if key in list(value_conv_enum.keys()):
                 value = value_conv_enum[key](value)
         if flag_human:
             if key in value_conv_human:
@@ -907,11 +907,11 @@ class DisplayData(object):
         display_keys = []
 
         if display_way == DisplayData.DISPLAY_WAY_COLUMN:
-            for key_name in headers.keys():
+            for key_name in list(headers.keys()):
                 if key_name not in value_convert['column_skip_keys']:
                     display_keys.append(key_name)
         elif display_way == DisplayData.DISPLAY_WAY_SCRIPT:
-            display_keys = headers.keys()
+            display_keys = list(headers.keys())
 
         if extra_properties:
             for extra_key_name in extra_properties:
@@ -944,7 +944,7 @@ class DisplayData(object):
             splitter = DisplayData.DEFAULT_SPLITTER
 
         data_dict_list = []
-        if type(objs[0]) in DisplayData.VALUE_CONVERT.keys():
+        if type(objs[0]) in list(DisplayData.VALUE_CONVERT.keys()):
             for obj in objs:
                 data_dict = DisplayData._data_dict_gen(
                     obj, flag_human, flag_enum, display_way,
@@ -965,14 +965,13 @@ class DisplayData(object):
         value_column_width = 1
 
         for data_dict in data_dict_list:
-            for key_name in data_dict.keys():
+            for key_name in list(data_dict.keys()):
                 # find the max column width of key
                 cur_key_width = len(key_name)
                 if cur_key_width > key_column_width:
                     key_column_width = cur_key_width
                 # find the max column width of value
                 cur_value = data_dict[key_name]
-                cur_value_width = 0
                 if isinstance(cur_value, list):
                     if len(cur_value) == 0:
                         continue
@@ -1014,13 +1013,13 @@ class DisplayData(object):
             return
         two_d_list = []
 
-        item_count = len(data_dict_list[0].keys())
+        item_count = len(list(data_dict_list[0].keys()))
 
         # determine how many lines we will print
         row_width = 0
         for data_dict in data_dict_list:
             cur_max_wd = 0
-            for key_name in data_dict.keys():
+            for key_name in list(data_dict.keys()):
                 if isinstance(data_dict[key_name], list):
                     cur_row_width = len(data_dict[key_name])
                     if cur_row_width > cur_max_wd:
@@ -1045,14 +1044,14 @@ class DisplayData(object):
         # header
         current_row_num = -1
         if flag_with_header:
-            two_d_list[0] = data_dict_list[0].keys()
+            two_d_list[0] = list(data_dict_list[0].keys())
             current_row_num = 0
 
         # Fill the 2D list with data_dict_list
         for data_dict in data_dict_list:
             current_row_num += 1
             save_row_num = current_row_num
-            values = data_dict.values()
+            values = list(data_dict.values())
             for index in range(0, len(values)):
                 value = values[index]
                 if isinstance(value, list):

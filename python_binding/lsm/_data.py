@@ -17,6 +17,8 @@
 
 from abc import ABCMeta as _ABCMeta
 import re
+import binascii
+from six import with_metaclass
 
 try:
     import simplejson as json
@@ -24,7 +26,10 @@ except ImportError:
     import json
 
 from json.decoder import WHITESPACE
-from _common import get_class, default_property, ErrorNumber, LsmError
+
+from lsm._common import get_class, default_property, ErrorNumber, LsmError
+
+import six
 
 
 class DataEncoder(json.JSONEncoder):
@@ -54,7 +59,7 @@ class DataDecoder(json.JSONDecoder):
         if 'class' in d:
             rc = IData._factory(d)
         else:
-            for (k, v) in d.iteritems():
+            for (k, v) in d.items():
                 rc[k] = DataDecoder.__decode(v)
 
         return rc
@@ -90,12 +95,11 @@ class DataDecoder(json.JSONDecoder):
         return DataDecoder.__decode(json.loads(json_string))
 
 
-class IData(object):
+class IData(with_metaclass(_ABCMeta, object)):
     """
     Base class functionality of serializable
     classes.
     """
-    __metaclass__ = _ABCMeta
 
     def _to_dict(self):
         """
@@ -105,7 +109,7 @@ class IData(object):
 
         # If one of the attributes is another IData we will
         # process that too, is there a better way to handle this?
-        for (k, v) in self.__dict__.items():
+        for (k, v) in list(self.__dict__.items()):
             if isinstance(v, IData):
                 rc[k[1:]] = v._to_dict()
             else:
@@ -125,7 +129,7 @@ class IData(object):
             c = get_class(__name__ + '.' + class_name)
 
             # If any of the parameters are themselves an IData process them
-            for k, v in d.items():
+            for k, v in list(d.items()):
                 if isinstance(v, dict) and 'class' in v:
                     d['_' + k] = IData._factory(d.pop(k))
                 else:
@@ -624,8 +628,10 @@ class Pool(IData):
         self._id = _id                      # Identifier
         self._name = _name                  # Human recognisable name
         self._element_type = _element_type  # What pool can be used to create
-        self._unsupported_actions = _unsupported_actions
+
         # What pool cannot be used for
+        self._unsupported_actions = _unsupported_actions
+
         self._total_space = _total_space    # Total size
         self._free_space = _free_space      # Free space available
         self._status = _status              # Status of pool.
@@ -731,8 +737,9 @@ class AccessGroup(IData):
                  _plugin_data=None):
         self._id = _id
         self._name = _name                # AccessGroup name
-        self._init_ids = AccessGroup._standardize_init_list(_init_ids)
         # A list of Initiator ID strings.
+        self._init_ids = AccessGroup._standardize_init_list(_init_ids)
+
         self._init_type = _init_type
         self._system_id = _system_id      # System id this group belongs
         self._plugin_data = _plugin_data
@@ -992,7 +999,7 @@ class Capabilities(IData):
 
     def __init__(self, _cap=None):
         if _cap is not None:
-            self._cap = bytearray(_cap.decode('hex'))
+            self._cap = bytearray(binascii.unhexlify(_cap))
         else:
             self._cap = bytearray(Capabilities._NUM)
 
@@ -1011,8 +1018,8 @@ class Capabilities(IData):
             integer => string name
         """
         lsm_cap_to_str_conv = dict()
-        for c_str, c_int in Capabilities.__dict__.items():
-            if type(c_str) == str and type(c_int) == int and \
+        for c_str, c_int in list(Capabilities.__dict__.items()):
+            if isinstance(c_str, six.string_types) and type(c_int) == int and \
                     c_str[0] != '_' and \
                     Capabilities._CAP_NUM_BEGIN <= c_int <= Capabilities._NUM:
                 lsm_cap_to_str_conv[c_int] = c_str
@@ -1029,7 +1036,7 @@ class Capabilities(IData):
             return all_caps
 
         rc = {}
-        for i in all_caps.keys():
+        for i in list(all_caps.keys()):
             if self._cap[i] == Capabilities.SUPPORTED:
                 if i in all_caps:
                     rc[i] = all_caps[i]

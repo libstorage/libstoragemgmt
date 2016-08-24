@@ -180,40 +180,86 @@ if test "x${with_test}" = "xyes"; then
     fi
 fi
 
-dnl ==========================================================================
-dnl Check for python2 as it is needed for the base cmd line function
-dnl ==========================================================================
-
-AC_PATH_PROGS(PYTHON, python2.7 python2.6 python, [Python is required])
-AC_MSG_CHECKING([Check for Python major version])
-PYTHON_MAJOR_VERSION=`$PYTHON -c "import sys; print(sys.version_info[[0]])"`
-case "$PYTHON_MAJOR_VERSION" in
-    2)
-        ;;
-    *)
-        AC_MSG_ERROR(
-            [we need Python version 2.x but found $PYTHON_MAJOR_VERSION.x]) ;;
-esac
-AC_MSG_RESULT([$PYTHON_MAJOR_VERSION])
-AM_PATH_PYTHON([2.6], [], AC_MSG_ERROR([Python interpreter 2.6 or 2.7 required]) )
-
-AC_PYTHON_MODULE([pywbem], [Required])
-AC_PYTHON_MODULE([M2Crypto], [Required])
-AC_PYTHON_MODULE([argparse], [Required])
-AC_PYTHON_MODULE([pyudev], [Required])
 PKG_CHECK_MODULES([LIBUDEV], [libudev])
-PKG_CHECK_MODULES([PYTHON2], [python2], [], [not_found_py_pkg=yes])
 
-if test "x$not_found_py_pkg" == "xyes"; then
-    AC_CHECK_PROG([PY_CONFIG_CHECK], [python-config], [yes])
-    if test "x${PY_CONFIG_CHECK}" != "xyes"; then
-        AC_MSG_ERROR([Python2 development libraries required])
+dnl ==========================================================================
+dnl See if the user wants to use python3
+dnl ==========================================================================
+
+AC_ARG_WITH([python3],
+    [AS_HELP_STRING([--with-python3],
+        [Use Python3 only])],
+    [with_python3=yes],
+    [])
+
+if test "x$with_python3" = "xyes"; then
+    AC_PATH_PROGS(PYTHON, python3, [Python3 is required])
+    AM_PATH_PYTHON([3], [], AC_MSG_ERROR([Python interpreter 3 required]))
+    AC_PYTHON_MODULE([lmiwbem], [], [python3])
+    AC_PYTHON_MODULE([pywbem], [], [python3])
+    if test "x$HAVE_PYMOD_LMIWBEM" == "xno" && \
+       test "x$HAVE_PYMOD_PYWBEM" == "xno" ;then
+        AC_MSG_ERROR([Neither python3 module 'lmiwbem' nor 'pywbem' found, \
+please install any of them.])
     fi
-    PYTHON2_CFLAGS=`python-config --cflags`
-    PYTHON2_LIBS=`python-config --libs`
-    AC_SUBST(PYTHON2_CFLAGS)
-    AC_SUBST(PYTHON2_LIBS)
+
+    AC_PYTHON_MODULE([six], [Required], [python3])
+    AC_PYTHON_MODULE([requests], [Required], [python3])
+    AC_PYTHON_MODULE([pyudev], [Required], [python3])
+    PKG_CHECK_MODULES([PYTHON], [python3], [], [not_found_py_pkg=yes])
+
+    if test "x$not_found_py_pkg" == "xyes"; then
+        AC_CHECK_PROG([PY_CONFIG_CHECK], [python3-config], [yes])
+        if test "x${PY_CONFIG_CHECK}" != "xyes"; then
+            AC_MSG_ERROR([Python3 development libraries required])
+        fi
+        PYTHON_CFLAGS=`python3-config --cflags`
+        PYTHON_LIBS=`python3-config --libs`
+        AC_SUBST(PYTHON_CFLAGS)
+        AC_SUBST(PYTHON_LIBS)
+    fi
+    AC_SUBST(PY_VERSION, 3)
+else
+    AC_PATH_PROGS(PYTHON, python2.7 python2.6 python, [Python is required])
+    AC_MSG_CHECKING([Check for Python major version])
+    PYTHON_MAJOR_VERSION=`$PYTHON -c "import sys; print(sys.version_info[[0]])"`
+    case "$PYTHON_MAJOR_VERSION" in
+        2)
+            ;;
+        *)
+            AC_MSG_ERROR([we need Python version 2.x \
+but found $PYTHON_MAJOR_VERSION.x]) ;;
+    esac
+    AC_MSG_RESULT([$PYTHON_MAJOR_VERSION])
+    AM_PATH_PYTHON([2.6], [],
+                   AC_MSG_ERROR([Python interpreter 2.6 or 2.7 required]) )
+
+    AC_PYTHON_MODULE([lmiwbem])
+    AC_PYTHON_MODULE([pywbem])
+    if test "x$HAVE_PYMOD_LMIWBEM" == "xno" && \
+       test "x$HAVE_PYMOD_PYWBEM" == "xno" ;then
+        AC_MSG_ERROR([Neither python2 module 'lmiwbem' nor 'pywbem' found, \
+please install any of them.])
+    fi
+    AC_PYTHON_MODULE([argparse], [Required])
+    AC_PYTHON_MODULE([pyudev], [Required])
+    AC_PYTHON_MODULE([six], [Required])
+    AC_PYTHON_MODULE([requests], [Required])
+    PKG_CHECK_MODULES([PYTHON], [python2], [], [not_found_py_pkg=yes])
+
+    if test "x$not_found_py_pkg" == "xyes"; then
+        AC_CHECK_PROG([PY_CONFIG_CHECK], [python-config], [yes])
+        if test "x${PY_CONFIG_CHECK}" != "xyes"; then
+            AC_MSG_ERROR([Python2 development libraries required])
+        fi
+        PYTHON_CFLAGS=`python-config --cflags`
+        PYTHON_LIBS=`python-config --libs`
+        AC_SUBST(PYTHON_CFLAGS)
+        AC_SUBST(PYTHON_LIBS)
+    fi
+    AC_SUBST(PY_VERSION, 2)
 fi
+AM_CONDITIONAL([WITH_PYTHON3], [test "x$with_python3" = "xyes"])
 
 dnl ==========================================================================
 dnl Add option '--without-megaraid' to exclude megaraid plugin.
@@ -304,6 +350,15 @@ AC_OUTPUT(libstoragemgmt.pc \
           plugin/simc/Makefile \
           plugin/megaraid/Makefile \
           plugin/hpsa/Makefile \
+          plugin/sim/sim_lsmplugin \
+          plugin/megaraid/megaraid_lsmplugin \
+          plugin/hpsa/hpsa_lsmplugin \
+          plugin/ontap/ontap_lsmplugin \
+          plugin/nstor/nstor_lsmplugin \
+          plugin/targetd/targetd_lsmplugin \
+          plugin/smispy/smispy_lsmplugin \
+          test/plugin_test.py \
+          test/cmdtest.py \
           daemon/Makefile \
           config/Makefile \
           doc/Makefile \
@@ -328,9 +383,21 @@ AC_OUTPUT(libstoragemgmt.pc \
           packaging/daemon/Makefile \
           packaging/libstoragemgmt.spec \
           doc/man/Makefile \
+          tools/lsmcli/lsmcli \
           test/Makefile)
 
 if test "x${with_test}" = "xyes"; then
     AC_OUTPUT(test/runtests.sh)
     chmod +x test/runtests.sh
 fi
+
+chmod +x plugin/sim/sim_lsmplugin \
+         plugin/megaraid/megaraid_lsmplugin \
+         plugin/hpsa/hpsa_lsmplugin \
+         plugin/ontap/ontap_lsmplugin \
+         plugin/nstor/nstor_lsmplugin \
+         plugin/targetd/targetd_lsmplugin \
+         plugin/smispy/smispy_lsmplugin \
+         tools/lsmcli/lsmcli \
+         test/plugin_test.py \
+         test/cmdtest.py

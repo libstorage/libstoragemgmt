@@ -134,8 +134,8 @@ class TestArrays(object):
 if __name__ == "__main__":
 
     if len(sys.argv) != 2:
-        print 'Syntax: %s <file>' % (sys.argv[0])
-        print 'File is an array file in xls/xlsx/csv/yaml format'
+        print('Syntax: %s <file>' % (sys.argv[0]))
+        print('File is an array file in xls/xlsx/csv/yaml format')
         sys.exit(1)
 
     sys.stdout.write(yaml.dump(TestArrays().providers(sys.argv[1])))

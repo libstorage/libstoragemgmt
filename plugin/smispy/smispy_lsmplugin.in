@@ -1,3 +1,5 @@
+#!/usr/bin/env python@PY_VERSION@
+
 # Copyright (C) 2011-2016 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -11,8 +13,24 @@
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; If not, see <http://www.gnu.org/licenses/>.
+#
+# Author: tasleson
+
+import sys
+import syslog
+import traceback
 
 try:
-	from .cmdline import cmd_line_wrapper
-except ImportError:
-	from cmdline import cmd_line_wrapper
+    from lsm import PluginRunner
+    from lsm.plugin.smispy.smis import Smis
+
+    if __name__ == '__main__':
+        PluginRunner(Smis, sys.argv).run()
+except Exception:
+    # This should be quite rare, but when it does happen this is pretty
+    # key in understanding what happened, especially when it happens when
+    # running from the daemon.
+    msg = str(traceback.format_exc())
+    syslog.syslog(syslog.LOG_ERR, msg)
+    sys.stderr.write(msg)
+    sys.exit(1)

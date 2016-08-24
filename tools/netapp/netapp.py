@@ -33,7 +33,7 @@ def process_params(p):
                 (name, value) = e.split('==')
                 rc[name] = value
             else:
-                print 'Param:', e, 'not in the form name==value'
+                print('Param:', e, 'not in the form name==value')
                 sys.exit(1)
     return rc
 
@@ -70,6 +70,6 @@ if __name__ == '__main__':
         else:
             parser.error("host and command are required")
     else:
-        print 'Please create environmental variables for ' \
-              'NA_USER and NA_PASSWORD'
+        print('Please create environmental variables for ' \
+              'NA_USER and NA_PASSWORD')
         sys.exit(1)

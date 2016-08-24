@@ -1,5 +1,4 @@
-#!/usr/bin/env python2
-
+#!/usr/bin/env python@PY_VERSION@
 # Copyright (C) 2013-2016 Red Hat, Inc.
 # (C) Copyright 2015-2016 Hewlett Packard Enterprise Development LP
 # This library is free software; you can redistribute it and/or
@@ -34,6 +33,7 @@ import os
 import tempfile
 from lsm import LsmError, ErrorNumber
 from lsm import Capabilities as Cap
+import six
 
 results = {}
 stats = {}
@@ -132,21 +132,21 @@ class TestProxy(object):
                    lsm.ErrorNumber.EXISTS_INITIATOR]
 
     # Hash of all calls that can be async
-    async_calls = {'volume_create': (unicode, lsm.Volume),
-                   'volume_resize': (unicode, lsm.Volume),
-                   'volume_replicate': (unicode, lsm.Volume),
-                   'volume_replicate_range': (unicode,),
-                   'volume_delete': (unicode,),
-                   'volume_child_dependency_rm': (unicode,),
-                   'fs_delete': (unicode,),
-                   'fs_resize': (unicode, lsm.FileSystem),
-                   'fs_create': (unicode, lsm.FileSystem),
-                   'fs_clone': (unicode, lsm.FileSystem),
-                   'fs_file_clone': (unicode,),
-                   'fs_snapshot_create': (unicode, lsm.FsSnapshot),
-                   'fs_snapshot_delete': (unicode,),
-                   'fs_snapshot_restore': (unicode,),
-                   'fs_child_dependency_rm': (unicode,)}
+    async_calls = {'volume_create': (str, lsm.Volume),
+                   'volume_resize': (str, lsm.Volume),
+                   'volume_replicate': (str, lsm.Volume),
+                   'volume_replicate_range': (str,),
+                   'volume_delete': (str,),
+                   'volume_child_dependency_rm': (str,),
+                   'fs_delete': (str,),
+                   'fs_resize': (str, lsm.FileSystem),
+                   'fs_create': (str, lsm.FileSystem),
+                   'fs_clone': (str, lsm.FileSystem),
+                   'fs_file_clone': (str,),
+                   'fs_snapshot_create': (str, lsm.FsSnapshot),
+                   'fs_snapshot_delete': (str,),
+                   'fs_snapshot_restore': (str,),
+                   'fs_child_dependency_rm': (str,)}
 
     ## The constructor.
     # @param    self    The object self
@@ -442,7 +442,7 @@ class TestPlugin(unittest.TestCase):
     def test_timeout(self):
         tmo = 40000
         self.c.time_out_set(tmo)
-        self.assertEquals(self.c.time_out_get(), tmo)
+        self.assertEqual(self.c.time_out_get(), tmo)
 
     def test_systems_list(self):
         arrays = self.c.systems()
@@ -956,9 +956,10 @@ class TestPlugin(unittest.TestCase):
         if ag_created is not None:
             ag_list = self.c.access_groups()
             match = [x for x in ag_list if x.id == ag_created.id]
-            self.assertTrue(len(match) == 1, "Newly created access group %s "
-                                             "not in the access group listing"
-                                             % (ag_created.name))
+            self.assertTrue(
+                len(match) == 1,
+                "Newly created access group %s not in the access group listing"
+                % ag_created.name)
 
             self.assertTrue(s.id == ag_created.system_id)
 
@@ -1541,7 +1542,7 @@ class TestPlugin(unittest.TestCase):
                pool_id_to_lsm_vols.get(pool_id) is None:
                 pool_id_to_lsm_vols[pool_id] = lsm_vol
 
-        lsm_vols = pool_id_to_lsm_vols.values()
+        lsm_vols = list(pool_id_to_lsm_vols.values())
         created_lsm_vol = self._volume_create(s.id)[0]
         lsm_vols.append(created_lsm_vol)
 
@@ -1744,7 +1745,7 @@ def add_our_params():
     easiest at the moment if we want to retain the default behavior and
     introduce a couple of parameters.
     """
-    unittest.TestProgram.USAGE += """\
+    additional = """\
 
 Options libStorageMgmt:
  --password  'Array password'
@@ -1752,6 +1753,8 @@ Options libStorageMgmt:
  --skip      'Test case to skip. Repeatable argument'
  """
 
+    if sys.version_info[0] == 2:
+        unittest.TestProgram.USAGE += additional
 
 if __name__ == "__main__":
     atexit.register(dump_results)

@@ -33,7 +33,9 @@ smispy_PYTHON = \
 	smispy/smis_pool.py \
 	smispy/smis_disk.py \
 	smispy/smis_ag.py \
-	smispy/smis_vol.py
+	smispy/smis_vol.py \
+	smispy/WBEM.py \
+	smispy/lmiwbem_wrap.py
 
 nstordir = $(plugindir)/nstor
 nstor_PYTHON = \
@@ -46,3 +48,10 @@ dist_bin_SCRIPTS= \
 	nstor/nstor_lsmplugin \
 	ontap/ontap_lsmplugin \
 	targetd/targetd_lsmplugin
+
+EXTRA_DIST = \
+	sim/sim_lsmplugin.in \
+	smispy/smispy_lsmplugin.in \
+	nstor/nstor_lsmplugin.in \
+	ontap/ontap_lsmplugin.in \
+	targetd/targetd_lsmplugin.in
