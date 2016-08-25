@@ -25,7 +25,7 @@ from pyudev import Context, Device, DeviceNotFoundError
 from lsm import (
     IPlugin, Client, Capabilities, VERSION, LsmError, ErrorNumber, uri_parse,
     System, Pool, size_human_2_size_bytes, search_property, Volume, Disk,
-    LocalDisk, Battery)
+    LocalDisk, Battery, int_div)
 
 from lsm.plugin.hpsa.utils import cmd_exec, ExecError
 
@@ -275,7 +275,7 @@ _HP_VENDOR_RAID_LEVELS = ['1adm', '1+0adm']
 
 
 _LSM_RAID_TYPE_CONV = dict(
-    zip(_HP_RAID_LEVEL_CONV.values(), _HP_RAID_LEVEL_CONV.keys()))
+    list(zip(list(_HP_RAID_LEVEL_CONV.values()), list(_HP_RAID_LEVEL_CONV.keys()))))
 
 
 def _hp_raid_level_to_lsm(hp_ld):
@@ -454,7 +454,7 @@ class SmartArray(IPlugin):
         ctrl_all_status = self._sacli_exec(
             ["ctrl", "all", "show", "status"])
 
-        for ctrl_name in ctrl_all_show.keys():
+        for ctrl_name in list(ctrl_all_show.keys()):
             ctrl_data = ctrl_all_show[ctrl_name]
             sys_id = _sys_id_of_ctrl_data(ctrl_data)
             (status, status_info) = _sys_status_of(ctrl_all_status[ctrl_name])
@@ -535,7 +535,7 @@ class SmartArray(IPlugin):
         # TODO(Gris Ge): HP does not provide a precise number of bytes.
         free_space = _hp_size_to_lsm(hp_array['Unused Space'])
         total_space = free_space
-        for key_name in hp_array.keys():
+        for key_name in list(hp_array.keys()):
             if key_name.startswith('Logical Drive'):
                 total_space += _hp_size_to_lsm(hp_array[key_name]['Size'])
 
@@ -559,10 +559,10 @@ class SmartArray(IPlugin):
         lsm_pools = []
         ctrl_all_conf = self._sacli_exec(
             ["ctrl", "all", "show", "config", "detail"])
-        for ctrl_data in ctrl_all_conf.values():
+        for ctrl_data in list(ctrl_all_conf.values()):
             sys_id = _sys_id_of_ctrl_data(ctrl_data)
             ctrl_num = ctrl_data['Slot']
-            for key_name in ctrl_data.keys():
+            for key_name in list(ctrl_data.keys()):
                 if key_name.startswith("Array:"):
                     lsm_pools.append(
                         SmartArray._hp_array_to_lsm_pool(
@@ -582,7 +582,7 @@ class SmartArray(IPlugin):
         # of volume. So we try to read from linux kernel, if failed
         # try 512 and roughly calculate the sector count.
         block_size = 512
-        num_of_blocks = int(_hp_size_to_lsm(hp_ld['Size']) / block_size)
+        num_of_blocks = int(int_div(_hp_size_to_lsm(hp_ld['Size']), block_size))
         vol_name = hp_ld_name
 
         if len(vpd83) > 0:
@@ -619,15 +619,15 @@ class SmartArray(IPlugin):
         lsm_vols = []
         ctrl_all_conf = self._sacli_exec(
             ["ctrl", "all", "show", "config", "detail"])
-        for ctrl_data in ctrl_all_conf.values():
+        for ctrl_data in list(ctrl_all_conf.values()):
             ctrl_num = ctrl_data['Slot']
             sys_id = _sys_id_of_ctrl_data(ctrl_data)
-            for key_name in ctrl_data.keys():
+            for key_name in list(ctrl_data.keys()):
                 if not key_name.startswith("Array:"):
                     continue
                 pool_id = _pool_id_of(sys_id, key_name)
                 array_num = key_name[len('Array: '):]
-                for array_key_name in ctrl_data[key_name].keys():
+                for array_key_name in list(ctrl_data[key_name].keys()):
                     if not array_key_name.startswith("Logical Drive"):
                         continue
 
@@ -651,11 +651,10 @@ class SmartArray(IPlugin):
         disk_name = "%s %s" % (hp_disk['Model'], disk_num)
         disk_type = _disk_type_of(hp_disk)
         blk_size = int(hp_disk['Native Block Size'])
-        blk_count = int(_hp_size_to_lsm(hp_disk['Size']) / blk_size)
+        blk_count = int(int_div(_hp_size_to_lsm(hp_disk['Size']), blk_size))
         disk_port, disk_box, disk_bay = disk_num.split(":")
         disk_location = "Port: %s Box: %s Bay: %s" % (
             disk_port, disk_box, disk_bay)
-
         status = _disk_status_of(hp_disk, flag_free)
         plugin_data = "%s:%s" % (ctrl_num, disk_num)
         disk_path = hp_disk.get('Disk Name')
@@ -683,12 +682,12 @@ class SmartArray(IPlugin):
         rc_lsm_disks = []
         ctrl_all_conf = self._sacli_exec(
             ["ctrl", "all", "show", "config", "detail"])
-        for ctrl_data in ctrl_all_conf.values():
+        for ctrl_data in list(ctrl_all_conf.values()):
             sys_id = _sys_id_of_ctrl_data(ctrl_data)
             ctrl_num = ctrl_data['Slot']
-            for key_name in ctrl_data.keys():
+            for key_name in list(ctrl_data.keys()):
                 if key_name.startswith("Array:"):
-                    for array_key_name in ctrl_data[key_name].keys():
+                    for array_key_name in list(ctrl_data[key_name].keys()):
                         if array_key_name.startswith("physicaldrive"):
                             rc_lsm_disks.append(
                                 SmartArray._hp_disk_to_lsm_disk(
@@ -697,7 +696,7 @@ class SmartArray(IPlugin):
                                     flag_free=False))
 
                 if key_name == 'unassigned' or key_name == 'HBA Drives':
-                    for array_key_name in ctrl_data[key_name].keys():
+                    for array_key_name in list(ctrl_data[key_name].keys()):
                         if array_key_name.startswith("physicaldrive"):
                             rc_lsm_disks.append(
                                 SmartArray._hp_disk_to_lsm_disk(
@@ -719,18 +718,18 @@ class SmartArray(IPlugin):
                 "Ilegal input volume argument: missing plugin_data property")
 
         (ctrl_num, array_num, ld_num) = volume.plugin_data.split(":")
-        ctrl_data = self._sacli_exec(
+        ctrl_data = list(self._sacli_exec(
             ["ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
-            ).values()[0]
+            ).values())[0]
 
         disk_count = 0
         strip_size = Volume.STRIP_SIZE_UNKNOWN
         stripe_size = Volume.OPT_IO_SIZE_UNKNOWN
         raid_type = Volume.RAID_TYPE_UNKNOWN
-        for key_name in ctrl_data.keys():
+        for key_name in list(ctrl_data.keys()):
             if key_name != "Array: %s" % array_num:
                 continue
-            for array_key_name in ctrl_data[key_name].keys():
+            for array_key_name in list(ctrl_data[key_name].keys()):
                 if array_key_name == "Logical Drive: %s" % ld_num:
                     hp_ld = ctrl_data[key_name][array_key_name]
                     raid_type = _hp_raid_level_to_lsm(hp_ld)
@@ -747,7 +746,7 @@ class SmartArray(IPlugin):
                     ErrorNumber.PLUGIN_BUG,
                     "volume_raid_info(): Got logical drive %s entry, " %
                     ld_num + "but no physicaldrive entry: %s" %
-                    ctrl_data.items())
+                    list(ctrl_data.items()))
 
             raise LsmError(
                 ErrorNumber.NOT_FOUND_VOLUME,
@@ -767,15 +766,15 @@ class SmartArray(IPlugin):
                 "Ilegal input volume argument: missing plugin_data property")
 
         (ctrl_num, array_num) = pool.plugin_data.split(":")
-        ctrl_data = self._sacli_exec(
+        ctrl_data = list(self._sacli_exec(
             ["ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
-            ).values()[0]
+            ).values())[0]
 
         disk_ids = []
         raid_type = Volume.RAID_TYPE_UNKNOWN
-        for key_name in ctrl_data.keys():
+        for key_name in list(ctrl_data.keys()):
             if key_name == "Array: %s" % array_num:
-                for array_key_name in ctrl_data[key_name].keys():
+                for array_key_name in list(ctrl_data[key_name].keys()):
                     if array_key_name.startswith("Logical Drive: ") and \
                        raid_type == Volume.RAID_TYPE_UNKNOWN:
                         raid_type = _hp_raid_level_to_lsm(
@@ -803,9 +802,9 @@ class SmartArray(IPlugin):
             8 * 1024, 16 * 1024, 32 * 1024, 64 * 1024,
             128 * 1024, 256 * 1024, 512 * 1024, 1024 * 1024]
 
-        ctrl_conf = self._sacli_exec([
+        ctrl_conf = list(self._sacli_exec([
             "ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
-            ).values()[0]
+            ).values())[0]
 
         if 'RAID 6 (ADG) Status' in ctrl_conf and \
            ctrl_conf['RAID 6 (ADG) Status'] == 'Enabled':
@@ -879,7 +878,7 @@ class SmartArray(IPlugin):
             'raid=%s' % hp_raid_level]
 
         if strip_size != Volume.VCR_STRIP_SIZE_DEFAULT:
-            cmds.append("ss=%d" % int(strip_size / 1024))
+            cmds.append("ss=%d" % int(int_div(strip_size, 1024)))
 
         if flags == Client.FLAG_VOLUME_CREATE_USE_SYSTEM_CACHE:
             cmds.append("aa=enable")
@@ -926,21 +925,21 @@ class SmartArray(IPlugin):
         sys_output = self._sacli_exec(
             ['ctrl', "slot=%s" % ctrl_num, 'show'])
 
-        sys_id = _sys_id_of_ctrl_data(sys_output.values()[0])
+        sys_id = list(_sys_id_of_ctrl_data(sys_output.values()[0]))
         # API code already checked empty 'disks', we will for sure get
         # valid 'ctrl_num' and 'hp_disk_ids'.
 
         pd_output = self._sacli_exec(
             ['ctrl', "slot=%s" % ctrl_num, 'pd', hp_disk_ids[0], 'show'])
 
-        if pd_output.values()[0].keys()[0].lower().startswith("array "):
-            hp_array_id = pd_output.values()[0].keys()[0][len("array "):]
+        if list(pd_output.values())[0].keys()[0].lower().startswith("array "):
+            hp_array_id = list(pd_output.values())[0].keys()[0][len("array "):]
             hp_array_id = "Array:%s" % hp_array_id
         else:
             raise LsmError(
                 ErrorNumber.PLUGIN_BUG,
                 "volume_raid_create(): Failed to find out the array ID of "
-                "new array: %s" % pd_output.items())
+                "new array: %s" % list(pd_output.items()))
 
         pool_id = _pool_id_of(sys_id, hp_array_id)
 
@@ -1045,14 +1044,14 @@ class SmartArray(IPlugin):
                 ["ctrl", "slot=%s" % ctrl_num, "ld %s" % ld_num, "modify",
                  "led=on"], flag_convert=False)
         except ExecError:
-            ctrl_data = self._sacli_exec(
+            ctrl_data = list(self._sacli_exec(
                 ["ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
-                ).values()[0]
+                ).values())[0]
 
-            for key_name in ctrl_data.keys():
+            for key_name in list(ctrl_data.keys()):
                 if key_name != "Array: %s" % array_num:
                     continue
-                for array_key_name in ctrl_data[key_name].keys():
+                for array_key_name in list(ctrl_data[key_name].keys()):
                     if array_key_name == "Logical Drive: %s" % ld_num:
                         raise LsmError(
                             ErrorNumber.PLUGIN_BUG,
@@ -1082,14 +1081,14 @@ class SmartArray(IPlugin):
                 ["ctrl", "slot=%s" % ctrl_num, "ld %s" % ld_num, "modify",
                  "led=off"], flag_convert=False)
         except ExecError:
-            ctrl_data = self._sacli_exec(
+            ctrl_data = list(self._sacli_exec(
                 ["ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
-                ).values()[0]
+                ).values())[0]
 
-            for key_name in ctrl_data.keys():
+            for key_name in list(ctrl_data.keys()):
                 if key_name != "Array: %s" % array_num:
                     continue
-                for array_key_name in ctrl_data[key_name].keys():
+                for array_key_name in list(ctrl_data[key_name].keys()):
                     if array_key_name == "Logical Drive: %s" % ld_num:
                         raise LsmError(
                             ErrorNumber.PLUGIN_BUG,
