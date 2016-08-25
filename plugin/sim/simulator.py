@@ -18,7 +18,7 @@
 from lsm import (uri_parse, VERSION, Capabilities, INfs,
                  IStorageAreaNetwork, search_property, Client)
 
-from simarray import SimArray
+from lsm.plugin.sim.simarray import SimArray
 
 
 class SimPlugin(INfs, IStorageAreaNetwork):
@@ -137,8 +137,6 @@ class SimPlugin(INfs, IStorageAreaNetwork):
         return SimPlugin._sim_data_2_lsm(sim_vol)
 
     def volume_replicate(self, pool, rep_type, volume_src, name, flags=0):
-        dst_pool_id = None
-
         if pool is not None:
             dst_pool_id = pool.id
         else:
