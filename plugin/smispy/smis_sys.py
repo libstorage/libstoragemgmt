@@ -14,9 +14,9 @@
 #
 # Author: Gris Ge <fge@redhat.com>
 
-from utils import merge_list
-import dmtf
 from lsm import System, LsmError, ErrorNumber
+from lsm.plugin.smispy.utils import merge_list
+from lsm.plugin.smispy import dmtf
 
 
 def cim_sys_id_pros():
@@ -34,7 +34,7 @@ def sys_id_of_cim_sys(cim_sys):
         raise LsmError(
             ErrorNumber.PLUGIN_BUG,
             "sys_id_of_cim_sys(): Got a CIM_ComputerSystem does not have "
-            "'Name' property: %s, %s" % (cim_sys.items(), cim_sys.path))
+            "'Name' property: %s, %s" % (list(cim_sys.items()), cim_sys.path))
 
 
 def sys_id_of_cim_vol(cim_vol):
@@ -44,7 +44,8 @@ def sys_id_of_cim_vol(cim_vol):
         raise LsmError(
             ErrorNumber.PLUGIN_BUG,
             "sys_id_of_cim_vol(): Got a CIM_StorageVolume does not have "
-            "'SystemName' property: %s, %s" % (cim_vol.items(), cim_vol.path))
+            "'SystemName' property: %s, %s" %
+            (list(cim_vol.items()), cim_vol.path))
 
 
 def root_cim_sys(smis_common, property_list=None):
@@ -62,7 +63,6 @@ def root_cim_sys(smis_common, property_list=None):
     else:
         property_list = merge_list(property_list, id_pros)
 
-    cim_syss = []
     if smis_common.is_megaraid():
         cim_syss = smis_common.EnumerateInstances(
             'CIM_ComputerSystem', PropertyList=property_list)
@@ -118,7 +118,7 @@ def _sys_status_of_cim_sys(cim_sys):
         raise LsmError(
             ErrorNumber.PLUGIN_BUG,
             "sys_status_of_cim_sys(): Got a CIM_ComputerSystem with no "
-            "OperationalStatus: %s, %s" % (cim_sys.items(), cim_sys.path))
+            "OperationalStatus: %s, %s" % (list(cim_sys.items()), cim_sys.path))
 
     return dmtf.op_status_list_conv(
         _LSM_SYS_OP_STATUS_CONV, cim_sys['OperationalStatus'],

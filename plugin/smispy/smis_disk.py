@@ -15,9 +15,9 @@
 # Author: Gris Ge <fge@redhat.com>
 
 from lsm import Disk, md5, LsmError, ErrorNumber
-import dmtf
-from utils import merge_list
 from lsm.plugin.smispy.smis_common import SmisCommon
+from lsm.plugin.smispy.utils import merge_list
+from lsm.plugin.smispy import dmtf
 
 
 _LSM_DISK_OP_STATUS_CONV = {
@@ -55,7 +55,7 @@ _DMTF_DISK_TYPE_2_LSM = {
 
 
 def _dmtf_disk_type_2_lsm_disk_type(dmtf_disk_type):
-    if dmtf_disk_type in _DMTF_DISK_TYPE_2_LSM.keys():
+    if dmtf_disk_type in list(_DMTF_DISK_TYPE_2_LSM.keys()):
         return _DMTF_DISK_TYPE_2_LSM[dmtf_disk_type]
     else:
         return Disk.TYPE_UNKNOWN
@@ -68,7 +68,7 @@ def _disk_id_of_cim_disk(cim_disk):
             ErrorNumber.PLUGIN_BUG,
             "_disk_id_of_cim_disk(): Got cim_disk with no "
             "SystemName or DeviceID property: %s, %s" %
-            (cim_disk.path, cim_disk.items()))
+            (cim_disk.path, list(cim_disk.items())))
 
     return md5("%s%s" % (cim_disk['SystemName'], cim_disk['DeviceID']))
 
@@ -90,7 +90,7 @@ def sys_id_of_cim_disk(cim_disk):
             ErrorNumber.PLUGIN_BUG,
             "sys_id_of_cim_disk(): Got cim_disk with no "
             "SystemName property: %s, %s" %
-            (cim_disk.path, cim_disk.items()))
+            (cim_disk.path, list(cim_disk.items())))
     return cim_disk['SystemName']
 
 
@@ -188,7 +188,7 @@ def cim_disk_to_lsm_disk(smis_common, cim_disk):
         if len(cim_srss) >= 1:
             status |= Disk.STATUS_SPARE_DISK
 
-    if 'EMCInUse' in cim_disk.keys() and cim_disk['EMCInUse'] is False:
+    if 'EMCInUse' in list(cim_disk.keys()) and cim_disk['EMCInUse'] is False:
         status |= Disk.STATUS_FREE
 
     name = ''

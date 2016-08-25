@@ -18,11 +18,9 @@
 This module intend to provide independent methods for lsm.AccessGroup and
 volume masking/unmasking.
 """
-
-from pywbem import CIMError, CIM_ERR_NOT_FOUND
-
 from lsm import AccessGroup, md5, LsmError, ErrorNumber
 
+from lsm.plugin.smispy.WBEM import wbem
 from lsm.plugin.smispy.smis_common import SmisCommon
 from lsm.plugin.smispy import dmtf
 from lsm.plugin.smispy.utils import cim_path_to_path_str, path_str_to_cim_path
@@ -110,8 +108,8 @@ def cim_init_of_cim_spc_path(smis_common, cim_spc_path):
                 AssocClass='CIM_AssociatedPrivilege',
                 ResultClass='CIM_StorageHardwareID',
                 PropertyList=_CIM_INIT_PROS)
-        except CIMError as cim_error:
-            if cim_error[0] == CIM_ERR_NOT_FOUND:
+        except wbem.CIMError as cim_error:
+            if cim_error[0] == wbem.CIM_ERR_NOT_FOUND:
                 pass
             else:
                 raise
@@ -213,7 +211,7 @@ def init_id_of_cim_init(cim_init):
     raise LsmError(
         ErrorNumber.PLUGIN_BUG,
         "init_id_of_cim_init() got cim_init without 'StorageID' %s: %s" %
-        (cim_init.path, cim_init.items()))
+        (cim_init.path, list(cim_init.items())))
 
 
 def lsm_init_id_to_snia(lsm_init_id):
@@ -242,7 +240,6 @@ def cim_init_path_check_or_create(smis_common, system_id, init_id, init_type):
                 return cim_init.path
 
     # Create new one
-    dmtf_id_type = None
     if init_type == AccessGroup.INIT_TYPE_WWPN:
         dmtf_id_type = dmtf.ID_TYPE_WWPN
     elif init_type == AccessGroup.INIT_TYPE_ISCSI_IQN:
