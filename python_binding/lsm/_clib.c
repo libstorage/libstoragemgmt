@@ -116,13 +116,13 @@ static PyObject *func_name(PyObject *self, PyObject *args, PyObject *kwargs) \
     rc_list = PyList_New(3 /* rc_obj, errno, err_str*/); \
     _alloc_check(rc_list, flag_no_mem, out); \
     if (rc != LSM_ERR_OK) { \
-        err_msg_obj = PyString_FromString(lsm_error_message_get(lsm_err)); \
+        err_msg_obj = PyUnicode_FromString(lsm_error_message_get(lsm_err)); \
         lsm_error_free(lsm_err); \
         lsm_err = NULL; \
         _alloc_check(err_msg_obj, flag_no_mem, out); \
         goto out; \
     } else { \
-        err_msg_obj = PyString_FromString(""); \
+        err_msg_obj = PyUnicode_FromString(""); \
         _alloc_check(err_msg_obj, flag_no_mem, out); \
     } \
  out: \
@@ -402,13 +402,13 @@ static PyObject *local_disk_list(PyObject *self, PyObject *args,
     rc_obj = _lsm_string_list_to_pylist(disk_paths);
     _alloc_check(rc_obj, flag_no_mem, out);
     if (rc != LSM_ERR_OK) {
-        err_msg_obj = PyString_FromString(lsm_error_message_get(lsm_err));
+        err_msg_obj = PyUnicode_FromString(lsm_error_message_get(lsm_err));
         lsm_error_free(lsm_err);
         lsm_err = NULL;
         _alloc_check(err_msg_obj, flag_no_mem, out);
         goto out;
     } else {
-        err_msg_obj = PyString_FromString("");
+        err_msg_obj = PyUnicode_FromString("");
         _alloc_check(err_msg_obj, flag_no_mem, out);
     }
  out:

@@ -13,21 +13,21 @@
 # License along with this library; If not, see <http://www.gnu.org/licenses/>.
 #
 # Author: tasleson
-from __future__ import absolute_import
 import os
 from lsm import (Volume, NfsExport, Capabilities, Pool, System, Battery,
                  Disk, AccessGroup, FileSystem, FsSnapshot,
                  uri_parse, LsmError, ErrorNumber,
                  INetworkAttachedStorage, TargetPort)
 
-from ._common import return_requires as _return_requires
-from ._common import UDS_PATH as _UDS_PATH
-from ._transport import TransPort as _TransPort
-from ._data import IData as _IData
+from lsm._common import return_requires as _return_requires
+from lsm._common import UDS_PATH as _UDS_PATH
+from lsm._transport import TransPort as _TransPort
+from lsm._data import IData as _IData
+
 import six
 
 
-## Removes self for the hash d
+# Removes self for the hash d
 # @param    d   Hash to remove self from
 # @returns d with hash removed.
 def _del_self(d):
@@ -46,14 +46,14 @@ def _check_search_key(search_key, supported_keys):
     return
 
 
-## Descriptive exception about daemon not running.
+# Descriptive exception about daemon not running.
 def _raise_no_daemon():
     raise LsmError(ErrorNumber.DAEMON_NOT_RUNNING,
                    "The libStorageMgmt daemon is not running (process "
                    "name lsmd), try 'service libstoragemgmt start'")
 
 
-## Main client class for library.
+# Main client class for library.
 # ** IMPORTANT **
 # Theory of operation for methods in this class.
 # We are using the name of the method and the name of the parameters and
@@ -62,7 +62,7 @@ def _raise_no_daemon():
 # IPlugin class does not match the method names and parameters here!
 class Client(INetworkAttachedStorage):
 
-    ##
+    #
     # Used for default flag value
     #
     FLAG_RSVD = 0
@@ -75,12 +75,12 @@ class Client(INetworkAttachedStorage):
     """
     Client side class used for managing storage that utilises RPC mechanism.
     """
-    ## Method added so that the interface for the client RPC and the plug-in
-    ## itself match.
+    # Method added so that the interface for the client RPC and the plug-in
+    # itself match.
     def plugin_register(self, uri, plain_text_password, timeout_ms, flags=0):
         raise RuntimeError("Do not call directly!")
 
-    ## Called when we are ready to initialize the plug-in.
+    # Called when we are ready to initialize the plug-in.
     # @param    self                    The this pointer
     # @param    uri                     The uniform resource identifier
     # @param    plain_text_password     Password as plain text
@@ -93,7 +93,7 @@ class Client(INetworkAttachedStorage):
         """
         self._tp.rpc('plugin_register', _del_self(locals()))
 
-    ## Checks to see if any unix domain sockets exist in the base directory
+    # Checks to see if any unix domain sockets exist in the base directory
     # and opens a socket to one to see if the server is actually there.
     # @param    self    The this pointer
     # @returns True if daemon appears to be present, else false.
@@ -126,7 +126,7 @@ class Client(INetworkAttachedStorage):
 
         return rc
 
-    ## Class constructor
+    # Class constructor
     # @param    self                    The this pointer
     # @param    uri                     The uniform resource identifier
     # @param    plain_text_password     Password as plain text (Optional)
@@ -163,7 +163,7 @@ class Client(INetworkAttachedStorage):
 
         self.__start(uri, plain_text_password, timeout_ms, flags)
 
-    ## Synonym for close.
+    # Synonym for close.
     @_return_requires(None)
     def plugin_unregister(self, flags=FLAG_RSVD):
         """
@@ -171,7 +171,7 @@ class Client(INetworkAttachedStorage):
         """
         self.close(flags)
 
-    ## Does an orderly plugin_unregister of the plug-in
+    # Does an orderly plugin_unregister of the plug-in
     # @param    self    The this pointer
     # @param    flags   Reserved for future use, must be zero.
     @_return_requires(None)
@@ -183,7 +183,9 @@ class Client(INetworkAttachedStorage):
         self._tp.close()
         self._tp = None
 
-    ## Retrieves all the available plug-ins
+    # Retrieves all the available plug-ins
+    # @param    field_sep   Field separator
+    # @param    flags:      Reserved for future use
     @staticmethod
     @_return_requires([six.string_types[0]])
     def available_plugins(field_sep=':', flags=FLAG_RSVD):
@@ -210,7 +212,7 @@ class Client(INetworkAttachedStorage):
 
         return rc
 
-    ## Sets the timeout for the plug-in
+    # Sets the timeout for the plug-in
     # @param    self    The this pointer
     # @param    ms      Time-out in ms
     # @param    flags   Reserved for future use, must be zero.
@@ -223,7 +225,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('time_out_set', _del_self(locals()))
 
-    ## Retrieves the current time-out value.
+    # Retrieves the current time-out value.
     # @param    self    The this pointer
     # @param    flags   Reserved for future use, must be zero.
     # @returns  Time-out value
@@ -236,7 +238,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('time_out_get', _del_self(locals()))
 
-    ## Retrieves the status of the specified job id.
+    # Retrieves the status of the specified job id.
     # @param    self    The this pointer
     # @param    job_id  The job identifier
     # @param    flags   Reserved for future use, must be zero.
@@ -253,7 +255,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('job_status', _del_self(locals()))
 
-    ## Frees the resources for the specified job id.
+    # Frees the resources for the specified job id.
     # @param    self    The this pointer
     # @param    job_id  Job id in which to release resource for
     # @param    flags   Reserved for future use, must be zero.
@@ -266,7 +268,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('job_free', _del_self(locals()))
 
-    ## Gets the capabilities of the array.
+    # Gets the capabilities of the array.
     # @param    self    The this pointer
     # @param    system  The system of interest
     # @param    flags   Reserved for future use, must be zero.
@@ -280,7 +282,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('capabilities', _del_self(locals()))
 
-    ## Gets information about the plug-in
+    # Gets information about the plug-in
     # @param    self    The this pointer
     # @param    flags   Reserved for future use
     # @returns  Tuple (description, version)
@@ -291,7 +293,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('plugin_info', _del_self(locals()))
 
-    ## Returns an array of pool objects.
+    # Returns an array of pool objects.
     # @param    self            The this pointer
     # @param    search_key      Search key
     # @param    search_value    Search value
@@ -306,7 +308,7 @@ class Client(INetworkAttachedStorage):
         _check_search_key(search_key, Pool.SUPPORTED_SEARCH_KEYS)
         return self._tp.rpc('pools', _del_self(locals()))
 
-    ## Returns an array of system objects.
+    # Returns an array of system objects.
     # @param    self    The this pointer
     # @param    flags   Reserved for future use, must be zero.
     # @returns An array of system objects.
@@ -319,7 +321,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('systems', _del_self(locals()))
 
-    ## Changes the read cache percentage for a system.
+    # Changes the read cache percentage for a system.
     # @param    self            The this pointer
     # @param    system          System object to target
     # @param    read_pct        Desired read cache percentage
@@ -354,7 +356,7 @@ class Client(INetworkAttachedStorage):
         return self._tp.rpc('system_read_cache_pct_update',
                             _del_self(locals()))
 
-    ## Register a user/password for the specified initiator for CHAP
+    # Register a user/password for the specified initiator for CHAP
     #  authentication.
     # Note: If you pass an empty user and password the expected behavior is to
     #       remove any authentication for the specified initiator.
@@ -378,7 +380,7 @@ class Client(INetworkAttachedStorage):
                                         raise_exception=True)
         return self._tp.rpc('iscsi_chap_auth', _del_self(locals()))
 
-    ## Returns an array of volume objects
+    # Returns an array of volume objects
     # @param    self            The this pointer
     # @param    search_key      Search key to use
     # @param    search_value    Search value
@@ -392,7 +394,7 @@ class Client(INetworkAttachedStorage):
         _check_search_key(search_key, Volume.SUPPORTED_SEARCH_KEYS)
         return self._tp.rpc('volumes', _del_self(locals()))
 
-    ## Creates a volume
+    # Creates a volume
     # @param    self            The this pointer
     # @param    pool            The pool object to allocate storage from
     # @param    volume_name     The human text name for the volume
@@ -413,7 +415,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('volume_create', _del_self(locals()))
 
-    ## Re-sizes a volume
+    # Re-sizes a volume
     # @param    self    The this pointer
     # @param    volume  The volume object to re-size
     # @param    new_size_bytes  Size of the volume in bytes
@@ -431,7 +433,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('volume_resize', _del_self(locals()))
 
-    ## Replicates a volume from the specified pool.
+    # Replicates a volume from the specified pool.
     # @param    self        The this pointer
     # @param    pool        The pool to re-size from
     # @param    rep_type    Replication type
@@ -453,7 +455,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('volume_replicate', _del_self(locals()))
 
-    ## Size of a replicated block.
+    # Size of a replicated block.
     # @param    self    The this pointer
     # @param    system  The system to request the rep. block range size from
     # @param    flags   Reserved for future use, must be zero
@@ -466,7 +468,7 @@ class Client(INetworkAttachedStorage):
         return self._tp.rpc('volume_replicate_range_block_size',
                             _del_self(locals()))
 
-    ## Replicates a portion of a volume to itself or another volume.
+    # Replicates a portion of a volume to itself or another volume.
     # @param    self    The this pointer
     # @param    rep_type    Replication type
     #                       (enumeration, see common.data.Volume)
@@ -488,7 +490,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('volume_replicate_range', _del_self(locals()))
 
-    ## Deletes a volume
+    # Deletes a volume
     # @param    self    The this pointer
     # @param    volume  The volume object which represents the volume to delete
     # @param    flags   Reserved for future use, must be zero.
@@ -502,7 +504,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('volume_delete', _del_self(locals()))
 
-    ## Makes a volume online and available to the host.
+    # Makes a volume online and available to the host.
     # @param    self    The this pointer
     # @param    volume  The volume to place online
     # @param    flags   Reserved for future use, must be zero.
@@ -516,7 +518,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('volume_enable', _del_self(locals()))
 
-    ## Takes a volume offline
+    # Takes a volume offline
     # @param    self    The this pointer
     # @param    volume  The volume object
     # @param    flags   Reserved for future use, must be zero.
@@ -530,7 +532,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('volume_disable', _del_self(locals()))
 
-    ## Returns an array of disk objects
+    # Returns an array of disk objects
     # @param    self    The this pointer
     # @param    search_key      Search Key
     # @param    search_value    Search value
@@ -547,7 +549,7 @@ class Client(INetworkAttachedStorage):
         _check_search_key(search_key, Disk.SUPPORTED_SEARCH_KEYS)
         return self._tp.rpc('disks', _del_self(locals()))
 
-    ## Access control for allowing an access group to access a volume
+    # Access control for allowing an access group to access a volume
     # @param    self            The this pointer
     # @param    access_group    The access group
     # @param    volume          The volume to grant access to
@@ -560,7 +562,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('volume_mask', _del_self(locals()))
 
-    ## Revokes access to a volume to initiators in an access group
+    # Revokes access to a volume to initiators in an access group
     # @param    self            The this pointer
     # @param    access_group    The access group
     # @param    volume          The volume to grant access to
@@ -573,7 +575,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('volume_unmask', _del_self(locals()))
 
-    ## Returns a list of access group objects
+    # Returns a list of access group objects
     # @param    self    The this pointer
     # @param    search_key      Search Key
     # @param    search_value    Search value
@@ -588,7 +590,7 @@ class Client(INetworkAttachedStorage):
         _check_search_key(search_key, AccessGroup.SUPPORTED_SEARCH_KEYS)
         return self._tp.rpc('access_groups', _del_self(locals()))
 
-    ## Creates an access a group with the specified initiator in it.
+    # Creates an access a group with the specified initiator in it.
     # @param    self                The this pointer
     # @param    name                The initiator group name
     # @param    init_id             Initiator id
@@ -607,7 +609,7 @@ class Client(INetworkAttachedStorage):
             init_id, init_type, raise_exception=True)[1:]
         return self._tp.rpc('access_group_create', _del_self(locals()))
 
-    ## Deletes an access group.
+    # Deletes an access group.
     # @param    self            The this pointer
     # @param    access_group    The access group to delete
     # @param    flags           Reserved for future use, must be zero.
@@ -619,7 +621,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('access_group_delete', _del_self(locals()))
 
-    ## Adds an initiator to an access group
+    # Adds an initiator to an access group
     # @param    self            The this pointer
     # @param    access_group    Group to add initiator to
     # @param    init_id         Initiators id
@@ -636,7 +638,7 @@ class Client(INetworkAttachedStorage):
             init_id, init_type, raise_exception=True)[1:]
         return self._tp.rpc('access_group_initiator_add', _del_self(locals()))
 
-    ## Deletes an initiator from an access group
+    # Deletes an initiator from an access group
     # @param    self            The this pointer
     # @param    access_group    The access group to remove initiator from
     # @param    init_id         The initiator to remove from the group
@@ -654,7 +656,7 @@ class Client(INetworkAttachedStorage):
         return self._tp.rpc('access_group_initiator_delete',
                             _del_self(locals()))
 
-    ## Returns the list of volumes that access group has access to.
+    # Returns the list of volumes that access group has access to.
     # @param    self            The this pointer
     # @param    access_group    The access group to list volumes for
     # @param    flags           Reserved for future use, must be zero.
@@ -668,8 +670,8 @@ class Client(INetworkAttachedStorage):
         return self._tp.rpc('volumes_accessible_by_access_group',
                             _del_self(locals()))
 
-    ## Returns the list of access groups that have access to the specified
-    #  volume.
+    # Returns the list of access groups that have access to the specified
+    # volume.
     # @param    self        The this pointer
     # @param    volume      The volume to list access groups for
     # @param    flags       Reserved for future use, must be zero.
@@ -683,7 +685,7 @@ class Client(INetworkAttachedStorage):
         return self._tp.rpc('access_groups_granted_to_volume',
                             _del_self(locals()))
 
-    ## Checks to see if a volume has child dependencies.
+    # Checks to see if a volume has child dependencies.
     # @param    self    The this pointer
     # @param    volume  The volume to check
     # @param    flags   Reserved for future use, must be zero.
@@ -697,7 +699,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('volume_child_dependency', _del_self(locals()))
 
-    ## Removes any child dependency.
+    # Removes any child dependency.
     # @param    self    The this pointer
     # @param    volume  The volume to remove dependencies for
     # @param    flags   Reserved for future use, must be zero.
@@ -717,7 +719,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('volume_child_dependency_rm', _del_self(locals()))
 
-    ## Returns a list of file system objects.
+    # Returns a list of file system objects.
     # @param    self            The this pointer
     # @param    search_key      Search Key
     # @param    search_value    Search value
@@ -731,7 +733,7 @@ class Client(INetworkAttachedStorage):
         _check_search_key(search_key, FileSystem.SUPPORTED_SEARCH_KEYS)
         return self._tp.rpc('fs', _del_self(locals()))
 
-    ## Deletes a file system
+    # Deletes a file system
     # @param    self    The this pointer
     # @param    fs      The file system to delete
     # @param    flags   Reserved for future use, must be zero.
@@ -746,7 +748,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('fs_delete', _del_self(locals()))
 
-    ## Re-sizes a file system
+    # Re-sizes a file system
     # @param    self            The this pointer
     # @param    fs              The file system to re-size
     # @param    new_size_bytes  The new size of the file system in bytes
@@ -764,7 +766,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('fs_resize', _del_self(locals()))
 
-    ## Creates a file system.
+    # Creates a file system.
     # @param    self        The this pointer
     # @param    pool        The pool object to allocate space from
     # @param    name        The human text name for the file system
@@ -784,7 +786,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('fs_create', _del_self(locals()))
 
-    ## Clones a file system
+    # Clones a file system
     # @param    self            The this pointer
     # @param    src_fs          The source file system to clone
     # @param    dest_fs_name    The destination file system clone name
@@ -803,7 +805,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('fs_clone', _del_self(locals()))
 
-    ## Clones an individual file or files on the specified file system
+    # Clones an individual file or files on the specified file system
     # @param    self            The this pointer
     # @param    fs              The file system the files are on
     # @param    src_file_name   The source file name
@@ -824,7 +826,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('fs_file_clone', _del_self(locals()))
 
-    ## Returns a list of snapshots
+    # Returns a list of snapshots
     # @param    self    The this pointer
     # @param    fs      The file system
     # @param    flags   Reserved for future use, must be zero.
@@ -836,7 +838,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('fs_snapshots', _del_self(locals()))
 
-    ## Creates a snapshot (Point in time read only copy)
+    # Creates a snapshot (Point in time read only copy)
     # @param    self            The this pointer
     # @param    fs              The file system to snapshot
     # @param    snapshot_name   The human readable snapshot name
@@ -858,7 +860,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('fs_snapshot_create', _del_self(locals()))
 
-    ## Deletes a snapshot
+    # Deletes a snapshot
     # @param    self        The this pointer
     # @param    fs          The filesystem the snapshot it for
     # @param    snapshot    The specific snap shot to delete
@@ -873,7 +875,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('fs_snapshot_delete', _del_self(locals()))
 
-    ## Reverts a snapshot
+    # Reverts a snapshot
     # @param    self            The this pointer
     # @param    fs              The file system object to restore snapshot for
     # @param    snapshot        The snapshot file to restore back too
@@ -901,7 +903,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('fs_snapshot_restore', _del_self(locals()))
 
-    ## Checks to see if a file system has child dependencies.
+    # Checks to see if a file system has child dependencies.
     # @param    fs      The file system to check
     # @param    files   The files to check (optional)
     # @param    flags   Reserved for future use, must be zero.
@@ -916,7 +918,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('fs_child_dependency', _del_self(locals()))
 
-    ## Removes child dependencies from a FS or specific file.
+    # Removes child dependencies from a FS or specific file.
     # @param    self    The this pointer
     # @param    fs      The file system to remove child dependencies for
     # @param    files   The list of files to remove child dependencies (opt.)
@@ -937,7 +939,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('fs_child_dependency_rm', _del_self(locals()))
 
-    ## Returns a list of all the NFS client authentication types.
+    # Returns a list of all the NFS client authentication types.
     # @param    self    The this pointer
     # @param    flags   Reserved for future use, must be zero.
     # @returns  An array of client authentication types.
@@ -948,7 +950,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('export_auth', _del_self(locals()))
 
-    ## Returns a list of all the exported file systems
+    # Returns a list of all the exported file systems
     # @param    self    The this pointer
     # @param    search_key      Search Key
     # @param    search_value    Search value
@@ -962,7 +964,7 @@ class Client(INetworkAttachedStorage):
         _check_search_key(search_key, NfsExport.SUPPORTED_SEARCH_KEYS)
         return self._tp.rpc('exports', _del_self(locals()))
 
-    ## Exports a FS as specified in the export.
+    # Exports a FS as specified in the export.
     # @param    self            The this pointer
     # @param    fs_id           The FS ID to export
     # @param    export_path     The export path (Set to None for array to pick)
@@ -985,7 +987,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('export_fs', _del_self(locals()))
 
-    ## Removes the specified export
+    # Removes the specified export
     # @param    self    The this pointer
     # @param    export  The export to remove
     # @param    flags   Reserved for future use, must be zero.
@@ -997,7 +999,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('export_remove', _del_self(locals()))
 
-    ## Returns a list of target ports
+    # Returns a list of target ports
     # @param    self    The this pointer
     # @param    search_key      The key to search against
     # @param    search_value    The value to search for
@@ -1012,7 +1014,7 @@ class Client(INetworkAttachedStorage):
         _check_search_key(search_key, TargetPort.SUPPORTED_SEARCH_KEYS)
         return self._tp.rpc('target_ports', _del_self(locals()))
 
-    ## Returns the RAID information of certain volume
+    # Returns the RAID information of certain volume
     # @param    self    The this pointer
     # @param    volume  The volume to retrieve RAID information for
     # @param    flags   Reserved for future use, must be zero
@@ -1111,7 +1113,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('volume_raid_info', _del_self(locals()))
 
-    ## Query the membership information of specified pool
+    # Query the membership information of specified pool
     # @param    self    The this pointer
     # @param    pool    The pool to query
     # @param    flags   Reserved for future use, must be zero
@@ -1214,7 +1216,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('pool_member_info', _del_self(locals()))
 
-    ## Queries all the supported RAID types and stripe sizes which could be
+    # Queries all the supported RAID types and stripe sizes which could be
     #  used for input into volume_raid_create
     # @param    self    The this pointer
     # @param    system  System (raid) card to query
@@ -1275,7 +1277,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('volume_raid_create_cap_get', _del_self(locals()))
 
-    ## Create a disk RAID pool and allocate entire storage space to new volume
+    # Create a disk RAID pool and allocate entire storage space to new volume
     # @param    self            The this pointer
     # @param    name            Name of the raid to be created
     # @param    raid_type       The raid type (enumerated) of the raid group
@@ -1415,7 +1417,7 @@ class Client(INetworkAttachedStorage):
 
         return self._tp.rpc('volume_raid_create', _del_self(locals()))
 
-    ## Enable the IDENT LED for a volume.
+    # Enable the IDENT LED for a volume.
     # @param    self            The this pointer
     # @param    volume          Volume object to target
     # @param    flags           Flags
@@ -1431,7 +1433,7 @@ class Client(INetworkAttachedStorage):
         Usage:
             This method enables the IDENT LED on a volume if supported
         Parameters:
-            disk (lsm.Volume)
+            volume (lsm.Volume)
                 An lsm.Volume object.
             flags (int)
                 Optional. Reserved for future use.
@@ -1442,7 +1444,7 @@ class Client(INetworkAttachedStorage):
         """
         return self._tp.rpc('volume_ident_led_on', _del_self(locals()))
 
-    ## Disable the IDENT LED for a volume.
+    # Disable the IDENT LED for a volume.
     # @param    self            The this pointer
     # @param    volume          Volume object to target
     # @param    flags           Flags
@@ -1458,7 +1460,7 @@ class Client(INetworkAttachedStorage):
         Usage:
             This method disables the IDENT LED on a volume if supported
         Parameters:
-            disk (lsm.Volume)
+            volume (lsm.Volume)
                 An lsm.Volume object.
             flags (int)
                 Optional. Reserved for future use.

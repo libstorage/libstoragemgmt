@@ -14,11 +14,6 @@
 #
 # Author: tasleson
 
-#from future import standard_library
-#standard_library.install_aliases()
-from builtins import zip
-from builtins import str
-from builtins import object
 import hashlib
 
 import os
@@ -88,7 +83,7 @@ def common_urllib2_error_handler(exp):
                    stack_trace)
 
 
-## Documentation for Proxy class.
+# Documentation for Proxy class.
 #
 # Class to encapsulate the actual class we want to call.  When an attempt is
 # made to access an attribute that doesn't exist we will raise an LsmError
@@ -98,7 +93,7 @@ class Proxy(object):
     Used to provide an unambiguous error when a feature is not implemented.
     """
 
-    ## The constructor.
+    # The constructor.
     # @param    self    The object self
     # @param    obj     The object instance to wrap
     def __init__(self, obj=None):
@@ -107,7 +102,7 @@ class Proxy(object):
         """
         self.proxied_obj = obj
 
-    ## Called each time an attribute is requested of the object
+    # Called each time an attribute is requested of the object
     # @param    self    The object self
     # @param    name    Name of the attribute being accessed
     # @return   The result of the method
@@ -121,7 +116,7 @@ class Proxy(object):
             raise LsmError(ErrorNumber.NO_SUPPORT,
                            "Unsupported operation")
 
-    ## Method which is called to invoke the actual method of interest.
+    # Method which is called to invoke the actual method of interest.
     # @param    self                The object self
     # @param    _proxy_method_name  Method to invoke
     # @param    args                Arguments
@@ -139,7 +134,7 @@ UDS_PATH = '/var/run/lsm/ipc'
 # Set to True for verbose logging
 LOG_VERBOSE = True
 
-## Constant for byte size
+# Constant for byte size
 SIZE_CONS = {
     'B': 1,
     'KiB': 2 ** 10,
@@ -170,7 +165,7 @@ SIZE_CONS = {
 SIZE_CONS_CHK_LST = ['EiB', 'PiB', 'TiB', 'GiB', 'MiB', 'KiB']
 
 
-## Converts the size into human format.
+# Converts the size into human format.
 # @param    size    Size in bytes
 # @param    human   True|False
 # @return Human representation of size
@@ -196,7 +191,7 @@ def sh(size, human=False):
         return size
 
 
-## Converts the size into human format.
+# Converts the size into human format.
 # @param  size    Size in bytes
 # @return Human representation of size in IEC binary size prefixes.
 def size_bytes_2_size_human(size):
@@ -210,7 +205,7 @@ def size_bytes_2_size_human(size):
     return sh(size, True)
 
 
-## Converts the size into human format.
+# Converts the size into human format.
 # @param size_human Human readable size string, e.g. '1.9 KiB'
 # @return Size in bytes
 def size_human_2_size_bytes(size_human):
@@ -247,7 +242,7 @@ def size_human_2_size_bytes(size_human):
     return int(size_bytes)
 
 
-## Common method used to parse a URI.
+# Common method used to parse a URI.
 # @param    uri         The uri to parse
 # @param    requires    Optional list of keys that must be present in output
 # @param    required_params Optional list of required parameters that
@@ -295,7 +290,7 @@ def uri_parse(uri, requires=None, required_params=None):
     return rc
 
 
-## Parses the parameters (Query string) of the URI
+# Parses the parameters (Query string) of the URI
 # @param    uri     Full uri
 # @returns  hash of the query string parameters.
 def uri_parameters(uri):
@@ -318,7 +313,7 @@ def uri_parameters(uri):
         return {}
 
 
-## Generates the md5 hex digest of passed in parameter.
+# Generates the md5 hex digest of passed in parameter.
 # @param    t   Item to generate signature on.
 # @returns  md5 hex digest.
 def md5(t):
@@ -327,7 +322,16 @@ def md5(t):
     return h.hexdigest()
 
 
-## Converts a list of arguments to string.
+def int_div(a, b):
+    # Trying to avoid using past.old_div as we don't have future on all
+    # platforms we are trying to support
+    if six.PY3:
+        return a // b
+    else:
+        return a / b
+
+
+# Converts a list of arguments to string.
 # @param    args    Args to join
 # @return string of arguments joined together.
 def params_to_string(*args):
@@ -339,7 +343,7 @@ def params_to_string(*args):
 # TODO:  On newer versions of python this is no longer true, need to fix.
 
 
-## Posts a message to the syslogger.
+# Posts a message to the syslogger.
 # @param    level   Logging level
 # @param    prg     Program name
 # @param    msg     Message to log.
@@ -464,12 +468,14 @@ class ErrorNumber(object):
     NO_SUPPORT_OFFLINE_CHANGE = 251
 
     PLUGIN_AUTH_FAILED = 300    # Client supplied credential are incorrect
-    PLUGIN_IPC_FAIL = 301
-    # Inter-process communication between client & out of process plug-in
-    # encountered connection errors.
 
-    PLUGIN_SOCKET_PERMISSION = 307
+    # Inter-process communication between client & out of process plug-in
+    # encountered connection errors
+    PLUGIN_IPC_FAIL = 301
+
     # Incorrect permission on UNIX domain socket used for IPC
+    PLUGIN_SOCKET_PERMISSION = 307
+
     PLUGIN_NOT_EXIST = 311
 
     NOT_ENOUGH_SPACE = 350
@@ -478,15 +484,15 @@ class ErrorNumber(object):
     TRANSPORT_SERIALIZATION = 401
     TRANSPORT_INVALID_ARG = 402
 
-    LAST_INIT_IN_ACCESS_GROUP = 502
     # refuse to remove the last initiator from access group
+    LAST_INIT_IN_ACCESS_GROUP = 502
 
     UNSUPPORTED_SEARCH_KEY = 510
 
-    EMPTY_ACCESS_GROUP = 511
     # volume_mask() will fail if access group has no member/initiator.
+    EMPTY_ACCESS_GROUP = 511
 
-    POOL_NOT_READY = 512        # Pool is not ready for create/resize/etc
+    POOL_NOT_READY = 512    # Pool is not ready for create/resize/etc
 
     DISK_NOT_FREE = 513     # Disk is not in DISK.STATUS_FREE status.
 
@@ -588,8 +594,7 @@ class TestCommon(unittest.TestCase):
 
         ed = addl_error_data('domain', 'level', 'exception', 'debug',
                              'debug_data')
-        self.assertTrue(ed['domain'] == 'domain' and
-                        ed['level'] == 'level' and
+        self.assertTrue(ed['domain'] == 'domain' and ed['level'] == 'level' and
                         ed['debug'] == 'debug' and
                         ed['exception'] == 'exception' and
                         ed['debug_data'] == 'debug_data')

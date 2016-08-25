@@ -17,14 +17,10 @@
 #         Gris Ge <fge@redhat.com>
 #         Joe Handzik <joseph.t.handzik@hpe.com>
 
-from __future__ import absolute_import
-from builtins import str
-from builtins import range
-from builtins import object
 from abc import ABCMeta as _ABCMeta
 import re
 import binascii
-from future.utils import with_metaclass
+from six import with_metaclass
 
 try:
     import simplejson as json
@@ -32,7 +28,9 @@ except ImportError:
     import json
 
 from json.decoder import WHITESPACE
-from ._common import get_class, default_property, ErrorNumber, LsmError
+
+from lsm._common import get_class, default_property, ErrorNumber, LsmError
+
 import six
 
 
@@ -632,8 +630,10 @@ class Pool(IData):
         self._id = _id                      # Identifier
         self._name = _name                  # Human recognisable name
         self._element_type = _element_type  # What pool can be used to create
-        self._unsupported_actions = _unsupported_actions
+
         # What pool cannot be used for
+        self._unsupported_actions = _unsupported_actions
+
         self._total_space = _total_space    # Total size
         self._free_space = _free_space      # Free space available
         self._status = _status              # Status of pool.
@@ -739,8 +739,9 @@ class AccessGroup(IData):
                  _plugin_data=None):
         self._id = _id
         self._name = _name                # AccessGroup name
-        self._init_ids = AccessGroup._standardize_init_list(_init_ids)
         # A list of Initiator ID strings.
+        self._init_ids = AccessGroup._standardize_init_list(_init_ids)
+
         self._init_type = _init_type
         self._system_id = _system_id      # System id this group belongs
         self._plugin_data = _plugin_data

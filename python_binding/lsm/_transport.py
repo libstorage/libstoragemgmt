@@ -13,22 +13,18 @@
 # License along with this library; If not, see <http://www.gnu.org/licenses/>.
 #
 # Author: tasleson
-from __future__ import absolute_import
-from builtins import str
-from builtins import range
-from builtins import object
-
 
 import json
 import socket
 import string
 import os
-from ._common import SocketEOF as _SocketEOF
-from ._common import LsmError, ErrorNumber
-from ._data import DataDecoder as _DataDecoder, DataEncoder as _DataEncoder
 import unittest
 import threading
 
+from lsm._common import LsmError, ErrorNumber
+from lsm._common import SocketEOF as _SocketEOF
+from lsm._data import DataDecoder as _DataDecoder
+from lsm._data import DataEncoder as _DataEncoder
 
 class TransPort(object):
     """
