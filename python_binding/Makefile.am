@@ -13,15 +13,28 @@ lsm_PYTHON = \
 	lsm/_local_disk.py \
 	lsm/_pluginrunner.py
 
+
 pyexec_LTLIBRARIES = lsm/_clib.la
 pyexecdir = $(pythondir)/lsm
-
 lsm__clib_la_CFLAGS = $(PYTHON2_CFLAGS) -I$(top_srcdir)/c_binding/include
 lsm__clib_la_SOURCES = lsm/_clib.c
 lsm__clib_la_LDFLAGS = $(PYTHON2_LIBS) \
 		       -module -avoid-version -export-symbols-regex \
 		       init_clib
 lsm__clib_la_LIBADD = $(top_builddir)/c_binding/libstoragemgmt.la
+
+
+
+if WITH_PYTHON3
+
+pyexec_LTLIBRARIES += lsm/_clib3.la
+lsm__clib3_la_CFLAGS = $(PYTHON3_CFLAGS) -I$(top_srcdir)/c_binding/include
+lsm__clib3_la_SOURCES = lsm/_clib.c
+lsm__clib3_la_LDFLAGS = $(PYTHON3_LIBS) \
+		       -module -avoid-version -export-symbols-regex \
+		       PyInit__clib3
+lsm__clib3_la_LIBADD = $(top_builddir)/c_binding/libstoragemgmt.la
+endif
 
 external_PYTHON = \
 	lsm/external/__init__.py \

@@ -39,7 +39,7 @@ class XmlDictObject(dict):
         """
         if isinstance(x, dict):
             return XmlDictObject(
-                (k, XmlDictObject.wrap(v)) for (k, v) in x.iteritems())
+                (k, XmlDictObject.wrap(v)) for (k, v) in x.items())
         elif isinstance(x, list):
             return [XmlDictObject.wrap(v) for v in x]
         else:
@@ -49,7 +49,7 @@ class XmlDictObject(dict):
     def _un_wrap(x):
         if isinstance(x, dict):
             return dict(
-                (k, XmlDictObject._un_wrap(v)) for (k, v) in x.iteritems())
+                (k, XmlDictObject._un_wrap(v)) for (k, v) in x.items())
         elif isinstance(x, list):
             return [XmlDictObject._un_wrap(v) for v in x]
         else:
@@ -67,7 +67,7 @@ def _convert_dict_to_xml_recurse(parent, dictitem):
     assert isinstance(dictitem, dict)
 
     if isinstance(dictitem, dict):
-        for (tag, child) in dictitem.iteritems():
+        for (tag, child) in dictitem.items():
             if str(tag) == '_text':
                 parent.text = str(child)
             elif isinstance(child, list):
@@ -88,7 +88,7 @@ def convert_dict_to_xml(xmldict):
     """
     Converts a dictionary to an XML ElementTree Element
     """
-    roottag = xmldict.keys()[0]
+    roottag = list(xmldict.keys())[0]
     root = ElementTree.Element(roottag)
     _convert_dict_to_xml_recurse(root, xmldict[roottag])
     return root
@@ -97,13 +97,13 @@ def convert_dict_to_xml(xmldict):
 def _convert_xml_to_dict_recurse(node, dictclass):
     nodedict = dictclass()
 
-    if len(node.items()) > 0:
+    if len(list(node.items())) > 0:
         # if we have attributes, set them
         if'attrib' in nodedict:
-            nodedict['attrib'].update(dict(node.items()))
+            nodedict['attrib'].update(dict(list(node.items())))
         else:
             nodedict['attrib'] = {}
-            nodedict['attrib'].update(dict(node.items()))
+            nodedict['attrib'].update(dict(list(node.items())))
             # We get a collision so attributes get their own hash!
             # nodedict.update(dict(node.items()))
 

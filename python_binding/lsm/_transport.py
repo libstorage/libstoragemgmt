@@ -13,14 +13,19 @@
 # License along with this library; If not, see <http://www.gnu.org/licenses/>.
 #
 # Author: tasleson
+from __future__ import absolute_import
+from builtins import str
+from builtins import range
+from builtins import object
+
 
 import json
 import socket
 import string
 import os
-from _common import SocketEOF as _SocketEOF
-from _common import LsmError, ErrorNumber
-from _data import DataDecoder as _DataDecoder, DataEncoder as _DataEncoder
+from ._common import SocketEOF as _SocketEOF
+from ._common import LsmError, ErrorNumber
+from ._data import DataDecoder as _DataDecoder, DataEncoder as _DataEncoder
 import unittest
 import threading
 
@@ -50,14 +55,14 @@ class TransPort(object):
         if l < 1:
             raise ValueError("Trying to read less than 1 byte!")
 
-        data = ""
+        data = bytearray()
         while len(data) < l:
             r = self.s.recv(l - len(data))
             if not r:
                 raise _SocketEOF()
             data += r
 
-        return data
+        return data.decode("utf-8")
 
     def _send_msg(self, msg):
         """
@@ -69,9 +74,9 @@ class TransPort(object):
             raise ValueError("Msg argument empty")
 
         # Note: Don't catch io exceptions at this level!
-        s = string.zfill(len(msg), self.HDR_LEN) + msg
+        s = str.zfill(str(len(msg)), self.HDR_LEN) + msg
         # common.Info("SEND: ", msg)
-        self.s.sendall(s)
+        self.s.sendall(bytes(s.encode('utf-8')))
 
     def _recv_msg(self):
         """

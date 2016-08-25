@@ -14,17 +14,18 @@
 #
 # Author: tasleson
 
+from builtins import object
 from abc import ABCMeta as _ABCMeta
 from abc import abstractmethod as _abstractmethod
 from lsm import LsmError, ErrorNumber
+from future.utils import with_metaclass
 
 
-class IPlugin(object):
+class IPlugin(with_metaclass(_ABCMeta, object)):
     """
     Plug-in interface that all plug-ins must implement for basic
     operation.
     """
-    __metaclass__ = _ABCMeta
 
     @_abstractmethod
     def plugin_register(self, uri, password, timeout, flags=0):

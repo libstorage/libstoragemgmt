@@ -14,13 +14,17 @@
 #
 # Author: tasleson
 
+from __future__ import absolute_import
+from builtins import str
+from builtins import object
 import socket
 import traceback
 import sys
-from _common import SocketEOF as _SocketEOF
+from ._common import SocketEOF as _SocketEOF
 from lsm import LsmError, error, ErrorNumber
-import _transport
+from . import _transport
 from lsm.lsmcli import cmd_line_wrapper
+import six
 
 
 def search_property(lsm_objs, search_key, search_value):
@@ -64,11 +68,11 @@ class PluginRunner(object):
                 try:
                     self.plugin = plugin()
                 except Exception as e:
-                    exception_info = sys.exc_info()
+                    ec_info = sys.exc_info()
 
                     self.tp.send_error(0, -32099,
                                        'Error instantiating plug-in ' + str(e))
-                    raise exception_info[1], None, exception_info[2]
+                    raise six.reraise(*ec_info)
 
             except Exception:
                 error(traceback.format_exc())

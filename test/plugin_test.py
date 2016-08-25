@@ -18,6 +18,9 @@
 # Author:   tasleson
 #           Joe Handzik <joseph.t.handzik@hpe.com>
 #           Gris Ge <fge@redhat.com>
+from builtins import str
+from builtins import range
+from builtins import object
 
 import lsm
 import functools
@@ -34,6 +37,7 @@ import os
 import tempfile
 from lsm import LsmError, ErrorNumber
 from lsm import Capabilities as Cap
+import six
 
 results = {}
 stats = {}
@@ -442,7 +446,7 @@ class TestPlugin(unittest.TestCase):
     def test_timeout(self):
         tmo = 40000
         self.c.time_out_set(tmo)
-        self.assertEquals(self.c.time_out_get(), tmo)
+        self.assertEqual(self.c.time_out_get(), tmo)
 
     def test_systems_list(self):
         arrays = self.c.systems()
@@ -1541,7 +1545,7 @@ class TestPlugin(unittest.TestCase):
                pool_id_to_lsm_vols.get(pool_id) is None:
                 pool_id_to_lsm_vols[pool_id] = lsm_vol
 
-        lsm_vols = pool_id_to_lsm_vols.values()
+        lsm_vols = list(pool_id_to_lsm_vols.values())
         created_lsm_vol = self._volume_create(s.id)[0]
         lsm_vols.append(created_lsm_vol)
 
@@ -1744,7 +1748,7 @@ def add_our_params():
     easiest at the moment if we want to retain the default behavior and
     introduce a couple of parameters.
     """
-    unittest.TestProgram.USAGE += """\
+    additional = """\
 
 Options libStorageMgmt:
  --password  'Array password'
@@ -1752,6 +1756,8 @@ Options libStorageMgmt:
  --skip      'Test case to skip. Repeatable argument'
  """
 
+    if six.PY2:
+        unittest.TestProgram.USAGE += additional
 
 if __name__ == "__main__":
     atexit.register(dump_results)

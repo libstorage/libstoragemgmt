@@ -25,6 +25,9 @@
 # 2. It uses a function copied from anaconda library which is GPLv2 or later,
 #    thus this code must be GPL as well.
 
+from __future__ import print_function
+from builtins import str
+from builtins import range
 import random
 import string
 import sys
@@ -66,7 +69,7 @@ def random_iqn():
     m = hashlib.md5()
     u = os.uname()
     for i in u:
-        m.update(i)
+        m.update(i.encode('utf-8'))
     dig = m.hexdigest()
 
     for i in range(0, 6):
@@ -78,8 +81,8 @@ def rs(l):
     """
     Generate a random string
     """
-    return 'lsm_' + ''.join(
-        random.choice(string.ascii_uppercase) for x in range(l))
+    return 'lsm_{0}'.format(''.join(
+        random.choice(string.ascii_uppercase) for _ in range(l)))
 
 
 def call(command, expected_rc=0, expected_rcs=None):
@@ -93,13 +96,7 @@ def call(command, expected_rc=0, expected_rcs=None):
     else:
         actual_command = command
 
-    expected_rcs_str = ""
-
-    if expected_rcs is None:
-        print actual_command, 'EXPECTED Exit [%d]' % expected_rc
-    else:
-        expected_rcs_str = " ".join(str(x) for x in expected_rcs)
-        print(actual_command, 'EXPECTED Exit codes [%s]' % expected_rcs)
+    print(actual_command, 'EXPECTED Exit [%d]' % expected_rc)
 
     process = Popen(actual_command, stdout=PIPE, stderr=PIPE)
     out = process.communicate()
@@ -120,7 +117,7 @@ def call(command, expected_rc=0, expected_rcs=None):
 
 def parse(out):
     rc = []
-    for line in out.split('\n'):
+    for line in out.decode('utf8').split('\n'):
         elem = line.split(sep)
         cleaned_elem = []
         for e in elem:
@@ -134,7 +131,7 @@ def parse(out):
 
 def parse_key_value(out):
     rc = []
-    for line in out.split('\n'):
+    for line in out.decode('utf8').split('\n'):
         elem = line.split(sep)
         if len(elem) > 1:
             item = dict()
@@ -151,7 +148,7 @@ def parse_key_value(out):
 def parse_display(op):
     rc = []
     out = call([cmd, '-t' + sep, 'list', '--type', op])[1]
-    for line in out.split('\n'):
+    for line in out.decode('utf8').split('\n'):
         elem = line.split(sep)
         if len(elem) > 1:
             rc.append(list(d.strip() for d in elem))
@@ -477,7 +474,7 @@ def test_block_creation(cap, system_id):
 
     # Fail early if no pool is available
     if test_pool_id is None:
-        print 'Pool %s is not available!' % test_pool_name
+        print('Pool %s is not available!' % test_pool_name)
         exit(10)
 
     if cap['VOLUME_CREATE']:
@@ -505,7 +502,7 @@ def test_block_creation(cap, system_id):
 
         if cap['VOLUME_COPY_RANGE_BLOCK_SIZE']:
             size = volume_replicate_range_bs(system_id)
-            print 'sub volume replication block size is=', size
+            print('sub volume replication block size is=', size)
 
         if cap['VOLUME_COPY_RANGE']:
             if cap['VOLUME_COPY_RANGE_CLONE']:
@@ -659,7 +656,7 @@ def create_all(cap, system_id):
 
 
 def search_test(cap, system_id):
-    print "\nTesting query with search ID\n"
+    print("\nTesting query with search ID\n")
     sys_id_filter = "--sys='%s'" % system_id
     if test_fs_pool_id:
         pool_id = test_fs_pool_id
@@ -694,7 +691,7 @@ def search_test(cap, system_id):
         'fs': [sys_id_filter, pool_id_filter, fs_id_filter],
         'exports': [fs_id_filter, nfs_export_id_filter],
     }
-    for resouce_type in supported.keys():
+    for resouce_type in list(supported.keys()):
         for cur_filter in all_filters:
             if cur_filter in supported[resouce_type]:
                 call([cmd, 'list', '--type', resouce_type, cur_filter])
@@ -713,18 +710,18 @@ def volume_raid_info_test(cap, system_id):
         test_pool_id = name_to_id(OP_POOL, test_pool_name)
 
         if test_pool_id is None:
-            print 'Pool %s is not available!' % test_pool_name
+            print('Pool %s is not available!' % test_pool_name)
             exit(10)
 
         vol_id = create_volume(test_pool_id)
         out = call([cmd, '-t' + sep, 'volume-raid-info', '--vol', vol_id])[1]
         r = parse(out)
         if len(r[0]) != 6:
-            print "volume-raid-info got expected output: %s" % out
+            print("volume-raid-info got expected output: %s" % out)
             exit(10)
         if r[0][0] != vol_id:
-            print "volume-raid-info output volume ID is not requested " \
-                  "volume ID %s" % out
+            print("volume-raid-info output volume ID is not requested "
+                  "volume ID %s" % out)
             exit(10)
     return
 
@@ -738,11 +735,11 @@ def pool_member_info_test(cap, system_id):
                 [cmd, '-t' + sep, 'pool-member-info', '--pool', pool[0]])[1]
             r = parse(out)
             if len(r[0]) != 4:
-                print "pool-member-info got expected output: %s" % out
+                print("pool-member-info got expected output: %s" % out)
                 exit(10)
             if r[0][0] != pool[0]:
-                print "pool-member-info output pool ID is not requested " \
-                      "pool ID %s" % out
+                print("pool-member-info output pool ID is not requested "
+                      "pool ID %s" % out)
                 exit(10)
     return
 
@@ -765,7 +762,7 @@ def volume_raid_create_test(cap, system_id):
                 free_disk_ids.append(disk[0])
 
         if len(free_disk_ids) != 2:
-            print "Require two free disks to test volume-create-raid"
+            print("Require two free disks to test volume-create-raid")
             exit(10)
 
         out = call([
@@ -782,18 +779,18 @@ def volume_raid_create_test(cap, system_id):
             out = call(
                 [cmd, '-t' + sep, 'volume-raid-info', '--vol', vol_id])[1]
             if parse(out)[0][1] != 'RAID1':
-                print "New volume is not RAID 1"
+                print("New volume is not RAID 1")
                 exit(10)
 
         if cap['POOL_MEMBER_INFO']:
             out = call(
                 [cmd, '-t' + sep, 'pool-member-info', '--pool', pool_id])[1]
             if parse(out)[0][1] != 'RAID1':
-                print "New pool is not RAID 1"
+                print("New pool is not RAID 1")
                 exit(10)
             for disk_id in free_disk_ids:
                 if disk_id not in [p[3] for p in parse(out)]:
-                    print "New pool does not contain requested disks"
+                    print("New pool does not contain requested disks")
                     exit(10)
 
         if cap['VOLUME_DELETE']:
@@ -980,7 +977,7 @@ if __name__ == "__main__":
     (options, args) = parser.parse_args()
 
     if options.cmd is None:
-        print 'Please specify which lsmcli to test using -c or --command'
+        print('Please specify which lsmcli to test using -c or --command')
         sys.exit(1)
     else:
         cmd = options.cmd
