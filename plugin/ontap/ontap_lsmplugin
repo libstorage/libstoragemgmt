@@ -27,9 +27,9 @@ try:
     if __name__ == '__main__':
         PluginRunner(Ontap, sys.argv).run()
 except Exception:
-    #This should be quite rare, but when it does happen this is pretty
-    #key in understanding what happened, especially when it happens when
-    #running from the daemon.
+    # This should be quite rare, but when it does happen this is pretty
+    # key in understanding what happened, especially when it happens when
+    # running from the daemon.
     msg = str(traceback.format_exc())
     syslog.syslog(syslog.LOG_ERR, msg)
     sys.stderr.write(msg)

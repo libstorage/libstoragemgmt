@@ -14,20 +14,43 @@
 #
 # Author: tasleson
 
-import urllib2
 import socket
 import sys
+import six
 from xml.etree import ElementTree
 import time
 from binascii import hexlify
-from _ssl import SSLError
-
+from ssl import SSLError
 from lsm.external.xmltodict import convert_xml_to_dict
 from lsm import (ErrorNumber)
 
 
+if six.PY3:
+    long = int
+
+try:
+    from urllib.request import (Request,
+                                urlopen,
+                                HTTPPasswordMgrWithDefaultRealm,
+                                HTTPBasicAuthHandler,
+                                build_opener,
+                                install_opener)
+    from urllib.error import (URLError, HTTPError)
+    from urllib.parse import urlparse
+except ImportError:
+    from urllib2 import (Request,
+                         urlopen,
+                         HTTPPasswordMgrWithDefaultRealm,
+                         HTTPBasicAuthHandler,
+                         build_opener,
+                         install_opener,
+                         URLError,
+                         HTTPError)
+    from urlparse import urlparse
+
+
 # Set to an appropriate directory and file to dump the raw response.
-xml_debug = None
+xml_debug = ""
 
 
 def netapp_filer_parse_response(resp):
@@ -45,7 +68,7 @@ def param_value(val):
     """
     rc = ""
     if type(val) is dict or isinstance(val, dict):
-        for k, v in val.items():
+        for k, v in list(val.items()):
             rc += "<%s>%s</%s>" % (k, param_value(v), k)
     elif type(val) is list or isinstance(val, list):
         for i in val:
@@ -68,21 +91,21 @@ def netapp_filer(host, username, password, timeout, command, parameters=None,
     url = "%s://%s/servlets/netapp.servlets.admin.XMLrequest_filer" % \
           (proto, host)
 
-    req = urllib2.Request(url)
+    req = Request(url)
     req.add_header('Content-Type', 'text/xml')
 
-    password_manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
+    password_manager = HTTPPasswordMgrWithDefaultRealm()
     password_manager.add_password(None, url, username, password)
-    auth_manager = urllib2.HTTPBasicAuthHandler(password_manager)
+    auth_manager = HTTPBasicAuthHandler(password_manager)
 
-    opener = urllib2.build_opener(auth_manager)
-    urllib2.install_opener(opener)
+    opener = build_opener(auth_manager)
+    install_opener(opener)
 
     # build the command and the arguments for it
     p = ""
 
     if parameters:
-        for k, v in parameters.items():
+        for k, v in list(parameters.items()):
             p += "<%s>%s</%s>" % (k, param_value(v), k)
 
     payload = "<%s>\n%s\n</%s>" % (command, p, command)
@@ -97,13 +120,13 @@ def netapp_filer(host, username, password, timeout, command, parameters=None,
     handler = None
     rc = None
     try:
-        handler = urllib2.urlopen(req, data, float(timeout))
+        handler = urlopen(req, data.encode('utf-8'), float(timeout))
 
         if handler.getcode() == 200:
             rc = netapp_filer_parse_response(handler.read())
-    except urllib2.HTTPError as he:
+    except HTTPError:
         raise
-    except urllib2.URLError as ue:
+    except URLError as ue:
         if isinstance(ue.reason, socket.timeout):
             raise FilerError(Filer.ETIMEOUT, "Connection timeout")
         else:
@@ -169,7 +192,8 @@ def to_list(v):
             rc.append(v)
     return rc
 
-# RC4 implementation talken from wikipedia article
+
+# RC4 implementation taken from wikipedia article
 # https://en.wikipedia.org/wiki/RC4 pseudo code and
 # implementing it in python
 def _ksa():
@@ -177,12 +201,12 @@ def _ksa():
     Key-scheduling algorithm (KSA)
     """
     key = "#u82fyi8S5\017pPemw"
-    S = list(range(256))
+    s = list(range(256))
     j = 0
     for i in list(range(256)):
-        j = (j + S[i] + ord( key[i % len(key)] )) % 256
-        S[i] , S[j] = S[j] , S[i]
-    return S
+        j = (j + s[i] + ord(key[i % len(key)])) % 256
+        s[i], s[j] = s[j], s[i]
+    return s
 
 
 def _prga(k):
@@ -293,18 +317,18 @@ class Filer(object):
             vol_names = [e['name'] for e in to_list(vols)]
         return vol_names
 
-    def lun_build_name(self, volume_name, file_name):
+    @staticmethod
+    def lun_build_name(volume_name, file_name):
         """
         Given a volume name and file return full path"
         """
         return '/vol/%s/%s' % (volume_name, file_name)
 
-    def luns_get_specific(self, aggr, na_lun_name=None, na_volume_name=None):
+    def luns_get_specific(self, na_lun_name=None, na_volume_name=None):
         """
         Return all logical units, or information about one or for all those
         on a volume name.
         """
-        rc = []
 
         if na_lun_name is not None:
             luns = self._invoke('lun-list-info', {'path': na_lun_name})
@@ -432,7 +456,7 @@ class Filer(object):
 
         try:
             self._invoke('volume-destroy', {'name': vol_name})
-        except FilerError as f_error:
+        except FilerError:
             # If the volume was online, we will return it to same status
             # Store the original exception information
             exception_info = sys.exc_info()
@@ -442,7 +466,7 @@ class Filer(object):
                     self._invoke('volume-online', {'name': vol_name})
                 except FilerError:
                     pass
-            raise exception_info[1], None, exception_info[2]
+            six.reraise(*exception_info)
 
     def volume_names(self):
         """
@@ -536,7 +560,6 @@ class Filer(object):
 
     def igroup_delete(self, name):
         self._invoke('igroup-destroy', {'initiator-group-name': name})
-
 
     def iscsi_initiator_add_auth(self, initiator, user_name, password,
                                  out_user, out_password):
@@ -680,7 +703,8 @@ class Filer(object):
         else:
             return Filer._build_list(hosts, 'exports-hostname-info', 'name')
 
-    def _build_export_rules(self, volume_path, export_path, ro_list, rw_list,
+    @staticmethod
+    def _build_export_rules(volume_path, export_path, ro_list, rw_list,
                             root_list, anonuid=None, sec_flavor=None):
         """
         Common logic to build up the rules for nfs
@@ -869,4 +893,4 @@ if __name__ == '__main__':
         pass
 
     except FilerError as fe:
-        print 'Errno=', fe.errno, 'reason=', fe.reason
+        print('Errno=', fe.errno, 'reason=', fe.reason)
