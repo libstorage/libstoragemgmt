@@ -172,7 +172,7 @@ class LocalDisk(object):
         Usage:
             Query the disk link type of given disk path.
             For SATA disks connected to SAS enclosure, will return
-            lsm.SCSI.LINK_TYPE_ATA.
+            lsm.Disk.LINK_TYPE_ATA.
             Require permission to open disk_path(root user or disk group).
         Parameters:
             disk_path (string)
