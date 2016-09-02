@@ -368,7 +368,7 @@ function lsm_test_plugin_test_run
 {
     export LSM_TEST_URI="$1";
     export LSM_TEST_PASSWORD="$2";
-    if [ "CHK${LSMCLI_PASSWORD}" == "CHK" ];then
+    if [ "CHK${LSM_TEST_PASSWORD}" == "CHK" ];then
         unset LSM_TEST_PASSWORD
     fi
 
