@@ -114,3 +114,35 @@ int _read_file(const char *path, uint8_t *buff, ssize_t *size, size_t max_size)
     }
     return rc;
 }
+
+char *_trim_spaces(char *beginning)
+{
+    size_t len = 0;
+    unsigned int leading_space_count = 0;
+    char *end;
+
+    assert(beginning != NULL);
+
+    len = strlen(beginning);
+
+    if (!len)
+        return NULL;
+
+    while (*beginning == ' ') {
+        beginning++;
+        leading_space_count++;
+    }
+
+    /* The string is composed entirely of spaces */
+    if (leading_space_count >= len)
+        return NULL;
+
+    end = beginning + len - 1;
+
+    while (*end == ' ') {
+        *end = '\0';
+        end--;
+    }
+
+    return beginning;
+}

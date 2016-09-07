@@ -160,6 +160,24 @@ static const char local_disk_vpd83_search_docstring[] =
     "        err_msg (string)\n"
     "            Error message, empty if no error.\n";
 
+static const char local_disk_serial_num_get_docstring[] =
+    "INTERNAL USE ONLY!\n"
+    "\n"
+    "Usage:\n"
+    "    Query the SCSI VPD80 serial number of given disk path\n"
+    "Parameters:\n"
+    "    disk_path (string)\n"
+    "        The SCSI disk path, example '/dev/sdb'. Empty string is failure\n"
+    "Returns:\n"
+    "    [serial_num, rc, err_msg]\n"
+    "        serial_num (string)\n"
+    "            String of VPD80 serial number.\n"
+    "            Empty string if not supported.\n"
+    "        rc (integer)\n"
+    "            Error code, lsm.ErrorNumber.OK if no error\n"
+    "        err_msg (string)\n"
+    "            Error message, empty if no error.\n";
+
 static const char local_disk_vpd83_get_docstring[] =
     "INTERNAL USE ONLY!\n"
     "\n"
@@ -296,6 +314,8 @@ static const char local_disk_fault_led_off_docstring[] =
     "        err_msg (string)\n"
     "            Error message, empty if no error.\n";
 
+static PyObject *local_disk_serial_num_get(PyObject *self, PyObject *args,
+                                           PyObject *kwargs);
 static PyObject *local_disk_vpd83_search(PyObject *self, PyObject *args,
                                      PyObject *kwargs);
 static PyObject *local_disk_vpd83_get(PyObject *self, PyObject *args,
@@ -319,6 +339,8 @@ _wrapper_no_output(local_disk_fault_led_off, lsm_local_disk_fault_led_off,
                    const char *, disk_path);
 
 static PyMethodDef _methods[] = {
+    {"_local_disk_serial_num_get",  (PyCFunction) local_disk_serial_num_get,
+     METH_VARARGS | METH_KEYWORDS, local_disk_serial_num_get_docstring},
     {"_local_disk_vpd83_search",  (PyCFunction) local_disk_vpd83_search,
      METH_VARARGS | METH_KEYWORDS, local_disk_vpd83_search_docstring},
     {"_local_disk_vpd83_get",  (PyCFunction) local_disk_vpd83_get,
@@ -369,6 +391,9 @@ static PyObject *_c_str_to_py_str(const char *str)
     return PyUnicode_FromString(str);
 }
 
+_wrapper(local_disk_serial_num_get, lsm_local_disk_serial_num_get,
+         const char *, disk_path, char *, NULL,
+         _c_str_to_py_str, free);
 _wrapper(local_disk_vpd83_search, lsm_local_disk_vpd83_search,
          const char *, vpd83, lsm_string_list *, NULL,
          _lsm_string_list_to_pylist, lsm_string_list_free);

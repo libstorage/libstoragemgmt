@@ -92,4 +92,11 @@ LSM_DLL_LOCAL bool _file_exists(const char *path);
 LSM_DLL_LOCAL int _read_file(const char *path, uint8_t *buff, ssize_t *size,
                              size_t max_size);
 
+/*
+ * Preconditions:
+ * beginning != NULL
+ *
+ * Return NULL if failed.
+ */
+LSM_DLL_LOCAL char* _trim_spaces(char *beginning);
 #endif  /* End of _LIB_UTILS_H_ */

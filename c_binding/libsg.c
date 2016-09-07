@@ -114,6 +114,13 @@ struct _sg_t10_vpd83_header {
     uint16_t page_len_be;
 };
 
+struct _sg_t10_vpd80_header {
+    uint8_t dev_type : 5;
+    uint8_t qualifier : 3;
+    uint8_t page_code;
+    uint16_t page_len_be;
+};
+
 struct _sg_t10_vpd00 {
     uint8_t ignore;
     uint8_t page_code;
@@ -329,6 +336,62 @@ bool _sg_is_vpd_page_supported(uint8_t *vpd_0_data, uint8_t page_code)
             return true;
     }
     return false;
+}
+
+int _sg_parse_vpd_80(char *err_msg, uint8_t *vpd_data, uint8_t *serial_num,
+                     uint16_t serial_num_max_len)
+{
+    int rc = LSM_ERR_OK;
+    int len = 0;
+    struct _sg_t10_vpd80_header *vpd80_header = NULL;
+    uint8_t *p = NULL;
+    uint8_t *end_p = NULL;
+    uint16_t vpd80_len = 0;
+    uint16_t serial_num_len = 0;
+
+    assert(err_msg != NULL);
+    assert(vpd_data != NULL);
+    assert(serial_num != NULL);
+    assert(serial_num_max_len != 0);
+
+    memset(serial_num, 0, serial_num_max_len);
+
+    vpd80_header = (struct _sg_t10_vpd80_header*) vpd_data;
+
+    if (vpd80_header->page_code != _SG_T10_SPC_VPD_UNIT_SN) {
+        rc = LSM_ERR_LIB_BUG;
+        _lsm_err_msg_set(err_msg, "BUG: Got incorrect VPD page code '%02x', "
+                         "should be 0x80", vpd80_header->page_code);
+        goto out;
+    }
+
+    serial_num_len = be16toh(vpd80_header->page_len_be);
+    vpd80_len = serial_num_len + sizeof(struct _sg_t10_vpd83_header);
+
+    end_p = vpd_data + vpd80_len - 1;
+
+    if (end_p >= vpd_data + _SG_T10_SPC_VPD_MAX_LEN) {
+        rc = LSM_ERR_LIB_BUG;
+        _lsm_err_msg_set(err_msg, "BUG: Got invalid VPD UNIT SN page response, "
+                         "data length exceeded the maximum size of a legal VPD "
+                         "page");
+        goto out;
+    }
+
+    p = vpd_data + sizeof(struct _sg_t10_vpd83_header);
+
+    //add extra character to allow for terminating NULL
+    serial_num_len += 1;
+    len = snprintf((char *) serial_num, serial_num_len, "%s", (char *) p);
+
+    if ((uint16_t) len >= serial_num_len) {
+        memset(serial_num, 0, serial_num_max_len);
+        rc = LSM_ERR_LIB_BUG;
+        _lsm_err_msg_set(err_msg, "BUG: VPD UNIT SN was truncated when copied.");
+    }
+
+ out:
+    return rc;
 }
 
 int _sg_parse_vpd_83(char *err_msg, uint8_t *vpd_data,

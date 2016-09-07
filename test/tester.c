@@ -3393,6 +3393,73 @@ START_TEST(test_local_disk_vpd83_search)
 }
 END_TEST
 
+START_TEST(test_local_disk_serial_num_get)
+{
+    int rc = LSM_ERR_OK;
+    char *serial_num;
+    /* Not initialized in order to test dangling pointer serial_num */
+    lsm_error *lsm_err = NULL;
+
+    rc = lsm_local_disk_serial_num_get(NULL, &serial_num, &lsm_err);
+
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_local_disk_serial_num_get(): Expecting "
+                "LSM_ERR_INVALID_ARGUMENT when input is NULL");
+    fail_unless(serial_num == NULL,
+                "lsm_local_disk_serial_num_get(): Expecting "
+                "serial_num been set as NULL.");
+    fail_unless(lsm_err != NULL,
+                "lsm_local_disk_serial_num_get(): Expecting "
+                "lsm_err been set as non-NULL.");
+    fail_unless(lsm_error_number_get(lsm_err) == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_local_disk_serial_num_get(): Expecting "
+                "lsm_err been set with LSM_ERR_INVALID_ARGUMENT");
+    fail_unless(lsm_error_message_get(lsm_err) != NULL,
+                "lsm_local_disk_serial_num_get(): Expecting "
+                "lsm_err been set with non-NULL error message");
+    lsm_error_free(lsm_err);
+
+    rc = lsm_local_disk_serial_num_get("/dev/sda", NULL, &lsm_err);
+
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_local_disk_serial_num_get(): Expecting "
+                "LSM_ERR_INVALID_ARGUMENT when input is NULL");
+    lsm_error_free(lsm_err);
+
+    rc = lsm_local_disk_serial_num_get("/dev/sda", &serial_num, NULL);
+
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "lsm_local_disk_serial_num_get(): Expecting "
+                "LSM_ERR_INVALID_ARGUMENT when lsm_err is NULL");
+
+    /* We cannot make sure /dev/sda exists, but worth trying */
+    lsm_local_disk_serial_num_get("/dev/sda", &serial_num, &lsm_err);
+    if (lsm_err != NULL)
+        lsm_error_free(lsm_err);
+    free(serial_num);
+
+    /* Test nonexistent disk */
+    rc = lsm_local_disk_serial_num_get(NOT_EXIST_SD_PATH, &serial_num,
+                                       &lsm_err);
+    fail_unless(rc == LSM_ERR_NOT_FOUND_DISK,
+                "lsm_local_disk_serial_num_get(): Expecting "
+                "LSM_ERR_NOT_FOUND_DISK when disk does not exist");
+    fail_unless(serial_num == NULL,
+                "lsm_local_disk_serial_num_get(): Expecting "
+                "serial_num as NULL when disk does not exist");
+    fail_unless(lsm_err != NULL,
+                "lsm_local_disk_serial_num_get(): Expecting "
+                "lsm_err not NULL when disk does not exist");
+    fail_unless(lsm_error_number_get(lsm_err) == LSM_ERR_NOT_FOUND_DISK,
+                "lsm_local_disk_serial_num_get(): Expecting "
+                "lsm_err been set with LSM_ERR_NOT_FOUND_DISK");
+    fail_unless(lsm_error_message_get(lsm_err) != NULL,
+                "lsm_local_disk_serial_num_get(): Expecting lsm_err "
+                "been set with non-NULL error message when disk not exist");
+    lsm_error_free(lsm_err);
+}
+END_TEST
+
 START_TEST(test_local_disk_vpd83_get)
 {
     int rc = LSM_ERR_OK;
@@ -3867,6 +3934,7 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_volume_ident_led_on);
     tcase_add_test(basic, test_volume_ident_led_off);
     tcase_add_test(basic, test_local_disk_vpd83_search);
+    tcase_add_test(basic, test_local_disk_serial_num_get);
     tcase_add_test(basic, test_local_disk_vpd83_get);
     tcase_add_test(basic, test_read_cache_pct_update);
     tcase_add_test(basic, test_local_disk_list);
