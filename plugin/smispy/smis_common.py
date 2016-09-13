@@ -25,6 +25,7 @@ import os
 import datetime
 import time
 import sys
+import six
 
 from lsm import LsmError, ErrorNumber, md5
 
