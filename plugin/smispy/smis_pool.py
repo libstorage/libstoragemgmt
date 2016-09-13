@@ -168,7 +168,7 @@ def _pool_element_type(smis_common, cim_pool):
         elif cim_pool.classname == 'LSIESG_StoragePool':
             element_type = Pool.ELEMENT_TYPE_VOLUME
 
-    if 'Usage' in cim_pool:
+    if 'Usage' in cim_pool and cim_pool['Usage'] is not None:
         usage = cim_pool['Usage']
 
         if usage == dmtf.POOL_USAGE_UNRESTRICTED:
