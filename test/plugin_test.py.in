@@ -33,7 +33,6 @@ import os
 import tempfile
 from lsm import LsmError, ErrorNumber
 from lsm import Capabilities as Cap
-import six
 
 results = {}
 stats = {}
@@ -84,7 +83,7 @@ def rs(component, l=4):
     """
     Generate a random string
     """
-    rp = ''.join(random.choice(string.ascii_uppercase) for x in range(l))
+    rp = ''.join(random.choice(string.ascii_uppercase) for _ in range(l))
 
     if component is not None:
         return 'lsm_%s_%s' % (component, rp)
@@ -148,7 +147,7 @@ class TestProxy(object):
                    'fs_snapshot_restore': (str,),
                    'fs_child_dependency_rm': (str,)}
 
-    ## The constructor.
+    # The constructor.
     # @param    self    The object self
     # @param    obj     The object instance to wrap
     def __init__(self, obj=None):
@@ -157,7 +156,7 @@ class TestProxy(object):
         """
         self.o = obj
 
-    ## Called each time an attribute is requested of the object
+    # Called each time an attribute is requested of the object
     # @param    self    The object self
     # @param    name    Name of the attribute being accessed
     # @return   The result of the method
@@ -177,7 +176,7 @@ class TestProxy(object):
 
         results[method].append(v)
 
-    ## Method which is called to invoke the actual method of interest.
+    # Method which is called to invoke the actual method of interest.
     #
     # The intentions of this method is this:
     # - Invoke the method just like it normally would without this
@@ -194,7 +193,6 @@ class TestProxy(object):
         """
         Method which is called to invoke the actual method of interest.
         """
-        rc = None
         job_possible = _proxy_method_name in TestProxy.async_calls
 
         # Timer block
@@ -269,7 +267,8 @@ class TestPlugin(unittest.TestCase):
     URI = 'sim://'
     PASSWORD = None
 
-    def _object_size(self, pool):
+    @staticmethod
+    def _min_size():
         return mb_in_bytes(MIN_OBJECT_SIZE)
 
     def setUp(self):
@@ -486,9 +485,10 @@ class TestPlugin(unittest.TestCase):
 
             # Don't test this on HDS as VPD is empty
             if '10.1.134.227' not in TestPlugin.URI:
-                self.assertTrue(lsm.Volume.vpd83_verify(v.vpd83),
-                                "VPD is not as expected '%s' for volume id: '%s'" %
-                                (v.vpd83, v.id))
+                self.assertTrue(
+                    lsm.Volume.vpd83_verify(v.vpd83),
+                    "VPD is not as expected '%s' for volume id: '%s'" %
+                    (v.vpd83, v.id))
         if flag_created:
             self._volume_delete(volumes[0])
 
@@ -528,7 +528,7 @@ class TestPlugin(unittest.TestCase):
             self.assertTrue(p is not None, "Unable to find a suitable pool")
 
             if p:
-                vol_size = self._object_size(p)
+                vol_size = self._min_size()
 
                 vol = self.c.volume_create(p, rs('v'), vol_size,
                                            lsm.Volume.PROVISION_DEFAULT)[1]
@@ -549,7 +549,7 @@ class TestPlugin(unittest.TestCase):
                                               "for fs creation")
 
             if pool is not None:
-                fs_size = self._object_size(pool)
+                fs_size = self._min_size()
                 fs = self.c.fs_create(pool, rs('fs'), fs_size)[1]
 
                 self.assertTrue(fs is not None)
@@ -618,7 +618,6 @@ class TestPlugin(unittest.TestCase):
     def test_volume_create_delete(self):
         if self.pool_by_sys_id:
             for s in self.systems:
-                vol = None
                 cap = self.c.capabilities(s)
                 if supported(cap, [Cap.VOLUME_CREATE]):
                     vol = self._volume_create(s.id)[0]
@@ -688,7 +687,6 @@ class TestPlugin(unittest.TestCase):
                             # existing name
                             error_num = None
                             try:
-                                volume_clone_dupe_name = \
                                     self.c.volume_replicate(
                                         None, replication_type, vol,
                                         volume_clone.name)[1]
@@ -944,9 +942,8 @@ class TestPlugin(unittest.TestCase):
                     self.assertTrue(s.id == ag_created.system_id)
 
                     self.c.access_group_delete(ag_created)
-                    ag_created = None
 
-    def _create_access_group(self, cap, name, s, init_type):
+    def _create_access_group(self, name, s, init_type):
         ag_created = None
 
         if init_type == lsm.AccessGroup.INIT_TYPE_ISCSI_IQN:
@@ -988,7 +985,6 @@ class TestPlugin(unittest.TestCase):
         Test NAME_CONFLICT and EXISTS_INITIATOR of access_group_create().
         """
         flag_got_expected_error = False
-        new_init_id = None
         if lsm_ag.init_type == lsm.AccessGroup.INIT_TYPE_ISCSI_IQN:
             new_init_id = 'iqn.1994-05.com.domain:01.' + rs(None, 6)
         else:
@@ -1013,11 +1009,10 @@ class TestPlugin(unittest.TestCase):
         self.assertTrue(flag_got_expected_error)
 
     def _test_ag_create_delete(self, cap, s):
-        ag = None
         if supported(cap, [Cap.ACCESS_GROUPS,
                            Cap.ACCESS_GROUP_CREATE_ISCSI_IQN]):
             ag = self._create_access_group(
-                cap, rs('ag'), s, lsm.AccessGroup.INIT_TYPE_ISCSI_IQN)
+                rs('ag'), s, lsm.AccessGroup.INIT_TYPE_ISCSI_IQN)
             if ag is not None and \
                supported(cap, [Cap.ACCESS_GROUP_DELETE]):
                 self._test_ag_create_dup(ag, s)
@@ -1025,15 +1020,13 @@ class TestPlugin(unittest.TestCase):
 
         if supported(cap, [Cap.ACCESS_GROUPS, Cap.ACCESS_GROUP_CREATE_WWPN]):
             ag = self._create_access_group(
-                cap, rs('ag'), s, lsm.AccessGroup.INIT_TYPE_WWPN)
+                rs('ag'), s, lsm.AccessGroup.INIT_TYPE_WWPN)
             if ag is not None and \
                supported(cap, [Cap.ACCESS_GROUP_DELETE]):
                 self._test_ag_create_dup(ag, s)
                 self._delete_access_group(ag)
 
     def test_iscsi_chap(self):
-        ag = None
-
         for s in self.systems:
             cap = self.c.capabilities(s)
 
@@ -1041,7 +1034,7 @@ class TestPlugin(unittest.TestCase):
                                Cap.ACCESS_GROUP_CREATE_ISCSI_IQN,
                                Cap.VOLUME_ISCSI_CHAP_AUTHENTICATION]):
                 ag = self._create_access_group(
-                    cap, rs('ag'), s, lsm.AccessGroup.INIT_TYPE_ISCSI_IQN)
+                    rs('ag'), s, lsm.AccessGroup.INIT_TYPE_ISCSI_IQN)
 
                 self.assertTrue(ag is not None)
 
@@ -1073,9 +1066,6 @@ class TestPlugin(unittest.TestCase):
                                     "access groups for this system")
 
     def _ag_init_add(self, ag):
-        t = None
-        t_id = ''
-
         if ag.init_type == lsm.AccessGroup.INIT_TYPE_ISCSI_IQN:
             t_id = 'iqn.1994-05.com.domain:01.89bd02'
             t = lsm.AccessGroup.INIT_TYPE_ISCSI_IQN
@@ -1117,9 +1107,9 @@ class TestPlugin(unittest.TestCase):
                         cap, [Cap.ACCESS_GROUP_CREATE_ISCSI_IQN,
                               Cap.ACCESS_GROUP_DELETE]):
                         ag_to_delete = self._create_access_group(
-                            cap, rs('ag'), s,
+                            rs('ag'), s,
                             lsm.AccessGroup.INIT_TYPE_ISCSI_IQN)
-                        ag_list = self.c.access_groups('system_id', s.id)
+                        self.c.access_groups('system_id', s.id)
 
                         if supported(cap,
                                      [Cap.
@@ -1137,8 +1127,8 @@ class TestPlugin(unittest.TestCase):
                         cap, [Cap.ACCESS_GROUP_CREATE_WWPN,
                               Cap.ACCESS_GROUP_DELETE]):
                         ag_to_delete = self._create_access_group(
-                            cap, rs('ag'), s, lsm.AccessGroup.INIT_TYPE_WWPN)
-                        ag_list = self.c.access_groups('system_id', s.id)
+                            rs('ag'), s, lsm.AccessGroup.INIT_TYPE_WWPN)
+                        self.c.access_groups('system_id', s.id)
 
                     if ag_to_delete is not None:
                         self._delete_access_group(ag_to_delete)
@@ -1174,7 +1164,6 @@ class TestPlugin(unittest.TestCase):
     def test_duplicate_volume_name(self):
         if self.pool_by_sys_id:
             for s in self.systems:
-                vol = None
                 cap = self.c.capabilities(s)
                 if supported(cap, [Cap.VOLUME_CREATE]):
                     vol, pool = self._volume_create(s.id)
@@ -1182,7 +1171,7 @@ class TestPlugin(unittest.TestCase):
 
                     # Try to create another with same name
                     try:
-                        vol_dupe = self.c.volume_create(
+                        self.c.volume_create(
                             pool, vol.name, vol.size_bytes,
                             lsm.Volume.PROVISION_DEFAULT)[1]
                     except LsmError as le:
@@ -1194,15 +1183,12 @@ class TestPlugin(unittest.TestCase):
 
     def test_duplicate_access_group_name(self):
         for s in self.systems:
-            ag_to_delete = None
-
-            ag_type = None
             ag_name = rs('ag_dupe')
 
             cap = self.c.capabilities(s)
             if supported(cap, [Cap.ACCESS_GROUPS,
                                Cap.ACCESS_GROUP_DELETE]):
-                ag_list = self.c.access_groups('system_id', s.id)
+                self.c.access_groups('system_id', s.id)
 
                 if supported(
                         cap, [Cap.ACCESS_GROUP_CREATE_ISCSI_IQN]):
@@ -1216,14 +1202,14 @@ class TestPlugin(unittest.TestCase):
                     return
 
                 ag_created = self._create_access_group(
-                    cap, ag_name, s, ag_type)
+                    ag_name, s, ag_type)
 
                 if ag_created is not None:
                     # Try to create a duplicate
                     got_exception = False
                     try:
-                        ag_dupe = self._create_access_group(
-                            cap, ag_name, s, ag_type)
+                        self._create_access_group(
+                            ag_name, s, ag_type)
                     except LsmError as le:
                         got_exception = True
                         self.assertTrue(le.code == ErrorNumber.NAME_CONFLICT)
@@ -1253,7 +1239,7 @@ class TestPlugin(unittest.TestCase):
                 pool = self._get_pool_by_usage(s.id,
                                                lsm.Pool.ELEMENT_TYPE_VOLUME)
                 if ag and pool:
-                    vol_size = self._object_size(pool)
+                    vol_size = self._min_size()
 
                     vol = self.c.volume_create(
                         pool, rs('v'), vol_size,
@@ -1346,12 +1332,12 @@ class TestPlugin(unittest.TestCase):
         os.environ['LSM_UDS_PATH'] = tmp_dir
 
         try:
-            tmp_c = lsm.Client(TestPlugin.URI, TestPlugin.PASSWORD)
+            lsm.Client(TestPlugin.URI, TestPlugin.PASSWORD)
         except LsmError as expected_error:
             got_exception = True
             self.assertTrue(expected_error.code ==
                             ErrorNumber.DAEMON_NOT_RUNNING,
-                            'Actual error %d' % (expected_error.code))
+                            'Actual error %d' % expected_error.code)
 
         self.assertTrue(got_exception)
 
@@ -1366,13 +1352,12 @@ class TestPlugin(unittest.TestCase):
         got_exception = False
         try:
             uri = "%s://user@host" % rs(None, 6)
-
-            tmp_c = lsm.Client(uri, TestPlugin.PASSWORD)
+            lsm.Client(uri, TestPlugin.PASSWORD)
         except LsmError as expected_error:
             got_exception = True
             self.assertTrue(expected_error.code ==
                             ErrorNumber.PLUGIN_NOT_EXIST,
-                            'Actual error %d' % (expected_error.code))
+                            'Actual error %d' % expected_error.code)
 
         self.assertTrue(got_exception)
 
@@ -1448,7 +1433,7 @@ class TestPlugin(unittest.TestCase):
             cap = self.c.capabilities(s)
 
             if supported(cap, [Cap.EXPORTS]):
-                exports = self.c.exports()
+                self.c.exports()
                 # TODO verify export values
 
     def test_create_delete_exports(self):
@@ -1533,7 +1518,8 @@ class TestPlugin(unittest.TestCase):
     def test_volume_raid_info(self):
         flag_supported = False
         pool_id_to_lsm_vols = dict()
-        created_lsm_vol = None
+        lsm_vol = None
+        s = None
 
         for s in self.systems:
             cap = self.c.capabilities(s)
@@ -1559,6 +1545,13 @@ class TestPlugin(unittest.TestCase):
         for lsm_vol in lsm_vols:
             [raid_type, strip_size, disk_count, min_io_size, opt_io_size] = \
                 self.c.volume_raid_info(lsm_vol)
+
+            # TODO Make these checks better by checking type and range
+            self.assertTrue(raid_type is not None)
+            self.assertTrue(strip_size is not None)
+            self.assertTrue(disk_count is not None)
+            self.assertTrue(min_io_size is not None)
+            self.assertTrue(opt_io_size is not None)
 
         # Test NOT_FOUND_VOLUME error.
         self._volume_delete(created_lsm_vol)
@@ -1743,6 +1736,7 @@ def dump_results():
     how it finished and how long it took.
     """
     try:
+        # noinspection PyUnresolvedReferences
         import yaml
         sys.stdout.write(yaml.dump(dict(methods_called=results, stats=stats)))
     except ImportError:
