@@ -58,9 +58,9 @@ def handle_cim_errors(method):
                     raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
                                    desc)
             raise LsmError(ErrorNumber.PLUGIN_BUG, desc)
-        except wbem.cim_http.AuthError:
+        except wbem.AuthError:
             raise LsmError(ErrorNumber.PLUGIN_AUTH_FAILED, "Unauthorized user")
-        except wbem.cim_http.Error as te:
+        except wbem.Error as te:
             raise LsmError(ErrorNumber.NETWORK_ERROR, str(te))
         except Exception as e:
             error("Unexpected exception:\n" + traceback.format_exc())

@@ -27,7 +27,7 @@ def _error_handler(method):
         except _lmiwbem.ConnectionError as ce:
             # Try to raise errors which mimic pywbem
             if ce.args[0] == 401:
-                raise wbem.cim_http.AuthError()
+                raise wbem.AuthError()
             if ce.args[0] == 45:
                 raise wbem.CIMError(
                     0, 'Socket error: [Errno 113] No route to host')
@@ -53,12 +53,11 @@ class wbemType(type):
 @six.add_metaclass(wbemType)
 class wbem(object):
 
-    class cim_http(object):
-        class AuthError(Exception):
-            pass
+    class AuthError(Exception):
+        pass
 
-        class Error(Exception):
-            pass
+    class Error(Exception):
+        pass
 
     class CIMError(Exception):
         def __init__(self, exception_or_ec, msg=None):
