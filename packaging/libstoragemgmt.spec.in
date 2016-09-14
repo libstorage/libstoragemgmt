@@ -202,8 +202,8 @@ libraries.
 Summary:        Files for SMI-S generic array support for %{libstoragemgmt}
 Group:          System Environment/Libraries
 %if 0%{?with_python3}
-BuildRequires:  python3-lmiwbem
-Requires:       python3-lmiwbem
+BuildRequires:  python3-pywbem
+Requires:       python3-pywbem
 Requires:       python3-%{libstoragemgmt} = %{version}-%{release}
 %else
 Requires:       %{libstoragemgmt}-python = %{version}-%{release}
