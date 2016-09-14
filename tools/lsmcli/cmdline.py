@@ -1053,6 +1053,10 @@ class CmdLine(object):
             sub_parser.set_defaults(
                 func=getattr(self, cmd['name'].replace("-", "_")))
 
+        if len(sys.argv) == 1:
+            parser.print_usage()
+            exit(1)
+
         self.parser = parser
 
         known_args = parser.parse_args(args=CmdLine.handle_alias())
