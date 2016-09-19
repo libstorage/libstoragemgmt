@@ -243,7 +243,6 @@ please install any of them.])
     AC_PYTHON_MODULE([argparse], [Required])
     AC_PYTHON_MODULE([pyudev], [Required])
     AC_PYTHON_MODULE([six], [Required])
-    AC_PYTHON_MODULE([requests], [Required])
     PKG_CHECK_MODULES([PYTHON], [python2], [], [not_found_py_pkg=yes])
 
     if test "x$not_found_py_pkg" == "xyes"; then

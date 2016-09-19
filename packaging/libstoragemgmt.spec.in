@@ -108,12 +108,10 @@ BuildRequires:  chrpath
 BuildRequires:  valgrind
 BuildRequires:  procps
 %if 0%{?with_python3}
-BuildRequires:  python-requests
 BuildRequires:  python-six
 BuildRequires:  python-argparse
 BuildRequires:  python-devel
 %else
-BuildRequires:  python3-requests
 BuildRequires:  python3-six
 BuildRequires:  python3-devel
 %endif

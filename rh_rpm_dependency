@@ -20,5 +20,4 @@ libudev-devel
 valgrind
 chrpath
 sqlite-devel
-python-requests
 python-six
