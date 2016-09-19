@@ -25,7 +25,7 @@ def cmd_exec(cmds):
     """
     cmd_popen = subprocess.Popen(
         cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        env={"PATH": os.getenv("PATH")})
+        env={"PATH": os.getenv("PATH")}, universal_newlines=True)
     str_stdout = "".join(list(cmd_popen.stdout)).strip()
     str_stderr = "".join(list(cmd_popen.stderr)).strip()
     errno = cmd_popen.wait()
