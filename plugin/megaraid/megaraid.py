@@ -546,7 +546,7 @@ class MegaRAID(IPlugin):
                 disk_show_output.update(
                     self._storcli_exec(
                         ["/c%d/sall" % ctrl_num, "show", "all"]))
-            except ExecError:
+            except (ExecError, TypeError):
                 pass
 
             for drive_name in list(disk_show_output.keys()):
