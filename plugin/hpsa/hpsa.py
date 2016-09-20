@@ -329,6 +329,7 @@ class SmartArray(IPlugin):
 
     def __init__(self):
         self._sacli_bin = None
+        self._tmo_ms = 30000
 
     def _find_sacli(self):
         """
@@ -374,11 +375,11 @@ class SmartArray(IPlugin):
 
     @_handle_errors
     def time_out_set(self, ms, flags=Client.FLAG_RSVD):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported yet")
+        self._tmo_ms = ms
 
     @_handle_errors
     def time_out_get(self, flags=Client.FLAG_RSVD):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported yet")
+        return self._tmo_ms
 
     @_handle_errors
     def capabilities(self, system, flags=Client.FLAG_RSVD):
