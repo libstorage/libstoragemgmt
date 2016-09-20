@@ -444,13 +444,10 @@ class TestPlugin(unittest.TestCase):
         self.assertEqual(self.c.time_out_get(), tmo)
 
     def test_systems_list(self):
-        arrays = self.c.systems()
-        self.assertTrue(len(arrays) > 0, "We need at least one array for "
-                                         "testing!")
+        self.c.systems()
 
     def test_pools_list(self):
-        pools_list = self.c.pools()
-        self.assertTrue(len(pools_list) > 0, "We need at least 1 pool to test")
+        self.c.pools()
 
     def _find_or_create_volumes(self):
         """
@@ -472,25 +469,37 @@ class TestPlugin(unittest.TestCase):
         return volumes, flag_created
 
     def test_volume_list(self):
-        (volumes, flag_created) = self._find_or_create_volumes()
-        self.assertTrue(len(volumes) > 0, "We need at least 1 volume to test")
 
-        if flag_created:
-            self._volume_delete(volumes[0])
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            if supported(cap, [Cap.VOLUMES]):
+                (volumes, flag_created) = self._find_or_create_volumes()
+                self.assertTrue(
+                    len(volumes) > 0,
+                    "We need at least 1 volume to test")
+
+                if flag_created:
+                    self._volume_delete(volumes[0])
 
     def test_volume_vpd83(self):
-        (volumes, flag_created) = self._find_or_create_volumes()
-        self.assertTrue(len(volumes) > 0, "We need at least 1 volume to test")
-        for v in volumes:
 
-            # Don't test this on HDS as VPD is empty
-            if '10.1.134.227' not in TestPlugin.URI:
+        # You cannot test for vpd83 if the device doesn't support volumes
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            if supported(cap, [Cap.VOLUMES]):
+                (volumes, flag_created) = self._find_or_create_volumes()
                 self.assertTrue(
-                    lsm.Volume.vpd83_verify(v.vpd83),
-                    "VPD is not as expected '%s' for volume id: '%s'" %
-                    (v.vpd83, v.id))
-        if flag_created:
-            self._volume_delete(volumes[0])
+                    len(volumes) > 0, "We need at least 1 volume to test")
+                for v in volumes:
+
+                    # Don't test this on HDS as VPD is empty
+                    if '10.1.134.227' not in TestPlugin.URI:
+                        self.assertTrue(
+                            lsm.Volume.vpd83_verify(v.vpd83),
+                            "VPD is not as expected '%s' for volume id: '%s'" %
+                            (v.vpd83, v.id))
+                if flag_created:
+                    self._volume_delete(volumes[0])
 
     def test_disks_list(self):
         for s in self.systems:
