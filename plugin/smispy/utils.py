@@ -17,7 +17,7 @@
 import traceback
 import json
 from lsm import (LsmError, ErrorNumber, error)
-from lsm.plugin.smispy.WBEM import wbem
+from lsm.plugin.smispy.WBEM import wbem, Error, AuthError
 
 
 def merge_list(list_a, list_b):
@@ -58,9 +58,9 @@ def handle_cim_errors(method):
                     raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
                                    desc)
             raise LsmError(ErrorNumber.PLUGIN_BUG, desc)
-        except wbem.AuthError:
+        except AuthError:
             raise LsmError(ErrorNumber.PLUGIN_AUTH_FAILED, "Unauthorized user")
-        except wbem.Error as te:
+        except Error as te:
             raise LsmError(ErrorNumber.NETWORK_ERROR, str(te))
         except Exception as e:
             error("Unexpected exception:\n" + traceback.format_exc())

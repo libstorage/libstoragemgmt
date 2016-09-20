@@ -15,7 +15,37 @@
 # Try to make lmiwbem look like and toss errors like pywbem to prevent changing
 # all kinds of code that depends on pywbem behavior
 
+
+# Monkey patch so CIMException supports [] operator
+def patch_get_item(self, elem):
+    if elem == 0:
+        return self.status_code
+    elif elem == 1:
+        return self.status_description
+    else:
+        raise IndexError()
+
+using_pywbem = False
 try:
     import pywbem as wbem
+    using_pywbem = True
 except ImportError:
     from lsm.plugin.smispy.lmiwbem_wrap import wbem
+
+
+# Handle differences in pywbem
+# older versions don't have pywbem.Error & pywbem.AuthError
+if using_pywbem:
+    try:
+        from pywbem import Error
+        # Add getitem to support CIMError()[0]
+        wbem.exceptions.CIMError.__getitem__ = patch_get_item
+    except ImportError:
+        from pywbem.cim_http import Error
+    try:
+        from pywbem import AuthError
+    except ImportError:
+        from pywbem.cim_http import AuthError
+else:
+    from lsm.plugin.smispy.lmiwbem_wrap import Error
+    from lsm.plugin.smispy.lmiwbem_wrap import AuthError
