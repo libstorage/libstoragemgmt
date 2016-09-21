@@ -55,7 +55,6 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires:       %{libstoragemgmt}-python
 BuildRequires:  autoconf automake libtool libxml2-devel check-devel perl
 BuildRequires:  openssl-devel
-BuildRequires:  python-argparse
 BuildRequires:  glib2-devel
 # Explicitly require gcc-c++ is for OBS
 BuildRequires:  gcc-c++
@@ -71,6 +70,8 @@ BuildRequires:  sqlite-devel
 
 %if 0%{?rhel} == 6
 BuildRequires:  libudev-devel
+# Argparse is included in newer versions, only require for RHEL6
+BuildRequires:  python-argparse
 %else
 BuildRequires:  systemd-devel
 %endif
@@ -134,12 +135,12 @@ Summary:        Python client libraries and plug-in support for %{libstoragemgmt
 Group:          System Environment/Libraries
 Requires:       %{libstoragemgmt} = %{version}-%{release}
 BuildArch:      noarch
-Requires:       python-argparse
 Requires:       %{libstoragemgmt}-python-clibs
 %if 0%{?rhel} == 6
 # No way to detect 6.2 yet. Just forcing all RHEL 6 to install
 # python-ordereddict just in case.
 Requires:       python-ordereddict
+Requires:       python-argparse
 %endif
 
 %description    -n %{libstoragemgmt}-python
