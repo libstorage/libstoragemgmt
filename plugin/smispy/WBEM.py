@@ -16,15 +16,6 @@
 # all kinds of code that depends on pywbem behavior
 
 
-# Monkey patch so CIMException supports [] operator
-def patch_get_item(self, elem):
-    if elem == 0:
-        return self.status_code
-    elif elem == 1:
-        return self.status_description
-    else:
-        raise IndexError()
-
 using_pywbem = False
 try:
     import pywbem as wbem
@@ -38,8 +29,6 @@ except ImportError:
 if using_pywbem:
     try:
         from pywbem import Error
-        # Add getitem to support CIMError()[0]
-        wbem.exceptions.CIMError.__getitem__ = patch_get_item
     except ImportError:
         from pywbem.cim_http import Error
     try:

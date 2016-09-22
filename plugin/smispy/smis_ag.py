@@ -109,7 +109,7 @@ def cim_init_of_cim_spc_path(smis_common, cim_spc_path):
                 ResultClass='CIM_StorageHardwareID',
                 PropertyList=_CIM_INIT_PROS)
         except wbem.CIMError as cim_error:
-            if cim_error[0] == wbem.CIM_ERR_NOT_FOUND:
+            if cim_error.args[0] == wbem.CIM_ERR_NOT_FOUND:
                 pass
             else:
                 raise

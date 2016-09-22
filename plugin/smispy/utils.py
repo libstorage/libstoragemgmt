@@ -31,7 +31,8 @@ def handle_cim_errors(method):
         except LsmError:
             raise
         except wbem.CIMError as ce:
-            error_code, desc = ce
+            error_code = ce.args[0]
+            desc = ce.args[1]
 
             if error_code == 0:
                 if 'Socket error' in desc:

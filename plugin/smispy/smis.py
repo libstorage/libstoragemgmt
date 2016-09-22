@@ -505,7 +505,7 @@ class Smis(IStorageAreaNetwork):
             ss = self._c.References(cim_vol_path,
                                     ResultClass='CIM_StorageSynchronized')
         except wbem.CIMError as e:
-            if e[0] == wbem.CIM_ERR_INVALID_CLASS:
+            if e.args[0] == wbem.CIM_ERR_INVALID_CLASS:
                 return
             else:
                 raise
@@ -1138,7 +1138,7 @@ class Smis(IStorageAreaNetwork):
         try:
             cim_ccs = self._c.cim_ccs_of_sys_id(system_id, raise_error=False)
         except wbem.CIMError as ce:
-            error_code = tuple(ce)[0]
+            error_code = ce.args[0]
             if error_code == wbem.CIM_ERR_INVALID_CLASS or \
                error_code == wbem.CIM_ERR_INVALID_PARAMETER:
                 raise LsmError(ErrorNumber.NO_SUPPORT,
@@ -1773,7 +1773,7 @@ class Smis(IStorageAreaNetwork):
                 Role='GroupComponent',
                 ResultRole='PartComponent')
         except wbem.CIMError as ce:
-            error_code = tuple(ce)[0]
+            error_code = ce.args[0]
             if error_code == wbem.CIM_ERR_INVALID_CLASS or \
                error_code == wbem.CIM_ERR_NOT_SUPPORTED:
                 return []

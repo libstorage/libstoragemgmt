@@ -61,9 +61,9 @@ def _profile_register_load(wbem_conn):
                               'RegisteredOrganization'],
                 LocalOnly=False)
         except wbem.CIMError as e:
-            if e[0] == wbem.CIM_ERR_NOT_SUPPORTED or \
-               e[0] == wbem.CIM_ERR_INVALID_NAMESPACE or \
-               e[0] == wbem.CIM_ERR_INVALID_CLASS:
+            if e.args[0] == wbem.CIM_ERR_NOT_SUPPORTED or \
+                    e.args[0] == wbem.CIM_ERR_INVALID_NAMESPACE or \
+                    e.args[0] == wbem.CIM_ERR_INVALID_CLASS:
                 pass
             else:
                 raise

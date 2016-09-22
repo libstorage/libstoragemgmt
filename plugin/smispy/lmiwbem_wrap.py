@@ -61,7 +61,7 @@ class wbemType(type):
 @six.add_metaclass(wbemType)
 class wbem(object):
 
-    class CIMError(Exception):
+    class Args(Exception):
         def __init__(self, exception_or_ec, msg=None):
             self.details = None
             self.exp = None
@@ -76,6 +76,13 @@ class wbem(object):
                 return self.exp.args[index]
             else:
                 return self.details[index]
+
+    class CIMError(Exception):
+        def __init__(self, exception_or_ec, msg=None):
+            self.args = wbem.Args(exception_or_ec, msg)
+
+        def __str__(self):
+            return '(%s: %s)' % (str(self.args[0]), str(self.args[1]))
 
     class WBEMConnection(object):
 
