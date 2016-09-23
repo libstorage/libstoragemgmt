@@ -107,7 +107,9 @@ def _parse_hpssacli_output(output):
     3. If current line is the start of new section, create an empty dictionary
        where following subsections or data could be stored in.
     """
-    required_sections = ['Array:', 'unassigned', 'HBA Drives', 'array']
+    required_sections = ['Array:', 'unassigned', 'HBA Drives', 'array',
+                         'Controller Status', 'Cache Status',
+                         'Battery/Capacitor Status']
 
     output_lines = [
         l for l in output.split("\n")
