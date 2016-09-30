@@ -217,6 +217,12 @@ please install any of them.])
         AC_SUBST(PYTHON_CFLAGS)
         AC_SUBST(PYTHON_LIBS)
     fi
+
+    if test -e "/etc/debian_version"; then
+        new_py_dir=`echo $pythondir| sed -e 's/site-packages$/dist-packages/'`
+        AC_SUBST([pythondir], [$new_py_dir])
+        AC_MSG_NOTICE(["Applying workaround for debian bug 839064: $pythondir"])
+    fi
     AC_SUBST(PY_VERSION, 3)
 else
     AC_PATH_PROGS(PYTHON, python2.7 python2.6 python, [Python is required])
