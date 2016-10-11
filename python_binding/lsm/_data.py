@@ -232,6 +232,14 @@ class Disk(IData):
     LINK_TYPE_SOP = 10
     LINK_TYPE_PCIE = 11
 
+    LED_STATUS_UNKNOWN = 1 << 0
+    LED_STATUS_IDENT_ON = 1 << 1
+    LED_STATUS_IDENT_OFF = 1 << 2
+    LED_STATUS_IDENT_UNKNOWN = 1 << 3
+    LED_STATUS_FAULT_ON = 1 << 4
+    LED_STATUS_FAULT_OFF = 1 << 5
+    LED_STATUS_FAULT_UNKNOWN = 1 << 6
+
     def __init__(self, _id, _name, _disk_type, _block_size, _num_of_blocks,
                  _status, _system_id, _plugin_data=None, _vpd83='',
                  _location='', _rpm=RPM_NO_SUPPORT,
