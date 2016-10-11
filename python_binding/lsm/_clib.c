@@ -317,8 +317,26 @@ static const char local_disk_fault_led_off_docstring[] =
     "        err_msg (string)\n"
     "            Error message, empty if no error.\n";
 
+static const char local_disk_led_status_get_docstring[] =
+    "INTERNAL USE ONLY!\n"
+    "\n"
+    "Usage:\n"
+    "    Get LED status for given disk.\n"
+    "Parameters:\n"
+    "    disk_path (string)\n"
+    "        The disk path, example '/dev/sdb'. Empty string is failure\n"
+    "Returns:\n"
+    "    [led_status, rc, err_msg]\n"
+    "        led_status (integer)\n"
+    "            Disk LED status which is a bit map.\n"
+    "        rc (integer)\n"
+    "            Error code, lsm.ErrorNumber.OK if no error\n"
+    "        err_msg (string)\n"
+    "            Error message, empty if no error.\n";
+
 static PyObject *local_disk_serial_num_get(PyObject *self, PyObject *args,
                                            PyObject *kwargs);
+
 static PyObject *local_disk_vpd83_search(PyObject *self, PyObject *args,
                                          PyObject *kwargs);
 static PyObject *local_disk_vpd83_get(PyObject *self, PyObject *args,
@@ -331,6 +349,8 @@ static PyObject *local_disk_link_type_get(PyObject *self, PyObject *args,
                                           PyObject *kwargs);
 static PyObject *_lsm_string_list_to_pylist(lsm_string_list *str_list);
 static PyObject *_c_str_to_py_str(const char *str);
+static PyObject *local_disk_led_status_get(PyObject *self, PyObject *args,
+                                           PyObject *kwargs);
 
 _wrapper_no_output(local_disk_ident_led_on, lsm_local_disk_ident_led_on,
                    const char *, disk_path);
@@ -362,6 +382,8 @@ static PyMethodDef _methods[] = {
      METH_VARARGS | METH_KEYWORDS, local_disk_fault_led_on_docstring},
     {"_local_disk_fault_led_off",  (PyCFunction) local_disk_fault_led_off,
      METH_VARARGS | METH_KEYWORDS, local_disk_fault_led_off_docstring},
+    {"_local_disk_led_status_get",  (PyCFunction) local_disk_led_status_get,
+     METH_VARARGS | METH_KEYWORDS, local_disk_led_status_get_docstring},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
@@ -409,6 +431,9 @@ _wrapper(local_disk_rpm_get, lsm_local_disk_rpm_get,
 _wrapper(local_disk_link_type_get, lsm_local_disk_link_type_get,
          const char *, disk_path, lsm_disk_link_type,
          LSM_DISK_LINK_TYPE_UNKNOWN, PyInt_FromLong, _NO_NEED_TO_FREE);
+_wrapper(local_disk_led_status_get, lsm_local_disk_led_status_get,
+         const char *, disk_path, uint32_t,
+         LSM_DISK_LED_STATUS_UNKNOWN, PyInt_FromLong, _NO_NEED_TO_FREE);
 
 static PyObject *local_disk_list(PyObject *self, PyObject *args,
                                  PyObject *kwargs)
