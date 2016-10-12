@@ -3820,6 +3820,58 @@ START_TEST(test_local_disk_fault_led)
 }
 END_TEST
 
+START_TEST(test_local_disk_led_status_get)
+{
+    int rc = LSM_ERR_OK;
+    lsm_string_list *disk_paths = NULL;
+    lsm_error *lsm_err = NULL;
+    uint32_t i = 0;
+    const char *disk_path = NULL;
+    uint32_t led_status = LSM_DISK_LED_STATUS_UNKNOWN;
+
+    rc = lsm_local_disk_list(&disk_paths, &lsm_err);
+    fail_unless(rc == LSM_ERR_OK, "lsm_local_disk_list() failed as %d", rc);
+    /* Only try maximum 4 disks */
+    for (; i < lsm_string_list_size(disk_paths) && i < 4; ++i) {
+        disk_path = lsm_string_list_elem_get(disk_paths, i);
+        fail_unless (disk_path != NULL, "Got NULL disk path");
+        rc = lsm_local_disk_led_status_get(disk_path, &led_status, &lsm_err);
+        fail_unless(rc == LSM_ERR_OK || rc == LSM_ERR_NO_SUPPORT ||
+                    rc == LSM_ERR_PERMISSION_DENIED,
+                    "lsm_local_disk_led_status_get(): "
+                    "Got unexpected return: %d", rc);
+        if (lsm_err)
+            lsm_error_free(lsm_err);
+        lsm_err = NULL;
+    }
+
+    /* Test invalid argument */
+    rc = lsm_local_disk_led_status_get(NULL, &led_status, &lsm_err);
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "Expecting LSM_ERR_INVALID_ARGUMENT, but got %d", rc);
+    fail_unless(lsm_err != NULL, "Expecting non-NULL lsm_error, but got NULL");
+    lsm_error_free(lsm_err);
+
+    rc = lsm_local_disk_led_status_get("/dev/sda", NULL, &lsm_err);
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "Expecting LSM_ERR_INVALID_ARGUMENT, but got %d", rc);
+    fail_unless(lsm_err != NULL, "Expecting non-NULL lsm_error, but got NULL");
+    lsm_error_free(lsm_err);
+
+    rc = lsm_local_disk_led_status_get("/dev/sda", &led_status, NULL);
+    fail_unless(rc == LSM_ERR_INVALID_ARGUMENT,
+                "Expecting LSM_ERR_INVALID_ARGUMENT, but got %d", rc);
+
+    /* Test not exists disk */
+    rc = lsm_local_disk_led_status_get(NOT_EXIST_SD_PATH, &led_status, &lsm_err);
+    fail_unless(rc == LSM_ERR_NOT_FOUND_DISK,
+                "Expecting LSM_ERR_NOT_FOUND_DISK, but got %d", rc);
+    fail_unless(lsm_err != NULL, "Expecting non-NULL lsm_error, but got NULL");
+    lsm_error_free(lsm_err);
+    lsm_string_list_free(disk_paths);
+}
+END_TEST
+
 Suite * lsm_suite(void)
 {
     Suite *s = suite_create("libStorageMgmt");
@@ -3879,6 +3931,7 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_volume_rcp_update);
     tcase_add_test(basic, test_local_disk_ident_led);
     tcase_add_test(basic, test_local_disk_fault_led);
+    tcase_add_test(basic, test_local_disk_led_status_get);
 
     suite_add_tcase(s, basic);
     return s;
