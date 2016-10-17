@@ -208,7 +208,8 @@ static int _ses_sg_paths_get(char *err_msg, char ***sg_paths,
  * status item in status page(0x02).
  * 'add_st_data' should be 'uint8_t [_SG_T10_SPC_RECV_DIAG_MAX_LEN]'
  * 'cfg_data' should be 'uint8_t [_SG_T10_SPC_RECV_DIAG_MAX_LEN]'
- * -1 for not found.
+ * The SES-3 ELEMENT INDEX field which is uint8_t, we expand it to
+ * int16_t in order to include -1 as 'not found' error.
  */
 static int16_t _ses_find_sas_addr(const char *sas_addr, uint8_t *add_st_data,
                                   uint8_t *cfg_data);
@@ -216,9 +217,9 @@ static int16_t _ses_find_sas_addr(const char *sas_addr, uint8_t *add_st_data,
 /*
  * 'status' should be 'uint8_t [_T10_SES_DEV_SLOT_STATUS_LEN]'.
  */
-static int _ses_get_status(char *err_msg, uint8_t *status_data,
-                           const int16_t element_index, uint8_t *status,
-                           uint32_t *gen_code_be);
+static int _ses_raw_status_get(char *err_msg, uint8_t *status_data,
+                               const int16_t element_index, uint8_t *status,
+                               uint32_t *gen_code_be);
 
 static int _ses_ctrl_data_gen(char *err_msg, uint8_t *status_data,
                               uint8_t *status, const int16_t element_index,
@@ -249,6 +250,11 @@ static int16_t _ses_eiioe(uint8_t *cfg_data, int16_t element_index);
  */
 static void _ses_cfg_parse(uint8_t *cfg_data, uint8_t **dp_hdr_begin,
                            uint16_t *total_dp_hdr_count);
+
+static int _ses_info_get_by_sas_addr(char *err_msg, const char *tp_sas_addr,
+                                     uint8_t *cfg_data, uint8_t *status_data,
+                                     uint8_t *add_st_data, int *fd,
+                                     int16_t *element_index);
 
 static void _ses_cfg_parse(uint8_t *cfg_data, uint8_t **dp_hdr_begin,
                            uint16_t *total_dp_hdr_count)
@@ -467,9 +473,9 @@ static int16_t _ses_find_sas_addr(const char *sas_addr, uint8_t *add_st_data,
     return element_index;
 }
 
-static int _ses_get_status(char *err_msg, uint8_t *status_data,
-                           const int16_t element_index, uint8_t *status,
-                           uint32_t *gen_code_be)
+static int _ses_raw_status_get(char *err_msg, uint8_t *status_data,
+                               const int16_t element_index, uint8_t *status,
+                               uint32_t *gen_code_be)
 {
     int rc = LSM_ERR_OK;
     struct _ses_st_hdr *st_hdr = NULL;
@@ -610,57 +616,23 @@ int _ses_dev_slot_ctrl(char *err_msg, const char *tp_sas_addr,
                        int ctrl_value, int ctrl_type)
 {
     int rc = LSM_ERR_OK;
-    uint32_t i = 0;
-    char  **sg_paths = NULL;
-    uint32_t sg_count = 0;
     int fd = -1;
     uint8_t cfg_data[_SG_T10_SPC_RECV_DIAG_MAX_LEN];
     uint8_t status_data[_SG_T10_SPC_RECV_DIAG_MAX_LEN];
     uint8_t add_st_data[_SG_T10_SPC_RECV_DIAG_MAX_LEN];
     uint8_t status[_T10_SES_DEV_SLOT_STATUS_LEN];
-    bool found = false;
     int16_t element_index = -1;
-    /* The SES-3 ELEMENT INDEX field which is uint8_t, we expand it to
-     * int16_t in order to include -1 as 'not found' error.
-     */
     uint8_t ctrl_bytes = 0;
     uint8_t ctrl_bit = 0;
     uint32_t gen_code_be;
     uint16_t ctrl_data_len = 0;
 
-    _good(_ses_sg_paths_get(err_msg, &sg_paths, &sg_count), rc, out);
+    _good(_ses_info_get_by_sas_addr(err_msg, tp_sas_addr, cfg_data, status_data,
+                                    add_st_data, &fd, &element_index),
+          rc, out);
 
-    for (i = 0; i < sg_count; ++i) {
-        _good(_sg_io_open_rw(err_msg, sg_paths[i], &fd), rc, out);
-        _good(_sg_io_recv_diag(err_msg, fd, _T10_SES_CFG_PG_CODE, cfg_data),
-              rc, out);
-        _good(_sg_io_recv_diag(err_msg, fd, _T10_SES_STATUS_PG_CODE,
-                               status_data), rc, out);
-        _good(_sg_io_recv_diag(err_msg, fd, _T10_SES_ADD_STATUS_PG_CODE,
-                               add_st_data),
-              rc, out);
-        /* TODO(Gris Ge): We need to check "GENERATION CODE" of above four
-         *                pages are identical, or we need retry.
-         */
-
-        element_index = _ses_find_sas_addr(tp_sas_addr, add_st_data, cfg_data);
-        if (element_index != -1) {
-            found = true;
-            break;
-        }
-
-        close(fd);
-        fd = -1;
-    }
-    if (found != true) {
-        rc = LSM_ERR_NO_SUPPORT;
-        _lsm_err_msg_set(err_msg, "Failed to find any SCSI enclosure with "
-                         "given SAS address %s", tp_sas_addr);
-        goto out;
-    }
-
-    _good(_ses_get_status(err_msg, status_data, element_index, status,
-                          &gen_code_be),
+    _good(_ses_raw_status_get(err_msg, status_data, element_index, status,
+                              &gen_code_be),
           rc, out);
 
     /* Only keep the PRDFAIL bit */
@@ -708,8 +680,8 @@ int _ses_dev_slot_ctrl(char *err_msg, const char *tp_sas_addr,
     _good(_sg_io_recv_diag(err_msg, fd, _T10_SES_STATUS_PG_CODE,
                            status_data), rc, out);
 
-    _good(_ses_get_status(err_msg, status_data, element_index, status,
-                          &gen_code_be),
+    _good(_ses_raw_status_get(err_msg, status_data, element_index, status,
+                              &gen_code_be),
           rc, out);
 
     if (((ctrl_type == _SES_CTRL_CLEAR) &&
@@ -723,13 +695,104 @@ int _ses_dev_slot_ctrl(char *err_msg, const char *tp_sas_addr,
     }
 
  out:
-    if (fd != -1)
+    if (fd >= 0)
         close(fd);
+    return rc;
+}
+
+static int _ses_info_get_by_sas_addr(char *err_msg, const char *tp_sas_addr,
+                                      uint8_t *cfg_data, uint8_t *status_data,
+                                      uint8_t *add_st_data, int *fd,
+                                      int16_t *element_index)
+{
+    int rc = LSM_ERR_OK;
+    char  **sg_paths = NULL;
+    uint32_t sg_count = 0;
+    uint32_t i = 0;
+    bool found = false;
+
+    assert(tp_sas_addr != NULL);
+    assert(cfg_data != NULL);
+    assert(status_data != NULL);
+    assert(add_st_data != NULL);
+    assert(element_index != NULL);
+    assert(fd != NULL);
+
+    _good(_ses_sg_paths_get(err_msg, &sg_paths, &sg_count), rc, out);
+
+    for (i = 0; i < sg_count; ++i) {
+        _good(_sg_io_open_rw(err_msg, sg_paths[i], fd), rc, out);
+        _good(_sg_io_recv_diag(err_msg, *fd, _T10_SES_CFG_PG_CODE, cfg_data),
+              rc, out);
+        _good(_sg_io_recv_diag(err_msg, *fd, _T10_SES_STATUS_PG_CODE,
+                               status_data), rc, out);
+        _good(_sg_io_recv_diag(err_msg, *fd, _T10_SES_ADD_STATUS_PG_CODE,
+                               add_st_data),
+              rc, out);
+        /* TODO(Gris Ge): We need to check "GENERATION CODE" of above four
+         *                pages are identical, or we need retry.
+         */
+
+        *element_index = _ses_find_sas_addr(tp_sas_addr, add_st_data, cfg_data);
+        if (*element_index != -1) {
+            found = true;
+            break;
+        }
+
+        if (*fd >= 0)
+            close(*fd);
+        *fd = -1;
+    }
+    if (found != true) {
+        rc = LSM_ERR_NO_SUPPORT;
+        _lsm_err_msg_set(err_msg, "Failed to find any SCSI enclosure with "
+                         "given SAS address %s", tp_sas_addr);
+        goto out;
+    }
+
+ out:
     if (sg_paths != NULL) {
         for (i = 0; i < sg_count; ++i) {
             free(sg_paths[i]);
         }
         free(sg_paths);
     }
+    if (rc != LSM_ERR_OK) {
+        *element_index = -1;
+        if (*fd >= 0)
+            close(*fd);
+        *fd = -1;
+    }
+    return rc;
+}
+
+int _ses_status_get(char *err_msg, const char *tp_sas_addr,
+                    struct _ses_dev_slot_status *status)
+{
+    int rc = LSM_ERR_OK;
+    int fd = -1;
+    uint8_t cfg_data[_SG_T10_SPC_RECV_DIAG_MAX_LEN];
+    uint8_t status_data[_SG_T10_SPC_RECV_DIAG_MAX_LEN];
+    uint8_t add_st_data[_SG_T10_SPC_RECV_DIAG_MAX_LEN];
+    uint8_t raw_status[_T10_SES_DEV_SLOT_STATUS_LEN];
+    int16_t element_index = -1;
+    uint32_t gen_code_be = 0;
+
+    assert(tp_sas_addr != NULL);
+    assert(status != NULL);
+
+    _good(_ses_info_get_by_sas_addr(err_msg, tp_sas_addr, cfg_data, status_data,
+                                    add_st_data, &fd, &element_index),
+          rc, out);
+
+    _good(_ses_raw_status_get(err_msg, status_data, element_index, raw_status,
+                              &gen_code_be),
+          rc, out);
+
+    memcpy(status, raw_status, _T10_SES_DEV_SLOT_STATUS_LEN);
+
+ out:
+    if (fd >= 0)
+        close(fd);
     return rc;
 }

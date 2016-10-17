@@ -263,6 +263,36 @@ int LSM_DLL_EXPORT lsm_local_disk_fault_led_on(const char *disk_path,
 int LSM_DLL_EXPORT lsm_local_disk_fault_led_off(const char *disk_path,
                                                 lsm_error **lsm_err);
 
+/**
+ * New in version 1.4.
+ * Query the disk LED status of specified disk path.
+ * Require permission to open specified disk path(root user or disk group).
+ * @param[in]  disk_path    String. The path of disk, example "/dev/sdb".
+ * @param[out] led_status   Output pointer of uint32_t which is a bit sensitive
+ *                          field:
+ *                              * LSM_DISK_LED_STATUS_UNKNOWN
+ *                              * LSM_DISK_LED_STATUS_IDENT_ON
+ *                              * LSM_DISK_LED_STATUS_IDENT_OFF
+ *                              * LSM_DISK_LED_STATUS_IDENT_UNKNOWN
+ *                              * LSM_DISK_LED_STATUS_FAULT_ON
+ *                              * LSM_DISK_LED_STATUS_FAULT_OFF
+ *                              * LSM_DISK_LED_STATUS_FAULT_UNKNOWN
+ *
+ * @param[out] lsm_err  Output pointer of lsm_error. Error message could be
+ *                      retrieved via lsm_error_message_get(). Memory should
+ *                      be freed by lsm_error_free().
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK               on success or not found.
+ * @retval LSM_ERR_INVALID_ARGUMENT when any argument is NULL.
+ * @retval LSM_ERR_LIB_BUG          when something unexpected happens.
+ * @retval LSM_ERR_NOT_FOUND_DISK   when provided disk path not found.
+ * @retval LSM_ERR_PERMISSION_DENIED insufficient permission to access
+ *                                   provided disk path.
+ */
+int LSM_DLL_EXPORT lsm_local_disk_led_status_get(const char *disk_path,
+                                                 uint32_t *led_status,
+                                                 lsm_error **lsm_err);
+
 #ifdef __cplusplus
 }
 #endif
