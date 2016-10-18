@@ -1834,9 +1834,9 @@ class CmdLine:
         if args.policy == 'WB':
             policy = Volume.WRITE_CACHE_POLICY_WRITE_BACK
         elif args.policy == 'AUTO':
-            policy = Volume. WRITE_CACHE_POLICY_AUTO
+            policy = Volume.WRITE_CACHE_POLICY_AUTO
         else:
-            policy = Volume. WRITE_CACHE_POLICY_WRITE_THROUGH
+            policy = Volume.WRITE_CACHE_POLICY_WRITE_THROUGH
         self.c.volume_write_cache_policy_update(lsm_vol, policy)
         self.display_data(
             [
