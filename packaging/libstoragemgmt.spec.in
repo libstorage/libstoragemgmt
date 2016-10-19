@@ -110,11 +110,10 @@ BuildRequires:  procps
 %if 0%{?with_python3}
 BuildRequires:  python3-six
 BuildRequires:  python3-devel
-%else
+%endif
 BuildRequires:  python-six
 BuildRequires:  python-argparse
 BuildRequires:  python-devel
-%endif
 
 %description
 The libStorageMgmt library will provide a vendor agnostic open source storage
@@ -203,6 +202,7 @@ Summary:        Files for SMI-S generic array support for %{libstoragemgmt}
 Group:          System Environment/Libraries
 %if 0%{?with_python3}
 BuildRequires:  python3-pywbem
+BuildRequires:  pywbem
 Requires:       python3-pywbem
 Requires:       python3-%{libstoragemgmt} = %{version}-%{release}
 %else
@@ -301,8 +301,8 @@ BuildRequires:  python3-pyudev
 %else
 Requires:       %{libstoragemgmt}-python = %{version}-%{release}
 Requires:       python-pyudev
-BuildRequires:  python-pyudev
 %endif
+BuildRequires:  python-pyudev
 BuildArch:      noarch
 
 %description    -n %{libstoragemgmt}-hpsa-plugin
