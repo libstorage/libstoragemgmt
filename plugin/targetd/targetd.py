@@ -16,18 +16,30 @@
 #         Gris Ge <fge@redhat.com>
 
 import copy
-import urllib2
 import json
 import time
-import urlparse
 import socket
 import re
+import base64
+import six
 
 from lsm import (Pool, Volume, System, Capabilities,
                  IStorageAreaNetwork, INfs, FileSystem, FsSnapshot, NfsExport,
                  LsmError, ErrorNumber, uri_parse, md5, VERSION,
                  common_urllib2_error_handler, search_property,
-                 AccessGroup)
+                 AccessGroup, int_div)
+
+try:
+    from urllib.request import (Request,
+                                urlopen)
+    from urllib.parse import (urlunsplit)
+except ImportError:
+    from urllib2 import (Request,
+                         urlopen)
+    from urlparse import (urlunsplit)
+
+if six.PY3:
+    long = int
 
 DEFAULT_USER = "admin"
 DEFAULT_PORT = 18700
@@ -128,10 +140,11 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         else:
             self.scheme = 'http'
 
-        self.url = urlparse.urlunsplit(
+        self.url = urlunsplit(
             (self.scheme, self.host_with_port, PATH, None, None))
 
-        auth = ('%s:%s' % (user, self.password)).encode('base64')[:-1]
+        user_name_pass = '%s:%s' % (user, self.password)
+        auth = base64.b64encode(user_name_pass.encode('utf-8')).decode('utf-8')
         self.headers = {'Content-Type': 'application/json',
                         'Authorization': 'Basic %s' % (auth,)}
 
@@ -242,7 +255,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                 vpd83 = TargetdStorage._uuid_to_vpd83(vol['uuid'])
                 volumes.append(
                     Volume(vol['uuid'], vol['name'], vpd83, 512,
-                           long(vol['size'] / 512),
+                           long(int_div(vol['size'], 512)),
                            Volume.ADMIN_STATE_ENABLED,
                            self.system.id, p_name))
         return search_property(volumes, search_key, search_value)
@@ -618,7 +631,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
 
         vpd83 = TargetdStorage._uuid_to_vpd83(vol['uuid'])
         return Volume(vol['uuid'], vol['name'], vpd83, 512,
-                      vol['size'] / 512,
+                      int_div(vol['size'], 512),
                       Volume.ADMIN_STATE_ENABLED,
                       self.system.id,
                       pool_id)
@@ -807,7 +820,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                 tmp_exports[key] = [export]
 
         # Walk through the options
-        for le in tmp_exports.values():
+        for le in list(tmp_exports.values()):
             export_id = ""
             root = []
             rw = []
@@ -955,13 +968,13 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         self.rpc_id += 1
 
         try:
-            request = urllib2.Request(self.url, data, self.headers)
-            response_obj = urllib2.urlopen(request)
+            request = Request(self.url, data.encode('utf-8'), self.headers)
+            response_obj = urlopen(request)
         except socket.error:
             raise LsmError(ErrorNumber.NETWORK_ERROR,
                            "Unable to connect to targetd, uri right?")
 
-        response_data = response_obj.read()
+        response_data = response_obj.read().decode('utf-8')
         response = json.loads(response_data)
         if response.get('error', None) is None:
             return response.get('result')

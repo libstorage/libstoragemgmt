@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python@PY_VERSION@
 
 # Copyright (C) 2012 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
@@ -17,7 +17,7 @@
 # Author: tasleson
 from lsm.lsmcli import cmd_line_wrapper
 
-## Command line interface for libStorageMgmt.
+# Command line interface for libStorageMgmt.
 # This is contained in a separate class which can be shared across all the py
 # plug-ins.
 if __name__ == '__main__':

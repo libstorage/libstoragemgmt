@@ -18,12 +18,13 @@ import json
 import socket
 import string
 import os
-from _common import SocketEOF as _SocketEOF
-from _common import LsmError, ErrorNumber
-from _data import DataDecoder as _DataDecoder, DataEncoder as _DataEncoder
 import unittest
 import threading
 
+from lsm._common import LsmError, ErrorNumber
+from lsm._common import SocketEOF as _SocketEOF
+from lsm._data import DataDecoder as _DataDecoder
+from lsm._data import DataEncoder as _DataEncoder
 
 class TransPort(object):
     """
@@ -50,14 +51,14 @@ class TransPort(object):
         if l < 1:
             raise ValueError("Trying to read less than 1 byte!")
 
-        data = ""
+        data = bytearray()
         while len(data) < l:
             r = self.s.recv(l - len(data))
             if not r:
                 raise _SocketEOF()
             data += r
 
-        return data
+        return data.decode("utf-8")
 
     def _send_msg(self, msg):
         """
@@ -69,9 +70,9 @@ class TransPort(object):
             raise ValueError("Msg argument empty")
 
         # Note: Don't catch io exceptions at this level!
-        s = string.zfill(len(msg), self.HDR_LEN) + msg
+        s = str.zfill(str(len(msg)), self.HDR_LEN) + msg
         # common.Info("SEND: ", msg)
-        self.s.sendall(s)
+        self.s.sendall(bytes(s.encode('utf-8')))
 
     def _recv_msg(self):
         """

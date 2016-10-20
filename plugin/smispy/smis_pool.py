@@ -14,8 +14,11 @@
 #
 # Author: Gris Ge <fge@redhat.com>
 
-from utils import merge_list, path_str_to_cim_path, cim_path_to_path_str
-import dmtf
+from lsm.plugin.smispy.utils import (merge_list, path_str_to_cim_path,
+                                     cim_path_to_path_str)
+from lsm.plugin.smispy import dmtf
+
+
 from lsm import LsmError, ErrorNumber, Pool
 
 
@@ -36,8 +39,6 @@ def cim_pools_of_cim_sys_path(smis_common, cim_sys_path, property_list=None):
         * IBM ArrayPool(IBMTSDS_ArrayPool)
         * IBM ArraySitePool(IBMTSDS_ArraySitePool)
     """
-    cim_pools = []
-
     if property_list is None:
         property_list = ['Primordial', 'Usage']
     else:
@@ -96,7 +97,7 @@ def pool_id_of_cim_pool(cim_pool):
         raise LsmError(
             ErrorNumber.PLUGIN_BUG,
             "pool_id_of_cim_pool(): Got CIM_StoragePool with no 'InstanceID' "
-            "property: %s, %s" % (cim_pool.items(), cim_pool.path))
+            "property: %s, %s" % (list(cim_pool.items()), cim_pool.path))
 
 
 def cim_pool_pros():
@@ -167,7 +168,7 @@ def _pool_element_type(smis_common, cim_pool):
         elif cim_pool.classname == 'LSIESG_StoragePool':
             element_type = Pool.ELEMENT_TYPE_VOLUME
 
-    if 'Usage' in cim_pool:
+    if 'Usage' in cim_pool and cim_pool['Usage'] is not None:
         usage = cim_pool['Usage']
 
         if usage == dmtf.POOL_USAGE_UNRESTRICTED:

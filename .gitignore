@@ -33,4 +33,6 @@ daemon/lsmd
 *.pyc
 test/tester
 tools/udev/scan-scsi-target
+tools/lsmcli/lsmcli
 test/runtests.sh
+plugin/*/*_lsmplugin

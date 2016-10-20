@@ -10,7 +10,6 @@
 # 3 Unable to lookup RegisteredName in registered profile (interop support)
 # 4 if we cannot talk to provider (network error, connection refused etc.)
 
-
 from pywbem import Uint16, CIMError
 import pywbem
 import sys
@@ -66,10 +65,10 @@ def systems(url, username, password):
                     rps.path, ResultClass='CIM_ComputerSystem',
                     AssocClass='CIM_ElementConformsToProfile')
                 if len(cim_systems):
-                    print 'Found %d system(s)' % (len(cim_systems))
+                    print('Found %d system(s)' % (len(cim_systems)))
                     rc = 0
                 else:
-                    print 'No systems found!'
+                    print('No systems found!')
                     rc = 1
             else:
                 rc = 3
@@ -77,14 +76,14 @@ def systems(url, username, password):
         if 'Unauthorized' in str(e):
             rc = 2
         else:
-            print 'Exception: ', str(e)
+            print('Exception: ', str(e))
     return rc
 
 
 if __name__ == '__main__':
     if len(sys.argv) != 4:
-        print "syntax: ./smisping.py <URL> <username> <password>"
-        print " eg. smisping.py https://127.0.0.1:5989 <username> <passwd>"
+        print("syntax: ./smisping.py <URL> <username> <password>")
+        print(" eg. smisping.py https://127.0.0.1:5989 <username> <passwd>")
         sys.exit(1)
 
     sys.exit(systems(*(sys.argv[1:])))

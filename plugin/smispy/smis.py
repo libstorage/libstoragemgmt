@@ -15,28 +15,25 @@
 # Author: tasleson
 #         Gris Ge <fge@redhat.com>
 
-from string import split
 import time
 import copy
-
-import pywbem
-from pywbem import CIMError
-import smis_cap
-import smis_sys
-import smis_pool
-import smis_disk
-from lsm.plugin.smispy import smis_vol
-from lsm.plugin.smispy import smis_ag
-import dmtf
 
 from lsm import (IStorageAreaNetwork, uri_parse, LsmError, ErrorNumber,
                  JobStatus, md5, Volume, AccessGroup, Pool,
                  VERSION, TargetPort,
                  search_property)
+from lsm.plugin.smispy.WBEM import wbem
+from lsm.plugin.smispy.smis_common import SmisCommon
+from lsm.plugin.smispy import smis_cap
+from lsm.plugin.smispy import smis_sys
+from lsm.plugin.smispy import smis_pool
+from lsm.plugin.smispy import smis_disk
+from lsm.plugin.smispy import smis_vol
+from lsm.plugin.smispy import smis_ag
+from lsm.plugin.smispy import dmtf
+from lsm.plugin.smispy.utils import (merge_list, handle_cim_errors,
+                                     hex_string_format)
 
-from utils import (merge_list, handle_cim_errors, hex_string_format)
-
-from smis_common import SmisCommon
 
 # Variable Naming scheme:
 #   cim_xxx         CIMInstance
@@ -140,7 +137,7 @@ class Smis(IStorageAreaNetwork):
         system_list = None
 
         if 'systems' in u['parameters']:
-            system_list = split(u['parameters']["systems"], ":")
+            system_list = str.split(u['parameters']["systems"], ":")
 
         namespace = None
         if 'namespace' in u['parameters']:
@@ -188,6 +185,8 @@ class Smis(IStorageAreaNetwork):
         Given a job id returns the current status as a tuple
         (status (enum), percent_complete(integer), volume (None or Volume))
         """
+        status = JobStatus.INPROGRESS
+        percent_complete = 0
         completed_item = None
         status = JobStatus.ERROR
         percent_complete = 0
@@ -195,7 +194,7 @@ class Smis(IStorageAreaNetwork):
 
         (ignore, retrieve_data, method_data) = SmisCommon.parse_job_id(job_id)
 
-        if retrieve_data in Smis._JOB_ERROR_HANDLER.keys():
+        if retrieve_data in list(Smis._JOB_ERROR_HANDLER.keys()):
             error_handler = Smis._JOB_ERROR_HANDLER[retrieve_data]
 
         cim_job_pros = SmisCommon.cim_job_pros()
@@ -266,7 +265,6 @@ class Smis(IStorageAreaNetwork):
         Given a concrete job instance, return referenced volume as lsm volume
         """
         cim_vol_pros = smis_vol.cim_vol_pros()
-        cim_vols = []
         # Workaround for HP 3PAR:
         #   When doing volume-replicate for 'COPY" type, Associators() will
         #   return [None] if PropertyList defined. It works well
@@ -410,7 +408,7 @@ class Smis(IStorageAreaNetwork):
         in_params = {'ElementName': volume_name,
                      'ElementType': dmtf_element_type,
                      'InPool': cim_pool_path,
-                     'Size': pywbem.Uint64(size_bytes)}
+                     'Size': wbem.Uint64(size_bytes)}
 
         error_handler = Smis._JOB_ERROR_HANDLER[
             SmisCommon.JOB_RETRIEVE_VOLUME_CREATE]
@@ -427,7 +425,7 @@ class Smis(IStorageAreaNetwork):
         # Get the Configuration service for the system we are interested in.
         cim_scs = self._c.cim_scs_of_sys_id(vol.system_id)
 
-        in_params = {'Operation': pywbem.Uint16(2),
+        in_params = {'Operation': wbem.Uint16(2),
                      'Synchronization': sync.path}
 
         self._c.invoke_method_wait(
@@ -440,7 +438,7 @@ class Smis(IStorageAreaNetwork):
         cim_rs = self._c.cim_rs_of_sys_id(vol.system_id, raise_error=False)
 
         if cim_rs:
-            in_params = {'Operation': pywbem.Uint16(8),
+            in_params = {'Operation': wbem.Uint16(8),
                          'Synchronization': sync.path}
 
             self._c.invoke_method_wait(
@@ -450,7 +448,7 @@ class Smis(IStorageAreaNetwork):
         cim_rs = self._c.cim_rs_of_sys_id(vol.system_id, raise_error=False)
 
         if cim_rs:
-            in_params = {'Operation': pywbem.Uint16(19),
+            in_params = {'Operation': wbem.Uint16(19),
                          'Synchronization': sync.path}
             self._c.invoke_method_wait(
                 'ModifyReplicaSynchronization', cim_rs.path, in_params)
@@ -506,8 +504,8 @@ class Smis(IStorageAreaNetwork):
         try:
             ss = self._c.References(cim_vol_path,
                                     ResultClass='CIM_StorageSynchronized')
-        except pywbem.CIMError as e:
-            if e[0] == pywbem.CIM_ERR_INVALID_CLASS:
+        except wbem.CIMError as e:
+            if e.args[0] == wbem.CIM_ERR_INVALID_CLASS:
                 return
             else:
                 raise
@@ -580,7 +578,7 @@ class Smis(IStorageAreaNetwork):
             while cim_vol is not None:
                 cim_vol = self._c.GetInstance(cim_vol_path, PropertyList=[])
                 time.sleep(0.125)
-        except (LsmError, CIMError) as e:
+        except (LsmError, wbem.CIMError):
             pass
 
     @handle_cim_errors
@@ -624,9 +622,9 @@ class Smis(IStorageAreaNetwork):
 
         cim_vol_path = smis_vol.lsm_vol_to_cim_vol_path(self._c, volume)
 
-        in_params = {'ElementType': pywbem.Uint16(2),
+        in_params = {'ElementType': wbem.Uint16(2),
                      'TheElement': cim_vol_path,
-                     'Size': pywbem.Uint64(new_size_bytes)}
+                     'Size': wbem.Uint64(new_size_bytes)}
 
         return self._c.invoke_method(
             'CreateOrModifyElementFromStoragePool', cim_scs.path, in_params,
@@ -757,21 +755,18 @@ class Smis(IStorageAreaNetwork):
 
     def _cim_dev_mg_path_create(self, cim_gmms_path, name, cim_vol_path,
                                 vol_id):
-        rc = SmisCommon.SNIA_INVOKE_FAILED
-        out = None
 
         in_params = {
             'GroupName': name,
             'Members': [cim_vol_path],
             'Type': dmtf.MASK_GROUP_TYPE_DEV}
 
-        cim_dev_mg_path = None
         try:
             cim_dev_mg_path = self._c.invoke_method_wait(
                 'CreateGroup', cim_gmms_path, in_params,
                 out_key='MaskingGroup',
                 expect_class='CIM_TargetMaskingGroup')
-        except (LsmError, CIMError):
+        except (LsmError, wbem.CIMError):
             cim_dev_mg_path = self._check_exist_cim_dev_mg(
                 name, cim_gmms_path, cim_vol_path, vol_id)
             if cim_dev_mg_path is None:
@@ -787,9 +782,6 @@ class Smis(IStorageAreaNetwork):
         we will mask to all target ports.
         Return CIMInstanceName of CIM_TargetMaskingGroup
         """
-        rc = SmisCommon.SNIA_INVOKE_FAILED
-        out = None
-
         in_params = {
             'GroupName': name,
             'Type': dmtf.MASK_GROUP_TYPE_TGT}
@@ -808,12 +800,11 @@ class Smis(IStorageAreaNetwork):
             # Already checked at the beginning of this method
             pass
 
-        cim_tgt_mg_path = None
         try:
             cim_tgt_mg_path = self._c.invoke_method_wait(
                 'CreateGroup', cim_gmms_path, in_params,
                 out_key='MaskingGroup', expect_class='CIM_TargetMaskingGroup')
-        except (LsmError, CIMError):
+        except (LsmError, wbem.CIMError):
             cim_tgt_mg_path = self._check_exist_cim_tgt_mg(name)
             if cim_tgt_mg_path is None:
                 raise
@@ -1146,10 +1137,10 @@ class Smis(IStorageAreaNetwork):
 
         try:
             cim_ccs = self._c.cim_ccs_of_sys_id(system_id, raise_error=False)
-        except CIMError as ce:
-            error_code = tuple(ce)[0]
-            if error_code == pywbem.CIM_ERR_INVALID_CLASS or \
-               error_code == pywbem.CIM_ERR_INVALID_PARAMETER:
+        except wbem.CIMError as ce:
+            error_code = ce.args[0]
+            if error_code == wbem.CIM_ERR_INVALID_CLASS or \
+               error_code == wbem.CIM_ERR_INVALID_PARAMETER:
                 raise LsmError(ErrorNumber.NO_SUPPORT,
                                'AccessGroup is not supported ' +
                                'by this array')
@@ -1218,7 +1209,6 @@ class Smis(IStorageAreaNetwork):
             if cim_sys.path.classname == 'Clar_StorageSystem':
                 mask_type = smis_cap.MASK_TYPE_MASK
 
-        cim_spc_pros = None
         if mask_type == smis_cap.MASK_TYPE_GROUP:
             cim_spc_pros = []
         else:
@@ -1488,7 +1478,7 @@ class Smis(IStorageAreaNetwork):
         if not cim_job['DeleteOnCompletion']:
             try:
                 self._c.DeleteInstance(cim_job.path)
-            except CIMError:
+            except wbem.CIMError:
                 pass
 
     @handle_cim_errors
@@ -1782,10 +1772,10 @@ class Smis(IStorageAreaNetwork):
                 AssocClass='CIM_ComponentCS',
                 Role='GroupComponent',
                 ResultRole='PartComponent')
-        except CIMError as ce:
-            error_code = tuple(ce)[0]
-            if error_code == pywbem.CIM_ERR_INVALID_CLASS or \
-               error_code == pywbem.CIM_ERR_NOT_SUPPORTED:
+        except wbem.CIMError as ce:
+            error_code = ce.args[0]
+            if error_code == wbem.CIM_ERR_INVALID_CLASS or \
+               error_code == wbem.CIM_ERR_NOT_SUPPORTED:
                 return []
 
         if len(leaf_cim_syss_path) > 0:
@@ -1798,10 +1788,6 @@ class Smis(IStorageAreaNetwork):
     @handle_cim_errors
     def target_ports(self, search_key=None, search_value=None, flags=0):
         rc = []
-
-        cim_fc_tgt_pros = ['UsageRestriction', 'ElementName', 'SystemName',
-                           'PermanentAddress', 'PortDiscriminator',
-                           'LinkTechnology', 'DeviceID']
 
         cim_syss = smis_sys.root_cim_sys(
             self._c, property_list=smis_sys.cim_sys_id_pros())
@@ -1991,7 +1977,7 @@ class Smis(IStorageAreaNetwork):
                 'CreateGroup', cim_gmms.path, in_params,
                 out_key='MaskingGroup',
                 expect_class='CIM_InitiatorMaskingGroup')
-        except (LsmError, CIMError):
+        except (LsmError, wbem.CIMError):
             # Check possible failure
             # 1. Initiator already exist in other group.
             exist_cim_init_mg_paths = self._c.AssociatorNames(

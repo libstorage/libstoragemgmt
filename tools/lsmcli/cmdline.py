@@ -21,16 +21,9 @@ import getpass
 import time
 import tty
 import termios
-
-try:
-    from collections import OrderedDict
-except ImportError:
-    # python 2.6 or earlier, use backport
-    from ordereddict import OrderedDict
-
 from argparse import ArgumentParser
 from argparse import RawTextHelpFormatter
-
+import six
 from lsm import (Client, Pool, VERSION, LsmError, Disk,
                  Volume, JobStatus, ErrorNumber, BlockRange,
                  uri_parse, Proxy, size_human_2_size_bytes,
@@ -48,8 +41,18 @@ _CONNECTION_FREE_COMMANDS = ['local-disk-list',
                              'local-disk-fault-led-on',
                              'local-disk-fault-led-off']
 
+if six.PY3:
+    long = int
 
-## Wraps the invocation to the command line
+try:
+    from collections import OrderedDict
+except ImportError:
+    # python 2.6 or earlier, use backport
+    # noinspection PyUnresolvedReferences
+    from ordereddict import OrderedDict
+
+
+# Wraps the invocation to the command line
 # @param    c   Object to invoke calls on (optional)
 def cmd_line_wrapper(c=None):
     """
@@ -78,6 +81,8 @@ def cmd_line_wrapper(c=None):
         # argparse raises a SystemExit
         err_exit = se.code
     except:
+        import traceback
+        traceback.print_exc(file=sys.stdout)
         # We get *any* other exception don't return a successful error code
         err_exit = 2
     finally:
@@ -92,7 +97,7 @@ def cmd_line_wrapper(c=None):
         sys.exit(err_exit)
 
 
-## Get a character from stdin without needing a return key pressed.
+# Get a character from stdin without needing a return key pressed.
 # Returns the character pressed
 def getch():
     fd = sys.stdin.fileno()
@@ -115,12 +120,16 @@ def parse_convert_init(init_id):
     valid, init_type, init_id = AccessGroup.initiator_id_verify(init_id)
 
     if valid:
-        return (init_id, init_type)
+        return init_id, init_type
 
     raise ArgError("--init-id %s is not a valid WWPN or iSCSI IQN" % init_id)
 
 
 _CHILD_OPTION_DST_PREFIX = 'child_'
+
+
+def _upper(s):
+    return s.upper()
 
 
 def _add_common_options(arg_parser, is_child=False):
@@ -202,7 +211,7 @@ def _add_sd_paths(lsm_obj):
     return lsm_obj
 
 
-## This class represents a command line argument error
+# This class represents a command line argument error
 class ArgError(Exception):
     def __init__(self, message, *args, **kwargs):
         """
@@ -215,7 +224,7 @@ class ArgError(Exception):
         return "%s: error: %s\n" % (os.path.basename(sys.argv[0]), self.msg)
 
 
-## Finds an item based on the id.  Each list item requires a member "id"
+# Finds an item based on the id.  Each list item requires a member "id"
 # @param    l       list to search
 # @param    the_id  the id to match
 # @param    friendly_name - name to put in the exception saying what we
@@ -243,7 +252,7 @@ policy_types = ['ENABLE', 'DISABLE']
 policy_help = 'Policy: ' + ', '.join(policy_types)
 policy_opt = dict(name="--policy", metavar='<POLICY>',
                   help=policy_help, choices=policy_types,
-                  type=str.upper)
+                  type=_upper)
 
 write_cache_policy_types = ['WB', 'AUTO', 'WT']
 write_cache_policy_help = 'Write cache policys: ' + \
@@ -253,7 +262,7 @@ write_cache_policy_help = 'Write cache policys: ' + \
 write_cache_policy_opt = dict(name="--policy", metavar='<POLICY>',
                               help=write_cache_policy_help,
                               choices=write_cache_policy_types,
-                              type=str.upper)
+                              type=_upper)
 
 size_help = 'Can use B, KiB, MiB, GiB, TiB, PiB postfix (IEC sizing)'
 
@@ -305,7 +314,7 @@ cmds = (
                       "\n\nWhen listing SNAPSHOTS, it requires --fs <FS_ID>.",
                  metavar='<TYPE>',
                  choices=list_choices,
-                 type=str.upper),
+                 type=_upper),
         ],
         optional=[
             dict(sys_id_filter_opt),
@@ -352,7 +361,7 @@ cmds = (
             dict(name="--provisioning", help=provision_help,
                  default='DEFAULT',
                  choices=provision_types,
-                 type=str.upper),
+                 type=_upper),
         ],
     ),
 
@@ -371,7 +380,7 @@ cmds = (
                       "\n    ".
                       join(VolumeRAIDInfo.VOL_CREATE_RAID_TYPES_STR),
                  choices=VolumeRAIDInfo.VOL_CREATE_RAID_TYPES_STR,
-                 type=str.upper),
+                 type=_upper),
         ],
         optional=[
             dict(name="--strip-size",
@@ -908,9 +917,9 @@ aliases = dict(
 )
 
 
-## Class that encapsulates the command line arguments for lsmcli
+# Class that encapsulates the command line arguments for lsmcli
 # Note: This class is used by lsmcli and any python plug-ins.
-class CmdLine:
+class CmdLine(object):
     """
     Command line interface class.
     """
@@ -1001,8 +1010,7 @@ class CmdLine:
             rc += "   {0:<18}   Alias of '{1}'\n".format(k, v)
         return rc
 
-
-    ## All the command line arguments and options are created in this method
+    # All the command line arguments and options are created in this method
     def cli(self):
         """
         Command line interface parameters
@@ -1014,9 +1022,9 @@ class CmdLine:
             description='The libStorageMgmt command line interface.'
                         ' Run %(prog)s <command> -h for more on each command.',
             epilog=CmdLine.alias_help_text() +
-                   '\n\nCopyright 2012-2016 Red Hat, Inc.\n'
-                   'Please report bugs to '
-                   '<libstoragemgmt-devel@lists.fedorahosted.org>\n',
+                        '\n\nCopyright 2012-2016 Red Hat, Inc.\n'
+                        'Please report bugs to '
+                        '<libstoragemgmt-devel@lists.fedorahosted.org>\n',
             formatter_class=RawTextHelpFormatter)
         _add_common_options(parser, is_child=False)
 
@@ -1045,11 +1053,16 @@ class CmdLine:
             sub_parser.set_defaults(
                 func=getattr(self, cmd['name'].replace("-", "_")))
 
+        if len(sys.argv) == 1:
+            parser.print_usage()
+            exit(1)
+
         self.parser = parser
 
         known_args = parser.parse_args(args=CmdLine.handle_alias())
         # Copy child value to root.
-        for k, v in vars(known_args).iteritems():
+
+        for k, v in vars(known_args).items():
             if k.startswith(_CHILD_OPTION_DST_PREFIX):
                 root_k = k[len(_CHILD_OPTION_DST_PREFIX):]
                 if getattr(known_args, root_k) is None or \
@@ -1058,7 +1071,7 @@ class CmdLine:
 
         return known_args
 
-    ## Display the types of nfs client authentication that are supported.
+    # Display the types of nfs client authentication that are supported.
     # @return None
     def display_nfs_client_authentication(self):
         """
@@ -1069,7 +1082,7 @@ class CmdLine:
         else:
             out(", ".join(self.c.export_auth()))
 
-    ## Method that calls the appropriate method based on what the list type is
+    # Method that calls the appropriate method based on what the list type is
     # @param    args    Argparse argument object
     def list(self, args):
         search_key = None
@@ -1199,7 +1212,7 @@ class CmdLine:
         else:
             raise ArgError("unsupported listing type=%s" % args.type)
 
-    ## Creates an access group.
+    # Creates an access group.
     def access_group_create(self, args):
         system = _get_item(self.c.systems(), args.sys, "System")
         (init_id, init_type) = parse_convert_init(args.init)
@@ -1218,11 +1231,11 @@ class CmdLine:
             return self.c.access_group_initiator_delete(lsm_ag, init_id,
                                                         init_type)
 
-    ## Adds an initiator from an access group
+    # Adds an initiator from an access group
     def access_group_add(self, args):
         self.display_data([self._add_rm_access_grp_init(args, True)])
 
-    ## Removes an initiator from an access group
+    # Removes an initiator from an access group
     def access_group_remove(self, args):
         self.display_data([self._add_rm_access_grp_init(args, False)])
 
@@ -1247,19 +1260,19 @@ class CmdLine:
         groups = self.c.access_groups_granted_to_volume(vol)
         self.display_data(groups)
 
-    ## Used to delete access group
+    # Used to delete access group
     def access_group_delete(self, args):
         agl = self.c.access_groups()
         group = _get_item(agl, args.ag, "Access Group")
         return self.c.access_group_delete(group)
 
-    ## Used to delete a file system
+    # Used to delete a file system
     def fs_delete(self, args):
         fs = _get_item(self.c.fs(), args.fs, "File System")
         if self.confirm_prompt(True):
             self._wait_for_it("fs-delete", self.c.fs_delete(fs), None)
 
-    ## Used to create a file system
+    # Used to create a file system
     def fs_create(self, args):
         p = _get_item(self.c.pools(), args.pool, "Pool")
         fs = self._wait_for_it("fs-create",
@@ -1267,7 +1280,7 @@ class CmdLine:
                                                  self._size(args.size)))
         self.display_data([fs])
 
-    ## Used to resize a file system
+    # Used to resize a file system
     def fs_resize(self, args):
         fs = _get_item(self.c.fs(), args.fs, "File System")
         size = self._size(args.size)
@@ -1277,7 +1290,7 @@ class CmdLine:
                                    *self.c.fs_resize(fs, size))
             self.display_data([fs])
 
-    ## Used to clone a file system
+    # Used to clone a file system
     def fs_clone(self, args):
         src_fs = _get_item(
             self.c.fs(), args.src_fs, "Source File System")
@@ -1292,7 +1305,7 @@ class CmdLine:
             "fs_clone", *self.c.fs_clone(src_fs, args.dst_name, ss))
         self.display_data([fs])
 
-    ## Used to clone a file(s)
+    # Used to clone a file(s)
     def file_clone(self, args):
         fs = _get_item(self.c.fs(), args.fs, "File System")
         if self.args.backing_snapshot:
@@ -1306,7 +1319,7 @@ class CmdLine:
             "fs_file_clone", self.c.fs_file_clone(fs, args.src, args.dst, ss),
             None)
 
-    ## Converts a size parameter into the appropriate number of bytes
+    # Converts a size parameter into the appropriate number of bytes
     # @param    s   Size to convert to bytes handles B, K, M, G, T, P postfix
     # @return Size in bytes
     @staticmethod
@@ -1359,7 +1372,7 @@ class CmdLine:
         else:
             out("Description: %s Version: %s" % (desc, version))
 
-    ## Creates a volume
+    # Creates a volume
     def volume_create(self, args):
         # Get pool
         p = _get_item(self.c.pools(), args.pool, "Pool")
@@ -1372,7 +1385,7 @@ class CmdLine:
                 vol_provision_str_to_type(args.provisioning)))
         self.display_data([_add_sd_paths(vol)])
 
-    ## Creates a snapshot
+    # Creates a snapshot
     def fs_snap_create(self, args):
         # Get fs
         fs = _get_item(self.c.fs(), args.fs, "File System")
@@ -1383,7 +1396,7 @@ class CmdLine:
 
         self.display_data([ss])
 
-    ## Restores a snap shot
+    # Restores a snap shot
     def fs_snap_restore(self, args):
         # Get snapshot
         fs = _get_item(self.c.fs(), args.fs, "File System")
@@ -1405,14 +1418,14 @@ class CmdLine:
                     fs, ss, self.args.file, self.args.fileas, flag_all_files),
                 None)
 
-    ## Deletes a volume
+    # Deletes a volume
     def volume_delete(self, args):
         v = _get_item(self.c.volumes(), args.vol, "Volume")
         if self.confirm_prompt(True):
             self._wait_for_it("volume-delete", self.c.volume_delete(v),
                               None)
 
-    ## Deletes a snap shot
+    # Deletes a snap shot
     def fs_snap_delete(self, args):
         fs = _get_item(self.c.fs(), args.fs, "File System")
         ss = _get_item(self.c.fs_snapshots(fs), args.snap, "Snapshot")
@@ -1421,7 +1434,7 @@ class CmdLine:
             self._wait_for_it("fs_snap_delete",
                               self.c.fs_snapshot_delete(fs, ss), None)
 
-    ## Waits for an operation to complete by polling for the status of the
+    # Waits for an operation to complete by polling for the status of the
     # operations.
     # @param    msg     Message to display if this job fails
     # @param    job     The job id to wait on
@@ -1450,7 +1463,7 @@ class CmdLine:
                     # Something better to do here?
                     raise ArgError(msg + " job error code= " + str(s))
 
-    ## Retrieves the status of the specified job
+    # Retrieves the status of the specified job
     def job_status(self, args):
         (s, percent, item) = self.c.job_status(args.job)
 
@@ -1463,7 +1476,7 @@ class CmdLine:
             out(str(percent))
             self.shutdown(ErrorNumber.JOB_STARTED)
 
-    ## Replicates a volume
+    # Replicates a volume
     def volume_replicate(self, args):
         p = None
         if args.pool:
@@ -1480,7 +1493,7 @@ class CmdLine:
             *self.c.volume_replicate(p, rep_type, v, args.name))
         self.display_data([_add_sd_paths(vol)])
 
-    ## Replicates a range of a volume
+    # Replicates a range of a volume
     def volume_replicate_range(self, args):
         src = _get_item(self.c.volumes(), args.src_vol, "Source Volume")
         dst = _get_item(self.c.volumes(), args.dst_vol,
@@ -1507,7 +1520,7 @@ class CmdLine:
         if self.confirm_prompt(False):
             self.c.volume_replicate_range(rep_type, src, dst, ranges)
 
-    ##
+    #
     # Returns the block size in bytes for each block represented in
     # volume_replicate_range
     def volume_replicate_range_block_size(self, args):
@@ -1524,7 +1537,7 @@ class CmdLine:
         vol = _get_item(self.c.volumes(), args.vol, "Volume")
         return self.c.volume_unmask(ag, vol)
 
-    ## Re-sizes a volume
+    # Re-sizes a volume
     def volume_resize(self, args):
         v = _get_item(self.c.volumes(), args.vol, "Volume")
         size = self._size(args.size)
@@ -1534,22 +1547,22 @@ class CmdLine:
                                     *self.c.volume_resize(v, size))
             self.display_data([_add_sd_paths(vol)])
 
-    ## Enable a volume
+    # Enable a volume
     def volume_enable(self, args):
         v = _get_item(self.c.volumes(), args.vol, "Volume")
         self.c.volume_enable(v)
 
-    ## Disable a volume
+    # Disable a volume
     def volume_disable(self, args):
         v = _get_item(self.c.volumes(), args.vol, "Volume")
         self.c.volume_disable(v)
 
-    ## Removes a nfs export
+    # Removes a nfs export
     def fs_unexport(self, args):
         export = _get_item(self.c.exports(), args.export, "NFS Export")
         self.c.export_remove(export)
 
-    ## Exports a file system as a NFS export
+    # Exports a file system as a NFS export
     def fs_export(self, args):
         fs = _get_item(self.c.fs(), args.fs, "File System")
 
@@ -1570,13 +1583,13 @@ class CmdLine:
             None)
         self.display_data([export])
 
-    ## Displays volume dependants.
+    # Displays volume dependants.
     def volume_dependants(self, args):
         v = _get_item(self.c.volumes(), args.vol, "Volume")
         rc = self.c.volume_child_dependency(v)
         out(rc)
 
-    ## Removes volume dependants.
+    # Removes volume dependants.
     def volume_dependants_rm(self, args):
         v = _get_item(self.c.volumes(), args.vol, "Volume")
         self._wait_for_it("volume-dependant-rm",
@@ -1648,13 +1661,13 @@ class CmdLine:
         lsm_system = _get_item(self.c.systems(), args.sys, "System")
         self.display_data([lsm_system])
 
-    ## Displays file system dependants
+    # Displays file system dependants
     def fs_dependants(self, args):
         fs = _get_item(self.c.fs(), args.fs, "File System")
         rc = self.c.fs_child_dependency(fs, args.file)
         out(rc)
 
-    ## Removes file system dependants
+    # Removes file system dependants
     def fs_dependants_rm(self, args):
         fs = _get_item(self.c.fs(), args.fs, "File System")
         self._wait_for_it("fs-dependants-rm",
@@ -1696,7 +1709,7 @@ class CmdLine:
             return True
         return False
 
-    ## Class constructor.
+    # Class constructor.
     def __init__(self):
         self.uri = None
         self.c = None
@@ -1726,7 +1739,7 @@ class CmdLine:
             # the same in all cases, even though it isn't technically
             # required for the client library (static method)
             # TODO: Make this not necessary.
-            if ('type' in self.args and self.args.type == "PLUGINS"):
+            if 'type' in self.args and self.args.type == "PLUGINS":
                 self.uri = "sim://"
                 self.password = None
             else:
@@ -1742,7 +1755,7 @@ class CmdLine:
             if u['username'] is None:
                 raise ArgError("password specified with no user name in uri")
 
-    ## Does appropriate clean-up
+    # Does appropriate clean-up
     # @param    ec      The exit code
     def shutdown(self, ec=None):
         if self.cleanup:
@@ -1751,7 +1764,7 @@ class CmdLine:
         if ec:
             sys.exit(ec)
 
-    ## Process the specified command
+    # Process the specified command
     # @param    cli     The object instance to invoke methods on.
     def process(self, cli=None):
         """
@@ -1771,8 +1784,8 @@ class CmdLine:
                 self.c = Proxy(Client(self.uri, self.password, self.tmo))
 
                 if os.getenv('LSM_DEBUG_PLUGIN'):
-                    raw_input("Attach debugger to plug-in, "
-                              "press <return> when ready...")
+                    input("Attach debugger to plug-in, "
+                          "press <return> when ready...")
 
                 self.cleanup = self.c.close
 

@@ -1,6 +1,7 @@
 %bcond_without megaraid
 %bcond_without hpsa
 %bcond_without test
+%bcond_with python3
 
 # Use one-line macro for OBS workaround:
 #   https://bugzilla.novell.com/show_bug.cgi?id=864323
@@ -13,6 +14,9 @@
 
 %{?_with_test: %global with_test 1 }
 %{?_without_test: %global with_test 0 }
+
+%{?_with_python3: %global with_python3 1 }
+%{?_without_python3: %global with_python3 0 }
 
 %define libsoname libstoragemgmt
 
@@ -38,6 +42,12 @@
 # For RHEL, fdupes is in EPEL repo.
 %define do_fdupes 1
 %endif
+
+%if 0%{?fedora} >= 24
+%define with_python3 1
+%endif
+
+%global py3_build_dir %{_builddir}/%{name}-%{version}-%{release}-python3
 
 Name:           libstoragemgmt
 Version:        @VERSION@
@@ -75,7 +85,6 @@ BuildRequires:  python-argparse
 %else
 BuildRequires:  systemd-devel
 %endif
-BuildRequires:  python-devel
 
 %if 0%{?do_fdupes}
 BuildRequires:  fdupes
@@ -97,8 +106,14 @@ Requires(postun): systemd
 
 BuildRequires:  chrpath
 BuildRequires:  valgrind
-BuildRequires:  python-pyudev
 BuildRequires:  procps
+%if 0%{?with_python3}
+BuildRequires:  python3-six
+BuildRequires:  python3-devel
+%endif
+BuildRequires:  python-six
+BuildRequires:  python-argparse
+BuildRequires:  python-devel
 
 %description
 The libStorageMgmt library will provide a vendor agnostic open source storage
@@ -111,7 +126,11 @@ executing plug-ins in a separate process (lsmd).
 %package        -n %{libstoragemgmt}
 Summary:        Storage array management library
 Group:          System Environment/Libraries
+%if 0%{?with_python3}
+Requires:       python3-%{libstoragemgmt}
+%else
 Requires:       %{libstoragemgmt}-python
+%endif
 
 %description    -n %{libstoragemgmt}
 The libStorageMgmt library will provide a vendor agnostic open source storage
@@ -153,12 +172,41 @@ Group:          System Environment/Libraries
 Requires:       %{libstoragemgmt} = %{version}-%{release}
 
 %description    -n %{libstoragemgmt}-python-clibs
-The %{libstoragemgmt}-python-clibs package contains python client C extension
+The python3-%{libstoragemgmt}-clibs package contains python client C extension
 libraries.
+
+%if 0%{?with_python3}
+%package	-n python3-%{libstoragemgmt}
+Summary:        Python 3 client libraries and plug-in support for %{libstoragemgmt}
+Group:          System Environment/Libraries
+Requires:       %{libstoragemgmt} = %{version}-%{release}
+BuildArch:      noarch
+Requires:       python3-%{libstoragemgmt}-clibs
+
+%description    -n python3-%{libstoragemgmt}
+The python3-%{libstoragemgmt} package contains python 3 client libraries as
+well as python framework support and open source plug-ins written in python 3.
+
+%package        -n python3-%{libstoragemgmt}-clibs
+Summary:        Python 3 C extension module for %{libstoragemgmt}
+Group:          System Environment/Libraries
+Requires:       %{libstoragemgmt} = %{version}-%{release}
+
+%description    -n python3-%{libstoragemgmt}-clibs
+The python3-%{libstoragemgmt}-clibs package contains python 3 client C extension
+libraries.
+%endif
 
 %package        -n %{libstoragemgmt}-smis-plugin
 Summary:        Files for SMI-S generic array support for %{libstoragemgmt}
 Group:          System Environment/Libraries
+%if 0%{?with_python3}
+BuildRequires:  python3-pywbem
+BuildRequires:  pywbem
+Requires:       python3-pywbem
+Requires:       python3-%{libstoragemgmt} = %{version}-%{release}
+%else
+Requires:       %{libstoragemgmt}-python = %{version}-%{release}
 %if 0%{?suse_version}
 BuildRequires:  python-pywbem
 Requires:       python-pywbem
@@ -166,7 +214,7 @@ Requires:       python-pywbem
 BuildRequires:  pywbem
 Requires:       pywbem
 %endif
-Requires:       %{libstoragemgmt}-python = %{version}-%{release}
+%endif
 BuildArch:      noarch
 
 %description    -n %{libstoragemgmt}-smis-plugin
@@ -177,14 +225,11 @@ array support.
 %package        -n %{libstoragemgmt}-netapp-plugin
 Summary:        Files for NetApp array support for %{libstoragemgmt}
 Group:          System Environment/Libraries
-%if 0%{?suse_version}
-BuildRequires:  python-M2Crypto
-Requires:       python-M2Crypto
+%if 0%{?with_python3}
+Requires:       python3-%{libstoragemgmt} = %{version}-%{release}
 %else
-BuildRequires:  m2crypto
-Requires:       m2crypto
-%endif
 Requires:       %{libstoragemgmt}-python = %{version}-%{release}
+%endif
 BuildArch:      noarch
 
 %description    -n %{libstoragemgmt}-netapp-plugin
@@ -195,7 +240,11 @@ support.
 %package        -n %{libstoragemgmt}-targetd-plugin
 Summary:        Files for targetd array support for %{libstoragemgmt}
 Group:          System Environment/Libraries
+%if 0%{?with_python3}
+Requires:       python3-%{libstoragemgmt} = %{version}-%{release}
+%else
 Requires:       %{libstoragemgmt}-python = %{version}-%{release}
+%endif
 BuildArch:      noarch
 
 %description    -n %{libstoragemgmt}-targetd-plugin
@@ -206,7 +255,11 @@ array support.
 %package        -n %{libstoragemgmt}-nstor-plugin
 Summary:        Files for NexentaStor array support for %{libstoragemgmt}
 Group:          System Environment/Libraries
+%if 0%{?with_python3}
+Requires:       python3-%{libstoragemgmt} = %{version}-%{release}
+%else
 Requires:       %{libstoragemgmt}-python = %{version}-%{release}
+%endif
 BuildArch:      noarch
 
 %description    -n %{libstoragemgmt}-nstor-plugin
@@ -225,7 +278,11 @@ uevents generated by the kernel.
 %package        -n %{libstoragemgmt}-megaraid-plugin
 Summary:        Files for LSI MegaRAID support for %{libstoragemgmt}
 Group:          System Environment/Libraries
-Requires:       %{libstoragemgmt}%{?_isa} = %{version}-%{release}
+%if 0%{?with_python3}
+Requires:       python3-%{libstoragemgmt} = %{version}-%{release}
+%else
+Requires:       %{libstoragemgmt}-python = %{version}-%{release}
+%endif
 BuildArch:      noarch
 
 %description    -n %{libstoragemgmt}-megaraid-plugin
@@ -237,8 +294,15 @@ MegaRAID storage management via storcli.
 %package        -n %{libstoragemgmt}-hpsa-plugin
 Summary:        Files for HP SmartArray support for %{libstoragemgmt}
 Group:          System Environment/Libraries
-Requires:       %{libstoragemgmt}%{?_isa} = %{version}-%{release}
+%if 0%{?with_python3}
+Requires:       python3-%{libstoragemgmt} = %{version}-%{release}
+Requires:       python3-pyudev
+BuildRequires:  python3-pyudev
+%else
+Requires:       %{libstoragemgmt}-python = %{version}-%{release}
 Requires:       python-pyudev
+%endif
+BuildRequires:  python-pyudev
 BuildArch:      noarch
 
 %description    -n %{libstoragemgmt}-hpsa-plugin
@@ -252,6 +316,12 @@ SmartArray storage management via hpssacli.
 %build
 ./autogen.sh
 
+%if 0%{?with_python3}
+# Copy the whole directory to Python3 build
+rm -fr %{py3_build_dir}
+cp -a . %{py3_build_dir}
+%endif
+
 %configure \
 %if 0%{?with_megaraid} != 1
     --without-megaraid \
@@ -261,11 +331,45 @@ SmartArray storage management via hpssacli.
 %endif
     --disable-static
 
+%if 0%{?with_python3}
+pushd %{py3_build_dir}
+%configure --with-python3 \
+%if 0%{?with_megaraid} != 1
+    --without-megaraid \
+%endif
+%if 0%{?with_hpsa} != 1
+    --without-hpsa \
+%endif
+    --disable-static
+popd
+%endif
+
 V=1 make %{?_smp_mflags}
+
+%if 0%{?with_python3}
+pushd %{py3_build_dir}
+V=1 make %{?_smp_mflags}
+popd
+%endif
 
 %install
 rm -rf %{buildroot}
 make install DESTDIR=%{buildroot}
+# If python3 enabled, all plugins and CLI tools will be use python3 as
+# 'Fedora Packaging Guidelines for Python' suggested.
+#   https://fedoraproject.org/wiki/Packaging:Python#Executables_in_.2Fusr.2Fbin
+# Quote:
+#   If the executables provide the same functionality independent of whether
+#   they are run on top of Python 2 or Python 3, then only the Python 3 version
+#   of the executable should be packaged.
+%if 0%{?with_python3}
+rm -rf %{buildroot}/%{python_sitelib}/lsm/plugin
+rm -rf %{buildroot}/%{_bindir}/lsmcli
+pushd %{py3_build_dir}
+make install DESTDIR=%{buildroot}
+popd
+%endif
+
 find %{buildroot} -name '*.la' -exec rm -f {} ';'
 
 %if 0%{?with_systemd}
@@ -306,6 +410,16 @@ then
   cat test-suite.log || true
   exit 1
 fi
+
+%if 0%{?with_python3}
+pushd %{py3_build_dir}
+if ! make check
+then
+  cat test-suite.log || true
+  exit 1
+fi
+popd
+%endif
 %endif
 
 %pre -n %{libstoragemgmt}
@@ -506,25 +620,80 @@ fi
 %{python_sitelib}/lsm/_pluginrunner.*
 %{python_sitelib}/lsm/_transport.*
 %{python_sitelib}/lsm/version.*
+%dir %{python_sitelib}/lsm/lsmcli
+%{python_sitelib}/lsm/lsmcli/__init__.*
+%{python_sitelib}/lsm/lsmcli/data_display.*
+%{python_sitelib}/lsm/lsmcli/cmdline.*
+%if 0%{?with_python3} == 0
 %dir %{python_sitelib}/lsm/plugin
 %{python_sitelib}/lsm/plugin/__init__.*
 %dir %{python_sitelib}/lsm/plugin/sim
 %{python_sitelib}/lsm/plugin/sim/__init__.*
 %{python_sitelib}/lsm/plugin/sim/simulator.*
 %{python_sitelib}/lsm/plugin/sim/simarray.*
-%dir %{python_sitelib}/lsm/lsmcli
-%{python_sitelib}/lsm/lsmcli/__init__.*
-%{python_sitelib}/lsm/lsmcli/data_display.*
-%{python_sitelib}/lsm/lsmcli/cmdline.*
 %{_bindir}/sim_lsmplugin
 %{_sysconfdir}/lsm/pluginconf.d/sim.conf
 %{_mandir}/man1/sim_lsmplugin.1*
+%endif
+
+%if 0%{?with_python3}
+%files -n python3-%{libstoragemgmt}
+%dir %{python3_sitelib}/lsm
+%{python3_sitelib}/lsm/__init__.*
+%dir %{python3_sitelib}/lsm/external
+%{python3_sitelib}/lsm/external/*
+%{python3_sitelib}/lsm/_client.*
+%{python3_sitelib}/lsm/_common.*
+%{python3_sitelib}/lsm/_local_disk.*
+%{python3_sitelib}/lsm/_data.*
+%{python3_sitelib}/lsm/_iplugin.*
+%{python3_sitelib}/lsm/_pluginrunner.*
+%{python3_sitelib}/lsm/_transport.*
+%{python3_sitelib}/lsm/__pycache__/*
+%{python3_sitelib}/lsm/version.*
+%dir %{python3_sitelib}/lsm/plugin
+%{python3_sitelib}/lsm/plugin/__init__.*
+%{python3_sitelib}/lsm/plugin/__pycache__/*
+%dir %{python3_sitelib}/lsm/plugin/sim
+%{python3_sitelib}/lsm/plugin/sim/__pycache__/*
+%{python3_sitelib}/lsm/plugin/sim/__init__.*
+%{python3_sitelib}/lsm/plugin/sim/simulator.*
+%{python3_sitelib}/lsm/plugin/sim/simarray.*
+%dir %{python3_sitelib}/lsm/lsmcli
+%{python3_sitelib}/lsm/lsmcli/__init__.*
+%{python3_sitelib}/lsm/lsmcli/__pycache__/*
+%{python3_sitelib}/lsm/lsmcli/data_display.*
+%{python3_sitelib}/lsm/lsmcli/cmdline.*
+%{_bindir}/sim_lsmplugin
+%{_sysconfdir}/lsm/pluginconf.d/sim.conf
+%{_mandir}/man1/sim_lsmplugin.1*
+
+%files -n python3-%{libstoragemgmt}-clibs
+%{python3_sitelib}/lsm/_clib.*
+%endif
 
 %files -n %{libstoragemgmt}-python-clibs
 %{python_sitelib}/lsm/_clib.*
 
 %files -n %{libstoragemgmt}-smis-plugin
 %defattr(-,root,root,-)
+%if 0%{?with_python3}
+%dir %{python3_sitelib}/lsm/plugin/smispy
+%{python3_sitelib}/lsm/plugin/smispy/__pycache__/*
+%{python3_sitelib}/lsm/plugin/smispy/__init__.*
+%{python3_sitelib}/lsm/plugin/smispy/smis.*
+%{python3_sitelib}/lsm/plugin/smispy/dmtf.*
+%{python3_sitelib}/lsm/plugin/smispy/utils.*
+%{python3_sitelib}/lsm/plugin/smispy/smis_common.*
+%{python3_sitelib}/lsm/plugin/smispy/smis_cap.*
+%{python3_sitelib}/lsm/plugin/smispy/smis_sys.*
+%{python3_sitelib}/lsm/plugin/smispy/smis_pool.*
+%{python3_sitelib}/lsm/plugin/smispy/smis_disk.*
+%{python3_sitelib}/lsm/plugin/smispy/smis_vol.*
+%{python3_sitelib}/lsm/plugin/smispy/smis_ag.*
+%{python3_sitelib}/lsm/plugin/smispy/WBEM.*
+%{python3_sitelib}/lsm/plugin/smispy/lmiwbem_wrap.*
+%else
 %dir %{python_sitelib}/lsm/plugin/smispy
 %{python_sitelib}/lsm/plugin/smispy/__init__.*
 %{python_sitelib}/lsm/plugin/smispy/smis.*
@@ -537,41 +706,74 @@ fi
 %{python_sitelib}/lsm/plugin/smispy/smis_disk.*
 %{python_sitelib}/lsm/plugin/smispy/smis_vol.*
 %{python_sitelib}/lsm/plugin/smispy/smis_ag.*
+%{python_sitelib}/lsm/plugin/smispy/WBEM.*
+%{python_sitelib}/lsm/plugin/smispy/lmiwbem_wrap.*
+%endif
 %{_bindir}/smispy_lsmplugin
 %{_mandir}/man1/smispy_lsmplugin.1*
 
 %files -n %{libstoragemgmt}-netapp-plugin
 %defattr(-,root,root,-)
+%if 0%{?with_python3}
+%dir %{python3_sitelib}/lsm/plugin/ontap
+%{python3_sitelib}/lsm/plugin/ontap/__pycache__/*
+%{python3_sitelib}/lsm/plugin/ontap/__init__.*
+%{python3_sitelib}/lsm/plugin/ontap/na.*
+%{python3_sitelib}/lsm/plugin/ontap/ontap.*
+%else
 %dir %{python_sitelib}/lsm/plugin/ontap
 %{python_sitelib}/lsm/plugin/ontap/__init__.*
 %{python_sitelib}/lsm/plugin/ontap/na.*
 %{python_sitelib}/lsm/plugin/ontap/ontap.*
+%endif
 %{_bindir}/ontap_lsmplugin
 %{_mandir}/man1/ontap_lsmplugin.1*
 
 %files -n %{libstoragemgmt}-targetd-plugin
 %defattr(-,root,root,-)
+%if 0%{?with_python3}
+%dir %{python3_sitelib}/lsm/plugin/targetd
+%{python3_sitelib}/lsm/plugin/targetd/__pycache__/*
+%{python3_sitelib}/lsm/plugin/targetd/__init__.*
+%{python3_sitelib}/lsm/plugin/targetd/targetd.*
+%else
 %dir %{python_sitelib}/lsm/plugin/targetd
 %{python_sitelib}/lsm/plugin/targetd/__init__.*
 %{python_sitelib}/lsm/plugin/targetd/targetd.*
+%endif
 %{_bindir}/targetd_lsmplugin
 %{_mandir}/man1/targetd_lsmplugin.1*
 
 %files -n %{libstoragemgmt}-nstor-plugin
 %defattr(-,root,root,-)
+%if 0%{?with_python3}
+%dir %{python3_sitelib}/lsm/plugin/nstor
+%{python3_sitelib}/lsm/plugin/nstor/__pycache__/*
+%{python3_sitelib}/lsm/plugin/nstor/__init__.*
+%{python3_sitelib}/lsm/plugin/nstor/nstor.*
+%else
 %dir %{python_sitelib}/lsm/plugin/nstor
 %{python_sitelib}/lsm/plugin/nstor/__init__.*
 %{python_sitelib}/lsm/plugin/nstor/nstor.*
+%endif
 %{_bindir}/nstor_lsmplugin
 %{_mandir}/man1/nstor_lsmplugin.1*
 
 %if 0%{?with_megaraid}
 %files -n %{libstoragemgmt}-megaraid-plugin
 %defattr(-,root,root,-)
+%if 0%{?with_python3}
+%dir %{python3_sitelib}/lsm/plugin/megaraid
+%{python3_sitelib}/lsm/plugin/megaraid/__init__.*
+%{python3_sitelib}/lsm/plugin/megaraid/__pycache__/*
+%{python3_sitelib}/lsm/plugin/megaraid/megaraid.*
+%{python3_sitelib}/lsm/plugin/megaraid/utils.*
+%else
 %dir %{python_sitelib}/lsm/plugin/megaraid
 %{python_sitelib}/lsm/plugin/megaraid/__init__.*
 %{python_sitelib}/lsm/plugin/megaraid/megaraid.*
 %{python_sitelib}/lsm/plugin/megaraid/utils.*
+%endif
 %{_bindir}/megaraid_lsmplugin
 %{_sysconfdir}/lsm/pluginconf.d/megaraid.conf
 %{_mandir}/man1/megaraid_lsmplugin.1*
@@ -580,10 +782,18 @@ fi
 %if 0%{?with_hpsa}
 %files -n %{libstoragemgmt}-hpsa-plugin
 %defattr(-,root,root,-)
+%if 0%{?with_python3}
+%dir %{python3_sitelib}/lsm/plugin/hpsa
+%{python3_sitelib}/lsm/plugin/hpsa/__pycache__/*
+%{python3_sitelib}/lsm/plugin/hpsa/__init__.*
+%{python3_sitelib}/lsm/plugin/hpsa/hpsa.*
+%{python3_sitelib}/lsm/plugin/hpsa/utils.*
+%else
 %dir %{python_sitelib}/lsm/plugin/hpsa
 %{python_sitelib}/lsm/plugin/hpsa/__init__.*
 %{python_sitelib}/lsm/plugin/hpsa/hpsa.*
 %{python_sitelib}/lsm/plugin/hpsa/utils.*
+%endif
 %{_bindir}/hpsa_lsmplugin
 %{_sysconfdir}/lsm/pluginconf.d/hpsa.conf
 %{_mandir}/man1/hpsa_lsmplugin.1*

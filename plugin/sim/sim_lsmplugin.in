@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python@PY_VERSION@
 
 # Copyright (C) 2011-2013 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
@@ -22,14 +22,14 @@ import traceback
 
 try:
     from lsm import PluginRunner
-    from lsm.plugin.megaraid import MegaRAID
+    from lsm.plugin.sim.simulator import SimPlugin
 
     if __name__ == '__main__':
-        PluginRunner(MegaRAID, sys.argv).run()
+        PluginRunner(SimPlugin, sys.argv).run()
 except Exception:
-    #This should be quite rare, but when it does happen this is pretty
-    #key in understanding what happened, especially when it happens when
-    #running from the daemon.
+    # This should be quite rare, but when it does happen this is pretty
+    # key in understanding what happened, especially when it happens when
+    # running from the daemon.
     msg = str(traceback.format_exc())
     syslog.syslog(syslog.LOG_ERR, msg)
     sys.stderr.write(msg)

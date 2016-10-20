@@ -25,7 +25,7 @@ import sqlite3
 from lsm import (size_human_2_size_bytes)
 from lsm import (System, Volume, Disk, Pool, FileSystem, AccessGroup,
                  FsSnapshot, NfsExport, md5, LsmError, TargetPort,
-                 ErrorNumber, JobStatus, Battery)
+                 ErrorNumber, JobStatus, Battery, int_div)
 
 
 def _handle_errors(method):
@@ -98,13 +98,13 @@ class PoolRAID(object):
         Volume.RAID_TYPE_RAID4: lambda x: x - 1,
         Volume.RAID_TYPE_RAID5: lambda x: x - 1,
         Volume.RAID_TYPE_RAID6: lambda x: x - 2,
-        Volume.RAID_TYPE_RAID10: lambda x: x / 2,
-        Volume.RAID_TYPE_RAID15: lambda x: x / 2 - 1,
-        Volume.RAID_TYPE_RAID16: lambda x: x / 2 - 2,
+        Volume.RAID_TYPE_RAID10: lambda x: int_div(x, 2),
+        Volume.RAID_TYPE_RAID15: lambda x: int_div(x, 2) - 1,
+        Volume.RAID_TYPE_RAID16: lambda x: int_div(x, 2) - 2,
         Volume.RAID_TYPE_RAID50: lambda x: x - 2,
         Volume.RAID_TYPE_RAID60: lambda x: x - 4,
-        Volume.RAID_TYPE_RAID51: lambda x: x / 2 - 1,
-        Volume.RAID_TYPE_RAID61: lambda x: x / 2 - 2,
+        Volume.RAID_TYPE_RAID51: lambda x: int_div(x, 2) - 1,
+        Volume.RAID_TYPE_RAID61: lambda x: int_div(x, 2) - 2,
     }
 
     @staticmethod
@@ -114,7 +114,7 @@ class PoolRAID(object):
         real data(not mirrored or parity) disks.
         Treating RAID 5 and 6 using fixed parity disk.
         """
-        if raid_type not in PoolRAID._RAID_DISK_CHK.keys():
+        if raid_type not in list(PoolRAID._RAID_DISK_CHK.keys()):
             raise LsmError(
                 ErrorNumber.PLUGIN_BUG,
                 "data_disk_count(): Got unsupported raid type(%d)" %
@@ -168,7 +168,7 @@ class BackStore(object):
         self.statefile = statefile
         self.lastrowid = None
         self.sql_conn = sqlite3.connect(
-            statefile, timeout=int(timeout/1000), isolation_level="IMMEDIATE")
+            statefile, timeout=int(int_div(timeout, 1000)), isolation_level="IMMEDIATE")
         self.sql_conn.row_factory = _dict_factory
         # Create tables no matter exist or not. No lock required.
 
@@ -1042,8 +1042,8 @@ class BackStore(object):
         self.sql_conn.rollback()
 
     def _data_add(self, table_name, data_dict):
-        keys = data_dict.keys()
-        values = ['' if v is None else str(v) for v in data_dict.values()]
+        keys = list(data_dict.keys())
+        values = ['' if v is None else str(v) for v in list(data_dict.values())]
 
         sql_cmd = "INSERT INTO %s (%s) VALUES (%s);" % \
                   (table_name,
@@ -1932,7 +1932,7 @@ class SimArray(object):
 
     @_handle_errors
     def time_out_set(self, ms, flags=0):
-        self.bs_obj = BackStore(self.statefile, int(ms/1000))
+        self.bs_obj = BackStore(self.statefile, int(int_div(ms, 1000)))
         self.timeout = ms
         return None
 
@@ -1972,7 +1972,7 @@ class SimArray(object):
     def _sim_vol_2_lsm(sim_vol):
         return Volume(sim_vol['lsm_vol_id'], sim_vol['name'], sim_vol['vpd83'],
                       BackStore.BLK_SIZE,
-                      int(sim_vol['total_space'] / BackStore.BLK_SIZE),
+                      int(int_div(sim_vol['total_space'], BackStore.BLK_SIZE)),
                       sim_vol['admin_state'], BackStore.SYS_ID,
                       sim_vol['lsm_pool_id'])
 
@@ -2014,7 +2014,7 @@ class SimArray(object):
             sim_disk['lsm_disk_id'],
             sim_disk['name'],
             sim_disk['disk_type'], BackStore.BLK_SIZE,
-            int(sim_disk['total_space'] / BackStore.BLK_SIZE),
+            int(int_div(sim_disk['total_space'], BackStore.BLK_SIZE)),
             disk_status, BackStore.SYS_ID, _vpd83=sim_disk['vpd83'],
             _location=sim_disk['location'],
             _rpm=sim_disk['rpm'], _link_type=sim_disk['link_type'])
@@ -2576,8 +2576,10 @@ class SimArray(object):
 
         sim_pool = self.bs_obj.sim_pool_of_id(sim_pool_id)
         sim_vol_id = self.volume_create(
+            # TODO Figure out why sim_pool freespace ends up being smaller when
+            # we call _check_pool_free_space in volume_create internals
             sim_pool['lsm_pool_id'], name,
-            sim_pool['free_space'], Volume.PROVISION_FULL,
+            sim_pool['free_space'] - 1024, Volume.PROVISION_FULL,
             _internal_use=True, _is_hw_raid_vol=1)
         sim_vol = self.bs_obj.sim_vol_of_id(sim_vol_id)
         self.bs_obj.trans_commit()

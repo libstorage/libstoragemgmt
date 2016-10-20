@@ -12,9 +12,12 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; If not, see <http://www.gnu.org/licenses/>.
 
+
 from lsm import Capabilities, LsmError, ErrorNumber
-import dmtf
-from smis_common import SmisCommon
+
+from lsm.plugin.smispy import dmtf
+from lsm.plugin.smispy.smis_common import SmisCommon
+
 
 MASK_TYPE_NO_SUPPORT = 0
 MASK_TYPE_MASK = 1
@@ -135,7 +138,7 @@ def _bsp_cap_set(smis_common, system_id, cap):
     return
 
 
-def _disk_cap_set(smis_common, cim_sys_path, cap):
+def _disk_cap_set(smis_common, cap):
     if not smis_common.profile_check(SmisCommon.SNIA_DISK_LITE_PROFILE,
                                      SmisCommon.SMIS_SPEC_VER_1_4,
                                      raise_error=False):
@@ -347,7 +350,7 @@ def get(smis_common, cim_sys, system):
     _bsp_cap_set(smis_common, system.id, cap)
 
     # 'Disk Drive Lite' profile
-    _disk_cap_set(smis_common, cim_sys.path, cap)
+    _disk_cap_set(smis_common, cap)
 
     # 'Masking and Mapping' and 'Group Masking and Mapping' profiles
     mt = mask_type(smis_common)

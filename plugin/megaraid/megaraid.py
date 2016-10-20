@@ -22,7 +22,7 @@ import math
 
 from lsm import (uri_parse, search_property, size_human_2_size_bytes,
                  Capabilities, LsmError, ErrorNumber, System, Client,
-                 Disk, VERSION, IPlugin, Pool, Volume, Battery)
+                 Disk, VERSION, IPlugin, Pool, Volume, Battery, int_div)
 
 from lsm.plugin.megaraid.utils import cmd_exec, ExecError
 
@@ -149,7 +149,7 @@ def _pool_status_of(dg_top):
     """
     Return status
     """
-    if dg_top['State'] in _POOL_STATUS_MAP.keys():
+    if dg_top['State'] in list(_POOL_STATUS_MAP.keys()):
         return _POOL_STATUS_MAP[dg_top['State']]
     return Pool.STATUS_UNKNOWN
 
@@ -442,7 +442,7 @@ class MegaRAID(IPlugin):
                     "MegaRAID storcli failed with error %d: %s" %
                     (detail_status['ErrCd'], detail_status['ErrMsg']))
             real_data = ctrl_output[0].get('Response Data')
-            if real_data and 'Response Data' in real_data.keys():
+            if real_data and 'Response Data' in list(real_data.keys()):
                 return real_data['Response Data']
 
             return real_data
@@ -467,7 +467,7 @@ class MegaRAID(IPlugin):
         else:
             # TODO(Gris Ge): Try pull a disk off to check whether this change.
             status_info = "%s: " % lsi_status_info['Controller Status']
-            for key_name in lsi_status_info.keys():
+            for key_name in list(lsi_status_info.keys()):
                 if key_name == 'Controller Status':
                     continue
                 if lsi_status_info[key_name] != 0 and \
@@ -546,10 +546,10 @@ class MegaRAID(IPlugin):
                 disk_show_output.update(
                     self._storcli_exec(
                         ["/c%d/sall" % ctrl_num, "show", "all"]))
-            except ExecError:
+            except (ExecError, TypeError):
                 pass
 
-            for drive_name in disk_show_output.keys():
+            for drive_name in list(disk_show_output.keys()):
                 re_match = mega_disk_path_regex.match(drive_name)
                 if not re_match:
                     continue
@@ -577,7 +577,7 @@ class MegaRAID(IPlugin):
 
                 plugin_data = "%s:%s" % (
                     ctrl_num, disk_show_basic_dict['EID:Slt'])
-                vpd83 = disk_show_attr_dict["WWN"]
+                vpd83 = disk_show_attr_dict["WWN"].lower()
                 rpm = _disk_rpm_of(disk_show_basic_dict)
                 link_type = _disk_link_type_of(disk_show_basic_dict)
 
@@ -650,7 +650,7 @@ class MegaRAID(IPlugin):
 
         vol_id = "%s:VD%d" % (sys_id, vd_id)
         name = "VD %d" % vd_id
-        if 'Name' in vd_basic_info.keys() and vd_basic_info['Name']:
+        if 'Name' in list(vd_basic_info.keys()) and vd_basic_info['Name']:
             name += ": %s" % vd_basic_info['Name']
 
         vpd83 = vd_prop_info.get('SCSI NAA Id', '')
@@ -678,7 +678,7 @@ class MegaRAID(IPlugin):
             sys_id = self._sys_id_of_ctrl_num(ctrl_num)
             if vol_show_output is None or len(vol_show_output) == 0:
                 continue
-            for key_name in vol_show_output.keys():
+            for key_name in list(vol_show_output.keys()):
                 if key_name.startswith('/c'):
                     vd_basic_info = vol_show_output[key_name][0]
                     (dg_id, vd_id) = vd_basic_info['DG/VD'].split('/')
@@ -773,7 +773,7 @@ class MegaRAID(IPlugin):
 
         for dg_disk_info in dg_show_all_output['DG Drive LIST']:
             cur_lsi_disk_id = "%s:%s" % (ctrl_num, dg_disk_info['EID:Slt'])
-            if cur_lsi_disk_id in lsm_disk_map.keys():
+            if cur_lsi_disk_id in list(lsm_disk_map.keys()):
                 disk_ids.append(lsm_disk_map[cur_lsi_disk_id])
             else:
                 raise LsmError(
@@ -804,7 +804,7 @@ class MegaRAID(IPlugin):
             cap_output['RAID Level Supported'].replace(', \n', '').split(', ')
 
         supported_raid_types = []
-        for cur_mega_raid_type in _RAID_TYPE_MAP.keys():
+        for cur_mega_raid_type in list(_RAID_TYPE_MAP.keys()):
             if cur_mega_raid_type in mega_raid_types:
                 supported_raid_types.append(
                     _RAID_TYPE_MAP[cur_mega_raid_type])
@@ -817,7 +817,7 @@ class MegaRAID(IPlugin):
         supported_strip_sizes = list(
             min_strip_size * (2 ** i)
             for i in range(
-                0, int(math.log(max_strip_size / min_strip_size, 2) + 1)))
+                0, int(math.log(int_div(max_strip_size, min_strip_size), 2) + 1)))
 
         # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         # The math above is to generate a list like:
@@ -900,10 +900,10 @@ class MegaRAID(IPlugin):
         if raid_type == Volume.RAID_TYPE_RAID10 or \
            raid_type == Volume.RAID_TYPE_RAID50 or \
            raid_type == Volume.RAID_TYPE_RAID60:
-            cmds.append("pdperarray=%d" % int(len(disks) / 2))
+            cmds.append("pdperarray=%d" % int(int_div(len(disks), 2)))
 
         if strip_size != Volume.VCR_STRIP_SIZE_DEFAULT:
-            cmds.append("strip=%d" % int(strip_size / 1024))
+            cmds.append("strip=%d" % int(int_div(strip_size, 1024)))
 
         try:
             self._storcli_exec(cmds)
@@ -941,7 +941,7 @@ class MegaRAID(IPlugin):
             raise LsmError(
                 ErrorNumber.PLUGIN_BUG,
                 "volume_raid_create(): No error found in output, "
-                "but RAID is not created: %s" % dg_show_output.items())
+                "but RAID is not created: %s" % list(dg_show_output.items()))
         else:
             dg_id = int(dg_id)
 

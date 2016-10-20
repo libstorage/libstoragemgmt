@@ -17,11 +17,12 @@
 import socket
 import traceback
 import sys
-from _common import SocketEOF as _SocketEOF
 from lsm import LsmError, error, ErrorNumber
-import _transport
 from lsm.lsmcli import cmd_line_wrapper
+import six
 
+from lsm._common import SocketEOF as _SocketEOF
+from lsm._transport import TransPort
 
 def search_property(lsm_objs, search_key, search_value):
     """
@@ -56,7 +57,7 @@ class PluginRunner(object):
         if len(args) == 2 and PluginRunner._is_number(args[1]):
             try:
                 fd = int(args[1])
-                self.tp = _transport.TransPort(
+                self.tp = TransPort(
                     socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM))
 
                 # At this point we can return errors to the client, so we can
@@ -64,11 +65,11 @@ class PluginRunner(object):
                 try:
                     self.plugin = plugin()
                 except Exception as e:
-                    exception_info = sys.exc_info()
+                    ec_info = sys.exc_info()
 
                     self.tp.send_error(0, -32099,
                                        'Error instantiating plug-in ' + str(e))
-                    raise exception_info[1], None, exception_info[2]
+                    raise six.reraise(*ec_info)
 
             except Exception:
                 error(traceback.format_exc())
