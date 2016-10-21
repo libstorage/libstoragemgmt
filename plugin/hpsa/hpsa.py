@@ -653,7 +653,16 @@ class SmartArray(IPlugin):
         disk_type = _disk_type_of(hp_disk)
         blk_size = int(hp_disk['Native Block Size'])
         blk_count = int(int_div(_hp_size_to_lsm(hp_disk['Size']), blk_size))
-        disk_port, disk_box, disk_bay = disk_num.split(":")
+        try:
+            disk_port, disk_box, disk_bay = disk_num.split(":")
+        except ValueError:
+            try:
+                disk_port = "Unknown"
+                disk_box, disk_bay = disk_num.split(":")
+            except ValueError:
+                disk_port = "Unknown"
+                disk_box = "Unknown"
+                disk_bay = "Unknown"
         disk_location = "Port: %s Box: %s Bay: %s" % (
             disk_port, disk_box, disk_bay)
         status = _disk_status_of(hp_disk, flag_free)
