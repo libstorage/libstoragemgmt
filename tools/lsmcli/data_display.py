@@ -800,7 +800,7 @@ class DisplayData(object):
     LOCAL_DISK_HEADER['link_type'] = 'Link Type'
     LOCAL_DISK_HEADER['serial_num'] = 'Serial Number'
 
-    LOCAL_DISK_COLUMN_SKIP_KEYS = []
+    LOCAL_DISK_COLUMN_SKIP_KEYS = ['rpm']
 
     LOCAL_DISK_VALUE_CONV_ENUM = {
         'rpm': disk_rpm_to_str,
