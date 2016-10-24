@@ -332,6 +332,7 @@ class MegaRAID(IPlugin):
 
     def __init__(self):
         self._storcli_bin = None
+        self._tmo_ms = 3000    # TODO(Gris Ge): Not implemented yet.
 
     def _find_storcli(self):
         """
@@ -380,11 +381,11 @@ class MegaRAID(IPlugin):
 
     @_handle_errors
     def time_out_set(self, ms, flags=Client.FLAG_RSVD):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported yet")
+        self._tmo_ms = ms # TODO(Gris Ge): Not implemented yet.
 
     @_handle_errors
     def time_out_get(self, flags=Client.FLAG_RSVD):
-        raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported yet")
+        return self._tmo_ms
 
     @_handle_errors
     def capabilities(self, system, flags=Client.FLAG_RSVD):
@@ -401,6 +402,7 @@ class MegaRAID(IPlugin):
         cap.set(Capabilities.POOL_MEMBER_INFO)
         cap.set(Capabilities.VOLUME_RAID_CREATE)
         cap.set(Capabilities.BATTERIES)
+        cap.set(Capabilities.VOLUME_CACHE_INFO)
         cap.set(Capabilities.VOLUME_PHYSICAL_DISK_CACHE_UPDATE)
         cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_WRITE_BACK)
         cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_AUTO)
