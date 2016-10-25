@@ -1,0 +1,12 @@
+# What repos we trust enough to do automated unit tests.
+
+REPOS:
+- "https://github.com/cathay4t/libstoragemgmt.git"
+- "https://github.com/tasleson_disabled/libstoragemgmt.git"
+- "https://github.com/joehandzik/libstoragemgmt.git"
+- "https://github.com/BlaineEXE/libstoragemgmt.git"
+- "https://github.com/agrover/libstoragemgmt.git"
+- "https://github.com/cfergeau/libstoragemgmt.git"
+- "https://github.com/mulkieran/libstoragemgmt.git"
+- "https://github.com/veillard/libstoragemgmt.git"
+- "https://github.com/Mashimiao/libstoragemgmt.git"
