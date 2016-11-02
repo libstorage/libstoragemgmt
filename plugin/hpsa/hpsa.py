@@ -651,7 +651,11 @@ class SmartArray(IPlugin):
         disk_num = key_name[len("physicaldrive "):]
         disk_name = "%s %s" % (hp_disk['Model'], disk_num)
         disk_type = _disk_type_of(hp_disk)
-        blk_size = int(hp_disk['Native Block Size'])
+        try:
+            blk_size_str = hp_disk['Native Block Size']
+        except KeyError:
+            blk_size_str = hp_disk['Logical/Physical Block Size'].split("/")[0]
+        blk_size = int(blk_size_str)
         blk_count = int(int_div(_hp_size_to_lsm(hp_disk['Size']), blk_size))
         try:
             disk_port, disk_box, disk_bay = disk_num.split(":")
