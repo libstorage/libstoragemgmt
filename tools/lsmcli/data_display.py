@@ -294,6 +294,20 @@ def battery_status_to_str(battery_status):
     return _bit_map_to_str(battery_status, _BATTERY_STATUS_CONV)
 
 
+_DISK_LED_STATUS_CONV = {
+    Disk.LED_STATUS_UNKNOWN: 'Unknown',
+    Disk.LED_STATUS_IDENT_ON: 'IDENT_ON',
+    Disk.LED_STATUS_IDENT_OFF: 'IDENT_OFF',
+    Disk.LED_STATUS_IDENT_UNKNOWN: 'IDENT_UNKNOWN',
+    Disk.LED_STATUS_FAULT_ON: 'FAULT_ON',
+    Disk.LED_STATUS_FAULT_OFF: 'FAULT_OFF',
+    Disk.LED_STATUS_FAULT_UNKNOWN: 'FAULT_UNKNOWN',
+}
+
+
+def disk_led_status_to_str(led_status):
+    return _bit_map_to_str(led_status, _DISK_LED_STATUS_CONV)
+
 class PlugData(object):
     def __init__(self, description, plugin_version):
             self.desc = description
@@ -386,11 +400,12 @@ class LocalDiskInfo(object):
         Disk.LINK_TYPE_PCIE: "PCI-E",
     }
 
-    def __init__(self, sd_path, vpd83, rpm, link_type):
+    def __init__(self, sd_path, vpd83, rpm, link_type, led_status):
         self.sd_path = sd_path
         self.vpd83 = vpd83
         self.rpm = rpm
         self.link_type = link_type
+        self.led_status = led_status
 
 
 class VolumeRAMCacheInfo(object):
@@ -797,12 +812,14 @@ class DisplayData(object):
     LOCAL_DISK_HEADER['vpd83'] = 'SCSI VPD 0x83'
     LOCAL_DISK_HEADER['rpm'] = 'Revolutions Per Minute'
     LOCAL_DISK_HEADER['link_type'] = 'Link Type'
+    LOCAL_DISK_HEADER['led_status'] = 'LED Status'
 
     LOCAL_DISK_COLUMN_SKIP_KEYS = []
 
     LOCAL_DISK_VALUE_CONV_ENUM = {
         'rpm': disk_rpm_to_str,
         'link_type': disk_link_type_to_str,
+        'led_status': disk_led_status_to_str,
     }
     LOCAL_DISK_VALUE_CONV_HUMAN = []
 

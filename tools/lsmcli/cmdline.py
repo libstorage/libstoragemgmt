@@ -1798,16 +1798,18 @@ class CmdLine(object):
             vpd83 = ""
             rpm = Disk.RPM_NO_SUPPORT
             link_type = Disk.LINK_TYPE_NO_SUPPORT
+            led_status = Disk.LED_STATUS_UNKNOWN
             try:
                 vpd83 = LocalDisk.vpd83_get(disk_path)
                 rpm = LocalDisk.rpm_get(disk_path)
                 link_type = LocalDisk.link_type_get(disk_path)
+                led_status = LocalDisk.led_status_get(disk_path)
             except LsmError as lsm_err:
                 if lsm_err.code != ErrorNumber.NO_SUPPORT:
                     raise
 
             local_disks.append(
-                LocalDiskInfo(disk_path, vpd83, rpm, link_type))
+                LocalDiskInfo(disk_path, vpd83, rpm, link_type, led_status))
 
         self.display_data(local_disks)
 

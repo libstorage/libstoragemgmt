@@ -85,15 +85,21 @@ static int _sysfs_vpd_pg83_data_get(char *err_msg, const char *sd_name,
  * Use /sys/block/sdx/device/sas_address to retrieve sas address of certain
  * disk.
  * 'tp_sas_addr' should be char[_SG_T10_SPL_SAS_ADDR_LEN].
- * Return 0 if file exists and the SAS address is legal, return -1 otherwise.
  * Legal here means:
  *  * sysfs file content has strlen as _SYSFS_SAS_ADDR_LEN
  *  * sysfs file content start with '0x'.
  */
-static int _sysfs_sas_addr_get(const char *blk_name, char *tp_sas_addr);
+static void _sysfs_sas_addr_get(const char *blk_name, char *tp_sas_addr);
 
 static int _ses_ctrl(const char *disk_path, lsm_error **lsm_err,
                      int action, int action_type);
+
+
+/*
+ * `tp_sas_addr` should be char[_SG_T10_SPL_SAS_ADDR_LEN]
+ */
+static int _sas_addr_get(char *err_msg, const char *disk_path,
+                         char *tp_sas_addr);
 
 /*
  * Retrieve the content of /sys/block/sda/device/vpd_pg83 file.
@@ -722,27 +728,13 @@ static int _ses_ctrl(const char *disk_path, lsm_error **lsm_err,
     int rc = LSM_ERR_OK;
     char err_msg[_LSM_ERR_MSG_LEN];
     char tp_sas_addr[_SG_T10_SPL_SAS_ADDR_LEN];
-    int fd = -1;
 
     _lsm_err_msg_clear(err_msg);
 
     _good(_check_null_ptr(err_msg, 2 /* arg_count */, disk_path, lsm_err),
           rc, out);
 
-    memset(tp_sas_addr, 0, _SG_T10_SPL_SAS_ADDR_LEN);
-
-    /* TODO(Gris Ge): Add support of NVMe enclosure */
-
-    /* Try use sysfs first to get SAS address. */
-    if ((strlen(disk_path) > strlen("/dev/")) &&
-        (strncmp(disk_path, "/dev/", strlen("/dev/")) == 0) &&
-        (strncmp(disk_path + strlen("/dev/"), "sd", strlen("sd")) == 0))
-        _sysfs_sas_addr_get(disk_path + strlen("/dev/"), tp_sas_addr);
-
-    if (tp_sas_addr[0] == '\0') {
-        _good(_sg_io_open_ro(err_msg, disk_path, &fd), rc, out);
-        _good(_sg_tp_sas_addr_of_disk(err_msg, fd, tp_sas_addr), rc, out);
-    }
+    _good(_sas_addr_get(err_msg, disk_path, tp_sas_addr), rc, out);
 
     /* SEND DIAGNOSTIC
      * SES-3, 6.1.3 Enclosure Control diagnostic page
@@ -756,14 +748,11 @@ static int _ses_ctrl(const char *disk_path, lsm_error **lsm_err,
         if (lsm_err != NULL)
             *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
     }
-    if (fd >= 0)
-        close(fd);
     return rc;
 }
 
-static int _sysfs_sas_addr_get(const char *blk_name, char *tp_sas_addr)
+static void _sysfs_sas_addr_get(const char *blk_name, char *tp_sas_addr)
 {
-    int rc = -1;
     char sysfs_sas_addr[_SYSFS_SAS_ADDR_LEN];
     char *sysfs_sas_path = NULL;
     ssize_t read_size = -1;
@@ -797,10 +786,78 @@ static int _sysfs_sas_addr_get(const char *blk_name, char *tp_sas_addr)
     memcpy(tp_sas_addr, sysfs_sas_addr + strlen("0x"),
            _SG_T10_SPL_SAS_ADDR_LEN);
 
-    rc = 0;
-
  out:
     free(sysfs_sas_path);
+}
 
+static int _sas_addr_get(char *err_msg, const char *disk_path,
+                         char *tp_sas_addr)
+{
+    int rc = LSM_ERR_OK;
+    int fd = -1;
+
+    assert(disk_path != NULL);
+    assert(tp_sas_addr != NULL);
+
+    memset(tp_sas_addr, 0, _SG_T10_SPL_SAS_ADDR_LEN);
+
+    /* TODO(Gris Ge): Add support of NVMe enclosure */
+
+    /* Try use sysfs first to get SAS address. */
+    if ((strlen(disk_path) > strlen("/dev/")) &&
+        (strncmp(disk_path, "/dev/", strlen("/dev/")) == 0) &&
+        (strncmp(disk_path + strlen("/dev/"), "sd", strlen("sd")) == 0))
+        _sysfs_sas_addr_get(disk_path + strlen("/dev/"), tp_sas_addr);
+
+    if (tp_sas_addr[0] == '\0') {
+        _good(_sg_io_open_ro(err_msg, disk_path, &fd), rc, out);
+        _good(_sg_tp_sas_addr_of_disk(err_msg, fd, tp_sas_addr), rc, out);
+    }
+
+ out:
+    if (fd >= 0)
+        close(fd);
+    return rc;
+
+}
+
+int LSM_DLL_EXPORT lsm_local_disk_led_status_get(const char *disk_path,
+                                                 uint32_t *led_status,
+                                                 lsm_error **lsm_err)
+{
+    int rc = LSM_ERR_OK;
+    char err_msg[_LSM_ERR_MSG_LEN];
+    char tp_sas_addr[_SG_T10_SPL_SAS_ADDR_LEN];
+    struct _ses_dev_slot_status status;
+
+    _lsm_err_msg_clear(err_msg);
+
+    _good(_check_null_ptr(err_msg, 3 /* arg_count */, disk_path, led_status,
+                          lsm_err),
+          rc, out);
+
+    _good(_sas_addr_get(err_msg, disk_path, tp_sas_addr), rc, out);
+
+    _good(_ses_status_get(err_msg, tp_sas_addr, &status), rc, out);
+
+    *led_status = 0;
+
+    if (status.fault_reqstd || status.fault_sensed)
+        *led_status |= LSM_DISK_LED_STATUS_FAULT_ON;
+    else
+        *led_status |= LSM_DISK_LED_STATUS_FAULT_OFF;
+
+    if (status.ident)
+        *led_status |= LSM_DISK_LED_STATUS_IDENT_ON;
+    else
+        *led_status |= LSM_DISK_LED_STATUS_IDENT_OFF;
+
+ out:
+    if (rc != LSM_ERR_OK) {
+        if (led_status != NULL)
+            *led_status = LSM_DISK_LED_STATUS_UNKNOWN;
+        if (lsm_err != NULL)
+            *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
+    }
     return rc;
 }

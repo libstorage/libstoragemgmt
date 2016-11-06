@@ -23,6 +23,7 @@
 #include <stdbool.h>
 #include <sqlite3.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 
