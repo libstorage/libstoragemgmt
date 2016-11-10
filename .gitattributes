@@ -1,1 +1,2 @@
 *.py diff=python
+*.py.in diff=python
