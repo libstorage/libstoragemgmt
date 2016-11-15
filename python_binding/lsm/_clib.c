@@ -297,9 +297,9 @@ static const char local_disk_fault_led_off_docstring[] =
     "            Error message, empty if no error.\n";
 
 static PyObject *local_disk_vpd83_search(PyObject *self, PyObject *args,
-                                     PyObject *kwargs);
+                                         PyObject *kwargs);
 static PyObject *local_disk_vpd83_get(PyObject *self, PyObject *args,
-                                    PyObject *kwargs);
+                                      PyObject *kwargs);
 static PyObject *local_disk_rpm_get(PyObject *self, PyObject *args,
                                     PyObject *kwargs);
 static PyObject *local_disk_list(PyObject *self, PyObject *args,
