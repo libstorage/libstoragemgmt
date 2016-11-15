@@ -188,6 +188,7 @@ function lsm_test_base_install
     export LSM_SIM_DATA="${LSM_TEST_DST_DIR}/plugin_data/lsm_sim_data"
     export LSM_UDS_PATH="${dst_dir}/ipc"
     export LSM_TEST_RUNDIR="${LSM_TEST_DST_DIR}/plugin_data/"
+    export LSM_TEST_CFG_DIR="${dst_dir}/config/"
 
     echo "==================================="
     echo "PYTHONPATH=${PYTHONPATH}"
@@ -209,6 +210,8 @@ function lsm_test_base_install
     _good mkdir "$LSM_TEST_PY_MODULE_DIR/lsm/plugin"
     _good mkdir "$LSM_TEST_PY_MODULE_DIR/lsm/lsmcli"
     _good mkdir "$LSM_TEST_RUNDIR"
+    _good mkdir "$LSM_TEST_CFG_DIR"
+    _good mkdir "$LSM_TEST_CFG_DIR/pluginconf.d"
 
     # Make sure LSM_UDS_PATH is gloable writeable in case 'sudo make check'
     _good chmod 0777 ${LSM_UDS_PATH}
@@ -259,6 +262,12 @@ function lsm_test_base_install
     _good install "${src_dir}/test/cmdtest.py" \
         "${LSM_TEST_BIN_DIR}/cmdtest.py"
 
+    _good install "${src_dir}/config/lsmd.conf" \
+        "${LSM_TEST_CFG_DIR}/lsmd.conf"
+    _good find "${src_dir}/config/pluginconf.d" -maxdepth 1 \
+        -type f -name '*.conf' \
+        -exec install -D "{}" "$LSM_TEST_CFG_DIR/pluginconf.d/" \\\;
+
     local legal_plugin_type=0
 
     if [ "CHK${plugin_type}" == "CHK${LSM_TEST_INSTALL_PY_PLUGINS_ONLY}" ] || \
@@ -305,6 +314,7 @@ function lsm_test_lsmd_start
     local cmd="${LSM_TEST_BIN_DIR}/lsmd
         --plugindir=${LSM_TEST_PLUGIN_DIR}
         --socketdir=${LSM_UDS_PATH}
+        --confdir=${LSM_TEST_CFG_DIR}
         -d -v > ${LSM_TEST_LOG_DIR}/lsmd.log &"
 
     if [ "CHK${with_mem_check}" == "CHK${LSM_TEST_WITH_MEM_CHECK}" ];then
