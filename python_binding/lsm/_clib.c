@@ -317,9 +317,9 @@ static const char local_disk_fault_led_off_docstring[] =
 static PyObject *local_disk_serial_num_get(PyObject *self, PyObject *args,
                                            PyObject *kwargs);
 static PyObject *local_disk_vpd83_search(PyObject *self, PyObject *args,
-                                     PyObject *kwargs);
+                                         PyObject *kwargs);
 static PyObject *local_disk_vpd83_get(PyObject *self, PyObject *args,
-                                    PyObject *kwargs);
+                                      PyObject *kwargs);
 static PyObject *local_disk_rpm_get(PyObject *self, PyObject *args,
                                     PyObject *kwargs);
 static PyObject *local_disk_list(PyObject *self, PyObject *args,
