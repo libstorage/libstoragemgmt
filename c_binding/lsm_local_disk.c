@@ -41,6 +41,8 @@
 #include "libsg.h"
 #include "libses.h"
 
+#define _LSM_MAX_SERIAL_NUM_LEN			        253
+/* ^ Max is 252 bytes */
 #define _LSM_MAX_VPD83_ID_LEN                   33
 /* ^ Max one is 6h IEEE Registered Extended ID which it 32 bits hex string. */
 #define _SYS_BLOCK_PATH "/sys/block"
@@ -52,6 +54,9 @@
 
 #define _SD_PATH_FORMAT "/dev/%s"
 #define _MAX_SD_PATH_STR_LEN 128 + _MAX_SD_NAME_STR_LEN
+
+#define _SYSFS_VPD80_PATH_FORMAT "/sys/block/%s/device/vpd_pg80"
+#define _MAX_SYSFS_VPD80_PATH_STR_LEN  128 + _MAX_SD_NAME_STR_LEN
 
 #define _SYSFS_VPD83_PATH_FORMAT "/sys/block/%s/device/vpd_pg83"
 #define _MAX_SYSFS_VPD83_PATH_STR_LEN  128 + _MAX_SD_NAME_STR_LEN
@@ -75,6 +80,11 @@ struct t10_sbc_vpd_bdc {
 
 #pragma pack(pop)
 
+static int _sysfs_serial_num_of_sd_name(char *err_msg,
+                                        const char *sd_name,
+                                        uint8_t *serial_num);
+static int _sysfs_vpd_pg80_data_get(char *err_msg, const char *sd_name,
+                                    uint8_t *vpd_data, ssize_t *read_size);
 static int _sysfs_vpd83_naa_of_sd_name(char *err_msg, const char *sd_name,
                                        char *vpd83);
 static int _udev_vpd83_of_sd_name(char *err_msg, const char *sd_name,
@@ -94,6 +104,55 @@ static int _sysfs_sas_addr_get(const char *blk_name, char *tp_sas_addr);
 
 static int _ses_ctrl(const char *disk_path, lsm_error **lsm_err,
                      int action, int action_type);
+
+/*
+ * Retrieve the content of /sys/block/sda/device/vpd_pg80 file.
+ * No argument checker here, assume all non-NULL and vpd_data is
+                * char[_SG_T10_SPC_VPD_MAX_LEN]
+ */
+static int _sysfs_vpd_pg80_data_get(char *err_msg, const char *sd_name,
+                                    uint8_t *vpd_data, ssize_t *read_size)
+{
+    int file_rc = 0;
+    char sysfs_path[_MAX_SYSFS_VPD80_PATH_STR_LEN];
+    char sysfs_blk_path[_MAX_SYSFS_BLK_PATH_STR_LEN];
+    char strerr_buff[_LSM_ERR_MSG_LEN];
+
+    memset(vpd_data, 0, _SG_T10_SPC_VPD_MAX_LEN);
+
+    /*
+     * Check the existence of disk vis /sys/block/sdX folder.
+     */
+    snprintf(sysfs_blk_path, _MAX_SYSFS_BLK_PATH_STR_LEN,
+             _SYSFS_BLK_PATH_FORMAT, sd_name);
+    if (! _file_exists(sysfs_blk_path)) {
+        _lsm_err_msg_set(err_msg, "Disk %s not found", sd_name);
+        return LSM_ERR_NOT_FOUND_DISK;
+    }
+
+    snprintf(sysfs_path, _MAX_SYSFS_VPD80_PATH_STR_LEN,
+             _SYSFS_VPD80_PATH_FORMAT, sd_name);
+
+    file_rc = _read_file(sysfs_path, vpd_data, read_size,
+                         _SG_T10_SPC_VPD_MAX_LEN);
+    if (file_rc != 0) {
+        if (file_rc == ENOENT) {
+            _lsm_err_msg_set(err_msg, "File '%s' not exist", sysfs_path);
+            return LSM_ERR_NO_SUPPORT;
+        } else if (file_rc == EINVAL) {
+            _lsm_err_msg_set(err_msg, "Read error on File '%s': "
+                             "invalid argument", sysfs_path);
+            return LSM_ERR_NO_SUPPORT;
+        } else {
+            _lsm_err_msg_set(err_msg, "BUG: Unknown error %d(%s) from "
+                             "_read_file().", file_rc,
+                             strerror_r(file_rc, strerr_buff,
+                                        _LSM_ERR_MSG_LEN));
+            return LSM_ERR_LIB_BUG;
+        }
+    }
+    return LSM_ERR_OK;
+}
 
 /*
  * Retrieve the content of /sys/block/sda/device/vpd_pg83 file.
@@ -216,6 +275,50 @@ static int _sysfs_vpd83_naa_of_sd_name(char *err_msg, const char *sd_name,
  out:
     if (dps != NULL)
         _sg_t10_vpd83_dp_array_free(dps, dp_count);
+    return rc;
+}
+
+/*
+ * Parse _SYSFS_VPD80_PATH_FORMAT file for VPD80 serial number.
+ * When no such sysfs file found, return LSM_ERR_NO_SUPPORT.
+ * When VPD80 page does not have a serial number, return LSM_ERR_OK and
+ * serial_num as an empty string.
+ *
+ * Input *serial_num should be char[_LSM_MAX_SERIAL_NUM_LEN], assuming caller
+ * did the check.
+ * The maximum *sd_name strlen is (_MAX_SD_NAME_STR_LEN - 1), assuming caller
+ * did the check.
+ * Return LSM_ERR_NO_MEMORY or LSM_ERR_NO_SUPPORT or LSM_ERR_LIB_BUG or
+ *        LSM_ERR_NOT_FOUND_DISK
+ */
+static int _sysfs_serial_num_of_sd_name(char *err_msg,
+                                        const char *sd_name,
+                                        uint8_t *serial_num)
+{
+    ssize_t read_size = 0;
+    int rc = LSM_ERR_OK;
+    uint8_t vpd_data[_SG_T10_SPC_VPD_MAX_LEN];
+
+    if (sd_name == NULL) {
+        _lsm_err_msg_set(err_msg, "_sysfs_serial_num_of_sd_name(): "
+                         "Input sd_name argument is NULL");
+        rc = LSM_ERR_LIB_BUG;
+        goto out;
+    }
+
+    _good(_sysfs_vpd_pg80_data_get(err_msg, sd_name, vpd_data, &read_size),
+          rc, out);
+
+    _good(_sg_parse_vpd_80(err_msg, vpd_data, serial_num,
+                           _LSM_MAX_SERIAL_NUM_LEN), rc, out);
+
+    if (serial_num[0] == '\0') {
+        rc = LSM_ERR_NO_SUPPORT;
+        _lsm_err_msg_set(err_msg,
+                         "SCSI VPD 80 serial number is not supported");
+    }
+
+ out:
     return rc;
 }
 
@@ -373,6 +476,84 @@ int lsm_local_disk_vpd83_search(const char *vpd83,
         if ((disk_path_list != NULL) && (*disk_path_list != NULL)) {
             lsm_string_list_free(*disk_path_list);
             *disk_path_list = NULL;
+        }
+    }
+
+    return rc;
+}
+
+int lsm_local_disk_serial_num_get(const char *disk_path, char **serial_num,
+                                  lsm_error **lsm_err)
+{
+    uint8_t tmp_serial_num[_LSM_MAX_SERIAL_NUM_LEN];
+    char *trimmed_serial_num = NULL;
+    const char *sd_name = NULL;
+    int rc = LSM_ERR_OK;
+    char err_msg[_LSM_ERR_MSG_LEN];
+
+    _lsm_err_msg_clear(err_msg);
+
+    rc = _check_null_ptr(err_msg, 3 /* arg_count */, disk_path, serial_num,
+                         lsm_err);
+
+    if (rc != LSM_ERR_OK) {
+        if (serial_num != NULL)
+            *serial_num = NULL;
+
+        goto out;
+    }
+
+    *serial_num = NULL;
+    *lsm_err = NULL;
+
+    if (! _file_exists(disk_path)) {
+        rc = LSM_ERR_NOT_FOUND_DISK;
+        _lsm_err_msg_set(err_msg, "Disk %s not found", disk_path);
+        goto out;
+    }
+
+    if (strncmp(disk_path, "/dev/sd", strlen("/dev/sd")) != 0) {
+        rc = LSM_ERR_NO_SUPPORT;
+        _lsm_err_msg_set(err_msg, "we only support disk path start with "
+                         "'/dev/sd' today");
+        goto out;
+    }
+
+    sd_name = disk_path + strlen("/dev/");
+
+    rc = _sysfs_serial_num_of_sd_name(err_msg, sd_name, tmp_serial_num);
+    if (rc != LSM_ERR_OK)
+        goto out;
+
+    if (tmp_serial_num[0] != '\0') {
+        //ensure that the string being trimmed is NULL terminated
+        tmp_serial_num[_LSM_MAX_SERIAL_NUM_LEN - 1] = '\0';
+
+        trimmed_serial_num = _trim_spaces(tmp_serial_num);
+        if (trimmed_serial_num == NULL) {
+            rc = LSM_ERR_NO_SUPPORT;
+            _lsm_err_msg_set(err_msg, "failed to trim vpd80 "
+                             "serial number field");
+            goto out;
+        }
+
+        *serial_num = strdup(trimmed_serial_num);
+        if (*serial_num == NULL)
+            rc = LSM_ERR_NO_MEMORY;
+    } else {
+        rc = LSM_ERR_NO_SUPPORT;
+        _lsm_err_msg_set(err_msg, "no characters in vpd80 serial "
+                         "number field");
+    }
+
+ out:
+    if (rc != LSM_ERR_OK) {
+        if (lsm_err != NULL)
+            *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
+
+        if (serial_num != NULL) {
+            free(*serial_num);
+            *serial_num = NULL;
         }
     }
 

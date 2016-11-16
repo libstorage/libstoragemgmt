@@ -22,7 +22,9 @@ from lsm._clib import (_local_disk_vpd83_search, _local_disk_vpd83_get,
                        _local_disk_rpm_get, _local_disk_list,
                        _local_disk_link_type_get, _local_disk_ident_led_on,
                        _local_disk_ident_led_off, _local_disk_fault_led_on,
-                       _local_disk_fault_led_off)
+                       _local_disk_fault_led_off, _local_disk_serial_num_get)
+from lsm import LsmError, ErrorNumber
+
 
 def _use_c_lib_function(func_ref, arg):
     (data, err_no, err_msg) = func_ref(arg)
@@ -61,6 +63,36 @@ class LocalDisk(object):
                 No capability required as this is a library level method.
         """
         return _use_c_lib_function(_local_disk_vpd83_search, vpd83)
+
+    @staticmethod
+    def serial_num_get(disk_path):
+        """
+        lsm.LocalDisk.serial_num_get(disk_path)
+
+        Version:
+            1.4
+        Usage:
+            Query the SCSI VPD80 serial number of given disk path.
+        Parameters:
+            disk_path (string)
+                The disk path, example '/dev/sdb'.
+        Returns:
+            serial_num (string)
+                String of VPD80 serial number. Empty string if not supported.
+                The string format regex is:
+        SpecialExceptions:
+            LsmError
+                ErrorNumber.LIB_BUG
+                    Internal bug.
+                ErrorNumber.INVALID_ARGUMENT
+                    Invalid disk_path. Should be like '/dev/sdb'
+                ErrorNumber.NOT_FOUND_DISK
+                    Provided disk is not found.
+        Capability:
+            N/A
+                No capability required as this is a library level method.
+        """
+        return _use_c_lib_function(_local_disk_serial_num_get, disk_path)
 
     @staticmethod
     def vpd83_get(disk_path):

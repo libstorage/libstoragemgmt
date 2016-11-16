@@ -386,11 +386,12 @@ class LocalDiskInfo(object):
         Disk.LINK_TYPE_PCIE: "PCI-E",
     }
 
-    def __init__(self, sd_path, vpd83, rpm, link_type):
+    def __init__(self, sd_path, vpd83, rpm, link_type, serial_num):
         self.sd_path = sd_path
         self.vpd83 = vpd83
         self.rpm = rpm
         self.link_type = link_type
+        self.serial_num = serial_num
 
 
 class VolumeRAMCacheInfo(object):
@@ -797,8 +798,9 @@ class DisplayData(object):
     LOCAL_DISK_HEADER['vpd83'] = 'SCSI VPD 0x83'
     LOCAL_DISK_HEADER['rpm'] = 'Revolutions Per Minute'
     LOCAL_DISK_HEADER['link_type'] = 'Link Type'
+    LOCAL_DISK_HEADER['serial_num'] = 'Serial Number'
 
-    LOCAL_DISK_COLUMN_SKIP_KEYS = []
+    LOCAL_DISK_COLUMN_SKIP_KEYS = ['rpm']
 
     LOCAL_DISK_VALUE_CONV_ENUM = {
         'rpm': disk_rpm_to_str,

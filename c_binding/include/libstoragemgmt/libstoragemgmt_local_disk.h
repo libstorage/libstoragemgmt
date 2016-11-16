@@ -53,6 +53,29 @@ int LSM_DLL_EXPORT lsm_local_disk_vpd83_search(const char *vpd83,
                                                lsm_error **lsm_err);
 
 /**
+ * New in version 1.4.
+ * Query the SCSI VPD page 0x80 serial number of given disk path.
+ * @param[in]  disk_path
+ *                  String. The path of disk path, example "/dev/sdb".
+ * @param[out] serial_num
+ *                  Output pointer of SCSI VPD80 serial number.
+ *                  NULL when error. Memory should be freed by free().
+ * @param[out] lsm_err
+ *                  Output pointer of lsm_error. Error message could be
+ *                  retrieved via lsm_error_message_get(). Memory should be
+ *                  freed by lsm_error_free().
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK               on success or not found.
+ * @retval LSM_ERR_INVALID_ARGUMENT when any argument is NULL
+ * @retval LSM_ERR_NO_MEMORY        when no memory.
+ * @retval LSM_ERR_LIB_BUG          when something unexpected happens.
+ * @retval LSM_ERR_NOT_FOUND_DISK   when provided disk path not found.
+ */
+int LSM_DLL_EXPORT lsm_local_disk_serial_num_get(const char *disk_path,
+                                                 char **serial_num,
+                                                 lsm_error **lsm_err);
+
+/**
  * New in version 1.3.
  * Query the SCSI VPD 0x83 page NAA type ID of given disk path.
  * @param[in]  disk_path

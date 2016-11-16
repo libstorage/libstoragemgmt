@@ -35,6 +35,7 @@
 /* SPL-4 rev5 4.2.4 SAS address. */
 #define _SG_T10_SPL_SAS_ADDR_LEN_BITS               8
 
+#define _SG_T10_SPC_VPD_UNIT_SN                     0x80
 #define _SG_T10_SPC_VPD_DI                          0x83
 #define _SG_T10_SPC_VPD_DI_NAA_235_ID_LEN           8
 #define _SG_T10_SPC_VPD_DI_NAA_6_ID_LEN             16
@@ -127,6 +128,18 @@ LSM_DLL_LOCAL int _sg_io_vpd(char *err_msg, int fd, uint8_t page_code,
  */
 LSM_DLL_LOCAL void _sg_t10_vpd83_dp_array_free(struct _sg_t10_vpd83_dp **dps,
                                                uint16_t dp_count);
+
+/*
+ * Preconditions:
+ *  err_msg != NULL
+ *  vpd_data != NULL
+ *  vpd_data is uint8_t[_SG_T10_SPC_VPD_MAX_LEN]
+ *  serial_num != NULL
+ *  serial_num_max_len != 0
+ */
+LSM_DLL_LOCAL int _sg_parse_vpd_80(char *err_msg, uint8_t *vpd_data,
+                                   uint8_t *serial_num,
+                                   uint16_t serial_num_max_len);
 
 /*
  * Preconditions:
