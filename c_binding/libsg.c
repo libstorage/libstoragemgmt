@@ -269,7 +269,8 @@ int _sg_io_vpd(char *err_msg, int fd, uint8_t page_code, uint8_t *data)
     if (ioctl_errno != 0) {
         if (page_code == _SG_T10_SPC_VPD_SUP_VPD_PGS) {
             _lsm_err_msg_set(err_msg, "Not a SCSI compatible device");
-            return LSM_ERR_NO_SUPPORT;
+            rc = LSM_ERR_NO_SUPPORT;
+            goto out;
         }
         if (_check_sense_data(sense_err_msg, sense_data, &sense_key) != 0) {
             if (sense_key == _T10_SPC_SENSE_KEY_ILLEGAL_REQUEST) {
@@ -302,7 +303,16 @@ int _sg_io_vpd(char *err_msg, int fd, uint8_t page_code, uint8_t *data)
                 _lsm_err_msg_set(err_msg,
                                  "BUG: Unexpected failure of _sg_io_vpd(): %s",
                                  sense_err_msg);
+                goto out;
             }
+        }
+        /* NVMe disk does not support SCSI VPD page 0x00 or SCSI sense data
+         * which fallback to here */
+        if (ioctl_errno == ENOTTY) {
+            _lsm_err_msg_set(err_msg, "SCSI VPD page 0x%02x is not supported",
+                             page_code);
+            rc = LSM_ERR_NO_SUPPORT;
+            goto out;
         }
         rc = LSM_ERR_LIB_BUG;
         _lsm_err_msg_set(err_msg, "BUG: Unexpected failure of _sg_io_vpd(): "
