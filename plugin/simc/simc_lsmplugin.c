@@ -143,6 +143,8 @@ int plugin_register(lsm_plugin_ptr c, const char *uri, const char *password,
     struct sqlite3 *db = NULL;
     struct _simc_private_data *pri_data = NULL;
 
+    _UNUSED(password);
+    _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
 
     /* Use URI 'statefile' parameter as state file path if defined,
@@ -207,6 +209,7 @@ int plugin_unregister(lsm_plugin_ptr c, lsm_flag flags)
     int rc = LSM_ERR_OK;
     struct _simc_private_data *pri_data = NULL;
 
+    _UNUSED(flags);
     if (c != NULL) {
         pri_data = lsm_private_data_get(c);
         if ((pri_data != NULL) && (pri_data->db != NULL))

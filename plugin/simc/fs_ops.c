@@ -150,6 +150,7 @@ int fs_create(lsm_plugin_ptr c, lsm_pool *pool, const char *name,
     sqlite3 *db = NULL;
     char err_msg[_LSM_ERR_MSG_LEN];
 
+    _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 4 /* argument count */, pool, name, fs, job),
           rc, out);
@@ -187,6 +188,7 @@ int fs_delete(lsm_plugin_ptr c, lsm_fs *fs, char **job, lsm_flag flags)
     char sql_cmd[_BUFF_SIZE];
     struct _vector *vec = NULL;
 
+    _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 2 /* argument count */, fs, job), rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
@@ -257,6 +259,7 @@ int fs_clone(lsm_plugin_ptr c, lsm_fs *src_fs, const char *dest_fs_name,
     char dst_sim_fs_id_str[_BUFF_SIZE];
     uint64_t sim_fs_snap_id = 0;
 
+    _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 4 /* argument count */, src_fs,
                           dest_fs_name, cloned_fs, job),
@@ -328,6 +331,7 @@ int fs_child_dependency(lsm_plugin_ptr c, lsm_fs *fs, lsm_string_list *files,
     char sql_cmd[_BUFF_SIZE];
     struct _vector *vec = NULL;
 
+    _UNUSED(files);
     _lsm_err_msg_clear(err_msg);
 
     _good(_check_null_ptr(err_msg, 2 /* argument count */, fs, yes), rc, out);
@@ -384,6 +388,7 @@ int fs_child_dependency_rm(lsm_plugin_ptr c, lsm_fs *fs,
     char condition[_BUFF_SIZE];
     sqlite3 *db = NULL;
 
+    _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
 
     _good(_check_null_ptr(err_msg, 2 /* argument count */, fs, job), rc, out);
@@ -446,6 +451,7 @@ int fs_resize(lsm_plugin_ptr c, lsm_fs *fs, uint64_t new_size,
     char new_size_str[_BUFF_SIZE];
     sqlite3 *db = NULL;
 
+    _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 3 /* argument count */, fs,
                           rfs, job),
@@ -519,6 +525,7 @@ int fs_file_clone(lsm_plugin_ptr c, lsm_fs *fs, const char *src_file_name,
     lsm_hash *sim_fs = NULL;
     lsm_hash *sim_fs_snap = NULL;
 
+    _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 4 /* argument count */, fs, src_file_name,
                           dest_file_name, job),
@@ -570,6 +577,7 @@ int fs_snapshot_list(lsm_plugin_ptr c, lsm_fs *fs, lsm_fs_ss **ss[],
     lsm_hash *sim_fs = NULL;
     uint64_t sim_fs_id = 0;
 
+    _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 2 /* argument count */, ss, ss_count),
           rc, out);
@@ -625,6 +633,7 @@ int fs_snapshot_create(lsm_plugin_ptr c, lsm_fs *fs, const char *name,
     char ts_str[_BUFF_SIZE];
     struct timespec ts;
 
+    _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 4 /* argument count */, fs, name, snapshot,
                           job),
@@ -687,6 +696,7 @@ int fs_snapshot_delete(lsm_plugin_ptr c, lsm_fs *fs, lsm_fs_ss *ss, char **job,
     lsm_hash *sim_fs_snap = NULL;
     uint64_t sim_fs_snap_id = 0;
 
+    _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 3 /* argument count */, fs, ss, job),
           rc, out);
@@ -729,5 +739,8 @@ int fs_snapshot_restore(lsm_plugin_ptr c, lsm_fs *fs, lsm_fs_ss *ss,
      * To simplify code, we use fs_file_clone() here which do exactly the same
      * check.
      */
+    _UNUSED(files);
+    _UNUSED(restore_files);
+    _UNUSED(all_files);
     return fs_file_clone(c, fs, "dummy", "dummy", ss, job, flags);
 }

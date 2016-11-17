@@ -134,6 +134,8 @@ static lsm_nfs_export *_sim_exp_to_lsm(char *err_msg, lsm_hash *sim_exp)
 int nfs_auth_types(lsm_plugin_ptr c, lsm_string_list **types, lsm_flag flags)
 {
     int rc = LSM_ERR_OK;
+    _UNUSED(c);
+    _UNUSED(flags);
     *types = lsm_string_list_alloc(1);
     if (*types) {
         rc = lsm_string_list_elem_set(*types, 0, "standard");
@@ -159,6 +161,7 @@ int nfs_export_fs(lsm_plugin_ptr c, const char *fs_id, const char *export_path,
     char tmp_export_path[_BUFF_SIZE];
     char vpd83[_BUFF_SIZE];
 
+    _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 2 /* argument count */, fs_id, exported),
           rc, out);
@@ -219,6 +222,7 @@ int nfs_export_remove(lsm_plugin_ptr c, lsm_nfs_export *e, lsm_flag flags)
     lsm_hash *sim_exp = NULL;
     uint64_t sim_exp_id = 0;
 
+    _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 1 /* argument count */, e), rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
@@ -253,7 +257,7 @@ static int _nfs_export(char *err_msg, sqlite3 *db, const char *sim_fs_id_str,
 {
 
     int rc = LSM_ERR_OK;
-    ssize_t i = 0;
+    size_t i = 0;
     uint32_t j = 0;
     lsm_string_list *host_list = NULL;
     const char *host_list_table = NULL;
