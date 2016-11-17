@@ -463,7 +463,8 @@ static PyObject *local_disk_list(PyObject *self, PyObject *args,
 #if PY_MAJOR_VERSION >= 3
     #define MOD_DEF(name, methods) \
         static struct PyModuleDef moduledef = { \
-            PyModuleDef_HEAD_INIT, name, NULL, -1, methods, }; \
+            PyModuleDef_HEAD_INIT, name, NULL, -1, methods, NULL, NULL, NULL, \
+            NULL}; \
         return PyModule_Create(&moduledef);
 #else
     #define MOD_DEF(name, methods) \
