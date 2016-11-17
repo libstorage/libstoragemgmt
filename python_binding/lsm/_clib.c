@@ -41,6 +41,7 @@
     } while(0)
 
 #define _NO_NEED_TO_FREE(x)
+#define _UNUSED(x) (void)(x)
 
 #define _wrapper(func_name, c_func_name, arg_type, arg, c_rt_type, \
                  c_rt_default, py_rt_conv_func, c_rt_free_func) \
@@ -56,6 +57,7 @@ static PyObject *func_name(PyObject *self, PyObject *args, PyObject *kwargs) \
     PyObject *err_msg_obj = NULL; \
     PyObject *err_no_obj = NULL; \
     bool flag_no_mem = false; \
+    _UNUSED(self); \
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", (char **) kwlist, \
                                      &arg)) \
         return NULL; \
@@ -106,6 +108,7 @@ static PyObject *func_name(PyObject *self, PyObject *args, PyObject *kwargs) \
     PyObject *err_msg_obj = NULL; \
     PyObject *err_no_obj = NULL; \
     bool flag_no_mem = false; \
+    _UNUSED(self); \
     _alloc_check(rc_obj, flag_no_mem, out); \
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", (char **) kwlist, \
                                      &disk_path)) \
@@ -419,6 +422,9 @@ static PyObject *local_disk_list(PyObject *self, PyObject *args,
     PyObject *err_no_obj = NULL;
     bool flag_no_mem = false;
 
+    _UNUSED(self);
+    _UNUSED(args);
+    _UNUSED(kwargs);
     rc = lsm_local_disk_list(&disk_paths, &lsm_err);
     err_no_obj = PyInt_FromLong(rc);
     _alloc_check(err_no_obj, flag_no_mem, out);
