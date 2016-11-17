@@ -24,6 +24,7 @@
 #include <check.h>
 #include <unistd.h>
 #include <time.h>
+#include <stdint.h>
 #include <libstoragemgmt/libstoragemgmt.h>
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 
@@ -327,8 +328,9 @@ lsm_fs_ss *wait_for_job_ss(lsm_connect *c, char **job_id)
 
 int compare_string_lists(lsm_string_list *l, lsm_string_list *r)
 {
+    uint32_t i = 0;
+
     if( l && r) {
-        int i = 0;
 
         if( l == r ) {
             return 0;
@@ -1069,7 +1071,7 @@ START_TEST(test_disks)
     const char *id;
     const char *name;
     const char *system_id;
-    int i = 0;
+    uint32_t i = 0;
 
     fail_unless(c!=NULL);
 
@@ -1116,7 +1118,7 @@ START_TEST(test_disk_rpm_and_link_type)
 {
     uint32_t count = 0;
     lsm_disk **disks = NULL;
-    int i = 0;
+    uint32_t i = 0;
     int rc = LSM_ERR_OK;
     int32_t rpm = LSM_DISK_RPM_UNKNOWN;
     lsm_disk_link_type link_type = LSM_DISK_LINK_TYPE_UNKNOWN;
@@ -1163,7 +1165,7 @@ START_TEST(test_disk_location)
     uint32_t count = 0;
     lsm_disk **d = NULL;
     const char *location = NULL;
-    int i = 0;
+    uint32_t i = 0;
     int rc = LSM_ERR_OK;
 
     fail_unless(c!=NULL);
@@ -2218,7 +2220,7 @@ END_TEST
 START_TEST(test_capability)
 {
     int rc;
-    int i;
+    size_t i;
     lsm_capability_type expected_present[] = {
         LSM_CAP_VOLUMES,
         LSM_CAP_VOLUME_CREATE,
@@ -2263,10 +2265,6 @@ START_TEST(test_capability)
         LSM_CAP_EXPORTS,
         LSM_CAP_EXPORT_FS,
         LSM_CAP_EXPORT_REMOVE};
-
-    lsm_capability_type expected_absent[] = {
-    };
-
 
     lsm_storage_capabilities *cap = lsm_capability_record_alloc(NULL);
 
@@ -2330,15 +2328,6 @@ START_TEST(test_capability)
             fail_unless( lsm_capability_get(cap, expected_present[i]) ==
                             LSM_CAP_SUPPORTED);
         }
-
-        for( i = 0;
-            i < sizeof(expected_absent)/sizeof(expected_absent[0]);
-            ++i) {
-
-            fail_unless( lsm_capability_get(cap, expected_absent[i]) ==
-                            LSM_CAP_UNSUPPORTED);
-        }
-
 
         G(rc, lsm_capability_record_free, cap);
     }
@@ -3112,7 +3101,7 @@ START_TEST(test_pool_member_info)
     lsm_pool_member_type member_type;
     lsm_string_list *member_ids = NULL;
 
-    int i;
+    uint32_t i;
     uint32_t y;
     for (i = 0; i < poolCount; i++) {
         G(
@@ -3171,7 +3160,7 @@ START_TEST(test_volume_raid_create)
     // Try to create two disks RAID 1.
     uint32_t free_disk_count = 0;
     lsm_disk *free_disks[2];
-    int i;
+    uint32_t i = 0;
     for (i = 0; i< disk_count; i++){
         if (lsm_disk_status_get(disks[i]) & LSM_DISK_STATUS_FREE){
             free_disks[free_disk_count++] = disks[i];
@@ -3692,7 +3681,7 @@ START_TEST(test_volume_pdc_update)
     uint32_t all_pdcs[] = {
         LSM_VOLUME_PHYSICAL_DISK_CACHE_DISABLED,
         LSM_VOLUME_PHYSICAL_DISK_CACHE_ENABLED};
-    int i = 0;
+    size_t i = 0;
 
     pool = get_test_pool(c);
 
@@ -3741,7 +3730,7 @@ START_TEST(test_volume_wcp_update)
         LSM_VOLUME_WRITE_CACHE_POLICY_AUTO,
         LSM_VOLUME_WRITE_CACHE_POLICY_WRITE_BACK,
         LSM_VOLUME_WRITE_CACHE_POLICY_WRITE_THROUGH};
-    int i = 0;
+    size_t i = 0;
 
     pool = get_test_pool(c);
 
@@ -3789,7 +3778,7 @@ START_TEST(test_volume_rcp_update)
     uint32_t all_rcps[] = {
         LSM_VOLUME_READ_CACHE_POLICY_DISABLED,
         LSM_VOLUME_READ_CACHE_POLICY_ENABLED};
-    int i = 0;
+    size_t i = 0;
 
     pool = get_test_pool(c);
 
