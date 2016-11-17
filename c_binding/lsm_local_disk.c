@@ -529,7 +529,7 @@ int lsm_local_disk_serial_num_get(const char *disk_path, char **serial_num,
         //ensure that the string being trimmed is NULL terminated
         tmp_serial_num[_LSM_MAX_SERIAL_NUM_LEN - 1] = '\0';
 
-        trimmed_serial_num = _trim_spaces(tmp_serial_num);
+        trimmed_serial_num = _trim_spaces((char *) tmp_serial_num);
         if (trimmed_serial_num == NULL) {
             rc = LSM_ERR_NO_SUPPORT;
             _lsm_err_msg_set(err_msg, "failed to trim vpd80 "
