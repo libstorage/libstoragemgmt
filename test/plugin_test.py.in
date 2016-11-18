@@ -107,6 +107,11 @@ def r_fcpn():
     return ':'.join(rnd_fcpn[i:i + 2] for i in range(0, len(rnd_fcpn), 2))
 
 
+def r_iqn():
+    # RFC 3722, only lower case characters are allowed in IQN
+    return 'iqn.1994-05.com.domain:01.' + rs(None, 6).lower()
+
+
 class Duration(object):
     def __init__(self):
         self.start = 0
@@ -906,7 +911,7 @@ class TestPlugin(unittest.TestCase):
 
                 if supported(cap, [Cap.ACCESS_GROUP_CREATE_ISCSI_IQN]):
                     ag_name = rs("ag")
-                    ag_iqn = 'iqn.1994-05.com.domain:01.' + rs(None, 6)
+                    ag_iqn = r_iqn()
 
                     ag_created = self.c.access_group_create(
                         ag_name, ag_iqn, lsm.AccessGroup.INIT_TYPE_ISCSI_IQN,
@@ -971,8 +976,7 @@ class TestPlugin(unittest.TestCase):
 
         if init_type == lsm.AccessGroup.INIT_TYPE_ISCSI_IQN:
             ag_created = self.c.access_group_create(
-                name,
-                'iqn.1994-05.com.domain:01.' + rs(None, 6),
+                name, r_iqn(),
                 lsm.AccessGroup.INIT_TYPE_ISCSI_IQN, s)
 
         elif init_type == lsm.AccessGroup.INIT_TYPE_WWPN:
@@ -1009,7 +1013,7 @@ class TestPlugin(unittest.TestCase):
         """
         flag_got_expected_error = False
         if lsm_ag.init_type == lsm.AccessGroup.INIT_TYPE_ISCSI_IQN:
-            new_init_id = 'iqn.1994-05.com.domain:01.' + rs(None, 6)
+            new_init_id = r_iqn()
         else:
             new_init_id = r_fcpn()
         try:
@@ -1090,7 +1094,7 @@ class TestPlugin(unittest.TestCase):
 
     def _ag_init_add(self, ag):
         if ag.init_type == lsm.AccessGroup.INIT_TYPE_ISCSI_IQN:
-            t_id = 'iqn.1994-05.com.domain:01.' + rs(None, 6)
+            t_id = r_iqn()
             t = lsm.AccessGroup.INIT_TYPE_ISCSI_IQN
         else:
             # We will try FC PN
@@ -1254,7 +1258,7 @@ class TestPlugin(unittest.TestCase):
                                Cap.VOLUME_UNMASK]):
 
                 ag_name = rs("ag")
-                ag_iqn = 'iqn.1994-05.com.domain:01.' + rs(None, 6)
+                ag_iqn = r_iqn()
 
                 ag = self.c.access_group_create(
                     ag_name, ag_iqn, lsm.AccessGroup.INIT_TYPE_ISCSI_IQN, s)
