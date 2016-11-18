@@ -167,19 +167,23 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
         pools = []
         for pool in pools_list:
-            if pool == 'syspool':
-                continue
-            pool_info = self._request("get_child_props", "volume",
-                                      [str(pool), ""])
+            try:
+                if pool == 'syspool':
+                    continue
+                pool_info = self._request("get_child_props", "volume",
+                                          [str(pool), ""])
 
-            pools.append(Pool(pool_info['name'], pool_info['name'],
-                              Pool.ELEMENT_TYPE_VOLUME |
-                              Pool.ELEMENT_TYPE_VOLUME_THIN |
-                              Pool.ELEMENT_TYPE_FS,
-                              0,
-                              NexentaStor._to_bytes(pool_info['size']),
-                              NexentaStor._to_bytes(pool_info['free']),
-                              Pool.STATUS_UNKNOWN, '', self.system.id))
+                pools.append(Pool(pool_info['name'], pool_info['name'],
+                                  Pool.ELEMENT_TYPE_VOLUME |
+                                  Pool.ELEMENT_TYPE_VOLUME_THIN |
+                                  Pool.ELEMENT_TYPE_FS,
+                                  0,
+                                  NexentaStor._to_bytes(pool_info['size']),
+                                  NexentaStor._to_bytes(pool_info['free']),
+                                  Pool.STATUS_UNKNOWN, '', self.system.id))
+            except LsmError as e:
+                error('nstor:pools: %s' % str(e))
+                pass
 
         return search_property(pools, search_key, search_value)
 
@@ -190,19 +194,23 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         fss = []
         pools = {}
         for fs in fs_list:
-            pool_name = NexentaStor._get_pool_id(fs)
-            if pool_name == 'syspool':
-                continue
-            if pool_name not in pools:
-                pool_info = self._request("get_child_props", "volume",
-                                          [str(fs), ""])
-                pools[pool_name] = pool_info
-            else:
-                pool_info = pools[pool_name]
-            fss.append(
-                FileSystem(fs, fs, NexentaStor._to_bytes(pool_info['size']),
-                           self._to_bytes(pool_info['available']), pool_name,
-                           self.system.id))
+            try:
+                pool_name = NexentaStor._get_pool_id(fs)
+                if pool_name == 'syspool':
+                    continue
+                if pool_name not in pools:
+                    pool_info = self._request("get_child_props", "volume",
+                                              [str(fs), ""])
+                    pools[pool_name] = pool_info
+                else:
+                    pool_info = pools[pool_name]
+                fss.append(
+                    FileSystem(fs, fs, NexentaStor._to_bytes(pool_info['size']),
+                               self._to_bytes(pool_info['available']),
+                               pool_name, self.system.id))
+            except LsmError as e:
+                error('nstor:fs: %s' % str(e))
+                pass
 
         return search_property(fss, search_key, search_value)
 
@@ -232,10 +240,14 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
         snapshots = []
         for snapshot in snapshot_list:
-            snapshot_info = self._request("get_child_props", "snapshot",
-                                          [snapshot, "creation_seconds"])
-            snapshots.append(FsSnapshot(snapshot, snapshot,
-                                        snapshot_info['creation_seconds']))
+            try:
+                snapshot_info = self._request("get_child_props", "snapshot",
+                                              [snapshot, "creation_seconds"])
+                snapshots.append(FsSnapshot(snapshot, snapshot,
+                                            snapshot_info['creation_seconds']))
+            except LsmError as e:
+                error('nstor:fs_snapshots: %s' % str(e))
+                pass
 
         return snapshots
 
@@ -380,11 +392,15 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
         dependency_list = []
         for filesystem in fs_list:
-            origin = self._request("get_child_prop", "folder",
-                                   [filesystem, 'origin'])
-            if origin.startswith("%s/" % fs_name) or \
-                    origin.startswith("%s@" % fs_name):
-                dependency_list.append(filesystem)
+            try:
+                origin = self._request("get_child_prop", "folder",
+                                       [filesystem, 'origin'])
+                if origin.startswith("%s/" % fs_name) or \
+                        origin.startswith("%s@" % fs_name):
+                    dependency_list.append(filesystem)
+            except LsmError as e:
+                error('nstor:_dependencies_list: %s' % str(e))
+                pass
         return dependency_list
 
     @handle_nstor_errors
@@ -424,12 +440,16 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
         exports = []
         for e in exp_list:
-            opts = self._request("get_shareopts", "netstorsvc",
-                                 ['svc:/network/nfs/server:default', e])
-            exports.append(NfsExport(md5(opts['name']), e, opts['name'],
-                                     opts['auth_type'], opts['root'],
-                                     opts['read_write'], opts['read_only'],
-                                     'N/A', 'N/A', opts['extra_options']))
+            try:
+                opts = self._request("get_shareopts", "netstorsvc",
+                                     ['svc:/network/nfs/server:default', e])
+                exports.append(NfsExport(md5(opts['name']), e, opts['name'],
+                                         opts['auth_type'], opts['root'],
+                                         opts['read_write'], opts['read_only'],
+                                         'N/A', 'N/A', opts['extra_options']))
+            except LsmError as e:
+                error('nstor:exports: %s' % str(e))
+                pass
 
         return search_property(exports, search_key, search_value)
 
@@ -495,22 +515,28 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         #             "params": ['']})
         for lu in lu_list:
             try:
-                lu_props = self._request("get_lu_props", "scsidisk", [lu])
-            except:
-                lu_props = {'guid': '', 'state': 'N/A'}
+                try:
+                    lu_props = self._request("get_lu_props", "scsidisk", [lu])
+                except:
+                    lu_props = {'guid': '', 'state': 'N/A'}
 
-            zvol_props = self._request("get_child_props", "zvol", [lu, ""])
+                zvol_props = self._request("get_child_props", "zvol", [lu, ""])
 
-            block_size = NexentaStor._to_bytes(zvol_props['volblocksize'])
-            size_bytes = int(zvol_props['size_bytes'])
-            num_of_blocks = int_div(size_bytes, block_size)
-            admin_state = Volume.ADMIN_STATE_ENABLED
+                block_size = NexentaStor._to_bytes(zvol_props['volblocksize'])
+                size_bytes = int(zvol_props['size_bytes'])
+                num_of_blocks = int_div(size_bytes, block_size)
+                admin_state = Volume.ADMIN_STATE_ENABLED
 
-            vol_list.append(
-                Volume(lu, lu, lu_props['guid'].lower(),
-                       block_size, num_of_blocks,
-                       admin_state, self.system.id,
-                       NexentaStor._get_pool_id(lu)))
+                vol_list.append(
+                    Volume(lu, lu, lu_props['guid'].lower(),
+                           block_size, num_of_blocks,
+                           admin_state, self.system.id,
+                           NexentaStor._get_pool_id(lu)))
+            except LsmError as e:
+                # The available volumes could have changed while we were trying
+                # to retrieve information about each one of them.
+                error('nstor:volumes: %s' % str(e))
+                pass
 
         return search_property(vol_list, search_key, search_value)
 
@@ -727,10 +753,18 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
         ag_list = []
         for hg in hg_list:
-            init_ids = self._request("list_hostgroup_members", "stmf", [hg])
-            ag_list.append(
-                AccessGroup(hg, hg, init_ids, AccessGroup.INIT_TYPE_ISCSI_IQN,
-                            self.system.id))
+            # The host group could get deleted out from under us, lets not
+            # add this entry to the returned access groups if we error while
+            # trying to retrieve the initiator IDs.
+            try:
+                init_ids = self._request("list_hostgroup_members", "stmf", [hg])
+                ag_list.append(
+                    AccessGroup(hg, hg, init_ids,
+                                AccessGroup.INIT_TYPE_ISCSI_IQN,
+                                self.system.id))
+            except LsmError as e:
+                error('nstor:access_groups: %s' % str(e))
+                pass
         return search_property(ag_list, search_key, search_value)
 
     @handle_nstor_errors
