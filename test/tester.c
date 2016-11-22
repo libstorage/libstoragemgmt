@@ -25,6 +25,8 @@
 #include <unistd.h>
 #include <time.h>
 #include <stdint.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <libstoragemgmt/libstoragemgmt.h>
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 
@@ -95,22 +97,43 @@ fail_unless( LSM_ERR_OK != variable, "call:%s rc = %d %s (which %d)", #func, \
 void generate_random(char *buff, uint32_t len)
 {
     uint32_t i = 0;
-    static int seed = 0;
-    static int pid = 0;
+    ssize_t cur_got = 0;
+    size_t got = 0;
+    int fd = -1;
+    uint8_t *raw_data;
 
-    /* Re-seed the random number generator at least once per unique process */
-    if( (!seed || !pid) || (pid != getpid()) ) {
-        seed = time(NULL);
-        pid = getpid();
-        srandom(seed + pid);
-     }
+    if (buff == NULL)
+        return;
 
-    if( buff && (len > 1) ) {
-        for(i = 0; i < (len - 1); ++i) {
-            buff[i] = 97 + rand()%26;
+    raw_data = (uint8_t *) malloc(len * sizeof(uint8_t));
+    if (raw_data == NULL)
+        return;
+
+    memset(raw_data, 0, len);
+
+    /* Coverity said we should not use rand() */
+    fd = open("/dev/urandom", O_RDONLY);
+    if (fd < 0)
+        goto out;
+
+    while (got < len) {
+        cur_got = read(fd, raw_data + got, len - got);
+        if (cur_got < 0) {
+            goto out;
         }
-        buff[len-1] = '\0';
+        got += cur_got;
     }
+
+    for(i = 0; i < (len - 1); ++i) {
+        buff[i] = 'a' + raw_data[i] % 26;
+    }
+    buff[len-1] = '\0';
+
+ out:
+    if (fd >= 0)
+        close(fd);
+    free(raw_data);
+    return;
 }
 
 const char *plugin_to_use(char *uri_buff)
@@ -186,7 +209,8 @@ void setup(void)
     if( LSM_ERR_OK == rc ) {
         if( getenv("LSM_DEBUG_PLUGIN") ) {
             printf("Attach debugger to plug-in, press <return> when ready...");
-            getchar();
+            if (getchar() == -1)
+                exit(EXIT_FAILURE);
         }
     }
     if (rc != LSM_ERR_OK) {
@@ -2211,7 +2235,8 @@ START_TEST(test_error_reporting)
         debug_data = lsm_error_debug_data_get(e, &debug_size);
         fail_unless(debug_data != NULL);
         fail_unless(debug_size == sizeof(d));
-        fail_unless(memcmp(d, debug_data, debug_size) == 0);
+        if (debug_data && (debug_size == sizeof(d)))
+            fail_unless(memcmp(d, debug_data, debug_size) == 0);
         fail_unless( LSM_ERR_OK == lsm_error_free(e) );
     }
 }
@@ -3282,6 +3307,9 @@ START_TEST(test_local_disk_list)
     fail_unless(disk_paths != NULL, "lsm_local_disk_list() return NULL for "
                 "disk_paths");
     lsm_string_list_free(disk_paths);
+    if (lsm_err != NULL)
+        lsm_error_free(lsm_err);
+        /* ^ Just to trick coverity scan. The 'fail_unless' already quit */
 }
 END_TEST
 
@@ -3379,6 +3407,12 @@ START_TEST(test_local_disk_vpd83_search)
                 "lsm_local_disk_vpd83_search(): Expecting disk_path_list as "
                 "NULL when searching for VALID_BUT_NOT_EXIST_VPD83");
 
+    if (lsm_err != NULL)
+        lsm_error_free(lsm_err);
+        /* ^ Just to trick coverity scan. The 'fail_unless' already quit */
+    if (disk_path_list != NULL)
+        lsm_string_list_free(disk_path_list);
+        /* ^ Just to trick coverity scan. The 'fail_unless' already quit */
 }
 END_TEST
 
@@ -3446,6 +3480,9 @@ START_TEST(test_local_disk_serial_num_get)
                 "lsm_local_disk_serial_num_get(): Expecting lsm_err "
                 "been set with non-NULL error message when disk not exist");
     lsm_error_free(lsm_err);
+    if (serial_num != NULL)
+        free(serial_num);
+        /* ^ Just to trick coverity scan. The 'serial_num' is NULL here */
 }
 END_TEST
 
@@ -3512,6 +3549,7 @@ START_TEST(test_local_disk_vpd83_get)
                 "lsm_local_disk_vpd83_get(): Expecting lsm_err "
                 "been set with non-NULL error message when disk not exist");
     lsm_error_free(lsm_err);
+    free(vpd83);
 }
 END_TEST
 
@@ -3822,6 +3860,9 @@ do { \
     const char *disk_path = NULL; \
     rc = lsm_local_disk_list(&disk_paths, &lsm_err); \
     fail_unless(rc == LSM_ERR_OK, "lsm_local_disk_list() failed as %d", rc); \
+    if (lsm_err != NULL) \
+        lsm_error_free(lsm_err); \
+        /* ^ Just to trick coverity scan. The 'fail_unless' already quit */ \
     /* Only try maximum 4 disks */ \
     for (; i < lsm_string_list_size(disk_paths) && i < 4; ++i) { \
         disk_path = lsm_string_list_elem_get(disk_paths, i); \
