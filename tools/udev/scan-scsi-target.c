@@ -64,13 +64,13 @@ int main(int argc, char **argv)
 
 	char	*host_str;
 	int	host_pos;
-	int	host_len;
+	size_t	host_len;
 	char	*host_next_str;
 	int	host_next_pos;
-	int	host_next_len;
+	size_t	host_next_len;
 	char	*target_str;
 	int	target_pos;
-	int	target_len;
+	size_t	target_len;
 
 	char	*channel_str;
 	int	channel_pos;

@@ -82,7 +82,7 @@ bool _file_exists(const char *path)
     return true;
 }
 
-int _read_file(const char *path, uint8_t *buff, ssize_t *size, size_t max_size)
+int _read_file(const char *path, uint8_t *buff, ssize_t *size, ssize_t max_size)
 {
     int fd = -1;
     int rc = 0;

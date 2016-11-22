@@ -50,7 +50,7 @@
 
 static char _SYS_VERSION[_BUFF_SIZE];
 
-static const uint32_t _SUPPORTED_RAID_TYPES[] = {
+static const lsm_volume_raid_type _SUPPORTED_RAID_TYPES[] = {
     LSM_VOLUME_RAID_TYPE_RAID0,
     LSM_VOLUME_RAID_TYPE_RAID1,
     LSM_VOLUME_RAID_TYPE_RAID5,
@@ -438,7 +438,7 @@ int _db_pool_create_from_disk(char *err_msg, sqlite3 *db, const char *name,
     const char *disk_role_parity = _DISK_ROLE_PARITY;
     const char *disk_role = NULL;
     char strip_size_str[_BUFF_SIZE];
-    ssize_t j = 0;
+    size_t j = 0;
     bool found = false;
 
     assert(db != NULL);

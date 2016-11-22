@@ -258,6 +258,8 @@ int volume_create(lsm_plugin_ptr c, lsm_pool *pool, const char *volume_name,
     sqlite3 *db = NULL;
     char err_msg[_LSM_ERR_MSG_LEN];
 
+     _UNUSED(flags);
+     _UNUSED(provisioning);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 4 /* argument count */, pool, volume_name,
                           new_volume, job),
@@ -297,6 +299,7 @@ int volume_delete(lsm_plugin_ptr c, lsm_volume *volume, char **job,
     char sql_cmd[_BUFF_SIZE];
     struct _vector *vec = NULL;
 
+     _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 2 /* argument count */, volume, job),
           rc, out);
@@ -375,6 +378,7 @@ int volume_replicate(lsm_plugin_ptr c, lsm_pool *pool,
     uint64_t new_sim_vol_id = 0;
     char new_sim_vol_id_str[_BUFF_SIZE];
 
+     _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 4 /* argument count */, volume_src,
                           name, new_replicant, job),
@@ -436,6 +440,8 @@ int volume_replicate_range(lsm_plugin_ptr c, lsm_replication_type rep_type,
     char rep_type_str[_BUFF_SIZE];
     char sql_cmd[_BUFF_SIZE];
 
+     _UNUSED(flags);
+     _UNUSED(num_ranges);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 4 /* argument count */, src_vol, dst_vol,
                           ranges, job),
@@ -504,6 +510,7 @@ int volume_replicate_range_block_size(lsm_plugin_ptr c, lsm_system *system,
     char err_msg[_LSM_ERR_MSG_LEN];
     const char *sys_id = NULL;
 
+     _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 2 /* argument count */, system, bs),
           rc, out);
@@ -540,6 +547,7 @@ int volume_resize(lsm_plugin_ptr c, lsm_volume *volume, uint64_t new_size,
     char new_size_str[_BUFF_SIZE];
     sqlite3 *db = NULL;
 
+     _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 3 /* argument count */, volume,
                           resized_volume, job),
@@ -639,11 +647,13 @@ static int _volume_admin_state_change(lsm_plugin_ptr c, lsm_volume *v,
 
 int volume_enable(lsm_plugin_ptr c, lsm_volume *v, lsm_flag flags)
 {
+     _UNUSED(flags);
     return _volume_admin_state_change(c, v, _VOLUME_ADMIN_STATE_ENABLE_STR);
 }
 
 int volume_disable(lsm_plugin_ptr c, lsm_volume *v, lsm_flag flags)
 {
+     _UNUSED(flags);
     return _volume_admin_state_change(c, v, _VOLUME_ADMIN_STATE_DISABLE_STR);
 }
 
@@ -656,6 +666,12 @@ int iscsi_chap_auth(lsm_plugin_ptr c, const char *init_id, const char *in_user,
      */
     char err_msg[_LSM_ERR_MSG_LEN];
 
+     _UNUSED(flags);
+     _UNUSED(in_user);
+     _UNUSED(in_password);
+     _UNUSED(out_user);
+     _UNUSED(out_password);
+     _UNUSED(c);
     _lsm_err_msg_clear(err_msg);
     return _check_null_ptr(err_msg, 1 /* argument count */, init_id);
 }
@@ -675,6 +691,7 @@ int access_group_create(lsm_plugin_ptr c, const char *name,
     lsm_hash *sim_ag = NULL;
     const char *sys_id = NULL;
 
+     _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 4 /* argument count */, name, initiator_id,
                           system, access_group),
@@ -762,6 +779,7 @@ int access_group_delete(lsm_plugin_ptr c, lsm_access_group *group,
     char sql_cmd[_BUFF_SIZE];
     struct _vector *vec = NULL;
 
+     _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 1 /* argument count */, group), rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
@@ -814,6 +832,7 @@ int access_group_initiator_add(lsm_plugin_ptr c, lsm_access_group *access_group,
     const char *sim_ag_id_str = NULL;
     const char *tmp_sim_ag_id_str = NULL;
 
+     _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 3 /* argument count */, access_group,
                           initiator_id, updated_access_group), rc, out);
@@ -913,6 +932,8 @@ int access_group_initiator_delete(lsm_plugin_ptr c,
     lsm_hash *sim_ag = NULL;
     struct _vector *vec = NULL;
 
+     _UNUSED(flags);
+     _UNUSED(id_type);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 3 /* argument count */, access_group,
                           initiator_id, updated_access_group),
@@ -1004,6 +1025,7 @@ int volume_mask(lsm_plugin_ptr c, lsm_access_group *group, lsm_volume *volume,
     char sql_cmd_check_mask[_BUFF_SIZE];
     struct _vector *vec = NULL;
 
+     _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
 
     _good(_check_null_ptr(err_msg, 2 /* argument count */, group, volume),
@@ -1072,6 +1094,7 @@ int volume_unmask(lsm_plugin_ptr c, lsm_access_group *group, lsm_volume *volume,
     struct _vector *vec = NULL;
     char sql_cmd_check_mask[_BUFF_SIZE];
 
+     _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
 
     _good(_check_null_ptr(err_msg, 2 /* argument count */, group, volume),
@@ -1135,6 +1158,7 @@ int volumes_accessible_by_access_group(lsm_plugin_ptr c,
     struct _vector *vec = NULL;
     char sql_cmd[_BUFF_SIZE];
 
+     _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
 
     _good(_check_null_ptr(err_msg, 3 /* argument count */, group, volumes,
@@ -1194,6 +1218,7 @@ int access_groups_granted_to_volume(lsm_plugin_ptr c, lsm_volume *volume,
     struct _vector *vec = NULL;
     char sql_cmd[_BUFF_SIZE];
 
+     _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
 
     _good(_check_null_ptr(err_msg, 3 /* argument count */, volume, groups,
@@ -1252,6 +1277,7 @@ int vol_child_depends(lsm_plugin_ptr c, lsm_volume *volume, uint8_t *yes,
     char sql_cmd[_BUFF_SIZE];
     struct _vector *vec = NULL;
 
+     _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
 
     _good(_check_null_ptr(err_msg, 2 /* argument count */, volume, yes),
@@ -1299,6 +1325,7 @@ int vol_child_depends_rm(lsm_plugin_ptr c, lsm_volume *volume, char **job,
     struct _vector *vec = NULL;
     char condition[_BUFF_SIZE];
 
+     _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
 
     _good(_check_null_ptr(err_msg, 2 /* argument count */, volume, job),

@@ -126,6 +126,7 @@ int tmo_set(lsm_plugin_ptr c, uint32_t timeout, lsm_flag flags)
     int db_rc = SQLITE_OK;
     struct _simc_private_data *pri_data = NULL;
 
+    _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
 
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
@@ -171,6 +172,7 @@ int tmo_get(lsm_plugin_ptr c, uint32_t *timeout, lsm_flag flags)
     char err_msg[_LSM_ERR_MSG_LEN];
     struct _simc_private_data *pri_data = NULL;
 
+     _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
 
     _good(_check_null_ptr(err_msg, 1 /* argument count */, timeout), rc, out);
@@ -196,87 +198,110 @@ int capabilities(lsm_plugin_ptr c, lsm_system *sys,
                  lsm_storage_capabilities **cap, lsm_flag flags)
 {
     int rc = LSM_ERR_NO_MEMORY;
+    char err_msg[_LSM_ERR_MSG_LEN];
+    const char *sys_id = NULL;
+
+     _UNUSED(flags);
+    _lsm_err_msg_clear(err_msg);
+
+    _good(_check_null_ptr(err_msg, 2 /* argument count */, sys, cap), rc, out);
+    sys_id = lsm_system_id_get(sys);
+    if ((sys_id == NULL) || (strcmp(sys_id, _SYS_ID) != 0)) {
+        rc = LSM_ERR_NOT_FOUND_SYSTEM;
+        _lsm_err_msg_set(err_msg, "System not found");
+        goto out;
+    }
+
     *cap = lsm_capability_record_alloc(NULL);
+    _alloc_null_check(err_msg, *cap, rc, out);
 
-    if (*cap) {
-        rc = lsm_capability_set_n
-            (*cap, LSM_CAP_SUPPORTED,
-             LSM_CAP_VOLUMES,
-             LSM_CAP_VOLUME_CREATE,
-             LSM_CAP_VOLUME_RESIZE,
-             LSM_CAP_VOLUME_REPLICATE,
-             LSM_CAP_VOLUME_REPLICATE_CLONE,
-             LSM_CAP_VOLUME_REPLICATE_COPY,
-             LSM_CAP_VOLUME_REPLICATE_MIRROR_ASYNC,
-             LSM_CAP_VOLUME_REPLICATE_MIRROR_SYNC,
-             LSM_CAP_VOLUME_COPY_RANGE_BLOCK_SIZE,
-             LSM_CAP_VOLUME_COPY_RANGE,
-             LSM_CAP_VOLUME_COPY_RANGE_CLONE,
-             LSM_CAP_VOLUME_COPY_RANGE_COPY,
-             LSM_CAP_VOLUME_DELETE,
-             LSM_CAP_VOLUME_ENABLE,
-             LSM_CAP_VOLUME_DISABLE,
-             LSM_CAP_VOLUME_MASK,
-             LSM_CAP_VOLUME_UNMASK,
-             LSM_CAP_ACCESS_GROUPS,
-             LSM_CAP_ACCESS_GROUP_CREATE_WWPN,
-             LSM_CAP_ACCESS_GROUP_DELETE,
-             LSM_CAP_ACCESS_GROUP_INITIATOR_ADD_WWPN,
-             LSM_CAP_ACCESS_GROUP_INITIATOR_DELETE,
-             LSM_CAP_VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP,
-             LSM_CAP_ACCESS_GROUPS_GRANTED_TO_VOLUME,
-             LSM_CAP_VOLUME_CHILD_DEPENDENCY,
-             LSM_CAP_VOLUME_CHILD_DEPENDENCY_RM,
-             LSM_CAP_ACCESS_GROUP_CREATE_ISCSI_IQN,
-             LSM_CAP_ACCESS_GROUP_INITIATOR_ADD_ISCSI_IQN,
-             LSM_CAP_VOLUME_ISCSI_CHAP_AUTHENTICATION,
-             LSM_CAP_VOLUME_RAID_INFO,
-             LSM_CAP_VOLUME_THIN,
-             LSM_CAP_BATTERIES,
-             LSM_CAP_VOLUME_CACHE_INFO,
-             LSM_CAP_VOLUME_PHYSICAL_DISK_CACHE_UPDATE,
-             LSM_CAP_VOLUME_WRITE_CACHE_POLICY_UPDATE_WRITE_BACK,
-             LSM_CAP_VOLUME_WRITE_CACHE_POLICY_UPDATE_AUTO,
-             LSM_CAP_VOLUME_WRITE_CACHE_POLICY_UPDATE_WRITE_THROUGH,
-             LSM_CAP_VOLUME_READ_CACHE_POLICY_UPDATE,
-             LSM_CAP_FS,
-             LSM_CAP_FS_DELETE,
-             LSM_CAP_FS_RESIZE,
-             LSM_CAP_FS_CREATE,
-             LSM_CAP_FS_CLONE,
-             LSM_CAP_FILE_CLONE,
-             LSM_CAP_FS_SNAPSHOTS,
-             LSM_CAP_FS_SNAPSHOT_CREATE,
-             LSM_CAP_FS_SNAPSHOT_DELETE,
-             LSM_CAP_FS_SNAPSHOT_RESTORE,
-             LSM_CAP_FS_SNAPSHOT_RESTORE_SPECIFIC_FILES,
-             LSM_CAP_FS_CHILD_DEPENDENCY,
-             LSM_CAP_FS_CHILD_DEPENDENCY_RM,
-             LSM_CAP_FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES,
-             LSM_CAP_EXPORT_AUTH,
-             LSM_CAP_EXPORTS,
-             LSM_CAP_EXPORT_FS,
-             LSM_CAP_EXPORT_REMOVE,
-             LSM_CAP_EXPORT_CUSTOM_PATH,
-             LSM_CAP_SYS_READ_CACHE_PCT_UPDATE,
-             LSM_CAP_SYS_READ_CACHE_PCT_GET,
-             LSM_CAP_SYS_FW_VERSION_GET,
-             LSM_CAP_SYS_MODE_GET,
-             LSM_CAP_DISK_LOCATION,
-             LSM_CAP_DISK_RPM,
-             LSM_CAP_DISK_LINK_TYPE,
-             LSM_CAP_VOLUME_LED,
-             LSM_CAP_TARGET_PORTS,
-             LSM_CAP_DISKS,
-             LSM_CAP_POOL_MEMBER_INFO,
-             LSM_CAP_VOLUME_RAID_CREATE,
-             LSM_CAP_DISK_VPD83_GET,
-             -1);
+    rc = lsm_capability_set_n
+        (*cap, LSM_CAP_SUPPORTED,
+         LSM_CAP_VOLUMES,
+         LSM_CAP_VOLUME_CREATE,
+         LSM_CAP_VOLUME_RESIZE,
+         LSM_CAP_VOLUME_REPLICATE,
+         LSM_CAP_VOLUME_REPLICATE_CLONE,
+         LSM_CAP_VOLUME_REPLICATE_COPY,
+         LSM_CAP_VOLUME_REPLICATE_MIRROR_ASYNC,
+         LSM_CAP_VOLUME_REPLICATE_MIRROR_SYNC,
+         LSM_CAP_VOLUME_COPY_RANGE_BLOCK_SIZE,
+         LSM_CAP_VOLUME_COPY_RANGE,
+         LSM_CAP_VOLUME_COPY_RANGE_CLONE,
+         LSM_CAP_VOLUME_COPY_RANGE_COPY,
+         LSM_CAP_VOLUME_DELETE,
+         LSM_CAP_VOLUME_ENABLE,
+         LSM_CAP_VOLUME_DISABLE,
+         LSM_CAP_VOLUME_MASK,
+         LSM_CAP_VOLUME_UNMASK,
+         LSM_CAP_ACCESS_GROUPS,
+         LSM_CAP_ACCESS_GROUP_CREATE_WWPN,
+         LSM_CAP_ACCESS_GROUP_DELETE,
+         LSM_CAP_ACCESS_GROUP_INITIATOR_ADD_WWPN,
+         LSM_CAP_ACCESS_GROUP_INITIATOR_DELETE,
+         LSM_CAP_VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP,
+         LSM_CAP_ACCESS_GROUPS_GRANTED_TO_VOLUME,
+         LSM_CAP_VOLUME_CHILD_DEPENDENCY,
+         LSM_CAP_VOLUME_CHILD_DEPENDENCY_RM,
+         LSM_CAP_ACCESS_GROUP_CREATE_ISCSI_IQN,
+         LSM_CAP_ACCESS_GROUP_INITIATOR_ADD_ISCSI_IQN,
+         LSM_CAP_VOLUME_ISCSI_CHAP_AUTHENTICATION,
+         LSM_CAP_VOLUME_RAID_INFO,
+         LSM_CAP_VOLUME_THIN,
+         LSM_CAP_BATTERIES,
+         LSM_CAP_VOLUME_CACHE_INFO,
+         LSM_CAP_VOLUME_PHYSICAL_DISK_CACHE_UPDATE,
+         LSM_CAP_VOLUME_WRITE_CACHE_POLICY_UPDATE_WRITE_BACK,
+         LSM_CAP_VOLUME_WRITE_CACHE_POLICY_UPDATE_AUTO,
+         LSM_CAP_VOLUME_WRITE_CACHE_POLICY_UPDATE_WRITE_THROUGH,
+         LSM_CAP_VOLUME_READ_CACHE_POLICY_UPDATE,
+         LSM_CAP_FS,
+         LSM_CAP_FS_DELETE,
+         LSM_CAP_FS_RESIZE,
+         LSM_CAP_FS_CREATE,
+         LSM_CAP_FS_CLONE,
+         LSM_CAP_FILE_CLONE,
+         LSM_CAP_FS_SNAPSHOTS,
+         LSM_CAP_FS_SNAPSHOT_CREATE,
+         LSM_CAP_FS_SNAPSHOT_DELETE,
+         LSM_CAP_FS_SNAPSHOT_RESTORE,
+         LSM_CAP_FS_SNAPSHOT_RESTORE_SPECIFIC_FILES,
+         LSM_CAP_FS_CHILD_DEPENDENCY,
+         LSM_CAP_FS_CHILD_DEPENDENCY_RM,
+         LSM_CAP_FS_CHILD_DEPENDENCY_RM_SPECIFIC_FILES,
+         LSM_CAP_EXPORT_AUTH,
+         LSM_CAP_EXPORTS,
+         LSM_CAP_EXPORT_FS,
+         LSM_CAP_EXPORT_REMOVE,
+         LSM_CAP_EXPORT_CUSTOM_PATH,
+         LSM_CAP_SYS_READ_CACHE_PCT_UPDATE,
+         LSM_CAP_SYS_READ_CACHE_PCT_GET,
+         LSM_CAP_SYS_FW_VERSION_GET,
+         LSM_CAP_SYS_MODE_GET,
+         LSM_CAP_DISK_LOCATION,
+         LSM_CAP_DISK_RPM,
+         LSM_CAP_DISK_LINK_TYPE,
+         LSM_CAP_VOLUME_LED,
+         LSM_CAP_TARGET_PORTS,
+         LSM_CAP_DISKS,
+         LSM_CAP_POOL_MEMBER_INFO,
+         LSM_CAP_VOLUME_RAID_CREATE,
+         LSM_CAP_DISK_VPD83_GET,
+         -1);
 
-        if (LSM_ERR_OK != rc) {
-            lsm_capability_record_free(*cap);
+    if (LSM_ERR_OK != rc) {
+        lsm_capability_record_free(*cap);
+        _lsm_err_msg_set(err_msg,
+                         "lsm_capability_set_n() failed %d",
+                         rc);
+        *cap = NULL;
+    }
+
+ out:
+    if (rc != LSM_ERR_OK) {
+        if (cap != NULL)
             *cap = NULL;
-        }
+        lsm_log_error_basic(c, rc, err_msg);
     }
     return rc;
 }
@@ -298,6 +323,7 @@ int job_status(lsm_plugin_ptr c, const char *job, lsm_job_status *status,
     double cur_time = 0;
     uint64_t duration = 0;
 
+     _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
 
     _good(_check_null_ptr(err_msg, 5 /* argument count */, job, status,
@@ -416,6 +442,7 @@ int job_free(lsm_plugin_ptr c, char *job_id, lsm_flag flags)
     char err_msg[_LSM_ERR_MSG_LEN];
     lsm_hash *sim_job = NULL;
 
+    _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
 
     _good(_check_null_ptr(err_msg, 1 /* argument count */, job_id), rc, out);
@@ -461,6 +488,7 @@ int system_list(lsm_plugin_ptr c, lsm_system **systems[],
     lsm_hash *sim_sys = NULL;
     lsm_system *lsm_sys = NULL;
 
+     _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
 
     _good(_check_null_ptr(err_msg, 2 /* argument count */, systems,

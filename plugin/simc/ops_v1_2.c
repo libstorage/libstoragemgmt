@@ -46,6 +46,7 @@ int volume_raid_info(lsm_plugin_ptr c, lsm_volume *volume,
     lsm_pool_member_type member_type = LSM_POOL_MEMBER_TYPE_UNKNOWN;
     uint32_t data_disk_count = 0;
 
+    _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 6 /* argument count */, volume, raid_type,
                           strip_size, disk_count, min_io_size,
@@ -131,6 +132,7 @@ int pool_member_info(lsm_plugin_ptr c, lsm_pool *pool,
     lsm_hash *sim_disk = NULL;
     uint32_t i = 0;
 
+    _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 4 /* argument count */, pool, raid_type,
                           member_type, member_ids),
@@ -213,6 +215,7 @@ int volume_raid_create_cap_get(lsm_plugin_ptr c, lsm_system *system,
     char err_msg[_LSM_ERR_MSG_LEN];
     const char *sys_id = NULL;
 
+    _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 5 /* argument count */, system,
                           supported_raid_types, supported_raid_type_count,
@@ -256,6 +259,7 @@ int volume_raid_create(lsm_plugin_ptr c, const char *name,
     uint64_t all_size = 0;
     char pool_name[_BUFF_SIZE];
 
+    _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 3 /* argument count */, name, disks,
                           new_volume),

@@ -33,6 +33,7 @@ struct _simc_private_data {
     uint32_t timeout;
 };
 
+#define _UNUSED(x) (void)(x)
 #define _MD5_HASH_STR_LEN               MD5_DIGEST_LENGTH * 2 + 1
 #define _LSM_ERR_MSG_LEN                    1024
 
@@ -113,6 +114,7 @@ int func_name(lsm_plugin_ptr c, const char *search_key, \
     struct _vector *vec = NULL; \
     sqlite3 *db = NULL; \
     char err_msg[_LSM_ERR_MSG_LEN]; \
+    _UNUSED(flags); \
     _lsm_err_msg_clear(err_msg); \
     _check_null_ptr(err_msg, 2 /* argument count */, array, count); \
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out); \

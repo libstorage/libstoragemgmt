@@ -90,7 +90,7 @@ LSM_DLL_LOCAL bool _file_exists(const char *path);
  * Return the errno of open() if failed.
  */
 LSM_DLL_LOCAL int _read_file(const char *path, uint8_t *buff, ssize_t *size,
-                             size_t max_size);
+                             ssize_t max_size);
 
 /*
  * Preconditions:

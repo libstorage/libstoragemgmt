@@ -111,6 +111,7 @@ int volume_ident_led_on(lsm_plugin_ptr c, lsm_volume * volume, lsm_flag flags)
     lsm_hash *sim_vol = NULL;
     uint64_t sim_vol_id = 0;
 
+    _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 1 /* argument count */, volume), rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
@@ -142,6 +143,7 @@ int system_read_cache_pct_update(lsm_plugin_ptr c, lsm_system *system,
     char err_msg[_LSM_ERR_MSG_LEN];
     char sql_cmd[_BUFF_SIZE];
 
+    _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 1 /* argument count */, system), rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
@@ -187,6 +189,7 @@ int volume_cache_info(lsm_plugin_ptr c, lsm_volume *volume,
     struct _vector *vec = NULL;
     bool battery_ok = false;
 
+    _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 5 /* argument count */, volume,
                           write_cache_policy, write_cache_status,
@@ -285,17 +288,20 @@ int volume_cache_info(lsm_plugin_ptr c, lsm_volume *volume,
 int volume_physical_disk_cache_update(lsm_plugin_ptr c, lsm_volume *volume,
                                       uint32_t pdc, lsm_flag flags)
 {
+    _UNUSED(flags);
     return _vol_cache_update(c, volume, "phy_disk_cache", pdc);
 }
 
 int volume_write_cache_policy_update(lsm_plugin_ptr c, lsm_volume *volume,
                                      uint32_t wcp, lsm_flag flags)
 {
+    _UNUSED(flags);
     return _vol_cache_update(c, volume, "write_cache_policy", wcp);
 }
 
 int volume_read_cache_policy_update(lsm_plugin_ptr c, lsm_volume *volume,
                                     uint32_t rcp, lsm_flag flags)
 {
+    _UNUSED(flags);
     return _vol_cache_update(c, volume, "read_cache_policy", rcp);
 }
