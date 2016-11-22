@@ -42,6 +42,26 @@ MIN_POOL_SIZE = 4096
 MIN_OBJECT_SIZE = 512
 
 
+def _rs(l):
+    return ''.join(random.choice(string.ascii_uppercase) for _ in range(l))
+
+
+# Lets create a random prefix so we can run multiple copies at the same time
+# for hardware that will allow it.
+g_prefix = _rs(4)
+
+
+def rs(component, l=4):
+    """
+    Generate a random string
+    """
+    rp = _rs(l)
+
+    if component is not None:
+        return '%s_%s_%s' % (g_prefix, component, rp)
+    return rp
+
+
 # If you print anything during execution make sure it's to stderr as the
 # automated tests are making the assumption that test messages go to stderr and
 # execution information gets written to stdout as yaml
@@ -79,23 +99,17 @@ def update_stats(method_name, duration, number_results):
         stats[method_name]["number_items"] += number_results
 
 
-def rs(component, l=4):
-    """
-    Generate a random string
-    """
-    rp = ''.join(random.choice(string.ascii_uppercase) for _ in range(l))
-
-    if component is not None:
-        return 'lsm_%s_%s' % (component, rp)
-    return rp
-
-
 def r_fcpn():
     """
     Generate a random 16 character hex number
     """
     rnd_fcpn = '%016x' % random.randrange(2 ** 64)
     return ':'.join(rnd_fcpn[i:i + 2] for i in range(0, len(rnd_fcpn), 2))
+
+
+def r_iqn():
+    # RFC 3722, only lower case characters are allowed in IQN
+    return 'iqn.1994-05.com.domain:01.' + rs(None, 6).lower()
 
 
 class Duration(object):
@@ -311,6 +325,7 @@ class TestPlugin(unittest.TestCase):
         # Note: We make best effort to clean things up, thus we are ignoring
         # exceptions in this code, depending on what's failing in the plugin
         # we may not be able to remove something we created
+        # noinspection PyBroadException
         try:
             for s in self.systems:
                 cap = self.c.capabilities(s)
@@ -319,7 +334,7 @@ class TestPlugin(unittest.TestCase):
                 if supported(cap, [Cap.ACCESS_GROUP_DELETE,
                                    Cap.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP]):
                     for ag in self.c.access_groups():
-                        if 'lsm_' in ag.name and s.id == ag.system_id:
+                        if g_prefix in ag.name and s.id == ag.system_id:
                             try:
                                 # Make sure it doesn't have any mappings
                                 mapped_volume = self.c.\
@@ -339,7 +354,7 @@ class TestPlugin(unittest.TestCase):
                 # Remove any volumes we created
                 if supported(cap, [Cap.VOLUME_DELETE]):
                     for v in self.c.volumes():
-                        if 'lsm_' in v.name and s.id == v.system_id:
+                        if g_prefix in v.name and s.id == v.system_id:
                             # Check to see if this volume is participating in
                             # an access group, if it is we will remove the
                             # volume from it, but we will not delete the access
@@ -372,8 +387,9 @@ class TestPlugin(unittest.TestCase):
                         fs = [x for x in fs_list if x.id == e_fs.fs_id][0]
 
                         # Make sure we are un-exporting a FS we created
-                        if 'lsm_' in fs.name and s.id == fs.system_id:
+                        if g_prefix in fs.name and s.id == fs.system_id:
                             try:
+                                print_stderr("Export remove: %s" % str(e_fs))
                                 self.c.export_remove(e_fs)
                             except LsmError as le:
                                 print_stderr("[WARNING] error when removing "
@@ -383,9 +399,11 @@ class TestPlugin(unittest.TestCase):
                 # Remove any fs we created
                 if supported(cap, [Cap.FS, Cap.FS_DELETE]):
                     for f in self.c.fs():
-                        if self.c.fs_child_dependency(f, None):
-                            self.c.fs_child_dependency_rm(f, None)
-                        if 'lsm_' in f.name and s.id == f.system_id:
+                        if g_prefix in f.name and s.id == f.system_id:
+                            if supported(cap, [Cap.FS_CHILD_DEPENDENCY,
+                                               Cap.FS_CHILD_DEPENDENCY_RM]):
+                                if self.c.fs_child_dependency(f, None):
+                                    self.c.fs_child_dependency_rm(f, None)
                             try:
                                 self.c.fs_delete(f)
                             except LsmError as le:
@@ -393,8 +411,9 @@ class TestPlugin(unittest.TestCase):
                                              "fs %s\n" % str(le))
                                 pass
 
-        except Exception as e:
-            print_stderr("[WARNING] exception in _clean_up %s\n" % str(e))
+        except Exception:
+            msg = str(traceback.format_exc())
+            print_stderr("[WARNING] exception in _clean_up %s\n" % msg)
             pass
 
     def tearDown(self):
@@ -892,7 +911,7 @@ class TestPlugin(unittest.TestCase):
 
                 if supported(cap, [Cap.ACCESS_GROUP_CREATE_ISCSI_IQN]):
                     ag_name = rs("ag")
-                    ag_iqn = 'iqn.1994-05.com.domain:01.' + rs(None, 6)
+                    ag_iqn = r_iqn()
 
                     ag_created = self.c.access_group_create(
                         ag_name, ag_iqn, lsm.AccessGroup.INIT_TYPE_ISCSI_IQN,
@@ -957,8 +976,7 @@ class TestPlugin(unittest.TestCase):
 
         if init_type == lsm.AccessGroup.INIT_TYPE_ISCSI_IQN:
             ag_created = self.c.access_group_create(
-                name,
-                'iqn.1994-05.com.domain:01.' + rs(None, 6),
+                name, r_iqn(),
                 lsm.AccessGroup.INIT_TYPE_ISCSI_IQN, s)
 
         elif init_type == lsm.AccessGroup.INIT_TYPE_WWPN:
@@ -995,7 +1013,7 @@ class TestPlugin(unittest.TestCase):
         """
         flag_got_expected_error = False
         if lsm_ag.init_type == lsm.AccessGroup.INIT_TYPE_ISCSI_IQN:
-            new_init_id = 'iqn.1994-05.com.domain:01.' + rs(None, 6)
+            new_init_id = r_iqn()
         else:
             new_init_id = r_fcpn()
         try:
@@ -1076,7 +1094,7 @@ class TestPlugin(unittest.TestCase):
 
     def _ag_init_add(self, ag):
         if ag.init_type == lsm.AccessGroup.INIT_TYPE_ISCSI_IQN:
-            t_id = 'iqn.1994-05.com.domain:01.89bd02'
+            t_id = r_iqn()
             t = lsm.AccessGroup.INIT_TYPE_ISCSI_IQN
         else:
             # We will try FC PN
@@ -1240,7 +1258,7 @@ class TestPlugin(unittest.TestCase):
                                Cap.VOLUME_UNMASK]):
 
                 ag_name = rs("ag")
-                ag_iqn = 'iqn.1994-05.com.domain:01.' + rs(None, 6)
+                ag_iqn = r_iqn()
 
                 ag = self.c.access_group_create(
                     ag_name, ag_iqn, lsm.AccessGroup.INIT_TYPE_ISCSI_IQN, s)
@@ -1803,4 +1821,5 @@ if __name__ == "__main__":
     else:
         TestPlugin.SKIP_TEST_CASES = []
 
+    print_stderr("\nPrefix: %s\n" % g_prefix)
     unittest.main(argv=sys.argv[:1] + other_args)
