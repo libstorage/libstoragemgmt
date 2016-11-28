@@ -22,8 +22,8 @@ from lsm._clib import (_local_disk_vpd83_search, _local_disk_vpd83_get,
                        _local_disk_rpm_get, _local_disk_list,
                        _local_disk_link_type_get, _local_disk_ident_led_on,
                        _local_disk_ident_led_off, _local_disk_fault_led_on,
-                       _local_disk_fault_led_off, _local_disk_serial_num_get)
-from lsm import LsmError, ErrorNumber
+                       _local_disk_fault_led_off, _local_disk_serial_num_get,
+                       _local_disk_led_status_get)
 
 
 def _use_c_lib_function(func_ref, arg):
@@ -370,3 +370,53 @@ class LocalDisk(object):
                 No capability required as this is a library level method.
         """
         return _use_c_lib_function(_local_disk_fault_led_off, disk_path)
+
+    @staticmethod
+    def led_status_get(disk_path):
+        """
+        Version:
+            1.3
+        Usage:
+            Get LED status for specified disk.
+        Parameters:
+            disk_path (string)
+                The disk path, example '/dev/sdb'.
+        Returns:
+            led_status (integer, bit map)
+                Could be combination of these values:
+                    lsm.Disk.LED_STATUS_UNKNOWN
+                    lsm.Disk.LED_STATUS_IDENT_ON
+                    lsm.Disk.LED_STATUS_IDENT_OFF
+                    lsm.Disk.LED_STATUS_IDENT_UNKNOWN
+                        Has identification LED, but status is unknown.
+                        If certain disk has no identification LED,
+                        'led_status' should not contain
+                        'lsm.Disk.LED_STATUS_IDENT_ON' or
+                        'lsm.Disk.LED_STATUS_IDENT_OFF' or
+                        'lsm.Disk.LED_STATUS_IDENT_UNKNOWN'
+                    lsm.Disk.LED_STATUS_FAULT_ON
+                    lsm.Disk.LED_STATUS_FAULT_OFF
+                    lsm.Disk.LED_STATUS_FAULT_UNKNOWN
+                        Has fault LED, but status is unknown.
+                        If certain disk has no fault LED,
+                        'led_status' should not contain
+                        'lsm.Disk.LED_STATUS_FAULT_ON' or
+                        'lsm.Disk.LED_STATUS_FAULT_OFF' or
+                        'lsm.Disk.LED_STATUS_FAULT_UNKNOWN'
+        SpecialExceptions:
+            LsmError
+                ErrorNumber.LIB_BUG
+                    Internal bug.
+                ErrorNumber.INVALID_ARGUMENT
+                    Invalid disk_path. Should be like '/dev/sdb'.
+                ErrorNumber.NOT_FOUND_DISK
+                    Provided disk is not found.
+                ErrorNumber.NO_SUPPORT
+                    Provided disk does not support SCSI SPC.
+                ErrorNumber.PERMISSION_DENIED
+                    No sufficient permission to access provided disk path.
+        Capability:
+            N/A
+                No capability required as this is a library level method.
+        """
+        return _use_c_lib_function(_local_disk_led_status_get, disk_path)
