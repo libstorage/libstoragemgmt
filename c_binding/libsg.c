@@ -873,8 +873,7 @@ int _sg_io_mode_sense(char *err_msg, int fd, uint8_t page_code,
             goto out;
         }
         block_dp_len = be16toh(mode_hdr->block_dp_header_len_be);
-        if ((block_dp_len == 0) ||
-            (block_dp_len >= _SG_T10_SPC_MODE_SENSE_MAX_LEN -
+        if ((block_dp_len >= _SG_T10_SPC_MODE_SENSE_MAX_LEN -
              sizeof(struct _sg_t10_mode_para_hdr))) {
             rc = LSM_ERR_LIB_BUG;
             _lsm_err_msg_set(err_msg, "BUG: Got illegal SCSI mode page return: "
