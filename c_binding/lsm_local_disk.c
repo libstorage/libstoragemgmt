@@ -79,6 +79,16 @@
 #define _SCSI_MODE_SENSE_SAS_PHY_SUB_PAGE_CODE      0x01
 /* ^ SCSI MODE SENSE SPL-4: Phy Control And Discover subpage 01h */
 
+#define _SCSI_MODE_SENSE_SUB_PAGE_FMT               0x01
+/* ^ SPC-5 rev12 Table 458 - Sub_page mode page format Protocol Specific Port
+ *   mode page
+ */
+
+#define _SCSI_MODE_SENSE_PAGE_0_FMT                 0x00
+/* ^ SPC-5 rev12 Table 457 - Page_0 mode page format Protocol Specific Port mode
+ *   page
+ */
+
 #pragma pack(push, 1)
 struct t10_sbc_vpd_bdc {
     uint8_t we_dont_care_0;
@@ -88,6 +98,24 @@ struct t10_sbc_vpd_bdc {
     uint8_t we_dont_care_1[58];
 };
 /* ^ SBC-4 rev 09 Table 236 - Block Device Characteristics VPD page */
+
+struct t10_proto_port_mode_page_0_hdr {
+    uint8_t we_dont_care_0[2];
+    uint8_t protocol_id     : 4;
+    uint8_t we_dont_care_1  : 4;
+};
+/* ^ SPC-5 rev12 Table 457 - Page_0 mode page format Protocol Specific Port mode
+ *   page
+ */
+
+struct t10_proto_port_mode_sub_page_hdr {
+    uint8_t we_dont_care_0[5];
+    uint8_t protocol_id     : 4;
+    uint8_t we_dont_care_1  : 4;
+};
+/* ^ SPC-5 rev12 Table 458 - Sub_page mode page format Protocol Specific Port
+ *   mode page
+ */
 
 #pragma pack(pop)
 
@@ -819,6 +847,8 @@ int lsm_local_disk_list(lsm_string_list **disk_paths, lsm_error **lsm_err)
  *
  *  * Check VPD device ID page, seeking ASSOCIATION == 01b,
  *    check PROTOCOL IDENTIFIER
+ *  * As fallback, we use 'Protocol Specific Port mode page' seeking for
+ *    'PROTOCOL IDENTIFIER' also.
  */
 int lsm_local_disk_link_type_get(const char *disk_path,
                                  lsm_disk_link_type *link_type,
@@ -833,6 +863,10 @@ int lsm_local_disk_link_type_get(const char *disk_path,
     uint16_t dp_count = 0;
     uint8_t protocol_id = _SG_T10_SPC_PROTOCOL_ID_OBSOLETE;
     uint16_t i = 0;
+    uint8_t protocol_mode_page[_SG_T10_SPC_MODE_SENSE_MAX_LEN];
+    int tmp_rc = LSM_ERR_OK;
+    struct t10_proto_port_mode_page_0_hdr *page_0_hdr = NULL;
+    struct t10_proto_port_mode_sub_page_hdr *sub_page_hdr = NULL;
 
     _lsm_err_msg_clear(err_msg);
 
@@ -872,6 +906,43 @@ int lsm_local_disk_link_type_get(const char *disk_path,
         *link_type = protocol_id;
         break;
     }
+
+    /* Use MODE SENSE(10) to query 'Protocol Specific Port mode page' as
+     * fallback.
+     */
+    if (*link_type == LSM_DISK_LINK_TYPE_NO_SUPPORT) {
+        /* Try subpage format first as hpsa return subpage format even when
+         * request page 0 mode.
+         * TODO(Gris Ge): sg_modes does not impact by this issue, it
+         *                can detect the return data's format. Need to
+         *                study their workflow.
+         */
+        tmp_rc = _sg_io_mode_sense(err_msg, fd, _SCSI_MODE_SENSE_PSP_PAGE_CODE,
+                                   _SCSI_MODE_SENSE_SUB_PAGE_FMT,
+                                   protocol_mode_page);
+        if (tmp_rc == LSM_ERR_OK) {
+            sub_page_hdr = (struct t10_proto_port_mode_sub_page_hdr *)
+                protocol_mode_page;
+            *link_type = sub_page_hdr->protocol_id;
+        } else if (tmp_rc == LSM_ERR_NO_SUPPORT) {
+            tmp_rc = _sg_io_mode_sense(err_msg, fd,
+                                       _SCSI_MODE_SENSE_PSP_PAGE_CODE,
+                                       _SCSI_MODE_SENSE_PAGE_0_FMT,
+                                       protocol_mode_page);
+            if (tmp_rc == LSM_ERR_OK) {
+                page_0_hdr = (struct t10_proto_port_mode_page_0_hdr *)
+                    protocol_mode_page;
+                *link_type = page_0_hdr->protocol_id;
+            } else if (tmp_rc != LSM_ERR_NO_SUPPORT) {
+                rc = LSM_ERR_LIB_BUG;
+                goto out;
+            }
+        } else {
+            rc = LSM_ERR_LIB_BUG;
+            goto out;
+        }
+    }
+
 
  out:
     if (fd >= 0)
