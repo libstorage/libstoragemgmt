@@ -23,7 +23,7 @@ from lsm._clib import (_local_disk_vpd83_search, _local_disk_vpd83_get,
                        _local_disk_link_type_get, _local_disk_ident_led_on,
                        _local_disk_ident_led_off, _local_disk_fault_led_on,
                        _local_disk_fault_led_off, _local_disk_serial_num_get,
-                       _local_disk_led_status_get)
+                       _local_disk_led_status_get, _local_disk_link_speed_get)
 
 
 def _use_c_lib_function(func_ref, arg):
@@ -420,3 +420,35 @@ class LocalDisk(object):
                 No capability required as this is a library level method.
         """
         return _use_c_lib_function(_local_disk_led_status_get, disk_path)
+
+    @staticmethod
+    def link_speed_get(disk_path):
+        """
+        Version:
+            1.4
+        Usage:
+            Get current negotiated logical link speed for specified disk.
+        Parameters:
+            disk_path (string)
+                The disk path, example '/dev/sdb'.
+        Returns:
+            link_speed
+                Integer for link speed in Mbps. For example, '3.0 Gbps' will
+                get 3000.
+        SpecialExceptions:
+            LsmError
+                ErrorNumber.LIB_BUG
+                    Internal bug.
+                ErrorNumber.INVALID_ARGUMENT
+                    Invalid disk_path. Should be like '/dev/sdb'.
+                ErrorNumber.NOT_FOUND_DISK
+                    Provided disk is not found.
+                ErrorNumber.NO_SUPPORT
+                    Provided disk is not supported yet.
+                ErrorNumber.PERMISSION_DENIED
+                    No sufficient permission to access provided disk path.
+        Capability:
+            N/A
+                No capability required as this is a library level method.
+        """
+        return _use_c_lib_function(_local_disk_link_speed_get, disk_path)

@@ -240,6 +240,8 @@ class Disk(IData):
     LED_STATUS_FAULT_OFF = 1 << 5
     LED_STATUS_FAULT_UNKNOWN = 1 << 6
 
+    LINK_SPEED_UNKNOWN = 0
+
     def __init__(self, _id, _name, _disk_type, _block_size, _num_of_blocks,
                  _status, _system_id, _plugin_data=None, _vpd83='',
                  _location='', _rpm=RPM_NO_SUPPORT,
