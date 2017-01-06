@@ -1800,6 +1800,7 @@ class CmdLine(object):
             "link_type": LocalDisk.link_type_get,
             "serial_num": LocalDisk.serial_num_get,
             "led_status": LocalDisk.led_status_get,
+            "link_speed": LocalDisk.link_speed_get,
         }
         for disk_path in LocalDisk.list():
             info_dict = {
@@ -1808,6 +1809,7 @@ class CmdLine(object):
                 "link_type": Disk.LINK_TYPE_NO_SUPPORT,
                 "serial_num": "",
                 "led_status": Disk.LED_STATUS_UNKNOWN,
+                "link_speed": Disk.LINK_SPEED_UNKNOWN,
             }
             for key in info_dict.keys():
                 try:
@@ -1822,7 +1824,8 @@ class CmdLine(object):
                               info_dict["rpm"],
                               info_dict["link_type"],
                               info_dict["serial_num"],
-                              info_dict["led_status"]))
+                              info_dict["led_status"],
+                              info_dict["link_speed"]))
 
         self.display_data(local_disks)
 

@@ -308,6 +308,13 @@ _DISK_LED_STATUS_CONV = {
 def disk_led_status_to_str(led_status):
     return _bit_map_to_str(led_status, _DISK_LED_STATUS_CONV)
 
+
+def disk_link_speed_to_str(link_speed):
+    if link_speed == Disk.LINK_SPEED_UNKNOWN:
+        return "Unknown"
+    return "%.1f Gbps" % float(link_speed / 1000.0)
+
+
 class PlugData(object):
     def __init__(self, description, plugin_version):
             self.desc = description
@@ -400,14 +407,15 @@ class LocalDiskInfo(object):
         Disk.LINK_TYPE_PCIE: "PCI-E",
     }
 
-    def __init__(self, sd_path, vpd83, rpm, link_type, serial_num, led_status):
+    def __init__(self, sd_path, vpd83, rpm, link_type, serial_num, led_status,
+                 link_speed):
         self.sd_path = sd_path
         self.vpd83 = vpd83
         self.rpm = rpm
         self.link_type = link_type
         self.serial_num = serial_num
         self.led_status = led_status
-
+        self.link_speed = link_speed
 
 class VolumeRAMCacheInfo(object):
 
@@ -815,13 +823,15 @@ class DisplayData(object):
     LOCAL_DISK_HEADER['link_type'] = 'Link Type'
     LOCAL_DISK_HEADER['serial_num'] = 'Serial Number'
     LOCAL_DISK_HEADER['led_status'] = 'LED Status'
+    LOCAL_DISK_HEADER['link_speed'] = 'Link Speed'
 
-    LOCAL_DISK_COLUMN_SKIP_KEYS = ['rpm', 'led_status']
+    LOCAL_DISK_COLUMN_SKIP_KEYS = ['rpm', 'led_status', 'link_speed']
 
     LOCAL_DISK_VALUE_CONV_ENUM = {
         'rpm': disk_rpm_to_str,
         'link_type': disk_link_type_to_str,
         'led_status': disk_led_status_to_str,
+        'link_speed': disk_link_speed_to_str,
     }
     LOCAL_DISK_VALUE_CONV_HUMAN = []
 
