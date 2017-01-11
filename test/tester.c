@@ -3303,13 +3303,12 @@ START_TEST(test_local_disk_list)
     }
 
     rc = lsm_local_disk_list(&disk_paths, &lsm_err);
+    if (lsm_err)
+        lsm_error_free(lsm_err);
     fail_unless(rc == LSM_ERR_OK, "lsm_local_disk_list() failed as %d", rc);
     fail_unless(disk_paths != NULL, "lsm_local_disk_list() return NULL for "
                 "disk_paths");
     lsm_string_list_free(disk_paths);
-    if (lsm_err != NULL)
-        lsm_error_free(lsm_err);
-        /* ^ Just to trick coverity scan. The 'fail_unless' already quit */
 }
 END_TEST
 
@@ -3859,10 +3858,9 @@ do { \
     uint32_t i = 0; \
     const char *disk_path = NULL; \
     rc = lsm_local_disk_list(&disk_paths, &lsm_err); \
-    fail_unless(rc == LSM_ERR_OK, "lsm_local_disk_list() failed as %d", rc); \
     if (lsm_err != NULL) \
         lsm_error_free(lsm_err); \
-        /* ^ Just to trick coverity scan. The 'fail_unless' already quit */ \
+    fail_unless(rc == LSM_ERR_OK, "lsm_local_disk_list() failed as %d", rc); \
     /* Only try maximum 4 disks */ \
     for (; i < lsm_string_list_size(disk_paths) && i < 4; ++i) { \
         disk_path = lsm_string_list_elem_get(disk_paths, i); \
@@ -3927,6 +3925,8 @@ START_TEST(test_local_disk_led_status_get)
     uint32_t led_status = LSM_DISK_LED_STATUS_UNKNOWN;
 
     rc = lsm_local_disk_list(&disk_paths, &lsm_err);
+    if (lsm_err)
+        lsm_error_free(lsm_err);
     fail_unless(rc == LSM_ERR_OK, "lsm_local_disk_list() failed as %d", rc);
     /* Only try maximum 4 disks */
     for (; i < lsm_string_list_size(disk_paths) && i < 4; ++i) {
@@ -3980,6 +3980,8 @@ START_TEST(test_local_disk_link_speed_get)
     uint32_t link_speed = LSM_DISK_LINK_SPEED_UNKNOWN;
 
     rc = lsm_local_disk_list(&disk_paths, &lsm_err);
+    if (lsm_err)
+        lsm_error_free(lsm_err);
     fail_unless(rc == LSM_ERR_OK, "lsm_local_disk_list() failed as %d", rc);
     /* Only try maximum 4 disks */
     for (; i < lsm_string_list_size(disk_paths) && i < 4; ++i) {
