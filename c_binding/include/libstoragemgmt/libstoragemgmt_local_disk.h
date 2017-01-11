@@ -315,6 +315,32 @@ int LSM_DLL_EXPORT lsm_local_disk_fault_led_off(const char *disk_path,
 int LSM_DLL_EXPORT lsm_local_disk_led_status_get(const char *disk_path,
                                                  uint32_t *led_status,
                                                  lsm_error **lsm_err);
+/**
+ * New in version 1.4.
+ * Query the current negotiated disk link speed.
+ * Requires permission to open disk path(root user or disk group).
+ * @param[in]  disk_path
+ *                      String. The path of block device, example: "/dev/sdb",
+ *                      "/dev/nvme0n1".
+ * @param[out] link_speed
+ *                      Output pointer of link speed in Mbps.
+ *                      For example, 3.0 Gbps will get 3000.
+ *                      Set to 0(LSM_DISK_LINK_SPEED_UNKNOWN) if error.
+ * @param[out] lsm_err
+ *                      Output pointer of lsm_error. Error message could be
+ *                      retrieved via lsm_error_message_get(). Memory should be
+ *                      freed by lsm_error_free().
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK               on success or not found.
+ * @retval LSM_ERR_INVALID_ARGUMENT when any argument is NULL.
+ * @retval LSM_ERR_LIB_BUG          when something unexpected happens.
+ * @retval LSM_ERR_NOT_FOUND_DISK   when provided disk path not found.
+ * @retval LSM_ERR_NO_SUPPORT       Specified disk is not supported yet.
+ * @retval LSM_ERR_PERMISSION_DENIED no sufficient permission to access
+ *                                   provided disk path.
+ */
+int LSM_DLL_EXPORT lsm_local_disk_link_speed_get
+    (const char *disk_path, uint32_t *link_speed, lsm_error **lsm_err);
 
 #ifdef __cplusplus
 }

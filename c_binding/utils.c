@@ -16,7 +16,8 @@
  * Author: Gris Ge <fge@redhat.com>
  */
 
-#include "utils.h"
+#define _GNU_SOURCE
+/* ^ For strerror_r() */
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -26,6 +27,21 @@
 #include <string.h>
 #include <errno.h>
 #include <assert.h>
+#include <limits.h>
+
+#include "utils.h"
+#include "libstoragemgmt/libstoragemgmt_error.h"
+
+#define _SYSFS_HOST_SPEED_PATH_STR_MAX_LEN              128
+/* ^ The max host number is 4294967295 which has 14 digits.
+ *   The sysfs path is "/sys/class/iscsi_host/host<host_no>/port_speed"
+ *   Hence we got max 45 char count, The 128 should works for a long time.
+ */
+
+#define _SYSFS_HOST_SPEED_BUFF_MAX                      128
+/* ^ The max FC and iSCSI speed in linux kernel is "100 Gbit" when I coding this
+ *   line, hence 128 should works for a long time
+ */
 
 int _check_null_ptr(char *err_msg, int arg_count, ...)
 {
@@ -145,4 +161,78 @@ char *_trim_spaces(char *beginning)
     }
 
     return beginning;
+}
+
+int _sysfs_host_speed_get(char *err_msg, const char *sysfs_path,
+                            uint32_t *link_speed)
+{
+    int rc = LSM_ERR_OK;
+    char strerr_buff[_LSM_ERR_MSG_LEN];
+    uint8_t buff[_SYSFS_HOST_SPEED_BUFF_MAX];
+    int file_rc = 0;
+    ssize_t file_size = 0;
+    char *num_str = NULL;
+    char *postfix = NULL;
+    long int speed_raw = 0;
+
+    assert(sysfs_path != NULL);
+    assert(link_speed != NULL);
+
+    *link_speed = LSM_DISK_LINK_SPEED_UNKNOWN;
+
+    file_rc = _read_file(sysfs_path, buff, &file_size,
+                         _SYSFS_HOST_SPEED_PATH_STR_MAX_LEN);
+    if (file_rc == ENOENT) {
+        rc = LSM_ERR_NO_SUPPORT;
+        _lsm_err_msg_set(err_msg, "No support: no %s file", sysfs_path);
+        goto out;
+    } else if (file_rc != 0) {
+            rc = LSM_ERR_LIB_BUG;
+            _lsm_err_msg_set(err_msg, "BUG: Unknown error %d(%s) from "
+                             "_read_file().", file_rc,
+                             strerror_r(file_rc, strerr_buff,
+                                        _LSM_ERR_MSG_LEN));
+            goto out;
+    }
+
+    /* Remove the trailing \n */
+    buff[file_size - 1 ] = '\0';
+
+    if (strcmp((char *) buff, "Unknown") == 0)
+        goto out;
+    /* 'Unknown' is used by iSCSI host */
+
+    if (strcmp((char *) buff, "Not Negotiated") == 0)
+        goto out;
+    /* 'Not Negotiated' is used by FC host */
+
+    num_str = strtok_r((char *)buff, " ", &postfix);
+    if ((num_str == NULL) || (postfix == NULL)){
+        rc = LSM_ERR_LIB_BUG;
+        _lsm_err_msg_set(err_msg, "BUG: _sysfs_host_speed_get(): Invalid "
+                         "format of SCSI host speed '%s'", (char *) buff);
+        goto out;
+    }
+
+    speed_raw = strtol(num_str, NULL /* end ptr */, 10 /* Base 10 */);
+    if ((speed_raw < 0 ) || (speed_raw >= INT_MAX)) {
+        rc = LSM_ERR_LIB_BUG;
+        _lsm_err_msg_set(err_msg, "BUG: _sysfs_host_speed_get(): Invalid "
+                         "format of SCSI host speed '%s'", (char *) buff);
+        goto out;
+    }
+
+    if ((strcmp(postfix, "Gbps") == 0) || (strcmp(postfix, "Gbit") == 0)) {
+        *link_speed = (speed_raw * 1000 ) & UINT32_MAX;
+    } else if (strcmp(postfix, "Mbps") == 0) {
+        *link_speed = speed_raw & UINT32_MAX;
+    } else {
+        rc = LSM_ERR_LIB_BUG;
+        _lsm_err_msg_set(err_msg, "BUG: _sysfs_host_speed_get(): Invalid "
+                         "format of iscsi host speed '%s'", (char *) buff);
+        goto out;
+    }
+
+ out:
+    return rc;
 }

@@ -24,6 +24,7 @@
 #include <stdio.h>
 
 #include "libstoragemgmt/libstoragemgmt_common.h"
+#include "libata.h"     /* for _ATA_IDENTIFY_DEVICE_DATA_LEN only */
 
 /* SPC-5 rev 7, Table 487 - ASSOCIATION field */
 #define _SG_T10_SPC_ASSOCIATION_TGT_PORT            1
@@ -75,6 +76,9 @@
 #define _SG_T10_SPC_PROTOCOL_ID_SAS                 6
 /* ^ SPC-5 rev 7, Table 444 - PROTOCOL IDENTIFIER field values */
 
+#define _SG_T10_SPC_MODE_SENSE_MAX_LEN              0xffff
+/* ^ SPC-5 rev 12, 6.15 MODE SENSE(10) command introduction */
+
 #pragma pack(push, 1)
 
 /*
@@ -100,6 +104,11 @@ LSM_DLL_LOCAL struct _sg_t10_vpd83_dp {
 LSM_DLL_LOCAL struct _sg_t10_vpd83_naa_header {
     uint8_t data_msb : 4;
     uint8_t naa_type : 4;
+};
+
+struct _sg_t10_vpd_ata_info {
+    uint8_t we_dont_care_0[60];
+    uint8_t ata_id_dev_data[_ATA_IDENTIFY_DEVICE_DATA_LEN];
 };
 
 #pragma pack(pop)
@@ -198,5 +207,26 @@ LSM_DLL_LOCAL int _sg_io_recv_diag(char *err_msg, int fd, uint8_t page_code,
  */
 LSM_DLL_LOCAL int _sg_io_send_diag(char *err_msg, int fd, uint8_t *data,
                                    uint16_t data_len);
+
+/*
+ * IOCTL MODE SENSE(10) and remove mode parameter header and Block descriptors.
+ * In SCSI SPC-5, `MODE SENSE (6)` is deprecated.
+ * Preconditions:
+ *  err_msg != NULL
+ *  fd >= 0
+ *  data != NULL
+ *  data is uint8_t[_SG_T10_SPC_MODE_SENSE_MAX_LEN]
+ */
+LSM_DLL_LOCAL int _sg_io_mode_sense(char *err_msg, int fd, uint8_t page_code,
+                                    uint8_t sub_page_code, uint8_t *data);
+
+/*
+ * Use SCSI_IOCTL_GET_BUS_NUMBER IOCTL to get host number of given SCSI disk.
+ * Preconditions:
+ *  err_msg != NULL
+ *  fd >= 0
+ *  host_no != NULL
+ */
+LSM_DLL_LOCAL int _sg_host_no(char *err_msg, int fd, unsigned int *host_no);
 
 #endif  /* End of _LIBSG_H_ */

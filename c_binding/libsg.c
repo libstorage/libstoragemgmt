@@ -35,6 +35,8 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <endian.h>
+#include <scsi/scsi.h>  /* For SCSI_IOCTL_GET_BUS_NUMBER */
+#include <limits.h>
 
 /* SGIO timeout: 1 second
  * TODO(Gris Ge): Raise LSM_ERR_TIMEOUT error for this
@@ -48,6 +50,8 @@
 /* SPC-5 rev7 Table 269 - SEND DIAGNOSTIC command */
 #define _T10_SPC_SEND_DIAG_CMD_LEN                      6
 /* SPC-5 rev7 Table 534 - Supported VPD Pages VPD page */
+#define _T10_SPC_MODE_SENSE_CMD_LEN                     10
+/* SPC-5 rev12 Table 171 - MODE SENSE(10) command */
 #define _T10_SPC_VPD_SUP_VPD_PGS_LIST_OFFSET            4
 
 /* SPC-5 rev7 4.4.2.1 Descriptor format sense data overview
@@ -164,6 +168,12 @@ struct _sg_t10_sense_dp {
     uint8_t we_dont_care_1[3];
     uint8_t len;
     /* We don't care the rest of data */
+};
+
+struct _sg_t10_mode_para_hdr {
+    uint16_t mode_data_len_be;
+    uint8_t we_dont_care_0[4];
+    uint16_t block_dp_header_len_be;
 };
 
 #pragma pack(pop)
@@ -801,5 +811,133 @@ int _sg_tp_sas_addr_of_disk(char *err_msg, int fd, char *tp_sas_addr)
     if (dps != NULL)
         _sg_t10_vpd83_dp_array_free(dps, dp_count);
 
+    return rc;
+}
+
+int _sg_io_mode_sense(char *err_msg, int fd, uint8_t page_code,
+                      uint8_t sub_page_code, uint8_t *data)
+{
+    int rc = LSM_ERR_OK;
+    uint8_t tmp_data[_SG_T10_SPC_MODE_SENSE_MAX_LEN];
+    uint8_t cdb[_T10_SPC_MODE_SENSE_CMD_LEN];
+    uint8_t sense_data[_T10_SPC_SENSE_DATA_MAX_LENGTH];
+    int ioctl_errno = 0;
+    char strerr_buff[_LSM_ERR_MSG_LEN];
+    uint8_t sense_key = _T10_SPC_SENSE_KEY_NO_SENSE;
+    char sense_err_msg[_LSM_ERR_MSG_LEN];
+    struct _sg_t10_mode_para_hdr *mode_hdr = NULL;
+    uint16_t block_dp_len = 0;
+    uint16_t mode_data_len = 0;
+
+    assert(err_msg != NULL);
+    assert(fd >= 0);
+    assert(data != NULL);
+
+    memset(sense_err_msg, 0, _LSM_ERR_MSG_LEN);
+    memset(data, 0, _SG_T10_SPC_MODE_SENSE_MAX_LEN);
+
+    /* SPC-5 Table 171 — MODE SENSE(10) command */
+    cdb[0] = MODE_SENSE_10;                     /* OPERATION CODE */
+    cdb[1] = 0;                                 /* disable block descriptors
+                                                 * and long LBA accepted
+                                                 */
+    /* We don't need block descriptors or long LBA accepted */;
+    cdb[2] = page_code & UINT8_MAX;             /* PAGE CODE and Page control*/
+    /* The page control is 0 means 'current values' */
+    cdb[3] = sub_page_code & UINT8_MAX;         /* Subpage code */
+    cdb[4] = 0;                                 /* Reserved */
+    cdb[5] = 0;                                 /* Reserved */
+    cdb[6] = 0;                                 /* Reserved */
+    cdb[7] = (_SG_T10_SPC_MODE_SENSE_MAX_LEN >> 8) & UINT8_MAX;
+                                                /* ALLOCATION LENGTH MSB */
+    cdb[8] = _SG_T10_SPC_MODE_SENSE_MAX_LEN & UINT8_MAX;
+                                                /* ALLOCATION LENGTH LSB */
+    cdb[9] = 0;                                 /* CONTROL */
+    /* We have no use case need for handling auto contingent allegiance(ACA)
+     * yet.
+     */
+
+    ioctl_errno = _sg_io(fd, cdb, _T10_SPC_MODE_SENSE_CMD_LEN, tmp_data,
+                         _SG_T10_SPC_MODE_SENSE_MAX_LEN, sense_data,
+                         _SG_IO_RECV_DATA);
+
+    if (ioctl_errno == 0) {
+        mode_hdr = (struct _sg_t10_mode_para_hdr *) tmp_data;
+        mode_data_len = be16toh(mode_hdr->mode_data_len_be);
+        if ((mode_data_len == 0) ||
+            (mode_data_len >= _SG_T10_SPC_MODE_SENSE_MAX_LEN)) {
+            rc = LSM_ERR_LIB_BUG;
+            _lsm_err_msg_set(err_msg, "BUG: Got illegal SCSI mode page return: "
+                             "invalid MODE DATA LENGTH %" PRIu16 "\n",
+                             mode_data_len);
+            goto out;
+        }
+        block_dp_len = be16toh(mode_hdr->block_dp_header_len_be);
+        if ((block_dp_len == 0) ||
+            (block_dp_len >= _SG_T10_SPC_MODE_SENSE_MAX_LEN -
+             sizeof(struct _sg_t10_mode_para_hdr))) {
+            rc = LSM_ERR_LIB_BUG;
+            _lsm_err_msg_set(err_msg, "BUG: Got illegal SCSI mode page return: "
+                             "invalid BLOCK DESCRIPTOR LENGTH %" PRIu16 "\n",
+                             block_dp_len);
+            goto out;
+        }
+        memcpy(data,
+               tmp_data + sizeof(struct _sg_t10_mode_para_hdr) + block_dp_len,
+               sizeof(mode_hdr->mode_data_len_be) + mode_data_len -
+               sizeof(struct _sg_t10_mode_para_hdr) - block_dp_len);
+        goto out;
+    }
+
+    if (_check_sense_data(sense_err_msg, sense_data, &sense_key) != 0) {
+        if (sense_key == _T10_SPC_SENSE_KEY_ILLEGAL_REQUEST) {
+            rc = LSM_ERR_NO_SUPPORT;
+            _lsm_err_msg_set(err_msg, "SCSI MODE SENSE 0x%02x page and "
+                             "sub page 0x%02x is not supported", page_code,
+                             sub_page_code);
+            goto out;
+        } else {
+            rc = LSM_ERR_LIB_BUG;
+            _lsm_err_msg_set(err_msg, "BUG: Unexpected failure of "
+                             "_sg_io_mode_sense(): %s",
+                             sense_err_msg);
+            goto out;
+        }
+    }
+    rc = LSM_ERR_LIB_BUG;
+    _lsm_err_msg_set(err_msg, "BUG: Unexpected failure of "
+                     "_sg_io_mode_sense(): error %d(%s), with no error in "
+                     "SCSI sense data",
+                     ioctl_errno,
+                     strerror_r(ioctl_errno, strerr_buff, _LSM_ERR_MSG_LEN)
+                     );
+
+ out:
+    return rc;
+}
+
+int _sg_host_no(char *err_msg, int fd, unsigned int *host_no)
+{
+    int rc = LSM_ERR_OK;
+    int ioctl_errno = 0;
+    char strerr_buff[_LSM_ERR_MSG_LEN];
+
+    assert(err_msg != NULL);
+    assert(fd >= 0);
+    assert(host_no != NULL);
+
+    *host_no = UINT_MAX;
+
+    if (ioctl(fd, SCSI_IOCTL_GET_BUS_NUMBER, host_no) != 0) {
+        ioctl_errno = errno;
+        rc = LSM_ERR_LIB_BUG;
+        _lsm_err_msg_set(err_msg, "IOCTL SCSI_IOCTL_GET_BUS_NUMBER failed: "
+                         "%d, %s", ioctl_errno,
+                         strerror_r(ioctl_errno, strerr_buff,
+                                    _LSM_ERR_MSG_LEN));
+        goto out;
+    }
+
+ out:
     return rc;
 }
