@@ -99,4 +99,16 @@ LSM_DLL_LOCAL int _read_file(const char *path, uint8_t *buff, ssize_t *size,
  * Return NULL if failed.
  */
 LSM_DLL_LOCAL char* _trim_spaces(char *beginning);
+
+/*
+ * Preconditions:
+ * sysfs_path != NULL
+ * link_speed != NULL
+ *
+ * Only support FC and iSCSI SCSI host yet.
+ * Return lsm error number if failed.
+ */
+LSM_DLL_LOCAL int _sysfs_host_speed_get(char *err_msg, const char *sysfs_path,
+                                        uint32_t *link_speed);
+
 #endif  /* End of _LIB_UTILS_H_ */

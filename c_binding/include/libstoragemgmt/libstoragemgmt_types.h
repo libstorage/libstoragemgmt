@@ -347,6 +347,8 @@ typedef enum {
 #define LSM_DISK_LED_STATUS_FAULT_OFF               0x0000000000000020
 #define LSM_DISK_LED_STATUS_FAULT_UNKNOWN           0x0000000000000040
 
+#define LSM_DISK_LINK_SPEED_UNKNOWN                 0
+/* New in version 1.4. Indicate failed to query link speed of specified disk */
 
 #define LSM_POOL_STATUS_UNKNOWN                     0x0000000000000001
 #define LSM_POOL_STATUS_OK                          0x0000000000000002

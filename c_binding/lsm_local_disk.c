@@ -33,6 +33,8 @@
 #include <stdarg.h>
 #include <assert.h>
 #include <endian.h>
+#include <limits.h>
+#include <math.h>       /* For log10() */
 
 #include "libstoragemgmt/libstoragemgmt.h"
 #include "libstoragemgmt/libstoragemgmt_error.h"
@@ -40,6 +42,10 @@
 #include "utils.h"
 #include "libsg.h"
 #include "libses.h"
+#include "libata.h"
+#include "libsas.h"
+#include "libfc.h"
+#include "libiscsi.h"
 
 #define _LSM_MAX_SERIAL_NUM_LEN			        253
 /* ^ Max is 252 bytes */
@@ -68,6 +74,21 @@
  *   format is '0x<hex_addr>\0'
  */
 
+#define _SCSI_MODE_SENSE_PSP_PAGE_CODE              0x19
+/* ^ SCSI MODE SENSE page 19h Protocol Specific Port */
+#define _SCSI_MODE_SENSE_SAS_PHY_SUB_PAGE_CODE      0x01
+/* ^ SCSI MODE SENSE SPL-4: Phy Control And Discover subpage 01h */
+
+#define _SCSI_MODE_SENSE_SUB_PAGE_FMT               0x01
+/* ^ SPC-5 rev12 Table 458 - Sub_page mode page format Protocol Specific Port
+ *   mode page
+ */
+
+#define _SCSI_MODE_SENSE_PAGE_0_FMT                 0x00
+/* ^ SPC-5 rev12 Table 457 - Page_0 mode page format Protocol Specific Port mode
+ *   page
+ */
+
 #pragma pack(push, 1)
 struct t10_sbc_vpd_bdc {
     uint8_t we_dont_care_0;
@@ -77,6 +98,24 @@ struct t10_sbc_vpd_bdc {
     uint8_t we_dont_care_1[58];
 };
 /* ^ SBC-4 rev 09 Table 236 - Block Device Characteristics VPD page */
+
+struct t10_proto_port_mode_page_0_hdr {
+    uint8_t we_dont_care_0[2];
+    uint8_t protocol_id     : 4;
+    uint8_t we_dont_care_1  : 4;
+};
+/* ^ SPC-5 rev12 Table 457 - Page_0 mode page format Protocol Specific Port mode
+ *   page
+ */
+
+struct t10_proto_port_mode_sub_page_hdr {
+    uint8_t we_dont_care_0[5];
+    uint8_t protocol_id     : 4;
+    uint8_t we_dont_care_1  : 4;
+};
+/* ^ SPC-5 rev12 Table 458 - Sub_page mode page format Protocol Specific Port
+ *   mode page
+ */
 
 #pragma pack(pop)
 
@@ -808,6 +847,8 @@ int lsm_local_disk_list(lsm_string_list **disk_paths, lsm_error **lsm_err)
  *
  *  * Check VPD device ID page, seeking ASSOCIATION == 01b,
  *    check PROTOCOL IDENTIFIER
+ *  * As fallback, we use 'Protocol Specific Port mode page' seeking for
+ *    'PROTOCOL IDENTIFIER' also.
  */
 int lsm_local_disk_link_type_get(const char *disk_path,
                                  lsm_disk_link_type *link_type,
@@ -822,6 +863,10 @@ int lsm_local_disk_link_type_get(const char *disk_path,
     uint16_t dp_count = 0;
     uint8_t protocol_id = _SG_T10_SPC_PROTOCOL_ID_OBSOLETE;
     uint16_t i = 0;
+    uint8_t protocol_mode_page[_SG_T10_SPC_MODE_SENSE_MAX_LEN];
+    int tmp_rc = LSM_ERR_OK;
+    struct t10_proto_port_mode_page_0_hdr *page_0_hdr = NULL;
+    struct t10_proto_port_mode_sub_page_hdr *sub_page_hdr = NULL;
 
     _lsm_err_msg_clear(err_msg);
 
@@ -861,6 +906,43 @@ int lsm_local_disk_link_type_get(const char *disk_path,
         *link_type = protocol_id;
         break;
     }
+
+    /* Use MODE SENSE(10) to query 'Protocol Specific Port mode page' as
+     * fallback.
+     */
+    if (*link_type == LSM_DISK_LINK_TYPE_NO_SUPPORT) {
+        /* Try subpage format first as hpsa return subpage format even when
+         * request page 0 mode.
+         * TODO(Gris Ge): sg_modes does not impact by this issue, it
+         *                can detect the return data's format. Need to
+         *                study their workflow.
+         */
+        tmp_rc = _sg_io_mode_sense(err_msg, fd, _SCSI_MODE_SENSE_PSP_PAGE_CODE,
+                                   _SCSI_MODE_SENSE_SUB_PAGE_FMT,
+                                   protocol_mode_page);
+        if (tmp_rc == LSM_ERR_OK) {
+            sub_page_hdr = (struct t10_proto_port_mode_sub_page_hdr *)
+                protocol_mode_page;
+            *link_type = sub_page_hdr->protocol_id;
+        } else if (tmp_rc == LSM_ERR_NO_SUPPORT) {
+            tmp_rc = _sg_io_mode_sense(err_msg, fd,
+                                       _SCSI_MODE_SENSE_PSP_PAGE_CODE,
+                                       _SCSI_MODE_SENSE_PAGE_0_FMT,
+                                       protocol_mode_page);
+            if (tmp_rc == LSM_ERR_OK) {
+                page_0_hdr = (struct t10_proto_port_mode_page_0_hdr *)
+                    protocol_mode_page;
+                *link_type = page_0_hdr->protocol_id;
+            } else if (tmp_rc != LSM_ERR_NO_SUPPORT) {
+                rc = LSM_ERR_LIB_BUG;
+                goto out;
+            }
+        } else {
+            rc = LSM_ERR_LIB_BUG;
+            goto out;
+        }
+    }
+
 
  out:
     if (fd >= 0)
@@ -1040,5 +1122,109 @@ int LSM_DLL_EXPORT lsm_local_disk_led_status_get(const char *disk_path,
         if (lsm_err != NULL)
             *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
     }
+    return rc;
+}
+
+int lsm_local_disk_link_speed_get(const char *disk_path, uint32_t *link_speed,
+                                  lsm_error **lsm_err)
+{
+    int rc = LSM_ERR_OK;
+    int tmp_rc = LSM_ERR_OK;
+    lsm_error *tmp_lsm_err = NULL;
+    lsm_disk_link_type link_type = LSM_DISK_LINK_TYPE_UNKNOWN;
+    int fd = -1;
+    char err_msg[_LSM_ERR_MSG_LEN];
+    uint8_t vpd_data[_SG_T10_SPC_VPD_MAX_LEN];
+    struct _sg_t10_vpd_ata_info *ata_info = NULL;
+    uint8_t sas_mode_sense[_SG_T10_SPC_MODE_SENSE_MAX_LEN];
+    char sas_addr[_SG_T10_SPL_SAS_ADDR_LEN];
+    unsigned int host_no = UINT_MAX;
+
+    _lsm_err_msg_clear(err_msg);
+    rc = _check_null_ptr(err_msg, 3 /* argument count */, disk_path,
+                         link_speed, lsm_err);
+
+    if (rc != LSM_ERR_OK) {
+        /* set output pointers to NULL if possible when facing error in case
+         * application use output memory.
+         */
+        if (link_speed != NULL)
+            *link_speed = LSM_DISK_LINK_SPEED_UNKNOWN;
+
+        goto out;
+    }
+
+    /* Workflow:
+     *  * Use lsm_local_disk_link_type_get() to find out link type:
+     *      * SATA
+     *          check vpd89(ATA Information VPD page) for
+     *          "IDENTIFY DEVICE data" ACS word 77 CURRENT NEGOTIATED SERIAL ATA
+     *          SIGNAL SPEED.
+     *      * SAS
+     *          SCSI MODE SENSE page 19h Protocol Specific Port,
+     *          subpage 01h Phy Control And Discover
+     *      * FC
+     *          Use SCSI_IOCTL_GET_BUS_NUMBER IOCTL to get SCSI host number,
+     *          then check file: /sys/class/fc_host/host9/speed
+     */
+
+    tmp_rc = lsm_local_disk_link_type_get(disk_path, &link_type, &tmp_lsm_err);
+    if (tmp_rc != LSM_ERR_OK) {
+        rc = tmp_rc;
+        _lsm_err_msg_set(err_msg, "%s", lsm_error_message_get(tmp_lsm_err));
+        lsm_error_free(tmp_lsm_err);
+        goto out;
+    }
+
+    switch(link_type) {
+    case LSM_DISK_LINK_TYPE_ATA:
+        /* Check VPD 0x89(ATA Information VPD page) which is mandatory page */
+        _good(_sg_io_open_ro(err_msg, disk_path, &fd), rc, out);
+        _good(_sg_io_vpd(err_msg, fd, _SG_T10_SPC_VPD_ATA_INFO,  vpd_data),
+              rc, out);
+        ata_info = (struct _sg_t10_vpd_ata_info *) vpd_data;
+        _good(_ata_cur_speed_get(err_msg, ata_info->ata_id_dev_data,
+                                 link_speed),
+              rc, out);
+        break;
+    case LSM_DISK_LINK_TYPE_SAS:
+        _good(_sas_addr_get(err_msg, disk_path, sas_addr), rc, out);
+        _good(_sg_io_open_ro(err_msg, disk_path, &fd), rc, out);
+        _good(_sg_io_mode_sense(err_msg, fd, _SCSI_MODE_SENSE_PSP_PAGE_CODE,
+                                _SCSI_MODE_SENSE_SAS_PHY_SUB_PAGE_CODE,
+                                sas_mode_sense),
+              rc, out);
+        _good(_sas_cur_speed_get(err_msg, sas_mode_sense, sas_addr, link_speed),
+              rc, out);
+        break;
+    case LSM_DISK_LINK_TYPE_FC:
+        _good(_sg_io_open_ro(err_msg, disk_path, &fd), rc, out);
+        _good(_sg_host_no(err_msg, fd, &host_no), rc, out);
+        _good(_fc_host_speed_get(err_msg, host_no, link_speed), rc, out);
+        break;
+    case LSM_DISK_LINK_TYPE_ISCSI:
+        _good(_sg_io_open_ro(err_msg, disk_path, &fd), rc, out);
+        _good(_sg_host_no(err_msg, fd, &host_no), rc, out);
+        _good(_iscsi_host_speed_get(err_msg, host_no, link_speed), rc, out);
+        break;
+    default:
+        rc = LSM_ERR_NO_SUPPORT;
+        _lsm_err_msg_set(err_msg, "Disk link type %d is not supported yet",
+                         link_type);
+        goto out;
+    }
+
+ out:
+    if (rc != LSM_ERR_OK) {
+        if (lsm_err != NULL)
+            *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
+        if (link_speed != NULL) {
+            *link_speed  = LSM_DISK_LINK_SPEED_UNKNOWN;
+        }
+    }
+
+    if (fd >= 0)
+        close(fd);
+
     return rc;
 }

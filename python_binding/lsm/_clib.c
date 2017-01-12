@@ -334,6 +334,28 @@ static const char local_disk_led_status_get_docstring[] =
     "        err_msg (string)\n"
     "            Error message, empty if no error.\n";
 
+static const char local_disk_link_speed_get_docstring[] =
+    "INTERNAL USE ONLY!\n"
+    "\n"
+    "Usage:\n"
+    "    Get the link speed for given disk.\n"
+    "Parameters:\n"
+    "    disk_path (string)\n"
+    "        The disk path, example '/dev/sdb'. Empty string is failure\n"
+    "Returns:\n"
+    "    [link_speeds, rc, err_msg]\n"
+    "        link_speeds (list of string)\n"
+    "            Empty list is not support. The string is like: '3.0 Gbps'\n"
+    "            or special strings(check libstoragemgmt_types.h for detail):\n"
+    "             * LSM_DISK_LINK_SPEED_UNKNOWN -- 'UNKNOWN'\n"
+    "             * LSM_DISK_LINK_SPEED_DISABLED -- 'DISABLED'\n"
+    "             * LSM_DISK_LINK_SPEED_DISCONNECTED-- 'DISCONNECTED'\n"
+    "        rc (integer)\n"
+    "            Error code, lsm.ErrorNumber.OK if no error\n"
+    "        err_msg (string)\n"
+    "            Error message, empty if no error.\n";
+
+
 static PyObject *local_disk_serial_num_get(PyObject *self, PyObject *args,
                                            PyObject *kwargs);
 
@@ -347,6 +369,8 @@ static PyObject *local_disk_list(PyObject *self, PyObject *args,
                                  PyObject *kwargs);
 static PyObject *local_disk_link_type_get(PyObject *self, PyObject *args,
                                           PyObject *kwargs);
+static PyObject *local_disk_link_speed_get(PyObject *self, PyObject *args,
+                                           PyObject *kwargs);
 static PyObject *_lsm_string_list_to_pylist(lsm_string_list *str_list);
 static PyObject *_c_str_to_py_str(const char *str);
 static PyObject *local_disk_led_status_get(PyObject *self, PyObject *args,
@@ -384,6 +408,8 @@ static PyMethodDef _methods[] = {
      METH_VARARGS | METH_KEYWORDS, local_disk_fault_led_off_docstring},
     {"_local_disk_led_status_get",  (PyCFunction) local_disk_led_status_get,
      METH_VARARGS | METH_KEYWORDS, local_disk_led_status_get_docstring},
+    {"_local_disk_link_speed_get",  (PyCFunction) local_disk_link_speed_get,
+     METH_VARARGS | METH_KEYWORDS, local_disk_link_speed_get_docstring},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
@@ -434,6 +460,9 @@ _wrapper(local_disk_link_type_get, lsm_local_disk_link_type_get,
 _wrapper(local_disk_led_status_get, lsm_local_disk_led_status_get,
          const char *, disk_path, uint32_t,
          LSM_DISK_LED_STATUS_UNKNOWN, PyInt_FromLong, _NO_NEED_TO_FREE);
+_wrapper(local_disk_link_speed_get, lsm_local_disk_link_speed_get,
+         const char *, disk_path, uint32_t, LSM_DISK_LINK_SPEED_UNKNOWN,
+         PyInt_FromLong, _NO_NEED_TO_FREE);
 
 static PyObject *local_disk_list(PyObject *self, PyObject *args,
                                  PyObject *kwargs)
