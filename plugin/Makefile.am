@@ -1,4 +1,4 @@
-SUBDIRS=simc megaraid hpsa
+SUBDIRS=simc megaraid hpsa nfs
 
 plugindir = $(pythondir)/lsm/plugin
 

@@ -356,6 +356,7 @@ AC_OUTPUT(libstoragemgmt.pc \
           python_binding/lsm/version.py \
           plugin/Makefile \
           plugin/simc/Makefile \
+          plugin/nfs/Makefile \
           plugin/megaraid/Makefile \
           plugin/hpsa/Makefile \
           plugin/sim/sim_lsmplugin \
