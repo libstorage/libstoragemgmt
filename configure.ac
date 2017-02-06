@@ -379,6 +379,7 @@ AC_OUTPUT(libstoragemgmt.pc \
           doc/man/ontap_lsmplugin.1 \
           doc/man/targetd_lsmplugin.1 \
           doc/man/nstor_lsmplugin.1 \
+          doc/man/nfs_lsmplugin.1 \
           doc/doxygen.conf \
           doc/man/lsmd.conf.5 \
           doc/man/megaraid_lsmplugin.1 \

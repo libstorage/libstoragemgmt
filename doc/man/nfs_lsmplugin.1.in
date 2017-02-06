@@ -1,0 +1,30 @@
+.TH nfs_lsmplugin "1" "February 2017" "nfs_lsmplugin @VERSION@" "libStorageMgmt"
+.SH NAME
+nfs_lsmplugin -- LibstorageMgmt local filesystem exports plugin
+
+.SH DESCRIPTION
+LibStorageMgmt NFS plugin allows the exporting of local filesystems by 
+configuration of the local systems nfs services.
+
+.SH URI
+To use this plugin, users should set their URI to this format:
+.nf
+
+    nfs://
+
+.fi
+No password is required for this plugin.
+No URI parameters are supported by this plugin.
+
+.SH FIREWALL RULES
+This plugin requires no network access.
+
+.SH SEE ALSO
+\fBlsmcli\fR(1), \fBlsmd\fR(1)
+
+.SH BUGS
+Please report bugs to
+\fI<libstoragemgmt-devel@lists.sourceforge.net>\fR
+
+.SH AUTHOR
+Justin Mitchell \fI<jumitche@redhat.com>\fR

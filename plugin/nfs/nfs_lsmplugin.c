@@ -23,6 +23,7 @@
 #define MOUNTS      "/proc/self/mounts"
 #define EXPORTS     "/etc/exports.d/libstoragemgmt.exports"
 #define SYSID       "local"
+#define EXPORTFS    "/usr/sbin/exportfs -ar"
 
 #define _UNUSED(x) (void)(x)
 #define _BUFF_SIZE  4096
@@ -68,7 +69,7 @@ static void md5(const char *plaintext, char * result)
 
     char * out = result;
     for (int i=0; i<MD5_DIGEST_LENGTH; i++) {
-        sprintf(out, "%02X", hash[i]);
+        _UNUSED(sprintf(out, "%02X", hash[i]));
         out += 2;
     }
 }
@@ -80,8 +81,11 @@ static void md5fmt(char * result, char * format, ...)
     char * input = NULL;
     va_list va;
 
+    if (result == NULL) return;
+    if (format == NULL) return;
+
     va_start(va, format);
-    vasprintf(&input, format, va);
+    if (vasprintf(&input, format, va) < 0) return;
     va_end(va);
 
     md5(input, result);
@@ -159,8 +163,8 @@ static char * hash_to_str(lsm_hash * hash, const char * sep)
     size_t size = 0;
     for (int i=0; i<count; i++) {
         const char * item = lsm_string_list_elem_get(list, i);
-        const char * val = lsm_hash_string_get(hash, item);
         if (item == NULL) continue;
+        const char * val = lsm_hash_string_get(hash, item);
         size += strlen(item);
         if (val != NULL && strcmp(val, "true")!=0) size += strlen(val)+1;
         if (i < count-1) size += seplen;
@@ -171,8 +175,8 @@ static char * hash_to_str(lsm_hash * hash, const char * sep)
     char * result = calloc(size+1, 1);
     for (int i=0; i<count; i++) {
         const char * item = lsm_string_list_elem_get(list, i);
-        const char * val = lsm_hash_string_get(hash, item);
         if (item == NULL) continue;
+        const char * val = lsm_hash_string_get(hash, item);
         strcat(result, item);
         if (val != NULL && strcmp(val, "true")!=0) {
             strcat(result, "=");
@@ -196,7 +200,9 @@ static char * path_to_fsid(const char *path)
     if ((statvfs(path, &st))== -1) {
         return NULL;
     }
-    asprintf(&answer, "%" PRIx64, st.f_fsid);
+    if (asprintf(&answer, "%" PRIx64, st.f_fsid)<0) {
+        return NULL;
+    }
     return answer;
 }
             
@@ -253,7 +259,11 @@ static lsm_hash * options_to_hash(const char * optstext)
         char *arg = opt;
         strsep(&arg, "=");
 
-        lsm_hash_string_set(options_list, opt, arg==NULL?"true":arg);
+        if (lsm_hash_string_set(options_list, opt, arg==NULL?"true":arg) != LSM_ERR_OK) {
+            free(tmp);
+            lsm_hash_free(options_list);
+            return NULL;
+        }
     }
     free(tmp);
 
@@ -454,6 +464,11 @@ int list_exports(lsm_plugin_ptr c, const char *search_key, const char *search_va
     char buff[_BUFF_SIZE];
 
     if ((f=fopen(EXPORTS, "r")) == NULL) {
+        // no file is not an error, just an empty list
+        if (errno == ENOENT) {
+            *count = 0;
+            return LSM_ERR_OK;
+        }
         return lsm_perror(c, LSM_ERR_PERMISSION_DENIED, "Error opening %s: %s\n", EXPORTS, strerror(errno));
     }
 
@@ -533,6 +548,7 @@ lsm_hash * load_exports(lsm_plugin_ptr c, const char * filename)
         char * path = NULL;
         char * host = NULL;
         char * options = NULL;
+        int ret;
 
         trim(buff);
         if (buff[0] == 0) continue;
@@ -547,11 +563,14 @@ lsm_hash * load_exports(lsm_plugin_ptr c, const char * filename)
         char * line = NULL;
 
         if (strchr(path, ' ')!=NULL)
-            asprintf(&line, "\"%s\"\t%s(%s)", path, host, options);
+            ret = asprintf(&line, "\"%s\"\t%s(%s)", path, host, options);
         else
-            asprintf(&line, "%s\t%s(%s)", path, host, options);
+            ret = asprintf(&line, "%s\t%s(%s)", path, host, options);
 
-        lsm_hash_string_set(list, expid, line);
+        if (ret >= 0) {
+            lsm_hash_string_set(list, expid, line);
+            free(line);
+        }
     }
 
     if (f) fclose(f);
@@ -579,18 +598,25 @@ static lsm_hash * filter_options(lsm_hash * in)
     if (list == NULL) return in;
 
     lsm_hash * out = lsm_hash_alloc();
+    if (out == NULL) return NULL;
+
     for (unsigned int i=0; i<lsm_string_list_size(list); i++) {
         const char * key = lsm_string_list_elem_get(list, i);
+        if (key == NULL) continue;
         const char * val = lsm_hash_string_get(in, key);
 
         /* suppress options that are defaulted */
         if (strcmp(key, "anonuid")==0 || strcmp(key, "anongid")==0) {
-            if (strcmp(val, "-1")==0) continue;
+            if (val==NULL || strcmp(val, "-1")==0) continue;
         }
         /* you cant delete from hashes, so empty marks gone */
-        if (*val==0) continue;
+        if (val==NULL || *val==0) continue;
 
-        lsm_hash_string_set(out, key, val);
+        if (lsm_hash_string_set(out, key, val) != LSM_ERR_OK) {
+            lsm_hash_free(out);
+            out = NULL;
+            break;
+        }
     }
     lsm_string_list_free(list);
     lsm_hash_free(in);
@@ -601,17 +627,24 @@ static int write_exports(lsm_plugin_ptr c, lsm_hash * exports, const char * file
 {
     int ret = LSM_ERR_OK;
     char * tmpfile = NULL;
-    asprintf(&tmpfile, "%s.tmp", filename);
+    
+    if (asprintf(&tmpfile, "%s.tmp", filename) == -1) {
+        return lsm_perror(c, LSM_ERR_NO_MEMORY, "Out of memory writing exports file");
+    }
 
     FILE *f = NULL;
     if ((f=fopen(tmpfile, "w"))==NULL) {
-        return lsm_perror(c, LSM_ERR_PLUGIN_BUG, "Error writing to exports file %s: %s", tmpfile, strerror(errno));
+        ret = lsm_perror(c, LSM_ERR_PLUGIN_BUG, "Error writing to exports file %s: %s", tmpfile, strerror(errno));
+        goto cleanup;
     }
 
     lsm_string_list * list = NULL;
     lsm_hash_keys(exports, &list);
 
-    fprintf(f, "# NFS exports managed by libstoragemgmt. do not edit.\n");
+    if (fprintf(f, "# NFS exports managed by libstoragemgmt. do not edit.\n") < 0) {
+        ret = lsm_perror(c, LSM_ERR_PLUGIN_BUG, "Error writing exports file: %s", strerror(errno));
+        goto cleanup;
+    }
 
     unsigned int count = 0;
     if (list != NULL) count=lsm_string_list_size(list);
@@ -622,15 +655,38 @@ static int write_exports(lsm_plugin_ptr c, lsm_hash * exports, const char * file
 
         if (val==NULL || *val == 0) continue;
 
-        fprintf(f, "%s\n", val);
+        if (fprintf(f, "%s\n", val) < 0) {
+            ret = lsm_perror(c, LSM_ERR_PLUGIN_BUG, "Error writing exports file: %s", strerror(errno));
+            goto cleanup;
+        }
     }
-    fclose(f);
-    lsm_string_list_free(list);
+
+    if (fclose(f)) {
+        ret = lsm_perror(c, LSM_ERR_PLUGIN_BUG, "Error writing exports file: %s", strerror(errno));
+        f=NULL;
+        goto cleanup;
+    }
+    f=NULL;
 
     if (rename(tmpfile, filename)) {
         ret = lsm_perror(c, LSM_ERR_PLUGIN_BUG, "Error renaming exports file: %s", strerror(errno));
+        goto cleanup;
     }
+
+cleanup:
+    if (list) lsm_string_list_free(list);
+    if (f) fclose(f);
+    if (tmpfile) free(tmpfile);
     return ret;
+}
+
+/* Tell the system we updated the exports file */
+static int update_exports(lsm_plugin_ptr c)
+{
+    if (system(EXPORTFS) == -1) {
+        return lsm_perror(c, LSM_ERR_PLUGIN_BUG, "Error running exportfs: %s", strerror(errno));
+    }
+    return LSM_ERR_OK;
 }
 
 /* add a new export to our exports file */
@@ -653,7 +709,7 @@ int add_export(lsm_plugin_ptr c, const char *fs_id, const char *export_path,
     }
 
     if (geteuid() != 0) {
-        return lsm_perror(c, LSM_ERR_INVALID_ARGUMENT, "This action requies the plugin to have root privilege");
+        return lsm_perror(c, LSM_ERR_INVALID_ARGUMENT, "This action requires the plugin to have root privilege.");
     }
 
     struct stat st;
@@ -664,97 +720,152 @@ int add_export(lsm_plugin_ptr c, const char *fs_id, const char *export_path,
         return lsm_perror(c, LSM_ERR_INVALID_ARGUMENT, "export_path is not a directory");
     }
 
-    lsm_hash * export_list = load_exports(c, EXPORTS);
+    lsm_hash * common_opts = NULL;
+    lsm_hash * export_list = NULL;
+    lsm_hash * hostlist = NULL;
+    lsm_string_list * hostkeys = NULL;
+
+    // Load the current list of exports
+    if ((export_list = load_exports(c, EXPORTS)) == NULL) goto cleanup;
 
     // get a list of all the hostnames we have been given
     // use a hash to squash dupes quickly
-    lsm_hash * hostlist = lsm_hash_alloc();
+    if ((hostlist = lsm_hash_alloc())==NULL) {
+        ret = lsm_perror(c, LSM_ERR_NO_MEMORY, "out of memory adding export");
+        goto cleanup;
+    }
+
     for (unsigned int i=0; i<lsm_string_list_size(root_list); i++) {
         const char * item = lsm_string_list_elem_get(root_list, i);
-        lsm_hash_string_set(hostlist, item, "1");
+        if (item == NULL) continue;
+        if ((ret=lsm_hash_string_set(hostlist, item, "1")) != LSM_ERR_OK) {
+            goto cleanup;
+        }
     }
     for (unsigned int i=0; i<lsm_string_list_size(rw_list); i++) {
         const char * item = lsm_string_list_elem_get(rw_list, i);
-        lsm_hash_string_set(hostlist, item, "1");
+        if (item == NULL) continue;
+        if ((ret=lsm_hash_string_set(hostlist, item, "1")) != LSM_ERR_OK) {
+            goto cleanup;
+        }
     }
     for (unsigned int i=0; i<lsm_string_list_size(ro_list); i++) {
         const char * item = lsm_string_list_elem_get(ro_list, i);
-        lsm_hash_string_set(hostlist, item, "1");
+        if (item == NULL) continue;
+        if ((ret=lsm_hash_string_set(hostlist, item, "1")) != LSM_ERR_OK) {
+            goto cleanup;
+        }
     }
 
     /* build the common options list for all hosts */
-    lsm_hash * common_opts = options_to_hash(options);
+    common_opts = options_to_hash(options);
+    if (common_opts == NULL) {
+        ret = lsm_perror(c, LSM_ERR_NO_MEMORY, "Out of memory adding export");
+        goto cleanup;
+    }
     
-    if (auth_type) lsm_hash_string_set(common_opts, "sec", auth_type);
+    if (auth_type) {
+        if ((ret=lsm_hash_string_set(common_opts, "sec", auth_type)) != LSM_ERR_OK) {
+            goto cleanup;
+        }
+    }
 
     if (anon_uid == (uint64_t)-1) {
-        lsm_hash_string_set(common_opts, "anonuid", "-1");
+        if ((ret=lsm_hash_string_set(common_opts, "anonuid", "-1"))!=LSM_ERR_OK)
+            goto cleanup;
     } else {
         char * number = NULL;
-        asprintf(&number, "%" PRIu64, anon_uid);
-        if (number != NULL) {
-            lsm_hash_string_set(common_opts, "anonuid", number);
-            free(number);
+        if (asprintf(&number, "%" PRIu64, anon_uid) < 0) {
+            ret = lsm_perror(c, LSM_ERR_NO_MEMORY, "Out of memory adding export");
+            goto cleanup;
         }
-    }
-    if (anon_gid == (uint64_t)-1) {
-        lsm_hash_string_set(common_opts, "anongid", "-1");
-    } else {
-        char * number = NULL;
-        asprintf(&number, "%" PRIu64, anon_gid);
-        if (number != NULL) {
-            lsm_hash_string_set(common_opts, "anongid", number);
+        if ((ret = lsm_hash_string_set(common_opts, "anonuid", number)) != LSM_ERR_OK)  {
             free(number);
+            goto cleanup;
         }
+        free(number);
     }
 
-    lsm_string_list * hostkeys;
-    lsm_hash_keys(hostlist, &hostkeys);
+    if (anon_gid == (uint64_t)-1) {
+        if ((ret=lsm_hash_string_set(common_opts, "anongid", "-1"))!=LSM_ERR_OK)
+            goto cleanup;
+    } else {
+        char * number = NULL;
+        if (asprintf(&number, "%" PRIu64, anon_gid) < 0) {
+            ret = lsm_perror(c, LSM_ERR_NO_MEMORY, "Out of memory adding export");
+            goto cleanup;
+        }
+        if ((ret = lsm_hash_string_set(common_opts, "anongid", number)) != LSM_ERR_OK)  {
+            free(number);
+            goto cleanup;
+        }
+        free(number);
+    }
+
+    // iterate through list of the hostnames making one entry each
+    if (lsm_hash_keys(hostlist, &hostkeys) != LSM_ERR_OK) goto cleanup;
+
     for (unsigned int i=0; i<lsm_string_list_size(hostkeys); i++) {
         /* add each seperate host as an entry */
         const char * thishost = lsm_string_list_elem_get(hostkeys, i);
+        if (thishost == NULL) continue;
         lsm_hash * thisopts = lsm_hash_copy(common_opts);
+        if (thisopts == NULL) {
+            ret = lsm_perror(c, LSM_ERR_NO_MEMORY, "Out of memory adding export");
+            goto cleanup;
+        }
 
         /* add the options unique to this host */
         if (lsm_string_list_find(root_list, thishost)!=-1) {
-            lsm_hash_string_set(thisopts, "no_root_squash", "true");
+            ret = lsm_hash_string_set(thisopts, "no_root_squash", "true");
         } else {
-            lsm_hash_string_set(thisopts, "root_squash", "true");
+            ret = lsm_hash_string_set(thisopts, "root_squash", "true");
         }
+        if (ret != LSM_ERR_OK) goto cleanup;
 
         if (lsm_string_list_find(rw_list, thishost)!=-1) {
-            lsm_hash_string_set(thisopts, "rw", "true");
+            ret = lsm_hash_string_set(thisopts, "rw", "true");
         } else
         if (lsm_string_list_find(ro_list, thishost)!=-1) {
-            lsm_hash_string_set(thisopts, "ro", "true");
+            ret = lsm_hash_string_set(thisopts, "ro", "true");
         } else {
             /* host should have been in rw or ro as well as root, assume rw then */
-            lsm_hash_string_set(thisopts, "rw", "true");
+            ret = lsm_hash_string_set(thisopts, "rw", "true");
         }
+        if (ret != LSM_ERR_OK) goto cleanup;
 
-        thisopts = filter_options(thisopts);
+        if ((thisopts = filter_options(thisopts))==NULL) {
+            ret = lsm_perror(c, LSM_ERR_NO_MEMORY, "Out of memory adding export");
+            goto cleanup;
+        }
         char * options = hash_to_str(thisopts, ",");
         char * expid = nfs_makeid(export_path, thishost);
         char * line = NULL;
+        int out;
         if (strchr(export_path, ' ')!=NULL)
-            asprintf(&line, "\"%s\"\t%s(%s)", export_path, thishost, options);
+            out = asprintf(&line, "\"%s\"\t%s(%s)", export_path, thishost, options);
         else
-            asprintf(&line, "%s\t%s(%s)", export_path, thishost, options);
+            out = asprintf(&line, "%s\t%s(%s)", export_path, thishost, options);
+        if (out < 0) line=NULL;
 
-        lsm_hash_string_set(export_list, expid, line);
+        if (expid != NULL && line != NULL)
+            lsm_hash_string_set(export_list, expid, line);
 
         free(line);
         free(expid);
         free(options);
     }
-    lsm_string_list_free(hostkeys);
 
     if ((ret=write_exports(c, export_list, EXPORTS))==LSM_ERR_OK) {
         *exported = lsm_nfs_export_record_alloc(NULL, fs_id, export_path, auth_type, root_list, rw_list, ro_list, anon_uid, anon_gid, options, NULL);
+        ret = update_exports(c);
     }
 
-    lsm_hash_free(export_list);
-    lsm_hash_free(hostlist);
+cleanup:
+    if (hostkeys) lsm_string_list_free(hostkeys);
+    if (common_opts) lsm_hash_free(common_opts);
+    if (export_list) lsm_hash_free(export_list);
+    if (hostlist) lsm_hash_free(hostlist);
 
     return ret;
 }
@@ -766,7 +877,7 @@ int del_export(lsm_plugin_ptr c, lsm_nfs_export *e, lsm_flag flags)
     _UNUSED(flags);
 
     if (geteuid() != 0) {
-        return lsm_perror(c, LSM_ERR_INVALID_ARGUMENT, "This action requies the plugin to have root privilege");
+        return lsm_perror(c, LSM_ERR_INVALID_ARGUMENT, "This action requires the plugin to have root privilege");
     }
 
     lsm_hash * export_list = load_exports(c, EXPORTS);
@@ -790,6 +901,7 @@ int del_export(lsm_plugin_ptr c, lsm_nfs_export *e, lsm_flag flags)
         ret = lsm_perror(c, LSM_ERR_PLUGIN_BUG, "Export %s not found", eid);
     } else {
         write_exports(c, export_list, EXPORTS);
+        ret = update_exports(c);
     }
     lsm_hash_free(export_list);
     return ret;
@@ -828,7 +940,8 @@ int capList(lsm_plugin_ptr c, lsm_system *sys, lsm_storage_capabilities **cap, l
 int fs_list(lsm_plugin_ptr c, const char *search_key, const char *search_value,
                 lsm_fs **results[], uint32_t *count, lsm_flag flags)
 {
-    _UNUSED(c);
+    int ret = LSM_ERR_OK;
+
     _UNUSED(flags);
     
     if (search_key) {
@@ -866,9 +979,13 @@ int fs_list(lsm_plugin_ptr c, const char *search_key, const char *search_value,
             continue;
         }
         char * fsid = NULL;
-        asprintf(&fsid, "%" PRIx64, st.f_fsid);
         uint64_t total_space = st.f_frsize * st.f_blocks;
         uint64_t free_space = st.f_frsize * st.f_bavail;
+
+        if (asprintf(&fsid, "%" PRIx64, st.f_fsid) < 0) {
+            ret = lsm_perror(c, LSM_ERR_NO_MEMORY, "Error listing filesystems");
+            break;
+        }
 
         /* is this a duplicate ? */
         if (lsm_hash_string_get(pathlist, fsid)!=NULL) {
@@ -880,17 +997,35 @@ int fs_list(lsm_plugin_ptr c, const char *search_key, const char *search_value,
         lsm_fs * fsobj = lsm_fs_record_alloc(fsid, path, total_space, free_space, "none", SYSID, NULL);
 
         size_t isize = sizeof(lsm_fs *) * (rcount+1);
-        fslist = (lsm_fs **)realloc(fslist, isize); 
-        fslist[rcount++] = fsobj;
-
+        lsm_fs ** newfslist = NULL;
+        newfslist = (lsm_fs **)realloc(fslist, isize); 
+        if (newfslist == NULL) {
+            ret = lsm_perror(c, LSM_ERR_NO_MEMORY, "Error listing filesystems");
+            lsm_fs_record_free(fsobj);
+            free(fsid);
+            break;
+        } else {
+            fslist = newfslist;
+            fslist[rcount++] = fsobj;
+        }
         free(fsid);
     }
     lsm_hash_free(pathlist);
+    fclose(f);
+
+    // failed somewhere, unwind the partial list
+    if (ret != LSM_ERR_OK) {
+        if (fslist != NULL) {
+            for (int i=0; i<rcount; i++)
+                lsm_fs_record_free(fslist[i]);
+            free(fslist);
+        }
+        *count = 0;
+        return ret;
+    }
 
     *count = rcount;
     *results = fslist;
-
-    fclose(f);
 
     return LSM_ERR_OK;
 }
