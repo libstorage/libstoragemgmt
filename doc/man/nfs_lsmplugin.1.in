@@ -16,6 +16,10 @@ To use this plugin, users should set their URI to this format:
 No password is required for this plugin.
 No URI parameters are supported by this plugin.
 
+.SH ROOT PRIVILEGE
+This plugin requires both \fBlsmd\fR daemon and API client running as root
+user. Please check manpage \fIlsmd.conf (5)\fR for detail.
+
 .SH FIREWALL RULES
 This plugin requires no network access.
 

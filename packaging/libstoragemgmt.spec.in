@@ -809,7 +809,7 @@ fi
 %{udev_dir}/udev/rules.d/90-scsi-ua.rules
 
 %changelog
-* Mon Feb 6 2017 Justin Mitchell <jumitche@redhat.com> 1.3.5-1
+* Mon Feb 6 2017 Justin Mitchell <jumitche@redhat.com> 
 - New features:
   * Plugin that provides NFS exporting for local filesystems
 
