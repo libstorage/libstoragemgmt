@@ -1,6 +1,6 @@
 .TH nfs_lsmplugin "1" "February 2017" "nfs_lsmplugin @VERSION@" "libStorageMgmt"
 .SH NAME
-nfs_lsmplugin -- LibstorageMgmt local filesystem exports plugin
+nfs_lsmplugin -- LibstorageMgmt local network file system plugin
 
 .SH DESCRIPTION
 LibStorageMgmt NFS plugin allows the exporting of local filesystems by 
