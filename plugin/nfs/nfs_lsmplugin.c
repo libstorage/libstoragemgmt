@@ -18,6 +18,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <mntent.h>
 
 
 #define MOUNTS      "/proc/self/mounts"
@@ -952,7 +953,7 @@ int fs_list(lsm_plugin_ptr c, const char *search_key, const char *search_value,
     *count = 0;
 
     FILE * f = NULL;
-    if ((f=fopen(MOUNTS, "r"))==NULL) {
+    if ((f=setmntent(MOUNTS, "r"))==NULL) {
         return lsm_perror(c, LSM_ERR_PLUGIN_BUG, "Error listing mounts: %s", strerror(errno));
     }
 
@@ -960,17 +961,12 @@ int fs_list(lsm_plugin_ptr c, const char *search_key, const char *search_value,
     char buff[_BUFF_SIZE];
     lsm_fs ** fslist = NULL;
     int rcount = 0;
-    while (fgets(buff, sizeof(buff), f)!=NULL) {
-        char *source = buff;
-        char *path = source;
-        char *type = NULL;
+    struct mntent me;
 
-        strsep(&path, " ");
-        type = path;
-        strsep(&type, " ");
-
+    while (getmntent_r(f, &me, buff, _BUFF_SIZE)!=NULL) {
         struct statvfs st;
-        if ((statvfs(path, &st))== -1) {
+
+        if ((statvfs(me.mnt_dir, &st))== -1) {
             /* if we cant get stats, its not a valid fs */
             continue;
         }
@@ -992,9 +988,9 @@ int fs_list(lsm_plugin_ptr c, const char *search_key, const char *search_value,
             free(fsid);
             continue;
         }
-        lsm_hash_string_set(pathlist, fsid, path);
+        lsm_hash_string_set(pathlist, fsid, me.mnt_dir);
 
-        lsm_fs * fsobj = lsm_fs_record_alloc(fsid, path, total_space, free_space, "none", SYSID, NULL);
+        lsm_fs * fsobj = lsm_fs_record_alloc(fsid, me.mnt_dir, total_space, free_space, "none", SYSID, NULL);
 
         size_t isize = sizeof(lsm_fs *) * (rcount+1);
         lsm_fs ** newfslist = NULL;
@@ -1011,7 +1007,7 @@ int fs_list(lsm_plugin_ptr c, const char *search_key, const char *search_value,
         free(fsid);
     }
     lsm_hash_free(pathlist);
-    fclose(f);
+    endmntent(f);
 
     // failed somewhere, unwind the partial list
     if (ret != LSM_ERR_OK) {
