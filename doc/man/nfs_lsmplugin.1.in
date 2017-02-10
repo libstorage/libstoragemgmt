@@ -23,8 +23,13 @@ user. Please check manpage \fIlsmd.conf (5)\fR for detail.
 .SH FIREWALL RULES
 This plugin requires no network access.
 
+.SH SUPPORTED EXPORTS
+This plugin will only list and modify exports that have been created using
+this plugin and stored in /etc/exports.d/libstoragemgmt.exports 
+Other existing exports, stored in other export files will not be shown.
+
 .SH SEE ALSO
-\fBlsmcli\fR(1), \fBlsmd\fR(1)
+\fBlsmcli\fR(1), \fBlsmd\fR(1), \fBexports\fR(5)
 
 .SH BUGS
 Please report bugs to
