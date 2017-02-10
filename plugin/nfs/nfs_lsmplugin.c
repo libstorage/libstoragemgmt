@@ -29,6 +29,7 @@
 #define _UNUSED(x) (void)(x)
 #define _BUFF_SIZE  4096
 #define MD5_HASHLEN ((MD5_DIGEST_LENGTH * 2) + 1)
+#define _ERRLEN     128
 
 static char name[] = "NFS Plugin";
 static char version [] = "0.1";
@@ -470,7 +471,8 @@ int list_exports(lsm_plugin_ptr c, const char *search_key, const char *search_va
             *count = 0;
             return LSM_ERR_OK;
         }
-        return lsm_perror(c, LSM_ERR_PERMISSION_DENIED, "Error opening %s: %s\n", EXPORTS, strerror(errno));
+        char errmsg[_ERRLEN];
+        return lsm_perror(c, LSM_ERR_PERMISSION_DENIED, "Error opening %s: %s\n", EXPORTS, strerror_r(errno, errmsg, _ERRLEN));
     }
 
     int ecount = 0;
@@ -540,7 +542,8 @@ lsm_hash * load_exports(lsm_plugin_ptr c, const char * filename)
             return list;
         }
 
-        lsm_perror(c, LSM_ERR_PLUGIN_BUG, "Error reading %s: %s", filename, strerror(errno));
+        char errmsg[_ERRLEN];
+        lsm_perror(c, LSM_ERR_PLUGIN_BUG, "Error reading %s: %s", filename, strerror_r(errno, errmsg, _ERRLEN));
         lsm_hash_free(list);
         return NULL;
     }
@@ -628,6 +631,7 @@ static int write_exports(lsm_plugin_ptr c, lsm_hash * exports, const char * file
 {
     int ret = LSM_ERR_OK;
     char * tmpfile = NULL;
+    char errmsg[_ERRLEN];
     
     if (asprintf(&tmpfile, "%s.tmp", filename) == -1) {
         return lsm_perror(c, LSM_ERR_NO_MEMORY, "Out of memory writing exports file");
@@ -635,7 +639,7 @@ static int write_exports(lsm_plugin_ptr c, lsm_hash * exports, const char * file
 
     FILE *f = NULL;
     if ((f=fopen(tmpfile, "w"))==NULL) {
-        ret = lsm_perror(c, LSM_ERR_PLUGIN_BUG, "Error writing to exports file %s: %s", tmpfile, strerror(errno));
+        ret = lsm_perror(c, LSM_ERR_PLUGIN_BUG, "Error writing to exports file %s: %s", tmpfile, strerror_r(errno, errmsg, _ERRLEN));
         goto cleanup;
     }
 
@@ -643,7 +647,7 @@ static int write_exports(lsm_plugin_ptr c, lsm_hash * exports, const char * file
     lsm_hash_keys(exports, &list);
 
     if (fprintf(f, "# NFS exports managed by libstoragemgmt. do not edit.\n") < 0) {
-        ret = lsm_perror(c, LSM_ERR_PLUGIN_BUG, "Error writing exports file: %s", strerror(errno));
+        ret = lsm_perror(c, LSM_ERR_PLUGIN_BUG, "Error writing exports file: %s", strerror_r(errno, errmsg, _ERRLEN));
         goto cleanup;
     }
 
@@ -657,20 +661,20 @@ static int write_exports(lsm_plugin_ptr c, lsm_hash * exports, const char * file
         if (val==NULL || *val == 0) continue;
 
         if (fprintf(f, "%s\n", val) < 0) {
-            ret = lsm_perror(c, LSM_ERR_PLUGIN_BUG, "Error writing exports file: %s", strerror(errno));
+            ret = lsm_perror(c, LSM_ERR_PLUGIN_BUG, "Error writing exports file: %s", strerror_r(errno, errmsg, _ERRLEN));
             goto cleanup;
         }
     }
 
     if (fclose(f)) {
-        ret = lsm_perror(c, LSM_ERR_PLUGIN_BUG, "Error writing exports file: %s", strerror(errno));
+        ret = lsm_perror(c, LSM_ERR_PLUGIN_BUG, "Error writing exports file: %s", strerror_r(errno, errmsg, _ERRLEN));
         f=NULL;
         goto cleanup;
     }
     f=NULL;
 
     if (rename(tmpfile, filename)) {
-        ret = lsm_perror(c, LSM_ERR_PLUGIN_BUG, "Error renaming exports file: %s", strerror(errno));
+        ret = lsm_perror(c, LSM_ERR_PLUGIN_BUG, "Error renaming exports file: %s", strerror_r(errno, errmsg, _ERRLEN));
         goto cleanup;
     }
 
@@ -685,7 +689,8 @@ cleanup:
 static int update_exports(lsm_plugin_ptr c)
 {
     if (system(EXPORTFS) == -1) {
-        return lsm_perror(c, LSM_ERR_PLUGIN_BUG, "Error running exportfs: %s", strerror(errno));
+        char errmsg[_ERRLEN];
+        return lsm_perror(c, LSM_ERR_PLUGIN_BUG, "Error running exportfs: %s", strerror_r(errno, errmsg, _ERRLEN));
     }
     return LSM_ERR_OK;
 }
@@ -954,7 +959,8 @@ int fs_list(lsm_plugin_ptr c, const char *search_key, const char *search_value,
 
     FILE * f = NULL;
     if ((f=setmntent(MOUNTS, "r"))==NULL) {
-        return lsm_perror(c, LSM_ERR_PLUGIN_BUG, "Error listing mounts: %s", strerror(errno));
+        char errmsg[_ERRLEN];
+        return lsm_perror(c, LSM_ERR_PLUGIN_BUG, "Error listing mounts: %s", strerror_r(errno, errmsg, _ERRLEN));
     }
 
     lsm_hash * pathlist = lsm_hash_alloc();
