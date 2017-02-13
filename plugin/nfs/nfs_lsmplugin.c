@@ -202,7 +202,7 @@ static char * path_to_fsid(const char *path)
     if ((statvfs(path, &st))== -1) {
         return NULL;
     }
-    if (asprintf(&answer, "%" PRIx64, st.f_fsid)<0) {
+    if (asprintf(&answer, "%lx", st.f_fsid)<0) {
         return NULL;
     }
     return answer;
@@ -984,7 +984,7 @@ int fs_list(lsm_plugin_ptr c, const char *search_key, const char *search_value,
         uint64_t total_space = st.f_frsize * st.f_blocks;
         uint64_t free_space = st.f_frsize * st.f_bavail;
 
-        if (asprintf(&fsid, "%" PRIx64, st.f_fsid) < 0) {
+        if (asprintf(&fsid, "%lx", st.f_fsid) < 0) {
             ret = lsm_perror(c, LSM_ERR_NO_MEMORY, "Error listing filesystems");
             break;
         }
