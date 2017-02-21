@@ -805,6 +805,25 @@ fi
 %{udev_dir}/udev/rules.d/90-scsi-ua.rules
 
 %changelog
+* Tue Feb 21 2017 Gris Ge <fge@redhat.com> 1.4.0-1
+- Add Python3 support.
+- New sub rpm package python3-libstoragemgmt.
+- Add support of lmiwbem.
+- Allow plugin test to be run concurrently.
+- Bug fixes:
+    * Fix megaraid plugin for dell PERC.
+    * Fix local disk rotation speed query on NVMe disk.
+    * Fix lsmcli incorrect try-expect on local disk query.
+    * Fix all the gcc compile warnings.
+    * Fix the obsolete usage of AC_OUTPUT in configure.ac.
+- Library adds:
+    * Query serial of local disk:
+        lsm_local_disk_serial_num_get()/lsm.LocalDisk.serial_num_get()
+    * Query LED status of local disk:
+        lsm_local_disk_led_status_get()/lsm.LocalDisk.led_status_get()
+    * Query link speed of local disk:
+        lsm_local_disk_link_speed_get()/lsm.LocalDisk.link_speed_get()
+
 * Tue Aug 2 2016 Tony Asleson <tasleson@redhat.com> 1.3.4-1
 - Bug fixes:
   * https://github.com/libstorage/libstoragemgmt/pull/177
