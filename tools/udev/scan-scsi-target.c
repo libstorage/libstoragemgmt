@@ -54,7 +54,7 @@ static void __attribute__ ((__noreturn__)) invalid(char **argv, char *devpath)
 
 int main(int argc, char **argv)
 {
-	char	c;
+	int	c;
 	char	*devpath;
 
 	char	*sysfs_path;
