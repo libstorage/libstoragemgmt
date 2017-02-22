@@ -346,66 +346,68 @@ AX_CHECK_COMPILE_FLAG([-Wall], [CFLAGS="$CFLAGS -Wall"], [], [])
 AX_CHECK_COMPILE_FLAG([-Werror], [CFLAGS="$CFLAGS -Werror"], [], [])
 AX_CHECK_COMPILE_FLAG([-Wextra], [CFLAGS="$CFLAGS -Wextra"], [], [])
 
-AC_OUTPUT(libstoragemgmt.pc \
-          Makefile \
-          c_binding/Makefile \
-          c_binding/include/Makefile \
-          c_binding/include/libstoragemgmt/Makefile \
-          c_binding/include/libstoragemgmt/libstoragemgmt_version.h \
-          python_binding/Makefile \
-          python_binding/lsm/version.py \
-          plugin/Makefile \
-          plugin/simc/Makefile \
-          plugin/megaraid/Makefile \
-          plugin/hpsa/Makefile \
-          plugin/sim/sim_lsmplugin \
-          plugin/megaraid/megaraid_lsmplugin \
-          plugin/hpsa/hpsa_lsmplugin \
-          plugin/ontap/ontap_lsmplugin \
-          plugin/nstor/nstor_lsmplugin \
-          plugin/targetd/targetd_lsmplugin \
-          plugin/smispy/smispy_lsmplugin \
-          test/plugin_test.py \
-          test/cmdtest.py \
-          daemon/Makefile \
-          config/Makefile \
-          doc/Makefile \
-          doc/man/lsmcli.1 \
-          doc/man/lsmd.1 \
-          doc/man/sim_lsmplugin.1 \
-          doc/man/simc_lsmplugin.1 \
-          doc/man/smispy_lsmplugin.1 \
-          doc/man/ontap_lsmplugin.1 \
-          doc/man/targetd_lsmplugin.1 \
-          doc/man/nstor_lsmplugin.1 \
-          doc/doxygen.conf \
-          doc/man/lsmd.conf.5 \
-          doc/man/megaraid_lsmplugin.1 \
-          doc/man/hpsa_lsmplugin.1 \
-          tools/Makefile \
-          tools/udev/Makefile \
-          tools/lsmcli/Makefile \
-          tools/utility/Makefile \
-          tools/bash_completion/Makefile \
-          packaging/Makefile \
-          packaging/daemon/Makefile \
-          packaging/libstoragemgmt.spec \
-          doc/man/Makefile \
-          tools/lsmcli/lsmcli \
-          test/Makefile)
+AC_CONFIG_FILES([
+    libstoragemgmt.pc
+    Makefile
+    c_binding/Makefile
+    c_binding/include/Makefile
+    c_binding/include/libstoragemgmt/Makefile
+    c_binding/include/libstoragemgmt/libstoragemgmt_version.h
+    python_binding/Makefile
+    python_binding/lsm/version.py
+    plugin/Makefile
+    plugin/simc/Makefile
+    plugin/megaraid/Makefile
+    plugin/hpsa/Makefile
+    daemon/Makefile
+    config/Makefile
+    doc/Makefile
+    doc/man/lsmcli.1
+    doc/man/lsmd.1
+    doc/man/sim_lsmplugin.1
+    doc/man/simc_lsmplugin.1
+    doc/man/smispy_lsmplugin.1
+    doc/man/ontap_lsmplugin.1
+    doc/man/targetd_lsmplugin.1
+    doc/man/nstor_lsmplugin.1
+    doc/doxygen.conf
+    doc/man/lsmd.conf.5
+    doc/man/megaraid_lsmplugin.1
+    doc/man/hpsa_lsmplugin.1
+    tools/Makefile
+    tools/udev/Makefile
+    tools/lsmcli/Makefile
+    tools/utility/Makefile
+    tools/bash_completion/Makefile
+    packaging/Makefile
+    packaging/daemon/Makefile
+    packaging/libstoragemgmt.spec
+    doc/man/Makefile
+    test/Makefile])
 
 if test "x${with_test}" = "xyes"; then
-    AC_OUTPUT(test/runtests.sh)
-    chmod +x test/runtests.sh
+    AC_CONFIG_FILES([test/runtests.sh], [chmod +x test/runtests.sh])
 fi
 
-chmod +x plugin/sim/sim_lsmplugin \
-         plugin/megaraid/megaraid_lsmplugin \
-         plugin/hpsa/hpsa_lsmplugin \
-         plugin/ontap/ontap_lsmplugin \
-         plugin/nstor/nstor_lsmplugin \
-         plugin/targetd/targetd_lsmplugin \
-         plugin/smispy/smispy_lsmplugin \
-         tools/lsmcli/lsmcli \
-         test/plugin_test.py \
-         test/cmdtest.py
+AC_CONFIG_FILES([plugin/sim/sim_lsmplugin],
+    [chmod +x plugin/sim/sim_lsmplugin])
+AC_CONFIG_FILES([plugin/megaraid/megaraid_lsmplugin],
+    [chmod +x plugin/megaraid/megaraid_lsmplugin])
+AC_CONFIG_FILES([plugin/hpsa/hpsa_lsmplugin],
+    [chmod +x plugin/hpsa/hpsa_lsmplugin])
+AC_CONFIG_FILES([plugin/ontap/ontap_lsmplugin],
+    [chmod +x plugin/ontap/ontap_lsmplugin])
+AC_CONFIG_FILES([plugin/nstor/nstor_lsmplugin],
+    [chmod +x plugin/nstor/nstor_lsmplugin])
+AC_CONFIG_FILES([plugin/targetd/targetd_lsmplugin],
+    [chmod +x plugin/targetd/targetd_lsmplugin])
+AC_CONFIG_FILES([plugin/smispy/smispy_lsmplugin],
+    [chmod +x plugin/smispy/smispy_lsmplugin])
+AC_CONFIG_FILES([tools/lsmcli/lsmcli],
+    [chmod +x tools/lsmcli/lsmcli])
+AC_CONFIG_FILES([test/plugin_test.py],
+    [chmod +x test/plugin_test.py])
+AC_CONFIG_FILES([test/cmdtest.py],
+    [chmod +x test/cmdtest.py])
+
+AC_OUTPUT
