@@ -939,7 +939,7 @@ class SmartArray(IPlugin):
         sys_output = self._sacli_exec(
             ['ctrl', "slot=%s" % ctrl_num, 'show'])
 
-        sys_id = list(_sys_id_of_ctrl_data(sys_output.values()[0]))
+        sys_id = _sys_id_of_ctrl_data(list(sys_output.values())[0])
         # API code already checked empty 'disks', we will for sure get
         # valid 'ctrl_num' and 'hp_disk_ids'.
 
