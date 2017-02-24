@@ -63,35 +63,33 @@ int volume_raid_info(lsm_plugin_ptr c, lsm_volume *volume,
     _good(_str_to_int(err_msg, lsm_hash_string_get(sim_p, "member_type"),
                       (int *) &member_type), rc, out);
 
-    switch(member_type) {
-    case LSM_POOL_MEMBER_TYPE_POOL:
+    if (member_type == LSM_POOL_MEMBER_TYPE_POOL) {
         _good(_str_to_uint64(err_msg, lsm_hash_string_get(sim_p,
                                                           "parent_pool_id"),
                              &sim_p_id), rc, out);
         _good(_db_sim_pool_of_sim_id(err_msg, db, sim_p_id, &sim_p), rc, out);
-    case LSM_POOL_MEMBER_TYPE_DISK:
-        _good(_str_to_int(err_msg, lsm_hash_string_get(sim_p, "raid_type"),
-                          (int *) raid_type), rc, out);
-        _good(_str_to_uint32(err_msg, lsm_hash_string_get(sim_p, "strip_size"),
-                             strip_size), rc, out);
-        *min_io_size = *strip_size;
-        _good(_str_to_uint32(err_msg, lsm_hash_string_get(sim_p, "disk_count"),
-                             disk_count), rc, out);
-        _good(_str_to_uint32(err_msg, lsm_hash_string_get(sim_p,
-                                                          "data_disk_count"),
-                             &data_disk_count), rc, out);
-        if ((*raid_type == LSM_VOLUME_RAID_TYPE_RAID1) ||
-            (*raid_type == LSM_VOLUME_RAID_TYPE_JBOD))
-            *opt_io_size = _BLOCK_SIZE;
-        else
-            *opt_io_size = *strip_size * data_disk_count;
-        break;
-    default:
+    } else if (member_type != LSM_POOL_MEMBER_TYPE_DISK) {
         rc = LSM_ERR_PLUGIN_BUG;
         _lsm_err_msg_set(err_msg, "BUG: Got unknown pool member type %d",
                          member_type);
         goto out;
     }
+
+    _good(_str_to_int(err_msg, lsm_hash_string_get(sim_p, "raid_type"),
+                      (int *) raid_type), rc, out);
+    _good(_str_to_uint32(err_msg, lsm_hash_string_get(sim_p, "strip_size"),
+                         strip_size), rc, out);
+    *min_io_size = *strip_size;
+    _good(_str_to_uint32(err_msg, lsm_hash_string_get(sim_p, "disk_count"),
+                         disk_count), rc, out);
+    _good(_str_to_uint32(err_msg, lsm_hash_string_get(sim_p,
+                                                      "data_disk_count"),
+                         &data_disk_count), rc, out);
+    if ((*raid_type == LSM_VOLUME_RAID_TYPE_RAID1) ||
+        (*raid_type == LSM_VOLUME_RAID_TYPE_JBOD))
+        *opt_io_size = _BLOCK_SIZE;
+    else
+        *opt_io_size = *strip_size * data_disk_count;
 
  out:
     _db_sql_trans_rollback(db);

@@ -341,9 +341,9 @@ static int _ses_sg_paths_get(char *err_msg, char ***sg_paths,
                 (strncmp(sg_name, "sg", strlen("sg")) != 0))
                 continue;
             sysfs_sg_type_path = (char *)
-                malloc(sizeof(char) * (sizeof(_SYSFS_SG_ROOT_PATH) +
+                malloc(sizeof(char) * (strlen(_SYSFS_SG_ROOT_PATH) +
                                        strlen("/") +
-                                       sizeof(sg_name) +
+                                       strlen(sg_name) +
                                        strlen("/device/type") +
                                        1 /* trailing \0 */));
             _alloc_null_check(err_msg, sysfs_sg_type_path, rc, out);
