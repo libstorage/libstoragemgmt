@@ -110,7 +110,7 @@ def _parse_hpssacli_output(output):
     """
     required_sections = ['Array:', 'unassigned', 'HBA Drives', 'array',
                          'Controller Status', 'Cache Status',
-                         'Battery/Capacitor Status']
+                         'Battery/Capacitor Status', 'Unassigned', 'Array']
 
     output_lines = [
         l for l in output.split("\n")
@@ -709,7 +709,7 @@ class SmartArray(IPlugin):
                                     sys_id, ctrl_num, array_key_name,
                                     flag_free=False))
 
-                if key_name == 'unassigned' or key_name == 'HBA Drives':
+                if key_name in ('Unassigned', 'unassigned', 'HBA Drives'):
                     for array_key_name in list(ctrl_data[key_name].keys()):
                         if array_key_name.startswith("physicaldrive"):
                             rc_lsm_disks.append(
