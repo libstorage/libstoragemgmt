@@ -946,8 +946,8 @@ class SmartArray(IPlugin):
         pd_output = self._sacli_exec(
             ['ctrl', "slot=%s" % ctrl_num, 'pd', hp_disk_ids[0], 'show'])
 
-        if list(pd_output.values())[0].keys()[0].lower().startswith("array "):
-            hp_array_id = list(pd_output.values())[0].keys()[0][len("array "):]
+        if list(list(pd_output.values())[0].keys())[0].lower().startswith("array "):
+            hp_array_id = list(list(pd_output.values())[0].keys())[0][len("array "):]
             hp_array_id = "Array:%s" % hp_array_id
         else:
             raise LsmError(
@@ -989,10 +989,10 @@ class SmartArray(IPlugin):
                 ["ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
                 ).values()[0]
 
-            for key_name in ctrl_data.keys():
+            for key_name in list(ctrl_data.keys()):
                 if key_name != "Array: %s" % array_num:
                     continue
-                for array_key_name in ctrl_data[key_name].keys():
+                for array_key_name in list(ctrl_data[key_name].keys()):
                     if array_key_name == "Logical Drive: %s" % ld_num:
                         raise LsmError(
                             ErrorNumber.PLUGIN_BUG,
@@ -1025,10 +1025,10 @@ class SmartArray(IPlugin):
                 ["ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
                 ).values()[0]
 
-            for key_name in ctrl_data.keys():
+            for key_name in list(ctrl_data.keys()):
                 if key_name != "Array: %s" % array_num:
                     continue
-                for array_key_name in ctrl_data[key_name].keys():
+                for array_key_name in list(ctrl_data[key_name].keys()):
                     if array_key_name == "Logical Drive: %s" % ld_num:
                         raise LsmError(
                             ErrorNumber.PLUGIN_BUG,
@@ -1120,7 +1120,7 @@ class SmartArray(IPlugin):
         ctrl_all_show = self._sacli_exec(
             ["ctrl", "all", "show", "config", "detail"])
 
-        for ctrl_name in ctrl_all_show.keys():
+        for ctrl_name in list(ctrl_all_show.keys()):
             ctrl_data = ctrl_all_show[ctrl_name]
             bat_count = int(ctrl_data.get('Battery/Capacitor Count', 0))
             if bat_count == 0:
