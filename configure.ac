@@ -374,6 +374,7 @@ AC_CONFIG_FILES([
     plugin/megaraid/Makefile
     plugin/hpsa/Makefile
     plugin/arcconf/Makefile
+    plugin/nfs/Makefile
     daemon/Makefile
     config/Makefile
     doc/Makefile
@@ -385,6 +386,7 @@ AC_CONFIG_FILES([
     doc/man/ontap_lsmplugin.1
     doc/man/targetd_lsmplugin.1
     doc/man/nstor_lsmplugin.1
+    doc/man/nfs_lsmplugin.1
     doc/man/lsmd.conf.5
     doc/man/arcconf_lsmplugin.1
     doc/man/megaraid_lsmplugin.1
@@ -421,6 +423,8 @@ AC_CONFIG_FILES([plugin/targetd/targetd_lsmplugin],
     [chmod +x plugin/targetd/targetd_lsmplugin])
 AC_CONFIG_FILES([plugin/smispy/smispy_lsmplugin],
     [chmod +x plugin/smispy/smispy_lsmplugin])
+AC_CONFIG_FILES([plugin/nfs/nfs_lsmplugin],
+    [chmod +x plugin/nfs/nfs_lsmplugin])
 AC_CONFIG_FILES([tools/lsmcli/lsmcli],
     [chmod +x tools/lsmcli/lsmcli])
 AC_CONFIG_FILES([test/plugin_test.py],

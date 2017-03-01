@@ -309,6 +309,19 @@ The %{libstoragemgmt}-hpsa-plugin package contains the plugin for HP
 SmartArray storage management via hpssacli.
 %endif
 
+%package        -n %{libstoragemgmt}-nfs-plugin
+Summary:        Files for NFS local filesystem support for %{libstoragemgmt}
+Group:          System Environment/Libraries
+%if 0%{?with_python3}
+Requires:       python3-%{libstoragemgmt} = %{version}-%{release}
+%else
+Requires:       %{libstoragemgmt}-python = %{version}-%{release}
+%endif
+
+%description    -n %{libstoragemgmt}-nfs-plugin
+The %{libstoragemgmt}-nfs-plugin package contains plug-in for local NFS exports
+support.
+
 %prep
 %setup -q
 
@@ -566,6 +579,21 @@ if [ $1 -eq 0 ]; then
 fi
 %endif
 
+# Need to restart lsmd if plugin is new installed or removed.
+%post -n %{libstoragemgmt}-nfs-plugin
+if [ $1 -eq 1 ]; then
+    # New install.
+    /usr/bin/systemctl try-restart libstoragemgmt.service \
+        >/dev/null 2>&1 || :
+fi
+
+%postun -n %{libstoragemgmt}-nfs-plugin
+if [ $1 -eq 0 ]; then
+    # Remove
+    /usr/bin/systemctl try-restart libstoragemgmt.service \
+        >/dev/null 2>&1 || :
+fi
+
 %files -n %{libstoragemgmt}
 %defattr(-,root,root,-)
 %doc README COPYING.LIB
@@ -797,6 +825,24 @@ fi
 %{_sysconfdir}/lsm/pluginconf.d/hpsa.conf
 %{_mandir}/man1/hpsa_lsmplugin.1*
 %endif
+
+%files -n %{libstoragemgmt}-nfs-plugin
+%defattr(-,root,root,-)
+%if 0%{?with_python3}
+%dir %{python3_sitelib}/lsm/plugin/nfs
+%{python3_sitelib}/lsm/plugin/nfs/__pycache__/*
+%{python3_sitelib}/lsm/plugin/nfs/__init__.*
+%{python3_sitelib}/lsm/plugin/nfs/nfs.*
+%{python3_sitelib}/lsm/plugin/nfs/nfs_clib.*
+%else
+%dir %{python_sitelib}/lsm/plugin/nfs
+%{python_sitelib}/lsm/plugin/nfs/__init__.*
+%{python_sitelib}/lsm/plugin/nfs/nfs.*
+%{python_sitelib}/lsm/plugin/nfs/nfs_clib.*
+%endif
+%{_sysconfdir}/lsm/pluginconf.d/nfs.conf
+%{_bindir}/nfs_lsmplugin
+%{_mandir}/man1/nfs_lsmplugin.1*
 
 %files udev
 %defattr(-,root,root,-)
