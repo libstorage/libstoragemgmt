@@ -147,7 +147,7 @@ struct _sg_t10_sense_fixed {
     uint8_t obsolete;
     uint8_t sense_key : 4;
     uint8_t we_dont_care_0 : 4;
-    uint8_t we_dont_care_1[3];
+    uint8_t we_dont_care_1[4];
     uint8_t len;
     uint8_t we_dont_care_2[4];
     uint8_t asc;        /* ADDITIONAL SENSE CODE */
