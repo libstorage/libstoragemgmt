@@ -458,8 +458,11 @@ class SmartArray(IPlugin):
         for ctrl_name in list(ctrl_all_show.keys()):
             ctrl_data = ctrl_all_show[ctrl_name]
             sys_id = _sys_id_of_ctrl_data(ctrl_data)
-            (status, status_info) = _sys_status_of(ctrl_all_status[ctrl_name])
-
+            try:
+                (status, status_info) = _sys_status_of(ctrl_all_status[ctrl_name])
+            except KeyError:
+                ctrl_name_modified = ctrl_name.replace(' (HBA Mode)', '', 1)
+                (status, status_info) = _sys_status_of(ctrl_all_status[ctrl_name_modified])
             plugin_data = "%s" % ctrl_data['Slot']
             try:
                 fw_ver = "%s" % ctrl_data['Firmware Version']
