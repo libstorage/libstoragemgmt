@@ -22,14 +22,9 @@ from lsm import (Volume, FileSystem, FsSnapshot, NfsExport,
                  AccessGroup, System, Capabilities, Disk, Pool,
                  IStorageAreaNetwork, INfs, LsmError, ErrorNumber, JobStatus,
                  md5, VERSION, common_urllib2_error_handler,
-                 search_property, TargetPort, int_div)
+                 search_property, TargetPort, int_div, uri_parse)
 
 import lsm.plugin.ontap.na as na
-
-try:
-    from urllib.parse import urlparse
-except ImportError:
-    from urlparse import urlparse
 
 # Maps na to lsm, this is expected to expand over time.
 e_map = {
@@ -135,13 +130,19 @@ class Ontap(IStorageAreaNetwork, INfs):
     @handle_ontap_errors
     def plugin_register(self, uri, password, timeout, flags=0):
         ssl = False
-        u = urlparse(uri)
+        u = uri_parse(uri)
 
-        if u.scheme.lower() == 'ontap+ssl':
+        if u['scheme'].lower() == 'ontap+ssl':
             ssl = True
+        if 'parameters' in u and 'ssl_verify' in u['parameters'] and \
+           u['parameters']['ssl_verify'] == 'yes':
+            ssl_verify = True
+        else:
+            ssl_verify = False
 
-        self.f = na.Filer(u.hostname, u.username, password,
-                          int_div(timeout, Ontap.TMO_CONV), ssl)
+        self.f = na.Filer(u['host'], u['username'], password,
+                          int_div(timeout, Ontap.TMO_CONV), ssl,
+                          ssl_verify)
         # Smoke test
         i = self.f.system_info()
         # TODO Get real filer status

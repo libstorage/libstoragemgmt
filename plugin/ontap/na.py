@@ -20,10 +20,9 @@ import six
 from xml.etree import ElementTree
 import time
 from binascii import hexlify
-from ssl import SSLError
+import ssl
 from lsm.external.xmltodict import convert_xml_to_dict
-from lsm import (ErrorNumber)
-
+from lsm import (LsmError, ErrorNumber)
 
 if six.PY3:
     long = int
@@ -33,6 +32,7 @@ try:
                                 urlopen,
                                 HTTPPasswordMgrWithDefaultRealm,
                                 HTTPBasicAuthHandler,
+                                HTTPSHandler,
                                 build_opener,
                                 install_opener)
     from urllib.error import (URLError, HTTPError)
@@ -42,6 +42,7 @@ except ImportError:
                          urlopen,
                          HTTPPasswordMgrWithDefaultRealm,
                          HTTPBasicAuthHandler,
+                         HTTPSHandler,
                          build_opener,
                          install_opener,
                          URLError,
@@ -79,13 +80,13 @@ def param_value(val):
 
 
 def netapp_filer(host, username, password, timeout, command, parameters=None,
-                 ssl=False):
+                 use_ssl=False, ssl_verify=False):
     """
     Issue a command to the NetApp filer.
-    Note: Change to default ssl on before we ship a release version.
+    Note: Change to default use_ssl on before we ship a release version.
     """
     proto = 'http'
-    if ssl:
+    if use_ssl:
         proto = 'https'
 
     url = "%s://%s/servlets/netapp.servlets.admin.XMLrequest_filer" % \
@@ -98,7 +99,15 @@ def netapp_filer(host, username, password, timeout, command, parameters=None,
     password_manager.add_password(None, url, username, password)
     auth_manager = HTTPBasicAuthHandler(password_manager)
 
-    opener = build_opener(auth_manager)
+    if use_ssl:
+        ssl._DEFAULT_CIPHERS += ':RC4-SHA'
+        ssl_ctx = ssl.create_default_context()
+        if ssl_verify == False:
+            ssl_ctx.check_hostname = False
+            ssl_ctx.verify_mode = ssl.CERT_NONE
+        opener = build_opener(HTTPSHandler(context=ssl_ctx), auth_manager)
+    else:
+        opener = build_opener(auth_manager)
     install_opener(opener)
 
     # build the command and the arguments for it
@@ -127,13 +136,23 @@ def netapp_filer(host, username, password, timeout, command, parameters=None,
     except HTTPError:
         raise
     except URLError as ue:
+        err_msg = str(ue)
         if isinstance(ue.reason, socket.timeout):
             raise FilerError(Filer.ETIMEOUT, "Connection timeout")
+        elif "UNSUPPORTED_PROTOCOL" in err_msg or \
+           "EOF occurred in violation of protocol" in err_msg :
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                           "ONTAP SSL version is not supported, "
+                           "please enable TLS on ONTAP filer, "
+                           "check 'man 1 ontap_lsmplugin'")
+        elif "CERTIFICATE_VERIFY_FAILED" in err_msg:
+            raise LsmError(ErrorNumber.NETWORK_CONNREFUSED,
+                           "SSL certification verification failed")
         else:
             raise
     except socket.timeout:
         raise FilerError(Filer.ETIMEOUT, "Connection timeout")
-    except SSLError as sse:
+    except ssl.SSLError as sse:
         # The ssl library doesn't give a good way to find specific reason.
         # We are doing a string contains which is not ideal, but other than
         # throwing a generic error in this case there isn't much we can do
@@ -262,7 +281,8 @@ class Filer(object):
     def _invoke(self, command, parameters=None):
 
         rc = netapp_filer(self.host, self.username, self.password,
-                          self.timeout, command, parameters, self.ssl)
+                          self.timeout, command, parameters, self.use_ssl,
+                          self.ssl_verify)
 
         t = rc['netapp']['results']['attrib']
 
@@ -271,12 +291,14 @@ class Filer(object):
 
         return rc['netapp']['results']
 
-    def __init__(self, host, username, password, timeout, ssl=True):
+    def __init__(self, host, username, password, timeout, use_ssl=True,
+                 ssl_verify=False):
         self.host = host
         self.username = username
         self.password = password
         self.timeout = timeout
-        self.ssl = ssl
+        self.use_ssl = use_ssl
+        self.ssl_verify = ssl_verify
 
     def system_info(self):
         rc = self._invoke('system-get-info')
