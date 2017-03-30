@@ -12,9 +12,10 @@ This plugin requires NetApp ONTAP storage array to enable these options:
     \fBoptions httpd.enable on\fR
     \fBoptions httpd.admin.enable on\fR
 
-This options is required for HTTPS connection:
+These options are required for HTTPS connection:
 
     \fBoptions httpd.admin.ssl.enable on\fR
+    \fBoptions tls.enable on\fR
 
 .SH URI
 To use this plugin, users should set their URI to this format:
@@ -40,7 +41,13 @@ The \fBontap_filer_ip\fR is the NetApp ONTAP filer IP address or DNS name.
 .TP
 \fBURI parameters\fR
 
-No additional URI parameters are supported by this plugin.
+This URI parameter is supported by this plugin:
+
+.RS 7
+.TP
+\fBssl_verify=yes\fR
+By default, SSL connection does not verify hostname and certification.
+If this URI parameter is defined, all SSL verifications will be performed.
 
 .SH Supported Hardware
 NetApp ONTAP 8.x is supported.
