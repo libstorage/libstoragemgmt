@@ -99,6 +99,36 @@ int LSM_DLL_EXPORT lsm_local_disk_vpd83_get(const char *disk_path,
                                             char **vpd83,
                                             lsm_error **lsm_err);
 
+/** New in version 1.5.
+ * Query the health status of a given disk path.
+ * @param[in]   disk_path
+ *                  String. The disk path, example "/dev/sdc".
+ * @param[out]  health_status
+ *                  Output pointer of int32_t.
+ *                          -1 (LSM_DISK_HEALTH_STATUS_UNKNOWN):
+ *                              health status failure.
+ *                           0 (LSM_DISK_HEALTH_STATUS_FAIL):
+ *                              health status failure.
+ *                           1 (LSM_DISK_HEALTH_STATUS_WARN):
+ *                              health status warning.
+ *                           2 (LSM_DISK_HEALTH_STATUS_GOOD):
+ *                              health status good.
+ * @param[out] lsm_err
+ *                  Output pointer of lsm_error. Error message could be
+ *                  retrieved via lsm_error_message_get(). Memory should be
+ *                   by lsm_error_free().
+ * @return Error code as enumerated by \ref lsm_error_number.
+ * @retval LSM_ERR_OK               on success.
+ * @retval LSM_ERR_INVALID_ARGUMENT when any argument is NULL.
+ * @retval LSM_ERR_NO_MEMORY        when no memory is available.
+ * @retval LSM_ERR_NO_SUPPORT       action is not supported.
+ * @retval LSM_ERR_LIB_BUG          when something unexpected happens.
+ * @retval LSM_ERR_NOT_FOUND_DISK   when provided disk path is not found.
+ */
+int LSM_DLL_EXPORT lsm_local_disk_health_status_get(const char *disk_path,
+                                                    int32_t *health_status,
+                                                    lsm_error **lsm_err);
+
 /**
  * New in version 1.3.
  * Query the disk rotation speed - revolutions per minute(RPM) of given disk

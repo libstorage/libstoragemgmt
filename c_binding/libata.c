@@ -86,3 +86,45 @@ int _ata_cur_speed_get(char *err_msg, uint8_t *id_dev_data,
 
     return rc;
 }
+
+void _ata_smart_status_fill_registers(uint8_t *ata_cmd, uint8_t cmd,
+                                      uint8_t features, uint8_t lba_high,
+                                      uint8_t lba_mid, uint8_t lba_low,
+                                      uint8_t count, uint8_t device)
+{
+    struct _ata_registers_input_28_bit * input_registers = NULL;
+
+    assert (ata_cmd != NULL);
+
+    input_registers = (struct _ata_registers_input_28_bit *) ata_cmd;
+    input_registers->feature = features;
+    input_registers->count = count;
+    input_registers->lba_low = lba_low;
+    input_registers->lba_mid = lba_mid;
+    input_registers->lba_high = lba_high;
+    input_registers->device = device;
+    input_registers->command = cmd;
+
+    return;
+}
+
+int32_t _ata_smart_status_interpret_output_regs(uint8_t *ata_output_regs) {
+
+    struct _ata_registers_output_28_bit *output_registers = NULL;
+
+    assert(ata_output_regs != NULL);
+
+    output_registers = (struct _ata_registers_output_28_bit *) ata_output_regs;
+
+    if ((output_registers->lba_high == SMART_STATUS_LBA_HIGH_DEFAULT) &&
+        (output_registers->lba_mid == SMART_STATUS_LBA_MID_DEFAULT)) {
+        return LSM_DISK_HEALTH_STATUS_GOOD;
+    } else if ((output_registers->lba_high ==
+                SMART_STATUS_LBA_HIGH_THRESHOLD_EXCEEDED)
+               && (output_registers->lba_mid ==
+                   SMART_STATUS_LBA_MID_THRESHOLD_EXCEEDED)) {
+        return LSM_DISK_HEALTH_STATUS_FAIL;
+    }
+
+    return LSM_DISK_HEALTH_STATUS_UNKNOWN;
+}

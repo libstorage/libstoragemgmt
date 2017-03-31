@@ -242,6 +242,11 @@ class Disk(IData):
 
     LINK_SPEED_UNKNOWN = 0
 
+    HEALTH_STATUS_UNKNOWN = -1
+    HEALTH_STATUS_FAIL = 0
+    HEALTH_STATUS_WARN = 1
+    HEALTH_STATUS_GOOD = 2
+
     def __init__(self, _id, _name, _disk_type, _block_size, _num_of_blocks,
                  _status, _system_id, _plugin_data=None, _vpd83='',
                  _location='', _rpm=RPM_NO_SUPPORT,

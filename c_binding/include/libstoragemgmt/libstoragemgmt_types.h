@@ -338,6 +338,14 @@ typedef enum {
  */
 #define LSM_DISK_RPM_ROTATING_UNKNOWN_SPEED         1
 
+/* New in version 1.5 */
+#define LSM_DISK_HEALTH_STATUS_UNKNOWN               -1
+/* New in version 1.5 */
+#define LSM_DISK_HEALTH_STATUS_FAIL                  0
+/* New in version 1.5 */
+#define LSM_DISK_HEALTH_STATUS_WARN                  1
+/* New in version 1.5 */
+#define LSM_DISK_HEALTH_STATUS_GOOD                  2
 
 #define LSM_DISK_LED_STATUS_UNKNOWN                 0x0000000000000001
 #define LSM_DISK_LED_STATUS_IDENT_ON                0x0000000000000002

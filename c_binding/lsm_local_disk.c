@@ -839,6 +839,64 @@ int lsm_local_disk_list(lsm_string_list **disk_paths, lsm_error **lsm_err)
 }
 
 /* Workflow:
+ *  * Query VPD supported pages, get ATA information page support and
+ *    check the device id page.
+ *  * Based on that data, decide what type of device it is.
+ *  * Request health status the appropriate way.
+ */
+int lsm_local_disk_health_status_get(const char *disk_path,
+                                     int32_t *health_status,
+                                     lsm_error **lsm_err)
+{
+    int fd = -1;
+    char err_msg[_LSM_ERR_MSG_LEN];
+    int rc = LSM_ERR_OK;
+    lsm_disk_link_type link_type = LSM_DISK_LINK_TYPE_NO_SUPPORT;
+
+    _lsm_err_msg_clear(err_msg);
+
+    _good(_check_null_ptr(err_msg, 3, disk_path, health_status, lsm_err),
+          rc, out);
+
+    *lsm_err = NULL;
+
+    rc = lsm_local_disk_link_type_get(disk_path, &link_type, lsm_err);
+
+    if (rc != LSM_ERR_OK) {
+        _lsm_err_msg_set(err_msg, "%s", lsm_error_message_get(*lsm_err));
+        lsm_error_free(*lsm_err);
+        goto out;
+    }
+
+    _good(_sg_io_open_ro(err_msg, disk_path, &fd), rc, out);
+
+    if (link_type == LSM_DISK_LINK_TYPE_ATA) {
+        _good(_sg_ata_passthrough_health_status(err_msg, fd, health_status),
+              rc, out);
+    } else if (link_type == LSM_DISK_LINK_TYPE_SAS) {
+        _good(_sg_sas_health_status(err_msg, fd, health_status), rc, out);
+    } else {
+        rc = LSM_ERR_NO_SUPPORT;
+        _lsm_err_msg_set(err_msg, "Device link type %d is not supported yet",
+                         link_type);
+        goto out;
+    }
+
+out:
+    if (rc != LSM_ERR_OK) {
+        if (lsm_err != NULL)
+            *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
+        if (health_status != NULL)
+            *health_status = LSM_DISK_HEALTH_STATUS_UNKNOWN;
+    }
+
+    if (fd >= 0)
+        close(fd);
+
+    return rc;
+}
+
+/* Workflow:
  *  * Query VPD supported pages, if ATA Information page is supported, then
  *     we got a ATA.
  *    # We check this first as when SATA disk connected to a SAS enclosure
