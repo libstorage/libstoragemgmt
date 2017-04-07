@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015-2016 Red Hat, Inc.
+ * (C) Copyright (C) 2017 Hewlett Packard Enterprise Development LP
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -176,6 +177,23 @@ static const char local_disk_serial_num_get_docstring[] =
     "        serial_num (string)\n"
     "            String of VPD80 serial number.\n"
     "            Empty string if not supported.\n"
+    "        rc (integer)\n"
+    "            Error code, lsm.ErrorNumber.OK if no error\n"
+    "        err_msg (string)\n"
+    "            Error message, empty if no error.\n";
+
+static const char local_disk_health_status_get_docstring[] =
+    "INTERNAL USE ONLY!\n"
+    "\n"
+    "Usage:\n"
+    "    Query the health status of a given disk path\n"
+    "Parameters:\n"
+    "    disk_path (string)\n"
+    "        The SCSI disk path, example '/dev/sdb'. Empty string is failure\n"
+    "Returns:\n"
+    "    [health_status, rc, err_msg]\n"
+    "        health_status (int)\n"
+    "            health status.\n"
     "        rc (integer)\n"
     "            Error code, lsm.ErrorNumber.OK if no error\n"
     "        err_msg (string)\n"
@@ -363,6 +381,8 @@ static PyObject *local_disk_vpd83_search(PyObject *self, PyObject *args,
                                          PyObject *kwargs);
 static PyObject *local_disk_vpd83_get(PyObject *self, PyObject *args,
                                       PyObject *kwargs);
+static PyObject *local_disk_health_status_get(PyObject *self, PyObject *args,
+                                              PyObject *kwargs);
 static PyObject *local_disk_rpm_get(PyObject *self, PyObject *args,
                                     PyObject *kwargs);
 static PyObject *local_disk_list(PyObject *self, PyObject *args,
@@ -392,6 +412,8 @@ static PyMethodDef _methods[] = {
      METH_VARARGS | METH_KEYWORDS, local_disk_vpd83_search_docstring},
     {"_local_disk_vpd83_get",  (PyCFunction) local_disk_vpd83_get,
      METH_VARARGS | METH_KEYWORDS, local_disk_vpd83_get_docstring},
+    {"_local_disk_health_status_get",  (PyCFunction) local_disk_health_status_get,
+     METH_VARARGS | METH_KEYWORDS, local_disk_health_status_get_docstring},
     {"_local_disk_rpm_get",  (PyCFunction) local_disk_rpm_get,
      METH_VARARGS | METH_KEYWORDS, local_disk_rpm_get_docstring},
     {"_local_disk_list",  (PyCFunction) local_disk_list,
@@ -451,6 +473,9 @@ _wrapper(local_disk_vpd83_search, lsm_local_disk_vpd83_search,
 _wrapper(local_disk_vpd83_get, lsm_local_disk_vpd83_get,
          const char *, disk_path, char *, NULL,
          _c_str_to_py_str, free);
+_wrapper(local_disk_health_status_get, lsm_local_disk_health_status_get,
+         const char *, disk_path, int32_t, LSM_DISK_HEALTH_STATUS_UNKNOWN,
+         PyInt_FromLong, _NO_NEED_TO_FREE);
 _wrapper(local_disk_rpm_get, lsm_local_disk_rpm_get,
          const char *, disk_path, int32_t, LSM_DISK_RPM_UNKNOWN,
          PyInt_FromLong, _NO_NEED_TO_FREE);

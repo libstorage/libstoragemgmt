@@ -1,4 +1,5 @@
 # Copyright (C) 2016 Red Hat, Inc.
+# (C) Copyright 2017 Hewlett Packard Enterprise Development LP
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -19,6 +20,7 @@ import six
 from lsm import LsmError, ErrorNumber
 
 from lsm._clib import (_local_disk_vpd83_search, _local_disk_vpd83_get,
+                       _local_disk_health_status_get,
                        _local_disk_rpm_get, _local_disk_list,
                        _local_disk_link_type_get, _local_disk_ident_led_on,
                        _local_disk_ident_led_off, _local_disk_fault_led_on,
@@ -124,6 +126,45 @@ class LocalDisk(object):
                 No capability required as this is a library level method.
         """
         return _use_c_lib_function(_local_disk_vpd83_get, disk_path)
+
+    @staticmethod
+    def health_status_get(disk_path):
+        """
+        lsm.LocalDisk.health_status_get(disk_path)
+
+        Version:
+            1.5
+        Usage:
+            Retrieve the health status of given disk path.
+        Parameters:
+            disk_path (string)
+                The disk path, example '/dev/sdb'.
+        Returns:
+            health_status (integer)
+                Disk health status:
+                    -1 (lsm.Disk.HEALTH_STATUS_UNKNOWN):
+                        Unknown health status
+                     0 (lsm.Disk.HEALTH_STATUS_FAIL):
+                        health status indicates failure
+                     1 (lsm.Disk.HEALTH_STATUS_WARN):
+                        health status warns of near failure
+                     2 (lsm.Disk.HEALTH_STATUS_GOOD):
+                        health status indicates good health
+        SpecialExceptions:
+            LsmError
+                ErrorNumber.LIB_BUG
+                    Internal bug.
+                ErrorNumber.INVALID_ARGUMENT
+                    Invalid disk_path. Should be like '/dev/sdb'
+                ErrorNumber.NOT_FOUND_DISK
+                    Provided disk is not found.
+                ErrorNumber.NO_SUPPORT
+                    Not supported.
+        Capability:
+            N/A
+                No capability required as this is a library level method.
+        """
+        return _use_c_lib_function(_local_disk_health_status_get, disk_path)
 
     @staticmethod
     def rpm_get(disk_path):

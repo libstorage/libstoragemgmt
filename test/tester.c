@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2011-2016 Red Hat, Inc.
- * (C) Copyright 2015-2016 Hewlett Packard Enterprise Development LP
+ * (C) Copyright 2015-2017 Hewlett Packard Enterprise Development LP
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -3627,6 +3627,45 @@ START_TEST(test_local_disk_link_type)
 }
 END_TEST
 
+START_TEST(test_local_disk_health_status_get)
+{
+    int rc = 0;
+    int32_t health_status = LSM_DISK_HEALTH_STATUS_UNKNOWN;
+    lsm_error *lsm_err = NULL;
+
+    rc = lsm_local_disk_health_status_get("/dev/sda", &health_status,  &lsm_err);
+    if (rc == LSM_ERR_OK) {
+        fail_unless(health_status == LSM_DISK_HEALTH_STATUS_UNKNOWN,
+                    "lsm_local_disk_health_status_get(): "
+                    "Expecting health_status to be "
+                    "LSM_DISK_HEALTH_STATUS_UNKNOWN "
+                    "when rc == LSM_ERR_OK and the disk "
+                    "type is unknown");
+    } else {
+        lsm_error_free(lsm_err);
+    }
+
+    /* Test disk that does not exist */
+    rc = lsm_local_disk_health_status_get(NOT_EXIST_SD_PATH, &health_status,
+                                         &lsm_err);
+    fail_unless(rc == LSM_ERR_NOT_FOUND_DISK,
+                "lsm_local_disk_health_status_get(): "
+                "Expecting LSM_ERR_NOT_FOUND_DISK error with "
+                "non-existent sd_path");
+    fail_unless(lsm_err != NULL, "lsm_local_disk_health_status_get(): "
+                "Expecting lsm_err not NULL with non-existent sd_path");
+    fail_unless(lsm_error_number_get(lsm_err) == LSM_ERR_NOT_FOUND_DISK,
+                "lsm_local_disk_health_status_get(): "
+                "Expecting error number of lsm_err to be set as "
+                "LSM_ERR_NOT_FOUND_DISK with non-existent sd_path");
+    fail_unless(lsm_error_message_get(lsm_err) != NULL,
+                "lsm_local_disk_health_status_get(): "
+                "Expecting error message of lsm_err to not be NULL "
+                "with non-existent sd_path");
+    lsm_error_free(lsm_err);
+}
+END_TEST
+
 START_TEST(test_batteries)
 {
     uint32_t count = 0;
@@ -4086,6 +4125,7 @@ Suite * lsm_suite(void)
     tcase_add_test(basic, test_local_disk_list);
     tcase_add_test(basic, test_local_disk_rpm_get);
     tcase_add_test(basic, test_local_disk_link_type);
+    tcase_add_test(basic, test_local_disk_health_status_get);
     tcase_add_test(basic, test_batteries);
     tcase_add_test(basic, test_volume_cache_info);
     tcase_add_test(basic, test_volume_pdc_update);

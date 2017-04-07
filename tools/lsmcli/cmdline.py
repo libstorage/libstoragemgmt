@@ -1,4 +1,5 @@
 # Copyright (C) 2012-2016 Red Hat, Inc.
+# (C) Copyright 2017 Hewlett Packard Enterprise Development LP
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -1801,6 +1802,7 @@ class CmdLine(object):
             "serial_num": LocalDisk.serial_num_get,
             "led_status": LocalDisk.led_status_get,
             "link_speed": LocalDisk.link_speed_get,
+            "health_status": LocalDisk.health_status_get,
         }
         for disk_path in LocalDisk.list():
             info_dict = {
@@ -1810,6 +1812,7 @@ class CmdLine(object):
                 "serial_num": "",
                 "led_status": Disk.LED_STATUS_UNKNOWN,
                 "link_speed": Disk.LINK_SPEED_UNKNOWN,
+                "health_status": Disk.HEALTH_STATUS_UNKNOWN,
             }
             for key in info_dict.keys():
                 try:
@@ -1825,7 +1828,8 @@ class CmdLine(object):
                               info_dict["link_type"],
                               info_dict["serial_num"],
                               info_dict["led_status"],
-                              info_dict["link_speed"]))
+                              info_dict["link_speed"],
+                              info_dict["health_status"]))
 
         self.display_data(local_disks)
 

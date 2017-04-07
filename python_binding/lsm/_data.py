@@ -1,5 +1,5 @@
 # Copyright (C) 2011-2016 Red Hat, Inc.
-# (C) Copyright 2016 Hewlett Packard Enterprise Development LP
+# (C) Copyright 2016-2017 Hewlett Packard Enterprise Development LP
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -241,6 +241,11 @@ class Disk(IData):
     LED_STATUS_FAULT_UNKNOWN = 1 << 6
 
     LINK_SPEED_UNKNOWN = 0
+
+    HEALTH_STATUS_UNKNOWN = -1
+    HEALTH_STATUS_FAIL = 0
+    HEALTH_STATUS_WARN = 1
+    HEALTH_STATUS_GOOD = 2
 
     def __init__(self, _id, _name, _disk_type, _block_size, _num_of_blocks,
                  _status, _system_id, _plugin_data=None, _vpd83='',
