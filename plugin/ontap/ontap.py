@@ -31,6 +31,7 @@ e_map = {
     na.Filer.ENOSPC: ErrorNumber.NOT_ENOUGH_SPACE,
     na.Filer.ENO_SUCH_VOLUME: ErrorNumber.NOT_FOUND_VOLUME,
     na.Filer.ESIZE_TOO_LARGE: ErrorNumber.NOT_ENOUGH_SPACE,
+    na.Filer.ERESIZE_TOO_LARGE: ErrorNumber.NOT_ENOUGH_SPACE,
     na.Filer.ENOSPACE: ErrorNumber.NOT_ENOUGH_SPACE,
     na.Filer.ENO_SUCH_FS: ErrorNumber.NOT_FOUND_FS,
     na.Filer.EAPILICENSE: ErrorNumber.NOT_LICENSED,
