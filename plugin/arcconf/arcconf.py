@@ -1,4 +1,5 @@
 # Copyright (C) 2015-2016 Red Hat, Inc.
+# (C) Copyright 2015-2016 Hewlett Packard Enterprise Development LP
 # (C) Copyright 2017-2018 Microsemi Corporation
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -14,6 +15,7 @@
 # License along with this library; If not, see <http://www.gnu.org/licenses/>.
 #
 # Author: Gris Ge <fge@redhat.com>
+#         Joe Handzik <joseph.t.handzik@hpe.com>
 #         Raghavendra Basvan <raghavendra.br@microsemi.com>
 
 import os
