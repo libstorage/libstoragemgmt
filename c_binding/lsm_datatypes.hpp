@@ -27,6 +27,7 @@
 #include "libxml/uri.h"
 #include <glib.h>
 #include "lsm_ipc.hpp"
+#include "ptr_array.h"
 
 
 #ifdef  __cplusplus
@@ -237,7 +238,7 @@ struct LSM_DLL_LOCAL _lsm_error {
 #define LSM_IS_STRING_LIST(obj)     MAGIC_CHECK(obj, LSM_STRING_LIST_MAGIC)
 struct LSM_DLL_LOCAL _lsm_string_list {
     uint32_t magic;             /**< Magic value */
-    GPtrArray *values;
+    struct _ptr_array *values;
 };
 
 /**

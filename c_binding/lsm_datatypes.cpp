@@ -26,6 +26,7 @@
 #include <stdio.h>
 
 #include "lsm_datatypes.hpp"
+#include "ptr_array.h"
 
 #include "libstoragemgmt/libstoragemgmt_accessgroups.h"
 #include "libstoragemgmt/libstoragemgmt_common.h"
@@ -47,8 +48,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <dlfcn.h>
-#include <glib.h>
 #include <regex.h>
+#include <glib.h>
 
 #ifdef  __cplusplus
 extern "C" {
@@ -62,8 +63,11 @@ int lsm_string_list_append(lsm_string_list * sl, const char *value)
     if (LSM_IS_STRING_LIST(sl)) {
         char *d = strdup(value);
         if (d) {
-            g_ptr_array_add(sl->values, d);
-            rc = LSM_ERR_OK;
+            if (_ptr_array_append(sl->values, d) != 0) {
+                free(d);
+                rc = LSM_ERR_NO_MEMORY;
+            } else
+                rc = LSM_ERR_OK;
         } else {
             rc = LSM_ERR_NO_MEMORY;
         }
@@ -76,8 +80,8 @@ int lsm_string_list_delete(lsm_string_list * sl, uint32_t index)
     int rc = LSM_ERR_INVALID_ARGUMENT;
 
     if (LSM_IS_STRING_LIST(sl)) {
-        if (index < sl->values->len) {
-            g_ptr_array_remove_index(sl->values, index);
+        if (index < _ptr_array_len(sl->values)) {
+            _ptr_array_remove_index(sl->values, index);
             rc = LSM_ERR_OK;
         }
     }
@@ -89,28 +93,20 @@ int lsm_string_list_elem_set(lsm_string_list * sl, uint32_t index,
                              const char *value)
 {
     int rc = LSM_ERR_OK;
+    char *dup_str = NULL;
+
     if (LSM_IS_STRING_LIST(sl)) {
-        if (index < sl->values->len) {
-
-            char *i = (char *) g_ptr_array_index(sl->values, index);
-
-            if (i) {
-                free(i);
-            }
-
-            g_ptr_array_index(sl->values, index) = strdup(value);
-
-            if (!g_ptr_array_index(sl->values, index)) {
+        dup_str = strdup(value);
+        if (dup_str == NULL)
+            return LSM_ERR_NO_MEMORY;
+        if (index >= _ptr_array_len(sl->values)) {
+            if (_ptr_array_set_size(sl->values, index + 1) != 0) {
+                free(dup_str);
                 rc = LSM_ERR_NO_MEMORY;
-            }
-        } else {
-            g_ptr_array_set_size(sl->values, index + 1);
-            g_ptr_array_index(sl->values, index) = strdup(value);
-
-            if (!g_ptr_array_index(sl->values, index)) {
-                rc = LSM_ERR_NO_MEMORY;
+                return rc;
             }
         }
+        _ptr_array_set_index(sl->values, index, dup_str);
     } else {
         rc = LSM_ERR_INVALID_ARGUMENT;
     }
@@ -120,8 +116,8 @@ int lsm_string_list_elem_set(lsm_string_list * sl, uint32_t index,
 const char *lsm_string_list_elem_get(lsm_string_list * sl, uint32_t index)
 {
     if (LSM_IS_STRING_LIST(sl)) {
-        if (index < sl->values->len) {
-            return (const char *) g_ptr_array_index(sl->values, index);
+        if (index < _ptr_array_len(sl->values)) {
+            return (const char *) _ptr_array_index(sl->values, index);
         }
     }
     return NULL;
@@ -134,14 +130,14 @@ lsm_string_list *lsm_string_list_alloc(uint32_t size)
     rc = (lsm_string_list *) malloc(sizeof(lsm_string_list));
     if (rc) {
         rc->magic = LSM_STRING_LIST_MAGIC;
-        rc->values = g_ptr_array_sized_new(size);
+        rc->values = _ptr_array_sized_new(size);
         if (!rc->values) {
             rc->magic = LSM_DEL_MAGIC(LSM_STRING_LIST_MAGIC);
             free(rc);
             rc = NULL;
         } else {
-            g_ptr_array_set_size(rc->values, size);
-            g_ptr_array_set_free_func(rc->values, free);
+            _ptr_array_set_size(rc->values, size);
+            _ptr_array_set_free_func(rc->values, free);
         }
     }
 
@@ -152,7 +148,7 @@ int lsm_string_list_free(lsm_string_list * sl)
 {
     if (LSM_IS_STRING_LIST(sl)) {
         sl->magic = LSM_DEL_MAGIC(LSM_STRING_LIST_MAGIC);
-        g_ptr_array_free(sl->values, TRUE);
+        _ptr_array_free(sl->values);
         sl->values = NULL;
         free(sl);
         return LSM_ERR_OK;
@@ -163,7 +159,7 @@ int lsm_string_list_free(lsm_string_list * sl)
 uint32_t lsm_string_list_size(lsm_string_list * sl)
 {
     if (LSM_IS_STRING_LIST(sl)) {
-        return (uint32_t) sl->values->len;
+        return _ptr_array_len(sl->values);
     }
     return 0;
 }

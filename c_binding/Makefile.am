@@ -17,4 +17,12 @@ libstoragemgmt_la_SOURCES= \
 	lsm_plugin_ipc.cpp util/qparams.c util/qparams.h \
 	utils.c utils.h libsg.c libsg.h lsm_local_disk.c libses.c libses.h \
 	libata.c libata.h libsas.c libsas.h libfc.c libfc.h \
-	libiscsi.c libiscsi.h
+	libiscsi.c libiscsi.h ptr_array.h
+
+if USE_GLIB
+libstoragemgmt_la_SOURCES += ptr_array_glib.c
+else
+libstoragemgmt_la_SOURCES += ptr_array_utlist.c utlist.h
+endif
+
+EXTRA_DIST = ptr_array_utlist.c utlist.h ptr_array_glib.c
