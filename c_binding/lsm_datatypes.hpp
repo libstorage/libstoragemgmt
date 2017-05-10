@@ -25,8 +25,9 @@
 #include "libstoragemgmt/libstoragemgmt_plug_interface.h"
 #include "libstoragemgmt/libstoragemgmt_common.h"
 #include "libxml/uri.h"
-#include <glib.h>
 #include "lsm_ipc.hpp"
+#include "ptr_array.h"
+#include "hash_table.h"
 
 
 #ifdef  __cplusplus
@@ -237,7 +238,7 @@ struct LSM_DLL_LOCAL _lsm_error {
 #define LSM_IS_STRING_LIST(obj)     MAGIC_CHECK(obj, LSM_STRING_LIST_MAGIC)
 struct LSM_DLL_LOCAL _lsm_string_list {
     uint32_t magic;             /**< Magic value */
-    GPtrArray *values;
+    struct _ptr_array *values;
 };
 
 /**
@@ -287,7 +288,7 @@ struct LSM_DLL_LOCAL _lsm_disk {
 #define LSM_IS_HASH(obj)   MAGIC_CHECK(obj, LSM_HASH_MAGIC)
 struct LSM_DLL_LOCAL _lsm_hash {
     uint32_t magic;
-    GHashTable *data;
+    struct _hash_table *data;
 };
 
 
