@@ -24,9 +24,11 @@
 #endif
 
 #include <stdio.h>
+#include <stdbool.h>
 
 #include "lsm_datatypes.hpp"
 #include "ptr_array.h"
+#include "hash_table.h"
 
 #include "libstoragemgmt/libstoragemgmt_accessgroups.h"
 #include "libstoragemgmt/libstoragemgmt_common.h"
@@ -49,7 +51,6 @@
 #include <unistd.h>
 #include <dlfcn.h>
 #include <regex.h>
-#include <glib.h>
 
 #ifdef  __cplusplus
 extern "C" {
@@ -1637,7 +1638,7 @@ lsm_hash *lsm_hash_alloc(void)
     rc = (lsm_hash *) malloc(sizeof(lsm_hash));
     if (rc) {
         rc->magic = LSM_HASH_MAGIC;
-        rc->data = g_hash_table_new_full(g_str_hash, g_str_equal, free, free);
+        rc->data = _hash_table_new(true /*need free key */, free);
         if (!rc->data) {
             lsm_hash_free(rc);
             rc = NULL;
@@ -1648,96 +1649,123 @@ lsm_hash *lsm_hash_alloc(void)
 
 lsm_hash *lsm_hash_copy(lsm_hash * src)
 {
-    GHashTableIter iter;
-    gpointer key;
-    gpointer value;
-
+    const char **keys = NULL;
+    const char **values = NULL;
+    uint32_t count = 0;
+    uint32_t i = 0;
     lsm_hash *dest = NULL;
+
     if (LSM_IS_HASH(src)) {
         dest = lsm_hash_alloc();
-        if (dest) {
-            /* Walk through each from src and duplicate it to dest */
-            g_hash_table_iter_init(&iter, src->data);
-            while (g_hash_table_iter_next(&iter, &key, &value)) {
-                if (LSM_ERR_OK != lsm_hash_string_set(dest,
-                                                      (const char *) key,
-                                                      (const char *) value)) {
-                    lsm_hash_free(dest);
-                    dest = NULL;
-                }
-            }
-        }
+        if (dest == NULL)
+            goto nomem;
+        if (_hash_table_items_get(src->data, &keys, (void ***) &values,
+                                  &count) != 0)
+            goto nomem;
+
+        for (i = 0; i < count; ++i)
+            if (lsm_hash_string_set(dest, keys[i], values[i]) != LSM_ERR_OK)
+                goto nomem;
+
+        free(keys);
+        free(values);
+        return dest;
     }
-    return dest;
+    return NULL;
+
+ nomem:
+    lsm_hash_free(dest);
+    free(keys);
+    free(values);
+    return NULL;
 }
 
-int lsm_hash_free(lsm_hash * op)
+int lsm_hash_free(lsm_hash *op)
 {
     if (LSM_IS_HASH(op)) {
         op->magic = LSM_DEL_MAGIC(LSM_HASH_MAGIC);
 
-        if (op->data) {
-            g_hash_table_destroy(op->data);
+        if (op->data != NULL) {
+            _hash_table_free(op->data);
+            op->data = NULL;
         }
 
         free(op);
         return LSM_ERR_OK;
     }
+
     return LSM_ERR_INVALID_ARGUMENT;
 }
 
-int lsm_hash_keys(lsm_hash * op, lsm_string_list ** l)
+int lsm_hash_keys(lsm_hash *op, lsm_string_list **l)
 {
-    GHashTableIter iter;
-    gpointer key;
-    gpointer value;
+    const char **keys = NULL;
+    const char **values = NULL;
+    uint32_t count = 0;
+    uint32_t i = 0;
+    int rc = LSM_ERR_OK;
 
+    *l = NULL;
 
     if (LSM_IS_HASH(op)) {
-        int count = g_hash_table_size(op->data);
+        if (_hash_table_items_get(op->data, &keys, (void ***) &values,
+                                  &count) != 0)
+            goto nomem;
 
-        if (count) {
-            *l = lsm_string_list_alloc(0);
-            g_hash_table_iter_init(&iter, op->data);
-            while (g_hash_table_iter_next(&iter, &key, &value)) {
-                if (LSM_ERR_OK != lsm_string_list_append(*l, (char *) key)) {
-                    lsm_string_list_free(*l);
-                    *l = NULL;
-                    return LSM_ERR_NO_MEMORY;
-                }
-            }
-        }
-        return LSM_ERR_OK;
+        if (count == 0)
+            goto out;
+
+        *l = lsm_string_list_alloc(0);
+        if (*l == NULL)
+            goto nomem;
+
+        for(i = 0; i < count; ++i)
+            if (lsm_string_list_append(*l, keys[i]) != LSM_ERR_OK)
+                goto nomem;
+        rc = LSM_ERR_OK;
+        goto out;
     }
-    return LSM_ERR_INVALID_ARGUMENT;
+    rc = LSM_ERR_INVALID_ARGUMENT;
+    goto out;
+
+ nomem:
+    lsm_string_list_free(*l);
+    *l = NULL;
+    rc =LSM_ERR_NO_MEMORY;
+
+ out:
+    free(keys);
+    free(values);
+    return rc;
 }
 
-const char *lsm_hash_string_get(lsm_hash * op, const char *key)
+const char *lsm_hash_string_get(lsm_hash *op, const char *key)
 {
-    if (LSM_IS_HASH(op)) {
-        return (const char *) g_hash_table_lookup(op->data, key);
-    }
+    if (LSM_IS_HASH(op))
+        return (const char *) _hash_table_get(op->data, key);
     return NULL;
 }
 
-int lsm_hash_string_set(lsm_hash * op, const char *key, const char *value)
+int lsm_hash_string_set(lsm_hash *op, const char *key, const char *value)
 {
+    char *k_value = NULL;
+    char *d_value = NULL;
     if (LSM_IS_HASH(op)) {
-        char *k_value = strdup(key);
-        char *d_value = strdup(value);
+        k_value = strdup(key);
+        d_value = strdup(value);
 
-        if (k_value && d_value) {
-            g_hash_table_remove(op->data, (gpointer) k_value);
-            g_hash_table_insert(op->data, (gpointer) k_value,
-                                (gpointer) d_value);
+        if ((k_value != NULL) && (d_value != NULL) &&
+            (_hash_table_set(op->data, k_value, d_value) == 0))
             return LSM_ERR_OK;
-        } else {
-            free(k_value);
-            free(d_value);
-            return LSM_ERR_NO_MEMORY;
-        }
+        else
+            goto nomem;
     }
     return LSM_ERR_INVALID_ARGUMENT;
+
+ nomem:
+    free(k_value);
+    free(d_value);
+    return LSM_ERR_NO_MEMORY;
 }
 
 lsm_target_port *lsm_target_port_record_alloc(const char *id,
