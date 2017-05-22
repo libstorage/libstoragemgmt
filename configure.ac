@@ -95,6 +95,14 @@ AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS([getpass memset socket strchr strdup strtol strtoul])
 
+dnl =====================================================================
+dnl Check for perl, used for C API documents.
+dnl =====================================================================
+AC_PATH_PROGS(PERL, perl)
+if test -z $PERL ;then
+    AC_MSG_ERROR([perl is required for build C API documents])
+fi
+
 dnl Availability of various common headers (non-fatal if missing).
 AC_CHECK_HEADERS([dlfcn.h])
 
@@ -137,14 +145,6 @@ AM_CONDITIONAL([WITH_TEST], [test "x$with_test" = "xyes"])
 
 if test "x${with_test}" = "xyes"; then
     PKG_CHECK_MODULES([LIBCHECK], [check >= 0.9.8 ])
-
-    dnl =====================================================================
-    dnl Check for perl, used for code constants checking
-    dnl =====================================================================
-    AC_PATH_PROGS(PERL, perl)
-    if test -z $PERL ;then
-        AC_MSG_ERROR([Need 'perl' to run test cases])
-    fi
 
     dnl =====================================================================
     dnl Check for chrpath, valgrind, wc, used for make check
@@ -370,10 +370,10 @@ AC_CONFIG_FILES([
     doc/man/ontap_lsmplugin.1
     doc/man/targetd_lsmplugin.1
     doc/man/nstor_lsmplugin.1
-    doc/doxygen.conf
     doc/man/lsmd.conf.5
     doc/man/megaraid_lsmplugin.1
     doc/man/hpsa_lsmplugin.1
+    doc/man/libstoragemgmt.h.3
     tools/Makefile
     tools/udev/Makefile
     tools/lsmcli/Makefile

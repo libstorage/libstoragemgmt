@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2014 Red Hat, Inc.
+ * Copyright (C) 2011-2017 Red Hat, Inc.
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -142,67 +142,137 @@ typedef struct _lsm_error lsm_error;
 typedef lsm_error *lsm_error_ptr;
 
 /**
- * Gets the last error structure
- * Note: @see lsm_error_free to release memory
- * @param c      Connection pointer.
- * @return Error pointer, Null if no error exists!
+ * lsm_error_last_get - Retrieves the last error of the lsm connection.
+ *
+ * Version:
+ *      1.0
+ *
+ * Description:
+ *      Retrieves the last error of the lsm connection.
+ *      Note: Address returned is valid until lsm_connect gets freed, copy
+ *      return value if you need longer scope. Do not free returned pointer.
+ *
+ * @conn:
+ *      lsm_connect pointer.
+ *
+ * Return:
+ *      lsm_error_ptr. NULL if argument 'c' is NULL or not a valid lsm_connect
+ *      pointer or no error exists.
  */
-lsm_error_ptr LSM_DLL_EXPORT lsm_error_last_get(lsm_connect * c);
+lsm_error_ptr LSM_DLL_EXPORT lsm_error_last_get(lsm_connect *conn);
 
 /**
- * Frees the error record!
- * @param err   The error to free!
- * @return Error code as enumerated by \ref lsm_error_number.
- * @return Error code as enumerated by \ref lsm_error_number.
- * @retval LSM_ERR_OK on success.
+ * lsm_error_free - Free the lsm_error memory.
+ *
+ * Version:
+ *      1.0
+ *
+ * Description:
+ *      Frees the memory resources for the specified lsm_error.
+ *
+ * @err:
+ *      Record to release
+ *
+ * Return:
+ *      Error code as enumerated by 'lsm_error_number':
+ *          * LSM_ERR_OK
+ *              On success or not found.
+ *          * LSM_ERR_INVALID_ARGUMENT
+ *              When any argument is NULL or not a valid lsm_error_ptr.
+ *
  */
 int LSM_DLL_EXPORT lsm_error_free(lsm_error_ptr err);
 
 /**
- * Retrieves the error number from the error.
- * @param e     The lsm_error_ptr
- * @return -1 if e is not a valid error pointer, else error number.
+ * lsm_error_number_get - Retrieves the error number.
+ *
+ * Version:
+ *      1.0
+ *
+ * Description:
+ *      Retrieves the error number of the specified lsm_error.
+ *
+ * @e:
+ *      The lsm_error to retrieves error number from.
+ *
+ * Return:
+ *      Error code as enumerated by 'lsm_error_number'.
+ *      -1 if invalid lsm_error_ptr.
  */
 lsm_error_number LSM_DLL_EXPORT lsm_error_number_get(lsm_error_ptr e);
 
 /**
- * Retrieves the error message from the error.
- * Note: The returned value is only valid as long as the e is valid, in
- * addition the function will return NULL if e is invalid.  To remove the
- * ambiguity call lsm_error_number_get and check return code.
- * @param e     The lsm_error_ptr
- * @return NULL if message data does not exist, else error message.
+ * lsm_error_message_get - Retrieves the error message for the lsm_error.
+ *
+ * Version:
+ *      1.0
+ *
+ * Description:
+ *      Retrieves the error message for the specified lsm_error.
+ *      Note: Address returned is valid until lsm_error gets freed, copy return
+ *      value if you need longer scope. Do not free returned string.
+ *
+ * @e:
+ *      The lsm_error to retrieves error message from.
+ *
+ * Return:
+ *      string. NULL if argument 'e' is NULL or not a valid lsm_error_ptr.
  */
 char LSM_DLL_EXPORT *lsm_error_message_get(lsm_error_ptr e);
 
 /**
- * Retrieves the exception message from the error.
- * Note: The returned value is only valid as long as the e is valid, in
- * addition the function will return NULL if e is invalid.  To remove the
- * ambiguity call lsm_error_number_get and check return code.
- * @param e     The lsm_error_ptr
- * @return NULL if exception does not exist, else error exception.
+ * lsm_error_exception_get - Retrieves the exception message from the error.
+ * Version:
+ *      1.0
+ *
+ * Description:
+ *      Retrieves the exception message for the specified lsm_error.
+ *      Note: Address returned is valid until lsm_error gets freed, copy return
+ *      value if you need longer scope. Do not free returned string.
+ *
+ * @e:
+ *      The lsm_error to retrieves exception message from.
+ *
+ * Return:
+ *      string. NULL if argument 'e' is NULL or not a valid lsm_error_ptr.
  */
 char LSM_DLL_EXPORT *lsm_error_exception_get(lsm_error_ptr e);
 
 /**
- * Retrieves the error message from the error.
- * Note: The returned value is only valid as long as the e is valid, in
- * addition the function will return NULL if e is invalid.  To remove the
- * ambiguity call lsm_error_number_get and check return code.
- * @param e     The lsm_error_ptr
- * @return NULL if does not exist, else debug message.
+ * lsm_error_debug_get - Retrieves the debug message from the error.
+ * Version:
+ *      1.0
+ *
+ * Description:
+ *      Retrieves the debug message for the specified lsm_error.
+ *      Note: Address returned is valid until lsm_error gets freed, copy return
+ *      value if you need longer scope. Do not free returned string.
+ *
+ * @e:
+ *      The lsm_error to retrieves debug message from.
+ *
+ * Return:
+ *      string. NULL if argument 'e' is NULL or not a valid lsm_error_ptr.
  */
 char LSM_DLL_EXPORT *lsm_error_debug_get(lsm_error_ptr e);
 
 /**
- * Retrieves the debug data from the error.
- * Note: The returned value is only valid as long as the e is valid, in
- * addition the function will return NULL if e is invalid.  To remove the
- * ambiguity call lsm_error_number_get and check return code.
- * @param e             The lsm_error_ptr
- * @param[out] size     Number of bytes of data returned.
- * @return NULL if does not exist, else debug message.
+ * lsm_error_debug_data_get - Retrieves the debug data from the error.
+ * Version:
+ *      1.0
+ *
+ * Description:
+ *      Retrieves the debug data for the specified lsm_error.
+ *      Note: Address returned is valid until lsm_error gets freed, copy return
+ *      value if you need longer scope. Do not free returned pointer.
+ *
+ * @e:
+ *      The lsm_error to retrieves debug data from.
+ * @size:
+ *      uint32_t pointer. The output pointer for debug data size.
+ *
+ * Return:
+ *      void *. NULL if argument 'e' is NULL or not a valid lsm_error_ptr.
  */
 void LSM_DLL_EXPORT *lsm_error_debug_data_get(lsm_error_ptr e,
                                               uint32_t * size);
