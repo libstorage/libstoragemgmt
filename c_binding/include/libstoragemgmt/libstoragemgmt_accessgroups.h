@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2014 Red Hat, Inc.
+ * Copyright (C) 2011-2017 Red Hat, Inc.
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -28,65 +28,150 @@ extern "C" {
 #endif
 
 /**
- * Frees the resources for an access group.
- * @param group     Group to free
- * @return Error code as enumerated by \ref lsm_error_number.
- * @retval LSM_ERR_OK on success.
+ * lsm_access_group_record_free - Frees the memory for access group.
+ *
+ * Version:
+ *      1.0
+ *
+ * Description:
+ *      Frees the memory for an individual lsm_access_group.
+ *
+ * @group:
+ *      lsm_access_group to release memory for.
+ * Return:
+ *      Error code as enumerated by 'lsm_error_number':
+ *          * LSM_ERR_OK
+ *              On success or not found.
+ *          * LSM_ERR_INVALID_ARGUMENT
+ *              When any argument is NULL or not a valid lsm_access_group
+ *              pointer.
  */
 int LSM_DLL_EXPORT lsm_access_group_record_free(lsm_access_group * group);
 
 /**
- * Frees the resources for an array of access groups.
- * @param ag        Array of access groups to free resources for
- * @param size      Number of elements in the array.
- * @return Error code as enumerated by \ref lsm_error_number.
- * @retval LSM_ERR_OK on success.
+ * lsm_access_group_record_array_free - Frees the memory of access group array.
+ *
+ * Version:
+ *      1.0
+ *
+ * Description:
+ *      Frees the memory for each of the access groups and then the access group
+ *      array itself.
+ *
+ * @ag:
+ *      Array to release memory for.
+ * @size:
+ *      Number of elements.
+ * Return:
+ *      Error code as enumerated by 'lsm_error_number':
+ *          * LSM_ERR_OK
+ *              On success or not found.
+ *          * LSM_ERR_INVALID_ARGUMENT
+ *              When any argument is NULL or not a valid lsm_access_group
+ *              pointer.
  */
 int LSM_DLL_EXPORT lsm_access_group_record_array_free(lsm_access_group *ag[],
                                                       uint32_t size);
 
 /**
- * Copies an access group.
- * @param ag    Access group to copy
- * @return NULL on error, else copied access group.
+ * lsm_access group_record_copy - Duplicates a access group record.
+ *
+ * Version:
+ *      1.0
+ *
+ * Description:
+ *      Duplicates a lsm_access_group record.
+ *
+ * @ag:
+ *      Pointer of lsm_access_group to duplicate.
+ *
+ * Return:
+ *      Pointer of lsm_access_group. NULL on memory allocation failure or
+ *      invalid lsm_access_group pointer. Should be freed by
+ *      lsm_access_group_record_free().
  */
 lsm_access_group LSM_DLL_EXPORT *
     lsm_access_group_record_copy(lsm_access_group * ag);
 
 /**
- * Returns a pointer to the id.
- * Note: Storage is allocated in the access group and will be deleted when
- * the access group gets freed.  If you need longer lifespan copy the value.
- * @param group     Access group to retrieve id for.
- * @return Null on error (not an access group), else value of group.
+ * lsm_access_group_id_get - Retrieves the ID for the access group.
+ *
+ * Version:
+ *      1.0
+ *
+ * Description:
+ *      Retrieves the ID for the access group.
+ *      Note: Address returned is valid until lsm_access_group gets freed, copy
+ *      return value if you need longer scope. Do not free returned string.
+ *
+ * @group:
+ *      Access group to retrieve ID for.
+ *
+ * Return:
+ *      string. NULL if argument 'group' is NULL or not a valid lsm_access_group
+ *      pointer.
  */
 const char LSM_DLL_EXPORT *lsm_access_group_id_get(lsm_access_group *group);
 
 /**
- * Returns a pointer to the name.
- * Note: Storage is allocated in the access group and will be deleted when
- * the access group gets freed.  If you need longer lifespan copy the value.
- * @param group     Access group to retrieve id for.
- * @return Null on error (not an access group), else value of name.
+ * lsm_access_group_name_get - Retrieves the name for the access group.
+ *
+ * Version:
+ *      1.0
+ *
+ * Description:
+ *      Retrieves the name for the access group.
+ *      Note: Address returned is valid until lsm_access_group gets freed, copy
+ *      return value if you need longer scope. Do not free returned string.
+ *
+ * @group:
+ *      Access group to retrieve name for.
+ *
+ * Return:
+ *      string. NULL if argument 'group' is NULL or not a valid lsm_access_group
+ *      pointer.
  */
 const char LSM_DLL_EXPORT *lsm_access_group_name_get(lsm_access_group *group);
 
 /**
- * Returns a pointer to the system id.
- * Note: Storage is allocated in the access group and will be deleted when
- * the access group gets freed.  If you need longer lifespan copy the value.
- * @param group     Access group to retrieve id for.
- * @return Null on error (not an access group), else value of system id.
+ * lsm_access_group_system_id_get - Retrieves the system ID of the access group.
+ *
+ * Version:
+ *      1.0
+ *
+ * Description:
+ *      Retrieves the system id for the specified access group.
+ *      Note: Address returned is valid until lsm_access_group gets freed, copy
+ *      return value if you need longer scope. Do not free returned string.
+ *
+ * @group:
+ *      Access group to retrieve system ID for.
+ *
+ * Return:
+ *      string. NULL if argument 'group' is NULL or not a valid lsm_access_group
+ *      pointer.
  */
 const char LSM_DLL_EXPORT *
     lsm_access_group_system_id_get(lsm_access_group *group);
 
 /**
- * Returns a pointer to the initiator list.
- * Note: Storage is allocated in the access group and will be deleted when
- * the access group gets freed.  If you need longer lifespan copy the value.
- * @param group     Access group to retrieve id for.
- * @return Null on error (not an access group), else value of initiator list.
+ * lsm_access_group_initiator_id_get - Retrieves the initiators of access group.
+ *
+ * Version:
+ *      1.0
+ *
+ * Description:
+ *      Retrieves the initiators for the specified access group.
+ *      Note: Address returned is valid until lsm_access_group gets freed, copy
+ *      return value if you need longer scope. Do not free returned
+ *      lsm_string_list.
+ *
+ * @group:
+ *      Access group to retrieve initiators for.
+ *
+ * Return:
+ *      lsm_string_list pointer. NULL if argument 'group' is NULL or not a valid
+ *      lsm_access_group pointer.
  */
 lsm_string_list LSM_DLL_EXPORT *
     lsm_access_group_initiator_id_get(lsm_access_group * group);

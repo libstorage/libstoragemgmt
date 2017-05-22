@@ -1,0 +1,201 @@
+.TH libstoragemgmt.h "0p" "September 2014" "libstoragemgmt.h @VERSION@" "libStorageMgmt"
+.SH NAME
+libstoragemgmt.h - Storage Management Library.
+
+.SH SYNOPSIS
+.B \fB#include <libstoragemgmt/libstoragemgmt.h>\fR
+
+.SH DESCRIPTION
+
+LibStorageMgmt is a vendor neutral library that provides an API and tools for
+managing SAN/NAS/DAS storage. This is a community open source project (LGPL
+2.1+ license), providing, but not limited to, the following features:
+
+    * List storage pools, volumes, access groups, or file systems.
+
+    * Create and delete volumes, access groups, file systems, or NFS exports.
+
+    * Grant and remove access to volumes, access groups, or initiators.
+
+    * Replicate volumes with snapshots, clones, and copies.
+
+    * Create and delete access groups and edit members of a group.
+
+    * List Linux local SCSI/ATA/NVMe disks.
+
+    * Control IDENT/FAULT LED of local disk via SES(SCSI Enclosure Service).
+
+Full documentation can be found at:
+http://libstorage.github.io/libstoragemgmt-doc/
+
+The libstoragemgmt provides two type of functions:
+.TP
+    * Plugin level function.
+
+Plugin functions require libstoragemgmt daemon(lsmd) running and a runtime
+plugin connection created by \fBlsm_connect_password()\fR.
+Please check section \fBCONNECTION\fR for detail.
+
+.TP
+    * Library level functions.
+
+Library level functions are functions require no daemon or plugin connection.
+Functions regarding local disk are all library level function.
+Please check section \fBLOCAL DISK\fR for detail.
+
+All the functions mentioned in this manpage have their own manpage for detail
+information.
+
+.SH USAGE
+To use libstoragemgmt in your project:
+
+.TP
+Add these lines to \fBconfigure.ac\fR
+
+.nf
+PKG_CHECK_MODULES(
+    [LSM], [libstoragemgmt >= 1.3.0],,
+    AC_MSG_ERROR([libstoragemgmt 1.3.0 or newer not found.]))
+.fi
+
+.TP
+And similar lines below into your `Makefile.am` file:
+
+.nf
+foo_CFLAGS = $(LSM_CFLAGS)
+foo_LDADD = $(LSM_LIBS)
+.fi
+
+
+.SH EXAMPLE
+
+.nf
+#include <stdio.h>
+#include <libstoragemgmt/libstoragemgmt.h>
+
+void error(char *msg, int rc, lsm_error *e)
+{
+    if( rc ) {
+        printf("%s: error: %d\n", msg, rc);
+
+        if( e && lsm_error_message_get(e) ) {
+            printf("Msg: %s\n", lsm_error_message_get(e));
+            lsm_error_free(e);
+        }
+    }
+}
+
+void list_pools(lsm_connect *c)
+{
+    lsm_pool **pools = NULL;
+    int rc = 0;
+    uint32_t count = 0;
+
+    rc = lsm_pool_list(c, NULL, NULL, &pools, &count, LSM_FLAG_RSVD);
+    if( LSM_ERR_OK == rc ) {
+        uint32_t i;
+        for( i = 0; i < count; ++i) {
+            printf("pool name: %s freespace: %"PRIu64"\n",
+                lsm_pool_name_get(pools[i]),
+                lsm_pool_free_space_get(pools[i]));
+        }
+
+        lsm_pool_record_array_free(pools, count);
+    } else {
+        error("Volume list", rc, lsm_error_last_get(c));
+    }
+}
+
+int main()
+{
+    lsm_connect *c = NULL;
+    lsm_error *e = NULL;
+    int rc = 0;
+
+    const char *uri = "sim://";
+
+    rc = lsm_connect_password(uri, NULL, &c, 30000, &e, LSM_FLAG_RSVD);
+
+    if( LSM_ERR_OK == rc ) {
+        printf("We connected...\n");
+
+        list_pools(c);
+
+        rc = lsm_connect_close(c, LSM_FLAG_RSVD);
+        if( LSM_ERR_OK != rc ) {
+            error("Close", rc, lsm_error_last_get(c));
+        } else {
+            printf("We closed\n");
+        }
+    } else {
+        error("Connect", rc, e);
+    }
+
+    return rc;
+}
+.fi
+
+.SH CONNECTION
+
+Explain daemon, plugin, and URI here.
+
+.SH SYSTEM
+TODO(Gris Ge): Example terminology here.
+
+Functions:
+.TP
+\fBlsm_system_list()\fR
+Query all systems.
+
+.TP
+\fBlsm_system_record_copy()\fR
+
+.TP
+\fBlsm_system_record_free()\fR
+
+.TP
+\fBlsm_system_record_array_free()\fR
+
+.TP
+\fBlsm_system_id_get()\fR
+
+.TP
+\fBlsm_system_name_get()\fR
+
+.TP
+\fBlsm_system_read_cache_pct_get()\fR
+
+.TP
+\fBlsm_system_status_get()\fR
+
+.TP
+\fBlsm_system_fw_version_get()\fR
+
+.TP
+\fBlsm_system_mode_get()\fR
+
+
+.SH POOL
+TODO
+
+.SH VOLUME
+TODO
+
+.SH DISK
+TODO
+
+.SH LOCAL DISK
+TODO
+
+.SH ERROR HANDLING
+TODO(Gris Ge): Put a simple example on lsm_error string and error number here.
+
+.SH BUGS
+Please report bugs to
+\fI<libstoragemgmt-devel@lists.fedorahosted.org>\fR
+Or
+\fIhttps://github.com/libstorage/libstoragemgmt/issues\fR
+.SH AUTHOR
+Tony Asleson \fI<tasleson@redhat.com>\fR
+.br
+Gris Ge \fI<fge@redhat.com>\fR

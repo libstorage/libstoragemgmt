@@ -632,6 +632,10 @@ int lsm_job_status_pool_get(lsm_connect * c,
     return rc;
 }
 
+/* TODO(Gris Ge): Should raise INVALID_ARGUMENT error when specified job does
+ *                not a volume return job. The same issue also applies to
+ *                lsm_job_status_pool_get() and etc.
+ */
 int lsm_job_status_volume_get(lsm_connect * c, const char *job,
                               lsm_job_status * status,
                               uint8_t * percentComplete, lsm_volume ** vol,

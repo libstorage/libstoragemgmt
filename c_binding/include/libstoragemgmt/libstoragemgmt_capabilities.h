@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2016 Red Hat, Inc.
+ * Copyright (C) 2011-2017 Red Hat, Inc.
  * (C) Copyright 2015-2016 Hewlett Packard Enterprise Development LP
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -28,16 +28,18 @@
 extern "C" {
 #endif
 
-/** @file libstoragemgmt_capabilities.h*/
+/* Note: Domain is 0..255 */
 
-/*Note: Domain is 0..255 */
-/** \enum lsm_capability_value_type Possible values for supported feature*/
+
+/* TODO(Gris Ge): kernel-doc script does not support in struct/enum
+ *                documentation for typedef.
+ */
+
 typedef enum {
     LSM_CAP_UNSUPPORTED = 0,             /**< Feature is not supported */
     LSM_CAP_SUPPORTED = 1                /**< Feature is supported */
 } lsm_capability_value_type;
 
-/** \enum lsm_capability_value_type Capabilities supported by array */
 typedef enum {
     /** List volumes */
     LSM_CAP_VOLUMES = 20,
@@ -229,28 +231,78 @@ typedef enum {
 } lsm_capability_type;
 
 /**
- * Free the memory used by the storage capabilities data structure
- * @param cap   Valid storage capability data structure.
- * @return Error code as enumerated by \ref lsm_error_number.
- * @retval LSM_ERR_OK on success.
+ * lsm_capability_record_free - Free the lsm_storage_capabilities memory.
+ *
+ * Version:
+ *      1.0
+ *
+ * Description:
+ *      Frees the memory resources for a lsm_storage_capabilities.
+ *
+ * @cap:
+ *      Pointer of lsm_storage_capabilities to release.
+ *
+ * Return:
+ *      Error code as enumerated by 'lsm_error_number':
+ *          * LSM_ERR_OK
+ *              On success or not found.
+ *          * LSM_ERR_INVALID_ARGUMENT
+ *              When any argument is NULL or not a valid
+ *              lsm_storage_capabilities pointer.
  */
 int LSM_DLL_EXPORT lsm_capability_record_free(lsm_storage_capabilities *cap);
 
 /**
- * Return the capability for the specified feature.
- * @param cap   Valid pointer to capability data structure
- * @param t     Which capability you are interested in
- * @return Value of supported enumerated type.
+ * lsm_capability_get - Retrieves the support status of specified capability.
+ *
+ * Version:
+ *      1.0
+ *
+ * Description:
+ *      Retrieves the support status of specified capability.
+ *
+ * @cap:
+ *      Pointer of lsm_storage_capabilities to release.
+ *
+ * @t:
+ *      lsm_capability_type. Capability to query. Check the document of
+ *      desired function for detail.
+ *
+ * Return:
+ *      lsm_capability_value_type. Possible values are:
+ *          * LSM_CAP_SUPPORTED
+ *              Capability is supported.
+ *          * LSM_CAP_UNSUPPORTED
+ *              Capability is unsupported or invalid lsm_storage_capabilities
+ *              pointer or invalid lsm_capability_type.
  */
 lsm_capability_value_type LSM_DLL_EXPORT
     lsm_capability_get(lsm_storage_capabilities * cap,
                        lsm_capability_type t);
 
 /**
- * Boolean version of capability support
- * @param cap
- * @param t
- * @return Non-zero if supported, 0 if not supported
+ * lsm_capability_supported - Check whether specified capability is supported.
+ *
+ * Version:
+ *      1.0
+ *
+ * Description:
+ *      Retrieves the support status of specified capability.
+ *
+ * @cap:
+ *      Pointer of lsm_storage_capabilities to release.
+ *
+ * @t:
+ *      lsm_capability_type. Capability to query. Check the document of
+ *      desired function for detail.
+ *
+ * Return:
+ *      int. Possible values are:
+ *          * Non-zero
+ *              Capability is supported.
+ *          * 0
+ *              Capability is unsupported or invalid lsm_storage_capabilities
+ *              pointer or invalid lsm_capability_type.
  */
 int LSM_DLL_EXPORT lsm_capability_supported(lsm_storage_capabilities *cap,
                                             lsm_capability_type t);
