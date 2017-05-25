@@ -71,3 +71,4 @@ if [ "CHK$with_mem_leak_test" == "CHKyes" ];then
     lsm_test_check_memory_leak
 fi
 lsm_test_cleanup
+
