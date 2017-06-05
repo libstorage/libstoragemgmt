@@ -401,7 +401,7 @@ class Arcconf(IPlugin):
     @_handle_errors
     def job_status(self, job_id, flags=0):
         return (JobStatus.COMPLETE, 100, None)
-        #raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported yet")
+       
 
     @_handle_errors
     def job_free(self, job_id, flags=Client.FLAG_RSVD):
@@ -440,20 +440,7 @@ class Arcconf(IPlugin):
             cap.set(Capabilities.POOL_MEMBER_INFO)
             cap.set(Capabilities.VOLUME_RAID_INFO)
             cap.set(Capabilities.VOLUMES)
-            cap.set(Capabilities.VOLUME_LED)
-            cap.set(Capabilities.VOLUME_RAID_CREATE)
             cap.set(Capabilities.VOLUME_DELETE)
-            cap.set(Capabilities.VOLUME_ENABLE)
-            cap.set(Capabilities.VOLUME_CACHE_INFO)
-            cap.set(Capabilities.VOLUME_PHYSICAL_DISK_CACHE_UPDATE)
-            cap.set(Capabilities.VOLUME_PHYSICAL_DISK_CACHE_UPDATE_SYSTEM_LEVEL)
-            cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_WRITE_BACK)
-            cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_AUTO)
-            cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_WRITE_THROUGH)
-            cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_WB_IMPACT_OTHER)
-            cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_IMPACT_READ)
-            cap.set(Capabilities.VOLUME_READ_CACHE_POLICY_UPDATE)
-            cap.set(Capabilities.VOLUME_READ_CACHE_POLICY_UPDATE_IMPACT_WRITE)
 
         return cap
 
@@ -913,26 +900,6 @@ class Arcconf(IPlugin):
             raise LsmError(
                 ErrorNumber.NOT_FOUND_VOLUME,
                 "Volume not found")
-
-        return None
-
-    def volume_enable(self, volume, flags=Client.FLAG_RSVD):
-        return None
-
-    @_handle_errors
-    def volume_ident_led_on(self, volume, flags=Client.FLAG_RSVD):
-        return None
-
-    @_handle_errors
-    def volume_ident_led_off(self, volume, flags=Client.FLAG_RSVD):
-        return None
-
-    @_handle_errors
-    def batteries(self, search_key=None, search_value=None,
-                  flags=Client.FLAG_RSVD):
-        return None
-
-    def _cal_of_lsm_vol(self, lsm_vol):
         return None
 
     @_handle_errors
@@ -945,19 +912,4 @@ class Arcconf(IPlugin):
         pool = self.pools(search_key='id', search_value=volume.pool_id)[0]
         disk_ids = self.pool_member_info(pool)[2]
         return len(set(disk_ids) & set(ssd_disk_ids)) != 0
-
-    @_handle_errors
-    def volume_physical_disk_cache_update(self, volume, pdc,
-                                          flags=Client.FLAG_RSVD):
-        return None
-
-    @_handle_errors
-    def volume_write_cache_policy_update(self, volume, wcp,
-                                         flags=Client.FLAG_RSVD):
-        return None
-
-    @_handle_errors
-    def volume_read_cache_policy_update(self, volume, rcp,
-                                        flags=Client.FLAG_RSVD):
-        return None
 
