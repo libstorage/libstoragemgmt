@@ -2304,14 +2304,17 @@ class SimArray(object):
         return job_id
 
     @_handle_errors
-    def fs_child_dependency(self, fs_id, files, flags=0):
+    def fs_child_dependency(self, fs_id, files, flags=0, _internal_use=False):
         sim_fs_id = SimArray._sim_fs_id_of(fs_id)
-        self.bs_obj.trans_begin()
+        if _internal_use is False:
+            self.bs_obj.trans_begin()
         if self.bs_obj.clone_dst_sim_fs_ids_of_src(sim_fs_id) == [] and \
            self.bs_obj.sim_fs_snaps(sim_fs_id) == []:
-            self.bs_obj.trans_rollback()
+            if _internal_use is False:
+                self.bs_obj.trans_rollback()
             return False
-        self.bs_obj.trans_rollback()
+        if _internal_use is False:
+            self.bs_obj.trans_rollback()
         return True
 
     @_handle_errors
@@ -2321,7 +2324,7 @@ class SimArray(object):
         all snapshot of this source file system.
         """
         self.bs_obj.trans_begin()
-        if self.fs_child_dependency(fs_id, files) is False:
+        if self.fs_child_dependency(fs_id, files, _internal_use=True) is False:
             raise LsmError(
                 ErrorNumber.NO_STATE_CHANGE,
                 "No snapshot or fs clone target found for this file system")
@@ -2330,7 +2333,7 @@ class SimArray(object):
         self.bs_obj.sim_fs_src_clone_break(src_sim_fs_id)
         self.bs_obj.sim_fs_snap_del_by_fs(src_sim_fs_id)
         job_id = self._job_create()
-        self.bs_obj.trans_begin()
+        self.bs_obj.trans_commit()
         return job_id
 
     @staticmethod
