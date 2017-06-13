@@ -235,9 +235,9 @@ TEMPFILE := $(shell mktemp)
 
 $(API_MAN_PAGES): $(HEADER_FILES)
 	cat $(HEADER_FILES) | \
-	    perl doc-preclean.pl > $(TEMPFILE)
-	perl kernel-doc -man $(TEMPFILE) | \
-	    perl split-man.pl api_man
+	    perl $(top_srcdir)/doc/doc-preclean.pl > $(TEMPFILE)
+	perl $(top_srcdir)/doc/kernel-doc -man $(TEMPFILE) | \
+	    perl $(top_srcdir)/doc/split-man.pl api_man
 	-rm -f $(TEMPFILE)
 
 CLEANFILES=$(API_MAN_PAGES)
