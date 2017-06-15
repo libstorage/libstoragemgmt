@@ -1402,6 +1402,9 @@ class CmdLine(object):
         # Get snapshot
         fs = _get_item(self.c.fs(), args.fs, "File System")
         ss = _get_item(self.c.fs_snapshots(fs), args.snap, "Snapshot")
+        files = self.args.file
+        if len(files) == 0:
+            files = None
 
         flag_all_files = True
 
@@ -1416,7 +1419,7 @@ class CmdLine(object):
             self._wait_for_it(
                 'fs-snap-restore',
                 self.c.fs_snapshot_restore(
-                    fs, ss, self.args.file, self.args.fileas, flag_all_files),
+                    fs, ss, files, self.args.fileas, flag_all_files),
                 None)
 
     # Deletes a volume
