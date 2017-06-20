@@ -112,7 +112,6 @@ BuildRequires:  python3-six
 BuildRequires:  python3-devel
 %endif
 BuildRequires:  python-six
-BuildRequires:  python-argparse
 BuildRequires:  python-devel
 
 %description

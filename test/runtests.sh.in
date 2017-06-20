@@ -71,3 +71,67 @@ if [ "CHK$with_mem_leak_test" == "CHKyes" ];then
     lsm_test_check_memory_leak
 fi
 lsm_test_cleanup
+
+if [ "CHK@WITH_PYTHON3@" == "CHKno" ];then
+    echo -n "Python3 and Python2 interaction test skipped, "
+    echo    "'--with-python3' configure option reuqired"
+    exit;
+fi
+
+# Third round: python3 client communicate with python2 plugins
+py2_base_dir="/tmp/lsm_py2_base_dir_$RANDOM"
+py3_base_dir="/tmp/lsm_py3_base_dir_$RANDOM"
+py2_build_dir="/tmp/lsm_py2_build_dir_$RANDOM"
+py3_build_dir="/tmp/lsm_py3_build_dir_$RANDOM"
+mkdir $py2_build_dir
+cd $py2_build_dir || exit 1
+${src_dir}/configure || exit 1
+make -j5 || exit 1
+mkdir $py3_build_dir
+cd $py3_build_dir || exit 1
+${src_dir}/configure --with-python3 || exit 1
+make -j5 || exit 1
+
+lsm_test_base_install \
+    "$py2_base_dir" "$py2_build_dir" "$src_dir" \
+    ${LSM_TEST_INSTALL_PY_PLUGINS_ONLY}
+
+lsm_test_lsmd_start $LSM_TEST_WITHOUT_MEM_CHECK
+
+PY2_LSM_UDS_PATH=$LSM_UDS_PATH
+PY2_LSM_TEST_DST_DIR=$LSM_TEST_DST_DIR
+
+lsm_test_base_install \
+    "$py3_base_dir" "$py3_build_dir" "$src_dir" \
+    ${LSM_TEST_INSTALL_C_PLUGINS_ONLY}
+
+export LSM_UDS_PATH=$PY2_LSM_UDS_PATH
+lsm_test_cmd_test_run $LSM_TEST_SIM_URI
+lsm_test_plugin_test_run $LSM_TEST_SIM_URI
+export LSM_TEST_DST_DIR=$PY2_LSM_TEST_DST_DIR
+lsm_test_cleanup
+rm $py3_base_dir -rf
+
+# Forth round: python2 client communicate with python3 plugins
+py2_base_dir="/tmp/lsm_py2_base_dir_$RANDOM"
+py3_base_dir="/tmp/lsm_py3_base_dir_$RANDOM"
+
+lsm_test_base_install \
+    "$py3_base_dir" "$py3_build_dir" "$src_dir" \
+    ${LSM_TEST_INSTALL_PY_PLUGINS_ONLY}
+
+lsm_test_lsmd_start $LSM_TEST_WITHOUT_MEM_CHECK
+
+PY3_LSM_UDS_PATH=$LSM_UDS_PATH
+PY3_LSM_TEST_DST_DIR=$LSM_TEST_DST_DIR
+
+lsm_test_base_install \
+    "$py2_base_dir" "$py2_build_dir" "$src_dir" \
+    ${LSM_TEST_INSTALL_C_PLUGINS_ONLY}
+
+export LSM_UDS_PATH=$PY3_LSM_UDS_PATH
+lsm_test_cmd_test_run $LSM_TEST_SIM_URI
+lsm_test_plugin_test_run $LSM_TEST_SIM_URI
+export LSM_TEST_DST_DIR=$PY3_LSM_TEST_DST_DIR
+lsm_test_cleanup
+rm $py2_base_dir -rf

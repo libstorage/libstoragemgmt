@@ -193,6 +193,7 @@ AC_ARG_WITH([python3],
     [])
 
 if test "x$with_python3" = "xyes"; then
+    AC_SUBST(WITH_PYTHON3, yes)
     AC_PATH_PROGS(PYTHON, python3, [Python3 is required])
     AM_PATH_PYTHON([3], [], AC_MSG_ERROR([Python interpreter 3 required]))
     AC_PYTHON_MODULE([lmiwbem], [], [python3])
@@ -225,6 +226,7 @@ please install any of them.])
     fi
     AC_SUBST(PY_VERSION, 3)
 else
+    AC_SUBST(WITH_PYTHON3, no)
     AC_PATH_PROGS(PYTHON, python2.7 python2.6 python, [Python is required])
     AC_MSG_CHECKING([Check for Python major version])
     PYTHON_MAJOR_VERSION=`$PYTHON -c "import sys; print(sys.version_info[[0]])"`
