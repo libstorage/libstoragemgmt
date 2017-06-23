@@ -129,7 +129,7 @@ class PoolRAID(object):
 
 
 class BackStore(object):
-    VERSION = "4.0"
+    VERSION = "4.1"
     VERSION_SIGNATURE = 'LSM_SIMULATOR_DATA_%s_%s' % (VERSION, md5(VERSION))
     JOB_DEFAULT_DURATION = 1
     JOB_DATA_TYPE_VOL = 1
@@ -232,7 +232,7 @@ class BackStore(object):
             rpm INTEGER,
             link_type INTEGER,
             FOREIGN KEY(owner_pool_id)
-            REFERENCES pools(id) ON DELETE CASCADE );
+            REFERENCES pools(id) ON DELETE SET DEFAULT);
             """
         # owner_pool_id:
         #   Indicate this disk is used to assemble a pool
@@ -1068,10 +1068,11 @@ class BackStore(object):
 
     def _data_update(self, table, data_id, column_name, value):
         if value is None:
-            value = ''
-
-        sql_cmd = "UPDATE %s SET %s='%s' WHERE id='%s'" % \
-            (table, column_name, value, data_id)
+            sql_cmd = "UPDATE %s SET %s=NULL WHERE id='%s'" % \
+                (table, column_name, data_id)
+        else:
+            sql_cmd = "UPDATE %s SET %s='%s' WHERE id='%s'" % \
+                (table, column_name, value, data_id)
 
         self._sql_exec(sql_cmd)
 
@@ -1316,6 +1317,11 @@ class BackStore(object):
                         ErrorNumber.PLUGIN_BUG,
                         "Requested volume is a replication source")
         if sim_vol['is_hw_raid_vol']:
+            # Reset disk roles
+            for d in self._data_find('disks_view',
+                                     'owner_pool_id="%s"' % sim_vol["pool_id"]):
+                self._data_update("disks", d["id"], 'role', None)
+
             # Delete the parent pool instead if found a HW RAID volume.
             self._data_delete("pools", 'id="%s"' % sim_vol['pool_id'])
         else:
