@@ -940,7 +940,7 @@ def test_local_disk_led():
     expected_rcs = [0, 4]
     flag_disk_found = False
 
-    if (os.geteuid() != 0):
+    if os.geteuid() != 0:
         print("Skipping test of 'local-disk-ident-led-on' and etc commands "
               "when not run by root user")
         return
