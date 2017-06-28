@@ -893,7 +893,7 @@ def test_volume_wcp_update():
             call([cmd, '-t' + sep, 'volume-write-cache-policy-update',
                  '--vol', vol_id, '--policy', policy])[1])
         if len(cache_info) != 1 or len(cache_info[0]) < 2:
-            print("Invalid return from volume-write-cache-policy-upate, "
+            print("Invalid return from volume-write-cache-policy-update, "
                   "should has 6 or more items")
             exit(10)
         if cache_info[0][1] != result:
