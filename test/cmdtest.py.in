@@ -374,10 +374,10 @@ def system_read_cache_pct_update_test(cap):
     if cap['SYS_READ_CACHE_PCT_UPDATE']:
         out = call([cmd, '-t' + sep, '--type', 'SYSTEMS'])[1]
         system_list = parse(out)
-        for system in system_list:
+        for specific_system in system_list:
             call([
                 cmd, '-t' + sep, 'system-read-cache-pct-update', '--system',
-                system[0], 50])[1]
+                specific_system[0], 50])
 
     return
 
