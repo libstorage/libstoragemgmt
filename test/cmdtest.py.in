@@ -710,12 +710,12 @@ def search_test(system_id):
         'fs': [sys_id_filter, pool_id_filter, fs_id_filter],
         'exports': [fs_id_filter, nfs_export_id_filter],
     }
-    for resouce_type in list(supported.keys()):
+    for resource_type in list(supported.keys()):
         for cur_filter in all_filters:
-            if cur_filter in supported[resouce_type]:
-                call([cmd, 'list', '--type', resouce_type, cur_filter])
+            if cur_filter in supported[resource_type]:
+                call([cmd, 'list', '--type', resource_type, cur_filter])
             else:
-                call([cmd, 'list', '--type', resouce_type, cur_filter], 2)
+                call([cmd, 'list', '--type', resource_type, cur_filter], 2)
 
     un_export_fs(nfs_export_id)
     delete_fs(fs_id)
