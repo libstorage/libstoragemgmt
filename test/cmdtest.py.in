@@ -825,7 +825,7 @@ def volume_ident_led_on_test(cap):
         for volume in volume_list:
             call([
                 cmd, '-t' + sep, 'volume-ident-led-on', '--volume',
-                volume[0]])[1]
+                volume[0]])
 
     return
 
@@ -837,7 +837,7 @@ def volume_ident_led_off_test(cap):
         for volume in volume_list:
             call([
                 cmd, '-t' + sep, 'volume-ident-led-off', '--volume',
-                volume[0]])[1]
+                volume[0]])
 
     return
 
