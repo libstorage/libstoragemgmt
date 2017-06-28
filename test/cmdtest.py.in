@@ -294,11 +294,11 @@ def clone_fs(fs_id):
     return r[0][ID]
 
 
-def fs_child_dependancy(fs_id):
+def fs_child_dependency(fs_id):
     call([cmd, 'fs-dependants', '--fs', fs_id])
 
 
-def fs_child_dependancy_rm(fs_id):
+def fs_child_dependency_rm(fs_id):
     call([cmd, 'fs-dependants-rm', '--fs', fs_id])
 
 
@@ -582,13 +582,13 @@ def test_fs_creation(cap):
 
     if cap['FS_CHILD_DEPENDENCY']:
         fs_id = fs_create(pool_id)
-        fs_child_dependancy(fs_id)
+        fs_child_dependency(fs_id)
         delete_fs(fs_id)
 
     if cap['FS_CHILD_DEPENDENCY_RM']:
         fs_id = fs_create(pool_id)
         clone_fs(fs_id)
-        fs_child_dependancy_rm(fs_id)
+        fs_child_dependency_rm(fs_id)
         delete_fs(fs_id)
 
 
