@@ -93,7 +93,7 @@ def call(command, expected_rc=0, expected_rcs=None):
     Args:
         command:        An array that has the command to execute
         expected_rc:    The expected exit code of the command
-        expected_rcs:   Msg for the expected error code string
+        expected_rcs:   The expected list of possible error codes
     """
 
     if code_coverage:
@@ -113,9 +113,8 @@ def call(command, expected_rc=0, expected_rcs=None):
     process = Popen(actual_command, stdout=PIPE, stderr=PIPE)
     out = process.communicate()
 
-    if process.returncode != expected_rc and \
-       expected_rcs is not None and \
-       process.returncode not in expected_rcs:
+    if (expected_rc is None and process.returncode != expected_rc) or \
+       (expected_rcs is not None and process.returncode not in expected_rcs):
         if expected_rcs is None:
             raise RuntimeError("exit code != %s, actual= %s, stdout= %s, "
                                "stderr= %s" % (expected_rc, process.returncode,
