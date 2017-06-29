@@ -290,6 +290,18 @@ AC_ARG_WITH([hpsa],
 AM_CONDITIONAL([WITH_HPSA], [test "x$with_hpsa" = "xyes"])
 
 dnl ==========================================================================
+dnl Add option '--without-hpsa' to exclude hpsa plugin.
+dnl ==========================================================================
+
+AC_ARG_WITH([arcconf],
+    [AS_HELP_STRING([--without-arcconf],
+        [Do not build the Microsemi Arcconf plugin])],
+    [],
+    [with_arcconf=yes])
+
+AM_CONDITIONAL([WITH_ARCCONF], [test "x$with_arcconf" = "xyes"])
+
+dnl ==========================================================================
 dnl Check for libconfig as it is needed for lsmd daemon
 dnl ==========================================================================
 PKG_CHECK_MODULES(
@@ -359,6 +371,7 @@ AC_CONFIG_FILES([
     plugin/simc/Makefile
     plugin/megaraid/Makefile
     plugin/hpsa/Makefile
+    plugin/arcconf/Makefile
     daemon/Makefile
     config/Makefile
     doc/Makefile
@@ -395,6 +408,8 @@ AC_CONFIG_FILES([plugin/megaraid/megaraid_lsmplugin],
     [chmod +x plugin/megaraid/megaraid_lsmplugin])
 AC_CONFIG_FILES([plugin/hpsa/hpsa_lsmplugin],
     [chmod +x plugin/hpsa/hpsa_lsmplugin])
+AC_CONFIG_FILES([plugin/arcconf/arcconf_lsmplugin],
+    [chmod +x plugin/arcconf/arcconf_lsmplugin])
 AC_CONFIG_FILES([plugin/ontap/ontap_lsmplugin],
     [chmod +x plugin/ontap/ontap_lsmplugin])
 AC_CONFIG_FILES([plugin/nstor/nstor_lsmplugin],
