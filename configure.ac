@@ -385,9 +385,9 @@ AC_CONFIG_FILES([
     doc/man/nstor_lsmplugin.1
     doc/doxygen.conf
     doc/man/lsmd.conf.5
+    doc/man/arcconf_lsmplugin.1
     doc/man/megaraid_lsmplugin.1
     doc/man/hpsa_lsmplugin.1
-    doc/man/arcconf_lsmplugin.1
     tools/Makefile
     tools/udev/Makefile
     tools/lsmcli/Makefile
