@@ -1,0 +1,56 @@
+.TH arcconf_lsmplugin "1" "June 2017" "arcconf_lsmplugin @VERSION@" "libStorageMgmt"
+.SH NAME
+arcconf_lsmplugin -- LibstorageMgmt Arcconf plugin
+
+.SH DESCRIPTION
+LibstorageMgmt arcconf plugin allows user to manage all Microsemi storage 
+controllers via vendor tool \fBarcconf\fR[1].
+The 'arcconf_lsmplugin' executable file is for libStorageMgmt
+daemon to execute when client user specifies arcconf plugin in the URI.
+
+.SH URI
+To use this plugin, users should set their URI to this format:
+.nf
+
+    \fBarcconf://\fR
+        or
+    \fBarcconf://?arcconf=<path_of_arcconf>\fR
+
+.fi
+
+.TP
+\fBURI parameters\fR
+These URI parameters are supported by this plugin:
+
+.RS 7
+.TP
+\fBarcconf\fR
+The 'arcconf' URI parameter is used to specified the path of arcconf tool.
+By default, this plugin will try these paths used by arcconf rpm:
+\fB/usr/sbin/arcconf\fR or \fB/usr/bin/arcconf\fR.
+
+.SH ROOT PRIVILEGE
+This plugin requires both \fBlsmd\fR daemon and API client running as root
+user. Please check manpage \fIlsmd.conf (5)\fR for detail.
+
+.SH SUPPORTED HARDWARES
+Please refer to Microsemi website for hardware support status of arcconf.
+Detailed support status can be queried via:
+
+ * \fBlsm.Client.capabilities()\fR  (Python API)
+ * \fBlsm_capabilities()\fR         (C API)
+ * \fBlsmcli capabilities\fR        (lsmcli command line).
+
+.SH FIREWALL RULES
+This plugin only execute \fBarcconf\fR on localhost. No network connection
+required.
+
+.SH SEE ALSO
+\fIlsmcli\fR(1), \fIlsmd\fR(1), [1]http://downloads.linux.hpe.com/SDR/project/spp/
+
+.SH BUGS
+Please report bugs to
+\fI<libstoragemgmt-devel@lists.fedorahosted.org>\fR
+
+.SH AUTHOR
+Gris Ge \fI<fge@redhat.com>\fR
