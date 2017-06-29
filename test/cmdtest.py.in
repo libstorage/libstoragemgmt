@@ -32,6 +32,7 @@ import hashlib
 import os
 from subprocess import Popen, PIPE
 from optparse import OptionParser
+import copy
 
 (OP_SYS, OP_POOL, OP_VOL, OP_FS, OP_EXPORTS, OP_SS) = \
     ('SYSTEMS', 'POOLS', 'VOLUMES', 'FS', 'EXPORTS',
@@ -87,13 +88,14 @@ def rs(l):
         random.choice(string.ascii_uppercase) for _ in range(l)))
 
 
-def call(command, expected_rc=0, expected_rcs=None):
+def call(command, expected_rc=0, expected_rcs=None, env=None):
     """
     Call an executable and return a tuple of exitcode, stdout, stderr
     Args:
         command:        An array that has the command to execute
         expected_rc:    The expected exit code of the command
         expected_rcs:   The expected list of possible error codes
+        env:            The environment to use
     """
 
     if code_coverage:
@@ -110,7 +112,10 @@ def call(command, expected_rc=0, expected_rcs=None):
         expected_rcs_str = " ".join(str(x) for x in expected_rcs)
         print(actual_command, 'EXPECTED Exit codes [%s]' % expected_rcs)
 
-    process = Popen(actual_command, stdout=PIPE, stderr=PIPE)
+    if not env:
+        env = os.environ
+
+    process = Popen(actual_command, stdout=PIPE, stderr=PIPE, env=env)
     out = process.communicate()
 
     if (expected_rc is None and process.returncode != expected_rc) or \
@@ -916,6 +921,21 @@ def test_volume_rcp_update():
     volume_delete(vol_id)
 
 
+def verify_no_daemon_needed(cmd, expected_rcs):
+
+    env = copy.deepcopy(os.environ)
+    env['LSM_UDS_PATH'] = '/tmp/%s' + rs(12)
+
+    ec, out, err = call(cmd, env=env, expected_rcs=expected_rcs)
+
+    if ec == 4:
+        if 'DAEMON_NOT_RUNNING' in err:
+            print("Daemon does not need to run for local disk commands!")
+            exit(10)
+
+    return ec, out, err
+
+
 def test_local_disk_led():
     expected_rcs = [0, 4]
     flag_disk_found = False
@@ -926,7 +946,7 @@ def test_local_disk_led():
         return
 
     disk_paths = list(x[0] for x in
-                      parse(call([cmd, '-t' + sep, 'local-disk-list'])[1]))
+                      parse(verify_no_daemon_needed([cmd, '-t' + sep, 'local-disk-list'], [0])[1]))
 
     if len(disk_paths) == 0:
         print("Skipping test of 'local-disk-ident-led-on' and etc commands "
@@ -937,14 +957,14 @@ def test_local_disk_led():
     for disk_path in disk_paths[:4]:
         if os.path.exists(disk_path):
             flag_disk_found = True
-            call([cmd, 'local-disk-ident-led-on', '--path', disk_path],
-                 expected_rcs=expected_rcs)
-            call([cmd, 'local-disk-ident-led-off', '--path', disk_path],
-                 expected_rcs=expected_rcs)
-            call([cmd, 'local-disk-fault-led-on', '--path', disk_path],
-                 expected_rcs=expected_rcs)
-            call([cmd, 'local-disk-fault-led-off', '--path', disk_path],
-                 expected_rcs=expected_rcs)
+            verify_no_daemon_needed([cmd, 'local-disk-ident-led-on', '--path',
+                                     disk_path], expected_rcs=expected_rcs)
+            verify_no_daemon_needed([cmd, 'local-disk-ident-led-off', '--path',
+                                     disk_path], expected_rcs=expected_rcs)
+            verify_no_daemon_needed([cmd, 'local-disk-fault-led-on', '--path',
+                                     disk_path], expected_rcs=expected_rcs)
+            verify_no_daemon_needed([cmd, 'local-disk-fault-led-off', '--path',
+                                     disk_path], expected_rcs=expected_rcs)
 
     if flag_disk_found is False:
         print("Skipping test of 'local-disk-ident-led-on' and etc command "
