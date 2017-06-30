@@ -294,11 +294,11 @@ def clone_fs(fs_id):
     return r[0][ID]
 
 
-def fs_child_dependancy(fs_id):
+def fs_child_dependency(fs_id):
     call([cmd, 'fs-dependants', '--fs', fs_id])
 
 
-def fs_child_dependancy_rm(fs_id):
+def fs_child_dependency_rm(fs_id):
     call([cmd, 'fs-dependants-rm', '--fs', fs_id])
 
 
@@ -374,10 +374,10 @@ def system_read_cache_pct_update_test(cap):
     if cap['SYS_READ_CACHE_PCT_UPDATE']:
         out = call([cmd, '-t' + sep, '--type', 'SYSTEMS'])[1]
         system_list = parse(out)
-        for system in system_list:
+        for specific_system in system_list:
             call([
                 cmd, '-t' + sep, 'system-read-cache-pct-update', '--system',
-                system[0], 50])[1]
+                specific_system[0], 50])
 
     return
 
@@ -582,13 +582,13 @@ def test_fs_creation(cap):
 
     if cap['FS_CHILD_DEPENDENCY']:
         fs_id = fs_create(pool_id)
-        fs_child_dependancy(fs_id)
+        fs_child_dependency(fs_id)
         delete_fs(fs_id)
 
     if cap['FS_CHILD_DEPENDENCY_RM']:
         fs_id = fs_create(pool_id)
         clone_fs(fs_id)
-        fs_child_dependancy_rm(fs_id)
+        fs_child_dependency_rm(fs_id)
         delete_fs(fs_id)
 
 
@@ -710,12 +710,12 @@ def search_test(system_id):
         'fs': [sys_id_filter, pool_id_filter, fs_id_filter],
         'exports': [fs_id_filter, nfs_export_id_filter],
     }
-    for resouce_type in list(supported.keys()):
+    for resource_type in list(supported.keys()):
         for cur_filter in all_filters:
-            if cur_filter in supported[resouce_type]:
-                call([cmd, 'list', '--type', resouce_type, cur_filter])
+            if cur_filter in supported[resource_type]:
+                call([cmd, 'list', '--type', resource_type, cur_filter])
             else:
-                call([cmd, 'list', '--type', resouce_type, cur_filter], 2)
+                call([cmd, 'list', '--type', resource_type, cur_filter], 2)
 
     un_export_fs(nfs_export_id)
     delete_fs(fs_id)
@@ -825,7 +825,7 @@ def volume_ident_led_on_test(cap):
         for volume in volume_list:
             call([
                 cmd, '-t' + sep, 'volume-ident-led-on', '--volume',
-                volume[0]])[1]
+                volume[0]])
 
     return
 
@@ -837,7 +837,7 @@ def volume_ident_led_off_test(cap):
         for volume in volume_list:
             call([
                 cmd, '-t' + sep, 'volume-ident-led-off', '--volume',
-                volume[0]])[1]
+                volume[0]])
 
     return
 
@@ -893,7 +893,7 @@ def test_volume_wcp_update():
             call([cmd, '-t' + sep, 'volume-write-cache-policy-update',
                  '--vol', vol_id, '--policy', policy])[1])
         if len(cache_info) != 1 or len(cache_info[0]) < 2:
-            print("Invalid return from volume-write-cache-policy-upate, "
+            print("Invalid return from volume-write-cache-policy-update, "
                   "should has 6 or more items")
             exit(10)
         if cache_info[0][1] != result:
@@ -940,7 +940,7 @@ def test_local_disk_led():
     expected_rcs = [0, 4]
     flag_disk_found = False
 
-    if (os.geteuid() != 0):
+    if os.geteuid() != 0:
         print("Skipping test of 'local-disk-ident-led-on' and etc commands "
               "when not run by root user")
         return
