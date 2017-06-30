@@ -1419,6 +1419,8 @@ int _sg_ata_passthrough_health_status(char *err_msg, int fd,
 
     if (!rc)
         *health_status = _ata_smart_status_interpret_output_regs(ata_output_regs);
+    else
+        rc = LSM_ERR_NO_SUPPORT;
 
     return rc;
 }
