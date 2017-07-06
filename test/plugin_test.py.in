@@ -1538,6 +1538,21 @@ class TestPlugin(unittest.TestCase):
                 if supported(cap, [Cap.VOLUME_DELETE]):
                     self._volume_delete(new_vol)
 
+                    updated_disks = []
+                    # Check whether disks are been set back to free mode.
+                    for disk in self.c.disks():
+                        if disk.id in list(d.id for d in free_disks):
+                            updated_disks.append(disk)
+                            self.assertTrue(
+                                disk.status & lsm.Disk.STATUS_FREE,
+                                "Disk %s is not restored to free state "
+                                "after volume_delete() on a raid volume"
+                                % disk.id)
+
+                    self.assertTrue(len(updated_disks) == 2,
+                                    "Disk missing after volume_delete() on "
+                                    "a raid volume")
+
             else:
                 self._skip_current_test(
                     "Skip test: not support of VOLUME_RAID_CREATE")
