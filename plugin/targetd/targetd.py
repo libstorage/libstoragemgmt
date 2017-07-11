@@ -23,6 +23,7 @@ import re
 import base64
 import six
 import ssl
+import os
 
 from lsm import (Pool, Volume, System, Capabilities,
                  IStorageAreaNetwork, INfs, FileSystem, FsSnapshot, NfsExport,
@@ -124,6 +125,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         self.headers = None
         self.no_ssl_verify = False
         self._flag_ag_support = True
+        self.cert_file = ""
         self.system = System("targetd", "targetd storage appliance",
                              System.STATUS_UNKNOWN, '')
 
@@ -153,6 +155,16 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         if "no_ssl_verify" in self.uri["parameters"] \
                 and self.uri["parameters"]["no_ssl_verify"] == 'yes':
             self.no_ssl_verify = True
+
+        if "cert_file" in self.uri["parameters"]:
+            # Check for file existence and throw error now if not present
+            self.cert_file = self.uri["parameters"]["cert_file"]
+
+            if not (os.path.exists(self.cert_file) and
+                    os.path.isfile(self.cert_file)):
+                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                               'cert_file URI parameter does not exist %s' %
+                               self.cert_file)
 
         try:
             self._jsonrequest('access_group_list', default_error_handler=False)
@@ -976,11 +988,12 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         try:
             request = Request(self.url, data.encode('utf-8'), self.headers)
 
-            if self.no_ssl_verify:
+            if self.cert_file:
+                ctx = ssl.create_default_context(cafile=self.cert_file)
+            elif self.no_ssl_verify:
                 ctx = ssl.create_default_context()
                 ctx.check_hostname = False
                 ctx.verify_mode = ssl.CERT_NONE
-
             else:
                 ctx = None
 
