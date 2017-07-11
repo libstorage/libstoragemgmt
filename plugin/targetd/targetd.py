@@ -22,6 +22,7 @@ import socket
 import re
 import base64
 import six
+import ssl
 
 from lsm import (Pool, Volume, System, Capabilities,
                  IStorageAreaNetwork, INfs, FileSystem, FsSnapshot, NfsExport,
@@ -121,6 +122,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         self.scheme = None
         self.url = None
         self.headers = None
+        self.no_ssl_verify = False
         self._flag_ag_support = True
         self.system = System("targetd", "targetd storage appliance",
                              System.STATUS_UNKNOWN, '')
@@ -147,6 +149,10 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         auth = base64.b64encode(user_name_pass.encode('utf-8')).decode('utf-8')
         self.headers = {'Content-Type': 'application/json',
                         'Authorization': 'Basic %s' % (auth,)}
+
+        if "no_ssl_verify" in self.uri["parameters"] \
+                and self.uri["parameters"]["no_ssl_verify"] == 'yes':
+            self.no_ssl_verify = True
 
         try:
             self._jsonrequest('access_group_list', default_error_handler=False)
@@ -969,7 +975,17 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
 
         try:
             request = Request(self.url, data.encode('utf-8'), self.headers)
-            response_obj = urlopen(request)
+
+            if self.no_ssl_verify:
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+
+            else:
+                ctx = None
+
+            response_obj = urlopen(request, context=ctx)
+
         except socket.error:
             raise LsmError(ErrorNumber.NETWORK_ERROR,
                            "Unable to connect to targetd, uri right?")
