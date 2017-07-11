@@ -1,4 +1,4 @@
-.TH targetd_lsmplugin "1" "June 2015" "targetd_lsmplugin @VERSION@" "libStorageMgmt"
+.TH targetd_lsmplugin "1" "July 2017" "targetd_lsmplugin @VERSION@" "libStorageMgmt"
 .SH NAME
 targetd_lsmplugin -- libStorageMgmt targetd plugin
 
@@ -17,6 +17,12 @@ To use this plugin, users should set their URI to this format:
 
     # HTTPS connection
     \fBtargetd+ssl://<username>@<targetd_server>:<port number>\fR
+
+    # HTTPS connection with certificate file
+    \fBtargetd+ssl://<username>@<targetd_server>:<port number>?cert_file=<full path and filename>\fR
+
+    # HTTPS connection disabling all certificate checks (not recommended for production)
+    \fBtargetd+ssl://<username>@<targetd_server>:<port number>?no_ssl_verify=yes\fR
 
 .fi
 
@@ -40,7 +46,23 @@ port of 18700 is used if none is supplied on the URI.
 
 .TP
 \fBURI parameters\fR
-No additional URI parameters are supported by this plugin.
+These URI parameters are supported by this plugin:
+
+.RS 7
+
+.TP
+\fBcert_file=<certificate file>\fR
+This URI parameter is for SSL connections only.  For those users that
+utilize a self signed certificate you can pass the path and file to the
+certificate that should be used to verify the server certificate.
+
+.TP
+\fBno_ssl_verify=yes\fR
+This URI parameter is for SSL connections only. With this URI parameter,
+the targetd plugin will not validate servers SSL certificate.
+It's often used for self-signed CA environment, but it's strongly suggested to
+remove this URI parameter and install self-signed CA properly, or use cert_file
+parameter instead.
 
 .SH SUPPORTED SOFTWARE
 Linux targetd 0.7.1 or later version.
