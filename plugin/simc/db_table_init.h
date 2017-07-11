@@ -68,7 +68,7 @@ static const char *_TABLE_INIT =
     "    rpm INTEGER,\n"
     "    link_type INTEGER,\n"
     "    FOREIGN KEY(owner_pool_id)\n"
-    "    REFERENCES pools(id) ON DELETE CASCADE );\n"
+    "    REFERENCES pools(id) ON DELETE SET DEFAULT);\n"
     "CREATE TABLE " _DB_TABLE_VOLS " (\n"
     "    id INTEGER PRIMARY KEY,\n"
     "    vpd83 TEXT NOT NULL,\n"

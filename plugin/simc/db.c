@@ -826,16 +826,23 @@ int _db_data_update(char *err_msg, sqlite3 *db, const char *table_name,
                     uint64_t data_id, const char *key, const char *value)
 {
     char sql_cmd[_BUFF_SIZE];
-
-    if (snprintf(sql_cmd, _BUFF_SIZE, "UPDATE %s SET %s='%s' "
-                 "WHERE id='%" PRIu64 "';", table_name, key, value,
-                 data_id) == _BUFF_SIZE) {
-        _lsm_err_msg_set(err_msg, "BUG: _db_data_add(): Buff too small");
-        return LSM_ERR_PLUGIN_BUG;
+    if (value == NULL) {
+        if (snprintf(sql_cmd, _BUFF_SIZE, "UPDATE %s SET %s=NULL "
+                     "WHERE id='%" PRIu64 "';", table_name, key,
+                     data_id) == _BUFF_SIZE)
+            goto buff_too_small;
+    } else {
+        if (snprintf(sql_cmd, _BUFF_SIZE, "UPDATE %s SET %s='%s' "
+                     "WHERE id='%" PRIu64 "';", table_name, key, value,
+                     data_id) == _BUFF_SIZE)
+            goto buff_too_small;
     }
 
     return _db_sql_exec(err_msg, db, sql_cmd,
                         NULL /* no need to parse output */);
+buff_too_small:
+    _lsm_err_msg_set(err_msg, "BUG: _db_data_add(): Buff too small");
+    return LSM_ERR_PLUGIN_BUG;
 }
 
 int _db_data_delete(char *err_msg, sqlite3 *db, const char *table_name,

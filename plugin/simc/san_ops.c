@@ -298,6 +298,10 @@ int volume_delete(lsm_plugin_ptr c, lsm_volume *volume, char **job,
     uint64_t sim_vol_id = 0;
     char sql_cmd[_BUFF_SIZE];
     struct _vector *vec = NULL;
+    struct _vector *vec_disks = NULL;
+    lsm_hash *sim_disk = NULL;
+    uint64_t sim_disk_id = 0;
+    uint32_t i = 0;
 
      _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
@@ -336,14 +340,29 @@ int volume_delete(lsm_plugin_ptr c, lsm_volume *volume, char **job,
         goto out;
     }
 
-    if (strcmp(lsm_hash_string_get(sim_vol, "is_hw_raid_vol"), "1") == 0)
+    if (strcmp(lsm_hash_string_get(sim_vol, "is_hw_raid_vol"), "1") == 0) {
+        /* Reset disks' role */
+        _snprintf_buff(err_msg, rc, out, sql_cmd,
+                       "SELECT * FROM " _DB_TABLE_DISKS_VIEW
+                       " WHERE owner_pool_id=%"
+                       PRIu64 ";",
+                       _db_lsm_id_to_sim_id(lsm_volume_pool_id_get(volume)));
+        _good(_db_sql_exec(err_msg, db, sql_cmd, &vec_disks), rc, out);
+        _vector_for_each(vec_disks, i, sim_disk) {
+            sim_disk_id = _db_lsm_id_to_sim_id
+                (lsm_hash_string_get(sim_disk, "lsm_disk_id"));
+            _good(_db_data_update(err_msg, db, _DB_TABLE_DISKS, sim_disk_id,
+                                  "role", NULL), rc, out);
+        }
+
         _good(_db_data_delete
               (err_msg, db, _DB_TABLE_POOLS,
                _db_lsm_id_to_sim_id(lsm_volume_pool_id_get(volume))),
               rc, out);
-    else
+    } else {
         _good(_db_data_delete(err_msg, db, _DB_TABLE_VOLS, sim_vol_id),
               rc, out);
+    }
 
     _good(_job_create(err_msg, db, LSM_DATA_TYPE_NONE, _DB_SIM_ID_NONE, job),
           rc, out);
@@ -351,6 +370,7 @@ int volume_delete(lsm_plugin_ptr c, lsm_volume *volume, char **job,
 
  out:
     _db_sql_exec_vec_free(vec);
+    _db_sql_exec_vec_free(vec_disks);
     if (sim_vol != NULL)
         lsm_hash_free(sim_vol);
 

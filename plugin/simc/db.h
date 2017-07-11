@@ -25,7 +25,7 @@
 #include "vector.h"
 #include "utils.h"
 
-#define _DB_VERSION                                         "4.0"
+#define _DB_VERSION                                         "4.1"
 
 #define _SYS_ID                                             "sim-01"
 
