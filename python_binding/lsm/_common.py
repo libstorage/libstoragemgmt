@@ -35,6 +35,8 @@ except ImportError:
 import functools
 import traceback
 import six
+import ssl
+import socket
 
 
 def default_property(name, allow_set=True, doc=None):
@@ -77,9 +79,25 @@ def common_urllib2_error_handler(exp):
         error("Unexpected network error:\n" + traceback.format_exc())
         raise LsmError(ErrorNumber.NETWORK_ERROR, desc)
 
+    try:
+        if ssl.CertificateError:
+            if isinstance(exp, ssl.CertificateError):
+                raise LsmError(ErrorNumber.NETWORK_ERROR,
+                               "SSL Certificate error (%s)" % str(exp))
+    except AttributeError:
+        pass
+
+    # Python3 is the gift that keeps on giving!
+    if six.PY3 and isinstance(exp, ConnectionError):
+        raise LsmError(ErrorNumber.NETWORK_CONNREFUSED, str(exp))
+
+    if isinstance(exp, socket.error):
+        raise LsmError(ErrorNumber.NETWORK_CONNREFUSED, str(exp))
+
     stack_trace = traceback.format_exc()
     error("Unexpected exception:\n" + stack_trace)
-    raise LsmError(ErrorNumber.PLUGIN_BUG, "Unexpected exception",
+    raise LsmError(ErrorNumber.PLUGIN_BUG,
+                   "Unexpected exception (TYPE= %s)" % str(type(exp)),
                    stack_trace)
 
 
