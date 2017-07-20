@@ -102,8 +102,13 @@ struct t10_sbc_vpd_bdc {
 
 struct t10_proto_port_mode_page_0_hdr {
     uint8_t we_dont_care_0[2];
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t protocol_id     : 4;
     uint8_t we_dont_care_1  : 4;
+#else
+    uint8_t we_dont_care_1  : 4;
+    uint8_t protocol_id     : 4;
+#endif
 };
 /* ^ SPC-5 rev12 Table 457 - Page_0 mode page format Protocol Specific Port mode
  *   page
@@ -111,8 +116,13 @@ struct t10_proto_port_mode_page_0_hdr {
 
 struct t10_proto_port_mode_sub_page_hdr {
     uint8_t we_dont_care_0[5];
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t protocol_id     : 4;
     uint8_t we_dont_care_1  : 4;
+#else
+    uint8_t we_dont_care_1  : 4;
+    uint8_t protocol_id     : 4;
+#endif
 };
 /* ^ SPC-5 rev12 Table 458 - Sub_page mode page format Protocol Specific Port
  *   mode page

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Red Hat, Inc.
+ * Copyright (C) 2016-2017 Red Hat, Inc.
  * (C) Copyright (C) 2017 Hewlett Packard Enterprise Development LP
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -138,15 +138,25 @@ const char * const _T10_SPC_SENSE_KEY_STR[] = {
  * SPC-5 rev 7 Table 589 - Device Identification VPD page
  */
 struct _sg_t10_vpd83_header {
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t dev_type : 5;
     uint8_t qualifier : 3;
+#else
+    uint8_t qualifier : 3;
+    uint8_t dev_type : 5;
+#endif
     uint8_t page_code;
     uint16_t page_len_be;
 };
 
 struct _sg_t10_vpd80_header {
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t dev_type : 5;
     uint8_t qualifier : 3;
+#else
+    uint8_t qualifier : 3;
+    uint8_t dev_type : 5;
+#endif
     uint8_t page_code;
     uint16_t page_len_be;
 };
@@ -160,19 +170,34 @@ struct _sg_t10_vpd00 {
 
 
 struct _sg_t10_sense_header {
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t response_code : 7;
     uint8_t we_dont_care_0 : 1;
+#else
+    uint8_t we_dont_care_0 : 1;
+    uint8_t response_code : 7;
+#endif
 };
 
 /*
  * SPC-5 rev 7 Table 47 - Fixed format sense data
  */
 struct _sg_t10_sense_fixed {
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t response_code : 7;
     uint8_t valid : 1;
+#else
+    uint8_t valid : 1;
+    uint8_t response_code : 7;
+#endif
     uint8_t obsolete;
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t sense_key : 4;
     uint8_t we_dont_care_0 : 4;
+#else
+    uint8_t we_dont_care_0 : 4;
+    uint8_t sense_key : 4;
+#endif
     uint8_t we_dont_care_1[4];
     uint8_t len;
     uint8_t we_dont_care_2[4];
@@ -186,11 +211,21 @@ struct _sg_t10_sense_fixed {
  * with embedded ATA registers
  */
 struct _sg_t10_sense_ata_fixed {
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t response_code : 7;
     uint8_t valid : 1;
+#else
+    uint8_t valid : 1;
+    uint8_t response_code : 7;
+#endif
     uint8_t obsolete;
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t sense_key : 4;
     uint8_t we_dont_care_0 : 4;
+#else
+    uint8_t we_dont_care_0 : 4;
+    uint8_t sense_key : 4;
+#endif
     uint8_t error;
     uint8_t status;
     uint8_t device;
@@ -208,10 +243,17 @@ struct _sg_t10_sense_ata_fixed {
  * SPC-5 rev 7 Table 28 - Descriptor format sense data
  */
 struct _sg_t10_sense_dp {
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t response_code : 7;
     uint8_t reserved : 1;
     uint8_t sense_key : 4;
     uint8_t we_dont_care_0 : 4;
+#else
+    uint8_t reserved : 1;
+    uint8_t response_code : 7;
+    uint8_t we_dont_care_0 : 4;
+    uint8_t sense_key : 4;
+#endif
     uint8_t asc;        /* ADDITIONAL SENSE CODE */
     uint8_t ascq;       /* ADDITIONAL SENSE CODE QUALIFIER */
     uint8_t we_dont_care_1[3];
@@ -227,8 +269,13 @@ struct _sg_t10_ata_status_return_dp_hdr {
 struct _sg_t10_ata_status_return_dp {
     uint8_t descriptor_code;
     uint8_t additional_desc_len;
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t rsvd : 7;
     uint8_t extend : 1;
+#else
+    uint8_t extend : 1;
+    uint8_t rsvd : 7;
+#endif
     uint8_t error;
     uint8_t reserved_count;
     uint8_t count;
@@ -255,8 +302,13 @@ struct _sg_t10_log_para_hdr {
 
 struct _sg_t10_info_excep_mode_page_0_hdr {
     uint8_t dont_care[3];
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t reserved : 4;
     uint8_t mrie : 4;
+#else
+    uint8_t mrie : 4;
+    uint8_t reserved : 4;
+#endif
 };
 
 struct _sg_t10_info_excep_general_log_hdr {

@@ -88,13 +88,25 @@ struct _ses_add_st {
  * SES-3 rev 11a Table 31 - Additional Element Status descriptor
  */
 struct _ses_add_st_dp {
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t protocol_id         : 4;
     uint8_t eip                 : 1;
     uint8_t reserved            : 2;
     uint8_t invalid             : 1;
+#else
+    uint8_t invalid             : 1;
+    uint8_t reserved            : 2;
+    uint8_t eip                 : 1;
+    uint8_t protocol_id         : 4;
+#endif
     uint8_t len;
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t eiioe               : 1;
     uint8_t reserved_2          : 7;
+#else
+    uint8_t reserved_2          : 7;
+    uint8_t eiioe               : 1;
+#endif
     uint8_t element_index;
     uint8_t data_begin;
 };
@@ -106,9 +118,15 @@ struct _ses_add_st_dp {
  */
 struct _ses_add_st_dp_sas {
     uint8_t phy_count;
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t not_all_phy         : 1;
     uint8_t reserved            : 5;
     uint8_t dp_type             : 2;
+#else
+    uint8_t dp_type             : 2;
+    uint8_t reserved            : 5;
+    uint8_t not_all_phy         : 1;
+#endif
     uint8_t reserved_2;
     uint8_t dev_slot_num;
     uint8_t phy_list;
@@ -118,9 +136,15 @@ struct _ses_add_st_dp_sas {
  * SES-3 rev 11a Table 41 - Phy descriptor
  */
 struct _ses_add_st_sas_phy {
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t reserved            : 4;
     uint8_t dev_type            : 3;
     uint8_t reserved_2          : 1;
+#else
+    uint8_t reserved_2          : 1;
+    uint8_t dev_type            : 3;
+    uint8_t reserved            : 4;
+#endif
     uint8_t reserved_3;
     uint8_t we_dont_care_2;
     uint8_t we_dont_care_3;
@@ -134,15 +158,30 @@ struct _ses_add_st_sas_phy {
  * SES-3 rev 11a Table 80 - Array Device Slot control element
  */
 struct _ses_ar_dev_ctrl {
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t we_dont_care_0      : 7;
     uint8_t select              : 1;
-    uint8_t we_dont_care_1      : 8;
+    uint8_t we_dont_care_1;
     uint8_t we_dont_care_2      : 1;
     uint8_t rqst_ident          : 1;
     uint8_t we_dont_care_3      : 6;
     uint8_t we_dont_care_4      : 5;
     uint8_t rqst_fault          : 1;
     uint8_t we_dont_care_5      : 2;
+#else
+    uint8_t select              : 1;
+    uint8_t we_dont_care_0      : 7;
+
+    uint8_t we_dont_care_1;
+
+    uint8_t we_dont_care_3      : 6;
+    uint8_t rqst_ident          : 1;
+    uint8_t we_dont_care_2      : 1;
+
+    uint8_t we_dont_care_5      : 2;
+    uint8_t rqst_fault          : 1;
+    uint8_t we_dont_care_4      : 5;
+#endif
 };
 
 struct _ses_ctrl_diag_hdr {
