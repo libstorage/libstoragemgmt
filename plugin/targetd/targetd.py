@@ -22,6 +22,8 @@ import socket
 import re
 import base64
 import six
+import ssl
+import os
 
 from lsm import (Pool, Volume, System, Capabilities,
                  IStorageAreaNetwork, INfs, FileSystem, FsSnapshot, NfsExport,
@@ -44,6 +46,17 @@ if six.PY3:
 DEFAULT_USER = "admin"
 DEFAULT_PORT = 18700
 PATH = "/targetrpc"
+
+
+SSL_DEFAULT_CONTEXT = False
+
+# Check to see if we have the ability to call ssl.create_default_context
+try:
+    if ssl.create_default_context:
+        SSL_DEFAULT_CONTEXT = True
+except AttributeError:
+    pass
+
 
 # Current sector size in liblvm
 _LVM_SECTOR_SIZE = 512
@@ -121,7 +134,9 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         self.scheme = None
         self.url = None
         self.headers = None
+        self.no_ssl_verify = False
         self._flag_ag_support = True
+        self.cert_file = ""
         self.system = System("targetd", "targetd storage appliance",
                              System.STATUS_UNKNOWN, '')
 
@@ -148,6 +163,28 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         self.headers = {'Content-Type': 'application/json',
                         'Authorization': 'Basic %s' % (auth,)}
 
+        if "no_ssl_verify" in self.uri["parameters"] \
+                and self.uri["parameters"]["no_ssl_verify"] == 'yes':
+            self.no_ssl_verify = True
+
+        if "cert_file" in self.uri["parameters"]:
+            # Check for file existence and throw error now if not present
+            self.cert_file = self.uri["parameters"]["cert_file"]
+
+            if not os.path.isfile(self.cert_file):
+                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                               'cert_file URI parameter does not exist %s' %
+                               self.cert_file)
+
+            if self.no_ssl_verify and self.cert_file:
+                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                               "Specifying 'no_ssl_verify' and 'cert_file' "
+                               "is unsupported combination.")
+
+        if not SSL_DEFAULT_CONTEXT and (self.no_ssl_verify or self.cert_file):
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           "Cannot specify no_ssl_verify or cert_file for this"
+                           "version of python!")
         try:
             self._jsonrequest('access_group_list', default_error_handler=False)
         except TargetdError as te:
@@ -967,12 +1004,22 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                                params=params, jsonrpc="2.0"))
         self.rpc_id += 1
 
-        try:
-            request = Request(self.url, data.encode('utf-8'), self.headers)
+        request = Request(self.url, data.encode('utf-8'), self.headers)
+
+        if SSL_DEFAULT_CONTEXT:
+            if self.cert_file:
+                ctx = ssl.create_default_context(cafile=self.cert_file)
+            elif self.no_ssl_verify:
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+            else:
+                ctx = None
+
+            response_obj = urlopen(request, context=ctx)
+        else:
+            # Does not support context parameter
             response_obj = urlopen(request)
-        except socket.error:
-            raise LsmError(ErrorNumber.NETWORK_ERROR,
-                           "Unable to connect to targetd, uri right?")
 
         response_data = response_obj.read().decode('utf-8')
         response = json.loads(response_data)
