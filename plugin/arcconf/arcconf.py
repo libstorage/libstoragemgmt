@@ -27,7 +27,7 @@ import json
 from lsm import (
     IPlugin, Client, Capabilities, VERSION, LsmError, ErrorNumber, uri_parse,
     System, Pool, size_human_2_size_bytes, search_property, Volume, Disk,
-    LocalDisk, JobStatus)
+    LocalDisk)
 
 from lsm.plugin.arcconf.utils import cmd_exec, ExecError
 
@@ -124,9 +124,9 @@ def _pool_status_of(arcconf_array):
        arcconf_array[0]['Status'] == 'Ready' or \
        arcconf_array[0]['Status'] == 'Online':
         return Pool.STATUS_OK, ''
-    else:
-        # TODO(Raghavendra): Try degrade a RAID or fail a RAID.
-        return Pool.STATUS_OTHER, arcconf_array['Status']
+
+    # TODO(Raghavendra): Try degrade a RAID or fail a RAID.
+    return Pool.STATUS_OTHER, arcconf_array['Status']
 
 
 def _pool_id_of(sys_id, array_name):
@@ -198,8 +198,7 @@ def _lsm_raid_type_to_arcconf(raid_type):
     try:
         if raid_type == "simple_volume":
             return Volume.RAID_TYPE_RAID0
-        else:
-            return _LSM_RAID_TYPE_CONV[raid_type]
+        return _LSM_RAID_TYPE_CONV[raid_type]
     except KeyError:
         raise LsmError(
             ErrorNumber.PLUGIN_BUG,
@@ -374,7 +373,7 @@ class Arcconf(IPlugin):
         return rc_lsm_syss
 
     @staticmethod
-    def _arcconf_array_to_lsm_pool(arcconf_array, ld_name, sys_id, ctrl_num):
+    def _arcconf_array_to_lsm_pool(ld_name, sys_id, ctrl_num):
         pool_id = '%s:%s' % (ctrl_num, ld_name)
         name = 'Array' + str(ld_name)
         elem_type = Pool.ELEMENT_TYPE_VOLUME | Pool.ELEMENT_TYPE_VOLUME_FULL
@@ -406,18 +405,13 @@ class Arcconf(IPlugin):
             cntrl += 1
 
             if 'LogicalDrive' in decoded_json['Controller']:
-                num_lds = len(decoded_json['Controller']['LogicalDrive'])
+                ld_infos = decoded_json['Controller']['LogicalDrive']
+                num_lds = len(ld_infos)
                 for ld in range(num_lds):
-                    ld_name = (decoded_json['Controller']
-                                           ['LogicalDrive']
-                                           [ld]
-                                           ['logicalDriveID'])
+                    ld_name = ld_infos[ld]['logicalDriveID']
                     lsm_pools.append(
-                        Arcconf._arcconf_array_to_lsm_pool(
-                            ld_name,
-                            ld_name,
-                            sys_id,
-                            cntrl_num))
+                        Arcconf._arcconf_array_to_lsm_pool(ld_name, sys_id,
+                                                           cntrl_num))
         return search_property(lsm_pools, search_key, search_value)
 
     @staticmethod
@@ -434,10 +428,9 @@ class Arcconf(IPlugin):
         num_of_blocks = int(arcconf_ld['dataSpace']) * 1024 / int(block_size)
         vol_name = arcconf_ld_name
 
-        if len(vpd83) > 0:
+        if vpd83:
             blk_paths = LocalDisk.vpd83_search(vpd83)
-            if len(blk_paths) > 0:
-                blk_path = blk_paths[0]
+            if blk_paths:
                 vol_name += ": %s" % " ".join(blk_paths)
 
         if int(arcconf_ld['state']) != LOGICAL_DEVICE_OK:
@@ -468,31 +461,20 @@ class Arcconf(IPlugin):
             cnt = int(cntrl + 1)
             cntrl += 1
 
-            try:
-                if 'LogicalDrive' in decoded_json['Controller']:
-                    num_lds = len(decoded_json['Controller']['LogicalDrive'])
-                    for ld in range(num_lds):
-                        ld_num = (decoded_json['Controller']
-                                              ['LogicalDrive']
-                                              [ld]
-                                              ['logicalDriveID'])
-                        ld_name = (decoded_json['Controller']
-                                               ['LogicalDrive']
-                                               [ld]
-                                               ['name'])
-                        pool_id = '%s:%s' % (sys_id, ld_num)
-                        ld_info = \
-                            decoded_json['Controller']['LogicalDrive'][ld]
-                        lsm_vol = \
-                            Arcconf._arcconf_ld_to_lsm_vol(ld_info,
-                                                           pool_id,
-                                                           sys_id,
-                                                           cnt,
-                                                           str(ld_num),
-                                                           ld_name)
-                        lsm_vols.append(lsm_vol)
-            except Exception:
-                pass
+            if 'LogicalDrive' in decoded_json['Controller']:
+                ld_infos = decoded_json['Controller']['LogicalDrive']
+                num_lds = len(ld_infos)
+                for ld in range(num_lds):
+                    ld_info = ld_infos[ld]
+                    ld_num = ld_info['logicalDriveID']
+                    ld_name = ld_info['name']
+                    pool_id = '%s:%s' % (sys_id, ld_num)
+                    lsm_vol = \
+                        Arcconf._arcconf_ld_to_lsm_vol(ld_info, pool_id,
+                                                       sys_id, cnt,
+                                                       str(ld_num),
+                                                       ld_name)
+                    lsm_vols.append(lsm_vol)
 
         return search_property(lsm_vols, search_key, search_value)
 
@@ -534,7 +516,6 @@ class Arcconf(IPlugin):
               flags=Client.FLAG_RSVD):
 
         rc_lsm_disks = []
-        controllerList = []
 
         getconfig_cntrls_info = self._get_detail_info_list()
         sys_id = ''
@@ -552,13 +533,10 @@ class Arcconf(IPlugin):
                     if hd_disks_num > 0:
                         for hd_disk in range(hd_disks_num):
                             arcconf_disk = \
-                                (channel_range['HardDrive']
-                                    [hd_disk])
+                                channel_range['HardDrive'][hd_disk]
                             rc_lsm_disks.append(
-                                    Arcconf._arcconf_disk_to_lsm_disk(
-                                        arcconf_disk,
-                                        sys_id,
-                                        cntrl_num))
+                                Arcconf._arcconf_disk_to_lsm_disk(
+                                    arcconf_disk, sys_id, cntrl_num))
 
         return search_property(rc_lsm_disks, search_key, search_value)
 
@@ -572,8 +550,6 @@ class Arcconf(IPlugin):
         disk_channel = ''
         disk_device = ''
         disk_dict = {'Channel': '0', 'Device': '1'}
-        disk_list_str = ''
-        vol_id = ''
         lsm_vols = []
 
         for disk in disks:
@@ -582,8 +558,8 @@ class Arcconf(IPlugin):
                     ErrorNumber.INVALID_ARGUMENT,
                     "Illegal input disks argument: missing plugin_data "
                     "property")
-            (cur_ctrl_num, disk_channel, disk_device, disk_status) = \
-                disk.plugin_data.split(',')
+            (cur_ctrl_num, disk_channel, disk_device) = \
+                disk.plugin_data.split(',')[:3]
 
             requested_disks = [d.name for d in disks]
             for disk_name in requested_disks:
@@ -623,20 +599,10 @@ class Arcconf(IPlugin):
         # Generate pool_id from system id and array.
         decoded_json = self._get_detail_info_list()[int(ctrl_num) - 1]
 
-        sys_id = ctrl_num
-        cnt = ctrl_num
-        try:
-            latest_ld = len(decoded_json['Controller']['LogicalDrive']) - 1
-            ld_num = \
-                (decoded_json['Controller']
-                    ['LogicalDrive']
-                    [latest_ld]
-                    ['logicalDriveID'])
-            ld_name = \
-                decoded_json['Controller']['LogicalDrive'][latest_ld]['name']
-            pool_id = '%s:%s' % (ctrl_num, ld_num)
-        except Exception:
-            pass
+        latest_ld = len(decoded_json['Controller']['LogicalDrive']) - 1
+        ld_info = decoded_json['Controller']['LogicalDrive'][latest_ld]
+        ld_num = ld_info['logicalDriveID']
+        pool_id = '%s:%s' % (ctrl_num, ld_num)
 
         lsm_vols = self.volumes(search_key='pool_id', search_value=pool_id)
 
@@ -658,15 +624,11 @@ class Arcconf(IPlugin):
                 ErrorNumber.INVALID_ARGUMENT,
                 "Illegal input volume argument: missing plugin_data property")
 
-        (ctrl_num, array_num, ld_num) = volume.plugin_data.split(":")
+        (ctrl_num, array_num) = volume.plugin_data.split(":")[:2]
 
         try:
-            self._arcconf_exec(
-                ['delete',
-                    ctrl_num,
-                    'logicaldrive',
-                    array_num],
-                flag_force=True)
+            self._arcconf_exec(['delete', ctrl_num, 'logicaldrive', array_num],
+                               flag_force=True)
         except ExecError:
             ctrl_info = self._get_detail_info_list()[int(ctrl_num) - 1]
             for ld in range(len(ctrl_info['LogicalDrive'])):
@@ -675,10 +637,8 @@ class Arcconf(IPlugin):
                 # occur. If volume is detected correctly, but deletion of
                 # volume fails due to arcconf delete command failure.
                 if array_num == ld_info[ld]['logicalDriveID']:
-                    raise LsmError(
-                          ErrorNumber.PLUGIN_BUG,
-                          "volume_delete failed unexpectedly")
-            raise LsmError(
-                      ErrorNumber.NOT_FOUND_VOLUME,
-                      "Volume not found")
+                    raise LsmError(ErrorNumber.PLUGIN_BUG,
+                                   "volume_delete failed unexpectedly")
+            raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
+                           "Volume not found")
         return None
