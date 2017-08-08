@@ -527,9 +527,13 @@ int _sg_parse_vpd_80(char *err_msg, uint8_t *vpd_data, uint8_t *serial_num,
     vpd80_header = (struct _sg_t10_vpd80_header*) vpd_data;
 
     if (vpd80_header->page_code != _SG_T10_SPC_VPD_UNIT_SN) {
-        rc = LSM_ERR_LIB_BUG;
-        _lsm_err_msg_set(err_msg, "BUG: Got incorrect VPD page code '%02x', "
-                         "should be 0x80", vpd80_header->page_code);
+        /* Some DELL virtual floppy scsi disk return STANDARD INQUIRY data
+         * on any VPD query with no sense error. Since SCSI SPC-4 or later
+         * does not clarify this action, we treat it as no support
+         */
+        rc = LSM_ERR_NO_SUPPORT;
+        _lsm_err_msg_set(err_msg, "Malformed SCSI data: VPD page code "
+                         "'0x%02x', should be 0x80", vpd80_header->page_code);
         goto out;
     }
 
@@ -585,9 +589,13 @@ int _sg_parse_vpd_83(char *err_msg, uint8_t *vpd_data,
     vpd83_header = (struct _sg_t10_vpd83_header*) vpd_data;
 
     if (vpd83_header->page_code != _SG_T10_SPC_VPD_DI) {
-        rc = LSM_ERR_LIB_BUG;
-        _lsm_err_msg_set(err_msg, "BUG: Got incorrect VPD page code '%02x', "
-                         "should be 0x83", vpd83_header->page_code);
+        /* Some DELL virtual floppy scsi disk return STANDARD INQUIRY data
+         * on any VPD query with no sense error. Since SCSI SPC-4 or later
+         * does not clarify this action, we treat it as no support
+         */
+        rc = LSM_ERR_NO_SUPPORT;
+        _lsm_err_msg_set(err_msg, "Malformed SCSI data: VPD page code "
+                         "'0x%02x', should be 0x83", vpd83_header->page_code);
         goto out;
     }
 
