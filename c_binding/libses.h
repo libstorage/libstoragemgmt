@@ -39,6 +39,7 @@
 struct _ses_dev_slot_status {
     uint8_t common_status;
     uint8_t diff_between_dev_slot_and_array_dev_slot;
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t report              : 1;
     uint8_t ident               : 1;
     uint8_t rmv                 : 1;
@@ -47,6 +48,7 @@ struct _ses_dev_slot_status {
     uint8_t enc_bypass_a        : 1;
     uint8_t do_not_remove       : 1;
     uint8_t app_bypass_a        : 1;
+
     uint8_t dev_bypass_b        : 1;
     uint8_t dev_bypass_a        : 1;
     uint8_t bypass_b            : 1;
@@ -55,6 +57,25 @@ struct _ses_dev_slot_status {
     uint8_t fault_reqstd        : 1;
     uint8_t fault_sensed        : 1;
     uint8_t app_bypass_b        : 1;
+#else
+    uint8_t app_bypass_a        : 1;
+    uint8_t do_not_remove       : 1;
+    uint8_t enc_bypass_a        : 1;
+    uint8_t enc_bypass_b        : 1;
+    uint8_t ready_to_insert     : 1;
+    uint8_t rmv                 : 1;
+    uint8_t ident               : 1;
+    uint8_t report              : 1;
+
+    uint8_t app_bypass_b        : 1;
+    uint8_t fault_sensed        : 1;
+    uint8_t fault_reqstd        : 1;
+    uint8_t dev_off             : 1;
+    uint8_t bypass_a            : 1;
+    uint8_t bypass_b            : 1;
+    uint8_t dev_bypass_a        : 1;
+    uint8_t dev_bypass_b        : 1;
+#endif
 };
 #pragma pack(pop)
 
