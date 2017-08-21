@@ -1103,7 +1103,7 @@ int _fill_ata_regs_fixed(uint8_t *ata_output_regs, uint8_t *sense_data)
     struct _sg_t10_sense_ata_fixed *ata_sense_data = NULL;
 
     assert(ata_output_regs != NULL);
-    assert(ata_sense_data != NULL);
+    assert(sense_data != NULL);
 
     output_registers = (struct _ata_registers_output_28_bit *)
                        ata_output_regs;
