@@ -1,11 +1,11 @@
 lsmconfdir=$(sysconfdir)/lsm
 lsmconf_DATA=lsmd.conf
 
-EXTRA_DIST= lsmd.conf pluginconf.d/sim.conf
+EXTRA_DIST= lsmd.conf pluginconf.d/sim.conf pluginconf.d/nfs.conf
 
 pluginconfdir=$(sysconfdir)/lsm/pluginconf.d
 
-pluginconf_DATA=pluginconf.d/sim.conf
+pluginconf_DATA=pluginconf.d/sim.conf pluginconf.d/nfs.conf
 
 if WITH_MEGARAID
 pluginconf_DATA += pluginconf.d/megaraid.conf

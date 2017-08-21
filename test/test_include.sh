@@ -242,6 +242,13 @@ function lsm_test_base_install
         _good chrpath -d "${LSM_TEST_PY_MODULE_DIR}/lsm/_clib3.so"
     fi
 
+    if [ -e "${build_dir}/plugin/nfs/.libs/nfs_clib.so" ]
+    then
+        _good install -D "${build_dir}/plugin/nfs/.libs/nfs_clib.so" \
+            "${LSM_TEST_PY_MODULE_DIR}/lsm/plugin/nfs/nfs_clib.so"
+        _good chrpath -d "${LSM_TEST_PY_MODULE_DIR}/lsm/plugin/nfs/nfs_clib.so"
+    fi
+
     _good find "${src_dir}/python_binding/lsm/" -maxdepth 1 \
         -type f -name '*.py' \
         -exec install -D "{}" "$LSM_TEST_PY_MODULE_DIR/lsm/" \\\;

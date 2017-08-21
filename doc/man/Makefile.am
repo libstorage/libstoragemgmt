@@ -4,6 +4,7 @@ notrans_dist_man1_MANS = lsmcli.1 lsmd.1 \
 	smispy_lsmplugin.1 \
 	ontap_lsmplugin.1 \
 	targetd_lsmplugin.1 \
+	nfs_lsmplugin.1 \
 	nstor_lsmplugin.1
 
 notrans_dist_man3_MANS = libstoragemgmt.h.3
