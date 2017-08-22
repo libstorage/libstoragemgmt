@@ -34,7 +34,7 @@ from lsm.plugin.nfs.nfs_clib import (get_fsid, list_mounts)
 class NFSPlugin(INfs, IStorageAreaNetwork):
     """Main class"""
     _EXPORTS = '/etc/exports.d/libstoragemgmt.exports'
-    _SYSID = 'local'
+    _SYSID = 'nfs-localhost'
     _MOUNTS = '/proc/self/mounts'
     _AUTH_LIST = ["sys", "krb5", "krb5i", "krb5p"]
 
@@ -457,7 +457,7 @@ class NFSPlugin(INfs, IStorageAreaNetwork):
     def systems(self, flags=0):
         syslist = []
         hostname = os.uname()[1]
-        syslist.append(System(NFSPlugin._SYSID, hostname,
+        syslist.append(System(NFSPlugin._SYSID, "NFS on %s" % hostname,
                               System.STATUS_UNKNOWN, ''))
         return syslist
 
