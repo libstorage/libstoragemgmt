@@ -770,7 +770,7 @@ class AccessGroup(IData):
             if valid:
                 rc.append(init_id)
             else:
-                raise LsmError(LsmError.ErrorNumber.INVALID_ARGUMENT,
+                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                                "Invalid initiator ID %s" % i)
         return rc
 
