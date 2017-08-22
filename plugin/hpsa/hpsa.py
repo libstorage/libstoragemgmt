@@ -331,18 +331,15 @@ class SmartArray(IPlugin):
         self._sacli_bin = None
         self._tmo_ms = 30000
 
-    def _find_sacli(self):
+    @staticmethod
+    def find_sacli():
         """
-        Try _DEFAULT_MDADM_BIN_PATHS
+        Try _DEFAULT_BIN_PATHS, return None if not found.
         """
         for cur_path in SmartArray._DEFAULT_BIN_PATHS:
             if os.path.lexists(cur_path):
-                self._sacli_bin = cur_path
-
-        if not self._sacli_bin:
-            raise LsmError(
-                ErrorNumber.INVALID_ARGUMENT,
-                "SmartArray sacli is not installed correctly")
+                return cur_path
+        return None
 
     @_handle_errors
     def plugin_register(self, uri, password, timeout, flags=Client.FLAG_RSVD):
@@ -353,7 +350,11 @@ class SmartArray(IPlugin):
         uri_parsed = uri_parse(uri)
         self._sacli_bin = uri_parsed.get('parameters', {}).get('hpssacli')
         if not self._sacli_bin:
-            self._find_sacli()
+            self._sacli_bin = SmartArray.find_sacli()
+            if not self._sacli_bin:
+                raise LsmError(
+                    ErrorNumber.INVALID_ARGUMENT,
+                    "SmartArray sacli is not installed correctly")
 
         self._sacli_exec(['version'], flag_convert=False)
 

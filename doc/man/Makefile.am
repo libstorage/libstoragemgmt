@@ -21,4 +21,8 @@ if WITH_ARCCONF
 notrans_dist_man1_MANS += arcconf_lsmplugin.1
 endif
 
+if WITH_LOCAL
+notrans_dist_man1_MANS += local_lsmplugin.1
+endif
+
 notrans_dist_man5_MANS = lsmd.conf.5.in

@@ -215,18 +215,15 @@ class Arcconf(IPlugin):
         self._arcconf_bin = None
         self._tmo_ms = 30000
 
-    def _find_arcconf(self):
+    @staticmethod
+    def find_arcconf():
         """
-        Try _DEFAULT_MDADM_BIN_PATHS
+        Try _DEFAULT_BIN_PATHS, return None if not found.
         """
         for cur_path in Arcconf._DEFAULT_BIN_PATHS:
             if os.path.lexists(cur_path):
-                self._arcconf_bin = cur_path
-
-        if not self._arcconf_bin:
-            raise LsmError(
-                ErrorNumber.INVALID_ARGUMENT,
-                "arcconf is not installed correctly")
+                return cur_path
+        return None
 
     @_handle_errors
     def plugin_register(self, uri, password, timeout, flags=Client.FLAG_RSVD):
@@ -237,7 +234,12 @@ class Arcconf(IPlugin):
         uri_parsed = uri_parse(uri)
         self._arcconf_bin = uri_parsed.get('parameters', {}).get('arcconf')
         if not self._arcconf_bin:
-            self._find_arcconf()
+            self._arcconf_bin = Arcconf.find_arcconf()
+            if not self._arcconf_bin:
+                raise LsmError(
+                    ErrorNumber.INVALID_ARGUMENT,
+                    "arcconf is not installed correctly")
+
         self._arcconf_exec(['list'])
 
     @_handle_errors
