@@ -1,4 +1,4 @@
-SUBDIRS=simc megaraid hpsa arcconf nfs
+SUBDIRS=simc megaraid hpsa arcconf nfs local
 
 plugindir = $(pythondir)/lsm/plugin
 

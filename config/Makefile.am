@@ -16,3 +16,8 @@ if WITH_HPSA
 pluginconf_DATA += pluginconf.d/hpsa.conf
 EXTRA_DIST += pluginconf.d/hpsa.conf
 endif
+
+if WITH_LOCAL
+pluginconf_DATA += pluginconf.d/local.conf
+EXTRA_DIST += pluginconf.d/local.conf
+endif

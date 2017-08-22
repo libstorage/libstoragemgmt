@@ -1,0 +1,91 @@
+.TH local_lsmplugin "1" "July 2017" "local_lsmplugin @VERSION@" "libStorageMgmt"
+.SH NAME
+local_lsmplugin -- LibstorageMgmt Local Pseudo plugin
+
+.SH DESCRIPTION
+LibstorageMgmt local plugin allows user to manage locally storage system
+without caring which real plugin(s) should be used.
+The 'local_lsmplugin' executable file is for libStorageMgmt
+daemon to execute when client user specifies local plugin in the URI.
+
+Currently, local plugin wraps these plugins:
+
+    * MegaRAID plugin -- `megariad_lsmplugin(1)`.
+    * SmartArray plugin -- `hpsa_lsmplugin(1)`.
+    * Adaptec plugin -- `arcconf_lsmplugin(1)`.
+    * NFS plugin -- `nfs_lsmplugin(1)`.
+
+Specific binary tool may be required, please check error message or manpage
+of above plugins.
+
+To load NFS plugin, kernel module 'nfsd' should be loaded.
+
+.SH URI
+To use this plugin, users should set their URI to this format:
+.nf
+
+    \fBlocal://\fR
+        or
+    \fBlocal://?parameter_name=<value>\fR
+
+.fi
+
+
+.TP
+\fBURI parameters\fR
+These URI parameters are supported by this plugin:
+
+.RS 7
+.TP
+\fBignore_init_error=true\fR
+
+The 'ignore_init_error' URI parameter is used to ignore errors when
+initializing real plugins. But if no valid system are found, an error will
+still be raised.
+
+By default, all errors will be raised.
+
+.TP
+\fBonly=<plugin_name>\fR
+
+The 'only' URI parameter is used to force local plugin only load specific
+real plugin.
+
+By default, all plugins will be loaded if supported hardware has been found.
+
+.TP
+\fB<plugin_name>_<uri_parameter_name>=<value>\fR
+
+This URI parameter format is used to pass URI parameters to real plugin.
+For example, to pass 'storcli=/usr/bin/storcli' URI parameter to MegaRAID
+plugin, you would use 'megaraid_storcli=/usr/bin/storcli'.
+
+.SH ROOT PRIVILEGE
+This plugin requires both \fBlsmd\fR daemon and API client running as root
+user. Please check manpage \fIlsmd.conf (5)\fR for details.
+
+.SH SUPPORTED HARDWARES
+Please refer to these manpages for hardware support status.
+    * MegaRAID plugin -- `megariad_lsmplugin(1)`.
+    * SmartArray plugin -- `hpsa_lsmplugin(1)`.
+    * Adaptec plugin -- `arcconf_lsmplugin(1)`.
+    * NFS plugin -- `nfs_lsmplugin(1)`.
+
+Detailed support status can be queried via:
+
+ * \fBlsm.Client.capabilities()\fR  (Python API)
+ * \fBlsm_capabilities()\fR         (C API)
+ * \fBlsmcli capabilities\fR        (lsmcli command line).
+
+.SH FIREWALL RULES
+This plugin only executes tools on localhost. No network connection required.
+
+.SH SEE ALSO
+\fIlsmcli\fR(1), \fIlsmd\fR(1)
+
+.SH BUGS
+Please report bugs to
+\fI<libstoragemgmt-devel@lists.fedorahosted.org>\fR
+
+.SH AUTHOR
+Gris Ge \fI<fge@redhat.com>\fR

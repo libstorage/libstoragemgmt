@@ -304,6 +304,18 @@ AC_ARG_WITH([arcconf],
 AM_CONDITIONAL([WITH_ARCCONF], [test "x$with_arcconf" = "xyes"])
 
 dnl ==========================================================================
+dnl Add option '--without-local' to exclude local plugin.
+dnl ==========================================================================
+
+AC_ARG_WITH([local],
+    [AS_HELP_STRING([--without-local],
+        [Do not build the Local plugin])],
+    [],
+    [with_local=yes])
+
+AM_CONDITIONAL([WITH_LOCAL], [test "x$with_local" = "xyes"])
+
+dnl ==========================================================================
 dnl Check for libconfig as it is needed for lsmd daemon
 dnl ==========================================================================
 PKG_CHECK_MODULES(
@@ -375,6 +387,7 @@ AC_CONFIG_FILES([
     plugin/hpsa/Makefile
     plugin/arcconf/Makefile
     plugin/nfs/Makefile
+    plugin/local/Makefile
     daemon/Makefile
     config/Makefile
     doc/Makefile
@@ -391,6 +404,7 @@ AC_CONFIG_FILES([
     doc/man/arcconf_lsmplugin.1
     doc/man/megaraid_lsmplugin.1
     doc/man/hpsa_lsmplugin.1
+    doc/man/local_lsmplugin.1
     doc/man/libstoragemgmt.h.3
     tools/Makefile
     tools/udev/Makefile
@@ -425,6 +439,8 @@ AC_CONFIG_FILES([plugin/smispy/smispy_lsmplugin],
     [chmod +x plugin/smispy/smispy_lsmplugin])
 AC_CONFIG_FILES([plugin/nfs/nfs_lsmplugin],
     [chmod +x plugin/nfs/nfs_lsmplugin])
+AC_CONFIG_FILES([plugin/local/local_lsmplugin],
+    [chmod +x plugin/local/local_lsmplugin])
 AC_CONFIG_FILES([tools/lsmcli/lsmcli],
     [chmod +x tools/lsmcli/lsmcli])
 AC_CONFIG_FILES([test/plugin_test.py],
