@@ -40,7 +40,7 @@ source "${src_dir}/test/test_include.sh"
 # Constant check: check whether python constants matched with C constants.
 perl ${src_dir}/tools/utility/check_const.pl || exit 1
 
-# First round: test against python plugin sim://
+echo "Round 1: Testing sim plugin"
 lsm_test_base_install \
     "$test_base_dir" "$build_dir" "$src_dir" ${LSM_TEST_INSTALL_PY_PLUGINS_ONLY}
 
@@ -52,7 +52,7 @@ lsm_test_plugin_test_run $LSM_TEST_SIM_URI
 
 lsm_test_cleanup
 
-# Second round: test against C plugin simc:// including memory leak check.
+echo "Round 2: Testing simc plugin and memory leak check if enabled"
 lsm_test_base_install \
     "$test_base_dir" "$build_dir" "$src_dir" ${LSM_TEST_INSTALL_C_PLUGINS_ONLY}
 
@@ -78,22 +78,30 @@ if [ "CHK@WITH_PYTHON3@" == "CHKno" ];then
     exit;
 fi
 
-# Third round: python3 client communicate with python2 plugins
+echo "Round 3: python3 client communicate with python2 plugins"
+# Since src_dir is configured, we need to copy the whole source to another
+# folder so that we may run configure again without changes to original
+# config.status.
+tmp_src_dir="/tmp/lsm_py2_3_test_src_dir_$RANDOM"
+cp -av $src_dir $tmp_src_dir || exit 1
+cd $tmp_src_dir || exit 1
+make distclean
+
 py2_base_dir="/tmp/lsm_py2_base_dir_$RANDOM"
 py3_base_dir="/tmp/lsm_py3_base_dir_$RANDOM"
 py2_build_dir="/tmp/lsm_py2_build_dir_$RANDOM"
 py3_build_dir="/tmp/lsm_py3_build_dir_$RANDOM"
 mkdir $py2_build_dir
 cd $py2_build_dir || exit 1
-${src_dir}/configure || exit 1
+${tmp_src_dir}/configure || exit 1
 make -j5 || exit 1
 mkdir $py3_build_dir
 cd $py3_build_dir || exit 1
-${src_dir}/configure --with-python3 || exit 1
+${tmp_src_dir}/configure --with-python3 || exit 1
 make -j5 || exit 1
 
 lsm_test_base_install \
-    "$py2_base_dir" "$py2_build_dir" "$src_dir" \
+    "$py2_base_dir" "$py2_build_dir" "$tmp_src_dir" \
     ${LSM_TEST_INSTALL_PY_PLUGINS_ONLY}
 
 lsm_test_lsmd_start $LSM_TEST_WITHOUT_MEM_CHECK
@@ -102,7 +110,7 @@ PY2_LSM_UDS_PATH=$LSM_UDS_PATH
 PY2_LSM_TEST_DST_DIR=$LSM_TEST_DST_DIR
 
 lsm_test_base_install \
-    "$py3_base_dir" "$py3_build_dir" "$src_dir" \
+    "$py3_base_dir" "$py3_build_dir" "$tmp_src_dir" \
     ${LSM_TEST_INSTALL_C_PLUGINS_ONLY}
 
 export LSM_UDS_PATH=$PY2_LSM_UDS_PATH
@@ -112,12 +120,12 @@ export LSM_TEST_DST_DIR=$PY2_LSM_TEST_DST_DIR
 lsm_test_cleanup
 rm $py3_base_dir -rf
 
-# Forth round: python2 client communicate with python3 plugins
+echo "Round 4: python2 client communicate with python3 plugins"
 py2_base_dir="/tmp/lsm_py2_base_dir_$RANDOM"
 py3_base_dir="/tmp/lsm_py3_base_dir_$RANDOM"
 
 lsm_test_base_install \
-    "$py3_base_dir" "$py3_build_dir" "$src_dir" \
+    "$py3_base_dir" "$py3_build_dir" "$tmp_src_dir" \
     ${LSM_TEST_INSTALL_PY_PLUGINS_ONLY}
 
 lsm_test_lsmd_start $LSM_TEST_WITHOUT_MEM_CHECK
@@ -126,7 +134,7 @@ PY3_LSM_UDS_PATH=$LSM_UDS_PATH
 PY3_LSM_TEST_DST_DIR=$LSM_TEST_DST_DIR
 
 lsm_test_base_install \
-    "$py2_base_dir" "$py2_build_dir" "$src_dir" \
+    "$py2_base_dir" "$py2_build_dir" "$tmp_src_dir" \
     ${LSM_TEST_INSTALL_C_PLUGINS_ONLY}
 
 export LSM_UDS_PATH=$PY3_LSM_UDS_PATH
@@ -135,3 +143,4 @@ lsm_test_plugin_test_run $LSM_TEST_SIM_URI
 export LSM_TEST_DST_DIR=$PY3_LSM_TEST_DST_DIR
 lsm_test_cleanup
 rm $py2_base_dir -rf
+rm $tmp_src_dir -rf

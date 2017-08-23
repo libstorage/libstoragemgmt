@@ -242,13 +242,6 @@ function lsm_test_base_install
         _good chrpath -d "${LSM_TEST_PY_MODULE_DIR}/lsm/_clib3.so"
     fi
 
-    if [ -e "${build_dir}/plugin/nfs/.libs/nfs_clib.so" ]
-    then
-        _good install -D "${build_dir}/plugin/nfs/.libs/nfs_clib.so" \
-            "${LSM_TEST_PY_MODULE_DIR}/lsm/plugin/nfs/nfs_clib.so"
-        _good chrpath -d "${LSM_TEST_PY_MODULE_DIR}/lsm/plugin/nfs/nfs_clib.so"
-    fi
-
     _good find "${src_dir}/python_binding/lsm/" -maxdepth 1 \
         -type f -name '*.py' \
         -exec install -D "{}" "$LSM_TEST_PY_MODULE_DIR/lsm/" \\\;
@@ -268,6 +261,7 @@ function lsm_test_base_install
         "${LSM_TEST_BIN_DIR}/lsmcli"
     _good $LIBTOOL_CMD_NO_WARN --mode install \
         install "${build_dir}/test/tester" "${LSM_TEST_BIN_DIR}/tester"
+    _good chrpath -d "${LSM_TEST_BIN_DIR}/tester"
     _good install "${build_dir}/test/plugin_test.py" \
         "${LSM_TEST_BIN_DIR}/plugin_test.py"
     _good install "${build_dir}/test/cmdtest.py" \
@@ -296,6 +290,16 @@ function lsm_test_base_install
             fi
         done
 
+        # NFS plugin is a python plugin, but with C extention.
+        if [ -e "${build_dir}/plugin/nfs/.libs/nfs_clib.so" ]
+        then
+            find ${LSM_TEST_PY_MODULE_DIR} -type d -exec chmod +w {} \;
+            _good cp -fv "${build_dir}/plugin/nfs/.libs/nfs_clib.so" \
+                "${LSM_TEST_PY_MODULE_DIR}/lsm/plugin/nfs/nfs_clib.so"
+            _good chrpath -d \
+                "${LSM_TEST_PY_MODULE_DIR}/lsm/plugin/nfs/nfs_clib.so"
+        fi
+
         legal_plugin_type=1
     fi
 
@@ -305,6 +309,7 @@ function lsm_test_base_install
         for c_plugin in $_LSM_C_PLUGINS; do
             _good $LIBTOOL_CMD_NO_WARN --mode install \
                 install -D "${build_dir}/plugin/$c_plugin" $LSM_TEST_PLUGIN_DIR
+            _good chrpath -d "${LSM_TEST_PLUGIN_DIR}/$(basename $c_plugin)"
         done
         legal_plugin_type=1
     fi

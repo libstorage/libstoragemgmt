@@ -21,3 +21,8 @@ if WITH_LOCAL
 pluginconf_DATA += pluginconf.d/local.conf
 EXTRA_DIST += pluginconf.d/local.conf
 endif
+
+if WITH_ARCCONF
+pluginconf_DATA += pluginconf.d/arcconf.conf
+EXTRA_DIST += pluginconf.d/arcconf.conf
+endif
