@@ -1,52 +1,4 @@
-%bcond_without megaraid
-%bcond_without hpsa
-%bcond_without test
-%bcond_with python3
-
-# Use one-line macro for OBS workaround:
-#   https://bugzilla.novell.com/show_bug.cgi?id=864323
-
-%{?_with_megaraid: %global with_megaraid 1 }
-%{?_without_megaraid: %global with_megaraid 0 }
-
-%{?_with_hpsa: %global with_hpsa 1 }
-%{?_without_hpsa: %global with_hpsa 0 }
-
-%{?_with_test: %global with_test 1 }
-%{?_without_test: %global with_test 0 }
-
-%{?_with_python3: %global with_python3 1 }
-%{?_without_python3: %global with_python3 0 }
-
-%define libsoname libstoragemgmt
-
-%if 0%{?suse_version} || 0%{?fedora} >= 15 || 0%{?rhel} >= 7
-%define with_systemd 1
-%endif
-
-%global libstoragemgmt libstoragemgmt
-
-%if 0%{?suse_version}
-%global libstoragemgmt libstoragemgmt1
-%endif
-
-%define udev_dir /lib
-# Later versions moved /lib to /usr/lib
-%if 0%{?fedora} >= 18 || 0%{?rhel} >= 7 || 0%{?suse_version}
-%define udev_dir /usr/lib
-%endif
-
-%if 0%{?suse_version}
-# Use fdupes on openSuSE.
-# For Fedora, it will conflict with brp-python-bytecompile
-# For RHEL, fdupes is in EPEL repo.
-%define do_fdupes 1
-%endif
-
-%if 0%{?fedora} >= 24
-%define with_python3 1
-%endif
-
+%bcond_without  test
 %global py3_build_dir %{_builddir}/%{name}-%{version}-%{release}-python3
 
 Name:           libstoragemgmt
@@ -54,65 +6,34 @@ Version:        @VERSION@
 Release:        1%{?dist}
 Summary:        Storage array management library
 Group:          System Environment/Libraries
-%if 0%{?suse_version}
 License:        LGPL-2.1+
-%else
-License:        LGPLv2+
-%endif
-URL:            https://github.com/libstorage/libstoragemgmt/
-Source0:        https://github.com/libstorage/libstoragemgmt/releases/download/%{version}/libstoragemgmt-%{version}.tar.gz
+URL:            https://github.com/libstorage/libstoragemgmt
+Source0:        https://github.com/libstorage/libstoragemgmt/releases/download/%{version}/%{name}-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-Requires:       %{libstoragemgmt}-python
-BuildRequires:  autoconf automake libtool libxml2-devel check-devel perl
+Requires:       python3-%{name}
+BuildRequires:  autoconf automake libtool yajl-devel libxml2-devel check-devel
+BuildRequires:  perl
 BuildRequires:  openssl-devel
 BuildRequires:  glib2-devel
-# Explicitly require gcc-c++ is for OBS
-BuildRequires:  gcc-c++
-BuildRequires:  libconfig-devel
-%if 0%{?suse_version}
-BuildRequires:  libyajl-devel
-BuildRequires:  sqlite3-devel
-%else
-# Fedora RHEL
-BuildRequires:  yajl-devel
-BuildRequires:  sqlite-devel
-%endif
-
-%if 0%{?rhel} == 6
-BuildRequires:  libudev-devel
-# Argparse is included in newer versions, only require for RHEL6
-BuildRequires:  python-argparse
-%else
-BuildRequires:  systemd-devel
-%endif
-
-%if 0%{?do_fdupes}
-BuildRequires:  fdupes
-%endif
-
-%if 0%{?rhel} == 6
-BuildRequires:  python-ordereddict
-%else
-# Require bash-completion > 2.0
-BuildRequires:  bash-completion >= 2.0
-%endif
-
-%if 0%{?with_systemd}
 BuildRequires:  systemd
+BuildRequires:  bash-completion
+BuildRequires:  libconfig-devel
+BuildRequires:  systemd-devel
+BuildRequires:  python-six
+BuildRequires:  python-devel
+BuildRequires:  procps
+BuildRequires:  sqlite-devel
+BuildRequires:  python3-six
+BuildRequires:  python3-devel
+
+Requires: initscripts
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
-%endif
 
 BuildRequires:  chrpath
 BuildRequires:  valgrind
-BuildRequires:  procps
-%if 0%{?with_python3}
-BuildRequires:  python3-six
-BuildRequires:  python3-devel
-%endif
-BuildRequires:  python-six
-BuildRequires:  python-devel
+BuildRequires:  python-pyudev
 
 %description
 The libStorageMgmt library will provide a vendor agnostic open source storage
@@ -120,24 +41,6 @@ application programming interface (API) that will allow management of storage
 arrays.  The library includes a command line interface for interactive use and
 scripting (command lsmcli).  The library also has a daemon that is used for
 executing plug-ins in a separate process (lsmd).
-
-%if %{libstoragemgmt} != %{name}
-%package        -n %{libstoragemgmt}
-Summary:        Storage array management library
-Group:          System Environment/Libraries
-%if 0%{?with_python3}
-Requires:       python3-%{libstoragemgmt}
-%else
-Requires:       %{libstoragemgmt}-python
-%endif
-
-%description    -n %{libstoragemgmt}
-The libStorageMgmt library will provide a vendor agnostic open source storage
-application programming interface (API) that will allow management of storage
-arrays.  The library includes a command line interface for interactive use and
-scripting (command lsmcli).  The library also has a daemon that is used for
-executing plug-ins in a separate process (lsmd).
-%endif
 
 %package        devel
 Summary:        Development files for %{name}
@@ -148,122 +51,114 @@ Requires:       %{name}%{?_isa} = %{version}-%{release}
 The %{name}-devel package contains libraries and header files for
 developing applications that use %{name}.
 
-%package        -n %{libstoragemgmt}-python
-Summary:        Python client libraries and plug-in support for %{libstoragemgmt}
+%package        -n python2-%{name}
+Summary:        Python2 client libraries for %{name}
 Group:          System Environment/Libraries
-Requires:       %{libstoragemgmt} = %{version}-%{release}
+Requires:       %{name} = %{version}-%{release}
+Requires:       python2-%{name}-clibs
 BuildArch:      noarch
-Requires:       %{libstoragemgmt}-python-clibs
-%if 0%{?rhel} == 6
-# No way to detect 6.2 yet. Just forcing all RHEL 6 to install
-# python-ordereddict just in case.
-Requires:       python-ordereddict
-Requires:       python-argparse
-%endif
+%{?python_provide:%python_provide python2-%{name}}
+# Remove before F30
+Provides: %{name}-python = %{version}-%{release}
+Obsoletes: %{name}-python < %{version}-%{release}
 
-%description    -n %{libstoragemgmt}-python
-The %{libstoragemgmt}-python package contains python client libraries as
-well as python framework support and open source plug-ins written in python.
+%description    -n python2-%{name}
+This package contains python2 client libraries.
 
-%package        -n %{libstoragemgmt}-python-clibs
-Summary:        Python C extension module for %{libstoragemgmt}
+%package        -n python2-%{name}-clibs
+Summary:        Python2 C extension module for %{name}
 Group:          System Environment/Libraries
-Requires:       %{libstoragemgmt} = %{version}-%{release}
+Requires:       %{name} = %{version}-%{release}
+%{?python_provide:%python_provide python2-%{name}-clibs}
+# Remove before F30
+Provides: %{name}-python-clibs = %{version}-%{release}
+Provides: %{name}-python-clibs%{?_isa} = %{version}-%{release}
+Obsoletes: %{name}-python-clibs < %{version}-%{release}
 
-%description    -n %{libstoragemgmt}-python-clibs
-The python3-%{libstoragemgmt}-clibs package contains python client C extension
-libraries.
+%description    -n python2-%{name}-clibs
+This package contains python2 client C extension libraries.
 
-%if 0%{?with_python3}
-%package	-n python3-%{libstoragemgmt}
-Summary:        Python 3 client libraries and plug-in support for %{libstoragemgmt}
+
+%package        -n python3-%{name}
+Summary:        Python 3 client libraries and plug-in support for %{name}
 Group:          System Environment/Libraries
-Requires:       %{libstoragemgmt} = %{version}-%{release}
+Requires:       %{name} = %{version}-%{release}
 BuildArch:      noarch
-Requires:       python3-%{libstoragemgmt}-clibs
+Requires:       python3-%{name}-clibs
+%{?python_provide:%python_provide python3-%{name}}
 
-%description    -n python3-%{libstoragemgmt}
-The python3-%{libstoragemgmt} package contains python 3 client libraries as
-well as python framework support and open source plug-ins written in python 3.
+%description    -n python3-%{name}
+This package contains python 3 client libraries as well as python framework
+support and open source plug-ins written in python 3.
 
-%package        -n python3-%{libstoragemgmt}-clibs
-Summary:        Python 3 C extension module for %{libstoragemgmt}
+%package        -n python3-%{name}-clibs
+Summary:        Python 3 C extension module for %{name}
 Group:          System Environment/Libraries
-Requires:       %{libstoragemgmt} = %{version}-%{release}
+Requires:       %{name} = %{version}-%{release}
+%{?python_provide:%python_provide python3-%{name}-clibs}
 
-%description    -n python3-%{libstoragemgmt}-clibs
-The python3-%{libstoragemgmt}-clibs package contains python 3 client C extension
-libraries.
-%endif
+%description    -n python3-%{name}-clibs
+This package contains python 3 client C extension libraries.
 
-%package        -n %{libstoragemgmt}-smis-plugin
-Summary:        Files for SMI-S generic array support for %{libstoragemgmt}
+%package        smis-plugin
+Summary:        Files for SMI-S generic array support for %{name}
 Group:          System Environment/Libraries
-%if 0%{?with_python3}
+BuildRequires:  pywbem
 BuildRequires:  python3-pywbem
-BuildRequires:  pywbem
 Requires:       python3-pywbem
-Requires:       python3-%{libstoragemgmt} = %{version}-%{release}
-%else
-Requires:       %{libstoragemgmt}-python = %{version}-%{release}
-%if 0%{?suse_version}
-BuildRequires:  python-pywbem
-Requires:       python-pywbem
-%else
-BuildRequires:  pywbem
-Requires:       pywbem
-%endif
-%endif
 BuildArch:      noarch
+Provides:       %{name}-ibm-v7k-plugin = 2:%{version}-%{release}
+Obsoletes:      %{name}-ibm-v7k-plugin <= 2:0.1.0-3
+Requires:       python3-%{name} = %{version}
+Requires(post): python3-%{name} = %{version}
+Requires(postun): python3-%{name} = %{version}
 
-%description    -n %{libstoragemgmt}-smis-plugin
-The %{libstoragemgmt}-smis-plugin package contains plug-in for generic SMI-S
-array support.
 
-
-%package        -n %{libstoragemgmt}-netapp-plugin
-Summary:        Files for NetApp array support for %{libstoragemgmt}
-Group:          System Environment/Libraries
-%if 0%{?with_python3}
-Requires:       python3-%{libstoragemgmt} = %{version}-%{release}
-%else
-Requires:       %{libstoragemgmt}-python = %{version}-%{release}
-%endif
-BuildArch:      noarch
-
-%description    -n %{libstoragemgmt}-netapp-plugin
-The %{libstoragemgmt}-netapp-plugin package contains plug-in for NetApp array
+%description    smis-plugin
+The %{name}-smis-plugin package contains plug-in for generic SMI-S array
 support.
 
 
-%package        -n %{libstoragemgmt}-targetd-plugin
-Summary:        Files for targetd array support for %{libstoragemgmt}
+%package        netapp-plugin
+Summary:        Files for NetApp array support for %{name}
 Group:          System Environment/Libraries
-%if 0%{?with_python3}
-Requires:       python3-%{libstoragemgmt} = %{version}-%{release}
-%else
-Requires:       %{libstoragemgmt}-python = %{version}-%{release}
-%endif
+BuildRequires:  m2crypto
+Requires:       m2crypto
+Requires:       python3-%{name} = %{version}
+Requires(post): python3-%{name} = %{version}
+Requires(postun): python3-%{name} = %{version}
+Requires:       python3-%{name} = %{version}-%{release}
 BuildArch:      noarch
 
-%description    -n %{libstoragemgmt}-targetd-plugin
-The %{libstoragemgmt}-targetd-plugin package contains plug-in for targetd
-array support.
+%description    netapp-plugin
+The %{name}-netapp-plugin package contains plug-in for NetApp array
+support.
 
 
-%package        -n %{libstoragemgmt}-nstor-plugin
-Summary:        Files for NexentaStor array support for %{libstoragemgmt}
+%package        targetd-plugin
+Summary:        Files for targetd array support for %{name}
 Group:          System Environment/Libraries
-%if 0%{?with_python3}
-Requires:       python3-%{libstoragemgmt} = %{version}-%{release}
-%else
-Requires:       %{libstoragemgmt}-python = %{version}-%{release}
-%endif
+Requires:       python3-%{name} = %{version}
+Requires(post): python3-%{name} = %{version}
+Requires(postun): python3-%{name} = %{version}
 BuildArch:      noarch
 
-%description    -n %{libstoragemgmt}-nstor-plugin
-The %{libstoragemgmt}-nstor-plugin package contains plug-in for NexentaStor
-array support.
+%description    targetd-plugin
+The %{name}-targetd-plugin package contains plug-in for targetd array
+support.
+
+
+%package        nstor-plugin
+Summary:        Files for NexentaStor array support for %{name}
+Group:          System Environment/Libraries
+Requires:       python3-%{name} = %{version}
+Requires(post): python3-%{name} = %{version}
+Requires(postun): python3-%{name} = %{version}
+BuildArch:      noarch
+
+%description    nstor-plugin
+The %{name}-nstor-plugin package contains plug-in for NexentaStor array
+support.
 
 %package        udev
 Summary:        Udev files for %{name}
@@ -273,100 +168,89 @@ Group:          System Environment/Base
 The %{name}-udev package contains udev rules and helper utilities for
 uevents generated by the kernel.
 
-%if 0%{?with_megaraid}
-%package        -n %{libstoragemgmt}-megaraid-plugin
-Summary:        Files for LSI MegaRAID support for %{libstoragemgmt}
+%package        megaraid-plugin
+Summary:        Files for LSI MegaRAID support for %{name}
 Group:          System Environment/Libraries
-%if 0%{?with_python3}
-Requires:       python3-%{libstoragemgmt} = %{version}-%{release}
-%else
-Requires:       %{libstoragemgmt}-python = %{version}-%{release}
-%endif
+Requires:       python3-%{name} = %{version}
+Requires(post): python3-%{name} = %{version}
+Requires(postun): python3-%{name} = %{version}
 BuildArch:      noarch
 
-%description    -n %{libstoragemgmt}-megaraid-plugin
-The %{libstoragemgmt}-megaraid-plugin package contains the plugin for LSI
+%description    megaraid-plugin
+The %{name}-megaraid-plugin package contains the plugin for LSI
 MegaRAID storage management via storcli.
-%endif
 
-%if 0%{?with_hpsa}
-%package        -n %{libstoragemgmt}-hpsa-plugin
-Summary:        Files for HP SmartArray support for %{libstoragemgmt}
+%package        hpsa-plugin
+Summary:        Files for HPE SmartArray support for %{name}
 Group:          System Environment/Libraries
-%if 0%{?with_python3}
-Requires:       python3-%{libstoragemgmt} = %{version}-%{release}
+Requires:       python3-%{name} = %{version}
 Requires:       python3-pyudev
 BuildRequires:  python3-pyudev
-%else
-Requires:       %{libstoragemgmt}-python = %{version}-%{release}
-Requires:       python-pyudev
-%endif
-BuildRequires:  python-pyudev
+Requires(post): python3-%{name} = %{version}
+Requires(postun): python3-%{name} = %{version}
 BuildArch:      noarch
 
-%description    -n %{libstoragemgmt}-hpsa-plugin
-The %{libstoragemgmt}-hpsa-plugin package contains the plugin for HP
-SmartArray storage management via hpssacli.
-%endif
+%description    hpsa-plugin
+The %{name}-hpsa-plugin package contains the plugin for HP
+SmartArray storage management.
 
-%package        -n %{libstoragemgmt}-nfs-plugin
-Summary:        Files for NFS local filesystem support for %{libstoragemgmt}
+%package        arcconf-plugin
+Summary:        Files for Microsemi Adaptec and Smart Family support for %{name}
 Group:          System Environment/Libraries
-%if 0%{?with_python3}
-Requires:       python3-%{libstoragemgmt} = %{version}-%{release}
-%else
-Requires:       %{libstoragemgmt}-python = %{version}-%{release}
-%endif
+Requires:       python3-%{name} = %{version}
+Requires(post): python3-%{name} = %{version}
+Requires(postun): python3-%{name} = %{version}
+BuildArch:      noarch
 
-%description    -n %{libstoragemgmt}-nfs-plugin
-The %{libstoragemgmt}-nfs-plugin package contains plug-in for local NFS exports
-support.
+%description    arcconf-plugin
+The %{name}-arcconf-plugin package contains the plugin for Microsemi
+Adaptec RAID and Smart Family Controller storage management.
+
+%package        nfs-plugin
+Summary:        Files for NFS local filesystem support for %{name}
+Group:          System Environment/Libraries
+Requires:       python3-%{name} = %{version}
+Requires(post): python3-%{name} = %{version}
+Requires(postun): python3-%{name} = %{version}
+
+%description    nfs-plugin
+The nfs-plugin package contains plug-in for local NFS exports support.
+
+%package        local-plugin
+Summary:        Files for local pseudo plugin of %{name}
+Group:          System Environment/Libraries
+Requires:       python3-%{name} = %{version}
+Requires(post): python3-%{name} = %{version}
+Requires(postun): python3-%{name} = %{version}
+BuildArch:      noarch
+
+%description    local-plugin
+The nfs-plugin package contains plug-in for local NFS exports support.
+LibstorageMgmt local plugin allows user to manage locally storage system
+without caring which real plugin(s) should be used.
 
 %prep
 %setup -q
 
 %build
-./autogen.sh
-
-%if 0%{?with_python3}
 # Copy the whole directory to Python3 build
 rm -fr %{py3_build_dir}
 cp -a . %{py3_build_dir}
-%endif
+%configure --disable-static
 
-%configure \
-%if 0%{?with_megaraid} != 1
-    --without-megaraid \
-%endif
-%if 0%{?with_hpsa} != 1
-    --without-hpsa \
-%endif
-    --disable-static
-
-%if 0%{?with_python3}
 pushd %{py3_build_dir}
-%configure --with-python3 \
-%if 0%{?with_megaraid} != 1
-    --without-megaraid \
-%endif
-%if 0%{?with_hpsa} != 1
-    --without-hpsa \
-%endif
-    --disable-static
+%configure --with-python3 --disable-static
 popd
-%endif
 
 V=1 make %{?_smp_mflags}
-
-%if 0%{?with_python3}
 pushd %{py3_build_dir}
 V=1 make %{?_smp_mflags}
 popd
-%endif
 
 %install
 rm -rf %{buildroot}
 make install DESTDIR=%{buildroot}
+
 # If python3 enabled, all plugins and CLI tools will be use python3 as
 # 'Fedora Packaging Guidelines for Python' suggested.
 #   https://fedoraproject.org/wiki/Packaging:Python#Executables_in_.2Fusr.2Fbin
@@ -374,56 +258,35 @@ make install DESTDIR=%{buildroot}
 #   If the executables provide the same functionality independent of whether
 #   they are run on top of Python 2 or Python 3, then only the Python 3 version
 #   of the executable should be packaged.
-%if 0%{?with_python3}
+
 rm -rf %{buildroot}/%{python_sitelib}/lsm/plugin
 rm -rf %{buildroot}/%{_bindir}/lsmcli
 pushd %{py3_build_dir}
 make install DESTDIR=%{buildroot}
 popd
-%endif
-
 find %{buildroot} -name '*.la' -exec rm -f {} ';'
 
-%if 0%{?with_systemd}
 install -d -m755 %{buildroot}/%{_unitdir}
-install -m644 packaging/daemon/libstoragemgmt.service \
-    %{buildroot}/%{_unitdir}/libstoragemgmt.service
+install -m644 packaging/daemon/%{name}.service \
+    %{buildroot}/%{_unitdir}/%{name}.service
 
-#tempfiles.d configuration for /var/run
+#tempfiles.d configuration for /run
 mkdir -p %{buildroot}/%{_tmpfilesdir}
 install -m 0644 packaging/daemon/lsm-tmpfiles.conf \
     %{buildroot}/%{_tmpfilesdir}/%{name}.conf
-%else
-#Need these to exist at install so we can start the daemon
-mkdir -p %{buildroot}/etc/rc.d/init.d
-install packaging/daemon/libstoragemgmtd \
-    %{buildroot}/etc/rc.d/init.d/libstoragemgmtd
-%endif
 
 #Files for udev handling
-mkdir -p %{buildroot}/%{udev_dir}/udev/rules.d
+mkdir -p %{buildroot}/%{_udevrulesdir}
 install -m 644 tools/udev/90-scsi-ua.rules \
-    %{buildroot}/%{udev_dir}/udev/rules.d/90-scsi-ua.rules
+    %{buildroot}/%{_udevrulesdir}/90-scsi-ua.rules
 install -m 755 tools/udev/scan-scsi-target \
-    %{buildroot}/%{udev_dir}/udev/scan-scsi-target
-
-# Deduplication
-%if 0%{?do_fdupes}
-%fdupes -s %{buildroot}/%{python_sitelib}/lsm
-%endif
+    %{buildroot}/%{_udevrulesdir}/../scan-scsi-target
 
 %clean
 rm -rf %{buildroot}
 
-%if 0%{?with_test}
+%if 0%{with test}
 %check
-if ! make check
-then
-  cat test-suite.log || true
-  exit 1
-fi
-
-%if 0%{?with_python3}
 pushd %{py3_build_dir}
 if ! make check
 then
@@ -432,70 +295,111 @@ then
 fi
 popd
 %endif
-%endif
 
-%pre -n %{libstoragemgmt}
-if [ $1 -eq 1 ]; then
-    #New install.
-    getent group libstoragemgmt >/dev/null || groupadd -r libstoragemgmt
-    getent passwd libstoragemgmt >/dev/null || \
-        useradd -r -g libstoragemgmt -d %{_localstatedir}/run/lsm \
-        -s /sbin/nologin \
-        -c "daemon account for libstoragemgmt" libstoragemgmt
-    #Need these to exist at install so we can start the daemon
-    mkdir -p %{_localstatedir}/run/lsm/ipc
-    chmod 0755 %{_localstatedir}/run/lsm
-    chmod 0755 %{_localstatedir}/run/lsm/ipc
-    chown libstoragemgmt:libstoragemgmt %{_localstatedir}/run/lsm
-    chown libstoragemgmt:libstoragemgmt %{_localstatedir}/run/lsm/ipc
-fi
+%pre
+getent group libstoragemgmt >/dev/null || groupadd -r libstoragemgmt
+getent passwd libstoragemgmt >/dev/null || \
+    useradd -r -g libstoragemgmt -d /var/run/lsm -s /sbin/nologin \
+    -c "daemon account for libstoragemgmt" libstoragemgmt
 
-%post -n %{libstoragemgmt}
+%post
 /sbin/ldconfig
-%if 0%{?with_systemd}
-%if 0%{?suse_version}
-    %service_add_post libstoragemgmt.service
-%else
-    %systemd_post libstoragemgmt.service
-%endif
-%else
-    /sbin/chkconfig --add libstoragemgmtd
-%endif
+# Create tmp socket folders.
+%tmpfiles_create %{_tmpfilesdir}/%{name}.conf
+%systemd_post %{name}.service
 
-%preun -n %{libstoragemgmt}
-%if 0%{?with_systemd}
-%if 0%{?suse_version}
-    %service_del_preun libstoragemgmt.service
-%else
-    %systemd_preun libstoragemgmt.service
-%endif
-%else
-    /etc/rc.d/init.d/libstoragemgmtd stop > /dev/null 2>&1 || :
-    /sbin/chkconfig --del libstoragemgmtd
-%endif
+%preun
+%systemd_preun %{name}.service
 
-%postun -n %{libstoragemgmt}
+%postun
 /sbin/ldconfig
-%if 0%{?with_systemd}
-%if 0%{?suse_version}
-    %service_del_postun libstoragemgmt.service
-%else
-    %systemd_postun libstoragemgmt.service
-%endif
-%else
-    #Restart the daemond
-    /etc/rc.d/init.d/libstoragemgmtd restart  >/dev/null 2>&1 || :
-%endif
+%systemd_postun %{name}.service
 
 # Need to restart lsmd if plugin is new installed or removed.
-%post -n %{libstoragemgmt}-smis-plugin
+%post smis-plugin
+if [ $1 -eq 1 ]; then
+    # New install.
+    /usr/bin/systemctl try-restart %{name}.service >/dev/null 2>&1 || :
+fi
+
+%postun smis-plugin
+if [ $1 -eq 0 ]; then
+    # Remove
+    /usr/bin/systemctl try-restart %{name}.service >/dev/null 2>&1 || :
+fi
+
+# Need to restart lsmd if plugin is new installed or removed.
+%post netapp-plugin
+if [ $1 -eq 1 ]; then
+    # New install.
+    /usr/bin/systemctl try-restart %{name}.service >/dev/null 2>&1 || :
+fi
+
+%postun netapp-plugin
+if [ $1 -eq 0 ]; then
+    # Remove
+    /usr/bin/systemctl try-restart %{name}.service >/dev/null 2>&1 || :
+fi
+
+# Need to restart lsmd if plugin is new installed or removed.
+%post targetd-plugin
+if [ $1 -eq 1 ]; then
+    # New install.
+    /usr/bin/systemctl try-restart %{name}.service >/dev/null 2>&1 || :
+fi
+
+%postun targetd-plugin
+if [ $1 -eq 0 ]; then
+    # Remove
+    /usr/bin/systemctl try-restart %{name}.service >/dev/null 2>&1 || :
+fi
+
+# Need to restart lsmd if plugin is new installed or removed.
+%post nstor-plugin
+if [ $1 -eq 1 ]; then
+    # New install.
+    /usr/bin/systemctl try-restart %{name}.service >/dev/null 2>&1 || :
+fi
+
+%postun nstor-plugin
+if [ $1 -eq 0 ]; then
+    # Remove
+    /usr/bin/systemctl try-restart %{name}.service >/dev/null 2>&1 || :
+fi
+
+# Need to restart lsmd if plugin is new installed or removed.
+%post megaraid-plugin
+if [ $1 -eq 1 ]; then
+    # New install.
+    /usr/bin/systemctl try-restart %{name}.service >/dev/null 2>&1 || :
+fi
+%postun megaraid-plugin
+if [ $1 -eq 0 ]; then
+    # Remove
+    /usr/bin/systemctl try-restart %{name}.service >/dev/null 2>&1 || :
+fi
+
+# Need to restart lsmd if plugin is new installed or removed.
+%post hpsa-plugin
+if [ $1 -eq 1 ]; then
+    # New install.
+    /usr/bin/systemctl try-restart %{name}.service >/dev/null 2>&1 || :
+fi
+%postun hpsa-plugin
+if [ $1 -eq 0 ]; then
+    # Remove
+    /usr/bin/systemctl try-restart %{name}.service >/dev/null 2>&1 || :
+fi
+
+# Need to restart lsmd if plugin is new installed or removed.
+%post nfs-plugin
 if [ $1 -eq 1 ]; then
     # New install.
     /usr/bin/systemctl try-restart libstoragemgmt.service \
         >/dev/null 2>&1 || :
 fi
 
-%postun -n %{libstoragemgmt}-smis-plugin
+%postun nfs-plugin
 if [ $1 -eq 0 ]; then
     # Remove
     /usr/bin/systemctl try-restart libstoragemgmt.service \
@@ -503,136 +407,51 @@ if [ $1 -eq 0 ]; then
 fi
 
 # Need to restart lsmd if plugin is new installed or removed.
-%post -n %{libstoragemgmt}-netapp-plugin
+%post arcconf-plugin
 if [ $1 -eq 1 ]; then
     # New install.
     /usr/bin/systemctl try-restart libstoragemgmt.service \
         >/dev/null 2>&1 || :
 fi
 
-%postun -n %{libstoragemgmt}-netapp-plugin
+%postun arcconf-plugin
 if [ $1 -eq 0 ]; then
     # Remove
-    /usr/bin/systemctl try-restart libstoragemgmt.service \
-        >/dev/null 2>&1 || :
+    /usr/bin/systemctl try-restart %{name}.service >/dev/null 2>&1 || :
 fi
 
-# Need to restart lsmd if plugin is new installed or removed.
-%post -n %{libstoragemgmt}-targetd-plugin
-if [ $1 -eq 1 ]; then
-    # New install.
-    /usr/bin/systemctl try-restart libstoragemgmt.service \
-        >/dev/null 2>&1 || :
-fi
-
-%postun -n %{libstoragemgmt}-targetd-plugin
-if [ $1 -eq 0 ]; then
-    # Remove
-    /usr/bin/systemctl try-restart libstoragemgmt.service \
-        >/dev/null 2>&1 || :
-fi
-
-# Need to restart lsmd if plugin is new installed or removed.
-%post -n %{libstoragemgmt}-nstor-plugin
-if [ $1 -eq 1 ]; then
-    # New install.
-    /usr/bin/systemctl try-restart libstoragemgmt.service \
-        >/dev/null 2>&1 || :
-fi
-
-%postun -n %{libstoragemgmt}-nstor-plugin
-if [ $1 -eq 0 ]; then
-    # Remove
-    /usr/bin/systemctl try-restart libstoragemgmt.service \
-        >/dev/null 2>&1 || :
-fi
-
-%if 0%{?with_megaraid}
-# Need to restart lsmd if plugin is new installed or removed.
-%post -n %{libstoragemgmt}-megaraid-plugin
-if [ $1 -eq 1 ]; then
-    # New install.
-    /usr/bin/systemctl try-restart libstoragemgmt.service \
-        >/dev/null 2>&1 || :
-fi
-%postun -n %{libstoragemgmt}-megaraid-plugin
-if [ $1 -eq 0 ]; then
-    # Remove
-    /usr/bin/systemctl try-restart libstoragemgmt.service \
-        >/dev/null 2>&1 || :
-fi
-%endif
-
-%if 0%{?with_hpsa}
-# Need to restart lsmd if plugin is new installed or removed.
-%post -n %{libstoragemgmt}-hpsa-plugin
-if [ $1 -eq 1 ]; then
-    # New install.
-    /usr/bin/systemctl try-restart libstoragemgmt.service \
-        >/dev/null 2>&1 || :
-fi
-%postun -n %{libstoragemgmt}-hpsa-plugin
-if [ $1 -eq 0 ]; then
-    # Remove
-    /usr/bin/systemctl try-restart libstoragemgmt.service \
-        >/dev/null 2>&1 || :
-fi
-%endif
-
-# Need to restart lsmd if plugin is new installed or removed.
-%post -n %{libstoragemgmt}-nfs-plugin
-if [ $1 -eq 1 ]; then
-    # New install.
-    /usr/bin/systemctl try-restart libstoragemgmt.service \
-        >/dev/null 2>&1 || :
-fi
-
-%postun -n %{libstoragemgmt}-nfs-plugin
-if [ $1 -eq 0 ]; then
-    # Remove
-    /usr/bin/systemctl try-restart libstoragemgmt.service \
-        >/dev/null 2>&1 || :
-fi
-
-%files -n %{libstoragemgmt}
+%files
 %defattr(-,root,root,-)
-%doc README COPYING.LIB
+%doc README COPYING.LIB NEWS
 %{_mandir}/man1/lsmcli.1*
 %{_mandir}/man1/lsmd.1*
 %{_mandir}/man5/lsmd.conf.5*
 %{_libdir}/*.so.*
 %{_bindir}/lsmcli
+%{_datadir}/bash-completion/completions/lsmcli
 %{_bindir}/lsmd
 %{_bindir}/simc_lsmplugin
-%{_sysconfdir}/lsm/lsmd.conf
 %dir %{_sysconfdir}/lsm
 %dir %{_sysconfdir}/lsm/pluginconf.d
+%config(noreplace) %{_sysconfdir}/lsm/lsmd.conf
 %{_mandir}/man1/simc_lsmplugin.1*
 
-%if 0%{?rhel} == 6
-%{_sysconfdir}/bash_completion.d/lsmcli
-%else
-%{_datadir}/bash-completion/completions/lsmcli
-%endif
+%{_unitdir}/%{name}.service
 
+%ghost %dir %attr(0755, -, -) /run/lsm/
+%ghost %dir %attr(0755, -, -) /run/lsm/ipc
 
-%if 0%{?with_systemd}
-%{_unitdir}/libstoragemgmt.service
-%endif
-
-%if 0%{?with_systemd}
-%attr(0644, root, root)  %{_tmpfilesdir}/%{name}.conf
-%else
-%attr(0755, root, root) /etc/rc.d/init.d/libstoragemgmtd
-%endif
+%attr(0644, root, root) %{_tmpfilesdir}/%{name}.conf
 
 %files devel
 %defattr(-,root,root,-)
 %{_includedir}/*
 %{_libdir}/*.so
-%{_libdir}/pkgconfig/libstoragemgmt.pc
+%{_libdir}/pkgconfig/%{name}.pc
+%{_mandir}/man3/lsm_*
+%{_mandir}/man3/libstoragemgmt*
 
-%files -n %{libstoragemgmt}-python
+%files -n python2-%{name}
 %defattr(-,root,root,-)
 #Python library files
 %dir %{python_sitelib}/lsm
@@ -651,20 +470,12 @@ fi
 %{python_sitelib}/lsm/lsmcli/__init__.*
 %{python_sitelib}/lsm/lsmcli/data_display.*
 %{python_sitelib}/lsm/lsmcli/cmdline.*
-%if 0%{?with_python3} == 0
-%dir %{python_sitelib}/lsm/plugin
-%{python_sitelib}/lsm/plugin/__init__.*
-%dir %{python_sitelib}/lsm/plugin/sim
-%{python_sitelib}/lsm/plugin/sim/__init__.*
-%{python_sitelib}/lsm/plugin/sim/simulator.*
-%{python_sitelib}/lsm/plugin/sim/simarray.*
-%{_bindir}/sim_lsmplugin
-%{_sysconfdir}/lsm/pluginconf.d/sim.conf
-%{_mandir}/man1/sim_lsmplugin.1*
-%endif
 
-%if 0%{?with_python3}
-%files -n python3-%{libstoragemgmt}
+# Compiled C files for python library
+%files -n python2-%{name}-clibs
+%{python_sitelib}/lsm/_clib.*
+
+%files -n python3-%{name}
 %dir %{python3_sitelib}/lsm
 %{python3_sitelib}/lsm/__init__.*
 %dir %{python3_sitelib}/lsm/external
@@ -695,22 +506,20 @@ fi
 %{_sysconfdir}/lsm/pluginconf.d/sim.conf
 %{_mandir}/man1/sim_lsmplugin.1*
 
-%files -n python3-%{libstoragemgmt}-clibs
+%files -n python3-%{name}-clibs
 %{python3_sitelib}/lsm/_clib.*
-%endif
 
-%files -n %{libstoragemgmt}-python-clibs
-%{python_sitelib}/lsm/_clib.*
-
-%files -n %{libstoragemgmt}-smis-plugin
+%files smis-plugin
 %defattr(-,root,root,-)
-%if 0%{?with_python3}
 %dir %{python3_sitelib}/lsm/plugin/smispy
+%dir %{python3_sitelib}/lsm/plugin/smispy/__pycache__
 %{python3_sitelib}/lsm/plugin/smispy/__pycache__/*
 %{python3_sitelib}/lsm/plugin/smispy/__init__.*
 %{python3_sitelib}/lsm/plugin/smispy/smis.*
 %{python3_sitelib}/lsm/plugin/smispy/dmtf.*
 %{python3_sitelib}/lsm/plugin/smispy/utils.*
+%{python3_sitelib}/lsm/plugin/smispy/WBEM.*
+%{python3_sitelib}/lsm/plugin/smispy/lmiwbem_wrap.*
 %{python3_sitelib}/lsm/plugin/smispy/smis_common.*
 %{python3_sitelib}/lsm/plugin/smispy/smis_cap.*
 %{python3_sitelib}/lsm/plugin/smispy/smis_sys.*
@@ -718,537 +527,102 @@ fi
 %{python3_sitelib}/lsm/plugin/smispy/smis_disk.*
 %{python3_sitelib}/lsm/plugin/smispy/smis_vol.*
 %{python3_sitelib}/lsm/plugin/smispy/smis_ag.*
-%{python3_sitelib}/lsm/plugin/smispy/WBEM.*
-%{python3_sitelib}/lsm/plugin/smispy/lmiwbem_wrap.*
-%else
-%dir %{python_sitelib}/lsm/plugin/smispy
-%{python_sitelib}/lsm/plugin/smispy/__init__.*
-%{python_sitelib}/lsm/plugin/smispy/smis.*
-%{python_sitelib}/lsm/plugin/smispy/dmtf.*
-%{python_sitelib}/lsm/plugin/smispy/utils.*
-%{python_sitelib}/lsm/plugin/smispy/smis_common.*
-%{python_sitelib}/lsm/plugin/smispy/smis_cap.*
-%{python_sitelib}/lsm/plugin/smispy/smis_sys.*
-%{python_sitelib}/lsm/plugin/smispy/smis_pool.*
-%{python_sitelib}/lsm/plugin/smispy/smis_disk.*
-%{python_sitelib}/lsm/plugin/smispy/smis_vol.*
-%{python_sitelib}/lsm/plugin/smispy/smis_ag.*
-%{python_sitelib}/lsm/plugin/smispy/WBEM.*
-%{python_sitelib}/lsm/plugin/smispy/lmiwbem_wrap.*
-%endif
 %{_bindir}/smispy_lsmplugin
 %{_mandir}/man1/smispy_lsmplugin.1*
 
-%files -n %{libstoragemgmt}-netapp-plugin
+%files netapp-plugin
 %defattr(-,root,root,-)
-%if 0%{?with_python3}
 %dir %{python3_sitelib}/lsm/plugin/ontap
+%dir %{python3_sitelib}/lsm/plugin/ontap/__pycache__
 %{python3_sitelib}/lsm/plugin/ontap/__pycache__/*
 %{python3_sitelib}/lsm/plugin/ontap/__init__.*
 %{python3_sitelib}/lsm/plugin/ontap/na.*
 %{python3_sitelib}/lsm/plugin/ontap/ontap.*
-%else
-%dir %{python_sitelib}/lsm/plugin/ontap
-%{python_sitelib}/lsm/plugin/ontap/__init__.*
-%{python_sitelib}/lsm/plugin/ontap/na.*
-%{python_sitelib}/lsm/plugin/ontap/ontap.*
-%endif
 %{_bindir}/ontap_lsmplugin
 %{_mandir}/man1/ontap_lsmplugin.1*
 
-%files -n %{libstoragemgmt}-targetd-plugin
+%files targetd-plugin
 %defattr(-,root,root,-)
-%if 0%{?with_python3}
 %dir %{python3_sitelib}/lsm/plugin/targetd
+%dir %{python3_sitelib}/lsm/plugin/targetd/__pycache__
 %{python3_sitelib}/lsm/plugin/targetd/__pycache__/*
 %{python3_sitelib}/lsm/plugin/targetd/__init__.*
 %{python3_sitelib}/lsm/plugin/targetd/targetd.*
-%else
-%dir %{python_sitelib}/lsm/plugin/targetd
-%{python_sitelib}/lsm/plugin/targetd/__init__.*
-%{python_sitelib}/lsm/plugin/targetd/targetd.*
-%endif
 %{_bindir}/targetd_lsmplugin
 %{_mandir}/man1/targetd_lsmplugin.1*
 
-%files -n %{libstoragemgmt}-nstor-plugin
+%files nstor-plugin
 %defattr(-,root,root,-)
-%if 0%{?with_python3}
 %dir %{python3_sitelib}/lsm/plugin/nstor
+%dir %{python3_sitelib}/lsm/plugin/nstor/__pycache__
 %{python3_sitelib}/lsm/plugin/nstor/__pycache__/*
 %{python3_sitelib}/lsm/plugin/nstor/__init__.*
 %{python3_sitelib}/lsm/plugin/nstor/nstor.*
-%else
-%dir %{python_sitelib}/lsm/plugin/nstor
-%{python_sitelib}/lsm/plugin/nstor/__init__.*
-%{python_sitelib}/lsm/plugin/nstor/nstor.*
-%endif
 %{_bindir}/nstor_lsmplugin
 %{_mandir}/man1/nstor_lsmplugin.1*
 
-%if 0%{?with_megaraid}
-%files -n %{libstoragemgmt}-megaraid-plugin
+%files udev
 %defattr(-,root,root,-)
-%if 0%{?with_python3}
+%{_udevrulesdir}/../scan-scsi-target
+%{_udevrulesdir}/90-scsi-ua.rules
+
+%files megaraid-plugin
+%defattr(-,root,root,-)
 %dir %{python3_sitelib}/lsm/plugin/megaraid
-%{python3_sitelib}/lsm/plugin/megaraid/__init__.*
+%dir %{python3_sitelib}/lsm/plugin/megaraid/__pycache__
 %{python3_sitelib}/lsm/plugin/megaraid/__pycache__/*
+%{python3_sitelib}/lsm/plugin/megaraid/__init__.*
 %{python3_sitelib}/lsm/plugin/megaraid/megaraid.*
 %{python3_sitelib}/lsm/plugin/megaraid/utils.*
-%else
-%dir %{python_sitelib}/lsm/plugin/megaraid
-%{python_sitelib}/lsm/plugin/megaraid/__init__.*
-%{python_sitelib}/lsm/plugin/megaraid/megaraid.*
-%{python_sitelib}/lsm/plugin/megaraid/utils.*
-%endif
 %{_bindir}/megaraid_lsmplugin
-%{_sysconfdir}/lsm/pluginconf.d/megaraid.conf
+%config(noreplace) %{_sysconfdir}/lsm/pluginconf.d/megaraid.conf
 %{_mandir}/man1/megaraid_lsmplugin.1*
-%endif
 
-%if 0%{?with_hpsa}
-%files -n %{libstoragemgmt}-hpsa-plugin
+%files hpsa-plugin
 %defattr(-,root,root,-)
-%if 0%{?with_python3}
 %dir %{python3_sitelib}/lsm/plugin/hpsa
+%dir %{python3_sitelib}/lsm/plugin/hpsa/__pycache__
 %{python3_sitelib}/lsm/plugin/hpsa/__pycache__/*
 %{python3_sitelib}/lsm/plugin/hpsa/__init__.*
 %{python3_sitelib}/lsm/plugin/hpsa/hpsa.*
 %{python3_sitelib}/lsm/plugin/hpsa/utils.*
-%else
-%dir %{python_sitelib}/lsm/plugin/hpsa
-%{python_sitelib}/lsm/plugin/hpsa/__init__.*
-%{python_sitelib}/lsm/plugin/hpsa/hpsa.*
-%{python_sitelib}/lsm/plugin/hpsa/utils.*
-%endif
 %{_bindir}/hpsa_lsmplugin
-%{_sysconfdir}/lsm/pluginconf.d/hpsa.conf
+%config(noreplace) %{_sysconfdir}/lsm/pluginconf.d/hpsa.conf
 %{_mandir}/man1/hpsa_lsmplugin.1*
-%endif
 
-%files -n %{libstoragemgmt}-nfs-plugin
+%files nfs-plugin
 %defattr(-,root,root,-)
-%if 0%{?with_python3}
 %dir %{python3_sitelib}/lsm/plugin/nfs
+%dir %{python3_sitelib}/lsm/plugin/nfs/__pycache__
 %{python3_sitelib}/lsm/plugin/nfs/__pycache__/*
 %{python3_sitelib}/lsm/plugin/nfs/__init__.*
 %{python3_sitelib}/lsm/plugin/nfs/nfs.*
 %{python3_sitelib}/lsm/plugin/nfs/nfs_clib.*
-%else
-%dir %{python_sitelib}/lsm/plugin/nfs
-%{python_sitelib}/lsm/plugin/nfs/__init__.*
-%{python_sitelib}/lsm/plugin/nfs/nfs.*
-%{python_sitelib}/lsm/plugin/nfs/nfs_clib.*
-%endif
 %{_sysconfdir}/lsm/pluginconf.d/nfs.conf
 %{_bindir}/nfs_lsmplugin
 %{_mandir}/man1/nfs_lsmplugin.1*
 
-%files udev
+%files arcconf-plugin
 %defattr(-,root,root,-)
-%{udev_dir}/udev/scan-scsi-target
-%{udev_dir}/udev/rules.d/90-scsi-ua.rules
+%dir %{python3_sitelib}/lsm/plugin/arcconf
+%dir %{python3_sitelib}/lsm/plugin/arcconf/__pycache__
+%{python3_sitelib}/lsm/plugin/arcconf/__pycache__/*
+%{python3_sitelib}/lsm/plugin/arcconf/__init__.*
+%{python3_sitelib}/lsm/plugin/arcconf/arcconf.*
+%{python3_sitelib}/lsm/plugin/arcconf/utils.*
+%{_bindir}/arcconf_lsmplugin
+%config(noreplace) %{_sysconfdir}/lsm/pluginconf.d/arcconf.conf
+%{_mandir}/man1/arcconf_lsmplugin.1*
+
+%files local-plugin
+%defattr(-,root,root,-)
+%dir %{python3_sitelib}/lsm/plugin/local
+%dir %{python3_sitelib}/lsm/plugin/local/__pycache__
+%{python3_sitelib}/lsm/plugin/local/__pycache__/*
+%{python3_sitelib}/lsm/plugin/local/__init__.*
+%{python3_sitelib}/lsm/plugin/local/local.*
+%{_sysconfdir}/lsm/pluginconf.d/local.conf
+%{_bindir}/local_lsmplugin
+%{_mandir}/man1/local_lsmplugin.1*
 
 %changelog
-* Tue Feb 21 2017 Gris Ge <fge@redhat.com> 1.4.0-1
-- Add Python3 support.
-- New sub rpm package python3-libstoragemgmt.
-- Add support of lmiwbem.
-- Allow plugin test to be run concurrently.
-- Bug fixes:
-    * Fix megaraid plugin for dell PERC.
-    * Fix local disk rotation speed query on NVMe disk.
-    * Fix lsmcli incorrect try-expect on local disk query.
-    * Fix all the gcc compile warnings.
-    * Fix the obsolete usage of AC_OUTPUT in configure.ac.
-- Library adds:
-    * Query serial of local disk:
-        lsm_local_disk_serial_num_get()/lsm.LocalDisk.serial_num_get()
-    * Query LED status of local disk:
-        lsm_local_disk_led_status_get()/lsm.LocalDisk.led_status_get()
-    * Query link speed of local disk:
-        lsm_local_disk_link_speed_get()/lsm.LocalDisk.link_speed_get()
-
-* Tue Aug 2 2016 Tony Asleson <tasleson@redhat.com> 1.3.4-1
-- Bug fixes:
-  * https://github.com/libstorage/libstoragemgmt/pull/177
-
-* Fri Jul 29 2016 Tony Asleson <tasleson@redhat.com> 1.3.3-1
-- Bug fixes:
-  * https://bugzilla.redhat.com/show_bug.cgi?id=1346901
-  * https://bugzilla.redhat.com/show_bug.cgi?id=1346898
-  * https://bugzilla.redhat.com/show_bug.cgi?id=1360177
-  * https://github.com/libstorage/libstoragemgmt/issues/167
-  * Seg. fault on qemu simulated disk
-  * Fix make check on EL6 (python 2.6)
-  * Misc. code improvements & corrections
-  * Fix regression introduced by coverity scan correction
-
-* Wed May 18 2016 Tony Asleson <tasleson@redhat.com> 1.3.2-1
-- Bug fixes:
-  * https://github.com/libstorage/libstoragemgmt/pull/152
-  * https://github.com/libstorage/libstoragemgmt/pull/154
-
-* Fri May 13 2016 Tony Asleson <tasleson@redhat.com> 1.3.1-1
-- Bug fix for https://github.com/libstorage/libstoragemgmt/pull/150
-
-* Thu May 12 2016 Tony Asleson <tasleson@redhat.com> 1.3.0-1
-- Library adds
-  * Change the raid card cache split (read, write)
-  * Retrieve/update cache information of both the card and physical disks
-    (enable/disable caching etc.)
-  * Turn on/off identify and fault LEDs
-  * Retrieve information on batteries
-  * Retrieve a physical disk RPM, link type and location string for a disk
-  * Retrieve the vpd 0x83 for directly attached disk(s)
-  * Given a vpd 0x83 return list of local disk paths
-  * Given a disk path return the vpd 0x83 value
-  * Retrieve list of local disks
-- Bug fixes
-  * https://github.com/libstorage/libstoragemgmt/issues/118
-  * https://bugzilla.redhat.com/show_bug.cgi?id=1323789
-  * https://github.com/libstorage/libstoragemgmt/issues/144
-
-* Wed Jun 24 2015 Gris Ge <fge@redhat.com> 1.2.3-1
-- Bug fixes:
-    * lsmcli bash completion: Fix syntax error.
-    * lsmcli bash completion: Fix volume-delete.
-    * lsmcli bash completion: Add missing completions.
-
-* Tue Jun 23 2015 Gris Ge <fge@redhat.com> 1.2.2-1
-- Bug fixes:
-    * Fix: selinux dac_override
-    * Manpage: Update hpsa and megaraid plugin manpages.
-    * HP Smart Array Plugin: Fix pool querying on P410i.
-    * MegaRAID Plugin: Fix bug when no volume configured.
-
-* Wed Jun 17 2015 Gris Ge <fge@redhat.com> 1.2.1-1
-- Bug fix:
-    * Fix 'make distcheck' error on bash-completion.
-
-* Tue Jun 16 2015 Gris Ge <fge@redhat.com> 1.2.0-1
-- New features:
-    * The lsmd daemon now allows plugin to run as root using configure
-      file.
-    * Targetd plugin got full access group support.
-    * The simulator plugin switched from risky pickle to sqlite3 for state
-      saving.
-    * Introduced bash auto completion support for lsmcli command.
-    * Two new plugins for hardware RAID cards:
-        * LSI MegaRAID plugin -- megaraid://
-            Dell PERC and other OEM rebanded MegaRAID cards are also
-            supported.
-        * HP SmartArray plugin -- hpsa://
-- Library adds:
-    * New method to query RAID information of volume:
-        Python: lsm.Client.volume_raid_info().
-        C: lsm_volume_raid_info().
-    * New method to query pool membership:
-        Python: lsm.Client.pool_member_info().
-        C: lsm_pool_member_info().
-    * New disk status constant to indicate certain disk could be used as
-      pool disk or dedicate spare disk.
-        Python: DISK.STATUS_FREE.
-        C: LSM_DISK_STATUS_FREE.
-    * New method to create RAID volume on hardware RAID cards:
-        Python: lsm.Client.volume_raid_create_cap_get().
-                lsm.Client.volume_raid_create().
-        C: lsm_volume_raid_create_cap_get().
-           lsm_volume_raid_create().
-    * New C plugin register interface for version 1.2 new methods:
-        lsm_register_plugin_v1_2()
-- Bug fixes and miscellaneous fixes:
-    * lsmd: Fix a possible infinity loop on plugin search.
-    * Fix memory leak in C unit test.
-    * Library: Fix incorrect Volume.vpd83 definition
-    * SMI-S plugin: Fix SMI-S plugin spare disk support.
-    * SMI-S plugin: Fix target_ports() for HP 3PAR and EMC VMAX.
-    * SMI-S plugin: Fix the incorrect profile_check().
-    * Fix C library compile warning.
-    * Fix C library potential memory leak in handle_volume_raid_create().
-    * ONTAP, MegaRAID, SMI-S Plugins: Enforce the definition of Pool.status.
-    * Change license statement by replacing address to URL.
-    * lsmd: add error catch for signal.
-    * lsmcli: fix _get_item error message.
-    * C Library: Fix message loop
-    * C Library: Clean up code for DRY(don't repeat yourself).
-    * SMI-S Plugin: Collect xml during exception.
-    * C Library: Remove ambiguity between wrong type or OOM
-    * C code clean up to use K&R code style.
-    * Add Charles Rose to AUTHORS.
-* Thu Dec 4 2014 Tony Asleson <tasleson@redhat.com> 1.1.0-1
-- Library adds:
-
-  API Constants for new pool element types and plugin changes to support it
-  * C constants:
-     LSM_POOL_ELEMENT_TYPE_VOLUME_FULL, LSM_POOL_ELEMENT_TYPE_VOLUME_THIN
-  * Py constants:
-     Pool.ELEMENT_TYPE_VOLUME_FULL, Poll.ELEMENT_TYPE_THIN
-
-  lsmcli:
-  * lt - Alias for 'list --type target_ports'
-  * Removed --init for volume-mask, it was broken for targetd (the only
-    user) and instead of fixing we are going to improve targetd to support
-    access groups in the next release
-
-- Numerous code improvements, including a big SMI-S plugin refactor,
-  source code documentation corrections
-
-- Bug fix: Use correct default values for anonymous uid/gid in lsmcli
-- Bug fix: simc simulator not working for allowable NULL parameters for:
-  *  fs_child_dependency
-  *  fs_child_dependency_rm
-  *  fs_snapshot_restore
-- Bug fix: lsm_restd memory leak corrections
-- Bug fix: NetApp plugin, correctly set export path when caller specifies
-  default in API
-- Bug fix: Add file locking to sim plugin to prevent concurrent modification
-- Bug fix: Consistently report common error conditions for NO_STATE_CHANGE,
-  EXISTS_INITIATOR for all plugins
-- Bug fix: Number of bugs addressed in SMI-S plugin including:
-  * EMC: Correct error path when replicating a volume with a duplicate
-    volume name
-  * HDS: Correctly create thinly provisioned volume on thinly provisioned
-    pool
-
-* Sun Sep 7 2014 Tony Asleson <tasleson@redhat.com> 1.0.0-1
-- Release version 1
-- Numerous constants re-naming & removing
-- Removed the pool create/delete until things work better,
-  esp. WRT SMI-S
-- Added checks for initiator ID verification
-- Added checks for vpd 0x83 verification
-- Simplified error logging (removed domain & level)
-- Re-named functions for online,offline -> enable,disable
-- Always use objects instead of object ID in function
-  params
-- Removed individual files from fs snapshot creation
-- Add unsupported actions for pools
-- lsm_capability_set_n uses a -1 to terminate list
-- Volume status removed, replaced with admin state
-- Removed ibmiv7k plugin
-- Explicitly specify python2
-- Error path consistency changes (same error for same condition
-  across plug-ins)
-- Numerous bug fixes
-
-* Thu Jul 3 2014 Tony Asleson <tasleson@redhat.com> 0.1.0-1
-- Release candidate for a 1.0.0 release
-- Optional data removed
-- Initiator only functions removed
-- Pool create from from volumes removed
-- Code directory structure updated
-- Target port listing added
-
-* Tue Feb 18 2014 Gris Ge <fge@redhat.com> 0.0.24-2
-- Introduce a REST daemon(only for systemd yet).
-- Allowing enable/disable ibm_v7k plugin via 'rpmbuild --with ibm_v7k' or
-  'rpmbuild --without ibm_v7k'.
-- Fix the compile warning about data of changelog by changing
-  'Thu Nov 27 2013' to 'Wed Nov 27 2013'.
-
-* Thu Jan 30 2014 Tony Asleson <tasleson@redhat.com> 0.0.24-1
-- Command line interface (CLI) re-factored and improved to be easier to use
-  and more consistent, man pages have been updated
-- Command line output now has '-s, --script' for an additional way to output
-  information for consumption in scripts
-- Command line option '-o' for retrieving optional/extended data for disks &
-  pools
-- Pool creation/deleting in CLI & python API
-- Numerous small bug fixes
-- C API, added ability to list disks, list plugins and retrieve optional
-  data for disks
-- SSL for SMI-S is more stringent on certificate checking for newer
-  distributions, new URI option "no_ssl_verify=yes" to disable
-
-* Wed Nov 27 2013 Tony Asleson <tasleson@redhat.com> 0.0.23-1
-- Addition of listing disks implemented for SMI-S and Ontap plugins
-  (new, not in C library yet)
-- Add the ability to list currently installed and usable plug-ins
-- Verify return types are correct in python client calls
-- Added the ability to retrieve optional data (new, not in C library yet)
-- Visibility reductions for python code (somethings were public when should be
-  private
-- Add calls to create/delete pools (new, not in C library yet)
-- Add missing initiator type for SAS
-- Improved vpd83 retrieval for SMI-S
-- Performance improvements for SMI-S plug-in
-- Numerous small bug fixes
-- Nstor plugin, additional testing and bug fixes
-- lsmd, added call to setgroups and enable full relo and PIE (ASLR) for
-  security improvements
-- simulator state is now versioned
-- SCSI Unit Attention uevent handling
-
-* Mon Aug 12 2013 Tony Asleson <tasleson@redhat.com> 0.0.22-1
-- Numerous code improvments/fixes
-- BZ 968384
-- BZ 990577
-
-* Tue Jul 16 2013 Tony Asleson <tasleson@redhat.com> 0.0.21-1
-- Don't include IBM7K plugin for RHEL > 6 missing paramakio
-- IEC binary size handling
-- Functionality improvements for IBM V7K array
-- Workaround for python bug on F19
-- Bugfix (BZ 968384)
-- Package plug-ins as separately in rpm packages
-
-* Fri May 24 2013 Tony Asleson <tasleson@redhat.com> 0.0.20-1
-- Python library files now in separate rpm
-- Additional debug for plug-ins when exceptions occur
-- iSCSI CHAP support modified to handle both inbound and outbound authentication
-- VOLUME_THIN Added as new capability flag
-- IBM V7000 storage array support
-- NFS export support for targetd
-- EXPORT_CUSTOM_PATH added capability flag
-
-* Sat Apr 20 2013 Tony Asleson <tasleson@redhat.com> 0.0.19-1
-- Improved E-Series array support
-- Ontap plug-in: improve performance with many Volumes
-- lsmcli: Number of corrections on handling unit specifiers
-- lsmcli: Correct stack track when stdout is written to while closed
-- Fix build to work with automake >= 1.12
-
-* Thu Mar 7 2013 Tony Asleson <tasleson@redhat.com> 0.0.18-1
-- lsmd: Re-written in C
-- Simplify fs_delete
-- Corrections for C client against Python plugin
-- Testing: Run cross language unit test too
-- Initial FS support for targetd plugin
-- Fix multi-arch python issues which prevent py and compiled py files
-  from being identical on different arches
-
-* Thu Jan 31 2013 Tony Asleson <tasleson@redhat.com> 0.0.17-1
-- Inconsistency corrections between C and Python API
-- Source code documentation updates
-- NexentaStor plug-in has been added
-
-* Wed Jan 2 2013 Tony Asleson <tasleson@redhat.com> 0.0.16-1
-- lsmcli: Add confirmation prompt for data loss operations
-- lsmcli: Display enumerated values as text
-- lsmcli: Exit with 7 for --job-status when not complete
-- Fixed URI example to reference an existing plug-in
-- lsmcli: Retrieve plug-in desc. and version (lsmcli --plugin-info)
-- simc: Implement CHAP auth function (no-op)
-- lsmcli: Change check for determining if lsmd is running
-- Disable mirroring for SMI-S as it needs some re-work
-
-* Mon Nov 19 2012 Tony Asleson <tasleson@redhat.com> 0.0.15-1
-- Pool parameter is optional when replicating a volume
-- Code improvements(Memory leak fix, lsmcli checks if lsmd is running)
-- Source code documentation updates
-- Ability to override simulator data storage location
-- make check target added to run unit tests
-
-* Fri Oct 19 2012 Tony Asleson <tasleson@redhat.com> 0.0.14-1
-- test/cmdline.py added to automatically test what an array supports
-- Bug fixes (local plug-in execution, smi-s delete clone, code warnings)
-- targetd: (uri syntax consistency change, initialization code change)
-- Pool id added to volume information
-- lsmcli: Added --replicate-volume-range-block-size <system id> to retrieve
-  replicated block size
-
-* Fri Sep 28 2012 Tony Asleson (Red Hat) <tasleson@redhat.com> 0.0.13-1
-- targetD Feature adds/fixes for initiators, init_granted_to_volume,
-  volumes_accessible_by_init, initiator_grant, initiator_revoke
-- SMI-S added compatibility with CIM_StorageConfigurationService
-- SMI-S bug fixes/changes to support XIV arrays (Basic functionality verified)
-- SMI-S Proxy layer added to allow different internal implementations of smi-s
-  client
-- Added missing version information for C plug-in API
-- lsmcli URI can be stored in file .lsmcli in users home directory
-
-* Fri Sep 07 2012 Tony Asleson (Red Hat) <tasleson@redhat.com> 0.0.12-1
-- SMI-S plug-in enhancements (Detach before delete, bug fixes for eSeries)
-- Added version specifier for non-opaque structs in plug-in callback interface
-- Documentation updates (doxygen, man pages)
-- Ontap plug-in: support timeout values
-- lsmcli, return back async. values other than volumes when using --job-status
-
-* Mon Aug 13 2012 Tony Asleson <tasleson@redhat.com> 0.0.11-1
-- SMI-S fixes and improvements (WaitForCopyState, _get_class_instance)
-- Methods for arrays that don't support access groups to grant access
-  for luns to initiators etc.
-- ISCSI Chap authentication
-- System level status field for overall array status
-- targetd updates for mapping targets to initiators
-- Simulator updates (python & C)
-- Removed tog-pegasus dependency (SMI-S is python plug-in)
-- Removed lsmVolumeStatus as it was implemented and redundant
-- initscript, check for /var/run and create if missing
-
-* Fri Jul 20 2012 Tony Asleson <tasleson@redhat.com> 0.0.10-1
-- Numerous updates and re-name for plug-in targetd_lsmplugin
-- targetd_lsmplugin included in release
-- Memory leak fixes and improved unit tests
-- Initial capability query support, implemented for all plug-ins
-- Flags variable added to API calls, (Warning: C API/ABI breakage, python
-  unaffected)
-- Bug fixes for NetApp ontap plug-in
-- SMI-S bug fixes (initiator listing and replication, mode and sync types)
-- Added ability to specify mirroring async or sync for replication
-- Added version header file to allow client version header checks
-- Simulator plug-in written in C, simc_lsmplugin is available
-
-* Tue Jun 12 2012 Tony Asleson <tasleson@redhat.com> 0.0.9-1
-- Initial checkin of lio plug-in
-- System filtering via URI (smispy)
-- Error code mapping (ontap)
-- Fixed build so same build tarball is used for all binaries
-
-* Mon Jun 4 2012 Tony Asleson <tasleson@redhat.com> 0.0.8-1
-- Make building of SMI-S CPP plugin optional
-- Add pkg-config file
-- SMIS: Fix exception while retrieving Volumes
-- SMIS: Fix exception while retrieving Volumes
-- lsm: Add package imports
-- Make Smis class available in lsm python package
-- Add option to disable building C unit test
-- Make simulator classes available in lsm python package
-- Make ontap class available in lsm python package
-- Changes to support building on Fedora 17 (v2)
-- Spec. file updates from feedback from T. Callaway (spot)
-- F17 linker symbol visibility correction
-- Remove unneeded build dependencies and cleaned up some warnings
-- C Updates, client C library feature parity with python
-
-* Fri May 11 2012 Tony Asleson <tasleson@redhat.com> 0.0.7-1
-- Bug fix for smi-s constants
-- Display formatting improvements
-- Added header option for lsmcli
-- Improved version handling for builds
-- Made terminology consistent
-- Ability to list visibility for access groups and volumes
-- Simulator plug-in fully supports all block operations
-- Added support for multiple systems with a single plug-in instance
-
-* Fri Apr 20 2012 Tony Asleson <tasleson@redhat.com> 0.0.6-1
-- Documentation improvements (man & source code)
-- Support for access groups
-- Unified spec files Fedora/RHEL
-- Package version auto generate
-- Rpm target added to make
-- Bug fix for missing optional property on volume retrieval (smispy plug-in)
-
-* Fri Apr 6 2012 Tony Asleson <tasleson@redhat.com> 0.0.5-1
-- Spec file clean-up improvements
-- Async. operation added to lsmcli and ability to check on job status
-- Sub volume replication support
-- Ability to check for child dependencies on VOLUMES, FS and files
-- SMI-S Bug fixes and improvements
-
-* Mon Mar 26 2012 Tony Asleson <tasleson@redhat.com> 0.0.4-1
-- Restore from snapshot
-- Job identifiers string instead of integer
-- Updated license address
-
-* Wed Mar 14 2012 Tony Asleson <tasleson@redhat.com> 0.0.3-1
-- Changes to installer, daemon uid, gid, /var/run/lsm/*
-- NFS improvements and bug fixes
-- Python library clean up (rpmlint errors)
-
-* Sun Mar 11 2012 Tony Asleson <tasleson@redhat.com> 0.0.2-1
-- Added NetApp native plugin
-
-* Mon Feb 6 2012 Tony Asleson <tasleson@redhat.com>  0.0.1alpha-1
-- Initial version of package
