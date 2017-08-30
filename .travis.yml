@@ -1,35 +1,19 @@
-sudo: false
+sudo: required
+dist: trusty
 language: c
+env:
+    matrix:
+        - OS_TYPE=fedora
+        - OS_TYPE=centos
 
-addons:
-  apt:
-    packages:
-        - gcc
-        - tar
-        - make
-        - g++
-        - libtool
-        - autoconf
-        - automake
-        - libyajl-dev
-        - python-pywbem
-        - libxml2-dev
-        - check
-        - libglib2.0-dev
-        - libssl-dev
-        - libconfig-dev
-        - libudev-dev
-        - python-dev
-        - valgrind
-        - chrpath
-        - python-pyudev
-        - libsqlite3-dev
-        - python-requests
-        - python-six
+services:
+    - docker
 
-compiler: gcc
+before_install:
+    - docker pull $OS_TYPE
 
 script:
-        - ./autogen.sh
-        - ./configure
-        - make distcheck
+    - >
+        docker run --privileged --rm=true --tty=true
+        -v `pwd`:/libstoragemgmt-code:rw $OS_TYPE
+        /bin/bash -c /libstoragemgmt-code/test/docker_travis_test.sh

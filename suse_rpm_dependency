@@ -1,3 +1,4 @@
+file
 gcc
 tar
 make
@@ -7,6 +8,7 @@ libtool
 autoconf
 procps
 automake
+perl
 valgrind
 chrpath
 libyajl-devel
