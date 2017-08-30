@@ -13,7 +13,7 @@ before_install:
     - docker pull $OS_TYPE
 
 script:
-    - >
+    - travis_wait 30
         docker run --privileged --rm=true --tty=true
         -v `pwd`:/libstoragemgmt-code:rw $OS_TYPE
         /bin/bash -c /libstoragemgmt-code/test/docker_travis_test.sh
