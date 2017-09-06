@@ -1,3 +1,4 @@
+file
 gcc
 tar
 make
@@ -16,6 +17,7 @@ libssl-dev
 libconfig-dev
 libudev-dev
 python-dev
+perl
 valgrind
 chrpath
 python-pyudev

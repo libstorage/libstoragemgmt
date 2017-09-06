@@ -1,4 +1,4 @@
-%bcond_without  test
+%bcond_with  test
 %global py3_build_dir %{_builddir}/%{name}-%{version}-%{release}-python3
 
 Name:           libstoragemgmt

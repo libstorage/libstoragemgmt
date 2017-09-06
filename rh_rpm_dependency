@@ -1,3 +1,5 @@
+procps-ng
+file
 tar
 make
 gcc
@@ -14,10 +16,11 @@ m2crypto
 openssl-devel
 libconfig-devel
 python-pyudev
-python-argparse
 python-devel
 libudev-devel
+perl
 valgrind
 chrpath
 sqlite-devel
 python-six
+bash-completion

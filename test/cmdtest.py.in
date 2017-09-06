@@ -929,7 +929,7 @@ def verify_no_daemon_needed(cmd, expected_rcs):
     ec, out, err = call(cmd, env=env, expected_rcs=expected_rcs)
 
     if ec == 4:
-        if 'DAEMON_NOT_RUNNING' in err:
+        if 'DAEMON_NOT_RUNNING' in err.decode('utf8'):
             print("Daemon does not need to run for local disk commands!")
             exit(10)
 
