@@ -35,11 +35,11 @@
 #include <assert.h>
 
 /* SPC-5 Table 139 - PERIPHERAL DEVICE TYPE field */
-#define _LINUX_SG_DEV_TYPE_SES                  "13"  /* 0x0d  */
-#define _LINUX_SG_DEV_TYPE_SES_LEN              2
+#define _LINUX_SCSI_DEV_TYPE_SES                "13"  /* 0x0d  */
+#define _LINUX_SCSI_DEV_TYPE_SES_LEN            2
 /* just two digits like above */
 
-#define _SYSFS_SG_ROOT_PATH                     "/sys/class/scsi_generic"
+#define _SYSFS_BSG_ROOT_PATH                    "/sys/class/bsg"
 
 #define _T10_SES_CFG_PG_CODE                    0x01
 #define _T10_SES_STATUS_PG_CODE                 0x02
@@ -236,11 +236,11 @@ struct _ses_cfg_dp_hdr {
     } while(0)
 
 /*
- * Get all /dev/sgX which support SES via libudev.
+ * Get all /dev/bsg/<htbl>  which support SES via sysfs.
  * Assuming given pointer is not NULL.
  */
-static int _ses_sg_paths_get(char *err_msg, char ***sg_paths,
-                             uint32_t *sg_count);
+static int _ses_bsg_paths_get(char *err_msg, char ***bsg_paths,
+                              uint32_t *bsg_count);
 
 /*
  * Return element index of given SAS address. The index is including overall
@@ -329,44 +329,44 @@ static void _ses_cfg_parse(uint8_t *cfg_data, uint8_t **dp_hdr_begin,
     return;
 }
 
-static int _ses_sg_paths_get(char *err_msg, char ***sg_paths,
-                             uint32_t *sg_count)
+static int _ses_bsg_paths_get(char *err_msg, char ***bsg_paths,
+                              uint32_t *bsg_count)
 {
     int rc = LSM_ERR_OK;
     uint32_t i = 0;
     DIR *dir = NULL;
     struct dirent *dp = NULL;
-    lsm_string_list *sg_name_list = NULL;
-    const char *sg_name = NULL;
-    char *sysfs_sg_type_path = NULL;
-    char sg_dev_type[_LINUX_SG_DEV_TYPE_SES_LEN + 1];
-    ssize_t sg_dev_type_size = 0;
+    lsm_string_list *bsg_name_list = NULL;
+    const char *bsg_name = NULL;
+    char *sysfs_bsg_type_path = NULL;
+    char dev_type[_LINUX_SCSI_DEV_TYPE_SES_LEN + 1];
+    ssize_t dev_type_size = 0;
     char strerr_buff[_LSM_ERR_MSG_LEN];
     int tmp_rc = 0;
 
     assert(err_msg != NULL);
-    assert(sg_paths != NULL);
-    assert(sg_count != NULL);
+    assert(bsg_paths != NULL);
+    assert(bsg_count != NULL);
 
-    *sg_paths = NULL;
-    *sg_count = 0;
+    *bsg_paths = NULL;
+    *bsg_count = 0;
 
-    sg_name_list = lsm_string_list_alloc(0 /* no pre-allocation */);
-    _alloc_null_check(err_msg, sg_name_list, rc, out);
+    bsg_name_list = lsm_string_list_alloc(0 /* no pre-allocation */);
+    _alloc_null_check(err_msg, bsg_name_list, rc, out);
 
     /* We don't use libudev here because libudev seems have no way to check
-     * whether 'sg' kernel module is loaded or not.
+     * whether 'bsg' kernel module is loaded or not.
      */
-    if (! _file_exists(_SYSFS_SG_ROOT_PATH)) {
+    if (! _file_exists(_SYSFS_BSG_ROOT_PATH)) {
         rc = LSM_ERR_INVALID_ARGUMENT;
-        _lsm_err_msg_set(err_msg, "Required kernel module 'sg' not loaded");
+        _lsm_err_msg_set(err_msg, "Required kernel module 'bsg' not loaded");
         goto out;
     }
 
-    dir = opendir(_SYSFS_SG_ROOT_PATH);
+    dir = opendir(_SYSFS_BSG_ROOT_PATH);
     if (dir == NULL) {
         _lsm_err_msg_set(err_msg, "Cannot open %s: error (%d)%s",
-                         _SYSFS_SG_ROOT_PATH, errno,
+                         _SYSFS_BSG_ROOT_PATH, errno,
                          strerror_r(errno, strerr_buff, _LSM_ERR_MSG_LEN));
 
         rc = LSM_ERR_LIB_BUG;
@@ -375,72 +375,71 @@ static int _ses_sg_paths_get(char *err_msg, char ***sg_paths,
 
     do {
         if ((dp = readdir(dir)) != NULL) {
-            sg_name = dp->d_name;
-            if ((sg_name == NULL) || (strlen(sg_name) == 0) ||
-                (strncmp(sg_name, "sg", strlen("sg")) != 0))
+            bsg_name = dp->d_name;
+            if ((bsg_name == NULL) || (strlen(bsg_name) == 0))
                 continue;
-            sysfs_sg_type_path = (char *)
-                malloc(sizeof(char) * (strlen(_SYSFS_SG_ROOT_PATH) +
+            sysfs_bsg_type_path = (char *)
+                malloc(sizeof(char) * (strlen(_SYSFS_BSG_ROOT_PATH) +
                                        strlen("/") +
-                                       strlen(sg_name) +
+                                       strlen(bsg_name) +
                                        strlen("/device/type") +
                                        1 /* trailing \0 */));
-            _alloc_null_check(err_msg, sysfs_sg_type_path, rc, out);
-            sprintf(sysfs_sg_type_path, "%s/%s/device/type",
-                    _SYSFS_SG_ROOT_PATH, sg_name);
-            tmp_rc = _read_file(sysfs_sg_type_path, (uint8_t *) sg_dev_type,
-                                &sg_dev_type_size,
-                                _LINUX_SG_DEV_TYPE_SES_LEN + 1);
+            _alloc_null_check(err_msg, sysfs_bsg_type_path, rc, out);
+            sprintf(sysfs_bsg_type_path, "%s/%s/device/type",
+                    _SYSFS_BSG_ROOT_PATH, bsg_name);
+            tmp_rc = _read_file(sysfs_bsg_type_path, (uint8_t *) dev_type,
+                                &dev_type_size,
+                                _LINUX_SCSI_DEV_TYPE_SES_LEN + 1);
             if ((tmp_rc != 0) && (tmp_rc != EFBIG)) {
-                free(sysfs_sg_type_path);
+                free(sysfs_bsg_type_path);
                 continue;
             }
-            if (strncmp(sg_dev_type, _LINUX_SG_DEV_TYPE_SES,
-                        _LINUX_SG_DEV_TYPE_SES_LEN) == 0) {
-                if (lsm_string_list_append(sg_name_list, sg_name) != 0) {
-                    free(sysfs_sg_type_path);
+            if (strncmp(dev_type, _LINUX_SCSI_DEV_TYPE_SES,
+                        _LINUX_SCSI_DEV_TYPE_SES_LEN) == 0) {
+                if (lsm_string_list_append(bsg_name_list, bsg_name) != 0) {
+                    free(sysfs_bsg_type_path);
                     _lsm_err_msg_set(err_msg, "No memory");
                     rc = LSM_ERR_NO_MEMORY;
                     goto out;
                 }
             }
-            free(sysfs_sg_type_path);
+            free(sysfs_bsg_type_path);
         }
     } while(dp != NULL);
 
-    *sg_count = lsm_string_list_size(sg_name_list);
-    *sg_paths = (char **) malloc(sizeof(char *) * (*sg_count));
-    _alloc_null_check(err_msg, sg_name_list, rc, out);
+    *bsg_count = lsm_string_list_size(bsg_name_list);
+    *bsg_paths = (char **) malloc(sizeof(char *) * (*bsg_count));
+    _alloc_null_check(err_msg, bsg_name_list, rc, out);
 
-    /* Initialize *sg_paths */
-    for (i = 0; i < *sg_count; ++i)
-        (*sg_paths)[i] = NULL;
+    /* Initialize *bsg_paths */
+    for (i = 0; i < *bsg_count; ++i)
+        (*bsg_paths)[i] = NULL;
 
-    _lsm_string_list_foreach(sg_name_list, i, sg_name) {
-        (*sg_paths)[i] = (char *)
-            malloc(sizeof(char) * (strlen(sg_name) + strlen("/dev/") +
+    _lsm_string_list_foreach(bsg_name_list, i, bsg_name) {
+        (*bsg_paths)[i] = (char *)
+            malloc(sizeof(char) * (strlen(bsg_name) + strlen("/dev/bsg/") +
                                    1 /* trailing \0 */));
-        if ((*sg_paths)[i] == NULL) {
+        if ((*bsg_paths)[i] == NULL) {
             rc = LSM_ERR_NO_MEMORY;
             goto out;
         }
-        sprintf((*sg_paths)[i], "/dev/%s", sg_name);
+        sprintf((*bsg_paths)[i], "/dev/bsg/%s", bsg_name);
     }
 
  out:
     if (dir != NULL)
         closedir(dir);
 
-    if (sg_name_list != NULL)
-        lsm_string_list_free(sg_name_list);
+    if (bsg_name_list != NULL)
+        lsm_string_list_free(bsg_name_list);
     if (rc != LSM_ERR_OK) {
-        if (*sg_paths != NULL) {
-            for (i = 0; i < *sg_count; ++i)
-                free((char *) (*sg_paths)[i]);
-            free(*sg_paths);
+        if (*bsg_paths != NULL) {
+            for (i = 0; i < *bsg_count; ++i)
+                free((char *) (*bsg_paths)[i]);
+            free(*bsg_paths);
         }
-        *sg_paths = NULL;
-        *sg_count = 0;
+        *bsg_paths = NULL;
+        *bsg_count = 0;
     }
     return rc;
 }
@@ -745,8 +744,8 @@ static int _ses_info_get_by_sas_addr(char *err_msg, const char *tp_sas_addr,
                                       int16_t *element_index)
 {
     int rc = LSM_ERR_OK;
-    char  **sg_paths = NULL;
-    uint32_t sg_count = 0;
+    char  **bsg_paths = NULL;
+    uint32_t bsg_count = 0;
     uint32_t i = 0;
     bool found = false;
 
@@ -757,10 +756,10 @@ static int _ses_info_get_by_sas_addr(char *err_msg, const char *tp_sas_addr,
     assert(element_index != NULL);
     assert(fd != NULL);
 
-    _good(_ses_sg_paths_get(err_msg, &sg_paths, &sg_count), rc, out);
+    _good(_ses_bsg_paths_get(err_msg, &bsg_paths, &bsg_count), rc, out);
 
-    for (i = 0; i < sg_count; ++i) {
-        _good(_sg_io_open_rw(err_msg, sg_paths[i], fd), rc, out);
+    for (i = 0; i < bsg_count; ++i) {
+        _good(_sg_io_open_rw(err_msg, bsg_paths[i], fd), rc, out);
         _good(_sg_io_recv_diag(err_msg, *fd, _T10_SES_CFG_PG_CODE, cfg_data),
               rc, out);
         _good(_sg_io_recv_diag(err_msg, *fd, _T10_SES_STATUS_PG_CODE,
@@ -790,11 +789,11 @@ static int _ses_info_get_by_sas_addr(char *err_msg, const char *tp_sas_addr,
     }
 
  out:
-    if (sg_paths != NULL) {
-        for (i = 0; i < sg_count; ++i) {
-            free(sg_paths[i]);
+    if (bsg_paths != NULL) {
+        for (i = 0; i < bsg_count; ++i) {
+            free(bsg_paths[i]);
         }
-        free(sg_paths);
+        free(bsg_paths);
     }
     if (rc != LSM_ERR_OK) {
         *element_index = -1;
