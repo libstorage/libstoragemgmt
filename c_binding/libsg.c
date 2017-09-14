@@ -38,6 +38,8 @@
 #include <endian.h>
 #include <scsi/scsi.h>  /* For SCSI_IOCTL_GET_BUS_NUMBER */
 #include <limits.h>
+#include <linux/bsg.h>
+#include <stdint.h>
 
 /* SGIO timeout: 1 second
  * TODO(Gris Ge): Raise LSM_ERR_TIMEOUT error for this
@@ -320,12 +322,23 @@ struct _sg_t10_info_excep_general_log_hdr {
 #pragma pack(pop)
 
 /*
+ * For SG_IO v3.
  * Return 0 if pass, return -1 means got sense_data, return errno of ioctl
  * error if ioctl failed.
  * The 'sense_data' should be uint8_t[_T10_SPC_SENSE_DATA_MAX_LENGTH].
  */
-static int _sg_io(int fd, uint8_t *cdb, uint8_t cdb_len, uint8_t *data,
-                  ssize_t data_len, uint8_t *sense_data, int direction);
+static int _sg_io_v3(int fd, uint8_t *cdb, uint8_t cdb_len, uint8_t *data,
+                     ssize_t data_len, uint8_t *sense_data, int direction);
+
+/*
+ * For SG_IO v4 BSG only.
+ * Return 0 if pass, return -1 means got sense_data, return errno of ioctl
+ * error if ioctl failed.
+ * The 'sense_data' should be uint8_t[_T10_SPC_SENSE_DATA_MAX_LENGTH].
+ */
+static int _sg_io_v4(int fd, uint8_t *cdb, uint8_t cdb_len, uint8_t *data,
+                     ssize_t data_len, uint8_t *sense_data, int direction);
+
 
 static struct _sg_t10_vpd83_dp *_sg_t10_vpd83_dp_new(void);
 
@@ -344,10 +357,10 @@ static int _fill_ata_regs_fixed(uint8_t *ata_output_regs, uint8_t *sense_data);
  * _T10_SPC_SENSE_KEY_RECOVERED_ERROR, return -1 otherwise.
  */
 static int _check_sense_data(char *err_msg, uint8_t *sense_data,
-                                 uint8_t *sense_key);
+                             uint8_t *sense_key);
 
-static int _sg_io(int fd, uint8_t *cdb, uint8_t cdb_len, uint8_t *data,
-                  ssize_t data_len, uint8_t *sense_data, int direction)
+static int _sg_io_v3(int fd, uint8_t *cdb, uint8_t cdb_len, uint8_t *data,
+                     ssize_t data_len, uint8_t *sense_data, int direction)
 {
     int rc = 0;
     struct sg_io_hdr io_hdr;
@@ -389,6 +402,52 @@ static int _sg_io(int fd, uint8_t *cdb, uint8_t cdb_len, uint8_t *data,
     return rc;
 }
 
+
+static int _sg_io_v4(int fd, uint8_t *cdb, uint8_t cdb_len, uint8_t *data,
+                     ssize_t data_len, uint8_t *sense_data, int direction)
+{
+    int rc = 0;
+    struct sg_io_v4 io_hdr;
+
+    assert(cdb != NULL);
+    assert(cdb_len != 0);
+
+    memset(&io_hdr, 0, sizeof(struct sg_io_hdr));
+    memset(sense_data, 0, _T10_SPC_SENSE_DATA_MAX_LENGTH);
+    if (direction == _SG_IO_RECV_DATA)
+        memset(data, 0, (size_t) data_len);
+    io_hdr.guard = 'Q'; /* Just to be different from v3 */
+    io_hdr.protocol = BSG_PROTOCOL_SCSI;
+    io_hdr.subprotocol = BSG_SUB_PROTOCOL_SCSI_CMD;
+    io_hdr.request_len =  cdb_len;
+    io_hdr.request = (__u64) (uintptr_t) cdb;
+    io_hdr.response = (__u64) (uintptr_t) sense_data;
+    io_hdr.max_response_len = _T10_SPC_SENSE_DATA_MAX_LENGTH;
+
+    if (data != NULL) {
+        if (direction == _SG_IO_RECV_DATA) {
+            io_hdr.din_xfer_len = (__u32) data_len;
+            io_hdr.din_xferp = (__u64) (uintptr_t) data;
+        } else if (direction == _SG_IO_SEND_DATA) {
+            io_hdr.dout_xfer_len = (__u32) data_len;
+            io_hdr.dout_xferp = (__u64) (uintptr_t) data;
+        }
+    }
+    io_hdr.timeout = _SG_IO_TMO;
+
+    if (ioctl(fd, SG_IO, &io_hdr) != 0)
+        rc = errno;
+
+    if (io_hdr.response_len != 0)
+        /* It might possible we got "NO SENSE", so we does not zero the data */
+        return -1;
+
+    if ((rc != 0) && (data != NULL))
+        memset(data, 0, (size_t) data_len);
+
+    return rc;
+}
+
 int _sg_io_vpd(char *err_msg, int fd, uint8_t page_code, uint8_t *data)
 {
     int rc = LSM_ERR_OK;
@@ -421,8 +480,9 @@ int _sg_io_vpd(char *err_msg, int fd, uint8_t page_code, uint8_t *data)
      * yet.
      */
 
-    ioctl_errno = _sg_io(fd, cdb, _T10_SPC_INQUIRY_CMD_LEN, data,
-                         _SG_T10_SPC_VPD_MAX_LEN, sense_data, _SG_IO_RECV_DATA);
+    ioctl_errno = _sg_io_v3(fd, cdb, _T10_SPC_INQUIRY_CMD_LEN, data,
+                            _SG_T10_SPC_VPD_MAX_LEN, sense_data,
+                            _SG_IO_RECV_DATA);
 
     if (ioctl_errno != 0) {
         if (page_code == _SG_T10_SPC_VPD_SUP_VPD_PGS) {
@@ -848,9 +908,9 @@ int _sg_io_recv_diag(char *err_msg, int fd, uint8_t page_code, uint8_t *data)
      * yet.
      */
 
-    ioctl_errno = _sg_io(fd, cdb, _T10_SPC_RECV_DIAG_CMD_LEN, data,
-                         _SG_T10_SPC_RECV_DIAG_MAX_LEN, sense_data,
-                         _SG_IO_RECV_DATA);
+    ioctl_errno = _sg_io_v4(fd, cdb, _T10_SPC_RECV_DIAG_CMD_LEN, data,
+                            _SG_T10_SPC_RECV_DIAG_MAX_LEN, sense_data,
+                            _SG_IO_RECV_DATA);
     if (ioctl_errno != 0) {
         rc = LSM_ERR_LIB_BUG;
         /* TODO(Gris Ge): Check 'Supported Diagnostic Pages diagnostic page' */
@@ -903,8 +963,8 @@ int _sg_io_send_diag(char *err_msg, int fd, uint8_t *data, uint16_t data_len)
      * yet.
      */
 
-    ioctl_errno = _sg_io(fd, cdb, _T10_SPC_SEND_DIAG_CMD_LEN, data,
-                         data_len, sense_data, _SG_IO_SEND_DATA);
+    ioctl_errno = _sg_io_v4(fd, cdb, _T10_SPC_SEND_DIAG_CMD_LEN, data,
+                            data_len, sense_data, _SG_IO_SEND_DATA);
     if (ioctl_errno != 0) {
         rc = LSM_ERR_LIB_BUG;
         /* TODO(Gris Ge): No idea why this could fail */
@@ -1013,9 +1073,9 @@ int _sg_io_mode_sense(char *err_msg, int fd, uint8_t page_code,
      * yet.
      */
 
-    ioctl_errno = _sg_io(fd, cdb, _T10_SPC_MODE_SENSE_CMD_LEN, tmp_data,
-                         _SG_T10_SPC_MODE_SENSE_MAX_LEN, sense_data,
-                         _SG_IO_RECV_DATA);
+    ioctl_errno = _sg_io_v3(fd, cdb, _T10_SPC_MODE_SENSE_CMD_LEN, tmp_data,
+                            _SG_T10_SPC_MODE_SENSE_MAX_LEN, sense_data,
+                            _SG_IO_RECV_DATA);
 
     if (ioctl_errno == 0) {
         mode_hdr = (struct _sg_t10_mode_para_hdr *) tmp_data;
@@ -1261,8 +1321,8 @@ int _sg_io_ata_passthrough(char *err_msg, int fd, bool need_output_reg,
     cdb[9] = input_registers->command;
     cmd_len = ATA_PASS_THROUGH_12_LEN;
 
-    ioctl_errno = _sg_io(fd, cdb, cmd_len, data, data_len, sense_data,
-                         _SG_IO_NO_DATA);
+    ioctl_errno = _sg_io_v3(fd, cdb, cmd_len, data, data_len, sense_data,
+                            _SG_IO_NO_DATA);
 
     if (ioctl_errno) {
         rc = _get_ata_output_regs(sense_data, ata_output_regs);
@@ -1308,9 +1368,9 @@ int _sg_log_sense(char *err_msg, int fd, uint8_t page_code,
     cdb[7] = (_T10_SPC_LOG_SENSE_MAX_LEN >> 8) & UINT8_MAX;
     cdb[8] = _T10_SPC_LOG_SENSE_MAX_LEN & UINT8_MAX;
 
-    ioctl_errno = _sg_io(fd, cdb, _T10_SPC_LOG_SENSE_CMD_LEN, tmp_data,
-                         _T10_SPC_LOG_SENSE_MAX_LEN, sense_data,
-                         _SG_IO_RECV_DATA);
+    ioctl_errno = _sg_io_v3(fd, cdb, _T10_SPC_LOG_SENSE_CMD_LEN, tmp_data,
+                            _T10_SPC_LOG_SENSE_MAX_LEN, sense_data,
+                            _SG_IO_RECV_DATA);
 
     if (ioctl_errno) {
         rc = LSM_ERR_LIB_BUG;
@@ -1366,9 +1426,9 @@ int _sg_request_sense(char *err_msg, int fd, uint8_t *returned_sense_data)
     cdb[0] = REQUEST_SENSE;
     cdb[4] = _T10_SPC_REQUEST_SENSE_MAX_LEN & UINT8_MAX;
 
-    ioctl_errno = _sg_io(fd, cdb, _T10_SPC_REQUEST_SENSE_CMD_LEN, request_sense,
-                         _T10_SPC_REQUEST_SENSE_MAX_LEN,
-                         sense_data, _SG_IO_RECV_DATA);
+    ioctl_errno = _sg_io_v3(fd, cdb, _T10_SPC_REQUEST_SENSE_CMD_LEN,
+                            request_sense, _T10_SPC_REQUEST_SENSE_MAX_LEN,
+                            sense_data, _SG_IO_RECV_DATA);
 
     if (ioctl_errno) {
         rc = LSM_ERR_LIB_BUG;
