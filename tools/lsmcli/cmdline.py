@@ -875,6 +875,27 @@ cmds = (
             dict(local_disk_path_opt),
         ],
     ),
+    dict(
+        name='local-phy-disk-info',
+        help='List all physical disks assembled the specified local disk path',
+        args=[
+            dict(local_disk_path_opt),
+        ],
+    ),
+    dict(
+        name='local-phy-disk-info',
+        help='List all physical disks assembled the specified local disk path',
+        args=[
+            dict(local_disk_path_opt),
+        ],
+    ),
+    dict(
+        name='local-raid-info',
+        help='Query RAID information of the specified local disk path',
+        args=[
+            dict(local_disk_path_opt),
+        ],
+    ),
 )
 
 aliases = dict(
@@ -915,6 +936,8 @@ aliases = dict(
     ldiloff='local-disk-ident-led-off',
     ldflon='local-disk-fault-led-on',
     ldfloff='local-disk-fault-led-off',
+    lpdi='local-phy-disk-info',
+    lri='local-raid-info',
 )
 
 
@@ -1892,3 +1915,45 @@ class CmdLine(object):
 
     def local_disk_fault_led_off(self, args):
         LocalDisk.fault_led_off(args.path)
+
+    def local_phy_disk_info(self, args):
+        vpd83 = LocalDisk.vpd83_get(args.path)
+        vols = self.c.volumes()
+        disks = self.c.disks()
+        found_vol = None    # /dev/sdX is a logical RAID volume
+        found_disk = None   # /dev/sdX is a direct attached disk.
+        for vol in vols:
+            if vol.vpd83 == vpd83:
+                found_vol = vol
+                break
+        if not found_vol:
+            for disk in disks:
+                if disk.vpd83 == vpd83:
+                    found_disk = disk
+                    break
+        if found_vol:
+            pool = self.c.pools(search_key='id',
+                                search_value=found_vol.pool_id)[0]
+            pmi = self.c.pool_member_info(pool)
+            chosed_disks = []
+            for disk in disks:
+                if disk.id in pmi[2]:
+                    chosed_disks.append(disk)
+            self.display_data(list(_add_sd_paths(d) for d in chosed_disks))
+        if found_disk:
+            self.display_data([_add_sd_paths(found_disk)])
+
+    def local_raid_info(self, args):
+        vpd83 = LocalDisk.vpd83_get(args.path)
+        vols = self.c.volumes()
+        found_vol = None
+        for vol in vols:
+            if vol.vpd83 == vpd83:
+                found_vol = vol
+                break
+        if not found_vol:
+            return
+        self.display_data(
+            [
+                VolumeRAIDInfo(
+                    found_vol.id, *self.c.volume_raid_info(found_vol))])
