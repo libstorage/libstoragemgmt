@@ -624,7 +624,8 @@ class MegaRAID(IPlugin):
 
         return 0
 
-    def _dg_top_to_lsm_pool(self, dg_top, free_space_list, ctrl_num):
+    def _dg_top_to_lsm_pool(self, dg_top, free_space_list, ctrl_num,
+                            dg_show_output, is_in_cc):
         sys_id = self._sys_id_of_ctrl_num(ctrl_num)
         pool_id = _pool_id_of(dg_top['DG'], sys_id)
         name = '%s Disk Group %s' % (dg_top['Type'], dg_top['DG'])
@@ -637,6 +638,16 @@ class MegaRAID(IPlugin):
         free_space = MegaRAID._dg_free_size(dg_top['DG'], free_space_list)
         status = _pool_status_of(dg_top)
         status_info = ''
+
+        for dg_drv in dg_show_output['DG Drive LIST']:
+            if dg_drv['DG'] != dg_top['DG']:
+                continue
+            if dg_drv['State'] == 'Rbld':
+                status |= Pool.STATUS_RECONSTRUCTING
+
+        if is_in_cc:
+            status |= Pool.STATUS_VERIFYING
+
         if status == Pool.STATUS_UNKNOWN:
             status_info = dg_top['State']
 
@@ -652,11 +663,26 @@ class MegaRAID(IPlugin):
               flags=Client.FLAG_RSVD):
         lsm_pools = []
         for ctrl_num in range(self._ctrl_count()):
+            cc_vd_ids = []
+            cc_dg_ids = []
             dg_show_output = self._storcli_exec(
                 ["/c%d/dall" % ctrl_num, "show", "all"])
-            free_space_list = dg_show_output.get('FREE SPACE DETAILS', [])
-            if 'TOPOLOGY' not in dg_show_output:
+            consist_check_output = self._storcli_exec(
+                ["/c%d/vall" % ctrl_num, "show", "cc"])
+            free_space_list = dg_show_output.get("FREE SPACE DETAILS", [])
+
+            if "TOPOLOGY" not in dg_show_output:
                 continue
+
+            for vd_stat in consist_check_output["VD Operation Status"]:
+                if vd_stat["Status"] == "In progress":
+                    cc_vd_ids.append(int(vd_stat["VD"]))
+
+            for vd in dg_show_output["VD LIST"]:
+                (dg_id, vd_id) = vd["DG/VD"].split("/")
+                if int(vd_id) in cc_vd_ids:
+                    cc_dg_ids.append(int(dg_id))
+
             for dg_top in dg_show_output['TOPOLOGY']:
                 if dg_top['Arr'] != '-':
                     continue
@@ -664,7 +690,8 @@ class MegaRAID(IPlugin):
                     continue
                 lsm_pools.append(
                     self._dg_top_to_lsm_pool(
-                        dg_top, free_space_list, ctrl_num))
+                        dg_top, free_space_list, ctrl_num, dg_show_output,
+                        int(dg_top['DG']) in cc_dg_ids))
 
         return search_property(lsm_pools, search_key, search_value)
 
