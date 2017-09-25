@@ -1,4 +1,4 @@
-# Copyright (C) 2015-2016 Red Hat, Inc.
+# Copyright (C) 2015-2017 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -338,14 +338,35 @@ class MegaRAID(IPlugin):
         """
         Try _DEFAULT_BIN_PATHS
         """
+        working_bins = []
         for cur_path in MegaRAID._DEFAULT_BIN_PATHS:
-            if os.path.lexists(cur_path):
+            if os.path.lexists(cur_path) and os.access(cur_path, os.X_OK):
                 self._storcli_bin = cur_path
+                try:
+                    self._storcli_exec(['-v'], flag_json=False)
+                    working_bins.append(cur_path)
+                except Exception:
+                    pass
 
-        if not self._storcli_bin:
-            raise LsmError(
-                ErrorNumber.INVALID_ARGUMENT,
-                "MegaRAID storcli is not installed correctly")
+        if len(working_bins) == 1:
+            self._storcli_bin = working_bins[0]
+            return
+        # Server might have both storcli and perccli installed.
+        elif len(working_bins) >= 2:
+            for cur_path in working_bins:
+                self._storcli_bin = cur_path
+                try:
+                    if len(self.systems()) >= 1:
+                        return
+                except Exception:
+                    pass
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           "Both storcli and perccli are installed, but none "
+                           "could find a valid MegaRAID card")
+
+        raise LsmError(
+            ErrorNumber.INVALID_ARGUMENT,
+            "MegaRAID storcli or perccli is not installed correctly")
 
     @_handle_errors
     def plugin_register(self, uri, password, timeout, flags=Client.FLAG_RSVD):
@@ -355,13 +376,14 @@ class MegaRAID(IPlugin):
                 "This plugin requires root privilege both daemon and client")
         uri_parsed = uri_parse(uri)
         self._storcli_bin = uri_parsed.get('parameters', {}).get('storcli')
-        if not self._storcli_bin:
-            self._find_storcli()
-
         # change working dir to "/tmp" as storcli will create a log file
         # named as 'MegaSAS.log'.
+
         os.chdir("/tmp")
-        self._storcli_exec(['-v'], flag_json=False)
+        if self._storcli_bin:
+            self._storcli_exec(['-v'], flag_json=False)
+        else:
+            self._find_storcli()
 
     @_handle_errors
     def plugin_unregister(self, flags=Client.FLAG_RSVD):
