@@ -131,6 +131,7 @@ class Ontap(IStorageAreaNetwork, INfs):
     def plugin_register(self, uri, password, timeout, flags=0):
         ssl = False
         u = uri_parse(uri)
+        ca_cert = None
 
         if u['scheme'].lower() == 'ontap+ssl':
             ssl = True
@@ -140,9 +141,14 @@ class Ontap(IStorageAreaNetwork, INfs):
         else:
             ssl_verify = False
 
+        if 'parameters' in u and 'ca_cert_file' in u['parameters']:
+            ssl_verify = True
+            ca_cert = u['parameters']['ca_cert_file']
+
+
         self.f = na.Filer(u['host'], u['username'], password,
                           int_div(timeout, Ontap.TMO_CONV), ssl,
-                          ssl_verify)
+                          ssl_verify, ca_cert)
         # Smoke test
         i = self.f.system_info()
         # TODO Get real filer status

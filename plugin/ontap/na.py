@@ -80,7 +80,7 @@ def param_value(val):
 
 
 def netapp_filer(host, username, password, timeout, command, parameters=None,
-                 use_ssl=False, ssl_verify=False):
+                 use_ssl=False, ssl_verify=False, ca_cert=None):
     """
     Issue a command to the NetApp filer.
     Note: Change to default use_ssl on before we ship a release version.
@@ -100,11 +100,22 @@ def netapp_filer(host, username, password, timeout, command, parameters=None,
     auth_manager = HTTPBasicAuthHandler(password_manager)
 
     if use_ssl:
-        ssl._DEFAULT_CIPHERS += ':RC4-SHA'
-        ssl_ctx = ssl.create_default_context()
+        ssl._DEFAULT_CIPHERS += ':RC4-SHA:3DES'
+        ssl._DEFAULT_CIPHERS = ssl._DEFAULT_CIPHERS.replace(':!3DES','')
+
+        if ca_cert:
+            try:
+                ssl_ctx = ssl.create_default_context(cafile=ca_cert)
+            except IOError as ioe:
+                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                               "Failed to load CA file : %s" % str(ioe))
+        else:
+            ssl_ctx = ssl.create_default_context()
+
         if ssl_verify == False:
             ssl_ctx.check_hostname = False
             ssl_ctx.verify_mode = ssl.CERT_NONE
+
         opener = build_opener(HTTPSHandler(context=ssl_ctx), auth_manager)
     else:
         opener = build_opener(auth_manager)
@@ -282,7 +293,7 @@ class Filer(object):
 
         rc = netapp_filer(self.host, self.username, self.password,
                           self.timeout, command, parameters, self.use_ssl,
-                          self.ssl_verify)
+                          self.ssl_verify, self.ca_cert)
 
         t = rc['netapp']['results']['attrib']
 
@@ -292,13 +303,14 @@ class Filer(object):
         return rc['netapp']['results']
 
     def __init__(self, host, username, password, timeout, use_ssl=True,
-                 ssl_verify=False):
+                 ssl_verify=False, ca_cert=None):
         self.host = host
         self.username = username
         self.password = password
         self.timeout = timeout
         self.use_ssl = use_ssl
         self.ssl_verify = ssl_verify
+        self.ca_cert = ca_cert
 
     def system_info(self):
         rc = self._invoke('system-get-info')

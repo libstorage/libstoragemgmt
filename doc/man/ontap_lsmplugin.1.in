@@ -27,6 +27,9 @@ To use this plugin, users should set their URI to this format:
     # HTTPS connection
     \fBontap+ssl://<username>@<ontap_filer>\fR
 
+    # HTTPS connection with certificate file
+    \fBontap+ssl://<username>@<ontap_filer>?ca_cert_file=<ca_cert_file_path>\fR
+
 .fi
 .TP
 \fBusername\fR
@@ -48,6 +51,13 @@ This URI parameter is supported by this plugin:
 \fBssl_verify=yes\fR
 By default, SSL connection does not verify hostname and certification.
 If this URI parameter is defined, all SSL verifications will be performed.
+
+.TP
+\fBca_cert_file=<ca_cert_file_path>\fR
+This parameter define the CA certification file path for SSL/TLS verification.
+If this URI parameter is defined, all SSL/TLS verifications will be performed
+no matter \fBssl_verify=yes\fR is defined or not.
+
 
 .SH Supported Hardware
 NetApp ONTAP 8.x is supported.

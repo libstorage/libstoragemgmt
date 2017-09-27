@@ -17,7 +17,7 @@
 import traceback
 import json
 from lsm import (LsmError, ErrorNumber, error)
-from lsm.plugin.smispy.WBEM import wbem, Error, AuthError
+import pywbem
 
 
 def merge_list(list_a, list_b):
@@ -30,7 +30,7 @@ def handle_cim_errors(method):
             return method(*args, **kwargs)
         except LsmError:
             raise
-        except wbem.CIMError as ce:
+        except pywbem.CIMError as ce:
             error_code = ce.args[0]
             desc = ce.args[1]
 
@@ -59,9 +59,9 @@ def handle_cim_errors(method):
                     raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
                                    desc)
             raise LsmError(ErrorNumber.PLUGIN_BUG, desc)
-        except AuthError:
+        except pywbem.AuthError:
             raise LsmError(ErrorNumber.PLUGIN_AUTH_FAILED, "Unauthorized user")
-        except Error as te:
+        except pywbem.Error as te:
             raise LsmError(ErrorNumber.NETWORK_ERROR, str(te))
         except Exception as e:
             error("Unexpected exception:\n" + traceback.format_exc())
@@ -96,4 +96,4 @@ def path_str_to_cim_path(path_str):
         path_str: String to convert into a CIMInstanceName
     """
     path_dict = json.loads(path_str)
-    return wbem.CIMInstanceName(**path_dict)
+    return pywbem.CIMInstanceName(**path_dict)

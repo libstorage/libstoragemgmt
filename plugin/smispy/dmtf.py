@@ -15,60 +15,60 @@
 # Author: Gris Ge <fge@redhat.com>
 
 # This class handle DMTF CIM constants and convert to LSM type.
-from lsm.plugin.smispy.WBEM import wbem
+import pywbem
 
 # CIM_StorageHardwareID['IDType']
-ID_TYPE_OTHER = wbem.Uint16(1)
-ID_TYPE_WWPN = wbem.Uint16(2)
-ID_TYPE_ISCSI = wbem.Uint16(5)
+ID_TYPE_OTHER = pywbem.Uint16(1)
+ID_TYPE_WWPN = pywbem.Uint16(2)
+ID_TYPE_ISCSI = pywbem.Uint16(5)
 
-TGT_PORT_USAGE_FRONTEND_ONLY = wbem.Uint16(2)
-TGT_PORT_USAGE_UNRESTRICTED = wbem.Uint16(4)
+TGT_PORT_USAGE_FRONTEND_ONLY = pywbem.Uint16(2)
+TGT_PORT_USAGE_UNRESTRICTED = pywbem.Uint16(4)
 # CIM_FCPort['PortDiscriminator']
-FC_PORT_PORT_DISCRIMINATOR_FCOE = wbem.Uint16(10)
+FC_PORT_PORT_DISCRIMINATOR_FCOE = pywbem.Uint16(10)
 # CIM_NetworkPort['LinkTechnology']
-NET_PORT_LINK_TECH_ETHERNET = wbem.Uint16(2)
+NET_PORT_LINK_TECH_ETHERNET = pywbem.Uint16(2)
 # CIM_iSCSIProtocolEndpoint['Role']
-ISCSI_TGT_ROLE_TARGET = wbem.Uint16(3)
+ISCSI_TGT_ROLE_TARGET = pywbem.Uint16(3)
 # CIM_SCSIProtocolController['NameFormat']
-SPC_NAME_FORMAT_ISCSI = wbem.Uint16(3)
+SPC_NAME_FORMAT_ISCSI = pywbem.Uint16(3)
 # CIM_IPProtocolEndpoint['IPv6AddressType']
-IPV6_ADDR_TYPE_GUA = wbem.Uint16(6)
+IPV6_ADDR_TYPE_GUA = pywbem.Uint16(6)
 # GUA: Global Unicast Address.
 #      2000::/3
-IPV6_ADDR_TYPE_6TO4 = wbem.Uint16(7)
+IPV6_ADDR_TYPE_6TO4 = pywbem.Uint16(7)
 # IPv6 to IPv4 transition
 #      ::ffff:0:0/96
 #      ::ffff:0:0:0/96
 #      64:ff9b::/96     # well-known prefix
 #      2002::/16        # 6to4
-IPV6_ADDR_TYPE_ULA = wbem.Uint16(8)
+IPV6_ADDR_TYPE_ULA = pywbem.Uint16(8)
 # ULA: Unique Local Address, aka Site Local Unicast.
 #      fc00::/7
 
 # CIM_GroupMaskingMappingService.CreateGroup('Type')
-MASK_GROUP_TYPE_INIT = wbem.Uint16(2)
-MASK_GROUP_TYPE_TGT = wbem.Uint16(3)
-MASK_GROUP_TYPE_DEV = wbem.Uint16(4)
+MASK_GROUP_TYPE_INIT = pywbem.Uint16(2)
+MASK_GROUP_TYPE_TGT = pywbem.Uint16(3)
+MASK_GROUP_TYPE_DEV = pywbem.Uint16(4)
 
 # CIM_GroupMaskingMappingCapabilities['SupportedDeviceGroupFeatures']
 #   Allowing empty DeviceMaskingGroup associated to SPC
-GMM_CAP_DEV_MG_ALLOW_EMPTY_W_SPC = wbem.Uint16(5)
+GMM_CAP_DEV_MG_ALLOW_EMPTY_W_SPC = pywbem.Uint16(5)
 
 # CIM_GroupMaskingMappingCapabilities['SupportedAsynchronousActions']
 # and 'SupportedSynchronousActions'. They are using the same value map.
-GMM_CAP_DELETE_SPC = wbem.Uint16(24)
-GMM_CAP_DELETE_GROUP = wbem.Uint16(20)
+GMM_CAP_DELETE_SPC = pywbem.Uint16(24)
+GMM_CAP_DELETE_GROUP = pywbem.Uint16(20)
 
 # CIM_StorageConfigurationCapabilities['SupportedStorageElementTypes']
-SCS_CAP_SUP_ST_VOLUME = wbem.Uint16(2)
-SCS_CAP_SUP_THIN_ST_VOLUME = wbem.Uint16(5)
+SCS_CAP_SUP_ST_VOLUME = pywbem.Uint16(2)
+SCS_CAP_SUP_THIN_ST_VOLUME = pywbem.Uint16(5)
 
 # CIM_StorageConfigurationCapabilities['SupportedAsynchronousActions']
 # and also for 'SupportedSynchronousActions'
-SCS_CAP_VOLUME_CREATE = wbem.Uint16(5)
-SCS_CAP_VOLUME_DELETE = wbem.Uint16(6)
-SCS_CAP_VOLUME_MODIFY = wbem.Uint16(7)
+SCS_CAP_VOLUME_CREATE = pywbem.Uint16(5)
+SCS_CAP_VOLUME_DELETE = pywbem.Uint16(6)
+SCS_CAP_VOLUME_MODIFY = pywbem.Uint16(7)
 
 # DSP 1033  Profile Registration
 INTEROP_NAMESPACES = ['interop', 'root/interop', 'root/PG_Interop']
@@ -89,8 +89,8 @@ SUPPORT_ELEMENT_REDUCE = 13
 
 # DMTF CIM 2.37.0 experimental CIM_StorageConfigurationCapabilities
 # ['SupportedStorageElementTypes']
-ELEMENT_THICK_VOLUME = wbem.Uint16(2)
-ELEMENT_THIN_VOLUME = wbem.Uint16(5)
+ELEMENT_THICK_VOLUME = pywbem.Uint16(2)
+ELEMENT_THIN_VOLUME = pywbem.Uint16(5)
 
 # DMTF CIM 2.29.1 CIM_StorageConfigurationCapabilities
 # ['SupportedStoragePoolFeatures']
@@ -99,7 +99,7 @@ ST_POOL_FEATURE_SINGLE_INPOOL = 3
 ST_POOL_FEATURE_MULTI_INPOOL = 4
 
 # DMTF CIM 2.38.0+ CIM_StorageSetting['ThinProvisionedPoolType']
-THINP_POOL_TYPE_ALLOCATED = wbem.Uint16(7)
+THINP_POOL_TYPE_ALLOCATED = pywbem.Uint16(7)
 
 # DMTF Disk Type
 DISK_TYPE_UNKNOWN = 0
@@ -187,14 +187,14 @@ JOB_STATE_COMPLETED = 7
 
 # CIM_Synchronized['SyncType'] also used by
 # CIM_ReplicationService.CreateElementReplica() 'SyncType' parameter.
-SYNC_TYPE_MIRROR = wbem.Uint16(6)
-SYNC_TYPE_SNAPSHOT = wbem.Uint16(7)
-SYNC_TYPE_CLONE = wbem.Uint16(8)
+SYNC_TYPE_MIRROR = pywbem.Uint16(6)
+SYNC_TYPE_SNAPSHOT = pywbem.Uint16(7)
+SYNC_TYPE_CLONE = pywbem.Uint16(8)
 
 # CIM_Synchronized['Mode'] also used by
 # CIM_ReplicationService.CreateElementReplica() 'Mode' parameter.
-REPLICA_MODE_SYNC = wbem.Uint16(2)
-REPLICA_MODE_ASYNC = wbem.Uint16(3)
+REPLICA_MODE_SYNC = pywbem.Uint16(2)
+REPLICA_MODE_ASYNC = pywbem.Uint16(3)
 
 # CIM_StorageVolume['NameFormat']
 VOL_NAME_FORMAT_NNA = 9
@@ -217,20 +217,20 @@ REPLICA_CAP_TYPE_SYNC_CLONE_LOCAL = 10
 REPLICA_CAP_TYPE_ASYNC_CLONE_LOCAL = 11
 
 # CIM_Synchronized['CopyState']
-COPY_STATE_SYNC = wbem.Uint16(4)
+COPY_STATE_SYNC = pywbem.Uint16(4)
 
 # CIM_StorageConfigurationCapabilities['SupportedCopyTypes']
-ST_CONF_CAP_COPY_TYPE_ASYNC = wbem.Uint16(2)
-ST_CONF_CAP_COPY_TYPE_SYNC = wbem.Uint16(3)
-ST_CONF_CAP_COPY_TYPE_UNSYNC_ASSOC = wbem.Uint16(4)
-ST_CONF_CAP_COPY_TYPE_UNSYNC_UNASSOC = wbem.Uint16(5)
+ST_CONF_CAP_COPY_TYPE_ASYNC = pywbem.Uint16(2)
+ST_CONF_CAP_COPY_TYPE_SYNC = pywbem.Uint16(3)
+ST_CONF_CAP_COPY_TYPE_UNSYNC_ASSOC = pywbem.Uint16(4)
+ST_CONF_CAP_COPY_TYPE_UNSYNC_UNASSOC = pywbem.Uint16(5)
 
 # CIM_StorageSynchronized['SyncState']
 ST_SYNC_STATE_SYNCHRONIZED = 6
 
 # CIM_ControllerConfigurationService.ExposePaths(DeviceAccesses)
-CTRL_CONF_SRV_DA_RW = wbem.Uint16(2)
+CTRL_CONF_SRV_DA_RW = pywbem.Uint16(2)
 
 VOL_OTHER_INFO_NAA_VPD83_TYPE3H = 'NAA;VPD83Type3'
 
-VOL_USAGE_SYS_RESERVED = wbem.Uint16(3)
+VOL_USAGE_SYS_RESERVED = pywbem.Uint16(3)

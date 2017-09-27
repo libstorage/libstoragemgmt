@@ -18,9 +18,9 @@
 This module intend to provide independent methods for lsm.AccessGroup and
 volume masking/unmasking.
 """
-from lsm import AccessGroup, md5, LsmError, ErrorNumber
+import pywbem
 
-from lsm.plugin.smispy.WBEM import wbem
+from lsm import AccessGroup, md5, LsmError, ErrorNumber
 from lsm.plugin.smispy.smis_common import SmisCommon
 from lsm.plugin.smispy import dmtf
 from lsm.plugin.smispy.utils import cim_path_to_path_str, path_str_to_cim_path
@@ -108,8 +108,8 @@ def cim_init_of_cim_spc_path(smis_common, cim_spc_path):
                 AssocClass='CIM_AssociatedPrivilege',
                 ResultClass='CIM_StorageHardwareID',
                 PropertyList=_CIM_INIT_PROS)
-        except wbem.CIMError as cim_error:
-            if cim_error.args[0] == wbem.CIM_ERR_NOT_FOUND:
+        except pywbem.CIMError as cim_error:
+            if cim_error.args[0] == pywbem.CIM_ERR_NOT_FOUND:
                 pass
             else:
                 raise
