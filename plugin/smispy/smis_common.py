@@ -29,7 +29,7 @@ import six
 
 from lsm import LsmError, ErrorNumber, md5
 
-from lsm.plugin.smispy.WBEM import wbem
+import pywbem
 from lsm.plugin.smispy.utils import merge_list
 from lsm.plugin.smispy import dmtf
 
@@ -60,10 +60,10 @@ def _profile_register_load(wbem_conn):
                 PropertyList=['RegisteredName', 'RegisteredVersion',
                               'RegisteredOrganization'],
                 LocalOnly=False)
-        except wbem.CIMError as e:
-            if e.args[0] == wbem.CIM_ERR_NOT_SUPPORTED or \
-                    e.args[0] == wbem.CIM_ERR_INVALID_NAMESPACE or \
-                    e.args[0] == wbem.CIM_ERR_INVALID_CLASS:
+        except pywbem.CIMError as e:
+            if e.args[0] == pywbem.CIM_ERR_NOT_SUPPORTED or \
+                    e.args[0] == pywbem.CIM_ERR_INVALID_NAMESPACE or \
+                    e.args[0] == pywbem.CIM_ERR_INVALID_CLASS:
                 pass
             else:
                 raise
@@ -170,7 +170,7 @@ class SmisCommon(object):
     SMIS_SPEC_VER_1_4 = '1.4'
     SMIS_SPEC_VER_1_5 = '1.5'
     SMIS_SPEC_VER_1_6 = '1.6'
-    SNIA_REG_ORG_CODE = wbem.Uint16(11)
+    SNIA_REG_ORG_CODE = pywbem.Uint16(11)
     _MEGARAID_NAMESPACE = 'root/LsiMr13'
     _NETAPP_E_NAMESPACE = 'root/LsiArray13'
     _PRODUCT_MEGARAID = 'LSI MegaRAID'
@@ -188,22 +188,24 @@ class SmisCommon(object):
 
     def __init__(self, url, username, password,
                  namespace=dmtf.DEFAULT_NAMESPACE,
-                 no_ssl_verify=False, debug_path=None, system_list=None):
+                 no_ssl_verify=False, debug_path=None, system_list=None,
+                 ca_cert_file=None):
         self._wbem_conn = None
         self._profile_dict = {}
         self.root_blk_cim_rp = None    # For root_cim_
         self._vendor_product = None     # For vendor workaround codes.
         self.system_list = system_list
         self._debug_path = debug_path
+        self._ca_cert_file = ca_cert_file
 
         if namespace is None:
             namespace = dmtf.DEFAULT_NAMESPACE
 
-        self._wbem_conn = wbem.WBEMConnection(
-            url, (username, password), namespace)
+        self._wbem_conn = pywbem.WBEMConnection(
+            url, (username, password), namespace, ca_certs=self._ca_cert_file)
         if no_ssl_verify:
             try:
-                self._wbem_conn = wbem.WBEMConnection(
+                self._wbem_conn = pywbem.WBEMConnection(
                     url, (username, password), namespace,
                     no_verification=True)
             except TypeError:
@@ -420,7 +422,7 @@ class SmisCommon(object):
                 {'ElementName': volume_name,
                  'ElementType': dmtf_element_type,
                  'InPool': cim_pool_path,
-                 'Size': wbem.Uint64(size_bytes)}
+                 'Size': pywbem.Uint64(size_bytes)}
         out_handler
             A reference to a method to parse output, example:
                 self._new_vol_from_name
@@ -582,7 +584,7 @@ class SmisCommon(object):
             for cim_srv in cim_srvs:
                 if cim_srv['SystemName'] == sys_id:
                     return cim_srv
-        except wbem.CIMError:
+        except pywbem.CIMError:
             if raise_error:
                 raise
             else:

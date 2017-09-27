@@ -518,8 +518,6 @@ fi
 %{python3_sitelib}/lsm/plugin/smispy/smis.*
 %{python3_sitelib}/lsm/plugin/smispy/dmtf.*
 %{python3_sitelib}/lsm/plugin/smispy/utils.*
-%{python3_sitelib}/lsm/plugin/smispy/WBEM.*
-%{python3_sitelib}/lsm/plugin/smispy/lmiwbem_wrap.*
 %{python3_sitelib}/lsm/plugin/smispy/smis_common.*
 %{python3_sitelib}/lsm/plugin/smispy/smis_cap.*
 %{python3_sitelib}/lsm/plugin/smispy/smis_sys.*
