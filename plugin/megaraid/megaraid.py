@@ -1,4 +1,4 @@
-# Copyright (C) 2015-2016 Red Hat, Inc.
+# Copyright (C) 2015-2017 Red Hat, Inc.
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
@@ -338,14 +338,35 @@ class MegaRAID(IPlugin):
         """
         Try _DEFAULT_BIN_PATHS
         """
+        working_bins = []
         for cur_path in MegaRAID._DEFAULT_BIN_PATHS:
-            if os.path.lexists(cur_path):
+            if os.path.lexists(cur_path) and os.access(cur_path, os.X_OK):
                 self._storcli_bin = cur_path
+                try:
+                    self._storcli_exec(['-v'], flag_json=False)
+                    working_bins.append(cur_path)
+                except Exception:
+                    pass
 
-        if not self._storcli_bin:
-            raise LsmError(
-                ErrorNumber.INVALID_ARGUMENT,
-                "MegaRAID storcli is not installed correctly")
+        if len(working_bins) == 1:
+            self._storcli_bin = working_bins[0]
+            return
+        # Server might have both storcli and perccli installed.
+        elif len(working_bins) >= 2:
+            for cur_path in working_bins:
+                self._storcli_bin = cur_path
+                try:
+                    if len(self.systems()) >= 1:
+                        return
+                except Exception:
+                    pass
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           "Both storcli and perccli are installed, but none "
+                           "could find a valid MegaRAID card")
+
+        raise LsmError(
+            ErrorNumber.INVALID_ARGUMENT,
+            "MegaRAID storcli or perccli is not installed correctly")
 
     @_handle_errors
     def plugin_register(self, uri, password, timeout, flags=Client.FLAG_RSVD):
@@ -355,13 +376,14 @@ class MegaRAID(IPlugin):
                 "This plugin requires root privilege both daemon and client")
         uri_parsed = uri_parse(uri)
         self._storcli_bin = uri_parsed.get('parameters', {}).get('storcli')
-        if not self._storcli_bin:
-            self._find_storcli()
-
         # change working dir to "/tmp" as storcli will create a log file
         # named as 'MegaSAS.log'.
+
         os.chdir("/tmp")
-        self._storcli_exec(['-v'], flag_json=False)
+        if self._storcli_bin:
+            self._storcli_exec(['-v'], flag_json=False)
+        else:
+            self._find_storcli()
 
     @_handle_errors
     def plugin_unregister(self, flags=Client.FLAG_RSVD):
@@ -602,7 +624,8 @@ class MegaRAID(IPlugin):
 
         return 0
 
-    def _dg_top_to_lsm_pool(self, dg_top, free_space_list, ctrl_num):
+    def _dg_top_to_lsm_pool(self, dg_top, free_space_list, ctrl_num,
+                            dg_show_output, is_in_cc):
         sys_id = self._sys_id_of_ctrl_num(ctrl_num)
         pool_id = _pool_id_of(dg_top['DG'], sys_id)
         name = '%s Disk Group %s' % (dg_top['Type'], dg_top['DG'])
@@ -615,6 +638,16 @@ class MegaRAID(IPlugin):
         free_space = MegaRAID._dg_free_size(dg_top['DG'], free_space_list)
         status = _pool_status_of(dg_top)
         status_info = ''
+
+        for dg_drv in dg_show_output['DG Drive LIST']:
+            if dg_drv['DG'] != dg_top['DG']:
+                continue
+            if dg_drv['State'] == 'Rbld':
+                status |= Pool.STATUS_RECONSTRUCTING
+
+        if is_in_cc:
+            status |= Pool.STATUS_VERIFYING
+
         if status == Pool.STATUS_UNKNOWN:
             status_info = dg_top['State']
 
@@ -630,11 +663,26 @@ class MegaRAID(IPlugin):
               flags=Client.FLAG_RSVD):
         lsm_pools = []
         for ctrl_num in range(self._ctrl_count()):
+            cc_vd_ids = []
+            cc_dg_ids = []
             dg_show_output = self._storcli_exec(
                 ["/c%d/dall" % ctrl_num, "show", "all"])
-            free_space_list = dg_show_output.get('FREE SPACE DETAILS', [])
-            if 'TOPOLOGY' not in dg_show_output:
+            consist_check_output = self._storcli_exec(
+                ["/c%d/vall" % ctrl_num, "show", "cc"])
+            free_space_list = dg_show_output.get("FREE SPACE DETAILS", [])
+
+            if "TOPOLOGY" not in dg_show_output:
                 continue
+
+            for vd_stat in consist_check_output["VD Operation Status"]:
+                if vd_stat["Status"] == "In progress":
+                    cc_vd_ids.append(int(vd_stat["VD"]))
+
+            for vd in dg_show_output["VD LIST"]:
+                (dg_id, vd_id) = vd["DG/VD"].split("/")
+                if int(vd_id) in cc_vd_ids:
+                    cc_dg_ids.append(int(dg_id))
+
             for dg_top in dg_show_output['TOPOLOGY']:
                 if dg_top['Arr'] != '-':
                     continue
@@ -642,7 +690,8 @@ class MegaRAID(IPlugin):
                     continue
                 lsm_pools.append(
                     self._dg_top_to_lsm_pool(
-                        dg_top, free_space_list, ctrl_num))
+                        dg_top, free_space_list, ctrl_num, dg_show_output,
+                        int(dg_top['DG']) in cc_dg_ids))
 
         return search_property(lsm_pools, search_key, search_value)
 
