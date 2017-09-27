@@ -19,7 +19,7 @@ To use this plugin, users should set their URI to this format:
     \fBtargetd+ssl://<username>@<targetd_server>:<port number>\fR
 
     # HTTPS connection with certificate file
-    \fBtargetd+ssl://<username>@<targetd_server>:<port number>?cert_file=<full path and filename>\fR
+    \fBtargetd+ssl://<username>@<targetd_server>:<port number>?ca_cert_file=<full path and filename>\fR
 
     # HTTPS connection disabling all certificate checks (not recommended for production)
     \fBtargetd+ssl://<username>@<targetd_server>:<port number>?no_ssl_verify=yes\fR
@@ -51,7 +51,7 @@ These URI parameters are supported by this plugin:
 .RS 7
 
 .TP
-\fBcert_file=<certificate file>\fR
+\fBca_cert_file=<certificate file>\fR
 This URI parameter is for SSL connections only.  For those users that
 utilize a self signed certificate you can pass the path and file to the
 certificate that should be used to verify the server certificate.

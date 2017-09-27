@@ -136,7 +136,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         self.headers = None
         self.no_ssl_verify = False
         self._flag_ag_support = True
-        self.cert_file = ""
+        self.ca_cert_file = ""
         self.system = System("targetd", "targetd storage appliance",
                              System.STATUS_UNKNOWN, '')
 
@@ -167,23 +167,23 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                 and self.uri["parameters"]["no_ssl_verify"] == 'yes':
             self.no_ssl_verify = True
 
-        if "cert_file" in self.uri["parameters"]:
+        if "ca_cert_file" in self.uri["parameters"]:
             # Check for file existence and throw error now if not present
-            self.cert_file = self.uri["parameters"]["cert_file"]
+            self.ca_cert_file = self.uri["parameters"]["ca_cert_file"]
 
-            if not os.path.isfile(self.cert_file):
+            if not os.path.isfile(self.ca_cert_file):
                 raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                               'cert_file URI parameter does not exist %s' %
-                               self.cert_file)
+                               'ca_cert_file URI parameter does not exist %s' %
+                               self.ca_cert_file)
 
-            if self.no_ssl_verify and self.cert_file:
+            if self.no_ssl_verify and self.ca_cert_file:
                 raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                               "Specifying 'no_ssl_verify' and 'cert_file' "
+                               "Specifying 'no_ssl_verify' and 'ca_cert_file' "
                                "is unsupported combination.")
 
-        if not SSL_DEFAULT_CONTEXT and (self.no_ssl_verify or self.cert_file):
+        if not SSL_DEFAULT_CONTEXT and (self.no_ssl_verify or self.ca_cert_file):
             raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           "Cannot specify no_ssl_verify or cert_file for this"
+                           "Cannot specify no_ssl_verify or ca_cert_file for this"
                            "version of python!")
         try:
             self._jsonrequest('access_group_list', default_error_handler=False)
@@ -1007,8 +1007,8 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         request = Request(self.url, data.encode('utf-8'), self.headers)
 
         if SSL_DEFAULT_CONTEXT:
-            if self.cert_file:
-                ctx = ssl.create_default_context(cafile=self.cert_file)
+            if self.ca_cert_file:
+                ctx = ssl.create_default_context(cafile=self.ca_cert_file)
             elif self.no_ssl_verify:
                 ctx = ssl.create_default_context()
                 ctx.check_hostname = False
