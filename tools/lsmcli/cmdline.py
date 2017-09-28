@@ -1659,7 +1659,10 @@ class CmdLine(object):
 
     def system_read_cache_pct_update(self, args):
         lsm_system = _get_item(self.c.systems(), args.sys, "System")
-        read_pct = int(args.read_pct)
+        try:
+            read_pct = int(args.read_pct)
+        except ValueError as ve:
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT, str(ve))
 
         self.c.system_read_cache_pct_update(lsm_system, read_pct)
         lsm_system = _get_item(self.c.systems(), args.sys, "System")
