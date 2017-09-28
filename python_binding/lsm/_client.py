@@ -995,6 +995,9 @@ class Client(INetworkAttachedStorage):
         """
         Exports a filesystem as specified in the arguments
         """
+        if set(rw_list) - (set(rw_list) - set(ro_list)):
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           "Host cannot both in rw_list and ro_list.")
         return self._tp.rpc('export_fs', _del_self(locals()))
 
     # Removes the specified export
