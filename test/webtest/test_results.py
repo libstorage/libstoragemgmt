@@ -197,8 +197,7 @@ def to_html(results):
                         "                  F = Fail (Method call returned an error)\n"
                         "                  U = Unsupported or unable to test due to other errors\n"
                         "                  * = Unable to connect to array or provider totally unsupported\n"
-                        "                  + = hyper link to error log\n\n\n",
-                        HTML('                  Source code for plug-in for this test run <a href=./smis.py.html>is here. </a>'))))
+                        "                  + = hyper link to error log")))
                 ))
 
     return bs(text).prettify()
