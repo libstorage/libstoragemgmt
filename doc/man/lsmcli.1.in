@@ -521,8 +521,8 @@ Optional. The host/IP has read/write access. For two or more hosts/IPs:
 .SS fs-unexport
 Remove an NFS export.
 .TP 15
-\fB--fs\fR \fI<FS_ID>\fR
-Required. ID of the filesystem to unexport.
+\fB--export\fR \fI<EXPORT_ID>\fR
+Required. ID of the export to unexport.
 
 .SS fs-clone
 Creates a file system clone. The 'clone' means point in time read writeable
@@ -598,11 +598,17 @@ Optional. Repeatable. Only remove dependencies on specific file(s), eg. '\fB--fi
 Creates a clone of a file (thin provisioned).  Note: --src and --dst need to be paired
  eg. '\fB--src fileA --src fileB --dst fileA_clone --dst fileB_clone\fR'.
 .TP 15
+\fB--fs\fR \fI<FS_ID>\fR
+Required. The ID of filesystem to clone.
+.TP
 \fB--src\fR \fI<SRC_FILE_PATH>\fR
 Required. Repeatable. Source file to clone (relative path).
 .TP
 \fB--dst\fR \fI<DST_FILE_PATH>\fR
 Required. Repeatable. Destination file for clone (relative path).
+.TP
+\fB--backing-snapshot\fR \fI<SNAP_ID>\fR
+Optional. Use the source file from previously created snapshot.
 
 .SS system-read-cache-pct-update
 Change the read cache percentage for a system.
