@@ -412,7 +412,7 @@ static int _sg_io_v4(int fd, uint8_t *cdb, uint8_t cdb_len, uint8_t *data,
     assert(cdb != NULL);
     assert(cdb_len != 0);
 
-    memset(&io_hdr, 0, sizeof(struct sg_io_hdr));
+    memset(&io_hdr, 0, sizeof(struct sg_io_v4));
     memset(sense_data, 0, _T10_SPC_SENSE_DATA_MAX_LENGTH);
     if (direction == _SG_IO_RECV_DATA)
         memset(data, 0, (size_t) data_len);
