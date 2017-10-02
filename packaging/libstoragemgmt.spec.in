@@ -122,8 +122,6 @@ support.
 %package        netapp-plugin
 Summary:        Files for NetApp array support for %{name}
 Group:          System Environment/Libraries
-BuildRequires:  m2crypto
-Requires:       m2crypto
 Requires:       python3-%{name} = %{version}
 Requires(post): python3-%{name} = %{version}
 Requires(postun): python3-%{name} = %{version}
