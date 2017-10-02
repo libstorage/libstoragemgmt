@@ -193,7 +193,9 @@ def _add_common_options(arg_parser, is_child=False):
 
     arg_parser.add_argument(
         '-s', '--script', action="store_true", dest="%sscript" % prefix,
-        default=False, help='Displaying data in script friendly way.')
+        default=False,
+        help='Displaying data in script friendly way with '
+             'additional information(if exists)')
 
     if is_child:
         default_dict = dict()
@@ -434,7 +436,7 @@ cmds = (
 
     dict(
         name='volume-replicate-range',
-        help='Replicates a portion of a volume',
+        help='Replicates a portion of a volume to existing volume',
         args=[
             dict(name="--src-vol", metavar='<SRC_VOL_ID>',
                  help='Source volume id'),
@@ -475,7 +477,7 @@ cmds = (
 
     dict(
         name='volume-dependants-rm',
-        help='Removes dependencies',
+        help='Removes volume dependencies',
         args=[
             dict(vol_id_opt),
         ],
@@ -1659,7 +1661,10 @@ class CmdLine(object):
 
     def system_read_cache_pct_update(self, args):
         lsm_system = _get_item(self.c.systems(), args.sys, "System")
-        read_pct = int(args.read_pct)
+        try:
+            read_pct = int(args.read_pct)
+        except ValueError as ve:
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT, str(ve))
 
         self.c.system_read_cache_pct_update(lsm_system, read_pct)
         lsm_system = _get_item(self.c.systems(), args.sys, "System")

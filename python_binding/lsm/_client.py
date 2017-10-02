@@ -14,6 +14,7 @@
 #
 # Author: tasleson
 import os
+import sys
 from lsm import (Volume, NfsExport, Capabilities, Pool, System, Battery,
                  Disk, AccessGroup, FileSystem, FsSnapshot,
                  uri_parse, LsmError, ErrorNumber,
@@ -350,6 +351,15 @@ class Client(INetworkAttachedStorage):
             returns None on success, else raises LsmError on errors.
         SpecialExceptions:
         """
+        if sys.version_info[0] == 2:
+            if not isinstance(read_pct, (int, long)):
+                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                               "Invalid read_pct, should be an integer")
+        else:
+            if not isinstance(read_pct, int):
+                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                               "Invalid read_pct, should be an integer")
+
         if read_pct > 100 or read_pct < 0:
             raise LsmError(ErrorNumber.INVALID_ARGUMENT,
                            "Invalid read_pct, should be in range 0 - 100")
@@ -985,6 +995,9 @@ class Client(INetworkAttachedStorage):
         """
         Exports a filesystem as specified in the arguments
         """
+        if set(rw_list) - (set(rw_list) - set(ro_list)):
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           "Host cannot both in rw_list and ro_list.")
         return self._tp.rpc('export_fs', _del_self(locals()))
 
     # Removes the specified export
