@@ -366,6 +366,16 @@ static int _extract_ata_sense_data(char *err_msg, uint8_t *sense_data,
                                    uint8_t *lba_mid,
                                    uint8_t *lba_high);
 
+/*
+ * Preconditions:
+ *  err_msg != NULL
+ *  fd >= 0
+ *  data != NULL
+ *  data is uint8_t[_SG_T10_SPC_LOG_SENSE_MAX_LEN]
+ */
+static int _sg_log_sense(char *err_msg, int fd, uint8_t page_code,
+                         uint8_t sub_page_code, uint8_t *data);
+
 static int _sg_io_v3(int fd, uint8_t *cdb, uint8_t cdb_len, uint8_t *data,
                      ssize_t data_len, uint8_t *sense_data, int direction)
 {
@@ -1216,8 +1226,8 @@ static int _extract_ata_sense_data(char *err_msg, uint8_t *sense_data,
     return rc;
 }
 
-int _sg_log_sense(char *err_msg, int fd, uint8_t page_code,
-                  uint8_t sub_page_code, uint8_t *data)
+static int _sg_log_sense(char *err_msg, int fd, uint8_t page_code,
+                         uint8_t sub_page_code, uint8_t *data)
 {
     int rc = LSM_ERR_OK;
     uint8_t tmp_data[_T10_SPC_LOG_SENSE_MAX_LEN];
@@ -1266,7 +1276,8 @@ int _sg_log_sense(char *err_msg, int fd, uint8_t page_code,
     log_hdr = (struct _sg_t10_log_para_hdr *) tmp_data;
     log_data_len = be16toh(log_hdr->log_data_len_be);
     if ((log_data_len == 0) ||
-        (log_data_len >= _T10_SPC_LOG_SENSE_MAX_LEN)) {
+        (log_data_len >= _T10_SPC_LOG_SENSE_MAX_LEN -
+                         sizeof(struct _sg_t10_log_para_hdr))) {
         rc = LSM_ERR_LIB_BUG;
         _lsm_err_msg_set(err_msg, "BUG: Got illegal SCSI log page return: "
                          "invalid LOG DATA LENGTH %" PRIu16 "\n",
