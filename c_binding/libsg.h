@@ -235,8 +235,8 @@ LSM_DLL_LOCAL int _sg_sas_health_status(char *err_msg, int fd,
  *  fd >= 0
  *  health_status != NULL
  */
-LSM_DLL_LOCAL int _sg_ata_passthrough_health_status(char *err_msg, int fd,
-                                                    int32_t *health_status);
+LSM_DLL_LOCAL int _sg_ata_health_status(char *err_msg, int fd,
+                                        int32_t *health_status);
 
 /*
  * Preconditions:

@@ -25,52 +25,16 @@
 
 #define _ATA_IDENTIFY_DEVICE_DATA_LEN                        512
 
-#define _ATA_REGISTER_INPUT_28_BIT_LENGTH                    7
-#define _ATA_REGISTER_OUTPUT_28_BIT_LENGTH                   7
-#define ATA_PASS_THROUGH_12_LEN                              12
-#define ATA_PASS_THROUGH_12                                  0xa1
-
 /*
- * ACS-3 7.48.8 SMART RETURN STATUS
+ * ACS-3 7.48.8 SMART RETURN STATUS – B0h/DAh, Non-Data
  */
-#define ATA_SMART_RETURN_STATUS_SUBCOMMAND                   0xda
-#define ATA_SMART_COMMAND                                    0xb0
-
-#define ATA_NON_DATA_COMMAND                                 0
-#define ATA_DATA_IN_COMMAND                                  1
-#define ATA_DATA_OUT_COMMAND                                 2
-
-/*
- * ACS-3 Table 210
+#define _ATA_FEATURE_SMART_RETURN_STATUS                    0xda
+#define _ATA_CMD_SMART_RETURN_STATUS                        0xb0
+#define _ATA_CMD_SMART_RETURN_STATUS_LBA_MID                0x4f
+#define _ATA_CMD_SMART_RETURN_STATUS_LBA_HIGH               0xc2
+/* ^ lba 8:23 should be 0xc24f by ACS-3 Table 135 — SMART RETURN STATUS
+ * command inputs
  */
-#define SMART_STATUS_LBA_MID_THRESHOLD_EXCEEDED              0xf4
-#define SMART_STATUS_LBA_HIGH_THRESHOLD_EXCEEDED             0x2c
-#define SMART_STATUS_LBA_MID_DEFAULT                         0x4f
-#define SMART_STATUS_LBA_HIGH_DEFAULT                        0xc2
-
-#pragma pack(push, 1)
-
-struct _ata_registers_input_28_bit {
-    uint8_t feature;
-    uint8_t count;
-    uint8_t lba_low;
-    uint8_t lba_mid;
-    uint8_t lba_high;
-    uint8_t device;
-    uint8_t command;
-};
-
-struct _ata_registers_output_28_bit {
-    uint8_t error;
-    uint8_t count;
-    uint8_t lba_low;
-    uint8_t lba_mid;
-    uint8_t lba_high;
-    uint8_t device;
-    uint8_t status;
-};
-
-#pragma pack(pop)
 
 /*
  * Preconditions:
@@ -84,22 +48,9 @@ LSM_DLL_LOCAL int _ata_cur_speed_get(char *err_msg, uint8_t *id_dev_data,
                                      uint32_t *link_speed);
 
 /*
- * Preconditions:
- * ata_cmd != NULL
+ * return health status: LSM_DISK_HEALTH_STATUS_FAIL and etc
  */
-LSM_DLL_LOCAL void _ata_smart_status_fill_registers(uint8_t *ata_cmd,
-                                                    uint8_t cmd,
-                                                    uint8_t features,
-                                                    uint8_t lba_high,
-                                                    uint8_t lba_mid,
-                                                    uint8_t lba_low,
-                                                    uint8_t count,
-                                                    uint8_t device);
-
-/*
- * Preconditions:
- * ata_output_regs != NULL
- */
-LSM_DLL_LOCAL int32_t _ata_smart_status_interpret_output_regs(uint8_t *ata_output_regs);
+LSM_DLL_LOCAL int32_t _ata_health_status(uint8_t status, uint8_t lba_mid,
+                                         uint8_t lba_high);
 
 #endif  /* End of _LIBATA_H_ */

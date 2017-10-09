@@ -38,6 +38,24 @@
 #define _ATA_SPEED_GEN3_0               3
 /* SATA revision 3.0 -- 6 Gbps */
 
+#define _ATA_SMART_RETURN_STATUS_LBA_MID_NO_ERR     0x4f
+#define _ATA_SMART_RETURN_STATUS_LBA_MID_ERR        0xf4
+#define _ATA_SMART_RETURN_STATUS_LBA_HIGH_NO_ERR    0xc2
+#define _ATA_SMART_RETURN_STATUS_LBA_HIGH_ERR       0x2c
+/* ACS-3 Table 210 - SMART Return Status Normal Output
+ * LBA 2CF4h The device has detected a threshold exceeded condition.
+ * LBA C24Fh The subcommand specified a captive self-test that has completed
+ *           without error.
+ */
+
+#define _ATA_SMART_RETURN_STATUS_DEVICE_FAULT_BIT   5
+/* ACS-3 Table 210 - SMART Return Status Normal Output
+ * ACS-3 6.2.7 DEVICE FAULT bit
+ */
+
+#define _bit_field_extract(i, end_include, start_include) \
+    ((i >> start_include) & ((1 << (end_include - start_include + 1)) - 1))
+
 #pragma pack(push, 1)
 struct _ata_sata_add_cap {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
@@ -94,44 +112,18 @@ int _ata_cur_speed_get(char *err_msg, uint8_t *id_dev_data,
     return rc;
 }
 
-void _ata_smart_status_fill_registers(uint8_t *ata_cmd, uint8_t cmd,
-                                      uint8_t features, uint8_t lba_high,
-                                      uint8_t lba_mid, uint8_t lba_low,
-                                      uint8_t count, uint8_t device)
+int32_t _ata_health_status(uint8_t status, uint8_t lba_mid, uint8_t lba_high)
 {
-    struct _ata_registers_input_28_bit * input_registers = NULL;
-
-    assert (ata_cmd != NULL);
-
-    input_registers = (struct _ata_registers_input_28_bit *) ata_cmd;
-    input_registers->feature = features;
-    input_registers->count = count;
-    input_registers->lba_low = lba_low;
-    input_registers->lba_mid = lba_mid;
-    input_registers->lba_high = lba_high;
-    input_registers->device = device;
-    input_registers->command = cmd;
-
-    return;
-}
-
-int32_t _ata_smart_status_interpret_output_regs(uint8_t *ata_output_regs) {
-
-    struct _ata_registers_output_28_bit *output_registers = NULL;
-
-    assert(ata_output_regs != NULL);
-
-    output_registers = (struct _ata_registers_output_28_bit *) ata_output_regs;
-
-    if ((output_registers->lba_high == SMART_STATUS_LBA_HIGH_DEFAULT) &&
-        (output_registers->lba_mid == SMART_STATUS_LBA_MID_DEFAULT)) {
-        return LSM_DISK_HEALTH_STATUS_GOOD;
-    } else if ((output_registers->lba_high ==
-                SMART_STATUS_LBA_HIGH_THRESHOLD_EXCEEDED)
-               && (output_registers->lba_mid ==
-                   SMART_STATUS_LBA_MID_THRESHOLD_EXCEEDED)) {
+    if _bit_field_extract(status, _ATA_SMART_RETURN_STATUS_DEVICE_FAULT_BIT,
+                          _ATA_SMART_RETURN_STATUS_DEVICE_FAULT_BIT)
         return LSM_DISK_HEALTH_STATUS_FAIL;
-    }
+
+    if ((lba_mid == _ATA_SMART_RETURN_STATUS_LBA_MID_NO_ERR) &&
+        (lba_high == _ATA_SMART_RETURN_STATUS_LBA_HIGH_NO_ERR))
+        return LSM_DISK_HEALTH_STATUS_GOOD;
+    else if ((lba_mid == _ATA_SMART_RETURN_STATUS_LBA_MID_ERR) &&
+        (lba_high == _ATA_SMART_RETURN_STATUS_LBA_HIGH_ERR))
+        return LSM_DISK_HEALTH_STATUS_FAIL;
 
     return LSM_DISK_HEALTH_STATUS_UNKNOWN;
 }

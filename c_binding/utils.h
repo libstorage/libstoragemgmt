@@ -51,6 +51,7 @@
 
 #define _lsm_err_msg_set(err_msg, format, ...) \
     snprintf(err_msg, _LSM_ERR_MSG_LEN, format, ##__VA_ARGS__)
+
 /*
  * Preconditions:
  *  err_msg != NULL
