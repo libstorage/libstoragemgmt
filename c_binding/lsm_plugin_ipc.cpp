@@ -38,6 +38,8 @@
 #include "util/qparams.h"
 #include <syslog.h>
 
+#define UNUSED(x) (void)(x)
+
 //Forward decl.
 static int lsm_plugin_run(lsm_plugin_ptr plug);
 static void get_batteries(int rc, lsm_battery *bs[], uint32_t count,
@@ -331,6 +333,9 @@ typedef int (*handler) (lsm_plugin_ptr p, Value & params, Value & response);
 
 static int handle_unregister(lsm_plugin_ptr p, Value & params, Value & response)
 {
+    UNUSED(p);
+    UNUSED(params);
+    UNUSED(response);
     /* This is handled in the event loop */
     return LSM_ERR_OK;
 }
@@ -340,6 +345,8 @@ static int handle_register(lsm_plugin_ptr p, Value & params, Value & response)
     int rc = LSM_ERR_NO_SUPPORT;
     std::string uri_string;
     std::string password;
+
+    UNUSED(response);
 
     if (p && p->reg) {
 
@@ -373,6 +380,7 @@ static int handle_register(lsm_plugin_ptr p, Value & params, Value & response)
 static int handle_set_time_out(lsm_plugin_ptr p, Value & params,
                                Value & response)
 {
+    UNUSED(response);
     if (p && p->mgmt_ops && p->mgmt_ops->tmo_set) {
         if (Value::numeric_t == params["ms"].valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
@@ -467,6 +475,9 @@ static int handle_plugin_info(lsm_plugin_ptr p, Value & params,
                               Value & response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
+
+    UNUSED(params);
+
     if (p) {
         std::vector < Value > result;
         result.push_back(Value(p->desc));
@@ -480,6 +491,7 @@ static int handle_plugin_info(lsm_plugin_ptr p, Value & params,
 static int handle_job_free(lsm_plugin_ptr p, Value & params, Value & response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
+    UNUSED(response);
     if (p && p->mgmt_ops && p->mgmt_ops->job_free) {
         if (Value::string_t == params["job_id"].valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
@@ -981,6 +993,7 @@ static int handle_vol_enable_disable(lsm_plugin_ptr p, Value & params,
                                      Value & response, int online)
 {
     int rc = LSM_ERR_NO_SUPPORT;
+    UNUSED(response);
 
     if (p && p->san_ops &&
         ((online) ? p->san_ops->vol_enable : p->san_ops->vol_disable)) {
@@ -1183,6 +1196,7 @@ static int ag_create(lsm_plugin_ptr p, Value & params, Value & response)
 static int ag_delete(lsm_plugin_ptr p, Value & params, Value & response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
+    UNUSED(response);
 
     if (p && p->san_ops && p->san_ops->ag_delete) {
         Value v_access_group = params["access_group"];
@@ -1298,6 +1312,7 @@ static int volume_mask(lsm_plugin_ptr p, Value & params, Value & response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
 
+    UNUSED(response);
     if (p && p->san_ops && p->san_ops->ag_grant) {
 
         Value v_group = params["access_group"];
@@ -1331,6 +1346,7 @@ static int volume_unmask(lsm_plugin_ptr p, Value & params, Value & response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
 
+    UNUSED(response);
     if (p && p->san_ops && p->san_ops->ag_revoke) {
 
         Value v_group = params["access_group"];
@@ -2217,6 +2233,7 @@ static int export_remove(lsm_plugin_ptr p, Value & params, Value & response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
 
+    UNUSED(response);
     if (p && p->nas_ops && p->nas_ops->nfs_export_remove) {
         Value v_export = params["export"];
 
@@ -2242,6 +2259,7 @@ static int iscsi_chap(lsm_plugin_ptr p, Value & params, Value & response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
 
+    UNUSED(response);
     if (p && p->san_ops && p->san_ops->iscsi_chap_auth) {
         Value v_init = params["init_id"];
         Value v_in_user = params["in_user"];
@@ -2377,6 +2395,7 @@ static int handle_volume_ident_led_on(lsm_plugin_ptr p, Value & params,
                                       Value & response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
+    UNUSED(response);
     if (p && p->ops_v1_3 && p->ops_v1_3->vol_ident_on) {
         Value v_vol = params["volume"];
 
@@ -2401,6 +2420,7 @@ static int handle_volume_ident_led_off(lsm_plugin_ptr p, Value & params,
                                        Value & response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
+    UNUSED(response);
     if (p && p->ops_v1_3 && p->ops_v1_3->vol_ident_off) {
         Value v_vol = params["volume"];
 
@@ -2425,6 +2445,7 @@ static int handle_system_read_cache_pct_update(lsm_plugin_ptr p, Value & params,
                                                Value & response)
 {
     int rc = LSM_ERR_NO_SUPPORT;
+    UNUSED(response);
     if (p && p->ops_v1_3 && p->ops_v1_3->sys_read_cache_pct_update) {
         Value v_sys = params["system"];
         Value v_read_pct = params["read_pct"];
@@ -3073,6 +3094,7 @@ static int handle_volume_pdc_update(lsm_plugin_ptr p, Value &params,
     lsm_volume *lsm_vol = NULL;
     uint32_t pdc = LSM_VOLUME_PHYSICAL_DISK_CACHE_UNKNOWN;
 
+    UNUSED(response);
     if (p && p->ops_v1_3 && p->ops_v1_3->vol_pdc_update) {
         Value v_vol = params["volume"];
         Value v_pdc = params["pdc"];
@@ -3107,6 +3129,7 @@ static int handle_volume_wcp_update(lsm_plugin_ptr p, Value &params,
     lsm_volume *lsm_vol = NULL;
     uint32_t wcp = LSM_VOLUME_WRITE_CACHE_POLICY_UNKNOWN;
 
+    UNUSED(response);
     if (p && p->ops_v1_3 && p->ops_v1_3->vol_wcp_update) {
         Value v_vol = params["volume"];
         Value v_wcp = params["wcp"];
@@ -3142,6 +3165,7 @@ static int handle_volume_rcp_update(lsm_plugin_ptr p, Value &params,
     lsm_volume *lsm_vol = NULL;
     uint32_t rcp = LSM_VOLUME_READ_CACHE_POLICY_UNKNOWN;
 
+    UNUSED(response);
     if (p && p->ops_v1_3 && p->ops_v1_3->vol_rcp_update) {
         Value v_vol = params["volume"];
         Value v_rcp = params["rcp"];

@@ -355,9 +355,9 @@ if test "x$with_systemdsystemunitdir" != xno; then
 fi
 AM_CONDITIONAL(HAVE_SYSTEMD, [test -n "$with_systemdsystemunitdir" -a "x$with_systemdsystemunitdir" != xno ])
 
-AX_CHECK_COMPILE_FLAG([-Wall], [CFLAGS="$CFLAGS -Wall"], [], [])
-AX_CHECK_COMPILE_FLAG([-Werror], [CFLAGS="$CFLAGS -Werror"], [], [])
-AX_CHECK_COMPILE_FLAG([-Wextra], [CFLAGS="$CFLAGS -Wextra"], [], [])
+AX_CHECK_COMPILE_FLAG([-Wall], [CPPFLAGS="$CPPFLAGS -Wall"], [], [])
+AX_CHECK_COMPILE_FLAG([-Werror], [CPPFLAGS="$CPPFLAGS -Werror"], [], [])
+AX_CHECK_COMPILE_FLAG([-Wextra], [CPPFLAGS="$CPPFLAGS -Wextra"], [], [])
 
 AC_CONFIG_FILES([
     libstoragemgmt.pc
