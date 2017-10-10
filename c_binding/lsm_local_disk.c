@@ -882,7 +882,7 @@ int lsm_local_disk_health_status_get(const char *disk_path,
     _good(_sg_io_open_ro(err_msg, disk_path, &fd), rc, out);
 
     if (link_type == LSM_DISK_LINK_TYPE_ATA) {
-        _good(_sg_ata_passthrough_health_status(err_msg, fd, health_status),
+        _good(_sg_ata_health_status(err_msg, fd, health_status),
               rc, out);
     } else if (link_type == LSM_DISK_LINK_TYPE_SAS) {
         _good(_sg_sas_health_status(err_msg, fd, health_status), rc, out);

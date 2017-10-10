@@ -199,16 +199,6 @@ LSM_DLL_LOCAL int _sg_tp_sas_addr_of_disk(char *err_msg, int fd,
  * Preconditions:
  *  err_msg != NULL
  *  fd >= 0
- *  data != NULL
- *  data is uint8_t[_SG_T10_SPC_LOG_SENSE_MAX_LEN]
- */
-LSM_DLL_LOCAL int _sg_log_sense(char *err_msg, int fd, uint8_t page_code,
-                                uint8_t sub_page_code, uint8_t *data);
-
-/*
- * Preconditions:
- *  err_msg != NULL
- *  fd >= 0
  *  returned_sense_data != NULL
  */
 LSM_DLL_LOCAL int _sg_request_sense(char *err_msg, int fd,
@@ -235,8 +225,8 @@ LSM_DLL_LOCAL int _sg_sas_health_status(char *err_msg, int fd,
  *  fd >= 0
  *  health_status != NULL
  */
-LSM_DLL_LOCAL int _sg_ata_passthrough_health_status(char *err_msg, int fd,
-                                                    int32_t *health_status);
+LSM_DLL_LOCAL int _sg_ata_health_status(char *err_msg, int fd,
+                                        int32_t *health_status);
 
 /*
  * Preconditions:
