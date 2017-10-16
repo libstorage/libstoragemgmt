@@ -691,11 +691,13 @@ cmds = (
                  default=[]),
             dict(name="--ro-host", metavar='<RO_HOST>',
                  help="The host/IP has readonly access.\n"
-                      "This is repeatable argument.",
+                      "This is repeatable argument.\n"
+                      "At least one '--ro-host' or '--rw-host' is required.",
                  action='append', default=[]),
             dict(name="--rw-host", metavar='<RW_HOST>',
                  help="The host/IP has readwrite access.\n"
-                      "This is repeatable argument.",
+                      "This is repeatable argument.\n"
+                      "At least one '--ro-host' or '--rw-host' is required.",
                  action='append', default=[]),
         ],
     ),
