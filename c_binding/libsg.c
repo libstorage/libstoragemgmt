@@ -121,6 +121,16 @@
  */
 #define _T10_SAT_ATA_PASS_THROUGH_PROTOCOL_NON_DATA     0x3
 
+/*
+ * SAT-4 rev 06 Table 188 - ATA Information VPD page
+ *
+ */
+#define _T10_SAT_ATA_INFO_VPD_PAGE_MAX_LEN              572
+
+/*
+ * SBC-4 rev 14 Table 261 - Block Device Characteristics VPD page
+ */
+#define _T10_SBC_VPD_BLK_DEV_CHA_MAX_LEN                64
 
 const char * const _T10_SPC_SENSE_KEY_STR[] = {
     "NO SENSE",
@@ -476,6 +486,7 @@ int _sg_io_vpd(char *err_msg, int fd, uint8_t page_code, uint8_t *data)
     char strerr_buff[_LSM_ERR_MSG_LEN];
     uint8_t sense_key = _T10_SPC_SENSE_KEY_NO_SENSE;
     char sense_err_msg[_LSM_ERR_MSG_LEN];
+    ssize_t data_len = 0;
 
     assert(err_msg != NULL);
     assert(fd >= 0);
@@ -483,23 +494,33 @@ int _sg_io_vpd(char *err_msg, int fd, uint8_t page_code, uint8_t *data)
 
     memset(sense_err_msg, 0, _LSM_ERR_MSG_LEN);
 
+    switch(page_code) {
+    case _SG_T10_SPC_VPD_ATA_INFO:
+        data_len = _T10_SAT_ATA_INFO_VPD_PAGE_MAX_LEN;
+        break;
+    case _SG_T10_SBC_VPD_BLK_DEV_CHA:
+        data_len = _T10_SBC_VPD_BLK_DEV_CHA_MAX_LEN;
+        break;
+    default:
+        data_len = _SG_T10_SPC_VPD_MAX_LEN;
+    }
+
     /* SPC-5 Table 142 - INQUIRY command */
     cdb[0] = INQUIRY;                           /* OPERATION CODE */
     cdb[1] = 1;                                 /* EVPD */
     /* VPD INQUIRY requires EVPD == 1 */;
     cdb[2] = page_code & UINT8_MAX;             /* PAGE CODE */
-    cdb[3] = (_SG_T10_SPC_VPD_MAX_LEN >> 8 )& UINT8_MAX;
+    cdb[3] = (data_len >> 8 )& UINT8_MAX;
                                                 /* ALLOCATION LENGTH, MSB */
-    cdb[4] = _SG_T10_SPC_VPD_MAX_LEN & UINT8_MAX;
+    cdb[4] = data_len & UINT8_MAX;
                                                 /* ALLOCATION LENGTH, LSB */
     cdb[5] = 0;                                 /* CONTROL */
     /* We have no use case need for handling auto contingent allegiance(ACA)
      * yet.
      */
 
-    ioctl_errno = _sg_io_v3(fd, cdb, _T10_SPC_INQUIRY_CMD_LEN, data,
-                            _SG_T10_SPC_VPD_MAX_LEN, sense_data,
-                            _SG_IO_RECV_DATA);
+    ioctl_errno = _sg_io_v3(fd, cdb, _T10_SPC_INQUIRY_CMD_LEN, data, data_len,
+                            sense_data, _SG_IO_RECV_DATA);
 
     if (ioctl_errno != 0) {
         if (page_code == _SG_T10_SPC_VPD_SUP_VPD_PGS) {
