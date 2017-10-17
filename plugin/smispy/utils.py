@@ -18,6 +18,15 @@ import traceback
 import json
 from lsm import (LsmError, ErrorNumber, error)
 import pywbem
+try:
+    from pywbem import AuthError
+except ImportError:
+    from pywbem.cim_http import AuthError
+
+try:
+    from pywbem import Error
+except ImportError:
+    from pywbem.cim_http import Error
 
 
 def merge_list(list_a, list_b):
@@ -59,9 +68,9 @@ def handle_cim_errors(method):
                     raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
                                    desc)
             raise LsmError(ErrorNumber.PLUGIN_BUG, desc)
-        except pywbem.AuthError:
+        except AuthError:
             raise LsmError(ErrorNumber.PLUGIN_AUTH_FAILED, "Unauthorized user")
-        except pywbem.Error as te:
+        except Error as te:
             raise LsmError(ErrorNumber.NETWORK_ERROR, str(te))
         except Exception as e:
             error("Unexpected exception:\n" + traceback.format_exc())
