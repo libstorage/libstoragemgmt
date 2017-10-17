@@ -157,16 +157,19 @@ Required. Valid values are (case insensitive):
 
 .TP
 \fB--fs\fR \fI<FS_ID>\fR
-Required for \fB--type\fR=\fBSNAPSHOTS\fR. List the snapshots of certain
+Required for \fB--type\fR=\fBSNAPSHOTS\fR, list the snapshots of certain
 filesystem.
-PLUGINS will list all supported plugins of LSM, not only the current one.
+Optional for type \fBEXPORTS\fR, list the NFS export for certain filesystem.
 .TP
 \fB--sys\fR \fI<SYS_ID>\fR
+Optional.
 Search resources from system with SYS_ID. Only supported when querying these
 types of resources: \fBVOLUMES\fR, \fBPOOLS\fR, \fBFS\fR,
-\fBSNAPSHOTS\fR, \fBDISKS\fR, \fBACCESS_GROUPS\fR.
+\fBSNAPSHOTS\fR, \fBDISKS\fR, \fBACCESS_GROUPS\fR, \fBTARGET_PORTS\r,
+\fBBATTERIES\fR.
 .TP
 \fB--pool\fR \fI<POOL_ID>\fR
+Optional.
 Search resources from pool with POOL_ID. Only supported by these types of
 resources: \fBVOLUMES\fR, \fBPOOLS\fR, \fBFS\fR.
 .TP
@@ -187,10 +190,6 @@ of resources: \fBACCESS_GROUPS\fR, \fBVOLUMES\fR.
 .br
 To query volume masking status, please use this command:
    lsmcli list --type VOLUMES --ag <AG_ID>
-.TP
-\fB--fs\fR \fI<FS_ID>\fR
-Search resources from file system with FS_ID. Only supported by these types
-of resources: \fBFS\fR.
 .TP
 \fB--nfs-export\fR \fI<NFS_EXPORT_ID>\fR
 Search resources from NFS export with NFS_EXPORT_ID. Only supported by these

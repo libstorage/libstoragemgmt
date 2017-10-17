@@ -442,8 +442,9 @@ cmds = (
                  help='Source volume id'),
             dict(name="--dst-vol", metavar='<DST_VOL_ID>',
                  help='Destination volume id'),
-            dict(name="--rep-type", metavar='<REP_TYPE>', help=replicate_help,
-                 choices=replicate_types),
+            dict(name="--rep-type", metavar='<REP_TYPE>',
+                 help="Replication type: CLONE, COPY",
+                 choices=["CLONE", "COPY"]),
             dict(name="--src-start", metavar='<SRC_START_BLK>',
                  help='Source volume start block number.\n'
                       'This is repeatable argument.',
@@ -691,11 +692,13 @@ cmds = (
                  default=[]),
             dict(name="--ro-host", metavar='<RO_HOST>',
                  help="The host/IP has readonly access.\n"
-                      "This is repeatable argument.",
+                      "This is repeatable argument.\n"
+                      "At least one '--ro-host' or '--rw-host' is required.",
                  action='append', default=[]),
             dict(name="--rw-host", metavar='<RW_HOST>',
                  help="The host/IP has readwrite access.\n"
-                      "This is repeatable argument.",
+                      "This is repeatable argument.\n"
+                      "At least one '--ro-host' or '--rw-host' is required.",
                  action='append', default=[]),
         ],
     ),
@@ -1163,6 +1166,9 @@ class CmdLine(object):
                                "NFS Export listing" % search_key)
             self.display_data(self.c.exports(search_key, search_value))
         elif args.type == 'NFS_CLIENT_AUTH':
+            if search_key:
+                raise ArgError("NFS client authentication type listing with "
+                               "search is not supported")
             self.display_nfs_client_authentication()
         elif args.type == 'ACCESS_GROUPS':
             if search_key == 'access_group_id':
@@ -1204,6 +1210,8 @@ class CmdLine(object):
             self.display_data(
                 self.c.target_ports(search_key, search_value))
         elif args.type == 'PLUGINS':
+            if search_key:
+                raise ArgError("Plugins listing with search is not supported")
             self.display_available_plugins()
         elif args.type == 'BATTERIES':
             if search_key and \
