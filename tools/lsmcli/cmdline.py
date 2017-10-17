@@ -1165,6 +1165,9 @@ class CmdLine(object):
                                "NFS Export listing" % search_key)
             self.display_data(self.c.exports(search_key, search_value))
         elif args.type == 'NFS_CLIENT_AUTH':
+            if search_key:
+                raise ArgError("NFS client authentication type listing with "
+                               "search is not supported")
             self.display_nfs_client_authentication()
         elif args.type == 'ACCESS_GROUPS':
             if search_key == 'access_group_id':
@@ -1206,6 +1209,8 @@ class CmdLine(object):
             self.display_data(
                 self.c.target_ports(search_key, search_value))
         elif args.type == 'PLUGINS':
+            if search_key:
+                raise ArgError("Plugins listing with search is not supported")
             self.display_available_plugins()
         elif args.type == 'BATTERIES':
             if search_key and \
