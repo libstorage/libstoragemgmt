@@ -442,8 +442,9 @@ cmds = (
                  help='Source volume id'),
             dict(name="--dst-vol", metavar='<DST_VOL_ID>',
                  help='Destination volume id'),
-            dict(name="--rep-type", metavar='<REP_TYPE>', help=replicate_help,
-                 choices=replicate_types),
+            dict(name="--rep-type", metavar='<REP_TYPE>',
+                 help="Replication type: CLONE, COPY",
+                 choices=["CLONE", "COPY"]),
             dict(name="--src-start", metavar='<SRC_START_BLK>',
                  help='Source volume start block number.\n'
                       'This is repeatable argument.',
