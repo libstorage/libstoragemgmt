@@ -1835,7 +1835,7 @@ class CmdLine(object):
                     info_dict[key] = func_dict[key](disk_path)
                 except LsmError as lsm_err:
                     if lsm_err.code != ErrorNumber.NO_SUPPORT:
-                        sys.stderr.write("WARN: %s('%s'): %d %s" %
+                        sys.stderr.write("WARN: %s('%s'): %d %s\n" %
                                          (func_dict[key].__name__, disk_path,
                                           lsm_err.code, lsm_err.msg))
 
