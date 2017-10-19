@@ -469,6 +469,7 @@ class ErrorNumber(object):
 
     # Deletion related errors
     IS_MASKED = 160             # Volume is masked to access group.
+    HAS_CHILD_DEPENDENCY = 161  # Volume/File system has child dependency.
 
     NOT_FOUND_ACCESS_GROUP = 200
     NOT_FOUND_FS = 201

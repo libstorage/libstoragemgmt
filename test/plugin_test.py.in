@@ -142,6 +142,7 @@ class TestProxy(object):
                    lsm.ErrorNumber.NAME_CONFLICT,
                    lsm.ErrorNumber.NO_STATE_CHANGE,
                    lsm.ErrorNumber.IS_MASKED,
+                   lsm.ErrorNumber.HAS_CHILD_DEPENDENCY,
                    lsm.ErrorNumber.EXISTS_INITIATOR]
 
     # Hash of all calls that can be async
@@ -1305,6 +1306,80 @@ class TestPlugin(unittest.TestCase):
                         self.c.volume_delete(vol)
 
                     self.c.access_group_delete(ag)
+
+
+    def test_volume_delete_with_replication(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            if supported(cap, [Cap.VOLUME_REPLICATE_CLONE,
+                               Cap.VOLUME_CHILD_DEPENDENCY,
+                               Cap.VOLUME_CREATE,
+                               Cap.VOLUME_DELETE]):
+                pool = self._get_pool_by_usage(s.id,
+                                               lsm.Pool.ELEMENT_TYPE_VOLUME)
+                if pool:
+                    vol_size = self._min_size()
+
+                    vol = self.c.volume_create(
+                        pool, rs('v'), vol_size,
+                        lsm.Volume.PROVISION_DEFAULT)[1]
+
+                    clone_vol = self.c.volume_replicate(
+                        pool, lsm.Volume.REPLICATE_CLONE, vol,
+                        rs('test_vd_with_repo_'))[1]
+
+                    if self.c.volume_child_dependency(vol):
+                        got_exception = False
+                        try:
+                            self.c.volume_delete(vol)
+                        except LsmError as le:
+                            if le.code == lsm.ErrorNumber.HAS_CHILD_DEPENDENCY:
+                                got_exception = True
+                            self.assertTrue(
+                                le.code == lsm.ErrorNumber.HAS_CHILD_DEPENDENCY)
+
+                        self.assertTrue(got_exception)
+
+                    # Clean up
+                    self.c.volume_delete(clone_vol)
+                    self.c.volume_delete(vol)
+            else:
+                self._skip_current_test(
+                    "Skip test: current system does not support "
+                    "volume_create() or volume_replicate() with CLONE "
+                    "or volume_delete()")
+
+
+    def test_fs_delete_with_clone(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+
+            if supported(cap, [Cap.FS_CREATE, Cap.FS_CLONE, Cap.FS_DELETE,
+                               Cap.FS_CHILD_DEPENDENCY]):
+                fs, pool = self._fs_create(s.id)
+                self.assertTrue(fs is not None)
+                fs_child = self.c.fs_clone(fs, rs('fs_c_'))[1]
+                if self.c.fs_child_dependency(fs, None):
+                    got_exception = False
+                    try:
+                        self.c.fs_delete(fs)
+                    except LsmError as le:
+                        if le.code == lsm.ErrorNumber.HAS_CHILD_DEPENDENCY:
+                            got_exception = True
+                        self.assertTrue(le.code ==
+                                        lsm.ErrorNumber.HAS_CHILD_DEPENDENCY)
+
+
+                    self.assertTrue(got_exception)
+
+                # Clean up
+                self.c.fs_delete(fs_child)
+                self.c.fs_delete(fs)
+            else:
+                self._skip_current_test(
+                    "Skip test: current system does not support "
+                    "fs_create() or fs_clone() or fs_delete()")
+
 
     def test_volume_vpd83_verify(self):
 

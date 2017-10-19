@@ -73,6 +73,9 @@ typedef enum {
     /** Volume masked to Access Group*/
     LSM_ERR_IS_MASKED = 160,
 
+    /** Volume/File system is replication source */
+    LSM_ERR_HAS_CHILD_DEPENDENCY = 161,
+
     /** Specified access group not found */
     LSM_ERR_NOT_FOUND_ACCESS_GROUP = 200,
 

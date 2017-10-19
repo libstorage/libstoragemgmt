@@ -231,8 +231,10 @@ class NexentaStor(INfs, IStorageAreaNetwork):
 
     @handle_nstor_errors
     def fs_delete(self, fs, flags=0):
+        if self.fs_child_dependency(fs, None):
+            raise LsmError(ErrorNumber.HAS_CHILD_DEPENDENCY,
+                           "File system has child dependency")
         self._request("destroy", "folder", [fs.name, "-r"])
-        return
 
     @handle_nstor_errors
     def fs_snapshots(self, fs, flags=0):
@@ -587,6 +589,10 @@ class NexentaStor(INfs, IStorageAreaNetwork):
         if len(ag):
             raise LsmError(ErrorNumber.IS_MASKED,
                            "Volume is masked to access group")
+
+        if self.volume_child_dependency(volume):
+            raise LsmError(ErrorNumber.HAS_CHILD_DEPENDENCY,
+                           "Volume has child dependency")
 
         self._request("delete_lu", "scsidisk", [volume.id])
         self._request("destroy", "zvol", [volume.id, ''])

@@ -334,9 +334,8 @@ int volume_delete(lsm_plugin_ptr c, lsm_volume *volume, char **job,
 
     _good(_db_sql_exec(err_msg, db, sql_cmd, &vec), rc, out);
     if (_vector_size(vec) != 0) {
-        rc = LSM_ERR_PLUGIN_BUG;
-        /* We don't have error number for this yet */
-        _lsm_err_msg_set(err_msg, "Specified volume is replication source");
+        rc = LSM_ERR_HAS_CHILD_DEPENDENCY;
+        _lsm_err_msg_set(err_msg, "Specified volume has child dependency");
         goto out;
     }
 

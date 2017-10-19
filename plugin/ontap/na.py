@@ -202,6 +202,7 @@ class FilerError(Exception):
     EVDISK_ERROR_SIZE_TOO_SMALL = 9041      # Specified too small a size
     EVDISK_ERROR_SIZE_UNCHANGED = 9042      # requested size is the same.
     EVDISK_ERROR_INITGROUP_HAS_VDISK = 9023     # Already masked
+    EOP_DISALLOWED_ON_CLONE_PARENT = 15894  # NetApp volume is clone source.
 
     def __init__(self, errno, reason, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)

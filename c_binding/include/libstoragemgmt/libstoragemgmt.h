@@ -1007,8 +1007,12 @@ int LSM_DLL_EXPORT lsm_volume_replicate_range(lsm_connect *conn,
  *
  * Description:
  *      Deletes a volume/LUN and its data is lost!
- *      If specified volume is a replication source or is masked to any access
- *      group, it could be deleted.
+ *      If specified volume is masked to any access_group, it cannot be deleted.
+ *      You may use `lsm_access_groups_granted_to_volume()` and
+ *      `lsm_volume_unmask()` before `lsm_volume_delete()`.
+ *      If specified volume is has child dependency, it cannot be deleted.
+ *      You may use `lsm_volume_child_dependency()` and
+ *      `lsm_volume_child_dependency_delete()` before `lsm_volume_delete()`.
  *
  * Capability:
  *      LSM_CAP_VOLUME_DELETE
@@ -1040,6 +1044,8 @@ int LSM_DLL_EXPORT lsm_volume_replicate_range(lsm_connect *conn,
  *              Pool is not ready.
  *          * LSM_ERR_NO_SUPPORT
  *              Not supported.
+ *          * LSM_ERR_HAS_CHILD_DEPENDENCY
+ *              Specified volume has child dependencies.
  */
 int LSM_DLL_EXPORT lsm_volume_delete(lsm_connect *conn,
                                      lsm_volume *volume, char **job,
@@ -1838,6 +1844,12 @@ int LSM_DLL_EXPORT lsm_fs_create(lsm_connect *conn, lsm_pool * pool,
  *
  * Description:
  *      Deletes a file system and its data is lost!
+ *      When file system has snapshot attached, all its snapshot will be deleted
+ *      also.
+ *      When file system is exported, all its exports will be deleted also.
+ *      If specified file system is has child dependency, it cannot be deleted.
+ *      You may use `lsm_fs_child_dependency()` and
+ *      `lsm_fs_child_dependency_delete()` before `lsm_fs_delete()`.
  *
  * Capability:
  *      LSM_CAP_FS_DELETE
@@ -1869,6 +1881,8 @@ int LSM_DLL_EXPORT lsm_fs_create(lsm_connect *conn, lsm_pool * pool,
  *              Pool is not ready.
  *          * LSM_ERR_NO_SUPPORT
  *              Not supported.
+ *          * LSM_ERR_HAS_CHILD_DEPENDENCY
+ *              Specified volume has child dependencies.
  */
 int LSM_DLL_EXPORT lsm_fs_delete(lsm_connect *conn, lsm_fs *fs,
                                  char **job, lsm_flag flags);

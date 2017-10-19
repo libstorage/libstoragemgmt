@@ -1019,7 +1019,16 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def fs_delete(self, fs, flags=0):
-        self.f.volume_delete(fs.name)
+        try:
+            self.f.volume_delete(fs.name)
+        except na.FilerError as fe:
+            if fe.errno == na.FilerError.EOP_DISALLOWED_ON_CLONE_PARENT:
+                raise LsmError(
+                    ErrorNumber.HAS_CHILD_DEPENDENCY,
+                    "Specified file system has child dependency "
+                    "(is source of clone)")
+            else:
+                raise
 
     @handle_ontap_errors
     def fs_resize(self, fs, new_size_bytes, flags=0):
