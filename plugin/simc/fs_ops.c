@@ -197,20 +197,6 @@ int fs_delete(lsm_plugin_ptr c, lsm_fs *fs, char **job, lsm_flag flags)
     sim_fs_id = _db_lsm_id_to_sim_id(lsm_fs_id_get(fs));
     /* Check fs existence */
     _good(_db_sim_fs_of_sim_id(err_msg, db, sim_fs_id, &sim_fs), rc, out);
-    /* Check fs snapshot status */
-    _snprintf_buff(err_msg, rc, out, sql_cmd,
-                   "SELECT * FROM " _DB_TABLE_FS_SNAPS_VIEW " WHERE fs_id=%"
-                   PRIu64 ";", sim_fs_id);
-
-    _good(_db_sql_exec(err_msg, db, sql_cmd, &vec), rc, out);
-    if (_vector_size(vec) != 0) {
-        rc = LSM_ERR_PLUGIN_BUG;
-        /* TODO(Gris Ge): API does not have dedicate error for this scenario.*/
-        _lsm_err_msg_set(err_msg, "Specified filesystem has snapshot");
-        goto out;
-    }
-    _db_sql_exec_vec_free(vec);
-    vec = NULL;
     /* Check fs clone(clone here means read and writeable snapshot) */
     _snprintf_buff(err_msg, rc, out, sql_cmd,
                    "SELECT * FROM " _DB_TABLE_FS_CLONES " WHERE src_fs_id = %"
@@ -218,9 +204,8 @@ int fs_delete(lsm_plugin_ptr c, lsm_fs *fs, char **job, lsm_flag flags)
 
     _good(_db_sql_exec(err_msg, db, sql_cmd, &vec), rc, out);
     if (_vector_size(vec) != 0) {
-        rc = LSM_ERR_PLUGIN_BUG;
-        /* We don't have error number for this yet */
-        _lsm_err_msg_set(err_msg, "Specified fs is a clone source");
+        rc = LSM_ERR_HAS_CHILD_DEPENDENCY;
+        _lsm_err_msg_set(err_msg, "Specified fs has child dependency");
         goto out;
     }
 

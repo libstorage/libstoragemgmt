@@ -704,11 +704,6 @@ class Ontap(IStorageAreaNetwork, INfs):
                            "volume_create(): "
                            "Got 2 or more na_vols: %s" % na_vols)
 
-    def _volume_on_aggr(self, pool, volume):
-        search = Ontap._vol_to_na_volume_name(volume)
-        contained_volumes = self.f.aggregate_volume_names(pool.name)
-        return search in contained_volumes
-
     @handle_ontap_errors
     def volume_replicate(self, pool, rep_type, volume_src, name, flags=0):
         # At the moment we are only supporting space efficient writeable
@@ -718,7 +713,7 @@ class Ontap(IStorageAreaNetwork, INfs):
 
         # Check to see if our volume is on a pool that was passed in or that
         # the pool itself is None
-        if pool is None or self._volume_on_aggr(pool, volume_src):
+        if pool is None or pool.id == volume_src.pool_id:
             # Thin provision copy the logical unit
             dest = os.path.dirname(_lsm_vol_to_na_vol_path(volume_src)) + '/' \
                 + name
@@ -1024,7 +1019,16 @@ class Ontap(IStorageAreaNetwork, INfs):
 
     @handle_ontap_errors
     def fs_delete(self, fs, flags=0):
-        self.f.volume_delete(fs.name)
+        try:
+            self.f.volume_delete(fs.name)
+        except na.FilerError as fe:
+            if fe.errno == na.FilerError.EOP_DISALLOWED_ON_CLONE_PARENT:
+                raise LsmError(
+                    ErrorNumber.HAS_CHILD_DEPENDENCY,
+                    "Specified file system has child dependency "
+                    "(is source of clone)")
+            else:
+                raise
 
     @handle_ontap_errors
     def fs_resize(self, fs, new_size_bytes, flags=0):

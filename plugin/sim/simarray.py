@@ -1314,8 +1314,8 @@ class BackStore(object):
                 if dst_sim_vol_id != sim_vol_id:
                     # Don't raise error on volume internal replication.
                     raise LsmError(
-                        ErrorNumber.PLUGIN_BUG,
-                        "Requested volume is a replication source")
+                        ErrorNumber.HAS_CHILD_DEPENDENCY,
+                        "Requested volume has child dependency")
         if sim_vol['is_hw_raid_vol']:
             # Reset disk roles
             for d in self._data_find('disks_view',
@@ -1603,23 +1603,9 @@ class BackStore(object):
     def sim_fs_delete(self, sim_fs_id):
         self.sim_fs_of_id(sim_fs_id)
         if self.clone_dst_sim_fs_ids_of_src(sim_fs_id):
-            # TODO(Gris Ge): API does not have dedicate error for this
-            #                scenario.
             raise LsmError(
-                ErrorNumber.PLUGIN_BUG,
-                "Requested file system is a clone source")
-
-        if self.sim_fs_snaps(sim_fs_id):
-            raise LsmError(
-                ErrorNumber.PLUGIN_BUG,
-                "Requested file system has snapshot attached")
-
-        if self._data_find('exps', 'fs_id="%s"' % sim_fs_id):
-            # TODO(Gris Ge): API does not have dedicate error for this
-            #                scenario
-            raise LsmError(
-                ErrorNumber.PLUGIN_BUG,
-                "Requested file system is exported via NFS")
+                ErrorNumber.HAS_CHILD_DEPENDENCY,
+                "Requested file system has child dependency")
 
         self._data_delete("fss", 'id="%s"' % sim_fs_id)
 
