@@ -33,6 +33,7 @@ from lsm.plugin.smispy import smis_ag
 from lsm.plugin.smispy import dmtf
 from lsm.plugin.smispy.utils import (merge_list, handle_cim_errors,
                                      hex_string_format)
+import pywbem
 
 
 # Variable Naming scheme:
