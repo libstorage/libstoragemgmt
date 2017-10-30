@@ -3,7 +3,7 @@ dnl Copyright (C) 2011-2016 Red Hat, Inc.
 dnl See COPYING.LIB for the License of this software
 
 AC_INIT(
-    [libstoragemgmt], [1.6.0], [libstoragemgmt-devel@lists.fedorahosted.org],
+    [libstoragemgmt], [1.6.1], [libstoragemgmt-devel@lists.fedorahosted.org],
     [], [https://github.com/libstorage/libstoragemgmt/])
 AC_CONFIG_SRCDIR([configure.ac])
 AC_CONFIG_AUX_DIR([build-aux])
@@ -355,9 +355,9 @@ if test "x$with_systemdsystemunitdir" != xno; then
 fi
 AM_CONDITIONAL(HAVE_SYSTEMD, [test -n "$with_systemdsystemunitdir" -a "x$with_systemdsystemunitdir" != xno ])
 
-AX_CHECK_COMPILE_FLAG([-Wall], [CPPFLAGS="$CPPFLAGS -Wall"], [], [])
-AX_CHECK_COMPILE_FLAG([-Werror], [CPPFLAGS="$CPPFLAGS -Werror"], [], [])
-AX_CHECK_COMPILE_FLAG([-Wextra], [CPPFLAGS="$CPPFLAGS -Wextra"], [], [])
+CPPFLAGS="$CPPFLAGS -Wall"
+CPPFLAGS="$CPPFLAGS -Werror"
+CPPFLAGS="$CPPFLAGS -Wextra"
 
 AC_CONFIG_FILES([
     libstoragemgmt.pc
