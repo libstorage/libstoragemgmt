@@ -143,8 +143,10 @@ static PyObject *list_mount_paths(PyObject *self, PyObject *args)
 
 out:
     if (err) {
-        if (result) Py_DECREF(result);
-        if (f) endmntent(f);
+        Py_XDECREF(result);
+        if (f) {
+            endmntent(f);
+        }
         return NULL;
     }
 
