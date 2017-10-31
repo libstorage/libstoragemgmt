@@ -170,8 +170,11 @@ void drop_privileges(void)
 {
     int err = 0;
     struct passwd *pw = NULL;
+    char buff[16384];
+    /* ^ manpage of getpwnam(3) said 16384 "Should be more than enough" */
+    struct passwd pw_buf;
 
-    pw = getpwnam(LSM_USER);
+    getpwnam_r(LSM_USER, &pw_buf, buff, sizeof(buff)/sizeof(char), &pw);
     if (pw) {
         if (!geteuid()) {
 
