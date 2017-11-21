@@ -266,7 +266,7 @@ static int _db_data_init(char *err_msg, sqlite3 *db)
     _snprintf_buff(err_msg, rc, out, disk_type_str, "%d", LSM_DISK_TYPE_SSD);
     _snprintf_buff(err_msg, rc, out, disk_link_type_str, "%d",
                    LSM_DISK_LINK_TYPE_SAS);
-    for (i = 0; i < 5; ++i) {
+    for (i = 0; i < 7; ++i) {
         _snprintf_buff(err_msg, rc, out, location_str,
                        "Port: %d Box: 1 Bay: 3", i);
         _good(_db_data_add(err_msg, db, _DB_TABLE_DISKS,
