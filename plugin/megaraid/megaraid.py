@@ -85,6 +85,7 @@ def _disk_type_of(disk_show_basic_dict):
 
     return Disk.TYPE_UNKNOWN
 
+
 _DISK_STATE_MAP = {
     'Onln': Disk.STATUS_OK,
     'Offln': Disk.STATUS_ERROR,
@@ -409,7 +410,7 @@ class MegaRAID(IPlugin):
 
     @_handle_errors
     def time_out_set(self, ms, flags=Client.FLAG_RSVD):
-        self._tmo_ms = ms # TODO(Gris Ge): Not implemented yet.
+        self._tmo_ms = ms  # TODO(Gris Ge): Not implemented yet.
 
     @_handle_errors
     def time_out_get(self, flags=Client.FLAG_RSVD):
@@ -874,7 +875,8 @@ class MegaRAID(IPlugin):
         supported_strip_sizes = list(
             min_strip_size * (2 ** i)
             for i in range(
-                0, int(math.log(int_div(max_strip_size, min_strip_size), 2) + 1)))
+                0, int(math.log(int_div(max_strip_size, min_strip_size), 2)
+                       + 1)))
 
         # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         # The math above is to generate a list like:
