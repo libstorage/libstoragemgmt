@@ -85,6 +85,7 @@ def _disk_type_of(disk_show_basic_dict):
 
     return Disk.TYPE_UNKNOWN
 
+
 _DISK_STATE_MAP = {
     'Onln': Disk.STATUS_OK,
     'Offln': Disk.STATUS_ERROR,
@@ -409,7 +410,7 @@ class MegaRAID(IPlugin):
 
     @_handle_errors
     def time_out_set(self, ms, flags=Client.FLAG_RSVD):
-        self._tmo_ms = ms # TODO(Gris Ge): Not implemented yet.
+        self._tmo_ms = ms  # TODO(Gris Ge): Not implemented yet.
 
     @_handle_errors
     def time_out_get(self, flags=Client.FLAG_RSVD):
@@ -759,7 +760,7 @@ class MegaRAID(IPlugin):
                 ErrorNumber.INVALID_ARGUMENT,
                 "Ilegal input volume argument: missing plugin_data property")
 
-        vd_path = volume.plugin_data
+        vd_path = _vd_path_of_lsm_vol(volume)
         vol_show_output = self._storcli_exec([vd_path, "show", "all"])
         vd_basic_info = vol_show_output[vd_path][0]
         vd_id = int(vd_basic_info['DG/VD'].split('/')[-1])
@@ -874,7 +875,8 @@ class MegaRAID(IPlugin):
         supported_strip_sizes = list(
             min_strip_size * (2 ** i)
             for i in range(
-                0, int(math.log(int_div(max_strip_size, min_strip_size), 2) + 1)))
+                0, int(math.log(int_div(max_strip_size, min_strip_size), 2)
+                       + 1)))
 
         # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         # The math above is to generate a list like:
@@ -1067,9 +1069,6 @@ class MegaRAID(IPlugin):
         sys_all_output = self._storcli_exec(
             ["/%s" % vd_path.split('/')[1], "show", "all"])
 
-        write_cache_status = Volume.WRITE_CACHE_STATUS_WRITE_THROUGH
-        read_cache_status = Volume.READ_CACHE_STATUS_DISABLED
-
         ram_size = _mega_size_to_lsm(
             sys_all_output['HwCfg'].get('On Board Memory Size', '0 KB'))
         if ram_size > 0:
@@ -1081,35 +1080,41 @@ class MegaRAID(IPlugin):
                 flag_battery_ok = True
 
         lsi_cache_setting = vd_basic_info['Cache']
-        if lsi_cache_setting[0] == 'R':
-            read_cache_policy = Volume.READ_CACHE_POLICY_ENABLED
-            if flag_has_ram:
-                read_cache_status = Volume.READ_CACHE_STATUS_ENABLED
-        elif lsi_cache_setting[0:2] == 'NR':
-            read_cache_policy = Volume.READ_CACHE_POLICY_DISABLED
+        # According to MegaRAID document, read I/O is always cached for direct
+        # I/O and cache I/O.
+        read_cache_policy = Volume.READ_CACHE_POLICY_ENABLED
+        write_cache_status = Volume.WRITE_CACHE_STATUS_WRITE_THROUGH
+        read_cache_status = Volume.READ_CACHE_STATUS_DISABLED
+
+        if lsi_cache_setting.endswith('D'):
+            # Direct I/O
+            if 'AWB' in lsi_cache_setting:
+                write_cache_policy = Volume.WRITE_CACHE_POLICY_WRITE_BACK
+            elif 'WB' in lsi_cache_setting:
+                write_cache_policy = Volume.WRITE_CACHE_POLICY_AUTO
+            elif 'WT' in lsi_cache_setting:
+                write_cache_policy = Volume.WRITE_CACHE_POLICY_WRITE_THROUGH
+            else:
+                raise LsmError(
+                    ErrorNumber.PLUGIN_BUG,
+                    "Unknown write cache %s for volume %s" %
+                    (lsi_cache_setting, vd_path))
+        elif lsi_cache_setting.endswith('C'):
+            # cache I/O always caches write and read and ignore changes.
+            write_cache_policy = Volume.WRITE_CACHE_POLICY_WRITE_BACK
         else:
             raise LsmError(
                 ErrorNumber.PLUGIN_BUG,
-                "Unknown read cache %s for volume %s" %
+                "Unknown I/O type %s for volume %s" %
                 (lsi_cache_setting, vd_path))
 
-        if 'AWB' in lsi_cache_setting:
-            write_cache_policy = Volume.WRITE_CACHE_POLICY_WRITE_BACK
-            if flag_has_ram:
+        if flag_has_ram:
+            read_cache_status = Volume.READ_CACHE_STATUS_ENABLED
+            if write_cache_policy == Volume.WRITE_CACHE_POLICY_WRITE_BACK:
                 write_cache_status = Volume.WRITE_CACHE_STATUS_WRITE_BACK
-        elif 'WB' in lsi_cache_setting:
-            # This mode means enable write cache when battery or CacheVault
-            # is healthy.
-            write_cache_policy = Volume.WRITE_CACHE_POLICY_AUTO
-            if flag_has_ram and flag_battery_ok:
-                write_cache_status = Volume.WRITE_CACHE_STATUS_WRITE_BACK
-        elif 'WT' in lsi_cache_setting:
-            write_cache_policy = Volume.WRITE_CACHE_POLICY_WRITE_THROUGH
-        else:
-            raise LsmError(
-                ErrorNumber.PLUGIN_BUG,
-                "Unknown write cache %s for volume %s" %
-                (lsi_cache_setting, vd_path))
+            elif write_cache_policy == Volume.WRITE_CACHE_POLICY_AUTO:
+                if flag_battery_ok:
+                    write_cache_status = Volume.WRITE_CACHE_STATUS_WRITE_BACK
 
         # TODO(Gris Ge): When 'Block SSD Write Disk Cache Change' of
         #                'Supported Adapter Operations' is 'Yes'
@@ -1162,12 +1167,27 @@ class MegaRAID(IPlugin):
         """
         Depending on "storcli /c0/vX set wrcache=<wt|wb|awb>" command.
         """
-        cmd = [_vd_path_of_lsm_vol(volume), "set"]
+        vd_path = _vd_path_of_lsm_vol(volume)
+        # Check whether we are working on cache I/O which ignore write cache
+        # setting and always cache write.
+        vol_show_output = self._storcli_exec([vd_path, "show", "all"])
+        vd_basic_info = vol_show_output[vd_path][0]
+        lsi_cache_setting = vd_basic_info['Cache']
+        if lsi_cache_setting.endswith('C'):
+            flag_cache_io = True
+        else:
+            flag_cache_io = False
+
+        cmd = [vd_path, "set"]
         if wcp == Volume.WRITE_CACHE_POLICY_WRITE_BACK:
             cmd.append("wrcache=awb")
         elif wcp == Volume.WRITE_CACHE_POLICY_AUTO:
+            if flag_cache_io:
+                self._storcli_exec([vd_path, "set", "iopolicy=Direct"])
             cmd.append("wrcache=wb")
         elif wcp == Volume.WRITE_CACHE_POLICY_WRITE_THROUGH:
+            if flag_cache_io:
+                self._storcli_exec([vd_path, "set", "iopolicy=Direct"])
             cmd.append("wrcache=wt")
         else:
             raise LsmError(ErrorNumber.PLUGIN_BUG,
@@ -1181,8 +1201,9 @@ class MegaRAID(IPlugin):
         storcli always enable read cache and no way to change it
         """
         raise LsmError(ErrorNumber.NO_SUPPORT,
-                       "LSI MegaRAID always enable read cache and refused to "
-                       "change that.")
+                       "MegaRAID always enable read cache and refused to "
+                       "change that. You can change read ahead cache "
+                       "setting via storcli/perccli")
 
     @_handle_errors
     def volume_delete(self, volume, flags=Client.FLAG_RSVD):
