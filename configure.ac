@@ -353,7 +353,16 @@ AC_ARG_WITH([systemdsystemunitdir],
 if test "x$with_systemdsystemunitdir" != xno; then
         AC_SUBST([systemdsystemunitdir], [$with_systemdsystemunitdir])
 fi
-AM_CONDITIONAL(HAVE_SYSTEMD, [test -n "$with_systemdsystemunitdir" -a "x$with_systemdsystemunitdir" != xno ])
+
+#Setup the tmpfilesdir for systemd stuff
+AC_ARG_WITH([systemd-tmpfilesdir],
+        AS_HELP_STRING([--with-systemd-tmpfilesdir=DIR], [Directory for systemd temporary files]),
+        [], [with_systemdtmpfilesdir=$($PKG_CONFIG --variable=tmpfilesdir systemd)])
+if test "x$with_systemdtmpfilesdir" != xno; then
+        AC_SUBST([systemdtmpfilesdir], [$with_systemdtmpfilesdir])
+fi
+AM_CONDITIONAL(HAVE_SYSTEMD,
+               [test -n "$with_systemdsystemunitdir" -a "x$with_systemdsystemunitdir" != xno -a -n "$with_systemdtmpfilesdir" -a "x$with_systemdtmpfilesdir" != xno ])
 
 CPPFLAGS="$CPPFLAGS -Wall"
 CPPFLAGS="$CPPFLAGS -Werror"
