@@ -26,6 +26,8 @@
 
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 
+#define _TIME_STAMP_BUFF_LEN                            64
+
 #include "utils.h"
 #include "db.h"
 #include "san_ops.h"
@@ -109,10 +111,10 @@ static const char *time_stamp_str_get(char *buff)
 
     assert(buff != NULL);
 
-    memset(buff, 0, _BUFF_SIZE);
+    memset(buff, 0, _TIME_STAMP_BUFF_LEN);
 
     if (clock_gettime(CLOCK_REALTIME, &ts) == 0)
-        snprintf(buff, _BUFF_SIZE, "%ld.%ld", (long) difftime(ts.tv_sec, 0),
+        snprintf(buff, _TIME_STAMP_BUFF_LEN, "%ld.%ld", (long) difftime(ts.tv_sec, 0),
                  ts.tv_nsec);
 
     return buff;
@@ -318,7 +320,7 @@ int job_status(lsm_plugin_ptr c, const char *job, lsm_job_status *status,
     uint64_t sim_data_id = 0;
     lsm_hash *sim_data = NULL;
     const char *time_stamp_str = NULL;
-    char cur_time_stamp_str[_BUFF_SIZE];
+    char cur_time_stamp_str[_TIME_STAMP_BUFF_LEN];
     double job_start_time = 0;
     double cur_time = 0;
     uint64_t duration = 0;
@@ -544,7 +546,7 @@ int _job_create(char *err_msg, sqlite3 *db, lsm_data_type data_type,
 {
     int rc = LSM_ERR_OK;
     char *duration = NULL;
-    char time_stamp_str[_BUFF_SIZE];
+    char time_stamp_str[_TIME_STAMP_BUFF_LEN];
     char data_type_str[_BUFF_SIZE];
     char sim_id_str[_BUFF_SIZE];
     char job_id_str[_BUFF_SIZE];

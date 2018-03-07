@@ -768,7 +768,7 @@ void _db_sql_trans_rollback(sqlite3 *db)
 int _db_data_add(char *err_msg, sqlite3 *db, const char *table_name, ...)
 {
     int rc = LSM_ERR_OK;
-    char sql_cmd[_BUFF_SIZE];
+    char sql_cmd[_BUFF_SIZE * 4];
     char keys_str[_BUFF_SIZE];
     char values_str[_BUFF_SIZE];
     const char *key_str = NULL;
@@ -809,9 +809,9 @@ int _db_data_add(char *err_msg, sqlite3 *db, const char *table_name, ...)
     keys_str[keys_printed - strlen(", ") + 1] = '\0';
     values_str[values_printed - strlen(", ") + 1] = '\0';
 
-    _snprintf_buff(err_msg, rc, out, sql_cmd,
-                   "INSERT INTO %s (%s) VALUES (%s);", table_name, keys_str,
-                   values_str);
+    snprintf(sql_cmd, sizeof(sql_cmd)/sizeof(char),
+             "INSERT INTO %s (%s) VALUES (%s);", table_name, keys_str,
+             values_str);
 
     _good(_db_sql_exec(err_msg, db, sql_cmd,
                        NULL /* no need to parse output */),

@@ -1111,7 +1111,7 @@ int volume_unmask(lsm_plugin_ptr c, lsm_access_group *group, lsm_volume *volume,
     char err_msg[_LSM_ERR_MSG_LEN];
     char condition[_BUFF_SIZE];
     struct _vector *vec = NULL;
-    char sql_cmd_check_mask[_BUFF_SIZE];
+    char sql_cmd_check_mask[_BUFF_SIZE * 2];
 
      _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
@@ -1131,8 +1131,8 @@ int volume_unmask(lsm_plugin_ptr c, lsm_access_group *group, lsm_volume *volume,
                    _db_lsm_id_to_sim_id_str(lsm_access_group_id_get(group)),
                    _db_lsm_id_to_sim_id_str(lsm_volume_id_get(volume)));
 
-    _snprintf_buff(err_msg, rc, out, sql_cmd_check_mask, "SELECT * FROM "
-                   _DB_TABLE_VOL_MASKS " WHERE %s;", condition);
+    snprintf(sql_cmd_check_mask, sizeof(sql_cmd_check_mask)/sizeof(char),
+             "SELECT * FROM " _DB_TABLE_VOL_MASKS " WHERE %s;", condition);
 
     _good(_db_sql_exec(err_msg, db, sql_cmd_check_mask, &vec), rc, out);
 
