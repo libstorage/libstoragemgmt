@@ -995,10 +995,23 @@ class Client(INetworkAttachedStorage):
         """
         Exports a filesystem as specified in the arguments
         """
-        if set(rw_list) - (set(rw_list) - set(ro_list)):
+        if not rw_list and not ro_list:
             raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           "Host cannot both in rw_list and ro_list.")
-        return self._tp.rpc('export_fs', _del_self(locals()))
+                           'At least one host should be defined in '
+                           'ro_list or rw_list')
+        for host in rw_list:
+            if host in ro_list:
+                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                               'Host cannot both in rw_list and ro_list.')
+        for host in root_list:
+            if host not in rw_list and host not in ro_list:
+                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                               'Root host should also be defined in '
+                               'ro_list or rw_list: %s' % host)
+        args = _del_self(locals())
+        if 'host' in args:
+            del args['host']
+        return self._tp.rpc('export_fs', args)
 
     # Removes the specified export
     # @param    self    The this pointer
