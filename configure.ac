@@ -198,7 +198,6 @@ if test "x$with_python3" = "xyes"; then
     AM_PATH_PYTHON([3], [], AC_MSG_ERROR([Python interpreter 3 required]))
     AC_PYTHON_MODULE([pywbem], [Required], [python3])
     AC_PYTHON_MODULE([six], [Required], [python3])
-    AC_PYTHON_MODULE([pyudev], [Required], [python3])
     PKG_CHECK_MODULES([PYTHON], [python3], [], [not_found_py_pkg=yes])
 
     if test "x$not_found_py_pkg" == "xyes"; then
@@ -236,7 +235,6 @@ but found $PYTHON_MAJOR_VERSION.x]) ;;
 
     AC_PYTHON_MODULE([pywbem], [Required])
     AC_PYTHON_MODULE([argparse], [Required])
-    AC_PYTHON_MODULE([pyudev], [Required])
     AC_PYTHON_MODULE([six], [Required])
     PKG_CHECK_MODULES([PYTHON], [python2], [], [not_found_py_pkg=yes])
 

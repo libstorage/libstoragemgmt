@@ -20,5 +20,4 @@ python-dev
 perl
 valgrind
 chrpath
-python-pyudev
 libsqlite3-dev

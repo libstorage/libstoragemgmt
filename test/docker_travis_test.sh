@@ -22,7 +22,7 @@ getent passwd libstoragemgmt >/dev/null || \
 
 if [ "CHK$IS_FEDORA" == "CHK1" ];then
     dnf install `cat ./rh_rpm_dependency` rpm-build -y || exit 1
-    dnf install python3-six python3-devel python3-pywbem python3-pyudev -y \
+    dnf install python3-six python3-devel python3-pywbem -y \
         || exit 1
 elif [ "CHK$IS_RHEL" == "CHK1" ];then
     yum install `cat ./rh_rpm_dependency` rpm-build -y || exit 1
