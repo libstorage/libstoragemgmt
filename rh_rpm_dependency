@@ -15,7 +15,6 @@ glib2-devel
 m2crypto
 openssl-devel
 libconfig-devel
-python-pyudev
 python-devel
 libudev-devel
 perl

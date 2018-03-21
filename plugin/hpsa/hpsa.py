@@ -20,17 +20,12 @@ import os
 import errno
 import re
 
-from pyudev import Context, Device, DeviceNotFoundError
-
 from lsm import (
     IPlugin, Client, Capabilities, VERSION, LsmError, ErrorNumber, uri_parse,
     System, Pool, size_human_2_size_bytes, search_property, Volume, Disk,
     LocalDisk, Battery, int_div)
 
 from lsm.plugin.hpsa.utils import cmd_exec, ExecError
-
-_CONTEXT = Context()
-
 
 def _handle_errors(method):
     def _wrapper(*args, **kwargs):
@@ -56,6 +51,18 @@ def _handle_errors(method):
                 "Got unexpected error %s" % common_error)
 
     return _wrapper
+
+
+def _sysfs_file_read(path):
+    """
+    Return the content of file with terminate \0 and \n removed.
+    Return None if error.
+    """
+    try:
+        with open(path) as f:
+            return f.read().strip()
+    except:
+        return None
 
 
 def _sys_status_of(hp_ctrl_status):
@@ -578,9 +585,6 @@ class SmartArray(IPlugin):
     @staticmethod
     def _hp_ld_to_lsm_vol(hp_ld, pool_id, sys_id, ctrl_num, array_num,
                           hp_ld_name):
-        """
-        raises DeviceNotFoundError
-        """
         ld_num = hp_ld_name[len("Logical Drive: "):]
         vpd83 = hp_ld['Unique Identifier'].lower()
         # No document or command output indicate block size
@@ -590,18 +594,21 @@ class SmartArray(IPlugin):
         num_of_blocks = int(int_div(_hp_size_to_lsm(hp_ld['Size']), block_size))
         vol_name = hp_ld_name
 
-        if len(vpd83) > 0:
+        if vpd83:
             blk_paths = LocalDisk.vpd83_search(vpd83)
-            if len(blk_paths) > 0:
+            if blk_paths:
                 blk_path = blk_paths[0]
+                sysfs_path = "/sys/block/%s" % blk_path[len("/dev/"):]
                 vol_name += ": %s" % " ".join(blk_paths)
-                device = Device.from_device_file(_CONTEXT, blk_path)
-                attributes = device.attributes
-                try:
-                    block_size = attributes.asint("queue/logical_block_size")
-                    num_of_blocks = attributes.asint("size")
-                except (KeyError, UnicodeDecodeError, ValueError):
-                    pass
+                if os.path.exists(sysfs_path):
+                    try:
+                        block_size = int(
+                            _sysfs_file_read("%s/queue/logical_block_size" %
+                                             sysfs_path))
+                        num_of_blocks = int(
+                            _sysfs_file_read("%s/size" % sysfs_path))
+                    except ValueError:
+                        pass
 
         if 'Failed' in hp_ld['Status']:
             admin_status = Volume.ADMIN_STATE_DISABLED
@@ -636,15 +643,10 @@ class SmartArray(IPlugin):
                     if not array_key_name.startswith("Logical Drive"):
                         continue
 
-                    try:
-                        lsm_vol = SmartArray._hp_ld_to_lsm_vol(
-                           ctrl_data[key_name][array_key_name],
-                           pool_id, sys_id, ctrl_num, array_num,
-                           array_key_name)
-                    except DeviceNotFoundError:
-                        pass
-                    else:
-                        lsm_vols.append(lsm_vol)
+                    lsm_vols.append(
+                        SmartArray._hp_ld_to_lsm_vol(
+                            ctrl_data[key_name][array_key_name], pool_id,
+                            sys_id, ctrl_num, array_num, array_key_name))
 
         return search_property(lsm_vols, search_key, search_value)
 

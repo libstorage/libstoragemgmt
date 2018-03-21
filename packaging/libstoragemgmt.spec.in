@@ -33,7 +33,6 @@ Requires(postun): systemd
 
 BuildRequires:  chrpath
 BuildRequires:  valgrind
-BuildRequires:  python-pyudev
 
 %description
 The libStorageMgmt library will provide a vendor agnostic open source storage
@@ -182,8 +181,6 @@ MegaRAID storage management via storcli.
 Summary:        Files for HPE SmartArray support for %{name}
 Group:          System Environment/Libraries
 Requires:       python3-%{name} = %{version}
-Requires:       python3-pyudev
-BuildRequires:  python3-pyudev
 Requires(post): python3-%{name} = %{version}
 Requires(postun): python3-%{name} = %{version}
 BuildArch:      noarch

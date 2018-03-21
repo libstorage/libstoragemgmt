@@ -16,7 +16,6 @@ libconfig-devel
 python-M2Crypto
 python-devel
 python-pywbem
-python-pyudev
 'pkgconfig(libxml-2.0)'
 'pkgconfig(check)'
 'pkgconfig(glib-2.0)'
