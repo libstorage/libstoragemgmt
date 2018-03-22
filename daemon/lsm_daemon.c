@@ -54,11 +54,6 @@
 #define LSM_CONF_ALLOW_ROOT_OPT_NAME "allow-plugin-root-privilege"
 #define LSM_CONF_REQUIRE_ROOT_OPT_NAME "require-root-privilege"
 
-#define min(a,b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a < _b ? _a : _b; })
-
 #define max(a,b) \
    ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
@@ -343,23 +338,13 @@ void clean_sockets(void)
 
 
 /**
- * Given a fully qualified path and name to a plug-in, create the IPC socket.
- * @param full_name     Full name and path for plug-in
+ * Given a socket file name, create the IPC socket.
+ * @param name     socket file name for plug-in
  * @return  listening socket descriptor for IPC
  */
-int setup_socket(char *full_name)
+int setup_socket(char *name)
 {
     int err = 0;
-    char name[128];
-
-    /* Strip off _lsmplugin from the file name, not sure
-     * why I chose to do this */
-    memset(name, 0, sizeof(name));
-
-    char *base_nm = basename(full_name);
-    strncpy(name, base_nm,
-            min((size_t) abs(strlen(base_nm) - strlen(plugin_extension)),
-                (sizeof(name) - 1)));
 
     char *socket_file = path_form(socket_dir, name);
     delete_socket(NULL, socket_file);
@@ -467,26 +452,21 @@ void parse_conf_bool(const char *conf_path, const char *key_name, int *value)
 /**
  * Load plugin config for root privilege setting.
  * If config not found, return 0 for no root privilege required.
- * @param plugin_path Full path of plugin
+ * @param plugin_name plugin name.
  * @return 1 for require root privilege, 0 or not.
  */
 
-int chk_pconf_root_pri(char *plugin_path)
+int chk_pconf_root_pri(char *plugin_name)
 {
     int require_root = 0;
-    char *base_name = basename(plugin_path);
-    ssize_t plugin_name_len = strlen(base_name) - strlen(plugin_extension);
-    if (plugin_name_len <= 0) {
-        log_and_exit("Got invalid plugin full path %s\n", plugin_path);
-    }
-    ssize_t conf_file_name_len = plugin_name_len +
-        strlen(plugin_conf_extension) + 1;
+    size_t plugin_name_len = strlen(plugin_name);
+    size_t conf_ext_len = strlen(plugin_conf_extension);
+    ssize_t conf_file_name_len = plugin_name_len  + conf_ext_len + 1;
     char *plugin_conf_filename = (char *) malloc(conf_file_name_len);
+
     if (plugin_conf_filename) {
-        strncpy(plugin_conf_filename, base_name, plugin_name_len);
-        strncpy(plugin_conf_filename + plugin_name_len,
-                plugin_conf_extension, strlen(plugin_conf_extension));
-        plugin_conf_filename[conf_file_name_len - 1] = '\0';
+        snprintf(plugin_conf_filename, conf_file_name_len, "%s%s", plugin_name,
+                 plugin_conf_extension);
 
         char *plugin_conf_dir_path = path_form(conf_dir,
                                                LSM_PLUGIN_CONF_DIR_NAME);
@@ -498,7 +478,7 @@ int chk_pconf_root_pri(char *plugin_path)
 
         if (require_root == 1 && allow_root_plugin == 0) {
             warn("Plugin %s require root privilege while %s disable globally\n",
-                 base_name, LSMD_CONF_FILE);
+                 plugin_name, LSMD_CONF_FILE);
         }
         free(plugin_conf_dir_path);
         free(plugin_conf_filename);
@@ -518,37 +498,55 @@ int chk_pconf_root_pri(char *plugin_path)
  */
 int process_plugin(void *p, char *full_name)
 {
-    if (full_name) {
-        size_t ext_len = strlen(plugin_extension);
-        size_t full_len = strlen(full_name);
+    char * base_nm = NULL;
+    size_t base_nm_len = 0;
+    size_t no_ext_len = 0;
+    char plugin_name[128];
+    size_t ext_len = strlen(plugin_extension);
+    size_t plugin_name_max_len = sizeof(plugin_name)/sizeof(char);
 
-        if (full_len > ext_len) {
-            if (strncmp
-                (full_name + full_len - ext_len, plugin_extension,
-                 ext_len) == 0) {
-                struct plugin *item = calloc(1, sizeof(struct plugin));
-                if (item) {
-                    item->file_path = strdup(full_name);
-                    item->fd = setup_socket(full_name);
-                    item->require_root = chk_pconf_root_pri(full_name);
-                    has_root_plugin |= item->require_root;
+    if (full_name == NULL)
+        return 0;
 
-                    if (item->file_path && item->fd >= 0) {
-                        LIST_INSERT_HEAD((struct plugin_list *) p, item,
-                                         pointers);
-                        info("Plugin %s added\n", full_name);
-                    } else {
-                        /* The only real way to get here is failed strdup as
-                           setup_socket will exit on error. */
-                        free(item);
-                        item = NULL;
-                        log_and_exit("strdup failed %s\n", full_name);
-                    }
-                } else {
-                    log_and_exit("Memory allocation failure!\n");
-                }
-            }
-        }
+    base_nm = basename(full_name);
+    base_nm_len = strlen(base_nm);
+
+    if (base_nm_len <= ext_len)
+        return 0;
+
+    if (strncmp(base_nm + base_nm_len - ext_len, plugin_extension, ext_len))
+        return 0;
+
+    struct plugin *item = calloc(1, sizeof(struct plugin));
+    if (item == NULL) {
+        log_and_exit("Memory allocation failure!\n");
+        return 0; // no use, just trick covscan;
+    }
+
+    /* Strip off _lsmplugin from the file name, not sure
+     * why I chose to do this */
+    memset(plugin_name, 0, plugin_name_max_len);
+    strncpy(plugin_name, base_nm, plugin_name_max_len - 1);
+    no_ext_len = base_nm_len - ext_len;
+    // Already check, no_ext_len is bigger than 0 here.
+    if (no_ext_len < plugin_name_max_len - 1)
+        plugin_name[no_ext_len] = '\0';
+
+    item->file_path = strdup(full_name);
+    item->fd = setup_socket(plugin_name);
+    item->require_root = chk_pconf_root_pri(plugin_name);
+    has_root_plugin |= item->require_root;
+
+    if (item->file_path && item->fd >= 0) {
+        LIST_INSERT_HEAD((struct plugin_list *) p, item,
+                         pointers);
+        info("Plugin %s added\n", full_name);
+    } else {
+        /* The only real way to get here is failed strdup as
+           setup_socket will exit on error. */
+        free(item);
+        item = NULL;
+        log_and_exit("strdup failed %s\n", full_name);
     }
     return 0;
 }
