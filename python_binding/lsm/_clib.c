@@ -17,6 +17,13 @@
  * Author: Gris Ge <fge@redhat.com>
  */
 
+#pragma GCC diagnostic ignored "-Wcast-function-type"
+/* ^ This is caused by PyMethodDef is using PyCFunction, but
+ * actually is using PyCFunctionWithKeywords when METH_VARARGS | METH_KEYWORDS.
+ * suspend this gcc warnning.
+ */
+
+
 #include <Python.h>
 #include <stdint.h>
 #include <stdbool.h>

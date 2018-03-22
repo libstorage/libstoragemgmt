@@ -20,6 +20,11 @@
 /* For strerror_r() */
 #define _GNU_SOURCE
 
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+/* gcc is warning _check_sense_data() might be truncated due to print err_msg
+ * into another err_msg , that's expected.
+ */
+
 #include "libsg.h"
 #include "utils.h"
 

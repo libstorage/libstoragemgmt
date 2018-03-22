@@ -159,7 +159,7 @@ int nfs_export_fs(lsm_plugin_ptr c, const char *fs_id, const char *export_path,
     uint64_t sim_fs_id = 0;
     uint64_t sim_exp_id = 0;
     char tmp_export_path[_BUFF_SIZE];
-    char vpd83[_BUFF_SIZE];
+    char vpd83[_VPD_83_LEN];
 
     _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
