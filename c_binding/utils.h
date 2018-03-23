@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#define _LSM_ERR_MSG_LEN                1024
+#define _LSM_ERR_MSG_LEN                4096
 
 #define _good(rc, rc_val, out) \
         do { \

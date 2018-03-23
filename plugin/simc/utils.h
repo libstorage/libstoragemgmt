@@ -36,7 +36,7 @@ struct _simc_private_data {
 
 #define _UNUSED(x) (void)(x)
 #define _MD5_HASH_STR_LEN               MD5_DIGEST_LENGTH * 2 + 1
-#define _LSM_ERR_MSG_LEN                    1024
+#define _LSM_ERR_MSG_LEN                4096
 
 #define _VPD_83_LEN                     17
 /* ^ 6h IEEE Registered ID which it 16 bits hex string. */
@@ -63,8 +63,8 @@ struct _simc_private_data {
 #define _snprintf_buff(err_msg, rc, out, buff, format, ...) \
     do { \
         if (buff != NULL) \
-            snprintf(buff, _BUFF_SIZE, format, ##__VA_ARGS__); \
-        if (strlen(buff) == _BUFF_SIZE - 1 ) { \
+            snprintf(buff, sizeof(buff)/sizeof(char), format, ##__VA_ARGS__); \
+        if (strlen(buff) == sizeof(buff)/sizeof(char) - 1 ) { \
             rc = LSM_ERR_PLUGIN_BUG; \
             _lsm_err_msg_set(err_msg, "Buff too small"); \
             goto out; \

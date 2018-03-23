@@ -367,8 +367,9 @@ static int _sg_io_open(char *err_msg, const char *disk_path, int *fd,
  * The 'sense_key' is the output pointer.
  * Return 0 if sense_key is _T10_SPC_SENSE_KEY_NO_SENSE or
  * _T10_SPC_SENSE_KEY_RECOVERED_ERROR, return -1 otherwise.
+ * sense_err_msg should be char[_LSM_ERR_MSG_LEN / 2]
  */
-static int _check_sense_data(char *err_msg, uint8_t *sense_data,
+static int _check_sense_data(char *sense_err_msg, uint8_t *sense_data,
                              uint8_t *sense_key);
 
 static int _extract_ata_sense_data(char *err_msg, uint8_t *sense_data,
@@ -485,14 +486,14 @@ int _sg_io_vpd(char *err_msg, int fd, uint8_t page_code, uint8_t *data)
     int rc_vpd_00 = 0;
     char strerr_buff[_LSM_ERR_MSG_LEN];
     uint8_t sense_key = _T10_SPC_SENSE_KEY_NO_SENSE;
-    char sense_err_msg[_LSM_ERR_MSG_LEN];
+    char sense_err_msg[_LSM_ERR_MSG_LEN / 2];
     ssize_t data_len = 0;
 
     assert(err_msg != NULL);
     assert(fd >= 0);
     assert(data != NULL);
 
-    memset(sense_err_msg, 0, _LSM_ERR_MSG_LEN);
+    memset(sense_err_msg, 0, sizeof(sense_err_msg));
 
     switch(page_code) {
     case _SG_T10_SPC_VPD_ATA_INFO:
@@ -812,7 +813,7 @@ static int _sg_io_open(char *err_msg, const char *disk_path, int *fd, int oflag)
     return rc;
 }
 
-static int _check_sense_data(char *err_msg, uint8_t *sense_data,
+static int _check_sense_data(char *sense_err_msg, uint8_t *sense_data,
                              uint8_t *sense_key)
 {
     int rc = -1;
@@ -856,8 +857,9 @@ static int _check_sense_data(char *err_msg, uint8_t *sense_data,
         rc = 0;
         goto out;
     default:
-        _lsm_err_msg_set(err_msg, "Got unknown sense data response code %02x",
-                         sense_hdr->response_code);
+        snprintf(sense_err_msg, _LSM_ERR_MSG_LEN / 2,
+                 "Got unknown sense data response code %02x",
+                 sense_hdr->response_code);
         goto out;
     }
     /* TODO(Gris Ge): Handle ADDITIONAL SENSE CODE field and ADDITIONAL SENSE
@@ -879,11 +881,12 @@ static int _check_sense_data(char *err_msg, uint8_t *sense_data,
     /* As sense_key is 4 bytes and we covered all 16 values in
      * _T10_SPC_SENSE_KEY_STR, there will be no out of index error.
      */
-        _lsm_err_msg_set(err_msg, "Got SCSI sense data, key %s(0x%02x), "
-                         "ADDITIONAL SENSE CODE 0x%02x, ADDITIONAL SENSE CODE "
-                         "QUALIFIER 0x%02x, all sense data in hex: %s",
-                         _T10_SPC_SENSE_KEY_STR[*sense_key], *sense_key,
-                         asc, ascq, sense_data_str);
+        snprintf(sense_err_msg, _LSM_ERR_MSG_LEN / 2 ,
+                 "Got SCSI sense data, key %s(0x%02x), "
+                 "ADDITIONAL SENSE CODE 0x%02x, ADDITIONAL SENSE CODE "
+                 "QUALIFIER 0x%02x, all sense data in hex: %s",
+                 _T10_SPC_SENSE_KEY_STR[*sense_key], *sense_key,
+                 asc, ascq, sense_data_str);
     }
 
  out:
@@ -921,13 +924,13 @@ int _sg_io_recv_diag(char *err_msg, int fd, uint8_t page_code, uint8_t *data)
     char strerr_buff[_LSM_ERR_MSG_LEN];
     uint8_t sense_data[_T10_SPC_SENSE_DATA_MAX_LENGTH];
     uint8_t sense_key = _T10_SPC_SENSE_KEY_NO_SENSE;
-    char sense_err_msg[_LSM_ERR_MSG_LEN];
+    char sense_err_msg[_LSM_ERR_MSG_LEN / 2];
 
     assert(err_msg != NULL);
     assert(fd >= 0);
     assert(data != NULL);
 
-    memset(sense_err_msg, 0, _LSM_ERR_MSG_LEN);
+    memset(sense_err_msg, 0, sizeof(sense_err_msg));
 
     /* SPC-5 rev 07, Table 219 - RECEIVE DIAGNOSTIC RESULTS command */
     cdb[0] = RECEIVE_DIAGNOSTIC;                /* OPERATION CODE */
@@ -975,14 +978,14 @@ int _sg_io_send_diag(char *err_msg, int fd, uint8_t *data, uint16_t data_len)
     char strerr_buff[_LSM_ERR_MSG_LEN];
     uint8_t sense_data[_T10_SPC_SENSE_DATA_MAX_LENGTH];
     uint8_t sense_key = _T10_SPC_SENSE_KEY_NO_SENSE;
-    char sense_err_msg[_LSM_ERR_MSG_LEN];
+    char sense_err_msg[_LSM_ERR_MSG_LEN / 2];
 
     assert(err_msg != NULL);
     assert(fd >= 0);
     assert(data != NULL);
     assert(data_len > 0);
 
-    memset(sense_err_msg, 0, _LSM_ERR_MSG_LEN);
+    memset(sense_err_msg, 0, sizeof(sense_err_msg));
 
     /* SPC-5 rev 07, Table 219 - RECEIVE DIAGNOSTIC RESULTS command */
     cdb[0] = SEND_DIAGNOSTIC;                   /* OPERATION CODE */
@@ -1078,7 +1081,7 @@ int _sg_io_mode_sense(char *err_msg, int fd, uint8_t page_code,
     int ioctl_errno = 0;
     char strerr_buff[_LSM_ERR_MSG_LEN];
     uint8_t sense_key = _T10_SPC_SENSE_KEY_NO_SENSE;
-    char sense_err_msg[_LSM_ERR_MSG_LEN];
+    char sense_err_msg[_LSM_ERR_MSG_LEN / 2];
     struct _sg_t10_mode_para_hdr *mode_hdr = NULL;
     uint16_t block_dp_len = 0;
     uint16_t mode_data_len = 0;
@@ -1087,7 +1090,7 @@ int _sg_io_mode_sense(char *err_msg, int fd, uint8_t page_code,
     assert(fd >= 0);
     assert(data != NULL);
 
-    memset(sense_err_msg, 0, _LSM_ERR_MSG_LEN);
+    memset(sense_err_msg, 0, sizeof(sense_err_msg));
     memset(data, 0, _SG_T10_SPC_MODE_SENSE_MAX_LEN);
 
     /* SPC-5 Table 171 - MODE SENSE(10) command */
@@ -1257,7 +1260,7 @@ static int _sg_log_sense(char *err_msg, int fd, uint8_t page_code,
     int ioctl_errno = 0;
     char strerr_buff[_LSM_ERR_MSG_LEN];
     uint8_t sense_key = _T10_SPC_SENSE_KEY_NO_SENSE;
-    char sense_err_msg[_LSM_ERR_MSG_LEN];
+    char sense_err_msg[_LSM_ERR_MSG_LEN / 2];
     struct _sg_t10_log_para_hdr *log_hdr = NULL;
     uint16_t log_data_len = 0;
 
@@ -1265,7 +1268,7 @@ static int _sg_log_sense(char *err_msg, int fd, uint8_t page_code,
     assert(fd >= 0);
     assert(data != NULL);
 
-    memset(sense_err_msg, 0, _LSM_ERR_MSG_LEN);
+    memset(sense_err_msg, 0, sizeof(sense_err_msg));
     memset(cdb, 0, _T10_SPC_LOG_SENSE_CMD_LEN);
 
     cdb[0] = LOG_SENSE;
@@ -1320,14 +1323,14 @@ int _sg_request_sense(char *err_msg, int fd, uint8_t *returned_sense_data)
     uint8_t sense_data[_T10_SPC_SENSE_DATA_MAX_LENGTH];
     int ioctl_errno = 0;
     uint8_t sense_key = _T10_SPC_SENSE_KEY_NO_SENSE;
-    char sense_err_msg[_LSM_ERR_MSG_LEN];
+    char sense_err_msg[_LSM_ERR_MSG_LEN / 2];
     char strerr_buff[_LSM_ERR_MSG_LEN];
 
     assert(err_msg != NULL);
     assert(fd >= 0);
     assert(returned_sense_data != NULL);
 
-    memset(sense_err_msg, 0, _LSM_ERR_MSG_LEN);
+    memset(sense_err_msg, 0, sizeof(sense_err_msg));
     memset(cdb, 0, _T10_SPC_REQUEST_SENSE_CMD_LEN);
 
     cdb[0] = REQUEST_SENSE;

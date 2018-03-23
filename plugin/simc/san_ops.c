@@ -1111,7 +1111,7 @@ int volume_unmask(lsm_plugin_ptr c, lsm_access_group *group, lsm_volume *volume,
     char err_msg[_LSM_ERR_MSG_LEN];
     char condition[_BUFF_SIZE];
     struct _vector *vec = NULL;
-    char sql_cmd_check_mask[_BUFF_SIZE];
+    char sql_cmd_check_mask[_BUFF_SIZE * 4];
 
      _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);

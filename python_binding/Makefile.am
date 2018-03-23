@@ -21,7 +21,8 @@ endif
 
 pyexec_LTLIBRARIES = lsm/_clib.la
 pyexecdir = $(pythondir)/lsm
-lsm__clib_la_CFLAGS = $(PYTHON_CFLAGS) -I$(top_srcdir)/c_binding/include
+lsm__clib_la_CFLAGS = $(PYTHON_CFLAGS) -I$(top_srcdir)/c_binding/include \
+		      -Wno-cast-function-type
 lsm__clib_la_SOURCES = lsm/_clib.c
 lsm__clib_la_LDFLAGS = $(PYTHON_LIBS) \
 		       -module -avoid-version -export-symbols-regex \
