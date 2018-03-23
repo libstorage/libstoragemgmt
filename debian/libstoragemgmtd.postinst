@@ -1,0 +1,25 @@
+#! /bin/sh -e
+
+set -e
+
+case "$1" in
+configure)
+        if ! getent group | grep -q "^libstoragemgmt:"; then
+                echo "Adding libstoragemgmt group..."
+                addgroup --quiet --system libstoragemgmt || true
+        fi
+        if ! getent passwd | grep -q "^libstoragemgmt:"; then
+                echo "Adding libstoragemgmt user..."
+                adduser --quiet --system --group --disabled-login \
+                    --home /var/run/lsm libstoragemgmt || true
+        fi
+        ;;
+abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+*)
+        echo "$0 called with unknown argument '$1'" >&2
+        exit 1
+        ;;
+esac
+
+#DEBHELPER#

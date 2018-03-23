@@ -1,0 +1,73 @@
+Source: libstoragemgmt
+Priority: optional
+Maintainer: Gris Ge <fge@redhat.com>
+Build-Depends: debhelper (>= 11~), libyajl-dev, autoconf, automake, libtool, libxml2-dev, pkg-config, check, python-pywbem, libglib2.0-dev (>= 2.22.5), dpkg-dev (>= 1.16.1~), libssl-dev, dh-python, dh-autoreconf, libconfig-dev (>= 1.3.2), perl, bash-completion, procps, libsqlite3-dev, python-six, dh-systemd
+Standards-Version: 4.1.3
+Section: libs
+Homepage: https://github.com/libstorage/libstoragemgmt
+Vcs-Git: git://anonscm.debian.org/collab-maint/libstoragemgmt.git
+Vcs-Browser: http://anonscm.debian.org/gitweb/?p=collab-maint/libstoragemgmt.git;a=summary
+
+Package: libstoragemgmt-tools
+Architecture: all
+Depends: ${misc:Depends}, ${python:Depends}, python-libstoragemgmt
+Description: library for storage array management - cli tools
+ vendor agnostic library interface to manage storage arrays. libstoragemgmt
+ provides a single, unified, agnostic API library interface to storage
+ arrays
+ .
+ This package contains the cli tools
+
+Package: libstoragemgmt-plugins
+Architecture: linux-any
+Depends: ${misc:Depends}, ${python:Depends}, ${shlibs:Depends}, python-libstoragemgmt, python-pyudev, python-pywbem, libstoragemgmt1
+Description: library for storage array management - plugins
+ vendor agnostic library interface to manage storage arrays. libstoragemgmt
+ provides a single, unified, agnostic API library interface to storage
+ arrays
+ .
+ This package contains the libstoragemgmt plugins
+
+Package: libstoragemgmtd
+Architecture: linux-any
+Depends: ${misc:Depends}, ${shlibs:Depends}, lsb-base, ${shlibs:Depends}
+Description: library for storage array management - daemon
+ vendor agnostic library interface to manage storage arrays. libstoragemgmt
+ provides a single, unified, agnostic API library interface to storage
+ arrays
+ .
+ This package contains the daemon
+
+Package: python-libstoragemgmt
+Architecture: linux-any
+Section: python
+Depends: ${misc:Depends}, ${python:Depends}, ${shlibs:Depends}
+Description: library for storage array management - Python libraries
+ vendor agnostic library interface to manage storage arrays. libstoragemgmt
+ provides a single, unified, agnostic API library interface to storage
+ arrays
+ .
+ This package contains the Python libraries
+
+Package: libstoragemgmt-dev
+Section: libdevel
+Architecture: any
+Depends: libstoragemgmt1 (= ${binary:Version}), ${misc:Depends}
+Description: library for storage array management - development headers
+ vendor agnostic library interface to manage storage arrays. libstoragemgmt
+ provides a single, unified, agnostic API library interface to storage
+ arrays
+ .
+ This package contains the development headers
+
+Package: libstoragemgmt1
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Breaks: libstoragemgmt0 (>= 1.1.0-1)
+Replaces: libstoragemgmt0 (>= 1.1.0-1)
+Description: library for storage array management - development library
+ vendor agnostic library interface to manage storage arrays. libstoragemgmt
+ provides a single, unified, agnostic API library interface to storage
+ arrays
+ .
+ This package contains the library

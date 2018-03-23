@@ -25,6 +25,9 @@ docs:
 rpm: clean
 	@(unset CDPATH ; $(MAKE) dist && rpmbuild -ta $(distdir).tar.gz)
 
+deb: clean
+	debuild -i -us -uc -b && ls $(top_srcdir)/../*.deb
+
 if WITH_TEST
 TESTS = test/runtests.sh
 endif

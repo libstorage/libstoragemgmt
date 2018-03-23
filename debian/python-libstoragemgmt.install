@@ -1,0 +1,4 @@
+usr/lib/python*/dist-packages/lsm/*.py
+usr/lib/python*/dist-packages/lsm/*.pyc
+usr/lib/python*/dist-packages/lsm/_clib.so
+usr/lib/python*/dist-packages/lsm/lsmcli/*.py

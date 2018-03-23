@@ -1,0 +1,75 @@
+libstoragemgmt (1.6.1-1) unstable; urgency=medium
+
+  * Upgrade to 1.6.1.
+  * Removed the static library file .a file from sub-package
+    `libstoragemgmt-dev`.
+  * Removed unused `*.dirs` files as Debian document said:
+        Files listed in an install file don't need their directories created
+        first.
+  * Plugins are moved to new sub-package -- `libstoragemgmt-plugins`.
+
+ -- Gris <fge@redhat.com>  Mon, 05 Mar 2018 21:16:05 +0800
+
+libstoragemgmt (1.2.3-1) unstable; urgency=medium
+
+  [ vaidyanath ]
+  * [a37accc] Imported Upstream version 1.2.3
+
+  [ Ritesh Raj Sarraf ]
+  * [79a906a] Update upstream URL
+  * [f592979] Bump library version
+  * [ef683f1] Revert "Add +License: LGPL-2.1+"
+  * [8ca62b2] Update debian/copyright with license and copyright information
+  * [4d2c178] Drop reference to non-existent daemon.py
+
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Thu, 16 Jul 2015 14:14:23 +0530
+
+libstoragemgmt (1.1.0-1) unstable; urgency=medium
+
+  [ vaidyanath ]
+  * [413d404] Imported Upstream version 1.1.0
+  * [42fa020] Refresh patch debian/patches/fix-build-lsm-tests.patch
+  * [63566a5] Drop patch -fix-build-warning-format-error.patch
+  * [a727373] Add libssl-dev as build dependency
+  * [ee6eee6] Add python-yaml as build dependency
+  * [b58dd55] Add libmicrohttpd-dev as build dependency
+  * [04aaf09] Add libjson-c-dev as build dependency
+  * [89c4ca5] Add dh-python as build dependency
+  * [3bdfe79] Add License: LGPL-2.1+
+
+  [ Ritesh Raj Sarraf ]
+  * [6b915d7] Use autoreconf.
+    Thanks to Brahadambal Srinivasan (Closes: #757216)
+  * [ef65916] Update gbp.conf of the deprecation warning
+
+ -- vaidyanath <vaidyanath.m@gmail.com>  Fri, 26 Jun 2015 17:51:16 +0530
+
+libstoragemgmt (0.0.20-2) unstable; urgency=medium
+
+  * [6edc8d9] Restrict build to Linux platforms only
+  * [08002c6] Disable tests until the next release
+  * [24989c9] Fix build warning for format error
+
+ -- Ritesh Raj Sarraf <rsarraf@netapp.com>  Mon, 24 Feb 2014 23:01:41 +0530
+
+libstoragemgmt (0.0.20-1) unstable; urgency=low
+
+  * [3aa8f15] Add dependency on python-m2crypto module
+  * [d19de01] Imported Upstream version 0.0.20
+  * upload to unstable
+
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Wed, 26 Jun 2013 02:09:50 +0530
+
+libstoragemgmt (0.0.12-1) experimental; urgency=low
+
+  * [893e0f5] Imported Upstream version 0.0.12
+  * [6bbf4d0] Add build-dep on libglib2.0-dev, python-m2crypto
+  * [26ccf33] Add Depends on shared library shlibdeps
+
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Tue, 25 Sep 2012 19:37:28 +0530
+
+libstoragemgmt (0.0.9-1) experimental; urgency=low
+
+  * Initail release (Closes: #649483)
+
+ -- Ritesh Raj Sarraf <rrs@debian.org>  Wed, 01 Aug 2012 23:55:11 +0530
