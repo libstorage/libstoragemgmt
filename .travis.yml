@@ -3,7 +3,8 @@ language: c
 env:
     matrix:
         - OS_TYPE=fedora
-        - OS_TYPE=centos
+        - OS_TYPE=centos:7
+        - OS_TYPE=centos:6
 
 services:
     - docker
