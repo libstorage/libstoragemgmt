@@ -265,11 +265,6 @@ install -d -m755 %{buildroot}/%{_unitdir}
 install -m644 packaging/daemon/%{name}.service \
     %{buildroot}/%{_unitdir}/%{name}.service
 
-#tempfiles.d configuration for /run
-mkdir -p %{buildroot}/%{_tmpfilesdir}
-install -m 0644 packaging/daemon/lsm-tmpfiles.conf \
-    %{buildroot}/%{_tmpfilesdir}/%{name}.conf
-
 #Files for udev handling
 mkdir -p %{buildroot}/%{_udevrulesdir}
 install -m 644 tools/udev/90-scsi-ua.rules \

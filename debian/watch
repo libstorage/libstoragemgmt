@@ -1,0 +1,2 @@
+version=2
+https://github.com/libstorage/libstoragemgmt/releases .*/libstoragemgmt-?(\d\S+)\.tar\.gz
