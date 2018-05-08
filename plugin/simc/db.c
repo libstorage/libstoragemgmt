@@ -768,7 +768,7 @@ void _db_sql_trans_rollback(sqlite3 *db)
 int _db_data_add(char *err_msg, sqlite3 *db, const char *table_name, ...)
 {
     int rc = LSM_ERR_OK;
-    char sql_cmd[_BUFF_SIZE];
+    char sql_cmd[_BUFF_SIZE * 4];
     char keys_str[_BUFF_SIZE];
     char values_str[_BUFF_SIZE];
     const char *key_str = NULL;

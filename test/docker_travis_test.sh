@@ -9,6 +9,9 @@ if [ "CHK$(rpm -E %{?fedora})" != "CHK" ];then
     IS_FEDORA=1
 elif [ "CHK$(rpm -E %{?el7})" != "CHK" ];then
     IS_RHEL=1
+elif [ "CHK$(rpm -E %{?el6})" != "CHK" ];then
+    IS_RHEL=1
+    IS_RHEL6=1
 fi
 
 cd /libstoragemgmt-code
@@ -29,6 +32,10 @@ elif [ "CHK$IS_RHEL" == "CHK1" ];then
 else
     echo "Not supported yet";
     exit 1;
+fi
+
+if [ "CHK$IS_RHEL6" == "CHK1" ];then
+    yum install python-argparse -y || exit 1
 fi
 
 ./autogen.sh || exit 1
