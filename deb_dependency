@@ -21,3 +21,11 @@ perl
 valgrind
 chrpath
 libsqlite3-dev
+devscripts
+build-essential
+lintian
+debhelper
+bash-completion
+dh-python
+dh-systemd
+systemd
