@@ -6,6 +6,10 @@ AM_DISTCHECK_CONFIGURE_FLAGS = \
 	--with-systemdsystemunitdir=$$dc_install_base/$(systemdsystemunitdir)
 AM_DISTCHECK_CONFIGURE_FLAGS += \
 	--with-bash-completion-dir=$$dc_install_base/$(bashcompletiondir)
+# The default for systemdtmpfilesdir is intentionally not
+# prefix-sensitive, but we need to adjust it in order for distcheck to pass.
+AM_DISTCHECK_CONFIGURE_FLAGS += \
+	--with-systemd-tmpfilesdir=$${dc_install_base}/$(systemdtmpfilesdir)
 
 SUBDIRS= c_binding python_binding plugin doc tools daemon packaging config test
 
