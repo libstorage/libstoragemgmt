@@ -1,26 +1,32 @@
-%bcond_with  test
-%global py3_build_dir %{_builddir}/%{name}-%{version}-%{release}-python3
+%bcond_with     test
+%global py2_build_dir %{_builddir}/%{name}-%{version}-%{release}-python2
+
+%if 0%{?rhel} > 7 || 0%{?fedora} > 28
+%bcond_with         python2
+%else
+%bcond_without      python2
+%endif
 
 Name:           libstoragemgmt
 Version:        @VERSION@
 Release:        1%{?dist}
 Summary:        Storage array management library
 Group:          System Environment/Libraries
-License:        LGPL-2.1+
+License:        LGPLv2+
 URL:            https://github.com/libstorage/libstoragemgmt
 Source0:        https://github.com/libstorage/libstoragemgmt/releases/download/%{version}/%{name}-%{version}.tar.gz
-BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires:       python3-%{name}
-BuildRequires:  autoconf automake libtool yajl-devel libxml2-devel check-devel
-BuildRequires:  perl
+BuildRequires:  autoconf automake libtool yajl-devel libxml2-devel check-devel perl-interpreter
 BuildRequires:  openssl-devel
 BuildRequires:  glib2-devel
 BuildRequires:  systemd
 BuildRequires:  bash-completion
 BuildRequires:  libconfig-devel
 BuildRequires:  systemd-devel
-BuildRequires:  python-six
-BuildRequires:  python-devel
+%if %{with python2}
+BuildRequires:  python2-six
+BuildRequires:  python2-devel
+%endif
 BuildRequires:  procps
 BuildRequires:  sqlite-devel
 BuildRequires:  python3-six
@@ -50,8 +56,10 @@ Requires:       %{name}%{?_isa} = %{version}-%{release}
 The %{name}-devel package contains libraries and header files for
 developing applications that use %{name}.
 
+
+%if %{with python2}
 %package        -n python2-%{name}
-Summary:        Python2 client libraries for %{name}
+Summary:        Python2 client libraries and plug-in support for %{name}
 Group:          System Environment/Libraries
 Requires:       %{name} = %{version}-%{release}
 Requires:       python2-%{name}-clibs
@@ -62,7 +70,8 @@ Provides: %{name}-python = %{version}-%{release}
 Obsoletes: %{name}-python < %{version}-%{release}
 
 %description    -n python2-%{name}
-This package contains python2 client libraries.
+This package contains python client libraries as well as python
+framework support and open source plug-ins written in python.
 
 %package        -n python2-%{name}-clibs
 Summary:        Python2 C extension module for %{name}
@@ -77,6 +86,7 @@ Obsoletes: %{name}-python-clibs < %{version}-%{release}
 %description    -n python2-%{name}-clibs
 This package contains python2 client C extension libraries.
 
+%endif
 
 %package        -n python3-%{name}
 Summary:        Python 3 client libraries and plug-in support for %{name}
@@ -87,7 +97,7 @@ Requires:       python3-%{name}-clibs
 %{?python_provide:%python_provide python3-%{name}}
 
 %description    -n python3-%{name}
-This package contains python 3 client libraries as well as python framework
+This contains python 3 client libraries as well as python framework
 support and open source plug-ins written in python 3.
 
 %package        -n python3-%{name}-clibs
@@ -178,7 +188,7 @@ The %{name}-megaraid-plugin package contains the plugin for LSI
 MegaRAID storage management via storcli.
 
 %package        hpsa-plugin
-Summary:        Files for HPE SmartArray support for %{name}
+Summary:        Files for HP SmartArray support for %{name}
 Group:          System Environment/Libraries
 Requires:       python3-%{name} = %{version}
 Requires(post): python3-%{name} = %{version}
@@ -187,7 +197,7 @@ BuildArch:      noarch
 
 %description    hpsa-plugin
 The %{name}-hpsa-plugin package contains the plugin for HP
-SmartArray storage management.
+SmartArray storage management via hpssacli.
 
 %package        arcconf-plugin
 Summary:        Files for Microsemi Adaptec and Smart Family support for %{name}
@@ -205,11 +215,23 @@ Adaptec RAID and Smart Family Controller storage management.
 Summary:        Files for NFS local filesystem support for %{name}
 Group:          System Environment/Libraries
 Requires:       python3-%{name} = %{version}
+Requires:       %{name}-nfs-plugin-clibs = %{version}
 Requires(post): python3-%{name} = %{version}
 Requires(postun): python3-%{name} = %{version}
+BuildArch:      noarch
 
 %description    nfs-plugin
 The nfs-plugin package contains plug-in for local NFS exports support.
+
+%package        nfs-plugin-clibs
+Summary:        Python C extension module for %{name} NFS plugin
+Group:          System Environment/Libraries
+Requires:       %{name} = %{version}
+
+%description    nfs-plugin-clibs
+The %{name}-nfs-plugin-clibs package contains python C extension for %{name}
+NFS plugin.
+
 
 %package        local-plugin
 Summary:        Files for local pseudo plugin of %{name}
@@ -225,45 +247,40 @@ LibstorageMgmt local plugin allows user to manage locally storage system
 without caring which real plugin(s) should be used.
 
 %prep
-%setup -q
+%autosetup -p1
 
 %build
-# Copy the whole directory to Python3 build
-rm -fr %{py3_build_dir}
-cp -a . %{py3_build_dir}
-%configure --disable-static
+./autogen.sh
+%if %{with python2}
+# Copy the whole directory to Python2 build
+rm -fr %{py2_build_dir}
+cp -a . %{py2_build_dir}
+%endif
 
-pushd %{py3_build_dir}
 %configure --with-python3 --disable-static
-popd
+V=1 make %{?_smp_mflags}
 
-V=1 make %{?_smp_mflags}
-pushd %{py3_build_dir}
+%if %{with python2}
+pushd %{py2_build_dir}
+%configure --disable-static
 V=1 make %{?_smp_mflags}
 popd
+%endif
 
 %install
 rm -rf %{buildroot}
+
+%if %{with python2}
+pushd %{py2_build_dir}
 make install DESTDIR=%{buildroot}
-
-# If python3 enabled, all plugins and CLI tools will be use python3 as
-# 'Fedora Packaging Guidelines for Python' suggested.
-#   https://fedoraproject.org/wiki/Packaging:Python#Executables_in_.2Fusr.2Fbin
-# Quote:
-#   If the executables provide the same functionality independent of whether
-#   they are run on top of Python 2 or Python 3, then only the Python 3 version
-#   of the executable should be packaged.
-
 rm -rf %{buildroot}/%{python_sitelib}/lsm/plugin
 rm -rf %{buildroot}/%{_bindir}/lsmcli
-pushd %{py3_build_dir}
-make install DESTDIR=%{buildroot}
 popd
-find %{buildroot} -name '*.la' -exec rm -f {} ';'
+%endif
 
-install -d -m755 %{buildroot}/%{_unitdir}
-install -m644 packaging/daemon/%{name}.service \
-    %{buildroot}/%{_unitdir}/%{name}.service
+make install DESTDIR=%{buildroot}
+
+find %{buildroot} -name '*.la' -exec rm -f {} ';'
 
 #Files for udev handling
 mkdir -p %{buildroot}/%{_udevrulesdir}
@@ -272,18 +289,23 @@ install -m 644 tools/udev/90-scsi-ua.rules \
 install -m 755 tools/udev/scan-scsi-target \
     %{buildroot}/%{_udevrulesdir}/../scan-scsi-target
 
-%clean
-rm -rf %{buildroot}
-
 %if 0%{with test}
 %check
-pushd %{py3_build_dir}
+if ! make check
+then
+  cat test-suite.log || true
+  exit 1
+fi
+
+%if %{with python2}
+pushd %{py2_build_dir}
 if ! make check
 then
   cat test-suite.log || true
   exit 1
 fi
 popd
+%endif
 %endif
 
 %pre
@@ -382,29 +404,36 @@ if [ $1 -eq 0 ]; then
 fi
 
 # Need to restart lsmd if plugin is new installed or removed.
-%post nfs-plugin
-if [ $1 -eq 1 ]; then
-    # New install.
-    /usr/bin/systemctl try-restart libstoragemgmt.service \
-        >/dev/null 2>&1 || :
-fi
-
-%postun nfs-plugin
-if [ $1 -eq 0 ]; then
-    # Remove
-    /usr/bin/systemctl try-restart libstoragemgmt.service \
-        >/dev/null 2>&1 || :
-fi
-
-# Need to restart lsmd if plugin is new installed or removed.
 %post arcconf-plugin
 if [ $1 -eq 1 ]; then
     # New install.
-    /usr/bin/systemctl try-restart libstoragemgmt.service \
-        >/dev/null 2>&1 || :
+    /usr/bin/systemctl try-restart %{name}.service >/dev/null 2>&1 || :
+fi
+%postun arcconf-plugin
+if [ $1 -eq 0 ]; then
+    # Remove
+    /usr/bin/systemctl try-restart %{name}.service >/dev/null 2>&1 || :
 fi
 
-%postun arcconf-plugin
+# Need to restart lsmd if plugin is new installed or removed.
+%post nfs-plugin
+if [ $1 -eq 1 ]; then
+    # New install.
+    /usr/bin/systemctl try-restart %{name}.service >/dev/null 2>&1 || :
+fi
+%postun nfs-plugin
+if [ $1 -eq 0 ]; then
+    # Remove
+    /usr/bin/systemctl try-restart %{name}.service >/dev/null 2>&1 || :
+fi
+
+# Need to restart lsmd if plugin is new installed or removed.
+%post local-plugin
+if [ $1 -eq 1 ]; then
+    # New install.
+    /usr/bin/systemctl try-restart %{name}.service >/dev/null 2>&1 || :
+fi
+%postun local-plugin
 if [ $1 -eq 0 ]; then
     # Remove
     /usr/bin/systemctl try-restart %{name}.service >/dev/null 2>&1 || :
@@ -441,6 +470,7 @@ fi
 %{_mandir}/man3/lsm_*
 %{_mandir}/man3/libstoragemgmt*
 
+%if %{with python2}
 %files -n python2-%{name}
 %defattr(-,root,root,-)
 #Python library files
@@ -464,6 +494,7 @@ fi
 # Compiled C files for python library
 %files -n python2-%{name}-clibs
 %{python_sitelib}/lsm/_clib.*
+%endif
 
 %files -n python3-%{name}
 %dir %{python3_sitelib}/lsm
@@ -477,22 +508,25 @@ fi
 %{python3_sitelib}/lsm/_iplugin.*
 %{python3_sitelib}/lsm/_pluginrunner.*
 %{python3_sitelib}/lsm/_transport.*
-%{python3_sitelib}/lsm/__pycache__/*
+%{python3_sitelib}/lsm/__pycache__/
 %{python3_sitelib}/lsm/version.*
 %dir %{python3_sitelib}/lsm/plugin
 %{python3_sitelib}/lsm/plugin/__init__.*
-%{python3_sitelib}/lsm/plugin/__pycache__/*
+%{python3_sitelib}/lsm/plugin/__pycache__/
 %dir %{python3_sitelib}/lsm/plugin/sim
-%{python3_sitelib}/lsm/plugin/sim/__pycache__/*
+%{python3_sitelib}/lsm/plugin/sim/__pycache__/
 %{python3_sitelib}/lsm/plugin/sim/__init__.*
 %{python3_sitelib}/lsm/plugin/sim/simulator.*
 %{python3_sitelib}/lsm/plugin/sim/simarray.*
 %dir %{python3_sitelib}/lsm/lsmcli
 %{python3_sitelib}/lsm/lsmcli/__init__.*
-%{python3_sitelib}/lsm/lsmcli/__pycache__/*
+%{python3_sitelib}/lsm/lsmcli/__pycache__/
 %{python3_sitelib}/lsm/lsmcli/data_display.*
 %{python3_sitelib}/lsm/lsmcli/cmdline.*
 %{_bindir}/sim_lsmplugin
+%dir %{_bindir}/lsm.d
+%{_bindir}/lsm.d/find_unused_lun.py
+%{_bindir}/lsm.d/local_sanity_check.py
 %{_sysconfdir}/lsm/pluginconf.d/sim.conf
 %{_mandir}/man1/sim_lsmplugin.1*
 
@@ -585,10 +619,12 @@ fi
 %{python3_sitelib}/lsm/plugin/nfs/__pycache__/*
 %{python3_sitelib}/lsm/plugin/nfs/__init__.*
 %{python3_sitelib}/lsm/plugin/nfs/nfs.*
-%{python3_sitelib}/lsm/plugin/nfs/nfs_clib.*
 %{_sysconfdir}/lsm/pluginconf.d/nfs.conf
 %{_bindir}/nfs_lsmplugin
 %{_mandir}/man1/nfs_lsmplugin.1*
+
+%files nfs-plugin-clibs
+%{python3_sitelib}/lsm/plugin/nfs/nfs_clib.*
 
 %files arcconf-plugin
 %defattr(-,root,root,-)
