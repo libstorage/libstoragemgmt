@@ -12,9 +12,16 @@ elif [ "CHK$(rpm -E %{?el7})" != "CHK" ];then
 elif [ "CHK$(rpm -E %{?el6})" != "CHK" ];then
     IS_RHEL=1
     IS_RHEL6=1
+elif [ -e "/etc/debian_version" ];then
+    IS_DEB=1
 fi
 
-cd /libstoragemgmt-code
+if [ "CHK$IS_DEB" == "CHK1" ] ;then
+    cp -a /libstoragemgmt-code /tmp/ || exit 1
+    cd /tmp/libstoragemgmt-code || exit 1
+else
+    cd /libstoragemgmt-code || exit 1
+fi
 
 getent group libstoragemgmt >/dev/null || \
     groupadd -r libstoragemgmt || exit 1
@@ -29,6 +36,13 @@ if [ "CHK$IS_FEDORA" == "CHK1" ];then
         || exit 1
 elif [ "CHK$IS_RHEL" == "CHK1" ];then
     yum install `cat ./rh_rpm_dependency` rpm-build -y || exit 1
+elif [ "CHK$IS_DEB" = "CHK1" ];then
+    export DEBIAN_FRONTEND="noninteractive"
+    apt-get update
+    apt-get install -y tzdata
+    ln -fs /usr/share/zoneinfo/GMT /etc/localtime
+    dpkg-reconfigure --frontend noninteractive tzdata
+    apt-get install `cat ./deb_dependency` -y -q || exit 1
 else
     echo "Not supported yet";
     exit 1;
@@ -46,9 +60,12 @@ else
 fi
 
 make || exit 1
-
 make check || { cat test-suite.log; exit 1; }
 
 if [ "CHK$IS_FEDORA" == "CHK1" ];then
-make rpm || exit 1
+    make rpm || exit 1
+fi
+
+if [ "CHK$IS_DEB" == "CHK1" ];then
+    make deb || exit 1
 fi
