@@ -187,7 +187,7 @@ def _add_common_options(arg_parser, is_child=False):
         help='Include the header with terse')
 
     arg_parser.add_argument(
-        '-b', action="store_true", dest="%sasync" % prefix, default=False,
+        '-b', action="store_true", dest="%s_async" % prefix, default=False,
         help='Run the command async. Instead of waiting for completion.\n '
              'Command will exit(7) and job id written to stdout.')
 
@@ -1459,7 +1459,7 @@ class CmdLine(object):
         else:
             # If a user doesn't want to wait, return the job id to stdout
             # and exit with job in progress
-            if self.args.async:
+            if self.args._async:
                 out(job)
                 self.shutdown(ErrorNumber.JOB_STARTED)
 
