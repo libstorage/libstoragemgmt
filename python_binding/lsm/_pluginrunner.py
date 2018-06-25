@@ -20,6 +20,7 @@ import sys
 from lsm import LsmError, error, ErrorNumber
 from lsm.lsmcli import cmd_line_wrapper
 import six
+import errno
 
 from lsm._common import SocketEOF as _SocketEOF
 from lsm._transport import TransPort
@@ -137,6 +138,12 @@ class PluginRunner(object):
             # occurring.
             if need_shutdown:
                 error('Client went away, exiting plug-in')
+        except socket.error as se:
+            if se.errno == errno.EPIPE:
+                error('Client went away, exiting plug-in')
+            else:
+                error("Unhandled exception in plug-in!\n" +
+                      traceback.format_exc())
         except Exception:
             error("Unhandled exception in plug-in!\n" + traceback.format_exc())
 
