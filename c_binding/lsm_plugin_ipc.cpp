@@ -2752,7 +2752,8 @@ static int name(void *i, void *d)               \
     method_type *v = (method_type *)i;          \
     char *val = (char *)d;                      \
                                                 \
-    if( strcmp(method(v), val) == 0 ) {         \
+    if ((method(v) != NULL) && (val != NULL) && \
+        ( strcmp(method(v), val) == 0 )) {      \
         return 1;                               \
     }                                           \
     return 0;                                   \

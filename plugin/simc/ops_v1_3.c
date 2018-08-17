@@ -142,6 +142,7 @@ int system_read_cache_pct_update(lsm_plugin_ptr c, lsm_system *system,
     sqlite3 *db = NULL;
     char err_msg[_LSM_ERR_MSG_LEN];
     char sql_cmd[_BUFF_SIZE];
+    const char *in_sys_id = NULL;
 
     _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
@@ -149,7 +150,9 @@ int system_read_cache_pct_update(lsm_plugin_ptr c, lsm_system *system,
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
 
-    if (strcmp(lsm_system_id_get(system), _SYS_ID) != 0) {
+    in_sys_id = lsm_system_id_get(system);
+
+    if ((in_sys_id == NULL) || (strcmp(in_sys_id, _SYS_ID) != 0)) {
         rc = LSM_ERR_NOT_FOUND_SYSTEM;
         _lsm_err_msg_set(err_msg, "System not found");
         goto out;
