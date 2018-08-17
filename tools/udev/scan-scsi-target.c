@@ -155,7 +155,7 @@ int main(int argc, char **argv)
 	strcpy(sysfs_path, "/sys");
 	strncat(sysfs_path, devpath, host_next_pos);
 	strcat(sysfs_path, "/scsi_host");
-	strncat(sysfs_path, host_str, host_len);
+	snprintf(sysfs_path + strlen(sysfs_path), host_len + 1, "%s", host_str);
 	strcat(sysfs_path, "/scan");
 
 	/*
