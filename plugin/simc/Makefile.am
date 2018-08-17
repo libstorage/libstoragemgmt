@@ -7,7 +7,8 @@ bin_PROGRAMS = simc_lsmplugin
 
 simc_lsmplugin_LDADD = \
 	../../c_binding/libstoragemgmt.la \
-	$(SQLITE3_LIBS) $(SSL_LIBS)
+	$(SQLITE3_LIBS) $(SSL_LIBS) -lrt
+# -lrt is only required for clock_gettime() on glibc before 2.17.
 
 simc_lsmplugin_SOURCES = \
 	utils.c utils.h \
