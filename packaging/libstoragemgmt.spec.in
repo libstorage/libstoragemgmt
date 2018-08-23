@@ -16,7 +16,7 @@ License:        LGPLv2+
 URL:            https://github.com/libstorage/libstoragemgmt
 Source0:        https://github.com/libstorage/libstoragemgmt/releases/download/%{version}/%{name}-%{version}.tar.gz
 Requires:       python3-%{name}
-BuildRequires:  autoconf automake libtool yajl-devel libxml2-devel check-devel perl-interpreter
+BuildRequires:  autoconf automake libtool libxml2-devel check-devel perl-interpreter
 BuildRequires:  openssl-devel
 BuildRequires:  glib2-devel
 BuildRequires:  systemd
