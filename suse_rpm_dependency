@@ -11,7 +11,6 @@ automake
 perl
 valgrind
 chrpath
-libyajl-devel
 libconfig-devel
 python-M2Crypto
 python-devel
@@ -24,6 +23,5 @@ python-pywbem
 'pkgconfig(systemd)'
 'pkgconfig(udev)'
 'pkgconfig(libudev)'
-libyajl-devel
 sqlite3-devel
 python-six

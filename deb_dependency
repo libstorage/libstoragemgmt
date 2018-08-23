@@ -7,7 +7,6 @@ libtool
 libtool-bin
 autoconf
 automake
-libyajl-dev
 python-pywbem
 libxml2-dev
 check
