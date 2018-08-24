@@ -20,14 +20,24 @@
 #define LSM_IPC_H
 
 #include "libstoragemgmt/libstoragemgmt_common.h"
-#include <yajl/yajl_parse.h>
-#include <yajl/yajl_gen.h>
 #include <stdint.h>
 #include <string>
 #include <map>
 #include <vector>
 #include <sstream>
 #include <stdexcept>
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#ifdef LSM_USE_YAJL
+#include <yajl/yajl_parse.h>
+#include <yajl/yajl_gen.h>
+#else
+#include <json.hpp>
+using json = nlohmann::json;
+#endif
 
 //Common serialization
 
@@ -197,13 +207,6 @@ class LSM_DLL_LOCAL Value {
     Value(bool v);
 
     /**
-     * Numeric double constructor.
-     * @param v value
-     */
-    Value(double v);
-    Value(long double v);
-
-    /**
      * Numeric unsigned 32 constructor
      * @param v value
      */
@@ -304,28 +307,10 @@ class LSM_DLL_LOCAL Value {
     Value getValue(const char *key);
 
     /**
-     * Returns a numeric as the string holding it.
-     */
-    const char *asNumString();
-
-    /**
-     * Returns NULL if void type, else ValueException
-     * @return NULL
-     */
-    void *asVoid();
-
-    /**
      * Boolean value represented by object.
      * @return true, false ValueException on error
      */
     bool asBool();
-
-    /**
-     * Double value represented by object.
-     * @return double value else ValueException on error
-     */
-    double asDouble();
-    long double asLongDouble();
 
     /**
      * Signed 32 integer value represented by object.
@@ -376,12 +361,17 @@ class LSM_DLL_LOCAL Value {
     std::vector < Value > asArray();
 
   private:
-    value_type t;
-    std::string s;
-    std::map < std::string, Value > obj;
-    std::vector < Value > array;
 
+#ifdef LSM_USE_YAJL
+    value_type t;
     void marshal(yajl_gen g);
+#else
+    json j;
+    json _getJson() const;
+#endif
+    std::vector <Value> array;
+    std::map <std::string, Value> obj;
+    std::string s;
 };
 
 /**

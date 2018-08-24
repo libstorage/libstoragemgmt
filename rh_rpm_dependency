@@ -7,7 +7,6 @@ gcc-c++
 libtool
 autoconf
 automake
-yajl-devel
 pywbem
 libxml2-devel
 check-devel

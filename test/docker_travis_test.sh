@@ -9,6 +9,7 @@ if [ "CHK$(rpm -E %{?fedora})" != "CHK" ];then
     IS_FEDORA=1
 elif [ "CHK$(rpm -E %{?el7})" != "CHK" ];then
     IS_RHEL=1
+    IS_RHEL7=1
 elif [ "CHK$(rpm -E %{?el6})" != "CHK" ];then
     IS_RHEL=1
     IS_RHEL6=1
@@ -52,9 +53,15 @@ if [ "CHK$IS_RHEL6" == "CHK1" ];then
     yum install python-argparse -y || exit 1
 fi
 
+if [ "CHK$IS_RHEL6$IS_RHEL7" == "CHK1" ];then
+    yum install yajl-devel -y || exit 1;
+fi
+
 ./autogen.sh || exit 1
 if [ "CHK$IS_FEDORA" == "CHK1" ];then
     ./configure --with-python3 || exit 1
+elif [ "CHK$IS_RHEL6$IS_RHEL7" == "CHK1" ];then
+    ./configure --with-yajl
 else
     ./configure || exit 1
 fi
