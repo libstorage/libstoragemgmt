@@ -524,9 +524,9 @@ fi
 %{python3_sitelib}/lsm/lsmcli/data_display.*
 %{python3_sitelib}/lsm/lsmcli/cmdline.*
 %{_bindir}/sim_lsmplugin
-%dir %{_bindir}/lsm.d
-%{_bindir}/lsm.d/find_unused_lun.py
-%{_bindir}/lsm.d/local_sanity_check.py
+%dir %{_libexecdir}/lsm.d
+%{_libexecdir}/lsm.d/find_unused_lun.py*
+%{_libexecdir}/lsm.d/local_sanity_check.py*
 %{_sysconfdir}/lsm/pluginconf.d/sim.conf
 %{_mandir}/man1/sim_lsmplugin.1*
 

@@ -1,4 +1,4 @@
 usr/bin/lsmcli
 usr/share/man/man1/lsmcli.1
-usr/bin/lsm.d/find_unused_lun.py
-usr/bin/lsm.d/local_sanity_check.py
+usr/libexec/lsm.d/find_unused_lun.py
+usr/libexec/lsm.d/local_sanity_check.py
