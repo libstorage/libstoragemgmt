@@ -286,7 +286,8 @@ _HP_VENDOR_RAID_LEVELS = ['1adm', '1+0adm']
 
 
 _LSM_RAID_TYPE_CONV = dict(
-    list(zip(list(_HP_RAID_LEVEL_CONV.values()), list(_HP_RAID_LEVEL_CONV.keys()))))
+    list(zip(list(_HP_RAID_LEVEL_CONV.values()),
+             list(_HP_RAID_LEVEL_CONV.keys()))))
 
 
 def _hp_raid_level_to_lsm(hp_ld):
@@ -742,9 +743,9 @@ class SmartArray(IPlugin):
                 "Ilegal input volume argument: missing plugin_data property")
 
         (ctrl_num, array_num, ld_num) = volume.plugin_data.split(":")
-        ctrl_data = list(self._sacli_exec(
+        ctrl_data = next(iter(self._sacli_exec(
             ["ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
-            ).values())[0]
+            ).values()))
 
         disk_count = 0
         strip_size = Volume.STRIP_SIZE_UNKNOWN
@@ -790,9 +791,9 @@ class SmartArray(IPlugin):
                 "Ilegal input volume argument: missing plugin_data property")
 
         (ctrl_num, array_num) = pool.plugin_data.split(":")
-        ctrl_data = list(self._sacli_exec(
+        ctrl_data = next(iter(self._sacli_exec(
             ["ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
-            ).values())[0]
+            ).values()))
 
         disk_ids = []
         raid_type = Volume.RAID_TYPE_UNKNOWN
@@ -826,9 +827,9 @@ class SmartArray(IPlugin):
             8 * 1024, 16 * 1024, 32 * 1024, 64 * 1024,
             128 * 1024, 256 * 1024, 512 * 1024, 1024 * 1024]
 
-        ctrl_conf = list(self._sacli_exec([
+        ctrl_conf = next(iter(self._sacli_exec([
             "ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
-            ).values())[0]
+            ).values()))
 
         if 'RAID 6 (ADG) Status' in ctrl_conf and \
            ctrl_conf['RAID 6 (ADG) Status'] == 'Enabled':
@@ -949,15 +950,16 @@ class SmartArray(IPlugin):
         sys_output = self._sacli_exec(
             ['ctrl', "slot=%s" % ctrl_num, 'show'])
 
-        sys_id = _sys_id_of_ctrl_data(list(sys_output.values())[0])
+        sys_id = _sys_id_of_ctrl_data(next(iter(sys_output.values())))
         # API code already checked empty 'disks', we will for sure get
         # valid 'ctrl_num' and 'hp_disk_ids'.
 
-        pd_output = self._sacli_exec(
-            ['ctrl', "slot=%s" % ctrl_num, 'pd', hp_disk_ids[0], 'show'])
+        pd_output = next(iter(self._sacli_exec(
+            ['ctrl', "slot=%s" % ctrl_num, 'pd', hp_disk_ids[0],
+             'show']).values()))
 
-        if list(list(pd_output.values())[0].keys())[0].lower().startswith("array "):
-            hp_array_id = list(list(pd_output.values())[0].keys())[0][len("array "):]
+        if next(iter(pd_output.keys())).lower().startswith("array "):
+            hp_array_id = next(iter(pd_output.keys()))[len("array "):]
             hp_array_id = "Array:%s" % hp_array_id
         else:
             raise LsmError(
@@ -995,9 +997,9 @@ class SmartArray(IPlugin):
                 ["ctrl", "slot=%s" % ctrl_num, "ld %s" % ld_num, "delete"],
                 flag_convert=False, flag_force=True)
         except ExecError:
-            ctrl_data = self._sacli_exec(
+            ctrl_data = next(iter(self._sacli_exec(
                 ["ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
-                ).values()[0]
+                ).values()))
 
             for key_name in list(ctrl_data.keys()):
                 if key_name != "Array: %s" % array_num:
@@ -1031,9 +1033,9 @@ class SmartArray(IPlugin):
                 ["ctrl", "slot=%s" % ctrl_num, "ld %s" % ld_num, "modify",
                  "reenable"], flag_convert=False, flag_force=True)
         except ExecError:
-            ctrl_data = self._sacli_exec(
+            ctrl_data = next(iter(self._sacli_exec(
                 ["ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
-                ).values()[0]
+                ).values()))
 
             for key_name in list(ctrl_data.keys()):
                 if key_name != "Array: %s" % array_num:
@@ -1068,9 +1070,9 @@ class SmartArray(IPlugin):
                 ["ctrl", "slot=%s" % ctrl_num, "ld %s" % ld_num, "modify",
                  "led=on"], flag_convert=False)
         except ExecError:
-            ctrl_data = list(self._sacli_exec(
+            ctrl_data = next(iter(self._sacli_exec(
                 ["ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
-                ).values())[0]
+                ).values()))
 
             for key_name in list(ctrl_data.keys()):
                 if key_name != "Array: %s" % array_num:
@@ -1105,9 +1107,9 @@ class SmartArray(IPlugin):
                 ["ctrl", "slot=%s" % ctrl_num, "ld %s" % ld_num, "modify",
                  "led=off"], flag_convert=False)
         except ExecError:
-            ctrl_data = list(self._sacli_exec(
+            ctrl_data = next(iter(self._sacli_exec(
                 ["ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
-                ).values())[0]
+                ).values()))
 
             for key_name in list(ctrl_data.keys()):
                 if key_name != "Array: %s" % array_num:
@@ -1183,19 +1185,26 @@ class SmartArray(IPlugin):
         flag_ram_ok = False
 
         (ctrl_num, array_num, ld_num) = self._cal_of_lsm_vol(volume)
-        ctrl_data = self._sacli_exec(
+        ctrl_data = next(iter(self._sacli_exec(
             ["ctrl", "slot=%s" % ctrl_num, "show", "config", "detail"]
-            ).values()[0]
+            ).values()))
 
         lsm_bats = self.batteries()
         for lsm_bat in lsm_bats:
             if lsm_bat.status == Battery.STATUS_OK:
                 flag_battery_ok = True
 
-        if 'Total Cache Size' in ctrl_data and \
-           _hp_size_to_lsm(ctrl_data['Total Cache Size']) > 0 and \
-           ctrl_data['Cache Status'] == 'OK':
-            flag_ram_ok = True
+        if 'Total Cache Size' in ctrl_data:
+            cache_size_str = ctrl_data['Total Cache Size']
+            # Since ssacli version 3.25, cache size is a number based in GiB.
+            try:
+                float(cache_size_str)
+                cache_size_str = cache_size_str + " GB"
+            except ValueError:
+                pass
+            if _hp_size_to_lsm(cache_size_str) > 0 and \
+               ctrl_data['Cache Status'] == 'OK':
+                flag_ram_ok = True
 
         ld_info = ctrl_data.get(
             "Array: %s" % array_num, {}).get("Logical Drive: %s" % ld_num, {})
