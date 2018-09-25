@@ -25,4 +25,4 @@ if WITH_LOCAL
 notrans_dist_man1_MANS += local_lsmplugin.1
 endif
 
-notrans_dist_man5_MANS = lsmd.conf.5.in
+notrans_dist_man5_MANS = lsmd.conf.5
