@@ -61,7 +61,7 @@ def handle_cim_errors(method):
                 elif 'SSL error' in desc:
                     raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
                                    desc)
-                elif 'The web server returned a bad status line':
+                elif 'The web server returned a bad status line' in desc:
                     raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
                                    desc)
                 elif 'HTTP error' in desc:

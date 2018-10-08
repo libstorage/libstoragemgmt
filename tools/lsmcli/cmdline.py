@@ -258,7 +258,7 @@ policy_opt = dict(name="--policy", metavar='<POLICY>',
                   type=_upper)
 
 write_cache_policy_types = ['WB', 'AUTO', 'WT']
-write_cache_policy_help = 'Write cache policys: ' + \
+write_cache_policy_help = 'Write cache polices: ' + \
                           ', '.join(write_cache_policy_types) + \
                           'which stand for "write back", "auto", ' + \
                           '"write through"'
@@ -393,7 +393,7 @@ cmds = (
 
     dict(
         name='volume-raid-create-cap',
-        help='Query capablity of creating a RAIDed volume on hardware RAID',
+        help='Query capability of creating a RAIDed volume on hardware RAID',
         args=[
             dict(sys_id_opt),
         ],
@@ -529,7 +529,7 @@ cmds = (
 
     dict(
         name='volume-raid-info',
-        help='Query volume RAID infomation',
+        help='Query volume RAID information',
         args=[
             dict(vol_id_opt),
         ],
@@ -566,7 +566,7 @@ cmds = (
 
     dict(
         name='pool-member-info',
-        help='Query Pool membership infomation',
+        help='Query Pool membership information',
         args=[
             dict(pool_id_opt),
         ],

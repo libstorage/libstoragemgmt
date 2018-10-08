@@ -315,7 +315,7 @@ def uri_parameters(uri):
     # workaround for python bug:
     # http://bugs.python.org/issue9374
     # for URL: smispy+ssl://admin@emc-smi:5989?namespace=root/emc
-    # Before the patch commited( RHEL 6 and Fedora 18- ):
+    # Before the patch committed( RHEL 6 and Fedora 18- ):
     #       '?namespace=root/emc' is saved in uri.path
     # After patched(RHEL 7 and Fedora 19+):
     #       'namespace=root/emc' is saved in uri.query

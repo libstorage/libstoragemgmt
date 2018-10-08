@@ -175,7 +175,7 @@ class NFSPlugin(INfs, IStorageAreaNetwork):
                                anonuid, anongid, optionstring)
             return result
         except:
-            raise
+            pass
         return None
 
     @staticmethod

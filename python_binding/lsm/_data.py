@@ -176,12 +176,12 @@ class Disk(IData):
     TYPE_SCSI = 8
     TYPE_LUN = 9   # Remote LUN was treated as a disk.
 
-    # Due to complesity of disk types, we are defining these beside DMTF
+    # Due to complexity of disk types, we are defining these beside DMTF
     # standards:
     TYPE_NL_SAS = 51    # Near-Line SAS==SATA disk + SAS port.
 
     # in DMTF CIM 2.34.0+ CIM_DiskDrive['DiskType'], they also defined
-    # SSD and HYBRID disk type. We use it as faillback.
+    # SSD and HYBRID disk type. We use it as fallback.
     TYPE_HDD = 52    # Normal HDD
     TYPE_SSD = 53    # Solid State Drive
     TYPE_HYBRID = 54    # uses a combination of HDD and SSD
@@ -197,7 +197,7 @@ class Disk(IData):
     STATUS_STOPPED = 1 << 8
     STATUS_INITIALIZING = 1 << 9
     STATUS_MAINTENANCE_MODE = 1 << 10
-    # In maintenance for bad sector scan, integerity check and etc
+    # In maintenance for bad sector scan, integrity check and etc
     # It might be combined with STATUS_OK or
     # STATUS_STOPPED for online maintenance or offline maintenance.
     STATUS_SPARE_DISK = 1 << 11
@@ -811,7 +811,7 @@ class AccessGroup(IData):
     @staticmethod
     def _wwpn_to_lsm_type(wwpn, raise_error=True):
         """
-        Conver provided WWPN string into LSM standarded one:
+        Convert provided WWPN string into LSM standard one:
 
         LSM WWPN format:
             ^(?:[0-9a-f]{2}:){7}[0-9a-f]{2}$

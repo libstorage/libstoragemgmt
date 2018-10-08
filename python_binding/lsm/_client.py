@@ -1098,7 +1098,7 @@ class Client(INetworkAttachedStorage):
                 group(s) where this volume allocated from.
                 For any RAID system using the slice of disk, this value
                 indicate how many disk slices are used for the RAID.
-                For exmaple, on LVM RAID, the 'disk_count' here indicate the
+                For example, on LVM RAID, the 'disk_count' here indicate the
                 count of PVs used for certain volume.
                 Another example, on EMC VMAX, the 'disk_count' here indicate
                 how many hyper volumes are used for this volume.
@@ -1324,7 +1324,7 @@ class Client(INetworkAttachedStorage):
                 The name for new volume.
                 The requested volume name might be ignored due to restriction
                 of hardware RAID vendors.
-                The pool name will be automatically choosed by plugin.
+                The pool name will be automatically chosen by plugin.
             raid_type (int)
                 The RAID type for the RAID group, possible values are:
                     Volume.RAID_TYPE_RAID0
