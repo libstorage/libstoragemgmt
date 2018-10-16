@@ -1,4 +1,4 @@
-SUBDIRS=simc megaraid hpsa arcconf nfs local ontap
+SUBDIRS=simc megaraid hpsa arcconf nfs local ontap nstor
 
 plugindir = $(pythondir)/lsm/plugin
 
@@ -29,19 +29,12 @@ smispy_PYTHON = \
 	smispy/smis_ag.py \
 	smispy/smis_vol.py
 
-nstordir = $(plugindir)/nstor
-nstor_PYTHON = \
-	nstor/__init__.py \
-	nstor/nstor.py
-
 dist_bin_SCRIPTS= \
 	sim/sim_lsmplugin \
 	smispy/smispy_lsmplugin \
-	nstor/nstor_lsmplugin \
 	targetd/targetd_lsmplugin
 
 EXTRA_DIST = \
 	sim/sim_lsmplugin.in \
 	smispy/smispy_lsmplugin.in \
-	nstor/nstor_lsmplugin.in \
 	targetd/targetd_lsmplugin.in

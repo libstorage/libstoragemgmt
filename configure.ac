@@ -306,6 +306,18 @@ AC_ARG_WITH([ontap],
 
 AM_CONDITIONAL([WITH_ONTAP], [test "x$with_ontap" = "xyes"])
 
+dnl ==========================================================================
+dnl Add option '--without-nstor' to exclude nstor plugin.
+dnl ==========================================================================
+
+AC_ARG_WITH([nstor],
+    [AS_HELP_STRING([--without-nstor],
+        [Do not build the nstor plugin])],
+    [],
+    [with_nstor=yes])
+
+AM_CONDITIONAL([WITH_NSTOR], [test "x$with_nstor" = "xyes"])
+
 
 
 dnl ==========================================================================
@@ -416,6 +428,7 @@ AC_CONFIG_FILES([
     plugin/nfs/Makefile
     plugin/local/Makefile
     plugin/ontap/Makefile
+    plugin/nstor/Makefile
     daemon/Makefile
     config/Makefile
     doc/Makefile
