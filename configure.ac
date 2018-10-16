@@ -318,7 +318,17 @@ AC_ARG_WITH([nstor],
 
 AM_CONDITIONAL([WITH_NSTOR], [test "x$with_nstor" = "xyes"])
 
+dnl ==========================================================================
+dnl Add option '--without-smispy' to exclude SMI-S python plugin.
+dnl ==========================================================================
 
+AC_ARG_WITH([smispy],
+    [AS_HELP_STRING([--without-smispy],
+        [Do not build the SMI-S python plugin])],
+    [],
+    [with_smispy=yes])
+
+AM_CONDITIONAL([WITH_SMISPY], [test "x$with_smispy" = "xyes"])
 
 dnl ==========================================================================
 dnl Check for libconfig as it is needed for lsmd daemon
@@ -429,6 +439,7 @@ AC_CONFIG_FILES([
     plugin/local/Makefile
     plugin/ontap/Makefile
     plugin/nstor/Makefile
+    plugin/smispy/Makefile
     daemon/Makefile
     config/Makefile
     doc/Makefile

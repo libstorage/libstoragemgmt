@@ -1,7 +1,6 @@
 notrans_dist_man1_MANS = lsmcli.1 lsmd.1 \
 	sim_lsmplugin.1 \
 	simc_lsmplugin.1 \
-	smispy_lsmplugin.1 \
 	targetd_lsmplugin.1 \
 	nfs_lsmplugin.1
 
@@ -29,6 +28,10 @@ endif
 
 if WITH_NSTOR
 notrans_dist_man1_MANS += nstor_lsmplugin.1
+endif
+
+if WITH_SMISPY
+notrans_dist_man1_MANS += smispy_lsmplugin.1
 endif
 
 notrans_dist_man5_MANS = lsmd.conf.5
