@@ -331,6 +331,18 @@ AC_ARG_WITH([smispy],
 AM_CONDITIONAL([WITH_SMISPY], [test "x$with_smispy" = "xyes"])
 
 dnl ==========================================================================
+dnl Add option '--without-targetd' to exclude targetd plugin.
+dnl ==========================================================================
+
+AC_ARG_WITH([targetd],
+    [AS_HELP_STRING([--without-targetd],
+        [Do not build the targetd plugin])],
+    [],
+    [with_targetd=yes])
+
+AM_CONDITIONAL([WITH_TARGETD], [test "x$with_targetd" = "xyes"])
+
+dnl ==========================================================================
 dnl Check for libconfig as it is needed for lsmd daemon
 dnl ==========================================================================
 PKG_CHECK_MODULES(
@@ -440,6 +452,7 @@ AC_CONFIG_FILES([
     plugin/ontap/Makefile
     plugin/nstor/Makefile
     plugin/smispy/Makefile
+    plugin/targetd/Makefile
     daemon/Makefile
     config/Makefile
     doc/Makefile

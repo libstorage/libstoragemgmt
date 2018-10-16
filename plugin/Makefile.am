@@ -1,4 +1,4 @@
-SUBDIRS=simc megaraid hpsa arcconf nfs local ontap nstor smispy
+SUBDIRS=simc megaraid hpsa arcconf nfs local ontap nstor smispy targetd
 
 plugindir = $(pythondir)/lsm/plugin
 
@@ -10,15 +10,6 @@ sim_PYTHON = \
 	sim/simulator.py \
 	sim/simarray.py
 
-targetddir = $(plugindir)/targetd
-targetd_PYTHON = \
-	targetd/__init__.py \
-	targetd/targetd.py
+dist_bin_SCRIPTS= sim/sim_lsmplugin
 
-dist_bin_SCRIPTS= \
-	sim/sim_lsmplugin \
-	targetd/targetd_lsmplugin
-
-EXTRA_DIST = \
-	sim/sim_lsmplugin.in \
-	targetd/targetd_lsmplugin.in
+EXTRA_DIST = sim/sim_lsmplugin.in
