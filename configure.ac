@@ -295,6 +295,20 @@ AC_ARG_WITH([local],
 AM_CONDITIONAL([WITH_LOCAL], [test "x$with_local" = "xyes"])
 
 dnl ==========================================================================
+dnl Add option '--without-ontap' to exclude ontap plugin.
+dnl ==========================================================================
+
+AC_ARG_WITH([ontap],
+    [AS_HELP_STRING([--without-ontap],
+        [Do not build the NetApp ontap plugin])],
+    [],
+    [with_ontap=yes])
+
+AM_CONDITIONAL([WITH_ONTAP], [test "x$with_ontap" = "xyes"])
+
+
+
+dnl ==========================================================================
 dnl Check for libconfig as it is needed for lsmd daemon
 dnl ==========================================================================
 PKG_CHECK_MODULES(
@@ -401,6 +415,7 @@ AC_CONFIG_FILES([
     plugin/arcconf/Makefile
     plugin/nfs/Makefile
     plugin/local/Makefile
+    plugin/ontap/Makefile
     daemon/Makefile
     config/Makefile
     doc/Makefile
