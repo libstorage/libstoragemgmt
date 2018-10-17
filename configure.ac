@@ -367,6 +367,18 @@ AC_ARG_WITH([sim],
 AM_CONDITIONAL([WITH_SIM], [test "x$with_sim" = "xyes"])
 
 dnl ==========================================================================
+dnl Add option '--without-nfs' to exclude nfs plugin.
+dnl ==========================================================================
+
+AC_ARG_WITH([nfs],
+    [AS_HELP_STRING([--without-nfs],
+        [Do not build the nfs plugin])],
+    [],
+    [with_nfs=yes])
+
+AM_CONDITIONAL([WITH_NFS], [test "x$with_nfs" = "xyes"])
+
+dnl ==========================================================================
 dnl Check for libconfig as it is needed for lsmd daemon
 dnl ==========================================================================
 PKG_CHECK_MODULES(
