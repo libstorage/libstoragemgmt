@@ -355,6 +355,18 @@ AC_ARG_WITH([simc],
 AM_CONDITIONAL([WITH_SIMC], [test "x$with_simc" = "xyes"])
 
 dnl ==========================================================================
+dnl Add option '--without-sim' to exclude simulator python plugin.
+dnl ==========================================================================
+
+AC_ARG_WITH([sim],
+    [AS_HELP_STRING([--without-sim],
+        [Do not build the simulator python plugin])],
+    [],
+    [with_sim=yes])
+
+AM_CONDITIONAL([WITH_SIM], [test "x$with_sim" = "xyes"])
+
+dnl ==========================================================================
 dnl Check for libconfig as it is needed for lsmd daemon
 dnl ==========================================================================
 PKG_CHECK_MODULES(
@@ -465,6 +477,7 @@ AC_CONFIG_FILES([
     plugin/nstor/Makefile
     plugin/smispy/Makefile
     plugin/targetd/Makefile
+    plugin/sim/Makefile
     daemon/Makefile
     config/Makefile
     doc/Makefile
