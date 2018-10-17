@@ -343,6 +343,18 @@ AC_ARG_WITH([targetd],
 AM_CONDITIONAL([WITH_TARGETD], [test "x$with_targetd" = "xyes"])
 
 dnl ==========================================================================
+dnl Add option '--without-simc' to exclude simulator C plugin.
+dnl ==========================================================================
+
+AC_ARG_WITH([simc],
+    [AS_HELP_STRING([--without-simc],
+        [Do not build the simulator C plugin])],
+    [],
+    [with_simc=yes])
+
+AM_CONDITIONAL([WITH_SIMC], [test "x$with_simc" = "xyes"])
+
+dnl ==========================================================================
 dnl Check for libconfig as it is needed for lsmd daemon
 dnl ==========================================================================
 PKG_CHECK_MODULES(

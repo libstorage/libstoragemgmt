@@ -1,3 +1,5 @@
+if WITH_SIMC
+
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/c_binding/include \
 	-I@srcdir@/c_binding/include \
@@ -21,3 +23,5 @@ simc_lsmplugin_SOURCES = \
 	ops_v1_3.h ops_v1_3.c \
 	vector.h vector.c \
 	simc_lsmplugin.c
+
+endif
