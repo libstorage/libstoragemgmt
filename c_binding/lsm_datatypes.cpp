@@ -1100,6 +1100,10 @@ MEMBER_FUNC_GET(const char *, lsm_access_group, LSM_IS_ACCESS_GROUP, name,
 MEMBER_FUNC_GET(const char *, lsm_access_group, LSM_IS_ACCESS_GROUP, system_id,
                 NULL);
 
+MEMBER_FUNC_GET(lsm_access_group_init_type, lsm_access_group,
+                LSM_IS_ACCESS_GROUP, init_type,
+                LSM_ACCESS_GROUP_INIT_TYPE_UNKNOWN);
+
 lsm_string_list *lsm_access_group_initiator_id_get(lsm_access_group * group)
 {
     if (LSM_IS_ACCESS_GROUP(group)) {

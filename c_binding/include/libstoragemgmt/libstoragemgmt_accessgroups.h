@@ -176,6 +176,25 @@ const char LSM_DLL_EXPORT *
 lsm_string_list LSM_DLL_EXPORT *
     lsm_access_group_initiator_id_get(lsm_access_group * group);
 
+/**
+ * lsm_access_group_init_type_get - Retrieves the initiator type for specified
+ * access group.
+ *
+ * Version:
+ *      1.7
+ *
+ * Description:
+ *      Retrieves the initiator type for the specified access group.
+ *
+ * @group:
+ *      Access group to retrieve type of initiators present.
+ *
+ * Return: lsm_access_group_init_type
+ *
+ */
+lsm_access_group_init_type LSM_DLL_EXPORT
+    lsm_access_group_init_type_get(lsm_access_group * group);
+
 
 #ifdef  __cplusplus
 }
