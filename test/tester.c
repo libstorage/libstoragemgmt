@@ -683,12 +683,14 @@ START_TEST(test_access_groups)
         fail_unless(NULL != lsm_access_group_id_get(group));
         fail_unless(NULL != lsm_access_group_name_get(group));
         fail_unless(NULL != lsm_access_group_system_id_get(group));
+        fail_unless(LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_IQN == lsm_access_group_init_type_get(group));
 
         lsm_access_group *copy = lsm_access_group_record_copy(group);
         if( copy ) {
             fail_unless( strcmp(lsm_access_group_id_get(group), lsm_access_group_id_get(copy)) == 0);
             fail_unless( strcmp(lsm_access_group_name_get(group), lsm_access_group_name_get(copy)) == 0) ;
             fail_unless( strcmp(lsm_access_group_system_id_get(group), lsm_access_group_system_id_get(copy)) == 0);
+            fail_unless( lsm_access_group_init_type_get(group) == lsm_access_group_init_type_get(copy));
 
             G(rc, lsm_access_group_record_free, copy);
             copy = NULL;
