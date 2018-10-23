@@ -1,5 +1,9 @@
+
 plugindir = $(pythondir)/lsm/plugin
 nfsdir = $(plugindir)/nfs
+pyexecdir = $(pythondir)/lsm/plugin/nfs
+
+if WITH_NFS
 
 nfs_PYTHON = __init__.py nfs.py
 
@@ -9,7 +13,6 @@ else
 _PY_CLIB_INIT_NAME = "initnfs_clib"
 endif
 
-pyexecdir = $(pythondir)/lsm/plugin/nfs
 pyexec_LTLIBRARIES = nfs_clib.la
 
 nfs_clib_la_CFLAGS = $(PYTHON_CFLAGS) -I$(top_srcdir)/c_binding/include
@@ -21,3 +24,5 @@ nfs_clib_la_LIBADD = $(top_builddir)/c_binding/libstoragemgmt.la
 
 dist_bin_SCRIPTS= nfs_lsmplugin
 EXTRA_DIST= nfs_lsmplugin.in
+
+endif

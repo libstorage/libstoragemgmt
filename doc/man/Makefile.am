@@ -1,11 +1,4 @@
-notrans_dist_man1_MANS = lsmcli.1 lsmd.1 \
-	sim_lsmplugin.1 \
-	simc_lsmplugin.1 \
-	smispy_lsmplugin.1 \
-	ontap_lsmplugin.1 \
-	targetd_lsmplugin.1 \
-	nfs_lsmplugin.1 \
-	nstor_lsmplugin.1
+notrans_dist_man1_MANS = lsmcli.1 lsmd.1
 
 notrans_dist_man3_MANS = libstoragemgmt.h.3
 
@@ -23,6 +16,34 @@ endif
 
 if WITH_LOCAL
 notrans_dist_man1_MANS += local_lsmplugin.1
+endif
+
+if WITH_ONTAP
+notrans_dist_man1_MANS += ontap_lsmplugin.1
+endif
+
+if WITH_NSTOR
+notrans_dist_man1_MANS += nstor_lsmplugin.1
+endif
+
+if WITH_SMISPY
+notrans_dist_man1_MANS += smispy_lsmplugin.1
+endif
+
+if WITH_TARGETD
+notrans_dist_man1_MANS += targetd_lsmplugin.1
+endif
+
+if WITH_SIMC
+notrans_dist_man1_MANS += simc_lsmplugin.1
+endif
+
+if WITH_SIM
+notrans_dist_man1_MANS += sim_lsmplugin.1
+endif
+
+if WITH_NFS
+notrans_dist_man1_MANS += nfs_lsmplugin.1
 endif
 
 notrans_dist_man5_MANS = lsmd.conf.5

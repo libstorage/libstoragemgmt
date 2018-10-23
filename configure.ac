@@ -295,6 +295,90 @@ AC_ARG_WITH([local],
 AM_CONDITIONAL([WITH_LOCAL], [test "x$with_local" = "xyes"])
 
 dnl ==========================================================================
+dnl Add option '--without-ontap' to exclude ontap plugin.
+dnl ==========================================================================
+
+AC_ARG_WITH([ontap],
+    [AS_HELP_STRING([--without-ontap],
+        [Do not build the NetApp ontap plugin])],
+    [],
+    [with_ontap=yes])
+
+AM_CONDITIONAL([WITH_ONTAP], [test "x$with_ontap" = "xyes"])
+
+dnl ==========================================================================
+dnl Add option '--without-nstor' to exclude nstor plugin.
+dnl ==========================================================================
+
+AC_ARG_WITH([nstor],
+    [AS_HELP_STRING([--without-nstor],
+        [Do not build the nstor plugin])],
+    [],
+    [with_nstor=yes])
+
+AM_CONDITIONAL([WITH_NSTOR], [test "x$with_nstor" = "xyes"])
+
+dnl ==========================================================================
+dnl Add option '--without-smispy' to exclude SMI-S python plugin.
+dnl ==========================================================================
+
+AC_ARG_WITH([smispy],
+    [AS_HELP_STRING([--without-smispy],
+        [Do not build the SMI-S python plugin])],
+    [],
+    [with_smispy=yes])
+
+AM_CONDITIONAL([WITH_SMISPY], [test "x$with_smispy" = "xyes"])
+
+dnl ==========================================================================
+dnl Add option '--without-targetd' to exclude targetd plugin.
+dnl ==========================================================================
+
+AC_ARG_WITH([targetd],
+    [AS_HELP_STRING([--without-targetd],
+        [Do not build the targetd plugin])],
+    [],
+    [with_targetd=yes])
+
+AM_CONDITIONAL([WITH_TARGETD], [test "x$with_targetd" = "xyes"])
+
+dnl ==========================================================================
+dnl Add option '--without-simc' to exclude simulator C plugin.
+dnl ==========================================================================
+
+AC_ARG_WITH([simc],
+    [AS_HELP_STRING([--without-simc],
+        [Do not build the simulator C plugin])],
+    [],
+    [with_simc=yes])
+
+AM_CONDITIONAL([WITH_SIMC], [test "x$with_simc" = "xyes"])
+
+dnl ==========================================================================
+dnl Add option '--without-sim' to exclude simulator python plugin.
+dnl ==========================================================================
+
+AC_ARG_WITH([sim],
+    [AS_HELP_STRING([--without-sim],
+        [Do not build the simulator python plugin])],
+    [],
+    [with_sim=yes])
+
+AM_CONDITIONAL([WITH_SIM], [test "x$with_sim" = "xyes"])
+
+dnl ==========================================================================
+dnl Add option '--without-nfs' to exclude nfs plugin.
+dnl ==========================================================================
+
+AC_ARG_WITH([nfs],
+    [AS_HELP_STRING([--without-nfs],
+        [Do not build the nfs plugin])],
+    [],
+    [with_nfs=yes])
+
+AM_CONDITIONAL([WITH_NFS], [test "x$with_nfs" = "xyes"])
+
+dnl ==========================================================================
 dnl Check for libconfig as it is needed for lsmd daemon
 dnl ==========================================================================
 PKG_CHECK_MODULES(
@@ -401,6 +485,11 @@ AC_CONFIG_FILES([
     plugin/arcconf/Makefile
     plugin/nfs/Makefile
     plugin/local/Makefile
+    plugin/ontap/Makefile
+    plugin/nstor/Makefile
+    plugin/smispy/Makefile
+    plugin/targetd/Makefile
+    plugin/sim/Makefile
     daemon/Makefile
     config/Makefile
     doc/Makefile
