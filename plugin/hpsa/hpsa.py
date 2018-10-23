@@ -106,6 +106,50 @@ def _fix_mirror_group_lines(output_lines):
             mg_indent_level = None
 
 
+def _sanitize_output(output_lines, return_warning=False):
+    """
+    Check for and process 'Warning: ' and 'Note:', strip empty lines
+    :param output_lines:
+    :return: array of strings or a tuple which is an array of strings and
+             the warning message if found.
+    """
+    warning_msg = None
+
+    num_lines = len(output_lines)
+    sanitized = []
+    i = 0
+    while i < num_lines:
+        if output_lines[i]:
+            # Newer versions report things like media errors
+            if output_lines[i].startswith('Warning:'):
+                start = i + 1
+                warning = output_lines[i]
+
+                # Append all lines until next empty
+                for z in range(start, num_lines):
+                    i += 1
+                    if output_lines[z]:
+                        warning += ' ' + output_lines[z]
+                    else:
+                        break
+
+                if warning_msg is None:
+                    warning_msg = warning[9:]
+
+            elif output_lines[i].startswith('Note:'):
+                # Discard
+                pass
+            else:
+                sanitized.append(output_lines[i])
+
+        i += 1
+
+    if return_warning:
+        return sanitized, warning_msg
+
+    return sanitized
+
+
 def _parse_ssacli_output(output):
     """
     Got a output string of ssacli to dictionary(nested).
@@ -121,10 +165,7 @@ def _parse_ssacli_output(output):
                          'Controller Status', 'Cache Status',
                          'Battery/Capacitor Status', 'Unassigned', 'Array']
 
-    output_lines = [
-        l for l in output.split("\n")
-        if l and not l.startswith('Note:')]
-
+    output_lines = _sanitize_output(output.split("\n"))
     _fix_mirror_group_lines(output_lines)
 
     data = {}
