@@ -527,7 +527,7 @@ fi
 %dir %{_libexecdir}/lsm.d
 %{_libexecdir}/lsm.d/find_unused_lun.py*
 %{_libexecdir}/lsm.d/local_sanity_check.py*
-%{_sysconfdir}/lsm/pluginconf.d/sim.conf
+%config(noreplace) %{_sysconfdir}/lsm/pluginconf.d/sim.conf
 %{_mandir}/man1/sim_lsmplugin.1*
 
 %files -n python3-%{name}-clibs
@@ -619,7 +619,7 @@ fi
 %{python3_sitelib}/lsm/plugin/nfs/__pycache__/*
 %{python3_sitelib}/lsm/plugin/nfs/__init__.*
 %{python3_sitelib}/lsm/plugin/nfs/nfs.*
-%{_sysconfdir}/lsm/pluginconf.d/nfs.conf
+%config(noreplace) %{_sysconfdir}/lsm/pluginconf.d/nfs.conf
 %{_bindir}/nfs_lsmplugin
 %{_mandir}/man1/nfs_lsmplugin.1*
 
@@ -645,8 +645,10 @@ fi
 %{python3_sitelib}/lsm/plugin/local/__pycache__/*
 %{python3_sitelib}/lsm/plugin/local/__init__.*
 %{python3_sitelib}/lsm/plugin/local/local.*
-%{_sysconfdir}/lsm/pluginconf.d/local.conf
+%config(noreplace) %{_sysconfdir}/lsm/pluginconf.d/local.conf
 %{_bindir}/local_lsmplugin
 %{_mandir}/man1/local_lsmplugin.1*
 
 %changelog
+* Mon Feb 6 2012 Tony Asleson <tasleson@redhat.com> @VERSION@-1
+- Upgrade to @VERSION@
