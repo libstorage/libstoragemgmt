@@ -61,7 +61,7 @@ int LSM_DLL_EXPORT lsm_fs_record_free(lsm_fs *fs);
  *
  * Return:
  *      Pointer of lsm_fs. NULL on memory allocation failure or argument
- *      'source' is NULL. Should be freed by lsm_fs_record_free().
+ *      @source is NULL. Should be freed by lsm_fs_record_free().
  */
 lsm_fs LSM_DLL_EXPORT *lsm_fs_record_copy(lsm_fs * source);
 

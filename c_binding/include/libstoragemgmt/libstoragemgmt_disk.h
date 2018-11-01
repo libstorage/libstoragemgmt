@@ -394,7 +394,7 @@ const char LSM_DLL_EXPORT *lsm_disk_system_id_get(lsm_disk *d);
  *      Retrieve the system id for the specified disk.
  *      Only available for direct attached storage system.
  *      Returns the SCSI VPD83 NAA ID of disk. The VPD83 NAA ID could be used in
- *      'lsm_local_disk_vpd83_search()' when physical disk is exposed to OS
+ *      lsm_local_disk_vpd83_search when physical disk is exposed to OS
  *      directly (also known as system HBA mode). Please be advised the
  *      capability LSM_CAP_DISK_VPD83_GET only means plugin could query VPD83
  *      for HBA mode disk, for those physical disks acting as RAID member,
