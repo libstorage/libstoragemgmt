@@ -230,8 +230,8 @@ Group:          System Environment/Libraries
 Requires:       %{name} = %{version}-%{release}
 
 %description    nfs-plugin-clibs
-The %{name}-nfs-plugin-clibs package contains python C extension for %{name}
-NFS plugin.
+The %{name}-nfs-plugin-clibs package contains python C
+extension for %{name} NFS plugin.
 
 
 %package        local-plugin
@@ -243,8 +243,8 @@ Requires(postun): python3-%{name} = %{version}
 BuildArch:      noarch
 
 %description    local-plugin
-The %{name}-local-plugin is a plugin that provides auto plugin selection for
-locally managed storage.
+The %{name}-local-plugin is a plugin that provides auto
+plugin selection for locally managed storage.
 
 %prep
 %autosetup -p1
