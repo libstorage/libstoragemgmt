@@ -53,6 +53,7 @@ API_MAN_PAGES = \
 	api_man/lsm_access_group_name_get.3 \
 	api_man/lsm_access_group_system_id_get.3 \
 	api_man/lsm_access_group_initiator_id_get.3 \
+	api_man/lsm_access_group_init_type_get.3 \
 	api_man/lsm_battery_record_free.3 \
 	api_man/lsm_battery_record_copy.3 \
 	api_man/lsm_battery_record_array_free.3 \
