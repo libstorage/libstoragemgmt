@@ -1,5 +1,65 @@
 News for libStorageMgmt
 
+1.7.1: Nov 6 2018
+    * Fix up/add documentation and correct packaging lint errors.
+
+1.7.0: Oct 24 2018
+    * Replace yajl with nlohmann/json for JSON handling.
+    * Bug fixes:
+        - Fix the file path of lsmd.conf manpage.
+        - HPSA plugin: Support ssacli version 3.25+.
+        - Filesystem Hierarchy Standard: Move tools to
+              /usr/libexec/lsm.d folder.
+        - scan-scsi-target: Fix compiling on gcc 8.2.
+        - Fix lsmcli on python 3.7.
+        - Handle 'Warning:' message in hpsa plugin
+    * Enhancements:
+       - Add configure options for not including specified plugins
+       - Add lsm_access_group_init_type_get to C API
+
+1.6.2: May 18 2018
+    * MegaRAID plugin: Fix cache information query.
+    * SmartArray plugin: Remove the pyudev codes.
+    * lsmd: Fix crash when plugin named as _lsmplugin.
+    * Fix GCC 8 compiling warnings.
+    * Add support of Debian/Ubuntu packaging.
+    * User case tools for unused LUN scan and local storage sanity check.
+
+1.6.1: Oct 31: 2017
+    * Add support of RHEL/Centos 6 back.
+    * Fix regression on SMI-S plugin.
+
+1.6.0: Oct 19 2017
+    PLEASE DON'T USE THIS RELEASE, IT HAS REGRESSION, USE 1.6.1 OR LATER
+
+    * New error number for deleting volume/fs with child dependency:
+        * C:        `LSM_ERR_HAS_CHILD_DEPENDENCY`
+        * Python:   `lsm.ErrorNumber.HAS_CHILD_DEPENDENCY`
+    * Fix incorrect SCSI VPD query for 0x89 and 0xb1.
+    * Fix regression on using libstoragemgmt with pywbem 0.7.0.
+    * Updates on manpage and help message of lsmcli.
+
+1.5.0: Oct 11 2017
+    PLEASE DON'T USE THIS RELEASE, IT HAS REGRESSION, USE 1.6.1 OR LATER
+    - New plugin -- LibstorageMgmt NFS server plugin(`nfs://`).
+    - New plugin -- LibstorageMgmt Local Pseudo plugin(`local://`).
+    - New plugin -- LibstorageMgmt Microsemi storage plugin(`arcconf://`).
+    - Removed support of lmiwbem due to missing self-signed CA verification and
+      inactive upstream of lmiwbem.
+    - Support SES actions on kernel `bsg` module(old code was using `sg` kernel module).
+    - Add manpages for every C API using kernel-doc.
+    - Using docker of Fedora and Centos for Travis CI test.
+    - New URI parameter `ca_cert_file` for ONTAP, SMI-S, targetd plugin.
+    - Bug fixes:
+        * Fix the ONTAP SSL connection.
+        * Sim plugin: Fix sqlite3 transaction of fs_child_dependency_rm().
+        * MegaRAID: Handle when both perccli and storcli are installed.
+        * MegaRAID plugin: Support pool status for rebuild and check.
+        * Fixed C++ code compile warnings.
+    - Library adds:
+	    * Query health status of local disk:
+	        lsm_local_disk_health_status_get()/lsm.LocalDisk.health_status_get()
+
 1.4.0: Feb 17 2016:
     - Add Python3 support.
     - Add support of lmiwbem.
