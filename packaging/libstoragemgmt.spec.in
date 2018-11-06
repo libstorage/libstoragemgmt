@@ -2,9 +2,9 @@
 %global py2_build_dir %{_builddir}/%{name}-%{version}-%{release}-python2
 
 %if 0%{?rhel} > 7 || 0%{?fedora} > 28
-%bcond_with         python2
+%bcond_with     python2
 %else
-%bcond_without      python2
+%bcond_without  python2
 %endif
 
 Name:           libstoragemgmt
@@ -16,6 +16,7 @@ License:        LGPLv2+
 URL:            https://github.com/libstorage/libstoragemgmt
 Source0:        https://github.com/libstorage/libstoragemgmt/releases/download/%{version}/%{name}-%{version}.tar.gz
 Requires:       python3-%{name}
+BuildRequires:  gcc gcc-c++
 BuildRequires:  autoconf automake libtool libxml2-devel check-devel perl-interpreter
 BuildRequires:  openssl-devel
 BuildRequires:  glib2-devel
@@ -32,10 +33,8 @@ BuildRequires:  sqlite-devel
 BuildRequires:  python3-six
 BuildRequires:  python3-devel
 
-Requires: initscripts
-Requires(post): systemd
-Requires(preun): systemd
-Requires(postun): systemd
+%{?systemd_requires}
+BuildRequires:  systemd systemd-devel
 
 BuildRequires:  chrpath
 BuildRequires:  valgrind
@@ -112,9 +111,11 @@ This package contains python 3 client C extension libraries.
 %package        smis-plugin
 Summary:        Files for SMI-S generic array support for %{name}
 Group:          System Environment/Libraries
-BuildRequires:  pywbem
 BuildRequires:  python3-pywbem
 Requires:       python3-pywbem
+%if %{with python2}
+BuildRequires:  python2-pywbem
+%endif
 BuildArch:      noarch
 Provides:       %{name}-ibm-v7k-plugin = 2:%{version}-%{release}
 Obsoletes:      %{name}-ibm-v7k-plugin <= 2:0.1.0-3
@@ -226,11 +227,11 @@ The nfs-plugin package contains plug-in for local NFS exports support.
 %package        nfs-plugin-clibs
 Summary:        Python C extension module for %{name} NFS plugin
 Group:          System Environment/Libraries
-Requires:       %{name} = %{version}
+Requires:       %{name} = %{version}-%{release}
 
 %description    nfs-plugin-clibs
-The %{name}-nfs-plugin-clibs package contains python C extension for %{name}
-NFS plugin.
+The %{name}-nfs-plugin-clibs package contains python C
+extension for %{name} NFS plugin.
 
 
 %package        local-plugin
@@ -242,9 +243,8 @@ Requires(postun): python3-%{name} = %{version}
 BuildArch:      noarch
 
 %description    local-plugin
-The nfs-plugin package contains plug-in for local NFS exports support.
-LibstorageMgmt local plugin allows user to manage locally storage system
-without caring which real plugin(s) should be used.
+The %{name}-local-plugin is a plugin that provides auto
+plugin selection for locally managed storage.
 
 %prep
 %autosetup -p1
@@ -440,7 +440,6 @@ if [ $1 -eq 0 ]; then
 fi
 
 %files
-%defattr(-,root,root,-)
 %doc README COPYING.LIB NEWS
 %{_mandir}/man1/lsmcli.1*
 %{_mandir}/man1/lsmd.1*
@@ -457,13 +456,12 @@ fi
 
 %{_unitdir}/%{name}.service
 
-%ghost %dir %attr(0755, -, -) /run/lsm/
-%ghost %dir %attr(0755, -, -) /run/lsm/ipc
+%ghost %dir %attr(0775, -, -) /run/lsm/
+%ghost %dir %attr(0775, -, -) /run/lsm/ipc
 
 %attr(0644, root, root) %{_tmpfilesdir}/%{name}.conf
 
 %files devel
-%defattr(-,root,root,-)
 %{_includedir}/*
 %{_libdir}/*.so
 %{_libdir}/pkgconfig/%{name}.pc
@@ -472,28 +470,27 @@ fi
 
 %if %{with python2}
 %files -n python2-%{name}
-%defattr(-,root,root,-)
 #Python library files
 %dir %{python_sitelib}/lsm
-%{python_sitelib}/lsm/__init__.*
+%{python2_sitelib}/lsm/__init__.*
 %dir %{python_sitelib}/lsm/external
-%{python_sitelib}/lsm/external/*
-%{python_sitelib}/lsm/_client.*
-%{python_sitelib}/lsm/_common.*
-%{python_sitelib}/lsm/_local_disk.*
-%{python_sitelib}/lsm/_data.*
-%{python_sitelib}/lsm/_iplugin.*
-%{python_sitelib}/lsm/_pluginrunner.*
-%{python_sitelib}/lsm/_transport.*
-%{python_sitelib}/lsm/version.*
+%{python2_sitelib}/lsm/external/*
+%{python2_sitelib}/lsm/_client.*
+%{python2_sitelib}/lsm/_common.*
+%{python2_sitelib}/lsm/_local_disk.*
+%{python2_sitelib}/lsm/_data.*
+%{python2_sitelib}/lsm/_iplugin.*
+%{python2_sitelib}/lsm/_pluginrunner.*
+%{python2_sitelib}/lsm/_transport.*
+%{python2_sitelib}/lsm/version.*
 %dir %{python_sitelib}/lsm/lsmcli
-%{python_sitelib}/lsm/lsmcli/__init__.*
-%{python_sitelib}/lsm/lsmcli/data_display.*
-%{python_sitelib}/lsm/lsmcli/cmdline.*
+%{python2_sitelib}/lsm/lsmcli/__init__.*
+%{python2_sitelib}/lsm/lsmcli/data_display.*
+%{python2_sitelib}/lsm/lsmcli/cmdline.*
 
 # Compiled C files for python library
 %files -n python2-%{name}-clibs
-%{python_sitelib}/lsm/_clib.*
+%{python2_sitelib}/lsm/_clib.*
 %endif
 
 %files -n python3-%{name}
@@ -527,14 +524,13 @@ fi
 %dir %{_libexecdir}/lsm.d
 %{_libexecdir}/lsm.d/find_unused_lun.py*
 %{_libexecdir}/lsm.d/local_sanity_check.py*
-%{_sysconfdir}/lsm/pluginconf.d/sim.conf
+%config(noreplace) %{_sysconfdir}/lsm/pluginconf.d/sim.conf
 %{_mandir}/man1/sim_lsmplugin.1*
 
 %files -n python3-%{name}-clibs
 %{python3_sitelib}/lsm/_clib.*
 
 %files smis-plugin
-%defattr(-,root,root,-)
 %dir %{python3_sitelib}/lsm/plugin/smispy
 %dir %{python3_sitelib}/lsm/plugin/smispy/__pycache__
 %{python3_sitelib}/lsm/plugin/smispy/__pycache__/*
@@ -553,7 +549,6 @@ fi
 %{_mandir}/man1/smispy_lsmplugin.1*
 
 %files netapp-plugin
-%defattr(-,root,root,-)
 %dir %{python3_sitelib}/lsm/plugin/ontap
 %dir %{python3_sitelib}/lsm/plugin/ontap/__pycache__
 %{python3_sitelib}/lsm/plugin/ontap/__pycache__/*
@@ -564,7 +559,6 @@ fi
 %{_mandir}/man1/ontap_lsmplugin.1*
 
 %files targetd-plugin
-%defattr(-,root,root,-)
 %dir %{python3_sitelib}/lsm/plugin/targetd
 %dir %{python3_sitelib}/lsm/plugin/targetd/__pycache__
 %{python3_sitelib}/lsm/plugin/targetd/__pycache__/*
@@ -574,7 +568,6 @@ fi
 %{_mandir}/man1/targetd_lsmplugin.1*
 
 %files nstor-plugin
-%defattr(-,root,root,-)
 %dir %{python3_sitelib}/lsm/plugin/nstor
 %dir %{python3_sitelib}/lsm/plugin/nstor/__pycache__
 %{python3_sitelib}/lsm/plugin/nstor/__pycache__/*
@@ -584,12 +577,10 @@ fi
 %{_mandir}/man1/nstor_lsmplugin.1*
 
 %files udev
-%defattr(-,root,root,-)
 %{_udevrulesdir}/../scan-scsi-target
 %{_udevrulesdir}/90-scsi-ua.rules
 
 %files megaraid-plugin
-%defattr(-,root,root,-)
 %dir %{python3_sitelib}/lsm/plugin/megaraid
 %dir %{python3_sitelib}/lsm/plugin/megaraid/__pycache__
 %{python3_sitelib}/lsm/plugin/megaraid/__pycache__/*
@@ -601,7 +592,6 @@ fi
 %{_mandir}/man1/megaraid_lsmplugin.1*
 
 %files hpsa-plugin
-%defattr(-,root,root,-)
 %dir %{python3_sitelib}/lsm/plugin/hpsa
 %dir %{python3_sitelib}/lsm/plugin/hpsa/__pycache__
 %{python3_sitelib}/lsm/plugin/hpsa/__pycache__/*
@@ -613,13 +603,12 @@ fi
 %{_mandir}/man1/hpsa_lsmplugin.1*
 
 %files nfs-plugin
-%defattr(-,root,root,-)
 %dir %{python3_sitelib}/lsm/plugin/nfs
 %dir %{python3_sitelib}/lsm/plugin/nfs/__pycache__
 %{python3_sitelib}/lsm/plugin/nfs/__pycache__/*
 %{python3_sitelib}/lsm/plugin/nfs/__init__.*
 %{python3_sitelib}/lsm/plugin/nfs/nfs.*
-%{_sysconfdir}/lsm/pluginconf.d/nfs.conf
+%config(noreplace) %{_sysconfdir}/lsm/pluginconf.d/nfs.conf
 %{_bindir}/nfs_lsmplugin
 %{_mandir}/man1/nfs_lsmplugin.1*
 
@@ -627,7 +616,6 @@ fi
 %{python3_sitelib}/lsm/plugin/nfs/nfs_clib.*
 
 %files arcconf-plugin
-%defattr(-,root,root,-)
 %dir %{python3_sitelib}/lsm/plugin/arcconf
 %dir %{python3_sitelib}/lsm/plugin/arcconf/__pycache__
 %{python3_sitelib}/lsm/plugin/arcconf/__pycache__/*
@@ -639,14 +627,15 @@ fi
 %{_mandir}/man1/arcconf_lsmplugin.1*
 
 %files local-plugin
-%defattr(-,root,root,-)
 %dir %{python3_sitelib}/lsm/plugin/local
 %dir %{python3_sitelib}/lsm/plugin/local/__pycache__
 %{python3_sitelib}/lsm/plugin/local/__pycache__/*
 %{python3_sitelib}/lsm/plugin/local/__init__.*
 %{python3_sitelib}/lsm/plugin/local/local.*
-%{_sysconfdir}/lsm/pluginconf.d/local.conf
+%config(noreplace) %{_sysconfdir}/lsm/pluginconf.d/local.conf
 %{_bindir}/local_lsmplugin
 %{_mandir}/man1/local_lsmplugin.1*
 
 %changelog
+* Mon Feb 6 2012 Tony Asleson <tasleson@redhat.com> @VERSION@-1
+- Upgrade to @VERSION@

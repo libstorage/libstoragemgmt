@@ -335,7 +335,7 @@ Required. Replication destination volume start block number. Must in pair with
 \fB--count\fR and \fB--src-start\fR.
 .TP
 \fB--count\fR \fI<BLK_COUNT>\fR
-Required. The count of replicated block startting from \fB--src-start\R block.
+Required. The count of replicated block startting from \fB--src-start\rR block.
 Must in pair with \fB--src-start\fR and \fB--dst-start\fR.
 
 .SS volume-replicate-range-block-size
@@ -507,7 +507,7 @@ supported yet.
 .TP
 \fB--root-host\fR \fI<ROOT_HOST>\fR
 Optional. Repeatable. The host/IP has root access. For two or more hosts/IPs:
-'\fB--root-host hostA --root-host hostB\fR'.
+\fB--root-host hostA --root-host hostB\fR.
 .TP
 \fB--ro-host\fR \fI<RO_HOST>\fR
 Optional. Repeatable. The host/IP has read only access. For two or more
@@ -515,7 +515,7 @@ hosts/IPs: '\fB--ro-host hostA --ro-host hostB\fR'.
 .TP
 \fB--rw-host\fR \fI<RW_HOST>\fR
 Optional. The host/IP has read/write access. For two or more hosts/IPs:
-'\fB--rw-host hostA --rw-host hostB\fR'.
+\fB--rw-host hostA --rw-host hostB\fR.
 
 .SS fs-unexport
 Remove an NFS export.
@@ -569,7 +569,7 @@ Required. The ID of snapshot to restore.
 \fB--file\fR \fI<FILE_PATH>\fR
 Optional. Repeatable. With this option defined, will only restore the defined
 file(s).
-'\fB--file fileA --file pathB\fR'.
+\fB--file fileA --file pathB\fR.
 .TP
 \fB--fileas\fR \fI<NEW_FILE_PATH>\fR
 Optional. Repeatable. With this option defined, the restored file will be

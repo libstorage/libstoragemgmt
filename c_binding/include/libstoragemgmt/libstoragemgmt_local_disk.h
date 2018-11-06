@@ -240,8 +240,8 @@ int LSM_DLL_EXPORT lsm_local_disk_rpm_get(const char *disk_path, int32_t *rpm,
  *
  * @disk_paths:
  *      lsm_string_list pointer.
- *      The disk_path string format is '/dev/sd[a-z]+' for SCSI and ATA disks,
- *      '/dev/nvme[0-9]+n[0-9]+' for NVMe disks. Empty lsm_string_list but not
+ *      The disk_path string format is "/dev/sd[a-z]+" for SCSI and ATA disks,
+ *      "/dev/nvme[0-9]+n[0-9]+" for NVMe disks. Empty lsm_string_list but not
  *      NULL will be returned if no disk found. Memory should be freed by
  *      lsm_string_list_free().
  * @lsm_err:
