@@ -551,5 +551,7 @@ AC_CONFIG_FILES([test/cmdtest.py],
     [chmod +x test/cmdtest.py])
 AC_CONFIG_FILES([tools/sanity_check/local_sanity_check.py],
     [chmod +x tools/sanity_check/local_sanity_check.py])
+AC_CONFIG_FILES([tools/use_cases/find_unused_lun.py],
+    [chmod +x tools/use_cases/find_unused_lun.py])
 
 AC_OUTPUT
