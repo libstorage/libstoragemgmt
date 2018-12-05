@@ -1,4 +1,4 @@
-.TH LSMCLI "1" "September 2014" "lsmcli @VERSION@" "libStorageMgmt"
+.TH LSMCLI "1" "December 2018" "lsmcli @VERSION@" "libStorageMgmt"
 .SH NAME
 lsmcli - libStorageMgmt command line interface
 
@@ -383,6 +383,20 @@ Required. The ID of volume to revoke.
 \fB--ag\fR \fI<AG_ID>\fR
 Required. The ID of access group to revoke.
 
+.SS volume-enable
+.TP 15
+Enable block access of specified volume.
+.TP
+\fB--vol\fR \fI<VOL_ID>\fR
+Required. The ID of volume to enable access.
+
+.SS volume-disable
+.TP 15
+Disable block access of specified volume.
+.TP
+\fB--vol\fR \fI<VOL_ID>\fR
+Required. The ID of volume to disable access.
+
 .SS volume-raid-info
 .TP 15
 Query RAID information for given volume.
@@ -732,6 +746,10 @@ Alias of 'volume-resize'
 Alias of 'volume-mask'
 .SS vu
 Alias of 'volume-unmask'
+.SS ve
+Alias of 'volume-enable'
+.SS vi
+Alias of 'volume-disable'
 .SS vri
 Alias of 'volume-raid-info'
 .SS pmi
