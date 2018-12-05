@@ -118,12 +118,13 @@ def parse_convert_init(init_id):
 
     Return (converted_init_id, lsm_init_type)
     """
-    valid, init_type, init_id = AccessGroup.initiator_id_verify(init_id)
+    valid, converted_init_type, converted_init_id = \
+        AccessGroup.initiator_id_verify(init_id)
 
     if valid:
-        return init_id, init_type
+        return converted_init_id, converted_init_type
 
-    raise ArgError("--init-id %s is not a valid WWPN or iSCSI IQN" % init_id)
+    raise ArgError("--init \"%s\" is not a valid WWPN or iSCSI IQN" % init_id)
 
 
 _CHILD_OPTION_DST_PREFIX = 'child_'
@@ -1259,7 +1260,7 @@ class CmdLine(object):
     def iscsi_chap(self, args):
         (init_id, init_type) = parse_convert_init(args.init)
         if init_type != AccessGroup.INIT_TYPE_ISCSI_IQN:
-            raise ArgError("--init-id %s is not a valid iSCSI IQN" % args.init)
+            raise ArgError("--init \"%s\" is not a valid iSCSI IQN" % args.init)
 
         self.c.iscsi_chap_auth(init_id, args.in_user,
                                self.args.in_pass,
