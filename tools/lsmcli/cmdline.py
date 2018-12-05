@@ -1262,6 +1262,12 @@ class CmdLine(object):
         if init_type != AccessGroup.INIT_TYPE_ISCSI_IQN:
             raise ArgError("--init \"%s\" is not a valid iSCSI IQN" % args.init)
 
+        # Enforce consistency across all
+        if self.args.out_user and self.args.out_pass and not \
+                (self.args.in_user and self.args.in_pass):
+            raise ArgError("out-user and out-password only supported if "
+                           "inbound is supplied")
+
         self.c.iscsi_chap_auth(init_id, args.in_user,
                                self.args.in_pass,
                                self.args.out_user,
