@@ -261,7 +261,7 @@ policy_opt = dict(name="--policy", metavar='<POLICY>',
 write_cache_policy_types = ['WB', 'AUTO', 'WT']
 write_cache_policy_help = 'Write cache polices: ' + \
                           ', '.join(write_cache_policy_types) + \
-                          'which stand for "write back", "auto", ' + \
+                          ' which stand for "write back", "auto", ' + \
                           '"write through"'
 write_cache_policy_opt = dict(name="--policy", metavar='<POLICY>',
                               help=write_cache_policy_help,
