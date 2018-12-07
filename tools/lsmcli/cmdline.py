@@ -1089,35 +1089,39 @@ class CmdLine(object):
         else:
             out(", ".join(self.c.export_auth()))
 
+    # Determine what the search key and search value are for listing
+    # @param    args    Argparse argument object
+    # @return (key, value) tuple
+    @staticmethod
+    def _get_search_key_value(args):
+
+        search_key = None
+        search_value = None
+
+        search_args = ((args.sys, 'system_id'),
+                       (args.pool, 'pool_id'),
+                       (args.vol, 'volume_id'),
+                       (args.disk, 'disk_id'),
+                       (args.ag, 'access_group_id'),
+                       (args.fs, 'fs_id'),
+                       (args.nfs_export, 'nfs_export_id'),
+                       (args.tgt, 'tgt_port_id'))
+
+        for sa in search_args:
+            if sa[0]:
+                if search_key:
+                    raise ArgError(
+                        "Search key specified more than once (%s, %s)" %
+                        (search_key, sa[1]))
+                else:
+                    (search_value, search_key) = sa
+
+        return search_key, search_value
+
     # Method that calls the appropriate method based on what the list type is
     # @param    args    Argparse argument object
     def list(self, args):
-        search_key = None
-        search_value = None
-        if args.sys:
-            search_key = 'system_id'
-            search_value = args.sys
-        if args.pool:
-            search_key = 'pool_id'
-            search_value = args.pool
-        if args.vol:
-            search_key = 'volume_id'
-            search_value = args.vol
-        if args.disk:
-            search_key = 'disk_id'
-            search_value = args.disk
-        if args.ag:
-            search_key = 'access_group_id'
-            search_value = args.ag
-        if args.fs:
-            search_key = 'fs_id'
-            search_value = args.fs
-        if args.nfs_export:
-            search_key = 'nfs_export_id'
-            search_value = args.nfs_export
-        if args.tgt:
-            search_key = 'tgt_port_id'
-            search_value = args.tgt
+        (search_key, search_value) = CmdLine._get_search_key_value(args)
 
         if args.type == 'VOLUMES':
             lsm_vols = []
@@ -1156,6 +1160,9 @@ class CmdLine(object):
         elif args.type == 'SNAPSHOTS':
             if args.fs is None:
                 raise ArgError("--fs <file system id> required")
+            if search_key and search_key != "fs_id":
+                raise ArgError("Search key '%s' is not supported by "
+                               "snapshot listing." % search_key)
             fs = _get_item(self.c.fs(), args.fs, 'File System')
             self.display_data(self.c.fs_snapshots(fs))
         elif args.type == 'EXPORTS':
