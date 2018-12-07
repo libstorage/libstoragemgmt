@@ -449,15 +449,15 @@ cmds = (
             dict(name="--src-start", metavar='<SRC_START_BLK>',
                  help='Source volume start block number.\n'
                       'This is repeatable argument.',
-                 action='append'),
+                 action='append', type=long),
             dict(name="--dst-start", metavar='<DST_START_BLK>',
                  help='Destination volume start block number.\n'
                       'This is repeatable argument.',
-                 action='append'),
+                 action='append', type=long),
             dict(name="--count", metavar='<BLK_COUNT>',
                  help='Number of blocks to replicate.\n'
                       'This is repeatable argument.',
-                 action='append'),
+                 action='append', type=long),
         ],
     ),
 
