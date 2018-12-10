@@ -876,6 +876,12 @@ between the source and target.
 
 .SH NOTES
 .TP 8
+Optional search argument
+When specifying an optional search argument, it's not considered an error if
+no search results are found, eg. specifying a non-existent system id.  The exit
+code will be 0.
+
+.TP 8
 Plugin installation
 Plugins are installed individually except for the simulators which are always
 included.
