@@ -1029,7 +1029,7 @@ class CmdLine(object):
             description='The libStorageMgmt command line interface.'
                         ' Run %(prog)s <command> -h for more on each command.',
             epilog=CmdLine.alias_help_text() +
-                        '\n\nCopyright 2012-2016 Red Hat, Inc.\n'
+                        '\n\nCopyright 2012-2018 Red Hat, Inc.\n'
                         'Please report bugs to '
                         '<libstoragemgmt-devel@lists.fedorahosted.org>\n',
             formatter_class=RawTextHelpFormatter)
