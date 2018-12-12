@@ -1554,8 +1554,27 @@ class CmdLine(object):
 
         ranges = []
         for b in range(len(src_starts)):
-            ranges.append(BlockRange(long(src_starts[b]), long(dst_starts[b]),
-                                     long(counts[b])))
+
+            # Validate some assumptions for source & count
+            count = long(counts[b])
+            src_start = long(src_starts[b])
+            dst_start = long(dst_starts[b])
+
+            if count < 0:
+                raise ArgError("--count: value < 0")
+
+            if src_start < 0:
+                raise ArgError("--src-start: value < 0")
+
+            if dst_start < 0:
+                raise ArgError("--dst_start: value < 0")
+
+            if src_start + count > src.num_of_blocks:
+                raise ArgError("--src-start + --count > source size")
+            if dst_start + count > dst.num_of_blocks:
+                raise ArgError("--dst-start + --count > destination size")
+
+            ranges.append(BlockRange(src_start, dst_start, count))
 
         if self.confirm_prompt(False):
             self.c.volume_replicate_range(rep_type, src, dst, ranges)
