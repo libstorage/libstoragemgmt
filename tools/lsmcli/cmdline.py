@@ -1322,6 +1322,10 @@ class CmdLine(object):
         fs = _get_item(self.c.fs(), args.fs, "File System")
         size = self._size(args.size)
 
+        if size == fs.total_space:
+            raise LsmError(
+                ErrorNumber.NO_STATE_CHANGE, "Specified size same as current")
+
         if self.confirm_prompt(False):
             fs = self._wait_for_it("fs-resize",
                                    *self.c.fs_resize(fs, size))
