@@ -1533,6 +1533,27 @@ class CmdLine(object):
             *self.c.volume_replicate(p, rep_type, v, args.name))
         self.display_data([_add_sd_paths(vol)])
 
+    # Check to see if block ranges are overlapping
+    @staticmethod
+    def _check_overlap(ranges):
+
+        def _overlap(r, member):
+            for i in range(1, len(r)):
+                ps = getattr(r[i - 1], member)  # Previous start
+                pc = r[i - 1].block_count       # Previous count
+                cs = getattr(r[i], member)      # Current start
+                cc = r[i].block_count           # Current count
+                if ps + pc > cs:
+                    raise ArgError("Overlapping %s replication "
+                                   "range %d..%d overlaps with %d..%d" %
+                                   (member, ps, ps + pc - 1, cs, cs + cc - 1))
+
+        # Sort the src ranges
+        ranges.sort(key=lambda x: x.src_block)
+        _overlap(ranges, "src_block")
+        ranges.sort(key=lambda x: x.dest_block)
+        _overlap(ranges, "dest_block")
+
     # Replicates a range of a volume
     def volume_replicate_range(self, args):
         src = _get_item(self.c.volumes(), args.src_vol, "Source Volume")
@@ -1575,6 +1596,8 @@ class CmdLine(object):
                 raise ArgError("--dst-start + --count > destination size")
 
             ranges.append(BlockRange(src_start, dst_start, count))
+
+        CmdLine._check_overlap(ranges)
 
         if self.confirm_prompt(False):
             self.c.volume_replicate_range(rep_type, src, dst, ranges)
