@@ -1269,6 +1269,18 @@ class CmdLine(object):
         if init_type != AccessGroup.INIT_TYPE_ISCSI_IQN:
             raise ArgError("--init \"%s\" is not a valid iSCSI IQN" % args.init)
 
+        if self.args.in_user and not self.args.in_pass:
+            raise ArgError("--in-user requires --in-pass")
+
+        if self.args.in_pass and not self.args.in_user:
+            raise ArgError("--in-pass requires --in-user")
+
+        if self.args.out_user and not self.args.out_pass:
+            raise ArgError("--out-user requires --out-pass")
+
+        if self.args.out_pass and not self.args.out_user:
+            raise ArgError("--out-pass requires --out-user")
+
         # Enforce consistency across all
         if self.args.out_user and self.args.out_pass and not \
                 (self.args.in_user and self.args.in_pass):
