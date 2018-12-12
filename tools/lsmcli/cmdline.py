@@ -1624,6 +1624,10 @@ class CmdLine(object):
         v = _get_item(self.c.volumes(), args.vol, "Volume")
         size = self._size(args.size)
 
+        if size == v.block_size * v.num_of_blocks:
+            raise LsmError(
+                ErrorNumber.NO_STATE_CHANGE, "Specified size same as current")
+
         if self.confirm_prompt(False):
             vol = self._wait_for_it("resize",
                                     *self.c.volume_resize(v, size))
