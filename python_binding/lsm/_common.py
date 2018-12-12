@@ -272,40 +272,44 @@ def uri_parse(uri, requires=None, required_params=None):
     before returning successfully.
     """
 
-    rc = {}
-    u = urlparse(uri)
+    try:
+        rc = {}
+        u = urlparse(uri)
 
-    if u.scheme:
-        rc['scheme'] = u.scheme
+        if u.scheme:
+            rc['scheme'] = u.scheme
 
-    if u.netloc:
-        rc['netloc'] = u.netloc
+        if u.netloc:
+            rc['netloc'] = u.netloc
 
-    if u.port:
-        rc['port'] = u.port
+        if u.port:
+            rc['port'] = u.port
 
-    if u.hostname:
-        rc['host'] = u.hostname
+        if u.hostname:
+            rc['host'] = u.hostname
 
-    if u.username:
-        rc['username'] = u.username
-    else:
-        rc['username'] = None
+        if u.username:
+            rc['username'] = u.username
+        else:
+            rc['username'] = None
 
-    rc['parameters'] = uri_parameters(u)
+        rc['parameters'] = uri_parameters(u)
 
-    if requires:
-        for r in requires:
-            if r not in rc:
-                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                               'uri missing \"%s\" or is in invalid form' % r)
+        if requires:
+            for r in requires:
+                if r not in rc:
+                    raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                                   'uri missing \"%s\" or is in invalid form' % r)
 
-    if required_params:
-        for r in required_params:
-            if r not in rc['parameters']:
-                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                               'uri missing query parameter %s' % r)
-    return rc
+        if required_params:
+            for r in required_params:
+                if r not in rc['parameters']:
+                    raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                                   'uri missing query parameter %s' % r)
+        return rc
+    except ValueError as ve:
+        raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                       "uri invalid: reason: %s" % str(ve))
 
 
 # Parses the parameters (Query string) of the URI
