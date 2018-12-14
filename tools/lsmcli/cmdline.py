@@ -128,6 +128,20 @@ def parse_convert_init(init_id):
     raise ArgError("--init \"%s\" is not a valid WWPN or iSCSI IQN" % init_id)
 
 
+def _check_init(init_id):
+    """
+    Call back from validating an initiator
+    :param init_id: Initiator to validate
+    :return: Value of initiator or raises an exception
+    """
+    valid, _, converted_init_id = \
+        AccessGroup.initiator_id_verify(init_id)
+
+    if valid:
+        return converted_init_id
+    raise ArgumentTypeError("\"%s\" is invalid WWPN or iSCSI IQN" % init_id)
+
+
 _CHILD_OPTION_DST_PREFIX = 'child_'
 
 
@@ -405,7 +419,8 @@ ag_id_opt = dict(name='--ag', metavar='<AG_ID>', help='Access Group ID')
 ag_id_filter_opt = ag_id_opt.copy()
 ag_id_filter_opt['help'] = 'Search by Access Group ID'
 
-init_id_opt = dict(name='--init', metavar='<INIT_ID>', help='Initiator ID')
+init_id_opt = dict(name='--init', metavar='<INIT_ID>', help='Initiator ID',
+                   type=_check_init)
 snap_id_opt = dict(name='--snap', metavar='<SNAP_ID>', help='Snapshot ID')
 export_id_opt = dict(name='--export', metavar='<EXPORT_ID>', help='Export ID')
 
