@@ -19,10 +19,11 @@
 import os
 import sys
 import getpass
+import re
 import time
 import tty
 import termios
-from argparse import ArgumentParser
+from argparse import ArgumentParser, ArgumentTypeError
 from argparse import RawTextHelpFormatter
 import six
 from lsm import (Client, Pool, VERSION, LsmError, Disk,
@@ -134,6 +135,109 @@ def _upper(s):
     return s.upper()
 
 
+def _valid_ip4_address(address):
+    """
+    Check if a string represents a valid ip4 address
+    :param address: String representing address
+    :return: True if valid address, else false
+    """
+    if not address:
+        return False
+
+    parts = address.split('.')
+    if len(parts) != 4:
+        return False
+
+    if '/' in address:
+        return False
+
+    for i in parts:
+        if not 0 < len(i) <= 3:
+            return False
+
+        if len(i) > 1 and i[0] == '0':
+            return False
+
+        try:
+            if int(i, 10) > 255:
+                return False
+        except ValueError:
+            return False
+
+    return True
+
+
+def _valid_ip6_address(address):
+    """
+    Check if a string represents a valid ipv6 address
+    :param address: String representing address
+    :return: True if valid address, else false
+    """
+    allowed = 'ABCDEFabcdef0123456789:'
+    has_zeros = False
+
+    if not address:
+        return False
+
+    if '/' in address:
+        return False
+
+    if len(address.split("::")) > 2:
+        return False
+
+    parts = address.split(':')
+    if len(parts) < 3 or len(parts) > 9:
+        return False
+
+    # Check for ipv4 suffix, validate and remove while adding padding for
+    # addl. checks.
+    if '.' in parts[-1]:
+        if not _valid_ip4_address(parts.pop()):
+            print("Not valid ipv suffix")
+            return False
+        parts.extend(['0', '0'])
+
+    if '::' in address:
+        parts = [p for p in parts if p != '']
+        # Add one segment of zero to catch full address with extra ':'
+        parts.append('0')
+        has_zeros = True
+
+    if (has_zeros and len(parts) <= 8) or len(parts) == 8:
+        return all(len(x) <= 4 for x in parts) and \
+               all(x in allowed for x in "".join(parts))
+    return False
+
+
+def _is_valid_network_name(ip_hn):
+    """
+    Checks to see if the supplied string is a valid ip4/6 or hostname
+    :param ip_hn: String representing address user inputted
+    :return: True if valid IP address or hostname
+    """
+    allowed = re.compile("(?!-)[A-Z0-9-]{1,63}(?<!-)$", re.IGNORECASE)
+    digits_only = re.compile("^[0-9.]+$")
+
+    # Check ipv4, ipv6, then for valid hostname
+    if _valid_ip4_address(ip_hn):
+        return True
+
+    if _valid_ip6_address(ip_hn):
+        return True
+
+    if len(ip_hn) > 255:
+        return False
+
+    # A hostname cannot exist with only digits per spec. as that is confusing
+    # for distinguishing IP from hostname
+    if digits_only.match(ip_hn):
+        return False
+
+    if ip_hn[-1] == ".":
+        ip_hn = ip_hn[:-1]  # Yes, absolute hostnames have a trailing dot!
+    return all(allowed.match(x) for x in ip_hn.split("."))
+
+
 def _add_common_options(arg_parser, is_child=False):
     """
     As https://bugs.python.org/issue23058 indicate, argument parser should
@@ -241,6 +345,19 @@ def _get_item(l, the_id, friendly_name='item', raise_error=True):
         raise ArgError('%s with ID %s not found!' % (friendly_name, the_id))
     else:
         return None
+
+
+def _check_network_host(addr):
+    """
+    Custom value checker for hostname/IP address
+    :param addr:
+    :return:
+    """
+    valid = _is_valid_network_name(addr)
+    if valid:
+        return addr
+    raise ArgumentTypeError("%s is invalid IP or hostname" % addr)
+
 
 list_choices = ['VOLUMES', 'POOLS', 'FS', 'SNAPSHOTS',
                 'EXPORTS', "NFS_CLIENT_AUTH", 'ACCESS_GROUPS',
@@ -690,17 +807,17 @@ cmds = (
                  help="The host/IP has root access.\n"
                       "This is repeatable argument.",
                  action='append',
-                 default=[]),
+                 default=[], type=_check_network_host),
             dict(name="--ro-host", metavar='<RO_HOST>',
                  help="The host/IP has readonly access.\n"
                       "This is repeatable argument.\n"
                       "At least one '--ro-host' or '--rw-host' is required.",
-                 action='append', default=[]),
+                 action='append', default=[], type=_check_network_host),
             dict(name="--rw-host", metavar='<RW_HOST>',
                  help="The host/IP has readwrite access.\n"
                       "This is repeatable argument.\n"
                       "At least one '--ro-host' or '--rw-host' is required.",
-                 action='append', default=[]),
+                 action='append', default=[], type=_check_network_host),
         ],
     ),
 
