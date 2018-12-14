@@ -217,6 +217,7 @@ Summary:        Files for NFS local filesystem support for %{name}
 Group:          System Environment/Libraries
 Requires:       python3-%{name} = %{version}
 Requires:       %{name}-nfs-plugin-clibs = %{version}
+Requires:       nfs-utils
 Requires(post): python3-%{name} = %{version}
 Requires(postun): python3-%{name} = %{version}
 BuildArch:      noarch
