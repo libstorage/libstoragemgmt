@@ -142,6 +142,24 @@ def _check_init(init_id):
     raise ArgumentTypeError("\"%s\" is invalid WWPN or iSCSI IQN" % init_id)
 
 
+def _check_positive_integer(num):
+    """
+    Call back for validating a positive integer
+    :param num: Number string to check
+    :return: Numeric value, else exception
+    """
+    try:
+        rc = long(num, 10)
+        if rc < 0:
+            raise ArgumentTypeError(
+                "invalid: require positive integer value '%d'" % rc)
+
+        return rc
+    except ValueError:
+        raise ArgumentTypeError(
+            "invalid: not a positive integer value '%s'" % num)
+
+
 _CHILD_OPTION_DST_PREFIX = 'child_'
 
 
@@ -298,8 +316,9 @@ def _add_common_options(arg_parser, is_child=False):
         help='Bypass confirmation prompt for data loss operations')
 
     arg_parser.add_argument(
-        '-w', '--wait', action="store", type=int, dest="%swait" % prefix,
-        help="Command timeout value in ms (default = 30s)")
+        '-w', '--wait', action="store", dest="%swait" % prefix,
+        help="Command timeout value in ms (default = 30s)",
+        type=_check_positive_integer)
 
     arg_parser.add_argument(
         '--header', action="store_true", dest="%sheader" % prefix,
@@ -581,15 +600,15 @@ cmds = (
             dict(name="--src-start", metavar='<SRC_START_BLK>',
                  help='Source volume start block number.\n'
                       'This is repeatable argument.',
-                 action='append', type=long),
+                 action='append', type=_check_positive_integer),
             dict(name="--dst-start", metavar='<DST_START_BLK>',
                  help='Destination volume start block number.\n'
                       'This is repeatable argument.',
-                 action='append', type=long),
+                 action='append', type=_check_positive_integer),
             dict(name="--count", metavar='<BLK_COUNT>',
                  help='Number of blocks to replicate.\n'
                       'This is repeatable argument.',
-                 action='append', type=long),
+                 action='append', type=_check_positive_integer),
         ],
     ),
 
@@ -693,7 +712,8 @@ cmds = (
             dict(name="--sys", metavar='<SYS_ID>',
                  help='Targeted system.\n'),
             dict(name="--read-pct",
-                 help="Read cache percentage.\n"),
+                 help="Read cache percentage.\n",
+                 type=_check_positive_integer),
         ],
     ),
 
