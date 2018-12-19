@@ -16,7 +16,8 @@
 #         Gris Ge <fge@redhat.com>
 
 from lsm import (uri_parse, VERSION, Capabilities, INfs,
-                 IStorageAreaNetwork, search_property, Client)
+                 IStorageAreaNetwork, search_property, Client, LsmError,
+                 ErrorNumber)
 
 from lsm.plugin.sim.simarray import SimArray
 
@@ -206,6 +207,11 @@ class SimPlugin(INfs, IStorageAreaNetwork):
 
     def iscsi_chap_auth(self, init_id, in_user, in_password,
                         out_user, out_password, flags=0):
+        if out_user and out_password and \
+                (in_user is None or in_password is None):
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           "out_user and out_password only supported if "
+                           "inbound is supplied")
         return self.sim_array.iscsi_chap_auth(
             init_id, in_user, in_password, out_user, out_password, flags)
 

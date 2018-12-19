@@ -19,10 +19,11 @@
 import os
 import sys
 import getpass
+import re
 import time
 import tty
 import termios
-from argparse import ArgumentParser
+from argparse import ArgumentParser, ArgumentTypeError
 from argparse import RawTextHelpFormatter
 import six
 from lsm import (Client, Pool, VERSION, LsmError, Disk,
@@ -118,12 +119,45 @@ def parse_convert_init(init_id):
 
     Return (converted_init_id, lsm_init_type)
     """
-    valid, init_type, init_id = AccessGroup.initiator_id_verify(init_id)
+    valid, converted_init_type, converted_init_id = \
+        AccessGroup.initiator_id_verify(init_id)
 
     if valid:
-        return init_id, init_type
+        return converted_init_id, converted_init_type
 
-    raise ArgError("--init-id %s is not a valid WWPN or iSCSI IQN" % init_id)
+    raise ArgError("--init \"%s\" is not a valid WWPN or iSCSI IQN" % init_id)
+
+
+def _check_init(init_id):
+    """
+    Call back from validating an initiator
+    :param init_id: Initiator to validate
+    :return: Value of initiator or raises an exception
+    """
+    valid, _, converted_init_id = \
+        AccessGroup.initiator_id_verify(init_id)
+
+    if valid:
+        return converted_init_id
+    raise ArgumentTypeError("\"%s\" is invalid WWPN or iSCSI IQN" % init_id)
+
+
+def _check_positive_integer(num):
+    """
+    Call back for validating a positive integer
+    :param num: Number string to check
+    :return: Numeric value, else exception
+    """
+    try:
+        rc = long(num, 10)
+        if rc < 0:
+            raise ArgumentTypeError(
+                "invalid: require positive integer value '%d'" % rc)
+
+        return rc
+    except ValueError:
+        raise ArgumentTypeError(
+            "invalid: not a positive integer value '%s'" % num)
 
 
 _CHILD_OPTION_DST_PREFIX = 'child_'
@@ -131,6 +165,109 @@ _CHILD_OPTION_DST_PREFIX = 'child_'
 
 def _upper(s):
     return s.upper()
+
+
+def _valid_ip4_address(address):
+    """
+    Check if a string represents a valid ip4 address
+    :param address: String representing address
+    :return: True if valid address, else false
+    """
+    if not address:
+        return False
+
+    parts = address.split('.')
+    if len(parts) != 4:
+        return False
+
+    if '/' in address:
+        return False
+
+    for i in parts:
+        if not 0 < len(i) <= 3:
+            return False
+
+        if len(i) > 1 and i[0] == '0':
+            return False
+
+        try:
+            if int(i, 10) > 255:
+                return False
+        except ValueError:
+            return False
+
+    return True
+
+
+def _valid_ip6_address(address):
+    """
+    Check if a string represents a valid ipv6 address
+    :param address: String representing address
+    :return: True if valid address, else false
+    """
+    allowed = 'ABCDEFabcdef0123456789:'
+    has_zeros = False
+
+    if not address:
+        return False
+
+    if '/' in address:
+        return False
+
+    if len(address.split("::")) > 2:
+        return False
+
+    parts = address.split(':')
+    if len(parts) < 3 or len(parts) > 9:
+        return False
+
+    # Check for ipv4 suffix, validate and remove while adding padding for
+    # addl. checks.
+    if '.' in parts[-1]:
+        if not _valid_ip4_address(parts.pop()):
+            print("Not valid ipv suffix")
+            return False
+        parts.extend(['0', '0'])
+
+    if '::' in address:
+        parts = [p for p in parts if p != '']
+        # Add one segment of zero to catch full address with extra ':'
+        parts.append('0')
+        has_zeros = True
+
+    if (has_zeros and len(parts) <= 8) or len(parts) == 8:
+        return all(len(x) <= 4 for x in parts) and \
+               all(x in allowed for x in "".join(parts))
+    return False
+
+
+def _is_valid_network_name(ip_hn):
+    """
+    Checks to see if the supplied string is a valid ip4/6 or hostname
+    :param ip_hn: String representing address user inputted
+    :return: True if valid IP address or hostname
+    """
+    allowed = re.compile("(?!-)[A-Z0-9-]{1,63}(?<!-)$", re.IGNORECASE)
+    digits_only = re.compile("^[0-9.]+$")
+
+    # Check ipv4, ipv6, then for valid hostname
+    if _valid_ip4_address(ip_hn):
+        return True
+
+    if _valid_ip6_address(ip_hn):
+        return True
+
+    if len(ip_hn) > 255:
+        return False
+
+    # A hostname cannot exist with only digits per spec. as that is confusing
+    # for distinguishing IP from hostname
+    if digits_only.match(ip_hn):
+        return False
+
+    if ip_hn[-1] == ".":
+        ip_hn = ip_hn[:-1]  # Yes, absolute hostnames have a trailing dot!
+    return all(allowed.match(x) for x in ip_hn.split("."))
 
 
 def _add_common_options(arg_parser, is_child=False):
@@ -179,8 +316,9 @@ def _add_common_options(arg_parser, is_child=False):
         help='Bypass confirmation prompt for data loss operations')
 
     arg_parser.add_argument(
-        '-w', '--wait', action="store", type=int, dest="%swait" % prefix,
-        help="Command timeout value in ms (default = 30s)")
+        '-w', '--wait', action="store", dest="%swait" % prefix,
+        help="Command timeout value in ms (default = 30s)",
+        type=_check_positive_integer)
 
     arg_parser.add_argument(
         '--header', action="store_true", dest="%sheader" % prefix,
@@ -241,6 +379,19 @@ def _get_item(l, the_id, friendly_name='item', raise_error=True):
     else:
         return None
 
+
+def _check_network_host(addr):
+    """
+    Custom value checker for hostname/IP address
+    :param addr:
+    :return:
+    """
+    valid = _is_valid_network_name(addr)
+    if valid:
+        return addr
+    raise ArgumentTypeError("%s is invalid IP or hostname" % addr)
+
+
 list_choices = ['VOLUMES', 'POOLS', 'FS', 'SNAPSHOTS',
                 'EXPORTS', "NFS_CLIENT_AUTH", 'ACCESS_GROUPS',
                 'SYSTEMS', 'DISKS', 'PLUGINS', 'TARGET_PORTS', 'BATTERIES']
@@ -260,7 +411,7 @@ policy_opt = dict(name="--policy", metavar='<POLICY>',
 write_cache_policy_types = ['WB', 'AUTO', 'WT']
 write_cache_policy_help = 'Write cache polices: ' + \
                           ', '.join(write_cache_policy_types) + \
-                          'which stand for "write back", "auto", ' + \
+                          ' which stand for "write back", "auto", ' + \
                           '"write through"'
 write_cache_policy_opt = dict(name="--policy", metavar='<POLICY>',
                               help=write_cache_policy_help,
@@ -287,7 +438,8 @@ ag_id_opt = dict(name='--ag', metavar='<AG_ID>', help='Access Group ID')
 ag_id_filter_opt = ag_id_opt.copy()
 ag_id_filter_opt['help'] = 'Search by Access Group ID'
 
-init_id_opt = dict(name='--init', metavar='<INIT_ID>', help='Initiator ID')
+init_id_opt = dict(name='--init', metavar='<INIT_ID>', help='Initiator ID',
+                   type=_check_init)
 snap_id_opt = dict(name='--snap', metavar='<SNAP_ID>', help='Snapshot ID')
 export_id_opt = dict(name='--export', metavar='<EXPORT_ID>', help='Export ID')
 
@@ -448,15 +600,15 @@ cmds = (
             dict(name="--src-start", metavar='<SRC_START_BLK>',
                  help='Source volume start block number.\n'
                       'This is repeatable argument.',
-                 action='append'),
+                 action='append', type=_check_positive_integer),
             dict(name="--dst-start", metavar='<DST_START_BLK>',
                  help='Destination volume start block number.\n'
                       'This is repeatable argument.',
-                 action='append'),
+                 action='append', type=_check_positive_integer),
             dict(name="--count", metavar='<BLK_COUNT>',
                  help='Number of blocks to replicate.\n'
                       'This is repeatable argument.',
-                 action='append'),
+                 action='append', type=_check_positive_integer),
         ],
     ),
 
@@ -560,7 +712,8 @@ cmds = (
             dict(name="--sys", metavar='<SYS_ID>',
                  help='Targeted system.\n'),
             dict(name="--read-pct",
-                 help="Read cache percentage.\n"),
+                 help="Read cache percentage.\n",
+                 type=_check_positive_integer),
         ],
     ),
 
@@ -689,17 +842,17 @@ cmds = (
                  help="The host/IP has root access.\n"
                       "This is repeatable argument.",
                  action='append',
-                 default=[]),
+                 default=[], type=_check_network_host),
             dict(name="--ro-host", metavar='<RO_HOST>',
                  help="The host/IP has readonly access.\n"
                       "This is repeatable argument.\n"
                       "At least one '--ro-host' or '--rw-host' is required.",
-                 action='append', default=[]),
+                 action='append', default=[], type=_check_network_host),
             dict(name="--rw-host", metavar='<RW_HOST>',
                  help="The host/IP has readwrite access.\n"
                       "This is repeatable argument.\n"
                       "At least one '--ro-host' or '--rw-host' is required.",
-                 action='append', default=[]),
+                 action='append', default=[], type=_check_network_host),
         ],
     ),
 
@@ -1028,7 +1181,7 @@ class CmdLine(object):
             description='The libStorageMgmt command line interface.'
                         ' Run %(prog)s <command> -h for more on each command.',
             epilog=CmdLine.alias_help_text() +
-                        '\n\nCopyright 2012-2016 Red Hat, Inc.\n'
+                        '\n\nCopyright 2012-2018 Red Hat, Inc.\n'
                         'Please report bugs to '
                         '<libstoragemgmt-devel@lists.fedorahosted.org>\n',
             formatter_class=RawTextHelpFormatter)
@@ -1088,35 +1241,39 @@ class CmdLine(object):
         else:
             out(", ".join(self.c.export_auth()))
 
+    # Determine what the search key and search value are for listing
+    # @param    args    Argparse argument object
+    # @return (key, value) tuple
+    @staticmethod
+    def _get_search_key_value(args):
+
+        search_key = None
+        search_value = None
+
+        search_args = ((args.sys, 'system_id'),
+                       (args.pool, 'pool_id'),
+                       (args.vol, 'volume_id'),
+                       (args.disk, 'disk_id'),
+                       (args.ag, 'access_group_id'),
+                       (args.fs, 'fs_id'),
+                       (args.nfs_export, 'nfs_export_id'),
+                       (args.tgt, 'tgt_port_id'))
+
+        for sa in search_args:
+            if sa[0]:
+                if search_key:
+                    raise ArgError(
+                        "Search key specified more than once (%s, %s)" %
+                        (search_key, sa[1]))
+                else:
+                    (search_value, search_key) = sa
+
+        return search_key, search_value
+
     # Method that calls the appropriate method based on what the list type is
     # @param    args    Argparse argument object
     def list(self, args):
-        search_key = None
-        search_value = None
-        if args.sys:
-            search_key = 'system_id'
-            search_value = args.sys
-        if args.pool:
-            search_key = 'pool_id'
-            search_value = args.pool
-        if args.vol:
-            search_key = 'volume_id'
-            search_value = args.vol
-        if args.disk:
-            search_key = 'disk_id'
-            search_value = args.disk
-        if args.ag:
-            search_key = 'access_group_id'
-            search_value = args.ag
-        if args.fs:
-            search_key = 'fs_id'
-            search_value = args.fs
-        if args.nfs_export:
-            search_key = 'nfs_export_id'
-            search_value = args.nfs_export
-        if args.tgt:
-            search_key = 'tgt_port_id'
-            search_value = args.tgt
+        (search_key, search_value) = CmdLine._get_search_key_value(args)
 
         if args.type == 'VOLUMES':
             lsm_vols = []
@@ -1155,6 +1312,9 @@ class CmdLine(object):
         elif args.type == 'SNAPSHOTS':
             if args.fs is None:
                 raise ArgError("--fs <file system id> required")
+            if search_key and search_key != "fs_id":
+                raise ArgError("Search key '%s' is not supported by "
+                               "snapshot listing." % search_key)
             fs = _get_item(self.c.fs(), args.fs, 'File System')
             self.display_data(self.c.fs_snapshots(fs))
         elif args.type == 'EXPORTS':
@@ -1259,7 +1419,25 @@ class CmdLine(object):
     def iscsi_chap(self, args):
         (init_id, init_type) = parse_convert_init(args.init)
         if init_type != AccessGroup.INIT_TYPE_ISCSI_IQN:
-            raise ArgError("--init-id %s is not a valid iSCSI IQN" % args.init)
+            raise ArgError("--init \"%s\" is not a valid iSCSI IQN" % args.init)
+
+        if self.args.in_user and not self.args.in_pass:
+            raise ArgError("--in-user requires --in-pass")
+
+        if self.args.in_pass and not self.args.in_user:
+            raise ArgError("--in-pass requires --in-user")
+
+        if self.args.out_user and not self.args.out_pass:
+            raise ArgError("--out-user requires --out-pass")
+
+        if self.args.out_pass and not self.args.out_user:
+            raise ArgError("--out-pass requires --out-user")
+
+        # Enforce consistency across all
+        if self.args.out_user and self.args.out_pass and not \
+                (self.args.in_user and self.args.in_pass):
+            raise ArgError("out-user and out-password only supported if "
+                           "inbound is supplied")
 
         self.c.iscsi_chap_auth(init_id, args.in_user,
                                self.args.in_pass,
@@ -1295,6 +1473,10 @@ class CmdLine(object):
     def fs_resize(self, args):
         fs = _get_item(self.c.fs(), args.fs, "File System")
         size = self._size(args.size)
+
+        if size == fs.total_space:
+            raise LsmError(
+                ErrorNumber.NO_STATE_CHANGE, "Specified size same as current")
 
         if self.confirm_prompt(False):
             fs = self._wait_for_it("fs-resize",
@@ -1507,6 +1689,27 @@ class CmdLine(object):
             *self.c.volume_replicate(p, rep_type, v, args.name))
         self.display_data([_add_sd_paths(vol)])
 
+    # Check to see if block ranges are overlapping
+    @staticmethod
+    def _check_overlap(ranges):
+
+        def _overlap(r, member):
+            for i in range(1, len(r)):
+                ps = getattr(r[i - 1], member)  # Previous start
+                pc = r[i - 1].block_count       # Previous count
+                cs = getattr(r[i], member)      # Current start
+                cc = r[i].block_count           # Current count
+                if ps + pc > cs:
+                    raise ArgError("Overlapping %s replication "
+                                   "range %d..%d overlaps with %d..%d" %
+                                   (member, ps, ps + pc - 1, cs, cs + cc - 1))
+
+        # Sort the src ranges
+        ranges.sort(key=lambda x: x.src_block)
+        _overlap(ranges, "src_block")
+        ranges.sort(key=lambda x: x.dest_block)
+        _overlap(ranges, "dest_block")
+
     # Replicates a range of a volume
     def volume_replicate_range(self, args):
         src = _get_item(self.c.volumes(), args.src_vol, "Source Volume")
@@ -1528,8 +1731,29 @@ class CmdLine(object):
 
         ranges = []
         for b in range(len(src_starts)):
-            ranges.append(BlockRange(long(src_starts[b]), long(dst_starts[b]),
-                                     long(counts[b])))
+
+            # Validate some assumptions for source & count
+            count = long(counts[b])
+            src_start = long(src_starts[b])
+            dst_start = long(dst_starts[b])
+
+            if count < 0:
+                raise ArgError("--count: value < 0")
+
+            if src_start < 0:
+                raise ArgError("--src-start: value < 0")
+
+            if dst_start < 0:
+                raise ArgError("--dst_start: value < 0")
+
+            if src_start + count > src.num_of_blocks:
+                raise ArgError("--src-start + --count > source size")
+            if dst_start + count > dst.num_of_blocks:
+                raise ArgError("--dst-start + --count > destination size")
+
+            ranges.append(BlockRange(src_start, dst_start, count))
+
+        CmdLine._check_overlap(ranges)
 
         if self.confirm_prompt(False):
             self.c.volume_replicate_range(rep_type, src, dst, ranges)
@@ -1555,6 +1779,10 @@ class CmdLine(object):
     def volume_resize(self, args):
         v = _get_item(self.c.volumes(), args.vol, "Volume")
         size = self._size(args.size)
+
+        if size == v.block_size * v.num_of_blocks:
+            raise LsmError(
+                ErrorNumber.NO_STATE_CHANGE, "Specified size same as current")
 
         if self.confirm_prompt(False):
             vol = self._wait_for_it("resize",
