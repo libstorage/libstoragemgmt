@@ -1421,24 +1421,24 @@ class BackStore(object):
         self.sim_vol_of_id(src_sim_vol_id)
         self.sim_vol_of_id(dst_sim_vol_id)
 
-        # TODO(Gris Ge): Use consumed_size < total_space to reflect the CLONE
-        #                type.
+        # If we are replicating with ourselves we need not track it.
+        if src_sim_vol_id == dst_sim_vol_id:
+            return
+
+        # A bitwise copy does not imply a replicated relation ship and thus
+        # doesn't require anything to separate a src and destination volume.
+        if rep_type == Volume.REPLICATE_COPY:
+            return
+
         cur_src_sim_vol_ids = list(
             r['src_vol_id'] for r in self._data_find(
                 'vol_reps', 'dst_vol_id="%s"' % dst_sim_vol_id))
-        if len(cur_src_sim_vol_ids) == 1 and \
-           cur_src_sim_vol_ids[0] == src_sim_vol_id:
-            # src and dst match. Maybe user are overriding old setting.
-            pass
-        elif len(cur_src_sim_vol_ids) == 0:
-            pass
-        else:
-            # TODO(Gris Ge): Need to introduce new API error
-            raise LsmError(
-                ErrorNumber.PLUGIN_BUG,
-                "Target volume is already a replication target for other "
-                "source volume")
 
+        if len(cur_src_sim_vol_ids) == 1:
+            # We already have a relationship, do not need to add more
+            return
+
+        # Add the relationship
         self._data_add(
             'vol_reps',
             {

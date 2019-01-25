@@ -61,3 +61,11 @@ debian/libstoragemgmtd.postinst.debhelper
 debian/libstoragemgmtd.postrm.debhelper
 debian/libstoragemgmtd.prerm.debhelper
 debian/tmp/
+test/cmdtest.py
+test/plugin_test.py
+tools/sanity_check/local_sanity_check.py
+tools/use_cases/find_unused_lun.py
+doc/api_man
+doc/man/*.[135]
+c_binding/util/.dirstamp
+python_binding/lsm/.dirstamp
