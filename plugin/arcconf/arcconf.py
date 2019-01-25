@@ -17,6 +17,7 @@
 # Author: Gris Ge <fge@redhat.com>
 #         Joe Handzik <joseph.t.handzik@hpe.com>
 #         Raghavendra Basvan <raghavendra.br@microsemi.com>
+#         Sharath TS <sharath.ts@microchip.com>
 
 import os
 import errno
@@ -27,7 +28,7 @@ import json
 from lsm import (
     IPlugin, Client, Capabilities, VERSION, LsmError, ErrorNumber, uri_parse,
     System, Pool, size_human_2_size_bytes, search_property, Volume, Disk,
-    LocalDisk)
+    LocalDisk, Battery)
 
 from lsm.plugin.arcconf.utils import cmd_exec, ExecError
 
@@ -41,7 +42,7 @@ DRIVE_RAW = 10
 DRIVE_STATE_UNKNOWN = 20
 
 # Controller states
-CONTROLLER_STATUS_WORKING = 0
+CONTROLLER_STATUS_WORKING, CONTROLLER_STATUS_WORKING_DISPLAY = 0, 'Optimal'
 CONTROLLER_STATUS_FAILED = 1
 CONTROLLER_STATUS_INACCESSIBLE = 5
 CONTROLLER_STATUS_UNKNOWN = 6
@@ -49,9 +50,10 @@ CONTROLLER_STATUS_LOCKED_UP = 9
 CONTROLLER_STATUS_SYS_PQI_DRIVER_CONFLICT = 10
 
 # RAID modes
-HW_RAID_EXPOSE_RAW_DEVICES = 0
-HBA_MODE = 2
-HW_RAID_HIDE_RAW_DEVICES = 3
+HW_RAID_EXPOSE_RAW_DEVICES, HW_RAID_EXPOSE_RAW_DEVICES_DISPLAY = 0, 'HW RAID (Expose RAW)'
+HBA_MODE, HBA_MODE_DISPLAY = 2, 'HBA'
+HW_RAID_HIDE_RAW_DEVICES, HW_RAID_HIDE_RAW_DEVICES_DISPLAY = 3, 'HW RAID (Hide RAW)'
+MIXED_MODE, MIXED_MODE_DISPLAY = 5, 'Mixed'
 
 # Arcconf Disk Interface
 DISK_INTERFACE_TYPE_SATA = 1
@@ -148,6 +150,17 @@ def _disk_type_of(arcconf_disk):
     return Disk.TYPE_UNKNOWN
 
 
+def _disk_link_type_of(arcconf_disk):
+    disk_interface = arcconf_disk['interfaceType']
+
+    if disk_interface == DISK_INTERFACE_TYPE_SATA:
+        return Disk.LINK_TYPE_ATA
+    elif disk_interface == DISK_INTERFACE_TYPE_SAS:
+        return Disk.LINK_TYPE_SAS
+
+    return Disk.LINK_TYPE_UNKNOWN
+
+
 def _disk_status_of(arcconf_disk):
     state = arcconf_disk['state']
 
@@ -178,6 +191,12 @@ _ARCCONF_VENDOR_RAID_LEVELS = ['1adm', '1+0adm']
 _LSM_RAID_TYPE_CONV = dict(
     list(zip(list(_ARCCONF_RAID_LEVEL_CONV.values()),
              list(_ARCCONF_RAID_LEVEL_CONV.keys()))))
+
+_BATTERY_STATUS_CONV = {
+    "Recharging": Battery.STATUS_CHARGING,
+    "Failed (Replace Batteries/Capacitors)": Battery.STATUS_ERROR,
+    "Ok": Battery.STATUS_OK,
+}
 
 
 def _arcconf_raid_level_to_lsm(arcconf_ld):
@@ -283,6 +302,10 @@ class Arcconf(IPlugin):
             cap.set(Capabilities.VOLUMES)
             cap.set(Capabilities.VOLUME_RAID_CREATE)
             cap.set(Capabilities.VOLUME_DELETE)
+            cap.set(Capabilities.POOL_MEMBER_INFO)
+            cap.set(Capabilities.VOLUME_RAID_INFO)
+            cap.set(Capabilities.VOLUME_LED)
+            cap.set(Capabilities.VOLUME_ENABLE)
 
         return cap
 
@@ -291,6 +314,7 @@ class Arcconf(IPlugin):
         if flag_force:
             arcconf_cmds.append('noprompt')
         try:
+            #  print(arcconf_cmds)
             output = cmd_exec(arcconf_cmds)
         except OSError as os_error:
             if os_error.errno == errno.ENOENT:
@@ -331,6 +355,16 @@ class Arcconf(IPlugin):
 
         return detail_info_list
 
+    def _filter_cmd_output(self, cmd_output):
+        """
+        :param cmd_output: arcconf command output obtained after executing a command
+        :return: list of Json data
+        """
+        split_cmd_output = cmd_output.split("\n")[1]
+        filter_cmd_output = json.loads(split_cmd_output)
+
+        return filter_cmd_output
+
     @_handle_errors
     def systems(self, flags=0):
         """
@@ -340,28 +374,39 @@ class Arcconf(IPlugin):
         rc_lsm_syss = []
         total_cntrl = self._get_arcconf_controllers_count()
         getconfig_cntrls_info = self._get_detail_info_list()
+        mode_display = ''
+        status_display = ''
 
         for cntrl in range(total_cntrl):
             ctrl_info = getconfig_cntrls_info[cntrl]['Controller']
-            ctrl_name = "%s %s" % (ctrl_info['deviceVendor'],
-                                   ctrl_info['deviceName'])
+            ctrl_name = "%s %s" % (ctrl_info['deviceVendor'], ctrl_info['deviceName'])
             sys_id = str(cntrl + 1)
             status = ctrl_info['controllerStatus']
             if status == CONTROLLER_STATUS_WORKING:
                 status = System.STATUS_OK
-            status_info = '"Controller Status"=[%s]' % (status)
+                status_display = CONTROLLER_STATUS_WORKING_DISPLAY
+            status_info = '"Controller Status"=[%s]' % status_display
             fw_ver = ctrl_info['firmwareVersion']
             plugin_data = ctrl_info['physicalSlot']
-            read_cache_pct = System.READ_CACHE_PCT_UNKNOWN
+            read_cache_pct = ctrl_info['readCachePercentage']
             hwraid_mode = ctrl_info['functionalMode']
-            if (hwraid_mode == HW_RAID_EXPOSE_RAW_DEVICES) or (
-                    hwraid_mode == HW_RAID_HIDE_RAW_DEVICES):
+            if hwraid_mode == HW_RAID_EXPOSE_RAW_DEVICES:
                 mode = System.MODE_HARDWARE_RAID
+                mode_display = HW_RAID_EXPOSE_RAW_DEVICES_DISPLAY
+            elif hwraid_mode == HW_RAID_HIDE_RAW_DEVICES:
+                mode = System.MODE_HARDWARE_RAID
+                mode_display = HW_RAID_HIDE_RAW_DEVICES_DISPLAY
             elif hwraid_mode == HBA_MODE:
                 mode = System.MODE_HBA
+                mode_display = HBA_MODE_DISPLAY
+            elif hwraid_mode == MIXED_MODE:
+                mode = System.MODE_UNKNOWN
+                mode_display = MIXED_MODE_DISPLAY
             else:
                 mode = System.MODE_UNKNOWN
-            status_info += ' mode=[%s]' % str(hwraid_mode)
+            status_info += ' "mode"=[%s]' % str(mode_display)
+            physical_slot = ctrl_info['physicalSlot']
+            status_info += ' "slot"=[%s]' % str(physical_slot)
 
             rc_lsm_syss.append(System(sys_id,
                                       ctrl_name,
@@ -375,18 +420,17 @@ class Arcconf(IPlugin):
         return rc_lsm_syss
 
     @staticmethod
-    def _arcconf_array_to_lsm_pool(ld_name, sys_id, ctrl_num):
-        pool_id = '%s:%s' % (ctrl_num, ld_name)
-        name = 'Array' + str(ld_name)
+    def _arcconf_array_to_lsm_pool(array_id, array_name, sys_id, block_size, total_size, unused_size):
+        pool_id = '%s:%s' % (sys_id, array_id)
+        name = 'Array ' + str(array_name)
         elem_type = Pool.ELEMENT_TYPE_VOLUME | Pool.ELEMENT_TYPE_VOLUME_FULL
         unsupported_actions = 0
-        free_space = 0
-        total_space = 0
-        # TODO Need to have a logic for finding free space and total space.
+        free_space = int(block_size) * int(unused_size)
+        total_space = int(block_size) * int(total_size)
 
         status = Pool.STATUS_OK
         status_info = ''
-        plugin_data = "%s:%s" % (ctrl_num, ld_name)
+        plugin_data = {'ctrl_id': sys_id, 'array_id': array_id}
 
         return Pool(
             pool_id, name, elem_type, unsupported_actions,
@@ -398,7 +442,6 @@ class Arcconf(IPlugin):
               flags=Client.FLAG_RSVD):
         lsm_pools = []
         getconfig_cntrls_info = self._get_detail_info_list()
-        sys_id = ''
         cntrl = 0
 
         for decoded_json in getconfig_cntrls_info:
@@ -406,14 +449,17 @@ class Arcconf(IPlugin):
             sys_id = cntrl_num
             cntrl += 1
 
-            if 'LogicalDrive' in decoded_json['Controller']:
-                ld_infos = decoded_json['Controller']['LogicalDrive']
-                num_lds = len(ld_infos)
-                for ld in range(num_lds):
-                    ld_name = ld_infos[ld]['logicalDriveID']
-                    lsm_pools.append(
-                        Arcconf._arcconf_array_to_lsm_pool(ld_name, sys_id,
-                                                           cntrl_num))
+            if 'Array' in decoded_json['Controller']:
+                array_infos = decoded_json['Controller']['Array']
+                num_array = len(array_infos)
+                for array in range(num_array):
+                    array_id = array_infos[array]['arrayID']
+                    array_name = array_infos[array]['arrayName']
+                    block_size = array_infos[array]['blockSize']
+                    total_size = array_infos[array]['totalSize']
+                    unused_size = array_infos[array]['unUsedSpace']
+                    lsm_pools.append(Arcconf._arcconf_array_to_lsm_pool(
+                        array_id, array_name, sys_id, block_size, total_size, unused_size))
         return search_property(lsm_pools, search_key, search_value)
 
     @staticmethod
@@ -421,13 +467,14 @@ class Arcconf(IPlugin):
                                pool_id,
                                sys_id,
                                ctrl_num,
-                               array_num,
+                               array_id,
+                               ld_id,
+                               raid_level,
                                arcconf_ld_name):
-        ld_num = arcconf_ld['logicalDriveID']
         vpd83 = str(arcconf_ld['volumeUniqueID']).lower()
 
         block_size = arcconf_ld['BlockSize']
-        num_of_blocks = int(arcconf_ld['dataSpace']) * 1024 / int(block_size)
+        num_of_blocks = int(arcconf_ld['dataSpace'])
         vol_name = arcconf_ld_name
 
         if vpd83:
@@ -439,9 +486,13 @@ class Arcconf(IPlugin):
             admin_status = Volume.ADMIN_STATE_DISABLED
         else:
             admin_status = Volume.ADMIN_STATE_ENABLED
-        plugin_data = "%s:%s:%s" % (ctrl_num, array_num, ld_num)
-
-        volume_id = array_num
+        # plugin_data = "%s:%s:%s:%s" % (ctrl_num, array_id, ld_id, raid_level)
+        stripe_size = arcconf_ld['StripeSize']
+        full_stripe_size = arcconf_ld['fullStripeSize']
+        ld_state = arcconf_ld['state']
+        plugin_data = {'ctrl_id': ctrl_num, 'array_id': array_id, 'ld_id': ld_id, 'ld_state': ld_state,
+                       'raid_level': raid_level, 'stripe_size': stripe_size, 'full_stripe_size': full_stripe_size}
+        volume_id = "%s:%s" % (sys_id, ld_id)
         return Volume(
             volume_id, vol_name, vpd83, block_size, num_of_blocks,
             admin_status, sys_id, pool_id, plugin_data)
@@ -453,9 +504,7 @@ class Arcconf(IPlugin):
         """
         lsm_vols = []
         getconfig_cntrls_info = self._get_detail_info_list()
-
-        pool_id = ''
-        sys_id = ''
+        consumer_array_id = ''
         cntrl = 0
 
         for decoded_json in getconfig_cntrls_info:
@@ -468,14 +517,15 @@ class Arcconf(IPlugin):
                 num_lds = len(ld_infos)
                 for ld in range(num_lds):
                     ld_info = ld_infos[ld]
-                    ld_num = ld_info['logicalDriveID']
+                    ld_id = ld_info['logicalDriveID']
                     ld_name = ld_info['name']
-                    pool_id = '%s:%s' % (sys_id, ld_num)
-                    lsm_vol = \
-                        Arcconf._arcconf_ld_to_lsm_vol(ld_info, pool_id,
-                                                       sys_id, cnt,
-                                                       str(ld_num),
-                                                       ld_name)
+                    raid_level = ld_info['raidLevel']
+                    chunk_data = ld_info['Chunk']
+                    for array_id in chunk_data:
+                        consumer_array_id = array_id['consumerArrayID']  # consumerArrayID in all the chunk will be same
+                    pool_id = '%s:%s' % (sys_id, consumer_array_id)
+                    lsm_vol = Arcconf._arcconf_ld_to_lsm_vol(ld_info, pool_id, sys_id, cnt, consumer_array_id,
+                                                             str(ld_id), raid_level, ld_name)
                     lsm_vols.append(lsm_vol)
 
         return search_property(lsm_vols, search_key, search_value)
@@ -484,14 +534,11 @@ class Arcconf(IPlugin):
     def _arcconf_disk_to_lsm_disk(arcconf_disk, sys_id, ctrl_num):
         disk_id = arcconf_disk['serialNumber'].strip()
 
-        disk_name = "%s" % (arcconf_disk['model'])
+        disk_name = "%s - %s" % (arcconf_disk['vendor'], arcconf_disk['model'])
         disk_type = _disk_type_of(arcconf_disk)
-        link_type = disk_type
+        link_type = _disk_link_type_of(arcconf_disk)
 
-        try:
-            blk_size = int(arcconf_disk['physicalBlockSize'])
-        except KeyError:
-            blk_size = int(arcconf_disk['blockSize'])
+        blk_size = int(arcconf_disk['blockSize'])
         blk_count = int(arcconf_disk['numOfUsableBlocks'])
 
         status = _disk_status_of(arcconf_disk)
@@ -503,9 +550,11 @@ class Arcconf(IPlugin):
         plugin_data = \
             "%s,%s,%s,%s" % (ctrl_num, disk_channel, disk_device, status)
 
-        # TODO(Raghavendra) Need to find better way of getting the vpd83 info.
-        # Just providing disk_path did not yield the correct vpd info.
-        vpd83 = ''
+        disk_path = arcconf_disk['physicalDriveName']
+        if disk_path != 'Not Applicable':
+            vpd83 = LocalDisk.vpd83_get(disk_path)
+        else:
+            vpd83 = ''
         rpm = arcconf_disk['rotationalSpeed']
 
         return Disk(
@@ -520,7 +569,6 @@ class Arcconf(IPlugin):
         rc_lsm_disks = []
 
         getconfig_cntrls_info = self._get_detail_info_list()
-        sys_id = ''
         cntrl = 0
 
         for decoded_json in getconfig_cntrls_info:
@@ -543,44 +591,45 @@ class Arcconf(IPlugin):
         return search_property(rc_lsm_disks, search_key, search_value)
 
     @_handle_errors
-    def volume_raid_create(self, name, raid_type, disks, strip_size,
-                           flags=Client.FLAG_RSVD):
+    def volume_raid_create(self, name, raid_type, disks, strip_size, flags=Client.FLAG_RSVD):
+        """
+
+        :param name: name of volume (this will be ignored)
+        :param raid_type: RAID Type of the LD
+        :param disks: Physical device
+        :param strip_size: Strip size
+        :param flags: for future use
+        :return: volume object of newly created volume
+
+        Depends on command:
+            arcconf create <ctrlNo> logicaldrive max <RAID LEVEL> <channel ID> <Device ID> <channel ID> <Device ID> \
+            <channel ID> <Device ID>...
+        """
 
         arcconf_raid_level = _lsm_raid_type_to_arcconf(raid_type)
         arcconf_disk_ids = []
         ctrl_num = None
-        disk_channel = ''
-        disk_device = ''
-        disk_dict = {'Channel': '0', 'Device': '1'}
-        lsm_vols = []
+        disk_dict = {'Channel': '0', 'Device': '0'}
 
         for disk in disks:
             if not disk.plugin_data:
-                raise LsmError(
-                    ErrorNumber.INVALID_ARGUMENT,
-                    "Illegal input disks argument: missing plugin_data "
+                raise LsmError(ErrorNumber.INVALID_ARGUMENT, "Illegal input disks argument: missing plugin_data "
                     "property")
-            (cur_ctrl_num, disk_channel, disk_device) = \
-                disk.plugin_data.split(',')[:3]
+            (cur_ctrl_num, disk_channel, disk_device) = disk.plugin_data.split(',')[:3]
 
-            requested_disks = [d.name for d in disks]
-            for disk_name in requested_disks:
-                if str(disk_name) == str(disk.name):
-                    disk_channel = str(disk_channel.strip())
-                    disk_device = str(disk_device.strip())
-                    disk_dict.update(
-                        {'Channel': disk_channel, 'Device': disk_device})
-                    arcconf_disk_ids.append(disk_dict.copy())
-                    disk_dict = {}
-                    if ctrl_num is None:
-                        ctrl_num = cur_ctrl_num
-                    elif ctrl_num != cur_ctrl_num:
-                        raise LsmError(
-                            ErrorNumber.INVALID_ARGUMENT,
-                            "Illegal input disks argument: disks "
-                            "are not from the same controller/system.")
+            if ctrl_num is None:
+                ctrl_num = cur_ctrl_num
+            elif ctrl_num != cur_ctrl_num:
+                raise LsmError(ErrorNumber.INVALID_ARGUMENT, "Illegal input disks argument: disks "
+                    "are not from the same controller/system.")
 
-        cmds = ["create", ctrl_num, "logicaldrive", "1024", arcconf_raid_level]
+            disk_channel = str(disk_channel.strip())
+            disk_device = str(disk_device.strip())
+            disk_dict.update({'Channel': disk_channel, 'Device': disk_device})
+            arcconf_disk_ids.append(disk_dict.copy())
+            disk_dict = {}
+
+        cmds = ["create", ctrl_num, "logicaldrive", "max", arcconf_raid_level]
         for disk_channel_device in arcconf_disk_ids:
             cmds.append(disk_channel_device['Channel'])
             cmds.append(disk_channel_device['Device'])
@@ -591,11 +640,8 @@ class Arcconf(IPlugin):
             # Check whether disk is free
             requested_disk_ids = [d.id for d in disks]
             for cur_disk in self.disks():
-                if cur_disk.id in requested_disk_ids and \
-                   not cur_disk.status & Disk.STATUS_FREE:
-                    raise LsmError(
-                        ErrorNumber.DISK_NOT_FREE,
-                        "Disk %s is not in STATUS_FREE state" % cur_disk.id)
+                if cur_disk.id in requested_disk_ids and not cur_disk.status & Disk.STATUS_FREE:
+                    raise LsmError(ErrorNumber.DISK_NOT_FREE, "Disk %s is not in STATUS_FREE state" % cur_disk.id)
             raise
 
         # Generate pool_id from system id and array.
@@ -626,10 +672,10 @@ class Arcconf(IPlugin):
                 ErrorNumber.INVALID_ARGUMENT,
                 "Illegal input volume argument: missing plugin_data property")
 
-        (ctrl_num, array_num) = volume.plugin_data.split(":")[:2]
+        (ctrl_num, vol_id) = volume.id.split(":")
 
         try:
-            self._arcconf_exec(['delete', ctrl_num, 'logicaldrive', array_num],
+            self._arcconf_exec(['delete', ctrl_num, 'logicaldrive', vol_id],
                                flag_force=True)
         except ExecError:
             ctrl_info = self._get_detail_info_list()[int(ctrl_num) - 1]
@@ -638,9 +684,223 @@ class Arcconf(IPlugin):
                 # TODO (Raghavendra) Need to find the scenarios when this can
                 # occur. If volume is detected correctly, but deletion of
                 # volume fails due to arcconf delete command failure.
-                if array_num == ld_info[ld]['logicalDriveID']:
+                if vol_id == ld_info[ld]['logicalDriveID']:
                     raise LsmError(ErrorNumber.PLUGIN_BUG,
                                    "volume_delete failed unexpectedly")
             raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
                            "Volume not found")
         return None
+
+    @_handle_errors
+    def volume_raid_info(self, volume, flags=Client.FLAG_RSVD):
+        """
+        :param volume: volume id - Volume to query
+        :param flags: optional. Reserved for future use.
+        :return: [raid_type, strip_size, disk_count, min_io_size, opt_io_size]
+
+        Depends on command:
+            arcconf getconfigjson <ctrlNo> array <arrayNo>
+        """
+
+        if not volume.plugin_data:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Illegal input volume argument: missing plugin_data property")
+
+        volume_info = volume.plugin_data
+        ctrl_id = str(volume_info['ctrl_id'])
+        array_id = str(volume_info['array_id'])
+        stripe_size = int(volume_info['stripe_size']) * 1024  # convert to Kibibyte
+        full_stripe_size = int(volume_info['full_stripe_size']) * 1024  # convert to Kibibyte
+        device_count = 0
+
+        array_info = self._arcconf_exec(['GETCONFIGJSON', ctrl_id, 'ARRAY', array_id], flag_force=True)
+        array_json_info = self._filter_cmd_output(array_info)['Array']
+        for chunk in array_json_info['Chunk']:
+            if 'deviceID' in chunk.keys():
+                device_count += 1
+            else:
+                continue
+
+        raid_level = _ARCCONF_RAID_LEVEL_CONV[str(volume_info['raid_level'])]
+
+        if device_count == 0:
+            if stripe_size == Volume.STRIP_SIZE_UNKNOWN:
+                raise LsmError(
+                    ErrorNumber.PLUGIN_BUG,
+                    "volume_raid_info(): Got logical drive %s entry, " %
+                    volume.id + "but no physicaldrive entry")
+
+            raise LsmError(
+                ErrorNumber.NOT_FOUND_VOLUME,
+                "Volume not found")
+
+        return [raid_level, stripe_size, device_count, stripe_size, full_stripe_size]
+
+    @_handle_errors
+    def pool_member_info(self, pool, flags=Client.FLAG_RSVD):
+        """
+
+        :param pool: pool id -  Pool to query
+        :param flags: Optional
+        :return: [raid_type, member_type, member_ids]
+
+        Depends on command:
+            arcconf getconfigjson <ctrlNo>
+        """
+
+        if not pool.plugin_data:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Illegal input pool argument: missing plugin_data property")
+
+        pool_info = pool.plugin_data
+        ctrl_id = pool_info['ctrl_id']
+        array_id = pool_info['array_id']
+        consumer_array_id = None
+        raid_level = Volume.RAID_TYPE_UNKNOWN
+        device_id = []
+
+        ctrl_info = self._arcconf_exec(['GETCONFIGJSON', ctrl_id])
+        ctrl_json_info = self._filter_cmd_output(ctrl_info)
+        device_info = ctrl_json_info['Controller']['Channel']
+        volume_info = ctrl_json_info['Controller']['LogicalDrive']
+
+        for volume in volume_info:
+            chunk_data = volume['Chunk']
+            for chunk in chunk_data:
+                consumer_array_id = chunk['consumerArrayID']  # consumerArrayID in all the chunk will be same
+            if consumer_array_id == array_id:
+                raid_level = volume['raidLevel']
+
+        for device in device_info:
+            if 'HardDrive'in device.keys():
+                for hard_drive in device['HardDrive']:
+                    chunk_data = hard_drive['Chunk']
+                    for chunk in chunk_data:
+                        if ('consumerArrayID' in chunk.keys()) and (chunk['consumerArrayID'] == array_id):
+                            device_id.append(str(hard_drive['serialNumber'].strip()))
+
+        lsm_raid_level = _ARCCONF_RAID_LEVEL_CONV[str(raid_level)]
+
+        return [lsm_raid_level, Pool.MEMBER_TYPE_DISK, device_id]
+
+    @_handle_errors
+    def volume_enable(self, volume, flags=Client.FLAG_RSVD):
+        """
+
+        :param volume: volume id to be enabled/change-state-to-optimal
+        :param flags: for future use
+        :return: None
+
+        Depends on command:
+            arcconf setstate <ctrlNo> logicaldrive <ldNo> optimal
+        """
+
+        if not volume.plugin_data:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Illegal input volume argument: missing plugin_data property")
+
+        volume_info = volume.plugin_data
+        ctrl_id = str(volume_info['ctrl_id'])
+        volume_id = str(volume_info['ld_id'])
+        volume_state = volume_info['ld_state']
+
+        try:
+            if volume_state == LOGICAL_DEVICE_OK:
+                raise LsmError(ErrorNumber.NO_STATE_CHANGE, 'Volume is already in Optimal state!')
+            else:
+                self._arcconf_exec(['SETSTATE', ctrl_id, 'LOGICALDRIVE', volume_id, 'OPTIMAL'], flag_force=True)
+        except ExecError:
+            volume_data = self._arcconf_exec(['GETCONFIGJSON', ctrl_id, 'LOGICALDRIVE', volume_id])
+            volume_json_data = self._filter_cmd_output(volume_data)['LogicalDrive']
+            volume_state = volume_json_data['state']
+            if volume_state == LOGICAL_DEVICE_OFFLINE:
+                raise LsmError(ErrorNumber.NO_STATE_CHANGE, 'Volume state has not changed!')
+
+            raise LsmError(ErrorNumber.PLUGIN_BUG, 'Volume-enable failed unexpectedly')
+        return None
+
+    @_handle_errors
+    def volume_ident_led_on(self, volume, flags=Client.FLAG_RSVD):
+        """
+
+        :param volume: volume id to be identified
+        :param flags: for future use
+        :return:
+        Depends on command:
+            arcconf identify <ctrlNo> logicaldrive <ldNo> time 3600
+
+            default led blink time is set to 1 hour
+        """
+        if not volume.plugin_data:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Illegal input volume argument: missing plugin_data property")
+
+        volume_info = volume.plugin_data
+        ctrl_id = str(volume_info['ctrl_id'])
+        volume_id = str(volume_info['ld_id'])
+
+        try:
+            self._arcconf_exec(['IDENTIFY', ctrl_id, 'LOGICALDRIVE', volume_id, 'TIME', '3600'], flag_force=True)
+        except ExecError:
+            raise LsmError(ErrorNumber.PLUGIN_BUG, 'Volume-ident-led-on failed unexpectedly')
+
+        return None
+
+    @_handle_errors
+    def volume_ident_led_off(self, volume, flags=Client.FLAG_RSVD):
+        """
+
+        :param volume: volume id to stop identification
+        :param flags: for future use
+        :return:
+        Depends on command:
+            arcconf identify <ctrlNo> logicaldrive <ldNo> stop
+        """
+        if not volume.plugin_data:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Illegal input volume argument: missing plugin_data property")
+
+        volume_info = volume.plugin_data
+        ctrl_id = str(volume_info['ctrl_id'])
+        volume_id = str(volume_info['ld_id'])
+
+        try:
+            self._arcconf_exec(['IDENTIFY', ctrl_id, 'LOGICALDRIVE', volume_id, 'STOP'], flag_force=True)
+        except ExecError:
+            raise LsmError(ErrorNumber.PLUGIN_BUG, 'Volume-ident-led-on failed unexpectedly')
+
+        return None
+
+    @_handle_errors
+    def batteries(self, search_key=None, search_value=None,
+                  flags=Client.FLAG_RSVD):
+        battery_list = []
+        getconfig_cntrls_info = self._get_detail_info_list()
+        sys_id = 0
+
+        for decode_json in getconfig_cntrls_info:
+            sys_id += 1
+            sys_name = decode_json['Controller']['deviceName']
+            if decode_json['Controller']['batteryOrCapacitorCount'] == '1':
+                battery_status = _BATTERY_STATUS_CONV[str(decode_json['Controller']['batteryOrCapacitorStatus'])]
+
+                if decode_json['Controller']['batteryTemperature'] != 'Not Applicable':
+                    battery_type = Battery.TYPE_CHEMICAL
+                elif decode_json['Controller']['capacitorTemperature'] != 'Not Applicable':
+                    battery_type = Battery.TYPE_CAPACITOR
+                else:
+                    battery_type = Battery.TYPE_OTHER
+
+                battery_id = str(sys_id) + ':1'
+                battery_name = "Battery 1 of %s" % sys_name
+                battery_list.append(
+                    Battery(battery_id, battery_name, battery_type, battery_status, sys_id, _plugin_data=None))
+
+        return search_property(battery_list, search_key, search_value)
+
+
