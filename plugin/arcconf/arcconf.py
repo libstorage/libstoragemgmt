@@ -424,18 +424,24 @@ class Arcconf(IPlugin):
         return rc_lsm_syss
 
     @staticmethod
-    def _arcconf_array_to_lsm_pool(ld_name, sys_id, ctrl_num):
-        pool_id = '%s:%s' % (ctrl_num, ld_name)
-        name = 'Array' + str(ld_name)
+    def _arcconf_array_to_lsm_pool(arcconf_array):
+        sys_id = arcconf_array['sys_id']
+        array_id = arcconf_array['arrayID']
+        array_name = arcconf_array['arrayName']
+        block_size = arcconf_array['blockSize']
+        total_size = arcconf_array['totalSize']
+        unused_size = arcconf_array['unUsedSpace']
+
+        pool_id = '%s:%s' % (sys_id, array_id)
+        name = 'Array ' + str(array_name)
         elem_type = Pool.ELEMENT_TYPE_VOLUME | Pool.ELEMENT_TYPE_VOLUME_FULL
         unsupported_actions = 0
-        free_space = 0
-        total_space = 0
-        # TODO Need to have a logic for finding free space and total space.
+        free_space = int(block_size) * int(unused_size)
+        total_space = int(block_size) * int(total_size)
 
         status = Pool.STATUS_OK
         status_info = ''
-        plugin_data = "%s:%s" % (ctrl_num, ld_name)
+        plugin_data = pool_id
 
         return Pool(
             pool_id, name, elem_type, unsupported_actions,
@@ -447,7 +453,6 @@ class Arcconf(IPlugin):
               flags=Client.FLAG_RSVD):
         lsm_pools = []
         getconfig_cntrls_info = self._get_detail_info_list()
-        sys_id = ''
         cntrl = 0
 
         for decoded_json in getconfig_cntrls_info:
@@ -455,14 +460,20 @@ class Arcconf(IPlugin):
             sys_id = cntrl_num
             cntrl += 1
 
-            if 'LogicalDrive' in decoded_json['Controller']:
-                ld_infos = decoded_json['Controller']['LogicalDrive']
-                num_lds = len(ld_infos)
-                for ld in range(num_lds):
-                    ld_name = ld_infos[ld]['logicalDriveID']
-                    lsm_pools.append(
-                        Arcconf._arcconf_array_to_lsm_pool(ld_name, sys_id,
-                                                           cntrl_num))
+            if 'Array' in decoded_json['Controller']:
+                array_infos = decoded_json['Controller']['Array']
+                num_array = len(array_infos)
+                arcconf_array = {}
+                for array in range(num_array):
+                    arcconf_array['arrayID'] = array_infos[array]['arrayID']
+                    arcconf_array['arrayName'] = array_infos[array]['arrayName']
+                    arcconf_array['blockSize'] = array_infos[array]['blockSize']
+                    arcconf_array['totalSize'] = array_infos[array]['totalSize']
+                    arcconf_array['unUsedSpace'] = \
+                        array_infos[array]['unUsedSpace']
+                    arcconf_array['sys_id'] = sys_id
+                    lsm_pools.append(Arcconf._arcconf_array_to_lsm_pool(
+                        arcconf_array))
         return search_property(lsm_pools, search_key, search_value)
 
     @staticmethod
