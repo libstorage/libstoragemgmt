@@ -484,14 +484,11 @@ class Arcconf(IPlugin):
     def _arcconf_disk_to_lsm_disk(arcconf_disk, sys_id, ctrl_num):
         disk_id = arcconf_disk['serialNumber'].strip()
 
-        disk_name = "%s" % (arcconf_disk['model'])
+        disk_name = "%s - %s" % (arcconf_disk['vendor'], arcconf_disk['model'])
         disk_type = _disk_type_of(arcconf_disk)
-        link_type = disk_type
+        link_type = _disk_link_type_of(arcconf_disk)
 
-        try:
-            blk_size = int(arcconf_disk['physicalBlockSize'])
-        except KeyError:
-            blk_size = int(arcconf_disk['blockSize'])
+        blk_size = int(arcconf_disk['blockSize'])
         blk_count = int(arcconf_disk['numOfUsableBlocks'])
 
         status = _disk_status_of(arcconf_disk)
@@ -503,9 +500,11 @@ class Arcconf(IPlugin):
         plugin_data = \
             "%s,%s,%s,%s" % (ctrl_num, disk_channel, disk_device, status)
 
-        # TODO(Raghavendra) Need to find better way of getting the vpd83 info.
-        # Just providing disk_path did not yield the correct vpd info.
-        vpd83 = ''
+        disk_path = arcconf_disk['physicalDriveName']
+        if disk_path != 'Not Applicable':
+            vpd83 = LocalDisk.vpd83_get(disk_path)
+        else:
+            vpd83 = ''
         rpm = arcconf_disk['rotationalSpeed']
 
         return Disk(
@@ -520,7 +519,6 @@ class Arcconf(IPlugin):
         rc_lsm_disks = []
 
         getconfig_cntrls_info = self._get_detail_info_list()
-        sys_id = ''
         cntrl = 0
 
         for decoded_json in getconfig_cntrls_info:
@@ -541,7 +539,7 @@ class Arcconf(IPlugin):
                                     arcconf_disk, sys_id, cntrl_num))
 
         return search_property(rc_lsm_disks, search_key, search_value)
-
+    
     @_handle_errors
     def volume_raid_create(self, name, raid_type, disks, strip_size,
                            flags=Client.FLAG_RSVD):
