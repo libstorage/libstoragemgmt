@@ -421,13 +421,14 @@ class Arcconf(IPlugin):
                                pool_id,
                                sys_id,
                                ctrl_num,
-                               array_num,
+                               array_id,
+                               ld_id,
+                               raid_level,
                                arcconf_ld_name):
-        ld_num = arcconf_ld['logicalDriveID']
         vpd83 = str(arcconf_ld['volumeUniqueID']).lower()
 
         block_size = arcconf_ld['BlockSize']
-        num_of_blocks = int(arcconf_ld['dataSpace']) * 1024 / int(block_size)
+        num_of_blocks = int(arcconf_ld['dataSpace'])
         vol_name = arcconf_ld_name
 
         if vpd83:
@@ -439,9 +440,13 @@ class Arcconf(IPlugin):
             admin_status = Volume.ADMIN_STATE_DISABLED
         else:
             admin_status = Volume.ADMIN_STATE_ENABLED
-        plugin_data = "%s:%s:%s" % (ctrl_num, array_num, ld_num)
-
-        volume_id = array_num
+        # plugin_data = "%s:%s:%s:%s" % (ctrl_num, array_id, ld_id, raid_level)
+        stripe_size = arcconf_ld['StripeSize']
+        full_stripe_size = arcconf_ld['fullStripeSize']
+        ld_state = arcconf_ld['state']
+        plugin_data = {'ctrl_id': ctrl_num, 'array_id': array_id, 'ld_id': ld_id, 'ld_state': ld_state,
+                       'raid_level': raid_level, 'stripe_size': stripe_size, 'full_stripe_size': full_stripe_size}
+        volume_id = "%s:%s" % (sys_id, ld_id)
         return Volume(
             volume_id, vol_name, vpd83, block_size, num_of_blocks,
             admin_status, sys_id, pool_id, plugin_data)
@@ -453,9 +458,7 @@ class Arcconf(IPlugin):
         """
         lsm_vols = []
         getconfig_cntrls_info = self._get_detail_info_list()
-
-        pool_id = ''
-        sys_id = ''
+        consumer_array_id = ''
         cntrl = 0
 
         for decoded_json in getconfig_cntrls_info:
@@ -468,14 +471,15 @@ class Arcconf(IPlugin):
                 num_lds = len(ld_infos)
                 for ld in range(num_lds):
                     ld_info = ld_infos[ld]
-                    ld_num = ld_info['logicalDriveID']
+                    ld_id = ld_info['logicalDriveID']
                     ld_name = ld_info['name']
-                    pool_id = '%s:%s' % (sys_id, ld_num)
-                    lsm_vol = \
-                        Arcconf._arcconf_ld_to_lsm_vol(ld_info, pool_id,
-                                                       sys_id, cnt,
-                                                       str(ld_num),
-                                                       ld_name)
+                    raid_level = ld_info['raidLevel']
+                    chunk_data = ld_info['Chunk']
+                    for array_id in chunk_data:
+                        consumer_array_id = array_id['consumerArrayID']  # consumerArrayID in all the chunk will be same
+                    pool_id = '%s:%s' % (sys_id, consumer_array_id)
+                    lsm_vol = Arcconf._arcconf_ld_to_lsm_vol(ld_info, pool_id, sys_id, cnt, consumer_array_id,
+                                                             str(ld_id), raid_level, ld_name)
                     lsm_vols.append(lsm_vol)
 
         return search_property(lsm_vols, search_key, search_value)
