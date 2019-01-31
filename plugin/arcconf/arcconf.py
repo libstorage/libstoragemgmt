@@ -738,4 +738,40 @@ class Arcconf(IPlugin):
         lsm_raid_level = _ARCCONF_RAID_LEVEL_CONV[str(raid_level)]
 
         return [lsm_raid_level, Pool.MEMBER_TYPE_DISK, device_id]
- 
+    
+    @_handle_errors
+    def volume_enable(self, volume, flags=Client.FLAG_RSVD):
+        """
+
+        :param volume: volume id to be enabled/change-state-to-optimal
+        :param flags: for future use
+        :return: None
+
+        Depends on command:
+            arcconf setstate <ctrlNo> logicaldrive <ldNo> optimal
+        """
+
+        if not volume.plugin_data:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Illegal input volume argument: missing plugin_data property")
+
+        volume_info = volume.plugin_data
+        ctrl_id = str(volume_info['ctrl_id'])
+        volume_id = str(volume_info['ld_id'])
+        volume_state = volume_info['ld_state']
+
+        try:
+            if volume_state == LOGICAL_DEVICE_OK:
+                raise LsmError(ErrorNumber.NO_STATE_CHANGE, 'Volume is already in Optimal state!')
+            else:
+                self._arcconf_exec(['SETSTATE', ctrl_id, 'LOGICALDRIVE', volume_id, 'OPTIMAL'], flag_force=True)
+        except ExecError:
+            volume_data = self._arcconf_exec(['GETCONFIGJSON', ctrl_id, 'LOGICALDRIVE', volume_id])
+            volume_json_data = self._filter_cmd_output(volume_data)['LogicalDrive']
+            volume_state = volume_json_data['state']
+            if volume_state == LOGICAL_DEVICE_OFFLINE:
+                raise LsmError(ErrorNumber.NO_STATE_CHANGE, 'Volume state has not changed!')
+
+            raise LsmError(ErrorNumber.PLUGIN_BUG, 'Volume-enable failed unexpectedly')
+        return None
