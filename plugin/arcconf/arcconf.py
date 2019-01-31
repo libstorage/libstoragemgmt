@@ -802,3 +802,29 @@ class Arcconf(IPlugin):
         except ExecError:
             raise LsmError(ErrorNumber.PLUGIN_BUG, 'Volume-ident-led-on failed unexpectedly')
         return None
+
+    @_handle_errors
+    def volume_ident_led_off(self, volume, flags=Client.FLAG_RSVD):
+        """
+
+        :param volume: volume id to stop identification
+        :param flags: for future use
+        :return:
+        Depends on command:
+            arcconf identify <ctrlNo> logicaldrive <ldNo> stop
+        """
+        if not volume.plugin_data:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Illegal input volume argument: missing plugin_data property")
+
+        volume_info = volume.plugin_data
+        ctrl_id = str(volume_info['ctrl_id'])
+        volume_id = str(volume_info['ld_id'])
+
+        try:
+            self._arcconf_exec(['IDENTIFY', ctrl_id, 'LOGICALDRIVE', volume_id, 'STOP'], flag_force=True)
+        except ExecError:
+            raise LsmError(ErrorNumber.PLUGIN_BUG, 'Volume-ident-led-off failed unexpectedly')
+
+        return None
