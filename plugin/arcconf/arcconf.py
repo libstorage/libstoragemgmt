@@ -730,3 +730,54 @@ class Arcconf(IPlugin):
             raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
                            "Volume not found")
         return None
+
+    @_handle_errors
+    def volume_raid_info(self, volume, flags=Client.FLAG_RSVD):
+        """
+        :param volume: volume id - Volume to query
+        :param flags: optional. Reserved for future use.
+        :return: [raid_type, strip_size, disk_count, min_io_size, opt_io_size]
+
+        Depends on command:
+            arcconf getconfigjson <ctrlNo> array <arrayNo>
+        """
+
+        if not volume.plugin_data:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Illegal input volume argument: missing plugin_data property")
+
+        volume_info = volume.plugin_data.split(':')
+        ctrl_id = str(volume_info[6])
+        array_id = str(volume_info[5])
+        volume_raid_level = str(volume_info[1])
+        # convert to Kibibyte
+        stripe_size = int(volume_info[2]) * 1024
+        # convert to Kibibyte
+        full_stripe_size = int(volume_info[3]) * 1024
+        device_count = 0
+
+        array_info = self._arcconf_exec(['GETCONFIGJSON', ctrl_id, 'ARRAY',
+                                         array_id], flag_force=True)
+        array_json_info = self._filter_cmd_output(array_info)['Array']
+        for chunk in array_json_info['Chunk']:
+            if 'deviceID' in chunk.keys():
+                device_count += 1
+            else:
+                continue
+
+        raid_level = _arcconf_raid_level_to_lsm(volume_raid_level)
+
+        if device_count == 0:
+            if stripe_size == Volume.STRIP_SIZE_UNKNOWN:
+                raise LsmError(
+                    ErrorNumber.PLUGIN_BUG,
+                    "volume_raid_info(): Got logical drive %s entry, "
+                    "but no physicaldrive entry" % volume.id)
+
+            raise LsmError(
+                ErrorNumber.NOT_FOUND_VOLUME,
+                "Volume not found")
+
+        return [raid_level, stripe_size, device_count, stripe_size,
+                full_stripe_size]
