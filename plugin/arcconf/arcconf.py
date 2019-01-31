@@ -690,3 +690,52 @@ class Arcconf(IPlugin):
                 "Volume not found")
 
         return [raid_level, stripe_size, device_count, stripe_size, full_stripe_size]
+
+    @_handle_errors
+    def pool_member_info(self, pool, flags=Client.FLAG_RSVD):
+        """
+
+        :param pool: pool id -  Pool to query
+        :param flags: Optional
+        :return: [raid_type, member_type, member_ids]
+
+        Depends on command:
+            arcconf getconfigjson <ctrlNo>
+        """
+
+        if not pool.plugin_data:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Illegal input pool argument: missing plugin_data property")
+
+        pool_info = pool.plugin_data
+        ctrl_id = pool_info['ctrl_id']
+        array_id = pool_info['array_id']
+        consumer_array_id = None
+        raid_level = Volume.RAID_TYPE_UNKNOWN
+        device_id = []
+
+        ctrl_info = self._arcconf_exec(['GETCONFIGJSON', ctrl_id])
+        ctrl_json_info = self._filter_cmd_output(ctrl_info)
+        device_info = ctrl_json_info['Controller']['Channel']
+        volume_info = ctrl_json_info['Controller']['LogicalDrive']
+
+        for volume in volume_info:
+            chunk_data = volume['Chunk']
+            for chunk in chunk_data:
+                consumer_array_id = chunk['consumerArrayID']  # consumerArrayID in all the chunk will be same
+            if consumer_array_id == array_id:
+                raid_level = volume['raidLevel']
+
+        for device in device_info:
+            if 'HardDrive'in device.keys():
+                for hard_drive in device['HardDrive']:
+                    chunk_data = hard_drive['Chunk']
+                    for chunk in chunk_data:
+                        if ('consumerArrayID' in chunk.keys()) and (chunk['consumerArrayID'] == array_id):
+                            device_id.append(str(hard_drive['serialNumber'].strip()))
+
+        lsm_raid_level = _ARCCONF_RAID_LEVEL_CONV[str(raid_level)]
+
+        return [lsm_raid_level, Pool.MEMBER_TYPE_DISK, device_id]
+ 
