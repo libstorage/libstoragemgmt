@@ -775,3 +775,30 @@ class Arcconf(IPlugin):
 
             raise LsmError(ErrorNumber.PLUGIN_BUG, 'Volume-enable failed unexpectedly')
         return None
+
+    @_handle_errors
+    def volume_ident_led_on(self, volume, flags=Client.FLAG_RSVD):
+        """
+
+        :param volume: volume id to be identified
+        :param flags: for future use
+        :return:
+        Depends on command:
+            arcconf identify <ctrlNo> logicaldrive <ldNo> time 3600
+
+            default led blink time is set to 1 hour
+        """
+        if not volume.plugin_data:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Illegal input volume argument: missing plugin_data property")
+
+        volume_info = volume.plugin_data
+        ctrl_id = str(volume_info['ctrl_id'])
+        volume_id = str(volume_info['ld_id'])
+
+        try:
+            self._arcconf_exec(['IDENTIFY', ctrl_id, 'LOGICALDRIVE', volume_id, 'TIME', '3600'], flag_force=True)
+        except ExecError:
+            raise LsmError(ErrorNumber.PLUGIN_BUG, 'Volume-ident-led-on failed unexpectedly')
+        return None
