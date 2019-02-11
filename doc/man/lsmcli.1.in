@@ -157,9 +157,10 @@ Required. Valid values are (case insensitive):
 
 .TP
 \fB--fs\fR \fI<FS_ID>\fR
-Required for \fB--type\fR=\fBSNAPSHOTS\fR, list the snapshots of certain
+Required for \fB--type\fR=\fBSNAPSHOTS\fR, list the snapshots of specific
 filesystem.
-Optional for type \fBEXPORTS\fR, list the NFS export for certain filesystem.
+Optional for type \fBEXPORTS\fR, list the NFS export for specific filesystem.
+Optional for type \fBFS\fR, list specific filesystem.
 .TP
 \fB--sys\fR \fI<SYS_ID>\fR
 Optional.
@@ -364,7 +365,7 @@ Required. The ID of volume to query access.
 
 .SS volume-mask
 .TP 15
-Grant access group RW access to certain volume. Like LUN masking
+Grant access group RW access to specific volume. Like LUN masking
 or NFS export.
 .TP
 \fB--vol\fR \fI<VOL_ID>\fR
@@ -646,7 +647,7 @@ Query RAM cache information for the desired volume.
 Required. ID of the volume to query cache information.
 
 .SS volume-phy-disk-cache-update
-Disable or enable RAM physical disk cache of certain volume.
+Disable or enable RAM physical disk cache of specific volume.
 .TP 15
 \fB--vol\fR \fI<VOL_ID>\fR
 Required. ID of the volume to change.
@@ -655,7 +656,7 @@ Required. ID of the volume to change.
 Required. \fBEnable\fR or \fBDisable\fR.
 
 .SS volume-read-cache-policy-update
-Disable or enable RAM read cache of certain volume.
+Disable or enable RAM read cache of specific volume.
 .TP 15
 \fB--vol\fR \fI<VOL_ID>\fR
 Required. ID of the volume to change.
