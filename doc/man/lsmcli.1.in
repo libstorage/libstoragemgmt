@@ -165,7 +165,7 @@ Optional for type \fBEXPORTS\fR, list the NFS export for certain filesystem.
 Optional.
 Search resources from system with SYS_ID. Only supported when querying these
 types of resources: \fBVOLUMES\fR, \fBPOOLS\fR, \fBFS\fR,
-\fBSNAPSHOTS\fR, \fBDISKS\fR, \fBACCESS_GROUPS\fR, \fBTARGET_PORTS\r,
+\fBDISKS\fR, \fBACCESS_GROUPS\fR, \fBTARGET_PORTS\r,
 \fBBATTERIES\fR.
 .TP
 \fB--pool\fR \fI<POOL_ID>\fR
