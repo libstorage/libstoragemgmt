@@ -422,21 +422,34 @@ size_help = 'Can use B, KiB, MiB, GiB, TiB, PiB postfix (IEC sizing)'
 
 sys_id_opt = dict(name='--sys', metavar='<SYS_ID>', help='System ID')
 sys_id_filter_opt = sys_id_opt.copy()
-sys_id_filter_opt['help'] = 'Search by System ID'
+sys_id_filter_opt['help'] = \
+    'Search by System ID. Only supported for: \n' \
+    '(VOLUMES, POOLS, FS, DISKS, ACCESS_GROUPS,\n' \
+    'TARGET_PORTS, BATTERIES)'
 
 pool_id_opt = dict(name='--pool', metavar='<POOL_ID>', help='Pool ID')
 pool_id_filter_opt = pool_id_opt.copy()
-pool_id_filter_opt['help'] = 'Search by Pool ID'
+pool_id_filter_opt['help'] = \
+    'Search by Pool ID. Only supported for:\n' \
+    '(VOLUMES, POOLS, FS)'
 
 vol_id_opt = dict(name='--vol', metavar='<VOL_ID>', help='Volume ID')
 vol_id_filter_opt = vol_id_opt.copy()
-vol_id_filter_opt['help'] = 'Search by Volume ID'
+vol_id_filter_opt['help'] = \
+    'Search by Volume ID. Only supported for:\n' \
+    '(VOLUMES, ACCESS_GROUPS)'
 
 fs_id_opt = dict(name='--fs', metavar='<FS_ID>', help='File System ID')
+fs_id_filter_opt = fs_id_opt.copy()
+fs_id_filter_opt['help'] = \
+    'Search by FS ID. Only supported for:\n' \
+    '(FS, SNAPSHOTS, EXPORTS)'
 
 ag_id_opt = dict(name='--ag', metavar='<AG_ID>', help='Access Group ID')
 ag_id_filter_opt = ag_id_opt.copy()
-ag_id_filter_opt['help'] = 'Search by Access Group ID'
+ag_id_filter_opt['help'] = \
+    'Search by Access Group ID. Only supported for:\n' \
+    '(ACCESS_GROUPS, VOLUMES)'
 
 init_id_opt = dict(name='--init', metavar='<INIT_ID>', help='Initiator ID',
                    type=_check_init)
@@ -445,15 +458,19 @@ export_id_opt = dict(name='--export', metavar='<EXPORT_ID>', help='Export ID')
 
 nfs_export_id_filter_opt = dict(
     name='--nfs-export', metavar='<NFS_EXPORT_ID>',
-    help='Search by NFS Export ID')
+    help=
+    'Search by NFS Export ID. Only supported for:\n'
+    '(EXPORTS)')
 
 disk_id_filter_opt = dict(name='--disk', metavar='<DISK_ID>',
-                          help='Search by Disk ID')
+                          help='Search by Disk ID. Only supported for:\n'
+                               '(DISKS)')
 
 size_opt = dict(name='--size', metavar='<SIZE>', help=size_help)
 
-tgt_id_opt = dict(name="--tgt", help="Search by target port ID",
-                  metavar='<TGT_ID>')
+tgt_id_filter_opt = dict(name="--tgt", metavar='<TGT_ID>',
+                         help="Search by target port ID.  Only supported for:\n"
+                              "(TARGET_PORTS)")
 
 local_disk_path_opt = dict(name='--path', help="Local disk path",
                            metavar='<DISK_PATH>')
@@ -477,9 +494,9 @@ cmds = (
             dict(vol_id_filter_opt),
             dict(disk_id_filter_opt),
             dict(ag_id_filter_opt),
-            dict(fs_id_opt),
+            dict(fs_id_filter_opt),
             dict(nfs_export_id_filter_opt),
-            dict(tgt_id_opt),
+            dict(tgt_id_filter_opt),
         ],
     ),
 
