@@ -1,5 +1,11 @@
 News for libStorageMgmt
 
+1.7.3: Feb 15 2019
+    * Bug fixes
+      - https://bugzilla.redhat.com/show_bug.cgi?id=1670077
+      - https://bugzilla.redhat.com/show_bug.cgi?id=1667096
+      - https://bugzilla.redhat.com/show_bug.cgi?id=1667992
+
 1.7.2: Dec 19 2018
     * Bug fixes
       - https://bugzilla.redhat.com/show_bug.cgi?id=1572137
