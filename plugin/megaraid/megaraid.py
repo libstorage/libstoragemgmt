@@ -609,6 +609,8 @@ class MegaRAID(IPlugin):
                 plugin_data = "%s:%s" % (
                     ctrl_num, disk_show_basic_dict['EID:Slt'])
                 vpd83 = disk_show_attr_dict["WWN"].lower()
+                if vpd83 == 'na':
+                    vpd = ''
                 rpm = _disk_rpm_of(disk_show_basic_dict)
                 link_type = _disk_link_type_of(disk_show_basic_dict)
 
