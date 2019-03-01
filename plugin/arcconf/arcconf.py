@@ -375,7 +375,14 @@ class Arcconf(IPlugin):
         return rc_lsm_syss
 
     @staticmethod
-    def _arcconf_array_to_lsm_pool(array_id, array_name, sys_id, block_size, total_size, unused_size):
+    def _arcconf_array_to_lsm_pool(arcconf_array):
+        sys_id = arcconf_array['sys_id']
+        array_id = arcconf_array['arrayID']
+        array_name = arcconf_array['arrayName']
+        block_size = arcconf_array['blockSize']
+        total_size = arcconf_array['totalSize']
+        unused_size = arcconf_array['unUsedSpace']
+
         pool_id = '%s:%s' % (sys_id, array_id)
         name = 'Array ' + str(array_name)
         elem_type = Pool.ELEMENT_TYPE_VOLUME | Pool.ELEMENT_TYPE_VOLUME_FULL
@@ -385,7 +392,7 @@ class Arcconf(IPlugin):
 
         status = Pool.STATUS_OK
         status_info = ''
-        plugin_data = {'ctrl_id': sys_id, 'array_id': array_id}
+        plugin_data = pool_id
 
         return Pool(
             pool_id, name, elem_type, unsupported_actions,
@@ -407,14 +414,17 @@ class Arcconf(IPlugin):
             if 'Array' in decoded_json['Controller']:
                 array_infos = decoded_json['Controller']['Array']
                 num_array = len(array_infos)
+                arcconf_array = {}
                 for array in range(num_array):
-                    array_id = array_infos[array]['arrayID']
-                    array_name = array_infos[array]['arrayName']
-                    block_size = array_infos[array]['blockSize']
-                    total_size = array_infos[array]['totalSize']
-                    unused_size = array_infos[array]['unUsedSpace']
+                    arcconf_array['arrayID'] = array_infos[array]['arrayID']
+                    arcconf_array['arrayName'] = array_infos[array]['arrayName']
+                    arcconf_array['blockSize'] = array_infos[array]['blockSize']
+                    arcconf_array['totalSize'] = array_infos[array]['totalSize']
+                    arcconf_array['unUsedSpace'] = \
+                        array_infos[array]['unUsedSpace']
+                    arcconf_array['sys_id'] = sys_id
                     lsm_pools.append(Arcconf._arcconf_array_to_lsm_pool(
-                        array_id, array_name, sys_id, block_size, total_size, unused_size))
+                        arcconf_array))
         return search_property(lsm_pools, search_key, search_value)
 
     @staticmethod
