@@ -180,12 +180,7 @@ _LSM_RAID_TYPE_CONV = dict(
              list(_ARCCONF_RAID_LEVEL_CONV.keys()))))
 
 
-def _arcconf_raid_level_to_lsm(arcconf_ld):
-    """
-    Based on this property:
-        Fault Tolerance: 0/1/5/6/1+0
-    """
-    arcconf_raid_level = arcconf_ld['Fault Tolerance']
+def _arcconf_raid_level_to_lsm(arcconf_raid_level):
 
     if arcconf_raid_level in _ARCCONF_VENDOR_RAID_LEVELS:
         return Volume.RAID_TYPE_OTHER
@@ -543,7 +538,8 @@ class Arcconf(IPlugin):
         return search_property(rc_lsm_disks, search_key, search_value)
 
     @_handle_errors
-    def volume_raid_create(self, name, raid_type, disks, strip_size, flags=Client.FLAG_RSVD):
+    def volume_raid_create(self, name, raid_type, disks, strip_size,
+                           flags=Client.FLAG_RSVD):
         """
 
         :param name: name of volume (this will be ignored)
@@ -554,32 +550,34 @@ class Arcconf(IPlugin):
         :return: volume object of newly created volume
 
         Depends on command:
-            arcconf create <ctrlNo> logicaldrive max <RAID LEVEL> <channel ID> <Device ID> <channel ID> <Device ID> \
-            <channel ID> <Device ID>...
+            arcconf create <ctrlNo> logicaldrive max <RAID LEVEL> <channel ID>
+            <Device ID> <channel ID> <Device ID> <channel ID> <Device ID>...
         """
 
         arcconf_raid_level = _lsm_raid_type_to_arcconf(raid_type)
         arcconf_disk_ids = []
         ctrl_num = None
-        disk_dict = {'Channel': '0', 'Device': '0'}
 
         for disk in disks:
             if not disk.plugin_data:
-                raise LsmError(ErrorNumber.INVALID_ARGUMENT, "Illegal input disks argument: missing plugin_data "
-                    "property")
-            (cur_ctrl_num, disk_channel, disk_device) = disk.plugin_data.split(',')[:3]
+                raise LsmError(
+                    ErrorNumber.INVALID_ARGUMENT,
+                    "Illegal input disks argument: missing plugin_data ")
+            (cur_ctrl_num, disk_channel, disk_device) = \
+                disk.plugin_data.split(',')[:3]
 
             if ctrl_num is None:
                 ctrl_num = cur_ctrl_num
             elif ctrl_num != cur_ctrl_num:
-                raise LsmError(ErrorNumber.INVALID_ARGUMENT, "Illegal input disks argument: disks "
-                    "are not from the same controller/system.")
+                raise LsmError(
+                    ErrorNumber.INVALID_ARGUMENT,
+                    "Illegal input disks argument: "
+                    "disks are not from the same controller/system.")
 
             disk_channel = str(disk_channel.strip())
             disk_device = str(disk_device.strip())
-            disk_dict.update({'Channel': disk_channel, 'Device': disk_device})
-            arcconf_disk_ids.append(disk_dict.copy())
-            disk_dict = {}
+            arcconf_disk_ids.append({'Channel': disk_channel,
+                                     'Device': disk_device})
 
         cmds = ["create", ctrl_num, "logicaldrive", "max", arcconf_raid_level]
         for disk_channel_device in arcconf_disk_ids:
@@ -592,8 +590,11 @@ class Arcconf(IPlugin):
             # Check whether disk is free
             requested_disk_ids = [d.id for d in disks]
             for cur_disk in self.disks():
-                if cur_disk.id in requested_disk_ids and not cur_disk.status & Disk.STATUS_FREE:
-                    raise LsmError(ErrorNumber.DISK_NOT_FREE, "Disk %s is not in STATUS_FREE state" % cur_disk.id)
+                if cur_disk.id in requested_disk_ids and not \
+                        cur_disk.status & Disk.STATUS_FREE:
+                    raise LsmError(
+                        ErrorNumber.DISK_NOT_FREE,
+                        "Disk %s is not in STATUS_FREE state" % cur_disk.id)
             raise
 
         # Generate pool_id from system id and array.
