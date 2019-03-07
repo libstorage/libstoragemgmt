@@ -488,7 +488,10 @@ class Arcconf(IPlugin):
         disk_type = _disk_type_of(arcconf_disk)
         link_type = _disk_link_type_of(arcconf_disk)
 
-        blk_size = int(arcconf_disk['blockSize'])
+        try:
+            blk_size = int(arcconf_disk['physicalBlockSize'])
+        except KeyError:
+            blk_size = int(arcconf_disk['blockSize'])
         blk_count = int(arcconf_disk['numOfUsableBlocks'])
 
         status = _disk_status_of(arcconf_disk)
@@ -539,7 +542,7 @@ class Arcconf(IPlugin):
                                     arcconf_disk, sys_id, cntrl_num))
 
         return search_property(rc_lsm_disks, search_key, search_value)
-    
+
     @_handle_errors
     def volume_raid_create(self, name, raid_type, disks, strip_size,
                            flags=Client.FLAG_RSVD):
