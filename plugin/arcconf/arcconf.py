@@ -439,8 +439,8 @@ class Arcconf(IPlugin):
         stripe_size = arcconf_ld['StripeSize']
         full_stripe_size = arcconf_ld['fullStripeSize']
         ld_state = arcconf_ld['state']
-        plugin_data = "%s:%s:%s:%s" % (ld_state, raid_level, stripe_size,
-                                       full_stripe_size)
+        plugin_data = "%s:%s:%s:%s:%s" % (ld_state, raid_level, stripe_size, 
+                                          full_stripe_size, ld_id)
         volume_id = "%s:%s" % (sys_id, ld_id)
         return Volume(
             volume_id, vol_name, vpd83, block_size, num_of_blocks,
