@@ -756,22 +756,28 @@ class Arcconf(IPlugin):
                 ErrorNumber.INVALID_ARGUMENT,
                 "Illegal input volume argument: missing plugin_data property")
 
-        volume_info = volume.plugin_data
-        ctrl_id = str(volume_info['ctrl_id'])
-        volume_id = str(volume_info['ld_id'])
-        volume_state = volume_info['ld_state']
+        volume_info = volume.plugin_data.split(':')
+        ctrl_id = str(volume_info[6])
+        volume_id = str(volume_info[4])
+        volume_state = int(volume_info[0])
 
         try:
             if volume_state == LOGICAL_DEVICE_OK:
-                raise LsmError(ErrorNumber.NO_STATE_CHANGE, 'Volume is already in Optimal state!')
+                raise LsmError(ErrorNumber.NO_STATE_CHANGE,
+                               'Volume is already in Optimal state!')
             else:
-                self._arcconf_exec(['SETSTATE', ctrl_id, 'LOGICALDRIVE', volume_id, 'OPTIMAL'], flag_force=True)
+                self._arcconf_exec(['SETSTATE', ctrl_id, 'LOGICALDRIVE',
+                                    volume_id, 'OPTIMAL'], flag_force=True)
         except ExecError:
-            volume_data = self._arcconf_exec(['GETCONFIGJSON', ctrl_id, 'LOGICALDRIVE', volume_id])
-            volume_json_data = self._filter_cmd_output(volume_data)['LogicalDrive']
+            volume_data = self._arcconf_exec(['GETCONFIGJSON', ctrl_id,
+                                              'LOGICALDRIVE', volume_id])
+            volume_json_data = self._filter_cmd_output(volume_data)[
+                'LogicalDrive']
             volume_state = volume_json_data['state']
             if volume_state == LOGICAL_DEVICE_OFFLINE:
-                raise LsmError(ErrorNumber.NO_STATE_CHANGE, 'Volume state has not changed!')
+                raise LsmError(ErrorNumber.NO_STATE_CHANGE,
+                               'Volume state has not changed!')
 
-            raise LsmError(ErrorNumber.PLUGIN_BUG, 'Volume-enable failed unexpectedly')
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
+                           'Volume-enable failed unexpectedly')
         return None
