@@ -708,11 +708,11 @@ class Arcconf(IPlugin):
                 ErrorNumber.INVALID_ARGUMENT,
                 "Illegal input pool argument: missing plugin_data property")
 
-        pool_info = pool.plugin_data
-        ctrl_id = pool_info['ctrl_id']
-        array_id = pool_info['array_id']
+        pool_info = pool.plugin_data.split(':')
+        ctrl_id = pool_info[0]
+        array_id = int(pool_info[1])
         consumer_array_id = None
-        raid_level = Volume.RAID_TYPE_UNKNOWN
+        raid_level = None
         device_id = []
 
         ctrl_info = self._arcconf_exec(['GETCONFIGJSON', ctrl_id])
@@ -723,7 +723,8 @@ class Arcconf(IPlugin):
         for volume in volume_info:
             chunk_data = volume['Chunk']
             for chunk in chunk_data:
-                consumer_array_id = chunk['consumerArrayID']  # consumerArrayID in all the chunk will be same
+                # consumerArrayID in all the chunk will be same
+                consumer_array_id = chunk['consumerArrayID']
             if consumer_array_id == array_id:
                 raid_level = volume['raidLevel']
 
@@ -732,10 +733,12 @@ class Arcconf(IPlugin):
                 for hard_drive in device['HardDrive']:
                     chunk_data = hard_drive['Chunk']
                     for chunk in chunk_data:
-                        if ('consumerArrayID' in chunk.keys()) and (chunk['consumerArrayID'] == array_id):
-                            device_id.append(str(hard_drive['serialNumber'].strip()))
+                        if ('consumerArrayID' in chunk.keys()) and (
+                                chunk['consumerArrayID'] == array_id):
+                            device_id.append(
+                                str(hard_drive['serialNumber'].strip()))
 
-        lsm_raid_level = _ARCCONF_RAID_LEVEL_CONV[str(raid_level)]
+        lsm_raid_level = _arcconf_raid_level_to_lsm(str(raid_level))
 
         return [lsm_raid_level, Pool.MEMBER_TYPE_DISK, device_id]
  
