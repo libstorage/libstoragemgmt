@@ -466,10 +466,11 @@ class Arcconf(IPlugin):
         return search_property(lsm_pools, search_key, search_value)
 
     @staticmethod
-    def _arcconf_ld_to_lsm_vol(arcconf_ld, pool_id, sys_id):
+    def _arcconf_ld_to_lsm_vol(arcconf_ld, array_num, sys_id):
         ld_id = arcconf_ld['logicalDriveID']
         raid_level = arcconf_ld['raidLevel']
         vpd83 = str(arcconf_ld['volumeUniqueID']).lower()
+        pool_id = "%s:%s" % (sys_id, array_num)
 
         block_size = arcconf_ld['BlockSize']
         num_of_blocks = int(arcconf_ld['dataSpace'])
@@ -488,8 +489,9 @@ class Arcconf(IPlugin):
         stripe_size = arcconf_ld['StripeSize']
         full_stripe_size = arcconf_ld['fullStripeSize']
         ld_state = arcconf_ld['state']
-        plugin_data = "%s:%s:%s:%s" % (ld_state, raid_level, stripe_size,
-                                       full_stripe_size)
+        plugin_data = "%s:%s:%s:%s:%s:%s:%s" % (ld_state, raid_level,
+                                                stripe_size, full_stripe_size,
+                                                ld_id, array_num, sys_id)
         volume_id = "%s:%s" % (sys_id, ld_id)
         return Volume(
             volume_id, vol_name, vpd83, block_size, num_of_blocks,
@@ -519,8 +521,8 @@ class Arcconf(IPlugin):
                     for array_id in chunk_data:
                         # consumerArrayID in all the chunk will be same
                         consumer_array_id = array_id['consumerArrayID']
-                    pool_id = '%s:%s' % (sys_id, consumer_array_id)
-                    lsm_vol = Arcconf._arcconf_ld_to_lsm_vol(ld_info, pool_id,
+                    lsm_vol = Arcconf._arcconf_ld_to_lsm_vol(ld_info,
+                                                             consumer_array_id,
                                                              sys_id)
                     lsm_vols.append(lsm_vol)
 
