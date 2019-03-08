@@ -818,13 +818,15 @@ class Arcconf(IPlugin):
                 ErrorNumber.INVALID_ARGUMENT,
                 "Illegal input volume argument: missing plugin_data property")
 
-        volume_info = volume.plugin_data
-        ctrl_id = str(volume_info['ctrl_id'])
-        volume_id = str(volume_info['ld_id'])
+        volume_info = volume.plugin_data.split(':')
+        ctrl_id = str(volume_info[6])
+        volume_id = str(volume_info[4])
 
         try:
-            self._arcconf_exec(['IDENTIFY', ctrl_id, 'LOGICALDRIVE', volume_id, 'STOP'], flag_force=True)
+            self._arcconf_exec(['IDENTIFY', ctrl_id, 'LOGICALDRIVE', volume_id,
+                                'STOP'], flag_force=True)
         except ExecError:
-            raise LsmError(ErrorNumber.PLUGIN_BUG, 'Volume-ident-led-off failed unexpectedly')
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
+                           'Volume-ident-led-off failed unexpectedly')
 
         return None
