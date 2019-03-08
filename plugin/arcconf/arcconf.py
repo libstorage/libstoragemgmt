@@ -626,10 +626,12 @@ class Arcconf(IPlugin):
                 ErrorNumber.INVALID_ARGUMENT,
                 "Illegal input volume argument: missing plugin_data property")
 
-        (ctrl_num, vol_id) = volume.id.split(":")
+        volume_info = volume.plugin_data.split(":")
+        ctrl_num = volume_info[6]
+        ld_id = volume_info[4]
 
         try:
-            self._arcconf_exec(['delete', ctrl_num, 'logicaldrive', vol_id],
+            self._arcconf_exec(['delete', ctrl_num, 'logicaldrive', ld_id],
                                flag_force=True)
         except ExecError:
             ctrl_info = self._get_detail_info_list()[int(ctrl_num) - 1]
@@ -638,7 +640,7 @@ class Arcconf(IPlugin):
                 # TODO (Raghavendra) Need to find the scenarios when this can
                 # occur. If volume is detected correctly, but deletion of
                 # volume fails due to arcconf delete command failure.
-                if vol_id == ld_info[ld]['logicalDriveID']:
+                if ld_id == ld_info[ld]['logicalDriveID']:
                     raise LsmError(ErrorNumber.PLUGIN_BUG,
                                    "volume_delete failed unexpectedly")
             raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
