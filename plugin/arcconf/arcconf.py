@@ -661,14 +661,18 @@ class Arcconf(IPlugin):
                 ErrorNumber.INVALID_ARGUMENT,
                 "Illegal input volume argument: missing plugin_data property")
 
-        volume_info = volume.plugin_data
-        ctrl_id = str(volume_info['ctrl_id'])
-        array_id = str(volume_info['array_id'])
-        stripe_size = int(volume_info['stripe_size']) * 1024  # convert to Kibibyte
-        full_stripe_size = int(volume_info['full_stripe_size']) * 1024  # convert to Kibibyte
+        volume_info = volume.plugin_data.split(':')
+        ctrl_id = str(volume_info[6])
+        array_id = str(volume_info[5])
+        volume_raid_level = str(volume_info[1])
+        # convert to Kibibyte
+        stripe_size = int(volume_info[2]) * 1024
+        # convert to Kibibyte
+        full_stripe_size = int(volume_info[3]) * 1024
         device_count = 0
 
-        array_info = self._arcconf_exec(['GETCONFIGJSON', ctrl_id, 'ARRAY', array_id], flag_force=True)
+        array_info = self._arcconf_exec(['GETCONFIGJSON', ctrl_id, 'ARRAY',
+                                         array_id], flag_force=True)
         array_json_info = self._filter_cmd_output(array_info)['Array']
         for chunk in array_json_info['Chunk']:
             if 'deviceID' in chunk.keys():
@@ -676,17 +680,18 @@ class Arcconf(IPlugin):
             else:
                 continue
 
-        raid_level = _ARCCONF_RAID_LEVEL_CONV[str(volume_info['raid_level'])]
+        raid_level = _arcconf_raid_level_to_lsm(volume_raid_level)
 
         if device_count == 0:
             if stripe_size == Volume.STRIP_SIZE_UNKNOWN:
                 raise LsmError(
                     ErrorNumber.PLUGIN_BUG,
-                    "volume_raid_info(): Got logical drive %s entry, " %
-                    volume.id + "but no physicaldrive entry")
+                    "volume_raid_info(): Got logical drive %s entry, "
+                    "but no physicaldrive entry" % volume.id)
 
             raise LsmError(
                 ErrorNumber.NOT_FOUND_VOLUME,
                 "Volume not found")
 
-        return [raid_level, stripe_size, device_count, stripe_size, full_stripe_size]
+        return [raid_level, stripe_size, device_count, stripe_size,
+                full_stripe_size]
