@@ -14,6 +14,9 @@ function _good
     fi
 }
 
+# Make sure service is running
+systemctl start libstoragemgmt
+
 export LSMCLI_URI="sim://"
 _good python3 cmdtest.py.in -c /usr/bin/lsmcli
 
