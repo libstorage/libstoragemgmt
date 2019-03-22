@@ -929,7 +929,7 @@ class Arcconf(IPlugin):
             self._arcconf_exec(['IDENTIFY', ctrl_id, 'LOGICALDRIVE', volume_id,
                                 'STOP'], flag_force=True)
         except ExecError:
-            raise LsmError(ErrorNumber.PLUGIN_BUG,
-                           'Volume-ident-led-off failed unexpectedly')
+            raise LsmError(ErrorNumber.NO_STATE_CHANGE,
+                           'Looks like none of the LEDs are blinking.')
 
         return None
