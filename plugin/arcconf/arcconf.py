@@ -590,6 +590,31 @@ class Arcconf(IPlugin):
                                     arcconf_disk, sys_id, cntrl_num))
 
         return search_property(rc_lsm_disks, search_key, search_value)
+    
+    def _arcconf_cap_get(self):
+    supported_raid_types = [
+        Volume.RAID_TYPE_RAID0, Volume.RAID_TYPE_RAID1,
+        Volume.RAID_TYPE_RAID5, Volume.RAID_TYPE_RAID50,
+        Volume.RAID_TYPE_RAID10, Volume.RAID_TYPE_RAID6,
+        Volume.RAID_TYPE_RAID60]
+
+    supported_strip_sizes = [
+        16 * 1024, 32 * 1024, 64 * 1024, 128 * 1024, 256 * 1024, 512 * 1024,
+        1024 * 1024]
+
+    return supported_raid_types, supported_strip_sizes
+
+    @_handle_errors
+    def volume_raid_create_cap_get(self, system, flags=Client.FLAG_RSVD):
+        """
+        By default, RAID 0, 1, 10, 5, 50, 6, 60 are supported depending on the
+        number of free disks available
+        """
+        if not system.plugin_data:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Ilegal input system argument: missing plugin_data property")
+        return self._arcconf_cap_get()
 
     @_handle_errors
     def volume_raid_create(self, name, raid_type, disks, strip_size,
