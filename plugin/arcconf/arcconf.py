@@ -613,7 +613,7 @@ class Arcconf(IPlugin):
         if not system.plugin_data:
             raise LsmError(
                 ErrorNumber.INVALID_ARGUMENT,
-                "Ilegal input system argument: missing plugin_data property")
+                "Illegal input system argument: missing plugin_data property")
         return self._arcconf_cap_get()
 
     @_handle_errors
