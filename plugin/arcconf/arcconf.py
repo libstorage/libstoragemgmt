@@ -307,10 +307,10 @@ class Arcconf(IPlugin):
             cap.set(Capabilities.VOLUMES)
             cap.set(Capabilities.VOLUME_RAID_CREATE)
             cap.set(Capabilities.VOLUME_DELETE)
-            cap.set(Capabilities.POOL_MEMBER_INFO)
-            cap.set(Capabilities.VOLUME_RAID_INFO)
-            cap.set(Capabilities.VOLUME_LED)
-            cap.set(Capabilities.VOLUME_ENABLE)
+            # cap.set(Capabilities.POOL_MEMBER_INFO)
+            # cap.set(Capabilities.VOLUME_RAID_INFO)
+            # cap.set(Capabilities.VOLUME_LED)
+            # cap.set(Capabilities.VOLUME_ENABLE)
 
         return cap
 
