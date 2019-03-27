@@ -312,7 +312,7 @@ static void _ses_cfg_parse(uint8_t *cfg_data, uint8_t **dp_hdr_begin,
     *dp_hdr_begin = NULL;
 
     cfg_hdr = (struct _ses_cfg_hdr *)cfg_data;
-    end_p = cfg_data + be16toh(cfg_hdr->len_be) + 3;
+    end_p = cfg_data + be16toh(cfg_hdr->len_be) + 4;
     if (end_p >= cfg_data + _SG_T10_SPC_RECV_DIAG_MAX_LEN)
         /* Facing data boundary */
         return;
@@ -462,7 +462,7 @@ static int16_t _ses_find_sas_addr(const char *sas_addr, uint8_t *add_st_data,
     assert(cfg_data != NULL);
 
     add_st = (struct _ses_add_st *) add_st_data;
-    end_p = add_st_data + be16toh(add_st->len_be) + 3;
+    end_p = add_st_data + be16toh(add_st->len_be) + 4;
 
     tmp_p = &add_st->dp_list_begin;
     while(tmp_p < end_p) {
@@ -526,7 +526,7 @@ static int _ses_raw_status_get(char *err_msg, uint8_t *status_data,
     assert(gen_code_be != NULL);
 
     st_hdr = (struct _ses_st_hdr *) status_data;
-    end_p = status_data + be16toh(st_hdr->len_be) + 3;
+    end_p = status_data + be16toh(st_hdr->len_be) + 4;
     status_p = &st_hdr->st_dp_list +
         element_index * _T10_SES_DEV_SLOT_STATUS_LEN;
 
@@ -611,7 +611,7 @@ static int16_t _ses_eiioe(uint8_t *cfg_data, int16_t element_index)
     assert(cfg_data != NULL);
 
     cfg_hdr = (struct _ses_cfg_hdr *)cfg_data;
-    end_p = cfg_data + be16toh(cfg_hdr->len_be) + 3;
+    end_p = cfg_data + be16toh(cfg_hdr->len_be) + 4;
     if (end_p >= cfg_data + _SG_T10_SPC_RECV_DIAG_MAX_LEN)
         /* Facing data boundary */
         return -1;
