@@ -86,7 +86,7 @@ def _handle_errors(method):
             if 'No controllers detected' in exec_error.stdout:
                 raise LsmError(
                     ErrorNumber.NOT_FOUND_SYSTEM,
-                    "No Controllers deteceted by arcconf.")
+                    "No Controllers detected by arcconf.")
             else:
                 raise LsmError(ErrorNumber.PLUGIN_BUG, str(exec_error))
         except Exception as common_error:
