@@ -515,7 +515,6 @@ class Arcconf(IPlugin):
 
         for decoded_json in getconfig_cntrls_info:
             sys_id = str(cntrl+1)
-            cnt = int(cntrl + 1)
             cntrl += 1
 
             if 'LogicalDrive' in decoded_json['Controller']:
