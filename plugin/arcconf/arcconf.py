@@ -17,6 +17,7 @@
 # Author: Gris Ge <fge@redhat.com>
 #         Joe Handzik <joseph.t.handzik@hpe.com>
 #         Raghavendra Basvan <raghavendra.br@microsemi.com>
+#         Sharath TS <sharath.ts@microchip.com>
 
 import os
 import errno
@@ -27,7 +28,7 @@ import json
 from lsm import (
     IPlugin, Client, Capabilities, VERSION, LsmError, ErrorNumber, uri_parse,
     System, Pool, size_human_2_size_bytes, search_property, Volume, Disk,
-    LocalDisk)
+    LocalDisk, Battery)
 
 from lsm.plugin.arcconf.utils import cmd_exec, ExecError
 
@@ -47,11 +48,17 @@ CONTROLLER_STATUS_INACCESSIBLE = 5
 CONTROLLER_STATUS_UNKNOWN = 6
 CONTROLLER_STATUS_LOCKED_UP = 9
 CONTROLLER_STATUS_SYS_PQI_DRIVER_CONFLICT = 10
+CONTROLLER_STATUS_WORKING_DISPLAY = 'Optimal'
 
 # RAID modes
 HW_RAID_EXPOSE_RAW_DEVICES = 0
 HBA_MODE = 2
 HW_RAID_HIDE_RAW_DEVICES = 3
+MIXED_MODE = 5
+HW_RAID_EXPOSE_RAW_DEVICES_DISPLAY = 'HW RAID (Expose RAW)'
+HBA_MODE_DISPLAY = 'HBA'
+HW_RAID_HIDE_RAW_DEVICES_DISPLAY = 'HW RAID (Hide RAW)'
+MIXED_MODE_DISPLAY = 'Mixed'
 
 # Arcconf Disk Interface
 DISK_INTERFACE_TYPE_SATA = 1
@@ -148,6 +155,17 @@ def _disk_type_of(arcconf_disk):
     return Disk.TYPE_UNKNOWN
 
 
+def _disk_link_type_of(arcconf_disk):
+    disk_interface = arcconf_disk['interfaceType']
+
+    if disk_interface == DISK_INTERFACE_TYPE_SATA:
+        return Disk.LINK_TYPE_ATA
+    elif disk_interface == DISK_INTERFACE_TYPE_SAS:
+        return Disk.LINK_TYPE_SAS
+
+    return Disk.LINK_TYPE_UNKNOWN
+
+
 def _disk_status_of(arcconf_disk):
     state = arcconf_disk['state']
 
@@ -178,6 +196,12 @@ _ARCCONF_VENDOR_RAID_LEVELS = ['1adm', '1+0adm']
 _LSM_RAID_TYPE_CONV = dict(
     list(zip(list(_ARCCONF_RAID_LEVEL_CONV.values()),
              list(_ARCCONF_RAID_LEVEL_CONV.keys()))))
+
+_BATTERY_STATUS_CONV = {
+    "Recharging": Battery.STATUS_CHARGING,
+    "Failed (Replace Batteries/Capacitors)": Battery.STATUS_ERROR,
+    "Ok": Battery.STATUS_OK,
+}
 
 
 def _arcconf_raid_level_to_lsm(arcconf_ld):
@@ -283,6 +307,10 @@ class Arcconf(IPlugin):
             cap.set(Capabilities.VOLUMES)
             cap.set(Capabilities.VOLUME_RAID_CREATE)
             cap.set(Capabilities.VOLUME_DELETE)
+            # cap.set(Capabilities.POOL_MEMBER_INFO)
+            # cap.set(Capabilities.VOLUME_RAID_INFO)
+            # cap.set(Capabilities.VOLUME_LED)
+            # cap.set(Capabilities.VOLUME_ENABLE)
 
         return cap
 
@@ -331,6 +359,16 @@ class Arcconf(IPlugin):
 
         return detail_info_list
 
+    def _filter_cmd_output(self, cmd_output):
+        """
+        :param cmd_output: arcconf command output obtained after executing a command
+        :return: list of Json data
+        """
+        split_cmd_output = cmd_output.split("\n")[1]
+        filter_cmd_output = json.loads(split_cmd_output)
+
+        return filter_cmd_output
+
     @_handle_errors
     def systems(self, flags=0):
         """
@@ -340,28 +378,39 @@ class Arcconf(IPlugin):
         rc_lsm_syss = []
         total_cntrl = self._get_arcconf_controllers_count()
         getconfig_cntrls_info = self._get_detail_info_list()
+        mode_display = ''
+        status_display = ''
 
         for cntrl in range(total_cntrl):
             ctrl_info = getconfig_cntrls_info[cntrl]['Controller']
-            ctrl_name = "%s %s" % (ctrl_info['deviceVendor'],
-                                   ctrl_info['deviceName'])
+            ctrl_name = "%s %s" % (ctrl_info['deviceVendor'], ctrl_info['deviceName'])
             sys_id = str(cntrl + 1)
             status = ctrl_info['controllerStatus']
             if status == CONTROLLER_STATUS_WORKING:
                 status = System.STATUS_OK
-            status_info = '"Controller Status"=[%s]' % (status)
+                status_display = CONTROLLER_STATUS_WORKING_DISPLAY
+            status_info = '"Controller Status"=[%s]' % status_display
             fw_ver = ctrl_info['firmwareVersion']
             plugin_data = ctrl_info['physicalSlot']
-            read_cache_pct = System.READ_CACHE_PCT_UNKNOWN
+            read_cache_pct = ctrl_info['readCachePercentage']
             hwraid_mode = ctrl_info['functionalMode']
-            if (hwraid_mode == HW_RAID_EXPOSE_RAW_DEVICES) or (
-                    hwraid_mode == HW_RAID_HIDE_RAW_DEVICES):
+            if hwraid_mode == HW_RAID_EXPOSE_RAW_DEVICES:
                 mode = System.MODE_HARDWARE_RAID
+                mode_display = HW_RAID_EXPOSE_RAW_DEVICES_DISPLAY
+            elif hwraid_mode == HW_RAID_HIDE_RAW_DEVICES:
+                mode = System.MODE_HARDWARE_RAID
+                mode_display = HW_RAID_HIDE_RAW_DEVICES_DISPLAY
             elif hwraid_mode == HBA_MODE:
                 mode = System.MODE_HBA
+                mode_display = HBA_MODE_DISPLAY
+            elif hwraid_mode == MIXED_MODE:
+                mode = System.MODE_UNKNOWN
+                mode_display = MIXED_MODE_DISPLAY
             else:
                 mode = System.MODE_UNKNOWN
-            status_info += ' mode=[%s]' % str(hwraid_mode)
+            status_info += ' "mode"=[%s]' % str(mode_display)
+            physical_slot = ctrl_info['physicalSlot']
+            status_info += ' "slot"=[%s]' % str(physical_slot)
 
             rc_lsm_syss.append(System(sys_id,
                                       ctrl_name,
@@ -552,6 +601,31 @@ class Arcconf(IPlugin):
                                     arcconf_disk, sys_id, cntrl_num))
 
         return search_property(rc_lsm_disks, search_key, search_value)
+    
+    def _arcconf_cap_get(self):
+        supported_raid_types = [
+            Volume.RAID_TYPE_RAID0, Volume.RAID_TYPE_RAID1,
+            Volume.RAID_TYPE_RAID5, Volume.RAID_TYPE_RAID50,
+            Volume.RAID_TYPE_RAID10, Volume.RAID_TYPE_RAID6,
+            Volume.RAID_TYPE_RAID60]
+
+        supported_strip_sizes = [
+            16 * 1024, 32 * 1024, 64 * 1024, 128 * 1024, 256 * 1024, 512 * 1024,
+            1024 * 1024]
+
+        return supported_raid_types, supported_strip_sizes
+
+    @_handle_errors
+    def volume_raid_create_cap_get(self, system, flags=Client.FLAG_RSVD):
+        """
+        By default, RAID 0, 1, 10, 5, 50, 6, 60 are supported depending on the
+        number of free disks available
+        """
+        if not system.plugin_data:
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Illegal input system argument: missing plugin_data property")
+        return self._arcconf_cap_get()
 
     @_handle_errors
     def volume_raid_create(self, name, raid_type, disks, strip_size,
