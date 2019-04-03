@@ -1697,10 +1697,15 @@ class TestPlugin(unittest.TestCase):
             cap = self.c.capabilities(s)
             if supported(cap, [Cap.VOLUME_LED]):
                 for volume in self.c.volumes():
-                    volume_led_status = self.c.volume_ident_led_off(volume)
-                    self.assertTrue(volume_led_status is None,
-                                    "Volume ident_led_off"
-                                    "failed")
+                    try:
+                        volume_led_status = self.c.volume_ident_led_off(volume)
+                        self.assertTrue(volume_led_status is None,
+                                        "Volume ident_led_off failed")
+                    except lsm.LsmError as le:
+                        # As we don't know if the LED in on/off we need to
+                        # accept that either outcome is possible
+                        if le.code != ErrorNumber.NO_STATE_CHANGE:
+                            raise
 
     def test_invalid_uri(self):
 
