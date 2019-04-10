@@ -379,7 +379,7 @@ class Arcconf(IPlugin):
         for cntrl in range(total_cntrl):
             ctrl_info = getconfig_cntrls_info[cntrl]['Controller']
             ctrl_name = "%s %s" % (ctrl_info['deviceVendor'], ctrl_info['deviceName'])
-            sys_id = str(cntrl + 1)
+            sys_id = ctrl_info['serialNumber']
             status = ctrl_info['controllerStatus']
             if status == CONTROLLER_STATUS_WORKING:
                 status = System.STATUS_OK
@@ -426,6 +426,7 @@ class Arcconf(IPlugin):
         block_size = arcconf_array['blockSize']
         total_size = arcconf_array['totalSize']
         unused_size = arcconf_array['unUsedSpace']
+        ctrl_num = arcconf_array['ctrl_num']
 
         pool_id = '%s:%s' % (sys_id, array_id)
         name = 'Array ' + str(array_name)
@@ -436,7 +437,7 @@ class Arcconf(IPlugin):
 
         status = Pool.STATUS_OK
         status_info = ''
-        plugin_data = pool_id
+        plugin_data = '%s:%s' % (ctrl_num, array_id)
 
         return Pool(
             pool_id, name, elem_type, unsupported_actions,
@@ -451,8 +452,8 @@ class Arcconf(IPlugin):
         cntrl = 0
 
         for decoded_json in getconfig_cntrls_info:
-            cntrl_num = str(int(cntrl + 1))
-            sys_id = cntrl_num
+            sys_id = decoded_json['Controller']['serialNumber']
+            arcconf_ctrl_num = str(cntrl + 1)
             cntrl += 1
 
             if 'Array' in decoded_json['Controller']:
@@ -467,12 +468,13 @@ class Arcconf(IPlugin):
                     arcconf_array['unUsedSpace'] = \
                         array_infos[array]['unUsedSpace']
                     arcconf_array['sys_id'] = sys_id
+                    arcconf_array['ctrl_num'] = arcconf_ctrl_num
                     lsm_pools.append(Arcconf._arcconf_array_to_lsm_pool(
                         arcconf_array))
         return search_property(lsm_pools, search_key, search_value)
 
     @staticmethod
-    def _arcconf_ld_to_lsm_vol(arcconf_ld, array_num, sys_id):
+    def _arcconf_ld_to_lsm_vol(arcconf_ld, array_num, sys_id, ctrl_num):
         ld_id = arcconf_ld['logicalDriveID']
         raid_level = arcconf_ld['raidLevel']
         vpd83 = str(arcconf_ld['volumeUniqueID']).lower()
@@ -491,13 +493,13 @@ class Arcconf(IPlugin):
             admin_status = Volume.ADMIN_STATE_DISABLED
         else:
             admin_status = Volume.ADMIN_STATE_ENABLED
-        # plugin_data = "%s:%s:%s:%s" % (ctrl_num, array_id, ld_id, raid_level)
+        
         stripe_size = arcconf_ld['StripeSize']
         full_stripe_size = arcconf_ld['fullStripeSize']
         ld_state = arcconf_ld['state']
         plugin_data = "%s:%s:%s:%s:%s:%s:%s" % (ld_state, raid_level,
                                                 stripe_size, full_stripe_size,
-                                                ld_id, array_num, sys_id)
+                                                ld_id, array_num, ctrl_num)
         volume_id = "%s:%s" % (sys_id, ld_id)
         return Volume(
             volume_id, vol_name, vpd83, block_size, num_of_blocks,
@@ -514,7 +516,8 @@ class Arcconf(IPlugin):
         cntrl = 0
 
         for decoded_json in getconfig_cntrls_info:
-            sys_id = str(cntrl+1)
+            sys_id = decoded_json['Controller']['serialNumber']
+            arcconf_ctrl_num = str(cntrl+1)
             cntrl += 1
 
             if 'LogicalDrive' in decoded_json['Controller']:
@@ -528,7 +531,8 @@ class Arcconf(IPlugin):
                         consumer_array_id = array_id['consumerArrayID']
                     lsm_vol = Arcconf._arcconf_ld_to_lsm_vol(ld_info,
                                                              consumer_array_id,
-                                                             sys_id)
+                                                             sys_id,
+                                                             arcconf_ctrl_num)
                     lsm_vols.append(lsm_vol)
 
         return search_property(lsm_vols, search_key, search_value)
