@@ -582,7 +582,7 @@ class Arcconf(IPlugin):
         cntrl = 0
 
         for decoded_json in getconfig_cntrls_info:
-            sys_id = cntrl + 1
+            sys_id = decoded_json['Controller']['serialNumber']
             cntrl_num = int(cntrl + 1)
             cntrl += 1
 
