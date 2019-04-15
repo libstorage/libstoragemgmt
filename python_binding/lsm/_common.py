@@ -22,7 +22,13 @@ import re
 
 import sys
 import syslog
-import collections
+
+try:
+    # Python 3.8 required change
+    from collections.abc import Sequence
+except ImportError:
+    from collections import Sequence
+
 import inspect
 
 try:
@@ -536,8 +542,8 @@ class JobStatus(object):
 
 
 def type_compare(method_name, exp_type, act_val):
-    if isinstance(exp_type, collections.Sequence):
-        if not isinstance(act_val, collections.Sequence):
+    if isinstance(exp_type, Sequence):
+        if not isinstance(act_val, Sequence):
             raise TypeError("%s call is returning a %s, but is "
                             "expecting a sequence" %
                             (method_name, str(type(act_val))))

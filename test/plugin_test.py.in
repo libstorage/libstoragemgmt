@@ -26,7 +26,13 @@ import string
 import traceback
 import unittest
 import argparse
-import collections
+
+try:
+    # Python 3.8 required change
+    from collections.abc import Sequence
+except ImportError:
+    from collections import Sequence
+
 import atexit
 import sys
 import os
@@ -243,8 +249,7 @@ class TestProxy(object):
 
         # We don't care about time per operation when there is only one
         # possible.
-        if not job_possible and isinstance(rc, collections.Sequence) \
-                and len(rc) > 2:
+        if not job_possible and isinstance(rc, Sequence) and len(rc) > 2:
             num_results = len(rc)
         else:
             num_results = 0
