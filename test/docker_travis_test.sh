@@ -32,11 +32,9 @@ getent passwd libstoragemgmt >/dev/null || \
     -c "daemon account for libstoragemgmt" libstoragemgmt || exit 1
 
 if [ "CHK$IS_FEDORA" == "CHK1" ];then
-    dnf install `cat ./rh_rpm_dependency` rpm-build -y || exit 1
-    dnf install python3-six python3-devel python3-pywbem -y \
-        || exit 1
+    dnf install `cat ./rh_py3_rpm_dependency` rpm-build -y || exit 1
 elif [ "CHK$IS_RHEL" == "CHK1" ];then
-    yum install `cat ./rh_rpm_dependency` rpm-build -y || exit 1
+    yum install `cat ./rh_py2_rpm_dependency` rpm-build -y || exit 1
 elif [ "CHK$IS_DEB" = "CHK1" ];then
     export DEBIAN_FRONTEND="noninteractive"
     apt-get update
