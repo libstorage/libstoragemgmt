@@ -1,5 +1,23 @@
 News for libStorageMgmt
 
+1.8.0: Apr 16 2019
+    * Bug fixes
+      - Invalid vpd 0x83 value,
+        https://github.com/libstorage/libstoragemgmt/issues/376
+      - Fix duplicate files in debian packaging
+      - Add simple test integration script
+      - Unable to control some slot LEDs via SES
+        https://github.com/libstorage/libstoragemgmt/issues/383
+      - Numerous corrections for arcconf plugin
+      - Correct deprecated python & perl usage
+
+    * Enhancements
+      - arcconf
+        + pool member info
+        + volume raid info
+        + volume LED (on/off)
+        + volume enable
+
 1.7.3: Feb 15 2019
     * Bug fixes
       - https://bugzilla.redhat.com/show_bug.cgi?id=1670077
