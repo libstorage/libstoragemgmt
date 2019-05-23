@@ -1268,7 +1268,7 @@ class BackStore(object):
 
     @staticmethod
     def _block_rounding(size_bytes):
-        return (size_bytes + BackStore.BLK_SIZE - 1) / \
+        return (size_bytes + BackStore.BLK_SIZE - 1) // \
             BackStore.BLK_SIZE * BackStore.BLK_SIZE
 
     def sim_vol_create(self, name, size_bytes, sim_pool_id, is_hw_raid_vol=0):
