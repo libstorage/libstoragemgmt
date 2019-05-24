@@ -1268,7 +1268,7 @@ class BackStore(object):
 
     @staticmethod
     def _block_rounding(size_bytes):
-        return (size_bytes + BackStore.BLK_SIZE - 1) / \
+        return (size_bytes + BackStore.BLK_SIZE - 1) // \
             BackStore.BLK_SIZE * BackStore.BLK_SIZE
 
     def sim_vol_create(self, name, size_bytes, sim_pool_id, is_hw_raid_vol=0):
@@ -1367,18 +1367,12 @@ class BackStore(object):
                 'vol_masks', 'vol_id="%s"' % sim_vol_id))
 
     def sim_vol_resize(self, sim_vol_id, new_size_bytes):
-        org_new_size_bytes = new_size_bytes
         new_size_bytes = BackStore._block_rounding(new_size_bytes)
         sim_vol = self.sim_vol_of_id(sim_vol_id)
         if sim_vol['total_space'] == new_size_bytes:
-            if org_new_size_bytes != new_size_bytes:
-                # Even volume size is identical to rounded size,
-                # but it's not what user requested, hence we silently pass.
-                return
-            else:
-                raise LsmError(
-                    ErrorNumber.NO_STATE_CHANGE,
-                    "Volume size is identical to requested")
+            raise LsmError(
+                ErrorNumber.NO_STATE_CHANGE,
+                "Volume size is identical to requested")
 
         sim_pool = self.sim_pool_of_id(sim_vol['pool_id'])
 
@@ -1610,17 +1604,13 @@ class BackStore(object):
         self._data_delete("fss", 'id="%s"' % sim_fs_id)
 
     def sim_fs_resize(self, sim_fs_id, new_size_bytes):
-        org_new_size_bytes = new_size_bytes
         new_size_bytes = BackStore._block_rounding(new_size_bytes)
         sim_fs = self.sim_fs_of_id(sim_fs_id)
 
         if sim_fs['total_space'] == new_size_bytes:
-            if new_size_bytes != org_new_size_bytes:
-                return
-            else:
-                raise LsmError(
-                    ErrorNumber.NO_STATE_CHANGE,
-                    "File System size is identical to requested")
+            raise LsmError(
+                ErrorNumber.NO_STATE_CHANGE,
+                "File System size is identical to requested")
 
         # TODO(Gris Ge): If a fs is in a clone/snapshot relationship, resize
         #                should be handled properly.
