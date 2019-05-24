@@ -1,5 +1,9 @@
 News for libStorageMgmt
 
+1.8.1: May 24 2019
+    * Bug fix
+      - https://bugzilla.redhat.com/show_bug.cgi?id=1585169
+
 1.8.0: Apr 16 2019
     * Bug fixes
       - Invalid vpd 0x83 value,
