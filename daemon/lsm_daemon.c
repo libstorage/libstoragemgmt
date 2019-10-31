@@ -846,7 +846,7 @@ int main(int argc, char *argv[])
 
         case 'h':
             usage();
-            break;
+            return EXIT_SUCCESS;
 
         case 'v':
             verbose_flag = 1;
