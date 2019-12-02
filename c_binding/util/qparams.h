@@ -33,6 +33,13 @@ extern "C" {
 #include "libstoragemgmt/libstoragemgmt_common.h"
 
 /**
+ * Some tooling doesn't contain this
+ */
+#ifndef __GNUC_PREREQ
+# define __GNUC_PREREQ(ma, mi) 0
+#endif
+
+/**
  *  * ATTRIBUTE_SENTINEL:
  *   *
  *    * Macro to check for NULL-terminated varargs lists
