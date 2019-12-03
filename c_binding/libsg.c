@@ -1175,9 +1175,9 @@ int _sg_io_mode_sense(char *err_msg, int fd, uint8_t page_code,
                      strerror_l(ioctl_errno, locale)
                      );
 
-    freelocale(locale);
 
  out:
+    freelocale(locale);
     return rc;
 }
 
