@@ -234,6 +234,7 @@ static int _sysfs_vpd_pg83_data_get(char *err_msg, const char *sd_name,
              _SYSFS_BLK_PATH_FORMAT, sd_name);
     if (! _file_exists(sysfs_blk_path)) {
         _lsm_err_msg_set(err_msg, "Disk %s not found", sd_name);
+	freelocale(locale);
         return LSM_ERR_NOT_FOUND_DISK;
     }
 
