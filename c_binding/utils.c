@@ -16,9 +16,6 @@
  * Author: Gris Ge <fge@redhat.com>
  */
 
-#define _GNU_SOURCE
-/* ^ For strerror_r() */
-
 #include <stdarg.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -28,6 +25,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <limits.h>
+#include <locale.h>
 
 #include "utils.h"
 #include "libstoragemgmt/libstoragemgmt_error.h"
@@ -167,13 +165,14 @@ int _sysfs_host_speed_get(char *err_msg, const char *sysfs_path,
                             uint32_t *link_speed)
 {
     int rc = LSM_ERR_OK;
-    char strerr_buff[_LSM_ERR_MSG_LEN];
     uint8_t buff[_SYSFS_HOST_SPEED_BUFF_MAX];
     int file_rc = 0;
     ssize_t file_size = 0;
     char *num_str = NULL;
     char *postfix = NULL;
     long int speed_raw = 0;
+    locale_t const      locale = newlocale( LC_MESSAGES_MASK, "", (locale_t)0 ) ;
+
 
     assert(sysfs_path != NULL);
     assert(link_speed != NULL);
@@ -190,8 +189,7 @@ int _sysfs_host_speed_get(char *err_msg, const char *sysfs_path,
             rc = LSM_ERR_LIB_BUG;
             _lsm_err_msg_set(err_msg, "BUG: Unknown error %d(%s) from "
                              "_read_file().", file_rc,
-                             strerror_r(file_rc, strerr_buff,
-                                        _LSM_ERR_MSG_LEN));
+                             strerror_l(file_rc, locale));
             goto out;
     }
 

@@ -17,9 +17,6 @@
  * Author: Gris Ge <fge@redhat.com>
  */
 
-#define _GNU_SOURCE
-/* ^ For strerror_r() */
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -36,6 +33,7 @@
 #include <endian.h>
 #include <limits.h>
 #include <math.h>       /* For log10() */
+#include <locale.h>
 
 #include "libstoragemgmt/libstoragemgmt.h"
 #include "libstoragemgmt/libstoragemgmt_error.h"
@@ -172,7 +170,7 @@ static int _sysfs_vpd_pg80_data_get(char *err_msg, const char *sd_name,
     int file_rc = 0;
     char sysfs_path[_MAX_SYSFS_VPD80_PATH_STR_LEN];
     char sysfs_blk_path[_MAX_SYSFS_BLK_PATH_STR_LEN];
-    char strerr_buff[_LSM_ERR_MSG_LEN];
+    locale_t const locale = newlocale(LC_MESSAGES_MASK, "", (locale_t)0);
 
     memset(vpd_data, 0, _SG_T10_SPC_VPD_MAX_LEN);
 
@@ -202,8 +200,7 @@ static int _sysfs_vpd_pg80_data_get(char *err_msg, const char *sd_name,
         } else {
             _lsm_err_msg_set(err_msg, "BUG: Unknown error %d(%s) from "
                              "_read_file().", file_rc,
-                             strerror_r(file_rc, strerr_buff,
-                                        _LSM_ERR_MSG_LEN));
+                             strerror_l(file_rc, locale));
             return LSM_ERR_LIB_BUG;
         }
     }
@@ -221,7 +218,7 @@ static int _sysfs_vpd_pg83_data_get(char *err_msg, const char *sd_name,
     int file_rc = 0;
     char sysfs_path[_MAX_SYSFS_VPD83_PATH_STR_LEN];
     char sysfs_blk_path[_MAX_SYSFS_BLK_PATH_STR_LEN];
-    char strerr_buff[_LSM_ERR_MSG_LEN];
+    locale_t const locale = newlocale(LC_MESSAGES_MASK, "", (locale_t)0);
 
     memset(vpd_data, 0, _SG_T10_SPC_VPD_MAX_LEN);
 
@@ -251,8 +248,7 @@ static int _sysfs_vpd_pg83_data_get(char *err_msg, const char *sd_name,
         } else {
             _lsm_err_msg_set(err_msg, "BUG: Unknown error %d(%s) from "
                              "_read_file().", file_rc,
-                             strerror_r(file_rc, strerr_buff,
-                                        _LSM_ERR_MSG_LEN));
+                             strerror_l(file_rc, locale));
             return LSM_ERR_LIB_BUG;
         }
     }

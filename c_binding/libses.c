@@ -16,9 +16,6 @@
  * Author: Gris Ge <fge@redhat.com>
  */
 
-/* For strerror_r() */
-#define _GNU_SOURCE
-
 #include "libsg.h"
 #include "libses.h"
 #include "utils.h"
@@ -33,6 +30,7 @@
 #include <unistd.h>
 #include <inttypes.h>
 #include <assert.h>
+#include <locale.h>
 
 /* SPC-5 Table 139 - PERIPHERAL DEVICE TYPE field */
 #define _LINUX_SCSI_DEV_TYPE_SES                "13"  /* 0x0d  */
@@ -341,8 +339,8 @@ static int _ses_bsg_paths_get(char *err_msg, char ***bsg_paths,
     char *sysfs_bsg_type_path = NULL;
     char dev_type[_LINUX_SCSI_DEV_TYPE_SES_LEN + 1];
     ssize_t dev_type_size = 0;
-    char strerr_buff[_LSM_ERR_MSG_LEN];
     int tmp_rc = 0;
+    locale_t const locale = newlocale( LC_MESSAGES_MASK, "", (locale_t)0 );
 
     assert(err_msg != NULL);
     assert(bsg_paths != NULL);
@@ -367,7 +365,7 @@ static int _ses_bsg_paths_get(char *err_msg, char ***bsg_paths,
     if (dir == NULL) {
         _lsm_err_msg_set(err_msg, "Cannot open %s: error (%d)%s",
                          _SYSFS_BSG_ROOT_PATH, errno,
-                         strerror_r(errno, strerr_buff, _LSM_ERR_MSG_LEN));
+                         strerror_l(errno, locale));
 
         rc = LSM_ERR_LIB_BUG;
         goto out;

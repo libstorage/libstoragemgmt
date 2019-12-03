@@ -17,9 +17,6 @@
  * Author: Gris Ge <fge@redhat.com>
  */
 
-/* For strerror_r() */
-#define _GNU_SOURCE
-
 #include "libsg.h"
 #include "utils.h"
 
@@ -40,6 +37,7 @@
 #include <limits.h>
 #include <linux/bsg.h>
 #include <stdint.h>
+#include <locale.h>
 
 /* SGIO timeout: 1 second
  * TODO(Gris Ge): Raise LSM_ERR_TIMEOUT error for this
@@ -484,10 +482,10 @@ int _sg_io_vpd(char *err_msg, int fd, uint8_t page_code, uint8_t *data)
     uint8_t sense_data[_T10_SPC_SENSE_DATA_MAX_LENGTH];
     int ioctl_errno = 0;
     int rc_vpd_00 = 0;
-    char strerr_buff[_LSM_ERR_MSG_LEN];
     uint8_t sense_key = _T10_SPC_SENSE_KEY_NO_SENSE;
     char sense_err_msg[_LSM_ERR_MSG_LEN / 2];
     ssize_t data_len = 0;
+    locale_t const locale = newlocale(LC_MESSAGES_MASK, "", (locale_t)0);
 
     assert(err_msg != NULL);
     assert(fd >= 0);
@@ -545,8 +543,7 @@ int _sg_io_vpd(char *err_msg, int fd, uint8_t page_code, uint8_t *data)
                                      "BUG: VPD page 0x%02x is supported, "
                                      "but failed with error %d(%s), %s",
                                      page_code, ioctl_errno,
-                                     strerror_r(ioctl_errno, strerr_buff,
-                                                _LSM_ERR_MSG_LEN),
+                                     strerror_l(ioctl_errno, locale),
                                                 sense_err_msg);
                     goto out;
                 } else {
@@ -575,7 +572,7 @@ int _sg_io_vpd(char *err_msg, int fd, uint8_t page_code, uint8_t *data)
         _lsm_err_msg_set(err_msg, "BUG: Unexpected failure of _sg_io_vpd(): "
                          "error %d(%s), with no error in SCSI sense data",
                          ioctl_errno,
-                         strerror_r(ioctl_errno, strerr_buff, _LSM_ERR_MSG_LEN)
+                         strerror_l(ioctl_errno, locale)
                          );
     }
 
@@ -784,7 +781,7 @@ static struct _sg_t10_vpd83_dp *_sg_t10_vpd83_dp_new(void)
 static int _sg_io_open(char *err_msg, const char *disk_path, int *fd, int oflag)
 {
     int rc = LSM_ERR_OK;
-    char strerr_buff[_LSM_ERR_MSG_LEN];
+    locale_t const locale = newlocale(LC_MESSAGES_MASK, "", (locale_t)0);
 
     assert(err_msg != NULL);
     assert(disk_path != NULL);
@@ -806,7 +803,7 @@ static int _sg_io_open(char *err_msg, const char *disk_path, int *fd, int oflag)
             rc = LSM_ERR_LIB_BUG;
             _lsm_err_msg_set(err_msg, "BUG: Failed to open %s, error: %d, %s",
                              disk_path, errno,
-                             strerror_r(errno, strerr_buff, _LSM_ERR_MSG_LEN));
+                             strerror_l(errno, locale));
         }
     }
  out:
@@ -921,10 +918,10 @@ int _sg_io_recv_diag(char *err_msg, int fd, uint8_t page_code, uint8_t *data)
     int rc = LSM_ERR_OK;
     uint8_t cdb[_T10_SPC_RECV_DIAG_CMD_LEN];
     int ioctl_errno = 0;
-    char strerr_buff[_LSM_ERR_MSG_LEN];
     uint8_t sense_data[_T10_SPC_SENSE_DATA_MAX_LENGTH];
     uint8_t sense_key = _T10_SPC_SENSE_KEY_NO_SENSE;
     char sense_err_msg[_LSM_ERR_MSG_LEN / 2];
+    locale_t const locale = newlocale(LC_MESSAGES_MASK, "", (locale_t)0);
 
     assert(err_msg != NULL);
     assert(fd >= 0);
@@ -960,7 +957,7 @@ int _sg_io_recv_diag(char *err_msg, int fd, uint8_t page_code, uint8_t *data)
         _lsm_err_msg_set(err_msg, "Got error from SGIO RECEIVE_DIAGNOSTIC "
                          "for page code 0x%02x: error %d(%s), %s", page_code,
                          ioctl_errno,
-                         strerror_r(ioctl_errno, strerr_buff, _LSM_ERR_MSG_LEN),
+                         strerror_l(ioctl_errno, locale),
                          sense_err_msg);
         goto out;
     }
@@ -975,10 +972,10 @@ int _sg_io_send_diag(char *err_msg, int fd, uint8_t *data, uint16_t data_len)
     int rc = LSM_ERR_OK;
     uint8_t cdb[_T10_SPC_SEND_DIAG_CMD_LEN];
     int ioctl_errno = 0;
-    char strerr_buff[_LSM_ERR_MSG_LEN];
     uint8_t sense_data[_T10_SPC_SENSE_DATA_MAX_LENGTH];
     uint8_t sense_key = _T10_SPC_SENSE_KEY_NO_SENSE;
     char sense_err_msg[_LSM_ERR_MSG_LEN / 2];
+    locale_t const locale = newlocale(LC_MESSAGES_MASK, "", (locale_t)0);
 
     assert(err_msg != NULL);
     assert(fd >= 0);
@@ -1013,7 +1010,7 @@ int _sg_io_send_diag(char *err_msg, int fd, uint8_t *data, uint16_t data_len)
 
         _lsm_err_msg_set(err_msg, "Got error from SGIO SEND_DIAGNOSTIC "
                          "for error %d(%s), %s", ioctl_errno,
-                         strerror_r(ioctl_errno, strerr_buff, _LSM_ERR_MSG_LEN),
+                         strerror_l(ioctl_errno, locale),
                          sense_err_msg);
     }
 
@@ -1079,12 +1076,12 @@ int _sg_io_mode_sense(char *err_msg, int fd, uint8_t page_code,
     uint8_t cdb[_T10_SPC_MODE_SENSE_CMD_LEN];
     uint8_t sense_data[_T10_SPC_SENSE_DATA_MAX_LENGTH];
     int ioctl_errno = 0;
-    char strerr_buff[_LSM_ERR_MSG_LEN];
     uint8_t sense_key = _T10_SPC_SENSE_KEY_NO_SENSE;
     char sense_err_msg[_LSM_ERR_MSG_LEN / 2];
     struct _sg_t10_mode_para_hdr *mode_hdr = NULL;
     uint16_t block_dp_len = 0;
     uint16_t mode_data_len = 0;
+    locale_t const locale = newlocale(LC_MESSAGES_MASK, "", (locale_t)0);
 
     assert(err_msg != NULL);
     assert(fd >= 0);
@@ -1165,7 +1162,7 @@ int _sg_io_mode_sense(char *err_msg, int fd, uint8_t page_code,
                      "_sg_io_mode_sense(): error %d(%s), with no error in "
                      "SCSI sense data",
                      ioctl_errno,
-                     strerror_r(ioctl_errno, strerr_buff, _LSM_ERR_MSG_LEN)
+                     strerror_l(ioctl_errno, locale)
                      );
 
  out:
@@ -1176,7 +1173,7 @@ int _sg_host_no(char *err_msg, int fd, unsigned int *host_no)
 {
     int rc = LSM_ERR_OK;
     int ioctl_errno = 0;
-    char strerr_buff[_LSM_ERR_MSG_LEN];
+    locale_t const locale = newlocale(LC_MESSAGES_MASK, "", (locale_t)0);
 
     assert(err_msg != NULL);
     assert(fd >= 0);
@@ -1189,8 +1186,7 @@ int _sg_host_no(char *err_msg, int fd, unsigned int *host_no)
         rc = LSM_ERR_LIB_BUG;
         _lsm_err_msg_set(err_msg, "IOCTL SCSI_IOCTL_GET_BUS_NUMBER failed: "
                          "%d, %s", ioctl_errno,
-                         strerror_r(ioctl_errno, strerr_buff,
-                                    _LSM_ERR_MSG_LEN));
+                         strerror_l(ioctl_errno, locale));
         goto out;
     }
 
@@ -1258,11 +1254,11 @@ static int _sg_log_sense(char *err_msg, int fd, uint8_t page_code,
     uint8_t cdb[_T10_SPC_LOG_SENSE_CMD_LEN];
     uint8_t sense_data[_T10_SPC_SENSE_DATA_MAX_LENGTH];
     int ioctl_errno = 0;
-    char strerr_buff[_LSM_ERR_MSG_LEN];
     uint8_t sense_key = _T10_SPC_SENSE_KEY_NO_SENSE;
     char sense_err_msg[_LSM_ERR_MSG_LEN / 2];
     struct _sg_t10_log_para_hdr *log_hdr = NULL;
     uint16_t log_data_len = 0;
+    locale_t const locale = newlocale(LC_MESSAGES_MASK, "", (locale_t)0);
 
     assert(err_msg != NULL);
     assert(fd >= 0);
@@ -1292,7 +1288,7 @@ static int _sg_log_sense(char *err_msg, int fd, uint8_t page_code,
 
         _lsm_err_msg_set(err_msg, "Got error from SGIO LOG SENSE "
                          "with error %d(%s), %s", ioctl_errno,
-                         strerror_r(ioctl_errno, strerr_buff, _LSM_ERR_MSG_LEN),
+                         strerror_l(ioctl_errno, locale),
                          sense_err_msg);
         goto out;
     }
@@ -1324,7 +1320,7 @@ int _sg_request_sense(char *err_msg, int fd, uint8_t *returned_sense_data)
     int ioctl_errno = 0;
     uint8_t sense_key = _T10_SPC_SENSE_KEY_NO_SENSE;
     char sense_err_msg[_LSM_ERR_MSG_LEN / 2];
-    char strerr_buff[_LSM_ERR_MSG_LEN];
+    locale_t const locale = newlocale(LC_MESSAGES_MASK, "", (locale_t)0);
 
     assert(err_msg != NULL);
     assert(fd >= 0);
@@ -1351,8 +1347,7 @@ int _sg_request_sense(char *err_msg, int fd, uint8_t *returned_sense_data)
 
         _lsm_err_msg_set(err_msg, "Got error from SGIO REQUEST SENSE: "
                          "error %d(%s) %s", ioctl_errno,
-                         strerror_r(ioctl_errno, strerr_buff,
-                                    _LSM_ERR_MSG_LEN),
+                         strerror_l(ioctl_errno, locale),
                          sense_err_msg);
         goto out;
     }
