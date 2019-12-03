@@ -576,7 +576,10 @@ int _sg_io_vpd(char *err_msg, int fd, uint8_t page_code, uint8_t *data)
                          );
     }
 
+
  out:
+
+    freelocale(locale);
 
     return rc;
 }
@@ -806,7 +809,10 @@ static int _sg_io_open(char *err_msg, const char *disk_path, int *fd, int oflag)
                              strerror_l(errno, locale));
         }
     }
+
+
  out:
+    freelocale(locale);
     return rc;
 }
 
@@ -962,8 +968,10 @@ int _sg_io_recv_diag(char *err_msg, int fd, uint8_t page_code, uint8_t *data)
         goto out;
     }
 
+
  out:
 
+    freelocale(locale);
     return rc;
 }
 
@@ -1013,6 +1021,8 @@ int _sg_io_send_diag(char *err_msg, int fd, uint8_t *data, uint16_t data_len)
                          strerror_l(ioctl_errno, locale),
                          sense_err_msg);
     }
+    
+    freelocale(locale);
 
     return rc;
 }
@@ -1165,6 +1175,8 @@ int _sg_io_mode_sense(char *err_msg, int fd, uint8_t page_code,
                      strerror_l(ioctl_errno, locale)
                      );
 
+    freelocale(locale);
+
  out:
     return rc;
 }
@@ -1190,7 +1202,9 @@ int _sg_host_no(char *err_msg, int fd, unsigned int *host_no)
         goto out;
     }
 
+
  out:
+    freelocale(locale);
     return rc;
 }
 
@@ -1306,7 +1320,9 @@ static int _sg_log_sense(char *err_msg, int fd, uint8_t page_code,
     }
     memcpy(data, tmp_data + sizeof(struct _sg_t10_log_para_hdr), log_data_len);
 
+
 out:
+    freelocale(locale);
 
     return rc;
 }
@@ -1355,6 +1371,7 @@ int _sg_request_sense(char *err_msg, int fd, uint8_t *returned_sense_data)
     memcpy(returned_sense_data, sense_data, _T10_SPC_SENSE_DATA_MAX_LENGTH);
 
 out:
+    freelocale(locale);
 
     return rc;
 }

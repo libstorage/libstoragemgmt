@@ -198,6 +198,7 @@ int plugin_register(lsm_plugin_ptr c, const char *uri, const char *password,
         _db_close(db);
         lsm_log_error_basic(c, rc, err_msg);
     }
+    freelocale(locale);
 
     return rc;
 }

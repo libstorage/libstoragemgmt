@@ -232,5 +232,6 @@ int _sysfs_host_speed_get(char *err_msg, const char *sysfs_path,
     }
 
  out:
+    freelocale(locale);
     return rc;
 }

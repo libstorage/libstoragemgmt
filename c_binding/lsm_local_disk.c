@@ -181,6 +181,7 @@ static int _sysfs_vpd_pg80_data_get(char *err_msg, const char *sd_name,
              _SYSFS_BLK_PATH_FORMAT, sd_name);
     if (! _file_exists(sysfs_blk_path)) {
         _lsm_err_msg_set(err_msg, "Disk %s not found", sd_name);
+	freelocale(locale);
         return LSM_ERR_NOT_FOUND_DISK;
     }
 
@@ -192,18 +193,22 @@ static int _sysfs_vpd_pg80_data_get(char *err_msg, const char *sd_name,
     if (file_rc != 0) {
         if (file_rc == ENOENT) {
             _lsm_err_msg_set(err_msg, "File '%s' not exist", sysfs_path);
+	    freelocale(locale);
             return LSM_ERR_NO_SUPPORT;
         } else if (file_rc == EINVAL) {
             _lsm_err_msg_set(err_msg, "Read error on File '%s': "
                              "invalid argument", sysfs_path);
+	    freelocale(locale);
             return LSM_ERR_NO_SUPPORT;
         } else {
             _lsm_err_msg_set(err_msg, "BUG: Unknown error %d(%s) from "
                              "_read_file().", file_rc,
                              strerror_l(file_rc, locale));
+	    freelocale(locale);
             return LSM_ERR_LIB_BUG;
         }
     }
+    freelocale(locale);
     return LSM_ERR_OK;
 }
 
@@ -240,18 +245,22 @@ static int _sysfs_vpd_pg83_data_get(char *err_msg, const char *sd_name,
     if (file_rc != 0) {
         if (file_rc == ENOENT) {
             _lsm_err_msg_set(err_msg, "File '%s' not exist", sysfs_path);
+	    freelocale(locale);
             return LSM_ERR_NO_SUPPORT;
         } else if (file_rc == EINVAL) {
             _lsm_err_msg_set(err_msg, "Read error on File '%s': "
                              "invalid argument", sysfs_path);
+	    freelocale(locale);
             return LSM_ERR_NO_SUPPORT;
         } else {
             _lsm_err_msg_set(err_msg, "BUG: Unknown error %d(%s) from "
                              "_read_file().", file_rc,
                              strerror_l(file_rc, locale));
+	    freelocale(locale);
             return LSM_ERR_LIB_BUG;
         }
     }
+    freelocale(locale);
     return LSM_ERR_OK;
 }
 

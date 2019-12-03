@@ -439,6 +439,7 @@ static int _ses_bsg_paths_get(char *err_msg, char ***bsg_paths,
         *bsg_paths = NULL;
         *bsg_count = 0;
     }
+    freelocale(locale);
     return rc;
 }
 
