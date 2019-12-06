@@ -17,9 +17,6 @@
  * Author: Gris Ge <fge@redhat.com>
  */
 
-/* For strerror_r() */
-#define _GNU_SOURCE
-
 #include "libsg.h"
 #include "utils.h"
 
@@ -545,7 +542,7 @@ int _sg_io_vpd(char *err_msg, int fd, uint8_t page_code, uint8_t *data)
                                      "BUG: VPD page 0x%02x is supported, "
                                      "but failed with error %d(%s), %s",
                                      page_code, ioctl_errno,
-                                     strerror_r(ioctl_errno, strerr_buff,
+                                     error_to_str(ioctl_errno, strerr_buff,
                                                 _LSM_ERR_MSG_LEN),
                                                 sense_err_msg);
                     goto out;
@@ -575,7 +572,7 @@ int _sg_io_vpd(char *err_msg, int fd, uint8_t page_code, uint8_t *data)
         _lsm_err_msg_set(err_msg, "BUG: Unexpected failure of _sg_io_vpd(): "
                          "error %d(%s), with no error in SCSI sense data",
                          ioctl_errno,
-                         strerror_r(ioctl_errno, strerr_buff, _LSM_ERR_MSG_LEN)
+                         error_to_str(ioctl_errno, strerr_buff, _LSM_ERR_MSG_LEN)
                          );
     }
 
@@ -806,7 +803,7 @@ static int _sg_io_open(char *err_msg, const char *disk_path, int *fd, int oflag)
             rc = LSM_ERR_LIB_BUG;
             _lsm_err_msg_set(err_msg, "BUG: Failed to open %s, error: %d, %s",
                              disk_path, errno,
-                             strerror_r(errno, strerr_buff, _LSM_ERR_MSG_LEN));
+                             error_to_str(errno, strerr_buff, _LSM_ERR_MSG_LEN));
         }
     }
  out:
@@ -960,7 +957,7 @@ int _sg_io_recv_diag(char *err_msg, int fd, uint8_t page_code, uint8_t *data)
         _lsm_err_msg_set(err_msg, "Got error from SGIO RECEIVE_DIAGNOSTIC "
                          "for page code 0x%02x: error %d(%s), %s", page_code,
                          ioctl_errno,
-                         strerror_r(ioctl_errno, strerr_buff, _LSM_ERR_MSG_LEN),
+                         error_to_str(ioctl_errno, strerr_buff, _LSM_ERR_MSG_LEN),
                          sense_err_msg);
         goto out;
     }
@@ -1013,7 +1010,7 @@ int _sg_io_send_diag(char *err_msg, int fd, uint8_t *data, uint16_t data_len)
 
         _lsm_err_msg_set(err_msg, "Got error from SGIO SEND_DIAGNOSTIC "
                          "for error %d(%s), %s", ioctl_errno,
-                         strerror_r(ioctl_errno, strerr_buff, _LSM_ERR_MSG_LEN),
+                         error_to_str(ioctl_errno, strerr_buff, _LSM_ERR_MSG_LEN),
                          sense_err_msg);
     }
 
@@ -1165,7 +1162,7 @@ int _sg_io_mode_sense(char *err_msg, int fd, uint8_t page_code,
                      "_sg_io_mode_sense(): error %d(%s), with no error in "
                      "SCSI sense data",
                      ioctl_errno,
-                     strerror_r(ioctl_errno, strerr_buff, _LSM_ERR_MSG_LEN)
+                     error_to_str(ioctl_errno, strerr_buff, _LSM_ERR_MSG_LEN)
                      );
 
  out:
@@ -1189,7 +1186,7 @@ int _sg_host_no(char *err_msg, int fd, unsigned int *host_no)
         rc = LSM_ERR_LIB_BUG;
         _lsm_err_msg_set(err_msg, "IOCTL SCSI_IOCTL_GET_BUS_NUMBER failed: "
                          "%d, %s", ioctl_errno,
-                         strerror_r(ioctl_errno, strerr_buff,
+                         error_to_str(ioctl_errno, strerr_buff,
                                     _LSM_ERR_MSG_LEN));
         goto out;
     }
@@ -1292,7 +1289,7 @@ static int _sg_log_sense(char *err_msg, int fd, uint8_t page_code,
 
         _lsm_err_msg_set(err_msg, "Got error from SGIO LOG SENSE "
                          "with error %d(%s), %s", ioctl_errno,
-                         strerror_r(ioctl_errno, strerr_buff, _LSM_ERR_MSG_LEN),
+                         error_to_str(ioctl_errno, strerr_buff, _LSM_ERR_MSG_LEN),
                          sense_err_msg);
         goto out;
     }
@@ -1351,7 +1348,7 @@ int _sg_request_sense(char *err_msg, int fd, uint8_t *returned_sense_data)
 
         _lsm_err_msg_set(err_msg, "Got error from SGIO REQUEST SENSE: "
                          "error %d(%s) %s", ioctl_errno,
-                         strerror_r(ioctl_errno, strerr_buff,
+                         error_to_str(ioctl_errno, strerr_buff,
                                     _LSM_ERR_MSG_LEN),
                          sense_err_msg);
         goto out;

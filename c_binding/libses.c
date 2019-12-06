@@ -16,8 +16,6 @@
  * Author: Gris Ge <fge@redhat.com>
  */
 
-/* For strerror_r() */
-#define _GNU_SOURCE
 
 #include "libsg.h"
 #include "libses.h"
@@ -367,7 +365,7 @@ static int _ses_bsg_paths_get(char *err_msg, char ***bsg_paths,
     if (dir == NULL) {
         _lsm_err_msg_set(err_msg, "Cannot open %s: error (%d)%s",
                          _SYSFS_BSG_ROOT_PATH, errno,
-                         strerror_r(errno, strerr_buff, _LSM_ERR_MSG_LEN));
+                         error_to_str(errno, strerr_buff, _LSM_ERR_MSG_LEN));
 
         rc = LSM_ERR_LIB_BUG;
         goto out;

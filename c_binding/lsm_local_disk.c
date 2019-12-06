@@ -17,9 +17,6 @@
  * Author: Gris Ge <fge@redhat.com>
  */
 
-#define _GNU_SOURCE
-/* ^ For strerror_r() */
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -202,7 +199,7 @@ static int _sysfs_vpd_pg80_data_get(char *err_msg, const char *sd_name,
         } else {
             _lsm_err_msg_set(err_msg, "BUG: Unknown error %d(%s) from "
                              "_read_file().", file_rc,
-                             strerror_r(file_rc, strerr_buff,
+                             error_to_str(file_rc, strerr_buff,
                                         _LSM_ERR_MSG_LEN));
             return LSM_ERR_LIB_BUG;
         }
@@ -251,7 +248,7 @@ static int _sysfs_vpd_pg83_data_get(char *err_msg, const char *sd_name,
         } else {
             _lsm_err_msg_set(err_msg, "BUG: Unknown error %d(%s) from "
                              "_read_file().", file_rc,
-                             strerror_r(file_rc, strerr_buff,
+                             error_to_str(file_rc, strerr_buff,
                                         _LSM_ERR_MSG_LEN));
             return LSM_ERR_LIB_BUG;
         }

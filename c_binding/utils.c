@@ -16,9 +16,6 @@
  * Author: Gris Ge <fge@redhat.com>
  */
 
-#define _GNU_SOURCE
-/* ^ For strerror_r() */
-
 #include <stdarg.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -28,6 +25,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <limits.h>
+#include <locale.h>
 
 #include "utils.h"
 #include "libstoragemgmt/libstoragemgmt_error.h"
@@ -190,7 +188,7 @@ int _sysfs_host_speed_get(char *err_msg, const char *sysfs_path,
             rc = LSM_ERR_LIB_BUG;
             _lsm_err_msg_set(err_msg, "BUG: Unknown error %d(%s) from "
                              "_read_file().", file_rc,
-                             strerror_r(file_rc, strerr_buff,
+                             error_to_str(file_rc, strerr_buff,
                                         _LSM_ERR_MSG_LEN));
             goto out;
     }
@@ -235,4 +233,23 @@ int _sysfs_host_speed_get(char *err_msg, const char *sysfs_path,
 
  out:
     return rc;
+}
+
+char *error_to_str(int errnum, char *buf, size_t buflen)
+{
+    const char *non_mem = "Unable to translate errno to text, newlocale fail";
+    if (buf && buflen >= 1024) {
+        locale_t const locale = newlocale(LC_MESSAGES_MASK, "", (locale_t)0 );
+        if (!locale) {
+            strncpy(buf, non_mem, buflen - 1);
+            buf[buflen - 1] = '\0';
+        } else {
+            char *s = strerror_l(errnum, locale);
+            strncpy(buf, s, buflen - 1);
+            buf[buflen - 1] = '\0';
+            freelocale(locale);
+        }
+        return buf;
+    }
+    return NULL;
 }
