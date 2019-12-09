@@ -112,4 +112,9 @@ LSM_DLL_LOCAL char* _trim_spaces(char *beginning);
 LSM_DLL_LOCAL int _sysfs_host_speed_get(char *err_msg, const char *sysfs_path,
                                         uint32_t *link_speed);
 
+/**
+ * Convert an errno to a string representation.
+ */
+LSM_DLL_LOCAL char *error_to_str(int errnum, char *buf, size_t buflen);
+
 #endif  /* End of _LIB_UTILS_H_ */

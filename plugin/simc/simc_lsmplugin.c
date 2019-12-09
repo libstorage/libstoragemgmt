@@ -17,8 +17,6 @@
  *
  */
 
-#define _GNU_SOURCE
-/* ^ For strerror_r() */
 
 #include <stdio.h>
 #include <openssl/md5.h>
@@ -139,7 +137,6 @@ int plugin_register(lsm_plugin_ptr c, const char *uri, const char *password,
     /* Create database file with 0666 permission if not exists */
     mode_t fd_mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
     char err_msg[_LSM_ERR_MSG_LEN];
-    char strerr_buff[_LSM_ERR_MSG_LEN];
     struct sqlite3 *db = NULL;
     struct _simc_private_data *pri_data = NULL;
 
@@ -168,8 +165,7 @@ int plugin_register(lsm_plugin_ptr c, const char *uri, const char *password,
         if (fd < 0) {
             rc = LSM_ERR_INVALID_ARGUMENT;
             _lsm_err_msg_set(err_msg, "Failed to create statefile '%s', "
-                             "error %d: %s", statefile, errno,
-                             strerror_r(errno, strerr_buff, _LSM_ERR_MSG_LEN));
+                             "error %d: %s", statefile, errno, strerror(errno));
             goto out;
         }
         close(fd);
