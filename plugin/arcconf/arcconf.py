@@ -691,7 +691,8 @@ class Arcconf(IPlugin):
         latest_ld = len(decoded_json['Controller']['LogicalDrive']) - 1
         ld_info = decoded_json['Controller']['LogicalDrive'][latest_ld]
         ld_num = ld_info['logicalDriveID']
-        pool_id = '%s:%s' % (ctrl_num, ld_num)
+        sys_id = decoded_json['Controller']['serialNumber']
+        pool_id = '%s:%s' % (sys_id, ld_num)
 
         lsm_vols = self.volumes(search_key='pool_id', search_value=pool_id)
 
