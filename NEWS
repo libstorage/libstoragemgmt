@@ -1,5 +1,10 @@
 News for libStorageMgmt
 
+1.8.3: Feb 12 2020
+    * Bug fix for arcconf
+      - https://github.com/libstorage/libstoragemgmt/issues/410
+    * Update nlohmann JSON
+
 1.8.2: Dec 9 2019
     * Compile fixes for Alpine Linux
       - https://github.com/libstorage/libstoragemgmt/issues/403
