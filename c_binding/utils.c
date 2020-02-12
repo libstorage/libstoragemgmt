@@ -165,7 +165,7 @@ int _sysfs_host_speed_get(char *err_msg, const char *sysfs_path,
                             uint32_t *link_speed)
 {
     int rc = LSM_ERR_OK;
-    char strerr_buff[_LSM_ERR_MSG_LEN];
+    char strerr_buff[1024];
     uint8_t buff[_SYSFS_HOST_SPEED_BUFF_MAX];
     int file_rc = 0;
     ssize_t file_size = 0;
@@ -186,10 +186,9 @@ int _sysfs_host_speed_get(char *err_msg, const char *sysfs_path,
         goto out;
     } else if (file_rc != 0) {
             rc = LSM_ERR_LIB_BUG;
+            char *err_str = error_to_str(file_rc, strerr_buff, sizeof(strerr_buff));
             _lsm_err_msg_set(err_msg, "BUG: Unknown error %d(%s) from "
-                             "_read_file().", file_rc,
-                             error_to_str(file_rc, strerr_buff,
-                                        _LSM_ERR_MSG_LEN));
+                             "_read_file().", file_rc, err_str);
             goto out;
     }
 
