@@ -180,8 +180,6 @@ dnl ==========================================================================
 dnl If we have python3 support or the user specified it explicitly use it.
 dnl ==========================================================================
 
-AM_PATH_PYTHON([3], [with_python3=yes], [:])
-
 AC_ARG_WITH([python3],
     [AS_HELP_STRING([--with-python3],
         [Use Python3 only])],
@@ -191,8 +189,14 @@ AC_ARG_WITH([python3],
 AC_ARG_WITH([python2],
     [AS_HELP_STRING([--with-python2],
         [Use Python2 only])],
-    [with_python3=no],
+    [force_2=yes],
     [])
+
+if test "x$force_2" = "xyes"; then
+    with_python3 = "no"
+else
+    AM_PATH_PYTHON([3], [with_python3=yes], [:])
+fi
 
 if test "x$with_python3" = "xyes"; then
     AC_SUBST(WITH_PYTHON3, yes)
