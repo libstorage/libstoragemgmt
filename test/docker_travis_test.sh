@@ -51,10 +51,6 @@ if [ "CHK$IS_RHEL6" == "CHK1" ];then
     yum install python-argparse -y || exit 1
 fi
 
-if [ "CHK$IS_RHEL6$IS_RHEL7" == "CHK1" ];then
-    yum install yajl-devel -y || exit 1;
-fi
-
 ./autogen.sh || exit 1
 if [ "CHK$IS_FEDORA" == "CHK1" ];then
     ./configure --with-python3 || exit 1
