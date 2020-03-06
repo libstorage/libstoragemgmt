@@ -423,6 +423,10 @@ AC_ARG_WITH([bash-completion-dir],
 
 AC_SUBST([bashcompletiondir], [$with_bash_completion_dir])
 
+#If we have the headers for yajl we will default to using it
+#else we will require c++11 support and use nlohmann
+AC_CHECK_HEADERS([yajl/yajl_gen.h yajl/yajl_parse.h], [with_yajl=yes])
+
 AC_ARG_WITH([yajl],
     [AC_HELP_STRING([--with-yajl],
                     [Use yajl instead of nlohmann/json for json processing, default: no])],
