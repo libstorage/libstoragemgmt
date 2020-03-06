@@ -177,8 +177,10 @@ fi
 PKG_CHECK_MODULES([LIBUDEV], [libudev])
 
 dnl ==========================================================================
-dnl See if the user wants to use python3
+dnl If we have python3 support or the user specified it explicitly use it.
 dnl ==========================================================================
+
+AM_PATH_PYTHON([3], [with_python3=yes], [:])
 
 AC_ARG_WITH([python3],
     [AS_HELP_STRING([--with-python3],
