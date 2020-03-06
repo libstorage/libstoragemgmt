@@ -52,10 +52,11 @@ if [ "CHK$IS_RHEL6" == "CHK1" ];then
 fi
 
 ./autogen.sh || exit 1
-if [ "CHK$IS_FEDORA" == "CHK1" ];then
-    ./configure --with-python3 || exit 1
-elif [ "CHK$IS_RHEL6$IS_RHEL7" == "CHK1" ];then
-    ./configure --with-yajl
+
+# Configure is almost doing the "right thing" by default in most cases,
+# but not for all.
+if [ "CHK$IS_DEB" = "CHK1" ];then
+    ./configure --with-python2 || exit 1
 else
     ./configure || exit 1
 fi
