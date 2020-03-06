@@ -177,7 +177,7 @@ fi
 PKG_CHECK_MODULES([LIBUDEV], [libudev])
 
 dnl ==========================================================================
-dnl See if the user wants to use python3
+dnl If we have python3 support or the user specified it explicitly use it.
 dnl ==========================================================================
 
 AC_ARG_WITH([python3],
@@ -185,6 +185,20 @@ AC_ARG_WITH([python3],
         [Use Python3 only])],
     [with_python3=yes],
     [])
+
+AC_ARG_WITH([python2],
+    [AS_HELP_STRING([--with-python2],
+        [Use Python2 only])],
+    [force_2=yes],
+    [])
+
+if test "x$force_2" = "xyes"; then
+    if test "x$with_python3" = "xyes"; then
+        AC_MSG_ERROR([--with-python2 and --with-python3 cannot be specified together])
+    fi
+else
+    AM_PATH_PYTHON([3], [with_python3=yes], [:])
+fi
 
 if test "x$with_python3" = "xyes"; then
     AC_SUBST(WITH_PYTHON3, yes)
@@ -420,6 +434,10 @@ AC_ARG_WITH([bash-completion-dir],
             [with_bash_completion_dir=$sysconfdir/bash_completion.d])])
 
 AC_SUBST([bashcompletiondir], [$with_bash_completion_dir])
+
+#If we have the headers for yajl we will default to using it
+#else we will require c++11 support and use nlohmann
+AC_CHECK_HEADERS([yajl/yajl_gen.h yajl/yajl_parse.h], [with_yajl=yes])
 
 AC_ARG_WITH([yajl],
     [AC_HELP_STRING([--with-yajl],
