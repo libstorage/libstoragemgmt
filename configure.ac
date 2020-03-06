@@ -188,6 +188,12 @@ AC_ARG_WITH([python3],
     [with_python3=yes],
     [])
 
+AC_ARG_WITH([python2],
+    [AS_HELP_STRING([--with-python2],
+        [Use Python2 only])],
+    [with_python3=no],
+    [])
+
 if test "x$with_python3" = "xyes"; then
     AC_SUBST(WITH_PYTHON3, yes)
     AC_PATH_PROGS(PYTHON, python3, [Python3 is required])
