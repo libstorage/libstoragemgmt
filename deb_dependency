@@ -11,7 +11,6 @@ python-pywbem
 libxml2-dev
 check
 libglib2.0-dev
-python-m2crypto
 libssl-dev
 libconfig-dev
 libudev-dev
