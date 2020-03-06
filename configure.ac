@@ -193,7 +193,9 @@ AC_ARG_WITH([python2],
     [])
 
 if test "x$force_2" = "xyes"; then
-    with_python3 = "no"
+    if test "x$with_python3" = "xyes"; then
+        AC_MSG_ERROR([--with-python2 and --with-python3 cannot be specified together])
+    fi
 else
     AM_PATH_PYTHON([3], [with_python3=yes], [:])
 fi
