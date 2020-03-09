@@ -14,6 +14,9 @@ elif [ "CHK$(rpm -E "%{?el7}")" != "CHK" ];then
 elif [ "CHK$(rpm -E "%{?el6}")" != "CHK" ];then
     IS_RHEL=1
     IS_RHEL6=1
+else
+    echo "Unsupported distribution"
+    exit 1;
 fi
 
 if [ "CHK$IS_DEB" == "CHK1" ] ;then
