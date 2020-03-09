@@ -5,12 +5,12 @@
 # docker run --privileged --rm=false --tty=true --interactive=true \
 #    -v `pwd`:/libstoragemgmt-code:rw fedora \
 #    /bin/bash -c /libstoragemgmt-code/test/docker_travis_test.sh
-if [ "CHK$(rpm -E %{?fedora})" != "CHK" ];then
+if [ "CHK$(rpm -E "%{?fedora}")" != "CHK" ];then
     IS_FEDORA=1
-elif [ "CHK$(rpm -E %{?el7})" != "CHK" ];then
+elif [ "CHK$(rpm -E "%{?el7}")" != "CHK" ];then
     IS_RHEL=1
     IS_RHEL7=1
-elif [ "CHK$(rpm -E %{?el6})" != "CHK" ];then
+elif [ "CHK$(rpm -E "%{?el6}")" != "CHK" ];then
     IS_RHEL=1
     IS_RHEL6=1
 elif [ -e "/etc/debian_version" ];then
