@@ -9,7 +9,6 @@ if [ "CHK$(rpm -E "%{?fedora}")" != "CHK" ];then
     IS_FEDORA=1
 elif [ "CHK$(rpm -E "%{?el7}")" != "CHK" ];then
     IS_RHEL=1
-    IS_RHEL7=1
 elif [ "CHK$(rpm -E "%{?el6}")" != "CHK" ];then
     IS_RHEL=1
     IS_RHEL6=1
