@@ -9,6 +9,8 @@ if [ -e "/etc/debian_version" ];then
     IS_DEB=1
 elif [ "CHK$(rpm -E "%{?fedora}")" != "CHK" ];then
     IS_FEDORA=1
+elif [ "CHK$(rpm -E "%{?el8}")" != "CHK" ];then
+    IS_FEDORA=1
 elif [ "CHK$(rpm -E "%{?el7}")" != "CHK" ];then
     IS_RHEL=1
 elif [ "CHK$(rpm -E "%{?el6}")" != "CHK" ];then

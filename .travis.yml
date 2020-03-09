@@ -3,6 +3,7 @@ language: c
 env:
     matrix:
         - OS_TYPE=fedora
+        - OS_TYPE=centos:8
         - OS_TYPE=centos:7
         - OS_TYPE=centos:6
         - OS_TYPE=ubuntu:latest
