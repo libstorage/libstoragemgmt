@@ -35,17 +35,21 @@ getent passwd libstoragemgmt >/dev/null || \
     -s /sbin/nologin \
     -c "daemon account for libstoragemgmt" libstoragemgmt || exit 1
 
+
 if [ "CHK$IS_FEDORA" == "CHK1" ];then
-    dnf install "$(cat ./rh_py3_rpm_dependency)" rpm-build -y || exit 1
+    # shellcheck disable=SC2046
+    dnf install $(cat ./rh_py3_rpm_dependency) rpm-build -y || exit 1
 elif [ "CHK$IS_RHEL" == "CHK1" ];then
-    yum install "$(cat ./rh_py2_rpm_dependency)" rpm-build -y || exit 1
+    # shellcheck disable=SC2046
+    yum install $(cat ./rh_py2_rpm_dependency) rpm-build -y || exit 1
 elif [ "CHK$IS_DEB" = "CHK1" ];then
     export DEBIAN_FRONTEND="noninteractive"
     apt-get update
     apt-get install -y tzdata
     ln -fs /usr/share/zoneinfo/GMT /etc/localtime
     dpkg-reconfigure --frontend noninteractive tzdata
-    apt-get install "$(cat ./deb_dependency)" -y -q || exit 1
+    # shellcheck disable=SC2046
+    apt-get install $(cat ./deb_dependency) -y -q || exit 1
 else
     echo "Not supported yet";
     exit 1;
