@@ -31,14 +31,6 @@
 #include "config.h"
 #endif
 
-#ifdef LSM_USE_YAJL
-#include <yajl/yajl_parse.h>
-#include <yajl/yajl_gen.h>
-#else
-#include <json.hpp>
-using json = nlohmann::json;
-#endif
-
 //Common serialization
 
 /**
@@ -361,14 +353,7 @@ class LSM_DLL_LOCAL Value {
     std::vector < Value > asArray();
 
   private:
-
-#ifdef LSM_USE_YAJL
     value_type t;
-    void marshal(yajl_gen g);
-#else
-    json j;
-    json _getJson() const;
-#endif
     std::vector <Value> array;
     std::map <std::string, Value> obj;
     std::string s;
