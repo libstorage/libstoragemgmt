@@ -1110,9 +1110,12 @@ class BackStore(object):
             raise LsmError(
                 ErrorNumber.NOT_FOUND_JOB, "Job not found")
 
-        progress = int(
-            (time.time() - float(sim_job['timestamp'])) /
-            sim_job['duration'] * 100)
+        if sim_job['duration'] != 0:
+            progress = int(
+                (time.time() - float(sim_job['timestamp'])) /
+                sim_job['duration'] * 100)
+        else:
+            progress = 100
 
         data = None
         data_type = None
