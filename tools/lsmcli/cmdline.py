@@ -54,6 +54,10 @@ except ImportError:
     from ordereddict import OrderedDict
 
 
+# Used to speed up volume listing routines
+LOCAL_DISK_LOOKUP = None
+
+
 # Wraps the invocation to the command line
 # @param    c   Object to invoke calls on (optional)
 def cmd_line_wrapper(c=None):
@@ -341,11 +345,30 @@ def _add_common_options(arg_parser, is_child=False):
         arg_parser.set_defaults(**default_dict)
 
 
+def _sd_paths_cache():
+    lookup = {}
+    for d in LocalDisk.list():
+        try:
+            vpd = LocalDisk.vpd83_get(d)
+            lookup[vpd] = d
+        except LsmError as lsm_err:
+            if lsm_err.code != ErrorNumber.NO_SUPPORT:
+                raise
+    return lookup
+
+
 def _add_sd_paths(lsm_obj):
+    global LOCAL_DISK_LOOKUP
     lsm_obj.sd_paths = []
+
+    if LOCAL_DISK_LOOKUP is None:
+        LOCAL_DISK_LOOKUP = _sd_paths_cache()
+
     try:
         if len(lsm_obj.vpd83) > 0:
-            lsm_obj.sd_paths = LocalDisk.vpd83_search(lsm_obj.vpd83)
+            # If we know of this vpd we will go out and get the paths.
+            if lsm_obj.vpd83 in LOCAL_DISK_LOOKUP:
+                lsm_obj.sd_paths = LocalDisk.vpd83_search(lsm_obj.vpd83)
     except LsmError as lsm_err:
         if lsm_err.code != ErrorNumber.NO_SUPPORT:
             raise
