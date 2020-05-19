@@ -38,6 +38,7 @@
 #define _DB_VERSION_CHECK_EMPTY                     2
 #define _SIZE_2TIB_STR                              "2199023255552"
 #define _SIZE_512GIB_STR                            "549755813888"
+#define _SIZE_BIG                                   "1152921504606846976"
 #define _DEFAULT_POOL_STRIP_SIZE                    131072    /* 128 KiB*/
 #define _POOL_STATUS_OK_STR                         "2"
 #define _POOL_MEMBER_TYPE_DISK_STR                  "2"
@@ -223,8 +224,8 @@ static int _db_data_init(char *err_msg, sqlite3 *db)
         _snprintf_buff(err_msg, rc, out, location_str,
                        "Port: %d Box: 1 Bay: 2", i);
         _good(_db_data_add(err_msg, db, _DB_TABLE_DISKS,
-                           "disk_prefix", "2TiB SAS Disk",
-                           "total_space", _SIZE_2TIB_STR,
+                           "disk_prefix", "1 BIG SAS Disk",
+                           "total_space", _SIZE_BIG,
                            "disk_type", disk_type_str,
                            "status", disk_status_str,
                            "vpd83", _random_vpd(vpd_buff),
