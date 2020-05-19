@@ -333,18 +333,18 @@ Value jsmn_parse(jsmntok_t *tok, int start_tok, int end_tok, const char *j,
 
 Value Payload::deserialize(const std::string & json_str)
 {
-    size_t num_tokens = 10000;
     jsmn_parser p;
     jsmntok_t *tok = NULL;
     int rc = 0;
-    jsmn_init(&p);
+    size_t num_tokens = std::max(size_t(json_str.length() / 10), size_t(500));
     
     while (1) {
+        jsmn_init(&p);
         tok = (jsmntok_t*)malloc(sizeof(*tok) * num_tokens);
         if (tok) {
             rc = jsmn_parse(&p, json_str.c_str(), json_str.length(),
                     tok, num_tokens);
-            
+
             if (rc < 0) {
                 if (JSMN_ERROR_NOMEM == rc) {
                     free(tok);
@@ -364,7 +364,7 @@ Value Payload::deserialize(const std::string & json_str)
             return Value();
         }
     }
- 
+
     int used = 0;
     Value result = jsmn_parse(tok, 0, rc, json_str.c_str(), &used);
     free(tok);
