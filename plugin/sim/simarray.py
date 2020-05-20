@@ -162,7 +162,7 @@ class BackStore(object):
     def __init__(self, statefile, timeout):
         if not os.path.exists(statefile):
             os.close(os.open(statefile, os.O_WRONLY | os.O_CREAT))
-            # Due to umask, os.open() created file migt not be 666 permission.
+            # Due to umask, os.open() created file might not be 666 permission.
             os.chmod(statefile, 0o666)
 
         self.statefile = statefile
@@ -847,6 +847,7 @@ class BackStore(object):
                     'read_cache_pct': BackStore._DEFAULT_READ_CACHE_PCT
                 })
 
+            size_bytes_1e = size_human_2_size_bytes('1EiB')
             size_bytes_2t = size_human_2_size_bytes('2TiB')
             size_bytes_512g = size_human_2_size_bytes('512GiB')
             # Add 2 SATA disks(2TiB)
@@ -872,8 +873,8 @@ class BackStore(object):
                 self._data_add(
                     'disks',
                     {
-                        'disk_prefix': "2TiB SAS Disk",
-                        'total_space': size_bytes_2t,
+                        'disk_prefix': "2EiB SAS Disk",
+                        'total_space': size_bytes_1e,
                         'disk_type': Disk.TYPE_SAS,
                         'status': Disk.STATUS_OK,
                         'vpd83': _random_vpd(),
@@ -1109,9 +1110,12 @@ class BackStore(object):
             raise LsmError(
                 ErrorNumber.NOT_FOUND_JOB, "Job not found")
 
-        progress = int(
-            (time.time() - float(sim_job['timestamp'])) /
-            sim_job['duration'] * 100)
+        if sim_job['duration'] != 0:
+            progress = int(
+                (time.time() - float(sim_job['timestamp'])) /
+                sim_job['duration'] * 100)
+        else:
+            progress = 100
 
         data = None
         data_type = None
