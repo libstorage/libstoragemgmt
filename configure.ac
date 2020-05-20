@@ -435,35 +435,6 @@ AC_ARG_WITH([bash-completion-dir],
 
 AC_SUBST([bashcompletiondir], [$with_bash_completion_dir])
 
-#If we have the headers for yajl we will default to using it
-#else we will require c++11 support and use nlohmann
-AC_CHECK_HEADERS([yajl/yajl_gen.h yajl/yajl_parse.h], [with_yajl=yes])
-
-AC_ARG_WITH([yajl],
-    [AC_HELP_STRING([--with-yajl],
-                    [Use yajl instead of nlohmann/json for json processing, default: no])],
-    [with_yajl=yes], [])
-
-AM_CONDITIONAL([WITH_YAJL], [test "x$with_yajl" = "xyes"])
-
-if test "x${with_yajl}" = "xyes"; then
-    #Check for json parser yajl
-    AC_CHECK_HEADERS([yajl/yajl_gen.h yajl/yajl_parse.h], [] ,
-                     AC_MSG_ERROR([Missing yajl development headers]) )
-    AC_CHECK_HEADERS([yajl/yajl_version.h])
-    AC_CHECK_LIB([yajl], [yajl_parse], [YAJL_LIBS=-lyajl],
-                 AC_MSG_ERROR([Missing yajl library]))
-    AC_SUBST([YAJL_LIBS])
-    AC_DEFINE([LSM_USE_YAJL], [], [Use yajl library])
-else
-    dnl =====================================================================
-    dnl Check for gcc support of c++11, required for nlohmann/json library.
-    dnl =====================================================================
-    AX_CXX_COMPILE_STDCXX(11, [noext], [mandatory])
-
-fi
-
-
 #Setup the unit directory for systemd stuff
 PKG_PROG_PKG_CONFIG
 AC_ARG_WITH([systemdsystemunitdir],

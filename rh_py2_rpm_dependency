@@ -21,4 +21,3 @@ pywbem
 sqlite-devel
 tar
 valgrind
-yajl-devel

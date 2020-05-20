@@ -37,11 +37,7 @@
 #include "config.h"
 #endif
 
-#ifdef LSM_USE_YAJL
-#include "lsm_value_yajl.hpp"
-#else
-#include "lsm_value_nlohmann_json.hpp"
-#endif
+#include "lsm_value_jsmn.hpp"
 
 static std::string zero_pad_num(unsigned int num)
 {
