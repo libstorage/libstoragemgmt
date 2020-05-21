@@ -1,5 +1,14 @@
 News for libStorageMgmt
 
+1.8.4: May 21 2020
+    * Bug fix for megaraid: correctly override vpd83 wien WWN is NA
+    * Re-work configure to be better about self configuration
+    * Updates to travis CI docker script
+    * Use jsmn JSON parser, remove YAJL and nlohmann
+    * Make some of the simulator disks much larger
+    * Introduce cformat makefile target to re-format C/C++ code
+      requires clang-format
+
 1.8.3: Feb 12 2020
     * Bug fix for arcconf
       - https://github.com/libstorage/libstoragemgmt/issues/410
