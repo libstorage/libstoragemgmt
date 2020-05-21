@@ -60,8 +60,7 @@ int LSM_DLL_EXPORT lsm_hash_keys(lsm_hash *op, lsm_string_list **l);
  * @return Pointer to value, pointer valid until optional data memory
  *          gets released.
  */
-const char LSM_DLL_EXPORT *lsm_hash_string_get(lsm_hash *op,
-                                               const char *key);
+const char LSM_DLL_EXPORT *lsm_hash_string_get(lsm_hash *op, const char *key);
 
 /*
  * Set the value of a key.
@@ -72,8 +71,8 @@ const char LSM_DLL_EXPORT *lsm_hash_string_get(lsm_hash *op,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-int LSM_DLL_EXPORT lsm_hash_string_set(lsm_hash *op,
-                                       const char *key, const char *value);
+int LSM_DLL_EXPORT lsm_hash_string_set(lsm_hash *op, const char *key,
+                                       const char *value);
 
 /*
  * Does a copy of an lsm_hash
@@ -85,4 +84,4 @@ lsm_hash LSM_DLL_EXPORT *lsm_hash_copy(lsm_hash *src);
 #ifdef __cplusplus
 }
 #endif
-#endif                          /* LIBSTORAGEMGMT_HASH_H */
+#endif /* LIBSTORAGEMGMT_HASH_H */

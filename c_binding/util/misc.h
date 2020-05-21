@@ -18,9 +18,9 @@
 
 #ifndef MISC_H
 #define MISC_H
-#include <string>
 #include <map>
 #include <stdint.h>
+#include <string>
 
 #include <libstoragemgmt/libstoragemgmt_common.h>
 
@@ -39,25 +39,20 @@ LSM_DLL_LOCAL std::string getValue(std::string query_string, std::string key);
  * @param t     Type you want to associate with an integer.
  * @return
  */
-template <class Type>
-class LSM_DLL_LOCAL JobControl {
+template <class Type> class LSM_DLL_LOCAL JobControl {
 
-public:
-
+  public:
     /**
      * Ctor
      */
-    JobControl():ticket(0)
-    {
-    }
+    JobControl() : ticket(0) {}
 
     /**
      * Adds an item to the collection.
      * @param t         Type to add.
      * @return          Index it was inserted at.
      */
-    int insert( Type t )
-    {
+    int insert(Type t) {
         jobs[++ticket] = t;
         return ticket;
     }
@@ -67,41 +62,30 @@ public:
      * @param num       Key
      * @return Item
      */
-    Type get(uint32_t num)
-    {
-        return getInt(num)->second;
-    }
+    Type get(uint32_t num) { return getInt(num)->second; }
 
     /**
      * Checks to see if an item is present.
      * @param num       Key
      * @return  true if key exists, else false.
      */
-    bool present(uint32_t num)
-    {
-        return ( getInt(num) != jobs.end());
-    }
+    bool present(uint32_t num) { return (getInt(num) != jobs.end()); }
 
     /**
      * Removes an item.
      * @param num       Key
      */
-    void remove(uint32_t num)
-    {
-        jobs.erase(getInt(num));
-    }
+    void remove(uint32_t num) { jobs.erase(getInt(num)); }
 
-private:
-    typename std::map<uint32_t, Type>::iterator getInt(uint32_t num )
-    {
+  private:
+    typename std::map<uint32_t, Type>::iterator getInt(uint32_t num) {
         typename std::map<uint32_t, Type>::iterator i = jobs.find(num);
         return i;
     }
     uint32_t ticket;
-    std::map<uint32_t , Type> jobs;
+    std::map<uint32_t, Type> jobs;
 };
 
-} //End namespace
+} // namespace LSM
 
-
-#endif  /* MISC_H */
+#endif /* MISC_H */

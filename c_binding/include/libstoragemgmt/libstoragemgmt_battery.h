@@ -193,8 +193,8 @@ uint64_t LSM_DLL_EXPORT lsm_battery_status_get(lsm_battery *b);
  *
  * Description:
  *      Retrieves the system id for the specified battery.
- *      Note: Address returned is valid until lsm_battery gets freed, copy return
- *      value if you need longer scope. Do not free returned string.
+ *      Note: Address returned is valid until lsm_battery gets freed, copy
+ * return value if you need longer scope. Do not free returned string.
  *
  * @b:
  *      Battery to retrieve system ID for.
@@ -208,4 +208,4 @@ const char LSM_DLL_EXPORT *lsm_battery_system_id_get(lsm_battery *b);
 #ifdef __cplusplus
 }
 #endif
-#endif                          /* LIBSTORAGEMGMT_BATTERY_H */
+#endif /* LIBSTORAGEMGMT_BATTERY_H */

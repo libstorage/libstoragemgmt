@@ -137,8 +137,7 @@ int LSM_DLL_EXPORT lsm_local_disk_serial_num_get(const char *disk_path,
  *              When provided disk path not found.
  *
  */
-int LSM_DLL_EXPORT lsm_local_disk_vpd83_get(const char *disk_path,
-                                            char **vpd83,
+int LSM_DLL_EXPORT lsm_local_disk_vpd83_get(const char *disk_path, char **vpd83,
                                             lsm_error **lsm_err);
 
 /**
@@ -400,7 +399,7 @@ int LSM_DLL_EXPORT lsm_local_disk_ident_led_on(const char *disk_path,
  *
  */
 int LSM_DLL_EXPORT lsm_local_disk_ident_led_off(const char *disk_path,
-                                                  lsm_error **lsm_err);
+                                                lsm_error **lsm_err);
 
 /**
  * lsm_local_disk_fault_led_on - Turn on the disk fault LED.
@@ -555,10 +554,11 @@ int LSM_DLL_EXPORT lsm_local_disk_led_status_get(const char *disk_path,
  *              Action is not supported.
  *
  */
-int LSM_DLL_EXPORT lsm_local_disk_link_speed_get
-    (const char *disk_path, uint32_t *link_speed, lsm_error **lsm_err);
+int LSM_DLL_EXPORT lsm_local_disk_link_speed_get(const char *disk_path,
+                                                 uint32_t *link_speed,
+                                                 lsm_error **lsm_err);
 
 #ifdef __cplusplus
 }
 #endif
-#endif                          /* LIBSTORAGEMGMT_LOCAL_DISK_H */
+#endif /* LIBSTORAGEMGMT_LOCAL_DISK_H */

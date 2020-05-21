@@ -23,7 +23,7 @@
 
 #include "libstoragemgmt_common.h"
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -44,7 +44,6 @@ extern "C" {
  *      freed by lsm_system_record_free().
  */
 lsm_system LSM_DLL_EXPORT *lsm_system_record_copy(lsm_system *s);
-
 
 /**
  * lsm_system_record_free - Free the lsm_system memory.
@@ -129,7 +128,8 @@ const char LSM_DLL_EXPORT *lsm_system_id_get(lsm_system *s);
 const char LSM_DLL_EXPORT *lsm_system_name_get(lsm_system *s);
 
 /**
- * lsm_system_read_cache_pct_get - Retrieves read cache percentage of the system.
+ * lsm_system_read_cache_pct_get - Retrieves read cache percentage of the
+ * system.
  *
  * Version:
  *      1.3
@@ -239,7 +239,7 @@ LSM_DLL_EXPORT const char *lsm_system_fw_version_get(lsm_system *s);
  */
 LSM_DLL_EXPORT lsm_system_mode_type lsm_system_mode_get(lsm_system *s);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
 #endif

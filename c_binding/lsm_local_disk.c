@@ -17,72 +17,72 @@
  * Author: Gris Ge <fge@redhat.com>
  */
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <libudev.h>
-#include <stdbool.h>
-#include <dirent.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <unistd.h>
-#include <stdarg.h>
 #include <assert.h>
+#include <dirent.h>
 #include <endian.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <libudev.h>
 #include <limits.h>
-#include <math.h>       /* For log10() */
+#include <math.h> /* For log10() */
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
+#include "libata.h"
+#include "libfc.h"
+#include "libiscsi.h"
+#include "libsas.h"
+#include "libses.h"
+#include "libsg.h"
 #include "libstoragemgmt/libstoragemgmt.h"
 #include "libstoragemgmt/libstoragemgmt_error.h"
 #include "libstoragemgmt/libstoragemgmt_plug_interface.h"
 #include "utils.h"
-#include "libsg.h"
-#include "libses.h"
-#include "libata.h"
-#include "libsas.h"
-#include "libfc.h"
-#include "libiscsi.h"
 
-#define _LSM_MAX_SERIAL_NUM_LEN			        253
+#define _LSM_MAX_SERIAL_NUM_LEN 253
 /* ^ Max is 252 bytes */
-#define _LSM_MAX_VPD83_ID_LEN                   33
+#define _LSM_MAX_VPD83_ID_LEN 33
 /* ^ Max one is 6h IEEE Registered Extended ID which it 32 bits hex string. */
-#define _SYS_BLOCK_PATH "/sys/block"
+#define _SYS_BLOCK_PATH      "/sys/block"
 #define _MAX_SD_NAME_STR_LEN 128
 /* The linux kernel support INT_MAX(2147483647) scsi disks at most which will
  * be named as sd[a-z]{1,7}, the 7 here means `math.log(2147483647, 26) + 1`.
  * Hence, 128 bits might be enough for a quit a while.
  */
 
-#define _SD_PATH_FORMAT "/dev/%s"
+#define _SD_PATH_FORMAT      "/dev/%s"
 #define _MAX_SD_PATH_STR_LEN 128 + _MAX_SD_NAME_STR_LEN
 
-#define _SYSFS_VPD80_PATH_FORMAT "/sys/block/%s/device/vpd_pg80"
-#define _MAX_SYSFS_VPD80_PATH_STR_LEN  128 + _MAX_SD_NAME_STR_LEN
+#define _SYSFS_VPD80_PATH_FORMAT      "/sys/block/%s/device/vpd_pg80"
+#define _MAX_SYSFS_VPD80_PATH_STR_LEN 128 + _MAX_SD_NAME_STR_LEN
 
-#define _SYSFS_VPD83_PATH_FORMAT "/sys/block/%s/device/vpd_pg83"
-#define _MAX_SYSFS_VPD83_PATH_STR_LEN  128 + _MAX_SD_NAME_STR_LEN
+#define _SYSFS_VPD83_PATH_FORMAT      "/sys/block/%s/device/vpd_pg83"
+#define _MAX_SYSFS_VPD83_PATH_STR_LEN 128 + _MAX_SD_NAME_STR_LEN
 
-#define _SYSFS_BLK_PATH_FORMAT "/sys/block/%s"
+#define _SYSFS_BLK_PATH_FORMAT      "/sys/block/%s"
 #define _MAX_SYSFS_BLK_PATH_STR_LEN 128 + _MAX_SD_NAME_STR_LEN
-#define _SYSFS_SAS_ADDR_LEN                     _SG_T10_SPL_SAS_ADDR_LEN + 2
+#define _SYSFS_SAS_ADDR_LEN         _SG_T10_SPL_SAS_ADDR_LEN + 2
 /* ^ Only Linux sysfs entry /sys/block/sdx/device/sas_address which
  *   format is '0x<hex_addr>\0'
  */
 
-#define _SCSI_MODE_SENSE_PSP_PAGE_CODE              0x19
+#define _SCSI_MODE_SENSE_PSP_PAGE_CODE 0x19
 /* ^ SCSI MODE SENSE page 19h Protocol Specific Port */
-#define _SCSI_MODE_SENSE_SAS_PHY_SUB_PAGE_CODE      0x01
+#define _SCSI_MODE_SENSE_SAS_PHY_SUB_PAGE_CODE 0x01
 /* ^ SCSI MODE SENSE SPL-4: Phy Control And Discover subpage 01h */
 
-#define _SCSI_MODE_SENSE_SUB_PAGE_FMT               0x01
+#define _SCSI_MODE_SENSE_SUB_PAGE_FMT 0x01
 /* ^ SPC-5 rev12 Table 458 - Sub_page mode page format Protocol Specific Port
  *   mode page
  */
 
-#define _SCSI_MODE_SENSE_PAGE_0_FMT                 0x00
+#define _SCSI_MODE_SENSE_PAGE_0_FMT 0x00
 /* ^ SPC-5 rev12 Table 457 - Page_0 mode page format Protocol Specific Port mode
  *   page
  */
@@ -100,11 +100,11 @@ struct t10_sbc_vpd_bdc {
 struct t10_proto_port_mode_page_0_hdr {
     uint8_t we_dont_care_0[2];
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    uint8_t protocol_id     : 4;
-    uint8_t we_dont_care_1  : 4;
+    uint8_t protocol_id : 4;
+    uint8_t we_dont_care_1 : 4;
 #else
-    uint8_t we_dont_care_1  : 4;
-    uint8_t protocol_id     : 4;
+    uint8_t we_dont_care_1 : 4;
+    uint8_t protocol_id : 4;
 #endif
 };
 /* ^ SPC-5 rev12 Table 457 - Page_0 mode page format Protocol Specific Port mode
@@ -114,11 +114,11 @@ struct t10_proto_port_mode_page_0_hdr {
 struct t10_proto_port_mode_sub_page_hdr {
     uint8_t we_dont_care_0[5];
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    uint8_t protocol_id     : 4;
-    uint8_t we_dont_care_1  : 4;
+    uint8_t protocol_id : 4;
+    uint8_t we_dont_care_1 : 4;
 #else
-    uint8_t we_dont_care_1  : 4;
-    uint8_t protocol_id     : 4;
+    uint8_t we_dont_care_1 : 4;
+    uint8_t protocol_id : 4;
 #endif
 };
 /* ^ SPC-5 rev12 Table 458 - Sub_page mode page format Protocol Specific Port
@@ -127,8 +127,7 @@ struct t10_proto_port_mode_sub_page_hdr {
 
 #pragma pack(pop)
 
-static int _sysfs_serial_num_of_sd_name(char *err_msg,
-                                        const char *sd_name,
+static int _sysfs_serial_num_of_sd_name(char *err_msg, const char *sd_name,
                                         uint8_t *serial_num);
 static int _sysfs_vpd_pg80_data_get(char *err_msg, const char *sd_name,
                                     uint8_t *vpd_data, ssize_t *read_size);
@@ -148,9 +147,8 @@ static int _sysfs_vpd_pg83_data_get(char *err_msg, const char *sd_name,
  */
 static void _sysfs_sas_addr_get(const char *blk_name, char *tp_sas_addr);
 
-static int _ses_ctrl(const char *disk_path, lsm_error **lsm_err,
-                     int action, int action_type);
-
+static int _ses_ctrl(const char *disk_path, lsm_error **lsm_err, int action,
+                     int action_type);
 
 /*
  * `tp_sas_addr` should be char[_SG_T10_SPL_SAS_ADDR_LEN]
@@ -161,11 +159,10 @@ static int _sas_addr_get(char *err_msg, const char *disk_path,
 /*
  * Retrieve the content of /sys/block/sda/device/vpd_pg80 file.
  * No argument checker here, assume all non-NULL and vpd_data is
-                * char[_SG_T10_SPC_VPD_MAX_LEN]
+ * char[_SG_T10_SPC_VPD_MAX_LEN]
  */
 static int _sysfs_vpd_pg80_data_get(char *err_msg, const char *sd_name,
-                                    uint8_t *vpd_data, ssize_t *read_size)
-{
+                                    uint8_t *vpd_data, ssize_t *read_size) {
     int file_rc = 0;
     char sysfs_path[_MAX_SYSFS_VPD80_PATH_STR_LEN];
     char sysfs_blk_path[_MAX_SYSFS_BLK_PATH_STR_LEN];
@@ -178,7 +175,7 @@ static int _sysfs_vpd_pg80_data_get(char *err_msg, const char *sd_name,
      */
     snprintf(sysfs_blk_path, _MAX_SYSFS_BLK_PATH_STR_LEN,
              _SYSFS_BLK_PATH_FORMAT, sd_name);
-    if (! _file_exists(sysfs_blk_path)) {
+    if (!_file_exists(sysfs_blk_path)) {
         _lsm_err_msg_set(err_msg, "Disk %s not found", sd_name);
         return LSM_ERR_NOT_FOUND_DISK;
     }
@@ -186,21 +183,24 @@ static int _sysfs_vpd_pg80_data_get(char *err_msg, const char *sd_name,
     snprintf(sysfs_path, _MAX_SYSFS_VPD80_PATH_STR_LEN,
              _SYSFS_VPD80_PATH_FORMAT, sd_name);
 
-    file_rc = _read_file(sysfs_path, vpd_data, read_size,
-                         _SG_T10_SPC_VPD_MAX_LEN);
+    file_rc =
+        _read_file(sysfs_path, vpd_data, read_size, _SG_T10_SPC_VPD_MAX_LEN);
     if (file_rc != 0) {
         if (file_rc == ENOENT) {
             _lsm_err_msg_set(err_msg, "File '%s' not exist", sysfs_path);
             return LSM_ERR_NO_SUPPORT;
         } else if (file_rc == EINVAL) {
-            _lsm_err_msg_set(err_msg, "Read error on File '%s': "
-                             "invalid argument", sysfs_path);
+            _lsm_err_msg_set(err_msg,
+                             "Read error on File '%s': "
+                             "invalid argument",
+                             sysfs_path);
             return LSM_ERR_NO_SUPPORT;
         } else {
-            _lsm_err_msg_set(err_msg, "BUG: Unknown error %d(%s) from "
-                             "_read_file().", file_rc,
-                             error_to_str(file_rc, strerr_buff,
-                                        _LSM_ERR_MSG_LEN));
+            _lsm_err_msg_set(
+                err_msg,
+                "BUG: Unknown error %d(%s) from "
+                "_read_file().",
+                file_rc, error_to_str(file_rc, strerr_buff, _LSM_ERR_MSG_LEN));
             return LSM_ERR_LIB_BUG;
         }
     }
@@ -210,11 +210,10 @@ static int _sysfs_vpd_pg80_data_get(char *err_msg, const char *sd_name,
 /*
  * Retrieve the content of /sys/block/sda/device/vpd_pg83 file.
  * No argument checker here, assume all non-NULL and vpd_data is
-                * char[_SG_T10_SPC_VPD_MAX_LEN]
+ * char[_SG_T10_SPC_VPD_MAX_LEN]
  */
 static int _sysfs_vpd_pg83_data_get(char *err_msg, const char *sd_name,
-                                    uint8_t *vpd_data, ssize_t *read_size)
-{
+                                    uint8_t *vpd_data, ssize_t *read_size) {
     int file_rc = 0;
     char sysfs_path[_MAX_SYSFS_VPD83_PATH_STR_LEN];
     char sysfs_blk_path[_MAX_SYSFS_BLK_PATH_STR_LEN];
@@ -227,7 +226,7 @@ static int _sysfs_vpd_pg83_data_get(char *err_msg, const char *sd_name,
      */
     snprintf(sysfs_blk_path, _MAX_SYSFS_BLK_PATH_STR_LEN,
              _SYSFS_BLK_PATH_FORMAT, sd_name);
-    if (! _file_exists(sysfs_blk_path)) {
+    if (!_file_exists(sysfs_blk_path)) {
         _lsm_err_msg_set(err_msg, "Disk %s not found", sd_name);
         return LSM_ERR_NOT_FOUND_DISK;
     }
@@ -235,21 +234,24 @@ static int _sysfs_vpd_pg83_data_get(char *err_msg, const char *sd_name,
     snprintf(sysfs_path, _MAX_SYSFS_VPD83_PATH_STR_LEN,
              _SYSFS_VPD83_PATH_FORMAT, sd_name);
 
-    file_rc = _read_file(sysfs_path, vpd_data, read_size,
-                         _SG_T10_SPC_VPD_MAX_LEN);
+    file_rc =
+        _read_file(sysfs_path, vpd_data, read_size, _SG_T10_SPC_VPD_MAX_LEN);
     if (file_rc != 0) {
         if (file_rc == ENOENT) {
             _lsm_err_msg_set(err_msg, "File '%s' not exist", sysfs_path);
             return LSM_ERR_NO_SUPPORT;
         } else if (file_rc == EINVAL) {
-            _lsm_err_msg_set(err_msg, "Read error on File '%s': "
-                             "invalid argument", sysfs_path);
+            _lsm_err_msg_set(err_msg,
+                             "Read error on File '%s': "
+                             "invalid argument",
+                             sysfs_path);
             return LSM_ERR_NO_SUPPORT;
         } else {
-            _lsm_err_msg_set(err_msg, "BUG: Unknown error %d(%s) from "
-                             "_read_file().", file_rc,
-                             error_to_str(file_rc, strerr_buff,
-                                        _LSM_ERR_MSG_LEN));
+            _lsm_err_msg_set(
+                err_msg,
+                "BUG: Unknown error %d(%s) from "
+                "_read_file().",
+                file_rc, error_to_str(file_rc, strerr_buff, _LSM_ERR_MSG_LEN));
             return LSM_ERR_LIB_BUG;
         }
     }
@@ -270,8 +272,7 @@ static int _sysfs_vpd_pg83_data_get(char *err_msg, const char *sd_name,
  *        LSM_ERR_NOT_FOUND_DISK
  */
 static int _sysfs_vpd83_naa_of_sd_name(char *err_msg, const char *sd_name,
-                                       char *vpd83)
-{
+                                       char *vpd83) {
     ssize_t read_size = 0;
     struct _sg_t10_vpd83_naa_header *naa_header = NULL;
     int rc = LSM_ERR_OK;
@@ -284,31 +285,31 @@ static int _sysfs_vpd83_naa_of_sd_name(char *err_msg, const char *sd_name,
 
     if (sd_name == NULL) {
         _lsm_err_msg_set(err_msg, "_sysfs_vpd83_naa_of_sd_name(): "
-                         "Input sd_name argument is NULL");
+                                  "Input sd_name argument is NULL");
         rc = LSM_ERR_LIB_BUG;
         goto out;
     }
 
-    _good(_sysfs_vpd_pg83_data_get(err_msg, sd_name, vpd_data, &read_size),
-          rc, out);
+    _good(_sysfs_vpd_pg83_data_get(err_msg, sd_name, vpd_data, &read_size), rc,
+          out);
 
     _good(_sg_parse_vpd_83(err_msg, vpd_data, &dps, &dp_count), rc, out);
 
     for (; i < dp_count; ++i) {
         if ((dps[i]->header.designator_type ==
-             _SG_T10_SPC_VPD_DI_DESIGNATOR_TYPE_NAA)  &&
+             _SG_T10_SPC_VPD_DI_DESIGNATOR_TYPE_NAA) &&
             (dps[i]->header.association ==
              _SG_T10_SPC_VPD_DI_ASSOCIATION_LUN)) {
-            naa_header = (struct _sg_t10_vpd83_naa_header *) dps[i]->designator;
-            switch(naa_header->naa_type) {
+            naa_header = (struct _sg_t10_vpd83_naa_header *)dps[i]->designator;
+            switch (naa_header->naa_type) {
             case _SG_T10_SPC_VPD_DI_NAA_TYPE_2:
             case _SG_T10_SPC_VPD_DI_NAA_TYPE_3:
             case _SG_T10_SPC_VPD_DI_NAA_TYPE_5:
-                _be_raw_to_hex((uint8_t *) naa_header,
+                _be_raw_to_hex((uint8_t *)naa_header,
                                _SG_T10_SPC_VPD_DI_NAA_235_ID_LEN, vpd83);
                 break;
             case _SG_T10_SPC_VPD_DI_NAA_TYPE_6:
-                _be_raw_to_hex((uint8_t *) naa_header,
+                _be_raw_to_hex((uint8_t *)naa_header,
                                _SG_T10_SPC_VPD_DI_NAA_6_ID_LEN, vpd83);
                 break;
             default:
@@ -325,7 +326,7 @@ static int _sysfs_vpd83_naa_of_sd_name(char *err_msg, const char *sd_name,
                          "SCSI VPD 83 NAA logical unit ID is not supported");
     }
 
- out:
+out:
     if (dps != NULL)
         _sg_t10_vpd83_dp_array_free(dps, dp_count);
     return rc;
@@ -344,34 +345,32 @@ static int _sysfs_vpd83_naa_of_sd_name(char *err_msg, const char *sd_name,
  * Return LSM_ERR_NO_MEMORY or LSM_ERR_NO_SUPPORT or LSM_ERR_LIB_BUG or
  *        LSM_ERR_NOT_FOUND_DISK
  */
-static int _sysfs_serial_num_of_sd_name(char *err_msg,
-                                        const char *sd_name,
-                                        uint8_t *serial_num)
-{
+static int _sysfs_serial_num_of_sd_name(char *err_msg, const char *sd_name,
+                                        uint8_t *serial_num) {
     ssize_t read_size = 0;
     int rc = LSM_ERR_OK;
     uint8_t vpd_data[_SG_T10_SPC_VPD_MAX_LEN];
 
     if (sd_name == NULL) {
         _lsm_err_msg_set(err_msg, "_sysfs_serial_num_of_sd_name(): "
-                         "Input sd_name argument is NULL");
+                                  "Input sd_name argument is NULL");
         rc = LSM_ERR_LIB_BUG;
         goto out;
     }
 
-    _good(_sysfs_vpd_pg80_data_get(err_msg, sd_name, vpd_data, &read_size),
-          rc, out);
+    _good(_sysfs_vpd_pg80_data_get(err_msg, sd_name, vpd_data, &read_size), rc,
+          out);
 
     _good(_sg_parse_vpd_80(err_msg, vpd_data, serial_num,
-                           _LSM_MAX_SERIAL_NUM_LEN), rc, out);
+                           _LSM_MAX_SERIAL_NUM_LEN),
+          rc, out);
 
     if (serial_num[0] == '\0') {
         rc = LSM_ERR_NO_SUPPORT;
-        _lsm_err_msg_set(err_msg,
-                         "SCSI VPD 80 serial number is not supported");
+        _lsm_err_msg_set(err_msg, "SCSI VPD 80 serial number is not supported");
     }
 
- out:
+out:
     return rc;
 }
 
@@ -387,8 +386,7 @@ static int _sysfs_serial_num_of_sd_name(char *err_msg,
  * did the check.
  */
 static int _udev_vpd83_of_sd_name(char *err_msg, const char *sd_name,
-                                  char *vpd83)
-{
+                                  char *vpd83) {
     struct udev *udev = NULL;
     struct udev_device *sd_udev = NULL;
     int rc = LSM_ERR_OK;
@@ -424,7 +422,7 @@ static int _udev_vpd83_of_sd_name(char *err_msg, const char *sd_name,
 
     snprintf(vpd83, _LSM_MAX_VPD83_ID_LEN, "%s", wwn);
 
- out:
+out:
     if (udev != NULL)
         udev_unref(udev);
 
@@ -436,8 +434,7 @@ static int _udev_vpd83_of_sd_name(char *err_msg, const char *sd_name,
 
 int lsm_local_disk_vpd83_search(const char *vpd83,
                                 lsm_string_list **disk_path_list,
-                                lsm_error **lsm_err)
-{
+                                lsm_error **lsm_err) {
     int rc = LSM_ERR_OK;
     uint32_t i = 0;
     const char *disk_path = NULL;
@@ -462,13 +459,13 @@ int lsm_local_disk_vpd83_search(const char *vpd83,
     }
 
     if (strlen(vpd83) >= _LSM_MAX_VPD83_ID_LEN) {
-        _lsm_err_msg_set(err_msg, "Provided vpd83 string exceeded the maximum "
+        _lsm_err_msg_set(err_msg,
+                         "Provided vpd83 string exceeded the maximum "
                          "string length for SCSI VPD83 NAA ID %d, current %zd",
                          _LSM_MAX_VPD83_ID_LEN - 1, strlen(vpd83));
         rc = LSM_ERR_INVALID_ARGUMENT;
         goto out;
     }
-
 
     *lsm_err = NULL;
     *disk_path_list = lsm_string_list_alloc(0 /* no pre-allocation */);
@@ -493,7 +490,8 @@ int lsm_local_disk_vpd83_search(const char *vpd83,
         }
         if (tmp_vpd83 == NULL) {
             rc = LSM_ERR_LIB_BUG;
-            _lsm_err_msg_set(err_msg, "BUG: lsm_local_disk_vpd83_get() on "
+            _lsm_err_msg_set(err_msg,
+                             "BUG: lsm_local_disk_vpd83_get() on "
                              "'%s',return NULL for vpd83 and LSM_ERR_OK",
                              disk_path);
             goto out;
@@ -508,7 +506,7 @@ int lsm_local_disk_vpd83_search(const char *vpd83,
         tmp_vpd83 = NULL;
     }
 
- out:
+out:
     if (disk_paths != NULL)
         lsm_string_list_free(disk_paths);
 
@@ -536,8 +534,7 @@ int lsm_local_disk_vpd83_search(const char *vpd83,
 }
 
 int lsm_local_disk_serial_num_get(const char *disk_path, char **serial_num,
-                                  lsm_error **lsm_err)
-{
+                                  lsm_error **lsm_err) {
     uint8_t tmp_serial_num[_LSM_MAX_SERIAL_NUM_LEN];
     char *trimmed_serial_num = NULL;
     const char *sd_name = NULL;
@@ -559,7 +556,7 @@ int lsm_local_disk_serial_num_get(const char *disk_path, char **serial_num,
     *serial_num = NULL;
     *lsm_err = NULL;
 
-    if (! _file_exists(disk_path)) {
+    if (!_file_exists(disk_path)) {
         rc = LSM_ERR_NOT_FOUND_DISK;
         _lsm_err_msg_set(err_msg, "Disk %s not found", disk_path);
         goto out;
@@ -568,7 +565,7 @@ int lsm_local_disk_serial_num_get(const char *disk_path, char **serial_num,
     if (strncmp(disk_path, "/dev/sd", strlen("/dev/sd")) != 0) {
         rc = LSM_ERR_NO_SUPPORT;
         _lsm_err_msg_set(err_msg, "we only support disk path start with "
-                         "'/dev/sd' today");
+                                  "'/dev/sd' today");
         goto out;
     }
 
@@ -579,14 +576,14 @@ int lsm_local_disk_serial_num_get(const char *disk_path, char **serial_num,
         goto out;
 
     if (tmp_serial_num[0] != '\0') {
-        //ensure that the string being trimmed is NULL terminated
+        // ensure that the string being trimmed is NULL terminated
         tmp_serial_num[_LSM_MAX_SERIAL_NUM_LEN - 1] = '\0';
 
-        trimmed_serial_num = _trim_spaces((char *) tmp_serial_num);
+        trimmed_serial_num = _trim_spaces((char *)tmp_serial_num);
         if (trimmed_serial_num == NULL) {
             rc = LSM_ERR_NO_SUPPORT;
             _lsm_err_msg_set(err_msg, "failed to trim vpd80 "
-                             "serial number field");
+                                      "serial number field");
             goto out;
         }
 
@@ -596,10 +593,10 @@ int lsm_local_disk_serial_num_get(const char *disk_path, char **serial_num,
     } else {
         rc = LSM_ERR_NO_SUPPORT;
         _lsm_err_msg_set(err_msg, "no characters in vpd80 serial "
-                         "number field");
+                                  "number field");
     }
 
- out:
+out:
     if (rc != LSM_ERR_OK) {
         if (lsm_err != NULL)
             *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
@@ -614,8 +611,7 @@ int lsm_local_disk_serial_num_get(const char *disk_path, char **serial_num,
 }
 
 int lsm_local_disk_vpd83_get(const char *disk_path, char **vpd83,
-                             lsm_error **lsm_err)
-{
+                             lsm_error **lsm_err) {
     char tmp_vpd83[_LSM_MAX_VPD83_ID_LEN];
     const char *sd_name = NULL;
     int rc = LSM_ERR_OK;
@@ -635,7 +631,7 @@ int lsm_local_disk_vpd83_get(const char *disk_path, char **vpd83,
     *vpd83 = NULL;
     *lsm_err = NULL;
 
-    if (! _file_exists(disk_path)) {
+    if (!_file_exists(disk_path)) {
         rc = LSM_ERR_NOT_FOUND_DISK;
         _lsm_err_msg_set(err_msg, "Disk %s not found", disk_path);
         goto out;
@@ -644,7 +640,7 @@ int lsm_local_disk_vpd83_get(const char *disk_path, char **vpd83,
     if (strncmp(disk_path, "/dev/sd", strlen("/dev/sd")) != 0) {
         rc = LSM_ERR_NO_SUPPORT;
         _lsm_err_msg_set(err_msg, "Only support disk path start with "
-                         "'/dev/sd' yet");
+                                  "'/dev/sd' yet");
         goto out;
     }
 
@@ -664,14 +660,14 @@ int lsm_local_disk_vpd83_get(const char *disk_path, char **vpd83,
             rc = LSM_ERR_NO_MEMORY;
     }
 
- out:
+out:
     if (rc != LSM_ERR_OK) {
         if (lsm_err != NULL)
             *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
 
         if (vpd83 != NULL) {
             free(*vpd83);
-            *vpd83= NULL;
+            *vpd83 = NULL;
         }
     }
 
@@ -679,8 +675,7 @@ int lsm_local_disk_vpd83_get(const char *disk_path, char **vpd83,
 }
 
 int lsm_local_disk_rpm_get(const char *disk_path, int32_t *rpm,
-                           lsm_error **lsm_err)
-{
+                           lsm_error **lsm_err) {
     uint8_t vpd_data[_SG_T10_SPC_VPD_MAX_LEN];
     int fd = -1;
     char err_msg[_LSM_ERR_MSG_LEN];
@@ -695,13 +690,14 @@ int lsm_local_disk_rpm_get(const char *disk_path, int32_t *rpm,
     _lsm_err_msg_clear(err_msg);
 
     _good(_sg_io_open_ro(err_msg, disk_path, &fd), rc, out);
-    _good(_sg_io_vpd(err_msg, fd, _SG_T10_SBC_VPD_BLK_DEV_CHA,  vpd_data),
-          rc, out);
+    _good(_sg_io_vpd(err_msg, fd, _SG_T10_SBC_VPD_BLK_DEV_CHA, vpd_data), rc,
+          out);
 
-    bdc = (struct t10_sbc_vpd_bdc *) vpd_data;
+    bdc = (struct t10_sbc_vpd_bdc *)vpd_data;
     if (bdc->pg_code != _SG_T10_SBC_VPD_BLK_DEV_CHA) {
         rc = LSM_ERR_LIB_BUG;
-        _lsm_err_msg_set(err_msg, "Got corrupted SCSI SBC "
+        _lsm_err_msg_set(err_msg,
+                         "Got corrupted SCSI SBC "
                          "Device Characteristics VPD page, expected page code "
                          "is %d but got %" PRIu8 "",
                          _SG_T10_SBC_VPD_BLK_DEV_CHA, bdc->pg_code);
@@ -716,7 +712,7 @@ int lsm_local_disk_rpm_get(const char *disk_path, int32_t *rpm,
     if (*rpm == _SG_T10_SBC_MEDIUM_ROTATION_SSD)
         *rpm = LSM_DISK_RPM_NON_ROTATING_MEDIUM;
 
- out:
+out:
     if (fd >= 0)
         close(fd);
 
@@ -730,8 +726,7 @@ int lsm_local_disk_rpm_get(const char *disk_path, int32_t *rpm,
     return rc;
 }
 
-int lsm_local_disk_list(lsm_string_list **disk_paths, lsm_error **lsm_err)
-{
+int lsm_local_disk_list(lsm_string_list **disk_paths, lsm_error **lsm_err) {
     struct udev *udev = NULL;
     struct udev_enumerate *udev_enum = NULL;
     struct udev_list_entry *udev_devs = NULL;
@@ -775,23 +770,29 @@ int lsm_local_disk_list(lsm_string_list **disk_paths, lsm_error **lsm_err)
     udev_rc = udev_enumerate_add_match_subsystem(udev_enum, "block");
     if (udev_rc != 0) {
         rc = LSM_ERR_LIB_BUG;
-        _lsm_err_msg_set(err_msg, "udev_enumerate_scan_subsystems() failed "
-                         "with %d", udev_rc);
+        _lsm_err_msg_set(err_msg,
+                         "udev_enumerate_scan_subsystems() failed "
+                         "with %d",
+                         udev_rc);
         goto out;
     }
     udev_rc = udev_enumerate_add_match_property(udev_enum, "DEVTYPE", "disk");
     if (udev_rc != 0) {
         rc = LSM_ERR_LIB_BUG;
-        _lsm_err_msg_set(err_msg, "udev_enumerate_add_match_property() failed "
-                         "with %d", udev_rc);
+        _lsm_err_msg_set(err_msg,
+                         "udev_enumerate_add_match_property() failed "
+                         "with %d",
+                         udev_rc);
         goto out;
     }
 
     udev_rc = udev_enumerate_scan_devices(udev_enum);
     if (udev_rc != 0) {
         rc = LSM_ERR_LIB_BUG;
-        _lsm_err_msg_set(err_msg, "udev_enumerate_scan_devices() failed "
-                         "with %d", udev_rc);
+        _lsm_err_msg_set(err_msg,
+                         "udev_enumerate_scan_devices() failed "
+                         "with %d",
+                         udev_rc);
         goto out;
     }
 
@@ -827,8 +828,7 @@ int lsm_local_disk_list(lsm_string_list **disk_paths, lsm_error **lsm_err)
         udev_device_unref(udev_dev);
     }
 
-
- out:
+out:
     if (udev != NULL)
         udev_unref(udev);
 
@@ -854,8 +854,7 @@ int lsm_local_disk_list(lsm_string_list **disk_paths, lsm_error **lsm_err)
  */
 int lsm_local_disk_health_status_get(const char *disk_path,
                                      int32_t *health_status,
-                                     lsm_error **lsm_err)
-{
+                                     lsm_error **lsm_err) {
     int fd = -1;
     char err_msg[_LSM_ERR_MSG_LEN];
     int rc = LSM_ERR_OK;
@@ -863,8 +862,8 @@ int lsm_local_disk_health_status_get(const char *disk_path,
 
     _lsm_err_msg_clear(err_msg);
 
-    _good(_check_null_ptr(err_msg, 3, disk_path, health_status, lsm_err),
-          rc, out);
+    _good(_check_null_ptr(err_msg, 3, disk_path, health_status, lsm_err), rc,
+          out);
 
     *lsm_err = NULL;
 
@@ -879,8 +878,7 @@ int lsm_local_disk_health_status_get(const char *disk_path,
     _good(_sg_io_open_ro(err_msg, disk_path, &fd), rc, out);
 
     if (link_type == LSM_DISK_LINK_TYPE_ATA) {
-        _good(_sg_ata_health_status(err_msg, fd, health_status),
-              rc, out);
+        _good(_sg_ata_health_status(err_msg, fd, health_status), rc, out);
     } else if (link_type == LSM_DISK_LINK_TYPE_SAS) {
         _good(_sg_sas_health_status(err_msg, fd, health_status), rc, out);
     } else {
@@ -918,8 +916,7 @@ out:
  */
 int lsm_local_disk_link_type_get(const char *disk_path,
                                  lsm_disk_link_type *link_type,
-                                 lsm_error **lsm_err)
-{
+                                 lsm_error **lsm_err) {
     unsigned char vpd_sup_data[_SG_T10_SPC_VPD_MAX_LEN];
     unsigned char vpd_di_data[_SG_T10_SPC_VPD_MAX_LEN];
     int fd = -1;
@@ -937,7 +934,7 @@ int lsm_local_disk_link_type_get(const char *disk_path,
     _lsm_err_msg_clear(err_msg);
 
     _good(_check_null_ptr(err_msg, 3 /* arg_count */, disk_path, link_type,
-                         lsm_err),
+                          lsm_err),
           rc, out);
 
     *link_type = LSM_DISK_LINK_TYPE_NO_SUPPORT;
@@ -947,8 +944,8 @@ int lsm_local_disk_link_type_get(const char *disk_path,
     _good(_sg_io_vpd(err_msg, fd, _SG_T10_SPC_VPD_SUP_VPD_PGS, vpd_sup_data),
           rc, out);
 
-    if (_sg_is_vpd_page_supported(vpd_sup_data,
-                                  _SG_T10_SPC_VPD_ATA_INFO) == true) {
+    if (_sg_is_vpd_page_supported(vpd_sup_data, _SG_T10_SPC_VPD_ATA_INFO) ==
+        true) {
         *link_type = LSM_DISK_LINK_TYPE_ATA;
         goto out;
     }
@@ -987,17 +984,16 @@ int lsm_local_disk_link_type_get(const char *disk_path,
                                    _SCSI_MODE_SENSE_SUB_PAGE_FMT,
                                    protocol_mode_page);
         if (tmp_rc == LSM_ERR_OK) {
-            sub_page_hdr = (struct t10_proto_port_mode_sub_page_hdr *)
-                protocol_mode_page;
+            sub_page_hdr =
+                (struct t10_proto_port_mode_sub_page_hdr *)protocol_mode_page;
             *link_type = sub_page_hdr->protocol_id;
         } else if (tmp_rc == LSM_ERR_NO_SUPPORT) {
-            tmp_rc = _sg_io_mode_sense(err_msg, fd,
-                                       _SCSI_MODE_SENSE_PSP_PAGE_CODE,
-                                       _SCSI_MODE_SENSE_PAGE_0_FMT,
-                                       protocol_mode_page);
+            tmp_rc = _sg_io_mode_sense(
+                err_msg, fd, _SCSI_MODE_SENSE_PSP_PAGE_CODE,
+                _SCSI_MODE_SENSE_PAGE_0_FMT, protocol_mode_page);
             if (tmp_rc == LSM_ERR_OK) {
-                page_0_hdr = (struct t10_proto_port_mode_page_0_hdr *)
-                    protocol_mode_page;
+                page_0_hdr =
+                    (struct t10_proto_port_mode_page_0_hdr *)protocol_mode_page;
                 *link_type = page_0_hdr->protocol_id;
             } else if (tmp_rc != LSM_ERR_NO_SUPPORT) {
                 rc = LSM_ERR_LIB_BUG;
@@ -1009,8 +1005,7 @@ int lsm_local_disk_link_type_get(const char *disk_path,
         }
     }
 
-
- out:
+out:
     if (fd >= 0)
         close(fd);
 
@@ -1027,41 +1022,36 @@ int lsm_local_disk_link_type_get(const char *disk_path,
     return rc;
 }
 
-int lsm_local_disk_ident_led_on(const char *disk_path, lsm_error **lsm_err)
-{
+int lsm_local_disk_ident_led_on(const char *disk_path, lsm_error **lsm_err) {
     return _ses_ctrl(disk_path, lsm_err, _SES_DEV_CTRL_RQST_IDENT,
                      _SES_CTRL_SET);
 }
 
-int lsm_local_disk_ident_led_off(const char *disk_path, lsm_error **lsm_err)
-{
+int lsm_local_disk_ident_led_off(const char *disk_path, lsm_error **lsm_err) {
     return _ses_ctrl(disk_path, lsm_err, _SES_DEV_CTRL_RQST_IDENT,
                      _SES_CTRL_CLEAR);
 }
 
-int lsm_local_disk_fault_led_on(const char *disk_path, lsm_error **lsm_err)
-{
+int lsm_local_disk_fault_led_on(const char *disk_path, lsm_error **lsm_err) {
     return _ses_ctrl(disk_path, lsm_err, _SES_DEV_CTRL_RQST_FAULT,
                      _SES_CTRL_SET);
 }
 
-int lsm_local_disk_fault_led_off(const char *disk_path, lsm_error **lsm_err)
-{
+int lsm_local_disk_fault_led_off(const char *disk_path, lsm_error **lsm_err) {
     return _ses_ctrl(disk_path, lsm_err, _SES_DEV_CTRL_RQST_FAULT,
                      _SES_CTRL_CLEAR);
 }
 
-static int _ses_ctrl(const char *disk_path, lsm_error **lsm_err,
-                     int action, int action_type)
-{
+static int _ses_ctrl(const char *disk_path, lsm_error **lsm_err, int action,
+                     int action_type) {
     int rc = LSM_ERR_OK;
     char err_msg[_LSM_ERR_MSG_LEN];
     char tp_sas_addr[_SG_T10_SPL_SAS_ADDR_LEN];
 
     _lsm_err_msg_clear(err_msg);
 
-    _good(_check_null_ptr(err_msg, 2 /* arg_count */, disk_path, lsm_err),
-          rc, out);
+    _good(_check_null_ptr(err_msg, 2 /* arg_count */, disk_path, lsm_err), rc,
+          out);
 
     _good(_sas_addr_get(err_msg, disk_path, tp_sas_addr), rc, out);
 
@@ -1069,10 +1059,10 @@ static int _ses_ctrl(const char *disk_path, lsm_error **lsm_err,
      * SES-3, 6.1.3 Enclosure Control diagnostic page
      * SES-3, Table 78 — Device Slot control element
      */
-    _good(_ses_dev_slot_ctrl(err_msg, tp_sas_addr, action, action_type),
-          rc, out);
+    _good(_ses_dev_slot_ctrl(err_msg, tp_sas_addr, action, action_type), rc,
+          out);
 
- out:
+out:
     if (rc != LSM_ERR_OK) {
         if (lsm_err != NULL)
             *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
@@ -1080,8 +1070,7 @@ static int _ses_ctrl(const char *disk_path, lsm_error **lsm_err,
     return rc;
 }
 
-static void _sysfs_sas_addr_get(const char *blk_name, char *tp_sas_addr)
-{
+static void _sysfs_sas_addr_get(const char *blk_name, char *tp_sas_addr) {
     char sysfs_sas_addr[_SYSFS_SAS_ADDR_LEN];
     char *sysfs_sas_path = NULL;
     ssize_t read_size = -1;
@@ -1093,17 +1082,17 @@ static void _sysfs_sas_addr_get(const char *blk_name, char *tp_sas_addr)
     memset(sysfs_sas_addr, 0, _SYSFS_SAS_ADDR_LEN);
     memset(tp_sas_addr, 0, _SG_T10_SPL_SAS_ADDR_LEN);
 
-    sysfs_sas_path = (char *)
-        malloc(sizeof(char) * (strlen("/sys/block//device/sas_address") +
-                               strlen(blk_name) + 1 /* trailing \0 */));
+    sysfs_sas_path = (char *)malloc(sizeof(char) *
+                                    (strlen("/sys/block//device/sas_address") +
+                                     strlen(blk_name) + 1 /* trailing \0 */));
     if (sysfs_sas_path == NULL)
         goto out;
 
     sprintf(sysfs_sas_path, "/sys/block/%s/device/sas_address", blk_name);
-    if (! _file_exists(sysfs_sas_path))
+    if (!_file_exists(sysfs_sas_path))
         goto out;
 
-    tmp_rc = _read_file(sysfs_sas_path, (uint8_t *) sysfs_sas_addr, &read_size,
+    tmp_rc = _read_file(sysfs_sas_path, (uint8_t *)sysfs_sas_addr, &read_size,
                         _SYSFS_SAS_ADDR_LEN);
     /* As sysfs entry has trailing '\n', we should get EFBIG here */
     if (tmp_rc != EFBIG)
@@ -1115,13 +1104,12 @@ static void _sysfs_sas_addr_get(const char *blk_name, char *tp_sas_addr)
     memcpy(tp_sas_addr, sysfs_sas_addr + strlen("0x"),
            _SG_T10_SPL_SAS_ADDR_LEN);
 
- out:
+out:
     free(sysfs_sas_path);
 }
 
 static int _sas_addr_get(char *err_msg, const char *disk_path,
-                         char *tp_sas_addr)
-{
+                         char *tp_sas_addr) {
     int rc = LSM_ERR_OK;
     int fd = -1;
 
@@ -1143,17 +1131,15 @@ static int _sas_addr_get(char *err_msg, const char *disk_path,
         _good(_sg_tp_sas_addr_of_disk(err_msg, fd, tp_sas_addr), rc, out);
     }
 
- out:
+out:
     if (fd >= 0)
         close(fd);
     return rc;
-
 }
 
 int LSM_DLL_EXPORT lsm_local_disk_led_status_get(const char *disk_path,
                                                  uint32_t *led_status,
-                                                 lsm_error **lsm_err)
-{
+                                                 lsm_error **lsm_err) {
     int rc = LSM_ERR_OK;
     char err_msg[_LSM_ERR_MSG_LEN];
     char tp_sas_addr[_SG_T10_SPL_SAS_ADDR_LEN];
@@ -1181,7 +1167,7 @@ int LSM_DLL_EXPORT lsm_local_disk_led_status_get(const char *disk_path,
     else
         *led_status |= LSM_DISK_LED_STATUS_IDENT_OFF;
 
- out:
+out:
     if (rc != LSM_ERR_OK) {
         if (led_status != NULL)
             *led_status = LSM_DISK_LED_STATUS_UNKNOWN;
@@ -1192,8 +1178,7 @@ int LSM_DLL_EXPORT lsm_local_disk_led_status_get(const char *disk_path,
 }
 
 int lsm_local_disk_link_speed_get(const char *disk_path, uint32_t *link_speed,
-                                  lsm_error **lsm_err)
-{
+                                  lsm_error **lsm_err) {
     int rc = LSM_ERR_OK;
     int tmp_rc = LSM_ERR_OK;
     lsm_error *tmp_lsm_err = NULL;
@@ -1207,8 +1192,8 @@ int lsm_local_disk_link_speed_get(const char *disk_path, uint32_t *link_speed,
     unsigned int host_no = UINT_MAX;
 
     _lsm_err_msg_clear(err_msg);
-    rc = _check_null_ptr(err_msg, 3 /* argument count */, disk_path,
-                         link_speed, lsm_err);
+    rc = _check_null_ptr(err_msg, 3 /* argument count */, disk_path, link_speed,
+                         lsm_err);
 
     if (rc != LSM_ERR_OK) {
         /* set output pointers to NULL if possible when facing error in case
@@ -1242,16 +1227,16 @@ int lsm_local_disk_link_speed_get(const char *disk_path, uint32_t *link_speed,
         goto out;
     }
 
-    switch(link_type) {
+    switch (link_type) {
     case LSM_DISK_LINK_TYPE_ATA:
         /* Check VPD 0x89(ATA Information VPD page) which is mandatory page */
         _good(_sg_io_open_ro(err_msg, disk_path, &fd), rc, out);
-        _good(_sg_io_vpd(err_msg, fd, _SG_T10_SPC_VPD_ATA_INFO,  vpd_data),
-              rc, out);
-        ata_info = (struct _sg_t10_vpd_ata_info *) vpd_data;
-        _good(_ata_cur_speed_get(err_msg, ata_info->ata_id_dev_data,
-                                 link_speed),
-              rc, out);
+        _good(_sg_io_vpd(err_msg, fd, _SG_T10_SPC_VPD_ATA_INFO, vpd_data), rc,
+              out);
+        ata_info = (struct _sg_t10_vpd_ata_info *)vpd_data;
+        _good(
+            _ata_cur_speed_get(err_msg, ata_info->ata_id_dev_data, link_speed),
+            rc, out);
         break;
     case LSM_DISK_LINK_TYPE_SAS:
         _good(_sas_addr_get(err_msg, disk_path, sas_addr), rc, out);
@@ -1280,12 +1265,12 @@ int lsm_local_disk_link_speed_get(const char *disk_path, uint32_t *link_speed,
         goto out;
     }
 
- out:
+out:
     if (rc != LSM_ERR_OK) {
         if (lsm_err != NULL)
             *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
         if (link_speed != NULL) {
-            *link_speed  = LSM_DISK_LINK_SPEED_UNKNOWN;
+            *link_speed = LSM_DISK_LINK_SPEED_UNKNOWN;
         }
     }
 

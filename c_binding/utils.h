@@ -20,36 +20,35 @@
 
 #include "libstoragemgmt/libstoragemgmt_error.h"
 
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
 
-#define _LSM_ERR_MSG_LEN                4096
+#define _LSM_ERR_MSG_LEN 4096
 
-#define _good(rc, rc_val, out) \
-        do { \
-                rc_val = rc; \
-                if (rc_val != LSM_ERR_OK) \
-                        goto out; \
-        } while(0)
+#define _good(rc, rc_val, out)                                                 \
+    do {                                                                       \
+        rc_val = rc;                                                           \
+        if (rc_val != LSM_ERR_OK)                                              \
+            goto out;                                                          \
+    } while (0)
 
-#define _lsm_string_list_foreach(l, i, d) \
-    for(i = 0; \
-        (l != NULL) && (i < lsm_string_list_size(l)) && \
-        (d = lsm_string_list_elem_get(l, i)); \
-        ++i)
+#define _lsm_string_list_foreach(l, i, d)                                      \
+    for (i = 0; (l != NULL) && (i < lsm_string_list_size(l)) &&                \
+                (d = lsm_string_list_elem_get(l, i));                          \
+         ++i)
 
 #define _lsm_err_msg_clear(err_msg) memset(err_msg, 0, _LSM_ERR_MSG_LEN)
 
-#define _alloc_null_check(err_msg, ptr, rc, goto_out) \
-    do { \
-        if (ptr == NULL) { \
-            rc = LSM_ERR_NO_MEMORY; \
-            _lsm_err_msg_set(err_msg, "No memory"); \
-            goto goto_out; \
-        } \
-    } while(0)
+#define _alloc_null_check(err_msg, ptr, rc, goto_out)                          \
+    do {                                                                       \
+        if (ptr == NULL) {                                                     \
+            rc = LSM_ERR_NO_MEMORY;                                            \
+            _lsm_err_msg_set(err_msg, "No memory");                            \
+            goto goto_out;                                                     \
+        }                                                                      \
+    } while (0)
 
-#define _lsm_err_msg_set(err_msg, format, ...) \
+#define _lsm_err_msg_set(err_msg, format, ...)                                 \
     snprintf(err_msg, _LSM_ERR_MSG_LEN, format, ##__VA_ARGS__)
 
 /*
@@ -99,7 +98,7 @@ LSM_DLL_LOCAL int _read_file(const char *path, uint8_t *buff, ssize_t *size,
  *
  * Return NULL if failed.
  */
-LSM_DLL_LOCAL char* _trim_spaces(char *beginning);
+LSM_DLL_LOCAL char *_trim_spaces(char *beginning);
 
 /*
  * Preconditions:
@@ -117,4 +116,4 @@ LSM_DLL_LOCAL int _sysfs_host_speed_get(char *err_msg, const char *sysfs_path,
  */
 LSM_DLL_LOCAL char *error_to_str(int errnum, char *buf, size_t buflen);
 
-#endif  /* End of _LIB_UTILS_H_ */
+#endif /* End of _LIB_UTILS_H_ */

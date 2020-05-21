@@ -19,8 +19,8 @@
 #ifndef _LIBSAS_H_
 #define _LIBSAS_H_
 
-#include <stdint.h>
 #include "libstoragemgmt/libstoragemgmt_common.h"
+#include <stdint.h>
 
 /*
  * Preconditions:
@@ -37,4 +37,4 @@ LSM_DLL_LOCAL int _sas_cur_speed_get(char *err_msg, uint8_t *mode_sense_data,
                                      const char *sas_addr,
                                      uint32_t *link_speed);
 
-#endif  /* End of _LIBSAS_H_ */
+#endif /* End of _LIBSAS_H_ */

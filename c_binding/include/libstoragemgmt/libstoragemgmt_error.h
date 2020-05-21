@@ -21,12 +21,11 @@
 
 #include "libstoragemgmt_common.h"
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
 /** @file libstoragemgmt_error.h */
-
 
 /** \enum lsm_error_number Possible enumerated return codes from library */
 typedef enum {
@@ -111,7 +110,6 @@ typedef enum {
         out of process plug-in encountered connection errors. */
     LSM_ERR_PLUGIN_IPC_FAIL = 301,
 
-
     /** Incorrect permission on UNIX domain socket used for IPC */
     LSM_ERR_PLUGIN_SOCKET_PERMISSION = 307,
 
@@ -128,12 +126,10 @@ typedef enum {
     /** Parameter transported over IPC is invalid */
     LSM_ERR_TRANSPORT_INVALID_ARG = 402,
 
-
     LSM_ERR_LAST_INIT_IN_ACCESS_GROUP = 502,
 
     /** Unsupport search key */
     LSM_ERR_UNSUPPORTED_SEARCH_KEY = 510,
-
 
     LSM_ERR_EMPTY_ACCESS_GROUP = 511,
     LSM_ERR_POOL_NOT_READY = 512,
@@ -277,10 +273,9 @@ char LSM_DLL_EXPORT *lsm_error_debug_get(lsm_error_ptr e);
  * Return:
  *      void *. NULL if argument 'e' is NULL or not a valid lsm_error_ptr.
  */
-void LSM_DLL_EXPORT *lsm_error_debug_data_get(lsm_error_ptr e,
-                                              uint32_t * size);
+void LSM_DLL_EXPORT *lsm_error_debug_data_get(lsm_error_ptr e, uint32_t *size);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
-#endif                          /* LIBSTORAGEMGMTERROR_H */
+#endif /* LIBSTORAGEMGMTERROR_H */

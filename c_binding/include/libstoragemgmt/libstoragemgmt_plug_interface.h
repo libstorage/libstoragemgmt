@@ -25,20 +25,20 @@
 #include "libstoragemgmt_common.h"
 
 #include "libstoragemgmt_accessgroups.h"
+#include "libstoragemgmt_battery.h"
 #include "libstoragemgmt_blockrange.h"
 #include "libstoragemgmt_capabilities.h"
+#include "libstoragemgmt_disk.h"
 #include "libstoragemgmt_error.h"
 #include "libstoragemgmt_fs.h"
-#include "libstoragemgmt_nfsexport.h"
 #include "libstoragemgmt_hash.h"
+#include "libstoragemgmt_nfsexport.h"
 #include "libstoragemgmt_pool.h"
 #include "libstoragemgmt_snapshot.h"
 #include "libstoragemgmt_systems.h"
 #include "libstoragemgmt_volumes.h"
-#include "libstoragemgmt_disk.h"
-#include "libstoragemgmt_battery.h"
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -46,18 +46,18 @@ extern "C" {
 
 /** \enum lsm_data_type What type of data structure we have */
 typedef enum {
-    LSM_DATA_TYPE_UNKNOWN = -1,     /**< Unknown */
-    LSM_DATA_TYPE_NONE,             /**< None */
-    LSM_DATA_TYPE_ACCESS_GROUP,     /**< Access group */
-    LSM_DATA_TYPE_BLOCK_RANGE,      /**< Block range */
-    LSM_DATA_TYPE_FS,               /**< File system */
-    LSM_DATA_TYPE_NFS_EXPORT,       /**< NFS export */
-    LSM_DATA_TYPE_POOL,             /**< Pool */
-    LSM_DATA_TYPE_SS,               /**< Snap shot */
-    LSM_DATA_TYPE_STRING_LIST,      /**< String list */
-    LSM_DATA_TYPE_SYSTEM,           /**< System */
-    LSM_DATA_TYPE_VOLUME,           /**< Volume */
-    LSM_DATA_TYPE_DISK              /**< Disk */
+    LSM_DATA_TYPE_UNKNOWN = -1, /**< Unknown */
+    LSM_DATA_TYPE_NONE,         /**< None */
+    LSM_DATA_TYPE_ACCESS_GROUP, /**< Access group */
+    LSM_DATA_TYPE_BLOCK_RANGE,  /**< Block range */
+    LSM_DATA_TYPE_FS,           /**< File system */
+    LSM_DATA_TYPE_NFS_EXPORT,   /**< NFS export */
+    LSM_DATA_TYPE_POOL,         /**< Pool */
+    LSM_DATA_TYPE_SS,           /**< Snap shot */
+    LSM_DATA_TYPE_STRING_LIST,  /**< String list */
+    LSM_DATA_TYPE_SYSTEM,       /**< System */
+    LSM_DATA_TYPE_VOLUME,       /**< Volume */
+    LSM_DATA_TYPE_DISK          /**< Disk */
 } lsm_data_type;
 
 /**
@@ -80,9 +80,9 @@ typedef lsm_plugin *lsm_plugin_ptr;
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plugin_register) (lsm_plugin_ptr c, const char *uri,
-                                    const char *password,
-                                    uint32_t timeout, lsm_flag flags);
+typedef int (*lsm_plugin_register)(lsm_plugin_ptr c, const char *uri,
+                                   const char *password, uint32_t timeout,
+                                   lsm_flag flags);
 
 /**
  * Plug-in unregister callback function signature
@@ -91,7 +91,7 @@ typedef int (*lsm_plugin_register) (lsm_plugin_ptr c, const char *uri,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plugin_unregister) (lsm_plugin_ptr c, lsm_flag flags);
+typedef int (*lsm_plugin_unregister)(lsm_plugin_ptr c, lsm_flag flags);
 
 /**
  * Set plug-in time-out value callback function signature
@@ -101,8 +101,8 @@ typedef int (*lsm_plugin_unregister) (lsm_plugin_ptr c, lsm_flag flags);
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_tmo_set) (lsm_plugin_ptr c, uint32_t timeout,
-                                 lsm_flag flags);
+typedef int (*lsm_plug_tmo_set)(lsm_plugin_ptr c, uint32_t timeout,
+                                lsm_flag flags);
 
 /**
  * Get the plug-in time-out value callback function signature
@@ -112,8 +112,8 @@ typedef int (*lsm_plug_tmo_set) (lsm_plugin_ptr c, uint32_t timeout,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_tmo_get) (lsm_plugin_ptr c, uint32_t *timeout,
-                                 lsm_flag flags);
+typedef int (*lsm_plug_tmo_get)(lsm_plugin_ptr c, uint32_t *timeout,
+                                lsm_flag flags);
 
 /**
  * Retrieve the plug-in capabilities callback function signature
@@ -124,10 +124,9 @@ typedef int (*lsm_plug_tmo_get) (lsm_plugin_ptr c, uint32_t *timeout,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_capabilities) (lsm_plugin_ptr c,
-                                      lsm_system *sys,
-                                      lsm_storage_capabilities **cap,
-                                      lsm_flag flags);
+typedef int (*lsm_plug_capabilities)(lsm_plugin_ptr c, lsm_system *sys,
+                                     lsm_storage_capabilities **cap,
+                                     lsm_flag flags);
 /**
  * Retrieve the job status callback function signature
  * @param[in]   c               Valid lsm plug-in pointer
@@ -141,11 +140,11 @@ typedef int (*lsm_plug_capabilities) (lsm_plugin_ptr c,
  * @retval LSM_ERR_OK on success.
  */
 
-typedef int (*lsm_plug_Job_status) (lsm_plugin_ptr c, const char *job,
-                                    lsm_job_status *status,
-                                    uint8_t *percent_complete,
-                                    lsm_data_type *type, void **value,
-                                    lsm_flag flags);
+typedef int (*lsm_plug_Job_status)(lsm_plugin_ptr c, const char *job,
+                                   lsm_job_status *status,
+                                   uint8_t *percent_complete,
+                                   lsm_data_type *type, void **value,
+                                   lsm_flag flags);
 /**
  * Instructs the plug-in to release the memory for the specified job id,
  * callback function signature
@@ -155,8 +154,8 @@ typedef int (*lsm_plug_Job_status) (lsm_plugin_ptr c, const char *job,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_job_free) (lsm_plugin_ptr c, char *job_id,
-                                  lsm_flag flags);
+typedef int (*lsm_plug_job_free)(lsm_plugin_ptr c, char *job_id,
+                                 lsm_flag flags);
 
 /**
  * Retrieves a list of pools callback function signature
@@ -169,11 +168,10 @@ typedef int (*lsm_plug_job_free) (lsm_plugin_ptr c, char *job_id,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_pool_list) (lsm_plugin_ptr c,
-                                   const char *search_key,
-                                   const char *search_value,
-                                   lsm_pool **pool_array[],
-                                   uint32_t *count, lsm_flag flags);
+typedef int (*lsm_plug_pool_list)(lsm_plugin_ptr c, const char *search_key,
+                                  const char *search_value,
+                                  lsm_pool **pool_array[], uint32_t *count,
+                                  lsm_flag flags);
 
 /**
  * Retrieve a list of systems, callback function signature
@@ -184,21 +182,19 @@ typedef int (*lsm_plug_pool_list) (lsm_plugin_ptr c,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_system_list) (lsm_plugin_ptr c,
-                                     lsm_system **systems[],
-                                     uint32_t *system_count,
-                                     lsm_flag flags);
+typedef int (*lsm_plug_system_list)(lsm_plugin_ptr c, lsm_system **systems[],
+                                    uint32_t *system_count, lsm_flag flags);
 
 /** \struct lsm_mgmt_ops_v1
  *  \brief Callback functions for management operations */
 struct lsm_mgmt_ops_v1 {
-    lsm_plug_tmo_set tmo_set;                   /**< tmo set callback */
-    lsm_plug_tmo_get tmo_get;                   /**< tmo get callback */
-    lsm_plug_capabilities capablities;          /**< capabilities callback */
-    lsm_plug_Job_status job_status;             /**< status of job */
-    lsm_plug_job_free job_free;                 /**< Free a job */
-    lsm_plug_pool_list pool_list;               /**< List of pools */
-    lsm_plug_system_list system_list;           /**< List of systems */
+    lsm_plug_tmo_set tmo_set;          /**< tmo set callback */
+    lsm_plug_tmo_get tmo_get;          /**< tmo get callback */
+    lsm_plug_capabilities capablities; /**< capabilities callback */
+    lsm_plug_Job_status job_status;    /**< status of job */
+    lsm_plug_job_free job_free;        /**< Free a job */
+    lsm_plug_pool_list pool_list;      /**< List of pools */
+    lsm_plug_system_list system_list;  /**< List of systems */
 };
 
 /**
@@ -212,11 +208,10 @@ struct lsm_mgmt_ops_v1 {
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_volume_list) (lsm_plugin_ptr c,
-                                     const char *search_key,
-                                     const char *search_val,
-                                     lsm_volume **vol_array[],
-                                     uint32_t *count, lsm_flag flags);
+typedef int (*lsm_plug_volume_list)(lsm_plugin_ptr c, const char *search_key,
+                                    const char *search_val,
+                                    lsm_volume **vol_array[], uint32_t *count,
+                                    lsm_flag flags);
 
 /**
  * Retrieve a list of volumes.
@@ -229,11 +224,10 @@ typedef int (*lsm_plug_volume_list) (lsm_plugin_ptr c,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_disk_list) (lsm_plugin_ptr c,
-                                   const char *search_key,
-                                   const char *search_value,
-                                   lsm_disk **disk_array[],
-                                   uint32_t *count, lsm_flag flags);
+typedef int (*lsm_plug_disk_list)(lsm_plugin_ptr c, const char *search_key,
+                                  const char *search_value,
+                                  lsm_disk **disk_array[], uint32_t *count,
+                                  lsm_flag flags);
 
 /**
  * Retrieve a list of target ports.
@@ -246,9 +240,11 @@ typedef int (*lsm_plug_disk_list) (lsm_plugin_ptr c,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_target_port_list)
-    (lsm_plugin_ptr c, const char *search_key, const char *search_value,
-     lsm_target_port **target_port_array[], uint32_t *count, lsm_flag flags);
+typedef int (*lsm_plug_target_port_list)(lsm_plugin_ptr c,
+                                         const char *search_key,
+                                         const char *search_value,
+                                         lsm_target_port **target_port_array[],
+                                         uint32_t *count, lsm_flag flags);
 
 /**
  * Creates a volume, callback function signature
@@ -263,13 +259,11 @@ typedef int (*lsm_plug_target_port_list)
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_volume_create) (lsm_plugin_ptr c,
-                                       lsm_pool *pool,
-                                       const char *volume_name,
-                                       uint64_t size,
-                                       lsm_volume_provision_type provisioning,
-                                       lsm_volume **new_volume,
-                                       char **job, lsm_flag flags);
+typedef int (*lsm_plug_volume_create)(lsm_plugin_ptr c, lsm_pool *pool,
+                                      const char *volume_name, uint64_t size,
+                                      lsm_volume_provision_type provisioning,
+                                      lsm_volume **new_volume, char **job,
+                                      lsm_flag flags);
 
 /**
  * Volume replicate, callback function signature
@@ -284,13 +278,12 @@ typedef int (*lsm_plug_volume_create) (lsm_plugin_ptr c,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_volume_replicate) (lsm_plugin_ptr c,
-                                          lsm_pool *pool,
-                                          lsm_replication_type rep_type,
-                                          lsm_volume *volume_src,
-                                          const char *name,
-                                          lsm_volume **new_replicant,
-                                          char **job, lsm_flag flags);
+typedef int (*lsm_plug_volume_replicate)(lsm_plugin_ptr c, lsm_pool *pool,
+                                         lsm_replication_type rep_type,
+                                         lsm_volume *volume_src,
+                                         const char *name,
+                                         lsm_volume **new_replicant, char **job,
+                                         lsm_flag flags);
 
 /**
  * Return the block size of a replicated block range.
@@ -301,8 +294,10 @@ typedef int (*lsm_plug_volume_replicate) (lsm_plugin_ptr c,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_volume_replicate_range_block_size)
-    (lsm_plugin_ptr c, lsm_system * system, uint32_t *bs, lsm_flag flags);
+typedef int (*lsm_plug_volume_replicate_range_block_size)(lsm_plugin_ptr c,
+                                                          lsm_system *system,
+                                                          uint32_t *bs,
+                                                          lsm_flag flags);
 
 /**
  * Replicate a range of a volume to the same volume or different volume.
@@ -318,13 +313,10 @@ typedef int (*lsm_plug_volume_replicate_range_block_size)
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_volume_replicate_range) (lsm_plugin_ptr c,
-                                                lsm_replication_type rep_type,
-                                                lsm_volume *source,
-                                                lsm_volume *dest,
-                                                lsm_block_range **ranges,
-                                                uint32_t num_ranges,
-                                                char **job, lsm_flag flags);
+typedef int (*lsm_plug_volume_replicate_range)(
+    lsm_plugin_ptr c, lsm_replication_type rep_type, lsm_volume *source,
+    lsm_volume *dest, lsm_block_range **ranges, uint32_t num_ranges, char **job,
+    lsm_flag flags);
 
 /**
  * Re-size a volume, callback function signature
@@ -337,11 +329,10 @@ typedef int (*lsm_plug_volume_replicate_range) (lsm_plugin_ptr c,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_volume_resize) (lsm_plugin_ptr c,
-                                       lsm_volume *volume,
-                                       uint64_t new_size,
-                                       lsm_volume **resized_volume,
-                                       char **job, lsm_flag flags);
+typedef int (*lsm_plug_volume_resize)(lsm_plugin_ptr c, lsm_volume *volume,
+                                      uint64_t new_size,
+                                      lsm_volume **resized_volume, char **job,
+                                      lsm_flag flags);
 
 /**
  * Delete a volume, callback function signature
@@ -352,9 +343,8 @@ typedef int (*lsm_plug_volume_resize) (lsm_plugin_ptr c,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_volume_delete) (lsm_plugin_ptr c,
-                                       lsm_volume *volume, char **job,
-                                       lsm_flag flags);
+typedef int (*lsm_plug_volume_delete)(lsm_plugin_ptr c, lsm_volume *volume,
+                                      char **job, lsm_flag flags);
 /**
  * Place a volume online, callback function signature.
  * @param[in]   c                   Valid lsm plug-in pointer
@@ -363,8 +353,8 @@ typedef int (*lsm_plug_volume_delete) (lsm_plugin_ptr c,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_volume_enable) (lsm_plugin_ptr c,
-                                       lsm_volume *v, lsm_flag flags);
+typedef int (*lsm_plug_volume_enable)(lsm_plugin_ptr c, lsm_volume *v,
+                                      lsm_flag flags);
 
 /**
  * Take a volume offline, callback function signature.
@@ -374,8 +364,8 @@ typedef int (*lsm_plug_volume_enable) (lsm_plugin_ptr c,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_volume_disable) (lsm_plugin_ptr c,
-                                        lsm_volume *v, lsm_flag flags);
+typedef int (*lsm_plug_volume_disable)(lsm_plugin_ptr c, lsm_volume *v,
+                                       lsm_flag flags);
 
 /**
  * Setup the cap authentication for the specified initiator, callback
@@ -390,13 +380,12 @@ typedef int (*lsm_plug_volume_disable) (lsm_plugin_ptr c,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_iscsi_chap_auth) (lsm_plugin_ptr c,
-                                         const char *init_id,
-                                         const char *in_user,
-                                         const char *in_password,
-                                         const char *out_user,
-                                         const char *out_password,
-                                         lsm_flag flags);
+typedef int (*lsm_plug_iscsi_chap_auth)(lsm_plugin_ptr c, const char *init_id,
+                                        const char *in_user,
+                                        const char *in_password,
+                                        const char *out_user,
+                                        const char *out_password,
+                                        lsm_flag flags);
 
 /**
  * Retrieve a list of access groups, callback function signature
@@ -409,12 +398,9 @@ typedef int (*lsm_plug_iscsi_chap_auth) (lsm_plugin_ptr c,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_access_group_list) (lsm_plugin_ptr c,
-                                           const char *search_key,
-                                           const char *search_value,
-                                           lsm_access_group **groups[],
-                                           uint32_t *group_count,
-                                           lsm_flag flags);
+typedef int (*lsm_plug_access_group_list)(
+    lsm_plugin_ptr c, const char *search_key, const char *search_value,
+    lsm_access_group **groups[], uint32_t *group_count, lsm_flag flags);
 /**
  * Creates an access group, callback function signature
  * @param[in]   c                   Valid lsm plug-in pointer
@@ -427,10 +413,10 @@ typedef int (*lsm_plug_access_group_list) (lsm_plugin_ptr c,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_access_group_create)
-    (lsm_plugin_ptr c, const char *name, const char *initiator_id,
-     lsm_access_group_init_type init_type, lsm_system *system,
-     lsm_access_group **access_group, lsm_flag flags);
+typedef int (*lsm_plug_access_group_create)(
+    lsm_plugin_ptr c, const char *name, const char *initiator_id,
+    lsm_access_group_init_type init_type, lsm_system *system,
+    lsm_access_group **access_group, lsm_flag flags);
 
 /**
  * Deletes an access group, callback function signature
@@ -440,9 +426,9 @@ typedef int (*lsm_plug_access_group_create)
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_access_group_delete) (lsm_plugin_ptr c,
-                                             lsm_access_group *group,
-                                             lsm_flag flags);
+typedef int (*lsm_plug_access_group_delete)(lsm_plugin_ptr c,
+                                            lsm_access_group *group,
+                                            lsm_flag flags);
 
 /**
  * Add an initiator to an access group, callback function signature
@@ -455,10 +441,10 @@ typedef int (*lsm_plug_access_group_delete) (lsm_plugin_ptr c,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_access_group_initiator_add)
-    (lsm_plugin_ptr c, lsm_access_group *access_group,
-     const char *initiator_id, lsm_access_group_init_type id_type,
-     lsm_access_group **updated_access_group, lsm_flag flags);
+typedef int (*lsm_plug_access_group_initiator_add)(
+    lsm_plugin_ptr c, lsm_access_group *access_group, const char *initiator_id,
+    lsm_access_group_init_type id_type, lsm_access_group **updated_access_group,
+    lsm_flag flags);
 
 /**
  * Remove an initiator from an access group, callback function signature
@@ -471,10 +457,10 @@ typedef int (*lsm_plug_access_group_initiator_add)
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_access_group_initiator_delete)
-    (lsm_plugin_ptr c, lsm_access_group *access_group,
-     const char *initiator_id, lsm_access_group_init_type id_type,
-     lsm_access_group **updated_access_group, lsm_flag flags);
+typedef int (*lsm_plug_access_group_initiator_delete)(
+    lsm_plugin_ptr c, lsm_access_group *access_group, const char *initiator_id,
+    lsm_access_group_init_type id_type, lsm_access_group **updated_access_group,
+    lsm_flag flags);
 
 /**
  * Grants access to a volume for the specified access group, callback function
@@ -486,9 +472,8 @@ typedef int (*lsm_plug_access_group_initiator_delete)
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_volume_mask) (lsm_plugin_ptr c,
-                                     lsm_access_group *group,
-                                     lsm_volume *volume, lsm_flag flags);
+typedef int (*lsm_plug_volume_mask)(lsm_plugin_ptr c, lsm_access_group *group,
+                                    lsm_volume *volume, lsm_flag flags);
 
 /**
  * Revokes access to a volume for a specified access group, callback function
@@ -501,9 +486,8 @@ typedef int (*lsm_plug_volume_mask) (lsm_plugin_ptr c,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_volume_unmask) (lsm_plugin_ptr c,
-                                       lsm_access_group * group,
-                                       lsm_volume *volume, lsm_flag flags);
+typedef int (*lsm_plug_volume_unmask)(lsm_plugin_ptr c, lsm_access_group *group,
+                                      lsm_volume *volume, lsm_flag flags);
 
 /**
  * Retrieve an array of volumes which are accessible by access group, callback
@@ -516,9 +500,9 @@ typedef int (*lsm_plug_volume_unmask) (lsm_plugin_ptr c,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_volumes_accessible_by_access_group)
-    (lsm_plugin_ptr c, lsm_access_group *group, lsm_volume **volumes[],
-     uint32_t *count, lsm_flag flags);
+typedef int (*lsm_plug_volumes_accessible_by_access_group)(
+    lsm_plugin_ptr c, lsm_access_group *group, lsm_volume **volumes[],
+    uint32_t *count, lsm_flag flags);
 
 /**
  * Retrieve a list of access groups that have access to the specified volume,
@@ -531,9 +515,9 @@ typedef int (*lsm_plug_volumes_accessible_by_access_group)
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_access_groups_granted_to_volume)
-    (lsm_plugin_ptr c, lsm_volume *volume, lsm_access_group **groups[],
-     uint32_t *group_count, lsm_flag flags);
+typedef int (*lsm_plug_access_groups_granted_to_volume)(
+    lsm_plugin_ptr c, lsm_volume *volume, lsm_access_group **groups[],
+    uint32_t *group_count, lsm_flag flags);
 
 /**
  * Determine if a volume has child dependencies, callback function signature
@@ -544,8 +528,9 @@ typedef int (*lsm_plug_access_groups_granted_to_volume)
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_volume_child_dependency)
-    (lsm_plugin_ptr c, lsm_volume *volume, uint8_t *yes, lsm_flag flags);
+typedef int (*lsm_plug_volume_child_dependency)(lsm_plugin_ptr c,
+                                                lsm_volume *volume,
+                                                uint8_t *yes, lsm_flag flags);
 
 /**
  * Remove dependencies from a volume, callback function signature
@@ -556,8 +541,10 @@ typedef int (*lsm_plug_volume_child_dependency)
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_volume_child_dependency_delete)
-    (lsm_plugin_ptr c, lsm_volume *volume, char **job, lsm_flag flags);
+typedef int (*lsm_plug_volume_child_dependency_delete)(lsm_plugin_ptr c,
+                                                       lsm_volume *volume,
+                                                       char **job,
+                                                       lsm_flag flags);
 
 /**
  * File system list, callback function signature
@@ -570,11 +557,9 @@ typedef int (*lsm_plug_volume_child_dependency_delete)
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_fs_list) (lsm_plugin_ptr c,
-                                 const char *search_key,
-                                 const char *search_value,
-                                 lsm_fs **fs[], uint32_t *fs_count,
-                                 lsm_flag flags);
+typedef int (*lsm_plug_fs_list)(lsm_plugin_ptr c, const char *search_key,
+                                const char *search_value, lsm_fs **fs[],
+                                uint32_t *fs_count, lsm_flag flags);
 
 /**
  * Create a file system, callback function signature
@@ -588,10 +573,9 @@ typedef int (*lsm_plug_fs_list) (lsm_plugin_ptr c,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_fs_create) (lsm_plugin_ptr c, lsm_pool *pool,
-                                   const char *name,
-                                   uint64_t size_bytes, lsm_fs **fs,
-                                   char **job, lsm_flag flags);
+typedef int (*lsm_plug_fs_create)(lsm_plugin_ptr c, lsm_pool *pool,
+                                  const char *name, uint64_t size_bytes,
+                                  lsm_fs **fs, char **job, lsm_flag flags);
 
 /**
  * Delete a file system, callback function signature
@@ -602,8 +586,8 @@ typedef int (*lsm_plug_fs_create) (lsm_plugin_ptr c, lsm_pool *pool,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_fs_delete) (lsm_plugin_ptr c, lsm_fs *fs,
-                                   char **job, lsm_flag flags);
+typedef int (*lsm_plug_fs_delete)(lsm_plugin_ptr c, lsm_fs *fs, char **job,
+                                  lsm_flag flags);
 
 /**
  * Clone a file system, callback function signature
@@ -616,13 +600,13 @@ typedef int (*lsm_plug_fs_delete) (lsm_plugin_ptr c, lsm_fs *fs,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_fs_clone) (lsm_plugin_ptr c, lsm_fs *src_fs,
-                                  const char *dest_fs_name,
-                                  lsm_fs **cloned_fs,
-                                  lsm_fs_ss *optional_snapshot,
-                                  char **job, lsm_flag flags);
+typedef int (*lsm_plug_fs_clone)(lsm_plugin_ptr c, lsm_fs *src_fs,
+                                 const char *dest_fs_name, lsm_fs **cloned_fs,
+                                 lsm_fs_ss *optional_snapshot, char **job,
+                                 lsm_flag flags);
 /**
- * Determine if a file system has child dependencies, callback function signature
+ * Determine if a file system has child dependencies, callback function
+ * signature
  * @param[in]   c                   Valid lsm plug-in pointer
  * @param[in]   fs                  File system to check
  * @param[in]   files               Specific files to check
@@ -630,10 +614,9 @@ typedef int (*lsm_plug_fs_clone) (lsm_plugin_ptr c, lsm_fs *src_fs,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_fs_child_dependency) (lsm_plugin_ptr c,
-                                             lsm_fs *fs,
-                                             lsm_string_list *files,
-                                             uint8_t *yes);
+typedef int (*lsm_plug_fs_child_dependency)(lsm_plugin_ptr c, lsm_fs *fs,
+                                            lsm_string_list *files,
+                                            uint8_t *yes);
 
 /**
  * Remove dependencies from a file system, callback function signature
@@ -645,11 +628,9 @@ typedef int (*lsm_plug_fs_child_dependency) (lsm_plugin_ptr c,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_fs_child_dependency_delete) (lsm_plugin_ptr c,
-                                                    lsm_fs *fs,
-                                                    lsm_string_list * files,
-                                                    char **job,
-                                                    lsm_flag flags);
+typedef int (*lsm_plug_fs_child_dependency_delete)(lsm_plugin_ptr c, lsm_fs *fs,
+                                                   lsm_string_list *files,
+                                                   char **job, lsm_flag flags);
 
 /**
  * Re-size a file system, callback function signature
@@ -662,10 +643,9 @@ typedef int (*lsm_plug_fs_child_dependency_delete) (lsm_plugin_ptr c,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_fs_resize) (lsm_plugin_ptr c, lsm_fs *fs,
-                                   uint64_t new_size_bytes,
-                                   lsm_fs ** rfs, char **job,
-                                   lsm_flag flags);
+typedef int (*lsm_plug_fs_resize)(lsm_plugin_ptr c, lsm_fs *fs,
+                                  uint64_t new_size_bytes, lsm_fs **rfs,
+                                  char **job, lsm_flag flags);
 
 /**
  * Clone an individual file on a file system, callback function signature
@@ -678,11 +658,11 @@ typedef int (*lsm_plug_fs_resize) (lsm_plugin_ptr c, lsm_fs *fs,
  * @param[in]   flags               Reserved
  * @return  LSM_ERR_OK, else error reason
  */
-typedef int (*lsm_plug_fs_file_clone) (lsm_plugin_ptr c, lsm_fs *fs,
-                                       const char *src_file_name,
-                                       const char *dest_file_name,
-                                       lsm_fs_ss *snapshot,
-                                       char **job, lsm_flag flags);
+typedef int (*lsm_plug_fs_file_clone)(lsm_plugin_ptr c, lsm_fs *fs,
+                                      const char *src_file_name,
+                                      const char *dest_file_name,
+                                      lsm_fs_ss *snapshot, char **job,
+                                      lsm_flag flags);
 
 /**
  * Retrieve a list of fs snapshots for a file system, callback function
@@ -694,9 +674,9 @@ typedef int (*lsm_plug_fs_file_clone) (lsm_plugin_ptr c, lsm_fs *fs,
  * @param[in]   flags               Reserved
  * @return  LSM_ERR_OK, else error reason
  */
-typedef int (*lsm_plug_fs_ss_list) (lsm_plugin_ptr c, lsm_fs *fs,
-                                    lsm_fs_ss **ss[],
-                                    uint32_t *ss_count, lsm_flag flags);
+typedef int (*lsm_plug_fs_ss_list)(lsm_plugin_ptr c, lsm_fs *fs,
+                                   lsm_fs_ss **ss[], uint32_t *ss_count,
+                                   lsm_flag flags);
 
 /**
  * Create a fs snapshot of the specified file system and optionally constrain
@@ -708,10 +688,9 @@ typedef int (*lsm_plug_fs_ss_list) (lsm_plugin_ptr c, lsm_fs *fs,
  * @param[out]  job                 Job ID
  * @return  LSM_ERR_OK, else error reason
  */
-typedef int (*lsm_plug_fs_ss_create) (lsm_plugin_ptr c, lsm_fs *fs,
-                                      const char *name,
-                                      lsm_fs_ss **snapshot,
-                                      char **job, lsm_flag flags);
+typedef int (*lsm_plug_fs_ss_create)(lsm_plugin_ptr c, lsm_fs *fs,
+                                     const char *name, lsm_fs_ss **snapshot,
+                                     char **job, lsm_flag flags);
 /**
  * Delete a fs snapshot, callback function signature, callback function
  * signature
@@ -722,9 +701,8 @@ typedef int (*lsm_plug_fs_ss_create) (lsm_plugin_ptr c, lsm_fs *fs,
  * @param[in]   flags               Reserved
  * @return  LSM_ERR_OK, else error reason
  */
-typedef int (*lsm_plug_fs_ss_delete) (lsm_plugin_ptr c, lsm_fs *fs,
-                                      lsm_fs_ss *ss, char **job,
-                                      lsm_flag flags);
+typedef int (*lsm_plug_fs_ss_delete)(lsm_plugin_ptr c, lsm_fs *fs,
+                                     lsm_fs_ss *ss, char **job, lsm_flag flags);
 
 /**
  * Revert the state of a file system or specific files to a previous state,
@@ -738,12 +716,11 @@ typedef int (*lsm_plug_fs_ss_delete) (lsm_plugin_ptr c, lsm_fs *fs,
  * @param[out]  job                 Job ID
  * @return  LSM_ERR_OK, else error reason
  */
-typedef int (*lsm_plug_fs_ss_restore) (lsm_plugin_ptr c, lsm_fs *fs,
-                                       lsm_fs_ss *ss,
-                                       lsm_string_list *files,
-                                       lsm_string_list *restore_files,
-                                       int all_files, char **job,
-                                       lsm_flag flags);
+typedef int (*lsm_plug_fs_ss_restore)(lsm_plugin_ptr c, lsm_fs *fs,
+                                      lsm_fs_ss *ss, lsm_string_list *files,
+                                      lsm_string_list *restore_files,
+                                      int all_files, char **job,
+                                      lsm_flag flags);
 
 /**
  * Get a list of NFS client authentication types, callback function signature
@@ -752,9 +729,8 @@ typedef int (*lsm_plug_fs_ss_restore) (lsm_plugin_ptr c, lsm_fs *fs,
  * @param[in]   flags               Reserved
  * @return  LSM_ERR_OK, else error reason
  */
-typedef int (*lsm_plug_nfs_auth_types) (lsm_plugin_ptr c,
-                                        lsm_string_list **types,
-                                        lsm_flag flags);
+typedef int (*lsm_plug_nfs_auth_types)(lsm_plugin_ptr c,
+                                       lsm_string_list **types, lsm_flag flags);
 
 /**
  * Retrieve a list of NFS exports, callback function signature
@@ -767,11 +743,10 @@ typedef int (*lsm_plug_nfs_auth_types) (lsm_plugin_ptr c,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_nfs_list) (lsm_plugin_ptr c,
-                                  const char *search_key,
-                                  const char *search_value,
-                                  lsm_nfs_export **exports[],
-                                  uint32_t *count, lsm_flag flags);
+typedef int (*lsm_plug_nfs_list)(lsm_plugin_ptr c, const char *search_key,
+                                 const char *search_value,
+                                 lsm_nfs_export **exports[], uint32_t *count,
+                                 lsm_flag flags);
 /**
  * Exports a file system via NFS, callback function signature
  * @param[in]   c                   Valid lsm plug-in pointer
@@ -789,18 +764,12 @@ typedef int (*lsm_plug_nfs_list) (lsm_plugin_ptr c,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_nfs_export_fs) (lsm_plugin_ptr c,
-                                       const char *fs_id,
-                                       const char *export_path,
-                                       lsm_string_list *root_list,
-                                       lsm_string_list *rw_list,
-                                       lsm_string_list *ro_list,
-                                       uint64_t anon_uid,
-                                       uint64_t anon_gid,
-                                       const char *auth_type,
-                                       const char *options,
-                                       lsm_nfs_export **exported,
-                                       lsm_flag flags);
+typedef int (*lsm_plug_nfs_export_fs)(
+    lsm_plugin_ptr c, const char *fs_id, const char *export_path,
+    lsm_string_list *root_list, lsm_string_list *rw_list,
+    lsm_string_list *ro_list, uint64_t anon_uid, uint64_t anon_gid,
+    const char *auth_type, const char *options, lsm_nfs_export **exported,
+    lsm_flag flags);
 
 /**
  * Removes a NFS export, callback function signature
@@ -810,9 +779,8 @@ typedef int (*lsm_plug_nfs_export_fs) (lsm_plugin_ptr c,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_nfs_export_remove) (lsm_plugin_ptr c,
-                                           lsm_nfs_export *e,
-                                           lsm_flag flags);
+typedef int (*lsm_plug_nfs_export_remove)(lsm_plugin_ptr c, lsm_nfs_export *e,
+                                          lsm_flag flags);
 /** \struct lsm_san_ops_v1
  *  \brief Block array oriented functions (callback functions)
  * NOTE: This structure cannot change as we need to maintain backwards
@@ -932,14 +900,12 @@ struct lsm_nas_ops_v1 {
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_volume_raid_info) (lsm_plugin_ptr c,
-                                          lsm_volume *volume,
-                                          lsm_volume_raid_type *raid_type,
-                                          uint32_t *strip_size,
-                                          uint32_t *disk_count,
-                                          uint32_t *min_io_size,
-                                          uint32_t *opt_io_size,
-                                          lsm_flag flags);
+typedef int (*lsm_plug_volume_raid_info)(lsm_plugin_ptr c, lsm_volume *volume,
+                                         lsm_volume_raid_type *raid_type,
+                                         uint32_t *strip_size,
+                                         uint32_t *disk_count,
+                                         uint32_t *min_io_size,
+                                         uint32_t *opt_io_size, lsm_flag flags);
 
 /**
  * Retrieves the membership of given pool. New in version 1.2.
@@ -963,11 +929,11 @@ typedef int (*lsm_plug_volume_raid_info) (lsm_plugin_ptr c,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_pool_member_info) (lsm_plugin_ptr c, lsm_pool *pool,
-                                          lsm_volume_raid_type *raid_type,
-                                          lsm_pool_member_type *member_type,
-                                          lsm_string_list **member_ids,
-                                          lsm_flag flags);
+typedef int (*lsm_plug_pool_member_info)(lsm_plugin_ptr c, lsm_pool *pool,
+                                         lsm_volume_raid_type *raid_type,
+                                         lsm_pool_member_type *member_type,
+                                         lsm_string_list **member_ids,
+                                         lsm_flag flags);
 
 /**
  * Query all supported RAID types and strip sizes which could be used
@@ -992,10 +958,10 @@ typedef int (*lsm_plug_pool_member_info) (lsm_plugin_ptr c, lsm_pool *pool,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_volume_raid_create_cap_get)
-    (lsm_plugin_ptr c, lsm_system *system, uint32_t **supported_raid_types,
-     uint32_t *supported_raid_type_count, uint32_t **supported_strip_sizes,
-     uint32_t *supported_strip_size_count, lsm_flag flags);
+typedef int (*lsm_plug_volume_raid_create_cap_get)(
+    lsm_plugin_ptr c, lsm_system *system, uint32_t **supported_raid_types,
+    uint32_t *supported_raid_type_count, uint32_t **supported_strip_sizes,
+    uint32_t *supported_strip_size_count, lsm_flag flags);
 
 /**
  * Create a disk RAID pool and allocate entire full space to new volume.
@@ -1019,14 +985,10 @@ typedef int (*lsm_plug_volume_raid_create_cap_get)
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_volume_raid_create) (lsm_plugin_ptr c,
-                                            const char *name,
-                                            lsm_volume_raid_type raid_type,
-                                            lsm_disk * disks[],
-                                            uint32_t disk_count,
-                                            uint32_t strip_size,
-                                            lsm_volume ** new_volume,
-                                            lsm_flag flags);
+typedef int (*lsm_plug_volume_raid_create)(
+    lsm_plugin_ptr c, const char *name, lsm_volume_raid_type raid_type,
+    lsm_disk *disks[], uint32_t disk_count, uint32_t strip_size,
+    lsm_volume **new_volume, lsm_flag flags);
 
 /**
  * Enable the IDENT LED for the desired volume.
@@ -1037,9 +999,8 @@ typedef int (*lsm_plug_volume_raid_create) (lsm_plugin_ptr c,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_volume_ident_led_on) (lsm_plugin_ptr c,
-                                             lsm_volume * volume,
-                                             lsm_flag flags);
+typedef int (*lsm_plug_volume_ident_led_on)(lsm_plugin_ptr c,
+                                            lsm_volume *volume, lsm_flag flags);
 
 /**
  * Disable the IDENT LED for the desired volume.
@@ -1050,9 +1011,9 @@ typedef int (*lsm_plug_volume_ident_led_on) (lsm_plugin_ptr c,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_volume_ident_led_off) (lsm_plugin_ptr c,
-                                              lsm_volume * volume,
-                                              lsm_flag flags);
+typedef int (*lsm_plug_volume_ident_led_off)(lsm_plugin_ptr c,
+                                             lsm_volume *volume,
+                                             lsm_flag flags);
 
 /**
  * Change the read cache percentage for the desired system.
@@ -1064,10 +1025,10 @@ typedef int (*lsm_plug_volume_ident_led_off) (lsm_plugin_ptr c,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-typedef int (*lsm_plug_system_read_cache_pct_update) (lsm_plugin_ptr c,
-                                                      lsm_system *system,
-                                                      uint32_t read_pct,
-                                                      lsm_flag flags);
+typedef int (*lsm_plug_system_read_cache_pct_update)(lsm_plugin_ptr c,
+                                                     lsm_system *system,
+                                                     uint32_t read_pct,
+                                                     lsm_flag flags);
 
 /** \struct lsm_ops_v1_2
  * \brief Functions added in version 1.2
@@ -1091,11 +1052,9 @@ struct lsm_ops_v1_2 {
  * @param[in]   flags           Reserved
  * @return LSM_ERR_OK, else error reason
  */
-typedef int (*lsm_plug_battery_list) (lsm_plugin_ptr c,
-                                      const char *search_key,
-                                      const char *search_val,
-                                      lsm_battery **bs[],
-                                      uint32_t *count, lsm_flag flags);
+typedef int (*lsm_plug_battery_list)(lsm_plugin_ptr c, const char *search_key,
+                                     const char *search_val, lsm_battery **bs[],
+                                     uint32_t *count, lsm_flag flags);
 
 /**
  * New in version 1.3.
@@ -1129,12 +1088,10 @@ lsm_battery LSM_DLL_EXPORT **lsm_battery_record_array_alloc(uint32_t size);
  * @param plugin_data   Reserved for plugin writer use
  * @return Pointer to allocated disk record or NULL on memory error.
  */
-lsm_battery LSM_DLL_EXPORT *lsm_battery_record_alloc(const char *id,
-                                                     const char *name,
-                                                     lsm_battery_type type,
-                                                     uint64_t status,
-                                                     const char *system_id,
-                                                     const char *plugin_data);
+lsm_battery LSM_DLL_EXPORT *
+lsm_battery_record_alloc(const char *id, const char *name,
+                         lsm_battery_type type, uint64_t status,
+                         const char *system_id, const char *plugin_data);
 
 /**
  * New in version 1.3.
@@ -1161,14 +1118,10 @@ const char LSM_DLL_EXPORT *lsm_battery_plugin_data_get(lsm_battery *b);
  * @param[in]   flags           Reserved
  * @return LSM_ERR_OK, else error reason
  */
-typedef int (*lsm_plug_volume_cache_info) (lsm_plugin_ptr c,
-                                           lsm_volume *volume,
-                                           uint32_t *write_cache_policy,
-                                           uint32_t *write_cache_status,
-                                           uint32_t *read_cache_policy,
-                                           uint32_t *read_cache_status,
-                                           uint32_t *physical_disk_cache,
-                                           lsm_flag flags);
+typedef int (*lsm_plug_volume_cache_info)(
+    lsm_plugin_ptr c, lsm_volume *volume, uint32_t *write_cache_policy,
+    uint32_t *write_cache_status, uint32_t *read_cache_policy,
+    uint32_t *read_cache_status, uint32_t *physical_disk_cache, lsm_flag flags);
 
 /**
  * New in version 1.3.
@@ -1179,10 +1132,10 @@ typedef int (*lsm_plug_volume_cache_info) (lsm_plugin_ptr c,
  * @param[in] flags               Reserved
  * @return LSM_ERR_OK, else error reason
  */
-typedef int (*lsm_plug_volume_physical_disk_cache_update) (lsm_plugin_ptr c,
-                                                           lsm_volume *volume,
-                                                           uint32_t pdc,
-                                                           lsm_flag flags);
+typedef int (*lsm_plug_volume_physical_disk_cache_update)(lsm_plugin_ptr c,
+                                                          lsm_volume *volume,
+                                                          uint32_t pdc,
+                                                          lsm_flag flags);
 /**
  * New in version 1.3.
  * Change the setting of RAM write disk cache policy of specified volume.
@@ -1192,10 +1145,10 @@ typedef int (*lsm_plug_volume_physical_disk_cache_update) (lsm_plugin_ptr c,
  * @param[in] flags               Reserved
  * @return LSM_ERR_OK, else error reason
  */
-typedef int (*lsm_plug_volume_write_cache_policy_update) (lsm_plugin_ptr c,
-                                                          lsm_volume *volume,
-                                                          uint32_t wcp,
-                                                          lsm_flag flags);
+typedef int (*lsm_plug_volume_write_cache_policy_update)(lsm_plugin_ptr c,
+                                                         lsm_volume *volume,
+                                                         uint32_t wcp,
+                                                         lsm_flag flags);
 
 /**
  * New in version 1.3.
@@ -1206,10 +1159,10 @@ typedef int (*lsm_plug_volume_write_cache_policy_update) (lsm_plugin_ptr c,
  * @param[in] flags               Reserved
  * @return LSM_ERR_OK, else error reason
  */
-typedef int (*lsm_plug_volume_read_cache_policy_update) (lsm_plugin_ptr c,
-                                                         lsm_volume *volume,
-                                                         uint32_t rcp,
-                                                         lsm_flag flags);
+typedef int (*lsm_plug_volume_read_cache_policy_update)(lsm_plugin_ptr c,
+                                                        lsm_volume *volume,
+                                                        uint32_t rcp,
+                                                        lsm_flag flags);
 
 /** \struct lsm_ops_v1_3
  * \brief Functions added in version 1.3
@@ -1246,14 +1199,13 @@ void LSM_DLL_EXPORT *lsm_data_type_copy(lsm_data_type t, void *item);
 int LSM_DLL_EXPORT lsm_plugin_init_v1(int argc, char *argv[],
                                       lsm_plugin_register reg,
                                       lsm_plugin_unregister unreg,
-                                      const char *desc,
-                                      const char *version);
-
+                                      const char *desc, const char *version);
 
 /**
  * Used to register all the data needed for the plug-in operation.
  * @param plug              Pointer provided by the framework
- * @param private_data      Private data to be used for whatever the plug-in needs
+ * @param private_data      Private data to be used for whatever the plug-in
+ * needs
  * @param mgm_ops           Function pointers for management operations
  * @param san_ops           Function pointers for SAN operations
  * @param fs_ops            Function pointers for file system operations
@@ -1281,13 +1233,10 @@ int LSM_DLL_EXPORT lsm_register_plugin_v1(lsm_plugin_ptr plug,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-int LSM_DLL_EXPORT lsm_register_plugin_v1_2(lsm_plugin_ptr plug,
-                                            void *private_data,
-                                            struct lsm_mgmt_ops_v1 *mgm_ops,
-                                            struct lsm_san_ops_v1 *san_ops,
-                                            struct lsm_fs_ops_v1 *fs_ops,
-                                            struct lsm_nas_ops_v1 *nas_ops,
-                                            struct lsm_ops_v1_2 *ops_v1_2);
+int LSM_DLL_EXPORT lsm_register_plugin_v1_2(
+    lsm_plugin_ptr plug, void *private_data, struct lsm_mgmt_ops_v1 *mgm_ops,
+    struct lsm_san_ops_v1 *san_ops, struct lsm_fs_ops_v1 *fs_ops,
+    struct lsm_nas_ops_v1 *nas_ops, struct lsm_ops_v1_2 *ops_v1_2);
 
 /**
  * Used to register version 1.3 APIs plug-in operation.
@@ -1303,21 +1252,17 @@ int LSM_DLL_EXPORT lsm_register_plugin_v1_2(lsm_plugin_ptr plug,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-int LSM_DLL_EXPORT lsm_register_plugin_v1_3(lsm_plugin_ptr plug,
-                                            void *private_data,
-                                            struct lsm_mgmt_ops_v1 *mgm_ops,
-                                            struct lsm_san_ops_v1 *san_ops,
-                                            struct lsm_fs_ops_v1 *fs_ops,
-                                            struct lsm_nas_ops_v1 *nas_ops,
-                                            struct lsm_ops_v1_2 *ops_v1_2,
-                                            struct lsm_ops_v1_3 *ops_v1_3);
+int LSM_DLL_EXPORT lsm_register_plugin_v1_3(
+    lsm_plugin_ptr plug, void *private_data, struct lsm_mgmt_ops_v1 *mgm_ops,
+    struct lsm_san_ops_v1 *san_ops, struct lsm_fs_ops_v1 *fs_ops,
+    struct lsm_nas_ops_v1 *nas_ops, struct lsm_ops_v1_2 *ops_v1_2,
+    struct lsm_ops_v1_3 *ops_v1_3);
 
 /**
  * Used to retrieve private data for plug-in operation.
  * @param plug  Opaque plug-in pointer.
  */
 void LSM_DLL_EXPORT *lsm_private_data_get(lsm_plugin_ptr plug);
-
 
 /**
  * Logs an error with the plug-in
@@ -1327,8 +1272,7 @@ void LSM_DLL_EXPORT *lsm_private_data_get(lsm_plugin_ptr plug);
  * @return returns code
  */
 int LSM_DLL_EXPORT lsm_log_error_basic(lsm_plugin_ptr plug,
-                                       lsm_error_number code,
-                                       const char *msg);
+                                       lsm_error_number code, const char *msg);
 
 /**
  * Return an error with the plug-in
@@ -1349,27 +1293,23 @@ int LSM_DLL_EXPORT lsm_plugin_error_log(lsm_plugin_ptr plug,
  * @param debug_data_size
  * @return Null on error, else valid error error record.
  */
-lsm_error_ptr LSM_DLL_EXPORT lsm_error_create(lsm_error_number code,
-                                              const char *msg,
-                                              const char *exception,
-                                              const char *debug,
-                                              const void *debug_data,
-                                              uint32_t debug_data_size);
-
+lsm_error_ptr LSM_DLL_EXPORT lsm_error_create(
+    lsm_error_number code, const char *msg, const char *exception,
+    const char *debug, const void *debug_data, uint32_t debug_data_size);
 
 /**
  * Plug-in macros for creating errors
  */
-#define LSM_ERROR_CREATE_PLUGIN_MSG(code, msg)        \
+#define LSM_ERROR_CREATE_PLUGIN_MSG(code, msg)                                 \
     lsm_error_create(code, msg, NULL, NULL, NULL, 0)
 
-#define LSM_ERROR_CREATE_PLUGIN_EXCEPTION(code, msg, exception) \
+#define LSM_ERROR_CREATE_PLUGIN_EXCEPTION(code, msg, exception)                \
     lsm_error_create((code), (msg), (exception), NULL, NULL, 0)
 
-#define LSM_ERROR_CREATE_PLUGIN_DEBUG(code, msg, exception, debug, \
-                                      debug_data, debug_len) \
-    lsm_error_create((code), (msg), (exception), (debug), \
-                     (debug_data), debug_len)
+#define LSM_ERROR_CREATE_PLUGIN_DEBUG(code, msg, exception, debug, debug_data, \
+                                      debug_len)                               \
+    lsm_error_create((code), (msg), (exception), (debug), (debug_data),        \
+                     debug_len)
 
 /**
  * Helper function to create an array of lsm_pool *
@@ -1383,8 +1323,7 @@ lsm_pool LSM_DLL_EXPORT **lsm_pool_record_array_alloc(uint32_t size);
  * @param p                 Pool to modify
  * @param free_space        New free space value
  */
-void LSM_DLL_EXPORT lsm_pool_free_space_set(lsm_pool *p,
-                                            uint64_t free_space);
+void LSM_DLL_EXPORT lsm_pool_free_space_set(lsm_pool *p, uint64_t free_space);
 
 /**
  * Helper function to allocate a pool record.
@@ -1403,16 +1342,12 @@ void LSM_DLL_EXPORT lsm_pool_free_space_set(lsm_pool *p,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-lsm_pool LSM_DLL_EXPORT *lsm_pool_record_alloc(const char *id,
-                                               const char *name,
-                                               uint64_t element_type,
-                                               uint64_t unsupported_actions,
-                                               uint64_t total_space,
-                                               uint64_t free_space,
-                                               uint64_t status,
-                                               const char *status_info,
-                                               const char *system_id,
-                                               const char *plugin_data);
+lsm_pool LSM_DLL_EXPORT *
+lsm_pool_record_alloc(const char *id, const char *name, uint64_t element_type,
+                      uint64_t unsupported_actions, uint64_t total_space,
+                      uint64_t free_space, uint64_t status,
+                      const char *status_info, const char *system_id,
+                      const char *plugin_data);
 
 /**
  * Used to retrieve the plugin-private data for a specfic pool
@@ -1428,14 +1363,12 @@ const char LSM_DLL_EXPORT *lsm_pool_plugin_data_get(lsm_pool *p);
  */
 lsm_volume LSM_DLL_EXPORT **lsm_volume_record_array_alloc(uint32_t size);
 
-
 /**
  * Allocate the storage needed for tan array of disk records.
  * @param size      Number of elements
  * @return Allocated memory or null on error.
  */
 lsm_disk LSM_DLL_EXPORT **lsm_disk_record_array_alloc(uint32_t size);
-
 
 /**
  * Allocate a disk record.
@@ -1448,13 +1381,10 @@ lsm_disk LSM_DLL_EXPORT **lsm_disk_record_array_alloc(uint32_t size);
  * @param system_id         System id this disk resides in
  * @return Pointer to allocated disk record or NULL on memory error.
  */
-lsm_disk LSM_DLL_EXPORT *lsm_disk_record_alloc(const char *id,
-                                               const char *name,
-                                               lsm_disk_type disk_type,
-                                               uint64_t block_size,
-                                               uint64_t block_count,
-                                               uint64_t disk_status,
-                                               const char *system_id);
+lsm_disk LSM_DLL_EXPORT *
+lsm_disk_record_alloc(const char *id, const char *name, lsm_disk_type disk_type,
+                      uint64_t block_size, uint64_t block_count,
+                      uint64_t disk_status, const char *system_id);
 
 /**
  * New in version 1.3. Set a disk's location.
@@ -1463,8 +1393,7 @@ lsm_disk LSM_DLL_EXPORT *lsm_disk_record_alloc(const char *id,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-int LSM_DLL_EXPORT lsm_disk_location_set(lsm_disk *disk,
-                                         const char *location);
+int LSM_DLL_EXPORT lsm_disk_location_set(lsm_disk *disk, const char *location);
 
 /**
  * Allocated the storage needed for one volume record.
@@ -1479,15 +1408,11 @@ int LSM_DLL_EXPORT lsm_disk_location_set(lsm_disk *disk,
  * @param plugin_data           Private data for plugin use
  * @return Allocated memory or NULL on error.
  */
-lsm_volume LSM_DLL_EXPORT *lsm_volume_record_alloc(const char *id,
-                                                   const char *name,
-                                                   const char *vpd83,
-                                                   uint64_t block_size,
-                                                   uint64_t number_of_blocks,
-                                                   uint32_t status,
-                                                   const char *system_id,
-                                                   const char *pool_id,
-                                                   const char *plugin_data);
+lsm_volume LSM_DLL_EXPORT *
+lsm_volume_record_alloc(const char *id, const char *name, const char *vpd83,
+                        uint64_t block_size, uint64_t number_of_blocks,
+                        uint32_t status, const char *system_id,
+                        const char *pool_id, const char *plugin_data);
 
 /**
  * Retrieve the private plug-in data from the volume record.
@@ -1512,11 +1437,9 @@ lsm_system LSM_DLL_EXPORT **lsm_system_record_array_alloc(uint32_t size);
  * @param[in] plugin_data   Private plugin data
  * @return  Allocated memory or NULL on error.
  */
-lsm_system LSM_DLL_EXPORT *lsm_system_record_alloc(const char *id,
-                                                   const char *name,
-                                                   uint32_t status,
-                                                   const char *status_info,
-                                                   const char *plugin_data);
+lsm_system LSM_DLL_EXPORT *
+lsm_system_record_alloc(const char *id, const char *name, uint32_t status,
+                        const char *status_info, const char *plugin_data);
 
 /**
  * New in version 1.3. Set read cache percentage.
@@ -1527,8 +1450,7 @@ lsm_system LSM_DLL_EXPORT *lsm_system_record_alloc(const char *id,
  * @retval LSM_ERR_OK on success.
  * @retval LSM_ERR_INVALID_ARGUMENT otherwise.
  */
-int LSM_DLL_EXPORT lsm_system_read_cache_pct_set(lsm_system *sys,
-                                                 int read_pct);
+int LSM_DLL_EXPORT lsm_system_read_cache_pct_set(lsm_system *sys, int read_pct);
 
 /**
  * New in version 1.3. Set firmware version.
@@ -1569,8 +1491,7 @@ const char LSM_DLL_EXPORT *lsm_system_plugin_data_get(lsm_system *s);
  * @return  NULL on error, else pointer to array for use.
  */
 lsm_access_group LSM_DLL_EXPORT **
-    lsm_access_group_record_array_alloc(uint32_t size);
-
+lsm_access_group_record_array_alloc(uint32_t size);
 
 /**
  * Allocates storage for single Access_group
@@ -1583,12 +1504,10 @@ lsm_access_group LSM_DLL_EXPORT **
  * @return NULL on error, else valid lsm_access_group pointer.
  */
 lsm_access_group LSM_DLL_EXPORT *
-    lsm_access_group_record_alloc(const char *id, const char *name,
-                                  lsm_string_list *initiators,
-                                  lsm_access_group_init_type init_type,
-                                  const char *system_id,
-                                  const char *plugin_data);
-
+lsm_access_group_record_alloc(const char *id, const char *name,
+                              lsm_string_list *initiators,
+                              lsm_access_group_init_type init_type,
+                              const char *system_id, const char *plugin_data);
 
 /**
  * Use to change the list of initiators associated with an access group.
@@ -1609,13 +1528,10 @@ void LSM_DLL_EXPORT lsm_access_group_initiator_id_set(lsm_access_group *group,
  * @param plugin_data           Reserved for plug-in use only
  * @return lsm_fs, NULL on error
  */
-lsm_fs LSM_DLL_EXPORT *lsm_fs_record_alloc(const char *id,
-                                           const char *name,
-                                           uint64_t total_space,
-                                           uint64_t free_space,
-                                           const char *pool_id,
-                                           const char *system_id,
-                                           const char *plugin_data);
+lsm_fs LSM_DLL_EXPORT *
+lsm_fs_record_alloc(const char *id, const char *name, uint64_t total_space,
+                    uint64_t free_space, const char *pool_id,
+                    const char *system_id, const char *plugin_data);
 
 /**
  * Allocates the memory for the array of file system records.
@@ -1640,8 +1556,7 @@ const char LSM_DLL_EXPORT *lsm_fs_plugin_data_get(lsm_fs *fs);
  * @return Allocated memory, NULL on error
  */
 lsm_fs_ss LSM_DLL_EXPORT *lsm_fs_ss_record_alloc(const char *id,
-                                                 const char *name,
-                                                 uint64_t ts,
+                                                 const char *name, uint64_t ts,
                                                  const char *plugin_data);
 
 /**
@@ -1656,7 +1571,7 @@ lsm_fs_ss LSM_DLL_EXPORT **lsm_fs_ss_record_array_alloc(uint32_t size);
  * @param fs_ss       Valid fs_ss record
  * @return Private data, else NULL
  */
-const char LSM_DLL_EXPORT *lsm_fs_ss_plugin_data_get(lsm_fs_ss * fs_ss);
+const char LSM_DLL_EXPORT *lsm_fs_ss_plugin_data_get(lsm_fs_ss *fs_ss);
 
 /**
  * Set a capability
@@ -1666,7 +1581,7 @@ const char LSM_DLL_EXPORT *lsm_fs_ss_plugin_data_get(lsm_fs_ss * fs_ss);
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-int LSM_DLL_EXPORT lsm_capability_set(lsm_storage_capabilities * cap,
+int LSM_DLL_EXPORT lsm_capability_set(lsm_storage_capabilities *cap,
                                       lsm_capability_type t,
                                       lsm_capability_value_type v);
 
@@ -1679,7 +1594,7 @@ int LSM_DLL_EXPORT lsm_capability_set(lsm_storage_capabilities * cap,
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-int LSM_DLL_EXPORT lsm_capability_set_n(lsm_storage_capabilities * cap,
+int LSM_DLL_EXPORT lsm_capability_set_n(lsm_storage_capabilities *cap,
                                         lsm_capability_value_type v, ...);
 
 /**
@@ -1687,8 +1602,8 @@ int LSM_DLL_EXPORT lsm_capability_set_n(lsm_storage_capabilities * cap,
  * @param value     Set to NULL, used during serialization otherwise.
  * @return Allocated record, or NULL on memory allocation failure.
  */
-lsm_storage_capabilities LSM_DLL_EXPORT
-    * lsm_capability_record_alloc(char const *value);
+lsm_storage_capabilities LSM_DLL_EXPORT *
+lsm_capability_record_alloc(char const *value);
 
 /**
  * Convenience function for plug-in writer.
@@ -1703,9 +1618,9 @@ lsm_storage_capabilities LSM_DLL_EXPORT
  * @return Error code as enumerated by \ref lsm_error_number.
  * @retval LSM_ERR_OK on success.
  */
-int LSM_DLL_EXPORT lsm_uri_parse(const char *uri, char **scheme,
-                                 char **user, char **server, int *port,
-                                 char **path, lsm_hash **query_params);
+int LSM_DLL_EXPORT lsm_uri_parse(const char *uri, char **scheme, char **user,
+                                 char **server, int *port, char **path,
+                                 lsm_hash **query_params);
 
 /**
  * Provides for volume filtering when an array doesn't support this natively.
@@ -1755,11 +1670,9 @@ void LSM_DLL_EXPORT lsm_plug_disk_search_filter(const char *search_key,
  * @param[in,out] ag        Array to filter
  * @param[in,out] count     Number of access groups to filter, number remain
  */
-void LSM_DLL_EXPORT
-    lsm_plug_access_group_search_filter(const char *search_key,
-                                        const char *search_value,
-                                        lsm_access_group *ag[],
-                                        uint32_t *count);
+void LSM_DLL_EXPORT lsm_plug_access_group_search_filter(
+    const char *search_key, const char *search_value, lsm_access_group *ag[],
+    uint32_t *count);
 
 /**
  * Provides for fs filtering when an array doesn't support this natively.
@@ -1781,20 +1694,17 @@ void LSM_DLL_EXPORT lsm_plug_fs_search_filter(const char *search_key,
  * @param[in,out] exports   Array to filter
  * @param[in,out] count     Number of nfs exports to filter, number remain
  */
-void LSM_DLL_EXPORT
-    lsm_plug_nfs_export_search_filter(const char *search_key,
-                                      const char *search_value,
-                                      lsm_nfs_export *exports[],
-                                      uint32_t *count);
+void LSM_DLL_EXPORT lsm_plug_nfs_export_search_filter(const char *search_key,
+                                                      const char *search_value,
+                                                      lsm_nfs_export *exports[],
+                                                      uint32_t *count);
 
 /**
  * Retrieve private data from nfs export record.
  * @param exp       Valid nfs export record
  * @return Private data, else NULL
  */
-const char LSM_DLL_EXPORT *
-    lsm_nfs_export_plugin_data_get(lsm_nfs_export *exp);
-
+const char LSM_DLL_EXPORT *lsm_nfs_export_plugin_data_get(lsm_nfs_export *exp);
 
 /**
  * Allocate a target port
@@ -1808,23 +1718,17 @@ const char LSM_DLL_EXPORT *
  * @param plugin_data           Plug-in data
  * @return valid lsm_target_port, else NULL on memory allocation failure
  */
-lsm_target_port LSM_DLL_EXPORT *
-    lsm_target_port_record_alloc(const char *id,
-                                 lsm_target_port_type port_type,
-                                 const char *service_address,
-                                 const char *network_address,
-                                 const char *physical_address,
-                                 const char *physical_name,
-                                 const char *system_id,
-                                 const char *plugin_data);
+lsm_target_port LSM_DLL_EXPORT *lsm_target_port_record_alloc(
+    const char *id, lsm_target_port_type port_type, const char *service_address,
+    const char *network_address, const char *physical_address,
+    const char *physical_name, const char *system_id, const char *plugin_data);
 
 /**
  * Retrieve the plug-in private data pointer
  * @param tp    Valid target port pointer
  * @return Character pointer to string, NULL on error
  */
-const char LSM_DLL_EXPORT *
-    lsm_target_port_plugin_data_get(lsm_target_port *tp);
+const char LSM_DLL_EXPORT *lsm_target_port_plugin_data_get(lsm_target_port *tp);
 
 /**
  * Allocated an array of target pointers
@@ -1832,8 +1736,7 @@ const char LSM_DLL_EXPORT *
  * @return Allocated memory, NULL on allocation errors
  */
 lsm_target_port LSM_DLL_EXPORT **
-    lsm_target_port_record_array_alloc(uint32_t size);
-
+lsm_target_port_record_array_alloc(uint32_t size);
 
 /**
  * Provides for target port filtering when an array doesn't support this
@@ -1844,11 +1747,10 @@ lsm_target_port LSM_DLL_EXPORT **
  * @param[in,out] tp        Array to filter
  * @param[in,out] count     Number of target ports to filter, number remain
  */
-void LSM_DLL_EXPORT
-    lsm_plug_target_port_search_filter(const char *search_key,
-                                       const char *search_value,
-                                       lsm_target_port *tp[],
-                                       uint32_t *count);
+void LSM_DLL_EXPORT lsm_plug_target_port_search_filter(const char *search_key,
+                                                       const char *search_value,
+                                                       lsm_target_port *tp[],
+                                                       uint32_t *count);
 
 /**
  * New in version 1.3. Set disk VPD83 ID.
@@ -1881,7 +1783,7 @@ int LSM_DLL_EXPORT lsm_disk_rpm_set(lsm_disk *disk, int32_t rpm);
 int LSM_DLL_EXPORT lsm_disk_link_type_set(lsm_disk *disk,
                                           lsm_disk_link_type link_type);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
-#endif                          /* LIBSTORAGEMGMT_PLUG_INTERFACE_H */
+#endif /* LIBSTORAGEMGMT_PLUG_INTERFACE_H */

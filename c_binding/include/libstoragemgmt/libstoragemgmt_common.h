@@ -21,8 +21,7 @@
 
 #include "libstoragemgmt_types.h"
 
-
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -32,9 +31,9 @@ extern "C" {
 #define LSM_DLL_LOCAL
 #else
 #if __GNUC__ >= 4
-#define LSM_DLL_IMPORT __attribute__ ((visibility ("default")))
-#define LSM_DLL_EXPORT __attribute__ ((visibility ("default")))
-#define LSM_DLL_LOCAL  __attribute__ ((visibility ("hidden")))
+#define LSM_DLL_IMPORT __attribute__((visibility("default")))
+#define LSM_DLL_EXPORT __attribute__((visibility("default")))
+#define LSM_DLL_LOCAL  __attribute__((visibility("hidden")))
 #else
 #define LSM_DLL_IMPORT
 #define LSM_DLL_EXPORT
@@ -132,8 +131,7 @@ lsm_string_list LSM_DLL_EXPORT *lsm_string_list_copy(lsm_string_list *src);
  *          * LSM_ERR_NO_MEMORY
  *              When no enough memory.
  */
-int LSM_DLL_EXPORT lsm_string_list_elem_set(lsm_string_list *sl,
-                                            uint32_t index,
+int LSM_DLL_EXPORT lsm_string_list_elem_set(lsm_string_list *sl, uint32_t index,
                                             const char *value);
 
 /**
@@ -209,8 +207,7 @@ uint32_t LSM_DLL_EXPORT lsm_string_list_size(lsm_string_list *sl);
  *          * LSM_ERR_NO_MEMORY
  *              When no enough memory.
  */
-int LSM_DLL_EXPORT lsm_string_list_append(lsm_string_list *sl,
-                                          const char *add);
+int LSM_DLL_EXPORT lsm_string_list_append(lsm_string_list *sl, const char *add);
 
 /**
  * lsm_string_list_delete - Deletes specified element from lsm_string_list.
@@ -239,8 +236,7 @@ int LSM_DLL_EXPORT lsm_string_list_append(lsm_string_list *sl,
  *              When any argument is NULL or not a valid lsm_string_list
  *              pointer.
  */
-int LSM_DLL_EXPORT lsm_string_list_delete(lsm_string_list *sl,
-                                          uint32_t index);
+int LSM_DLL_EXPORT lsm_string_list_delete(lsm_string_list *sl, uint32_t index);
 
 /**
  * lsm_initiator_id_verify - Verifies if initiator id is valid.
@@ -270,10 +266,8 @@ int LSM_DLL_EXPORT lsm_string_list_delete(lsm_string_list *sl,
  *          * LSM_ERR_INVALID_ARGUMENT
  *              Not a valid initiator or any argument is NULL.
  */
-int LSM_DLL_EXPORT
-    lsm_initiator_id_verify(const char *init_id,
-                            lsm_access_group_init_type *init_type);
-
+int LSM_DLL_EXPORT lsm_initiator_id_verify(
+    const char *init_id, lsm_access_group_init_type *init_type);
 
 /**
  * Checks to see if volume vpd83 is valid
@@ -305,7 +299,7 @@ int LSM_DLL_EXPORT
  */
 int LSM_DLL_EXPORT lsm_volume_vpd83_verify(const char *vpd83);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
-#endif                          /* LSM_COMMON_H */
+#endif /* LSM_COMMON_H */

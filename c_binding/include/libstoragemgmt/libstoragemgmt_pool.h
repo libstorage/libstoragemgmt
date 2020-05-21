@@ -21,7 +21,7 @@
 
 #include "libstoragemgmt_common.h"
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -321,7 +321,7 @@ uint64_t LSM_DLL_EXPORT lsm_pool_element_type_get(lsm_pool *p);
  */
 uint64_t LSM_DLL_EXPORT lsm_pool_unsupported_actions_get(lsm_pool *p);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
-#endif                          /* LIBSTORAGEMGMT_POOL_H */
+#endif /* LIBSTORAGEMGMT_POOL_H */

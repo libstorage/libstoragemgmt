@@ -87,8 +87,7 @@ lsm_disk LSM_DLL_EXPORT *lsm_disk_record_copy(lsm_disk *d);
  *              When not a valid lsm_disk pointer.
  *
  */
-int LSM_DLL_EXPORT lsm_disk_record_array_free(lsm_disk *disk[],
-                                              uint32_t size);
+int LSM_DLL_EXPORT lsm_disk_record_array_free(lsm_disk *disk[], uint32_t size);
 
 /**
  * lsm_disk_id_get - Retrieves the ID of the disk.
@@ -413,4 +412,4 @@ const char LSM_DLL_EXPORT *lsm_disk_vpd83_get(lsm_disk *d);
 #ifdef __cplusplus
 }
 #endif
-#endif                          /* LIBSTORAGEMGMT_DISK_H */
+#endif /* LIBSTORAGEMGMT_DISK_H */

@@ -19,7 +19,7 @@
  *         Gris Ge <fge@redhat.com>
  */
 
-#ifndef  __cplusplus
+#ifndef __cplusplus
 #define _GNU_SOURCE
 #endif
 
@@ -28,6 +28,7 @@
 #include "lsm_datatypes.hpp"
 
 #include "libstoragemgmt/libstoragemgmt_accessgroups.h"
+#include "libstoragemgmt/libstoragemgmt_battery.h"
 #include "libstoragemgmt/libstoragemgmt_common.h"
 #include "libstoragemgmt/libstoragemgmt_disk.h"
 #include "libstoragemgmt/libstoragemgmt_error.h"
@@ -40,23 +41,20 @@
 #include "libstoragemgmt/libstoragemgmt_targetport.h"
 #include "libstoragemgmt/libstoragemgmt_types.h"
 #include "libstoragemgmt/libstoragemgmt_volumes.h"
-#include "libstoragemgmt/libstoragemgmt_plug_interface.h"
-#include "libstoragemgmt/libstoragemgmt_battery.h"
 
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <dlfcn.h>
 #include <glib.h>
 #include <regex.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 #define LSM_DEFAULT_PLUGIN_DIR "/var/run/lsm/ipc"
 
-int lsm_string_list_append(lsm_string_list * sl, const char *value)
-{
+int lsm_string_list_append(lsm_string_list *sl, const char *value) {
     int rc = LSM_ERR_INVALID_ARGUMENT;
 
     if (LSM_IS_STRING_LIST(sl)) {
@@ -71,8 +69,7 @@ int lsm_string_list_append(lsm_string_list * sl, const char *value)
     return rc;
 }
 
-int lsm_string_list_delete(lsm_string_list * sl, uint32_t index)
-{
+int lsm_string_list_delete(lsm_string_list *sl, uint32_t index) {
     int rc = LSM_ERR_INVALID_ARGUMENT;
 
     if (LSM_IS_STRING_LIST(sl)) {
@@ -84,15 +81,13 @@ int lsm_string_list_delete(lsm_string_list * sl, uint32_t index)
     return rc;
 }
 
-
-int lsm_string_list_elem_set(lsm_string_list * sl, uint32_t index,
-                             const char *value)
-{
+int lsm_string_list_elem_set(lsm_string_list *sl, uint32_t index,
+                             const char *value) {
     int rc = LSM_ERR_OK;
     if (LSM_IS_STRING_LIST(sl)) {
         if (index < sl->values->len) {
 
-            char *i = (char *) g_ptr_array_index(sl->values, index);
+            char *i = (char *)g_ptr_array_index(sl->values, index);
 
             if (i) {
                 free(i);
@@ -117,21 +112,19 @@ int lsm_string_list_elem_set(lsm_string_list * sl, uint32_t index,
     return rc;
 }
 
-const char *lsm_string_list_elem_get(lsm_string_list * sl, uint32_t index)
-{
+const char *lsm_string_list_elem_get(lsm_string_list *sl, uint32_t index) {
     if (LSM_IS_STRING_LIST(sl)) {
         if (index < sl->values->len) {
-            return (const char *) g_ptr_array_index(sl->values, index);
+            return (const char *)g_ptr_array_index(sl->values, index);
         }
     }
     return NULL;
 }
 
-lsm_string_list *lsm_string_list_alloc(uint32_t size)
-{
+lsm_string_list *lsm_string_list_alloc(uint32_t size) {
     lsm_string_list *rc = NULL;
 
-    rc = (lsm_string_list *) malloc(sizeof(lsm_string_list));
+    rc = (lsm_string_list *)malloc(sizeof(lsm_string_list));
     if (rc) {
         rc->magic = LSM_STRING_LIST_MAGIC;
         rc->values = g_ptr_array_sized_new(size);
@@ -148,8 +141,7 @@ lsm_string_list *lsm_string_list_alloc(uint32_t size)
     return rc;
 }
 
-int lsm_string_list_free(lsm_string_list * sl)
-{
+int lsm_string_list_free(lsm_string_list *sl) {
     if (LSM_IS_STRING_LIST(sl)) {
         sl->magic = LSM_DEL_MAGIC(LSM_STRING_LIST_MAGIC);
         g_ptr_array_free(sl->values, TRUE);
@@ -160,16 +152,14 @@ int lsm_string_list_free(lsm_string_list * sl)
     return LSM_ERR_INVALID_ARGUMENT;
 }
 
-uint32_t lsm_string_list_size(lsm_string_list * sl)
-{
+uint32_t lsm_string_list_size(lsm_string_list *sl) {
     if (LSM_IS_STRING_LIST(sl)) {
-        return (uint32_t) sl->values->len;
+        return (uint32_t)sl->values->len;
     }
     return 0;
 }
 
-lsm_string_list *lsm_string_list_copy(lsm_string_list * src)
-{
+lsm_string_list *lsm_string_list_copy(lsm_string_list *src) {
     lsm_string_list *dest = NULL;
 
     if (LSM_IS_STRING_LIST(src)) {
@@ -181,9 +171,8 @@ lsm_string_list *lsm_string_list_copy(lsm_string_list * src)
 
             for (i = 0; i < size; ++i) {
                 if (LSM_ERR_OK !=
-                    lsm_string_list_elem_set(dest, i,
-                                             lsm_string_list_elem_get
-                                             (src, i))) {
+                    lsm_string_list_elem_set(
+                        dest, i, lsm_string_list_elem_get(src, i))) {
                     /** We had an allocation failure setting an element item */
                     lsm_string_list_free(dest);
                     dest = NULL;
@@ -195,17 +184,15 @@ lsm_string_list *lsm_string_list_copy(lsm_string_list * src)
     return dest;
 }
 
-lsm_connect *connection_get()
-{
-    lsm_connect *c = (lsm_connect *) calloc(1, sizeof(lsm_connect));
+lsm_connect *connection_get() {
+    lsm_connect *c = (lsm_connect *)calloc(1, sizeof(lsm_connect));
     if (c) {
         c->magic = LSM_CONNECT_MAGIC;
     }
     return c;
 }
 
-void connection_free(lsm_connect * c)
-{
+void connection_free(lsm_connect *c) {
     if (LSM_IS_CONNECT(c)) {
 
         c->magic = LSM_DEL_MAGIC(LSM_CONNECT_MAGIC);
@@ -222,7 +209,7 @@ void connection_free(lsm_connect * c)
         }
 
         if (c->tp) {
-            delete(c->tp);
+            delete (c->tp);
             c->tp = NULL;
         }
 
@@ -235,12 +222,11 @@ void connection_free(lsm_connect * c)
     }
 }
 
-static int connection_establish(lsm_connect * c, const char *password,
-                                uint32_t timeout, lsm_error_ptr * e,
-                                lsm_flag flags)
-{
+static int connection_establish(lsm_connect *c, const char *password,
+                                uint32_t timeout, lsm_error_ptr *e,
+                                lsm_flag flags) {
     int rc = LSM_ERR_OK;
-    std::map < std::string, Value > params;
+    std::map<std::string, Value> params;
 
     try {
         params["uri"] = Value(c->raw_uri);
@@ -255,27 +241,25 @@ static int connection_establish(lsm_connect * c, const char *password,
         Value p(params);
 
         c->tp->rpc("plugin_register", p);
-    }
-    catch(const ValueException & ve) {
+    } catch (const ValueException &ve) {
         *e = lsm_error_create(LSM_ERR_TRANSPORT_SERIALIZATION,
                               "Error in serialization", ve.what(), NULL, NULL,
                               0);
         rc = LSM_ERR_TRANSPORT_SERIALIZATION;
-    } catch(const LsmException & le) {
+    } catch (const LsmException &le) {
         *e = lsm_error_create(LSM_ERR_TRANSPORT_COMMUNICATION,
                               "Error in communication", le.what(), NULL, NULL,
                               0);
         rc = LSM_ERR_TRANSPORT_COMMUNICATION;
-    } catch( ...) {
-        *e = lsm_error_create(LSM_ERR_LIB_BUG, "Undefined exception",
-                              NULL, NULL, NULL, 0);
+    } catch (...) {
+        *e = lsm_error_create(LSM_ERR_LIB_BUG, "Undefined exception", NULL,
+                              NULL, NULL, 0);
         rc = LSM_ERR_LIB_BUG;
     }
     return rc;
 }
 
-const char *uds_path(void)
-{
+const char *uds_path(void) {
     const char *plugin_dir = getenv("LSM_UDS_PATH");
 
     if (plugin_dir == NULL) {
@@ -284,11 +268,9 @@ const char *uds_path(void)
     return plugin_dir;
 }
 
-
-int driver_load(lsm_connect * c, const char *plugin_name, const char *password,
-                uint32_t timeout, lsm_error_ptr * e, int startup,
-                lsm_flag flags)
-{
+int driver_load(lsm_connect *c, const char *plugin_name, const char *password,
+                uint32_t timeout, lsm_error_ptr *e, int startup,
+                lsm_flag flags) {
     int rc = LSM_ERR_OK;
     char *plugin_file = NULL;
     const char *plugin_dir = uds_path();
@@ -333,9 +315,9 @@ int driver_load(lsm_connect * c, const char *plugin_name, const char *password,
 
 lsm_error_ptr lsm_error_create(lsm_error_number code, const char *msg,
                                const char *exception, const char *debug,
-                               const void *debug_data, uint32_t debug_data_size)
-{
-    lsm_error_ptr err = (lsm_error_ptr) calloc(1, sizeof(lsm_error));
+                               const void *debug_data,
+                               uint32_t debug_data_size) {
+    lsm_error_ptr err = (lsm_error_ptr)calloc(1, sizeof(lsm_error));
 
     if (err) {
         err->magic = LSM_ERROR_MAGIC;
@@ -366,11 +348,10 @@ lsm_error_ptr lsm_error_create(lsm_error_number code, const char *msg,
             }
         }
     }
-    return (lsm_error_ptr) err;
+    return (lsm_error_ptr)err;
 }
 
-int lsm_error_free(lsm_error_ptr e)
-{
+int lsm_error_free(lsm_error_ptr e) {
     if (!LSM_IS_ERROR(e)) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
@@ -402,35 +383,29 @@ int lsm_error_free(lsm_error_ptr e)
     return LSM_ERR_OK;
 }
 
-#define LSM_RETURN_ERR_VAL(type_t, e, x, error) \
-        if( LSM_IS_ERROR(e) ) {     \
-            return e->x;            \
-        }                           \
-        return (type_t)error;               \
+#define LSM_RETURN_ERR_VAL(type_t, e, x, error)                                \
+    if (LSM_IS_ERROR(e)) {                                                     \
+        return e->x;                                                           \
+    }                                                                          \
+    return (type_t)error;
 
-
-lsm_error_number lsm_error_number_get(lsm_error_ptr e)
-{
+lsm_error_number lsm_error_number_get(lsm_error_ptr e) {
     LSM_RETURN_ERR_VAL(lsm_error_number, e, code, -1);
 }
 
-char *lsm_error_message_get(lsm_error_ptr e)
-{
+char *lsm_error_message_get(lsm_error_ptr e) {
     LSM_RETURN_ERR_VAL(char *, e, message, NULL);
 }
 
-char *lsm_error_exception_get(lsm_error_ptr e)
-{
+char *lsm_error_exception_get(lsm_error_ptr e) {
     LSM_RETURN_ERR_VAL(char *, e, exception, NULL);
 }
 
-char *lsm_error_debug_get(lsm_error_ptr e)
-{
+char *lsm_error_debug_get(lsm_error_ptr e) {
     LSM_RETURN_ERR_VAL(char *, e, debug, NULL);
 }
 
-void *lsm_error_debug_data_get(lsm_error_ptr e, uint32_t * size)
-{
+void *lsm_error_debug_data_get(lsm_error_ptr e, uint32_t *size) {
     if (LSM_IS_ERROR(e) && size != NULL) {
         if (e->debug_data) {
             *size = e->debug_data_size;
@@ -449,15 +424,14 @@ void *lsm_error_debug_data_get(lsm_error_ptr e, uint32_t * size)
  * @param   rtype   return type
  * @return An array of pointers of rtype
  */
-#define CREATE_ALLOC_ARRAY_FUNC(name, rtype)\
-rtype *name(uint32_t size)                  \
-{                                           \
-    rtype *rc = NULL;                       \
-    if (size > 0) {                         \
-        rc = (rtype *) calloc(size, sizeof(rtype)); \
-    }                                       \
-    return rc;                              \
-}
+#define CREATE_ALLOC_ARRAY_FUNC(name, rtype)                                   \
+    rtype *name(uint32_t size) {                                               \
+        rtype *rc = NULL;                                                      \
+        if (size > 0) {                                                        \
+            rc = (rtype *)calloc(size, sizeof(rtype));                         \
+        }                                                                      \
+        return rc;                                                             \
+    }
 
 /**
  * Common macro for freeing the memory associated with one of these
@@ -468,20 +442,18 @@ rtype *name(uint32_t size)                  \
  * @param error             Value to return on error
  * @return None
  */
-#define CREATE_FREE_ARRAY_FUNC(name, free_func, record_type, error)\
-int name( record_type pa[], uint32_t size)                \
-{                                                   \
-    if (pa) {                                       \
-        uint32_t i = 0;                             \
-        for (i = 0; i < size; ++i) {                \
-            free_func(pa[i]);                       \
-        }                                           \
-        free(pa);                                   \
-        return LSM_ERR_OK;                          \
-    }                                               \
-    return error;                                   \
-}
-
+#define CREATE_FREE_ARRAY_FUNC(name, free_func, record_type, error)            \
+    int name(record_type pa[], uint32_t size) {                                \
+        if (pa) {                                                              \
+            uint32_t i = 0;                                                    \
+            for (i = 0; i < size; ++i) {                                       \
+                free_func(pa[i]);                                              \
+            }                                                                  \
+            free(pa);                                                          \
+            return LSM_ERR_OK;                                                 \
+        }                                                                      \
+        return error;                                                          \
+    }
 
 CREATE_ALLOC_ARRAY_FUNC(lsm_pool_record_array_alloc, lsm_pool *)
 
@@ -490,9 +462,9 @@ lsm_pool *lsm_pool_record_alloc(const char *id, const char *name,
                                 uint64_t unsupported_actions,
                                 uint64_t totalSpace, uint64_t freeSpace,
                                 uint64_t status, const char *status_info,
-                                const char *system_id, const char *plugin_data)
-{
-    lsm_pool *rc = (lsm_pool *) calloc(1, sizeof(lsm_pool));
+                                const char *system_id,
+                                const char *plugin_data) {
+    lsm_pool *rc = (lsm_pool *)calloc(1, sizeof(lsm_pool));
     if (rc) {
         rc->magic = LSM_POOL_MAGIC;
         rc->id = strdup(id);
@@ -518,31 +490,24 @@ lsm_pool *lsm_pool_record_alloc(const char *id, const char *name,
     return rc;
 }
 
-void lsm_pool_free_space_set(lsm_pool * p, uint64_t free_space)
-{
+void lsm_pool_free_space_set(lsm_pool *p, uint64_t free_space) {
     if (LSM_IS_POOL(p)) {
         p->free_space = free_space;
     }
 }
 
-lsm_pool *lsm_pool_record_copy(lsm_pool * toBeCopied)
-{
+lsm_pool *lsm_pool_record_copy(lsm_pool *toBeCopied) {
     if (LSM_IS_POOL(toBeCopied)) {
-        return lsm_pool_record_alloc(toBeCopied->id, toBeCopied->name,
-                                     toBeCopied->element_type,
-                                     toBeCopied->unsupported_actions,
-                                     toBeCopied->total_space,
-                                     toBeCopied->free_space,
-                                     toBeCopied->status,
-                                     toBeCopied->status_info,
-                                     toBeCopied->system_id,
-                                     toBeCopied->plugin_data);
+        return lsm_pool_record_alloc(
+            toBeCopied->id, toBeCopied->name, toBeCopied->element_type,
+            toBeCopied->unsupported_actions, toBeCopied->total_space,
+            toBeCopied->free_space, toBeCopied->status, toBeCopied->status_info,
+            toBeCopied->system_id, toBeCopied->plugin_data);
     }
     return NULL;
 }
 
-int lsm_pool_record_free(lsm_pool * p)
-{
+int lsm_pool_record_free(lsm_pool *p) {
     if (LSM_IS_POOL(p)) {
         p->magic = LSM_DEL_MAGIC(LSM_POOL_MAGIC);
         if (p->name) {
@@ -588,20 +553,18 @@ MEMBER_FUNC_GET(uint64_t, lsm_pool, LSM_IS_POOL, status, UINT64_MAX);
 MEMBER_FUNC_GET(uint64_t, lsm_pool, LSM_IS_POOL, element_type, 0);
 MEMBER_FUNC_GET(uint64_t, lsm_pool, LSM_IS_POOL, unsupported_actions, 0);
 
-    CREATE_ALLOC_ARRAY_FUNC(lsm_volume_record_array_alloc, lsm_volume *)
+CREATE_ALLOC_ARRAY_FUNC(lsm_volume_record_array_alloc, lsm_volume *)
 
 lsm_volume *lsm_volume_record_alloc(const char *id, const char *name,
                                     const char *vpd83, uint64_t blockSize,
-                                    uint64_t numberOfBlocks,
-                                    uint32_t status, const char *system_id,
-                                    const char *pool_id,
-                                    const char *plugin_data)
-{
+                                    uint64_t numberOfBlocks, uint32_t status,
+                                    const char *system_id, const char *pool_id,
+                                    const char *plugin_data) {
     if (vpd83 && (LSM_ERR_OK != lsm_volume_vpd83_verify(vpd83))) {
         return NULL;
     }
 
-    lsm_volume *rc = (lsm_volume *) calloc(1, sizeof(lsm_volume));
+    lsm_volume *rc = (lsm_volume *)calloc(1, sizeof(lsm_volume));
     if (rc) {
         rc->magic = LSM_VOL_MAGIC;
         rc->id = strdup(id);
@@ -635,9 +598,8 @@ CREATE_ALLOC_ARRAY_FUNC(lsm_disk_record_array_alloc, lsm_disk *)
 lsm_disk *lsm_disk_record_alloc(const char *id, const char *name,
                                 lsm_disk_type disk_type, uint64_t block_size,
                                 uint64_t block_count, uint64_t disk_status,
-                                const char *system_id)
-{
-    lsm_disk *rc = (lsm_disk *) malloc(sizeof(lsm_disk));
+                                const char *system_id) {
+    lsm_disk *rc = (lsm_disk *)malloc(sizeof(lsm_disk));
     if (rc) {
         rc->magic = LSM_DISK_MAGIC;
         rc->id = strdup(id);
@@ -664,9 +626,8 @@ CREATE_ALLOC_ARRAY_FUNC(lsm_system_record_array_alloc, lsm_system *)
 
 lsm_system *lsm_system_record_alloc(const char *id, const char *name,
                                     uint32_t status, const char *status_info,
-                                    const char *plugin_data)
-{
-    lsm_system *rc = (lsm_system *) calloc(1, sizeof(lsm_system));
+                                    const char *plugin_data) {
+    lsm_system *rc = (lsm_system *)calloc(1, sizeof(lsm_system));
     if (rc) {
         rc->magic = LSM_SYSTEM_MAGIC;
         rc->id = strdup(id);
@@ -690,8 +651,7 @@ lsm_system *lsm_system_record_alloc(const char *id, const char *name,
     return rc;
 }
 
-int lsm_system_record_free(lsm_system * s)
-{
+int lsm_system_record_free(lsm_system *s) {
     if (LSM_IS_SYSTEM(s)) {
         s->magic = LSM_DEL_MAGIC(LSM_SYSTEM_MAGIC);
 
@@ -713,7 +673,7 @@ int lsm_system_record_free(lsm_system * s)
         free(s->plugin_data);
 
         if (s->fw_version != NULL)
-            free((char *) s->fw_version);
+            free((char *)s->fw_version);
 
         free(s);
         return LSM_ERR_OK;
@@ -724,8 +684,7 @@ int lsm_system_record_free(lsm_system * s)
 CREATE_FREE_ARRAY_FUNC(lsm_system_record_array_free, lsm_system_record_free,
                        lsm_system *, LSM_ERR_INVALID_ARGUMENT)
 
-lsm_system *lsm_system_record_copy(lsm_system * s)
-{
+lsm_system *lsm_system_record_copy(lsm_system *s) {
     lsm_system *rc = NULL;
     if (LSM_IS_SYSTEM(s)) {
         rc = lsm_system_record_alloc(s->id, s->name, s->status, s->status_info,
@@ -742,24 +701,23 @@ lsm_system *lsm_system_record_copy(lsm_system * s)
     return rc;
 }
 
-MEMBER_FUNC_GET(const char *,lsm_system, LSM_IS_SYSTEM, id, NULL);
-MEMBER_FUNC_GET(const char *,lsm_system, LSM_IS_SYSTEM, name, NULL);
-MEMBER_FUNC_GET(uint32_t,lsm_system, LSM_IS_SYSTEM, status, UINT32_MAX);
-MEMBER_FUNC_GET(const char *,lsm_system, LSM_IS_SYSTEM, plugin_data, NULL);
+MEMBER_FUNC_GET(const char *, lsm_system, LSM_IS_SYSTEM, id, NULL);
+MEMBER_FUNC_GET(const char *, lsm_system, LSM_IS_SYSTEM, name, NULL);
+MEMBER_FUNC_GET(uint32_t, lsm_system, LSM_IS_SYSTEM, status, UINT32_MAX);
+MEMBER_FUNC_GET(const char *, lsm_system, LSM_IS_SYSTEM, plugin_data, NULL);
 MEMBER_FUNC_GET(int, lsm_system, LSM_IS_SYSTEM, read_cache_pct,
                 LSM_SYSTEM_READ_CACHE_PCT_UNKNOWN);
 MEMBER_FUNC_GET(const char *, lsm_system, LSM_IS_SYSTEM, fw_version, NULL);
 MEMBER_FUNC_GET(lsm_system_mode_type, lsm_system, LSM_IS_SYSTEM, mode,
                 LSM_SYSTEM_MODE_UNKNOWN);
 
-int lsm_system_fw_version_set(lsm_system *sys, const char *fw_ver)
-{
+int lsm_system_fw_version_set(lsm_system *sys, const char *fw_ver) {
     if ((sys == NULL) || (fw_ver == NULL) || (fw_ver[0] == '\0') ||
-        (! LSM_IS_SYSTEM(sys)))
+        (!LSM_IS_SYSTEM(sys)))
         return LSM_ERR_INVALID_ARGUMENT;
 
     if (sys->fw_version != NULL)
-        free((char *) sys->fw_version);
+        free((char *)sys->fw_version);
 
     sys->fw_version = strdup(fw_ver);
     if (sys->fw_version == NULL)
@@ -768,9 +726,8 @@ int lsm_system_fw_version_set(lsm_system *sys, const char *fw_ver)
     return LSM_ERR_OK;
 }
 
-int lsm_system_mode_set(lsm_system *sys, lsm_system_mode_type mode)
-{
-    if ((sys == NULL) || (! LSM_IS_SYSTEM(sys)) ||
+int lsm_system_mode_set(lsm_system *sys, lsm_system_mode_type mode) {
+    if ((sys == NULL) || (!LSM_IS_SYSTEM(sys)) ||
         (mode == LSM_SYSTEM_MODE_NO_SUPPORT))
         return LSM_ERR_INVALID_ARGUMENT;
 
@@ -779,9 +736,8 @@ int lsm_system_mode_set(lsm_system *sys, lsm_system_mode_type mode)
     return LSM_ERR_OK;
 }
 
-int lsm_system_read_cache_pct_set(lsm_system *sys, int read_pct)
-{
-    if ((sys == NULL) || (! LSM_IS_SYSTEM(sys)) ||
+int lsm_system_read_cache_pct_set(lsm_system *sys, int read_pct) {
+    if ((sys == NULL) || (!LSM_IS_SYSTEM(sys)) ||
         (read_pct == LSM_SYSTEM_READ_CACHE_PCT_NO_SUPPORT))
         return LSM_ERR_INVALID_ARGUMENT;
 
@@ -790,8 +746,7 @@ int lsm_system_read_cache_pct_set(lsm_system *sys, int read_pct)
     return LSM_ERR_OK;
 }
 
-lsm_volume *lsm_volume_record_copy(lsm_volume * vol)
-{
+lsm_volume *lsm_volume_record_copy(lsm_volume *vol) {
     lsm_volume *rc = NULL;
     if (LSM_IS_VOL(vol)) {
         rc = lsm_volume_record_alloc(vol->id, vol->name, vol->vpd83,
@@ -802,8 +757,7 @@ lsm_volume *lsm_volume_record_copy(lsm_volume * vol)
     return rc;
 }
 
-int lsm_volume_record_free(lsm_volume * v)
-{
+int lsm_volume_record_free(lsm_volume *v) {
     if (LSM_IS_VOL(v)) {
         v->magic = LSM_DEL_MAGIC(LSM_VOL_MAGIC);
 
@@ -844,23 +798,21 @@ int lsm_volume_record_free(lsm_volume * v)
 CREATE_FREE_ARRAY_FUNC(lsm_volume_record_array_free, lsm_volume_record_free,
                        lsm_volume *, LSM_ERR_INVALID_ARGUMENT)
 
-lsm_disk *lsm_disk_record_copy(lsm_disk * disk)
-{
+lsm_disk *lsm_disk_record_copy(lsm_disk *disk) {
     lsm_disk *new_lsm_disk = NULL;
 
     if (LSM_IS_DISK(disk)) {
-        new_lsm_disk = lsm_disk_record_alloc(disk->id, disk->name,
-                                             disk->type, disk->block_size,
-                                             disk->number_of_blocks,
-                                             disk->status,
-                                             disk->system_id);
+        new_lsm_disk = lsm_disk_record_alloc(
+            disk->id, disk->name, disk->type, disk->block_size,
+            disk->number_of_blocks, disk->status, disk->system_id);
         if (disk->vpd83 != NULL)
             if (lsm_disk_vpd83_set(new_lsm_disk, disk->vpd83) != LSM_ERR_OK) {
                 lsm_disk_record_free(new_lsm_disk);
                 return NULL;
             }
         if ((disk->location != NULL) &&
-            (lsm_disk_location_set(new_lsm_disk, disk->location) != LSM_ERR_OK)) {
+            (lsm_disk_location_set(new_lsm_disk, disk->location) !=
+             LSM_ERR_OK)) {
             lsm_disk_record_free(new_lsm_disk);
             return NULL;
         }
@@ -871,8 +823,7 @@ lsm_disk *lsm_disk_record_copy(lsm_disk * disk)
     return NULL;
 }
 
-int lsm_disk_record_free(lsm_disk * d)
-{
+int lsm_disk_record_free(lsm_disk *d) {
     if (LSM_IS_DISK(d)) {
         d->magic = LSM_DEL_MAGIC(LSM_DISK_MAGIC);
 
@@ -888,7 +839,7 @@ int lsm_disk_record_free(lsm_disk * d)
         free(d->vpd83);
         d->vpd83 = NULL;
 
-        free((char *) d->location);
+        free((char *)d->location);
 
         free(d);
         return LSM_ERR_OK;
@@ -900,30 +851,30 @@ CREATE_FREE_ARRAY_FUNC(lsm_disk_record_array_free, lsm_disk_record_free,
                        lsm_disk *, LSM_ERR_INVALID_ARGUMENT)
 
 /* We would certainly expand this to encompass the entire function */
-#define MEMBER_SET_REF(x, validation, member, value, alloc_func, \
-                       free_func, error)    \
-    if( validation(x) ) {                   \
-        if(x->member) {                     \
-            free_func(x->member);           \
-            x->member = NULL;               \
-        }                                   \
-        if( value ) {                       \
-            x->member = alloc_func(value);  \
-            if( !x->member ) {              \
-                return LSM_ERR_NO_MEMORY;   \
-            }                               \
-        }                                   \
-        return LSM_ERR_OK;                  \
-    } else {                                \
-        return error;                       \
+#define MEMBER_SET_REF(x, validation, member, value, alloc_func, free_func,    \
+                       error)                                                  \
+    if (validation(x)) {                                                       \
+        if (x->member) {                                                       \
+            free_func(x->member);                                              \
+            x->member = NULL;                                                  \
+        }                                                                      \
+        if (value) {                                                           \
+            x->member = alloc_func(value);                                     \
+            if (!x->member) {                                                  \
+                return LSM_ERR_NO_MEMORY;                                      \
+            }                                                                  \
+        }                                                                      \
+        return LSM_ERR_OK;                                                     \
+    } else {                                                                   \
+        return error;                                                          \
     }
 /* We would certainly expand this to encompass the entire function */
-#define MEMBER_SET_VAL(x, validation, member, value, error)  \
-    if( validation(x) ) {                   \
-        x->member = value;                  \
-        return LSM_ERR_OK;                  \
-    } else {                                \
-        return error;                       \
+#define MEMBER_SET_VAL(x, validation, member, value, error)                    \
+    if (validation(x)) {                                                       \
+        x->member = value;                                                     \
+        return LSM_ERR_OK;                                                     \
+    } else {                                                                   \
+        return error;                                                          \
     }
 
 MEMBER_FUNC_GET(const char *, lsm_volume, LSM_IS_VOL, id, NULL);
@@ -937,12 +888,11 @@ MEMBER_FUNC_GET(uint64_t, lsm_volume, LSM_IS_VOL, number_of_blocks, 0);
 MEMBER_FUNC_GET(uint32_t, lsm_volume, LSM_IS_VOL, admin_state,
                 LSM_VOLUME_ADMIN_STATE_ENABLED);
 
-int lsm_disk_location_set(lsm_disk * disk, const char *location)
-{
+int lsm_disk_location_set(lsm_disk *disk, const char *location) {
     if ((disk == NULL) || (location == NULL) || (location[0] == '\0'))
         return LSM_ERR_INVALID_ARGUMENT;
 
-    free((char *) disk->location);
+    free((char *)disk->location);
     disk->location = strdup(location);
     if (disk->location == NULL)
         return LSM_ERR_NO_MEMORY;
@@ -965,9 +915,8 @@ MEMBER_FUNC_GET(int32_t, lsm_disk, LSM_IS_DISK, rpm, LSM_DISK_RPM_UNKNOWN);
 MEMBER_FUNC_GET(lsm_disk_link_type, lsm_disk, LSM_IS_DISK, link_type,
                 LSM_DISK_LINK_TYPE_UNKNOWN);
 
-int lsm_disk_vpd83_set(lsm_disk *disk, const char *vpd83)
-{
-    if ((disk == NULL) || (! LSM_IS_DISK(disk)) || (vpd83 == NULL))
+int lsm_disk_vpd83_set(lsm_disk *disk, const char *vpd83) {
+    if ((disk == NULL) || (!LSM_IS_DISK(disk)) || (vpd83 == NULL))
         return LSM_ERR_INVALID_ARGUMENT;
 
     free(disk->vpd83);
@@ -979,9 +928,8 @@ int lsm_disk_vpd83_set(lsm_disk *disk, const char *vpd83)
     return LSM_ERR_OK;
 }
 
-int lsm_disk_rpm_set(lsm_disk *disk, int32_t rpm)
-{
-    if ((disk == NULL) || (! LSM_IS_DISK(disk)) ||
+int lsm_disk_rpm_set(lsm_disk *disk, int32_t rpm) {
+    if ((disk == NULL) || (!LSM_IS_DISK(disk)) ||
         (rpm == LSM_DISK_RPM_NO_SUPPORT))
         return LSM_ERR_INVALID_ARGUMENT;
 
@@ -989,9 +937,8 @@ int lsm_disk_rpm_set(lsm_disk *disk, int32_t rpm)
     return LSM_ERR_OK;
 }
 
-int lsm_disk_link_type_set(lsm_disk *disk, lsm_disk_link_type link_type)
-{
-    if ((disk == NULL) || (! LSM_IS_DISK(disk)) ||
+int lsm_disk_link_type_set(lsm_disk *disk, lsm_disk_link_type link_type) {
+    if ((disk == NULL) || (!LSM_IS_DISK(disk)) ||
         (link_type == LSM_DISK_LINK_TYPE_NO_SUPPORT))
         return LSM_ERR_INVALID_ARGUMENT;
 
@@ -1001,8 +948,7 @@ int lsm_disk_link_type_set(lsm_disk *disk, lsm_disk_link_type link_type)
 
 CREATE_ALLOC_ARRAY_FUNC(lsm_access_group_record_array_alloc, lsm_access_group *)
 
-static lsm_string_list *standardize_init_list(lsm_string_list * initiators)
-{
+static lsm_string_list *standardize_init_list(lsm_string_list *initiators) {
     uint32_t i = 0;
     lsm_string_list *rc = lsm_string_list_copy(initiators);
     char *wwpn = NULL;
@@ -1028,18 +974,14 @@ static lsm_string_list *standardize_init_list(lsm_string_list * initiators)
     return rc;
 }
 
-
-lsm_access_group *lsm_access_group_record_alloc(const char *id,
-                                                const char *name,
-                                                lsm_string_list * initiators,
-                                                lsm_access_group_init_type
-                                                init_type,
-                                                const char *system_id,
-                                                const char *plugin_data)
-{
+lsm_access_group *
+lsm_access_group_record_alloc(const char *id, const char *name,
+                              lsm_string_list *initiators,
+                              lsm_access_group_init_type init_type,
+                              const char *system_id, const char *plugin_data) {
     lsm_access_group *rc = NULL;
     if (id && name && system_id) {
-        rc = (lsm_access_group *) malloc(sizeof(lsm_access_group));
+        rc = (lsm_access_group *)malloc(sizeof(lsm_access_group));
         if (rc) {
             rc->magic = LSM_ACCESS_GROUP_MAGIC;
             rc->id = strdup(id);
@@ -1065,19 +1007,17 @@ lsm_access_group *lsm_access_group_record_alloc(const char *id,
     return rc;
 }
 
-lsm_access_group *lsm_access_group_record_copy(lsm_access_group * ag)
-{
+lsm_access_group *lsm_access_group_record_copy(lsm_access_group *ag) {
     lsm_access_group *rc = NULL;
     if (LSM_IS_ACCESS_GROUP(ag)) {
-        rc = lsm_access_group_record_alloc(ag->id, ag->name,
-                                           ag->initiators, ag->init_type,
-                                           ag->system_id, ag->plugin_data);
+        rc = lsm_access_group_record_alloc(ag->id, ag->name, ag->initiators,
+                                           ag->init_type, ag->system_id,
+                                           ag->plugin_data);
     }
     return rc;
 }
 
-int lsm_access_group_record_free(lsm_access_group * ag)
-{
+int lsm_access_group_record_free(lsm_access_group *ag) {
     if (LSM_IS_ACCESS_GROUP(ag)) {
         ag->magic = LSM_DEL_MAGIC(LSM_ACCESS_GROUP_MAGIC);
         free(ag->id);
@@ -1104,17 +1044,15 @@ MEMBER_FUNC_GET(lsm_access_group_init_type, lsm_access_group,
                 LSM_IS_ACCESS_GROUP, init_type,
                 LSM_ACCESS_GROUP_INIT_TYPE_UNKNOWN);
 
-lsm_string_list *lsm_access_group_initiator_id_get(lsm_access_group * group)
-{
+lsm_string_list *lsm_access_group_initiator_id_get(lsm_access_group *group) {
     if (LSM_IS_ACCESS_GROUP(group)) {
         return group->initiators;
     }
     return NULL;
 }
 
-void lsm_access_group_initiator_id_set(lsm_access_group * group,
-                                       lsm_string_list * il)
-{
+void lsm_access_group_initiator_id_set(lsm_access_group *group,
+                                       lsm_string_list *il) {
     if (LSM_IS_ACCESS_GROUP(group)) {
         if (group->initiators && group->initiators != il) {
             lsm_string_list_free(group->initiators);
@@ -1124,8 +1062,7 @@ void lsm_access_group_initiator_id_set(lsm_access_group * group,
     }
 }
 
-lsm_error_ptr lsm_error_last_get(lsm_connect * c)
-{
+lsm_error_ptr lsm_error_last_get(lsm_connect *c) {
     if (LSM_IS_CONNECT(c)) {
         lsm_error_ptr e = c->error;
         c->error = NULL;
@@ -1136,11 +1073,10 @@ lsm_error_ptr lsm_error_last_get(lsm_connect * c)
 
 lsm_block_range *lsm_block_range_record_alloc(uint64_t source_start,
                                               uint64_t dest_start,
-                                              uint64_t block_count)
-{
+                                              uint64_t block_count) {
     lsm_block_range *rc = NULL;
 
-    rc = (lsm_block_range *) malloc(sizeof(lsm_block_range));
+    rc = (lsm_block_range *)malloc(sizeof(lsm_block_range));
     if (rc) {
         rc->magic = LSM_BLOCK_RANGE_MAGIC;
         rc->source_start = source_start;
@@ -1150,8 +1086,7 @@ lsm_block_range *lsm_block_range_record_alloc(uint64_t source_start,
     return rc;
 }
 
-int lsm_block_range_record_free(lsm_block_range * br)
-{
+int lsm_block_range_record_free(lsm_block_range *br) {
     if (LSM_IS_BLOCK_RANGE(br)) {
         br->magic = LSM_DEL_MAGIC(LSM_BLOCK_RANGE_MAGIC);
         free(br);
@@ -1160,20 +1095,18 @@ int lsm_block_range_record_free(lsm_block_range * br)
     return LSM_ERR_INVALID_ARGUMENT;
 }
 
-lsm_block_range *lsm_block_range_record_copy(lsm_block_range * source)
-{
+lsm_block_range *lsm_block_range_record_copy(lsm_block_range *source) {
     lsm_block_range *dest = NULL;
 
     if (LSM_IS_BLOCK_RANGE(source)) {
-        dest = lsm_block_range_record_alloc(source->source_start,
-                                            source->dest_start,
-                                            source->block_count);
+        dest = lsm_block_range_record_alloc(
+            source->source_start, source->dest_start, source->block_count);
     }
     return dest;
 }
 
 CREATE_ALLOC_ARRAY_FUNC(lsm_block_range_record_array_alloc, lsm_block_range *)
-    CREATE_FREE_ARRAY_FUNC(lsm_block_range_record_array_free,
+CREATE_FREE_ARRAY_FUNC(lsm_block_range_record_array_free,
                        lsm_block_range_record_free, lsm_block_range *,
                        LSM_ERR_INVALID_ARGUMENT)
 
@@ -1182,13 +1115,11 @@ MEMBER_FUNC_GET(uint64_t, lsm_block_range, LSM_IS_BLOCK_RANGE, dest_start, 0);
 MEMBER_FUNC_GET(uint64_t, lsm_block_range, LSM_IS_BLOCK_RANGE, block_count, 0);
 
 lsm_fs *lsm_fs_record_alloc(const char *id, const char *name,
-                            uint64_t total_space,
-                            uint64_t free_space,
-                            const char *pool_id,
-                            const char *system_id, const char *plugin_data)
-{
+                            uint64_t total_space, uint64_t free_space,
+                            const char *pool_id, const char *system_id,
+                            const char *plugin_data) {
     lsm_fs *rc = NULL;
-    rc = (lsm_fs *) calloc(1, sizeof(lsm_fs));
+    rc = (lsm_fs *)calloc(1, sizeof(lsm_fs));
     if (rc) {
         rc->magic = LSM_FS_MAGIC;
         rc->id = strdup(id);
@@ -1211,8 +1142,7 @@ lsm_fs *lsm_fs_record_alloc(const char *id, const char *name,
     return rc;
 }
 
-int lsm_fs_record_free(lsm_fs * fs)
-{
+int lsm_fs_record_free(lsm_fs *fs) {
     if (LSM_IS_FS(fs)) {
         fs->magic = LSM_DEL_MAGIC(LSM_FS_MAGIC);
         free(fs->id);
@@ -1226,15 +1156,13 @@ int lsm_fs_record_free(lsm_fs * fs)
     return LSM_ERR_INVALID_ARGUMENT;
 }
 
-lsm_fs *lsm_fs_record_copy(lsm_fs * source)
-{
+lsm_fs *lsm_fs_record_copy(lsm_fs *source) {
     lsm_fs *dest = NULL;
 
     if (LSM_IS_FS(source)) {
-        dest = lsm_fs_record_alloc(source->id, source->name,
-                                   source->total_space, source->free_space,
-                                   source->pool_id,
-                                   source->system_id, source->plugin_data);
+        dest = lsm_fs_record_alloc(
+            source->id, source->name, source->total_space, source->free_space,
+            source->pool_id, source->system_id, source->plugin_data);
     }
     return dest;
 }
@@ -1251,10 +1179,9 @@ MEMBER_FUNC_GET(const char *, lsm_fs, LSM_IS_FS, pool_id, NULL);
 MEMBER_FUNC_GET(uint64_t, lsm_fs, LSM_IS_FS, total_space, 0);
 MEMBER_FUNC_GET(uint64_t, lsm_fs, LSM_IS_FS, free_space, 0);
 
-lsm_fs_ss *lsm_fs_ss_record_alloc(const char *id, const char *name,
-                                  uint64_t ts, const char *plugin_data)
-{
-    lsm_fs_ss *rc = (lsm_fs_ss *) calloc(1, sizeof(lsm_fs_ss));
+lsm_fs_ss *lsm_fs_ss_record_alloc(const char *id, const char *name, uint64_t ts,
+                                  const char *plugin_data) {
+    lsm_fs_ss *rc = (lsm_fs_ss *)calloc(1, sizeof(lsm_fs_ss));
     if (rc) {
         rc->magic = LSM_SS_MAGIC;
         rc->id = strdup(id);
@@ -1272,19 +1199,16 @@ lsm_fs_ss *lsm_fs_ss_record_alloc(const char *id, const char *name,
     return rc;
 }
 
-lsm_fs_ss *lsm_fs_ss_record_copy(lsm_fs_ss * source)
-{
+lsm_fs_ss *lsm_fs_ss_record_copy(lsm_fs_ss *source) {
     lsm_fs_ss *rc = NULL;
     if (LSM_IS_SS(source)) {
-        rc = lsm_fs_ss_record_alloc(source->id,
-                                    source->name,
+        rc = lsm_fs_ss_record_alloc(source->id, source->name,
                                     source->time_stamp, source->plugin_data);
     }
     return rc;
 }
 
-int lsm_fs_ss_record_free(lsm_fs_ss * ss)
-{
+int lsm_fs_ss_record_free(lsm_fs_ss *ss) {
     if (LSM_IS_SS(ss)) {
         ss->magic = LSM_DEL_MAGIC(LSM_SS_MAGIC);
         free(ss->id);
@@ -1307,23 +1231,16 @@ MEMBER_FUNC_GET(const char *, lsm_fs_ss, LSM_IS_SS, name, NULL);
 MEMBER_FUNC_GET(const char *, lsm_fs_ss, LSM_IS_SS, plugin_data, NULL);
 MEMBER_FUNC_GET(uint64_t, lsm_fs_ss, LSM_IS_SS, time_stamp, 0);
 
-lsm_nfs_export *lsm_nfs_export_record_alloc(const char *id,
-                                            const char *fs_id,
-                                            const char *export_path,
-                                            const char *auth,
-                                            lsm_string_list * root,
-                                            lsm_string_list * rw,
-                                            lsm_string_list * ro,
-                                            uint64_t anon_uid,
-                                            uint64_t anon_gid,
-                                            const char *options,
-                                            const char *plugin_data)
-{
+lsm_nfs_export *lsm_nfs_export_record_alloc(
+    const char *id, const char *fs_id, const char *export_path,
+    const char *auth, lsm_string_list *root, lsm_string_list *rw,
+    lsm_string_list *ro, uint64_t anon_uid, uint64_t anon_gid,
+    const char *options, const char *plugin_data) {
     lsm_nfs_export *rc = NULL;
 
     /* This is required */
     if (fs_id) {
-        rc = (lsm_nfs_export *) calloc(1, sizeof(lsm_nfs_export));
+        rc = (lsm_nfs_export *)calloc(1, sizeof(lsm_nfs_export));
         if (rc) {
             rc->magic = LSM_NFS_EXPORT_MAGIC;
             rc->id = (id) ? strdup(id) : NULL;
@@ -1341,13 +1258,9 @@ lsm_nfs_export *lsm_nfs_export_record_alloc(const char *id,
                 rc->plugin_data = strdup(plugin_data);
             }
 
-            if (!rc->id ||
-                !rc->fs_id ||
-                (export_path && !rc->export_path) ||
-                (auth && !rc->auth_type) ||
-                (root && !rc->root) ||
-                (rw && !rc->read_write) ||
-                (ro && !rc->read_only) ||
+            if (!rc->id || !rc->fs_id || (export_path && !rc->export_path) ||
+                (auth && !rc->auth_type) || (root && !rc->root) ||
+                (rw && !rc->read_write) || (ro && !rc->read_only) ||
                 (options && !rc->options) ||
                 (plugin_data && !rc->plugin_data)) {
                 lsm_nfs_export_record_free(rc);
@@ -1359,8 +1272,7 @@ lsm_nfs_export *lsm_nfs_export_record_alloc(const char *id,
     return rc;
 }
 
-int lsm_nfs_export_record_free(lsm_nfs_export * exp)
-{
+int lsm_nfs_export_record_free(lsm_nfs_export *exp) {
     if (LSM_IS_NFS_EXPORT(exp)) {
         exp->magic = LSM_DEL_MAGIC(LSM_NFS_EXPORT_MAGIC);
         free(exp->id);
@@ -1379,23 +1291,20 @@ int lsm_nfs_export_record_free(lsm_nfs_export * exp)
     return LSM_ERR_INVALID_ARGUMENT;
 }
 
-
-lsm_nfs_export *lsm_nfs_export_record_copy(lsm_nfs_export * s)
-{
+lsm_nfs_export *lsm_nfs_export_record_copy(lsm_nfs_export *s) {
     if (LSM_IS_NFS_EXPORT(s)) {
-        return lsm_nfs_export_record_alloc(s->id, s->fs_id, s->export_path,
-                                           s->auth_type, s->root, s->read_write,
-                                           s->read_only, s->anon_uid, s->anon_gid,
-                                           s->options, s->plugin_data);
+        return lsm_nfs_export_record_alloc(
+            s->id, s->fs_id, s->export_path, s->auth_type, s->root,
+            s->read_write, s->read_only, s->anon_uid, s->anon_gid, s->options,
+            s->plugin_data);
     }
     return NULL;
 }
 
 CREATE_ALLOC_ARRAY_FUNC(lsm_nfs_export_record_array_alloc, lsm_nfs_export *)
-    CREATE_FREE_ARRAY_FUNC(lsm_nfs_export_record_array_free,
+CREATE_FREE_ARRAY_FUNC(lsm_nfs_export_record_array_free,
                        lsm_nfs_export_record_free, lsm_nfs_export *,
                        LSM_ERR_INVALID_ARGUMENT)
-
 
 MEMBER_FUNC_GET(const char *, lsm_nfs_export, LSM_IS_NFS_EXPORT, id, NULL);
 MEMBER_FUNC_GET(const char *, lsm_nfs_export, LSM_IS_NFS_EXPORT, fs_id, NULL);
@@ -1413,101 +1322,88 @@ MEMBER_FUNC_GET(uint64_t, lsm_nfs_export, LSM_IS_NFS_EXPORT, anon_uid,
                 LSM_NFS_EXPORT_ANON_UID_GID_ERROR);
 MEMBER_FUNC_GET(uint64_t, lsm_nfs_export, LSM_IS_NFS_EXPORT, anon_gid,
                 LSM_NFS_EXPORT_ANON_UID_GID_ERROR);
-MEMBER_FUNC_GET(const char *, lsm_nfs_export, LSM_IS_NFS_EXPORT, options,
-                NULL);
+MEMBER_FUNC_GET(const char *, lsm_nfs_export, LSM_IS_NFS_EXPORT, options, NULL);
 MEMBER_FUNC_GET(const char *, lsm_nfs_export, LSM_IS_NFS_EXPORT, plugin_data,
                 NULL);
 
-int lsm_nfs_export_id_set(lsm_nfs_export * exp, const char *ep)
-{
+int lsm_nfs_export_id_set(lsm_nfs_export *exp, const char *ep) {
     MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, id, ep, strdup, free,
                    LSM_ERR_INVALID_ARGUMENT);
 }
 
-int lsm_nfs_export_fs_id_set(lsm_nfs_export * exp, const char *fs_id)
-{
+int lsm_nfs_export_fs_id_set(lsm_nfs_export *exp, const char *fs_id) {
     MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, fs_id, fs_id, strdup, free,
                    LSM_ERR_INVALID_ARGUMENT);
 }
 
-int lsm_nfs_export_export_path_set(lsm_nfs_export * exp, const char *ep)
-{
+int lsm_nfs_export_export_path_set(lsm_nfs_export *exp, const char *ep) {
     MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, export_path, ep, strdup, free,
                    LSM_ERR_INVALID_ARGUMENT);
 }
 
-int lsm_nfs_export_auth_type_set(lsm_nfs_export * exp, const char *auth)
-{
+int lsm_nfs_export_auth_type_set(lsm_nfs_export *exp, const char *auth) {
     MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, auth_type, auth, strdup, free,
                    LSM_ERR_INVALID_ARGUMENT);
 }
 
-int lsm_nfs_export_root_set(lsm_nfs_export * exp, lsm_string_list * root)
-{
+int lsm_nfs_export_root_set(lsm_nfs_export *exp, lsm_string_list *root) {
     MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, root, root, lsm_string_list_copy,
                    lsm_string_list_free, LSM_ERR_INVALID_ARGUMENT);
 }
 
 int lsm_nfs_export_read_write_set(lsm_nfs_export *exp,
-                                  lsm_string_list *read_write)
-{
+                                  lsm_string_list *read_write) {
     MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, read_write, read_write,
                    lsm_string_list_copy, lsm_string_list_free,
                    LSM_ERR_INVALID_ARGUMENT);
 }
 
 int lsm_nfs_export_read_only_set(lsm_nfs_export *exp,
-                                 lsm_string_list *read_only)
-{
-    MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, read_only, read_only, lsm_string_list_copy,
-                   lsm_string_list_free, LSM_ERR_INVALID_ARGUMENT);
+                                 lsm_string_list *read_only) {
+    MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, read_only, read_only,
+                   lsm_string_list_copy, lsm_string_list_free,
+                   LSM_ERR_INVALID_ARGUMENT);
 }
 
-int lsm_nfs_export_anon_uid_set(lsm_nfs_export * exp, uint64_t value)
-{
+int lsm_nfs_export_anon_uid_set(lsm_nfs_export *exp, uint64_t value) {
     MEMBER_SET_VAL(exp, LSM_IS_NFS_EXPORT, anon_uid, value,
                    LSM_ERR_INVALID_ARGUMENT);
 }
 
-int lsm_nfs_export_anon_gid_set(lsm_nfs_export * exp, uint64_t value)
-{
+int lsm_nfs_export_anon_gid_set(lsm_nfs_export *exp, uint64_t value) {
     MEMBER_SET_VAL(exp, LSM_IS_NFS_EXPORT, anon_gid, value,
                    LSM_ERR_INVALID_ARGUMENT);
 }
 
-int lsm_nfs_export_options_set(lsm_nfs_export * exp, const char *value)
-{
+int lsm_nfs_export_options_set(lsm_nfs_export *exp, const char *value) {
     MEMBER_SET_REF(exp, LSM_IS_NFS_EXPORT, options, value, strdup, free,
                    LSM_ERR_INVALID_ARGUMENT);
 }
 
-lsm_capability_value_type lsm_capability_get(lsm_storage_capabilities * cap,
-                                             lsm_capability_type t)
-{
+lsm_capability_value_type lsm_capability_get(lsm_storage_capabilities *cap,
+                                             lsm_capability_type t) {
     lsm_capability_value_type rc = LSM_CAP_UNSUPPORTED;
 
-    if (LSM_IS_CAPABILITY(cap) && (uint32_t) t < cap->len) {
-        rc = (lsm_capability_value_type) cap->cap[t];
+    if (LSM_IS_CAPABILITY(cap) && (uint32_t)t < cap->len) {
+        rc = (lsm_capability_value_type)cap->cap[t];
     }
     return rc;
 }
 
-int LSM_DLL_EXPORT lsm_capability_supported(lsm_storage_capabilities * cap,
-                                            lsm_capability_type t)
-{
+int LSM_DLL_EXPORT lsm_capability_supported(lsm_storage_capabilities *cap,
+                                            lsm_capability_type t) {
     if (lsm_capability_get(cap, t) == LSM_CAP_SUPPORTED) {
         return 1;
     }
     return 0;
 }
 
-int lsm_capability_set(lsm_storage_capabilities * cap, lsm_capability_type t,
-                       lsm_capability_value_type v)
-{
+int lsm_capability_set(lsm_storage_capabilities *cap, lsm_capability_type t,
+                       lsm_capability_value_type v) {
     int rc = LSM_ERR_INVALID_ARGUMENT;
 
     if (LSM_IS_CAPABILITY(cap)) {
-        if ((uint32_t) t < cap->len) {
+        if ((uint32_t)t < cap->len) {
             cap->cap[t] = v;
             rc = LSM_ERR_OK;
         }
@@ -1516,9 +1412,8 @@ int lsm_capability_set(lsm_storage_capabilities * cap, lsm_capability_type t,
     return rc;
 }
 
-int lsm_capability_set_n(lsm_storage_capabilities * cap,
-                         lsm_capability_value_type v, ...)
-{
+int lsm_capability_set_n(lsm_storage_capabilities *cap,
+                         lsm_capability_value_type v, ...) {
     int rc = LSM_ERR_OK;
     int index = 0;
 
@@ -1530,7 +1425,7 @@ int lsm_capability_set_n(lsm_storage_capabilities * cap,
     va_start(var_arg, v);
 
     while ((index = va_arg(var_arg, int)) != -1) {
-        if (index < (int) cap->len) {
+        if (index < (int)cap->len) {
             cap->cap[index] = v;
         } else {
             rc = LSM_ERR_INVALID_ARGUMENT;
@@ -1542,15 +1437,14 @@ int lsm_capability_set_n(lsm_storage_capabilities * cap,
     return rc;
 }
 
-static char *bytes_to_string(uint8_t * a, uint32_t len)
-{
+static char *bytes_to_string(uint8_t *a, uint32_t len) {
     char *buff = NULL;
 
     if (a && len) {
         uint32_t i = 0;
         char *tmp = NULL;
         size_t str_len = ((sizeof(char) * 2) * len + 1);
-        buff = (char *) malloc(str_len);
+        buff = (char *)malloc(str_len);
 
         if (buff) {
             tmp = buff;
@@ -1563,15 +1457,14 @@ static char *bytes_to_string(uint8_t * a, uint32_t len)
     return buff;
 }
 
-static uint8_t *string_to_bytes(const char *hex_string, uint32_t * l)
-{
+static uint8_t *string_to_bytes(const char *hex_string, uint32_t *l) {
     uint8_t *rc = NULL;
 
     if (hex_string && l) {
         size_t len = strlen(hex_string);
         if (len && (len % 2) == 0) {
             len /= 2;
-            rc = (uint8_t *) malloc(sizeof(uint8_t) * len);
+            rc = (uint8_t *)malloc(sizeof(uint8_t) * len);
             if (rc) {
                 size_t i;
                 const char *t = hex_string;
@@ -1592,19 +1485,17 @@ static uint8_t *string_to_bytes(const char *hex_string, uint32_t * l)
     return rc;
 }
 
-
-lsm_storage_capabilities *lsm_capability_record_alloc(const char *value)
-{
+lsm_storage_capabilities *lsm_capability_record_alloc(const char *value) {
     lsm_storage_capabilities *rc = NULL;
-    rc = (lsm_storage_capabilities *)
-        malloc(sizeof(struct _lsm_storage_capabilities));
+    rc = (lsm_storage_capabilities *)malloc(
+        sizeof(struct _lsm_storage_capabilities));
     if (rc) {
         rc->magic = LSM_CAPABILITIES_MAGIC;
 
         if (value) {
             rc->cap = string_to_bytes(value, &rc->len);
         } else {
-            rc->cap = (uint8_t *) calloc(LSM_CAP_MAX, sizeof(uint8_t));
+            rc->cap = (uint8_t *)calloc(LSM_CAP_MAX, sizeof(uint8_t));
             if (rc->cap) {
                 rc->len = LSM_CAP_MAX;
             }
@@ -1618,8 +1509,7 @@ lsm_storage_capabilities *lsm_capability_record_alloc(const char *value)
     return rc;
 }
 
-int lsm_capability_record_free(lsm_storage_capabilities * cap)
-{
+int lsm_capability_record_free(lsm_storage_capabilities *cap) {
     if (LSM_IS_CAPABILITY(cap)) {
         cap->magic = LSM_DEL_MAGIC(LSM_CAPABILITIES_MAGIC);
         free(cap->cap);
@@ -1629,8 +1519,7 @@ int lsm_capability_record_free(lsm_storage_capabilities * cap)
     return LSM_ERR_INVALID_ARGUMENT;
 }
 
-char *capability_string(lsm_storage_capabilities * c)
-{
+char *capability_string(lsm_storage_capabilities *c) {
     char *rc = NULL;
     if (LSM_IS_CAPABILITY(c)) {
         rc = bytes_to_string(c->cap, c->len);
@@ -1638,11 +1527,10 @@ char *capability_string(lsm_storage_capabilities * c)
     return rc;
 }
 
-lsm_hash *lsm_hash_alloc(void)
-{
+lsm_hash *lsm_hash_alloc(void) {
     lsm_hash *rc = NULL;
 
-    rc = (lsm_hash *) malloc(sizeof(lsm_hash));
+    rc = (lsm_hash *)malloc(sizeof(lsm_hash));
     if (rc) {
         rc->magic = LSM_HASH_MAGIC;
         rc->data = g_hash_table_new_full(g_str_hash, g_str_equal, free, free);
@@ -1654,8 +1542,7 @@ lsm_hash *lsm_hash_alloc(void)
     return rc;
 }
 
-lsm_hash *lsm_hash_copy(lsm_hash * src)
-{
+lsm_hash *lsm_hash_copy(lsm_hash *src) {
     GHashTableIter iter;
     gpointer key;
     gpointer value;
@@ -1667,9 +1554,8 @@ lsm_hash *lsm_hash_copy(lsm_hash * src)
             /* Walk through each from src and duplicate it to dest */
             g_hash_table_iter_init(&iter, src->data);
             while (g_hash_table_iter_next(&iter, &key, &value)) {
-                if (LSM_ERR_OK != lsm_hash_string_set(dest,
-                                                      (const char *) key,
-                                                      (const char *) value)) {
+                if (LSM_ERR_OK != lsm_hash_string_set(dest, (const char *)key,
+                                                      (const char *)value)) {
                     lsm_hash_free(dest);
                     dest = NULL;
                 }
@@ -1679,8 +1565,7 @@ lsm_hash *lsm_hash_copy(lsm_hash * src)
     return dest;
 }
 
-int lsm_hash_free(lsm_hash * op)
-{
+int lsm_hash_free(lsm_hash *op) {
     if (LSM_IS_HASH(op)) {
         op->magic = LSM_DEL_MAGIC(LSM_HASH_MAGIC);
 
@@ -1694,12 +1579,10 @@ int lsm_hash_free(lsm_hash * op)
     return LSM_ERR_INVALID_ARGUMENT;
 }
 
-int lsm_hash_keys(lsm_hash * op, lsm_string_list ** l)
-{
+int lsm_hash_keys(lsm_hash *op, lsm_string_list **l) {
     GHashTableIter iter;
     gpointer key;
     gpointer value;
-
 
     if (LSM_IS_HASH(op)) {
         int count = g_hash_table_size(op->data);
@@ -1708,7 +1591,7 @@ int lsm_hash_keys(lsm_hash * op, lsm_string_list ** l)
             *l = lsm_string_list_alloc(0);
             g_hash_table_iter_init(&iter, op->data);
             while (g_hash_table_iter_next(&iter, &key, &value)) {
-                if (LSM_ERR_OK != lsm_string_list_append(*l, (char *) key)) {
+                if (LSM_ERR_OK != lsm_string_list_append(*l, (char *)key)) {
                     lsm_string_list_free(*l);
                     *l = NULL;
                     return LSM_ERR_NO_MEMORY;
@@ -1720,24 +1603,21 @@ int lsm_hash_keys(lsm_hash * op, lsm_string_list ** l)
     return LSM_ERR_INVALID_ARGUMENT;
 }
 
-const char *lsm_hash_string_get(lsm_hash * op, const char *key)
-{
+const char *lsm_hash_string_get(lsm_hash *op, const char *key) {
     if (LSM_IS_HASH(op)) {
-        return (const char *) g_hash_table_lookup(op->data, key);
+        return (const char *)g_hash_table_lookup(op->data, key);
     }
     return NULL;
 }
 
-int lsm_hash_string_set(lsm_hash * op, const char *key, const char *value)
-{
+int lsm_hash_string_set(lsm_hash *op, const char *key, const char *value) {
     if (LSM_IS_HASH(op)) {
         char *k_value = strdup(key);
         char *d_value = strdup(value);
 
         if (k_value && d_value) {
-            g_hash_table_remove(op->data, (gpointer) k_value);
-            g_hash_table_insert(op->data, (gpointer) k_value,
-                                (gpointer) d_value);
+            g_hash_table_remove(op->data, (gpointer)k_value);
+            g_hash_table_insert(op->data, (gpointer)k_value, (gpointer)d_value);
             return LSM_ERR_OK;
         } else {
             free(k_value);
@@ -1748,17 +1628,11 @@ int lsm_hash_string_set(lsm_hash * op, const char *key, const char *value)
     return LSM_ERR_INVALID_ARGUMENT;
 }
 
-lsm_target_port *lsm_target_port_record_alloc(const char *id,
-                                              lsm_target_port_type port_type,
-                                              const char *service_address,
-                                              const char *network_address,
-                                              const char *physical_address,
-                                              const char *physical_name,
-                                              const char *system_id,
-                                              const char *plugin_data)
-{
-    lsm_target_port *rc =
-        (lsm_target_port *) calloc(1, sizeof(lsm_target_port));
+lsm_target_port *lsm_target_port_record_alloc(
+    const char *id, lsm_target_port_type port_type, const char *service_address,
+    const char *network_address, const char *physical_address,
+    const char *physical_name, const char *system_id, const char *plugin_data) {
+    lsm_target_port *rc = (lsm_target_port *)calloc(1, sizeof(lsm_target_port));
     if (rc) {
         rc->magic = LSM_TARGET_PORT_MAGIC;
         rc->id = strdup(id);
@@ -1771,8 +1645,8 @@ lsm_target_port *lsm_target_port_record_alloc(const char *id,
         rc->plugin_data = (plugin_data) ? strdup(plugin_data) : NULL;
 
         if (!rc->id || !rc->service_address || !rc->network_address ||
-            !rc->physical_address || !rc->physical_name ||
-            !rc->system_id || (plugin_data && !rc->plugin_data)) {
+            !rc->physical_address || !rc->physical_name || !rc->system_id ||
+            (plugin_data && !rc->plugin_data)) {
             lsm_target_port_record_free(rc);
             rc = NULL;
         }
@@ -1780,8 +1654,7 @@ lsm_target_port *lsm_target_port_record_alloc(const char *id,
     return rc;
 }
 
-int lsm_target_port_record_free(lsm_target_port * tp)
-{
+int lsm_target_port_record_free(lsm_target_port *tp) {
     if (LSM_IS_TARGET_PORT(tp)) {
         tp->magic = LSM_DEL_MAGIC(LSM_TARGET_PORT_MAGIC);
         free(tp->id);
@@ -1804,24 +1677,21 @@ int lsm_target_port_record_free(lsm_target_port * tp)
     return LSM_ERR_INVALID_ARGUMENT;
 }
 
-lsm_target_port LSM_DLL_EXPORT *lsm_target_port_copy(lsm_target_port * tp)
-{
+lsm_target_port LSM_DLL_EXPORT *lsm_target_port_copy(lsm_target_port *tp) {
     lsm_target_port *rc = NULL;
 
     if (LSM_IS_TARGET_PORT(tp)) {
-        rc = lsm_target_port_record_alloc(tp->id, tp->type,
-                                          tp->service_address,
-                                          tp->network_address,
-                                          tp->physical_address,
-                                          tp->physical_name,
-                                          tp->system_id, tp->plugin_data);
+        rc = lsm_target_port_record_alloc(
+            tp->id, tp->type, tp->service_address, tp->network_address,
+            tp->physical_address, tp->physical_name, tp->system_id,
+            tp->plugin_data);
     }
     return rc;
 }
 
 MEMBER_FUNC_GET(const char *, lsm_target_port, LSM_IS_TARGET_PORT, id, NULL);
-MEMBER_FUNC_GET(lsm_target_port_type, lsm_target_port, LSM_IS_TARGET_PORT,
-                type, LSM_TARGET_PORT_TYPE_OTHER);
+MEMBER_FUNC_GET(lsm_target_port_type, lsm_target_port, LSM_IS_TARGET_PORT, type,
+                LSM_TARGET_PORT_TYPE_OTHER);
 MEMBER_FUNC_GET(const char *, lsm_target_port, LSM_IS_TARGET_PORT,
                 service_address, NULL);
 MEMBER_FUNC_GET(const char *, lsm_target_port, LSM_IS_TARGET_PORT,
@@ -1833,22 +1703,20 @@ MEMBER_FUNC_GET(const char *, lsm_target_port, LSM_IS_TARGET_PORT,
 MEMBER_FUNC_GET(const char *, lsm_target_port, LSM_IS_TARGET_PORT, system_id,
                 NULL);
 
-CREATE_ALLOC_ARRAY_FUNC(lsm_target_port_record_array_alloc,
-                        lsm_target_port *)
+CREATE_ALLOC_ARRAY_FUNC(lsm_target_port_record_array_alloc, lsm_target_port *)
 
 CREATE_FREE_ARRAY_FUNC(lsm_target_port_record_array_free,
                        lsm_target_port_record_free, lsm_target_port *,
                        LSM_ERR_INVALID_ARGUMENT)
 
-static int reg_ex_match(const char *pattern, const char *str)
-{
+static int reg_ex_match(const char *pattern, const char *str) {
     regex_t start_state;
     int status = 0;
     int rc = regcomp(&start_state, pattern, REG_EXTENDED);
 
     if (rc) {
         // Development only when changing regular expression
-        //fprintf(stderr, "%s: bad pattern: '%s' %d\n", str, pattern, rc);
+        // fprintf(stderr, "%s: bad pattern: '%s' %d\n", str, pattern, rc);
         return -1;
     }
 
@@ -1858,34 +1726,31 @@ static int reg_ex_match(const char *pattern, const char *str)
     return status;
 }
 
-int iqn_validate(const char *iqn)
-{
-    if ((iqn && strlen(iqn) > 4) && (0 == strncmp(iqn, "iqn", 3) ||
-                                     0 == strncmp(iqn, "naa", 3)
-                                     || 0 == strncmp(iqn, "eui", 3))) {
+int iqn_validate(const char *iqn) {
+    if ((iqn && strlen(iqn) > 4) &&
+        (0 == strncmp(iqn, "iqn", 3) || 0 == strncmp(iqn, "naa", 3) ||
+         0 == strncmp(iqn, "eui", 3))) {
         return LSM_ERR_OK;
     }
     return LSM_ERR_INVALID_ARGUMENT;
 }
 
-int wwpn_validate(const char *wwpn)
-{
+int wwpn_validate(const char *wwpn) {
     const char *pattern = "^(0x|0X)?([0-9A-Fa-f]{2})"
-        "(([\\.\\:\\-])?[0-9A-Fa-f]{2}){7}$";
+                          "(([\\.\\:\\-])?[0-9A-Fa-f]{2}){7}$";
     if (0 == reg_ex_match(pattern, wwpn)) {
         return LSM_ERR_OK;
     }
     return LSM_ERR_INVALID_ARGUMENT;
 }
 
-char *wwpn_convert(const char *wwpn)
-{
+char *wwpn_convert(const char *wwpn) {
     size_t i = 0;
     size_t out = 0;
     char *rc = NULL;
 
     if (LSM_ERR_OK == wwpn_validate(wwpn)) {
-        rc = (char *) calloc(24, 1);
+        rc = (char *)calloc(24, 1);
         size_t len = strlen(wwpn);
 
         if (wwpn[1] == 'x' || wwpn[1] == 'X') {
@@ -1908,14 +1773,13 @@ CREATE_ALLOC_ARRAY_FUNC(lsm_battery_record_array_alloc, lsm_battery *);
 lsm_battery *lsm_battery_record_alloc(const char *id, const char *name,
                                       lsm_battery_type type, uint64_t status,
                                       const char *system_id,
-                                      const char *plugin_data)
-{
+                                      const char *plugin_data) {
     lsm_battery *rc = NULL;
 
     if ((id == NULL) || (name == NULL) || (system_id == NULL))
         return NULL;
 
-    rc = (lsm_battery *) malloc(sizeof(lsm_battery));
+    rc = (lsm_battery *)malloc(sizeof(lsm_battery));
     if (rc != NULL) {
         rc->magic = LSM_BATTERY_MAGIC;
         rc->id = strdup(id);
@@ -1941,8 +1805,7 @@ lsm_battery *lsm_battery_record_alloc(const char *id, const char *name,
     return rc;
 }
 
-int lsm_battery_record_free(lsm_battery *b)
-{
+int lsm_battery_record_free(lsm_battery *b) {
     if (LSM_IS_BATTERY(b)) {
         b->magic = LSM_DEL_MAGIC(LSM_BATTERY_MAGIC);
         free(b->name);
@@ -1959,14 +1822,12 @@ int lsm_battery_record_free(lsm_battery *b)
     return LSM_ERR_INVALID_ARGUMENT;
 }
 
-lsm_battery *lsm_battery_record_copy(lsm_battery *b)
-{
+lsm_battery *lsm_battery_record_copy(lsm_battery *b) {
     if (LSM_IS_BATTERY(b))
         return lsm_battery_record_alloc(b->id, b->name, b->type, b->status,
                                         b->system_id, b->plugin_data);
     return NULL;
 }
-
 
 CREATE_FREE_ARRAY_FUNC(lsm_battery_record_array_free, lsm_battery_record_free,
                        lsm_battery *, LSM_ERR_INVALID_ARGUMENT);
@@ -1980,6 +1841,6 @@ MEMBER_FUNC_GET(uint64_t, lsm_battery, LSM_IS_BATTERY, status,
 MEMBER_FUNC_GET(lsm_battery_type, lsm_battery, LSM_IS_BATTERY, type,
                 LSM_BATTERY_TYPE_UNKNOWN);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
