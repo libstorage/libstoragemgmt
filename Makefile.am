@@ -32,6 +32,10 @@ rpm: clean
 deb: clean
 	debuild -i -us -uc -b && ls $(top_srcdir)/../*.deb
 
+# Use clang-format for C/C++ code
+cformat:
+	find c_binding -type f \( -name \*.h -o -name \*.c -o -name \*.hpp -o -name \*.cpp \) -exec clang-format -i {} \;
+
 if WITH_TEST
 TESTS = test/runtests.sh
 endif
