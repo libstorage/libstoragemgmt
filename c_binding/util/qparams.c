@@ -23,71 +23,67 @@
  * !!!NOTE!!!: Taken from libvirt and modified to remove libvirt coupling.
  */
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
 
-#include <libxml/uri.h>
 #include "qparams.h"
+#include <libxml/uri.h>
 #include <string.h>
 
-struct qparam_set *
-new_qparam_set (int init_alloc, ...)
-{
+struct qparam_set *new_qparam_set(int init_alloc, ...) {
     va_list args;
     struct qparam_set *ps;
     const char *pname, *pvalue;
 
-    if (init_alloc <= 0) init_alloc = 1;
+    if (init_alloc <= 0)
+        init_alloc = 1;
 
-
-    ps = (struct qparam_set *)calloc( 1, sizeof(*(ps)));
-    if( !ps ) {
+    ps = (struct qparam_set *)calloc(1, sizeof(*(ps)));
+    if (!ps) {
         return NULL;
     }
 
     ps->n = 0;
     ps->alloc = init_alloc;
 
-    ps->p = (struct qparam *) calloc( ps->alloc, sizeof(*(ps->p)));
+    ps->p = (struct qparam *)calloc(ps->alloc, sizeof(*(ps->p)));
 
     if (!ps->p) {
         free(ps);
         return NULL;
     }
 
-    va_start (args, init_alloc);
-    while ((pname = va_arg (args, char *)) != NULL) {
-        pvalue = va_arg (args, char *);
+    va_start(args, init_alloc);
+    while ((pname = va_arg(args, char *)) != NULL) {
+        pvalue = va_arg(args, char *);
 
-        if (append_qparam (ps, pname, pvalue) == -1) {
-            free_qparam_set (ps);
+        if (append_qparam(ps, pname, pvalue) == -1) {
+            free_qparam_set(ps);
             ps = NULL;
             break;
         }
     }
-    va_end (args);
+    va_end(args);
 
     return ps;
 }
 
-int
-append_qparams (struct qparam_set *ps, ...)
-{
+int append_qparams(struct qparam_set *ps, ...) {
     va_list args;
     const char *pname, *pvalue;
     int ret = 0;
 
-    va_start (args, ps);
-    while ((pname = va_arg (args, char *)) != NULL) {
-        pvalue = va_arg (args, char *);
+    va_start(args, ps);
+    while ((pname = va_arg(args, char *)) != NULL) {
+        pvalue = va_arg(args, char *);
 
-        if (append_qparam (ps, pname, pvalue) == -1) {
+        if (append_qparam(ps, pname, pvalue) == -1) {
             ret = -1;
             break;
         }
     }
-    va_end (args);
+    va_end(args);
 
     return ret;
 }
@@ -95,13 +91,11 @@ append_qparams (struct qparam_set *ps, ...)
 /* Ensure there is space to store at least one more parameter
  * at the end of the set.
  */
-static int
-grow_qparam_set (struct qparam_set *ps)
-{
+static int grow_qparam_set(struct qparam_set *ps) {
     if (ps->n >= ps->alloc) {
 
-        void *tmp = realloc( ps->p, ps->alloc * 2);
-        if( !tmp ) {
+        void *tmp = realloc(ps->p, ps->alloc * 2);
+        if (!tmp) {
             return -1;
         }
         ps->p = (struct qparam *)tmp;
@@ -111,24 +105,21 @@ grow_qparam_set (struct qparam_set *ps)
     return 0;
 }
 
-int
-append_qparam (struct qparam_set *ps,
-               const char *name, const char *value)
-{
+int append_qparam(struct qparam_set *ps, const char *name, const char *value) {
     char *pname, *pvalue;
 
-    pname = strdup (name);
+    pname = strdup(name);
     if (!pname) {
         return -1;
     }
 
-    pvalue = strdup (value);
+    pvalue = strdup(value);
     if (!pvalue) {
         free(pname);
         return -1;
     }
 
-    if (grow_qparam_set (ps) == -1) {
+    if (grow_qparam_set(ps) == -1) {
         free(pname);
         free(pvalue);
         return -1;
@@ -142,9 +133,7 @@ append_qparam (struct qparam_set *ps,
     return 0;
 }
 
-void
-free_qparam_set (struct qparam_set *ps)
-{
+void free_qparam_set(struct qparam_set *ps) {
     int i;
 
     for (i = 0; i < ps->n; ++i) {
@@ -156,32 +145,32 @@ free_qparam_set (struct qparam_set *ps)
     free(ps);
 }
 
-struct qparam_set *
-qparam_query_parse (const char *query)
-{
+struct qparam_set *qparam_query_parse(const char *query) {
     struct qparam_set *ps;
     const char *end, *eq;
 
-    ps = new_qparam_set (0, NULL);
+    ps = new_qparam_set(0, NULL);
     if (!ps) {
         return NULL;
     }
 
-    if (!query || query[0] == '\0') return ps;
+    if (!query || query[0] == '\0')
+        return ps;
 
     while (*query) {
         char *name = NULL, *value = NULL;
 
         /* Find the next separator, or end of the string. */
-        end = strchr (query, '&');
+        end = strchr(query, '&');
         if (!end)
-            end = strchr (query, ';');
+            end = strchr(query, ';');
         if (!end)
-            end = query + strlen (query);
+            end = query + strlen(query);
 
         /* Find the first '=' character between here and end. */
-        eq = strchr (query, '=');
-        if (eq && eq >= end) eq = NULL;
+        eq = strchr(query, '=');
+        if (eq && eq >= end)
+            eq = NULL;
 
         /* Empty section (eg. "&&"). */
         if (end == query)
@@ -191,15 +180,17 @@ qparam_query_parse (const char *query)
          * and consistent with CGI.pm we assume value is "".
          */
         else if (!eq) {
-            name = xmlURIUnescapeString (query, end - query, NULL);
-            if (!name) goto out_of_memory;
+            name = xmlURIUnescapeString(query, end - query, NULL);
+            if (!name)
+                goto out_of_memory;
         }
         /* Or if we have "name=" here (works around annoying
          * problem when calling xmlURIUnescapeString with len = 0).
          */
-        else if (eq+1 == end) {
-            name = xmlURIUnescapeString (query, eq - query, NULL);
-            if (!name) goto out_of_memory;
+        else if (eq + 1 == end) {
+            name = xmlURIUnescapeString(query, eq - query, NULL);
+            if (!name)
+                goto out_of_memory;
         }
         /* If the '=' character is at the beginning then we have
          * "=value" and consistent with CGI.pm we _ignore_ this.
@@ -209,10 +200,10 @@ qparam_query_parse (const char *query)
 
         /* Otherwise it's "name=value". */
         else {
-            name = xmlURIUnescapeString (query, eq - query, NULL);
+            name = xmlURIUnescapeString(query, eq - query, NULL);
             if (!name)
                 goto out_of_memory;
-            value = xmlURIUnescapeString (eq+1, end - (eq+1), NULL);
+            value = xmlURIUnescapeString(eq + 1, end - (eq + 1), NULL);
             if (!value) {
                 free(name);
                 goto out_of_memory;
@@ -220,7 +211,7 @@ qparam_query_parse (const char *query)
         }
 
         /* Append to the parameter set. */
-        if (append_qparam (ps, name, value ? value : "") == -1) {
+        if (append_qparam(ps, name, value ? value : "") == -1) {
             free(name);
             free(value);
             goto out_of_memory;
@@ -230,12 +221,13 @@ qparam_query_parse (const char *query)
 
     next:
         query = end;
-        if (*query) query ++; /* skip '&' separator */
+        if (*query)
+            query++; /* skip '&' separator */
     }
 
     return ps;
 
- out_of_memory:
-    free_qparam_set (ps);
+out_of_memory:
+    free_qparam_set(ps);
     return NULL;
 }

@@ -21,7 +21,7 @@
 
 #include "libstoragemgmt_common.h"
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -43,7 +43,6 @@ extern "C" {
  *      lsm_target_port_record_free().
  */
 lsm_target_port LSM_DLL_EXPORT *lsm_target_port_copy(lsm_target_port *tp);
-
 
 /**
  * lsm_target_port_record_free - Frees the memory for a lsm_target_port
@@ -86,8 +85,8 @@ int LSM_DLL_EXPORT lsm_target_port_record_free(lsm_target_port *tp);
  *          * LSM_ERR_INVALID_ARGUMENT
  *              When not a valid lsm_target_port pointer.
  *  */
-int LSM_DLL_EXPORT lsm_target_port_record_array_free(lsm_target_port *
-                                                     tp[], uint32_t size);
+int LSM_DLL_EXPORT lsm_target_port_record_array_free(lsm_target_port *tp[],
+                                                     uint32_t size);
 
 /**
  * lsm_target_port_id_get - Retrieve the ID for the target_port.
@@ -133,7 +132,7 @@ const char LSM_DLL_EXPORT *lsm_target_port_id_get(lsm_target_port *tp);
  *              Vendor specific.
  */
 lsm_target_port_type LSM_DLL_EXPORT
-    lsm_target_port_type_get(lsm_target_port *tp);
+lsm_target_port_type_get(lsm_target_port *tp);
 
 /**
  * lsm_target_port_service_address_get - Retrieve the service address for the
@@ -161,7 +160,7 @@ lsm_target_port_type LSM_DLL_EXPORT
  *      pointer.
  */
 const char LSM_DLL_EXPORT *
-    lsm_target_port_service_address_get(lsm_target_port *tp);
+lsm_target_port_service_address_get(lsm_target_port *tp);
 
 /**
  * lsm_target_port_network_address_get - Retrieve the network address for the
@@ -190,7 +189,7 @@ const char LSM_DLL_EXPORT *
  *      pointer.
  */
 const char LSM_DLL_EXPORT *
-    lsm_target_port_network_address_get(lsm_target_port *tp);
+lsm_target_port_network_address_get(lsm_target_port *tp);
 
 /**
  * lsm_target_port_physical_address_get - Retrieve the physical address for the
@@ -218,7 +217,7 @@ const char LSM_DLL_EXPORT *
  *      pointer.
  */
 const char LSM_DLL_EXPORT *
-    lsm_target_port_physical_address_get(lsm_target_port *tp);
+lsm_target_port_physical_address_get(lsm_target_port *tp);
 
 /**
  * lsm_target_port_physical_name_get - Retrieve the physical name for the
@@ -242,7 +241,7 @@ const char LSM_DLL_EXPORT *
  *      pointer.
  */
 const char LSM_DLL_EXPORT *
-    lsm_target_port_physical_name_get(lsm_target_port *tp);
+lsm_target_port_physical_name_get(lsm_target_port *tp);
 
 /**
  * lsm_target_port_system_id_get - Retrieve the system ID for the target_port.
@@ -262,10 +261,9 @@ const char LSM_DLL_EXPORT *
  *      string. NULL if argument 'p' is NULL or not a valid lsm_target_port
  *      pointer.
  */
-const char LSM_DLL_EXPORT *
-    lsm_target_port_system_id_get(lsm_target_port *tp);
+const char LSM_DLL_EXPORT *lsm_target_port_system_id_get(lsm_target_port *tp);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
 #endif

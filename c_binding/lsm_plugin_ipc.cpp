@@ -17,30 +17,30 @@
  */
 
 #include "lsm_plugin_ipc.hpp"
-#include "lsm_datatypes.hpp"
-#include "lsm_ipc.hpp"
-#include "lsm_convert.hpp"
-#include "libstoragemgmt/libstoragemgmt_systems.h"
+#include "libstoragemgmt/libstoragemgmt_accessgroups.h"
+#include "libstoragemgmt/libstoragemgmt_battery.h"
 #include "libstoragemgmt/libstoragemgmt_blockrange.h"
 #include "libstoragemgmt/libstoragemgmt_disk.h"
-#include "libstoragemgmt/libstoragemgmt_accessgroups.h"
 #include "libstoragemgmt/libstoragemgmt_fs.h"
-#include "libstoragemgmt/libstoragemgmt_snapshot.h"
 #include "libstoragemgmt/libstoragemgmt_nfsexport.h"
 #include "libstoragemgmt/libstoragemgmt_plug_interface.h"
+#include "libstoragemgmt/libstoragemgmt_pool.h"
+#include "libstoragemgmt/libstoragemgmt_snapshot.h"
+#include "libstoragemgmt/libstoragemgmt_systems.h"
 #include "libstoragemgmt/libstoragemgmt_targetport.h"
 #include "libstoragemgmt/libstoragemgmt_volumes.h"
-#include "libstoragemgmt/libstoragemgmt_pool.h"
-#include "libstoragemgmt/libstoragemgmt_battery.h"
-#include <errno.h>
-#include <string.h>
-#include <libxml/uri.h>
+#include "lsm_convert.hpp"
+#include "lsm_datatypes.hpp"
+#include "lsm_ipc.hpp"
 #include "util/qparams.h"
+#include <errno.h>
+#include <libxml/uri.h>
+#include <string.h>
 #include <syslog.h>
 
 #define UNUSED(x) (void)(x)
 
-//Forward decl.
+// Forward decl.
 static int lsm_plugin_run(lsm_plugin_ptr plug);
 static void get_batteries(int rc, lsm_battery *bs[], uint32_t count,
                           Value &response);
@@ -59,49 +59,47 @@ static int handle_volume_rcp_update(lsm_plugin_ptr p, Value &params,
  * @param s Character array to convert to std::string
  * @return String representation.
  */
-static std::string ss(char *s)
-{
+static std::string ss(char *s) {
     if (s) {
         return std::string(s);
     }
     return std::string();
 }
 
-void *lsm_data_type_copy(lsm_data_type t, void *item)
-{
+void *lsm_data_type_copy(lsm_data_type t, void *item) {
     void *rc = NULL;
 
     if (item) {
         switch (t) {
         case (LSM_DATA_TYPE_ACCESS_GROUP):
-            rc = lsm_access_group_record_copy((lsm_access_group *) item);
+            rc = lsm_access_group_record_copy((lsm_access_group *)item);
             break;
         case (LSM_DATA_TYPE_BLOCK_RANGE):
-            rc = lsm_block_range_record_copy((lsm_block_range *) item);
+            rc = lsm_block_range_record_copy((lsm_block_range *)item);
             break;
         case (LSM_DATA_TYPE_FS):
-            rc = lsm_fs_record_copy((lsm_fs *) item);
+            rc = lsm_fs_record_copy((lsm_fs *)item);
             break;
         case (LSM_DATA_TYPE_NFS_EXPORT):
-            rc = lsm_nfs_export_record_copy((lsm_nfs_export *) item);
+            rc = lsm_nfs_export_record_copy((lsm_nfs_export *)item);
             break;
         case (LSM_DATA_TYPE_POOL):
-            rc = lsm_pool_record_copy((lsm_pool *) item);
+            rc = lsm_pool_record_copy((lsm_pool *)item);
             break;
         case (LSM_DATA_TYPE_SS):
-            rc = lsm_fs_ss_record_copy((lsm_fs_ss *) item);
+            rc = lsm_fs_ss_record_copy((lsm_fs_ss *)item);
             break;
         case (LSM_DATA_TYPE_STRING_LIST):
-            rc = lsm_string_list_copy((lsm_string_list *) item);
+            rc = lsm_string_list_copy((lsm_string_list *)item);
             break;
         case (LSM_DATA_TYPE_SYSTEM):
-            rc = lsm_system_record_copy((lsm_system *) item);
+            rc = lsm_system_record_copy((lsm_system *)item);
             break;
         case (LSM_DATA_TYPE_VOLUME):
-            rc = lsm_volume_record_copy((lsm_volume *) item);
+            rc = lsm_volume_record_copy((lsm_volume *)item);
             break;
         case (LSM_DATA_TYPE_DISK):
-            rc = lsm_disk_record_copy((lsm_disk *) item);
+            rc = lsm_disk_record_copy((lsm_disk *)item);
             break;
         default:
             break;
@@ -110,21 +108,18 @@ void *lsm_data_type_copy(lsm_data_type t, void *item)
     return rc;
 }
 
-static Value job_handle(const Value & val, char *job)
-{
-    std::vector < Value > r;
+static Value job_handle(const Value &val, char *job) {
+    std::vector<Value> r;
     r.push_back(Value(job));
     r.push_back(val);
     return Value(r);
 }
 
-int lsm_register_plugin_v1(lsm_plugin_ptr plug,
-                           void *private_data,
+int lsm_register_plugin_v1(lsm_plugin_ptr plug, void *private_data,
                            struct lsm_mgmt_ops_v1 *mgm_op,
                            struct lsm_san_ops_v1 *san_op,
                            struct lsm_fs_ops_v1 *fs_op,
-                           struct lsm_nas_ops_v1 *nas_op)
-{
+                           struct lsm_nas_ops_v1 *nas_op) {
     int rc = LSM_ERR_INVALID_ARGUMENT;
 
     if (LSM_IS_PLUGIN(plug)) {
@@ -143,8 +138,7 @@ int lsm_register_plugin_v1_2(lsm_plugin_ptr plug, void *private_data,
                              struct lsm_san_ops_v1 *san_op,
                              struct lsm_fs_ops_v1 *fs_op,
                              struct lsm_nas_ops_v1 *nas_op,
-                             struct lsm_ops_v1_2 *ops_v1_2)
-{
+                             struct lsm_ops_v1_2 *ops_v1_2) {
     int rc = lsm_register_plugin_v1(plug, private_data, mgm_op, san_op, fs_op,
                                     nas_op);
 
@@ -161,8 +155,7 @@ int lsm_register_plugin_v1_3(lsm_plugin_ptr plug, void *private_data,
                              struct lsm_fs_ops_v1 *fs_op,
                              struct lsm_nas_ops_v1 *nas_op,
                              struct lsm_ops_v1_2 *ops_v1_2,
-                             struct lsm_ops_v1_3 *ops_v1_3)
-{
+                             struct lsm_ops_v1_3 *ops_v1_3) {
     int rc = lsm_register_plugin_v1_2(plug, private_data, mgm_op, san_op, fs_op,
                                       nas_op, ops_v1_2);
 
@@ -173,8 +166,7 @@ int lsm_register_plugin_v1_3(lsm_plugin_ptr plug, void *private_data,
     return rc;
 }
 
-void *lsm_private_data_get(lsm_plugin_ptr plug)
-{
+void *lsm_private_data_get(lsm_plugin_ptr plug) {
     if (!LSM_IS_PLUGIN(plug)) {
         return NULL;
     }
@@ -182,11 +174,10 @@ void *lsm_private_data_get(lsm_plugin_ptr plug)
     return plug->private_data;
 }
 
-static void lsm_plugin_free(lsm_plugin_ptr p, lsm_flag flags)
-{
+static void lsm_plugin_free(lsm_plugin_ptr p, lsm_flag flags) {
     if (LSM_IS_PLUGIN(p)) {
 
-        delete(p->tp);
+        delete (p->tp);
         p->tp = NULL;
 
         if (p->unreg) {
@@ -210,14 +201,13 @@ static void lsm_plugin_free(lsm_plugin_ptr p, lsm_flag flags)
 
 static lsm_plugin_ptr lsm_plugin_alloc(lsm_plugin_register reg,
                                        lsm_plugin_unregister unreg,
-                                       const char *desc, const char *version)
-{
+                                       const char *desc, const char *version) {
 
     if (!reg || !unreg) {
         return NULL;
     }
 
-    lsm_plugin_ptr rc = (lsm_plugin_ptr) calloc(1, sizeof(lsm_plugin));
+    lsm_plugin_ptr rc = (lsm_plugin_ptr)calloc(1, sizeof(lsm_plugin));
     if (rc) {
         rc->magic = LSM_PLUGIN_MAGIC;
         rc->reg = reg;
@@ -233,8 +223,7 @@ static lsm_plugin_ptr lsm_plugin_alloc(lsm_plugin_register reg,
     return rc;
 }
 
-static void error_send(lsm_plugin_ptr p, int error_code)
-{
+static void error_send(lsm_plugin_ptr p, int error_code) {
     if (!LSM_IS_PLUGIN(p)) {
         return;
     }
@@ -251,8 +240,7 @@ static void error_send(lsm_plugin_ptr p, int error_code)
     }
 }
 
-static int get_search_params(Value & params, char **k, char **v)
-{
+static int get_search_params(Value &params, char **k, char **v) {
     int rc = LSM_ERR_OK;
     Value key = params["search_key"];
     Value val = params["search_value"];
@@ -285,8 +273,7 @@ static int get_search_params(Value & params, char **k, char **v)
  * @param[out] num  The numeric value contained in string
  * @return true if sn is an integer, else false
  */
-static bool get_num(char *sn, int &num)
-{
+static bool get_num(char *sn, int &num) {
     errno = 0;
 
     num = strtol(sn, NULL, 10);
@@ -297,9 +284,8 @@ static bool get_num(char *sn, int &num)
 }
 
 int lsm_plugin_init_v1(int argc, char *argv[], lsm_plugin_register reg,
-                       lsm_plugin_unregister unreg,
-                       const char *desc, const char *version)
-{
+                       lsm_plugin_unregister unreg, const char *desc,
+                       const char *version) {
     int rc = 1;
     lsm_plugin_ptr plug = NULL;
 
@@ -322,17 +308,16 @@ int lsm_plugin_init_v1(int argc, char *argv[], lsm_plugin_register reg,
             rc = LSM_ERR_NO_MEMORY;
         }
     } else {
-        //Process command line arguments or display help text.
+        // Process command line arguments or display help text.
         rc = 2;
     }
 
     return rc;
 }
 
-typedef int (*handler) (lsm_plugin_ptr p, Value & params, Value & response);
+typedef int (*handler)(lsm_plugin_ptr p, Value &params, Value &response);
 
-static int handle_unregister(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int handle_unregister(lsm_plugin_ptr p, Value &params, Value &response) {
     UNUSED(p);
     UNUSED(params);
     UNUSED(response);
@@ -340,8 +325,7 @@ static int handle_unregister(lsm_plugin_ptr p, Value & params, Value & response)
     return LSM_ERR_OK;
 }
 
-static int handle_register(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int handle_register(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     std::string uri_string;
     std::string password;
@@ -365,7 +349,7 @@ static int handle_register(lsm_plugin_ptr p, Value & params, Value & response)
             if (Value::string_t == params["password"].valueType()) {
                 password = params["password"].asString();
             }
-            //Let the plug-in initialize itself.
+            // Let the plug-in initialize itself.
             rc = p->reg(p, uri_string.c_str(), password.c_str(),
                         tmo_v.asUint32_t(), flags);
         } else {
@@ -377,9 +361,8 @@ static int handle_register(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int handle_set_time_out(lsm_plugin_ptr p, Value & params,
-                               Value & response)
-{
+static int handle_set_time_out(lsm_plugin_ptr p, Value &params,
+                               Value &response) {
     UNUSED(response);
     if (p && p->mgmt_ops && p->mgmt_ops->tmo_set) {
         if (Value::numeric_t == params["ms"].valueType() &&
@@ -393,9 +376,8 @@ static int handle_set_time_out(lsm_plugin_ptr p, Value & params,
     return LSM_ERR_NO_SUPPORT;
 }
 
-static int handle_get_time_out(lsm_plugin_ptr p, Value & params,
-                               Value & response)
-{
+static int handle_get_time_out(lsm_plugin_ptr p, Value &params,
+                               Value &response) {
     uint32_t tmo = 0;
     int rc = LSM_ERR_NO_SUPPORT;
 
@@ -413,8 +395,7 @@ static int handle_get_time_out(lsm_plugin_ptr p, Value & params,
     return rc;
 }
 
-static int handle_job_status(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int handle_job_status(lsm_plugin_ptr p, Value &params, Value &response) {
     std::string job_id;
     lsm_job_status status;
     uint8_t percent;
@@ -431,35 +412,35 @@ static int handle_job_status(lsm_plugin_ptr p, Value & params, Value & response)
 
             job_id = params["job_id"].asString();
 
-            rc = p->mgmt_ops->job_status(p, job_id.c_str(), &status,
-                                         &percent, &t, &value,
-                                         LSM_FLAG_GET_VALUE(params));
+            rc =
+                p->mgmt_ops->job_status(p, job_id.c_str(), &status, &percent,
+                                        &t, &value, LSM_FLAG_GET_VALUE(params));
 
             if (LSM_ERR_OK == rc) {
-                std::vector < Value > result;
+                std::vector<Value> result;
 
-                result.push_back(Value((int32_t) status));
+                result.push_back(Value((int32_t)status));
                 result.push_back(Value(percent));
 
                 if (NULL == value) {
                     result.push_back(Value());
                 } else {
                     if (LSM_DATA_TYPE_VOLUME == t &&
-                        LSM_IS_VOL((lsm_volume *) value)) {
-                        result.push_back(volume_to_value((lsm_volume *) value));
-                        lsm_volume_record_free((lsm_volume *) value);
+                        LSM_IS_VOL((lsm_volume *)value)) {
+                        result.push_back(volume_to_value((lsm_volume *)value));
+                        lsm_volume_record_free((lsm_volume *)value);
                     } else if (LSM_DATA_TYPE_FS == t &&
-                               LSM_IS_FS((lsm_fs *) value)) {
-                        result.push_back(fs_to_value((lsm_fs *) value));
-                        lsm_fs_record_free((lsm_fs *) value);
+                               LSM_IS_FS((lsm_fs *)value)) {
+                        result.push_back(fs_to_value((lsm_fs *)value));
+                        lsm_fs_record_free((lsm_fs *)value);
                     } else if (LSM_DATA_TYPE_SS == t &&
-                               LSM_IS_SS((lsm_fs_ss *) value)) {
-                        result.push_back(ss_to_value((lsm_fs_ss *) value));
-                        lsm_fs_ss_record_free((lsm_fs_ss *) value);
+                               LSM_IS_SS((lsm_fs_ss *)value)) {
+                        result.push_back(ss_to_value((lsm_fs_ss *)value));
+                        lsm_fs_ss_record_free((lsm_fs_ss *)value);
                     } else if (LSM_DATA_TYPE_POOL == t &&
-                               LSM_IS_POOL((lsm_pool *) value)) {
-                        result.push_back(pool_to_value((lsm_pool *) value));
-                        lsm_pool_record_free((lsm_pool *) value);
+                               LSM_IS_POOL((lsm_pool *)value)) {
+                        result.push_back(pool_to_value((lsm_pool *)value));
+                        lsm_pool_record_free((lsm_pool *)value);
                     } else {
                         rc = LSM_ERR_PLUGIN_BUG;
                     }
@@ -471,15 +452,14 @@ static int handle_job_status(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int handle_plugin_info(lsm_plugin_ptr p, Value & params,
-                              Value & response)
-{
+static int handle_plugin_info(lsm_plugin_ptr p, Value &params,
+                              Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
 
     UNUSED(params);
 
     if (p) {
-        std::vector < Value > result;
+        std::vector<Value> result;
         result.push_back(Value(p->desc));
         result.push_back(Value(p->version));
         response = Value(result);
@@ -488,15 +468,14 @@ static int handle_plugin_info(lsm_plugin_ptr p, Value & params,
     return rc;
 }
 
-static int handle_job_free(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int handle_job_free(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     UNUSED(response);
     if (p && p->mgmt_ops && p->mgmt_ops->job_free) {
         if (Value::string_t == params["job_id"].valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
             std::string job_num = params["job_id"].asString();
-            char *j = (char *) job_num.c_str();
+            char *j = (char *)job_num.c_str();
             rc = p->mgmt_ops->job_free(p, j, LSM_FLAG_GET_VALUE(params));
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;
@@ -505,9 +484,8 @@ static int handle_job_free(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int handle_system_list(lsm_plugin_ptr p, Value & params,
-                              Value & response)
-{
+static int handle_system_list(lsm_plugin_ptr p, Value &params,
+                              Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
 
     if (p && p->mgmt_ops && p->mgmt_ops->system_list) {
@@ -519,7 +497,7 @@ static int handle_system_list(lsm_plugin_ptr p, Value & params,
             rc = p->mgmt_ops->system_list(p, &systems, &count,
                                           LSM_FLAG_GET_VALUE(params));
             if (LSM_ERR_OK == rc) {
-                std::vector < Value > result;
+                std::vector<Value> result;
                 result.reserve(count);
 
                 for (uint32_t i = 0; i < count; ++i) {
@@ -537,8 +515,7 @@ static int handle_system_list(lsm_plugin_ptr p, Value & params,
     return rc;
 }
 
-static int handle_pools(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int handle_pools(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     char *key = NULL;
     char *val = NULL;
@@ -552,7 +529,7 @@ static int handle_pools(lsm_plugin_ptr p, Value & params, Value & response)
             rc = p->mgmt_ops->pool_list(p, key, val, &pools, &count,
                                         LSM_FLAG_GET_VALUE(params));
             if (LSM_ERR_OK == rc) {
-                std::vector < Value > result;
+                std::vector<Value> result;
                 result.reserve(count);
 
                 for (uint32_t i = 0; i < count; ++i) {
@@ -574,9 +551,8 @@ static int handle_pools(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int handle_target_ports(lsm_plugin_ptr p, Value & params,
-                               Value & response)
-{
+static int handle_target_ports(lsm_plugin_ptr p, Value &params,
+                               Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     char *key = NULL;
     char *val = NULL;
@@ -587,11 +563,10 @@ static int handle_target_ports(lsm_plugin_ptr p, Value & params,
 
         if (LSM_FLAG_EXPECTED_TYPE(params) &&
             ((rc = get_search_params(params, &key, &val)) == LSM_ERR_OK)) {
-            rc = p->san_ops->target_port_list(p, key, val, &target_ports,
-                                              &count,
-                                              LSM_FLAG_GET_VALUE(params));
+            rc = p->san_ops->target_port_list(
+                p, key, val, &target_ports, &count, LSM_FLAG_GET_VALUE(params));
             if (LSM_ERR_OK == rc) {
-                std::vector < Value > result;
+                std::vector<Value> result;
                 result.reserve(count);
 
                 for (uint32_t i = 0; i < count; ++i) {
@@ -613,8 +588,7 @@ static int handle_target_ports(lsm_plugin_ptr p, Value & params,
     return rc;
 }
 
-static int capabilities(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int capabilities(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
 
     if (p && p->mgmt_ops && p->mgmt_ops->capablities) {
@@ -644,11 +618,10 @@ static int capabilities(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static void get_volumes(int rc, lsm_volume ** vols, uint32_t count,
-                        Value & response)
-{
+static void get_volumes(int rc, lsm_volume **vols, uint32_t count,
+                        Value &response) {
     if (LSM_ERR_OK == rc) {
-        std::vector < Value > result;
+        std::vector<Value> result;
         result.reserve(count);
 
         for (uint32_t i = 0; i < count; ++i) {
@@ -661,12 +634,10 @@ static void get_volumes(int rc, lsm_volume ** vols, uint32_t count,
     }
 }
 
-static int handle_volumes(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int handle_volumes(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     char *key = NULL;
     char *val = NULL;
-
 
     if (p && p->san_ops && p->san_ops->vol_get) {
         lsm_volume **vols = NULL;
@@ -689,11 +660,10 @@ static int handle_volumes(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static void get_disks(int rc, lsm_disk ** disks, uint32_t count,
-                      Value & response)
-{
+static void get_disks(int rc, lsm_disk **disks, uint32_t count,
+                      Value &response) {
     if (LSM_ERR_OK == rc) {
-        std::vector < Value > result;
+        std::vector<Value> result;
         result.reserve(count);
 
         for (uint32_t i = 0; i < count; ++i) {
@@ -706,8 +676,7 @@ static void get_disks(int rc, lsm_disk ** disks, uint32_t count,
     }
 }
 
-static int handle_disks(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int handle_disks(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     char *key = NULL;
     char *val = NULL;
@@ -732,9 +701,8 @@ static int handle_disks(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int handle_volume_create(lsm_plugin_ptr p, Value & params,
-                                Value & response)
-{
+static int handle_volume_create(lsm_plugin_ptr p, Value &params,
+                                Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     if (p && p->san_ops && p->san_ops->vol_create) {
 
@@ -743,8 +711,7 @@ static int handle_volume_create(lsm_plugin_ptr p, Value & params,
         Value v_size = params["size_bytes"];
         Value v_prov = params["provisioning"];
 
-        if (IS_CLASS_POOL(v_p) &&
-            Value::string_t == v_name.valueType() &&
+        if (IS_CLASS_POOL(v_p) && Value::string_t == v_name.valueType() &&
             Value::numeric_t == v_size.valueType() &&
             Value::numeric_t == v_prov.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
@@ -756,7 +723,7 @@ static int handle_volume_create(lsm_plugin_ptr p, Value & params,
                 const char *name = v_name.asC_str();
                 uint64_t size = v_size.asUint64_t();
                 lsm_volume_provision_type pro =
-                    (lsm_volume_provision_type) v_prov.asInt32_t();
+                    (lsm_volume_provision_type)v_prov.asInt32_t();
 
                 rc = p->san_ops->vol_create(p, pool, name, size, pro, &vol,
                                             &job, LSM_FLAG_GET_VALUE(params));
@@ -764,7 +731,7 @@ static int handle_volume_create(lsm_plugin_ptr p, Value & params,
                 Value v = volume_to_value(vol);
                 response = job_handle(v, job);
 
-                //Free dynamic data.
+                // Free dynamic data.
                 lsm_pool_record_free(pool);
                 lsm_volume_record_free(vol);
                 free(job);
@@ -780,16 +747,14 @@ static int handle_volume_create(lsm_plugin_ptr p, Value & params,
     return rc;
 }
 
-static int handle_volume_resize(lsm_plugin_ptr p, Value & params,
-                                Value & response)
-{
+static int handle_volume_resize(lsm_plugin_ptr p, Value &params,
+                                Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     if (p && p->san_ops && p->san_ops->vol_resize) {
         Value v_vol = params["volume"];
         Value v_size = params["new_size_bytes"];
 
-        if (IS_CLASS_VOLUME(v_vol) &&
-            Value::numeric_t == v_size.valueType() &&
+        if (IS_CLASS_VOLUME(v_vol) && Value::numeric_t == v_size.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
 
             lsm_volume *vol = value_to_volume(v_vol);
@@ -798,8 +763,8 @@ static int handle_volume_resize(lsm_plugin_ptr p, Value & params,
                 uint64_t size = v_size.asUint64_t();
                 char *job = NULL;
 
-                rc = p->san_ops->vol_resize(p, vol, size, &resized_vol,
-                                            &job, LSM_FLAG_GET_VALUE(params));
+                rc = p->san_ops->vol_resize(p, vol, size, &resized_vol, &job,
+                                            LSM_FLAG_GET_VALUE(params));
 
                 Value v = volume_to_value(resized_vol);
                 response = job_handle(v, job);
@@ -819,9 +784,8 @@ static int handle_volume_resize(lsm_plugin_ptr p, Value & params,
     return rc;
 }
 
-static int handle_volume_replicate(lsm_plugin_ptr p, Value & params,
-                                   Value & response)
-{
+static int handle_volume_replicate(lsm_plugin_ptr p, Value &params,
+                                   Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
 
     if (p && p->san_ops && p->san_ops->vol_replicate) {
@@ -831,19 +795,19 @@ static int handle_volume_replicate(lsm_plugin_ptr p, Value & params,
         Value v_rep = params["rep_type"];
         Value v_name = params["name"];
 
-        if (((Value::object_t == v_pool.valueType() &&
-              IS_CLASS_POOL(v_pool)) ||
+        if (((Value::object_t == v_pool.valueType() && IS_CLASS_POOL(v_pool)) ||
              Value::null_t == v_pool.valueType()) &&
             IS_CLASS_VOLUME(v_vol_src) &&
             Value::numeric_t == v_rep.valueType() &&
             Value::string_t == v_name.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
 
-            lsm_pool *pool = (Value::null_t == v_pool.valueType())? NULL :
-                value_to_pool(v_pool);
+            lsm_pool *pool = (Value::null_t == v_pool.valueType())
+                                 ? NULL
+                                 : value_to_pool(v_pool);
             lsm_volume *vol = value_to_volume(v_vol_src);
             lsm_volume *newVolume = NULL;
-            lsm_replication_type rep = (lsm_replication_type) v_rep.asInt32_t();
+            lsm_replication_type rep = (lsm_replication_type)v_rep.asInt32_t();
             const char *name = v_name.asC_str();
             char *job = NULL;
 
@@ -873,9 +837,8 @@ static int handle_volume_replicate(lsm_plugin_ptr p, Value & params,
 }
 
 static int handle_volume_replicate_range_block_size(lsm_plugin_ptr p,
-                                                    Value & params,
-                                                    Value & response)
-{
+                                                    Value &params,
+                                                    Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     uint32_t block_size = 0;
 
@@ -904,9 +867,8 @@ static int handle_volume_replicate_range_block_size(lsm_plugin_ptr p,
     return rc;
 }
 
-static int handle_volume_replicate_range(lsm_plugin_ptr p, Value & params,
-                                         Value & response)
-{
+static int handle_volume_replicate_range(lsm_plugin_ptr p, Value &params,
+                                         Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     uint32_t range_count = 0;
     char *job = NULL;
@@ -917,22 +879,21 @@ static int handle_volume_replicate_range(lsm_plugin_ptr p, Value & params,
         Value v_ranges = params["ranges"];
 
         if (Value::numeric_t == v_rep.valueType() &&
-            IS_CLASS_VOLUME(v_vol_src) &&
-            IS_CLASS_VOLUME(v_vol_dest) &&
+            IS_CLASS_VOLUME(v_vol_src) && IS_CLASS_VOLUME(v_vol_dest) &&
             Value::array_t == v_ranges.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
 
-            lsm_replication_type repType = (lsm_replication_type)
-                v_rep.asInt32_t();
+            lsm_replication_type repType =
+                (lsm_replication_type)v_rep.asInt32_t();
             lsm_volume *source = value_to_volume(v_vol_src);
             lsm_volume *dest = value_to_volume(v_vol_dest);
-            lsm_block_range **ranges = value_to_block_range_list(v_ranges,
-                                                                 &range_count);
+            lsm_block_range **ranges =
+                value_to_block_range_list(v_ranges, &range_count);
 
             if (source && dest && ranges) {
 
-                rc = p->san_ops->vol_rep_range(p, repType, source, dest,
-                                               ranges, range_count, &job,
+                rc = p->san_ops->vol_rep_range(p, repType, source, dest, ranges,
+                                               range_count, &job,
                                                LSM_FLAG_GET_VALUE(params));
 
                 if (LSM_ERR_JOB_STARTED == rc) {
@@ -956,9 +917,8 @@ static int handle_volume_replicate_range(lsm_plugin_ptr p, Value & params,
     return rc;
 }
 
-static int handle_volume_delete(lsm_plugin_ptr p, Value & params,
-                                Value & response)
-{
+static int handle_volume_delete(lsm_plugin_ptr p, Value &params,
+                                Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     if (p && p->san_ops && p->san_ops->vol_delete) {
         Value v_vol = params["volume"];
@@ -989,9 +949,8 @@ static int handle_volume_delete(lsm_plugin_ptr p, Value & params,
     return rc;
 }
 
-static int handle_vol_enable_disable(lsm_plugin_ptr p, Value & params,
-                                     Value & response, int online)
-{
+static int handle_vol_enable_disable(lsm_plugin_ptr p, Value &params,
+                                     Value &response, int online) {
     int rc = LSM_ERR_NO_SUPPORT;
     UNUSED(response);
 
@@ -1022,28 +981,25 @@ static int handle_vol_enable_disable(lsm_plugin_ptr p, Value & params,
     return rc;
 }
 
-static int handle_volume_enable(lsm_plugin_ptr p, Value & params,
-                                Value & response)
-{
+static int handle_volume_enable(lsm_plugin_ptr p, Value &params,
+                                Value &response) {
     return handle_vol_enable_disable(p, params, response, 1);
 }
 
-static int handle_volume_disable(lsm_plugin_ptr p, Value & params,
-                                 Value & response)
-{
+static int handle_volume_disable(lsm_plugin_ptr p, Value &params,
+                                 Value &response) {
     return handle_vol_enable_disable(p, params, response, 0);
 }
 
-static int handle_volume_raid_info(lsm_plugin_ptr p, Value & params,
-                                   Value & response)
-{
+static int handle_volume_raid_info(lsm_plugin_ptr p, Value &params,
+                                   Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     if (p && p->ops_v1_2 && p->ops_v1_2->vol_raid_info) {
         Value v_vol = params["volume"];
 
         if (IS_CLASS_VOLUME(v_vol) && LSM_FLAG_EXPECTED_TYPE(params)) {
             lsm_volume *vol = value_to_volume(v_vol);
-            std::vector < Value > result;
+            std::vector<Value> result;
 
             if (vol) {
                 lsm_volume_raid_type raid_type;
@@ -1052,13 +1008,12 @@ static int handle_volume_raid_info(lsm_plugin_ptr p, Value & params,
                 uint32_t min_io_size;
                 uint32_t opt_io_size;
 
-                rc = p->ops_v1_2->vol_raid_info(p, vol, &raid_type,
-                                                &strip_size, &disk_count,
-                                                &min_io_size, &opt_io_size,
-                                                LSM_FLAG_GET_VALUE(params));
+                rc = p->ops_v1_2->vol_raid_info(
+                    p, vol, &raid_type, &strip_size, &disk_count, &min_io_size,
+                    &opt_io_size, LSM_FLAG_GET_VALUE(params));
 
                 if (LSM_ERR_OK == rc) {
-                    result.push_back(Value((int32_t) raid_type));
+                    result.push_back(Value((int32_t)raid_type));
                     result.push_back(Value(strip_size));
                     result.push_back(Value(disk_count));
                     result.push_back(Value(min_io_size));
@@ -1078,16 +1033,15 @@ static int handle_volume_raid_info(lsm_plugin_ptr p, Value & params,
     return rc;
 }
 
-static int handle_pool_member_info(lsm_plugin_ptr p, Value & params,
-                                   Value & response)
-{
+static int handle_pool_member_info(lsm_plugin_ptr p, Value &params,
+                                   Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     if (p && p->ops_v1_2 && p->ops_v1_2->pool_member_info) {
         Value v_pool = params["pool"];
 
         if (IS_CLASS_POOL(v_pool) && LSM_FLAG_EXPECTED_TYPE(params)) {
             lsm_pool *pool = value_to_pool(v_pool);
-            std::vector < Value > result;
+            std::vector<Value> result;
 
             if (pool) {
                 lsm_volume_raid_type raid_type = LSM_VOLUME_RAID_TYPE_UNKNOWN;
@@ -1095,13 +1049,12 @@ static int handle_pool_member_info(lsm_plugin_ptr p, Value & params,
                 lsm_string_list *member_ids = NULL;
 
                 rc = p->ops_v1_2->pool_member_info(p, pool, &raid_type,
-                                                   &member_type,
-                                                   &member_ids,
+                                                   &member_type, &member_ids,
                                                    LSM_FLAG_GET_VALUE(params));
 
                 if (LSM_ERR_OK == rc) {
-                    result.push_back(Value((int32_t) raid_type));
-                    result.push_back(Value((int32_t) member_type));
+                    result.push_back(Value((int32_t)raid_type));
+                    result.push_back(Value((int32_t)member_type));
                     result.push_back(string_list_to_value(member_ids));
                     if (member_ids != NULL) {
                         lsm_string_list_free(member_ids);
@@ -1121,8 +1074,7 @@ static int handle_pool_member_info(lsm_plugin_ptr p, Value & params,
     return rc;
 }
 
-static int ag_list(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int ag_list(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     char *key = NULL;
     char *val = NULL;
@@ -1153,8 +1105,7 @@ static int ag_list(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int ag_create(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int ag_create(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
 
     if (p && p->san_ops && p->san_ops->ag_create) {
@@ -1172,12 +1123,10 @@ static int ag_create(lsm_plugin_ptr p, Value & params, Value & response)
             lsm_system *system = value_to_system(v_system);
 
             if (system) {
-                rc = p->san_ops->ag_create(p,
-                                           v_name.asC_str(),
-                                           v_init_id.asC_str(),
-                                           (lsm_access_group_init_type)
-                                           v_init_type.asInt32_t(), system,
-                                           &ag, LSM_FLAG_GET_VALUE(params));
+                rc = p->san_ops->ag_create(
+                    p, v_name.asC_str(), v_init_id.asC_str(),
+                    (lsm_access_group_init_type)v_init_type.asInt32_t(), system,
+                    &ag, LSM_FLAG_GET_VALUE(params));
                 if (LSM_ERR_OK == rc) {
                     response = access_group_to_value(ag);
                     lsm_access_group_record_free(ag);
@@ -1193,8 +1142,7 @@ static int ag_create(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int ag_delete(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int ag_delete(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     UNUSED(response);
 
@@ -1220,8 +1168,7 @@ static int ag_delete(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int ag_initiator_add(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int ag_initiator_add(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
 
     if (p && p->san_ops && p->san_ops->ag_add_initiator) {
@@ -1229,7 +1176,6 @@ static int ag_initiator_add(lsm_plugin_ptr p, Value & params, Value & response)
         Value v_group = params["access_group"];
         Value v_init_id = params["init_id"];
         Value v_init_type = params["init_type"];
-
 
         if (IS_CLASS_ACCESS_GROUP(v_group) &&
             Value::string_t == v_init_id.valueType() &&
@@ -1241,7 +1187,7 @@ static int ag_initiator_add(lsm_plugin_ptr p, Value & params, Value & response)
                 lsm_access_group *updated_access_group = NULL;
                 const char *id = v_init_id.asC_str();
                 lsm_access_group_init_type id_type =
-                    (lsm_access_group_init_type) v_init_type.asInt32_t();
+                    (lsm_access_group_init_type)v_init_type.asInt32_t();
 
                 rc = p->san_ops->ag_add_initiator(p, ag, id, id_type,
                                                   &updated_access_group,
@@ -1265,8 +1211,7 @@ static int ag_initiator_add(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int ag_initiator_del(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int ag_initiator_del(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
 
     if (p && p->san_ops && p->san_ops->ag_del_initiator) {
@@ -1286,7 +1231,7 @@ static int ag_initiator_del(lsm_plugin_ptr p, Value & params, Value & response)
                 lsm_access_group *updated_access_group = NULL;
                 const char *id = v_init_id.asC_str();
                 lsm_access_group_init_type id_type =
-                    (lsm_access_group_init_type) v_init_type.asInt32_t();
+                    (lsm_access_group_init_type)v_init_type.asInt32_t();
                 rc = p->san_ops->ag_del_initiator(p, ag, id, id_type,
                                                   &updated_access_group,
                                                   LSM_FLAG_GET_VALUE(params));
@@ -1308,8 +1253,7 @@ static int ag_initiator_del(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int volume_mask(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int volume_mask(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
 
     UNUSED(response);
@@ -1318,8 +1262,8 @@ static int volume_mask(lsm_plugin_ptr p, Value & params, Value & response)
         Value v_group = params["access_group"];
         Value v_vol = params["volume"];
 
-        if (IS_CLASS_ACCESS_GROUP(v_group) &&
-            IS_CLASS_VOLUME(v_vol) && LSM_FLAG_EXPECTED_TYPE(params)) {
+        if (IS_CLASS_ACCESS_GROUP(v_group) && IS_CLASS_VOLUME(v_vol) &&
+            LSM_FLAG_EXPECTED_TYPE(params)) {
 
             lsm_access_group *ag = value_to_access_group(v_group);
             lsm_volume *vol = value_to_volume(v_vol);
@@ -1342,8 +1286,7 @@ static int volume_mask(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int volume_unmask(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int volume_unmask(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
 
     UNUSED(response);
@@ -1352,8 +1295,8 @@ static int volume_unmask(lsm_plugin_ptr p, Value & params, Value & response)
         Value v_group = params["access_group"];
         Value v_vol = params["volume"];
 
-        if (IS_CLASS_ACCESS_GROUP(v_group) &&
-            IS_CLASS_VOLUME(v_vol) && LSM_FLAG_EXPECTED_TYPE(params)) {
+        if (IS_CLASS_ACCESS_GROUP(v_group) && IS_CLASS_VOLUME(v_vol) &&
+            LSM_FLAG_EXPECTED_TYPE(params)) {
 
             lsm_access_group *ag = value_to_access_group(v_group);
             lsm_volume *vol = value_to_volume(v_vol);
@@ -1376,9 +1319,8 @@ static int volume_unmask(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int vol_accessible_by_ag(lsm_plugin_ptr p, Value & params,
-                                Value & response)
-{
+static int vol_accessible_by_ag(lsm_plugin_ptr p, Value &params,
+                                Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
 
     if (p && p->san_ops && p->san_ops->vol_accessible_by_ag) {
@@ -1392,12 +1334,11 @@ static int vol_accessible_by_ag(lsm_plugin_ptr p, Value & params,
                 lsm_volume **vols = NULL;
                 uint32_t count = 0;
 
-                rc = p->san_ops->vol_accessible_by_ag(p, ag, &vols, &count,
-                                                      LSM_FLAG_GET_VALUE
-                                                      (params));
+                rc = p->san_ops->vol_accessible_by_ag(
+                    p, ag, &vols, &count, LSM_FLAG_GET_VALUE(params));
 
                 if (LSM_ERR_OK == rc) {
-                    std::vector < Value > result;
+                    std::vector<Value> result;
                     result.reserve(count);
 
                     for (uint32_t i = 0; i < count; ++i) {
@@ -1420,9 +1361,8 @@ static int vol_accessible_by_ag(lsm_plugin_ptr p, Value & params,
     return rc;
 }
 
-static int ag_granted_to_volume(lsm_plugin_ptr p, Value & params,
-                                Value & response)
-{
+static int ag_granted_to_volume(lsm_plugin_ptr p, Value &params,
+                                Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
 
     if (p && p->san_ops && p->san_ops->ag_granted_to_vol) {
@@ -1436,12 +1376,11 @@ static int ag_granted_to_volume(lsm_plugin_ptr p, Value & params,
                 lsm_access_group **groups = NULL;
                 uint32_t count = 0;
 
-                rc = p->san_ops->ag_granted_to_vol(p, volume, &groups,
-                                                   &count,
+                rc = p->san_ops->ag_granted_to_vol(p, volume, &groups, &count,
                                                    LSM_FLAG_GET_VALUE(params));
 
                 if (LSM_ERR_OK == rc) {
-                    std::vector < Value > result;
+                    std::vector<Value> result;
                     result.reserve(count);
 
                     for (uint32_t i = 0; i < count; ++i) {
@@ -1463,8 +1402,7 @@ static int ag_granted_to_volume(lsm_plugin_ptr p, Value & params,
     return rc;
 }
 
-static int volume_dependency(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int volume_dependency(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
 
     if (p && p->san_ops && p->san_ops->vol_child_depends) {
@@ -1481,7 +1419,7 @@ static int volume_dependency(lsm_plugin_ptr p, Value & params, Value & response)
                                                    LSM_FLAG_GET_VALUE(params));
 
                 if (LSM_ERR_OK == rc) {
-                    response = Value((bool) (yes));
+                    response = Value((bool)(yes));
                 }
 
                 lsm_volume_record_free(volume);
@@ -1497,9 +1435,8 @@ static int volume_dependency(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int volume_dependency_rm(lsm_plugin_ptr p, Value & params,
-                                Value & response)
-{
+static int volume_dependency_rm(lsm_plugin_ptr p, Value &params,
+                                Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
 
     if (p && p->san_ops && p->san_ops->vol_child_depends_rm) {
@@ -1513,9 +1450,8 @@ static int volume_dependency_rm(lsm_plugin_ptr p, Value & params,
 
                 char *job = NULL;
 
-                rc = p->san_ops->vol_child_depends_rm(p, volume, &job,
-                                                      LSM_FLAG_GET_VALUE
-                                                      (params));
+                rc = p->san_ops->vol_child_depends_rm(
+                    p, volume, &job, LSM_FLAG_GET_VALUE(params));
 
                 if (LSM_ERR_JOB_STARTED == rc) {
                     response = Value(job);
@@ -1534,8 +1470,7 @@ static int volume_dependency_rm(lsm_plugin_ptr p, Value & params,
     return rc;
 }
 
-static int fs(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int fs(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     char *key = NULL;
     char *val = NULL;
@@ -1551,7 +1486,7 @@ static int fs(lsm_plugin_ptr p, Value & params, Value & response)
                                     LSM_FLAG_GET_VALUE(params));
 
             if (LSM_ERR_OK == rc) {
-                std::vector < Value > result;
+                std::vector<Value> result;
                 result.reserve(count);
 
                 for (uint32_t i = 0; i < count; ++i) {
@@ -1573,8 +1508,7 @@ static int fs(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int fs_create(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int fs_create(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
 
     if (p && p->fs_ops && p->fs_ops->fs_create) {
@@ -1583,8 +1517,7 @@ static int fs_create(lsm_plugin_ptr p, Value & params, Value & response)
         Value v_name = params["name"];
         Value v_size = params["size_bytes"];
 
-        if (IS_CLASS_POOL(v_pool) &&
-            Value::string_t == v_name.valueType() &&
+        if (IS_CLASS_POOL(v_pool) && Value::string_t == v_name.valueType() &&
             Value::numeric_t == v_size.valueType() &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
 
@@ -1596,10 +1529,10 @@ static int fs_create(lsm_plugin_ptr p, Value & params, Value & response)
                 lsm_fs *fs = NULL;
                 char *job = NULL;
 
-                rc = p->fs_ops->fs_create(p, pool, name, size_bytes, &fs,
-                                          &job, LSM_FLAG_GET_VALUE(params));
+                rc = p->fs_ops->fs_create(p, pool, name, size_bytes, &fs, &job,
+                                          LSM_FLAG_GET_VALUE(params));
 
-                std::vector < Value > r;
+                std::vector<Value> r;
 
                 if (LSM_ERR_OK == rc) {
                     r.push_back(Value());
@@ -1625,8 +1558,7 @@ static int fs_create(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int fs_delete(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int fs_delete(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
 
     if (p && p->fs_ops && p->fs_ops->fs_delete) {
@@ -1659,8 +1591,7 @@ static int fs_delete(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int fs_resize(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int fs_resize(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
 
     if (p && p->fs_ops && p->fs_ops->fs_resize) {
@@ -1682,7 +1613,7 @@ static int fs_resize(lsm_plugin_ptr p, Value & params, Value & response)
                 rc = p->fs_ops->fs_resize(p, fs, size_bytes, &rfs, &job,
                                           LSM_FLAG_GET_VALUE(params));
 
-                std::vector < Value > r;
+                std::vector<Value> r;
 
                 if (LSM_ERR_OK == rc) {
                     r.push_back(Value());
@@ -1707,15 +1638,14 @@ static int fs_resize(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int fs_clone(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int fs_clone(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
 
     if (p && p->fs_ops && p->fs_ops->fs_clone) {
 
         Value v_src_fs = params["src_fs"];
         Value v_name = params["dest_fs_name"];
-        Value v_ss = params["snapshot"];    /* This is optional */
+        Value v_ss = params["snapshot"]; /* This is optional */
 
         if (IS_CLASS_FILE_SYSTEM(v_src_fs) &&
             Value::string_t == v_name.valueType() &&
@@ -1727,17 +1657,16 @@ static int fs_clone(lsm_plugin_ptr p, Value & params, Value & response)
             char *job = NULL;
             lsm_fs *fs = value_to_fs(v_src_fs);
             const char *name = v_name.asC_str();
-            lsm_fs_ss *ss = (Value::null_t == v_ss.valueType())?
-                NULL : value_to_ss(v_ss);
+            lsm_fs_ss *ss =
+                (Value::null_t == v_ss.valueType()) ? NULL : value_to_ss(v_ss);
 
-            if (fs &&
-                ((ss && v_ss.valueType() == Value::object_t) ||
-                 (!ss && v_ss.valueType() == Value::null_t))) {
+            if (fs && ((ss && v_ss.valueType() == Value::object_t) ||
+                       (!ss && v_ss.valueType() == Value::null_t))) {
 
                 rc = p->fs_ops->fs_clone(p, fs, name, &clonedFs, ss, &job,
                                          LSM_FLAG_GET_VALUE(params));
 
-                std::vector < Value > r;
+                std::vector<Value> r;
                 if (LSM_ERR_OK == rc) {
                     r.push_back(Value());
                     r.push_back(fs_to_value(clonedFs));
@@ -1764,8 +1693,7 @@ static int fs_clone(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int fs_file_clone(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int fs_file_clone(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_OK;
 
     if (p && p->fs_ops && p->fs_ops->fs_file_clone) {
@@ -1773,7 +1701,7 @@ static int fs_file_clone(lsm_plugin_ptr p, Value & params, Value & response)
         Value v_fs = params["fs"];
         Value v_src_name = params["src_file_name"];
         Value v_dest_name = params["dest_file_name"];
-        Value v_ss = params["snapshot"];    /* This is optional */
+        Value v_ss = params["snapshot"]; /* This is optional */
 
         if (IS_CLASS_FILE_SYSTEM(v_fs) &&
             Value::string_t == v_src_name.valueType() &&
@@ -1782,14 +1710,12 @@ static int fs_file_clone(lsm_plugin_ptr p, Value & params, Value & response)
              Value::object_t == v_ss.valueType()) &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
 
-
             lsm_fs *fs = value_to_fs(v_fs);
-            lsm_fs_ss *ss = (Value::null_t == v_ss.valueType())?
-                NULL : value_to_ss(v_ss);
+            lsm_fs_ss *ss =
+                (Value::null_t == v_ss.valueType()) ? NULL : value_to_ss(v_ss);
 
-            if (fs &&
-                ((ss && v_ss.valueType() == Value::object_t) ||
-                 (!ss && v_ss.valueType() == Value::null_t))) {
+            if (fs && ((ss && v_ss.valueType() == Value::object_t) ||
+                       (!ss && v_ss.valueType() == Value::null_t))) {
 
                 const char *src = v_src_name.asC_str();
                 const char *dest = v_dest_name.asC_str();
@@ -1818,9 +1744,8 @@ static int fs_file_clone(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int fs_child_dependency(lsm_plugin_ptr p, Value & params,
-                               Value & response)
-{
+static int fs_child_dependency(lsm_plugin_ptr p, Value &params,
+                               Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     if (p && p->fs_ops && p->fs_ops->fs_child_dependency) {
 
@@ -1833,18 +1758,18 @@ static int fs_child_dependency(lsm_plugin_ptr p, Value & params,
             LSM_FLAG_EXPECTED_TYPE(params)) {
 
             lsm_fs *fs = value_to_fs(v_fs);
-            lsm_string_list *files =
-                (Value::null_t ==
-                 v_files.valueType())? NULL : value_to_string_list(v_files);
+            lsm_string_list *files = (Value::null_t == v_files.valueType())
+                                         ? NULL
+                                         : value_to_string_list(v_files);
 
-            if (fs && (files ||
-                       (!files && Value::null_t == v_files.valueType()))) {
+            if (fs &&
+                (files || (!files && Value::null_t == v_files.valueType()))) {
                 uint8_t yes = 0;
 
                 rc = p->fs_ops->fs_child_dependency(p, fs, files, &yes);
 
                 if (LSM_ERR_OK == rc) {
-                    response = Value((bool) yes);
+                    response = Value((bool)yes);
                 }
             } else {
                 rc = LSM_ERR_NO_MEMORY;
@@ -1860,9 +1785,8 @@ static int fs_child_dependency(lsm_plugin_ptr p, Value & params,
     return rc;
 }
 
-static int fs_child_dependency_rm(lsm_plugin_ptr p, Value & params,
-                                  Value & response)
-{
+static int fs_child_dependency_rm(lsm_plugin_ptr p, Value &params,
+                                  Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     if (p && p->fs_ops && p->fs_ops->fs_child_dependency_rm) {
 
@@ -1875,17 +1799,16 @@ static int fs_child_dependency_rm(lsm_plugin_ptr p, Value & params,
             LSM_FLAG_EXPECTED_TYPE(params)) {
 
             lsm_fs *fs = value_to_fs(v_fs);
-            lsm_string_list *files =
-                (Value::null_t ==
-                 v_files.valueType())? NULL : value_to_string_list(v_files);
+            lsm_string_list *files = (Value::null_t == v_files.valueType())
+                                         ? NULL
+                                         : value_to_string_list(v_files);
 
             if (fs &&
                 (files || (!files && Value::null_t == v_files.valueType()))) {
                 char *job = NULL;
 
-                rc = p->fs_ops->fs_child_dependency_rm(p, fs, files, &job,
-                                                       LSM_FLAG_GET_VALUE
-                                                       (params));
+                rc = p->fs_ops->fs_child_dependency_rm(
+                    p, fs, files, &job, LSM_FLAG_GET_VALUE(params));
 
                 if (LSM_ERR_JOB_STARTED == rc) {
                     response = Value(job);
@@ -1904,8 +1827,7 @@ static int fs_child_dependency_rm(lsm_plugin_ptr p, Value & params,
     return rc;
 }
 
-static int ss_list(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int ss_list(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     if (p && p->fs_ops && p->fs_ops->fs_ss_list) {
 
@@ -1923,7 +1845,7 @@ static int ss_list(lsm_plugin_ptr p, Value & params, Value & response)
                                            LSM_FLAG_GET_VALUE(params));
 
                 if (LSM_ERR_OK == rc) {
-                    std::vector < Value > result;
+                    std::vector<Value> result;
                     result.reserve(count);
 
                     for (uint32_t i = 0; i < count; ++i) {
@@ -1945,8 +1867,7 @@ static int ss_list(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int ss_create(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int ss_create(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     if (p && p->fs_ops && p->fs_ops->fs_ss_create) {
 
@@ -1967,7 +1888,7 @@ static int ss_create(lsm_plugin_ptr p, Value & params, Value & response)
                 rc = p->fs_ops->fs_ss_create(p, fs, name, &ss, &job,
                                              LSM_FLAG_GET_VALUE(params));
 
-                std::vector < Value > r;
+                std::vector<Value> r;
                 if (LSM_ERR_OK == rc) {
                     r.push_back(Value());
                     r.push_back(ss_to_value(ss));
@@ -1993,16 +1914,15 @@ static int ss_create(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int ss_delete(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int ss_delete(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     if (p && p->fs_ops && p->fs_ops->fs_ss_delete) {
 
         Value v_fs = params["fs"];
         Value v_ss = params["snapshot"];
 
-        if (IS_CLASS_FILE_SYSTEM(v_fs) &&
-            IS_CLASS_FS_SNAPSHOT(v_ss) && LSM_FLAG_EXPECTED_TYPE(params)) {
+        if (IS_CLASS_FILE_SYSTEM(v_fs) && IS_CLASS_FS_SNAPSHOT(v_ss) &&
+            LSM_FLAG_EXPECTED_TYPE(params)) {
 
             lsm_fs *fs = value_to_fs(v_fs);
             lsm_fs_ss *ss = value_to_ss(v_ss);
@@ -2029,8 +1949,7 @@ static int ss_delete(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int ss_restore(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int ss_restore(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     if (p && p->fs_ops && p->fs_ops->fs_ss_restore) {
 
@@ -2040,8 +1959,7 @@ static int ss_restore(lsm_plugin_ptr p, Value & params, Value & response)
         Value v_restore_files = params["restore_files"];
         Value v_all_files = params["all_files"];
 
-        if (IS_CLASS_FILE_SYSTEM(v_fs) &&
-            IS_CLASS_FS_SNAPSHOT(v_ss) &&
+        if (IS_CLASS_FILE_SYSTEM(v_fs) && IS_CLASS_FS_SNAPSHOT(v_ss) &&
             (Value::array_t == v_files.valueType() ||
              Value::null_t == v_files.valueType()) &&
             (Value::array_t == v_restore_files.valueType() ||
@@ -2052,23 +1970,23 @@ static int ss_restore(lsm_plugin_ptr p, Value & params, Value & response)
             char *job = NULL;
             lsm_fs *fs = value_to_fs(v_fs);
             lsm_fs_ss *ss = value_to_ss(v_ss);
-            lsm_string_list *files =
-                (Value::null_t ==
-                 v_files.valueType())? NULL : value_to_string_list(v_files);
+            lsm_string_list *files = (Value::null_t == v_files.valueType())
+                                         ? NULL
+                                         : value_to_string_list(v_files);
             lsm_string_list *restore_files =
-                (Value::null_t ==
-                 v_restore_files.valueType())? NULL :
-                value_to_string_list(v_restore_files);
-            int all_files = (v_all_files.asBool())? 1 : 0;
+                (Value::null_t == v_restore_files.valueType())
+                    ? NULL
+                    : value_to_string_list(v_restore_files);
+            int all_files = (v_all_files.asBool()) ? 1 : 0;
 
             if (fs && ss &&
-                (files || (!files && Value::null_t == v_files.valueType()))
-                && (restore_files
-                    || (!restore_files
-                        && Value::null_t == v_restore_files.valueType()))) {
-                rc = p->fs_ops->fs_ss_restore(p, fs, ss, files,
-                                              restore_files, all_files,
-                                              &job, LSM_FLAG_GET_VALUE(params));
+                (files || (!files && Value::null_t == v_files.valueType())) &&
+                (restore_files ||
+                 (!restore_files &&
+                  Value::null_t == v_restore_files.valueType()))) {
+                rc = p->fs_ops->fs_ss_restore(p, fs, ss, files, restore_files,
+                                              all_files, &job,
+                                              LSM_FLAG_GET_VALUE(params));
 
                 if (LSM_ERR_JOB_STARTED == rc) {
                     response = Value(job);
@@ -2089,8 +2007,7 @@ static int ss_restore(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int export_auth(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int export_auth(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     if (p && p->nas_ops && p->nas_ops->nfs_auth_types) {
         lsm_string_list *types = NULL;
@@ -2106,13 +2023,11 @@ static int export_auth(lsm_plugin_ptr p, Value & params, Value & response)
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;
         }
-
     }
     return rc;
 }
 
-static int exports(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int exports(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     char *key = NULL;
     char *val = NULL;
@@ -2127,7 +2042,7 @@ static int exports(lsm_plugin_ptr p, Value & params, Value & response)
                                       LSM_FLAG_GET_VALUE(params));
 
             if (LSM_ERR_OK == rc) {
-                std::vector < Value > result;
+                std::vector<Value> result;
                 result.reserve(count);
 
                 for (uint32_t i = 0; i < count; ++i) {
@@ -2151,8 +2066,7 @@ static int exports(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int64_t get_uid_gid(Value & id)
-{
+static int64_t get_uid_gid(Value &id) {
     if (Value::null_t == id.valueType()) {
         return ANON_UID_GID_NA;
     } else {
@@ -2160,8 +2074,7 @@ static int64_t get_uid_gid(Value & id)
     }
 }
 
-static int export_fs(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int export_fs(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
 
     if (p && p->nas_ops && p->nas_ops->nfs_export) {
@@ -2204,11 +2117,10 @@ static int export_fs(lsm_plugin_ptr p, Value & params, Value & response)
                 int64_t anon_uid = get_uid_gid(v_anon_uid);
                 int64_t anon_gid = get_uid_gid(v_anon_gid);
 
-                rc = p->nas_ops->nfs_export(p, fs_id, export_path,
-                                            root_list, rw_list, ro_list,
-                                            anon_uid, anon_gid, auth_type,
-                                            options, &exported,
-                                            LSM_FLAG_GET_VALUE(params));
+                rc = p->nas_ops->nfs_export(
+                    p, fs_id, export_path, root_list, rw_list, ro_list,
+                    anon_uid, anon_gid, auth_type, options, &exported,
+                    LSM_FLAG_GET_VALUE(params));
                 if (LSM_ERR_OK == rc) {
                     response = nfs_export_to_value(exported);
                     lsm_nfs_export_record_free(exported);
@@ -2229,8 +2141,7 @@ static int export_fs(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int export_remove(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int export_remove(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
 
     UNUSED(response);
@@ -2255,8 +2166,7 @@ static int export_remove(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int iscsi_chap(lsm_plugin_ptr p, Value & params, Value & response)
-{
+static int iscsi_chap(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
 
     UNUSED(response);
@@ -2278,12 +2188,10 @@ static int iscsi_chap(lsm_plugin_ptr p, Value & params, Value & response)
              Value::null_t == v_out_password.valueType()) &&
             LSM_FLAG_EXPECTED_TYPE(params)) {
 
-            rc = p->san_ops->iscsi_chap_auth(p, v_init.asC_str(),
-                                             v_in_user.asC_str(),
-                                             v_in_password.asC_str(),
-                                             v_out_user.asC_str(),
-                                             v_out_password.asC_str(),
-                                             LSM_FLAG_GET_VALUE(params));
+            rc = p->san_ops->iscsi_chap_auth(
+                p, v_init.asC_str(), v_in_user.asC_str(),
+                v_in_password.asC_str(), v_out_user.asC_str(),
+                v_out_password.asC_str(), LSM_FLAG_GET_VALUE(params));
 
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;
@@ -2292,9 +2200,8 @@ static int iscsi_chap(lsm_plugin_ptr p, Value & params, Value & response)
     return rc;
 }
 
-static int handle_volume_raid_create_cap_get(lsm_plugin_ptr p,
-                                             Value & params, Value & response)
-{
+static int handle_volume_raid_create_cap_get(lsm_plugin_ptr p, Value &params,
+                                             Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     if (p && p->ops_v1_2 && p->ops_v1_2->vol_create_raid_cap_get) {
         Value v_system = params["system"];
@@ -2311,19 +2218,17 @@ static int handle_volume_raid_create_cap_get(lsm_plugin_ptr p,
 
             if (sys) {
 
-                rc = p->ops_v1_2->vol_create_raid_cap_get
-                    (p, sys, &supported_raid_types, &supported_raid_type_count,
-                     &supported_strip_sizes, &supported_strip_size_count,
-                     LSM_FLAG_GET_VALUE (params));
+                rc = p->ops_v1_2->vol_create_raid_cap_get(
+                    p, sys, &supported_raid_types, &supported_raid_type_count,
+                    &supported_strip_sizes, &supported_strip_size_count,
+                    LSM_FLAG_GET_VALUE(params));
 
                 if (LSM_ERR_OK == rc) {
-                    std::vector < Value > result;
-                    result.push_back(uint32_array_to_value
-                                     (supported_raid_types,
-                                      supported_raid_type_count));
-                    result.push_back(uint32_array_to_value
-                                     (supported_strip_sizes,
-                                      supported_strip_size_count));
+                    std::vector<Value> result;
+                    result.push_back(uint32_array_to_value(
+                        supported_raid_types, supported_raid_type_count));
+                    result.push_back(uint32_array_to_value(
+                        supported_strip_sizes, supported_strip_size_count));
                     response = Value(result);
                     free(supported_raid_types);
                     free(supported_strip_sizes);
@@ -2341,9 +2246,8 @@ static int handle_volume_raid_create_cap_get(lsm_plugin_ptr p,
     return rc;
 }
 
-static int handle_volume_raid_create(lsm_plugin_ptr p, Value & params,
-                                     Value & response)
-{
+static int handle_volume_raid_create(lsm_plugin_ptr p, Value &params,
+                                     Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     if (p && p->ops_v1_2 && p->ops_v1_2->vol_create_raid) {
         Value v_name = params["name"];
@@ -2367,14 +2271,13 @@ static int handle_volume_raid_create(lsm_plugin_ptr p, Value & params,
 
             const char *name = v_name.asC_str();
             lsm_volume_raid_type raid_type =
-                (lsm_volume_raid_type) v_raid_type.asInt32_t();
+                (lsm_volume_raid_type)v_raid_type.asInt32_t();
             uint32_t strip_size = v_strip_size.asUint32_t();
 
             lsm_volume *new_vol = NULL;
 
             rc = p->ops_v1_2->vol_create_raid(p, name, raid_type, disks,
-                                              disk_count, strip_size,
-                                              &new_vol,
+                                              disk_count, strip_size, &new_vol,
                                               LSM_FLAG_GET_VALUE(params));
 
             if (LSM_ERR_OK == rc) {
@@ -2391,9 +2294,8 @@ static int handle_volume_raid_create(lsm_plugin_ptr p, Value & params,
     return rc;
 }
 
-static int handle_volume_ident_led_on(lsm_plugin_ptr p, Value & params,
-                                      Value & response)
-{
+static int handle_volume_ident_led_on(lsm_plugin_ptr p, Value &params,
+                                      Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     UNUSED(response);
     if (p && p->ops_v1_3 && p->ops_v1_3->vol_ident_on) {
@@ -2416,9 +2318,8 @@ static int handle_volume_ident_led_on(lsm_plugin_ptr p, Value & params,
     return rc;
 }
 
-static int handle_volume_ident_led_off(lsm_plugin_ptr p, Value & params,
-                                       Value & response)
-{
+static int handle_volume_ident_led_off(lsm_plugin_ptr p, Value &params,
+                                       Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     UNUSED(response);
     if (p && p->ops_v1_3 && p->ops_v1_3->vol_ident_off) {
@@ -2441,9 +2342,8 @@ static int handle_volume_ident_led_off(lsm_plugin_ptr p, Value & params,
     return rc;
 }
 
-static int handle_system_read_cache_pct_update(lsm_plugin_ptr p, Value & params,
-                                               Value & response)
-{
+static int handle_system_read_cache_pct_update(lsm_plugin_ptr p, Value &params,
+                                               Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     UNUSED(response);
     if (p && p->ops_v1_3 && p->ops_v1_3->sys_read_cache_pct_update) {
@@ -2457,9 +2357,8 @@ static int handle_system_read_cache_pct_update(lsm_plugin_ptr p, Value & params,
             lsm_system *system = value_to_system(v_sys);
             uint32_t read_pct = v_read_pct.asUint32_t();
 
-            rc = p->ops_v1_3->sys_read_cache_pct_update(p, system, read_pct,
-                                                        LSM_FLAG_GET_VALUE(
-                                                        params));
+            rc = p->ops_v1_3->sys_read_cache_pct_update(
+                p, system, read_pct, LSM_FLAG_GET_VALUE(params));
 
             lsm_system_record_free(system);
 
@@ -2473,82 +2372,63 @@ static int handle_system_read_cache_pct_update(lsm_plugin_ptr p, Value & params,
 /**
  * map of function pointers
  */
-static std::map < std::string, handler > dispatch =
-    static_map < std::string, handler > ("access_group_initiator_add",
-                                         ag_initiator_add)
-    ("access_group_create", ag_create)
-    ("access_group_delete", ag_delete)
-    ("access_group_initiator_delete", ag_initiator_del)
-    ("volume_mask", volume_mask)
-    ("access_groups", ag_list)
-    ("volume_unmask", volume_unmask)
-    ("access_groups_granted_to_volume", ag_granted_to_volume)
-    ("capabilities", capabilities)
-    ("disks", handle_disks)
-    ("export_auth", export_auth)
-    ("export_fs", export_fs)
-    ("export_remove", export_remove)
-    ("exports", exports)
-    ("fs_file_clone", fs_file_clone)
-    ("fs_child_dependency", fs_child_dependency)
-    ("fs_child_dependency_rm", fs_child_dependency_rm)
-    ("fs_clone", fs_clone)
-    ("fs_create", fs_create)
-    ("fs_delete", fs_delete)
-    ("fs", fs)
-    ("fs_resize", fs_resize)
-    ("fs_snapshot_create", ss_create)
-    ("fs_snapshot_delete", ss_delete)
-    ("fs_snapshot_restore", ss_restore)
-    ("fs_snapshots", ss_list)
-    ("time_out_get", handle_get_time_out)
-    ("iscsi_chap_auth", iscsi_chap)
-    ("job_free", handle_job_free)
-    ("job_status", handle_job_status)
-    ("plugin_info", handle_plugin_info)
-    ("pools", handle_pools)
-    ("target_ports", handle_target_ports)
-    ("time_out_set", handle_set_time_out)
-    ("plugin_unregister", handle_unregister)
-    ("plugin_register", handle_register)
-    ("systems", handle_system_list)
-    ("volume_child_dependency_rm", volume_dependency_rm)
-    ("volume_child_dependency", volume_dependency)
-    ("volume_create", handle_volume_create)
-    ("volume_delete", handle_volume_delete)
-    ("volume_disable", handle_volume_disable)
-    ("volume_enable", handle_volume_enable)
-    ("volume_replicate", handle_volume_replicate)
-    ("volume_replicate_range_block_size",
-     handle_volume_replicate_range_block_size)
-    ("volume_replicate_range", handle_volume_replicate_range)
-    ("volume_resize", handle_volume_resize)
-    ("volumes_accessible_by_access_group", vol_accessible_by_ag)
-    ("volumes", handle_volumes)
-    ("volume_raid_info", handle_volume_raid_info)
-    ("pool_member_info", handle_pool_member_info)
-    ("volume_raid_create", handle_volume_raid_create)
-    ("volume_raid_create_cap_get", handle_volume_raid_create_cap_get)
-    ("volume_ident_led_on", handle_volume_ident_led_on)
-    ("volume_ident_led_off", handle_volume_ident_led_off)
-    ("system_read_cache_pct_update", handle_system_read_cache_pct_update)
-    ("batteries", handle_batteries)
-    ("volume_cache_info", handle_volume_cache_info)
-    ("volume_physical_disk_cache_update", handle_volume_pdc_update)
-    ("volume_write_cache_policy_update", handle_volume_wcp_update)
-    ("volume_read_cache_policy_update", handle_volume_rcp_update)
-    ;
+static std::map<std::string, handler> dispatch =
+    static_map<std::string, handler>("access_group_initiator_add",
+                                     ag_initiator_add)(
+        "access_group_create", ag_create)("access_group_delete", ag_delete)(
+        "access_group_initiator_delete",
+        ag_initiator_del)("volume_mask", volume_mask)("access_groups", ag_list)(
+        "volume_unmask", volume_unmask)("access_groups_granted_to_volume",
+                                        ag_granted_to_volume)(
+        "capabilities", capabilities)("disks", handle_disks)(
+        "export_auth", export_auth)("export_fs", export_fs)(
+        "export_remove", export_remove)("exports", exports)("fs_file_clone",
+                                                            fs_file_clone)(
+        "fs_child_dependency", fs_child_dependency)("fs_child_dependency_rm",
+                                                    fs_child_dependency_rm)(
+        "fs_clone", fs_clone)("fs_create", fs_create)("fs_delete", fs_delete)(
+        "fs", fs)("fs_resize", fs_resize)("fs_snapshot_create", ss_create)(
+        "fs_snapshot_delete", ss_delete)("fs_snapshot_restore", ss_restore)(
+        "fs_snapshots", ss_list)("time_out_get", handle_get_time_out)(
+        "iscsi_chap_auth", iscsi_chap)("job_free", handle_job_free)(
+        "job_status", handle_job_status)("plugin_info", handle_plugin_info)(
+        "pools", handle_pools)("target_ports", handle_target_ports)(
+        "time_out_set", handle_set_time_out)("plugin_unregister",
+                                             handle_unregister)(
+        "plugin_register", handle_register)("systems", handle_system_list)(
+        "volume_child_dependency_rm",
+        volume_dependency_rm)("volume_child_dependency", volume_dependency)(
+        "volume_create", handle_volume_create)("volume_delete",
+                                               handle_volume_delete)(
+        "volume_disable", handle_volume_disable)("volume_enable",
+                                                 handle_volume_enable)(
+        "volume_replicate",
+        handle_volume_replicate)("volume_replicate_range_block_size",
+                                 handle_volume_replicate_range_block_size)(
+        "volume_replicate_range",
+        handle_volume_replicate_range)("volume_resize", handle_volume_resize)(
+        "volumes_accessible_by_access_group", vol_accessible_by_ag)(
+        "volumes", handle_volumes)("volume_raid_info", handle_volume_raid_info)(
+        "pool_member_info", handle_pool_member_info)("volume_raid_create",
+                                                     handle_volume_raid_create)(
+        "volume_raid_create_cap_get", handle_volume_raid_create_cap_get)(
+        "volume_ident_led_on", handle_volume_ident_led_on)(
+        "volume_ident_led_off", handle_volume_ident_led_off)(
+        "system_read_cache_pct_update", handle_system_read_cache_pct_update)(
+        "batteries", handle_batteries)("volume_cache_info",
+                                       handle_volume_cache_info)(
+        "volume_physical_disk_cache_update", handle_volume_pdc_update)(
+        "volume_write_cache_policy_update", handle_volume_wcp_update)(
+        "volume_read_cache_policy_update", handle_volume_rcp_update);
 
-
-static int process_request(lsm_plugin_ptr p, const std::string & method,
-                           Value & request, Value & response)
-{
+static int process_request(lsm_plugin_ptr p, const std::string &method,
+                           Value &request, Value &response) {
     int rc = LSM_ERR_LIB_BUG;
 
-    response = Value();         //Default response will be null
+    response = Value(); // Default response will be null
 
     if (dispatch.find(method) != dispatch.end()) {
-        rc = (dispatch[method]) (p, request["params"], response);
+        rc = (dispatch[method])(p, request["params"], response);
     } else {
         rc = LSM_ERR_NO_SUPPORT;
     }
@@ -2556,8 +2436,7 @@ static int process_request(lsm_plugin_ptr p, const std::string & method,
     return rc;
 }
 
-static int lsm_plugin_run(lsm_plugin_ptr p)
-{
+static int lsm_plugin_run(lsm_plugin_ptr p) {
     int rc = 0;
     lsm_flag flags = 0;
 
@@ -2567,7 +2446,7 @@ static int lsm_plugin_run(lsm_plugin_ptr p)
 
                 if (!LSM_IS_PLUGIN(p)) {
                     syslog(LOG_USER | LOG_NOTICE, "Someone stepped on "
-                           "plugin pointer, exiting!");
+                                                  "plugin pointer, exiting!");
                     break;
                 }
 
@@ -2592,23 +2471,19 @@ static int lsm_plugin_run(lsm_plugin_ptr p)
                     syslog(LOG_USER | LOG_NOTICE, "Invalid request");
                     break;
                 }
-            }
-            catch(EOFException & eof) {
+            } catch (EOFException &eof) {
                 break;
-            }
-            catch(ValueException & ve) {
+            } catch (ValueException &ve) {
                 syslog(LOG_USER | LOG_NOTICE, "Plug-in exception: %s",
                        ve.what());
                 rc = 1;
                 break;
-            }
-            catch(LsmException & le) {
+            } catch (LsmException &le) {
                 syslog(LOG_USER | LOG_NOTICE, "Plug-in exception: %s",
                        le.what());
                 rc = 2;
                 break;
-            }
-            catch( ...) {
+            } catch (...) {
                 syslog(LOG_USER | LOG_NOTICE, "Plug-in un-handled exception");
                 rc = 3;
                 break;
@@ -2624,8 +2499,7 @@ static int lsm_plugin_run(lsm_plugin_ptr p)
 }
 
 int lsm_log_error_basic(lsm_plugin_ptr plug, lsm_error_number code,
-                        const char *msg)
-{
+                        const char *msg) {
     if (!LSM_IS_PLUGIN(plug)) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
@@ -2641,11 +2515,10 @@ int lsm_log_error_basic(lsm_plugin_ptr plug, lsm_error_number code,
                    rc, code, msg);
         }
     }
-    return (int) code;
+    return (int)code;
 }
 
-int lsm_plugin_error_log(lsm_plugin_ptr plug, lsm_error_ptr error)
-{
+int lsm_plugin_error_log(lsm_plugin_ptr plug, lsm_error_ptr error) {
     if (!LSM_IS_PLUGIN(plug) || !LSM_IS_ERROR(error)) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
@@ -2659,22 +2532,20 @@ int lsm_plugin_error_log(lsm_plugin_ptr plug, lsm_error_ptr error)
     return LSM_ERR_OK;
 }
 
+#define STR_D(c, s)                                                            \
+    do {                                                                       \
+        if (s) {                                                               \
+            (c) = strdup(s);                                                   \
+            if (!c) {                                                          \
+                rc = LSM_ERR_NO_MEMORY;                                        \
+                goto bail;                                                     \
+            }                                                                  \
+        }                                                                      \
+    } while (0)
 
-#define STR_D(c, s) \
-do { \
-    if(s) { \
-        (c) = strdup(s); \
-        if( !c ) {\
-            rc = LSM_ERR_NO_MEMORY; \
-            goto bail; \
-        } \
-    } \
-} while(0)\
-
-int LSM_DLL_EXPORT lsm_uri_parse(const char *uri, char **scheme,
-                                 char **user, char **server, int *port,
-                                 char **path, lsm_hash ** query_params)
-{
+int LSM_DLL_EXPORT lsm_uri_parse(const char *uri, char **scheme, char **user,
+                                 char **server, int *port, char **path,
+                                 lsm_hash **query_params) {
     int rc = LSM_ERR_INVALID_ARGUMENT;
     xmlURIPtr u = NULL;
 
@@ -2702,8 +2573,8 @@ int LSM_DLL_EXPORT lsm_uri_parse(const char *uri, char **scheme,
 
                 if (qp) {
                     for (i = 0; i < qp->n; ++i) {
-                        rc = lsm_hash_string_set(*query_params,
-                                                 qp->p[i].name, qp->p[i].value);
+                        rc = lsm_hash_string_set(*query_params, qp->p[i].name,
+                                                 qp->p[i].value);
                         if (LSM_ERR_OK != rc) {
                             free_qparam_set(qp);
                             goto bail;
@@ -2719,7 +2590,7 @@ int LSM_DLL_EXPORT lsm_uri_parse(const char *uri, char **scheme,
             rc = LSM_ERR_OK;
         }
 
-      bail:
+    bail:
         if (rc != LSM_ERR_OK) {
             free(*scheme);
             *scheme = NULL;
@@ -2742,33 +2613,26 @@ int LSM_DLL_EXPORT lsm_uri_parse(const char *uri, char **scheme,
     return rc;
 }
 
+typedef int (*array_cmp)(void *item, void *cmp_data);
+typedef void (*free_item)(void *item);
 
-typedef int (*array_cmp) (void *item, void *cmp_data);
-typedef void (*free_item) (void *item);
+#define CMP_FUNCTION(name, method, method_type)                                \
+    static int name(void *i, void *d) {                                        \
+        method_type *v = (method_type *)i;                                     \
+        char *val = (char *)d;                                                 \
+                                                                               \
+        if ((method(v) != NULL) && (val != NULL) &&                            \
+            (strcmp(method(v), val) == 0)) {                                   \
+            return 1;                                                          \
+        }                                                                      \
+        return 0;                                                              \
+    }
 
-#define CMP_FUNCTION(name, method, method_type) \
-static int name(void *i, void *d)               \
-{                                               \
-    method_type *v = (method_type *)i;          \
-    char *val = (char *)d;                      \
-                                                \
-    if ((method(v) != NULL) && (val != NULL) && \
-        ( strcmp(method(v), val) == 0 )) {      \
-        return 1;                               \
-    }                                           \
-    return 0;                                   \
-}                                               \
-
-
-#define CMP_FREE_FUNCTION(name, method, method_type) \
-static void name(void *i)       \
-{                               \
-    method((method_type *)i);   \
-}                               \
+#define CMP_FREE_FUNCTION(name, method, method_type)                           \
+    static void name(void *i) { method((method_type *)i); }
 
 static int filter(void *a[], size_t size, array_cmp cmp, void *cmp_data,
-                  free_item fo)
-{
+                  free_item fo) {
     int remaining = 0;
     size_t i = 0;
 
@@ -2785,14 +2649,13 @@ static int filter(void *a[], size_t size, array_cmp cmp, void *cmp_data,
 }
 
 CMP_FUNCTION(volume_compare_id, lsm_volume_id_get, lsm_volume)
-    CMP_FUNCTION(volume_compare_system, lsm_volume_system_id_get, lsm_volume)
-    CMP_FUNCTION(volume_compare_pool, lsm_volume_pool_id_get, lsm_volume)
+CMP_FUNCTION(volume_compare_system, lsm_volume_system_id_get, lsm_volume)
+CMP_FUNCTION(volume_compare_pool, lsm_volume_pool_id_get, lsm_volume)
 CMP_FREE_FUNCTION(volume_free, lsm_volume_record_free, lsm_volume)
 
 void lsm_plug_volume_search_filter(const char *search_key,
-                                   const char *search_value,
-                                   lsm_volume * vols[], uint32_t * count)
-{
+                                   const char *search_value, lsm_volume *vols[],
+                                   uint32_t *count) {
     array_cmp cmp = NULL;
 
     if (search_key) {
@@ -2806,21 +2669,19 @@ void lsm_plug_volume_search_filter(const char *search_key,
         }
 
         if (cmp) {
-            *count =
-                filter((void **) vols, *count, cmp, (void *) search_value,
-                       volume_free);
+            *count = filter((void **)vols, *count, cmp, (void *)search_value,
+                            volume_free);
         }
     }
 }
 
 CMP_FUNCTION(pool_compare_id, lsm_pool_id_get, lsm_pool)
-    CMP_FUNCTION(pool_compare_system, lsm_pool_system_id_get, lsm_pool)
+CMP_FUNCTION(pool_compare_system, lsm_pool_system_id_get, lsm_pool)
 CMP_FREE_FUNCTION(pool_free, lsm_pool_record_free, lsm_pool);
 
 void lsm_plug_pool_search_filter(const char *search_key,
-                                 const char *search_value,
-                                 lsm_pool * pools[], uint32_t * count)
-{
+                                 const char *search_value, lsm_pool *pools[],
+                                 uint32_t *count) {
     array_cmp cmp = NULL;
 
     if (search_key) {
@@ -2832,21 +2693,19 @@ void lsm_plug_pool_search_filter(const char *search_key,
         }
 
         if (cmp) {
-            *count =
-                filter((void **) pools, *count, cmp, (void *) search_value,
-                       pool_free);
+            *count = filter((void **)pools, *count, cmp, (void *)search_value,
+                            pool_free);
         }
     }
 }
 
 CMP_FUNCTION(disk_compare_id, lsm_disk_id_get, lsm_disk)
-    CMP_FUNCTION(disk_compare_system, lsm_disk_system_id_get, lsm_disk)
+CMP_FUNCTION(disk_compare_system, lsm_disk_system_id_get, lsm_disk)
 CMP_FREE_FUNCTION(disk_free, lsm_disk_record_free, lsm_disk)
 
 void lsm_plug_disk_search_filter(const char *search_key,
-                                 const char *search_value,
-                                 lsm_disk * disks[], uint32_t * count)
-{
+                                 const char *search_value, lsm_disk *disks[],
+                                 uint32_t *count) {
     array_cmp cmp = NULL;
 
     if (search_key) {
@@ -2858,24 +2717,22 @@ void lsm_plug_disk_search_filter(const char *search_key,
         }
 
         if (cmp) {
-            *count =
-                filter((void **) disks, *count, cmp, (void *) search_value,
-                       disk_free);
+            *count = filter((void **)disks, *count, cmp, (void *)search_value,
+                            disk_free);
         }
     }
 }
 
 CMP_FUNCTION(access_group_compare_id, lsm_access_group_id_get, lsm_access_group)
-    CMP_FUNCTION(access_group_compare_system, lsm_access_group_system_id_get,
+CMP_FUNCTION(access_group_compare_system, lsm_access_group_system_id_get,
              lsm_access_group)
 CMP_FREE_FUNCTION(access_group_free, lsm_access_group_record_free,
                   lsm_access_group);
 
 void lsm_plug_access_group_search_filter(const char *search_key,
                                          const char *search_value,
-                                         lsm_access_group * ag[],
-                                         uint32_t * count)
-{
+                                         lsm_access_group *ag[],
+                                         uint32_t *count) {
     array_cmp cmp = NULL;
 
     if (search_key) {
@@ -2887,21 +2744,18 @@ void lsm_plug_access_group_search_filter(const char *search_key,
         }
 
         if (cmp) {
-            *count =
-                filter((void **) ag, *count, cmp, (void *) search_value,
-                       access_group_free);
+            *count = filter((void **)ag, *count, cmp, (void *)search_value,
+                            access_group_free);
         }
     }
 }
 
 CMP_FUNCTION(fs_compare_id, lsm_fs_id_get, lsm_fs)
-    CMP_FUNCTION(fs_compare_system, lsm_fs_system_id_get, lsm_fs)
+CMP_FUNCTION(fs_compare_system, lsm_fs_system_id_get, lsm_fs)
 CMP_FREE_FUNCTION(fs_free, lsm_fs_record_free, lsm_fs);
 
-void lsm_plug_fs_search_filter(const char *search_key,
-                               const char *search_value,
-                               lsm_fs * fs[], uint32_t * count)
-{
+void lsm_plug_fs_search_filter(const char *search_key, const char *search_value,
+                               lsm_fs *fs[], uint32_t *count) {
     array_cmp cmp = NULL;
 
     if (search_key) {
@@ -2914,21 +2768,19 @@ void lsm_plug_fs_search_filter(const char *search_key,
 
         if (cmp) {
             *count =
-                filter((void **) fs, *count, cmp, (void *) search_value,
-                       fs_free);
+                filter((void **)fs, *count, cmp, (void *)search_value, fs_free);
         }
     }
 }
 
 CMP_FUNCTION(nfs_compare_id, lsm_nfs_export_id_get, lsm_nfs_export)
-    CMP_FUNCTION(nfs_compare_fs_id, lsm_nfs_export_fs_id_get, lsm_nfs_export)
+CMP_FUNCTION(nfs_compare_fs_id, lsm_nfs_export_fs_id_get, lsm_nfs_export)
 CMP_FREE_FUNCTION(nfs_free, lsm_nfs_export_record_free, lsm_nfs_export)
 
 void lsm_plug_nfs_export_search_filter(const char *search_key,
                                        const char *search_value,
-                                       lsm_nfs_export * exports[],
-                                       uint32_t * count)
-{
+                                       lsm_nfs_export *exports[],
+                                       uint32_t *count) {
     array_cmp cmp = NULL;
 
     if (search_key) {
@@ -2940,23 +2792,21 @@ void lsm_plug_nfs_export_search_filter(const char *search_key,
         }
 
         if (cmp) {
-            *count =
-                filter((void **) exports, *count, cmp,
-                       (void *) search_value, nfs_free);
+            *count = filter((void **)exports, *count, cmp, (void *)search_value,
+                            nfs_free);
         }
     }
 }
 
 CMP_FUNCTION(tp_compare_id, lsm_target_port_id_get, lsm_target_port)
-    CMP_FUNCTION(tp_compare_system_id, lsm_target_port_system_id_get,
+CMP_FUNCTION(tp_compare_system_id, lsm_target_port_system_id_get,
              lsm_target_port)
 CMP_FREE_FUNCTION(tp_free, lsm_target_port_record_free, lsm_target_port)
 
 void lsm_plug_target_port_search_filter(const char *search_key,
                                         const char *search_value,
-                                        lsm_target_port * tp[],
-                                        uint32_t * count)
-{
+                                        lsm_target_port *tp[],
+                                        uint32_t *count) {
     array_cmp cmp = NULL;
 
     if (search_key) {
@@ -2969,19 +2819,17 @@ void lsm_plug_target_port_search_filter(const char *search_key,
 
         if (cmp) {
             *count =
-                filter((void **) tp, *count, cmp, (void *) search_value,
-                       tp_free);
+                filter((void **)tp, *count, cmp, (void *)search_value, tp_free);
         }
     }
 }
 
 static void get_batteries(int rc, lsm_battery *bs[], uint32_t count,
-                          Value &response)
-{
+                          Value &response) {
     uint32_t i = 0;
 
     if (LSM_ERR_OK == rc) {
-        std::vector < Value > result;
+        std::vector<Value> result;
         result.reserve(count);
 
         for (; i < count; ++i)
@@ -2993,8 +2841,7 @@ static void get_batteries(int rc, lsm_battery *bs[], uint32_t count,
     }
 }
 
-static int handle_batteries(lsm_plugin_ptr p, Value &params, Value &response)
-{
+static int handle_batteries(lsm_plugin_ptr p, Value &params, Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     char *key = NULL;
     char *val = NULL;
@@ -3025,9 +2872,8 @@ CMP_FUNCTION(battery_compare_system, lsm_battery_system_id_get, lsm_battery)
 CMP_FREE_FUNCTION(battery_free, lsm_battery_record_free, lsm_battery);
 
 void lsm_plug_battery_search_filter(const char *search_key,
-                                    const char *search_value,
-                                    lsm_battery *bs[], uint32_t *count)
-{
+                                    const char *search_value, lsm_battery *bs[],
+                                    uint32_t *count) {
     array_cmp cmp = NULL;
 
     if (search_key) {
@@ -3039,21 +2885,20 @@ void lsm_plug_battery_search_filter(const char *search_key,
         }
 
         if (cmp)
-            *count = filter((void **) bs, *count, cmp, (void *) search_value,
+            *count = filter((void **)bs, *count, cmp, (void *)search_value,
                             battery_free);
     }
 }
 
-static int handle_volume_cache_info(lsm_plugin_ptr p, Value & params,
-                                    Value & response)
-{
+static int handle_volume_cache_info(lsm_plugin_ptr p, Value &params,
+                                    Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     if (p && p->ops_v1_3 && p->ops_v1_3->vol_cache_info) {
         Value v_vol = params["volume"];
 
         if (IS_CLASS_VOLUME(v_vol) && LSM_FLAG_EXPECTED_TYPE(params)) {
             lsm_volume *vol = value_to_volume(v_vol);
-            std::vector < Value > result;
+            std::vector<Value> result;
 
             if (vol) {
                 uint32_t write_cache_policy;
@@ -3062,10 +2907,10 @@ static int handle_volume_cache_info(lsm_plugin_ptr p, Value & params,
                 uint32_t read_cache_status;
                 uint32_t physical_disk_cache;
 
-                rc = p->ops_v1_3->vol_cache_info
-                    (p, vol, &write_cache_policy, &write_cache_status,
-                     &read_cache_policy, &read_cache_status,
-                     &physical_disk_cache, LSM_FLAG_GET_VALUE(params));
+                rc = p->ops_v1_3->vol_cache_info(
+                    p, vol, &write_cache_policy, &write_cache_status,
+                    &read_cache_policy, &read_cache_status,
+                    &physical_disk_cache, LSM_FLAG_GET_VALUE(params));
 
                 if (LSM_ERR_OK == rc) {
                     result.push_back(Value(write_cache_policy));
@@ -3089,8 +2934,7 @@ static int handle_volume_cache_info(lsm_plugin_ptr p, Value & params,
 }
 
 static int handle_volume_pdc_update(lsm_plugin_ptr p, Value &params,
-                                 Value &response)
-{
+                                    Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     lsm_volume *lsm_vol = NULL;
     uint32_t pdc = LSM_VOLUME_PHYSICAL_DISK_CACHE_UNKNOWN;
@@ -3124,8 +2968,7 @@ static int handle_volume_pdc_update(lsm_plugin_ptr p, Value &params,
 }
 
 static int handle_volume_wcp_update(lsm_plugin_ptr p, Value &params,
-                                    Value &response)
-{
+                                    Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     lsm_volume *lsm_vol = NULL;
     uint32_t wcp = LSM_VOLUME_WRITE_CACHE_POLICY_UNKNOWN;
@@ -3160,8 +3003,7 @@ static int handle_volume_wcp_update(lsm_plugin_ptr p, Value &params,
 }
 
 static int handle_volume_rcp_update(lsm_plugin_ptr p, Value &params,
-                                    Value &response)
-{
+                                    Value &response) {
     int rc = LSM_ERR_NO_SUPPORT;
     lsm_volume *lsm_vol = NULL;
     uint32_t rcp = LSM_VOLUME_READ_CACHE_POLICY_UNKNOWN;

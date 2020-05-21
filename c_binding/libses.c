@@ -16,59 +16,58 @@
  * Author: Gris Ge <fge@redhat.com>
  */
 
-
-#include "libsg.h"
 #include "libses.h"
-#include "utils.h"
+#include "libsg.h"
 #include "libstoragemgmt/libstoragemgmt_plug_interface.h"
+#include "utils.h"
 
-#include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <sys/types.h>
+#include <assert.h>
 #include <dirent.h>
 #include <errno.h>
-#include <unistd.h>
 #include <inttypes.h>
-#include <assert.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 /* SPC-5 Table 139 - PERIPHERAL DEVICE TYPE field */
-#define _LINUX_SCSI_DEV_TYPE_SES                "13"  /* 0x0d  */
-#define _LINUX_SCSI_DEV_TYPE_SES_LEN            2
+#define _LINUX_SCSI_DEV_TYPE_SES     "13" /* 0x0d  */
+#define _LINUX_SCSI_DEV_TYPE_SES_LEN 2
 /* just two digits like above */
 
-#define _SYSFS_BSG_ROOT_PATH                    "/sys/class/bsg"
+#define _SYSFS_BSG_ROOT_PATH "/sys/class/bsg"
 
-#define _T10_SES_CFG_PG_CODE                    0x01
-#define _T10_SES_STATUS_PG_CODE                 0x02
+#define _T10_SES_CFG_PG_CODE    0x01
+#define _T10_SES_STATUS_PG_CODE 0x02
 
 /* SES-3 rev 11a Table 30 - Additional Element Status diagnostic page */
-#define _T10_SES_ADD_STATUS_PG_CODE             0x0a
+#define _T10_SES_ADD_STATUS_PG_CODE 0x0a
 
 /* SES-3 rev 11a Table 81 - Array Device Slot status element */
-#define _T10_SES_DEV_SLOT_STATUS_LEN            4
+#define _T10_SES_DEV_SLOT_STATUS_LEN 4
 
 /* SES-3 rev 11a Table 38 - DESCRIPTOR TYPE field */
-#define _T10_SES_DESCRIPTOR_TYPE_DEV_SLOT       0
+#define _T10_SES_DESCRIPTOR_TYPE_DEV_SLOT 0
 
-#define _T10_SES_CTRL_PRDFAIL_BYTES             0
-#define _T10_SES_CTRL_PRDFAIL_BIT               6
-#define _T10_SES_CTRL_SELECT_BYTES              0
+#define _T10_SES_CTRL_PRDFAIL_BYTES 0
+#define _T10_SES_CTRL_PRDFAIL_BIT   6
+#define _T10_SES_CTRL_SELECT_BYTES  0
 /* SES-3 rev 11a Table 69 - Control element format */
-#define _T10_SES_CTRL_SELECT_BIT                7
-#define _T10_SES_CTRL_RQST_IDENT_BYTES          2
-#define _T10_SES_CTRL_RQST_IDENT_BIT            1
-#define _T10_SES_CTRL_RQST_FAULT_BYTES          3
+#define _T10_SES_CTRL_SELECT_BIT       7
+#define _T10_SES_CTRL_RQST_IDENT_BYTES 2
+#define _T10_SES_CTRL_RQST_IDENT_BIT   1
+#define _T10_SES_CTRL_RQST_FAULT_BYTES 3
 /* SES-3 rev 11a Table 80 - Array Device Slot control element */
-#define _T10_SES_CTRL_RQST_FAULT_BIT            5
+#define _T10_SES_CTRL_RQST_FAULT_BIT 5
 
 /* SES-3 rev 11a Table 31 - Additional Element Status descriptor with the EIP
  *                          bit set to one
  */
-#define _T10_SES_ADD_DP_INCLUDE_OVERALL         1
+#define _T10_SES_ADD_DP_INCLUDE_OVERALL 1
 
 /* SES-3 Table 12 - Type descriptor header format */
-#define _T10_SES_CFG_DP_HDR_LEN                 4
+#define _T10_SES_CFG_DP_HDR_LEN 4
 
 #pragma pack(push, 1)
 /*
@@ -87,23 +86,23 @@ struct _ses_add_st {
  */
 struct _ses_add_st_dp {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    uint8_t protocol_id         : 4;
-    uint8_t eip                 : 1;
-    uint8_t reserved            : 2;
-    uint8_t invalid             : 1;
+    uint8_t protocol_id : 4;
+    uint8_t eip : 1;
+    uint8_t reserved : 2;
+    uint8_t invalid : 1;
 #else
-    uint8_t invalid             : 1;
-    uint8_t reserved            : 2;
-    uint8_t eip                 : 1;
-    uint8_t protocol_id         : 4;
+    uint8_t invalid : 1;
+    uint8_t reserved : 2;
+    uint8_t eip : 1;
+    uint8_t protocol_id : 4;
 #endif
     uint8_t len;
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    uint8_t eiioe               : 1;
-    uint8_t reserved_2          : 7;
+    uint8_t eiioe : 1;
+    uint8_t reserved_2 : 7;
 #else
-    uint8_t reserved_2          : 7;
-    uint8_t eiioe               : 1;
+    uint8_t reserved_2 : 7;
+    uint8_t eiioe : 1;
 #endif
     uint8_t element_index;
     uint8_t data_begin;
@@ -117,13 +116,13 @@ struct _ses_add_st_dp {
 struct _ses_add_st_dp_sas {
     uint8_t phy_count;
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    uint8_t not_all_phy         : 1;
-    uint8_t reserved            : 5;
-    uint8_t dp_type             : 2;
+    uint8_t not_all_phy : 1;
+    uint8_t reserved : 5;
+    uint8_t dp_type : 2;
 #else
-    uint8_t dp_type             : 2;
-    uint8_t reserved            : 5;
-    uint8_t not_all_phy         : 1;
+    uint8_t dp_type : 2;
+    uint8_t reserved : 5;
+    uint8_t not_all_phy : 1;
 #endif
     uint8_t reserved_2;
     uint8_t dev_slot_num;
@@ -135,13 +134,13 @@ struct _ses_add_st_dp_sas {
  */
 struct _ses_add_st_sas_phy {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    uint8_t reserved            : 4;
-    uint8_t dev_type            : 3;
-    uint8_t reserved_2          : 1;
+    uint8_t reserved : 4;
+    uint8_t dev_type : 3;
+    uint8_t reserved_2 : 1;
 #else
-    uint8_t reserved_2          : 1;
-    uint8_t dev_type            : 3;
-    uint8_t reserved            : 4;
+    uint8_t reserved_2 : 1;
+    uint8_t dev_type : 3;
+    uint8_t reserved : 4;
 #endif
     uint8_t reserved_3;
     uint8_t we_dont_care_2;
@@ -157,28 +156,28 @@ struct _ses_add_st_sas_phy {
  */
 struct _ses_ar_dev_ctrl {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    uint8_t we_dont_care_0      : 7;
-    uint8_t select              : 1;
+    uint8_t we_dont_care_0 : 7;
+    uint8_t select : 1;
     uint8_t we_dont_care_1;
-    uint8_t we_dont_care_2      : 1;
-    uint8_t rqst_ident          : 1;
-    uint8_t we_dont_care_3      : 6;
-    uint8_t we_dont_care_4      : 5;
-    uint8_t rqst_fault          : 1;
-    uint8_t we_dont_care_5      : 2;
+    uint8_t we_dont_care_2 : 1;
+    uint8_t rqst_ident : 1;
+    uint8_t we_dont_care_3 : 6;
+    uint8_t we_dont_care_4 : 5;
+    uint8_t rqst_fault : 1;
+    uint8_t we_dont_care_5 : 2;
 #else
-    uint8_t select              : 1;
-    uint8_t we_dont_care_0      : 7;
+    uint8_t select : 1;
+    uint8_t we_dont_care_0 : 7;
 
     uint8_t we_dont_care_1;
 
-    uint8_t we_dont_care_3      : 6;
-    uint8_t rqst_ident          : 1;
-    uint8_t we_dont_care_2      : 1;
+    uint8_t we_dont_care_3 : 6;
+    uint8_t rqst_ident : 1;
+    uint8_t we_dont_care_2 : 1;
 
-    uint8_t we_dont_care_5      : 2;
-    uint8_t rqst_fault          : 1;
-    uint8_t we_dont_care_4      : 5;
+    uint8_t we_dont_care_5 : 2;
+    uint8_t rqst_fault : 1;
+    uint8_t we_dont_care_4 : 5;
 #endif
 };
 
@@ -223,15 +222,15 @@ struct _ses_cfg_dp_hdr {
 
 #pragma pack(pop)
 
-#define _set_array_bit(array, bytes, bit) \
-    do { \
-        array[bytes] |= 1 << bit; \
-    } while(0)
+#define _set_array_bit(array, bytes, bit)                                      \
+    do {                                                                       \
+        array[bytes] |= 1 << bit;                                              \
+    } while (0)
 
-#define _clear_array_bit(array, bytes, bit) \
-    do { \
-        array[bytes] &= ~(1 << bit); \
-    } while(0)
+#define _clear_array_bit(array, bytes, bit)                                    \
+    do {                                                                       \
+        array[bytes] &= ~(1 << bit);                                           \
+    } while (0)
 
 /*
  * Get all /dev/bsg/<htbl>  which support SES via sysfs.
@@ -279,7 +278,6 @@ static int _ses_ctrl_data_gen(char *err_msg, uint8_t *status_data,
  */
 static int16_t _ses_eiioe(uint8_t *cfg_data, int16_t element_index);
 
-
 /*
  * Get the total count of 'Type descriptor header' and
  * the beginning pointer of 'Type descriptor header list' from config page.
@@ -294,8 +292,7 @@ static int _ses_info_get_by_sas_addr(char *err_msg, const char *tp_sas_addr,
                                      int16_t *element_index);
 
 static void _ses_cfg_parse(uint8_t *cfg_data, uint8_t **dp_hdr_begin,
-                           uint16_t *total_dp_hdr_count)
-{
+                           uint16_t *total_dp_hdr_count) {
     struct _ses_cfg_hdr *cfg_hdr = NULL;
     struct _ses_cfg_enc_dp *enc_dp = NULL;
     uint8_t *end_p = NULL;
@@ -318,7 +315,7 @@ static void _ses_cfg_parse(uint8_t *cfg_data, uint8_t **dp_hdr_begin,
     tmp_p = &cfg_hdr->enc_dp_list;
     /* Check the "Enclosure descriptor list" section */
     for (; i <= cfg_hdr->num_of_sec_enc; ++i) {
-        enc_dp = (struct _ses_cfg_enc_dp *) tmp_p;
+        enc_dp = (struct _ses_cfg_enc_dp *)tmp_p;
         *total_dp_hdr_count += enc_dp->num_of_dp_hdr;
         tmp_p += enc_dp->len + 4;
         /* ENCLOSURE DESCRIPTOR LENGTH (m - 3) */
@@ -328,8 +325,7 @@ static void _ses_cfg_parse(uint8_t *cfg_data, uint8_t **dp_hdr_begin,
 }
 
 static int _ses_bsg_paths_get(char *err_msg, char ***bsg_paths,
-                              uint32_t *bsg_count)
-{
+                              uint32_t *bsg_count) {
     int rc = LSM_ERR_OK;
     uint32_t i = 0;
     DIR *dir = NULL;
@@ -355,7 +351,7 @@ static int _ses_bsg_paths_get(char *err_msg, char ***bsg_paths,
     /* We don't use libudev here because libudev seems have no way to check
      * whether 'bsg' kernel module is loaded or not.
      */
-    if (! _file_exists(_SYSFS_BSG_ROOT_PATH)) {
+    if (!_file_exists(_SYSFS_BSG_ROOT_PATH)) {
         rc = LSM_ERR_INVALID_ARGUMENT;
         _lsm_err_msg_set(err_msg, "Required kernel module 'bsg' not loaded");
         goto out;
@@ -376,18 +372,16 @@ static int _ses_bsg_paths_get(char *err_msg, char ***bsg_paths,
             bsg_name = dp->d_name;
             if ((bsg_name == NULL) || (strlen(bsg_name) == 0))
                 continue;
-            sysfs_bsg_type_path = (char *)
-                malloc(sizeof(char) * (strlen(_SYSFS_BSG_ROOT_PATH) +
-                                       strlen("/") +
-                                       strlen(bsg_name) +
-                                       strlen("/device/type") +
-                                       1 /* trailing \0 */));
+            sysfs_bsg_type_path = (char *)malloc(
+                sizeof(char) *
+                (strlen(_SYSFS_BSG_ROOT_PATH) + strlen("/") + strlen(bsg_name) +
+                 strlen("/device/type") + 1 /* trailing \0 */));
             _alloc_null_check(err_msg, sysfs_bsg_type_path, rc, out);
             sprintf(sysfs_bsg_type_path, "%s/%s/device/type",
                     _SYSFS_BSG_ROOT_PATH, bsg_name);
-            tmp_rc = _read_file(sysfs_bsg_type_path, (uint8_t *) dev_type,
-                                &dev_type_size,
-                                _LINUX_SCSI_DEV_TYPE_SES_LEN + 1);
+            tmp_rc =
+                _read_file(sysfs_bsg_type_path, (uint8_t *)dev_type,
+                           &dev_type_size, _LINUX_SCSI_DEV_TYPE_SES_LEN + 1);
             if ((tmp_rc != 0) && (tmp_rc != EFBIG)) {
                 free(sysfs_bsg_type_path);
                 continue;
@@ -403,10 +397,10 @@ static int _ses_bsg_paths_get(char *err_msg, char ***bsg_paths,
             }
             free(sysfs_bsg_type_path);
         }
-    } while(dp != NULL);
+    } while (dp != NULL);
 
     *bsg_count = lsm_string_list_size(bsg_name_list);
-    *bsg_paths = (char **) malloc(sizeof(char *) * (*bsg_count));
+    *bsg_paths = (char **)malloc(sizeof(char *) * (*bsg_count));
     _alloc_null_check(err_msg, bsg_name_list, rc, out);
 
     /* Initialize *bsg_paths */
@@ -414,9 +408,9 @@ static int _ses_bsg_paths_get(char *err_msg, char ***bsg_paths,
         (*bsg_paths)[i] = NULL;
 
     _lsm_string_list_foreach(bsg_name_list, i, bsg_name) {
-        (*bsg_paths)[i] = (char *)
-            malloc(sizeof(char) * (strlen(bsg_name) + strlen("/dev/bsg/") +
-                                   1 /* trailing \0 */));
+        (*bsg_paths)[i] = (char *)malloc(
+            sizeof(char) *
+            (strlen(bsg_name) + strlen("/dev/bsg/") + 1 /* trailing \0 */));
         if ((*bsg_paths)[i] == NULL) {
             rc = LSM_ERR_NO_MEMORY;
             goto out;
@@ -424,7 +418,7 @@ static int _ses_bsg_paths_get(char *err_msg, char ***bsg_paths,
         sprintf((*bsg_paths)[i], "/dev/bsg/%s", bsg_name);
     }
 
- out:
+out:
     if (dir != NULL)
         closedir(dir);
 
@@ -433,7 +427,7 @@ static int _ses_bsg_paths_get(char *err_msg, char ***bsg_paths,
     if (rc != LSM_ERR_OK) {
         if (*bsg_paths != NULL) {
             for (i = 0; i < *bsg_count; ++i)
-                free((char *) (*bsg_paths)[i]);
+                free((char *)(*bsg_paths)[i]);
             free(*bsg_paths);
         }
         *bsg_paths = NULL;
@@ -443,8 +437,7 @@ static int _ses_bsg_paths_get(char *err_msg, char ***bsg_paths,
 }
 
 static int16_t _ses_find_sas_addr(const char *sas_addr, uint8_t *add_st_data,
-                                  uint8_t *cfg_data)
-{
+                                  uint8_t *cfg_data) {
     struct _ses_add_st *add_st = NULL;
     struct _ses_add_st_dp *dp = NULL;
     struct _ses_add_st_dp_sas *dp_sas = NULL;
@@ -459,14 +452,14 @@ static int16_t _ses_find_sas_addr(const char *sas_addr, uint8_t *add_st_data,
     assert(add_st_data != NULL);
     assert(cfg_data != NULL);
 
-    add_st = (struct _ses_add_st *) add_st_data;
+    add_st = (struct _ses_add_st *)add_st_data;
     end_p = add_st_data + be16toh(add_st->len_be) + 4;
 
     tmp_p = &add_st->dp_list_begin;
-    while(tmp_p < end_p) {
+    while (tmp_p < end_p) {
         if (tmp_p + sizeof(struct _ses_add_st_dp) > end_p)
             goto out;
-        dp = (struct _ses_add_st_dp *) tmp_p;
+        dp = (struct _ses_add_st_dp *)tmp_p;
         tmp_p += dp->len + 2;
 
         /* Both SES-2 and SES-3 said 'The EIP bit should be set to one.'
@@ -476,13 +469,12 @@ static int16_t _ses_find_sas_addr(const char *sas_addr, uint8_t *add_st_data,
          * Hence we silently ignore the descriptor with EIP=0.
          */
         if ((dp->protocol_id != _SG_T10_SPC_PROTOCOL_ID_SAS) ||
-            (dp->invalid == 1) ||
-            (dp->eip == 0))
+            (dp->invalid == 1) || (dp->eip == 0))
             continue;
 
         if (&dp->data_begin + sizeof(struct _ses_add_st_dp_sas) > end_p)
             goto out;
-        dp_sas = (struct _ses_add_st_dp_sas *) &dp->data_begin;
+        dp_sas = (struct _ses_add_st_dp_sas *)&dp->data_begin;
         if (dp_sas->dp_type != _T10_SES_DESCRIPTOR_TYPE_DEV_SLOT)
             continue;
         if (dp_sas->phy_count == 0)
@@ -490,13 +482,15 @@ static int16_t _ses_find_sas_addr(const char *sas_addr, uint8_t *add_st_data,
         if (&dp_sas->phy_list + sizeof(struct _ses_add_st_sas_phy) > end_p)
             goto out;
         for (i = 0; i < dp_sas->phy_count; ++i) {
-            phy = (struct _ses_add_st_sas_phy *)
-                ((uint8_t *) (&dp_sas->phy_list) +
-                 sizeof(struct _ses_add_st_sas_phy) * i);
-            _be_raw_to_hex((uint8_t *) &phy->sas_addr,
+            phy =
+                (struct _ses_add_st_sas_phy *)((uint8_t *)(&dp_sas->phy_list) +
+                                               sizeof(
+                                                   struct _ses_add_st_sas_phy) *
+                                                   i);
+            _be_raw_to_hex((uint8_t *)&phy->sas_addr,
                            _SG_T10_SPL_SAS_ADDR_LEN_BITS, tmp_sas_addr);
-            if (strncmp(tmp_sas_addr, sas_addr,
-                        _SG_T10_SPL_SAS_ADDR_LEN) == 0) {
+            if (strncmp(tmp_sas_addr, sas_addr, _SG_T10_SPL_SAS_ADDR_LEN) ==
+                0) {
                 if (dp->eiioe == _T10_SES_ADD_DP_INCLUDE_OVERALL)
                     return dp->element_index;
                 else
@@ -505,14 +499,13 @@ static int16_t _ses_find_sas_addr(const char *sas_addr, uint8_t *add_st_data,
         }
     }
 
- out:
+out:
     return element_index;
 }
 
 static int _ses_raw_status_get(char *err_msg, uint8_t *status_data,
                                const int16_t element_index, uint8_t *status,
-                               uint32_t *gen_code_be)
-{
+                               uint32_t *gen_code_be) {
     int rc = LSM_ERR_OK;
     struct _ses_st_hdr *st_hdr = NULL;
     uint8_t *end_p = NULL;
@@ -523,17 +516,17 @@ static int _ses_raw_status_get(char *err_msg, uint8_t *status_data,
     assert(status != NULL);
     assert(gen_code_be != NULL);
 
-    st_hdr = (struct _ses_st_hdr *) status_data;
+    st_hdr = (struct _ses_st_hdr *)status_data;
     end_p = status_data + be16toh(st_hdr->len_be) + 4;
-    status_p = &st_hdr->st_dp_list +
-        element_index * _T10_SES_DEV_SLOT_STATUS_LEN;
+    status_p =
+        &st_hdr->st_dp_list + element_index * _T10_SES_DEV_SLOT_STATUS_LEN;
 
     if ((end_p >= status_data + _SG_T10_SPC_RECV_DIAG_MAX_LEN) ||
         (status_p >= end_p) ||
         (status_p + _T10_SES_DEV_SLOT_STATUS_LEN > end_p)) {
         rc = LSM_ERR_LIB_BUG;
         _lsm_err_msg_set(err_msg, "BUG: Got corrupted SES status page: "
-                         "facing data boundary");
+                                  "facing data boundary");
         goto out;
     }
 
@@ -541,7 +534,7 @@ static int _ses_raw_status_get(char *err_msg, uint8_t *status_data,
 
     *gen_code_be = st_hdr->gen_code_be;
 
- out:
+out:
     if (rc != LSM_ERR_OK) {
         memset(status, 0, _T10_SES_DEV_SLOT_STATUS_LEN);
         *gen_code_be = 0;
@@ -552,8 +545,7 @@ static int _ses_raw_status_get(char *err_msg, uint8_t *status_data,
 
 static int _ses_ctrl_data_gen(char *err_msg, uint8_t *status_data,
                               uint8_t *status, const int16_t element_index,
-                              uint16_t *len)
-{
+                              uint16_t *len) {
     struct _ses_ctrl_diag_hdr *ctrl_hdr = NULL;
     uint8_t *tmp_p = NULL;
     uint8_t *end_p = NULL;
@@ -563,7 +555,7 @@ static int _ses_ctrl_data_gen(char *err_msg, uint8_t *status_data,
     assert(status != NULL);
     assert(len != NULL);
 
-    ctrl_hdr = (struct _ses_ctrl_diag_hdr *) (status_data);
+    ctrl_hdr = (struct _ses_ctrl_diag_hdr *)(status_data);
 
     *len = be16toh(ctrl_hdr->len_be) + 4;
 
@@ -571,7 +563,7 @@ static int _ses_ctrl_data_gen(char *err_msg, uint8_t *status_data,
     tmp_p = &ctrl_hdr->ctrl_dp_list_begin;
     end_p = tmp_p + be16toh(ctrl_hdr->len_be);
 
-    while(tmp_p < end_p) {
+    while (tmp_p < end_p) {
         _clear_array_bit(tmp_p, _T10_SES_CTRL_SELECT_BYTES,
                          _T10_SES_CTRL_SELECT_BIT);
         tmp_p += _T10_SES_DEV_SLOT_STATUS_LEN;
@@ -579,7 +571,7 @@ static int _ses_ctrl_data_gen(char *err_msg, uint8_t *status_data,
 
     /* update the selected element */
 
-    tmp_p = &ctrl_hdr->ctrl_dp_list_begin + \
+    tmp_p = &ctrl_hdr->ctrl_dp_list_begin +
             _T10_SES_DEV_SLOT_STATUS_LEN * element_index;
 
     memcpy(tmp_p, status, _T10_SES_DEV_SLOT_STATUS_LEN);
@@ -596,8 +588,7 @@ static int _ses_ctrl_data_gen(char *err_msg, uint8_t *status_data,
  *              an array. The 0 indicates this element type only have overall
  *              element.
  */
-static int16_t _ses_eiioe(uint8_t *cfg_data, int16_t element_index)
-{
+static int16_t _ses_eiioe(uint8_t *cfg_data, int16_t element_index) {
     struct _ses_cfg_hdr *cfg_hdr = NULL;
     struct _ses_cfg_dp_hdr *dp_hdr = NULL;
     uint8_t *end_p = NULL;
@@ -619,9 +610,9 @@ static int16_t _ses_eiioe(uint8_t *cfg_data, int16_t element_index)
         return -1;
 
     for (i = 0; i < total_dp_hdr_count; ++i) {
-        dp_hdr = (struct _ses_cfg_dp_hdr *) dp_hdr_begin +
-            (_T10_SES_CFG_DP_HDR_LEN * i);
-        if ((uint8_t *) &dp_hdr >= end_p)
+        dp_hdr = (struct _ses_cfg_dp_hdr *)dp_hdr_begin +
+                 (_T10_SES_CFG_DP_HDR_LEN * i);
+        if ((uint8_t *)&dp_hdr >= end_p)
             /* Facing data boundary */
             return -1;
         add++;
@@ -648,9 +639,8 @@ static int16_t _ses_eiioe(uint8_t *cfg_data, int16_t element_index)
  *      7.3.2 Device Slot element
  *  4. Invoke SEND DIAGNOSTICS command.
  */
-int _ses_dev_slot_ctrl(char *err_msg, const char *tp_sas_addr,
-                       int ctrl_value, int ctrl_type)
-{
+int _ses_dev_slot_ctrl(char *err_msg, const char *tp_sas_addr, int ctrl_value,
+                       int ctrl_type) {
     int rc = LSM_ERR_OK;
     int fd = -1;
     uint8_t cfg_data[_SG_T10_SPC_RECV_DIAG_MAX_LEN];
@@ -700,7 +690,6 @@ int _ses_dev_slot_ctrl(char *err_msg, const char *tp_sas_addr,
         goto out;
     }
 
-
     _good(_ses_ctrl_data_gen(err_msg, status_data, status, element_index,
                              &ctrl_data_len),
           rc, out);
@@ -713,8 +702,8 @@ int _ses_dev_slot_ctrl(char *err_msg, const char *tp_sas_addr,
     /*
      * Verify whether certain action is supported
      */
-    _good(_sg_io_recv_diag(err_msg, fd, _T10_SES_STATUS_PG_CODE,
-                           status_data), rc, out);
+    _good(_sg_io_recv_diag(err_msg, fd, _T10_SES_STATUS_PG_CODE, status_data),
+          rc, out);
 
     _good(_ses_raw_status_get(err_msg, status_data, element_index, status,
                               &gen_code_be),
@@ -724,25 +713,25 @@ int _ses_dev_slot_ctrl(char *err_msg, const char *tp_sas_addr,
          (status[ctrl_bytes] & (1 << ctrl_bit))) ||
         ((ctrl_type == _SES_CTRL_SET) &&
          !((status[ctrl_bytes] & (1 << ctrl_bit))))) {
-            /* Control bit is still set */
-            rc = LSM_ERR_NO_SUPPORT;
-            _lsm_err_msg_set(err_msg, "Requested SES action is not supported "
-                             "by vendor enclosure vendor or/and kernel driver");
+        /* Control bit is still set */
+        rc = LSM_ERR_NO_SUPPORT;
+        _lsm_err_msg_set(err_msg,
+                         "Requested SES action is not supported "
+                         "by vendor enclosure vendor or/and kernel driver");
     }
 
- out:
+out:
     if (fd >= 0)
         close(fd);
     return rc;
 }
 
 static int _ses_info_get_by_sas_addr(char *err_msg, const char *tp_sas_addr,
-                                      uint8_t *cfg_data, uint8_t *status_data,
-                                      uint8_t *add_st_data, int *fd,
-                                      int16_t *element_index)
-{
+                                     uint8_t *cfg_data, uint8_t *status_data,
+                                     uint8_t *add_st_data, int *fd,
+                                     int16_t *element_index) {
     int rc = LSM_ERR_OK;
-    char  **bsg_paths = NULL;
+    char **bsg_paths = NULL;
     uint32_t bsg_count = 0;
     uint32_t i = 0;
     bool found = false;
@@ -761,7 +750,8 @@ static int _ses_info_get_by_sas_addr(char *err_msg, const char *tp_sas_addr,
         _good(_sg_io_recv_diag(err_msg, *fd, _T10_SES_CFG_PG_CODE, cfg_data),
               rc, out);
         _good(_sg_io_recv_diag(err_msg, *fd, _T10_SES_STATUS_PG_CODE,
-                               status_data), rc, out);
+                               status_data),
+              rc, out);
         _good(_sg_io_recv_diag(err_msg, *fd, _T10_SES_ADD_STATUS_PG_CODE,
                                add_st_data),
               rc, out);
@@ -781,12 +771,14 @@ static int _ses_info_get_by_sas_addr(char *err_msg, const char *tp_sas_addr,
     }
     if (found != true) {
         rc = LSM_ERR_NO_SUPPORT;
-        _lsm_err_msg_set(err_msg, "Failed to find any SCSI enclosure with "
-                         "given SAS address %s", tp_sas_addr);
+        _lsm_err_msg_set(err_msg,
+                         "Failed to find any SCSI enclosure with "
+                         "given SAS address %s",
+                         tp_sas_addr);
         goto out;
     }
 
- out:
+out:
     if (bsg_paths != NULL) {
         for (i = 0; i < bsg_count; ++i) {
             free(bsg_paths[i]);
@@ -803,8 +795,7 @@ static int _ses_info_get_by_sas_addr(char *err_msg, const char *tp_sas_addr,
 }
 
 int _ses_status_get(char *err_msg, const char *tp_sas_addr,
-                    struct _ses_dev_slot_status *status)
-{
+                    struct _ses_dev_slot_status *status) {
     int rc = LSM_ERR_OK;
     int fd = -1;
     uint8_t cfg_data[_SG_T10_SPC_RECV_DIAG_MAX_LEN];
@@ -827,7 +818,7 @@ int _ses_status_get(char *err_msg, const char *tp_sas_addr,
 
     memcpy(status, raw_status, _T10_SES_DEV_SLOT_STATUS_LEN);
 
- out:
+out:
     if (fd >= 0)
         close(fd);
     return rc;

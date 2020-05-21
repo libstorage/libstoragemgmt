@@ -19,25 +19,25 @@
 #ifndef LIBSTORAGEMGMT_H
 #define LIBSTORAGEMGMT_H
 
-#include "libstoragemgmt_types.h"
 #include "libstoragemgmt_common.h"
+#include "libstoragemgmt_types.h"
 
 #include "libstoragemgmt_accessgroups.h"
+#include "libstoragemgmt_battery.h"
 #include "libstoragemgmt_blockrange.h"
 #include "libstoragemgmt_capabilities.h"
 #include "libstoragemgmt_disk.h"
 #include "libstoragemgmt_error.h"
 #include "libstoragemgmt_fs.h"
+#include "libstoragemgmt_local_disk.h"
 #include "libstoragemgmt_nfsexport.h"
 #include "libstoragemgmt_pool.h"
 #include "libstoragemgmt_snapshot.h"
 #include "libstoragemgmt_systems.h"
 #include "libstoragemgmt_targetport.h"
 #include "libstoragemgmt_volumes.h"
-#include "libstoragemgmt_local_disk.h"
-#include "libstoragemgmt_battery.h"
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -72,10 +72,8 @@ extern "C" {
  *          * LSM_ERR_INVALID_ARGUMENT
  *              When any argument is NULL or invalid flags.
  */
-int LSM_DLL_EXPORT lsm_connect_password(const char *uri,
-                                        const char *password,
-                                        lsm_connect **conn,
-                                        uint32_t timeout,
+int LSM_DLL_EXPORT lsm_connect_password(const char *uri, const char *password,
+                                        lsm_connect **conn, uint32_t timeout,
                                         lsm_error_ptr *e, lsm_flag flags);
 /**
  * lsm_connect_close - Closes a connection to a storage provider.
@@ -158,7 +156,7 @@ int LSM_DLL_EXPORT lsm_plugin_info_get(lsm_connect *conn, char **desc,
  *
  */
 int LSM_DLL_EXPORT lsm_available_plugins_list(const char *sep,
-                                              lsm_string_list ** plugins,
+                                              lsm_string_list **plugins,
                                               lsm_flag flags);
 
 /**
@@ -185,8 +183,7 @@ int LSM_DLL_EXPORT lsm_available_plugins_list(const char *sep,
  *              When any argument is NULL or invalid lsm_connect or invalid
  *              flags.
  */
-int LSM_DLL_EXPORT lsm_connect_timeout_set(lsm_connect *conn,
-                                           uint32_t timeout,
+int LSM_DLL_EXPORT lsm_connect_timeout_set(lsm_connect *conn, uint32_t timeout,
                                            lsm_flag flags);
 
 /**
@@ -213,8 +210,7 @@ int LSM_DLL_EXPORT lsm_connect_timeout_set(lsm_connect *conn,
  *              When any argument is NULL or not a valid lsm_connect pointer
  *              or invalid flags.
  */
-int LSM_DLL_EXPORT lsm_connect_timeout_get(lsm_connect *conn,
-                                           uint32_t *timeout,
+int LSM_DLL_EXPORT lsm_connect_timeout_get(lsm_connect *conn, uint32_t *timeout,
                                            lsm_flag flags);
 
 /**
@@ -254,8 +250,7 @@ int LSM_DLL_EXPORT lsm_connect_timeout_get(lsm_connect *conn,
  *          * LSM_ERR_NOT_FOUND_JOB
  *              When job not found.
  */
-int LSM_DLL_EXPORT lsm_job_status_get(lsm_connect *conn,
-                                      const char *job_id,
+int LSM_DLL_EXPORT lsm_job_status_get(lsm_connect *conn, const char *job_id,
                                       lsm_job_status *status,
                                       uint8_t *percent_complete,
                                       lsm_flag flags);
@@ -304,8 +299,7 @@ int LSM_DLL_EXPORT lsm_job_status_pool_get(lsm_connect *conn,
                                            const char *job_id,
                                            lsm_job_status *status,
                                            uint8_t *percent_complete,
-                                           lsm_pool **pool,
-                                           lsm_flag flags);
+                                           lsm_pool **pool, lsm_flag flags);
 
 /**
  * lsm_job_status_volume_get - Check on the status of a job with lsm_volume
@@ -353,8 +347,7 @@ int LSM_DLL_EXPORT lsm_job_status_volume_get(lsm_connect *conn,
                                              const char *job_id,
                                              lsm_job_status *status,
                                              uint8_t *percent_complete,
-                                             lsm_volume **vol,
-                                             lsm_flag flags);
+                                             lsm_volume **vol, lsm_flag flags);
 
 /**
  * lsm_job_status_fs_get - Check on the status of a job with lsm_fs returned.
@@ -395,11 +388,10 @@ int LSM_DLL_EXPORT lsm_job_status_volume_get(lsm_connect *conn,
  *          * LSM_ERR_NOT_FOUND_JOB
  *              When job not found.
  */
-int LSM_DLL_EXPORT lsm_job_status_fs_get(lsm_connect *conn,
-                                         const char *job_id,
+int LSM_DLL_EXPORT lsm_job_status_fs_get(lsm_connect *conn, const char *job_id,
                                          lsm_job_status *status,
-                                         uint8_t *percent_complete,
-                                         lsm_fs **fs, lsm_flag flags);
+                                         uint8_t *percent_complete, lsm_fs **fs,
+                                         lsm_flag flags);
 
 /**
  * lsm_job_status_ss_get - Check on the status of a job with lsm_fs_ss
@@ -442,11 +434,10 @@ int LSM_DLL_EXPORT lsm_job_status_fs_get(lsm_connect *conn,
  *          * LSM_ERR_NOT_FOUND_JOB
  *              When job not found.
  */
-int LSM_DLL_EXPORT lsm_job_status_ss_get(lsm_connect *conn,
-                                         const char *job,
-                                         lsm_job_status * status,
-                                         uint8_t * percent_complete,
-                                         lsm_fs_ss ** ss, lsm_flag flags);
+int LSM_DLL_EXPORT lsm_job_status_ss_get(lsm_connect *conn, const char *job,
+                                         lsm_job_status *status,
+                                         uint8_t *percent_complete,
+                                         lsm_fs_ss **ss, lsm_flag flags);
 
 /**
  * lsm_job_free - Frees the resources used by a job.
@@ -518,8 +509,7 @@ int LSM_DLL_EXPORT lsm_job_free(lsm_connect *conn, char **job_id,
  *          * LSM_ERR_NOT_FOUND_SYSTEM
  *              When the specified system does not exist.
  */
-int LSM_DLL_EXPORT lsm_capabilities(lsm_connect *conn,
-                                    lsm_system *system,
+int LSM_DLL_EXPORT lsm_capabilities(lsm_connect *conn, lsm_system *system,
                                     lsm_storage_capabilities **cap,
                                     lsm_flag flags);
 
@@ -566,8 +556,7 @@ int LSM_DLL_EXPORT lsm_capabilities(lsm_connect *conn,
  *              key.
  */
 int LSM_DLL_EXPORT lsm_pool_list(lsm_connect *conn, char *search_key,
-                                 char *search_value,
-                                 lsm_pool **pool_array[],
+                                 char *search_value, lsm_pool **pool_array[],
                                  uint32_t *count, lsm_flag flags);
 
 /**
@@ -616,11 +605,10 @@ int LSM_DLL_EXPORT lsm_pool_list(lsm_connect *conn, char *search_key,
  *          * LSM_ERR_NO_SUPPORT
  *              Not supported.
  */
-int LSM_DLL_EXPORT lsm_volume_list(lsm_connect *conn,
-                                   const char *search_key,
+int LSM_DLL_EXPORT lsm_volume_list(lsm_connect *conn, const char *search_key,
                                    const char *search_value,
-                                   lsm_volume ** volumes[],
-                                   uint32_t *count, lsm_flag flags);
+                                   lsm_volume **volumes[], uint32_t *count,
+                                   lsm_flag flags);
 
 /**
  * lsm_disk_list - Gets a list of disks on this connection.
@@ -671,11 +659,9 @@ int LSM_DLL_EXPORT lsm_volume_list(lsm_connect *conn,
  *          * LSM_ERR_NO_SUPPORT
  *              Not supported.
  */
-int LSM_DLL_EXPORT lsm_disk_list(lsm_connect *conn,
-                                 const char *search_key,
-                                 const char *search_value,
-                                 lsm_disk **disks[], uint32_t *count,
-                                 lsm_flag flags);
+int LSM_DLL_EXPORT lsm_disk_list(lsm_connect *conn, const char *search_key,
+                                 const char *search_value, lsm_disk **disks[],
+                                 uint32_t *count, lsm_flag flags);
 
 /**
  * lsm_volume_create - Creates a new volume
@@ -738,13 +724,11 @@ int LSM_DLL_EXPORT lsm_disk_list(lsm_connect *conn,
  *          * LSM_ERR_NO_SUPPORT
  *              Not supported.
  */
-int LSM_DLL_EXPORT lsm_volume_create(lsm_connect *conn,
-                                     lsm_pool * pool,
-                                     const char *volume_name,
-                                     uint64_t size,
+int LSM_DLL_EXPORT lsm_volume_create(lsm_connect *conn, lsm_pool *pool,
+                                     const char *volume_name, uint64_t size,
                                      lsm_volume_provision_type provisioning,
-                                     lsm_volume **new_volume,
-                                     char **job, lsm_flag flags);
+                                     lsm_volume **new_volume, char **job,
+                                     lsm_flag flags);
 
 /**
  * lsm_volume_resize - Resize an existing volume.
@@ -802,11 +786,10 @@ int LSM_DLL_EXPORT lsm_volume_create(lsm_connect *conn,
  *          * LSM_ERR_NO_SUPPORT
  *              Not supported.
  */
-int LSM_DLL_EXPORT lsm_volume_resize(lsm_connect *conn,
-                                     lsm_volume * volume,
+int LSM_DLL_EXPORT lsm_volume_resize(lsm_connect *conn, lsm_volume *volume,
                                      uint64_t new_size,
-                                     lsm_volume **resized_volume,
-                                     char **job, lsm_flag flags);
+                                     lsm_volume **resized_volume, char **job,
+                                     lsm_flag flags);
 
 /**
  * lsm_volume_replicate - Replicates a volume
@@ -885,13 +868,12 @@ int LSM_DLL_EXPORT lsm_volume_resize(lsm_connect *conn,
  *          * LSM_ERR_NO_SUPPORT
  *              Not supported.
  */
-int LSM_DLL_EXPORT lsm_volume_replicate(lsm_connect *conn,
-                                        lsm_pool *pool,
+int LSM_DLL_EXPORT lsm_volume_replicate(lsm_connect *conn, lsm_pool *pool,
                                         lsm_replication_type rep_type,
                                         lsm_volume *volume_src,
                                         const char *name,
-                                        lsm_volume **new_replicant,
-                                        char **job, lsm_flag flags);
+                                        lsm_volume **new_replicant, char **job,
+                                        lsm_flag flags);
 
 /**
  * lsm_volume_replicate_range_block_size - Block size for replicate range.
@@ -926,11 +908,10 @@ int LSM_DLL_EXPORT lsm_volume_replicate(lsm_connect *conn,
  *          * LSM_ERR_NO_SUPPORT
  *              Not supported.
  */
-int LSM_DLL_EXPORT
-    lsm_volume_replicate_range_block_size(lsm_connect *conn,
-                                          lsm_system *system,
-                                          uint32_t *bs,
-                                          lsm_flag flags);
+int LSM_DLL_EXPORT lsm_volume_replicate_range_block_size(lsm_connect *conn,
+                                                         lsm_system *system,
+                                                         uint32_t *bs,
+                                                         lsm_flag flags);
 
 /**
  * lsm_volume_replicate_range - Replicates a portion of a volume to a volume.
@@ -991,13 +972,10 @@ int LSM_DLL_EXPORT
  *          * LSM_ERR_NO_SUPPORT
  *              Not supported.
  */
-int LSM_DLL_EXPORT lsm_volume_replicate_range(lsm_connect *conn,
-                                              lsm_replication_type rep_type,
-                                              lsm_volume *source,
-                                              lsm_volume *dest,
-                                              lsm_block_range **ranges,
-                                              uint32_t num_ranges,
-                                              char **job, lsm_flag flags);
+int LSM_DLL_EXPORT lsm_volume_replicate_range(
+    lsm_connect *conn, lsm_replication_type rep_type, lsm_volume *source,
+    lsm_volume *dest, lsm_block_range **ranges, uint32_t num_ranges, char **job,
+    lsm_flag flags);
 
 /**
  * lsm_volume_delete - Delete a volume.
@@ -1047,9 +1025,8 @@ int LSM_DLL_EXPORT lsm_volume_replicate_range(lsm_connect *conn,
  *          * LSM_ERR_HAS_CHILD_DEPENDENCY
  *              Specified volume has child dependencies.
  */
-int LSM_DLL_EXPORT lsm_volume_delete(lsm_connect *conn,
-                                     lsm_volume *volume, char **job,
-                                     lsm_flag flags);
+int LSM_DLL_EXPORT lsm_volume_delete(lsm_connect *conn, lsm_volume *volume,
+                                     char **job, lsm_flag flags);
 
 /**
  * lsm_volume_enable - Set a Volume to online
@@ -1121,8 +1098,8 @@ int LSM_DLL_EXPORT lsm_volume_enable(lsm_connect *conn, lsm_volume *volume,
  *          * LSM_ERR_NO_SUPPORT
  *              Not supported.
  */
-int LSM_DLL_EXPORT lsm_volume_disable(lsm_connect *conn,
-                                      lsm_volume * volume, lsm_flag flags);
+int LSM_DLL_EXPORT lsm_volume_disable(lsm_connect *conn, lsm_volume *volume,
+                                      lsm_flag flags);
 
 /**
  * lsm_iscsi_chap_auth - Set iSCSI CHAP authentication.
@@ -1158,8 +1135,7 @@ int LSM_DLL_EXPORT lsm_volume_disable(lsm_connect *conn,
  *          * LSM_ERR_NO_SUPPORT
  *              Not supported.
  */
-int LSM_DLL_EXPORT lsm_iscsi_chap_auth(lsm_connect *conn,
-                                       const char *init_id,
+int LSM_DLL_EXPORT lsm_iscsi_chap_auth(lsm_connect *conn, const char *init_id,
                                        const char *in_user,
                                        const char *in_password,
                                        const char *out_user,
@@ -1214,8 +1190,7 @@ int LSM_DLL_EXPORT lsm_access_group_list(lsm_connect *conn,
                                          const char *search_key,
                                          const char *search_value,
                                          lsm_access_group **groups[],
-                                         uint32_t *group_count,
-                                         lsm_flag flags);
+                                         uint32_t *group_count, lsm_flag flags);
 
 /**
  * lsm_access_group_create - Create a new access group.
@@ -1266,12 +1241,12 @@ int LSM_DLL_EXPORT lsm_access_group_list(lsm_connect *conn,
  *          * LSM_ERR_NOT_FOUND_SYSTEM
  *              When the specified system does not exist.
  */
-int LSM_DLL_EXPORT
-    lsm_access_group_create(lsm_connect *conn, const char *name,
-                            const char *init_id,
-                            lsm_access_group_init_type init_type,
-                            lsm_system * system,
-                            lsm_access_group **access_group, lsm_flag flags);
+int LSM_DLL_EXPORT lsm_access_group_create(lsm_connect *conn, const char *name,
+                                           const char *init_id,
+                                           lsm_access_group_init_type init_type,
+                                           lsm_system *system,
+                                           lsm_access_group **access_group,
+                                           lsm_flag flags);
 
 /**
  * lsm_access_group_delete - Deletes an access group.
@@ -1308,8 +1283,8 @@ int LSM_DLL_EXPORT
  *              Not supported.
  */
 int LSM_DLL_EXPORT lsm_access_group_delete(lsm_connect *conn,
-                                           lsm_access_group *
-                                           access_group, lsm_flag flags);
+                                           lsm_access_group *access_group,
+                                           lsm_flag flags);
 
 /**
  * lsm_access_group_initiator_add - Adds an initiator to the access group
@@ -1359,13 +1334,10 @@ int LSM_DLL_EXPORT lsm_access_group_delete(lsm_connect *conn,
  *          * LSM_ERR_NO_SUPPORT
  *              Not supported.
  */
-int LSM_DLL_EXPORT \
-    lsm_access_group_initiator_add(lsm_connect *conn,
-                                   lsm_access_group *access_group,
-                                   const char *init_id,
-                                   lsm_access_group_init_type init_type,
-                                   lsm_access_group **updated_access_group,
-                                   lsm_flag flags);
+int LSM_DLL_EXPORT lsm_access_group_initiator_add(
+    lsm_connect *conn, lsm_access_group *access_group, const char *init_id,
+    lsm_access_group_init_type init_type,
+    lsm_access_group **updated_access_group, lsm_flag flags);
 
 /**
  * lsm_access_group_initiator_delete - Deletes an initiator from an access group
@@ -1415,13 +1387,10 @@ int LSM_DLL_EXPORT \
  *          * LSM_ERR_NO_SUPPORT
  *              Not supported.
  */
-int LSM_DLL_EXPORT
-    lsm_access_group_initiator_delete(lsm_connect *conn,
-                                      lsm_access_group *access_group,
-                                      const char *initiator_id,
-                                      lsm_access_group_init_type init_type,
-                                      lsm_access_group **updated_access_group,
-                                      lsm_flag flags);
+int LSM_DLL_EXPORT lsm_access_group_initiator_delete(
+    lsm_connect *conn, lsm_access_group *access_group, const char *initiator_id,
+    lsm_access_group_init_type init_type,
+    lsm_access_group **updated_access_group, lsm_flag flags);
 
 /**
  * lsm_volume_mask - Grants access to a volume for the specified group
@@ -1546,11 +1515,9 @@ int LSM_DLL_EXPORT lsm_volume_unmask(lsm_connect *conn,
  *          * LSM_ERR_NO_SUPPORT
  *              Not supported.
  */
-int LSM_DLL_EXPORT
-    lsm_volumes_accessible_by_access_group(lsm_connect *conn,
-                                           lsm_access_group *group,
-                                           lsm_volume **volumes[],
-                                           uint32_t *count, lsm_flag flags);
+int LSM_DLL_EXPORT lsm_volumes_accessible_by_access_group(
+    lsm_connect *conn, lsm_access_group *group, lsm_volume **volumes[],
+    uint32_t *count, lsm_flag flags);
 
 /**
  * lsm_access_groups_granted_to_volume - Retrieves the access groups that have
@@ -1590,12 +1557,9 @@ int LSM_DLL_EXPORT
  *          * LSM_ERR_NO_SUPPORT
  *              Not supported.
  */
-int LSM_DLL_EXPORT
-    lsm_access_groups_granted_to_volume(lsm_connect *conn,
-                                        lsm_volume *volume,
-                                        lsm_access_group **groups[],
-                                        uint32_t *group_count,
-                                        lsm_flag flags);
+int LSM_DLL_EXPORT lsm_access_groups_granted_to_volume(
+    lsm_connect *conn, lsm_volume *volume, lsm_access_group **groups[],
+    uint32_t *group_count, lsm_flag flags);
 
 /**
  * lsm_volume_child_dependency - Check whether volume has child dependencies.
@@ -1634,8 +1598,7 @@ int LSM_DLL_EXPORT
  *              Not supported.
  */
 int LSM_DLL_EXPORT lsm_volume_child_dependency(lsm_connect *conn,
-                                               lsm_volume *volume,
-                                               uint8_t *yes,
+                                               lsm_volume *volume, uint8_t *yes,
                                                lsm_flag flags);
 
 /**
@@ -1681,9 +1644,10 @@ int LSM_DLL_EXPORT lsm_volume_child_dependency(lsm_connect *conn,
  *          * LSM_ERR_NO_SUPPORT
  *              Not supported.
  */
-int LSM_DLL_EXPORT \
-    lsm_volume_child_dependency_delete(lsm_connect *conn, lsm_volume *volume,
-                                       char **job, lsm_flag flags);
+int LSM_DLL_EXPORT lsm_volume_child_dependency_delete(lsm_connect *conn,
+                                                      lsm_volume *volume,
+                                                      char **job,
+                                                      lsm_flag flags);
 
 /**
  * lsm_system_list - Gets a list of systems on this connection.
@@ -1724,9 +1688,8 @@ int LSM_DLL_EXPORT \
  *          * LSM_ERR_INVALID_ARGUMENT
  *              When any argument is NULL or invalid flags.
  */
-int LSM_DLL_EXPORT lsm_system_list(lsm_connect *conn,
-                                   lsm_system ** systems[],
-                                   uint32_t * system_count, lsm_flag flags);
+int LSM_DLL_EXPORT lsm_system_list(lsm_connect *conn, lsm_system **systems[],
+                                   uint32_t *system_count, lsm_flag flags);
 
 /**
  * lsm_fs_list - Gets a list of file systems on this connection.
@@ -1832,7 +1795,7 @@ int LSM_DLL_EXPORT lsm_fs_list(lsm_connect *conn, const char *search_key,
  *          * LSM_ERR_NO_SUPPORT
  *              Not supported.
  */
-int LSM_DLL_EXPORT lsm_fs_create(lsm_connect *conn, lsm_pool * pool,
+int LSM_DLL_EXPORT lsm_fs_create(lsm_connect *conn, lsm_pool *pool,
                                  const char *name, uint64_t size_bytes,
                                  lsm_fs **fs, char **job, lsm_flag flags);
 
@@ -1884,8 +1847,8 @@ int LSM_DLL_EXPORT lsm_fs_create(lsm_connect *conn, lsm_pool * pool,
  *          * LSM_ERR_HAS_CHILD_DEPENDENCY
  *              Specified volume has child dependencies.
  */
-int LSM_DLL_EXPORT lsm_fs_delete(lsm_connect *conn, lsm_fs *fs,
-                                 char **job, lsm_flag flags);
+int LSM_DLL_EXPORT lsm_fs_delete(lsm_connect *conn, lsm_fs *fs, char **job,
+                                 lsm_flag flags);
 
 /**
  * lsm_fs_clone - Clones an existing file system
@@ -1944,8 +1907,7 @@ int LSM_DLL_EXPORT lsm_fs_delete(lsm_connect *conn, lsm_fs *fs,
  */
 int LSM_DLL_EXPORT lsm_fs_clone(lsm_connect *conn, lsm_fs *src_fs,
                                 const char *name, lsm_fs_ss *optional_ss,
-                                lsm_fs **cloned_fs, char **job,
-                                lsm_flag flags);
+                                lsm_fs **cloned_fs, char **job, lsm_flag flags);
 
 /**
  * lsm_fs_child_dependency - Checks whether file system has a child dependency.
@@ -1985,8 +1947,8 @@ int LSM_DLL_EXPORT lsm_fs_clone(lsm_connect *conn, lsm_fs *src_fs,
  *              Not supported.
  */
 int LSM_DLL_EXPORT lsm_fs_child_dependency(lsm_connect *conn, lsm_fs *fs,
-                                           lsm_string_list *files,
-                                           uint8_t *yes, lsm_flag flags);
+                                           lsm_string_list *files, uint8_t *yes,
+                                           lsm_flag flags);
 
 /**
  * lsm_fs_child_dependency_delete - Delete all child dependencies of specified
@@ -2030,10 +1992,9 @@ int LSM_DLL_EXPORT lsm_fs_child_dependency(lsm_connect *conn, lsm_fs *fs,
  *          * LSM_ERR_NO_STATE_CHANGE
  *              When file system has no child dependency.
  */
-int LSM_DLL_EXPORT
-    lsm_fs_child_dependency_delete(lsm_connect *conn, lsm_fs *fs,
-                                   lsm_string_list *files, char **job,
-                                   lsm_flag flags);
+int LSM_DLL_EXPORT lsm_fs_child_dependency_delete(lsm_connect *conn, lsm_fs *fs,
+                                                  lsm_string_list *files,
+                                                  char **job, lsm_flag flags);
 
 /**
  * lsm_fs_resize - Resizes a file system
@@ -2182,7 +2143,7 @@ int LSM_DLL_EXPORT lsm_fs_file_clone(lsm_connect *conn, lsm_fs *fs,
  *              Not supported.
  */
 int LSM_DLL_EXPORT lsm_fs_ss_list(lsm_connect *conn, lsm_fs *fs,
-                                  lsm_fs_ss ** ss[], uint32_t * ss_count,
+                                  lsm_fs_ss **ss[], uint32_t *ss_count,
                                   lsm_flag flags);
 
 /**
@@ -2333,8 +2294,8 @@ int LSM_DLL_EXPORT lsm_fs_ss_delete(lsm_connect *conn, lsm_fs *fs,
  *          * LSM_ERR_NO_SUPPORT
  *              Not supported.
  */
-int LSM_DLL_EXPORT lsm_fs_ss_restore(lsm_connect *conn, lsm_fs *fs, lsm_fs_ss *ss,
-                                     lsm_string_list *files,
+int LSM_DLL_EXPORT lsm_fs_ss_restore(lsm_connect *conn, lsm_fs *fs,
+                                     lsm_fs_ss *ss, lsm_string_list *files,
                                      lsm_string_list *restore_files,
                                      int all_files, char **job, lsm_flag flags);
 
@@ -2365,8 +2326,8 @@ int LSM_DLL_EXPORT lsm_fs_ss_restore(lsm_connect *conn, lsm_fs *fs, lsm_fs_ss *s
  *          * LSM_ERR_NO_SUPPORT
  *              Not supported.
  */
-int LSM_DLL_EXPORT lsm_nfs_auth_types(lsm_connect *conn, lsm_string_list **types,
-                                      lsm_flag flags);
+int LSM_DLL_EXPORT lsm_nfs_auth_types(lsm_connect *conn,
+                                      lsm_string_list **types, lsm_flag flags);
 
 /**
  * lsm_nfs_list - Gets a list of NFS exports on this connection.
@@ -2416,11 +2377,10 @@ int LSM_DLL_EXPORT lsm_nfs_auth_types(lsm_connect *conn, lsm_string_list **types
  *          * LSM_ERR_NO_SUPPORT
  *              Not supported.
  */
-int LSM_DLL_EXPORT lsm_nfs_list(lsm_connect *conn,
-                                const char *search_key,
+int LSM_DLL_EXPORT lsm_nfs_list(lsm_connect *conn, const char *search_key,
                                 const char *search_value,
-                                lsm_nfs_export **exports[],
-                                uint32_t *count, lsm_flag flags);
+                                lsm_nfs_export **exports[], uint32_t *count,
+                                lsm_flag flags);
 
 /**
  * lsm_nfs_export_fs - Creates or modifies an NFS export.
@@ -2470,18 +2430,14 @@ int LSM_DLL_EXPORT lsm_nfs_list(lsm_connect *conn,
  *          * LSM_ERR_NOT_FOUND_FS
  *              When file system not found.
  */
-int LSM_DLL_EXPORT lsm_nfs_export_fs(lsm_connect *conn,
-                                     const char *fs_id,
+int LSM_DLL_EXPORT lsm_nfs_export_fs(lsm_connect *conn, const char *fs_id,
                                      const char *export_path,
                                      lsm_string_list *root_list,
                                      lsm_string_list *rw_list,
                                      lsm_string_list *ro_list,
-                                     uint64_t anon_uid,
-                                     uint64_t anon_gid,
-                                     const char *auth_type,
-                                     const char *options,
-                                     lsm_nfs_export **exported,
-                                     lsm_flag flags);
+                                     uint64_t anon_uid, uint64_t anon_gid,
+                                     const char *auth_type, const char *options,
+                                     lsm_nfs_export **exported, lsm_flag flags);
 
 /**
  * lsm_nfs_export_delete - Deletes the specified NFS export.
@@ -2509,8 +2465,7 @@ int LSM_DLL_EXPORT lsm_nfs_export_fs(lsm_connect *conn,
  *          * LSM_ERR_NOT_FOUND_NFS_EXPORT
  *              When NFS export not found.
  */
-int LSM_DLL_EXPORT lsm_nfs_export_delete(lsm_connect *conn,
-                                         lsm_nfs_export * e,
+int LSM_DLL_EXPORT lsm_nfs_export_delete(lsm_connect *conn, lsm_nfs_export *e,
                                          lsm_flag flags);
 
 /**
@@ -2661,14 +2616,12 @@ int LSM_DLL_EXPORT lsm_target_port_list(lsm_connect *conn,
  *          * LSM_ERR_NO_SUPPORT
  *              Not supported.
  */
-int LSM_DLL_EXPORT lsm_volume_raid_info(lsm_connect *conn,
-                                        lsm_volume *volume,
+int LSM_DLL_EXPORT lsm_volume_raid_info(lsm_connect *conn, lsm_volume *volume,
                                         lsm_volume_raid_type *raid_type,
                                         uint32_t *strip_size,
                                         uint32_t *disk_count,
                                         uint32_t *min_io_size,
-                                        uint32_t *opt_io_size,
-                                        lsm_flag flags);
+                                        uint32_t *opt_io_size, lsm_flag flags);
 
 /**
  * lsm_pool_member_info - Retrieves the membership of given pool.
@@ -2770,8 +2723,7 @@ int LSM_DLL_EXPORT lsm_volume_raid_info(lsm_connect *conn,
  *          * LSM_ERR_NO_SUPPORT
  *              Not supported.
  */
-int LSM_DLL_EXPORT lsm_pool_member_info(lsm_connect *conn,
-                                        lsm_pool *pool,
+int LSM_DLL_EXPORT lsm_pool_member_info(lsm_connect *conn, lsm_pool *pool,
                                         lsm_volume_raid_type *raid_type,
                                         lsm_pool_member_type *member_type,
                                         lsm_string_list **member_ids,
@@ -2849,13 +2801,10 @@ int LSM_DLL_EXPORT lsm_pool_member_info(lsm_connect *conn,
  *          * LSM_ERR_NO_SUPPORT
  *              Not supported.
  */
-int LSM_DLL_EXPORT
-    lsm_volume_raid_create_cap_get(lsm_connect *conn, lsm_system *system,
-                                   uint32_t **supported_raid_types,
-                                   uint32_t *supported_raid_type_count,
-                                   uint32_t **supported_strip_sizes,
-                                   uint32_t *supported_strip_size_count,
-                                   lsm_flag flags);
+int LSM_DLL_EXPORT lsm_volume_raid_create_cap_get(
+    lsm_connect *conn, lsm_system *system, uint32_t **supported_raid_types,
+    uint32_t *supported_raid_type_count, uint32_t **supported_strip_sizes,
+    uint32_t *supported_strip_size_count, lsm_flag flags);
 
 /**
  * lsm_volume_raid_create - Create a RAID volume.
@@ -2905,14 +2854,10 @@ int LSM_DLL_EXPORT
  *          * LSM_ERR_NO_SUPPORT
  *              Not supported.
  */
-int LSM_DLL_EXPORT lsm_volume_raid_create(lsm_connect *conn,
-                                          const char *name,
-                                          lsm_volume_raid_type raid_type,
-                                          lsm_disk *disks[],
-                                          uint32_t disk_count,
-                                          uint32_t strip_size,
-                                          lsm_volume **new_volume,
-                                          lsm_flag flags);
+int LSM_DLL_EXPORT lsm_volume_raid_create(
+    lsm_connect *conn, const char *name, lsm_volume_raid_type raid_type,
+    lsm_disk *disks[], uint32_t disk_count, uint32_t strip_size,
+    lsm_volume **new_volume, lsm_flag flags);
 
 /**
  * lsm_volume_ident_led_on - Turn on the identification LED for the specified
@@ -2949,8 +2894,7 @@ int LSM_DLL_EXPORT lsm_volume_raid_create(lsm_connect *conn,
  *              Not supported.
  */
 int LSM_DLL_EXPORT lsm_volume_ident_led_on(lsm_connect *conn,
-                                           lsm_volume *volume,
-                                           lsm_flag flags);
+                                           lsm_volume *volume, lsm_flag flags);
 
 /**
  * lsm_volume_ident_led_off - Turn off the identification LED for the specified
@@ -2987,8 +2931,7 @@ int LSM_DLL_EXPORT lsm_volume_ident_led_on(lsm_connect *conn,
  *              Not supported.
  */
 int LSM_DLL_EXPORT lsm_volume_ident_led_off(lsm_connect *conn,
-                                            lsm_volume *volume,
-                                            lsm_flag flags);
+                                            lsm_volume *volume, lsm_flag flags);
 
 /**
  * lsm_system_read_cache_pct_update - Changes the read cache percentage for the
@@ -3074,8 +3017,7 @@ int LSM_DLL_EXPORT lsm_system_read_cache_pct_update(lsm_connect *conn,
  *          * LSM_ERR_NO_SUPPORT
  *              Not supported.
  */
-int LSM_DLL_EXPORT lsm_battery_list(lsm_connect *conn,
-                                    const char *search_key,
+int LSM_DLL_EXPORT lsm_battery_list(lsm_connect *conn, const char *search_key,
                                     const char *search_value,
                                     lsm_battery **bs[], uint32_t *count,
                                     lsm_flag flags);
@@ -3162,14 +3104,10 @@ int LSM_DLL_EXPORT lsm_battery_list(lsm_connect *conn,
  *          * LSM_ERR_NO_SUPPORT
  *              Not supported.
  */
-int LSM_DLL_EXPORT lsm_volume_cache_info(lsm_connect *conn,
-                                         lsm_volume *volume,
-                                         uint32_t *write_cache_policy,
-                                         uint32_t *write_cache_status,
-                                         uint32_t *read_cache_policy,
-                                         uint32_t *read_cache_status,
-                                         uint32_t *physical_disk_cache,
-                                         lsm_flag flags);
+int LSM_DLL_EXPORT lsm_volume_cache_info(
+    lsm_connect *conn, lsm_volume *volume, uint32_t *write_cache_policy,
+    uint32_t *write_cache_status, uint32_t *read_cache_policy,
+    uint32_t *read_cache_status, uint32_t *physical_disk_cache, lsm_flag flags);
 
 /**
  * lsm_volume_physical_disk_cache_update - Change RAM physical disk cache
@@ -3227,11 +3165,12 @@ int LSM_DLL_EXPORT lsm_volume_physical_disk_cache_update(lsm_connect *conn,
  *
  * Description:
  *      Change the RAM write cache policy on specified volume. If
- *      LSM_CAP_VOLUME_WRITE_CACHE_POLICY_UPDATE_IMPACT_READ is supported(e.g. HPE
- *      SmartArray), the changes on write cache policy might also impact read
- *      cache policy. If LSM_CAP_VOLUME_WRITE_CACHE_POLICY_UPDATE_WB_IMPACT_OTHER
- *      is supported(e.g. HPE SmartArray), changing write cache policy to write
- *      back mode might impact other volumes in the same system.
+ *      LSM_CAP_VOLUME_WRITE_CACHE_POLICY_UPDATE_IMPACT_READ is supported(e.g.
+ * HPE SmartArray), the changes on write cache policy might also impact read
+ *      cache policy. If
+ * LSM_CAP_VOLUME_WRITE_CACHE_POLICY_UPDATE_WB_IMPACT_OTHER is supported(e.g.
+ * HPE SmartArray), changing write cache policy to write back mode might impact
+ * other volumes in the same system.
  *
  * Capability:
  *      LSM_CAP_VOLUME_WRITE_CACHE_POLICY_UPDATE_AUTO
@@ -3317,7 +3256,7 @@ int LSM_DLL_EXPORT lsm_volume_read_cache_policy_update(lsm_connect *conn,
                                                        uint32_t rcp,
                                                        lsm_flag flags);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
-#endif                          /* LIBSTORAGEMGMT_H */
+#endif /* LIBSTORAGEMGMT_H */

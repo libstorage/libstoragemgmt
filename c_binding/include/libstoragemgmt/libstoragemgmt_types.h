@@ -20,14 +20,13 @@
 #ifndef LIBSTORAGEMGMT_TYPES_H
 #define LIBSTORAGEMGMT_TYPES_H
 
-
 #ifdef __cplusplus
 #define __STDC_FORMAT_MACROS
 #define __STDC_LIMIT_MACROS
 #endif
 #include <inttypes.h>
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -43,10 +42,10 @@ typedef uint64_t lsm_flag;
  * Bit field to support multiple settings for systems
  * that can support them simultaneously.
  */
-#define LSM_CLIENT_FLAG_VOLUME_CREATE_USE_SYSTEM_CACHE          0x00000001
-#define LSM_CLIENT_FLAG_VOLUME_CREATE_USE_IO_PASSTHROUGH        0x00000002
-#define LSM_CLIENT_FLAG_VOLUME_CREATE_DISABLE_SYSTEM_CACHE      0x00000004
-#define LSM_CLIENT_FLAG_VOLUME_CREATE_DISABLE_IO_PASSTHROUGH    0x00000008
+#define LSM_CLIENT_FLAG_VOLUME_CREATE_USE_SYSTEM_CACHE       0x00000001
+#define LSM_CLIENT_FLAG_VOLUME_CREATE_USE_IO_PASSTHROUGH     0x00000002
+#define LSM_CLIENT_FLAG_VOLUME_CREATE_DISABLE_SYSTEM_CACHE   0x00000004
+#define LSM_CLIENT_FLAG_VOLUME_CREATE_DISABLE_IO_PASSTHROUGH 0x00000008
 
 /**
  * Opaque data type for a connection.
@@ -156,7 +155,6 @@ typedef enum {
     LSM_VOLUME_PROVISION_DEFAULT = 3
 } lsm_volume_provision_type;
 
-
 /** \enum lsm_volume_raid_type Different types of RAID */
 typedef enum {
     /** Unknown */
@@ -195,7 +193,6 @@ typedef enum {
     LSM_VOLUME_RAID_TYPE_OTHER = 22,
 } lsm_volume_raid_type;
 
-
 /** \enum lsm_pool_member_type Different types of Pool member*/
 typedef enum {
     /** Plugin failed to detect the RAID member type. */
@@ -213,37 +210,35 @@ typedef enum {
     LSM_POOL_MEMBER_TYPE_POOL = 3,
 } lsm_pool_member_type;
 
-#define LSM_VOLUME_STRIP_SIZE_UNKNOWN       0
-#define LSM_VOLUME_DISK_COUNT_UNKNOWN       0
-#define LSM_VOLUME_MIN_IO_SIZE_UNKNOWN      0
-#define LSM_VOLUME_OPT_IO_SIZE_UNKNOWN      0
+#define LSM_VOLUME_STRIP_SIZE_UNKNOWN  0
+#define LSM_VOLUME_DISK_COUNT_UNKNOWN  0
+#define LSM_VOLUME_MIN_IO_SIZE_UNKNOWN 0
+#define LSM_VOLUME_OPT_IO_SIZE_UNKNOWN 0
 
 /**
  * Admin state for volume, enabled or disabled
  */
-    /** Volume accessible */
-#define LSM_VOLUME_ADMIN_STATE_ENABLED      0x1
-    /** Volume unaccessible */
-#define LSM_VOLUME_ADMIN_STATE_DISABLED     0x0
-
+/** Volume accessible */
+#define LSM_VOLUME_ADMIN_STATE_ENABLED 0x1
+/** Volume unaccessible */
+#define LSM_VOLUME_ADMIN_STATE_DISABLED 0x0
 
 /**
  * Different states a system status can be in.
  * Bit field, can be in multiple states at the same time.
  */
-    /** Unknown */
-#define LSM_SYSTEM_STATUS_UNKNOWN               0x00000001
-    /** OK */
-#define LSM_SYSTEM_STATUS_OK                    0x00000002
-    /** Error(s) exist */
-#define LSM_SYSTEM_STATUS_ERROR                 0x00000004
-    /** Degraded */
-#define LSM_SYSTEM_STATUS_DEGRADED              0x00000008
-    /** System has predictive failure(s) */
-#define LSM_SYSTEM_STATUS_PREDICTIVE_FAILURE    0x00000010
-    /** Vendor specific */
-#define LSM_SYSTEM_STATUS_OTHER                 0x00000020
-
+/** Unknown */
+#define LSM_SYSTEM_STATUS_UNKNOWN 0x00000001
+/** OK */
+#define LSM_SYSTEM_STATUS_OK 0x00000002
+/** Error(s) exist */
+#define LSM_SYSTEM_STATUS_ERROR 0x00000004
+/** Degraded */
+#define LSM_SYSTEM_STATUS_DEGRADED 0x00000008
+/** System has predictive failure(s) */
+#define LSM_SYSTEM_STATUS_PREDICTIVE_FAILURE 0x00000010
+/** Vendor specific */
+#define LSM_SYSTEM_STATUS_OTHER 0x00000020
 
 typedef enum {
     /** Unknown */
@@ -287,7 +282,7 @@ typedef enum {
 /* SPC-5 rev7, Table 444 - PROTOCOL IDENTIFIER field values */
 typedef enum {
     LSM_DISK_LINK_TYPE_NO_SUPPORT = -2,
-    LSM_DISK_LINK_TYPE_UNKNOWN =  -1,
+    LSM_DISK_LINK_TYPE_UNKNOWN = -1,
     LSM_DISK_LINK_TYPE_FC = 0,
     LSM_DISK_LINK_TYPE_SSA = 2,
     LSM_DISK_LINK_TYPE_SBP = 3,
@@ -301,19 +296,19 @@ typedef enum {
     LSM_DISK_LINK_TYPE_PCIE = 11,
 } lsm_disk_link_type;
 
-#define LSM_DISK_STATUS_UNKNOWN                     0x0000000000000001
-#define LSM_DISK_STATUS_OK                          0x0000000000000002
-#define LSM_DISK_STATUS_OTHER                       0x0000000000000004
-#define LSM_DISK_STATUS_PREDICTIVE_FAILURE          0x0000000000000008
-#define LSM_DISK_STATUS_ERROR                       0x0000000000000010
-#define LSM_DISK_STATUS_REMOVED                     0x0000000000000020
-#define LSM_DISK_STATUS_STARTING                    0x0000000000000040
-#define LSM_DISK_STATUS_STOPPING                    0x0000000000000080
-#define LSM_DISK_STATUS_STOPPED                     0x0000000000000100
-#define LSM_DISK_STATUS_INITIALIZING                0x0000000000000200
-#define LSM_DISK_STATUS_MAINTENANCE_MODE            0x0000000000000400
-#define LSM_DISK_STATUS_SPARE_DISK                  0x0000000000000800
-#define LSM_DISK_STATUS_RECONSTRUCT                 0x0000000000001000
+#define LSM_DISK_STATUS_UNKNOWN            0x0000000000000001
+#define LSM_DISK_STATUS_OK                 0x0000000000000002
+#define LSM_DISK_STATUS_OTHER              0x0000000000000004
+#define LSM_DISK_STATUS_PREDICTIVE_FAILURE 0x0000000000000008
+#define LSM_DISK_STATUS_ERROR              0x0000000000000010
+#define LSM_DISK_STATUS_REMOVED            0x0000000000000020
+#define LSM_DISK_STATUS_STARTING           0x0000000000000040
+#define LSM_DISK_STATUS_STOPPING           0x0000000000000080
+#define LSM_DISK_STATUS_STOPPED            0x0000000000000100
+#define LSM_DISK_STATUS_INITIALIZING       0x0000000000000200
+#define LSM_DISK_STATUS_MAINTENANCE_MODE   0x0000000000000400
+#define LSM_DISK_STATUS_SPARE_DISK         0x0000000000000800
+#define LSM_DISK_STATUS_RECONSTRUCT        0x0000000000001000
 /** <! LSM_DISK_STATUS_FREE >
  * New in version 1.2, New in version 1.2, indicate the whole disk is not
  * holding any data or acting as a dedicate spare disk.
@@ -323,66 +318,66 @@ typedef enum {
  * action when assigning to pool, it should be treated as free disk and marked
  * as LSM_DISK_STATUS_FREE|LSM_DISK_STATUS_SPARE_DISK.
  * */
-#define LSM_DISK_STATUS_FREE                        0x0000000000002000
+#define LSM_DISK_STATUS_FREE 0x0000000000002000
 
-#define LSM_DISK_BLOCK_SIZE_NOT_FOUND               -1
-#define LSM_DISK_BLOCK_COUNT_NOT_FOUND              -1
+#define LSM_DISK_BLOCK_SIZE_NOT_FOUND  -1
+#define LSM_DISK_BLOCK_COUNT_NOT_FOUND -1
 
 /* New in version 1.3. */
-#define LSM_DISK_RPM_NO_SUPPORT                     -2
+#define LSM_DISK_RPM_NO_SUPPORT -2
 /* New in version 1.3. */
-#define LSM_DISK_RPM_UNKNOWN                        -1
+#define LSM_DISK_RPM_UNKNOWN -1
 /* New in version 1.3. */
-#define LSM_DISK_RPM_NON_ROTATING_MEDIUM            0
+#define LSM_DISK_RPM_NON_ROTATING_MEDIUM 0
 /* New in version 1.3. Indicate given disk is a rotating disk, but speed is
  * unknown
  */
-#define LSM_DISK_RPM_ROTATING_UNKNOWN_SPEED         1
+#define LSM_DISK_RPM_ROTATING_UNKNOWN_SPEED 1
 
 /* New in version 1.5 */
-#define LSM_DISK_HEALTH_STATUS_UNKNOWN               -1
+#define LSM_DISK_HEALTH_STATUS_UNKNOWN -1
 /* New in version 1.5 */
-#define LSM_DISK_HEALTH_STATUS_FAIL                  0
+#define LSM_DISK_HEALTH_STATUS_FAIL 0
 /* New in version 1.5 */
-#define LSM_DISK_HEALTH_STATUS_WARN                  1
+#define LSM_DISK_HEALTH_STATUS_WARN 1
 /* New in version 1.5 */
-#define LSM_DISK_HEALTH_STATUS_GOOD                  2
+#define LSM_DISK_HEALTH_STATUS_GOOD 2
 
-#define LSM_DISK_LED_STATUS_UNKNOWN                 0x0000000000000001
-#define LSM_DISK_LED_STATUS_IDENT_ON                0x0000000000000002
-#define LSM_DISK_LED_STATUS_IDENT_OFF               0x0000000000000004
-#define LSM_DISK_LED_STATUS_IDENT_UNKNOWN           0x0000000000000008
-#define LSM_DISK_LED_STATUS_FAULT_ON                0x0000000000000010
-#define LSM_DISK_LED_STATUS_FAULT_OFF               0x0000000000000020
-#define LSM_DISK_LED_STATUS_FAULT_UNKNOWN           0x0000000000000040
+#define LSM_DISK_LED_STATUS_UNKNOWN       0x0000000000000001
+#define LSM_DISK_LED_STATUS_IDENT_ON      0x0000000000000002
+#define LSM_DISK_LED_STATUS_IDENT_OFF     0x0000000000000004
+#define LSM_DISK_LED_STATUS_IDENT_UNKNOWN 0x0000000000000008
+#define LSM_DISK_LED_STATUS_FAULT_ON      0x0000000000000010
+#define LSM_DISK_LED_STATUS_FAULT_OFF     0x0000000000000020
+#define LSM_DISK_LED_STATUS_FAULT_UNKNOWN 0x0000000000000040
 
-#define LSM_DISK_LINK_SPEED_UNKNOWN                 0
+#define LSM_DISK_LINK_SPEED_UNKNOWN 0
 /* New in version 1.4. Indicate failed to query link speed of specified disk */
 
-#define LSM_POOL_STATUS_UNKNOWN                     0x0000000000000001
-#define LSM_POOL_STATUS_OK                          0x0000000000000002
-#define LSM_POOL_STATUS_OTHER                       0x0000000000000004
-#define LSM_POOL_STATUS_DEGRADED                    0x0000000000000010
-#define LSM_POOL_STATUS_ERROR                       0x0000000000000020
-#define LSM_POOL_STATUS_STOPPED                     0x0000000000000200
-#define LSM_POOL_STATUS_RECONSTRUCTING              0x0000000000001000
-#define LSM_POOL_STATUS_VERIFYING                   0x0000000000002000
-#define LSM_POOL_STATUS_INITIALIZING                0x0000000000004000
-#define LSM_POOL_STATUS_GROWING                     0x0000000000008000
+#define LSM_POOL_STATUS_UNKNOWN        0x0000000000000001
+#define LSM_POOL_STATUS_OK             0x0000000000000002
+#define LSM_POOL_STATUS_OTHER          0x0000000000000004
+#define LSM_POOL_STATUS_DEGRADED       0x0000000000000010
+#define LSM_POOL_STATUS_ERROR          0x0000000000000020
+#define LSM_POOL_STATUS_STOPPED        0x0000000000000200
+#define LSM_POOL_STATUS_RECONSTRUCTING 0x0000000000001000
+#define LSM_POOL_STATUS_VERIFYING      0x0000000000002000
+#define LSM_POOL_STATUS_INITIALIZING   0x0000000000004000
+#define LSM_POOL_STATUS_GROWING        0x0000000000008000
 
-#define LSM_POOL_ELEMENT_TYPE_POOL                  0x0000000000000002
-#define LSM_POOL_ELEMENT_TYPE_VOLUME                0x0000000000000004
-#define LSM_POOL_ELEMENT_TYPE_FS                    0x0000000000000008
-#define LSM_POOL_ELEMENT_TYPE_DELTA                 0x0000000000000010
-#define LSM_POOL_ELEMENT_TYPE_VOLUME_FULL           0x0000000000000020
-#define LSM_POOL_ELEMENT_TYPE_VOLUME_THIN           0x0000000000000040
-#define LSM_POOL_ELEMENT_TYPE_SYS_RESERVED          0x0000000000000400
+#define LSM_POOL_ELEMENT_TYPE_POOL         0x0000000000000002
+#define LSM_POOL_ELEMENT_TYPE_VOLUME       0x0000000000000004
+#define LSM_POOL_ELEMENT_TYPE_FS           0x0000000000000008
+#define LSM_POOL_ELEMENT_TYPE_DELTA        0x0000000000000010
+#define LSM_POOL_ELEMENT_TYPE_VOLUME_FULL  0x0000000000000020
+#define LSM_POOL_ELEMENT_TYPE_VOLUME_THIN  0x0000000000000040
+#define LSM_POOL_ELEMENT_TYPE_SYS_RESERVED 0x0000000000000400
 
-#define LSM_POOL_UNSUPPORTED_VOLUME_GROW            0x0000000000000001
-#define LSM_POOL_UNSUPPORTED_VOLUME_SHRINK          0x0000000000000002
+#define LSM_POOL_UNSUPPORTED_VOLUME_GROW   0x0000000000000001
+#define LSM_POOL_UNSUPPORTED_VOLUME_SHRINK 0x0000000000000002
 
-#define LSM_POOL_FREE_SPACE_NOT_FOUND               -1
-#define LSM_POOL_TOTAL_SPACE_NOT_FOUND              -1
+#define LSM_POOL_FREE_SPACE_NOT_FOUND  -1
+#define LSM_POOL_TOTAL_SPACE_NOT_FOUND -1
 
 typedef enum {
     LSM_TARGET_PORT_TYPE_OTHER = 1,
@@ -392,7 +387,7 @@ typedef enum {
 } lsm_target_port_type;
 
 /** Plugin and hardware RAID will use their default strip size */
-#define LSM_VOLUME_VCR_STRIP_SIZE_DEFAULT           0
+#define LSM_VOLUME_VCR_STRIP_SIZE_DEFAULT 0
 
 typedef enum {
     LSM_SYSTEM_MODE_NO_SUPPORT = -2,
@@ -409,25 +404,25 @@ typedef enum {
 } lsm_battery_type;
 
 /** Unknown. */
-#define LSM_BATTERY_STATUS_UNKNOWN                  0x0000000000000001
+#define LSM_BATTERY_STATUS_UNKNOWN 0x0000000000000001
 /** Vendor specific status. */
-#define LSM_BATTERY_STATUS_OTHER                    0x0000000000000002
+#define LSM_BATTERY_STATUS_OTHER 0x0000000000000002
 /** Battery is fully charged, health and not in use currently. */
-#define LSM_BATTERY_STATUS_OK                       0x0000000000000004
+#define LSM_BATTERY_STATUS_OK 0x0000000000000004
 /** Battery is in use. */
-#define LSM_BATTERY_STATUS_DISCHARGING              0x0000000000000008
+#define LSM_BATTERY_STATUS_DISCHARGING 0x0000000000000008
 /** Battery is charging. */
-#define LSM_BATTERY_STATUS_CHARGING                 0x0000000000000010
+#define LSM_BATTERY_STATUS_CHARGING 0x0000000000000010
 /** Battery is calibrating itself by discharging battery and
  *  recharging again.
  */
-#define LSM_BATTERY_STATUS_LEARNING                 0x0000000000000020
+#define LSM_BATTERY_STATUS_LEARNING 0x0000000000000020
 /** Battery is in degraded mode, needs attention.
  *  For example, battery is near end of life.
  */
-#define LSM_BATTERY_STATUS_DEGRADED                 0x0000000000000040
+#define LSM_BATTERY_STATUS_DEGRADED 0x0000000000000040
 /** Battery is having hardware error or end of life. */
-#define LSM_BATTERY_STATUS_ERROR                    0x0000000000000080
+#define LSM_BATTERY_STATUS_ERROR 0x0000000000000080
 
 #define LSM_VOLUME_WRITE_CACHE_POLICY_UNKNOWN       1
 #define LSM_VOLUME_WRITE_CACHE_POLICY_WRITE_BACK    2
@@ -438,23 +433,23 @@ typedef enum {
 #define LSM_VOLUME_WRITE_CACHE_STATUS_WRITE_BACK    2
 #define LSM_VOLUME_WRITE_CACHE_STATUS_WRITE_THROUGH 3
 
-#define LSM_VOLUME_READ_CACHE_POLICY_UNKNOWN        1
-#define LSM_VOLUME_READ_CACHE_POLICY_ENABLED        2
-#define LSM_VOLUME_READ_CACHE_POLICY_DISABLED       3
+#define LSM_VOLUME_READ_CACHE_POLICY_UNKNOWN  1
+#define LSM_VOLUME_READ_CACHE_POLICY_ENABLED  2
+#define LSM_VOLUME_READ_CACHE_POLICY_DISABLED 3
 
-#define LSM_VOLUME_READ_CACHE_STATUS_UNKNOWN        1
-#define LSM_VOLUME_READ_CACHE_STATUS_ENABLED        2
-#define LSM_VOLUME_READ_CACHE_STATUS_DISABLED       3
+#define LSM_VOLUME_READ_CACHE_STATUS_UNKNOWN  1
+#define LSM_VOLUME_READ_CACHE_STATUS_ENABLED  2
+#define LSM_VOLUME_READ_CACHE_STATUS_DISABLED 3
 
-#define LSM_VOLUME_PHYSICAL_DISK_CACHE_UNKNOWN      1
-#define LSM_VOLUME_PHYSICAL_DISK_CACHE_ENABLED      2
-#define LSM_VOLUME_PHYSICAL_DISK_CACHE_DISABLED     3
-#define LSM_VOLUME_PHYSICAL_DISK_CACHE_USE_DISK_SETTING     4
+#define LSM_VOLUME_PHYSICAL_DISK_CACHE_UNKNOWN          1
+#define LSM_VOLUME_PHYSICAL_DISK_CACHE_ENABLED          2
+#define LSM_VOLUME_PHYSICAL_DISK_CACHE_DISABLED         3
+#define LSM_VOLUME_PHYSICAL_DISK_CACHE_USE_DISK_SETTING 4
 
-#define LSM_SYSTEM_READ_CACHE_PCT_NO_SUPPORT        -2
-#define LSM_SYSTEM_READ_CACHE_PCT_UNKNOWN           -1
+#define LSM_SYSTEM_READ_CACHE_PCT_NO_SUPPORT -2
+#define LSM_SYSTEM_READ_CACHE_PCT_UNKNOWN    -1
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
-#endif                          /* LIBSTORAGEMGMT_TYPES_H */
+#endif /* LIBSTORAGEMGMT_TYPES_H */

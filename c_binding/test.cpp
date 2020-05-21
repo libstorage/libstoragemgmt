@@ -3,11 +3,10 @@
 #include <iostream>
 #include <stdlib.h>
 
-
-std::string gen_random(int len)
-{
-    static const char alphanum[] =
-        "0123456789" "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "abcdefghijklmnopqrstuvwxyz";
+std::string gen_random(int len) {
+    static const char alphanum[] = "0123456789"
+                                   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                   "abcdefghijklmnopqrstuvwxyz";
     std::string rc(len, 'x');
 
     for (int i = 0; i < len; ++i) {
@@ -16,9 +15,7 @@ std::string gen_random(int len)
     return rc;
 }
 
-
-void TestIt(int fd)
-{
+void TestIt(int fd) {
     int rc = 0;
     int ec = 0;
     Transport t(fd);
@@ -34,9 +31,8 @@ void TestIt(int fd)
 
             std::cout << "Receiving msg" << std::endl;
             std::string rmsg = t.recvMsg(ec);
-            std::
-                cout << "Message received " << rmsg.size() << " Byte(s)" <<
-                std::endl;
+            std::cout << "Message received " << rmsg.size() << " Byte(s)"
+                      << std::endl;
 
             if (rmsg.size() > 0) {
 
@@ -55,10 +51,7 @@ void TestIt(int fd)
     }
 }
 
-
-
-int main(void)
-{
+int main(void) {
     std::string path("/tmp/testing");
 
     int ec = 0;

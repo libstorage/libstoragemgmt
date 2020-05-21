@@ -16,14 +16,12 @@
  * Author: tasleson
  */
 
-
 #ifndef LSM_ACCESS_GROUP_H
 #define LSM_ACCESS_GROUP_H
 
 #include "libstoragemgmt_types.h"
 
-
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -46,7 +44,7 @@ extern "C" {
  *              When any argument is NULL or not a valid lsm_access_group
  *              pointer.
  */
-int LSM_DLL_EXPORT lsm_access_group_record_free(lsm_access_group * group);
+int LSM_DLL_EXPORT lsm_access_group_record_free(lsm_access_group *group);
 
 /**
  * lsm_access_group_record_array_free - Frees the memory of access group array.
@@ -91,7 +89,7 @@ int LSM_DLL_EXPORT lsm_access_group_record_array_free(lsm_access_group *ag[],
  *      lsm_access_group_record_free().
  */
 lsm_access_group LSM_DLL_EXPORT *
-    lsm_access_group_record_copy(lsm_access_group * ag);
+lsm_access_group_record_copy(lsm_access_group *ag);
 
 /**
  * lsm_access_group_id_get - Retrieves the ID for the access group.
@@ -152,7 +150,7 @@ const char LSM_DLL_EXPORT *lsm_access_group_name_get(lsm_access_group *group);
  *      pointer.
  */
 const char LSM_DLL_EXPORT *
-    lsm_access_group_system_id_get(lsm_access_group *group);
+lsm_access_group_system_id_get(lsm_access_group *group);
 
 /**
  * lsm_access_group_initiator_id_get - Retrieves the initiators of access group.
@@ -174,7 +172,7 @@ const char LSM_DLL_EXPORT *
  *      lsm_access_group pointer.
  */
 lsm_string_list LSM_DLL_EXPORT *
-    lsm_access_group_initiator_id_get(lsm_access_group * group);
+lsm_access_group_initiator_id_get(lsm_access_group *group);
 
 /**
  * lsm_access_group_init_type_get - Retrieves the initiator type for specified
@@ -193,10 +191,9 @@ lsm_string_list LSM_DLL_EXPORT *
  *
  */
 lsm_access_group_init_type LSM_DLL_EXPORT
-    lsm_access_group_init_type_get(lsm_access_group * group);
+lsm_access_group_init_type_get(lsm_access_group *group);
 
-
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
 #endif

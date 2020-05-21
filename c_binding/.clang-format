@@ -1,0 +1,6 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+AlignConsecutiveMacros: true
+# This option was added 5/18/2020, when it become available we will
+# enable it and re-format
+# AlignConsecutiveBitFields: true

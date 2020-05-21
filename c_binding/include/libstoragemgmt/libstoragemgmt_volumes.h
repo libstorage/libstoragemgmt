@@ -21,7 +21,7 @@
 
 #include "libstoragemgmt_common.h"
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -243,7 +243,7 @@ char LSM_DLL_EXPORT *lsm_volume_system_id_get(lsm_volume *v);
  */
 char LSM_DLL_EXPORT *lsm_volume_pool_id_get(lsm_volume *v);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
-#endif                          /* LIBSTORAGEMGMT_VOLUMES_H */
+#endif /* LIBSTORAGEMGMT_VOLUMES_H */

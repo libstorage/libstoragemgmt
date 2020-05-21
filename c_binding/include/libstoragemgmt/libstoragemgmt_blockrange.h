@@ -21,7 +21,7 @@
 
 #include "libstoragemgmt_common.h"
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -49,8 +49,8 @@ extern "C" {
  *      illegal argument. Should be freed by lsm_block_range_record_free().
  */
 lsm_block_range LSM_DLL_EXPORT *
-    lsm_block_range_record_alloc(uint64_t source_start, uint64_t dest_start,
-                                 uint64_t block_count);
+lsm_block_range_record_alloc(uint64_t source_start, uint64_t dest_start,
+                             uint64_t block_count);
 
 /**
  * lsm_block range_record_free - Free the lsm_block_range memory.
@@ -69,10 +69,10 @@ lsm_block_range LSM_DLL_EXPORT *
  *          * LSM_ERR_OK
  *              On success or not found.
  *          * LSM_ERR_INVALID_ARGUMENT
- *              When any argument is NULL or not a valid lsm_block_range pointer.
+ *              When any argument is NULL or not a valid lsm_block_range
+ * pointer.
  */
-int LSM_DLL_EXPORT lsm_block_range_record_free(lsm_block_range * br);
-
+int LSM_DLL_EXPORT lsm_block_range_record_free(lsm_block_range *br);
 
 /**
  * lsm_block_range_record_copy - Duplicates a block_range record.
@@ -92,8 +92,7 @@ int LSM_DLL_EXPORT lsm_block_range_record_free(lsm_block_range * br);
  *      Should be freed by lsm_block_range_record_free().
  */
 lsm_block_range LSM_DLL_EXPORT *
-    lsm_block_range_record_copy(lsm_block_range * source);
-
+lsm_block_range_record_copy(lsm_block_range *source);
 
 /**
  * lsm_block_range_record_array_alloc - Allocates a lsm_block_range array.
@@ -113,8 +112,7 @@ lsm_block_range LSM_DLL_EXPORT *
  *      Should be freed by lsm_block_range_record_array_free().
  */
 lsm_block_range LSM_DLL_EXPORT **
-    lsm_block_range_record_array_alloc(uint32_t size);
-
+lsm_block_range_record_array_alloc(uint32_t size);
 
 /**
  * lsm_block_range_record_array_free - Free the memory of lsm_block_range array.
@@ -156,8 +154,7 @@ int LSM_DLL_EXPORT lsm_block_range_record_array_free(lsm_block_range *br[],
  * Return:
  *      uint64_t. 0 if invalid lsm_block_range pointer.
  */
-uint64_t LSM_DLL_EXPORT
-    lsm_block_range_source_start_get(lsm_block_range *br);
+uint64_t LSM_DLL_EXPORT lsm_block_range_source_start_get(lsm_block_range *br);
 
 /**
  * lsm_block_range_destination_start_get - Retrieves start block of the
@@ -195,7 +192,7 @@ uint64_t LSM_DLL_EXPORT lsm_block_range_dest_start_get(lsm_block_range *br);
  */
 uint64_t LSM_DLL_EXPORT lsm_block_range_block_count_get(lsm_block_range *br);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
 #endif

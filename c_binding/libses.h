@@ -19,17 +19,17 @@
 #ifndef _LIBSES_H_
 #define _LIBSES_H_
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "libstoragemgmt/libstoragemgmt_common.h"
 #include "libstoragemgmt/libstoragemgmt_error.h"
 
-#define _SES_CTRL_SET                       1
-#define _SES_CTRL_CLEAR                     2
+#define _SES_CTRL_SET   1
+#define _SES_CTRL_CLEAR 2
 
-#define _SES_DEV_CTRL_RQST_IDENT            1
-#define _SES_DEV_CTRL_RQST_FAULT            2
+#define _SES_DEV_CTRL_RQST_IDENT 1
+#define _SES_DEV_CTRL_RQST_FAULT 2
 
 #pragma pack(push, 1)
 /*
@@ -40,41 +40,41 @@ struct _ses_dev_slot_status {
     uint8_t common_status;
     uint8_t diff_between_dev_slot_and_array_dev_slot;
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    uint8_t report              : 1;
-    uint8_t ident               : 1;
-    uint8_t rmv                 : 1;
-    uint8_t ready_to_insert     : 1;
-    uint8_t enc_bypass_b        : 1;
-    uint8_t enc_bypass_a        : 1;
-    uint8_t do_not_remove       : 1;
-    uint8_t app_bypass_a        : 1;
+    uint8_t report : 1;
+    uint8_t ident : 1;
+    uint8_t rmv : 1;
+    uint8_t ready_to_insert : 1;
+    uint8_t enc_bypass_b : 1;
+    uint8_t enc_bypass_a : 1;
+    uint8_t do_not_remove : 1;
+    uint8_t app_bypass_a : 1;
 
-    uint8_t dev_bypass_b        : 1;
-    uint8_t dev_bypass_a        : 1;
-    uint8_t bypass_b            : 1;
-    uint8_t bypass_a            : 1;
-    uint8_t dev_off             : 1;
-    uint8_t fault_reqstd        : 1;
-    uint8_t fault_sensed        : 1;
-    uint8_t app_bypass_b        : 1;
+    uint8_t dev_bypass_b : 1;
+    uint8_t dev_bypass_a : 1;
+    uint8_t bypass_b : 1;
+    uint8_t bypass_a : 1;
+    uint8_t dev_off : 1;
+    uint8_t fault_reqstd : 1;
+    uint8_t fault_sensed : 1;
+    uint8_t app_bypass_b : 1;
 #else
-    uint8_t app_bypass_a        : 1;
-    uint8_t do_not_remove       : 1;
-    uint8_t enc_bypass_a        : 1;
-    uint8_t enc_bypass_b        : 1;
-    uint8_t ready_to_insert     : 1;
-    uint8_t rmv                 : 1;
-    uint8_t ident               : 1;
-    uint8_t report              : 1;
+    uint8_t app_bypass_a : 1;
+    uint8_t do_not_remove : 1;
+    uint8_t enc_bypass_a : 1;
+    uint8_t enc_bypass_b : 1;
+    uint8_t ready_to_insert : 1;
+    uint8_t rmv : 1;
+    uint8_t ident : 1;
+    uint8_t report : 1;
 
-    uint8_t app_bypass_b        : 1;
-    uint8_t fault_sensed        : 1;
-    uint8_t fault_reqstd        : 1;
-    uint8_t dev_off             : 1;
-    uint8_t bypass_a            : 1;
-    uint8_t bypass_b            : 1;
-    uint8_t dev_bypass_a        : 1;
-    uint8_t dev_bypass_b        : 1;
+    uint8_t app_bypass_b : 1;
+    uint8_t fault_sensed : 1;
+    uint8_t fault_reqstd : 1;
+    uint8_t dev_off : 1;
+    uint8_t bypass_a : 1;
+    uint8_t bypass_b : 1;
+    uint8_t dev_bypass_a : 1;
+    uint8_t dev_bypass_b : 1;
 #endif
 };
 #pragma pack(pop)
@@ -97,4 +97,4 @@ LSM_DLL_LOCAL int _ses_dev_slot_ctrl(char *err_msg, const char *tp_sas_addr,
 LSM_DLL_LOCAL int _ses_status_get(char *err_msg, const char *tp_sas_addr,
                                   struct _ses_dev_slot_status *status);
 
-#endif  /* End of _LIBSES_H_ */
+#endif /* End of _LIBSES_H_ */

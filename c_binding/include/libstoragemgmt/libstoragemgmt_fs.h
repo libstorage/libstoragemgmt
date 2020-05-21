@@ -21,7 +21,7 @@
 
 #include "libstoragemgmt_common.h"
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -63,7 +63,7 @@ int LSM_DLL_EXPORT lsm_fs_record_free(lsm_fs *fs);
  *      Pointer of lsm_fs. NULL on memory allocation failure or argument
  *      @source is NULL. Should be freed by lsm_fs_record_free().
  */
-lsm_fs LSM_DLL_EXPORT *lsm_fs_record_copy(lsm_fs * source);
+lsm_fs LSM_DLL_EXPORT *lsm_fs_record_copy(lsm_fs *source);
 
 /**
  * lsm_fs_record_array_free - Free the memory of lsm_fs array.
@@ -201,7 +201,7 @@ uint64_t LSM_DLL_EXPORT lsm_fs_total_space_get(lsm_fs *fs);
  */
 uint64_t LSM_DLL_EXPORT lsm_fs_free_space_get(lsm_fs *fs);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
 #endif

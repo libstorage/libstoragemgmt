@@ -21,7 +21,7 @@
 
 #include "libstoragemgmt_common.h"
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -144,7 +144,7 @@ const char LSM_DLL_EXPORT *lsm_fs_ss_name_get(lsm_fs_ss *ss);
  */
 uint64_t LSM_DLL_EXPORT lsm_fs_ss_time_stamp_get(lsm_fs_ss *ss);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
 #endif

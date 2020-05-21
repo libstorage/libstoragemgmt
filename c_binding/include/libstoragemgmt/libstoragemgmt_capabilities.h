@@ -24,20 +24,19 @@
 
 #include "libstoragemgmt_common.h"
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Note: Domain is 0..255 */
-
 
 /* TODO(Gris Ge): kernel-doc script does not support in struct/enum
  *                documentation for typedef.
  */
 
 typedef enum {
-    LSM_CAP_UNSUPPORTED = 0,             /**< Feature is not supported */
-    LSM_CAP_SUPPORTED = 1                /**< Feature is supported */
+    LSM_CAP_UNSUPPORTED = 0, /**< Feature is not supported */
+    LSM_CAP_SUPPORTED = 1    /**< Feature is supported */
 } lsm_capability_value_type;
 
 typedef enum {
@@ -96,7 +95,6 @@ typedef enum {
     /** Retrieve a list of what access groups are accessible for a given
      * volume */
     LSM_CAP_ACCESS_GROUPS_GRANTED_TO_VOLUME = 44,
-
 
     /** Used to determine if a volume has any dependencies */
     LSM_CAP_VOLUME_CHILD_DEPENDENCY = 45,
@@ -277,8 +275,7 @@ int LSM_DLL_EXPORT lsm_capability_record_free(lsm_storage_capabilities *cap);
  *              pointer or invalid lsm_capability_type.
  */
 lsm_capability_value_type LSM_DLL_EXPORT
-    lsm_capability_get(lsm_storage_capabilities * cap,
-                       lsm_capability_type t);
+lsm_capability_get(lsm_storage_capabilities *cap, lsm_capability_type t);
 
 /**
  * lsm_capability_supported - Check whether specified capability is supported.
@@ -307,8 +304,7 @@ lsm_capability_value_type LSM_DLL_EXPORT
 int LSM_DLL_EXPORT lsm_capability_supported(lsm_storage_capabilities *cap,
                                             lsm_capability_type t);
 
-
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
 #endif
