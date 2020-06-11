@@ -91,7 +91,7 @@ News for libStorageMgmt
     * lsmd: Fix crash when plugin named as _lsmplugin.
     * Fix GCC 8 compiling warnings.
     * Add support of Debian/Ubuntu packaging.
-    * User case tools for unused LUN scan and local storage sanity check.
+    * User case tools for unused LUN scan and local basic storage check.
 
 1.6.1: Oct 31: 2017
     * Add support of RHEL/Centos 6 back.
