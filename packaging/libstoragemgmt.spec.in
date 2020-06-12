@@ -524,7 +524,7 @@ fi
 %{_bindir}/sim_lsmplugin
 %dir %{_libexecdir}/lsm.d
 %{_libexecdir}/lsm.d/find_unused_lun.py*
-%{_libexecdir}/lsm.d/local_sanity_check.py*
+%{_libexecdir}/lsm.d/local_check.py*
 %config(noreplace) %{_sysconfdir}/lsm/pluginconf.d/sim.conf
 %{_mandir}/man1/sim_lsmplugin.1*
 
