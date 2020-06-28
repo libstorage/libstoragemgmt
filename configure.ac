@@ -255,9 +255,28 @@ but found $PYTHON_MAJOR_VERSION.x]) ;;
         PYTHON_LIBS=`python-config --libs`
         AC_SUBST(PYTHON_CFLAGS)
         AC_SUBST(PYTHON_LIBS)
+    else
+        dnl travis 18.04 ubuntu appears to have a bug WRT PKG_CHECK_MODULES
+        HAS_INCLUDE=`echo $PYTHON_CFLAGS | awk '/include/'`
+
+        if test -z "$HAS_INCLUDE"; then
+            AC_MSG_NOTICE([PYTHON_CFLAGS missing include])
+            AC_CHECK_PROG([PY_CONFIG_CHECK], [python-config], [yes])
+            if test "x${PY_CONFIG_CHECK}" != "xyes"; then
+                AC_MSG_ERROR([Python2 development libraries required])
+            fi
+            PYTHON_CFLAGS=`python-config --cflags`
+            PYTHON_LIBS=`python-config --libs`
+            AC_SUBST(PYTHON_CFLAGS)
+            AC_SUBST(PYTHON_LIBS)
+        fi
     fi
     AC_SUBST(PY_VERSION, 2)
 fi
+
+AC_MSG_NOTICE([PYTHON_CFLAGS])
+AC_MSG_NOTICE([$PYTHON_CFLAGS])
+
 AM_CONDITIONAL([WITH_PYTHON3], [test "x$with_python3" = "xyes"])
 
 dnl ==========================================================================
