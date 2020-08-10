@@ -19,10 +19,10 @@
 #ifndef _SIMC_FS_OPS_H_
 #define _SIMC_FS_OPS_H_
 
+#include <sqlite3.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdint.h>
-#include <sqlite3.h>
 
 int fs_list(lsm_plugin_ptr c, const char *search_key, const char *search_value,
             lsm_fs **fs[], uint32_t *fs_count, lsm_flag flags);
@@ -39,11 +39,11 @@ int fs_clone(lsm_plugin_ptr c, lsm_fs *src_fs, const char *dest_fs_name,
 int fs_child_dependency(lsm_plugin_ptr c, lsm_fs *fs, lsm_string_list *files,
                         uint8_t *yes);
 
-int fs_child_dependency_rm(lsm_plugin_ptr c, lsm_fs *fs,
-                           lsm_string_list *files, char **job, lsm_flag flags);
+int fs_child_dependency_rm(lsm_plugin_ptr c, lsm_fs *fs, lsm_string_list *files,
+                           char **job, lsm_flag flags);
 
-int fs_resize(lsm_plugin_ptr c, lsm_fs *fs, uint64_t new_size,
-              lsm_fs ** rfs, char **job, lsm_flag flags);
+int fs_resize(lsm_plugin_ptr c, lsm_fs *fs, uint64_t new_size, lsm_fs **rfs,
+              char **job, lsm_flag flags);
 
 int fs_file_clone(lsm_plugin_ptr c, lsm_fs *fs, const char *src_file_name,
                   const char *dest_file_name, lsm_fs_ss *snapshot, char **job,
@@ -65,4 +65,4 @@ int fs_snapshot_restore(lsm_plugin_ptr c, lsm_fs *fs, lsm_fs_ss *ss,
 lsm_fs *_sim_fs_to_lsm(char *err_msg, lsm_hash *sim_fs);
 lsm_fs_ss *_sim_fs_snap_to_lsm(char *err_msg, lsm_hash *sim_fs_snap);
 
-#endif  /* End of _SIMC_FS_OPS_H_ */
+#endif /* End of _SIMC_FS_OPS_H_ */

@@ -26,12 +26,11 @@ struct _vector {
     uint32_t size;
 };
 
-struct _vector *_vector_new(uint32_t size)
-{
+struct _vector *_vector_new(uint32_t size) {
     struct _vector *vec = NULL;
     uint32_t i = 0;
 
-    vec = (struct _vector *) malloc(sizeof(struct _vector));
+    vec = (struct _vector *)malloc(sizeof(struct _vector));
     if (vec == NULL)
         return NULL;
 
@@ -39,7 +38,7 @@ struct _vector *_vector_new(uint32_t size)
     if (size == 0) {
         vec->data_array = NULL;
     } else {
-        vec->data_array = (void **) malloc(sizeof(void *) * size);
+        vec->data_array = (void **)malloc(sizeof(void *) * size);
         if (vec->data_array == NULL) {
             free(vec);
             return NULL;
@@ -50,16 +49,14 @@ struct _vector *_vector_new(uint32_t size)
     return vec;
 }
 
-void _vector_update(struct _vector *vec, void *data, uint32_t index)
-{
+void _vector_update(struct _vector *vec, void *data, uint32_t index) {
     assert(vec != NULL);
     assert(vec->size > index);
 
     vec->data_array[index] = data;
 }
 
-int _vector_insert(struct _vector *vec, void *data)
-{
+int _vector_insert(struct _vector *vec, void *data) {
     assert(vec != NULL);
 
     void **new_data_array = NULL;
@@ -74,23 +71,20 @@ int _vector_insert(struct _vector *vec, void *data)
     return 0;
 }
 
-void _vector_free(struct _vector *vec)
-{
+void _vector_free(struct _vector *vec) {
     if (vec != NULL)
         free(vec->data_array);
     free(vec);
 }
 
-void *_vector_get(struct _vector *vec, uint32_t index)
-{
+void *_vector_get(struct _vector *vec, uint32_t index) {
     assert(vec != NULL);
     assert(vec->size > index);
 
     return vec->data_array[index];
 }
 
-uint32_t _vector_size(struct _vector *vec)
-{
+uint32_t _vector_size(struct _vector *vec) {
     assert(vec != NULL);
     return vec->size;
 }

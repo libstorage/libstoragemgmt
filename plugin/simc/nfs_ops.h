@@ -19,9 +19,9 @@
 #ifndef _SIMC_NFS_OPS_H_
 #define _SIMC_NFS_OPS_H_
 
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdint.h>
 
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 
@@ -38,4 +38,4 @@ int nfs_export_fs(lsm_plugin_ptr c, const char *fs_id, const char *export_path,
 
 int nfs_export_remove(lsm_plugin_ptr c, lsm_nfs_export *e, lsm_flag flags);
 
-#endif  /* End of _SIMC_NFS_OPS_H_ */
+#endif /* End of _SIMC_NFS_OPS_H_ */

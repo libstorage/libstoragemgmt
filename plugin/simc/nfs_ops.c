@@ -18,15 +18,15 @@
 
 #include <assert.h>
 #include <inttypes.h>
-#include <stdint.h>
 #include <sqlite3.h>
+#include <stdint.h>
 
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 
-#include "nfs_ops.h"
-#include "mgm_ops.h"
-#include "utils.h"
 #include "db.h"
+#include "mgm_ops.h"
+#include "nfs_ops.h"
+#include "utils.h"
 
 static lsm_nfs_export *_sim_exp_to_lsm(char *err_msg, lsm_hash *sim_exp);
 
@@ -36,17 +36,16 @@ static lsm_nfs_export *_sim_exp_to_lsm(char *err_msg, lsm_hash *sim_exp);
  */
 static int _nfs_export(char *err_msg, sqlite3 *db, const char *sim_fs_id_str,
                        const char *export_path, lsm_string_list *root_list,
-                       lsm_string_list *rw_list,
-                       lsm_string_list *ro_list, uint64_t anon_uid,
-                       uint64_t anon_gid, const char *auth_type,
-                       const char *options, uint64_t *sim_exp_id);
+                       lsm_string_list *rw_list, lsm_string_list *ro_list,
+                       uint64_t anon_uid, uint64_t anon_gid,
+                       const char *auth_type, const char *options,
+                       uint64_t *sim_exp_id);
 
 _xxx_list_func_gen(nfs_list, lsm_nfs_export, _sim_exp_to_lsm,
                    lsm_plug_nfs_export_search_filter, _DB_TABLE_NFS_EXPS_VIEW,
                    lsm_nfs_export_record_array_free);
 
-static lsm_nfs_export *_sim_exp_to_lsm(char *err_msg, lsm_hash *sim_exp)
-{
+static lsm_nfs_export *_sim_exp_to_lsm(char *err_msg, lsm_hash *sim_exp) {
     const char *plugin_data = NULL;
     uint64_t anon_uid = 0;
     uint64_t anon_gid = 0;
@@ -75,52 +74,51 @@ static lsm_nfs_export *_sim_exp_to_lsm(char *err_msg, lsm_hash *sim_exp)
     root_hosts_str = lsm_hash_string_get(sim_exp, "exp_root_hosts_str");
     if (root_hosts_str == NULL) {
         _lsm_err_msg_set(err_msg, "BUG: No 'exp_root_hosts_str' in lsm_hash "
-                         "sim_exp");
+                                  "sim_exp");
         return NULL;
     }
     rw_hosts_str = lsm_hash_string_get(sim_exp, "exp_rw_hosts_str");
     if (rw_hosts_str == NULL) {
         _lsm_err_msg_set(err_msg, "BUG: No 'exp_rw_hosts_str' in lsm_hash "
-                         "sim_exp");
+                                  "sim_exp");
         return NULL;
     }
     ro_hosts_str = lsm_hash_string_get(sim_exp, "exp_ro_hosts_str");
     if (ro_hosts_str == NULL) {
         _lsm_err_msg_set(err_msg, "BUG: No 'exp_ro_hosts_str' in lsm_hash "
-                         "sim_exp");
+                                  "sim_exp");
         return NULL;
     }
 
     root_hosts = _db_str_to_list(root_hosts_str);
     if (root_hosts == NULL) {
         _lsm_err_msg_set(err_msg, "BUG: Failed to convert exp_root_hosts_str "
-                         "to list");
+                                  "to list");
         return NULL;
     }
     rw_hosts = _db_str_to_list(rw_hosts_str);
     if (rw_hosts == NULL) {
         _lsm_err_msg_set(err_msg, "BUG: Failed to convert exp_rw_hosts_str "
-                         "to list");
+                                  "to list");
         lsm_string_list_free(root_hosts);
         return NULL;
     }
     ro_hosts = _db_str_to_list(ro_hosts_str);
     if (ro_hosts == NULL) {
         _lsm_err_msg_set(err_msg, "BUG: Failed to convert exp_ro_hosts_str "
-                         "to list");
+                                  "to list");
         lsm_string_list_free(root_hosts);
         lsm_string_list_free(rw_hosts);
         return NULL;
     }
 
-    lsm_nfs_obj = lsm_nfs_export_record_alloc
-        (lsm_hash_string_get(sim_exp, "lsm_exp_id"),
-         lsm_hash_string_get(sim_exp, "lsm_fs_id"),
-         lsm_hash_string_get(sim_exp, "exp_path"),
-         lsm_hash_string_get(sim_exp, "auth_type"),
-         root_hosts, rw_hosts, ro_hosts, anon_uid, anon_gid,
-         lsm_hash_string_get(sim_exp, "options"),
-         plugin_data);
+    lsm_nfs_obj = lsm_nfs_export_record_alloc(
+        lsm_hash_string_get(sim_exp, "lsm_exp_id"),
+        lsm_hash_string_get(sim_exp, "lsm_fs_id"),
+        lsm_hash_string_get(sim_exp, "exp_path"),
+        lsm_hash_string_get(sim_exp, "auth_type"), root_hosts, rw_hosts,
+        ro_hosts, anon_uid, anon_gid, lsm_hash_string_get(sim_exp, "options"),
+        plugin_data);
     lsm_string_list_free(root_hosts);
     lsm_string_list_free(rw_hosts);
     lsm_string_list_free(ro_hosts);
@@ -131,8 +129,7 @@ static lsm_nfs_export *_sim_exp_to_lsm(char *err_msg, lsm_hash *sim_exp)
     return lsm_nfs_obj;
 }
 
-int nfs_auth_types(lsm_plugin_ptr c, lsm_string_list **types, lsm_flag flags)
-{
+int nfs_auth_types(lsm_plugin_ptr c, lsm_string_list **types, lsm_flag flags) {
     int rc = LSM_ERR_OK;
     _UNUSED(c);
     _UNUSED(flags);
@@ -149,8 +146,7 @@ int nfs_export_fs(lsm_plugin_ptr c, const char *fs_id, const char *export_path,
                   lsm_string_list *root_list, lsm_string_list *rw_list,
                   lsm_string_list *ro_list, uint64_t anon_uid,
                   uint64_t anon_gid, const char *auth_type, const char *options,
-                  lsm_nfs_export **exported, lsm_flag flags)
-{
+                  lsm_nfs_export **exported, lsm_flag flags) {
     int rc = LSM_ERR_OK;
     sqlite3 *db = NULL;
     char err_msg[_LSM_ERR_MSG_LEN];
@@ -163,8 +159,8 @@ int nfs_export_fs(lsm_plugin_ptr c, const char *fs_id, const char *export_path,
 
     _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
-    _good(_check_null_ptr(err_msg, 2 /* argument count */, fs_id, exported),
-          rc, out);
+    _good(_check_null_ptr(err_msg, 2 /* argument count */, fs_id, exported), rc,
+          out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
 
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
@@ -182,10 +178,11 @@ int nfs_export_fs(lsm_plugin_ptr c, const char *fs_id, const char *export_path,
 
     _good(_nfs_export(err_msg, db, _db_lsm_id_to_sim_id_str(fs_id), export_path,
                       root_list, rw_list, ro_list, anon_uid, anon_gid,
-                      auth_type, options, &sim_exp_id), rc, out);
+                      auth_type, options, &sim_exp_id),
+          rc, out);
 
-    if (_db_sim_exp_of_sim_id(err_msg, db, sim_exp_id, &sim_exp)
-        != LSM_ERR_OK) {
+    if (_db_sim_exp_of_sim_id(err_msg, db, sim_exp_id, &sim_exp) !=
+        LSM_ERR_OK) {
         rc = LSM_ERR_PLUGIN_BUG;
         _lsm_err_msg_set(err_msg,
                          "BUG: Failed to find newly created NFS export");
@@ -200,7 +197,7 @@ int nfs_export_fs(lsm_plugin_ptr c, const char *fs_id, const char *export_path,
 
     _good(_db_sql_trans_commit(err_msg, db), rc, out);
 
- out:
+out:
     if (sim_fs != NULL)
         lsm_hash_free(sim_fs);
     if (sim_exp != NULL)
@@ -214,8 +211,7 @@ int nfs_export_fs(lsm_plugin_ptr c, const char *fs_id, const char *export_path,
     return rc;
 }
 
-int nfs_export_remove(lsm_plugin_ptr c, lsm_nfs_export *e, lsm_flag flags)
-{
+int nfs_export_remove(lsm_plugin_ptr c, lsm_nfs_export *e, lsm_flag flags) {
     int rc = LSM_ERR_OK;
     sqlite3 *db = NULL;
     char err_msg[_LSM_ERR_MSG_LEN];
@@ -233,12 +229,12 @@ int nfs_export_remove(lsm_plugin_ptr c, lsm_nfs_export *e, lsm_flag flags)
 
     _good(_db_sim_exp_of_sim_id(err_msg, db, sim_exp_id, &sim_exp), rc, out);
 
-    _good(_db_data_delete(err_msg, db, _DB_TABLE_NFS_EXPS, sim_exp_id),
-          rc, out);
+    _good(_db_data_delete(err_msg, db, _DB_TABLE_NFS_EXPS, sim_exp_id), rc,
+          out);
 
     _good(_db_sql_trans_commit(err_msg, db), rc, out);
 
- out:
+out:
     if (sim_exp != NULL)
         lsm_hash_free(sim_exp);
     if (rc != LSM_ERR_OK) {
@@ -250,11 +246,10 @@ int nfs_export_remove(lsm_plugin_ptr c, lsm_nfs_export *e, lsm_flag flags)
 
 static int _nfs_export(char *err_msg, sqlite3 *db, const char *sim_fs_id_str,
                        const char *export_path, lsm_string_list *root_list,
-                       lsm_string_list *rw_list,
-                       lsm_string_list *ro_list, uint64_t anon_uid,
-                       uint64_t anon_gid, const char *auth_type,
-                       const char *options, uint64_t *sim_exp_id)
-{
+                       lsm_string_list *rw_list, lsm_string_list *ro_list,
+                       uint64_t anon_uid, uint64_t anon_gid,
+                       const char *auth_type, const char *options,
+                       uint64_t *sim_exp_id) {
 
     int rc = LSM_ERR_OK;
     size_t i = 0;
@@ -286,32 +281,31 @@ static int _nfs_export(char *err_msg, sqlite3 *db, const char *sim_fs_id_str,
     };
 
     _snprintf_buff(err_msg, rc, out, anon_uid_str, "%" PRIi64,
-                   (int64_t) anon_uid);
+                   (int64_t)anon_uid);
 
     _snprintf_buff(err_msg, rc, out, anon_gid_str, "%" PRIi64,
-                   (int64_t) anon_gid);
+                   (int64_t)anon_gid);
 
-    rc = _db_data_add(err_msg, db, _DB_TABLE_NFS_EXPS,
-                      "fs_id", sim_fs_id_str,
-                      "exp_path", export_path,
-                      "anon_uid", anon_uid_str,
-                      "anon_gid", anon_gid_str,
-                      "auth_type", auth_type != NULL ? auth_type : "",
-                      "options", options != NULL ? options : "",
-                      NULL);
+    rc = _db_data_add(err_msg, db, _DB_TABLE_NFS_EXPS, "fs_id", sim_fs_id_str,
+                      "exp_path", export_path, "anon_uid", anon_uid_str,
+                      "anon_gid", anon_gid_str, "auth_type",
+                      auth_type != NULL ? auth_type : "", "options",
+                      options != NULL ? options : "", NULL);
 
     if (rc != LSM_ERR_OK) {
         if (sqlite3_errcode(db) == SQLITE_CONSTRAINT) {
             rc = LSM_ERR_NAME_CONFLICT;
-            _lsm_err_msg_set(err_msg, "Export path '%s' is already used by "
-                             "other NFS export", export_path);
+            _lsm_err_msg_set(err_msg,
+                             "Export path '%s' is already used by "
+                             "other NFS export",
+                             export_path);
         }
         goto out;
     }
     *sim_exp_id = _db_last_rowid(db);
     _snprintf_buff(err_msg, rc, out, sim_exp_id_str, "%" PRIu64, *sim_exp_id);
 
-    for (; i < sizeof(host_lists)/sizeof(host_lists[0]); ++i) {
+    for (; i < sizeof(host_lists) / sizeof(host_lists[0]); ++i) {
         host_list = host_lists[i].host_list;
         host_list_table = host_lists[i].table_name;
         if (host_list == NULL)
@@ -320,15 +314,13 @@ static int _nfs_export(char *err_msg, sqlite3 *db, const char *sim_fs_id_str,
             host = lsm_string_list_elem_get(host_list, j);
             if (host == NULL)
                 continue;
-            _good(_db_data_add(err_msg, db, host_list_table,
-                              "host", host,
-                              "exp_id", sim_exp_id_str,
-                              NULL),
+            _good(_db_data_add(err_msg, db, host_list_table, "host", host,
+                               "exp_id", sim_exp_id_str, NULL),
                   rc, out);
         }
     }
 
- out:
+out:
     if (rc != LSM_ERR_OK)
         *sim_exp_id = _DB_SIM_ID_NONE;
     return rc;

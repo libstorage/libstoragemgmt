@@ -18,24 +18,23 @@
 
 #include <assert.h>
 #include <inttypes.h>
-#include <stdint.h>
 #include <sqlite3.h>
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 
-#include "utils.h"
 #include "db.h"
-#include "san_ops.h"
 #include "ops_v1_2.h"
+#include "san_ops.h"
+#include "utils.h"
 
 int volume_raid_info(lsm_plugin_ptr c, lsm_volume *volume,
                      lsm_volume_raid_type *raid_type, uint32_t *strip_size,
                      uint32_t *disk_count, uint32_t *min_io_size,
-                     uint32_t *opt_io_size, lsm_flag flags)
-{
+                     uint32_t *opt_io_size, lsm_flag flags) {
     int rc = LSM_ERR_OK;
     sqlite3 *db = NULL;
     char err_msg[_LSM_ERR_MSG_LEN];
@@ -49,8 +48,7 @@ int volume_raid_info(lsm_plugin_ptr c, lsm_volume *volume,
     _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
     _good(_check_null_ptr(err_msg, 6 /* argument count */, volume, raid_type,
-                          strip_size, disk_count, min_io_size,
-                          opt_io_size),
+                          strip_size, disk_count, min_io_size, opt_io_size),
           rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
@@ -61,12 +59,14 @@ int volume_raid_info(lsm_plugin_ptr c, lsm_volume *volume,
     _good(_db_sim_pool_of_sim_id(err_msg, db, sim_p_id, &sim_p), rc, out);
 
     _good(_str_to_int(err_msg, lsm_hash_string_get(sim_p, "member_type"),
-                      (int *) &member_type), rc, out);
+                      (int *)&member_type),
+          rc, out);
 
     if (member_type == LSM_POOL_MEMBER_TYPE_POOL) {
-        _good(_str_to_uint64(err_msg, lsm_hash_string_get(sim_p,
-                                                          "parent_pool_id"),
-                             &sim_p_id), rc, out);
+        _good(_str_to_uint64(err_msg,
+                             lsm_hash_string_get(sim_p, "parent_pool_id"),
+                             &sim_p_id),
+              rc, out);
         _good(_db_sim_pool_of_sim_id(err_msg, db, sim_p_id, &sim_p), rc, out);
     } else if (member_type != LSM_POOL_MEMBER_TYPE_DISK) {
         rc = LSM_ERR_PLUGIN_BUG;
@@ -76,22 +76,25 @@ int volume_raid_info(lsm_plugin_ptr c, lsm_volume *volume,
     }
 
     _good(_str_to_int(err_msg, lsm_hash_string_get(sim_p, "raid_type"),
-                      (int *) raid_type), rc, out);
+                      (int *)raid_type),
+          rc, out);
     _good(_str_to_uint32(err_msg, lsm_hash_string_get(sim_p, "strip_size"),
-                         strip_size), rc, out);
+                         strip_size),
+          rc, out);
     *min_io_size = *strip_size;
     _good(_str_to_uint32(err_msg, lsm_hash_string_get(sim_p, "disk_count"),
-                         disk_count), rc, out);
-    _good(_str_to_uint32(err_msg, lsm_hash_string_get(sim_p,
-                                                      "data_disk_count"),
-                         &data_disk_count), rc, out);
+                         disk_count),
+          rc, out);
+    _good(_str_to_uint32(err_msg, lsm_hash_string_get(sim_p, "data_disk_count"),
+                         &data_disk_count),
+          rc, out);
     if ((*raid_type == LSM_VOLUME_RAID_TYPE_RAID1) ||
         (*raid_type == LSM_VOLUME_RAID_TYPE_JBOD))
         *opt_io_size = _BLOCK_SIZE;
     else
         *opt_io_size = *strip_size * data_disk_count;
 
- out:
+out:
     _db_sql_trans_rollback(db);
     if (sim_vol != NULL)
         lsm_hash_free(sim_vol);
@@ -117,9 +120,7 @@ int volume_raid_info(lsm_plugin_ptr c, lsm_volume *volume,
 int pool_member_info(lsm_plugin_ptr c, lsm_pool *pool,
                      lsm_volume_raid_type *raid_type,
                      lsm_pool_member_type *member_type,
-                     lsm_string_list **member_ids,
-                     lsm_flag flags)
-{
+                     lsm_string_list **member_ids, lsm_flag flags) {
     int rc = LSM_ERR_OK;
     sqlite3 *db = NULL;
     char err_msg[_LSM_ERR_MSG_LEN];
@@ -142,39 +143,43 @@ int pool_member_info(lsm_plugin_ptr c, lsm_pool *pool,
     _good(_db_sim_pool_of_sim_id(err_msg, db, sim_p_id, &sim_p), rc, out);
 
     _good(_str_to_int(err_msg, lsm_hash_string_get(sim_p, "member_type"),
-                      (int *) member_type), rc, out);
+                      (int *)member_type),
+          rc, out);
     _good(_str_to_int(err_msg, lsm_hash_string_get(sim_p, "raid_type"),
-                      (int *) raid_type), rc, out);
+                      (int *)raid_type),
+          rc, out);
 
-    switch(*member_type) {
+    switch (*member_type) {
     case LSM_POOL_MEMBER_TYPE_POOL:
         *member_ids = lsm_string_list_alloc(1);
         _alloc_null_check(err_msg, *member_ids, rc, out);
-        rc = lsm_string_list_elem_set(*member_ids, 0,
-                                      lsm_hash_string_get(sim_p,
-                                                          "parent_lsm_pool_id")
-                                      );
+        rc = lsm_string_list_elem_set(
+            *member_ids, 0, lsm_hash_string_get(sim_p, "parent_lsm_pool_id"));
         if (rc != LSM_ERR_OK) {
-            _lsm_err_msg_set(err_msg, "lsm_string_list_elem_set() failed with "
-                             "%d", rc);
+            _lsm_err_msg_set(err_msg,
+                             "lsm_string_list_elem_set() failed with "
+                             "%d",
+                             rc);
             goto out;
         }
 
         break;
     case LSM_POOL_MEMBER_TYPE_DISK:
-        _snprintf_buff(err_msg, rc, out, sql_cmd, "SELECT lsm_disk_id FROM "
-                       _DB_TABLE_DISKS_VIEW " WHERE owner_pool_id = %" PRIu64
-                       ";", sim_p_id);
+        _snprintf_buff(err_msg, rc, out, sql_cmd,
+                       "SELECT lsm_disk_id FROM " _DB_TABLE_DISKS_VIEW
+                       " WHERE owner_pool_id = %" PRIu64 ";",
+                       sim_p_id);
         _good(_db_sql_exec(err_msg, db, sql_cmd, &vec), rc, out);
         *member_ids = lsm_string_list_alloc(_vector_size(vec));
         _alloc_null_check(err_msg, *member_ids, rc, out);
         _vector_for_each(vec, i, sim_disk) {
-            rc = lsm_string_list_elem_set(*member_ids, i,
-                                          lsm_hash_string_get(sim_disk,
-                                                              "lsm_disk_id"));
+            rc = lsm_string_list_elem_set(
+                *member_ids, i, lsm_hash_string_get(sim_disk, "lsm_disk_id"));
             if (rc != LSM_ERR_OK) {
-                _lsm_err_msg_set(err_msg, "lsm_string_list_elem_set() "
-                                 "failed with %d", rc);
+                _lsm_err_msg_set(err_msg,
+                                 "lsm_string_list_elem_set() "
+                                 "failed with %d",
+                                 rc);
                 goto out;
             }
         }
@@ -185,7 +190,7 @@ int pool_member_info(lsm_plugin_ptr c, lsm_pool *pool,
                          *member_type);
         goto out;
     }
- out:
+out:
     _db_sql_trans_rollback(db);
     _db_sql_exec_vec_free(vec);
     if (sim_p != NULL)
@@ -207,8 +212,7 @@ int volume_raid_create_cap_get(lsm_plugin_ptr c, lsm_system *system,
                                uint32_t *supported_raid_type_count,
                                uint32_t **supported_strip_sizes,
                                uint32_t *supported_strip_size_count,
-                               lsm_flag flags)
-{
+                               lsm_flag flags) {
     int rc = LSM_ERR_OK;
     char err_msg[_LSM_ERR_MSG_LEN];
     const char *sys_id = NULL;
@@ -225,24 +229,21 @@ int volume_raid_create_cap_get(lsm_plugin_ptr c, lsm_system *system,
         rc = LSM_ERR_NOT_FOUND_SYSTEM;
         _lsm_err_msg_set(err_msg, "System not found");
     }
-    _good(_db_volume_raid_create_cap_get(err_msg, supported_raid_types,
-                                         supported_raid_type_count,
-                                         supported_strip_sizes,
-                                         supported_strip_size_count),
+    _good(_db_volume_raid_create_cap_get(
+              err_msg, supported_raid_types, supported_raid_type_count,
+              supported_strip_sizes, supported_strip_size_count),
           rc, out);
 
- out:
+out:
     if (rc != LSM_ERR_OK)
         lsm_log_error_basic(c, rc, err_msg);
     return rc;
 }
 
 int volume_raid_create(lsm_plugin_ptr c, const char *name,
-                       lsm_volume_raid_type raid_type,
-                       lsm_disk * disks[], uint32_t disk_count,
-                       uint32_t strip_size, lsm_volume ** new_volume,
-                       lsm_flag flags)
-{
+                       lsm_volume_raid_type raid_type, lsm_disk *disks[],
+                       uint32_t disk_count, uint32_t strip_size,
+                       lsm_volume **new_volume, lsm_flag flags) {
     int rc = LSM_ERR_OK;
     sqlite3 *db = NULL;
     char err_msg[_LSM_ERR_MSG_LEN];
@@ -271,13 +272,13 @@ int volume_raid_create(lsm_plugin_ptr c, const char *name,
         goto out;
     }
 
-    sim_disk_ids = (uint64_t *) malloc(sizeof(uint64_t) * disk_count);
+    sim_disk_ids = (uint64_t *)malloc(sizeof(uint64_t) * disk_count);
     _alloc_null_check(err_msg, sim_disk_ids, rc, out);
 
     for (i = 0; i < disk_count; ++i) {
         sim_disk_id = _db_lsm_id_to_sim_id(lsm_disk_id_get(disks[i]));
-        _good(_db_sim_disk_of_sim_id(err_msg, db, sim_disk_id, &sim_disk),
-              rc, out);
+        _good(_db_sim_disk_of_sim_id(err_msg, db, sim_disk_id, &sim_disk), rc,
+              out);
 
         if (strlen(lsm_hash_string_get(sim_disk, "role")) != 0) {
             lsm_hash_free(sim_disk);
@@ -294,12 +295,10 @@ int volume_raid_create(lsm_plugin_ptr c, const char *name,
     _snprintf_buff(err_msg, rc, out, pool_name, "RAID Pool for volume %s",
                    name);
 
-    _good(_db_pool_create_from_disk(err_msg, db, pool_name,
-                                    sim_disk_ids, disk_count,
-                                    raid_type,
-                                    LSM_POOL_ELEMENT_TYPE_VOLUME,
-                                    0 /* No unsupported_actions */,
-                                    &sim_pool_id, strip_size),
+    _good(_db_pool_create_from_disk(
+              err_msg, db, pool_name, sim_disk_ids, disk_count, raid_type,
+              LSM_POOL_ELEMENT_TYPE_VOLUME, 0 /* No unsupported_actions */,
+              &sim_pool_id, strip_size),
           rc, out);
     if (_db_sim_pool_of_sim_id(err_msg, db, sim_pool_id, &sim_pool) !=
         LSM_ERR_OK) {
@@ -309,10 +308,11 @@ int volume_raid_create(lsm_plugin_ptr c, const char *name,
     }
 
     _good(_str_to_uint64(err_msg, lsm_hash_string_get(sim_pool, "free_space"),
-                         &all_size), rc, out);
-
-    _good(_volume_create_internal(err_msg, db, name, all_size, sim_pool_id),
+                         &all_size),
           rc, out);
+
+    _good(_volume_create_internal(err_msg, db, name, all_size, sim_pool_id), rc,
+          out);
     sim_vol_id = _db_last_rowid(db);
     _good(_db_data_update(err_msg, db, _DB_TABLE_VOLS, sim_vol_id,
                           "is_hw_raid_vol", "1"),
@@ -328,7 +328,7 @@ int volume_raid_create(lsm_plugin_ptr c, const char *name,
 
     _good(_db_sql_trans_commit(err_msg, db), rc, out);
 
- out:
+out:
     if (sim_disk != NULL)
         lsm_hash_free(sim_disk);
     if (sim_pool != NULL)
